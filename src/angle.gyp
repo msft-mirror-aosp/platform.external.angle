@@ -31,15 +31,15 @@
             }],
             ['OS=="linux" and use_x11==1 and chromeos==0',
             {
-                'angle_enable_gl%': 1,
+                'angle_enable_gl%': 0,
             }],
             ['OS=="mac"',
             {
-                'angle_enable_gl%': 1,
+                'angle_enable_gl%': 0,
             }],
             ['use_ozone==1',
             {
-                'angle_enable_gl%': 1,
+                'angle_enable_gl%': 0,
             }],
         ],
     },
