@@ -10,7 +10,6 @@
 
 #include <float.h>
 #include <limits.h>
-#include <algorithm>
 
 #include "compiler/translator/Intermediate.h"
 #include "compiler/translator/SymbolTable.h"

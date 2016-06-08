@@ -4,8 +4,6 @@
 // found in the LICENSE file.
 //
 
-#include <algorithm>
-
 #include "angle_gl.h"
 
 #include "compiler/translator/VariablePacker.h"

@@ -18,7 +18,6 @@
 
 #include "GLSLANG/ShaderLang.h"
 
-#include <algorithm>
 #include <queue>
 
 #include "common/angleutils.h"
