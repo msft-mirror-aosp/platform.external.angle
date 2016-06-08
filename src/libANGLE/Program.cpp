@@ -9,8 +9,6 @@
 
 #include "libANGLE/Program.h"
 
-#include <algorithm>
-
 #include "common/BitSetIterator.h"
 #include "common/debug.h"
 #include "common/platform.h"

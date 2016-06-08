@@ -12,7 +12,6 @@
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
-#include <algorithm>
 #include <vector>
 
 #include "common/mathutil.h"

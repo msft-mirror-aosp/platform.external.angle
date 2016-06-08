@@ -12,7 +12,6 @@
 
 #include <string>
 #include <vector>
-#include <algorithm>
 
 // Assume ShaderLang.h is included before ShaderVars.h, for sh::GLenum
 // Note: make sure to increment ANGLE_SH_VERSION when changing ShaderVars.h
