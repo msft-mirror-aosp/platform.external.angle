@@ -116,6 +116,8 @@ int MapSpecToShaderVersion(ShShaderSpec spec)
       case SH_GLES3_SPEC:
       case SH_WEBGL2_SPEC:
         return 300;
+      case SH_GLES31_SPEC:
+        return 310;
       default:
         UNREACHABLE();
         return 0;
@@ -402,11 +404,13 @@ bool TCompiler::compile(const char* const shaderStrings[],
 
     if (root)
     {
-        if (compileOptions & SH_INTERMEDIATE_TREE)
+        if (compileOptions & SH_INTERMEDIATE_TREE) {
             TIntermediate::outputTree(root, infoSink.info);
+        }
 
-        if (compileOptions & SH_OBJECT_CODE)
+        if (compileOptions & SH_OBJECT_CODE) {
             translate(root, compileOptions);
+        }
 
         // The IntermNode tree doesn't need to be deleted here, since the
         // memory will be freed in a big chunk by the PoolAllocator.
@@ -441,6 +445,10 @@ bool TCompiler::InitBuiltInSymbolTable(const ShBuiltInResources &resources)
     {
       case GL_FRAGMENT_SHADER:
         symbolTable.setDefaultPrecision(integer, EbpMedium);
+        break;
+      case GL_COMPUTE_SHADER:
+        symbolTable.setDefaultPrecision(integer, EbpHigh);
+        symbolTable.setDefaultPrecision(floatingPoint, EbpHigh);
         break;
       case GL_VERTEX_SHADER:
         symbolTable.setDefaultPrecision(integer, EbpHigh);
@@ -500,6 +508,7 @@ void TCompiler::setResourceString()
               << ":EXT_frag_depth:" << compileResources.EXT_frag_depth
               << ":EXT_shader_texture_lod:" << compileResources.EXT_shader_texture_lod
               << ":EXT_shader_framebuffer_fetch:" << compileResources.EXT_shader_framebuffer_fetch
+              << ":EXT_gpu_shader5:" << compileResources.EXT_gpu_shader5
               << ":NV_shader_framebuffer_fetch:" << compileResources.NV_shader_framebuffer_fetch
               << ":ARM_shader_framebuffer_fetch:" << compileResources.ARM_shader_framebuffer_fetch
               << ":MaxVertexOutputVectors:" << compileResources.MaxVertexOutputVectors

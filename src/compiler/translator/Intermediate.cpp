@@ -53,13 +53,15 @@ TIntermTyped *TIntermediate::addBinaryMath(
 
     node->setLeft(left);
     node->setRight(right);
-    if (!node->promote(mInfoSink))
+    if (!node->promote(mInfoSink)) {
         return NULL;
+    }
 
     // See if we can fold constants.
     TIntermTyped *foldedNode = node->fold(mInfoSink);
-    if (foldedNode)
+    if (foldedNode) {
         return foldedNode;
+    }
 
     return node;
 }

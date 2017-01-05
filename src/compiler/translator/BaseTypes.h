@@ -297,17 +297,23 @@ enum TQualifier
     EvqVaryingIn,   // readonly, fragment shaders only
     EvqVaryingOut,  // vertex shaders only  read/write
     EvqUniform,     // Readonly, vertex and fragment
+    EvqBuffer,      // R/W SSBO
 
     EvqVertexIn,     // Vertex shader input
     EvqFragmentOut,  // Fragment shader output
     EvqVertexOut,    // Vertex shader output
     EvqFragmentIn,   // Fragment shader input
+    EvqComputeIn,    // Compute shader input
+    EvqComputeOut,   // Compute shader output
 
     // parameters
     EvqIn,
     EvqOut,
     EvqInOut,
     EvqConstReadOnly,
+    EvqOutput,
+    EvqInput,
+    EvqInputOutput,
 
     // built-ins read by vertex shader
     EvqInstanceID,
@@ -326,6 +332,14 @@ enum TQualifier
     EvqFragColor,
     EvqFragData,
 
+    // built-ins read by compute shader
+    EvqNumWorkGroups,
+    EvqWorkGroupSize,
+    EvqWorkGroupID,
+    EvqLocalInvocationID,
+    EvqGlobalInvocationID,
+    EvqLocalInvocationIndex,
+    
     EvqFragDepth,     // gl_FragDepth for ESSL300.
     EvqFragDepthEXT,  // gl_FragDepthEXT for ESSL100, EXT_frag_depth.
 
@@ -362,7 +376,8 @@ enum TLayoutBlockStorage
     EbsUnspecified,
     EbsShared,
     EbsPacked,
-    EbsStd140
+    EbsStd140,
+    EbsStd430
 };
 
 struct TLayoutQualifier
@@ -370,6 +385,10 @@ struct TLayoutQualifier
     int location;
     TLayoutMatrixPacking matrixPacking;
     TLayoutBlockStorage blockStorage;
+    int local_size_x;
+    int local_size_y;
+    int local_size_z;
+    int binding;
 
     static TLayoutQualifier create()
     {
@@ -378,6 +397,12 @@ struct TLayoutQualifier
         layoutQualifier.location = -1;
         layoutQualifier.matrixPacking = EmpUnspecified;
         layoutQualifier.blockStorage = EbsUnspecified;
+
+        layoutQualifier.local_size_x = -1;
+        layoutQualifier.local_size_y = -1;
+        layoutQualifier.local_size_z = -1;
+        
+        layoutQualifier.binding = -1;
 
         return layoutQualifier;
     }
@@ -403,13 +428,19 @@ inline const char* getQualifierString(TQualifier q)
     case EvqVaryingIn:              return "varying";
     case EvqVaryingOut:             return "varying";
     case EvqUniform:                return "uniform";
+    case EvqBuffer:                 return "buffer";
     case EvqVertexIn:               return "in";
     case EvqFragmentOut:            return "out";
     case EvqVertexOut:              return "out";
     case EvqFragmentIn:             return "in";
+    case EvqComputeOut:             return "out";
+    case EvqComputeIn:              return "in";
     case EvqIn:                     return "in";
     case EvqOut:                    return "out";
     case EvqInOut:                  return "inout";
+    case EvqOutput:                 return "Output";
+    case EvqInput:                  return "Input";
+    case EvqInputOutput:            return "InputOutput";
     case EvqConstReadOnly:          return "const";
     case EvqInstanceID:             return "InstanceID";
     case EvqVertexID:               return "VertexID";
@@ -432,6 +463,12 @@ inline const char* getQualifierString(TQualifier q)
     case EvqSmoothIn:               return "smooth in";
     case EvqFlatIn:                 return "flat in";
     case EvqCentroidIn:             return "centroid in";
+    case EvqNumWorkGroups:          return "NumWorkGroups";
+    case EvqWorkGroupSize:          return "WorkGroupSize";
+    case EvqWorkGroupID:            return "WorkGroupID";
+    case EvqLocalInvocationID:      return "LocalInvocationID";
+    case EvqGlobalInvocationID:     return "GlobalInvocationID";
+    case EvqLocalInvocationIndex:   return "LocalInvocationIndex";
     default: UNREACHABLE();         return "unknown qualifier";
     }
     // clang-format on
@@ -456,6 +493,7 @@ inline const char* getBlockStorageString(TLayoutBlockStorage bsq)
     case EbsShared:         return "shared";
     case EbsPacked:         return "packed";
     case EbsStd140:         return "std140";
+    case EbsStd430:         return "std430";
     default: UNREACHABLE(); return "unknown block storage";
     }
 }

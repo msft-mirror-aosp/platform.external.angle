@@ -16,7 +16,11 @@ TString arrayBrackets(const TType &type)
 {
     ASSERT(type.isArray());
     TInfoSinkBase out;
-    out << "[" << type.getArraySize() << "]";
+    if (type.isUnsizedArray()) {
+        out << "[]";
+    } else {
+        out << "[" << type.getArraySize() << "]";
+    }
     return TString(out.c_str());
 }
 
@@ -1077,6 +1081,15 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
       case EOpMul:
         writeBuiltInFunctionTriplet(visit, "matrixCompMult(", useEmulatedFunction);
         break;
+      case EOpFrExp:
+        writeBuiltInFunctionTriplet(visit, "frexp(", useEmulatedFunction);
+        break;
+      case EOpLdExp:
+        writeBuiltInFunctionTriplet(visit, "ldexp(", useEmulatedFunction);
+        break;
+      case EOpFMA:
+        writeBuiltInFunctionTriplet(visit, "fma(", useEmulatedFunction);
+        break;
 
       default:
         UNREACHABLE();
@@ -1316,44 +1329,71 @@ void TOutputGLSLBase::declareInterfaceBlockLayout(const TInterfaceBlock *interfa
 
     out << "layout(";
 
-    switch (interfaceBlock->blockStorage())
-    {
-        case EbsUnspecified:
-        case EbsShared:
-            // Default block storage is shared.
-            out << "shared";
-            break;
+    if (interfaceBlock->isComputeInterfaceBlock()) {
+        bool needComma = false;
+        if (interfaceBlock->localSizeX() != -1) {
+            out << "local_size_x = " << interfaceBlock->localSizeX();
+            needComma = true;
+        }
+        if (interfaceBlock->localSizeY() != -1) {
+            if (needComma) {
+                out << ", ";
+            }
+            out << "local_size_y = " << interfaceBlock->localSizeY();
+            needComma = true;
+        }
+        if (interfaceBlock->localSizeZ() != -1) {
+            if (needComma) {
+                out << ", ";
+            }
+            out << "local_size_z = " << interfaceBlock->localSizeZ();
+        }
+    } else if (interfaceBlock->isBufferStorage()) {
+        out << "binding = " << interfaceBlock->bufferBinding();
+    } else {
+        switch (interfaceBlock->blockStorage())
+        {
+            case EbsUnspecified:
+            case EbsShared:
+                // Default block storage is shared.
+                out << "shared";
+                break;
 
-        case EbsPacked:
-            out << "packed";
-            break;
+            case EbsPacked:
+                out << "packed";
+                break;
 
-        case EbsStd140:
-            out << "std140";
-            break;
+            case EbsStd140:
+                out << "std140";
+                break;
 
-        default:
-            UNREACHABLE();
-            break;
-    }
+            case EbsStd430:
+                out << "std430";
+                break;
 
-    out << ", ";
+            default:
+                UNREACHABLE();
+                break;
+        }
 
-    switch (interfaceBlock->matrixPacking())
-    {
-        case EmpUnspecified:
-        case EmpColumnMajor:
-            // Default matrix packing is column major.
-            out << "column_major";
-            break;
+        out << ", ";
 
-        case EmpRowMajor:
-            out << "row_major";
-            break;
+        switch (interfaceBlock->matrixPacking())
+        {
+            case EmpUnspecified:
+            case EmpColumnMajor:
+                // Default matrix packing is column major.
+                out << "column_major";
+                break;
 
-        default:
-            UNREACHABLE();
-            break;
+            case EmpRowMajor:
+                out << "row_major";
+                break;
+
+            default:
+                UNREACHABLE();
+                break;
+        }
     }
 
     out << ") ";
@@ -1362,7 +1402,7 @@ void TOutputGLSLBase::declareInterfaceBlockLayout(const TInterfaceBlock *interfa
 void TOutputGLSLBase::declareInterfaceBlock(const TInterfaceBlock *interfaceBlock)
 {
     TInfoSinkBase &out = objSink();
-
+    if (!interfaceBlock->hasFields()) return;
     out << hashName(interfaceBlock->name()) << "{\n";
     const TFieldList &fields = interfaceBlock->fields();
     for (size_t i = 0; i < fields.size(); ++i)

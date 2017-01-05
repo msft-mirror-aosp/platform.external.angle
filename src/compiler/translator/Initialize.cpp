@@ -62,9 +62,14 @@ void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInR
     symbolTable.insertBuiltIn(COMMON_BUILTINS, EOpSqrt, genType, "sqrt", genType);
     symbolTable.insertBuiltIn(COMMON_BUILTINS, EOpInverseSqrt, genType, "inversesqrt", genType);
 
+    symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpFrExp, genType, "frexp", genType, genIType);
+    symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpLdExp, genType, "ldexp", genType, genIType);
+
     //
     // Common Functions.
     //
+    symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpFMA, genType, "fma", genType, genType, genType);
+
     symbolTable.insertBuiltIn(COMMON_BUILTINS, EOpAbs, genType, "abs", genType);
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpAbs, genIType, "abs", genIType);
     symbolTable.insertBuiltIn(COMMON_BUILTINS, EOpSign, genType, "sign", genType);
@@ -488,6 +493,22 @@ void IdentifyBuiltIns(sh::GLenum type, ShShaderSpec spec,
     //
     switch (type)
     {
+      case GL_COMPUTE_SHADER:
+        symbolTable.insert(COMMON_BUILTINS, new TVariable(NewPoolTString("gl_NumWorkGroups"),
+                    TType(EbtUInt,  EbpHigh, EvqNumWorkGroups, 3)));
+        symbolTable.insert(COMMON_BUILTINS, new TVariable(NewPoolTString("gl_WorkGroupSize"),
+                    TType(EbtUInt,  EbpHigh, EvqWorkGroupSize, 3)));
+        symbolTable.insert(COMMON_BUILTINS, new TVariable(NewPoolTString("gl_WorkGroupID"),
+                    TType(EbtUInt,  EbpHigh, EvqWorkGroupID, 3)));
+
+        symbolTable.insert(COMMON_BUILTINS, new TVariable(NewPoolTString("gl_LocalInvocationID"),
+                    TType(EbtUInt,  EbpHigh, EvqLocalInvocationID, 3)));
+        symbolTable.insert(COMMON_BUILTINS, new TVariable(NewPoolTString("gl_GlobalInvocationID"),
+                    TType(EbtUInt,  EbpHigh, EvqGlobalInvocationID, 3)));
+
+        symbolTable.insert(COMMON_BUILTINS, new TVariable(NewPoolTString("gl_LocalInvocationIndex"),
+                    TType(EbtUInt,  EbpHigh, EvqLocalInvocationIndex, 1)));
+        break;
       case GL_FRAGMENT_SHADER:
         symbolTable.insert(COMMON_BUILTINS, new TVariable(NewPoolTString("gl_FragCoord"),
             TType(EbtFloat, EbpMedium, EvqFragCoord, 4)));
@@ -608,6 +629,8 @@ void InitExtensionBehavior(const ShBuiltInResources& resources,
         extBehavior["GL_EXT_shader_texture_lod"] = EBhUndefined;
     if (resources.EXT_shader_framebuffer_fetch)
         extBehavior["GL_EXT_shader_framebuffer_fetch"] = EBhUndefined;
+    if (resources.EXT_gpu_shader5)
+        extBehavior["GL_EXT_gpu_shader5"] = EBhUndefined;
     if (resources.NV_shader_framebuffer_fetch)
         extBehavior["GL_NV_shader_framebuffer_fetch"] = EBhUndefined;
     if (resources.ARM_shader_framebuffer_fetch)

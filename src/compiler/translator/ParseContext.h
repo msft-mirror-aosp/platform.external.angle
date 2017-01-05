@@ -232,7 +232,8 @@ class TParseContext : angle::NonCopyable
                                                const TSourceLoc &initLocation,
                                                TIntermTyped *initializer);
 
-    void parseGlobalLayoutQualifier(const TPublicType &typeQualifier);
+    TIntermAggregate *parseGlobalLayoutQualifier(const TPublicType &typeQualifier);
+    TIntermAggregate* addComputeInterfaceBlockDecl(int localSizeX, int localSizeY, int localSizeZ);
     TIntermAggregate *addFunctionPrototypeDeclaration(const TFunction &function,
                                                       const TSourceLoc &location);
     TIntermAggregate *addFunctionDefinition(const TFunction &function,
@@ -373,6 +374,7 @@ class TParseContext : angle::NonCopyable
                                          // ESSL1.
     TLayoutMatrixPacking mDefaultMatrixPacking;
     TLayoutBlockStorage mDefaultBlockStorage;
+
     TString mHashErrMsg;
     TDiagnostics mDiagnostics;
     TDirectiveHandler mDirectiveHandler;

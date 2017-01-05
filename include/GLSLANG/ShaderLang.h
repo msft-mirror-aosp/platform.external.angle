@@ -57,6 +57,8 @@ typedef enum {
   SH_GLES3_SPEC = 0x8B86,
   SH_WEBGL2_SPEC = 0x8B87,
 
+  SH_GLES31_SPEC = 0x8B88,
+
   // The CSS Shaders spec is a subset of the WebGL spec.
   //
   // In both CSS vertex and fragment shaders, ANGLE:
@@ -265,6 +267,7 @@ typedef struct
     int EXT_shader_framebuffer_fetch;
     int NV_shader_framebuffer_fetch;
     int ARM_shader_framebuffer_fetch;
+    int EXT_gpu_shader5;
 
     // Set to 1 to enable replacing GL_EXT_draw_buffers #extension directives
     // with GL_NV_draw_buffers in ESSL output. This flag can be used to emulate

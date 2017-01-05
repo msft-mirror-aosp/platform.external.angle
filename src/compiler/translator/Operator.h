@@ -106,7 +106,10 @@ enum TOperator
     EOpLog2,
     EOpSqrt,
     EOpInverseSqrt,
+    EOpFrExp,
+    EOpLdExp,
 
+    EOpFMA,
     EOpAbs,
     EOpSign,
     EOpFloor,
