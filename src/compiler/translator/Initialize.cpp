@@ -18,6 +18,7 @@
 
 void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInResources &resources, TSymbolTable &symbolTable)
 {
+    const TType *voidType = TCache::getType(EbtVoid);
     const TType *float1 = TCache::getType(EbtFloat);
     const TType *float2 = TCache::getType(EbtFloat, 2);
     const TType *float3 = TCache::getType(EbtFloat, 3);
@@ -31,6 +32,8 @@ void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInR
     const TType *genIType = TCache::getType(EbtGenIType);
     const TType *genUType = TCache::getType(EbtGenUType);
     const TType *genBType = TCache::getType(EbtGenBType);
+    const TType *outGenUType = TCache::getType(EbtGenUType, EvqOut);
+    const TType *outGenIType = TCache::getType(EbtGenIType, EvqOut);
 
     //
     // Angle and Trigonometric Functions.
@@ -62,14 +65,14 @@ void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInR
     symbolTable.insertBuiltIn(COMMON_BUILTINS, EOpSqrt, genType, "sqrt", genType);
     symbolTable.insertBuiltIn(COMMON_BUILTINS, EOpInverseSqrt, genType, "inversesqrt", genType);
 
-    symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpFrExp, genType, "frexp", genType, genIType);
-    symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpLdExp, genType, "ldexp", genType, genIType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpFrExp, genType, "frexp", genType, outGenIType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpLdExp, genType, "ldexp", genType, genIType);
+
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpFMA, genType, "fma", genType, genType, genType);
 
     //
     // Common Functions.
     //
-    symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpFMA, genType, "fma", genType, genType, genType);
-
     symbolTable.insertBuiltIn(COMMON_BUILTINS, EOpAbs, genType, "abs", genType);
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpAbs, genIType, "abs", genIType);
     symbolTable.insertBuiltIn(COMMON_BUILTINS, EOpSign, genType, "sign", genType);
@@ -131,6 +134,32 @@ void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInR
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpUnpackSnorm2x16, float2, "unpackSnorm2x16", uint1);
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpUnpackUnorm2x16, float2, "unpackUnorm2x16", uint1);
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, EOpUnpackHalf2x16, float2, "unpackHalf2x16", uint1);
+
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpPackSnorm4x8, uint1, "packSnorm4x8", float4);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpPackUnorm4x8, uint1, "packSnorm4x8", float4);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpUnpackSnorm4x8, float4, "packSnorm4x8", uint1);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpUnpackUnorm4x8, float4, "packSnorm4x8", uint1);
+
+    //
+    // Integer functions
+    //
+
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpBitfieldExtract, genIType, "bitfieldExtract", genIType, int1, int1);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpBitfieldExtract, genUType, "bitfieldExtract", genUType, int1, int1);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpBitfieldInsert, genIType, "bitfieldInsert", genIType, genIType, int1, int1);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpBitfieldInsert, genUType, "bitfieldInsert", genUType, genUType, int1, int1);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpBitfieldReverse, genIType, "bitfieldReverse", genIType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpBitfieldReverse, genUType, "bitfieldReverse", genUType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpBitCount, genIType, "bitCount", genIType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpBitCount, genIType, "bitCount", genUType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpFindLSB, genIType, "findLSB", genIType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpFindLSB, genIType, "findLSB", genUType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpFindMSB, genIType, "findMSB", genIType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpFindMSB, genIType, "findMSB", genUType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpUaddCarry, genUType, "uaddCarry", genUType, genUType, outGenUType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpUsubBorrow, genUType, "usubBorrow", genUType, genUType, outGenUType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpUmulExtended, voidType, "umulExtended", genUType, genUType, outGenUType, outGenUType);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, EOpImulExtended, voidType, "imulExtended", genIType, genIType, outGenIType, outGenIType);
 
     //
     // Geometric Functions.

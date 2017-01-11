@@ -670,6 +670,19 @@ bool TOutputGLSLBase::visitUnary(Visit visit, TIntermUnary *node)
         preString = "unpackHalf2x16(";
         break;
 
+      case EOpPackSnorm4x8:
+        preString = "packSnorm4x8(";
+        break;
+      case EOpPackUnorm4x8:
+        preString = "packUnorm4x8(";
+        break;
+      case EOpUnpackSnorm4x8:
+        preString = "unpackSnorm4x8(";
+        break;
+      case EOpUnpackUnorm4x8:
+        preString = "unpackUnorm4x8(";
+        break;
+
       case EOpLength:
         preString = "length(";
         break;
@@ -702,6 +715,19 @@ bool TOutputGLSLBase::visitUnary(Visit visit, TIntermUnary *node)
         break;
       case EOpAll:
         preString = "all(";
+        break;
+
+      case EOpBitfieldReverse:
+        preString = "bitfieldReverse(";
+        break;
+      case EOpBitCount:
+        preString = "bitCount(";
+        break;
+      case EOpFindLSB:
+        preString = "findLSB(";
+        break;
+      case EOpFindMSB:
+        preString = "findMSB(";
         break;
 
       default:
@@ -1089,6 +1115,48 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
         break;
       case EOpFMA:
         writeBuiltInFunctionTriplet(visit, "fma(", useEmulatedFunction);
+        break;
+      case EOpPackSnorm4x8:
+        writeBuiltInFunctionTriplet(visit, "packSnorm4x8(", useEmulatedFunction);
+        break;
+      case EOpPackUnorm4x8:
+        writeBuiltInFunctionTriplet(visit, "packUnorm4x8(", useEmulatedFunction);
+        break;
+      case EOpUnpackSnorm4x8:
+        writeBuiltInFunctionTriplet(visit, "unpackSnorm4x8(", useEmulatedFunction);
+        break;
+      case EOpUnpackUnorm4x8:
+        writeBuiltInFunctionTriplet(visit, "unpackUnorm4x8(", useEmulatedFunction);
+        break;
+      case EOpBitfieldExtract:
+        writeBuiltInFunctionTriplet(visit, "bitfieldExtract(", useEmulatedFunction);
+        break;
+      case EOpBitfieldInsert:
+        writeBuiltInFunctionTriplet(visit, "bitfieldInsert(", useEmulatedFunction);
+        break;
+      case EOpBitfieldReverse:
+        writeBuiltInFunctionTriplet(visit, "bitfieldReverse(", useEmulatedFunction);
+        break;
+      case EOpBitCount:
+        writeBuiltInFunctionTriplet(visit, "bitCount(", useEmulatedFunction);
+        break;
+      case EOpFindLSB:
+        writeBuiltInFunctionTriplet(visit, "findLSB(", useEmulatedFunction);
+        break;
+      case EOpFindMSB:
+        writeBuiltInFunctionTriplet(visit, "findMSB(", useEmulatedFunction);
+        break;
+      case EOpUaddCarry:
+        writeBuiltInFunctionTriplet(visit, "uaddCarry(", useEmulatedFunction);
+        break;
+      case EOpUsubBorrow:
+        writeBuiltInFunctionTriplet(visit, "usubBorrow(", useEmulatedFunction);
+        break;
+      case EOpUmulExtended:
+        writeBuiltInFunctionTriplet(visit, "umulExtended(", useEmulatedFunction);
+        break;
+      case EOpImulExtended:
+        writeBuiltInFunctionTriplet(visit, "imulExtended(", useEmulatedFunction);
         break;
 
       default:

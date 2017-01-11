@@ -428,6 +428,7 @@ bool TCompiler::InitBuiltInSymbolTable(const ShBuiltInResources &resources)
     symbolTable.push();   // COMMON_BUILTINS
     symbolTable.push();   // ESSL1_BUILTINS
     symbolTable.push();   // ESSL3_BUILTINS
+    symbolTable.push();   // ESSL31_BUILTINS
 
     TPublicType integer;
     integer.type = EbtInt;
