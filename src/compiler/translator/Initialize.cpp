@@ -333,6 +333,7 @@ void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInR
     const TType *gsamplerCube = TCache::getType(EbtGSamplerCube);
     const TType *gsampler3D = TCache::getType(EbtGSampler3D);
     const TType *gsampler2DArray = TCache::getType(EbtGSampler2DArray);
+    const TType *gsampler2DMS = TCache::getType(EbtGSampler2DMS);
 
     //
     // Texture Functions for GLSL ES 3.0
@@ -349,6 +350,11 @@ void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInR
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "textureLod", gsamplerCube, float3, float1);
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "textureLod", gsampler2DArray, float3, float1);
 
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, gvec4, "texture", gsampler2DMS, float2);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, gvec4, "textureProj", gsampler2DMS, float3);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, gvec4, "textureProj", gsampler2DMS, float4);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, gvec4, "textureLod", gsampler2DMS, float2, float1);
+
     if (type == GL_FRAGMENT_SHADER)
     {
         symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "texture", gsampler2D, float2, float1);
@@ -358,6 +364,10 @@ void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInR
         symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "textureProj", gsampler2D, float3, float1);
         symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "textureProj", gsampler2D, float4, float1);
         symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "textureProj", gsampler3D, float4, float1);
+
+        symbolTable.insertBuiltIn(ESSL31_BUILTINS, gvec4, "texture", gsampler2DMS, float2, float1);
+        symbolTable.insertBuiltIn(ESSL31_BUILTINS, gvec4, "textureProj", gsampler2DMS, float3, float1);
+        symbolTable.insertBuiltIn(ESSL31_BUILTINS, gvec4, "textureProj", gsampler2DMS, float4, float1);
     }
 
     const TType *sampler2DShadow = TCache::getType(EbtSampler2DShadow);
@@ -384,6 +394,8 @@ void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInR
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, int2, "textureSize", sampler2DShadow, int1);
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, int2, "textureSize", samplerCubeShadow, int1);
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, int3, "textureSize", sampler2DArrayShadow, int1);
+
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, int2, "textureSize", gsampler2DMS);
 
     if (type == GL_FRAGMENT_SHADER)
     {
@@ -436,6 +448,8 @@ void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInR
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "texelFetch", gsampler2D, int2, int1);
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "texelFetch", gsampler3D, int3, int1);
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "texelFetch", gsampler2DArray, int3, int1);
+
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, gvec4, "texelFetch", gsampler2DMS, int2, int1);
 
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "texelFetchOffset", gsampler2D, int2, int1, int2);
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, gvec4, "texelFetchOffset", gsampler3D, int3, int1, int3);

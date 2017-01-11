@@ -33,7 +33,7 @@
 #define FLEX_SCANNER
 #define YY_FLEX_MAJOR_VERSION 2
 #define YY_FLEX_MINOR_VERSION 5
-#define YY_FLEX_SUBMINOR_VERSION 39
+#define YY_FLEX_SUBMINOR_VERSION 35
 #if YY_FLEX_SUBMINOR_VERSION > 0
 #define FLEX_BETA
 #endif
@@ -79,6 +79,7 @@ typedef int flex_int32_t;
 typedef unsigned char flex_uint8_t; 
 typedef unsigned short int flex_uint16_t;
 typedef unsigned int flex_uint32_t;
+#endif /* ! C99 */
 
 /* Limits of integral types. */
 #ifndef INT8_MIN
@@ -108,8 +109,6 @@ typedef unsigned int flex_uint32_t;
 #ifndef UINT32_MAX
 #define UINT32_MAX             (4294967295U)
 #endif
-
-#endif /* ! C99 */
 
 #endif /* ! FLEXINT_H */
 
@@ -184,15 +183,7 @@ typedef void* yyscan_t;
 
 /* Size of default input buffer. */
 #ifndef YY_BUF_SIZE
-#ifdef __ia64__
-/* On IA-64, the buffer size is 16k, not 8k.
- * Moreover, YY_BUF_SIZE is 2*YY_READ_BUF_SIZE in the general case.
- * Ditto for the __ia64__ case accordingly.
- */
-#define YY_BUF_SIZE 32768
-#else
 #define YY_BUF_SIZE 16384
-#endif /* __ia64__ */
 #endif
 
 /* The state buf must be large enough to hold one state per character in the main buffer.
@@ -202,11 +193,6 @@ typedef void* yyscan_t;
 #ifndef YY_TYPEDEF_YY_BUFFER_STATE
 #define YY_TYPEDEF_YY_BUFFER_STATE
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
-#endif
-
-#ifndef YY_TYPEDEF_YY_SIZE_T
-#define YY_TYPEDEF_YY_SIZE_T
-typedef size_t yy_size_t;
 #endif
 
 #ifndef YY_TYPEDEF_YY_SIZE_T
@@ -230,13 +216,6 @@ typedef size_t yy_size_t;
                 yy_size_t yyl;\
                 for ( yyl = n; yyl < yyleng; ++yyl )\
                     if ( yytext[yyl] == '\n' )\
-                        --yylineno;\
-            }while(0)
-    #define YY_LINENO_REWIND_TO(dst) \
-            do {\
-                const char *p;\
-                for ( p = yy_cp-1; p >= (dst); --p)\
-                    if ( *p == '\n' )\
                         --yylineno;\
             }while(0)
     
@@ -384,7 +363,7 @@ void yyfree (void * ,yyscan_t yyscanner );
 
 /* Begin user sect3 */
 
-#define yywrap(yyscanner) 1
+#define yywrap(n) 1
 #define YY_SKIP_YYWRAP
 
 typedef unsigned char YY_CHAR;
@@ -463,53 +442,53 @@ static yyconst flex_int16_t yy_accept[825] =
       178,   26,  160,  178,  178,  178,   51,   52,   53,  178,
       178,  178,  178,  178,  178,  178,  178,  178,  178,  178,
 
-       87,  178,  178,  178,  178,  178,  178,  178,  154,  178,
+       90,  178,  178,  178,  178,  178,  178,  178,  154,  178,
       178,  178,  178,  178,  178,  178,  178,  178,  178,  178,
       139,  178,  178,  177,   57,   58,   59,  178,  178,   15,
-      178,   92,  178,  178,    9,  178,  178,   90,  178,  178,
-      178,  155,  150,   93,  178,  178,  178,  178,  178,  178,
-      145,  178,  178,  178,   79,   39,   42,   44,   43,   40,
+      178,   95,  178,  178,    9,  178,  178,   93,  178,  178,
+      178,  155,  150,   96,  178,  178,  178,  178,  178,  178,
+      145,  178,  178,  178,   82,   39,   42,   44,   43,   40,
        46,   45,   47,   41,  178,  178,  178,  178,  161,  136,
-      178,  178,  148,  178,  178,  178,   35,   88,  174,   23,
-      149,   78,  178,  159,   18,  178,  178,  178,  178,  178,
+      178,  178,  148,  178,  178,  178,   35,   91,  174,   23,
+      149,   81,  178,  159,   18,  178,  178,  178,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  178,  178,   20,
 
-       34,  178,  178,  178,  178,  178,  178,   94,   95,   96,
+       34,  178,  178,  178,  178,  178,  178,   97,   98,   99,
       178,  178,  178,  178,  178,    3,  178,  178,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  141,  178,  178,
       178,  178,  178,    8,  178,  178,   10,  178,  178,  178,
-      178,   21,   80,   12,  151,   98,   99,  100,  178,  178,
+      178,   21,   83,   12,  151,  101,  102,  103,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  178,  178,  178,
-      146,  178,  178,  178,   82,   84,   81,  178,  178,  178,
-      178,  178,  178,  178,  142,  102,  103,  104,  178,  178,
+      146,  178,  178,  178,   85,   87,   84,  178,  178,  178,
+      178,  178,  178,  178,  142,  105,  106,  107,  178,  178,
       158,  178,  147,  178,  178,    6,  178,  178,  178,  178,
-      178,  178,  178,  178,  178,   97,  152,    1,  178,  178,
+      178,  178,  178,  178,  178,  100,  152,    1,  178,  178,
 
-      178,  178,  178,  176,  178,   91,    5,  171,   60,   63,
+      178,  178,  178,  176,  178,   94,    5,  171,   60,   63,
       178,  178,  178,  178,  178,  178,  178,  178,  178,  178,
-      178,  178,  178,   83,  178,  178,  178,  178,  101,  178,
-      178,  178,  178,  178,  121,   67,   68,  178,  178,  178,
+      178,  178,  178,   86,  178,  178,  178,  178,  104,  178,
+      178,  178,  178,  178,  124,   68,   69,  178,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  178,  178,  178,
-       89,  178,  178,  178,  105,  123,   71,   72,  178,  178,
-       85,  178,  178,  178,  178,  178,  178,  178,  116,  178,
-      178,  178,  178,  178,  178,  178,  178,  178,  178,  130,
+       92,  178,  178,  178,  108,  126,   73,   75,  178,  178,
+       88,  178,  178,  178,  178,  178,  178,  178,  119,  178,
+      178,  178,  178,  178,  178,  178,  178,  178,  178,   67,
       178,  178,  178,  178,   61,  178,  178,  178,  178,  178,
-      178,  178,  178,  178,  178,  178,  178,  117,  106,  178,
+      178,  178,  178,  178,  178,  178,  178,  120,  109,  178,
 
-      107,  178,  178,  178,  131,  178,  178,   69,  178,  178,
+      110,  178,  178,  178,   72,  178,  178,   70,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  178,  178,  178,
-      178,  118,  178,  178,  132,  178,  178,   73,  108,  109,
-      178,  112,  178,  113,  178,  178,  178,  178,  178,   86,
-      178,  178,  178,  178,   65,  178,   64,  127,  178,  178,
-      110,  111,  178,  178,  178,  178,  178,  178,  178,  178,
-      178,  178,  125,  128,  119,  178,   66,  178,  178,  178,
-      178,  178,  178,  178,  178,  126,  129,  178,  178,  122,
-       70,  178,  178,  172,  178,  178,  178,   75,  178,  178,
-      124,   74,  178,  178,  178,  178,  178,  178,  133,  178,
+      178,  121,  178,  178,   74,  178,  178,   76,  111,  112,
+      178,  115,  178,  116,  178,  178,  178,  178,  178,   89,
+      178,  178,  178,  178,   65,  178,   64,  130,  178,  178,
+      113,  114,  178,  178,  178,  178,  178,  178,  178,  178,
+      178,  178,  128,  131,  122,  178,   66,  178,  178,  178,
+      178,  178,  178,  178,  178,  129,  132,  178,  178,  125,
+       71,  178,  178,  172,  178,  178,  178,   78,  178,  178,
+      127,   77,  178,  178,  178,  178,  178,  178,  133,  178,
 
-      178,  178,  178,  178,  178,  134,  178,  178,  178,   76,
-      178,  135,  114,  115,  178,  178,  178,   62,  178,  178,
-      173,  120,   77,    0
+      178,  178,  178,  178,  178,  134,  178,  178,  178,   79,
+      178,  135,  117,  118,  178,  178,  178,   62,  178,  178,
+      173,  123,   80,    0
     } ;
 
 static yyconst flex_int32_t yy_ec[256] =
@@ -1067,6 +1046,7 @@ static int reserved_word(yyscan_t yyscanner);
 static int ES2_reserved_ES3_keyword(TParseContext *context, int token);
 static int ES2_keyword_ES3_reserved(TParseContext *context, int token);
 static int ES2_ident_ES3_keyword(TParseContext *context, int token);
+static int ES2_ident_ES31_keyword(TParseContext *context, int token);
 static int uint_constant(TParseContext *context);
 static int int_constant(TParseContext *context);
 static int float_constant(yyscan_t yyscanner);
@@ -1156,10 +1136,6 @@ int yyget_lineno (yyscan_t yyscanner );
 
 void yyset_lineno (int line_number ,yyscan_t yyscanner );
 
-int yyget_column  (yyscan_t yyscanner );
-
-void yyset_column (int column_no ,yyscan_t yyscanner );
-
 YYSTYPE * yyget_lval (yyscan_t yyscanner );
 
 void yyset_lval (YYSTYPE * yylval_param ,yyscan_t yyscanner );
@@ -1200,12 +1176,7 @@ static int input (yyscan_t yyscanner );
 
 /* Amount of stuff to slurp up with each read. */
 #ifndef YY_READ_BUF_SIZE
-#ifdef __ia64__
-/* On IA-64, the buffer size is 16k, not 8k */
-#define YY_READ_BUF_SIZE 16384
-#else
 #define YY_READ_BUF_SIZE 8192
-#endif /* __ia64__ */
 #endif
 
 /* Copy whatever the last rule matched to the standard output. */
@@ -1213,7 +1184,7 @@ static int input (yyscan_t yyscanner );
 /* This used to be an fputs(), but since the string might contain NUL's,
  * we now use fwrite().
  */
-#define ECHO do { if (fwrite( yytext, yyleng, 1, yyout )) {} } while (0)
+#define ECHO fwrite( yytext, yyleng, 1, yyout )
 #endif
 
 /* Gets input and stuffs it into "buf".  number of characters read, or YY_NULL,
@@ -1224,7 +1195,7 @@ static int input (yyscan_t yyscanner );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		size_t n; \
+		yy_size_t n; \
 		for ( n = 0; n < max_size && \
 			     (c = getc( yyin )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
@@ -1309,6 +1280,8 @@ YY_DECL
 	register int yy_act;
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
 
+    TParseContext* context = yyextra;
+
     yylval = yylval_param;
 
     yylloc = yylloc_param;
@@ -1339,10 +1312,6 @@ YY_DECL
 		yy_load_buffer_state(yyscanner );
 		}
 
-	{
-
-    TParseContext* context = yyextra;
-
 	while ( 1 )		/* loops until end-of-file is reached */
 		{
 		yy_cp = yyg->yy_c_buf_p;
@@ -1359,7 +1328,7 @@ YY_DECL
 yy_match:
 		do
 			{
-			register YY_CHAR yy_c = yy_ec[YY_SC_TO_UI(*yy_cp)] ;
+			register YY_CHAR yy_c = yy_ec[YY_SC_TO_UI(*yy_cp)];
 			if ( yy_accept[yy_current_state] )
 				{
 				yyg->yy_last_accepting_state = yy_current_state;
@@ -1672,60 +1641,69 @@ YY_RULE_SETUP
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, ISAMPLER2D); }
+{ return ES2_ident_ES31_keyword(context, SAMPLER2DMS); }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, ISAMPLER3D); }
+{ return ES2_ident_ES3_keyword(context, ISAMPLER2D); }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, ISAMPLERCUBE); }
+{ return ES2_ident_ES3_keyword(context, ISAMPLER3D); }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, ISAMPLER2DARRAY); }
+{ return ES2_ident_ES3_keyword(context, ISAMPLERCUBE); }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, USAMPLER2D); }
+{ return ES2_ident_ES3_keyword(context, ISAMPLER2DARRAY); }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, USAMPLER3D); }
+{ return ES2_ident_ES31_keyword(context, ISAMPLER2DMS); }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, USAMPLERCUBE); }
+{ return ES2_ident_ES3_keyword(context, USAMPLER2D); }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, USAMPLER2DARRAY); }
+{ return ES2_ident_ES31_keyword(context, USAMPLER2DMS); }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-{ return ES2_reserved_ES3_keyword(context, SAMPLER2DSHADOW); }
+{ return ES2_ident_ES3_keyword(context, USAMPLER3D); }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, SAMPLERCUBESHADOW); }
+{ return ES2_ident_ES3_keyword(context, USAMPLERCUBE); }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, SAMPLER2DARRAYSHADOW); }
+{ return ES2_ident_ES3_keyword(context, USAMPLER2DARRAY); }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-{ return STRUCT; }
+{ return ES2_reserved_ES3_keyword(context, SAMPLER2DSHADOW); }
 	YY_BREAK
 case 79:
+YY_RULE_SETUP
+{ return ES2_ident_ES3_keyword(context, SAMPLERCUBESHADOW); }
+	YY_BREAK
+case 80:
+YY_RULE_SETUP
+{ return ES2_ident_ES3_keyword(context, SAMPLER2DARRAYSHADOW); }
+	YY_BREAK
+case 81:
+YY_RULE_SETUP
+{ return STRUCT; }
+	YY_BREAK
+case 82:
 YY_RULE_SETUP
 { return ES2_ident_ES3_keyword(context, LAYOUT); }
 	YY_BREAK
 /* Reserved keywords for GLSL ES 3.00 that are not reserved for GLSL ES 1.00 */
-case 80:
-case 81:
-case 82:
 case 83:
 case 84:
 case 85:
@@ -2247,7 +2225,6 @@ ECHO;
 			"fatal flex scanner internal error--no action found" );
 	} /* end of action switch */
 		} /* end of scanning one token */
-	} /* end of user's declarations */
 } /* end of yylex */
 
 /* yy_get_next_buffer - try to read in a new buffer
@@ -2311,7 +2288,7 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 			{ /* Not enough room in the buffer - grow it. */
 
 			/* just a shorter name for the current buffer */
-			YY_BUFFER_STATE b = YY_CURRENT_BUFFER_LVALUE;
+			YY_BUFFER_STATE b = YY_CURRENT_BUFFER;
 
 			int yy_c_buf_p_offset =
 				(int) (yyg->yy_c_buf_p - b->yy_ch_buf);
@@ -2446,7 +2423,6 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 	yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
 	yy_is_jam = (yy_current_state == 824);
 
-	(void)yyg;
 	return yy_is_jam ? 0 : yy_current_state;
 }
 
@@ -2499,7 +2475,7 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 				case EOB_ACT_END_OF_FILE:
 					{
 					if ( yywrap(yyscanner ) )
-						return EOF;
+						return 0;
 
 					if ( ! yyg->yy_did_buffer_switch_on_eof )
 						YY_NEW_FILE;
@@ -2855,8 +2831,8 @@ YY_BUFFER_STATE yy_scan_string (yyconst char * yystr , yyscan_t yyscanner)
 
 /** Setup the input buffer state to scan the given bytes. The next call to yylex() will
  * scan from a @e copy of @a bytes.
- * @param yybytes the byte buffer to scan
- * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
+ * @param bytes the byte buffer to scan
+ * @param len the number of bytes in the buffer pointed to by @a bytes.
  * @param yyscanner The scanner object.
  * @return the newly allocated buffer state object.
  */
@@ -2864,8 +2840,7 @@ YY_BUFFER_STATE yy_scan_bytes  (yyconst char * yybytes, yy_size_t  _yybytes_len 
 {
 	YY_BUFFER_STATE b;
 	char *buf;
-	yy_size_t n;
-	yy_size_t i;
+	yy_size_t n, i;
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
 	n = _yybytes_len + 2;
@@ -3011,7 +2986,7 @@ void yyset_lineno (int  line_number , yyscan_t yyscanner)
 
         /* lineno is only valid if an input buffer exists. */
         if (! YY_CURRENT_BUFFER )
-           YY_FATAL_ERROR( "yyset_lineno called with no buffer" );
+           yy_fatal_error( "yyset_lineno called with no buffer" , yyscanner); 
     
     yylineno = line_number;
 }
@@ -3026,7 +3001,7 @@ void yyset_column (int  column_no , yyscan_t yyscanner)
 
         /* column is only valid if an input buffer exists. */
         if (! YY_CURRENT_BUFFER )
-           YY_FATAL_ERROR( "yyset_column called with no buffer" );
+           yy_fatal_error( "yyset_column called with no buffer" , yyscanner); 
     
     yycolumn = column_no;
 }
@@ -3332,6 +3307,21 @@ int ES2_ident_ES3_keyword(TParseContext *context, int token)
 
     // not a reserved word in GLSL ES 1.00, so could be used as an identifier/type name
     if (context->getShaderVersion() < 300)
+    {
+        yylval->lex.string = NewPoolTString(yytext);
+        return check_type(yyscanner);
+    }
+
+    return token;
+}
+
+int ES2_ident_ES31_keyword(TParseContext *context, int token)
+{
+    struct yyguts_t* yyg = (struct yyguts_t*) context->getScanner();
+    yyscan_t yyscanner = (yyscan_t) context->getScanner();
+
+    // not a reserved word in GLSL ES 1.00, so could be used as an identifier/type name
+    if (context->getShaderVersion() < 310)
     {
         yylval->lex.string = NewPoolTString(yytext);
         return check_type(yyscanner);

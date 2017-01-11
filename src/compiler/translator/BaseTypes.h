@@ -61,14 +61,17 @@ enum TBasicType
     EbtSampler2DArray,
     EbtSamplerExternalOES,  // Only valid if OES_EGL_image_external exists.
     EbtSampler2DRect,       // Only valid if GL_ARB_texture_rectangle exists.
+    EbtSampler2DMS,         // Multisampler
     EbtISampler2D,
     EbtISampler3D,
     EbtISamplerCube,
     EbtISampler2DArray,
+    EbtISampler2DMS,        // Integer multisampler
     EbtUSampler2D,
     EbtUSampler3D,
     EbtUSamplerCube,
     EbtUSampler2DArray,
+    EbtUSampler2DMS,        // Unsigned integer multisampler
     EbtSampler2DShadow,
     EbtSamplerCubeShadow,
     EbtSampler2DArrayShadow,
@@ -77,6 +80,7 @@ enum TBasicType
     EbtGSampler3D,         // non type: represents sampler3D, isampler3D, and usampler3D
     EbtGSamplerCube,       // non type: represents samplerCube, isamplerCube, and usamplerCube
     EbtGSampler2DArray,    // non type: represents sampler2DArray, isampler2DArray, and usampler2DArray
+    EbtGSampler2DMS,       // non type: represents sampler2DMS, isampler2DMS, and usampler2DMS
     EbtStruct,
     EbtInterfaceBlock,
     EbtAddress,            // should be deprecated??
@@ -100,10 +104,12 @@ inline bool IsIntegerSampler(TBasicType type)
       case EbtISampler3D:
       case EbtISamplerCube:
       case EbtISampler2DArray:
+      case EbtISampler2DMS:
       case EbtUSampler2D:
       case EbtUSampler3D:
       case EbtUSamplerCube:
       case EbtUSampler2DArray:
+      case EbtUSampler2DMS:
         return true;
       case EbtSampler2D:
       case EbtSampler3D:
@@ -111,6 +117,7 @@ inline bool IsIntegerSampler(TBasicType type)
       case EbtSamplerExternalOES:
       case EbtSampler2DRect:
       case EbtSampler2DArray:
+      case EbtSampler2DMS:
       case EbtSampler2DShadow:
       case EbtSamplerCubeShadow:
       case EbtSampler2DArrayShadow:
@@ -130,8 +137,11 @@ inline bool IsSampler2D(TBasicType type)
       case EbtISampler2D:
       case EbtUSampler2D:
       case EbtSampler2DArray:
+      case EbtSampler2DMS:
       case EbtISampler2DArray:
       case EbtUSampler2DArray:
+      case EbtISampler2DMS:
+      case EbtUSampler2DMS:
       case EbtSampler2DRect:
       case EbtSamplerExternalOES:
       case EbtSampler2DShadow:
@@ -166,12 +176,15 @@ inline bool IsSamplerCube(TBasicType type)
       case EbtSamplerExternalOES:
       case EbtSampler2DRect:
       case EbtSampler2DArray:
+      case EbtSampler2DMS:
       case EbtISampler2D:
       case EbtISampler3D:
       case EbtISampler2DArray:
+      case EbtISampler2DMS:
       case EbtUSampler2D:
       case EbtUSampler3D:
       case EbtUSampler2DArray:
+      case EbtUSampler2DMS:
       case EbtSampler2DShadow:
       case EbtSampler2DArrayShadow:
         return false;
@@ -195,12 +208,15 @@ inline bool IsSampler3D(TBasicType type)
       case EbtSamplerExternalOES:
       case EbtSampler2DRect:
       case EbtSampler2DArray:
+      case EbtSampler2DMS:
       case EbtISampler2D:
       case EbtISamplerCube:
       case EbtISampler2DArray:
+      case EbtISampler2DMS:
       case EbtUSampler2D:
       case EbtUSamplerCube:
       case EbtUSampler2DArray:
+      case EbtUSampler2DMS:
       case EbtSampler2DShadow:
       case EbtSamplerCubeShadow:
       case EbtSampler2DArrayShadow:
@@ -222,8 +238,11 @@ inline bool IsSamplerArray(TBasicType type)
       case EbtSampler2DArrayShadow:
         return true;
       case EbtSampler2D:
+      case EbtSampler2DMS:
       case EbtISampler2D:
       case EbtUSampler2D:
+      case EbtISampler2DMS:
+      case EbtUSampler2DMS:
       case EbtSampler2DRect:
       case EbtSamplerExternalOES:
       case EbtSampler3D:
@@ -254,16 +273,19 @@ inline bool IsShadowSampler(TBasicType type)
       case EbtISampler3D:
       case EbtISamplerCube:
       case EbtISampler2DArray:
+      case EbtISampler2DMS:
       case EbtUSampler2D:
       case EbtUSampler3D:
       case EbtUSamplerCube:
       case EbtUSampler2DArray:
+      case EbtUSampler2DMS:
       case EbtSampler2D:
       case EbtSampler3D:
       case EbtSamplerCube:
       case EbtSamplerExternalOES:
       case EbtSampler2DRect:
       case EbtSampler2DArray:
+      case EbtSampler2DMS:
         return false;
       default:
         assert(!IsSampler(type));

@@ -30,14 +30,17 @@ const char* getBasicString(TBasicType t)
       case EbtSamplerExternalOES:   return "samplerExternalOES";   break;
       case EbtSampler2DRect:        return "sampler2DRect";        break;
       case EbtSampler2DArray:       return "sampler2DArray";       break;
+      case EbtSampler2DMS:          return "sampler2DMS";       break;
       case EbtISampler2D:           return "isampler2D";           break;
       case EbtISampler3D:           return "isampler3D";           break;
       case EbtISamplerCube:         return "isamplerCube";         break;
       case EbtISampler2DArray:      return "isampler2DArray";      break;
+      case EbtISampler2DMS:         return "isampler2DMS";      break;
       case EbtUSampler2D:           return "usampler2D";           break;
       case EbtUSampler3D:           return "usampler3D";           break;
       case EbtUSamplerCube:         return "usamplerCube";         break;
       case EbtUSampler2DArray:      return "usampler2DArray";      break;
+      case EbtUSampler2DMS:         return "usampler2DMS";      break;
       case EbtSampler2DShadow:      return "sampler2DShadow";      break;
       case EbtSamplerCubeShadow:    return "samplerCubeShadow";    break;
       case EbtSampler2DArrayShadow: return "sampler2DArrayShadow"; break;
@@ -119,6 +122,9 @@ TString TType::buildMangledName() const
       case EbtSampler2DArray:
         mangledName += "s2a";
         break;
+      case EbtSampler2DMS:
+        mangledName += "s2ms";
+        break;
       case EbtSamplerExternalOES:
         mangledName += "sext";
         break;
@@ -137,6 +143,9 @@ TString TType::buildMangledName() const
       case EbtISampler2DArray:
         mangledName += "is2a";
         break;
+      case EbtISampler2DMS:
+        mangledName += "is2ms";
+        break;
       case EbtUSampler2D:
         mangledName += "us2";
         break;
@@ -148,6 +157,9 @@ TString TType::buildMangledName() const
         break;
       case EbtUSampler2DArray:
         mangledName += "us2a";
+        break;
+      case EbtUSampler2DMS:
+        mangledName += "us2ms";
         break;
       case EbtSampler2DShadow:
         mangledName += "s2s";

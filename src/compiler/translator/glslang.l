@@ -71,6 +71,7 @@ static int reserved_word(yyscan_t yyscanner);
 static int ES2_reserved_ES3_keyword(TParseContext *context, int token);
 static int ES2_keyword_ES3_reserved(TParseContext *context, int token);
 static int ES2_ident_ES3_keyword(TParseContext *context, int token);
+static int ES2_ident_ES31_keyword(TParseContext *context, int token);
 static int uint_constant(TParseContext *context);
 static int int_constant(TParseContext *context);
 static int float_constant(yyscan_t yyscanner);
@@ -172,11 +173,14 @@ O           [0-7]
 "sampler3DRect"        { return ES2_reserved_ES3_keyword(context, SAMPLER3DRECT); }
 "sampler2DRect"        { return SAMPLER2DRECT; }
 "sampler2DArray"       { return ES2_ident_ES3_keyword(context, SAMPLER2DARRAY); }
+"sampler2DMS"          { return ES2_ident_ES31_keyword(context, SAMPLER2DMS); }
 "isampler2D"           { return ES2_ident_ES3_keyword(context, ISAMPLER2D); }
 "isampler3D"           { return ES2_ident_ES3_keyword(context, ISAMPLER3D); }
 "isamplerCube"         { return ES2_ident_ES3_keyword(context, ISAMPLERCUBE); }
 "isampler2DArray"      { return ES2_ident_ES3_keyword(context, ISAMPLER2DARRAY); }
+"isampler2DMS"         { return ES2_ident_ES31_keyword(context, ISAMPLER2DMS); }
 "usampler2D"           { return ES2_ident_ES3_keyword(context, USAMPLER2D); }
+"usampler2DMS"         { return ES2_ident_ES31_keyword(context, USAMPLER2DMS); }
 "usampler3D"           { return ES2_ident_ES3_keyword(context, USAMPLER3D); }
 "usamplerCube"         { return ES2_ident_ES3_keyword(context, USAMPLERCUBE); }
 "usampler2DArray"      { return ES2_ident_ES3_keyword(context, USAMPLER2DARRAY); }
@@ -241,9 +245,6 @@ O           [0-7]
 "samplerBuffer"     |
 "isamplerBuffer"    |
 "usamplerBuffer"    |
-"sampler2DMS"       |
-"isampler2DMS"      |
-"usampler2DMS"      |
 "sampler2DMSArray"  |
 "isampler2DMSArray" |
 "usampler2DMSArray" { 
@@ -473,6 +474,21 @@ int ES2_ident_ES3_keyword(TParseContext *context, int token)
 
     // not a reserved word in GLSL ES 1.00, so could be used as an identifier/type name
     if (context->getShaderVersion() < 300)
+    {
+        yylval->lex.string = NewPoolTString(yytext);
+        return check_type(yyscanner);
+    }
+
+    return token;
+}
+
+int ES2_ident_ES31_keyword(TParseContext *context, int token)
+{
+    struct yyguts_t* yyg = (struct yyguts_t*) context->getScanner();
+    yyscan_t yyscanner = (yyscan_t) context->getScanner();
+
+    // not a reserved word in GLSL ES 1.00, so could be used as an identifier/type name
+    if (context->getShaderVersion() < 310)
     {
         yylval->lex.string = NewPoolTString(yytext);
         return check_type(yyscanner);
