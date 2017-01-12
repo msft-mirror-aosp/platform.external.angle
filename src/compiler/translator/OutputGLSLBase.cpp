@@ -95,14 +95,32 @@ void TOutputGLSLBase::writeBuiltInFunctionTriplet(
 
 void TOutputGLSLBase::writeLayoutQualifier(const TType &type)
 {
+    const TLayoutQualifier &layoutQualifier = type.getLayoutQualifier();
+    TInfoSinkBase &out = objSink();
+
     if (type.getQualifier() == EvqFragmentOut || type.getQualifier() == EvqVertexIn)
     {
-        const TLayoutQualifier &layoutQualifier = type.getLayoutQualifier();
         if (layoutQualifier.location >= 0)
         {
-            TInfoSinkBase &out = objSink();
             out << "layout(location = " << layoutQualifier.location << ") ";
         }
+    }
+
+    if (type.getBasicType() == EbtInterfaceBlock)
+        return;
+
+    if (layoutQualifier.binding >= 0)
+    {
+        out << "layout(binding = " << layoutQualifier.binding;
+        if (layoutQualifier.offset >= 0)
+        {
+            out << ", offset = " << layoutQualifier.offset;
+        }
+        out << ") ";
+    }
+    else if (layoutQualifier.offset >= 0)
+    {
+        out << "layout(offset = " << layoutQualifier.offset << ") ";
     }
 }
 
@@ -1416,9 +1434,16 @@ void TOutputGLSLBase::declareInterfaceBlockLayout(const TInterfaceBlock *interfa
             }
             out << "local_size_z = " << interfaceBlock->localSizeZ();
         }
-    } else if (interfaceBlock->isBufferStorage()) {
-        out << "binding = " << interfaceBlock->bufferBinding();
     } else {
+        if (interfaceBlock->isBufferStorage()) {
+            out << "binding = " << interfaceBlock->bufferBinding();
+            out << ", ";
+        }
+
+        if (interfaceBlock->hasBufferOffset()) {
+            out << "offset = " << interfaceBlock->bufferOffset();
+            out << ", ";
+        }
         switch (interfaceBlock->blockStorage())
         {
             case EbsUnspecified:

@@ -195,7 +195,8 @@ class TInterfaceBlock : public TFieldListCollection
           mLocalSizeX(layoutQualifier.local_size_x),
           mLocalSizeY(layoutQualifier.local_size_y),
           mLocalSizeZ(layoutQualifier.local_size_z),
-          mBinding(layoutQualifier.binding)
+          mBinding(layoutQualifier.binding),
+          mOffset(layoutQualifier.offset)
     {
     }
 
@@ -223,11 +224,15 @@ class TInterfaceBlock : public TFieldListCollection
     bool isBufferStorage() const {
         return mBinding != -1;
     }
+    bool hasBufferOffset() const {
+        return mOffset != -1;
+    }
     int localSizeX() const { return mLocalSizeX; }
     int localSizeY() const { return mLocalSizeY; }
     int localSizeZ() const { return mLocalSizeZ; }
 
     int bufferBinding() const { return mBinding; }
+    int bufferOffset() const { return mOffset; }
 
     TLayoutBlockStorage blockStorage() const
     {
@@ -253,6 +258,7 @@ class TInterfaceBlock : public TFieldListCollection
     int mLocalSizeY;
     int mLocalSizeZ;
     int mBinding;
+    int mOffset;
 };
 
 //

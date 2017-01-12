@@ -141,7 +141,7 @@ extern void yyerror(YYLTYPE* yylloc, TParseContext* context, void *scanner, cons
 %}
 
 %token <lex> INVARIANT HIGH_PRECISION MEDIUM_PRECISION LOW_PRECISION PRECISION
-%token <lex> ATTRIBUTE CONST_QUAL BOOL_TYPE FLOAT_TYPE INT_TYPE UINT_TYPE
+%token <lex> ATTRIBUTE CONST_QUAL BOOL_TYPE FLOAT_TYPE INT_TYPE UINT_TYPE ATOMIC_UINT_TYPE
 %token <lex> BREAK CONTINUE DO ELSE FOR IF DISCARD RETURN SWITCH CASE DEFAULT
 %token <lex> BVEC2 BVEC3 BVEC4 IVEC2 IVEC3 IVEC4 VEC2 VEC3 VEC4 UVEC2 UVEC3 UVEC4
 %token <lex> MATRIX2 MATRIX3 MATRIX4 IN_QUAL OUT_QUAL INOUT_QUAL OUTPUT_QUAL INPUT_QUAL UNIFORM BUFFER VARYING
@@ -1113,6 +1113,10 @@ type_specifier_nonarray
     | UINT_TYPE {
         TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
         $$.setBasic(EbtUInt, qual, @1);
+    }
+    | ATOMIC_UINT_TYPE {
+        TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
+        $$.setBasic(EbtAtomicUInt, qual, @1);
     }
     | BOOL_TYPE {
         TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;

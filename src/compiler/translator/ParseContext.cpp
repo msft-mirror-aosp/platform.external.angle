@@ -1511,12 +1511,34 @@ TIntermAggregate *TParseContext::parseSingleDeclaration(TPublicType &publicType,
                                                         const TSourceLoc &identifierOrTypeLocation,
                                                         const TString &identifier)
 {
-    TIntermSymbol *symbol =
-        intermediate.addSymbol(0, identifier, TType(publicType), identifierOrTypeLocation);
 
     bool emptyDeclaration = (identifier == "");
 
     mDeferredSingleDeclarationErrorCheck = emptyDeclaration;
+
+    if (publicType.type == EbtAtomicUInt) {
+        // For atomic counter buffers, per 3.10 spec 4.4.6,
+        // inherit offset from default if nonexistent, and
+        // update the default offset for atomic.
+        // This is bc we don't output any global declarations.
+        std::map<int, int>& defaultMap =
+            mDefaultBufferOffsets[EbtAtomicUInt];
+
+        int binding = publicType.layoutQualifier.binding;
+        int offset = publicType.layoutQualifier.offset;
+        if (binding != -1 && offset == -1) {
+            if (defaultMap.find(binding) == defaultMap.end()) {
+                defaultMap[binding] = 0;
+            }
+            publicType.layoutQualifier.offset = defaultMap[binding];
+            defaultMap[binding] += 4;
+        } else if (binding != -1 && offset != -1) {
+            mDefaultBufferOffsets[EbtAtomicUInt][binding] = offset + 4;
+        }
+    }
+
+    TIntermSymbol *symbol =
+        intermediate.addSymbol(0, identifier, TType(publicType), identifierOrTypeLocation);
 
     if (emptyDeclaration)
     {
@@ -1939,6 +1961,14 @@ TIntermAggregate* TParseContext::parseGlobalLayoutQualifier(const TPublicType &t
         layoutQualifier.local_size_z != -1) {
 
         return addComputeInterfaceBlockDecl( layoutQualifier.local_size_x, layoutQualifier.local_size_y, layoutQualifier.local_size_z);
+    }
+
+    if (layoutQualifier.binding != -1 &&
+        layoutQualifier.offset != -1) {
+        TBasicType type;
+        int binding = layoutQualifier.binding;
+        int offset = layoutQualifier.offset;
+        mDefaultBufferOffsets[type][binding] = offset;
     }
 
     return nullptr;
@@ -3215,15 +3245,7 @@ TIntermTyped *TParseContext::addFieldSelectionExpression(TIntermTyped *baseExpre
 TLayoutQualifier TParseContext::parseLayoutQualifier(const TString &qualifierType,
                                                      const TSourceLoc &qualifierTypeLine)
 {
-    TLayoutQualifier qualifier;
-
-    qualifier.location      = -1;
-    qualifier.matrixPacking = EmpUnspecified;
-    qualifier.blockStorage  = EbsUnspecified;
-
-    qualifier.local_size_x      = -1;
-    qualifier.local_size_y      = -1;
-    qualifier.local_size_z      = -1;
+    TLayoutQualifier qualifier = TLayoutQualifier::create();
 
     if (qualifierType == "shared")
     {
@@ -3255,6 +3277,26 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const TString &qualifierTyp
               "location requires an argument");
         recover();
     }
+    else if (qualifierType == "local_size_x" ||
+             qualifierType == "local_size_y" ||
+             qualifierType == "local_size_z")
+    {
+        error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
+              "local_size_(x|y|z) requires an argument");
+        recover();
+    }
+    else if (qualifierType == "binding")
+    {
+        error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
+              "binding requires an argument");
+        recover();
+    }
+    else if (qualifierType == "offset")
+    {
+        error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
+              "offset requires an argument");
+        recover();
+    }
     else
     {
         error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str());
@@ -3270,16 +3312,7 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const TString &qualifierTyp
                                                      int intValue,
                                                      const TSourceLoc &intValueLine)
 {
-    TLayoutQualifier qualifier;
-
-    qualifier.location      = -1;
-    qualifier.matrixPacking = EmpUnspecified;
-    qualifier.blockStorage  = EbsUnspecified;
-
-    qualifier.local_size_x = -1;
-    qualifier.local_size_y = -1;
-    qualifier.local_size_z = -1;
-    qualifier.binding = -1;
+    TLayoutQualifier qualifier = TLayoutQualifier::create();
 
     if (qualifierType == "location")
     {
@@ -3346,10 +3379,28 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const TString &qualifierTyp
             qualifier.binding = intValue;
         }
     }
+    else if (qualifierType == "offset")
+    {
+        if (intValue < 0)
+        {
+            error(intValueLine, "out of range:", intValueString.c_str(),
+                  "offset must be non-negative");
+            recover();
+        }
+        else
+        {
+            qualifier.offset = intValue;
+        }
+    }
     else
     {
-        error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
-              "only location may have arguments");
+        if (mShaderVersion < 310) {
+            error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
+                    "only location may have arguments");
+        } else {
+            error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
+                    "only location/binding/offset/local_size_(x|y|z) may have arguments");
+        }
         recover();
     }
 
@@ -3384,6 +3435,14 @@ TLayoutQualifier TParseContext::joinLayoutQualifiers(TLayoutQualifier leftQualif
     if (rightQualifier.local_size_z != -1)
     {
         joinedQualifier.local_size_z = rightQualifier.local_size_z;
+    }
+    if (rightQualifier.binding != -1)
+    {
+        joinedQualifier.binding = rightQualifier.binding;
+    }
+    if (rightQualifier.offset != -1)
+    {
+        joinedQualifier.offset = rightQualifier.offset;
     }
 
     return joinedQualifier;

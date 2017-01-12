@@ -22,6 +22,7 @@ const char* getBasicString(TBasicType t)
       case EbtVoid:                 return "void";                 break;
       case EbtFloat:                return "float";                break;
       case EbtInt:                  return "int";                  break;
+      case EbtAtomicUInt:           return "atomic_uint";          break;
       case EbtUInt:                 return "uint";                 break;
       case EbtBool:                 return "bool";                 break;
       case EbtSampler2D:            return "sampler2D";            break;

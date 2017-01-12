@@ -447,48 +447,48 @@ static yyconst flex_int16_t yy_accept[825] =
       139,  178,  178,  177,   57,   58,   59,  178,  178,   15,
       178,   95,  178,  178,    9,  178,  178,   93,  178,  178,
       178,  155,  150,   96,  178,  178,  178,  178,  178,  178,
-      145,  178,  178,  178,   82,   39,   42,   44,   43,   40,
+      145,  178,  178,  178,   83,   39,   42,   44,   43,   40,
        46,   45,   47,   41,  178,  178,  178,  178,  161,  136,
       178,  178,  148,  178,  178,  178,   35,   91,  174,   23,
-      149,   81,  178,  159,   18,  178,  178,  178,  178,  178,
+      149,   82,  178,  159,   18,  178,  178,  178,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  178,  178,   20,
 
        34,  178,  178,  178,  178,  178,  178,   97,   98,   99,
       178,  178,  178,  178,  178,    3,  178,  178,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  141,  178,  178,
       178,  178,  178,    8,  178,  178,   10,  178,  178,  178,
-      178,   21,   83,   12,  151,  101,  102,  103,  178,  178,
+      178,   21,   84,   12,  151,  101,  102,  103,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  178,  178,  178,
-      146,  178,  178,  178,   85,   87,   84,  178,  178,  178,
+      146,  178,  178,  178,   86,   88,   85,  178,  178,  178,
       178,  178,  178,  178,  142,  105,  106,  107,  178,  178,
       158,  178,  147,  178,  178,    6,  178,  178,  178,  178,
       178,  178,  178,  178,  178,  100,  152,    1,  178,  178,
 
-      178,  178,  178,  176,  178,   94,    5,  171,   60,   63,
+      178,  178,  178,  176,  178,   94,    5,  171,   61,   64,
       178,  178,  178,  178,  178,  178,  178,  178,  178,  178,
-      178,  178,  178,   86,  178,  178,  178,  178,  104,  178,
-      178,  178,  178,  178,  124,   68,   69,  178,  178,  178,
+      178,  178,  178,   87,  178,  178,  178,  178,  104,  178,
+      178,  178,  178,  178,  124,   69,   70,  178,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  178,  178,  178,
-       92,  178,  178,  178,  108,  126,   73,   75,  178,  178,
-       88,  178,  178,  178,  178,  178,  178,  178,  119,  178,
-      178,  178,  178,  178,  178,  178,  178,  178,  178,   67,
-      178,  178,  178,  178,   61,  178,  178,  178,  178,  178,
+       92,  178,  178,  178,  108,  126,   74,   76,  178,  178,
+       60,  178,  178,  178,  178,  178,  178,  178,  119,  178,
+      178,  178,  178,  178,  178,  178,  178,  178,  178,   68,
+      178,  178,  178,  178,   62,  178,  178,  178,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  120,  109,  178,
 
-      110,  178,  178,  178,   72,  178,  178,   70,  178,  178,
+      110,  178,  178,  178,   73,  178,  178,   71,  178,  178,
       178,  178,  178,  178,  178,  178,  178,  178,  178,  178,
-      178,  121,  178,  178,   74,  178,  178,   76,  111,  112,
+      178,  121,  178,  178,   75,  178,  178,   77,  111,  112,
       178,  115,  178,  116,  178,  178,  178,  178,  178,   89,
-      178,  178,  178,  178,   65,  178,   64,  130,  178,  178,
+      178,  178,  178,  178,   66,  178,   65,  130,  178,  178,
       113,  114,  178,  178,  178,  178,  178,  178,  178,  178,
-      178,  178,  128,  131,  122,  178,   66,  178,  178,  178,
+      178,  178,  128,  131,  122,  178,   67,  178,  178,  178,
       178,  178,  178,  178,  178,  129,  132,  178,  178,  125,
-       71,  178,  178,  172,  178,  178,  178,   78,  178,  178,
-      127,   77,  178,  178,  178,  178,  178,  178,  133,  178,
+       72,  178,  178,  172,  178,  178,  178,   79,  178,  178,
+      127,   78,  178,  178,  178,  178,  178,  178,  133,  178,
 
-      178,  178,  178,  178,  178,  134,  178,  178,  178,   79,
-      178,  135,  117,  118,  178,  178,  178,   62,  178,  178,
-      173,  123,   80,    0
+      178,  178,  178,  178,  178,  134,  178,  178,  178,   80,
+      178,  135,  117,  118,  178,  178,  178,   63,  178,  178,
+      173,  123,   81,    0
     } ;
 
 static yyconst flex_int32_t yy_ec[256] =
@@ -1613,98 +1613,101 @@ YY_RULE_SETUP
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-{ return SAMPLER2D; }
+{ return ES2_ident_ES31_keyword(context, ATOMIC_UINT_TYPE); }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-{ return SAMPLERCUBE; }
+{ return SAMPLER2D; }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-{ return SAMPLER_EXTERNAL_OES; }
+{ return SAMPLERCUBE; }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-{ return ES2_reserved_ES3_keyword(context, SAMPLER3D); }
+{ return SAMPLER_EXTERNAL_OES; }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-{ return ES2_reserved_ES3_keyword(context, SAMPLER3DRECT); }
+{ return ES2_reserved_ES3_keyword(context, SAMPLER3D); }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-{ return SAMPLER2DRECT; }
+{ return ES2_reserved_ES3_keyword(context, SAMPLER3DRECT); }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, SAMPLER2DARRAY); }
+{ return SAMPLER2DRECT; }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-{ return ES2_ident_ES31_keyword(context, SAMPLER2DMS); }
+{ return ES2_ident_ES3_keyword(context, SAMPLER2DARRAY); }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, ISAMPLER2D); }
+{ return ES2_ident_ES31_keyword(context, SAMPLER2DMS); }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, ISAMPLER3D); }
+{ return ES2_ident_ES3_keyword(context, ISAMPLER2D); }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, ISAMPLERCUBE); }
+{ return ES2_ident_ES3_keyword(context, ISAMPLER3D); }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, ISAMPLER2DARRAY); }
+{ return ES2_ident_ES3_keyword(context, ISAMPLERCUBE); }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-{ return ES2_ident_ES31_keyword(context, ISAMPLER2DMS); }
+{ return ES2_ident_ES3_keyword(context, ISAMPLER2DARRAY); }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, USAMPLER2D); }
+{ return ES2_ident_ES31_keyword(context, ISAMPLER2DMS); }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-{ return ES2_ident_ES31_keyword(context, USAMPLER2DMS); }
+{ return ES2_ident_ES3_keyword(context, USAMPLER2D); }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, USAMPLER3D); }
+{ return ES2_ident_ES31_keyword(context, USAMPLER2DMS); }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, USAMPLERCUBE); }
+{ return ES2_ident_ES3_keyword(context, USAMPLER3D); }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, USAMPLER2DARRAY); }
+{ return ES2_ident_ES3_keyword(context, USAMPLERCUBE); }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-{ return ES2_reserved_ES3_keyword(context, SAMPLER2DSHADOW); }
+{ return ES2_ident_ES3_keyword(context, USAMPLER2DARRAY); }
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, SAMPLERCUBESHADOW); }
+{ return ES2_reserved_ES3_keyword(context, SAMPLER2DSHADOW); }
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-{ return ES2_ident_ES3_keyword(context, SAMPLER2DARRAYSHADOW); }
+{ return ES2_ident_ES3_keyword(context, SAMPLERCUBESHADOW); }
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-{ return STRUCT; }
+{ return ES2_ident_ES3_keyword(context, SAMPLER2DARRAYSHADOW); }
 	YY_BREAK
 case 82:
+YY_RULE_SETUP
+{ return STRUCT; }
+	YY_BREAK
+case 83:
 YY_RULE_SETUP
 { return ES2_ident_ES3_keyword(context, LAYOUT); }
 	YY_BREAK
 /* Reserved keywords for GLSL ES 3.00 that are not reserved for GLSL ES 1.00 */
-case 83:
 case 84:
 case 85:
 case 86:

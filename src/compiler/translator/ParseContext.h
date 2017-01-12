@@ -13,6 +13,8 @@
 #include "compiler/translator/SymbolTable.h"
 #include "compiler/preprocessor/Preprocessor.h"
 
+typedef std::map<TBasicType, std::map<int, int> > TypedBufferOffsets;
+
 struct TMatrixFields
 {
     bool wholeRow;
@@ -53,6 +55,7 @@ class TParseContext : angle::NonCopyable
           mFragmentPrecisionHighOnESSL1(false),
           mDefaultMatrixPacking(EmpColumnMajor),
           mDefaultBlockStorage(EbsShared),
+          mDefaultBufferOffsets(),
           mDiagnostics(is),
           mDirectiveHandler(ext,
                             mDiagnostics,
@@ -374,6 +377,7 @@ class TParseContext : angle::NonCopyable
                                          // ESSL1.
     TLayoutMatrixPacking mDefaultMatrixPacking;
     TLayoutBlockStorage mDefaultBlockStorage;
+    TypedBufferOffsets mDefaultBufferOffsets;
 
     TString mHashErrMsg;
     TDiagnostics mDiagnostics;

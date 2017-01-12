@@ -44,6 +44,7 @@ enum TBasicType
     EbtFloat,
     EbtInt,
     EbtUInt,
+    EbtAtomicUInt,
     EbtBool,
     EbtGVec4,              // non type: represents vec4, ivec4, and uvec4
     EbtGenType,            // non type: represents float, vec2, vec3, and vec4
@@ -411,6 +412,7 @@ struct TLayoutQualifier
     int local_size_y;
     int local_size_z;
     int binding;
+    int offset;
 
     static TLayoutQualifier create()
     {
@@ -425,6 +427,7 @@ struct TLayoutQualifier
         layoutQualifier.local_size_z = -1;
         
         layoutQualifier.binding = -1;
+        layoutQualifier.offset = -1;
 
         return layoutQualifier;
     }

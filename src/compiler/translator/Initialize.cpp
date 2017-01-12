@@ -480,6 +480,15 @@ void InsertBuiltInFunctions(sh::GLenum type, ShShaderSpec spec, const ShBuiltInR
     symbolTable.insertBuiltIn(ESSL3_BUILTINS, float1, "textureProjGradOffset", sampler2DShadow, float4, float2, float2, int2);
 
     //
+    // Atomic counter operations
+    //
+    const TType *atomic_uint1 = TCache::getType(EbtAtomicUInt);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, uint1, "atomicCounterIncrement", atomic_uint1);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, uint1, "atomicCounterDecrement", atomic_uint1);
+    symbolTable.insertBuiltIn(ESSL31_BUILTINS, uint1, "atomicCounter", atomic_uint1);
+
+
+    //
     // Depth range in window coordinates
     //
     TFieldList *fields = NewPoolTFieldList();

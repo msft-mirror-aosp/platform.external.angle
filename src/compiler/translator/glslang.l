@@ -166,6 +166,8 @@ O           [0-7]
 "uvec3"        { return ES2_ident_ES3_keyword(context, UVEC3); }
 "uvec4"        { return ES2_ident_ES3_keyword(context, UVEC4); }
 
+"atomic_uint"  { return ES2_ident_ES31_keyword(context, ATOMIC_UINT_TYPE); }
+
 "sampler2D"            { return SAMPLER2D; }
 "samplerCube"          { return SAMPLERCUBE; }
 "samplerExternalOES"   { return SAMPLER_EXTERNAL_OES; }
@@ -198,7 +200,6 @@ O           [0-7]
 "readonly"          |
 "writeonly"         |
 "resource"          |
-"atomic_uint"       |
 "noperspective"     |
 "patch"             |
 "sample"            |
