@@ -2895,7 +2895,14 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
     // to constant fold all constant expressions. Right now we don't allow indexing interface blocks
     // or fragment outputs with expressions that ANGLE is not able to constant fold, even if the
     // index is a constant expression.
-    if (indexExpression->getQualifier() != EvqConst || indexConstantUnion == nullptr)
+    bool shouldDisallowNonConst;
+    if (mShaderVersion < 310)
+        shouldDisallowNonConst =
+            indexExpression->getQualifier() != EvqConst || indexConstantUnion == nullptr;
+    else
+        shouldDisallowNonConst = isExtensionEnabled("EXT_gpu_shader5");
+
+    if (shouldDisallowNonConst)
     {
         if (baseExpression->isInterfaceBlock())
         {
