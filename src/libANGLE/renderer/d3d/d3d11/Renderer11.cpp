@@ -901,10 +901,11 @@ void Renderer11::populateRenderer11DeviceCaps()
 egl::ConfigSet Renderer11::generateConfigs() const
 {
     std::vector<GLenum> colorBufferFormats;
+    fprintf(stderr, "ANGLE: D3D11: %s\n", __FUNCTION__);
 
     // 32-bit supported formats
-    colorBufferFormats.push_back(GL_BGRA8_EXT);
     colorBufferFormats.push_back(GL_RGBA8_OES);
+    colorBufferFormats.push_back(GL_BGRA8_EXT);
 
     // 24-bit supported formats
     colorBufferFormats.push_back(GL_RGB8_OES);
@@ -2965,7 +2966,8 @@ gl::Error Renderer11::copyImage2D(const gl::Framebuffer *framebuffer, const gl::
     ID3D11ShaderResourceView *source = sourceRenderTarget->getBlitShaderResourceView();
     ASSERT(source);
 
-    TextureStorage11_2D *storage11 = GetAs<TextureStorage11_2D>(storage);
+//    TextureStorage11_2D *storage11 = GetAs<TextureStorage11_2D>(storage);
+    TextureStorage11 *storage11 = GetAs<TextureStorage11>(storage);
     ASSERT(storage11);
 
     gl::ImageIndex index = gl::ImageIndex::Make2D(level);

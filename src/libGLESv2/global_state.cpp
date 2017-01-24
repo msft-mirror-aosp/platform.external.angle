@@ -119,6 +119,13 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE, DWORD reason, LPVOID)
 namespace gl
 {
 
+static Lock sGlobalRendererLock;
+
+Lock& getGlobalRendererLock()
+{
+    return sGlobalRendererLock;
+}
+
 Context *GetGlobalContext()
 {
     Current *current = GetCurrentData();
@@ -148,6 +155,10 @@ Context *GetValidGlobalContext()
 
 namespace egl
 {
+
+gl::Context *gCurrentContext;
+Surface *gCurrentReadSurface;
+Surface *gCurrentDrawSurface;
 
 void SetGlobalError(const Error &error)
 {
@@ -231,6 +242,36 @@ gl::Context *GetGlobalContext()
     Current *current = GetCurrentData();
 
     return current->context;
+}
+
+void SetCurDrawSurface(Surface *surface)
+{
+    gCurrentDrawSurface = surface;
+}
+
+Surface *GetCurDrawSurface()
+{
+    return gCurrentDrawSurface;
+}
+
+void SetCurReadSurface(Surface *surface)
+{
+    gCurrentReadSurface = surface;
+}
+
+Surface *GetCurReadSurface()
+{
+    return gCurrentReadSurface;
+}
+
+void SetCurContext(gl::Context *context)
+{
+    gCurrentContext = context;
+}
+
+gl::Context *GetCurContext()
+{
+    return gCurrentContext;
 }
 
 }

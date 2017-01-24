@@ -2019,6 +2019,9 @@ void Context::initExtensionStrings()
 {
     mExtensionStrings = mExtensions.getStrings();
 
+    // Add GL_OES_depth_texture for Emulator
+    mExtensionStrings.push_back("GL_OES_depth_texture");
+
     std::ostringstream combinedStringStream;
     std::copy(mExtensionStrings.begin(), mExtensionStrings.end(), std::ostream_iterator<std::string>(combinedStringStream, " "));
     mExtensionString = combinedStringStream.str();

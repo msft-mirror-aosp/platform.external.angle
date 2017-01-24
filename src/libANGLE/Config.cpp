@@ -58,7 +58,8 @@ Config::Config()
       transparentRedValue(0),
       transparentGreenValue(0),
       transparentBlueValue(0),
-      optimalOrientation(0)
+      optimalOrientation(0),
+      frameBufferTargetAndroid(1)
 {
 }
 
@@ -232,6 +233,7 @@ std::vector<const Config*> ConfigSet::filter(const AttributeMap &attributeMap) c
               case EGL_LEVEL:                     match = config.level >= attributeValue;                             break;
               case EGL_NATIVE_RENDERABLE:         match = config.nativeRenderable == (EGLBoolean)attributeValue;      break;
               case EGL_NATIVE_VISUAL_TYPE:        match = config.nativeVisualType == attributeValue;                  break;
+              case EGL_NATIVE_VISUAL_ID:                                                                              break;
               case EGL_SAMPLES:                   match = config.samples >= attributeValue;                           break;
               case EGL_SAMPLE_BUFFERS:            match = config.sampleBuffers >= attributeValue;                     break;
               case EGL_SURFACE_TYPE:              match = (config.surfaceType & attributeValue) == attributeValue;    break;
@@ -255,6 +257,8 @@ std::vector<const Config*> ConfigSet::filter(const AttributeMap &attributeMap) c
               case EGL_OPTIMAL_SURFACE_ORIENTATION_ANGLE:
                   match = config.optimalOrientation == attributeValue;
                   break;
+              case EGL_RECORDABLE_ANDROID:                                                                            break;
+              case EGL_FRAMEBUFFER_TARGET_ANDROID:match = config.frameBufferTargetAndroid == attributeValue;          break;
               default: UNREACHABLE();
             }
 

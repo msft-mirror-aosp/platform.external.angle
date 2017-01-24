@@ -578,7 +578,8 @@ bool ValidateES2CopyTexImageParameters(ValidationContext *context,
             if (colorbufferFormat != GL_RGBA4 &&
                 colorbufferFormat != GL_RGB5_A1 &&
                 colorbufferFormat != GL_RGBA8_OES &&
-                colorbufferFormat != GL_RGBA32F)
+                colorbufferFormat != GL_RGBA32F &&
+                colorbufferFormat != GL_RGB8_OES)   // this works with Emulator
             {
                 context->handleError(Error(GL_INVALID_OPERATION));
                 return false;
@@ -687,7 +688,8 @@ bool ValidateES2CopyTexImageParameters(ValidationContext *context,
                 colorbufferFormat != GL_RGB5_A1 &&
                 colorbufferFormat != GL_BGRA8_EXT &&
                 colorbufferFormat != GL_RGBA8_OES &&
-                colorbufferFormat != GL_BGR5_A1_ANGLEX)
+                colorbufferFormat != GL_BGR5_A1_ANGLEX &&
+                colorbufferFormat != GL_RGB8_OES)   // this works with Emulator
             {
                 context->handleError(Error(GL_INVALID_OPERATION));
                 return false;
