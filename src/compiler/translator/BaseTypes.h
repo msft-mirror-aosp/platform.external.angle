@@ -405,14 +405,32 @@ enum TLayoutBlockStorage
 
 struct TLayoutQualifier
 {
-    int location = -1;
-    TLayoutMatrixPacking matrixPacking = EmpUnspecified;
-    TLayoutBlockStorage blockStorage = EbsUnspecified;
-    int local_size_x = -1;
-    int local_size_y = -1;
-    int local_size_z = -1;
-    int binding = -1;
-    int offset = -1;
+    int location;
+    TLayoutMatrixPacking matrixPacking;
+    TLayoutBlockStorage blockStorage;
+    int local_size_x;
+    int local_size_y;
+    int local_size_z;
+    int binding;
+    int offset;
+
+    static TLayoutQualifier create()
+    {
+        TLayoutQualifier layoutQualifier;
+
+        layoutQualifier.location = -1;
+        layoutQualifier.matrixPacking = EmpUnspecified;
+        layoutQualifier.blockStorage = EbsUnspecified;
+
+        layoutQualifier.local_size_x = -1;
+        layoutQualifier.local_size_y = -1;
+        layoutQualifier.local_size_z = -1;
+        
+        layoutQualifier.binding = -1;
+        layoutQualifier.offset = -1;
+
+        return layoutQualifier;
+    }
 
     bool isEmpty() const
     {
