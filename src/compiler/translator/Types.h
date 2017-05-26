@@ -516,7 +516,7 @@ class TType
             return secondarySize < right.secondarySize;
         if (array != right.array)
             return array < right.array;
-        if (arraySize != right.arraySize)
+        if (array && (arraySize != right.arraySize))
             return arraySize < right.arraySize;
         if (structure != right.structure)
             return structure < right.structure;
