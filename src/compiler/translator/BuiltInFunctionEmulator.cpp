@@ -180,6 +180,7 @@ void BuiltInFunctionEmulator::MarkBuiltInFunctionsForEmulation(TIntermNode *root
 
 void BuiltInFunctionEmulator::Cleanup()
 {
+    mEmulatedFunctions.clear();
     mFunctions.clear();
 }
 
