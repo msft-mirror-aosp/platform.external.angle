@@ -14,6 +14,7 @@ TOutputESSL::TOutputESSL(TInfoSinkBase &objSink,
                          int shaderVersion,
                          bool forceHighp)
     : TOutputGLSLBase(objSink,
+                      NameSet(),
                       clampingStrategy,
                       hashFunction,
                       nameMap,

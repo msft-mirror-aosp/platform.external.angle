@@ -545,6 +545,32 @@ void TCompiler::clearResults()
     mTemporaryIndex = 0;
 }
 
+const NameSet TCompiler::getAllNames() const {
+    NameSet res;
+
+    for (const auto& elt : getAttributes()) {
+        res.insert(elt.name.c_str());
+    }
+
+    for (const auto& elt : getOutputVariables()) {
+        res.insert(elt.name.c_str());
+    }
+
+    for (const auto& elt : getUniforms()) {
+        res.insert(elt.name.c_str());
+    }
+
+    for (const auto& elt : getVaryings()) {
+        res.insert(elt.name.c_str());
+    }
+
+    for (const auto& elt : getInterfaceBlocks()) {
+        res.insert(elt.name.c_str());
+    }
+
+    return res;
+}
+
 bool TCompiler::initCallDag(TIntermNode *root)
 {
     mCallDag.clear();

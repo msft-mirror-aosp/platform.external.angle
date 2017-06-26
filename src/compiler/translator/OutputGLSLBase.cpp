@@ -55,6 +55,7 @@ bool isSingleStatement(TIntermNode *node)
 }  // namespace
 
 TOutputGLSLBase::TOutputGLSLBase(TInfoSinkBase &objSink,
+                                 const NameSet& nameSet,
                                  ShArrayIndexClampingStrategy clampingStrategy,
                                  ShHashFunction64 hashFunction,
                                  NameMap &nameMap,
@@ -63,6 +64,7 @@ TOutputGLSLBase::TOutputGLSLBase(TInfoSinkBase &objSink,
                                  ShShaderOutput output)
     : TIntermTraverser(true, true, true),
       mObjSink(objSink),
+      mNameSet(nameSet),
       mDeclaringVariables(false),
       mClampingStrategy(clampingStrategy),
       mHashFunction(hashFunction),
@@ -1350,8 +1352,9 @@ TString TOutputGLSLBase::getTypeName(const TType &type)
 
 TString TOutputGLSLBase::hashName(const TString &name)
 {
-    if (mHashFunction == NULL || name.empty())
+    if (mHashFunction == NULL || name.empty()) {
         return name;
+    }
     NameMap::const_iterator it = mNameMap.find(name.c_str());
     if (it != mNameMap.end())
         return it->second.c_str();
@@ -1362,6 +1365,12 @@ TString TOutputGLSLBase::hashName(const TString &name)
 
 TString TOutputGLSLBase::hashVariableName(const TString &name)
 {
+    std::string nameAsStdString(name.c_str(), name.size()) ;
+    if (mayConflictWithCore(nameAsStdString))  {
+        std::string unconflicted = genUnconflictedName(nameAsStdString);
+        mNameMap[nameAsStdString] = unconflicted;
+        return TString(unconflicted.c_str(), unconflicted.size());
+    }
     if (mSymbolTable.findBuiltIn(name, mShaderVersion) != NULL)
         return name;
     return hashName(name);
@@ -1509,4 +1518,50 @@ void TOutputGLSLBase::declareInterfaceBlock(const TInterfaceBlock *interfaceBloc
         out << ";\n";
     }
     out << "}";
+}
+
+static const char* coreBuiltinConflictNames[] = {
+    "texture",
+    "textureProj",
+    "textureLod",
+    "textureProjLod",
+    "textureGrad",
+    "textureProjGrad",
+};
+
+bool TOutputGLSLBase::mayConflictWithCore(const std::string& name) const
+{
+    if (!IsGLSL130OrNewer(mOutput)) return false;
+
+    for (const auto& conflictName : coreBuiltinConflictNames) {
+        if (name == conflictName) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+std::string TOutputGLSLBase::nextCandidate(const std::string& name) {
+    std::ostringstream o;
+    o << "angleVar" << std::hex << mRenameSeed << "_" << name;
+    std::string res = o.str();
+    return res;
+}
+
+bool TOutputGLSLBase::conflictsWithExistingNames(const std::string& name) {
+    if (mNameSet.find(name.c_str()) != mNameSet.end()) {
+        mRenameSeed++;
+        return true;
+    }
+    return false;
+}
+
+std::string TOutputGLSLBase::genUnconflictedName(const std::string& name) {
+    std::string candidate;
+    do {
+        candidate = nextCandidate(name);
+    } while (conflictsWithExistingNames(candidate));
+
+    return candidate;
 }

@@ -9,10 +9,14 @@
 
 #include "compiler/translator/OutputGLSLBase.h"
 
+#include <string>
+#include <vector>
+
 class TOutputGLSL : public TOutputGLSLBase
 {
   public:
     TOutputGLSL(TInfoSinkBase& objSink,
+                const NameSet& nameSet,
                 ShArrayIndexClampingStrategy clampingStrategy,
                 ShHashFunction64 hashFunction,
                 NameMap& nameMap,
