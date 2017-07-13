@@ -314,3 +314,5 @@ EXPORTS
     ANGLEPlatformCurrent            @290
     ANGLEPlatformInitialize         @291
     ANGLEPlatformShutdown           @292
+
+    glGetTexImage                   @319

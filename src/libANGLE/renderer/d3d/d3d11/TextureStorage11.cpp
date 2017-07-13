@@ -673,6 +673,94 @@ gl::Error TextureStorage11::copyToStorage(TextureStorage *destStorage)
     return gl::Error(GL_NO_ERROR);
 }
 
+gl::Error TextureStorage11::getData(const gl::ImageIndex &index, ImageD3D *image,
+	                                const gl::Box *destBox, GLenum type,
+                                    const gl::PixelPackState &pack, uint8_t *pixelData)
+{
+    // TODO: 3d textures
+    ID3D11Resource *resource = nullptr;
+    gl::Error error = getResource(&resource);
+    if (destBox)
+    {
+        fprintf(stderr, "WARNING: reading subtexture data is not supported.\n");
+    }
+    if (error.isError())
+    {
+        return error;
+    }
+    ASSERT(resource);
+
+    UINT srcSubresource = getSubresourceIndex(index);
+    ID3D11DeviceContext *immediateContext = mRenderer->getDeviceContext();
+
+    const d3d11::TextureFormat &d3d11Format = d3d11::GetTextureFormatInfo(
+        image->getInternalFormat(), mRenderer->getRenderer11DeviceCaps());
+    const d3d11::DXGIFormatSize &dxgiFormatInfo =
+        d3d11::GetDXGIFormatSizeInfo(d3d11Format.formatSet->texFormat);
+
+    const size_t outputPixelSize = dxgiFormatInfo.pixelBytes;
+    const size_t rowPitch = outputPixelSize * image->getWidth();
+    ID3D11Texture2D* readTex = nullptr;
+
+    D3D11_MAPPED_SUBRESOURCE mappedSubResource;
+    HRESULT hr = immediateContext->Map(resource, srcSubresource, D3D11_MAP_READ, 0,
+        &mappedSubResource);
+    if (hr != S_OK) {
+        // Not all textures can be easily read from GPU memory.
+        // For those that cannot be read easily, we copy them to a CPU texture
+        // first.
+        ID3D11Device *immediateDevice = mRenderer->getDevice();
+        D3D11_TEXTURE2D_DESC desc;
+        ((ID3D11Texture2D*)resource)->GetDesc(&desc);
+        desc.BindFlags = 0;
+        desc.MiscFlags &= D3D11_RESOURCE_MISC_TEXTURECUBE;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        desc.Usage = D3D11_USAGE_STAGING;
+
+        hr = immediateDevice->CreateTexture2D(&desc, nullptr, &readTex);
+        if (hr != S_OK)
+        {
+            fprintf(stderr, "Read texture failure.\n");
+            return gl::Error(GL_INVALID_OPERATION);
+        }
+        immediateContext->CopyResource(readTex, resource);
+        // After copying, we map the CPU texture and read it.
+        hr = immediateContext->Map(readTex, srcSubresource, D3D11_MAP_READ, 0,
+            &mappedSubResource);
+        if (hr != S_OK)
+        {
+            SafeRelease(readTex);
+            fprintf(stderr, "Read texture failure.\n");
+            return gl::Error(GL_INVALID_OPERATION);
+        }
+    }
+
+    const uint8_t* src = (uint8_t*)mappedSubResource.pData;
+    uint8_t* dst = pixelData;
+    if (mappedSubResource.RowPitch != rowPitch) {
+        for (int h = 0; h < image->getHeight(); h++)
+        {
+            memcpy(dst, src, rowPitch);
+            src += mappedSubResource.RowPitch;
+            dst += rowPitch;
+        }
+    }
+    else
+    {
+        memcpy(dst, src, rowPitch * image->getHeight());
+    }
+    if (readTex)
+    {
+        immediateContext->Unmap(readTex, srcSubresource);
+        SafeRelease(readTex);
+    }
+    else
+    {
+        immediateContext->Unmap(resource, srcSubresource);
+    }
+    return gl::Error(GL_NO_ERROR);
+}
+
 gl::Error TextureStorage11::setData(const gl::ImageIndex &index,
                                     ImageD3D *image,
                                     const gl::Box *destBox,

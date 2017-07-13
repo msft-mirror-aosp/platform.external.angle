@@ -1446,6 +1446,7 @@ __eglMustCastToProperFunctionPointerType EGLAPIENTRY GetProcAddress(const char *
         INSERT_PROC_ADDRESS(gl, GetShaderPrecisionFormat);
         INSERT_PROC_ADDRESS(gl, GetShaderSource);
         INSERT_PROC_ADDRESS(gl, GetString);
+        INSERT_PROC_ADDRESS(gl, GetTexImage);
         INSERT_PROC_ADDRESS(gl, GetTexParameterfv);
         INSERT_PROC_ADDRESS(gl, GetTexParameteriv);
         INSERT_PROC_ADDRESS(gl, GetUniformfv);

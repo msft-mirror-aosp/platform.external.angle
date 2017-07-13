@@ -293,6 +293,11 @@ class Context final : public ValidationContext
                                   GLsizei width,
                                   GLsizei height);
 
+    void getTexImage(GLenum target,
+                     GLint level,
+                     GLenum format,
+                     GLenum type,
+                     GLvoid *pixels);
     void texImage2D(GLenum target,
                     GLint level,
                     GLint internalformat,

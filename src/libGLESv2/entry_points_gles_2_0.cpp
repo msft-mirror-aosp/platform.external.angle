@@ -3420,6 +3420,15 @@ void GL_APIENTRY TexImage2D(GLenum target, GLint level, GLint internalformat, GL
     }
 }
 
+void GL_APIENTRY GetTexImage(GLenum target, GLint level, GLenum format, GLenum type, GLvoid* pixels)
+{
+    Context *context = GetValidGlobalContext();
+    if (context)
+    {
+        context->getTexImage(target, level, format, type, pixels);
+    }
+}
+
 void GL_APIENTRY TexParameterf(GLenum target, GLenum pname, GLfloat param)
 {
     EVENT("(GLenum target = 0x%X, GLenum pname = 0x%X, GLint param = %f)", target, pname, param);

@@ -21,6 +21,7 @@ namespace gl
 {
 struct ImageIndex;
 struct Box;
+struct PixelPackState;
 struct PixelUnpackState;
 }
 
@@ -46,6 +47,8 @@ class TextureStorage : angle::NonCopyable
     virtual gl::Error generateMipmap(const gl::ImageIndex &sourceIndex, const gl::ImageIndex &destIndex) = 0;
 
     virtual gl::Error copyToStorage(TextureStorage *destStorage) = 0;
+    virtual gl::Error getData(const gl::ImageIndex &index, ImageD3D *image, const gl::Box *srcBox, GLenum type,
+                              const gl::PixelPackState &pack, uint8_t *pixelData) = 0;
     virtual gl::Error setData(const gl::ImageIndex &index, ImageD3D *image, const gl::Box *destBox, GLenum type,
                               const gl::PixelUnpackState &unpack, const uint8_t *pixelData) = 0;
 

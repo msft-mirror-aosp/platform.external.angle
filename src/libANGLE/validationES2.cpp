@@ -439,6 +439,7 @@ bool ValidateES2TexImageParameters(Context *context, GLenum target, GLint level,
             // but ANGLE_depth_texture does not
             if (pixels != NULL || level != 0)
             {
+                fprintf(stderr, "ANGLE_depth_texture does not support loading.\n");
                 context->handleError(Error(GL_INVALID_OPERATION));
                 return false;
             }

@@ -10,6 +10,7 @@
 #ifndef GLSLANG_SHADERVARS_H_
 #define GLSLANG_SHADERVARS_H_
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
