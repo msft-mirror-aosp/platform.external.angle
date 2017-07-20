@@ -93,15 +93,6 @@ int TextureStorage9::getLevelCount() const
     return static_cast<int>(mMipLevels) - mTopLevel;
 }
 
-gl::Error TextureStorage9::getData(const gl::ImageIndex &index, ImageD3D *image,
-                                   const gl::Box *srcBox, GLenum type,
-                                   const gl::PixelPackState &pack, uint8_t *pixelData)
-{
-    // TODO
-    UNREACHABLE();
-    return gl::Error(GL_INVALID_OPERATION);
-}
-
 gl::Error TextureStorage9::setData(const gl::ImageIndex &index, ImageD3D *image, const gl::Box *destBox, GLenum type,
                                    const gl::PixelUnpackState &unpack, const uint8_t *pixelData)
 {

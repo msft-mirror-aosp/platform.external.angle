@@ -181,16 +181,13 @@ gl::Error TextureD3D::getImageImpl(const gl::ImageIndex &index,
                                    uint8_t *pixels)
 {
     ImageD3D *image = getImage(index);
-    if (!image || !mTexStorage || image->getWidth() == 0 || image->getHeight() == 0)
+    if (!image || image->getWidth() == 0 || image->getHeight() == 0)
     {
         return gl::Error(GL_NO_ERROR);
     }
-    if (type != GL_TEXTURE_2D) {
-        return gl::Error(GL_NO_ERROR);
-    }
     ASSERT(image);
-    gl::Error ret = mTexStorage->getData(index, image, nullptr, type, pack, pixels);
-    return ret;
+    gl::Box fullImageArea(0, 0, 0, image->getWidth(), image->getHeight(), image->getDepth());
+    return image->saveData(fullImageArea, pack, type, pixels);
 }
 
 gl::Error TextureD3D::setImageImpl(const gl::ImageIndex &index,
@@ -758,7 +755,7 @@ gl::Error TextureD3D_2D::getImage(GLenum target, GLint level, GLenum format, GLe
                                   const gl::PixelPackState &pack, uint8_t *pixels)
 {
     ASSERT(target == GL_TEXTURE_2D);
-    return getImageImpl(gl::ImageIndex::Make2D(level), target, pack, pixels);
+    return getImageImpl(gl::ImageIndex::Make2D(level), type, pack, pixels);
 }
 
 gl::Error TextureD3D_2D::setImage(GLenum target,
@@ -1439,7 +1436,7 @@ gl::Error TextureD3D_Cube::setEGLImageTarget(GLenum target, egl::Image *image)
 gl::Error TextureD3D_Cube::getImage(GLenum target, GLint level, GLenum format, GLenum type,
                                     const gl::PixelPackState &pack, uint8_t *pixels)
 {
-    return getImageImpl(gl::ImageIndex::MakeCube(target, static_cast<GLint>(level)), target,
+    return getImageImpl(gl::ImageIndex::MakeCube(target, static_cast<GLint>(level)), type,
                         pack, pixels);
 }
 
