@@ -3655,6 +3655,13 @@ bool Renderer11::supportsFastCopyBufferToTexture(GLenum internalFormat) const
         return false;
     }
 
+    // This format does not work.
+    // BUG: 64484749
+    if (internalFormat == GL_ALPHA8_EXT)
+    {
+        return false;
+    }
+
     return true;
 }
 
