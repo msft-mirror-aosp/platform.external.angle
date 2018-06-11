@@ -98,6 +98,7 @@ ImmutableString HashName(const ImmutableString &name,
             //
             return name;
         }
+
         ImmutableStringBuilder prefixedName(kUnhashedNamePrefix.length() + name.length());
         prefixedName << kUnhashedNamePrefix << name;
         ImmutableString res = prefixedName;
