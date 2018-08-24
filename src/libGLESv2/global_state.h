@@ -9,6 +9,7 @@
 #ifndef LIBGLESV2_GLOBALSTATE_H_
 #define LIBGLESV2_GLOBALSTATE_H_
 
+#include <mutex>
 #include <EGL/egl.h>
 
 namespace gl
@@ -22,6 +23,7 @@ Context *GetValidGlobalContext();
 // specialized to Windows
 
 class ScopedLock;
+#ifdef ANGLE_PLATFORM_WINDOWS
 class Lock {
 public:
 	Lock() {
@@ -39,6 +41,9 @@ public:
 private:
 	CRITICAL_SECTION mLock;
 };
+#else
+typedef ::std::mutex Lock;
+#endif
 
 class ScopedLock {
 public:
