@@ -558,6 +558,10 @@
         {
             'target_name': 'libANGLE',
             'type': 'static_library',
+            'cflags':
+            [
+                '-Wno-undefined-var-template',
+            ],
             'dependencies':
             [
                 'translator_static',
