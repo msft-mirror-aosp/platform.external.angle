@@ -58,6 +58,11 @@ inline bool IsIntel(uint32_t vendorId)
     return vendorId == VENDOR_ID_INTEL;
 }
 
+inline bool IsGoogle(uint32_t vendorId)
+{
+    return vendorId == VENDOR_ID_GOOGLE;
+}
+
 inline bool IsNvidia(uint32_t vendorId)
 {
     return vendorId == VENDOR_ID_NVIDIA;
@@ -162,6 +167,8 @@ bool operator<(const OSVersion &a, const OSVersion &b);
 bool operator>=(const OSVersion &a, const OSVersion &b);
 
 OSVersion GetMacOSVersion();
+
+OSVersion GetLinuxOSVersion();
 
 inline bool IsAndroid()
 {

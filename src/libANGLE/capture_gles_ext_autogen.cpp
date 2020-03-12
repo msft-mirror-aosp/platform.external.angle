@@ -404,6 +404,23 @@ CallCapture CaptureVertexAttribDivisorANGLE(const State &glState,
     return CallCapture(gl::EntryPoint::VertexAttribDivisorANGLE, std::move(paramBuffer));
 }
 
+CallCapture CaptureImportMemoryZirconHandleANGLE(const State &glState,
+                                                 bool isCallValid,
+                                                 MemoryObjectID memoryPacked,
+                                                 GLuint64 size,
+                                                 HandleType handleTypePacked,
+                                                 GLuint handle)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("memoryPacked", ParamType::TMemoryObjectID, memoryPacked);
+    paramBuffer.addValueParam("size", ParamType::TGLuint64, size);
+    paramBuffer.addValueParam("handleTypePacked", ParamType::THandleType, handleTypePacked);
+    paramBuffer.addValueParam("handle", ParamType::TGLuint, handle);
+
+    return CallCapture(gl::EntryPoint::ImportMemoryZirconHandleANGLE, std::move(paramBuffer));
+}
+
 CallCapture CaptureMultiDrawArraysANGLE(const State &glState,
                                         bool isCallValid,
                                         PrimitiveMode modePacked,
@@ -867,7 +884,7 @@ CallCapture CaptureGetTexParameterivRobustANGLE(const State &glState,
 CallCapture CaptureGetUniformfvRobustANGLE(const State &glState,
                                            bool isCallValid,
                                            ShaderProgramID programPacked,
-                                           GLint location,
+                                           UniformLocation locationPacked,
                                            GLsizei bufSize,
                                            GLsizei *length,
                                            GLfloat *params)
@@ -875,19 +892,19 @@ CallCapture CaptureGetUniformfvRobustANGLE(const State &glState,
     ParamBuffer paramBuffer;
 
     paramBuffer.addValueParam("programPacked", ParamType::TShaderProgramID, programPacked);
-    paramBuffer.addValueParam("location", ParamType::TGLint, location);
+    paramBuffer.addValueParam("locationPacked", ParamType::TUniformLocation, locationPacked);
     paramBuffer.addValueParam("bufSize", ParamType::TGLsizei, bufSize);
 
     ParamCapture lengthParam("length", ParamType::TGLsizeiPointer);
     InitParamValue(ParamType::TGLsizeiPointer, length, &lengthParam.value);
-    CaptureGetUniformfvRobustANGLE_length(glState, isCallValid, programPacked, location, bufSize,
-                                          length, params, &lengthParam);
+    CaptureGetUniformfvRobustANGLE_length(glState, isCallValid, programPacked, locationPacked,
+                                          bufSize, length, params, &lengthParam);
     paramBuffer.addParam(std::move(lengthParam));
 
     ParamCapture paramsParam("params", ParamType::TGLfloatPointer);
     InitParamValue(ParamType::TGLfloatPointer, params, &paramsParam.value);
-    CaptureGetUniformfvRobustANGLE_params(glState, isCallValid, programPacked, location, bufSize,
-                                          length, params, &paramsParam);
+    CaptureGetUniformfvRobustANGLE_params(glState, isCallValid, programPacked, locationPacked,
+                                          bufSize, length, params, &paramsParam);
     paramBuffer.addParam(std::move(paramsParam));
 
     return CallCapture(gl::EntryPoint::GetUniformfvRobustANGLE, std::move(paramBuffer));
@@ -896,7 +913,7 @@ CallCapture CaptureGetUniformfvRobustANGLE(const State &glState,
 CallCapture CaptureGetUniformivRobustANGLE(const State &glState,
                                            bool isCallValid,
                                            ShaderProgramID programPacked,
-                                           GLint location,
+                                           UniformLocation locationPacked,
                                            GLsizei bufSize,
                                            GLsizei *length,
                                            GLint *params)
@@ -904,19 +921,19 @@ CallCapture CaptureGetUniformivRobustANGLE(const State &glState,
     ParamBuffer paramBuffer;
 
     paramBuffer.addValueParam("programPacked", ParamType::TShaderProgramID, programPacked);
-    paramBuffer.addValueParam("location", ParamType::TGLint, location);
+    paramBuffer.addValueParam("locationPacked", ParamType::TUniformLocation, locationPacked);
     paramBuffer.addValueParam("bufSize", ParamType::TGLsizei, bufSize);
 
     ParamCapture lengthParam("length", ParamType::TGLsizeiPointer);
     InitParamValue(ParamType::TGLsizeiPointer, length, &lengthParam.value);
-    CaptureGetUniformivRobustANGLE_length(glState, isCallValid, programPacked, location, bufSize,
-                                          length, params, &lengthParam);
+    CaptureGetUniformivRobustANGLE_length(glState, isCallValid, programPacked, locationPacked,
+                                          bufSize, length, params, &lengthParam);
     paramBuffer.addParam(std::move(lengthParam));
 
     ParamCapture paramsParam("params", ParamType::TGLintPointer);
     InitParamValue(ParamType::TGLintPointer, params, &paramsParam.value);
-    CaptureGetUniformivRobustANGLE_params(glState, isCallValid, programPacked, location, bufSize,
-                                          length, params, &paramsParam);
+    CaptureGetUniformivRobustANGLE_params(glState, isCallValid, programPacked, locationPacked,
+                                          bufSize, length, params, &paramsParam);
     paramBuffer.addParam(std::move(paramsParam));
 
     return CallCapture(gl::EntryPoint::GetUniformivRobustANGLE, std::move(paramBuffer));
@@ -1603,7 +1620,7 @@ CallCapture CaptureGetVertexAttribIuivRobustANGLE(const State &glState,
 CallCapture CaptureGetUniformuivRobustANGLE(const State &glState,
                                             bool isCallValid,
                                             ShaderProgramID programPacked,
-                                            GLint location,
+                                            UniformLocation locationPacked,
                                             GLsizei bufSize,
                                             GLsizei *length,
                                             GLuint *params)
@@ -1611,19 +1628,19 @@ CallCapture CaptureGetUniformuivRobustANGLE(const State &glState,
     ParamBuffer paramBuffer;
 
     paramBuffer.addValueParam("programPacked", ParamType::TShaderProgramID, programPacked);
-    paramBuffer.addValueParam("location", ParamType::TGLint, location);
+    paramBuffer.addValueParam("locationPacked", ParamType::TUniformLocation, locationPacked);
     paramBuffer.addValueParam("bufSize", ParamType::TGLsizei, bufSize);
 
     ParamCapture lengthParam("length", ParamType::TGLsizeiPointer);
     InitParamValue(ParamType::TGLsizeiPointer, length, &lengthParam.value);
-    CaptureGetUniformuivRobustANGLE_length(glState, isCallValid, programPacked, location, bufSize,
-                                           length, params, &lengthParam);
+    CaptureGetUniformuivRobustANGLE_length(glState, isCallValid, programPacked, locationPacked,
+                                           bufSize, length, params, &lengthParam);
     paramBuffer.addParam(std::move(lengthParam));
 
     ParamCapture paramsParam("params", ParamType::TGLuintPointer);
     InitParamValue(ParamType::TGLuintPointer, params, &paramsParam.value);
-    CaptureGetUniformuivRobustANGLE_params(glState, isCallValid, programPacked, location, bufSize,
-                                           length, params, &paramsParam);
+    CaptureGetUniformuivRobustANGLE_params(glState, isCallValid, programPacked, locationPacked,
+                                           bufSize, length, params, &paramsParam);
     paramBuffer.addParam(std::move(paramsParam));
 
     return CallCapture(gl::EntryPoint::GetUniformuivRobustANGLE, std::move(paramBuffer));
@@ -2114,7 +2131,7 @@ CallCapture CaptureReadnPixelsRobustANGLE(const State &glState,
 CallCapture CaptureGetnUniformfvRobustANGLE(const State &glState,
                                             bool isCallValid,
                                             ShaderProgramID programPacked,
-                                            GLint location,
+                                            UniformLocation locationPacked,
                                             GLsizei bufSize,
                                             GLsizei *length,
                                             GLfloat *params)
@@ -2122,19 +2139,19 @@ CallCapture CaptureGetnUniformfvRobustANGLE(const State &glState,
     ParamBuffer paramBuffer;
 
     paramBuffer.addValueParam("programPacked", ParamType::TShaderProgramID, programPacked);
-    paramBuffer.addValueParam("location", ParamType::TGLint, location);
+    paramBuffer.addValueParam("locationPacked", ParamType::TUniformLocation, locationPacked);
     paramBuffer.addValueParam("bufSize", ParamType::TGLsizei, bufSize);
 
     ParamCapture lengthParam("length", ParamType::TGLsizeiPointer);
     InitParamValue(ParamType::TGLsizeiPointer, length, &lengthParam.value);
-    CaptureGetnUniformfvRobustANGLE_length(glState, isCallValid, programPacked, location, bufSize,
-                                           length, params, &lengthParam);
+    CaptureGetnUniformfvRobustANGLE_length(glState, isCallValid, programPacked, locationPacked,
+                                           bufSize, length, params, &lengthParam);
     paramBuffer.addParam(std::move(lengthParam));
 
     ParamCapture paramsParam("params", ParamType::TGLfloatPointer);
     InitParamValue(ParamType::TGLfloatPointer, params, &paramsParam.value);
-    CaptureGetnUniformfvRobustANGLE_params(glState, isCallValid, programPacked, location, bufSize,
-                                           length, params, &paramsParam);
+    CaptureGetnUniformfvRobustANGLE_params(glState, isCallValid, programPacked, locationPacked,
+                                           bufSize, length, params, &paramsParam);
     paramBuffer.addParam(std::move(paramsParam));
 
     return CallCapture(gl::EntryPoint::GetnUniformfvRobustANGLE, std::move(paramBuffer));
@@ -2143,7 +2160,7 @@ CallCapture CaptureGetnUniformfvRobustANGLE(const State &glState,
 CallCapture CaptureGetnUniformivRobustANGLE(const State &glState,
                                             bool isCallValid,
                                             ShaderProgramID programPacked,
-                                            GLint location,
+                                            UniformLocation locationPacked,
                                             GLsizei bufSize,
                                             GLsizei *length,
                                             GLint *params)
@@ -2151,19 +2168,19 @@ CallCapture CaptureGetnUniformivRobustANGLE(const State &glState,
     ParamBuffer paramBuffer;
 
     paramBuffer.addValueParam("programPacked", ParamType::TShaderProgramID, programPacked);
-    paramBuffer.addValueParam("location", ParamType::TGLint, location);
+    paramBuffer.addValueParam("locationPacked", ParamType::TUniformLocation, locationPacked);
     paramBuffer.addValueParam("bufSize", ParamType::TGLsizei, bufSize);
 
     ParamCapture lengthParam("length", ParamType::TGLsizeiPointer);
     InitParamValue(ParamType::TGLsizeiPointer, length, &lengthParam.value);
-    CaptureGetnUniformivRobustANGLE_length(glState, isCallValid, programPacked, location, bufSize,
-                                           length, params, &lengthParam);
+    CaptureGetnUniformivRobustANGLE_length(glState, isCallValid, programPacked, locationPacked,
+                                           bufSize, length, params, &lengthParam);
     paramBuffer.addParam(std::move(lengthParam));
 
     ParamCapture paramsParam("params", ParamType::TGLintPointer);
     InitParamValue(ParamType::TGLintPointer, params, &paramsParam.value);
-    CaptureGetnUniformivRobustANGLE_params(glState, isCallValid, programPacked, location, bufSize,
-                                           length, params, &paramsParam);
+    CaptureGetnUniformivRobustANGLE_params(glState, isCallValid, programPacked, locationPacked,
+                                           bufSize, length, params, &paramsParam);
     paramBuffer.addParam(std::move(paramsParam));
 
     return CallCapture(gl::EntryPoint::GetnUniformivRobustANGLE, std::move(paramBuffer));
@@ -2172,7 +2189,7 @@ CallCapture CaptureGetnUniformivRobustANGLE(const State &glState,
 CallCapture CaptureGetnUniformuivRobustANGLE(const State &glState,
                                              bool isCallValid,
                                              ShaderProgramID programPacked,
-                                             GLint location,
+                                             UniformLocation locationPacked,
                                              GLsizei bufSize,
                                              GLsizei *length,
                                              GLuint *params)
@@ -2180,19 +2197,19 @@ CallCapture CaptureGetnUniformuivRobustANGLE(const State &glState,
     ParamBuffer paramBuffer;
 
     paramBuffer.addValueParam("programPacked", ParamType::TShaderProgramID, programPacked);
-    paramBuffer.addValueParam("location", ParamType::TGLint, location);
+    paramBuffer.addValueParam("locationPacked", ParamType::TUniformLocation, locationPacked);
     paramBuffer.addValueParam("bufSize", ParamType::TGLsizei, bufSize);
 
     ParamCapture lengthParam("length", ParamType::TGLsizeiPointer);
     InitParamValue(ParamType::TGLsizeiPointer, length, &lengthParam.value);
-    CaptureGetnUniformuivRobustANGLE_length(glState, isCallValid, programPacked, location, bufSize,
-                                            length, params, &lengthParam);
+    CaptureGetnUniformuivRobustANGLE_length(glState, isCallValid, programPacked, locationPacked,
+                                            bufSize, length, params, &lengthParam);
     paramBuffer.addParam(std::move(lengthParam));
 
     ParamCapture paramsParam("params", ParamType::TGLuintPointer);
     InitParamValue(ParamType::TGLuintPointer, params, &paramsParam.value);
-    CaptureGetnUniformuivRobustANGLE_params(glState, isCallValid, programPacked, location, bufSize,
-                                            length, params, &paramsParam);
+    CaptureGetnUniformuivRobustANGLE_params(glState, isCallValid, programPacked, locationPacked,
+                                            bufSize, length, params, &paramsParam);
     paramBuffer.addParam(std::move(paramsParam));
 
     return CallCapture(gl::EntryPoint::GetnUniformuivRobustANGLE, std::move(paramBuffer));
@@ -2489,6 +2506,21 @@ CallCapture CaptureGetQueryObjectui64vRobustANGLE(const State &glState,
     return CallCapture(gl::EntryPoint::GetQueryObjectui64vRobustANGLE, std::move(paramBuffer));
 }
 
+CallCapture CaptureImportSemaphoreZirconHandleANGLE(const State &glState,
+                                                    bool isCallValid,
+                                                    SemaphoreID semaphorePacked,
+                                                    HandleType handleTypePacked,
+                                                    GLuint handle)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("semaphorePacked", ParamType::TSemaphoreID, semaphorePacked);
+    paramBuffer.addValueParam("handleTypePacked", ParamType::THandleType, handleTypePacked);
+    paramBuffer.addValueParam("handle", ParamType::TGLuint, handle);
+
+    return CallCapture(gl::EntryPoint::ImportSemaphoreZirconHandleANGLE, std::move(paramBuffer));
+}
+
 CallCapture CaptureTexImage2DExternalANGLE(const State &glState,
                                            bool isCallValid,
                                            TextureTarget targetPacked,
@@ -2653,18 +2685,18 @@ CallCapture CaptureGetTranslatedShaderSourceANGLE(const State &glState,
 CallCapture CaptureBindUniformLocationCHROMIUM(const State &glState,
                                                bool isCallValid,
                                                ShaderProgramID programPacked,
-                                               GLint location,
+                                               UniformLocation locationPacked,
                                                const GLchar *name)
 {
     ParamBuffer paramBuffer;
 
     paramBuffer.addValueParam("programPacked", ParamType::TShaderProgramID, programPacked);
-    paramBuffer.addValueParam("location", ParamType::TGLint, location);
+    paramBuffer.addValueParam("locationPacked", ParamType::TUniformLocation, locationPacked);
 
     ParamCapture nameParam("name", ParamType::TGLcharConstPointer);
     InitParamValue(ParamType::TGLcharConstPointer, name, &nameParam.value);
-    CaptureBindUniformLocationCHROMIUM_name(glState, isCallValid, programPacked, location, name,
-                                            &nameParam);
+    CaptureBindUniformLocationCHROMIUM_name(glState, isCallValid, programPacked, locationPacked,
+                                            name, &nameParam);
     paramBuffer.addParam(std::move(nameParam));
 
     return CallCapture(gl::EntryPoint::BindUniformLocationCHROMIUM, std::move(paramBuffer));
@@ -3553,6 +3585,23 @@ CallCapture CaptureGenQueriesEXT(const State &glState,
     return CallCapture(gl::EntryPoint::GenQueriesEXT, std::move(paramBuffer));
 }
 
+CallCapture CaptureGetInteger64vEXT(const State &glState,
+                                    bool isCallValid,
+                                    GLenum pname,
+                                    GLint64 *data)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addEnumParam("pname", GLenumGroup::GetPName, ParamType::TGLenum, pname);
+
+    ParamCapture dataParam("data", ParamType::TGLint64Pointer);
+    InitParamValue(ParamType::TGLint64Pointer, data, &dataParam.value);
+    CaptureGetInteger64vEXT_data(glState, isCallValid, pname, data, &dataParam);
+    paramBuffer.addParam(std::move(dataParam));
+
+    return CallCapture(gl::EntryPoint::GetInteger64vEXT, std::move(paramBuffer));
+}
+
 CallCapture CaptureGetQueryObjecti64vEXT(const State &glState,
                                          bool isCallValid,
                                          QueryID idPacked,
@@ -3698,6 +3747,127 @@ CallCapture CaptureDrawBuffersEXT(const State &glState,
     paramBuffer.addParam(std::move(bufsParam));
 
     return CallCapture(gl::EntryPoint::DrawBuffersEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureBlendEquationSeparateiEXT(const State &glState,
+                                             bool isCallValid,
+                                             GLuint buf,
+                                             GLenum modeRGB,
+                                             GLenum modeAlpha)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("buf", ParamType::TGLuint, buf);
+    paramBuffer.addEnumParam("modeRGB", GLenumGroup::BlendEquationModeEXT, ParamType::TGLenum,
+                             modeRGB);
+    paramBuffer.addEnumParam("modeAlpha", GLenumGroup::BlendEquationModeEXT, ParamType::TGLenum,
+                             modeAlpha);
+
+    return CallCapture(gl::EntryPoint::BlendEquationSeparateiEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureBlendEquationiEXT(const State &glState,
+                                     bool isCallValid,
+                                     GLuint buf,
+                                     GLenum mode)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("buf", ParamType::TGLuint, buf);
+    paramBuffer.addEnumParam("mode", GLenumGroup::BlendEquationModeEXT, ParamType::TGLenum, mode);
+
+    return CallCapture(gl::EntryPoint::BlendEquationiEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureBlendFuncSeparateiEXT(const State &glState,
+                                         bool isCallValid,
+                                         GLuint buf,
+                                         GLenum srcRGB,
+                                         GLenum dstRGB,
+                                         GLenum srcAlpha,
+                                         GLenum dstAlpha)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("buf", ParamType::TGLuint, buf);
+    paramBuffer.addEnumParam("srcRGB", GLenumGroup::BlendingFactor, ParamType::TGLenum, srcRGB);
+    paramBuffer.addEnumParam("dstRGB", GLenumGroup::BlendingFactor, ParamType::TGLenum, dstRGB);
+    paramBuffer.addEnumParam("srcAlpha", GLenumGroup::BlendingFactor, ParamType::TGLenum, srcAlpha);
+    paramBuffer.addEnumParam("dstAlpha", GLenumGroup::BlendingFactor, ParamType::TGLenum, dstAlpha);
+
+    return CallCapture(gl::EntryPoint::BlendFuncSeparateiEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureBlendFunciEXT(const State &glState,
+                                 bool isCallValid,
+                                 GLuint buf,
+                                 GLenum src,
+                                 GLenum dst)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("buf", ParamType::TGLuint, buf);
+    paramBuffer.addEnumParam("src", GLenumGroup::BlendingFactor, ParamType::TGLenum, src);
+    paramBuffer.addEnumParam("dst", GLenumGroup::BlendingFactor, ParamType::TGLenum, dst);
+
+    return CallCapture(gl::EntryPoint::BlendFunciEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureColorMaskiEXT(const State &glState,
+                                 bool isCallValid,
+                                 GLuint index,
+                                 GLboolean r,
+                                 GLboolean g,
+                                 GLboolean b,
+                                 GLboolean a)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("index", ParamType::TGLuint, index);
+    paramBuffer.addValueParam("r", ParamType::TGLboolean, r);
+    paramBuffer.addValueParam("g", ParamType::TGLboolean, g);
+    paramBuffer.addValueParam("b", ParamType::TGLboolean, b);
+    paramBuffer.addValueParam("a", ParamType::TGLboolean, a);
+
+    return CallCapture(gl::EntryPoint::ColorMaskiEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureDisableiEXT(const State &glState, bool isCallValid, GLenum target, GLuint index)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addEnumParam("target", GLenumGroup::EnableCap, ParamType::TGLenum, target);
+    paramBuffer.addValueParam("index", ParamType::TGLuint, index);
+
+    return CallCapture(gl::EntryPoint::DisableiEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureEnableiEXT(const State &glState, bool isCallValid, GLenum target, GLuint index)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addEnumParam("target", GLenumGroup::EnableCap, ParamType::TGLenum, target);
+    paramBuffer.addValueParam("index", ParamType::TGLuint, index);
+
+    return CallCapture(gl::EntryPoint::EnableiEXT, std::move(paramBuffer));
+}
+
+CallCapture CaptureIsEnablediEXT(const State &glState,
+                                 bool isCallValid,
+                                 GLenum target,
+                                 GLuint index,
+                                 GLboolean returnValue)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addEnumParam("target", GLenumGroup::EnableCap, ParamType::TGLenum, target);
+    paramBuffer.addValueParam("index", ParamType::TGLuint, index);
+
+    ParamCapture returnValueCapture("returnValue", ParamType::TGLboolean);
+    InitParamValue(ParamType::TGLboolean, returnValue, &returnValueCapture.value);
+    paramBuffer.addReturnValue(std::move(returnValueCapture));
+
+    return CallCapture(gl::EntryPoint::IsEnablediEXT, std::move(paramBuffer));
 }
 
 CallCapture CaptureDrawElementsBaseVertexEXT(const State &glState,
@@ -4264,20 +4434,20 @@ CallCapture CaptureGetGraphicsResetStatusEXT(const State &glState,
 CallCapture CaptureGetnUniformfvEXT(const State &glState,
                                     bool isCallValid,
                                     ShaderProgramID programPacked,
-                                    GLint location,
+                                    UniformLocation locationPacked,
                                     GLsizei bufSize,
                                     GLfloat *params)
 {
     ParamBuffer paramBuffer;
 
     paramBuffer.addValueParam("programPacked", ParamType::TShaderProgramID, programPacked);
-    paramBuffer.addValueParam("location", ParamType::TGLint, location);
+    paramBuffer.addValueParam("locationPacked", ParamType::TUniformLocation, locationPacked);
     paramBuffer.addValueParam("bufSize", ParamType::TGLsizei, bufSize);
 
     ParamCapture paramsParam("params", ParamType::TGLfloatPointer);
     InitParamValue(ParamType::TGLfloatPointer, params, &paramsParam.value);
-    CaptureGetnUniformfvEXT_params(glState, isCallValid, programPacked, location, bufSize, params,
-                                   &paramsParam);
+    CaptureGetnUniformfvEXT_params(glState, isCallValid, programPacked, locationPacked, bufSize,
+                                   params, &paramsParam);
     paramBuffer.addParam(std::move(paramsParam));
 
     return CallCapture(gl::EntryPoint::GetnUniformfvEXT, std::move(paramBuffer));
@@ -4286,20 +4456,20 @@ CallCapture CaptureGetnUniformfvEXT(const State &glState,
 CallCapture CaptureGetnUniformivEXT(const State &glState,
                                     bool isCallValid,
                                     ShaderProgramID programPacked,
-                                    GLint location,
+                                    UniformLocation locationPacked,
                                     GLsizei bufSize,
                                     GLint *params)
 {
     ParamBuffer paramBuffer;
 
     paramBuffer.addValueParam("programPacked", ParamType::TShaderProgramID, programPacked);
-    paramBuffer.addValueParam("location", ParamType::TGLint, location);
+    paramBuffer.addValueParam("locationPacked", ParamType::TUniformLocation, locationPacked);
     paramBuffer.addValueParam("bufSize", ParamType::TGLsizei, bufSize);
 
     ParamCapture paramsParam("params", ParamType::TGLintPointer);
     InitParamValue(ParamType::TGLintPointer, params, &paramsParam.value);
-    CaptureGetnUniformivEXT_params(glState, isCallValid, programPacked, location, bufSize, params,
-                                   &paramsParam);
+    CaptureGetnUniformivEXT_params(glState, isCallValid, programPacked, locationPacked, bufSize,
+                                   params, &paramsParam);
     paramBuffer.addParam(std::move(paramsParam));
 
     return CallCapture(gl::EntryPoint::GetnUniformivEXT, std::move(paramBuffer));
@@ -5009,6 +5179,127 @@ CallCapture CaptureEGLImageTargetTexture2DOES(const State &glState,
     paramBuffer.addValueParam("image", ParamType::TGLeglImageOES, image);
 
     return CallCapture(gl::EntryPoint::EGLImageTargetTexture2DOES, std::move(paramBuffer));
+}
+
+CallCapture CaptureBlendEquationSeparateiOES(const State &glState,
+                                             bool isCallValid,
+                                             GLuint buf,
+                                             GLenum modeRGB,
+                                             GLenum modeAlpha)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("buf", ParamType::TGLuint, buf);
+    paramBuffer.addEnumParam("modeRGB", GLenumGroup::BlendEquationModeEXT, ParamType::TGLenum,
+                             modeRGB);
+    paramBuffer.addEnumParam("modeAlpha", GLenumGroup::BlendEquationModeEXT, ParamType::TGLenum,
+                             modeAlpha);
+
+    return CallCapture(gl::EntryPoint::BlendEquationSeparateiOES, std::move(paramBuffer));
+}
+
+CallCapture CaptureBlendEquationiOES(const State &glState,
+                                     bool isCallValid,
+                                     GLuint buf,
+                                     GLenum mode)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("buf", ParamType::TGLuint, buf);
+    paramBuffer.addEnumParam("mode", GLenumGroup::BlendEquationModeEXT, ParamType::TGLenum, mode);
+
+    return CallCapture(gl::EntryPoint::BlendEquationiOES, std::move(paramBuffer));
+}
+
+CallCapture CaptureBlendFuncSeparateiOES(const State &glState,
+                                         bool isCallValid,
+                                         GLuint buf,
+                                         GLenum srcRGB,
+                                         GLenum dstRGB,
+                                         GLenum srcAlpha,
+                                         GLenum dstAlpha)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("buf", ParamType::TGLuint, buf);
+    paramBuffer.addEnumParam("srcRGB", GLenumGroup::BlendingFactor, ParamType::TGLenum, srcRGB);
+    paramBuffer.addEnumParam("dstRGB", GLenumGroup::BlendingFactor, ParamType::TGLenum, dstRGB);
+    paramBuffer.addEnumParam("srcAlpha", GLenumGroup::BlendingFactor, ParamType::TGLenum, srcAlpha);
+    paramBuffer.addEnumParam("dstAlpha", GLenumGroup::BlendingFactor, ParamType::TGLenum, dstAlpha);
+
+    return CallCapture(gl::EntryPoint::BlendFuncSeparateiOES, std::move(paramBuffer));
+}
+
+CallCapture CaptureBlendFunciOES(const State &glState,
+                                 bool isCallValid,
+                                 GLuint buf,
+                                 GLenum src,
+                                 GLenum dst)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("buf", ParamType::TGLuint, buf);
+    paramBuffer.addEnumParam("src", GLenumGroup::BlendingFactor, ParamType::TGLenum, src);
+    paramBuffer.addEnumParam("dst", GLenumGroup::BlendingFactor, ParamType::TGLenum, dst);
+
+    return CallCapture(gl::EntryPoint::BlendFunciOES, std::move(paramBuffer));
+}
+
+CallCapture CaptureColorMaskiOES(const State &glState,
+                                 bool isCallValid,
+                                 GLuint index,
+                                 GLboolean r,
+                                 GLboolean g,
+                                 GLboolean b,
+                                 GLboolean a)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("index", ParamType::TGLuint, index);
+    paramBuffer.addValueParam("r", ParamType::TGLboolean, r);
+    paramBuffer.addValueParam("g", ParamType::TGLboolean, g);
+    paramBuffer.addValueParam("b", ParamType::TGLboolean, b);
+    paramBuffer.addValueParam("a", ParamType::TGLboolean, a);
+
+    return CallCapture(gl::EntryPoint::ColorMaskiOES, std::move(paramBuffer));
+}
+
+CallCapture CaptureDisableiOES(const State &glState, bool isCallValid, GLenum target, GLuint index)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addEnumParam("target", GLenumGroup::EnableCap, ParamType::TGLenum, target);
+    paramBuffer.addValueParam("index", ParamType::TGLuint, index);
+
+    return CallCapture(gl::EntryPoint::DisableiOES, std::move(paramBuffer));
+}
+
+CallCapture CaptureEnableiOES(const State &glState, bool isCallValid, GLenum target, GLuint index)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addEnumParam("target", GLenumGroup::EnableCap, ParamType::TGLenum, target);
+    paramBuffer.addValueParam("index", ParamType::TGLuint, index);
+
+    return CallCapture(gl::EntryPoint::EnableiOES, std::move(paramBuffer));
+}
+
+CallCapture CaptureIsEnablediOES(const State &glState,
+                                 bool isCallValid,
+                                 GLenum target,
+                                 GLuint index,
+                                 GLboolean returnValue)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addEnumParam("target", GLenumGroup::EnableCap, ParamType::TGLenum, target);
+    paramBuffer.addValueParam("index", ParamType::TGLuint, index);
+
+    ParamCapture returnValueCapture("returnValue", ParamType::TGLboolean);
+    InitParamValue(ParamType::TGLboolean, returnValue, &returnValueCapture.value);
+    paramBuffer.addReturnValue(std::move(returnValueCapture));
+
+    return CallCapture(gl::EntryPoint::IsEnablediOES, std::move(paramBuffer));
 }
 
 CallCapture CaptureDrawElementsBaseVertexOES(const State &glState,

@@ -59,8 +59,10 @@ using ContextID = uintptr_t;
 template <typename T>
 using BufferBindingMap     = angle::PackedEnumMap<BufferBinding, T>;
 using BoundBufferMap       = BufferBindingMap<BindingPointer<Buffer>>;
+using SamplerBindingVector = std::vector<BindingPointer<Sampler>>;
 using TextureBindingVector = std::vector<BindingPointer<Texture>>;
 using TextureBindingMap    = angle::PackedEnumMap<TextureType, TextureBindingVector>;
+using ActiveQueryMap       = angle::PackedEnumMap<QueryType, BindingPointer<Query>>;
 
 class State : angle::NonCopyable
 {
@@ -106,8 +108,11 @@ class State : angle::NonCopyable
     }
 
     // State chunk getters
+    bool allActiveDrawBufferChannelsMasked() const;
+    bool anyActiveDrawBufferChannelMasked() const;
     const RasterizerState &getRasterizerState() const;
-    const BlendState &getBlendState() const { return mBlend; }
+    const BlendState &getBlendState() const { return mBlendStateArray[0]; }
+    const BlendStateArray &getBlendStateArray() const { return mBlendStateArray; }
     const DepthStencilState &getDepthStencilState() const;
 
     // Clear behavior setters & state parameter block generation function
@@ -121,6 +126,7 @@ class State : angle::NonCopyable
 
     // Write mask manipulation
     void setColorMask(bool red, bool green, bool blue, bool alpha);
+    void setColorMaskIndexed(bool red, bool green, bool blue, bool alpha, GLuint index);
     void setDepthMask(bool mask);
 
     // Discard toggle & query
@@ -146,11 +152,24 @@ class State : angle::NonCopyable
     float getFarPlane() const { return mFarZ; }
 
     // Blend state manipulation
-    bool isBlendEnabled() const { return mBlend.blend; }
+    bool isBlendEnabled() const { return mBlendStateArray[0].blend; }
+    bool isBlendEnabledIndexed(GLuint index) const
+    {
+        ASSERT(index < mBlendStateArray.size());
+        return mBlendStateArray[index].blend;
+    }
+    DrawBufferMask getBlendEnabledDrawBufferMask() const { return mBlendEnabledDrawBuffers; }
     void setBlend(bool enabled);
+    void setBlendIndexed(bool enabled, GLuint index);
     void setBlendFactors(GLenum sourceRGB, GLenum destRGB, GLenum sourceAlpha, GLenum destAlpha);
+    void setBlendFactorsIndexed(GLenum sourceRGB,
+                                GLenum destRGB,
+                                GLenum sourceAlpha,
+                                GLenum destAlpha,
+                                GLuint index);
     void setBlendColor(float red, float green, float blue, float alpha);
     void setBlendEquation(GLenum rgbEquation, GLenum alphaEquation);
+    void setBlendEquationIndexed(GLenum rgbEquation, GLenum alphaEquation, GLuint index);
     const ColorF &getBlendColor() const { return mBlendColor; }
 
     // Stencil state maniupulation
@@ -175,7 +194,7 @@ class State : angle::NonCopyable
     void setPolygonOffsetParams(GLfloat factor, GLfloat units);
 
     // Multisample coverage state manipulation
-    bool isSampleAlphaToCoverageEnabled() const { return mBlend.sampleAlphaToCoverage; }
+    bool isSampleAlphaToCoverageEnabled() const { return mSampleAlphaToCoverage; }
     void setSampleAlphaToCoverage(bool enabled);
     bool isSampleCoverageEnabled() const { return mSampleCoverage; }
     void setSampleCoverage(bool enabled);
@@ -207,12 +226,14 @@ class State : angle::NonCopyable
     const Rectangle &getScissor() const { return mScissor; }
 
     // Dither state toggle & query
-    bool isDitherEnabled() const { return mBlend.dither; }
+    bool isDitherEnabled() const { return mRasterizer.dither; }
     void setDither(bool enabled);
 
     // Generic state toggle & query
     void setEnableFeature(GLenum feature, bool enabled);
+    void setEnableFeatureIndexed(GLenum feature, bool enabled, GLuint index);
     bool getEnableFeature(GLenum feature) const;
+    bool getEnableFeatureIndexed(GLenum feature, GLuint index) const;
 
     // Line width state setter
     void setLineWidth(GLfloat width);
@@ -261,7 +282,6 @@ class State : angle::NonCopyable
 
     Sampler *getSampler(GLuint textureUnit) const { return mSamplers[textureUnit].get(); }
 
-    using SamplerBindingVector = std::vector<BindingPointer<Sampler>>;
     const SamplerBindingVector &getSamplers() const { return mSamplers; }
 
     void detachSampler(const Context *context, SamplerID sampler);
@@ -498,13 +518,13 @@ class State : angle::NonCopyable
     GLuint getMaxShaderCompilerThreads() const { return mMaxShaderCompilerThreads; }
 
     // State query functions
-    void getBooleanv(GLenum pname, GLboolean *params);
-    void getFloatv(GLenum pname, GLfloat *params);
-    angle::Result getIntegerv(const Context *context, GLenum pname, GLint *params);
+    void getBooleanv(GLenum pname, GLboolean *params) const;
+    void getFloatv(GLenum pname, GLfloat *params) const;
+    angle::Result getIntegerv(const Context *context, GLenum pname, GLint *params) const;
     void getPointerv(const Context *context, GLenum pname, void **params) const;
-    void getIntegeri_v(GLenum target, GLuint index, GLint *data);
-    void getInteger64i_v(GLenum target, GLuint index, GLint64 *data);
-    void getBooleani_v(GLenum target, GLuint index, GLboolean *data);
+    void getIntegeri_v(GLenum target, GLuint index, GLint *data) const;
+    void getInteger64i_v(GLenum target, GLuint index, GLint64 *data) const;
+    void getBooleani_v(GLenum target, GLuint index, GLboolean *data) const;
 
     bool isRobustResourceInitEnabled() const { return mRobustResourceInit; }
 
@@ -714,6 +734,27 @@ class State : angle::NonCopyable
     {
         return *mShaderProgramManager;
     }
+    const SyncManager &getSyncManagerForCapture() const { return *mSyncManager; }
+    const SamplerManager &getSamplerManagerForCapture() const { return *mSamplerManager; }
+    const SamplerBindingVector &getSamplerBindingsForCapture() const { return mSamplers; }
+
+    const ActiveQueryMap &getActiveQueriesForCapture() const { return mActiveQueries; }
+
+    bool hasConstantAlphaBlendFunc() const
+    {
+        return (mBlendFuncConstantAlphaDrawBuffers & mBlendEnabledDrawBuffers).any();
+    }
+
+    bool hasSimultaneousConstantColorAndAlphaBlendFunc() const
+    {
+        return (mBlendFuncConstantColorDrawBuffers & mBlendEnabledDrawBuffers).any() &&
+               hasConstantAlphaBlendFunc();
+    }
+
+    bool noSimultaneousConstantColorAndAlphaBlendFunc() const
+    {
+        return mNoSimultaneousConstantColorAndAlphaBlendFunc;
+    }
 
   private:
     friend class Context;
@@ -725,6 +766,9 @@ class State : angle::NonCopyable
                                   const Sampler *sampler,
                                   Texture *texture);
     Texture *getTextureForActiveSampler(TextureType type, size_t index);
+
+    bool hasConstantColor(GLenum sourceRGB, GLenum destRGB) const;
+    bool hasConstantAlpha(GLenum sourceRGB, GLenum destRGB) const;
 
     // Functions to synchronize dirty states
     angle::Result syncTexturesInit(const Context *context);
@@ -806,8 +850,9 @@ class State : angle::NonCopyable
     bool mScissorTest;
     Rectangle mScissor;
 
-    BlendState mBlend;
+    BlendStateArray mBlendStateArray;
     ColorF mBlendColor;
+    bool mSampleAlphaToCoverage;
     bool mSampleCoverage;
     GLfloat mSampleCoverageValue;
     bool mSampleCoverageInvert;
@@ -874,7 +919,6 @@ class State : angle::NonCopyable
     // It would be nice to merge the image and observer binding. Same for textures.
     std::vector<ImageUnit> mImageUnits;
 
-    using ActiveQueryMap = angle::PackedEnumMap<QueryType, BindingPointer<Query>>;
     ActiveQueryMap mActiveQueries;
 
     // Stores the currently bound buffer for each binding point. It has an entry for the element
@@ -935,6 +979,12 @@ class State : angle::NonCopyable
 
     // The Overlay object, used by the backend to render the overlay.
     const OverlayType *mOverlay;
+
+    // OES_draw_buffers_indexed
+    DrawBufferMask mBlendEnabledDrawBuffers;
+    DrawBufferMask mBlendFuncConstantAlphaDrawBuffers;
+    DrawBufferMask mBlendFuncConstantColorDrawBuffers;
+    bool mNoSimultaneousConstantColorAndAlphaBlendFunc;
 };
 
 ANGLE_INLINE angle::Result State::syncDirtyObjects(const Context *context,

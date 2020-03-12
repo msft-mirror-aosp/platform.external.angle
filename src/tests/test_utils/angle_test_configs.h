@@ -59,6 +59,8 @@ struct PlatformParameters
     EGLint minorVersion;
 };
 
+const char *GetRendererName(EGLint renderer);
+
 bool operator<(const PlatformParameters &a, const PlatformParameters &b);
 bool operator==(const PlatformParameters &a, const PlatformParameters &b);
 std::ostream &operator<<(std::ostream &stream, const PlatformParameters &pp);
@@ -107,6 +109,7 @@ EGLPlatformParameters OPENGLES(EGLint major, EGLint minor);
 EGLPlatformParameters OPENGLES_NULL();
 
 EGLPlatformParameters OPENGL_OR_GLES();
+EGLPlatformParameters OPENGL_OR_GLES(EGLint major, EGLint minor);
 EGLPlatformParameters OPENGL_OR_GLES_NULL();
 
 EGLPlatformParameters VULKAN();
@@ -207,13 +210,6 @@ inline PlatformParameters WithNoFixture(const PlatformParameters &params)
     return withNoFixture;
 }
 
-inline PlatformParameters WithNoCommandGraph(const PlatformParameters &params)
-{
-    PlatformParameters withNoCommandGraph                = params;
-    withNoCommandGraph.eglParameters.commandGraphFeature = EGL_FALSE;
-    return withNoCommandGraph;
-}
-
 inline PlatformParameters WithNoTransformFeedback(const PlatformParameters &params)
 {
     PlatformParameters withNoTransformFeedback                     = params;
@@ -221,6 +217,12 @@ inline PlatformParameters WithNoTransformFeedback(const PlatformParameters &para
     return withNoTransformFeedback;
 }
 
+inline PlatformParameters WithAllocateNonZeroMemory(const PlatformParameters &params)
+{
+    PlatformParameters allocateNonZero                         = params;
+    allocateNonZero.eglParameters.allocateNonZeroMemoryFeature = EGL_TRUE;
+    return allocateNonZero;
+}
 }  // namespace angle
 
 #endif  // ANGLE_TEST_CONFIGS_H_
