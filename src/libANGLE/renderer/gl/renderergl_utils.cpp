@@ -1126,6 +1126,22 @@ void GenerateCaps(const FunctionsGL *functions,
         LimitVersion(maxSupportedESVersion, gl::Version(2, 0));
     }
 
+    // GL_OES_texture_cube_map_array
+    if (functions->isAtLeastGL(gl::Version(4, 0)) ||
+        functions->hasGLESExtension("GL_OES_texture_cube_map_array") ||
+        functions->hasGLESExtension("GL_EXT_texture_cube_map_array") ||
+        functions->hasGLExtension("GL_ARB_texture_cube_map_array") ||
+        functions->isAtLeastGLES(gl::Version(3, 2)))
+    {
+        extensions->textureCubeMapArrayOES = true;
+        extensions->textureCubeMapArrayEXT = true;
+    }
+    else
+    {
+        // Can't support ES3.2 without cube map array textures
+        LimitVersion(maxSupportedESVersion, gl::Version(3, 1));
+    }
+
     // Extension support
     extensions->setTextureExtensionSupport(*textureCapsMap);
     extensions->textureCompressionASTCHDRKHR =
@@ -1162,7 +1178,16 @@ void GenerateCaps(const FunctionsGL *functions,
     extensions->drawBuffers = functions->isAtLeastGL(gl::Version(2, 0)) ||
                               functions->hasGLExtension("ARB_draw_buffers") ||
                               functions->hasGLESExtension("GL_EXT_draw_buffers");
-    extensions->textureStorage = functions->standard == STANDARD_GL_DESKTOP ||
+    extensions->drawBuffersIndexedEXT =
+        !features.disableDrawBuffersIndexed.enabled &&
+        (functions->isAtLeastGL(gl::Version(4, 0)) ||
+         (functions->hasGLExtension("GL_EXT_draw_buffers2") &&
+          functions->hasGLExtension("GL_ARB_draw_buffers_blend")) ||
+         functions->isAtLeastGLES(gl::Version(3, 2)) ||
+         functions->hasGLESExtension("GL_OES_draw_buffers_indexed") ||
+         functions->hasGLESExtension("GL_EXT_draw_buffers_indexed"));
+    extensions->drawBuffersIndexedOES = extensions->drawBuffersIndexedEXT;
+    extensions->textureStorage        = functions->standard == STANDARD_GL_DESKTOP ||
                                  functions->hasGLESExtension("GL_EXT_texture_storage");
     extensions->textureFilterAnisotropic =
         functions->hasGLExtension("GL_EXT_texture_filter_anisotropic") ||
@@ -1246,6 +1271,7 @@ void GenerateCaps(const FunctionsGL *functions,
         functions->hasExtension("GL_EXT_EGL_image_external_wrap_modes");
     extensions->eglImageExternalEssl3OES =
         functions->hasGLESExtension("GL_OES_EGL_image_external_essl3");
+    extensions->eglImageArray = functions->hasGLESExtension("GL_EXT_EGL_image_array");
 
     extensions->eglSyncOES = functions->hasGLESExtension("GL_OES_EGL_sync");
 
@@ -1503,6 +1529,17 @@ void GenerateCaps(const FunctionsGL *functions,
                                 functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                 functions->hasGLExtension("GL_ARB_gpu_shader5") ||
                                 functions->hasGLESExtension("GL_EXT_gpu_shader5");
+
+    // GL_APPLE_clip_distance
+    extensions->clipDistanceAPPLE = functions->isAtLeastGL(gl::Version(3, 0));
+    if (extensions->clipDistanceAPPLE)
+    {
+        caps->maxClipDistances = QuerySingleGLInt(functions, GL_MAX_CLIP_DISTANCES_EXT);
+    }
+    else
+    {
+        caps->maxClipDistances = 0;
+    }
 }
 
 void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *features)
@@ -1657,12 +1694,19 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
 
     ANGLE_FEATURE_CONDITION(features, unfoldShortCircuits, IsApple());
 
+    ANGLE_FEATURE_CONDITION(features, emulatePrimitiveRestartFixedIndex,
+                            functions->standard == STANDARD_GL_DESKTOP &&
+                                functions->isAtLeastGL(gl::Version(3, 1)) &&
+                                !functions->isAtLeastGL(gl::Version(4, 3)));
+    ANGLE_FEATURE_CONDITION(
+        features, setPrimitiveRestartFixedIndexForDrawArrays,
+        features->emulatePrimitiveRestartFixedIndex.enabled && IsApple() && isIntel);
+
     ANGLE_FEATURE_CONDITION(features, removeDynamicIndexingOfSwizzledVector,
                             IsApple() || IsAndroid() || IsWindows());
 
     // Ported from gpu_driver_bug_list.json (#89)
-    ANGLE_FEATURE_CONDITION(features, regenerateStructNames,
-                            IsApple() && functions->standard == STANDARD_GL_DESKTOP);
+    ANGLE_FEATURE_CONDITION(features, regenerateStructNames, IsApple());
 
     // Ported from gpu_driver_bug_list.json (#184)
     ANGLE_FEATURE_CONDITION(features, preAddTexelFetchOffsets, IsApple() && isIntel);
@@ -1685,6 +1729,8 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
 
     // Workaround for incorrect sampling from DXT1 sRGB textures in Intel OpenGL on Windows.
     ANGLE_FEATURE_CONDITION(features, avoidDXT1sRGBTextureFormat, IsWindows() && isIntel);
+
+    ANGLE_FEATURE_CONDITION(features, disableDrawBuffersIndexed, IsWindows() && isAMD);
 
     ANGLE_FEATURE_CONDITION(
         features, disableSemaphoreFd,
@@ -1786,7 +1832,8 @@ bool UseTexImage2D(gl::TextureType textureType)
 bool UseTexImage3D(gl::TextureType textureType)
 {
     return textureType == gl::TextureType::_2DArray || textureType == gl::TextureType::_3D ||
-           textureType == gl::TextureType::_2DMultisampleArray;
+           textureType == gl::TextureType::_2DMultisampleArray ||
+           textureType == gl::TextureType::CubeMapArray;
 }
 
 GLenum GetTextureBindingQuery(gl::TextureType textureType)
@@ -1809,6 +1856,8 @@ GLenum GetTextureBindingQuery(gl::TextureType textureType)
             return GL_TEXTURE_BINDING_RECTANGLE;
         case gl::TextureType::CubeMap:
             return GL_TEXTURE_BINDING_CUBE_MAP;
+        case gl::TextureType::CubeMapArray:
+            return GL_TEXTURE_BINDING_CUBE_MAP_ARRAY_OES;
         default:
             UNREACHABLE();
             return 0;
@@ -1965,9 +2014,11 @@ angle::Result CheckError(const gl::Context *context,
         ERR() << "GL call " << call << " generated error " << gl::FmtHex(error) << " in " << file
               << ", " << function << ":" << line << ". ";
 
-        // Check that only one GL error was generated, ClearErrors should have been called first
+        // Check that only one GL error was generated, ClearErrors should have been called first.
+        // Skip GL_CONTEXT_LOST errors, they will be generated continuously and result in an
+        // infinite loop.
         GLenum nextError = functions->getError();
-        while (nextError != GL_NO_ERROR)
+        while (nextError != GL_NO_ERROR && nextError != GL_CONTEXT_LOST)
         {
             ERR() << "Additional GL error " << gl::FmtHex(nextError) << " generated.";
             nextError = functions->getError();

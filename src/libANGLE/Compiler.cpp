@@ -104,6 +104,7 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state)
     mResources.ANGLE_texture_multisample       = extensions.textureMultisample;
     mResources.ANGLE_multi_draw                = extensions.multiDraw;
     mResources.ANGLE_base_vertex_base_instance = extensions.baseVertexBaseInstance;
+    mResources.APPLE_clip_distance             = extensions.clipDistanceAPPLE;
 
     // TODO: use shader precision caps to determine if high precision is supported?
     mResources.FragmentPrecisionHigh = 1;
@@ -122,6 +123,10 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state)
     // WEBGL_video_texture
     mResources.WEBGL_video_texture = extensions.webglVideoTexture;
 
+    // OES_texture_cube_map_array
+    mResources.OES_texture_cube_map_array = extensions.textureCubeMapArrayOES;
+    mResources.EXT_texture_cube_map_array = extensions.textureCubeMapArrayEXT;
+
     // GLSL ES 3.0 constants
     mResources.MaxVertexOutputVectors  = caps.maxVertexOutputComponents / 4;
     mResources.MaxFragmentInputVectors = caps.maxFragmentInputComponents / 4;
@@ -131,6 +136,9 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state)
     // EXT_blend_func_extended
     mResources.EXT_blend_func_extended  = extensions.blendFuncExtended;
     mResources.MaxDualSourceDrawBuffers = extensions.maxDualSourceDrawBuffers;
+
+    // APPLE_clip_distance/EXT_clip_cull_distance
+    mResources.MaxClipDistances = caps.maxClipDistances;
 
     // GLSL ES 3.1 constants
     mResources.MaxProgramTextureGatherOffset    = caps.maxProgramTextureGatherOffset;

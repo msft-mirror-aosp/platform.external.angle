@@ -185,8 +185,6 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
         mImageViews.retain(resourceUseList);
     }
 
-    void retainSampler(vk::ResourceUseList *resourceUseList) { mSampler.retain(resourceUseList); }
-
     void releaseOwnershipOfImage(const gl::Context *context);
 
     const vk::ImageView &getReadImageViewAndRecordUse(ContextVk *contextVk) const;
@@ -378,11 +376,13 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
 
     const gl::InternalFormat &getImplementationSizedFormat(const gl::Context *context) const;
     const vk::Format &getBaseLevelFormat(RendererVk *renderer) const;
-    // Re-create the image.
-    angle::Result changeLevels(ContextVk *contextVk,
-                               GLuint previousBaseLevel,
-                               GLuint baseLevel,
-                               GLuint maxLevel);
+    // Queues a flush of any modified image attributes. The image will be reallocated with its new
+    // attributes at the next opportunity.
+    angle::Result respecifyImageAttributes(ContextVk *contextVk);
+    angle::Result respecifyImageAttributesAndLevels(ContextVk *contextVk,
+                                                    GLuint previousBaseLevel,
+                                                    GLuint baseLevel,
+                                                    GLuint maxLevel);
 
     // Update base and max levels, and re-create image if needed.
     angle::Result updateBaseMaxLevels(ContextVk *contextVk, GLuint baseLevel, GLuint maxLevel);
@@ -415,7 +415,7 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
 
     // |mSampler| contains the relevant Vulkan sampler states reprensenting the OpenGL Texture
     // sampling states for the Texture.
-    vk::SamplerHelper mSampler;
+    vk::BindingPointer<vk::Sampler> mSampler;
 
     // Render targets stored as vector of vectors
     // Level is first dimension, layer is second
@@ -430,7 +430,10 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
     // The created vkImage usage flag.
     VkImageUsageFlags mImageUsageFlags;
 
-    angle::ObserverBinding mStagingBufferObserverBinding;
+    // Additional image create flags
+    VkImageCreateFlags mImageCreateFlags;
+
+    angle::ObserverBinding mImageObserverBinding;
 };
 
 }  // namespace rx

@@ -701,6 +701,8 @@ bool ValidateLoseContextCHROMIUM(const Context *context,
                                  GraphicsResetStatus currentPacked,
                                  GraphicsResetStatus otherPacked);
 
+// GL_EXT_EGL_image_array
+
 // GL_EXT_blend_func_extended
 bool ValidateBindFragDataLocationEXT(const Context *context,
                                      ShaderProgramID programPacked,
@@ -1007,9 +1009,13 @@ bool ValidateImportSemaphoreFdEXT(const Context *context,
 
 // GL_EXT_texture_compression_s3tc_srgb
 
+// GL_EXT_texture_cube_map_array
+
 // GL_EXT_texture_filter_anisotropic
 
 // GL_EXT_texture_format_BGRA8888
+
+// GL_EXT_texture_sRGB_R8
 
 // GL_EXT_texture_storage
 bool ValidateTexStorage1DEXT(const Context *context,
@@ -1401,6 +1407,8 @@ bool ValidateTexGeniOES(const Context *context, GLenum coord, GLenum pname, GLin
 bool ValidateTexGenivOES(const Context *context, GLenum coord, GLenum pname, const GLint *params);
 bool ValidateTexGenxOES(const Context *context, GLenum coord, GLenum pname, GLfixed param);
 bool ValidateTexGenxvOES(const Context *context, GLenum coord, GLenum pname, const GLfixed *params);
+
+// GL_OES_texture_cube_map_array
 
 // GL_OES_texture_half_float
 

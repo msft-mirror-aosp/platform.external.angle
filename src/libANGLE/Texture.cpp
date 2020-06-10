@@ -95,6 +95,7 @@ bool SwizzleState::operator!=(const SwizzleState &other) const
 TextureState::TextureState(TextureType type)
     : mType(type),
       mSamplerState(SamplerState::CreateDefaultForTarget(type)),
+      mSrgbOverride(SrgbOverride::Default),
       mBaseLevel(0),
       mMaxLevel(1000),
       mDepthStencilTextureMode(GL_DEPTH_COMPONENT),
@@ -484,7 +485,7 @@ bool TextureState::computeLevelCompleteness(TextureTarget target, size_t level) 
             return false;
         }
     }
-    else if (mType == TextureType::_2DArray)
+    else if (IsArrayTextureType(mType))
     {
         if (levelImageDesc.size.depth != baseImageDesc.size.depth)
         {
@@ -524,7 +525,7 @@ GLuint TextureState::getEnabledLevelCount() const
 }
 
 ImageDesc::ImageDesc()
-    : ImageDesc(Extents(0, 0, 0), Format::Invalid(), 0, GL_TRUE, InitState::Initialized)
+    : ImageDesc(Extents(0, 0, 0), Format::Invalid(), 0, GL_TRUE, InitState::MayNeedInit)
 {}
 
 ImageDesc::ImageDesc(const Extents &size, const Format &format, const InitState initState)
@@ -599,7 +600,7 @@ void TextureState::setImageDescChain(GLuint baseLevel,
         int relativeLevel = (level - baseLevel);
         Extents levelSize(std::max<int>(baseSize.width >> relativeLevel, 1),
                           std::max<int>(baseSize.height >> relativeLevel, 1),
-                          (mType == TextureType::_2DArray)
+                          (IsArrayTextureType(mType))
                               ? baseSize.depth
                               : std::max<int>(baseSize.depth >> relativeLevel, 1));
         ImageDesc levelInfo(levelSize, format, initState);
@@ -857,6 +858,22 @@ void Texture::setSRGBDecode(const Context *context, GLenum sRGBDecode)
 GLenum Texture::getSRGBDecode() const
 {
     return mState.mSamplerState.getSRGBDecode();
+}
+
+void Texture::setSRGBOverride(const Context *context, GLenum sRGBOverride)
+{
+    SrgbOverride oldOverride = mState.mSrgbOverride;
+    mState.mSrgbOverride =
+        (sRGBOverride == GL_SRGB) ? SrgbOverride::Enabled : SrgbOverride::Default;
+    if (mState.mSrgbOverride != oldOverride)
+    {
+        signalDirtyState(DIRTY_BIT_SRGB_OVERRIDE);
+    }
+}
+
+GLenum Texture::getSRGBOverride() const
+{
+    return (mState.mSrgbOverride == SrgbOverride::Enabled) ? GL_SRGB : GL_NONE;
 }
 
 const SamplerState &Texture::getSamplerState() const
@@ -1161,23 +1178,54 @@ angle::Result Texture::copyImage(Context *context,
 
     ImageIndex index = ImageIndex::MakeFromTarget(target, level, 1);
 
-    // Use the source FBO size as the init image area.
-    Box destBox(0, 0, 0, sourceArea.width, sourceArea.height, 1);
-    ANGLE_TRY(ensureSubImageInitialized(context, index, destBox));
-
-    ANGLE_TRY(mTexture->copyImage(context, index, sourceArea, internalFormat, source));
-
     const InternalFormat &internalFormatInfo =
         GetInternalFormatInfo(internalFormat, GL_UNSIGNED_BYTE);
 
+    // Most if not all renderers clip these copies to the size of the source framebuffer, leaving
+    // other pixels untouched. For safety in robust resource initialization, assume that that
+    // clipping is going to occur when computing the region for which to ensure initialization. If
+    // the copy lies entirely off the source framebuffer, initialize as though a zero-size box is
+    // going to be set during the copy operation.
+    Box destBox;
+    if (context->isRobustResourceInitEnabled())
+    {
+        Extents fbSize = source->getReadColorAttachment()->getSize();
+        Rectangle clippedArea;
+        if (ClipRectangle(sourceArea, Rectangle(0, 0, fbSize.width, fbSize.height), &clippedArea))
+        {
+            const Offset clippedOffset(clippedArea.x - sourceArea.x, clippedArea.y - sourceArea.y,
+                                       0);
+            destBox = Box(clippedOffset.x, clippedOffset.y, clippedOffset.z, clippedArea.width,
+                          clippedArea.height, 1);
+        }
+    }
+
+    // If we need to initialize the destination texture we split the call into a create call,
+    // an initializeContents call, and then a copySubImage call. This ensures the destination
+    // texture exists before we try to clear it.
+    Extents size(sourceArea.width, sourceArea.height, 1);
+    if (doesSubImageNeedInit(context, index, destBox))
+    {
+        ANGLE_TRY(mTexture->setImage(context, index, internalFormat, size,
+                                     internalFormatInfo.format, internalFormatInfo.type,
+                                     PixelUnpackState(), nullptr, nullptr));
+        mState.setImageDesc(target, level,
+                            ImageDesc(size, Format(internalFormatInfo), InitState::MayNeedInit));
+        ANGLE_TRY(ensureSubImageInitialized(context, index, destBox));
+        ANGLE_TRY(mTexture->copySubImage(context, index, Offset(), sourceArea, source));
+    }
+    else
+    {
+        ANGLE_TRY(mTexture->copyImage(context, index, sourceArea, internalFormat, source));
+    }
+
     mState.setImageDesc(target, level,
-                        ImageDesc(Extents(sourceArea.width, sourceArea.height, 1),
-                                  Format(internalFormatInfo), InitState::Initialized));
+                        ImageDesc(size, Format(internalFormatInfo), InitState::Initialized));
 
     ANGLE_TRY(handleMipmapGenerationHint(context, level));
 
-    // We need to initialize this texture only if the source attachment is not initialized.
-    signalDirtyStorage(InitState::Initialized);
+    // Because this could affect the texture storage we might need to init other layers/levels.
+    signalDirtyStorage(InitState::MayNeedInit);
 
     return angle::Result::Continue;
 }
@@ -1590,7 +1638,8 @@ angle::Result Texture::setEGLImageTarget(Context *context,
                                          egl::Image *imageTarget)
 {
     ASSERT(type == mState.mType);
-    ASSERT(type == TextureType::_2D || type == TextureType::External);
+    ASSERT(type == TextureType::_2D || type == TextureType::External ||
+           type == TextureType::_2DArray);
 
     // Release from previous calls to eglBindTexImage, to avoid calling the Impl after
     ANGLE_TRY(releaseTexImageInternal(context));
@@ -1795,7 +1844,7 @@ angle::Result Texture::ensureInitialized(const Context *context)
         const ImageIndex index = it.next();
         ImageDesc &desc =
             mState.mImageDescs[GetImageDescIndex(index.getTarget(), index.getLevelIndex())];
-        if (desc.initState == InitState::MayNeedInit)
+        if (desc.initState == InitState::MayNeedInit && !desc.size.empty())
         {
             ASSERT(mState.mInitState == InitState::MayNeedInit);
             ANGLE_TRY(initializeContents(context, index));
@@ -1891,7 +1940,6 @@ angle::Result Texture::ensureSubImageInitialized(const Context *context,
 
 angle::Result Texture::handleMipmapGenerationHint(Context *context, int level)
 {
-
     if (getGenerateMipmapHint() == GL_TRUE && level == 0)
     {
         ANGLE_TRY(generateMipmap(context));
@@ -1910,9 +1958,8 @@ void Texture::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMess
             // Texture will signal dirty storage to invalidate its own cache and the
             // attached framebuffer's cache.
             signalDirtyStorage(InitState::Initialized);
-            return;
-        case angle::SubjectMessage::SubjectChanged:
-            mDirtyBits.set(DIRTY_BIT_IMPLEMENTATION);
+            break;
+        case angle::SubjectMessage::DirtyBitsFlagged:
             signalDirtyState(DIRTY_BIT_IMPLEMENTATION);
 
             // Notify siblings that we are dirty.
@@ -1920,9 +1967,21 @@ void Texture::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMess
             {
                 notifySiblings(message);
             }
-            return;
+            break;
+        case angle::SubjectMessage::SubjectChanged:
+            mState.mInitState = InitState::MayNeedInit;
+            signalDirtyState(DIRTY_BIT_IMPLEMENTATION);
+            onStateChange(angle::SubjectMessage::ContentsChanged);
+
+            // Notify siblings that we are dirty.
+            if (index == rx::kTextureImageImplObserverMessageIndex)
+            {
+                notifySiblings(message);
+            }
+            break;
         default:
-            return;
+            UNREACHABLE();
+            break;
     }
 }
 
@@ -1943,8 +2002,13 @@ angle::Result Texture::getTexImage(const Context *context,
                                    GLint level,
                                    GLenum format,
                                    GLenum type,
-                                   void *pixels) const
+                                   void *pixels)
 {
+    if (hasAnyDirtyBit())
+    {
+        ANGLE_TRY(syncState(context));
+    }
+
     return mTexture->getTexImage(context, packState, packBuffer, target, level, format, type,
                                  pixels);
 }

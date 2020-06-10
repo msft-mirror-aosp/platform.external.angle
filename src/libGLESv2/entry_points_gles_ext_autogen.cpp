@@ -3066,6 +3066,8 @@ void GL_APIENTRY LoseContextCHROMIUM(GLenum current, GLenum other)
     }
 }
 
+// GL_EXT_EGL_image_array
+
 // GL_EXT_blend_func_extended
 void GL_APIENTRY BindFragDataLocationEXT(GLuint program, GLuint color, const GLchar *name)
 {
@@ -4824,9 +4826,13 @@ void GL_APIENTRY ImportSemaphoreFdEXT(GLuint semaphore, GLenum handleType, GLint
 
 // GL_EXT_texture_compression_s3tc_srgb
 
+// GL_EXT_texture_cube_map_array
+
 // GL_EXT_texture_filter_anisotropic
 
 // GL_EXT_texture_format_BGRA8888
+
+// GL_EXT_texture_sRGB_R8
 
 // GL_EXT_texture_storage
 void GL_APIENTRY TexStorage1DEXT(GLenum target,
@@ -7105,6 +7111,8 @@ void GL_APIENTRY TexGenxvOES(GLenum coord, GLenum pname, const GLfixed *params)
         ANGLE_CAPTURE(TexGenxvOES, isCallValid, context, coord, pname, params);
     }
 }
+
+// GL_OES_texture_cube_map_array
 
 // GL_OES_texture_half_float
 

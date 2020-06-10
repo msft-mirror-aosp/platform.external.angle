@@ -277,6 +277,9 @@ struct Extensions
     // TODO: Don't advertise this extension in ES3
     bool sRGB = false;
 
+    // GL_EXT_texture_sRGB_R8
+    bool sRGBR8EXT = false;
+
     // GL_ANGLE_depth_texture
     bool depthTextureANGLE = false;
 
@@ -489,6 +492,9 @@ struct Extensions
     // GL_EXT_texture_sRGB_decode
     bool textureSRGBDecode = false;
 
+    // GL_EXT_texture_sRGB_override
+    bool textureSRGBOverride = false;
+
     // GL_EXT_sRGB_write_control
     bool sRGBWriteControl = false;
 
@@ -497,6 +503,9 @@ struct Extensions
 
     // GL_CHROMIUM_color_buffer_float_rgba
     bool colorBufferFloatRGBA = false;
+
+    // GL_EXT_EGL_image_array
+    bool eglImageArray = false;
 
     // ES3 Extension support
 
@@ -579,6 +588,9 @@ struct Extensions
     // GL_ANGLE_provoking_vertex
     bool provokingVertex = false;
 
+    // GL_CHROMIUM_texture_filtering_hint
+    bool textureFilteringCHROMIUM = false;
+
     // GL_CHROMIUM_lose_context
     bool loseContextCHROMIUM = false;
 
@@ -608,6 +620,19 @@ struct Extensions
     bool gpuShader5EXT = false;
     // WEBGL_video_texture
     bool webglVideoTexture = false;
+
+    // GL_APPLE_clip_distance
+    bool clipDistanceAPPLE = false;
+
+    // GL_OES_texture_cube_map_array
+    bool textureCubeMapArrayOES = false;
+    // GL_EXT_texture_cube_map_array
+    bool textureCubeMapArrayEXT = false;
+    // Any version of the texture cube map array extension
+    bool textureCubeMapArrayAny() const
+    {
+        return (textureCubeMapArrayOES || textureCubeMapArrayEXT);
+    }
 };
 
 // Pointer to a boolean memeber of the Extensions struct
@@ -821,6 +846,9 @@ struct Caps
     GLint maxGeometryShaderInvocations     = 0;
 
     GLuint subPixelBits = 4;
+
+    // GL_APPLE_clip_distance/GL_EXT_clip_cull_distance
+    GLuint maxClipDistances = 0;
 
     // GLES1 emulation: Caps for ES 1.1. Taken from Table 6.20 / 6.22 in the OpenGL ES 1.1 spec.
     GLuint maxMultitextureUnits                 = 0;
@@ -1045,6 +1073,15 @@ struct DisplayExtensions
 
     // EGL_ANDROID_framebuffer_target
     bool framebufferTargetANDROID = false;
+
+    // EGL_EXT_image_gl_colorspace
+    bool imageGlColorspace = false;
+
+    // EGL_EXT_image_dma_buf_import
+    bool imageDmaBufImportEXT = false;
+
+    // EGL_EXT_image_dma_buf_import_modifiers
+    bool imageDmaBufImportModifiersEXT = false;
 };
 
 struct DeviceExtensions

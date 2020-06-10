@@ -814,6 +814,8 @@ angle::CallCapture CaptureLoseContextCHROMIUM(const State &glState,
                                               GraphicsResetStatus currentPacked,
                                               GraphicsResetStatus otherPacked);
 
+// GL_EXT_EGL_image_array
+
 // GL_EXT_blend_func_extended
 angle::CallCapture CaptureBindFragDataLocationEXT(const State &glState,
                                                   bool isCallValid,
@@ -1228,9 +1230,13 @@ angle::CallCapture CaptureImportSemaphoreFdEXT(const State &glState,
 
 // GL_EXT_texture_compression_s3tc_srgb
 
+// GL_EXT_texture_cube_map_array
+
 // GL_EXT_texture_filter_anisotropic
 
 // GL_EXT_texture_format_BGRA8888
+
+// GL_EXT_texture_sRGB_R8
 
 // GL_EXT_texture_storage
 angle::CallCapture CaptureTexStorage1DEXT(const State &glState,
@@ -1773,6 +1779,8 @@ angle::CallCapture CaptureTexGenxvOES(const State &glState,
                                       GLenum coord,
                                       GLenum pname,
                                       const GLfixed *params);
+
+// GL_OES_texture_cube_map_array
 
 // GL_OES_texture_half_float
 

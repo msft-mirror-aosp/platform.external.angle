@@ -97,7 +97,8 @@ void BindFramebufferAttachment(const FunctionsGL *functions,
                 TextureType textureType = texture->getType();
                 ASSERT(textureType == TextureType::_2DArray || textureType == TextureType::_3D ||
                        textureType == TextureType::CubeMap ||
-                       textureType == TextureType::_2DMultisampleArray);
+                       textureType == TextureType::_2DMultisampleArray ||
+                       textureType == TextureType::CubeMapArray);
                 functions->framebufferTexture(GL_FRAMEBUFFER, attachmentPoint,
                                               textureGL->getTextureID(), attachment->mipLevel());
             }
@@ -109,7 +110,8 @@ void BindFramebufferAttachment(const FunctionsGL *functions,
             }
             else if (texture->getType() == TextureType::_2DArray ||
                      texture->getType() == TextureType::_3D ||
-                     texture->getType() == TextureType::_2DMultisampleArray)
+                     texture->getType() == TextureType::_2DMultisampleArray ||
+                     texture->getType() == TextureType::CubeMapArray)
             {
                 if (attachment->isMultiview())
                 {
@@ -607,20 +609,6 @@ angle::Result FramebufferGL::clearBufferfi(const gl::Context *context,
     return angle::Result::Continue;
 }
 
-GLenum FramebufferGL::getImplementationColorReadFormat(const gl::Context *context) const
-{
-    const auto *readAttachment = mState.getReadAttachment();
-    const Format &format       = readAttachment->getFormat();
-    return format.info->getReadPixelsFormat(context->getExtensions());
-}
-
-GLenum FramebufferGL::getImplementationColorReadType(const gl::Context *context) const
-{
-    const auto *readAttachment = mState.getReadAttachment();
-    const Format &format       = readAttachment->getFormat();
-    return format.info->getReadPixelsType(context->getClientVersion());
-}
-
 angle::Result FramebufferGL::readPixels(const gl::Context *context,
                                         const gl::Rectangle &area,
                                         GLenum format,
@@ -781,6 +769,13 @@ angle::Result FramebufferGL::blit(const gl::Context *context,
             needManualColorBlit || (destSRGB && functions->isAtMostGL(gl::Version(4, 1)));
     }
 
+    // If the destination has an emulated alpha channel, we need to blit with a shader with alpha
+    // writes disabled.
+    if (mHasEmulatedAlphaAttachment)
+    {
+        needManualColorBlit = true;
+    }
+
     // Enable FRAMEBUFFER_SRGB if needed
     stateManager->setFramebufferSRGBEnabledForFramebuffer(context, true, this);
 
@@ -789,7 +784,8 @@ angle::Result FramebufferGL::blit(const gl::Context *context,
     {
         BlitGL *blitter = GetBlitGL(context);
         ANGLE_TRY(blitter->blitColorBufferWithShader(context, sourceFramebuffer, destFramebuffer,
-                                                     sourceArea, destArea, filter));
+                                                     sourceArea, destArea, filter,
+                                                     !mHasEmulatedAlphaAttachment));
         blitMask &= ~GL_COLOR_BUFFER_BIT;
     }
 
@@ -1199,6 +1195,7 @@ bool FramebufferGL::checkStatus(const gl::Context *context) const
 }
 
 angle::Result FramebufferGL::syncState(const gl::Context *context,
+                                       GLenum binding,
                                        const gl::Framebuffer::DirtyBits &dirtyBits)
 {
     // Don't need to sync state for the default FBO.
