@@ -99,11 +99,28 @@ ImmutableString HashName(const ImmutableString &name,
             return name;
         }
 
-        ImmutableStringBuilder prefixedName(kUnhashedNamePrefix.length() + name.length());
-        prefixedName << kUnhashedNamePrefix << name;
-        ImmutableString res = prefixedName;
-        AddToNameMapIfNotMapped(name, res, nameMap);
-        return res;
+        static const char* coreBuiltinConflictNames[] = {
+            "texture",
+            "textureProj",
+            "textureLod",
+            "textureProjLod",
+            "textureGrad",
+            "textureProjGrad",
+        };
+
+        // TODO(lfy): hack that removes the prefixes until emulator can deal with it properly
+
+        for (uint32_t i = 0; i < sizeof(coreBuiltinConflictNames) / sizeof(const char*); ++i) {
+            if (name == coreBuiltinConflictNames[i]) {
+                ImmutableStringBuilder prefixedName(kUnhashedNamePrefix.length() + name.length());
+                prefixedName << kUnhashedNamePrefix << name;
+                ImmutableString res = prefixedName;
+                AddToNameMapIfNotMapped(name, res, nameMap);
+                return res;
+            }
+        }
+
+        return name;
     }
 
     // Has a hash function
