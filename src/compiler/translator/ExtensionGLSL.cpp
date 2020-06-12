@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2015 The ANGLE Project Authors. All rights reserved.
+// Copyright 2015 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -10,10 +10,12 @@
 
 #include "compiler/translator/VersionGLSL.h"
 
+namespace sh
+{
+
 TExtensionGLSL::TExtensionGLSL(ShShaderOutput output)
     : TIntermTraverser(true, false, false), mTargetVersion(ShaderOutputTypeToGLSLVersion(output))
-{
-}
+{}
 
 const std::set<std::string> &TExtensionGLSL::getEnabledExtensions() const
 {
@@ -98,3 +100,5 @@ void TExtensionGLSL::checkOperator(TIntermOperator *node)
             break;
     }
 }
+
+}  // namespace sh

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2014 The ANGLE Project Authors. All rights reserved.
+// Copyright 2014 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -15,13 +15,16 @@
 
 #include <EGL/eglplatform.h>
 
-typedef ABI::Windows::Foundation::__FITypedEventHandler_2_Windows__CUI__CCore__CCoreWindow_Windows__CUI__CCore__CWindowSizeChangedEventArgs_t IWindowSizeChangedEventHandler;
+typedef ABI::Windows::Foundation::
+    __FITypedEventHandler_2_Windows__CUI__CCore__CCoreWindow_Windows__CUI__CCore__CWindowSizeChangedEventArgs_t
+        IWindowSizeChangedEventHandler;
 
 namespace rx
 {
-long ConvertDipsToPixels(float dips);
+float ConvertDipsToPixels(float dips);
 
-class CoreWindowNativeWindow : public InspectableNativeWindow, public std::enable_shared_from_this<CoreWindowNativeWindow>
+class CoreWindowNativeWindow : public InspectableNativeWindow,
+                               public std::enable_shared_from_this<CoreWindowNativeWindow>
 {
   public:
     ~CoreWindowNativeWindow();
@@ -36,22 +39,23 @@ class CoreWindowNativeWindow : public InspectableNativeWindow, public std::enabl
                             IDXGISwapChain1 **swapChain) override;
 
   protected:
-    HRESULT scaleSwapChain(const SIZE &windowSize, const RECT &clientRect) override;
+    HRESULT scaleSwapChain(const Size &windowSize, const RECT &clientRect) override;
 
     bool registerForSizeChangeEvents();
     void unregisterForSizeChangeEvents();
 
   private:
     ComPtr<ABI::Windows::UI::Core::ICoreWindow> mCoreWindow;
-    ComPtr<IMap<HSTRING, IInspectable*>> mPropertyMap;
+    ComPtr<IMap<HSTRING, IInspectable *>> mPropertyMap;
 };
 
-[uuid(7F924F66-EBAE-40E5-A10B-B8F35E245190)]
-class CoreWindowSizeChangedHandler :
-    public Microsoft::WRL::RuntimeClass<Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>, IWindowSizeChangedEventHandler>
+__declspec(uuid("7F924F66-EBAE-40E5-A10B-B8F35E245190")) class CoreWindowSizeChangedHandler
+    : public Microsoft::WRL::RuntimeClass<
+          Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::ClassicCom>,
+          IWindowSizeChangedEventHandler>
 {
   public:
-    CoreWindowSizeChangedHandler() { }
+    CoreWindowSizeChangedHandler() {}
     HRESULT RuntimeClassInitialize(std::shared_ptr<InspectableNativeWindow> host)
     {
         if (!host)
@@ -64,7 +68,9 @@ class CoreWindowSizeChangedHandler :
     }
 
     // IWindowSizeChangedEventHandler
-    IFACEMETHOD(Invoke)(ABI::Windows::UI::Core::ICoreWindow *sender, ABI::Windows::UI::Core::IWindowSizeChangedEventArgs *sizeChangedEventArgs)
+    IFACEMETHOD(Invoke)
+    (ABI::Windows::UI::Core::ICoreWindow *sender,
+     ABI::Windows::UI::Core::IWindowSizeChangedEventArgs *sizeChangedEventArgs)
     {
         std::shared_ptr<InspectableNativeWindow> host = mHost.lock();
         if (host)
@@ -72,7 +78,8 @@ class CoreWindowSizeChangedHandler :
             ABI::Windows::Foundation::Size windowSize;
             if (SUCCEEDED(sizeChangedEventArgs->get_Size(&windowSize)))
             {
-                SIZE windowSizeInPixels = { ConvertDipsToPixels(windowSize.Width), ConvertDipsToPixels(windowSize.Height) };
+                Size windowSizeInPixels = {ConvertDipsToPixels(windowSize.Width),
+                                           ConvertDipsToPixels(windowSize.Height)};
                 host->setNewClientSize(windowSizeInPixels);
             }
         }
@@ -84,7 +91,8 @@ class CoreWindowSizeChangedHandler :
     std::weak_ptr<InspectableNativeWindow> mHost;
 };
 
-HRESULT GetCoreWindowSizeInPixels(const ComPtr<ABI::Windows::UI::Core::ICoreWindow>& coreWindow, SIZE *windowSize);
-}
+HRESULT GetCoreWindowSizeInPixels(const ComPtr<ABI::Windows::UI::Core::ICoreWindow> &coreWindow,
+                                  Size *windowSize);
+}  // namespace rx
 
-#endif // LIBANGLE_RENDERER_D3D_D3D11_WINRT_COREWINDOWNATIVEWINDOW_H_
+#endif  // LIBANGLE_RENDERER_D3D_D3D11_WINRT_COREWINDOWNATIVEWINDOW_H_

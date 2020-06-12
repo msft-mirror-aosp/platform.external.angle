@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2015 The ANGLE Project Authors. All rights reserved.
+// Copyright 2015 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -7,34 +7,17 @@
 //   Test for recording constant variable precision when it affects consuming expression.
 //
 
+#include "GLSLANG/ShaderLang.h"
 #include "angle_gl.h"
 #include "gtest/gtest.h"
-#include "GLSLANG/ShaderLang.h"
 #include "tests/test_utils/compiler_test.h"
 
-class RecordConstantPrecisionTest : public testing::Test
+using namespace sh;
+
+class RecordConstantPrecisionTest : public MatchOutputCodeTest
 {
   public:
-    RecordConstantPrecisionTest() {}
-
-  protected:
-    void compile(const std::string &shaderString)
-    {
-        std::string infoLog;
-        bool compilationSuccess = compileTestShader(GL_FRAGMENT_SHADER, SH_GLES2_SPEC, SH_ESSL_OUTPUT,
-                                                    shaderString, &mTranslatedCode, &infoLog);
-        if (!compilationSuccess)
-        {
-            FAIL() << "Shader compilation into ESSL failed " << infoLog;
-        }
-    }
-
-    bool foundInCode(const char *stringToFind)
-    {
-        return mTranslatedCode.find(stringToFind) != std::string::npos;
-    }
-  private:
-    std::string mTranslatedCode;
+    RecordConstantPrecisionTest() : MatchOutputCodeTest(GL_FRAGMENT_SHADER, 0, SH_ESSL_OUTPUT) {}
 };
 
 // The constant cannot be folded if its precision is higher than the other operands, since it
@@ -90,7 +73,6 @@ TEST_F(RecordConstantPrecisionTest, FoldedBinaryConstantPrecisionIsHigher)
     ASSERT_FALSE(foundInCode("fract(4096.5"));
     ASSERT_FALSE(foundInCode("fract((4096.5"));
 }
-
 
 // The constant cannot be folded if its precision is higher than the other operands, since it
 // increases the precision of the consuming expression. This applies also when the constant is

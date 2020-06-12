@@ -1,186 +1,334 @@
 //
-// Copyright (c) 2014 The ANGLE Project Authors. All rights reserved.
+// Copyright 2014 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
 
 #include "libANGLE/TransformFeedback.h"
 
+#include "common/mathutil.h"
 #include "libANGLE/Buffer.h"
 #include "libANGLE/Caps.h"
-#include "libANGLE/ContextState.h"
+#include "libANGLE/Context.h"
 #include "libANGLE/Program.h"
-#include "libANGLE/renderer/ImplFactory.h"
+#include "libANGLE/State.h"
+#include "libANGLE/renderer/GLImplFactory.h"
 #include "libANGLE/renderer/TransformFeedbackImpl.h"
+
+#include <limits>
 
 namespace gl
 {
 
-TransformFeedback::TransformFeedback(rx::ImplFactory *implFactory, GLuint id, const Caps &caps)
-    : RefCountObject(id),
-      mImplementation(implFactory->createTransformFeedback()),
-      mLabel(),
+angle::CheckedNumeric<GLsizeiptr> GetVerticesNeededForDraw(PrimitiveMode primitiveMode,
+                                                           GLsizei count,
+                                                           GLsizei primcount)
+{
+    if (count < 0 || primcount < 0)
+    {
+        return 0;
+    }
+    // Transform feedback only outputs complete primitives, so we need to round down to the nearest
+    // complete primitive before multiplying by the number of instances.
+    angle::CheckedNumeric<GLsizeiptr> checkedCount     = count;
+    angle::CheckedNumeric<GLsizeiptr> checkedPrimcount = primcount;
+    switch (primitiveMode)
+    {
+        case PrimitiveMode::Triangles:
+            return checkedPrimcount * (checkedCount - checkedCount % 3);
+        case PrimitiveMode::Lines:
+            return checkedPrimcount * (checkedCount - checkedCount % 2);
+        case PrimitiveMode::Points:
+            return checkedPrimcount * checkedCount;
+        default:
+            UNREACHABLE();
+            return checkedPrimcount * checkedCount;
+    }
+}
+
+TransformFeedbackState::TransformFeedbackState(size_t maxIndexedBuffers)
+    : mLabel(),
       mActive(false),
-      mPrimitiveMode(GL_NONE),
+      mPrimitiveMode(PrimitiveMode::InvalidEnum),
       mPaused(false),
+      mVerticesDrawn(0),
+      mVertexCapacity(0),
       mProgram(nullptr),
-      mGenericBuffer(),
-      mIndexedBuffers(caps.maxTransformFeedbackSeparateAttributes)
+      mIndexedBuffers(maxIndexedBuffers)
+{}
+
+TransformFeedbackState::~TransformFeedbackState() {}
+
+const OffsetBindingPointer<Buffer> &TransformFeedbackState::getIndexedBuffer(size_t idx) const
+{
+    return mIndexedBuffers[idx];
+}
+
+const std::vector<OffsetBindingPointer<Buffer>> &TransformFeedbackState::getIndexedBuffers() const
+{
+    return mIndexedBuffers;
+}
+
+GLsizeiptr TransformFeedbackState::getPrimitivesDrawn() const
+{
+    switch (mPrimitiveMode)
+    {
+        case gl::PrimitiveMode::Points:
+            return mVerticesDrawn;
+        case gl::PrimitiveMode::Lines:
+            return mVerticesDrawn / 2;
+        case gl::PrimitiveMode::Triangles:
+            return mVerticesDrawn / 3;
+        default:
+            return 0;
+    }
+}
+
+TransformFeedback::TransformFeedback(rx::GLImplFactory *implFactory,
+                                     TransformFeedbackID id,
+                                     const Caps &caps)
+    : RefCountObject(implFactory->generateSerial(), id),
+      mState(caps.maxTransformFeedbackSeparateAttributes),
+      mImplementation(implFactory->createTransformFeedback(mState))
 {
     ASSERT(mImplementation != nullptr);
 }
 
-TransformFeedback::~TransformFeedback()
+void TransformFeedback::onDestroy(const Context *context)
 {
-    if (mProgram)
+    ASSERT(!context || !context->isCurrentTransformFeedback(this));
+    if (mState.mProgram)
     {
-        mProgram->release();
-        mProgram = nullptr;
-    }
-    mGenericBuffer.set(nullptr);
-    for (size_t i = 0; i < mIndexedBuffers.size(); i++)
-    {
-        mIndexedBuffers[i].set(nullptr);
+        mState.mProgram->release(context);
+        mState.mProgram = nullptr;
     }
 
+    ASSERT(!mState.mProgram);
+    for (size_t i = 0; i < mState.mIndexedBuffers.size(); i++)
+    {
+        mState.mIndexedBuffers[i].set(context, nullptr, 0, 0);
+    }
+
+    if (mImplementation)
+    {
+        mImplementation->onDestroy(context);
+    }
+}
+
+TransformFeedback::~TransformFeedback()
+{
     SafeDelete(mImplementation);
 }
 
-void TransformFeedback::setLabel(const std::string &label)
+void TransformFeedback::setLabel(const Context *context, const std::string &label)
 {
-    mLabel = label;
+    mState.mLabel = label;
 }
 
 const std::string &TransformFeedback::getLabel() const
 {
-    return mLabel;
+    return mState.mLabel;
 }
 
-void TransformFeedback::begin(GLenum primitiveMode, Program *program)
+angle::Result TransformFeedback::begin(const Context *context,
+                                       PrimitiveMode primitiveMode,
+                                       Program *program)
 {
-    mActive = true;
-    mPrimitiveMode = primitiveMode;
-    mPaused = false;
-    mImplementation->begin(primitiveMode);
-    bindProgram(program);
-}
+    ANGLE_TRY(mImplementation->begin(context, primitiveMode));
+    mState.mActive        = true;
+    mState.mPrimitiveMode = primitiveMode;
+    mState.mPaused        = false;
+    mState.mVerticesDrawn = 0;
+    bindProgram(context, program);
 
-void TransformFeedback::end()
-{
-    mActive = false;
-    mPrimitiveMode = GL_NONE;
-    mPaused = false;
-    mImplementation->end();
-    if (mProgram)
+    if (program)
     {
-        mProgram->release();
-        mProgram = nullptr;
+        // Compute the number of vertices we can draw before overflowing the bound buffers.
+        auto strides = program->getTransformFeedbackStrides();
+        ASSERT(strides.size() <= mState.mIndexedBuffers.size() && !strides.empty());
+        GLsizeiptr minCapacity = std::numeric_limits<GLsizeiptr>::max();
+        for (size_t index = 0; index < strides.size(); index++)
+        {
+            GLsizeiptr capacity =
+                GetBoundBufferAvailableSize(mState.mIndexedBuffers[index]) / strides[index];
+            minCapacity = std::min(minCapacity, capacity);
+        }
+        mState.mVertexCapacity = minCapacity;
     }
+    else
+    {
+        mState.mVertexCapacity = 0;
+    }
+    return angle::Result::Continue;
 }
 
-void TransformFeedback::pause()
+angle::Result TransformFeedback::end(const Context *context)
 {
-    mPaused = true;
-    mImplementation->pause();
+    ANGLE_TRY(mImplementation->end(context));
+    mState.mActive         = false;
+    mState.mPrimitiveMode  = PrimitiveMode::InvalidEnum;
+    mState.mPaused         = false;
+    mState.mVerticesDrawn  = 0;
+    mState.mVertexCapacity = 0;
+    if (mState.mProgram)
+    {
+        mState.mProgram->release(context);
+        mState.mProgram = nullptr;
+    }
+    return angle::Result::Continue;
 }
 
-void TransformFeedback::resume()
+angle::Result TransformFeedback::pause(const Context *context)
 {
-    mPaused = false;
-    mImplementation->resume();
+    ANGLE_TRY(mImplementation->pause(context));
+    mState.mPaused = true;
+    return angle::Result::Continue;
 }
 
-bool TransformFeedback::isActive() const
+angle::Result TransformFeedback::resume(const Context *context)
 {
-    return mActive;
+    ANGLE_TRY(mImplementation->resume(context));
+    mState.mPaused = false;
+    return angle::Result::Continue;
 }
 
 bool TransformFeedback::isPaused() const
 {
-    return mPaused;
+    return mState.mPaused;
 }
 
-GLenum TransformFeedback::getPrimitiveMode() const
+PrimitiveMode TransformFeedback::getPrimitiveMode() const
 {
-    return mPrimitiveMode;
+    return mState.mPrimitiveMode;
 }
 
-void TransformFeedback::bindProgram(Program *program)
+bool TransformFeedback::checkBufferSpaceForDraw(GLsizei count, GLsizei primcount) const
 {
-    if (mProgram != program)
+    auto vertices =
+        mState.mVerticesDrawn + GetVerticesNeededForDraw(mState.mPrimitiveMode, count, primcount);
+    return vertices.IsValid() && vertices.ValueOrDie() <= mState.mVertexCapacity;
+}
+
+void TransformFeedback::onVerticesDrawn(const Context *context, GLsizei count, GLsizei primcount)
+{
+    ASSERT(mState.mActive && !mState.mPaused);
+    // All draws should be validated with checkBufferSpaceForDraw so ValueOrDie should never fail.
+    mState.mVerticesDrawn =
+        (mState.mVerticesDrawn + GetVerticesNeededForDraw(mState.mPrimitiveMode, count, primcount))
+            .ValueOrDie();
+
+    for (auto &buffer : mState.mIndexedBuffers)
     {
-        if (mProgram != nullptr)
+        if (buffer.get() != nullptr)
         {
-            mProgram->release();
+            buffer->onDataChanged();
         }
-        mProgram = program;
-        if (mProgram != nullptr)
+    }
+}
+
+void TransformFeedback::bindProgram(const Context *context, Program *program)
+{
+    if (mState.mProgram != program)
+    {
+        if (mState.mProgram != nullptr)
         {
-            mProgram->addRef();
+            mState.mProgram->release(context);
+        }
+        mState.mProgram = program;
+        if (mState.mProgram != nullptr)
+        {
+            mState.mProgram->addRef();
         }
     }
 }
 
-bool TransformFeedback::hasBoundProgram(GLuint program) const
+bool TransformFeedback::hasBoundProgram(ShaderProgramID program) const
 {
-    return mProgram != nullptr && mProgram->id() == program;
+    return mState.mProgram != nullptr && mState.mProgram->id().value == program.value;
 }
 
-void TransformFeedback::bindGenericBuffer(Buffer *buffer)
+angle::Result TransformFeedback::detachBuffer(const Context *context, BufferID bufferID)
 {
-    mGenericBuffer.set(buffer);
-    mImplementation->bindGenericBuffer(mGenericBuffer);
-}
-
-void TransformFeedback::detachBuffer(GLuint bufferName)
-{
-    for (size_t index = 0; index < mIndexedBuffers.size(); index++)
+    bool isBound = context->isCurrentTransformFeedback(this);
+    for (size_t index = 0; index < mState.mIndexedBuffers.size(); index++)
     {
-        if (mIndexedBuffers[index].id() == bufferName)
+        if (mState.mIndexedBuffers[index].id() == bufferID)
         {
-            mIndexedBuffers[index].set(nullptr);
-            mImplementation->bindIndexedBuffer(index, mIndexedBuffers[index]);
+            if (isBound)
+            {
+                mState.mIndexedBuffers[index]->onTFBindingChanged(context, false, true);
+            }
+            mState.mIndexedBuffers[index].set(context, nullptr, 0, 0);
+            ANGLE_TRY(
+                mImplementation->bindIndexedBuffer(context, index, mState.mIndexedBuffers[index]));
         }
     }
 
-    if (mGenericBuffer.id() == bufferName)
+    return angle::Result::Continue;
+}
+
+angle::Result TransformFeedback::bindIndexedBuffer(const Context *context,
+                                                   size_t index,
+                                                   Buffer *buffer,
+                                                   size_t offset,
+                                                   size_t size)
+{
+    ASSERT(index < mState.mIndexedBuffers.size());
+    bool isBound = context && context->isCurrentTransformFeedback(this);
+    if (isBound && mState.mIndexedBuffers[index].get())
     {
-        mGenericBuffer.set(nullptr);
-        mImplementation->bindGenericBuffer(mGenericBuffer);
+        mState.mIndexedBuffers[index]->onTFBindingChanged(context, false, true);
     }
-}
+    mState.mIndexedBuffers[index].set(context, buffer, offset, size);
+    if (isBound && buffer)
+    {
+        buffer->onTFBindingChanged(context, true, true);
+    }
 
-const BindingPointer<Buffer> &TransformFeedback::getGenericBuffer() const
-{
-    return mGenericBuffer;
-}
-
-void TransformFeedback::bindIndexedBuffer(size_t index, Buffer *buffer, size_t offset, size_t size)
-{
-    ASSERT(index < mIndexedBuffers.size());
-    mIndexedBuffers[index].set(buffer, offset, size);
-    mImplementation->bindIndexedBuffer(index, mIndexedBuffers[index]);
+    return mImplementation->bindIndexedBuffer(context, index, mState.mIndexedBuffers[index]);
 }
 
 const OffsetBindingPointer<Buffer> &TransformFeedback::getIndexedBuffer(size_t index) const
 {
-    ASSERT(index < mIndexedBuffers.size());
-    return mIndexedBuffers[index];
+    ASSERT(index < mState.mIndexedBuffers.size());
+    return mState.mIndexedBuffers[index];
 }
 
 size_t TransformFeedback::getIndexedBufferCount() const
 {
-    return mIndexedBuffers.size();
+    return mState.mIndexedBuffers.size();
 }
 
-rx::TransformFeedbackImpl *TransformFeedback::getImplementation()
+bool TransformFeedback::buffersBoundForOtherUse() const
+{
+    for (auto &buffer : mState.mIndexedBuffers)
+    {
+        if (buffer.get() && buffer->isBoundForTransformFeedbackAndOtherUse())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+rx::TransformFeedbackImpl *TransformFeedback::getImplementation() const
 {
     return mImplementation;
 }
 
-const rx::TransformFeedbackImpl *TransformFeedback::getImplementation() const
+void TransformFeedback::onBindingChanged(const Context *context, bool bound)
 {
-    return mImplementation;
+    for (auto &buffer : mState.mIndexedBuffers)
+    {
+        if (buffer.get())
+        {
+            buffer->onTFBindingChanged(context, bound, true);
+        }
+    }
 }
 
+const std::vector<OffsetBindingPointer<Buffer>> &TransformFeedback::getIndexedBuffers() const
+{
+    return mState.mIndexedBuffers;
 }
+}  // namespace gl

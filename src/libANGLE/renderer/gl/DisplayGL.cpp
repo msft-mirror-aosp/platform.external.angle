@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2015 The ANGLE Project Authors. All rights reserved.
+// Copyright 2015 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -12,7 +12,9 @@
 #include "libANGLE/Context.h"
 #include "libANGLE/Display.h"
 #include "libANGLE/Surface.h"
+#include "libANGLE/renderer/gl/ContextGL.h"
 #include "libANGLE/renderer/gl/RendererGL.h"
+#include "libANGLE/renderer/gl/StateManagerGL.h"
 #include "libANGLE/renderer/gl/SurfaceGL.h"
 
 #include <EGL/eglext.h>
@@ -20,50 +22,27 @@
 namespace rx
 {
 
-DisplayGL::DisplayGL()
-    : mRenderer(nullptr)
-{
-}
+DisplayGL::DisplayGL(const egl::DisplayState &state) : DisplayImpl(state) {}
 
-DisplayGL::~DisplayGL()
-{
-}
+DisplayGL::~DisplayGL() {}
 
 egl::Error DisplayGL::initialize(egl::Display *display)
 {
-    mRenderer = new RendererGL(getFunctionsGL(), display->getAttributeMap());
-
-    const gl::Version &maxVersion = mRenderer->getMaxSupportedESVersion();
-    if (maxVersion < gl::Version(2, 0))
-    {
-        return egl::Error(EGL_NOT_INITIALIZED, "OpenGL ES 2.0 is not supportable.");
-    }
-
-    return egl::Error(EGL_SUCCESS);
+    return egl::NoError();
 }
 
-void DisplayGL::terminate()
-{
-    SafeDelete(mRenderer);
-}
+void DisplayGL::terminate() {}
 
-ImageImpl *DisplayGL::createImage(EGLenum target,
-                                  egl::ImageSibling *buffer,
+ImageImpl *DisplayGL::createImage(const egl::ImageState &state,
+                                  const gl::Context *context,
+                                  EGLenum target,
                                   const egl::AttributeMap &attribs)
 {
     UNIMPLEMENTED();
     return nullptr;
 }
 
-gl::Context *DisplayGL::createContext(const egl::Config *config,
-                                      const gl::Context *shareContext,
-                                      const egl::AttributeMap &attribs)
-{
-    ASSERT(mRenderer != nullptr);
-    return new gl::Context(config, shareContext, mRenderer, attribs);
-}
-
-StreamProducerImpl *DisplayGL::createStreamProducerD3DTextureNV12(
+StreamProducerImpl *DisplayGL::createStreamProducerD3DTexture(
     egl::Stream::ConsumerType consumerType,
     const egl::AttributeMap &attribs)
 {
@@ -71,21 +50,48 @@ StreamProducerImpl *DisplayGL::createStreamProducerD3DTextureNV12(
     return nullptr;
 }
 
-egl::Error DisplayGL::makeCurrent(egl::Surface *drawSurface, egl::Surface *readSurface, gl::Context *context)
+ShareGroupImpl *DisplayGL::createShareGroup()
 {
-    if (!drawSurface)
+    return new ShareGroupGL();
+}
+
+egl::Error DisplayGL::makeCurrent(egl::Surface *drawSurface,
+                                  egl::Surface *readSurface,
+                                  gl::Context *context)
+{
+    if (!context)
     {
-        return egl::Error(EGL_SUCCESS);
+        return egl::NoError();
     }
 
-    SurfaceGL *glDrawSurface = GetImplAs<SurfaceGL>(drawSurface);
-    return glDrawSurface->makeCurrent();
+    // Pause transform feedback before making a new surface current, to workaround anglebug.com/1426
+    ContextGL *glContext = GetImplAs<ContextGL>(context);
+    glContext->getStateManager()->pauseTransformFeedback();
+
+    if (drawSurface == nullptr)
+    {
+        ANGLE_TRY(makeCurrentSurfaceless(context));
+    }
+
+    return egl::NoError();
 }
 
-const gl::Version &DisplayGL::getMaxSupportedESVersion() const
+gl::Version DisplayGL::getMaxConformantESVersion() const
 {
-    ASSERT(mRenderer != nullptr);
-    return mRenderer->getMaxSupportedESVersion();
+    // 3.1 support is in progress.
+    return std::min(getMaxSupportedESVersion(), gl::Version(3, 0));
 }
 
+void DisplayGL::generateExtensions(egl::DisplayExtensions *outExtensions) const
+{
+    // Advertise robust resource initialization on all OpenGL backends for testing even though it is
+    // not fully implemented.
+    outExtensions->robustResourceInitialization = true;
 }
+
+egl::Error DisplayGL::makeCurrentSurfaceless(gl::Context *context)
+{
+    UNIMPLEMENTED();
+    return egl::NoError();
+}
+}  // namespace rx

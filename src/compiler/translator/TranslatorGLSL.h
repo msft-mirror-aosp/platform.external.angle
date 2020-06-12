@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2002-2010 The ANGLE Project Authors. All rights reserved.
+// Copyright 2002 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -9,19 +9,30 @@
 
 #include "compiler/translator/Compiler.h"
 
+namespace sh
+{
+
 class TranslatorGLSL : public TCompiler
 {
   public:
     TranslatorGLSL(sh::GLenum type, ShShaderSpec spec, ShShaderOutput output);
 
   protected:
-    void initBuiltInFunctionEmulator(BuiltInFunctionEmulator *emu, int compileOptions) override;
+    void initBuiltInFunctionEmulator(BuiltInFunctionEmulator *emu,
+                                     ShCompileOptions compileOptions) override;
 
-    void translate(TIntermNode *root, int compileOptions) override;
+    ANGLE_NO_DISCARD bool translate(TIntermBlock *root,
+                                    ShCompileOptions compileOptions,
+                                    PerformanceDiagnostics *perfDiagnostics) override;
+    bool shouldFlattenPragmaStdglInvariantAll() override;
+    bool shouldCollectVariables(ShCompileOptions compileOptions) override;
 
   private:
     void writeVersion(TIntermNode *root);
-    void writeExtensionBehavior(TIntermNode *root);
+    void writeExtensionBehavior(TIntermNode *root, ShCompileOptions compileOptions);
+    void conditionallyOutputInvariantDeclaration(const char *builtinVaryingName);
 };
+
+}  // namespace sh
 
 #endif  // COMPILER_TRANSLATOR_TRANSLATORGLSL_H_

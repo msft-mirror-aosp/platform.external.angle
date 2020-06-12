@@ -10,9 +10,11 @@
 #include <sstream>
 
 #include "libANGLE/Context.h"
+#include "libANGLE/renderer/d3d/d3d11/Context11.h"
 #include "libANGLE/renderer/d3d/d3d11/Renderer11.h"
 #include "test_utils/ANGLETest.h"
 #include "test_utils/angle_test_instantiate.h"
+#include "util/EGLWindow.h"
 
 using namespace angle;
 
@@ -46,16 +48,15 @@ class D3D11InputLayoutCacheTest : public ANGLETest
         {
             strstr << "    v += a" << attribIndex << ";" << std::endl;
         }
-        strstr << "    gl_Position = vec4(position, 0.0, 1.0);" << std::endl
-               << "}" << std::endl;
+        strstr << "    gl_Position = vec4(position, 0.0, 1.0);" << std::endl << "}" << std::endl;
 
-        const std::string basicFragmentShader =
+        constexpr char kFS[] =
             "varying highp float v;\n"
             "void main() {"
             "   gl_FragColor = vec4(v / 255.0, 0.0, 0.0, 1.0);\n"
             "}\n";
 
-        return CompileProgram(strstr.str(), basicFragmentShader);
+        return CompileProgram(strstr.str().c_str(), kFS);
     }
 };
 
@@ -64,9 +65,10 @@ class D3D11InputLayoutCacheTest : public ANGLETest
 TEST_P(D3D11InputLayoutCacheTest, StressTest)
 {
     // Hack the ANGLE!
-    gl::Context *context = reinterpret_cast<gl::Context *>(getEGLWindow()->getContext());
-    rx::Renderer11 *renderer11 = rx::GetAs<rx::Renderer11>(context->getRenderer());
-    rx::InputLayoutCache *inputLayoutCache = renderer11->getInputLayoutCache();
+    gl::Context *context       = static_cast<gl::Context *>(getEGLWindow()->getContext());
+    rx::Context11 *context11   = rx::GetImplAs<rx::Context11>(context);
+    rx::Renderer11 *renderer11 = context11->getRenderer();
+    rx::InputLayoutCache *inputLayoutCache = renderer11->getStateManager()->getInputLayoutCache();
 
     // Clamp the cache size to something tiny
     inputLayoutCache->setCacheSize(4);
@@ -119,6 +121,6 @@ TEST_P(D3D11InputLayoutCacheTest, StressTest)
     }
 }
 
-ANGLE_INSTANTIATE_TEST(D3D11InputLayoutCacheTest, ES2_D3D11());
+ANGLE_INSTANTIATE_TEST(D3D11InputLayoutCacheTest, ES2_D3D11(), ES3_D3D11(), ES31_D3D11());
 
 }  // anonymous namespace

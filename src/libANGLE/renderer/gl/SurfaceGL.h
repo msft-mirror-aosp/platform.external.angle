@@ -14,28 +14,23 @@
 namespace rx
 {
 
-class RendererGL;
-
 class SurfaceGL : public SurfaceImpl
 {
   public:
-    SurfaceGL(RendererGL *renderer);
+    SurfaceGL(const egl::SurfaceState &state);
     ~SurfaceGL() override;
 
-    gl::Error getAttachmentRenderTarget(const gl::FramebufferAttachment::Target &target,
-                                        FramebufferAttachmentRenderTarget **rtOut) override
-    {
-        return gl::Error(GL_OUT_OF_MEMORY, "Not supported on OpenGL");
-    }
+    FramebufferImpl *createDefaultFramebuffer(const gl::Context *context,
+                                              const gl::FramebufferState &data) override;
+    egl::Error getSyncValues(EGLuint64KHR *ust, EGLuint64KHR *msc, EGLuint64KHR *sbc) override;
+    egl::Error getMscRate(EGLint *numerator, EGLint *denominator) override;
 
-    FramebufferImpl *createDefaultFramebuffer(const gl::FramebufferState &data) override;
+    angle::Result initializeContents(const gl::Context *context,
+                                     const gl::ImageIndex &imageIndex) override;
 
-    virtual egl::Error makeCurrent() = 0;
-
-  private:
-    RendererGL *mRenderer;
+    virtual bool hasEmulatedAlphaChannel() const;
 };
 
-}
+}  // namespace rx
 
-#endif // LIBANGLE_RENDERER_GL_SURFACEGL_H_
+#endif  // LIBANGLE_RENDERER_GL_SURFACEGL_H_

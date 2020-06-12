@@ -15,6 +15,8 @@
 using namespace rx;
 using namespace gl;
 
+using ::testing::_;
+
 namespace
 {
 
@@ -23,43 +25,49 @@ class ResourceManagerTest : public testing::Test
   protected:
     void SetUp() override
     {
-        mResourceManager = new ResourceManager(&mMockFactory);
+        mTextureManager      = new TextureManager();
+        mBufferManager       = new BufferManager();
+        mRenderbuffermanager = new RenderbufferManager();
     }
 
     void TearDown() override
     {
-        SafeDelete(mResourceManager);
+        mTextureManager->release(nullptr);
+        mBufferManager->release(nullptr);
+        mRenderbuffermanager->release(nullptr);
     }
 
-    MockFactory mMockFactory;
-    ResourceManager *mResourceManager;
+    MockGLFactory mMockFactory;
+    TextureManager *mTextureManager;
+    BufferManager *mBufferManager;
+    RenderbufferManager *mRenderbuffermanager;
 };
 
 TEST_F(ResourceManagerTest, ReallocateBoundTexture)
 {
-    EXPECT_CALL(mMockFactory, createTexture(GL_TEXTURE_2D)).Times(1).RetiresOnSaturation();
+    EXPECT_CALL(mMockFactory, createTexture(_)).Times(1).RetiresOnSaturation();
 
-    mResourceManager->checkTextureAllocation(1, GL_TEXTURE_2D);
-    GLuint newTexture = mResourceManager->createTexture();
-    EXPECT_NE(1u, newTexture);
+    mTextureManager->checkTextureAllocation(&mMockFactory, {1}, TextureType::_2D);
+    TextureID newTexture = mTextureManager->createTexture();
+    EXPECT_NE(1u, newTexture.value);
 }
 
 TEST_F(ResourceManagerTest, ReallocateBoundBuffer)
 {
-    EXPECT_CALL(mMockFactory, createBuffer()).Times(1).RetiresOnSaturation();
+    EXPECT_CALL(mMockFactory, createBuffer(_)).Times(1).RetiresOnSaturation();
 
-    mResourceManager->checkBufferAllocation(1);
-    GLuint newBuffer = mResourceManager->createBuffer();
-    EXPECT_NE(1u, newBuffer);
+    mBufferManager->checkBufferAllocation(&mMockFactory, {1});
+    BufferID newBuffer = mBufferManager->createBuffer();
+    EXPECT_NE(1u, newBuffer.value);
 }
 
 TEST_F(ResourceManagerTest, ReallocateBoundRenderbuffer)
 {
-    EXPECT_CALL(mMockFactory, createRenderbuffer()).Times(1).RetiresOnSaturation();
+    EXPECT_CALL(mMockFactory, createRenderbuffer(_)).Times(1).RetiresOnSaturation();
 
-    mResourceManager->checkRenderbufferAllocation(1);
-    GLuint newRenderbuffer = mResourceManager->createRenderbuffer();
-    EXPECT_NE(1u, newRenderbuffer);
+    mRenderbuffermanager->checkRenderbufferAllocation(&mMockFactory, {1});
+    RenderbufferID newRenderbuffer = mRenderbuffermanager->createRenderbuffer();
+    EXPECT_NE(1u, newRenderbuffer.value);
 }
 
-}
+}  // anonymous namespace

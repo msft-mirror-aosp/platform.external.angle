@@ -1,31 +1,31 @@
 //
-// Copyright (c) 2011 The ANGLE Project Authors. All rights reserved.
+// Copyright 2011 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
 
-#include "Token.h"
+#include "compiler/preprocessor/Token.h"
 
-#include <cassert>
+#include "common/debug.h"
+#include "compiler/preprocessor/numeric_lex.h"
 
-#include "numeric_lex.h"
+namespace angle
+{
 
 namespace pp
 {
 
 void Token::reset()
 {
-    type = 0;
-    flags = 0;
+    type     = 0;
+    flags    = 0;
     location = SourceLocation();
     text.clear();
 }
 
 bool Token::equals(const Token &other) const
 {
-    return (type == other.type) &&
-           (flags == other.flags) &&
-           (location == other.location) &&
+    return (type == other.type) && (flags == other.flags) && (location == other.location) &&
            (text == other.text);
 }
 
@@ -55,20 +55,14 @@ void Token::setExpansionDisabled(bool disable)
 
 bool Token::iValue(int *value) const
 {
-    assert(type == CONST_INT);
+    ASSERT(type == CONST_INT);
     return numeric_lex_int(text, value);
 }
 
 bool Token::uValue(unsigned int *value) const
 {
-    assert(type == CONST_INT);
+    ASSERT(type == CONST_INT);
     return numeric_lex_int(text, value);
-}
-
-bool Token::fValue(float *value) const
-{
-    assert(type == CONST_FLOAT);
-    return numeric_lex_float(text, value);
 }
 
 std::ostream &operator<<(std::ostream &out, const Token &token)
@@ -81,3 +75,5 @@ std::ostream &operator<<(std::ostream &out, const Token &token)
 }
 
 }  // namespace pp
+
+}  // namespace angle

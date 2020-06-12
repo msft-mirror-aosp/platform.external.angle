@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2002-2014 The ANGLE Project Authors. All rights reserved.
+// Copyright 2002 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -9,123 +9,192 @@
 // [OpenGL ES 2.0.24] section 2.9 page 21.
 
 #include "libANGLE/Buffer.h"
+
+#include "libANGLE/Context.h"
 #include "libANGLE/renderer/BufferImpl.h"
-#include "libANGLE/renderer/Renderer.h"
+#include "libANGLE/renderer/GLImplFactory.h"
 
 namespace gl
 {
+namespace
+{
+constexpr angle::SubjectIndex kImplementationSubjectIndex = 0;
+}  // anonymous namespace
 
-Buffer::Buffer(rx::BufferImpl *impl, GLuint id)
-    : RefCountObject(id),
-      mBuffer(impl),
-      mLabel(),
-      mUsage(GL_STATIC_DRAW),
+BufferState::BufferState()
+    : mLabel(),
+      mUsage(BufferUsage::StaticDraw),
       mSize(0),
       mAccessFlags(0),
       mAccess(GL_WRITE_ONLY_OES),
       mMapped(GL_FALSE),
-      mMapPointer(NULL),
+      mMapPointer(nullptr),
       mMapOffset(0),
-      mMapLength(0)
+      mMapLength(0),
+      mBindingCount(0),
+      mTransformFeedbackIndexedBindingCount(0),
+      mTransformFeedbackGenericBindingCount(0)
+{}
+
+BufferState::~BufferState() {}
+
+Buffer::Buffer(rx::GLImplFactory *factory, BufferID id)
+    : RefCountObject(factory->generateSerial(), id),
+      mImpl(factory->createBuffer(mState)),
+      mImplObserver(this, kImplementationSubjectIndex)
 {
+    mImplObserver.bind(mImpl);
 }
 
 Buffer::~Buffer()
 {
-    SafeDelete(mBuffer);
+    SafeDelete(mImpl);
 }
 
-void Buffer::setLabel(const std::string &label)
+void Buffer::onDestroy(const Context *context)
 {
-    mLabel = label;
+    // In tests, mImpl might be null.
+    if (mImpl)
+        mImpl->destroy(context);
+}
+
+void Buffer::setLabel(const Context *context, const std::string &label)
+{
+    mState.mLabel = label;
 }
 
 const std::string &Buffer::getLabel() const
 {
-    return mLabel;
+    return mState.mLabel;
 }
 
-Error Buffer::bufferData(const void *data, GLsizeiptr size, GLenum usage)
+angle::Result Buffer::bufferData(Context *context,
+                                 BufferBinding target,
+                                 const void *data,
+                                 GLsizeiptr size,
+                                 BufferUsage usage)
 {
-    gl::Error error = mBuffer->setData(data, size, usage);
-    if (error.isError())
+    const void *dataForImpl = data;
+
+    if (mState.isMapped())
     {
-        return error;
+        // Per the OpenGL ES 3.0 spec, buffers are implicity unmapped when a call to
+        // BufferData happens on a mapped buffer:
+        //
+        //     If any portion of the buffer object is mapped in the current context or any context
+        //     current to another thread, it is as though UnmapBuffer (see section 2.10.3) is
+        //     executed in each such context prior to deleting the existing data store.
+        //
+        GLboolean dontCare = GL_FALSE;
+        ANGLE_TRY(unmap(context, &dontCare));
+    }
+
+    // If we are using robust resource init, make sure the buffer starts cleared.
+    // Note: the Context is checked for nullptr because of some testing code.
+    // TODO(jmadill): Investigate lazier clearing.
+    if (context && context->getState().isRobustResourceInitEnabled() && !data && size > 0)
+    {
+        angle::MemoryBuffer *scratchBuffer = nullptr;
+        ANGLE_CHECK_GL_ALLOC(
+            context, context->getZeroFilledBuffer(static_cast<size_t>(size), &scratchBuffer));
+        dataForImpl = scratchBuffer->data();
+    }
+
+    if (mImpl->setData(context, target, dataForImpl, size, usage) == angle::Result::Stop)
+    {
+        // If setData fails, the buffer contents are undefined. Set a zero size to indicate that.
+        mIndexRangeCache.clear();
+        mState.mSize = 0;
+
+        // Notify when storage changes.
+        onStateChange(angle::SubjectMessage::SubjectChanged);
+
+        return angle::Result::Stop;
     }
 
     mIndexRangeCache.clear();
-    mUsage = usage;
-    mSize = size;
+    mState.mUsage = usage;
+    mState.mSize  = size;
 
-    return error;
+    // Notify when storage changes.
+    onStateChange(angle::SubjectMessage::SubjectChanged);
+
+    return angle::Result::Continue;
 }
 
-Error Buffer::bufferSubData(const void *data, GLsizeiptr size, GLintptr offset)
+angle::Result Buffer::bufferSubData(const Context *context,
+                                    BufferBinding target,
+                                    const void *data,
+                                    GLsizeiptr size,
+                                    GLintptr offset)
 {
-    gl::Error error = mBuffer->setSubData(data, size, offset);
-    if (error.isError())
-    {
-        return error;
-    }
+    ANGLE_TRY(mImpl->setSubData(context, target, data, size, offset));
 
-    mIndexRangeCache.invalidateRange(static_cast<unsigned int>(offset), static_cast<unsigned int>(size));
+    mIndexRangeCache.invalidateRange(static_cast<unsigned int>(offset),
+                                     static_cast<unsigned int>(size));
 
-    return error;
+    // Notify when data changes.
+    onStateChange(angle::SubjectMessage::ContentsChanged);
+
+    return angle::Result::Continue;
 }
 
-Error Buffer::copyBufferSubData(Buffer* source, GLintptr sourceOffset, GLintptr destOffset, GLsizeiptr size)
+angle::Result Buffer::copyBufferSubData(const Context *context,
+                                        Buffer *source,
+                                        GLintptr sourceOffset,
+                                        GLintptr destOffset,
+                                        GLsizeiptr size)
 {
-    gl::Error error = mBuffer->copySubData(source->getImplementation(), sourceOffset, destOffset, size);
-    if (error.isError())
-    {
-        return error;
-    }
+    ANGLE_TRY(
+        mImpl->copySubData(context, source->getImplementation(), sourceOffset, destOffset, size));
 
-    mIndexRangeCache.invalidateRange(static_cast<unsigned int>(destOffset), static_cast<unsigned int>(size));
+    mIndexRangeCache.invalidateRange(static_cast<unsigned int>(destOffset),
+                                     static_cast<unsigned int>(size));
 
-    return error;
+    // Notify when data changes.
+    onStateChange(angle::SubjectMessage::ContentsChanged);
+
+    return angle::Result::Continue;
 }
 
-Error Buffer::map(GLenum access)
+angle::Result Buffer::map(const Context *context, GLenum access)
 {
-    ASSERT(!mMapped);
+    ASSERT(!mState.mMapped);
 
-    Error error = mBuffer->map(access, &mMapPointer);
-    if (error.isError())
-    {
-        mMapPointer = NULL;
-        return error;
-    }
+    mState.mMapPointer = nullptr;
+    ANGLE_TRY(mImpl->map(context, access, &mState.mMapPointer));
 
     ASSERT(access == GL_WRITE_ONLY_OES);
 
-    mMapped = GL_TRUE;
-    mMapOffset = 0;
-    mMapLength = mSize;
-    mAccess = access;
-    mAccessFlags = GL_MAP_WRITE_BIT;
+    mState.mMapped      = GL_TRUE;
+    mState.mMapOffset   = 0;
+    mState.mMapLength   = mState.mSize;
+    mState.mAccess      = access;
+    mState.mAccessFlags = GL_MAP_WRITE_BIT;
     mIndexRangeCache.clear();
 
-    return error;
+    // Notify when state changes.
+    onStateChange(angle::SubjectMessage::SubjectMapped);
+
+    return angle::Result::Continue;
 }
 
-Error Buffer::mapRange(GLintptr offset, GLsizeiptr length, GLbitfield access)
+angle::Result Buffer::mapRange(const Context *context,
+                               GLintptr offset,
+                               GLsizeiptr length,
+                               GLbitfield access)
 {
-    ASSERT(!mMapped);
-    ASSERT(offset + length <= mSize);
+    ASSERT(!mState.mMapped);
+    ASSERT(offset + length <= mState.mSize);
 
-    Error error = mBuffer->mapRange(offset, length, access, &mMapPointer);
-    if (error.isError())
-    {
-        mMapPointer = NULL;
-        return error;
-    }
+    mState.mMapPointer = nullptr;
+    ANGLE_TRY(mImpl->mapRange(context, offset, length, access, &mState.mMapPointer));
 
-    mMapped = GL_TRUE;
-    mMapOffset = static_cast<GLint64>(offset);
-    mMapLength = static_cast<GLint64>(length);
-    mAccess = GL_WRITE_ONLY_OES;
-    mAccessFlags = access;
+    mState.mMapped      = GL_TRUE;
+    mState.mMapOffset   = static_cast<GLint64>(offset);
+    mState.mMapLength   = static_cast<GLint64>(length);
+    mState.mAccess      = GL_WRITE_ONLY_OES;
+    mState.mAccessFlags = access;
 
     // The OES_mapbuffer extension states that GL_WRITE_ONLY_OES is the only valid
     // value for GL_BUFFER_ACCESS_OES because it was written against ES2.  Since there is
@@ -134,63 +203,99 @@ Error Buffer::mapRange(GLintptr offset, GLsizeiptr length, GLbitfield access)
 
     if ((access & GL_MAP_WRITE_BIT) > 0)
     {
-        mIndexRangeCache.invalidateRange(static_cast<unsigned int>(offset), static_cast<unsigned int>(length));
+        mIndexRangeCache.invalidateRange(static_cast<unsigned int>(offset),
+                                         static_cast<unsigned int>(length));
     }
 
-    return error;
+    // Notify when state changes.
+    onStateChange(angle::SubjectMessage::SubjectMapped);
+
+    return angle::Result::Continue;
 }
 
-Error Buffer::unmap(GLboolean *result)
+angle::Result Buffer::unmap(const Context *context, GLboolean *result)
 {
-    ASSERT(mMapped);
+    ASSERT(mState.mMapped);
 
-    Error error = mBuffer->unmap(result);
-    if (error.isError())
-    {
-        *result = GL_FALSE;
-        return error;
-    }
+    *result = GL_FALSE;
+    ANGLE_TRY(mImpl->unmap(context, result));
 
-    mMapped = GL_FALSE;
-    mMapPointer = NULL;
-    mMapOffset = 0;
-    mMapLength = 0;
-    mAccess = GL_WRITE_ONLY_OES;
-    mAccessFlags = 0;
+    mState.mMapped      = GL_FALSE;
+    mState.mMapPointer  = nullptr;
+    mState.mMapOffset   = 0;
+    mState.mMapLength   = 0;
+    mState.mAccess      = GL_WRITE_ONLY_OES;
+    mState.mAccessFlags = 0;
 
-    return error;
+    // Notify when data changes.
+    onStateChange(angle::SubjectMessage::SubjectUnmapped);
+
+    return angle::Result::Continue;
 }
 
-void Buffer::onTransformFeedback()
-{
-    mIndexRangeCache.clear();
-}
-
-void Buffer::onPixelUnpack()
+void Buffer::onDataChanged()
 {
     mIndexRangeCache.clear();
+
+    // Notify when data changes.
+    onStateChange(angle::SubjectMessage::ContentsChanged);
+
+    mImpl->onDataChanged();
 }
 
-Error Buffer::getIndexRange(GLenum type,
-                            size_t offset,
-                            size_t count,
-                            bool primitiveRestartEnabled,
-                            IndexRange *outRange) const
+angle::Result Buffer::getIndexRange(const gl::Context *context,
+                                    DrawElementsType type,
+                                    size_t offset,
+                                    size_t count,
+                                    bool primitiveRestartEnabled,
+                                    IndexRange *outRange) const
 {
     if (mIndexRangeCache.findRange(type, offset, count, primitiveRestartEnabled, outRange))
     {
-        return gl::Error(GL_NO_ERROR);
+        return angle::Result::Continue;
     }
 
-    Error error = mBuffer->getIndexRange(type, offset, count, primitiveRestartEnabled, outRange);
-    if (error.isError())
-    {
-        return error;
-    }
+    ANGLE_TRY(
+        mImpl->getIndexRange(context, type, offset, count, primitiveRestartEnabled, outRange));
 
     mIndexRangeCache.addRange(type, offset, count, primitiveRestartEnabled, *outRange);
 
-    return Error(GL_NO_ERROR);
+    return angle::Result::Continue;
 }
 
+GLint64 Buffer::getMemorySize() const
+{
+    GLint64 implSize = mImpl->getMemorySize();
+    return implSize > 0 ? implSize : mState.mSize;
 }
+
+bool Buffer::isDoubleBoundForTransformFeedback() const
+{
+    return mState.mTransformFeedbackIndexedBindingCount > 1;
+}
+
+void Buffer::onTFBindingChanged(const Context *context, bool bound, bool indexed)
+{
+    ASSERT(bound || mState.mBindingCount > 0);
+    mState.mBindingCount += bound ? 1 : -1;
+    if (indexed)
+    {
+        ASSERT(bound || mState.mTransformFeedbackIndexedBindingCount > 0);
+        mState.mTransformFeedbackIndexedBindingCount += bound ? 1 : -1;
+
+        onStateChange(angle::SubjectMessage::BindingChanged);
+    }
+    else
+    {
+        mState.mTransformFeedbackGenericBindingCount += bound ? 1 : -1;
+    }
+}
+
+void Buffer::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message)
+{
+    // Pass it along!
+    ASSERT(index == kImplementationSubjectIndex);
+    ASSERT(message == angle::SubjectMessage::SubjectChanged);
+    onStateChange(angle::SubjectMessage::SubjectChanged);
+}
+}  // namespace gl

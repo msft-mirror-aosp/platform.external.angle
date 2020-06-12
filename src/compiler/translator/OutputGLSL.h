@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2002-2013 The ANGLE Project Authors. All rights reserved.
+// Copyright 2002 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -9,21 +9,29 @@
 
 #include "compiler/translator/OutputGLSLBase.h"
 
+namespace sh
+{
+
 class TOutputGLSL : public TOutputGLSLBase
 {
   public:
-    TOutputGLSL(TInfoSinkBase& objSink,
+    TOutputGLSL(TInfoSinkBase &objSink,
                 ShArrayIndexClampingStrategy clampingStrategy,
                 ShHashFunction64 hashFunction,
-                NameMap& nameMap,
-                TSymbolTable& symbolTable,
+                NameMap &nameMap,
+                TSymbolTable *symbolTable,
+                sh::GLenum shaderType,
                 int shaderVersion,
-                ShShaderOutput output);
+                ShShaderOutput output,
+                ShCompileOptions compileOptions);
 
   protected:
     bool writeVariablePrecision(TPrecision) override;
     void visitSymbol(TIntermSymbol *node) override;
-    TString translateTextureFunction(TString &name) override;
+    ImmutableString translateTextureFunction(const ImmutableString &name,
+                                             const ShCompileOptions &option) override;
 };
+
+}  // namespace sh
 
 #endif  // COMPILER_TRANSLATOR_OUTPUTGLSL_H_

@@ -2,50 +2,46 @@
 
 ## Google Style Guide
 
-We generally use the [Google C++ Style Guide]
-(http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml) as a basis for
+We generally use the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html) as a basis for
 our Coding Standard, however we will deviate from it in a few areas, as noted
 below.
 
 Items marked {DEV} indicate a deviation from the Google guidelines. Items marked
 {DO} are reiterating points from the Google guidelines.
 
-### [Header Files](http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml#Header_Files)
+Before you upload code to Gerrit, use `git cl format` to auto-format your code.
+This will catch most of the trivial formatting errors and save you time.
 
-*   We will use **`.h`** for C++ headers.
+### [Header Files](https://google.github.io/styleguide/cppguide.html#Header_Files)
+
+*   We use **`.h`** for C++ headers.
 *   {DEV} #define guards should be of the form: `<PATH>_<FILE>_H_`. (Compiler
     codebase is varied, including `<PROJECT>_` makes the names excessively
     long).
 
-### [Scoping](http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml#Scoping)
+### [Scoping](https://google.github.io/styleguide/cppguide.html#Scoping)
 
 *   {DO} avoid globally scoped variables, unless absolutely necessary.
 
-### [Classes](http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml#Classes)
+### [Classes](https://google.github.io/styleguide/cppguide.html#Classes)
 
-*   {DO} disable Copy and Assignment constructors using the
-    DISALLOW\_COPY\_AND\_ASSIGN macro (defined in common/angleutils.h) in the
-    **private** section of a class: ``` class Foo { public: Foo(int f); ~Foo();
+*   {DEV} Inherit (privately) from angle::NonCopyable helper class (defined in
+    common/angleutils.h) to disable default copy and assignment operators.
 
-    private: DISALLOW_COPY_AND_ASSIGN(Foo); }; ```
-
-### [Other C++ Features](http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml#Other_C++_Features)
+### [Other C++ Features](https://google.github.io/styleguide/cppguide.html#Other_C++_Features)
 
 *   {DEV} all parameters passed by reference, except for STL containers (e.g.
     std::vector, std::list), must be labeled `const`. For return parameters
     other than STL containers, use a pointer.
-*   {DO} avoid use of default arguments. exception: for functions emulating
-    variadic arguments, they are allowed.
+*   {DO} avoid use of default arguments.
 *   {DONT} use C++ exceptions, they are disabled in the builds and not caught.
 *   {DO} use nullptr (instead of 0 or NULL) for pointers.
 *   {DO} use size\_t for loop iterators and size values.
 *   {DO} use uint8\_t pointers instead of void pointers to denote binary data.
-*   {DO} use C++11 according to the [Chromium guide on C++11]
+*   {DO} use C++11/14 according to the [Chromium c++ 11/14 guide]
     (http://chromium-cpp.appspot.com/).
-*   {DEV} we permit C++11 STL classes inside the D3D Renderers, since D3D is
-    only supported on MSVS.
 
-### [Naming ](http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml#Naming)
+### [Naming](https://google.github.io/styleguide/cppguide.html#Naming)
 
 #### File Names
 
@@ -53,53 +49,57 @@ Items marked {DEV} indicate a deviation from the Google guidelines. Items marked
     If the file is an implementation of a class, the filename may be capitalized
     the same as the major class.
 *   {DEV} We use .cpp (instead of .cc), .h and .inl (inlined files) for C++
-    files and headers. #### Directory Names
+    files and headers.
+
+#### Directory Names
 *   Directory names should be all lowercase, unless following an externally
     imposed capitalization (eg include/EGL, or src/libGLESv2, etc)
 
 #### Variable Names
 
-Use the following guidelines, they do deviate somewhat from the Google
-guidelines. 
+Use the following guidelines, they do deviate somewhat from the [Google
+guidelines](https://google.github.io/styleguide/cppguide.html#Naming).
 
-* class and type names: start with capital letter and use CamelCase.
-* {DEV} class member variables: use an **`m`** prefix instead of trailing
+* Class and type names: start with capital letter and use CamelCase.
+* {DEV} Class member variables: use an **`m`** prefix instead of trailing
 underscore and use CamelCase.
-* global variables (if they must be used): use a **`g_`** prefix.
-* {DEV} variable names: start with lower case and use CamelCase (chosen for consistency)
-* {DEV} function names: Member functions start with lower case and use CamelCase. Non-member functions start with capital letter and
+* Global variables (if they must be used): use a **`g`** prefix.
+* {DEV} Variable names: start with lower case and use CamelCase (chosen for consistency)
+* {DEV} Function names: Member functions start with lower case and use CamelCase. Non-member and static member functions start with capital letter and
 use CamelCase (chosen for consistency)
-* Constants: start with a **`k`** and use CamelCase
-* namespaces: use all lower case
-* Enumerator Names - follow constants
-* macros: all uppercase with underscores
-* exceptions to naming: use common sense!
+* {DO} Constants: start with a **`k`** and use CamelCase
+* Namespaces: short names. use all lower case
+* {DEV} Enum Names: use strongly typed class enums when possible. Use CamelCase for class enum members. See [official docs][EnumsOfficial].
+* Macros: all uppercase with underscores
+* Exceptions to naming: use common sense!
 
-### [Comments](http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml#Comments)
+[EnumsOfficial]: https://google.github.io/styleguide/cppguide.html#Enumerator_Names
+
+### [Comments](https://google.github.io/styleguide/cppguide.html#Comments)
 
 *   {DO} read and follow Google's recommendations.
 *   Each file **must** start with the following boilerplate notice:
 
 ```
 //
-//  Copyright (c) 2002-2011 The ANGLE Project Authors. All rights reserved.
+//  Copyright $YEAR The ANGLE Project Authors. All rights reserved.
 //  Use of this source code is governed by a BSD-style license that can be
 //  found in the LICENSE file.
 //
 ```
 
-### [Formatting](http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml#Formatting)
+* $YEAR should be set to the current year at the time a file is created, and not changed thereafter.
 
-*   {DEV} Avoid excessively long lines. Please keep lines under 120 columns
+### [Formatting](https://google.github.io/styleguide/cppguide.html#Formatting)
+
+*   {DEV} Avoid excessively long lines. Please keep lines under 100 columns
     long.
 *   Use unix-style newlines.
 *   {DO} use only spaces. No tab characters. Configure your editor to emit
     spaces when you hit the TAB-key.
 *   {DEV} indent 4 spaces at a time.
 *   conditionals: place space outside the parenthesis. No spaces inside.
-*   switch statements: indent the case statements by 2 spaces. The body of the
-    case statements should be intended another 2 spaces so that they are a full
-    4-space indent from the switch.
+*   switch statements: use the output of `git cl format`.
 *   class format(eg private, public, protected): indent by 2 spaces. Regular
     4-space indent from the outer scope for declarations/definitions.
 *   pointers and references: **`*`** and **`&`** tight against the variable
@@ -152,12 +152,28 @@ char *c;
 const string &str;
 ```
 
-### [Exceptions to the Rules](http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml#Exceptions_to_the_Rules)
+### [Exceptions to the Rules](https://google.github.io/styleguide/cppguide.html#Exceptions_to_the_Rules)
 
 *   If modifying pre-existing code that does not match the standard, the altered
     portions of the code should be changed to match the standard.
-*   For changes which fix bugs, we do not require that pre-existing style issues
-    be addressed in the change itself, but reviewers may request a follow-on CL
-    to address style inconsistencies. This exception does not apply to changes
-    which implement new features, perform refactoring, or introduce a style
-    issue or inconsistency themselves.
+
+### Generated Source Files
+
+Prefer storing generated sources as baked files in the repository. Avoid using
+GN actions to run Python scripts.
+
+**Definition:**
+
+Sometimes helper scripts can create compilable sources more easily from XML or
+JSON data sources than maintaining source files by hand. These scripts are often
+written in Python and output generated sources.
+
+**Decision**
+
+Storing generated sources in the repository makes integration easier for non-GN
+users. Python scripts can be expensive and slow to run at compile-time.
+Generated sources can be a pain point for messing up builds.
+
+It could be possible to solve the build clobbering problem. And we could replace
+Python with something faster. But to allow for easier integration with our tools
+and customers we should bake generated files into the repository.

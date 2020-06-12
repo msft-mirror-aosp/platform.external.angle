@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2015 The ANGLE Project Authors. All rights reserved.
+// Copyright 2015 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -7,9 +7,9 @@
 //   Test for GLES SL 3.0 gl_FragDepth variable implementation.
 //
 
+#include "GLSLANG/ShaderLang.h"
 #include "angle_gl.h"
 #include "gtest/gtest.h"
-#include "GLSLANG/ShaderLang.h"
 
 namespace
 {
@@ -23,7 +23,7 @@ class FragDepthTest : public testing::TestWithParam<bool>
   protected:
     void SetUp() override
     {
-        ShInitBuiltInResources(&mResources);
+        sh::InitBuiltInResources(&mResources);
         mCompiler                 = nullptr;
         mResources.EXT_frag_depth = GetParam();
     }
@@ -33,7 +33,7 @@ class FragDepthTest : public testing::TestWithParam<bool>
     {
         if (mCompiler)
         {
-            ShDestruct(mCompiler);
+            sh::Destruct(mCompiler);
             mCompiler = nullptr;
         }
     }
@@ -41,8 +41,8 @@ class FragDepthTest : public testing::TestWithParam<bool>
     void InitializeCompiler()
     {
         DestroyCompiler();
-        mCompiler = ShConstructCompiler(GL_FRAGMENT_SHADER, SH_GLES3_SPEC,
-                                        SH_GLSL_COMPATIBILITY_OUTPUT, &mResources);
+        mCompiler = sh::ConstructCompiler(GL_FRAGMENT_SHADER, SH_GLES3_SPEC,
+                                          SH_GLSL_COMPATIBILITY_OUTPUT, &mResources);
         ASSERT_TRUE(mCompiler != nullptr) << "Compiler could not be constructed.";
     }
 
@@ -51,12 +51,12 @@ class FragDepthTest : public testing::TestWithParam<bool>
                                                const char *shader)
     {
         const char *shaderStrings[] = {version, pragma, shader};
-        bool success = ShCompile(mCompiler, shaderStrings, 3, 0);
+        bool success                = sh::Compile(mCompiler, shaderStrings, 3, 0);
         if (success)
         {
             return ::testing::AssertionSuccess() << "Compilation success";
         }
-        return ::testing::AssertionFailure() << ShGetInfoLog(mCompiler);
+        return ::testing::AssertionFailure() << sh::GetInfoLog(mCompiler);
     }
 
   protected:
@@ -116,4 +116,4 @@ TEST_P(FragDepthTest, ExtensionFDFailsESSL300)
 }
 
 // The tests should pass regardless whether the EXT_frag_depth is on or not.
-INSTANTIATE_TEST_CASE_P(FragDepthTests, FragDepthTest, testing::Values(false, true));
+INSTANTIATE_TEST_SUITE_P(FragDepthTests, FragDepthTest, testing::Values(false, true));

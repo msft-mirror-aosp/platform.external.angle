@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012 The ANGLE Project Authors. All rights reserved.
+// Copyright 2012 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -7,8 +7,11 @@
 #ifndef COMPILER_PREPROCESSOR_EXPRESSIONPARSER_H_
 #define COMPILER_PREPROCESSOR_EXPRESSIONPARSER_H_
 
-#include "DiagnosticsBase.h"
-#include "pp_utils.h"
+#include "common/angleutils.h"
+#include "compiler/preprocessor/DiagnosticsBase.h"
+
+namespace angle
+{
 
 namespace pp
 {
@@ -16,7 +19,7 @@ namespace pp
 class Lexer;
 struct Token;
 
-class ExpressionParser
+class ExpressionParser : angle::NonCopyable
 {
   public:
     struct ErrorSettings
@@ -34,12 +37,12 @@ class ExpressionParser
                bool *valid);
 
   private:
-    PP_DISALLOW_COPY_AND_ASSIGN(ExpressionParser);
-
     Lexer *mLexer;
     Diagnostics *mDiagnostics;
 };
 
 }  // namespace pp
+
+}  // namespace angle
 
 #endif  // COMPILER_PREPROCESSOR_EXPRESSIONPARSER_H_

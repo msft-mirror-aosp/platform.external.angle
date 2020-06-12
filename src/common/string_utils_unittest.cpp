@@ -138,4 +138,132 @@ TEST(StringUtilsTest, HexStringToUIntBasic)
 
 // Note: ReadFileToString is harder to test
 
+class BeginsWithTest : public testing::Test
+{
+  public:
+    BeginsWithTest() : mMode(TestMode::CHAR_ARRAY) {}
+
+    enum class TestMode
+    {
+        CHAR_ARRAY,
+        STRING_AND_CHAR_ARRAY,
+        STRING
+    };
+
+    void setMode(TestMode mode) { mMode = mode; }
+
+    bool runBeginsWith(const char *str, const char *prefix)
+    {
+        if (mMode == TestMode::CHAR_ARRAY)
+        {
+            return BeginsWith(str, prefix);
+        }
+        if (mMode == TestMode::STRING_AND_CHAR_ARRAY)
+        {
+            return BeginsWith(std::string(str), prefix);
+        }
+        return BeginsWith(std::string(str), std::string(prefix));
+    }
+
+    void runTest()
+    {
+        ASSERT_FALSE(runBeginsWith("foo", "bar"));
+        ASSERT_FALSE(runBeginsWith("", "foo"));
+        ASSERT_FALSE(runBeginsWith("foo", "foobar"));
+
+        ASSERT_TRUE(runBeginsWith("foobar", "foo"));
+        ASSERT_TRUE(runBeginsWith("foobar", ""));
+        ASSERT_TRUE(runBeginsWith("foo", "foo"));
+        ASSERT_TRUE(runBeginsWith("", ""));
+    }
+
+  private:
+    TestMode mMode;
+};
+
+// Test that BeginsWith works correctly for const char * arguments.
+TEST_F(BeginsWithTest, CharArrays)
+{
+    setMode(TestMode::CHAR_ARRAY);
+    runTest();
 }
+
+// Test that BeginsWith works correctly for std::string and const char * arguments.
+TEST_F(BeginsWithTest, StringAndCharArray)
+{
+    setMode(TestMode::STRING_AND_CHAR_ARRAY);
+    runTest();
+}
+
+// Test that BeginsWith works correctly for std::string arguments.
+TEST_F(BeginsWithTest, Strings)
+{
+    setMode(TestMode::STRING);
+    runTest();
+}
+
+class EndsWithTest : public testing::Test
+{
+  public:
+    EndsWithTest() : mMode(TestMode::CHAR_ARRAY) {}
+
+    enum class TestMode
+    {
+        CHAR_ARRAY,
+        STRING_AND_CHAR_ARRAY,
+        STRING
+    };
+
+    void setMode(TestMode mode) { mMode = mode; }
+
+    bool runEndsWith(const char *str, const char *suffix)
+    {
+        if (mMode == TestMode::CHAR_ARRAY)
+        {
+            return EndsWith(str, suffix);
+        }
+        if (mMode == TestMode::STRING_AND_CHAR_ARRAY)
+        {
+            return EndsWith(std::string(str), suffix);
+        }
+        return EndsWith(std::string(str), std::string(suffix));
+    }
+
+    void runTest()
+    {
+        ASSERT_FALSE(EndsWith("foo", "bar"));
+        ASSERT_FALSE(EndsWith("", "bar"));
+        ASSERT_FALSE(EndsWith("foo", "foobar"));
+
+        ASSERT_TRUE(EndsWith("foobar", "bar"));
+        ASSERT_TRUE(EndsWith("foobar", ""));
+        ASSERT_TRUE(EndsWith("bar", "bar"));
+        ASSERT_TRUE(EndsWith("", ""));
+    }
+
+  private:
+    TestMode mMode;
+};
+
+// Test that EndsWith works correctly for const char * arguments.
+TEST_F(EndsWithTest, CharArrays)
+{
+    setMode(TestMode::CHAR_ARRAY);
+    runTest();
+}
+
+// Test that EndsWith works correctly for std::string and const char * arguments.
+TEST_F(EndsWithTest, StringAndCharArray)
+{
+    setMode(TestMode::STRING_AND_CHAR_ARRAY);
+    runTest();
+}
+
+// Test that EndsWith works correctly for std::string arguments.
+TEST_F(EndsWithTest, Strings)
+{
+    setMode(TestMode::STRING);
+    runTest();
+}
+
+}  // anonymous namespace

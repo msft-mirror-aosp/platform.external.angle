@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include "common/Optional.h"
+
 namespace angle
 {
 
@@ -35,15 +37,62 @@ std::vector<std::string> SplitString(const std::string &input,
                                      WhitespaceHandling whitespace,
                                      SplitResult resultType);
 
-void SplitStringAlongWhitespace(const std::string &input,
-                                std::vector<std::string> *tokensOut);
+void SplitStringAlongWhitespace(const std::string &input, std::vector<std::string> *tokensOut);
 
 std::string TrimString(const std::string &input, const std::string &trimChars);
+
+// Return the substring starting at offset and up to the first occurance of the |delimeter|.
+std::string GetPrefix(const std::string &input, size_t offset, const char *delimiter);
+std::string GetPrefix(const std::string &input, size_t offset, char delimiter);
 
 bool HexStringToUInt(const std::string &input, unsigned int *uintOut);
 
 bool ReadFileToString(const std::string &path, std::string *stringOut);
 
-}
+// Check if the string str begins with the given prefix.
+// The comparison is case sensitive.
+bool BeginsWith(const std::string &str, const std::string &prefix);
 
-#endif // LIBANGLE_STRING_UTILS_H_
+// Check if the string str begins with the given prefix.
+// Prefix may not be NULL and needs to be NULL terminated.
+// The comparison is case sensitive.
+bool BeginsWith(const std::string &str, const char *prefix);
+
+// Check if the string str begins with the given prefix.
+// str and prefix may not be NULL and need to be NULL terminated.
+// The comparison is case sensitive.
+bool BeginsWith(const char *str, const char *prefix);
+
+// Check if the string str begins with the first prefixLength characters of the given prefix.
+// The length of the prefix string should be greater than or equal to prefixLength.
+// The comparison is case sensitive.
+bool BeginsWith(const std::string &str, const std::string &prefix, const size_t prefixLength);
+
+// Check if the string str ends with the given suffix.
+// The comparison is case sensitive.
+bool EndsWith(const std::string &str, const std::string &suffix);
+
+// Check if the string str ends with the given suffix.
+// Suffix may not be NULL and needs to be NULL terminated.
+// The comparison is case sensitive.
+bool EndsWith(const std::string &str, const char *suffix);
+
+// Check if the string str ends with the given suffix.
+// str and suffix may not be NULL and need to be NULL terminated.
+// The comparison is case sensitive.
+bool EndsWith(const char *str, const char *suffix);
+
+// Convert to lower-case.
+void ToLower(std::string *str);
+
+// Replaces the substring 'substring' in 'str' with 'replacement'. Returns true if successful.
+bool ReplaceSubstring(std::string *str,
+                      const std::string &substring,
+                      const std::string &replacement);
+
+// Split up a string parsed from an environment variable.
+std::vector<std::string> GetStringsFromEnvironmentVar(const char *varName, const char *separator);
+
+}  // namespace angle
+
+#endif  // LIBANGLE_STRING_UTILS_H_

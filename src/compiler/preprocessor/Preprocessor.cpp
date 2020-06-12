@@ -1,19 +1,21 @@
 //
-// Copyright (c) 2011 The ANGLE Project Authors. All rights reserved.
+// Copyright 2011 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
 
-#include "Preprocessor.h"
+#include "compiler/preprocessor/Preprocessor.h"
 
-#include <cassert>
+#include "common/debug.h"
+#include "compiler/preprocessor/DiagnosticsBase.h"
+#include "compiler/preprocessor/DirectiveParser.h"
+#include "compiler/preprocessor/Macro.h"
+#include "compiler/preprocessor/MacroExpander.h"
+#include "compiler/preprocessor/Token.h"
+#include "compiler/preprocessor/Tokenizer.h"
 
-#include "DiagnosticsBase.h"
-#include "DirectiveParser.h"
-#include "Macro.h"
-#include "MacroExpander.h"
-#include "Token.h"
-#include "Tokenizer.h"
+namespace angle
+{
 
 namespace pp
 {
@@ -26,19 +28,21 @@ struct PreprocessorImpl
     DirectiveParser directiveParser;
     MacroExpander macroExpander;
 
-    PreprocessorImpl(Diagnostics *diag, DirectiveHandler *directiveHandler)
+    PreprocessorImpl(Diagnostics *diag,
+                     DirectiveHandler *directiveHandler,
+                     const PreprocessorSettings &settings)
         : diagnostics(diag),
           tokenizer(diag),
-          directiveParser(&tokenizer, &macroSet, diag, directiveHandler),
-          macroExpander(&directiveParser, &macroSet, diag, false)
-    {
-    }
+          directiveParser(&tokenizer, &macroSet, diag, directiveHandler, settings),
+          macroExpander(&directiveParser, &macroSet, diag, settings, false)
+    {}
 };
 
 Preprocessor::Preprocessor(Diagnostics *diagnostics,
-                           DirectiveHandler *directiveHandler)
+                           DirectiveHandler *directiveHandler,
+                           const PreprocessorSettings &settings)
 {
-    mImpl = new PreprocessorImpl(diagnostics, directiveHandler);
+    mImpl = new PreprocessorImpl(diagnostics, directiveHandler, settings);
 }
 
 Preprocessor::~Preprocessor()
@@ -46,9 +50,7 @@ Preprocessor::~Preprocessor()
     delete mImpl;
 }
 
-bool Preprocessor::init(size_t count,
-                        const char * const string[],
-                        const int length[])
+bool Preprocessor::init(size_t count, const char *const string[], const int length[])
 {
     static const int kDefaultGLSLVersion = 100;
 
@@ -74,23 +76,23 @@ void Preprocessor::lex(Token *token)
         mImpl->macroExpander.lex(token);
         switch (token->type)
         {
-          // We should not be returning internal preprocessing tokens.
-          // Convert preprocessing tokens to compiler tokens or report
-          // diagnostics.
-          case Token::PP_HASH:
-            assert(false);
-            break;
-          case Token::PP_NUMBER:
-            mImpl->diagnostics->report(Diagnostics::PP_INVALID_NUMBER,
-                                       token->location, token->text);
-            break;
-          case Token::PP_OTHER:
-            mImpl->diagnostics->report(Diagnostics::PP_INVALID_CHARACTER,
-                                       token->location, token->text);
-            break;
-          default:
-            validToken = true;
-            break;
+            // We should not be returning internal preprocessing tokens.
+            // Convert preprocessing tokens to compiler tokens or report
+            // diagnostics.
+            case Token::PP_HASH:
+                UNREACHABLE();
+                break;
+            case Token::PP_NUMBER:
+                mImpl->diagnostics->report(Diagnostics::PP_INVALID_NUMBER, token->location,
+                                           token->text);
+                break;
+            case Token::PP_OTHER:
+                mImpl->diagnostics->report(Diagnostics::PP_INVALID_CHARACTER, token->location,
+                                           token->text);
+                break;
+            default:
+                validToken = true;
+                break;
         }
     }
 }
@@ -101,3 +103,5 @@ void Preprocessor::setMaxTokenSize(size_t maxTokenSize)
 }
 
 }  // namespace pp
+
+}  // namespace angle

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2002-2013 The ANGLE Project Authors. All rights reserved.
+// Copyright 2002 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -9,22 +9,31 @@
 
 #include "compiler/translator/OutputGLSLBase.h"
 
+namespace sh
+{
+
 class TOutputESSL : public TOutputGLSLBase
 {
-public:
-    TOutputESSL(TInfoSinkBase& objSink,
+  public:
+    TOutputESSL(TInfoSinkBase &objSink,
                 ShArrayIndexClampingStrategy clampingStrategy,
                 ShHashFunction64 hashFunction,
-                NameMap& nameMap,
-                TSymbolTable& symbolTable,
+                NameMap &nameMap,
+                TSymbolTable *symbolTable,
+                sh::GLenum shaderType,
                 int shaderVersion,
-                bool forceHighp);
+                bool forceHighp,
+                ShCompileOptions compileOptions);
 
-protected:
-  bool writeVariablePrecision(TPrecision precision) override;
+  protected:
+    bool writeVariablePrecision(TPrecision precision) override;
+    ImmutableString translateTextureFunction(const ImmutableString &name,
+                                             const ShCompileOptions &option) override;
 
-private:
+  private:
     bool mForceHighp;
 };
+
+}  // namespace sh
 
 #endif  // COMPILER_TRANSLATOR_OUTPUTESSL_H_

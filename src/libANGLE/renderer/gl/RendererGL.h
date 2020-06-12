@@ -9,136 +9,177 @@
 #ifndef LIBANGLE_RENDERER_GL_RENDERERGL_H_
 #define LIBANGLE_RENDERER_GL_RENDERERGL_H_
 
+#include <list>
+#include <mutex>
+#include <thread>
+
+#include "libANGLE/Caps.h"
+#include "libANGLE/Error.h"
 #include "libANGLE/Version.h"
-#include "libANGLE/renderer/Renderer.h"
-#include "libANGLE/renderer/gl/WorkaroundsGL.h"
+#include "libANGLE/renderer/gl/renderergl_utils.h"
+#include "platform/FeaturesGL.h"
+
+namespace angle
+{
+struct FrontendFeatures;
+}  // namespace angle
+
+namespace gl
+{
+struct IndexRange;
+class Path;
+class State;
+}  // namespace gl
+
+namespace egl
+{
+class AttributeMap;
+}  // namespace egl
+
+namespace sh
+{
+struct BlockMemberInfo;
+}  // namespace sh
 
 namespace rx
 {
 class BlitGL;
+class ClearMultiviewGL;
+class ContextImpl;
+class DisplayGL;
 class FunctionsGL;
+class RendererGL;
 class StateManagerGL;
 
-class RendererGL : public Renderer
+// WorkerContext wraps a native GL context shared from the main context. It is used by the workers
+// for khr_parallel_shader_compile.
+class WorkerContext : angle::NonCopyable
 {
   public:
-    RendererGL(const FunctionsGL *functions, const egl::AttributeMap &attribMap);
-    ~RendererGL() override;
+    virtual ~WorkerContext() {}
 
-    gl::Error flush() override;
-    gl::Error finish() override;
+    virtual bool makeCurrent()   = 0;
+    virtual void unmakeCurrent() = 0;
+};
 
-    gl::Error drawArrays(const gl::ContextState &data,
-                         GLenum mode,
-                         GLint first,
-                         GLsizei count) override;
-    gl::Error drawArraysInstanced(const gl::ContextState &data,
-                                  GLenum mode,
-                                  GLint first,
-                                  GLsizei count,
-                                  GLsizei instanceCount) override;
+class ScopedWorkerContextGL
+{
+  public:
+    ScopedWorkerContextGL(RendererGL *renderer, std::string *infoLog);
+    ~ScopedWorkerContextGL();
 
-    gl::Error drawElements(const gl::ContextState &data,
-                           GLenum mode,
-                           GLsizei count,
-                           GLenum type,
-                           const GLvoid *indices,
-                           const gl::IndexRange &indexRange) override;
-    gl::Error drawElementsInstanced(const gl::ContextState &data,
-                                    GLenum mode,
-                                    GLsizei count,
-                                    GLenum type,
-                                    const GLvoid *indices,
-                                    GLsizei instances,
-                                    const gl::IndexRange &indexRange) override;
-    gl::Error drawRangeElements(const gl::ContextState &data,
-                                GLenum mode,
-                                GLuint start,
-                                GLuint end,
-                                GLsizei count,
-                                GLenum type,
-                                const GLvoid *indices,
-                                const gl::IndexRange &indexRange) override;
-
-    ContextImpl *createContext(const gl::ContextState &state) override;
-
-    // Shader creation
-    CompilerImpl *createCompiler() override;
-    ShaderImpl *createShader(const gl::ShaderState &data) override;
-    ProgramImpl *createProgram(const gl::ProgramState &data) override;
-
-    // Framebuffer creation
-    FramebufferImpl *createFramebuffer(const gl::FramebufferState &data) override;
-
-    // Texture creation
-    TextureImpl *createTexture(GLenum target) override;
-
-    // Renderbuffer creation
-    RenderbufferImpl *createRenderbuffer() override;
-
-    // Buffer creation
-    BufferImpl *createBuffer() override;
-
-    // Vertex Array creation
-    VertexArrayImpl *createVertexArray(const gl::VertexArrayState &data) override;
-
-    // Query and Fence creation
-    QueryImpl *createQuery(GLenum type) override;
-    FenceNVImpl *createFenceNV() override;
-    FenceSyncImpl *createFenceSync() override;
-
-    // Transform Feedback creation
-    TransformFeedbackImpl *createTransformFeedback() override;
-
-    // Sampler object creation
-    SamplerImpl *createSampler() override;
-
-    // EXT_debug_marker
-    void insertEventMarker(GLsizei length, const char *marker) override;
-    void pushGroupMarker(GLsizei length, const char *marker) override;
-    void popGroupMarker() override;
-
-    // lost device
-    void notifyDeviceLost() override;
-    bool isDeviceLost() const override;
-    bool testDeviceLost() override;
-    bool testDeviceResettable() override;
-
-    std::string getVendorString() const override;
-    std::string getRendererDescription() const override;
-
-    void syncState(const gl::State &state, const gl::State::DirtyBits &dirtyBits) override;
-
-    GLint getGPUDisjoint() override;
-    GLint64 getTimestamp() override;
-
-    void onMakeCurrent(const gl::ContextState &data) override;
-
-    const gl::Version &getMaxSupportedESVersion() const;
-    const FunctionsGL *getFunctions() const { return mFunctions; }
-    StateManagerGL *getStateManager() const { return mStateManager; }
-    const WorkaroundsGL &getWorkarounds() const { return mWorkarounds; }
+    bool operator()() const;
 
   private:
-    void generateCaps(gl::Caps *outCaps, gl::TextureCapsMap* outTextureCaps,
+    RendererGL *mRenderer = nullptr;
+    bool mValid           = false;
+};
+
+class RendererGL : angle::NonCopyable
+{
+  public:
+    RendererGL(std::unique_ptr<FunctionsGL> functions,
+               const egl::AttributeMap &attribMap,
+               DisplayGL *display);
+    virtual ~RendererGL();
+
+    angle::Result flush();
+    angle::Result finish();
+
+    gl::GraphicsResetStatus getResetStatus();
+
+    // EXT_debug_marker
+    void insertEventMarker(GLsizei length, const char *marker);
+    void pushGroupMarker(GLsizei length, const char *marker);
+    void popGroupMarker();
+
+    // KHR_debug
+    void pushDebugGroup(GLenum source, GLuint id, const std::string &message);
+    void popDebugGroup();
+
+    std::string getVendorString() const;
+    std::string getRendererDescription() const;
+
+    GLint getGPUDisjoint();
+    GLint64 getTimestamp();
+
+    const gl::Version &getMaxSupportedESVersion() const;
+    const FunctionsGL *getFunctions() const { return mFunctions.get(); }
+    StateManagerGL *getStateManager() const { return mStateManager; }
+    const angle::FeaturesGL &getFeatures() const { return mFeatures; }
+    BlitGL *getBlitter() const { return mBlitter; }
+    ClearMultiviewGL *getMultiviewClearer() const { return mMultiviewClearer; }
+
+    MultiviewImplementationTypeGL getMultiviewImplementationType() const;
+    const gl::Caps &getNativeCaps() const;
+    const gl::TextureCapsMap &getNativeTextureCaps() const;
+    const gl::Extensions &getNativeExtensions() const;
+    const gl::Limitations &getNativeLimitations() const;
+    void initializeFrontendFeatures(angle::FrontendFeatures *features) const;
+
+    angle::Result dispatchCompute(const gl::Context *context,
+                                  GLuint numGroupsX,
+                                  GLuint numGroupsY,
+                                  GLuint numGroupsZ);
+    angle::Result dispatchComputeIndirect(const gl::Context *context, GLintptr indirect);
+
+    angle::Result memoryBarrier(GLbitfield barriers);
+    angle::Result memoryBarrierByRegion(GLbitfield barriers);
+
+    bool bindWorkerContext(std::string *infoLog);
+    void unbindWorkerContext();
+    // Checks if the driver has the KHR_parallel_shader_compile or ARB_parallel_shader_compile
+    // extension.
+    bool hasNativeParallelCompile();
+    void setMaxShaderCompilerThreads(GLuint count);
+
+    static unsigned int getMaxWorkerContexts();
+
+    void setNeedsFlushBeforeDeleteTextures();
+    void flushIfNecessaryBeforeDeleteTextures();
+
+  protected:
+    virtual WorkerContext *createWorkerContext(std::string *infoLog) = 0;
+
+  private:
+    void ensureCapsInitialized() const;
+    void generateCaps(gl::Caps *outCaps,
+                      gl::TextureCapsMap *outTextureCaps,
                       gl::Extensions *outExtensions,
-                      gl::Limitations *outLimitations) const override;
+                      gl::Limitations *outLimitations) const;
 
     mutable gl::Version mMaxSupportedESVersion;
 
-    const FunctionsGL *mFunctions;
+    std::unique_ptr<FunctionsGL> mFunctions;
     StateManagerGL *mStateManager;
 
     BlitGL *mBlitter;
+    ClearMultiviewGL *mMultiviewClearer;
 
-    WorkaroundsGL mWorkarounds;
+    bool mUseDebugOutput;
 
-    bool mHasDebugOutput;
+    mutable bool mCapsInitialized;
+    mutable gl::Caps mNativeCaps;
+    mutable gl::TextureCapsMap mNativeTextureCaps;
+    mutable gl::Extensions mNativeExtensions;
+    mutable gl::Limitations mNativeLimitations;
+    mutable MultiviewImplementationTypeGL mMultiviewImplementationType;
 
-    // For performance debugging
-    bool mSkipDrawCalls;
+    // The thread-to-context mapping for the currently active worker threads.
+    std::unordered_map<std::thread::id, std::unique_ptr<WorkerContext>> mCurrentWorkerContexts;
+    // The worker contexts available to use.
+    std::list<std::unique_ptr<WorkerContext>> mWorkerContextPool;
+    // Protect the concurrent accesses to worker contexts.
+    std::mutex mWorkerMutex;
+
+    bool mNativeParallelCompileEnabled;
+
+    angle::FeaturesGL mFeatures;
+
+    // Workaround for anglebug.com/4267
+    bool mNeedsFlushBeforeDeleteTextures;
 };
 
-}
+}  // namespace rx
 
-#endif // LIBANGLE_RENDERER_GL_RENDERERGL_H_
+#endif  // LIBANGLE_RENDERER_GL_RENDERERGL_H_

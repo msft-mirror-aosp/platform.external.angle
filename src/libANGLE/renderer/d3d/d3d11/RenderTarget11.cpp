@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012 The ANGLE Project Authors. All rights reserved.
+// Copyright 2012 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -9,16 +9,20 @@
 
 #include "libANGLE/renderer/d3d/d3d11/RenderTarget11.h"
 
-#include "libANGLE/renderer/d3d/d3d11/formatutils11.h"
+#include "libANGLE/Context.h"
+#include "libANGLE/renderer/d3d/d3d11/Context11.h"
 #include "libANGLE/renderer/d3d/d3d11/Renderer11.h"
-#include "libANGLE/renderer/d3d/d3d11/renderer11_utils.h"
 #include "libANGLE/renderer/d3d/d3d11/SwapChain11.h"
+#include "libANGLE/renderer/d3d/d3d11/formatutils11.h"
+#include "libANGLE/renderer/d3d/d3d11/renderer11_utils.h"
 #include "libANGLE/renderer/d3d/d3d11/texture_format_table.h"
 
 namespace rx
 {
 
-static bool getTextureProperties(ID3D11Resource *resource, unsigned int *mipLevels, unsigned int *samples)
+namespace
+{
+bool GetTextureProperties(ID3D11Resource *resource, unsigned int *mipLevels, unsigned int *samples)
 {
     ID3D11Texture1D *texture1D = d3d11::DynamicCastComObject<ID3D11Texture1D>(resource);
     if (texture1D)
@@ -28,7 +32,7 @@ static bool getTextureProperties(ID3D11Resource *resource, unsigned int *mipLeve
         SafeRelease(texture1D);
 
         *mipLevels = texDesc.MipLevels;
-        *samples = 0;
+        *samples   = 0;
 
         return true;
     }
@@ -41,7 +45,7 @@ static bool getTextureProperties(ID3D11Resource *resource, unsigned int *mipLeve
         SafeRelease(texture2D);
 
         *mipLevels = texDesc.MipLevels;
-        *samples = texDesc.SampleDesc.Count > 1 ? texDesc.SampleDesc.Count : 0;
+        *samples   = texDesc.SampleDesc.Count > 1 ? texDesc.SampleDesc.Count : 0;
 
         return true;
     }
@@ -54,7 +58,7 @@ static bool getTextureProperties(ID3D11Resource *resource, unsigned int *mipLeve
         SafeRelease(texture3D);
 
         *mipLevels = texDesc.MipLevels;
-        *samples = 0;
+        *samples   = 0;
 
         return true;
     }
@@ -62,160 +66,151 @@ static bool getTextureProperties(ID3D11Resource *resource, unsigned int *mipLeve
     return false;
 }
 
-static unsigned int getRTVSubresourceIndex(ID3D11Resource *resource, ID3D11RenderTargetView *view)
+unsigned int GetRTVSubresourceIndex(ID3D11Resource *resource, ID3D11RenderTargetView *view)
 {
     D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
     view->GetDesc(&rtvDesc);
 
-    unsigned int mipSlice = 0;
+    unsigned int mipSlice   = 0;
     unsigned int arraySlice = 0;
 
     switch (rtvDesc.ViewDimension)
     {
-      case D3D11_RTV_DIMENSION_TEXTURE1D:
-        mipSlice = rtvDesc.Texture1D.MipSlice;
-        arraySlice = 0;
-        break;
+        case D3D11_RTV_DIMENSION_TEXTURE1D:
+            mipSlice   = rtvDesc.Texture1D.MipSlice;
+            arraySlice = 0;
+            break;
 
-      case D3D11_RTV_DIMENSION_TEXTURE1DARRAY:
-        mipSlice = rtvDesc.Texture1DArray.MipSlice;
-        arraySlice = rtvDesc.Texture1DArray.FirstArraySlice;
-        break;
+        case D3D11_RTV_DIMENSION_TEXTURE1DARRAY:
+            mipSlice   = rtvDesc.Texture1DArray.MipSlice;
+            arraySlice = rtvDesc.Texture1DArray.FirstArraySlice;
+            break;
 
-      case D3D11_RTV_DIMENSION_TEXTURE2D:
-        mipSlice = rtvDesc.Texture2D.MipSlice;
-        arraySlice = 0;
-        break;
+        case D3D11_RTV_DIMENSION_TEXTURE2D:
+            mipSlice   = rtvDesc.Texture2D.MipSlice;
+            arraySlice = 0;
+            break;
 
-      case D3D11_RTV_DIMENSION_TEXTURE2DARRAY:
-        mipSlice = rtvDesc.Texture2DArray.MipSlice;
-        arraySlice = rtvDesc.Texture2DArray.FirstArraySlice;
-        break;
+        case D3D11_RTV_DIMENSION_TEXTURE2DARRAY:
+            mipSlice   = rtvDesc.Texture2DArray.MipSlice;
+            arraySlice = rtvDesc.Texture2DArray.FirstArraySlice;
+            break;
 
-      case D3D11_RTV_DIMENSION_TEXTURE2DMS:
-        mipSlice = 0;
-        arraySlice = 0;
-        break;
+        case D3D11_RTV_DIMENSION_TEXTURE2DMS:
+            mipSlice   = 0;
+            arraySlice = 0;
+            break;
 
-      case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY:
-        mipSlice = 0;
-        arraySlice = rtvDesc.Texture2DMSArray.FirstArraySlice;
-        break;
+        case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY:
+            mipSlice   = 0;
+            arraySlice = rtvDesc.Texture2DMSArray.FirstArraySlice;
+            break;
 
-      case D3D11_RTV_DIMENSION_TEXTURE3D:
-        mipSlice = rtvDesc.Texture3D.MipSlice;
-        arraySlice = 0;
-        break;
+        case D3D11_RTV_DIMENSION_TEXTURE3D:
+            mipSlice   = rtvDesc.Texture3D.MipSlice;
+            arraySlice = 0;
+            break;
 
-      case D3D11_RTV_DIMENSION_UNKNOWN:
-      case D3D11_RTV_DIMENSION_BUFFER:
-        UNIMPLEMENTED();
-        break;
+        case D3D11_RTV_DIMENSION_UNKNOWN:
+        case D3D11_RTV_DIMENSION_BUFFER:
+            UNIMPLEMENTED();
+            break;
 
-      default:
-        UNREACHABLE();
-        break;
+        default:
+            UNREACHABLE();
+            break;
     }
 
     unsigned int mipLevels, samples;
-    getTextureProperties(resource,  &mipLevels, &samples);
+    GetTextureProperties(resource, &mipLevels, &samples);
 
     return D3D11CalcSubresource(mipSlice, arraySlice, mipLevels);
 }
 
-static unsigned int getDSVSubresourceIndex(ID3D11Resource *resource, ID3D11DepthStencilView *view)
+unsigned int GetDSVSubresourceIndex(ID3D11Resource *resource, ID3D11DepthStencilView *view)
 {
     D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
     view->GetDesc(&dsvDesc);
 
-    unsigned int mipSlice = 0;
+    unsigned int mipSlice   = 0;
     unsigned int arraySlice = 0;
 
     switch (dsvDesc.ViewDimension)
     {
-      case D3D11_DSV_DIMENSION_TEXTURE1D:
-        mipSlice = dsvDesc.Texture1D.MipSlice;
-        arraySlice = 0;
-        break;
+        case D3D11_DSV_DIMENSION_TEXTURE1D:
+            mipSlice   = dsvDesc.Texture1D.MipSlice;
+            arraySlice = 0;
+            break;
 
-      case D3D11_DSV_DIMENSION_TEXTURE1DARRAY:
-        mipSlice = dsvDesc.Texture1DArray.MipSlice;
-        arraySlice = dsvDesc.Texture1DArray.FirstArraySlice;
-        break;
+        case D3D11_DSV_DIMENSION_TEXTURE1DARRAY:
+            mipSlice   = dsvDesc.Texture1DArray.MipSlice;
+            arraySlice = dsvDesc.Texture1DArray.FirstArraySlice;
+            break;
 
-      case D3D11_DSV_DIMENSION_TEXTURE2D:
-        mipSlice = dsvDesc.Texture2D.MipSlice;
-        arraySlice = 0;
-        break;
+        case D3D11_DSV_DIMENSION_TEXTURE2D:
+            mipSlice   = dsvDesc.Texture2D.MipSlice;
+            arraySlice = 0;
+            break;
 
-      case D3D11_DSV_DIMENSION_TEXTURE2DARRAY:
-        mipSlice = dsvDesc.Texture2DArray.MipSlice;
-        arraySlice = dsvDesc.Texture2DArray.FirstArraySlice;
-        break;
+        case D3D11_DSV_DIMENSION_TEXTURE2DARRAY:
+            mipSlice   = dsvDesc.Texture2DArray.MipSlice;
+            arraySlice = dsvDesc.Texture2DArray.FirstArraySlice;
+            break;
 
-      case D3D11_DSV_DIMENSION_TEXTURE2DMS:
-        mipSlice = 0;
-        arraySlice = 0;
-        break;
+        case D3D11_DSV_DIMENSION_TEXTURE2DMS:
+            mipSlice   = 0;
+            arraySlice = 0;
+            break;
 
-      case D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY:
-        mipSlice = 0;
-        arraySlice = dsvDesc.Texture2DMSArray.FirstArraySlice;
-        break;
+        case D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY:
+            mipSlice   = 0;
+            arraySlice = dsvDesc.Texture2DMSArray.FirstArraySlice;
+            break;
 
-      case D3D11_DSV_DIMENSION_UNKNOWN:
-        UNIMPLEMENTED();
-        break;
+        case D3D11_DSV_DIMENSION_UNKNOWN:
+            UNIMPLEMENTED();
+            break;
 
-      default:
-        UNREACHABLE();
-        break;
+        default:
+            UNREACHABLE();
+            break;
     }
 
     unsigned int mipLevels, samples;
-    getTextureProperties(resource, &mipLevels, &samples);
+    GetTextureProperties(resource, &mipLevels, &samples);
 
     return D3D11CalcSubresource(mipSlice, arraySlice, mipLevels);
 }
 
-RenderTarget11::RenderTarget11(d3d11::ANGLEFormat angleFormat) : mANGLEFormat(angleFormat)
+GLenum GetSurfaceRTFormat(bool depth, SwapChain11 *swapChain)
 {
+    return (depth ? swapChain->getDepthBufferInternalFormat()
+                  : swapChain->getRenderTargetInternalFormat());
 }
 
-RenderTarget11::~RenderTarget11()
+const d3d11::Format &GetSurfaceFormatSet(bool depth, SwapChain11 *swapChain, Renderer11 *renderer)
 {
-    signalDirty();
+    return d3d11::Format::Get(GetSurfaceRTFormat(depth, swapChain),
+                              renderer->getRenderer11DeviceCaps());
 }
 
-void RenderTarget11::addDirtyCallback(const NotificationCallback *callback)
-{
-    mDirtyCallbacks.add(callback);
-}
+}  // anonymous namespace
 
-void RenderTarget11::removeDirtyCallback(const NotificationCallback *callback)
-{
-    mDirtyCallbacks.remove(callback);
-}
+RenderTarget11::RenderTarget11(const d3d11::Format &formatSet) : mFormatSet(formatSet) {}
 
-void RenderTarget11::signalDirty()
-{
-    mDirtyCallbacks.signal();
+RenderTarget11::~RenderTarget11() {}
 
-    // Clear the signal list. We can't do this in the callback because it mutates the iterator.
-    mDirtyCallbacks.clear();
-}
-
-TextureRenderTarget11::TextureRenderTarget11(ID3D11RenderTargetView *rtv,
-                                             ID3D11Resource *resource,
-                                             ID3D11ShaderResourceView *srv,
-                                             ID3D11ShaderResourceView *blitSRV,
+TextureRenderTarget11::TextureRenderTarget11(d3d11::RenderTargetView &&rtv,
+                                             const TextureHelper11 &resource,
+                                             const d3d11::SharedSRV &srv,
+                                             const d3d11::SharedSRV &blitSRV,
                                              GLenum internalFormat,
-                                             d3d11::ANGLEFormat angleFormat,
+                                             const d3d11::Format &formatSet,
                                              GLsizei width,
                                              GLsizei height,
                                              GLsizei depth,
                                              GLsizei samples)
-    : RenderTarget11(angleFormat),
+    : RenderTarget11(formatSet),
       mWidth(width),
       mHeight(height),
       mDepth(depth),
@@ -223,48 +218,28 @@ TextureRenderTarget11::TextureRenderTarget11(ID3D11RenderTargetView *rtv,
       mSamples(samples),
       mSubresourceIndex(0),
       mTexture(resource),
-      mRenderTarget(rtv),
-      mDepthStencil(NULL),
-      mShaderResource(srv),
-      mBlitShaderResource(blitSRV)
+      mRenderTarget(std::move(rtv)),
+      mDepthStencil(),
+      mShaderResource(srv.makeCopy()),
+      mBlitShaderResource(blitSRV.makeCopy())
 {
-    if (mTexture)
+    if (mRenderTarget.valid() && mTexture.valid())
     {
-        mTexture->AddRef();
+        mSubresourceIndex = GetRTVSubresourceIndex(mTexture.get(), mRenderTarget.get());
     }
-
-    if (mRenderTarget)
-    {
-        mRenderTarget->AddRef();
-    }
-
-    if (mShaderResource)
-    {
-        mShaderResource->AddRef();
-    }
-
-    if (mBlitShaderResource)
-    {
-        mBlitShaderResource->AddRef();
-    }
-
-    if (mRenderTarget && mTexture)
-    {
-        mSubresourceIndex = getRTVSubresourceIndex(mTexture, mRenderTarget);
-    }
-    ASSERT(mANGLEFormat != d3d11::ANGLE_FORMAT_NONE || mWidth == 0 || mHeight == 0);
+    ASSERT(mFormatSet.formatID != angle::FormatID::NONE || mWidth == 0 || mHeight == 0);
 }
 
-TextureRenderTarget11::TextureRenderTarget11(ID3D11DepthStencilView *dsv,
-                                             ID3D11Resource *resource,
-                                             ID3D11ShaderResourceView *srv,
+TextureRenderTarget11::TextureRenderTarget11(d3d11::DepthStencilView &&dsv,
+                                             const TextureHelper11 &resource,
+                                             const d3d11::SharedSRV &srv,
                                              GLenum internalFormat,
-                                             d3d11::ANGLEFormat angleFormat,
+                                             const d3d11::Format &formatSet,
                                              GLsizei width,
                                              GLsizei height,
                                              GLsizei depth,
                                              GLsizei samples)
-    : RenderTarget11(angleFormat),
+    : RenderTarget11(formatSet),
       mWidth(width),
       mHeight(height),
       mDepth(depth),
@@ -272,63 +247,43 @@ TextureRenderTarget11::TextureRenderTarget11(ID3D11DepthStencilView *dsv,
       mSamples(samples),
       mSubresourceIndex(0),
       mTexture(resource),
-      mRenderTarget(NULL),
-      mDepthStencil(dsv),
-      mShaderResource(srv),
-      mBlitShaderResource(nullptr)
+      mRenderTarget(),
+      mDepthStencil(std::move(dsv)),
+      mShaderResource(srv.makeCopy()),
+      mBlitShaderResource()
 {
-    if (mTexture)
+    if (mDepthStencil.valid() && mTexture.valid())
     {
-        mTexture->AddRef();
+        mSubresourceIndex = GetDSVSubresourceIndex(mTexture.get(), mDepthStencil.get());
     }
-
-    if (mDepthStencil)
-    {
-        mDepthStencil->AddRef();
-    }
-
-    if (mShaderResource)
-    {
-        mShaderResource->AddRef();
-    }
-
-    if (mDepthStencil && mTexture)
-    {
-        mSubresourceIndex = getDSVSubresourceIndex(mTexture, mDepthStencil);
-    }
-    ASSERT(mANGLEFormat != d3d11::ANGLE_FORMAT_NONE || mWidth == 0 || mHeight == 0);
+    ASSERT(mFormatSet.formatID != angle::FormatID::NONE || mWidth == 0 || mHeight == 0);
 }
 
-TextureRenderTarget11::~TextureRenderTarget11()
-{
-    SafeRelease(mTexture);
-    SafeRelease(mRenderTarget);
-    SafeRelease(mDepthStencil);
-    SafeRelease(mShaderResource);
-    SafeRelease(mBlitShaderResource);
-}
+TextureRenderTarget11::~TextureRenderTarget11() {}
 
-ID3D11Resource *TextureRenderTarget11::getTexture() const
+const TextureHelper11 &TextureRenderTarget11::getTexture() const
 {
     return mTexture;
 }
 
-ID3D11RenderTargetView *TextureRenderTarget11::getRenderTargetView() const
+const d3d11::RenderTargetView &TextureRenderTarget11::getRenderTargetView() const
 {
     return mRenderTarget;
 }
 
-ID3D11DepthStencilView *TextureRenderTarget11::getDepthStencilView() const
+const d3d11::DepthStencilView &TextureRenderTarget11::getDepthStencilView() const
 {
     return mDepthStencil;
 }
 
-ID3D11ShaderResourceView *TextureRenderTarget11::getShaderResourceView() const
+const d3d11::SharedSRV &TextureRenderTarget11::getShaderResourceView(
+    const gl::Context *context) const
 {
     return mShaderResource;
 }
 
-ID3D11ShaderResourceView *TextureRenderTarget11::getBlitShaderResourceView() const
+const d3d11::SharedSRV &TextureRenderTarget11::getBlitShaderResourceView(
+    const gl::Context *context) const
 {
     return mBlitShaderResource;
 }
@@ -366,21 +321,14 @@ unsigned int TextureRenderTarget11::getSubresourceIndex() const
 SurfaceRenderTarget11::SurfaceRenderTarget11(SwapChain11 *swapChain,
                                              Renderer11 *renderer,
                                              bool depth)
-    : RenderTarget11(d3d11::ANGLE_FORMAT_NONE),  // format will be determined in constructor body
+    : RenderTarget11(GetSurfaceFormatSet(depth, swapChain, renderer)),
       mSwapChain(swapChain),
-      mRenderer(renderer),
       mDepth(depth)
 {
     ASSERT(mSwapChain);
-
-    mANGLEFormat = d3d11::GetTextureFormatInfo(getInternalFormatInternal(),
-                                               mRenderer->getRenderer11DeviceCaps())
-                       .formatSet->format;
 }
 
-SurfaceRenderTarget11::~SurfaceRenderTarget11()
-{
-}
+SurfaceRenderTarget11::~SurfaceRenderTarget11() {}
 
 GLsizei SurfaceRenderTarget11::getWidth() const
 {
@@ -399,45 +347,43 @@ GLsizei SurfaceRenderTarget11::getDepth() const
 
 GLenum SurfaceRenderTarget11::getInternalFormat() const
 {
-    return getInternalFormatInternal();
-}
-
-GLenum SurfaceRenderTarget11::getInternalFormatInternal() const
-{
-    return (mDepth ? mSwapChain->GetDepthBufferInternalFormat() : mSwapChain->GetRenderTargetInternalFormat());
+    return GetSurfaceRTFormat(mDepth, mSwapChain);
 }
 
 GLsizei SurfaceRenderTarget11::getSamples() const
 {
-    // Our EGL surfaces do not support multisampling.
-    return 0;
+    return mSwapChain->getSamples();
 }
 
-ID3D11Resource *SurfaceRenderTarget11::getTexture() const
+const TextureHelper11 &SurfaceRenderTarget11::getTexture() const
 {
     return (mDepth ? mSwapChain->getDepthStencilTexture() : mSwapChain->getOffscreenTexture());
 }
 
-ID3D11RenderTargetView *SurfaceRenderTarget11::getRenderTargetView() const
+const d3d11::RenderTargetView &SurfaceRenderTarget11::getRenderTargetView() const
 {
-    return (mDepth ? NULL : mSwapChain->getRenderTarget());
+    ASSERT(!mDepth);
+    return mSwapChain->getRenderTarget();
 }
 
-ID3D11DepthStencilView *SurfaceRenderTarget11::getDepthStencilView() const
+const d3d11::DepthStencilView &SurfaceRenderTarget11::getDepthStencilView() const
 {
-    return (mDepth ? mSwapChain->getDepthStencil() : NULL);
+    ASSERT(mDepth);
+    return mSwapChain->getDepthStencil();
 }
 
-ID3D11ShaderResourceView *SurfaceRenderTarget11::getShaderResourceView() const
+const d3d11::SharedSRV &SurfaceRenderTarget11::getShaderResourceView(
+    const gl::Context *context) const
 {
     return (mDepth ? mSwapChain->getDepthStencilShaderResource()
-                   : mSwapChain->getRenderTargetShaderResource());
+                   : mSwapChain->getRenderTargetShaderResource(GetImplAs<Context11>(context)));
 }
 
-ID3D11ShaderResourceView *SurfaceRenderTarget11::getBlitShaderResourceView() const
+const d3d11::SharedSRV &SurfaceRenderTarget11::getBlitShaderResourceView(
+    const gl::Context *context) const
 {
     // The SurfaceRenderTargetView format should always be such that the normal SRV works for blits.
-    return getShaderResourceView();
+    return getShaderResourceView(context);
 }
 
 unsigned int SurfaceRenderTarget11::getSubresourceIndex() const
@@ -445,4 +391,4 @@ unsigned int SurfaceRenderTarget11::getSubresourceIndex() const
     return 0;
 }
 
-}
+}  // namespace rx

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2014 The ANGLE Project Authors. All rights reserved.
+// Copyright 2014 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
@@ -10,88 +10,36 @@
 #include "libANGLE/Error.h"
 
 #include "common/angleutils.h"
+#include "common/debug.h"
+#include "common/utilities.h"
 
 #include <cstdarg>
 
-namespace gl
+namespace
 {
-
-Error::Error(GLenum errorCode, const char *msg, ...) : mCode(errorCode), mID(errorCode)
+std::unique_ptr<std::string> EmplaceErrorString(std::string &&message)
 {
-    va_list vararg;
-    va_start(vararg, msg);
-    createMessageString();
-    *mMessage = FormatString(msg, vararg);
-    va_end(vararg);
+    return message.empty() ? std::unique_ptr<std::string>()
+                           : std::unique_ptr<std::string>(new std::string(std::move(message)));
 }
-
-Error::Error(GLenum errorCode, GLuint id, const char *msg, ...) : mCode(errorCode), mID(id)
-{
-    va_list vararg;
-    va_start(vararg, msg);
-    createMessageString();
-    *mMessage = FormatString(msg, vararg);
-    va_end(vararg);
-}
-
-void Error::createMessageString() const
-{
-    if (!mMessage)
-    {
-        mMessage.reset(new std::string);
-    }
-}
-
-const std::string &Error::getMessage() const
-{
-    createMessageString();
-    return *mMessage;
-}
-
-bool Error::operator==(const Error &other) const
-{
-    if (mCode != other.mCode)
-        return false;
-
-    // TODO(jmadill): Compare extended error codes instead of strings.
-    if ((!mMessage || !other.mMessage) && (!mMessage != !other.mMessage))
-        return false;
-
-    return (*mMessage == *other.mMessage);
-}
-
-bool Error::operator!=(const Error &other) const
-{
-    return !(*this == other);
-}
-}
+}  // anonymous namespace
 
 namespace egl
 {
 
-Error::Error(EGLint errorCode, const char *msg, ...) : mCode(errorCode), mID(0)
-{
-    va_list vararg;
-    va_start(vararg, msg);
-    createMessageString();
-    *mMessage = FormatString(msg, vararg);
-    va_end(vararg);
-}
+Error::Error(EGLint errorCode, std::string &&message)
+    : mCode(errorCode), mID(errorCode), mMessage(EmplaceErrorString(std::move(message)))
+{}
 
-Error::Error(EGLint errorCode, EGLint id, const char *msg, ...) : mCode(errorCode), mID(id)
-{
-    va_list vararg;
-    va_start(vararg, msg);
-    createMessageString();
-    *mMessage = FormatString(msg, vararg);
-    va_end(vararg);
-}
+Error::Error(EGLint errorCode, EGLint id, std::string &&message)
+    : mCode(errorCode), mID(id), mMessage(EmplaceErrorString(std::move(message)))
+{}
 
 void Error::createMessageString() const
 {
     if (!mMessage)
     {
-        mMessage.reset(new std::string);
+        mMessage.reset(new std::string(GetGenericErrorMessage(mCode)));
     }
 }
 
@@ -101,4 +49,19 @@ const std::string &Error::getMessage() const
     return *mMessage;
 }
 
+std::ostream &operator<<(std::ostream &os, const Error &err)
+{
+    return gl::FmtHex(os, err.getCode());
 }
+}  // namespace egl
+
+namespace angle
+{
+egl::Error ResultToEGL(Result result)
+{
+    if (result == Result::Continue)
+        return egl::NoError();
+
+    return egl::Error(EGL_BAD_ACCESS);
+}
+}  // namespace angle
