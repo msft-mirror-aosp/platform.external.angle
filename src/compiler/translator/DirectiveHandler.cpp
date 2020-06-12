@@ -183,8 +183,7 @@ void TDirectiveHandler::handleVersion(const pp::SourceLocation& loc,
                                       int version)
 {
     if (version == 100 ||
-        version == 300 ||
-        version == 310)
+        version == 300)
     {
         mShaderVersion = version;
     }

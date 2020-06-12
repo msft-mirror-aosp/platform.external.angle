@@ -7,7 +7,6 @@
 #include "compiler/translator/OutputGLSL.h"
 
 TOutputGLSL::TOutputGLSL(TInfoSinkBase& objSink,
-                         const NameSet& nameSet,
                          ShArrayIndexClampingStrategy clampingStrategy,
                          ShHashFunction64 hashFunction,
                          NameMap& nameMap,
@@ -15,7 +14,6 @@ TOutputGLSL::TOutputGLSL(TInfoSinkBase& objSink,
                          int shaderVersion,
                          ShShaderOutput output)
     : TOutputGLSLBase(objSink,
-                      nameSet,
                       clampingStrategy,
                       hashFunction,
                       nameMap,

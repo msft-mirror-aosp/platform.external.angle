@@ -45,7 +45,6 @@ class Image11 : public ImageD3D
 
     DXGI_FORMAT getDXGIFormat() const;
 
-    virtual gl::Error saveData(const gl::Box &area, const gl::PixelPackState &pack, GLenum type, void *output);
     virtual gl::Error loadData(const gl::Box &area, const gl::PixelUnpackState &unpack, GLenum type, const void *input);
     virtual gl::Error loadCompressedData(const gl::Box &area, const void *input);
 

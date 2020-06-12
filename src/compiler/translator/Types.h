@@ -65,12 +65,6 @@ inline TFieldList *NewPoolTFieldList()
 class TFieldListCollection : angle::NonCopyable
 {
   public:
-    bool hasName() const {
-        return mName != nullptr;
-    }
-    bool hasFields() const {
-        return mFields != nullptr;
-    }
     const TString &name() const
     {
         return *mName;
@@ -191,12 +185,7 @@ class TInterfaceBlock : public TFieldListCollection
           mInstanceName(instanceName),
           mArraySize(arraySize),
           mBlockStorage(layoutQualifier.blockStorage),
-          mMatrixPacking(layoutQualifier.matrixPacking),
-          mLocalSizeX(layoutQualifier.local_size_x),
-          mLocalSizeY(layoutQualifier.local_size_y),
-          mLocalSizeZ(layoutQualifier.local_size_z),
-          mBinding(layoutQualifier.binding),
-          mOffset(layoutQualifier.offset)
+          mMatrixPacking(layoutQualifier.matrixPacking)
     {
     }
 
@@ -216,24 +205,6 @@ class TInterfaceBlock : public TFieldListCollection
     {
         return mArraySize;
     }
-    bool isComputeInterfaceBlock() const {
-        return mLocalSizeX != -1 ||
-               mLocalSizeY != -1 ||
-               mLocalSizeZ != -1;
-    }
-    bool isBufferStorage() const {
-        return mBinding != -1;
-    }
-    bool hasBufferOffset() const {
-        return mOffset != -1;
-    }
-    int localSizeX() const { return mLocalSizeX; }
-    int localSizeY() const { return mLocalSizeY; }
-    int localSizeZ() const { return mLocalSizeZ; }
-
-    int bufferBinding() const { return mBinding; }
-    int bufferOffset() const { return mOffset; }
-
     TLayoutBlockStorage blockStorage() const
     {
         return mBlockStorage;
@@ -254,11 +225,6 @@ class TInterfaceBlock : public TFieldListCollection
     int mArraySize; // 0 if not an array
     TLayoutBlockStorage mBlockStorage;
     TLayoutMatrixPacking mMatrixPacking;
-    int mLocalSizeX;
-    int mLocalSizeY;
-    int mLocalSizeZ;
-    int mBinding;
-    int mOffset;
 };
 
 //
@@ -269,14 +235,14 @@ class TType
   public:
     POOL_ALLOCATOR_NEW_DELETE();
     TType()
-        : type(EbtVoid), precision(EbpUndefined), qualifier(EvqGlobal), bufferDir(EvqInputOutput), invariant(false),
+        : type(EbtVoid), precision(EbpUndefined), qualifier(EvqGlobal), invariant(false),
           layoutQualifier(TLayoutQualifier::create()),
           primarySize(0), secondarySize(0), array(false), arraySize(0),
           interfaceBlock(nullptr), structure(nullptr)
     {
     }
     TType(TBasicType t, unsigned char ps = 1, unsigned char ss = 1)
-        : type(t), precision(EbpUndefined), qualifier(EvqGlobal), bufferDir(EvqInputOutput), invariant(false),
+        : type(t), precision(EbpUndefined), qualifier(EvqGlobal), invariant(false),
           layoutQualifier(TLayoutQualifier::create()),
           primarySize(ps), secondarySize(ss), array(false), arraySize(0),
           interfaceBlock(0), structure(0)
@@ -284,7 +250,7 @@ class TType
     }
     TType(TBasicType t, TPrecision p, TQualifier q = EvqTemporary,
           unsigned char ps = 1, unsigned char ss = 1, bool a = false)
-        : type(t), precision(p), qualifier(q), bufferDir(EvqInputOutput), invariant(false),
+        : type(t), precision(p), qualifier(q), invariant(false),
           layoutQualifier(TLayoutQualifier::create()),
           primarySize(ps), secondarySize(ss), array(a), arraySize(0),
           interfaceBlock(0), structure(0)
@@ -292,7 +258,7 @@ class TType
     }
     explicit TType(const TPublicType &p);
     TType(TStructure *userDef, TPrecision p = EbpUndefined)
-        : type(EbtStruct), precision(p), qualifier(EvqTemporary), bufferDir(EvqInputOutput), invariant(false),
+        : type(EbtStruct), precision(p), qualifier(EvqTemporary), invariant(false),
           layoutQualifier(TLayoutQualifier::create()),
           primarySize(1), secondarySize(1), array(false), arraySize(0),
           interfaceBlock(0), structure(userDef)
@@ -300,7 +266,7 @@ class TType
     }
     TType(TInterfaceBlock *interfaceBlockIn, TQualifier qualifierIn,
           TLayoutQualifier layoutQualifierIn, int arraySizeIn)
-        : type(EbtInterfaceBlock), precision(EbpUndefined), qualifier(qualifierIn), bufferDir(EvqInputOutput),
+        : type(EbtInterfaceBlock), precision(EbpUndefined), qualifier(qualifierIn),
           invariant(false), layoutQualifier(layoutQualifierIn),
           primarySize(1), secondarySize(1), array(arraySizeIn > 0), arraySize(arraySizeIn),
           interfaceBlock(interfaceBlockIn), structure(0)
@@ -516,7 +482,7 @@ class TType
             return secondarySize < right.secondarySize;
         if (array != right.array)
             return array < right.array;
-        if (array && (arraySize != right.arraySize))
+        if (arraySize != right.arraySize)
             return arraySize < right.arraySize;
         if (structure != right.structure)
             return structure < right.structure;
@@ -595,7 +561,6 @@ class TType
     TBasicType type;
     TPrecision precision;
     TQualifier qualifier;
-    TQualifier bufferDir;
     bool invariant;
     TLayoutQualifier layoutQualifier;
     unsigned char primarySize; // size of vector or cols matrix
@@ -626,7 +591,6 @@ struct TPublicType
     TBasicType type;
     TLayoutQualifier layoutQualifier;
     TQualifier qualifier;
-    TQualifier bufferDir;
     bool invariant;
     TPrecision precision;
     unsigned char primarySize;          // size of vector or cols of matrix

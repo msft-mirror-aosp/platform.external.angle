@@ -23,10 +23,6 @@
 
 #include "common/debug.h"
 #include "common/utilities.h"
-#include "libGLESv2/entry_points_egl.h"
-
-#undef EVENT
-#include "libGLESv2/emulator_lock.h"
 
 namespace gl
 {

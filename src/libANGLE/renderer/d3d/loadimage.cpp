@@ -329,26 +329,6 @@ void LoadR5G6B5ToRGBA8(size_t width, size_t height, size_t depth,
     }
 }
 
-void LoadRGBA8ToR5G6B5(size_t width, size_t height, size_t depth,
-                       const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                       uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint8_t *source = OffsetDataPointer<uint8_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            uint16_t *dest = OffsetDataPointer<uint16_t>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                dest[x] = (static_cast<uint16_t>(source[4 * x + 0] & 0xF8) << 8)
-                        | (static_cast<uint16_t>(source[4 * x + 1] & 0xFC) << 3)
-                        | (static_cast<uint16_t>(source[4 * x + 2] & 0xF8) >> 3);
-            }
-        }
-    }
-}
-
 void LoadRGBA8ToBGRA8(size_t width, size_t height, size_t depth,
                       const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
                       uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
@@ -384,15 +364,6 @@ void LoadRGBA4ToARGB4(size_t width, size_t height, size_t depth,
             }
         }
     }
-}
-
-void LoadARGB4ToRGBA4(size_t width, size_t height, size_t depth,
-                      const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                      uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    LoadRGBA4ToARGB4(width, height, depth,
-                     input, inputRowPitch, inputDepthPitch,
-                     output, outputRowPitch, outputDepthPitch);
 }
 
 void LoadRGBA4ToBGRA8(size_t width, size_t height, size_t depth,
@@ -439,27 +410,6 @@ void LoadRGBA4ToRGBA8(size_t width, size_t height, size_t depth,
     }
 }
 
-void LoadRGBA8ToRGBA4(size_t width, size_t height, size_t depth,
-                      const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                      uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint8_t *source = OffsetDataPointer<uint8_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            uint16_t *dest = OffsetDataPointer<uint16_t>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                dest[x] = static_cast<uint16_t>(source[4 * x + 0] & 0xF0) << 12;
-                dest[x] |= static_cast<uint16_t>(source[4 * x + 1] & 0xF0) << 8;
-                dest[x] |= static_cast<uint16_t>(source[4 * x + 2] & 0xF0) << 4;
-                dest[x] |= static_cast<uint16_t>(source[4 * x + 3] & 0xF0) << 0;
-            }
-        }
-    }
-}
-
 void LoadBGRA4ToBGRA8(size_t width, size_t height, size_t depth,
                       const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
                       uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
@@ -500,15 +450,6 @@ void LoadRGB5A1ToA1RGB5(size_t width, size_t height, size_t depth,
     }
 }
 
-void LoadA1RGB5ToRGB5A1(size_t width, size_t height, size_t depth,
-                        const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                        uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    LoadRGB5A1ToA1RGB5(width, height, depth,
-                       input, inputRowPitch, inputDepthPitch,
-                       output, outputRowPitch, outputDepthPitch);
-}
-
 void LoadRGB5A1ToBGRA8(size_t width, size_t height, size_t depth,
                        const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
                        uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
@@ -531,28 +472,6 @@ void LoadRGB5A1ToBGRA8(size_t width, size_t height, size_t depth,
     }
 }
 
-void LoadBGRA8ToRGB5A1(size_t width, size_t height, size_t depth,
-                       const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                       uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint8_t *source = OffsetDataPointer<uint8_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            uint16_t *dest = OffsetDataPointer<uint16_t>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                uint16_t r = source[4 * x + 2] >> 3;
-                uint16_t g = source[4 * x + 1] >> 3;
-                uint16_t b = source[4 * x + 0] >> 3;
-                uint16_t a = source[4 * x + 3] ? 1 : 0;
-                dest[x] = (r << 11) | (g << 6) | (b << 1) | a;
-            }
-        }
-    }
-}
-
 void LoadRGB5A1ToRGBA8(size_t width, size_t height, size_t depth,
                        const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
                        uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
@@ -570,28 +489,6 @@ void LoadRGB5A1ToRGBA8(size_t width, size_t height, size_t depth,
                 dest[4 * x + 1] = static_cast<uint8_t>(((rgba & 0x07C0) >> 3) | ((rgba & 0x07C0) >> 8));
                 dest[4 * x + 2] = static_cast<uint8_t>(((rgba & 0x003E) << 2) | ((rgba & 0x003E) >> 3));
                 dest[4 * x + 3] = static_cast<uint8_t>((rgba & 0x0001) ? 0xFF : 0);
-            }
-        }
-    }
-}
-
-void LoadRGBA8ToRGB5A1(size_t width, size_t height, size_t depth,
-                       const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                       uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint8_t *source = OffsetDataPointer<uint8_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            uint16_t *dest = OffsetDataPointer<uint16_t>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                uint16_t r = source[4 * x + 0] >> 3;
-                uint16_t g = source[4 * x + 1] >> 3;
-                uint16_t b = source[4 * x + 2] >> 3;
-                uint16_t a = source[4 * x + 3] ? 1 : 0;
-                dest[x] = (r << 11) | (g << 6) | (b << 1) | a;
             }
         }
     }
@@ -632,75 +529,10 @@ void LoadRGB10A2ToRGBA8(size_t width, size_t height, size_t depth,
             for (size_t x = 0; x < width; x++)
             {
                 uint32_t rgba = source[x];
-                dest[4 * x + 0] = static_cast<uint8_t>((rgba & 0x000003FF) >> 2);
+                dest[4 * x + 0] = static_cast<uint8_t>((rgba & 0x000003FF) >>  2);
                 dest[4 * x + 1] = static_cast<uint8_t>((rgba & 0x000FFC00) >> 12);
                 dest[4 * x + 2] = static_cast<uint8_t>((rgba & 0x3FF00000) >> 22);
                 dest[4 * x + 3] = static_cast<uint8_t>(((rgba & 0xC0000000) >> 30) * 0x55);
-            }
-        }
-    }
-}
-
-void LoadRGBA8ToRGB10A2(size_t width, size_t height, size_t depth,
-    const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-    uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint8_t *source = OffsetDataPointer<uint8_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            uint32_t *dest = OffsetDataPointer<uint32_t>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                uint32_t r = (static_cast<uint32_t>(source[4 * x + 0]) << 2) | (static_cast<uint32_t>(source[4 * x + 0]) >> 6);
-                uint32_t g = (static_cast<uint32_t>(source[4 * x + 1]) << 2) | (static_cast<uint32_t>(source[4 * x + 1]) >> 6);
-                uint32_t b = (static_cast<uint32_t>(source[4 * x + 2]) << 2) | (static_cast<uint32_t>(source[4 * x + 2]) >> 6);
-                uint32_t a = static_cast<uint32_t>(source[4 * x + 3] & 0xC0);
-                dest[x] = r | (g << 10) | (b << 20) | (a << 30);
-            }
-        }
-    }
-}
-
-void LoadRGB9E5ToRGB16F(size_t width, size_t height, size_t depth,
-                        const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                        uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint32_t *source = OffsetDataPointer<uint32_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            uint16_t *dest = OffsetDataPointer<uint16_t>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                float rgb[3];
-                gl::convert999E5toRGBFloats(source[x], rgb + 0, rgb + 1, rgb + 2);
-                dest[x * 3 + 0] = gl::float32ToFloat16(rgb[0]);
-                dest[x * 3 + 1] = gl::float32ToFloat16(rgb[0]);
-                dest[x * 3 + 2] = gl::float32ToFloat16(rgb[0]);
-            }
-        }
-    }
-}
-
-void LoadRGB9E5ToRGB32F(size_t width, size_t height, size_t depth,
-                        const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                        uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint32_t *source = OffsetDataPointer<uint32_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            float *dest = OffsetDataPointer<float>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                gl::convert999E5toRGBFloats(source[x],
-                                            dest + x * 3 + 0,
-                                            dest + x * 3 + 1,
-                                            dest + x * 3 + 2);
             }
         }
     }
@@ -764,29 +596,6 @@ void LoadRGB16FToRG11B10F(size_t width, size_t height, size_t depth,
     }
 }
 
-void LoadRG11B10FToRGB16F(size_t width, size_t height, size_t depth,
-                          const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                          uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint32_t *source = OffsetDataPointer<uint32_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            uint16_t *dest = OffsetDataPointer<uint16_t>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                dest[x * 3 + 0] = gl::float32ToFloat16(gl::float11ToFloat32(
-                    static_cast<uint16_t>((source[x] & 0x000007FF) >> 0)));
-                dest[x * 3 + 1] = gl::float32ToFloat16(gl::float11ToFloat32(
-                    static_cast<uint16_t>((source[x] & 0x003FF800) >> 11)));
-                dest[x * 3 + 2] = gl::float32ToFloat16(gl::float10ToFloat32(
-                    static_cast<uint16_t>((source[x] & 0xFFC00000) >> 22)));
-            }
-        }
-    }
-}
-
 void LoadRGB32FToRG11B10F(size_t width, size_t height, size_t depth,
                           const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
                           uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
@@ -802,29 +611,6 @@ void LoadRGB32FToRG11B10F(size_t width, size_t height, size_t depth,
                 dest[x] = (gl::float32ToFloat11(source[x * 3 + 0]) <<  0) |
                           (gl::float32ToFloat11(source[x * 3 + 1]) << 11) |
                           (gl::float32ToFloat10(source[x * 3 + 2]) << 22);
-            }
-        }
-    }
-}
-
-void LoadRG11B10FToRGB32F(size_t width, size_t height, size_t depth,
-                          const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                          uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint32_t *source = OffsetDataPointer<uint32_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            float *dest = OffsetDataPointer<float>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                dest[x * 3 + 0] = gl::float11ToFloat32(
-                    static_cast<uint16_t>((source[x] & 0x000007FF) >> 0));
-                dest[x * 3 + 1] = gl::float11ToFloat32(
-                    static_cast<uint16_t>((source[x] & 0x003FF800) >> 11));
-                dest[x * 3 + 2] = gl::float10ToFloat32(
-                    static_cast<uint16_t>((source[x] & 0xFFC00000) >> 22));
             }
         }
     }
@@ -871,26 +657,6 @@ void LoadRGB32FToRGBA16F(size_t width, size_t height, size_t depth,
     }
 }
 
-void LoadRGB16FToRGBA32F(size_t width, size_t height, size_t depth,
-                         const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                         uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint16_t *source = OffsetDataPointer<uint16_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            float *dest = OffsetDataPointer<float>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                dest[x * 4 + 0] = gl::float16ToFloat32(source[x * 3 + 0]);
-                dest[x * 4 + 1] = gl::float16ToFloat32(source[x * 3 + 1]);
-                dest[x * 4 + 2] = gl::float16ToFloat32(source[x * 3 + 2]);
-            }
-        }
-    }
-}
-
 void LoadR32ToR16(size_t width, size_t height, size_t depth,
                   const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
                   uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
@@ -904,24 +670,6 @@ void LoadR32ToR16(size_t width, size_t height, size_t depth,
             for (size_t x = 0; x < width; x++)
             {
                 dest[x] = source[x] >> 16;
-            }
-        }
-    }
-}
-
-void LoadR16ToR32(size_t width, size_t height, size_t depth,
-                  const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                  uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint16_t *source = OffsetDataPointer<uint16_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            uint32_t *dest = OffsetDataPointer<uint32_t>(output, y, z, outputRowPitch, outputDepthPitch);
-            for (size_t x = 0; x < width; x++)
-            {
-                dest[x] = static_cast<uint32_t>(source[x]) << 16 | source[x];
             }
         }
     }
@@ -941,25 +689,6 @@ void LoadR32ToR24G8(size_t width, size_t height, size_t depth,
             for (size_t x = 0; x < width; x++)
             {
                 dest[x] = source[x] >> 8;
-            }
-        }
-    }
-}
-
-void LoadR24G8ToR32(size_t width, size_t height, size_t depth,
-                    const uint8_t *input, size_t inputRowPitch, size_t inputDepthPitch,
-                    uint8_t *output, size_t outputRowPitch, size_t outputDepthPitch)
-{
-    for (size_t z = 0; z < depth; z++)
-    {
-        for (size_t y = 0; y < height; y++)
-        {
-            const uint32_t *source = OffsetDataPointer<uint32_t>(input, y, z, inputRowPitch, inputDepthPitch);
-            uint32_t *dest = OffsetDataPointer<uint32_t>(output, y, z, outputRowPitch, outputDepthPitch);
-
-            for (size_t x = 0; x < width; x++)
-            {
-                dest[x] = source[x] << 8;
             }
         }
     }

@@ -243,47 +243,6 @@ DXGI_FORMAT Image11::getDXGIFormat() const
     return mDXGIFormat;
 }
 
-gl::Error Image11::saveData(const gl::Box &area, const gl::PixelPackState &pack, GLenum type, void *output)
-{
-    const gl::InternalFormat &formatInfo = gl::GetInternalFormatInfo(mInternalFormat);
-    GLsizei outputRowPitch = formatInfo.computeRowPitch(type, area.width, pack.alignment,
-        pack.rowLength);
-    GLsizei outputDepthPitch = formatInfo.computeDepthPitch(
-        type, area.width, area.height, pack.alignment, pack.rowLength, getHeight() + pack.skipRows);
-    GLsizei outputSkipBytes = formatInfo.computeSkipPixels(
-        outputRowPitch, outputDepthPitch, 0, pack.skipRows, pack.skipPixels);
-
-    const d3d11::DXGIFormatSize &dxgiFormatInfo = d3d11::GetDXGIFormatSizeInfo(mDXGIFormat);
-    GLuint inputPixelSize = dxgiFormatInfo.pixelBytes;
-
-    const d3d11::TextureFormat &d3dFormatInfo = d3d11::GetTextureFormatInfo(mInternalFormat,
-        mRenderer->getRenderer11DeviceCaps());
-    if (!d3dFormatInfo.loadFunctions.count(type))
-    {
-        return gl::Error(GL_INVALID_OPERATION);
-    }
-    SaveImageFunction saveFunction = d3dFormatInfo.loadFunctions.at(type).saveFunction;
-
-    D3D11_MAPPED_SUBRESOURCE mappedImage;
-    gl::Error error = map(D3D11_MAP_READ, &mappedImage);
-    if (error.isError())
-    {
-        return error;
-    }
-
-    uint8_t *offsetMappedData = (reinterpret_cast<uint8_t*>(mappedImage.pData) +
-        (area.y * mappedImage.RowPitch + area.x * inputPixelSize
-        + area.z * mappedImage.DepthPitch));
-    saveFunction(area.width, area.height, area.depth,
-        offsetMappedData, mappedImage.RowPitch, mappedImage.DepthPitch,
-        reinterpret_cast<uint8_t *>(output) + outputSkipBytes, outputRowPitch,
-        outputDepthPitch);
-
-    unmap();
-
-    return gl::Error(GL_NO_ERROR);
-}
-
 // Store the pixel rectangle designated by xoffset,yoffset,width,height with pixels stored as format/type at input
 // into the target pixel rectangle.
 gl::Error Image11::loadData(const gl::Box &area, const gl::PixelUnpackState &unpack, GLenum type, const void *input)
@@ -672,10 +631,7 @@ gl::Error Image11::map(D3D11_MAP mapType, D3D11_MAPPED_SUBRESOURCE *map)
         return gl::Error(GL_OUT_OF_MEMORY, "Failed to map staging texture, result: 0x%X.", result);
     }
 
-    if (mapType != D3D11_MAP_READ)
-    {
-        mDirty = true;
-    }
+    mDirty = true;
 
     return gl::Error(GL_NO_ERROR);
 }

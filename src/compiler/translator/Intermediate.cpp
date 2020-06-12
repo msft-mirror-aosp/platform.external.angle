@@ -10,6 +10,7 @@
 
 #include <float.h>
 #include <limits.h>
+#include <algorithm>
 
 #include "compiler/translator/Intermediate.h"
 #include "compiler/translator/SymbolTable.h"
@@ -53,15 +54,13 @@ TIntermTyped *TIntermediate::addBinaryMath(
 
     node->setLeft(left);
     node->setRight(right);
-    if (!node->promote(mInfoSink)) {
+    if (!node->promote(mInfoSink))
         return NULL;
-    }
 
     // See if we can fold constants.
     TIntermTyped *foldedNode = node->fold(mInfoSink);
-    if (foldedNode) {
+    if (foldedNode)
         return foldedNode;
-    }
 
     return node;
 }

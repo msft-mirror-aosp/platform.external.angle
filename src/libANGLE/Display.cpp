@@ -141,7 +141,6 @@ rx::DisplayImpl *CreateDisplayFromAttribs(const AttributeMap &attribMap)
       case EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE:
 #if defined(ANGLE_ENABLE_D3D9) || defined(ANGLE_ENABLE_D3D11)
         // Default to D3D displays
-        fprintf(stderr, "ANGLE: %s: make D3D display\n", __FUNCTION__);
         impl = new rx::DisplayD3D();
 #elif defined(ANGLE_USE_X11)
         impl = new rx::DisplayGLX();
@@ -518,8 +517,6 @@ bool Display::getConfigAttrib(const Config *configuration, EGLint attribute, EGL
           }
           *value = configuration->optimalOrientation;
           break;
-      case EGL_RECORDABLE_ANDROID:                                                        break;
-      case EGL_FRAMEBUFFER_TARGET_ANDROID: *value = configuration->frameBufferTargetAndroid; break;
 
       default:
         return false;

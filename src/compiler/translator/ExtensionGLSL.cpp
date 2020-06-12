@@ -94,23 +94,6 @@ void TExtensionGLSL::checkOperator(TIntermOperator *node)
             }
             break;
 
-        case EOpPackSnorm4x8:
-        case EOpPackUnorm4x8:
-        case EOpUnpackSnorm4x8:
-        case EOpUnpackUnorm4x8:
-        case EOpBitfieldExtract:
-        case EOpBitfieldInsert:
-        case EOpBitfieldReverse:
-        case EOpBitCount:
-        case EOpFindLSB:
-        case EOpFindMSB:
-        case EOpUaddCarry:
-        case EOpUsubBorrow:
-        case EOpUmulExtended:
-        case EOpImulExtended:
-            // TODO: See if we need to add any extensions to host GLSL
-            break;
-
         default:
             break;
     }

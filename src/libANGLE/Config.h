@@ -65,7 +65,6 @@ struct Config
     EGLint transparentGreenValue;   // Transparent green value
     EGLint transparentBlueValue;    // Transparent blue value
     EGLint optimalOrientation;      // Optimal window surface orientation
-    EGLint frameBufferTargetAndroid;// Android target framebuffer
 };
 
 class ConfigSet

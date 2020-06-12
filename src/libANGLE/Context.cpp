@@ -2019,9 +2019,6 @@ void Context::initExtensionStrings()
 {
     mExtensionStrings = mExtensions.getStrings();
 
-    // Add GL_OES_depth_texture for Emulator
-    mExtensionStrings.push_back("GL_OES_depth_texture");
-
     std::ostringstream combinedStringStream;
     std::copy(mExtensionStrings.begin(), mExtensionStrings.end(), std::ostream_iterator<std::string>(combinedStringStream, " "));
     mExtensionString = combinedStringStream.str();
@@ -2454,19 +2451,6 @@ void Context::invalidateSubFramebuffer(GLenum target,
 
     Rectangle area(x, y, width, height);
     handleError(framebuffer->invalidateSub(numAttachments, attachments, area));
-}
-
-void Context::getTexImage(GLenum target,
-                          GLint level,
-                          GLenum format,
-                          GLenum type,
-                          GLvoid *pixels)
-{
-    syncStateForTexImage();
-    Texture *texture =
-        getTargetTexture(IsCubeMapTextureTarget(target) ? GL_TEXTURE_CUBE_MAP : target);
-    handleError(texture->getImage(mState.getPackState(), target, level, format, type,
-               (uint8_t*)pixels));
 }
 
 void Context::texImage2D(GLenum target,

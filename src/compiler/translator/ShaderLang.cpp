@@ -153,7 +153,6 @@ void ShInitBuiltInResources(ShBuiltInResources* resources)
     resources->EXT_draw_buffers = 0;
     resources->EXT_frag_depth = 0;
     resources->EXT_shader_texture_lod = 0;
-    resources->EXT_gpu_shader5 = 0;
     resources->WEBGL_debug_shader_precision = 0;
     resources->EXT_shader_framebuffer_fetch = 0;
     resources->NV_shader_framebuffer_fetch = 0;

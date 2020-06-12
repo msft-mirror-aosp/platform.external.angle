@@ -8,8 +8,6 @@
 #define COMPILER_TRANSLATOR_OUTPUTGLSLBASE_H_
 
 #include <set>
-#include <string>
-#include <vector>
 
 #include "compiler/translator/IntermNode.h"
 #include "compiler/translator/LoopInfo.h"
@@ -19,7 +17,6 @@ class TOutputGLSLBase : public TIntermTraverser
 {
   public:
     TOutputGLSLBase(TInfoSinkBase &objSink,
-                    const NameSet& nameSet,
                     ShArrayIndexClampingStrategy clampingStrategy,
                     ShHashFunction64 hashFunction,
                     NameMap &nameMap,
@@ -75,22 +72,7 @@ class TOutputGLSLBase : public TIntermTraverser
 
     void writeBuiltInFunctionTriplet(Visit visit, const char *preStr, bool useEmulatedFunction);
 
-    // Dealing with legacy->core name renaming conflicts
-    bool mayConflictWithCore(const std::string& name) const;
-    // If a name has a conflict, what is a way to rename it that:
-    // a. has a low chance of colliding with other names
-    // b. is consistently and deterministically renamed
-    // Current approach: add angle%d_ to the beginning of the name
-    // starting from a magic number, |renameSeed|.
-    uint32_t mRenameSeed = 0xfade;
-    std::string nextCandidate(const std::string& name);
-    bool conflictsWithExistingNames(const std::string& name);
-    std::string genUnconflictedName(const std::string& name);
-
     TInfoSinkBase &mObjSink;
-
-    NameSet mNameSet;
-
     bool mDeclaringVariables;
 
     // This set contains all the ids of the structs from every scope.

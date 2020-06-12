@@ -11,9 +11,7 @@
             'dependencies':
             [
                 '../src/angle.gyp:*',
-                # For now, the tests and samples aren't needed and just add
-                # dependencies that are hard to satisfy.
-                # '../src/tests/tests.gyp:*',
+                '../src/tests/tests.gyp:*',
             ],
             'conditions':
             [
@@ -22,9 +20,7 @@
                 {
                     'dependencies':
                     [
-                        # For now, the tests and samples aren't needed and just add
-                        # dependencies that are hard to satisfy.
-                        # '../samples/samples.gyp:*',
+                        '../samples/samples.gyp:*',
                     ],
                 }],
             ],

@@ -44,7 +44,6 @@ enum TBasicType
     EbtFloat,
     EbtInt,
     EbtUInt,
-    EbtAtomicUInt,
     EbtBool,
     EbtGVec4,              // non type: represents vec4, ivec4, and uvec4
     EbtGenType,            // non type: represents float, vec2, vec3, and vec4
@@ -62,17 +61,14 @@ enum TBasicType
     EbtSampler2DArray,
     EbtSamplerExternalOES,  // Only valid if OES_EGL_image_external exists.
     EbtSampler2DRect,       // Only valid if GL_ARB_texture_rectangle exists.
-    EbtSampler2DMS,         // Multisampler
     EbtISampler2D,
     EbtISampler3D,
     EbtISamplerCube,
     EbtISampler2DArray,
-    EbtISampler2DMS,        // Integer multisampler
     EbtUSampler2D,
     EbtUSampler3D,
     EbtUSamplerCube,
     EbtUSampler2DArray,
-    EbtUSampler2DMS,        // Unsigned integer multisampler
     EbtSampler2DShadow,
     EbtSamplerCubeShadow,
     EbtSampler2DArrayShadow,
@@ -81,7 +77,6 @@ enum TBasicType
     EbtGSampler3D,         // non type: represents sampler3D, isampler3D, and usampler3D
     EbtGSamplerCube,       // non type: represents samplerCube, isamplerCube, and usamplerCube
     EbtGSampler2DArray,    // non type: represents sampler2DArray, isampler2DArray, and usampler2DArray
-    EbtGSampler2DMS,       // non type: represents sampler2DMS, isampler2DMS, and usampler2DMS
     EbtStruct,
     EbtInterfaceBlock,
     EbtAddress,            // should be deprecated??
@@ -105,12 +100,10 @@ inline bool IsIntegerSampler(TBasicType type)
       case EbtISampler3D:
       case EbtISamplerCube:
       case EbtISampler2DArray:
-      case EbtISampler2DMS:
       case EbtUSampler2D:
       case EbtUSampler3D:
       case EbtUSamplerCube:
       case EbtUSampler2DArray:
-      case EbtUSampler2DMS:
         return true;
       case EbtSampler2D:
       case EbtSampler3D:
@@ -118,7 +111,6 @@ inline bool IsIntegerSampler(TBasicType type)
       case EbtSamplerExternalOES:
       case EbtSampler2DRect:
       case EbtSampler2DArray:
-      case EbtSampler2DMS:
       case EbtSampler2DShadow:
       case EbtSamplerCubeShadow:
       case EbtSampler2DArrayShadow:
@@ -138,11 +130,8 @@ inline bool IsSampler2D(TBasicType type)
       case EbtISampler2D:
       case EbtUSampler2D:
       case EbtSampler2DArray:
-      case EbtSampler2DMS:
       case EbtISampler2DArray:
       case EbtUSampler2DArray:
-      case EbtISampler2DMS:
-      case EbtUSampler2DMS:
       case EbtSampler2DRect:
       case EbtSamplerExternalOES:
       case EbtSampler2DShadow:
@@ -177,15 +166,12 @@ inline bool IsSamplerCube(TBasicType type)
       case EbtSamplerExternalOES:
       case EbtSampler2DRect:
       case EbtSampler2DArray:
-      case EbtSampler2DMS:
       case EbtISampler2D:
       case EbtISampler3D:
       case EbtISampler2DArray:
-      case EbtISampler2DMS:
       case EbtUSampler2D:
       case EbtUSampler3D:
       case EbtUSampler2DArray:
-      case EbtUSampler2DMS:
       case EbtSampler2DShadow:
       case EbtSampler2DArrayShadow:
         return false;
@@ -209,15 +195,12 @@ inline bool IsSampler3D(TBasicType type)
       case EbtSamplerExternalOES:
       case EbtSampler2DRect:
       case EbtSampler2DArray:
-      case EbtSampler2DMS:
       case EbtISampler2D:
       case EbtISamplerCube:
       case EbtISampler2DArray:
-      case EbtISampler2DMS:
       case EbtUSampler2D:
       case EbtUSamplerCube:
       case EbtUSampler2DArray:
-      case EbtUSampler2DMS:
       case EbtSampler2DShadow:
       case EbtSamplerCubeShadow:
       case EbtSampler2DArrayShadow:
@@ -239,11 +222,8 @@ inline bool IsSamplerArray(TBasicType type)
       case EbtSampler2DArrayShadow:
         return true;
       case EbtSampler2D:
-      case EbtSampler2DMS:
       case EbtISampler2D:
       case EbtUSampler2D:
-      case EbtISampler2DMS:
-      case EbtUSampler2DMS:
       case EbtSampler2DRect:
       case EbtSamplerExternalOES:
       case EbtSampler3D:
@@ -274,19 +254,16 @@ inline bool IsShadowSampler(TBasicType type)
       case EbtISampler3D:
       case EbtISamplerCube:
       case EbtISampler2DArray:
-      case EbtISampler2DMS:
       case EbtUSampler2D:
       case EbtUSampler3D:
       case EbtUSamplerCube:
       case EbtUSampler2DArray:
-      case EbtUSampler2DMS:
       case EbtSampler2D:
       case EbtSampler3D:
       case EbtSamplerCube:
       case EbtSamplerExternalOES:
       case EbtSampler2DRect:
       case EbtSampler2DArray:
-      case EbtSampler2DMS:
         return false;
       default:
         assert(!IsSampler(type));
@@ -320,23 +297,17 @@ enum TQualifier
     EvqVaryingIn,   // readonly, fragment shaders only
     EvqVaryingOut,  // vertex shaders only  read/write
     EvqUniform,     // Readonly, vertex and fragment
-    EvqBuffer,      // R/W SSBO
 
     EvqVertexIn,     // Vertex shader input
     EvqFragmentOut,  // Fragment shader output
     EvqVertexOut,    // Vertex shader output
     EvqFragmentIn,   // Fragment shader input
-    EvqComputeIn,    // Compute shader input
-    EvqComputeOut,   // Compute shader output
 
     // parameters
     EvqIn,
     EvqOut,
     EvqInOut,
     EvqConstReadOnly,
-    EvqOutput,
-    EvqInput,
-    EvqInputOutput,
 
     // built-ins read by vertex shader
     EvqInstanceID,
@@ -355,14 +326,6 @@ enum TQualifier
     EvqFragColor,
     EvqFragData,
 
-    // built-ins read by compute shader
-    EvqNumWorkGroups,
-    EvqWorkGroupSize,
-    EvqWorkGroupID,
-    EvqLocalInvocationID,
-    EvqGlobalInvocationID,
-    EvqLocalInvocationIndex,
-    
     EvqFragDepth,     // gl_FragDepth for ESSL300.
     EvqFragDepthEXT,  // gl_FragDepthEXT for ESSL100, EXT_frag_depth.
 
@@ -399,8 +362,7 @@ enum TLayoutBlockStorage
     EbsUnspecified,
     EbsShared,
     EbsPacked,
-    EbsStd140,
-    EbsStd430
+    EbsStd140
 };
 
 struct TLayoutQualifier
@@ -408,11 +370,6 @@ struct TLayoutQualifier
     int location;
     TLayoutMatrixPacking matrixPacking;
     TLayoutBlockStorage blockStorage;
-    int local_size_x;
-    int local_size_y;
-    int local_size_z;
-    int binding;
-    int offset;
 
     static TLayoutQualifier create()
     {
@@ -421,13 +378,6 @@ struct TLayoutQualifier
         layoutQualifier.location = -1;
         layoutQualifier.matrixPacking = EmpUnspecified;
         layoutQualifier.blockStorage = EbsUnspecified;
-
-        layoutQualifier.local_size_x = -1;
-        layoutQualifier.local_size_y = -1;
-        layoutQualifier.local_size_z = -1;
-        
-        layoutQualifier.binding = -1;
-        layoutQualifier.offset = -1;
 
         return layoutQualifier;
     }
@@ -453,19 +403,13 @@ inline const char* getQualifierString(TQualifier q)
     case EvqVaryingIn:              return "varying";
     case EvqVaryingOut:             return "varying";
     case EvqUniform:                return "uniform";
-    case EvqBuffer:                 return "buffer";
     case EvqVertexIn:               return "in";
     case EvqFragmentOut:            return "out";
     case EvqVertexOut:              return "out";
     case EvqFragmentIn:             return "in";
-    case EvqComputeOut:             return "out";
-    case EvqComputeIn:              return "in";
     case EvqIn:                     return "in";
     case EvqOut:                    return "out";
     case EvqInOut:                  return "inout";
-    case EvqOutput:                 return "Output";
-    case EvqInput:                  return "Input";
-    case EvqInputOutput:            return "InputOutput";
     case EvqConstReadOnly:          return "const";
     case EvqInstanceID:             return "InstanceID";
     case EvqVertexID:               return "VertexID";
@@ -488,12 +432,6 @@ inline const char* getQualifierString(TQualifier q)
     case EvqSmoothIn:               return "smooth in";
     case EvqFlatIn:                 return "flat in";
     case EvqCentroidIn:             return "centroid in";
-    case EvqNumWorkGroups:          return "NumWorkGroups";
-    case EvqWorkGroupSize:          return "WorkGroupSize";
-    case EvqWorkGroupID:            return "WorkGroupID";
-    case EvqLocalInvocationID:      return "LocalInvocationID";
-    case EvqGlobalInvocationID:     return "GlobalInvocationID";
-    case EvqLocalInvocationIndex:   return "LocalInvocationIndex";
     default: UNREACHABLE();         return "unknown qualifier";
     }
     // clang-format on
@@ -518,7 +456,6 @@ inline const char* getBlockStorageString(TLayoutBlockStorage bsq)
     case EbsShared:         return "shared";
     case EbsPacked:         return "packed";
     case EbsStd140:         return "std140";
-    case EbsStd430:         return "std430";
     default: UNREACHABLE(); return "unknown block storage";
     }
 }

@@ -435,6 +435,13 @@ bool ValidateES2TexImageParameters(Context *context, GLenum target, GLint level,
                 context->handleError(Error(GL_INVALID_OPERATION));
                 return false;
             }
+            // OES_depth_texture supports loading depth data and multiple levels,
+            // but ANGLE_depth_texture does not
+            if (pixels != NULL || level != 0)
+            {
+                context->handleError(Error(GL_INVALID_OPERATION));
+                return false;
+            }
             break;
           default:
             break;
@@ -571,8 +578,7 @@ bool ValidateES2CopyTexImageParameters(ValidationContext *context,
             if (colorbufferFormat != GL_RGBA4 &&
                 colorbufferFormat != GL_RGB5_A1 &&
                 colorbufferFormat != GL_RGBA8_OES &&
-                colorbufferFormat != GL_RGBA32F &&
-                colorbufferFormat != GL_RGB8_OES)   // this works with Emulator
+                colorbufferFormat != GL_RGBA32F)
             {
                 context->handleError(Error(GL_INVALID_OPERATION));
                 return false;
@@ -681,8 +687,7 @@ bool ValidateES2CopyTexImageParameters(ValidationContext *context,
                 colorbufferFormat != GL_RGB5_A1 &&
                 colorbufferFormat != GL_BGRA8_EXT &&
                 colorbufferFormat != GL_RGBA8_OES &&
-                colorbufferFormat != GL_BGR5_A1_ANGLEX &&
-                colorbufferFormat != GL_RGB8_OES)   // this works with Emulator
+                colorbufferFormat != GL_BGR5_A1_ANGLEX)
             {
                 context->handleError(Error(GL_INVALID_OPERATION));
                 return false;

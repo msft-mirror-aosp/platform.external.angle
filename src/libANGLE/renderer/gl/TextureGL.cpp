@@ -141,13 +141,6 @@ void TextureGL::setUsage(GLenum usage)
     UNREACHABLE();
 }
 
-gl::Error TextureGL::getImage(GLenum target, GLint level, GLenum format, GLenum type,
-                              const gl::PixelPackState &pack, uint8_t *pixels)
-{
-    // TODO
-    return gl::Error(GL_NO_ERROR);
-}
-
 gl::Error TextureGL::setImage(GLenum target, size_t level, GLenum internalFormat, const gl::Extents &size, GLenum format, GLenum type,
                               const gl::PixelUnpackState &unpack, const uint8_t *pixels)
 {

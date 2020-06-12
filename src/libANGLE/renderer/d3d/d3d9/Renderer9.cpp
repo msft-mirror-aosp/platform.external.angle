@@ -397,11 +397,8 @@ D3DPRESENT_PARAMETERS Renderer9::getDefaultPresentParameters()
 
 egl::ConfigSet Renderer9::generateConfigs() const
 {
-    fprintf(stderr, "ANGLE: D3D9: %s\n", __FUNCTION__);
     static const GLenum colorBufferFormats[] =
     {
-        GL_RGBA8,
-        GL_RGB8,
         GL_BGR5_A1_ANGLEX,
         GL_BGRA8_EXT,
         GL_RGB565,
@@ -468,7 +465,7 @@ egl::ConfigSet Renderer9::generateConfigs() const
                 {
                     const gl::InternalFormat &colorBufferFormatInfo = gl::GetInternalFormatInfo(colorBufferInternalFormat);
                     const gl::InternalFormat &depthStencilBufferFormatInfo = gl::GetInternalFormatInfo(depthStencilBufferInternalFormat);
-//                    const d3d9::TextureFormat &d3d9ColorBufferFormatInfo = d3d9::GetTextureFormatInfo(colorBufferInternalFormat);
+                    const d3d9::TextureFormat &d3d9ColorBufferFormatInfo = d3d9::GetTextureFormatInfo(colorBufferInternalFormat);
 
                     egl::Config config;
                     config.renderTargetFormat = colorBufferInternalFormat;
@@ -484,9 +481,7 @@ egl::ConfigSet Renderer9::generateConfigs() const
                     config.bindToTextureRGBA = (colorBufferFormatInfo.format == GL_RGBA || colorBufferFormatInfo.format == GL_BGRA_EXT);
                     config.colorBufferType = EGL_RGB_BUFFER;
                     // Mark as slow if blits to the back-buffer won't be straight forward
-                    // HACK: For emulator, don't do this or hwui will complain
-                    //config.configCaveat = (currentDisplayMode.Format == d3d9ColorBufferFormatInfo.renderFormat) ? EGL_NONE : EGL_SLOW_CONFIG;
-                    config.configCaveat = EGL_NONE;
+                    config.configCaveat = (currentDisplayMode.Format == d3d9ColorBufferFormatInfo.renderFormat) ? EGL_NONE : EGL_SLOW_CONFIG;
                     config.configID = static_cast<EGLint>(configs.size() + 1);
                     config.conformant = EGL_OPENGL_ES2_BIT;
                     config.depthSize = depthStencilBufferFormatInfo.depthBits;
@@ -522,8 +517,7 @@ egl::ConfigSet Renderer9::generateConfigs() const
 
 void Renderer9::generateDisplayExtensions(egl::DisplayExtensions *outExtensions) const
 {
-//    outExtensions->reateContextRobustness = true;
-    outExtensions->createContextRobustness = false;
+    outExtensions->createContextRobustness = true;
 
     if (getShareHandleSupport())
     {

@@ -71,10 +71,6 @@ class TextureD3D : public TextureImpl
     void setBaseLevel(GLuint baseLevel) override;
 
   protected:
-    gl::Error getImageImpl(const gl::ImageIndex &index,
-                           GLenum type,
-                           const gl::PixelPackState &pack,
-                           uint8_t *pixels);
     gl::Error setImageImpl(const gl::ImageIndex &index,
                            GLenum type,
                            const gl::PixelUnpackState &unpack,
@@ -151,8 +147,6 @@ class TextureD3D_2D : public TextureD3D
     GLenum getInternalFormat(GLint level) const;
     bool isDepth(GLint level) const;
 
-    gl::Error getImage(GLenum target, GLint level, GLenum format, GLenum type,
-                       const gl::PixelPackState &pack, uint8_t *pixels) override;
     gl::Error setImage(GLenum target, size_t level, GLenum internalFormat, const gl::Extents &size, GLenum format, GLenum type,
                        const gl::PixelUnpackState &unpack, const uint8_t *pixels) override;
     gl::Error setSubImage(GLenum target, size_t level, const gl::Box &area, GLenum format, GLenum type,
@@ -224,8 +218,6 @@ class TextureD3D_Cube : public TextureD3D
     GLenum getInternalFormat(GLint level, GLint layer) const;
     bool isDepth(GLint level, GLint layer) const;
 
-    gl::Error getImage(GLenum target, GLint level, GLenum format, GLenum type,
-        const gl::PixelPackState &pack, uint8_t *pixels) override;
     gl::Error setImage(GLenum target, size_t level, GLenum internalFormat, const gl::Extents &size, GLenum format, GLenum type,
                        const gl::PixelUnpackState &unpack, const uint8_t *pixels) override;
     gl::Error setSubImage(GLenum target, size_t level, const gl::Box &area, GLenum format, GLenum type,
@@ -292,8 +284,6 @@ class TextureD3D_3D : public TextureD3D
     GLenum getInternalFormat(GLint level) const;
     bool isDepth(GLint level) const;
 
-    gl::Error getImage(GLenum target, GLint level, GLenum format, GLenum type,
-                       const gl::PixelPackState &pack, uint8_t *pixels) override;
     gl::Error setImage(GLenum target, size_t level, GLenum internalFormat, const gl::Extents &size, GLenum format, GLenum type,
                        const gl::PixelUnpackState &unpack, const uint8_t *pixels) override;
     gl::Error setSubImage(GLenum target, size_t level, const gl::Box &area, GLenum format, GLenum type,
@@ -359,8 +349,6 @@ class TextureD3D_2DArray : public TextureD3D
     GLenum getInternalFormat(GLint level) const;
     bool isDepth(GLint level) const;
 
-    gl::Error getImage(GLenum target, GLint level, GLenum format, GLenum type,
-                       const gl::PixelPackState &pack, uint8_t *pixels) override;
     gl::Error setImage(GLenum target, size_t level, GLenum internalFormat, const gl::Extents &size, GLenum format, GLenum type,
                        const gl::PixelUnpackState &unpack, const uint8_t *pixels) override;
     gl::Error setSubImage(GLenum target, size_t level, const gl::Box &area, GLenum format, GLenum type,
@@ -430,8 +418,6 @@ class TextureD3D_External : public TextureD3D
     GLenum getInternalFormat(GLint level) const;
     bool isDepth(GLint level) const;
 
-    gl::Error getImage(GLenum target, GLint level, GLenum format, GLenum type,
-                       const gl::PixelPackState &pack, uint8_t *pixels) override;
     gl::Error setImage(GLenum target,
                        size_t level,
                        GLenum internalFormat,

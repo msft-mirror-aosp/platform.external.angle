@@ -21,7 +21,6 @@ namespace gl
 {
 struct ImageIndex;
 struct Box;
-struct PixelPackState;
 struct PixelUnpackState;
 }
 

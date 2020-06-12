@@ -1011,12 +1011,12 @@ yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
       case N:                               \
         yyformat = S;                       \
       break
-      YYCASE_(0, YY_("syntax error 0"));
-      YYCASE_(1, YY_("syntax error 1, unexpected %s"));
-      YYCASE_(2, YY_("syntax error 2, unexpected %s, expecting %s"));
-      YYCASE_(3, YY_("syntax error 3, unexpected %s, expecting %s or %s"));
-      YYCASE_(4, YY_("syntax error 4, unexpected %s, expecting %s or %s or %s"));
-      YYCASE_(5, YY_("syntax error 5, unexpected %s, expecting %s or %s or %s or %s"));
+      YYCASE_(0, YY_("syntax error"));
+      YYCASE_(1, YY_("syntax error, unexpected %s"));
+      YYCASE_(2, YY_("syntax error, unexpected %s, expecting %s"));
+      YYCASE_(3, YY_("syntax error, unexpected %s, expecting %s or %s"));
+      YYCASE_(4, YY_("syntax error, unexpected %s, expecting %s or %s or %s"));
+      YYCASE_(5, YY_("syntax error, unexpected %s, expecting %s or %s or %s or %s"));
 # undef YYCASE_
     }
 

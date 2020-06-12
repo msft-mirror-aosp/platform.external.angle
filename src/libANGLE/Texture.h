@@ -126,12 +126,6 @@ class Texture final : public egl::ImageSibling,
     bool isCubeComplete() const;
     size_t getMipCompleteLevels() const;
 
-    Error getImage(const PixelPackState& packState,
-                   GLenum target,
-                   GLint level,
-                   GLenum format,
-                   GLenum type,
-                   uint8_t *pixels);
     Error setImage(const PixelUnpackState &unpackState,
                    GLenum target,
                    size_t level,

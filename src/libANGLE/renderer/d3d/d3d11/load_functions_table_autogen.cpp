@@ -74,9 +74,9 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadA16FToRGBA16F, LoadRGBAToA<GLhalf>, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadA16FToRGBA16F, LoadRGBAToA<GLhalf>, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadA16FToRGBA16F, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadA16FToRGBA16F, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -86,8 +86,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadA32FToRGBA32F, LoadRGBAToA<GLfloat>, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadA32FToRGBA32F, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -97,7 +97,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -107,7 +107,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -123,8 +123,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadA16FToRGBA16F, LoadRGBAToA<GLhalf>, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadA16FToRGBA16F, LoadRGBAToA<GLhalf>, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadA16FToRGBA16F, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadA16FToRGBA16F, true);
                         return loadMap;
                     }();
 
@@ -134,8 +134,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadA16FToRGBA16F, LoadRGBAToA<GLhalf>, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadA16FToRGBA16F, LoadRGBAToA<GLhalf>, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadA16FToRGBA16F, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadA16FToRGBA16F, true);
                         return loadMap;
                     }();
 
@@ -151,7 +151,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadA32FToRGBA32F, LoadRGBAToA<GLfloat>, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadA32FToRGBA32F, true);
                         return loadMap;
                     }();
 
@@ -161,7 +161,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadA32FToRGBA32F, LoadRGBAToA<GLfloat>, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadA32FToRGBA32F, true);
                         return loadMap;
                     }();
 
@@ -177,7 +177,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,1>, LoadToNative<GLubyte,1>, false);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,1>, false);
                         return loadMap;
                     }();
 
@@ -187,7 +187,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadA8ToRGBA8, LoadRGBAToA<GLubyte>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadA8ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -205,8 +205,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT] = LoadImageFunctionInfo(LoadRGB5A1ToRGBA8, LoadRGBA8ToRGB5A1, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, false);
+                        loadMap[GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT] = LoadImageFunctionInfo(LoadRGB5A1ToRGBA8, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, false);
                         return loadMap;
                     }();
 
@@ -216,8 +216,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, true);
-                        loadMap[GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT] = LoadImageFunctionInfo(LoadRGB5A1ToRGBA8, LoadRGBA8ToRGB5A1, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, true);
+                        loadMap[GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT] = LoadImageFunctionInfo(LoadRGB5A1ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -233,8 +233,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT] = LoadImageFunctionInfo(LoadRGBA4ToRGBA8, LoadRGBA8ToRGBA4, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, false);
+                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT] = LoadImageFunctionInfo(LoadRGBA4ToRGBA8, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, false);
                         return loadMap;
                     }();
 
@@ -244,8 +244,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, true);
-                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT] = LoadImageFunctionInfo(LoadRGBA4ToRGBA8, LoadRGBA8ToRGBA4, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, true);
+                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT] = LoadImageFunctionInfo(LoadRGBA4ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -261,7 +261,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, false);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, false);
                         return loadMap;
                     }();
 
@@ -271,7 +271,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, true);
                         return loadMap;
                     }();
 
@@ -287,7 +287,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -297,7 +297,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -313,7 +313,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadEACR11ToR8, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadEACR11ToR8, true);
                         return loadMap;
                     }();
 
@@ -331,7 +331,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadEACRG11ToRG8, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadEACRG11ToRG8, true);
                         return loadMap;
                     }();
 
@@ -349,7 +349,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2RGB8ToRGBA8, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2RGB8ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -367,7 +367,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2RGB8A1ToRGBA8, LoadETC2RGB8A1ToRGBA8, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2RGB8A1ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -385,7 +385,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2RGBA8ToRGBA8, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2RGBA8ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -403,7 +403,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,8>, LoadCompressedToNative<4,4,8>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,8>, true);
                         return loadMap;
                     }();
 
@@ -413,7 +413,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,8>, LoadCompressedToNative<4,4,8>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,8>, true);
                         return loadMap;
                     }();
 
@@ -429,7 +429,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,16>, LoadCompressedToNative<4,4,16>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,16>, true);
                         return loadMap;
                     }();
 
@@ -439,7 +439,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,16>, LoadCompressedToNative<4,4,16>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,16>, true);
                         return loadMap;
                     }();
 
@@ -455,7 +455,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,16>, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,16>, true);
                         return loadMap;
                     }();
 
@@ -465,7 +465,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,16>, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,16>, true);
                         return loadMap;
                     }();
 
@@ -481,7 +481,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,8>, LoadCompressedToNative<4,4,8>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,8>, true);
                         return loadMap;
                     }();
 
@@ -491,7 +491,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,8>, LoadCompressedToNative<4,4,8>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadCompressedToNative<4,4,8>, true);
                         return loadMap;
                     }();
 
@@ -507,7 +507,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadEACR11SToR8, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadEACR11SToR8, true);
                         return loadMap;
                     }();
 
@@ -525,7 +525,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadEACRG11SToRG8, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadEACRG11SToRG8, true);
                         return loadMap;
                     }();
 
@@ -543,7 +543,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2SRGBA8ToSRGBA8, LoadETC2SRGBA8ToSRGBA8, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2SRGBA8ToSRGBA8, true);
                         return loadMap;
                     }();
 
@@ -561,7 +561,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2SRGB8ToRGBA8, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2SRGB8ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -579,7 +579,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2SRGB8A1ToRGBA8, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC2SRGB8A1ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -597,7 +597,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT_24_8] = LoadImageFunctionInfo(LoadR32ToR24G8, LoadR24G8ToR32, true);
+                        loadMap[GL_UNSIGNED_INT_24_8] = LoadImageFunctionInfo(LoadR32ToR24G8, true);
                         return loadMap;
                     }();
 
@@ -607,7 +607,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT_24_8] = LoadImageFunctionInfo(LoadR32ToR24G8, LoadR24G8ToR32, true);
+                        loadMap[GL_UNSIGNED_INT_24_8] = LoadImageFunctionInfo(LoadR32ToR24G8, true);
                         return loadMap;
                     }();
 
@@ -625,7 +625,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT_32_UNSIGNED_INT_24_8_REV] = LoadImageFunctionInfo(LoadToNative<GLuint,2>, LoadToNative<GLuint,2>, false);
+                        loadMap[GL_FLOAT_32_UNSIGNED_INT_24_8_REV] = LoadImageFunctionInfo(LoadToNative<GLuint,2>, false);
                         return loadMap;
                     }();
 
@@ -635,7 +635,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT_32_UNSIGNED_INT_24_8_REV] = LoadImageFunctionInfo(UnimplementedLoadFunction, UnimplementedLoadFunction, true);
+                        loadMap[GL_FLOAT_32_UNSIGNED_INT_24_8_REV] = LoadImageFunctionInfo(UnimplementedLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -645,7 +645,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT_32_UNSIGNED_INT_24_8_REV] = LoadImageFunctionInfo(UnimplementedLoadFunction, UnimplementedLoadFunction, true);
+                        loadMap[GL_FLOAT_32_UNSIGNED_INT_24_8_REV] = LoadImageFunctionInfo(UnimplementedLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -661,7 +661,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative<GLushort,1>, LoadToNative<GLushort,1>, false);
+                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative<GLushort,1>, false);
                         return loadMap;
                     }();
 
@@ -671,8 +671,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadR32ToR16, LoadR16ToR32, true);
-                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative<GLushort,1>, LoadToNative<GLushort,1>, false);
+                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadR32ToR16, true);
+                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative<GLushort,1>, false);
                         return loadMap;
                     }();
 
@@ -690,7 +690,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadR32ToR24G8, LoadR24G8ToR32, true);
+                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadR32ToR24G8, true);
                         return loadMap;
                     }();
 
@@ -700,7 +700,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadR32ToR24G8, LoadR24G8ToR32, true);
+                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadR32ToR24G8, true);
                         return loadMap;
                     }();
 
@@ -718,7 +718,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLfloat,1>, LoadToNative<GLfloat,1>, false);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLfloat,1>, false);
                         return loadMap;
                     }();
 
@@ -728,7 +728,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(UnimplementedLoadFunction, UnimplementedLoadFunction, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(UnimplementedLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -738,7 +738,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(UnimplementedLoadFunction, UnimplementedLoadFunction, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(UnimplementedLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -754,7 +754,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadR32ToR24G8, LoadR24G8ToR32, true);
+                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadR32ToR24G8, true);
                         return loadMap;
                     }();
 
@@ -764,7 +764,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadR32ToR24G8, LoadR24G8ToR32, true);
+                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadR32ToR24G8, true);
                         return loadMap;
                     }();
 
@@ -780,7 +780,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC1RGB8ToBC1, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC1RGB8ToBC1, true);
                         return loadMap;
                     }();
 
@@ -798,7 +798,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC1RGB8ToRGBA8, UnimplementedLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadETC1RGB8ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -816,9 +816,9 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadL16FToRGBA16F, LoadRGBAToSingleChannel<GLhalf, 0>, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadL16FToRGBA16F, LoadRGBAToSingleChannel<GLhalf, 0>, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadL16FToRGBA16F, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadL16FToRGBA16F, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -828,8 +828,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadL32FToRGBA32F, LoadRGBAToSingleChannel<GLfloat, 0>, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadL32FToRGBA32F, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -839,7 +839,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -849,7 +849,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -865,8 +865,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadL16FToRGBA16F, LoadRGBAToSingleChannel<GLhalf, 0>, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadL16FToRGBA16F, LoadRGBAToSingleChannel<GLhalf, 0>, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadL16FToRGBA16F, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadL16FToRGBA16F, true);
                         return loadMap;
                     }();
 
@@ -876,8 +876,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadL16FToRGBA16F, LoadRGBAToSingleChannel<GLhalf, 0>, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadL16FToRGBA16F, LoadRGBAToSingleChannel<GLhalf, 0>, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadL16FToRGBA16F, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadL16FToRGBA16F, true);
                         return loadMap;
                     }();
 
@@ -893,7 +893,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadL32FToRGBA32F, LoadRGBAToSingleChannel<GLfloat, 0>, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadL32FToRGBA32F, true);
                         return loadMap;
                     }();
 
@@ -903,7 +903,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadL32FToRGBA32F, LoadRGBAToSingleChannel<GLfloat, 0>, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadL32FToRGBA32F, true);
                         return loadMap;
                     }();
 
@@ -919,7 +919,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadLA8ToRGBA8, LoadRGBAToLA<GLubyte>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadLA8ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -929,7 +929,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadLA8ToRGBA8, LoadRGBAToLA<GLubyte>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadLA8ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -945,7 +945,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadL8ToRGBA8, LoadRGBAToSingleChannel<GLbyte, 0>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadL8ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -955,7 +955,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadL8ToRGBA8, LoadRGBAToSingleChannel<GLbyte, 0>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadL8ToRGBA8, true);
                         return loadMap;
                     }();
 
@@ -971,9 +971,9 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, LoadRGBAToLA<GLhalf>, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, LoadRGBAToLA<GLhalf>, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -983,8 +983,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadLA32FToRGBA32F, LoadRGBAToLA<GLfloat>, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadLA32FToRGBA32F, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -994,7 +994,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -1004,7 +1004,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -1020,8 +1020,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, LoadRGBAToLA<GLhalf>, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, LoadRGBAToLA<GLhalf>, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, true);
                         return loadMap;
                     }();
 
@@ -1031,8 +1031,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, LoadRGBAToLA<GLhalf>, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, LoadRGBAToLA<GLhalf>, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadLA16FToRGBA16F, true);
                         return loadMap;
                     }();
 
@@ -1048,7 +1048,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadLA32FToRGBA32F, LoadRGBAToLA<GLfloat>, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadLA32FToRGBA32F, true);
                         return loadMap;
                     }();
 
@@ -1058,7 +1058,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadLA32FToRGBA32F, LoadRGBAToLA<GLfloat>, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadLA32FToRGBA32F, true);
                         return loadMap;
                     }();
 
@@ -1074,10 +1074,10 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadRGB16FToRG11B10F, LoadRG11B10FToRGB16F, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadRGB16FToRG11B10F, LoadRG11B10FToRGB16F, true);
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadRGB32FToRG11B10F, LoadRG11B10FToRGB32F, true);
-                        loadMap[GL_UNSIGNED_INT_10F_11F_11F_REV] = LoadImageFunctionInfo(LoadToNative<GLuint,1>, LoadToNative<GLuint,1>, false);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadRGB16FToRG11B10F, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadRGB16FToRG11B10F, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadRGB32FToRG11B10F, true);
+                        loadMap[GL_UNSIGNED_INT_10F_11F_11F_REV] = LoadImageFunctionInfo(LoadToNative<GLuint,1>, false);
                         return loadMap;
                     }();
 
@@ -1095,9 +1095,9 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(Load32FTo16F<1>, Load16FTo32F<1>, true);
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLhalf,1>, LoadToNative<GLhalf,1>, false);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadToNative<GLhalf,1>, LoadToNative<GLhalf,1>, false);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(Load32FTo16F<1>, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLhalf,1>, false);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadToNative<GLhalf,1>, false);
                         return loadMap;
                     }();
 
@@ -1115,7 +1115,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_SHORT] = LoadImageFunctionInfo(LoadToNative<GLshort,1>, LoadToNative<GLshort,1>, false);
+                        loadMap[GL_SHORT] = LoadImageFunctionInfo(LoadToNative<GLshort,1>, false);
                         return loadMap;
                     }();
 
@@ -1133,7 +1133,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative<GLushort,1>, LoadToNative<GLushort,1>, false);
+                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative<GLushort,1>, false);
                         return loadMap;
                     }();
 
@@ -1151,7 +1151,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLfloat,1>, LoadToNative<GLfloat,1>, false);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLfloat,1>, false);
                         return loadMap;
                     }();
 
@@ -1169,7 +1169,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_INT] = LoadImageFunctionInfo(LoadToNative<GLint,1>, LoadToNative<GLint,1>, false);
+                        loadMap[GL_INT] = LoadImageFunctionInfo(LoadToNative<GLint,1>, false);
                         return loadMap;
                     }();
 
@@ -1187,7 +1187,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadToNative<GLuint,1>, LoadToNative<GLuint,1>, false);
+                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadToNative<GLuint,1>, false);
                         return loadMap;
                     }();
 
@@ -1205,7 +1205,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,1>, LoadToNative<GLubyte,1>, false);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,1>, false);
                         return loadMap;
                     }();
 
@@ -1223,7 +1223,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,1>, LoadToNative<GLbyte,1>, false);
+                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,1>, false);
                         return loadMap;
                     }();
 
@@ -1241,7 +1241,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,1>, LoadToNative<GLubyte,1>, false);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,1>, false);
                         return loadMap;
                     }();
 
@@ -1259,7 +1259,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,1>, LoadToNative<GLbyte,1>, false);
+                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,1>, false);
                         return loadMap;
                     }();
 
@@ -1277,9 +1277,9 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(Load32FTo16F<2>, Load16FTo32F<2>, true);
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLhalf,2>, LoadToNative<GLhalf,2>, false);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadToNative<GLhalf,2>, LoadToNative<GLhalf,2>, false);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(Load32FTo16F<2>, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLhalf,2>, false);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadToNative<GLhalf,2>, false);
                         return loadMap;
                     }();
 
@@ -1297,7 +1297,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_SHORT] = LoadImageFunctionInfo(LoadToNative<GLshort,2>, LoadToNative<GLshort,2>, false);
+                        loadMap[GL_SHORT] = LoadImageFunctionInfo(LoadToNative<GLshort,2>, false);
                         return loadMap;
                     }();
 
@@ -1315,7 +1315,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative<GLushort,2>, LoadToNative<GLushort,2>, false);
+                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative<GLushort,2>, false);
                         return loadMap;
                     }();
 
@@ -1333,7 +1333,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLfloat,2>, LoadToNative<GLfloat,2>, false);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLfloat,2>, false);
                         return loadMap;
                     }();
 
@@ -1351,7 +1351,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_INT] = LoadImageFunctionInfo(LoadToNative<GLint,2>, LoadToNative<GLint,2>, false);
+                        loadMap[GL_INT] = LoadImageFunctionInfo(LoadToNative<GLint,2>, false);
                         return loadMap;
                     }();
 
@@ -1369,7 +1369,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadToNative<GLuint,2>, LoadToNative<GLuint,2>, false);
+                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadToNative<GLuint,2>, false);
                         return loadMap;
                     }();
 
@@ -1387,7 +1387,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,2>, LoadToNative<GLubyte,2>, false);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,2>, false);
                         return loadMap;
                     }();
 
@@ -1405,7 +1405,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,2>, LoadToNative<GLbyte,2>, false);
+                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,2>, false);
                         return loadMap;
                     }();
 
@@ -1423,7 +1423,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,2>, LoadToNative<GLubyte,2>, false);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,2>, false);
                         return loadMap;
                     }();
 
@@ -1441,7 +1441,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,2>, LoadToNative<GLbyte,2>, false);
+                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,2>, false);
                         return loadMap;
                     }();
 
@@ -1459,8 +1459,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
-                        loadMap[GL_UNSIGNED_SHORT_5_6_5] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_SHORT_5_6_5] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -1470,8 +1470,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
-                        loadMap[GL_UNSIGNED_SHORT_5_6_5] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_SHORT_5_6_5] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -1487,7 +1487,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT_2_10_10_10_REV] = LoadImageFunctionInfo(LoadToNative<GLuint,1>, LoadToNative<GLuint,1>, false);
+                        loadMap[GL_UNSIGNED_INT_2_10_10_10_REV] = LoadImageFunctionInfo(LoadToNative<GLuint,1>, false);
                         return loadMap;
                     }();
 
@@ -1505,7 +1505,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT_2_10_10_10_REV] = LoadImageFunctionInfo(LoadToNative<GLuint,1>, LoadToNative<GLuint,1>, false);
+                        loadMap[GL_UNSIGNED_INT_2_10_10_10_REV] = LoadImageFunctionInfo(LoadToNative<GLuint,1>, false);
                         return loadMap;
                     }();
 
@@ -1523,9 +1523,9 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadRGB32FToRGBA16F, LoadRGB16FToRGBA32F, true);
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadToNative3To4<GLhalf,gl::Float16One>, LoadToNative4To3<GLhalf>, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadToNative3To4<GLhalf,gl::Float16One>, LoadToNative4To3<GLhalf>, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadRGB32FToRGBA16F, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadToNative3To4<GLhalf,gl::Float16One>, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadToNative3To4<GLhalf,gl::Float16One>, true);
                         return loadMap;
                     }();
 
@@ -1543,7 +1543,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_SHORT] = LoadImageFunctionInfo(LoadToNative3To4<GLshort,0x0001>, LoadToNative4To3<GLshort>, true);
+                        loadMap[GL_SHORT] = LoadImageFunctionInfo(LoadToNative3To4<GLshort,0x0001>, true);
                         return loadMap;
                     }();
 
@@ -1561,7 +1561,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative3To4<GLushort,0x0001>, LoadToNative4To3<GLushort>, true);
+                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative3To4<GLushort,0x0001>, true);
                         return loadMap;
                     }();
 
@@ -1579,7 +1579,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadToNative3To4<GLfloat,gl::Float32One>, LoadToNative4To3<GLfloat>, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadToNative3To4<GLfloat,gl::Float32One>, true);
                         return loadMap;
                     }();
 
@@ -1597,7 +1597,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_INT] = LoadImageFunctionInfo(LoadToNative3To4<GLint,0x00000001>, LoadToNative4To3<GLint>, true);
+                        loadMap[GL_INT] = LoadImageFunctionInfo(LoadToNative3To4<GLint,0x00000001>, true);
                         return loadMap;
                     }();
 
@@ -1615,7 +1615,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadToNative3To4<GLuint,0x00000001>, LoadToNative4To3<GLuint>, true);
+                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadToNative3To4<GLuint,0x00000001>, true);
                         return loadMap;
                     }();
 
@@ -1633,7 +1633,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT_5_6_5] = LoadImageFunctionInfo(LoadToNative<GLushort,1>, LoadToNative<GLushort,1>, false);
+                        loadMap[GL_UNSIGNED_SHORT_5_6_5] = LoadImageFunctionInfo(LoadToNative<GLushort,1>, false);
                         return loadMap;
                     }();
 
@@ -1643,8 +1643,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT_5_6_5] = LoadImageFunctionInfo(LoadR5G6B5ToRGBA8, LoadRGBA8ToR5G6B5, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLubyte,0xFF>, LoadToNative4To3<GLubyte>, true);
+                        loadMap[GL_UNSIGNED_SHORT_5_6_5] = LoadImageFunctionInfo(LoadR5G6B5ToRGBA8, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLubyte,0xFF>, true);
                         return loadMap;
                     }();
 
@@ -1662,7 +1662,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT_5_5_5_1] = LoadImageFunctionInfo(LoadRGB5A1ToA1RGB5, LoadA1RGB5ToRGB5A1, true);
+                        loadMap[GL_UNSIGNED_SHORT_5_5_5_1] = LoadImageFunctionInfo(LoadRGB5A1ToA1RGB5, true);
                         return loadMap;
                     }();
 
@@ -1672,9 +1672,9 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT_2_10_10_10_REV] = LoadImageFunctionInfo(LoadRGB10A2ToRGBA8, LoadRGBA8ToRGB10A2, true);
-                        loadMap[GL_UNSIGNED_SHORT_5_5_5_1] = LoadImageFunctionInfo(LoadRGB5A1ToRGBA8, LoadA1RGB5ToRGB5A1, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, false);
+                        loadMap[GL_UNSIGNED_INT_2_10_10_10_REV] = LoadImageFunctionInfo(LoadRGB10A2ToRGBA8, true);
+                        loadMap[GL_UNSIGNED_SHORT_5_5_5_1] = LoadImageFunctionInfo(LoadRGB5A1ToRGBA8, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, false);
                         return loadMap;
                     }();
 
@@ -1692,7 +1692,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLubyte,0xFF>, LoadToNative4To3<GLubyte>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLubyte,0xFF>, true);
                         return loadMap;
                     }();
 
@@ -1710,7 +1710,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLbyte,0x01>, LoadToNative4To3<GLbyte>, true);
+                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLbyte,0x01>, true);
                         return loadMap;
                     }();
 
@@ -1728,7 +1728,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLubyte,0x01>, LoadToNative4To3<GLubyte>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLubyte,0x01>, true);
                         return loadMap;
                     }();
 
@@ -1746,7 +1746,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLbyte,0x7F>, LoadToNative4To3<GLbyte>, true);
+                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLbyte,0x7F>, true);
                         return loadMap;
                     }();
 
@@ -1764,10 +1764,10 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadRGB16FToRGB9E5, LoadRGB9E5ToRGB16F, true);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadRGB16FToRGB9E5, LoadRGB9E5ToRGB16F, true);
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadRGB32FToRGB9E5, LoadRGB9E5ToRGB32F, true);
-                        loadMap[GL_UNSIGNED_INT_5_9_9_9_REV] = LoadImageFunctionInfo(LoadToNative<GLuint,1>, LoadToNative<GLuint,1>, false);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadRGB16FToRGB9E5, true);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadRGB16FToRGB9E5, true);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadRGB32FToRGB9E5, true);
+                        loadMap[GL_UNSIGNED_INT_5_9_9_9_REV] = LoadImageFunctionInfo(LoadToNative<GLuint,1>, false);
                         return loadMap;
                     }();
 
@@ -1785,9 +1785,9 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
-                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
-                        loadMap[GL_UNSIGNED_SHORT_5_5_5_1] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_SHORT_5_5_5_1] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -1797,9 +1797,9 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
-                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
-                        loadMap[GL_UNSIGNED_SHORT_5_5_5_1] = LoadImageFunctionInfo(UnreachableLoadFunction, UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
+                        loadMap[GL_UNSIGNED_SHORT_5_5_5_1] = LoadImageFunctionInfo(UnreachableLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -1815,9 +1815,9 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(Load32FTo16F<4>, Load16FTo32F<4>, true);
-                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLhalf,4>, LoadToNative<GLhalf,4>, false);
-                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadToNative<GLhalf,4>, LoadToNative<GLhalf,4>, false);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(Load32FTo16F<4>, true);
+                        loadMap[GL_HALF_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLhalf,4>, false);
+                        loadMap[GL_HALF_FLOAT_OES] = LoadImageFunctionInfo(LoadToNative<GLhalf,4>, false);
                         return loadMap;
                     }();
 
@@ -1835,7 +1835,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_SHORT] = LoadImageFunctionInfo(LoadToNative<GLshort,4>, LoadToNative<GLshort,4>, false);
+                        loadMap[GL_SHORT] = LoadImageFunctionInfo(LoadToNative<GLshort,4>, false);
                         return loadMap;
                     }();
 
@@ -1853,7 +1853,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative<GLushort,4>, LoadToNative<GLushort,4>, false);
+                        loadMap[GL_UNSIGNED_SHORT] = LoadImageFunctionInfo(LoadToNative<GLushort,4>, false);
                         return loadMap;
                     }();
 
@@ -1871,7 +1871,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLfloat,4>, LoadToNative<GLfloat,4>, false);
+                        loadMap[GL_FLOAT] = LoadImageFunctionInfo(LoadToNative<GLfloat,4>, false);
                         return loadMap;
                     }();
 
@@ -1889,7 +1889,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_INT] = LoadImageFunctionInfo(LoadToNative<GLint,4>, LoadToNative<GLint,4>, false);
+                        loadMap[GL_INT] = LoadImageFunctionInfo(LoadToNative<GLint,4>, false);
                         return loadMap;
                     }();
 
@@ -1907,7 +1907,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadToNative<GLuint,4>, LoadToNative<GLuint,4>, false);
+                        loadMap[GL_UNSIGNED_INT] = LoadImageFunctionInfo(LoadToNative<GLuint,4>, false);
                         return loadMap;
                     }();
 
@@ -1925,7 +1925,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4] = LoadImageFunctionInfo(LoadRGBA4ToARGB4, LoadARGB4ToRGBA4, true);
+                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4] = LoadImageFunctionInfo(LoadRGBA4ToARGB4, true);
                         return loadMap;
                     }();
 
@@ -1935,8 +1935,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4] = LoadImageFunctionInfo(LoadRGBA4ToRGBA8, LoadRGBA8ToRGBA4, true);
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, false);
+                        loadMap[GL_UNSIGNED_SHORT_4_4_4_4] = LoadImageFunctionInfo(LoadRGBA4ToRGBA8, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, false);
                         return loadMap;
                     }();
 
@@ -1954,7 +1954,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, false);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, false);
                         return loadMap;
                     }();
 
@@ -1972,7 +1972,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,4>, LoadToNative<GLbyte,4>, false);
+                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,4>, false);
                         return loadMap;
                     }();
 
@@ -1990,7 +1990,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, false);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, false);
                         return loadMap;
                     }();
 
@@ -2008,7 +2008,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,4>, LoadToNative<GLbyte,4>, false);
+                        loadMap[GL_BYTE] = LoadImageFunctionInfo(LoadToNative<GLbyte,4>, false);
                         return loadMap;
                     }();
 
@@ -2026,7 +2026,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLubyte,0xFF>, LoadToNative4To3<GLubyte>, true);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative3To4<GLubyte,0xFF>, true);
                         return loadMap;
                     }();
 
@@ -2044,7 +2044,7 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, LoadToNative<GLubyte,4>, false);
+                        loadMap[GL_UNSIGNED_BYTE] = LoadImageFunctionInfo(LoadToNative<GLubyte,4>, false);
                         return loadMap;
                     }();
 
@@ -2062,8 +2062,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[DXGI_FORMAT_D24_UNORM_S8_UINT] = LoadImageFunctionInfo(UnimplementedLoadFunction, UnimplementedLoadFunction, true);
-                        loadMap[DXGI_FORMAT_R24G8_TYPELESS] = LoadImageFunctionInfo(UnimplementedLoadFunction, UnimplementedLoadFunction, true);
+                        loadMap[DXGI_FORMAT_D24_UNORM_S8_UINT] = LoadImageFunctionInfo(UnimplementedLoadFunction, true);
+                        loadMap[DXGI_FORMAT_R24G8_TYPELESS] = LoadImageFunctionInfo(UnimplementedLoadFunction, true);
                         return loadMap;
                     }();
 
@@ -2073,8 +2073,8 @@ const std::map<GLenum, LoadImageFunctionInfo> &GetLoadFunctionsMap(GLenum intern
                 {
                     static const std::map<GLenum, LoadImageFunctionInfo> loadFunctionsMap = []() {
                         std::map<GLenum, LoadImageFunctionInfo> loadMap;
-                        loadMap[DXGI_FORMAT_D24_UNORM_S8_UINT] = LoadImageFunctionInfo(UnimplementedLoadFunction, UnimplementedLoadFunction, true);
-                        loadMap[DXGI_FORMAT_R24G8_TYPELESS] = LoadImageFunctionInfo(UnimplementedLoadFunction, UnimplementedLoadFunction, true);
+                        loadMap[DXGI_FORMAT_D24_UNORM_S8_UINT] = LoadImageFunctionInfo(UnimplementedLoadFunction, true);
+                        loadMap[DXGI_FORMAT_R24G8_TYPELESS] = LoadImageFunctionInfo(UnimplementedLoadFunction, true);
                         return loadMap;
                     }();
 

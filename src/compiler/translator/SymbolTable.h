@@ -317,9 +317,8 @@ typedef int ESymbolLevel;
 const int COMMON_BUILTINS = 0;
 const int ESSL1_BUILTINS = 1;
 const int ESSL3_BUILTINS = 2;
-const int ESSL31_BUILTINS = 3;
-const int LAST_BUILTIN_LEVEL = ESSL31_BUILTINS;
-const int GLOBAL_LEVEL = 4;
+const int LAST_BUILTIN_LEVEL = ESSL3_BUILTINS;
+const int GLOBAL_LEVEL = 3;
 
 class TSymbolTable : angle::NonCopyable
 {

@@ -175,21 +175,6 @@ bool TextureD3D::shouldUseSetData(const ImageD3D *image) const
     return (mTexStorage && !internalFormat.compressed);
 }
 
-gl::Error TextureD3D::getImageImpl(const gl::ImageIndex &index,
-                                   GLenum type,
-                                   const gl::PixelPackState &pack,
-                                   uint8_t *pixels)
-{
-    ImageD3D *image = getImage(index);
-    if (!image || image->getWidth() == 0 || image->getHeight() == 0)
-    {
-        return gl::Error(GL_NO_ERROR);
-    }
-    ASSERT(image);
-    gl::Box fullImageArea(0, 0, 0, image->getWidth(), image->getHeight(), image->getDepth());
-    return image->saveData(fullImageArea, pack, type, pixels);
-}
-
 gl::Error TextureD3D::setImageImpl(const gl::ImageIndex &index,
                                    GLenum type,
                                    const gl::PixelUnpackState &unpack,
@@ -749,13 +734,6 @@ GLenum TextureD3D_2D::getInternalFormat(GLint level) const
 bool TextureD3D_2D::isDepth(GLint level) const
 {
     return gl::GetInternalFormatInfo(getInternalFormat(level)).depthBits > 0;
-}
-
-gl::Error TextureD3D_2D::getImage(GLenum target, GLint level, GLenum format, GLenum type,
-                                  const gl::PixelPackState &pack, uint8_t *pixels)
-{
-    ASSERT(target == GL_TEXTURE_2D);
-    return getImageImpl(gl::ImageIndex::Make2D(level), type, pack, pixels);
 }
 
 gl::Error TextureD3D_2D::setImage(GLenum target,
@@ -1433,13 +1411,6 @@ gl::Error TextureD3D_Cube::setEGLImageTarget(GLenum target, egl::Image *image)
     return gl::Error(GL_INVALID_OPERATION);
 }
 
-gl::Error TextureD3D_Cube::getImage(GLenum target, GLint level, GLenum format, GLenum type,
-                                    const gl::PixelPackState &pack, uint8_t *pixels)
-{
-    return getImageImpl(gl::ImageIndex::MakeCube(target, static_cast<GLint>(level)), type,
-                        pack, pixels);
-}
-
 gl::Error TextureD3D_Cube::setImage(GLenum target, size_t level, GLenum internalFormat, const gl::Extents &size, GLenum format, GLenum type,
                                     const gl::PixelUnpackState &unpack, const uint8_t *pixels)
 {
@@ -2051,13 +2022,6 @@ gl::Error TextureD3D_3D::setEGLImageTarget(GLenum target, egl::Image *image)
     return gl::Error(GL_INVALID_OPERATION);
 }
 
-gl::Error TextureD3D_3D::getImage(GLenum target, GLint level, GLenum format, GLenum type,
-                                  const gl::PixelPackState &pack, uint8_t *pixels)
-{
-    // TODO
-    return gl::Error(GL_NO_ERROR);
-}
-
 gl::Error TextureD3D_3D::setImage(GLenum target,
                                   size_t imageLevel,
                                   GLenum internalFormat,
@@ -2624,13 +2588,6 @@ gl::Error TextureD3D_2DArray::setEGLImageTarget(GLenum target, egl::Image *image
 {
     UNREACHABLE();
     return gl::Error(GL_INVALID_OPERATION);
-}
-
-gl::Error TextureD3D_2DArray::getImage(GLenum target, GLint level, GLenum format, GLenum type,
-                                       const gl::PixelPackState &pack, uint8_t *pixels)
-{
-    // TODO
-    return gl::Error(GL_NO_ERROR);
 }
 
 gl::Error TextureD3D_2DArray::setImage(GLenum target,
@@ -3258,13 +3215,6 @@ GLenum TextureD3D_External::getInternalFormat(GLint level) const
 bool TextureD3D_External::isDepth(GLint level) const
 {
     return false;
-}
-
-gl::Error TextureD3D_External::getImage(GLenum target, GLint level, GLenum format, GLenum type,
-    const gl::PixelPackState &pack, uint8_t *pixels)
-{
-    UNREACHABLE();
-    return gl::Error(GL_INVALID_OPERATION);
 }
 
 gl::Error TextureD3D_External::setImage(GLenum target,

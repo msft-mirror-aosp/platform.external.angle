@@ -88,9 +88,7 @@ TSymbol *TSymbolTable::find(const TString &name, int shaderVersion,
 
     do
     {
-        if (level == ESSL31_BUILTINS && shaderVersion < 310)
-            level--;
-        if (level == ESSL3_BUILTINS && shaderVersion < 300)
+        if (level == ESSL3_BUILTINS && shaderVersion != 300)
             level--;
         if (level == ESSL1_BUILTINS && shaderVersion != 100)
             level--;
@@ -112,9 +110,7 @@ TSymbol *TSymbolTable::findBuiltIn(
 {
     for (int level = LAST_BUILTIN_LEVEL; level >= 0; level--)
     {
-        if (level == ESSL31_BUILTINS && shaderVersion < 310)
-            level--;
-        if (level == ESSL3_BUILTINS && shaderVersion < 300)
+        if (level == ESSL3_BUILTINS && shaderVersion != 300)
             level--;
         if (level == ESSL1_BUILTINS && shaderVersion != 100)
             level--;
@@ -233,32 +229,14 @@ void TSymbolTable::insertBuiltIn(ESymbolLevel level, TOperator op, const char *e
         insertBuiltIn(level, gvec4 ? TCache::getType(EbtInt, 4) : rvalue, name, TCache::getType(EbtISampler2DArray), ptype2, ptype3, ptype4, ptype5);
         insertBuiltIn(level, gvec4 ? TCache::getType(EbtUInt, 4) : rvalue, name, TCache::getType(EbtUSampler2DArray), ptype2, ptype3, ptype4, ptype5);
     }
-    else if (ptype1->getBasicType() == EbtGSampler2DMS)
+    else if (IsGenType(rvalue) || IsGenType(ptype1) || IsGenType(ptype2) || IsGenType(ptype3))
     {
-        insertUnmangledBuiltIn(name);
-        bool gvec4 = (rvalue->getBasicType() == EbtGVec4);
-        insertBuiltIn(level, gvec4 ? TCache::getType(EbtFloat, 4) : rvalue, name, TCache::getType(EbtSampler2DMS), ptype2, ptype3, ptype4, ptype5);
-        insertBuiltIn(level, gvec4 ? TCache::getType(EbtInt, 4) : rvalue, name, TCache::getType(EbtISampler2DMS), ptype2, ptype3, ptype4, ptype5);
-        insertBuiltIn(level, gvec4 ? TCache::getType(EbtUInt, 4) : rvalue, name, TCache::getType(EbtUSampler2DMS), ptype2, ptype3, ptype4, ptype5);
-    }
-    else if ((IsGenType(rvalue) || IsGenType(ptype1) || IsGenType(ptype2) || IsGenType(ptype3)) && (!ptype4 && !ptype5))
-    {
+        ASSERT(!ptype4 && !ptype5);
         insertUnmangledBuiltIn(name);
         insertBuiltIn(level, op, ext, SpecificType(rvalue, 1), name, SpecificType(ptype1, 1), SpecificType(ptype2, 1), SpecificType(ptype3, 1));
         insertBuiltIn(level, op, ext, SpecificType(rvalue, 2), name, SpecificType(ptype1, 2), SpecificType(ptype2, 2), SpecificType(ptype3, 2));
         insertBuiltIn(level, op, ext, SpecificType(rvalue, 3), name, SpecificType(ptype1, 3), SpecificType(ptype2, 3), SpecificType(ptype3, 3));
         insertBuiltIn(level, op, ext, SpecificType(rvalue, 4), name, SpecificType(ptype1, 4), SpecificType(ptype2, 4), SpecificType(ptype3, 4));
-    }
-    // TODO: as we get more functions that take more parameters, we will need to update these cases
-    // with the new parameter shapes, or just move to one function that handles all possible ones.
-    else if ((IsGenType(rvalue) || IsGenType(ptype1) || IsGenType(ptype2) || IsGenType(ptype3)) && !ptype5)
-    {
-        // Assumes that ptype4 has only one component (is a simple type)
-        insertUnmangledBuiltIn(name);
-        insertBuiltIn(level, op, ext, SpecificType(rvalue, 1), name, SpecificType(ptype1, 1), SpecificType(ptype2, 1), SpecificType(ptype3, 1), SpecificType(ptype4, 1));
-        insertBuiltIn(level, op, ext, SpecificType(rvalue, 2), name, SpecificType(ptype1, 2), SpecificType(ptype2, 2), SpecificType(ptype3, 2), SpecificType(ptype4, 1));
-        insertBuiltIn(level, op, ext, SpecificType(rvalue, 3), name, SpecificType(ptype1, 3), SpecificType(ptype2, 3), SpecificType(ptype3, 3), SpecificType(ptype4, 1));
-        insertBuiltIn(level, op, ext, SpecificType(rvalue, 4), name, SpecificType(ptype1, 4), SpecificType(ptype2, 4), SpecificType(ptype3, 4), SpecificType(ptype4, 1));
     }
     else if (IsVecType(rvalue) || IsVecType(ptype1) || IsVecType(ptype2) || IsVecType(ptype3))
     {

@@ -10,9 +10,9 @@
 #ifndef GLSLANG_SHADERVARS_H_
 #define GLSLANG_SHADERVARS_H_
 
-#include <algorithm>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 // Assume ShaderLang.h is included before ShaderVars.h, for sh::GLenum
 // Note: make sure to increment ANGLE_SH_VERSION when changing ShaderVars.h

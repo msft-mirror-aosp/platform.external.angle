@@ -725,8 +725,6 @@ static CopyConversionSet BuildValidES3CopyTexImageCombinations()
     set.insert(CopyConversion(GL_RGB_INTEGER, GL_RGBA_INTEGER));
     set.insert(CopyConversion(GL_RGBA_INTEGER, GL_RGBA_INTEGER));
 
-    // Necessary for emulator, BUG: 64540066
-    set.insert(CopyConversion(GL_RGBA, GL_RGB));
     return set;
 }
 
@@ -847,12 +845,9 @@ static bool IsValidES3CopyTexImageCombination(GLenum textureInternalFormat, GLen
                 !EqualOrFirstZero(textureInternalFormatInfo.greenBits,
                                   sourceEffectiveFormat->greenBits) ||
                 !EqualOrFirstZero(textureInternalFormatInfo.blueBits,
-                                  sourceEffectiveFormat->blueBits)
-                // Emulator does not work well with the following rule
-                // BUG: 64540066
-                //|| !EqualOrFirstZero(textureInternalFormatInfo.alphaBits,
-                //                sourceEffectiveFormat->alphaBits)
-                )
+                                  sourceEffectiveFormat->blueBits) ||
+                !EqualOrFirstZero(textureInternalFormatInfo.alphaBits,
+                                  sourceEffectiveFormat->alphaBits))
             {
                 return false;
             }

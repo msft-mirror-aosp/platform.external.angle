@@ -33,7 +33,6 @@ ANGLE_EXPORT EGLint EGLAPIENTRY GetError(void);
 ANGLE_EXPORT __eglMustCastToProperFunctionPointerType EGLAPIENTRY GetProcAddress(const char *procname);
 ANGLE_EXPORT EGLBoolean EGLAPIENTRY Initialize(EGLDisplay dpy, EGLint *major, EGLint *minor);
 ANGLE_EXPORT EGLBoolean EGLAPIENTRY MakeCurrent(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
-ANGLE_EXPORT EGLBoolean EGLAPIENTRY MakeCurrent_nolock(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
 ANGLE_EXPORT EGLBoolean EGLAPIENTRY QueryContext(EGLDisplay dpy, EGLContext ctx, EGLint attribute, EGLint *value);
 ANGLE_EXPORT const char *EGLAPIENTRY QueryString(EGLDisplay dpy, EGLint name);
 ANGLE_EXPORT EGLBoolean EGLAPIENTRY QuerySurface(EGLDisplay dpy, EGLSurface surface, EGLint attribute, EGLint *value);

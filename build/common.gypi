@@ -33,8 +33,6 @@
             '-Wpointer-arith',
             '-Wundef',
             '-Wwrite-strings',
-            '-Wno-deprecated-declarations',
-            '-Wno-implicit-fallthrough',
         ],
 
         # TODO: Pull chromium's clang dep.

@@ -31,10 +31,6 @@
 #include "common/debug.h"
 #include "common/utilities.h"
 #include "common/version.h"
-#include "libGLESv2/entry_points_egl.h"
-
-#undef EVENT
-#include "libGLESv2/emulator_lock.h"
 
 namespace gl
 {
@@ -2224,7 +2220,6 @@ void GL_APIENTRY GetShaderSource(GLuint shader, GLsizei bufsize, GLsizei* length
     }
 }
 
-const char *glExtension_Emulator = "GL_EXT_debug_marker GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_depth32 GL_OES_element_index_uint GL_OES_texture_float GL_OES_texture_float_linear GL_OES_compressed_ETC1_RGB8_texture GL_OES_depth_texture GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_packed_depth_stencil GL_OES_rgb8_rgba8 ";
 const GLubyte *GL_APIENTRY GetString(GLenum name)
 {
     EVENT("(GLenum name = 0x%X)", name);
@@ -2266,9 +2261,9 @@ const GLubyte *GL_APIENTRY GetString(GLenum name)
                 }
 
             case GL_EXTENSIONS:
-            //    return reinterpret_cast<const GLubyte *>(context->getExtensionString().c_str());
-				return reinterpret_cast<const GLubyte *>(glExtension_Emulator);
-			default:
+                return reinterpret_cast<const GLubyte *>(context->getExtensionString().c_str());
+
+            default:
                 context->handleError(Error(GL_INVALID_ENUM));
             return nullptr;
         }
@@ -3417,15 +3412,6 @@ void GL_APIENTRY TexImage2D(GLenum target, GLint level, GLint internalformat, GL
 
         context->texImage2D(target, level, internalformat, width, height, border, format, type,
                             pixels);
-    }
-}
-
-void GL_APIENTRY GetTexImage(GLenum target, GLint level, GLenum format, GLenum type, GLvoid* pixels)
-{
-    Context *context = GetValidGlobalContext();
-    if (context)
-    {
-        context->getTexImage(target, level, format, type, pixels);
     }
 }
 

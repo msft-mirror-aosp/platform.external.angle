@@ -97,8 +97,8 @@ internal_format_param = 'internalFormat'
 dxgi_format_param = 'dxgiFormat'
 dxgi_format_unknown = "DXGI_FORMAT_UNKNOWN"
 
-def get_function_maps_string(typestr, loadFunction, saveFunction, requiresConversion):
-    return '                        loadMap[' + typestr + '] = LoadImageFunctionInfo(' + loadFunction + ', ' + saveFunction + ', ' + requiresConversion + ');\n'
+def get_function_maps_string(typestr, function, requiresConversion):
+    return '                        loadMap[' + typestr + '] = LoadImageFunctionInfo(' + function + ', ' + requiresConversion + ');\n'
 
 def get_unknown_format_string(dxgi_to_type_map, dxgi_unknown_string):
      if dxgi_unknown_string not in dxgi_to_type_map:
@@ -107,7 +107,7 @@ def get_unknown_format_string(dxgi_to_type_map, dxgi_unknown_string):
      table_data = ''
 
      for unknown_type_function in dxgi_to_type_map[dxgi_unknown_string]:
-        table_data += get_function_maps_string(unknown_type_function['type'], unknown_type_function['loadFunction'], unknown_type_function['saveFunction'], 'true')
+        table_data += get_function_maps_string(unknown_type_function['type'], unknown_type_function['loadFunction'], 'true')
 
      return table_data
 
@@ -158,7 +158,7 @@ def parse_json_into_switch_string(json_data):
             insert_map_string = ''
             types_already_in_loadmap = set()
             for type_function in sorted(dxgi_format_item[1]):
-                insert_map_string += get_function_maps_string(type_function['type'], type_function['loadFunction'], type_function['saveFunction'], type_function['requiresConversion'])
+                insert_map_string += get_function_maps_string(type_function['type'], type_function['loadFunction'], type_function['requiresConversion'])
                 types_already_in_loadmap.add(type_function['type'])
 
             # DXGI_FORMAT_UNKNOWN add ons
@@ -166,7 +166,7 @@ def parse_json_into_switch_string(json_data):
                 for unknown_type_function in dxgi_to_type_map[dxgi_format_unknown]:
                     # Check that it's not already in the loadmap so it doesn't override the value
                     if unknown_type_function['type'] not in types_already_in_loadmap:
-                        insert_map_string += get_function_maps_string(unknown_type_function['type'], unknown_type_function['loadFunction'], unknown_type_function['saveFunction'], 'true')
+                        insert_map_string += get_function_maps_string(unknown_type_function['type'], unknown_type_function['loadFunction'], 'true')
 
             table_data += get_load_function_map_snippet(insert_map_string)
             table_data += '                }\n'

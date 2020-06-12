@@ -106,10 +106,7 @@ enum TOperator
     EOpLog2,
     EOpSqrt,
     EOpInverseSqrt,
-    EOpFrExp,
-    EOpLdExp,
 
-    EOpFMA,
     EOpAbs,
     EOpSign,
     EOpFloor,
@@ -140,27 +137,6 @@ enum TOperator
     EOpUnpackSnorm2x16,
     EOpUnpackUnorm2x16,
     EOpUnpackHalf2x16,
-
-    // New pack/unpack functions in 310.
-    // Let's try these without generating emulated code for now, as
-    // these are all also part of the #version 430 core spec
-    EOpPackSnorm4x8,
-    EOpPackUnorm4x8,
-    EOpUnpackSnorm4x8,
-    EOpUnpackUnorm4x8,
-
-    // New low-level integer functions in 310.
-    // As before, these are also found in 430 core.
-    EOpBitfieldExtract,
-    EOpBitfieldInsert,
-    EOpBitfieldReverse,
-    EOpBitCount,
-    EOpFindLSB,
-    EOpFindMSB,
-    EOpUaddCarry,
-    EOpUsubBorrow,
-    EOpUmulExtended,
-    EOpImulExtended,
 
     EOpLength,
     EOpDistance,

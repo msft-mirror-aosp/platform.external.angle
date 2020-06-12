@@ -46,8 +46,6 @@ class TextureImpl : public FramebufferAttachmentObjectImpl
 
     virtual void setUsage(GLenum usage) = 0;
 
-    virtual gl::Error getImage(GLenum target, GLint level, GLenum format, GLenum type,
-                               const gl::PixelPackState &pack, uint8_t *pixels) = 0;
     virtual gl::Error setImage(GLenum target, size_t level, GLenum internalFormat, const gl::Extents &size, GLenum format, GLenum type,
                                const gl::PixelUnpackState &unpack, const uint8_t *pixels) = 0;
     virtual gl::Error setSubImage(GLenum target, size_t level, const gl::Box &area, GLenum format, GLenum type,

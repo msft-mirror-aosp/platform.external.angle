@@ -416,17 +416,6 @@ egl::Stream *Texture::getBoundStream() const
     return mBoundStream;
 }
 
-Error Texture::getImage(const PixelPackState& packState,
-                        GLenum target,
-                        GLint level,
-                        GLenum format,
-                        GLenum type,
-                        uint8_t *pixels)
-{
-    ASSERT(target == mTarget || (mTarget == GL_TEXTURE_CUBE_MAP && IsCubeMapTextureTarget(target)));
-    return mTexture->getImage(target, level, format, type, packState, pixels);
-}
-
 Error Texture::setImage(const PixelUnpackState &unpackState,
                         GLenum target,
                         size_t level,

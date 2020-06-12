@@ -9,7 +9,6 @@
 #ifndef LIBGLESV2_GLOBALSTATE_H_
 #define LIBGLESV2_GLOBALSTATE_H_
 
-#include <mutex>
 #include <EGL/egl.h>
 
 namespace gl
@@ -19,45 +18,6 @@ class Context;
 Context *GetGlobalContext();
 Context *GetValidGlobalContext();
 
-// Duplicate of emulator's Lock and AutoLock
-// specialized to Windows
-
-class ScopedLock;
-#ifdef ANGLE_PLATFORM_WINDOWS
-class Lock {
-public:
-	Lock() {
-		InitializeCriticalSection(&mLock);
-	}
-	~Lock() {
-		DeleteCriticalSection(&mLock);
-	}
-	void lock() {
-		EnterCriticalSection(&mLock);
-	}
-	void unlock() {
-		LeaveCriticalSection(&mLock);
-	}
-private:
-	CRITICAL_SECTION mLock;
-};
-#else
-typedef ::std::mutex Lock;
-#endif
-
-class ScopedLock {
-public:
-	ScopedLock(Lock& lock) : mLock(lock) {
-		mLock.lock();
-	}
-	~ScopedLock() {
-		mLock.unlock();
-	}
-private:
-	Lock& mLock;
-};
-
-Lock& getGlobalRendererLock();
 }
 
 namespace egl
@@ -84,14 +44,6 @@ Surface *GetGlobalReadSurface();
 void SetGlobalContext(gl::Context *context);
 gl::Context *GetGlobalContext();
 
-void SetCurDrawSurface(Surface *surface);
-Surface *GetCurDrawSurface();
-
-void SetCurReadSurface(Surface *surface);
-Surface *GetCurReadSurface();
-
-void SetCurContext(gl::Context *context);
-gl::Context *GetCurContext();
 }
 
 #endif // LIBGLESV2_GLOBALSTATE_H_

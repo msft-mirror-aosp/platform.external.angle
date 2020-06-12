@@ -87,7 +87,6 @@ ANGLE_EXPORT void GL_APIENTRY GetShaderInfoLog(GLuint shader, GLsizei bufsize, G
 ANGLE_EXPORT void GL_APIENTRY GetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype, GLint* range, GLint* precision);
 ANGLE_EXPORT void GL_APIENTRY GetShaderSource(GLuint shader, GLsizei bufsize, GLsizei* length, GLchar* source);
 ANGLE_EXPORT const GLubyte *GL_APIENTRY GetString(GLenum name);
-ANGLE_EXPORT void GL_APIENTRY GetTexImage(GLenum target, GLint level, GLenum format, GLenum type, GLvoid* pixels);
 ANGLE_EXPORT void GL_APIENTRY GetTexParameterfv(GLenum target, GLenum pname, GLfloat* params);
 ANGLE_EXPORT void GL_APIENTRY GetTexParameteriv(GLenum target, GLenum pname, GLint* params);
 ANGLE_EXPORT void GL_APIENTRY GetUniformfv(GLuint program, GLint location, GLfloat* params);

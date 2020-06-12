@@ -23,7 +23,6 @@ struct Box;
 struct Extents;
 struct Offset;
 struct Rectangle;
-struct PixelPackState;
 struct PixelUnpackState;
 }
 
@@ -52,7 +51,6 @@ class ImageD3D : angle::NonCopyable
 
     virtual bool redefine(GLenum target, GLenum internalformat, const gl::Extents &size, bool forceRelease) = 0;
 
-    virtual gl::Error saveData(const gl::Box &area, const gl::PixelPackState &pack, GLenum type, void *output) = 0;
     virtual gl::Error loadData(const gl::Box &area, const gl::PixelUnpackState &unpack, GLenum type, const void *input) = 0;
     virtual gl::Error loadCompressedData(const gl::Box &area, const void *input) = 0;
 

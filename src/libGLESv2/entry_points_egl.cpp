@@ -24,9 +24,6 @@
 
 #include <EGL/eglext.h>
 
-#undef EVENT
-#include "libGLESv2/emulator_lock.h"
-
 namespace egl
 {
 
@@ -533,151 +530,9 @@ EGLBoolean EGLAPIENTRY DestroyContext(EGLDisplay dpy, EGLContext ctx)
 
 EGLBoolean EGLAPIENTRY MakeCurrent(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx)
 {
-    EVENT_LOCK_ONLY("(EGLDisplay dpy = 0x%0.8p, EGLSurface draw = 0x%0.8p, EGLSurface read = 0x%0.8p, EGLContext ctx = 0x%0.8p)",
+    EVENT("(EGLDisplay dpy = 0x%0.8p, EGLSurface draw = 0x%0.8p, EGLSurface read = 0x%0.8p, EGLContext ctx = 0x%0.8p)",
           dpy, draw, read, ctx);
 
-    Display *display = static_cast<Display*>(dpy);
-    gl::Context *context = static_cast<gl::Context*>(ctx);
-
-    // If ctx is EGL_NO_CONTEXT and either draw or read are not EGL_NO_SURFACE, an EGL_BAD_MATCH
-    // error is generated.
-    if (ctx == EGL_NO_CONTEXT && (draw != EGL_NO_SURFACE || read != EGL_NO_SURFACE))
-    {
-        SetGlobalError(Error(EGL_BAD_MATCH));
-        return EGL_FALSE;
-    }
-
-    if (ctx != EGL_NO_CONTEXT && draw == EGL_NO_SURFACE && read == EGL_NO_SURFACE)
-    {
-        SetGlobalError(Error(EGL_BAD_MATCH));
-        return EGL_FALSE;
-    }
-
-    // If either of draw or read is a valid surface and the other is EGL_NO_SURFACE, an
-    // EGL_BAD_MATCH error is generated.
-    if ((read == EGL_NO_SURFACE) != (draw == EGL_NO_SURFACE))
-    {
-        SetGlobalError(Error(
-            EGL_BAD_MATCH, "read and draw must both be valid surfaces, or both be EGL_NO_SURFACE"));
-        return EGL_FALSE;
-    }
-
-    if (dpy == EGL_NO_DISPLAY || !Display::isValidDisplay(display))
-    {
-        SetGlobalError(Error(EGL_BAD_DISPLAY, "'dpy' not a valid EGLDisplay handle"));
-        return EGL_FALSE;
-    }
-
-    // EGL 1.5 spec: dpy can be uninitialized if all other parameters are null
-    if (!display->isInitialized() && (ctx != EGL_NO_CONTEXT || draw != EGL_NO_SURFACE || read != EGL_NO_SURFACE))
-    {
-        SetGlobalError(Error(EGL_NOT_INITIALIZED, "'dpy' not initialized"));
-        return EGL_FALSE;
-    }
-
-    if (ctx != EGL_NO_CONTEXT)
-    {
-        Error error = ValidateContext(display, context);
-        if (error.isError())
-        {
-            SetGlobalError(error);
-            return EGL_FALSE;
-        }
-    }
-
-    if (display->isInitialized())
-    {
-        if (display->testDeviceLost())
-        {
-            display->notifyDeviceLost();
-            return EGL_FALSE;
-        }
-
-        if (display->isDeviceLost())
-        {
-            SetGlobalError(Error(EGL_CONTEXT_LOST));
-            return EGL_FALSE;
-        }
-    }
-
-    Surface *drawSurface = static_cast<Surface*>(draw);
-    if (draw != EGL_NO_SURFACE)
-    {
-        Error error = ValidateSurface(display, drawSurface);
-        if (error.isError())
-        {
-            SetGlobalError(error);
-            return EGL_FALSE;
-        }
-    }
-
-    Surface *readSurface = static_cast<Surface*>(read);
-    if (read != EGL_NO_SURFACE)
-    {
-        Error error = ValidateSurface(display, readSurface);
-        if (error.isError())
-        {
-            SetGlobalError(error);
-            return EGL_FALSE;
-        }
-    }
-
-    if (readSurface)
-    {
-        Error readCompatError =
-            ValidateCompatibleConfigs(display, readSurface->getConfig(), readSurface,
-                                      context->getConfig(), readSurface->getType());
-        if (readCompatError.isError())
-        {
-            SetGlobalError(readCompatError);
-            return EGL_FALSE;
-        }
-    }
-
-    if (draw != read)
-    {
-        UNIMPLEMENTED();   // FIXME
-
-        if (drawSurface)
-        {
-            Error drawCompatError =
-                ValidateCompatibleConfigs(display, drawSurface->getConfig(), drawSurface,
-                                          context->getConfig(), drawSurface->getType());
-            if (drawCompatError.isError())
-            {
-                SetGlobalError(drawCompatError);
-                return EGL_FALSE;
-            }
-        }
-    }
-
-    Error makeCurrentError = display->makeCurrent(drawSurface, readSurface, context);
-    if (makeCurrentError.isError())
-    {
-        SetGlobalError(makeCurrentError);
-        return EGL_FALSE;
-    }
-
-    gl::Context *previousContext = GetGlobalContext();
-
-    SetGlobalDisplay(display);
-    SetGlobalDrawSurface(drawSurface);
-    SetGlobalReadSurface(readSurface);
-    SetGlobalContext(context);
-
-    // Release the surface from the previously-current context, to allow
-    // destroyed surfaces to delete themselves.
-    if (previousContext != nullptr && context != previousContext)
-    {
-        previousContext->releaseSurface();
-    }
-
-    SetGlobalError(Error(EGL_SUCCESS));
-    return EGL_TRUE;
-}
-
-EGLBoolean EGLAPIENTRY MakeCurrent_nolock(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx)
-{
     Display *display = static_cast<Display*>(dpy);
     gl::Context *context = static_cast<gl::Context*>(ctx);
 
@@ -1446,7 +1301,6 @@ __eglMustCastToProperFunctionPointerType EGLAPIENTRY GetProcAddress(const char *
         INSERT_PROC_ADDRESS(gl, GetShaderPrecisionFormat);
         INSERT_PROC_ADDRESS(gl, GetShaderSource);
         INSERT_PROC_ADDRESS(gl, GetString);
-        INSERT_PROC_ADDRESS(gl, GetTexImage);
         INSERT_PROC_ADDRESS(gl, GetTexParameterfv);
         INSERT_PROC_ADDRESS(gl, GetTexParameteriv);
         INSERT_PROC_ADDRESS(gl, GetUniformfv);

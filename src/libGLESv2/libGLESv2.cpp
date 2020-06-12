@@ -545,11 +545,6 @@ void GL_APIENTRY glTexImage2D(GLenum target, GLint level, GLint internalformat, 
     return gl::TexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
 }
 
-void GL_APIENTRY glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, GLvoid* pixels)
-{
-    return gl::GetTexImage(target, level, format, type, pixels);
-}
-
 void GL_APIENTRY glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 {
     return gl::TexParameterf(target, pname, param);

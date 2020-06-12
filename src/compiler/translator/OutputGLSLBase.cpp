@@ -16,11 +16,7 @@ TString arrayBrackets(const TType &type)
 {
     ASSERT(type.isArray());
     TInfoSinkBase out;
-    if (type.isUnsizedArray()) {
-        out << "[]";
-    } else {
-        out << "[" << type.getArraySize() << "]";
-    }
+    out << "[" << type.getArraySize() << "]";
     return TString(out.c_str());
 }
 
@@ -55,7 +51,6 @@ bool isSingleStatement(TIntermNode *node)
 }  // namespace
 
 TOutputGLSLBase::TOutputGLSLBase(TInfoSinkBase &objSink,
-                                 const NameSet& nameSet,
                                  ShArrayIndexClampingStrategy clampingStrategy,
                                  ShHashFunction64 hashFunction,
                                  NameMap &nameMap,
@@ -64,7 +59,6 @@ TOutputGLSLBase::TOutputGLSLBase(TInfoSinkBase &objSink,
                                  ShShaderOutput output)
     : TIntermTraverser(true, true, true),
       mObjSink(objSink),
-      mNameSet(nameSet),
       mDeclaringVariables(false),
       mClampingStrategy(clampingStrategy),
       mHashFunction(hashFunction),
@@ -97,32 +91,14 @@ void TOutputGLSLBase::writeBuiltInFunctionTriplet(
 
 void TOutputGLSLBase::writeLayoutQualifier(const TType &type)
 {
-    const TLayoutQualifier &layoutQualifier = type.getLayoutQualifier();
-    TInfoSinkBase &out = objSink();
-
     if (type.getQualifier() == EvqFragmentOut || type.getQualifier() == EvqVertexIn)
     {
+        const TLayoutQualifier &layoutQualifier = type.getLayoutQualifier();
         if (layoutQualifier.location >= 0)
         {
+            TInfoSinkBase &out = objSink();
             out << "layout(location = " << layoutQualifier.location << ") ";
         }
-    }
-
-    if (type.getBasicType() == EbtInterfaceBlock)
-        return;
-
-    if (layoutQualifier.binding >= 0)
-    {
-        out << "layout(binding = " << layoutQualifier.binding;
-        if (layoutQualifier.offset >= 0)
-        {
-            out << ", offset = " << layoutQualifier.offset;
-        }
-        out << ") ";
-    }
-    else if (layoutQualifier.offset >= 0)
-    {
-        out << "layout(offset = " << layoutQualifier.offset << ") ";
     }
 }
 
@@ -690,19 +666,6 @@ bool TOutputGLSLBase::visitUnary(Visit visit, TIntermUnary *node)
         preString = "unpackHalf2x16(";
         break;
 
-      case EOpPackSnorm4x8:
-        preString = "packSnorm4x8(";
-        break;
-      case EOpPackUnorm4x8:
-        preString = "packUnorm4x8(";
-        break;
-      case EOpUnpackSnorm4x8:
-        preString = "unpackSnorm4x8(";
-        break;
-      case EOpUnpackUnorm4x8:
-        preString = "unpackUnorm4x8(";
-        break;
-
       case EOpLength:
         preString = "length(";
         break;
@@ -735,19 +698,6 @@ bool TOutputGLSLBase::visitUnary(Visit visit, TIntermUnary *node)
         break;
       case EOpAll:
         preString = "all(";
-        break;
-
-      case EOpBitfieldReverse:
-        preString = "bitfieldReverse(";
-        break;
-      case EOpBitCount:
-        preString = "bitCount(";
-        break;
-      case EOpFindLSB:
-        preString = "findLSB(";
-        break;
-      case EOpFindMSB:
-        preString = "findMSB(";
         break;
 
       default:
@@ -1127,57 +1077,6 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
       case EOpMul:
         writeBuiltInFunctionTriplet(visit, "matrixCompMult(", useEmulatedFunction);
         break;
-      case EOpFrExp:
-        writeBuiltInFunctionTriplet(visit, "frexp(", useEmulatedFunction);
-        break;
-      case EOpLdExp:
-        writeBuiltInFunctionTriplet(visit, "ldexp(", useEmulatedFunction);
-        break;
-      case EOpFMA:
-        writeBuiltInFunctionTriplet(visit, "fma(", useEmulatedFunction);
-        break;
-      case EOpPackSnorm4x8:
-        writeBuiltInFunctionTriplet(visit, "packSnorm4x8(", useEmulatedFunction);
-        break;
-      case EOpPackUnorm4x8:
-        writeBuiltInFunctionTriplet(visit, "packUnorm4x8(", useEmulatedFunction);
-        break;
-      case EOpUnpackSnorm4x8:
-        writeBuiltInFunctionTriplet(visit, "unpackSnorm4x8(", useEmulatedFunction);
-        break;
-      case EOpUnpackUnorm4x8:
-        writeBuiltInFunctionTriplet(visit, "unpackUnorm4x8(", useEmulatedFunction);
-        break;
-      case EOpBitfieldExtract:
-        writeBuiltInFunctionTriplet(visit, "bitfieldExtract(", useEmulatedFunction);
-        break;
-      case EOpBitfieldInsert:
-        writeBuiltInFunctionTriplet(visit, "bitfieldInsert(", useEmulatedFunction);
-        break;
-      case EOpBitfieldReverse:
-        writeBuiltInFunctionTriplet(visit, "bitfieldReverse(", useEmulatedFunction);
-        break;
-      case EOpBitCount:
-        writeBuiltInFunctionTriplet(visit, "bitCount(", useEmulatedFunction);
-        break;
-      case EOpFindLSB:
-        writeBuiltInFunctionTriplet(visit, "findLSB(", useEmulatedFunction);
-        break;
-      case EOpFindMSB:
-        writeBuiltInFunctionTriplet(visit, "findMSB(", useEmulatedFunction);
-        break;
-      case EOpUaddCarry:
-        writeBuiltInFunctionTriplet(visit, "uaddCarry(", useEmulatedFunction);
-        break;
-      case EOpUsubBorrow:
-        writeBuiltInFunctionTriplet(visit, "usubBorrow(", useEmulatedFunction);
-        break;
-      case EOpUmulExtended:
-        writeBuiltInFunctionTriplet(visit, "umulExtended(", useEmulatedFunction);
-        break;
-      case EOpImulExtended:
-        writeBuiltInFunctionTriplet(visit, "imulExtended(", useEmulatedFunction);
-        break;
 
       default:
         UNREACHABLE();
@@ -1352,9 +1251,8 @@ TString TOutputGLSLBase::getTypeName(const TType &type)
 
 TString TOutputGLSLBase::hashName(const TString &name)
 {
-    if (mHashFunction == NULL || name.empty()) {
+    if (mHashFunction == NULL || name.empty())
         return name;
-    }
     NameMap::const_iterator it = mNameMap.find(name.c_str());
     if (it != mNameMap.end())
         return it->second.c_str();
@@ -1365,12 +1263,6 @@ TString TOutputGLSLBase::hashName(const TString &name)
 
 TString TOutputGLSLBase::hashVariableName(const TString &name)
 {
-    std::string nameAsStdString(name.c_str(), name.size()) ;
-    if (mayConflictWithCore(nameAsStdString))  {
-        std::string unconflicted = genUnconflictedName(nameAsStdString);
-        mNameMap[nameAsStdString] = unconflicted;
-        return TString(unconflicted.c_str(), unconflicted.size());
-    }
     if (mSymbolTable.findBuiltIn(name, mShaderVersion) != NULL)
         return name;
     return hashName(name);
@@ -1424,78 +1316,44 @@ void TOutputGLSLBase::declareInterfaceBlockLayout(const TInterfaceBlock *interfa
 
     out << "layout(";
 
-    if (interfaceBlock->isComputeInterfaceBlock()) {
-        bool needComma = false;
-        if (interfaceBlock->localSizeX() != -1) {
-            out << "local_size_x = " << interfaceBlock->localSizeX();
-            needComma = true;
-        }
-        if (interfaceBlock->localSizeY() != -1) {
-            if (needComma) {
-                out << ", ";
-            }
-            out << "local_size_y = " << interfaceBlock->localSizeY();
-            needComma = true;
-        }
-        if (interfaceBlock->localSizeZ() != -1) {
-            if (needComma) {
-                out << ", ";
-            }
-            out << "local_size_z = " << interfaceBlock->localSizeZ();
-        }
-    } else {
-        if (interfaceBlock->isBufferStorage()) {
-            out << "binding = " << interfaceBlock->bufferBinding();
-            out << ", ";
-        }
+    switch (interfaceBlock->blockStorage())
+    {
+        case EbsUnspecified:
+        case EbsShared:
+            // Default block storage is shared.
+            out << "shared";
+            break;
 
-        if (interfaceBlock->hasBufferOffset()) {
-            out << "offset = " << interfaceBlock->bufferOffset();
-            out << ", ";
-        }
-        switch (interfaceBlock->blockStorage())
-        {
-            case EbsUnspecified:
-            case EbsShared:
-                // Default block storage is shared.
-                out << "shared";
-                break;
+        case EbsPacked:
+            out << "packed";
+            break;
 
-            case EbsPacked:
-                out << "packed";
-                break;
+        case EbsStd140:
+            out << "std140";
+            break;
 
-            case EbsStd140:
-                out << "std140";
-                break;
+        default:
+            UNREACHABLE();
+            break;
+    }
 
-            case EbsStd430:
-                out << "std430";
-                break;
+    out << ", ";
 
-            default:
-                UNREACHABLE();
-                break;
-        }
+    switch (interfaceBlock->matrixPacking())
+    {
+        case EmpUnspecified:
+        case EmpColumnMajor:
+            // Default matrix packing is column major.
+            out << "column_major";
+            break;
 
-        out << ", ";
+        case EmpRowMajor:
+            out << "row_major";
+            break;
 
-        switch (interfaceBlock->matrixPacking())
-        {
-            case EmpUnspecified:
-            case EmpColumnMajor:
-                // Default matrix packing is column major.
-                out << "column_major";
-                break;
-
-            case EmpRowMajor:
-                out << "row_major";
-                break;
-
-            default:
-                UNREACHABLE();
-                break;
-        }
+        default:
+            UNREACHABLE();
+            break;
     }
 
     out << ") ";
@@ -1504,7 +1362,7 @@ void TOutputGLSLBase::declareInterfaceBlockLayout(const TInterfaceBlock *interfa
 void TOutputGLSLBase::declareInterfaceBlock(const TInterfaceBlock *interfaceBlock)
 {
     TInfoSinkBase &out = objSink();
-    if (!interfaceBlock->hasFields()) return;
+
     out << hashName(interfaceBlock->name()) << "{\n";
     const TFieldList &fields = interfaceBlock->fields();
     for (size_t i = 0; i < fields.size(); ++i)
@@ -1518,50 +1376,4 @@ void TOutputGLSLBase::declareInterfaceBlock(const TInterfaceBlock *interfaceBloc
         out << ";\n";
     }
     out << "}";
-}
-
-static const char* coreBuiltinConflictNames[] = {
-    "texture",
-    "textureProj",
-    "textureLod",
-    "textureProjLod",
-    "textureGrad",
-    "textureProjGrad",
-};
-
-bool TOutputGLSLBase::mayConflictWithCore(const std::string& name) const
-{
-    if (!IsGLSL130OrNewer(mOutput)) return false;
-
-    for (const auto& conflictName : coreBuiltinConflictNames) {
-        if (name == conflictName) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-std::string TOutputGLSLBase::nextCandidate(const std::string& name) {
-    std::ostringstream o;
-    o << "angleVar" << std::hex << mRenameSeed << "_" << name;
-    std::string res = o.str();
-    return res;
-}
-
-bool TOutputGLSLBase::conflictsWithExistingNames(const std::string& name) {
-    if (mNameSet.find(name.c_str()) != mNameSet.end()) {
-        mRenameSeed++;
-        return true;
-    }
-    return false;
-}
-
-std::string TOutputGLSLBase::genUnconflictedName(const std::string& name) {
-    std::string candidate;
-    do {
-        candidate = nextCandidate(name);
-    } while (conflictsWithExistingNames(candidate));
-
-    return candidate;
 }

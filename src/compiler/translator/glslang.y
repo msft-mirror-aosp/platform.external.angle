@@ -118,8 +118,7 @@ extern void yyerror(YYLTYPE* yylloc, TParseContext* context, void *scanner, cons
 }
 
 #define FRAG_ONLY(S, L) {  \
-    if (context->getShaderType() != GL_FRAGMENT_SHADER && \
-        context->getShaderType() != GL_COMPUTE_SHADER) { \
+    if (context->getShaderType() != GL_FRAGMENT_SHADER) {  \
         context->error(L, " supported in fragment shaders only ", S);  \
         context->recover();  \
     }  \
@@ -133,7 +132,7 @@ extern void yyerror(YYLTYPE* yylloc, TParseContext* context, void *scanner, cons
 }
 
 #define ES3_ONLY(TOKEN, LINE, REASON) {  \
-    if (context->getShaderVersion() < 300) {  \
+    if (context->getShaderVersion() != 300) {  \
         context->error(LINE, REASON " supported in GLSL ES 3.00 only ", TOKEN);  \
         context->recover();  \
     }  \
@@ -141,16 +140,16 @@ extern void yyerror(YYLTYPE* yylloc, TParseContext* context, void *scanner, cons
 %}
 
 %token <lex> INVARIANT HIGH_PRECISION MEDIUM_PRECISION LOW_PRECISION PRECISION
-%token <lex> ATTRIBUTE CONST_QUAL BOOL_TYPE FLOAT_TYPE INT_TYPE UINT_TYPE ATOMIC_UINT_TYPE
+%token <lex> ATTRIBUTE CONST_QUAL BOOL_TYPE FLOAT_TYPE INT_TYPE UINT_TYPE
 %token <lex> BREAK CONTINUE DO ELSE FOR IF DISCARD RETURN SWITCH CASE DEFAULT
 %token <lex> BVEC2 BVEC3 BVEC4 IVEC2 IVEC3 IVEC4 VEC2 VEC3 VEC4 UVEC2 UVEC3 UVEC4
-%token <lex> MATRIX2 MATRIX3 MATRIX4 IN_QUAL OUT_QUAL INOUT_QUAL OUTPUT_QUAL INPUT_QUAL UNIFORM BUFFER VARYING
+%token <lex> MATRIX2 MATRIX3 MATRIX4 IN_QUAL OUT_QUAL INOUT_QUAL UNIFORM VARYING
 %token <lex> MATRIX2x3 MATRIX3x2 MATRIX2x4 MATRIX4x2 MATRIX3x4 MATRIX4x3
 %token <lex> CENTROID FLAT SMOOTH
 %token <lex> STRUCT VOID_TYPE WHILE
-%token <lex> SAMPLER2D SAMPLERCUBE SAMPLER_EXTERNAL_OES SAMPLER2DRECT SAMPLER2DARRAY SAMPLER2DMS
-%token <lex> ISAMPLER2D ISAMPLER3D ISAMPLERCUBE ISAMPLER2DARRAY ISAMPLER2DMS
-%token <lex> USAMPLER2D USAMPLER3D USAMPLERCUBE USAMPLER2DARRAY USAMPLER2DMS
+%token <lex> SAMPLER2D SAMPLERCUBE SAMPLER_EXTERNAL_OES SAMPLER2DRECT SAMPLER2DARRAY
+%token <lex> ISAMPLER2D ISAMPLER3D ISAMPLERCUBE ISAMPLER2DARRAY
+%token <lex> USAMPLER2D USAMPLER3D USAMPLERCUBE USAMPLER2DARRAY
 %token <lex> SAMPLER3D SAMPLER3DRECT SAMPLER2DSHADOW SAMPLERCUBESHADOW SAMPLER2DARRAYSHADOW
 %token <lex> LAYOUT
 
@@ -614,15 +613,8 @@ declaration
         $$ = context->addInterfaceBlock($1, @2, *$2.string, $3, $5.string, @5, $7, @6);
     }
     | type_qualifier SEMICOLON {
-        TIntermAggregate* agg = context->parseGlobalLayoutQualifier($1);
-        if (agg)
-        {
-            $$ = agg;
-        }
-        else
-        {
-            $$ = 0;
-        }
+        context->parseGlobalLayoutQualifier($1);
+        $$ = 0;
     }
     ;
 
@@ -951,35 +943,11 @@ storage_qualifier
     }
     | IN_QUAL {
         ES3_ONLY("in", @1, "storage qualifier");
-        switch (context->getShaderType()) {
-        case GL_COMPUTE_SHADER:
-            $$.qualifier = EvqComputeIn;
-            break;
-        case GL_FRAGMENT_SHADER:
-            $$.qualifier = EvqFragmentIn;
-            break;
-        case GL_VERTEX_SHADER:
-            $$.qualifier = EvqVertexIn;
-            break;
-        default:
-            $$.qualifier = EvqVertexIn;
-        }
+        $$.qualifier = (context->getShaderType() == GL_FRAGMENT_SHADER) ? EvqFragmentIn : EvqVertexIn;
     }
     | OUT_QUAL {
         ES3_ONLY("out", @1, "storage qualifier");
-        switch (context->getShaderType()) {
-        case GL_COMPUTE_SHADER:
-            $$.qualifier = EvqComputeOut;
-            break;
-        case GL_FRAGMENT_SHADER:
-            $$.qualifier = EvqFragmentOut;
-            break;
-        case GL_VERTEX_SHADER:
-            $$.qualifier = EvqVertexOut;
-            break;
-        default:
-            $$.qualifier = EvqVertexOut;
-        }
+        $$.qualifier = (context->getShaderType() == GL_FRAGMENT_SHADER) ? EvqFragmentOut : EvqVertexOut;
     }
     | CENTROID IN_QUAL {
         ES3_ONLY("centroid in", @1, "storage qualifier");
@@ -1003,12 +971,6 @@ storage_qualifier
         if (context->globalErrorCheck(@1, context->symbolTable.atGlobalLevel(), "uniform"))
             context->recover();
         $$.qualifier = EvqUniform;
-    }
-    | BUFFER {
-        if (context->globalErrorCheck(@1, context->symbolTable.atGlobalLevel(), "buffer"))
-            context->recover();
-        $$.qualifier = EvqBuffer;
-        $$.bufferDir = EvqInputOutput;
     }
     ;
 
@@ -1113,10 +1075,6 @@ type_specifier_nonarray
     | UINT_TYPE {
         TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
         $$.setBasic(EbtUInt, qual, @1);
-    }
-    | ATOMIC_UINT_TYPE {
-        TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
-        $$.setBasic(EbtAtomicUInt, qual, @1);
     }
     | BOOL_TYPE {
         TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
@@ -1243,10 +1201,6 @@ type_specifier_nonarray
         TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
         $$.setBasic(EbtSampler2DArray, qual, @1);
     }
-    | SAMPLER2DMS {
-        TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
-        $$.setBasic(EbtSampler2DMS, qual, @1);
-    }
     | ISAMPLER2D {
         TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
         $$.setBasic(EbtISampler2D, qual, @1);
@@ -1263,10 +1217,6 @@ type_specifier_nonarray
         TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
         $$.setBasic(EbtISampler2DArray, qual, @1);
     }
-    | ISAMPLER2DMS {
-        TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
-        $$.setBasic(EbtISampler2DMS, qual, @1);
-    }
     | USAMPLER2D {
         TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
         $$.setBasic(EbtUSampler2D, qual, @1);
@@ -1282,10 +1232,6 @@ type_specifier_nonarray
     | USAMPLER2DARRAY {
         TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
         $$.setBasic(EbtUSampler2DArray, qual, @1);
-    }
-    | USAMPLER2DMS {
-        TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
-        $$.setBasic(EbtUSampler2DMS, qual, @1);
     }
     | SAMPLER2DSHADOW {
         TQualifier qual = context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary;
@@ -1399,16 +1345,6 @@ struct_declarator
         if (context->arraySizeErrorCheck(@3, $3, size))
             context->recover();
         type->setArraySize(size);
-
-        $$ = new TField(type, $1.string, @1);
-    }
-    | identifier LEFT_BRACKET RIGHT_BRACKET {
-        ES3_ONLY("[]", @2, "implicitly sized array");
-        if (context->reservedErrorCheck(@1, *$1.string))
-            context->recover();
-
-        TType* type = new TType(EbtVoid, EbpUndefined);
-        type->setArraySize(0);
 
         $$ = new TField(type, $1.string, @1);
     }

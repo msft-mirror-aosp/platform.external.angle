@@ -24,20 +24,11 @@
 #include "compiler/translator/VariableInfo.h"
 #include "third_party/compiler/ArrayBoundsClamper.h"
 
-#include <set>
-
 class TCompiler;
 class TDependencyGraph;
 #ifdef ANGLE_ENABLE_HLSL
 class TranslatorHLSL;
 #endif // ANGLE_ENABLE_HLSL
-
-struct NameSetCompare {
-    bool operator()(const char* a, const char* b) const {
-        return strcmp(a, b) < 0;
-    }
-};
-typedef std::set<const char*, NameSetCompare> NameSet;
 
 //
 // Helper function to identify specs that are based on the WebGL spec,
@@ -97,7 +88,6 @@ class TCompiler : public TShHandleBase
     // Clears the results from the previous compilation.
     void clearResults();
 
-    const NameSet getAllNames() const;
     const std::vector<sh::Attribute> &getAttributes() const { return attributes; }
     const std::vector<sh::OutputVariable> &getOutputVariables() const { return outputVariables; }
     const std::vector<sh::Uniform> &getUniforms() const { return uniforms; }

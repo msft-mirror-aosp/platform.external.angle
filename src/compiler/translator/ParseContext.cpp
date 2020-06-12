@@ -1511,34 +1511,12 @@ TIntermAggregate *TParseContext::parseSingleDeclaration(TPublicType &publicType,
                                                         const TSourceLoc &identifierOrTypeLocation,
                                                         const TString &identifier)
 {
+    TIntermSymbol *symbol =
+        intermediate.addSymbol(0, identifier, TType(publicType), identifierOrTypeLocation);
 
     bool emptyDeclaration = (identifier == "");
 
     mDeferredSingleDeclarationErrorCheck = emptyDeclaration;
-
-    if (publicType.type == EbtAtomicUInt) {
-        // For atomic counter buffers, per 3.10 spec 4.4.6,
-        // inherit offset from default if nonexistent, and
-        // update the default offset for atomic.
-        // This is bc we don't output any global declarations.
-        std::map<int, int>& defaultMap =
-            mDefaultBufferOffsets[EbtAtomicUInt];
-
-        int binding = publicType.layoutQualifier.binding;
-        int offset = publicType.layoutQualifier.offset;
-        if (binding != -1 && offset == -1) {
-            if (defaultMap.find(binding) == defaultMap.end()) {
-                defaultMap[binding] = 0;
-            }
-            publicType.layoutQualifier.offset = defaultMap[binding];
-            defaultMap[binding] += 4;
-        } else if (binding != -1 && offset != -1) {
-            mDefaultBufferOffsets[EbtAtomicUInt][binding] = offset + 4;
-        }
-    }
-
-    TIntermSymbol *symbol =
-        intermediate.addSymbol(0, identifier, TType(publicType), identifierOrTypeLocation);
 
     if (emptyDeclaration)
     {
@@ -1910,40 +1888,30 @@ TIntermAggregate *TParseContext::parseArrayInitDeclarator(const TPublicType &pub
     }
 }
 
-TIntermAggregate* TParseContext::parseGlobalLayoutQualifier(const TPublicType &typeQualifier)
+void TParseContext::parseGlobalLayoutQualifier(const TPublicType &typeQualifier)
 {
-    if (typeQualifier.qualifier != EvqUniform &&
-        typeQualifier.qualifier != EvqIn &&
-        typeQualifier.qualifier != EvqOut &&
-        typeQualifier.qualifier != EvqVertexIn &&
-        typeQualifier.qualifier != EvqVertexOut &&
-        typeQualifier.qualifier != EvqFragmentIn &&
-        typeQualifier.qualifier != EvqFragmentOut &&
-        typeQualifier.qualifier != EvqComputeIn &&
-        typeQualifier.qualifier != EvqComputeOut
-       )
+    if (typeQualifier.qualifier != EvqUniform)
     {
         error(typeQualifier.line, "invalid qualifier:", getQualifierString(typeQualifier.qualifier),
-                "global layout must be uniform (or in/out for a compute shader)");
+              "global layout must be uniform");
         recover();
-        return nullptr;
+        return;
     }
 
     const TLayoutQualifier layoutQualifier = typeQualifier.layoutQualifier;
-    if (mShaderVersion < 310)
-        ASSERT(!layoutQualifier.isEmpty());
+    ASSERT(!layoutQualifier.isEmpty());
 
     if (mShaderVersion < 300)
     {
         error(typeQualifier.line, "layout qualifiers supported in GLSL ES 3.00 only", "layout");
         recover();
-        return nullptr;
+        return;
     }
 
     if (layoutLocationErrorCheck(typeQualifier.line, typeQualifier.layoutQualifier))
     {
         recover();
-        return nullptr;
+        return;
     }
 
     if (layoutQualifier.matrixPacking != EmpUnspecified)
@@ -1955,65 +1923,6 @@ TIntermAggregate* TParseContext::parseGlobalLayoutQualifier(const TPublicType &t
     {
         mDefaultBlockStorage = layoutQualifier.blockStorage;
     }
-
-    if (layoutQualifier.local_size_x != -1 ||
-        layoutQualifier.local_size_y != -1 ||
-        layoutQualifier.local_size_z != -1) {
-
-        return addComputeInterfaceBlockDecl( layoutQualifier.local_size_x, layoutQualifier.local_size_y, layoutQualifier.local_size_z);
-    }
-
-    if (layoutQualifier.binding != -1 &&
-        layoutQualifier.offset != -1) {
-        TBasicType type;
-        int binding = layoutQualifier.binding;
-        int offset = layoutQualifier.offset;
-        mDefaultBufferOffsets[type][binding] = offset;
-    }
-
-    return nullptr;
-}
-
-TIntermAggregate* TParseContext::addComputeInterfaceBlockDecl(int localSizeX, int localSizeY, int localSizeZ) {
-    TString symbolName = "androidemulator_angleshadetranslator_compute_spec";
-    TString* declName = new TString("androidemulator_angleshadetranslator_compute_spec_decl");
-    TString* instName = new TString("");
-
-    TSymbol* blockNameSymbol = new TInterfaceBlockName(&symbolName);
-    symbolTable.declare(blockNameSymbol);
-
-    TLayoutQualifier computeLayoutQualifier =
-        TLayoutQualifier::create();
-    computeLayoutQualifier.local_size_x = localSizeX;
-    computeLayoutQualifier.local_size_y = localSizeY;
-    computeLayoutQualifier.local_size_z = localSizeZ;
-
-    TInterfaceBlock *interfaceBlock =
-        new TInterfaceBlock(declName, nullptr, nullptr, 0, computeLayoutQualifier);
-    TType computeSpecType = TType(
-            interfaceBlock,
-            EvqIn,
-            computeLayoutQualifier,
-            0);
-
-    TVariable* decl = new TVariable(instName, computeSpecType, false);
-
-    symbolTable.declare(decl);
-
-    TString symbolName2 = decl->getName();
-    int symbolId = decl->getUniqueId();
-
-    TIntermAggregate* aggregate =
-        intermediate.makeAggregate(
-                intermediate.addSymbol(
-                    symbolId,
-                    symbolName2,
-                    computeSpecType,
-                    TSourceLoc()),
-                TSourceLoc());
-    aggregate->setOp(EOpDeclaration);
-
-    return aggregate;
 }
 
 TIntermAggregate *TParseContext::addFunctionPrototypeDeclaration(const TFunction &function,
@@ -2655,7 +2564,7 @@ TIntermAggregate *TParseContext::addInterfaceBlock(const TPublicType &typeQualif
     if (reservedErrorCheck(nameLine, blockName))
         recover();
 
-    if (mShaderVersion < 310 && typeQualifier.qualifier != EvqUniform)
+    if (typeQualifier.qualifier != EvqUniform)
     {
         error(typeQualifier.line, "invalid qualifier:", getQualifierString(typeQualifier.qualifier),
               "interface blocks must be uniform");
@@ -2702,13 +2611,6 @@ TIntermAggregate *TParseContext::addInterfaceBlock(const TPublicType &typeQualif
         {
             case EvqGlobal:
             case EvqUniform:
-                break;
-            case EvqBuffer:
-                if (mShaderVersion < 310) {
-                    error(field->line(), "\"buffer\" qualifier requires shader verseion >= 310",
-                          getQualifierString(qualifier));
-                    recover();
-                }
                 break;
             default:
                 error(field->line(), "invalid qualifier on interface block member",
@@ -2895,14 +2797,7 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
     // to constant fold all constant expressions. Right now we don't allow indexing interface blocks
     // or fragment outputs with expressions that ANGLE is not able to constant fold, even if the
     // index is a constant expression.
-    bool shouldDisallowNonConst;
-    if (mShaderVersion < 310)
-        shouldDisallowNonConst =
-            indexExpression->getQualifier() != EvqConst || indexConstantUnion == nullptr;
-    else
-        shouldDisallowNonConst = isExtensionEnabled("EXT_gpu_shader5");
-
-    if (shouldDisallowNonConst)
+    if (indexExpression->getQualifier() != EvqConst || indexConstantUnion == nullptr)
     {
         if (baseExpression->isInterfaceBlock())
         {
@@ -3252,7 +3147,11 @@ TIntermTyped *TParseContext::addFieldSelectionExpression(TIntermTyped *baseExpre
 TLayoutQualifier TParseContext::parseLayoutQualifier(const TString &qualifierType,
                                                      const TSourceLoc &qualifierTypeLine)
 {
-    TLayoutQualifier qualifier = TLayoutQualifier::create();
+    TLayoutQualifier qualifier;
+
+    qualifier.location      = -1;
+    qualifier.matrixPacking = EmpUnspecified;
+    qualifier.blockStorage  = EbsUnspecified;
 
     if (qualifierType == "shared")
     {
@@ -3266,10 +3165,6 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const TString &qualifierTyp
     {
         qualifier.blockStorage = EbsStd140;
     }
-    else if (qualifierType == "std430")
-    {
-        qualifier.blockStorage = EbsStd430;
-    }
     else if (qualifierType == "row_major")
     {
         qualifier.matrixPacking = EmpRowMajor;
@@ -3282,26 +3177,6 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const TString &qualifierTyp
     {
         error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
               "location requires an argument");
-        recover();
-    }
-    else if (qualifierType == "local_size_x" ||
-             qualifierType == "local_size_y" ||
-             qualifierType == "local_size_z")
-    {
-        error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
-              "local_size_(x|y|z) requires an argument");
-        recover();
-    }
-    else if (qualifierType == "binding")
-    {
-        error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
-              "binding requires an argument");
-        recover();
-    }
-    else if (qualifierType == "offset")
-    {
-        error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
-              "offset requires an argument");
         recover();
     }
     else
@@ -3319,10 +3194,21 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const TString &qualifierTyp
                                                      int intValue,
                                                      const TSourceLoc &intValueLine)
 {
-    TLayoutQualifier qualifier = TLayoutQualifier::create();
+    TLayoutQualifier qualifier;
 
-    if (qualifierType == "location")
+    qualifier.location      = -1;
+    qualifier.matrixPacking = EmpUnspecified;
+    qualifier.blockStorage  = EbsUnspecified;
+
+    if (qualifierType != "location")
     {
+        error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
+              "only location may have arguments");
+        recover();
+    }
+    else
+    {
+        // must check that location is non-negative
         if (intValue < 0)
         {
             error(intValueLine, "out of range:", intValueString.c_str(),
@@ -3333,82 +3219,6 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const TString &qualifierTyp
         {
             qualifier.location = intValue;
         }
-    }
-    else if (qualifierType == "local_size_x")
-    {
-        if (intValue < 0)
-        {
-            error(intValueLine, "out of range:", intValueString.c_str(),
-                  "local_size_x must be non-negative");
-            recover();
-        }
-        else
-        {
-            qualifier.local_size_x = intValue;
-        }
-    }
-    else if (qualifierType == "local_size_y")
-    {
-        if (intValue < 0)
-        {
-            error(intValueLine, "out of range:", intValueString.c_str(),
-                  "local_size_y must be non-negative");
-            recover();
-        }
-        else
-        {
-            qualifier.local_size_y = intValue;
-        }
-    }
-    else if (qualifierType == "local_size_z")
-    {
-        if (intValue < 0)
-        {
-            error(intValueLine, "out of range:", intValueString.c_str(),
-                  "local_size_z must be non-negative");
-            recover();
-        }
-        else
-        {
-            qualifier.local_size_z = intValue;
-        }
-    }
-    else if (qualifierType == "binding")
-    {
-        if (intValue < 0)
-        {
-            error(intValueLine, "out of range:", intValueString.c_str(),
-                  "binding must be non-negative");
-            recover();
-        }
-        else
-        {
-            qualifier.binding = intValue;
-        }
-    }
-    else if (qualifierType == "offset")
-    {
-        if (intValue < 0)
-        {
-            error(intValueLine, "out of range:", intValueString.c_str(),
-                  "offset must be non-negative");
-            recover();
-        }
-        else
-        {
-            qualifier.offset = intValue;
-        }
-    }
-    else
-    {
-        if (mShaderVersion < 310) {
-            error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
-                    "only location may have arguments");
-        } else {
-            error(qualifierTypeLine, "invalid layout qualifier", qualifierType.c_str(),
-                    "only location/binding/offset/local_size_(x|y|z) may have arguments");
-        }
-        recover();
     }
 
     return qualifier;
@@ -3430,26 +3240,6 @@ TLayoutQualifier TParseContext::joinLayoutQualifiers(TLayoutQualifier leftQualif
     if (rightQualifier.blockStorage != EbsUnspecified)
     {
         joinedQualifier.blockStorage = rightQualifier.blockStorage;
-    }
-    if (rightQualifier.local_size_x != -1)
-    {
-        joinedQualifier.local_size_x = rightQualifier.local_size_x;
-    }
-    if (rightQualifier.local_size_y != -1)
-    {
-        joinedQualifier.local_size_y = rightQualifier.local_size_y;
-    }
-    if (rightQualifier.local_size_z != -1)
-    {
-        joinedQualifier.local_size_z = rightQualifier.local_size_z;
-    }
-    if (rightQualifier.binding != -1)
-    {
-        joinedQualifier.binding = rightQualifier.binding;
-    }
-    if (rightQualifier.offset != -1)
-    {
-        joinedQualifier.offset = rightQualifier.offset;
     }
 
     return joinedQualifier;
@@ -3890,9 +3680,8 @@ TIntermTyped *TParseContext::addBinaryMathInternal(TOperator op,
                                                    TIntermTyped *right,
                                                    const TSourceLoc &loc)
 {
-    if (!binaryOpCommonCheck(op, left, right, loc)) {
+    if (!binaryOpCommonCheck(op, left, right, loc))
         return nullptr;
-    }
 
     switch (op)
     {
@@ -4163,11 +3952,9 @@ TIntermTyped *TParseContext::addFunctionCallOrMethod(TFunction *fnCall,
                 // It allows "An array name with the length method applied" in contrast to GLSL 4.4
                 // spec section 5.9 which allows "An array, vector or matrix expression with the
                 // length method applied".
-                if (mShaderVersion <= 300) {
-                    error(loc, "length can only be called on array names, not on array expressions",
-                            "length");
-                    recover();
-                }
+                error(loc, "length can only be called on array names, not on array expressions",
+                      "length");
+                recover();
             }
         }
         unionArray->setIConst(arraySize);
