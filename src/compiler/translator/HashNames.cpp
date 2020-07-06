@@ -100,12 +100,48 @@ ImmutableString HashName(const ImmutableString &name,
         }
 
         static const char* coreBuiltinConflictNames[] = {
+            // Keywords in GLSL ES 1.00 but not in GLSL ES 3.00
             "texture",
             "textureProj",
             "textureLod",
             "textureProjLod",
             "textureGrad",
             "textureProjGrad",
+            // Keywords in GLSL ES 3.00 but not in GLSL ES 1.00
+            "resource",
+            "patch",
+            "sample",
+            "subroutine",
+            "common",
+            "partition",
+            "active",
+
+            "filter",
+            "image1D",
+            "iimage1D",
+            "uimage1D",
+            "image1DArray",
+            "iimage1DArray",
+            "uimage1DArray",
+            "image1DShadow",
+            "image2DShadow",
+            "image1DArrayShadow",
+            "image2DArrayShadow",
+            "imageBuffer",
+            "iimageBuffer",
+            "uimageBuffer",
+
+            "sampler1DArray",
+            "sampler1DArrayShadow",
+            "isampler1D",
+            "isampler1DArray",
+            "usampler1D",
+            "usampler1DArray",
+            "isampler2DRect",
+            "usampler2DRect",
+            "samplerBuffer",
+            "isamplerBuffer",
+            "usamplerBuffer",
         };
 
         // TODO(lfy): hack that removes the prefixes until emulator can deal with it properly
