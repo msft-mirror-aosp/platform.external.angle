@@ -60,20 +60,25 @@ struct EGLPlatformParameters
     {
         return std::tie(renderer, majorVersion, minorVersion, deviceType, presentPath,
                         debugLayersEnabled, contextVirtualization, transformFeedbackFeature,
-                        allocateNonZeroMemoryFeature, platformMethods, robustness);
+                        allocateNonZeroMemoryFeature, emulateCopyTexImage2DFromRenderbuffers,
+                        shaderStencilOutputFeature, genMultipleMipsPerPassFeature, platformMethods,
+                        robustness);
     }
 
-    EGLint renderer                         = EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE;
-    EGLint majorVersion                     = EGL_DONT_CARE;
-    EGLint minorVersion                     = EGL_DONT_CARE;
-    EGLint deviceType                       = EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE;
-    EGLint presentPath                      = EGL_DONT_CARE;
-    EGLint debugLayersEnabled               = EGL_DONT_CARE;
-    EGLint contextVirtualization            = EGL_DONT_CARE;
-    EGLint robustness                       = EGL_DONT_CARE;
-    EGLint transformFeedbackFeature         = EGL_DONT_CARE;
-    EGLint allocateNonZeroMemoryFeature     = EGL_DONT_CARE;
-    angle::PlatformMethods *platformMethods = nullptr;
+    EGLint renderer                               = EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE;
+    EGLint majorVersion                           = EGL_DONT_CARE;
+    EGLint minorVersion                           = EGL_DONT_CARE;
+    EGLint deviceType                             = EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE;
+    EGLint presentPath                            = EGL_DONT_CARE;
+    EGLint debugLayersEnabled                     = EGL_DONT_CARE;
+    EGLint contextVirtualization                  = EGL_DONT_CARE;
+    EGLint robustness                             = EGL_DONT_CARE;
+    EGLint transformFeedbackFeature               = EGL_DONT_CARE;
+    EGLint allocateNonZeroMemoryFeature           = EGL_DONT_CARE;
+    EGLint emulateCopyTexImage2DFromRenderbuffers = EGL_DONT_CARE;
+    EGLint shaderStencilOutputFeature             = EGL_DONT_CARE;
+    EGLint genMultipleMipsPerPassFeature          = EGL_DONT_CARE;
+    angle::PlatformMethods *platformMethods       = nullptr;
 };
 
 inline bool operator<(const EGLPlatformParameters &a, const EGLPlatformParameters &b)

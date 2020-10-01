@@ -91,6 +91,11 @@ Surface::Surface(EGLint surfaceType,
         mLargestPbuffer = (attributes.get(EGL_LARGEST_PBUFFER, EGL_FALSE) == EGL_TRUE);
     }
 
+    if (mType == EGL_PIXMAP_BIT)
+    {
+        mRenderBuffer = EGL_SINGLE_BUFFER;
+    }
+
     mGLColorspace =
         static_cast<EGLenum>(attributes.get(EGL_GL_COLORSPACE, EGL_GL_COLORSPACE_LINEAR));
     mVGAlphaFormat =
@@ -153,8 +158,6 @@ void Surface::postSwap(const gl::Context *context)
         mInitState = gl::InitState::MayNeedInit;
         onStateChange(angle::SubjectMessage::SubjectChanged);
     }
-
-    context->onPostSwap();
 }
 
 Error Surface::initialize(const Display *display)
@@ -273,6 +276,7 @@ EGLint Surface::getType() const
 Error Surface::swap(const gl::Context *context)
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "egl::Surface::swap");
+    context->onPreSwap();
 
     context->getState().getOverlay()->onSwap();
 
@@ -617,8 +621,19 @@ Error Surface::getFrameTimestamps(EGLuint64KHR frameId,
 
 void Surface::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message)
 {
-    ASSERT(message == angle::SubjectMessage::SubjectChanged && index == kSurfaceImplSubjectIndex);
-    onStateChange(angle::SubjectMessage::ContentsChanged);
+    ASSERT(index == kSurfaceImplSubjectIndex);
+    switch (message)
+    {
+        case angle::SubjectMessage::SubjectChanged:
+            onStateChange(angle::SubjectMessage::ContentsChanged);
+            break;
+        case angle::SubjectMessage::SurfaceChanged:
+            onStateChange(angle::SubjectMessage::SurfaceChanged);
+            break;
+        default:
+            UNREACHABLE();
+            break;
+    }
 }
 
 WindowSurface::WindowSurface(rx::EGLImplFactory *implFactory,

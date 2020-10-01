@@ -467,6 +467,11 @@ bool ValidateVertexShaderAttributeTypeMatch(const Context *context)
     const Program *program = context->getActiveLinkedProgram();
     const VertexArray *vao = context->getState().getVertexArray();
 
+    if (!program)
+    {
+        return false;
+    }
+
     unsigned long stateCurrentValuesTypeBits = glState.getCurrentValuesTypeMask().to_ulong();
     unsigned long vaoAttribTypeBits          = vao->getAttributesTypeMask().to_ulong();
     unsigned long vaoAttribEnabledMask       = vao->getAttributesMask().to_ulong();
@@ -475,10 +480,10 @@ bool ValidateVertexShaderAttributeTypeMatch(const Context *context)
     vaoAttribTypeBits = (vaoAttribEnabledMask & vaoAttribTypeBits);
     vaoAttribTypeBits |= (~vaoAttribEnabledMask & stateCurrentValuesTypeBits);
 
-    return program &&
-           ValidateComponentTypeMasks(
-               program->getExecutable().getAttributesTypeMask().to_ulong(), vaoAttribTypeBits,
-               program->getExecutable().getAttributesMask().to_ulong(), 0xFFFF);
+    const ProgramExecutable &executable = program->getExecutable();
+    return ValidateComponentTypeMasks(executable.getAttributesTypeMask().to_ulong(),
+                                      vaoAttribTypeBits, executable.getAttributesMask().to_ulong(),
+                                      0xFFFF);
 }
 
 bool IsCompatibleDrawModeWithGeometryShader(PrimitiveMode drawMode,
@@ -909,10 +914,9 @@ bool ValidImageSizeParameters(const Context *context,
     return true;
 }
 
-bool ValidCompressedDimension(GLsizei size, GLuint blockSize, bool smallerThanBlockSizeAllowed)
+bool ValidCompressedDimension(GLsizei size, GLuint blockSize, GLint level)
 {
-    return (smallerThanBlockSizeAllowed && (size > 0) && (blockSize % size == 0)) ||
-           (size % blockSize == 0);
+    return (level > 0) || (size % blockSize == 0);
 }
 
 bool ValidCompressedImageSize(const Context *context,
@@ -935,17 +939,9 @@ bool ValidCompressedImageSize(const Context *context,
 
     if (CompressedTextureFormatRequiresExactSize(internalFormat))
     {
-        // The ANGLE extensions allow specifying compressed textures with sizes smaller than the
-        // block size for level 0 but WebGL disallows this.
-        bool smallerThanBlockSizeAllowed =
-            level > 0 || !context->getExtensions().webglCompatibility;
-
-        if (!ValidCompressedDimension(width, formatInfo.compressedBlockWidth,
-                                      smallerThanBlockSizeAllowed) ||
-            !ValidCompressedDimension(height, formatInfo.compressedBlockHeight,
-                                      smallerThanBlockSizeAllowed) ||
-            !ValidCompressedDimension(depth, formatInfo.compressedBlockDepth,
-                                      smallerThanBlockSizeAllowed))
+        if (!ValidCompressedDimension(width, formatInfo.compressedBlockWidth, level) ||
+            !ValidCompressedDimension(height, formatInfo.compressedBlockHeight, level) ||
+            !ValidCompressedDimension(depth, formatInfo.compressedBlockDepth, level))
         {
             return false;
         }
@@ -1414,7 +1410,7 @@ bool ValidateBlitFramebufferParameters(const Context *context,
     }
 
     // Not allow blitting to MS buffers, therefore if renderToTextureSamples exist,
-    // consider it MS. needResourceSamples = false
+    // consider it MS. checkReadBufferResourceSamples = false
     if (!ValidateFramebufferNotMultisampled(context, drawFramebuffer, false))
     {
         return false;
@@ -2596,8 +2592,8 @@ bool ValidateCopyTexImageParametersBase(const Context *context,
         return false;
     }
 
-    // needResourceSamples = true. Treat renderToTexture textures as single sample since they will
-    // be resolved before copying
+    // checkReadBufferResourceSamples = true. Treat renderToTexture textures as single sample since
+    // they will be resolved before copying.
     if (!readFramebuffer->isDefault() &&
         !ValidateFramebufferNotMultisampled(context, readFramebuffer, true))
     {
@@ -3005,7 +3001,7 @@ const char *ValidateDrawStates(const Context *context)
             }
 
             // Detect rendering feedback loops for WebGL.
-            if (framebuffer->hasRenderingFeedbackLoop())
+            if (framebuffer->formsRenderingFeedbackLoopWith(context))
             {
                 return kFeedbackLoop;
             }
@@ -3541,7 +3537,7 @@ bool ValidateDiscardFramebufferBase(const Context *context,
                     if (!defaultFramebuffer)
                     {
                         context->validationError(GL_INVALID_ENUM,
-                                                 kDefaultFramebufferInvalidAttachment);
+                                                 kDefaultFramebufferAttachmentOnUserFBO);
                         return false;
                     }
                     break;
@@ -5487,11 +5483,18 @@ bool ValidateGetTexParameterBase(const Context *context,
         case GL_TEXTURE_MAX_LEVEL:
         case GL_TEXTURE_MIN_LOD:
         case GL_TEXTURE_MAX_LOD:
-        case GL_TEXTURE_COMPARE_MODE:
-        case GL_TEXTURE_COMPARE_FUNC:
             if (context->getClientMajorVersion() < 3)
             {
                 context->validationError(GL_INVALID_ENUM, kEnumRequiresGLES30);
+                return false;
+            }
+            break;
+
+        case GL_TEXTURE_COMPARE_MODE:
+        case GL_TEXTURE_COMPARE_FUNC:
+            if (context->getClientMajorVersion() < 3 && !context->getExtensions().shadowSamplersEXT)
+            {
+                context->validationError(GL_INVALID_ENUM, kEnumNotSupported);
                 return false;
             }
             break;
@@ -5735,6 +5738,22 @@ bool ValidatePixelPack(const Context *context,
         }
 
         *length = static_cast<GLsizei>(endByte);
+    }
+
+    if (context->getExtensions().webglCompatibility)
+    {
+        // WebGL 2.0 disallows the scenario:
+        //   GL_PACK_SKIP_PIXELS + width > DataStoreWidth
+        // where:
+        //   DataStoreWidth = (GL_PACK_ROW_LENGTH ? GL_PACK_ROW_LENGTH : width)
+        // Since these two pack parameters can only be set to non-zero values
+        // on WebGL 2.0 contexts, verify them for all WebGL contexts.
+        GLint dataStoreWidth = pack.rowLength ? pack.rowLength : width;
+        if (pack.skipPixels + width > dataStoreWidth)
+        {
+            context->validationError(GL_INVALID_OPERATION, kInvalidPackParametersForWebGL);
+            return false;
+        }
     }
 
     return true;
@@ -6616,10 +6635,11 @@ bool ValidateGetInternalFormativBase(const Context *context,
 
 bool ValidateFramebufferNotMultisampled(const Context *context,
                                         const Framebuffer *framebuffer,
-                                        bool needResourceSamples)
+                                        bool checkReadBufferResourceSamples)
 {
-    int samples = needResourceSamples ? framebuffer->getResourceSamples(context)
-                                      : framebuffer->getSamples(context);
+    int samples = checkReadBufferResourceSamples
+                      ? framebuffer->getReadBufferResourceSamples(context)
+                      : framebuffer->getSamples(context);
     if (samples != 0)
     {
         context->validationError(GL_INVALID_OPERATION, kInvalidMultisampledFramebufferOperation);

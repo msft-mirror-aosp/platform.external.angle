@@ -134,6 +134,7 @@ struct InternalFormat
 {
     InternalFormat();
     InternalFormat(const InternalFormat &other);
+    InternalFormat &operator=(const InternalFormat &other);
 
     GLuint computePixelBytes(GLenum formatType) const;
 
@@ -155,6 +156,8 @@ struct InternalFormat
                                             GLuint *resultOut) const;
 
     ANGLE_NO_DISCARD bool computeCompressedImageSize(const Extents &size, GLuint *resultOut) const;
+
+    ANGLE_NO_DISCARD std::pair<GLuint, GLuint> getCompressedImageMinBlocks() const;
 
     ANGLE_NO_DISCARD bool computeSkipBytes(GLenum formatType,
                                            GLuint rowPitch,
@@ -264,6 +267,9 @@ GLenum GetUnsizedFormat(GLenum internalFormat);
 
 // Return whether the compressed format requires whole image/mip level to be uploaded to texture.
 bool CompressedFormatRequiresWholeImage(GLenum internalFormat);
+
+// In support of GetImage, check for LUMA formats and override with real format
+void MaybeOverrideLuminance(GLenum &format, GLenum &type, GLenum actualFormat, GLenum actualType);
 
 typedef std::set<GLenum> FormatSet;
 const FormatSet &GetAllSizedInternalFormats();

@@ -35,8 +35,12 @@
 
 #if !__has_feature(objc_arc)
 #    define ANGLE_MTL_AUTORELEASE autorelease
+#    define ANGLE_MTL_RETAIN retain
+#    define ANGLE_MTL_RELEASE release
 #else
 #    define ANGLE_MTL_AUTORELEASE self
+#    define ANGLE_MTL_RETAIN self
+#    define ANGLE_MTL_RELEASE self
 #endif
 
 #define ANGLE_MTL_UNUSED __attribute__((unused))
@@ -93,7 +97,7 @@ namespace mtl
 // NOTE(hqle): support variable max number of vertex attributes
 constexpr uint32_t kMaxVertexAttribs = gl::MAX_VERTEX_ATTRIBS;
 // NOTE(hqle): support variable max number of render targets
-constexpr uint32_t kMaxRenderTargets = 1;
+constexpr uint32_t kMaxRenderTargets = 4;
 
 constexpr size_t kDefaultAttributeSize = 4 * sizeof(float);
 
@@ -112,6 +116,9 @@ constexpr uint32_t kUniformBufferSettingOffsetMinAlignment = 4;
 #endif
 constexpr uint32_t kIndexBufferOffsetAlignment = 4;
 
+// Front end binding limits
+constexpr uint32_t kMaxGLSamplerBindings = 2 * kMaxShaderSamplers;
+
 // Binding index start for vertex data buffers:
 constexpr uint32_t kVboBindingIndexStart = 0;
 
@@ -125,6 +132,8 @@ constexpr uint32_t kDefaultUniformsBindingIndex = kDefaultAttribsBindingIndex + 
 constexpr uint32_t kStencilMaskAll = 0xff;  // Only 8 bits stencil is supported
 
 constexpr float kEmulatedAlphaValue = 1.0f;
+
+constexpr size_t kOcclusionQueryResultSize = sizeof(uint64_t);
 
 // NOTE(hqle): Support ES 3.0.
 constexpr gl::Version kMaxSupportedGLVersion = gl::Version(2, 0);

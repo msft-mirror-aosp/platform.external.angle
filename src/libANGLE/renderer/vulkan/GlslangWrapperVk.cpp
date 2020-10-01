@@ -42,15 +42,16 @@ void GlslangWrapperVk::ResetGlslangProgramInterfaceInfo(
     GlslangProgramInterfaceInfo *glslangProgramInterfaceInfo)
 {
     glslangProgramInterfaceInfo->uniformsAndXfbDescriptorSetIndex =
-        kUniformsAndXfbDescriptorSetIndex;
+        ToUnderlying(DescriptorSetIndex::UniformsAndXfb);
     glslangProgramInterfaceInfo->currentUniformBindingIndex = 0;
-    glslangProgramInterfaceInfo->textureDescriptorSetIndex  = kTextureDescriptorSetIndex;
+    glslangProgramInterfaceInfo->textureDescriptorSetIndex =
+        ToUnderlying(DescriptorSetIndex::Texture);
     glslangProgramInterfaceInfo->currentTextureBindingIndex = 0;
     glslangProgramInterfaceInfo->shaderResourceDescriptorSetIndex =
-        kShaderResourceDescriptorSetIndex;
+        ToUnderlying(DescriptorSetIndex::ShaderResource);
     glslangProgramInterfaceInfo->currentShaderResourceBindingIndex = 0;
     glslangProgramInterfaceInfo->driverUniformsDescriptorSetIndex =
-        kDriverUniformsDescriptorSetIndex;
+        ToUnderlying(DescriptorSetIndex::DriverUniforms);
 
     glslangProgramInterfaceInfo->locationsUsedForXfbExtension = 0;
 }
@@ -91,8 +92,11 @@ angle::Result GlslangWrapperVk::TransformSpirV(
     const SpirvBlob &initialSpirvBlob,
     SpirvBlob *shaderCodeOut)
 {
+    const bool removeDebugInfo = !context->getRenderer()->getEnableValidationLayers();
+
     return GlslangTransformSpirvCode(
         [context](GlslangError error) { return ErrorHandler(context, error); }, shaderType,
-        removeEarlyFragmentTestsOptimization, variableInfoMap, initialSpirvBlob, shaderCodeOut);
+        removeEarlyFragmentTestsOptimization, removeDebugInfo, variableInfoMap, initialSpirvBlob,
+        shaderCodeOut);
 }
 }  // namespace rx

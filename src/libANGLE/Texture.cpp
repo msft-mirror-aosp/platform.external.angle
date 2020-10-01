@@ -97,8 +97,9 @@ TextureState::TextureState(TextureType type)
       mSamplerState(SamplerState::CreateDefaultForTarget(type)),
       mSrgbOverride(SrgbOverride::Default),
       mBaseLevel(0),
-      mMaxLevel(1000),
+      mMaxLevel(kInitialMaxLevel),
       mDepthStencilTextureMode(GL_DEPTH_COMPONENT),
+      mHasBeenBoundAsImage(false),
       mImmutableFormat(false),
       mImmutableLevels(0),
       mUsage(GL_NONE),
@@ -1187,9 +1188,17 @@ angle::Result Texture::copyImage(Context *context,
     // the copy lies entirely off the source framebuffer, initialize as though a zero-size box is
     // going to be set during the copy operation.
     Box destBox;
+    bool forceCopySubImage = false;
     if (context->isRobustResourceInitEnabled())
     {
-        Extents fbSize = source->getReadColorAttachment()->getSize();
+        const FramebufferAttachment *sourceReadAttachment = source->getReadColorAttachment();
+        Extents fbSize                                    = sourceReadAttachment->getSize();
+        // Force using copySubImage when the source area is out of bounds AND
+        // we're not copying to and from the same texture
+        forceCopySubImage = ((sourceArea.x < 0) || (sourceArea.y < 0) ||
+                             ((sourceArea.x + sourceArea.width) > fbSize.width) ||
+                             ((sourceArea.y + sourceArea.height) > fbSize.height)) &&
+                            (sourceReadAttachment->getResource() != this);
         Rectangle clippedArea;
         if (ClipRectangle(sourceArea, Rectangle(0, 0, fbSize.width, fbSize.height), &clippedArea))
         {
@@ -1204,7 +1213,7 @@ angle::Result Texture::copyImage(Context *context,
     // an initializeContents call, and then a copySubImage call. This ensures the destination
     // texture exists before we try to clear it.
     Extents size(sourceArea.width, sourceArea.height, 1);
-    if (doesSubImageNeedInit(context, index, destBox))
+    if (forceCopySubImage || doesSubImageNeedInit(context, index, destBox))
     {
         ANGLE_TRY(mTexture->setImage(context, index, internalFormat, size,
                                      internalFormatInfo.format, internalFormatInfo.type,
@@ -1297,7 +1306,7 @@ angle::Result Texture::copyTexture(Context *context,
                                     unpackPremultiplyAlpha, unpackUnmultiplyAlpha, source));
 
     const auto &sourceDesc =
-        source->mState.getImageDesc(NonCubeTextureTypeToTarget(source->getType()), 0);
+        source->mState.getImageDesc(NonCubeTextureTypeToTarget(source->getType()), sourceLevel);
     const InternalFormat &internalFormatInfo = GetInternalFormatInfo(internalFormat, type);
     mState.setImageDesc(
         target, level,
@@ -1452,7 +1461,9 @@ angle::Result Texture::setStorageExternalMemory(Context *context,
                                                 GLenum internalFormat,
                                                 const Extents &size,
                                                 MemoryObject *memoryObject,
-                                                GLuint64 offset)
+                                                GLuint64 offset,
+                                                GLbitfield createFlags,
+                                                GLbitfield usageFlags)
 {
     ASSERT(type == mState.mType);
 
@@ -1461,7 +1472,7 @@ angle::Result Texture::setStorageExternalMemory(Context *context,
     ANGLE_TRY(orphanImages(context));
 
     ANGLE_TRY(mTexture->setStorageExternalMemory(context, type, levels, internalFormat, size,
-                                                 memoryObject, offset));
+                                                 memoryObject, offset, createFlags, usageFlags));
 
     mState.mImmutableFormat = true;
     mState.mImmutableLevels = static_cast<GLuint>(levels);
@@ -1501,10 +1512,7 @@ angle::Result Texture::generateMipmap(Context *context)
         return angle::Result::Continue;
     }
 
-    if (hasAnyDirtyBit())
-    {
-        ANGLE_TRY(syncState(context));
-    }
+    ANGLE_TRY(syncState(context, Command::GenerateMipmap));
 
     // Clear the base image(s) immediately if needed
     if (context->isRobustResourceInitEnabled())
@@ -1526,7 +1534,7 @@ angle::Result Texture::generateMipmap(Context *context)
 
     ANGLE_TRY(mTexture->generateMipmap(context));
 
-    // Propagate the format and size of the bsae mip to the smaller ones. Cube maps are guaranteed
+    // Propagate the format and size of the base mip to the smaller ones. Cube maps are guaranteed
     // to have faces of the same size and format so any faces can be picked.
     const ImageDesc &baseImageInfo = mState.getImageDesc(mState.getBaseImageTarget(), baseLevel);
     mState.setImageDescChain(baseLevel, maxLevel, baseImageInfo.size, baseImageInfo.format,
@@ -1718,6 +1726,14 @@ bool Texture::isRenderable(const Context *context,
     {
         return ImageSibling::isRenderable(context, binding, imageIndex);
     }
+
+    // Surfaces bound to textures are always renderable. This avoids issues with surfaces with ES3+
+    // formats not being renderable when bound to textures in ES2 contexts.
+    if (mBoundSurface)
+    {
+        return true;
+    }
+
     return getAttachmentFormat(binding, imageIndex)
         .info->textureAttachmentSupport(context->getClientVersion(), context->getExtensions());
 }
@@ -1767,13 +1783,20 @@ GLenum Texture::getGenerateMipmapHint() const
     return mState.getGenerateMipmapHint();
 }
 
-void Texture::onAttach(const Context *context)
+void Texture::onAttach(const Context *context, rx::Serial framebufferSerial)
 {
     addRef();
+
+    // Duplicates allowed for multiple attachment points. See the comment in the header.
+    mBoundFramebufferSerials.push_back(framebufferSerial);
 }
 
-void Texture::onDetach(const Context *context)
+void Texture::onDetach(const Context *context, rx::Serial framebufferSerial)
 {
+    // Erase first instance. If there are multiple bindings, leave the others.
+    ASSERT(isBoundToFramebuffer(framebufferSerial));
+    mBoundFramebufferSerials.remove_and_permute(framebufferSerial);
+
     release(context);
 }
 
@@ -1787,10 +1810,10 @@ GLuint Texture::getNativeID() const
     return mTexture->getNativeID();
 }
 
-angle::Result Texture::syncState(const Context *context)
+angle::Result Texture::syncState(const Context *context, Command source)
 {
-    ASSERT(hasAnyDirtyBit());
-    ANGLE_TRY(mTexture->syncState(context, mDirtyBits));
+    ASSERT(hasAnyDirtyBit() || source == Command::GenerateMipmap);
+    ANGLE_TRY(mTexture->syncState(context, mDirtyBits, source));
     mDirtyBits.reset();
     return angle::Result::Continue;
 }
@@ -1918,10 +1941,7 @@ bool Texture::doesSubImageNeedInit(const Context *context,
     }
 
     ASSERT(mState.mInitState == InitState::MayNeedInit);
-    bool coversWholeImage = area.x == 0 && area.y == 0 && area.z == 0 &&
-                            area.width == desc.size.width && area.height == desc.size.height &&
-                            area.depth == desc.size.depth;
-    return !coversWholeImage;
+    return !area.coversSameExtent(desc.size);
 }
 
 angle::Result Texture::ensureSubImageInitialized(const Context *context,
@@ -2006,22 +2026,19 @@ angle::Result Texture::getTexImage(const Context *context,
 {
     if (hasAnyDirtyBit())
     {
-        ANGLE_TRY(syncState(context));
+        ANGLE_TRY(syncState(context, Command::Other));
     }
 
     return mTexture->getTexImage(context, packState, packBuffer, target, level, format, type,
                                  pixels);
 }
 
-void Texture::onBindAsImageTexture(ContextID contextID)
+void Texture::onBindAsImageTexture()
 {
-    ContextBindingCount &bindingCount = mState.getBindingCount(contextID);
-
-    ASSERT(bindingCount.imageBindingCount < std::numeric_limits<uint32_t>::max());
-    mState.getBindingCount(contextID).imageBindingCount++;
-    if (bindingCount.imageBindingCount == 1)
+    if (!mState.mHasBeenBoundAsImage)
     {
         mDirtyBits.set(DIRTY_BIT_BOUND_AS_IMAGE);
+        mState.mHasBeenBoundAsImage = true;
     }
 }
 

@@ -204,6 +204,21 @@ std::ostream &operator<<(std::ostream &stream, const PlatformParameters &pp)
         stream << "_AllocateNonZeroMemory";
     }
 
+    if (pp.eglParameters.emulateCopyTexImage2DFromRenderbuffers == EGL_TRUE)
+    {
+        stream << "_EmulateCopyTexImage2DFromRenderbuffers";
+    }
+
+    if (pp.eglParameters.shaderStencilOutputFeature == EGL_FALSE)
+    {
+        stream << "_NoStencilOutput";
+    }
+
+    if (pp.eglParameters.genMultipleMipsPerPassFeature == EGL_FALSE)
+    {
+        stream << "_NoGenMultipleMipsPerPass";
+    }
+
     return stream;
 }
 
@@ -779,18 +794,4 @@ PlatformParameters ES3_EGL()
 {
     return PlatformParameters(3, 0, GLESDriverType::SystemEGL);
 }
-
-const char *GetNativeEGLLibraryNameWithExtension()
-{
-#if defined(ANGLE_PLATFORM_ANDROID)
-    return "libEGL.so";
-#elif defined(ANGLE_PLATFORM_LINUX)
-    return "libEGL.so.1";
-#elif defined(ANGLE_PLATFORM_WINDOWS)
-    return "libEGL.dll";
-#else
-    return "unknown_libegl";
-#endif
-}
-
 }  // namespace angle

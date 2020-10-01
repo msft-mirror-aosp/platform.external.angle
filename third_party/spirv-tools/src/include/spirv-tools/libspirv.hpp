@@ -202,6 +202,11 @@ class ReducerOptions {
                                               fail_on_validation_error);
   }
 
+  // See spvReducerOptionsSetTargetFunction.
+  void set_target_function(uint32_t target_function) {
+    spvReducerOptionsSetTargetFunction(options_, target_function);
+  }
+
  private:
   spv_reducer_options options_;
 };
@@ -225,6 +230,11 @@ class FuzzerOptions {
   // See spvFuzzerOptionsSetRandomSeed.
   void set_random_seed(uint32_t seed) {
     spvFuzzerOptionsSetRandomSeed(options_, seed);
+  }
+
+  // See spvFuzzerOptionsSetReplayRange.
+  void set_replay_range(int32_t replay_range) {
+    spvFuzzerOptionsSetReplayRange(options_, replay_range);
   }
 
   // See spvFuzzerOptionsSetShrinkerStepLimit.

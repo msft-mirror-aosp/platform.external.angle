@@ -66,12 +66,6 @@ std::string StripLastArrayIndex(const std::string &name);
 
 bool SamplerNameContainsNonZeroArrayElement(const std::string &name);
 
-// Find the child field which matches 'fullName' == var.name + "." + field.name.
-// Return nullptr if not found.
-const sh::ShaderVariable *FindShaderVarField(const sh::ShaderVariable &var,
-                                             const std::string &fullName,
-                                             GLuint *fieldIndexOut);
-
 // Find the range of index values in the provided indices pointer.  Primitive restart indices are
 // only counted in the range if primitive restart is disabled.
 IndexRange ComputeIndexRange(DrawElementsType indexType,
@@ -272,5 +266,14 @@ void writeFile(const char *path, const void *data, size_t size);
 #if defined(ANGLE_PLATFORM_WINDOWS)
 void ScheduleYield();
 #endif
+
+// Get the underlying type. Useful for indexing into arrays with enum values by avoiding the clutter
+// of the extraneous static_cast<>() calls.
+// https://stackoverflow.com/a/8357462
+template <typename E>
+constexpr typename std::underlying_type<E>::type ToUnderlying(E e) noexcept
+{
+    return static_cast<typename std::underlying_type<E>::type>(e);
+}
 
 #endif  // COMMON_UTILITIES_H_

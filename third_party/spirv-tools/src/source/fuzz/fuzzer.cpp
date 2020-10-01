@@ -16,38 +16,68 @@
 
 #include <cassert>
 #include <memory>
-#include <sstream>
 
-#include "fuzzer_pass_adjust_memory_operands_masks.h"
-#include "source/fuzz/fact_manager.h"
+#include "source/fuzz/fact_manager/fact_manager.h"
 #include "source/fuzz/fuzzer_context.h"
 #include "source/fuzz/fuzzer_pass_add_access_chains.h"
+#include "source/fuzz/fuzzer_pass_add_composite_inserts.h"
 #include "source/fuzz/fuzzer_pass_add_composite_types.h"
+#include "source/fuzz/fuzzer_pass_add_copy_memory.h"
 #include "source/fuzz/fuzzer_pass_add_dead_blocks.h"
 #include "source/fuzz/fuzzer_pass_add_dead_breaks.h"
 #include "source/fuzz/fuzzer_pass_add_dead_continues.h"
 #include "source/fuzz/fuzzer_pass_add_equation_instructions.h"
 #include "source/fuzz/fuzzer_pass_add_function_calls.h"
 #include "source/fuzz/fuzzer_pass_add_global_variables.h"
+#include "source/fuzz/fuzzer_pass_add_image_sample_unused_components.h"
 #include "source/fuzz/fuzzer_pass_add_loads.h"
 #include "source/fuzz/fuzzer_pass_add_local_variables.h"
+#include "source/fuzz/fuzzer_pass_add_loop_preheaders.h"
 #include "source/fuzz/fuzzer_pass_add_no_contraction_decorations.h"
+#include "source/fuzz/fuzzer_pass_add_opphi_synonyms.h"
+#include "source/fuzz/fuzzer_pass_add_parameters.h"
+#include "source/fuzz/fuzzer_pass_add_relaxed_decorations.h"
 #include "source/fuzz/fuzzer_pass_add_stores.h"
+#include "source/fuzz/fuzzer_pass_add_synonyms.h"
+#include "source/fuzz/fuzzer_pass_add_vector_shuffle_instructions.h"
 #include "source/fuzz/fuzzer_pass_adjust_branch_weights.h"
 #include "source/fuzz/fuzzer_pass_adjust_function_controls.h"
 #include "source/fuzz/fuzzer_pass_adjust_loop_controls.h"
+#include "source/fuzz/fuzzer_pass_adjust_memory_operands_masks.h"
 #include "source/fuzz/fuzzer_pass_adjust_selection_controls.h"
 #include "source/fuzz/fuzzer_pass_apply_id_synonyms.h"
 #include "source/fuzz/fuzzer_pass_construct_composites.h"
 #include "source/fuzz/fuzzer_pass_copy_objects.h"
 #include "source/fuzz/fuzzer_pass_donate_modules.h"
+#include "source/fuzz/fuzzer_pass_duplicate_regions_with_selections.h"
+#include "source/fuzz/fuzzer_pass_inline_functions.h"
+#include "source/fuzz/fuzzer_pass_interchange_signedness_of_integer_operands.h"
+#include "source/fuzz/fuzzer_pass_interchange_zero_like_constants.h"
+#include "source/fuzz/fuzzer_pass_invert_comparison_operators.h"
+#include "source/fuzz/fuzzer_pass_make_vector_operations_dynamic.h"
 #include "source/fuzz/fuzzer_pass_merge_blocks.h"
+#include "source/fuzz/fuzzer_pass_mutate_pointers.h"
 #include "source/fuzz/fuzzer_pass_obfuscate_constants.h"
 #include "source/fuzz/fuzzer_pass_outline_functions.h"
 #include "source/fuzz/fuzzer_pass_permute_blocks.h"
 #include "source/fuzz/fuzzer_pass_permute_function_parameters.h"
+#include "source/fuzz/fuzzer_pass_permute_instructions.h"
+#include "source/fuzz/fuzzer_pass_permute_phi_operands.h"
+#include "source/fuzz/fuzzer_pass_propagate_instructions_up.h"
+#include "source/fuzz/fuzzer_pass_push_ids_through_variables.h"
+#include "source/fuzz/fuzzer_pass_replace_adds_subs_muls_with_carrying_extended.h"
+#include "source/fuzz/fuzzer_pass_replace_copy_memories_with_loads_stores.h"
+#include "source/fuzz/fuzzer_pass_replace_copy_objects_with_stores_loads.h"
+#include "source/fuzz/fuzzer_pass_replace_irrelevant_ids.h"
+#include "source/fuzz/fuzzer_pass_replace_linear_algebra_instructions.h"
+#include "source/fuzz/fuzzer_pass_replace_loads_stores_with_copy_memories.h"
+#include "source/fuzz/fuzzer_pass_replace_opphi_ids_from_dead_predecessors.h"
+#include "source/fuzz/fuzzer_pass_replace_opselects_with_conditional_branches.h"
+#include "source/fuzz/fuzzer_pass_replace_parameter_with_global.h"
+#include "source/fuzz/fuzzer_pass_replace_params_with_struct.h"
 #include "source/fuzz/fuzzer_pass_split_blocks.h"
 #include "source/fuzz/fuzzer_pass_swap_commutable_operands.h"
+#include "source/fuzz/fuzzer_pass_swap_conditional_branch_operands.h"
 #include "source/fuzz/fuzzer_pass_toggle_access_chain_instruction.h"
 #include "source/fuzz/protobufs/spirvfuzz_protobufs.h"
 #include "source/fuzz/pseudo_random_generator.h"
@@ -86,51 +116,32 @@ void MaybeAddPass(
 
 }  // namespace
 
-struct Fuzzer::Impl {
-  Impl(spv_target_env env, uint32_t random_seed, bool validate_after_each_pass,
-       spv_validator_options options)
-      : target_env(env),
-        seed(random_seed),
-        validate_after_each_fuzzer_pass(validate_after_each_pass),
-        validator_options(options) {}
-
-  bool ApplyPassAndCheckValidity(FuzzerPass* pass,
-                                 const opt::IRContext& ir_context,
-                                 const spvtools::SpirvTools& tools) const;
-
-  const spv_target_env target_env;       // Target environment.
-  MessageConsumer consumer;              // Message consumer.
-  const uint32_t seed;                   // Seed for random number generator.
-  bool validate_after_each_fuzzer_pass;  // Determines whether the validator
-                                         // should be invoked after every fuzzer
-                                         // pass.
-  spv_validator_options validator_options;  // Options to control validation.
-};
-
-Fuzzer::Fuzzer(spv_target_env env, uint32_t seed,
+Fuzzer::Fuzzer(spv_target_env target_env, uint32_t seed,
                bool validate_after_each_fuzzer_pass,
                spv_validator_options validator_options)
-    : impl_(MakeUnique<Impl>(env, seed, validate_after_each_fuzzer_pass,
-                             validator_options)) {}
+    : target_env_(target_env),
+      seed_(seed),
+      validate_after_each_fuzzer_pass_(validate_after_each_fuzzer_pass),
+      validator_options_(validator_options) {}
 
 Fuzzer::~Fuzzer() = default;
 
-void Fuzzer::SetMessageConsumer(MessageConsumer c) {
-  impl_->consumer = std::move(c);
+void Fuzzer::SetMessageConsumer(MessageConsumer consumer) {
+  consumer_ = std::move(consumer);
 }
 
-bool Fuzzer::Impl::ApplyPassAndCheckValidity(
+bool Fuzzer::ApplyPassAndCheckValidity(
     FuzzerPass* pass, const opt::IRContext& ir_context,
     const spvtools::SpirvTools& tools) const {
   pass->Apply();
-  if (validate_after_each_fuzzer_pass) {
+  if (validate_after_each_fuzzer_pass_) {
     std::vector<uint32_t> binary_to_validate;
     ir_context.module()->ToBinary(&binary_to_validate, false);
     if (!tools.Validate(&binary_to_validate[0], binary_to_validate.size(),
-                        validator_options)) {
-      consumer(SPV_MSG_INFO, nullptr, {},
-               "Binary became invalid during fuzzing (set a breakpoint to "
-               "inspect); stopping.");
+                        validator_options_)) {
+      consumer_(SPV_MSG_INFO, nullptr, {},
+                "Binary became invalid during fuzzing (set a breakpoint to "
+                "inspect); stopping.");
       return false;
     }
   }
@@ -147,29 +158,28 @@ Fuzzer::FuzzerResultStatus Fuzzer::Run(
   // header files being used.
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-  spvtools::SpirvTools tools(impl_->target_env);
-  tools.SetMessageConsumer(impl_->consumer);
+  spvtools::SpirvTools tools(target_env_);
+  tools.SetMessageConsumer(consumer_);
   if (!tools.IsValid()) {
-    impl_->consumer(SPV_MSG_ERROR, nullptr, {},
-                    "Failed to create SPIRV-Tools interface; stopping.");
+    consumer_(SPV_MSG_ERROR, nullptr, {},
+              "Failed to create SPIRV-Tools interface; stopping.");
     return Fuzzer::FuzzerResultStatus::kFailedToCreateSpirvToolsInterface;
   }
 
   // Initial binary should be valid.
-  if (!tools.Validate(&binary_in[0], binary_in.size(),
-                      impl_->validator_options)) {
-    impl_->consumer(SPV_MSG_ERROR, nullptr, {},
-                    "Initial binary is invalid; stopping.");
+  if (!tools.Validate(&binary_in[0], binary_in.size(), validator_options_)) {
+    consumer_(SPV_MSG_ERROR, nullptr, {},
+              "Initial binary is invalid; stopping.");
     return Fuzzer::FuzzerResultStatus::kInitialBinaryInvalid;
   }
 
   // Build the module from the input binary.
-  std::unique_ptr<opt::IRContext> ir_context = BuildModule(
-      impl_->target_env, impl_->consumer, binary_in.data(), binary_in.size());
+  std::unique_ptr<opt::IRContext> ir_context =
+      BuildModule(target_env_, consumer_, binary_in.data(), binary_in.size());
   assert(ir_context);
 
   // Make a PRNG from the seed passed to the fuzzer on creation.
-  PseudoRandomGenerator random_generator(impl_->seed);
+  PseudoRandomGenerator random_generator(seed_);
 
   // The fuzzer will introduce new ids into the module.  The module's id bound
   // gives the smallest id that can be used for this purpose.  We add an offset
@@ -182,17 +192,25 @@ Fuzzer::FuzzerResultStatus Fuzzer::Run(
   FuzzerContext fuzzer_context(&random_generator, minimum_fresh_id);
 
   FactManager fact_manager;
-  fact_manager.AddFacts(impl_->consumer, initial_facts, ir_context.get());
+  fact_manager.AddFacts(consumer_, initial_facts, ir_context.get());
   TransformationContext transformation_context(&fact_manager,
-                                               impl_->validator_options);
+                                               validator_options_);
 
   // Apply some semantics-preserving passes.
+  // TODO(https://github.com/KhronosGroup/SPIRV-Tools/issues/3764): Enable
+  //  certain passes to run with a higher priority than the others.
   std::vector<std::unique_ptr<FuzzerPass>> passes;
   while (passes.empty()) {
     MaybeAddPass<FuzzerPassAddAccessChains>(
         &passes, ir_context.get(), &transformation_context, &fuzzer_context,
         transformation_sequence_out);
+    MaybeAddPass<FuzzerPassAddCompositeInserts>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
     MaybeAddPass<FuzzerPassAddCompositeTypes>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassAddCopyMemory>(
         &passes, ir_context.get(), &transformation_context, &fuzzer_context,
         transformation_sequence_out);
     MaybeAddPass<FuzzerPassAddDeadBlocks>(
@@ -213,15 +231,36 @@ Fuzzer::FuzzerResultStatus Fuzzer::Run(
     MaybeAddPass<FuzzerPassAddGlobalVariables>(
         &passes, ir_context.get(), &transformation_context, &fuzzer_context,
         transformation_sequence_out);
+    MaybeAddPass<FuzzerPassAddImageSampleUnusedComponents>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
     MaybeAddPass<FuzzerPassAddLoads>(&passes, ir_context.get(),
                                      &transformation_context, &fuzzer_context,
                                      transformation_sequence_out);
     MaybeAddPass<FuzzerPassAddLocalVariables>(
         &passes, ir_context.get(), &transformation_context, &fuzzer_context,
         transformation_sequence_out);
+    MaybeAddPass<FuzzerPassAddLoopPreheaders>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassAddOpPhiSynonyms>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassAddParameters>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassAddRelaxedDecorations>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
     MaybeAddPass<FuzzerPassAddStores>(&passes, ir_context.get(),
                                       &transformation_context, &fuzzer_context,
                                       transformation_sequence_out);
+    MaybeAddPass<FuzzerPassAddSynonyms>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassAddVectorShuffleInstructions>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
     MaybeAddPass<FuzzerPassApplyIdSynonyms>(
         &passes, ir_context.get(), &transformation_context, &fuzzer_context,
         transformation_sequence_out);
@@ -234,7 +273,22 @@ Fuzzer::FuzzerResultStatus Fuzzer::Run(
     MaybeAddPass<FuzzerPassDonateModules>(
         &passes, ir_context.get(), &transformation_context, &fuzzer_context,
         transformation_sequence_out, donor_suppliers);
+    MaybeAddPass<FuzzerPassDuplicateRegionsWithSelections>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassInlineFunctions>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassInvertComparisonOperators>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassMakeVectorOperationsDynamic>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
     MaybeAddPass<FuzzerPassMergeBlocks>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassMutatePointers>(
         &passes, ir_context.get(), &transformation_context, &fuzzer_context,
         transformation_sequence_out);
     MaybeAddPass<FuzzerPassObfuscateConstants>(
@@ -249,7 +303,43 @@ Fuzzer::FuzzerResultStatus Fuzzer::Run(
     MaybeAddPass<FuzzerPassPermuteFunctionParameters>(
         &passes, ir_context.get(), &transformation_context, &fuzzer_context,
         transformation_sequence_out);
+    MaybeAddPass<FuzzerPassPermuteInstructions>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassPropagateInstructionsUp>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassPushIdsThroughVariables>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassReplaceAddsSubsMulsWithCarryingExtended>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassReplaceCopyMemoriesWithLoadsStores>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassReplaceCopyObjectsWithStoresLoads>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassReplaceLoadsStoresWithCopyMemories>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassReplaceParameterWithGlobal>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassReplaceLinearAlgebraInstructions>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassReplaceOpSelectsWithConditionalBranches>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassReplaceParamsWithStruct>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
     MaybeAddPass<FuzzerPassSplitBlocks>(
+        &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+        transformation_sequence_out);
+    MaybeAddPass<FuzzerPassSwapBranchConditionalOperands>(
         &passes, ir_context.get(), &transformation_context, &fuzzer_context,
         transformation_sequence_out);
   }
@@ -261,7 +351,7 @@ Fuzzer::FuzzerResultStatus Fuzzer::Run(
          (is_first ||
           fuzzer_context.ChoosePercentage(kChanceOfApplyingAnotherPass))) {
     is_first = false;
-    if (!impl_->ApplyPassAndCheckValidity(
+    if (!ApplyPassAndCheckValidity(
             passes[fuzzer_context.RandomIndex(passes)].get(), *ir_context,
             tools)) {
       return Fuzzer::FuzzerResultStatus::kFuzzerPassLedToInvalidModule;
@@ -289,6 +379,21 @@ Fuzzer::FuzzerResultStatus Fuzzer::Run(
   MaybeAddPass<FuzzerPassAddNoContractionDecorations>(
       &final_passes, ir_context.get(), &transformation_context, &fuzzer_context,
       transformation_sequence_out);
+  MaybeAddPass<FuzzerPassInterchangeSignednessOfIntegerOperands>(
+      &final_passes, ir_context.get(), &transformation_context, &fuzzer_context,
+      transformation_sequence_out);
+  MaybeAddPass<FuzzerPassInterchangeZeroLikeConstants>(
+      &final_passes, ir_context.get(), &transformation_context, &fuzzer_context,
+      transformation_sequence_out);
+  MaybeAddPass<FuzzerPassPermutePhiOperands>(
+      &final_passes, ir_context.get(), &transformation_context, &fuzzer_context,
+      transformation_sequence_out);
+  MaybeAddPass<FuzzerPassReplaceOpPhiIdsFromDeadPredecessors>(
+      &final_passes, ir_context.get(), &transformation_context, &fuzzer_context,
+      transformation_sequence_out);
+  MaybeAddPass<FuzzerPassReplaceIrrelevantIds>(
+      &passes, ir_context.get(), &transformation_context, &fuzzer_context,
+      transformation_sequence_out);
   MaybeAddPass<FuzzerPassSwapCommutableOperands>(
       &final_passes, ir_context.get(), &transformation_context, &fuzzer_context,
       transformation_sequence_out);
@@ -296,7 +401,7 @@ Fuzzer::FuzzerResultStatus Fuzzer::Run(
       &final_passes, ir_context.get(), &transformation_context, &fuzzer_context,
       transformation_sequence_out);
   for (auto& pass : final_passes) {
-    if (!impl_->ApplyPassAndCheckValidity(pass.get(), *ir_context, tools)) {
+    if (!ApplyPassAndCheckValidity(pass.get(), *ir_context, tools)) {
       return Fuzzer::FuzzerResultStatus::kFuzzerPassLedToInvalidModule;
     }
   }

@@ -11,14 +11,15 @@
 #include "libANGLE/renderer/vulkan/vk_cache_utils.h"
 
 #include "common/aligned_memory.h"
+#include "common/vulkan/vk_google_filtering_precision.h"
 #include "libANGLE/BlobCache.h"
 #include "libANGLE/VertexAttribute.h"
+#include "libANGLE/renderer/vulkan/DisplayVk.h"
 #include "libANGLE/renderer/vulkan/FramebufferVk.h"
 #include "libANGLE/renderer/vulkan/ProgramVk.h"
 #include "libANGLE/renderer/vulkan/RendererVk.h"
 #include "libANGLE/renderer/vulkan/VertexArrayVk.h"
 #include "libANGLE/renderer/vulkan/vk_format_utils.h"
-#include "libANGLE/renderer/vulkan/vk_google_filtering_precision.h"
 #include "libANGLE/renderer/vulkan/vk_helpers.h"
 
 #include <type_traits>
@@ -162,6 +163,31 @@ void UnpackAttachmentDesc(VkAttachmentDescription *desc,
         ConvertImageLayoutToVkImageLayout(static_cast<ImageLayout>(ops.finalLayout));
 }
 
+void UnpackResolveAttachmentDesc(VkAttachmentDescription *desc, const vk::Format &format)
+{
+    // We would only need this flag for duplicated attachments. Apply it conservatively.  In
+    // practice it's unlikely any application would use the same image as multiple resolve
+    // attachments simultaneously, so this flag can likely be removed without any issue if it incurs
+    // a performance penalty.
+    desc->flags  = VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT;
+    desc->format = format.vkImageFormat;
+
+    // We don't support depth/stencil resolve attachments currently.
+    const angle::Format &angleFormat = format.actualImageFormat();
+    ASSERT(angleFormat.depthBits == 0 && angleFormat.stencilBits == 0);
+
+    // Resolve attachments always have a sample count of 1.  For simplicity, unlikely cases where
+    // the resolve framebuffer is immediately invalidated or cleared are ignored.  Therefore, loadOp
+    // and storeOp can be fixed to DONT_CARE and STORE respectively.
+    desc->samples        = VK_SAMPLE_COUNT_1_BIT;
+    desc->loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    desc->storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+    desc->stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    desc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    desc->initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    desc->finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+}
+
 void UnpackStencilState(const vk::PackedStencilOpState &packedState,
                         uint8_t stencilReference,
                         VkStencilOpState *stateOut)
@@ -205,14 +231,19 @@ angle::Result InitializeRenderPassFromDesc(vk::Context *context,
                                            const AttachmentOpsArray &ops,
                                            RenderPass *renderPass)
 {
+    constexpr VkAttachmentReference kUnusedAttachment = {VK_ATTACHMENT_UNUSED,
+                                                         VK_IMAGE_LAYOUT_UNDEFINED};
+
     // Unpack the packed and split representation into the format required by Vulkan.
     gl::DrawBuffersVector<VkAttachmentReference> colorAttachmentRefs;
-    VkAttachmentReference depthStencilAttachmentRef = {VK_ATTACHMENT_UNUSED,
-                                                       VK_IMAGE_LAYOUT_UNDEFINED};
-    gl::AttachmentArray<VkAttachmentDescription> attachmentDescs;
+    VkAttachmentReference depthStencilAttachmentRef = kUnusedAttachment;
+    gl::DrawBuffersVector<VkAttachmentReference> colorResolveAttachmentRefs;
 
-    uint32_t colorAttachmentCount = 0;
-    uint32_t attachmentCount      = 0;
+    // The list of attachments includes all non-resolve and resolve attachments.
+    FramebufferAttachmentArray<VkAttachmentDescription> attachmentDescs;
+
+    // Pack color attachments
+    PackedAttachmentIndex attachmentCount(0);
     for (uint32_t colorIndexGL = 0; colorIndexGL < desc.colorAttachmentRange(); ++colorIndexGL)
     {
         // Vulkan says:
@@ -226,45 +257,77 @@ angle::Result InitializeRenderPassFromDesc(vk::Context *context,
 
         if (!desc.isColorAttachmentEnabled(colorIndexGL))
         {
-            VkAttachmentReference colorRef;
-            colorRef.attachment = VK_ATTACHMENT_UNUSED;
-            colorRef.layout     = VK_IMAGE_LAYOUT_UNDEFINED;
-            colorAttachmentRefs.push_back(colorRef);
-
+            colorAttachmentRefs.push_back(kUnusedAttachment);
             continue;
         }
 
-        uint32_t colorIndexVk    = colorAttachmentCount++;
         angle::FormatID formatID = desc[colorIndexGL];
         ASSERT(formatID != angle::FormatID::NONE);
         const vk::Format &format = context->getRenderer()->getFormat(formatID);
 
         VkAttachmentReference colorRef;
-        colorRef.attachment = colorIndexVk;
+        colorRef.attachment = attachmentCount.get();
         colorRef.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         colorAttachmentRefs.push_back(colorRef);
 
-        UnpackAttachmentDesc(&attachmentDescs[colorIndexVk], format, desc.samples(),
-                             ops[colorIndexVk]);
+        UnpackAttachmentDesc(&attachmentDescs[attachmentCount.get()], format, desc.samples(),
+                             ops[attachmentCount]);
 
         ++attachmentCount;
     }
 
+    // Pack depth/stencil attachment, if any
     if (desc.hasDepthStencilAttachment())
     {
-        uint32_t depthStencilIndex   = static_cast<uint32_t>(desc.depthStencilAttachmentIndex());
-        uint32_t depthStencilIndexVk = colorAttachmentCount;
+        ResourceAccess dsAccess      = desc.getDepthStencilAccess();
+        uint32_t depthStencilIndexGL = static_cast<uint32_t>(desc.depthStencilAttachmentIndex());
 
-        angle::FormatID formatID = desc[depthStencilIndex];
+        angle::FormatID formatID = desc[depthStencilIndexGL];
         ASSERT(formatID != angle::FormatID::NONE);
         const vk::Format &format = context->getRenderer()->getFormat(formatID);
 
-        depthStencilAttachmentRef.attachment = depthStencilIndexVk;
-        depthStencilAttachmentRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthStencilAttachmentRef.attachment = attachmentCount.get();
 
-        UnpackAttachmentDesc(&attachmentDescs[depthStencilIndexVk], format, desc.samples(),
-                             ops[depthStencilIndexVk]);
+        switch (dsAccess)
+        {
+            case ResourceAccess::ReadOnly:
+                depthStencilAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                break;
+            case ResourceAccess::Write:
+                depthStencilAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                break;
+            default:
+                UNREACHABLE();
+        }
+
+        UnpackAttachmentDesc(&attachmentDescs[attachmentCount.get()], format, desc.samples(),
+                             ops[attachmentCount]);
+
+        ++attachmentCount;
+    }
+
+    // Pack color resolve attachments
+    const uint32_t nonResolveAttachmentCount = attachmentCount.get();
+    for (uint32_t colorIndexGL = 0; colorIndexGL < desc.colorAttachmentRange(); ++colorIndexGL)
+    {
+        if (!desc.hasColorResolveAttachment(colorIndexGL))
+        {
+            colorResolveAttachmentRefs.push_back(kUnusedAttachment);
+            continue;
+        }
+
+        ASSERT(desc.isColorAttachmentEnabled(colorIndexGL));
+
+        const vk::Format &format = context->getRenderer()->getFormat(desc[colorIndexGL]);
+
+        VkAttachmentReference colorRef;
+        colorRef.attachment = attachmentCount.get();
+        colorRef.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        colorResolveAttachmentRefs.push_back(colorRef);
+
+        UnpackResolveAttachmentDesc(&attachmentDescs[attachmentCount.get()], format);
 
         ++attachmentCount;
     }
@@ -277,7 +340,9 @@ angle::Result InitializeRenderPassFromDesc(vk::Context *context,
     subpassDesc.pInputAttachments    = nullptr;
     subpassDesc.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRefs.size());
     subpassDesc.pColorAttachments    = colorAttachmentRefs.data();
-    subpassDesc.pResolveAttachments  = nullptr;
+    subpassDesc.pResolveAttachments  = attachmentCount.get() > nonResolveAttachmentCount
+                                          ? colorResolveAttachmentRefs.data()
+                                          : nullptr;
     subpassDesc.pDepthStencilAttachment =
         (depthStencilAttachmentRef.attachment != VK_ATTACHMENT_UNUSED ? &depthStencilAttachmentRef
                                                                       : nullptr);
@@ -287,7 +352,7 @@ angle::Result InitializeRenderPassFromDesc(vk::Context *context,
     VkRenderPassCreateInfo createInfo = {};
     createInfo.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     createInfo.flags                  = 0;
-    createInfo.attachmentCount        = attachmentCount;
+    createInfo.attachmentCount        = attachmentCount.get();
     createInfo.pAttachments           = attachmentDescs.data();
     createInfo.subpassCount           = 1;
     createInfo.pSubpasses             = &subpassDesc;
@@ -398,8 +463,38 @@ RenderPassDesc::RenderPassDesc(const RenderPassDesc &other)
 
 void RenderPassDesc::setSamples(GLint samples)
 {
-    ASSERT(samples < std::numeric_limits<uint8_t>::max());
-    mSamples = static_cast<uint8_t>(samples);
+    SetBitField(mLogSamples, PackSampleCount(samples));
+}
+
+// We can use a bit packing trick to combine two states into a smaller number of bits. The first
+// state is the "depth stencil access" mode which can be Unused/ReadOnly/Write. Naively the DS
+// access would take 2 bits. The color attachment count state can have 9 values: no attachments +
+// 1-8 attachments. Naively this would take 4 bits. So our total bit count naively would be 6. We
+// can pack into 5 bits simply by treating the combination of the 9*3 values as an enum with 27
+// values. 5 bits gives us 32 possible values. Mod and divide allow us to access the two different
+// state components of the enum.
+enum PackedAttachmentCount : uint8_t
+{
+    NoColor                   = 0,
+    ColorMax                  = NoColor + gl::IMPLEMENTATION_MAX_DRAW_BUFFERS,
+    NoColorDepthStencilRead   = ColorMax + 1,
+    ColorMaxDepthStencilRead  = NoColorDepthStencilRead + gl::IMPLEMENTATION_MAX_DRAW_BUFFERS,
+    NoColorDepthStencilWrite  = ColorMaxDepthStencilRead + 1,
+    ColorMaxDepthStencilWrite = NoColorDepthStencilWrite + gl::IMPLEMENTATION_MAX_DRAW_BUFFERS,
+    EnumCount,
+};
+
+static_assert(PackedAttachmentCount::EnumCount < angle::Bit<uint8_t>(5), "Bit overflow");
+
+size_t RenderPassDesc::colorAttachmentRange() const
+{
+    return mPackedColorAttachmentRangeAndDSAccess % (PackedAttachmentCount::ColorMax + 1);
+}
+
+ResourceAccess RenderPassDesc::getDepthStencilAccess() const
+{
+    return static_cast<ResourceAccess>(mPackedColorAttachmentRangeAndDSAccess /
+                                       (PackedAttachmentCount::ColorMax + 1));
 }
 
 void RenderPassDesc::packColorAttachment(size_t colorIndexGL, angle::FormatID formatID)
@@ -408,8 +503,8 @@ void RenderPassDesc::packColorAttachment(size_t colorIndexGL, angle::FormatID fo
     static_assert(angle::kNumANGLEFormats < std::numeric_limits<uint8_t>::max(),
                   "Too many ANGLE formats to fit in uint8_t");
     // Force the user to pack the depth/stencil attachment last.
-    ASSERT(mHasDepthStencilAttachment == false);
-    // This function should only be called for enabled GL color attachments.`
+    ASSERT(!hasDepthStencilAttachment());
+    // This function should only be called for enabled GL color attachments.
     ASSERT(formatID != angle::FormatID::NONE);
 
     uint8_t &packedFormat = mAttachmentFormats[colorIndexGL];
@@ -417,8 +512,8 @@ void RenderPassDesc::packColorAttachment(size_t colorIndexGL, angle::FormatID fo
 
     // Set color attachment range such that it covers the range from index 0 through last
     // active index.  This is the reason why we need depth/stencil to be packed last.
-    mColorAttachmentRange =
-        std::max<uint8_t>(mColorAttachmentRange, static_cast<uint8_t>(colorIndexGL) + 1);
+    SetBitField(mPackedColorAttachmentRangeAndDSAccess,
+                std::max<size_t>(mPackedColorAttachmentRangeAndDSAccess, colorIndexGL + 1));
 }
 
 void RenderPassDesc::packColorAttachmentGap(size_t colorIndexGL)
@@ -427,17 +522,17 @@ void RenderPassDesc::packColorAttachmentGap(size_t colorIndexGL)
     static_assert(angle::kNumANGLEFormats < std::numeric_limits<uint8_t>::max(),
                   "Too many ANGLE formats to fit in uint8_t");
     // Force the user to pack the depth/stencil attachment last.
-    ASSERT(mHasDepthStencilAttachment == false);
+    ASSERT(!hasDepthStencilAttachment());
 
     // Use NONE as a flag for gaps in GL color attachments.
     uint8_t &packedFormat = mAttachmentFormats[colorIndexGL];
     SetBitField(packedFormat, angle::FormatID::NONE);
 }
 
-void RenderPassDesc::packDepthStencilAttachment(angle::FormatID formatID)
+void RenderPassDesc::packDepthStencilAttachment(angle::FormatID formatID, ResourceAccess access)
 {
-    // Though written as Count, there is only ever a single depth/stencil attachment.
-    ASSERT(mHasDepthStencilAttachment == false);
+    ASSERT(access != ResourceAccess::Unused);
+    ASSERT(!hasDepthStencilAttachment());
 
     size_t index = depthStencilAttachmentIndex();
     ASSERT(index < mAttachmentFormats.size());
@@ -445,7 +540,24 @@ void RenderPassDesc::packDepthStencilAttachment(angle::FormatID formatID)
     uint8_t &packedFormat = mAttachmentFormats[index];
     SetBitField(packedFormat, formatID);
 
-    mHasDepthStencilAttachment = true;
+    size_t colorRange = colorAttachmentRange();
+    size_t offset =
+        access == ResourceAccess::ReadOnly ? NoColorDepthStencilRead : NoColorDepthStencilWrite;
+    SetBitField(mPackedColorAttachmentRangeAndDSAccess, colorRange + offset);
+}
+
+void RenderPassDesc::packColorResolveAttachment(size_t colorIndexGL)
+{
+    ASSERT(isColorAttachmentEnabled(colorIndexGL));
+    ASSERT(!mColorResolveAttachmentMask.test(colorIndexGL));
+    ASSERT(mLogSamples > 0);
+    mColorResolveAttachmentMask.set(colorIndexGL);
+}
+
+void RenderPassDesc::removeColorResolveAttachment(size_t colorIndexGL)
+{
+    ASSERT(mColorResolveAttachmentMask.test(colorIndexGL));
+    mColorResolveAttachmentMask.reset(colorIndexGL);
 }
 
 RenderPassDesc &RenderPassDesc::operator=(const RenderPassDesc &other)
@@ -468,14 +580,16 @@ bool RenderPassDesc::isColorAttachmentEnabled(size_t colorIndexGL) const
 size_t RenderPassDesc::attachmentCount() const
 {
     size_t colorAttachmentCount = 0;
-    for (size_t i = 0; i < mColorAttachmentRange; ++i)
+    size_t colorRange           = colorAttachmentRange();
+    for (size_t i = 0; i < colorRange; ++i)
     {
         colorAttachmentCount += isColorAttachmentEnabled(i);
     }
 
     // Note that there are no gaps in depth/stencil attachments.  In fact there is a maximum of 1 of
     // it.
-    return colorAttachmentCount + mHasDepthStencilAttachment;
+    size_t depthStencilCount = hasDepthStencilAttachment() ? 1 : 0;
+    return colorAttachmentCount + mColorResolveAttachmentMask.count() + depthStencilCount;
 }
 
 bool operator==(const RenderPassDesc &lhs, const RenderPassDesc &rhs)
@@ -1129,7 +1243,8 @@ void GraphicsPipelineDesc::updateBlendFuncs(GraphicsPipelineTransitionBits *tran
 }
 
 void GraphicsPipelineDesc::setColorWriteMask(VkColorComponentFlags colorComponentFlags,
-                                             const gl::DrawBufferMask &alphaMask)
+                                             const gl::DrawBufferMask &alphaMask,
+                                             const gl::DrawBufferMask &enabledDrawBuffers)
 {
     PackedInputAssemblyAndColorBlendStateInfo &inputAndBlend = mInputAssemblyAndColorBlendStateInfo;
     uint8_t colorMask = static_cast<uint8_t>(colorComponentFlags);
@@ -1137,8 +1252,11 @@ void GraphicsPipelineDesc::setColorWriteMask(VkColorComponentFlags colorComponen
     for (uint32_t colorIndexGL = 0; colorIndexGL < gl::IMPLEMENTATION_MAX_DRAW_BUFFERS;
          colorIndexGL++)
     {
-        uint8_t mask =
-            alphaMask[colorIndexGL] ? (colorMask & ~VK_COLOR_COMPONENT_A_BIT) : colorMask;
+        uint8_t mask = 0;
+        if (enabledDrawBuffers.test(colorIndexGL))
+        {
+            mask = alphaMask[colorIndexGL] ? (colorMask & ~VK_COLOR_COMPONENT_A_BIT) : colorMask;
+        }
         Int4Array_Set(inputAndBlend.colorWriteMaskBits, colorIndexGL, mask);
     }
 }
@@ -1153,9 +1271,10 @@ void GraphicsPipelineDesc::setSingleColorWriteMask(uint32_t colorIndexGL,
 
 void GraphicsPipelineDesc::updateColorWriteMask(GraphicsPipelineTransitionBits *transition,
                                                 VkColorComponentFlags colorComponentFlags,
-                                                const gl::DrawBufferMask &alphaMask)
+                                                const gl::DrawBufferMask &alphaMask,
+                                                const gl::DrawBufferMask &enabledDrawBuffers)
 {
-    setColorWriteMask(colorComponentFlags, alphaMask);
+    setColorWriteMask(colorComponentFlags, alphaMask, enabledDrawBuffers);
 
     for (size_t colorIndexGL = 0; colorIndexGL < gl::IMPLEMENTATION_MAX_DRAW_BUFFERS;
          colorIndexGL++)
@@ -1433,17 +1552,17 @@ AttachmentOpsArray &AttachmentOpsArray::operator=(const AttachmentOpsArray &othe
     return *this;
 }
 
-const PackedAttachmentOpsDesc &AttachmentOpsArray::operator[](size_t index) const
+const PackedAttachmentOpsDesc &AttachmentOpsArray::operator[](PackedAttachmentIndex index) const
 {
-    return mOps[index];
+    return mOps[index.get()];
 }
 
-PackedAttachmentOpsDesc &AttachmentOpsArray::operator[](size_t index)
+PackedAttachmentOpsDesc &AttachmentOpsArray::operator[](PackedAttachmentIndex index)
 {
-    return mOps[index];
+    return mOps[index.get()];
 }
 
-void AttachmentOpsArray::initWithLoadStore(size_t index,
+void AttachmentOpsArray::initWithLoadStore(PackedAttachmentIndex index,
                                            ImageLayout initialLayout,
                                            ImageLayout finalLayout)
 {
@@ -1452,31 +1571,43 @@ void AttachmentOpsArray::initWithLoadStore(size_t index,
     setStencilOps(index, VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE);
 }
 
-void AttachmentOpsArray::setLayouts(size_t index,
+void AttachmentOpsArray::setLayouts(PackedAttachmentIndex index,
                                     ImageLayout initialLayout,
                                     ImageLayout finalLayout)
 {
-    PackedAttachmentOpsDesc &ops = mOps[index];
+    PackedAttachmentOpsDesc &ops = mOps[index.get()];
     SetBitField(ops.initialLayout, initialLayout);
     SetBitField(ops.finalLayout, finalLayout);
 }
 
-void AttachmentOpsArray::setOps(size_t index,
+void AttachmentOpsArray::setOps(PackedAttachmentIndex index,
                                 VkAttachmentLoadOp loadOp,
                                 VkAttachmentStoreOp storeOp)
 {
-    PackedAttachmentOpsDesc &ops = mOps[index];
+    PackedAttachmentOpsDesc &ops = mOps[index.get()];
     SetBitField(ops.loadOp, loadOp);
     SetBitField(ops.storeOp, storeOp);
 }
 
-void AttachmentOpsArray::setStencilOps(size_t index,
+void AttachmentOpsArray::setStencilOps(PackedAttachmentIndex index,
                                        VkAttachmentLoadOp loadOp,
                                        VkAttachmentStoreOp storeOp)
 {
-    PackedAttachmentOpsDesc &ops = mOps[index];
+    PackedAttachmentOpsDesc &ops = mOps[index.get()];
     SetBitField(ops.stencilLoadOp, loadOp);
     SetBitField(ops.stencilStoreOp, storeOp);
+}
+
+void AttachmentOpsArray::setClearOp(PackedAttachmentIndex index)
+{
+    PackedAttachmentOpsDesc &ops = mOps[index.get()];
+    SetBitField(ops.loadOp, VK_ATTACHMENT_LOAD_OP_CLEAR);
+}
+
+void AttachmentOpsArray::setClearStencilOp(PackedAttachmentIndex index)
+{
+    PackedAttachmentOpsDesc &ops = mOps[index.get()];
+    SetBitField(ops.stencilLoadOp, VK_ATTACHMENT_LOAD_OP_CLEAR);
 }
 
 size_t AttachmentOpsArray::hash() const
@@ -1513,7 +1644,8 @@ bool DescriptorSetLayoutDesc::operator==(const DescriptorSetLayoutDesc &other) c
 void DescriptorSetLayoutDesc::update(uint32_t bindingIndex,
                                      VkDescriptorType type,
                                      uint32_t count,
-                                     VkShaderStageFlags stages)
+                                     VkShaderStageFlags stages,
+                                     const vk::Sampler *immutableSampler)
 {
     ASSERT(static_cast<size_t>(type) < std::numeric_limits<uint16_t>::max());
     ASSERT(count < std::numeric_limits<uint16_t>::max());
@@ -1523,9 +1655,18 @@ void DescriptorSetLayoutDesc::update(uint32_t bindingIndex,
     SetBitField(packedBinding.type, type);
     SetBitField(packedBinding.count, count);
     SetBitField(packedBinding.stages, stages);
+    packedBinding.immutableSampler = VK_NULL_HANDLE;
+    packedBinding.pad              = 0;
+
+    if (immutableSampler)
+    {
+        ASSERT(count == 1);
+        packedBinding.immutableSampler = immutableSampler->getHandle();
+    }
 }
 
-void DescriptorSetLayoutDesc::unpackBindings(DescriptorSetLayoutBindingVector *bindings) const
+void DescriptorSetLayoutDesc::unpackBindings(DescriptorSetLayoutBindingVector *bindings,
+                                             std::vector<VkSampler> *immutableSamplers) const
 {
     for (uint32_t bindingIndex = 0; bindingIndex < kMaxDescriptorSetLayoutBindings; ++bindingIndex)
     {
@@ -1537,10 +1678,28 @@ void DescriptorSetLayoutDesc::unpackBindings(DescriptorSetLayoutBindingVector *b
         binding.binding                      = bindingIndex;
         binding.descriptorCount              = packedBinding.count;
         binding.descriptorType               = static_cast<VkDescriptorType>(packedBinding.type);
-        binding.stageFlags         = static_cast<VkShaderStageFlags>(packedBinding.stages);
-        binding.pImmutableSamplers = nullptr;
+        binding.stageFlags = static_cast<VkShaderStageFlags>(packedBinding.stages);
+        if (packedBinding.immutableSampler != VK_NULL_HANDLE)
+        {
+            ASSERT(packedBinding.count == 1);
+            immutableSamplers->push_back(packedBinding.immutableSampler);
+            binding.pImmutableSamplers = reinterpret_cast<const VkSampler *>(angle::DirtyPointer);
+        }
 
         bindings->push_back(binding);
+    }
+    if (!immutableSamplers->empty())
+    {
+        // Patch up pImmutableSampler addresses now that the vector is stable
+        int immutableIndex = 0;
+        for (VkDescriptorSetLayoutBinding &binding : *bindings)
+        {
+            if (binding.pImmutableSamplers)
+            {
+                binding.pImmutableSamplers = &(*immutableSamplers)[immutableIndex];
+                immutableIndex++;
+            }
+        }
     }
 }
 
@@ -1568,11 +1727,11 @@ bool PipelineLayoutDesc::operator==(const PipelineLayoutDesc &other) const
     return memcmp(this, &other, sizeof(PipelineLayoutDesc)) == 0;
 }
 
-void PipelineLayoutDesc::updateDescriptorSetLayout(uint32_t setIndex,
+void PipelineLayoutDesc::updateDescriptorSetLayout(DescriptorSetIndex setIndex,
                                                    const DescriptorSetLayoutDesc &desc)
 {
-    ASSERT(setIndex < mDescriptorSetLayouts.size());
-    mDescriptorSetLayouts[setIndex] = desc;
+    ASSERT(ToUnderlying(setIndex) < mDescriptorSetLayouts.size());
+    mDescriptorSetLayouts[ToUnderlying(setIndex)] = desc;
 }
 
 void PipelineLayoutDesc::updatePushConstantRange(gl::ShaderType shaderType,
@@ -1611,7 +1770,7 @@ void PipelineHelper::addTransition(GraphicsPipelineTransitionBits bits,
 
 TextureDescriptorDesc::TextureDescriptorDesc() : mMaxIndex(0)
 {
-    mSerials.fill({0, 0});
+    mSerials.fill({kInvalidImageViewSubresourceSerial, kInvalidSamplerSerial});
 }
 
 TextureDescriptorDesc::~TextureDescriptorDesc()                                  = default;
@@ -1619,19 +1778,17 @@ TextureDescriptorDesc::TextureDescriptorDesc(const TextureDescriptorDesc &other)
 TextureDescriptorDesc &TextureDescriptorDesc::operator=(const TextureDescriptorDesc &other) =
     default;
 
-void TextureDescriptorDesc::update(size_t index, Serial textureSerial, Serial samplerSerial)
+void TextureDescriptorDesc::update(size_t index,
+                                   ImageViewSubresourceSerial imageViewSerial,
+                                   SamplerSerial samplerSerial)
 {
     if (index >= mMaxIndex)
     {
         mMaxIndex = static_cast<uint32_t>(index + 1);
     }
 
-    // If the serial number overflows we should defragment and regenerate all serials.
-    // There should never be more than UINT_MAX textures alive at a time.
-    ASSERT(textureSerial.getValue() < std::numeric_limits<uint32_t>::max());
-    ASSERT(samplerSerial.getValue() < std::numeric_limits<uint32_t>::max());
-    mSerials[index].texture = static_cast<uint32_t>(textureSerial.getValue());
-    mSerials[index].sampler = static_cast<uint32_t>(samplerSerial.getValue());
+    mSerials[index].imageView = imageViewSerial;
+    mSerials[index].sampler   = samplerSerial;
 }
 
 size_t TextureDescriptorDesc::hash() const
@@ -1656,6 +1813,37 @@ bool TextureDescriptorDesc::operator==(const TextureDescriptorDesc &other) const
     return memcmp(mSerials.data(), other.mSerials.data(), sizeof(TexUnitSerials) * mMaxIndex) == 0;
 }
 
+// UniformsAndXfbDesc implementation.
+UniformsAndXfbDesc::UniformsAndXfbDesc()
+{
+    reset();
+}
+
+UniformsAndXfbDesc::~UniformsAndXfbDesc()                               = default;
+UniformsAndXfbDesc::UniformsAndXfbDesc(const UniformsAndXfbDesc &other) = default;
+UniformsAndXfbDesc &UniformsAndXfbDesc::operator=(const UniformsAndXfbDesc &other) = default;
+
+size_t UniformsAndXfbDesc::hash() const
+{
+    return angle::ComputeGenericHash(&mBufferSerials, sizeof(BufferSerial) * mBufferCount);
+}
+
+void UniformsAndXfbDesc::reset()
+{
+    mBufferCount = 0;
+    memset(&mBufferSerials, 0, sizeof(BufferSerial) * kMaxBufferCount);
+}
+
+bool UniformsAndXfbDesc::operator==(const UniformsAndXfbDesc &other) const
+{
+    if (mBufferCount != other.mBufferCount)
+    {
+        return false;
+    }
+
+    return memcmp(&mBufferSerials, &other.mBufferSerials, sizeof(BufferSerial) * mBufferCount) == 0;
+}
+
 // FramebufferDesc implementation.
 
 FramebufferDesc::FramebufferDesc()
@@ -1667,34 +1855,70 @@ FramebufferDesc::~FramebufferDesc()                            = default;
 FramebufferDesc::FramebufferDesc(const FramebufferDesc &other) = default;
 FramebufferDesc &FramebufferDesc::operator=(const FramebufferDesc &other) = default;
 
-void FramebufferDesc::update(uint32_t index, AttachmentSerial serial)
+void FramebufferDesc::update(uint32_t index, ImageViewSubresourceSerial serial)
 {
     ASSERT(index < kMaxFramebufferAttachments);
     mSerials[index] = serial;
+    if (serial.imageViewSerial.valid())
+    {
+        mMaxIndex = std::max(mMaxIndex, static_cast<uint16_t>(index + 1));
+    }
+}
+
+void FramebufferDesc::updateColor(uint32_t index, ImageViewSubresourceSerial serial)
+{
+    update(kFramebufferDescColorIndexOffset + index, serial);
+}
+
+void FramebufferDesc::updateColorResolve(uint32_t index, ImageViewSubresourceSerial serial)
+{
+    update(kFramebufferDescResolveIndexOffset + index, serial);
+}
+
+void FramebufferDesc::updateDepthStencil(ImageViewSubresourceSerial serial)
+{
+    update(kFramebufferDescDepthStencilIndex, serial);
+}
+
+void FramebufferDesc::updateReadOnlyDepth(bool readOnlyDepth)
+{
+    mReadOnlyDepth = readOnlyDepth;
 }
 
 size_t FramebufferDesc::hash() const
 {
-    return angle::ComputeGenericHash(&mSerials,
-                                     sizeof(AttachmentSerial) * kMaxFramebufferAttachments);
+    return angle::ComputeGenericHash(&mSerials, sizeof(mSerials[0]) * (mMaxIndex + 1));
 }
 
 void FramebufferDesc::reset()
 {
-    memset(&mSerials, 0, sizeof(AttachmentSerial) * kMaxFramebufferAttachments);
+    mMaxIndex      = 0;
+    mReadOnlyDepth = false;
+    memset(&mSerials, 0, sizeof(mSerials));
 }
 
 bool FramebufferDesc::operator==(const FramebufferDesc &other) const
 {
-    return memcmp(&mSerials, &other.mSerials, sizeof(Serial) * kMaxFramebufferAttachments) == 0;
+    if (mMaxIndex != other.mMaxIndex)
+    {
+        return false;
+    }
+
+    if (mReadOnlyDepth != other.mReadOnlyDepth)
+    {
+        return false;
+    }
+
+    size_t validRegionSize = sizeof(mSerials[0]) * mMaxIndex;
+    return memcmp(&mSerials, &other.mSerials, validRegionSize) == 0;
 }
 
 uint32_t FramebufferDesc::attachmentCount() const
 {
     uint32_t count = 0;
-    for (const AttachmentSerial &serial : mSerials)
+    for (const ImageViewSubresourceSerial &serial : mSerials)
     {
-        if (serial.imageSerial != 0)
+        if (serial.imageViewSerial.valid())
         {
             count++;
         }
@@ -1714,9 +1938,11 @@ SamplerDesc::SamplerDesc(const SamplerDesc &other) = default;
 
 SamplerDesc &SamplerDesc::operator=(const SamplerDesc &rhs) = default;
 
-SamplerDesc::SamplerDesc(const gl::SamplerState &samplerState, bool stencilMode)
+SamplerDesc::SamplerDesc(const gl::SamplerState &samplerState,
+                         bool stencilMode,
+                         uint64_t externalFormat)
 {
-    update(samplerState, stencilMode);
+    update(samplerState, stencilMode, externalFormat);
 }
 
 void SamplerDesc::reset()
@@ -1725,6 +1951,7 @@ void SamplerDesc::reset()
     mMaxAnisotropy  = 0.0f;
     mMinLod         = 0.0f;
     mMaxLod         = 0.0f;
+    mExternalFormat = 0;
     mMagFilter      = 0;
     mMinFilter      = 0;
     mMipmapMode     = 0;
@@ -1733,15 +1960,22 @@ void SamplerDesc::reset()
     mAddressModeW   = 0;
     mCompareEnabled = 0;
     mCompareOp      = 0;
-    mReserved       = 0;
+    mReserved[0]    = 0;
+    mReserved[1]    = 0;
+    mReserved[2]    = 0;
 }
 
-void SamplerDesc::update(const gl::SamplerState &samplerState, bool stencilMode)
+void SamplerDesc::update(const gl::SamplerState &samplerState,
+                         bool stencilMode,
+                         uint64_t externalFormat)
 {
     mMipLodBias    = 0.0f;
     mMaxAnisotropy = samplerState.getMaxAnisotropy();
     mMinLod        = samplerState.getMinLod();
     mMaxLod        = samplerState.getMaxLod();
+
+    // GL has no notion of external format, this must be provided from metadata from the image
+    mExternalFormat = externalFormat;
 
     bool compareEnable    = samplerState.getCompareMode() == GL_COMPARE_REF_TO_TEXTURE;
     VkCompareOp compareOp = gl_vk::GetCompareOp(samplerState.getCompareFunc());
@@ -1772,7 +2006,9 @@ void SamplerDesc::update(const gl::SamplerState &samplerState, bool stencilMode)
         mMaxLod = 0.25f;
     }
 
-    mReserved = 0;
+    mReserved[0] = 0;
+    mReserved[1] = 0;
+    mReserved[2] = 0;
 }
 
 angle::Result SamplerDesc::init(ContextVk *contextVk, vk::Sampler *sampler) const
@@ -1814,6 +2050,25 @@ angle::Result SamplerDesc::init(ContextVk *contextVk, vk::Sampler *sampler) cons
         vk::AddToPNextChain(&createInfo, &filteringInfo);
     }
 
+    VkSamplerYcbcrConversionInfo yuvConversionInfo = {};
+    if (mExternalFormat)
+    {
+        ASSERT((contextVk->getRenderer()->getFeatures().supportsYUVSamplerConversion.enabled));
+        yuvConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO;
+        yuvConversionInfo.pNext = nullptr;
+        yuvConversionInfo.conversion =
+            contextVk->getRenderer()->getYuvConversionCache().getYuvConversionFromExternalFormat(
+                mExternalFormat);
+        vk::AddToPNextChain(&createInfo, &yuvConversionInfo);
+
+        // Vulkan spec requires these settings:
+        createInfo.addressModeU            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        createInfo.addressModeV            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        createInfo.addressModeW            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        createInfo.anisotropyEnable        = VK_FALSE;
+        createInfo.unnormalizedCoordinates = VK_FALSE;
+    }
+
     ANGLE_VK_TRY(contextVk, sampler->init(contextVk->getDevice(), createInfo));
 
     return angle::Result::Continue;
@@ -1827,6 +2082,25 @@ size_t SamplerDesc::hash() const
 bool SamplerDesc::operator==(const SamplerDesc &other) const
 {
     return (memcmp(this, &other, sizeof(SamplerDesc)) == 0);
+}
+
+// SamplerHelper implementation.
+SamplerHelper::SamplerHelper(ContextVk *contextVk)
+    : mSamplerSerial(contextVk->getRenderer()->getResourceSerialFactory().generateSamplerSerial())
+{}
+
+SamplerHelper::~SamplerHelper() {}
+
+SamplerHelper::SamplerHelper(SamplerHelper &&samplerHelper)
+{
+    *this = std::move(samplerHelper);
+}
+
+SamplerHelper &SamplerHelper::operator=(SamplerHelper &&rhs)
+{
+    std::swap(mSampler, rhs.mSampler);
+    std::swap(mSamplerSerial, rhs.mSamplerSerial);
+    return *this;
 }
 }  // namespace vk
 
@@ -1861,7 +2135,7 @@ angle::Result RenderPassCache::addRenderPass(ContextVk *contextVk,
     // It would be nice to pre-populate the cache in the Renderer so we rarely miss here.
     vk::AttachmentOpsArray ops;
 
-    uint32_t colorAttachmentCount = 0;
+    vk::PackedAttachmentIndex colorIndexVk(0);
     for (uint32_t colorIndexGL = 0; colorIndexGL < desc.colorAttachmentRange(); ++colorIndexGL)
     {
         if (!desc.isColorAttachmentEnabled(colorIndexGL))
@@ -1869,16 +2143,26 @@ angle::Result RenderPassCache::addRenderPass(ContextVk *contextVk,
             continue;
         }
 
-        uint32_t colorIndexVk = colorAttachmentCount++;
         ops.initWithLoadStore(colorIndexVk, vk::ImageLayout::ColorAttachment,
                               vk::ImageLayout::ColorAttachment);
+        ++colorIndexVk;
     }
 
     if (desc.hasDepthStencilAttachment())
     {
-        uint32_t depthStencilIndexVk = colorAttachmentCount;
-        ops.initWithLoadStore(depthStencilIndexVk, vk::ImageLayout::DepthStencilAttachment,
-                              vk::ImageLayout::DepthStencilAttachment);
+        vk::ResourceAccess dsAccess = desc.getDepthStencilAccess();
+        vk::ImageLayout imageLayout;
+        if (dsAccess == vk::ResourceAccess::ReadOnly)
+        {
+            imageLayout = vk::ImageLayout::DepthStencilReadOnly;
+        }
+        else
+        {
+            ASSERT(dsAccess == vk::ResourceAccess::Write);
+            imageLayout = vk::ImageLayout::DepthStencilAttachment;
+        }
+
+        ops.initWithLoadStore(colorIndexVk, imageLayout, imageLayout);
     }
 
     return getRenderPassWithOps(contextVk, serial, desc, ops, renderPassOut);
@@ -2034,14 +2318,15 @@ angle::Result DescriptorSetLayoutCache::getDescriptorSetLayout(
     }
 
     // We must unpack the descriptor set layout description.
-    vk::DescriptorSetLayoutBindingVector bindings;
-    desc.unpackBindings(&bindings);
+    vk::DescriptorSetLayoutBindingVector bindingVector;
+    std::vector<VkSampler> immutableSamplers;
+    desc.unpackBindings(&bindingVector, &immutableSamplers);
 
     VkDescriptorSetLayoutCreateInfo createInfo = {};
     createInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     createInfo.flags        = 0;
-    createInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    createInfo.pBindings    = bindings.data();
+    createInfo.bindingCount = static_cast<uint32_t>(bindingVector.size());
+    createInfo.pBindings    = bindingVector.data();
 
     vk::DescriptorSetLayout newLayout;
     ANGLE_VK_TRY(context, newLayout.init(context->getDevice(), createInfo));
@@ -2139,6 +2424,73 @@ angle::Result PipelineLayoutCache::getPipelineLayout(
     return angle::Result::Continue;
 }
 
+// YuvConversionCache implementation
+SamplerYcbcrConversionCache::SamplerYcbcrConversionCache() = default;
+
+SamplerYcbcrConversionCache::~SamplerYcbcrConversionCache()
+{
+    ASSERT(mPayload.empty());
+}
+
+void SamplerYcbcrConversionCache::destroy(RendererVk *renderer)
+{
+    VkDevice device = renderer->getDevice();
+
+    for (auto &iter : mPayload)
+    {
+        vk::RefCountedSamplerYcbcrConversion &yuvSampler = iter.second;
+        ASSERT(!yuvSampler.isReferenced());
+        yuvSampler.get().destroy(device);
+
+        renderer->getActiveHandleCounts().onDeallocate(vk::HandleType::SamplerYcbcrConversion);
+    }
+
+    mPayload.clear();
+}
+
+angle::Result SamplerYcbcrConversionCache::getYuvConversion(
+    vk::Context *context,
+    uint64_t externalFormat,
+    const VkSamplerYcbcrConversionCreateInfo &yuvConversionCreateInfo,
+    vk::BindingPointer<vk::SamplerYcbcrConversion> *yuvConversionOut)
+{
+    const auto iter = mPayload.find(externalFormat);
+    if (iter != mPayload.end())
+    {
+        vk::RefCountedSamplerYcbcrConversion &yuvConversion = iter->second;
+        yuvConversionOut->set(&yuvConversion);
+        return angle::Result::Continue;
+    }
+
+    vk::SamplerYcbcrConversion wrappedYuvConversion;
+    ANGLE_VK_TRY(context, wrappedYuvConversion.init(context->getDevice(), yuvConversionCreateInfo));
+
+    auto insertedItem = mPayload.emplace(
+        externalFormat, vk::RefCountedSamplerYcbcrConversion(std::move(wrappedYuvConversion)));
+    vk::RefCountedSamplerYcbcrConversion &insertedYuvConversion = insertedItem.first->second;
+    yuvConversionOut->set(&insertedYuvConversion);
+
+    context->getRenderer()->getActiveHandleCounts().onAllocate(
+        vk::HandleType::SamplerYcbcrConversion);
+
+    return angle::Result::Continue;
+}
+
+VkSamplerYcbcrConversion SamplerYcbcrConversionCache::getYuvConversionFromExternalFormat(
+    uint64_t externalFormat) const
+{
+    const auto iter = mPayload.find(externalFormat);
+    if (iter != mPayload.end())
+    {
+        const vk::RefCountedSamplerYcbcrConversion &yuvConversion = iter->second;
+        return yuvConversion.get().getHandle();
+    }
+
+    // Should never get here if we have a valid externalFormat.
+    UNREACHABLE();
+    return VK_NULL_HANDLE;
+}
+
 // SamplerCache implementation.
 SamplerCache::SamplerCache() = default;
 
@@ -2155,7 +2507,7 @@ void SamplerCache::destroy(RendererVk *renderer)
     {
         vk::RefCountedSampler &sampler = iter.second;
         ASSERT(!sampler.isReferenced());
-        sampler.get().destroy(device);
+        sampler.get().get().destroy(device);
 
         renderer->getActiveHandleCounts().onDeallocate(vk::HandleType::Sampler);
     }
@@ -2165,7 +2517,7 @@ void SamplerCache::destroy(RendererVk *renderer)
 
 angle::Result SamplerCache::getSampler(ContextVk *contextVk,
                                        const vk::SamplerDesc &desc,
-                                       vk::BindingPointer<vk::Sampler> *samplerOut)
+                                       vk::SamplerBinding *samplerOut)
 {
     auto iter = mPayload.find(desc);
     if (iter != mPayload.end())
@@ -2175,10 +2527,11 @@ angle::Result SamplerCache::getSampler(ContextVk *contextVk,
         return angle::Result::Continue;
     }
 
-    vk::Sampler sampler;
-    ANGLE_TRY(desc.init(contextVk, &sampler));
+    vk::SamplerHelper samplerHelper(contextVk);
+    ANGLE_TRY(desc.init(contextVk, &samplerHelper.get()));
 
-    auto insertedItem = mPayload.emplace(desc, vk::RefCountedSampler(std::move(sampler)));
+    vk::RefCountedSampler newSampler(std::move(samplerHelper));
+    auto insertedItem                      = mPayload.emplace(desc, std::move(newSampler));
     vk::RefCountedSampler &insertedSampler = insertedItem.first->second;
     samplerOut->set(&insertedSampler);
 

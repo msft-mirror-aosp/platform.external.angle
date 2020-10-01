@@ -14,6 +14,7 @@
 
 #include "common/mathutil.h"
 #include "common/platform.h"
+#include "gpu_info_util/SystemInfo.h"
 #include "libANGLE/Buffer.h"
 #include "libANGLE/Caps.h"
 #include "libANGLE/Context.h"
@@ -36,6 +37,10 @@ using angle::CheckedNumeric;
 namespace rx
 {
 
+SwapControlData::SwapControlData()
+    : targetSwapInterval(0), maxSwapInterval(-1), currentSwapInterval(-1)
+{}
+
 VendorID GetVendorID(const FunctionsGL *functions)
 {
     std::string nativeVendorString(reinterpret_cast<const char *>(functions->getString(GL_VENDOR)));
@@ -48,7 +53,8 @@ VendorID GetVendorID(const FunctionsGL *functions)
         return VENDOR_ID_NVIDIA;
     }
     else if (nativeVendorString.find("ATI") != std::string::npos ||
-             nativeVendorString.find("AMD") != std::string::npos)
+             nativeVendorString.find("AMD") != std::string::npos ||
+             nativeVendorString.find("Radeon") != std::string::npos)
     {
         return VENDOR_ID_AMD;
     }
@@ -1275,9 +1281,10 @@ void GenerateCaps(const FunctionsGL *functions,
 
     extensions->eglSyncOES = functions->hasGLESExtension("GL_OES_EGL_sync");
 
-    if (functions->isAtLeastGL(gl::Version(3, 3)) ||
-        functions->hasGLExtension("GL_ARB_timer_query") ||
-        functions->hasGLESExtension("GL_EXT_disjoint_timer_query"))
+    if (!features.disableTimestampQueries.enabled &&
+        (functions->isAtLeastGL(gl::Version(3, 3)) ||
+         functions->hasGLExtension("GL_ARB_timer_query") ||
+         functions->hasGLESExtension("GL_EXT_disjoint_timer_query")))
     {
         extensions->disjointTimerQuery = true;
 
@@ -1530,6 +1537,10 @@ void GenerateCaps(const FunctionsGL *functions,
                                 functions->hasGLExtension("GL_ARB_gpu_shader5") ||
                                 functions->hasGLESExtension("GL_EXT_gpu_shader5");
 
+    extensions->shadowSamplersEXT = functions->isAtLeastGL(gl::Version(2, 0)) ||
+                                    functions->isAtLeastGLES(gl::Version(3, 0)) ||
+                                    functions->hasGLESExtension("GL_EXT_shadow_samplers");
+
     // GL_APPLE_clip_distance
     extensions->clipDistanceAPPLE = functions->isAtLeastGL(gl::Version(3, 0));
     if (extensions->clipDistanceAPPLE)
@@ -1544,12 +1555,27 @@ void GenerateCaps(const FunctionsGL *functions,
 
 void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *features)
 {
-    VendorID vendor = GetVendorID(functions);
-    uint32_t device = GetDeviceID(functions);
+    angle::VendorID vendor;
+    angle::DeviceID device;
+
+    angle::SystemInfo systemInfo;
+    bool isGetSystemInfoSuccess = angle::GetSystemInfo(&systemInfo);
+    if (isGetSystemInfoSuccess)
+    {
+        vendor = systemInfo.gpus[systemInfo.activeGPUIndex].vendorId;
+        device = systemInfo.gpus[systemInfo.activeGPUIndex].deviceId;
+    }
+    else
+    {
+        vendor = GetVendorID(functions);
+        device = GetDeviceID(functions);
+    }
+
     bool isAMD      = IsAMD(vendor);
     bool isIntel    = IsIntel(vendor);
     bool isNvidia   = IsNvidia(vendor);
     bool isQualcomm = IsQualcomm(vendor);
+    bool isVMWare   = IsVMWare(vendor);
 
     std::array<int, 3> mesaVersion = {0, 0, 0};
     bool isMesa                    = IsMesa(functions, &mesaVersion);
@@ -1735,6 +1761,60 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     ANGLE_FEATURE_CONDITION(
         features, disableSemaphoreFd,
         IsLinux() && isAMD && isMesa && mesaVersion < (std::array<int, 3>{19, 3, 5}));
+
+    ANGLE_FEATURE_CONDITION(features, disableTimestampQueries, IsLinux() && isVMWare);
+
+    ANGLE_FEATURE_CONDITION(features, encodeAndDecodeSRGBForGenerateMipmap,
+                            IsApple() && functions->standard == STANDARD_GL_DESKTOP);
+
+    // anglebug.com/4674
+    // The (redundant) explicit exclusion of Windows AMD is because the workaround fails
+    // Texture2DRGTest.TextureRGUNormTest on that platform, and the test is skipped. If
+    // you'd like to enable the workaround on Windows AMD, please fix the test first.
+    ANGLE_FEATURE_CONDITION(
+        features, emulateCopyTexImage2DFromRenderbuffers,
+        IsApple() && functions->standard == STANDARD_GL_ES && !(isAMD && IsWindows()));
+
+    // Don't attempt to use the discrete GPU on NVIDIA-based MacBook Pros, since the
+    // driver is unstable in this situation.
+    //
+    // Note that this feature is only set here in order to advertise this workaround
+    // externally. GPU switching support must be enabled or disabled early, during display
+    // initialization, before these features are set up.
+    bool isDualGPUMacWithNVIDIA = false;
+    if (IsApple() && functions->standard == STANDARD_GL_DESKTOP)
+    {
+        if (isGetSystemInfoSuccess)
+        {
+            // The full system information must be queried to see whether it's a dual-GPU
+            // NVIDIA MacBook Pro since it's likely that the integrated GPU will be active
+            // when these features are initialized.
+            isDualGPUMacWithNVIDIA = systemInfo.isMacSwitchable && systemInfo.hasNVIDIAGPU();
+        }
+    }
+    ANGLE_FEATURE_CONDITION(features, disableGPUSwitchingSupport, isDualGPUMacWithNVIDIA);
+
+    // Workaround issue in NVIDIA GL driver on Linux when TSAN is enabled
+    // http://crbug.com/1094869
+    bool isTSANBuild = false;
+#ifdef THREAD_SANITIZER
+    isTSANBuild = true;
+#endif
+    ANGLE_FEATURE_CONDITION(features, disableNativeParallelCompile,
+                            isTSANBuild && IsLinux() && isNvidia);
+
+    // anglebug.com/4849
+    // This workaround is definitely needed on Intel and AMD GPUs. To
+    // determine whether it's needed on iOS and Apple Silicon, the
+    // workaround's being restricted to existing desktop GPUs.
+    ANGLE_FEATURE_CONDITION(features, emulatePackSkipRowsAndPackSkipPixels,
+                            IsApple() && (isAMD || isIntel || isNvidia));
+
+    // http://crbug.com/1042393
+    // XWayland defaults to a 1hz refresh rate when the "surface is not visible", which sometimes
+    // causes issues in Chrome. To get around this, default to a 30Hz refresh rate if we see bogus
+    // from the driver.
+    ANGLE_FEATURE_CONDITION(features, clampMscRate, IsLinux() && IsWayland());
 }
 
 void InitializeFrontendFeatures(const FunctionsGL *functions, angle::FrontendFeatures *features)

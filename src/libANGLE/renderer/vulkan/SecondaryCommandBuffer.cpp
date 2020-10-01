@@ -10,6 +10,7 @@
 #include "libANGLE/renderer/vulkan/SecondaryCommandBuffer.h"
 #include "common/debug.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
+#include "libANGLE/trace.h"
 
 namespace rx
 {
@@ -101,6 +102,8 @@ const char *GetCommandString(CommandID id)
             return "InsertDebugUtilsLabel";
         case CommandID::MemoryBarrier:
             return "MemoryBarrier";
+        case CommandID::NextSubpass:
+            return "NextSubpass";
         case CommandID::PipelineBarrier:
             return "PipelineBarrier";
         case CommandID::PushConstants:
@@ -144,6 +147,7 @@ void SecondaryCommandBuffer::executeQueuedResetQueryPoolCommands(VkCommandBuffer
 // Parse the cmds in this cmd buffer into given primary cmd buffer
 void SecondaryCommandBuffer::executeCommands(VkCommandBuffer cmdBuffer)
 {
+    ANGLE_TRACE_EVENT0("gpu.angle", "SecondaryCommandBuffer::executeCommands");
     for (const CommandHeader *command : mCommands)
     {
         for (const CommandHeader *currentCommand                      = command;
@@ -479,6 +483,13 @@ void SecondaryCommandBuffer::executeCommands(VkCommandBuffer cmdBuffer)
                         getParamPtr<MemoryBarrierParams>(currentCommand);
                     vkCmdPipelineBarrier(cmdBuffer, params->srcStageMask, params->dstStageMask, 0,
                                          1, &params->memoryBarrier, 0, nullptr, 0, nullptr);
+                    break;
+                }
+                case CommandID::NextSubpass:
+                {
+                    const NextSubpassParams *params =
+                        getParamPtr<NextSubpassParams>(currentCommand);
+                    vkCmdNextSubpass(cmdBuffer, params->subpassContents);
                     break;
                 }
                 case CommandID::PipelineBarrier:
