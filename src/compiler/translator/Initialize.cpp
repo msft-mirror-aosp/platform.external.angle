@@ -129,6 +129,30 @@ void InitExtensionBehavior(const ShBuiltInResources &resources, TExtensionBehavi
     {
         extBehavior[TExtension::EXT_shadow_samplers] = EBhUndefined;
     }
+    if (resources.OES_shader_multisample_interpolation)
+    {
+        extBehavior[TExtension::OES_shader_multisample_interpolation] = EBhUndefined;
+    }
+    if (resources.OES_shader_image_atomic)
+    {
+        extBehavior[TExtension::OES_shader_image_atomic] = EBhUndefined;
+    }
+    if (resources.EXT_tessellation_shader)
+    {
+        extBehavior[TExtension::EXT_tessellation_shader] = EBhUndefined;
+    }
+    if (resources.OES_texture_buffer)
+    {
+        extBehavior[TExtension::OES_texture_buffer] = EBhUndefined;
+    }
+    if (resources.EXT_texture_buffer)
+    {
+        extBehavior[TExtension::EXT_texture_buffer] = EBhUndefined;
+    }
+    if (resources.OES_sample_variables)
+    {
+        extBehavior[TExtension::OES_sample_variables] = EBhUndefined;
+    }
 }
 
 void ResetExtensionBehavior(const ShBuiltInResources &resources,

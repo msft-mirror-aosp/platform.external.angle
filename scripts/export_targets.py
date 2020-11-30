@@ -180,17 +180,21 @@ assert INCLUDE_REGEX.match(b'\n#include "foo"')
 # #includes in #ifdefs properly, so they will erroneously be marked as being
 # included, but not part of the source list.
 IGNORED_INCLUDES = {
+    b'absl/container/flat_hash_map.h',
     b'compiler/translator/TranslatorESSL.h',
     b'compiler/translator/TranslatorGLSL.h',
     b'compiler/translator/TranslatorHLSL.h',
     b'compiler/translator/TranslatorMetal.h',
     b'compiler/translator/TranslatorVulkan.h',
+    b'contrib/optimizations/slide_hash_neon.h',
     b'dirent_on_windows.h',
+    b'dlopen_fuchsia.h',
     b'kernel/image.h',
     b'libANGLE/renderer/d3d/d3d11/winrt/NativeWindow11WinRT.h',
     b'libANGLE/renderer/d3d/DeviceD3D.h',
     b'libANGLE/renderer/d3d/DisplayD3D.h',
     b'libANGLE/renderer/d3d/RenderTargetD3D.h',
+    b'libANGLE/renderer/gl/apple/DisplayApple_api.h',
     b'libANGLE/renderer/gl/cgl/DisplayCGL.h',
     b'libANGLE/renderer/gl/eagl/DisplayEAGL.h',
     b'libANGLE/renderer/gl/egl/android/DisplayAndroid.h',
@@ -207,6 +211,7 @@ IGNORED_INCLUDES = {
     b'libANGLE/renderer/vulkan/win32/DisplayVkWin32.h',
     b'libANGLE/renderer/vulkan/xcb/DisplayVkXcb.h',
     b'loader_cmake_config.h',
+    b'spirv-tools/libspirv.h',
     b'third_party/volk/volk.h',
     b'vk_loader_extensions.c',
     b'vk_snippets.h',
@@ -242,8 +247,9 @@ IGNORED_INCLUDE_PREFIXES = {
 }
 
 IGNORED_DIRECTORIES = {
+    '//buildtools/third_party/libc++',
+    '//third_party/abseil-cpp',
     '//third_party/SwiftShader',
-    '//third_party/zlib',
 }
 
 def has_all_includes(target_name: str, descs: dict) -> bool:

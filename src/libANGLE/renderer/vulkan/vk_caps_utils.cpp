@@ -27,12 +27,233 @@ constexpr unsigned int kComponentsPerVector = 4;
 namespace rx
 {
 
-GLint LimitToInt(const uint32_t physicalDeviceValue)
+namespace vk
 {
+namespace
+{
+bool HasShaderImageAtomicsSupport(const RendererVk *rendererVk,
+                                  const gl::Extensions &supportedExtensions)
+{
+    // Only VK_FORMAT_R32_SFLOAT doesn't have mandatory support for the STORAGE_IMAGE_ATOMIC and
+    // STORAGE_TEXEL_BUFFER_ATOMIC features.
+    const vk::Format &formatVk = rendererVk->getFormat(GL_R32F);
+
+    const bool hasImageAtomicSupport = rendererVk->hasImageFormatFeatureBits(
+        formatVk.vkImageFormat, VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT);
+    bool hasBufferAtomicSupport = true;
+    if (supportedExtensions.textureBufferAny())
+    {
+        hasBufferAtomicSupport = rendererVk->hasBufferFormatFeatureBits(
+            formatVk.vkBufferFormat, VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT);
+    }
+
+    return hasImageAtomicSupport && hasBufferAtomicSupport;
+}
+
+bool FormatReinterpretationSupported(const std::vector<GLenum> &optionalSizedFormats,
+                                     const RendererVk *rendererVk,
+                                     bool checkLinearColorspace)
+{
+    for (GLenum glFormat : optionalSizedFormats)
+    {
+        const gl::TextureCaps &baseCaps = rendererVk->getNativeTextureCaps().get(glFormat);
+        if (baseCaps.texturable && baseCaps.filterable)
+        {
+            const vk::Format &vkFormat = rendererVk->getFormat(glFormat);
+
+            VkFormat reinterpretedFormat = checkLinearColorspace
+                                               ? vk::ConvertToLinear(vkFormat.vkImageFormat)
+                                               : vk::ConvertToSRGB(vkFormat.vkImageFormat);
+            ASSERT(reinterpretedFormat != VK_FORMAT_UNDEFINED);
+
+            constexpr uint32_t kBitsSampleFilter =
+                VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
+                VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+
+            if (!rendererVk->hasImageFormatFeatureBits(reinterpretedFormat, kBitsSampleFilter))
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool GetTextureSRGBDecodeSupport(const RendererVk *rendererVk)
+{
+    static constexpr bool kLinearColorspace = true;
+
+    // GL_SRGB and GL_SRGB_ALPHA unsized formats are also required by the spec, but the only valid
+    // type for them is GL_UNSIGNED_BYTE, so they are fully included in the sized formats listed
+    // here
+    std::vector<GLenum> optionalSizedSRGBFormats = {
+        GL_SRGB8,
+        GL_SRGB8_ALPHA8_EXT,
+        GL_COMPRESSED_SRGB_S3TC_DXT1_EXT,
+        GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,
+        GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT,
+        GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,
+    };
+
+    if (!FormatReinterpretationSupported(optionalSizedSRGBFormats, rendererVk, kLinearColorspace))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool GetTextureSRGBOverrideSupport(const RendererVk *rendererVk,
+                                   const gl::Extensions &supportedExtensions)
+{
+    static constexpr bool kNonLinearColorspace = false;
+
+    // If the given linear format is supported, we also need to support its corresponding nonlinear
+    // format. If the given linear format is NOT supported, we don't care about its corresponding
+    // nonlinear format.
+    std::vector<GLenum> optionalLinearFormats     = {GL_RGB8,
+                                                 GL_RGBA8,
+                                                 GL_COMPRESSED_RGB8_ETC2,
+                                                 GL_COMPRESSED_RGBA8_ETC2_EAC,
+                                                 GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+                                                 GL_COMPRESSED_RGBA_ASTC_4x4,
+                                                 GL_COMPRESSED_RGBA_ASTC_5x4,
+                                                 GL_COMPRESSED_RGBA_ASTC_5x5,
+                                                 GL_COMPRESSED_RGBA_ASTC_6x5,
+                                                 GL_COMPRESSED_RGBA_ASTC_6x6,
+                                                 GL_COMPRESSED_RGBA_ASTC_8x5,
+                                                 GL_COMPRESSED_RGBA_ASTC_8x6,
+                                                 GL_COMPRESSED_RGBA_ASTC_8x8,
+                                                 GL_COMPRESSED_RGBA_ASTC_10x5,
+                                                 GL_COMPRESSED_RGBA_ASTC_10x6,
+                                                 GL_COMPRESSED_RGBA_ASTC_10x8,
+                                                 GL_COMPRESSED_RGBA_ASTC_10x10,
+                                                 GL_COMPRESSED_RGBA_ASTC_12x10,
+                                                 GL_COMPRESSED_RGBA_ASTC_12x12};
+    std::vector<GLenum> optionalS3TCLinearFormats = {
+        GL_COMPRESSED_RGB_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
+        GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT};
+    std::vector<GLenum> optionalR8LinearFormats   = {GL_R8};
+    std::vector<GLenum> optionalBPTCLinearFormats = {GL_COMPRESSED_RGBA_BPTC_UNORM_EXT};
+
+    if (!vk::FormatReinterpretationSupported(optionalLinearFormats, rendererVk,
+                                             kNonLinearColorspace))
+    {
+        return false;
+    }
+
+    if (supportedExtensions.textureCompressionS3TCsRGB == true)
+    {
+        if (!vk::FormatReinterpretationSupported(optionalS3TCLinearFormats, rendererVk,
+                                                 kNonLinearColorspace))
+        {
+            return false;
+        }
+    }
+
+    if (supportedExtensions.sRGBR8EXT == true)
+    {
+        if (!vk::FormatReinterpretationSupported(optionalR8LinearFormats, rendererVk,
+                                                 kNonLinearColorspace))
+        {
+            return false;
+        }
+    }
+
+    // TODO: http://anglebug.com/4932 check EXT_texture_sRGB_RG8
+
+    if (supportedExtensions.textureCompressionBPTC == true)
+    {
+        if (!vk::FormatReinterpretationSupported(optionalBPTCLinearFormats, rendererVk,
+                                                 kNonLinearColorspace))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool HasTextureBufferSupport(const RendererVk *rendererVk)
+{
+    // The following formats don't have mandatory UNIFORM_TEXEL_BUFFER support in Vulkan.
+    //
+    //     VK_FORMAT_R32G32B32_UINT
+    //     VK_FORMAT_R32G32B32_SINT
+    //     VK_FORMAT_R32G32B32_SFLOAT
+    //
+    // Additionally, the following formats don't have mandatory STORAGE_TEXEL_BUFFER support:
+    //
+    //     VK_FORMAT_R8_UINT
+    //     VK_FORMAT_R8_SINT
+    //     VK_FORMAT_R8_UNORM
+    //     VK_FORMAT_R8G8_UINT
+    //     VK_FORMAT_R8G8_SINT
+    //     VK_FORMAT_R8G8_UNORM
+    //     VK_FORMAT_R16_UINT
+    //     VK_FORMAT_R16_SINT
+    //     VK_FORMAT_R16_SFLOAT
+    //     VK_FORMAT_R16G16_UINT
+    //     VK_FORMAT_R16G16_SINT
+    //     VK_FORMAT_R16G16_SFLOAT
+    //     VK_FORMAT_R32G32B32_UINT
+    //     VK_FORMAT_R32G32B32_SINT
+    //     VK_FORMAT_R32G32B32_SFLOAT
+    //
+    // The formats that have mandatory support for both features (and don't need to be checked) are:
+    //
+    //     VK_FORMAT_R8G8B8A8_UINT
+    //     VK_FORMAT_R8G8B8A8_SINT
+    //     VK_FORMAT_R8G8B8A8_UNORM
+    //     VK_FORMAT_R16G16B16A16_UINT
+    //     VK_FORMAT_R16G16B16A16_SINT
+    //     VK_FORMAT_R16G16B16A16_SFLOAT
+    //     VK_FORMAT_R32_UINT
+    //     VK_FORMAT_R32_SINT
+    //     VK_FORMAT_R32_SFLOAT
+    //     VK_FORMAT_R32G32_UINT
+    //     VK_FORMAT_R32G32_SINT
+    //     VK_FORMAT_R32G32_SFLOAT
+    //     VK_FORMAT_R32G32B32A32_UINT
+    //     VK_FORMAT_R32G32B32A32_SINT
+    //     VK_FORMAT_R32G32B32A32_SFLOAT
+    //
+
+    // TODO: RGB32 formats currently don't have STORAGE_TEXEL_BUFFER support on any known platform.
+    // Despite this limitation, we expose EXT_texture_buffer.  http://anglebug.com/3573
+    const std::array<GLenum, 12> &optionalFormats = {
+        GL_R8,   GL_R8I,  GL_R8UI,  GL_RG8,   GL_RG8I,  GL_RG8UI,
+        GL_R16F, GL_R16I, GL_R16UI, GL_RG16F, GL_RG16I, GL_RG16UI,
+        // GL_RGB32F,
+        // GL_RGB32I,
+        // GL_RGB32UI,
+    };
+
+    for (GLenum formatGL : optionalFormats)
+    {
+        const vk::Format &formatVk = rendererVk->getFormat(formatGL);
+
+        if (!rendererVk->hasBufferFormatFeatureBits(formatVk.vkBufferFormat,
+                                                    VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT |
+                                                        VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+}  // namespace
+}  // namespace vk
+
+template <typename LargerInt>
+GLint LimitToInt(const LargerInt physicalDeviceValue)
+{
+    static_assert(sizeof(LargerInt) >= sizeof(int32_t), "Incorrect usage of LimitToInt");
+
     // Limit to INT_MAX / 2 instead of INT_MAX.  If the limit is queried as float, the imprecision
     // in floating point can cause the value to exceed INT_MAX.  This trips dEQP up.
-    return std::min(physicalDeviceValue,
-                    static_cast<uint32_t>(std::numeric_limits<int32_t>::max() / 2));
+    return static_cast<GLint>(std::min(
+        physicalDeviceValue, static_cast<LargerInt>(std::numeric_limits<int32_t>::max() / 2)));
 }
 
 void RendererVk::ensureCapsInitialized() const
@@ -48,10 +269,8 @@ void RendererVk::ensureCapsInitialized() const
 
     mNativeExtensions.setTextureExtensionSupport(mNativeTextureCaps);
 
-    // TODO: http://anglebug.com/3609
-    // Due to a dEQP bug, this extension cannot be exposed until EXT_texture_sRGB_decode is
-    // implemented
-    mNativeExtensions.sRGBR8EXT = false;
+    // Enable GL_EXT_buffer_storage
+    mNativeExtensions.bufferStorageEXT = true;
 
     // To ensure that ETC2/EAC formats are enabled only on hardware that supports them natively,
     // this flag is not set by the function above and must be set explicitly. It exposes
@@ -87,6 +306,8 @@ void RendererVk::ensureCapsInitialized() const
         getFeatures().enableMultisampledRenderToTexture.enabled;
     mNativeExtensions.multisampledRenderToTexture2 =
         getFeatures().enableMultisampledRenderToTexture.enabled;
+    mNativeExtensions.textureStorageMultisample2DArrayOES =
+        (limitsVk.standardSampleLocations == VK_TRUE);
     mNativeExtensions.copyTexture           = true;
     mNativeExtensions.copyTexture3d         = true;
     mNativeExtensions.copyCompressedTexture = true;
@@ -110,6 +331,10 @@ void RendererVk::ensureCapsInitialized() const
 
     // Enable EXT_blend_minmax
     mNativeExtensions.blendMinMax = true;
+
+    // Enable OES/EXT_draw_buffers_indexed
+    mNativeExtensions.drawBuffersIndexedOES = mPhysicalDeviceFeatures.independentBlend == VK_TRUE;
+    mNativeExtensions.drawBuffersIndexedEXT = mNativeExtensions.drawBuffersIndexedOES;
 
     mNativeExtensions.eglImageOES                  = true;
     mNativeExtensions.eglImageExternalOES          = true;
@@ -186,19 +411,73 @@ void RendererVk::ensureCapsInitialized() const
     // Implemented in the translator
     mNativeExtensions.shaderNonConstGlobalInitializersEXT = true;
 
+    // Implemented in the front end
+    mNativeExtensions.separateShaderObjects = true;
+
     // Vulkan has no restrictions of the format of cubemaps, so if the proper formats are supported,
     // creating a cube of any of these formats should be implicitly supported.
     mNativeExtensions.depthTextureCubeMapOES =
         mNativeExtensions.depthTextureOES && mNativeExtensions.packedDepthStencilOES;
 
-    // Vulkan natively supports format reinterpretation
-    mNativeExtensions.textureSRGBOverride = mNativeExtensions.sRGB;
+    // Vulkan natively supports format reinterpretation, but we still require support for all
+    // formats we may reinterpret to
+    mNativeExtensions.textureSRGBOverride =
+        vk::GetTextureSRGBOverrideSupport(this, mNativeExtensions);
+    mNativeExtensions.textureSRGBDecode = vk::GetTextureSRGBDecodeSupport(this);
 
     mNativeExtensions.gpuShader5EXT = vk::CanSupportGPUShader5EXT(mPhysicalDeviceFeatures);
 
     mNativeExtensions.textureFilteringCHROMIUM = getFeatures().supportsFilteringPrecision.enabled;
 
+    // Only expose texture cubemap array if the physical device supports it.
+    mNativeExtensions.textureCubeMapArrayOES = getFeatures().supportsImageCubeArray.enabled;
+    mNativeExtensions.textureCubeMapArrayEXT = mNativeExtensions.textureCubeMapArrayOES;
+
     mNativeExtensions.shadowSamplersEXT = true;
+
+    // Enable EXT_external_buffer on Andoid. External buffers are implemented using Android hadware
+    // buffer (struct AHardwareBuffer).
+    mNativeExtensions.externalBufferEXT = IsAndroid() && (GetAndroidSDKVersion() >= 26);
+
+    // From the Vulkan specs:
+    // sampleRateShading specifies whether Sample Shading and multisample interpolation are
+    // supported. If this feature is not enabled, the sampleShadingEnable member of the
+    // VkPipelineMultisampleStateCreateInfo structure must be set to VK_FALSE and the
+    // minSampleShading member is ignored. This also specifies whether shader modules can declare
+    // the SampleRateShading capability
+    bool supportSampleRateShading      = (mPhysicalDeviceFeatures.sampleRateShading == VK_TRUE);
+    mNativeExtensions.sampleShadingOES = supportSampleRateShading;
+
+    mNativeCaps.minInterpolationOffset          = limitsVk.minInterpolationOffset;
+    mNativeCaps.maxInterpolationOffset          = limitsVk.maxInterpolationOffset;
+    mNativeCaps.subPixelInterpolationOffsetBits = limitsVk.subPixelInterpolationOffsetBits;
+
+    // From the Vulkan spec:
+    //
+    // > The values minInterpolationOffset and maxInterpolationOffset describe the closed interval
+    // > of supported interpolation offsets : [ minInterpolationOffset, maxInterpolationOffset ].
+    // > The ULP is determined by subPixelInterpolationOffsetBits. If
+    // > subPixelInterpolationOffsetBits is 4, this provides increments of(1 / 2^4) = 0.0625, and
+    // > thus the range of supported interpolation offsets would be[-0.5, 0.4375]
+    //
+    // OES_shader_multisample_interpolation requires a maximum value of -0.5 for
+    // MIN_FRAGMENT_INTERPOLATION_OFFSET_OES and minimum 0.5 for
+    // MAX_FRAGMENT_INTERPOLATION_OFFSET_OES.  Vulkan has an identical limit for
+    // minInterpolationOffset, but it's limit for maxInterpolationOffset is 0.5-(1/ULP).
+    // OES_shader_multisample_interpolation is therefore only supported if
+    // maxInterpolationOffset is at least 0.5.
+    mNativeExtensions.multisampleInterpolationOES =
+        supportSampleRateShading && (mNativeCaps.maxInterpolationOffset >= 0.5);
+    // OES_shader_multisample_interpolation requires OES_sample_variables, disable for now
+    mNativeExtensions.multisampleInterpolationOES = false;
+
+    // From the SPIR-V spec at 3.21. BuiltIn, SampleId and SamplePosition needs
+    // SampleRateShading. https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html
+    // To replace non-constant index to constant 0 index, this extension assumes that ANGLE only
+    // supports the number of samples less than or equal to 32.
+    constexpr unsigned int kNotSupportedSampleCounts = VK_SAMPLE_COUNT_64_BIT;
+    mNativeExtensions.sampleVariablesOES =
+        supportSampleRateShading && (vk_gl::GetMaxSampleCount(kNotSupportedSampleCounts) == 0);
 
     // https://vulkan.lunarg.com/doc/view/1.0.30.0/linux/vkspec.chunked/ch31s02.html
     mNativeCaps.maxElementIndex  = std::numeric_limits<GLuint>::max() - 1;
@@ -236,8 +515,7 @@ void RendererVk::ensureCapsInitialized() const
     mNativeCaps.maxVertexAttribBindings = LimitToInt(limitsVk.maxVertexInputBindings);
     // Offset and stride are stored as uint16_t in PackedAttribDesc.
     mNativeCaps.maxVertexAttribRelativeOffset =
-        std::min(static_cast<uint32_t>(std::numeric_limits<uint16_t>::max()),
-                 limitsVk.maxVertexInputAttributeOffset);
+        std::min((1u << kAttributeOffsetMaxBits) - 1, limitsVk.maxVertexInputAttributeOffset);
     mNativeCaps.maxVertexAttribStride =
         std::min(static_cast<uint32_t>(std::numeric_limits<uint16_t>::max()),
                  limitsVk.maxVertexInputBindingStride);
@@ -425,13 +703,24 @@ void RendererVk::ensureCapsInitialized() const
     mNativeCaps.maxAtomicCounterBufferSize = LimitToInt(limitsVk.maxStorageBufferRange);
 
     // There is no particular limit to how many atomic counters there can be, other than the size of
-    // a storage buffer.  We nevertheless limit this to something sane (4096 arbitrarily).
+    // a storage buffer.  We nevertheless limit this to something reasonable (4096 arbitrarily).
     const int32_t maxAtomicCounters =
         std::min<int32_t>(4096, limitsVk.maxStorageBufferRange / sizeof(uint32_t));
     for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         mNativeCaps.maxShaderAtomicCounters[shaderType] = maxAtomicCounters;
     }
+
+    // Set maxShaderAtomicCounters to zero if atomic is not supported.
+    if (!mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics)
+    {
+        mNativeCaps.maxShaderAtomicCounters[gl::ShaderType::Vertex] = 0;
+    }
+    if (!mPhysicalDeviceFeatures.fragmentStoresAndAtomics)
+    {
+        mNativeCaps.maxShaderAtomicCounters[gl::ShaderType::Fragment] = 0;
+    }
+
     mNativeCaps.maxCombinedAtomicCounters = maxAtomicCounters;
 
     // GL Images correspond to Vulkan Storage Images.
@@ -545,6 +834,36 @@ void RendererVk::ensureCapsInitialized() const
 
     // Enable GL_NV_fence extension.
     mNativeExtensions.fenceNV = true;
+
+    // Enable GL_EXT_copy_image
+    mNativeExtensions.copyImageEXT = true;
+
+    // Enable GL_EXT_texture_buffer and OES variant.  Nearly all formats required for this extension
+    // are also required to have the UNIFORM_TEXEL_BUFFER feature bit in Vulkan, except for
+    // R32G32B32_SFLOAT/UINT/SINT which are optional.  For many formats, the STORAGE_TEXEL_BUFFER
+    // feature is optional though.  This extension is exposed only if the formats specified in
+    // EXT_texture_buffer support the necessary feature bits.
+    if (vk::HasTextureBufferSupport(this))
+    {
+        mNativeExtensions.textureBufferOES = true;
+        mNativeExtensions.textureBufferEXT = true;
+        mNativeCaps.maxTextureBufferSize   = LimitToInt(limitsVk.maxTexelBufferElements);
+        mNativeCaps.textureBufferOffsetAlignment =
+            LimitToInt(limitsVk.minTexelBufferOffsetAlignment);
+    }
+
+    // Atomic image operations in the vertex and fragment shaders require the
+    // vertexPipelineStoresAndAtomics and fragmentStoresAndAtomics Vulkan features respectively.
+    // If either of these features is not present, the number of image uniforms for that stage is
+    // advertized as zero, so image atomic operations support can be agnostic of shader stages.
+    //
+    // GL_OES_shader_image_atomic requires that image atomic functions have support for r32i and
+    // r32ui formats.  These formats have mandatory support for STORAGE_IMAGE_ATOMIC and
+    // STORAGE_TEXEL_BUFFER_ATOMIC features in Vulkan.  Additionally, it requires that
+    // imageAtomicExchange supports r32f.  Exposing this extension is thus restricted to this format
+    // having support for the aforementioned features.
+    mNativeExtensions.shaderImageAtomicOES =
+        vk::HasShaderImageAtomicsSupport(this, mNativeExtensions);
 
     // Geometry shader is optional.
     if (mPhysicalDeviceFeatures.geometryShader)

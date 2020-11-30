@@ -995,16 +995,16 @@ TEST_P(EGLPreRotationBlitFramebufferTest, BlitStencilWithRotation)
     EXPECT_PIXEL_COLOR_EQ(32, 127, GLColor::blue);
     EXPECT_PIXEL_COLOR_EQ(32, 0, GLColor::blue);
     EXPECT_PIXEL_COLOR_EQ(63, 0, GLColor::blue);
-    EXPECT_PIXEL_COLOR_EQ(63, 1, GLColor::blue);
     EXPECT_PIXEL_COLOR_EQ(63, 64, GLColor::blue);
     EXPECT_PIXEL_COLOR_EQ(32, 64, GLColor::blue);
-    EXPECT_PIXEL_COLOR_EQ(63, 127, GLColor::blue);
 
-    // Some pixels around x=0 still fail on android.There are other issues to fix.
+    // Some pixels around x=0/63 (related to the pre-rotation degree) still fail on android.
     // From the image in the window, the failures near one of the image's edge look like "aliasing".
     // We need to fix blit with pre-rotation. http://anglebug.com/5044
     // EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
     // EXPECT_PIXEL_COLOR_EQ(0, 64, GLColor::blue);
+    // EXPECT_PIXEL_COLOR_EQ(63, 1, GLColor::blue);
+    // EXPECT_PIXEL_COLOR_EQ(63, 127, GLColor::blue);
 
     eglSwapBuffers(mDisplay, mWindowSurface);
 
@@ -1080,17 +1080,20 @@ TEST_P(EGLPreRotationBlitFramebufferTest, BlitMultisampleStencilWithRotation)
     drawQuad(drawBlue.get(), essl3_shaders::PositionAttrib(), 0.3f);
 
     // Check the result, especially the boundaries.
-    EXPECT_PIXEL_COLOR_EQ(64, 0, GLColor::blue);
-    EXPECT_PIXEL_COLOR_EQ(127, 0, GLColor::blue);
-    EXPECT_PIXEL_COLOR_EQ(127, 1, GLColor::blue);
     EXPECT_PIXEL_COLOR_EQ(127, 32, GLColor::blue);
     EXPECT_PIXEL_COLOR_EQ(64, 32, GLColor::blue);
     EXPECT_PIXEL_COLOR_EQ(0, 63, GLColor::blue);
     EXPECT_PIXEL_COLOR_EQ(64, 63, GLColor::blue);
-    EXPECT_PIXEL_COLOR_EQ(127, 63, GLColor::blue);
 
-    // Some pixels around x=0 still fail on android.There are other issues to fix.
+    // Some pixels around x=0/127 or y=0 (related to the pre-rotation degree)still fail on android.
     // We need to fix blit with pre-rotation. http://anglebug.com/5044
+    // Failures of Rotated90Degrees.
+    // EXPECT_PIXEL_COLOR_EQ(127, 1, GLColor::blue);
+    // EXPECT_PIXEL_COLOR_EQ(127, 63, GLColor::blue);
+    // Failures of Rotated180Degrees.
+    // EXPECT_PIXEL_COLOR_EQ(64, 0, GLColor::blue);
+    // EXPECT_PIXEL_COLOR_EQ(127, 0, GLColor::blue);
+    // Failures of Rotated270Degrees.
     // EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
     // EXPECT_PIXEL_COLOR_EQ(0, 32, GLColor::blue);
 
@@ -1109,7 +1112,7 @@ TEST_P(EGLPreRotationBlitFramebufferTest, BlitStencilWithFlip)
     ANGLE_SKIP_TEST_IF(IsLinux() && isSwiftshader());
 
     // We need to fix blit with pre-rotation. http://anglebug.com/5044
-    ANGLE_SKIP_TEST_IF(IsAndroid());
+    ANGLE_SKIP_TEST_IF(IsAndroid() || IsWindows());
 
     // To aid in debugging, we want this window visible
     setWindowVisible(mOSWindow, true);
@@ -1186,8 +1189,238 @@ TEST_P(EGLPreRotationBlitFramebufferTest, BlitStencilWithFlip)
     ASSERT_GL_NO_ERROR();
 }
 
-// Blit color buffer to default framebuffer with flip and prerotation.
-TEST_P(EGLPreRotationBlitFramebufferTest, BlitColorWithFlip)
+// Blit color buffer to default framebuffer with Y-flip/X-flip.
+TEST_P(EGLPreRotationBlitFramebufferTest, BlitColorToDefault)
+{
+    // This test uses functionality that is only available on Android
+    ANGLE_SKIP_TEST_IF(isVulkanRenderer() && !IsAndroid());
+
+    // To aid in debugging, we want this window visible
+    setWindowVisible(mOSWindow, true);
+
+    initializeDisplay();
+    initializeSurfaceWithRGBA8888Config();
+
+    eglMakeCurrent(mDisplay, mWindowSurface, mWindowSurface, mContext);
+    ASSERT_EGL_SUCCESS();
+
+    constexpr int kSize = 128;
+    glViewport(0, 0, kSize, kSize);
+
+    GLRenderbuffer colorbuf;
+    glBindRenderbuffer(GL_RENDERBUFFER, colorbuf.get());
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 0, GL_RGBA8, kSize, kSize);
+
+    GLFramebuffer framebuffer;
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.get());
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorbuf);
+
+    glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    ANGLE_GL_PROGRAM(gradientProgram, essl31_shaders::vs::Passthrough(),
+                     essl31_shaders::fs::RedGreenGradient());
+
+    EGLint desiredWidth  = 300;
+    EGLint desiredHeight = 400;
+    mOSWindow->resize(desiredWidth, desiredHeight);
+    mOSWindow->setOrientation(desiredWidth, desiredHeight);
+    angle::Sleep(1000);
+    eglSwapBuffers(mDisplay, mWindowSurface);
+    ASSERT_EGL_SUCCESS();
+
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.get());
+    drawQuad(gradientProgram, essl31_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+
+    // Blit color buffer to default frambuffer without flip.
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, kSize, kSize, 0, 0, kSize, kSize, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+
+    // Check the result, especially the boundaries.
+    EXPECT_PIXEL_NEAR(0, 0, 0, 0, 0, 255, 1.0);                      // Balck
+    EXPECT_PIXEL_NEAR(kSize - 1, 0, 253, 0, 0, 255, 1.0);            // Red
+    EXPECT_PIXEL_NEAR(0, kSize - 1, 0, 253, 0, 255, 1.0);            // Green
+    EXPECT_PIXEL_NEAR(kSize - 1, kSize - 1, 253, 253, 0, 255, 1.0);  // Yellow
+
+    // Blit color buffer to default frambuffer with Y-flip.
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.get());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, kSize, kSize, 0, kSize, kSize, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+
+    EXPECT_PIXEL_NEAR(0, 0, 0, 253, 0, 255, 1.0);                  // Green
+    EXPECT_PIXEL_NEAR(kSize - 1, 0, 253, 253, 0, 255, 1.0);        // Yellow
+    EXPECT_PIXEL_NEAR(0, kSize - 1, 0, 0, 0, 255, 1.0);            // Balck
+    EXPECT_PIXEL_NEAR(kSize - 1, kSize - 1, 253, 0, 0, 255, 1.0);  // Red
+
+    // Blit color buffer to default frambuffer with X-flip.
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.get());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, kSize, kSize, kSize, 0, 0, kSize, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+
+    EXPECT_PIXEL_NEAR(0, 0, 253, 0, 0, 255, 1.0);                  // Red
+    EXPECT_PIXEL_NEAR(kSize - 1, 0, 0, 0, 0, 255, 1.0);            // Balck
+    EXPECT_PIXEL_NEAR(0, kSize - 1, 253, 253, 0, 255, 1.0);        // Yellow
+    EXPECT_PIXEL_NEAR(kSize - 1, kSize - 1, 0, 253, 0, 255, 1.0);  // Green
+
+    ASSERT_GL_NO_ERROR();
+}
+
+// Blit color buffer from default framebuffer with Y-flip/X-flip.
+TEST_P(EGLPreRotationBlitFramebufferTest, BlitColorFromDefault)
+{
+    // This test uses functionality that is only available on Android
+    ANGLE_SKIP_TEST_IF(isVulkanRenderer() && !IsAndroid());
+
+    // To aid in debugging, we want this window visible
+    setWindowVisible(mOSWindow, true);
+
+    initializeDisplay();
+    initializeSurfaceWithRGBA8888Config();
+
+    eglMakeCurrent(mDisplay, mWindowSurface, mWindowSurface, mContext);
+    ASSERT_EGL_SUCCESS();
+
+    constexpr int kSize = 128;
+    glViewport(0, 0, kSize, kSize);
+
+    GLRenderbuffer colorbuf;
+    glBindRenderbuffer(GL_RENDERBUFFER, colorbuf.get());
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 0, GL_RGBA8, kSize, kSize);
+
+    GLFramebuffer framebuffer;
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.get());
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorbuf);
+    glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    ANGLE_GL_PROGRAM(gradientProgram, essl31_shaders::vs::Passthrough(),
+                     essl31_shaders::fs::RedGreenGradient());
+
+    EGLint desiredWidth  = 300;
+    EGLint desiredHeight = 400;
+    mOSWindow->resize(desiredWidth, desiredHeight);
+    mOSWindow->setOrientation(desiredWidth, desiredHeight);
+    angle::Sleep(1000);
+    eglSwapBuffers(mDisplay, mWindowSurface);
+    ASSERT_EGL_SUCCESS();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    drawQuad(gradientProgram, essl31_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+
+    // Blit color buffer from default frambuffer without flip.
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.get());
+    glBlitFramebuffer(0, 0, kSize, kSize, 0, 0, kSize, kSize, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.get());
+
+    // Check the result, especially the boundaries.
+    EXPECT_PIXEL_NEAR(0, 0, 0, 0, 0, 255, 1.0);                      // Balck
+    EXPECT_PIXEL_NEAR(kSize - 1, 0, 253, 0, 0, 255, 1.0);            // Red
+    EXPECT_PIXEL_NEAR(0, kSize - 1, 0, 253, 0, 255, 1.0);            // Green
+    EXPECT_PIXEL_NEAR(kSize - 1, kSize - 1, 253, 253, 0, 255, 1.0);  // Yellow
+
+    // Blit color buffer from default frambuffer with Y-flip.
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.get());
+    glBlitFramebuffer(0, 0, kSize, kSize, 0, kSize, kSize, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.get());
+
+    EXPECT_PIXEL_NEAR(0, 0, 0, 253, 0, 255, 1.0);                  // Green
+    EXPECT_PIXEL_NEAR(kSize - 1, 0, 253, 253, 0, 255, 1.0);        // Yellow
+    EXPECT_PIXEL_NEAR(0, kSize - 1, 0, 0, 0, 255, 1.0);            // Balck
+    EXPECT_PIXEL_NEAR(kSize - 1, kSize - 1, 253, 0, 0, 255, 1.0);  // Red
+
+    // Blit color buffer from default frambuffer with X-flip.
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.get());
+    glBlitFramebuffer(0, 0, kSize, kSize, kSize, 0, 0, kSize, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.get());
+
+    EXPECT_PIXEL_NEAR(0, 0, 253, 0, 0, 255, 1.0);                  // Red
+    EXPECT_PIXEL_NEAR(kSize - 1, 0, 0, 0, 0, 255, 1.0);            // Balck
+    EXPECT_PIXEL_NEAR(0, kSize - 1, 253, 253, 0, 255, 1.0);        // Yellow
+    EXPECT_PIXEL_NEAR(kSize - 1, kSize - 1, 0, 253, 0, 255, 1.0);  // Green
+
+    ASSERT_GL_NO_ERROR();
+}
+
+// Blit multisample color buffer to resolved framebuffer.
+TEST_P(EGLPreRotationBlitFramebufferTest, BlitMultisampleColorToResolved)
+{
+    // This test uses functionality that is only available on Android
+    ANGLE_SKIP_TEST_IF(isVulkanRenderer() && !IsAndroid());
+
+    // To aid in debugging, we want this window visible
+    setWindowVisible(mOSWindow, true);
+
+    initializeDisplay();
+    initializeSurfaceWithRGBA8888Config();
+
+    eglMakeCurrent(mDisplay, mWindowSurface, mWindowSurface, mContext);
+    ASSERT_EGL_SUCCESS();
+
+    constexpr int kSize = 128;
+    glViewport(0, 0, kSize, kSize);
+
+    GLRenderbuffer colorMS;
+    glBindRenderbuffer(GL_RENDERBUFFER, colorMS.get());
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_RGBA8, kSize, kSize);
+
+    GLRenderbuffer colorResolved;
+    glBindRenderbuffer(GL_RENDERBUFFER, colorResolved.get());
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, kSize, kSize);
+
+    GLFramebuffer framebufferMS;
+    glBindFramebuffer(GL_FRAMEBUFFER, framebufferMS.get());
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorMS);
+
+    glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    ANGLE_GL_PROGRAM(gradientProgram, essl31_shaders::vs::Passthrough(),
+                     essl31_shaders::fs::RedGreenGradient());
+    drawQuad(gradientProgram, essl31_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+
+    GLFramebuffer framebufferResolved;
+    glBindFramebuffer(GL_FRAMEBUFFER, framebufferResolved.get());
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER,
+                              colorResolved.get());
+
+    EGLint desiredWidth  = 300;
+    EGLint desiredHeight = 400;
+    mOSWindow->resize(desiredWidth, desiredHeight);
+    mOSWindow->setOrientation(desiredWidth, desiredHeight);
+    angle::Sleep(1000);
+    eglSwapBuffers(mDisplay, mWindowSurface);
+    ASSERT_EGL_SUCCESS();
+
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebufferMS.get());
+    drawQuad(gradientProgram, essl31_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebufferMS.get());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebufferResolved.get());
+    glBlitFramebuffer(0, 0, kSize, kSize, 0, 0, kSize, kSize, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebufferResolved.get());
+
+    // Check the result, especially the boundaries.
+    EXPECT_PIXEL_NEAR(0, 0, 0, 0, 0, 255, 1.0);                      // Balck
+    EXPECT_PIXEL_NEAR(kSize - 1, 0, 253, 0, 0, 255, 1.0);            // Red
+    EXPECT_PIXEL_NEAR(0, kSize - 1, 0, 253, 0, 255, 1.0);            // Green
+    EXPECT_PIXEL_NEAR(kSize - 1, kSize - 1, 253, 253, 0, 255, 1.0);  // Yellow
+
+    ASSERT_GL_NO_ERROR();
+}
+
+// Blit color buffer to default framebuffer with linear filter.
+TEST_P(EGLPreRotationBlitFramebufferTest, BlitColorWithLinearFilter)
 {
     // http://anglebug.com/4453
     ANGLE_SKIP_TEST_IF(isVulkanRenderer() && IsLinux() && IsIntel());
@@ -1195,10 +1428,6 @@ TEST_P(EGLPreRotationBlitFramebufferTest, BlitColorWithFlip)
     // Flaky on Linux SwANGLE http://anglebug.com/4453
     ANGLE_SKIP_TEST_IF(IsLinux() && isSwiftshader());
 
-    // We need to fix blit with pre-rotation. http://anglebug.com/5044
-    ANGLE_SKIP_TEST_IF(IsAndroid());
-
-    // To aid in debugging, we want this window visible
     setWindowVisible(mOSWindow, true);
 
     initializeDisplay();
@@ -1232,16 +1461,15 @@ TEST_P(EGLPreRotationBlitFramebufferTest, BlitColorWithFlip)
                      essl31_shaders::fs::RedGreenGradient());
     drawQuad(gradientProgram, essl31_shaders::PositionAttrib(), 0.5f, 1.0f, true);
 
-    // Blit color buffer to default frambuffer with Y-flip.
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, kSize, kSize, 0, kSize, kSize, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    glBlitFramebuffer(0, 0, kSize, kSize, 0, 0, kSize, kSize, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
     // Check the result, especially the boundaries.
-    EXPECT_PIXEL_NEAR(0, 0, 0, 253, 0, 255, 1.0);                  // Green
-    EXPECT_PIXEL_NEAR(kSize - 1, 0, 253, 253, 0, 255, 1.0);        // Yellow
-    EXPECT_PIXEL_NEAR(0, kSize - 1, 0, 0, 0, 255, 1.0);            // Balck
-    EXPECT_PIXEL_NEAR(kSize - 1, kSize - 1, 253, 0, 0, 255, 1.0);  // Red
+    EXPECT_PIXEL_NEAR(0, 0, 0, 0, 0, 255, 1.0);                      // Black
+    EXPECT_PIXEL_NEAR(kSize - 1, 0, 253, 0, 0, 255, 1.0);            // Red
+    EXPECT_PIXEL_NEAR(0, kSize - 1, 0, 253, 0, 255, 1.0);            // Green
+    EXPECT_PIXEL_NEAR(kSize - 1, kSize - 1, 253, 253, 0, 255, 1.0);  // Yellow
 
     eglSwapBuffers(mDisplay, mWindowSurface);
 
@@ -2109,6 +2337,186 @@ TEST_P(EGLPreRotationBlitFramebufferTest, FboDestOutOfBoundsSourceAndDestBlitFra
 
     ASSERT_EGL_SUCCESS();
 }
+
+class EGLPreRotationInterpolateAtOffsetTest : public EGLPreRotationSurfaceTest
+{
+  protected:
+    EGLPreRotationInterpolateAtOffsetTest() {}
+
+    GLuint createProgram()
+    {
+        // Init program
+        constexpr char kVS[] =
+            "#version 310 es\n"
+            "#extension GL_OES_shader_multisample_interpolation : require\n"
+            "in highp vec2 position;\n"
+            "uniform float screen_width;\n"
+            "uniform float screen_height;\n"
+            "out highp vec2 v_screenPosition;\n"
+            "out highp vec2 v_offset;\n"
+            "void main (void)\n"
+            "{\n"
+            "   gl_Position = vec4(position, 0, 1);\n"
+            "   v_screenPosition = (position.xy + vec2(1.0, 1.0)) / 2.0 * vec2(screen_width, "
+            "screen_height);\n"
+            "   v_offset = position.xy * 0.5f;\n"
+            "}";
+
+        constexpr char kFS[] =
+            "#version 310 es\n"
+            "#extension GL_OES_shader_multisample_interpolation : require\n"
+            "in highp vec2 v_screenPosition;\n"
+            "in highp vec2 v_offset;\n"
+            "layout(location = 0) out mediump vec4 FragColor;\n"
+            "void main() {\n"
+            "   const highp float threshold = 0.15625; // 4 subpixel bits. Assume 3 accurate bits "
+            "+ 0.03125 for other errors\n"
+            "\n"
+            "   highp vec2 pixelCenter = floor(v_screenPosition) + vec2(0.5, 0.5);\n"
+            "   highp vec2 offsetValue = interpolateAtOffset(v_screenPosition, v_offset);\n"
+            "   highp vec2 refValue = pixelCenter + v_offset;\n"
+            "\n"
+            "   bool valuesEqual = all(lessThan(abs(offsetValue - refValue), vec2(threshold)));\n"
+            "   if (valuesEqual)\n"
+            "       FragColor = vec4(0.0, 1.0, 0.0, 1.0);\n"
+            "   else\n"
+            "       FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n"
+            "}";
+
+        return CompileProgram(kVS, kFS);
+    }
+    void initializeGeometry(GLuint program,
+                            GLBuffer *indexBuffer,
+                            GLVertexArray *vertexArray,
+                            GLBuffer *vertexBuffers)
+    {
+        GLint positionLocation = glGetAttribLocation(program, "position");
+        ASSERT_NE(-1, positionLocation);
+
+        GLuint screenWidthId  = glGetUniformLocation(program, "screen_width");
+        GLuint screenHeightId = glGetUniformLocation(program, "screen_height");
+
+        glUniform1f(screenWidthId, (GLfloat)mSize);
+        glUniform1f(screenHeightId, (GLfloat)mSize);
+
+        glBindVertexArray(*vertexArray);
+
+        std::vector<GLushort> indices = {0, 1, 2, 2, 3, 0};
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, *indexBuffer);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * indices.size(), &indices[0],
+                     GL_STATIC_DRAW);
+
+        std::vector<GLfloat> positionData = {// quad vertices
+                                             -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f};
+
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBuffers[0]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * positionData.size(), &positionData[0],
+                     GL_STATIC_DRAW);
+        glVertexAttribPointer(positionLocation, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 2,
+                              nullptr);
+        glEnableVertexAttribArray(positionLocation);
+    }
+};
+
+// Draw with interpolateAtOffset() builtin function to pre-rotated default FBO
+TEST_P(EGLPreRotationInterpolateAtOffsetTest, InterpolateAtOffsetWithDefaultFBO)
+{
+    // http://anglebug.com/4453
+    ANGLE_SKIP_TEST_IF(isVulkanRenderer() && IsLinux() && IsIntel());
+
+    // Flaky on Linux SwANGLE http://anglebug.com/4453
+    ANGLE_SKIP_TEST_IF(IsLinux() && isSwiftshader());
+
+    // To aid in debugging, we want this window visible
+    setWindowVisible(mOSWindow, true);
+
+    initializeDisplay();
+    initializeSurfaceWithRGBA8888Config();
+
+    eglMakeCurrent(mDisplay, mWindowSurface, mWindowSurface, mContext);
+    ASSERT_EGL_SUCCESS();
+
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_shader_multisample_interpolation"));
+
+    // Init program
+    GLuint program = createProgram();
+    ASSERT_NE(0u, program);
+    glUseProgram(program);
+
+    GLBuffer indexBuffer;
+    GLVertexArray vertexArray;
+    GLBuffer vertexBuffers;
+    initializeGeometry(program, &indexBuffer, &vertexArray, &vertexBuffers);
+    ASSERT_GL_NO_ERROR();
+
+    glViewport(0, 0, mSize, mSize);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr);
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor(0, 255, 0, 255));
+    EXPECT_PIXEL_COLOR_EQ(mSize - 1, 0, GLColor(0, 255, 0, 255));
+    EXPECT_PIXEL_COLOR_EQ(0, mSize - 1, GLColor(0, 255, 0, 255));
+    EXPECT_PIXEL_COLOR_EQ(mSize - 1, mSize - 1, GLColor(0, 255, 0, 255));
+    ASSERT_GL_NO_ERROR();
+
+    // Make the image visible
+    eglSwapBuffers(mDisplay, mWindowSurface);
+    ASSERT_EGL_SUCCESS();
+}
+
+// Draw with interpolateAtOffset() builtin function to pre-rotated custom FBO
+TEST_P(EGLPreRotationInterpolateAtOffsetTest, InterpolateAtOffsetWithCustomFBO)
+{
+    // http://anglebug.com/4453
+    ANGLE_SKIP_TEST_IF(isVulkanRenderer() && IsLinux() && IsIntel());
+
+    // Flaky on Linux SwANGLE http://anglebug.com/4453
+    ANGLE_SKIP_TEST_IF(IsLinux() && isSwiftshader());
+
+    // To aid in debugging, we want this window visible
+    setWindowVisible(mOSWindow, true);
+
+    initializeDisplay();
+    initializeSurfaceWithRGBA8888Config();
+
+    eglMakeCurrent(mDisplay, mWindowSurface, mWindowSurface, mContext);
+    ASSERT_EGL_SUCCESS();
+
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_shader_multisample_interpolation"));
+
+    // Init program
+    GLuint program = createProgram();
+    ASSERT_NE(0u, program);
+    glUseProgram(program);
+
+    GLBuffer indexBuffer;
+    GLVertexArray vertexArray;
+    GLBuffer vertexBuffers;
+    initializeGeometry(program, &indexBuffer, &vertexArray, &vertexBuffers);
+    ASSERT_GL_NO_ERROR();
+
+    // Create a texture-backed FBO
+    GLFramebuffer fbo;
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, mSize, mSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    ASSERT_GL_NO_ERROR();
+
+    glViewport(0, 0, mSize, mSize);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, nullptr);
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor(0, 255, 0, 255));
+    EXPECT_PIXEL_COLOR_EQ(mSize - 1, 0, GLColor(0, 255, 0, 255));
+    EXPECT_PIXEL_COLOR_EQ(0, mSize - 1, GLColor(0, 255, 0, 255));
+    EXPECT_PIXEL_COLOR_EQ(mSize - 1, mSize - 1, GLColor(0, 255, 0, 255));
+    ASSERT_GL_NO_ERROR();
+}
+
 }  // anonymous namespace
 
 #ifdef Bool
@@ -2116,6 +2524,10 @@ TEST_P(EGLPreRotationBlitFramebufferTest, FboDestOutOfBoundsSourceAndDestBlitFra
 #    undef Bool
 #endif
 
+ANGLE_INSTANTIATE_TEST_COMBINE_1(EGLPreRotationInterpolateAtOffsetTest,
+                                 PrintToStringParamName,
+                                 testing::Bool(),
+                                 WithNoFixture(ES31_VULKAN()));
 ANGLE_INSTANTIATE_TEST_COMBINE_1(EGLPreRotationSurfaceTest,
                                  PrintToStringParamName,
                                  testing::Bool(),

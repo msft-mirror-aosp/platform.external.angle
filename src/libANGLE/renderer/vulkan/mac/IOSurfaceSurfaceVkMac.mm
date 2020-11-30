@@ -117,9 +117,9 @@ angle::Result IOSurfaceSurfaceVkMac::initializeImpl(DisplayVk *displayVk)
     ANGLE_TRY(mColorAttachment.initializeWithExternalMemory(
         displayVk, mWidth, mHeight,
         renderer->getFormat(kIOSurfaceFormats[mFormatIndex].nativeSizedInternalFormat), samples,
-        IOSurfaceGetBaseAddressOfPlane(mIOSurface, mPlane)));
+        IOSurfaceGetBaseAddressOfPlane(mIOSurface, mPlane), mState.isRobustResourceInitEnabled()));
     mColorRenderTarget.init(&mColorAttachment.image, &mColorAttachment.imageViews, nullptr, nullptr,
-                            gl::LevelIndex(0), 0, false);
+                            gl::LevelIndex(0), 0, RenderTargetTransience::Default);
 
     return angle::Result::Continue;
 }

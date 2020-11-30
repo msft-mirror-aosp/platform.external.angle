@@ -105,6 +105,12 @@
         "target": "BufferBinding",
         "usage": "BufferUsage"
     },
+    "glBufferStorage": {
+        "target": "BufferBinding"
+    },
+    "glBufferStorageExternal": {
+        "target": "BufferBinding"
+    },
     "glBufferStorageMem": {
         "memory": "MemoryObjectID",
         "target": "TextureType"
@@ -1066,7 +1072,8 @@
         "buffer": "BufferID"
     },
     "glNamedBufferStorage": {
-        "buffer": "BufferID"
+        "buffer": "BufferID",
+        "target": "BufferBinding"
     },
     "glNamedBufferSubData": {
         "buffer": "BufferID"

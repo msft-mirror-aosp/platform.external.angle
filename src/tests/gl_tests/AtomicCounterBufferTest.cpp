@@ -112,7 +112,7 @@ TEST_P(AtomicCounterBufferTest31, OffsetNotAllSpecifiedWithSameValue)
     EXPECT_EQ(0u, program);
 }
 
-// Tests atomic counter reads using compute shaders. Used as a sanity check for the translator.
+// Tests atomic counter reads using compute shaders. Used as a confidence check for the translator.
 TEST_P(AtomicCounterBufferTest31, AtomicCounterReadCompute)
 {
     // Skipping due to a bug on the Qualcomm Vulkan Android driver.
@@ -192,9 +192,6 @@ TEST_P(AtomicCounterBufferTest31, AtomicCounterBufferRangeRead)
     // Skipping due to a bug on the Qualcomm driver.
     // http://anglebug.com/3726
     ANGLE_SKIP_TEST_IF(IsNexus5X());
-
-    // http://anglebug.com/3726
-    ANGLE_SKIP_TEST_IF(IsNexus6P());
 
     // Skipping due to a bug on the Qualcomm Vulkan Android driver.
     // http://anglebug.com/3726

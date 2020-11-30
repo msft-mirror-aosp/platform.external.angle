@@ -28,9 +28,11 @@
 #include "common/system_utils.h"
 #include "common/tls.h"
 #include "common/utilities.h"
+#include "gpu_info_util/SystemInfo.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Device.h"
 #include "libANGLE/EGLSync.h"
+#include "libANGLE/FrameCapture.h"
 #include "libANGLE/Image.h"
 #include "libANGLE/ResourceManager.h"
 #include "libANGLE/Stream.h"
@@ -51,10 +53,8 @@
 #if defined(ANGLE_ENABLE_OPENGL)
 #    if defined(ANGLE_PLATFORM_WINDOWS)
 #        include "libANGLE/renderer/gl/wgl/DisplayWGL.h"
-#    elif defined(ANGLE_PLATFORM_MACOS) || defined(ANGLE_PLATFORM_MACCATALYST)
-#        include "libANGLE/renderer/gl/cgl/DisplayCGL.h"
-#    elif defined(ANGLE_PLATFORM_IOS)
-#        include "libANGLE/renderer/gl/eagl/DisplayEAGL.h"
+#    elif defined(ANGLE_PLATFORM_MACOS) || defined(ANGLE_PLATFORM_IOS)
+#        include "libANGLE/renderer/gl/apple/DisplayApple_api.h"
 #    elif defined(ANGLE_PLATFORM_LINUX)
 #        include "libANGLE/renderer/gl/egl/DisplayEGL.h"
 #        if defined(ANGLE_USE_GBM)
@@ -225,11 +225,17 @@ EGLAttrib GetDeviceTypeFromEnvironment()
 
 EGLAttrib GetPlatformTypeFromEnvironment()
 {
-#if defined(ANGLE_USE_X11) && !defined(ANGLE_USE_OZONE)
+#if defined(ANGLE_USE_OZONE)
+    return 0;
+#elif defined(ANGLE_USE_X11)
     return EGL_PLATFORM_X11_EXT;
+#elif defined(ANGLE_USE_VULKAN_DISPLAY) && defined(ANGLE_VULKAN_DISPLAY_MODE_SIMPLE)
+    return EGL_PLATFORM_VULKAN_DISPLAY_MODE_SIMPLE_ANGLE;
+#elif defined(ANGLE_USE_VULKAN_DISPLAY) && defined(ANGLE_VULKAN_DISPLAY_MODE_HEADLESS)
+    return EGL_PLATFORM_VULKAN_DISPLAY_MODE_HEADLESS_ANGLE;
 #else
     return 0;
-#endif
+#endif  // defined(ANGLE_USE_OZONE)
 }
 
 rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
@@ -260,10 +266,12 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
 #if defined(ANGLE_ENABLE_OPENGL)
 #    if defined(ANGLE_PLATFORM_WINDOWS)
             impl = new rx::DisplayWGL(state);
-#    elif defined(ANGLE_PLATFORM_MACOS) || defined(ANGLE_PLATFORM_MACCATALYST)
-            impl = new rx::DisplayCGL(state);
-#    elif defined(ANGLE_PLATFORM_IOS)
-            impl = new rx::DisplayEAGL(state);
+            break;
+
+#    elif defined(ANGLE_PLATFORM_MACOS) || defined(ANGLE_PLATFORM_IOS)
+            impl = rx::CreateDisplayCGLOrEAGL(state);
+            break;
+
 #    elif defined(ANGLE_PLATFORM_LINUX)
 #        if defined(ANGLE_USE_GBM)
             if (platformType == 0)
@@ -353,6 +361,23 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
                 impl = rx::CreateVulkanXcbDisplay(state);
                 break;
             }
+#        elif defined(ANGLE_USE_VULKAN_DISPLAY)
+            if (platformType == EGL_PLATFORM_VULKAN_DISPLAY_MODE_SIMPLE_ANGLE &&
+                rx::IsVulkanSimpleDisplayAvailable())
+            {
+                impl = rx::CreateVulkanSimpleDisplay(state);
+            }
+            else if (platformType == EGL_PLATFORM_VULKAN_DISPLAY_MODE_HEADLESS_ANGLE &&
+                     rx::IsVulkanHeadlessDisplayAvailable())
+            {
+                impl = rx::CreateVulkanHeadlessDisplay(state);
+            }
+            else
+            {
+                // Not supported creation type on vulkan display, fail display creation.
+                impl = nullptr;
+            }
+            break;
 #        endif
 #    elif defined(ANGLE_PLATFORM_ANDROID)
             if (rx::IsVulkanAndroidDisplayAvailable())
@@ -457,7 +482,9 @@ static constexpr uint32_t kScratchBufferLifetime = 64u;
 
 // ShareGroup
 ShareGroup::ShareGroup(rx::EGLImplFactory *factory)
-    : mRefCount(1), mImplementation(factory->createShareGroup())
+    : mRefCount(1),
+      mImplementation(factory->createShareGroup()),
+      mFrameCaptureShared(new angle::FrameCaptureShared)
 {}
 
 ShareGroup::~ShareGroup()
@@ -471,10 +498,14 @@ void ShareGroup::addRef()
     mRefCount++;
 }
 
-void ShareGroup::release(const gl::Context *context)
+void ShareGroup::release(const Display *display)
 {
     if (--mRefCount == 0)
     {
+        if (mImplementation)
+        {
+            mImplementation->onDestroy(display);
+        }
         delete this;
     }
 }
@@ -563,7 +594,11 @@ Display *Display::GetDisplayFromNativeDisplay(EGLNativeDisplayType nativeDisplay
             // No valid display implementation for these attributes
             return nullptr;
         }
-        SetUseAndroidOpenGLTlsSlot(displayType == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE);
+
+#if defined(ANGLE_PLATFORM_ANDROID)
+        angle::gUseAndroidOpenGLTlsSlot = displayType == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE;
+#endif  // defined(ANGLE_PLATFORM_ANDROID)
+
         display->setupDisplayPlatform(impl);
     }
 
@@ -778,7 +813,7 @@ Error Display::initialize()
         mBlobCache.resize(1024 * 1024);
     }
 
-    gl::InitializeDebugAnnotations(&mAnnotator);
+    setGlobalDebugAnnotator();
 
     gl::InitializeDebugMutexIfNeeded();
 
@@ -925,6 +960,16 @@ Error Display::terminate(const Thread *thread)
     ANGLEResetDisplayPlatform(this);
 
     return NoError();
+}
+
+Error Display::prepareForCall()
+{
+    return mImplementation->prepareForCall();
+}
+
+Error Display::releaseThread()
+{
+    return mImplementation->releaseThread();
 }
 
 std::vector<const Config *> Display::getConfigs(const egl::AttributeMap &attribs) const
@@ -1250,7 +1295,7 @@ Error Display::makeCurrent(gl::Context *previousContext,
         }
     }
 
-    ANGLE_TRY(mImplementation->makeCurrent(drawSurface, readSurface, context));
+    ANGLE_TRY(mImplementation->makeCurrent(this, drawSurface, readSurface, context));
 
     if (context != nullptr)
     {
@@ -1470,6 +1515,28 @@ EGLClientBuffer Display::GetNativeClientBuffer(const AHardwareBuffer *buffer)
     return angle::android::AHardwareBufferToClientBuffer(buffer);
 }
 
+// static
+Error Display::CreateNativeClientBuffer(const egl::AttributeMap &attribMap,
+                                        EGLClientBuffer *eglClientBuffer)
+{
+    int androidHardwareBufferFormat = gl::GetAndroidHardwareBufferFormatFromChannelSizes(attribMap);
+    int width                       = attribMap.getAsInt(EGL_WIDTH, 0);
+    int height                      = attribMap.getAsInt(EGL_HEIGHT, 0);
+    int usage                       = attribMap.getAsInt(EGL_NATIVE_BUFFER_USAGE_ANDROID, 0);
+
+    // https://developer.android.com/ndk/reference/group/a-hardware-buffer#ahardwarebuffer_lock
+    // for AHardwareBuffer_lock()
+    // The passed AHardwareBuffer must have one layer, otherwise the call will fail.
+    constexpr int kLayerCount = 1;
+
+    *eglClientBuffer = angle::android::CreateEGLClientBufferFromAHardwareBuffer(
+        width, height, kLayerCount, androidHardwareBufferFormat, usage);
+
+    return (*eglClientBuffer == nullptr)
+               ? egl::EglBadParameter() << "native client buffer allocation failed."
+               : NoError();
+}
+
 Error Display::waitClient(const gl::Context *context)
 {
     return mImplementation->waitClient(context);
@@ -1586,6 +1653,15 @@ static ClientExtensions GenerateClientExtensions()
     extensions.platformANGLEDeviceTypeEGLANGLE = true;
 #endif
 
+#if (defined(ANGLE_PLATFORM_IOS) && !defined(ANGLE_PLATFORM_MACCATALYST)) || \
+    (defined(ANGLE_PLATFORM_MACCATALYST) && defined(ANGLE_CPU_ARM64))
+    extensions.platformANGLEDeviceContextVolatileEagl = true;
+#endif
+
+#if defined(ANGLE_PLATFORM_MACOS) || defined(ANGLE_PLATFORM_MACCATALYST)
+    extensions.platformANGLEDeviceContextVolatileCgl = true;
+#endif
+
     extensions.clientGetAllProcAddresses = true;
     extensions.debug                     = true;
     extensions.explicitContext           = true;
@@ -1631,6 +1707,7 @@ void Display::initDisplayExtensions()
     mDisplayExtensions.createContextBindGeneratesResource = true;
     mDisplayExtensions.createContextClientArrays          = true;
     mDisplayExtensions.pixelFormatFloat                   = true;
+    mDisplayExtensions.reusableSyncKHR                    = true;
 
     // Force EGL_KHR_get_all_proc_addresses on.
     mDisplayExtensions.getAllProcAddresses = true;
@@ -1735,6 +1812,7 @@ void Display::initializeFrontendFeatures()
     // Enable on all Impls
     ANGLE_FEATURE_CONDITION((&mFrontendFeatures), loseContextOnOutOfMemory, true);
     ANGLE_FEATURE_CONDITION((&mFrontendFeatures), scalarizeVecAndMatConstructorArgs, true);
+    ANGLE_FEATURE_CONDITION((&mFrontendFeatures), allowCompressedFormats, true);
 
     mImplementation->initializeFrontendFeatures(&mFrontendFeatures);
 
@@ -1970,5 +2048,4 @@ egl::Error Display::handleGPUSwitch()
 {
     return mImplementation->handleGPUSwitch();
 }
-
 }  // namespace egl

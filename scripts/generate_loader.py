@@ -161,6 +161,9 @@ def gen_gles_loader(gles_preamble, path, header_lib, export, internal_prefix, fi
     if registry_xml.support_EGL_ANGLE_explicit_context:
         all_cmds += [cmd + "ContextANGLE" for cmd in xml.all_cmd_names.get_all_commands()]
 
+    # Ensure there are no duplicates
+    assert (len(all_cmds) == len(set(all_cmds))), "Duplicate command names found"
+
     write_header(
         data_source_name,
         all_cmds,
@@ -227,8 +230,8 @@ def gen_util_gles_and_egl_loaders():
 
 
 def gen_trace_gles_and_egl_loaders():
-    path = os.path.join("..", "src", "tests", "perf_tests", "restricted_traces")
-    export = "ANGLE_TRACE_EXPORT "
+    path = os.path.join("..", "src", "tests", "restricted_traces")
+    export = "ANGLE_TRACE_LOADER_EXPORT "
     lib = "ANGLE_RESTRICTED_TRACES"
     gen_gles_loader(trace_gles_preamble, path, lib, export, "t_", "trace_")
     gen_egl_loader(trace_egl_preamble, path, lib, export, "t_", "trace_")
@@ -283,10 +286,10 @@ def main():
             '../util/gles_loader_autogen.h',
             '../util/windows/wgl_loader_autogen.cpp',
             '../util/windows/wgl_loader_autogen.h',
-            '../src/tests/perf_tests/restricted_traces/trace_egl_loader_autogen.cpp',
-            '../src/tests/perf_tests/restricted_traces/trace_egl_loader_autogen.h',
-            '../src/tests/perf_tests/restricted_traces/trace_gles_loader_autogen.cpp',
-            '../src/tests/perf_tests/restricted_traces/trace_gles_loader_autogen.h',
+            '../src/tests/restricted_traces/trace_egl_loader_autogen.cpp',
+            '../src/tests/restricted_traces/trace_egl_loader_autogen.h',
+            '../src/tests/restricted_traces/trace_gles_loader_autogen.cpp',
+            '../src/tests/restricted_traces/trace_gles_loader_autogen.h',
         ]
 
         if sys.argv[1] == 'inputs':

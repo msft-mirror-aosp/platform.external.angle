@@ -545,7 +545,7 @@ void CopyImageCHROMIUM(const uint8_t *sourceData,
 }
 
 // IncompleteTextureSet implementation.
-IncompleteTextureSet::IncompleteTextureSet() {}
+IncompleteTextureSet::IncompleteTextureSet() : mIncompleteTextureBufferAttachment(nullptr) {}
 
 IncompleteTextureSet::~IncompleteTextureSet() {}
 
@@ -559,6 +559,11 @@ void IncompleteTextureSet::onDestroy(const gl::Context *context)
             incompleteTexture->onDestroy(context);
             incompleteTexture.set(context, nullptr);
         }
+    }
+    if (mIncompleteTextureBufferAttachment != nullptr)
+    {
+        mIncompleteTextureBufferAttachment->onDestroy(context);
+        mIncompleteTextureBufferAttachment = nullptr;
     }
 }
 
@@ -592,7 +597,19 @@ angle::Result IncompleteTextureSet::getIncompleteTexture(
     // This is a bit of a kludge but is necessary to consume the error.
     gl::Context *mutableContext = const_cast<gl::Context *>(context);
 
-    if (createType == gl::TextureType::_2DMultisample)
+    // TODO: the caller should specify the basic type of the image (i.e. float, int or uint) so a
+    // different incomplete texture is created per type.  In Vulkan, it's invalid to bind a unorm
+    // texture for example if the shader expects uint.  http://anglebug.com/4432#c5
+    if (createType == gl::TextureType::Buffer)
+    {
+        constexpr uint32_t kBufferInitData = 0;
+        mIncompleteTextureBufferAttachment =
+            new gl::Buffer(implFactory, {std::numeric_limits<GLuint>::max()});
+        ANGLE_TRY(mIncompleteTextureBufferAttachment->bufferData(
+            mutableContext, gl::BufferBinding::Texture, &kBufferInitData, sizeof(kBufferInitData),
+            gl::BufferUsage::StaticDraw));
+    }
+    else if (createType == gl::TextureType::_2DMultisample)
     {
         ANGLE_TRY(
             t->setStorageMultisample(mutableContext, createType, 1, GL_RGBA8, colorSize, true));
@@ -614,6 +631,10 @@ angle::Result IncompleteTextureSet::getIncompleteTexture(
     {
         // Call a specialized clear function to init a multisample texture.
         ANGLE_TRY(multisampleInitializer->initializeMultisampleTextureToBlack(context, t.get()));
+    }
+    else if (type == gl::TextureType::Buffer)
+    {
+        ANGLE_TRY(t->setBuffer(context, mIncompleteTextureBufferAttachment, GL_RGBA8UI));
     }
     else
     {
@@ -902,18 +923,46 @@ gl::Rectangle ClipRectToScissor(const gl::State &glState, const gl::Rectangle &r
     return clippedRect;
 }
 
+void LogFeatureStatus(const angle::FeatureSetBase &features,
+                      const std::vector<std::string> &featureNames,
+                      bool enabled)
+{
+    for (const std::string &name : featureNames)
+    {
+        if (features.getFeatures().find(name) != features.getFeatures().end())
+        {
+            INFO() << "Feature: " << name << (enabled ? " enabled" : " disabled");
+        }
+        else
+        {
+            WARN() << "Feature: " << name << " is not a valid feature name.";
+        }
+    }
+}
+
 void ApplyFeatureOverrides(angle::FeatureSetBase *features, const egl::DisplayState &state)
 {
     features->overrideFeatures(state.featureOverridesEnabled, true);
     features->overrideFeatures(state.featureOverridesDisabled, false);
 
     // Override with environment as well.
+    constexpr char kAngleFeatureOverridesEnabledEnvName[]  = "ANGLE_FEATURE_OVERRIDES_ENABLED";
+    constexpr char kAngleFeatureOverridesDisabledEnvName[] = "ANGLE_FEATURE_OVERRIDES_DISABLED";
+    constexpr char kAngleFeatureOverridesEnabledPropertyName[] =
+        "debug.angle.feature_overrides_enabled";
+    constexpr char kAngleFeatureOverridesDisabledPropertyName[] =
+        "debug.angle.feature_overrides_disabled";
     std::vector<std::string> overridesEnabled =
-        angle::GetStringsFromEnvironmentVar("ANGLE_FEATURE_OVERRIDES_ENABLED", ":");
+        angle::GetCachedStringsFromEnvironmentVarOrAndroidProperty(
+            kAngleFeatureOverridesEnabledEnvName, kAngleFeatureOverridesEnabledPropertyName, ":");
     std::vector<std::string> overridesDisabled =
-        angle::GetStringsFromEnvironmentVar("ANGLE_FEATURE_OVERRIDES_DISABLED", ":");
+        angle::GetCachedStringsFromEnvironmentVarOrAndroidProperty(
+            kAngleFeatureOverridesDisabledEnvName, kAngleFeatureOverridesDisabledPropertyName, ":");
     features->overrideFeatures(overridesEnabled, true);
+    LogFeatureStatus(*features, overridesEnabled, true);
+
     features->overrideFeatures(overridesDisabled, false);
+    LogFeatureStatus(*features, overridesDisabled, false);
 }
 
 void GetSamplePosition(GLsizei sampleCount, size_t index, GLfloat *xy)

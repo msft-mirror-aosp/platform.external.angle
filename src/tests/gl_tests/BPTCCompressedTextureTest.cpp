@@ -151,7 +151,7 @@ TEST_P(BPTCCompressedTextureTest, CompressedTexImageBC6HNoCrash)
     GLTexture texture;
     setupTextureParameters(texture);
 
-    // This dummy pixel data represents a 4x4 pixel image.
+    // This fake pixel data represents a 4x4 pixel image.
     // TODO(http://anglebug.com/2869): Add pixel tests for these formats. These need HDR source
     // images.
     std::vector<GLubyte> data;
@@ -273,6 +273,9 @@ TEST_P(BPTCCompressedTextureTestES3, CopyTexSubImage3DDisallowed)
 // Test uploading texture data from a PBO to a texture.
 TEST_P(BPTCCompressedTextureTestES3, PBOCompressedTexImage)
 {
+    // TODO(anglebug.com/5360): Failing on ARM-based Apple DTKs.
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && IsMetal());
+
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_texture_compression_bptc"));
 
     GLTexture texture;
@@ -324,6 +327,9 @@ TEST_P(BPTCCompressedTextureTestES3, PBOCompressedTexImage)
 // Test uploading texture data from a PBO to a non-zero base texture.
 TEST_P(BPTCCompressedTextureTestES3, PBOCompressedTexImageNonZeroBase)
 {
+    // TODO(anglebug.com/5360): Failing on ARM-based Apple DTKs.
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && IsMetal());
+
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_texture_compression_bptc"));
 
     GLTexture texture;

@@ -112,6 +112,34 @@ class TextureImpl : public FramebufferAttachmentObjectImpl
                                          bool unpackUnmultiplyAlpha,
                                          const gl::Texture *source);
 
+    virtual angle::Result copyRenderbufferSubData(const gl::Context *context,
+                                                  const gl::Renderbuffer *srcBuffer,
+                                                  GLint srcLevel,
+                                                  GLint srcX,
+                                                  GLint srcY,
+                                                  GLint srcZ,
+                                                  GLint dstLevel,
+                                                  GLint dstX,
+                                                  GLint dstY,
+                                                  GLint dstZ,
+                                                  GLsizei srcWidth,
+                                                  GLsizei srcHeight,
+                                                  GLsizei srcDepth);
+
+    virtual angle::Result copyTextureSubData(const gl::Context *context,
+                                             const gl::Texture *srcTexture,
+                                             GLint srcLevel,
+                                             GLint srcX,
+                                             GLint srcY,
+                                             GLint srcZ,
+                                             GLint dstLevel,
+                                             GLint dstX,
+                                             GLint dstY,
+                                             GLint dstZ,
+                                             GLsizei srcWidth,
+                                             GLsizei srcHeight,
+                                             GLsizei srcDepth);
+
     virtual angle::Result copyCompressedTexture(const gl::Context *context,
                                                 const gl::Texture *source);
 
@@ -175,6 +203,8 @@ class TextureImpl : public FramebufferAttachmentObjectImpl
                                            egl::Stream *stream,
                                            const egl::Stream::GLTextureDescription &desc) = 0;
 
+    virtual angle::Result setBuffer(const gl::Context *context, GLenum internalFormat);
+
     virtual angle::Result generateMipmap(const gl::Context *context) = 0;
 
     virtual angle::Result setBaseLevel(const gl::Context *context, GLuint baseLevel) = 0;
@@ -203,6 +233,8 @@ class TextureImpl : public FramebufferAttachmentObjectImpl
                                       GLenum format,
                                       GLenum type,
                                       void *pixels);
+
+    virtual GLint getRequiredExternalTextureImageUnits(const gl::Context *context);
 
   protected:
     const gl::TextureState &mState;

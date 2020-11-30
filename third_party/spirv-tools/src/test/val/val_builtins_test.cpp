@@ -1,4 +1,6 @@
 // Copyright (c) 2018 Google LLC.
+// Modifications Copyright (C) 2020 Advanced Micro Devices, Inc. All rights
+// reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,7 +69,12 @@ using ValidateWebGPUCombineBuiltInArrayedVariable = spvtest::ValidateBase<
 using ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult =
     spvtest::ValidateBase<
         std::tuple<const char*, const char*, const char*, const char*,
-                   const char*, const char*, TestResult>>;
+                   const char*, const char*, const char*, TestResult>>;
+
+using ValidateGenericCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult =
+    spvtest::ValidateBase<std::tuple<spv_target_env, const char*, const char*,
+                                     const char*, const char*, const char*,
+                                     const char*, const char*, TestResult>>;
 
 bool InitializerRequired(spv_target_env env, const char* const storage_class) {
   return spvIsWebGPUEnv(env) && (strncmp(storage_class, "Output", 6) == 0 ||
@@ -161,6 +168,17 @@ MATCHER_P(AnyVUID, vuid_set, "VUID from the set is in error message") {
   std::string token;
   std::string vuids = std::string(vuid_set);
   size_t position;
+
+  // Catch case were someone accidentally left spaces by trimming string
+  // clang-format off
+  vuids.erase(std::find_if(vuids.rbegin(), vuids.rend(), [](unsigned char c) {
+    return (c != ' ');
+  }).base(), vuids.end());
+  vuids.erase(vuids.begin(), std::find_if(vuids.begin(), vuids.end(), [](unsigned char c) {
+    return (c != ' ');
+  }));
+  // clang-format on
+
   do {
     position = vuids.find(delimiter);
     if (position != std::string::npos) {
@@ -235,7 +253,8 @@ TEST_P(
   const char* const data_type = std::get<3>(GetParam());
   const char* const capabilities = std::get<4>(GetParam());
   const char* const extensions = std::get<5>(GetParam());
-  const TestResult& test_result = std::get<6>(GetParam());
+  const char* const vuid = std::get<6>(GetParam());
+  const TestResult& test_result = std::get<7>(GetParam());
 
   CodeGenerator generator = GetInMainCodeGenerator(
       SPV_ENV_VULKAN_1_0, built_in, execution_model, storage_class,
@@ -249,6 +268,39 @@ TEST_P(
   }
   if (test_result.error_str2) {
     EXPECT_THAT(getDiagnosticString(), HasSubstr(test_result.error_str2));
+  }
+  if (vuid) {
+    EXPECT_THAT(getDiagnosticString(), AnyVUID(vuid));
+  }
+}
+
+TEST_P(
+    ValidateGenericCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    InMain) {
+  const spv_target_env env = std::get<0>(GetParam());
+  const char* const built_in = std::get<1>(GetParam());
+  const char* const execution_model = std::get<2>(GetParam());
+  const char* const storage_class = std::get<3>(GetParam());
+  const char* const data_type = std::get<4>(GetParam());
+  const char* const capabilities = std::get<5>(GetParam());
+  const char* const extensions = std::get<6>(GetParam());
+  const char* const vuid = std::get<7>(GetParam());
+  const TestResult& test_result = std::get<8>(GetParam());
+
+  CodeGenerator generator =
+      GetInMainCodeGenerator(env, built_in, execution_model, storage_class,
+                             capabilities, extensions, data_type);
+
+  CompileSuccessfully(generator.Build(), env);
+  ASSERT_EQ(test_result.validation_result, ValidateInstructions(env));
+  if (test_result.error_str) {
+    EXPECT_THAT(getDiagnosticString(), HasSubstr(test_result.error_str));
+  }
+  if (test_result.error_str2) {
+    EXPECT_THAT(getDiagnosticString(), HasSubstr(test_result.error_str2));
+  }
+  if (vuid) {
+    EXPECT_THAT(getDiagnosticString(), AnyVUID(vuid));
   }
 }
 
@@ -399,7 +451,8 @@ TEST_P(
   const char* const data_type = std::get<3>(GetParam());
   const char* const capabilities = std::get<4>(GetParam());
   const char* const extensions = std::get<5>(GetParam());
-  const TestResult& test_result = std::get<6>(GetParam());
+  const char* const vuid = std::get<6>(GetParam());
+  const TestResult& test_result = std::get<7>(GetParam());
 
   CodeGenerator generator = GetInFunctionCodeGenerator(
       SPV_ENV_VULKAN_1_0, built_in, execution_model, storage_class,
@@ -413,6 +466,9 @@ TEST_P(
   }
   if (test_result.error_str2) {
     EXPECT_THAT(getDiagnosticString(), HasSubstr(test_result.error_str2));
+  }
+  if (vuid) {
+    EXPECT_THAT(getDiagnosticString(), AnyVUID(vuid));
   }
 }
 
@@ -546,7 +602,8 @@ TEST_P(
   const char* const data_type = std::get<3>(GetParam());
   const char* const capabilities = std::get<4>(GetParam());
   const char* const extensions = std::get<5>(GetParam());
-  const TestResult& test_result = std::get<6>(GetParam());
+  const char* const vuid = std::get<6>(GetParam());
+  const TestResult& test_result = std::get<7>(GetParam());
 
   CodeGenerator generator = GetVariableCodeGenerator(
       SPV_ENV_VULKAN_1_0, built_in, execution_model, storage_class,
@@ -560,6 +617,9 @@ TEST_P(
   }
   if (test_result.error_str2) {
     EXPECT_THAT(getDiagnosticString(), HasSubstr(test_result.error_str2));
+  }
+  if (vuid) {
+    EXPECT_THAT(getDiagnosticString(), AnyVUID(vuid));
   }
 }
 
@@ -1193,21 +1253,29 @@ INSTANTIATE_TEST_SUITE_P(
                        "Geometry, or Fragment execution models"))));
 
 INSTANTIATE_TEST_SUITE_P(
-    LayerAndViewportIndexExecutionModelEnabledByCapability,
+    ViewportIndexExecutionModelEnabledByCapability,
     ValidateVulkanCombineBuiltInExecutionModelDataTypeResult,
-    Combine(Values("Layer", "ViewportIndex"),
-            Values("Vertex", "TessellationEvaluation"), Values("Output"),
-            Values("%u32"), Values(nullptr),
+    Combine(Values("ViewportIndex"), Values("Vertex", "TessellationEvaluation"),
+            Values("Output"), Values("%u32"), Values(nullptr),
             Values(TestResult(
                 SPV_ERROR_INVALID_DATA,
-                "requires the ShaderViewportIndexLayerEXT capability"))));
+                "ShaderViewportIndexLayerEXT or ShaderViewportIndex"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    LayerExecutionModelEnabledByCapability,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeResult,
+    Combine(Values("Layer"), Values("Vertex", "TessellationEvaluation"),
+            Values("Output"), Values("%u32"), Values(nullptr),
+            Values(TestResult(SPV_ERROR_INVALID_DATA,
+                              "ShaderViewportIndexLayerEXT or ShaderLayer"))));
 
 INSTANTIATE_TEST_SUITE_P(
     LayerAndViewportIndexFragmentNotInput,
     ValidateVulkanCombineBuiltInExecutionModelDataTypeResult,
     Combine(
         Values("Layer", "ViewportIndex"), Values("Fragment"), Values("Output"),
-        Values("%u32"), Values(nullptr),
+        Values("%u32"),
+        Values("VUID-Layer-Layer-04275 VUID-ViewportIndex-ViewportIndex-04407"),
         Values(TestResult(SPV_ERROR_INVALID_DATA,
                           "Output storage class if execution model is Fragment",
                           "which is called with execution model Fragment"))));
@@ -1218,10 +1286,11 @@ INSTANTIATE_TEST_SUITE_P(
     Combine(
         Values("Layer", "ViewportIndex"),
         Values("Vertex", "TessellationEvaluation", "Geometry"), Values("Input"),
-        Values("%u32"), Values(nullptr),
+        Values("%u32"),
+        Values("VUID-Layer-Layer-04274 VUID-ViewportIndex-ViewportIndex-04406"),
         Values(TestResult(SPV_ERROR_INVALID_DATA,
                           "Input storage class if execution model is Vertex, "
-                          "TessellationEvaluation, or Geometry",
+                          "TessellationEvaluation, Geometry, or MeshNV",
                           "which is called with execution model"))));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -1245,6 +1314,22 @@ INSTANTIATE_TEST_SUITE_P(
         Values(TestResult(SPV_ERROR_INVALID_DATA,
                           "needs to be a 32-bit int scalar",
                           "has bit width 64"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    LayerCapability,
+    ValidateGenericCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values(SPV_ENV_VULKAN_1_2), Values("Layer"), Values("Vertex"),
+            Values("Output"), Values("%u32"),
+            Values("OpCapability ShaderLayer\n"), Values(nullptr),
+            Values(nullptr), Values(TestResult())));
+
+INSTANTIATE_TEST_SUITE_P(
+    ViewportIndexCapability,
+    ValidateGenericCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values(SPV_ENV_VULKAN_1_2), Values("ViewportIndex"),
+            Values("Vertex"), Values("Output"), Values("%u32"),
+            Values("OpCapability ShaderViewportIndex\n"), Values(nullptr),
+            Values(nullptr), Values(TestResult())));
 
 INSTANTIATE_TEST_SUITE_P(
     PatchVerticesSuccess,
@@ -2100,6 +2185,183 @@ INSTANTIATE_TEST_SUITE_P(
             Values(TestResult(SPV_ERROR_INVALID_DATA,
                               "WebGPU does not allow BuiltIn"))));
 
+INSTANTIATE_TEST_SUITE_P(
+    BaseInstanceOrVertexSuccess,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("BaseInstance", "BaseVertex"), Values("Vertex"),
+            Values("Input"), Values("%u32"),
+            Values("OpCapability DrawParameters\n"),
+            Values("OpExtension \"SPV_KHR_shader_draw_parameters\"\n"),
+            Values(nullptr), Values(TestResult())));
+
+INSTANTIATE_TEST_SUITE_P(
+    BaseInstanceOrVertexInvalidExecutionModel,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("BaseInstance", "BaseVertex"),
+            Values("Fragment", "GLCompute", "Geometry", "TessellationControl",
+                   "TessellationEvaluation"),
+            Values("Input"), Values("%u32"),
+            Values("OpCapability DrawParameters\n"),
+            Values("OpExtension \"SPV_KHR_shader_draw_parameters\"\n"),
+            Values("VUID-BaseInstance-BaseInstance-04181 "
+                   "VUID-BaseVertex-BaseVertex-04184"),
+            Values(TestResult(SPV_ERROR_INVALID_DATA,
+                              "to be used only with Vertex execution model"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    BaseInstanceOrVertexNotInput,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("BaseInstance", "BaseVertex"), Values("Vertex"),
+            Values("Output"), Values("%u32"),
+            Values("OpCapability DrawParameters\n"),
+            Values("OpExtension \"SPV_KHR_shader_draw_parameters\"\n"),
+            Values("VUID-BaseInstance-BaseInstance-04182 "
+                   "VUID-BaseVertex-BaseVertex-04185"),
+            Values(TestResult(SPV_ERROR_INVALID_DATA, "Vulkan spec allows",
+                              "used for variables with Input storage class"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    BaseInstanceOrVertexNotIntScalar,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("BaseInstance", "BaseVertex"), Values("Vertex"),
+            Values("Input"), Values("%f32", "%u32vec3"),
+            Values("OpCapability DrawParameters\n"),
+            Values("OpExtension \"SPV_KHR_shader_draw_parameters\"\n"),
+            Values("VUID-BaseInstance-BaseInstance-04183 "
+                   "VUID-BaseVertex-BaseVertex-04186"),
+            Values(TestResult(SPV_ERROR_INVALID_DATA,
+                              "needs to be a 32-bit int scalar",
+                              "is not an int scalar"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    DrawIndexSuccess,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("DrawIndex"), Values("Vertex"), Values("Input"),
+            Values("%u32"), Values("OpCapability DrawParameters\n"),
+            Values("OpExtension \"SPV_KHR_shader_draw_parameters\"\n"),
+            Values(nullptr), Values(TestResult())));
+
+INSTANTIATE_TEST_SUITE_P(
+    DrawIndexMeshSuccess,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(
+        Values("DrawIndex"), Values("MeshNV", "TaskNV"), Values("Input"),
+        Values("%u32"), Values("OpCapability MeshShadingNV\n"),
+        Values("OpExtension \"SPV_KHR_shader_draw_parameters\"\nOpExtension "
+               "\"SPV_NV_mesh_shader\"\n"),
+        Values(nullptr), Values(TestResult())));
+
+INSTANTIATE_TEST_SUITE_P(
+    DrawIndexInvalidExecutionModel,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("DrawIndex"),
+            Values("Fragment", "GLCompute", "Geometry", "TessellationControl",
+                   "TessellationEvaluation"),
+            Values("Input"), Values("%u32"),
+            Values("OpCapability DrawParameters\n"),
+            Values("OpExtension \"SPV_KHR_shader_draw_parameters\"\n"),
+            Values("VUID-DrawIndex-DrawIndex-04207"),
+            Values(TestResult(SPV_ERROR_INVALID_DATA,
+                              "to be used only with Vertex, MeshNV, or TaskNV "
+                              "execution model"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    DrawIndexNotInput,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("DrawIndex"), Values("Vertex"), Values("Output"),
+            Values("%u32"), Values("OpCapability DrawParameters\n"),
+            Values("OpExtension \"SPV_KHR_shader_draw_parameters\"\n"),
+            Values("VUID-DrawIndex-DrawIndex-04208"),
+            Values(TestResult(SPV_ERROR_INVALID_DATA, "Vulkan spec allows",
+                              "used for variables with Input storage class"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    DrawIndexNotIntScalar,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("DrawIndex"), Values("Vertex"), Values("Input"),
+            Values("%f32", "%u32vec3"), Values("OpCapability DrawParameters\n"),
+            Values("OpExtension \"SPV_KHR_shader_draw_parameters\"\n"),
+            Values("VUID-DrawIndex-DrawIndex-04209"),
+            Values(TestResult(SPV_ERROR_INVALID_DATA,
+                              "needs to be a 32-bit int scalar",
+                              "is not an int scalar"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    ViewIndexSuccess,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("ViewIndex"),
+            Values("Fragment", "Vertex", "Geometry", "TessellationControl",
+                   "TessellationEvaluation"),
+            Values("Input"), Values("%u32"), Values("OpCapability MultiView\n"),
+            Values("OpExtension \"SPV_KHR_multiview\"\n"), Values(nullptr),
+            Values(TestResult())));
+
+INSTANTIATE_TEST_SUITE_P(
+    ViewIndexInvalidExecutionModel,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("ViewIndex"), Values("GLCompute"), Values("Input"),
+            Values("%u32"), Values("OpCapability MultiView\n"),
+            Values("OpExtension \"SPV_KHR_multiview\"\n"),
+            Values("VUID-ViewIndex-ViewIndex-04401"),
+            Values(TestResult(
+                SPV_ERROR_INVALID_DATA,
+                "to be not be used with GLCompute execution model"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    ViewIndexNotInput,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("ViewIndex"), Values("Vertex"), Values("Output"),
+            Values("%u32"), Values("OpCapability MultiView\n"),
+            Values("OpExtension \"SPV_KHR_multiview\"\n"),
+            Values("VUID-ViewIndex-ViewIndex-04402"),
+            Values(TestResult(SPV_ERROR_INVALID_DATA, "Vulkan spec allows",
+                              "used for variables with Input storage class"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    ViewIndexNotIntScalar,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("ViewIndex"), Values("Vertex"), Values("Input"),
+            Values("%f32", "%u32vec3"), Values("OpCapability MultiView\n"),
+            Values("OpExtension \"SPV_KHR_multiview\"\n"),
+            Values("VUID-ViewIndex-ViewIndex-04403"),
+            Values(TestResult(SPV_ERROR_INVALID_DATA,
+                              "needs to be a 32-bit int scalar",
+                              "is not an int scalar"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    DeviceIndexSuccess,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("DeviceIndex"),
+            Values("Fragment", "Vertex", "Geometry", "TessellationControl",
+                   "TessellationEvaluation", "GLCompute"),
+            Values("Input"), Values("%u32"),
+            Values("OpCapability DeviceGroup\n"),
+            Values("OpExtension \"SPV_KHR_device_group\"\n"), Values(nullptr),
+            Values(TestResult())));
+
+INSTANTIATE_TEST_SUITE_P(
+    DeviceIndexNotInput,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("DeviceIndex"), Values("Fragment", "Vertex", "GLCompute"),
+            Values("Output"), Values("%u32"),
+            Values("OpCapability DeviceGroup\n"),
+            Values("OpExtension \"SPV_KHR_device_group\"\n"),
+            Values("VUID-DeviceIndex-DeviceIndex-04205"),
+            Values(TestResult(SPV_ERROR_INVALID_DATA, "Vulkan spec allows",
+                              "used for variables with Input storage class"))));
+
+INSTANTIATE_TEST_SUITE_P(
+    DeviceIndexNotIntScalar,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("DeviceIndex"), Values("Fragment", "Vertex", "GLCompute"),
+            Values("Input"), Values("%f32", "%u32vec3"),
+            Values("OpCapability DeviceGroup\n"),
+            Values("OpExtension \"SPV_KHR_device_group\"\n"),
+            Values("VUID-DeviceIndex-DeviceIndex-04206"),
+            Values(TestResult(SPV_ERROR_INVALID_DATA,
+                              "needs to be a 32-bit int scalar",
+                              "is not an int scalar"))));
+
 CodeGenerator GetArrayedVariableCodeGenerator(spv_target_env env,
                                               const char* const built_in,
                                               const char* const execution_model,
@@ -2292,7 +2554,7 @@ INSTANTIATE_TEST_SUITE_P(
             Values("Input"), Values("%u32"),
             Values("OpCapability ShaderSMBuiltinsNV\n"),
             Values("OpExtension \"SPV_NV_shader_sm_builtins\"\n"),
-            Values(TestResult())));
+            Values(nullptr), Values(TestResult())));
 
 INSTANTIATE_TEST_SUITE_P(
     SMBuiltinsInputMeshSuccess,
@@ -2303,7 +2565,7 @@ INSTANTIATE_TEST_SUITE_P(
         Values("OpCapability ShaderSMBuiltinsNV\nOpCapability MeshShadingNV\n"),
         Values("OpExtension \"SPV_NV_shader_sm_builtins\"\nOpExtension "
                "\"SPV_NV_mesh_shader\"\n"),
-        Values(TestResult())));
+        Values(nullptr), Values(TestResult())));
 
 INSTANTIATE_TEST_SUITE_P(
     SMBuiltinsInputRaySuccess,
@@ -2316,7 +2578,7 @@ INSTANTIATE_TEST_SUITE_P(
         Values("OpCapability ShaderSMBuiltinsNV\nOpCapability RayTracingNV\n"),
         Values("OpExtension \"SPV_NV_shader_sm_builtins\"\nOpExtension "
                "\"SPV_NV_ray_tracing\"\n"),
-        Values(TestResult())));
+        Values(nullptr), Values(TestResult())));
 
 INSTANTIATE_TEST_SUITE_P(
     SMBuiltinsNotInput,
@@ -2327,6 +2589,7 @@ INSTANTIATE_TEST_SUITE_P(
             Values("Output"), Values("%u32"),
             Values("OpCapability ShaderSMBuiltinsNV\n"),
             Values("OpExtension \"SPV_NV_shader_sm_builtins\"\n"),
+            Values(nullptr),
             Values(TestResult(
                 SPV_ERROR_INVALID_DATA,
                 "to be only used for variables with Input storage class",
@@ -2341,6 +2604,7 @@ INSTANTIATE_TEST_SUITE_P(
             Values("Input"), Values("%f32", "%u32vec3"),
             Values("OpCapability ShaderSMBuiltinsNV\n"),
             Values("OpExtension \"SPV_NV_shader_sm_builtins\"\n"),
+            Values(nullptr),
             Values(TestResult(SPV_ERROR_INVALID_DATA,
                               "needs to be a 32-bit int scalar",
                               "is not an int scalar"))));
@@ -2354,6 +2618,7 @@ INSTANTIATE_TEST_SUITE_P(
             Values("Input"), Values("%u64"),
             Values("OpCapability ShaderSMBuiltinsNV\n"),
             Values("OpExtension \"SPV_NV_shader_sm_builtins\"\n"),
+            Values(nullptr),
             Values(TestResult(SPV_ERROR_INVALID_DATA,
                               "needs to be a 32-bit int scalar",
                               "has bit width 64"))));
@@ -3531,6 +3796,108 @@ OpDecorate %int0 BuiltIn Position
   EXPECT_EQ(SPV_SUCCESS, ValidateInstructions());
 }
 
+INSTANTIATE_TEST_SUITE_P(
+    PrimitiveShadingRateOutputSuccess,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("PrimitiveShadingRateKHR"), Values("Vertex", "Geometry"),
+            Values("Output"), Values("%u32"),
+            Values("OpCapability FragmentShadingRateKHR\n"),
+            Values("OpExtension \"SPV_KHR_fragment_shading_rate\"\n"),
+            Values(nullptr), Values(TestResult())));
+
+INSTANTIATE_TEST_SUITE_P(
+    PrimitiveShadingRateMeshOutputSuccess,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("PrimitiveShadingRateKHR"), Values("MeshNV"),
+            Values("Output"), Values("%u32"),
+            Values("OpCapability FragmentShadingRateKHR\nOpCapability "
+                   "MeshShadingNV\n"),
+            Values("OpExtension \"SPV_KHR_fragment_shading_rate\"\nOpExtension "
+                   "\"SPV_NV_mesh_shader\"\n"),
+            Values(nullptr), Values(TestResult())));
+
+INSTANTIATE_TEST_SUITE_P(
+    PrimitiveShadingRateInvalidExecutionModel,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(
+        Values("PrimitiveShadingRateKHR"), Values("Fragment"), Values("Output"),
+        Values("%u32"), Values("OpCapability FragmentShadingRateKHR\n"),
+        Values("OpExtension \"SPV_KHR_fragment_shading_rate\"\n"),
+        Values("VUID-PrimitiveShadingRateKHR-PrimitiveShadingRateKHR-04484 "),
+        Values(TestResult(
+            SPV_ERROR_INVALID_DATA,
+            "Vulkan spec allows BuiltIn PrimitiveShadingRateKHR to be used "
+            "only with Vertex, Geometry, or MeshNV execution models."))));
+
+INSTANTIATE_TEST_SUITE_P(
+    PrimitiveShadingRateInvalidStorageClass,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(
+        Values("PrimitiveShadingRateKHR"), Values("Vertex"), Values("Input"),
+        Values("%u32"), Values("OpCapability FragmentShadingRateKHR\n"),
+        Values("OpExtension \"SPV_KHR_fragment_shading_rate\"\n"),
+        Values("VUID-PrimitiveShadingRateKHR-PrimitiveShadingRateKHR-04485 "),
+        Values(TestResult(
+            SPV_ERROR_INVALID_DATA,
+            "Vulkan spec allows BuiltIn PrimitiveShadingRateKHR to be only "
+            "used for variables with Output storage class."))));
+
+INSTANTIATE_TEST_SUITE_P(
+    PrimitiveShadingRateInvalidType,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(
+        Values("PrimitiveShadingRateKHR"), Values("Vertex"), Values("Output"),
+        Values("%f32"), Values("OpCapability FragmentShadingRateKHR\n"),
+        Values("OpExtension \"SPV_KHR_fragment_shading_rate\"\n"),
+        Values("VUID-PrimitiveShadingRateKHR-PrimitiveShadingRateKHR-04486 "),
+        Values(TestResult(
+            SPV_ERROR_INVALID_DATA,
+            "According to the Vulkan spec BuiltIn PrimitiveShadingRateKHR "
+            "variable needs to be a 32-bit int scalar."))));
+
+INSTANTIATE_TEST_SUITE_P(
+    ShadingRateInputSuccess,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("ShadingRateKHR"), Values("Fragment"), Values("Input"),
+            Values("%u32"), Values("OpCapability FragmentShadingRateKHR\n"),
+            Values("OpExtension \"SPV_KHR_fragment_shading_rate\"\n"),
+            Values(nullptr), Values(TestResult())));
+
+INSTANTIATE_TEST_SUITE_P(
+    ShadingRateInvalidExecutionModel,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("ShadingRateKHR"), Values("Vertex"), Values("Input"),
+            Values("%u32"), Values("OpCapability FragmentShadingRateKHR\n"),
+            Values("OpExtension \"SPV_KHR_fragment_shading_rate\"\n"),
+            Values("VUID-ShadingRateKHR-ShadingRateKHR-04490 "),
+            Values(TestResult(
+                SPV_ERROR_INVALID_DATA,
+                "Vulkan spec allows BuiltIn ShadingRateKHR to be used "
+                "only with the Fragment execution model."))));
+
+INSTANTIATE_TEST_SUITE_P(
+    ShadingRateInvalidStorageClass,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(Values("ShadingRateKHR"), Values("Fragment"), Values("Output"),
+            Values("%u32"), Values("OpCapability FragmentShadingRateKHR\n"),
+            Values("OpExtension \"SPV_KHR_fragment_shading_rate\"\n"),
+            Values("VUID-ShadingRateKHR-ShadingRateKHR-04491 "),
+            Values(TestResult(
+                SPV_ERROR_INVALID_DATA,
+                "Vulkan spec allows BuiltIn ShadingRateKHR to be only "
+                "used for variables with Input storage class."))));
+
+INSTANTIATE_TEST_SUITE_P(
+    ShadingRateInvalidType,
+    ValidateVulkanCombineBuiltInExecutionModelDataTypeCapabilityExtensionResult,
+    Combine(
+        Values("ShadingRateKHR"), Values("Fragment"), Values("Input"),
+        Values("%f32"), Values("OpCapability FragmentShadingRateKHR\n"),
+        Values("OpExtension \"SPV_KHR_fragment_shading_rate\"\n"),
+        Values("VUID-ShadingRateKHR-ShadingRateKHR-04492 "),
+        Values(TestResult(SPV_ERROR_INVALID_DATA,
+                          "According to the Vulkan spec BuiltIn ShadingRateKHR "
+                          "variable needs to be a 32-bit int scalar."))));
 }  // namespace
 }  // namespace val
 }  // namespace spvtools

@@ -24,6 +24,7 @@ ProgramExecutable::ProgramExecutable()
       mActiveSamplerRefCounts{},
       mActiveImagesMask(0),
       mCanDrawWith(false),
+      mYUVOutput(false),
       mTransformFeedbackBufferMode(GL_INTERLEAVED_ATTRIBS),
       mDefaultUniformRange(0, 0),
       mSamplerUniformRange(0, 0),
@@ -55,6 +56,7 @@ ProgramExecutable::ProgramExecutable(const ProgramExecutable &other)
       mActiveSamplersMask(other.mActiveSamplersMask),
       mActiveSamplerRefCounts(other.mActiveSamplerRefCounts),
       mActiveSamplerTypes(other.mActiveSamplerTypes),
+      mActiveSamplerYUV(other.mActiveSamplerYUV),
       mActiveSamplerFormats(other.mActiveSamplerFormats),
       mActiveSamplerShaderBits(other.mActiveSamplerShaderBits),
       mActiveImagesMask(other.mActiveImagesMask),
@@ -62,6 +64,7 @@ ProgramExecutable::ProgramExecutable(const ProgramExecutable &other)
       mCanDrawWith(other.mCanDrawWith),
       mOutputVariables(other.mOutputVariables),
       mOutputLocations(other.mOutputLocations),
+      mYUVOutput(other.mYUVOutput),
       mProgramInputs(other.mProgramInputs),
       mLinkedTransformFeedbackVaryings(other.mLinkedTransformFeedbackVaryings),
       mTransformFeedbackStrides(other.mTransformFeedbackStrides),
@@ -104,6 +107,7 @@ void ProgramExecutable::reset()
     mActiveSamplersMask.reset();
     mActiveSamplerRefCounts = {};
     mActiveSamplerTypes.fill(TextureType::InvalidEnum);
+    mActiveSamplerYUV.reset();
     mActiveSamplerFormats.fill(SamplerFormat::InvalidEnum);
 
     mActiveImagesMask.reset();
@@ -117,6 +121,7 @@ void ProgramExecutable::reset()
     mAtomicCounterBuffers.clear();
     mOutputVariables.clear();
     mOutputLocations.clear();
+    mYUVOutput = false;
     mSamplerBindings.clear();
     mComputeImageBindings.clear();
     mGraphicsImageBindings.clear();
@@ -139,8 +144,8 @@ void ProgramExecutable::load(gl::BinaryInputStream *stream)
                   "Too many vertex attribs for mask: All bits of mAttributesTypeMask types and "
                   "mask fit into 32 bits each");
     mAttributesTypeMask        = gl::ComponentTypeMask(stream->readInt<uint32_t>());
-    mAttributesMask            = stream->readInt<gl::AttributesMask>();
-    mActiveAttribLocationsMask = stream->readInt<gl::AttributesMask>();
+    mAttributesMask            = gl::AttributesMask(stream->readInt<uint32_t>());
+    mActiveAttribLocationsMask = gl::AttributesMask(stream->readInt<uint32_t>());
     mMaxActiveAttribLocation   = stream->readInt<unsigned int>();
 
     mLinkedGraphicsShaderStages = ShaderBitSet(stream->readInt<uint8_t>());
@@ -163,25 +168,25 @@ void ProgramExecutable::save(gl::BinaryOutputStream *stream) const
 {
     static_assert(MAX_VERTEX_ATTRIBS * 2 <= sizeof(uint32_t) * 8,
                   "All bits of mAttributesTypeMask types and mask fit into 32 bits each");
-    stream->writeInt(static_cast<int>(mAttributesTypeMask.to_ulong()));
-    stream->writeInt(static_cast<int>(mAttributesMask.to_ulong()));
-    stream->writeInt(mActiveAttribLocationsMask.to_ulong());
+    stream->writeInt(static_cast<uint32_t>(mAttributesTypeMask.to_ulong()));
+    stream->writeInt(static_cast<uint32_t>(mAttributesMask.to_ulong()));
+    stream->writeInt(static_cast<uint32_t>(mActiveAttribLocationsMask.to_ulong()));
     stream->writeInt(mMaxActiveAttribLocation);
 
     stream->writeInt(mLinkedGraphicsShaderStages.bits());
     stream->writeInt(mLinkedComputeShaderStages.bits());
-    stream->writeInt(static_cast<bool>(mIsCompute));
+    stream->writeBool(mIsCompute);
 
-    stream->writeInt(static_cast<bool>(mPipelineHasGraphicsUniformBuffers));
-    stream->writeInt(static_cast<bool>(mPipelineHasComputeUniformBuffers));
-    stream->writeInt(static_cast<bool>(mPipelineHasGraphicsStorageBuffers));
-    stream->writeInt(static_cast<bool>(mPipelineHasComputeStorageBuffers));
-    stream->writeInt(static_cast<bool>(mPipelineHasGraphicsAtomicCounterBuffers));
-    stream->writeInt(static_cast<bool>(mPipelineHasComputeAtomicCounterBuffers));
-    stream->writeInt(static_cast<bool>(mPipelineHasGraphicsDefaultUniforms));
-    stream->writeInt(static_cast<bool>(mPipelineHasComputeDefaultUniforms));
-    stream->writeInt(static_cast<bool>(mPipelineHasGraphicsTextures));
-    stream->writeInt(static_cast<bool>(mPipelineHasComputeTextures));
+    stream->writeBool(mPipelineHasGraphicsUniformBuffers);
+    stream->writeBool(mPipelineHasComputeUniformBuffers);
+    stream->writeBool(mPipelineHasGraphicsStorageBuffers);
+    stream->writeBool(mPipelineHasComputeStorageBuffers);
+    stream->writeBool(mPipelineHasGraphicsAtomicCounterBuffers);
+    stream->writeBool(mPipelineHasComputeAtomicCounterBuffers);
+    stream->writeBool(mPipelineHasGraphicsDefaultUniforms);
+    stream->writeBool(mPipelineHasComputeDefaultUniforms);
+    stream->writeBool(mPipelineHasGraphicsTextures);
+    stream->writeBool(mPipelineHasComputeTextures);
 }
 
 int ProgramExecutable::getInfoLogLength() const
@@ -284,9 +289,6 @@ void ProgramExecutable::updateActiveSamplers(const ProgramState &programState)
     for (uint32_t samplerIndex = 0; samplerIndex < samplerBindings.size(); ++samplerIndex)
     {
         const SamplerBinding &samplerBinding = samplerBindings[samplerIndex];
-        if (samplerBinding.unreferenced)
-            continue;
-
         uint32_t uniformIndex = programState.getUniformIndexFromSamplerIndex(samplerIndex);
         const gl::LinkedUniform &samplerUniform = programState.getUniforms()[uniformIndex];
 
@@ -294,8 +296,9 @@ void ProgramExecutable::updateActiveSamplers(const ProgramState &programState)
         {
             if (++mActiveSamplerRefCounts[textureUnit] == 1)
             {
-                mActiveSamplerTypes[textureUnit]      = samplerBinding.textureType;
-                mActiveSamplerFormats[textureUnit]    = samplerBinding.format;
+                mActiveSamplerTypes[textureUnit]   = samplerBinding.textureType;
+                mActiveSamplerYUV[textureUnit]     = IsSamplerYUVType(samplerBinding.samplerType);
+                mActiveSamplerFormats[textureUnit] = samplerBinding.format;
                 mActiveSamplerShaderBits[textureUnit] = samplerUniform.activeShaders();
             }
             else
@@ -303,6 +306,11 @@ void ProgramExecutable::updateActiveSamplers(const ProgramState &programState)
                 if (mActiveSamplerTypes[textureUnit] != samplerBinding.textureType)
                 {
                     mActiveSamplerTypes[textureUnit] = TextureType::InvalidEnum;
+                }
+                if (mActiveSamplerYUV.test(textureUnit) !=
+                    IsSamplerYUVType(samplerBinding.samplerType))
+                {
+                    mActiveSamplerYUV[textureUnit] = false;
                 }
                 if (mActiveSamplerFormats[textureUnit] != samplerBinding.format)
                 {
@@ -320,10 +328,6 @@ void ProgramExecutable::updateActiveImages(const ProgramExecutable &executable)
     for (uint32_t imageIndex = 0; imageIndex < imageBindings->size(); ++imageIndex)
     {
         const gl::ImageBinding &imageBinding = imageBindings->at(imageIndex);
-        if (imageBinding.unreferenced)
-        {
-            continue;
-        }
 
         uint32_t uniformIndex = executable.getUniformIndexFromImageIndex(imageIndex);
         const gl::LinkedUniform &imageUniform = executable.getUniforms()[uniformIndex];
@@ -349,13 +353,11 @@ void ProgramExecutable::setSamplerUniformTextureTypeAndFormat(
 {
     bool foundBinding         = false;
     TextureType foundType     = TextureType::InvalidEnum;
+    bool foundYUV             = false;
     SamplerFormat foundFormat = SamplerFormat::InvalidEnum;
 
     for (const SamplerBinding &binding : samplerBindings)
     {
-        if (binding.unreferenced)
-            continue;
-
         // A conflict exists if samplers of different types are sourced by the same texture unit.
         // We need to check all bound textures to detect this error case.
         for (GLuint textureUnit : binding.boundTextureUnits)
@@ -366,6 +368,7 @@ void ProgramExecutable::setSamplerUniformTextureTypeAndFormat(
                 {
                     foundBinding = true;
                     foundType    = binding.textureType;
+                    foundYUV     = IsSamplerYUVType(binding.samplerType);
                     foundFormat  = binding.format;
                 }
                 else
@@ -373,6 +376,10 @@ void ProgramExecutable::setSamplerUniformTextureTypeAndFormat(
                     if (foundType != binding.textureType)
                     {
                         foundType = TextureType::InvalidEnum;
+                    }
+                    if (foundYUV != IsSamplerYUVType(binding.samplerType))
+                    {
+                        foundYUV = false;
                     }
                     if (foundFormat != binding.format)
                     {
@@ -384,6 +391,7 @@ void ProgramExecutable::setSamplerUniformTextureTypeAndFormat(
     }
 
     mActiveSamplerTypes[textureUnitIndex]   = foundType;
+    mActiveSamplerYUV[textureUnitIndex]     = foundYUV;
     mActiveSamplerFormats[textureUnitIndex] = foundFormat;
 }
 
@@ -526,4 +534,8 @@ void ProgramExecutable::saveLinkedStateInfo(const ProgramState &state)
     }
 }
 
+bool ProgramExecutable::isYUVOutput() const
+{
+    return !isCompute() && mYUVOutput;
+}
 }  // namespace gl

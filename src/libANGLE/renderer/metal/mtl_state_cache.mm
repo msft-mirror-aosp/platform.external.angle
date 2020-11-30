@@ -74,6 +74,7 @@ MTLSamplerDescriptor *ToObjC(const SamplerDesc &desc)
     ANGLE_OBJC_CP_PROPERTY(objCDesc, desc, magFilter);
     ANGLE_OBJC_CP_PROPERTY(objCDesc, desc, mipFilter);
     ANGLE_OBJC_CP_PROPERTY(objCDesc, desc, maxAnisotropy);
+    ANGLE_OBJC_CP_PROPERTY(objCDesc, desc, compareFunction);
 
     return [objCDesc ANGLE_MTL_AUTORELEASE];
 }
@@ -114,7 +115,12 @@ MTLVertexDescriptor *ToObjC(const VertexDesc &desc)
 
     for (uint8_t i = 0; i < desc.numBufferLayouts; ++i)
     {
-        [objCDesc.layouts setObject:ToObjC(desc.layouts[i]) atIndexedSubscript:i];
+        // Ignore if stepFunction is kVertexStepFunctionInvalid.
+        // If we don't set this slot, it will apparently be disabled by metal runtime.
+        if (desc.layouts[i].stepFunction != kVertexStepFunctionInvalid)
+        {
+            [objCDesc.layouts setObject:ToObjC(desc.layouts[i]) atIndexedSubscript:i];
+        }
     }
 
     return [objCDesc ANGLE_MTL_AUTORELEASE];
@@ -144,8 +150,6 @@ MTLRenderPipelineDescriptor *ToObjC(id<MTLFunction> vertexShader,
 {
     MTLRenderPipelineDescriptor *objCDesc = [[MTLRenderPipelineDescriptor alloc] init];
     [objCDesc reset];
-    objCDesc.vertexFunction   = vertexShader;
-    objCDesc.fragmentFunction = fragmentShader;
 
     ANGLE_OBJC_CP_PROPERTY(objCDesc, desc, vertexDescriptor);
 
@@ -161,8 +165,13 @@ MTLRenderPipelineDescriptor *ToObjC(id<MTLFunction> vertexShader,
 #if ANGLE_MTL_PRIMITIVE_TOPOLOGY_CLASS_AVAILABLE
     ANGLE_OBJC_CP_PROPERTY(objCDesc, desc, inputPrimitiveTopology);
 #endif
-    ANGLE_OBJC_CP_PROPERTY(objCDesc, desc, rasterizationEnabled);
     ANGLE_OBJC_CP_PROPERTY(objCDesc, desc, alphaToCoverageEnabled);
+
+    // rasterizationEnabled will be true for both EmulatedDiscard & Enabled.
+    objCDesc.rasterizationEnabled = desc.rasterizationEnabled();
+
+    objCDesc.vertexFunction   = vertexShader;
+    objCDesc.fragmentFunction = objCDesc.rasterizationEnabled ? fragmentShader : nil;
 
     return [objCDesc ANGLE_MTL_AUTORELEASE];
 }
@@ -185,7 +194,7 @@ void BaseRenderPassAttachmentDescToObjC(const RenderPassAttachmentDesc &src,
         dst.slice          = 0;
         dst.depthPlane     = 0;
         dst.resolveTexture = ToObjC(src.texture);
-        dst.resolveLevel   = src.level;
+        dst.resolveLevel   = src.level.get();
         if (dst.resolveTexture.textureType == MTLTextureType3D)
         {
             dst.resolveDepthPlane = src.sliceOrDepth;
@@ -200,7 +209,7 @@ void BaseRenderPassAttachmentDescToObjC(const RenderPassAttachmentDesc &src,
     else
     {
         dst.texture = ToObjC(src.texture);
-        dst.level   = src.level;
+        dst.level   = src.level.get();
         if (dst.texture.textureType == MTLTextureType3D)
         {
             dst.depthPlane = src.sliceOrDepth;
@@ -451,6 +460,8 @@ SamplerDesc::SamplerDesc(const gl::SamplerState &glState) : SamplerDesc()
     mipFilter = GetMipmapFilter(glState.getMinFilter());
 
     maxAnisotropy = static_cast<uint32_t>(glState.getMaxAnisotropy());
+
+    compareFunction = GetCompareFunc(glState.getCompareFunc());
 }
 
 SamplerDesc &SamplerDesc::operator=(const SamplerDesc &src)
@@ -470,6 +481,8 @@ void SamplerDesc::reset()
     mipFilter = MTLSamplerMipFilterNearest;
 
     maxAnisotropy = 1;
+
+    compareFunction = MTLCompareFunctionNever;
 }
 
 bool SamplerDesc::operator==(const SamplerDesc &rhs) const
@@ -480,7 +493,9 @@ bool SamplerDesc::operator==(const SamplerDesc &rhs) const
            ANGLE_PROP_EQ(*this, rhs, minFilter) && ANGLE_PROP_EQ(*this, rhs, magFilter) &&
            ANGLE_PROP_EQ(*this, rhs, mipFilter) &&
 
-           ANGLE_PROP_EQ(*this, rhs, maxAnisotropy);
+           ANGLE_PROP_EQ(*this, rhs, maxAnisotropy) &&
+
+           ANGLE_PROP_EQ(*this, rhs, compareFunction);
 }
 
 size_t SamplerDesc::hash() const
@@ -636,7 +651,7 @@ RenderPipelineDesc::RenderPipelineDesc()
 {
     memset(this, 0, sizeof(*this));
     outputDescriptor.sampleCount = 1;
-    rasterizationEnabled         = true;
+    rasterizationType            = RenderPipelineRasterization::Enabled;
 }
 
 RenderPipelineDesc::RenderPipelineDesc(const RenderPipelineDesc &src)
@@ -668,6 +683,11 @@ size_t RenderPipelineDesc::hash() const
     return angle::ComputeGenericHash(*this);
 }
 
+bool RenderPipelineDesc::rasterizationEnabled() const
+{
+    return rasterizationType != RenderPipelineRasterization::Disabled;
+}
+
 // RenderPassDesc implementation
 RenderPassAttachmentDesc::RenderPassAttachmentDesc()
 {
@@ -678,8 +698,9 @@ void RenderPassAttachmentDesc::reset()
 {
     texture.reset();
     implicitMSTexture.reset();
-    level              = 0;
+    level              = mtl::kZeroNativeMipLevel;
     sliceOrDepth       = 0;
+    blendable          = false;
     loadAction         = MTLLoadActionLoad;
     storeAction        = MTLStoreActionStore;
     storeActionOptions = MTLStoreActionOptionNone;
@@ -733,6 +754,11 @@ void RenderPassDesc::populateRenderPipelineOutputDesc(const BlendDesc &blendStat
         {
             // Copy parameters from blend state
             outputDescriptor.colorAttachments[i].update(blendState);
+            if (!renderPassColorAttachment.blendable)
+            {
+                // Disable blending if the attachment's render target doesn't support blending.
+                outputDescriptor.colorAttachments[i].blendingEnabled = false;
+            }
 
             outputDescriptor.colorAttachments[i].pixelFormat = texture->pixelFormat();
 

@@ -17,7 +17,7 @@
 namespace rx
 {
 
-ShaderVk::ShaderVk(const gl::ShaderState &data) : ShaderImpl(data) {}
+ShaderVk::ShaderVk(const gl::ShaderState &state) : ShaderImpl(state) {}
 
 ShaderVk::~ShaderVk() {}
 
@@ -37,7 +37,7 @@ std::shared_ptr<WaitableCompileEvent> ShaderVk::compile(const gl::Context *conte
         // Extra initialization in spirv shader may affect performance.
         compileOptions |= SH_INITIALIZE_UNINITIALIZED_LOCALS;
 
-        if (mData.getShaderType() != gl::ShaderType::Compute)
+        if (mState.getShaderType() != gl::ShaderType::Compute)
         {
             compileOptions |= SH_INIT_OUTPUT_VARIABLES;
         }
@@ -72,18 +72,27 @@ std::shared_ptr<WaitableCompileEvent> ShaderVk::compile(const gl::Context *conte
     // context state does not allow it
     compileOptions |= SH_EARLY_FRAGMENT_TESTS_OPTIMIZATION;
 
-    if (contextVk->getFeatures().enablePreRotateSurfaces.enabled)
+    // Let compiler use specialized constant for pre-rotation.
+    if (!contextVk->getFeatures().forceDriverUniformOverSpecConst.enabled)
     {
-        // Let compiler inserts pre-rotation code.
+        compileOptions |= SH_USE_ROTATION_SPECIALIZATION_CONSTANT;
+    }
+
+    if (contextVk->getFeatures().enablePreRotateSurfaces.enabled ||
+        contextVk->getFeatures().emulatedPrerotation90.enabled ||
+        contextVk->getFeatures().emulatedPrerotation180.enabled ||
+        contextVk->getFeatures().emulatedPrerotation270.enabled)
+    {
+        // Let compiler insert pre-rotation code.
         compileOptions |= SH_ADD_PRE_ROTATION;
     }
 
-    return compileImpl(context, compilerInstance, mData.getSource(), compileOptions | options);
+    return compileImpl(context, compilerInstance, mState.getSource(), compileOptions | options);
 }
 
 std::string ShaderVk::getDebugInfo() const
 {
-    return mData.getTranslatedSource();
+    return mState.getTranslatedSource();
 }
 
 }  // namespace rx
