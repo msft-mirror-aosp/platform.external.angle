@@ -109,12 +109,12 @@ const TextureCaps &TextureCapsMap::get(GLenum internalFormat) const
 
 const TextureCaps &TextureCapsMap::get(angle::FormatID formatID) const
 {
-    return mFormatData[static_cast<size_t>(formatID)];
+    return mFormatData[formatID];
 }
 
 TextureCaps &TextureCapsMap::get(angle::FormatID formatID)
 {
-    return mFormatData[static_cast<size_t>(formatID)];
+    return mFormatData[formatID];
 }
 
 void TextureCapsMap::set(angle::FormatID formatID, const TextureCaps &caps)
@@ -949,7 +949,8 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_EXT_robustness"] = esOnlyExtension(&Extensions::robustness);
         map["GL_KHR_robust_buffer_access_behavior"] = esOnlyExtension(&Extensions::robustBufferAccessBehavior);
         map["GL_EXT_blend_minmax"] = enableableExtension(&Extensions::blendMinMax);
-        map["GL_ANGLE_framebuffer_blit"] = enableableExtension(&Extensions::framebufferBlit);
+        map["GL_ANGLE_framebuffer_blit"] = enableableExtension(&Extensions::framebufferBlitANGLE);
+        map["GL_NV_framebuffer_blit"] = enableableExtension(&Extensions::framebufferBlitNV);
         map["GL_ANGLE_framebuffer_multisample"] = enableableExtension(&Extensions::framebufferMultisample);
         map["GL_EXT_multisampled_render_to_texture"] = enableableExtension(&Extensions::multisampledRenderToTexture);
         map["GL_EXT_multisampled_render_to_texture2"] = enableableExtension(&Extensions::multisampledRenderToTexture2);
@@ -1042,6 +1043,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_OES_shader_multisample_interpolation"] = enableableExtension(&Extensions::multisampleInterpolationOES);
         map["GL_OES_shader_image_atomic"] = enableableExtension(&Extensions::shaderImageAtomicOES);
         map["GL_OES_sample_variables"] = enableableExtension(&Extensions::sampleVariablesOES);
+        map["GL_EXT_shader_framebuffer_fetch_non_coherent"] = enableableExtension(&Extensions::shaderFramebufferFetchNonCoherentEXT);
         map["GL_NV_robustness_video_memory_purge"] = esOnlyExtension(&Extensions::robustnessVideoMemoryPurgeNV);
         map["GL_ANGLE_get_tex_level_parameter"] = enableableExtension(&Extensions::getTexLevelParameterANGLE);
         map["GL_EXT_copy_image"] = enableableExtension(&Extensions::copyImageEXT);
@@ -1050,6 +1052,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_EXT_YUV_target"] = enableableExtension(&Extensions::yuvTargetEXT);
         map["GL_OES_shader_io_blocks"] = enableableExtension(&Extensions::shaderIoBlocksOES);
         map["GL_EXT_shader_io_blocks"] = enableableExtension(&Extensions::shaderIoBlocksEXT);
+        map["GL_EXT_clip_cull_distance"] = enableableExtension(&Extensions::clipCullDistanceEXT);
         // GLES1 extensions
         map["GL_OES_point_size_array"] = enableableExtension(&Extensions::pointSizeArrayOES);
         map["GL_OES_texture_cube_map"] = enableableExtension(&Extensions::textureCubeMapOES);
@@ -1062,6 +1065,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_OES_texture_cube_map_array"] = enableableExtension(&Extensions::textureCubeMapArrayOES);
         map["GL_EXT_texture_cube_map_array"] = enableableExtension(&Extensions::textureCubeMapArrayEXT);
         map["GL_EXT_shadow_samplers"] = enableableExtension(&Extensions::shadowSamplersEXT);
+        map["GL_EXT_tessellation_shader"] = enableableExtension(&Extensions::tessellationShaderEXT);
         // clang-format on
 
 #if defined(ANGLE_ENABLE_ASSERTS)
@@ -1342,6 +1346,36 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxCombinedTextureImageUnits = 64;
     }
 
+    if (extensions.tessellationShaderEXT)
+    {
+        // Table 20.43 "Implementation Dependent Tessellation Shader Limits"
+        caps.maxTessControlInputComponents                          = 64;
+        caps.maxTessControlOutputComponents                         = 64;
+        caps.maxShaderTextureImageUnits[ShaderType::TessControl]    = 16;
+        caps.maxShaderUniformComponents[ShaderType::TessControl]    = 1024;
+        caps.maxTessControlTotalOutputComponents                    = 2048;
+        caps.maxShaderImageUniforms[ShaderType::TessControl]        = 0;
+        caps.maxShaderAtomicCounters[ShaderType::TessControl]       = 0;
+        caps.maxShaderAtomicCounterBuffers[ShaderType::TessControl] = 0;
+
+        caps.maxTessPatchComponents = 120;
+        caps.maxPatchVertices       = 32;
+        caps.maxTessGenLevel        = 64;
+
+        caps.maxTessEvaluationInputComponents                          = 64;
+        caps.maxTessEvaluationOutputComponents                         = 64;
+        caps.maxShaderTextureImageUnits[ShaderType::TessEvaluation]    = 16;
+        caps.maxShaderUniformComponents[ShaderType::TessEvaluation]    = 1024;
+        caps.maxShaderImageUniforms[ShaderType::TessEvaluation]        = 0;
+        caps.maxShaderAtomicCounters[ShaderType::TessEvaluation]       = 0;
+        caps.maxShaderAtomicCounterBuffers[ShaderType::TessEvaluation] = 0;
+
+        // Table 20.46 "Implementation Dependent Aggregate Shader Limits"
+        caps.maxUniformBufferBindings     = 72;
+        caps.maxCombinedUniformBlocks     = 60;
+        caps.maxCombinedTextureImageUnits = 96;
+    }
+
     for (ShaderType shaderType : AllShaderTypes())
     {
         caps.maxCombinedShaderUniformComponents[shaderType] =
@@ -1433,8 +1467,9 @@ std::vector<std::string> DisplayExtensions::getStrings() const
     InsertExtensionString("EGL_EXT_image_dma_buf_import",                        imageDmaBufImportEXT,               &extensionStrings);
     InsertExtensionString("EGL_EXT_image_dma_buf_import_modifiers",              imageDmaBufImportModifiersEXT,      &extensionStrings);
     InsertExtensionString("EGL_NOK_texture_from_pixmap",                         textureFromPixmapNOK,               &extensionStrings);
-    InsertExtensionString("EGL_NV_robustness_video_memory_purge",                robustnessVideoMemoryPurgeNV,               &extensionStrings);
+    InsertExtensionString("EGL_NV_robustness_video_memory_purge",                robustnessVideoMemoryPurgeNV,       &extensionStrings);
     InsertExtensionString("EGL_KHR_reusable_sync",                               reusableSyncKHR,                    &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_external_context_and_surface",              externalContextAndSurface,          &extensionStrings);
     // clang-format on
 
     return extensionStrings;

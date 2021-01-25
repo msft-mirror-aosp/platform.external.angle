@@ -13,6 +13,7 @@
 
 #include "angry_birds_2_1500/angry_birds_2_1500_capture_context1.h"
 #include "arena_of_valor/arena_of_valor_capture_context1.h"
+#include "asphalt_8/asphalt_8_capture_context2.h"
 #include "brawl_stars/brawl_stars_capture_context1.h"
 #include "candy_crush_500/candy_crush_500_capture_context1.h"
 #include "clash_of_clans/clash_of_clans_capture_context1.h"
@@ -20,20 +21,27 @@
 #include "dragon_ball_legends/dragon_ball_legends_capture_context1.h"
 #include "egypt_1500/egypt_1500_capture_context1.h"
 #include "fate_grand_order/fate_grand_order_capture_context1.h"
+#include "fifa_mobile/fifa_mobile_capture_context2.h"
 #include "free_fire/free_fire_capture_context1.h"
 #include "google_maps/google_maps_capture_context3.h"
 #include "kartrider_rush/kartrider_rush_capture_context1.h"
+#include "klondike_adventures/klondike_adventures_capture_context2.h"
 #include "lego_legacy/lego_legacy_capture_context2.h"
+#include "magic_tiles_3/magic_tiles_3_capture_context2.h"
 #include "manhattan_10/manhattan_10_capture_context1.h"
 #include "marvel_contest_of_champions/marvel_contest_of_champions_capture_context1.h"
 #include "mobile_legends/mobile_legends_capture_context1.h"
 #include "nba2k20_800/nba2k20_800_capture_context1.h"
 #include "pubg_mobile_lite/pubg_mobile_lite_capture_context1.h"
 #include "real_commando_secret_mission/real_commando_secret_mission_capture_context1.h"
+#include "real_gangster_crime/real_gangster_crime_capture_context3.h"
+#include "saint_seiya_awakening/saint_seiya_awakening_capture_context2.h"
+#include "subway_surfers/subway_surfers_capture_context2.h"
 #include "temple_run_300/temple_run_300_capture_context1.h"
 #include "trex_200/trex_200_capture_context1.h"
 #include "whatsapp/whatsapp_capture_context1.h"
 #include "world_of_tanks_blitz/world_of_tanks_blitz_capture_context1.h"
+#include "world_war_doh/world_war_doh_capture_context2.h"
 
 namespace angle
 {
@@ -48,6 +56,9 @@ constexpr angle::PackedEnumMap<RestrictedTraceID, TraceInfo> kTraceInfos = {
      {arena_of_valor::kReplayFrameStart, arena_of_valor::kReplayFrameEnd,
       arena_of_valor::kReplayDrawSurfaceWidth, arena_of_valor::kReplayDrawSurfaceHeight,
       "arena_of_valor"}},
+    {RestrictedTraceID::asphalt_8,
+     {asphalt_8::kReplayFrameStart, asphalt_8::kReplayFrameEnd, asphalt_8::kReplayDrawSurfaceWidth,
+      asphalt_8::kReplayDrawSurfaceHeight, "asphalt_8"}},
     {RestrictedTraceID::brawl_stars,
      {brawl_stars::kReplayFrameStart, brawl_stars::kReplayFrameEnd,
       brawl_stars::kReplayDrawSurfaceWidth, brawl_stars::kReplayDrawSurfaceHeight, "brawl_stars"}},
@@ -73,6 +84,9 @@ constexpr angle::PackedEnumMap<RestrictedTraceID, TraceInfo> kTraceInfos = {
      {fate_grand_order::kReplayFrameStart, fate_grand_order::kReplayFrameEnd,
       fate_grand_order::kReplayDrawSurfaceWidth, fate_grand_order::kReplayDrawSurfaceHeight,
       "fate_grand_order"}},
+    {RestrictedTraceID::fifa_mobile,
+     {fifa_mobile::kReplayFrameStart, fifa_mobile::kReplayFrameEnd,
+      fifa_mobile::kReplayDrawSurfaceWidth, fifa_mobile::kReplayDrawSurfaceHeight, "fifa_mobile"}},
     {RestrictedTraceID::free_fire,
      {free_fire::kReplayFrameStart, free_fire::kReplayFrameEnd, free_fire::kReplayDrawSurfaceWidth,
       free_fire::kReplayDrawSurfaceHeight, "free_fire"}},
@@ -83,9 +97,17 @@ constexpr angle::PackedEnumMap<RestrictedTraceID, TraceInfo> kTraceInfos = {
      {kartrider_rush::kReplayFrameStart, kartrider_rush::kReplayFrameEnd,
       kartrider_rush::kReplayDrawSurfaceWidth, kartrider_rush::kReplayDrawSurfaceHeight,
       "kartrider_rush"}},
+    {RestrictedTraceID::klondike_adventures,
+     {klondike_adventures::kReplayFrameStart, klondike_adventures::kReplayFrameEnd,
+      klondike_adventures::kReplayDrawSurfaceWidth, klondike_adventures::kReplayDrawSurfaceHeight,
+      "klondike_adventures"}},
     {RestrictedTraceID::lego_legacy,
      {lego_legacy::kReplayFrameStart, lego_legacy::kReplayFrameEnd,
       lego_legacy::kReplayDrawSurfaceWidth, lego_legacy::kReplayDrawSurfaceHeight, "lego_legacy"}},
+    {RestrictedTraceID::magic_tiles_3,
+     {magic_tiles_3::kReplayFrameStart, magic_tiles_3::kReplayFrameEnd,
+      magic_tiles_3::kReplayDrawSurfaceWidth, magic_tiles_3::kReplayDrawSurfaceHeight,
+      "magic_tiles_3"}},
     {RestrictedTraceID::manhattan_10,
      {manhattan_10::kReplayFrameStart, manhattan_10::kReplayFrameEnd,
       manhattan_10::kReplayDrawSurfaceWidth, manhattan_10::kReplayDrawSurfaceHeight,
@@ -110,6 +132,18 @@ constexpr angle::PackedEnumMap<RestrictedTraceID, TraceInfo> kTraceInfos = {
       real_commando_secret_mission::kReplayFrameEnd,
       real_commando_secret_mission::kReplayDrawSurfaceWidth,
       real_commando_secret_mission::kReplayDrawSurfaceHeight, "real_commando_secret_mission"}},
+    {RestrictedTraceID::real_gangster_crime,
+     {real_gangster_crime::kReplayFrameStart, real_gangster_crime::kReplayFrameEnd,
+      real_gangster_crime::kReplayDrawSurfaceWidth, real_gangster_crime::kReplayDrawSurfaceHeight,
+      "real_gangster_crime"}},
+    {RestrictedTraceID::saint_seiya_awakening,
+     {saint_seiya_awakening::kReplayFrameStart, saint_seiya_awakening::kReplayFrameEnd,
+      saint_seiya_awakening::kReplayDrawSurfaceWidth,
+      saint_seiya_awakening::kReplayDrawSurfaceHeight, "saint_seiya_awakening"}},
+    {RestrictedTraceID::subway_surfers,
+     {subway_surfers::kReplayFrameStart, subway_surfers::kReplayFrameEnd,
+      subway_surfers::kReplayDrawSurfaceWidth, subway_surfers::kReplayDrawSurfaceHeight,
+      "subway_surfers"}},
     {RestrictedTraceID::temple_run_300,
      {temple_run_300::kReplayFrameStart, temple_run_300::kReplayFrameEnd,
       temple_run_300::kReplayDrawSurfaceWidth, temple_run_300::kReplayDrawSurfaceHeight,
@@ -123,7 +157,11 @@ constexpr angle::PackedEnumMap<RestrictedTraceID, TraceInfo> kTraceInfos = {
     {RestrictedTraceID::world_of_tanks_blitz,
      {world_of_tanks_blitz::kReplayFrameStart, world_of_tanks_blitz::kReplayFrameEnd,
       world_of_tanks_blitz::kReplayDrawSurfaceWidth, world_of_tanks_blitz::kReplayDrawSurfaceHeight,
-      "world_of_tanks_blitz"}}};
+      "world_of_tanks_blitz"}},
+    {RestrictedTraceID::world_war_doh,
+     {world_war_doh::kReplayFrameStart, world_war_doh::kReplayFrameEnd,
+      world_war_doh::kReplayDrawSurfaceWidth, world_war_doh::kReplayDrawSurfaceHeight,
+      "world_war_doh"}}};
 }
 
 const TraceInfo &GetTraceInfo(RestrictedTraceID traceID)
@@ -140,6 +178,9 @@ void ReplayFrame(RestrictedTraceID traceID, uint32_t frameIndex)
             break;
         case RestrictedTraceID::arena_of_valor:
             arena_of_valor::ReplayContext1Frame(frameIndex);
+            break;
+        case RestrictedTraceID::asphalt_8:
+            asphalt_8::ReplayContext2Frame(frameIndex);
             break;
         case RestrictedTraceID::brawl_stars:
             brawl_stars::ReplayContext1Frame(frameIndex);
@@ -162,6 +203,9 @@ void ReplayFrame(RestrictedTraceID traceID, uint32_t frameIndex)
         case RestrictedTraceID::fate_grand_order:
             fate_grand_order::ReplayContext1Frame(frameIndex);
             break;
+        case RestrictedTraceID::fifa_mobile:
+            fifa_mobile::ReplayContext2Frame(frameIndex);
+            break;
         case RestrictedTraceID::free_fire:
             free_fire::ReplayContext1Frame(frameIndex);
             break;
@@ -171,8 +215,14 @@ void ReplayFrame(RestrictedTraceID traceID, uint32_t frameIndex)
         case RestrictedTraceID::kartrider_rush:
             kartrider_rush::ReplayContext1Frame(frameIndex);
             break;
+        case RestrictedTraceID::klondike_adventures:
+            klondike_adventures::ReplayContext2Frame(frameIndex);
+            break;
         case RestrictedTraceID::lego_legacy:
             lego_legacy::ReplayContext2Frame(frameIndex);
+            break;
+        case RestrictedTraceID::magic_tiles_3:
+            magic_tiles_3::ReplayContext2Frame(frameIndex);
             break;
         case RestrictedTraceID::manhattan_10:
             manhattan_10::ReplayContext1Frame(frameIndex);
@@ -192,6 +242,15 @@ void ReplayFrame(RestrictedTraceID traceID, uint32_t frameIndex)
         case RestrictedTraceID::real_commando_secret_mission:
             real_commando_secret_mission::ReplayContext1Frame(frameIndex);
             break;
+        case RestrictedTraceID::real_gangster_crime:
+            real_gangster_crime::ReplayContext3Frame(frameIndex);
+            break;
+        case RestrictedTraceID::saint_seiya_awakening:
+            saint_seiya_awakening::ReplayContext2Frame(frameIndex);
+            break;
+        case RestrictedTraceID::subway_surfers:
+            subway_surfers::ReplayContext2Frame(frameIndex);
+            break;
         case RestrictedTraceID::temple_run_300:
             temple_run_300::ReplayContext1Frame(frameIndex);
             break;
@@ -203,6 +262,9 @@ void ReplayFrame(RestrictedTraceID traceID, uint32_t frameIndex)
             break;
         case RestrictedTraceID::world_of_tanks_blitz:
             world_of_tanks_blitz::ReplayContext1Frame(frameIndex);
+            break;
+        case RestrictedTraceID::world_war_doh:
+            world_war_doh::ReplayContext2Frame(frameIndex);
             break;
         default:
             fprintf(stderr, "Error in switch.\n");
@@ -220,6 +282,9 @@ void ResetReplay(RestrictedTraceID traceID)
             break;
         case RestrictedTraceID::arena_of_valor:
             arena_of_valor::ResetContext1Replay();
+            break;
+        case RestrictedTraceID::asphalt_8:
+            asphalt_8::ResetContext2Replay();
             break;
         case RestrictedTraceID::brawl_stars:
             brawl_stars::ResetContext1Replay();
@@ -242,6 +307,9 @@ void ResetReplay(RestrictedTraceID traceID)
         case RestrictedTraceID::fate_grand_order:
             fate_grand_order::ResetContext1Replay();
             break;
+        case RestrictedTraceID::fifa_mobile:
+            fifa_mobile::ResetContext2Replay();
+            break;
         case RestrictedTraceID::free_fire:
             free_fire::ResetContext1Replay();
             break;
@@ -251,8 +319,14 @@ void ResetReplay(RestrictedTraceID traceID)
         case RestrictedTraceID::kartrider_rush:
             kartrider_rush::ResetContext1Replay();
             break;
+        case RestrictedTraceID::klondike_adventures:
+            klondike_adventures::ResetContext2Replay();
+            break;
         case RestrictedTraceID::lego_legacy:
             lego_legacy::ResetContext2Replay();
+            break;
+        case RestrictedTraceID::magic_tiles_3:
+            magic_tiles_3::ResetContext2Replay();
             break;
         case RestrictedTraceID::manhattan_10:
             manhattan_10::ResetContext1Replay();
@@ -272,6 +346,15 @@ void ResetReplay(RestrictedTraceID traceID)
         case RestrictedTraceID::real_commando_secret_mission:
             real_commando_secret_mission::ResetContext1Replay();
             break;
+        case RestrictedTraceID::real_gangster_crime:
+            real_gangster_crime::ResetContext3Replay();
+            break;
+        case RestrictedTraceID::saint_seiya_awakening:
+            saint_seiya_awakening::ResetContext2Replay();
+            break;
+        case RestrictedTraceID::subway_surfers:
+            subway_surfers::ResetContext2Replay();
+            break;
         case RestrictedTraceID::temple_run_300:
             temple_run_300::ResetContext1Replay();
             break;
@@ -283,6 +366,9 @@ void ResetReplay(RestrictedTraceID traceID)
             break;
         case RestrictedTraceID::world_of_tanks_blitz:
             world_of_tanks_blitz::ResetContext1Replay();
+            break;
+        case RestrictedTraceID::world_war_doh:
+            world_war_doh::ResetContext2Replay();
             break;
         default:
             fprintf(stderr, "Error in switch.\n");
@@ -300,6 +386,9 @@ void SetupReplay(RestrictedTraceID traceID)
             break;
         case RestrictedTraceID::arena_of_valor:
             arena_of_valor::SetupContext1Replay();
+            break;
+        case RestrictedTraceID::asphalt_8:
+            asphalt_8::SetupContext2Replay();
             break;
         case RestrictedTraceID::brawl_stars:
             brawl_stars::SetupContext1Replay();
@@ -322,6 +411,9 @@ void SetupReplay(RestrictedTraceID traceID)
         case RestrictedTraceID::fate_grand_order:
             fate_grand_order::SetupContext1Replay();
             break;
+        case RestrictedTraceID::fifa_mobile:
+            fifa_mobile::SetupContext2Replay();
+            break;
         case RestrictedTraceID::free_fire:
             free_fire::SetupContext1Replay();
             break;
@@ -331,8 +423,14 @@ void SetupReplay(RestrictedTraceID traceID)
         case RestrictedTraceID::kartrider_rush:
             kartrider_rush::SetupContext1Replay();
             break;
+        case RestrictedTraceID::klondike_adventures:
+            klondike_adventures::SetupContext2Replay();
+            break;
         case RestrictedTraceID::lego_legacy:
             lego_legacy::SetupContext2Replay();
+            break;
+        case RestrictedTraceID::magic_tiles_3:
+            magic_tiles_3::SetupContext2Replay();
             break;
         case RestrictedTraceID::manhattan_10:
             manhattan_10::SetupContext1Replay();
@@ -352,6 +450,15 @@ void SetupReplay(RestrictedTraceID traceID)
         case RestrictedTraceID::real_commando_secret_mission:
             real_commando_secret_mission::SetupContext1Replay();
             break;
+        case RestrictedTraceID::real_gangster_crime:
+            real_gangster_crime::SetupContext3Replay();
+            break;
+        case RestrictedTraceID::saint_seiya_awakening:
+            saint_seiya_awakening::SetupContext2Replay();
+            break;
+        case RestrictedTraceID::subway_surfers:
+            subway_surfers::SetupContext2Replay();
+            break;
         case RestrictedTraceID::temple_run_300:
             temple_run_300::SetupContext1Replay();
             break;
@@ -363,6 +470,9 @@ void SetupReplay(RestrictedTraceID traceID)
             break;
         case RestrictedTraceID::world_of_tanks_blitz:
             world_of_tanks_blitz::SetupContext1Replay();
+            break;
+        case RestrictedTraceID::world_war_doh:
+            world_war_doh::SetupContext2Replay();
             break;
         default:
             fprintf(stderr, "Error in switch.\n");
@@ -380,6 +490,9 @@ void SetBinaryDataDir(RestrictedTraceID traceID, const char *dataDir)
             break;
         case RestrictedTraceID::arena_of_valor:
             arena_of_valor::SetBinaryDataDir(dataDir);
+            break;
+        case RestrictedTraceID::asphalt_8:
+            asphalt_8::SetBinaryDataDir(dataDir);
             break;
         case RestrictedTraceID::brawl_stars:
             brawl_stars::SetBinaryDataDir(dataDir);
@@ -402,6 +515,9 @@ void SetBinaryDataDir(RestrictedTraceID traceID, const char *dataDir)
         case RestrictedTraceID::fate_grand_order:
             fate_grand_order::SetBinaryDataDir(dataDir);
             break;
+        case RestrictedTraceID::fifa_mobile:
+            fifa_mobile::SetBinaryDataDir(dataDir);
+            break;
         case RestrictedTraceID::free_fire:
             free_fire::SetBinaryDataDir(dataDir);
             break;
@@ -411,8 +527,14 @@ void SetBinaryDataDir(RestrictedTraceID traceID, const char *dataDir)
         case RestrictedTraceID::kartrider_rush:
             kartrider_rush::SetBinaryDataDir(dataDir);
             break;
+        case RestrictedTraceID::klondike_adventures:
+            klondike_adventures::SetBinaryDataDir(dataDir);
+            break;
         case RestrictedTraceID::lego_legacy:
             lego_legacy::SetBinaryDataDir(dataDir);
+            break;
+        case RestrictedTraceID::magic_tiles_3:
+            magic_tiles_3::SetBinaryDataDir(dataDir);
             break;
         case RestrictedTraceID::manhattan_10:
             manhattan_10::SetBinaryDataDir(dataDir);
@@ -432,6 +554,15 @@ void SetBinaryDataDir(RestrictedTraceID traceID, const char *dataDir)
         case RestrictedTraceID::real_commando_secret_mission:
             real_commando_secret_mission::SetBinaryDataDir(dataDir);
             break;
+        case RestrictedTraceID::real_gangster_crime:
+            real_gangster_crime::SetBinaryDataDir(dataDir);
+            break;
+        case RestrictedTraceID::saint_seiya_awakening:
+            saint_seiya_awakening::SetBinaryDataDir(dataDir);
+            break;
+        case RestrictedTraceID::subway_surfers:
+            subway_surfers::SetBinaryDataDir(dataDir);
+            break;
         case RestrictedTraceID::temple_run_300:
             temple_run_300::SetBinaryDataDir(dataDir);
             break;
@@ -443,6 +574,9 @@ void SetBinaryDataDir(RestrictedTraceID traceID, const char *dataDir)
             break;
         case RestrictedTraceID::world_of_tanks_blitz:
             world_of_tanks_blitz::SetBinaryDataDir(dataDir);
+            break;
+        case RestrictedTraceID::world_war_doh:
+            world_war_doh::SetBinaryDataDir(dataDir);
             break;
         default:
             fprintf(stderr, "Error in switch.\n");
@@ -460,6 +594,9 @@ void SetBinaryDataDecompressCallback(RestrictedTraceID traceID, DecompressCallba
             break;
         case RestrictedTraceID::arena_of_valor:
             arena_of_valor::SetBinaryDataDecompressCallback(callback);
+            break;
+        case RestrictedTraceID::asphalt_8:
+            asphalt_8::SetBinaryDataDecompressCallback(callback);
             break;
         case RestrictedTraceID::brawl_stars:
             brawl_stars::SetBinaryDataDecompressCallback(callback);
@@ -482,6 +619,9 @@ void SetBinaryDataDecompressCallback(RestrictedTraceID traceID, DecompressCallba
         case RestrictedTraceID::fate_grand_order:
             fate_grand_order::SetBinaryDataDecompressCallback(callback);
             break;
+        case RestrictedTraceID::fifa_mobile:
+            fifa_mobile::SetBinaryDataDecompressCallback(callback);
+            break;
         case RestrictedTraceID::free_fire:
             free_fire::SetBinaryDataDecompressCallback(callback);
             break;
@@ -491,8 +631,14 @@ void SetBinaryDataDecompressCallback(RestrictedTraceID traceID, DecompressCallba
         case RestrictedTraceID::kartrider_rush:
             kartrider_rush::SetBinaryDataDecompressCallback(callback);
             break;
+        case RestrictedTraceID::klondike_adventures:
+            klondike_adventures::SetBinaryDataDecompressCallback(callback);
+            break;
         case RestrictedTraceID::lego_legacy:
             lego_legacy::SetBinaryDataDecompressCallback(callback);
+            break;
+        case RestrictedTraceID::magic_tiles_3:
+            magic_tiles_3::SetBinaryDataDecompressCallback(callback);
             break;
         case RestrictedTraceID::manhattan_10:
             manhattan_10::SetBinaryDataDecompressCallback(callback);
@@ -512,6 +658,15 @@ void SetBinaryDataDecompressCallback(RestrictedTraceID traceID, DecompressCallba
         case RestrictedTraceID::real_commando_secret_mission:
             real_commando_secret_mission::SetBinaryDataDecompressCallback(callback);
             break;
+        case RestrictedTraceID::real_gangster_crime:
+            real_gangster_crime::SetBinaryDataDecompressCallback(callback);
+            break;
+        case RestrictedTraceID::saint_seiya_awakening:
+            saint_seiya_awakening::SetBinaryDataDecompressCallback(callback);
+            break;
+        case RestrictedTraceID::subway_surfers:
+            subway_surfers::SetBinaryDataDecompressCallback(callback);
+            break;
         case RestrictedTraceID::temple_run_300:
             temple_run_300::SetBinaryDataDecompressCallback(callback);
             break;
@@ -523,6 +678,9 @@ void SetBinaryDataDecompressCallback(RestrictedTraceID traceID, DecompressCallba
             break;
         case RestrictedTraceID::world_of_tanks_blitz:
             world_of_tanks_blitz::SetBinaryDataDecompressCallback(callback);
+            break;
+        case RestrictedTraceID::world_war_doh:
+            world_war_doh::SetBinaryDataDecompressCallback(callback);
             break;
         default:
             fprintf(stderr, "Error in switch.\n");

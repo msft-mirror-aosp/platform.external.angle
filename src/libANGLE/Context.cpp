@@ -281,6 +281,17 @@ bool IsColorMaskedOut(const BlendStateExt &blendStateExt, const GLint drawbuffer
     ASSERT(static_cast<size_t>(drawbuffer) < blendStateExt.mMaxDrawBuffers);
     return blendStateExt.getColorMaskIndexed(static_cast<size_t>(drawbuffer)) == 0;
 }
+
+bool GetIsExternal(const egl::AttributeMap &attribs)
+{
+    return (attribs.get(EGL_EXTERNAL_CONTEXT_ANGLE, EGL_FALSE) == EGL_TRUE);
+}
+
+bool GetSaveAndRestoreState(const egl::AttributeMap &attribs)
+{
+    return (attribs.get(EGL_EXTERNAL_CONTEXT_SAVE_STATE_ANGLE, EGL_FALSE) == EGL_TRUE);
+}
+
 }  // anonymous namespace
 
 thread_local Context *gCurrentValidContext = nullptr;
@@ -339,7 +350,10 @@ Context::Context(egl::Display *display,
       mThreadPool(nullptr),
       mFrameCapture(new angle::FrameCapture),
       mRefCount(0),
-      mOverlay(mImplementation.get())
+      mOverlay(mImplementation.get()),
+      mIsExternal(GetIsExternal(attribs)),
+      mSaveAndRestoreState(GetSaveAndRestoreState(attribs)),
+      mIsCurrent(false)
 {
     for (angle::SubjectIndex uboIndex = kUniformBuffer0SubjectIndex;
          uboIndex < kUniformBufferMaxSubjectIndex; ++uboIndex)
@@ -575,7 +589,10 @@ egl::Error Context::onDestroy(const egl::Display *display)
         mGLES1Renderer->onDestroy(this, &mState);
     }
 
-    ANGLE_TRY(unMakeCurrent(display));
+    if (mIsCurrent)
+    {
+        ANGLE_TRY(unMakeCurrent(display));
+    }
 
     for (auto fence : mFenceNVMap)
     {
@@ -672,6 +689,8 @@ egl::Error Context::makeCurrent(egl::Display *display,
 
     if (!mHasBeenCurrent)
     {
+        ASSERT(!mIsCurrent);
+
         initialize();
         initRendererString();
         initVersionStrings();
@@ -689,6 +708,11 @@ egl::Error Context::makeCurrent(egl::Display *display,
         mState.setScissorParams(0, 0, width, height);
 
         mHasBeenCurrent = true;
+    }
+
+    if (mIsCurrent)
+    {
+        ANGLE_TRY(unsetDefaultFramebuffer());
     }
 
     mFrameCapture->onMakeCurrent(this, drawSurface);
@@ -709,11 +733,15 @@ egl::Error Context::makeCurrent(egl::Display *display,
         return angle::ResultToEGL(implResult);
     }
 
+    mIsCurrent = true;
+
     return egl::NoError();
 }
 
 egl::Error Context::unMakeCurrent(const egl::Display *display)
 {
+    ASSERT(mIsCurrent);
+
     ANGLE_TRY(angle::ResultToEGL(mImplementation->onUnMakeCurrent(this)));
 
     ANGLE_TRY(unsetDefaultFramebuffer());
@@ -728,6 +756,8 @@ egl::Error Context::unMakeCurrent(const egl::Display *display)
     {
         mDisplay->returnZeroFilledBuffer(mZeroFilledBuffer.release());
     }
+
+    mIsCurrent = false;
 
     return egl::NoError();
 }
@@ -1829,6 +1859,81 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
         case GL_MAX_GEOMETRY_SHADER_STORAGE_BLOCKS_EXT:
             *params = mState.mCaps.maxShaderStorageBlocks[ShaderType::Geometry];
             break;
+        // GL_EXT_tessellation_shader
+        case GL_MAX_PATCH_VERTICES_EXT:
+            *params = mState.mCaps.maxPatchVertices;
+            break;
+        case GL_MAX_TESS_GEN_LEVEL_EXT:
+            *params = mState.mCaps.maxTessGenLevel;
+            break;
+        case GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS_EXT:
+            *params = mState.mCaps.maxShaderUniformComponents[ShaderType::TessControl];
+            break;
+        case GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS_EXT:
+            *params = mState.mCaps.maxShaderUniformComponents[ShaderType::TessEvaluation];
+            break;
+        case GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS_EXT:
+            *params = mState.mCaps.maxShaderTextureImageUnits[ShaderType::TessControl];
+            break;
+        case GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS_EXT:
+            *params = mState.mCaps.maxShaderTextureImageUnits[ShaderType::TessEvaluation];
+            break;
+        case GL_MAX_TESS_CONTROL_OUTPUT_COMPONENTS_EXT:
+            *params = mState.mCaps.maxTessControlOutputComponents;
+            break;
+        case GL_MAX_TESS_PATCH_COMPONENTS_EXT:
+            *params = mState.mCaps.maxTessPatchComponents;
+            break;
+        case GL_MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS_EXT:
+            *params = mState.mCaps.maxTessControlTotalOutputComponents;
+            break;
+        case GL_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS_EXT:
+            *params = mState.mCaps.maxTessEvaluationOutputComponents;
+            break;
+        case GL_MAX_TESS_CONTROL_UNIFORM_BLOCKS_EXT:
+            *params = mState.mCaps.maxShaderUniformBlocks[ShaderType::TessControl];
+            break;
+        case GL_MAX_TESS_EVALUATION_UNIFORM_BLOCKS_EXT:
+            *params = mState.mCaps.maxShaderUniformBlocks[ShaderType::TessEvaluation];
+            break;
+        case GL_MAX_TESS_CONTROL_INPUT_COMPONENTS_EXT:
+            *params = mState.mCaps.maxTessControlInputComponents;
+            break;
+        case GL_MAX_TESS_EVALUATION_INPUT_COMPONENTS_EXT:
+            *params = mState.mCaps.maxTessEvaluationInputComponents;
+            break;
+        case GL_MAX_COMBINED_TESS_CONTROL_UNIFORM_COMPONENTS_EXT:
+            *params = static_cast<GLint>(
+                mState.mCaps.maxCombinedShaderUniformComponents[ShaderType::TessControl]);
+            break;
+        case GL_MAX_COMBINED_TESS_EVALUATION_UNIFORM_COMPONENTS_EXT:
+            *params = static_cast<GLint>(
+                mState.mCaps.maxCombinedShaderUniformComponents[ShaderType::TessEvaluation]);
+            break;
+        case GL_MAX_TESS_CONTROL_ATOMIC_COUNTER_BUFFERS_EXT:
+            *params = mState.mCaps.maxShaderAtomicCounterBuffers[ShaderType::TessControl];
+            break;
+        case GL_MAX_TESS_EVALUATION_ATOMIC_COUNTER_BUFFERS_EXT:
+            *params = mState.mCaps.maxShaderAtomicCounterBuffers[ShaderType::TessEvaluation];
+            break;
+        case GL_MAX_TESS_CONTROL_ATOMIC_COUNTERS_EXT:
+            *params = mState.mCaps.maxShaderAtomicCounters[ShaderType::TessControl];
+            break;
+        case GL_MAX_TESS_EVALUATION_ATOMIC_COUNTERS_EXT:
+            *params = mState.mCaps.maxShaderAtomicCounters[ShaderType::TessEvaluation];
+            break;
+        case GL_MAX_TESS_CONTROL_IMAGE_UNIFORMS_EXT:
+            *params = mState.mCaps.maxShaderImageUniforms[ShaderType::TessControl];
+            break;
+        case GL_MAX_TESS_EVALUATION_IMAGE_UNIFORMS_EXT:
+            *params = mState.mCaps.maxShaderImageUniforms[ShaderType::TessEvaluation];
+            break;
+        case GL_MAX_TESS_CONTROL_SHADER_STORAGE_BLOCKS_EXT:
+            *params = mState.mCaps.maxShaderStorageBlocks[ShaderType::TessControl];
+            break;
+        case GL_MAX_TESS_EVALUATION_SHADER_STORAGE_BLOCKS_EXT:
+            *params = mState.mCaps.maxShaderStorageBlocks[ShaderType::TessEvaluation];
+            break;
         // GLES1 emulation: Caps queries
         case GL_MAX_TEXTURE_UNITS:
             *params = mState.mCaps.maxMultitextureUnits;
@@ -1857,6 +1962,12 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
             {
                 *params = mState.mCaps.maxClipPlanes;
             }
+            break;
+        case GL_MAX_CULL_DISTANCES_EXT:
+            *params = mState.mCaps.maxCullDistances;
+            break;
+        case GL_MAX_COMBINED_CLIP_AND_CULL_DISTANCES_EXT:
+            *params = mState.mCaps.maxCombinedClipAndCullDistances;
             break;
         // GLES1 emulation: Vertex attribute queries
         case GL_VERTEX_ARRAY_BUFFER_BINDING:
@@ -3203,6 +3314,7 @@ Extensions Context::generateSupportedExtensions() const
         supportedExtensions.framebufferObjectOES  = true;
         supportedExtensions.parallelShaderCompile = false;
         supportedExtensions.texture3DOES          = false;
+        supportedExtensions.clipDistanceAPPLE     = false;
     }
 
     if (getClientVersion() < ES_3_0)
@@ -3246,12 +3358,16 @@ Extensions Context::generateSupportedExtensions() const
 
         // GL_EXT_YUV_target requires ESSL3
         supportedExtensions.yuvTargetEXT = false;
+
+        // GL_EXT_clip_cull_distance requires ESSL3
+        supportedExtensions.clipCullDistanceEXT = false;
     }
 
     if (getClientVersion() < ES_3_1)
     {
         // Disable ES3.1+ extensions
-        supportedExtensions.geometryShader = false;
+        supportedExtensions.geometryShader        = false;
+        supportedExtensions.tessellationShaderEXT = false;
 
         // TODO(http://anglebug.com/2775): Multisample arrays could be supported on ES 3.0 as well
         // once 2D multisample texture extension is exposed there.
@@ -3501,8 +3617,17 @@ void Context::initCaps()
     ANGLE_LIMIT_CAP(mState.mCaps.maxTransformFeedbackSeparateComponents,
                     IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS);
 
-    // Limit textures as well, so we can use fast bitsets with texture bindings.
-    ANGLE_LIMIT_CAP(mState.mCaps.maxCombinedTextureImageUnits, IMPLEMENTATION_MAX_ACTIVE_TEXTURES);
+    if (getClientVersion() < ES_3_2 && !mState.mExtensions.tessellationShaderEXT)
+    {
+        ANGLE_LIMIT_CAP(mState.mCaps.maxCombinedTextureImageUnits,
+                        IMPLEMENTATION_MAX_ES31_ACTIVE_TEXTURES);
+    }
+    else
+    {
+        ANGLE_LIMIT_CAP(mState.mCaps.maxCombinedTextureImageUnits,
+                        IMPLEMENTATION_MAX_ACTIVE_TEXTURES);
+    }
+
     for (ShaderType shaderType : AllShaderTypes())
     {
         ANGLE_LIMIT_CAP(mState.mCaps.maxShaderTextureImageUnits[shaderType],
@@ -3534,6 +3659,10 @@ void Context::initCaps()
                     IMPLEMENTATION_MAX_SHADER_STORAGE_BUFFER_BINDINGS);
     ANGLE_LIMIT_CAP(mState.mCaps.maxCombinedShaderStorageBlocks,
                     IMPLEMENTATION_MAX_SHADER_STORAGE_BUFFER_BINDINGS);
+
+    ANGLE_LIMIT_CAP(mState.mCaps.maxClipDistances, IMPLEMENTATION_MAX_CLIP_DISTANCES);
+
+    ANGLE_LIMIT_CAP(mState.mCaps.maxFramebufferLayers, IMPLEMENTATION_MAX_FRAMEBUFFER_LAYERS);
 
     ANGLE_LIMIT_CAP(mState.mCaps.maxSampleMaskWords, MAX_SAMPLE_MASK_WORDS);
 
@@ -3573,6 +3702,11 @@ void Context::initCaps()
                   "supported on native drivers"
                << std::endl;
         mState.mExtensions.bindUniformLocation = false;
+
+        INFO() << "Disabling GL_NV_shader_noperspective_interpolation during capture, which is not "
+                  "supported on some native drivers"
+               << std::endl;
+        mState.mExtensions.noperspectiveInterpolationNV = false;
     }
 
     // Disable support for OES_get_program_binary
@@ -3870,6 +4004,20 @@ void Context::blitFramebuffer(GLint srcX0,
     ANGLE_CONTEXT_TRY(syncStateForBlit());
 
     ANGLE_CONTEXT_TRY(drawFramebuffer->blit(this, srcArea, dstArea, mask, filter));
+}
+
+void Context::blitFramebufferNV(GLint srcX0,
+                                GLint srcY0,
+                                GLint srcX1,
+                                GLint srcY1,
+                                GLint dstX0,
+                                GLint dstY0,
+                                GLint dstX1,
+                                GLint dstY1,
+                                GLbitfield mask,
+                                GLenum filter)
+{
+    blitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 }
 
 void Context::clear(GLbitfield mask)
@@ -6785,7 +6933,14 @@ void Context::stencilOp(GLenum fail, GLenum zfail, GLenum zpass)
 
 void Context::patchParameteri(GLenum pname, GLint value)
 {
-    UNIMPLEMENTED();
+    switch (pname)
+    {
+        case GL_PATCH_VERTICES:
+            mState.setPatchVertices(value);
+            break;
+        default:
+            break;
+    }
 }
 
 Program *Context::getActiveLinkedProgram() const
@@ -8302,6 +8457,11 @@ void Context::eGLImageTargetRenderbufferStorage(GLenum target, GLeglImageOES ima
     ANGLE_CONTEXT_TRY(renderbuffer->setStorageEGLImageTarget(this, imageObject));
 }
 
+void Context::framebufferFetchBarrier()
+{
+    UNIMPLEMENTED();
+}
+
 void Context::texStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
 {
     UNIMPLEMENTED();
@@ -8722,6 +8882,18 @@ std::mutex &Context::getProgramCacheMutex() const
     return mDisplay->getProgramCacheMutex();
 }
 
+bool Context::supportsGeometryOrTesselation() const
+{
+    return mState.getClientVersion() == ES_3_2 || mState.getExtensions().geometryShader ||
+           mState.getExtensions().tessellationShaderEXT;
+}
+
+void Context::dirtyAllState()
+{
+    mState.setAllDirtyBits();
+    mState.setAllDirtyObjects();
+}
+
 // ErrorSet implementation.
 ErrorSet::ErrorSet(Context *context) : mContext(context) {}
 
@@ -9011,7 +9183,8 @@ void StateCache::setValidDrawModes(bool pointsOK,
                                    bool linesOK,
                                    bool trisOK,
                                    bool lineAdjOK,
-                                   bool triAdjOK)
+                                   bool triAdjOK,
+                                   bool patchOK)
 {
     mCachedValidDrawModes[PrimitiveMode::Points]                 = pointsOK;
     mCachedValidDrawModes[PrimitiveMode::Lines]                  = linesOK;
@@ -9024,12 +9197,21 @@ void StateCache::setValidDrawModes(bool pointsOK,
     mCachedValidDrawModes[PrimitiveMode::LineStripAdjacency]     = lineAdjOK;
     mCachedValidDrawModes[PrimitiveMode::TrianglesAdjacency]     = triAdjOK;
     mCachedValidDrawModes[PrimitiveMode::TriangleStripAdjacency] = triAdjOK;
+    mCachedValidDrawModes[PrimitiveMode::Patches]                = patchOK;
 }
 
 void StateCache::updateValidDrawModes(Context *context)
 {
     const State &state = context->getState();
-    Program *program   = state.getProgram();
+
+    const ProgramExecutable *programExecutable = context->getState().getProgramExecutable();
+
+    // If tessellation is active primitive mode must be GL_PATCHES.
+    if (programExecutable && programExecutable->hasLinkedTessellationShader())
+    {
+        setValidDrawModes(false, false, false, false, false, true);
+        return;
+    }
 
     if (mCachedTransformFeedbackActiveUnpaused)
     {
@@ -9043,7 +9225,8 @@ void StateCache::updateValidDrawModes(Context *context)
         // DrawElements, DrawElementsInstanced, and DrawRangeElements while transform feedback is
         // active and not paused, regardless of mode. Any primitive type may be used while transform
         // feedback is paused.
-        if (!context->getExtensions().geometryShader)
+        if (!context->getExtensions().geometryShader &&
+            !context->getExtensions().tessellationShaderEXT)
         {
             mCachedValidDrawModes.fill(false);
             mCachedValidDrawModes[curTransformFeedback->getPrimitiveMode()] = true;
@@ -9060,11 +9243,10 @@ void StateCache::updateValidDrawModes(Context *context)
         bool linesOK  = curTransformFeedback->getPrimitiveMode() == PrimitiveMode::Lines;
         bool trisOK   = curTransformFeedback->getPrimitiveMode() == PrimitiveMode::Triangles;
 
-        setValidDrawModes(pointsOK, linesOK, trisOK, false, false);
+        setValidDrawModes(pointsOK, linesOK, trisOK, false, false, false);
         return;
     }
 
-    const ProgramExecutable *programExecutable = context->getState().getProgramExecutable();
     if (!programExecutable || !programExecutable->hasLinkedShaderStage(ShaderType::Geometry))
     {
         mCachedValidDrawModes = kValidBasicDrawModes;
@@ -9072,7 +9254,7 @@ void StateCache::updateValidDrawModes(Context *context)
     }
 
     ASSERT(programExecutable->hasLinkedShaderStage(ShaderType::Geometry));
-    PrimitiveMode gsMode = program->getGeometryShaderInputPrimitiveType();
+    PrimitiveMode gsMode = programExecutable->getGeometryShaderInputPrimitiveType();
 
     bool pointsOK  = gsMode == PrimitiveMode::Points;
     bool linesOK   = gsMode == PrimitiveMode::Lines;
@@ -9080,7 +9262,7 @@ void StateCache::updateValidDrawModes(Context *context)
     bool lineAdjOK = gsMode == PrimitiveMode::LinesAdjacency;
     bool triAdjOK  = gsMode == PrimitiveMode::TrianglesAdjacency;
 
-    setValidDrawModes(pointsOK, linesOK, trisOK, lineAdjOK, triAdjOK);
+    setValidDrawModes(pointsOK, linesOK, trisOK, lineAdjOK, triAdjOK, false);
 }
 
 void StateCache::updateValidBindTextureTypes(Context *context)

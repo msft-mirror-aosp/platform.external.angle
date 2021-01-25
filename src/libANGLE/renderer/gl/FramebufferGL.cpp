@@ -806,8 +806,8 @@ angle::Result FramebufferGL::blit(const gl::Context *context,
 
     if (features.adjustSrcDstRegionBlitFramebuffer.enabled)
     {
-        angle::Result result =
-            adjustSrcDstRegion(context, sourceArea, destArea, &finalSourceArea, &finalDestArea);
+        angle::Result result = adjustSrcDstRegion(context, finalSourceArea, finalDestArea,
+                                                  &finalSourceArea, &finalDestArea);
         if (result != angle::Result::Continue)
         {
             return result;
@@ -815,8 +815,8 @@ angle::Result FramebufferGL::blit(const gl::Context *context,
     }
     if (features.clipSrcRegionBlitFramebuffer.enabled)
     {
-        angle::Result result =
-            clipSrcRegion(context, sourceArea, destArea, &finalSourceArea, &finalDestArea);
+        angle::Result result = clipSrcRegion(context, finalSourceArea, finalDestArea,
+                                             &finalSourceArea, &finalDestArea);
         if (result != angle::Result::Continue)
         {
             return result;
@@ -1315,6 +1315,14 @@ angle::Result FramebufferGL::syncState(const gl::Context *context,
 GLuint FramebufferGL::getFramebufferID() const
 {
     return mFramebufferID;
+}
+
+void FramebufferGL::updateDefaultFramebufferID(GLuint framebufferID)
+{
+    // We only update framebufferID for a default frambuffer, and the framebufferID is created
+    // externally. ANGLE doesn't owne it.
+    ASSERT(isDefault());
+    mFramebufferID = framebufferID;
 }
 
 bool FramebufferGL::isDefault() const

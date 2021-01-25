@@ -1089,9 +1089,10 @@ bool TOutputGLSLBase::visitDeclaration(Visit visit, TIntermDeclaration *node)
         const TIntermSequence &sequence = *(node->getSequence());
         TIntermTyped *variable          = sequence.front()->getAsTyped();
         TIntermSymbol *symbolNode       = variable->getAsSymbolNode();
-        if (!symbolNode || symbolNode->getName() != "gl_ClipDistance")
+        if (!symbolNode || (symbolNode->getName() != "gl_ClipDistance" &&
+                            symbolNode->getName() != "gl_CullDistance"))
         {
-            // gl_ClipDistance re-declaration doesn't need layout.
+            // gl_Clip/CullDistance re-declaration doesn't need layout.
             writeLayoutQualifier(variable);
         }
         writeVariableType(variable->getType(), symbolNode ? &symbolNode->variable() : nullptr,
@@ -1339,7 +1340,6 @@ void TOutputGLSLBase::declareInterfaceBlockLayout(const TType &type)
         case EbsUnspecified:
         case EbsShared:
             // Default block storage is shared.
-            fprintf(stderr, "\n\n\nHERE\n\n\n");
             out << "shared";
             break;
 
@@ -1404,7 +1404,8 @@ void TOutputGLSLBase::declareInterfaceBlock(const TType &type)
     const TFieldList &fields = interfaceBlock->fields();
     for (const TField *field : fields)
     {
-        if (!IsShaderIoBlock(type.getQualifier()))
+        if (!IsShaderIoBlock(type.getQualifier()) && type.getQualifier() != EvqPatchIn &&
+            type.getQualifier() != EvqPatchOut)
         {
             writeFieldLayoutQualifier(field);
         }
@@ -1470,6 +1471,40 @@ void WriteGeometryShaderLayoutQualifiers(TInfoSinkBase &out,
             out << "max_vertices = " << maxVertices;
         }
         out << ") out;\n";
+    }
+}
+
+void WriteTessControlShaderLayoutQualifiers(TInfoSinkBase &out, int inputVertices)
+{
+    if (inputVertices != 0)
+    {
+        out << "layout (vertices = " << inputVertices << ") out;\n";
+    }
+}
+
+void WriteTessEvaluationShaderLayoutQualifiers(TInfoSinkBase &out,
+                                               sh::TLayoutTessEvaluationType inputPrimitive,
+                                               sh::TLayoutTessEvaluationType inputVertexSpacing,
+                                               sh::TLayoutTessEvaluationType inputOrdering,
+                                               sh::TLayoutTessEvaluationType inputPoint)
+{
+    if (inputPrimitive != EtetUndefined)
+    {
+        out << "layout (";
+        out << getTessEvaluationShaderTypeString(inputPrimitive);
+        if (inputVertexSpacing != EtetUndefined)
+        {
+            out << ", " << getTessEvaluationShaderTypeString(inputVertexSpacing);
+        }
+        if (inputOrdering != EtetUndefined)
+        {
+            out << ", " << getTessEvaluationShaderTypeString(inputOrdering);
+        }
+        if (inputPoint != EtetUndefined)
+        {
+            out << ", " << getTessEvaluationShaderTypeString(inputPoint);
+        }
+        out << ") in;\n";
     }
 }
 

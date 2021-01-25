@@ -9,6 +9,7 @@
   "traces": [
     "angry_birds_2_1500",
     "arena_of_valor",
+    "asphalt_8",
     "brawl_stars",
     "candy_crush_500",
     "clash_of_clans",
@@ -16,19 +17,26 @@
     "dragon_ball_legends",
     "egypt_1500",
     "fate_grand_order",
+    "fifa_mobile",
     "free_fire",
     "google_maps",
     "kartrider_rush",
+    "klondike_adventures",
     "lego_legacy",
+    "magic_tiles_3",
     "manhattan_10",
     "marvel_contest_of_champions",
     "mobile_legends",
     "nba2k20_800",
     "pubg_mobile_lite",
     "real_commando_secret_mission",
+    "real_gangster_crime",
+    "saint_seiya_awakening",
+    "subway_surfers",
     "temple_run_300",
     "trex_200",
     "whatsapp",
-    "world_of_tanks_blitz"
+    "world_of_tanks_blitz",
+    "world_war_doh"
   ]
 }

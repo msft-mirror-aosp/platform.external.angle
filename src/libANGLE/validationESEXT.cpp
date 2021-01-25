@@ -1138,8 +1138,37 @@ bool ValidateImportSemaphoreZirconHandleANGLE(const Context *context,
     return true;
 }
 
+bool ValidateFramebufferFetchBarrierEXT(const Context *context)
+{
+    return true;
+}
+
 bool ValidatePatchParameteriEXT(const Context *context, GLenum pname, GLint value)
 {
+    if (!context->getExtensions().tessellationShaderEXT)
+    {
+        context->validationError(GL_INVALID_OPERATION, kTessellationShaderExtensionNotEnabled);
+        return false;
+    }
+
+    if (pname != GL_PATCH_VERTICES)
+    {
+        context->validationError(GL_INVALID_ENUM, kInvalidPname);
+        return false;
+    }
+
+    if (value <= 0)
+    {
+        context->validationError(GL_INVALID_VALUE, kInvalidValueNonPositive);
+        return false;
+    }
+
+    if (value > context->getCaps().maxPatchVertices)
+    {
+        context->validationError(GL_INVALID_VALUE, kInvalidValueExceedsMaxPatchSize);
+        return false;
+    }
+
     return true;
 }
 
@@ -1269,7 +1298,7 @@ bool ValidateBufferStorageEXT(const Context *context,
 
     constexpr GLbitfield kAllUsageFlags =
         (GL_DYNAMIC_STORAGE_BIT_EXT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT |
-         GL_MAP_PERSISTENT_BIT_EXT | GL_MAP_PERSISTENT_BIT_EXT | GL_CLIENT_STORAGE_BIT_EXT);
+         GL_MAP_PERSISTENT_BIT_EXT | GL_MAP_COHERENT_BIT_EXT | GL_CLIENT_STORAGE_BIT_EXT);
     if ((flags & ~kAllUsageFlags) != 0)
     {
         context->validationError(GL_INVALID_VALUE, kInvalidBufferUsageFlags);
@@ -1304,6 +1333,12 @@ bool ValidateBufferStorageEXT(const Context *context,
     }
 
     return true;
+}
+
+// GL_EXT_clip_control
+bool ValidateClipControlEXT(const Context *context, GLenum origin, GLenum depth)
+{
+    return false;
 }
 
 // GL_EXT_external_buffer

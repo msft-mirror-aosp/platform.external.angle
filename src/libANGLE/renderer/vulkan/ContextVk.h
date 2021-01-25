@@ -322,9 +322,11 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     angle::Result onPauseTransformFeedback();
     void pauseTransformFeedbackIfStartedAndRebindBuffersOnResume();
 
-    // When UtilsVk issues draw or dispatch calls, it binds descriptor sets that the context is not
-    // aware of.  This function is called to make sure affected descriptor set bindings are dirtied
-    // for the next application draw/dispatch call.
+    // When UtilsVk issues draw or dispatch calls, it binds a new pipeline and descriptor sets that
+    // the context is not aware of.  These functions are called to make sure the pipeline and
+    // affected descriptor set bindings are dirtied for the next application draw/dispatch call.
+    void invalidateGraphicsPipeline();
+    void invalidateComputePipeline();
     void invalidateGraphicsDescriptorSet(DescriptorSetIndex usedDescriptorSet);
     void invalidateComputeDescriptorSet(DescriptorSetIndex usedDescriptorSet);
 
@@ -419,8 +421,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     bool emulateSeamfulCubeMapSampling() const { return mEmulateSeamfulCubeMapSampling; }
 
-    bool useOldRewriteStructSamplers() const { return mUseOldRewriteStructSamplers; }
-
     const gl::Debug &getDebug() const { return mState.getDebug(); }
     const gl::OverlayType *getOverlay() const { return mState.getOverlay(); }
 
@@ -450,13 +450,14 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     }
 
     void onDepthStencilDraw(gl::LevelIndex level,
-                            uint32_t layer,
+                            uint32_t layerStart,
+                            uint32_t layerCount,
                             vk::ImageHelper *image,
                             vk::ImageHelper *resolveImage)
     {
         ASSERT(mRenderPassCommands->started());
-        mRenderPassCommands->depthStencilImagesDraw(&mResourceUseList, level, layer, image,
-                                                    resolveImage);
+        mRenderPassCommands->depthStencilImagesDraw(&mResourceUseList, level, layerStart,
+                                                    layerCount, image, resolveImage);
     }
 
     void onImageHelperRelease(const vk::ImageHelper *image)
@@ -567,11 +568,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     const vk::PerfCounters &getPerfCounters() const { return mPerfCounters; }
     vk::PerfCounters &getPerfCounters() { return mPerfCounters; }
 
-    void onSyncHelperInitialize() { mSyncObjectPendingFlush = true; }
-
-    // When UtilsVk issues a draw call on the currently running render pass, the pipelines and
-    // descriptor sets it binds need to be undone.
-    void invalidateGraphicsPipelineAndDescriptorSets();
+    void onSyncHelperInitialize() { getShareGroupVk()->setSyncObjectPendingFlush(); }
+    void onEGLSyncHelperInitialize() { mEGLSyncObjectPendingFlush = true; }
 
     // Implementation of MultisampleTextureInitializer
     angle::Result initializeMultisampleTextureToBlack(const gl::Context *context,
@@ -609,7 +607,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         uint32_t dynamicOffset;
         vk::BindingPointer<vk::DescriptorSetLayout> descriptorSetLayout;
         vk::RefCountedDescriptorPoolBinding descriptorPoolBinding;
-        angle::FastIntegerMap<VkDescriptorSet> descriptorSetCache;
+        DriverUniformsDescriptorSetCache descriptorSetCache;
 
         DriverUniformsDescriptorSet();
         ~DriverUniformsDescriptorSet();
@@ -832,7 +830,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     void flushGpuEvents(double nextSyncGpuTimestampS, double nextSyncCpuTimestampS);
     void handleDeviceLost();
     bool shouldEmulateSeamfulCubeMapSampling() const;
-    bool shouldUseOldRewriteStructSamplers() const;
     void clearAllGarbage();
     bool hasRecordedCommands();
     void dumpCommandStreamDiagnostics();
@@ -952,10 +949,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     // Whether this context should do seamful cube map sampling emulation.
     bool mEmulateSeamfulCubeMapSampling;
 
-    // Whether this context should use the old version of the
-    // RewriteStructSamplers pass.
-    bool mUseOldRewriteStructSamplers;
-
     angle::PackedEnumMap<PipelineType, DriverUniformsDescriptorSet> mDriverUniforms;
 
     // This cache should also probably include the texture index (shader location) and array
@@ -998,8 +991,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     // Track SyncHelper object been added into secondary command buffer that has not been flushed to
     // vulkan.
-    bool mSyncObjectPendingFlush;
-    uint32_t mDeferredFlushCount;
+    bool mEGLSyncObjectPendingFlush;
+    bool mHasDeferredFlush;
 
     // Semaphores that must be waited on in the next submission.
     std::vector<VkSemaphore> mWaitSemaphores;
