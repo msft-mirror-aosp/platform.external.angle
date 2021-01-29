@@ -66,6 +66,14 @@ VendorID GetVendorID(const FunctionsGL *functions)
     {
         return VENDOR_ID_INTEL;
     }
+    else if (nativeVendorString.find("Imagination") != std::string::npos)
+    {
+        return VENDOR_ID_POWERVR;
+    }
+    else if (nativeVendorString.find("Vivante") != std::string::npos)
+    {
+        return VENDOR_ID_VIVANTE;
+    }
     else
     {
         return VENDOR_ID_UNKNOWN;
@@ -289,6 +297,18 @@ static gl::TextureCaps GenerateTextureFormatCaps(const FunctionsGL *functions,
     textureCaps.blendable         = textureCaps.renderbuffer || textureCaps.textureAttachment;
 
     // Do extra renderability validation for some formats.
+    if (internalFormat == GL_R16F || internalFormat == GL_RG16F || internalFormat == GL_RGB16F)
+    {
+        // SupportRequirement can't currently express a condition of the form (version && extension)
+        // || other extensions, so do the (version && extension) part here.
+        if (functions->isAtLeastGLES(gl::Version(3, 0)) &&
+            functions->hasGLESExtension("GL_EXT_color_buffer_half_float"))
+        {
+            textureCaps.textureAttachment = true;
+            textureCaps.renderbuffer      = true;
+        }
+    }
+
     // We require GL_RGBA16F is renderable to expose EXT_color_buffer_half_float but we can't know
     // if the format is supported unless we try to create a framebuffer.
     if (internalFormat == GL_RGBA16F)
@@ -1208,7 +1228,12 @@ void GenerateCaps(const FunctionsGL *functions,
                               functions->hasGLExtension("GL_EXT_blend_minmax") ||
                               functions->isAtLeastGLES(gl::Version(3, 0)) ||
                               functions->hasGLESExtension("GL_EXT_blend_minmax");
-    extensions->framebufferBlit        = (functions->blitFramebuffer != nullptr);
+    extensions->framebufferBlitNV = functions->isAtLeastGL(gl::Version(3, 0)) ||
+                                    functions->hasGLExtension("GL_EXT_framebuffer_blit") ||
+                                    functions->isAtLeastGLES(gl::Version(3, 0)) ||
+                                    functions->hasGLESExtension("GL_NV_framebuffer_blit");
+    extensions->framebufferBlitANGLE =
+        extensions->framebufferBlitNV || functions->hasGLESExtension("GL_ANGLE_framebuffer_blit");
     extensions->framebufferMultisample = caps->maxSamples > 0;
     extensions->standardDerivativesOES = functions->isAtLeastGL(gl::Version(2, 0)) ||
                                          functions->hasGLExtension("GL_ARB_fragment_shader") ||
@@ -1345,12 +1370,17 @@ void GenerateCaps(const FunctionsGL *functions,
         functions->hasGLESExtension("GL_EXT_compressed_ETC1_RGB8_sub_texture");
 
 #if defined(ANGLE_PLATFORM_MACOS) || defined(ANGLE_PLATFORM_MACCATALYST)
-    VendorID vendor = GetVendorID(functions);
-    if ((IsAMD(vendor) || IsIntel(vendor)) && *maxSupportedESVersion >= gl::Version(3, 0))
+    angle::SystemInfo info;
+    if (angle::GetSystemInfo(&info) && !info.needsEAGLOnMac)
     {
-        // Apple Intel/AMD drivers do not correctly use the TEXTURE_SRGB_DECODE property of sampler
-        // states.  Disable this extension when we would advertise any ES version that has samplers.
-        extensions->textureSRGBDecode = false;
+        VendorID vendor = GetVendorID(functions);
+        if ((IsAMD(vendor) || IsIntel(vendor)) && *maxSupportedESVersion >= gl::Version(3, 0))
+        {
+            // Apple Intel/AMD drivers do not correctly use the TEXTURE_SRGB_DECODE property of
+            // sampler states.  Disable this extension when we would advertise any ES version
+            // that has samplers.
+            extensions->textureSRGBDecode = false;
+        }
     }
 #endif
 
@@ -1482,7 +1512,8 @@ void GenerateCaps(const FunctionsGL *functions,
     // EXT_float_blend
     // Assume all desktop driver supports this by default.
     extensions->floatBlend = functions->standard == STANDARD_GL_DESKTOP ||
-                             functions->hasGLESExtension("GL_EXT_float_blend");
+                             functions->hasGLESExtension("GL_EXT_float_blend") ||
+                             functions->isAtLeastGLES(gl::Version(3, 2));
 
     // ANGLE_base_vertex_base_instance
     extensions->baseVertexBaseInstance =
@@ -1536,6 +1567,11 @@ void GenerateCaps(const FunctionsGL *functions,
                                 functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                 functions->hasGLExtension("GL_ARB_gpu_shader5") ||
                                 functions->hasGLESExtension("GL_EXT_gpu_shader5");
+    extensions->shaderIoBlocksOES = functions->isAtLeastGL(gl::Version(3, 2)) ||
+                                    functions->isAtLeastGLES(gl::Version(3, 2)) ||
+                                    functions->hasGLESExtension("GL_OES_shader_io_blocks") ||
+                                    functions->hasGLESExtension("GL_EXT_shader_io_blocks");
+    extensions->shaderIoBlocksEXT = extensions->shaderIoBlocksOES;
 
     extensions->shadowSamplersEXT = functions->isAtLeastGL(gl::Version(2, 0)) ||
                                     functions->isAtLeastGLES(gl::Version(3, 0)) ||
@@ -1551,6 +1587,38 @@ void GenerateCaps(const FunctionsGL *functions,
     {
         caps->maxClipDistances = 0;
     }
+
+    // GL_OES_shader_image_atomic
+    //
+    // Note that imageAtomicExchange() is allowed to accept float textures (of r32f format) in this
+    // extension, but that's not supported by ARB_shader_image_load_store which this extension is
+    // based on, neither in the spec it was merged into it.  This support was only added to desktop
+    // GLSL in version 4.5
+    if (functions->isAtLeastGL(gl::Version(4, 5)) || functions->isAtLeastGLES(gl::Version(3, 2)) ||
+        functions->hasGLESExtension("GL_OES_shader_image_atomic"))
+    {
+        extensions->shaderImageAtomicOES = true;
+    }
+
+    // GL_OES_texture_buffer
+    if (functions->isAtLeastGL(gl::Version(4, 3)) || functions->isAtLeastGLES(gl::Version(3, 2)) ||
+        functions->hasGLESExtension("GL_OES_texture_buffer") ||
+        functions->hasGLESExtension("GL_EXT_texture_buffer") ||
+        functions->hasGLExtension("GL_ARB_texture_buffer_object"))
+    {
+        caps->maxTextureBufferSize = QuerySingleGLInt(functions, GL_MAX_TEXTURE_BUFFER_SIZE);
+        caps->textureBufferOffsetAlignment =
+            QuerySingleGLInt(functions, GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT);
+        extensions->textureBufferOES = true;
+        extensions->textureBufferEXT = true;
+    }
+    else
+    {
+        // Can't support ES3.2 without texture buffer objects
+        LimitVersion(maxSupportedESVersion, gl::Version(3, 1));
+    }
+
+    extensions->yuvTargetEXT = functions->hasGLESExtension("GL_EXT_YUV_target");
 }
 
 void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *features)
@@ -1560,7 +1628,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
 
     angle::SystemInfo systemInfo;
     bool isGetSystemInfoSuccess = angle::GetSystemInfo(&systemInfo);
-    if (isGetSystemInfoSuccess)
+    if (isGetSystemInfoSuccess && !systemInfo.gpus.empty())
     {
         vendor = systemInfo.gpus[systemInfo.activeGPUIndex].vendorId;
         device = systemInfo.gpus[systemInfo.activeGPUIndex].deviceId;
@@ -1576,6 +1644,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     bool isNvidia   = IsNvidia(vendor);
     bool isQualcomm = IsQualcomm(vendor);
     bool isVMWare   = IsVMWare(vendor);
+    bool hasAMD     = systemInfo.hasAMDGPU();
 
     std::array<int, 3> mesaVersion = {0, 0, 0};
     bool isMesa                    = IsMesa(functions, &mesaVersion);
@@ -1679,8 +1748,9 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // TODO(jie.a.chen@intel.com): Clean up the bugs.
     // anglebug.com/3031
     // crbug.com/922936
-    ANGLE_FEATURE_CONDITION(features, disableWorkerContexts,
-                            (IsWindows() && (isIntel || isAMD)) || (IsLinux() && isNvidia));
+    ANGLE_FEATURE_CONDITION(
+        features, disableWorkerContexts,
+        (IsWindows() && (isIntel || isAMD)) || (IsLinux() && isNvidia) || IsIOS());
 
     bool limitMaxTextureSize = isIntel && IsLinux() && GetLinuxOSVersion() < OSVersion(5, 0, 0);
     ANGLE_FEATURE_CONDITION(features, limitMaxTextureSizeTo4096,
@@ -1708,7 +1778,8 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
                             IsApple() && isIntel && GetMacOSVersion() < OSVersion(10, 12, 6));
 
     ANGLE_FEATURE_CONDITION(features, adjustSrcDstRegionBlitFramebuffer,
-                            IsLinux() || (IsAndroid() && isNvidia) || (IsWindows() && isNvidia));
+                            IsLinux() || (IsAndroid() && isNvidia) || (IsWindows() && isNvidia) ||
+                                (IsApple() && functions->standard == STANDARD_GL_ES));
 
     ANGLE_FEATURE_CONDITION(features, clipSrcRegionBlitFramebuffer,
                             IsApple() || (IsLinux() && isAMD));
@@ -1753,9 +1824,6 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
                             // TODO(anglebug.com/2273): diagnose crashes with this workaround.
                             false);
 
-    // Workaround for incorrect sampling from DXT1 sRGB textures in Intel OpenGL on Windows.
-    ANGLE_FEATURE_CONDITION(features, avoidDXT1sRGBTextureFormat, IsWindows() && isIntel);
-
     ANGLE_FEATURE_CONDITION(features, disableDrawBuffersIndexed, IsWindows() && isAMD);
 
     ANGLE_FEATURE_CONDITION(
@@ -1764,8 +1832,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
 
     ANGLE_FEATURE_CONDITION(features, disableTimestampQueries, IsLinux() && isVMWare);
 
-    ANGLE_FEATURE_CONDITION(features, encodeAndDecodeSRGBForGenerateMipmap,
-                            IsApple() && functions->standard == STANDARD_GL_DESKTOP);
+    ANGLE_FEATURE_CONDITION(features, encodeAndDecodeSRGBForGenerateMipmap, IsApple());
 
     // anglebug.com/4674
     // The (redundant) explicit exclusion of Windows AMD is because the workaround fails
@@ -1815,17 +1882,28 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // causes issues in Chrome. To get around this, default to a 30Hz refresh rate if we see bogus
     // from the driver.
     ANGLE_FEATURE_CONDITION(features, clampMscRate, IsLinux() && IsWayland());
+
+    ANGLE_FEATURE_CONDITION(features, bindTransformFeedbackBufferBeforeBindBufferRange, IsApple());
+
+    // http://crbug.com/1137851
+    // Speculative fix for now, leave disabled so users can enable it via flags.
+    ANGLE_FEATURE_CONDITION(features, disableSyncControlSupport, false);
+
+    ANGLE_FEATURE_CONDITION(features, keepBufferShadowCopy, !CanMapBufferForRead(functions));
+
+    ANGLE_FEATURE_CONDITION(features, setZeroLevelBeforeGenerateMipmap, IsApple());
+
+    ANGLE_FEATURE_CONDITION(features, promotePackedFormatsTo8BitPerChannel, IsApple() && hasAMD);
 }
 
 void InitializeFrontendFeatures(const FunctionsGL *functions, angle::FrontendFeatures *features)
 {
     VendorID vendor = GetVendorID(functions);
-    bool isIntel    = IsIntel(vendor);
     bool isQualcomm = IsQualcomm(vendor);
 
     ANGLE_FEATURE_CONDITION(features, disableProgramCachingForTransformFeedback,
                             IsAndroid() && isQualcomm);
-    ANGLE_FEATURE_CONDITION(features, syncFramebufferBindingsOnTexImage, IsWindows() && isIntel);
+    ANGLE_FEATURE_CONDITION(features, syncFramebufferBindingsOnTexImage, false);
 }
 
 }  // namespace nativegl_gl
@@ -1938,6 +2016,8 @@ GLenum GetTextureBindingQuery(gl::TextureType textureType)
             return GL_TEXTURE_BINDING_CUBE_MAP;
         case gl::TextureType::CubeMapArray:
             return GL_TEXTURE_BINDING_CUBE_MAP_ARRAY_OES;
+        case gl::TextureType::Buffer:
+            return GL_TEXTURE_BINDING_BUFFER;
         default:
             UNREACHABLE();
             return 0;
@@ -1982,6 +2062,8 @@ GLenum GetBufferBindingQuery(gl::BufferBinding bufferBinding)
             return GL_TRANSFORM_FEEDBACK_BUFFER_BINDING;
         case gl::BufferBinding::Uniform:
             return GL_UNIFORM_BUFFER_BINDING;
+        case gl::BufferBinding::Texture:
+            return GL_TEXTURE_BUFFER_BINDING;
         default:
             UNREACHABLE();
             return 0;

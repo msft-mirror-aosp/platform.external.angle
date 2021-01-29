@@ -18,6 +18,7 @@
 #include "libANGLE/IndexRangeCache.h"
 #include "libANGLE/Observer.h"
 #include "libANGLE/RefCountObject.h"
+#include "libANGLE/angletypes.h"
 
 namespace rx
 {
@@ -63,6 +64,9 @@ class BufferState final : angle::NonCopyable
     int mBindingCount;
     int mTransformFeedbackIndexedBindingCount;
     int mTransformFeedbackGenericBindingCount;
+    GLboolean mImmutable;
+    GLbitfield mStorageExtUsageFlags;
+    GLboolean mExternal;
 };
 
 class Buffer final : public RefCountObject<BufferID>,
@@ -78,6 +82,16 @@ class Buffer final : public RefCountObject<BufferID>,
     void setLabel(const Context *context, const std::string &label) override;
     const std::string &getLabel() const override;
 
+    angle::Result bufferStorageExternal(Context *context,
+                                        BufferBinding target,
+                                        GLsizeiptr size,
+                                        GLeglClientBufferEXT clientBuffer,
+                                        GLbitfield flags);
+    angle::Result bufferStorage(Context *context,
+                                BufferBinding target,
+                                GLsizeiptr size,
+                                const void *data,
+                                GLbitfield flags);
     angle::Result bufferData(Context *context,
                              BufferBinding target,
                              const void *data,
@@ -119,6 +133,11 @@ class Buffer final : public RefCountObject<BufferID>,
     GLint64 getMapLength() const { return mState.mMapLength; }
     GLint64 getSize() const { return mState.mSize; }
     GLint64 getMemorySize() const;
+    GLboolean isImmutable() const { return mState.mImmutable; }
+    GLbitfield getStorageExtUsageFlags() const { return mState.mStorageExtUsageFlags; }
+
+    // Buffers are always initialized immediately when allocated
+    InitState initState() const { return InitState::Initialized; }
 
     rx::BufferImpl *getImplementation() const { return mImpl; }
 
@@ -147,6 +166,18 @@ class Buffer final : public RefCountObject<BufferID>,
     void onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message) override;
 
   private:
+    angle::Result bufferDataImpl(Context *context,
+                                 BufferBinding target,
+                                 const void *data,
+                                 GLsizeiptr size,
+                                 BufferUsage usage,
+                                 GLbitfield flags);
+    angle::Result bufferExternalDataImpl(Context *context,
+                                         BufferBinding target,
+                                         GLeglClientBufferEXT clientBuffer,
+                                         GLsizeiptr size,
+                                         GLbitfield flags);
+
     BufferState mState;
     rx::BufferImpl *mImpl;
     angle::ObserverBinding mImplObserver;

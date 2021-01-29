@@ -116,6 +116,8 @@ const char *GetCommandString(CommandID id)
             return "ResolveImage";
         case CommandID::SetEvent:
             return "SetEvent";
+        case CommandID::SetScissor:
+            return "SetScissor";
         case CommandID::WaitEvents:
             return "WaitEvents";
         case CommandID::WriteTimestamp:
@@ -132,16 +134,6 @@ ANGLE_INLINE const CommandHeader *NextCommand(const CommandHeader *command)
 {
     return reinterpret_cast<const CommandHeader *>(reinterpret_cast<const uint8_t *>(command) +
                                                    command->size);
-}
-
-// Add any queued resetQueryPool commands to the given cmdBuffer
-void SecondaryCommandBuffer::executeQueuedResetQueryPoolCommands(VkCommandBuffer cmdBuffer)
-{
-    for (const ResetQueryPoolParams &queryParams : mResetQueryQueue)
-    {
-        vkCmdResetQueryPool(cmdBuffer, queryParams.queryPool, queryParams.firstQuery,
-                            queryParams.queryCount);
-    }
 }
 
 // Parse the cmds in this cmd buffer into given primary cmd buffer
@@ -547,6 +539,12 @@ void SecondaryCommandBuffer::executeCommands(VkCommandBuffer cmdBuffer)
                 {
                     const SetEventParams *params = getParamPtr<SetEventParams>(currentCommand);
                     vkCmdSetEvent(cmdBuffer, params->event, params->stageMask);
+                    break;
+                }
+                case CommandID::SetScissor:
+                {
+                    const SetScissorParams *params = getParamPtr<SetScissorParams>(currentCommand);
+                    vkCmdSetScissor(cmdBuffer, 0, 1, &params->scissor);
                     break;
                 }
                 case CommandID::WaitEvents:

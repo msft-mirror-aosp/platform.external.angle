@@ -32,7 +32,7 @@ RenderTargetVk::RenderTargetVk(RenderTargetVk &&other)
       mResolveImageViews(other.mResolveImageViews),
       mLevelIndexGL(other.mLevelIndexGL),
       mLayerIndex(other.mLayerIndex),
-      mContentDefined(other.mContentDefined)
+      mLayerCount(other.mLayerCount)
 {
     other.reset();
 }
@@ -43,19 +43,21 @@ void RenderTargetVk::init(vk::ImageHelper *image,
                           vk::ImageViewHelper *resolveImageViews,
                           gl::LevelIndex levelIndexGL,
                           uint32_t layerIndex,
-                          bool isImageTransient)
+                          uint32_t layerCount,
+                          RenderTargetTransience transience)
 {
+    // Either single-layered, or includes all layers.
+    ASSERT(layerCount == 1 || layerIndex == 0);
+
     mImage             = image;
     mImageViews        = imageViews;
     mResolveImage      = resolveImage;
     mResolveImageViews = resolveImageViews;
     mLevelIndexGL      = levelIndexGL;
     mLayerIndex        = layerIndex;
+    mLayerCount        = layerCount;
 
-    // Conservatively assume the content is defined.
-    mContentDefined = true;
-
-    mIsImageTransient = isImageTransient;
+    mTransience = transience;
 }
 
 void RenderTargetVk::reset()
@@ -66,73 +68,62 @@ void RenderTargetVk::reset()
     mResolveImageViews = nullptr;
     mLevelIndexGL      = gl::LevelIndex(0);
     mLayerIndex        = 0;
-    mContentDefined    = false;
+    mLayerCount        = 0;
 }
 
-vk::ImageViewSubresourceSerial RenderTargetVk::getSubresourceSerialImpl(
+vk::ImageOrBufferViewSubresourceSerial RenderTargetVk::getSubresourceSerialImpl(
     vk::ImageViewHelper *imageViews) const
 {
     ASSERT(imageViews);
     ASSERT(mLayerIndex < std::numeric_limits<uint16_t>::max());
     ASSERT(mLevelIndexGL.get() < std::numeric_limits<uint16_t>::max());
 
-    vk::ImageViewSubresourceSerial imageViewSerial =
-        imageViews->getSubresourceSerial(mLevelIndexGL, 1, mLayerIndex, vk::LayerMode::Single);
+    vk::ImageOrBufferViewSubresourceSerial imageViewSerial = imageViews->getSubresourceSerial(
+        mLevelIndexGL, 1, mLayerIndex,
+        mLayerCount == 1 ? vk::LayerMode::Single : vk::LayerMode::All,
+        vk::SrgbDecodeMode::SkipDecode, gl::SrgbOverride::Default);
     return imageViewSerial;
 }
 
-vk::ImageViewSubresourceSerial RenderTargetVk::getDrawSubresourceSerial() const
+vk::ImageOrBufferViewSubresourceSerial RenderTargetVk::getDrawSubresourceSerial() const
 {
     return getSubresourceSerialImpl(mImageViews);
 }
 
-vk::ImageViewSubresourceSerial RenderTargetVk::getResolveSubresourceSerial() const
+vk::ImageOrBufferViewSubresourceSerial RenderTargetVk::getResolveSubresourceSerial() const
 {
     return getSubresourceSerialImpl(mResolveImageViews);
 }
 
-void RenderTargetVk::onColorDraw(ContextVk *contextVk)
+void RenderTargetVk::onColorDraw(ContextVk *contextVk, uint32_t framebufferLayerCount)
 {
     ASSERT(!mImage->getFormat().actualImageFormat().hasDepthOrStencilBits());
+    ASSERT(framebufferLayerCount <= mLayerCount);
 
-    contextVk->onImageRenderPassWrite(VK_IMAGE_ASPECT_COLOR_BIT, vk::ImageLayout::ColorAttachment,
+    contextVk->onImageRenderPassWrite(mLevelIndexGL, mLayerIndex, framebufferLayerCount,
+                                      VK_IMAGE_ASPECT_COLOR_BIT, vk::ImageLayout::ColorAttachment,
                                       mImage);
     if (mResolveImage)
     {
-        contextVk->onImageRenderPassWrite(VK_IMAGE_ASPECT_COLOR_BIT,
+        // Multisampled render to texture framebuffers cannot be layered.
+        ASSERT(framebufferLayerCount == 1);
+
+        contextVk->onImageRenderPassWrite(mLevelIndexGL, mLayerIndex, framebufferLayerCount,
+                                          VK_IMAGE_ASPECT_COLOR_BIT,
                                           vk::ImageLayout::ColorAttachment, mResolveImage);
     }
     retainImageViews(contextVk);
-
-    mContentDefined = true;
 }
 
-void RenderTargetVk::onDepthStencilDraw(ContextVk *contextVk, bool isReadOnly)
+void RenderTargetVk::onDepthStencilDraw(ContextVk *contextVk, uint32_t framebufferLayerCount)
 {
     const angle::Format &format = mImage->getFormat().actualImageFormat();
     ASSERT(format.hasDepthOrStencilBits());
-    VkImageAspectFlags aspectFlags = vk::GetDepthStencilAspectFlags(format);
+    ASSERT(framebufferLayerCount <= mLayerCount);
 
-    if (isReadOnly)
-    {
-        ASSERT(!mResolveImage);
-        contextVk->onImageRenderPassRead(aspectFlags, vk::ImageLayout::DepthStencilReadOnly,
-                                         mImage);
-    }
-    else
-    {
-        contextVk->onImageRenderPassWrite(aspectFlags, vk::ImageLayout::DepthStencilAttachment,
-                                          mImage);
-        if (mResolveImage)
-        {
-            contextVk->onImageRenderPassWrite(aspectFlags, vk::ImageLayout::DepthStencilAttachment,
-                                              mResolveImage);
-        }
-    }
-
+    contextVk->onDepthStencilDraw(mLevelIndexGL, mLayerIndex, framebufferLayerCount, mImage,
+                                  mResolveImage);
     retainImageViews(contextVk);
-
-    mContentDefined = true;
 }
 
 vk::ImageHelper &RenderTargetVk::getImageForRenderPass()
@@ -165,9 +156,15 @@ angle::Result RenderTargetVk::getImageViewImpl(ContextVk *contextVk,
                                                const vk::ImageView **imageViewOut) const
 {
     ASSERT(image.valid() && imageViews);
-    vk::LevelIndex levelVK = mImage->toVKLevel(mLevelIndexGL);
-    return imageViews->getLevelLayerDrawImageView(contextVk, image, levelVK, mLayerIndex,
-                                                  imageViewOut);
+    vk::LevelIndex levelVk = mImage->toVkLevel(mLevelIndexGL);
+    if (mLayerCount == 1)
+    {
+        return imageViews->getLevelLayerDrawImageView(contextVk, image, levelVk, mLayerIndex,
+                                                      imageViewOut);
+    }
+
+    // Layered render targets view the whole level
+    return imageViews->getLevelDrawImageView(contextVk, image, levelVk, imageViewOut);
 }
 
 angle::Result RenderTargetVk::getImageView(ContextVk *contextVk,
@@ -189,7 +186,12 @@ bool RenderTargetVk::isResolveImageOwnerOfData() const
     // If there's a resolve attachment and the image itself is transient, it's the resolve
     // attachment that owns the data, so all non-render-pass accesses to the render target data
     // should go through the resolve attachment.
-    return hasResolveAttachment() && isImageTransient();
+    return isImageTransient();
+}
+
+vk::ImageHelper *RenderTargetVk::getOwnerOfData() const
+{
+    return isResolveImageOwnerOfData() ? mResolveImage : mImage;
 }
 
 angle::Result RenderTargetVk::getAndRetainCopyImageView(ContextVk *contextVk,
@@ -224,8 +226,8 @@ const vk::Format &RenderTargetVk::getImageFormat() const
 gl::Extents RenderTargetVk::getExtents() const
 {
     ASSERT(mImage && mImage->valid());
-    vk::LevelIndex levelVK = mImage->toVKLevel(mLevelIndexGL);
-    return mImage->getLevelExtents2D(levelVK);
+    vk::LevelIndex levelVk = mImage->toVkLevel(mLevelIndexGL);
+    return mImage->getLevelExtents2D(levelVk);
 }
 
 void RenderTargetVk::updateSwapchainImage(vk::ImageHelper *image,
@@ -243,24 +245,22 @@ void RenderTargetVk::updateSwapchainImage(vk::ImageHelper *image,
 vk::ImageHelper &RenderTargetVk::getImageForCopy() const
 {
     ASSERT(mImage && mImage->valid() && (mResolveImage == nullptr || mResolveImage->valid()));
-    return isResolveImageOwnerOfData() ? *mResolveImage : *mImage;
+    return *getOwnerOfData();
 }
 
 vk::ImageHelper &RenderTargetVk::getImageForWrite() const
 {
     ASSERT(mImage && mImage->valid() && (mResolveImage == nullptr || mResolveImage->valid()));
-    return isResolveImageOwnerOfData() ? *mResolveImage : *mImage;
+    return *getOwnerOfData();
 }
 
 angle::Result RenderTargetVk::flushStagedUpdates(ContextVk *contextVk,
                                                  vk::ClearValuesArray *deferredClears,
-                                                 uint32_t deferredClearIndex)
+                                                 uint32_t deferredClearIndex,
+                                                 uint32_t framebufferLayerCount)
 {
-    // This function is called when the framebuffer is notified of an update to the attachment's
-    // contents.  Therefore, set mContentDefined so that the next render pass will have loadOp=LOAD.
-    mContentDefined = true;
-
     ASSERT(mImage->valid() && (!isResolveImageOwnerOfData() || mResolveImage->valid()));
+    ASSERT(framebufferLayerCount != 0);
 
     // Note that the layer index for 3D textures is always zero according to Vulkan.
     uint32_t layerIndex = mLayerIndex;
@@ -269,7 +269,7 @@ angle::Result RenderTargetVk::flushStagedUpdates(ContextVk *contextVk,
         layerIndex = 0;
     }
 
-    vk::ImageHelper *image = isResolveImageOwnerOfData() ? mResolveImage : mImage;
+    vk::ImageHelper *image = getOwnerOfData();
 
     // All updates should be staged on the image that owns the data as the source of truth.  With
     // multisampled-render-to-texture framebuffers, that is the resolve image.  In that case, even
@@ -278,17 +278,19 @@ angle::Result RenderTargetVk::flushStagedUpdates(ContextVk *contextVk,
     // below will either flush all staged updates to the resolve image, or if the only staged update
     // is a clear, it will accumulate it in the |deferredClears| array.  Later, when the render pass
     // is started, the deferred clears are applied to the transient multisampled image.
-    ASSERT(!isResolveImageOwnerOfData() || !mImage->isUpdateStaged(mLevelIndexGL, layerIndex));
+    ASSERT(!isResolveImageOwnerOfData() ||
+           !mImage->hasStagedUpdatesForSubresource(mLevelIndexGL, layerIndex, mLayerCount));
     ASSERT(isResolveImageOwnerOfData() || mResolveImage == nullptr ||
-           !mResolveImage->isUpdateStaged(mLevelIndexGL, layerIndex));
+           !mResolveImage->hasStagedUpdatesForSubresource(mLevelIndexGL, layerIndex, mLayerCount));
 
-    if (!image->isUpdateStaged(mLevelIndexGL, layerIndex))
+    if (!image->hasStagedUpdatesForSubresource(mLevelIndexGL, layerIndex, framebufferLayerCount))
     {
         return angle::Result::Continue;
     }
 
     return image->flushSingleSubresourceStagedUpdates(contextVk, mLevelIndexGL, layerIndex,
-                                                      deferredClears, deferredClearIndex);
+                                                      framebufferLayerCount, deferredClears,
+                                                      deferredClearIndex);
 }
 
 void RenderTargetVk::retainImageViews(ContextVk *contextVk) const
@@ -300,21 +302,57 @@ void RenderTargetVk::retainImageViews(ContextVk *contextVk) const
     }
 }
 
-gl::ImageIndex RenderTargetVk::getImageIndex() const
+bool RenderTargetVk::hasDefinedContent() const
+{
+    vk::ImageHelper *image = getOwnerOfData();
+    return image->hasSubresourceDefinedContent(mLevelIndexGL, mLayerIndex, mLayerCount);
+}
+
+bool RenderTargetVk::hasDefinedStencilContent() const
+{
+    vk::ImageHelper *image = getOwnerOfData();
+    return image->hasSubresourceDefinedStencilContent(mLevelIndexGL, mLayerIndex, mLayerCount);
+}
+
+void RenderTargetVk::invalidateEntireContent(ContextVk *contextVk)
+{
+    vk::ImageHelper *image = getOwnerOfData();
+    image->invalidateSubresourceContent(contextVk, mLevelIndexGL, mLayerIndex, mLayerCount);
+}
+
+void RenderTargetVk::invalidateEntireStencilContent(ContextVk *contextVk)
+{
+    vk::ImageHelper *image = getOwnerOfData();
+    image->invalidateSubresourceStencilContent(contextVk, mLevelIndexGL, mLayerIndex, mLayerCount);
+}
+
+void RenderTargetVk::restoreEntireContent()
+{
+    vk::ImageHelper *image = getOwnerOfData();
+    image->restoreSubresourceContent(mLevelIndexGL, mLayerIndex, mLayerCount);
+}
+
+void RenderTargetVk::restoreEntireStencilContent()
+{
+    vk::ImageHelper *image = getOwnerOfData();
+    image->restoreSubresourceStencilContent(mLevelIndexGL, mLayerIndex, mLayerCount);
+}
+
+gl::ImageIndex RenderTargetVk::getImageIndexForClear(uint32_t layerCount) const
 {
     // Determine the GL type from the Vk Image properties.
-    if (mImage->getType() == VK_IMAGE_TYPE_3D)
+    if (mImage->getType() == VK_IMAGE_TYPE_3D || mImage->getLayerCount() > 1)
     {
-        return gl::ImageIndex::Make3D(mLevelIndexGL.get(), mLayerIndex);
-    }
-
-    // We don't need to distinguish 2D array and cube.
-    if (mImage->getLayerCount() > 1)
-    {
-        return gl::ImageIndex::Make2DArray(mLevelIndexGL.get(), mLayerIndex);
+        // This is used for the sake of staging clears.  The depth slices of the 3D image are
+        // threated as layers for this purpose.
+        //
+        // We also don't need to distinguish 2D array and cube.
+        return gl::ImageIndex::Make2DArrayRange(mLevelIndexGL.get(), mLayerIndex, layerCount);
     }
 
     ASSERT(mLayerIndex == 0);
+    ASSERT(mLayerCount == 1);
+    ASSERT(layerCount == 1);
     return gl::ImageIndex::Make2D(mLevelIndexGL.get());
 }
 }  // namespace rx

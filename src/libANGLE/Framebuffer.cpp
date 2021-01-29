@@ -243,13 +243,13 @@ bool CheckAttachmentSampleCompleteness(const Context *context,
 }
 
 // Needed to index into the attachment arrays/bitsets.
-static_assert(static_cast<size_t>(IMPLEMENTATION_MAX_FRAMEBUFFER_ATTACHMENTS) ==
+static_assert(static_cast<size_t>(IMPLEMENTATION_MAX_DRAW_BUFFERS) ==
                   Framebuffer::DIRTY_BIT_COLOR_ATTACHMENT_MAX,
               "Framebuffer Dirty bit mismatch");
-static_assert(static_cast<size_t>(IMPLEMENTATION_MAX_FRAMEBUFFER_ATTACHMENTS) ==
+static_assert(static_cast<size_t>(IMPLEMENTATION_MAX_DRAW_BUFFERS) ==
                   Framebuffer::DIRTY_BIT_DEPTH_ATTACHMENT,
               "Framebuffer Dirty bit mismatch");
-static_assert(static_cast<size_t>(IMPLEMENTATION_MAX_FRAMEBUFFER_ATTACHMENTS + 1) ==
+static_assert(static_cast<size_t>(IMPLEMENTATION_MAX_DRAW_BUFFERS + 1) ==
                   Framebuffer::DIRTY_BIT_STENCIL_ATTACHMENT,
               "Framebuffer Dirty bit mismatch");
 
@@ -276,8 +276,8 @@ bool AttachmentOverlapsWithTexture(const FramebufferAttachment &attachment,
     GLuint attachmentLevel      = static_cast<GLuint>(index.getLevelIndex());
     GLuint textureBaseLevel     = texture->getBaseLevel();
     GLuint textureMaxLevel      = textureBaseLevel;
-    if ((sampler && IsMipmapFiltered(sampler->getSamplerState())) ||
-        IsMipmapFiltered(texture->getSamplerState()))
+    if ((sampler && IsMipmapFiltered(sampler->getSamplerState().getMinFilter())) ||
+        IsMipmapFiltered(texture->getSamplerState().getMinFilter()))
     {
         textureMaxLevel = texture->getMipmapMaxLevel();
     }
@@ -292,6 +292,7 @@ FramebufferState::FramebufferState(rx::Serial serial)
       mFramebufferSerial(serial),
       mLabel(),
       mColorAttachments(1),
+      mColorAttachmentsMask(0),
       mDrawBufferStates(1, GL_BACK),
       mReadBufferState(GL_BACK),
       mDrawBufferTypeMask(),
@@ -312,6 +313,7 @@ FramebufferState::FramebufferState(const Caps &caps, FramebufferID id, rx::Seria
       mFramebufferSerial(serial),
       mLabel(),
       mColorAttachments(caps.maxColorAttachments),
+      mColorAttachmentsMask(0),
       mDrawBufferStates(caps.maxDrawBuffers, GL_NONE),
       mReadBufferState(GL_COLOR_ATTACHMENT0_EXT),
       mDrawBufferTypeMask(),
@@ -626,6 +628,19 @@ bool FramebufferState::hasDepth() const
 bool FramebufferState::hasStencil() const
 {
     return (mStencilAttachment.isAttached() && mStencilAttachment.getStencilSize() > 0);
+}
+
+bool FramebufferState::hasExternalTextureAttachment() const
+{
+    // External textures can only be bound to color attachment 0
+    return (mColorAttachments[0].isAttached() && mColorAttachments[0].isExternalTexture());
+}
+
+bool FramebufferState::hasYUVAttachment() const
+{
+    // The only attachments that can be YUV are external textures and surfaces, both are attached at
+    // color attachment 0.
+    return (mColorAttachments[0].isAttached() && mColorAttachments[0].isYUV());
 }
 
 bool FramebufferState::isMultiview() const
@@ -1033,6 +1048,16 @@ bool Framebuffer::hasDepth() const
 bool Framebuffer::hasStencil() const
 {
     return mState.hasStencil();
+}
+
+bool Framebuffer::hasExternalTextureAttachment() const
+{
+    return mState.hasExternalTextureAttachment();
+}
+
+bool Framebuffer::hasYUVAttachment() const
+{
+    return mState.hasYUVAttachment();
 }
 
 bool Framebuffer::usingExtendedDrawBuffers() const
@@ -1458,8 +1483,10 @@ angle::Result Framebuffer::clearBufferfi(const Context *context,
                                          GLfloat depth,
                                          GLint stencil)
 {
-    bool clearDepth   = context->getState().getDepthStencilState().depthMask;
-    bool clearStencil = context->getState().getDepthStencilState().stencilWritemask != 0;
+    const bool clearDepth =
+        getDepthAttachment() != nullptr && context->getState().getDepthStencilState().depthMask;
+    const bool clearStencil = getStencilAttachment() != nullptr &&
+                              context->getState().getDepthStencilState().stencilWritemask != 0;
 
     if (clearDepth && clearStencil)
     {
@@ -1788,6 +1815,8 @@ void Framebuffer::setAttachmentImpl(const Context *context,
             updateAttachment(context, &mState.mColorAttachments[0], DIRTY_BIT_COLOR_ATTACHMENT_0,
                              &mDirtyColorAttachmentBindings[0], type, binding, textureIndex,
                              resource, numViews, baseViewIndex, isMultiview, samples);
+            mState.mColorAttachmentsMask.set(0);
+
             break;
 
         default:
@@ -1802,11 +1831,13 @@ void Framebuffer::setAttachmentImpl(const Context *context,
             if (!resource)
             {
                 mFloat32ColorAttachmentBits.reset(colorIndex);
+                mState.mColorAttachmentsMask.reset(colorIndex);
             }
             else
             {
                 updateFloat32ColorAttachmentBits(
                     colorIndex, resource->getAttachmentFormat(binding, textureIndex).info);
+                mState.mColorAttachmentsMask.set(colorIndex);
             }
 
             bool enabled = (type != GL_NONE && getDrawBufferState(colorIndex) != GL_NONE);

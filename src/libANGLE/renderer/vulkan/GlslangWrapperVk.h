@@ -35,21 +35,24 @@ class GlslangWrapperVk
                                 const gl::ProgramLinkedResources &resources,
                                 GlslangProgramInterfaceInfo *programInterfaceInfo,
                                 gl::ShaderMap<std::string> *shaderSourcesOut,
-                                ShaderMapInterfaceVariableInfoMap *variableInfoMapOut);
+                                ShaderInterfaceVariableInfoMap *variableInfoMapOut);
 
     static angle::Result GetShaderCode(vk::Context *context,
                                        const gl::ShaderBitSet &linkedShaderStages,
                                        const gl::Caps &glCaps,
                                        const gl::ShaderMap<std::string> &shaderSources,
-                                       const ShaderMapInterfaceVariableInfoMap &variableInfoMap,
                                        gl::ShaderMap<std::vector<uint32_t>> *shaderCodesOut);
 
     static angle::Result TransformSpirV(vk::Context *context,
-                                        const gl::ShaderType shaderType,
-                                        bool removeEarlyFragmentTestsOptimization,
+                                        const GlslangSpirvOptions &options,
                                         const ShaderInterfaceVariableInfoMap &variableInfoMap,
                                         const SpirvBlob &initialSpirvBlob,
                                         SpirvBlob *shaderCodeOut);
+
+    static angle::Result CompileShaderOneOff(vk::Context *context,
+                                             gl::ShaderType shaderType,
+                                             const std::string &shaderSource,
+                                             SpirvBlob *spirvBlobOut);
 };
 }  // namespace rx
 

@@ -44,6 +44,42 @@ angle::Result TextureImpl::copySubTexture(const gl::Context *context,
     return angle::Result::Stop;
 }
 
+angle::Result TextureImpl::copyRenderbufferSubData(const gl::Context *context,
+                                                   const gl::Renderbuffer *srcBuffer,
+                                                   GLint srcLevel,
+                                                   GLint srcX,
+                                                   GLint srcY,
+                                                   GLint srcZ,
+                                                   GLint dstLevel,
+                                                   GLint dstX,
+                                                   GLint dstY,
+                                                   GLint dstZ,
+                                                   GLsizei srcWidth,
+                                                   GLsizei srcHeight,
+                                                   GLsizei srcDepth)
+{
+    UNREACHABLE();
+    return angle::Result::Stop;
+}
+
+angle::Result TextureImpl::copyTextureSubData(const gl::Context *context,
+                                              const gl::Texture *srcTexture,
+                                              GLint srcLevel,
+                                              GLint srcX,
+                                              GLint srcY,
+                                              GLint srcZ,
+                                              GLint dstLevel,
+                                              GLint dstX,
+                                              GLint dstY,
+                                              GLint dstZ,
+                                              GLsizei srcWidth,
+                                              GLsizei srcHeight,
+                                              GLsizei srcDepth)
+{
+    UNREACHABLE();
+    return angle::Result::Stop;
+}
+
 angle::Result TextureImpl::copyCompressedTexture(const gl::Context *context,
                                                  const gl::Texture *source)
 {
@@ -92,6 +128,12 @@ angle::Result TextureImpl::setImageExternal(const gl::Context *context,
     return angle::Result::Stop;
 }
 
+angle::Result TextureImpl::setBuffer(const gl::Context *context, GLenum internalFormat)
+{
+    UNREACHABLE();
+    return angle::Result::Stop;
+}
+
 GLint TextureImpl::getMemorySize() const
 {
     return 0;
@@ -132,4 +174,11 @@ angle::Result TextureImpl::getTexImage(const gl::Context *context,
     UNREACHABLE();
     return angle::Result::Stop;
 }
+
+GLint TextureImpl::getRequiredExternalTextureImageUnits(const gl::Context *context)
+{
+    UNREACHABLE();
+    return 0;
+}
+
 }  // namespace rx

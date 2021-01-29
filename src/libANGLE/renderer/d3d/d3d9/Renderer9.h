@@ -44,26 +44,6 @@ struct ClearParameters;
 struct D3DUniform;
 struct TranslatedAttribute;
 
-enum D3D9InitError
-{
-    D3D9_INIT_SUCCESS = 0,
-    // Failed to load the D3D or ANGLE compiler
-    D3D9_INIT_COMPILER_ERROR,
-    // Failed to load a necessary DLL
-    D3D9_INIT_MISSING_DEP,
-    // Device creation error
-    D3D9_INIT_CREATE_DEVICE_ERROR,
-    // System does not meet minimum shader spec
-    D3D9_INIT_UNSUPPORTED_VERSION,
-    // System does not support stretchrect from textures
-    D3D9_INIT_UNSUPPORTED_STRETCHRECT,
-    // A call returned out of memory or device lost
-    D3D9_INIT_OUT_OF_MEMORY,
-    // Other unspecified error
-    D3D9_INIT_OTHER_ERROR,
-    NUM_D3D9_INIT_ERRORS
-};
-
 class Renderer9 : public RendererD3D
 {
   public:
@@ -101,7 +81,8 @@ class Renderer9 : public RendererD3D
                                  EGLint *height,
                                  GLsizei *samples,
                                  gl::Format *glFormat,
-                                 const angle::Format **angleFormat) const override;
+                                 const angle::Format **angleFormat,
+                                 UINT *arraySlice) const override;
     egl::Error validateShareHandle(const egl::Config *config,
                                    HANDLE shareHandle,
                                    const egl::AttributeMap &attribs) const override;
@@ -424,6 +405,8 @@ class Renderer9 : public RendererD3D
                                        gl::Texture **textureOut) override;
 
     angle::Result ensureVertexDataManagerInitialized(const gl::Context *context);
+
+    void setGlobalDebugAnnotator() override;
 
   private:
     angle::Result drawArraysImpl(const gl::Context *context,

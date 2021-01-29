@@ -530,7 +530,7 @@ egl::Error DisplayGbm::initialize(egl::Display *display)
     functionsGL->initialize(display->getAttributeMap());
 
     mRenderer.reset(new RendererEGL(std::move(functionsGL), display->getAttributeMap(), this,
-                                    context, attribs));
+                                    context, attribs, false));
     const gl::Version &maxVersion = mRenderer->getMaxSupportedESVersion();
     if (maxVersion < gl::Version(2, 0))
     {
@@ -912,14 +912,16 @@ ContextImpl *DisplayGbm::createContext(const gl::State &state,
                                        const egl::AttributeMap &attribs)
 {
     // All contexts on Gbm are virtualized and share the same renderer.
-    return new ContextEGL(state, errorSet, mRenderer);
+    return new ContextEGL(state, errorSet, mRenderer,
+                          RobustnessVideoMemoryPurgeStatus::NOT_REQUESTED);
 }
 
-egl::Error DisplayGbm::makeCurrent(egl::Surface *drawSurface,
+egl::Error DisplayGbm::makeCurrent(egl::Display *display,
+                                   egl::Surface *drawSurface,
                                    egl::Surface *readSurface,
                                    gl::Context *context)
 {
-    return DisplayGL::makeCurrent(drawSurface, readSurface, context);
+    return DisplayGL::makeCurrent(display, drawSurface, readSurface, context);
 }
 
 bool DisplayGbm::validateEglConfig(const EGLint *configAttribs)

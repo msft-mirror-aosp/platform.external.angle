@@ -27,6 +27,7 @@
 #include "libANGLE/formatutils.h"
 #include "libANGLE/renderer/d3d/CompilerD3D.h"
 #include "libANGLE/renderer/d3d/DeviceD3D.h"
+#include "libANGLE/renderer/d3d/DisplayD3D.h"
 #include "libANGLE/renderer/d3d/FramebufferD3D.h"
 #include "libANGLE/renderer/d3d/IndexDataManager.h"
 #include "libANGLE/renderer/d3d/ProgramD3D.h"
@@ -150,6 +151,11 @@ Renderer9::Renderer9(egl::Display *display) : RendererD3D(display), mStateManage
     mAppliedPixelShader   = nullptr;
     mAppliedProgramSerial = 0;
 
+    gl::InitializeDebugAnnotations(&mAnnotator);
+}
+
+void Renderer9::setGlobalDebugAnnotator()
+{
     gl::InitializeDebugAnnotations(&mAnnotator);
 }
 
@@ -582,7 +588,6 @@ void Renderer9::generateDisplayExtensions(egl::DisplayExtensions *outExtensions)
     outExtensions->querySurfacePointer = true;
     outExtensions->windowFixedSize     = true;
     outExtensions->postSubBuffer       = true;
-    outExtensions->deviceQuery         = true;
 
     outExtensions->image               = true;
     outExtensions->imageBase           = true;
@@ -727,7 +732,8 @@ egl::Error Renderer9::getD3DTextureInfo(const egl::Config *configuration,
                                         EGLint *height,
                                         GLsizei *samples,
                                         gl::Format *glFormat,
-                                        const angle::Format **angleFormat) const
+                                        const angle::Format **angleFormat,
+                                        UINT *arraySlice) const
 {
     IDirect3DTexture9 *texture = nullptr;
     if (FAILED(d3dTexture->QueryInterface(&texture)))
@@ -794,6 +800,11 @@ egl::Error Renderer9::getD3DTextureInfo(const egl::Config *configuration,
     {
 
         *angleFormat = &d3dFormatInfo.info();
+    }
+
+    if (arraySlice)
+    {
+        *arraySlice = 0;
     }
 
     return egl::NoError();
@@ -3262,5 +3273,10 @@ angle::Result Renderer9::ensureVertexDataManagerInitialized(const gl::Context *c
     }
 
     return angle::Result::Continue;
+}
+
+RendererD3D *CreateRenderer9(egl::Display *display)
+{
+    return new Renderer9(display);
 }
 }  // namespace rx

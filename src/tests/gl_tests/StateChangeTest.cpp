@@ -387,6 +387,8 @@ TEST_P(StateChangeTestES3, DrawPausedXfbThenNonXfbLines)
     // glTransformFeedbackVaryings for program2 returns GL_INVALID_OPERATION on both Linux and
     // windows.  http://anglebug.com/4265
     ANGLE_SKIP_TEST_IF(IsIntel() && IsOpenGL());
+    // http://anglebug.com/5388
+    ANGLE_SKIP_TEST_IF(IsLinux() && IsAMD() && IsDesktopOpenGL());
 
     std::vector<std::string> tfVaryings = {"gl_Position"};
     ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(program1, essl1_shaders::vs::Simple(),
@@ -792,9 +794,6 @@ TEST_P(StateChangeRenderTest, GenerateMipmap)
 // Tests that gl_DepthRange syncs correctly after a change.
 TEST_P(StateChangeRenderTest, DepthRangeUpdates)
 {
-    // http://anglebug.com/2598: Seems to be an Intel driver bug.
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsOpenGL() && IsWindows());
-
     constexpr char kFragCoordShader[] = R"(void main()
 {
     if (gl_DepthRange.near == 0.2)
@@ -891,11 +890,6 @@ TEST_P(StateChangeRenderTestES3, InvalidateNonCurrentFramebuffer)
 // Tests that D3D11 dirty bit updates don't forget about BufferSubData attrib updates.
 TEST_P(StateChangeTest, VertexBufferUpdatedAfterDraw)
 {
-    // TODO(jie.a.chen@intel.com): Re-enable the test once the driver fix is
-    // available in public release.
-    // http://anglebug.com/2664.
-    ANGLE_SKIP_TEST_IF(IsVulkan() && IsIntel());
-
     constexpr char kVS[] =
         "attribute vec2 position;\n"
         "attribute vec4 color;\n"
@@ -1097,6 +1091,9 @@ TEST_P(StateChangeTestES3, SamplerMetadataUpdateOnSetProgram)
 {
     // http://anglebug.com/4092
     ANGLE_SKIP_TEST_IF(IsAndroid() && IsOpenGLES());
+    // TODO(anglebug.com/5491) Appears as though there's something wrong with textureSize on iOS
+    // unrelated to switching programs.
+    ANGLE_SKIP_TEST_IF(IsIOS() && IsOpenGLES());
     GLVertexArray vertexArray;
     glBindVertexArray(vertexArray);
 
@@ -1150,10 +1147,10 @@ void main()
 })";
 
     constexpr char kFragmentShader[] = R"(#version 300 es
-out mediump float dummy;
+out mediump float unused;
 void main()
 {
-    dummy = 1.0;
+    unused = 1.0;
 })";
 
     std::vector<std::string> tfVaryings = {"valueOut"};
@@ -2751,6 +2748,8 @@ TEST_P(SimpleStateChangeTestES31, InvalidateThenStorageWriteThenBlend)
 {
     // Fails on AMD OpenGL Windows. This configuration isn't maintained.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsAMD() && IsOpenGL());
+    // http://anglebug.com/5387
+    ANGLE_SKIP_TEST_IF(IsLinux() && IsAMD() && IsDesktopOpenGL());
 
     constexpr char kCS[] = R"(#version 310 es
 layout(local_size_x=1, local_size_y=1) in;
@@ -3167,6 +3166,62 @@ TEST_P(SimpleStateChangeTestES3, ClearThenNoopClearThenRebindAttachment)
     // a framebuffer sync state, which extracts deferred clears.  However, as the clear is actually
     // a noop, the deferred clears will remain unflushed.
     glClear(0);
+
+    // Change framebuffer's attachment to the other texture.
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture1, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    // A bogus draw to make sure the render pass is cleared in the Vulkan backend.
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), essl1_shaders::fs::Blue());
+    glUseProgram(program);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ZERO, GL_ONE);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5);
+    EXPECT_GL_NO_ERROR();
+
+    // Expect red, which is the original contents of texture1.  If the clear is mistakenly applied
+    // to the new attachment, green will be read back.
+    EXPECT_PIXEL_COLOR_EQ(0, 0, kInitColor1);
+
+    // Attach back to texture2.  It should be cleared to green.
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture2, 0);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+// Test that clear followed by rebind of framebuffer attachment works (with 0-sized scissor clear in
+// between).
+TEST_P(SimpleStateChangeTestES3, ClearThenZeroSizeScissoredClearThenRebindAttachment)
+{
+    // Create a texture with red
+    const GLColor kInitColor1 = GLColor::red;
+    GLTexture texture1;
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &kInitColor1);
+
+    // Create a framebuffer to be cleared
+    GLTexture texture2;
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    GLFramebuffer drawFBO;
+    glBindFramebuffer(GL_FRAMEBUFFER, drawFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture2, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    EXPECT_GL_NO_ERROR();
+
+    // Clear the framebuffer to green
+    glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Clear again, but in a way that would be a no-op.  In the Vulkan backend, this will result in
+    // a framebuffer sync state, which extracts deferred clears.  However, as the clear is actually
+    // a noop, the deferred clears will remain unflushed.
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
 
     // Change framebuffer's attachment to the other texture.
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture1, 0);
@@ -3725,7 +3780,7 @@ void main()
     glUseProgram(program);
     glUniform1i(s1loc, 0);
     glUniform1i(s2loc, 1);
-    // Draw. This first draw is a sanitycheck and not really necessary for the test
+    // Draw. This first draw is a confidence check and not really necessary for the test
     drawQuad(program, std::string(essl1_shaders::PositionAttrib()), 0.5f);
     ASSERT_GL_NO_ERROR();
 
@@ -4115,7 +4170,7 @@ class RobustBufferAccessWebGL2ValidationStateChangeTest : public WebGL2Validatio
     RobustBufferAccessWebGL2ValidationStateChangeTest()
     {
         // SwS/OSX GL do not support robustness. Mali does not support it.
-        if (!isSwiftshader() && !IsOSX() && !IsARM())
+        if (!isSwiftshader() && !IsOSX() && !IsIOS() && !IsARM())
         {
             setRobustAccess(true);
         }
@@ -4187,6 +4242,146 @@ TEST_P(ValidationStateChangeTest, MapBufferAndDraw)
     glUnmapBuffer(GL_ARRAY_BUFFER);
     ASSERT_GL_NO_ERROR();
 
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+}
+
+// Tests that mapping an immutable and persistent buffer after calling glVertexAttribPointer()
+// allows rendering to succeed.
+TEST_P(ValidationStateChangeTest, MapImmutablePersistentBufferAndDraw)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_buffer_storage"));
+
+    // Initialize program and set up state.
+    ANGLE_GL_PROGRAM(program, kColorVS, kColorFS);
+
+    glUseProgram(program);
+    GLint positionLoc = glGetAttribLocation(program, "position");
+    ASSERT_NE(-1, positionLoc);
+    GLint colorLoc = glGetAttribLocation(program, "color");
+    ASSERT_NE(-1, colorLoc);
+
+    const std::array<Vector3, 6> &quadVertices = GetQuadVertices();
+    const size_t posBufferSize                 = quadVertices.size() * sizeof(Vector3);
+
+    GLBuffer posBuffer;
+    glBindBuffer(GL_ARRAY_BUFFER, posBuffer);
+    glBufferStorageEXT(GL_ARRAY_BUFFER, posBufferSize, quadVertices.data(),
+                       GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT_EXT);
+
+    // Start with position enabled.
+    glVertexAttribPointer(positionLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(positionLoc);
+
+    std::vector<GLColor> colorVertices(6, GLColor::blue);
+    const size_t colorBufferSize = sizeof(GLColor) * 6;
+
+    GLBuffer colorBuffer;
+    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+    glBufferStorageEXT(GL_ARRAY_BUFFER, colorBufferSize, colorVertices.data(),
+                       GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT_EXT);
+
+    // Start with color disabled.
+    glVertexAttribPointer(colorLoc, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+    glDisableVertexAttribArray(colorLoc);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Draw without a mapped buffer. Should succeed.
+    glVertexAttrib4f(colorLoc, 0, 1, 0, 1);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Map position buffer and draw. Should succeed.
+    glBindBuffer(GL_ARRAY_BUFFER, posBuffer);
+    glMapBufferRange(GL_ARRAY_BUFFER, 0, posBufferSize,
+                     GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT_EXT);
+    ASSERT_GL_NO_ERROR();
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+
+    // Map then enable color buffer. Should succeed.
+    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+    glMapBufferRange(GL_ARRAY_BUFFER, 0, colorBufferSize,
+                     GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT_EXT);
+    glEnableVertexAttribArray(colorLoc);
+    ASSERT_GL_NO_ERROR();
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+
+    // Unmap then draw. Should succeed.
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+    ASSERT_GL_NO_ERROR();
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+}
+
+// Tests that mapping an immutable and persistent buffer before calling glVertexAttribPointer()
+// allows rendering to succeed. This case is special in that the VertexArray is not observing the
+// buffer yet, so it's various cached buffer states aren't updated when the buffer is mapped.
+TEST_P(ValidationStateChangeTest, MapImmutablePersistentBufferThenVAPAndDraw)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_buffer_storage"));
+
+    // Initialize program and set up state.
+    ANGLE_GL_PROGRAM(program, kColorVS, kColorFS);
+
+    glUseProgram(program);
+    GLint positionLoc = glGetAttribLocation(program, "position");
+    ASSERT_NE(-1, positionLoc);
+    GLint colorLoc = glGetAttribLocation(program, "color");
+    ASSERT_NE(-1, colorLoc);
+
+    const std::array<Vector3, 6> &quadVertices = GetQuadVertices();
+    const size_t posBufferSize                 = quadVertices.size() * sizeof(Vector3);
+
+    GLBuffer posBuffer;
+    glBindBuffer(GL_ARRAY_BUFFER, posBuffer);
+    glBufferStorageEXT(GL_ARRAY_BUFFER, posBufferSize, quadVertices.data(),
+                       GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT_EXT);
+
+    glMapBufferRange(GL_ARRAY_BUFFER, 0, posBufferSize,
+                     GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT_EXT);
+
+    // Start with position enabled.
+    glVertexAttribPointer(positionLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(positionLoc);
+
+    std::vector<GLColor> colorVertices(6, GLColor::blue);
+    const size_t colorBufferSize = sizeof(GLColor) * 6;
+
+    GLBuffer colorBuffer;
+    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+    glBufferStorageEXT(GL_ARRAY_BUFFER, colorBufferSize, colorVertices.data(),
+                       GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT_EXT);
+
+    glMapBufferRange(GL_ARRAY_BUFFER, 0, colorBufferSize,
+                     GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT_EXT);
+    ASSERT_GL_NO_ERROR();
+
+    // Start with color disabled.
+    glVertexAttribPointer(colorLoc, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+    glDisableVertexAttribArray(colorLoc);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Draw without a mapped buffer. Should succeed.
+    glVertexAttrib4f(colorLoc, 0, 1, 0, 1);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Unmap then draw. Should succeed.
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+    glEnableVertexAttribArray(colorLoc);
+    ASSERT_GL_NO_ERROR();
     glDrawArrays(GL_TRIANGLES, 0, 6);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
@@ -4506,6 +4701,9 @@ TEST_P(WebGL2ValidationStateChangeTest, MultiAttachmentDrawFramebufferNegativeAP
 {
     // Crashes on 64-bit Android.  http://anglebug.com/3878
     ANGLE_SKIP_TEST_IF(IsVulkan() && IsAndroid());
+
+    // http://anglebug.com/5233
+    ANGLE_SKIP_TEST_IF(IsMetal());
 
     // Set up a program that writes to two outputs: one int and one float.
     constexpr char kVS[] = R"(#version 300 es
@@ -5214,6 +5412,9 @@ TEST_P(SimpleStateChangeTest, FboLateCullFaceBackCWState)
 // binding back to the previous buffer.
 TEST_P(SimpleStateChangeTest, RebindTranslatedAttribute)
 {
+    // http://anglebug.com/5379
+    ANGLE_SKIP_TEST_IF(IsLinux() && IsAMD() && IsVulkan());
+
     constexpr char kVS[] = R"(attribute vec4 a_position;
 attribute float a_attrib;
 varying float v_attrib;
@@ -5719,6 +5920,9 @@ TEST_P(RobustBufferAccessWebGL2ValidationStateChangeTest, BindZeroSizeBufferThen
     // Mali does not support robustness now.
     ANGLE_SKIP_TEST_IF(IsARM());
 
+    // TODO(anglebug.com/5491)
+    ANGLE_SKIP_TEST_IF(IsIOS() && IsOpenGLES());
+
     std::vector<GLubyte> data(48, 1);
 
     ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Passthrough(), essl1_shaders::fs::Red());
@@ -5744,6 +5948,25 @@ TEST_P(RobustBufferAccessWebGL2ValidationStateChangeTest, BindZeroSizeBufferThen
     ASSERT_GL_NO_ERROR();
 }
 
+// Tests DrawElements with an empty buffer using a VAO.
+TEST_P(WebGL2ValidationStateChangeTest, DrawElementsEmptyVertexArray)
+{
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
+
+    glUseProgram(program);
+
+    // Draw with empty buffer. Out of range but valid.
+    GLBuffer buffer;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
+    glDrawElements(GL_TRIANGLES, 0, GL_UNSIGNED_SHORT, reinterpret_cast<const GLvoid *>(0x1000));
+
+    // Switch VAO. No buffer bound, should be an error.
+    GLVertexArray vao;
+    glBindVertexArray(vao);
+    glDrawElements(GL_LINE_STRIP, 0x1000, GL_UNSIGNED_SHORT,
+                   reinterpret_cast<const GLvoid *>(0x1000));
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+}
 }  // anonymous namespace
 
 ANGLE_INSTANTIATE_TEST_ES2(StateChangeTest);

@@ -10,12 +10,14 @@
 #ifndef LIBANGLE_RENDERER_VULKAN_FRAMEBUFFERVK_H_
 #define LIBANGLE_RENDERER_VULKAN_FRAMEBUFFERVK_H_
 
+#include "libANGLE/angletypes.h"
 #include "libANGLE/renderer/FramebufferImpl.h"
 #include "libANGLE/renderer/RenderTargetCache.h"
 #include "libANGLE/renderer/vulkan/BufferVk.h"
 #include "libANGLE/renderer/vulkan/ResourceVk.h"
 #include "libANGLE/renderer/vulkan/UtilsVk.h"
 #include "libANGLE/renderer/vulkan/vk_cache_utils.h"
+#include "libANGLE/renderer/vulkan/vk_helpers.h"
 
 namespace rx
 {
@@ -23,13 +25,33 @@ class RendererVk;
 class RenderTargetVk;
 class WindowSurfaceVk;
 
+// FramebufferVk Cache
+class FramebufferCache final : angle::NonCopyable
+{
+  public:
+    FramebufferCache() = default;
+    ~FramebufferCache() { ASSERT(mPayload.empty()); }
+
+    void destroy(RendererVk *rendererVk);
+
+    bool get(ContextVk *contextVk,
+             const vk::FramebufferDesc &desc,
+             vk::FramebufferHelper **framebufferOut);
+    void insert(const vk::FramebufferDesc &desc, vk::FramebufferHelper &&framebufferHelper);
+    void clear(ContextVk *contextVk);
+
+  private:
+    angle::HashMap<vk::FramebufferDesc, vk::FramebufferHelper> mPayload;
+    CacheStats mCacheStats;
+};
+
 class FramebufferVk : public FramebufferImpl
 {
   public:
     // Factory methods so we don't have to use constructors with overloads.
     static FramebufferVk *CreateUserFBO(RendererVk *renderer, const gl::FramebufferState &state);
 
-    // The passed-in SurfaceVK must be destroyed after this FBO is destroyed. Our Surface code is
+    // The passed-in SurfaceVk must be destroyed after this FBO is destroyed. Our Surface code is
     // ref-counted on the number of 'current' contexts, so we shouldn't get any dangling surface
     // references. See Surface::setIsCurrent(bool).
     static FramebufferVk *CreateDefaultFBO(RendererVk *renderer,
@@ -115,9 +137,8 @@ class FramebufferVk : public FramebufferImpl
     RenderTargetVk *getColorReadRenderTarget() const;
 
     angle::Result startNewRenderPass(ContextVk *contextVk,
-                                     const gl::Rectangle &renderArea,
+                                     const gl::Rectangle &scissoredRenderArea,
                                      vk::CommandBuffer **commandBufferOut);
-    void restoreDepthStencilDefinedContents();
 
     RenderTargetVk *getFirstRenderTarget() const;
     GLint getSamples() const;
@@ -128,13 +149,15 @@ class FramebufferVk : public FramebufferImpl
                                  vk::Framebuffer **framebufferOut,
                                  const vk::ImageView *resolveImageViewIn);
 
-    bool isReadOnlyDepthMode() const { return mCurrentFramebufferDesc.isReadOnlyDepth(); }
-
     bool hasDeferredClears() const { return !mDeferredClears.empty(); }
-    angle::Result flushDeferredClears(ContextVk *contextVk, const gl::Rectangle &renderArea);
-    void setReadOnlyDepthMode(bool readOnlyDepthEnabled);
-    angle::Result restartRenderPassInReadOnlyDepthMode(ContextVk *contextVk,
-                                                       vk::CommandBufferHelper *renderPass);
+    angle::Result flushDeferredClears(ContextVk *contextVk);
+    void setReadOnlyDepthFeedbackLoopMode(bool readOnlyDepthFeedbackModeEnabled)
+    {
+        mReadOnlyDepthFeedbackLoopMode = readOnlyDepthFeedbackModeEnabled;
+    }
+    bool isReadOnlyDepthFeedbackLoopMode() const { return mReadOnlyDepthFeedbackLoopMode; }
+    void updateRenderPassReadOnlyDepthMode(ContextVk *contextVk,
+                                           vk::CommandBufferHelper *renderPass);
 
   private:
     FramebufferVk(RendererVk *renderer,
@@ -163,11 +186,6 @@ class FramebufferVk : public FramebufferImpl
                                           const UtilsVk::BlitResolveParameters &params,
                                           vk::ImageHelper *srcImage);
 
-    // If resolve attachments are used, some use cases require that the multisampled image (whose
-    // data is normally discarded) take its data from the resolve attachment.
-    angle::Result copyResolveToMultisampedAttachment(ContextVk *contextVk,
-                                                     RenderTargetVk *colorRenderTarget);
-
     angle::Result clearImpl(const gl::Context *context,
                             gl::DrawBufferMask clearColorBuffers,
                             bool clearDepth,
@@ -175,50 +193,38 @@ class FramebufferVk : public FramebufferImpl
                             const VkClearColorValue &clearColorValue,
                             const VkClearDepthStencilValue &clearDepthStencilValue);
 
-    angle::Result clearImmediatelyWithRenderPassOp(
-        ContextVk *contextVk,
-        const gl::Rectangle &clearArea,
-        gl::DrawBufferMask clearColorBuffers,
-        bool clearDepth,
-        bool clearStencil,
-        const VkClearColorValue &clearColorValue,
-        const VkClearDepthStencilValue &clearDepthStencilValue);
-
+    void mergeClearsWithDeferredClears(gl::DrawBufferMask clearColorBuffers,
+                                       bool clearDepth,
+                                       bool clearStencil,
+                                       const VkClearColorValue &clearColorValue,
+                                       const VkClearDepthStencilValue &clearDepthStencilValue);
     angle::Result clearWithDraw(ContextVk *contextVk,
                                 const gl::Rectangle &clearArea,
                                 gl::DrawBufferMask clearColorBuffers,
                                 bool clearDepth,
                                 bool clearStencil,
-                                VkColorComponentFlags colorMaskFlags,
+                                gl::BlendStateExt::ColorMaskStorage::Type colorMasks,
                                 uint8_t stencilMask,
                                 const VkClearColorValue &clearColorValue,
                                 const VkClearDepthStencilValue &clearDepthStencilValue);
-    void clearWithLoadOp(ContextVk *contextVk,
-                         gl::DrawBufferMask clearColorBuffers,
-                         bool clearDepth,
-                         bool clearStencil,
-                         const VkClearColorValue &clearColorValue,
-                         const VkClearDepthStencilValue &clearDepthStencilValue);
-    void clearWithCommand(vk::CommandBuffer *renderPassCommandBuffer,
-                          const gl::Rectangle &scissoredRenderArea,
-                          gl::DrawBufferMask clearColorBuffers,
-                          bool clearDepth,
-                          bool clearStencil,
-                          const VkClearColorValue &clearColorValue,
-                          const VkClearDepthStencilValue &clearDepthStencilValue);
+    void redeferClears(ContextVk *contextVk);
+    angle::Result clearWithCommand(ContextVk *contextVk,
+                                   vk::CommandBufferHelper *renderpassCommands,
+                                   const gl::Rectangle &scissoredRenderArea);
     void updateActiveColorMasks(size_t colorIndex, bool r, bool g, bool b, bool a);
     void updateRenderPassDesc();
-    angle::Result updateColorAttachment(const gl::Context *context,
-                                        bool deferClears,
-                                        uint32_t colorIndex);
+    angle::Result updateColorAttachment(const gl::Context *context, uint32_t colorIndex);
+    angle::Result updateDepthStencilAttachment(const gl::Context *context);
+    void updateDepthStencilAttachmentSerial(ContextVk *contextVk);
+    angle::Result flushColorAttachmentUpdates(const gl::Context *context,
+                                              bool deferClears,
+                                              uint32_t colorIndex);
+    angle::Result flushDepthStencilAttachmentUpdates(const gl::Context *context, bool deferClears);
     angle::Result invalidateImpl(ContextVk *contextVk,
                                  size_t count,
                                  const GLenum *attachments,
-                                 bool isSubInvalidate);
-    // Release all FramebufferVk objects in the cache and clear cache
-    void clearCache(ContextVk *contextVk);
-    angle::Result updateDepthStencilAttachment(const gl::Context *context, bool deferClears);
-    void updateDepthStencilAttachmentSerial(ContextVk *contextVk);
+                                 bool isSubInvalidate,
+                                 const gl::Rectangle &invalidateArea);
 
     RenderTargetVk *getReadPixelsRenderTarget(GLenum format) const;
     VkImageAspectFlagBits getReadPixelsAspectFlags(GLenum format) const;
@@ -226,9 +232,12 @@ class FramebufferVk : public FramebufferImpl
     VkClearValue getCorrectedColorClearValue(size_t colorIndexGL,
                                              const VkClearColorValue &clearColor) const;
 
-    void updateColorResolveAttachment(uint32_t colorIndexGL,
-                                      vk::ImageViewSubresourceSerial resolveImageViewSerial);
+    void updateColorResolveAttachment(
+        uint32_t colorIndexGL,
+        vk::ImageOrBufferViewSubresourceSerial resolveImageViewSerial);
     void removeColorResolveAttachment(uint32_t colorIndexGL);
+
+    void updateLayerCount();
 
     WindowSurfaceVk *mBackbuffer;
 
@@ -236,11 +245,10 @@ class FramebufferVk : public FramebufferImpl
     vk::FramebufferHelper *mFramebuffer;
     RenderTargetCache<RenderTargetVk> mRenderTargetCache;
 
-    // These two variables are used to quickly compute if we need to do a masked clear. If a color
+    // This variable is used to quickly compute if we need to do a masked clear. If a color
     // channel is masked out, we check against the Framebuffer Attachments (RenderTargets) to see
     // if the masked out channel is present in any of the attachments.
-    VkColorComponentFlags mActiveColorComponents;
-    gl::DrawBufferMask mActiveColorComponentMasksForClear[4];
+    gl::BlendStateExt::ColorMaskStorage::Type mActiveColorComponentMasksForClear;
     vk::DynamicBuffer mReadPixelBuffer;
 
     // When we draw to the framebuffer, and the real format has an alpha channel but the format of
@@ -249,11 +257,14 @@ class FramebufferVk : public FramebufferImpl
     gl::DrawBufferMask mEmulatedAlphaAttachmentMask;
 
     vk::FramebufferDesc mCurrentFramebufferDesc;
-    std::unordered_map<vk::FramebufferDesc, vk::FramebufferHelper> mFramebufferCache;
-    // Tracks all the color buffers attached to this FramebufferDesc
-    gl::DrawBufferMask mAttachedColorBufferMask;
+    FramebufferCache mFramebufferCache;
 
     vk::ClearValuesArray mDeferredClears;
+
+    // Tracks if we are in depth feedback loop. Depth read only feedback loop is a special kind of
+    // depth stencil read only mode. When we are in feedback loop, we must flush renderpass to exit
+    // the loop instead of update the layout.
+    bool mReadOnlyDepthFeedbackLoopMode;
 };
 }  // namespace rx
 

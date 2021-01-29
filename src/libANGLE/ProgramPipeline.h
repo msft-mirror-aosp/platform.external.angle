@@ -65,6 +65,8 @@ class ProgramPipelineState final : angle::NonCopyable
 
     void updateExecutableTextures();
 
+    rx::SpecConstUsageBits getSpecConstUsageBits() const;
+
   private:
     void useProgramStage(const Context *context,
                          ShaderType shaderType,
@@ -83,12 +85,14 @@ class ProgramPipelineState final : angle::NonCopyable
     GLboolean mValid;
 
     ProgramExecutable *mExecutable;
+
+    bool mIsLinked;
 };
 
 class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
                               public LabeledObject,
                               public angle::ObserverInterface,
-                              public angle::Subject
+                              public HasAttachedShaders
 {
   public:
     ProgramPipeline(rx::GLImplFactory *factory, ProgramPipelineID handle);
@@ -100,6 +104,7 @@ class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
     const std::string &getLabel() const override;
 
     const ProgramPipelineState &getState() const { return mState; }
+    ProgramPipelineState &getState() { return mState; }
 
     const ProgramExecutable &getExecutable() const { return mState.getProgramExecutable(); }
     ProgramExecutable &getExecutable() { return mState.getProgramExecutable(); }
@@ -122,7 +127,7 @@ class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
 
     Program *getShaderProgram(ShaderType shaderType) const { return mState.mPrograms[shaderType]; }
 
-    ProgramMergedVaryings getMergedVaryings() const;
+    void resetIsLinked() { mState.mIsLinked = false; }
     angle::Result link(const gl::Context *context);
     bool linkVaryings(InfoLog &infoLog) const;
     void validate(const gl::Context *context);
@@ -133,29 +138,12 @@ class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
         return mState.usesShaderProgram(program);
     }
 
-    bool hasAnyDirtyBit() const { return mDirtyBits.any(); }
-
     GLboolean isValid() const { return mState.isValid(); }
-
-    // Program pipeline dirty bits.
-    enum DirtyBitType
-    {
-        // One of the program stages in the PPO changed.
-        DIRTY_BIT_PROGRAM_STAGE,
-        DIRTY_BIT_DRAW_DISPATCH_CHANGE,
-
-        DIRTY_BIT_COUNT = DIRTY_BIT_DRAW_DISPATCH_CHANGE + 1,
-    };
-
-    using DirtyBits = angle::BitSet<DIRTY_BIT_COUNT>;
-
-    angle::Result syncState(const Context *context);
-    void setDirtyBit(DirtyBitType dirtyBitType) { mDirtyBits.set(dirtyBitType); }
 
     // ObserverInterface implementation.
     void onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message) override;
 
-    void fillProgramStateMap(gl::ShaderMap<const gl::ProgramState *> *programStatesOut);
+    Shader *getAttachedShader(ShaderType shaderType) const override;
 
   private:
     void updateLinkedShaderStages();
@@ -169,8 +157,6 @@ class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
     std::unique_ptr<rx::ProgramPipelineImpl> mProgramPipelineImpl;
 
     ProgramPipelineState mState;
-
-    DirtyBits mDirtyBits;
 
     std::vector<angle::ObserverBinding> mProgramObserverBindings;
     angle::ObserverBinding mExecutableObserverBinding;

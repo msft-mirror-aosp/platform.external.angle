@@ -39,6 +39,7 @@ int VariableRowCount(GLenum type);
 int VariableColumnCount(GLenum type);
 bool IsSamplerType(GLenum type);
 bool IsSamplerCubeType(GLenum type);
+bool IsSamplerYUVType(GLenum type);
 bool IsImageType(GLenum type);
 bool IsImage2DType(GLenum type);
 bool IsAtomicCounterType(GLenum type);
@@ -60,6 +61,12 @@ int AllocateFirstFreeBits(unsigned int *bits, unsigned int allocationSize, unsig
 // outermost array indices in the back. If an array index is invalid, GL_INVALID_INDEX is added to
 // outSubscripts.
 std::string ParseResourceName(const std::string &name, std::vector<unsigned int> *outSubscripts);
+
+bool IsBuiltInName(const char *name);
+ANGLE_INLINE bool IsBuiltInName(const std::string &name)
+{
+    return IsBuiltInName(name.c_str());
+}
 
 // Strips only the last array index from a resource name.
 std::string StripLastArrayIndex(const std::string &name);
@@ -223,13 +230,26 @@ const char *GetDebugMessageTypeString(GLenum type);
 const char *GetDebugMessageSeverityString(GLenum severity);
 
 // For use with EXT_texture_format_sRGB_override and EXT_texture_sRGB_decode
-// A texture may either have SRGB decoding forced on, or use whatever decode state is default for
-// the texture format.
+// A texture may be forced to decode to a nonlinear colorspace, to a linear colorspace, or to the
+// default colorspace of its current format.
+//
+// Default corresponds to "the texture should use the imageview that corresponds to its format"
+// Linear corresponds to "the texture has sRGB decoding disabled by extension, and should use a
+// linear imageview even if it is in a nonlinear format" NonLinear corresponds to "the texture has
+// sRGB override enabled by extension, and should use a nonlinear imageview even if it is in a
+// linear format"
 enum class SrgbOverride
 {
     Default = 0,
-    Enabled
+    SRGB,
+    Linear
 };
+
+ShaderType GetShaderTypeFromBitfield(size_t singleShaderType);
+bool ShaderTypeSupportsTransformFeedback(ShaderType shaderType);
+// Given a set of shader stages, returns the last vertex processing stage.  This is the stage that
+// interfaces the fragment shader.
+ShaderType GetLastPreFragmentStage(ShaderBitSet shaderTypes);
 
 }  // namespace gl
 

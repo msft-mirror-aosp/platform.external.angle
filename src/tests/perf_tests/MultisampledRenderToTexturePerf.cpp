@@ -106,6 +106,20 @@ MultisampledRenderToTextureBenchmark::MultisampledRenderToTextureBenchmark()
     {
         mSkipTest = true;
     }
+
+    // Fails on Pixel 2 GLES: http://anglebug.com/5120
+    if (IsPixel2() && GetParam().eglParameters.renderer == EGL_PLATFORM_ANGLE_TYPE_OPENGLES_ANGLE)
+    {
+        mSkipTest = true;
+    }
+
+    // http://anglebug.com/5380
+    if (IsLinux() && IsAMD() &&
+        GetParam().eglParameters.renderer == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE &&
+        GetParam().multiplePasses && GetParam().withDepthStencil)
+    {
+        mSkipTest = true;
+    }
 }
 
 void MultisampledRenderToTextureBenchmark::initializeBenchmark()
@@ -179,8 +193,8 @@ void MultisampledRenderToTextureBenchmark::drawBenchmark()
 {
     const auto &params = GetParam();
 
-    GLTexture mDummyTexture;
-    glBindTexture(GL_TEXTURE_2D, mDummyTexture);
+    GLTexture mMockTexture;
+    glBindTexture(GL_TEXTURE_2D, mMockTexture);
 
     startGpuTimer();
 

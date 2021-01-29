@@ -29,22 +29,18 @@
 // This will expand to "angle_capture_context<#>.h"
 #include ANGLE_MACRO_STRINGIZE(ANGLE_CAPTURE_REPLAY_COMPOSITE_TESTS_HEADER)
 
-const std::string resultTag = "*RESULT";
+constexpr char kResultTag[] = "*RESULT";
 
 class CaptureReplayTests
 {
   public:
-    CaptureReplayTests(EGLint glesMajorVersion, EGLint glesMinorVersion)
-        : mOSWindow(nullptr), mEGLWindow(nullptr)
+    CaptureReplayTests()
     {
-        mPlatformParams.renderer   = EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE;
-        mPlatformParams.deviceType = EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE;
-
         // Load EGL library so we can initialize the display.
         mEntryPointsLib.reset(
             angle::OpenSharedLibrary(ANGLE_EGL_LIBRARY_NAME, angle::SearchType::ApplicationDir));
-        mEGLWindow = EGLWindow::New(glesMajorVersion, glesMinorVersion);
-        mOSWindow  = OSWindow::New();
+
+        mOSWindow = OSWindow::New();
         mOSWindow->disableErrorMessageDialog();
     }
 
@@ -54,15 +50,22 @@ class CaptureReplayTests
         OSWindow::Delete(&mOSWindow);
     }
 
-    bool initializeTest(uint32_t testIndex, TestTraceInfo &testTraceInfo)
+    bool initializeTest(uint32_t testIndex, const TestTraceInfo &testTraceInfo)
     {
         if (!mOSWindow->initialize(testTraceInfo.testName, testTraceInfo.replayDrawSurfaceWidth,
                                    testTraceInfo.replayDrawSurfaceHeight))
         {
             return false;
         }
+
         mOSWindow->disableErrorMessageDialog();
         mOSWindow->setVisible(true);
+
+        if (!mEGLWindow)
+        {
+            mEGLWindow = EGLWindow::New(testTraceInfo.replayContextMajorVersion,
+                                        testTraceInfo.replayContextMinorVersion);
+        }
 
         ConfigParameters configParams;
         configParams.redBits     = testTraceInfo.defaultFramebufferRedBits;
@@ -71,6 +74,10 @@ class CaptureReplayTests
         configParams.alphaBits   = testTraceInfo.defaultFramebufferAlphaBits;
         configParams.depthBits   = testTraceInfo.defaultFramebufferDepthBits;
         configParams.stencilBits = testTraceInfo.defaultFramebufferStencilBits;
+
+        mPlatformParams.renderer   = testTraceInfo.replayPlatformType;
+        mPlatformParams.deviceType = testTraceInfo.replayDeviceType;
+
         if (!mEGLWindow->initializeGL(mOSWindow, mEntryPointsLib.get(),
                                       angle::GLESDriverType::AngleEGL, mPlatformParams,
                                       configParams))
@@ -109,7 +116,7 @@ class CaptureReplayTests
 
     void swap() { mEGLWindow->swap(); }
 
-    int runTest(uint32_t testIndex, TestTraceInfo &testTraceInfo)
+    int runTest(uint32_t testIndex, const TestTraceInfo &testTraceInfo)
     {
         if (!initializeTest(testIndex, testTraceInfo))
         {
@@ -127,7 +134,7 @@ class CaptureReplayTests
                 cleanupTest();
                 return -1;
             }
-            bool isEqual = compareSerializedStates(testIndex, frame, bos);
+            bool isEqual = compareSerializedContexts(testIndex, frame, bos.getData());
             if (!isEqual)
             {
                 cleanupTest();
@@ -144,22 +151,24 @@ class CaptureReplayTests
         for (size_t i = 0; i < testTraceInfos.size(); i++)
         {
             int result = runTest(static_cast<uint32_t>(i), testTraceInfos[i]);
-            std::cout << resultTag << " " << testTraceInfos[i].testName << " " << result << "\n";
+            std::cout << kResultTag << " " << testTraceInfos[i].testName << " " << result << "\n";
         }
         return 0;
     }
 
   private:
-    bool compareSerializedStates(uint32_t testIndex,
-                                 uint32_t frame,
-                                 const gl::BinaryOutputStream &replaySerializedContextData)
+    bool compareSerializedContexts(uint32_t testIndex,
+                                   uint32_t frame,
+                                   const std::vector<uint8_t> &replaySerializedContextState)
     {
-        return GetSerializedContextStateData(testIndex, frame) ==
-               replaySerializedContextData.getData();
+
+        return memcmp(replaySerializedContextState.data(),
+                      GetSerializedContextState(testIndex, frame),
+                      replaySerializedContextState.size()) == 0;
     }
 
-    OSWindow *mOSWindow;
-    EGLWindow *mEGLWindow;
+    OSWindow *mOSWindow   = nullptr;
+    EGLWindow *mEGLWindow = nullptr;
     EGLPlatformParameters mPlatformParams;
     // Handle to the entry point binding library.
     std::unique_ptr<angle::Library> mEntryPointsLib;
@@ -167,9 +176,6 @@ class CaptureReplayTests
 
 int main(int argc, char **argv)
 {
-    // TODO (nguyenmh): http://anglebug.com/4759: initialize app with arguments taken from cmdline
-    const EGLint glesMajorVersion = 2;
-    const GLint glesMinorVersion  = 0;
-    CaptureReplayTests app(glesMajorVersion, glesMinorVersion);
+    CaptureReplayTests app;
     return app.run();
 }

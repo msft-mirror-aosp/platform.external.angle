@@ -7,10 +7,10 @@
 
 #include "entry_points_wgl.h"
 
+#include "common/angle_version.h"
 #include "common/debug.h"
 #include "common/event_tracer.h"
 #include "common/utilities.h"
-#include "common/version.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Display.h"
 #include "libANGLE/EGLSync.h"
@@ -51,6 +51,8 @@ void ClipConfigs(const std::vector<const Config *> &filteredConfigs,
     *num_config = result_size;
 }
 }  // anonymous namespace
+
+#define WGL_EVENT(EP, FMT, ...) EVENT(nullptr, WGL##EP, FMT, __VA_ARGS__)
 
 extern "C" {
 
@@ -222,7 +224,7 @@ wglGetLayerPaletteEntries(HDC hdc, int iLayerPlane, int iStart, int cEntries, CO
 PROC GL_APIENTRY wglGetProcAddress(LPCSTR lpszProc)
 {
     ANGLE_SCOPED_GLOBAL_LOCK();
-    FUNC_EVENT("const char *procname = \"%s\"", lpszProc);
+    WGL_EVENT(GetProcAddress, "const char *procname = \"%s\"", lpszProc);
     egl::Thread *thread = egl::GetCurrentThread();
 
     const ProcEntry *entry =

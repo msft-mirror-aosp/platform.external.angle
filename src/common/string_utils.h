@@ -85,14 +85,28 @@ bool EndsWith(const char *str, const char *suffix);
 // Convert to lower-case.
 void ToLower(std::string *str);
 
+// Convert to upper-case.
+void ToUpper(std::string *str);
+
 // Replaces the substring 'substring' in 'str' with 'replacement'. Returns true if successful.
 bool ReplaceSubstring(std::string *str,
                       const std::string &substring,
                       const std::string &replacement);
 
 // Split up a string parsed from an environment variable.
-std::vector<std::string> GetStringsFromEnvironmentVar(const char *varName, const char *separator);
+std::vector<std::string> GetStringsFromEnvironmentVarOrAndroidProperty(const char *varName,
+                                                                       const char *propertyName,
+                                                                       const char *separator);
 
+// Split up a string parsed from environment variable or via Android property, use cached result if
+// available.
+std::vector<std::string> GetCachedStringsFromEnvironmentVarOrAndroidProperty(
+    const char *varName,
+    const char *propertyName,
+    const char *separator);
+
+// reference name can have *.
+bool NamesMatchWithWildcard(const char *ref, const char *testName);
 }  // namespace angle
 
 #endif  // LIBANGLE_STRING_UTILS_H_

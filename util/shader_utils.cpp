@@ -405,13 +405,29 @@ varying vec4 v_position;
 
 void main()
 {
-    if (v_position.x * v_position.y > 0.0)
+    bool isLeft = v_position.x < 0.0;
+    bool isTop = v_position.y < 0.0;
+    if (isLeft)
     {
-        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        if (isTop)
+        {
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        }
+        else
+        {
+            gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+        }
     }
     else
     {
-        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+        if (isTop)
+        {
+            gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+        }
+        else
+        {
+            gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+        }
     }
 })";
 }
@@ -689,7 +705,7 @@ out vec4 my_FragColor;
 
 void main()
 {
-    my_FragColor = vec4(v_position.x, v_position.y, 0.0, 1.0);
+    my_FragColor = vec4(v_position.xy * 0.5 + vec2(0.5), 0.0, 1.0);
 })";
 }
 

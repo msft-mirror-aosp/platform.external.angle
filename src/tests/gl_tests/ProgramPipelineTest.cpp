@@ -49,6 +49,24 @@ TEST_P(ProgramPipelineTest, GenerateProgramPipelineObject)
     }
 }
 
+// Verify that program pipeline errors out without GL_EXT_separate_shader_objects extension.
+TEST_P(ProgramPipelineTest, GenerateProgramPipelineObjectEXT)
+{
+    GLuint pipeline;
+    glGenProgramPipelinesEXT(1, &pipeline);
+    if (!IsGLExtensionEnabled("GL_EXT_separate_shader_objects"))
+    {
+        EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+    }
+    else
+    {
+        EXPECT_GL_NO_ERROR();
+
+        glDeleteProgramPipelinesEXT(1, &pipeline);
+        EXPECT_GL_NO_ERROR();
+    }
+}
+
 class ProgramPipelineTest31 : public ProgramPipelineTest
 {
   protected:
@@ -60,9 +78,9 @@ class ProgramPipelineTest31 : public ProgramPipelineTest
     }
 
     void bindProgramPipeline(const GLchar *vertString, const GLchar *fragString);
-    void drawQuad(const std::string &positionAttribName,
-                  const GLfloat positionAttribZ,
-                  const GLfloat positionAttribXYScale);
+    void drawQuadWithPPO(const std::string &positionAttribName,
+                         const GLfloat positionAttribZ,
+                         const GLfloat positionAttribXYScale);
 
     GLuint mVertProg;
     GLuint mFragProg;
@@ -180,31 +198,11 @@ GLuint createShaderProgram(GLenum type, const GLchar *shaderString)
     return program;
 }
 
-void ProgramPipelineTest31::drawQuad(const std::string &positionAttribName,
-                                     const GLfloat positionAttribZ,
-                                     const GLfloat positionAttribXYScale)
+void ProgramPipelineTest31::drawQuadWithPPO(const std::string &positionAttribName,
+                                            const GLfloat positionAttribZ,
+                                            const GLfloat positionAttribXYScale)
 {
-    glUseProgram(0);
-
-    std::array<Vector3, 6> quadVertices = ANGLETestBase::GetQuadVertices();
-
-    for (Vector3 &vertex : quadVertices)
-    {
-        vertex.x() *= positionAttribXYScale;
-        vertex.y() *= positionAttribXYScale;
-        vertex.z() = positionAttribZ;
-    }
-
-    GLint positionLocation = glGetAttribLocation(mVertProg, positionAttribName.c_str());
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 0, quadVertices.data());
-    glEnableVertexAttribArray(positionLocation);
-
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    glDisableVertexAttribArray(positionLocation);
-    glVertexAttribPointer(positionLocation, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+    return drawQuadPPO(mVertProg, positionAttribName, positionAttribZ, positionAttribXYScale);
 }
 
 // Test glUseProgramStages
@@ -233,7 +231,7 @@ TEST_P(ProgramPipelineTest31, UseProgramStages)
     glBindProgramPipeline(pipeline);
     EXPECT_GL_NO_ERROR();
 
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
 }
@@ -250,7 +248,7 @@ TEST_P(ProgramPipelineTest31, UseCreateShaderProgramv)
 
     bindProgramPipeline(vertString, fragString);
 
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
 }
@@ -283,14 +281,14 @@ void main()
     glActiveShaderProgram(mPipeline, mFragProg);
     glUniform1f(location, 1.0);
 
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::yellow);
 
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::yellow);
 
@@ -305,7 +303,7 @@ void main()
     glActiveShaderProgram(mPipeline, mFragProg);
     glUniform1f(location, 0.0);
 
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
 
@@ -332,7 +330,7 @@ void main()
 
     bindProgramPipeline(vertString, fragString);
 
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
 
     int w = getWindowWidth() - 2;
@@ -380,7 +378,7 @@ void main()
 
     bindProgramPipeline(vertString, fragString);
 
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
 
     int w = getWindowWidth() - 2;
@@ -433,7 +431,7 @@ TEST_P(ProgramPipelineTest31, DetachAndModifyShader)
     EXPECT_GL_NO_ERROR();
 
     // Draw once to ensure this worked fine
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
 
@@ -455,7 +453,7 @@ void main()
     // Link and draw with the program again, which should be fine since the shader was detached
     glLinkProgram(mFragProg);
 
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
 }
 
@@ -515,7 +513,7 @@ void main()
 
     // Create a pipeline that uses the bad combination.  This should fail to link the pipeline.
     bindProgramPipeline(vertString, fragString);
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_ERROR(GL_INVALID_OPERATION);
 
     // Update the fragment shader to correctly use 2D texture
@@ -532,8 +530,124 @@ void main()
 
     // Bind the pipeline again, which should succeed.
     bindProgramPipeline(vertString, fragString2);
-    ProgramPipelineTest31::drawQuad("a_position", 0.5f, 1.0f);
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
+}
+
+// Tests that we receive a PPO link validation error when attempting to draw with the bad PPO
+TEST_P(ProgramPipelineTest31, VerifyPpoLinkErrorSignalledCorrectly)
+{
+    // Create pipeline that should fail link
+    // Bind program
+    // Draw
+    // Unbind program
+    // Draw  <<--- expect a link validation error here
+
+    // Only the Vulkan backend supports PPOs
+    ANGLE_SKIP_TEST_IF(!IsVulkan());
+
+    // Create two separable program objects from a
+    // single source string respectively (vertSrc and fragSrc)
+    const GLchar *vertString = essl31_shaders::vs::Simple();
+    const GLchar *fragString = essl31_shaders::fs::Red();
+    // Create a fragment shader that takes a color input
+    // This should cause the PPO link to fail, since the varyings don't match (no output from VS).
+    const GLchar *fragStringBad = R"(#version 310 es
+precision highp float;
+layout(location = 0) in vec4 colorIn;
+out vec4 my_FragColor;
+void main()
+{
+    my_FragColor = colorIn;
+})";
+    bindProgramPipeline(vertString, fragStringBad);
+
+    ANGLE_GL_PROGRAM(program, vertString, fragString);
+    drawQuad(program.get(), essl1_shaders::PositionAttrib(), 0.0f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Draw with the PPO, which should generate an error due to the link failure.
+    glUseProgram(0);
+    ASSERT_GL_NO_ERROR();
+    drawQuadWithPPO(essl1_shaders::PositionAttrib(), 0.5f, 1.0f);
+    ASSERT_GL_ERROR(GL_INVALID_OPERATION);
+}
+
+// Tests creating two program pipelines with a common shader and a varying location mismatch.
+TEST_P(ProgramPipelineTest31, VaryingLocationMismatch)
+{
+    // Only the Vulkan backend supports PPOs
+    ANGLE_SKIP_TEST_IF(!IsVulkan());
+
+    // http://anglebug.com/5506
+    ANGLE_SKIP_TEST_IF(IsVulkan());
+
+    // Create a fragment shader using the varying location "5".
+    const char *kFS = R"(#version 310 es
+precision mediump float;
+layout(location = 5) in vec4 color;
+out vec4 colorOut;
+void main()
+{
+    colorOut = color;
+})";
+
+    // Create a pipeline with a vertex shader using varying location "5". Should succeed.
+    const char *kVSGood = R"(#version 310 es
+precision mediump float;
+layout(location = 5) out vec4 color;
+in vec4 position;
+uniform float uniOne;
+void main()
+{
+    gl_Position = position;
+    color = vec4(0, uniOne, 0, 1);
+})";
+
+    mVertProg = glCreateShaderProgramv(GL_VERTEX_SHADER, 1, &kVSGood);
+    ASSERT_NE(mVertProg, 0u);
+    mFragProg = glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, &kFS);
+    ASSERT_NE(mFragProg, 0u);
+
+    // Generate a program pipeline and attach the programs to their respective stages
+    glGenProgramPipelines(1, &mPipeline);
+    glUseProgramStages(mPipeline, GL_VERTEX_SHADER_BIT, mVertProg);
+    glUseProgramStages(mPipeline, GL_FRAGMENT_SHADER_BIT, mFragProg);
+    glBindProgramPipeline(mPipeline);
+    ASSERT_GL_NO_ERROR();
+
+    GLint location = glGetUniformLocation(mVertProg, "uniOne");
+    ASSERT_NE(-1, location);
+    glActiveShaderProgram(mPipeline, mVertProg);
+    glUniform1f(location, 1.0);
+    ASSERT_GL_NO_ERROR();
+
+    drawQuadWithPPO("position", 0.5f, 1.0f);
+    ASSERT_GL_NO_ERROR();
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Create a pipeline with a vertex shader using varying location "3". Should fail.
+    const char *kVSBad = R"(#version 310 es
+precision mediump float;
+layout(location = 3) out vec4 color;
+in vec4 position;
+uniform float uniOne;
+void main()
+{
+    gl_Position = position;
+    color = vec4(0, uniOne, 0, 1);
+})";
+
+    glDeleteProgram(mVertProg);
+    mVertProg = glCreateShaderProgramv(GL_VERTEX_SHADER, 1, &kVSBad);
+    ASSERT_NE(mVertProg, 0u);
+
+    glUseProgramStages(mPipeline, GL_VERTEX_SHADER_BIT, mVertProg);
+    ASSERT_GL_NO_ERROR();
+
+    drawQuadWithPPO("position", 0.5f, 1.0f);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
 }
 
 ANGLE_INSTANTIATE_TEST_ES3_AND_ES31(ProgramPipelineTest);

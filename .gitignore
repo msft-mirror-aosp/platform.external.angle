@@ -1,3 +1,4 @@
+.DS_Store
 .vs
 .vscode
 *.Makefile
@@ -36,26 +37,20 @@
 /third_party/fuchsia-sdk
 /third_party/gles1_conform
 /third_party/glmark2/src
-/third_party/glslang/src
 /third_party/googletest
 /third_party/jsoncpp
 /third_party/libjpeg_turbo
 /third_party/libpng/src
 /third_party/llvm-build
 /third_party/nasm
+/third_party/protobuf
 /third_party/Python-Markdown
 /third_party/qemu-linux-x64
 /third_party/qemu-mac-x64
 /third_party/rapidjson/src
-/third_party/spirv-cross/src
-/third_party/spirv-headers/src
-/third_party/spirv-tools/src
 /third_party/SwiftShader
 /third_party/VK-GL-CTS/src
-/third_party/vulkan-headers/src
-/third_party/vulkan-loader/src
-/third_party/vulkan-tools/src
-/third_party/vulkan-validation-layers/src
+/third_party/vulkan-deps
 /third_party/vulkan_memory_allocator
 /third_party/zlib
 /tools/clang
@@ -71,6 +66,8 @@
 /tools/mb
 /tools/md_browser
 /tools/memory
+/tools/protoc_wrapper
+/tools/skia_goldctl
 angle_debug.txt
 build
 buildtools/
@@ -90,3 +87,6 @@ Release_Win32/
 Release_x64/
 TestResults.qpa
 .idea/
+
+# Any temporary files will confuse code generation.
+!scripts/code_generation_hashes/*

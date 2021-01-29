@@ -140,6 +140,7 @@ class BitSetT final
     constexpr static BitSetT Zero() { return BitSetT(); }
 
     ParamT first() const;
+    ParamT last() const;
 
   private:
     // Produces a mask of ones up to the "x"th bit.
@@ -460,6 +461,13 @@ ParamT BitSetT<N, BitsT, ParamT>::first() const
 }
 
 template <size_t N, typename BitsT, typename ParamT>
+ParamT BitSetT<N, BitsT, ParamT>::last() const
+{
+    ASSERT(!none());
+    return static_cast<ParamT>(gl::ScanReverse(mBits));
+}
+
+template <size_t N, typename BitsT, typename ParamT>
 BitSetT<N, BitsT, ParamT>::Iterator::Iterator(const BitSetT &bits) : mBitsCopy(bits), mCurrentBit(0)
 {
     if (bits.any())
@@ -509,6 +517,9 @@ std::size_t BitSetT<N, BitsT, ParamT>::Iterator::getNextBit()
 
 template <size_t N>
 using BitSet8 = BitSetT<N, uint8_t>;
+
+template <size_t N>
+using BitSet16 = BitSetT<N, uint16_t>;
 
 template <size_t N>
 using BitSet32 = BitSetT<N, uint32_t>;

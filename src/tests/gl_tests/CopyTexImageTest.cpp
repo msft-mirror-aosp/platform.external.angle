@@ -466,6 +466,9 @@ TEST_P(CopyTexImageTest, CopyTexSubImageToNonCubeCompleteDestination)
 // Deleting textures after copying to them. http://anglebug.com/4267
 TEST_P(CopyTexImageTest, DeleteAfterCopyingToTextures)
 {
+    // TODO(anglebug.com/5360): Failing on ARM-based Apple DTKs.
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && IsDesktopOpenGL());
+
     GLTexture texture;
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -518,7 +521,7 @@ TEST_P(CopyTexImageTest, CopyTexSubImageFrom3DTexureOES)
     ANGLE_SKIP_TEST_IF(IsD3D11() & IsWindows());
 
     // http://anglebug.com/4927
-    ANGLE_SKIP_TEST_IF(IsPixel2() || IsOpenGLES());
+    ANGLE_SKIP_TEST_IF((IsPixel2() || IsNexus5X()) && IsOpenGLES());
 
     constexpr GLsizei kDepth = 6;
 
@@ -997,6 +1000,9 @@ TEST_P(CopyTexImageTestES3, 3DSubImageDrawMismatchedTextureTypes)
 {
     // TODO(anglebug.com/3801)
     ANGLE_SKIP_TEST_IF(IsWindows() && IsD3D11());
+
+    // TODO(anglebug.com/5491)
+    ANGLE_SKIP_TEST_IF(IsIOS() && IsOpenGLES());
 
     GLFramebuffer fbo;
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);

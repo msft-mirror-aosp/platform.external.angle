@@ -31,9 +31,9 @@ namespace rx
 //   have needed to invalidateGraphicsDriverUniforms().
 // - Set 1 contains uniform blocks created to encompass default uniforms.  1 binding is used per
 //   pipeline stage.  Additionally, transform feedback buffers are bound from binding 2 and up.
-// - Set 2 contains all textures.
+// - Set 2 contains all textures (including texture buffers).
 // - Set 3 contains all other shader resources, such as uniform and storage blocks, atomic counter
-//   buffers and images.
+//   buffers, images and image buffers.
 
 // ANGLE driver uniforms set index (binding is always 0):
 enum DescriptorSetIndex : uint32_t
@@ -52,11 +52,11 @@ enum DescriptorSetIndex : uint32_t
 
 namespace vk
 {
+class DynamicDescriptorPool;
 class ImageHelper;
 enum class ImageLayout;
 
-using RenderPassAndSerial = ObjectAndSerial<RenderPass>;
-using PipelineAndSerial   = ObjectAndSerial<Pipeline>;
+using PipelineAndSerial = ObjectAndSerial<Pipeline>;
 
 using RefCountedDescriptorSetLayout    = RefCounted<DescriptorSetLayout>;
 using RefCountedPipelineLayout         = RefCounted<PipelineLayout>;
@@ -106,15 +106,35 @@ inline void UpdateAccess(ResourceAccess *oldAccess, ResourceAccess newAccess)
     }
 }
 
+enum RenderPassStoreOp
+{
+    Store    = VK_ATTACHMENT_STORE_OP_STORE,
+    DontCare = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+    NoneQCOM,
+};
+// ConvertRenderPassStoreOpToVkStoreOp rely on the fact that only NoneQCOM is different from VK
+// enums.
+static_assert(RenderPassStoreOp::NoneQCOM == 2, "ConvertRenderPassStoreOpToVkStoreOp must updated");
+
+inline VkAttachmentStoreOp ConvertRenderPassStoreOpToVkStoreOp(RenderPassStoreOp storeOp)
+{
+    return storeOp == RenderPassStoreOp::NoneQCOM ? VK_ATTACHMENT_STORE_OP_NONE_QCOM
+                                                  : static_cast<VkAttachmentStoreOp>(storeOp);
+}
+
 // There can be a maximum of IMPLEMENTATION_MAX_DRAW_BUFFERS color and resolve attachments, plus one
-// depth/stencil attachment.
-constexpr size_t kMaxFramebufferAttachments = gl::IMPLEMENTATION_MAX_DRAW_BUFFERS * 2 + 1;
+// depth/stencil attachment and one depth/stencil resolve attachment.
+constexpr size_t kMaxFramebufferAttachments = gl::IMPLEMENTATION_MAX_DRAW_BUFFERS * 2 + 2;
 template <typename T>
 using FramebufferAttachmentArray = std::array<T, kMaxFramebufferAttachments>;
+template <typename T>
+using FramebufferAttachmentsVector = angle::FixedVector<T, kMaxFramebufferAttachments>;
+using FramebufferAttachmentMask    = angle::BitSet<kMaxFramebufferAttachments>;
 
 constexpr size_t kMaxFramebufferNonResolveAttachments = gl::IMPLEMENTATION_MAX_DRAW_BUFFERS + 1;
 template <typename T>
 using FramebufferNonResolveAttachmentArray = std::array<T, kMaxFramebufferNonResolveAttachments>;
+using FramebufferNonResolveAttachmentMask  = angle::BitSet16<kMaxFramebufferNonResolveAttachments>;
 
 class alignas(4) RenderPassDesc final
 {
@@ -130,28 +150,66 @@ class alignas(4) RenderPassDesc final
     void packColorAttachmentGap(size_t colorIndexGL);
     // The caller must pack the depth/stencil attachment last, which is packed right after the color
     // attachments (including gaps), i.e. with an index starting from |colorAttachmentRange()|.
-    void packDepthStencilAttachment(angle::FormatID angleFormatID, ResourceAccess access);
+    void packDepthStencilAttachment(angle::FormatID angleFormatID);
+    void updateDepthStencilAccess(ResourceAccess access);
     // Indicate that a color attachment should have a corresponding resolve attachment.
     void packColorResolveAttachment(size_t colorIndexGL);
     // Remove the resolve attachment.  Used when optimizing blit through resolve attachment to
     // temporarily pack a resolve attachment and then remove it.
     void removeColorResolveAttachment(size_t colorIndexGL);
+    // Indicate that a color attachment should take its data from the resolve attachment initially.
+    void packColorUnresolveAttachment(size_t colorIndexGL);
+    void removeColorUnresolveAttachment(size_t colorIndexGL);
+    // Indicate that a depth/stencil attachment should have a corresponding resolve attachment.
+    void packDepthStencilResolveAttachment(bool resolveDepth, bool resolveStencil);
+    // Indicate that a depth/stencil attachment should take its data from the resolve attachment
+    // initially.
+    void packDepthStencilUnresolveAttachment(bool unresolveDepth, bool unresolveStencil);
+    void removeDepthStencilUnresolveAttachment();
 
     size_t hash() const;
 
     // Color attachments are in [0, colorAttachmentRange()), with possible gaps.
-    size_t colorAttachmentRange() const;
+    size_t colorAttachmentRange() const { return mColorAttachmentRange; }
     size_t depthStencilAttachmentIndex() const { return colorAttachmentRange(); }
 
     bool isColorAttachmentEnabled(size_t colorIndexGL) const;
-    bool hasDepthStencilAttachment() const
-    {
-        return getDepthStencilAccess() != ResourceAccess::Unused;
-    }
-    ResourceAccess getDepthStencilAccess() const;
+    bool hasDepthStencilAttachment() const { return mHasDepthStencilAttachment; }
     bool hasColorResolveAttachment(size_t colorIndexGL) const
     {
         return mColorResolveAttachmentMask.test(colorIndexGL);
+    }
+    gl::DrawBufferMask getColorUnresolveAttachmentMask() const
+    {
+        return mColorUnresolveAttachmentMask;
+    }
+    bool hasColorUnresolveAttachment(size_t colorIndexGL) const
+    {
+        return mColorUnresolveAttachmentMask.test(colorIndexGL);
+    }
+    bool hasDepthStencilResolveAttachment() const
+    {
+        return (mAttachmentFormats.back() & (kResolveDepthFlag | kResolveStencilFlag)) != 0;
+    }
+    bool hasDepthResolveAttachment() const
+    {
+        return (mAttachmentFormats.back() & kResolveDepthFlag) != 0;
+    }
+    bool hasStencilResolveAttachment() const
+    {
+        return (mAttachmentFormats.back() & kResolveStencilFlag) != 0;
+    }
+    bool hasDepthStencilUnresolveAttachment() const
+    {
+        return (mAttachmentFormats.back() & (kUnresolveDepthFlag | kUnresolveStencilFlag)) != 0;
+    }
+    bool hasDepthUnresolveAttachment() const
+    {
+        return (mAttachmentFormats.back() & kUnresolveDepthFlag) != 0;
+    }
+    bool hasStencilUnresolveAttachment() const
+    {
+        return (mAttachmentFormats.back() & kUnresolveStencilFlag) != 0;
     }
 
     // Get the number of attachments in the Vulkan render pass, i.e. after removing disabled
@@ -165,17 +223,20 @@ class alignas(4) RenderPassDesc final
     angle::FormatID operator[](size_t index) const
     {
         ASSERT(index < gl::IMPLEMENTATION_MAX_DRAW_BUFFERS + 1);
-        return static_cast<angle::FormatID>(mAttachmentFormats[index]);
+
+        uint8_t format = mAttachmentFormats[index];
+        if (index >= depthStencilAttachmentIndex())
+        {
+            format &= kDepthStencilFormatStorageMask;
+        }
+        return static_cast<angle::FormatID>(format);
     }
 
   private:
     // Store log(samples), to be able to store it in 3 bits.
     uint8_t mLogSamples : 3;
-
-    // Color attachment count has 9 values: from 0-8 valid attachments. The depths/stencil
-    // attachment can have 3 values: no depth stencil, read only, and writable depth/stencil.
-    // We can pack these 9*3 = 27 possible values in 5 bits.
-    uint8_t mPackedColorAttachmentRangeAndDSAccess : 5;
+    uint8_t mColorAttachmentRange : 4;
+    uint8_t mHasDepthStencilAttachment : 1;
 
     // Whether each color attachment has a corresponding resolve attachment.  Color resolve
     // attachments can be used to optimize resolve through glBlitFramebuffer() as well as support
@@ -187,9 +248,11 @@ class alignas(4) RenderPassDesc final
     // (mAttachmentFormats is one element too large, so there are 8 bits there to take).
     gl::DrawBufferMask mColorResolveAttachmentMask;
 
-    // TODO(syoussefi): to be used to determine which attachments are multisampled-render-to-texture
-    // that need load.  http://anglebug.com/4881
-    ANGLE_MAYBE_UNUSED uint8_t padding;
+    // Whether each color attachment with a corresponding resolve attachment should be initialized
+    // with said resolve attachment in an initial subpass.  This is an optimization to avoid
+    // loadOp=LOAD on the implicit multisampled image used with multisampled-render-to-texture
+    // render targets.  This operation is referred to as "unresolve".
+    gl::DrawBufferMask mColorUnresolveAttachmentMask;
 
     // Color attachment formats are stored with their GL attachment indices.  The depth/stencil
     // attachment formats follow the last enabled color attachment.  When creating a render pass,
@@ -213,7 +276,20 @@ class alignas(4) RenderPassDesc final
     //
     // The resolve attachments are packed after the non-resolve attachments.  They use the same
     // formats, so they are not specified in this array.
+    //
+    // The depth/stencil angle::FormatID values are in the range [1, 7], and therefore require only
+    // 3 bits to be stored.  As a result, the upper 5 bits of mAttachmentFormats.back() is free to
+    // use for other purposes.
     FramebufferNonResolveAttachmentArray<uint8_t> mAttachmentFormats;
+
+    // Depth/stencil format is stored in 3 bits.
+    static constexpr uint8_t kDepthStencilFormatStorageMask = 0x7;
+
+    // Flags stored in the upper 5 bits of mAttachmentFormats.back().
+    static constexpr uint8_t kResolveDepthFlag     = 0x80;
+    static constexpr uint8_t kResolveStencilFlag   = 0x40;
+    static constexpr uint8_t kUnresolveDepthFlag   = 0x20;
+    static constexpr uint8_t kUnresolveStencilFlag = 0x10;
 };
 
 bool operator==(const RenderPassDesc &lhs, const RenderPassDesc &rhs);
@@ -223,19 +299,29 @@ static_assert(kRenderPassDescSize == 12, "Size check failed");
 
 struct PackedAttachmentOpsDesc final
 {
-    // VkAttachmentLoadOp is in range [0, 2], and VkAttachmentStoreOp is in range [0, 1].
+    // VkAttachmentLoadOp is in range [0, 2], and VkAttachmentStoreOp is in range [0, 2].
     uint16_t loadOp : 2;
-    uint16_t storeOp : 1;
+    uint16_t storeOp : 2;
     uint16_t stencilLoadOp : 2;
-    uint16_t stencilStoreOp : 1;
+    uint16_t stencilStoreOp : 2;
+    // If a corresponding resolve attachment exists, storeOp may already be DONT_CARE, and it's
+    // unclear whether the attachment was invalidated or not.  This information is passed along here
+    // so that the resolve attachment's storeOp can be set to DONT_CARE if the attachment is
+    // invalidated, and if possible removed from the list of resolve attachments altogether.  Note
+    // that the latter may not be possible if the render pass has multiple subpasses due to Vulkan
+    // render pass compatibility rules.
+    uint16_t isInvalidated : 1;
+    uint16_t isStencilInvalidated : 1;
+    uint16_t padding1 : 6;
 
-    // 5-bits to force pad the structure to exactly 2 bytes.  Note that we currently don't support
+    // 4-bits to force pad the structure to exactly 2 bytes.  Note that we currently don't support
     // any of the extension layouts, whose values start at 1'000'000'000.
-    uint16_t initialLayout : 5;
-    uint16_t finalLayout : 5;
+    uint16_t initialLayout : 4;
+    uint16_t finalLayout : 4;
+    uint16_t padding2 : 8;
 };
 
-static_assert(sizeof(PackedAttachmentOpsDesc) == 2, "Size check failed");
+static_assert(sizeof(PackedAttachmentOpsDesc) == 4, "Size check failed");
 
 class PackedAttachmentIndex;
 
@@ -258,12 +344,10 @@ class AttachmentOpsArray final
     void setLayouts(PackedAttachmentIndex index,
                     ImageLayout initialLayout,
                     ImageLayout finalLayout);
-    void setOps(PackedAttachmentIndex index,
-                VkAttachmentLoadOp loadOp,
-                VkAttachmentStoreOp storeOp);
+    void setOps(PackedAttachmentIndex index, VkAttachmentLoadOp loadOp, RenderPassStoreOp storeOp);
     void setStencilOps(PackedAttachmentIndex index,
                        VkAttachmentLoadOp loadOp,
-                       VkAttachmentStoreOp storeOp);
+                       RenderPassStoreOp storeOp);
 
     void setClearOp(PackedAttachmentIndex index);
     void setClearStencilOp(PackedAttachmentIndex index);
@@ -276,15 +360,17 @@ class AttachmentOpsArray final
 
 bool operator==(const AttachmentOpsArray &lhs, const AttachmentOpsArray &rhs);
 
-static_assert(sizeof(AttachmentOpsArray) == 20, "Size check failed");
+static_assert(sizeof(AttachmentOpsArray) == 40, "Size check failed");
 
 struct PackedAttribDesc final
 {
     uint8_t format;
     uint8_t divisor;
 
-    // Can only take 11 bits on NV.
-    uint16_t offset;
+    // Desktop drivers support
+    uint16_t offset : kAttributeOffsetMaxBits;
+
+    uint16_t compressed : 1;
 
     // Although technically stride can be any value in ES 2.0, in practice supporting stride
     // greater than MAX_USHORT should not be that helpful. Note that stride limits are
@@ -305,8 +391,11 @@ static_assert(kVertexInputAttributesSize == 96, "Size mismatch");
 
 struct RasterizationStateBits final
 {
-    uint32_t depthClampEnable : 4;
-    uint32_t rasterizationDiscardEnable : 4;
+    // Note: Currently only 2 subpasses possible, so there are 5 bits in subpass that can be
+    // repurposed.
+    uint32_t subpass : 6;
+    uint32_t depthClampEnable : 1;
+    uint32_t rasterizationDiscardEnable : 1;
     uint32_t polygonMode : 4;
     uint32_t cullMode : 4;
     uint32_t frontFace : 4;
@@ -369,12 +458,24 @@ struct DepthStencilEnableFlags final
 constexpr size_t kDepthStencilEnableFlagsSize = sizeof(DepthStencilEnableFlags);
 static_assert(kDepthStencilEnableFlagsSize == 1, "Size check failed");
 
+// We are borrowing three bits here for surface rotation, even though it has nothing to do with
+// depth stencil.
+struct DepthCompareOpAndSurfaceRotation final
+{
+    uint8_t depthCompareOp : 4;
+    uint8_t surfaceRotation : 3;
+    uint8_t padding : 1;
+};
+constexpr size_t kDepthCompareOpAndSurfaceRotationSize = sizeof(DepthCompareOpAndSurfaceRotation);
+static_assert(kDepthCompareOpAndSurfaceRotationSize == 1, "Size check failed");
+
 struct PackedDepthStencilStateInfo final
 {
     DepthStencilEnableFlags enable;
     uint8_t frontStencilReference;
     uint8_t backStencilReference;
-    uint8_t depthCompareOp;  // only needs 4 bits. extra used as padding.
+    DepthCompareOpAndSurfaceRotation depthCompareOpAndSurfaceRotation;
+
     float minDepthBounds;
     float maxDepthBounds;
     PackedStencilOpState front;
@@ -383,6 +484,7 @@ struct PackedDepthStencilStateInfo final
 
 constexpr size_t kPackedDepthStencilStateSize = sizeof(PackedDepthStencilStateInfo);
 static_assert(kPackedDepthStencilStateSize == 20, "Size check failed");
+static_assert(static_cast<int>(SurfaceRotation::EnumCount) <= 8, "Size check failed");
 
 struct LogicOpState final
 {
@@ -408,7 +510,8 @@ static_assert(kPackedColorBlendAttachmentStateSize == 4, "Size check failed");
 
 struct PrimitiveState final
 {
-    uint16_t topology : 15;
+    uint16_t topology : 9;
+    uint16_t patchVertices : 6;
     uint16_t restartEnable : 1;
 };
 
@@ -425,6 +528,22 @@ struct PackedInputAssemblyAndColorBlendStateInfo final
     PrimitiveState primitive;
 };
 
+struct PackedScissor final
+{
+    uint16_t x;
+    uint16_t y;
+    uint16_t width;
+    uint16_t height;
+};
+
+struct PackedExtent final
+{
+    uint16_t width;
+    uint16_t height;
+};
+// This is invalid value for PackedScissor.x. It is used to indicate scissor is a dynamic state
+constexpr int32_t kDynamicScissorSentinel = std::numeric_limits<decltype(PackedScissor::x)>::max();
+
 constexpr size_t kPackedInputAssemblyAndColorBlendStateSize =
     sizeof(PackedInputAssemblyAndColorBlendStateInfo);
 static_assert(kPackedInputAssemblyAndColorBlendStateSize == 56, "Size check failed");
@@ -432,7 +551,7 @@ static_assert(kPackedInputAssemblyAndColorBlendStateSize == 56, "Size check fail
 constexpr size_t kGraphicsPipelineDescSumOfSizes =
     kVertexInputAttributesSize + kRenderPassDescSize + kPackedRasterizationAndMultisampleStateSize +
     kPackedDepthStencilStateSize + kPackedInputAssemblyAndColorBlendStateSize + sizeof(VkViewport) +
-    sizeof(VkRect2D);
+    sizeof(PackedScissor) + sizeof(PackedExtent);
 
 // Number of dirty bits in the dirty bit set.
 constexpr size_t kGraphicsPipelineDirtyBitBytes = 4;
@@ -462,7 +581,7 @@ class GraphicsPipelineDesc final
     size_t hash() const;
     bool operator==(const GraphicsPipelineDesc &other) const;
 
-    void initDefaults();
+    void initDefaults(const ContextVk *contextVk);
 
     // For custom comparisons.
     template <typename T>
@@ -472,7 +591,7 @@ class GraphicsPipelineDesc final
     }
 
     angle::Result initializePipeline(ContextVk *contextVk,
-                                     const vk::PipelineCache &pipelineCacheVk,
+                                     const PipelineCache &pipelineCacheVk,
                                      const RenderPass &compatibleRenderPass,
                                      const PipelineLayout &pipelineLayout,
                                      const gl::AttributesMask &activeAttribLocationsMask,
@@ -480,7 +599,9 @@ class GraphicsPipelineDesc final
                                      const ShaderModule *vertexModule,
                                      const ShaderModule *fragmentModule,
                                      const ShaderModule *geometryModule,
-                                     vk::SpecializationConstantBitSet specConsts,
+                                     const ShaderModule *tessControlModule,
+                                     const ShaderModule *tessEvaluationModule,
+                                     const SpecializationConstants &specConsts,
                                      Pipeline *pipelineOut) const;
 
     // Vertex input state. For ES 3.1 this should be separated into binding and attribute.
@@ -489,6 +610,7 @@ class GraphicsPipelineDesc final
                            GLuint stride,
                            GLuint divisor,
                            angle::FormatID format,
+                           bool compressed,
                            GLuint relativeOffset);
 
     // Input assembly info
@@ -518,6 +640,8 @@ class GraphicsPipelineDesc final
                           uint32_t maskNumber,
                           uint32_t mask);
 
+    void updateSampleShading(GraphicsPipelineTransitionBits *transition, bool enable, float value);
+
     // RenderPass description.
     const RenderPassDesc &getRenderPassDesc() const { return mRenderPassDesc; }
 
@@ -526,25 +650,27 @@ class GraphicsPipelineDesc final
                               const RenderPassDesc &renderPassDesc);
 
     // Blend states
-    void updateBlendEnabled(GraphicsPipelineTransitionBits *transition, bool isBlendEnabled);
+    void updateBlendEnabled(GraphicsPipelineTransitionBits *transition,
+                            gl::DrawBufferMask blendEnabledMask);
     void updateBlendColor(GraphicsPipelineTransitionBits *transition, const gl::ColorF &color);
     void updateBlendFuncs(GraphicsPipelineTransitionBits *transition,
-                          const gl::BlendState &blendState);
+                          const gl::BlendStateExt &blendStateExt);
     void updateBlendEquations(GraphicsPipelineTransitionBits *transition,
-                              const gl::BlendState &blendState);
-    void setColorWriteMask(VkColorComponentFlags colorComponentFlags,
-                           const gl::DrawBufferMask &alphaMask,
-                           const gl::DrawBufferMask &enabledDrawBuffers);
+                              const gl::BlendStateExt &blendStateExt);
+    void setColorWriteMasks(gl::BlendStateExt::ColorMaskStorage::Type colorMasks,
+                            const gl::DrawBufferMask &alphaMask,
+                            const gl::DrawBufferMask &enabledDrawBuffers);
     void setSingleColorWriteMask(uint32_t colorIndexGL, VkColorComponentFlags colorComponentFlags);
-    void updateColorWriteMask(GraphicsPipelineTransitionBits *transition,
-                              VkColorComponentFlags colorComponentFlags,
-                              const gl::DrawBufferMask &alphaMask,
-                              const gl::DrawBufferMask &enabledDrawBuffers);
+    void updateColorWriteMasks(GraphicsPipelineTransitionBits *transition,
+                               gl::BlendStateExt::ColorMaskStorage::Type colorMasks,
+                               const gl::DrawBufferMask &alphaMask,
+                               const gl::DrawBufferMask &enabledDrawBuffers);
 
     // Depth/stencil states.
     void setDepthTestEnabled(bool enabled);
     void setDepthWriteEnabled(bool enabled);
     void setDepthFunc(VkCompareOp op);
+    void setDepthClampEnabled(bool enabled);
     void setStencilTestEnabled(bool enabled);
     void setStencilFrontFuncs(uint8_t reference, VkCompareOp compareOp, uint8_t compareMask);
     void setStencilBackFuncs(uint8_t reference, VkCompareOp compareOp, uint8_t compareMask);
@@ -591,17 +717,45 @@ class GraphicsPipelineDesc final
     void updateDepthRange(GraphicsPipelineTransitionBits *transition,
                           float nearPlane,
                           float farPlane);
+    void setDynamicScissor();
     void setScissor(const VkRect2D &scissor);
     void updateScissor(GraphicsPipelineTransitionBits *transition, const VkRect2D &scissor);
 
+    // Tessellation
+    void updatePatchVertices(GraphicsPipelineTransitionBits *transition, GLuint value);
+
+    // Subpass
+    void resetSubpass(GraphicsPipelineTransitionBits *transition);
+    void nextSubpass(GraphicsPipelineTransitionBits *transition);
+    void setSubpass(uint32_t subpass);
+    uint32_t getSubpass() const;
+
+    void updateSurfaceRotation(GraphicsPipelineTransitionBits *transition,
+                               const SurfaceRotation surfaceRotation);
+    SurfaceRotation getSurfaceRotation() const
+    {
+        return static_cast<SurfaceRotation>(
+            mDepthStencilStateInfo.depthCompareOpAndSurfaceRotation.surfaceRotation);
+    }
+
+    void updateDrawableSize(GraphicsPipelineTransitionBits *transition,
+                            uint32_t width,
+                            uint32_t height);
+    const PackedExtent &getDrawableSize() const { return mDrawableSize; }
+
   private:
+    void updateSubpass(GraphicsPipelineTransitionBits *transition, uint32_t subpass);
+
     VertexInputAttributes mVertexInputAttribs;
     RenderPassDesc mRenderPassDesc;
     PackedRasterizationAndMultisampleStateInfo mRasterizationAndMultisampleStateInfo;
     PackedDepthStencilStateInfo mDepthStencilStateInfo;
     PackedInputAssemblyAndColorBlendStateInfo mInputAssemblyAndColorBlendStateInfo;
     VkViewport mViewport;
-    VkRect2D mScissor;
+    // The special value of .offset.x == INT_MIN for scissor implies dynamic scissor that needs to
+    // be set through vkCmdSetScissor.
+    PackedScissor mScissor;
+    PackedExtent mDrawableSize;
 };
 
 // Verify the packed pipeline description has no gaps in the packing.
@@ -636,7 +790,7 @@ class DescriptorSetLayoutDesc final
                 VkDescriptorType type,
                 uint32_t count,
                 VkShaderStageFlags stages,
-                const vk::Sampler *immutableSampler);
+                const Sampler *immutableSampler);
 
     void unpackBindings(DescriptorSetLayoutBindingVector *bindings,
                         std::vector<VkSampler> *immutableSamplers) const;
@@ -720,15 +874,21 @@ class SamplerDesc final
 {
   public:
     SamplerDesc();
-    SamplerDesc(const gl::SamplerState &samplerState, bool stencilMode, uint64_t externalFormat);
+    SamplerDesc(const angle::FeaturesVk &featuresVk,
+                const gl::SamplerState &samplerState,
+                bool stencilMode,
+                uint64_t externalFormat);
     ~SamplerDesc();
 
     SamplerDesc(const SamplerDesc &other);
     SamplerDesc &operator=(const SamplerDesc &rhs);
 
-    void update(const gl::SamplerState &samplerState, bool stencilMode, uint64_t externalFormat);
+    void update(const angle::FeaturesVk &featuresVk,
+                const gl::SamplerState &samplerState,
+                bool stencilMode,
+                uint64_t externalFormat);
     void reset();
-    angle::Result init(ContextVk *contextVk, vk::Sampler *sampler) const;
+    angle::Result init(ContextVk *contextVk, Sampler *sampler) const;
 
     size_t hash() const;
     bool operator==(const SamplerDesc &other) const;
@@ -877,26 +1037,28 @@ ANGLE_INLINE PipelineHelper::PipelineHelper(Pipeline &&pipeline) : mPipeline(std
 
 struct ImageSubresourceRange
 {
-    uint16_t level : 10;       // GL max is 1000 (fits in 10 bits).
-    uint16_t levelCount : 6;   // Max 63 levels (2 ** 6 - 1). If we need more, take from layer.
-    uint16_t layer : 15;       // Implementation max is 2048 (11 bits).
-    uint16_t singleLayer : 1;  // true/false only. Not possible to use sub-slices of levels.
+    uint16_t level : 10;            // GL max is 1000 (fits in 10 bits).
+    uint16_t levelCount : 6;        // Max 63 levels (2 ** 6 - 1). If we need more, take from layer.
+    uint16_t layer : 13;            // Implementation max is 2048 (11 bits).
+    uint16_t singleLayer : 1;       // true/false only. Not possible to use sub-slices of levels.
+    uint16_t srgbDecodeMode : 1;    // Values from vk::SrgbDecodeMode.
+    uint16_t srgbOverrideMode : 1;  // Values from gl::SrgbOverride, either Default or SRGB.
 };
 
 static_assert(sizeof(ImageSubresourceRange) == sizeof(uint32_t), "Size mismatch");
 
-constexpr ImageSubresourceRange kInvalidImageSubresourceRange = {0, 0, 0, 0};
+constexpr ImageSubresourceRange kInvalidImageSubresourceRange = {0, 0, 0, 0, 0, 0};
 
-struct ImageViewSubresourceSerial
+struct ImageOrBufferViewSubresourceSerial
 {
-    ImageViewSerial imageViewSerial;
+    ImageOrBufferViewSerial viewSerial;
     ImageSubresourceRange subresource;
 };
 
-static_assert(sizeof(ImageViewSubresourceSerial) == sizeof(uint64_t), "Size mismatch");
+static_assert(sizeof(ImageOrBufferViewSubresourceSerial) == sizeof(uint64_t), "Size mismatch");
 
-constexpr ImageViewSubresourceSerial kInvalidImageViewSubresourceSerial = {
-    kInvalidImageViewSerial, kInvalidImageSubresourceRange};
+constexpr ImageOrBufferViewSubresourceSerial kInvalidImageOrBufferViewSubresourceSerial = {
+    kInvalidImageOrBufferViewSerial, kInvalidImageSubresourceRange};
 
 class TextureDescriptorDesc
 {
@@ -908,7 +1070,7 @@ class TextureDescriptorDesc
     TextureDescriptorDesc &operator=(const TextureDescriptorDesc &other);
 
     void update(size_t index,
-                ImageViewSubresourceSerial imageViewSerial,
+                ImageOrBufferViewSubresourceSerial viewSerial,
                 SamplerSerial samplerSerial);
     size_t hash() const;
     void reset();
@@ -924,7 +1086,7 @@ class TextureDescriptorDesc
     ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
     struct TexUnitSerials
     {
-        ImageViewSubresourceSerial imageView;
+        ImageOrBufferViewSubresourceSerial view;
         SamplerSerial sampler;
     };
     gl::ActiveTextureArray<TexUnitSerials> mSerials;
@@ -970,12 +1132,19 @@ class UniformsAndXfbDesc
 
 // In the FramebufferDesc object:
 //  - Depth/stencil serial is at index 0
-//  - Color serials are at indices [1:gl::IMPLEMENTATION_MAX_DRAW_BUFFERS]
-//  - Resolve attachments are at indices [gl::IMPLEMENTATION_MAX_DRAW_BUFFERS+1,
-//                                        gl::IMPLEMENTATION_MAX_DRAW_BUFFERS*2]
-constexpr size_t kFramebufferDescDepthStencilIndex  = 0;
-constexpr size_t kFramebufferDescColorIndexOffset   = 1;
-constexpr size_t kFramebufferDescResolveIndexOffset = gl::IMPLEMENTATION_MAX_DRAW_BUFFERS + 1;
+//  - Color serials are at indices [1, gl::IMPLEMENTATION_MAX_DRAW_BUFFERS]
+//  - Depth/stencil resolve attachment is at index gl::IMPLEMENTATION_MAX_DRAW_BUFFERS+1
+//  - Resolve attachments are at indices [gl::IMPLEMENTATION_MAX_DRAW_BUFFERS+2,
+//                                        gl::IMPLEMENTATION_MAX_DRAW_BUFFERS*2+1]
+constexpr size_t kFramebufferDescDepthStencilIndex = 0;
+constexpr size_t kFramebufferDescColorIndexOffset  = kFramebufferDescDepthStencilIndex + 1;
+constexpr size_t kFramebufferDescDepthStencilResolveIndexOffset =
+    kFramebufferDescColorIndexOffset + gl::IMPLEMENTATION_MAX_DRAW_BUFFERS;
+constexpr size_t kFramebufferDescColorResolveIndexOffset =
+    kFramebufferDescDepthStencilResolveIndexOffset + 1;
+
+// Enable struct padding warnings for the code below since it is used in caches.
+ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
 
 class FramebufferDesc
 {
@@ -986,32 +1155,48 @@ class FramebufferDesc
     FramebufferDesc(const FramebufferDesc &other);
     FramebufferDesc &operator=(const FramebufferDesc &other);
 
-    void updateColor(uint32_t index, ImageViewSubresourceSerial serial);
-    void updateColorResolve(uint32_t index, ImageViewSubresourceSerial serial);
-    void updateDepthStencil(ImageViewSubresourceSerial serial);
-    void updateReadOnlyDepth(bool readOnlyDepth);
+    void updateColor(uint32_t index, ImageOrBufferViewSubresourceSerial serial);
+    void updateColorResolve(uint32_t index, ImageOrBufferViewSubresourceSerial serial);
+    void updateUnresolveMask(FramebufferNonResolveAttachmentMask unresolveMask);
+    void updateDepthStencil(ImageOrBufferViewSubresourceSerial serial);
+    void updateDepthStencilResolve(ImageOrBufferViewSubresourceSerial serial);
     size_t hash() const;
-    void reset();
 
     bool operator==(const FramebufferDesc &other) const;
 
     uint32_t attachmentCount() const;
-    bool isReadOnlyDepth() const { return mReadOnlyDepth != 0; }
 
-    ImageViewSubresourceSerial getColorImageViewSerial(uint32_t index)
+    ImageOrBufferViewSubresourceSerial getColorImageViewSerial(uint32_t index)
     {
         ASSERT(kFramebufferDescColorIndexOffset + index < mSerials.size());
         return mSerials[kFramebufferDescColorIndexOffset + index];
     }
 
+    FramebufferNonResolveAttachmentMask getUnresolveAttachmentMask() const;
+
+    void updateLayerCount(uint32_t layerCount);
+    uint32_t getLayerCount() const { return mLayerCount; }
+
   private:
-    void update(uint32_t index, ImageViewSubresourceSerial serial);
+    void reset();
+    void update(uint32_t index, ImageOrBufferViewSubresourceSerial serial);
 
     // Note: this is an exclusive index. If there is one index it will be "1".
-    uint16_t mMaxIndex;
-    uint16_t mReadOnlyDepth;
-    FramebufferAttachmentArray<ImageViewSubresourceSerial> mSerials;
+    uint16_t mMaxIndex : 7;
+    static_assert(gl::IMPLEMENTATION_MAX_FRAMEBUFFER_LAYERS < (1 << 9) - 1,
+                  "Not enough bits for mLayerCount");
+    uint16_t mLayerCount : 9;
+
+    // If the render pass contains an initial subpass to unresolve a number of attachments, the
+    // subpass description is derived from the following mask, specifying which attachments need
+    // to be unresolved.  Includes both color and depth/stencil attachments.
+    FramebufferNonResolveAttachmentMask mUnresolveAttachmentMask;
+
+    FramebufferAttachmentArray<ImageOrBufferViewSubresourceSerial> mSerials;
 };
+
+// Disable warnings about struct padding.
+ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
 
 // The SamplerHelper allows a Sampler to be coupled with a serial.
 // Must be included before we declare SamplerCache.
@@ -1036,6 +1221,28 @@ class SamplerHelper final : angle::NonCopyable
 
 using RefCountedSampler = RefCounted<SamplerHelper>;
 using SamplerBinding    = BindingPointer<SamplerHelper>;
+
+class RenderPassHelper final : angle::NonCopyable
+{
+  public:
+    RenderPassHelper();
+    ~RenderPassHelper();
+
+    RenderPassHelper(RenderPassHelper &&other);
+    RenderPassHelper &operator=(RenderPassHelper &&other);
+
+    void destroy(VkDevice device);
+
+    const RenderPass &getRenderPass() const;
+    RenderPass &getRenderPass();
+
+    const RenderPassPerfCounters &getPerfCounters() const;
+    RenderPassPerfCounters &getPerfCounters();
+
+  private:
+    RenderPass mRenderPass;
+    RenderPassPerfCounters mPerfCounters;
+};
 }  // namespace vk
 }  // namespace rx
 
@@ -1110,6 +1317,55 @@ ANGLE_VK_SERIAL_OP(ANGLE_HASH_VK_SERIAL)
 
 namespace rx
 {
+// Cache types for various Vulkan objects
+enum class VulkanCacheType
+{
+    CompatibleRenderPass,
+    RenderPassWithOps,
+    GraphicsPipeline,
+    PipelineLayout,
+    Sampler,
+    SamplerYcbcrConversion,
+    DescriptorSet,
+    DescriptorSetLayout,
+    TextureDescriptors,
+    UniformsAndXfbDescriptorSet,
+    Framebuffer,
+    EnumCount
+};
+
+// Base class for all caches. Provides cache hit and miss counters.
+class CacheStats final : angle::NonCopyable
+{
+  public:
+    CacheStats() : mHitCount(0), mMissCount(0) {}
+    ~CacheStats() {}
+
+    ANGLE_INLINE void hit() { mHitCount++; }
+    ANGLE_INLINE void miss() { mMissCount++; }
+    ANGLE_INLINE void accumulate(const CacheStats &stats)
+    {
+        mHitCount += stats.mHitCount;
+        mMissCount += stats.mMissCount;
+    }
+
+    ANGLE_INLINE double getHitRatio() const
+    {
+        if (mHitCount + mMissCount == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return static_cast<double>(mHitCount) / (mHitCount + mMissCount);
+        }
+    }
+
+  private:
+    uint64_t mHitCount;
+    uint64_t mMissCount;
+};
+
 // TODO(jmadill): Add cache trimming/eviction.
 class RenderPassCache final : angle::NonCopyable
 {
@@ -1117,10 +1373,9 @@ class RenderPassCache final : angle::NonCopyable
     RenderPassCache();
     ~RenderPassCache();
 
-    void destroy(VkDevice device);
+    void destroy(RendererVk *rendererVk);
 
     ANGLE_INLINE angle::Result getCompatibleRenderPass(ContextVk *contextVk,
-                                                       Serial serial,
                                                        const vk::RenderPassDesc &desc,
                                                        vk::RenderPass **renderPassOut)
     {
@@ -1131,32 +1386,39 @@ class RenderPassCache final : angle::NonCopyable
             ASSERT(!innerCache.empty());
 
             // Find the first element and return it.
-            innerCache.begin()->second.updateSerial(serial);
-            *renderPassOut = &innerCache.begin()->second.get();
+            *renderPassOut = &innerCache.begin()->second.getRenderPass();
+            mCompatibleRenderPassCacheStats.hit();
             return angle::Result::Continue;
         }
 
-        return addRenderPass(contextVk, serial, desc, renderPassOut);
+        mCompatibleRenderPassCacheStats.miss();
+        return addRenderPass(contextVk, desc, renderPassOut);
     }
 
-    angle::Result getRenderPassWithOps(vk::Context *context,
-                                       Serial serial,
+    angle::Result getRenderPassWithOps(ContextVk *contextVk,
                                        const vk::RenderPassDesc &desc,
                                        const vk::AttachmentOpsArray &attachmentOps,
                                        vk::RenderPass **renderPassOut);
 
   private:
+    angle::Result getRenderPassWithOpsImpl(ContextVk *contextVk,
+                                           const vk::RenderPassDesc &desc,
+                                           const vk::AttachmentOpsArray &attachmentOps,
+                                           bool updatePerfCounters,
+                                           vk::RenderPass **renderPassOut);
+
     angle::Result addRenderPass(ContextVk *contextVk,
-                                Serial serial,
                                 const vk::RenderPassDesc &desc,
                                 vk::RenderPass **renderPassOut);
 
     // Use a two-layer caching scheme. The top level matches the "compatible" RenderPass elements.
     // The second layer caches the attachment load/store ops and initial/final layout.
-    using InnerCache = std::unordered_map<vk::AttachmentOpsArray, vk::RenderPassAndSerial>;
-    using OuterCache = std::unordered_map<vk::RenderPassDesc, InnerCache>;
+    using InnerCache = angle::HashMap<vk::AttachmentOpsArray, vk::RenderPassHelper>;
+    using OuterCache = angle::HashMap<vk::RenderPassDesc, InnerCache>;
 
     OuterCache mPayload;
+    CacheStats mCompatibleRenderPassCacheStats;
+    CacheStats mRenderPassWithOpsCacheStats;
 };
 
 // TODO(jmadill): Add cache trimming/eviction.
@@ -1166,7 +1428,7 @@ class GraphicsPipelineCache final : angle::NonCopyable
     GraphicsPipelineCache();
     ~GraphicsPipelineCache();
 
-    void destroy(VkDevice device);
+    void destroy(RendererVk *rendererVk);
     void release(ContextVk *context);
 
     void populate(const vk::GraphicsPipelineDesc &desc, vk::Pipeline &&pipeline);
@@ -1180,7 +1442,9 @@ class GraphicsPipelineCache final : angle::NonCopyable
                                            const vk::ShaderModule *vertexModule,
                                            const vk::ShaderModule *fragmentModule,
                                            const vk::ShaderModule *geometryModule,
-                                           vk::SpecializationConstantBitSet specConsts,
+                                           const vk::ShaderModule *tessControlModule,
+                                           const vk::ShaderModule *tessEvaluationModule,
+                                           const vk::SpecializationConstants &specConsts,
                                            const vk::GraphicsPipelineDesc &desc,
                                            const vk::GraphicsPipelineDesc **descPtrOut,
                                            vk::PipelineHelper **pipelineOut)
@@ -1190,13 +1454,15 @@ class GraphicsPipelineCache final : angle::NonCopyable
         {
             *descPtrOut  = &item->first;
             *pipelineOut = &item->second;
+            mCacheStats.hit();
             return angle::Result::Continue;
         }
 
+        mCacheStats.miss();
         return insertPipeline(contextVk, pipelineCacheVk, compatibleRenderPass, pipelineLayout,
                               activeAttribLocationsMask, programAttribsTypeMask, vertexModule,
-                              fragmentModule, geometryModule, specConsts, desc, descPtrOut,
-                              pipelineOut);
+                              fragmentModule, geometryModule, tessControlModule,
+                              tessEvaluationModule, specConsts, desc, descPtrOut, pipelineOut);
     }
 
   private:
@@ -1209,12 +1475,15 @@ class GraphicsPipelineCache final : angle::NonCopyable
                                  const vk::ShaderModule *vertexModule,
                                  const vk::ShaderModule *fragmentModule,
                                  const vk::ShaderModule *geometryModule,
-                                 vk::SpecializationConstantBitSet specConsts,
+                                 const vk::ShaderModule *tessControlModule,
+                                 const vk::ShaderModule *tessEvaluationModule,
+                                 const vk::SpecializationConstants &specConsts,
                                  const vk::GraphicsPipelineDesc &desc,
                                  const vk::GraphicsPipelineDesc **descPtrOut,
                                  vk::PipelineHelper **pipelineOut);
 
     std::unordered_map<vk::GraphicsPipelineDesc, vk::PipelineHelper> mPayload;
+    CacheStats mCacheStats;
 };
 
 class DescriptorSetLayoutCache final : angle::NonCopyable
@@ -1223,7 +1492,7 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
     DescriptorSetLayoutCache();
     ~DescriptorSetLayoutCache();
 
-    void destroy(VkDevice device);
+    void destroy(RendererVk *rendererVk);
 
     angle::Result getDescriptorSetLayout(
         vk::Context *context,
@@ -1232,6 +1501,7 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
 
   private:
     std::unordered_map<vk::DescriptorSetLayoutDesc, vk::RefCountedDescriptorSetLayout> mPayload;
+    CacheStats mCacheStats;
 };
 
 class PipelineLayoutCache final : angle::NonCopyable
@@ -1240,7 +1510,7 @@ class PipelineLayoutCache final : angle::NonCopyable
     PipelineLayoutCache();
     ~PipelineLayoutCache();
 
-    void destroy(VkDevice device);
+    void destroy(RendererVk *rendererVk);
 
     angle::Result getPipelineLayout(vk::Context *context,
                                     const vk::PipelineLayoutDesc &desc,
@@ -1249,6 +1519,7 @@ class PipelineLayoutCache final : angle::NonCopyable
 
   private:
     std::unordered_map<vk::PipelineLayoutDesc, vk::RefCountedPipelineLayout> mPayload;
+    CacheStats mCacheStats;
 };
 
 class SamplerCache final : angle::NonCopyable
@@ -1257,7 +1528,7 @@ class SamplerCache final : angle::NonCopyable
     SamplerCache();
     ~SamplerCache();
 
-    void destroy(RendererVk *renderer);
+    void destroy(RendererVk *rendererVk);
 
     angle::Result getSampler(ContextVk *contextVk,
                              const vk::SamplerDesc &desc,
@@ -1265,6 +1536,7 @@ class SamplerCache final : angle::NonCopyable
 
   private:
     std::unordered_map<vk::SamplerDesc, vk::RefCountedSampler> mPayload;
+    CacheStats mCacheStats;
 };
 
 // YuvConversion Cache
@@ -1274,7 +1546,7 @@ class SamplerYcbcrConversionCache final : angle::NonCopyable
     SamplerYcbcrConversionCache();
     ~SamplerYcbcrConversionCache();
 
-    void destroy(RendererVk *render);
+    void destroy(RendererVk *rendererVk);
 
     angle::Result getYuvConversion(
         vk::Context *context,
@@ -1285,6 +1557,72 @@ class SamplerYcbcrConversionCache final : angle::NonCopyable
 
   private:
     std::unordered_map<uint64_t, vk::RefCountedSamplerYcbcrConversion> mPayload;
+    CacheStats mCacheStats;
+};
+
+// DescriptorSet Cache
+class DriverUniformsDescriptorSetCache final : angle::NonCopyable
+{
+  public:
+    DriverUniformsDescriptorSetCache() = default;
+    ~DriverUniformsDescriptorSetCache() { ASSERT(mPayload.empty()); }
+
+    void destroy(RendererVk *rendererVk);
+
+    ANGLE_INLINE bool get(uint32_t serial, VkDescriptorSet *descriptorSet)
+    {
+        if (mPayload.get(serial, descriptorSet))
+        {
+            mCacheStats.hit();
+            return true;
+        }
+        mCacheStats.miss();
+        return false;
+    }
+
+    ANGLE_INLINE void insert(uint32_t serial, VkDescriptorSet descriptorSet)
+    {
+        mPayload.insert(serial, descriptorSet);
+    }
+
+    ANGLE_INLINE void clear() { mPayload.clear(); }
+
+  private:
+    angle::FastIntegerMap<VkDescriptorSet> mPayload;
+    CacheStats mCacheStats;
+};
+
+// Templated Descriptors Cache
+template <typename key, VulkanCacheType cacheType>
+class DescriptorSetCache final : angle::NonCopyable
+{
+  public:
+    DescriptorSetCache() = default;
+    ~DescriptorSetCache() { ASSERT(mPayload.empty()); }
+
+    void destroy(RendererVk *rendererVk);
+
+    ANGLE_INLINE bool get(const key &desc, VkDescriptorSet *descriptorSet)
+    {
+        auto iter = mPayload.find(desc);
+        if (iter != mPayload.end())
+        {
+            *descriptorSet = iter->second;
+            mCacheStats.hit();
+            return true;
+        }
+        mCacheStats.miss();
+        return false;
+    }
+
+    ANGLE_INLINE void insert(const key &desc, VkDescriptorSet descriptorSet)
+    {
+        mPayload.emplace(desc, descriptorSet);
+    }
+
+  private:
+    angle::HashMap<key, VkDescriptorSet> mPayload;
+    CacheStats mCacheStats;
 };
 
 // Only 1 driver uniform binding is used.

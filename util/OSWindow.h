@@ -68,6 +68,8 @@ class ANGLE_UTIL_EXPORT OSWindow
     // Whether window has been successfully initialized.
     bool valid() const { return mValid; }
 
+    void ignoreSizeEvents() { mIgnoreSizeEvents = true; }
+
   protected:
     OSWindow();
     virtual ~OSWindow();
@@ -82,6 +84,15 @@ class ANGLE_UTIL_EXPORT OSWindow
     std::list<Event> mEvents;
 
     bool mValid;
+    bool mIgnoreSizeEvents;
 };
+
+namespace angle
+{
+// Find a test data file or directory.
+ANGLE_UTIL_EXPORT bool FindTestDataPath(const char *searchPath,
+                                        char *dataPathOut,
+                                        size_t maxDataPathOutLen);
+}  // namespace angle
 
 #endif  // UTIL_OSWINDOW_H_

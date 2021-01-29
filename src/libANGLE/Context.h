@@ -10,6 +10,7 @@
 #ifndef LIBANGLE_CONTEXT_H_
 #define LIBANGLE_CONTEXT_H_
 
+#include <mutex>
 #include <set>
 #include <string>
 
@@ -19,25 +20,10 @@
 #include "common/angleutils.h"
 #include "libANGLE/Caps.h"
 #include "libANGLE/Constants.h"
-#include "libANGLE/Context_gl_1_0_autogen.h"
-#include "libANGLE/Context_gl_1_1_autogen.h"
-#include "libANGLE/Context_gl_1_2_autogen.h"
-#include "libANGLE/Context_gl_1_3_autogen.h"
-#include "libANGLE/Context_gl_1_4_autogen.h"
-#include "libANGLE/Context_gl_1_5_autogen.h"
-#include "libANGLE/Context_gl_2_0_autogen.h"
-#include "libANGLE/Context_gl_2_1_autogen.h"
-#include "libANGLE/Context_gl_3_0_autogen.h"
-#include "libANGLE/Context_gl_3_1_autogen.h"
-#include "libANGLE/Context_gl_3_2_autogen.h"
-#include "libANGLE/Context_gl_3_3_autogen.h"
-#include "libANGLE/Context_gl_4_0_autogen.h"
-#include "libANGLE/Context_gl_4_1_autogen.h"
-#include "libANGLE/Context_gl_4_2_autogen.h"
-#include "libANGLE/Context_gl_4_3_autogen.h"
-#include "libANGLE/Context_gl_4_4_autogen.h"
-#include "libANGLE/Context_gl_4_5_autogen.h"
-#include "libANGLE/Context_gl_4_6_autogen.h"
+#include "libANGLE/Context_gl_1_autogen.h"
+#include "libANGLE/Context_gl_2_autogen.h"
+#include "libANGLE/Context_gl_3_autogen.h"
+#include "libANGLE/Context_gl_4_autogen.h"
 #include "libANGLE/Context_gles_1_0_autogen.h"
 #include "libANGLE/Context_gles_2_0_autogen.h"
 #include "libANGLE/Context_gles_3_0_autogen.h"
@@ -203,6 +189,7 @@ class StateCache final : angle::NonCopyable
     // 2. onVertexArrayBufferStateChange.
     // 3. onBufferBindingChange.
     // 4. onVertexArrayStateChange.
+    // 5. onVertexArrayBindingStateChange.
     intptr_t getBasicDrawElementsError(const Context *context) const
     {
         if (mCachedBasicDrawElementsError != kInvalidPointer)
@@ -302,7 +289,12 @@ class StateCache final : angle::NonCopyable
     void updateActiveImageUnitIndices(Context *context);
     void updateCanDraw(Context *context);
 
-    void setValidDrawModes(bool pointsOK, bool linesOK, bool trisOK, bool lineAdjOK, bool triAdjOK);
+    void setValidDrawModes(bool pointsOK,
+                           bool linesOK,
+                           bool trisOK,
+                           bool lineAdjOK,
+                           bool triAdjOK,
+                           bool patchOK);
 
     intptr_t getBasicDrawStatesErrorImpl(const Context *context) const;
     intptr_t getBasicDrawElementsErrorImpl(const Context *context) const;
@@ -419,6 +411,10 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     bool isVertexArrayGenerated(VertexArrayID vertexArray) const;
     bool isTransformFeedbackGenerated(TransformFeedbackID transformFeedback) const;
 
+    bool isExternal() const { return mIsExternal; }
+    bool saveAndRestoreState() const { return mSaveAndRestoreState; }
+    bool isCurrent() const { return mIsCurrent; }
+
     void getBooleanvImpl(GLenum pname, GLboolean *params) const;
     void getFloatvImpl(GLenum pname, GLfloat *params) const;
     void getIntegervImpl(GLenum pname, GLint *params) const;
@@ -432,28 +428,13 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     bool hasActiveTransformFeedback(ShaderProgramID program) const;
 
-    // GL emulation: Interface to entry points
-    ANGLE_GL_1_0_CONTEXT_API
-    ANGLE_GL_1_1_CONTEXT_API
-    ANGLE_GL_1_2_CONTEXT_API
-    ANGLE_GL_1_3_CONTEXT_API
-    ANGLE_GL_1_4_CONTEXT_API
-    ANGLE_GL_1_5_CONTEXT_API
-    ANGLE_GL_2_0_CONTEXT_API
-    ANGLE_GL_2_1_CONTEXT_API
-    ANGLE_GL_3_0_CONTEXT_API
-    ANGLE_GL_3_1_CONTEXT_API
-    ANGLE_GL_3_2_CONTEXT_API
-    ANGLE_GL_3_3_CONTEXT_API
-    ANGLE_GL_4_0_CONTEXT_API
-    ANGLE_GL_4_1_CONTEXT_API
-    ANGLE_GL_4_2_CONTEXT_API
-    ANGLE_GL_4_3_CONTEXT_API
-    ANGLE_GL_4_4_CONTEXT_API
-    ANGLE_GL_4_5_CONTEXT_API
-    ANGLE_GL_4_6_CONTEXT_API
+    // Desktop GL entry point interface
+    ANGLE_GL_1_CONTEXT_API
+    ANGLE_GL_2_CONTEXT_API
+    ANGLE_GL_3_CONTEXT_API
+    ANGLE_GL_4_CONTEXT_API
 
-    // GLES emulation: Interface to entry points
+    // GLES entry point interface
     ANGLE_GLES_1_0_CONTEXT_API
     ANGLE_GLES_2_0_CONTEXT_API
     ANGLE_GLES_3_0_CONTEXT_API
@@ -476,7 +457,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     void setContextLost();
 
     GLenum getGraphicsResetStrategy() const { return mResetStrategy; }
-    bool isResetNotificationEnabled();
+    bool isResetNotificationEnabled() const;
 
     const egl::Config *getConfig() const;
     EGLenum getClientType() const;
@@ -506,6 +487,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     angle::Result prepareForDispatch();
 
     MemoryProgramCache *getMemoryProgramCache() const { return mMemoryProgramCache; }
+    std::mutex &getProgramCacheMutex() const;
 
     bool hasBeenCurrent() const { return mHasBeenCurrent; }
     egl::Display *getDisplay() const { return mDisplay; }
@@ -634,6 +616,9 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     egl::ShareGroup *getShareGroup() const { return mState.getShareGroup(); }
 
+    bool supportsGeometryOrTesselation() const;
+    void dirtyAllState();
+
   private:
     void initialize();
 
@@ -649,6 +634,8 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     angle::Result syncStateForReadPixels();
     angle::Result syncStateForTexImage();
     angle::Result syncStateForBlit();
+    angle::Result syncStateForClear();
+    angle::Result syncTextureForCopy(Texture *texture);
 
     VertexArray *checkVertexArrayAllocation(VertexArrayID vertexArrayHandle);
     TransformFeedback *checkTransformFeedbackAllocation(TransformFeedbackID transformFeedback);
@@ -780,7 +767,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     angle::ObserverBinding mVertexArrayObserverBinding;
     angle::ObserverBinding mDrawFramebufferObserverBinding;
     angle::ObserverBinding mReadFramebufferObserverBinding;
-    angle::ObserverBinding mProgramPipelineObserverBinding;
     std::vector<angle::ObserverBinding> mUniformBufferObserverBindings;
     std::vector<angle::ObserverBinding> mSamplerObserverBindings;
     std::vector<angle::ObserverBinding> mImageObserverBindings;
@@ -797,7 +783,16 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     mutable size_t mRefCount;
 
     OverlayType mOverlay;
+
+    const bool mIsExternal;
+    const bool mSaveAndRestoreState;
+
+    bool mIsCurrent;
 };
+
+// Thread-local current valid context bound to the thread.
+extern thread_local Context *gCurrentValidContext;
+
 }  // namespace gl
 
 #endif  // LIBANGLE_CONTEXT_H_

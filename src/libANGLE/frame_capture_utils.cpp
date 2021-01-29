@@ -36,8 +36,23 @@ namespace angle
 namespace
 {
 
-template <typename T>
-void SerializeColor(gl::BinaryOutputStream *bos, const Color<T> &color)
+void SerializeColorF(gl::BinaryOutputStream *bos, const ColorF &color)
+{
+    bos->writeFloat(color.red);
+    bos->writeFloat(color.green);
+    bos->writeFloat(color.blue);
+    bos->writeFloat(color.alpha);
+}
+
+void SerializeColorI(gl::BinaryOutputStream *bos, const ColorI &color)
+{
+    bos->writeInt(color.red);
+    bos->writeInt(color.green);
+    bos->writeInt(color.blue);
+    bos->writeInt(color.alpha);
+}
+
+void SerializeColorUI(gl::BinaryOutputStream *bos, const ColorUI &color)
 {
     bos->writeInt(color.red);
     bos->writeInt(color.green);
@@ -131,7 +146,7 @@ Result SerializeFramebufferAttachment(const gl::Context *context,
         SerializeImageIndex(bos, framebufferAttachment.getTextureImageIndex());
     }
     bos->writeInt(framebufferAttachment.getNumViews());
-    bos->writeInt(framebufferAttachment.isMultiview());
+    bos->writeBool(framebufferAttachment.isMultiview());
     bos->writeInt(framebufferAttachment.getBaseViewIndex());
     bos->writeInt(framebufferAttachment.getRenderToTextureSamples());
 
@@ -169,7 +184,7 @@ Result SerializeFramebufferState(const gl::Context *context,
     bos->writeInt(framebufferState.getDefaultWidth());
     bos->writeInt(framebufferState.getDefaultHeight());
     bos->writeInt(framebufferState.getDefaultSamples());
-    bos->writeInt(framebufferState.getDefaultFixedSampleLocations());
+    bos->writeBool(framebufferState.getDefaultFixedSampleLocations());
     bos->writeInt(framebufferState.getDefaultLayers());
 
     const std::vector<gl::FramebufferAttachment> &colorAttachments =
@@ -215,16 +230,16 @@ Result SerializeFramebuffer(const gl::Context *context,
 void SerializeRasterizerState(gl::BinaryOutputStream *bos,
                               const gl::RasterizerState &rasterizerState)
 {
-    bos->writeInt(rasterizerState.cullFace);
+    bos->writeBool(rasterizerState.cullFace);
     bos->writeEnum(rasterizerState.cullMode);
     bos->writeInt(rasterizerState.frontFace);
-    bos->writeInt(rasterizerState.polygonOffsetFill);
-    bos->writeInt(rasterizerState.polygonOffsetFactor);
-    bos->writeInt(rasterizerState.polygonOffsetUnits);
-    bos->writeInt(rasterizerState.pointDrawMode);
-    bos->writeInt(rasterizerState.multiSample);
-    bos->writeInt(rasterizerState.rasterizerDiscard);
-    bos->writeInt(rasterizerState.dither);
+    bos->writeBool(rasterizerState.polygonOffsetFill);
+    bos->writeFloat(rasterizerState.polygonOffsetFactor);
+    bos->writeFloat(rasterizerState.polygonOffsetUnits);
+    bos->writeBool(rasterizerState.pointDrawMode);
+    bos->writeBool(rasterizerState.multiSample);
+    bos->writeBool(rasterizerState.rasterizerDiscard);
+    bos->writeBool(rasterizerState.dither);
 }
 
 void SerializeRectangle(gl::BinaryOutputStream *bos, const gl::Rectangle &rectangle)
@@ -235,28 +250,25 @@ void SerializeRectangle(gl::BinaryOutputStream *bos, const gl::Rectangle &rectan
     bos->writeInt(rectangle.height);
 }
 
-void SerializeBlendState(gl::BinaryOutputStream *bos, const gl::BlendState &blendState)
+void SerializeBlendStateExt(gl::BinaryOutputStream *bos, const gl::BlendStateExt &blendStateExt)
 {
-    bos->writeInt(blendState.blend);
-    bos->writeInt(blendState.sourceBlendRGB);
-    bos->writeInt(blendState.destBlendRGB);
-    bos->writeInt(blendState.sourceBlendAlpha);
-    bos->writeInt(blendState.destBlendAlpha);
-    bos->writeInt(blendState.blendEquationRGB);
-    bos->writeInt(blendState.blendEquationAlpha);
-    bos->writeInt(blendState.colorMaskRed);
-    bos->writeInt(blendState.colorMaskGreen);
-    bos->writeInt(blendState.colorMaskBlue);
-    bos->writeInt(blendState.colorMaskAlpha);
+    bos->writeInt(blendStateExt.mEnabledMask.bits());
+    bos->writeInt(blendStateExt.mDstColor);
+    bos->writeInt(blendStateExt.mDstAlpha);
+    bos->writeInt(blendStateExt.mSrcColor);
+    bos->writeInt(blendStateExt.mSrcAlpha);
+    bos->writeInt(blendStateExt.mEquationColor);
+    bos->writeInt(blendStateExt.mEquationAlpha);
+    bos->writeInt(blendStateExt.mColorMask);
 }
 
 void SerializeDepthStencilState(gl::BinaryOutputStream *bos,
                                 const gl::DepthStencilState &depthStencilState)
 {
-    bos->writeInt(depthStencilState.depthTest);
+    bos->writeBool(depthStencilState.depthTest);
     bos->writeInt(depthStencilState.depthFunc);
-    bos->writeInt(depthStencilState.depthMask);
-    bos->writeInt(depthStencilState.stencilTest);
+    bos->writeBool(depthStencilState.depthMask);
+    bos->writeBool(depthStencilState.stencilTest);
     bos->writeInt(depthStencilState.stencilFunc);
     bos->writeInt(depthStencilState.stencilMask);
     bos->writeInt(depthStencilState.stencilFail);
@@ -280,10 +292,10 @@ void SerializeVertexAttribCurrentValueData(
            vertexAttribCurrentValueData.Type == gl::VertexAttribType::UnsignedInt);
     if (vertexAttribCurrentValueData.Type == gl::VertexAttribType::Float)
     {
-        bos->writeInt(vertexAttribCurrentValueData.Values.FloatValues[0]);
-        bos->writeInt(vertexAttribCurrentValueData.Values.FloatValues[1]);
-        bos->writeInt(vertexAttribCurrentValueData.Values.FloatValues[2]);
-        bos->writeInt(vertexAttribCurrentValueData.Values.FloatValues[3]);
+        bos->writeFloat(vertexAttribCurrentValueData.Values.FloatValues[0]);
+        bos->writeFloat(vertexAttribCurrentValueData.Values.FloatValues[1]);
+        bos->writeFloat(vertexAttribCurrentValueData.Values.FloatValues[2]);
+        bos->writeFloat(vertexAttribCurrentValueData.Values.FloatValues[3]);
     }
     else if (vertexAttribCurrentValueData.Type == gl::VertexAttribType::Int)
     {
@@ -309,7 +321,7 @@ void SerializePixelPackState(gl::BinaryOutputStream *bos, const gl::PixelPackSta
     bos->writeInt(pixelPackState.skipPixels);
     bos->writeInt(pixelPackState.imageHeight);
     bos->writeInt(pixelPackState.skipImages);
-    bos->writeInt(pixelPackState.reverseRowOrder);
+    bos->writeBool(pixelPackState.reverseRowOrder);
 }
 
 void SerializePixelUnpackState(gl::BinaryOutputStream *bos,
@@ -340,23 +352,19 @@ void SerializeGLContextStates(gl::BinaryOutputStream *bos, const gl::State &stat
     bos->writeInt(state.getClientMajorVersion());
     bos->writeInt(state.getClientMinorVersion());
 
-    SerializeColor(bos, state.getColorClearValue());
-    bos->writeInt(state.getDepthClearValue());
+    SerializeColorF(bos, state.getColorClearValue());
+    bos->writeFloat(state.getDepthClearValue());
     bos->writeInt(state.getStencilClearValue());
     SerializeRasterizerState(bos, state.getRasterizerState());
-    bos->writeInt(state.isScissorTestEnabled());
+    bos->writeBool(state.isScissorTestEnabled());
     SerializeRectangle(bos, state.getScissor());
-    const gl::BlendStateArray &blendStateArray = state.getBlendStateArray();
-    for (size_t i = 0; i < blendStateArray.size(); i++)
-    {
-        SerializeBlendState(bos, blendStateArray[i]);
-    }
-    SerializeColor(bos, state.getBlendColor());
-    bos->writeInt(state.isSampleAlphaToCoverageEnabled());
-    bos->writeInt(state.isSampleCoverageEnabled());
-    bos->writeInt(state.getSampleCoverageValue());
-    bos->writeInt(state.getSampleCoverageInvert());
-    bos->writeInt(state.isSampleMaskEnabled());
+    SerializeBlendStateExt(bos, state.getBlendStateExt());
+    SerializeColorF(bos, state.getBlendColor());
+    bos->writeBool(state.isSampleAlphaToCoverageEnabled());
+    bos->writeBool(state.isSampleCoverageEnabled());
+    bos->writeFloat(state.getSampleCoverageValue());
+    bos->writeBool(state.getSampleCoverageInvert());
+    bos->writeBool(state.isSampleMaskEnabled());
     bos->writeInt(state.getMaxSampleMaskWords());
     const auto &sampleMaskValues = state.getSampleMaskValues();
     for (size_t i = 0; i < sampleMaskValues.size(); i++)
@@ -366,15 +374,15 @@ void SerializeGLContextStates(gl::BinaryOutputStream *bos, const gl::State &stat
     SerializeDepthStencilState(bos, state.getDepthStencilState());
     bos->writeInt(state.getStencilRef());
     bos->writeInt(state.getStencilBackRef());
-    bos->writeInt(state.getLineWidth());
+    bos->writeFloat(state.getLineWidth());
     bos->writeInt(state.getGenerateMipmapHint());
     bos->writeInt(state.getTextureFilteringHint());
     bos->writeInt(state.getFragmentShaderDerivativeHint());
-    bos->writeInt(state.isBindGeneratesResourceEnabled());
-    bos->writeInt(state.areClientArraysEnabled());
+    bos->writeBool(state.isBindGeneratesResourceEnabled());
+    bos->writeBool(state.areClientArraysEnabled());
     SerializeRectangle(bos, state.getViewport());
-    bos->writeInt(state.getNearPlane());
-    bos->writeInt(state.getFarPlane());
+    bos->writeFloat(state.getNearPlane());
+    bos->writeFloat(state.getFarPlane());
     if (state.getReadFramebuffer())
     {
         bos->writeInt(state.getReadFramebuffer()->id().value);
@@ -435,19 +443,19 @@ void SerializeGLContextStates(gl::BinaryOutputStream *bos, const gl::State &stat
     }
     SerializePixelUnpackState(bos, state.getUnpackState());
     SerializePixelPackState(bos, state.getPackState());
-    bos->writeInt(state.isPrimitiveRestartEnabled());
-    bos->writeInt(state.isMultisamplingEnabled());
-    bos->writeInt(state.isSampleAlphaToOneEnabled());
+    bos->writeBool(state.isPrimitiveRestartEnabled());
+    bos->writeBool(state.isMultisamplingEnabled());
+    bos->writeBool(state.isSampleAlphaToOneEnabled());
     bos->writeInt(state.getCoverageModulation());
-    bos->writeInt(state.getFramebufferSRGB());
-    bos->writeInt(state.isRobustResourceInitEnabled());
-    bos->writeInt(state.isProgramBinaryCacheEnabled());
-    bos->writeInt(state.isTextureRectangleEnabled());
+    bos->writeBool(state.getFramebufferSRGB());
+    bos->writeBool(state.isRobustResourceInitEnabled());
+    bos->writeBool(state.isProgramBinaryCacheEnabled());
+    bos->writeBool(state.isTextureRectangleEnabled());
     bos->writeInt(state.getMaxShaderCompilerThreads());
     bos->writeInt(state.getEnabledClipDistances().to_ulong());
     bos->writeInt(state.getBlendFuncConstantAlphaDrawBuffers().to_ulong());
     bos->writeInt(state.getBlendFuncConstantColorDrawBuffers().to_ulong());
-    bos->writeInt(state.noSimultaneousConstantColorAndAlphaBlendFunc());
+    bos->writeBool(state.noSimultaneousConstantColorAndAlphaBlendFunc());
 }
 
 void SerializeBufferState(gl::BinaryOutputStream *bos, const gl::BufferState &bufferState)
@@ -484,15 +492,15 @@ void SerializeColorGeneric(gl::BinaryOutputStream *bos, const ColorGeneric &colo
     bos->writeEnum(colorGeneric.type);
     if (colorGeneric.type == ColorGeneric::Type::Float)
     {
-        SerializeColor(bos, colorGeneric.colorF);
+        SerializeColorF(bos, colorGeneric.colorF);
     }
     else if (colorGeneric.type == ColorGeneric::Type::Int)
     {
-        SerializeColor(bos, colorGeneric.colorI);
+        SerializeColorI(bos, colorGeneric.colorI);
     }
     else
     {
-        SerializeColor(bos, colorGeneric.colorUI);
+        SerializeColorUI(bos, colorGeneric.colorUI);
     }
 }
 
@@ -503,9 +511,9 @@ void SerializeSamplerState(gl::BinaryOutputStream *bos, const gl::SamplerState &
     bos->writeInt(samplerState.getWrapS());
     bos->writeInt(samplerState.getWrapT());
     bos->writeInt(samplerState.getWrapR());
-    bos->writeInt(samplerState.getMaxAnisotropy());
-    bos->writeInt(samplerState.getMinLod());
-    bos->writeInt(samplerState.getMaxLod());
+    bos->writeFloat(samplerState.getMaxAnisotropy());
+    bos->writeFloat(samplerState.getMinLod());
+    bos->writeFloat(samplerState.getMaxLod());
     bos->writeInt(samplerState.getCompareMode());
     bos->writeInt(samplerState.getCompareFunc());
     bos->writeInt(samplerState.getSRGBDecode());
@@ -587,23 +595,26 @@ void SerializeShaderVariable(gl::BinaryOutputStream *bos, const sh::ShaderVariab
     bos->writeString(shaderVariable.name);
     bos->writeString(shaderVariable.mappedName);
     bos->writeIntVector(shaderVariable.arraySizes);
-    bos->writeInt(shaderVariable.staticUse);
-    bos->writeInt(shaderVariable.active);
+    bos->writeBool(shaderVariable.staticUse);
+    bos->writeBool(shaderVariable.active);
     for (const sh::ShaderVariable &field : shaderVariable.fields)
     {
         SerializeShaderVariable(bos, field);
     }
-    bos->writeString(shaderVariable.structName);
-    bos->writeInt(shaderVariable.isRowMajorLayout);
+    bos->writeString(shaderVariable.structOrBlockName);
+    bos->writeString(shaderVariable.mappedStructOrBlockName);
+    bos->writeBool(shaderVariable.isRowMajorLayout);
     bos->writeInt(shaderVariable.location);
     bos->writeInt(shaderVariable.binding);
     bos->writeInt(shaderVariable.imageUnitFormat);
     bos->writeInt(shaderVariable.offset);
-    bos->writeInt(shaderVariable.readonly);
-    bos->writeInt(shaderVariable.writeonly);
+    bos->writeBool(shaderVariable.readonly);
+    bos->writeBool(shaderVariable.writeonly);
     bos->writeInt(shaderVariable.index);
+    bos->writeBool(shaderVariable.yuv);
     bos->writeEnum(shaderVariable.interpolation);
-    bos->writeInt(shaderVariable.isInvariant);
+    bos->writeBool(shaderVariable.isInvariant);
+    bos->writeBool(shaderVariable.texelFetchStaticUse);
 }
 
 void SerializeShaderVariablesVector(gl::BinaryOutputStream *bos,
@@ -626,8 +637,8 @@ void SerializeInterfaceBlocksVector(gl::BinaryOutputStream *bos,
         bos->writeInt(interfaceBlock.arraySize);
         bos->writeEnum(interfaceBlock.layout);
         bos->writeInt(interfaceBlock.binding);
-        bos->writeInt(interfaceBlock.staticUse);
-        bos->writeInt(interfaceBlock.active);
+        bos->writeBool(interfaceBlock.staticUse);
+        bos->writeBool(interfaceBlock.active);
         bos->writeEnum(interfaceBlock.blockType);
         SerializeShaderVariablesVector(bos, interfaceBlock.fields);
     }
@@ -649,8 +660,9 @@ void SerializeShaderState(gl::BinaryOutputStream *bos, const gl::ShaderState &sh
     SerializeShaderVariablesVector(bos, shaderState.getAllAttributes());
     SerializeShaderVariablesVector(bos, shaderState.getActiveAttributes());
     SerializeShaderVariablesVector(bos, shaderState.getActiveOutputVariables());
-    bos->writeInt(shaderState.getEarlyFragmentTestsOptimization());
+    bos->writeBool(shaderState.getEarlyFragmentTestsOptimization());
     bos->writeInt(shaderState.getNumViews());
+    bos->writeInt(shaderState.getSpecConstUsageBits().bits());
     if (shaderState.getGeometryShaderInputPrimitiveType().valid())
     {
         bos->writeEnum(shaderState.getGeometryShaderInputPrimitiveType().value());
@@ -671,10 +683,10 @@ void SerializeShader(gl::BinaryOutputStream *bos, gl::Shader *shader)
     SerializeShaderState(bos, shader->getState());
     bos->writeInt(shader->getHandle().value);
     bos->writeInt(shader->getRefCount());
-    bos->writeInt(shader->isFlaggedForDeletion());
-    // does not serialize mType because it is already serialized in SerializeShaderState
+    bos->writeBool(shader->isFlaggedForDeletion());
+    // Do not serialize mType because it is already serialized in SerializeShaderState.
     bos->writeString(shader->getInfoLogString());
-    bos->writeString(shader->getCompilerResourcesString());
+    // Do not serialize compiler resources string because it can vary between test modes.
     bos->writeInt(shader->getCurrentMaxComputeWorkGroupInvocations());
     bos->writeInt(shader->getMaxComputeSharedMemory());
 }
@@ -686,7 +698,7 @@ void SerializeVariableLocationsVector(gl::BinaryOutputStream *bos,
     {
         bos->writeInt(variableLocation.arrayIndex);
         bos->writeInt(variableLocation.index);
-        bos->writeInt(variableLocation.ignored);
+        bos->writeBool(variableLocation.ignored);
     }
 }
 
@@ -696,7 +708,7 @@ void SerializeBlockMemberInfo(gl::BinaryOutputStream *bos,
     bos->writeInt(blockMemberInfo.offset);
     bos->writeInt(blockMemberInfo.arrayStride);
     bos->writeInt(blockMemberInfo.matrixStride);
-    bos->writeInt(blockMemberInfo.isRowMajorMatrix);
+    bos->writeBool(blockMemberInfo.isRowMajorMatrix);
     bos->writeInt(blockMemberInfo.topLevelArrayStride);
 }
 
@@ -725,7 +737,7 @@ void SerializeProgramAliasedBindings(gl::BinaryOutputStream *bos,
     {
         bos->writeString(programAliasedBinding.first);
         bos->writeInt(programAliasedBinding.second.location);
-        bos->writeInt(programAliasedBinding.second.aliased);
+        bos->writeBool(programAliasedBinding.second.aliased);
     }
 }
 
@@ -746,7 +758,7 @@ void SerializeProgramState(gl::BinaryOutputStream *bos, const gl::ProgramState &
     }
     for (bool isAttached : programState.getAttachedShadersMarkedForDetach())
     {
-        bos->writeInt(isAttached);
+        bos->writeBool(isAttached);
     }
     bos->writeInt(programState.getLocationsUsedForXfbExtension());
     for (const std::string &transformFeedbackVaryingName :
@@ -765,14 +777,10 @@ void SerializeProgramState(gl::BinaryOutputStream *bos, const gl::ProgramState &
         bos->writeInt(outputVariableType);
     }
     bos->writeInt(programState.getDrawBufferTypeMask().to_ulong());
-    bos->writeInt(programState.hasBinaryRetrieveableHint());
-    bos->writeInt(programState.isSeparable());
-    bos->writeInt(programState.hasEarlyFragmentTestsOptimization());
+    bos->writeBool(programState.hasBinaryRetrieveableHint());
+    bos->writeBool(programState.isSeparable());
+    bos->writeBool(programState.hasEarlyFragmentTestsOptimization());
     bos->writeInt(programState.getNumViews());
-    bos->writeEnum(programState.getGeometryShaderInputPrimitiveType());
-    bos->writeEnum(programState.getGeometryShaderOutputPrimitiveType());
-    bos->writeInt(programState.getGeometryShaderInvocations());
-    bos->writeInt(programState.getGeometryShaderMaxVertices());
     bos->writeInt(programState.getDrawIDLocation());
     bos->writeInt(programState.getBaseVertexLocation());
     bos->writeInt(programState.getBaseInstanceLocation());
@@ -792,12 +800,12 @@ void SerializeProgramBindings(gl::BinaryOutputStream *bos,
 void SerializeProgram(gl::BinaryOutputStream *bos, gl::Program *program)
 {
     SerializeProgramState(bos, program->getState());
-    bos->writeInt(program->isValidated());
+    bos->writeBool(program->isValidated());
     SerializeProgramBindings(bos, program->getAttributeBindings());
     SerializeProgramAliasedBindings(bos, program->getFragmentOutputLocations());
     SerializeProgramAliasedBindings(bos, program->getFragmentOutputIndexes());
-    bos->writeInt(program->isLinked());
-    bos->writeInt(program->isFlaggedForDeletion());
+    bos->writeBool(program->isLinked());
+    bos->writeBool(program->isFlaggedForDeletion());
     bos->writeInt(program->getRefCount());
     bos->writeInt(program->id().value);
 }
@@ -807,7 +815,7 @@ void SerializeImageDesc(gl::BinaryOutputStream *bos, const gl::ImageDesc &imageD
     SerializeExtents(bos, imageDesc.size);
     SerializeFormat(bos, imageDesc.format);
     bos->writeInt(imageDesc.samples);
-    bos->writeInt(imageDesc.fixedSampleLocations);
+    bos->writeBool(imageDesc.fixedSampleLocations);
     bos->writeEnum(imageDesc.initState);
 }
 
@@ -820,8 +828,8 @@ void SerializeTextureState(gl::BinaryOutputStream *bos, const gl::TextureState &
     bos->writeInt(textureState.getBaseLevel());
     bos->writeInt(textureState.getMaxLevel());
     bos->writeInt(textureState.getDepthStencilTextureMode());
-    bos->writeInt(textureState.hasBeenBoundAsImage());
-    bos->writeInt(textureState.getImmutableFormat());
+    bos->writeBool(textureState.hasBeenBoundAsImage());
+    bos->writeBool(textureState.getImmutableFormat());
     bos->writeInt(textureState.getImmutableLevels());
     bos->writeInt(textureState.getUsage());
     const std::vector<gl::ImageDesc> &imageDescs = textureState.getImageDescs();
@@ -906,7 +914,7 @@ void SerializeVertexAttributeVector(gl::BinaryOutputStream *bos,
 {
     for (const gl::VertexAttribute &vertexAttribute : vertexAttributes)
     {
-        bos->writeInt(vertexAttribute.enabled);
+        bos->writeBool(vertexAttribute.enabled);
         ASSERT(vertexAttribute.format);
         SerializeFormat(bos, vertexAttribute.format);
         bos->writeInt(vertexAttribute.relativeOffset);
@@ -952,7 +960,7 @@ void SerializeVertexArray(gl::BinaryOutputStream *bos, gl::VertexArray *vertexAr
 {
     bos->writeInt(vertexArray->id().value);
     SerializeVertexArrayState(bos, vertexArray->getState());
-    bos->writeInt(vertexArray->isBufferAccessValidationEnabled());
+    bos->writeBool(vertexArray->isBufferAccessValidationEnabled());
 }
 
 }  // namespace
@@ -997,7 +1005,7 @@ Result SerializeContext(gl::BinaryOutputStream *bos, const gl::Context *context)
         SerializeShader(bos, shaderPtr);
     }
     const gl::ResourceMap<gl::Program, gl::ShaderProgramID> &programManager =
-        shaderProgramManager.getProgramsForCapture();
+        shaderProgramManager.getProgramsForCaptureAndPerf();
     for (const auto &program : programManager)
     {
         gl::Program *programPtr = program.second;

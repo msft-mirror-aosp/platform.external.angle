@@ -30,6 +30,17 @@ class RenderPassDesc;
 class ContextVk;
 class TextureVk;
 
+enum class RenderTargetTransience
+{
+    // Regular render targets that load and store from the image.
+    Default,
+    // Multisampled-render-to-texture textures, where the implicit multisampled image is transient,
+    // but the resolved image is persistent.
+    MultisampledTransient,
+    // Multisampled-render-to-texture depth/stencil textures.
+    EntirelyTransient,
+};
+
 // This is a very light-weight class that does not own to the resources it points to.
 // It's meant only to copy across some information from a FramebufferAttachment to the
 // business rendering logic. It stores Images and ImageViews by pointer for performance.
@@ -48,15 +59,16 @@ class RenderTargetVk final : public FramebufferAttachmentRenderTarget
               vk::ImageViewHelper *resolveImageViews,
               gl::LevelIndex levelIndexGL,
               uint32_t layerIndex,
-              bool isImageTransient);
+              uint32_t layerCount,
+              RenderTargetTransience transience);
     void reset();
 
-    vk::ImageViewSubresourceSerial getDrawSubresourceSerial() const;
-    vk::ImageViewSubresourceSerial getResolveSubresourceSerial() const;
+    vk::ImageOrBufferViewSubresourceSerial getDrawSubresourceSerial() const;
+    vk::ImageOrBufferViewSubresourceSerial getResolveSubresourceSerial() const;
 
     // Note: RenderTargets should be called in order, with the depth/stencil onRender last.
-    void onColorDraw(ContextVk *contextVk);
-    void onDepthStencilDraw(ContextVk *contextVk, bool isReadOnly);
+    void onColorDraw(ContextVk *contextVk, uint32_t framebufferLayerCount);
+    void onDepthStencilDraw(ContextVk *contextVk, uint32_t framebufferLayerCount);
 
     vk::ImageHelper &getImageForRenderPass();
     const vk::ImageHelper &getImageForRenderPass() const;
@@ -81,8 +93,9 @@ class RenderTargetVk final : public FramebufferAttachmentRenderTarget
     gl::Extents getExtents() const;
     gl::LevelIndex getLevelIndex() const { return mLevelIndexGL; }
     uint32_t getLayerIndex() const { return mLayerIndex; }
+    uint32_t getLayerCount() const { return mLayerCount; }
 
-    gl::ImageIndex getImageIndex() const;
+    gl::ImageIndex getImageIndexForClear(uint32_t layerCount) const;
 
     // Special mutator for Surface RenderTargets. Allows the Framebuffer to keep a single
     // RenderTargetVk pointer.
@@ -93,20 +106,27 @@ class RenderTargetVk final : public FramebufferAttachmentRenderTarget
 
     angle::Result flushStagedUpdates(ContextVk *contextVk,
                                      vk::ClearValuesArray *deferredClears,
-                                     uint32_t deferredClearIndex);
+                                     uint32_t deferredClearIndex,
+                                     uint32_t framebufferLayerCount);
 
     void retainImageViews(ContextVk *contextVk) const;
 
-    bool hasDefinedContent() const { return mContentDefined; }
+    bool hasDefinedContent() const;
+    bool hasDefinedStencilContent() const;
     // Mark content as undefined so that certain optimizations are possible such as using DONT_CARE
     // as loadOp of the render target in the next renderpass.
-    void invalidateEntireContent() { mContentDefined = false; }
-    void restoreEntireContent() { mContentDefined = true; }
+    void invalidateEntireContent(ContextVk *contextVk);
+    void invalidateEntireStencilContent(ContextVk *contextVk);
+    void restoreEntireContent();
+    void restoreEntireStencilContent();
 
-    // See the description of mIsImageTransient for details of how the following two can
-    // interact.
-    bool hasResolveAttachment() const { return mResolveImage != nullptr; }
-    bool isImageTransient() const { return mIsImageTransient; }
+    // See the description of mTransience for details of how the following two can interact.
+    bool hasResolveAttachment() const { return mResolveImage != nullptr && !isEntirelyTransient(); }
+    bool isImageTransient() const { return mTransience != RenderTargetTransience::Default; }
+    bool isEntirelyTransient() const
+    {
+        return mTransience == RenderTargetTransience::EntirelyTransient;
+    }
 
   private:
     angle::Result getImageViewImpl(ContextVk *contextVk,
@@ -114,9 +134,11 @@ class RenderTargetVk final : public FramebufferAttachmentRenderTarget
                                    vk::ImageViewHelper *imageViews,
                                    const vk::ImageView **imageViewOut) const;
 
-    vk::ImageViewSubresourceSerial getSubresourceSerialImpl(vk::ImageViewHelper *imageViews) const;
+    vk::ImageOrBufferViewSubresourceSerial getSubresourceSerialImpl(
+        vk::ImageViewHelper *imageViews) const;
 
     bool isResolveImageOwnerOfData() const;
+    vk::ImageHelper *getOwnerOfData() const;
 
     // The color or depth/stencil attachment of the framebuffer and its view.
     vk::ImageHelper *mImage;
@@ -126,50 +148,59 @@ class RenderTargetVk final : public FramebufferAttachmentRenderTarget
     // implement GL_EXT_multisampled_render_to_texture, so while the rendering is done on mImage
     // during the renderpass, the resolved image is the one that actually holds the data.  This
     // means that data uploads and blit are done on this image, copies are done out of this image
-    // etc.  This means that if there is no clear, and hasDefinedContent(), the contents of
+    // etc.  This means that if there is no clear, and hasDefined*Content(), the contents of
     // mResolveImage must be copied to mImage since the loadOp of the attachment must be set to
     // LOAD.
     vk::ImageHelper *mResolveImage;
     vk::ImageViewHelper *mResolveImageViews;
 
-    // Which subresource of the image is used as render target.
+    // Which subresource of the image is used as render target.  For single-layer render targets,
+    // |mLayerIndex| will contain the layer index and |mLayerCount| will be 1.  For layered render
+    // targets, |mLayerIndex| will be 0 and |mLayerCount| will be the number of layers in the image
+    // (or level depth, if image is 3D).  Note that blit and other functions that read or write to
+    // the render target always use layer 0, so this works out for users of |getLayerIndex()|.
     gl::LevelIndex mLevelIndexGL;
     uint32_t mLayerIndex;
+    uint32_t mLayerCount;
 
-    // Whether the render target has been invalidated.  If so, DONT_CARE is used instead of LOAD for
-    // loadOp of this attachment.
-    bool mContentDefined;
-
-    // If resolve attachment exists, |mIsImageTransient| is true if the multisampled results need to
-    // be discarded.
+    // If resolve attachment exists, |mTransience| could be *Transient if the multisampled results
+    // need to be discarded.
     //
-    // - GL_EXT_multisampled_render_to_texture: this is true for render targets created for this
-    //   extension's usage.  Only color attachments use this optimization at the moment.
-    // - GL_EXT_multisampled_render_to_texture2: this is true for depth/stencil textures per this
-    //   extension, even though a resolve attachment is not even provided.
-    // - Multisampled swapchain: TODO(syoussefi) this is true for the multisampled color attachment.
-    //   http://anglebug.com/4836
+    // - GL_EXT_multisampled_render_to_texture[2]: this is |MultisampledTransient| for render
+    //   targets created from color textures, as well as color or depth/stencil renderbuffers.
+    // - GL_EXT_multisampled_render_to_texture2: this is |EntirelyTransient| for depth/stencil
+    //   textures per this extension, even though a resolve attachment is not even provided.
     //
     // Based on the above, we have:
     //
-    //                   mResolveImage == nullptr        |       mResolveImage != nullptr
-    //                                                   |
-    //                      Normal rendering             |               Invalid
-    // !IsTransient            No resolve                |
-    //                       storeOp = STORE             |
-    //                    Owner of data: mImage          |
-    //                                                   |
-    //      ---------------------------------------------+---------------------------------------
-    //                                                   |
-    //               EXT_multisampled_render_to_texture2 | GL_EXT_multisampled_render_to_texture
-    //                                                   | or multisampled Swapchain optimization
-    // IsTransient             No resolve                |               Resolve
-    //                      storeOp = DONT_CARE          |         storeOp = DONT_CARE
-    //                Owner of data: None (not stored)   |     Owner of data: mResolveImage
+    //                     mResolveImage == nullptr
+    //                        Normal rendering
+    // Default                   No resolve
+    //                         storeOp = STORE
+    //                      Owner of data: mImage
     //
-    // In the above, storeOp of the resolve attachment is always STORE.  if !IsTransient, storeOp is
-    // affected by a framebuffer invalidate call.
-    bool mIsImageTransient;
+    //      ---------------------------------------------
+    //
+    //                     mResolveImage != nullptr
+    //               GL_EXT_multisampled_render_to_texture
+    // Multisampled               Resolve
+    // Transient             storeOp = DONT_CARE
+    //                     resolve storeOp = STORE
+    //                   Owner of data: mResolveImage
+    //
+    //      ---------------------------------------------
+    //
+    //                     mResolveImage != nullptr
+    //               GL_EXT_multisampled_render_to_texture2
+    // Entirely                  No Resolve
+    // Transient             storeOp = DONT_CARE
+    //                   Owner of data: mResolveImage
+    //
+    // In the above, storeOp of the resolve attachment is always STORE.  If |Default|, storeOp is
+    // affected by a framebuffer invalidate call.  Note that even though |EntirelyTransient| has a
+    // resolve attachment, it is not used.  The only purpose of |mResolveImage| is to store deferred
+    // clears.
+    RenderTargetTransience mTransience;
 };
 
 // A vector of rendertargets

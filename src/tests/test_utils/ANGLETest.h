@@ -395,6 +395,11 @@ class ANGLETestBase
                            bool useVertexBuffer,
                            GLuint numInstances);
 
+    void drawQuadPPO(GLuint vertProgram,
+                     const std::string &positionAttribName,
+                     const GLfloat positionAttribZ,
+                     const GLfloat positionAttribXYScale);
+
     static std::array<angle::Vector3, 6> GetQuadVertices();
     static std::array<GLushort, 6> GetQuadIndices();
     static std::array<angle::Vector3, 4> GetIndexedQuadVertices();
@@ -462,7 +467,7 @@ class ANGLETestBase
     EGLWindow *getEGLWindow() const;
     int getWindowWidth() const;
     int getWindowHeight() const;
-    bool isMultisampleEnabled() const;
+    bool isEmulatedPrerotation() const;
 
     EGLint getPlatformRenderer() const;
 
@@ -510,6 +515,11 @@ class ANGLETestBase
     {
         return mCurrentParams->getRenderer() == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE &&
                mCurrentParams->isSwiftshader();
+    }
+
+    bool isAsyncCommandQueueFeatureEnabled() const
+    {
+        return mCurrentParams->eglParameters.asyncCommandQueueFeatureVulkan == EGL_TRUE;
     }
 
     bool platformSupportsMultithreading() const;

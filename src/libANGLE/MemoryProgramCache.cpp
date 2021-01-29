@@ -12,8 +12,8 @@
 #include <GLSLANG/ShaderVars.h>
 #include <anglebase/sha1.h>
 
+#include "common/angle_version.h"
 #include "common/utilities.h"
-#include "common/version.h"
 #include "libANGLE/BinaryStream.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Uniform.h"
@@ -48,7 +48,7 @@ class HashStream final : angle::NonCopyable
     std::ostringstream mStringStream;
 };
 
-HashStream &operator<<(HashStream &stream, const Shader *shader)
+HashStream &operator<<(HashStream &stream, Shader *shader)
 {
     if (shader)
     {

@@ -78,6 +78,7 @@ enum class CommandID : uint16_t
     ResetQueryPool,
     ResolveImage,
     SetEvent,
+    SetScissor,
     WaitEvents,
     WriteTimestamp,
 };
@@ -416,6 +417,12 @@ struct SetEventParams
 };
 VERIFY_4_BYTE_ALIGNMENT(SetEventParams)
 
+struct SetScissorParams
+{
+    VkRect2D scissor;
+};
+VERIFY_4_BYTE_ALIGNMENT(SetScissorParams)
+
 struct WaitEventsParams
 {
     uint32_t eventCount;
@@ -641,6 +648,8 @@ class SecondaryCommandBuffer final : angle::NonCopyable
 
     void setEvent(VkEvent event, VkPipelineStageFlags stageMask);
 
+    void setScissor(uint32_t firstScissor, uint32_t scissorCount, const VkRect2D *scissors);
+
     void waitEvents(uint32_t eventCount,
                     const VkEvent *events,
                     VkPipelineStageFlags srcStageMask,
@@ -661,9 +670,6 @@ class SecondaryCommandBuffer final : angle::NonCopyable
 
     // Parse the cmds in this cmd buffer into given primary cmd buffer for execution
     void executeCommands(VkCommandBuffer cmdBuffer);
-    // If resetQueryPoolCommands are queued, call this to execute them all
-    //  This should only be called on a cmdBuffer without an active renderPass
-    void executeQueuedResetQueryPoolCommands(VkCommandBuffer cmdBuffer);
 
     // Calculate memory usage of this command buffer for diagnostics.
     void getMemoryUsageStats(size_t *usedMemoryOut, size_t *allocatedMemoryOut) const;
@@ -688,11 +694,13 @@ class SecondaryCommandBuffer final : angle::NonCopyable
         reinterpret_cast<CommandHeader *>(mCurrentWritePointer)->id = CommandID::Invalid;
     }
 
+    void open() { mIsOpen = true; }
+    void close() { mIsOpen = false; }
+
     void reset()
     {
         mCommands.clear();
         initialize(mAllocator);
-        mResetQueryQueue.clear();
     }
 
     // This will cause the SecondaryCommandBuffer to become invalid by clearing its allocator
@@ -703,7 +711,7 @@ class SecondaryCommandBuffer final : angle::NonCopyable
     static bool CanKnowIfEmpty() { return true; }
     bool empty() const { return mCommands.size() == 0 || mCommands[0]->id == CommandID::Invalid; }
     // The following is used to give the size of the command buffer in bytes
-    uint32_t getCommandBufferSize() const
+    uint32_t getCommandSize() const
     {
         ASSERT(mCommands.size() > 0 || mCurrentBytesRemaining == 0);
         uint32_t rtn =
@@ -716,6 +724,7 @@ class SecondaryCommandBuffer final : angle::NonCopyable
     template <class StructType>
     ANGLE_INLINE StructType *commonInit(CommandID cmdID, size_t allocationSize)
     {
+        ASSERT(mIsOpen);
         mCurrentBytesRemaining -= allocationSize;
 
         CommandHeader *header = reinterpret_cast<CommandHeader *>(mCurrentWritePointer);
@@ -798,6 +807,9 @@ class SecondaryCommandBuffer final : angle::NonCopyable
         return writePointer + sizeInBytes;
     }
 
+    // Flag to indicate that commandBuffer is open for new commands. Initially open.
+    bool mIsOpen;
+
     std::vector<CommandHeader *> mCommands;
 
     // Allocator used by this class. If non-null then the class is valid.
@@ -805,14 +817,12 @@ class SecondaryCommandBuffer final : angle::NonCopyable
 
     uint8_t *mCurrentWritePointer;
     size_t mCurrentBytesRemaining;
-    // resetQueryPool command must be executed outside RP so we queue them up for
-    //  an inside RenderPass command buffer and pre-prend them to the commands
-    std::vector<ResetQueryPoolParams> mResetQueryQueue;
 };
 
 ANGLE_INLINE SecondaryCommandBuffer::SecondaryCommandBuffer()
-    : mAllocator(nullptr), mCurrentWritePointer(nullptr), mCurrentBytesRemaining(0)
+    : mIsOpen(true), mAllocator(nullptr), mCurrentWritePointer(nullptr), mCurrentBytesRemaining(0)
 {}
+
 ANGLE_INLINE SecondaryCommandBuffer::~SecondaryCommandBuffer() {}
 
 // begin and insert DebugUtilsLabelEXT funcs share this same function body
@@ -1340,13 +1350,6 @@ ANGLE_INLINE void SecondaryCommandBuffer::resetEvent(VkEvent event, VkPipelineSt
     paramStruct->stageMask        = stageMask;
 }
 
-ANGLE_INLINE void SecondaryCommandBuffer::queueResetQueryPool(VkQueryPool queryPool,
-                                                              uint32_t firstQuery,
-                                                              uint32_t queryCount)
-{
-    mResetQueryQueue.push_back({queryPool, firstQuery, queryCount});
-}
-
 ANGLE_INLINE void SecondaryCommandBuffer::resetQueryPool(VkQueryPool queryPool,
                                                          uint32_t firstQuery,
                                                          uint32_t queryCount)
@@ -1380,6 +1383,17 @@ ANGLE_INLINE void SecondaryCommandBuffer::setEvent(VkEvent event, VkPipelineStag
     SetEventParams *paramStruct = initCommand<SetEventParams>(CommandID::SetEvent);
     paramStruct->event          = event;
     paramStruct->stageMask      = stageMask;
+}
+
+ANGLE_INLINE void SecondaryCommandBuffer::setScissor(uint32_t firstScissor,
+                                                     uint32_t scissorCount,
+                                                     const VkRect2D *scissors)
+{
+    ASSERT(firstScissor == 0);
+    ASSERT(scissorCount == 1);
+    ASSERT(scissors != nullptr);
+    SetScissorParams *paramStruct = initCommand<SetScissorParams>(CommandID::SetScissor);
+    paramStruct->scissor          = scissors[0];
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::waitEvents(

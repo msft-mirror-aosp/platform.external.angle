@@ -35,7 +35,8 @@ class DisplayGLX : public DisplayGL
     egl::Error initialize(egl::Display *display) override;
     void terminate() override;
 
-    egl::Error makeCurrent(egl::Surface *drawSurface,
+    egl::Error makeCurrent(egl::Display *display,
+                           egl::Surface *drawSurface,
                            egl::Surface *readSurface,
                            gl::Context *context) override;
 
@@ -52,7 +53,7 @@ class DisplayGLX : public DisplayGL
                                      NativePixmapType nativePixmap,
                                      const egl::AttributeMap &attribs) override;
 
-    egl::Error validatePixmap(egl::Config *config,
+    egl::Error validatePixmap(const egl::Config *config,
                               EGLNativePixmapType pixmap,
                               const egl::AttributeMap &attributes) const override;
 
@@ -68,8 +69,6 @@ class DisplayGLX : public DisplayGL
     egl::Error restoreLostDevice(const egl::Display *display) override;
 
     bool isValidNativeWindow(EGLNativeWindowType window) const override;
-
-    DeviceImpl *createDevice() override;
 
     std::string getVendorString() const override;
 
@@ -90,7 +89,8 @@ class DisplayGLX : public DisplayGL
     // acts as expected.
     void setSwapInterval(glx::Drawable drawable, SwapControlData *data);
 
-    bool isValidWindowVisualId(unsigned long visualId) const;
+    bool isWindowVisualIdSpecified() const;
+    bool isMatchingWindowVisualId(unsigned long visualId) const;
 
     WorkerContext *createWorkerContext(std::string *infoLog);
 
@@ -126,9 +126,10 @@ class DisplayGLX : public DisplayGL
     XVisualInfo *mVisuals;
     glx::Context mContext;
     glx::Context mSharedContext;
-    std::unordered_map<std::thread::id, glx::Context> mCurrentContexts;
+    angle::HashMap<std::thread::id, glx::Context> mCurrentNativeContexts;
+
     // A pbuffer the context is current on during ANGLE initialization
-    glx::Pbuffer mDummyPbuffer;
+    glx::Pbuffer mInitPbuffer;
 
     std::vector<glx::Pbuffer> mWorkerPbufferPool;
 
@@ -139,6 +140,7 @@ class DisplayGLX : public DisplayGL
     bool mHasARBCreateContextProfile;
     bool mHasARBCreateContextRobustness;
     bool mHasEXTCreateContextES2Profile;
+    bool mHasNVRobustnessVideoMemoryPurge;
 
     enum class SwapControl
     {
