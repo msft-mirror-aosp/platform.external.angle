@@ -212,7 +212,8 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
         outExtensions->glColorspace && getRenderer()->getFeatures().supportsImageFormatList.enabled;
 
 #if defined(ANGLE_PLATFORM_ANDROID)
-    outExtensions->framebufferTargetANDROID = true;
+    outExtensions->getNativeClientBufferANDROID = true;
+    outExtensions->framebufferTargetANDROID     = true;
 #endif  // defined(ANGLE_PLATFORM_ANDROID)
 
     // Disable context priority when non-zero memory init is enabled. This enforces a queue order.
@@ -283,6 +284,8 @@ void DisplayVk::populateFeatureList(angle::FeatureList *features)
 {
     mRenderer->getFeatures().populateFeatureList(features);
 }
+
+ShareGroupVk::ShareGroupVk() : mSyncObjectPendingFlush(false) {}
 
 void ShareGroupVk::onDestroy(const egl::Display *display)
 {

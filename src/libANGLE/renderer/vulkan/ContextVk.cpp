@@ -95,9 +95,6 @@ struct GraphicsDriverUniformsExtended
     std::array<float, 2> negFlipXY;
     std::array<int32_t, 2> padding;
 
-    // Used to pre-rotate gl_Position for swapchain images on Android (a mat2, which is padded to
-    // the size of two vec4's).
-    std::array<float, 8> preRotation;
     // Used to pre-rotate gl_FragCoord for swapchain images on Android (a mat2, which is padded to
     // the size of two vec4's).
     std::array<float, 8> fragRotation;
@@ -191,31 +188,12 @@ bool IsRenderPassStartedAndUsesImage(const vk::CommandBufferHelper &renderPassCo
 }
 
 // When an Android surface is rotated differently than the device's native orientation, ANGLE must
-// rotate gl_Position in the vertex shader and gl_FragCoord in the fragment shader.  The following
-// are the rotation matrices used.
+// rotate gl_Position in the last pre-rasterization shader and gl_FragCoord in the fragment shader.
+// Rotation of gl_Position is done in SPIR-V.  The following are the rotation matrices for the
+// fragment shader.
 //
 // Note: these are mat2's that are appropriately padded (4 floats per row).
 using PreRotationMatrixValues = std::array<float, 8>;
-constexpr angle::PackedEnumMap<rx::SurfaceRotation,
-                               PreRotationMatrixValues,
-                               angle::EnumSize<rx::SurfaceRotation>()>
-    kPreRotationMatrices = {
-        {{rx::SurfaceRotation::Identity, {{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f}}},
-         {rx::SurfaceRotation::Rotated90Degrees,
-          {{0.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f}}},
-         {rx::SurfaceRotation::Rotated180Degrees,
-          {{-1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f}}},
-         {rx::SurfaceRotation::Rotated270Degrees,
-          {{0.0f, 1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f}}},
-         {rx::SurfaceRotation::FlippedIdentity,
-          {{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f}}},
-         {rx::SurfaceRotation::FlippedRotated90Degrees,
-          {{0.0f, -1.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f}}},
-         {rx::SurfaceRotation::FlippedRotated180Degrees,
-          {{-1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f}}},
-         {rx::SurfaceRotation::FlippedRotated270Degrees,
-          {{0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f}}}}};
-
 constexpr angle::PackedEnumMap<rx::SurfaceRotation,
                                PreRotationMatrixValues,
                                angle::EnumSize<rx::SurfaceRotation>()>
@@ -392,11 +370,9 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, RendererVk 
       mFlipYForCurrentSurface(false),
       mIsAnyHostVisibleBufferWritten(false),
       mEmulateSeamfulCubeMapSampling(false),
-      mUseOldRewriteStructSamplers(false),
       mOutsideRenderPassCommands(nullptr),
       mRenderPassCommands(nullptr),
       mGpuEventsEnabled(false),
-      mSyncObjectPendingFlush(false),
       mEGLSyncObjectPendingFlush(false),
       mHasDeferredFlush(false),
       mGpuClockSync{std::numeric_limits<double>::max(), std::numeric_limits<double>::max()},
@@ -489,8 +465,35 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, RendererVk 
     mActiveTextures.fill({nullptr, nullptr, true});
     mActiveImages.fill(nullptr);
 
+    // The following dirty bits don't affect the program pipeline:
+    //
+    // - READ_FRAMEBUFFER_BINDING only affects operations that read from said framebuffer,
+    // - CLEAR_* only affect following clear calls,
+    // - PACK/UNPACK_STATE only affect texture data upload/download,
+    // - *_BINDING only affect descriptor sets,
+    // - CURRENT_VALUES only affects (default) vertex attributes.
+    //
     mPipelineDirtyBitsMask.set();
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_READ_FRAMEBUFFER_BINDING);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_CLEAR_COLOR);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_CLEAR_DEPTH);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_CLEAR_STENCIL);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_UNPACK_STATE);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_UNPACK_BUFFER_BINDING);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_PACK_STATE);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_PACK_BUFFER_BINDING);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_RENDERBUFFER_BINDING);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_VERTEX_ARRAY_BINDING);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_DRAW_INDIRECT_BUFFER_BINDING);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_DISPATCH_INDIRECT_BUFFER_BINDING);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_SAMPLER_BINDINGS);
     mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_TEXTURE_BINDINGS);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_IMAGE_BINDINGS);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_TRANSFORM_FEEDBACK_BINDING);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_UNIFORM_BUFFER_BINDINGS);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_SHADER_STORAGE_BUFFER_BINDING);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_ATOMIC_COUNTER_BUFFER_BINDING);
+    mPipelineDirtyBitsMask.reset(gl::State::DIRTY_BIT_CURRENT_VALUES);
 
     // Reserve reasonable amount of spaces so that for majority of apps we don't need to grow at all
     mDescriptorBufferInfos.reserve(kDescriptorBufferInfosInitialSize);
@@ -655,8 +658,6 @@ angle::Result ContextVk::initialize()
 
     mEmulateSeamfulCubeMapSampling = shouldEmulateSeamfulCubeMapSampling();
 
-    mUseOldRewriteStructSamplers = shouldUseOldRewriteStructSamplers();
-
     // Assign initial command buffers from queue
     mOutsideRenderPassCommands = mRenderer->getCommandBufferHelper(false);
     mRenderPassCommands        = mRenderer->getCommandBufferHelper(true);
@@ -719,7 +720,8 @@ angle::Result ContextVk::flush(const gl::Context *context)
     // lands in the correct place within the command stream.
     // EGL sync objects can span across context share groups, so don't defer flushes if there's one
     // pending a flush.
-    if (mSyncObjectPendingFlush && context->isShared() && !mEGLSyncObjectPendingFlush)
+    if (getShareGroupVk()->isSyncObjectPendingFlush() && context->isShared() &&
+        !mEGLSyncObjectPendingFlush)
     {
         // Flush the commands to create a sync point in the command stream.
         ANGLE_TRY(flushCommandsAndEndRenderPass());
@@ -2751,6 +2753,7 @@ angle::Result ContextVk::invalidateProgramExecutableHelper(const gl::Context *co
         // No additional work is needed here. We will update the pipeline desc
         // later.
         invalidateDefaultAttributes(context->getStateCache().getActiveDefaultAttribsMask());
+        invalidateCurrentGraphicsPipeline();
         invalidateVertexAndIndexBuffers();
         bool useVertexBuffer = (executable->getMaxActiveAttribLocation() > 0);
         mNonIndexedDirtyBitsMask.set(DIRTY_BIT_VERTEX_BUFFERS, useVertexBuffer);
@@ -3080,6 +3083,10 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                 // hint.
                 invalidateGraphicsDriverUniforms();
                 break;
+            case gl::State::DIRTY_BIT_PATCH_VERTICES:
+                mGraphicsPipelineDesc->updatePatchVertices(&mGraphicsPipelineTransition,
+                                                           glState.getPatchVertices());
+                break;
             default:
                 UNREACHABLE();
                 break;
@@ -3160,12 +3167,6 @@ angle::Result ContextVk::onMakeCurrent(const gl::Context *context)
 angle::Result ContextVk::onUnMakeCurrent(const gl::Context *context)
 {
     ANGLE_TRY(flushImpl(nullptr));
-    // TODO(courtneygo): Clean this up. b/170328907 b/170329600
-    if (mRenderer->getFeatures().asyncCommandQueue.enabled)
-    {
-        ANGLE_TRACE_EVENT0("gpu.angle", "ContextVk::onUnMakeCurrent");
-        ANGLE_TRY(mRenderer->finishAllWork(this));
-    }
     mCurrentWindowSurface = nullptr;
     return angle::Result::Continue;
 }
@@ -3218,9 +3219,15 @@ void ContextVk::updateGraphicsPipelineDescWithSpecConstUsageBits(SpecConstUsageB
     bool yFlipped =
         isViewportFlipEnabledForDrawFBO() && usageBits.test(sh::vk::SpecConstUsage::YFlip);
 
+    // usageBits are only set when specialization constants are used.  With gl_Position pre-rotation
+    // handled by the SPIR-V transformer, we need to have this information even when the driver
+    // uniform path is taken to pre-rotate everything else.
+    const bool programUsesRotation = usageBits.test(sh::vk::SpecConstUsage::Rotation) ||
+                                     getFeatures().forceDriverUniformOverSpecConst.enabled;
+
     // If program is not using rotation at all, we force it to use the Identity or FlippedIdentity
     // slot to improve the program cache hit rate
-    if (!usageBits.test(sh::vk::SpecConstUsage::Rotation))
+    if (!programUsesRotation)
     {
         rotationAndFlip = yFlipped ? SurfaceRotation::FlippedIdentity : SurfaceRotation::Identity;
     }
@@ -3845,9 +3852,6 @@ angle::Result ContextVk::handleDirtyGraphicsDriverUniforms(const gl::Context *co
         driverUniformsExt->halfRenderArea = {halfRenderAreaWidth, halfRenderAreaHeight};
         driverUniformsExt->flipXY         = {flipX, flipY};
         driverUniformsExt->negFlipXY      = {flipX, -flipY};
-        memcpy(&driverUniformsExt->preRotation,
-               &kPreRotationMatrices[mCurrentRotationDrawFramebuffer],
-               sizeof(PreRotationMatrixValues));
         memcpy(&driverUniformsExt->fragRotation,
                &kFragRotationMatrices[mCurrentRotationDrawFramebuffer],
                sizeof(PreRotationMatrixValues));
@@ -4302,8 +4306,8 @@ angle::Result ContextVk::flushImpl(const vk::Semaphore *signalSemaphore)
 
     // We must set this to false before calling flushCommandsAndEndRenderPass to prevent it from
     // calling back to flushImpl.
-    mHasDeferredFlush       = false;
-    mSyncObjectPendingFlush = false;
+    mHasDeferredFlush = false;
+    getShareGroupVk()->clearSyncObjectPendingFlush();
 
     ANGLE_TRY(flushCommandsAndEndRenderPass());
 
@@ -4578,11 +4582,6 @@ bool ContextVk::shouldEmulateSeamfulCubeMapSampling() const
     }
 
     return true;
-}
-
-bool ContextVk::shouldUseOldRewriteStructSamplers() const
-{
-    return mRenderer->getFeatures().forceOldRewriteStructSamplers.enabled;
 }
 
 angle::Result ContextVk::onBufferReleaseToExternal(const vk::BufferHelper &buffer)

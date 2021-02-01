@@ -910,6 +910,12 @@ void InitExternalMemoryHostFunctions(VkInstance instance);
 // VK_KHR_external_fence_capabilities
 void InitExternalFenceCapabilitiesFunctions(VkInstance instance);
 
+// VK_KHR_get_memory_requirements2
+void InitGetMemoryRequirements2KHRFunctions(VkDevice device);
+
+// VK_KHR_bind_memory2
+void InitBindMemory2KHRFunctions(VkDevice device);
+
 // VK_KHR_external_fence_fd
 void InitExternalFenceFdFunctions(VkInstance instance);
 
@@ -936,6 +942,8 @@ VkCompareOp GetCompareOp(const GLenum compareFunc);
 
 constexpr gl::ShaderMap<VkShaderStageFlagBits> kShaderStageMap = {
     {gl::ShaderType::Vertex, VK_SHADER_STAGE_VERTEX_BIT},
+    {gl::ShaderType::TessControl, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT},
+    {gl::ShaderType::TessEvaluation, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT},
     {gl::ShaderType::Fragment, VK_SHADER_STAGE_FRAGMENT_BIT},
     {gl::ShaderType::Geometry, VK_SHADER_STAGE_GEOMETRY_BIT},
     {gl::ShaderType::Compute, VK_SHADER_STAGE_COMPUTE_BIT},

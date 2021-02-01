@@ -65,6 +65,7 @@ enum class LinkMismatchError
     // Shared
     NO_MISMATCH,
     TYPE_MISMATCH,
+    ARRAYNESS_MISMATCH,
     ARRAY_SIZE_MISMATCH,
     PRECISION_MISMATCH,
     STRUCT_NAME_MISMATCH,
@@ -455,6 +456,8 @@ class HasAttachedShaders
   public:
     virtual Shader *getAttachedShader(ShaderType shaderType) const = 0;
 
+    ShaderType getTransformFeedbackStage() const;
+
   protected:
     virtual ~HasAttachedShaders() {}
 };
@@ -633,7 +636,7 @@ class Program final : public LabeledObject, public angle::Subject, public HasAtt
     void getUniformiv(const Context *context, UniformLocation location, GLint *params) const;
     void getUniformuiv(const Context *context, UniformLocation location, GLuint *params) const;
 
-    void getActiveUniformBlockName(const GLuint blockIndex,
+    void getActiveUniformBlockName(const UniformBlockIndex blockIndex,
                                    GLsizei bufSize,
                                    GLsizei *length,
                                    GLchar *blockName) const;
@@ -666,7 +669,7 @@ class Program final : public LabeledObject, public angle::Subject, public HasAtt
     GLuint getUniformBlockIndex(const std::string &name) const;
     GLuint getShaderStorageBlockIndex(const std::string &name) const;
 
-    void bindUniformBlock(GLuint uniformBlockIndex, GLuint uniformBlockBinding);
+    void bindUniformBlock(UniformBlockIndex uniformBlockIndex, GLuint uniformBlockBinding);
     GLuint getUniformBlockBinding(GLuint uniformBlockIndex) const;
     GLuint getShaderStorageBlockBinding(GLuint shaderStorageBlockIndex) const;
 
@@ -746,6 +749,12 @@ class Program final : public LabeledObject, public angle::Subject, public HasAtt
     PrimitiveMode getGeometryShaderOutputPrimitiveType() const;
     GLint getGeometryShaderInvocations() const;
     GLint getGeometryShaderMaxVertices() const;
+
+    GLint getTessControlShaderVertices() const;
+    GLenum getTessGenMode() const;
+    GLenum getTessGenPointMode() const;
+    GLenum getTessGenSpacing() const;
+    GLenum getTessGenVertexOrder() const;
 
     const ProgramState &getState() const
     {

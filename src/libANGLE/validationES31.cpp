@@ -104,6 +104,11 @@ bool ValidateProgramResourceProperty(const Context *context, GLenum prop)
         case GL_REFERENCED_BY_GEOMETRY_SHADER_EXT:
             return context->getExtensions().geometryShader;
 
+        case GL_REFERENCED_BY_TESS_CONTROL_SHADER_EXT:
+        case GL_REFERENCED_BY_TESS_EVALUATION_SHADER_EXT:
+        case GL_IS_PER_PATCH_EXT:
+            return context->getExtensions().tessellationShaderEXT;
+
         case GL_LOCATION_INDEX_EXT:
             return context->getExtensions().blendFuncExtended;
 
@@ -216,6 +221,8 @@ bool ValidateProgramResourcePropertyByInterface(GLenum prop, GLenum programInter
         case GL_REFERENCED_BY_FRAGMENT_SHADER:
         case GL_REFERENCED_BY_COMPUTE_SHADER:
         case GL_REFERENCED_BY_GEOMETRY_SHADER_EXT:
+        case GL_REFERENCED_BY_TESS_CONTROL_SHADER_EXT:
+        case GL_REFERENCED_BY_TESS_EVALUATION_SHADER_EXT:
         {
             switch (programInterface)
             {
@@ -256,6 +263,14 @@ bool ValidateProgramResourcePropertyByInterface(GLenum prop, GLenum programInter
                     return false;
             }
         }
+        case GL_IS_PER_PATCH_EXT:
+            switch (programInterface)
+            {
+                case GL_PROGRAM_INPUT:
+                case GL_PROGRAM_OUTPUT:
+                    return true;
+            }
+            return false;
 
         default:
             return false;
@@ -1705,6 +1720,12 @@ bool ValidateUseProgramStagesBase(const Context *context,
         knownShaderBits |= GL_GEOMETRY_SHADER_BIT;
     }
 
+    if (context->getClientVersion() == ES_3_2 || context->getExtensions().tessellationShaderEXT)
+    {
+        knownShaderBits |= GL_TESS_CONTROL_SHADER_BIT;
+        knownShaderBits |= GL_TESS_EVALUATION_SHADER_BIT;
+    }
+
     if ((stages & ~knownShaderBits) && (stages != GL_ALL_SHADER_BITS))
     {
         context->validationError(GL_INVALID_VALUE, kUnrecognizedShaderStageBit);
@@ -1802,12 +1823,33 @@ bool ValidateCreateShaderProgramvBase(const Context *context,
                                       GLsizei count,
                                       const GLchar *const *strings)
 {
-    // GL_INVALID_ENUM is generated if type is not an accepted shader type.
-    if ((type != ShaderType::Vertex) && (type != ShaderType::Fragment) &&
-        (type != ShaderType::Compute))
+    switch (type)
     {
-        context->validationError(GL_INVALID_ENUM, kInvalidShaderType);
-        return false;
+        case ShaderType::InvalidEnum:
+            context->validationError(GL_INVALID_ENUM, kInvalidShaderType);
+            return false;
+        case ShaderType::Vertex:
+        case ShaderType::Fragment:
+        case ShaderType::Compute:
+            break;
+        case ShaderType::Geometry:
+            if (!context->getExtensions().geometryShader && context->getClientVersion() < ES_3_2)
+            {
+                context->validationError(GL_INVALID_ENUM, kInvalidShaderType);
+                return false;
+            }
+            break;
+        case ShaderType::TessControl:
+        case ShaderType::TessEvaluation:
+            if (!context->getExtensions().tessellationShaderEXT &&
+                context->getClientVersion() < ES_3_2)
+            {
+                context->validationError(GL_INVALID_ENUM, kInvalidShaderType);
+                return false;
+            }
+            break;
+        default:
+            UNREACHABLE();
     }
 
     // GL_INVALID_VALUE is generated if count is negative.
