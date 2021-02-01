@@ -372,14 +372,14 @@ class StagingBuffer final : angle::NonCopyable
 };
 
 angle::Result InitMappableAllocation(Context *context,
-                                     const vk::Allocator &allocator,
+                                     const Allocator &allocator,
                                      Allocation *allocation,
                                      VkDeviceSize size,
                                      int value,
                                      VkMemoryPropertyFlags memoryPropertyFlags);
 
 angle::Result InitMappableDeviceMemory(Context *context,
-                                       vk::DeviceMemory *deviceMemory,
+                                       DeviceMemory *deviceMemory,
                                        VkDeviceSize size,
                                        int value,
                                        VkMemoryPropertyFlags memoryPropertyFlags);
@@ -407,7 +407,7 @@ angle::Result AllocateImageMemoryWithRequirements(Context *context,
                                                   Image *image,
                                                   DeviceMemory *deviceMemoryOut);
 
-angle::Result AllocateBufferMemoryWithRequirements(vk::Context *context,
+angle::Result AllocateBufferMemoryWithRequirements(Context *context,
                                                    VkMemoryPropertyFlags memoryPropertyFlags,
                                                    const VkMemoryRequirements &memoryRequirements,
                                                    const void *extraAllocationInfo,
@@ -607,12 +607,23 @@ class Shared final : angle::NonCopyable
         }
     }
 
+    void setUnreferenced(RefCounted<T> *refCounted)
+    {
+        ASSERT(!mRefCounted);
+        ASSERT(refCounted);
+
+        mRefCounted = refCounted;
+        mRefCounted->addRef();
+    }
+
     void assign(VkDevice device, T &&newObject)
     {
         set(device, new RefCounted<T>(std::move(newObject)));
     }
 
     void copy(VkDevice device, const Shared<T> &other) { set(device, other.mRefCounted); }
+
+    void copyUnreferenced(const Shared<T> &other) { setUnreferenced(other.mRefCounted); }
 
     void reset(VkDevice device) { set(device, nullptr); }
 
@@ -626,6 +637,23 @@ class Shared final : angle::NonCopyable
             {
                 ASSERT(mRefCounted->get().valid());
                 recycler->recycle(std::move(mRefCounted->get()));
+                SafeDelete(mRefCounted);
+            }
+
+            mRefCounted = nullptr;
+        }
+    }
+
+    template <typename OnRelease>
+    void resetAndRelease(OnRelease *onRelease)
+    {
+        if (mRefCounted)
+        {
+            mRefCounted->releaseRef();
+            if (!mRefCounted->isReferenced())
+            {
+                ASSERT(mRefCounted->get().valid());
+                (*onRelease)(std::move(mRefCounted->get()));
                 SafeDelete(mRefCounted);
             }
 
@@ -690,6 +718,8 @@ struct SpecializationConstants final
 {
     VkBool32 lineRasterEmulation;
     uint32_t surfaceRotation;
+    uint32_t drawableWidth;
+    uint32_t drawableHeight;
 };
 ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
 
@@ -880,6 +910,12 @@ void InitExternalMemoryHostFunctions(VkInstance instance);
 // VK_KHR_external_fence_capabilities
 void InitExternalFenceCapabilitiesFunctions(VkInstance instance);
 
+// VK_KHR_get_memory_requirements2
+void InitGetMemoryRequirements2KHRFunctions(VkDevice device);
+
+// VK_KHR_bind_memory2
+void InitBindMemory2KHRFunctions(VkDevice device);
+
 // VK_KHR_external_fence_fd
 void InitExternalFenceFdFunctions(VkInstance instance);
 
@@ -906,6 +942,8 @@ VkCompareOp GetCompareOp(const GLenum compareFunc);
 
 constexpr gl::ShaderMap<VkShaderStageFlagBits> kShaderStageMap = {
     {gl::ShaderType::Vertex, VK_SHADER_STAGE_VERTEX_BIT},
+    {gl::ShaderType::TessControl, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT},
+    {gl::ShaderType::TessEvaluation, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT},
     {gl::ShaderType::Fragment, VK_SHADER_STAGE_FRAGMENT_BIT},
     {gl::ShaderType::Geometry, VK_SHADER_STAGE_GEOMETRY_BIT},
     {gl::ShaderType::Compute, VK_SHADER_STAGE_COMPUTE_BIT},

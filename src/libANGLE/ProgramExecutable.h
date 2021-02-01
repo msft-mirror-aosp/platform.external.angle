@@ -75,8 +75,14 @@ struct TransformFeedbackVarying : public sh::ShaderVariable
         *thisVar                    = field;
         interpolation               = parent.interpolation;
         isInvariant                 = parent.isInvariant;
-        name                        = parent.name + "." + name;
-        mappedName                  = parent.mappedName + "." + mappedName;
+        ASSERT(parent.isShaderIOBlock || !parent.name.empty());
+        if (!parent.name.empty())
+        {
+            name       = parent.name + "." + name;
+            mappedName = parent.mappedName + "." + mappedName;
+        }
+        structOrBlockName       = parent.structOrBlockName;
+        mappedStructOrBlockName = parent.mappedStructOrBlockName;
     }
 
     std::string nameWithArrayIndex() const
@@ -151,6 +157,15 @@ class ProgramExecutable final : public angle::Subject
         return isCompute() ? mLinkedComputeShaderStages.count()
                            : mLinkedGraphicsShaderStages.count();
     }
+    bool hasLinkedTessellationShader() const
+    {
+        return mLinkedGraphicsShaderStages[ShaderType::TessControl] ||
+               mLinkedGraphicsShaderStages[ShaderType::TessEvaluation];
+    }
+
+    ShaderType getTransformFeedbackStage() const;
+
+    ShaderType getLinkedTransformFeedbackStage() const;
 
     // A PPO can have both graphics and compute programs attached, so
     // we don't know if the PPO is a 'graphics' or 'compute' PPO until the
@@ -211,9 +226,6 @@ class ProgramExecutable final : public angle::Subject
 
     // Count the number of uniform and storage buffer declarations, counting arrays as one.
     size_t getTransformFeedbackBufferCount() const { return mTransformFeedbackStrides.size(); }
-
-    bool linkValidateGlobalNames(InfoLog &infoLog,
-                                 const ShaderMap<const ProgramState *> &programStates) const;
 
     void updateCanDrawWith();
     bool hasVertexAndFragmentShader() const { return mCanDrawWith; }
@@ -289,12 +301,6 @@ class ProgramExecutable final : public angle::Subject
 
     GLuint getUniformIndexFromImageIndex(GLuint imageIndex) const;
 
-    gl::ProgramLinkedResources &getResources() const
-    {
-        ASSERT(mResources);
-        return *mResources;
-    }
-
     void saveLinkedStateInfo(const ProgramState &state);
     std::vector<sh::ShaderVariable> getLinkedOutputVaryings(ShaderType shaderType)
     {
@@ -308,6 +314,20 @@ class ProgramExecutable final : public angle::Subject
 
     bool isYUVOutput() const;
 
+    PrimitiveMode getGeometryShaderInputPrimitiveType() const
+    {
+        return mGeometryShaderInputPrimitiveType;
+    }
+
+    PrimitiveMode getGeometryShaderOutputPrimitiveType() const
+    {
+        return mGeometryShaderOutputPrimitiveType;
+    }
+
+    int getGeometryShaderInvocations() const { return mGeometryShaderInvocations; }
+
+    int getGeometryShaderMaxVertices() const { return mGeometryShaderMaxVertices; }
+
   private:
     // TODO(timvp): http://anglebug.com/3570: Investigate removing these friend
     // class declarations and accessing the necessary members with getters/setters.
@@ -320,6 +340,26 @@ class ProgramExecutable final : public angle::Subject
     // Scans the sampler bindings for type conflicts with sampler 'textureUnitIndex'.
     void setSamplerUniformTextureTypeAndFormat(size_t textureUnitIndex,
                                                std::vector<SamplerBinding> &samplerBindings);
+
+    bool linkMergedVaryings(const Context *context,
+                            const HasAttachedShaders &programOrPipeline,
+                            const ProgramMergedVaryings &mergedVaryings,
+                            const std::vector<std::string> &transformFeedbackVaryingNames,
+                            bool isSeparable,
+                            ProgramVaryingPacking *varyingPacking);
+
+    bool linkValidateTransformFeedback(
+        const Context *context,
+        const ProgramMergedVaryings &varyings,
+        ShaderType stage,
+        const std::vector<std::string> &transformFeedbackVaryingNames);
+
+    void gatherTransformFeedbackVaryings(
+        const ProgramMergedVaryings &varyings,
+        ShaderType stage,
+        const std::vector<std::string> &transformFeedbackVaryingNames);
+
+    void updateTransformFeedbackStrides();
 
     InfoLog mInfoLog;
 
@@ -404,10 +444,20 @@ class ProgramExecutable final : public angle::Subject
     ShaderMap<std::vector<sh::ShaderVariable>> mLinkedOutputVaryings;
     ShaderMap<std::vector<sh::ShaderVariable>> mLinkedInputVaryings;
     ShaderMap<int> mLinkedShaderVersions;
-    // TODO: http://anglebug.com/4514: Remove
-    std::unique_ptr<gl::ProgramLinkedResources> mResources;
-};
 
+    // GL_EXT_geometry_shader.
+    PrimitiveMode mGeometryShaderInputPrimitiveType;
+    PrimitiveMode mGeometryShaderOutputPrimitiveType;
+    int mGeometryShaderInvocations;
+    int mGeometryShaderMaxVertices;
+
+    // GL_EXT_tessellation_shader
+    int mTessControlShaderVertices;
+    GLenum mTessGenMode;
+    GLenum mTessGenSpacing;
+    GLenum mTessGenVertexOrder;
+    GLenum mTessGenPointMode;
+};
 }  // namespace gl
 
 #endif  // LIBANGLE_PROGRAMEXECUTABLE_H_

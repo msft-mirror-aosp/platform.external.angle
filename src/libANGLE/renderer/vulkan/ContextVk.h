@@ -37,7 +37,7 @@ class ShareGroupVk;
 static constexpr uint32_t kMaxGpuEventNameLen = 32;
 using EventName                               = std::array<char, kMaxGpuEventNameLen>;
 
-class ContextVk : public ContextImpl, public vk::Context
+class ContextVk : public ContextImpl, public vk::Context, public MultisampleTextureInitializer
 {
   public:
     ContextVk(const gl::State &state, gl::ErrorSet *errorSet, RendererVk *renderer);
@@ -196,7 +196,7 @@ class ContextVk : public ContextImpl, public vk::Context
 
     // Record GL API calls for debuggers
     void logEvent(const char *eventString);
-    void endEventLog(gl::EntryPoint entryPoint);
+    void endEventLog(angle::EntryPoint entryPoint);
 
     bool isViewportFlipEnabledForDrawFBO() const;
     bool isViewportFlipEnabledForReadFBO() const;
@@ -292,7 +292,6 @@ class ContextVk : public ContextImpl, public vk::Context
 
     ANGLE_INLINE void invalidateVertexAndIndexBuffers()
     {
-        invalidateCurrentGraphicsPipeline();
         mGraphicsDirtyBits.set(DIRTY_BIT_VERTEX_BUFFERS);
         mGraphicsDirtyBits.set(DIRTY_BIT_INDEX_BUFFER);
     }
@@ -320,10 +319,13 @@ class ContextVk : public ContextImpl, public vk::Context
         const gl::TransformFeedbackBuffersArray<vk::BufferHelper *> &buffers);
     void onEndTransformFeedback();
     angle::Result onPauseTransformFeedback();
+    void pauseTransformFeedbackIfStartedAndRebindBuffersOnResume();
 
-    // When UtilsVk issues draw or dispatch calls, it binds descriptor sets that the context is not
-    // aware of.  This function is called to make sure affected descriptor set bindings are dirtied
-    // for the next application draw/dispatch call.
+    // When UtilsVk issues draw or dispatch calls, it binds a new pipeline and descriptor sets that
+    // the context is not aware of.  These functions are called to make sure the pipeline and
+    // affected descriptor set bindings are dirtied for the next application draw/dispatch call.
+    void invalidateGraphicsPipeline();
+    void invalidateComputePipeline();
     void invalidateGraphicsDescriptorSet(DescriptorSetIndex usedDescriptorSet);
     void invalidateComputeDescriptorSet(DescriptorSetIndex usedDescriptorSet);
 
@@ -418,8 +420,6 @@ class ContextVk : public ContextImpl, public vk::Context
 
     bool emulateSeamfulCubeMapSampling() const { return mEmulateSeamfulCubeMapSampling; }
 
-    bool useOldRewriteStructSamplers() const { return mUseOldRewriteStructSamplers; }
-
     const gl::Debug &getDebug() const { return mState.getDebug(); }
     const gl::OverlayType *getOverlay() const { return mState.getOverlay(); }
 
@@ -449,13 +449,14 @@ class ContextVk : public ContextImpl, public vk::Context
     }
 
     void onDepthStencilDraw(gl::LevelIndex level,
-                            uint32_t layer,
+                            uint32_t layerStart,
+                            uint32_t layerCount,
                             vk::ImageHelper *image,
                             vk::ImageHelper *resolveImage)
     {
         ASSERT(mRenderPassCommands->started());
-        mRenderPassCommands->depthStencilImagesDraw(&mResourceUseList, level, layer, image,
-                                                    resolveImage);
+        mRenderPassCommands->depthStencilImagesDraw(&mResourceUseList, level, layerStart,
+                                                    layerCount, image, resolveImage);
     }
 
     void onImageHelperRelease(const vk::ImageHelper *image)
@@ -535,12 +536,14 @@ class ContextVk : public ContextImpl, public vk::Context
 
     bool isRobustResourceInitEnabled() const;
 
-    // occlusion query
-    void beginOcclusionQuery(QueryVk *queryVk);
-    void endOcclusionQuery(QueryVk *queryVk);
+    // Queries that begin and end automatically with render pass start and end
+    angle::Result beginRenderPassQuery(QueryVk *queryVk);
+    void endRenderPassQuery(QueryVk *queryVk);
+    void pauseRenderPassQueriesIfActive();
+    angle::Result resumeRenderPassQueriesIfActive();
 
-    angle::Result pauseOcclusionQueryIfActive();
-    angle::Result resumeOcclusionQueryIfActive();
+    // Used by QueryVk to share query helpers between transform feedback queries.
+    QueryVk *getActiveRenderPassQuery(gl::QueryType queryType) const;
 
     void updateOverlayOnPresent();
     void addOverlayUsedBuffersCount(vk::CommandBufferHelper *commandBuffer);
@@ -564,11 +567,12 @@ class ContextVk : public ContextImpl, public vk::Context
     const vk::PerfCounters &getPerfCounters() const { return mPerfCounters; }
     vk::PerfCounters &getPerfCounters() { return mPerfCounters; }
 
-    void onSyncHelperInitialize() { mSyncObjectPendingFlush = true; }
+    void onSyncHelperInitialize() { getShareGroupVk()->setSyncObjectPendingFlush(); }
+    void onEGLSyncHelperInitialize() { mEGLSyncObjectPendingFlush = true; }
 
-    // When UtilsVk issues a draw call on the currently running render pass, the pipelines and
-    // descriptor sets it binds need to be undone.
-    void invalidateGraphicsPipelineAndDescriptorSets();
+    // Implementation of MultisampleTextureInitializer
+    angle::Result initializeMultisampleTextureToBlack(const gl::Context *context,
+                                                      gl::Texture *glTexture) override;
 
   private:
     // Dirty bits.
@@ -602,7 +606,7 @@ class ContextVk : public ContextImpl, public vk::Context
         uint32_t dynamicOffset;
         vk::BindingPointer<vk::DescriptorSetLayout> descriptorSetLayout;
         vk::RefCountedDescriptorPoolBinding descriptorPoolBinding;
-        angle::FastIntegerMap<VkDescriptorSet> descriptorSetCache;
+        DriverUniformsDescriptorSetCache descriptorSetCache;
 
         DriverUniformsDescriptorSet();
         ~DriverUniformsDescriptorSet();
@@ -825,14 +829,13 @@ class ContextVk : public ContextImpl, public vk::Context
     void flushGpuEvents(double nextSyncGpuTimestampS, double nextSyncCpuTimestampS);
     void handleDeviceLost();
     bool shouldEmulateSeamfulCubeMapSampling() const;
-    bool shouldUseOldRewriteStructSamplers() const;
     void clearAllGarbage();
     bool hasRecordedCommands();
     void dumpCommandStreamDiagnostics();
     angle::Result flushOutsideRenderPassCommands();
     void flushDescriptorSetUpdates();
 
-    ANGLE_INLINE void onRenderPassFinished() { mRenderPassCommandBuffer = nullptr; }
+    void onRenderPassFinished();
 
     void initIndexTypeMap();
 
@@ -841,7 +844,7 @@ class ContextVk : public ContextImpl, public vk::Context
     void populateTransformFeedbackBufferSet(
         size_t bufferCount,
         const gl::TransformFeedbackBuffersArray<vk::BufferHelper *> &buffers);
-    void resumeTransformFeedbackIfStarted();
+    void pauseTransformFeedbackIfStarted(DirtyBits onResumeOps);
 
     // DescriptorSet writes
     template <typename T, const T *VkWriteDescriptorSet::*pInfo>
@@ -860,6 +863,9 @@ class ContextVk : public ContextImpl, public vk::Context
 
     void updateSampleShadingWithRasterizationSamples(const uint32_t rasterizationSamples);
     void updateRasterizationSamples(const uint32_t rasterizationSamples);
+
+    SpecConstUsageBits getCurrentProgramSpecConstUsageBits() const;
+    void updateGraphicsPipelineDescWithSpecConstUsageBits(SpecConstUsageBits usageBits);
 
     std::array<DirtyBitHandler, DIRTY_BIT_MAX> mGraphicsDirtyBitHandlers;
     std::array<DirtyBitHandler, DIRTY_BIT_MAX> mComputeDirtyBitHandlers;
@@ -886,7 +892,13 @@ class ContextVk : public ContextImpl, public vk::Context
     // Note that this implementation would need to change in shared resource scenarios. Likely
     // we'd instead share a single set of pools between the share groups.
     angle::PackedEnumMap<PipelineType, vk::DynamicDescriptorPool> mDriverUniformsDescriptorPools;
-    angle::PackedEnumMap<gl::QueryType, vk::DynamicQueryPool> mQueryPools;
+    gl::QueryTypeMap<vk::DynamicQueryPool> mQueryPools;
+
+    // Queries that need to be closed and reopened with the render pass:
+    //
+    // - Occlusion queries
+    // - Transform feedback queries, if not emulated
+    gl::QueryTypeMap<QueryVk *> mActiveRenderPassQueries;
 
     // Dirty bits.
     DirtyBits mGraphicsDirtyBits;
@@ -902,10 +914,6 @@ class ContextVk : public ContextImpl, public vk::Context
     ProgramVk *mProgram;
     ProgramPipelineVk *mProgramPipeline;
     ProgramExecutableVk *mExecutable;
-
-    // occlusion query
-    QueryVk *mActiveQueryAnySamples;
-    QueryVk *mActiveQueryAnySamplesConservative;
 
     // The offset we had the last time we bound the index buffer.
     const GLvoid *mLastIndexBufferOffset;
@@ -939,10 +947,6 @@ class ContextVk : public ContextImpl, public vk::Context
 
     // Whether this context should do seamful cube map sampling emulation.
     bool mEmulateSeamfulCubeMapSampling;
-
-    // Whether this context should use the old version of the
-    // RewriteStructSamplers pass.
-    bool mUseOldRewriteStructSamplers;
 
     angle::PackedEnumMap<PipelineType, DriverUniformsDescriptorSet> mDriverUniforms;
 
@@ -986,8 +990,8 @@ class ContextVk : public ContextImpl, public vk::Context
 
     // Track SyncHelper object been added into secondary command buffer that has not been flushed to
     // vulkan.
-    bool mSyncObjectPendingFlush;
-    uint32_t mDeferredFlushCount;
+    bool mEGLSyncObjectPendingFlush;
+    bool mHasDeferredFlush;
 
     // Semaphores that must be waited on in the next submission.
     std::vector<VkSemaphore> mWaitSemaphores;

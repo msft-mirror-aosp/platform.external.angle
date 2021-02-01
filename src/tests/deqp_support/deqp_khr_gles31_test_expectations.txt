@@ -32,7 +32,6 @@
 3573 VULKAN : KHR-GLES31.core.texture_buffer.texture_buffer_texture_buffer_range = SKIP
 
 // Dispatch indirect:
-3726 VULKAN PIXEL2ORXL : KHR-GLES31.core.compute_shader.pipeline-compute-chain = FAIL
 4194 VULKAN PIXEL2ORXL : KHR-GLES31.core.compute_shader.resource-ubo = FAIL
 4194 VULKAN PIXEL2ORXL : KHR-GLES31.core.compute_shader.built-in-variables = FAIL
 
@@ -59,12 +58,11 @@
 4723 VULKAN NVIDIA : KHR-GLES31.core.shader_image_size.advanced-nonMS-vs-uint = SKIP
 4723 VULKAN NVIDIA : KHR-GLES31.core.program_interface_query.transform-feedback-types = SKIP
 
-// Cannot support incomplete multisample texture:
-3588 VULKAN : KHR-GLES31.core.sample_variables*samples_0* = SKIP
-
-// These test are failed, but the fault about incomplete multisample texture, these tests need to be SKIP.
 // Incompatible between incomplete texture and sampler format (isampler2D or usampler2D):
-3588 VULKAN : KHR-GLES31.core.sample_variables.mask.rgba8*i.* = SKIP
+3588 VULKAN : KHR-GLES31.core.sample_variables.mask.rgba8*i.* = FAIL
+
+// Geometry shader support
+5483 VULKAN : KHR-GLES31.core.draw_indirect.basic-mode-*adjacency = SKIP
 
 ////
 //// Desktop Vulkan expectations
@@ -89,10 +87,6 @@
 // Crashes on Android
 4107 VULKAN ANDROID : KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength* = SKIP
 
-// Passing on recent drivers:
-3726 VULKAN ANDROID : KHR-GLES31.core.shader_atomic_counters.* = FAIL
-3726 VULKAN ANDROID : KHR-GLES31.core.shader_atomic_counters.advanced-usage-* = SKIP
-
 // Explicit uniform locations:
 4219 VULKAN PIXEL2ORXL : KHR-GLES31.core.explicit_uniform_location.uniform-loc-mix-with-implicit-max = FAIL
 4219 VULKAN PIXEL2ORXL : KHR-GLES31.core.explicit_uniform_location.uniform-loc-mix-with-implicit-max-array = FAIL
@@ -102,11 +96,7 @@
 4159 VULKAN PIXEL2ORXL : KHR-GLES31.core.draw_indirect.advanced-twoPass-transformFeedback-arrays = FAIL
 
 // Fails to link the shader program on Pixel2 and Pixel2 XL
-// These test are failed, but the fault about incomplete multisample texture, these tests need to be SKIP.
-3588 VULKAN PIXEL2ORXL : KHR-GLES31.core.sample_variables.mask.rgba8.samples_*.mask_* = SKIP
-
-// Android uses "old" sampler rewrite that doesn't support array of arrays
-2703 VULKAN ANDROID : KHR-GLES31.core.arrays_of_arrays.* = SKIP
+3588 VULKAN PIXEL2ORXL : KHR-GLES31.core.sample_variables.mask.rgba8.samples_*.mask_* = FAIL
 
 // Failing on Android with SwiftShader
 4300 SWIFTSHADER ANDROID : KHR-GLES31.core.shader_integer_mix.mix-bvec4 = FAIL

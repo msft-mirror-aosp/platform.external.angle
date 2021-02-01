@@ -81,7 +81,7 @@ class BlitFramebufferANGLETest : public ANGLETest
             mOriginalFBO = (GLuint)originalFBO;
         }
 
-        GLenum format = GL_BGRA_EXT;
+        GLenum format = GL_RGBA;
 
         glGenFramebuffers(1, &mUserFBO);
         glBindFramebuffer(GL_FRAMEBUFFER, mUserFBO);
@@ -418,9 +418,9 @@ TEST_P(BlitFramebufferANGLETest, BlitColorToDefault)
 // Blit color to/from default framebuffer with Flip-X/Flip-Y.
 TEST_P(BlitFramebufferANGLETest, BlitColorWithFlip)
 {
-    // OpenGL ES 3.0 Required.
-    ANGLE_SKIP_TEST_IF(getClientMajorVersion() < 3 ||
-                       !IsGLExtensionEnabled("GL_ANGLE_framebuffer_blit"));
+    // OpenGL ES 3.0 / GL_NV_framebuffer_blit required for flip.
+    ANGLE_SKIP_TEST_IF(getClientMajorVersion() < 3 &&
+                       !IsGLExtensionEnabled("GL_NV_framebuffer_blit"));
 
     glBindFramebuffer(GL_FRAMEBUFFER, mUserFBO);
 
@@ -920,6 +920,9 @@ TEST_P(BlitFramebufferANGLETest, BlitStencil)
 
     // http://anglebug.com/4919
     ANGLE_SKIP_TEST_IF(IsIntel() && IsMetal());
+
+    // http://anglebug.com/5396
+    ANGLE_SKIP_TEST_IF(IsAMD() && IsD3D9());
 
     glBindFramebuffer(GL_FRAMEBUFFER, mUserFBO);
 

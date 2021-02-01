@@ -115,6 +115,8 @@ generators = {
         'scripts/gen_proc_table.py',
     'restricted traces':
         'src/tests/restricted_traces/gen_restricted_traces.py',
+    'SPIR-V helpers':
+        'src/common/spirv/gen_spirv_builder_and_parser.py',
     'Static builtins':
         'src/compiler/translator/gen_builtin_symbols.py',
     'uniform type':
@@ -182,7 +184,10 @@ def load_hashes():
     for file in os.listdir(hash_dir):
         hash_fname = os.path.join(hash_dir, file)
         with open(hash_fname) as hash_file:
-            hashes[file] = json.load(open(hash_fname))
+            try:
+                hashes[file] = json.load(hash_file)
+            except ValueError:
+                raise Exception("Could not decode JSON from %s" % file)
     return hashes
 
 

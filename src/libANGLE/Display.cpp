@@ -864,32 +864,29 @@ Error Display::initialize()
     initVendorString();
 
     // Populate the Display's EGLDeviceEXT if the Display wasn't created using one
-    if (mPlatform != EGL_PLATFORM_DEVICE_EXT)
-    {
-        if (mDisplayExtensions.deviceQuery)
-        {
-            std::unique_ptr<rx::DeviceImpl> impl(mImplementation->createDevice());
-            ASSERT(impl != nullptr);
-            error = impl->initialize();
-            if (error.isError())
-            {
-                ERR() << "Failed to initialize display because device creation failed: "
-                      << error.getMessage();
-                mImplementation->terminate();
-                return error;
-            }
-            mDevice = new Device(this, impl.release());
-        }
-        else
-        {
-            mDevice = nullptr;
-        }
-    }
-    else
+    if (mPlatform == EGL_PLATFORM_DEVICE_EXT)
     {
         // For EGL_PLATFORM_DEVICE_EXT, mDevice should always be populated using
         // an external device
         ASSERT(mDevice != nullptr);
+    }
+    else if (GetClientExtensions().deviceQueryEXT)
+    {
+        std::unique_ptr<rx::DeviceImpl> impl(mImplementation->createDevice());
+        ASSERT(impl);
+        error = impl->initialize();
+        if (error.isError())
+        {
+            ERR() << "Failed to initialize display because device creation failed: "
+                  << error.getMessage();
+            mImplementation->terminate();
+            return error;
+        }
+        mDevice = new Device(this, impl.release());
+    }
+    else
+    {
+        mDevice = nullptr;
     }
 
     mInitialized = true;
@@ -1285,14 +1282,11 @@ Error Display::makeCurrent(gl::Context *previousContext,
     // If the context is changing we need to update the reference counts. If it's not, e.g. just
     // changing the surfaces leave the reference count alone. Otherwise the reference count might go
     // to zero even though we know we are not done with the context.
-    bool updateRefCount = context != previousContext;
-    if (previousContext != nullptr)
+    bool contextChanged = context != previousContext;
+    if (previousContext != nullptr && contextChanged)
     {
         ANGLE_TRY(previousContext->unMakeCurrent(this));
-        if (updateRefCount)
-        {
-            ANGLE_TRY(releaseContext(previousContext));
-        }
+        ANGLE_TRY(releaseContext(previousContext));
     }
 
     ANGLE_TRY(mImplementation->makeCurrent(this, drawSurface, readSurface, context));
@@ -1300,7 +1294,7 @@ Error Display::makeCurrent(gl::Context *previousContext,
     if (context != nullptr)
     {
         ANGLE_TRY(context->makeCurrent(this, drawSurface, readSurface));
-        if (updateRefCount)
+        if (contextChanged)
         {
             context->addRef();
         }
@@ -1442,6 +1436,14 @@ Error Display::destroyContext(const Thread *thread, gl::Context *context)
     Surface *currentDrawSurface   = thread->getCurrentDrawSurface();
     Surface *currentReadSurface   = thread->getCurrentReadSurface();
     bool changeContextForDeletion = context != currentContext;
+
+    // For external context, we cannot change the current native context, and the API user should
+    // make sure the native context is current.
+    if (changeContextForDeletion && context->isExternal())
+    {
+        ASSERT(!currentContext);
+        changeContextForDeletion = false;
+    }
 
     // Make the context being deleted current during its deletion.  This allows it to delete
     // any resources it's holding.
@@ -1666,6 +1668,7 @@ static ClientExtensions GenerateClientExtensions()
     extensions.debug                     = true;
     extensions.explicitContext           = true;
     extensions.featureControlANGLE       = true;
+    extensions.deviceQueryEXT            = true;
 
     return extensions;
 }
@@ -1752,7 +1755,7 @@ Error Display::validateImageClientBuffer(const gl::Context *context,
     return mImplementation->validateImageClientBuffer(context, target, clientBuffer, attribs);
 }
 
-Error Display::valdiatePixmap(Config *config,
+Error Display::valdiatePixmap(const Config *config,
                               EGLNativePixmapType pixmap,
                               const AttributeMap &attributes) const
 {
@@ -2044,8 +2047,10 @@ void Display::returnScratchBufferImpl(angle::ScratchBuffer scratchBuffer,
     bufferVector->push_back(std::move(scratchBuffer));
 }
 
-egl::Error Display::handleGPUSwitch()
+Error Display::handleGPUSwitch()
 {
-    return mImplementation->handleGPUSwitch();
+    ANGLE_TRY(mImplementation->handleGPUSwitch());
+    initVendorString();
+    return NoError();
 }
 }  // namespace egl

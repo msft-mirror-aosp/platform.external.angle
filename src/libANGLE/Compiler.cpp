@@ -107,6 +107,8 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state, egl::Disp
     mResources.NV_shader_noperspective_interpolation = extensions.noperspectiveInterpolationNV;
     mResources.ARB_texture_rectangle                 = extensions.textureRectangle;
     mResources.EXT_gpu_shader5                       = extensions.gpuShader5EXT;
+    mResources.OES_shader_io_blocks                  = extensions.shaderIoBlocksOES;
+    mResources.EXT_shader_io_blocks                  = extensions.shaderIoBlocksEXT;
     mResources.OES_texture_storage_multisample_2d_array =
         extensions.textureStorageMultisample2DArrayOES;
     mResources.OES_texture_3D                  = extensions.texture3DOES;
@@ -149,6 +151,9 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state, egl::Disp
     // GL_EXT_YUV_target
     mResources.EXT_YUV_target = extensions.yuvTargetEXT;
 
+    // GL_EXT_clip_cull_distance
+    mResources.EXT_clip_cull_distance = extensions.clipCullDistanceEXT;
+
     // GLSL ES 3.0 constants
     mResources.MaxVertexOutputVectors  = caps.maxVertexOutputComponents / 4;
     mResources.MaxFragmentInputVectors = caps.maxFragmentInputComponents / 4;
@@ -160,7 +165,9 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state, egl::Disp
     mResources.MaxDualSourceDrawBuffers = extensions.maxDualSourceDrawBuffers;
 
     // APPLE_clip_distance/EXT_clip_cull_distance
-    mResources.MaxClipDistances = caps.maxClipDistances;
+    mResources.MaxClipDistances                = caps.maxClipDistances;
+    mResources.MaxCullDistances                = caps.maxCullDistances;
+    mResources.MaxCombinedClipAndCullDistances = caps.maxCombinedClipAndCullDistances;
 
     // OES_sample_variables
     mResources.OES_sample_variables = extensions.sampleVariablesOES;
@@ -228,6 +235,37 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state, egl::Disp
     mResources.MaxGeometryShaderStorageBlocks = caps.maxShaderStorageBlocks[ShaderType::Geometry];
     mResources.MaxGeometryShaderInvocations   = caps.maxGeometryShaderInvocations;
     mResources.MaxGeometryImageUniforms       = caps.maxShaderImageUniforms[ShaderType::Geometry];
+
+    // Tessellation Shader constants
+    mResources.EXT_tessellation_shader        = extensions.tessellationShaderEXT;
+    mResources.MaxTessControlInputComponents  = caps.maxTessControlInputComponents;
+    mResources.MaxTessControlOutputComponents = caps.maxTessControlOutputComponents;
+    mResources.MaxTessControlTextureImageUnits =
+        caps.maxShaderTextureImageUnits[ShaderType::TessControl];
+    mResources.MaxTessControlUniformComponents =
+        caps.maxShaderUniformComponents[ShaderType::TessControl];
+    mResources.MaxTessControlTotalOutputComponents = caps.maxTessControlTotalOutputComponents;
+    mResources.MaxTessControlImageUniforms  = caps.maxShaderImageUniforms[ShaderType::TessControl];
+    mResources.MaxTessControlAtomicCounters = caps.maxShaderAtomicCounters[ShaderType::TessControl];
+    mResources.MaxTessControlAtomicCounterBuffers =
+        caps.maxShaderAtomicCounterBuffers[ShaderType::TessControl];
+
+    mResources.MaxTessPatchComponents = caps.maxTessPatchComponents;
+    mResources.MaxPatchVertices       = caps.maxPatchVertices;
+    mResources.MaxTessGenLevel        = caps.maxTessGenLevel;
+
+    mResources.MaxTessEvaluationInputComponents  = caps.maxTessEvaluationInputComponents;
+    mResources.MaxTessEvaluationOutputComponents = caps.maxTessEvaluationOutputComponents;
+    mResources.MaxTessEvaluationTextureImageUnits =
+        caps.maxShaderTextureImageUnits[ShaderType::TessEvaluation];
+    mResources.MaxTessEvaluationUniformComponents =
+        caps.maxShaderUniformComponents[ShaderType::TessEvaluation];
+    mResources.MaxTessEvaluationImageUniforms =
+        caps.maxShaderImageUniforms[ShaderType::TessEvaluation];
+    mResources.MaxTessEvaluationAtomicCounters =
+        caps.maxShaderAtomicCounters[ShaderType::TessEvaluation];
+    mResources.MaxTessEvaluationAtomicCounterBuffers =
+        caps.maxShaderAtomicCounterBuffers[ShaderType::TessEvaluation];
 
     // Subpixel bits.
     mResources.SubPixelBits = static_cast<int>(caps.subPixelBits);

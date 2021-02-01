@@ -85,12 +85,6 @@ std::string DisplayVk::getVendorString() const
     return vendorString;
 }
 
-DeviceImpl *DisplayVk::createDevice()
-{
-    UNIMPLEMENTED();
-    return nullptr;
-}
-
 egl::Error DisplayVk::waitClient(const gl::Context *context)
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "DisplayVk::waitClient");
@@ -218,7 +212,8 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
         outExtensions->glColorspace && getRenderer()->getFeatures().supportsImageFormatList.enabled;
 
 #if defined(ANGLE_PLATFORM_ANDROID)
-    outExtensions->framebufferTargetANDROID = true;
+    outExtensions->getNativeClientBufferANDROID = true;
+    outExtensions->framebufferTargetANDROID     = true;
 #endif  // defined(ANGLE_PLATFORM_ANDROID)
 
     // Disable context priority when non-zero memory init is enabled. This enforces a queue order.
@@ -290,11 +285,15 @@ void DisplayVk::populateFeatureList(angle::FeatureList *features)
     mRenderer->getFeatures().populateFeatureList(features);
 }
 
+ShareGroupVk::ShareGroupVk() : mSyncObjectPendingFlush(false) {}
+
 void ShareGroupVk::onDestroy(const egl::Display *display)
 {
     DisplayVk *displayVk = vk::GetImpl(display);
 
-    mPipelineLayoutCache.destroy(displayVk->getDevice());
-    mDescriptorSetLayoutCache.destroy(displayVk->getDevice());
+    mPipelineLayoutCache.destroy(displayVk->getRenderer());
+    mDescriptorSetLayoutCache.destroy(displayVk->getRenderer());
+
+    ASSERT(mResourceUseLists.empty());
 }
 }  // namespace rx

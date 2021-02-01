@@ -1048,6 +1048,9 @@ angle::Result ContextMtl::syncState(const gl::Context *context,
             case gl::State::DIRTY_BIT_SAMPLE_SHADING:
                 // Nothing to do until OES_sample_shading is implemented.
                 break;
+            case gl::State::DIRTY_BIT_PATCH_VERTICES:
+                // Nothing to do until EXT_tessellation_shader is implemented.
+                break;
             default:
                 UNREACHABLE();
                 break;
@@ -2142,7 +2145,7 @@ angle::Result ContextMtl::fillDriverXFBUniforms(GLint drawCallFirstVertex,
         return angle::Result::Continue;
     }
 
-    mDriverUniforms.xfbVerticesPerDraw = verticesPerInstance;
+    mDriverUniforms.xfbVerticesPerInstance = verticesPerInstance;
 
     TransformFeedbackMtl *transformFeedbackMtl = mtl::GetImpl(transformFeedback);
 

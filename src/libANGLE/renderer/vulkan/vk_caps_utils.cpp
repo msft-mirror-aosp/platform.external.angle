@@ -17,6 +17,7 @@
 #include "libANGLE/renderer/driver_utils.h"
 #include "libANGLE/renderer/vulkan/DisplayVk.h"
 #include "libANGLE/renderer/vulkan/RendererVk.h"
+#include "libANGLE/renderer/vulkan/vk_cache_utils.h"
 #include "vk_format_utils.h"
 
 namespace
@@ -31,25 +32,9 @@ namespace vk
 {
 namespace
 {
-bool HasShaderImageAtomicsSupport(const RendererVk *rendererVk,
-                                  const gl::Extensions &supportedExtensions)
-{
-    // Only VK_FORMAT_R32_SFLOAT doesn't have mandatory support for the STORAGE_IMAGE_ATOMIC and
-    // STORAGE_TEXEL_BUFFER_ATOMIC features.
-    const vk::Format &formatVk = rendererVk->getFormat(GL_R32F);
-
-    const bool hasImageAtomicSupport = rendererVk->hasImageFormatFeatureBits(
-        formatVk.vkImageFormat, VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT);
-    bool hasBufferAtomicSupport = true;
-    if (supportedExtensions.textureBufferAny())
-    {
-        hasBufferAtomicSupport = rendererVk->hasBufferFormatFeatureBits(
-            formatVk.vkBufferFormat, VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT);
-    }
-
-    return hasImageAtomicSupport && hasBufferAtomicSupport;
-}
-
+// Checks to see if each format can be reinterpreted to an equivalent format in a different
+// colorspace. If all supported formats can be reinterpreted, it returns true. Formats which are not
+// supported at all are ignored and not counted as failures.
 bool FormatReinterpretationSupported(const std::vector<GLenum> &optionalSizedFormats,
                                      const RendererVk *rendererVk,
                                      bool checkLinearColorspace)
@@ -59,23 +44,27 @@ bool FormatReinterpretationSupported(const std::vector<GLenum> &optionalSizedFor
         const gl::TextureCaps &baseCaps = rendererVk->getNativeTextureCaps().get(glFormat);
         if (baseCaps.texturable && baseCaps.filterable)
         {
-            const vk::Format &vkFormat = rendererVk->getFormat(glFormat);
+            const Format &vkFormat = rendererVk->getFormat(glFormat);
 
-            VkFormat reinterpretedFormat = checkLinearColorspace
-                                               ? vk::ConvertToLinear(vkFormat.vkImageFormat)
-                                               : vk::ConvertToSRGB(vkFormat.vkImageFormat);
-            ASSERT(reinterpretedFormat != VK_FORMAT_UNDEFINED);
+            angle::FormatID reinterpretedFormatID =
+                checkLinearColorspace ? ConvertToLinear(vkFormat.actualImageFormatID)
+                                      : ConvertToSRGB(vkFormat.actualImageFormatID);
 
-            constexpr uint32_t kBitsSampleFilter =
-                VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
-                VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+            const Format &reinterpretedVkFormat = rendererVk->getFormat(reinterpretedFormatID);
 
-            if (!rendererVk->hasImageFormatFeatureBits(reinterpretedFormat, kBitsSampleFilter))
+            if (reinterpretedVkFormat.actualImageFormatID != reinterpretedFormatID)
+            {
+                return false;
+            }
+
+            if (!rendererVk->haveSameFormatFeatureBits(vkFormat.actualImageFormatID,
+                                                       reinterpretedFormatID))
             {
                 return false;
             }
         }
     }
+
     return true;
 }
 
@@ -136,16 +125,15 @@ bool GetTextureSRGBOverrideSupport(const RendererVk *rendererVk,
     std::vector<GLenum> optionalR8LinearFormats   = {GL_R8};
     std::vector<GLenum> optionalBPTCLinearFormats = {GL_COMPRESSED_RGBA_BPTC_UNORM_EXT};
 
-    if (!vk::FormatReinterpretationSupported(optionalLinearFormats, rendererVk,
-                                             kNonLinearColorspace))
+    if (!FormatReinterpretationSupported(optionalLinearFormats, rendererVk, kNonLinearColorspace))
     {
         return false;
     }
 
     if (supportedExtensions.textureCompressionS3TCsRGB == true)
     {
-        if (!vk::FormatReinterpretationSupported(optionalS3TCLinearFormats, rendererVk,
-                                                 kNonLinearColorspace))
+        if (!FormatReinterpretationSupported(optionalS3TCLinearFormats, rendererVk,
+                                             kNonLinearColorspace))
         {
             return false;
         }
@@ -153,8 +141,8 @@ bool GetTextureSRGBOverrideSupport(const RendererVk *rendererVk,
 
     if (supportedExtensions.sRGBR8EXT == true)
     {
-        if (!vk::FormatReinterpretationSupported(optionalR8LinearFormats, rendererVk,
-                                                 kNonLinearColorspace))
+        if (!FormatReinterpretationSupported(optionalR8LinearFormats, rendererVk,
+                                             kNonLinearColorspace))
         {
             return false;
         }
@@ -164,14 +152,23 @@ bool GetTextureSRGBOverrideSupport(const RendererVk *rendererVk,
 
     if (supportedExtensions.textureCompressionBPTC == true)
     {
-        if (!vk::FormatReinterpretationSupported(optionalBPTCLinearFormats, rendererVk,
-                                                 kNonLinearColorspace))
+        if (!FormatReinterpretationSupported(optionalBPTCLinearFormats, rendererVk,
+                                             kNonLinearColorspace))
         {
             return false;
         }
     }
 
     return true;
+}
+
+bool HasTexelBufferSupport(const RendererVk *rendererVk, GLenum formatGL)
+{
+    const Format &formatVk = rendererVk->getFormat(formatGL);
+
+    return rendererVk->hasBufferFormatFeatureBits(
+        formatVk.actualBufferFormatID,
+        VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT | VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT);
 }
 
 bool HasTextureBufferSupport(const RendererVk *rendererVk)
@@ -219,27 +216,40 @@ bool HasTextureBufferSupport(const RendererVk *rendererVk)
     //     VK_FORMAT_R32G32B32A32_SFLOAT
     //
 
-    // TODO: RGB32 formats currently don't have STORAGE_TEXEL_BUFFER support on any known platform.
-    // Despite this limitation, we expose EXT_texture_buffer.  http://anglebug.com/3573
     const std::array<GLenum, 12> &optionalFormats = {
         GL_R8,   GL_R8I,  GL_R8UI,  GL_RG8,   GL_RG8I,  GL_RG8UI,
         GL_R16F, GL_R16I, GL_R16UI, GL_RG16F, GL_RG16I, GL_RG16UI,
-        // GL_RGB32F,
-        // GL_RGB32I,
-        // GL_RGB32UI,
     };
 
     for (GLenum formatGL : optionalFormats)
     {
-        const vk::Format &formatVk = rendererVk->getFormat(formatGL);
-
-        if (!rendererVk->hasBufferFormatFeatureBits(formatVk.vkBufferFormat,
-                                                    VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT |
-                                                        VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT))
+        if (!HasTexelBufferSupport(rendererVk, formatGL))
         {
             return false;
         }
     }
+
+    // TODO: RGB32 formats currently don't have STORAGE_TEXEL_BUFFER support on any known platform.
+    // Despite this limitation, we expose EXT_texture_buffer.  http://anglebug.com/3573
+    if (rendererVk->getFeatures().exposeNonConformantExtensionsAndVersions.enabled)
+    {
+        return true;
+    }
+
+    const std::array<GLenum, 3> &optionalFormats2 = {
+        GL_RGB32F,
+        GL_RGB32I,
+        GL_RGB32UI,
+    };
+
+    for (GLenum formatGL : optionalFormats2)
+    {
+        if (!HasTexelBufferSupport(rendererVk, formatGL))
+        {
+            return false;
+        }
+    }
+
     return true;
 }
 }  // namespace
@@ -254,6 +264,19 @@ GLint LimitToInt(const LargerInt physicalDeviceValue)
     // in floating point can cause the value to exceed INT_MAX.  This trips dEQP up.
     return static_cast<GLint>(std::min(
         physicalDeviceValue, static_cast<LargerInt>(std::numeric_limits<int32_t>::max() / 2)));
+}
+
+template <typename LargerInt>
+uint16_t LimitToDynamicScissorSentinelMinusOne(const LargerInt physicalDeviceValue)
+{
+    static_assert(sizeof(LargerInt) >= sizeof(int32_t),
+                  "Incorrect usage of LimitToDynamicScissorSentinelMinusOne");
+
+    // Limit to kDynamicScissorSentinel-1. This is used to pack drawable offset/dimension to
+    // uint16_t for space conservation. The UINT16_MAX is reserved for special value like
+    // kDynamicScissorSentinel.
+    return static_cast<uint16_t>(
+        std::min<int32_t>(physicalDeviceValue, vk::kDynamicScissorSentinel - 1));
 }
 
 void RendererVk::ensureCapsInitialized() const
@@ -300,7 +323,7 @@ void RendererVk::ensureCapsInitialized() const
     mNativeExtensions.textureStorage         = true;
     mNativeExtensions.drawBuffers            = true;
     mNativeExtensions.fragDepth              = true;
-    mNativeExtensions.framebufferBlit        = true;
+    mNativeExtensions.framebufferBlitANGLE   = true;
     mNativeExtensions.framebufferMultisample = true;
     mNativeExtensions.multisampledRenderToTexture =
         getFeatures().enableMultisampledRenderToTexture.enabled;
@@ -425,6 +448,10 @@ void RendererVk::ensureCapsInitialized() const
         vk::GetTextureSRGBOverrideSupport(this, mNativeExtensions);
     mNativeExtensions.textureSRGBDecode = vk::GetTextureSRGBDecodeSupport(this);
 
+    // Vulkan natively supports io interface block.
+    mNativeExtensions.shaderIoBlocksOES = true;
+    mNativeExtensions.shaderIoBlocksEXT = true;
+
     mNativeExtensions.gpuShader5EXT = vk::CanSupportGPUShader5EXT(mPhysicalDeviceFeatures);
 
     mNativeExtensions.textureFilteringCHROMIUM = getFeatures().supportsFilteringPrecision.enabled;
@@ -437,7 +464,7 @@ void RendererVk::ensureCapsInitialized() const
 
     // Enable EXT_external_buffer on Andoid. External buffers are implemented using Android hadware
     // buffer (struct AHardwareBuffer).
-    mNativeExtensions.externalBufferEXT = IsAndroid() && (GetAndroidSDKVersion() >= 26);
+    mNativeExtensions.externalBufferEXT = IsAndroid() && GetAndroidSDKVersion() >= 26;
 
     // From the Vulkan specs:
     // sampleRateShading specifies whether Sample Shading and multisample interpolation are
@@ -445,8 +472,16 @@ void RendererVk::ensureCapsInitialized() const
     // VkPipelineMultisampleStateCreateInfo structure must be set to VK_FALSE and the
     // minSampleShading member is ignored. This also specifies whether shader modules can declare
     // the SampleRateShading capability
-    bool supportSampleRateShading      = (mPhysicalDeviceFeatures.sampleRateShading == VK_TRUE);
+    bool supportSampleRateShading      = mPhysicalDeviceFeatures.sampleRateShading == VK_TRUE;
     mNativeExtensions.sampleShadingOES = supportSampleRateShading;
+
+    // From the SPIR-V spec at 3.21. BuiltIn, SampleId and SamplePosition needs
+    // SampleRateShading. https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html
+    // To replace non-constant index to constant 0 index, this extension assumes that ANGLE only
+    // supports the number of samples less than or equal to 32.
+    constexpr unsigned int kNotSupportedSampleCounts = VK_SAMPLE_COUNT_64_BIT;
+    mNativeExtensions.sampleVariablesOES =
+        supportSampleRateShading && vk_gl::GetMaxSampleCount(kNotSupportedSampleCounts) == 0;
 
     mNativeCaps.minInterpolationOffset          = limitsVk.minInterpolationOffset;
     mNativeCaps.maxInterpolationOffset          = limitsVk.maxInterpolationOffset;
@@ -463,21 +498,11 @@ void RendererVk::ensureCapsInitialized() const
     // OES_shader_multisample_interpolation requires a maximum value of -0.5 for
     // MIN_FRAGMENT_INTERPOLATION_OFFSET_OES and minimum 0.5 for
     // MAX_FRAGMENT_INTERPOLATION_OFFSET_OES.  Vulkan has an identical limit for
-    // minInterpolationOffset, but it's limit for maxInterpolationOffset is 0.5-(1/ULP).
+    // minInterpolationOffset, but its limit for maxInterpolationOffset is 0.5-(1/ULP).
     // OES_shader_multisample_interpolation is therefore only supported if
     // maxInterpolationOffset is at least 0.5.
     mNativeExtensions.multisampleInterpolationOES =
-        supportSampleRateShading && (mNativeCaps.maxInterpolationOffset >= 0.5);
-    // OES_shader_multisample_interpolation requires OES_sample_variables, disable for now
-    mNativeExtensions.multisampleInterpolationOES = false;
-
-    // From the SPIR-V spec at 3.21. BuiltIn, SampleId and SamplePosition needs
-    // SampleRateShading. https://www.khronos.org/registry/spir-v/specs/unified1/SPIRV.html
-    // To replace non-constant index to constant 0 index, this extension assumes that ANGLE only
-    // supports the number of samples less than or equal to 32.
-    constexpr unsigned int kNotSupportedSampleCounts = VK_SAMPLE_COUNT_64_BIT;
-    mNativeExtensions.sampleVariablesOES =
-        supportSampleRateShading && (vk_gl::GetMaxSampleCount(kNotSupportedSampleCounts) == 0);
+        mNativeExtensions.sampleVariablesOES && mNativeCaps.maxInterpolationOffset >= 0.5;
 
     // https://vulkan.lunarg.com/doc/view/1.0.30.0/linux/vkspec.chunked/ch31s02.html
     mNativeCaps.maxElementIndex  = std::numeric_limits<GLuint>::max() - 1;
@@ -498,12 +523,16 @@ void RendererVk::ensureCapsInitialized() const
 
     mNativeCaps.maxDrawBuffers =
         std::min(limitsVk.maxColorAttachments, limitsVk.maxFragmentOutputAttachments);
-    mNativeCaps.maxFramebufferWidth  = LimitToInt(limitsVk.maxFramebufferWidth);
-    mNativeCaps.maxFramebufferHeight = LimitToInt(limitsVk.maxFramebufferHeight);
-    mNativeCaps.maxColorAttachments  = LimitToInt(limitsVk.maxColorAttachments);
-    mNativeCaps.maxViewportWidth     = LimitToInt(limitsVk.maxViewportDimensions[0]);
-    mNativeCaps.maxViewportHeight    = LimitToInt(limitsVk.maxViewportDimensions[1]);
-    mNativeCaps.maxSampleMaskWords   = LimitToInt(limitsVk.maxSampleMaskWords);
+    mNativeCaps.maxFramebufferWidth =
+        LimitToDynamicScissorSentinelMinusOne(limitsVk.maxFramebufferWidth);
+    mNativeCaps.maxFramebufferHeight =
+        LimitToDynamicScissorSentinelMinusOne(limitsVk.maxFramebufferHeight);
+    mNativeCaps.maxColorAttachments = LimitToInt(limitsVk.maxColorAttachments);
+    mNativeCaps.maxViewportWidth =
+        LimitToDynamicScissorSentinelMinusOne(limitsVk.maxViewportDimensions[0]);
+    mNativeCaps.maxViewportHeight =
+        LimitToDynamicScissorSentinelMinusOne(limitsVk.maxViewportDimensions[1]);
+    mNativeCaps.maxSampleMaskWords = LimitToInt(limitsVk.maxSampleMaskWords);
     mNativeCaps.maxColorTextureSamples =
         limitsVk.sampledImageColorSampleCounts & vk_gl::kSupportedSampleCounts;
     mNativeCaps.maxDepthTextureSamples =
@@ -568,9 +597,8 @@ void RendererVk::ensureCapsInitialized() const
 
     // Uniforms are implemented using a uniform buffer, so the max number of uniforms we can
     // support is the max buffer range divided by the size of a single uniform (4X float).
-    mNativeCaps.maxVertexUniformVectors    = maxUniformVectors;
-    mNativeCaps.maxFragmentUniformVectors  = maxUniformVectors;
-    mNativeCaps.maxFragmentInputComponents = maxUniformComponents;
+    mNativeCaps.maxVertexUniformVectors   = maxUniformVectors;
+    mNativeCaps.maxFragmentUniformVectors = maxUniformVectors;
     for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         mNativeCaps.maxShaderUniformComponents[shaderType] = maxUniformComponents;
@@ -783,17 +811,14 @@ void RendererVk::ensureCapsInitialized() const
     // vars section. It is implicit that we need to actually reserve it for Vulkan in that case.
     GLint reservedVaryingVectorCount = 1;
 
-    // reserve 1 extra for ANGLEPosition when GLLineRasterization is enabled
-    constexpr GLint kRservedVaryingForGLLineRasterization = 1;
-    // reserve 2 extra for builtin varables when feedback is enabled
-    // possible capturable out varable: gl_Position, gl_PointSize
-    // https://www.khronos.org/registry/OpenGL/specs/es/3.1/GLSL_ES_Specification_3.10.withchanges.pdf
-    // page 105
-    constexpr GLint kReservedVaryingForTransformFeedbackExtension = 2;
+    // Reserve 1 extra for ANGLEPosition when GLLineRasterization is enabled
+    constexpr GLint kReservedVaryingForGLLineRasterization = 1;
+    // Reserve 1 extra for transform feedback capture of gl_Position.
+    constexpr GLint kReservedVaryingForTransformFeedbackExtension = 1;
 
     if (getFeatures().basicGLLineRasterization.enabled)
     {
-        reservedVaryingVectorCount += kRservedVaryingForGLLineRasterization;
+        reservedVaryingVectorCount += kReservedVaryingForGLLineRasterization;
     }
     if (getFeatures().supportsTransformFeedbackExtension.enabled)
     {
@@ -804,7 +829,10 @@ void RendererVk::ensureCapsInitialized() const
         std::min(limitsVk.maxVertexOutputComponents, limitsVk.maxFragmentInputComponents);
     mNativeCaps.maxVaryingVectors =
         LimitToInt((maxVaryingCount / kComponentsPerVector) - reservedVaryingVectorCount);
-    mNativeCaps.maxVertexOutputComponents = LimitToInt(limitsVk.maxVertexOutputComponents);
+    mNativeCaps.maxVertexOutputComponents =
+        LimitToInt(limitsVk.maxVertexOutputComponents) - reservedVaryingVectorCount * 4;
+    mNativeCaps.maxFragmentInputComponents =
+        LimitToInt(limitsVk.maxFragmentInputComponents) - reservedVaryingVectorCount * 4;
 
     mNativeCaps.maxTransformFeedbackInterleavedComponents =
         gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS;
@@ -860,22 +888,26 @@ void RendererVk::ensureCapsInitialized() const
     // GL_OES_shader_image_atomic requires that image atomic functions have support for r32i and
     // r32ui formats.  These formats have mandatory support for STORAGE_IMAGE_ATOMIC and
     // STORAGE_TEXEL_BUFFER_ATOMIC features in Vulkan.  Additionally, it requires that
-    // imageAtomicExchange supports r32f.  Exposing this extension is thus restricted to this format
-    // having support for the aforementioned features.
-    mNativeExtensions.shaderImageAtomicOES =
-        vk::HasShaderImageAtomicsSupport(this, mNativeExtensions);
+    // imageAtomicExchange supports r32f, which is emulated in ANGLE transforming the shader to
+    // expect r32ui instead.
+    mNativeExtensions.shaderImageAtomicOES = true;
 
-    // Geometry shader is optional.
-    if (mPhysicalDeviceFeatures.geometryShader)
+    // Geometry shaders are required for ES 3.2.
+    // We don't support GS when we are emulating line raster due to the tricky position varying.
+    if (mPhysicalDeviceFeatures.geometryShader && !mFeatures.basicGLLineRasterization.enabled)
     {
-        // TODO : Remove below comment when http://anglebug.com/3571 will be completed
-        // mNativeExtensions.geometryShader = true;
+        // TODO: geometry shader support is incomplete.  http://anglebug.com/3571
+        mNativeExtensions.geometryShader =
+            mFeatures.supportsTransformFeedbackExtension.enabled &&
+            mFeatures.exposeNonConformantExtensionsAndVersions.enabled;
         mNativeCaps.maxFramebufferLayers = LimitToInt(limitsVk.maxFramebufferLayers);
         mNativeCaps.layerProvokingVertex = GL_LAST_VERTEX_CONVENTION_EXT;
 
-        mNativeCaps.maxGeometryInputComponents  = LimitToInt(limitsVk.maxGeometryInputComponents);
-        mNativeCaps.maxGeometryOutputComponents = LimitToInt(limitsVk.maxGeometryOutputComponents);
-        mNativeCaps.maxGeometryOutputVertices   = LimitToInt(limitsVk.maxGeometryOutputVertices);
+        mNativeCaps.maxGeometryInputComponents =
+            LimitToInt(limitsVk.maxGeometryInputComponents) - reservedVaryingVectorCount * 4;
+        mNativeCaps.maxGeometryOutputComponents =
+            LimitToInt(limitsVk.maxGeometryOutputComponents) - reservedVaryingVectorCount * 4;
+        mNativeCaps.maxGeometryOutputVertices = LimitToInt(limitsVk.maxGeometryOutputVertices);
         mNativeCaps.maxGeometryTotalOutputComponents =
             LimitToInt(limitsVk.maxGeometryTotalOutputComponents);
         mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Geometry] =
@@ -886,12 +918,68 @@ void RendererVk::ensureCapsInitialized() const
             LimitToInt(limitsVk.maxGeometryShaderInvocations);
     }
 
+    // We don't support TS when we are emulating line raster due to the tricky position varying.
+    if (mPhysicalDeviceFeatures.tessellationShader && !mFeatures.basicGLLineRasterization.enabled)
+    {
+        constexpr uint32_t kReservedTessellationDefaultUniformBindingCount = 2;
+
+        // TODO: tessellation shader support is incomplete.  http://anglebug.com/3572
+        mNativeExtensions.tessellationShaderEXT =
+            getFeatures().exposeNonConformantExtensionsAndVersions.enabled;
+        mNativeCaps.maxPatchVertices = LimitToInt(limitsVk.maxTessellationPatchSize);
+        mNativeCaps.maxTessPatchComponents =
+            LimitToInt(limitsVk.maxTessellationControlPerPatchOutputComponents);
+        mNativeCaps.maxTessGenLevel = LimitToInt(limitsVk.maxTessellationGenerationLevel);
+
+        mNativeCaps.maxTessControlInputComponents =
+            LimitToInt(limitsVk.maxTessellationControlPerVertexInputComponents);
+        mNativeCaps.maxTessControlOutputComponents =
+            LimitToInt(limitsVk.maxTessellationControlPerVertexOutputComponents);
+        mNativeCaps.maxTessControlTotalOutputComponents =
+            LimitToInt(limitsVk.maxTessellationControlTotalOutputComponents);
+        mNativeCaps.maxTessEvaluationInputComponents =
+            LimitToInt(limitsVk.maxTessellationEvaluationInputComponents);
+        mNativeCaps.maxTessEvaluationOutputComponents =
+            LimitToInt(limitsVk.maxTessellationEvaluationOutputComponents);
+
+        // There is 1 default uniform binding used per tessellation stages.
+        mNativeCaps.maxCombinedUniformBlocks = LimitToInt(
+            mNativeCaps.maxCombinedUniformBlocks + kReservedTessellationDefaultUniformBindingCount);
+        mNativeCaps.maxUniformBufferBindings = LimitToInt(
+            mNativeCaps.maxUniformBufferBindings + kReservedTessellationDefaultUniformBindingCount);
+    }
+
     // GL_APPLE_clip_distance/GL_EXT_clip_cull_distance
-    if (mPhysicalDeviceFeatures.shaderClipDistance && limitsVk.maxClipDistances >= 8)
+    // From the EXT_clip_cull_distance extension spec:
+    //
+    // > Modify Section 7.2, "Built-In Constants" (p. 126)
+    // >
+    // > const mediump int gl_MaxClipDistances = 8;
+    // > const mediump int gl_MaxCullDistances = 8;
+    // > const mediump int gl_MaxCombinedClipAndCullDistances = 8;
+    constexpr uint32_t kMaxClipDistancePerSpec                = 8;
+    constexpr uint32_t kMaxCullDistancePerSpec                = 8;
+    constexpr uint32_t kMaxCombinedClipAndCullDistancePerSpec = 8;
+
+    // TODO: http://anglebug.com/5466
+    // After implementing EXT_geometry_shader, EXT_clip_cull_distance should be additionally
+    // implemented to support the geometry shader. Until then, EXT_clip_cull_distance is enabled
+    // only in the experimental cases.
+    if (mPhysicalDeviceFeatures.shaderClipDistance &&
+        limitsVk.maxClipDistances >= kMaxClipDistancePerSpec)
     {
         mNativeExtensions.clipDistanceAPPLE = true;
         mNativeCaps.maxClipDistances =
             std::min<GLuint>(limitsVk.maxClipDistances, gl::IMPLEMENTATION_MAX_CLIP_DISTANCES);
+
+        if (mPhysicalDeviceFeatures.shaderCullDistance &&
+            limitsVk.maxCullDistances >= kMaxCullDistancePerSpec &&
+            limitsVk.maxCombinedClipAndCullDistances >= kMaxCombinedClipAndCullDistancePerSpec)
+        {
+            mNativeExtensions.clipCullDistanceEXT       = true;
+            mNativeCaps.maxCullDistances                = limitsVk.maxCullDistances;
+            mNativeCaps.maxCombinedClipAndCullDistances = limitsVk.maxCombinedClipAndCullDistances;
+        }
     }
 }
 
@@ -905,12 +993,8 @@ bool CanSupportGPUShader5EXT(const VkPhysicalDeviceFeatures &features)
     //   textureGatherOffsets family of functions.
     // - shaderSampledImageArrayDynamicIndexing and shaderUniformBufferArrayDynamicIndexing:
     //   dynamically uniform indices for samplers and uniform buffers.
-    // - shaderStorageBufferArrayDynamicIndexing: While EXT_gpu_shader5 doesn't require dynamically
-    //   uniform indices on storage buffers, we need it as we emulate atomic counter buffers with
-    //   storage buffers (and atomic counter buffers *can* be indexed in that way).
     return features.shaderImageGatherExtended && features.shaderSampledImageArrayDynamicIndexing &&
-           features.shaderUniformBufferArrayDynamicIndexing &&
-           features.shaderStorageBufferArrayDynamicIndexing;
+           features.shaderUniformBufferArrayDynamicIndexing;
 }
 
 }  // namespace vk

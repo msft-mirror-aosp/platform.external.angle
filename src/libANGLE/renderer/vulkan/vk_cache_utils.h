@@ -510,7 +510,8 @@ static_assert(kPackedColorBlendAttachmentStateSize == 4, "Size check failed");
 
 struct PrimitiveState final
 {
-    uint16_t topology : 15;
+    uint16_t topology : 9;
+    uint16_t patchVertices : 6;
     uint16_t restartEnable : 1;
 };
 
@@ -527,6 +528,22 @@ struct PackedInputAssemblyAndColorBlendStateInfo final
     PrimitiveState primitive;
 };
 
+struct PackedScissor final
+{
+    uint16_t x;
+    uint16_t y;
+    uint16_t width;
+    uint16_t height;
+};
+
+struct PackedExtent final
+{
+    uint16_t width;
+    uint16_t height;
+};
+// This is invalid value for PackedScissor.x. It is used to indicate scissor is a dynamic state
+constexpr int32_t kDynamicScissorSentinel = std::numeric_limits<decltype(PackedScissor::x)>::max();
+
 constexpr size_t kPackedInputAssemblyAndColorBlendStateSize =
     sizeof(PackedInputAssemblyAndColorBlendStateInfo);
 static_assert(kPackedInputAssemblyAndColorBlendStateSize == 56, "Size check failed");
@@ -534,7 +551,7 @@ static_assert(kPackedInputAssemblyAndColorBlendStateSize == 56, "Size check fail
 constexpr size_t kGraphicsPipelineDescSumOfSizes =
     kVertexInputAttributesSize + kRenderPassDescSize + kPackedRasterizationAndMultisampleStateSize +
     kPackedDepthStencilStateSize + kPackedInputAssemblyAndColorBlendStateSize + sizeof(VkViewport) +
-    sizeof(VkRect2D);
+    sizeof(PackedScissor) + sizeof(PackedExtent);
 
 // Number of dirty bits in the dirty bit set.
 constexpr size_t kGraphicsPipelineDirtyBitBytes = 4;
@@ -564,7 +581,7 @@ class GraphicsPipelineDesc final
     size_t hash() const;
     bool operator==(const GraphicsPipelineDesc &other) const;
 
-    void initDefaults();
+    void initDefaults(const ContextVk *contextVk);
 
     // For custom comparisons.
     template <typename T>
@@ -574,7 +591,7 @@ class GraphicsPipelineDesc final
     }
 
     angle::Result initializePipeline(ContextVk *contextVk,
-                                     const vk::PipelineCache &pipelineCacheVk,
+                                     const PipelineCache &pipelineCacheVk,
                                      const RenderPass &compatibleRenderPass,
                                      const PipelineLayout &pipelineLayout,
                                      const gl::AttributesMask &activeAttribLocationsMask,
@@ -582,7 +599,9 @@ class GraphicsPipelineDesc final
                                      const ShaderModule *vertexModule,
                                      const ShaderModule *fragmentModule,
                                      const ShaderModule *geometryModule,
-                                     const vk::SpecializationConstants specConsts,
+                                     const ShaderModule *tessControlModule,
+                                     const ShaderModule *tessEvaluationModule,
+                                     const SpecializationConstants &specConsts,
                                      Pipeline *pipelineOut) const;
 
     // Vertex input state. For ES 3.1 this should be separated into binding and attribute.
@@ -702,6 +721,9 @@ class GraphicsPipelineDesc final
     void setScissor(const VkRect2D &scissor);
     void updateScissor(GraphicsPipelineTransitionBits *transition, const VkRect2D &scissor);
 
+    // Tessellation
+    void updatePatchVertices(GraphicsPipelineTransitionBits *transition, GLuint value);
+
     // Subpass
     void resetSubpass(GraphicsPipelineTransitionBits *transition);
     void nextSubpass(GraphicsPipelineTransitionBits *transition);
@@ -716,6 +738,11 @@ class GraphicsPipelineDesc final
             mDepthStencilStateInfo.depthCompareOpAndSurfaceRotation.surfaceRotation);
     }
 
+    void updateDrawableSize(GraphicsPipelineTransitionBits *transition,
+                            uint32_t width,
+                            uint32_t height);
+    const PackedExtent &getDrawableSize() const { return mDrawableSize; }
+
   private:
     void updateSubpass(GraphicsPipelineTransitionBits *transition, uint32_t subpass);
 
@@ -727,7 +754,8 @@ class GraphicsPipelineDesc final
     VkViewport mViewport;
     // The special value of .offset.x == INT_MIN for scissor implies dynamic scissor that needs to
     // be set through vkCmdSetScissor.
-    VkRect2D mScissor;
+    PackedScissor mScissor;
+    PackedExtent mDrawableSize;
 };
 
 // Verify the packed pipeline description has no gaps in the packing.
@@ -762,7 +790,7 @@ class DescriptorSetLayoutDesc final
                 VkDescriptorType type,
                 uint32_t count,
                 VkShaderStageFlags stages,
-                const vk::Sampler *immutableSampler);
+                const Sampler *immutableSampler);
 
     void unpackBindings(DescriptorSetLayoutBindingVector *bindings,
                         std::vector<VkSampler> *immutableSamplers) const;
@@ -860,7 +888,7 @@ class SamplerDesc final
                 bool stencilMode,
                 uint64_t externalFormat);
     void reset();
-    angle::Result init(ContextVk *contextVk, vk::Sampler *sampler) const;
+    angle::Result init(ContextVk *contextVk, Sampler *sampler) const;
 
     size_t hash() const;
     bool operator==(const SamplerDesc &other) const;
@@ -1146,12 +1174,18 @@ class FramebufferDesc
 
     FramebufferNonResolveAttachmentMask getUnresolveAttachmentMask() const;
 
+    void updateLayerCount(uint32_t layerCount);
+    uint32_t getLayerCount() const { return mLayerCount; }
+
   private:
     void reset();
     void update(uint32_t index, ImageOrBufferViewSubresourceSerial serial);
 
     // Note: this is an exclusive index. If there is one index it will be "1".
-    uint16_t mMaxIndex;
+    uint16_t mMaxIndex : 7;
+    static_assert(gl::IMPLEMENTATION_MAX_FRAMEBUFFER_LAYERS < (1 << 9) - 1,
+                  "Not enough bits for mLayerCount");
+    uint16_t mLayerCount : 9;
 
     // If the render pass contains an initial subpass to unresolve a number of attachments, the
     // subpass description is derived from the following mask, specifying which attachments need
@@ -1283,6 +1317,55 @@ ANGLE_VK_SERIAL_OP(ANGLE_HASH_VK_SERIAL)
 
 namespace rx
 {
+// Cache types for various Vulkan objects
+enum class VulkanCacheType
+{
+    CompatibleRenderPass,
+    RenderPassWithOps,
+    GraphicsPipeline,
+    PipelineLayout,
+    Sampler,
+    SamplerYcbcrConversion,
+    DescriptorSet,
+    DescriptorSetLayout,
+    TextureDescriptors,
+    UniformsAndXfbDescriptorSet,
+    Framebuffer,
+    EnumCount
+};
+
+// Base class for all caches. Provides cache hit and miss counters.
+class CacheStats final : angle::NonCopyable
+{
+  public:
+    CacheStats() : mHitCount(0), mMissCount(0) {}
+    ~CacheStats() {}
+
+    ANGLE_INLINE void hit() { mHitCount++; }
+    ANGLE_INLINE void miss() { mMissCount++; }
+    ANGLE_INLINE void accumulate(const CacheStats &stats)
+    {
+        mHitCount += stats.mHitCount;
+        mMissCount += stats.mMissCount;
+    }
+
+    ANGLE_INLINE double getHitRatio() const
+    {
+        if (mHitCount + mMissCount == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return static_cast<double>(mHitCount) / (mHitCount + mMissCount);
+        }
+    }
+
+  private:
+    uint64_t mHitCount;
+    uint64_t mMissCount;
+};
+
 // TODO(jmadill): Add cache trimming/eviction.
 class RenderPassCache final : angle::NonCopyable
 {
@@ -1290,7 +1373,7 @@ class RenderPassCache final : angle::NonCopyable
     RenderPassCache();
     ~RenderPassCache();
 
-    void destroy(VkDevice device);
+    void destroy(RendererVk *rendererVk);
 
     ANGLE_INLINE angle::Result getCompatibleRenderPass(ContextVk *contextVk,
                                                        const vk::RenderPassDesc &desc,
@@ -1304,9 +1387,11 @@ class RenderPassCache final : angle::NonCopyable
 
             // Find the first element and return it.
             *renderPassOut = &innerCache.begin()->second.getRenderPass();
+            mCompatibleRenderPassCacheStats.hit();
             return angle::Result::Continue;
         }
 
+        mCompatibleRenderPassCacheStats.miss();
         return addRenderPass(contextVk, desc, renderPassOut);
     }
 
@@ -1328,10 +1413,12 @@ class RenderPassCache final : angle::NonCopyable
 
     // Use a two-layer caching scheme. The top level matches the "compatible" RenderPass elements.
     // The second layer caches the attachment load/store ops and initial/final layout.
-    using InnerCache = std::unordered_map<vk::AttachmentOpsArray, vk::RenderPassHelper>;
-    using OuterCache = std::unordered_map<vk::RenderPassDesc, InnerCache>;
+    using InnerCache = angle::HashMap<vk::AttachmentOpsArray, vk::RenderPassHelper>;
+    using OuterCache = angle::HashMap<vk::RenderPassDesc, InnerCache>;
 
     OuterCache mPayload;
+    CacheStats mCompatibleRenderPassCacheStats;
+    CacheStats mRenderPassWithOpsCacheStats;
 };
 
 // TODO(jmadill): Add cache trimming/eviction.
@@ -1341,7 +1428,7 @@ class GraphicsPipelineCache final : angle::NonCopyable
     GraphicsPipelineCache();
     ~GraphicsPipelineCache();
 
-    void destroy(VkDevice device);
+    void destroy(RendererVk *rendererVk);
     void release(ContextVk *context);
 
     void populate(const vk::GraphicsPipelineDesc &desc, vk::Pipeline &&pipeline);
@@ -1355,7 +1442,9 @@ class GraphicsPipelineCache final : angle::NonCopyable
                                            const vk::ShaderModule *vertexModule,
                                            const vk::ShaderModule *fragmentModule,
                                            const vk::ShaderModule *geometryModule,
-                                           const vk::SpecializationConstants specConsts,
+                                           const vk::ShaderModule *tessControlModule,
+                                           const vk::ShaderModule *tessEvaluationModule,
+                                           const vk::SpecializationConstants &specConsts,
                                            const vk::GraphicsPipelineDesc &desc,
                                            const vk::GraphicsPipelineDesc **descPtrOut,
                                            vk::PipelineHelper **pipelineOut)
@@ -1365,13 +1454,15 @@ class GraphicsPipelineCache final : angle::NonCopyable
         {
             *descPtrOut  = &item->first;
             *pipelineOut = &item->second;
+            mCacheStats.hit();
             return angle::Result::Continue;
         }
 
+        mCacheStats.miss();
         return insertPipeline(contextVk, pipelineCacheVk, compatibleRenderPass, pipelineLayout,
                               activeAttribLocationsMask, programAttribsTypeMask, vertexModule,
-                              fragmentModule, geometryModule, specConsts, desc, descPtrOut,
-                              pipelineOut);
+                              fragmentModule, geometryModule, tessControlModule,
+                              tessEvaluationModule, specConsts, desc, descPtrOut, pipelineOut);
     }
 
   private:
@@ -1384,12 +1475,15 @@ class GraphicsPipelineCache final : angle::NonCopyable
                                  const vk::ShaderModule *vertexModule,
                                  const vk::ShaderModule *fragmentModule,
                                  const vk::ShaderModule *geometryModule,
-                                 const vk::SpecializationConstants specConsts,
+                                 const vk::ShaderModule *tessControlModule,
+                                 const vk::ShaderModule *tessEvaluationModule,
+                                 const vk::SpecializationConstants &specConsts,
                                  const vk::GraphicsPipelineDesc &desc,
                                  const vk::GraphicsPipelineDesc **descPtrOut,
                                  vk::PipelineHelper **pipelineOut);
 
     std::unordered_map<vk::GraphicsPipelineDesc, vk::PipelineHelper> mPayload;
+    CacheStats mCacheStats;
 };
 
 class DescriptorSetLayoutCache final : angle::NonCopyable
@@ -1398,7 +1492,7 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
     DescriptorSetLayoutCache();
     ~DescriptorSetLayoutCache();
 
-    void destroy(VkDevice device);
+    void destroy(RendererVk *rendererVk);
 
     angle::Result getDescriptorSetLayout(
         vk::Context *context,
@@ -1407,6 +1501,7 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
 
   private:
     std::unordered_map<vk::DescriptorSetLayoutDesc, vk::RefCountedDescriptorSetLayout> mPayload;
+    CacheStats mCacheStats;
 };
 
 class PipelineLayoutCache final : angle::NonCopyable
@@ -1415,7 +1510,7 @@ class PipelineLayoutCache final : angle::NonCopyable
     PipelineLayoutCache();
     ~PipelineLayoutCache();
 
-    void destroy(VkDevice device);
+    void destroy(RendererVk *rendererVk);
 
     angle::Result getPipelineLayout(vk::Context *context,
                                     const vk::PipelineLayoutDesc &desc,
@@ -1424,6 +1519,7 @@ class PipelineLayoutCache final : angle::NonCopyable
 
   private:
     std::unordered_map<vk::PipelineLayoutDesc, vk::RefCountedPipelineLayout> mPayload;
+    CacheStats mCacheStats;
 };
 
 class SamplerCache final : angle::NonCopyable
@@ -1432,7 +1528,7 @@ class SamplerCache final : angle::NonCopyable
     SamplerCache();
     ~SamplerCache();
 
-    void destroy(RendererVk *renderer);
+    void destroy(RendererVk *rendererVk);
 
     angle::Result getSampler(ContextVk *contextVk,
                              const vk::SamplerDesc &desc,
@@ -1440,6 +1536,7 @@ class SamplerCache final : angle::NonCopyable
 
   private:
     std::unordered_map<vk::SamplerDesc, vk::RefCountedSampler> mPayload;
+    CacheStats mCacheStats;
 };
 
 // YuvConversion Cache
@@ -1449,7 +1546,7 @@ class SamplerYcbcrConversionCache final : angle::NonCopyable
     SamplerYcbcrConversionCache();
     ~SamplerYcbcrConversionCache();
 
-    void destroy(RendererVk *render);
+    void destroy(RendererVk *rendererVk);
 
     angle::Result getYuvConversion(
         vk::Context *context,
@@ -1460,6 +1557,72 @@ class SamplerYcbcrConversionCache final : angle::NonCopyable
 
   private:
     std::unordered_map<uint64_t, vk::RefCountedSamplerYcbcrConversion> mPayload;
+    CacheStats mCacheStats;
+};
+
+// DescriptorSet Cache
+class DriverUniformsDescriptorSetCache final : angle::NonCopyable
+{
+  public:
+    DriverUniformsDescriptorSetCache() = default;
+    ~DriverUniformsDescriptorSetCache() { ASSERT(mPayload.empty()); }
+
+    void destroy(RendererVk *rendererVk);
+
+    ANGLE_INLINE bool get(uint32_t serial, VkDescriptorSet *descriptorSet)
+    {
+        if (mPayload.get(serial, descriptorSet))
+        {
+            mCacheStats.hit();
+            return true;
+        }
+        mCacheStats.miss();
+        return false;
+    }
+
+    ANGLE_INLINE void insert(uint32_t serial, VkDescriptorSet descriptorSet)
+    {
+        mPayload.insert(serial, descriptorSet);
+    }
+
+    ANGLE_INLINE void clear() { mPayload.clear(); }
+
+  private:
+    angle::FastIntegerMap<VkDescriptorSet> mPayload;
+    CacheStats mCacheStats;
+};
+
+// Templated Descriptors Cache
+template <typename key, VulkanCacheType cacheType>
+class DescriptorSetCache final : angle::NonCopyable
+{
+  public:
+    DescriptorSetCache() = default;
+    ~DescriptorSetCache() { ASSERT(mPayload.empty()); }
+
+    void destroy(RendererVk *rendererVk);
+
+    ANGLE_INLINE bool get(const key &desc, VkDescriptorSet *descriptorSet)
+    {
+        auto iter = mPayload.find(desc);
+        if (iter != mPayload.end())
+        {
+            *descriptorSet = iter->second;
+            mCacheStats.hit();
+            return true;
+        }
+        mCacheStats.miss();
+        return false;
+    }
+
+    ANGLE_INLINE void insert(const key &desc, VkDescriptorSet descriptorSet)
+    {
+        mPayload.emplace(desc, descriptorSet);
+    }
+
+  private:
+    angle::HashMap<key, VkDescriptorSet> mPayload;
+    CacheStats mCacheStats;
 };
 
 // Only 1 driver uniform binding is used.

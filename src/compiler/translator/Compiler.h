@@ -123,7 +123,6 @@ class TCompiler : public TShHandleBase
     {
         return mShaderStorageBlocks;
     }
-    const std::vector<sh::InterfaceBlock> &getInBlocks() const { return mInBlocks; }
 
     ShHashFunction64 getHashFunction() const { return mResources.HashFunction; }
     NameMap &getNameMap() { return mNameMap; }
@@ -149,6 +148,25 @@ class TCompiler : public TShHandleBase
     }
 
     unsigned int getStructSize(const ShaderVariable &var) const;
+
+    int getTessControlShaderOutputVertices() const { return mTessControlShaderOutputVertices; }
+    TLayoutTessEvaluationType getTessEvaluationShaderInputPrimitiveType() const
+    {
+        return mTessEvaluationShaderInputPrimitiveType;
+    }
+    TLayoutTessEvaluationType getTessEvaluationShaderInputVertexSpacingType() const
+    {
+        return mTessEvaluationShaderInputVertexSpacingType;
+    }
+    TLayoutTessEvaluationType getTessEvaluationShaderInputOrderingType() const
+    {
+        return mTessEvaluationShaderInputOrderingType;
+    }
+    TLayoutTessEvaluationType getTessEvaluationShaderInputPointType() const
+    {
+        return mTessEvaluationShaderInputPointType;
+    }
+
     unsigned int getSharedMemorySize() const;
 
     sh::GLenum getShaderType() const { return mShaderType; }
@@ -195,7 +213,6 @@ class TCompiler : public TShHandleBase
     std::vector<sh::InterfaceBlock> mInterfaceBlocks;
     std::vector<sh::InterfaceBlock> mUniformBlocks;
     std::vector<sh::InterfaceBlock> mShaderStorageBlocks;
-    std::vector<sh::InterfaceBlock> mInBlocks;
 
     // Specialization constant usage bits
     SpecConstUsageBits mSpecConstUsageBits;
@@ -300,6 +317,13 @@ class TCompiler : public TShHandleBase
     int mGeometryShaderInvocations;
     TLayoutPrimitiveType mGeometryShaderInputPrimitiveType;
     TLayoutPrimitiveType mGeometryShaderOutputPrimitiveType;
+
+    // tesssellation shader parameters
+    int mTessControlShaderOutputVertices;
+    TLayoutTessEvaluationType mTessEvaluationShaderInputPrimitiveType;
+    TLayoutTessEvaluationType mTessEvaluationShaderInputVertexSpacingType;
+    TLayoutTessEvaluationType mTessEvaluationShaderInputOrderingType;
+    TLayoutTessEvaluationType mTessEvaluationShaderInputPointType;
 
     // name hashing.
     NameMap mNameMap;

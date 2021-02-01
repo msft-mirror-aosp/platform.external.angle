@@ -527,14 +527,14 @@ void WriteCppReplayForCall(const CallCapture &call,
 {
     std::ostringstream callOut;
 
-    if (call.entryPoint == gl::EntryPoint::CreateShader ||
-        call.entryPoint == gl::EntryPoint::CreateProgram)
+    if (call.entryPoint == EntryPoint::GLCreateShader ||
+        call.entryPoint == EntryPoint::GLCreateProgram)
     {
         GLuint id = call.params.getReturnValue().value.GLuintVal;
         callOut << "gShaderProgramMap[" << id << "] = ";
     }
 
-    if (call.entryPoint == gl::EntryPoint::FenceSync)
+    if (call.entryPoint == EntryPoint::GLFenceSync)
     {
         GLsync sync = call.params.getReturnValue().value.GLsyncVal;
         callOut << "gSyncMap[" << SyncIndexValue(sync) << "] = ";
@@ -543,8 +543,8 @@ void WriteCppReplayForCall(const CallCapture &call,
     // Depending on how a buffer is mapped, we may need to track its location for readback
     bool trackBufferPointer = false;
 
-    if (call.entryPoint == gl::EntryPoint::MapBufferRange ||
-        call.entryPoint == gl::EntryPoint::MapBufferRangeEXT)
+    if (call.entryPoint == EntryPoint::GLMapBufferRange ||
+        call.entryPoint == EntryPoint::GLMapBufferRangeEXT)
     {
         GLbitfield access =
             call.params.getParam("access", ParamType::TGLbitfield, 3).value.GLbitfieldVal;
@@ -552,8 +552,7 @@ void WriteCppReplayForCall(const CallCapture &call,
         trackBufferPointer = access & GL_MAP_WRITE_BIT;
     }
 
-    if (call.entryPoint == gl::EntryPoint::MapBuffer ||
-        call.entryPoint == gl::EntryPoint::MapBufferOES)
+    if (call.entryPoint == EntryPoint::GLMapBuffer || call.entryPoint == EntryPoint::GLMapBufferOES)
     {
         GLenum access = call.params.getParam("access", ParamType::TGLenum, 1).value.GLenumVal;
 
@@ -1111,7 +1110,7 @@ void WriteCppReplay(bool compression,
 
 void WriteCppReplayIndexFiles(bool compression,
                               const std::string &outDir,
-                              const gl::ContextID contextId,
+                              const gl::Context *context,
                               const std::string &captureLabel,
                               uint32_t frameCount,
                               const SurfaceDimensions &drawSurfaceDimensions,
@@ -1120,11 +1119,12 @@ void WriteCppReplayIndexFiles(bool compression,
                               const HasResourceTypeMap &hasResourceType,
                               bool serializeStateEnabled,
                               bool writeResetContextCall,
-                              const egl::Config *config,
                               std::vector<uint8_t> &binaryData)
 {
-
-    size_t maxClientArraySize = MaxClientArraySize(clientArraySizes);
+    const gl::ContextID contextId       = context->id();
+    const egl::Config *config           = context->getConfig();
+    size_t maxClientArraySize           = MaxClientArraySize(clientArraySizes);
+    const egl::AttributeMap &attributes = context->getDisplay()->getAttributeMap();
 
     std::stringstream header;
     std::stringstream source;
@@ -1170,6 +1170,14 @@ void WriteCppReplayIndexFiles(bool compression,
         header << "_" << captureLabelUpper;
     }
     header << " " << ANGLE_REVISION << "\n";
+    header << "constexpr uint32_t kReplayContextClientMajorVersion = "
+           << context->getClientMajorVersion() << ";\n";
+    header << "constexpr uint32_t kReplayContextClientMinorVersion = "
+           << context->getClientMinorVersion() << ";\n";
+    header << "constexpr EGLint kReplayPlatformType = "
+           << attributes.getAsInt(EGL_PLATFORM_ANGLE_TYPE_ANGLE) << ";\n";
+    header << "constexpr EGLint kReplayDeviceType = "
+           << attributes.getAsInt(EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE) << ";\n";
     header << "constexpr uint32_t kReplayFrameStart = 1;\n";
     header << "constexpr uint32_t kReplayFrameEnd = " << frameCount << ";\n";
     header << "constexpr EGLint kReplayDrawSurfaceWidth = "
@@ -1228,9 +1236,13 @@ void WriteCppReplayIndexFiles(bool compression,
     header
         << "using LocationsMap = std::unordered_map<GLuint, std::unordered_map<GLint, GLint>>;\n";
     header << "extern LocationsMap gUniformLocations;\n";
+    header << "using BlockIndexesMap = std::unordered_map<GLuint, std::unordered_map<GLuint, "
+              "GLuint>>;\n";
+    header << "extern BlockIndexesMap gUniformBlockIndexes;\n";
     header << "extern GLuint gCurrentProgram;\n";
     header << "void UpdateUniformLocation(GLuint program, const char *name, GLint location);\n";
     header << "void DeleteUniformLocations(GLuint program);\n";
+    header << "void UpdateUniformBlockIndex(GLuint program, const char *name, GLuint index);\n";
     header << "void UpdateCurrentProgram(GLuint program);\n";
     header << "\n";
     header << "// Maps from captured Resource ID to run-time Resource ID.\n";
@@ -1284,6 +1296,7 @@ void WriteCppReplayIndexFiles(bool compression,
     source << "}  // namespace\n";
     source << "\n";
     source << "LocationsMap gUniformLocations;\n";
+    source << "BlockIndexesMap gUniformBlockIndexes;\n";
     source << "GLuint gCurrentProgram = 0;\n";
     source << "\n";
     source << "void UpdateUniformLocation(GLuint program, const char *name, GLint location)\n";
@@ -1293,6 +1306,10 @@ void WriteCppReplayIndexFiles(bool compression,
     source << "void DeleteUniformLocations(GLuint program)\n";
     source << "{\n";
     source << "    gUniformLocations.erase(program);\n";
+    source << "}\n";
+    source << "void UpdateUniformBlockIndex(GLuint program, const char *name, GLuint index)\n";
+    source << "{\n";
+    source << "    gUniformBlockIndexes[program][index] = glGetUniformBlockIndex(program, name);\n";
     source << "}\n";
     source << "void UpdateCurrentProgram(GLuint program)\n";
     source << "{\n";
@@ -1603,6 +1620,27 @@ void CaptureUpdateUniformLocations(const gl::Program *program, std::vector<CallC
     }
 }
 
+void CaptureUpdateUniformBlockIndexes(const gl::Program *program,
+                                      std::vector<CallCapture> *callsOut)
+{
+    const std::vector<gl::InterfaceBlock> &uniformBlocks = program->getState().getUniformBlocks();
+
+    for (GLuint index = 0; index < uniformBlocks.size(); ++index)
+    {
+        ParamBuffer params;
+
+        std::string name;
+        params.addValueParam("program", ParamType::TShaderProgramID, program->id());
+
+        ParamCapture nameParam("name", ParamType::TGLcharConstPointer);
+        CaptureString(uniformBlocks[index].name.c_str(), &nameParam);
+        params.addParam(std::move(nameParam));
+
+        params.addValueParam("index", ParamType::TGLuint, index);
+        callsOut->emplace_back("UpdateUniformBlockIndex", std::move(params));
+    }
+}
+
 void CaptureDeleteUniformLocations(gl::ShaderProgramID program, std::vector<CallCapture> *callsOut)
 {
     ParamBuffer params;
@@ -1616,7 +1654,7 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
 
     switch (call.entryPoint)
     {
-        case gl::EntryPoint::GenBuffers:
+        case EntryPoint::GLGenBuffers:
         {
             const ParamCapture &buffers =
                 call.params.getParam("buffersPacked", ParamType::TBufferIDPointer, 1);
@@ -1624,7 +1662,7 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
             break;
         }
 
-        case gl::EntryPoint::GenFencesNV:
+        case EntryPoint::GLGenFencesNV:
         {
             const ParamCapture &fences =
                 call.params.getParam("fencesPacked", ParamType::TFenceNVIDPointer, 1);
@@ -1632,8 +1670,8 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
             break;
         }
 
-        case gl::EntryPoint::GenFramebuffers:
-        case gl::EntryPoint::GenFramebuffersOES:
+        case EntryPoint::GLGenFramebuffers:
+        case EntryPoint::GLGenFramebuffersOES:
         {
             const ParamCapture &framebuffers =
                 call.params.getParam("framebuffersPacked", ParamType::TFramebufferIDPointer, 1);
@@ -1641,7 +1679,7 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
             break;
         }
 
-        case gl::EntryPoint::GenProgramPipelines:
+        case EntryPoint::GLGenProgramPipelines:
         {
             const ParamCapture &pipelines =
                 call.params.getParam("pipelinesPacked", ParamType::TProgramPipelineIDPointer, 1);
@@ -1649,8 +1687,8 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
             break;
         }
 
-        case gl::EntryPoint::GenQueries:
-        case gl::EntryPoint::GenQueriesEXT:
+        case EntryPoint::GLGenQueries:
+        case EntryPoint::GLGenQueriesEXT:
         {
             const ParamCapture &queries =
                 call.params.getParam("idsPacked", ParamType::TQueryIDPointer, 1);
@@ -1658,8 +1696,8 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
             break;
         }
 
-        case gl::EntryPoint::GenRenderbuffers:
-        case gl::EntryPoint::GenRenderbuffersOES:
+        case EntryPoint::GLGenRenderbuffers:
+        case EntryPoint::GLGenRenderbuffersOES:
         {
             const ParamCapture &renderbuffers =
                 call.params.getParam("renderbuffersPacked", ParamType::TRenderbufferIDPointer, 1);
@@ -1667,7 +1705,7 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
             break;
         }
 
-        case gl::EntryPoint::GenSamplers:
+        case EntryPoint::GLGenSamplers:
         {
             const ParamCapture &samplers =
                 call.params.getParam("samplersPacked", ParamType::TSamplerIDPointer, 1);
@@ -1675,7 +1713,7 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
             break;
         }
 
-        case gl::EntryPoint::GenSemaphoresEXT:
+        case EntryPoint::GLGenSemaphoresEXT:
         {
             const ParamCapture &semaphores =
                 call.params.getParam("semaphoresPacked", ParamType::TSemaphoreIDPointer, 1);
@@ -1683,7 +1721,7 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
             break;
         }
 
-        case gl::EntryPoint::GenTextures:
+        case EntryPoint::GLGenTextures:
         {
             const ParamCapture &textures =
                 call.params.getParam("texturesPacked", ParamType::TTextureIDPointer, 1);
@@ -1691,7 +1729,7 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
             break;
         }
 
-        case gl::EntryPoint::GenTransformFeedbacks:
+        case EntryPoint::GLGenTransformFeedbacks:
         {
             const ParamCapture &xfbs =
                 call.params.getParam("idsPacked", ParamType::TTransformFeedbackIDPointer, 1);
@@ -1699,8 +1737,8 @@ void MaybeCaptureUpdateResourceIDs(std::vector<CallCapture> *callsOut)
             break;
         }
 
-        case gl::EntryPoint::GenVertexArrays:
-        case gl::EntryPoint::GenVertexArraysOES:
+        case EntryPoint::GLGenVertexArrays:
+        case EntryPoint::GLGenVertexArraysOES:
         {
             const ParamCapture &vertexArrays =
                 call.params.getParam("arraysPacked", ParamType::TVertexArrayIDPointer, 1);
@@ -1826,6 +1864,26 @@ void CaptureUpdateUniformValues(const gl::State &replayState,
         // If the uniform is unused, just continue
         if (readLoc.value == -1)
             continue;
+
+        // Image uniforms are special and cannot be set this way
+        if (typeInfo->isImageType)
+            continue;
+
+        // Samplers should be populated with GL_INT, regardless of return type
+        if (typeInfo->isSampler)
+        {
+            std::vector<GLint> uniformBuffer(uniformSize);
+            for (int index = 0; index < uniformCount; index++, readLoc.value++)
+            {
+                program->getUniformiv(context, readLoc,
+                                      uniformBuffer.data() + index * componentCount);
+            }
+
+            Capture(callsOut, CaptureUniform1iv(replayState, true, uniformLoc, uniformCount,
+                                                uniformBuffer.data()));
+
+            continue;
+        }
 
         switch (typeInfo->componentType)
         {
@@ -2229,6 +2287,37 @@ void CaptureBufferBindingResetCalls(const gl::State &replayState,
     Capture(&bufferBindingCalls, CaptureBindBuffer(replayState, true, binding, id));
 }
 
+void CaptureIndexedBuffers(const gl::State &glState,
+                           const gl::BufferVector &indexedBuffers,
+                           gl::BufferBinding binding,
+                           std::vector<CallCapture> *setupCalls)
+{
+    for (unsigned int index = 0; index < indexedBuffers.size(); ++index)
+    {
+        const gl::OffsetBindingPointer<gl::Buffer> &buffer = indexedBuffers[index];
+
+        if (buffer.get() == nullptr)
+        {
+            continue;
+        }
+
+        GLintptr offset       = buffer.getOffset();
+        GLsizeiptr size       = buffer.getSize();
+        gl::BufferID bufferID = buffer.get()->id();
+
+        // Context::bindBufferBase() calls Context::bindBufferRange() with size and offset = 0.
+        if ((offset == 0) && (size == 0))
+        {
+            Capture(setupCalls, CaptureBindBufferBase(glState, true, binding, index, bufferID));
+        }
+        else
+        {
+            Capture(setupCalls,
+                    CaptureBindBufferRange(glState, true, binding, index, bufferID, offset, size));
+        }
+    }
+}
+
 void CaptureMidExecutionSetup(const gl::Context *context,
                               std::vector<CallCapture> *setupCalls,
                               ResourceTracker *resourceTracker,
@@ -2246,9 +2335,7 @@ void CaptureMidExecutionSetup(const gl::Context *context,
     // TODO(jmadill): Use handle mapping for captured objects. http://anglebug.com/3662
 
     // Capture Buffer data.
-    const gl::BufferManager &buffers       = apiState.getBufferManagerForCapture();
-    const gl::BoundBufferMap &boundBuffers = apiState.getBoundBuffersForCapture();
-
+    const gl::BufferManager &buffers = apiState.getBufferManagerForCapture();
     for (const auto &bufferIter : buffers)
     {
         gl::BufferID id    = {bufferIter.first};
@@ -2374,7 +2461,22 @@ void CaptureMidExecutionSetup(const gl::Context *context,
         cap(CaptureBindVertexArray(replayState, true, currentVertexArray->id()));
     }
 
+    // Capture indexed buffer bindings.
+    const gl::BufferVector &uniformIndexedBuffers =
+        apiState.getOffsetBindingPointerUniformBuffers();
+    const gl::BufferVector &atomicCounterIndexedBuffers =
+        apiState.getOffsetBindingPointerAtomicCounterBuffers();
+    const gl::BufferVector &shaderStorageIndexedBuffers =
+        apiState.getOffsetBindingPointerShaderStorageBuffers();
+    CaptureIndexedBuffers(replayState, uniformIndexedBuffers, gl::BufferBinding::Uniform,
+                          setupCalls);
+    CaptureIndexedBuffers(replayState, atomicCounterIndexedBuffers,
+                          gl::BufferBinding::AtomicCounter, setupCalls);
+    CaptureIndexedBuffers(replayState, shaderStorageIndexedBuffers,
+                          gl::BufferBinding::ShaderStorage, setupCalls);
+
     // Capture Buffer bindings.
+    const gl::BoundBufferMap &boundBuffers = apiState.getBoundBuffersForCapture();
     for (gl::BufferBinding binding : angle::AllEnums<gl::BufferBinding>())
     {
         gl::BufferID bufferID = boundBuffers[binding].id();
@@ -2719,7 +2821,9 @@ void CaptureMidExecutionSetup(const gl::Context *context,
             CaptureFramebufferAttachment(setupCalls, replayState, *stencilAttachment);
         }
 
-        // TODO(jmadill): Draw buffer states. http://anglebug.com/3662
+        const std::vector<GLenum> &drawBufferStates = framebuffer->getDrawBufferStates();
+        cap(CaptureDrawBuffers(replayState, true, static_cast<GLsizei>(drawBufferStates.size()),
+                               drawBufferStates.data()));
     }
 
     // Capture framebuffer bindings.
@@ -2766,15 +2870,15 @@ void CaptureMidExecutionSetup(const gl::Context *context,
         gl::ShaderProgramID id     = {programIter.first};
         const gl::Program *program = programIter.second;
 
-        // Get last compiled shader source.
-        const ProgramSources &linkedSources =
-            context->getShareGroup()->getFrameCaptureShared()->getProgramSources(id);
-
         // Unlinked programs don't have an executable. Thus they don't need to be linked.
         if (!program->isLinked())
         {
             continue;
         }
+
+        // Get last linked shader source.
+        const ProgramSources &linkedSources =
+            context->getShareGroup()->getFrameCaptureShared()->getProgramSources(id);
 
         cap(CaptureCreateProgram(replayState, true, id.value));
 
@@ -2818,13 +2922,13 @@ void CaptureMidExecutionSetup(const gl::Context *context,
         // This can affect attributes that are optimized out in some implementations.
         for (const sh::ShaderVariable &attrib : program->getState().getProgramInputs())
         {
-            ASSERT(attrib.location != -1);
-
-            if (angle::BeginsWith(attrib.name, "gl_"))
+            if (gl::IsBuiltInName(attrib.name))
             {
                 // Don't try to bind built-in attributes
                 continue;
             }
+
+            ASSERT(attrib.location != -1);
 
             cap(CaptureBindAttribLocation(
                 replayState, true, id, static_cast<GLuint>(attrib.location), attrib.name.c_str()));
@@ -2833,6 +2937,16 @@ void CaptureMidExecutionSetup(const gl::Context *context,
         cap(CaptureLinkProgram(replayState, true, id));
         CaptureUpdateUniformLocations(program, setupCalls);
         CaptureUpdateUniformValues(replayState, context, program, setupCalls);
+        CaptureUpdateUniformBlockIndexes(program, setupCalls);
+
+        // Capture uniform block bindings for each program
+        for (unsigned int uniformBlockIndex = 0;
+             uniformBlockIndex < program->getActiveUniformBlockCount(); uniformBlockIndex++)
+        {
+            GLuint blockBinding = program->getUniformBlockBinding(uniformBlockIndex);
+            cap(CaptureUniformBlockBinding(replayState, true, id, {uniformBlockIndex},
+                                           blockBinding));
+        }
 
         resourceTracker->onShaderProgramAccess(id);
     }
@@ -3351,29 +3465,34 @@ void CaptureMidExecutionSetup(const gl::Context *context,
     replayState.setBufferBinding(context, gl::BufferBinding::Array, nullptr);
 }
 
-bool SkipCall(gl::EntryPoint entryPoint)
+bool SkipCall(EntryPoint entryPoint)
 {
     switch (entryPoint)
     {
-        case gl::EntryPoint::DebugMessageCallback:
-        case gl::EntryPoint::DebugMessageCallbackKHR:
-        case gl::EntryPoint::DebugMessageControl:
-        case gl::EntryPoint::DebugMessageControlKHR:
-        case gl::EntryPoint::DebugMessageInsert:
-        case gl::EntryPoint::DebugMessageInsertKHR:
-        case gl::EntryPoint::GetDebugMessageLog:
-        case gl::EntryPoint::GetDebugMessageLogKHR:
-        case gl::EntryPoint::GetObjectLabelKHR:
-        case gl::EntryPoint::GetObjectPtrLabelKHR:
-        case gl::EntryPoint::GetPointervKHR:
-        case gl::EntryPoint::InsertEventMarkerEXT:
-        case gl::EntryPoint::ObjectLabelKHR:
-        case gl::EntryPoint::ObjectPtrLabelKHR:
-        case gl::EntryPoint::PopDebugGroupKHR:
-        case gl::EntryPoint::PopGroupMarkerEXT:
-        case gl::EntryPoint::PushDebugGroupKHR:
-        case gl::EntryPoint::PushGroupMarkerEXT:
-            // Purposefully skip KHR_debug and EXT_debug_marker entry points
+        case EntryPoint::GLDebugMessageCallback:
+        case EntryPoint::GLDebugMessageCallbackKHR:
+        case EntryPoint::GLDebugMessageControl:
+        case EntryPoint::GLDebugMessageControlKHR:
+        case EntryPoint::GLDebugMessageInsert:
+        case EntryPoint::GLDebugMessageInsertKHR:
+        case EntryPoint::GLGetDebugMessageLog:
+        case EntryPoint::GLGetDebugMessageLogKHR:
+        case EntryPoint::GLGetObjectLabelEXT:
+        case EntryPoint::GLGetObjectLabelKHR:
+        case EntryPoint::GLGetObjectPtrLabelKHR:
+        case EntryPoint::GLGetPointervKHR:
+        case EntryPoint::GLInsertEventMarkerEXT:
+        case EntryPoint::GLLabelObjectEXT:
+        case EntryPoint::GLObjectLabelKHR:
+        case EntryPoint::GLObjectPtrLabelKHR:
+        case EntryPoint::GLPopDebugGroupKHR:
+        case EntryPoint::GLPopGroupMarkerEXT:
+        case EntryPoint::GLPushDebugGroupKHR:
+        case EntryPoint::GLPushGroupMarkerEXT:
+            // Purposefully skip entry points from:
+            // - KHR_debug
+            // - EXT_debug_label
+            // - EXT_debug_marker
             // There is no need to capture these for replaying a trace in our harness
             return true;
 
@@ -3502,12 +3621,12 @@ ParamCapture &ParamBuffer::getClientArrayPointerParameter()
     return mParamCaptures[mClientArrayDataParam];
 }
 
-CallCapture::CallCapture(gl::EntryPoint entryPointIn, ParamBuffer &&paramsIn)
+CallCapture::CallCapture(EntryPoint entryPointIn, ParamBuffer &&paramsIn)
     : entryPoint(entryPointIn), params(std::move(paramsIn))
 {}
 
 CallCapture::CallCapture(const std::string &customFunctionNameIn, ParamBuffer &&paramsIn)
-    : entryPoint(gl::EntryPoint::Invalid),
+    : entryPoint(EntryPoint::GLInvalid),
       customFunctionName(customFunctionNameIn),
       params(std::move(paramsIn))
 {}
@@ -3529,13 +3648,13 @@ CallCapture &CallCapture::operator=(CallCapture &&other)
 
 const char *CallCapture::name() const
 {
-    if (entryPoint == gl::EntryPoint::Invalid)
+    if (entryPoint == EntryPoint::GLInvalid)
     {
         ASSERT(!customFunctionName.empty());
         return customFunctionName.c_str();
     }
 
-    return gl::GetEntryPointName(entryPoint);
+    return angle::GetEntryPointName(entryPoint);
 }
 
 ReplayContext::ReplayContext(size_t readBufferSizebytes,
@@ -3656,7 +3775,7 @@ void FrameCapture::captureCompressedTextureData(const gl::Context *context, cons
     int depthParamOffset   = -1;
     switch (call.entryPoint)
     {
-        case gl::EntryPoint::CompressedTexSubImage3D:
+        case EntryPoint::GLCompressedTexSubImage3D:
             xoffsetParamOffset = 2;
             yoffsetParamOffset = 3;
             zoffsetParamOffset = 4;
@@ -3665,20 +3784,20 @@ void FrameCapture::captureCompressedTextureData(const gl::Context *context, cons
             depthParamOffset   = 7;
             dataParamOffset    = 10;
             break;
-        case gl::EntryPoint::CompressedTexImage3D:
+        case EntryPoint::GLCompressedTexImage3D:
             widthParamOffset  = 3;
             heightParamOffset = 4;
             depthParamOffset  = 5;
             dataParamOffset   = 8;
             break;
-        case gl::EntryPoint::CompressedTexSubImage2D:
+        case EntryPoint::GLCompressedTexSubImage2D:
             xoffsetParamOffset = 2;
             yoffsetParamOffset = 3;
             widthParamOffset   = 4;
             heightParamOffset  = 5;
             dataParamOffset    = 8;
             break;
-        case gl::EntryPoint::CompressedTexImage2D:
+        case EntryPoint::GLCompressedTexImage2D:
             widthParamOffset  = 3;
             heightParamOffset = 4;
             dataParamOffset   = 7;
@@ -3738,8 +3857,8 @@ void FrameCapture::captureCompressedTextureData(const gl::Context *context, cons
     // Record the data, indexed by textureID and level
     GLint level = call.params.getParam("level", ParamType::TGLint, 1).value.GLintVal;
     std::vector<uint8_t> &levelData =
-        context->getShareGroup()->getFrameCaptureShared()->getTextureLevelCacheLocation(
-            texture, targetPacked, level);
+        context->getShareGroup()->getFrameCaptureShared()->getCachedTextureLevelData(
+            texture, targetPacked, level, call.entryPoint);
 
     // Unpack the various pixel rectangle parameters.
     ASSERT(widthParamOffset != -1);
@@ -3784,20 +3903,30 @@ void FrameCapture::captureCompressedTextureData(const gl::Context *context, cons
     const gl::Extents &levelExtents = texture->getExtents(targetPacked, level);
 
     // Scale down the width/height pixel offsets to reflect block size
-    int widthScale  = static_cast<int>(format.compressedBlockWidth);
-    int heightScale = static_cast<int>(format.compressedBlockHeight);
+    int blockWidth  = static_cast<int>(format.compressedBlockWidth);
+    int blockHeight = static_cast<int>(format.compressedBlockHeight);
     ASSERT(format.compressedBlockDepth == 1);
-    pixelWidth /= widthScale;
-    pixelHeight /= heightScale;
-    xoffset /= widthScale;
-    yoffset /= heightScale;
+
+    // Round the incoming width and height up to align with block size
+    pixelWidth  = rx::roundUp(pixelWidth, blockWidth);
+    pixelHeight = rx::roundUp(pixelHeight, blockHeight);
+
+    // Scale the width, height, and offsets
+    pixelWidth /= blockWidth;
+    pixelHeight /= blockHeight;
+    xoffset /= blockWidth;
+    yoffset /= blockHeight;
 
     GLint pixelBytes = static_cast<GLint>(format.pixelBytes);
 
+    // Also round the texture's width and height up to reflect block size
+    int levelWidth  = rx::roundUp(levelExtents.width, blockWidth);
+    int levelHeight = rx::roundUp(levelExtents.height, blockHeight);
+
     GLint pixelRowPitch   = pixelWidth * pixelBytes;
     GLint pixelDepthPitch = pixelRowPitch * pixelHeight;
-    GLint levelRowPitch   = (levelExtents.width / widthScale) * pixelBytes;
-    GLint levelDepthPitch = levelRowPitch * (levelExtents.height / heightScale);
+    GLint levelRowPitch   = (levelWidth / blockWidth) * pixelBytes;
+    GLint levelDepthPitch = (levelHeight / blockHeight) * levelRowPitch;
 
     for (GLint zindex = 0; zindex < pixelDepth; ++zindex)
     {
@@ -3807,6 +3936,7 @@ void FrameCapture::captureCompressedTextureData(const gl::Context *context, cons
             GLint y           = yindex + yoffset;
             GLint pixelOffset = zindex * pixelDepthPitch + yindex * pixelRowPitch;
             GLint levelOffset = z * levelDepthPitch + y * levelRowPitch + xoffset * pixelBytes;
+            ASSERT(static_cast<size_t>(levelOffset + pixelRowPitch) <= levelData.size());
             memcpy(&levelData[levelOffset], &pixelData[pixelOffset], pixelRowPitch);
         }
     }
@@ -3847,7 +3977,7 @@ void FrameCapture::maybeOverrideEntryPoint(const gl::Context *context, CallCaptu
 {
     switch (call.entryPoint)
     {
-        case gl::EntryPoint::EGLImageTargetTexture2DOES:
+        case EntryPoint::GLEGLImageTargetTexture2DOES:
         {
             // We don't support reading EGLImages. Instead, just pull from a tiny null texture.
             // TODO (anglebug.com/4964): Read back the image data and populate the texture.
@@ -3856,7 +3986,7 @@ void FrameCapture::maybeOverrideEntryPoint(const gl::Context *context, CallCaptu
                                         1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixelData.data());
             break;
         }
-        case gl::EntryPoint::EGLImageTargetRenderbufferStorageOES:
+        case EntryPoint::GLEGLImageTargetRenderbufferStorageOES:
         {
             UNIMPLEMENTED();
             break;
@@ -3866,11 +3996,63 @@ void FrameCapture::maybeOverrideEntryPoint(const gl::Context *context, CallCaptu
     }
 }
 
+void FrameCapture::maybeCaptureDrawArraysClientData(const gl::Context *context,
+                                                    CallCapture &call,
+                                                    size_t instanceCount)
+{
+    if (!context->getStateCache().hasAnyActiveClientAttrib())
+    {
+        return;
+    }
+
+    // Get counts from paramBuffer.
+    GLint firstVertex =
+        call.params.getParamFlexName("first", "start", ParamType::TGLint, 1).value.GLintVal;
+    GLsizei drawCount = call.params.getParam("count", ParamType::TGLsizei, 2).value.GLsizeiVal;
+    captureClientArraySnapshot(context, firstVertex + drawCount, instanceCount);
+}
+
+void FrameCapture::maybeCaptureDrawElementsClientData(const gl::Context *context,
+                                                      CallCapture &call,
+                                                      size_t instanceCount)
+{
+    if (!context->getStateCache().hasAnyActiveClientAttrib())
+    {
+        return;
+    }
+
+    GLsizei count = call.params.getParam("count", ParamType::TGLsizei, 1).value.GLsizeiVal;
+    gl::DrawElementsType drawElementsType =
+        call.params.getParam("typePacked", ParamType::TDrawElementsType, 2)
+            .value.DrawElementsTypeVal;
+    const void *indices =
+        call.params.getParam("indices", ParamType::TvoidConstPointer, 3).value.voidConstPointerVal;
+
+    gl::IndexRange indexRange;
+
+    bool restart = context->getState().isPrimitiveRestartEnabled();
+
+    gl::Buffer *elementArrayBuffer = context->getState().getVertexArray()->getElementArrayBuffer();
+    if (elementArrayBuffer)
+    {
+        size_t offset = reinterpret_cast<size_t>(indices);
+        (void)elementArrayBuffer->getIndexRange(context, drawElementsType, offset, count, restart,
+                                                &indexRange);
+    }
+    else
+    {
+        indexRange = gl::ComputeIndexRange(drawElementsType, indices, count, restart);
+    }
+
+    // index starts from 0
+    captureClientArraySnapshot(context, indexRange.end + 1, instanceCount);
+}
+
 void FrameCapture::maybeCapturePreCallUpdates(const gl::Context *context, CallCapture &call)
 {
     switch (call.entryPoint)
     {
-        case gl::EntryPoint::VertexAttribPointer:
+        case EntryPoint::GLVertexAttribPointer:
         {
             // Get array location
             GLuint index = call.params.getParam("index", ParamType::TGLuint, 0).value.GLuintVal;
@@ -3886,7 +4068,7 @@ void FrameCapture::maybeCapturePreCallUpdates(const gl::Context *context, CallCa
             break;
         }
 
-        case gl::EntryPoint::DeleteBuffers:
+        case EntryPoint::GLDeleteBuffers:
         {
             GLsizei count = call.params.getParam("n", ParamType::TGLsizei, 0).value.GLsizeiVal;
             const gl::BufferID *bufferIDs =
@@ -3909,7 +4091,7 @@ void FrameCapture::maybeCapturePreCallUpdates(const gl::Context *context, CallCa
             break;
         }
 
-        case gl::EntryPoint::GenBuffers:
+        case EntryPoint::GLGenBuffers:
         {
             GLsizei count = call.params.getParam("n", ParamType::TGLsizei, 0).value.GLsizeiVal;
             const gl::BufferID *bufferIDs =
@@ -3926,57 +4108,41 @@ void FrameCapture::maybeCapturePreCallUpdates(const gl::Context *context, CallCa
             break;
         }
 
-        case gl::EntryPoint::DrawArrays:
+        case EntryPoint::GLDrawArrays:
         {
-            if (context->getStateCache().hasAnyActiveClientAttrib())
-            {
-                // Get counts from paramBuffer.
-                GLint firstVertex =
-                    call.params.getParam("first", ParamType::TGLint, 1).value.GLintVal;
-                GLsizei drawCount =
-                    call.params.getParam("count", ParamType::TGLsizei, 2).value.GLsizeiVal;
-                captureClientArraySnapshot(context, firstVertex + drawCount, 1);
-            }
+            maybeCaptureDrawArraysClientData(context, call, 1);
             break;
         }
 
-        case gl::EntryPoint::DrawElements:
+        case EntryPoint::GLDrawArraysInstanced:
+        case EntryPoint::GLDrawArraysInstancedANGLE:
+        case EntryPoint::GLDrawArraysInstancedEXT:
         {
-            if (context->getStateCache().hasAnyActiveClientAttrib())
-            {
-                GLsizei count =
-                    call.params.getParam("count", ParamType::TGLsizei, 1).value.GLsizeiVal;
-                gl::DrawElementsType drawElementsType =
-                    call.params.getParam("typePacked", ParamType::TDrawElementsType, 2)
-                        .value.DrawElementsTypeVal;
-                const void *indices =
-                    call.params.getParam("indices", ParamType::TvoidConstPointer, 3)
-                        .value.voidConstPointerVal;
-
-                gl::IndexRange indexRange;
-
-                bool restart = context->getState().isPrimitiveRestartEnabled();
-
-                gl::Buffer *elementArrayBuffer =
-                    context->getState().getVertexArray()->getElementArrayBuffer();
-                if (elementArrayBuffer)
-                {
-                    size_t offset = reinterpret_cast<size_t>(indices);
-                    (void)elementArrayBuffer->getIndexRange(context, drawElementsType, offset,
-                                                            count, restart, &indexRange);
-                }
-                else
-                {
-                    indexRange = gl::ComputeIndexRange(drawElementsType, indices, count, restart);
-                }
-
-                // index starts from 0
-                captureClientArraySnapshot(context, indexRange.end + 1, 1);
-            }
+            GLsizei instancecount =
+                call.params.getParamFlexName("instancecount", "primcount", ParamType::TGLsizei, 3)
+                    .value.GLsizeiVal;
+            maybeCaptureDrawArraysClientData(context, call, instancecount);
             break;
         }
 
-        case gl::EntryPoint::CompileShader:
+        case EntryPoint::GLDrawElements:
+        {
+            maybeCaptureDrawElementsClientData(context, call, 1);
+            break;
+        }
+
+        case EntryPoint::GLDrawElementsInstanced:
+        case EntryPoint::GLDrawElementsInstancedANGLE:
+        case EntryPoint::GLDrawElementsInstancedEXT:
+        {
+            GLsizei instancecount =
+                call.params.getParamFlexName("instancecount", "primcount", ParamType::TGLsizei, 4)
+                    .value.GLsizeiVal;
+            maybeCaptureDrawElementsClientData(context, call, instancecount);
+            break;
+        }
+
+        case EntryPoint::GLCompileShader:
         {
             // Refresh the cached shader sources.
             gl::ShaderProgramID shaderID =
@@ -3988,7 +4154,7 @@ void FrameCapture::maybeCapturePreCallUpdates(const gl::Context *context, CallCa
             break;
         }
 
-        case gl::EntryPoint::LinkProgram:
+        case EntryPoint::GLLinkProgram:
         {
             // Refresh the cached program sources.
             gl::ShaderProgramID programID =
@@ -4000,23 +4166,23 @@ void FrameCapture::maybeCapturePreCallUpdates(const gl::Context *context, CallCa
             break;
         }
 
-        case gl::EntryPoint::CompressedTexImage1D:
-        case gl::EntryPoint::CompressedTexSubImage1D:
+        case EntryPoint::GLCompressedTexImage1D:
+        case EntryPoint::GLCompressedTexSubImage1D:
         {
             UNIMPLEMENTED();
             break;
         }
 
-        case gl::EntryPoint::CompressedTexImage2D:
-        case gl::EntryPoint::CompressedTexImage3D:
-        case gl::EntryPoint::CompressedTexSubImage2D:
-        case gl::EntryPoint::CompressedTexSubImage3D:
+        case EntryPoint::GLCompressedTexImage2D:
+        case EntryPoint::GLCompressedTexImage3D:
+        case EntryPoint::GLCompressedTexSubImage2D:
+        case EntryPoint::GLCompressedTexSubImage3D:
         {
             captureCompressedTextureData(context, call);
             break;
         }
 
-        case gl::EntryPoint::DeleteTextures:
+        case EntryPoint::GLDeleteTextures:
         {
             // Free any TextureLevelDataMap entries being tracked for this texture
             // This is to cover the scenario where a texture has been created, its
@@ -4040,8 +4206,8 @@ void FrameCapture::maybeCapturePreCallUpdates(const gl::Context *context, CallCa
             break;
         }
 
-        case gl::EntryPoint::MapBuffer:
-        case gl::EntryPoint::MapBufferOES:
+        case EntryPoint::GLMapBuffer:
+        case EntryPoint::GLMapBufferOES:
         {
             gl::BufferBinding target =
                 call.params.getParam("targetPacked", ParamType::TBufferBinding, 0)
@@ -4062,14 +4228,14 @@ void FrameCapture::maybeCapturePreCallUpdates(const gl::Context *context, CallCa
             break;
         }
 
-        case gl::EntryPoint::UnmapNamedBuffer:
+        case EntryPoint::GLUnmapNamedBuffer:
         {
             UNIMPLEMENTED();
             break;
         }
 
-        case gl::EntryPoint::MapBufferRange:
-        case gl::EntryPoint::MapBufferRangeEXT:
+        case EntryPoint::GLMapBufferRange:
+        case EntryPoint::GLMapBufferRangeEXT:
         {
             GLintptr offset =
                 call.params.getParam("offset", ParamType::TGLintptr, 1).value.GLintptrVal;
@@ -4087,8 +4253,8 @@ void FrameCapture::maybeCapturePreCallUpdates(const gl::Context *context, CallCa
             break;
         }
 
-        case gl::EntryPoint::UnmapBuffer:
-        case gl::EntryPoint::UnmapBufferOES:
+        case EntryPoint::GLUnmapBuffer:
+        case EntryPoint::GLUnmapBufferOES:
         {
             // See if we need to capture the buffer contents
             captureMappedBufferSnapshot(context, call);
@@ -4102,8 +4268,8 @@ void FrameCapture::maybeCapturePreCallUpdates(const gl::Context *context, CallCa
             break;
         }
 
-        case gl::EntryPoint::BufferData:
-        case gl::EntryPoint::BufferSubData:
+        case EntryPoint::GLBufferData:
+        case EntryPoint::GLBufferSubData:
         {
             gl::BufferBinding target =
                 call.params.getParam("targetPacked", ParamType::TBufferBinding, 0)
@@ -4160,19 +4326,20 @@ void FrameCapture::maybeCapturePostCallUpdates(const gl::Context *context)
     const CallCapture &lastCall = mFrameCalls.back();
     switch (lastCall.entryPoint)
     {
-        case gl::EntryPoint::LinkProgram:
+        case EntryPoint::GLLinkProgram:
         {
             const ParamCapture &param =
                 lastCall.params.getParam("programPacked", ParamType::TShaderProgramID, 0);
             const gl::Program *program =
                 context->getProgramResolveLink(param.value.ShaderProgramIDVal);
             CaptureUpdateUniformLocations(program, &mFrameCalls);
+            CaptureUpdateUniformBlockIndexes(program, &mFrameCalls);
             break;
         }
-        case gl::EntryPoint::UseProgram:
+        case EntryPoint::GLUseProgram:
             CaptureUpdateCurrentProgram(lastCall, &mFrameCalls);
             break;
-        case gl::EntryPoint::DeleteProgram:
+        case EntryPoint::GLDeleteProgram:
         {
             const ParamCapture &param =
                 lastCall.params.getParam("programPacked", ParamType::TShaderProgramID, 0);
@@ -4343,10 +4510,10 @@ void FrameCapture::onEndFrame(const gl::Context *context)
         if (mFrameIndex == mCaptureEndFrame)
         {
             // Save the index files after the last frame.
-            WriteCppReplayIndexFiles(mCompression, mOutDirectory, context->id(), mCaptureLabel,
+            WriteCppReplayIndexFiles(mCompression, mOutDirectory, context, mCaptureLabel,
                                      getFrameCount(), mDrawSurfaceDimensions, mReadBufferSize,
                                      mClientArraySizes, mHasResourceType, mSerializeStateEnabled,
-                                     false, context->getConfig(), mBinaryData);
+                                     false, mBinaryData);
             if (!mBinaryData.empty())
             {
                 SaveBinaryData(mCompression, mOutDirectory, context->id(), mCaptureLabel,
@@ -4394,10 +4561,10 @@ void FrameCapture::onDestroyContext(const gl::Context *context)
         // It doesnt make sense to write the index files when no frame has been recorded
         mFrameIndex -= 1;
         mCaptureEndFrame = mFrameIndex;
-        WriteCppReplayIndexFiles(mCompression, mOutDirectory, context->id(), mCaptureLabel,
+        WriteCppReplayIndexFiles(mCompression, mOutDirectory, context, mCaptureLabel,
                                  getFrameCount(), mDrawSurfaceDimensions, mReadBufferSize,
                                  mClientArraySizes, mHasResourceType, mSerializeStateEnabled, true,
-                                 context->getConfig(), mBinaryData);
+                                 mBinaryData);
         if (!mBinaryData.empty())
         {
             SaveBinaryData(mCompression, mOutDirectory, context->id(), mCaptureLabel, mBinaryData);
@@ -4421,7 +4588,7 @@ DataCounters::DataCounters() = default;
 
 DataCounters::~DataCounters() = default;
 
-int DataCounters::getAndIncrement(gl::EntryPoint entryPoint, const std::string &paramName)
+int DataCounters::getAndIncrement(EntryPoint entryPoint, const std::string &paramName)
 {
     Counter counterKey = {entryPoint, paramName};
     return mData[counterKey]++;
@@ -4546,7 +4713,7 @@ void FrameCapture::replay(gl::Context *context)
     {
         INFO() << "frame index: " << mFrameIndex << " " << call.name();
 
-        if (call.entryPoint == gl::EntryPoint::Invalid)
+        if (call.entryPoint == EntryPoint::GLInvalid)
         {
             if (call.customFunctionName == "UpdateClientArrayPointer")
             {
@@ -4627,17 +4794,28 @@ const std::vector<uint8_t> &FrameCaptureShared::retrieveCachedTextureLevel(gl::T
     return capturedTextureLevel;
 }
 
-std::vector<uint8_t> &FrameCaptureShared::getTextureLevelCacheLocation(gl::Texture *texture,
-                                                                       gl::TextureTarget target,
-                                                                       GLint level)
+std::vector<uint8_t> &FrameCaptureShared::getCachedTextureLevelData(gl::Texture *texture,
+                                                                    gl::TextureTarget target,
+                                                                    GLint level,
+                                                                    EntryPoint entryPoint)
 {
     auto foundTextureLevels = mCachedTextureLevelData.find(texture->id());
-    if (foundTextureLevels == mCachedTextureLevelData.end())
+    if (foundTextureLevels == mCachedTextureLevelData.end() ||
+        entryPoint == EntryPoint::GLCompressedTexImage2D ||
+        entryPoint == EntryPoint::GLCompressedTexImage3D)
     {
-        // If we haven't cached this texture, initialize the texture ID data.
+        // Delete the cached entry (if it exists) in case the caller is respecifying the texture.
+        mCachedTextureLevelData.erase(texture->id());
+
+        // Initialize the texture ID data.
         auto emplaceResult = mCachedTextureLevelData.emplace(texture->id(), TextureLevels());
         ASSERT(emplaceResult.second);
         foundTextureLevels = emplaceResult.first;
+    }
+    else
+    {
+        ASSERT(entryPoint == EntryPoint::GLCompressedTexSubImage2D ||
+               entryPoint == EntryPoint::GLCompressedTexSubImage3D);
     }
 
     TextureLevels &foundLevels         = foundTextureLevels->second;
@@ -4720,7 +4898,7 @@ gl::Program *GetProgramForCapture(const gl::State &glState, gl::ShaderProgramID 
 
 void CaptureGetActiveUniformBlockivParameters(const gl::State &glState,
                                               gl::ShaderProgramID handle,
-                                              GLuint uniformBlockIndex,
+                                              gl::UniformBlockIndex uniformBlockIndex,
                                               GLenum pname,
                                               ParamCapture *paramCapture)
 {
@@ -4946,5 +5124,19 @@ void WriteParamValueReplay<ParamType::TUniformLocation>(std::ostream &os,
     }
 
     os << "][" << value.value << "]";
+}
+
+template <>
+void WriteParamValueReplay<ParamType::TUniformBlockIndex>(std::ostream &os,
+                                                          const CallCapture &call,
+                                                          gl::UniformBlockIndex value)
+{
+    // Find the program from the call parameters.
+    gl::ShaderProgramID programID;
+    bool foundProgram = FindShaderProgramIDInCall(call, &programID);
+    ASSERT(foundProgram);
+
+    os << "gUniformBlockIndexes[gShaderProgramMap[" << programID.value << "]][" << value.value
+       << "]";
 }
 }  // namespace angle

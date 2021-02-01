@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 245
+#define ANGLE_SH_VERSION 252
 
 enum ShShaderSpec
 {
@@ -305,9 +305,7 @@ const ShCompileOptions SH_TAKE_VIDEO_TEXTURE_AS_EXTERNAL_OES = UINT64_C(1) << 45
 // If requested, validates the AST after every transformation.  Useful for debugging.
 const ShCompileOptions SH_VALIDATE_AST = UINT64_C(1) << 46;
 
-// Use old version of RewriteStructSamplers, which doesn't produce as many
-// sampler arrays in parameters. This causes a few tests to pass on Android.
-const ShCompileOptions SH_USE_OLD_REWRITE_STRUCT_SAMPLERS = UINT64_C(1) << 47;
+// Bit 47 is available
 
 // This flag works around a inconsistent behavior in Mac AMD driver where gl_VertexID doesn't
 // include base vertex value. It replaces gl_VertexID with (gl_VertexID + angle_BaseVertex)
@@ -346,7 +344,14 @@ const ShCompileOptions SH_ADD_PRE_ROTATION = UINT64_C(1) << 56;
 const ShCompileOptions SH_FORCE_SHADER_PRECISION_HIGHP_TO_MEDIUMP = UINT64_C(1) << 57;
 
 // Allow compiler to use specialization constant to do pre-rotation and y flip.
-const ShCompileOptions SH_USE_ROTATION_SPECIALIZATION_CONSTANT = UINT64_C(1) << 58;
+const ShCompileOptions SH_USE_SPECIALIZATION_CONSTANT = UINT64_C(1) << 58;
+
+// Ask compiler to generate Vulkan transform feedback emulation support code.
+const ShCompileOptions SH_ADD_VULKAN_XFB_EMULATION_SUPPORT_CODE = UINT64_C(1) << 59;
+
+// Ask compiler to generate Vulkan transform feedback support code when using the
+// VK_EXT_transform_feedback extension.
+const ShCompileOptions SH_ADD_VULKAN_XFB_EXTENSION_SUPPORT_CODE = UINT64_C(1) << 60;
 
 // Defines alternate strategies for implementing array index clamping.
 enum ShArrayIndexClampingStrategy
@@ -400,6 +405,8 @@ struct ShBuiltInResources
     int EXT_multisampled_render_to_texture2;
     int EXT_YUV_target;
     int EXT_geometry_shader;
+    int OES_shader_io_blocks;
+    int EXT_shader_io_blocks;
     int EXT_gpu_shader5;
     int EXT_shader_non_constant_global_initializers;
     int OES_texture_storage_multisample_2d_array;
@@ -418,6 +425,7 @@ struct ShBuiltInResources
     int OES_texture_buffer;
     int EXT_texture_buffer;
     int OES_sample_variables;
+    int EXT_clip_cull_distance;
 
     // Set to 1 to enable replacing GL_EXT_draw_buffers #extension directives
     // with GL_NV_draw_buffers in ESSL output. This flag can be used to emulate
@@ -588,6 +596,8 @@ struct ShBuiltInResources
 
     // APPLE_clip_distance/EXT_clip_cull_distance constant
     int MaxClipDistances;
+    int MaxCullDistances;
+    int MaxCombinedClipAndCullDistances;
 };
 
 //
@@ -757,6 +767,7 @@ bool GetUniformBlockRegister(const ShHandle handle,
 
 bool ShouldUniformBlockUseStructuredBuffer(const ShHandle handle,
                                            const std::string &uniformBlockName);
+const std::set<std::string> *GetSlowCompilingUniformBlockSet(const ShHandle handle);
 
 // Gives a map from uniform names to compiler-assigned registers in the default uniform block.
 // Note that the map contains also registers of samplers that have been extracted from structs.
@@ -778,11 +789,20 @@ const std::set<std::string> *GetUsedImage2DFunctionNames(const ShHandle handle);
 bool HasValidGeometryShaderInputPrimitiveType(const ShHandle handle);
 bool HasValidGeometryShaderOutputPrimitiveType(const ShHandle handle);
 bool HasValidGeometryShaderMaxVertices(const ShHandle handle);
+bool HasValidTessGenMode(const ShHandle handle);
+bool HasValidTessGenSpacing(const ShHandle handle);
+bool HasValidTessGenVertexOrder(const ShHandle handle);
+bool HasValidTessGenPointMode(const ShHandle handle);
 GLenum GetGeometryShaderInputPrimitiveType(const ShHandle handle);
 GLenum GetGeometryShaderOutputPrimitiveType(const ShHandle handle);
 int GetGeometryShaderInvocations(const ShHandle handle);
 int GetGeometryShaderMaxVertices(const ShHandle handle);
 unsigned int GetShaderSharedMemorySize(const ShHandle handle);
+int GetTessControlShaderVertices(const ShHandle handle);
+GLenum GetTessGenMode(const ShHandle handle);
+GLenum GetTessGenSpacing(const ShHandle handle);
+GLenum GetTessGenVertexOrder(const ShHandle handle);
+GLenum GetTessGenPointMode(const ShHandle handle);
 
 //
 // Helper function to identify specs that are based on the WebGL spec.
@@ -813,8 +833,10 @@ enum class SpecializationConstantId : uint32_t
 {
     LineRasterEmulation = 0,
     SurfaceRotation     = 1,
+    DrawableWidth       = 2,
+    DrawableHeight      = 3,
 
-    InvalidEnum = 2,
+    InvalidEnum = 4,
     EnumCount   = InvalidEnum,
 };
 
@@ -838,8 +860,9 @@ enum class SpecConstUsage : uint32_t
     LineRasterEmulation = 0,
     YFlip               = 1,
     Rotation            = 2,
+    DrawableSize        = 3,
 
-    InvalidEnum = 3,
+    InvalidEnum = 4,
     EnumCount   = InvalidEnum,
 };
 
@@ -860,6 +883,15 @@ extern const char kAtomicCountersBlockName[];
 
 // Line raster emulation varying
 extern const char kLineRasterEmulationPosition[];
+
+// Transform feedback emulation support
+extern const char kXfbEmulationGetOffsetsFunctionName[];
+extern const char kXfbEmulationBufferBlockName[];
+extern const char kXfbEmulationBufferName[];
+extern const char kXfbEmulationBufferFieldName[];
+
+// Transform feedback extension support
+extern const char kXfbExtensionPositionOutName[];
 
 }  // namespace vk
 

@@ -240,6 +240,13 @@ TParseContext::TParseContext(TSymbolTable &symt,
       mGeometryShaderMaxVertices(-1),
       mMaxGeometryShaderInvocations(resources.MaxGeometryShaderInvocations),
       mMaxGeometryShaderMaxVertices(resources.MaxGeometryOutputVertices),
+      mGeometryInputArraySize(0),
+      mMaxPatchVertices(resources.MaxPatchVertices),
+      mTessControlShaderOutputVertices(0),
+      mTessEvaluationShaderInputPrimitiveType(EtetUndefined),
+      mTessEvaluationShaderInputVertexSpacingType(EtetUndefined),
+      mTessEvaluationShaderInputOrderingType(EtetUndefined),
+      mTessEvaluationShaderInputPointType(EtetUndefined),
       mFunctionBodyNewScope(false),
       mOutputType(outputType)
 {}
@@ -550,6 +557,8 @@ bool TParseContext::checkCanBeLValue(const TSourceLoc &line, const char *op, TIn
         case EvqFragmentIn:
         case EvqVertexIn:
         case EvqGeometryIn:
+        case EvqTessControlIn:
+        case EvqTessEvaluationIn:
         case EvqFlatIn:
         case EvqNoPerspectiveIn:
         case EvqSmoothIn:
@@ -628,6 +637,18 @@ bool TParseContext::checkCanBeLValue(const TSourceLoc &line, const char *op, TIn
             break;
         case EvqSamplePosition:
             message = "can't modify gl_SamplePosition";
+            break;
+        case EvqClipDistance:
+            if (mShaderType == GL_FRAGMENT_SHADER)
+            {
+                message = "can't modify gl_ClipDistance in a fragment shader";
+            }
+            break;
+        case EvqCullDistance:
+            if (mShaderType == GL_FRAGMENT_SHADER)
+            {
+                message = "can't modify gl_CullDistance in a fragment shader";
+            }
             break;
         default:
             //
@@ -1150,7 +1171,10 @@ bool TParseContext::checkIsValidTypeAndQualifierForArray(const TSourceLoc &index
     // as arrays (GL_EXT_geometry_shader section 7.4.1).
     if (mShaderVersion >= 300 && elementType.getBasicType() == EbtStruct &&
         sh::IsVarying(elementType.qualifier) &&
-        !IsGeometryShaderInput(mShaderType, elementType.qualifier))
+        !IsGeometryShaderInput(mShaderType, elementType.qualifier) &&
+        !IsTessellationControlShaderInput(mShaderType, elementType.qualifier) &&
+        !IsTessellationEvaluationShaderInput(mShaderType, elementType.qualifier) &&
+        !IsTessellationControlShaderOutput(mShaderType, elementType.qualifier))
     {
         TInfoSinkBase typeString;
         typeString << TType(elementType);
@@ -1186,7 +1210,6 @@ void TParseContext::checkCanBeDeclaredWithoutInitializer(const TSourceLoc &line,
             error(line, "variables with qualifier 'const' must be initialized", identifier);
         }
     }
-    // This will make the type sized if it isn't sized yet.
     checkIsNotUnsizedArray(line, "implicitly sized arrays need to be initialized", identifier,
                            type);
 }
@@ -1279,6 +1302,36 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
         else
         {
             error(line, "redeclaration of gl_ClipDistance with size > gl_MaxClipDistances",
+                  identifier);
+            return false;
+        }
+    }
+    else if (type->isArray() && identifier == "gl_CullDistance")
+    {
+        // gl_CullDistance can be redeclared with smaller size than gl_MaxCullDistances
+        const TVariable *maxCullDistances = static_cast<const TVariable *>(
+            symbolTable.findBuiltIn(ImmutableString("gl_MaxCullDistances"), mShaderVersion));
+        if (!maxCullDistances)
+        {
+            // Unsupported extension
+            needsReservedCheck = true;
+        }
+        else if (type->isArrayOfArrays())
+        {
+            error(line, "redeclaration of gl_CullDistance as an array of arrays", identifier);
+            return false;
+        }
+        else if (static_cast<int>(type->getOutermostArraySize()) <=
+                 maxCullDistances->getConstPointer()->getIConst())
+        {
+            if (const TSymbol *builtInSymbol = symbolTable.findBuiltIn(identifier, mShaderVersion))
+            {
+                needsReservedCheck = !checkCanUseExtension(line, builtInSymbol->extension());
+            }
+        }
+        else
+        {
+            error(line, "redeclaration of gl_CullDistance with size > gl_MaxCullDistances",
                   identifier);
             return false;
         }
@@ -1701,7 +1754,7 @@ void TParseContext::checkBindingIsValid(const TSourceLoc &identifierLocation, co
     }
 }
 
-void TParseContext::checkLayoutQualifierSupported(const TSourceLoc &location,
+bool TParseContext::checkLayoutQualifierSupported(const TSourceLoc &location,
                                                   const ImmutableString &layoutQualifierName,
                                                   int versionRequired)
 {
@@ -1709,7 +1762,9 @@ void TParseContext::checkLayoutQualifierSupported(const TSourceLoc &location,
     if (mShaderVersion < versionRequired)
     {
         error(location, "invalid layout qualifier: not supported", layoutQualifierName);
+        return false;
     }
+    return true;
 }
 
 bool TParseContext::checkWorkGroupSizeIsNotSpecified(const TSourceLoc &location,
@@ -2444,7 +2499,11 @@ void TParseContext::checkInputOutputTypeIsValidES3(const TQualifier qualifier,
     bool typeContainsIntegers =
         (type.getBasicType() == EbtInt || type.getBasicType() == EbtUInt ||
          type.isStructureContainingType(EbtInt) || type.isStructureContainingType(EbtUInt));
-    if (typeContainsIntegers && qualifier != EvqFlatIn && qualifier != EvqFlatOut)
+    bool extendedShaderTypes = mShaderVersion >= 320 ||
+                               isExtensionEnabled(TExtension::EXT_geometry_shader) ||
+                               isExtensionEnabled(TExtension::EXT_tessellation_shader);
+    if (typeContainsIntegers && qualifier != EvqFlatIn && qualifier != EvqFlatOut &&
+        (!extendedShaderTypes || mShaderType == GL_FRAGMENT_SHADER))
     {
         error(qualifierLocation, "must use 'flat' interpolation here",
               getQualifierString(qualifier));
@@ -2599,13 +2658,92 @@ void TParseContext::checkGeometryShaderInputAndSetArraySize(const TSourceLoc &lo
     }
 }
 
+void TParseContext::checkTessellationShaderUnsizedArraysAndSetSize(const TSourceLoc &location,
+                                                                   const ImmutableString &token,
+                                                                   TType *type)
+{
+    TQualifier qualifier = type->getQualifier();
+    if (!IsTessellationControlShaderOutput(mShaderType, qualifier) &&
+        !IsTessellationControlShaderInput(mShaderType, qualifier) &&
+        !IsTessellationEvaluationShaderInput(mShaderType, qualifier))
+    {
+        return;
+    }
+
+    // Such variables must be declared as arrays or inside output blocks declared as arrays.
+    if (!type->isArray())
+    {
+        error(location, "Tessellation interface variables must be declared as an array", token);
+        return;
+    }
+
+    // If a size is specified, it must match the maximum patch size.
+    unsigned int outermostSize = type->getOutermostArraySize();
+    if (outermostSize == 0u)
+    {
+        switch (qualifier)
+        {
+            case EvqTessControlIn:
+            case EvqTessEvaluationIn:
+            case EvqFlatIn:
+            case EvqCentroidIn:
+            case EvqSmoothIn:
+                // Declaring an array size is optional. If no size is specified, it will be taken
+                // from the implementation-dependent maximum patch size (gl_MaxPatchVertices).
+                ASSERT(mMaxPatchVertices > 0);
+                type->sizeOutermostUnsizedArray(mMaxPatchVertices);
+                break;
+            case EvqTessControlOut:
+            case EvqFlatOut:
+            case EvqCentroidOut:
+            case EvqSmoothOut:
+                // Declaring an array size is optional. If no size is specified, it will be taken
+                // from output patch size declared in the shader.
+                type->sizeOutermostUnsizedArray(mTessControlShaderOutputVertices);
+                break;
+            default:
+                UNREACHABLE();
+                break;
+        }
+    }
+    else
+    {
+        if (IsTessellationControlShaderInput(mShaderType, qualifier) ||
+            IsTessellationEvaluationShaderInput(mShaderType, qualifier))
+        {
+            if (outermostSize != static_cast<unsigned int>(mMaxPatchVertices))
+            {
+                error(
+                    location,
+                    "If a size is specified for a tessellation control or evaluation user-defined "
+                    "input variable, it must match the maximum patch size (gl_MaxPatchVertices).",
+                    token);
+            }
+        }
+        else if (IsTessellationControlShaderOutput(mShaderType, qualifier))
+        {
+            if (outermostSize != static_cast<unsigned int>(mTessControlShaderOutputVertices) &&
+                mTessControlShaderOutputVertices != 0)
+            {
+                error(location,
+                      "If a size is specified for a tessellation control user-defined per-vertex "
+                      "output variable, it must match the the number of vertices in the output "
+                      "patch.",
+                      token);
+            }
+        }
+
+        return;
+    }
+}
+
 TIntermDeclaration *TParseContext::parseSingleDeclaration(
     TPublicType &publicType,
     const TSourceLoc &identifierOrTypeLocation,
     const ImmutableString &identifier)
 {
     TType *type = new TType(publicType);
-    if ((mCompileOptions & SH_FLATTEN_PRAGMA_STDGL_INVARIANT_ALL) &&
+    if ((mCompileOptions & SH_FLATTEN_PRAGMA_STDGL_INVARIANT_ALL) != 0 &&
         mDirectiveHandler.pragma().stdgl.invariantAll)
     {
         TQualifier qualifier = type->getQualifier();
@@ -2629,6 +2767,7 @@ TIntermDeclaration *TParseContext::parseSingleDeclaration(
     }
 
     checkGeometryShaderInputAndSetArraySize(identifierOrTypeLocation, identifier, type);
+    checkTessellationShaderUnsizedArraysAndSetSize(identifierOrTypeLocation, identifier, type);
 
     declarationQualifierErrorCheck(publicType.qualifier, publicType.layoutQualifier,
                                    identifierOrTypeLocation);
@@ -2705,6 +2844,7 @@ TIntermDeclaration *TParseContext::parseSingleArrayDeclaration(
     checkArrayOfArraysInOut(indexLocation, elementType, *arrayType);
 
     checkGeometryShaderInputAndSetArraySize(indexLocation, identifier, arrayType);
+    checkTessellationShaderUnsizedArraysAndSetSize(indexLocation, identifier, arrayType);
 
     checkCanBeDeclaredWithoutInitializer(identifierLocation, identifier, arrayType);
 
@@ -2869,6 +3009,7 @@ void TParseContext::parseDeclarator(TPublicType &publicType,
     TType *type = new TType(publicType);
 
     checkGeometryShaderInputAndSetArraySize(identifierLocation, identifier, type);
+    checkTessellationShaderUnsizedArraysAndSetSize(identifierLocation, identifier, type);
 
     checkCanBeDeclaredWithoutInitializer(identifierLocation, identifier, type);
 
@@ -2911,6 +3052,7 @@ void TParseContext::parseArrayDeclarator(TPublicType &elementType,
         arrayType->makeArrays(arraySizes);
 
         checkGeometryShaderInputAndSetArraySize(identifierLocation, identifier, arrayType);
+        checkTessellationShaderUnsizedArraysAndSetSize(identifierLocation, identifier, arrayType);
 
         checkCanBeDeclaredWithoutInitializer(identifierLocation, identifier, arrayType);
 
@@ -3071,6 +3213,7 @@ void TParseContext::setGeometryShaderInputArraySize(unsigned int inputArraySize,
               "array inputs.",
               "layout");
     }
+    mGeometryInputArraySize = inputArraySize;
 }
 
 bool TParseContext::parseGeometryShaderInputLayoutQualifier(const TTypeQualifier &typeQualifier)
@@ -3174,6 +3317,89 @@ bool TParseContext::parseGeometryShaderOutputLayoutQualifier(const TTypeQualifie
             error(typeQualifier.line, "max_vertices contradicts to the earlier declaration",
                   "layout");
             return false;
+        }
+    }
+
+    return true;
+}
+
+bool TParseContext::parseTessControlShaderOutputLayoutQualifier(const TTypeQualifier &typeQualifier)
+{
+    ASSERT(typeQualifier.qualifier == EvqTessControlOut);
+
+    const TLayoutQualifier &layoutQualifier = typeQualifier.layoutQualifier;
+
+    if (layoutQualifier.vertices == 0)
+    {
+        error(typeQualifier.line, "No vertices specified", "layout");
+        return false;
+    }
+
+    // Set mTessControlShaderOutputVertices if exists
+    if (mTessControlShaderOutputVertices == 0)
+    {
+        mTessControlShaderOutputVertices = layoutQualifier.vertices;
+    }
+    else
+    {
+        error(typeQualifier.line, "Duplicated vertices specified", "layout");
+    }
+    return true;
+}
+
+bool TParseContext::parseTessEvaluationShaderInputLayoutQualifier(
+    const TTypeQualifier &typeQualifier)
+{
+    ASSERT(typeQualifier.qualifier == EvqTessEvaluationIn);
+
+    const TLayoutQualifier &layoutQualifier = typeQualifier.layoutQualifier;
+
+    // Set mTessEvaluationShaderInputPrimitiveType if exists
+    if (layoutQualifier.tesPrimitiveType != EtetUndefined)
+    {
+        if (mTessEvaluationShaderInputPrimitiveType == EtetUndefined)
+        {
+            mTessEvaluationShaderInputPrimitiveType = layoutQualifier.tesPrimitiveType;
+        }
+        else
+        {
+            error(typeQualifier.line, "Duplicated primitive type declaration", "layout");
+        }
+    }
+    // Set mTessEvaluationShaderVertexSpacingType if exists
+    if (layoutQualifier.tesVertexSpacingType != EtetUndefined)
+    {
+        if (mTessEvaluationShaderInputVertexSpacingType == EtetUndefined)
+        {
+            mTessEvaluationShaderInputVertexSpacingType = layoutQualifier.tesVertexSpacingType;
+        }
+        else
+        {
+            error(typeQualifier.line, "Duplicated vertex spacing declaration", "layout");
+        }
+    }
+    // Set mTessEvaluationShaderInputOrderingType if exists
+    if (layoutQualifier.tesOrderingType != EtetUndefined)
+    {
+        if (mTessEvaluationShaderInputOrderingType == EtetUndefined)
+        {
+            mTessEvaluationShaderInputOrderingType = layoutQualifier.tesOrderingType;
+        }
+        else
+        {
+            error(typeQualifier.line, "Duplicated ordering declaration", "layout");
+        }
+    }
+    // Set mTessEvaluationShaderInputPointType if exists
+    if (layoutQualifier.tesPointType != EtetUndefined)
+    {
+        if (mTessEvaluationShaderInputPointType == EtetUndefined)
+        {
+            mTessEvaluationShaderInputPointType = layoutQualifier.tesPointType;
+        }
+        else
+        {
+            error(typeQualifier.line, "Duplicated point type declaration", "layout");
         }
     }
 
@@ -3330,7 +3556,8 @@ void TParseContext::parseGlobalLayoutQualifier(const TTypeQualifierBuilder &type
         if (mShaderVersion < 310)
         {
             error(typeQualifier.line,
-                  "in type qualifier without variable declaration supported in GLSL ES 3.10 only",
+                  "in type qualifier without variable declaration supported in GLSL ES 3.10 and "
+                  "after",
                   "layout");
             return;
         }
@@ -3345,6 +3572,34 @@ void TParseContext::parseGlobalLayoutQualifier(const TTypeQualifierBuilder &type
         }
 
         mEarlyFragmentTestsSpecified = true;
+    }
+    else if (typeQualifier.qualifier == EvqTessControlOut)
+    {
+        if (mShaderVersion < 310)
+        {
+            error(typeQualifier.line, "out type qualifier supported in GLSL ES 3.10 and after",
+                  "layout");
+            return;
+        }
+
+        if (!parseTessControlShaderOutputLayoutQualifier(typeQualifier))
+        {
+            return;
+        }
+    }
+    else if (typeQualifier.qualifier == EvqTessEvaluationIn)
+    {
+        if (mShaderVersion < 310)
+        {
+            error(typeQualifier.line, "in type qualifier supported in GLSL ES 3.10 and after",
+                  "layout");
+            return;
+        }
+
+        if (!parseTessEvaluationShaderInputLayoutQualifier(typeQualifier))
+        {
+            return;
+        }
     }
     else
     {
@@ -3362,7 +3617,7 @@ void TParseContext::parseGlobalLayoutQualifier(const TTypeQualifierBuilder &type
 
         if (mShaderVersion < 300)
         {
-            error(typeQualifier.line, "layout qualifiers supported in GLSL ES 3.00 and above",
+            error(typeQualifier.line, "layout qualifiers supported in GLSL ES 3.00 and after",
                   "layout");
             return;
         }
@@ -3830,8 +4085,6 @@ TIntermTyped *TParseContext::addConstructor(TFunctionLookup *fnCall, const TSour
 
 //
 // Interface/uniform blocks
-// TODO(jiawei.shao@intel.com): implement GL_EXT_shader_io_blocks.
-//
 TIntermDeclaration *TParseContext::addInterfaceBlock(
     const TTypeQualifierBuilder &typeQualifierBuilder,
     const TSourceLoc &nameLine,
@@ -3839,12 +4092,16 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
     TFieldList *fieldList,
     const ImmutableString &instanceName,
     const TSourceLoc &instanceLine,
-    TIntermTyped *arrayIndex,
-    const TSourceLoc &arrayIndexLine)
+    const TVector<unsigned int> *arraySizes,
+    const TSourceLoc &arraySizesLine)
 {
     checkIsNotReserved(nameLine, blockName);
 
     TTypeQualifier typeQualifier = typeQualifierBuilder.getVariableTypeQualifier(mDiagnostics);
+
+    const bool isUniformOrBuffer =
+        typeQualifier.qualifier == EvqUniform || typeQualifier.qualifier == EvqBuffer;
+    const bool isShaderIoBlock = IsShaderIoBlock(typeQualifier.qualifier);
 
     if (mShaderVersion < 310 && typeQualifier.qualifier != EvqUniform)
     {
@@ -3853,10 +4110,49 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
               "3.10",
               getQualifierString(typeQualifier.qualifier));
     }
+    else if (typeQualifier.qualifier == EvqPatchOut)
+    {
+        if ((!isExtensionEnabled(TExtension::EXT_tessellation_shader) && mShaderVersion < 320) ||
+            mShaderType != GL_TESS_CONTROL_SHADER)
+        {
+            error(typeQualifier.line,
+                  "invalid qualifier: 'patch out' requires a tessellation control shader",
+                  getQualifierString(typeQualifier.qualifier));
+        }
+    }
+    else if (typeQualifier.qualifier == EvqPatchIn)
+    {
+        if ((!isExtensionEnabled(TExtension::EXT_tessellation_shader) && mShaderVersion < 320) ||
+            mShaderType != GL_TESS_EVALUATION_SHADER)
+        {
+            error(typeQualifier.line,
+                  "invalid qualifier: 'patch in' requires a tessellation evaluation shader",
+                  getQualifierString(typeQualifier.qualifier));
+        }
+    }
     else if (typeQualifier.qualifier != EvqUniform && typeQualifier.qualifier != EvqBuffer)
     {
-        error(typeQualifier.line, "invalid qualifier: interface blocks must be uniform or buffer",
-              getQualifierString(typeQualifier.qualifier));
+        if (isShaderIoBlock)
+        {
+            if (!isExtensionEnabled(TExtension::OES_shader_io_blocks) &&
+                !isExtensionEnabled(TExtension::EXT_shader_io_blocks) && mShaderVersion < 320)
+            {
+                error(typeQualifier.line,
+                      "invalid qualifier: shader IO blocks need shader io block extension",
+                      getQualifierString(typeQualifier.qualifier));
+            }
+
+            if (mShaderType == GL_TESS_CONTROL_SHADER && arraySizes == nullptr)
+            {
+                error(typeQualifier.line, "type must be an array", blockName);
+            }
+        }
+        else
+        {
+            error(typeQualifier.line,
+                  "invalid qualifier: interface blocks must be uniform or buffer",
+                  getQualifierString(typeQualifier.qualifier));
+        }
     }
 
     if (typeQualifier.invariant)
@@ -3869,11 +4165,52 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
         checkMemoryQualifierIsNotSpecified(typeQualifier.memoryQualifier, typeQualifier.line);
     }
 
-    // add array index
-    unsigned int arraySize = 0;
-    if (arrayIndex != nullptr)
+    // Verify array sizes
+    if (arraySizes)
     {
-        arraySize = checkIsValidArraySize(arrayIndexLine, arrayIndex);
+        if (isUniformOrBuffer)
+        {
+            if (arraySizes->size() == 0)
+            {
+                error(arraySizesLine, "unsized arrays are not allowed with interface blocks", "");
+            }
+            if (arraySizes->size() > 1)
+            {
+                error(arraySizesLine, "array of arrays are not allowed with interface blocks", "");
+            }
+        }
+        else if (isShaderIoBlock)
+        {
+            size_t arrayDimensions = arraySizes->size();
+
+            // Geometry shader inputs have a level arrayness that must be ignored.
+            if (mShaderType == GL_GEOMETRY_SHADER_EXT && IsVaryingIn(typeQualifier.qualifier))
+            {
+                ASSERT(arrayDimensions > 0);
+                --arrayDimensions;
+
+                // Validate that the array size of input matches the geometry layout
+                // declaration, if not automatic (specified as []).
+                const unsigned int geometryDim = arraySizes->back();
+                if (geometryDim > 0 && geometryDim != mGeometryInputArraySize)
+                {
+                    error(arraySizesLine,
+                          "geometry shader input block array size inconsistent "
+                          "with primitive",
+                          "");
+                }
+            }
+
+            if (arrayDimensions > 1)
+            {
+                error(arraySizesLine, "array of arrays are not allowed with I/O blocks", "");
+            }
+        }
+    }
+    else if (isShaderIoBlock && mShaderType == GL_GEOMETRY_SHADER_EXT &&
+             IsVaryingIn(typeQualifier.qualifier))
+    {
+        error(arraySizesLine, "geometry shader input blocks must be an array", "");
     }
 
     checkIndexIsNotSpecified(typeQualifier.line, typeQualifier.layoutQualifier.index);
@@ -3884,6 +4221,8 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
     }
     else
     {
+        unsigned int arraySize =
+            arraySizes == nullptr || arraySizes->empty() ? 0 : (*arraySizes)[0];
         checkBlockBindingIsValid(typeQualifier.line, typeQualifier.qualifier,
                                  typeQualifier.layoutQualifier.binding, arraySize);
     }
@@ -3893,7 +4232,11 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
                                           typeQualifier.layoutQualifier.earlyFragmentTests);
 
     TLayoutQualifier blockLayoutQualifier = typeQualifier.layoutQualifier;
-    checkLocationIsNotSpecified(typeQualifier.line, blockLayoutQualifier);
+    if (!IsShaderIoBlock(typeQualifier.qualifier) && typeQualifier.qualifier != EvqPatchIn &&
+        typeQualifier.qualifier != EvqPatchOut)
+    {
+        checkLocationIsNotSpecified(typeQualifier.line, blockLayoutQualifier);
+    }
     checkStd430IsForShaderStorageBlock(typeQualifier.line, blockLayoutQualifier.blockStorage,
                                        typeQualifier.qualifier);
 
@@ -3957,6 +4300,29 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
                           getQualifierString(qualifier));
                 }
                 break;
+            // a member variable in io block may have different interpolation.
+            case EvqFlatIn:
+            case EvqFlatOut:
+            case EvqNoPerspectiveIn:
+            case EvqNoPerspectiveOut:
+            case EvqSmoothIn:
+            case EvqSmoothOut:
+            case EvqCentroidIn:
+            case EvqCentroidOut:
+                break;
+            // a member variable can have an incomplete qualifier because shader io block has either
+            // in or out.
+            case EvqSmooth:
+            case EvqFlat:
+            case EvqNoPerspective:
+            case EvqCentroid:
+                if (!IsShaderIoBlock(typeQualifier.qualifier) &&
+                    typeQualifier.qualifier != EvqPatchIn && typeQualifier.qualifier != EvqPatchOut)
+                {
+                    error(field->line(), "invalid qualifier on interface block member",
+                          getQualifierString(qualifier));
+                }
+                break;
             default:
                 error(field->line(), "invalid qualifier on interface block member",
                       getQualifierString(qualifier));
@@ -3970,7 +4336,6 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
 
         // check layout qualifiers
         TLayoutQualifier fieldLayoutQualifier = fieldType->getLayoutQualifier();
-        checkLocationIsNotSpecified(field->line(), fieldLayoutQualifier);
         checkIndexIsNotSpecified(field->line(), fieldLayoutQualifier.index);
         checkBindingIsNotSpecified(field->line(), fieldLayoutQualifier.binding);
 
@@ -4030,9 +4395,9 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
 
     TType *interfaceBlockType =
         new TType(interfaceBlock, typeQualifier.qualifier, blockLayoutQualifier);
-    if (arrayIndex != nullptr)
+    if (arraySizes)
     {
-        interfaceBlockType->makeArray(arraySize);
+        interfaceBlockType->makeArrays(*arraySizes);
     }
 
     // The instance variable gets created to refer to the interface block type from the AST
@@ -4161,10 +4526,24 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
 
     if (baseExpression->getQualifier() == EvqPerVertexIn)
     {
-        ASSERT(mShaderType == GL_GEOMETRY_SHADER_EXT);
-        if (mGeometryShaderInputPrimitiveType == EptUndefined)
+        if (mGeometryShaderInputPrimitiveType == EptUndefined &&
+            mShaderType == GL_GEOMETRY_SHADER_EXT)
         {
             error(location, "missing input primitive declaration before indexing gl_in.", "[");
+            return CreateZeroNode(TType(EbtFloat, EbpHigh, EvqConst));
+        }
+    }
+
+    if (mShaderType == GL_TESS_CONTROL_SHADER &&
+        IsTessellationControlShaderOutput(mShaderType, baseExpression->getQualifier()))
+    {
+        const TIntermSymbol *intermSymbol = indexExpression->getAsSymbolNode();
+        if (!intermSymbol || intermSymbol->getName() != "gl_InvocationID")
+        {
+            error(location,
+                  "tessellation-control per-vertex output l-value must be indexed with "
+                  "gl_InvocationID",
+                  "[");
             return CreateZeroNode(TType(EbtFloat, EbpHigh, EvqConst));
         }
     }
@@ -4184,7 +4563,6 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
     {
         if (baseExpression->isInterfaceBlock())
         {
-            // TODO(jiawei.shao@intel.com): implement GL_EXT_shader_io_blocks.
             switch (baseExpression->getQualifier())
             {
                 case EvqPerVertexIn:
@@ -4205,8 +4583,14 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
                           "[");
                     break;
                 default:
-                    // We can reach here only in error cases.
-                    ASSERT(mDiagnostics->numErrors() > 0);
+                    // It's ok for shader I/O blocks to be dynamically indexed
+                    if (!IsShaderIoBlock(baseExpression->getQualifier()) &&
+                        baseExpression->getQualifier() != EvqPatchIn &&
+                        baseExpression->getQualifier() != EvqPatchOut)
+                    {
+                        // We can reach here only in error cases.
+                        ASSERT(mDiagnostics->numErrors() > 0);
+                    }
                     break;
             }
         }
@@ -4596,49 +4980,90 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
         checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
         qualifier.imageInternalFormat = EiifR32UI;
     }
-    else if (qualifierType == "points" && mShaderType == GL_GEOMETRY_SHADER_EXT &&
-             checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader))
+    else if (mShaderType == GL_GEOMETRY_SHADER_EXT &&
+             (mShaderVersion >= 320 ||
+              (checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader) &&
+               checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310))))
     {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
-        qualifier.primitiveType = EptPoints;
+        if (qualifierType == "points")
+        {
+            qualifier.primitiveType = EptPoints;
+        }
+        else if (qualifierType == "lines")
+        {
+            qualifier.primitiveType = EptLines;
+        }
+        else if (qualifierType == "lines_adjacency")
+        {
+            qualifier.primitiveType = EptLinesAdjacency;
+        }
+        else if (qualifierType == "triangles")
+        {
+            qualifier.primitiveType = EptTriangles;
+        }
+        else if (qualifierType == "triangles_adjacency")
+        {
+            qualifier.primitiveType = EptTrianglesAdjacency;
+        }
+        else if (qualifierType == "line_strip")
+        {
+            qualifier.primitiveType = EptLineStrip;
+        }
+        else if (qualifierType == "triangle_strip")
+        {
+            qualifier.primitiveType = EptTriangleStrip;
+        }
+        else
+        {
+            error(qualifierTypeLine, "invalid layout qualifier", qualifierType);
+        }
     }
-    else if (qualifierType == "lines" && mShaderType == GL_GEOMETRY_SHADER_EXT &&
-             checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader))
+    else if (mShaderType == GL_TESS_EVALUATION_SHADER_EXT &&
+             (mShaderVersion >= 320 ||
+              (checkCanUseExtension(qualifierTypeLine, TExtension::EXT_tessellation_shader) &&
+               checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310))))
     {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
-        qualifier.primitiveType = EptLines;
+        if (qualifierType == "triangles")
+        {
+            qualifier.tesPrimitiveType = EtetTriangles;
+        }
+        else if (qualifierType == "quads")
+        {
+            qualifier.tesPrimitiveType = EtetQuads;
+        }
+        else if (qualifierType == "isolines")
+        {
+            qualifier.tesPrimitiveType = EtetIsolines;
+        }
+        else if (qualifierType == "equal_spacing")
+        {
+            qualifier.tesVertexSpacingType = EtetEqualSpacing;
+        }
+        else if (qualifierType == "fractional_even_spacing")
+        {
+            qualifier.tesVertexSpacingType = EtetFractionalEvenSpacing;
+        }
+        else if (qualifierType == "fractional_odd_spacing")
+        {
+            qualifier.tesVertexSpacingType = EtetFractionalOddSpacing;
+        }
+        else if (qualifierType == "cw")
+        {
+            qualifier.tesOrderingType = EtetCw;
+        }
+        else if (qualifierType == "ccw")
+        {
+            qualifier.tesOrderingType = EtetCcw;
+        }
+        else if (qualifierType == "point_mode")
+        {
+            qualifier.tesPointType = EtetPointMode;
+        }
+        else
+        {
+            error(qualifierTypeLine, "invalid layout qualifier", qualifierType);
+        }
     }
-    else if (qualifierType == "lines_adjacency" && mShaderType == GL_GEOMETRY_SHADER_EXT &&
-             checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader))
-    {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
-        qualifier.primitiveType = EptLinesAdjacency;
-    }
-    else if (qualifierType == "triangles" && mShaderType == GL_GEOMETRY_SHADER_EXT &&
-             checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader))
-    {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
-        qualifier.primitiveType = EptTriangles;
-    }
-    else if (qualifierType == "triangles_adjacency" && mShaderType == GL_GEOMETRY_SHADER_EXT &&
-             checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader))
-    {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
-        qualifier.primitiveType = EptTrianglesAdjacency;
-    }
-    else if (qualifierType == "line_strip" && mShaderType == GL_GEOMETRY_SHADER_EXT &&
-             checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader))
-    {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
-        qualifier.primitiveType = EptLineStrip;
-    }
-    else if (qualifierType == "triangle_strip" && mShaderType == GL_GEOMETRY_SHADER_EXT &&
-             checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader))
-    {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
-        qualifier.primitiveType = EptTriangleStrip;
-    }
-
     else
     {
         error(qualifierTypeLine, "invalid layout qualifier", qualifierType);
@@ -4717,6 +5142,23 @@ void TParseContext::parseMaxVertices(int intValue,
     else
     {
         *maxVertices = intValue;
+    }
+}
+
+void TParseContext::parseVertices(int intValue,
+                                  const TSourceLoc &intValueLine,
+                                  const std::string &intValueString,
+                                  int *vertices)
+{
+    if (intValue < 1 || intValue > mMaxPatchVertices)
+    {
+        error(intValueLine,
+              "out of range : vertices must be in the range of [1, gl_MaxPatchVertices]",
+              intValueString.c_str());
+    }
+    else
+    {
+        *vertices = intValue;
     }
 }
 
@@ -4814,12 +5256,14 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
         }
     }
     else if (qualifierType == "invocations" && mShaderType == GL_GEOMETRY_SHADER_EXT &&
-             checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader))
+             (mShaderVersion >= 320 ||
+              checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader)))
     {
         parseInvocations(intValue, intValueLine, intValueString, &qualifier.invocations);
     }
     else if (qualifierType == "max_vertices" && mShaderType == GL_GEOMETRY_SHADER_EXT &&
-             checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader))
+             (mShaderVersion >= 320 ||
+              checkCanUseExtension(qualifierTypeLine, TExtension::EXT_geometry_shader)))
     {
         parseMaxVertices(intValue, intValueLine, intValueString, &qualifier.maxVertices);
     }
@@ -4827,6 +5271,12 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
              checkCanUseExtension(qualifierTypeLine, TExtension::EXT_blend_func_extended))
     {
         parseIndexLayoutQualifier(intValue, intValueLine, intValueString, &qualifier.index);
+    }
+    else if (qualifierType == "vertices" && mShaderType == GL_TESS_CONTROL_SHADER_EXT &&
+             (mShaderVersion >= 320 ||
+              checkCanUseExtension(qualifierTypeLine, TExtension::EXT_tessellation_shader)))
+    {
+        parseVertices(intValue, intValueLine, intValueString, &qualifier.vertices);
     }
     else
     {
@@ -4889,9 +5339,17 @@ TStorageQualifierWrapper *TParseContext::parseInQualifier(const TSourceLoc &loc)
         {
             return new TStorageQualifierWrapper(EvqComputeIn, loc);
         }
-        case GL_GEOMETRY_SHADER_EXT:
+        case GL_GEOMETRY_SHADER:
         {
             return new TStorageQualifierWrapper(EvqGeometryIn, loc);
+        }
+        case GL_TESS_CONTROL_SHADER:
+        {
+            return new TStorageQualifierWrapper(EvqTessControlIn, loc);
+        }
+        case GL_TESS_EVALUATION_SHADER:
+        {
+            return new TStorageQualifierWrapper(EvqTessEvaluationIn, loc);
         }
         default:
         {
@@ -4933,6 +5391,14 @@ TStorageQualifierWrapper *TParseContext::parseOutQualifier(const TSourceLoc &loc
         case GL_GEOMETRY_SHADER_EXT:
         {
             return new TStorageQualifierWrapper(EvqGeometryOut, loc);
+        }
+        case GL_TESS_CONTROL_SHADER_EXT:
+        {
+            return new TStorageQualifierWrapper(EvqTessControlOut, loc);
+        }
+        case GL_TESS_EVALUATION_SHADER_EXT:
+        {
+            return new TStorageQualifierWrapper(EvqTessEvaluationOut, loc);
         }
         default:
         {

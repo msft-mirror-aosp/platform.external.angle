@@ -81,6 +81,14 @@ void InitExtensionBehavior(const ShBuiltInResources &resources, TExtensionBehavi
     {
         extBehavior[TExtension::EXT_geometry_shader] = EBhUndefined;
     }
+    if (resources.OES_shader_io_blocks)
+    {
+        extBehavior[TExtension::OES_shader_io_blocks] = EBhUndefined;
+    }
+    if (resources.EXT_shader_io_blocks)
+    {
+        extBehavior[TExtension::EXT_shader_io_blocks] = EBhUndefined;
+    }
     if (resources.EXT_gpu_shader5)
     {
         extBehavior[TExtension::EXT_gpu_shader5] = EBhUndefined;
@@ -153,6 +161,10 @@ void InitExtensionBehavior(const ShBuiltInResources &resources, TExtensionBehavi
     {
         extBehavior[TExtension::OES_sample_variables] = EBhUndefined;
     }
+    if (resources.EXT_clip_cull_distance)
+    {
+        extBehavior[TExtension::EXT_clip_cull_distance] = EBhUndefined;
+    }
 }
 
 void ResetExtensionBehavior(const ShBuiltInResources &resources,
@@ -165,7 +177,7 @@ void ResetExtensionBehavior(const ShBuiltInResources &resources,
     }
     if (resources.ARB_texture_rectangle)
     {
-        if (compileOptions & SH_DISABLE_ARB_TEXTURE_RECTANGLE)
+        if ((compileOptions & SH_DISABLE_ARB_TEXTURE_RECTANGLE) != 0)
         {
             // Remove ARB_texture_rectangle so it can't be enabled by extension directives.
             extBehavior.erase(TExtension::ARB_texture_rectangle);

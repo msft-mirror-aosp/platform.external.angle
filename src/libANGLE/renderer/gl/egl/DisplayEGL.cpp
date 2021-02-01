@@ -113,6 +113,7 @@ DisplayEGL::DisplayEGL(const egl::DisplayState &state)
       mRenderer(nullptr),
       mEGL(nullptr),
       mConfig(EGL_NO_CONFIG_KHR),
+      mCurrentNativeContexts(),
       mHasEXTCreateContextRobustness(false),
       mHasNVRobustnessVideoMemoryPurge(false)
 {}
@@ -279,7 +280,7 @@ egl::Error DisplayEGL::initialize(egl::Display *display)
     functionsGL->initialize(mDisplayAttributes);
 
     mRenderer.reset(
-        new RendererEGL(std::move(functionsGL), mDisplayAttributes, this, context, attribs));
+        new RendererEGL(std::move(functionsGL), mDisplayAttributes, this, context, attribs, false));
     const gl::Version &maxVersion = mRenderer->getMaxSupportedESVersion();
     if (maxVersion < gl::Version(2, 0))
     {
@@ -566,12 +567,6 @@ bool DisplayEGL::isValidNativeWindow(EGLNativeWindowType window) const
     return true;
 }
 
-DeviceImpl *DisplayEGL::createDevice()
-{
-    UNIMPLEMENTED();
-    return nullptr;
-}
-
 egl::Error DisplayEGL::waitClient(const gl::Context *context)
 {
     UNIMPLEMENTED();
@@ -756,7 +751,7 @@ egl::Error DisplayEGL::createRenderer(EGLContext shareContext,
     functionsGL->initialize(mDisplayAttributes);
 
     outRenderer->reset(
-        new RendererEGL(std::move(functionsGL), mDisplayAttributes, this, context, attribs));
+        new RendererEGL(std::move(functionsGL), mDisplayAttributes, this, context, attribs, false));
 
     return egl::NoError();
 }

@@ -32,7 +32,7 @@ class ShaderInfo final : angle::NonCopyable
     angle::Result initShaders(ContextVk *contextVk,
                               const gl::ShaderBitSet &linkedShaderStages,
                               const gl::ShaderMap<std::string> &shaderSources,
-                              ProgramExecutableVk *executableVk);
+                              const ShaderInterfaceVariableInfoMap &variableInfoMap);
     void release(ContextVk *contextVk);
 
     ANGLE_INLINE bool valid() const { return mIsInitialized; }
@@ -67,9 +67,10 @@ class ProgramInfo final : angle::NonCopyable
 
     angle::Result initProgram(ContextVk *contextVk,
                               const gl::ShaderType shaderType,
+                              bool isLastPreFragmentStage,
                               const ShaderInfo &shaderInfo,
                               ProgramTransformOptions optionBits,
-                              ProgramExecutableVk *executableVk);
+                              const ShaderInterfaceVariableInfoMap &variableInfoMap);
     void release(ContextVk *contextVk);
 
     ANGLE_INLINE bool valid(const gl::ShaderType shaderType) const
@@ -110,10 +111,6 @@ class ProgramExecutableVk
     std::unique_ptr<rx::LinkEvent> load(gl::BinaryInputStream *stream);
 
     void clearVariableInfoMap();
-    ShaderMapInterfaceVariableInfoMap &getShaderInterfaceVariableInfoMap()
-    {
-        return mVariableInfoMap;
-    }
 
     ProgramVk *getShaderProgram(const gl::State &glState, gl::ShaderType shaderType) const;
 
@@ -181,8 +178,6 @@ class ProgramExecutableVk
 
     const PerfCounters getObjectPerfCounters() const { return mObjectPerfCounters; }
 
-    SpecConstUsageBits getSpecConstUsageBits() const;
-
   private:
     friend class ProgramVk;
     friend class ProgramPipelineVk;
@@ -205,10 +200,8 @@ class ProgramExecutableVk
         const gl::ShaderType shaderType,
         vk::DescriptorSetLayoutDesc *descOut);
     void addImageDescriptorSetDesc(const gl::ProgramExecutable &executable,
-                                   bool useOldRewriteStructSamplers,
                                    vk::DescriptorSetLayoutDesc *descOut);
     void addTextureDescriptorSetDesc(const gl::ProgramState &programState,
-                                     bool useOldRewriteStructSamplers,
                                      const gl::ActiveTextureArray<vk::TextureUnit> *activeTextures,
                                      vk::DescriptorSetLayoutDesc *descOut);
 
@@ -231,9 +224,9 @@ class ProgramExecutableVk
         ContextVk *contextVk,
         vk::ResourceUseList *resourceUseList,
         vk::CommandBufferHelper *commandBufferHelper);
-    angle::Result updateImagesDescriptorSet(const gl::ProgramExecutable &executable,
-                                            const gl::ShaderType shaderType,
-                                            ContextVk *contextVk);
+    angle::Result updateImagesDescriptorSet(ContextVk *contextVk,
+                                            const gl::ProgramExecutable &executable,
+                                            const gl::ShaderType shaderType);
     angle::Result initDynamicDescriptorPools(ContextVk *contextVk,
                                              vk::DescriptorSetLayoutDesc &descriptorSetLayoutDesc,
                                              DescriptorSetIndex descriptorSetIndex,
@@ -247,8 +240,10 @@ class ProgramExecutableVk
     size_t mNumDefaultUniformDescriptors;
     vk::BufferSerial mCurrentDefaultUniformBufferSerial;
 
-    angle::HashMap<vk::UniformsAndXfbDesc, VkDescriptorSet> mUniformsAndXfbDescriptorSetCache;
-    angle::HashMap<vk::TextureDescriptorDesc, VkDescriptorSet> mTextureDescriptorsCache;
+    DescriptorSetCache<vk::UniformsAndXfbDesc, VulkanCacheType::UniformsAndXfbDescriptorSet>
+        mUniformsAndXfbDescriptorSetCache;
+    DescriptorSetCache<vk::TextureDescriptorDesc, VulkanCacheType::TextureDescriptors>
+        mTextureDescriptorsCache;
 
     // We keep a reference to the pipeline and descriptor set layouts. This ensures they don't get
     // deleted while this program is in use.
@@ -268,7 +263,7 @@ class ProgramExecutableVk
 
     // TODO: http://anglebug.com/4524: Need a different hash key than a string,
     // since that's slow to calculate.
-    ShaderMapInterfaceVariableInfoMap mVariableInfoMap;
+    ShaderInterfaceVariableInfoMap mVariableInfoMap;
 
     // We store all permutations of surface rotation and transformed SPIR-V programs here. We may
     // need some LRU algorithm to free least used programs to reduce the number of programs.

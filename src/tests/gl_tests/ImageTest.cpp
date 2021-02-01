@@ -2027,21 +2027,19 @@ TEST_P(ImageTestES3, SourceAHBTargetExternalESSL3)
     SourceAHBTargetExternalESSL3_helper(kDefaultAttribs);
 }
 
-// Test sampling from a YUV AHB with a regular external sampler
-TEST_P(ImageTest, SourceYUVAHBTargetExternalRGBSample)
+// Test sampling from a YUV AHB with a regular external sampler and pre-initialized data
+TEST_P(ImageTest, SourceYUVAHBTargetExternalRGBSampleInitData)
 {
 #ifndef ANGLE_AHARDWARE_BUFFER_LOCK_PLANES_SUPPORT
     std::cout << "Test skipped: !ANGLE_AHARDWARE_BUFFER_LOCK_PLANES_SUPPORT." << std::endl;
     return;
 #else
-    // Multiple issues sampling AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420 in the Vulkan backend:
-    // http://issuetracker.google.com/172649538
-    ANGLE_SKIP_TEST_IF(IsVulkan());
-
     EGLWindow *window = getEGLWindow();
 
     ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
     ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+    // http://issuetracker.google.com/175021871
+    ANGLE_SKIP_TEST_IF(IsPixel2() || IsPixel2XL());
 
     // 3 planes of data
     GLubyte dataY[4] = {7, 51, 197, 231};
@@ -2071,6 +2069,49 @@ TEST_P(ImageTest, SourceYUVAHBTargetExternalRGBSample)
     eglDestroyImageKHR(window->getDisplay(), image);
     destroyAndroidHardwareBuffer(source);
 #endif
+}
+
+// Test sampling from a YUV AHB with a regular external sampler without data. This gives coverage of
+// sampling even if we can't verify the results.
+TEST_P(ImageTest, SourceYUVAHBTargetExternalRGBSampleNoData)
+{
+    // Multiple issues sampling AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420 in the Vulkan backend:
+    // http://issuetracker.google.com/172649538
+    ANGLE_SKIP_TEST_IF(IsVulkan());
+
+    EGLWindow *window = getEGLWindow();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+
+    // Create the Image without data so we don't need ANGLE_AHARDWARE_BUFFER_LOCK_PLANES_SUPPORT
+    AHardwareBuffer *source;
+    EGLImageKHR image;
+    createEGLImageAndroidHardwareBufferSource(2, 2, 1, AHARDWAREBUFFER_FORMAT_Y8Cb8Cr8_420,
+                                              kDefaultAttribs, {}, &source, &image);
+
+    // Create a texture target to bind the egl image
+    GLuint target;
+    createEGLImageTargetTextureExternal(image, &target);
+
+    glUseProgram(mTextureExternalProgram);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, target);
+    glUniform1i(mTextureExternalUniformLocation, 0);
+
+    // Sample from the YUV texture with a nearest sampler
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    drawQuad(mTextureExternalProgram, "position", 0.5f);
+
+    // Sample from the YUV texture with a linear sampler
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    drawQuad(mTextureExternalProgram, "position", 0.5f);
+
+    // Clean up
+    glDeleteTextures(1, &target);
+    eglDestroyImageKHR(window->getDisplay(), image);
+    destroyAndroidHardwareBuffer(source);
 }
 
 // Test sampling from a YUV AHB using EXT_yuv_target
@@ -3789,6 +3830,41 @@ TEST_P(ImageTest, UpdatedExternalTexture)
     eglDestroyImageKHR(window->getDisplay(), image);
     destroyAndroidHardwareBuffer(source);
     glDeleteTextures(1, &targetTexture);
+}
+
+// Check that the texture successfully updates when an image is deleted
+TEST_P(ImageTest, DeletedImageWithSameSizeAndFormat)
+{
+    EGLWindow *window = getEGLWindow();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+
+    GLubyte originalData[4] = {255, 0, 255, 255};
+    GLubyte updateData[4]   = {0, 255, 0, 255};
+
+    // Create the Image
+    GLuint source;
+    EGLImageKHR image;
+    createEGLImage2DTextureSource(1, 1, GL_RGBA, GL_UNSIGNED_BYTE, kDefaultAttribs, originalData,
+                                  &source, &image);
+
+    // Create texture & bind to Image
+    GLuint texture;
+    createEGLImageTargetTexture2D(image, &texture);
+
+    // Delete Image
+    eglDestroyImageKHR(window->getDisplay(), image);
+
+    ASSERT_EGL_SUCCESS();
+
+    // Redefine Texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, updateData);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Clean up
+    glDeleteTextures(1, &source);
+    glDeleteTextures(1, &texture);
 }
 
 // Use this to select which configurations (e.g. which renderer, which GLES major version) these

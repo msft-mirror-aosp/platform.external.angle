@@ -8,8 +8,8 @@
 // capture_gles_ext_autogen.h:
 //   Capture functions for the OpenGL ES extension entry points.
 
-#ifndef LIBANGLE_CAPTURE_GLES_ext_AUTOGEN_H_
-#define LIBANGLE_CAPTURE_GLES_ext_AUTOGEN_H_
+#ifndef LIBANGLE_CAPTURE_GLES_EXT_AUTOGEN_H_
+#define LIBANGLE_CAPTURE_GLES_EXT_AUTOGEN_H_
 
 #include "common/PackedEnums.h"
 #include "libANGLE/FrameCapture.h"
@@ -550,14 +550,15 @@ angle::CallCapture CaptureGetUniformuivRobustANGLE(const State &glState,
                                                    GLsizei bufSize,
                                                    GLsizei *length,
                                                    GLuint *params);
-angle::CallCapture CaptureGetActiveUniformBlockivRobustANGLE(const State &glState,
-                                                             bool isCallValid,
-                                                             ShaderProgramID programPacked,
-                                                             GLuint uniformBlockIndex,
-                                                             GLenum pname,
-                                                             GLsizei bufSize,
-                                                             GLsizei *length,
-                                                             GLint *params);
+angle::CallCapture CaptureGetActiveUniformBlockivRobustANGLE(
+    const State &glState,
+    bool isCallValid,
+    ShaderProgramID programPacked,
+    UniformBlockIndex uniformBlockIndexPacked,
+    GLenum pname,
+    GLsizei bufSize,
+    GLsizei *length,
+    GLint *params);
 angle::CallCapture CaptureGetInteger64vRobustANGLE(const State &glState,
                                                    bool isCallValid,
                                                    GLenum pname,
@@ -902,6 +903,12 @@ angle::CallCapture CaptureBufferStorageEXT(const State &glState,
                                            const void *data,
                                            GLbitfield flags);
 
+// GL_EXT_clip_control
+angle::CallCapture CaptureClipControlEXT(const State &glState,
+                                         bool isCallValid,
+                                         GLenum origin,
+                                         GLenum depth);
+
 // GL_EXT_copy_image
 angle::CallCapture CaptureCopyImageSubDataEXT(const State &glState,
                                               bool isCallValid,
@@ -920,6 +927,21 @@ angle::CallCapture CaptureCopyImageSubDataEXT(const State &glState,
                                               GLsizei srcWidth,
                                               GLsizei srcHeight,
                                               GLsizei srcDepth);
+
+// GL_EXT_debug_label
+angle::CallCapture CaptureGetObjectLabelEXT(const State &glState,
+                                            bool isCallValid,
+                                            GLenum type,
+                                            GLuint object,
+                                            GLsizei bufSize,
+                                            GLsizei *length,
+                                            GLchar *label);
+angle::CallCapture CaptureLabelObjectEXT(const State &glState,
+                                         bool isCallValid,
+                                         GLenum type,
+                                         GLuint object,
+                                         GLsizei length,
+                                         const GLchar *label);
 
 // GL_EXT_debug_marker
 angle::CallCapture CaptureInsertEventMarkerEXT(const State &glState,
@@ -1581,6 +1603,11 @@ angle::CallCapture CaptureValidateProgramPipelineEXT(const State &glState,
                                                      bool isCallValid,
                                                      ProgramPipelineID pipelinePacked);
 
+// GL_EXT_shader_framebuffer_fetch_non_coherent
+angle::CallCapture CaptureFramebufferFetchBarrierEXT(const State &glState, bool isCallValid);
+
+// GL_EXT_shader_io_blocks
+
 // GL_EXT_tessellation_shader
 angle::CallCapture CapturePatchParameteriEXT(const State &glState,
                                              bool isCallValid,
@@ -1744,6 +1771,20 @@ angle::CallCapture CaptureTestFenceNV(const State &glState,
                                       bool isCallValid,
                                       FenceNVID fencePacked,
                                       GLboolean returnValue);
+
+// GL_NV_framebuffer_blit
+angle::CallCapture CaptureBlitFramebufferNV(const State &glState,
+                                            bool isCallValid,
+                                            GLint srcX0,
+                                            GLint srcY0,
+                                            GLint srcX1,
+                                            GLint srcY1,
+                                            GLint dstX0,
+                                            GLint dstY0,
+                                            GLint dstX1,
+                                            GLint dstY1,
+                                            GLbitfield mask,
+                                            GLenum filter);
 
 // GL_OES_EGL_image
 angle::CallCapture CaptureEGLImageTargetRenderbufferStorageOES(const State &glState,
@@ -2025,6 +2066,8 @@ angle::CallCapture CaptureQueryMatrixxOES(const State &glState,
 angle::CallCapture CaptureMinSampleShadingOES(const State &glState,
                                               bool isCallValid,
                                               GLfloat value);
+
+// GL_OES_shader_io_blocks
 
 // GL_OES_texture_3D
 angle::CallCapture CaptureCompressedTexImage3DOES(const State &glState,
@@ -3031,7 +3074,7 @@ void CaptureGetUniformuivRobustANGLE_params(const State &glState,
 void CaptureGetActiveUniformBlockivRobustANGLE_length(const State &glState,
                                                       bool isCallValid,
                                                       ShaderProgramID programPacked,
-                                                      GLuint uniformBlockIndex,
+                                                      UniformBlockIndex uniformBlockIndexPacked,
                                                       GLenum pname,
                                                       GLsizei bufSize,
                                                       GLsizei *length,
@@ -3040,7 +3083,7 @@ void CaptureGetActiveUniformBlockivRobustANGLE_length(const State &glState,
 void CaptureGetActiveUniformBlockivRobustANGLE_params(const State &glState,
                                                       bool isCallValid,
                                                       ShaderProgramID programPacked,
-                                                      GLuint uniformBlockIndex,
+                                                      UniformBlockIndex uniformBlockIndexPacked,
                                                       GLenum pname,
                                                       GLsizei bufSize,
                                                       GLsizei *length,
@@ -3555,6 +3598,29 @@ void CaptureBufferStorageEXT_data(const State &glState,
                                   const void *data,
                                   GLbitfield flags,
                                   angle::ParamCapture *paramCapture);
+void CaptureGetObjectLabelEXT_length(const State &glState,
+                                     bool isCallValid,
+                                     GLenum type,
+                                     GLuint object,
+                                     GLsizei bufSize,
+                                     GLsizei *length,
+                                     GLchar *label,
+                                     angle::ParamCapture *paramCapture);
+void CaptureGetObjectLabelEXT_label(const State &glState,
+                                    bool isCallValid,
+                                    GLenum type,
+                                    GLuint object,
+                                    GLsizei bufSize,
+                                    GLsizei *length,
+                                    GLchar *label,
+                                    angle::ParamCapture *paramCapture);
+void CaptureLabelObjectEXT_label(const State &glState,
+                                 bool isCallValid,
+                                 GLenum type,
+                                 GLuint object,
+                                 GLsizei length,
+                                 const GLchar *label,
+                                 angle::ParamCapture *paramCapture);
 void CaptureInsertEventMarkerEXT_marker(const State &glState,
                                         bool isCallValid,
                                         GLsizei length,
@@ -4474,4 +4540,4 @@ void CaptureGenVertexArraysOES_arraysPacked(const State &glState,
                                             angle::ParamCapture *paramCapture);
 }  // namespace gl
 
-#endif  // LIBANGLE_CAPTURE_GLES_ext_AUTOGEN_H_
+#endif  // LIBANGLE_CAPTURE_GLES_EXT_AUTOGEN_H_

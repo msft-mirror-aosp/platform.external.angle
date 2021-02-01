@@ -20,16 +20,13 @@ vars = {
   'checkout_angle_internal': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': '62214500294fa2ac3b972b8fcad6cee5022f1e95',
+  'chromium_revision': '34154bd58dcbcdc594bcc476d5d4e92f9f83d2c3',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': '524e5bcfba33d1b8dede4b4ec1ec33d24ccf8d2c',
-
-  # Current revision of glslang, the Khronos SPIRV compiler.
-  'glslang_revision': '142cb87f803d42f5ae3dd2da8dff4f19f6f15e8c',
+  'vk_gl_cts_revision': 'b29bf0434c16796dc48a17a52c7fe219d558af31',
 
   # Current revision of googletest.
   # Note: this dep cannot be auto-rolled b/c of nesting.
@@ -65,57 +62,36 @@ vars = {
   # Note: this dep cannot be auto-rolled b/c of nesting.
   'patched_yasm_revision': '720b70524a4424b15fc57e82263568c8ba0496ad',
 
-  # Current revision of spirv-cross, the Khronos SPIRV cross compiler.
-  'spirv_cross_revision': 'f38cbeb814c73510b85697adbe5e894f9eac978f',
-
-  # Current revision fo the SPIRV-Headers Vulkan support library.
-  'spirv_headers_revision': '05836bdba63e7debce9fa9feaed42f20cd43af9d',
-
-  # Current revision of SPIRV-Tools for Vulkan.
-  'spirv_tools_revision': '671914c28e8249f0a555726a0f3f38691fe5c1df',
-
-  # Current revision of Khronos Vulkan-Headers.
-  'vulkan_headers_revision': '30e70cbd9850560cb55bffadb8017e90c04c42f5',
-
-  # Current revision of Khronos Vulkan-Loader.
-  'vulkan_loader_revision': 'b54d55122868fa614df4b387045188ee31f97c07',
-
-  # Current revision of Khronos Vulkan-Tools.
-  'vulkan_tools_revision': '6ef69fbda85ba9a45602ac01cf96c59807561ee3',
-
-  # Current revision of Khronos Vulkan-ValidationLayers.
-  'vulkan_validation_revision': 'ec5cd38a0ca6824c1ee55ceeb796806412e3c10b',
-
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': '6e44bd85f3a3d28755833326fdc599afdc6b4274',
+  'catapult_revision': '9d5ec46922405ae79512edaca638c6654d099105',
 
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling luci-go
   # and whatever else without interference from each other.
-  'luci_go': 'git_revision:1a022d3a4c50be4207ee93451255d71896416596',
+  'luci_go': 'git_revision:77944aa535e42e29faadf6cfa81aee252807d468',
 }
 
 deps = {
 
   'build': {
-    'url': '{chromium_git}/chromium/src/build.git@0e1eb49be66b859bf1cbbc4f08b971180c8bded6',
+    'url': '{chromium_git}/chromium/src/build.git@80d8522df95239df3a1914fd555eef4e5541f52e',
     'condition': 'not build_with_chromium',
   },
 
   'buildtools': {
-    'url': '{chromium_git}/chromium/src/buildtools.git@6302c1175607a436e18947a5abe9df2209e845fc',
+    'url': '{chromium_git}/chromium/src/buildtools.git@e3db55b4639f2a331af6f3708ca1fbd22322aac3',
     'condition': 'not build_with_chromium',
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@a71d13aa1cae3d3653f23abf7121fa061560b5d9',
+    'url': '{chromium_git}/chromium/src/testing@4f733a452594597882c0cc3e1319760adc16e663',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/abseil-cpp': {
-    'url': '{chromium_git}/chromium/src/third_party/abseil-cpp@207d48e407ee041bb2254d8246cd2031aa5e83e1',
+    'url': '{chromium_git}/chromium/src/third_party/abseil-cpp@f43a84ba6618080780d745bb4cc1515a23956d98',
     'condition': 'not build_with_chromium',
   },
 
@@ -158,11 +134,6 @@ deps = {
     'url': '{chromium_git}/external/github.com/glmark2/glmark2@9e01aef1a786b28aca73135a5b00f85c357e8f5e',
   },
 
-  'third_party/glslang/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@{glslang_revision}',
-    'condition': 'not build_with_chromium',
-  },
-
   'third_party/googletest': {
     'url': '{chromium_git}/chromium/src/third_party/googletest@{chromium_googletest_revision}',
     'condition': 'not build_with_chromium',
@@ -170,7 +141,7 @@ deps = {
 
   # libjpeg_turbo is used by glmark2.
   'third_party/libjpeg_turbo': {
-    'url': '{chromium_git}/chromium/deps/libjpeg_turbo.git@d5148db386ceb4a608058320071cbed890bd6ad2',
+    'url': '{chromium_git}/chromium/deps/libjpeg_turbo.git@fa0de07678c9828cc57b3eb086c03771912ba527',
     'condition': 'not build_with_chromium',
   },
 
@@ -190,12 +161,12 @@ deps = {
   },
 
   'third_party/protobuf': {
-    'url': '{chromium_git}/chromium/src/third_party/protobuf@d2979b278f4139434a2cc16d833da2b28af5a847',
+    'url': '{chromium_git}/chromium/src/third_party/protobuf@ec1e3f2e46c26c6443bd0e048928da6b1fd83d48',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/Python-Markdown': {
-    'url': '{chromium_git}/chromium/src/third_party/Python-Markdown@ad4fc19d612de0a3f6ea19441af703ff5a5223f3',
+    'url': '{chromium_git}/chromium/src/third_party/Python-Markdown@2bb7b23b6398f9e79bc2fa8c6bc64a3cf1613ebf',
     'condition': 'not build_with_chromium',
   },
 
@@ -225,23 +196,8 @@ deps = {
     'url': '{chromium_git}/external/github.com/Tencent/rapidjson@7484e06c589873e1ed80382d262087e4fa80fb63',
   },
 
-  'third_party/spirv-cross/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Cross@{spirv_cross_revision}',
-    'condition': 'not build_with_chromium',
-  },
-
-  'third_party/spirv-headers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@{spirv_headers_revision}',
-    'condition': 'not build_with_chromium',
-  },
-
-  'third_party/spirv-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@{spirv_tools_revision}',
-    'condition': 'not build_with_chromium',
-  },
-
   'third_party/SwiftShader': {
-    'url': '{swiftshader_git}/SwiftShader@de9e649438ed3cc2ecf5c30ebf08f033d01270e6',
+    'url': '{swiftshader_git}/SwiftShader@3e9b79ff42de0f5547809354de89e24c7a439e39',
     'condition': 'not build_with_chromium',
   },
 
@@ -249,12 +205,9 @@ deps = {
     'url': '{chromium_git}/external/github.com/KhronosGroup/VK-GL-CTS@{vk_gl_cts_revision}',
   },
 
-  'third_party/vulkan-headers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Headers@{vulkan_headers_revision}',
-  },
-
-  'third_party/vulkan-loader/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Loader@{vulkan_loader_revision}',
+  'third_party/vulkan-deps': {
+    'url': '{chromium_git}/vulkan-deps@5f7a1ace1a5ee013f8426041216ee1a7b1266a4e',
+    'condition': 'not build_with_chromium',
   },
 
   'third_party/vulkan_memory_allocator': {
@@ -262,21 +215,13 @@ deps = {
     'condition': 'not build_with_chromium',
   },
 
-  'third_party/vulkan-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Tools@{vulkan_tools_revision}',
-  },
-
-  'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@{vulkan_validation_revision}',
-  },
-
   'third_party/zlib': {
-    'url': '{chromium_git}/chromium/src/third_party/zlib@e84c9a3fd75fdc39055b7ae27d6ec508e50bd39e',
+    'url': '{chromium_git}/chromium/src/third_party/zlib@2c183c9f93a328bfb3121284da13cf89a0f7e64a',
     'condition': 'not build_with_chromium',
   },
 
   'tools/clang': {
-    'url': '{chromium_git}/chromium/src/tools/clang.git@2d30d8744f8824a7a7a26d726f16d2caf88be9f2',
+    'url': '{chromium_git}/chromium/src/tools/clang.git@0d2b89124b3ac772e4fd06cebba956a9ed0a21f5',
     'condition': 'not build_with_chromium',
   },
 
@@ -311,7 +256,7 @@ deps = {
   },
 
   'tools/mb': {
-    'url': '{chromium_git}/chromium/src/tools/mb@a63101d578bdfeffa4c420d7d89a1bef54ce77b2',
+    'url': '{chromium_git}/chromium/src/tools/mb@c3a074da20422965081d2a7eed3e33b0d5229274',
     'condition': 'not build_with_chromium',
   },
 
@@ -321,7 +266,7 @@ deps = {
   },
 
   'tools/memory': {
-    'url': '{chromium_git}/chromium/src/tools/memory@f685c086bde38d670a7a3b30ebe1a076d404c140',
+    'url': '{chromium_git}/chromium/src/tools/memory@71214b910decfe2e7cfc8b0ffc072a1b97da2d36',
     'condition': 'not build_with_chromium',
   },
 
@@ -334,7 +279,7 @@ deps = {
       'packages': [
         {
           'package': 'skia/tools/goldctl/linux-amd64',
-          'version': 'F1V3MxURYBy3ZkQCqWrW-_qo1aZFer1oyHdGOjT_CZoC',
+          'version': 'opL5N0hiBtWxiOFaEhRqXpJWh70uurNTInvkY8NHr8oC',
         },
       ],
       'dep_type': 'cipd',
@@ -345,7 +290,7 @@ deps = {
       'packages': [
         {
           'package': 'skia/tools/goldctl/windows-amd64',
-          'version': 'qZ2Cb5DPSSKjIrxhfYGgVzooq2ElNVLxNOVjsMKgfV0C',
+          'version': 'GRI6-L-7YmnYGw8gs2jXZDqvI5KIFIgsj_GvzZ4krYQC',
         },
       ],
       'dep_type': 'cipd',
@@ -356,7 +301,7 @@ deps = {
       'packages': [
         {
           'package': 'skia/tools/goldctl/mac-amd64',
-          'version': 'Z_FxtkL4vnfqaGkZhy2qkTcVwRXIfMzIP0gDJO5O6HkC',
+          'version': 'pmlVeVFuSc7Re0D7Efu2pAh2Oo5rEAnlg1rFIfp1RncC',
         },
       ],
       'dep_type': 'cipd',
@@ -544,4 +489,5 @@ recursedeps = [
   'buildtools',
   'third_party/googletest',
   'third_party/jsoncpp',
+  'third_party/vulkan-deps',
 ]

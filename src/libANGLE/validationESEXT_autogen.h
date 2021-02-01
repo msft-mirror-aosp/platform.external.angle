@@ -482,7 +482,7 @@ bool ValidateGetUniformuivRobustANGLE(const Context *context,
                                       const GLuint *params);
 bool ValidateGetActiveUniformBlockivRobustANGLE(const Context *context,
                                                 ShaderProgramID programPacked,
-                                                GLuint uniformBlockIndex,
+                                                UniformBlockIndex uniformBlockIndexPacked,
                                                 GLenum pname,
                                                 GLsizei bufSize,
                                                 const GLsizei *length,
@@ -778,6 +778,9 @@ bool ValidateBufferStorageEXT(const Context *context,
                               const void *data,
                               GLbitfield flags);
 
+// GL_EXT_clip_control
+bool ValidateClipControlEXT(const Context *context, GLenum origin, GLenum depth);
+
 // GL_EXT_copy_image
 bool ValidateCopyImageSubDataEXT(const Context *context,
                                  GLuint srcName,
@@ -795,6 +798,19 @@ bool ValidateCopyImageSubDataEXT(const Context *context,
                                  GLsizei srcWidth,
                                  GLsizei srcHeight,
                                  GLsizei srcDepth);
+
+// GL_EXT_debug_label
+bool ValidateGetObjectLabelEXT(const Context *context,
+                               GLenum type,
+                               GLuint object,
+                               GLsizei bufSize,
+                               const GLsizei *length,
+                               const GLchar *label);
+bool ValidateLabelObjectEXT(const Context *context,
+                            GLenum type,
+                            GLuint object,
+                            GLsizei length,
+                            const GLchar *label);
 
 // GL_EXT_debug_marker
 bool ValidateInsertEventMarkerEXT(const Context *context, GLsizei length, const GLchar *marker);
@@ -1303,6 +1319,11 @@ bool ValidateUseProgramStagesEXT(const Context *context,
                                  ShaderProgramID programPacked);
 bool ValidateValidateProgramPipelineEXT(const Context *context, ProgramPipelineID pipelinePacked);
 
+// GL_EXT_shader_framebuffer_fetch_non_coherent
+bool ValidateFramebufferFetchBarrierEXT(const Context *context);
+
+// GL_EXT_shader_io_blocks
+
 // GL_EXT_tessellation_shader
 bool ValidatePatchParameteriEXT(const Context *context, GLenum pname, GLint value);
 
@@ -1425,6 +1446,19 @@ bool ValidateGetFenceivNV(const Context *context,
 bool ValidateIsFenceNV(const Context *context, FenceNVID fencePacked);
 bool ValidateSetFenceNV(const Context *context, FenceNVID fencePacked, GLenum condition);
 bool ValidateTestFenceNV(const Context *context, FenceNVID fencePacked);
+
+// GL_NV_framebuffer_blit
+bool ValidateBlitFramebufferNV(const Context *context,
+                               GLint srcX0,
+                               GLint srcY0,
+                               GLint srcX1,
+                               GLint srcY1,
+                               GLint dstX0,
+                               GLint dstY0,
+                               GLint dstX1,
+                               GLint dstY1,
+                               GLbitfield mask,
+                               GLenum filter);
 
 // GL_OES_EGL_image
 bool ValidateEGLImageTargetRenderbufferStorageOES(const Context *context,
@@ -1629,6 +1663,8 @@ bool ValidateQueryMatrixxOES(const Context *context,
 
 // GL_OES_sample_shading
 bool ValidateMinSampleShadingOES(const Context *context, GLfloat value);
+
+// GL_OES_shader_io_blocks
 
 // GL_OES_texture_3D
 bool ValidateCompressedTexImage3DOES(const Context *context,
