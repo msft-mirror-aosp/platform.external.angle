@@ -347,7 +347,6 @@ State::State(const State *shareContextState,
       mProvokingVertex(gl::ProvokingVertexConvention::LastVertexConvention),
       mVertexArray(nullptr),
       mActiveSampler(0),
-      mTexturesIncompatibleWithSamplers(0),
       mValidAtomicCounterBufferCount(0),
       mPrimitiveRestart(false),
       mDebug(debug),
@@ -415,6 +414,9 @@ void State::initialize(Context *context)
     mViewport.height = 0;
     mNearZ           = 0.0f;
     mFarZ            = 1.0f;
+
+    mClipControlOrigin = GL_LOWER_LEFT_EXT;
+    mClipControlDepth  = GL_NEGATIVE_ONE_TO_ONE_EXT;
 
     mActiveSampler = 0;
 
@@ -586,7 +588,7 @@ void State::reset(const Context *context)
     setAllDirtyBits();
 }
 
-ANGLE_INLINE void State::unsetActiveTextures(ActiveTextureMask textureMask)
+ANGLE_INLINE void State::unsetActiveTextures(const ActiveTextureMask &textureMask)
 {
     // Unset any relevant bound textures.
     for (size_t textureIndex : textureMask)
@@ -814,6 +816,28 @@ void State::setDepthRange(float zNear, float zFar)
         mNearZ = zNear;
         mFarZ  = zFar;
         mDirtyBits.set(DIRTY_BIT_DEPTH_RANGE);
+    }
+}
+
+void State::setClipControl(GLenum origin, GLenum depth)
+{
+    bool updated = false;
+    if (mClipControlOrigin != origin)
+    {
+        mClipControlOrigin = origin;
+        updated            = true;
+    }
+
+    if (mClipControlDepth != depth)
+    {
+        mClipControlDepth = depth;
+        updated           = true;
+    }
+
+    if (updated)
+    {
+        mDirtyBits.set(DIRTY_BIT_EXTENDED);
+        mExtendedDirtyBits.set(EXTENDED_DIRTY_BIT_CLIP_CONTROL);
     }
 }
 
@@ -1151,6 +1175,7 @@ void State::setClipDistanceEnable(int idx, bool enable)
     }
 
     mDirtyBits.set(DIRTY_BIT_EXTENDED);
+    mExtendedDirtyBits.set(EXTENDED_DIRTY_BIT_CLIP_DISTANCES);
 }
 
 void State::setEnableFeature(GLenum feature, bool enabled)
@@ -1460,6 +1485,7 @@ void State::setGenerateMipmapHint(GLenum hint)
 {
     mGenerateMipmapHint = hint;
     mDirtyBits.set(DIRTY_BIT_EXTENDED);
+    mExtendedDirtyBits.set(EXTENDED_DIRTY_BIT_MIPMAP_GENERATION_HINT);
 }
 
 GLenum State::getGenerateMipmapHint() const
@@ -1483,6 +1509,7 @@ void State::setFragmentShaderDerivativeHint(GLenum hint)
 {
     mFragmentShaderDerivativeHint = hint;
     mDirtyBits.set(DIRTY_BIT_EXTENDED);
+    mExtendedDirtyBits.set(EXTENDED_DIRTY_BIT_SHADER_DERIVATIVE_HINT);
     // TODO: Propagate the hint to shader translator so we can write
     // ddx, ddx_coarse, or ddx_fine depending on the hint.
     // Ignore for now. It is valid for implementations to ignore hint.
@@ -2366,6 +2393,16 @@ void State::getBooleanv(GLenum pname, GLboolean *params) const
         case GL_PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED:
             *params = isPrimitiveRestartEnabled() && getExtensions().tessellationShaderEXT;
             break;
+        // 2.2.2 Data Conversions For State Query Commands, in GLES 3.2 spec.
+        // If a command returning boolean data is called, such as GetBooleanv, a floating-point or
+        // integer value converts to FALSE if and only if it is zero. Otherwise it converts to TRUE.
+        // GL_EXT_clip_control
+        case GL_CLIP_ORIGIN_EXT:
+            *params = GL_TRUE;
+            break;
+        case GL_CLIP_DEPTH_MODE_EXT:
+            *params = GL_TRUE;
+            break;
         default:
             UNREACHABLE();
             break;
@@ -2481,6 +2518,15 @@ void State::getFloatv(GLenum pname, GLfloat *params) const
             break;
         case GL_MIN_SAMPLE_SHADING_VALUE:
             *params = mMinSampleShading;
+            break;
+        // 2.2.2 Data Conversions For State Query Commands, in GLES 3.2 spec.
+        // If a command returning floating-point data is called, such as GetFloatv, ... An integer
+        // value is coerced to floating-point.
+        case GL_CLIP_ORIGIN_EXT:
+            *params = static_cast<float>(mClipControlOrigin);
+            break;
+        case GL_CLIP_DEPTH_MODE_EXT:
+            *params = static_cast<float>(mClipControlDepth);
             break;
         default:
             UNREACHABLE();
@@ -2948,6 +2994,13 @@ angle::Result State::getIntegerv(const Context *context, GLenum pname, GLint *pa
             *params = mPatchVertices;
             break;
 
+        // GL_EXT_clip_control
+        case GL_CLIP_ORIGIN_EXT:
+            *params = mClipControlOrigin;
+            break;
+        case GL_CLIP_DEPTH_MODE_EXT:
+            *params = mClipControlDepth;
+            break;
         default:
             UNREACHABLE();
             break;
@@ -3572,6 +3625,13 @@ AttributesMask State::getAndResetDirtyCurrentValues() const
 {
     AttributesMask retVal = mDirtyCurrentValues;
     mDirtyCurrentValues.reset();
+    return retVal;
+}
+
+State::ExtendedDirtyBits State::getAndResetExtendedDirtyBits() const
+{
+    ExtendedDirtyBits retVal = mExtendedDirtyBits;
+    mExtendedDirtyBits.reset();
     return retVal;
 }
 

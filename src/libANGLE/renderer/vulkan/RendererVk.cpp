@@ -625,7 +625,8 @@ RendererVk::RendererVk()
       mPipelineCacheDirty(false),
       mPipelineCacheInitialized(false),
       mCommandProcessor(this),
-      mGlslangInitialized(false)
+      mGlslangInitialized(false),
+      mSupportedVulkanPipelineStageMask(0)
 {
     VkFormatProperties invalid = {0, 0, kInvalidFormatFeatureFlags};
     mFormatProperties.fill(invalid);
@@ -1120,6 +1121,9 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
     mDepthStencilResolveProperties.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES;
 
+    mDriverProperties       = {};
+    mDriverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+
     mExternalFenceProperties       = {};
     mExternalFenceProperties.sType = VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES;
 
@@ -1203,6 +1207,12 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
         vk::AddToPNextChain(&deviceProperties, &mDepthStencilResolveProperties);
     }
 
+    // Query driver properties
+    if (ExtensionFound(VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(&deviceProperties, &mDriverProperties);
+    }
+
     // Query subgroup properties
     vk::AddToPNextChain(&deviceProperties, &mSubgroupProperties);
 
@@ -1243,6 +1253,7 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
     mExternalMemoryHostProperties.pNext     = nullptr;
     mShaderFloat16Int8Features.pNext        = nullptr;
     mDepthStencilResolveProperties.pNext    = nullptr;
+    mDriverProperties.pNext                 = nullptr;
     mSamplerYcbcrConversionFeatures.pNext   = nullptr;
 }
 
@@ -1534,6 +1545,8 @@ angle::Result RendererVk::initializeDevice(DisplayVk *displayVk, uint32_t queueF
     enabledFeatures.features.shaderCullDistance = mPhysicalDeviceFeatures.shaderCullDistance;
     // Used to support tessellation Shader:
     enabledFeatures.features.tessellationShader = mPhysicalDeviceFeatures.tessellationShader;
+    // Used to support EXT_blend_func_extended
+    enabledFeatures.features.dualSrcBlend = mPhysicalDeviceFeatures.dualSrcBlend;
 
     if (!vk::CommandBuffer::ExecutesInline())
     {
@@ -1719,6 +1732,21 @@ angle::Result RendererVk::initializeDevice(DisplayVk *displayVk, uint32_t queueF
         ANGLE_TRY(initPipelineCache(displayVk, &mPipelineCache, &success));
     }
 
+    // Track the set of supported pipeline stages.  This is used when issuing image layout
+    // transitions that cover many stages (such as AllGraphicsReadOnly) to mask out unsupported
+    // stages, which avoids enumerating every possible combination of stages in the layouts.
+    VkPipelineStageFlags unsupportedStages = 0;
+    if (!mPhysicalDeviceFeatures.tessellationShader)
+    {
+        unsupportedStages |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT |
+                             VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+    }
+    if (!mPhysicalDeviceFeatures.geometryShader)
+    {
+        unsupportedStages |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+    }
+    mSupportedVulkanPipelineStageMask = ~unsupportedStages;
+
     return angle::Result::Continue;
 }
 
@@ -1789,7 +1817,7 @@ std::string RendererVk::getRendererDescription() const
     strstr << VK_VERSION_MINOR(apiVersion) << ".";
     strstr << VK_VERSION_PATCH(apiVersion);
 
-    strstr << "(";
+    strstr << " (";
 
     // In the case of NVIDIA, deviceName does not necessarily contain "NVIDIA". Add "NVIDIA" so that
     // Vulkan end2end tests can be selectively disabled on NVIDIA. TODO(jmadill): should not be
@@ -1804,6 +1832,47 @@ std::string RendererVk::getRendererDescription() const
     strstr << " (" << gl::FmtHex(mPhysicalDeviceProperties.deviceID) << ")";
 
     strstr << ")";
+
+    return strstr.str();
+}
+
+std::string RendererVk::getVersionString() const
+{
+    std::stringstream strstr;
+
+    uint32_t driverVersion = mPhysicalDeviceProperties.driverVersion;
+    std::string driverName = std::string(mDriverProperties.driverName);
+
+    if (!driverName.empty())
+    {
+        strstr << driverName;
+    }
+    else
+    {
+        strstr << GetVendorString(mPhysicalDeviceProperties.vendorID);
+    }
+
+    strstr << "-";
+
+    if (mPhysicalDeviceProperties.vendorID == VENDOR_ID_NVIDIA)
+    {
+        strstr << ANGLE_VK_VERSION_MAJOR_NVIDIA(driverVersion) << ".";
+        strstr << ANGLE_VK_VERSION_MINOR_NVIDIA(driverVersion) << ".";
+        strstr << ANGLE_VK_VERSION_SUB_MINOR_NVIDIA(driverVersion) << ".";
+        strstr << ANGLE_VK_VERSION_PATCH_NVIDIA(driverVersion);
+    }
+    else if (mPhysicalDeviceProperties.vendorID == VENDOR_ID_INTEL && IsWindows())
+    {
+        strstr << ANGLE_VK_VERSION_MAJOR_WIN_INTEL(driverVersion) << ".";
+        strstr << ANGLE_VK_VERSION_MAJOR_WIN_INTEL(driverVersion) << ".";
+    }
+    // All other drivers use the Vulkan standard
+    else
+    {
+        strstr << VK_VERSION_MAJOR(driverVersion) << ".";
+        strstr << VK_VERSION_MINOR(driverVersion) << ".";
+        strstr << VK_VERSION_PATCH(driverVersion);
+    }
 
     return strstr.str();
 }
@@ -1940,6 +2009,10 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     bool isPowerVR  = IsPowerVR(mPhysicalDeviceProperties.vendorID);
     bool isSwiftShader =
         IsSwiftshader(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID);
+
+    bool supportsNegativeViewport =
+        ExtensionFound(VK_KHR_MAINTENANCE1_EXTENSION_NAME, deviceExtensionNames) ||
+        mPhysicalDeviceProperties.apiVersion >= VK_API_VERSION_1_1;
 
     if (mLineRasterizationFeatures.bresenhamLines == VK_TRUE)
     {
@@ -2127,7 +2200,8 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
         ExtensionFound(VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME, deviceExtensionNames));
 
     // Android pre-rotation support can be disabled.
-    ANGLE_FEATURE_CONDITION(&mFeatures, enablePreRotateSurfaces, IsAndroid());
+    ANGLE_FEATURE_CONDITION(&mFeatures, enablePreRotateSurfaces,
+                            IsAndroid() && supportsNegativeViewport);
 
     // Currently disabled by default: http://anglebug.com/3078
     ANGLE_FEATURE_CONDITION(
@@ -2208,6 +2282,9 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // r32f image emulation is done unconditionally so VK_FORMAT_FEATURE_STORAGE_*_ATOMIC_BIT is not
     // required.
     ANGLE_FEATURE_CONDITION(&mFeatures, emulateR32fImageAtomicExchange, true);
+
+    // Negative viewports are exposed in the Maintenance1 extension and in core Vulkan 1.1+.
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsNegativeViewport, supportsNegativeViewport);
 
     angle::PlatformMethods *platform = ANGLEPlatformCurrent();
     platform->overrideFeaturesVk(platform, &mFeatures);

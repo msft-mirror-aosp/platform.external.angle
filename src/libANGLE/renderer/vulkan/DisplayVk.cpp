@@ -74,15 +74,31 @@ egl::Error DisplayVk::restoreLostDevice(const egl::Display *display)
     return egl::EglBadDisplay();
 }
 
-std::string DisplayVk::getVendorString() const
+std::string DisplayVk::getRendererDescription()
 {
-    std::string vendorString = "Google Inc.";
     if (mRenderer)
     {
-        vendorString += " " + mRenderer->getVendorString();
+        return mRenderer->getRendererDescription();
     }
+    return std::string();
+}
 
-    return vendorString;
+std::string DisplayVk::getVendorString()
+{
+    if (mRenderer)
+    {
+        return mRenderer->getVendorString();
+    }
+    return std::string();
+}
+
+std::string DisplayVk::getVersionString()
+{
+    if (mRenderer)
+    {
+        return mRenderer->getVersionString();
+    }
+    return std::string();
 }
 
 egl::Error DisplayVk::waitClient(const gl::Context *context)
