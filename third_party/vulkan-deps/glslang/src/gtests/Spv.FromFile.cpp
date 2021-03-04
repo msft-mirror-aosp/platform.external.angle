@@ -376,6 +376,7 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.nonuniform4.frag",
         "spv.nonuniform5.frag",
         "spv.noWorkgroup.comp",
+        "spv.nullInit.comp",
         "spv.offsets.frag",
         "spv.Operations.frag",
         "spv.paramMemory.frag",
@@ -502,6 +503,7 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.memoryScopeSemantics.comp",
         "spv.memoryScopeSemantics_Error.comp",
         "spv.multiView.frag",
+        "spv.queueFamilyScope.comp",
         "spv.RayGenShader11.rgen",
         "spv.subgroup.frag",
         "spv.subgroup.geom",
@@ -580,6 +582,17 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.ext.World3x4.rahit",
         "spv.ext.AccelDecl.frag",
         "spv.ext.RayQueryDecl.frag",
+
+        // SPV_KHR_workgroup_memory_explicit_layout depends on SPIR-V 1.4.
+        "spv.WorkgroupMemoryExplicitLayout.SingleBlock.comp",
+        "spv.WorkgroupMemoryExplicitLayout.MultiBlock.comp",
+        "spv.WorkgroupMemoryExplicitLayout.8BitAccess.comp",
+        "spv.WorkgroupMemoryExplicitLayout.16BitAccess.comp",
+        "spv.WorkgroupMemoryExplicitLayout.NonBlock.comp",
+        "spv.WorkgroupMemoryExplicitLayout.MixBlockNonBlock_Errors.comp",
+        "spv.WorkgroupMemoryExplicitLayout.std140.comp",
+        "spv.WorkgroupMemoryExplicitLayout.std430.comp",
+        "spv.WorkgroupMemoryExplicitLayout.scalar.comp",
     })),
     FileNameAsCustomTestSuffix
 );

@@ -83,6 +83,12 @@ struct Rectangle
 bool operator==(const Rectangle &a, const Rectangle &b);
 bool operator!=(const Rectangle &a, const Rectangle &b);
 
+enum class ClipSpaceOrigin
+{
+    LowerLeft = 0,
+    UpperLeft = 1
+};
+
 // Calculate the intersection of two rectangles.  Returns false if the intersection is empty.
 bool ClipRectangle(const Rectangle &source, const Rectangle &clip, Rectangle *intersection);
 // Calculate the smallest rectangle that covers both rectangles.  This rectangle may cover areas
@@ -823,7 +829,7 @@ using DrawBuffersVector = angle::FixedVector<T, IMPLEMENTATION_MAX_DRAW_BUFFERS>
 template <typename T>
 using AttribArray = std::array<T, MAX_VERTEX_ATTRIBS>;
 
-using ActiveTextureMask = angle::BitSet<IMPLEMENTATION_MAX_ACTIVE_TEXTURES>;
+using ActiveTextureMask = angle::BitSetArray<IMPLEMENTATION_MAX_ACTIVE_TEXTURES>;
 
 template <typename T>
 using ActiveTextureArray = std::array<T, IMPLEMENTATION_MAX_ACTIVE_TEXTURES>;
@@ -840,7 +846,7 @@ using AtomicCounterBufferMask   = angle::BitSet<IMPLEMENTATION_MAX_ATOMIC_COUNTE
 template <typename T>
 using ImagesArray = std::array<T, IMPLEMENTATION_MAX_IMAGE_UNITS>;
 
-using ImageUnitMask = angle::BitSet<IMPLEMENTATION_MAX_IMAGE_UNITS>;
+using ImageUnitMask = angle::BitSetArray<IMPLEMENTATION_MAX_IMAGE_UNITS>;
 
 using SupportedSampleSet = std::set<GLuint>;
 

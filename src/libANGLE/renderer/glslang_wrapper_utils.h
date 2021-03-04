@@ -51,7 +51,8 @@ struct GlslangProgramInterfaceInfo
 struct GlslangSourceOptions
 {
     bool supportsTransformFeedbackExtension = false;
-    bool emulateTransformFeedback           = false;
+    bool supportsTransformFeedbackEmulation = false;
+    bool enableTransformFeedbackEmulation   = false;
     bool emulateBresenhamLines              = false;
 };
 
@@ -59,6 +60,7 @@ struct GlslangSpirvOptions
 {
     gl::ShaderType shaderType                 = gl::ShaderType::InvalidEnum;
     SurfaceRotation preRotation               = SurfaceRotation::Identity;
+    bool negativeViewportSupported            = false;
     bool transformPositionToVulkanClipSpace   = false;
     bool removeEarlyFragmentTestsOptimization = false;
     bool removeDebugInfo                      = false;
@@ -96,6 +98,7 @@ struct ShaderInterfaceVariableInfo
     // locations in their respective slots.
     uint32_t location  = kInvalid;
     uint32_t component = kInvalid;
+    uint32_t index     = kInvalid;
     // The stages this shader interface variable is active.
     gl::ShaderBitSet activeStages;
     // Used for transform feedback extension to decorate vertex shader output.

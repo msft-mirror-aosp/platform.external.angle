@@ -147,7 +147,7 @@ class ABSL_LOCKABLE Mutex {
   //
   // Example usage:
   //   namespace foo {
-  //   ABSL_CONST_INIT Mutex mu(absl::kConstInit);
+  //   ABSL_CONST_INIT absl::Mutex mu(absl::kConstInit);
   //   }
   explicit constexpr Mutex(absl::ConstInitType);
 
@@ -162,7 +162,7 @@ class ABSL_LOCKABLE Mutex {
   // Mutex::Unlock()
   //
   // Releases this `Mutex` and returns it from the exclusive/write state to the
-  // free state. Caller must hold the `Mutex` exclusively.
+  // free state. Calling thread must hold the `Mutex` exclusively.
   void Unlock() ABSL_UNLOCK_FUNCTION();
 
   // Mutex::TryLock()

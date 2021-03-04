@@ -1940,7 +1940,7 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 const VertexArrayGL *vaoGL = GetImplAs<VertexArrayGL>(state.getVertexArray());
                 bindVertexArray(vaoGL->getVertexArrayID(), vaoGL->getAppliedElementArrayBufferID());
 
-                propagateProgramToVAO(state.getProgram(),
+                propagateProgramToVAO(context, state.getProgram(),
                                       GetImplAs<VertexArrayGL>(state.getVertexArray()));
                 break;
             }
@@ -1998,7 +1998,7 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 if (!program ||
                     !program->getExecutable().hasLinkedShaderStage(gl::ShaderType::Compute))
                 {
-                    propagateProgramToVAO(program,
+                    propagateProgramToVAO(context, program,
                                           GetImplAs<VertexArrayGL>(state.getVertexArray()));
                 }
                 break;
@@ -2071,6 +2071,7 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 setClipDistancesEnable(state.getEnabledClipDistances());
                 // TODO(jmadill): handle mipmap generation hint
                 // TODO(jmadill): handle shader derivative hint
+                // Nothing to do until EXT_clip_contorl is implemented.
                 break;
             case gl::State::DIRTY_BIT_SAMPLE_SHADING:
                 // Nothing to do until OES_sample_shading is implemented.
@@ -2320,7 +2321,9 @@ void StateManagerGL::setTextureCubemapSeamlessEnabled(bool enabled)
     }
 }
 
-void StateManagerGL::propagateProgramToVAO(const gl::Program *program, VertexArrayGL *vao)
+void StateManagerGL::propagateProgramToVAO(const gl::Context *context,
+                                           const gl::Program *program,
+                                           VertexArrayGL *vao)
 {
     if (vao == nullptr)
     {
@@ -2335,14 +2338,14 @@ void StateManagerGL::propagateProgramToVAO(const gl::Program *program, VertexArr
         {
             programNumViews = program->getNumViews();
         }
-        vao->applyNumViewsToDivisor(programNumViews);
+        vao->applyNumViewsToDivisor(context, programNumViews);
     }
 
     // Attribute enabled mask:
     if (program)
     {
         vao->applyActiveAttribLocationsMask(
-            program->getExecutable().getActiveAttribLocationsMask());
+            context, program->getExecutable().getActiveAttribLocationsMask());
     }
 }
 

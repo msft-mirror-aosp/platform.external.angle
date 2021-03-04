@@ -24,7 +24,6 @@
 #include "libANGLE/Compiler.h"
 #include "libANGLE/Display.h"
 #include "libANGLE/Fence.h"
-#include "libANGLE/FrameCapture.h"
 #include "libANGLE/Framebuffer.h"
 #include "libANGLE/FramebufferAttachment.h"
 #include "libANGLE/MemoryObject.h"
@@ -39,6 +38,7 @@
 #include "libANGLE/Texture.h"
 #include "libANGLE/TransformFeedback.h"
 #include "libANGLE/VertexArray.h"
+#include "libANGLE/capture/FrameCapture.h"
 #include "libANGLE/formatutils.h"
 #include "libANGLE/queryconversions.h"
 #include "libANGLE/queryutils.h"
@@ -377,7 +377,14 @@ Context::Context(egl::Display *display,
     ASSERT(mDisplay);
 }
 
-void Context::initialize()
+egl::Error Context::initialize()
+{
+    if (!mImplementation)
+        return egl::Error(EGL_NOT_INITIALIZED, "native context creation failed");
+    return egl::NoError();
+}
+
+void Context::initializeDefaultResources()
 {
     mImplementation->setMemoryProgramCache(mMemoryProgramCache);
 
@@ -691,7 +698,7 @@ egl::Error Context::makeCurrent(egl::Display *display,
     {
         ASSERT(!mIsCurrent);
 
-        initialize();
+        initializeDefaultResources();
         initRendererString();
         initVersionStrings();
         initExtensionStrings();
@@ -2020,6 +2027,14 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
             *params = mState.mCaps.textureBufferOffsetAlignment;
             break;
 
+        // GL_EXT_clip_control
+        case GL_CLIP_ORIGIN_EXT:
+            *params = mState.mClipControlOrigin;
+            break;
+        case GL_CLIP_DEPTH_MODE_EXT:
+            *params = mState.mClipControlDepth;
+            break;
+
         default:
             ANGLE_CONTEXT_TRY(mState.getIntegerv(this, pname, params));
             break;
@@ -2630,7 +2645,7 @@ void Context::getProgramResourceiv(ShaderProgramID program,
                                    GLint *params)
 {
     const Program *programObject = getProgramResolveLink(program);
-    QueryProgramResourceiv(programObject, programInterface, index, propCount, props, bufSize,
+    QueryProgramResourceiv(programObject, programInterface, {index}, propCount, props, bufSize,
                            length, params);
 }
 
@@ -3071,12 +3086,27 @@ void Context::programParameteri(ShaderProgramID program, GLenum pname, GLint val
 
 void Context::initRendererString()
 {
-    std::ostringstream rendererString;
-    rendererString << "ANGLE (";
-    rendererString << mImplementation->getRendererDescription();
-    rendererString << ")";
+    std::ostringstream frontendRendererString;
+    std::string vendorString(mDisplay->getBackendVendorString());
+    std::string rendererString(mDisplay->getBackendRendererDescription());
+    std::string versionString(mDisplay->getBackendVersionString());
+    // Commas are used as a separator in ANGLE's renderer string, so remove commas from each
+    // element.
+    vendorString.erase(std::remove(vendorString.begin(), vendorString.end(), ','),
+                       vendorString.end());
+    rendererString.erase(std::remove(rendererString.begin(), rendererString.end(), ','),
+                         rendererString.end());
+    versionString.erase(std::remove(versionString.begin(), versionString.end(), ','),
+                        versionString.end());
+    frontendRendererString << "ANGLE (";
+    frontendRendererString << vendorString;
+    frontendRendererString << ", ";
+    frontendRendererString << rendererString;
+    frontendRendererString << ", ";
+    frontendRendererString << versionString;
+    frontendRendererString << ")";
 
-    mRendererString = MakeStaticString(rendererString.str());
+    mRendererString = MakeStaticString(frontendRendererString.str());
 }
 
 void Context::initVersionStrings()
@@ -3152,7 +3182,7 @@ const GLubyte *Context::getString(GLenum name) const
     switch (name)
     {
         case GL_VENDOR:
-            return reinterpret_cast<const GLubyte *>("Google Inc.");
+            return reinterpret_cast<const GLubyte *>(mDisplay->getVendorString().c_str());
 
         case GL_RENDERER:
             return reinterpret_cast<const GLubyte *>(mRendererString);
@@ -3692,6 +3722,15 @@ void Context::initCaps()
                << std::endl;
         ANGLE_LIMIT_CAP(mState.mCaps.maxImageUnits, maxImageUnits);
 
+        // Set a large uniform buffer offset alignment that works on multiple platforms.
+        // The offset used by the trace needs to be divisible by the device's actual value.
+        // Values seen during development: ARM (16), Intel (32), Qualcomm (128), Nvidia (256)
+        constexpr GLint uniformBufferOffsetAlignment = 256;
+        ASSERT(uniformBufferOffsetAlignment % mState.mCaps.uniformBufferOffsetAlignment == 0);
+        INFO() << "Setting uniform buffer offset alignment to " << uniformBufferOffsetAlignment
+               << " while FrameCapture enabled" << std::endl;
+        mState.mCaps.uniformBufferOffsetAlignment = uniformBufferOffsetAlignment;
+
         INFO() << "Disabling GL_EXT_map_buffer_range and GL_OES_mapbuffer during capture, which "
                   "are not supported on some native drivers"
                << std::endl;
@@ -3707,6 +3746,12 @@ void Context::initCaps()
                   "supported on some native drivers"
                << std::endl;
         mState.mExtensions.noperspectiveInterpolationNV = false;
+
+        // Nvidia's Vulkan driver only supports 4 draw buffers
+        constexpr GLint maxDrawBuffers = 4;
+        INFO() << "Limiting draw buffer count to " << maxDrawBuffers
+               << " while FrameCapture enabled" << std::endl;
+        ANGLE_LIMIT_CAP(mState.mCaps.maxDrawBuffers, maxDrawBuffers);
     }
 
     // Disable support for OES_get_program_binary
@@ -5285,6 +5330,11 @@ void Context::depthMask(GLboolean flag)
 void Context::depthRangef(GLfloat zNear, GLfloat zFar)
 {
     mState.setDepthRange(clamp01(zNear), clamp01(zFar));
+}
+
+void Context::clipControl(GLenum origin, GLenum depth)
+{
+    mState.setClipControl(origin, depth);
 }
 
 void Context::disable(GLenum cap)
@@ -7483,7 +7533,7 @@ GLuint Context::getUniformBlockIndex(ShaderProgramID program, const GLchar *unif
 }
 
 void Context::getActiveUniformBlockiv(ShaderProgramID program,
-                                      GLuint uniformBlockIndex,
+                                      UniformBlockIndex uniformBlockIndex,
                                       GLenum pname,
                                       GLint *params)
 {
@@ -7492,7 +7542,7 @@ void Context::getActiveUniformBlockiv(ShaderProgramID program,
 }
 
 void Context::getActiveUniformBlockivRobust(ShaderProgramID program,
-                                            GLuint uniformBlockIndex,
+                                            UniformBlockIndex uniformBlockIndex,
                                             GLenum pname,
                                             GLsizei bufSize,
                                             GLsizei *length,
@@ -7502,7 +7552,7 @@ void Context::getActiveUniformBlockivRobust(ShaderProgramID program,
 }
 
 void Context::getActiveUniformBlockName(ShaderProgramID program,
-                                        GLuint uniformBlockIndex,
+                                        UniformBlockIndex uniformBlockIndex,
                                         GLsizei bufSize,
                                         GLsizei *length,
                                         GLchar *uniformBlockName)
@@ -7512,7 +7562,7 @@ void Context::getActiveUniformBlockName(ShaderProgramID program,
 }
 
 void Context::uniformBlockBinding(ShaderProgramID program,
-                                  GLuint uniformBlockIndex,
+                                  UniformBlockIndex uniformBlockIndex,
                                   GLuint uniformBlockBinding)
 {
     Program *programObject = getProgramResolveLink(program);
@@ -9226,25 +9276,12 @@ void StateCache::updateValidDrawModes(Context *context)
         // active and not paused, regardless of mode. Any primitive type may be used while transform
         // feedback is paused.
         if (!context->getExtensions().geometryShader &&
-            !context->getExtensions().tessellationShaderEXT)
+            !context->getExtensions().tessellationShaderEXT && context->getClientVersion() < ES_3_2)
         {
             mCachedValidDrawModes.fill(false);
             mCachedValidDrawModes[curTransformFeedback->getPrimitiveMode()] = true;
             return;
         }
-
-        // EXT_geometry_shader validation text:
-        // When transform feedback is active and not paused, all geometric primitives generated must
-        // be compatible with the value of <primitiveMode> passed to BeginTransformFeedback. If a
-        // geometry shader is active, the type of primitive emitted by that shader is used instead
-        // of the <mode> parameter passed to drawing commands for the purposes of this error check.
-        // Any primitive type may be used while transform feedback is paused.
-        bool pointsOK = curTransformFeedback->getPrimitiveMode() == PrimitiveMode::Points;
-        bool linesOK  = curTransformFeedback->getPrimitiveMode() == PrimitiveMode::Lines;
-        bool trisOK   = curTransformFeedback->getPrimitiveMode() == PrimitiveMode::Triangles;
-
-        setValidDrawModes(pointsOK, linesOK, trisOK, false, false, false);
-        return;
     }
 
     if (!programExecutable || !programExecutable->hasLinkedShaderStage(ShaderType::Geometry))

@@ -80,6 +80,7 @@ OpCapability ImageBuffer
 %private_image_u32_buffer_0002_r32ui
 %private_image_u32_spd_0002
 %private_image_f32_buffer_0002_r32ui
+%input_flat_u32
 )";
 
   ss << capabilities_and_extensions;
@@ -121,6 +122,8 @@ OpDecorate %uniform_image_f32_cube_0102_rgba32f DescriptorSet 2
 OpDecorate %uniform_image_f32_cube_0102_rgba32f Binding 3
 OpDecorate %uniform_sampler DescriptorSet 3
 OpDecorate %uniform_sampler Binding 0
+OpDecorate %input_flat_u32 Flat
+OpDecorate %input_flat_u32 Location 0
 )";
   }
 
@@ -294,6 +297,9 @@ OpDecorate %uniform_sampler Binding 0
 %ptr_Image_f32 = OpTypePointer Image %f32
 %ptr_image_f32_buffer_0002_r32ui = OpTypePointer Private %type_image_f32_buffer_0002_r32ui
 %private_image_f32_buffer_0002_r32ui = OpVariable %ptr_image_f32_buffer_0002_r32ui Private
+
+%ptr_input_flat_u32 = OpTypePointer Input %u32
+%input_flat_u32 = OpVariable %ptr_input_flat_u32 Input
 )";
 
   if (env == SPV_ENV_UNIVERSAL_1_0) {
@@ -1767,6 +1773,24 @@ TEST_F(ValidateImage, SampleImplicitLodOffsetWrongSize) {
           "Expected Image Operand Offset to have 2 components, but given 3"));
 }
 
+TEST_F(ValidateImage, SampleImplicitLodVulkanOffsetWrongSize) {
+  const std::string body = R"(
+%img = OpLoad %type_image_f32_2d_0001 %uniform_image_f32_2d_0001
+%sampler = OpLoad %type_sampler %uniform_sampler
+%simg = OpSampledImage %type_sampled_image_f32_2d_0001 %img %sampler
+%res4 = OpImageSampleImplicitLod %f32vec4 %simg %f32vec4_0000 Offset %s32vec2_01
+)";
+
+  CompileSuccessfully(
+      GenerateShaderCode(body, "", "Fragment", "", SPV_ENV_VULKAN_1_0).c_str());
+  ASSERT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(SPV_ENV_VULKAN_1_0));
+  EXPECT_THAT(getDiagnosticString(),
+              AnyVUID("VUID-StandaloneSpirv-Offset-04663"));
+  EXPECT_THAT(getDiagnosticString(),
+              HasSubstr("Image Operand Offset can only be used with "
+                        "OpImage*Gather operations"));
+}
+
 TEST_F(ValidateImage, SampleImplicitLodMoreThanOneOffset) {
   const std::string body = R"(
 %img = OpLoad %type_image_f32_2d_0001 %uniform_image_f32_2d_0001
@@ -1777,6 +1801,24 @@ TEST_F(ValidateImage, SampleImplicitLodMoreThanOneOffset) {
 
   CompileSuccessfully(GenerateShaderCode(body).c_str());
   ASSERT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions());
+  EXPECT_THAT(getDiagnosticString(),
+              HasSubstr("Image Operands Offset, ConstOffset, ConstOffsets "
+                        "cannot be used together"));
+}
+
+TEST_F(ValidateImage, SampleImplicitLodVulkanMoreThanOneOffset) {
+  const std::string body = R"(
+%img = OpLoad %type_image_f32_2d_0001 %uniform_image_f32_2d_0001
+%sampler = OpLoad %type_sampler %uniform_sampler
+%simg = OpSampledImage %type_sampled_image_f32_2d_0001 %img %sampler
+%res4 = OpImageSampleImplicitLod %f32vec4 %simg %f32vec4_0000 ConstOffset|Offset %s32vec2_01 %s32vec2_01
+)";
+
+  CompileSuccessfully(
+      GenerateShaderCode(body, "", "Fragment", "", SPV_ENV_VULKAN_1_0).c_str());
+  ASSERT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(SPV_ENV_VULKAN_1_0));
+  EXPECT_THAT(getDiagnosticString(),
+              AnyVUID("VUID-StandaloneSpirv-Offset-04662"));
   EXPECT_THAT(getDiagnosticString(),
               HasSubstr("Image Operands Offset, ConstOffset, ConstOffsets "
                         "cannot be used together"));
@@ -2980,6 +3022,40 @@ TEST_F(ValidateImage, GatherComponentNot32Bit) {
               HasSubstr("Expected Component to be 32-bit int scalar"));
 }
 
+TEST_F(ValidateImage, GatherComponentSuccessVulkan) {
+  const std::string body = R"(
+%img = OpLoad %type_image_f32_cube_0101 %uniform_image_f32_cube_0101
+%sampler = OpLoad %type_sampler %uniform_sampler
+%simg = OpSampledImage %type_sampled_image_f32_cube_0101 %img %sampler
+%res1 = OpImageGather %f32vec4 %simg %f32vec4_0000 %u32_0
+)";
+
+  spv_target_env env = SPV_ENV_VULKAN_1_0;
+  CompileSuccessfully(GenerateShaderCode(body, "", "Fragment", "", env).c_str(),
+                      env);
+  ASSERT_EQ(SPV_SUCCESS, ValidateInstructions(env));
+}
+
+TEST_F(ValidateImage, GatherComponentNotConstantVulkan) {
+  const std::string body = R"(
+%input_u32 = OpLoad %u32 %input_flat_u32
+%img = OpLoad %type_image_f32_cube_0101 %uniform_image_f32_cube_0101
+%sampler = OpLoad %type_sampler %uniform_sampler
+%simg = OpSampledImage %type_sampled_image_f32_cube_0101 %img %sampler
+%res1 = OpImageGather %f32vec4 %simg %f32vec4_0000 %input_u32
+)";
+
+  spv_target_env env = SPV_ENV_VULKAN_1_0;
+  CompileSuccessfully(GenerateShaderCode(body, "", "Fragment", "", env).c_str(),
+                      env);
+  ASSERT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(env));
+  EXPECT_THAT(getDiagnosticString(),
+              AnyVUID("VUID-StandaloneSpirv-OpImageGather-04664"));
+  EXPECT_THAT(getDiagnosticString(),
+              HasSubstr("Expected Component Operand to be a const object for "
+                        "Vulkan environment"));
+}
+
 TEST_F(ValidateImage, GatherDimCube) {
   const std::string body = R"(
 %img = OpLoad %type_image_f32_cube_0101 %uniform_image_f32_cube_0101
@@ -3893,6 +3969,8 @@ OpFunctionEnd
 
   CompileSuccessfully(body.c_str());
   ASSERT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(SPV_ENV_VULKAN_1_0));
+  EXPECT_THAT(getDiagnosticString(),
+              AnyVUID("VUID-StandaloneSpirv-OpImageQuerySizeLod-04659"));
   EXPECT_THAT(
       getDiagnosticString(),
       HasSubstr(
@@ -4227,6 +4305,8 @@ OpFunctionEnd
 
   CompileSuccessfully(body.c_str());
   ASSERT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(SPV_ENV_VULKAN_1_0));
+  EXPECT_THAT(getDiagnosticString(),
+              AnyVUID("VUID-StandaloneSpirv-OpImageQuerySizeLod-04659"));
   EXPECT_THAT(
       getDiagnosticString(),
       HasSubstr("OpImageQueryLevels must only consume an \"Image\" operand "
@@ -4412,6 +4492,8 @@ OpFunctionEnd
 
   CompileSuccessfully(body.c_str());
   ASSERT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(SPV_ENV_VULKAN_1_0));
+  EXPECT_THAT(getDiagnosticString(),
+              AnyVUID("VUID-StandaloneSpirv-OpTypeImage-04657"));
   EXPECT_THAT(getDiagnosticString(),
               HasSubstr("Sampled image type requires an image type with "
                         "\"Sampled\" operand set to 0 or 1"));

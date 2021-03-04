@@ -9,7 +9,7 @@
 
 #include "common/system_utils.h"
 #include "libANGLE/Context.h"
-#include "libANGLE/frame_capture_utils.h"
+#include "libANGLE/capture/frame_capture_utils.h"
 #include "util/EGLPlatformParameters.h"
 #include "util/EGLWindow.h"
 #include "util/OSWindow.h"
@@ -135,12 +135,13 @@ class CaptureReplayTests
                 return -1;
             }
             bool isEqual = compareSerializedContexts(testIndex, frame, bos.getData());
+            // Swap always to allow RenderDoc/other tools to capture frames.
+            swap();
             if (!isEqual)
             {
                 cleanupTest();
                 return -1;
             }
-            swap();
         }
         cleanupTest();
         return 0;
