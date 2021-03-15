@@ -295,12 +295,17 @@ void RendererVk::ensureCapsInitialized() const
     // Enable GL_EXT_buffer_storage
     mNativeExtensions.bufferStorageEXT = true;
 
-    // To ensure that ETC2/EAC formats are enabled only on hardware that supports them natively,
-    // this flag is not set by the function above and must be set explicitly. It exposes
-    // ANGLE_compressed_texture_etc extension string.
-    mNativeExtensions.compressedTextureETC =
-        (mPhysicalDeviceFeatures.textureCompressionETC2 == VK_TRUE) &&
-        gl::DetermineCompressedTextureETCSupport(mNativeTextureCaps);
+    // When ETC2/EAC formats are natively supported, enable ANGLE-specific extension string to
+    // expose them to WebGL. In other case, mark potentially-available ETC1 extension as emulated.
+    if ((mPhysicalDeviceFeatures.textureCompressionETC2 == VK_TRUE) &&
+        gl::DetermineCompressedTextureETCSupport(mNativeTextureCaps))
+    {
+        mNativeExtensions.compressedTextureETC = true;
+    }
+    else
+    {
+        mNativeLimitations.emulatedEtc1 = true;
+    }
 
     // Vulkan doesn't support ASTC 3D block textures, which are required by
     // GL_OES_texture_compression_astc.
@@ -860,6 +865,11 @@ void RendererVk::ensureCapsInitialized() const
     mNativeCaps.maxFramebufferSamples = mNativeCaps.maxSamples;
 
     mNativeCaps.subPixelBits = limitsVk.subPixelPrecisionBits;
+
+    // Enable GL_EXT_shader_framebuffer_fetch_non_coherent
+    // For supporting this extension, gl::IMPLEMENTATION_MAX_DRAW_BUFFERS is used.
+    mNativeExtensions.shaderFramebufferFetchNonCoherentEXT =
+        mNativeCaps.maxDrawBuffers >= gl::IMPLEMENTATION_MAX_DRAW_BUFFERS;
 
     // Enable Program Binary extension.
     mNativeExtensions.getProgramBinaryOES = true;

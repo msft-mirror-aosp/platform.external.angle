@@ -38,6 +38,15 @@ extern const spvtools::MessageConsumer kSilentMessageConsumer;
 // Function type that produces a SPIR-V module.
 using ModuleSupplier = std::function<std::unique_ptr<opt::IRContext>()>;
 
+// Builds a new opt::IRContext object. Returns true if successful and changes
+// the |ir_context| parameter. Otherwise (if any errors occur), returns false
+// and |ir_context| remains unchanged.
+bool BuildIRContext(spv_target_env target_env,
+                    const spvtools::MessageConsumer& message_consumer,
+                    const std::vector<uint32_t>& binary_in,
+                    spv_validator_options validator_options,
+                    std::unique_ptr<spvtools::opt::IRContext>* ir_context);
+
 // Returns true if and only if the module does not define the given id.
 bool IsFreshId(opt::IRContext* context, uint32_t id);
 
@@ -58,6 +67,16 @@ opt::BasicBlock* MaybeFindBlock(opt::IRContext* context,
 bool PhiIdsOkForNewEdge(
     opt::IRContext* context, opt::BasicBlock* bb_from, opt::BasicBlock* bb_to,
     const google::protobuf::RepeatedField<google::protobuf::uint32>& phi_ids);
+
+// Returns an OpBranchConditional instruction that will create an unreachable
+// branch from |bb_from_id| to |bb_to_id|. |bool_id| must be a result id of
+// either OpConstantTrue or OpConstantFalse. Based on the opcode of |bool_id|,
+// operands of the returned instruction will be positioned in a way that the
+// branch from |bb_from_id| to |bb_to_id| is always unreachable.
+opt::Instruction CreateUnreachableEdgeInstruction(opt::IRContext* ir_context,
+                                                  uint32_t bb_from_id,
+                                                  uint32_t bb_to_id,
+                                                  uint32_t bool_id);
 
 // Requires that |bool_id| is a valid result id of either OpConstantTrue or
 // OpConstantFalse, that PhiIdsOkForNewEdge(context, bb_from, bb_to, phi_ids)
@@ -587,6 +606,14 @@ bool InstructionHasNoSideEffects(const opt::Instruction& instruction);
 // Assumes that the function exists in the module.
 std::set<uint32_t> GetReachableReturnBlocks(opt::IRContext* ir_context,
                                             uint32_t function_id);
+
+// Returns true if changing terminator instruction to |new_terminator| in the
+// basic block with id |block_id| preserves domination rules and valid block
+// order (i.e. dominator must always appear before dominated in the CFG).
+// Returns false otherwise.
+bool NewTerminatorPreservesDominationRules(opt::IRContext* ir_context,
+                                           uint32_t block_id,
+                                           opt::Instruction new_terminator);
 
 }  // namespace fuzzerutil
 }  // namespace fuzz

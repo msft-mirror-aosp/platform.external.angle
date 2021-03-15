@@ -43,6 +43,9 @@ declare_args() {
 
   # Adds run-time checks to filter out EVENT() messages when the debug annotator is disabled.
   angle_enable_annotator_run_time_checks = false
+
+  # Enables non-conformant extensions and features
+  angle_expose_non_conformant_extensions_and_versions = false
 }
 
 if (angle_build_all) {
@@ -54,6 +57,7 @@ if (angle_build_all) {
       ":translator_fuzzer",
       ":xxhash_fuzzer",
       "$angle_root/samples:angle_samples",
+      "$angle_root/src/libOpenCL:angle_cl",
       "$angle_root/src/tests:angle_tests",
     ]
   }
@@ -156,6 +160,13 @@ config("constructor_and_destructor_warnings") {
 config("extra_warnings") {
   cflags = []
 
+  is_gcc = !is_clang && !is_win
+
+  # Avoid failing builds for warnings enabled by Skia build.
+  if (defined(is_skia_standalone)) {
+    cflags += [ "-w" ]
+  }
+
   # Enable more default warnings on Windows.
   if (is_win) {
     cflags += [
@@ -179,7 +190,7 @@ config("extra_warnings") {
       "-Wnewline-eof",
       "-Wnon-virtual-dtor",
       "-Wredundant-parens",
-      "-Wreturn-std-move-in-c++11",
+      "-Wreturn-std-move",
       "-Wshadow-field",
       "-Wtautological-type-limit-compare",
       "-Wundefined-reinterpret-cast",
@@ -202,6 +213,10 @@ config("extra_warnings") {
         "-Wsuggest-override",
       ]
     }
+  }
+
+  if (is_gcc) {
+    cflags_cc = [ "-Wdeprecated-copy" ]
   }
 
   if (angle_is_winuwp) {
@@ -347,6 +362,10 @@ angle_static_library("angle_common") {
     } else {
       libs = [ "android" ]
     }
+  }
+
+  if (angle_expose_non_conformant_extensions_and_versions) {
+    defines = [ "ANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS" ]
   }
 }
 
@@ -685,6 +704,7 @@ if (angle_enable_vulkan || angle_enable_metal) {
     ]
     deps = [
       ":libANGLE_headers",
+      "$angle_root/src/common/spirv:angle_spirv_base",
       "$angle_root/src/common/spirv:angle_spirv_builder",
       "$angle_root/src/common/spirv:angle_spirv_parser",
       "${angle_glslang_dir}:glslang_default_resource_limits_sources",
@@ -922,6 +942,7 @@ config("library_name_config") {
 config("angle_static") {
   defines = [
     "ANGLE_EXPORT=",
+    "ANGLE_STATIC=1",
     "ANGLE_UTIL_EXPORT=",
     "EGLAPI=",
     "GL_APICALL=",

@@ -682,6 +682,28 @@ bool CanCopyWithTransferForCopyImage(RendererVk *renderer,
            CanCopyWithTransfer(renderer, srcFormat, srcTilingMode, destFormat, destTilingMode);
 }
 
+bool CanCopyWithTransformForReadPixels(const PackPixelsParams &packPixelsParams,
+                                       const vk::Format *imageFormat,
+                                       const angle::Format *readFormat)
+{
+    // Don't allow copies from emulated formats for simplicity.
+    const bool isEmulatedFormat = imageFormat->hasEmulatedImageFormat();
+
+    // Only allow copies to PBOs with identical format.
+    const bool isSameFormatCopy = *readFormat == *packPixelsParams.destFormat;
+
+    // Disallow any transformation.
+    const bool needsTransformation =
+        packPixelsParams.rotation != SurfaceRotation::Identity || packPixelsParams.reverseRowOrder;
+
+    // Disallow copies when the output pitch cannot be correctly specified in Vulkan.
+    const bool isPitchMultipleOfTexelSize =
+        packPixelsParams.outputPitch % readFormat->pixelBytes == 0;
+
+    return !isEmulatedFormat && isSameFormatCopy && !needsTransformation &&
+           isPitchMultipleOfTexelSize;
+}
+
 void ReleaseBufferListToRenderer(RendererVk *renderer, BufferHelperPointerVector *buffers)
 {
     for (std::unique_ptr<BufferHelper> &toFree : *buffers)
@@ -698,6 +720,23 @@ void DestroyBufferList(RendererVk *renderer, BufferHelperPointerVector *buffers)
         toDestroy->destroy(renderer);
     }
     buffers->clear();
+}
+
+bool ShouldReleaseFreeBuffer(const vk::BufferHelper &buffer,
+                             size_t dynamicBufferSize,
+                             DynamicBufferPolicy policy,
+                             size_t freeListSize)
+{
+    constexpr size_t kLimitedFreeListMaxSize = 1;
+
+    // If the dynamic buffer was resized we cannot reuse the retained buffer.  Additionally,
+    // only reuse the buffer if specifically requested.
+    const bool sizeMismatch    = buffer.getSize() != dynamicBufferSize;
+    const bool releaseByPolicy = policy == DynamicBufferPolicy::OneShotUse ||
+                                 (policy == DynamicBufferPolicy::SporadicTextureUpload &&
+                                  freeListSize >= kLimitedFreeListMaxSize);
+
+    return sizeMismatch || releaseByPolicy;
 }
 }  // anonymous namespace
 
@@ -772,8 +811,11 @@ CommandBufferHelper::CommandBufferHelper()
       mTransformFeedbackCounterBuffers{},
       mValidTransformFeedbackBufferCount(0),
       mRebindTransformFeedbackBuffers(false),
+      mIsTransformFeedbackActiveUnpaused(false),
       mIsRenderPassCommandBuffer(false),
       mReadOnlyDepthStencilMode(false),
+      mHasShaderStorageOutput(false),
+      mHasGLMemoryBarrierIssued(false),
       mDepthAccess(ResourceAccess::Unused),
       mStencilAccess(ResourceAccess::Unused),
       mDepthCmdSizeInvalidated(kInfiniteCmdSize),
@@ -821,12 +863,12 @@ bool CommandBufferHelper::usesBufferForWrite(const BufferHelper &buffer) const
     return access == BufferAccess::Write;
 }
 
-void CommandBufferHelper::bufferRead(ResourceUseList *resourceUseList,
+void CommandBufferHelper::bufferRead(ContextVk *contextVk,
                                      VkAccessFlags readAccessType,
                                      PipelineStage readStage,
                                      BufferHelper *buffer)
 {
-    buffer->retain(resourceUseList);
+    buffer->retain(&contextVk->getResourceUseList());
     VkPipelineStageFlagBits stageBits = kPipelineStageFlagBitMap[readStage];
     if (buffer->recordReadBarrier(readAccessType, stageBits, &mPipelineBarriers[readStage]))
     {
@@ -840,13 +882,13 @@ void CommandBufferHelper::bufferRead(ResourceUseList *resourceUseList,
     }
 }
 
-void CommandBufferHelper::bufferWrite(ResourceUseList *resourceUseList,
+void CommandBufferHelper::bufferWrite(ContextVk *contextVk,
                                       VkAccessFlags writeAccessType,
                                       PipelineStage writeStage,
                                       AliasingMode aliasingMode,
                                       BufferHelper *buffer)
 {
-    buffer->retain(resourceUseList);
+    buffer->retain(&contextVk->getResourceUseList());
     VkPipelineStageFlagBits stageBits = kPipelineStageFlagBitMap[writeStage];
     if (buffer->recordWriteBarrier(writeAccessType, stageBits, &mPipelineBarriers[writeStage]))
     {
@@ -861,6 +903,14 @@ void CommandBufferHelper::bufferWrite(ResourceUseList *resourceUseList,
     {
         ASSERT(!usesBuffer(*buffer));
         mUsedBuffers.insert(buffer->getBufferSerial().getValue(), BufferAccess::Write);
+    }
+
+    // Make sure host-visible buffer writes result in a barrier inserted at the end of the frame to
+    // make the results visible to the host.  The buffer may be mapped by the application in the
+    // future.
+    if (buffer->isHostVisible())
+    {
+        contextVk->onHostVisibleBufferWrite();
     }
 }
 
@@ -1404,26 +1454,6 @@ angle::Result CommandBufferHelper::flushToPrimary(const angle::FeaturesVk &featu
         primary->beginRenderPass(beginInfo, VK_SUBPASS_CONTENTS_INLINE);
         mCommandBuffer.executeCommands(primary->getHandle());
         primary->endRenderPass();
-
-        if (mValidTransformFeedbackBufferCount != 0)
-        {
-            // Would be better to accumulate this barrier using the command APIs.
-            // TODO: Clean thus up before we close http://anglebug.com/3206
-            VkBufferMemoryBarrier bufferBarrier = {};
-            bufferBarrier.sType                 = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-            bufferBarrier.pNext                 = nullptr;
-            bufferBarrier.srcAccessMask       = VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT;
-            bufferBarrier.dstAccessMask       = VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT;
-            bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            bufferBarrier.buffer              = mTransformFeedbackCounterBuffers[0];
-            bufferBarrier.offset              = 0;
-            bufferBarrier.size                = VK_WHOLE_SIZE;
-
-            primary->pipelineBarrier(VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT,
-                                     VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, 0u, 0u, nullptr, 1u,
-                                     &bufferBarrier, 0u, nullptr);
-        }
     }
     else
     {
@@ -1546,6 +1576,8 @@ void CommandBufferHelper::reset()
         mRenderPassStarted                 = false;
         mValidTransformFeedbackBufferCount = 0;
         mRebindTransformFeedbackBuffers    = false;
+        mHasShaderStorageOutput            = false;
+        mHasGLMemoryBarrierIssued          = false;
         mDepthAccess                       = ResourceAccess::Unused;
         mStencilAccess                     = ResourceAccess::Unused;
         mDepthCmdSizeInvalidated           = kInfiniteCmdSize;
@@ -1563,7 +1595,8 @@ void CommandBufferHelper::reset()
     // This state should never change for non-renderPass command buffer
     ASSERT(mRenderPassStarted == false);
     ASSERT(mValidTransformFeedbackBufferCount == 0);
-    ASSERT(mRebindTransformFeedbackBuffers == false);
+    ASSERT(!mRebindTransformFeedbackBuffers);
+    ASSERT(!mIsTransformFeedbackActiveUnpaused);
     ASSERT(mRenderPassUsedImages.empty());
 }
 
@@ -1575,7 +1608,8 @@ void CommandBufferHelper::resumeTransformFeedback()
     uint32_t numCounterBuffers =
         mRebindTransformFeedbackBuffers ? 0 : mValidTransformFeedbackBufferCount;
 
-    mRebindTransformFeedbackBuffers = false;
+    mRebindTransformFeedbackBuffers    = false;
+    mIsTransformFeedbackActiveUnpaused = true;
 
     mCommandBuffer.beginTransformFeedback(numCounterBuffers,
                                           mTransformFeedbackCounterBuffers.data());
@@ -1584,7 +1618,8 @@ void CommandBufferHelper::resumeTransformFeedback()
 void CommandBufferHelper::pauseTransformFeedback()
 {
     ASSERT(mIsRenderPassCommandBuffer);
-    ASSERT(isTransformFeedbackStarted());
+    ASSERT(isTransformFeedbackStarted() && isTransformFeedbackActiveUnpaused());
+    mIsTransformFeedbackActiveUnpaused = false;
     mCommandBuffer.endTransformFeedback(mValidTransformFeedbackBufferCount,
                                         mTransformFeedbackCounterBuffers.data());
 }
@@ -1648,6 +1683,7 @@ void CommandBufferHelper::growRenderArea(ContextVk *contextVk, const gl::Rectang
 DynamicBuffer::DynamicBuffer()
     : mUsage(0),
       mHostVisible(false),
+      mPolicy(DynamicBufferPolicy::OneShotUse),
       mInitialSize(0),
       mNextAllocationOffset(0),
       mLastFlushOrInvalidateOffset(0),
@@ -1659,6 +1695,7 @@ DynamicBuffer::DynamicBuffer()
 DynamicBuffer::DynamicBuffer(DynamicBuffer &&other)
     : mUsage(other.mUsage),
       mHostVisible(other.mHostVisible),
+      mPolicy(other.mPolicy),
       mInitialSize(other.mInitialSize),
       mBuffer(std::move(other.mBuffer)),
       mNextAllocationOffset(other.mNextAllocationOffset),
@@ -1674,23 +1711,26 @@ void DynamicBuffer::init(RendererVk *renderer,
                          VkBufferUsageFlags usage,
                          size_t alignment,
                          size_t initialSize,
-                         bool hostVisible)
+                         bool hostVisible,
+                         DynamicBufferPolicy policy)
 {
     VkMemoryPropertyFlags memoryPropertyFlags =
         (hostVisible) ? VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-    initWithFlags(renderer, usage, alignment, initialSize, memoryPropertyFlags);
+    initWithFlags(renderer, usage, alignment, initialSize, memoryPropertyFlags, policy);
 }
 
 void DynamicBuffer::initWithFlags(RendererVk *renderer,
                                   VkBufferUsageFlags usage,
                                   size_t alignment,
                                   size_t initialSize,
-                                  VkMemoryPropertyFlags memoryPropertyFlags)
+                                  VkMemoryPropertyFlags memoryPropertyFlags,
+                                  DynamicBufferPolicy policy)
 {
     mUsage               = usage;
     mHostVisible         = ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0);
     mMemoryPropertyFlags = memoryPropertyFlags;
+    mPolicy              = policy;
 
     // Check that we haven't overriden the initial size of the buffer in setMinimumSizeForTesting.
     if (mInitialSize == 0)
@@ -1718,6 +1758,16 @@ DynamicBuffer::~DynamicBuffer()
 
 angle::Result DynamicBuffer::allocateNewBuffer(ContextVk *contextVk)
 {
+    // Gather statistics
+    const gl::OverlayType *overlay = contextVk->getOverlay();
+    if (overlay->isEnabled())
+    {
+        gl::RunningGraphWidget *dynamicBufferAllocations =
+            overlay->getRunningGraphWidget(gl::WidgetId::VulkanDynamicBufferAllocations);
+        dynamicBufferAllocations->add(1);
+    }
+
+    // Allocate the buffer
     ASSERT(!mBuffer);
     mBuffer = std::make_unique<BufferHelper>();
 
@@ -1779,7 +1829,6 @@ angle::Result DynamicBuffer::allocateWithAlignment(ContextVk *contextVk,
         if (mBuffer)
         {
             ANGLE_TRY(flush(contextVk));
-            mBuffer->unmap(contextVk->getRenderer());
 
             mInFlightBuffers.push_back(std::move(mBuffer));
             ASSERT(!mBuffer);
@@ -1790,11 +1839,7 @@ angle::Result DynamicBuffer::allocateWithAlignment(ContextVk *contextVk,
             mSize = std::max(mInitialSize, sizeToAllocate);
 
             // Clear the free list since the free buffers are now too small.
-            for (std::unique_ptr<BufferHelper> &toFree : mBufferFreeList)
-            {
-                toFree->release(contextVk->getRenderer());
-            }
-            mBufferFreeList.clear();
+            ReleaseBufferListToRenderer(contextVk->getRenderer(), &mBufferFreeList);
         }
 
         // The front of the free list should be the oldest. Thus if it is in use the rest of the
@@ -1895,13 +1940,13 @@ void DynamicBuffer::releaseInFlightBuffersToResourceUseList(ContextVk *contextVk
     {
         bufferHelper->retain(resourceUseList);
 
-        // If the dynamic buffer was resized we cannot reuse the retained buffer.
-        if (bufferHelper->getSize() < mSize)
+        if (ShouldReleaseFreeBuffer(*bufferHelper, mSize, mPolicy, mBufferFreeList.size()))
         {
             bufferHelper->release(contextVk->getRenderer());
         }
         else
         {
+            bufferHelper->unmap(contextVk->getRenderer());
             mBufferFreeList.push_back(std::move(bufferHelper));
         }
     }
@@ -1912,13 +1957,13 @@ void DynamicBuffer::releaseInFlightBuffers(ContextVk *contextVk)
 {
     for (std::unique_ptr<BufferHelper> &toRelease : mInFlightBuffers)
     {
-        // If the dynamic buffer was resized we cannot reuse the retained buffer.
-        if (toRelease->getSize() < mSize)
+        if (ShouldReleaseFreeBuffer(*toRelease, mSize, mPolicy, mBufferFreeList.size()))
         {
             toRelease->release(contextVk->getRenderer());
         }
         else
         {
+            toRelease->unmap(contextVk->getRenderer());
             mBufferFreeList.push_back(std::move(toRelease));
         }
     }
@@ -2741,9 +2786,11 @@ LineLoopHelper::LineLoopHelper(RendererVk *renderer)
     // sum of offset and the address of the range of VkDeviceMemory object that is backing buffer,
     // must be a multiple of the type indicated by indexType'.
     mDynamicIndexBuffer.init(renderer, kLineLoopDynamicBufferUsage, sizeof(uint32_t),
-                             kLineLoopDynamicBufferInitialSize, true);
+                             kLineLoopDynamicBufferInitialSize, true,
+                             DynamicBufferPolicy::OneShotUse);
     mDynamicIndirectBuffer.init(renderer, kLineLoopDynamicIndirectBufferUsage, sizeof(uint32_t),
-                                kLineLoopDynamicIndirectBufferInitialSize, true);
+                                kLineLoopDynamicIndirectBufferInitialSize, true,
+                                DynamicBufferPolicy::OneShotUse);
 }
 
 LineLoopHelper::~LineLoopHelper() = default;
@@ -3445,6 +3492,7 @@ ImageHelper::ImageHelper(ImageHelper &&other)
       mTilingMode(other.mTilingMode),
       mUsage(other.mUsage),
       mExtents(other.mExtents),
+      mRotatedAspectRatio(other.mRotatedAspectRatio),
       mFormat(other.mFormat),
       mSamples(other.mSamples),
       mImageSerial(other.mImageSerial),
@@ -3479,6 +3527,7 @@ void ImageHelper::resetCachedProperties()
     mTilingMode                  = VK_IMAGE_TILING_OPTIMAL;
     mUsage                       = 0;
     mExtents                     = {};
+    mRotatedAspectRatio          = false;
     mFormat                      = nullptr;
     mSamples                     = 1;
     mImageSerial                 = kInvalidImageSerial;
@@ -3578,7 +3627,8 @@ void ImageHelper::initStagingBuffer(RendererVk *renderer,
                                     VkBufferUsageFlags usageFlags,
                                     size_t initialSize)
 {
-    mStagingBuffer.init(renderer, usageFlags, imageCopyBufferAlignment, initialSize, true);
+    mStagingBuffer.init(renderer, usageFlags, imageCopyBufferAlignment, initialSize, true,
+                        DynamicBufferPolicy::OneShotUse);
 }
 
 angle::Result ImageHelper::init(Context *context,
@@ -3595,13 +3645,13 @@ angle::Result ImageHelper::init(Context *context,
 {
     return initExternal(context, textureType, extents, format, samples, usage,
                         kVkImageCreateFlagsNone, ImageLayout::Undefined, nullptr, baseLevel,
-                        maxLevel, mipLevels, layerCount, isRobustResourceInitEnabled);
+                        maxLevel, mipLevels, layerCount, isRobustResourceInitEnabled, nullptr);
 }
 
 angle::Result ImageHelper::initMSAASwapchain(Context *context,
                                              gl::TextureType textureType,
                                              const VkExtent3D &extents,
-                                             bool rotatedAspectRation,
+                                             bool rotatedAspectRatio,
                                              const Format &format,
                                              GLint samples,
                                              VkImageUsageFlags usage,
@@ -3613,11 +3663,12 @@ angle::Result ImageHelper::initMSAASwapchain(Context *context,
 {
     ANGLE_TRY(initExternal(context, textureType, extents, format, samples, usage,
                            kVkImageCreateFlagsNone, ImageLayout::Undefined, nullptr, baseLevel,
-                           maxLevel, mipLevels, layerCount, isRobustResourceInitEnabled));
-    if (rotatedAspectRation)
+                           maxLevel, mipLevels, layerCount, isRobustResourceInitEnabled, nullptr));
+    if (rotatedAspectRatio)
     {
         std::swap(mExtents.width, mExtents.height);
     }
+    mRotatedAspectRatio = rotatedAspectRatio;
     return angle::Result::Continue;
 }
 
@@ -3634,22 +3685,24 @@ angle::Result ImageHelper::initExternal(Context *context,
                                         gl::LevelIndex maxLevel,
                                         uint32_t mipLevels,
                                         uint32_t layerCount,
-                                        bool isRobustResourceInitEnabled)
+                                        bool isRobustResourceInitEnabled,
+                                        bool *imageFormatListEnabledOut)
 {
     ASSERT(!valid());
     ASSERT(!IsAnySubresourceContentDefined(mContentDefined));
     ASSERT(!IsAnySubresourceContentDefined(mStencilContentDefined));
 
-    mImageType   = gl_vk::GetImageType(textureType);
-    mExtents     = extents;
-    mFormat      = &format;
-    mSamples     = std::max(samples, 1);
-    mImageSerial = context->getRenderer()->getResourceSerialFactory().generateImageSerial();
-    mBaseLevel   = baseLevel;
-    mMaxLevel    = maxLevel;
-    mLevelCount  = mipLevels;
-    mLayerCount  = layerCount;
-    mUsage       = usage;
+    mImageType          = gl_vk::GetImageType(textureType);
+    mExtents            = extents;
+    mRotatedAspectRatio = false;
+    mFormat             = &format;
+    mSamples            = std::max(samples, 1);
+    mImageSerial        = context->getRenderer()->getResourceSerialFactory().generateImageSerial();
+    mBaseLevel          = baseLevel;
+    mMaxLevel           = maxLevel;
+    mLevelCount         = mipLevels;
+    mLayerCount         = layerCount;
+    mUsage              = usage;
 
     // Validate that mLayerCount is compatible with the texture type
     ASSERT(textureType != gl::TextureType::_3D || mLayerCount == 1);
@@ -3658,14 +3711,46 @@ angle::Result ImageHelper::initExternal(Context *context,
     ASSERT(textureType != gl::TextureType::Rectangle || mLayerCount == 1);
     ASSERT(textureType != gl::TextureType::CubeMap || mLayerCount == gl::kCubeFaceCount);
 
-    VkImageCreateInfo imageInfo     = {};
-    imageInfo.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.pNext                 = externalImageCreateInfo;
-    imageInfo.flags                 = GetImageCreateFlags(textureType) | additionalCreateFlags;
-    imageInfo.imageType             = mImageType;
-    imageInfo.format                = format.actualImageVkFormat();
-    imageInfo.extent                = mExtents;
-    imageInfo.mipLevels             = mipLevels;
+    // With the introduction of sRGB related GLES extensions any sample/render target could be
+    // respecified causing it to be interpreted in a different colorspace. Create the VkImage
+    // accordingly.
+    bool imageFormatListEnabled                        = false;
+    RendererVk *rendererVk                             = context->getRenderer();
+    VkImageFormatListCreateInfoKHR imageFormatListInfo = {};
+    angle::FormatID imageFormat                        = format.actualImageFormatID;
+    angle::FormatID imageListFormat                    = format.actualImageFormat().isSRGB
+                                          ? ConvertToLinear(imageFormat)
+                                          : ConvertToSRGB(imageFormat);
+    VkFormat imageListVkFormat = vk::GetVkFormatFromFormatID(imageListFormat);
+
+    if (rendererVk->getFeatures().supportsImageFormatList.enabled &&
+        rendererVk->haveSameFormatFeatureBits(imageFormat, imageListFormat))
+    {
+        imageFormatListEnabled = true;
+
+        // Add VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT to VkImage create flag
+        additionalCreateFlags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
+        // There is just 1 additional format we might use to create a VkImageView for this VkImage
+        imageFormatListInfo.sType           = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR;
+        imageFormatListInfo.pNext           = externalImageCreateInfo;
+        imageFormatListInfo.viewFormatCount = 1;
+        imageFormatListInfo.pViewFormats    = &imageListVkFormat;
+    }
+
+    if (imageFormatListEnabledOut)
+    {
+        *imageFormatListEnabledOut = imageFormatListEnabled;
+    }
+
+    VkImageCreateInfo imageInfo = {};
+    imageInfo.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.pNext     = (imageFormatListEnabled) ? &imageFormatListInfo : externalImageCreateInfo;
+    imageInfo.flags     = GetImageCreateFlags(textureType) | additionalCreateFlags;
+    imageInfo.imageType = mImageType;
+    imageInfo.format    = format.actualImageVkFormat();
+    imageInfo.extent    = mExtents;
+    imageInfo.mipLevels = mipLevels;
     imageInfo.arrayLayers           = mLayerCount;
     imageInfo.samples               = gl_vk::GetSamples(mSamples);
     imageInfo.tiling                = mTilingMode;
@@ -3732,7 +3817,8 @@ void ImageHelper::releaseStagingBuffer(RendererVk *renderer)
 void ImageHelper::resetImageWeakReference()
 {
     mImage.reset();
-    mImageSerial = kInvalidImageSerial;
+    mImageSerial        = kInvalidImageSerial;
+    mRotatedAspectRatio = false;
 }
 
 angle::Result ImageHelper::initializeNonZeroMemory(Context *context, VkDeviceSize size)
@@ -4037,6 +4123,7 @@ void ImageHelper::destroy(RendererVk *renderer)
 void ImageHelper::init2DWeakReference(Context *context,
                                       VkImage handle,
                                       const gl::Extents &glExtents,
+                                      bool rotatedAspectRatio,
                                       const Format &format,
                                       GLint samples,
                                       bool isRobustResourceInitEnabled)
@@ -4046,12 +4133,13 @@ void ImageHelper::init2DWeakReference(Context *context,
     ASSERT(!IsAnySubresourceContentDefined(mStencilContentDefined));
 
     gl_vk::GetExtent(glExtents, &mExtents);
-    mFormat        = &format;
-    mSamples       = std::max(samples, 1);
-    mImageSerial   = context->getRenderer()->getResourceSerialFactory().generateImageSerial();
-    mCurrentLayout = ImageLayout::Undefined;
-    mLayerCount    = 1;
-    mLevelCount    = 1;
+    mRotatedAspectRatio = rotatedAspectRatio;
+    mFormat             = &format;
+    mSamples            = std::max(samples, 1);
+    mImageSerial        = context->getRenderer()->getResourceSerialFactory().generateImageSerial();
+    mCurrentLayout      = ImageLayout::Undefined;
+    mLayerCount         = 1;
+    mLevelCount         = 1;
 
     mImage.setHandle(handle);
 
@@ -4070,12 +4158,13 @@ angle::Result ImageHelper::init2DStaging(Context *context,
     ASSERT(!IsAnySubresourceContentDefined(mStencilContentDefined));
 
     gl_vk::GetExtent(glExtents, &mExtents);
-    mImageType   = VK_IMAGE_TYPE_2D;
-    mFormat      = &format;
-    mSamples     = 1;
-    mImageSerial = context->getRenderer()->getResourceSerialFactory().generateImageSerial();
-    mLayerCount  = layerCount;
-    mLevelCount  = 1;
+    mRotatedAspectRatio = false;
+    mImageType          = VK_IMAGE_TYPE_2D;
+    mFormat             = &format;
+    mSamples            = 1;
+    mImageSerial        = context->getRenderer()->getResourceSerialFactory().generateImageSerial();
+    mLayerCount         = layerCount;
+    mLevelCount         = 1;
 
     mCurrentLayout = ImageLayout::Undefined;
 
@@ -4140,7 +4229,7 @@ angle::Result ImageHelper::initImplicitMultisampledRenderToTexture(
         context, textureType, resolveImage.getExtents(), resolveImage.getFormat(), samples,
         kMultisampledUsageFlags, kMultisampledCreateFlags, ImageLayout::Undefined, nullptr,
         resolveImage.getBaseLevel(), resolveImage.getMaxLevel(), resolveImage.getLevelCount(),
-        resolveImage.getLayerCount(), isRobustResourceInitEnabled));
+        resolveImage.getLayerCount(), isRobustResourceInitEnabled, nullptr));
 
     const VkMemoryPropertyFlags kMultisampledMemoryFlags =
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
@@ -4187,6 +4276,26 @@ gl::Extents ImageHelper::getLevelExtents2D(LevelIndex levelVk) const
 {
     gl::Extents extents = getLevelExtents(levelVk);
     extents.depth       = 1;
+    return extents;
+}
+
+const VkExtent3D ImageHelper::getRotatedExtents() const
+{
+    VkExtent3D extents = mExtents;
+    if (mRotatedAspectRatio)
+    {
+        std::swap(extents.width, extents.height);
+    }
+    return extents;
+}
+
+gl::Extents ImageHelper::getRotatedLevelExtents2D(LevelIndex levelVk) const
+{
+    gl::Extents extents = getLevelExtents2D(levelVk);
+    if (mRotatedAspectRatio)
+    {
+        std::swap(extents.width, extents.height);
+    }
     return extents;
 }
 
@@ -6155,7 +6264,7 @@ angle::Result ImageHelper::readPixelsForGetImage(ContextVk *contextVk,
     // Use a temporary staging buffer. Could be optimized.
     RendererScoped<DynamicBuffer> stagingBuffer(contextVk->getRenderer());
     stagingBuffer.get().init(contextVk->getRenderer(), VK_BUFFER_USAGE_TRANSFER_DST_BIT, 1,
-                             kStagingBufferSize, true);
+                             kStagingBufferSize, true, DynamicBufferPolicy::OneShotUse);
 
     if (mExtents.depth > 1)
     {
@@ -6278,6 +6387,34 @@ angle::Result ImageHelper::readPixels(ContextVk *contextVk,
         srcSubresource.mipLevel       = 0;
     }
 
+    // If PBO and if possible, copy directly on the GPU.
+    if (packPixelsParams.packBuffer &&
+        CanCopyWithTransformForReadPixels(packPixelsParams, mFormat, readFormat))
+    {
+        BufferHelper &packBuffer = GetImpl(packPixelsParams.packBuffer)->getBuffer();
+
+        CommandBufferAccess copyAccess;
+        copyAccess.onBufferTransferWrite(&packBuffer);
+        copyAccess.onImageTransferRead(copyAspectFlags, src);
+
+        CommandBuffer *copyCommandBuffer;
+        ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(copyAccess, &copyCommandBuffer));
+
+        ASSERT(packPixelsParams.outputPitch % readFormat->pixelBytes == 0);
+
+        VkBufferImageCopy region = {};
+        region.bufferImageHeight = srcExtent.height;
+        region.bufferOffset      = packPixelsParams.offset + reinterpret_cast<ptrdiff_t>(pixels);
+        region.bufferRowLength   = packPixelsParams.outputPitch / readFormat->pixelBytes;
+        region.imageExtent       = srcExtent;
+        region.imageOffset       = srcOffset;
+        region.imageSubresource  = srcSubresource;
+
+        copyCommandBuffer->copyImageToBuffer(src->getImage(), src->getCurrentLayout(),
+                                             packBuffer.getBuffer().getHandle(), 1, &region);
+        return angle::Result::Continue;
+    }
+
     VkBuffer bufferHandle      = VK_NULL_HANDLE;
     uint8_t *readPixelBuffer   = nullptr;
     VkDeviceSize stagingOffset = 0;
@@ -6294,8 +6431,14 @@ angle::Result ImageHelper::readPixels(ContextVk *contextVk,
     region.imageOffset       = srcOffset;
     region.imageSubresource  = srcSubresource;
 
-    commandBuffer->copyImageToBuffer(src->getImage(), src->getCurrentLayout(), bufferHandle, 1,
-                                     &region);
+    CommandBufferAccess readbackAccess;
+    readbackAccess.onBufferTransferWrite(stagingBuffer->getCurrentBuffer());
+
+    CommandBuffer *readbackCommandBuffer;
+    ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(readbackAccess, &readbackCommandBuffer));
+
+    readbackCommandBuffer->copyImageToBuffer(src->getImage(), src->getCurrentLayout(), bufferHandle,
+                                             1, &region);
 
     ANGLE_PERF_WARNING(contextVk->getDebug(), GL_DEBUG_SEVERITY_HIGH,
                        "GPU stall due to ReadPixels");

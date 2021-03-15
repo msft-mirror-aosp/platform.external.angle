@@ -22,6 +22,10 @@
 //// General Vulkan expectations
 ////
 
+// Test bug with missing glMemoryBarrier call
+5673 VULKAN : KHR-GLES31.core.texture_buffer.texture_buffer_operations_transform_feedback = FAIL
+5673 VULKAN : KHR-GLES31.core.compute_shader.pipeline-post-xfb = FAIL
+
 // Framebuffer without attachments:
 3579 VULKAN : KHR-GLES31.core.framebuffer_no_attachments.api = FAIL
 
@@ -61,6 +65,9 @@
 // Geometry shader support
 5483 VULKAN : KHR-GLES31.core.draw_indirect.basic-mode-*adjacency = SKIP
 
+// New failures with latest dEQP roll (2021-03-05)
+5722 VULKAN : KHR-GLES31.core.framebuffer_completeness.rbo_and_texture_expect_zero_numsamples = FAIL
+
 ////
 //// Desktop Vulkan expectations
 ////
@@ -75,6 +82,9 @@
 4128 VULKAN NVIDIA : KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength-cs-*-matR* = SKIP
 4128 VULKAN NVIDIA : KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength-vs-*-matR* = SKIP
 4128 VULKAN NVIDIA : KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength-fs-*-matR* = SKIP
+
+// Flaky on Windows SwiftShader
+5755 WIN SWIFTSHADER : KHR-GLES31.core.arrays_of_arrays.SizedDeclarationsPrimitive = FAIL
 
 
 ////
