@@ -721,6 +721,23 @@ void DestroyBufferList(RendererVk *renderer, BufferHelperPointerVector *buffers)
     }
     buffers->clear();
 }
+
+bool ShouldReleaseFreeBuffer(const vk::BufferHelper &buffer,
+                             size_t dynamicBufferSize,
+                             DynamicBufferPolicy policy,
+                             size_t freeListSize)
+{
+    constexpr size_t kLimitedFreeListMaxSize = 1;
+
+    // If the dynamic buffer was resized we cannot reuse the retained buffer.  Additionally,
+    // only reuse the buffer if specifically requested.
+    const bool sizeMismatch    = buffer.getSize() != dynamicBufferSize;
+    const bool releaseByPolicy = policy == DynamicBufferPolicy::OneShotUse ||
+                                 (policy == DynamicBufferPolicy::SporadicTextureUpload &&
+                                  freeListSize >= kLimitedFreeListMaxSize);
+
+    return sizeMismatch || releaseByPolicy;
+}
 }  // anonymous namespace
 
 // This is an arbitrary max. We can change this later if necessary.
@@ -1666,6 +1683,7 @@ void CommandBufferHelper::growRenderArea(ContextVk *contextVk, const gl::Rectang
 DynamicBuffer::DynamicBuffer()
     : mUsage(0),
       mHostVisible(false),
+      mPolicy(DynamicBufferPolicy::OneShotUse),
       mInitialSize(0),
       mNextAllocationOffset(0),
       mLastFlushOrInvalidateOffset(0),
@@ -1677,6 +1695,7 @@ DynamicBuffer::DynamicBuffer()
 DynamicBuffer::DynamicBuffer(DynamicBuffer &&other)
     : mUsage(other.mUsage),
       mHostVisible(other.mHostVisible),
+      mPolicy(other.mPolicy),
       mInitialSize(other.mInitialSize),
       mBuffer(std::move(other.mBuffer)),
       mNextAllocationOffset(other.mNextAllocationOffset),
@@ -1692,23 +1711,26 @@ void DynamicBuffer::init(RendererVk *renderer,
                          VkBufferUsageFlags usage,
                          size_t alignment,
                          size_t initialSize,
-                         bool hostVisible)
+                         bool hostVisible,
+                         DynamicBufferPolicy policy)
 {
     VkMemoryPropertyFlags memoryPropertyFlags =
         (hostVisible) ? VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-    initWithFlags(renderer, usage, alignment, initialSize, memoryPropertyFlags);
+    initWithFlags(renderer, usage, alignment, initialSize, memoryPropertyFlags, policy);
 }
 
 void DynamicBuffer::initWithFlags(RendererVk *renderer,
                                   VkBufferUsageFlags usage,
                                   size_t alignment,
                                   size_t initialSize,
-                                  VkMemoryPropertyFlags memoryPropertyFlags)
+                                  VkMemoryPropertyFlags memoryPropertyFlags,
+                                  DynamicBufferPolicy policy)
 {
     mUsage               = usage;
     mHostVisible         = ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0);
     mMemoryPropertyFlags = memoryPropertyFlags;
+    mPolicy              = policy;
 
     // Check that we haven't overriden the initial size of the buffer in setMinimumSizeForTesting.
     if (mInitialSize == 0)
@@ -1817,11 +1839,7 @@ angle::Result DynamicBuffer::allocateWithAlignment(ContextVk *contextVk,
             mSize = std::max(mInitialSize, sizeToAllocate);
 
             // Clear the free list since the free buffers are now too small.
-            for (std::unique_ptr<BufferHelper> &toFree : mBufferFreeList)
-            {
-                toFree->release(contextVk->getRenderer());
-            }
-            mBufferFreeList.clear();
+            ReleaseBufferListToRenderer(contextVk->getRenderer(), &mBufferFreeList);
         }
 
         // The front of the free list should be the oldest. Thus if it is in use the rest of the
@@ -1922,8 +1940,7 @@ void DynamicBuffer::releaseInFlightBuffersToResourceUseList(ContextVk *contextVk
     {
         bufferHelper->retain(resourceUseList);
 
-        // If the dynamic buffer was resized we cannot reuse the retained buffer.
-        if (bufferHelper->getSize() < mSize)
+        if (ShouldReleaseFreeBuffer(*bufferHelper, mSize, mPolicy, mBufferFreeList.size()))
         {
             bufferHelper->release(contextVk->getRenderer());
         }
@@ -1940,13 +1957,13 @@ void DynamicBuffer::releaseInFlightBuffers(ContextVk *contextVk)
 {
     for (std::unique_ptr<BufferHelper> &toRelease : mInFlightBuffers)
     {
-        // If the dynamic buffer was resized we cannot reuse the retained buffer.
-        if (toRelease->getSize() < mSize)
+        if (ShouldReleaseFreeBuffer(*toRelease, mSize, mPolicy, mBufferFreeList.size()))
         {
             toRelease->release(contextVk->getRenderer());
         }
         else
         {
+            toRelease->unmap(contextVk->getRenderer());
             mBufferFreeList.push_back(std::move(toRelease));
         }
     }
@@ -2769,9 +2786,11 @@ LineLoopHelper::LineLoopHelper(RendererVk *renderer)
     // sum of offset and the address of the range of VkDeviceMemory object that is backing buffer,
     // must be a multiple of the type indicated by indexType'.
     mDynamicIndexBuffer.init(renderer, kLineLoopDynamicBufferUsage, sizeof(uint32_t),
-                             kLineLoopDynamicBufferInitialSize, true);
+                             kLineLoopDynamicBufferInitialSize, true,
+                             DynamicBufferPolicy::OneShotUse);
     mDynamicIndirectBuffer.init(renderer, kLineLoopDynamicIndirectBufferUsage, sizeof(uint32_t),
-                                kLineLoopDynamicIndirectBufferInitialSize, true);
+                                kLineLoopDynamicIndirectBufferInitialSize, true,
+                                DynamicBufferPolicy::OneShotUse);
 }
 
 LineLoopHelper::~LineLoopHelper() = default;
@@ -3608,7 +3627,8 @@ void ImageHelper::initStagingBuffer(RendererVk *renderer,
                                     VkBufferUsageFlags usageFlags,
                                     size_t initialSize)
 {
-    mStagingBuffer.init(renderer, usageFlags, imageCopyBufferAlignment, initialSize, true);
+    mStagingBuffer.init(renderer, usageFlags, imageCopyBufferAlignment, initialSize, true,
+                        DynamicBufferPolicy::OneShotUse);
 }
 
 angle::Result ImageHelper::init(Context *context,
@@ -3711,7 +3731,8 @@ angle::Result ImageHelper::initExternal(Context *context,
         // Add VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT to VkImage create flag
         additionalCreateFlags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
-        // There is just 1 additional format we might use to create a VkImageView for this VkImage
+        // There is just 1 additional format we might use to create a VkImageView for this
+        // VkImage
         imageFormatListInfo.sType           = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR;
         imageFormatListInfo.pNext           = externalImageCreateInfo;
         imageFormatListInfo.viewFormatCount = 1;
@@ -3966,7 +3987,8 @@ angle::Result ImageHelper::initImageView(Context *context,
                                          uint32_t levelCount)
 {
     return initLayerImageView(context, textureType, aspectMask, swizzleMap, imageViewOut,
-                              baseMipLevelVk, levelCount, 0, mLayerCount);
+                              baseMipLevelVk, levelCount, 0, mLayerCount,
+                              gl::SrgbWriteControlMode::Default);
 }
 
 angle::Result ImageHelper::initLayerImageView(Context *context,
@@ -3977,11 +3999,27 @@ angle::Result ImageHelper::initLayerImageView(Context *context,
                                               LevelIndex baseMipLevelVk,
                                               uint32_t levelCount,
                                               uint32_t baseArrayLayer,
-                                              uint32_t layerCount) const
+                                              uint32_t layerCount,
+                                              gl::SrgbWriteControlMode mode) const
 {
-    return initLayerImageViewImpl(context, textureType, aspectMask, swizzleMap, imageViewOut,
-                                  baseMipLevelVk, levelCount, baseArrayLayer, layerCount,
-                                  mFormat->actualImageVkFormat(), nullptr);
+    angle::FormatID imageFormat = mFormat->actualImageFormatID;
+
+    // If we are initializing an imageview for use with EXT_srgb_write_control, we need to override
+    // the format to its linear counterpart. Formats that cannot be reinterpreted are exempt from
+    // this requirement.
+    if (mode == gl::SrgbWriteControlMode::Linear)
+    {
+        angle::FormatID linearFormat = ConvertToLinear(imageFormat);
+        if (linearFormat != angle::FormatID::NONE)
+        {
+            imageFormat = linearFormat;
+        }
+    }
+
+    return initLayerImageViewImpl(
+        context, textureType, aspectMask, swizzleMap, imageViewOut, baseMipLevelVk, levelCount,
+        baseArrayLayer, layerCount,
+        context->getRenderer()->getFormat(imageFormat).actualImageVkFormat(), nullptr);
 }
 
 angle::Result ImageHelper::initLayerImageViewWithFormat(Context *context,
@@ -6244,7 +6282,7 @@ angle::Result ImageHelper::readPixelsForGetImage(ContextVk *contextVk,
     // Use a temporary staging buffer. Could be optimized.
     RendererScoped<DynamicBuffer> stagingBuffer(contextVk->getRenderer());
     stagingBuffer.get().init(contextVk->getRenderer(), VK_BUFFER_USAGE_TRANSFER_DST_BIT, 1,
-                             kStagingBufferSize, true);
+                             kStagingBufferSize, true, DynamicBufferPolicy::OneShotUse);
 
     if (mExtents.depth > 1)
     {
@@ -6675,6 +6713,8 @@ ImageViewHelper::ImageViewHelper(ImageViewHelper &&other) : Resource(std::move(o
     std::swap(mPerLevelStencilReadImageViews, other.mPerLevelStencilReadImageViews);
     std::swap(mLevelDrawImageViews, other.mLevelDrawImageViews);
     std::swap(mLayerLevelDrawImageViews, other.mLayerLevelDrawImageViews);
+    std::swap(mLevelDrawImageViewsLinear, other.mLevelDrawImageViewsLinear);
+    std::swap(mLayerLevelDrawImageViewsLinear, other.mLayerLevelDrawImageViewsLinear);
     std::swap(mLevelStorageImageViews, other.mLevelStorageImageViews);
     std::swap(mLayerLevelStorageImageViews, other.mLayerLevelStorageImageViews);
     std::swap(mImageViewSerial, other.mImageViewSerial);
@@ -6707,6 +6747,7 @@ void ImageViewHelper::release(RendererVk *renderer)
 
     // Release the draw views
     ReleaseImageViews(&mLevelDrawImageViews, &garbage);
+    ReleaseImageViews(&mLevelDrawImageViewsLinear, &garbage);
     for (ImageViewVector &layerViews : mLayerLevelDrawImageViews)
     {
         for (ImageView &imageView : layerViews)
@@ -6718,6 +6759,16 @@ void ImageViewHelper::release(RendererVk *renderer)
         }
     }
     mLayerLevelDrawImageViews.clear();
+    for (ImageViewVector &layerViews : mLayerLevelDrawImageViewsLinear)
+    {
+        for (ImageView &imageView : layerViews)
+        {
+            if (imageView.valid())
+            {
+                garbage.emplace_back(GetGarbage(&imageView));
+            }
+        }
+    }
 
     // Release the storage views
     ReleaseImageViews(&mLevelStorageImageViews, &garbage);
@@ -6731,6 +6782,7 @@ void ImageViewHelper::release(RendererVk *renderer)
             }
         }
     }
+    mLayerLevelDrawImageViewsLinear.clear();
     mLayerLevelStorageImageViews.clear();
 
     if (!garbage.empty())
@@ -6760,6 +6812,7 @@ void ImageViewHelper::destroy(VkDevice device)
 
     // Release the draw views
     DestroyImageViews(&mLevelDrawImageViews, device);
+    DestroyImageViews(&mLevelDrawImageViewsLinear, device);
     for (ImageViewVector &layerViews : mLayerLevelDrawImageViews)
     {
         for (ImageView &imageView : layerViews)
@@ -6768,6 +6821,13 @@ void ImageViewHelper::destroy(VkDevice device)
         }
     }
     mLayerLevelDrawImageViews.clear();
+    for (ImageViewVector &layerViews : mLayerLevelDrawImageViewsLinear)
+    {
+        for (ImageView &imageView : layerViews)
+        {
+            imageView.destroy(device);
+        }
+    }
 
     // Release the storage views
     DestroyImageViews(&mLevelStorageImageViews, device);
@@ -6778,6 +6838,7 @@ void ImageViewHelper::destroy(VkDevice device)
             imageView.destroy(device);
         }
     }
+    mLayerLevelDrawImageViewsLinear.clear();
     mLayerLevelStorageImageViews.clear();
 
     mImageViewSerial = kInvalidImageOrBufferViewSerial;
@@ -7056,13 +7117,15 @@ angle::Result ImageViewHelper::getLevelDrawImageView(ContextVk *contextVk,
     const uint32_t layerCount = GetImageLayerCountForView(image);
     gl::TextureType viewType  = Get2DTextureType(layerCount, image.getSamples());
     return image.initLayerImageView(contextVk, viewType, image.getAspectFlags(), gl::SwizzleState(),
-                                    imageView, levelVk, 1, 0, layerCount);
+                                    imageView, levelVk, 1, 0, layerCount,
+                                    gl::SrgbWriteControlMode::Default);
 }
 
 angle::Result ImageViewHelper::getLevelLayerDrawImageView(ContextVk *contextVk,
                                                           const ImageHelper &image,
                                                           LevelIndex levelVk,
                                                           uint32_t layer,
+                                                          gl::SrgbWriteControlMode mode,
                                                           const ImageView **imageViewOut)
 {
     ASSERT(image.valid());
@@ -7071,10 +7134,13 @@ angle::Result ImageViewHelper::getLevelLayerDrawImageView(ContextVk *contextVk,
 
     retain(&contextVk->getResourceUseList());
 
+    LayerLevelImageViewVector &imageViews = (mode == gl::SrgbWriteControlMode::Linear)
+                                                ? mLayerLevelDrawImageViewsLinear
+                                                : mLayerLevelDrawImageViews;
+
     // Lazily allocate the storage for image views
-    ImageView *imageView =
-        GetLevelLayerImageView(&mLayerLevelDrawImageViews, levelVk, layer, image.getLevelCount(),
-                               GetImageLayerCountForView(image));
+    ImageView *imageView = GetLevelLayerImageView(
+        &imageViews, levelVk, layer, image.getLevelCount(), GetImageLayerCountForView(image));
     *imageViewOut = imageView;
 
     if (imageView->valid())
@@ -7087,7 +7153,7 @@ angle::Result ImageViewHelper::getLevelLayerDrawImageView(ContextVk *contextVk,
     // therefore don't have swizzle.
     gl::TextureType viewType = Get2DTextureType(1, image.getSamples());
     return image.initLayerImageView(contextVk, viewType, image.getAspectFlags(), gl::SwizzleState(),
-                                    imageView, levelVk, 1, layer, 1);
+                                    imageView, levelVk, 1, layer, 1, mode);
 }
 
 ImageOrBufferViewSubresourceSerial ImageViewHelper::getSubresourceSerial(

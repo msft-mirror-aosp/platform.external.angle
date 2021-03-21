@@ -14,6 +14,7 @@
 
 #include "common/mathutil.h"
 #include "common/platform.h"
+#include "common/string_utils.h"
 #include "gpu_info_util/SystemInfo.h"
 #include "libANGLE/Buffer.h"
 #include "libANGLE/Caps.h"
@@ -68,20 +69,73 @@ bool IsMesa(const FunctionsGL *functions, std::array<int, 3> *version)
     return true;
 }
 
-bool IsAdreno42xOr3xx(const FunctionsGL *functions)
+int getAdrenoNumber(const FunctionsGL *functions)
 {
-    const char *nativeGLRenderer = GetString(functions, GL_RENDERER);
-
-    int adrenoNumber = 0;
-    if (std::sscanf(nativeGLRenderer, "Adreno (TM) %d", &adrenoNumber) < 1)
+    static int number = -1;
+    if (number == -1)
     {
-        // retry for freedreno driver
-        if (std::sscanf(nativeGLRenderer, "FD%d", &adrenoNumber) < 1)
+        const char *nativeGLRenderer = GetString(functions, GL_RENDERER);
+        if (std::sscanf(nativeGLRenderer, "Adreno (TM) %d", &number) < 1 &&
+            std::sscanf(nativeGLRenderer, "FD%d", &number) < 1)
         {
-            return false;
+            number = 0;
         }
     }
-    return adrenoNumber < 430;
+    return number;
+}
+
+int getMaliTNumber(const FunctionsGL *functions)
+{
+    static int number = -1;
+    if (number == -1)
+    {
+        const char *nativeGLRenderer = GetString(functions, GL_RENDERER);
+        if (std::sscanf(nativeGLRenderer, "Mali-T%d", &number) < 1)
+        {
+            number = 0;
+        }
+    }
+    return number;
+}
+
+bool IsAdreno42xOr3xx(const FunctionsGL *functions)
+{
+    int number = getAdrenoNumber(functions);
+    return number != 0 && getAdrenoNumber(functions) < 430;
+}
+
+bool IsAdreno5xxOrOlder(const FunctionsGL *functions)
+{
+    int number = getAdrenoNumber(functions);
+    return number != 0 && number < 600;
+}
+
+bool IsMaliT8xxOrOlder(const FunctionsGL *functions)
+{
+    int number = getMaliTNumber(functions);
+    return number != 0 && number < 900;
+}
+
+int GetAndroidSdkLevel()
+{
+    if (!IsAndroid())
+    {
+        return 0;
+    }
+
+    angle::SystemInfo info;
+    if (!angle::GetSystemInfo(&info))
+    {
+        return 0;
+    }
+    return info.androidSdkLevel;
+}
+
+bool IsAndroidEmulator(const FunctionsGL *functions)
+{
+    constexpr char androidEmulator[] = "Android Emulator";
+    const char *nativeGLRenderer     = GetString(functions, GL_RENDERER);
+    return angle::BeginsWith(nativeGLRenderer, androidEmulator);
 }
 
 void ClearErrors(const FunctionsGL *functions,
@@ -97,6 +151,8 @@ void ClearErrors(const FunctionsGL *functions,
         error = functions->getError();
     }
 }
+
+#define ANGLE_GL_CLEAR_ERRORS() ClearErrors(functions, __FILE__, __FUNCTION__, __LINE__)
 
 }  // namespace
 
@@ -260,6 +316,12 @@ static bool CheckSizedInternalFormatTextureRenderability(const FunctionsGL *func
     functions->deleteTextures(1, &texture);
     functions->bindTexture(GL_TEXTURE_2D, static_cast<GLuint>(oldTextureBinding));
 
+    if (!supported)
+    {
+        ANGLE_GL_CLEAR_ERRORS();
+    }
+
+    ASSERT(functions->getError() == GL_NO_ERROR);
     return supported;
 }
 
@@ -306,6 +368,12 @@ static bool CheckInternalFormatRenderbufferRenderability(const FunctionsGL *func
     functions->deleteRenderbuffers(1, &renderbuffer);
     functions->bindRenderbuffer(GL_RENDERBUFFER, static_cast<GLuint>(oldRenderbufferBinding));
 
+    if (!supported)
+    {
+        ANGLE_GL_CLEAR_ERRORS();
+    }
+
+    ASSERT(functions->getError() == GL_NO_ERROR);
     return supported;
 }
 
@@ -379,7 +447,7 @@ static gl::TextureCaps GenerateTextureFormatCaps(const FunctionsGL *functions,
             queryInternalFormat = GL_RGBA8;
         }
 
-        ClearErrors(functions, __FILE__, __FUNCTION__, __LINE__);
+        ANGLE_GL_CLEAR_ERRORS();
         GLint numSamples = 0;
         functions->getInternalformativ(GL_RENDERBUFFER, queryInternalFormat, GL_NUM_SAMPLE_COUNTS,
                                        1, &numSamples);
@@ -541,6 +609,7 @@ void GenerateCaps(const FunctionsGL *functions,
                   gl::Caps *caps,
                   gl::TextureCapsMap *textureCapsMap,
                   gl::Extensions *extensions,
+                  gl::Limitations *limitations,
                   gl::Version *maxSupportedESVersion,
                   MultiviewImplementationTypeGL *multiviewImplementationType)
 {
@@ -637,10 +706,15 @@ void GenerateCaps(const FunctionsGL *functions,
 
     if (functions->isAtLeastGL(gl::Version(3, 0)) ||
         functions->hasGLExtension("GL_EXT_framebuffer_object") ||
-        functions->isAtLeastGLES(gl::Version(2, 0)))
+        functions->isAtLeastGLES(gl::Version(3, 0)))
     {
         caps->maxRenderbufferSize = QuerySingleGLInt(functions, GL_MAX_RENDERBUFFER_SIZE);
         caps->maxColorAttachments = QuerySingleGLInt(functions, GL_MAX_COLOR_ATTACHMENTS);
+    }
+    else if (functions->isAtLeastGLES(gl::Version(2, 0)))
+    {
+        caps->maxRenderbufferSize = QuerySingleGLInt(functions, GL_MAX_RENDERBUFFER_SIZE);
+        caps->maxColorAttachments = 1;
     }
     else
     {
@@ -1667,6 +1741,12 @@ void GenerateCaps(const FunctionsGL *functions,
     }
 
     extensions->yuvTargetEXT = functions->hasGLESExtension("GL_EXT_YUV_target");
+
+    // PVRTC1 textures must be squares on Apple platforms.
+    if (IsApple())
+    {
+        limitations->squarePvrtc1 = true;
+    }
 }
 
 bool GetSystemInfoVendorIDAndDeviceID(const FunctionsGL *functions,
@@ -1812,9 +1892,10 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // TODO(jie.a.chen@intel.com): Clean up the bugs.
     // anglebug.com/3031
     // crbug.com/922936
-    ANGLE_FEATURE_CONDITION(
-        features, disableWorkerContexts,
-        (IsWindows() && (isIntel || isAMD)) || (IsLinux() && isNvidia) || IsIOS());
+    // crbug.com/1184692
+    ANGLE_FEATURE_CONDITION(features, disableWorkerContexts,
+                            (IsWindows() && (isIntel || isAMD)) || (IsLinux() && isNvidia) ||
+                                IsIOS() || IsAndroidEmulator(functions));
 
     bool limitMaxTextureSize = isIntel && IsLinux() && GetLinuxOSVersion() < OSVersion(5, 0, 0);
     ANGLE_FEATURE_CONDITION(features, limitMaxTextureSizeTo4096,
@@ -1894,7 +1975,11 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
         features, disableSemaphoreFd,
         IsLinux() && isAMD && isMesa && mesaVersion < (std::array<int, 3>{19, 3, 5}));
 
-    ANGLE_FEATURE_CONDITION(features, disableTimestampQueries, IsLinux() && isVMWare);
+    ANGLE_FEATURE_CONDITION(
+        features, disableTimestampQueries,
+        (IsLinux() && isVMWare) || (IsAndroid() && isNvidia) ||
+            (IsAndroid() && GetAndroidSdkLevel() < 27 && IsAdreno5xxOrOlder(functions)) ||
+            (IsAndroid() && IsMaliT8xxOrOlder(functions)));
 
     ANGLE_FEATURE_CONDITION(features, encodeAndDecodeSRGBForGenerateMipmap, IsApple());
 

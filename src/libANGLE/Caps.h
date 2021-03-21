@@ -775,6 +775,12 @@ struct Limitations
     // Renderer doesn't support GL_TEXTURE_COMPARE_MODE=GL_NONE on a shadow sampler.
     // TODO(http://anglebug.com/5231): add validation code to front-end.
     bool noShadowSamplerCompareModeNone = false;
+
+    // PVRTC1 textures must be squares.
+    bool squarePvrtc1 = false;
+
+    // ETC1 texture support is emulated.
+    bool emulatedEtc1 = false;
 };
 
 struct TypePrecision

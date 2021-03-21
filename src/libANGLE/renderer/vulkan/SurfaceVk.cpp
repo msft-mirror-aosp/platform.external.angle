@@ -1252,7 +1252,8 @@ egl::Error WindowSurfaceVk::swapWithDamage(const gl::Context *context,
                                            EGLint n_rects)
 {
     DisplayVk *displayVk = vk::GetImpl(context->getDisplay());
-    angle::Result result = swapImpl(context, rects, n_rects, nullptr);
+    angle::Result result;
+    result = swapImpl(context, rects, n_rects, nullptr);
     return angle::ToEGL(result, displayVk, EGL_BAD_SURFACE);
 }
 
@@ -1416,7 +1417,8 @@ angle::Result WindowSurfaceVk::present(ContextVk *contextVk,
             rect.extent.width  = gl::clamp(*eglRects++, 0, width - rect.offset.x);
             rect.extent.height = gl::clamp(*eglRects++, 0, height - rect.offset.y);
             rect.layer         = 0;
-            if (Is90DegreeRotation(getPreTransform()))
+            if (Is90DegreeRotation(getPreTransform()) &&
+                !contextVk->getFeatures().disablePreRotateIncrementalPresentRectangles.enabled)
             {
                 std::swap(rect.offset.x, rect.offset.y);
                 std::swap(rect.extent.width, rect.extent.height);
@@ -1807,7 +1809,8 @@ angle::Result WindowSurfaceVk::getCurrentFramebuffer(ContextVk *contextVk,
         {
             const vk::ImageView *imageView = nullptr;
             ANGLE_TRY(swapchainImage.imageViews.getLevelLayerDrawImageView(
-                contextVk, swapchainImage.image, vk::LevelIndex(0), 0, &imageView));
+                contextVk, swapchainImage.image, vk::LevelIndex(0), 0,
+                gl::SrgbWriteControlMode::Default, &imageView));
 
             imageViews[0] = imageView->getHandle();
             ANGLE_VK_TRY(contextVk,
@@ -1895,8 +1898,9 @@ angle::Result WindowSurfaceVk::drawOverlay(ContextVk *contextVk, SwapchainImage 
 
     // Draw overlay
     const vk::ImageView *imageView = nullptr;
-    ANGLE_TRY(image->imageViews.getLevelLayerDrawImageView(contextVk, image->image,
-                                                           vk::LevelIndex(0), 0, &imageView));
+    ANGLE_TRY(image->imageViews.getLevelLayerDrawImageView(
+        contextVk, image->image, vk::LevelIndex(0), 0, gl::SrgbWriteControlMode::Default,
+        &imageView));
     ANGLE_TRY(overlayVk->onPresent(contextVk, &image->image, imageView,
                                    Is90DegreeRotation(getPreTransform())));
 

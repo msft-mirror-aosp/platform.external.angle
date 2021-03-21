@@ -40,6 +40,13 @@
 namespace
 {
 constexpr VkFormatFeatureFlags kInvalidFormatFeatureFlags = static_cast<VkFormatFeatureFlags>(-1);
+
+#if defined(ANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS)
+constexpr bool kExposeNonConformantExtensionsAndVersions = true;
+#else
+constexpr bool kExposeNonConformantExtensionsAndVersions = false;
+#endif
+
 }  // anonymous namespace
 
 namespace rx
@@ -457,147 +464,6 @@ ANGLE_MAYBE_UNUSED bool SemaphorePropertiesCompatibleWithAndroid(
     }
 
     return true;
-}
-
-void ComputePipelineCacheVkChunkKey(VkPhysicalDeviceProperties physicalDeviceProperties,
-                                    const uint8_t chunkIndex,
-                                    egl::BlobCache::Key *hashOut)
-{
-    std::ostringstream hashStream("ANGLE Pipeline Cache: ", std::ios_base::ate);
-    // Add the pipeline cache UUID to make sure the blob cache always gives a compatible pipeline
-    // cache.  It's not particularly necessary to write it as a hex number as done here, so long as
-    // there is no '\0' in the result.
-    for (const uint32_t c : physicalDeviceProperties.pipelineCacheUUID)
-    {
-        hashStream << std::hex << c;
-    }
-    // Add the vendor and device id too for good measure.
-    hashStream << std::hex << physicalDeviceProperties.vendorID;
-    hashStream << std::hex << physicalDeviceProperties.deviceID;
-
-    // Add chunkIndex to generate unique key for chunks.
-    hashStream << std::hex << chunkIndex;
-
-    const std::string &hashString = hashStream.str();
-    angle::base::SHA1HashBytes(reinterpret_cast<const unsigned char *>(hashString.c_str()),
-                               hashString.length(), hashOut->data());
-}
-
-angle::Result CompressAndStorePipelineCacheVk(VkPhysicalDeviceProperties physicalDeviceProperties,
-                                              DisplayVk *displayVk,
-                                              angle::MemoryBuffer *pipelineCacheData,
-                                              bool *success)
-{
-    // Compress the whole pipelineCache.
-    angle::MemoryBuffer compressedData;
-    ANGLE_VK_CHECK(displayVk, egl::CompressBlobCacheData(pipelineCacheData, &compressedData),
-                   VK_ERROR_INITIALIZATION_FAILED);
-
-    // If the size of compressedData is larger than (kMaxBlobCacheSize - sizeof(numChunks)),
-    // the pipelineCache still can't be stored in blob cache. Divide the large compressed
-    // pipelineCache into several parts to store seperately. There is no function to
-    // query the limit size in android.
-    constexpr size_t kMaxBlobCacheSize = 64 * 1024;
-
-    // Store {numChunks, chunkCompressedData} in keyData, numChunks is used to validate the data.
-    // For example, if the compressed size is 68841 bytes(67k), divide into {2,34421 bytes} and
-    // {2,34420 bytes}.
-    constexpr size_t kBlobHeaderSize = sizeof(uint8_t);
-    size_t compressedOffset          = 0;
-
-    const size_t numChunks = UnsignedCeilDivide(static_cast<unsigned int>(compressedData.size()),
-                                                kMaxBlobCacheSize - kBlobHeaderSize);
-    size_t chunkSize       = UnsignedCeilDivide(static_cast<unsigned int>(compressedData.size()),
-                                          static_cast<unsigned int>(numChunks));
-
-    for (size_t chunkIndex = 0; chunkIndex < numChunks; ++chunkIndex)
-    {
-        if (chunkIndex == numChunks - 1)
-        {
-            chunkSize = compressedData.size() - compressedOffset;
-        }
-
-        angle::MemoryBuffer keyData;
-        ANGLE_VK_CHECK(displayVk, keyData.resize(kBlobHeaderSize + chunkSize),
-                       VK_ERROR_INITIALIZATION_FAILED);
-
-        ASSERT(numChunks <= UINT8_MAX);
-        keyData.data()[0] = static_cast<uint8_t>(numChunks);
-        memcpy(keyData.data() + kBlobHeaderSize, compressedData.data() + compressedOffset,
-               chunkSize);
-        compressedOffset += chunkSize;
-
-        // Create unique hash key.
-        egl::BlobCache::Key chunkCacheHash;
-        ComputePipelineCacheVkChunkKey(physicalDeviceProperties, chunkIndex, &chunkCacheHash);
-        displayVk->getBlobCache()->putApplication(chunkCacheHash, keyData);
-    }
-    *success = true;
-    return angle::Result::Continue;
-}
-
-angle::Result GetAndDecompressPipelineCacheVk(VkPhysicalDeviceProperties physicalDeviceProperties,
-                                              DisplayVk *displayVk,
-                                              angle::MemoryBuffer *uncompressedData,
-                                              bool *success)
-{
-    // Compute the hash key of chunkIndex 0 and find the first cache data in blob cache.
-    egl::BlobCache::Key chunkCacheHash;
-    ComputePipelineCacheVkChunkKey(physicalDeviceProperties, 0, &chunkCacheHash);
-    egl::BlobCache::Value keyData;
-    size_t keySize                   = 0;
-    constexpr size_t kBlobHeaderSize = sizeof(uint8_t);
-
-    if (!displayVk->getBlobCache()->get(displayVk->getScratchBuffer(), chunkCacheHash, &keyData,
-                                        &keySize) ||
-        keyData.size() < kBlobHeaderSize)
-    {
-        return angle::Result::Continue;
-    }
-
-    // Get the number of chunks.
-    size_t numChunks      = keyData.data()[0];
-    size_t chunkSize      = keySize - kBlobHeaderSize;
-    size_t compressedSize = 0;
-
-    // Allocate enough memory.
-    angle::MemoryBuffer compressedData;
-    ANGLE_VK_CHECK(displayVk, compressedData.resize(chunkSize * numChunks),
-                   VK_ERROR_INITIALIZATION_FAILED);
-
-    // To combine the parts of the pipelineCache data.
-    for (size_t chunkIndex = 0; chunkIndex < numChunks; ++chunkIndex)
-    {
-        // Get the unique key by chunkIndex.
-        ComputePipelineCacheVkChunkKey(physicalDeviceProperties, chunkIndex, &chunkCacheHash);
-
-        if (!displayVk->getBlobCache()->get(displayVk->getScratchBuffer(), chunkCacheHash, &keyData,
-                                            &keySize) ||
-            keyData.size() < kBlobHeaderSize)
-        {
-            // Can't find every part of the cache data.
-            return angle::Result::Continue;
-        }
-
-        size_t checkNumber = keyData.data()[0];
-        chunkSize          = keySize - kBlobHeaderSize;
-
-        if (checkNumber != numChunks || compressedData.size() < (compressedSize + chunkSize))
-        {
-            // Validate the number value and enough space to store.
-            return angle::Result::Continue;
-        }
-        memcpy(compressedData.data() + compressedSize, keyData.data() + kBlobHeaderSize, chunkSize);
-        compressedSize += chunkSize;
-    }
-
-    ANGLE_VK_CHECK(
-        displayVk,
-        egl::DecompressBlobCacheData(compressedData.data(), compressedSize, uncompressedData),
-        VK_ERROR_INITIALIZATION_FAILED);
-
-    *success = true;
-    return angle::Result::Continue;
 }
 
 // Environment variable (and associated Android property) to enable Vulkan debug-utils markers
@@ -1908,7 +1774,8 @@ gl::Version RendererVk::getMaxSupportedESVersion() const
     // either none or IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFERS atomic counter buffers.  So if
     // Vulkan doesn't support at least that many storage buffers in compute, we don't support 3.1.
     const uint32_t kMinimumStorageBuffersForES31 =
-        gl::limits::kMinimumComputeStorageBuffers + gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFERS;
+        gl::limits::kMinimumComputeStorageBuffers +
+        gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;
     if (mPhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers <
         kMinimumStorageBuffersForES31)
     {
@@ -2075,6 +1942,13 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsIncrementalPresent,
         ExtensionFound(VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME, deviceExtensionNames));
+
+    // The Vulkan specification for the VK_KHR_incremental_present extension does not address
+    // rotation.  In Android, this extension is implemented on top of the same platform code as
+    // eglSwapBuffersWithDamageKHR(), which code assumes that it should rotate each rectangle.  To
+    // avoid double-rotating damage rectangles on Android, we must avoid pre-rotating
+    // application-provided rectangles.   See: https://issuetracker.google.com/issues/181796746
+    ANGLE_FEATURE_CONDITION(&mFeatures, disablePreRotateIncrementalPresentRectangles, IsAndroid());
 
 #if defined(ANGLE_PLATFORM_ANDROID)
     ANGLE_FEATURE_CONDITION(
@@ -2285,25 +2159,51 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // Negative viewports are exposed in the Maintenance1 extension and in core Vulkan 1.1+.
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsNegativeViewport, supportsNegativeViewport);
 
+    // Whether non-conformant configurations and extensions should be exposed.
+    ANGLE_FEATURE_CONDITION(&mFeatures, exposeNonConformantExtensionsAndVersions,
+                            kExposeNonConformantExtensionsAndVersions);
+
     angle::PlatformMethods *platform = ANGLEPlatformCurrent();
     platform->overrideFeaturesVk(platform, &mFeatures);
 
     ApplyFeatureOverrides(&mFeatures, displayVk->getState());
 }
 
+void RendererVk::initPipelineCacheVkKey()
+{
+    std::ostringstream hashStream("ANGLE Pipeline Cache: ", std::ios_base::ate);
+    // Add the pipeline cache UUID to make sure the blob cache always gives a compatible pipeline
+    // cache.  It's not particularly necessary to write it as a hex number as done here, so long as
+    // there is no '\0' in the result.
+    for (const uint32_t c : mPhysicalDeviceProperties.pipelineCacheUUID)
+    {
+        hashStream << std::hex << c;
+    }
+    // Add the vendor and device id too for good measure.
+    hashStream << std::hex << mPhysicalDeviceProperties.vendorID;
+    hashStream << std::hex << mPhysicalDeviceProperties.deviceID;
+
+    const std::string &hashString = hashStream.str();
+    angle::base::SHA1HashBytes(reinterpret_cast<const unsigned char *>(hashString.c_str()),
+                               hashString.length(), mPipelineCacheVkBlobKey.data());
+}
+
 angle::Result RendererVk::initPipelineCache(DisplayVk *display,
                                             vk::PipelineCache *pipelineCache,
                                             bool *success)
 {
-    angle::MemoryBuffer initialData;
-    ANGLE_TRY(
-        GetAndDecompressPipelineCacheVk(mPhysicalDeviceProperties, display, &initialData, success));
+    initPipelineCacheVkKey();
+
+    egl::BlobCache::Value initialData;
+    size_t dataSize = 0;
+    *success = display->getBlobCache()->get(display->getScratchBuffer(), mPipelineCacheVkBlobKey,
+                                            &initialData, &dataSize);
 
     VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 
     pipelineCacheCreateInfo.sType           = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
     pipelineCacheCreateInfo.flags           = 0;
-    pipelineCacheCreateInfo.initialDataSize = *success ? initialData.size() : 0;
+    pipelineCacheCreateInfo.initialDataSize = *success ? dataSize : 0;
     pipelineCacheCreateInfo.pInitialData    = *success ? initialData.data() : nullptr;
 
     ANGLE_VK_TRY(display, pipelineCache->init(mDevice, pipelineCacheCreateInfo));
@@ -2438,14 +2338,8 @@ angle::Result RendererVk::syncPipelineCacheVk(DisplayVk *displayVk)
                pipelineCacheData->size() - pipelineCacheSize);
     }
 
-    bool success = false;
-    ANGLE_TRY(CompressAndStorePipelineCacheVk(mPhysicalDeviceProperties, displayVk,
-                                              pipelineCacheData, &success));
-
-    if (success)
-    {
-        mPipelineCacheDirty = false;
-    }
+    displayVk->getBlobCache()->putApplication(mPipelineCacheVkBlobKey, *pipelineCacheData);
+    mPipelineCacheDirty = false;
 
     return angle::Result::Continue;
 }

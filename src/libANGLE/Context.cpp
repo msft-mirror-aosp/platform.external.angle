@@ -67,7 +67,25 @@ egl::ShareGroup *AllocateOrGetShareGroup(egl::Display *display, const gl::Contex
 template <typename T>
 angle::Result GetQueryObjectParameter(const Context *context, Query *query, GLenum pname, T *params)
 {
-    ASSERT(query != nullptr || pname == GL_QUERY_RESULT_AVAILABLE_EXT);
+    if (!query)
+    {
+        // Some applications call into glGetQueryObjectuiv(...) prior to calling glBeginQuery(...)
+        // This wouldn't be an issue since the validation layer will handle such a usecases but when
+        // the app enables EGL_KHR_create_context_no_error extension, we skip the validation layer.
+        switch (pname)
+        {
+            case GL_QUERY_RESULT_EXT:
+                *params = 0;
+                break;
+            case GL_QUERY_RESULT_AVAILABLE_EXT:
+                *params = GL_FALSE;
+                break;
+            default:
+                UNREACHABLE();
+                return angle::Result::Stop;
+        }
+        return angle::Result::Continue;
+    }
 
     switch (pname)
     {
@@ -558,7 +576,7 @@ void Context::initializeDefaultResources()
 
     mBlitDirtyBits.set(State::DIRTY_BIT_SCISSOR_TEST_ENABLED);
     mBlitDirtyBits.set(State::DIRTY_BIT_SCISSOR);
-    mBlitDirtyBits.set(State::DIRTY_BIT_FRAMEBUFFER_SRGB);
+    mBlitDirtyBits.set(State::DIRTY_BIT_FRAMEBUFFER_SRGB_WRITE_CONTROL_MODE);
     mBlitDirtyBits.set(State::DIRTY_BIT_READ_FRAMEBUFFER_BINDING);
     mBlitDirtyBits.set(State::DIRTY_BIT_DRAW_FRAMEBUFFER_BINDING);
     mBlitDirtyObjects.set(State::DIRTY_OBJECT_READ_FRAMEBUFFER);
@@ -854,10 +872,6 @@ GLuint Context::createShaderProgramv(ShaderType type, GLsizei count, const GLcha
                     return 0u;
                 }
 
-                // Need to manually resolveLink(), since onProgramLink() doesn't think the program
-                // is in use.   For the normal glDetachShader() API call path, this is done during
-                // ValidateDetachShader() via gl::GetValidProgram().
-                programObject->resolveLink(this);
                 programObject->detachShader(this, shaderObject);
             }
 
@@ -3675,10 +3689,12 @@ void Context::initCaps()
     for (ShaderType shaderType : AllShaderTypes())
     {
         ANGLE_LIMIT_CAP(mState.mCaps.maxShaderAtomicCounterBuffers[shaderType],
-                        IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFERS);
+                        IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS);
     }
+    ANGLE_LIMIT_CAP(mState.mCaps.maxAtomicCounterBufferBindings,
+                    IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS);
     ANGLE_LIMIT_CAP(mState.mCaps.maxCombinedAtomicCounterBuffers,
-                    IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFERS);
+                    IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS);
 
     for (ShaderType shaderType : AllShaderTypes())
     {
@@ -3706,6 +3722,12 @@ void Context::initCaps()
         {
             mState.mExtensions.*(extensionInfo.second.ExtensionsMember) = false;
         }
+    }
+
+    // Hide emulated ETC1 extension from WebGL contexts.
+    if (mWebGLContext && getLimitations().emulatedEtc1)
+    {
+        mSupportedExtensions.compressedETC1RGB8TextureOES = false;
     }
 
     // If we're capturing application calls for replay, don't expose any binary formats to prevent
@@ -6594,7 +6616,7 @@ void Context::getFloatvRobust(GLenum pname, GLsizei bufSize, GLsizei *length, GL
 
 void Context::getIntegerv(GLenum pname, GLint *params)
 {
-    GLenum nativeType;
+    GLenum nativeType      = GL_NONE;
     unsigned int numParams = 0;
     getQueryParameterInfo(pname, &nativeType, &numParams);
 

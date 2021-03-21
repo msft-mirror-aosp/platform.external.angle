@@ -392,12 +392,40 @@ TracePerfTest::TracePerfTest()
         {
             mSkipTest = true;
         }
+        // TODO: https://anglebug.com/5724 Device lost on Win Intel
+        if (IsWindows() && IsIntel() && param.getRenderer() == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE)
+        {
+            mSkipTest = true;
+        }
     }
 
     if (param.testID == RestrictedTraceID::rope_hero_vice_town)
     {
         // TODO: http://anglebug.com/5716 Trace crashes on Pixel 2 in vulkan driver
         if (IsPixel2() && param.getRenderer() == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE)
+        {
+            mSkipTest = true;
+        }
+    }
+
+    if (param.testID == RestrictedTraceID::extreme_car_driving_simulator)
+    {
+        addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
+    }
+
+    if (param.testID == RestrictedTraceID::lineage_m)
+    {
+        // TODO: http://anglebug.com/5748 Vulkan device is lost on Nvidia Linux
+        if (IsLinux() && IsNVIDIA() && param.getRenderer() == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE)
+        {
+            mSkipTest = true;
+        }
+    }
+
+    if (param.testID == RestrictedTraceID::plants_vs_zombies_2)
+    {
+        // TODO: http://crbug.com/1187752 Corrupted image
+        if (IsWindows() && IsAMD() && param.getRenderer() == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE)
         {
             mSkipTest = true;
         }
