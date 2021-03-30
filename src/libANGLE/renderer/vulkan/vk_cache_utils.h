@@ -35,16 +35,12 @@ namespace rx
 // - Set 3 contains all other shader resources, such as uniform and storage blocks, atomic counter
 //   buffers, images and image buffers.
 
-// ANGLE driver uniforms set index (binding is always 0):
-enum DescriptorSetIndex : uint32_t
+enum class DescriptorSetIndex : uint32_t
 {
-    // All internal shaders assume there is only one descriptor set, indexed at 0
-    InternalShader = 0,
-
-    DriverUniforms = 0,  // ANGLE driver uniforms set index
-    UniformsAndXfb,      // Uniforms set index
-    Texture,             // Textures set index
-    ShaderResource,      // Other shader resources set index
+    Internal,        // ANGLE driver uniforms or internal shaders
+    UniformsAndXfb,  // Uniforms set index
+    Texture,         // Textures set index
+    ShaderResource,  // Other shader resources set index
 
     InvalidEnum,
     EnumCount = InvalidEnum,
@@ -839,7 +835,7 @@ struct PackedPushConstantRange
 };
 
 template <typename T>
-using DescriptorSetLayoutArray = std::array<T, static_cast<size_t>(DescriptorSetIndex::EnumCount)>;
+using DescriptorSetLayoutArray = angle::PackedEnumMap<DescriptorSetIndex, T>;
 using DescriptorSetLayoutPointerArray =
     DescriptorSetLayoutArray<BindingPointer<DescriptorSetLayout>>;
 template <typename T>
@@ -1105,14 +1101,14 @@ class TextureDescriptorDesc
     ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
 };
 
-class UniformsAndXfbDesc
+class UniformsAndXfbDescriptorDesc
 {
   public:
-    UniformsAndXfbDesc();
-    ~UniformsAndXfbDesc();
+    UniformsAndXfbDescriptorDesc();
+    ~UniformsAndXfbDescriptorDesc();
 
-    UniformsAndXfbDesc(const UniformsAndXfbDesc &other);
-    UniformsAndXfbDesc &operator=(const UniformsAndXfbDesc &other);
+    UniformsAndXfbDescriptorDesc(const UniformsAndXfbDescriptorDesc &other);
+    UniformsAndXfbDescriptorDesc &operator=(const UniformsAndXfbDescriptorDesc &other);
 
     BufferSerial getDefaultUniformBufferSerial() const
     {
@@ -1132,7 +1128,7 @@ class UniformsAndXfbDesc
     size_t hash() const;
     void reset();
 
-    bool operator==(const UniformsAndXfbDesc &other) const;
+    bool operator==(const UniformsAndXfbDescriptorDesc &other) const;
 
   private:
     uint32_t mBufferCount;
@@ -1316,9 +1312,9 @@ struct hash<rx::vk::TextureDescriptorDesc>
 };
 
 template <>
-struct hash<rx::vk::UniformsAndXfbDesc>
+struct hash<rx::vk::UniformsAndXfbDescriptorDesc>
 {
-    size_t operator()(const rx::vk::UniformsAndXfbDesc &key) const { return key.hash(); }
+    size_t operator()(const rx::vk::UniformsAndXfbDescriptorDesc &key) const { return key.hash(); }
 };
 
 template <>
@@ -1359,7 +1355,7 @@ enum class VulkanCacheType
     DescriptorSet,
     DescriptorSetLayout,
     TextureDescriptors,
-    UniformsAndXfbDescriptorSet,
+    UniformsAndXfbDescriptors,
     Framebuffer,
     EnumCount
 };

@@ -431,6 +431,32 @@ TracePerfTest::TracePerfTest()
         }
     }
 
+    if (param.testID == RestrictedTraceID::junes_journey)
+    {
+        addExtensionPrerequisite("GL_OES_EGL_image_external");
+    }
+
+    if (param.testID == RestrictedTraceID::ragnarok_m_eternal_love)
+    {
+        addExtensionPrerequisite("GL_OES_EGL_image_external");
+        addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
+
+        // TODO: http://anglebug.com/5772 Pixel 2 errors with "Framebuffer is incomplete" on Vulkan
+        if (IsPixel2() && param.getRenderer() == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE)
+        {
+            mSkipTest = true;
+        }
+    }
+
+    if (param.testID == RestrictedTraceID::real_cricket_20)
+    {
+        // TODO: http://anglebug.com/5777 ARM doesn't have enough VS storage blocks
+        if (IsAndroid() && IsARM())
+        {
+            mSkipTest = true;
+        }
+    }
+
     // We already swap in TracePerfTest::drawBenchmark, no need to swap again in the harness.
     disableTestHarnessSwap();
 
