@@ -3145,7 +3145,6 @@ cc_library_static {
         "-DANGLE_ENABLE_OPENGL",
         "-DANGLE_ENABLE_OPENGL_NULL",
         "-DANGLE_ENABLE_VULKAN",
-        "-DANGLE_HAS_VULKAN_SYSTEM_INFO",
         "-DANGLE_USE_ABSEIL",
         "-DANGLE_USE_CUSTOM_VULKAN_CMD_BUFFERS=1",
         "-DCR_CLANG_REVISION=\"llvmorg-13-init-4720-g7bafe336-1\"",
