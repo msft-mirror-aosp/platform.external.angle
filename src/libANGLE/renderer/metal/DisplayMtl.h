@@ -50,6 +50,8 @@ class DisplayMtl : public DisplayImpl
     std::string getVendorString() override;
     std::string getVersionString() override;
 
+    DeviceImpl *createDevice() override;
+
     egl::Error waitClient(const gl::Context *context) override;
     egl::Error waitNative(const gl::Context *context, EGLint engine) override;
 
@@ -82,6 +84,10 @@ class DisplayMtl : public DisplayImpl
 
     ShareGroupImpl *createShareGroup() override;
 
+    ExternalImageSiblingImpl *createExternalImageSibling(const gl::Context *context,
+                                                         EGLenum target,
+                                                         EGLClientBuffer buffer,
+                                                         const egl::AttributeMap &attribs) override;
     gl::Version getMaxSupportedESVersion() const override;
     gl::Version getMaxConformantESVersion() const override;
 
@@ -100,6 +106,11 @@ class DisplayMtl : public DisplayImpl
                                     EGLenum buftype,
                                     EGLClientBuffer clientBuffer,
                                     const egl::AttributeMap &attribs) const override;
+
+    egl::Error validateImageClientBuffer(const gl::Context *context,
+                                         EGLenum target,
+                                         EGLClientBuffer clientBuffer,
+                                         const egl::AttributeMap &attribs) const override;
 
     egl::ConfigSet generateConfigs() override;
 
@@ -188,9 +199,6 @@ class DisplayMtl : public DisplayImpl
     mutable gl::Limitations mNativeLimitations;
 
     angle::FeaturesMtl mFeatures;
-
-    // track whether we initialized (or released) glslang
-    bool mGlslangInitialized;
 };
 
 }  // namespace rx

@@ -116,7 +116,9 @@ angle_test("angle_system_info_test") {
   sources = [ "angle_system_info_tests_main.cpp" ]
   deps = [
     "$angle_root:angle_gpu_info_util",
-    "$angle_root/util:angle_util",
+    "$angle_root:libEGL_static",
+    "$angle_root:libGLESv2_static",
+    "$angle_root/util:angle_util_static",
   ]
 }
 
@@ -144,6 +146,7 @@ angle_test("angle_unittests") {
     "$angle_root:libEGL_static",
     "$angle_root:libGLESv2_static",
     "$angle_root:libfeature_support",
+    "$angle_root:libjson_serializer",
     "$angle_root:preprocessor",
     "$angle_root:translator",
     "$angle_root/util:angle_util_static",
@@ -169,6 +172,14 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
       frameworks = [
         "CoreFoundation.framework",
         "IOSurface.framework",
+      ]
+      ldflags = [
+        "-weak_framework",
+        "Metal",
+      ]
+      cflags_objcc = [
+        "-Wno-nullability-completeness",
+        "-Wno-unguarded-availability",
       ]
     }
     if (is_win) {
@@ -206,7 +217,13 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
     }
 
     if (is_fuchsia) {
-      manifest = "//build/config/fuchsia/gfx_tests.cmx"
+      additional_manifest_fragments = [
+        # TODO(crbug.com/1185811): Figure out why jit_capabilities is needed.
+        "//build/config/fuchsia/test/jit_capabilities.test-cmx",
+
+        "//build/config/fuchsia/test/present_view_capabilities.test-cmx",
+        "//build/config/fuchsia/test/vulkan_capabilities.test-cmx",
+      ]
     }
 
     if (is_ios) {
