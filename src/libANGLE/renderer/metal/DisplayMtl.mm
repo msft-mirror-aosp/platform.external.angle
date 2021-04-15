@@ -15,10 +15,13 @@
 #include "libANGLE/renderer/driver_utils.h"
 #include "libANGLE/renderer/glslang_wrapper_utils.h"
 #include "libANGLE/renderer/metal/ContextMtl.h"
+#include "libANGLE/renderer/metal/DeviceMtl.h"
+#include "libANGLE/renderer/metal/ImageMtl.h"
 #include "libANGLE/renderer/metal/SurfaceMtl.h"
 #include "libANGLE/renderer/metal/SyncMtl.h"
 #include "libANGLE/renderer/metal/mtl_common.h"
 #include "libANGLE/renderer/metal/shaders/mtl_default_shaders_src_autogen.inc"
+#include "libANGLE/trace.h"
 #include "platform/Platform.h"
 
 #include "EGL/eglext.h"
@@ -56,9 +59,8 @@ struct DefaultShaderAsyncInfoMtl
     bool compiled = false;
 };
 
-DisplayMtl::DisplayMtl(const egl::DisplayState &state)
-    : DisplayImpl(state), mUtils(this), mGlslangInitialized(false)
-{}
+// DisplayMtl implementation
+DisplayMtl::DisplayMtl(const egl::DisplayState &state) : DisplayImpl(state), mUtils(this) {}
 
 DisplayMtl::~DisplayMtl() {}
 
@@ -90,10 +92,9 @@ angle::Result DisplayMtl::initializeImpl(egl::Display *display)
 
         mCapsInitialized = false;
 
-        if (!mGlslangInitialized)
         {
-            GlslangInitialize();
-            mGlslangInitialized = true;
+            ANGLE_TRACE_EVENT0("gpu.angle,startup", "GlslangWarmup");
+            sh::InitializeGlslang();
         }
 
         if (!mState.featuresAllDisabled)
@@ -121,11 +122,7 @@ void DisplayMtl::terminate()
 
     mMetalDeviceVendorId = 0;
 
-    if (mGlslangInitialized)
-    {
-        GlslangRelease();
-        mGlslangInitialized = false;
-    }
+    sh::FinalizeGlslang();
 }
 
 bool DisplayMtl::testDeviceLost()
@@ -166,6 +163,11 @@ std::string DisplayMtl::getVersionString()
         NSProcessInfo *procInfo = [NSProcessInfo processInfo];
         return procInfo.operatingSystemVersionString.UTF8String;
     }
+}
+
+DeviceImpl *DisplayMtl::createDevice()
+{
+    return new DeviceMtl();
 }
 
 egl::Error DisplayMtl::waitClient(const gl::Context *context)
@@ -228,8 +230,7 @@ ImageImpl *DisplayMtl::createImage(const egl::ImageState &state,
                                    EGLenum target,
                                    const egl::AttributeMap &attribs)
 {
-    UNIMPLEMENTED();
-    return nullptr;
+    return new ImageMtl(state, context);
 }
 
 rx::ContextImpl *DisplayMtl::createContext(const gl::State &state,
@@ -252,6 +253,22 @@ StreamProducerImpl *DisplayMtl::createStreamProducerD3DTexture(
 ShareGroupImpl *DisplayMtl::createShareGroup()
 {
     return new ShareGroupMtl();
+}
+
+ExternalImageSiblingImpl *DisplayMtl::createExternalImageSibling(const gl::Context *context,
+                                                                 EGLenum target,
+                                                                 EGLClientBuffer buffer,
+                                                                 const egl::AttributeMap &attribs)
+{
+    switch (target)
+    {
+        case EGL_METAL_TEXTURE_ANGLE:
+            return new TextureImageSiblingMtl(buffer);
+
+        default:
+            UNREACHABLE();
+            return nullptr;
+    }
 }
 
 gl::Version DisplayMtl::getMaxSupportedESVersion() const
@@ -294,6 +311,7 @@ void DisplayMtl::generateExtensions(egl::DisplayExtensions *outExtensions) const
     outExtensions->surfacelessContext           = true;
     outExtensions->displayTextureShareGroup     = true;
     outExtensions->displaySemaphoreShareGroup   = true;
+    outExtensions->mtlTextureClientBuffer       = true;
 
     if (mFeatures.hasEvents.enabled)
     {
@@ -306,6 +324,10 @@ void DisplayMtl::generateExtensions(egl::DisplayExtensions *outExtensions) const
     // this extension so that ANGLE can be initialized in Chrome. WebGL will fail to use
     // this extension (anglebug.com/4929)
     outExtensions->robustResourceInitialization = true;
+
+    // EGL_KHR_image
+    outExtensions->image     = true;
+    outExtensions->imageBase = true;
 }
 
 void DisplayMtl::generateCaps(egl::Caps *outCaps) const {}
@@ -427,6 +449,26 @@ egl::Error DisplayMtl::validateClientBuffer(const egl::Config *configuration,
     {
         case EGL_IOSURFACE_ANGLE:
             if (!IOSurfaceSurfaceMtl::ValidateAttributes(clientBuffer, attribs))
+            {
+                return egl::EglBadAttribute();
+            }
+            break;
+        default:
+            UNREACHABLE();
+            return egl::EglBadAttribute();
+    }
+    return egl::NoError();
+}
+
+egl::Error DisplayMtl::validateImageClientBuffer(const gl::Context *context,
+                                                 EGLenum target,
+                                                 EGLClientBuffer clientBuffer,
+                                                 const egl::AttributeMap &attribs) const
+{
+    switch (target)
+    {
+        case EGL_METAL_TEXTURE_ANGLE:
+            if (!TextureImageSiblingMtl::ValidateClientBuffer(this, clientBuffer))
             {
                 return egl::EglBadAttribute();
             }
@@ -641,15 +683,14 @@ void DisplayMtl::initializeExtensions() const
     // backend to be used in Chrome (http://anglebug.com/4946)
     mNativeExtensions.debugMarker = true;
 
-    mNativeExtensions.robustness             = true;
-    mNativeExtensions.textureBorderClampOES  = false;  // not implemented yet
-    mNativeExtensions.translatedShaderSource = true;
-    mNativeExtensions.discardFramebuffer     = true;
+    mNativeExtensions.robustness            = true;
+    mNativeExtensions.textureBorderClampOES = false;  // not implemented yet
+    mNativeExtensions.discardFramebuffer    = true;
 
     // Enable EXT_blend_minmax
     mNativeExtensions.blendMinMax = true;
 
-    mNativeExtensions.eglImageOES         = false;
+    mNativeExtensions.eglImageOES         = true;
     mNativeExtensions.eglImageExternalOES = false;
     // NOTE(hqle): Support GL_OES_EGL_image_external_essl3.
     mNativeExtensions.eglImageExternalEssl3OES = false;

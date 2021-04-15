@@ -29,9 +29,8 @@ class ShaderInfo final : angle::NonCopyable
     ShaderInfo();
     ~ShaderInfo();
 
-    angle::Result initShaders(ContextVk *contextVk,
-                              const gl::ShaderBitSet &linkedShaderStages,
-                              const gl::ShaderMap<std::string> &shaderSources,
+    angle::Result initShaders(const gl::ShaderBitSet &linkedShaderStages,
+                              const gl::ShaderMap<const angle::spirv::Blob *> &spirvBlobs,
                               const ShaderInterfaceVariableInfoMap &variableInfoMap);
     void release(ContextVk *contextVk);
 
@@ -102,7 +101,7 @@ struct DefaultUniformBlock final : private angle::NonCopyable
 };
 
 // Performance and resource counters.
-using DescriptorSetCountList = std::array<uint32_t, DescriptorSetIndex::EnumCount>;
+using DescriptorSetCountList = angle::PackedEnumMap<DescriptorSetIndex, uint32_t>;
 
 struct ProgramExecutablePerfCounters
 {
@@ -162,7 +161,7 @@ class ProgramExecutableVk
         gl::ShaderMap<DefaultUniformBlock> &defaultUniformBlocks,
         vk::BufferHelper *defaultUniformBuffer,
         ContextVk *contextVk,
-        const vk::UniformsAndXfbDesc &xfbBufferDesc);
+        const vk::UniformsAndXfbDescriptorDesc &xfbBufferDesc);
     angle::Result updateInputAttachmentDescriptorSet(const gl::ProgramExecutable &executable,
                                                      const gl::ShaderType shaderType,
                                                      ContextVk *contextVk,
@@ -189,9 +188,10 @@ class ProgramExecutableVk
     friend class ProgramVk;
     friend class ProgramPipelineVk;
 
-    angle::Result allocUniformAndXfbDescriptorSet(ContextVk *contextVk,
-                                                  const vk::UniformsAndXfbDesc &xfbBufferDesc,
-                                                  bool *newDescriptorSetAllocated);
+    angle::Result allocUniformAndXfbDescriptorSet(
+        ContextVk *contextVk,
+        const vk::UniformsAndXfbDescriptorDesc &xfbBufferDesc,
+        bool *newDescriptorSetAllocated);
 
     angle::Result allocateDescriptorSet(ContextVk *contextVk,
                                         DescriptorSetIndex descriptorSetIndex);
@@ -222,6 +222,8 @@ class ProgramExecutableVk
                                             ContextVk *contextVk);
     void updateTransformFeedbackDescriptorSetImpl(const gl::ProgramState &programState,
                                                   ContextVk *contextVk);
+    angle::Result getOrAllocateShaderResourcesDescriptorSet(ContextVk *contextVk,
+                                                            VkDescriptorSet *descriptorSetOut);
     angle::Result updateBuffersDescriptorSet(ContextVk *contextVk,
                                              const gl::ShaderType shaderType,
                                              vk::CommandBufferHelper *commandBufferHelper,
@@ -248,8 +250,8 @@ class ProgramExecutableVk
     size_t mNumDefaultUniformDescriptors;
     vk::BufferSerial mCurrentDefaultUniformBufferSerial;
 
-    DescriptorSetCache<vk::UniformsAndXfbDesc, VulkanCacheType::UniformsAndXfbDescriptorSet>
-        mUniformsAndXfbDescriptorSetCache;
+    DescriptorSetCache<vk::UniformsAndXfbDescriptorDesc, VulkanCacheType::UniformsAndXfbDescriptors>
+        mUniformsAndXfbDescriptorsCache;
     DescriptorSetCache<vk::TextureDescriptorDesc, VulkanCacheType::TextureDescriptors>
         mTextureDescriptorsCache;
 
@@ -283,7 +285,8 @@ class ProgramExecutableVk
     ProgramVk *mProgram;
     ProgramPipelineVk *mProgramPipeline;
 
-    ProgramExecutablePerfCounters mObjectPerfCounters;
+    ProgramExecutablePerfCounters mPerfCounters;
+    ProgramExecutablePerfCounters mCumulativePerfCounters;
 };
 
 }  // namespace rx

@@ -218,6 +218,13 @@ struct FeaturesVk : FeatureSetBase
                                            "extension with the independentResolveNone feature",
                                            &members, "http://anglebug.com/4836"};
 
+    // Whether the VkDevice supports the VK_EXT_multisampled_render_to_single_sampled extension.
+    // http://anglebug.com/4836
+    Feature supportsMultisampledRenderToSingleSampled = {
+        "supportsMultisampledRenderToSingleSampled", FeatureCategory::VulkanFeatures,
+        "VkDevice supports the VK_EXT_multisampled_render_to_single_sampled extension", &members,
+        "http://anglebug.com/4836"};
+
     // VK_PRESENT_MODE_FIFO_KHR causes random timeouts on Linux Intel. http://anglebug.com/3153
     Feature disableFifoPresentMode = {"disableFifoPresentMode", FeatureCategory::VulkanWorkarounds,
                                       "VK_PRESENT_MODE_FIFO_KHR causes random timeouts", &members,
@@ -481,6 +488,14 @@ struct FeaturesVk : FeatureSetBase
     Feature supportsNegativeViewport = {
         "supportsNegativeViewport", FeatureCategory::VulkanFeatures,
         "The driver supports inverting the viewport with a negative height.", &members};
+
+    // The EGL_EXT_buffer_age implementation causes
+    // android.graphics.cts.BitmapTest#testDrawingHardwareBitmapNotLeaking to fail on Cuttlefish
+    // with SwANGLE. Needs investigation whether this is a race condition which could affect other
+    // Vulkan drivers, or if it's a SwiftShader bug.
+    // http://anglebug.com/3529
+    Feature enableBufferAge = {"enableBufferAge", FeatureCategory::VulkanWorkarounds,
+                               "Expose EGL_EXT_buffer_age", &members, "http://anglebug.com/3529"};
 };
 
 inline FeaturesVk::FeaturesVk()  = default;

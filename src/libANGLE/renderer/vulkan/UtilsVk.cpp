@@ -666,7 +666,7 @@ void InsertInputDecorations(spirv::IdRef id,
                             angle::spirv::Blob *blobOut)
 {
     spirv::WriteDecorate(blobOut, id, spv::DecorationDescriptorSet,
-                         {spirv::LiteralInteger(DescriptorSetIndex::InternalShader)});
+                         {spirv::LiteralInteger(ToUnderlying(DescriptorSetIndex::Internal))});
     spirv::WriteDecorate(blobOut, id, spv::DecorationBinding, {spirv::LiteralInteger(binding)});
     spirv::WriteDecorate(blobOut, id, spv::DecorationInputAttachmentIndex,
                          {spirv::LiteralInteger(attachmentIndex)});
@@ -1024,7 +1024,7 @@ uint32_t UtilsVk::GetGenerateMipmapMaxLevels(ContextVk *contextVk)
                : kGenerateMipmapMaxLevels;
 }
 
-UtilsVk::UtilsVk() : mObjectPerfCounters{} {}
+UtilsVk::UtilsVk() : mPerfCounters{}, mCumulativePerfCounters{} {}
 
 UtilsVk::~UtilsVk() = default;
 
@@ -1129,7 +1129,7 @@ angle::Result UtilsVk::ensureResourcesInitialized(ContextVk *contextVk,
 
     ANGLE_TRY(contextVk->getDescriptorSetLayoutCache().getDescriptorSetLayout(
         contextVk, descriptorSetDesc,
-        &mDescriptorSetLayouts[function][ToUnderlying(DescriptorSetIndex::InternalShader)]));
+        &mDescriptorSetLayouts[function][DescriptorSetIndex::Internal]));
 
     vk::DescriptorSetLayoutBindingVector bindingVector;
     std::vector<VkSampler> immutableSamplers;
@@ -1151,9 +1151,7 @@ angle::Result UtilsVk::ensureResourcesInitialized(ContextVk *contextVk,
     {
         ANGLE_TRY(mDescriptorPools[function].init(
             contextVk, descriptorPoolSizes.data(), descriptorPoolSizes.size(),
-            mDescriptorSetLayouts[function][ToUnderlying(DescriptorSetIndex::InternalShader)]
-                .get()
-                .getHandle()));
+            mDescriptorSetLayouts[function][DescriptorSetIndex::Internal].get().getHandle()));
     }
 
     gl::ShaderType pushConstantsShaderStage =
@@ -1162,8 +1160,7 @@ angle::Result UtilsVk::ensureResourcesInitialized(ContextVk *contextVk,
     // Corresponding pipeline layouts:
     vk::PipelineLayoutDesc pipelineLayoutDesc;
 
-    pipelineLayoutDesc.updateDescriptorSetLayout(DescriptorSetIndex::InternalShader,
-                                                 descriptorSetDesc);
+    pipelineLayoutDesc.updateDescriptorSetLayout(DescriptorSetIndex::Internal, descriptorSetDesc);
     if (pushConstantsSize)
     {
         pipelineLayoutDesc.updatePushConstantRange(pushConstantsShaderStage, 0,
@@ -1496,15 +1493,15 @@ angle::Result UtilsVk::setupProgram(ContextVk *contextVk,
     if (descriptorSet != VK_NULL_HANDLE)
     {
         commandBuffer->bindDescriptorSets(pipelineLayout.get(), pipelineBindPoint,
-                                          DescriptorSetIndex::InternalShader, 1, &descriptorSet, 0,
+                                          DescriptorSetIndex::Internal, 1, &descriptorSet, 0,
                                           nullptr);
         if (isCompute)
         {
-            contextVk->invalidateComputeDescriptorSet(DescriptorSetIndex::InternalShader);
+            contextVk->invalidateComputeDescriptorSet(DescriptorSetIndex::Internal);
         }
         else
         {
-            contextVk->invalidateGraphicsDescriptorSet(DescriptorSetIndex::InternalShader);
+            contextVk->invalidateGraphicsDescriptorSet(DescriptorSetIndex::Internal);
         }
     }
 
@@ -1938,9 +1935,9 @@ angle::Result UtilsVk::startRenderPass(ContextVk *contextVk,
                                               vk::ImageLayout::ColorAttachment,
                                               vk::ImageLayout::ColorAttachment);
 
-    ANGLE_TRY(contextVk->beginNewRenderPass(framebuffer, renderArea, renderPassDesc,
-                                            renderPassAttachmentOps, vk::kAttachmentIndexInvalid,
-                                            clearValues, commandBufferOut));
+    ANGLE_TRY(contextVk->beginNewRenderPass(
+        framebuffer, renderArea, renderPassDesc, renderPassAttachmentOps,
+        vk::PackedAttachmentCount(1), vk::kAttachmentIndexInvalid, clearValues, commandBufferOut));
 
     contextVk->addGarbage(&framebuffer);
 
@@ -3127,7 +3124,7 @@ angle::Result UtilsVk::unresolve(ContextVk *contextVk,
         {
             ANGLE_TRY(depthStencilSrc->initLayerImageView(
                 contextVk, textureType, VK_IMAGE_ASPECT_DEPTH_BIT, gl::SwizzleState(),
-                &depthView.get(), levelIndex, 1, layerIndex, 1));
+                &depthView.get(), levelIndex, 1, layerIndex, 1, gl::SrgbWriteControlMode::Default));
             depthSrcView = &depthView.get();
         }
 
@@ -3135,7 +3132,8 @@ angle::Result UtilsVk::unresolve(ContextVk *contextVk,
         {
             ANGLE_TRY(depthStencilSrc->initLayerImageView(
                 contextVk, textureType, VK_IMAGE_ASPECT_STENCIL_BIT, gl::SwizzleState(),
-                &stencilView.get(), levelIndex, 1, layerIndex, 1));
+                &stencilView.get(), levelIndex, 1, layerIndex, 1,
+                gl::SrgbWriteControlMode::Default));
             stencilSrcView = &stencilView.get();
         }
     }
@@ -3439,13 +3437,10 @@ angle::Result UtilsVk::allocateDescriptorSet(ContextVk *contextVk,
                                              VkDescriptorSet *descriptorSetOut)
 {
     ANGLE_TRY(mDescriptorPools[function].allocateSets(
-        contextVk,
-        mDescriptorSetLayouts[function][ToUnderlying(DescriptorSetIndex::InternalShader)]
-            .get()
-            .ptr(),
-        1, bindingOut, descriptorSetOut));
+        contextVk, mDescriptorSetLayouts[function][DescriptorSetIndex::Internal].get().ptr(), 1,
+        bindingOut, descriptorSetOut));
 
-    mObjectPerfCounters.descriptorSetsAllocated++;
+    mPerfCounters.descriptorSetsAllocated++;
 
     return angle::Result::Continue;
 }
@@ -3470,7 +3465,16 @@ void UtilsVk::outputCumulativePerfCounters()
         return;
     }
 
-    INFO() << "Utils Descriptor Set Allocations: " << mObjectPerfCounters.descriptorSetsAllocated;
+    INFO() << "Utils Descriptor Set Allocations: "
+           << mCumulativePerfCounters.descriptorSetsAllocated;
 }
 
+InternalShaderPerfCounters UtilsVk::getAndResetObjectPerfCounters()
+{
+    mCumulativePerfCounters.descriptorSetsAllocated += mPerfCounters.descriptorSetsAllocated;
+
+    InternalShaderPerfCounters counters   = mPerfCounters;
+    mPerfCounters.descriptorSetsAllocated = 0;
+    return counters;
+}
 }  // namespace rx

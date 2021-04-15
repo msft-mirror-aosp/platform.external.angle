@@ -1326,6 +1326,11 @@ angle::Result WindowSurfaceVk::present(ContextVk *contextVk,
         contextVk->optimizeRenderPassForPresent(currentFramebuffer.getHandle());
     }
 
+    // Because the color attachment defers layout changes until endRenderPass time, we must call
+    // finalize the layout transition in the renderpass before we insert layout change to
+    // ImageLayout::Present bellow.
+    contextVk->finalizeImageLayout(&image.image);
+
     vk::CommandBuffer *commandBuffer;
     ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
 
@@ -1538,7 +1543,7 @@ angle::Result WindowSurfaceVk::doDeferredAcquireNextImage(const gl::Context *con
     }
 
     RendererVk *renderer = contextVk->getRenderer();
-    ANGLE_TRY(renderer->syncPipelineCacheVk(displayVk));
+    ANGLE_TRY(renderer->syncPipelineCacheVk(displayVk, contextVk));
 
     return angle::Result::Continue;
 }
@@ -1809,7 +1814,8 @@ angle::Result WindowSurfaceVk::getCurrentFramebuffer(ContextVk *contextVk,
         {
             const vk::ImageView *imageView = nullptr;
             ANGLE_TRY(swapchainImage.imageViews.getLevelLayerDrawImageView(
-                contextVk, swapchainImage.image, vk::LevelIndex(0), 0, &imageView));
+                contextVk, swapchainImage.image, vk::LevelIndex(0), 0,
+                gl::SrgbWriteControlMode::Default, &imageView));
 
             imageViews[0] = imageView->getHandle();
             ANGLE_VK_TRY(contextVk,
@@ -1897,8 +1903,9 @@ angle::Result WindowSurfaceVk::drawOverlay(ContextVk *contextVk, SwapchainImage 
 
     // Draw overlay
     const vk::ImageView *imageView = nullptr;
-    ANGLE_TRY(image->imageViews.getLevelLayerDrawImageView(contextVk, image->image,
-                                                           vk::LevelIndex(0), 0, &imageView));
+    ANGLE_TRY(image->imageViews.getLevelLayerDrawImageView(
+        contextVk, image->image, vk::LevelIndex(0), 0, gl::SrgbWriteControlMode::Default,
+        &imageView));
     ANGLE_TRY(overlayVk->onPresent(contextVk, &image->image, imageView,
                                    Is90DegreeRotation(getPreTransform())));
 

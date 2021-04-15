@@ -343,9 +343,8 @@ void RendererVk::ensureCapsInitialized() const
     mNativeExtensions.robustness =
         !IsSwiftshader(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) &&
         !IsARM(mPhysicalDeviceProperties.vendorID);
-    mNativeExtensions.textureBorderClampOES  = false;  // not implemented yet
-    mNativeExtensions.translatedShaderSource = true;
-    mNativeExtensions.discardFramebuffer     = true;
+    mNativeExtensions.textureBorderClampOES = false;  // not implemented yet
+    mNativeExtensions.discardFramebuffer    = true;
 
     // Enable EXT_texture_type_2_10_10_10_REV
     mNativeExtensions.textureFormat2101010REV = true;
@@ -452,6 +451,9 @@ void RendererVk::ensureCapsInitialized() const
     mNativeExtensions.textureSRGBOverride =
         vk::GetTextureSRGBOverrideSupport(this, mNativeExtensions);
     mNativeExtensions.textureSRGBDecode = vk::GetTextureSRGBDecodeSupport(this);
+
+    // EXT_srgb_write_control requires image_format_list
+    mNativeExtensions.sRGBWriteControl = getFeatures().supportsImageFormatList.enabled;
 
     // Vulkan natively supports io interface block.
     mNativeExtensions.shaderIoBlocksOES = true;
@@ -688,20 +690,21 @@ void RendererVk::ensureCapsInitialized() const
     // likely not very useful, so we use the same limit (4 + MAX_ATOMIC_COUNTER_BUFFERS) for the
     // vertex stage to determine if we would want to add support for atomic counter buffers.
     constexpr uint32_t kMinimumStorageBuffersForAtomicCounterBufferSupport =
-        gl::limits::kMinimumComputeStorageBuffers + gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFERS;
+        gl::limits::kMinimumComputeStorageBuffers +
+        gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;
     uint32_t maxVertexStageAtomicCounterBuffers = 0;
     uint32_t maxPerStageAtomicCounterBuffers    = 0;
     uint32_t maxCombinedAtomicCounterBuffers    = 0;
 
     if (maxPerStageStorageBuffers >= kMinimumStorageBuffersForAtomicCounterBufferSupport)
     {
-        maxPerStageAtomicCounterBuffers = gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFERS;
-        maxCombinedAtomicCounterBuffers = gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFERS;
+        maxPerStageAtomicCounterBuffers = gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;
+        maxCombinedAtomicCounterBuffers = gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;
     }
 
     if (maxVertexStageStorageBuffers >= kMinimumStorageBuffersForAtomicCounterBufferSupport)
     {
-        maxVertexStageAtomicCounterBuffers = gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFERS;
+        maxVertexStageAtomicCounterBuffers = gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;
     }
 
     maxVertexStageStorageBuffers -= maxVertexStageAtomicCounterBuffers;

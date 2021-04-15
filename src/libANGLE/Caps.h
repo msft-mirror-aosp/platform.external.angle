@@ -1135,6 +1135,9 @@ struct DisplayExtensions
     // EGL_ANGLE_iosurface_client_buffer
     bool iosurfaceClientBuffer = false;
 
+    // EGL_ANGLE_metal_texture_client_buffer
+    bool mtlTextureClientBuffer = false;
+
     // EGL_ANGLE_create_context_extensions_enabled
     bool createContextExtensionsEnabled = false;
 
@@ -1244,6 +1247,9 @@ struct DeviceExtensions
 
     // EGL_ANGLE_device_eagl
     bool deviceEAGL = false;
+
+    // EGL_ANGLE_device_metal
+    bool deviceMetal = false;
 };
 
 struct ClientExtensions

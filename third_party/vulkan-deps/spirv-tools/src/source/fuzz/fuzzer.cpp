@@ -228,8 +228,13 @@ Fuzzer::Fuzzer(std::unique_ptr<opt::IRContext> ir_context,
   MaybeAddFinalPass<FuzzerPassAdjustMemoryOperandsMasks>(&final_passes_);
   MaybeAddFinalPass<FuzzerPassAdjustSelectionControls>(&final_passes_);
   MaybeAddFinalPass<FuzzerPassAddNoContractionDecorations>(&final_passes_);
-  MaybeAddFinalPass<FuzzerPassInterchangeSignednessOfIntegerOperands>(
-      &final_passes_);
+  if (!fuzzer_context_->IsWgslCompatible()) {
+    // TODO(https://github.com/KhronosGroup/SPIRV-Tools/issues/4214):
+    //  this is disabled temporarily due to some issues in the Tint compiler.
+    //  Enable it back when the issues are resolved.
+    MaybeAddFinalPass<FuzzerPassInterchangeSignednessOfIntegerOperands>(
+        &final_passes_);
+  }
   MaybeAddFinalPass<FuzzerPassInterchangeZeroLikeConstants>(&final_passes_);
   MaybeAddFinalPass<FuzzerPassPermutePhiOperands>(&final_passes_);
   MaybeAddFinalPass<FuzzerPassSwapCommutableOperands>(&final_passes_);
@@ -282,6 +287,12 @@ Fuzzer::Result Fuzzer::Run(uint32_t num_of_transformations_to_apply) {
 
   auto status = Status::kComplete;
   do {
+    if (!ApplyPassAndCheckValidity(
+            repeated_pass_manager_->ChoosePass(transformation_sequence_out_))) {
+      status = Status::kFuzzerPassLedToInvalidModule;
+      break;
+    }
+
     // Check that the module is small enough.
     if (ir_context_->module()->id_bound() >=
         fuzzer_context_->GetIdBoundLimit()) {
@@ -301,7 +312,9 @@ Fuzzer::Result Fuzzer::Run(uint32_t num_of_transformations_to_apply) {
       break;
     }
 
-    // If the number of transformations is still small
+    // Check that we've not got stuck (this can happen if the only available
+    // fuzzer passes are not able to apply any transformations, or can only
+    // apply very few transformations).
     if (num_repeated_passes_applied_ >=
         fuzzer_context_->GetTransformationLimit()) {
       status = Status::kFuzzerStuck;
@@ -317,11 +330,6 @@ Fuzzer::Result Fuzzer::Run(uint32_t num_of_transformations_to_apply) {
       break;
     }
 
-    if (!ApplyPassAndCheckValidity(
-            repeated_pass_manager_->ChoosePass(transformation_sequence_out_))) {
-      status = Status::kFuzzerPassLedToInvalidModule;
-      break;
-    }
   } while (ShouldContinueRepeatedPasses(num_of_transformations_to_apply == 0));
 
   if (status != Status::kFuzzerPassLedToInvalidModule) {
