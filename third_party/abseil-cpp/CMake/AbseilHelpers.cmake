@@ -141,7 +141,8 @@ function(absl_cc_library)
   endif()
 
   # Generate a pkg-config file for every library:
-  if(_build_type STREQUAL "static" OR _build_type STREQUAL "shared")
+  if((_build_type STREQUAL "static" OR _build_type STREQUAL "shared")
+     AND ABSL_ENABLE_INSTALL)
     if(NOT ABSL_CC_LIB_TESTONLY)
       if(absl_VERSION)
         set(PC_VERSION "${absl_VERSION}")
@@ -181,7 +182,7 @@ Requires:${PC_DEPS}\n\
 Libs: -L\${libdir} $<JOIN:${ABSL_CC_LIB_LINKOPTS}, > $<$<NOT:$<BOOL:${ABSL_CC_LIB_IS_INTERFACE}>>:-labsl_${_NAME}>\n\
 Cflags: -I\${includedir}${PC_CFLAGS}\n")
       INSTALL(FILES "${CMAKE_BINARY_DIR}/lib/pkgconfig/absl_${_NAME}.pc"
-              DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig")
+              DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
     endif()
   endif()
 

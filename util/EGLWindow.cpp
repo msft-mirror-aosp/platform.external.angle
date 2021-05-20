@@ -90,6 +90,11 @@ EGLContext EGLWindow::getContext() const
     return mContext;
 }
 
+bool EGLWindow::isContextVersion(EGLint glesMajorVersion, EGLint glesMinorVersion) const
+{
+    return mClientMajorVersion == glesMajorVersion && mClientMinorVersion == glesMinorVersion;
+}
+
 bool EGLWindow::initializeGL(OSWindow *osWindow,
                              angle::Library *glWindowingLibrary,
                              angle::GLESDriverType driverType,
@@ -261,6 +266,11 @@ bool EGLWindow::initializeDisplay(OSWindow *osWindow,
     if (params.forceBufferGPUStorageFeatureMtl == EGL_TRUE)
     {
         enabledFeatureOverrides.push_back("force_buffer_gpu_storage_mtl");
+    }
+
+    if (params.emulatedVAOs == EGL_TRUE)
+    {
+        enabledFeatureOverrides.push_back("sync_vertex_arrays_to_default");
     }
 
     const bool hasFeatureControlANGLE =
@@ -526,7 +536,9 @@ EGLContext EGLWindow::createContext(EGLContext share) const
             contextAttributes.push_back(mConfigParams.debug ? EGL_TRUE : EGL_FALSE);
         }
 
-        if (hasKHRCreateContextNoError)
+        // TODO (http://anglebug.com/5809)
+        // Mesa does not allow EGL_CONTEXT_OPENGL_NO_ERROR_KHR for GLES1.
+        if (hasKHRCreateContextNoError && mConfigParams.noError)
         {
             contextAttributes.push_back(EGL_CONTEXT_OPENGL_NO_ERROR_KHR);
             contextAttributes.push_back(mConfigParams.noError ? EGL_TRUE : EGL_FALSE);

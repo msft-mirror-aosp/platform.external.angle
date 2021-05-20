@@ -827,9 +827,8 @@ struct PackedPushConstantRange
 };
 
 template <typename T>
-using DescriptorSetLayoutArray = angle::PackedEnumMap<DescriptorSetIndex, T>;
-using DescriptorSetLayoutPointerArray =
-    DescriptorSetLayoutArray<BindingPointer<DescriptorSetLayout>>;
+using DescriptorSetArray              = angle::PackedEnumMap<DescriptorSetIndex, T>;
+using DescriptorSetLayoutPointerArray = DescriptorSetArray<BindingPointer<DescriptorSetLayout>>;
 template <typename T>
 using PushConstantRangeArray = gl::ShaderMap<T>;
 
@@ -851,7 +850,7 @@ class PipelineLayoutDesc final
     const PushConstantRangeArray<PackedPushConstantRange> &getPushConstantRanges() const;
 
   private:
-    DescriptorSetLayoutArray<DescriptorSetLayoutDesc> mDescriptorSetLayouts;
+    DescriptorSetArray<DescriptorSetLayoutDesc> mDescriptorSetLayouts;
     PushConstantRangeArray<PackedPushConstantRange> mPushConstantRanges;
 
     // Verify the arrays are properly packed.
@@ -864,9 +863,8 @@ class PipelineLayoutDesc final
 };
 
 // Verify the structure is properly packed.
-static_assert(sizeof(PipelineLayoutDesc) ==
-                  (sizeof(DescriptorSetLayoutArray<DescriptorSetLayoutDesc>) +
-                   sizeof(gl::ShaderMap<PackedPushConstantRange>)),
+static_assert(sizeof(PipelineLayoutDesc) == (sizeof(DescriptorSetArray<DescriptorSetLayoutDesc>) +
+                                             sizeof(gl::ShaderMap<PackedPushConstantRange>)),
               "Unexpected Size");
 
 // Packed sampler description for the sampler cache.
@@ -1111,11 +1109,18 @@ class UniformsAndXfbDescriptorDesc
         mBufferSerials[kDefaultUniformBufferIndex] = bufferSerial;
         mBufferCount = std::max(mBufferCount, static_cast<uint32_t>(1));
     }
-    void updateTransformFeedbackBuffer(size_t xfbIndex, BufferSerial bufferSerial)
+    void updateTransformFeedbackBuffer(size_t xfbIndex,
+                                       BufferSerial bufferSerial,
+                                       VkDeviceSize bufferOffset)
     {
         uint32_t bufferIndex        = static_cast<uint32_t>(xfbIndex) + 1;
         mBufferSerials[bufferIndex] = bufferSerial;
-        mBufferCount                = std::max(mBufferCount, (bufferIndex + 1));
+
+        ASSERT(static_cast<uint64_t>(bufferOffset) <=
+               static_cast<uint64_t>(std::numeric_limits<uint32_t>::max()));
+        mXfbBufferOffsets[xfbIndex] = static_cast<uint32_t>(bufferOffset);
+
+        mBufferCount = std::max(mBufferCount, (bufferIndex + 1));
     }
     size_t hash() const;
     void reset();
@@ -1126,8 +1131,37 @@ class UniformsAndXfbDescriptorDesc
     uint32_t mBufferCount;
     // The array index 0 is used for default uniform buffer
     static constexpr size_t kDefaultUniformBufferIndex = 0;
-    static constexpr size_t kMaxBufferCount = 1 + gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_BUFFERS;
+    static constexpr size_t kDefaultUniformBufferCount = 1;
+    static constexpr size_t kMaxBufferCount =
+        kDefaultUniformBufferCount + gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_BUFFERS;
     std::array<BufferSerial, kMaxBufferCount> mBufferSerials;
+    std::array<uint32_t, gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_BUFFERS> mXfbBufferOffsets;
+};
+
+class ShaderBuffersDescriptorDesc
+{
+  public:
+    ShaderBuffersDescriptorDesc();
+    ~ShaderBuffersDescriptorDesc();
+
+    ShaderBuffersDescriptorDesc(const ShaderBuffersDescriptorDesc &other);
+    ShaderBuffersDescriptorDesc &operator=(const ShaderBuffersDescriptorDesc &other);
+
+    size_t hash() const;
+    void reset();
+
+    bool operator==(const ShaderBuffersDescriptorDesc &other) const;
+
+    ANGLE_INLINE void appendBufferSerial(BufferSerial bufferSerial)
+    {
+        mPayload.push_back(bufferSerial.getValue());
+    }
+    ANGLE_INLINE void append32BitValue(uint32_t value) { mPayload.push_back(value); }
+
+  private:
+    // After a preliminary minimum size, use heap memory.
+    static constexpr size_t kFastBufferWordLimit = 32;
+    angle::FastVector<uint32_t, kFastBufferWordLimit> mPayload;
 };
 
 // In the FramebufferDesc object:
@@ -1316,6 +1350,12 @@ struct hash<rx::vk::UniformsAndXfbDescriptorDesc>
 };
 
 template <>
+struct hash<rx::vk::ShaderBuffersDescriptorDesc>
+{
+    size_t operator()(const rx::vk::ShaderBuffersDescriptorDesc &key) const { return key.hash(); }
+};
+
+template <>
 struct hash<rx::vk::FramebufferDesc>
 {
     size_t operator()(const rx::vk::FramebufferDesc &key) const { return key.hash(); }
@@ -1350,10 +1390,11 @@ enum class VulkanCacheType
     PipelineLayout,
     Sampler,
     SamplerYcbcrConversion,
-    DescriptorSet,
     DescriptorSetLayout,
+    DriverUniformsDescriptors,
     TextureDescriptors,
     UniformsAndXfbDescriptors,
+    ShaderBuffersDescriptors,
     Framebuffer,
     EnumCount
 };
@@ -1362,7 +1403,7 @@ enum class VulkanCacheType
 class CacheStats final : angle::NonCopyable
 {
   public:
-    CacheStats() : mHitCount(0), mMissCount(0) {}
+    CacheStats() { reset(); }
     ~CacheStats() {}
 
     ANGLE_INLINE void hit() { mHitCount++; }
@@ -1372,6 +1413,9 @@ class CacheStats final : angle::NonCopyable
         mHitCount += stats.mHitCount;
         mMissCount += stats.mMissCount;
     }
+
+    uint64_t getHitCount() const { return mHitCount; }
+    uint64_t getMissCount() const { return mMissCount; }
 
     ANGLE_INLINE double getHitRatio() const
     {
@@ -1385,9 +1429,33 @@ class CacheStats final : angle::NonCopyable
         }
     }
 
+    void reset()
+    {
+        mHitCount  = 0;
+        mMissCount = 0;
+    }
+
   private:
     uint64_t mHitCount;
     uint64_t mMissCount;
+};
+
+template <VulkanCacheType CacheType>
+class HasCacheStats : angle::NonCopyable
+{
+  public:
+    template <typename Accumulator>
+    void accumulateCacheStats(Accumulator *accum)
+    {
+        accum->accumulateCacheStats(CacheType, mCacheStats);
+        mCacheStats.reset();
+    }
+
+  protected:
+    HasCacheStats()          = default;
+    virtual ~HasCacheStats() = default;
+
+    CacheStats mCacheStats;
 };
 
 // TODO(jmadill): Add cache trimming/eviction.
@@ -1446,11 +1514,11 @@ class RenderPassCache final : angle::NonCopyable
 };
 
 // TODO(jmadill): Add cache trimming/eviction.
-class GraphicsPipelineCache final : angle::NonCopyable
+class GraphicsPipelineCache final : public HasCacheStats<VulkanCacheType::GraphicsPipeline>
 {
   public:
     GraphicsPipelineCache();
-    ~GraphicsPipelineCache();
+    ~GraphicsPipelineCache() override;
 
     void destroy(RendererVk *rendererVk);
     void release(ContextVk *context);
@@ -1507,7 +1575,6 @@ class GraphicsPipelineCache final : angle::NonCopyable
                                  vk::PipelineHelper **pipelineOut);
 
     std::unordered_map<vk::GraphicsPipelineDesc, vk::PipelineHelper> mPayload;
-    CacheStats mCacheStats;
 };
 
 class DescriptorSetLayoutCache final : angle::NonCopyable
@@ -1528,11 +1595,11 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
     CacheStats mCacheStats;
 };
 
-class PipelineLayoutCache final : angle::NonCopyable
+class PipelineLayoutCache final : public HasCacheStats<VulkanCacheType::PipelineLayout>
 {
   public:
     PipelineLayoutCache();
-    ~PipelineLayoutCache();
+    ~PipelineLayoutCache() override;
 
     void destroy(RendererVk *rendererVk);
 
@@ -1543,14 +1610,13 @@ class PipelineLayoutCache final : angle::NonCopyable
 
   private:
     std::unordered_map<vk::PipelineLayoutDesc, vk::RefCountedPipelineLayout> mPayload;
-    CacheStats mCacheStats;
 };
 
-class SamplerCache final : angle::NonCopyable
+class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
 {
   public:
     SamplerCache();
-    ~SamplerCache();
+    ~SamplerCache() override;
 
     void destroy(RendererVk *rendererVk);
 
@@ -1560,15 +1626,15 @@ class SamplerCache final : angle::NonCopyable
 
   private:
     std::unordered_map<vk::SamplerDesc, vk::RefCountedSampler> mPayload;
-    CacheStats mCacheStats;
 };
 
 // YuvConversion Cache
-class SamplerYcbcrConversionCache final : angle::NonCopyable
+class SamplerYcbcrConversionCache final
+    : public HasCacheStats<VulkanCacheType::SamplerYcbcrConversion>
 {
   public:
     SamplerYcbcrConversionCache();
-    ~SamplerYcbcrConversionCache();
+    ~SamplerYcbcrConversionCache() override;
 
     void destroy(RendererVk *rendererVk);
 
@@ -1581,15 +1647,15 @@ class SamplerYcbcrConversionCache final : angle::NonCopyable
 
   private:
     std::unordered_map<uint64_t, vk::RefCountedSamplerYcbcrConversion> mPayload;
-    CacheStats mCacheStats;
 };
 
 // DescriptorSet Cache
-class DriverUniformsDescriptorSetCache final : angle::NonCopyable
+class DriverUniformsDescriptorSetCache final
+    : public HasCacheStats<VulkanCacheType::DriverUniformsDescriptors>
 {
   public:
     DriverUniformsDescriptorSetCache() = default;
-    ~DriverUniformsDescriptorSetCache() { ASSERT(mPayload.empty()); }
+    ~DriverUniformsDescriptorSetCache() override { ASSERT(mPayload.empty()); }
 
     void destroy(RendererVk *rendererVk);
 
@@ -1613,40 +1679,38 @@ class DriverUniformsDescriptorSetCache final : angle::NonCopyable
 
   private:
     angle::FastIntegerMap<VkDescriptorSet> mPayload;
-    CacheStats mCacheStats;
 };
 
 // Templated Descriptors Cache
-template <typename key, VulkanCacheType cacheType>
-class DescriptorSetCache final : angle::NonCopyable
+template <typename Key, VulkanCacheType CacheType>
+class DescriptorSetCache final : public HasCacheStats<CacheType>
 {
   public:
     DescriptorSetCache() = default;
-    ~DescriptorSetCache() { ASSERT(mPayload.empty()); }
+    ~DescriptorSetCache() override { ASSERT(mPayload.empty()); }
 
     void destroy(RendererVk *rendererVk);
 
-    ANGLE_INLINE bool get(const key &desc, VkDescriptorSet *descriptorSet)
+    ANGLE_INLINE bool get(const Key &desc, VkDescriptorSet *descriptorSet)
     {
         auto iter = mPayload.find(desc);
         if (iter != mPayload.end())
         {
             *descriptorSet = iter->second;
-            mCacheStats.hit();
+            this->mCacheStats.hit();
             return true;
         }
-        mCacheStats.miss();
+        this->mCacheStats.miss();
         return false;
     }
 
-    ANGLE_INLINE void insert(const key &desc, VkDescriptorSet descriptorSet)
+    ANGLE_INLINE void insert(const Key &desc, VkDescriptorSet descriptorSet)
     {
         mPayload.emplace(desc, descriptorSet);
     }
 
   private:
-    angle::HashMap<key, VkDescriptorSet> mPayload;
-    CacheStats mCacheStats;
+    angle::HashMap<Key, VkDescriptorSet> mPayload;
 };
 
 // Only 1 driver uniform binding is used.

@@ -356,7 +356,12 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
 
         case EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE:
 #if defined(ANGLE_ENABLE_VULKAN)
-#    if defined(ANGLE_PLATFORM_WINDOWS)
+#    if defined(ANGLE_USE_VULKAN_NULL_DISPLAY)
+            if (rx::IsVulkanNullDisplayAvailable())
+            {
+                impl = rx::CreateVulkanNullDisplay(state);
+            }
+#    elif defined(ANGLE_PLATFORM_WINDOWS)
             if (rx::IsVulkanWin32DisplayAvailable())
             {
                 impl = rx::CreateVulkanWin32Display(state);
@@ -1440,6 +1445,17 @@ Error Display::releaseContext(gl::Context *context)
 
 Error Display::destroyContext(const Thread *thread, gl::Context *context)
 {
+    return destroyContextWithSurfaces(thread, context, thread->getContext(),
+                                      thread->getCurrentDrawSurface(),
+                                      thread->getCurrentReadSurface());
+}
+
+Error Display::destroyContextWithSurfaces(const Thread *thread,
+                                          gl::Context *context,
+                                          gl::Context *currentContext,
+                                          Surface *currentDrawSurface,
+                                          Surface *currentReadSurface)
+{
     size_t refCount = context->getRefCount();
     if (refCount > 1)
     {
@@ -1448,9 +1464,6 @@ Error Display::destroyContext(const Thread *thread, gl::Context *context)
     }
 
     // This is the last reference for this context, so we can destroy it now.
-    gl::Context *currentContext   = thread->getContext();
-    Surface *currentDrawSurface   = thread->getCurrentDrawSurface();
-    Surface *currentReadSurface   = thread->getCurrentReadSurface();
     bool changeContextForDeletion = context != currentContext;
 
     // For external context, we cannot change the current native context, and the API user should
@@ -1848,6 +1861,10 @@ void Display::initializeFrontendFeatures()
     mImplementation->initializeFrontendFeatures(&mFrontendFeatures);
 
     rx::ApplyFeatureOverrides(&mFrontendFeatures, mState);
+
+    // Disabled by default. To reduce the risk, create a feature to enable
+    // compressing pipeline cache in multi-thread pool.
+    ANGLE_FEATURE_CONDITION(&mFrontendFeatures, enableCompressingPipelineCacheInThreadPool, false);
 }
 
 const DisplayExtensions &Display::getExtensions() const

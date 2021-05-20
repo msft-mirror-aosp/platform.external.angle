@@ -7,6 +7,7 @@
 //   Pointer parameter capture functions for the OpenGL ES 1.0 entry points.
 
 #include "libANGLE/capture/capture_gles_1_0_autogen.h"
+#include "libANGLE/queryutils.h"
 
 using namespace angle;
 
@@ -39,7 +40,7 @@ void CaptureColorPointer_pointer(const State &glState,
                                  const void *pointer,
                                  ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    CaptureVertexPointerGLES1(glState, ClientVertexArrayType::Color, pointer, paramCapture);
 }
 
 void CaptureFogfv_params(const State &glState,
@@ -173,7 +174,8 @@ void CaptureLightModelfv_params(const State &glState,
                                 const GLfloat *params,
                                 ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    unsigned int size = GetLightModelParameterCount(pname);
+    CaptureMemory(params, sizeof(GLfloat) * size, paramCapture);
 }
 
 void CaptureLightModelxv_param(const State &glState,
@@ -182,7 +184,8 @@ void CaptureLightModelxv_param(const State &glState,
                                const GLfixed *param,
                                ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    unsigned int size = GetLightModelParameterCount(pname);
+    CaptureMemory(param, sizeof(GLfixed) * size, paramCapture);
 }
 
 void CaptureLightfv_params(const State &glState,
@@ -192,7 +195,8 @@ void CaptureLightfv_params(const State &glState,
                            const GLfloat *params,
                            ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    unsigned int size = GetLightParameterCount(pnamePacked);
+    CaptureMemory(params, sizeof(GLfloat) * size, paramCapture);
 }
 
 void CaptureLightxv_params(const State &glState,
@@ -202,7 +206,8 @@ void CaptureLightxv_params(const State &glState,
                            const GLfixed *params,
                            ParamCapture *paramCapture)
 {
-    CaptureMemory(params, sizeof(GLfixed), paramCapture);
+    unsigned int size = GetLightParameterCount(pnamePacked);
+    CaptureMemory(params, sizeof(GLfixed) * size, paramCapture);
 }
 
 void CaptureLoadMatrixf_m(const State &glState,
@@ -228,7 +233,8 @@ void CaptureMaterialfv_params(const State &glState,
                               const GLfloat *params,
                               ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    unsigned int size = GetMaterialParameterCount(pnamePacked);
+    CaptureMemory(params, sizeof(GLfloat) * size, paramCapture);
 }
 
 void CaptureMaterialxv_param(const State &glState,
@@ -238,7 +244,8 @@ void CaptureMaterialxv_param(const State &glState,
                              const GLfixed *param,
                              ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    unsigned int size = GetMaterialParameterCount(pnamePacked);
+    CaptureMemory(param, sizeof(GLfixed) * size, paramCapture);
 }
 
 void CaptureMultMatrixf_m(const State &glState,
@@ -264,7 +271,7 @@ void CaptureNormalPointer_pointer(const State &glState,
                                   const void *pointer,
                                   ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    CaptureVertexPointerGLES1(glState, ClientVertexArrayType::Normal, pointer, paramCapture);
 }
 
 void CapturePointParameterfv_params(const State &glState,
@@ -293,7 +300,7 @@ void CaptureTexCoordPointer_pointer(const State &glState,
                                     const void *pointer,
                                     ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    CaptureVertexPointerGLES1(glState, ClientVertexArrayType::TextureCoord, pointer, paramCapture);
 }
 
 void CaptureTexEnvfv_params(const State &glState,
@@ -344,7 +351,7 @@ void CaptureVertexPointer_pointer(const State &glState,
                                   const void *pointer,
                                   ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    CaptureVertexPointerGLES1(glState, ClientVertexArrayType::Vertex, pointer, paramCapture);
 }
 
 }  // namespace gl

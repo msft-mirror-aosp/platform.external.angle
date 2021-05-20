@@ -103,6 +103,27 @@ _vulkan_backend_sources = [
   "vk_wrapper.h",
 ]
 
+if (angle_enable_cl) {
+  _vulkan_backend_sources += [
+    "CLContextVk.cpp",
+    "CLContextVk.h",
+    "CLDeviceVk.cpp",
+    "CLDeviceVk.h",
+    "CLPlatformVk.cpp",
+    "CLPlatformVk.h",
+    "cl_types.h",
+  ]
+}
+
+if (angle_use_vulkan_null_display) {
+  _vulkan_backend_sources += [
+    "null/DisplayVkNull.cpp",
+    "null/DisplayVkNull.h",
+    "null/WindowSurfaceVkNull.cpp",
+    "null/WindowSurfaceVkNull.h",
+  ]
+}
+
 if (is_linux) {
   _vulkan_backend_sources += [
     "display/DisplayVkSimple.cpp",
