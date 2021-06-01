@@ -176,9 +176,9 @@ constexpr angle::PackedEnumMap<ImageLayout, ImageMemoryBarrierData> kImageMemory
         },
     },
     {
-        ImageLayout::DepthStencilAttachmentAndFragmentShaderRead,
+        ImageLayout::DSAttachmentWriteAndFragmentShaderRead,
         ImageMemoryBarrierData{
-            "DepthStencilAttachmentAndFragmentShaderRead",
+            "DSAttachmentWriteAndFragmentShaderRead",
             VK_IMAGE_LAYOUT_GENERAL,
             kAllDepthStencilPipelineStageFlags | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
             kAllDepthStencilPipelineStageFlags | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
@@ -191,9 +191,9 @@ constexpr angle::PackedEnumMap<ImageLayout, ImageMemoryBarrierData> kImageMemory
         },
     },
     {
-        ImageLayout::DepthStencilAttachmentAndAllShadersRead,
+        ImageLayout::DSAttachmentWriteAndAllShadersRead,
         ImageMemoryBarrierData{
-            "DepthStencilAttachmentAndAllShadersRead",
+            "DSAttachmentWriteAndAllShadersRead",
             VK_IMAGE_LAYOUT_GENERAL,
             kAllDepthStencilPipelineStageFlags | kAllShadersPipelineStageFlags,
             kAllDepthStencilPipelineStageFlags | kAllShadersPipelineStageFlags,
@@ -207,9 +207,24 @@ constexpr angle::PackedEnumMap<ImageLayout, ImageMemoryBarrierData> kImageMemory
         },
     },
     {
-        ImageLayout::DepthStencilReadOnly,
-        ImageMemoryBarrierData{
-            "DepthStencilReadOnly",
+        ImageLayout::DSAttachmentReadAndFragmentShaderRead,
+            ImageMemoryBarrierData{
+            "DSAttachmentReadAndFragmentShaderRead",
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | kAllDepthStencilPipelineStageFlags,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | kAllDepthStencilPipelineStageFlags,
+            // Transition to: all reads must happen after barrier.
+            VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+            // Transition from: RAR and WAR don't need memory barrier.
+            0,
+            ResourceAccess::ReadOnly,
+            PipelineStage::EarlyFragmentTest,
+        },
+    },
+    {
+        ImageLayout::DSAttachmentReadAndAllShadersRead,
+            ImageMemoryBarrierData{
+            "DSAttachmentReadAndAllShadersRead",
             VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
             kAllShadersPipelineStageFlags | kAllDepthStencilPipelineStageFlags,
             kAllShadersPipelineStageFlags | kAllDepthStencilPipelineStageFlags,
@@ -219,6 +234,21 @@ constexpr angle::PackedEnumMap<ImageLayout, ImageMemoryBarrierData> kImageMemory
             0,
             ResourceAccess::ReadOnly,
             PipelineStage::VertexShader,
+        },
+    },
+    {
+        ImageLayout::DepthStencilAttachmentReadOnly,
+            ImageMemoryBarrierData{
+            "DepthStencilAttachmentReadOnly",
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+            kAllDepthStencilPipelineStageFlags,
+            kAllDepthStencilPipelineStageFlags,
+            // Transition to: all reads must happen after barrier.
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+            // Transition from: RAR and WAR don't need memory barrier.
+            0,
+            ResourceAccess::ReadOnly,
+            PipelineStage::EarlyFragmentTest,
         },
     },
     {
@@ -1360,16 +1390,22 @@ void CommandBufferHelper::finalizeDepthStencilImageLayout(Context *context)
     {
         // texture code already picked layout and inserted barrier
         imageLayout = mDepthStencilImage->getCurrentImageLayout();
-        ASSERT(imageLayout == ImageLayout::DepthStencilAttachmentAndFragmentShaderRead ||
-               imageLayout == ImageLayout::DepthStencilAttachmentAndAllShadersRead ||
-               imageLayout == ImageLayout::DepthStencilReadOnly);
-        barrierRequired = imageLayout == ImageLayout::DepthStencilReadOnly
-                              ? mDepthStencilImage->isReadBarrierNecessary(imageLayout)
-                              : true;
+        if (mDepthStencilImage->hasRenderPassUsageFlag(RenderPassUsage::ReadOnlyAttachment))
+        {
+            ASSERT(imageLayout == ImageLayout::DSAttachmentReadAndFragmentShaderRead ||
+                   imageLayout == ImageLayout::DSAttachmentReadAndAllShadersRead);
+            barrierRequired = mDepthStencilImage->isReadBarrierNecessary(imageLayout);
+        }
+        else
+        {
+            ASSERT(imageLayout == ImageLayout::DSAttachmentWriteAndFragmentShaderRead ||
+                   imageLayout == ImageLayout::DSAttachmentWriteAndAllShadersRead);
+            barrierRequired = true;
+        }
     }
     else if (mDepthStencilImage->hasRenderPassUsageFlag(RenderPassUsage::ReadOnlyAttachment))
     {
-        imageLayout     = ImageLayout::DepthStencilReadOnly;
+        imageLayout     = ImageLayout::DepthStencilAttachmentReadOnly;
         barrierRequired = mDepthStencilImage->isReadBarrierNecessary(imageLayout);
     }
     else
@@ -1472,7 +1508,7 @@ void CommandBufferHelper::finalizeDepthStencilLoadStore(Context *context)
     ASSERT(dsOps.initialLayout != static_cast<uint16_t>(ImageLayout::Undefined));
 
     // Ensure we don't write to a read-only RenderPass. (ReadOnly -> !Write)
-    ASSERT(dsOps.initialLayout != static_cast<uint16_t>(ImageLayout::DepthStencilReadOnly) ||
+    ASSERT(!mDepthStencilImage->hasRenderPassUsageFlag(RenderPassUsage::ReadOnlyAttachment) ||
            (mDepthAccess != ResourceAccess::Write && mStencilAccess != ResourceAccess::Write));
 
     // If the attachment is invalidated, skip the store op.  If we are not loading or clearing the
@@ -1508,7 +1544,7 @@ void CommandBufferHelper::finalizeDepthStencilLoadStore(Context *context)
 
     // For read only depth stencil, we can use StoreOpNone if available. DONT_CARE is still
     // preferred, so do this after finish the DONT_CARE handling.
-    if (dsOps.initialLayout == static_cast<uint16_t>(ImageLayout::DepthStencilReadOnly) &&
+    if (mDepthStencilImage->hasRenderPassUsageFlag(RenderPassUsage::ReadOnlyAttachment) &&
         context->getRenderer()->getFeatures().supportsRenderPassStoreOpNoneQCOM.enabled)
     {
         if (dsOps.storeOp == RenderPassStoreOp::Store)
@@ -5131,25 +5167,46 @@ angle::Result ImageHelper::generateMipmapsWithBlit(ContextVk *contextVk,
             commandBuffer->blitImage(mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mImage,
                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, filter);
         }
-        else
-        {
-            // Transition the mip level to the same layout as all the other ones, so we can declare
-            // our whole image layout to be SRC_OPTIMAL.
-            barrier.subresourceRange.baseMipLevel = mipLevel.get() - 1;
-            barrier.oldLayout                     = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            barrier.newLayout                     = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            // We can do it for all layers at once.
-            commandBuffer->imageBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                        VK_PIPELINE_STAGE_TRANSFER_BIT, barrier);
-        }
         mipWidth  = nextMipWidth;
         mipHeight = nextMipHeight;
         mipDepth  = nextMipDepth;
     }
 
+    // Transition all mip level to the same layout so we can declare our whole image layout to one
+    // ImageLayout. FragmentShaderReadOnly is picked here since this is the most reasonable usage
+    // after glGenerateMipmap call.
+    barrier.oldLayout     = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.newLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    if (baseLevel.get() > 0)
+    {
+        // [0:baseLevel-1] from TRANSFER_DST to SHADER_READ
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount   = baseLevel.get();
+        commandBuffer->imageBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, barrier);
+    }
+    // [maxLevel:mLevelCount-1] from TRANSFER_DST to SHADER_READ
+    ASSERT(mLevelCount > maxLevel.get());
+    barrier.subresourceRange.baseMipLevel = maxLevel.get();
+    barrier.subresourceRange.levelCount   = mLevelCount - maxLevel.get();
+    commandBuffer->imageBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, barrier);
+    // [baseLevel:maxLevel-1] from TRANSFER_SRC to SHADER_READ
+    barrier.oldLayout                     = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barrier.subresourceRange.baseMipLevel = baseLevel.get();
+    barrier.subresourceRange.levelCount   = maxLevel.get() - baseLevel.get();
+    commandBuffer->imageBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, barrier);
+
     // This is just changing the internal state of the image helper so that the next call
     // to changeLayout will use this layout as the "oldLayout" argument.
-    mCurrentLayout = ImageLayout::TransferSrc;
+    // mLastNonShaderReadOnlyLayout is used to ensure previous write are made visible to reads,
+    // since the only write here is transfer, hence mLastNonShaderReadOnlyLayout is set to
+    // ImageLayout::TransferDst.
+    mLastNonShaderReadOnlyLayout = ImageLayout::TransferDst;
+    mCurrentShaderReadStageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    mCurrentLayout               = ImageLayout::FragmentShaderReadOnly;
 
     return angle::Result::Continue;
 }
