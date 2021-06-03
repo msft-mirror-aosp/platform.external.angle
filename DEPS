@@ -27,13 +27,13 @@ vars = {
   'checkout_android_native_support': 'checkout_android or checkout_chromeos',
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': '9e607ee51d46d58863aaa6d550924a978241e325',
+  'chromium_revision': '1413aecd34bff3ab4ee1a31e841569517bf49f56',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': 'ea6189a7a67eda5577703256368a9c10b957a437',
+  'vk_gl_cts_revision': '2e0ecf9812baf429048c8cb08c012d9559e10e1f',
 
   # Current revision of googletest.
   # Note: this dep cannot be auto-rolled b/c of nesting.
@@ -72,12 +72,12 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': 'e83a92e7b8e7dc762352103a1b6103f0313255ca',
+  'catapult_revision': '053e386fd4017d799b5b9130fa7a0b00b0fb0229',
 
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling luci-go
   # and whatever else without interference from each other.
-  'luci_go': 'git_revision:03ab00ce4982877f2d4a0b0db48cd355e5ca65ab',
+  'luci_go': 'git_revision:d8815e36ea7b66a4b8c9d69fcc2322012d25715f',
 
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling android_sdk_build-tools_version
@@ -112,12 +112,12 @@ vars = {
 deps = {
 
   'build': {
-    'url': '{chromium_git}/chromium/src/build.git@b5063cfbea9a54433d7b9f9113c52f604e1290dc',
+    'url': '{chromium_git}/chromium/src/build.git@e49989e141e92c7dfe6debb927cfa5f03f837161',
     'condition': 'not build_with_chromium',
   },
 
   'buildtools': {
-    'url': '{chromium_git}/chromium/src/buildtools.git@fba2905150c974240f14aa5334c3e5c93f873032',
+    'url': '{chromium_git}/chromium/src/buildtools.git@cd7b8c0c227140da4a6d7e7353b73438c999bb2d',
     'condition': 'not build_with_chromium',
   },
 
@@ -170,7 +170,7 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@b014545e6cf60b4fc30252386ed3abfdb86595fc',
+    'url': '{chromium_git}/chromium/src/testing@f19fe5f36ced470ef4e7b94d74cfdf9eea1f5fb1',
     'condition': 'not build_with_chromium',
   },
 
@@ -320,7 +320,7 @@ deps = {
   },
 
   'third_party/depot_tools': {
-    'url': '{chromium_git}/chromium/tools/depot_tools.git@6fc394f93d145c3e2f35cc812c81008004332d50',
+    'url': '{chromium_git}/chromium/tools/depot_tools.git@cd3696cf7ee983de86583b898785cea56ffd07fe',
     'condition': 'not build_with_chromium',
   },
 
@@ -484,7 +484,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': '{swiftshader_git}/SwiftShader@b46b97c10c10fbd5dc0ff1d1d101839cbc76a995',
+    'url': '{swiftshader_git}/SwiftShader@90c0551ca547914f96b32d50bba9c2126b45be41',
     'condition': 'not build_with_chromium',
   },
 
@@ -504,7 +504,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': '{chromium_git}/vulkan-deps@012f2ef007317eec26fd6a60920cd3651d74a53e',
+    'url': '{chromium_git}/vulkan-deps@682cfc04ad59127e144af19c57513ca0e7f87f98',
     'condition': 'not build_with_chromium',
   },
 
@@ -514,7 +514,7 @@ deps = {
   },
 
   'third_party/zlib': {
-    'url': '{chromium_git}/chromium/src/third_party/zlib@d0e636edaa95e2e04f56b84014f6b5f799acf0f0',
+    'url': '{chromium_git}/chromium/src/third_party/zlib@00ade15d946d72f75c786dc2e66c419a9d99e2ad',
     'condition': 'not build_with_chromium',
   },
 
@@ -559,7 +559,7 @@ deps = {
   },
 
   'tools/mb': {
-    'url': '{chromium_git}/chromium/src/tools/mb@4dfe812639c5278df3c6773724f609acd28c8370',
+    'url': '{chromium_git}/chromium/src/tools/mb@26afa3ac97eda954ad588d5279188482c36346d0',
     'condition': 'not build_with_chromium',
   },
 
@@ -806,6 +806,16 @@ deps = {
       'packages': [
         {
             'package': 'angle/traces/command_and_conquer_rivals',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
+  'src/tests/restricted_traces/cookie_run_kingdom': {
+      'packages': [
+        {
+            'package': 'angle/traces/cookie_run_kingdom',
             'version': 'version:1',
         },
       ],
@@ -1366,6 +1376,16 @@ deps = {
       'packages': [
         {
             'package': 'angle/traces/standoff_2',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
+  'src/tests/restricted_traces/subway_princess_runner': {
+      'packages': [
+        {
+            'package': 'angle/traces/subway_princess_runner',
             'version': 'version:1',
         },
       ],

@@ -31,6 +31,7 @@
 #include "cod_mobile/cod_mobile_capture_context1.h"
 #include "coin_master/coin_master_capture_context1.h"
 #include "command_and_conquer_rivals/command_and_conquer_rivals_capture_context2.h"
+#include "cookie_run_kingdom/cookie_run_kingdom_capture_context2.h"
 #include "disney_tsum_tsum/disney_tsum_tsum_capture_context3.h"
 #include "dr_driving/dr_driving_capture_context3.h"
 #include "dragon_ball_legends/dragon_ball_legends_capture_context1.h"
@@ -87,6 +88,7 @@
 #include "slingshot_test2/slingshot_test2_capture_context2.h"
 #include "sniper_3d/sniper_3d_capture_context1.h"
 #include "standoff_2/standoff_2_capture_context1.h"
+#include "subway_princess_runner/subway_princess_runner_capture_context2.h"
 #include "subway_surfers/subway_surfers_capture_context1.h"
 #include "summoners_war/summoners_war_capture_context2.h"
 #include "talking_tom_hero_dash/talking_tom_hero_dash_capture_context1.h"
@@ -196,6 +198,11 @@ constexpr angle::PackedEnumMap<RestrictedTraceID, TraceInfo> kTraceInfos = {
       command_and_conquer_rivals::kReplayFrameStart, command_and_conquer_rivals::kReplayFrameEnd,
       command_and_conquer_rivals::kReplayDrawSurfaceWidth,
       command_and_conquer_rivals::kReplayDrawSurfaceHeight, "command_and_conquer_rivals"}},
+    {RestrictedTraceID::cookie_run_kingdom,
+     {cookie_run_kingdom::kReplayContextClientMajorVersion,
+      cookie_run_kingdom::kReplayContextClientMinorVersion, cookie_run_kingdom::kReplayFrameStart,
+      cookie_run_kingdom::kReplayFrameEnd, cookie_run_kingdom::kReplayDrawSurfaceWidth,
+      cookie_run_kingdom::kReplayDrawSurfaceHeight, "cookie_run_kingdom"}},
     {RestrictedTraceID::disney_tsum_tsum,
      {disney_tsum_tsum::kReplayContextClientMajorVersion,
       disney_tsum_tsum::kReplayContextClientMinorVersion, disney_tsum_tsum::kReplayFrameStart,
@@ -469,6 +476,12 @@ constexpr angle::PackedEnumMap<RestrictedTraceID, TraceInfo> kTraceInfos = {
      {standoff_2::kReplayContextClientMajorVersion, standoff_2::kReplayContextClientMinorVersion,
       standoff_2::kReplayFrameStart, standoff_2::kReplayFrameEnd,
       standoff_2::kReplayDrawSurfaceWidth, standoff_2::kReplayDrawSurfaceHeight, "standoff_2"}},
+    {RestrictedTraceID::subway_princess_runner,
+     {subway_princess_runner::kReplayContextClientMajorVersion,
+      subway_princess_runner::kReplayContextClientMinorVersion,
+      subway_princess_runner::kReplayFrameStart, subway_princess_runner::kReplayFrameEnd,
+      subway_princess_runner::kReplayDrawSurfaceWidth,
+      subway_princess_runner::kReplayDrawSurfaceHeight, "subway_princess_runner"}},
     {RestrictedTraceID::subway_surfers,
      {subway_surfers::kReplayContextClientMajorVersion,
       subway_surfers::kReplayContextClientMinorVersion, subway_surfers::kReplayFrameStart,
