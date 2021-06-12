@@ -58,7 +58,7 @@ bool TranslatorGLSL::translate(TIntermBlock *root,
 
     // Write pragmas after extensions because some drivers consider pragmas
     // like non-preprocessor tokens.
-    writePragma(compileOptions);
+    WritePragma(sink, compileOptions, getPragma());
 
     // If flattening the global invariant pragma, write invariant declarations for built-in
     // variables. It should be harmless to do this twice in the case that the shader also explicitly
@@ -278,7 +278,8 @@ void TranslatorGLSL::writeExtensionBehavior(TIntermNode *root, ShCompileOptions 
                      << "\n";
             }
 
-            if (iter.first == TExtension::EXT_geometry_shader)
+            if (iter.first == TExtension::EXT_geometry_shader ||
+                iter.first == TExtension::OES_geometry_shader)
             {
                 sink << "#extension GL_ARB_geometry_shader4 : " << GetBehaviorString(iter.second)
                      << "\n";
