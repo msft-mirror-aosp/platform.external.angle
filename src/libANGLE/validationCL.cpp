@@ -1155,6 +1155,49 @@ cl_int ValidateBuildProgram(cl_program program,
                             void(CL_CALLBACK *pfn_notify)(cl_program program, void *user_data),
                             const void *user_data)
 {
+    // CL_INVALID_PROGRAM if program is not a valid program object.
+    if (!Program::IsValid(program))
+    {
+        return CL_INVALID_PROGRAM;
+    }
+    const Program &prog = program->cast<Program>();
+
+    // CL_INVALID_VALUE if device_list is NULL and num_devices is greater than zero,
+    // or if device_list is not NULL and num_devices is zero.
+    if ((device_list != nullptr) != (num_devices != 0u))
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    // CL_INVALID_DEVICE if any device in device_list
+    // is not in the list of devices associated with program.
+    while (num_devices-- != 0u)
+    {
+        if (!prog.hasDevice(*device_list++))
+        {
+            return CL_INVALID_DEVICE;
+        }
+    }
+
+    // CL_INVALID_VALUE if pfn_notify is NULL but user_data is not NULL.
+    if (pfn_notify == nullptr && user_data != nullptr)
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    // CL_INVALID_OPERATION if the build of a program executable for any of the devices listed
+    // in device_list by a previous call to clBuildProgram for program has not completed.
+    if (prog.isBuilding())
+    {
+        return CL_INVALID_OPERATION;
+    }
+
+    // CL_INVALID_OPERATION if there are kernel objects attached to program.
+    if (prog.hasAttachedKernels())
+    {
+        return CL_INVALID_OPERATION;
+    }
+
     return CL_SUCCESS;
 }
 
@@ -1164,14 +1207,15 @@ cl_int ValidateGetProgramInfo(cl_program program,
                               const void *param_value,
                               const size_t *param_value_size_ret)
 {
-    // CL_INVALID_PROGRAM if program is a not a valid program object.
+    // CL_INVALID_PROGRAM if program is not a valid program object.
     if (!Program::IsValid(program))
     {
         return CL_INVALID_PROGRAM;
     }
+    const Program &prog = program->cast<Program>();
 
     // CL_INVALID_VALUE if param_name is not valid.
-    const cl_version version = program->cast<Program>().getContext().getPlatform().getVersion();
+    const cl_version version = prog.getContext().getPlatform().getVersion();
     switch (param_name)
     {
         case ProgramInfo::NumKernels:
@@ -1202,6 +1246,36 @@ cl_int ValidateGetProgramBuildInfo(cl_program program,
                                    const void *param_value,
                                    const size_t *param_value_size_ret)
 {
+    // CL_INVALID_PROGRAM if program is not a valid program object.
+    if (!Program::IsValid(program))
+    {
+        return CL_INVALID_PROGRAM;
+    }
+    const Program &prog = program->cast<Program>();
+
+    // CL_INVALID_DEVICE if device is not in the list of devices associated with program.
+    if (!prog.hasDevice(device))
+    {
+        return CL_INVALID_DEVICE;
+    }
+
+    // CL_INVALID_VALUE if param_name is not valid.
+    const cl_version version = prog.getContext().getPlatform().getVersion();
+    switch (param_name)
+    {
+        case ProgramBuildInfo::BinaryType:
+            ANGLE_VALIDATE_VERSION(version, 1, 2);
+            break;
+        case ProgramBuildInfo::GlobalVariableTotalSize:
+            ANGLE_VALIDATE_VERSION(version, 2, 0);
+            break;
+        case ProgramBuildInfo::InvalidEnum:
+            return CL_INVALID_VALUE;
+        default:
+            // All remaining possible values for param_name are valid for all versions.
+            break;
+    }
+
     return CL_SUCCESS;
 }
 
@@ -1433,11 +1507,21 @@ cl_int ValidateGetEventProfilingInfo(cl_event event,
 
 cl_int ValidateFlush(cl_command_queue command_queue)
 {
+    // CL_INVALID_COMMAND_QUEUE if command_queue is not a valid host command-queue.
+    if (!CommandQueue::IsValid(command_queue) || !command_queue->cast<CommandQueue>().isOnHost())
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
     return CL_SUCCESS;
 }
 
 cl_int ValidateFinish(cl_command_queue command_queue)
 {
+    // CL_INVALID_COMMAND_QUEUE if command_queue is not a valid host command-queue.
+    if (!CommandQueue::IsValid(command_queue) || !command_queue->cast<CommandQueue>().isOnHost())
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
     return CL_SUCCESS;
 }
 
@@ -1669,7 +1753,7 @@ cl_int ValidateEnqueueCopyImageToBuffer(cl_command_queue command_queue,
     const Buffer &dst = dst_buffer->cast<Buffer>();
 
     // CL_INVALID_MEM_OBJECT if src_image is a 1D image buffer object created from dst_buffer.
-    if (src.getType() == CL_MEM_OBJECT_IMAGE1D_BUFFER && src.getParent().get() == &dst)
+    if (src.getType() == CL_MEM_OBJECT_IMAGE1D_BUFFER && src.getParent() == &dst)
     {
         return CL_INVALID_MEM_OBJECT;
     }
@@ -1717,7 +1801,7 @@ cl_int ValidateEnqueueCopyBufferToImage(cl_command_queue command_queue,
     const Image &dst = dst_image->cast<Image>();
 
     // CL_INVALID_MEM_OBJECT if dst_image is a 1D image buffer object created from src_buffer.
-    if (dst.getType() == CL_MEM_OBJECT_IMAGE1D_BUFFER && dst.getParent().get() == &src)
+    if (dst.getType() == CL_MEM_OBJECT_IMAGE1D_BUFFER && dst.getParent() == &src)
     {
         return CL_INVALID_MEM_OBJECT;
     }
@@ -1834,6 +1918,27 @@ cl_int ValidateEnqueueUnmapMemObject(cl_command_queue command_queue,
                                      const cl_event *event_wait_list,
                                      const cl_event *event)
 {
+    ANGLE_TRY(ValidateCommandQueueAndEventWaitList(command_queue, false, num_events_in_wait_list,
+                                                   event_wait_list));
+    const CommandQueue &queue = command_queue->cast<CommandQueue>();
+
+    // CL_INVALID_MEM_OBJECT if memobj is not a valid memory object or is a pipe object.
+    if (!Memory::IsValid(memobj))
+    {
+        return CL_INVALID_MEM_OBJECT;
+    }
+    const Memory &memory = memobj->cast<Memory>();
+    if (memory.getType() == CL_MEM_OBJECT_PIPE)
+    {
+        return CL_INVALID_MEM_OBJECT;
+    }
+
+    // CL_INVALID_CONTEXT if context associated with command_queue and memobj are not the same.
+    if (&queue.getContext() != &memory.getContext())
+    {
+        return CL_INVALID_CONTEXT;
+    }
+
     return CL_SUCCESS;
 }
 
@@ -1847,6 +1952,81 @@ cl_int ValidateEnqueueNDRangeKernel(cl_command_queue command_queue,
                                     const cl_event *event_wait_list,
                                     const cl_event *event)
 {
+    ANGLE_TRY(ValidateCommandQueueAndEventWaitList(command_queue, false, num_events_in_wait_list,
+                                                   event_wait_list));
+    const CommandQueue &queue = command_queue->cast<CommandQueue>();
+    const Device &device      = queue.getDevice();
+
+    // CL_INVALID_KERNEL if kernel is not a valid kernel object.
+    if (!Kernel::IsValid(kernel))
+    {
+        return CL_INVALID_KERNEL;
+    }
+    const Kernel &krnl = kernel->cast<Kernel>();
+
+    // CL_INVALID_CONTEXT if context associated with command_queue and kernel are not the same.
+    if (&queue.getContext() != &krnl.getProgram().getContext())
+    {
+        return CL_INVALID_CONTEXT;
+    }
+
+    // CL_INVALID_WORK_DIMENSION if work_dim is not a valid value.
+    if (work_dim == 0u || work_dim > device.getInfo().mMaxWorkItemSizes.size())
+    {
+        return CL_INVALID_WORK_DIMENSION;
+    }
+
+    // CL_INVALID_GLOBAL_OFFSET if global_work_offset is non-NULL before version 1.1.
+    if (!queue.getContext().getPlatform().isVersionOrNewer(1u, 1u) && global_work_offset != nullptr)
+    {
+        return CL_INVALID_GLOBAL_OFFSET;
+    }
+
+    // CL_INVALID_GLOBAL_WORK_SIZE if global_work_size is NULL or if any of the values
+    // specified in global_work_size[0] ... global_work_size[work_dim - 1] are 0.
+    // Returning this error code under these circumstances is deprecated by version 2.1.
+    if (!queue.getContext().getPlatform().isVersionOrNewer(2u, 1u))
+    {
+        if (global_work_size == nullptr)
+        {
+            return CL_INVALID_GLOBAL_WORK_SIZE;
+        }
+        for (cl_uint dim = 0u; dim < work_dim; ++dim)
+        {
+            if (global_work_size[dim] == 0u)
+            {
+                return CL_INVALID_GLOBAL_WORK_SIZE;
+            }
+        }
+    }
+
+    if (local_work_size != nullptr)
+    {
+        size_t numWorkItems = 1u;  // Initialize with neutral element for multiplication
+
+        // CL_INVALID_WORK_ITEM_SIZE if the number of work-items specified
+        // in any of local_work_size[0] ... local_work_size[work_dim - 1]
+        // is greater than the corresponding values specified by
+        // CL_DEVICE_MAX_WORK_ITEM_SIZES[0] ... CL_DEVICE_MAX_WORK_ITEM_SIZES[work_dim - 1].
+        for (cl_uint dim = 0u; dim < work_dim; ++dim)
+        {
+            if (local_work_size[dim] > device.getInfo().mMaxWorkItemSizes[dim])
+            {
+                return CL_INVALID_WORK_ITEM_SIZE;
+            }
+            numWorkItems *= local_work_size[dim];
+        }
+
+        // CL_INVALID_WORK_GROUP_SIZE if local_work_size is specified
+        // and the total number of work-items in the work-group computed as
+        // local_work_size[0] x ... local_work_size[work_dim - 1] is greater than the value
+        // specified by CL_KERNEL_WORK_GROUP_SIZE in the Kernel Object Device Queries table.
+        if (numWorkItems > krnl.getInfo().mWorkGroups[queue.getDeviceIndex()].mWorkGroupSize)
+        {
+            return CL_INVALID_WORK_GROUP_SIZE;
+        }
+    }
+
     return CL_SUCCESS;
 }
 
@@ -1861,6 +2041,67 @@ cl_int ValidateEnqueueNativeKernel(cl_command_queue command_queue,
                                    const cl_event *event_wait_list,
                                    const cl_event *event)
 {
+    ANGLE_TRY(ValidateCommandQueueAndEventWaitList(command_queue, false, num_events_in_wait_list,
+                                                   event_wait_list));
+    const CommandQueue &queue = command_queue->cast<CommandQueue>();
+
+    // CL_INVALID_OPERATION if the device associated with command_queue
+    // cannot execute the native kernel.
+    if (queue.getDevice().getInfo().mExecCapabilities.isNotSet(CL_EXEC_NATIVE_KERNEL))
+    {
+        return CL_INVALID_OPERATION;
+    }
+
+    // CL_INVALID_VALUE if user_func is NULL.
+    if (user_func == nullptr)
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    if (args == nullptr)
+    {
+        // CL_INVALID_VALUE if args is a NULL value and cb_args > 0 or num_mem_objects > 0.
+        if (cb_args > 0u || num_mem_objects > 0u)
+        {
+            return CL_INVALID_VALUE;
+        }
+    }
+    else
+    {
+        // CL_INVALID_VALUE if args is not NULL and cb_args is 0.
+        if (cb_args == 0u)
+        {
+            return CL_INVALID_VALUE;
+        }
+    }
+
+    if (num_mem_objects == 0u)
+    {
+        // CL_INVALID_VALUE if num_mem_objects = 0 and mem_list or args_mem_loc are not NULL.
+        if (mem_list != nullptr || args_mem_loc != nullptr)
+        {
+            return CL_INVALID_VALUE;
+        }
+    }
+    else
+    {
+        // CL_INVALID_VALUE if num_mem_objects > 0 and mem_list or args_mem_loc are NULL.
+        if (mem_list == nullptr || args_mem_loc == nullptr)
+        {
+            return CL_INVALID_VALUE;
+        }
+
+        // CL_INVALID_MEM_OBJECT if one or more memory objects
+        // specified in mem_list are not valid or are not buffer objects.
+        while (num_mem_objects-- != 0u)
+        {
+            if (!Buffer::IsValid(*mem_list++))
+            {
+                return CL_INVALID_MEM_OBJECT;
+            }
+        }
+    }
+
     return CL_SUCCESS;
 }
 
@@ -1916,6 +2157,18 @@ cl_int ValidateCreateImage3D(cl_context context,
 
 cl_int ValidateEnqueueMarker(cl_command_queue command_queue, const cl_event *event)
 {
+    // CL_INVALID_COMMAND_QUEUE if command_queue is not a valid host command-queue.
+    if (!CommandQueue::IsValid(command_queue) || !command_queue->cast<CommandQueue>().isOnHost())
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
+
+    // CL_INVALID_VALUE if event is NULL.
+    if (event == nullptr)
+    {
+        return CL_INVALID_VALUE;
+    }
+
     return CL_SUCCESS;
 }
 
@@ -1923,11 +2176,49 @@ cl_int ValidateEnqueueWaitForEvents(cl_command_queue command_queue,
                                     cl_uint num_events,
                                     const cl_event *event_list)
 {
+    // CL_INVALID_COMMAND_QUEUE if command_queue is not a valid host command-queue.
+    if (!CommandQueue::IsValid(command_queue))
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
+    const CommandQueue &queue = command_queue->cast<CommandQueue>();
+    if (!queue.isOnHost())
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
+
+    // CL_INVALID_VALUE if num_events is 0 or event_list is NULL.
+    if (num_events == 0u || event_list == nullptr)
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    while (num_events-- != 0u)
+    {
+        // The documentation for invalid events is missing.
+        if (!Event::IsValid(*event_list))
+        {
+            return CL_INVALID_VALUE;
+        }
+
+        // CL_INVALID_CONTEXT if context associated with command_queue
+        // and events in event_list are not the same.
+        if (&queue.getContext() != &(*event_list++)->cast<Event>().getContext())
+        {
+            return CL_INVALID_CONTEXT;
+        }
+    }
+
     return CL_SUCCESS;
 }
 
 cl_int ValidateEnqueueBarrier(cl_command_queue command_queue)
 {
+    // CL_INVALID_COMMAND_QUEUE if command_queue is not a valid host command-queue.
+    if (!CommandQueue::IsValid(command_queue) || !command_queue->cast<CommandQueue>().isOnHost())
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
     return CL_SUCCESS;
 }
 
@@ -2001,6 +2292,22 @@ cl_int ValidateEnqueueTask(cl_command_queue command_queue,
                            const cl_event *event_wait_list,
                            const cl_event *event)
 {
+    ANGLE_TRY(ValidateCommandQueueAndEventWaitList(command_queue, false, num_events_in_wait_list,
+                                                   event_wait_list));
+
+    // CL_INVALID_KERNEL if kernel is not a valid kernel object.
+    if (!Kernel::IsValid(kernel))
+    {
+        return CL_INVALID_KERNEL;
+    }
+
+    // CL_INVALID_CONTEXT if context associated with command_queue and kernel are not the same.
+    if (&command_queue->cast<CommandQueue>().getContext() !=
+        &kernel->cast<Kernel>().getProgram().getContext())
+    {
+        return CL_INVALID_CONTEXT;
+    }
+
     return CL_SUCCESS;
 }
 
@@ -2534,6 +2841,62 @@ cl_int ValidateCompileProgram(cl_program program,
                               void(CL_CALLBACK *pfn_notify)(cl_program program, void *user_data),
                               const void *user_data)
 {
+    // CL_INVALID_PROGRAM if program is not a valid program object.
+    if (!Program::IsValid(program))
+    {
+        return CL_INVALID_PROGRAM;
+    }
+    const Program &prog = program->cast<Program>();
+    if (!prog.getContext().getPlatform().isVersionOrNewer(1u, 2u))
+    {
+        return CL_INVALID_PROGRAM;
+    }
+
+    // CL_INVALID_VALUE if device_list is NULL and num_devices is greater than zero,
+    // or if device_list is not NULL and num_devices is zero.
+    if ((device_list != nullptr) != (num_devices != 0u))
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    // CL_INVALID_DEVICE if any device in device_list
+    // is not in the list of devices associated with program.
+    while (num_devices-- != 0u)
+    {
+        if (!prog.hasDevice(*device_list++))
+        {
+            return CL_INVALID_DEVICE;
+        }
+    }
+
+    // CL_INVALID_VALUE if num_input_headers is zero and header_include_names
+    // or input_headers are not NULL
+    // or if num_input_headers is not zero and header_include_names or input_headers are NULL.
+    if ((num_input_headers != 0u) != (header_include_names != nullptr) ||
+        (num_input_headers != 0u) != (input_headers != nullptr))
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    // CL_INVALID_VALUE if pfn_notify is NULL but user_data is not NULL.
+    if (pfn_notify == nullptr && user_data != nullptr)
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    // CL_INVALID_OPERATION if the build of a program executable for any of the devices listed
+    // in device_list by a previous call to clBuildProgram for program has not completed.
+    if (prog.isBuilding())
+    {
+        return CL_INVALID_OPERATION;
+    }
+
+    // CL_INVALID_OPERATION if there are kernel objects attached to program.
+    if (prog.hasAttachedKernels())
+    {
+        return CL_INVALID_OPERATION;
+    }
+
     return CL_SUCCESS;
 }
 
@@ -2546,11 +2909,61 @@ cl_int ValidateLinkProgram(cl_context context,
                            void(CL_CALLBACK *pfn_notify)(cl_program program, void *user_data),
                            const void *user_data)
 {
+    // CL_INVALID_CONTEXT if context is not a valid context.
+    if (!Context::IsValidAndVersionOrNewer(context, 1u, 2u))
+    {
+        return CL_INVALID_CONTEXT;
+    }
+    const Context &ctx = context->cast<Context>();
+
+    // CL_INVALID_VALUE if device_list is NULL and num_devices is greater than zero,
+    // or if device_list is not NULL and num_devices is zero.
+    if ((device_list != nullptr) != (num_devices != 0u))
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    // CL_INVALID_DEVICE if any device in device_list
+    // is not in the list of devices associated with context.
+    while (num_devices-- != 0u)
+    {
+        if (!ctx.hasDevice(*device_list++))
+        {
+            return CL_INVALID_DEVICE;
+        }
+    }
+
+    // CL_INVALID_VALUE if num_input_programs is zero or input_programs is NULL.
+    if (num_input_programs == 0u || input_programs == nullptr)
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    // CL_INVALID_PROGRAM if programs specified in input_programs are not valid program objects.
+    while (num_input_programs-- != 0u)
+    {
+        if (!Program::IsValid(*input_programs++))
+        {
+            return CL_INVALID_PROGRAM;
+        }
+    }
+
+    // CL_INVALID_VALUE if pfn_notify is NULL but user_data is not NULL.
+    if (pfn_notify == nullptr && user_data != nullptr)
+    {
+        return CL_INVALID_VALUE;
+    }
+
     return CL_SUCCESS;
 }
 
 cl_int ValidateUnloadPlatformCompiler(cl_platform_id platform)
 {
+    // CL_INVALID_PLATFORM if platform is not a valid platform.
+    if (!Platform::IsValid(platform) || !platform->cast<Platform>().isVersionOrNewer(1u, 2u))
+    {
+        return CL_INVALID_PLATFORM;
+    }
     return CL_SUCCESS;
 }
 
@@ -2676,6 +3089,45 @@ cl_int ValidateEnqueueMigrateMemObjects(cl_command_queue command_queue,
                                         const cl_event *event_wait_list,
                                         const cl_event *event)
 {
+    ANGLE_TRY(ValidateCommandQueueAndEventWaitList(command_queue, false, num_events_in_wait_list,
+                                                   event_wait_list));
+    const CommandQueue &queue = command_queue->cast<CommandQueue>();
+    if (!queue.getContext().getPlatform().isVersionOrNewer(1u, 2u))
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
+
+    // CL_INVALID_VALUE if num_mem_objects is zero or if mem_objects is NULL.
+    if (num_mem_objects == 0u || mem_objects == nullptr)
+    {
+        return CL_INVALID_VALUE;
+    }
+
+    while (num_mem_objects-- != 0u)
+    {
+        // CL_INVALID_MEM_OBJECT if any of the memory objects
+        // in mem_objects is not a valid memory object.
+        if (!Memory::IsValid(*mem_objects))
+        {
+            return CL_INVALID_MEM_OBJECT;
+        }
+
+        // CL_INVALID_CONTEXT if the context associated with command_queue
+        // and memory objects in mem_objects are not the same.
+        if (&queue.getContext() != &(*mem_objects++)->cast<Memory>().getContext())
+        {
+            return CL_INVALID_CONTEXT;
+        }
+    }
+
+    // CL_INVALID_VALUE if flags is not 0 or is not any of the values described in the table.
+    const MemMigrationFlags allowedFlags(CL_MIGRATE_MEM_OBJECT_HOST |
+                                         CL_MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED);
+    if (flags.hasOtherBitsThan(allowedFlags))
+    {
+        return CL_INVALID_VALUE;
+    }
+
     return CL_SUCCESS;
 }
 
@@ -2684,6 +3136,12 @@ cl_int ValidateEnqueueMarkerWithWaitList(cl_command_queue command_queue,
                                          const cl_event *event_wait_list,
                                          const cl_event *event)
 {
+    ANGLE_TRY(ValidateCommandQueueAndEventWaitList(command_queue, false, num_events_in_wait_list,
+                                                   event_wait_list));
+    if (!command_queue->cast<CommandQueue>().getContext().getPlatform().isVersionOrNewer(1u, 2u))
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
     return CL_SUCCESS;
 }
 
@@ -2692,6 +3150,12 @@ cl_int ValidateEnqueueBarrierWithWaitList(cl_command_queue command_queue,
                                           const cl_event *event_wait_list,
                                           const cl_event *event)
 {
+    ANGLE_TRY(ValidateCommandQueueAndEventWaitList(command_queue, false, num_events_in_wait_list,
+                                                   event_wait_list));
+    if (!command_queue->cast<CommandQueue>().getContext().getPlatform().isVersionOrNewer(1u, 2u))
+    {
+        return CL_INVALID_COMMAND_QUEUE;
+    }
     return CL_SUCCESS;
 }
 

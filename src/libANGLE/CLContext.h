@@ -89,6 +89,15 @@ class Context final : public _cl_context, public Object
                                                const char *kernelNames,
                                                cl_int &errorCode);
 
+    cl_program linkProgram(cl_uint numDevices,
+                           const cl_device_id *deviceList,
+                           const char *options,
+                           cl_uint numInputPrograms,
+                           const cl_program *inputPrograms,
+                           ProgramCB pfnNotify,
+                           void *userData,
+                           cl_int &errorCode);
+
     cl_event createUserEvent(cl_int &errorCode);
 
     cl_int waitForEvents(cl_uint numEvents, const cl_event *eventList);
@@ -163,9 +172,7 @@ inline const DevicePtrs &Context::getDevices() const
 
 inline bool Context::hasDevice(const _cl_device_id *device) const
 {
-    return std::find_if(mDevices.cbegin(), mDevices.cend(), [=](const DevicePtr &ptr) {
-               return ptr.get() == device;
-           }) != mDevices.cend();
+    return std::find(mDevices.cbegin(), mDevices.cend(), device) != mDevices.cend();
 }
 
 template <typename T>

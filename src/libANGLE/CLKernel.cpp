@@ -85,7 +85,7 @@ cl_int Kernel::getWorkGroupInfo(cl_device_id device,
     if (device != nullptr)
     {
         const DevicePtrs &devices = mProgram->getContext().getDevices();
-        while (index < devices.size() && devices[index].get() != device)
+        while (index < devices.size() && devices[index] != device)
         {
             ++index;
         }
@@ -205,16 +205,23 @@ cl_int Kernel::getArgInfo(cl_uint argIndex,
     return CL_SUCCESS;
 }
 
-Kernel::~Kernel() = default;
+Kernel::~Kernel()
+{
+    --mProgram->mNumAttachedKernels;
+}
 
 Kernel::Kernel(Program &program, const char *name, cl_int &errorCode)
     : mProgram(&program),
       mImpl(program.getImpl().createKernel(*this, name, errorCode)),
       mInfo(mImpl ? mImpl->createInfo(errorCode) : rx::CLKernelImpl::Info{})
-{}
+{
+    ++mProgram->mNumAttachedKernels;
+}
 
 Kernel::Kernel(Program &program, const rx::CLKernelImpl::CreateFunc &createFunc, cl_int &errorCode)
     : mProgram(&program), mImpl(createFunc(*this)), mInfo(mImpl->createInfo(errorCode))
-{}
+{
+    ++mProgram->mNumAttachedKernels;
+}
 
 }  // namespace cl
