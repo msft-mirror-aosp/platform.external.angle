@@ -2800,6 +2800,8 @@ angle::Result QueryHelper::beginQuery(ContextVk *contextVk)
     CommandBuffer *commandBuffer;
     ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
 
+    ANGLE_TRY(contextVk->handleGraphicsEventLog(rx::GraphicsEventCmdBuf::InOutsideCmdBufQueryCmd));
+
     beginQueryImpl(contextVk, commandBuffer, commandBuffer);
 
     return angle::Result::Continue;
@@ -2814,6 +2816,8 @@ angle::Result QueryHelper::endQuery(ContextVk *contextVk)
 
     CommandBuffer *commandBuffer;
     ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
+
+    ANGLE_TRY(contextVk->handleGraphicsEventLog(rx::GraphicsEventCmdBuf::InOutsideCmdBufQueryCmd));
 
     endQueryImpl(contextVk, commandBuffer);
 
@@ -7777,10 +7781,10 @@ void ShaderProgramHelper::setSpecializationConstant(sh::vk::SpecializationConsta
             mSpecializationConstants.surfaceRotation = value;
             break;
         case sh::vk::SpecializationConstantId::DrawableWidth:
-            mSpecializationConstants.drawableWidth = value;
+            mSpecializationConstants.drawableWidth = static_cast<float>(value);
             break;
         case sh::vk::SpecializationConstantId::DrawableHeight:
-            mSpecializationConstants.drawableHeight = value;
+            mSpecializationConstants.drawableHeight = static_cast<float>(value);
             break;
         default:
             UNREACHABLE();
