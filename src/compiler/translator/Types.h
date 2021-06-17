@@ -128,6 +128,7 @@ class TType
           mInterfaceBlock(nullptr),
           mStructure(nullptr),
           mIsStructSpecifier(false),
+          mInterfaceBlockFieldIndex(0),
           mMangledName(mangledName)
     {}
 
@@ -146,6 +147,7 @@ class TType
           mInterfaceBlock(t.mInterfaceBlock),
           mStructure(t.mStructure),
           mIsStructSpecifier(t.mIsStructSpecifier),
+          mInterfaceBlockFieldIndex(0),
           mMangledName(t.mMangledName)
     {
         t.mArraySizesStorage = nullptr;
@@ -230,10 +232,18 @@ class TType
     void setInterfaceBlock(const TInterfaceBlock *interfaceBlockIn);
     bool isInterfaceBlock() const { return type == EbtInterfaceBlock; }
 
+    void setInterfaceBlockField(const TInterfaceBlock *interfaceBlockIn, size_t fieldIndex);
+    size_t getInterfaceBlockFieldIndex() const { return mInterfaceBlockFieldIndex; }
+
     bool isVector() const { return primarySize > 1 && secondarySize == 1; }
+    bool isVectorArray() const { return primarySize > 1 && secondarySize == 1 && isArray(); }
     bool isScalar() const
     {
         return primarySize == 1 && secondarySize == 1 && !mStructure && !isArray();
+    }
+    bool isScalarArray() const
+    {
+        return primarySize == 1 && secondarySize == 1 && !mStructure && isArray();
     }
     bool isScalarFloat() const { return isScalar() && type == EbtFloat; }
     bool isScalarInt() const { return isScalar() && (type == EbtInt || type == EbtUInt); }
@@ -343,6 +353,7 @@ class TType
     bool isSamplerCube() const { return type == EbtSamplerCube; }
     bool isAtomicCounter() const { return IsAtomicCounter(type); }
     bool isSamplerVideoWEBGL() const { return type == EbtSamplerVideoWEBGL; }
+    bool isImage() const { return IsImage(type); }
 
   private:
     constexpr void invalidateMangledName() { mMangledName = nullptr; }
@@ -382,6 +393,10 @@ class TType
     // nullptr unless this is a struct
     const TStructure *mStructure;
     bool mIsStructSpecifier;
+
+    // If this is a field of a nameless interface block, this would indicate which member it's
+    // refering to.
+    size_t mInterfaceBlockFieldIndex;
 
     mutable const char *mMangledName;
 };
