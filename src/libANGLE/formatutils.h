@@ -134,8 +134,12 @@ struct InternalFormat
 {
     InternalFormat();
     InternalFormat(const InternalFormat &other);
+    InternalFormat &operator=(const InternalFormat &other);
 
     GLuint computePixelBytes(GLenum formatType) const;
+
+    ANGLE_NO_DISCARD bool computeBufferRowLength(uint32_t width, uint32_t *resultOut) const;
+    ANGLE_NO_DISCARD bool computeBufferImageHeight(uint32_t height, uint32_t *resultOut) const;
 
     ANGLE_NO_DISCARD bool computeRowPitch(GLenum formatType,
                                           GLsizei width,
@@ -156,6 +160,8 @@ struct InternalFormat
 
     ANGLE_NO_DISCARD bool computeCompressedImageSize(const Extents &size, GLuint *resultOut) const;
 
+    ANGLE_NO_DISCARD std::pair<GLuint, GLuint> getCompressedImageMinBlocks() const;
+
     ANGLE_NO_DISCARD bool computeSkipBytes(GLenum formatType,
                                            GLuint rowPitch,
                                            GLuint depthPitch,
@@ -175,6 +181,16 @@ struct InternalFormat
 
     // Support upload a portion of image?
     bool supportSubImage() const;
+
+    ANGLE_INLINE bool isChannelSizeCompatible(GLuint redSize,
+                                              GLuint greenSize,
+                                              GLuint blueSize,
+                                              GLuint alphaSize) const
+    {
+        // We only check for equality in all channel sizes
+        return ((redSize == redBits) && (greenSize == greenBits) && (blueSize == blueBits) &&
+                (alphaSize == alphaBits));
+    }
 
     // Return true if the format is a required renderbuffer format in the given version of the core
     // spec. Note that it isn't always clear whether all the rules that apply to core required
@@ -265,12 +281,16 @@ GLenum GetUnsizedFormat(GLenum internalFormat);
 // Return whether the compressed format requires whole image/mip level to be uploaded to texture.
 bool CompressedFormatRequiresWholeImage(GLenum internalFormat);
 
+// In support of GetImage, check for LUMA formats and override with real format
+void MaybeOverrideLuminance(GLenum &format, GLenum &type, GLenum actualFormat, GLenum actualType);
+
 typedef std::set<GLenum> FormatSet;
 const FormatSet &GetAllSizedInternalFormats();
 
-typedef std::unordered_map<GLenum, std::unordered_map<GLenum, InternalFormat>>
-    InternalFormatInfoMap;
+typedef angle::HashMap<GLenum, angle::HashMap<GLenum, InternalFormat>> InternalFormatInfoMap;
 const InternalFormatInfoMap &GetInternalFormatMap();
+
+int GetAndroidHardwareBufferFormatFromChannelSizes(const egl::AttributeMap &attribMap);
 
 ANGLE_INLINE int GetNativeVisualID(const InternalFormat &internalFormat)
 {
@@ -396,6 +416,25 @@ ANGLE_INLINE bool IsETC2EACFormat(const GLenum format)
         case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
         case GL_COMPRESSED_RGBA8_ETC2_EAC:
         case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+ANGLE_INLINE bool IsPVRTC1Format(const GLenum format)
+{
+    switch (format)
+    {
+        case GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG:
+        case GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG:
+        case GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG:
+        case GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG:
+        case GL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT:
+        case GL_COMPRESSED_SRGB_PVRTC_4BPPV1_EXT:
+        case GL_COMPRESSED_SRGB_ALPHA_PVRTC_2BPPV1_EXT:
+        case GL_COMPRESSED_SRGB_ALPHA_PVRTC_4BPPV1_EXT:
             return true;
 
         default:
