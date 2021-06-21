@@ -594,6 +594,9 @@ TEST_P(WebGLCompatibilityTest, EnablePixelBufferObjectExtensions)
     // These extensions become core in in ES3/WebGL2.
     ANGLE_SKIP_TEST_IF(getClientMajorVersion() >= 3);
 
+    // http://anglebug.com/5268
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsIntelUHD630Mobile() && IsDesktopOpenGL());
+
     GLBuffer buffer;
     glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer);
     EXPECT_GL_ERROR(GL_INVALID_ENUM);
@@ -2028,6 +2031,69 @@ void main()
     EXPECT_GL_ERROR(GL_INVALID_OPERATION);
 }
 
+// Test getIndexedParameter wrt GL_OES_draw_buffers_indexed.
+TEST_P(WebGLCompatibilityTest, DrawBuffersIndexedGetIndexedParameter)
+{
+    ANGLE_SKIP_TEST_IF(getClientMajorVersion() < 3);
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionRequestable("GL_OES_draw_buffers_indexed"));
+
+    GLint value;
+    GLboolean data[4];
+
+    glGetIntegeri_v(GL_BLEND_EQUATION_RGB, 0, &value);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
+    glGetIntegeri_v(GL_BLEND_EQUATION_ALPHA, 0, &value);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
+    glGetIntegeri_v(GL_BLEND_SRC_RGB, 0, &value);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
+    glGetIntegeri_v(GL_BLEND_SRC_ALPHA, 0, &value);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
+    glGetIntegeri_v(GL_BLEND_DST_RGB, 0, &value);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
+    glGetIntegeri_v(GL_BLEND_DST_ALPHA, 0, &value);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
+    glGetBooleani_v(GL_COLOR_WRITEMASK, 0, data);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+
+    glRequestExtensionANGLE("GL_OES_draw_buffers_indexed");
+    EXPECT_GL_NO_ERROR();
+    EXPECT_TRUE(IsGLExtensionEnabled("GL_OES_draw_buffers_indexed"));
+
+    glDisable(GL_BLEND);
+    glEnableiOES(GL_BLEND, 0);
+    glBlendEquationSeparateiOES(0, GL_FUNC_ADD, GL_FUNC_SUBTRACT);
+    glBlendFuncSeparateiOES(0, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ZERO);
+    glColorMaskiOES(0, true, false, true, false);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_EQ(true, glIsEnablediOES(GL_BLEND, 0));
+    EXPECT_GL_NO_ERROR();
+    glGetIntegeri_v(GL_BLEND_EQUATION_RGB, 0, &value);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_EQ(GL_FUNC_ADD, value);
+    glGetIntegeri_v(GL_BLEND_EQUATION_ALPHA, 0, &value);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_EQ(GL_FUNC_SUBTRACT, value);
+    glGetIntegeri_v(GL_BLEND_SRC_RGB, 0, &value);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_EQ(GL_SRC_ALPHA, value);
+    glGetIntegeri_v(GL_BLEND_SRC_ALPHA, 0, &value);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_EQ(GL_ZERO, value);
+    glGetIntegeri_v(GL_BLEND_DST_RGB, 0, &value);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_EQ(GL_ONE_MINUS_SRC_ALPHA, value);
+    glGetIntegeri_v(GL_BLEND_DST_ALPHA, 0, &value);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_EQ(GL_ZERO, value);
+    glGetBooleani_v(GL_COLOR_WRITEMASK, 0, data);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_EQ(true, data[0]);
+    EXPECT_EQ(false, data[1]);
+    EXPECT_EQ(true, data[2]);
+    EXPECT_EQ(false, data[3]);
+}
+
 // Test that binding/querying uniforms and attributes with invalid names generates errors
 TEST_P(WebGLCompatibilityTest, InvalidAttributeAndUniformNames)
 {
@@ -2090,39 +2156,27 @@ void main()
     for (char invalidChar : invalidSet)
     {
         std::string invalidAttribName = validAttribName + invalidChar;
-        const char *invalidVert[]     = {
-            "attribute float ",
-            invalidAttribName.c_str(),
-            R"(;,
+        std::string invalidVert       = "attribute float ";
+        invalidVert += invalidAttribName;
+        invalidVert += R"(;,
 void main(),
 {,
     gl_Position = vec4(1.0);,
-})",
-        };
-
-        GLuint shader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(shader, static_cast<GLsizei>(ArraySize(invalidVert)), invalidVert, nullptr);
-        EXPECT_GL_ERROR(GL_INVALID_VALUE);
-        glDeleteShader(shader);
+})";
+        GLuint program = CompileProgram(invalidVert.c_str(), essl1_shaders::fs::Red());
+        EXPECT_EQ(0u, program);
     }
 }
 
-// Test that line continuation is handled correctly when valdiating shader source
+// Test that line continuation is handled correctly when validating shader source
 TEST_P(WebGLCompatibilityTest, ShaderSourceLineContinuation)
 {
-    // Verify that a line continuation character (i.e. backslash) cannot be used
-    // within a preprocessor directive in a ES2 context.
-    ANGLE_SKIP_TEST_IF(getClientMajorVersion() >= 3);
+    // With recent changes to WebGL's shader source validation in
+    // https://github.com/KhronosGroup/WebGL/pull/3206 and follow-ons,
+    // the backslash character can be used in both WebGL 1.0 and 2.0
+    // contexts.
 
     const char *validVert =
-        R"(#define foo this is a test
-precision mediump float;
-void main()
-{
-    gl_Position = vec4(1.0);
-})";
-
-    const char *invalidVert =
         R"(#define foo this \
     is a test
 precision mediump float;
@@ -2131,13 +2185,9 @@ void main()
     gl_Position = vec4(1.0);
 })";
 
-    GLuint shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(shader, 1, &validVert, nullptr);
-    EXPECT_GL_NO_ERROR();
-
-    glShaderSource(shader, 1, &invalidVert, nullptr);
-    EXPECT_GL_ERROR(GL_INVALID_VALUE);
-    glDeleteShader(shader);
+    GLuint program = CompileProgram(validVert, essl1_shaders::fs::Red());
+    EXPECT_NE(0u, program);
+    glDeleteProgram(program);
 }
 
 // Test that line continuation is handled correctly when valdiating shader source
@@ -2165,12 +2215,12 @@ oo = 1.0;
     gl_Position = vec4(foo);
 })";
 
-    GLuint shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(shader, 1, &validVert, nullptr);
-    EXPECT_GL_NO_ERROR();
-    glShaderSource(shader, 1, &invalidVert, nullptr);
-    EXPECT_GL_ERROR(GL_INVALID_VALUE);
-    glDeleteShader(shader);
+    GLuint program = CompileProgram(validVert, essl3_shaders::fs::Red());
+    EXPECT_NE(0u, program);
+    glDeleteProgram(program);
+
+    program = CompileProgram(invalidVert, essl3_shaders::fs::Red());
+    EXPECT_EQ(0u, program);
 }
 
 // Tests bindAttribLocations for reserved prefixes and length limits
@@ -2658,8 +2708,8 @@ void main() {
 // Based on the WebGL test conformance/textures/misc/texture-copying-feedback-loops.html
 TEST_P(WebGLCompatibilityTest, TextureCopyingFeedbackLoops)
 {
-    // Vulkan does not support copying from a texture to itself. http://anglebug.com/2914
-    ANGLE_SKIP_TEST_IF(IsVulkan());
+    // TODO(anglebug.com/5360): Failing on ARM-based Apple DTKs.
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && IsDesktopOpenGL());
 
     GLTexture texture;
     glBindTexture(GL_TEXTURE_2D, texture.get());
@@ -2716,6 +2766,124 @@ TEST_P(WebGLCompatibilityTest, TextureCopyingFeedbackLoops)
     glBindTexture(GL_TEXTURE_2D, texture2.get());
     glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, 1, 1);
     EXPECT_GL_NO_ERROR();
+}
+
+// Test that copying from mip 1 of a texture to mip 0 works.  When the framebuffer is attached to
+// mip 1 of a mip-complete texture, an image with both mips are created.  When copying from the
+// framebuffer to mip 0, it is being redefined.
+TEST_P(WebGL2CompatibilityTest, CopyMip1ToMip0)
+{
+    // http://anglebug.com/4804
+    ANGLE_SKIP_TEST_IF(IsD3D11());
+
+    // http://anglebug.com/4805
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsIntel() && (IsWindows() || IsOSX()));
+
+    // TODO(anglebug.com/5360): Failing on ARM64-based Apple DTKs.
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && IsDesktopOpenGL());
+
+    GLFramebuffer framebuffer;
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    const GLColor mip0[4] = {
+        GLColor::red,
+        GLColor::red,
+        GLColor::red,
+        GLColor::red,
+    };
+    const GLColor mip1[1] = {
+        GLColor::green,
+    };
+
+    // Create a complete mip chain in mips 0 to 2
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, mip0);
+    glTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, mip1);
+
+    // Framebuffer can bind to mip 1, as the texture is mip-complete.
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 1);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    // Copy to mip 0.  This shouldn't crash.
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, 1, 1, 0);
+    EXPECT_GL_NO_ERROR();
+
+    // The framebuffer is now incomplete.
+    EXPECT_GLENUM_EQ(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
+                     glCheckFramebufferStatus(GL_FRAMEBUFFER));
+
+    // http://anglebug.com/4802
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsNVIDIA());
+
+    // http://anglebug.com/4803
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsAMD() && IsOSX());
+
+    // Bind framebuffer to mip 0 and make sure the copy was done.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+// Test that copying from mip 0 of a texture to mip 1 works.  When the framebuffer is attached to
+// mip 0 of a mip-complete texture, an image with both mips are created.  When copying from the
+// framebuffer to mip 1, it is being redefined.
+TEST_P(WebGL2CompatibilityTest, CopyMip0ToMip1)
+{
+    // http://anglebug.com/4805
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsIntel() && IsWindows());
+
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsAMD() && IsWindows());
+
+    GLFramebuffer framebuffer;
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    const GLColor mip0[4] = {
+        GLColor::red,
+        GLColor::red,
+        GLColor::red,
+        GLColor::red,
+    };
+    const GLColor mip1[1] = {
+        GLColor::green,
+    };
+
+    // Create a complete mip chain in mips 0 to 2
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, mip0);
+    glTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, mip1);
+
+    // Framebuffer can bind to mip 0, as the texture is mip-complete.
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    // Copy to mip 1.  This shouldn't crash.
+    glCopyTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA, 0, 0, 2, 2, 0);
+    EXPECT_GL_NO_ERROR();
+
+    // The framebuffer is still complete.
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    // Make sure mip 0 is untouched.
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    EXPECT_PIXEL_COLOR_EQ(1, 1, GLColor::red);
+
+    // When reading back the framebuffer, the attached texture is not rebased, so the framebuffer
+    // still sees the 1x1 mip.  The copy is flushed to this mip, which is incorrect.
+    // http://anglebug.com/4792.
+    ANGLE_SKIP_TEST_IF(IsVulkan());
+
+    // Bind framebuffer to mip 1 and make sure the copy was done.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 1);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 1);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    EXPECT_PIXEL_COLOR_EQ(1, 1, GLColor::red);
 }
 
 void WebGLCompatibilityTest::drawBuffersFeedbackLoop(GLuint program,
@@ -2784,7 +2952,7 @@ void main()
 })";
 
     GLuint program = CompileProgram(kVS, kFS);
-    EXPECT_EQ(0u, program);
+    EXPECT_NE(0u, program);
 }
 
 // Test dimension and image size validation of compressed textures
@@ -3050,9 +3218,6 @@ TEST_P(WebGLCompatibilityTest, RG32FTextures)
 
 TEST_P(WebGLCompatibilityTest, RGB32FTextures)
 {
-    // TODO(syoussefi): Missing format support.  http://anglebug.com/2898
-    ANGLE_SKIP_TEST_IF(IsVulkan());
-
     constexpr float data[] = {1000.0f, -500.0f, 10.0f, 1.0f};
 
     for (auto extension : FloatingPointTextureExtensions)
@@ -3087,8 +3252,8 @@ TEST_P(WebGLCompatibilityTest, RGB32FTextures)
 
 TEST_P(WebGLCompatibilityTest, RGBA32FTextures)
 {
-    // TODO(syoussefi): Missing format support.  http://anglebug.com/2898
-    ANGLE_SKIP_TEST_IF(IsVulkan());
+    // http://anglebug.com/5357
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
 
     constexpr float data[] = {7000.0f, 100.0f, 33.0f, -1.0f};
 
@@ -3407,6 +3572,9 @@ TEST_P(WebGLCompatibilityTest, HalfFloatBlend)
 
 TEST_P(WebGLCompatibilityTest, R16FTextures)
 {
+    // http://anglebug.com/5357
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
+
     constexpr float readPixelsData[] = {-5000.0f, 0.0f, 0.0f, 1.0f};
     const GLushort textureData[]     = {
         gl::float32ToFloat16(readPixelsData[0]), gl::float32ToFloat16(readPixelsData[1]),
@@ -3444,7 +3612,8 @@ TEST_P(WebGLCompatibilityTest, R16FTextures)
             // Sized R 16F
             bool texture = true;
             bool filter  = true;
-            bool render  = IsGLExtensionEnabled("GL_EXT_color_buffer_float");
+            bool render  = IsGLExtensionEnabled("GL_EXT_color_buffer_float") ||
+                          IsGLExtensionEnabled("GL_EXT_color_buffer_half_float");
             TestFloatTextureFormat(GL_R16F, GL_RED, GL_HALF_FLOAT, texture, filter, render,
                                    textureData, readPixelsData);
         }
@@ -3463,6 +3632,9 @@ TEST_P(WebGLCompatibilityTest, R16FTextures)
 
 TEST_P(WebGLCompatibilityTest, RG16FTextures)
 {
+    // http://anglebug.com/5357
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
+
     constexpr float readPixelsData[] = {7108.0f, -10.0f, 0.0f, 1.0f};
     const GLushort textureData[]     = {
         gl::float32ToFloat16(readPixelsData[0]), gl::float32ToFloat16(readPixelsData[1]),
@@ -3500,7 +3672,8 @@ TEST_P(WebGLCompatibilityTest, RG16FTextures)
             // Sized RG 16F
             bool texture = true;
             bool filter  = true;
-            bool render  = IsGLExtensionEnabled("GL_EXT_color_buffer_float");
+            bool render  = IsGLExtensionEnabled("GL_EXT_color_buffer_float") ||
+                          IsGLExtensionEnabled("GL_EXT_color_buffer_half_float");
             TestFloatTextureFormat(GL_RG16F, GL_RG, GL_HALF_FLOAT, texture, filter, render,
                                    textureData, readPixelsData);
         }
@@ -3519,8 +3692,8 @@ TEST_P(WebGLCompatibilityTest, RG16FTextures)
 
 TEST_P(WebGLCompatibilityTest, RGB16FTextures)
 {
-    // TODO(syoussefi): Missing format support.  http://anglebug.com/2898
-    ANGLE_SKIP_TEST_IF(IsVulkan());
+    // http://anglebug.com/5357
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
 
     ANGLE_SKIP_TEST_IF(IsOzone() && IsIntel());
 
@@ -3562,10 +3735,8 @@ TEST_P(WebGLCompatibilityTest, RGB16FTextures)
             // Sized RGB 16F
             bool texture = true;
             bool filter  = true;
-            // It is unclear how EXT_color_buffer_half_float applies to ES3.0 and above, however,
-            // dEQP GLES3 es3fFboColorbufferTests.cpp verifies that texture attachment of GL_RGB16F
-            // is possible, so assume that all GLES implementations support it.
-            bool render = IsGLExtensionEnabled("GL_EXT_color_buffer_half_float");
+            // Renderability of RGB is forbidden by GL_EXT_color_buffer_half_float in WebGL 2.
+            bool render = false;
             TestFloatTextureFormat(GL_RGB16F, GL_RGB, GL_HALF_FLOAT, texture, filter, render,
                                    textureData, readPixelsData);
         }
@@ -3583,6 +3754,9 @@ TEST_P(WebGLCompatibilityTest, RGB16FTextures)
 
 TEST_P(WebGLCompatibilityTest, RGBA16FTextures)
 {
+    // http://anglebug.com/5357
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
+
     ANGLE_SKIP_TEST_IF(IsOzone() && IsIntel());
 
     constexpr float readPixelsData[] = {7000.0f, 100.0f, 33.0f, -1.0f};
@@ -3621,7 +3795,8 @@ TEST_P(WebGLCompatibilityTest, RGBA16FTextures)
             // Sized RGBA 16F
             bool texture = true;
             bool filter  = true;
-            bool render  = IsGLExtensionEnabled("GL_EXT_color_buffer_float");
+            bool render  = IsGLExtensionEnabled("GL_EXT_color_buffer_float") ||
+                          IsGLExtensionEnabled("GL_EXT_color_buffer_half_float");
             TestFloatTextureFormat(GL_RGBA16F, GL_RGBA, GL_HALF_FLOAT, texture, filter, render,
                                    textureData, readPixelsData);
         }
@@ -3814,6 +3989,72 @@ void main() {
                             GL_INVALID_OPERATION);
     // A feedback loop is formed regardless of drawBuffers settings.
     drawBuffersFeedbackLoop(program.get(), {{GL_COLOR_ATTACHMENT0, GL_NONE}}, GL_INVALID_OPERATION);
+}
+
+// This tests that texture base level for immutable textures is clamped to the valid range, unlike
+// for non-immutable textures, for purposes of validation. Related to WebGL test
+// conformance2/textures/misc/immutable-tex-render-feedback.html
+TEST_P(WebGL2CompatibilityTest, RenderingFeedbackLoopWithImmutableTextureWithOutOfRangeBaseLevel)
+{
+    constexpr char kVS[] =
+        R"(#version 300 es
+in vec4 aPosition;
+out vec2 texCoord;
+void main() {
+    gl_Position = aPosition;
+    texCoord = (aPosition.xy * 0.5) + 0.5;
+})";
+
+    constexpr char kFS[] =
+        R"(#version 300 es
+precision mediump float;
+uniform sampler2D tex;
+in vec2 texCoord;
+out vec4 oColor;
+void main() {
+    oColor = texture(tex, texCoord);
+})";
+
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 4, 4);
+    std::vector<GLColor> texData(4 * 4, GLColor::green);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4, 4, GL_RGBA, GL_UNSIGNED_BYTE, texData.data());
+    // Set a base level greater than the max level. It should be clamped to the actual max level.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+
+    ASSERT_GL_NO_ERROR();
+
+    GLFramebuffer framebuffer;
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.get());
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.get(), 0);
+
+    ASSERT_GLENUM_EQ(GL_FRAMEBUFFER_COMPLETE, glCheckFramebufferStatus(GL_FRAMEBUFFER));
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+
+    GLint uniformLoc = glGetUniformLocation(program.get(), "tex");
+    ASSERT_NE(-1, uniformLoc);
+
+    glUseProgram(program.get());
+    glUniform1i(uniformLoc, 0);
+    glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    ASSERT_GL_NO_ERROR();
+
+    // Ensure that the texture can be used for rendering.
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, texture.get());
+    drawQuad(program.get(), "aPosition", 0.5f, 1.0f, true);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Ensure that the texture can't be used to create a feedback loop.
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.get());
+    glBindTexture(GL_TEXTURE_2D, texture.get());
+    drawQuad(program.get(), "aPosition", 0.5f, 1.0f, true);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
 }
 
 // This test covers detection of rendering feedback loops between the FBO and a depth Texture.
@@ -4532,11 +4773,10 @@ void main()
 // extensions have been enabled
 TEST_P(WebGLCompatibilityTest, GenerateMipmapUnsizedFloatingPointTexture)
 {
-    if (IsGLExtensionRequestable("GL_OES_texture_float"))
-    {
-        glRequestExtensionANGLE("GL_OES_texture_float");
-    }
+    glRequestExtensionANGLE("GL_OES_texture_float");
+    glRequestExtensionANGLE("GL_CHROMIUM_color_buffer_float_rgba");
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_float"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_CHROMIUM_color_buffer_float_rgba"));
 
     GLTexture texture;
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -4895,9 +5135,62 @@ TEST_P(WebGL2CompatibilityTest, UniformVariablesReturnTypes)
     EXPECT_GL_ERROR(GL_INVALID_ENUM);
 }
 
-// Use this to select which configurations (e.g. which renderer, which GLES major version) these
-// tests should be run against.
+// Tests an error case to ensure we don't crash.
+TEST_P(WebGLCompatibilityTest, DrawWithNoProgram)
+{
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+}
+
+// Ensures that rendering to different texture levels of a sampled texture is supported.
+TEST_P(WebGL2CompatibilityTest, RenderToLevelsOfSampledTexture)
+{
+    // TODO: Fix on Vulkan back-end. http://anglebug.com/4690
+    ANGLE_SKIP_TEST_IF(IsVulkan());
+
+    constexpr GLsizei kTexSize   = 2;
+    constexpr GLsizei kTexLevels = 2;
+
+    std::vector<GLColor> texData(kTexSize * kTexSize, GLColor::green);
+
+    GLTexture sourceTexture;
+    glBindTexture(GL_TEXTURE_2D, sourceTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexStorage2D(GL_TEXTURE_2D, kTexLevels, GL_RGBA8, kTexSize, kTexSize);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, kTexSize, kTexSize, GL_RGBA, GL_UNSIGNED_BYTE,
+                    texData.data());
+
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sourceTexture, 1);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    glViewport(0, 0, kTexSize / 2, kTexSize / 2);
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Texture2D(), essl1_shaders::fs::Texture2D());
+    ASSERT_GL_NO_ERROR();
+
+    // Should work - drawing from level 0 to level 1.
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Should not work - drawing from levels [0,1] to level 1.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+
+    // Should work - drawing with levels [0,1] to default FBO.
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, getWindowWidth(), getWindowHeight());
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(WebGLCompatibilityTest);
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WebGL2CompatibilityTest);
 ANGLE_INSTANTIATE_TEST_ES3(WebGL2CompatibilityTest);
 }  // namespace angle
