@@ -122,11 +122,6 @@ TEST_P(IndexBufferOffsetTest, UInt8Index)
 // Test using an offset for an UInt16 index buffer
 TEST_P(IndexBufferOffsetTest, UInt16Index)
 {
-    // TODO(jie.a.chen@intel.com): Re-enable the test once the driver fix is
-    // available in public release.
-    // http://anglebug.com/2663
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsVulkan());
-
     GLushort indexData[] = {0, 1, 2, 1, 2, 3};
     runTest(GL_UNSIGNED_SHORT, 2, indexData);
 }
@@ -163,6 +158,49 @@ TEST_P(IndexBufferOffsetTest, DrawAtDifferentOffsets)
     glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, 0);
     glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT,
                    reinterpret_cast<void *>(indexDataWidth / 2));
+
+    // Check the upper left triangle
+    EXPECT_PIXEL_COLOR_EQ(0, getWindowHeight() / 4, GLColor::red);
+
+    // Check the down right triangle
+    EXPECT_PIXEL_COLOR_EQ(getWindowWidth() - 1, getWindowHeight() - 1, GLColor::red);
+
+    EXPECT_GL_NO_ERROR();
+}
+
+// Uses index buffer offset and 2 drawElement calls one of the other, one has aligned
+// offset and one doesn't
+TEST_P(IndexBufferOffsetTest, DrawAtDifferentOffsetAlignments)
+{
+    GLubyte indexData8[]   = {0, 1, 0, 1, 2, 3};
+    GLushort indexData16[] = {0, 1, 2, 1, 2, 3};
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    size_t indexDataWidth16 = 6 * sizeof(GLushort);
+
+    GLuint buffer[2];
+    glGenBuffers(2, buffer);
+
+    glUseProgram(mProgram);
+    glUniform4f(mColorUniformLocation, 1.0f, 0.0f, 0.0f, 1.0f);
+
+    glBindBuffer(GL_ARRAY_BUFFER, mVertexBuffer);
+    glVertexAttribPointer(mPositionAttributeLocation, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(mPositionAttributeLocation);
+
+    // 8 bit index with aligned offset
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer[0]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexData8), indexData8, GL_DYNAMIC_DRAW);
+
+    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_BYTE, reinterpret_cast<void *>(2));
+
+    // 16 bits index buffer, which unaligned offset
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexDataWidth16, indexData16, GL_DYNAMIC_DRAW);
+
+    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT,
+                   reinterpret_cast<void *>(indexDataWidth16 / 2));
 
     // Check the upper left triangle
     EXPECT_PIXEL_COLOR_EQ(0, getWindowHeight() / 4, GLColor::red);
