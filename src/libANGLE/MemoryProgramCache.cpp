@@ -57,7 +57,7 @@ HashStream &operator<<(HashStream &stream, Shader *shader)
 
 HashStream &operator<<(HashStream &stream, const ProgramBindings &bindings)
 {
-    for (const auto &binding : bindings)
+    for (const auto &binding : bindings.getStableIterationMap())
     {
         stream << binding.first << binding.second;
     }
@@ -66,7 +66,7 @@ HashStream &operator<<(HashStream &stream, const ProgramBindings &bindings)
 
 HashStream &operator<<(HashStream &stream, const ProgramAliasedBindings &bindings)
 {
-    for (const auto &binding : bindings)
+    for (const auto &binding : bindings.getStableIterationMap())
     {
         stream << binding.first << binding.second.location;
     }
@@ -210,7 +210,8 @@ angle::Result MemoryProgramCache::putProgram(const egl::BlobCache::Key &programH
     ANGLE_TRY(program->serialize(context, &serializedProgram));
 
     angle::MemoryBuffer compressedData;
-    if (!egl::CompressBlobCacheData(&serializedProgram, &compressedData))
+    if (!egl::CompressBlobCacheData(serializedProgram.size(), serializedProgram.data(),
+                                    &compressedData))
     {
         ERR() << "Error compressing binary data.";
         return angle::Result::Incomplete;

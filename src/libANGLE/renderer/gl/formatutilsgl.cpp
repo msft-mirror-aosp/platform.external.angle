@@ -303,6 +303,11 @@ static InternalFormatInfoMap BuildInternalFormatInfoMap()
     InsertFormatMapping(&map, GL_LUMINANCE32F_EXT,       VersionOrExts(3, 0, "GL_ARB_texture_float"), AlwaysSupported(), NeverSupported(), VersionOrExts(3, 0, "GL_OES_texture_float"),      ExtsOnly("GL_OES_texture_float_linear"),                 NeverSupported(),                      NeverSupported()                );
     InsertFormatMapping(&map, GL_LUMINANCE_ALPHA32F_EXT, VersionOrExts(3, 0, "GL_ARB_texture_float"), AlwaysSupported(), NeverSupported(), VersionOrExts(3, 0, "GL_OES_texture_float"),      ExtsOnly("GL_OES_texture_float_linear"),                 NeverSupported(),                      NeverSupported()                );
 
+    // GL_EXT_texture_sRGB_R8 and GL_EXT_texture_sRGB_RG8 formats
+    //                      | Format     | OpenGL texture support             | Filter           | Render          | OpenGL ES texture support          | Filter           | OpenGL ES texture attachment support | OpenGL ES renderbuffer support  |
+    InsertFormatMapping(&map, GL_SR8_EXT,  ExtsOnly("GL_EXT_texture_sRGB_R8"),  AlwaysSupported(), NeverSupported(), ExtsOnly("GL_EXT_texture_sRGB_R8"),  AlwaysSupported(), NeverSupported(),                      NeverSupported()                );
+    InsertFormatMapping(&map, GL_SRG8_EXT, ExtsOnly("GL_EXT_texture_sRGB_RG8"), AlwaysSupported(), NeverSupported(), ExtsOnly("GL_EXT_texture_sRGB_RG8"), AlwaysSupported(), NeverSupported(),                      NeverSupported()                );
+
     // EXT_texture_compression_rgtc formats
     //                       | Format                                  | OpenGL texture support                                | Filter           | Render          | OpenGL ES texture support                  | Filter           | OpenGL ES texture attachment support | OpenGL ES renderbuffer support |
     InsertFormatMapping(&map, GL_COMPRESSED_RED_RGTC1_EXT,              VersionOrExts(3, 0, "GL_ARB_texture_compression_rgtc"), AlwaysSupported(), NeverSupported(), ExtsOnly("GL_EXT_texture_compression_rgtc"), AlwaysSupported(), NeverSupported(),                      NeverSupported()                );
@@ -349,7 +354,7 @@ static InternalFormatInfoMap BuildInternalFormatInfoMap()
     InsertFormatMapping(&map, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, ExtAndVersionOrExt("GL_EXT_texture_compression_s3tc", 2, 1, "GL_EXT_texture_sRGB"), AlwaysSupported(), NeverSupported(), ExtsOnly("GL_EXT_texture_compression_s3tc_srgb", "GL_EXT_texture_compression_s3tc GL_NV_sRGB_formats"), AlwaysSupported(), NeverSupported(),                      NeverSupported()                );
 
     // From GL_OES_compressed_ETC1_RGB8_texture
-    InsertFormatMapping(&map, GL_ETC1_RGB8_OES,                   NeverSupported(), NeverSupported(), NeverSupported(), VersionOrExts(3, 0, "GL_OES_compressed_ETC1_RGB8_texture"),       AlwaysSupported(), NeverSupported(),                      NeverSupported()                );
+    InsertFormatMapping(&map, GL_ETC1_RGB8_OES,                   VersionOrExts(4, 3, "GL_ARB_ES3_compatibility"), AlwaysSupported(), NeverSupported(), VersionOrExts(3, 0, "GL_OES_compressed_ETC1_RGB8_texture"),       AlwaysSupported(), NeverSupported(),                      NeverSupported()                );
 
     // From GL_OES_texture_compression_astc
     //                       | Format                                   | OpenGL texture                                 | Filter           | Render          | OpenGL ES texture support                      | Filter           | ES attachment   | ES renderbuffer |

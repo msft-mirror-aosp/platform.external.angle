@@ -444,6 +444,8 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     ANGLE_GLES_3_2_CONTEXT_API
     ANGLE_GLES_EXT_CONTEXT_API
 
+    angle::Result handleNoopDrawEvent();
+
     // Consumes an error.
     void handleError(GLenum errorCode,
                      const char *message,
@@ -781,6 +783,9 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     // Note: we use a raw pointer here so we can exclude frame capture sources from the build.
     std::unique_ptr<angle::FrameCapture> mFrameCapture;
+
+    // Cache representation of the serialized context string.
+    mutable std::string mCachedSerializedStateString;
 
     mutable size_t mRefCount;
 

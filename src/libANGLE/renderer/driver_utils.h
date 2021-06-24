@@ -25,6 +25,7 @@ enum VendorID : uint32_t
     VENDOR_ID_BROADCOM = 0x14E4,
     VENDOR_ID_GOOGLE   = 0x1AE0,
     VENDOR_ID_INTEL    = 0x8086,
+    VENDOR_ID_MESA     = 0x10005,
     VENDOR_ID_NVIDIA   = 0x10DE,
     VENDOR_ID_POWERVR  = 0x1010,
     // This is Qualcomm PCI Vendor ID.
@@ -41,6 +42,7 @@ enum AndroidDeviceID : uint32_t
     ANDROID_DEVICE_ID_NEXUS5X     = 0x4010800,
     ANDROID_DEVICE_ID_PIXEL2      = 0x5040001,
     ANDROID_DEVICE_ID_PIXEL1XL    = 0x5030004,
+    ANDROID_DEVICE_ID_PIXEL4      = 0x6040001,
     ANDROID_DEVICE_ID_SWIFTSHADER = 0xC0DE,
 };
 
@@ -119,6 +121,11 @@ inline bool IsPixel2(uint32_t vendorId, uint32_t deviceId)
     return IsQualcomm(vendorId) && deviceId == ANDROID_DEVICE_ID_PIXEL2;
 }
 
+inline bool IsPixel4(uint32_t vendorId, uint32_t deviceId)
+{
+    return IsQualcomm(vendorId) && deviceId == ANDROID_DEVICE_ID_PIXEL4;
+}
+
 inline bool IsSwiftshader(uint32_t vendorId, uint32_t deviceId)
 {
     return IsGoogle(vendorId) && deviceId == ANDROID_DEVICE_ID_SWIFTSHADER;
@@ -151,6 +158,7 @@ bool IsCherryView(uint32_t DeviceId);
 bool IsSkylake(uint32_t DeviceId);
 bool IsBroxton(uint32_t DeviceId);
 bool IsKabylake(uint32_t DeviceId);
+bool Is9thGenIntel(uint32_t DeviceId);
 
 // Platform helpers
 inline bool IsWindows()

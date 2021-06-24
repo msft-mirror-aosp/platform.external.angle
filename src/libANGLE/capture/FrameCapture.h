@@ -213,6 +213,11 @@ using BufferCalls = std::map<gl::BufferID, std::vector<CallCapture>>;
 // true means mapped, false means unmapped
 using BufferMapStatusMap = std::map<gl::BufferID, bool>;
 
+using FenceSyncSet   = std::set<GLsync>;
+using FenceSyncCalls = std::map<GLsync, std::vector<CallCapture>>;
+
+using ProgramSet = std::set<gl::ShaderProgramID>;
+
 // Helper to track resource changes during the capture
 class ResourceTracker final : angle::NonCopyable
 {
@@ -258,6 +263,18 @@ class ResourceTracker final : angle::NonCopyable
     void onShaderProgramAccess(gl::ShaderProgramID shaderProgramID);
     uint32_t getMaxShaderPrograms() const { return mMaxShaderPrograms; }
 
+    FenceSyncSet &getStartingFenceSyncs() { return mStartingFenceSyncs; }
+    FenceSyncCalls &getFenceSyncRegenCalls() { return mFenceSyncRegenCalls; }
+    FenceSyncSet &getFenceSyncsToRegen() { return mFenceSyncsToRegen; }
+    void setDeletedFenceSync(GLsync sync);
+
+    ProgramSet &getStartingPrograms() { return mStartingPrograms; }
+    ProgramSet &getNewPrograms() { return mNewPrograms; }
+    ProgramSet &getProgramsToRegen() { return mProgramsToRegen; }
+
+    void setCreatedProgram(gl::ShaderProgramID id);
+    void setDeletedProgram(gl::ShaderProgramID id);
+
   private:
     // Buffer regen calls will delete and gen a buffer
     BufferCalls mBufferRegenCalls;
@@ -287,6 +304,21 @@ class ResourceTracker final : angle::NonCopyable
 
     // Maximum accessed shader program ID.
     uint32_t mMaxShaderPrograms = 0;
+
+    // Programs created during startup
+    ProgramSet mStartingPrograms;
+    // Programs created during the run that need to be deleted
+    ProgramSet mNewPrograms;
+    // Programs deleted during the run that need to be recreated
+    ProgramSet mProgramsToRegen;
+
+    // Fence sync objects created during MEC setup
+    FenceSyncSet mStartingFenceSyncs;
+    // Fence sync regen calls will create a fence sync objects
+    FenceSyncCalls mFenceSyncRegenCalls;
+    // Fence syncs to regen are a list of starting fence sync objects that were deleted and need to
+    // be regen'ed.
+    FenceSyncSet mFenceSyncsToRegen;
 };
 
 // Used by the CPP replay to filter out unnecessary code.
@@ -338,6 +370,8 @@ class FrameCapture final : angle::NonCopyable
     ResourceTracker &getResouceTracker() { return mResourceTracker; }
 
   private:
+    void writeCppReplayIndexFiles(const gl::Context *, bool writeResetContextCall);
+
     void captureClientArraySnapshot(const gl::Context *context,
                                     size_t vertexCount,
                                     size_t instanceCount);
@@ -360,6 +394,10 @@ class FrameCapture final : angle::NonCopyable
     static void ReplayCall(gl::Context *context,
                            ReplayContext *replayContext,
                            const CallCapture &call);
+
+    void setCaptureActive() { mCaptureActive = true; }
+    void setCaptureInactive() { mCaptureActive = false; }
+    bool isCaptureActive() { return mCaptureActive; }
 
     std::vector<CallCapture> mSetupCalls;
     std::vector<CallCapture> mFrameCalls;
@@ -391,6 +429,8 @@ class FrameCapture final : angle::NonCopyable
     // Initialize it to the number of frames you want to capture, and then clear the value to 0 when
     // you reach the content you want to capture. Currently only available on Android.
     uint32_t mCaptureTrigger;
+
+    bool mCaptureActive = false;
 };
 
 // Shared class for any items that need to be tracked by FrameCapture across shared contexts
@@ -481,6 +521,10 @@ std::ostream &operator<<(std::ostream &os, const ParamCapture &capture);
 void CaptureMemory(const void *source, size_t size, ParamCapture *paramCapture);
 void CaptureString(const GLchar *str, ParamCapture *paramCapture);
 void CaptureStringLimit(const GLchar *str, uint32_t limit, ParamCapture *paramCapture);
+void CaptureVertexPointerGLES1(const gl::State &glState,
+                               gl::ClientVertexArrayType type,
+                               const void *pointer,
+                               ParamCapture *paramCapture);
 
 gl::Program *GetProgramForCapture(const gl::State &glState, gl::ShaderProgramID handle);
 
@@ -511,6 +555,11 @@ void CaptureGenHandles(GLsizei n, T *handles, ParamCapture *paramCapture)
 {
     CaptureGenHandlesImpl(n, reinterpret_cast<GLuint *>(handles), paramCapture);
 }
+
+void CaptureShaderStrings(GLsizei count,
+                          const GLchar *const *strings,
+                          const GLint *length,
+                          ParamCapture *paramCapture);
 
 template <ParamType ParamT, typename T>
 void WriteParamValueReplay(std::ostream &os, const CallCapture &call, T value);
@@ -614,6 +663,11 @@ template <>
 void WriteParamValueReplay<ParamType::TGLsync>(std::ostream &os,
                                                const CallCapture &call,
                                                GLsync value);
+
+template <>
+void WriteParamValueReplay<ParamType::TGLeglImageOES>(std::ostream &os,
+                                                      const CallCapture &call,
+                                                      GLeglImageOES value);
 
 // General fallback for any unspecific type.
 template <ParamType ParamT, typename T>

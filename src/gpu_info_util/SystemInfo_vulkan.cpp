@@ -49,7 +49,16 @@ class VulkanLibrary final : NonCopyable
         {
             mLibVulkan = OpenSharedLibraryWithExtension(libraryName);
             if (mLibVulkan)
-                break;
+            {
+                if (mLibVulkan->getNative())
+                {
+                    break;
+                }
+                else
+                {
+                    SafeDelete(mLibVulkan);
+                }
+            }
         }
 
         if (!mLibVulkan)
@@ -144,7 +153,7 @@ bool GetSystemInfoVulkan(SystemInfo *info)
     auto pfnGetPhysicalDeviceProperties =
         vkLibrary.getProc<PFN_vkGetPhysicalDeviceProperties>("vkGetPhysicalDeviceProperties");
     uint32_t physicalDeviceCount = 0;
-    if (!pfnEnumeratePhysicalDevices ||
+    if (!pfnEnumeratePhysicalDevices || !pfnGetPhysicalDeviceProperties ||
         pfnEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr) != VK_SUCCESS)
     {
         return false;

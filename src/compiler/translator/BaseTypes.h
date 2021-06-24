@@ -134,9 +134,6 @@ enum TBasicType
     EbtImage2DMSArray,
     EbtIImage2DMSArray,
     EbtUImage2DMSArray,
-    EbtImage2DRect,
-    EbtIImage2DRect,
-    EbtUImage2DRect,
     EbtImageCubeArray,
     EbtIImageCubeArray,
     EbtUImageCubeArray,
@@ -363,7 +360,6 @@ inline bool IsFloatImage(TBasicType type)
         case EbtImageCube:
         case EbtImage2DMS:
         case EbtImage2DMSArray:
-        case EbtImage2DRect:
         case EbtImageCubeArray:
         case EbtImageRect:
         case EbtImageBuffer:
@@ -388,7 +384,6 @@ inline bool IsIntegerImage(TBasicType type)
         case EbtIImageCube:
         case EbtIImage2DMS:
         case EbtIImage2DMSArray:
-        case EbtIImage2DRect:
         case EbtIImageCubeArray:
         case EbtIImageRect:
         case EbtIImageBuffer:
@@ -413,7 +408,6 @@ inline bool IsUnsignedImage(TBasicType type)
         case EbtUImageCube:
         case EbtUImage2DMS:
         case EbtUImage2DMSArray:
-        case EbtUImage2DRect:
         case EbtUImageCubeArray:
         case EbtUImageRect:
         case EbtUImageBuffer:
@@ -714,9 +708,6 @@ inline bool IsImage2D(TBasicType type)
         case EbtImage2D:
         case EbtIImage2D:
         case EbtUImage2D:
-        case EbtImage2DRect:
-        case EbtIImage2DRect:
-        case EbtUImage2DRect:
         case EbtImage2DMS:
         case EbtIImage2DMS:
         case EbtUImage2DMS:
@@ -785,9 +776,6 @@ inline bool IsImage3D(TBasicType type)
         case EbtImage2DMSArray:
         case EbtIImage2DMSArray:
         case EbtUImage2DMSArray:
-        case EbtImage2DRect:
-        case EbtIImage2DRect:
-        case EbtUImage2DRect:
         case EbtImageCubeArray:
         case EbtIImageCubeArray:
         case EbtUImageCubeArray:
@@ -834,9 +822,6 @@ inline bool IsImage2DArray(TBasicType type)
         case EbtImage2DMS:
         case EbtIImage2DMS:
         case EbtUImage2DMS:
-        case EbtImage2DRect:
-        case EbtIImage2DRect:
-        case EbtUImage2DRect:
         case EbtImageCubeArray:
         case EbtIImageCubeArray:
         case EbtUImageCubeArray:
@@ -883,9 +868,6 @@ inline bool IsImageCube(TBasicType type)
         case EbtImage2DMSArray:
         case EbtIImage2DMSArray:
         case EbtUImage2DMSArray:
-        case EbtImage2DRect:
-        case EbtIImage2DRect:
-        case EbtUImage2DRect:
         case EbtImageCubeArray:
         case EbtIImageCubeArray:
         case EbtUImageCubeArray:
@@ -953,9 +935,6 @@ enum TQualifier
     EvqPointSize,
 
     EvqDrawID,  // ANGLE_multi_draw
-
-    EvqBaseVertex,    // ANGLE_base_vertex_base_instance
-    EvqBaseInstance,  // ANGLE_base_vertex_base_instance
 
     // built-ins read by fragment shader
     EvqFragCoord,
@@ -1051,6 +1030,11 @@ enum TQualifier
     EvqTessEvaluationOut,
     EvqTessCoord,
 
+    // A specialization constant, which is not valid GLSL ES, but is there to support Vulkan output
+    // generation.  In that case, TLayoutQualifier::location will contain the somewhat equivalent
+    // constant_id.
+    EvqSpecConst,
+
     // end of list
     EvqLast
 };
@@ -1074,6 +1058,7 @@ inline bool IsShaderIn(TQualifier qualifier)
         case EvqTessEvaluationIn:
         case EvqGeometryIn:
         case EvqFragmentIn:
+        case EvqPerVertexIn:
         case EvqAttribute:
         case EvqVaryingIn:
         case EvqSmoothIn:
@@ -1097,6 +1082,7 @@ inline bool IsShaderOut(TQualifier qualifier)
         case EvqTessEvaluationOut:
         case EvqGeometryOut:
         case EvqFragmentOut:
+        case EvqPerVertexOut:
         case EvqVaryingOut:
         case EvqSmoothOut:
         case EvqFlatOut:
@@ -1105,6 +1091,11 @@ inline bool IsShaderOut(TQualifier qualifier)
         case EvqSampleOut:
         case EvqPatchOut:
         case EvqFragmentInOut:
+        // Per-vertex built-ins when used without gl_in or gl_out are always output.
+        case EvqPosition:
+        case EvqPointSize:
+        case EvqClipDistance:
+        case EvqCullDistance:
             return true;
         default:
             return false;
@@ -1146,14 +1137,18 @@ enum TLayoutImageInternalFormat
     EiifRGBA8I,
     EiifR32I,
     EiifRGBA8,
-    EiifRGBA8_SNORM
+    EiifRGBA8_SNORM,
+
+    EiifLast = EiifRGBA8_SNORM,
 };
 
 enum TLayoutMatrixPacking
 {
     EmpUnspecified,
     EmpRowMajor,
-    EmpColumnMajor
+    EmpColumnMajor,
+
+    EmpLast = EmpColumnMajor,
 };
 
 enum TLayoutBlockStorage
@@ -1162,7 +1157,9 @@ enum TLayoutBlockStorage
     EbsShared,
     EbsPacked,
     EbsStd140,
-    EbsStd430
+    EbsStd430,
+
+    EbsLast = EbsStd430,
 };
 
 enum TYuvCscStandardEXT
@@ -1392,8 +1389,6 @@ inline const char *getQualifierString(TQualifier q)
     case EvqPosition:               return "Position";
     case EvqPointSize:              return "PointSize";
     case EvqDrawID:                 return "DrawID";
-    case EvqBaseVertex:             return "BaseVertex";
-    case EvqBaseInstance:           return "BaseInstance";
     case EvqFragCoord:              return "FragCoord";
     case EvqFrontFacing:            return "FrontFacing";
     case EvqHelperInvocation:       return "HelperInvocation";
@@ -1459,6 +1454,7 @@ inline const char *getQualifierString(TQualifier q)
     case EvqTessEvaluationIn:       return "in";
     case EvqTessEvaluationOut:      return "out";
     case EvqTessCoord:              return "TessCoord";
+    case EvqSpecConst:              return "const";
     default: UNREACHABLE();         return "unknown qualifier";
     }
     // clang-format on

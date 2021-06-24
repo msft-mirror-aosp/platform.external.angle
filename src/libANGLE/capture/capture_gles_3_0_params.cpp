@@ -431,7 +431,7 @@ void CaptureGetQueryObjectuiv_params(const State &glState,
                                      ParamCapture *paramCapture)
 {
     // This only returns one value
-    paramCapture->readBufferSizeBytes = sizeof(GLint);
+    paramCapture->readBufferSizeBytes = sizeof(GLuint);
 }
 
 void CaptureGetQueryiv_params(const State &glState,
@@ -441,7 +441,8 @@ void CaptureGetQueryiv_params(const State &glState,
                               GLint *params,
                               ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    // This only returns one value
+    paramCapture->readBufferSizeBytes = sizeof(GLint);
 }
 
 void CaptureGetSamplerParameterfv_params(const State &glState,
@@ -575,7 +576,10 @@ void CaptureGetUniformIndices_uniformNames(const State &glState,
                                            GLuint *uniformIndices,
                                            ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    for (GLsizei index = 0; index < uniformCount; ++index)
+    {
+        CaptureString(uniformNames[index], paramCapture);
+    }
 }
 
 void CaptureGetUniformIndices_uniformIndices(const State &glState,
@@ -586,7 +590,7 @@ void CaptureGetUniformIndices_uniformIndices(const State &glState,
                                              GLuint *uniformIndices,
                                              ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    CaptureMemory(uniformIndices, sizeof(GLuint) * uniformCount, paramCapture);
 }
 
 void CaptureGetUniformuiv_params(const State &glState,

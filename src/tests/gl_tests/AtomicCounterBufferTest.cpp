@@ -406,6 +406,9 @@ TEST_P(AtomicCounterBufferTest31, AtomicCounterArrayOfArray)
     // Intel's Windows OpenGL driver crashes in this test.  http://anglebug.com/3791
     ANGLE_SKIP_TEST_IF(IsOpenGL() && IsIntel() && IsWindows());
 
+    // TODO: support loops in direct SPIR-V generation path.  http://anglebug.com/4889
+    ANGLE_SKIP_TEST_IF(GetParam().eglParameters.directSPIRVGeneration == EGL_TRUE);
+
     constexpr char kCS[] = R"(#version 310 es
 layout(local_size_x=1, local_size_y=1, local_size_z=1) in;
 layout(binding = 0) uniform atomic_uint ac[7][5][3];
@@ -587,25 +590,10 @@ TEST_P(AtomicCounterBufferTest31, AtomicCounterMemoryBarrier)
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
 }
 
-// TODO(syoussefi): re-enable tests on Vulkan once http://anglebug.com/3738 is resolved.  The issue
-// is with WGL where if a Vulkan test is run first in the shard, it causes crashes when an OpenGL
-// test is run afterwards.  AtomicCounter* tests are alphabetically first, and having them not run
-// on Vulkan makes every shard our bots currently make do have at least some OpenGL test run before
-// any Vulkan test. When these tests can be enabled on Vulkan, can replace the current macros with
-// the updated macros below that include Vulkan:
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(AtomicCounterBufferTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(AtomicCounterBufferTest31);
-#if !defined(ANGLE_PLATFORM_WINDOWS)
 ANGLE_INSTANTIATE_TEST_ES3_AND_ES31(AtomicCounterBufferTest);
-ANGLE_INSTANTIATE_TEST_ES31(AtomicCounterBufferTest31);
-#else
-ANGLE_INSTANTIATE_TEST(AtomicCounterBufferTest,
-                       ES3_OPENGL(),
-                       ES3_OPENGLES(),
-                       ES31_OPENGL(),
-                       ES31_OPENGLES(),
-                       ES31_D3D11());
-ANGLE_INSTANTIATE_TEST(AtomicCounterBufferTest31, ES31_OPENGL(), ES31_OPENGLES(), ES31_D3D11());
-#endif
+ANGLE_INSTANTIATE_TEST_ES31_AND(AtomicCounterBufferTest31,
+                                WithDirectSPIRVGeneration(ES31_VULKAN()));
 
 }  // namespace

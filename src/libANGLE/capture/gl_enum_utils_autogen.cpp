@@ -671,6 +671,14 @@ const char *GLenumToString(GLenumGroup enumGroup, unsigned int value)
                     return "GL_CREATE_SPARSE_ALIASED_BIT_ANGLE";
                 case 0x8:
                     return "GL_CREATE_MUTABLE_FORMAT_BIT_ANGLE";
+                case 0xA:
+                    return "GL_LINES_ADJACENCY_OES";
+                case 0xB:
+                    return "GL_LINE_STRIP_ADJACENCY_OES";
+                case 0xC:
+                    return "GL_TRIANGLES_ADJACENCY_OES";
+                case 0xD:
+                    return "GL_TRIANGLE_STRIP_ADJACENCY_OES";
                 case 0x10:
                     return "GL_CREATE_CUBE_COMPATIBLE_BIT_ANGLE";
                 case 0x16:
@@ -700,7 +708,7 @@ const char *GLenumToString(GLenumGroup enumGroup, unsigned int value)
                 case 0x1000:
                     return "GL_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_ANGLE";
                 case 0x1004:
-                    return "GL_TEXTURE_BORDER_COLOR_OES";
+                    return "GL_TEXTURE_BORDER_COLOR_EXT";
                 case 0x1901:
                     return "GL_STENCIL_INDEX_OES";
                 case 0x2000:
@@ -752,7 +760,7 @@ const char *GLenumToString(GLenumGroup enumGroup, unsigned int value)
                 case 0x80E9:
                     return "GL_MAX_ELEMENTS_INDICES";
                 case 0x812D:
-                    return "GL_CLAMP_TO_BORDER_OES";
+                    return "GL_CLAMP_TO_BORDER_EXT";
                 case 0x81A6:
                     return "GL_DEPTH_COMPONENT24";
                 case 0x8210:
@@ -1479,6 +1487,8 @@ const char *GLenumToString(GLenumGroup enumGroup, unsigned int value)
                     return "GL_GPU_DISJOINT_EXT";
                 case 0x8FBD:
                     return "GL_SR8_EXT";
+                case 0x8FBE:
+                    return "GL_SRG8_EXT";
                 case 0x900A:
                     return "GL_TEXTURE_BINDING_CUBE_MAP_ARRAY";
                 case 0x900C:

@@ -82,8 +82,16 @@
 #        endif
 #    endif
 
+// Macros 'near', 'far', 'NEAR' and 'FAR' are defined by 'shared/minwindef.h' in the Windows SDK.
+// Macros 'near' and 'far' are empty. They are not used by other Windows headers and are undefined
+// here to avoid identifier conflicts. Macros 'NEAR' and 'FAR' contain 'near' and 'far'. They are
+// used by other Windows headers and are cleared here to avoid compilation errors.
 #    undef near
 #    undef far
+#    undef NEAR
+#    undef FAR
+#    define NEAR
+#    define FAR
 #endif
 
 #if defined(_MSC_VER) && !defined(_M_ARM) && !defined(_M_ARM64)
@@ -132,10 +140,15 @@
 #    if defined(__arm64__) || defined(__aarch64__)
 #        define ANGLE_CPU_ARM64 1
 #    endif
-// EAGL should be enabled on iOS, but not Mac Catalyst unless it is running on Apple Silicon.
+#    // EAGL should be enabled on iOS, but not Mac Catalyst unless it is running on Apple Silicon.
 #    if (defined(ANGLE_PLATFORM_IOS) && !defined(ANGLE_PLATFORM_MACCATALYST)) || \
         (defined(ANGLE_PLATFORM_MACCATALYST) && defined(ANGLE_CPU_ARM64))
 #        define ANGLE_ENABLE_EAGL
+#    endif
+#    // Identify Metal API >= what shipped on macOS Catalina.
+#    if (defined(ANGLE_PLATFORM_MACOS) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101500) || \
+        (defined(ANGLE_PLATFORM_IOS) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000)
+#        define ANGLE_WITH_MODERN_METAL_API 1
 #    endif
 #endif
 

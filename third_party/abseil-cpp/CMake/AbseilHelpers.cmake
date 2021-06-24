@@ -141,7 +141,8 @@ function(absl_cc_library)
   endif()
 
   # Generate a pkg-config file for every library:
-  if(_build_type STREQUAL "static" OR _build_type STREQUAL "shared")
+  if((_build_type STREQUAL "static" OR _build_type STREQUAL "shared")
+     AND ABSL_ENABLE_INSTALL)
     if(NOT ABSL_CC_LIB_TESTONLY)
       if(absl_VERSION)
         set(PC_VERSION "${absl_VERSION}")
@@ -170,8 +171,8 @@ function(absl_cc_library)
       FILE(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/lib/pkgconfig/absl_${_NAME}.pc" CONTENT "\
 prefix=${CMAKE_INSTALL_PREFIX}\n\
 exec_prefix=\${prefix}\n\
-libdir=\${prefix}/${CMAKE_INSTALL_LIBDIR}\n\
-includedir=\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}\n\
+libdir=${CMAKE_INSTALL_FULL_LIBDIR}\n\
+includedir=${CMAKE_INSTALL_FULL_INCLUDEDIR}\n\
 \n\
 Name: absl_${_NAME}\n\
 Description: Abseil ${_NAME} library\n\
@@ -181,7 +182,7 @@ Requires:${PC_DEPS}\n\
 Libs: -L\${libdir} $<JOIN:${ABSL_CC_LIB_LINKOPTS}, > $<$<NOT:$<BOOL:${ABSL_CC_LIB_IS_INTERFACE}>>:-labsl_${_NAME}>\n\
 Cflags: -I\${includedir}${PC_CFLAGS}\n")
       INSTALL(FILES "${CMAKE_BINARY_DIR}/lib/pkgconfig/absl_${_NAME}.pc"
-              DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig")
+              DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
     endif()
   endif()
 
@@ -335,8 +336,8 @@ endfunction()
 #     "awesome_test.cc"
 #   DEPS
 #     absl::awesome
-#     gmock
-#     gtest_main
+#     GTest::gmock
+#     GTest::gtest_main
 # )
 function(absl_cc_test)
   if(NOT BUILD_TESTING)

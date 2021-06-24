@@ -536,13 +536,13 @@ class OutputGenerator:
                 self.logMsg('error', 'Allowable range for flag types in C is [', minValidValue, ',', maxValidValue, '], but', name, 'flag has a value outside of this (', strVal, ')\n')
                 exit(1)
 
-            protect = elem.get('protect')
-            if protect is not None:
-                body += '#ifdef {}\n'.format(protect)
-
             decl = self.genRequirements(name, mustBeFound = False)
 
             if self.isEnumRequired(elem):
+                protect = elem.get('protect')
+                if protect is not None:
+                    body += '#ifdef {}\n'.format(protect)
+
                 if usedefine:
                     decl += "#define {} {}\n".format(name, strVal)
                 elif self.misracppstyle():
@@ -561,40 +561,11 @@ class OutputGenerator:
                 else:
                     aliasText += decl
 
-            if protect is not None:
-                body += '#endif\n'
+                if protect is not None:
+                    body += '#endif\n'
 
         # Now append the non-numeric enumerant values
         body += aliasText
-
-        # Generate a range-padding value to ensure the enum is 32 bits, but
-        # only in code generators, so it doesn't appear in documentation.
-        # This isn't needed for bitmasks or defines, but keep them around for
-        # compatibility.
-        if (self.genOpts.codeGenerator or
-            self.conventions.generate_max_enum_in_docs):
-
-            # Break the group name into prefix and suffix portions for range
-            # enum generation
-            expandName = re.sub(r'([0-9a-z_])([A-Z0-9])', r'\1_\2', groupName).upper()
-            expandPrefix = expandName
-            expandSuffix = ''
-            expandSuffixMatch = re.search(r'[A-Z][A-Z]+$', groupName)
-            if expandSuffixMatch:
-                expandSuffix = '_' + expandSuffixMatch.group()
-                # Strip off the suffix from the prefix
-                expandPrefix = expandName.rsplit(expandSuffix, 1)[0]
-
-            maxEnum = '0x7FFFFFFFU'
-            if bitwidth == 64:
-              maxEnum = '0x7FFFFFFFFFFFFFFFULL'
-
-            if usedefine:
-                body += "#define {}_MAX_ENUM{} {}\n".format(expandPrefix, expandSuffix, maxEnum)
-            elif self.misracppstyle():
-                body += "static constexpr {} {}_MAX_ENUM{} {{{}}};\n".format(flagTypeName, expandPrefix, expandSuffix, maxEnum)
-            else:
-                body += "static const {} {}_MAX_ENUM{} = {};\n".format(flagTypeName, expandPrefix, expandSuffix, maxEnum)
 
         # Postfix
 
@@ -606,7 +577,7 @@ class OutputGenerator:
 
         # Break the group name into prefix and suffix portions for range
         # enum generation
-        expandName = re.sub(r'([0-9a-z_])([A-Z0-9])', r'\1_\2', groupName).upper()
+        expandName = re.sub(r'([0-9]+|[a-z_])([A-Z0-9])', r'\1_\2', groupName).upper()
         expandPrefix = expandName
         expandSuffix = ''
         expandSuffixMatch = re.search(r'[A-Z][A-Z]+$', groupName)
@@ -719,6 +690,47 @@ class OutputGenerator:
             section = 'group'
 
         return (section, '\n'.join(body))
+
+    def buildConstantCDecl(self, enuminfo, name, alias):
+        """Generate the C declaration for a constant (a single <enum>
+        value).
+
+        <enum> tags may specify their values in several ways, but are
+        usually just integers or floating-point numbers."""
+
+        (_, strVal) = self.enumToValue(enuminfo.elem, False)
+
+        if self.misracppstyle() and enuminfo.elem.get('type') and not alias:
+            # Generate e.g.: static constexpr uint32_t x = ~static_cast<uint32_t>(1U);
+            # This appeases MISRA "underlying type" rules.
+            typeStr = enuminfo.elem.get('type');
+            invert = '~' in strVal
+            number = strVal.strip("()~UL")
+            if typeStr != "float":
+                number += 'U'
+            strVal = "~" if invert else ""
+            strVal += "static_cast<" + typeStr + ">(" + number + ")"
+            body = 'static constexpr ' + typeStr.ljust(9) + name.ljust(33) + ' {' + strVal + '};'
+        elif enuminfo.elem.get('type') and not alias:
+            # Generate e.g.: #define x (~0ULL)
+            typeStr = enuminfo.elem.get('type');
+            invert = '~' in strVal
+            paren = '(' in strVal
+            number = strVal.strip("()~UL")
+            if typeStr != "float":
+                if typeStr == "uint64_t":
+                    number += 'ULL'
+                else:
+                    number += 'U'
+            strVal = "~" if invert else ""
+            strVal += number
+            if paren:
+                strVal = "(" + strVal + ")";
+            body = '#define ' + name.ljust(33) + ' ' + strVal;
+        else:
+            body = '#define ' + name.ljust(33) + ' ' + strVal
+
+        return body
 
     def makeDir(self, path):
         """Create a directory, if not already done.

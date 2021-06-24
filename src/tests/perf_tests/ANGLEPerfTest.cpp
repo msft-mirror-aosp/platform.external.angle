@@ -195,6 +195,25 @@ void DumpTraceEventsToJSONFile(const std::vector<TraceEvent> &traceEvents,
         printf("Error writing trace file to %s\n", outputFileName);
     }
 }
+
+ANGLE_MAYBE_UNUSED void KHRONOS_APIENTRY PerfTestDebugCallback(GLenum source,
+                                                               GLenum type,
+                                                               GLuint id,
+                                                               GLenum severity,
+                                                               GLsizei length,
+                                                               const GLchar *message,
+                                                               const void *userParam)
+{
+    // Early exit on non-errors.
+    if (type != GL_DEBUG_TYPE_ERROR || !userParam)
+    {
+        return;
+    }
+
+    ANGLERenderTest *renderTest =
+        const_cast<ANGLERenderTest *>(reinterpret_cast<const ANGLERenderTest *>(userParam));
+    renderTest->onErrorMessage(message);
+}
 }  // anonymous namespace
 
 TraceEvent::TraceEvent(char phaseIn,
@@ -265,7 +284,7 @@ void ANGLEPerfTest::run()
 
     for (uint32_t trial = 0; trial < numTrials; ++trial)
     {
-        doRunLoop(gTestTimeSeconds, mStepsToRun, RunLoopPolicy::RunContinuously);
+        doRunLoop(gMaxTrialTimeSeconds, mStepsToRun, RunLoopPolicy::RunContinuously);
         printResults();
         if (gVerboseLogging)
         {
@@ -341,10 +360,6 @@ void ANGLEPerfTest::doRunLoop(double maxRunTime, int maxStepsToRun, RunLoopPolic
                 mRunning = false;
             }
             else if (mTrialNumStepsPerformed >= maxStepsToRun)
-            {
-                mRunning = false;
-            }
-            else if (gMaxStepsPerformed > 0 && mTotalNumStepsPerformed >= gMaxStepsPerformed)
             {
                 mRunning = false;
             }
@@ -708,7 +723,7 @@ void ANGLERenderTest::SetUp()
 #if defined(ANGLE_ENABLE_ASSERTS)
     if (IsGLExtensionEnabled("GL_KHR_debug"))
     {
-        EnableDebugCallback(this);
+        EnableDebugCallback(&PerfTestDebugCallback, this);
     }
 #endif
 
@@ -848,7 +863,10 @@ void ANGLERenderTest::step()
         mOSWindow->messageLoop();
 
 #if defined(ANGLE_ENABLE_ASSERTS)
-        EXPECT_EQ(static_cast<GLenum>(GL_NO_ERROR), glGetError());
+        if (!gRetraceMode)
+        {
+            EXPECT_EQ(static_cast<GLenum>(GL_NO_ERROR), glGetError());
+        }
 #endif  // defined(ANGLE_ENABLE_ASSERTS)
     }
 
@@ -899,7 +917,7 @@ void ANGLERenderTest::startTest() {}
 void ANGLERenderTest::finishTest()
 {
     if (mTestParams.eglParameters.deviceType != EGL_PLATFORM_ANGLE_DEVICE_TYPE_NULL_ANGLE &&
-        !gNoFinish)
+        !gNoFinish && !gRetraceMode)
     {
         glFinish();
     }
@@ -952,7 +970,7 @@ std::vector<TraceEvent> &ANGLERenderTest::getTraceEventBuffer()
 void ANGLERenderTest::onErrorMessage(const char *errorMessage)
 {
     abortTest();
-    FAIL() << "Failing test because of unexpected internal ANGLE error:\n" << errorMessage << "\n";
+    FAIL() << "Failing test because of unexpected error:\n" << errorMessage << "\n";
 }
 
 uint32_t ANGLERenderTest::getCurrentThreadSerial()

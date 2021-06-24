@@ -33,10 +33,13 @@ constexpr const char kAcbBufferOffsets[]       = "acbBufferOffsets";
 constexpr const char kDepthRange[]             = "depthRange";
 constexpr const char kNumSamples[]             = "numSamples";
 
-constexpr const char kHalfRenderArea[] = "halfRenderArea";
-constexpr const char kFlipXY[]         = "flipXY";
-constexpr const char kNegFlipXY[]      = "negFlipXY";
-constexpr const char kFragRotation[]   = "fragRotation";
+constexpr const char kHalfRenderArea[]     = "halfRenderArea";
+constexpr const char kFlipXY[]             = "flipXY";
+constexpr const char kNegFlipXY[]          = "negFlipXY";
+constexpr const char kPreRotation[]        = "preRotation";
+constexpr const char kFragRotation[]       = "fragRotation";
+constexpr const char kEmulatedInstanceId[] = "emulatedInstanceID";
+constexpr const char kCoverageMask[]       = "coverageMask";
 }  // anonymous namespace
 
 // Class DriverUniform
@@ -64,13 +67,14 @@ bool DriverUniform::addComputeDriverUniformsToShader(TIntermBlock *root, TSymbol
     }
 
     // Define a driver uniform block "ANGLEUniformBlock" with instance name "ANGLEUniforms".
-    mDriverUniforms = DeclareInterfaceBlock(
-        root, symbolTable, driverFieldList, EvqUniform, TMemoryQualifier::Create(), 0,
-        ImmutableString(vk::kDriverUniformsBlockName), ImmutableString(vk::kDriverUniformsVarName));
+    mDriverUniforms = DeclareInterfaceBlock(root, symbolTable, driverFieldList, EvqUniform,
+                                            TLayoutQualifier::Create(), TMemoryQualifier::Create(),
+                                            0, ImmutableString(vk::kDriverUniformsBlockName),
+                                            ImmutableString(vk::kDriverUniformsVarName));
     return mDriverUniforms != nullptr;
 }
 
-TFieldList *DriverUniform::createUniformFields(TSymbolTable *symbolTable) const
+TFieldList *DriverUniform::createUniformFields(TSymbolTable *symbolTable)
 {
     constexpr size_t kNumGraphicsDriverUniforms                                                = 8;
     constexpr std::array<const char *, kNumGraphicsDriverUniforms> kGraphicsDriverUniformNames = {
@@ -103,9 +107,15 @@ TFieldList *DriverUniform::createUniformFields(TSymbolTable *symbolTable) const
     return driverFieldList;
 }
 
-TType *DriverUniform::createEmulatedDepthRangeType(TSymbolTable *symbolTable) const
+TType *DriverUniform::createEmulatedDepthRangeType(TSymbolTable *symbolTable)
 {
-    // Init the depth range type.
+    // If already defined, return it immediately.
+    if (mEmulatedDepthRangeType != nullptr)
+    {
+        return mEmulatedDepthRangeType;
+    }
+
+    // Create the depth range type.
     TFieldList *depthRangeParamsFields = new TFieldList();
     depthRangeParamsFields->push_back(new TField(new TType(EbtFloat, EbpHigh, EvqGlobal, 1, 1),
                                                  ImmutableString("near"), TSourceLoc(),
@@ -124,9 +134,11 @@ TType *DriverUniform::createEmulatedDepthRangeType(TSymbolTable *symbolTable) co
     TStructure *emulatedDepthRangeParams = new TStructure(
         symbolTable, kEmulatedDepthRangeParams, depthRangeParamsFields, SymbolType::AngleInternal);
 
-    TType *emulatedDepthRangeType = new TType(emulatedDepthRangeParams, false);
+    mEmulatedDepthRangeType = new TType(emulatedDepthRangeParams, false);
 
-    return emulatedDepthRangeType;
+    // Note: this should really return a const TType *, but one of its uses is with TField who takes
+    // a non-const TType.  See comment on that class.
+    return mEmulatedDepthRangeType;
 }
 
 // The Add*DriverUniformsToShader operation adds an internal uniform block to a shader. The driver
@@ -138,19 +150,22 @@ bool DriverUniform::addGraphicsDriverUniformsToShader(TIntermBlock *root, TSymbo
 {
     ASSERT(!mDriverUniforms);
 
-    TType *emulatedDepthRangeType = createEmulatedDepthRangeType(symbolTable);
-    // Declare a global depth range variable.
+    // Declare the depth range struct type.
+    TType *emulatedDepthRangeType     = createEmulatedDepthRangeType(symbolTable);
+    TType *emulatedDepthRangeDeclType = new TType(emulatedDepthRangeType->getStruct(), true);
+
     TVariable *depthRangeVar =
         new TVariable(symbolTable->nextUniqueId(), kEmptyImmutableString, SymbolType::Empty,
-                      TExtension::UNDEFINED, emulatedDepthRangeType);
+                      TExtension::UNDEFINED, emulatedDepthRangeDeclType);
 
     DeclareGlobalVariable(root, depthRangeVar);
 
     TFieldList *driverFieldList = createUniformFields(symbolTable);
     // Define a driver uniform block "ANGLEUniformBlock" with instance name "ANGLEUniforms".
-    mDriverUniforms = DeclareInterfaceBlock(
-        root, symbolTable, driverFieldList, EvqUniform, TMemoryQualifier::Create(), 0,
-        ImmutableString(vk::kDriverUniformsBlockName), ImmutableString(vk::kDriverUniformsVarName));
+    mDriverUniforms = DeclareInterfaceBlock(root, symbolTable, driverFieldList, EvqUniform,
+                                            TLayoutQualifier::Create(), TMemoryQualifier::Create(),
+                                            0, ImmutableString(vk::kDriverUniformsBlockName),
+                                            ImmutableString(vk::kDriverUniformsVarName));
 
     return mDriverUniforms != nullptr;
 }
@@ -218,7 +233,7 @@ TIntermBinary *DriverUniform::getNumSamplesRef() const
 //
 // Class DriverUniformExtended
 //
-TFieldList *DriverUniformExtended::createUniformFields(TSymbolTable *symbolTable) const
+TFieldList *DriverUniformExtended::createUniformFields(TSymbolTable *symbolTable)
 {
     TFieldList *driverFieldList = DriverUniform::createUniformFields(symbolTable);
 
@@ -265,6 +280,11 @@ TIntermSwizzle *DriverUniformExtended::getNegFlipYRef() const
     return negFlipY;
 }
 
+TIntermBinary *DriverUniformExtended::getPreRotationMatrixRef() const
+{
+    return createDriverUniformRef(kPreRotation);
+}
+
 TIntermBinary *DriverUniformExtended::getFragRotationMatrixRef() const
 {
     return createDriverUniformRef(kFragRotation);
@@ -273,6 +293,16 @@ TIntermBinary *DriverUniformExtended::getFragRotationMatrixRef() const
 TIntermBinary *DriverUniformExtended::getHalfRenderAreaRef() const
 {
     return createDriverUniformRef(kHalfRenderArea);
+}
+
+TIntermBinary *DriverUniformExtended::getEmulatedInstanceId() const
+{
+    return createDriverUniformRef(kEmulatedInstanceId);
+}
+
+TIntermBinary *DriverUniformExtended::getCoverageMask() const
+{
+    return createDriverUniformRef(kCoverageMask);
 }
 
 }  // namespace sh

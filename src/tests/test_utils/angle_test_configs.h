@@ -289,6 +289,20 @@ inline PlatformParameters WithNoVulkanViewportFlip(const PlatformParameters &par
     withoutVulkanViewportFlip.eglParameters.supportsVulkanViewportFlip = EGL_FALSE;
     return withoutVulkanViewportFlip;
 }
+
+inline PlatformParameters WithEmulatedVAOs(const PlatformParameters &params)
+{
+    PlatformParameters emualtedVAOParams         = params;
+    emualtedVAOParams.eglParameters.emulatedVAOs = EGL_TRUE;
+    return emualtedVAOParams;
+}
+
+inline PlatformParameters WithDirectSPIRVGeneration(const PlatformParameters &params)
+{
+    PlatformParameters directSPIRVGeneration                  = params;
+    directSPIRVGeneration.eglParameters.directSPIRVGeneration = EGL_TRUE;
+    return directSPIRVGeneration;
+}
 }  // namespace angle
 
 #endif  // ANGLE_TEST_CONFIGS_H_

@@ -845,7 +845,7 @@ static InternalFormatInfoMap BuildInternalFormatInfoMap()
     // ANGLE Depth stencil formats
     //                         | Internal format         |sized| D |S | X | Format            | Type                             | Component type        | Texture supported                                                            | Filterable                                                                             | Texture attachment                                                                           | Renderbuffer                                                                                              | Blend
     AddDepthStencilFormat(&map, GL_DEPTH_COMPONENT16,     true, 16, 0,  0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT,                 GL_UNSIGNED_NORMALIZED, RequireES<1, 0>,                                                               RequireESOrExtOrExt<3, 0, &Extensions::depthTextureANGLE, &Extensions::depthTextureOES>, RequireES<1, 0>,                                                                               RequireES<1, 0>,                                                                                             RequireES<1, 0>);
-    AddDepthStencilFormat(&map, GL_DEPTH_COMPONENT24,     true, 24, 0,  0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT,                   GL_UNSIGNED_NORMALIZED, RequireES<3, 0>,                                                               RequireESOrExt<3, 0, &Extensions::depthTextureANGLE>,                                    RequireES<3, 0>,                                                                               RequireESOrExt<3, 0, &Extensions::depth24OES>,                                                               RequireESOrExt<3, 0, &Extensions::depth24OES>);
+    AddDepthStencilFormat(&map, GL_DEPTH_COMPONENT24,     true, 24, 0,  8, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT,                   GL_UNSIGNED_NORMALIZED, RequireES<3, 0>,                                                               RequireESOrExt<3, 0, &Extensions::depthTextureANGLE>,                                    RequireES<3, 0>,                                                                               RequireESOrExt<3, 0, &Extensions::depth24OES>,                                                               RequireESOrExt<3, 0, &Extensions::depth24OES>);
     AddDepthStencilFormat(&map, GL_DEPTH_COMPONENT32F,    true, 32, 0,  0, GL_DEPTH_COMPONENT, GL_FLOAT,                          GL_FLOAT,               RequireES<3, 0>,                                                               RequireESOrExt<3, 0, &Extensions::depthTextureANGLE>,                                    RequireES<3, 0>,                                                                               RequireES<3, 0>,                                                                                             RequireES<3, 0>);
     AddDepthStencilFormat(&map, GL_DEPTH_COMPONENT32_OES, true, 32, 0,  0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT,                   GL_UNSIGNED_NORMALIZED, RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>, AlwaysSupported,                                                                         RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>,                 RequireExtOrExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES, &Extensions::depth32OES>, RequireExtOrExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES, &Extensions::depth32OES>);
     AddDepthStencilFormat(&map, GL_DEPTH24_STENCIL8,      true, 24, 8,  0, GL_DEPTH_STENCIL,   GL_UNSIGNED_INT_24_8,              GL_UNSIGNED_NORMALIZED, RequireESOrExt<3, 0, &Extensions::depthTextureANGLE>,                          AlwaysSupported,                                                                         RequireESOrExtOrExt<3, 0, &Extensions::depthTextureANGLE, &Extensions::packedDepthStencilOES>, RequireESOrExtOrExt<3, 0, &Extensions::depthTextureANGLE, &Extensions::packedDepthStencilOES>,               RequireESOrExtOrExt<3, 0, &Extensions::depthTextureANGLE, &Extensions::packedDepthStencilOES>);
@@ -1010,6 +1010,10 @@ static InternalFormatInfoMap BuildInternalFormatInfoMap()
     //                 | Internal format    |sized| R | G | B | A |S | Format | Type             | Component type        | SRGB | Texture supported                     | Filterable     | Texture attachment                    | Renderbuffer                          | Blend
     AddRGBAFormat(&map, GL_SR8_EXT,          true,  8,  0,  0,  0, 0, GL_RED,  GL_UNSIGNED_BYTE,  GL_UNSIGNED_NORMALIZED, true,  RequireExt<&Extensions::sRGBR8EXT>,     AlwaysSupported, NeverSupported,                         NeverSupported,                         NeverSupported);
 
+    // From EXT_texture_sRGB_RG8
+    //                 | Internal format    |sized| R | G | B | A |S | Format | Type             | Component type        | SRGB | Texture supported                     | Filterable     | Texture attachment                    | Renderbuffer                          | Blend
+    AddRGBAFormat(&map, GL_SRG8_EXT,         true,  8,  8,  0,  0, 0, GL_RG,   GL_UNSIGNED_BYTE,  GL_UNSIGNED_NORMALIZED, true,  RequireExt<&Extensions::sRGBRG8EXT>,    AlwaysSupported, NeverSupported,                         NeverSupported,                         NeverSupported);
+
     // Unsized formats
     //                 | Internal format  |sized | R | G | B | A |S | Format           | Type                          | Component type        | SRGB | Texture supported                               | Filterable     | Texture attachment                            | Renderbuffer  | Blend
     AddRGBAFormat(&map, GL_RED,            false,  8,  0,  0,  0, 0, GL_RED,            GL_UNSIGNED_BYTE,               GL_UNSIGNED_NORMALIZED, false, RequireExt<&Extensions::textureRG>,               AlwaysSupported, RequireExt<&Extensions::textureRG>,             NeverSupported, NeverSupported);
@@ -1109,7 +1113,7 @@ static InternalFormatInfoMap BuildInternalFormatInfoMap()
     // Unsized depth stencil formats
     //                         | Internal format   |sized | D |S | X | Format            | Type                             | Component type        | Texture supported                                       | Filterable     | Texture attachment                                                                  | Renderbuffer                                                                       | Blend
     AddDepthStencilFormat(&map, GL_DEPTH_COMPONENT, false, 16, 0,  0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT,                 GL_UNSIGNED_NORMALIZED, RequireES<1, 0>,                                          AlwaysSupported, RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>,        RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>,        RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>);
-    AddDepthStencilFormat(&map, GL_DEPTH_COMPONENT, false, 24, 0,  0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT,                   GL_UNSIGNED_NORMALIZED, RequireES<1, 0>,                                          AlwaysSupported, RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>,        RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>,        RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>);
+    AddDepthStencilFormat(&map, GL_DEPTH_COMPONENT, false, 24, 0,  8, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT,                   GL_UNSIGNED_NORMALIZED, RequireES<1, 0>,                                          AlwaysSupported, RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>,        RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>,        RequireExtOrExt<&Extensions::depthTextureANGLE, &Extensions::depthTextureOES>);
     AddDepthStencilFormat(&map, GL_DEPTH_COMPONENT, false, 32, 0,  0, GL_DEPTH_COMPONENT, GL_FLOAT,                          GL_FLOAT,               RequireES<1, 0>,                                          AlwaysSupported, RequireES<1, 0>,                                                                      RequireES<1, 0>,                                                                      RequireES<1, 0>);
     AddDepthStencilFormat(&map, GL_DEPTH_COMPONENT, false, 24, 8,  0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT_24_8,              GL_UNSIGNED_NORMALIZED, RequireESOrExt<3, 0, &Extensions::packedDepthStencilOES>, AlwaysSupported, RequireExtAndExt<&Extensions::packedDepthStencilOES, &Extensions::depthTextureANGLE>, RequireExtAndExt<&Extensions::packedDepthStencilOES, &Extensions::depthTextureANGLE>, RequireExtAndExt<&Extensions::packedDepthStencilOES, &Extensions::depthTextureANGLE>);
     AddDepthStencilFormat(&map, GL_DEPTH_STENCIL,   false, 24, 8,  0, GL_DEPTH_STENCIL,   GL_UNSIGNED_INT_24_8,              GL_UNSIGNED_NORMALIZED, RequireESOrExt<3, 0, &Extensions::packedDepthStencilOES>, AlwaysSupported, RequireExtAndExt<&Extensions::packedDepthStencilOES, &Extensions::depthTextureANGLE>, RequireExtAndExt<&Extensions::packedDepthStencilOES, &Extensions::depthTextureANGLE>, RequireExtAndExt<&Extensions::packedDepthStencilOES, &Extensions::depthTextureANGLE>);
@@ -2591,6 +2595,182 @@ size_t GetVertexFormatSize(angle::FormatID vertexFormatID)
             return 0;
 #endif
     }
+}
+
+angle::FormatID ConvertFormatSignedness(const angle::Format &format)
+{
+    switch (format.id)
+    {
+        // 1 byte signed to unsigned
+        case angle::FormatID::R8_SINT:
+            return angle::FormatID::R8_UINT;
+        case angle::FormatID::R8_SNORM:
+            return angle::FormatID::R8_UNORM;
+        case angle::FormatID::R8_SSCALED:
+            return angle::FormatID::R8_USCALED;
+        case angle::FormatID::R8G8_SINT:
+            return angle::FormatID::R8G8_UINT;
+        case angle::FormatID::R8G8_SNORM:
+            return angle::FormatID::R8G8_UNORM;
+        case angle::FormatID::R8G8_SSCALED:
+            return angle::FormatID::R8G8_USCALED;
+        case angle::FormatID::R8G8B8_SINT:
+            return angle::FormatID::R8G8B8_UINT;
+        case angle::FormatID::R8G8B8_SNORM:
+            return angle::FormatID::R8G8B8_UNORM;
+        case angle::FormatID::R8G8B8_SSCALED:
+            return angle::FormatID::R8G8B8_USCALED;
+        case angle::FormatID::R8G8B8A8_SINT:
+            return angle::FormatID::R8G8B8A8_UINT;
+        case angle::FormatID::R8G8B8A8_SNORM:
+            return angle::FormatID::R8G8B8A8_UNORM;
+        case angle::FormatID::R8G8B8A8_SSCALED:
+            return angle::FormatID::R8G8B8A8_USCALED;
+        // 1 byte unsigned to signed
+        case angle::FormatID::R8_UINT:
+            return angle::FormatID::R8_SINT;
+        case angle::FormatID::R8_UNORM:
+            return angle::FormatID::R8_SNORM;
+        case angle::FormatID::R8_USCALED:
+            return angle::FormatID::R8_SSCALED;
+        case angle::FormatID::R8G8_UINT:
+            return angle::FormatID::R8G8_SINT;
+        case angle::FormatID::R8G8_UNORM:
+            return angle::FormatID::R8G8_SNORM;
+        case angle::FormatID::R8G8_USCALED:
+            return angle::FormatID::R8G8_SSCALED;
+        case angle::FormatID::R8G8B8_UINT:
+            return angle::FormatID::R8G8B8_SINT;
+        case angle::FormatID::R8G8B8_UNORM:
+            return angle::FormatID::R8G8B8_SNORM;
+        case angle::FormatID::R8G8B8_USCALED:
+            return angle::FormatID::R8G8B8_SSCALED;
+        case angle::FormatID::R8G8B8A8_UINT:
+            return angle::FormatID::R8G8B8A8_SINT;
+        case angle::FormatID::R8G8B8A8_UNORM:
+            return angle::FormatID::R8G8B8A8_SNORM;
+        case angle::FormatID::R8G8B8A8_USCALED:
+            return angle::FormatID::R8G8B8A8_SSCALED;
+        // 2 byte signed to unsigned
+        case angle::FormatID::R16_SINT:
+            return angle::FormatID::R16_UINT;
+        case angle::FormatID::R16_SNORM:
+            return angle::FormatID::R16_UNORM;
+        case angle::FormatID::R16_SSCALED:
+            return angle::FormatID::R16_USCALED;
+        case angle::FormatID::R16G16_SINT:
+            return angle::FormatID::R16G16_UINT;
+        case angle::FormatID::R16G16_SNORM:
+            return angle::FormatID::R16G16_UNORM;
+        case angle::FormatID::R16G16_SSCALED:
+            return angle::FormatID::R16G16_USCALED;
+        case angle::FormatID::R16G16B16_SINT:
+            return angle::FormatID::R16G16B16_UINT;
+        case angle::FormatID::R16G16B16_SNORM:
+            return angle::FormatID::R16G16B16_UNORM;
+        case angle::FormatID::R16G16B16_SSCALED:
+            return angle::FormatID::R16G16B16_USCALED;
+        case angle::FormatID::R16G16B16A16_SINT:
+            return angle::FormatID::R16G16B16A16_UINT;
+        case angle::FormatID::R16G16B16A16_SNORM:
+            return angle::FormatID::R16G16B16A16_UNORM;
+        case angle::FormatID::R16G16B16A16_SSCALED:
+            return angle::FormatID::R16G16B16A16_USCALED;
+        // 2 byte unsigned to signed
+        case angle::FormatID::R16_UINT:
+            return angle::FormatID::R16_SINT;
+        case angle::FormatID::R16_UNORM:
+            return angle::FormatID::R16_SNORM;
+        case angle::FormatID::R16_USCALED:
+            return angle::FormatID::R16_SSCALED;
+        case angle::FormatID::R16G16_UINT:
+            return angle::FormatID::R16G16_SINT;
+        case angle::FormatID::R16G16_UNORM:
+            return angle::FormatID::R16G16_SNORM;
+        case angle::FormatID::R16G16_USCALED:
+            return angle::FormatID::R16G16_SSCALED;
+        case angle::FormatID::R16G16B16_UINT:
+            return angle::FormatID::R16G16B16_SINT;
+        case angle::FormatID::R16G16B16_UNORM:
+            return angle::FormatID::R16G16B16_SNORM;
+        case angle::FormatID::R16G16B16_USCALED:
+            return angle::FormatID::R16G16B16_SSCALED;
+        case angle::FormatID::R16G16B16A16_UINT:
+            return angle::FormatID::R16G16B16A16_SINT;
+        case angle::FormatID::R16G16B16A16_UNORM:
+            return angle::FormatID::R16G16B16A16_SNORM;
+        case angle::FormatID::R16G16B16A16_USCALED:
+            return angle::FormatID::R16G16B16A16_SSCALED;
+        // 4 byte signed to unsigned
+        case angle::FormatID::R32_SINT:
+            return angle::FormatID::R32_UINT;
+        case angle::FormatID::R32_SNORM:
+            return angle::FormatID::R32_UNORM;
+        case angle::FormatID::R32_SSCALED:
+            return angle::FormatID::R32_USCALED;
+        case angle::FormatID::R32G32_SINT:
+            return angle::FormatID::R32G32_UINT;
+        case angle::FormatID::R32G32_SNORM:
+            return angle::FormatID::R32G32_UNORM;
+        case angle::FormatID::R32G32_SSCALED:
+            return angle::FormatID::R32G32_USCALED;
+        case angle::FormatID::R32G32B32_SINT:
+            return angle::FormatID::R32G32B32_UINT;
+        case angle::FormatID::R32G32B32_SNORM:
+            return angle::FormatID::R32G32B32_UNORM;
+        case angle::FormatID::R32G32B32_SSCALED:
+            return angle::FormatID::R32G32B32_USCALED;
+        case angle::FormatID::R32G32B32A32_SINT:
+            return angle::FormatID::R32G32B32A32_UINT;
+        case angle::FormatID::R32G32B32A32_SNORM:
+            return angle::FormatID::R32G32B32A32_UNORM;
+        case angle::FormatID::R32G32B32A32_SSCALED:
+            return angle::FormatID::R32G32B32A32_USCALED;
+        // 4 byte unsigned to signed
+        case angle::FormatID::R32_UINT:
+            return angle::FormatID::R32_SINT;
+        case angle::FormatID::R32_UNORM:
+            return angle::FormatID::R32_SNORM;
+        case angle::FormatID::R32_USCALED:
+            return angle::FormatID::R32_SSCALED;
+        case angle::FormatID::R32G32_UINT:
+            return angle::FormatID::R32G32_SINT;
+        case angle::FormatID::R32G32_UNORM:
+            return angle::FormatID::R32G32_SNORM;
+        case angle::FormatID::R32G32_USCALED:
+            return angle::FormatID::R32G32_SSCALED;
+        case angle::FormatID::R32G32B32_UINT:
+            return angle::FormatID::R32G32B32_SINT;
+        case angle::FormatID::R32G32B32_UNORM:
+            return angle::FormatID::R32G32B32_SNORM;
+        case angle::FormatID::R32G32B32_USCALED:
+            return angle::FormatID::R32G32B32_SSCALED;
+        case angle::FormatID::R32G32B32A32_UINT:
+            return angle::FormatID::R32G32B32A32_SINT;
+        case angle::FormatID::R32G32B32A32_UNORM:
+            return angle::FormatID::R32G32B32A32_SNORM;
+        case angle::FormatID::R32G32B32A32_USCALED:
+            return angle::FormatID::R32G32B32A32_SSCALED;
+        // 1010102 signed to unsigned
+        case angle::FormatID::R10G10B10A2_SINT:
+            return angle::FormatID::R10G10B10A2_UINT;
+        case angle::FormatID::R10G10B10A2_SSCALED:
+            return angle::FormatID::R10G10B10A2_USCALED;
+        case angle::FormatID::R10G10B10A2_SNORM:
+            return angle::FormatID::R10G10B10A2_UNORM;
+        // 1010102 unsigned to signed
+        case angle::FormatID::R10G10B10A2_UINT:
+            return angle::FormatID::R10G10B10A2_SINT;
+        case angle::FormatID::R10G10B10A2_USCALED:
+            return angle::FormatID::R10G10B10A2_SSCALED;
+        case angle::FormatID::R10G10B10A2_UNORM:
+            return angle::FormatID::R10G10B10A2_SNORM;
+        default:
+            UNREACHABLE();
+    }
+#if !UNREACHABLE_IS_NORETURN
+    return angle::FormatID::NONE;
+#endif
 }
 
 bool ValidES3InternalFormat(GLenum internalFormat)

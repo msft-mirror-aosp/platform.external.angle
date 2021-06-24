@@ -26,7 +26,7 @@ class TIntermBinary;
 class DriverUniform
 {
   public:
-    DriverUniform() : mDriverUniforms(nullptr) {}
+    DriverUniform() : mDriverUniforms(nullptr), mEmulatedDepthRangeType(nullptr) {}
     virtual ~DriverUniform() = default;
 
     bool addComputeDriverUniformsToShader(TIntermBlock *root, TSymbolTable *symbolTable);
@@ -44,16 +44,22 @@ class DriverUniform
 
     virtual TIntermBinary *getFlipXYRef() const { return nullptr; }
     virtual TIntermBinary *getNegFlipXYRef() const { return nullptr; }
+    virtual TIntermBinary *getPreRotationMatrixRef() const { return nullptr; }
     virtual TIntermBinary *getFragRotationMatrixRef() const { return nullptr; }
     virtual TIntermBinary *getHalfRenderAreaRef() const { return nullptr; }
     virtual TIntermSwizzle *getNegFlipYRef() const { return nullptr; }
+    virtual TIntermBinary *getEmulatedInstanceId() const { return nullptr; }
+    virtual TIntermBinary *getCoverageMask() const { return nullptr; }
+
+    const TVariable *getDriverUniformsVariable() const { return mDriverUniforms; }
 
   protected:
     TIntermBinary *createDriverUniformRef(const char *fieldName) const;
-    virtual TFieldList *createUniformFields(TSymbolTable *symbolTable) const;
-    TType *createEmulatedDepthRangeType(TSymbolTable *symbolTable) const;
+    virtual TFieldList *createUniformFields(TSymbolTable *symbolTable);
+    TType *createEmulatedDepthRangeType(TSymbolTable *symbolTable);
 
     const TVariable *mDriverUniforms;
+    TType *mEmulatedDepthRangeType;
 };
 
 class DriverUniformExtended : public DriverUniform
@@ -64,12 +70,15 @@ class DriverUniformExtended : public DriverUniform
 
     TIntermBinary *getFlipXYRef() const override;
     TIntermBinary *getNegFlipXYRef() const override;
+    TIntermBinary *getPreRotationMatrixRef() const override;
     TIntermBinary *getFragRotationMatrixRef() const override;
     TIntermBinary *getHalfRenderAreaRef() const override;
     TIntermSwizzle *getNegFlipYRef() const override;
+    TIntermBinary *getEmulatedInstanceId() const override;
+    TIntermBinary *getCoverageMask() const override;
 
   protected:
-    virtual TFieldList *createUniformFields(TSymbolTable *symbolTable) const override;
+    virtual TFieldList *createUniformFields(TSymbolTable *symbolTable) override;
 };
 
 }  // namespace sh

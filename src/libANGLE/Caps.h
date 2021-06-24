@@ -111,6 +111,7 @@ struct Extensions
     // GL_OES_texture_half_float, GL_OES_texture_half_float_linear
     // GL_OES_texture_float, GL_OES_texture_float_linear
     // GL_EXT_texture_rg
+    // GL_EXT_texture_type_2_10_10_10_REV
     // GL_EXT_texture_compression_dxt1, GL_ANGLE_texture_compression_dxt3,
     // GL_ANGLE_texture_compression_dxt5
     // GL_KHR_texture_compression_astc_ldr, GL_OES_texture_compression_astc.
@@ -180,9 +181,6 @@ struct Extensions
     bool textureHalfFloat       = false;
     bool textureHalfFloatLinear = false;
 
-    // GL_EXT_texture_type_2_10_10_10_REV
-    bool textureFormat2101010REV = false;
-
     // GL_OES_texture_float and GL_OES_texture_float_linear
     // Implies that TextureCaps for GL_RGB32F, GL_RGBA32F, GL_ALPHA16F_EXT, GL_LUMINANCE16F_EXT and
     // GL_LUMINANCE_ALPHA16F_EXT exist
@@ -193,6 +191,9 @@ struct Extensions
     // Implies that TextureCaps for GL_R8, GL_RG8 (and floating point R/RG texture formats if
     // floating point extensions are also present) exist
     bool textureRG = false;
+
+    // GL_EXT_texture_type_2_10_10_10_REV
+    bool textureFormat2101010REV = false;
 
     // GL_EXT_texture_compression_dxt1, GL_ANGLE_texture_compression_dxt3 and
     // GL_ANGLE_texture_compression_dxt5 Implies that TextureCaps exist for
@@ -283,6 +284,9 @@ struct Extensions
 
     // GL_EXT_texture_sRGB_R8
     bool sRGBR8EXT = false;
+
+    // GL_EXT_texture_sRGB_RG8
+    bool sRGBRG8EXT = false;
 
     // GL_ANGLE_depth_texture
     bool depthTextureANGLE = false;
@@ -509,6 +513,12 @@ struct Extensions
     // GL_OES_texture_border_clamp
     bool textureBorderClampOES = false;
 
+    // GL_EXT_texture_border_clamp
+    bool textureBorderClampEXT = false;
+
+    // Any version of the texture border clamp extension
+    bool textureBorderClampAny() const { return (textureBorderClampOES || textureBorderClampEXT); }
+
     // GL_EXT_texture_sRGB_decode
     bool textureSRGBDecode = false;
 
@@ -559,7 +569,11 @@ struct Extensions
     bool textureRectangle = false;
 
     // GL_EXT_geometry_shader
-    bool geometryShader = false;
+    bool geometryShaderEXT = false;
+    // GL_OES_geometry_shader
+    bool geometryShaderOES = false;
+    // Any version of the geometry shader extension
+    bool geometryShaderAny() const { return (geometryShaderEXT || geometryShaderOES); }
 
     // GLES1 emulation: GLES1 extensions
     // GL_OES_point_size_array
@@ -594,6 +608,9 @@ struct Extensions
 
     // GL_ANGLE_multiview_multisample
     bool multiviewMultisample = false;
+
+    // GL_KHR_blend_equation_advanced
+    bool blendEquationAdvancedKHR = false;
 
     // GL_EXT_blend_func_extended
     bool blendFuncExtended          = false;
@@ -718,6 +735,15 @@ struct Extensions
 
     // GL_EXT_clip_cull_distance
     bool clipCullDistanceEXT = false;
+
+    // GL_ANGLE_get_serialized_context_string
+    bool getSerializedContextStringANGLE = false;
+
+    // GL_EXT_primitive_bounding_box
+    bool primitiveBoundingBoxEXT = false;
+
+    // GL_ANGLE_relaxed_vertex_attribute_type
+    bool relaxedVertexAttributeTypeANGLE = false;
 };
 
 // Pointer to a boolean memeber of the Extensions struct
@@ -986,6 +1012,11 @@ struct Caps
     // ES 3.2 Table 20.41: Implementation Dependent Values (cont.)
     GLint maxTextureBufferSize         = 0;
     GLint textureBufferOffsetAlignment = 0;
+
+    // Direct-to-metal constants:
+    GLuint driverUniformsBindingIndex    = 0;
+    GLuint defaultUniformsBindingIndex   = 0;
+    GLuint UBOArgumentBufferBindingIndex = 0;
 };
 
 Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensions);

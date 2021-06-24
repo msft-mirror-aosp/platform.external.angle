@@ -37,6 +37,7 @@ size_t VariableInternalSize(GLenum type);
 size_t VariableExternalSize(GLenum type);
 int VariableRowCount(GLenum type);
 int VariableColumnCount(GLenum type);
+int VariableAttributeCount(GLenum type);
 bool IsSamplerType(GLenum type);
 bool IsSamplerCubeType(GLenum type);
 bool IsSamplerYUVType(GLenum type);
@@ -252,6 +253,7 @@ enum class SrgbWriteControlMode
 };
 
 ShaderType GetShaderTypeFromBitfield(size_t singleShaderType);
+GLbitfield GetBitfieldFromShaderType(ShaderType shaderType);
 bool ShaderTypeSupportsTransformFeedback(ShaderType shaderType);
 // Given a set of shader stages, returns the last vertex processing stage.  This is the stage that
 // interfaces the fragment shader.

@@ -36,6 +36,7 @@ angle_extensions = [
     "GL_CHROMIUM_lose_context",
     "GL_ANGLE_copy_texture_3d",
     "GL_ANGLE_get_image",
+    "GL_ANGLE_get_serialized_context_string",
     "GL_ANGLE_get_tex_level_parameter",
     "GL_ANGLE_program_binary",
     "GL_ANGLE_request_extension",
@@ -66,6 +67,7 @@ gles_extensions = [
     "GL_ANGLE_semaphore_fuchsia",
     "GL_ANGLE_texture_multisample",
     "GL_ANGLE_translated_shader_source",
+    "GL_KHR_blend_equation_advanced",
     "GL_EXT_blend_func_extended",
     "GL_EXT_buffer_storage",
     "GL_EXT_copy_image",
@@ -87,6 +89,7 @@ gles_extensions = [
     "GL_EXT_multisampled_render_to_texture",
     "GL_EXT_multisampled_render_to_texture2",
     "GL_EXT_occlusion_query_boolean",
+    "GL_EXT_primitive_bounding_box",
     "GL_EXT_read_format_bgra",
     "GL_EXT_robustness",
     "GL_EXT_semaphore",
@@ -96,6 +99,7 @@ gles_extensions = [
     "GL_EXT_shader_io_blocks",
     "GL_EXT_sRGB",
     "GL_EXT_tessellation_shader",
+    "GL_EXT_texture_border_clamp",
     "GL_EXT_texture_buffer",
     "GL_EXT_texture_compression_bptc",
     "GL_EXT_texture_compression_dxt1",
@@ -107,6 +111,7 @@ gles_extensions = [
     "GL_EXT_texture_format_BGRA8888",
     "GL_EXT_texture_storage",
     "GL_EXT_texture_sRGB_R8",
+    "GL_EXT_texture_sRGB_RG8",
     "GL_EXT_YUV_target",
     "GL_KHR_debug",
     "GL_KHR_parallel_shader_compile",
@@ -119,6 +124,7 @@ gles_extensions = [
     "GL_OES_draw_buffers_indexed",
     "GL_OES_draw_elements_base_vertex",
     "GL_OES_EGL_image",
+    "GL_OES_geometry_shader",
     "GL_OES_get_program_binary",
     "GL_OES_mapbuffer",
     "GL_OES_sample_shading",
@@ -167,6 +173,7 @@ supported_egl_extensions = [
     "EGL_EXT_pixel_format_float",
     "EGL_EXT_platform_base",
     "EGL_EXT_platform_device",
+    "EGL_EXT_protected_content",
     "EGL_IMG_context_priority",
     "EGL_KHR_debug",
     "EGL_KHR_fence_sync",
@@ -186,6 +193,27 @@ supported_egl_extensions = [
     "EGL_KHR_wait_sync",
     "EGL_NV_post_sub_buffer",
     "EGL_NV_stream_consumer_gltexture_yuv",
+]
+
+supported_cl_extensions = [
+    # Since OpenCL 1.1
+    "cl_khr_byte_addressable_store",
+    "cl_khr_global_int32_base_atomics",
+    "cl_khr_global_int32_extended_atomics",
+    "cl_khr_local_int32_base_atomics",
+    "cl_khr_local_int32_extended_atomics",
+
+    # OpenCL 2.0 - 2.2
+    "cl_khr_3d_image_writes",
+    "cl_khr_depth_images",
+    "cl_khr_image2d_from_buffer",
+
+    # Optional
+    "cl_khr_extended_versioning",
+    "cl_khr_fp64",
+    "cl_khr_icd",
+    "cl_khr_int64_base_atomics",
+    "cl_khr_int64_extended_atomics",
 ]
 
 # Strip these suffixes from Context entry point names. NV is excluded (for now).
@@ -221,7 +249,7 @@ DESKTOP_GL_VERSIONS = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (2, 0), (
 GLES_VERSIONS = [(2, 0), (3, 0), (3, 1), (3, 2), (1, 0)]
 EGL_VERSIONS = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5)]
 WGL_VERSIONS = [(1, 0)]
-CL_VERSIONS = [(1, 0)]
+CL_VERSIONS = [(1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2), (3, 0)]
 
 
 # API types
@@ -322,6 +350,8 @@ class RegistryXML:
             return 'eglext'
         elif 'wgl' in supported:
             return 'wglext'
+        elif 'cl' in supported:
+            return 'clext'
         else:
             assert False
             return 'unknown'

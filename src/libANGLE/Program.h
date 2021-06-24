@@ -187,6 +187,8 @@ class ProgramBindings final : angle::NonCopyable
     const_iterator begin() const;
     const_iterator end() const;
 
+    std::map<std::string, GLuint> getStableIterationMap() const;
+
   private:
     angle::HashMap<std::string, GLuint> mBindings;
 };
@@ -206,6 +208,8 @@ class ProgramAliasedBindings final : angle::NonCopyable
     using const_iterator = angle::HashMap<std::string, ProgramBinding>::const_iterator;
     const_iterator begin() const;
     const_iterator end() const;
+
+    std::map<std::string, ProgramBinding> getStableIterationMap() const;
 
   private:
     angle::HashMap<std::string, ProgramBinding> mBindings;
@@ -491,6 +495,7 @@ class Program final : public LabeledObject, public angle::Subject, public HasAtt
 
     // Peek whether there is any running linking tasks.
     bool isLinking() const;
+    bool hasLinkingState() const { return mLinkingState != nullptr; }
 
     bool isLinked() const
     {
@@ -714,22 +719,7 @@ class Program final : public LabeledObject, public angle::Subject, public HasAtt
     bool isFlaggedForDeletion() const;
 
     void validate(const Caps &caps);
-    bool validateSamplers(InfoLog *infoLog, const Caps &caps)
-    {
-        // Skip cache if we're using an infolog, so we get the full error.
-        // Also skip the cache if the sample mapping has changed, or if we haven't ever validated.
-        if (infoLog == nullptr && mCachedValidateSamplersResult.valid())
-        {
-            return mCachedValidateSamplersResult.value();
-        }
-
-        return validateSamplersImpl(infoLog, caps);
-    }
-
     bool isValidated() const;
-
-    Optional<bool> getCachedValidateSamplersResult() { return mCachedValidateSamplersResult; }
-    void setCachedValidateSamplersResult(bool result) { mCachedValidateSamplersResult = result; }
 
     const std::vector<ImageBinding> &getImageBindings() const
     {
@@ -913,8 +903,6 @@ class Program final : public LabeledObject, public angle::Subject, public HasAtt
     GLuint getSamplerUniformBinding(const VariableLocation &uniformLocation) const;
     GLuint getImageUniformBinding(const VariableLocation &uniformLocation) const;
 
-    bool validateSamplersImpl(InfoLog *infoLog, const Caps &caps);
-
     // Block until linking is finished and resolve it.
     void resolveLinkImpl(const gl::Context *context);
 
@@ -940,9 +928,6 @@ class Program final : public LabeledObject, public angle::Subject, public HasAtt
 
     ShaderProgramManager *mResourceManager;
     const ShaderProgramID mHandle;
-
-    // Cache for sampler validation
-    Optional<bool> mCachedValidateSamplersResult;
 
     DirtyBits mDirtyBits;
 };
