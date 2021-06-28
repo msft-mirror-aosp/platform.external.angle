@@ -1030,6 +1030,11 @@ enum TQualifier
     EvqTessEvaluationOut,
     EvqTessCoord,
 
+    // A specialization constant, which is not valid GLSL ES, but is there to support Vulkan output
+    // generation.  In that case, TLayoutQualifier::location will contain the somewhat equivalent
+    // constant_id.
+    EvqSpecConst,
+
     // end of list
     EvqLast
 };
@@ -1086,6 +1091,11 @@ inline bool IsShaderOut(TQualifier qualifier)
         case EvqSampleOut:
         case EvqPatchOut:
         case EvqFragmentInOut:
+        // Per-vertex built-ins when used without gl_in or gl_out are always output.
+        case EvqPosition:
+        case EvqPointSize:
+        case EvqClipDistance:
+        case EvqCullDistance:
             return true;
         default:
             return false;
@@ -1444,6 +1454,7 @@ inline const char *getQualifierString(TQualifier q)
     case EvqTessEvaluationIn:       return "in";
     case EvqTessEvaluationOut:      return "out";
     case EvqTessCoord:              return "TessCoord";
+    case EvqSpecConst:              return "const";
     default: UNREACHABLE();         return "unknown qualifier";
     }
     // clang-format on

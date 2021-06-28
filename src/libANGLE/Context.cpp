@@ -3425,7 +3425,8 @@ Extensions Context::generateSupportedExtensions() const
     if (getClientVersion() < ES_3_1)
     {
         // Disable ES3.1+ extensions
-        supportedExtensions.geometryShader        = false;
+        supportedExtensions.geometryShaderEXT     = false;
+        supportedExtensions.geometryShaderOES     = false;
         supportedExtensions.tessellationShaderEXT = false;
 
         // TODO(http://anglebug.com/2775): Multisample arrays could be supported on ES 3.0 as well
@@ -3730,6 +3731,9 @@ void Context::initCaps()
     ANGLE_LIMIT_CAP(mState.mCaps.maxFramebufferLayers, IMPLEMENTATION_MAX_FRAMEBUFFER_LAYERS);
 
     ANGLE_LIMIT_CAP(mState.mCaps.maxSampleMaskWords, MAX_SAMPLE_MASK_WORDS);
+
+    ANGLE_LIMIT_CAP(mState.mExtensions.maxDualSourceDrawBuffers,
+                    IMPLEMENTATION_MAX_DUAL_SOURCE_DRAW_BUFFERS);
 
     // WebGL compatibility
     mState.mExtensions.webglCompatibility = mWebGLContext;
@@ -8994,7 +8998,7 @@ std::mutex &Context::getProgramCacheMutex() const
 
 bool Context::supportsGeometryOrTesselation() const
 {
-    return mState.getClientVersion() == ES_3_2 || mState.getExtensions().geometryShader ||
+    return mState.getClientVersion() == ES_3_2 || mState.getExtensions().geometryShaderAny() ||
            mState.getExtensions().tessellationShaderEXT;
 }
 
@@ -9002,6 +9006,7 @@ void Context::dirtyAllState()
 {
     mState.setAllDirtyBits();
     mState.setAllDirtyObjects();
+    mState.gles1().setAllDirty();
 }
 
 // ErrorSet implementation.
@@ -9337,7 +9342,7 @@ void StateCache::updateValidDrawModes(Context *context)
         // DrawElements, DrawElementsInstanced, and DrawRangeElements while transform feedback is
         // active and not paused, regardless of mode. Any primitive type may be used while transform
         // feedback is paused.
-        if (!context->getExtensions().geometryShader &&
+        if (!context->getExtensions().geometryShaderAny() &&
             !context->getExtensions().tessellationShaderEXT && context->getClientVersion() < ES_3_2)
         {
             mCachedValidDrawModes.fill(false);

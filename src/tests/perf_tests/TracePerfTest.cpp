@@ -812,15 +812,6 @@ TracePerfTest::TracePerfTest()
         addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
     }
 
-    if (param.testID == RestrictedTraceID::lineage_m)
-    {
-        // TODO: http://anglebug.com/5748 Vulkan device is lost on Nvidia Linux
-        if (IsLinux() && IsNVIDIA() && param.getRenderer() == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE)
-        {
-            mSkipTest = true;
-        }
-    }
-
     if (param.testID == RestrictedTraceID::plants_vs_zombies_2)
     {
         // TODO: http://crbug.com/1187752 Corrupted image
@@ -968,10 +959,24 @@ TracePerfTest::TracePerfTest()
 
     if (param.testID == RestrictedTraceID::cookie_run_kingdom)
     {
+        addExtensionPrerequisite("GL_EXT_texture_cube_map_array");
         addExtensionPrerequisite("GL_OES_EGL_image_external");
 
         // TODO: http://anglebug.com/6017 ARM doesn't have enough VS storage blocks
         if (IsAndroid() && IsARM())
+        {
+            mSkipTest = true;
+        }
+    }
+
+    if (param.testID == RestrictedTraceID::genshin_impact)
+    {
+        addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
+
+        // TODO: http://anglebug.com/6023 Crashes on Pixel 2 in vulkan driver
+        // TODO: http://anglebug.com/6029 Crashes on Linux Intel Vulkan
+        if (((IsLinux() && IsIntel()) || IsPixel2()) &&
+            param.getRenderer() == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE)
         {
             mSkipTest = true;
         }

@@ -21,11 +21,12 @@ class CLMemoryImpl : angle::NonCopyable
     CLMemoryImpl(const cl::Memory &memory);
     virtual ~CLMemoryImpl();
 
-    virtual size_t getSize() const = 0;
+    virtual size_t getSize(cl_int &errorCode) const = 0;
 
     virtual CLMemoryImpl::Ptr createSubBuffer(const cl::Buffer &buffer,
+                                              cl::MemFlags flags,
                                               size_t size,
-                                              cl_int *errcodeRet) = 0;
+                                              cl_int &errorCode) = 0;
 
   protected:
     const cl::Memory &mMemory;

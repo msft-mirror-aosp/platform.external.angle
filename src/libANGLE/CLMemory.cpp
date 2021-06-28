@@ -9,23 +9,44 @@
 
 #include "libANGLE/CLBuffer.h"
 #include "libANGLE/CLContext.h"
-#include "libANGLE/CLPlatform.h"
 
 #include <cstring>
 
 namespace cl
 {
 
-Memory::~Memory() = default;
-
-bool Memory::release()
+namespace
 {
-    const bool released = removeRef();
-    if (released)
+
+MemFlags InheritMemFlags(MemFlags flags, Memory *parent)
+{
+    if (parent != nullptr)
     {
-        mContext->destroyMemory(this);
+        const MemFlags parentFlags = parent->getFlags();
+        const MemFlags access(CL_MEM_READ_WRITE | CL_MEM_READ_ONLY | CL_MEM_WRITE_ONLY);
+        const MemFlags hostAccess(CL_MEM_HOST_WRITE_ONLY | CL_MEM_HOST_READ_ONLY |
+                                  CL_MEM_HOST_NO_ACCESS);
+        const MemFlags hostPtrFlags(CL_MEM_USE_HOST_PTR | CL_MEM_ALLOC_HOST_PTR |
+                                    CL_MEM_COPY_HOST_PTR);
+        if (flags.isNotSet(access))
+        {
+            flags.set(parentFlags.mask(access));
+        }
+        if (flags.isNotSet(hostAccess))
+        {
+            flags.set(parentFlags.mask(hostAccess));
+        }
+        flags.set(parentFlags.mask(hostPtrFlags));
     }
-    return released;
+    return flags;
+}
+
+}  // namespace
+
+cl_int Memory::setDestructorCallback(MemoryCB pfnNotify, void *userData)
+{
+    mDestructorCallbacks->emplace(pfnNotify, userData);
+    return CL_SUCCESS;
 }
 
 cl_int Memory::getInfo(MemInfo name, size_t valueSize, void *value, size_t *valueSizeRet) const
@@ -42,7 +63,7 @@ cl_int Memory::getInfo(MemInfo name, size_t valueSize, void *value, size_t *valu
     switch (name)
     {
         case MemInfo::Type:
-            valUInt   = getType();
+            valUInt   = ToCLenum(getType());
             copyValue = &valUInt;
             copySize  = sizeof(valUInt);
             break;
@@ -59,20 +80,22 @@ cl_int Memory::getInfo(MemInfo name, size_t valueSize, void *value, size_t *valu
             copySize  = sizeof(mHostPtr);
             break;
         case MemInfo::MapCount:
-            copyValue = &mMapCount;
-            copySize  = sizeof(mMapCount);
+            valUInt   = mMapCount;
+            copyValue = &valUInt;
+            copySize  = sizeof(valUInt);
             break;
         case MemInfo::ReferenceCount:
-            copyValue = getRefCountPtr();
-            copySize  = sizeof(*getRefCountPtr());
+            valUInt   = getRefCount();
+            copyValue = &valUInt;
+            copySize  = sizeof(valUInt);
             break;
         case MemInfo::Context:
-            valPointer = static_cast<cl_context>(mContext.get());
+            valPointer = mContext->getNative();
             copyValue  = &valPointer;
             copySize   = sizeof(valPointer);
             break;
         case MemInfo::AssociatedMemObject:
-            valPointer = static_cast<cl_mem>(mParent.get());
+            valPointer = Memory::CastNative(mParent.get());
             copyValue  = &valPointer;
             copySize   = sizeof(valPointer);
             break;
@@ -95,6 +118,8 @@ cl_int Memory::getInfo(MemInfo name, size_t valueSize, void *value, size_t *valu
 
     if (value != nullptr)
     {
+        // CL_INVALID_VALUE if size in bytes specified by param_value_size is < size of return type
+        // as described in the Memory Object Info table and param_value is not NULL.
         if (valueSize < copySize)
         {
             return CL_INVALID_VALUE;
@@ -111,64 +136,69 @@ cl_int Memory::getInfo(MemInfo name, size_t valueSize, void *value, size_t *valu
     return CL_SUCCESS;
 }
 
-bool Memory::IsValid(const _cl_mem *memory)
+Memory::~Memory()
 {
-    const Platform::PtrList &platforms = Platform::GetPlatforms();
-    return std::find_if(platforms.cbegin(), platforms.cend(), [=](const PlatformPtr &platform) {
-               return platform->hasMemory(memory);
-           }) != platforms.cend();
+    std::stack<CallbackData> callbacks;
+    mDestructorCallbacks->swap(callbacks);
+    while (!callbacks.empty())
+    {
+        const MemoryCB callback = callbacks.top().first;
+        void *const userData    = callbacks.top().second;
+        callbacks.pop();
+        callback(this, userData);
+    }
 }
 
 Memory::Memory(const Buffer &buffer,
                Context &context,
                PropArray &&properties,
-               cl_mem_flags flags,
+               MemFlags flags,
                size_t size,
                void *hostPtr,
-               cl_int *errcodeRet)
-    : _cl_mem(context.getDispatch()),
-      mContext(&context),
+               cl_int &errorCode)
+    : mContext(&context),
       mProperties(std::move(properties)),
       mFlags(flags),
-      mHostPtr((flags & CL_MEM_USE_HOST_PTR) != 0u ? hostPtr : nullptr),
-      mImpl(context.mImpl->createBuffer(buffer, size, hostPtr, errcodeRet)),
-      mSize(size)
+      mHostPtr(flags.isSet(CL_MEM_USE_HOST_PTR) ? hostPtr : nullptr),
+      mImpl(context.getImpl().createBuffer(buffer, size, hostPtr, errorCode)),
+      mSize(size),
+      mMapCount(0u)
 {}
 
 Memory::Memory(const Buffer &buffer,
                Buffer &parent,
-               cl_mem_flags flags,
+               MemFlags flags,
                size_t offset,
                size_t size,
-               cl_int *errcodeRet)
-    : _cl_mem(parent.getDispatch()),
-      mContext(parent.mContext),
-      mFlags(flags),
+               cl_int &errorCode)
+    : mContext(parent.mContext),
+      mFlags(InheritMemFlags(flags, &parent)),
       mHostPtr(parent.mHostPtr != nullptr ? static_cast<char *>(parent.mHostPtr) + offset
                                           : nullptr),
       mParent(&parent),
       mOffset(offset),
-      mImpl(parent.mImpl->createSubBuffer(buffer, size, errcodeRet)),
-      mSize(size)
+      mImpl(parent.mImpl->createSubBuffer(buffer, flags, size, errorCode)),
+      mSize(size),
+      mMapCount(0u)
 {}
 
 Memory::Memory(const Image &image,
                Context &context,
                PropArray &&properties,
-               cl_mem_flags flags,
+               MemFlags flags,
                const cl_image_format &format,
                const ImageDescriptor &desc,
                Memory *parent,
                void *hostPtr,
-               cl_int *errcodeRet)
-    : _cl_mem(context.getDispatch()),
-      mContext(&context),
+               cl_int &errorCode)
+    : mContext(&context),
       mProperties(std::move(properties)),
-      mFlags(flags),
-      mHostPtr((flags & CL_MEM_USE_HOST_PTR) != 0u ? hostPtr : nullptr),
+      mFlags(InheritMemFlags(flags, parent)),
+      mHostPtr(flags.isSet(CL_MEM_USE_HOST_PTR) ? hostPtr : nullptr),
       mParent(parent),
-      mImpl(context.mImpl->createImage(image, format, desc, hostPtr, errcodeRet)),
-      mSize(mImpl ? mImpl->getSize() : 0u)
+      mImpl(context.getImpl().createImage(image, flags, format, desc, hostPtr, errorCode)),
+      mSize(mImpl ? mImpl->getSize(errorCode) : 0u),
+      mMapCount(0u)
 {}
 
 }  // namespace cl

@@ -10,8 +10,7 @@
 
 #include "libANGLE/renderer/CLContextImpl.h"
 #include "libANGLE/renderer/CLDeviceImpl.h"
-
-#include <tuple>
+#include "libANGLE/renderer/CLExtensions.h"
 
 namespace rx
 {
@@ -19,9 +18,11 @@ namespace rx
 class CLPlatformImpl : angle::NonCopyable
 {
   public:
-    using Ptr = std::unique_ptr<CLPlatformImpl>;
+    using Ptr         = std::unique_ptr<CLPlatformImpl>;
+    using CreateFunc  = std::function<Ptr(const cl::Platform &)>;
+    using CreateFuncs = std::list<CreateFunc>;
 
-    struct Info
+    struct Info : public CLExtensions
     {
         Info();
         ~Info();
@@ -32,37 +33,31 @@ class CLPlatformImpl : angle::NonCopyable
         Info(Info &&);
         Info &operator=(Info &&);
 
-        bool isValid() const { return mVersion != 0u; }
+        bool isValid() const { return version != 0u; }
 
-        std::string mProfile;
-        std::string mVersionStr;
-        cl_version mVersion = 0u;
-        std::string mName;
-        std::string mExtensions;
-        NameVersionVector mExtensionsWithVersion;
-        cl_ulong mHostTimerRes = 0u;
+        std::string profile;
+        std::string name;
+        cl_ulong hostTimerRes = 0u;
     };
 
     explicit CLPlatformImpl(const cl::Platform &platform);
     virtual ~CLPlatformImpl();
 
     // For initialization only
-    virtual Info createInfo() const                                       = 0;
-    virtual cl::DevicePtrList createDevices(cl::Platform &platform) const = 0;
+    virtual Info createInfo() const                         = 0;
+    virtual CLDeviceImpl::CreateDatas createDevices() const = 0;
 
-    virtual CLContextImpl::Ptr createContext(const cl::Context &context,
-                                             const cl::DeviceRefList &devices,
-                                             cl::ContextErrorCB notify,
-                                             void *userData,
+    virtual CLContextImpl::Ptr createContext(cl::Context &context,
+                                             const cl::DevicePtrs &devices,
                                              bool userSync,
-                                             cl_int *errcodeRet) = 0;
+                                             cl_int &errorCode) = 0;
 
-    virtual CLContextImpl::Ptr createContextFromType(const cl::Context &context,
-                                                     cl_device_type deviceType,
-                                                     cl::ContextErrorCB notify,
-                                                     void *userData,
+    virtual CLContextImpl::Ptr createContextFromType(cl::Context &context,
+                                                     cl::DeviceType deviceType,
                                                      bool userSync,
-                                                     cl_int *errcodeRet) = 0;
+                                                     cl_int &errorCode) = 0;
+
+    virtual cl_int unloadCompiler() = 0;
 
   protected:
     const cl::Platform &mPlatform;

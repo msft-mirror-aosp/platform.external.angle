@@ -274,19 +274,6 @@ GLint LimitToInt(const LargerInt physicalDeviceValue)
         physicalDeviceValue, static_cast<LargerInt>(std::numeric_limits<int32_t>::max() / 2)));
 }
 
-template <typename LargerInt>
-uint16_t LimitToDynamicScissorSentinelMinusOne(const LargerInt physicalDeviceValue)
-{
-    static_assert(sizeof(LargerInt) >= sizeof(int32_t),
-                  "Incorrect usage of LimitToDynamicScissorSentinelMinusOne");
-
-    // Limit to kDynamicScissorSentinel-1. This is used to pack drawable offset/dimension to
-    // uint16_t for space conservation. The UINT16_MAX is reserved for special value like
-    // kDynamicScissorSentinel.
-    return static_cast<uint16_t>(
-        std::min<int32_t>(physicalDeviceValue, vk::kDynamicScissorSentinel - 1));
-}
-
 void RendererVk::ensureCapsInitialized() const
 {
     if (mCapsInitialized)
@@ -544,16 +531,12 @@ void RendererVk::ensureCapsInitialized() const
 
     mNativeCaps.maxDrawBuffers =
         std::min(limitsVk.maxColorAttachments, limitsVk.maxFragmentOutputAttachments);
-    mNativeCaps.maxFramebufferWidth =
-        LimitToDynamicScissorSentinelMinusOne(limitsVk.maxFramebufferWidth);
-    mNativeCaps.maxFramebufferHeight =
-        LimitToDynamicScissorSentinelMinusOne(limitsVk.maxFramebufferHeight);
-    mNativeCaps.maxColorAttachments = LimitToInt(limitsVk.maxColorAttachments);
-    mNativeCaps.maxViewportWidth =
-        LimitToDynamicScissorSentinelMinusOne(limitsVk.maxViewportDimensions[0]);
-    mNativeCaps.maxViewportHeight =
-        LimitToDynamicScissorSentinelMinusOne(limitsVk.maxViewportDimensions[1]);
-    mNativeCaps.maxSampleMaskWords = LimitToInt(limitsVk.maxSampleMaskWords);
+    mNativeCaps.maxFramebufferWidth  = LimitToInt(limitsVk.maxFramebufferWidth);
+    mNativeCaps.maxFramebufferHeight = LimitToInt(limitsVk.maxFramebufferHeight);
+    mNativeCaps.maxColorAttachments  = LimitToInt(limitsVk.maxColorAttachments);
+    mNativeCaps.maxViewportWidth     = LimitToInt(limitsVk.maxViewportDimensions[0]);
+    mNativeCaps.maxViewportHeight    = LimitToInt(limitsVk.maxViewportDimensions[1]);
+    mNativeCaps.maxSampleMaskWords   = LimitToInt(limitsVk.maxSampleMaskWords);
     mNativeCaps.maxColorTextureSamples =
         limitsVk.sampledImageColorSampleCounts & vk_gl::kSupportedSampleCounts;
     mNativeCaps.maxDepthTextureSamples =
@@ -942,10 +925,11 @@ void RendererVk::ensureCapsInitialized() const
     if (mPhysicalDeviceFeatures.geometryShader && !mFeatures.basicGLLineRasterization.enabled)
     {
         // TODO: geometry shader support is incomplete.  http://anglebug.com/3571
-        mNativeExtensions.geometryShader =
-            mFeatures.supportsTransformFeedbackExtension.enabled &&
-            mFeatures.exposeNonConformantExtensionsAndVersions.enabled;
-        mNativeCaps.maxFramebufferLayers = LimitToInt(limitsVk.maxFramebufferLayers);
+        bool geometryShader = mFeatures.supportsTransformFeedbackExtension.enabled &&
+                              mFeatures.exposeNonConformantExtensionsAndVersions.enabled;
+        mNativeExtensions.geometryShaderEXT = geometryShader;
+        mNativeExtensions.geometryShaderOES = geometryShader;
+        mNativeCaps.maxFramebufferLayers    = LimitToInt(limitsVk.maxFramebufferLayers);
 
         // If the provoking vertex feature is enabled, angle specifies to use
         // the "last" convention in order to match GL behavior. Otherwise, use

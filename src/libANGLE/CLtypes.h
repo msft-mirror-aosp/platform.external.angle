@@ -8,17 +8,32 @@
 #ifndef LIBANGLE_CLTYPES_H_
 #define LIBANGLE_CLTYPES_H_
 
+#include "libANGLE/CLBitField.h"
 #include "libANGLE/CLRefPointer.h"
+#include "libANGLE/Debug.h"
 
 #include "common/PackedCLEnums_autogen.h"
+#include "common/angleutils.h"
 
 // Include frequently used standard headers
 #include <algorithm>
+#include <array>
+#include <functional>
 #include <list>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#define ANGLE_CL_TRY(expression)              \
+    do                                        \
+    {                                         \
+        const cl_int _errorCode = expression; \
+        if (_errorCode != CL_SUCCESS)         \
+        {                                     \
+            return _errorCode;                \
+        }                                     \
+    } while (0)
 
 namespace cl
 {
@@ -36,30 +51,28 @@ class Platform;
 class Program;
 class Sampler;
 
-using CommandQueuePtr = std::unique_ptr<CommandQueue>;
-using ContextPtr      = std::unique_ptr<Context>;
-using DevicePtr       = std::unique_ptr<Device>;
-using EventPtr        = std::unique_ptr<Event>;
-using KernelPtr       = std::unique_ptr<Kernel>;
-using MemoryPtr       = std::unique_ptr<Memory>;
-using ObjectPtr       = std::unique_ptr<Object>;
-using PlatformPtr     = std::unique_ptr<Platform>;
-using ProgramPtr      = std::unique_ptr<Program>;
-using SamplerPtr      = std::unique_ptr<Sampler>;
+using BufferPtr       = RefPointer<Buffer>;
+using CommandQueuePtr = RefPointer<CommandQueue>;
+using ContextPtr      = RefPointer<Context>;
+using DevicePtr       = RefPointer<Device>;
+using EventPtr        = RefPointer<Event>;
+using KernelPtr       = RefPointer<Kernel>;
+using MemoryPtr       = RefPointer<Memory>;
+using PlatformPtr     = RefPointer<Platform>;
+using ProgramPtr      = RefPointer<Program>;
+using SamplerPtr      = RefPointer<Sampler>;
 
-using ContextRefPtr = RefPointer<Context>;
-using DeviceRefPtr  = RefPointer<Device>;
-using MemoryRefPtr  = RefPointer<Memory>;
-
-using DevicePtrList = std::list<DevicePtr>;
-using DeviceRefList = std::vector<DeviceRefPtr>;
-
-using Binary   = std::vector<unsigned char>;
-using Binaries = std::vector<Binary>;
+using BufferPtrs   = std::vector<BufferPtr>;
+using DevicePtrs   = std::vector<DevicePtr>;
+using EventPtrs    = std::vector<EventPtr>;
+using KernelPtrs   = std::vector<KernelPtr>;
+using MemoryPtrs   = std::vector<MemoryPtr>;
+using PlatformPtrs = std::vector<PlatformPtr>;
+using ProgramPtrs  = std::vector<ProgramPtr>;
 
 struct ImageDescriptor
 {
-    cl_mem_object_type type;
+    MemObjectType type;
     size_t width;
     size_t height;
     size_t depth;

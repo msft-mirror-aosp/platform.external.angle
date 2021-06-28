@@ -45,6 +45,7 @@
 #include "fifa_mobile/fifa_mobile_capture_context1.h"
 #include "free_fire/free_fire_capture_context1.h"
 #include "gardenscapes/gardenscapes_capture_context1.h"
+#include "genshin_impact/genshin_impact_capture_context3.h"
 #include "google_maps/google_maps_capture_context1.h"
 #include "happy_color/happy_color_capture_context1.h"
 #include "hay_day/hay_day_capture_context1.h"
@@ -88,6 +89,7 @@
 #include "slingshot_test2/slingshot_test2_capture_context2.h"
 #include "sniper_3d/sniper_3d_capture_context1.h"
 #include "standoff_2/standoff_2_capture_context1.h"
+#include "subway_princess_runner/subway_princess_runner_capture_context2.h"
 #include "subway_surfers/subway_surfers_capture_context1.h"
 #include "summoners_war/summoners_war_capture_context2.h"
 #include "talking_tom_hero_dash/talking_tom_hero_dash_capture_context1.h"
@@ -265,6 +267,11 @@ constexpr angle::PackedEnumMap<RestrictedTraceID, TraceInfo> kTraceInfos = {
       gardenscapes::kReplayContextClientMinorVersion, gardenscapes::kReplayFrameStart,
       gardenscapes::kReplayFrameEnd, gardenscapes::kReplayDrawSurfaceWidth,
       gardenscapes::kReplayDrawSurfaceHeight, "gardenscapes"}},
+    {RestrictedTraceID::genshin_impact,
+     {genshin_impact::kReplayContextClientMajorVersion,
+      genshin_impact::kReplayContextClientMinorVersion, genshin_impact::kReplayFrameStart,
+      genshin_impact::kReplayFrameEnd, genshin_impact::kReplayDrawSurfaceWidth,
+      genshin_impact::kReplayDrawSurfaceHeight, "genshin_impact"}},
     {RestrictedTraceID::google_maps,
      {google_maps::kReplayContextClientMajorVersion, google_maps::kReplayContextClientMinorVersion,
       google_maps::kReplayFrameStart, google_maps::kReplayFrameEnd,
@@ -475,6 +482,12 @@ constexpr angle::PackedEnumMap<RestrictedTraceID, TraceInfo> kTraceInfos = {
      {standoff_2::kReplayContextClientMajorVersion, standoff_2::kReplayContextClientMinorVersion,
       standoff_2::kReplayFrameStart, standoff_2::kReplayFrameEnd,
       standoff_2::kReplayDrawSurfaceWidth, standoff_2::kReplayDrawSurfaceHeight, "standoff_2"}},
+    {RestrictedTraceID::subway_princess_runner,
+     {subway_princess_runner::kReplayContextClientMajorVersion,
+      subway_princess_runner::kReplayContextClientMinorVersion,
+      subway_princess_runner::kReplayFrameStart, subway_princess_runner::kReplayFrameEnd,
+      subway_princess_runner::kReplayDrawSurfaceWidth,
+      subway_princess_runner::kReplayDrawSurfaceHeight, "subway_princess_runner"}},
     {RestrictedTraceID::subway_surfers,
      {subway_surfers::kReplayContextClientMajorVersion,
       subway_surfers::kReplayContextClientMinorVersion, subway_surfers::kReplayFrameStart,

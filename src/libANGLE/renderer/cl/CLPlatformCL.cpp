@@ -11,12 +11,11 @@
 #include "libANGLE/renderer/cl/CLDeviceCL.h"
 #include "libANGLE/renderer/cl/cl_util.h"
 
+#include "libANGLE/CLContext.h"
+#include "libANGLE/CLDevice.h"
 #include "libANGLE/CLPlatform.h"
-#include "libANGLE/Debug.h"
 
-#include "anglebase/no_destructor.h"
 #include "common/angle_version.h"
-#include "common/system_utils.h"
 
 extern "C" {
 #include "icd.h"
@@ -125,13 +124,13 @@ CLPlatformImpl::Info CLPlatformCL::createInfo() const
     // Fetch common platform info
     Info info;
     const std::string vendor = GetPlatformString(mNative, cl::PlatformInfo::Vendor);
-    info.mProfile            = GetPlatformString(mNative, cl::PlatformInfo::Profile);
-    info.mVersionStr         = GetPlatformString(mNative, cl::PlatformInfo::Version);
-    info.mName               = GetPlatformString(mNative, cl::PlatformInfo::Name);
-    info.mExtensions         = GetPlatformString(mNative, cl::PlatformInfo::Extensions);
+    info.profile             = GetPlatformString(mNative, cl::PlatformInfo::Profile);
+    info.versionStr          = GetPlatformString(mNative, cl::PlatformInfo::Version);
+    info.name                = GetPlatformString(mNative, cl::PlatformInfo::Name);
+    std::string extensionStr = GetPlatformString(mNative, cl::PlatformInfo::Extensions);
 
-    if (vendor.empty() || info.mProfile.empty() || info.mVersionStr.empty() || info.mName.empty() ||
-        info.mExtensions.empty())
+    if (vendor.empty() || info.profile.empty() || info.versionStr.empty() || info.name.empty() ||
+        extensionStr.empty())
     {
         return Info{};
     }
@@ -143,27 +142,43 @@ CLPlatformImpl::Info CLPlatformCL::createInfo() const
         return Info{};
     }
 
-    // Skip platform if it is not ICD compatible
-    if (info.mExtensions.find("cl_khr_icd") == std::string::npos)
+    // TODO(jplate) Remove workaround after bug is fixed http://anglebug.com/6053
+    if (info.versionStr.compare(0u, 15u, "OpenCL 3.0 CUDA", 15u) == 0)
     {
-        WARN() << "CL platform is not ICD compatible";
-        return Info{};
+        extensionStr.append(" cl_khr_depth_images cl_khr_image2d_from_buffer");
     }
 
-    const cl_version version = ExtractCLVersion(info.mVersionStr);
+    // Limit version number to supported version
+    if (info.versionStr[7] != '1')
+    {
+        info.versionStr[7] = '1';
+        info.versionStr[9] = '2';
+    }
+
+    const cl_version version = ExtractCLVersion(info.versionStr);
     if (version == 0u)
     {
         return Info{};
     }
 
-    // Customize version string and name, and remove unsupported extensions
-    info.mVersionStr += " (ANGLE " ANGLE_VERSION_STRING ")";
-    info.mName.insert(0u, "ANGLE pass-through -> ");
-    RemoveUnsupportedCLExtensions(info.mExtensions);
+    // Remove unsupported and initialize extensions
+    RemoveUnsupportedCLExtensions(extensionStr);
+    info.initializeExtensions(std::move(extensionStr));
+
+    // Skip platform if it is not ICD compatible
+    if (!info.khrICD)
+    {
+        WARN() << "CL platform is not ICD compatible";
+        return Info{};
+    }
+
+    // Customize version string and name
+    info.versionStr += " (ANGLE " ANGLE_VERSION_STRING ")";
+    info.name.insert(0u, "ANGLE pass-through -> ");
 
     if (version >= CL_MAKE_VERSION(2, 1, 0) &&
         mNative->getDispatch().clGetPlatformInfo(mNative, CL_PLATFORM_HOST_TIMER_RESOLUTION,
-                                                 sizeof(info.mHostTimerRes), &info.mHostTimerRes,
+                                                 sizeof(info.hostTimerRes), &info.hostTimerRes,
                                                  nullptr) != CL_SUCCESS)
     {
         ERR() << "Failed to query CL platform info for CL_PLATFORM_HOST_TIMER_RESOLUTION";
@@ -172,46 +187,46 @@ CLPlatformImpl::Info CLPlatformCL::createInfo() const
 
     if (version < CL_MAKE_VERSION(3, 0, 0))
     {
-        info.mVersion = version;
+        info.version = version;
     }
     else
     {
         if (mNative->getDispatch().clGetPlatformInfo(mNative, CL_PLATFORM_NUMERIC_VERSION,
-                                                     sizeof(info.mVersion), &info.mVersion,
+                                                     sizeof(info.version), &info.version,
                                                      nullptr) != CL_SUCCESS)
         {
             ERR() << "Failed to query CL platform info for CL_PLATFORM_NUMERIC_VERSION";
             return Info{};
         }
-        else if (CL_VERSION_MAJOR(info.mVersion) != CL_VERSION_MAJOR(version) ||
-                 CL_VERSION_MINOR(info.mVersion) != CL_VERSION_MINOR(version))
+        else if (CL_VERSION_MAJOR(info.version) != CL_VERSION_MAJOR(version) ||
+                 CL_VERSION_MINOR(info.version) != CL_VERSION_MINOR(version))
         {
-            WARN() << "CL_PLATFORM_NUMERIC_VERSION = " << CL_VERSION_MAJOR(info.mVersion) << '.'
-                   << CL_VERSION_MINOR(info.mVersion)
-                   << " does not match version string: " << info.mVersionStr;
+            WARN() << "CL_PLATFORM_NUMERIC_VERSION = " << CL_VERSION_MAJOR(info.version) << '.'
+                   << CL_VERSION_MINOR(info.version)
+                   << " does not match version string: " << info.versionStr;
         }
 
         size_t valueSize = 0u;
         if (mNative->getDispatch().clGetPlatformInfo(mNative, CL_PLATFORM_EXTENSIONS_WITH_VERSION,
                                                      0u, nullptr, &valueSize) != CL_SUCCESS ||
-            (valueSize % sizeof(decltype(info.mExtensionsWithVersion)::value_type)) != 0u)
+            (valueSize % sizeof(decltype(info.extensionsWithVersion)::value_type)) != 0u)
         {
             ERR() << "Failed to query CL platform info for CL_PLATFORM_EXTENSIONS_WITH_VERSION";
             return Info{};
         }
-        info.mExtensionsWithVersion.resize(
-            valueSize / sizeof(decltype(info.mExtensionsWithVersion)::value_type));
+        info.extensionsWithVersion.resize(valueSize /
+                                          sizeof(decltype(info.extensionsWithVersion)::value_type));
         if (mNative->getDispatch().clGetPlatformInfo(mNative, CL_PLATFORM_EXTENSIONS_WITH_VERSION,
-                                                     valueSize, info.mExtensionsWithVersion.data(),
+                                                     valueSize, info.extensionsWithVersion.data(),
                                                      nullptr) != CL_SUCCESS)
         {
             ERR() << "Failed to query CL platform info for CL_PLATFORM_EXTENSIONS_WITH_VERSION";
             return Info{};
         }
-        RemoveUnsupportedCLExtensions(info.mExtensionsWithVersion);
+        RemoveUnsupportedCLExtensions(info.extensionsWithVersion);
     }
 
-    if (info.mVersion >= CL_MAKE_VERSION(1, 1, 0) &&
+    if (info.version >= CL_MAKE_VERSION(1, 1, 0) &&
         (mNative->getDispatch().clSetEventCallback == nullptr ||
          mNative->getDispatch().clCreateSubBuffer == nullptr ||
          mNative->getDispatch().clSetMemObjectDestructorCallback == nullptr ||
@@ -225,7 +240,7 @@ CLPlatformImpl::Info CLPlatformCL::createInfo() const
         return Info{};
     }
 
-    if (info.mVersion >= CL_MAKE_VERSION(1, 2, 0) &&
+    if (info.version >= CL_MAKE_VERSION(1, 2, 0) &&
         (mNative->getDispatch().clCreateSubDevices == nullptr ||
          mNative->getDispatch().clRetainDevice == nullptr ||
          mNative->getDispatch().clReleaseDevice == nullptr ||
@@ -246,7 +261,7 @@ CLPlatformImpl::Info CLPlatformCL::createInfo() const
         return Info{};
     }
 
-    if (info.mVersion >= CL_MAKE_VERSION(2, 0, 0) &&
+    if (info.version >= CL_MAKE_VERSION(2, 0, 0) &&
         (mNative->getDispatch().clCreateCommandQueueWithProperties == nullptr ||
          mNative->getDispatch().clCreatePipe == nullptr ||
          mNative->getDispatch().clGetPipeInfo == nullptr ||
@@ -265,7 +280,7 @@ CLPlatformImpl::Info CLPlatformCL::createInfo() const
         return Info{};
     }
 
-    if (info.mVersion >= CL_MAKE_VERSION(2, 1, 0) &&
+    if (info.version >= CL_MAKE_VERSION(2, 1, 0) &&
         (mNative->getDispatch().clCloneKernel == nullptr ||
          mNative->getDispatch().clCreateProgramWithIL == nullptr ||
          mNative->getDispatch().clEnqueueSVMMigrateMem == nullptr ||
@@ -278,7 +293,7 @@ CLPlatformImpl::Info CLPlatformCL::createInfo() const
         return Info{};
     }
 
-    if (info.mVersion >= CL_MAKE_VERSION(2, 2, 0) &&
+    if (info.version >= CL_MAKE_VERSION(2, 2, 0) &&
         (mNative->getDispatch().clSetProgramReleaseCallback == nullptr ||
          mNative->getDispatch().clSetProgramSpecializationConstant == nullptr))
     {
@@ -286,7 +301,7 @@ CLPlatformImpl::Info CLPlatformCL::createInfo() const
         return Info{};
     }
 
-    if (info.mVersion >= CL_MAKE_VERSION(3, 0, 0) &&
+    if (info.version >= CL_MAKE_VERSION(3, 0, 0) &&
         (mNative->getDispatch().clCreateBufferWithProperties == nullptr ||
          mNative->getDispatch().clCreateImageWithProperties == nullptr ||
          mNative->getDispatch().clSetContextDestructorCallback == nullptr))
@@ -298,9 +313,9 @@ CLPlatformImpl::Info CLPlatformCL::createInfo() const
     return info;
 }
 
-cl::DevicePtrList CLPlatformCL::createDevices(cl::Platform &platform) const
+CLDeviceImpl::CreateDatas CLPlatformCL::createDevices() const
 {
-    cl::DevicePtrList devices;
+    CLDeviceImpl::CreateDatas createDatas;
 
     // Fetch all regular devices. This does not include CL_DEVICE_TYPE_CUSTOM, which are not
     // supported by the CL pass-through back end because they have no standard feature set.
@@ -315,7 +330,7 @@ cl::DevicePtrList CLPlatformCL::createDevices(cl::Platform &platform) const
         {
             // Fetch all device types for front end initialization, and find the default device.
             // If none exists declare first device as default.
-            std::vector<cl_device_type> types(nativeDevices.size(), 0u);
+            std::vector<cl::DeviceType> types(nativeDevices.size());
             size_t defaultIndex = 0u;
             for (size_t index = 0u; index < nativeDevices.size(); ++index)
             {
@@ -324,7 +339,7 @@ cl::DevicePtrList CLPlatformCL::createDevices(cl::Platform &platform) const
                         nullptr) == CL_SUCCESS)
                 {
                     // If default device found, select it
-                    if ((types[index] & CL_DEVICE_TYPE_DEFAULT) != 0u)
+                    if (types[index].isSet(CL_DEVICE_TYPE_DEFAULT))
                     {
                         defaultIndex = index;
                     }
@@ -341,40 +356,32 @@ cl::DevicePtrList CLPlatformCL::createDevices(cl::Platform &platform) const
                 // Make sure the default bit is set in exactly one device
                 if (index == defaultIndex)
                 {
-                    types[index] |= CL_DEVICE_TYPE_DEFAULT;
+                    types[index].set(CL_DEVICE_TYPE_DEFAULT);
                 }
                 else
                 {
-                    types[index] &= ~CL_DEVICE_TYPE_DEFAULT;
+                    types[index].clear(CL_DEVICE_TYPE_DEFAULT);
                 }
 
-                const cl::Device::CreateImplFunc createImplFunc = [&](const cl::Device &device) {
-                    return CLDeviceCL::Ptr(new CLDeviceCL(device, nativeDevices[index]));
-                };
-                devices.emplace_back(
-                    cl::Device::CreateDevice(platform, nullptr, types[index], createImplFunc));
-                if (!devices.back())
-                {
-                    devices.clear();
-                    break;
-                }
+                cl_device_id nativeDevice = nativeDevices[index];
+                createDatas.emplace_back(types[index], [nativeDevice](const cl::Device &device) {
+                    return CLDeviceCL::Ptr(new CLDeviceCL(device, nativeDevice));
+                });
             }
         }
     }
 
-    if (devices.empty())
+    if (createDatas.empty())
     {
         ERR() << "Failed to query CL devices";
     }
-    return devices;
+    return createDatas;
 }
 
-CLContextImpl::Ptr CLPlatformCL::createContext(const cl::Context &context,
-                                               const cl::DeviceRefList &devices,
-                                               cl::ContextErrorCB notify,
-                                               void *userData,
+CLContextImpl::Ptr CLPlatformCL::createContext(cl::Context &context,
+                                               const cl::DevicePtrs &devices,
                                                bool userSync,
-                                               cl_int *errcodeRet)
+                                               cl_int &errorCode)
 {
     cl_context_properties properties[] = {
         CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(mNative),
@@ -382,87 +389,58 @@ CLContextImpl::Ptr CLPlatformCL::createContext(const cl::Context &context,
         0};
 
     std::vector<cl_device_id> nativeDevices;
-    for (const cl::DeviceRefPtr &device : devices)
+    for (const cl::DevicePtr &device : devices)
     {
-        nativeDevices.emplace_back(device->getImpl<CLDeviceCL &>().getNative());
+        nativeDevices.emplace_back(device->getImpl<CLDeviceCL>().getNative());
     }
 
-    CLContextImpl::Ptr contextImpl;
     cl_context nativeContext = mNative->getDispatch().clCreateContext(
-        properties, static_cast<cl_uint>(nativeDevices.size()), nativeDevices.data(), notify,
-        userData, errcodeRet);
+        properties, static_cast<cl_uint>(nativeDevices.size()), nativeDevices.data(),
+        cl::Context::ErrorCallback, &context, &errorCode);
     return CLContextImpl::Ptr(nativeContext != nullptr ? new CLContextCL(context, nativeContext)
                                                        : nullptr);
 }
 
-CLContextImpl::Ptr CLPlatformCL::createContextFromType(const cl::Context &context,
-                                                       cl_device_type deviceType,
-                                                       cl::ContextErrorCB notify,
-                                                       void *userData,
+CLContextImpl::Ptr CLPlatformCL::createContextFromType(cl::Context &context,
+                                                       cl::DeviceType deviceType,
                                                        bool userSync,
-                                                       cl_int *errcodeRet)
+                                                       cl_int &errorCode)
 {
     cl_context_properties properties[] = {
         CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(mNative),
         userSync && mPlatform.isVersionOrNewer(1u, 2u) ? CL_CONTEXT_INTEROP_USER_SYNC : 0, CL_TRUE,
         0};
     cl_context nativeContext = mNative->getDispatch().clCreateContextFromType(
-        properties, deviceType, notify, userData, errcodeRet);
+        properties, deviceType.get(), cl::Context::ErrorCallback, &context, &errorCode);
     return CLContextImpl::Ptr(nativeContext != nullptr ? new CLContextCL(context, nativeContext)
                                                        : nullptr);
 }
 
-void CLPlatformCL::Initialize(const cl_icd_dispatch &dispatch, bool isIcd)
+cl_int CLPlatformCL::unloadCompiler()
 {
-    // Using khrIcdInitialize() of the third party Khronos OpenCL ICD Loader to enumerate the
-    // available OpenCL implementations on the system. They will be stored in the singly linked
-    // list khrIcdVendors of the C struct KHRicdVendor.
-    if (khrIcdVendors != nullptr)
-    {
-        return;
-    }
+    return mNative->getDispatch().clUnloadPlatformCompiler(mNative);
+}
 
-    // The absolute path to ANGLE's OpenCL library is needed and it is assumed here that
-    // it is in the same directory as the shared library which contains this CL back end.
-    std::string libPath = angle::GetModuleDirectory();
-    if (!libPath.empty() && libPath.back() != angle::GetPathSeparator())
-    {
-        libPath += angle::GetPathSeparator();
-    }
-    libPath += ANGLE_OPENCL_LIB_NAME;
-    libPath += '.';
-    libPath += angle::GetSharedLibraryExtension();
-
-    // Our OpenCL entry points are not reentrant, so we have to prevent khrIcdInitialize()
-    // from querying ANGLE's OpenCL library. We store a dummy entry with the library in the
-    // khrIcdVendors list, because the ICD Loader skips the libraries which are already in
-    // the list as it assumes they were already enumerated.
-    static angle::base::NoDestructor<KHRicdVendor> sVendorAngle({});
-    sVendorAngle->library = khrIcdOsLibraryLoad(libPath.c_str());
-    khrIcdVendors         = sVendorAngle.get();
-    if (khrIcdVendors->library == nullptr)
-    {
-        WARN() << "Unable to load library \"" << libPath << "\"";
-        return;
-    }
-
+void CLPlatformCL::Initialize(CreateFuncs &createFuncs, bool isIcd)
+{
+    // Using khrIcdInitialize() of the third party Khronos OpenCL ICD Loader to
+    // enumerate the available OpenCL implementations on the system. They will be
+    // stored in the singly linked list khrIcdVendors of the C struct KHRicdVendor.
     khrIcdInitialize();
-    // After the enumeration we don't need ANGLE's OpenCL library any more,
-    // but we keep the dummy entry int the list to prevent another enumeration.
-    khrIcdOsLibraryUnload(khrIcdVendors->library);
-    khrIcdVendors->library = nullptr;
 
-    // Iterating through the singly linked list khrIcdVendors to create an ANGLE CL pass-through
-    // platform for each found ICD platform. Skipping our dummy entry that has an invalid platform.
+    // The ICD loader will also enumerate ANGLE's OpenCL library if it is registered. Our
+    // OpenCL entry points for the ICD enumeration are reentrant, but at this point of the
+    // initialization there are no platforms available, so our platforms will not be found.
+    // This is intended as this back end should only enumerate non-ANGLE implementations.
+
+    // Iterating through the singly linked list khrIcdVendors to create
+    // an ANGLE CL pass-through platform for each found ICD platform.
     for (KHRicdVendor *vendorIt = khrIcdVendors; vendorIt != nullptr; vendorIt = vendorIt->next)
     {
-        if (vendorIt->platform != nullptr)
-        {
-            const cl::Platform::CreateImplFunc createImplFunc = [&](const cl::Platform &platform) {
-                return Ptr(new CLPlatformCL(platform, vendorIt->platform));
-            };
-            cl::Platform::CreatePlatform(dispatch, createImplFunc);
-        }
+        cl_platform_id nativePlatform = vendorIt->platform;
+        createFuncs.emplace_back([nativePlatform](const cl::Platform &platform) {
+            return Ptr(new CLPlatformCL(platform, nativePlatform));
+        });
     }
 }
 
