@@ -11007,6 +11007,716 @@ void main()
     glDeleteShader(shader);
 }
 
+// Test that initializing global variables with complex constants work
+TEST_P(GLSLTest_ES3, InitGlobalComplexConstant)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+out vec4 color;
+
+struct T
+{
+    float f;
+};
+
+struct S
+{
+    vec4 v;
+    mat3x4 m[2];
+    T t;
+};
+
+S s = S(
+        vec4(0, 1, 2, 3),
+        mat3x4[2](
+                  mat3x4(
+                         vec4(4, 5, 6, 7),
+                         vec4(8, 9, 10, 11),
+                         vec4(12, 13, 14, 15)
+                  ),
+                  mat3x4(
+                         vec4(16, 17, 18, 19),
+                         vec4(20, 21, 22, 23),
+                         vec4(24, 25, 26, 27)
+                  )
+        ),
+        T(28.0)
+       );
+
+void main()
+{
+    vec4 result = vec4(0, 1, 0, 1);
+
+    if (s.v != vec4(0, 1, 2, 3))
+        result = vec4(1, 0, 0, 0);
+
+    for (int index = 0; index < 2; ++index)
+    {
+        for (int column = 0; column < 3; ++column)
+        {
+            int expect = index * 12 + column * 4 + 4;
+            if (s.m[index][column] != vec4(expect, expect + 1, expect + 2, expect + 3))
+                result = vec4(float(index + 1) / 2.0, 0, float(column + 1) / 3.0, 1);
+        }
+    }
+
+    if (s.t.f != 28.0)
+        result = vec4(0, 0, 1, 0);
+
+    color = result;
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+class GLSLTestLoops : public GLSLTest
+{
+  protected:
+    void runTest(const char *fs)
+    {
+        ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), fs);
+
+        drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+        EXPECT_GL_NO_ERROR();
+
+        EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+    }
+};
+
+// Test basic for loops
+TEST_P(GLSLTestLoops, BasicFor)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    for (int i = 0; i < 10; ++i)
+        for (int j = 0; j < 8; ++j)
+        {
+            for (int k = 0; k < 2; ++k, ++j) ++result;
+            for (int k = 0; k < 3; ++k)      ++result;
+            for (int k = 0; k < 0; ++k)      ++result;
+        }
+
+    color = result == 150 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test for loop without condition
+TEST_P(GLSLTestLoops, ForNoCondition)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    for (int i = 0; i < 10; ++i)
+        for (int j = 0; ; ++j)
+        {
+            for (int k = 0; k < 2; ++k, ++j) ++result;
+            for (int k = 0; k < 3; ++k)      ++result;
+            for (int k = 0; k < 0; ++k)      ++result;
+
+            if (j >= 8)
+                break;
+        }
+
+    color = result == 150 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test for loop without init and expression
+TEST_P(GLSLTestLoops, ForNoInitConditionOrExpression)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    for (int i = 0; i < 10; ++i)
+    {
+        int j = 0;
+        for (;;)
+        {
+            for (int k = 0; k < 2; ++k, ++j) ++result;
+            for (int k = 0; k < 3; ++k)      ++result;
+            for (int k = 0; k < 0; ++k)      ++result;
+
+            if (j >= 8)
+                break;
+            ++j;
+        }
+    }
+
+    color = result == 150 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test for loop with continue
+TEST_P(GLSLTestLoops, ForContinue)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    for (int i = 0; i < 10; ++i)
+        for (int j = 0; j < 8; ++j)
+        {
+            for (int k = 0; k < 2; ++k, ++j) ++result;
+            for (int k = 0; k < 3; ++k)      ++result;
+            if (i > 3)
+                continue;
+            for (int k = 0; k < 0; ++k)      ++result;
+        }
+
+    color = result == 150 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test for loop with continue at the end of block
+TEST_P(GLSLTestLoops, ForUnconditionalContinue)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    for (int i = 0; i < 10; ++i)
+        for (int j = 0; j < 8; ++j)
+        {
+            for (int k = 0; k < 2; ++k, ++j) ++result;
+            for (int k = 0; k < 3; ++k)      ++result;
+            for (int k = 0; k < 0; ++k)      ++result;
+            continue;
+        }
+
+    color = result == 150 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test for loop with break at the end of block
+TEST_P(GLSLTestLoops, ForUnconditionalBreak)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    for (int i = 0; i < 10; ++i)
+        for (int j = 0; j < 8; ++j)
+        {
+            for (int k = 0; k < 2; ++k, ++j) ++result;
+            for (int k = 0; k < 3; ++k)      ++result;
+            for (int k = 0; k < 0; ++k)      ++result;
+            break;
+        }
+
+    color = result == 50 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test for loop with break and continue
+TEST_P(GLSLTestLoops, ForBreakContinue)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    for (int i = 0; i < 10; ++i)
+        for (int j = 0; j < 8; ++j)
+        {
+            if (j < 2) continue;
+            if (j > 6) break;
+            if (i < 3) continue;
+            if (i > 8) break;
+            ++result;
+        }
+
+    color = result == 30 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test basic while loops
+TEST_P(GLSLTestLoops, BasicWhile)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    while (i < 10)
+    {
+        int j = 0;
+        while (j < 8)
+        {
+            int k = 0;
+            while (k < 2) { ++result; ++k; ++j; }
+            while (k < 5) { ++result; ++k; }
+            while (k < 4) { ++result; }
+            ++j;
+        }
+        ++i;
+    }
+
+    color = result == 150 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test while loops with continue
+TEST_P(GLSLTestLoops, WhileContinue)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    while (i < 10)
+    {
+        int j = 0;
+        while (j < 8)
+        {
+            int k = 0;
+            while (k < 2) { ++result; ++k; ++j; }
+            while (k < 5) { ++result; ++k; }
+            if (i > 3)
+            {
+                ++j;
+                continue;
+            }
+            while (k < 4) { ++result; }
+            ++j;
+        }
+        ++i;
+    }
+
+    color = result == 150 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test while loops with continue at the end of block
+TEST_P(GLSLTestLoops, WhileUnconditionalContinue)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    while (i < 10)
+    {
+        int j = 0;
+        while (j < 8)
+        {
+            int k = 0;
+            while (k < 2) { ++result; ++k; ++j; }
+            while (k < 5) { ++result; ++k; }
+            while (k < 4) { ++result; }
+            ++j;
+            continue;
+        }
+        ++i;
+    }
+
+    color = result == 150 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test while loops with break
+TEST_P(GLSLTestLoops, WhileBreak)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    while (i < 10)
+    {
+        int j = 0;
+        while (true)
+        {
+            int k = 0;
+            while (k < 2) { ++result; ++k; ++j; }
+            while (k < 5) { ++result; ++k; }
+            while (k < 4) { ++result; }
+            ++j;
+            if (j >= 8)
+                break;
+        }
+        ++i;
+    }
+
+    color = result == 150 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test while loops with continue at the end of block
+TEST_P(GLSLTestLoops, WhileUnconditionalBreak)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    while (i < 10)
+    {
+        int j = 0;
+        while (j < 8)
+        {
+            int k = 0;
+            while (k < 2) { ++result; ++k; ++j; }
+            while (k < 5) { ++result; ++k; }
+            while (k < 4) { ++result; }
+            ++j;
+            break;
+        }
+        ++i;
+    }
+
+    color = result == 50 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test basic do-while loops
+TEST_P(GLSLTestLoops, BasicDoWhile)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    do
+    {
+        int j = 0;
+        do
+        {
+            int k = 0;
+            do { ++result; ++k; ++j; } while (k < 2);
+            do { ++result; ++k;      } while (k < 5);
+            do { ++result;           } while (k < 3);
+            ++j;
+        } while (j < 8);
+        ++i;
+    } while (i < 10);
+
+    color = result == 180 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test do-while loops with continue
+TEST_P(GLSLTestLoops, DoWhileContinue)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    do
+    {
+        int j = 0;
+        do
+        {
+            int k = 0;
+            do { ++result; ++k; ++j; } while (k < 2);
+            if (i > 3)
+            {
+                ++j;
+                continue;
+            }
+            do { ++result; ++k;      } while (k < 5);
+            do { ++result;           } while (k < 3);
+            ++j;
+        } while (j < 8);
+        ++i;
+    } while (i < 10);
+
+    color = result == 108 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test do-while loops with continue at the end of block
+TEST_P(GLSLTestLoops, DoWhileUnconditionalContinue)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    do
+    {
+        int j = 0;
+        do
+        {
+            int k = 0;
+            do { ++result; ++k; ++j; continue; } while (k < 2);
+            do { ++result; ++k;      continue; } while (k < 5);
+            do { ++result;           continue; } while (k < 3);
+            ++j;
+        } while (j < 8);
+        ++i;
+    } while (i < 10);
+
+    color = result == 180 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test do-while loops with break
+TEST_P(GLSLTestLoops, DoWhileBreak)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    do
+    {
+        int j = 0;
+        do
+        {
+            int k = 0;
+            do { ++result; ++k; ++j; } while (k < 2);
+            do { ++result; ++k;      } while (k < 5);
+            do { ++result;           } while (k < 3);
+            ++j;
+            if (j >= 8)
+                break;
+        } while (true);
+        ++i;
+    } while (i < 10);
+
+    color = result == 180 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test do-while loops with break at the end of block
+TEST_P(GLSLTestLoops, DoWhileUnconditionalBreak)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    do
+    {
+        int j = 0;
+        do
+        {
+            int k = 0;
+            do { ++result; ++k; ++j; break; } while (k < 2);
+            do { ++result; ++k;      break; } while (k < 5);
+            do { ++result;           break; } while (k < 3);
+            ++j;
+        } while (j < 8);
+        ++i;
+    } while (i < 10);
+
+    color = result == 120 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test for loop with continue inside switch.
+TEST_P(GLSLTestLoops, ForContinueInSwitch)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    for (int i = 0; i < 10; ++i)
+        for (int j = 0; j < 8; ++j)
+        {
+            switch (j)
+            {
+                case 2:
+                case 3:
+                case 4:
+                    ++result;
+                    // fallthrough
+                case 5:
+                case 6:
+                    ++result;
+                    break;
+                default:
+                    continue;
+            }
+        }
+
+    color = result == 80 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test while loop with continue inside switch
+TEST_P(GLSLTestLoops, WhileContinueInSwitch)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    while (i < 10)
+    {
+        int j = 0;
+        while (j < 8)
+        {
+            switch (j)
+            {
+                case 2:
+                default:
+                case 3:
+                case 4:
+                    ++j;
+                    ++result;
+                    continue;
+                case 0:
+                case 1:
+                case 7:
+                    break;
+            }
+            ++j;
+        }
+        ++i;
+    }
+
+    color = result == 50 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
+// Test do-while loops with continue in switch
+TEST_P(GLSLTestLoops, DoWhileContinueInSwitch)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int result = 0;
+    int i = 0;
+    do
+    {
+        int j = 0;
+        do
+        {
+            switch (j)
+            {
+                case 0:
+                    ++j;
+                    continue;
+                default:
+                case 2:
+                case 3:
+                case 4:
+                    ++j;
+                    ++result;
+                    if (j >= 2 && j <= 6)
+                        break;
+                    else
+                        continue;
+            }
+            ++result;
+        } while (j < 8);
+        ++i;
+    } while (i < 10);
+
+    color = result == 120 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
 }  // anonymous namespace
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(GLSLTest);
@@ -11015,6 +11725,9 @@ ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(GLSLTestNoValidation);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLTest_ES3);
 ANGLE_INSTANTIATE_TEST_ES3(GLSLTest_ES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLTestLoops);
+ANGLE_INSTANTIATE_TEST_ES3_AND(GLSLTestLoops, WithDirectSPIRVGeneration(ES3_VULKAN()));
 
 ANGLE_INSTANTIATE_TEST_ES2(WebGLGLSLTest);
 
