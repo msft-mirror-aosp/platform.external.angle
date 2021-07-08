@@ -311,6 +311,7 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
         // Declaring a matrix.  Declare the column type first, then create a matrix out of it.
 
         SpirvType columnType     = type;
+        columnType.primarySize   = columnType.secondarySize;
         columnType.secondarySize = 1;
         columnType.blockStorage  = EbsUnspecified;
 
@@ -318,7 +319,7 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
 
         typeId = getNewId({});
         spirv::WriteTypeMatrix(&mSpirvTypeAndConstantDecls, typeId, columnTypeId,
-                               spirv::LiteralInteger(type.secondarySize));
+                               spirv::LiteralInteger(type.primarySize));
     }
     else if (type.primarySize > 1)
     {
@@ -920,12 +921,11 @@ spirv::IdRef SPIRVBuilder::declareVariable(spirv::IdRef typeId,
 
 spirv::IdRef SPIRVBuilder::declareSpecConst(TBasicType type, int id, const char *name)
 {
-    const spirv::IdRef specConstId = getNewId({});
-
     SpirvType spirvType;
     spirvType.type = type;
 
-    const spirv::IdRef typeId = getSpirvTypeData(spirvType, nullptr).id;
+    const spirv::IdRef typeId      = getSpirvTypeData(spirvType, nullptr).id;
+    const spirv::IdRef specConstId = getNewId({});
 
     // Note: all spec constants are 0 initialized by the translator.
     if (type == EbtBool)
@@ -976,7 +976,7 @@ void SPIRVBuilder::nextConditionalBlock()
     SpirvConditional &conditional = mConditionalStack.back();
 
     ASSERT(conditional.nextBlockToWrite < conditional.blockIds.size());
-    spirv::IdRef blockId = conditional.blockIds[conditional.nextBlockToWrite++];
+    const spirv::IdRef blockId = conditional.blockIds[conditional.nextBlockToWrite++];
 
     // The previous block must have properly terminated.
     ASSERT(isCurrentFunctionBlockTerminated());
@@ -994,6 +994,56 @@ void SPIRVBuilder::endConditional()
     ASSERT(mConditionalStack.back().nextBlockToWrite == mConditionalStack.back().blockIds.size());
 
     mConditionalStack.pop_back();
+}
+
+bool SPIRVBuilder::isInLoop() const
+{
+    for (const SpirvConditional &conditional : mConditionalStack)
+    {
+        if (conditional.isContinuable)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+spirv::IdRef SPIRVBuilder::getBreakTargetId() const
+{
+    for (size_t index = mConditionalStack.size(); index > 0; --index)
+    {
+        const SpirvConditional &conditional = mConditionalStack[index - 1];
+
+        if (conditional.isBreakable)
+        {
+            // The target of break; is always the merge block, and the merge block is always the
+            // last block.
+            return conditional.blockIds.back();
+        }
+    }
+
+    UNREACHABLE();
+    return spirv::IdRef{};
+}
+
+spirv::IdRef SPIRVBuilder::getContinueTargetId() const
+{
+    for (size_t index = mConditionalStack.size(); index > 0; --index)
+    {
+        const SpirvConditional &conditional = mConditionalStack[index - 1];
+
+        if (conditional.isContinuable)
+        {
+            // The target of continue; is always the block before merge, so it's the one before
+            // last.
+            ASSERT(conditional.blockIds.size() > 2);
+            return conditional.blockIds[conditional.blockIds.size() - 2];
+        }
+    }
+
+    UNREACHABLE();
+    return spirv::IdRef{};
 }
 
 uint32_t SPIRVBuilder::nextUnusedBinding()
@@ -1162,6 +1212,122 @@ void SPIRVBuilder::writeBranchConditionalBlockEnd()
     nextConditionalBlock();
 }
 
+void SPIRVBuilder::writeLoopHeader(spirv::IdRef branchToBlock,
+                                   spirv::IdRef continueBlock,
+                                   spirv::IdRef mergeBlock)
+{
+    // First, jump to the header block:
+    //
+    //     OpBranch %header
+    //
+    const spirv::IdRef headerBlock = mConditionalStack.back().blockIds[0];
+    spirv::WriteBranch(getSpirvCurrentFunctionBlock(), headerBlock);
+    terminateCurrentFunctionBlock();
+
+    // Start the header block.
+    nextConditionalBlock();
+
+    // Generate the following:
+    //
+    //     OpLoopMerge %mergeBlock %continueBlock None
+    //     OpBranch %branchToBlock (%cond or if do-while, %body)
+    //
+    spirv::WriteLoopMerge(getSpirvCurrentFunctionBlock(), mergeBlock, continueBlock,
+                          spv::LoopControlMaskNone);
+    spirv::WriteBranch(getSpirvCurrentFunctionBlock(), branchToBlock);
+    terminateCurrentFunctionBlock();
+
+    // Start the next block, which is either %cond or %body.
+    nextConditionalBlock();
+}
+
+void SPIRVBuilder::writeLoopConditionEnd(spirv::IdRef conditionValue,
+                                         spirv::IdRef branchToBlock,
+                                         spirv::IdRef mergeBlock)
+{
+    // Generate the following:
+    //
+    //     OpBranchConditional %conditionValue %branchToBlock %mergeBlock
+    //
+    // %branchToBlock is either %body or if do-while, %header
+    //
+    spirv::WriteBranchConditional(getSpirvCurrentFunctionBlock(), conditionValue, branchToBlock,
+                                  mergeBlock, {});
+    terminateCurrentFunctionBlock();
+
+    // Start the next block, which is either %continue or %body.
+    nextConditionalBlock();
+}
+
+void SPIRVBuilder::writeLoopContinueEnd(spirv::IdRef headerBlock)
+{
+    // Generate the following:
+    //
+    //     OpBranch %headerBlock
+    //
+    spirv::WriteBranch(getSpirvCurrentFunctionBlock(), headerBlock);
+    terminateCurrentFunctionBlock();
+
+    // Start the next block, which is %body.
+    nextConditionalBlock();
+}
+
+void SPIRVBuilder::writeLoopBodyEnd(spirv::IdRef continueBlock)
+{
+    // Generate the following:
+    //
+    //     OpBranch %continueBlock
+    //
+    // This is only done if the block isn't already terminated in another way, such as with an
+    // unconditional continue/etc at the end of the loop.
+    if (!isCurrentFunctionBlockTerminated())
+    {
+        spirv::WriteBranch(getSpirvCurrentFunctionBlock(), continueBlock);
+        terminateCurrentFunctionBlock();
+    }
+
+    // Start the next block, which is %merge or if while, %continue.
+    nextConditionalBlock();
+}
+
+void SPIRVBuilder::writeSwitch(spirv::IdRef conditionValue,
+                               spirv::IdRef defaultBlock,
+                               const spirv::PairLiteralIntegerIdRefList &targetPairList,
+                               spirv::IdRef mergeBlock)
+{
+    // Generate the following:
+    //
+    //     OpSelectionMerge %mergeBlock None
+    //     OpSwitch %conditionValue %defaultBlock A %ABlock B %BBlock ...
+    //
+    spirv::WriteSelectionMerge(getSpirvCurrentFunctionBlock(), mergeBlock,
+                               spv::SelectionControlMaskNone);
+    spirv::WriteSwitch(getSpirvCurrentFunctionBlock(), conditionValue, defaultBlock,
+                       targetPairList);
+    terminateCurrentFunctionBlock();
+
+    // Start the next case block.
+    nextConditionalBlock();
+}
+
+void SPIRVBuilder::writeSwitchCaseBlockEnd()
+{
+    if (!isCurrentFunctionBlockTerminated())
+    {
+        // If a case does not end in branch, insert a branch to the next block, implementing
+        // fallthrough.  For the last block, the branch target would automatically be the merge
+        // block.
+        const SpirvConditional *conditional = getCurrentConditional();
+        const spirv::IdRef nextBlock        = conditional->blockIds[conditional->nextBlockToWrite];
+
+        spirv::WriteBranch(getSpirvCurrentFunctionBlock(), nextBlock);
+        terminateCurrentFunctionBlock();
+    }
+
+    // Move on to the next block.
+    nextConditionalBlock();
+}
+
 // This function is nearly identical to getTypeData(), except for row-major matrices.  For the
 // purposes of base alignment and size calculations, it swaps the primary and secondary sizes such
 // that the look up always assumes column-major matrices.  Row-major matrices are only applicable to
@@ -1276,8 +1442,7 @@ uint32_t SPIRVBuilder::calculateBaseAlignmentAndSize(const SpirvType &type,
         // Here, we always calculate the base alignment and size for column-major matrices.  If a
         // row-major matrix is used in a block, the columns and rows are simply swapped before
         // looking up the base alignment and size.
-        //
-        // TODO: verify that ANGLE's primary size is 3 in the example above.
+
         vectorType.primarySize   = vectorType.secondarySize;
         vectorType.secondarySize = 1;
 
@@ -1537,6 +1702,10 @@ void SPIRVBuilder::generateExecutionModes(spirv::Blob *blob)
 {
     switch (mShaderType)
     {
+        case gl::ShaderType::Fragment:
+            spirv::WriteExecutionMode(blob, mEntryPointId, spv::ExecutionModeOriginUpperLeft, {});
+            break;
+
         case gl::ShaderType::Compute:
         {
             const sh::WorkGroupSize &localSize = mCompiler->getComputeShaderLocalSize();
