@@ -66,7 +66,6 @@ cc_library(
         "substitute.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     deps = [
         ":internal",
         "//absl/base",
@@ -97,7 +96,6 @@ cc_library(
         "internal/utf8.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     deps = [
         "//absl/base:config",
         "//absl/base:core_headers",
@@ -271,16 +269,17 @@ cc_library(
     name = "cord_internal",
     srcs = [
         "internal/cord_internal.cc",
+        "internal/cord_rep_consume.cc",
         "internal/cord_rep_ring.cc",
     ],
     hdrs = [
         "internal/cord_internal.h",
+        "internal/cord_rep_consume.h",
         "internal/cord_rep_flat.h",
         "internal/cord_rep_ring.h",
         "internal/cord_rep_ring_reader.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     visibility = [
         "//visibility:private",
     ],
@@ -295,6 +294,7 @@ cc_library(
         "//absl/container:compressed_tuple",
         "//absl/container:inlined_vector",
         "//absl/container:layout",
+        "//absl/functional:function_ref",
         "//absl/meta:type_traits",
     ],
 )
@@ -330,7 +330,6 @@ cc_library(
         "cord.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     deps = [
         ":cord_internal",
         ":cordz_functions",
@@ -359,7 +358,6 @@ cc_library(
     srcs = ["internal/cordz_handle.cc"],
     hdrs = ["internal/cordz_handle.h"],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     visibility = [
         "//absl:__subpackages__",
     ],
@@ -376,7 +374,6 @@ cc_library(
     srcs = ["internal/cordz_info.cc"],
     hdrs = ["internal/cordz_info.h"],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     visibility = [
         "//absl:__subpackages__",
     ],
@@ -651,6 +648,22 @@ cc_test(
         "//absl/base:config",
         "//absl/base:core_headers",
         "//absl/base:raw_logging_internal",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "cord_rep_consume_test",
+    size = "medium",
+    srcs = ["internal/cord_rep_consume_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    visibility = ["//visibility:private"],
+    deps = [
+        ":cord_internal",
+        ":strings",
+        "//absl/base:config",
+        "//absl/base:core_headers",
+        "//absl/debugging:leak_check",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -1001,7 +1014,6 @@ cc_library(
         "internal/str_format/parser.h",
     ],
     copts = ABSL_DEFAULT_COPTS,
-    features = ["-no_undefined"],
     visibility = ["//visibility:private"],
     deps = [
         ":strings",
