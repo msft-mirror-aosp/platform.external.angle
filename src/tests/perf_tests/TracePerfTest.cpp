@@ -1538,11 +1538,21 @@ void TracePerfTest::onReplayDiscardFramebufferEXT(GLenum target,
 void TracePerfTest::swap()
 {
     // Capture a screenshot if enabled.
-    if (gScreenShotDir != nullptr && !mScreenshotSaved)
+    if (gScreenShotDir != nullptr && !mScreenshotSaved &&
+        static_cast<uint32_t>(gScreenShotFrame) == mCurrentFrame)
     {
         std::stringstream screenshotNameStr;
         screenshotNameStr << gScreenShotDir << GetPathSeparator() << "angle" << mBackend << "_"
-                          << mStory << ".png";
+                          << mStory;
+
+        // Add a marker to the name for any screenshot that isn't start frame
+        if (mStartFrame != static_cast<uint32_t>(gScreenShotFrame))
+        {
+            screenshotNameStr << "_frame" << gScreenShotFrame;
+        }
+
+        screenshotNameStr << ".png";
+
         std::string screenshotName = screenshotNameStr.str();
         saveScreenshot(screenshotName);
         mScreenshotSaved = true;
@@ -1605,11 +1615,6 @@ TracePerfParams CombineTestID(const TracePerfParams &in, RestrictedTraceID id)
     return out;
 }
 
-bool NoAndroidMockICD(const TracePerfParams &in)
-{
-    return in.eglParameters.deviceType != EGL_PLATFORM_ANGLE_DEVICE_TYPE_NULL_ANGLE || !IsAndroid();
-}
-
 TracePerfParams CombineWithSurfaceType(const TracePerfParams &in, SurfaceType surfaceType)
 {
     TracePerfParams out = in;
@@ -1645,15 +1650,17 @@ void RegisterTraceTests()
     std::vector<ModifierFunc<P>> renderers = {Vulkan<P>, Native<P>};
     if (gEnableAllTraceTests)
     {
-        renderers.push_back(VulkanMockICD<P>);
+        if (!IsAndroid())
+        {
+            renderers.push_back(VulkanMockICD<P>);
+        }
         renderers.push_back(VulkanSwiftShader<P>);
     }
 
     PV testsWithID = CombineWithValues({P()}, AllEnums<RestrictedTraceID>(), CombineTestID);
     PV testsWithSurfaceType = CombineWithValues(testsWithID, surfaceTypes, CombineWithSurfaceType);
     PV testsWithRenderer    = CombineWithFuncs(testsWithSurfaceType, renderers);
-    PV testsWithoutMockICD  = FilterWithFunc(testsWithRenderer, NoAndroidMockICD);
-    PV filteredTests        = angle::FilterTestParams(testsWithoutMockICD);
+    PV filteredTests        = FilterTestParams(testsWithRenderer);
 
     for (const TracePerfParams &params : filteredTests)
     {

@@ -180,6 +180,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndexedIndirectCount-None-04584",
     // https://anglebug.com/5912
     "VUID-VkImageViewCreateInfo-pNext-01585",
+    // http://crbug.com/1226682
+    "VUID-VkSpecializationMapEntry-constantID-00776",
 };
 
 // Suppress validation errors that are known
@@ -935,8 +937,15 @@ angle::Result RendererVk::initialize(DisplayVk *displayVk,
     }
 
     vk::ExtensionNameList enabledInstanceExtensions;
-    enabledInstanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-    enabledInstanceExtensions.push_back(wsiExtension);
+    if (displayVk->isUsingSwapchain())
+    {
+        enabledInstanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
+    }
+    if (wsiExtension)
+    {
+        enabledInstanceExtensions.push_back(wsiExtension);
+    }
+
     mEnableDebugUtils = canLoadDebugUtils && mEnableValidationLayers &&
                         ExtensionFound(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, instanceExtensionNames);
 
@@ -1460,7 +1469,10 @@ angle::Result RendererVk::initializeDevice(DisplayVk *displayVk, uint32_t queueF
     }
 
     vk::ExtensionNameList enabledDeviceExtensions;
-    enabledDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    if (displayVk->isUsingSwapchain())
+    {
+        enabledDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
 
     // Queues: map low, med, high priority to whatever is supported up to 3 queues
     uint32_t queueCount = std::min(mQueueFamilyProperties[queueFamilyIndex].queueCount,
@@ -2454,14 +2466,10 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
         mFeatures.supportsMultisampledRenderToSingleSampled.enabled ||
             !(IsApple() && isSwiftShader) && !(IsWindows() && (isIntel || isAMD)));
 
-    // Feature disabled due to driver bugs:
-    //
-    // - Swiftshader: http://anglebug.com/5142
-    // - Qualcomm: http://anglebug.com/5143
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, supportsImageCubeArray,
-        mPhysicalDeviceFeatures.imageCubeArray == VK_TRUE && !isSwiftShader &&
-            !IsPixel2(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID));
+    // Currently we enable cube map arrays based on the imageCubeArray Vk feature.
+    // TODO: Check device caps for full cube map array support. http://anglebug.com/5143
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsImageCubeArray,
+                            mPhysicalDeviceFeatures.imageCubeArray == VK_TRUE);
 
     // TODO: Only enable if VK_EXT_primitives_generated_query is not present.
     // http://anglebug.com/5430
