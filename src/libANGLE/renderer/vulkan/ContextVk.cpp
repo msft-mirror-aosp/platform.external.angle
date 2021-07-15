@@ -3330,6 +3330,23 @@ void ContextVk::updateScissor(const gl::State &glState)
     }
 }
 
+void ContextVk::updateDepthStencil(const gl::State &glState)
+{
+    const gl::DepthStencilState depthStencilState = glState.getDepthStencilState();
+
+    gl::Framebuffer *drawFramebuffer = mState.getDrawFramebuffer();
+    mGraphicsPipelineDesc->updateDepthTestEnabled(&mGraphicsPipelineTransition, depthStencilState,
+                                                  drawFramebuffer);
+    mGraphicsPipelineDesc->updateDepthWriteEnabled(&mGraphicsPipelineTransition, depthStencilState,
+                                                   drawFramebuffer);
+    mGraphicsPipelineDesc->updateStencilTestEnabled(&mGraphicsPipelineTransition, depthStencilState,
+                                                    drawFramebuffer);
+    mGraphicsPipelineDesc->updateStencilFrontWriteMask(&mGraphicsPipelineTransition,
+                                                       depthStencilState, drawFramebuffer);
+    mGraphicsPipelineDesc->updateStencilBackWriteMask(&mGraphicsPipelineTransition,
+                                                      depthStencilState, drawFramebuffer);
+}
+
 // If the target is a single-sampled target, sampleShading should be disabled, to use Bresenham line
 // raterization feature.
 void ContextVk::updateSampleShadingWithRasterizationSamples(const uint32_t rasterizationSamples)
@@ -3680,17 +3697,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                                                        glState.getRasterizerState(),
                                                        isYFlipEnabledForDrawFBO());
                 updateScissor(glState);
-                const gl::DepthStencilState depthStencilState = glState.getDepthStencilState();
-                mGraphicsPipelineDesc->updateDepthTestEnabled(&mGraphicsPipelineTransition,
-                                                              depthStencilState, drawFramebuffer);
-                mGraphicsPipelineDesc->updateDepthWriteEnabled(&mGraphicsPipelineTransition,
-                                                               depthStencilState, drawFramebuffer);
-                mGraphicsPipelineDesc->updateStencilTestEnabled(&mGraphicsPipelineTransition,
-                                                                depthStencilState, drawFramebuffer);
-                mGraphicsPipelineDesc->updateStencilFrontWriteMask(
-                    &mGraphicsPipelineTransition, depthStencilState, drawFramebuffer);
-                mGraphicsPipelineDesc->updateStencilBackWriteMask(
-                    &mGraphicsPipelineTransition, depthStencilState, drawFramebuffer);
+                updateDepthStencil(glState);
                 mGraphicsPipelineDesc->resetSubpass(&mGraphicsPipelineTransition);
                 onDrawFramebufferRenderPassDescChange(mDrawFramebuffer, nullptr);
                 break;
@@ -4263,6 +4270,9 @@ angle::Result ContextVk::onFramebufferChange(FramebufferVk *framebufferVk)
 
     // Update scissor.
     updateScissor(mState);
+
+    // Update depth and stencil.
+    updateDepthStencil(mState);
 
     if (mState.getProgramExecutable())
     {
@@ -4995,8 +5005,9 @@ angle::Result ContextVk::updateActiveTextures(const gl::Context *context)
     const gl::ActiveTextureMask &activeTextures    = executable->getActiveSamplersMask();
     const gl::ActiveTextureTypeArray &textureTypes = executable->getActiveSamplerTypes();
 
-    bool anyTextureHasImmutableSampler = false;
-    bool recreatePipelineLayout        = false;
+    bool anyTextureHasImmutableSampler            = false;
+    bool recreatePipelineLayout                   = false;
+    ImmutableSamplerFormatIndexMap formatIndexMap = {};
     for (size_t textureUnit : activeTextures)
     {
         gl::Texture *texture        = textures[textureUnit];
@@ -5074,13 +5085,23 @@ angle::Result ContextVk::updateActiveTextures(const gl::Context *context)
             textureVk->getImageViewSubresourceSerial(samplerState);
         mActiveTexturesDesc.update(textureUnit, imageViewSerial, samplerHelper.getSamplerSerial());
 
-        anyTextureHasImmutableSampler =
-            textureVk->getImage().hasImmutableSampler() || anyTextureHasImmutableSampler;
+        if (textureVk->getImage().hasImmutableSampler())
+        {
+            anyTextureHasImmutableSampler = true;
+            formatIndexMap[textureVk->getImage().getExternalFormat()] =
+                static_cast<uint32_t>(textureUnit);
+        }
         recreatePipelineLayout =
             textureVk->getAndResetImmutableSamplerDirtyState() || recreatePipelineLayout;
     }
 
     if (anyTextureHasImmutableSampler != mExecutable->usesImmutableSamplers())
+    {
+        recreatePipelineLayout = true;
+    }
+
+    if (mExecutable->usesImmutableSamplers() &&
+        !mExecutable->isImmutableSamplerFormatCompatible(formatIndexMap))
     {
         recreatePipelineLayout = true;
     }
