@@ -53,6 +53,7 @@ enum Token
     kConfigMacHighSierra,
     kConfigMacMojave,
     kConfigMac,
+    kConfigIOS,
     kConfigLinux,
     kConfigChromeOS,
     kConfigAndroid,
@@ -77,6 +78,11 @@ enum Token
     kConfigPixel2,
     // GPU devices
     kConfigNVIDIAQuadroP400,
+    // PreRotation
+    kConfigPreRotation,
+    kConfigPreRotation90,
+    kConfigPreRotation180,
+    kConfigPreRotation270,
     // expectation
     kExpectationPass,
     kExpectationFail,
@@ -148,6 +154,7 @@ constexpr TokenInfo kTokenData[kNumberOfTokens] = {
     {"highsierra", GPUTestConfig::kConditionMacHighSierra},
     {"mojave", GPUTestConfig::kConditionMacMojave},
     {"mac", GPUTestConfig::kConditionMac},
+    {"ios", GPUTestConfig::kConditionIOS},
     {"linux", GPUTestConfig::kConditionLinux},
     {"chromeos", GPUTestConfig::kConditionNone},  // https://anglebug.com/3363 CrOS not supported
     {"android", GPUTestConfig::kConditionAndroid},
@@ -167,6 +174,10 @@ constexpr TokenInfo kTokenData[kNumberOfTokens] = {
     {"nexus5x", GPUTestConfig::kConditionNexus5X},
     {"pixel2orxl", GPUTestConfig::kConditionPixel2OrXL},
     {"quadrop400", GPUTestConfig::kConditionNVIDIAQuadroP400},
+    {"prerotation", GPUTestConfig::kConditionPreRotation},
+    {"prerotation90", GPUTestConfig::kConditionPreRotation90},
+    {"prerotation180", GPUTestConfig::kConditionPreRotation180},
+    {"prerotation270", GPUTestConfig::kConditionPreRotation270},
     {"pass", GPUTestConfig::kConditionNone, GPUTestExpectationsParser::kGpuTestPass},
     {"fail", GPUTestConfig::kConditionNone, GPUTestExpectationsParser::kGpuTestFail},
     {"flaky", GPUTestConfig::kConditionNone, GPUTestExpectationsParser::kGpuTestFlaky},
@@ -227,47 +238,6 @@ inline Token ParseToken(const std::string &word)
     }
     return kTokenWord;
 }
-
-// reference name can have *.
-inline bool NamesMatching(const char *ref, const char *testName)
-{
-    // Find the first * in ref.
-    const char *firstWildcard = strchr(ref, '*');
-
-    // If there are no wildcards, match the strings precisely.
-    if (firstWildcard == nullptr)
-    {
-        return strcmp(ref, testName) == 0;
-    }
-
-    // Otherwise, match up to the wildcard first.
-    size_t preWildcardLen = firstWildcard - ref;
-    if (strncmp(ref, testName, preWildcardLen) != 0)
-    {
-        return false;
-    }
-
-    const char *postWildcardRef = ref + preWildcardLen + 1;
-
-    // As a small optimization, if the wildcard is the last character in ref, accept the match
-    // already.
-    if (postWildcardRef[0] == '\0')
-    {
-        return true;
-    }
-
-    // Try to match the wildcard with a number of characters.
-    for (size_t matchSize = 0; testName[matchSize] != '\0'; ++matchSize)
-    {
-        if (NamesMatching(postWildcardRef, testName + matchSize))
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 }  // anonymous namespace
 
 const char *GetConditionName(uint32_t condition)
@@ -293,7 +263,7 @@ const char *GetConditionName(uint32_t condition)
 
 GPUTestExpectationsParser::GPUTestExpectationsParser()
 {
-    // Some sanity check.
+    // Some initial checks.
     ASSERT((static_cast<unsigned int>(kNumberOfTokens)) ==
            (sizeof(kTokenData) / sizeof(kTokenData[0])));
     ASSERT((static_cast<unsigned int>(kNumberOfErrors)) ==
@@ -345,7 +315,7 @@ int32_t GPUTestExpectationsParser::getTestExpectation(const std::string &testNam
     GPUTestExpectationEntry *foundEntry = nullptr;
     for (size_t i = 0; i < mEntries.size(); ++i)
     {
-        if (NamesMatching(mEntries[i].testName.c_str(), testName.c_str()))
+        if (NamesMatchWithWildcard(mEntries[i].testName.c_str(), testName.c_str()))
         {
             size_t expectationLen = mEntries[i].testName.length();
             // The longest/most specific matching expectation overrides any others.
@@ -419,6 +389,7 @@ bool GPUTestExpectationsParser::parseLine(const GPUTestConfig &config,
             case kConfigMacHighSierra:
             case kConfigMacMojave:
             case kConfigMac:
+            case kConfigIOS:
             case kConfigLinux:
             case kConfigChromeOS:
             case kConfigAndroid:
@@ -438,6 +409,10 @@ bool GPUTestExpectationsParser::parseLine(const GPUTestConfig &config,
             case kConfigNexus5X:
             case kConfigPixel2:
             case kConfigNVIDIAQuadroP400:
+            case kConfigPreRotation:
+            case kConfigPreRotation90:
+            case kConfigPreRotation180:
+            case kConfigPreRotation270:
                 // MODIFIERS, check each condition and add accordingly.
                 if (stage != kLineParserConfigs && stage != kLineParserBugID)
                 {
