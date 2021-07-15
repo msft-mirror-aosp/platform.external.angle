@@ -55,6 +55,12 @@ uint32_t GetTotalArrayElements(const SpirvType &type)
     return arraySizeProduct;
 }
 
+uint32_t GetOutermostArraySize(const SpirvType &type)
+{
+    uint32_t size = type.arraySizes.back();
+    return size ? size : 1;
+}
+
 spirv::IdRef SPIRVBuilder::getNewId(const SpirvDecorations &decorations)
 {
     spirv::IdRef newId = mNextAvailableId;
@@ -70,14 +76,24 @@ spirv::IdRef SPIRVBuilder::getNewId(const SpirvDecorations &decorations)
 
 TLayoutBlockStorage SPIRVBuilder::getBlockStorage(const TType &type) const
 {
-    // Default to std140.
+    // If the type specifies the layout, take it from that.
     TLayoutBlockStorage blockStorage = type.getLayoutQualifier().blockStorage;
-    if (!IsShaderIoBlock(type.getQualifier()) && blockStorage != EbsStd430)
+
+    // For user-defined interface blocks, the block storage is specified on the symbol itself and
+    // not the type.
+    if (blockStorage == EbsUnspecified && type.getInterfaceBlock() != nullptr)
     {
-        blockStorage = EbsStd140;
+        blockStorage = type.getInterfaceBlock()->blockStorage();
     }
 
-    return blockStorage;
+    if (IsShaderIoBlock(type.getQualifier()) || blockStorage == EbsStd140 ||
+        blockStorage == EbsStd430)
+    {
+        return blockStorage;
+    }
+
+    // Default to std140 for uniform and std430 for buffer blocks.
+    return type.getQualifier() == EvqBuffer ? EbsStd430 : EbsStd140;
 }
 
 SpirvType SPIRVBuilder::getSpirvType(const TType &type, TLayoutBlockStorage blockStorage) const
@@ -89,6 +105,19 @@ SpirvType SPIRVBuilder::getSpirvType(const TType &type, TLayoutBlockStorage bloc
     spirvType.arraySizes          = type.getArraySizes();
     spirvType.imageInternalFormat = type.getLayoutQualifier().imageInternalFormat;
     spirvType.blockStorage        = blockStorage;
+
+    switch (spirvType.type)
+    {
+        // External textures are treated as 2D textures in the vulkan back-end.
+        case EbtSamplerExternalOES:
+        case EbtSamplerExternal2DY2YEXT:
+        // WEBGL video textures too.
+        case EbtSamplerVideoWEBGL:
+            spirvType.type = EbtSampler2D;
+            break;
+        default:
+            break;
+    }
 
     if (type.getStruct() != nullptr)
     {
@@ -143,6 +172,14 @@ const SpirvTypeData &SPIRVBuilder::getSpirvTypeData(const SpirvType &type, const
     }
 
     return iter->second;
+}
+
+spirv::IdRef SPIRVBuilder::getBasicTypeId(TBasicType basicType, size_t size)
+{
+    SpirvType type;
+    type.type        = basicType;
+    type.primarySize = static_cast<uint8_t>(size);
+    return getSpirvTypeData(type, nullptr).id;
 }
 
 spirv::IdRef SPIRVBuilder::getTypePointerId(spirv::IdRef typeId, spv::StorageClass storageClass)
@@ -258,7 +295,7 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
             // Propagate invariant to struct members.
             if (structure != nullptr)
             {
-                fieldSpirvType.isInvariant = type.isInvariant;
+                fieldSpirvType.isInvariant = type.isInvariant || fieldType.isInvariant();
             }
 
             spirv::IdRef fieldTypeId = getSpirvTypeData(fieldSpirvType, structure).id;
@@ -362,6 +399,23 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
                                     spirv::LiteralInteger(0));
                 break;
             case EbtBool:
+                // TODO: In SPIR-V, it's invalid to have a bool type in an interface block.  An AST
+                // transformation should be written to rewrite the blocks to use a uint type with
+                // appropriate casts where used.  Need to handle:
+                //
+                // - Store: cast the rhs of assignment
+                // - Non-array load: cast the expression
+                // - Array load (for example to use in a struct constructor): reconstruct the array
+                //   with elements cast.
+                // - Pass to function as out parameter: Use
+                //   MonomorphizeUnsupportedFunctionsInVulkanGLSL to avoid it, as there's no easy
+                //   way to handle such function calls inside if conditions and such.
+                //
+                // It might be simplest to do this for bools in structs as well, to avoid having to
+                // convert between an old and new struct type if the struct is used both inside and
+                // outside an interface block.
+                //
+                // http://anglebug.com/4889.
                 spirv::WriteTypeBool(&mSpirvTypeAndConstantDecls, typeId);
                 break;
             default:
@@ -375,7 +429,7 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
     // unconditionally and having the SPIR-V transformer remove them, it's better to avoid
     // generating them in the first place.  This both simplifies the transformer and reduces SPIR-V
     // binary size that gets written to disk cache.  http://anglebug.com/4889
-    if (type.block != nullptr && type.arraySizes.empty())
+    if (block != nullptr && type.arraySizes.empty())
     {
         spirv::WriteName(&mSpirvDebug, typeId, hashName(block).data());
 
@@ -401,22 +455,29 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
     // Write decorations for interface block fields.
     if (type.blockStorage != EbsUnspecified)
     {
-        if (!isOpaqueType && !type.arraySizes.empty())
+        // Cannot have opaque uniforms inside interface blocks.
+        ASSERT(!isOpaqueType);
+
+        const bool isInterfaceBlock = block != nullptr && block->isInterfaceBlock();
+
+        if (!type.arraySizes.empty() && !isInterfaceBlock)
         {
-            // Write the ArrayStride decoration for arrays inside interface blocks.
+            // Write the ArrayStride decoration for arrays inside interface blocks.  An array of
+            // interface blocks doesn't need a stride.
             spirv::WriteDecorate(
                 &mSpirvDecorations, typeId, spv::DecorationArrayStride,
-                {spirv::LiteralInteger(sizeInStorageBlock / GetTotalArrayElements(type))});
+                {spirv::LiteralInteger(sizeInStorageBlock / GetOutermostArraySize(type))});
         }
         else if (type.arraySizes.empty() && type.block != nullptr)
         {
             // Write the Offset decoration for interface blocks and structs in them.
-            sizeInStorageBlock = calculateSizeAndWriteOffsetDecorations(type, typeId);
+            sizeInStorageBlock =
+                calculateSizeAndWriteOffsetDecorations(type, typeId, baseAlignment);
         }
     }
 
     // Write other member decorations.
-    if (type.block != nullptr && type.arraySizes.empty())
+    if (block != nullptr && type.arraySizes.empty())
     {
         writeMemberDecorations(type, typeId);
     }
@@ -444,9 +505,12 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
         // Float 2D Images
         case EbtSampler2D:
         case EbtImage2D:
+            break;
         case EbtSamplerExternalOES:
         case EbtSamplerExternal2DY2YEXT:
         case EbtSamplerVideoWEBGL:
+            // These must have already been converted to EbtSampler2D.
+            UNREACHABLE();
             break;
         case EbtSampler2DArray:
         case EbtImage2DArray:
@@ -797,21 +861,21 @@ spirv::IdRef SPIRVBuilder::getBasicConstantHelper(uint32_t value,
                                                   angle::HashMap<uint32_t, spirv::IdRef> *constants)
 {
     auto iter = constants->find(value);
-    if (iter == constants->end())
+    if (iter != constants->end())
     {
-        SpirvType spirvType;
-        spirvType.type = type;
-
-        const spirv::IdRef typeId     = getSpirvTypeData(spirvType, nullptr).id;
-        const spirv::IdRef constantId = getNewId({});
-
-        spirv::WriteConstant(&mSpirvTypeAndConstantDecls, typeId, constantId,
-                             spirv::LiteralContextDependentNumber(value));
-
-        iter = constants->insert({value, constantId}).first;
+        return iter->second;
     }
 
-    return iter->second;
+    SpirvType spirvType;
+    spirvType.type = type;
+
+    const spirv::IdRef typeId     = getSpirvTypeData(spirvType, nullptr).id;
+    const spirv::IdRef constantId = getNewId({});
+
+    spirv::WriteConstant(&mSpirvTypeAndConstantDecls, typeId, constantId,
+                         spirv::LiteralContextDependentNumber(value));
+
+    return constants->insert({value, constantId}).first->second;
 }
 
 spirv::IdRef SPIRVBuilder::getUintConstant(uint32_t value)
@@ -834,6 +898,83 @@ spirv::IdRef SPIRVBuilder::getFloatConstant(float value)
     } asUint;
     asUint.f = value;
     return getBasicConstantHelper(asUint.u, EbtFloat, &mFloatConstants);
+}
+
+spirv::IdRef SPIRVBuilder::getNullConstant(spirv::IdRef typeId)
+{
+    if (typeId >= mNullConstants.size())
+    {
+        mNullConstants.resize(typeId + 1);
+    }
+
+    if (!mNullConstants[typeId].valid())
+    {
+        const spirv::IdRef constantId = getNewId({});
+        mNullConstants[typeId]        = constantId;
+
+        spirv::WriteConstantNull(&mSpirvTypeAndConstantDecls, typeId, constantId);
+    }
+
+    return mNullConstants[typeId];
+}
+
+spirv::IdRef SPIRVBuilder::getNullVectorConstantHelper(TBasicType type, int size)
+{
+    SpirvType vecType;
+    vecType.type        = type;
+    vecType.primarySize = static_cast<uint8_t>(size);
+
+    return getNullConstant(getSpirvTypeData(vecType, nullptr).id);
+}
+
+spirv::IdRef SPIRVBuilder::getVectorConstantHelper(spirv::IdRef valueId, TBasicType type, int size)
+{
+    if (size == 1)
+    {
+        return valueId;
+    }
+
+    SpirvType vecType;
+    vecType.type        = type;
+    vecType.primarySize = static_cast<uint8_t>(size);
+
+    const spirv::IdRef typeId = getSpirvTypeData(vecType, nullptr).id;
+    const spirv::IdRefList valueIds(size, valueId);
+
+    return getCompositeConstant(typeId, valueIds);
+}
+
+spirv::IdRef SPIRVBuilder::getUvecConstant(uint32_t value, int size)
+{
+    if (value == 0)
+    {
+        return getNullVectorConstantHelper(EbtUInt, size);
+    }
+
+    const spirv::IdRef valueId = getUintConstant(value);
+    return getVectorConstantHelper(valueId, EbtUInt, size);
+}
+
+spirv::IdRef SPIRVBuilder::getIvecConstant(int32_t value, int size)
+{
+    if (value == 0)
+    {
+        return getNullVectorConstantHelper(EbtInt, size);
+    }
+
+    const spirv::IdRef valueId = getIntConstant(value);
+    return getVectorConstantHelper(valueId, EbtInt, size);
+}
+
+spirv::IdRef SPIRVBuilder::getVecConstant(float value, int size)
+{
+    if (value == 0)
+    {
+        return getNullVectorConstantHelper(EbtFloat, size);
+    }
+
+    const spirv::IdRef valueId = getFloatConstant(value);
+    return getVectorConstantHelper(valueId, EbtFloat, size);
 }
 
 spirv::IdRef SPIRVBuilder::getCompositeConstant(spirv::IdRef typeId, const spirv::IdRefList &values)
@@ -1125,14 +1266,15 @@ void SPIRVBuilder::writeInterfaceVariableDecorations(const TType &type, spirv::I
 {
     const TLayoutQualifier &layoutQualifier = type.getLayoutQualifier();
 
+    const bool isVarying = IsVarying(type.getQualifier());
     const bool needsSetBinding =
         IsSampler(type.getBasicType()) ||
         (type.isInterfaceBlock() &&
          (type.getQualifier() == EvqUniform || type.getQualifier() == EvqBuffer)) ||
         IsImage(type.getBasicType()) || IsSubpassInputType(type.getBasicType());
-    const bool needsLocation =
-        type.getQualifier() == EvqAttribute || type.getQualifier() == EvqVertexIn ||
-        type.getQualifier() == EvqFragmentOut || IsVarying(type.getQualifier());
+    const bool needsLocation = type.getQualifier() == EvqAttribute ||
+                               type.getQualifier() == EvqVertexIn ||
+                               type.getQualifier() == EvqFragmentOut || isVarying;
     const bool needsInputAttachmentIndex = IsSubpassInputType(type.getBasicType());
     const bool needsBlendIndex =
         type.getQualifier() == EvqFragmentOut && layoutQualifier.index >= 0;
@@ -1173,6 +1315,13 @@ void SPIRVBuilder::writeInterfaceVariableDecorations(const TType &type, spirv::I
     {
         spirv::WriteDecorate(&mSpirvDecorations, variableId, spv::DecorationIndex,
                              {spirv::LiteralInteger(layoutQualifier.index)});
+    }
+
+    // Handle interpolation and auxiliary decorations on varyings
+    if (isVarying)
+    {
+        writeInterpolationDecoration(type.getQualifier(), variableId,
+                                     std::numeric_limits<uint32_t>::max());
     }
 }
 
@@ -1373,6 +1522,7 @@ uint32_t SPIRVBuilder::calculateBaseAlignmentAndSize(const SpirvType &type,
 
         const SpirvTypeData &baseTypeData = getSpirvTypeData(baseType, nullptr);
         uint32_t baseAlignment            = baseTypeData.baseAlignment;
+        uint32_t baseSizeInStorageBlock   = baseTypeData.sizeInStorageBlock;
 
         // For std140 only:
         // > Rule 4. ... and rounded up to the base alignment of a vec4.
@@ -1380,16 +1530,16 @@ uint32_t SPIRVBuilder::calculateBaseAlignmentAndSize(const SpirvType &type,
         // of the structure is vec4.
         if (type.blockStorage != EbsStd430)
         {
-            baseAlignment = std::max(baseAlignment, 16u);
+            baseAlignment          = std::max(baseAlignment, 16u);
+            baseSizeInStorageBlock = std::max(baseSizeInStorageBlock, 16u);
         }
-
         // Note that matrix arrays follow a similar rule (rules 6 and 8).  The matrix base alignment
         // is the same as its column or row base alignment, and arrays of that matrix don't change
         // the base alignment.
 
         // The size occupied by the array is simply the size of each element (which is already
         // aligned to baseAlignment) multiplied by the number of elements.
-        *sizeInStorageBlockOut = baseTypeData.sizeInStorageBlock * GetTotalArrayElements(type);
+        *sizeInStorageBlockOut = baseSizeInStorageBlock * GetTotalArrayElements(type);
 
         return baseAlignment;
     }
@@ -1448,17 +1598,19 @@ uint32_t SPIRVBuilder::calculateBaseAlignmentAndSize(const SpirvType &type,
 
         const SpirvTypeData &vectorTypeData = getSpirvTypeData(vectorType, nullptr);
         uint32_t baseAlignment              = vectorTypeData.baseAlignment;
+        uint32_t baseSizeInStorageBlock     = vectorTypeData.sizeInStorageBlock;
 
         // For std140 only:
         // > Rule 4. ... and rounded up to the base alignment of a vec4.
         if (type.blockStorage != EbsStd430)
         {
-            baseAlignment = std::max(baseAlignment, 16u);
+            baseAlignment          = std::max(baseAlignment, 16u);
+            baseSizeInStorageBlock = std::max(baseSizeInStorageBlock, 16u);
         }
 
         // The size occupied by the matrix is the size of each vector multiplied by the number of
         // vectors.
-        *sizeInStorageBlockOut = vectorTypeData.sizeInStorageBlock * vectorType.primarySize;
+        *sizeInStorageBlockOut = baseSizeInStorageBlock * vectorType.primarySize;
 
         return baseAlignment;
     }
@@ -1494,7 +1646,8 @@ uint32_t SPIRVBuilder::calculateBaseAlignmentAndSize(const SpirvType &type,
 }
 
 uint32_t SPIRVBuilder::calculateSizeAndWriteOffsetDecorations(const SpirvType &type,
-                                                              spirv::IdRef typeId)
+                                                              spirv::IdRef typeId,
+                                                              uint32_t blockBaseAlignment)
 {
     ASSERT(type.block != nullptr);
 
@@ -1537,7 +1690,17 @@ uint32_t SPIRVBuilder::calculateSizeAndWriteOffsetDecorations(const SpirvType &t
         ++fieldIndex;
     }
 
-    return nextOffset;
+    uint32_t blockSize = nextOffset;
+
+    // Round up the size to the base alignment of the block.  Additionally, for std140 round it up
+    // to the size of vec4.  This is so that arrays of the block have the right stride.
+    blockSize = rx::roundUp(blockSize, blockBaseAlignment);
+    if (type.blockStorage != EbsStd430)
+    {
+        blockSize = std::max(blockSize, 16u);
+    }
+
+    return blockSize;
 }
 
 void SPIRVBuilder::writeMemberDecorations(const SpirvType &type, spirv::IdRef typeId)
@@ -1578,6 +1741,9 @@ void SPIRVBuilder::writeMemberDecorations(const SpirvType &type, spirv::IdRef ty
                 isRowMajor ? spv::DecorationRowMajor : spv::DecorationColMajor, {});
         }
 
+        // Add interpolation and auxiliary decorations
+        writeInterpolationDecoration(fieldType.getQualifier(), typeId, fieldIndex);
+
         // Add other decorations.
         SpirvDecorations decorations = getDecorations(fieldType);
         for (const spv::Decoration decoration : decorations)
@@ -1587,6 +1753,59 @@ void SPIRVBuilder::writeMemberDecorations(const SpirvType &type, spirv::IdRef ty
         }
 
         ++fieldIndex;
+    }
+}
+
+void SPIRVBuilder::writeInterpolationDecoration(TQualifier qualifier,
+                                                spirv::IdRef id,
+                                                uint32_t fieldIndex)
+{
+    spv::Decoration decoration = spv::DecorationMax;
+
+    switch (qualifier)
+    {
+        case EvqSmooth:
+        case EvqSmoothOut:
+        case EvqSmoothIn:
+            // No decoration in SPIR-V for smooth, this is the default interpolation.
+            return;
+
+        case EvqFlat:
+        case EvqFlatOut:
+        case EvqFlatIn:
+            decoration = spv::DecorationFlat;
+            break;
+
+        case EvqNoPerspective:
+        case EvqNoPerspectiveOut:
+        case EvqNoPerspectiveIn:
+            decoration = spv::DecorationNoPerspective;
+            break;
+
+        case EvqCentroid:
+        case EvqCentroidOut:
+        case EvqCentroidIn:
+            decoration = spv::DecorationCentroid;
+            break;
+
+        case EvqSample:
+        case EvqSampleOut:
+        case EvqSampleIn:
+            decoration = spv::DecorationSample;
+            break;
+
+        default:
+            return;
+    }
+
+    if (fieldIndex != std::numeric_limits<uint32_t>::max())
+    {
+        spirv::WriteMemberDecorate(&mSpirvDecorations, id, spirv::LiteralInteger(fieldIndex),
+                                   decoration, {});
+    }
+    else
+    {
+        spirv::WriteDecorate(&mSpirvDecorations, id, decoration, {});
     }
 }
 
@@ -1704,6 +1923,14 @@ void SPIRVBuilder::generateExecutionModes(spirv::Blob *blob)
     {
         case gl::ShaderType::Fragment:
             spirv::WriteExecutionMode(blob, mEntryPointId, spv::ExecutionModeOriginUpperLeft, {});
+
+            if (mCompiler->isEarlyFragmentTestsSpecified() ||
+                mCompiler->isEarlyFragmentTestsOptimized())
+            {
+                spirv::WriteExecutionMode(blob, mEntryPointId, spv::ExecutionModeEarlyFragmentTests,
+                                          {});
+            }
+
             break;
 
         case gl::ShaderType::Compute:

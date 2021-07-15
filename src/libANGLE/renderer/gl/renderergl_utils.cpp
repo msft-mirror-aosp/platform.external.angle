@@ -1885,7 +1885,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
         isIntel && IsApple() && IsSkylake(device) && GetMacOSVersion() < OSVersion(10, 13, 2));
 
     ANGLE_FEATURE_CONDITION(features, doesSRGBClearsOnLinearFramebufferAttachments,
-                            functions->standard == STANDARD_GL_DESKTOP && (isIntel || isAMD));
+                            isIntel || isAMD);
 
     ANGLE_FEATURE_CONDITION(features, emulateMaxVertexAttribStride,
                             IsLinux() && functions->standard == STANDARD_GL_DESKTOP && isAMD);
@@ -2110,9 +2110,8 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // http://crbug.com/1137851
     // Speculative fix for above issue, users can enable it via flags.
     // http://crbug.com/1187475
-    // Disable on Mesa 20 / Intel
-    ANGLE_FEATURE_CONDITION(features, disableSyncControlSupport,
-                            IsLinux() && isIntel && isMesa && mesaVersion[0] == 20);
+    // Disable on Intel due to crashes in Mesa
+    ANGLE_FEATURE_CONDITION(features, disableSyncControlSupport, IsLinux() && isIntel);
 
     ANGLE_FEATURE_CONDITION(features, keepBufferShadowCopy, !CanMapBufferForRead(functions));
 

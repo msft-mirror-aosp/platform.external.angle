@@ -12,7 +12,6 @@
 #include "compiler/translator/SymbolTable.h"
 #include "compiler/translator/TranslatorMetalDirect.h"
 #include "compiler/translator/TranslatorMetalDirect/AstHelpers.h"
-#include "compiler/translator/TranslatorMetalDirect/ConstantNames.h"
 #include "compiler/translator/TranslatorMetalDirect/DebugSink.h"
 #include "compiler/translator/TranslatorMetalDirect/EmitMetal.h"
 #include "compiler/translator/TranslatorMetalDirect/Layout.h"
@@ -1060,8 +1059,8 @@ void GenMetalTraverser::emitFieldDeclaration(const TField &field,
             break;
 
         case TQualifier::EvqSampleMask:
-            mOut << " [[sample_mask, function_constant("
-                 << sh::TranslatorMetalDirect::GetCoverageMaskEnabledConstName() << ")]]";
+            mOut << " [[sample_mask, function_constant(" << sh::mtl::kCoverageMaskEnabledConstName
+                 << ")]]";
             break;
 
         default:
@@ -2214,9 +2213,9 @@ bool GenMetalTraverser::visitDeclaration(Visit, TIntermDeclaration *declNode)
     else if (TIntermBinary *initNode = node.getAsBinaryNode())
     {
         ASSERT(initNode->getOp() == TOperator::EOpInitialize);
-        TIntermSymbol *symbolNode = initNode->getLeft()->getAsSymbolNode();
-        TIntermTyped *valueNode   = initNode->getRight()->getAsTyped();
-        ASSERT(symbolNode && valueNode);
+        TIntermSymbol *leftSymbolNode = initNode->getLeft()->getAsSymbolNode();
+        TIntermTyped *valueNode       = initNode->getRight()->getAsTyped();
+        ASSERT(leftSymbolNode && valueNode);
 
         if (getRootNode() == getParentBlock())
         {
@@ -2228,7 +2227,7 @@ bool GenMetalTraverser::visitDeclaration(Visit, TIntermDeclaration *declNode)
             mOut << "constant ";
         }
 
-        const TVariable &var = symbolNode->variable();
+        const TVariable &var = leftSymbolNode->variable();
         const Name varName(var);
 
         if (ExpressionContainsName(varName, *valueNode))
@@ -2476,9 +2475,7 @@ bool sh::EmitMetal(TCompiler &compiler,
 
     {
 #if defined(ANGLE_ENABLE_ASSERTS)
-        std::string gmdStdoutString = angle::GetEnvironmentVar("GMD_STDOUT");
-        bool gmdStdoutBool          = !gmdStdoutString.empty() && (gmdStdoutString == "1");
-        DebugSink outWrapper(out, gmdStdoutBool);
+        DebugSink outWrapper(out, angle::GetBoolEnvironmentVar("GMD_STDOUT"));
         outWrapper.watch(angle::GetEnvironmentVar("GMD_WATCH_STRING"));
 #else
         TInfoSinkBase &outWrapper = out;
