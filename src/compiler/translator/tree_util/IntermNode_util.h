@@ -25,6 +25,7 @@ TIntermFunctionDefinition *CreateInternalFunctionDefinitionNode(const TFunction 
 TIntermTyped *CreateZeroNode(const TType &type);
 TIntermConstantUnion *CreateFloatNode(float value);
 TIntermConstantUnion *CreateIndexNode(int index);
+TIntermConstantUnion *CreateUIntNode(unsigned int value);
 TIntermConstantUnion *CreateBoolNode(bool value);
 
 TVariable *CreateTempVariable(TSymbolTable *symbolTable, const TType *type);
@@ -48,6 +49,7 @@ const TVariable *DeclareInterfaceBlock(TIntermBlock *root,
                                        TSymbolTable *symbolTable,
                                        TFieldList *fieldList,
                                        TQualifier qualifier,
+                                       const TLayoutQualifier &layoutQualifier,
                                        const TMemoryQualifier &memoryQualifier,
                                        uint32_t arraySize,
                                        const ImmutableString &blockTypeName,
