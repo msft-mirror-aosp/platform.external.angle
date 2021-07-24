@@ -363,10 +363,7 @@ ANGLE_NO_DISCARD bool AddBresenhamEmulationVS(TCompiler *compiler,
         new TIntermIfElse(specConst->getLineRasterEmulation(), emulationBlock, nullptr);
 
     // Ensure the statements run at the end of the main() function.
-    TIntermFunctionDefinition *main = FindMain(root);
-    TIntermBlock *mainBody          = main->getBody();
-    mainBody->appendStatement(ifEmulation);
-    return compiler->validateAST(root);
+    return RunAtTheEndOfShader(compiler, root, ifEmulation, symbolTable);
 }
 
 ANGLE_NO_DISCARD bool AddXfbEmulationSupport(TCompiler *compiler,
@@ -390,7 +387,7 @@ ANGLE_NO_DISCARD bool AddXfbEmulationSupport(TCompiler *compiler,
 
     const TType *ivec4Type = StaticType::GetBasic<EbtInt, kMaxXfbBuffers>();
     TType *stridesType     = new TType(*ivec4Type);
-    stridesType->setQualifier(EvqConst);
+    stridesType->setQualifier(EvqParamConst);
 
     // Create the parameter variable.
     TVariable *stridesVar = new TVariable(symbolTable, ImmutableString("strides"), stridesType,
@@ -531,7 +528,10 @@ ANGLE_NO_DISCARD bool AddXfbEmulationSupport(TCompiler *compiler,
         varName << vk::kXfbEmulationBufferName;
         varName.appendDecimal(bufferIndex);
 
-        DeclareInterfaceBlock(root, symbolTable, fieldList, EvqBuffer, TLayoutQualifier::Create(),
+        TLayoutQualifier layoutQualifier = TLayoutQualifier::Create();
+        layoutQualifier.blockStorage     = EbsStd430;
+
+        DeclareInterfaceBlock(root, symbolTable, fieldList, EvqBuffer, layoutQualifier,
                               TMemoryQualifier::Create(), 0, blockName, varName);
     }
 
@@ -1266,6 +1266,10 @@ bool TranslatorVulkan::translateImpl(TInfoSinkBase &sink,
         return false;
     }
 
+    // Make sure function call validation is not accidentally left off anywhere.
+    ASSERT(mValidateASTOptions.validateFunctionCall);
+    ASSERT(mValidateASTOptions.validateNoRawFunctionCalls);
+
     return true;
 }
 
@@ -1342,9 +1346,7 @@ bool TranslatorVulkan::translate(TIntermBlock *root,
     }
 
 #if defined(ANGLE_ENABLE_DIRECT_SPIRV_GENERATION)
-    if ((compileOptions & SH_GENERATE_SPIRV_DIRECTLY) != 0 &&
-        (getShaderType() == GL_VERTEX_SHADER || getShaderType() == GL_FRAGMENT_SHADER ||
-         getShaderType() == GL_COMPUTE_SHADER))
+    if ((compileOptions & SH_GENERATE_SPIRV_DIRECTLY) != 0)
     {
         // Declare the implicitly defined gl_PerVertex I/O blocks if not already.  This will help
         // SPIR-V generation treat them mostly like usual I/O blocks.
