@@ -560,6 +560,17 @@ const SpirvTypeData &SPIRVBuilder::getTypeData(const TType &type, const SpirvTyp
     return getSpirvTypeData(spirvType, block);
 }
 
+const SpirvTypeData &SPIRVBuilder::getTypeDataOverrideTypeSpec(const TType &type,
+                                                               const SpirvTypeSpec &typeSpec)
+{
+    // This is a variant of getTypeData() where type spec is not automatically derived.  It's useful
+    // in cast operations that specifically need to override the spec.
+    SpirvType spirvType = getSpirvType(type, typeSpec);
+    spirvType.typeSpec  = typeSpec;
+
+    return getSpirvTypeData(spirvType, nullptr);
+}
+
 const SpirvTypeData &SPIRVBuilder::getSpirvTypeData(const SpirvType &type, const TSymbol *block)
 {
     // Structs with bools generate a different type when used in an interface block (where the bool
@@ -1606,6 +1617,12 @@ void SPIRVBuilder::addCapability(spv::Capability capability)
     mCapabilities.insert(capability);
 }
 
+void SPIRVBuilder::addExecutionMode(spv::ExecutionMode executionMode)
+{
+    ASSERT(static_cast<size_t>(executionMode) < mExecutionModes.size());
+    mExecutionModes.set(executionMode);
+}
+
 void SPIRVBuilder::setEntryPointId(spirv::IdRef id)
 {
     ASSERT(!mEntryPointId.valid());
@@ -2139,6 +2156,13 @@ void SPIRVBuilder::generateExecutionModes(spirv::Blob *blob)
 
         default:
             break;
+    }
+
+    // Add any execution modes that were added due to built-ins used in the shader.
+    for (uint32_t executionMode : mExecutionModes)
+    {
+        spirv::WriteExecutionMode(blob, mEntryPointId,
+                                  static_cast<spv::ExecutionMode>(executionMode), {});
     }
 }
 
