@@ -49,24 +49,8 @@ bool operator==(const SpirvType &a, const SpirvType &b)
            a.typeSpec.isOrHasBoolInInterfaceBlock == b.typeSpec.isOrHasBoolInInterfaceBlock;
 }
 
-uint32_t GetTotalArrayElements(const TSpan<const unsigned int> &arraySizes)
+namespace
 {
-    uint32_t arraySizeProduct = 1;
-    for (uint32_t arraySize : arraySizes)
-    {
-        // For runtime arrays, arraySize will be 0 and should be excluded.
-        arraySizeProduct *= arraySize > 0 ? arraySize : 1;
-    }
-
-    return arraySizeProduct;
-}
-
-uint32_t GetOutermostArraySize(const SpirvType &type)
-{
-    uint32_t size = type.arraySizes.back();
-    return size ? size : 1;
-}
-
 bool IsBlockFieldRowMajorQualified(const TType &fieldType, bool isParentBlockRowMajorQualified)
 {
     // If the field is specifically qualified as row-major, it will be row-major.  Otherwise unless
@@ -94,21 +78,18 @@ bool IsInvariant(const TType &type, TCompiler *compiler)
 
 TLayoutBlockStorage GetBlockStorage(const TType &type)
 {
-    // If the type specifies the layout, take it from that.
-    TLayoutBlockStorage blockStorage = type.getLayoutQualifier().blockStorage;
-
-    // For user-defined interface blocks, the block storage is specified on the symbol itself and
-    // not the type.
-    if (blockStorage == EbsUnspecified && type.getInterfaceBlock() != nullptr)
+    // For interface blocks, the block storage is specified on the symbol itself.
+    if (type.getInterfaceBlock() != nullptr)
     {
-        blockStorage = type.getInterfaceBlock()->blockStorage();
+        return type.getInterfaceBlock()->blockStorage();
     }
 
-    if (IsShaderIoBlock(type.getQualifier()) || blockStorage == EbsStd140 ||
-        blockStorage == EbsStd430)
-    {
-        return blockStorage;
-    }
+    // I/O blocks must have been handled above.
+    ASSERT(!IsShaderIoBlock(type.getQualifier()));
+
+    // Additionally, interface blocks are already handled, so it's not expected for the type to have
+    // a block storage specified.
+    ASSERT(type.getLayoutQualifier().blockStorage == EbsUnspecified);
 
     // Default to std140 for uniform and std430 for buffer blocks.
     return type.getQualifier() == EvqBuffer ? EbsStd430 : EbsStd140;
@@ -259,6 +240,109 @@ uint32_t GetArrayStrideInBlock(const ShaderVariable &var, bool isStd140)
     return memberInfo.arrayStride * var.getInnerArraySizeProduct();
 }
 
+spv::ExecutionMode GetGeometryInputExecutionMode(TLayoutPrimitiveType primitiveType)
+{
+    // Default input primitive type for geometry shaders is points
+    if (primitiveType == EptUndefined)
+    {
+        primitiveType = EptPoints;
+    }
+
+    switch (primitiveType)
+    {
+        case EptPoints:
+            return spv::ExecutionModeInputPoints;
+        case EptLines:
+            return spv::ExecutionModeInputLines;
+        case EptLinesAdjacency:
+            return spv::ExecutionModeInputLinesAdjacency;
+        case EptTriangles:
+            return spv::ExecutionModeTriangles;
+        case EptTrianglesAdjacency:
+            return spv::ExecutionModeInputTrianglesAdjacency;
+        case EptLineStrip:
+        case EptTriangleStrip:
+        default:
+            UNREACHABLE();
+            return {};
+    }
+}
+
+spv::ExecutionMode GetGeometryOutputExecutionMode(TLayoutPrimitiveType primitiveType)
+{
+    // Default output primitive type for geometry shaders is points
+    if (primitiveType == EptUndefined)
+    {
+        primitiveType = EptPoints;
+    }
+
+    switch (primitiveType)
+    {
+        case EptPoints:
+            return spv::ExecutionModeOutputPoints;
+        case EptLineStrip:
+            return spv::ExecutionModeOutputLineStrip;
+        case EptTriangleStrip:
+            return spv::ExecutionModeOutputTriangleStrip;
+        case EptLines:
+        case EptLinesAdjacency:
+        case EptTriangles:
+        case EptTrianglesAdjacency:
+        default:
+            UNREACHABLE();
+            return {};
+    }
+}
+
+spv::ExecutionMode GetTessEvalInputExecutionMode(TLayoutTessEvaluationType inputType)
+{
+    switch (inputType)
+    {
+        case EtetTriangles:
+            return spv::ExecutionModeTriangles;
+        case EtetQuads:
+            return spv::ExecutionModeQuads;
+        case EtetIsolines:
+            return spv::ExecutionModeIsolines;
+        default:
+            UNREACHABLE();
+            return {};
+    }
+}
+
+spv::ExecutionMode GetTessEvalSpacingExecutionMode(TLayoutTessEvaluationType spacing)
+{
+    switch (spacing)
+    {
+        case EtetEqualSpacing:
+        case EtetUndefined:
+            return spv::ExecutionModeSpacingEqual;
+        case EtetFractionalEvenSpacing:
+            return spv::ExecutionModeSpacingFractionalEven;
+        case EtetFractionalOddSpacing:
+            return spv::ExecutionModeSpacingFractionalOdd;
+        default:
+            UNREACHABLE();
+            return {};
+    }
+}
+
+spv::ExecutionMode GetTessEvalOrderingExecutionMode(TLayoutTessEvaluationType ordering)
+{
+    switch (ordering)
+    {
+        case EtetCw:
+            return spv::ExecutionModeVertexOrderCw;
+        case EtetCcw:
+        case EtetUndefined:
+            return spv::ExecutionModeVertexOrderCcw;
+        default:
+            UNREACHABLE();
+            return {};
+    }
+}
+}  // anonymous namespace
+
 void SpirvTypeSpec::inferDefaults(const TType &type, TCompiler *compiler)
 {
     // Infer some defaults based on type.  If necessary, this overrides some fields (if not already
@@ -377,6 +461,37 @@ void SpirvTypeSpec::onVectorComponentSelection()
            blockStorage == EbsUnspecified);
 }
 
+SPIRVBuilder::SPIRVBuilder(TCompiler *compiler,
+                           ShCompileOptions compileOptions,
+                           bool forceHighp,
+                           ShHashFunction64 hashFunction,
+                           NameMap &nameMap)
+    : mCompiler(compiler),
+      mCompileOptions(compileOptions),
+      mShaderType(gl::FromGLenum<gl::ShaderType>(compiler->getShaderType())),
+      mDisableRelaxedPrecision(forceHighp),
+      mNextAvailableId(1),
+      mHashFunction(hashFunction),
+      mNameMap(nameMap),
+      mNextUnusedBinding(0),
+      mNextUnusedInputLocation(0),
+      mNextUnusedOutputLocation(0)
+{
+    // The Shader capability is always defined.
+    addCapability(spv::CapabilityShader);
+
+    // Add Geometry or Tessellation capabilities based on shader type.
+    if (mCompiler->getShaderType() == GL_GEOMETRY_SHADER)
+    {
+        addCapability(spv::CapabilityGeometry);
+    }
+    else if (mCompiler->getShaderType() == GL_TESS_CONTROL_SHADER_EXT ||
+             mCompiler->getShaderType() == GL_TESS_EVALUATION_SHADER_EXT)
+    {
+        addCapability(spv::CapabilityTessellation);
+    }
+}
+
 spirv::IdRef SPIRVBuilder::getNewId(const SpirvDecorations &decorations)
 {
     spirv::IdRef newId = mNextAvailableId;
@@ -443,6 +558,17 @@ const SpirvTypeData &SPIRVBuilder::getTypeData(const TType &type, const SpirvTyp
     }
 
     return getSpirvTypeData(spirvType, block);
+}
+
+const SpirvTypeData &SPIRVBuilder::getTypeDataOverrideTypeSpec(const TType &type,
+                                                               const SpirvTypeSpec &typeSpec)
+{
+    // This is a variant of getTypeData() where type spec is not automatically derived.  It's useful
+    // in cast operations that specifically need to override the spec.
+    SpirvType spirvType = getSpirvType(type, typeSpec);
+    spirvType.typeSpec  = typeSpec;
+
+    return getSpirvTypeData(spirvType, nullptr);
 }
 
 const SpirvTypeData &SPIRVBuilder::getSpirvTypeData(const SpirvType &type, const TSymbol *block)
@@ -615,7 +741,7 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
         typeId = getNewId({});
         spirv::WriteTypeSampledImage(&mSpirvTypeAndConstantDecls, typeId, nonSampledId);
     }
-    else if (IsImage(type.type) || type.isSamplerBaseImage)
+    else if (IsImage(type.type) || IsSubpassInputType(type.type) || type.isSamplerBaseImage)
     {
         // Declaring an image.
 
@@ -633,11 +759,6 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
         typeId = getNewId({});
         spirv::WriteTypeImage(&mSpirvTypeAndConstantDecls, typeId, sampledType, dim, depth, arrayed,
                               multisampled, sampled, imageFormat, nullptr);
-    }
-    else if (IsSubpassInputType(type.type))
-    {
-        // TODO: add support for framebuffer fetch. http://anglebug.com/4889
-        UNIMPLEMENTED();
     }
     else if (type.secondarySize > 1)
     {
@@ -765,7 +886,7 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
                                           spirv::LiteralInteger *sampledOut)
 {
     TBasicType sampledType = EbtFloat;
-    *dimOut                = spv::Dim2D;
+    *dimOut                = IsSubpassInputType(type) ? spv::DimSubpassData : spv::Dim2D;
     bool isDepth           = false;
     bool isArrayed         = false;
     bool isMultisampled    = false;
@@ -776,6 +897,7 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
         // Float 2D Images
         case EbtSampler2D:
         case EbtImage2D:
+        case EbtSubpassInput:
             break;
         case EbtSamplerExternalOES:
         case EbtSamplerExternal2DY2YEXT:
@@ -789,6 +911,7 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
             break;
         case EbtSampler2DMS:
         case EbtImage2DMS:
+        case EbtSubpassInputMS:
             isMultisampled = true;
             break;
         case EbtSampler2DMSArray:
@@ -807,6 +930,7 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
         // Integer 2D images
         case EbtISampler2D:
         case EbtIImage2D:
+        case EbtISubpassInput:
             sampledType = EbtInt;
             break;
         case EbtISampler2DArray:
@@ -816,6 +940,7 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
             break;
         case EbtISampler2DMS:
         case EbtIImage2DMS:
+        case EbtISubpassInputMS:
             sampledType    = EbtInt;
             isMultisampled = true;
             break;
@@ -829,6 +954,7 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
         // Unsinged integer 2D images
         case EbtUSampler2D:
         case EbtUImage2D:
+        case EbtUSubpassInput:
             sampledType = EbtUInt;
             break;
         case EbtUSampler2DArray:
@@ -838,6 +964,7 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
             break;
         case EbtUSampler2DMS:
         case EbtUImage2DMS:
+        case EbtUSubpassInputMS:
             sampledType    = EbtUInt;
             isMultisampled = true;
             break;
@@ -992,7 +1119,6 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
             *dimOut     = spv::DimBuffer;
             break;
         default:
-            // TODO: support framebuffer fetch.  http://anglebug.com/4889
             UNREACHABLE();
     }
 
@@ -1028,6 +1154,8 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
     //     Rect         SampledRect     ImageRect
     //     Buffer       SampledBuffer   ImageBuffer
     //
+    // Additionally, the SubpassData Dim requires the InputAttachment capability.
+    //
     // Note that the Shader capability is always unconditionally added.
     //
     switch (*dimOut)
@@ -1056,8 +1184,10 @@ void SPIRVBuilder::getImageTypeParameters(TBasicType type,
             addCapability(isSampledImage ? spv::CapabilitySampledBuffer
                                          : spv::CapabilityImageBuffer);
             break;
+        case spv::DimSubpassData:
+            addCapability(spv::CapabilityInputAttachment);
+            break;
         default:
-            // TODO: support framebuffer fetch.  http://anglebug.com/4889
             UNREACHABLE();
     }
 }
@@ -1487,6 +1617,12 @@ void SPIRVBuilder::addCapability(spv::Capability capability)
     mCapabilities.insert(capability);
 }
 
+void SPIRVBuilder::addExecutionMode(spv::ExecutionMode executionMode)
+{
+    ASSERT(static_cast<size_t>(executionMode) < mExecutionModes.size());
+    mExecutionModes.set(executionMode);
+}
+
 void SPIRVBuilder::setEntryPointId(spirv::IdRef id)
 {
     ASSERT(!mEntryPointId.valid());
@@ -1896,8 +2032,7 @@ spirv::Blob SPIRVBuilder::getSpirv()
 
     // Generate metadata in the following order:
     //
-    // - OpCapability instructions.  The Shader capability is always defined.
-    spirv::WriteCapability(&result, spv::CapabilityShader);
+    // - OpCapability instructions.
     for (spv::Capability capability : mCapabilities)
     {
         spirv::WriteCapability(&result, capability);
@@ -1965,6 +2100,50 @@ void SPIRVBuilder::generateExecutionModes(spirv::Blob *blob)
 
             break;
 
+        case gl::ShaderType::TessControl:
+            spirv::WriteExecutionMode(
+                blob, mEntryPointId, spv::ExecutionModeOutputVertices,
+                {spirv::LiteralInteger(mCompiler->getTessControlShaderOutputVertices())});
+            break;
+
+        case gl::ShaderType::TessEvaluation:
+        {
+            const spv::ExecutionMode inputExecutionMode = GetTessEvalInputExecutionMode(
+                mCompiler->getTessEvaluationShaderInputPrimitiveType());
+            const spv::ExecutionMode spacingExecutionMode = GetTessEvalSpacingExecutionMode(
+                mCompiler->getTessEvaluationShaderInputVertexSpacingType());
+            const spv::ExecutionMode orderingExecutionMode = GetTessEvalOrderingExecutionMode(
+                mCompiler->getTessEvaluationShaderInputOrderingType());
+
+            spirv::WriteExecutionMode(blob, mEntryPointId, inputExecutionMode, {});
+            spirv::WriteExecutionMode(blob, mEntryPointId, spacingExecutionMode, {});
+            spirv::WriteExecutionMode(blob, mEntryPointId, orderingExecutionMode, {});
+            if (mCompiler->getTessEvaluationShaderInputPointType() == EtetPointMode)
+            {
+                spirv::WriteExecutionMode(blob, mEntryPointId, spv::ExecutionModePointMode, {});
+            }
+            break;
+        }
+
+        case gl::ShaderType::Geometry:
+        {
+            const spv::ExecutionMode inputExecutionMode =
+                GetGeometryInputExecutionMode(mCompiler->getGeometryShaderInputPrimitiveType());
+            const spv::ExecutionMode outputExecutionMode =
+                GetGeometryOutputExecutionMode(mCompiler->getGeometryShaderOutputPrimitiveType());
+
+            spirv::WriteExecutionMode(blob, mEntryPointId, inputExecutionMode, {});
+            spirv::WriteExecutionMode(blob, mEntryPointId, outputExecutionMode, {});
+            spirv::WriteExecutionMode(
+                blob, mEntryPointId, spv::ExecutionModeOutputVertices,
+                {spirv::LiteralInteger(mCompiler->getGeometryShaderMaxVertices())});
+            spirv::WriteExecutionMode(
+                blob, mEntryPointId, spv::ExecutionModeInvocations,
+                {spirv::LiteralInteger(mCompiler->getGeometryShaderInvocations())});
+
+            break;
+        }
+
         case gl::ShaderType::Compute:
         {
             const sh::WorkGroupSize &localSize = mCompiler->getComputeShaderLocalSize();
@@ -1974,9 +2153,16 @@ void SPIRVBuilder::generateExecutionModes(spirv::Blob *blob)
                  spirv::LiteralInteger(localSize[2])});
             break;
         }
+
         default:
-            // TODO: other shader types.  http://anglebug.com/4889
             break;
+    }
+
+    // Add any execution modes that were added due to built-ins used in the shader.
+    for (uint32_t executionMode : mExecutionModes)
+    {
+        spirv::WriteExecutionMode(blob, mEntryPointId,
+                                  static_cast<spv::ExecutionMode>(executionMode), {});
     }
 }
 

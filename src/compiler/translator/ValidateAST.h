@@ -34,14 +34,25 @@ struct ValidateASTOptions
     // Check that all EOpCallFunctionInAST have their corresponding function definitions in the AST,
     // with matching symbol ids. There should also be at least a prototype declaration before the
     // function is called.
-    bool validateFunctionCall = true;  // TODO
+    bool validateFunctionCall = true;
+    // Check that EOpCallInternalRawFunction is not used.  This OP is deprecated and needs to be
+    // removed.  http://anglebug.com/6059
+    bool validateNoRawFunctionCalls = true;
     // Check that there are no null nodes where they are not allowed, for example as children of
     // TIntermDeclaration or TIntermBlock.
     bool validateNullNodes = true;
     // Check that symbols that reference variables have consistent qualifiers and symbol ids with
-    // the variable declaration. For example, references to function out parameters should be
-    // EvqOut.
-    bool validateQualifiers = true;  // TODO
+    // the variable declaration.  The following needs to be validated:
+    //
+    // Implemented:
+    //
+    //  - Function parameters having one of EvqParam* qualifiers.
+    //
+    // TODO:
+    //
+    //  - Function-local variables must have the EvqTemporary qualifier.
+    //  - Symbol references and declarations have identical qualifiers.
+    bool validateQualifiers = true;
     // Check that variable declarations that can't have initializers don't have initializers
     // (varyings, uniforms for example).
     bool validateInitializers = true;  // TODO
@@ -53,8 +64,20 @@ struct ValidateASTOptions
     // as validateVariableReferences already ensures other references to the struct match the
     // declaration.
     bool validateStructUsage = true;
-    // Check that expression nodes have the correct type considering their operand(s).
-    bool validateExpressionTypes = true;  // TODO
+    // Check that expression nodes have the correct type considering their operand(s).  The
+    // following validation is possible:
+    //
+    // Implemented:
+    //
+    //  - Binary node that indexes T[] should have type T
+    //
+    // TODO:
+    //
+    //  - Function calls (including built-ins) have the same return type in the node and function.
+    //  - Unary and binary operators have the correct type based on operands
+    //  - Swizzle result has same type as the operand except for vector size
+    //  - Ternary operator has the same type as the operands
+    bool validateExpressionTypes = true;
     // If SeparateDeclarations has been run, check for the absence of multi declarations as well.
     bool validateMultiDeclarations = false;
 };
