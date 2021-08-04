@@ -40,7 +40,7 @@ vars = {
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': '571256871c2e2f03995373e1e4a02958d8cd8cf5',
+  'vk_gl_cts_revision': '0eb84cfc3d3fbe4e032e3a9c3b4626458a04ee59',
 
   # Current revision of googletest.
   # Note: this dep cannot be auto-rolled b/c of nesting.
@@ -491,7 +491,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': '{swiftshader_git}/SwiftShader@b8bcc42a41e53e492e0f64ad880b69093da15c10',
+    'url': '{swiftshader_git}/SwiftShader@44660405ea6ce02683617cc483aecc080499aa27',
     'condition': 'not build_with_chromium',
   },
 
@@ -511,7 +511,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': '{chromium_git}/vulkan-deps@ecc420b25566277086433471d76bfb4753f1d794',
+    'url': '{chromium_git}/vulkan-deps@2395f179eff3a2c91996ab9cab889be140ce0f71',
     'condition': 'not build_with_chromium',
   },
 
