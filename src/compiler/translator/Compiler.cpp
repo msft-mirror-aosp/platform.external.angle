@@ -311,6 +311,7 @@ TCompiler::TCompiler(sh::GLenum type, ShShaderSpec spec, ShShaderOutput output)
       mTessEvaluationShaderInputVertexSpacingType(EtetUndefined),
       mTessEvaluationShaderInputOrderingType(EtetUndefined),
       mTessEvaluationShaderInputPointType(EtetUndefined),
+      mHasAnyPreciseType(false),
       mCompileOptions(0)
 {}
 
@@ -516,6 +517,8 @@ void TCompiler::setASTMetadata(const TParseContext &parseContext)
 
     mNumViews = parseContext.getNumViews();
 
+    mHasAnyPreciseType = parseContext.hasAnyPreciseType();
+
     if (mShaderType == GL_GEOMETRY_SHADER_EXT)
     {
         mGeometryShaderInputPrimitiveType  = parseContext.getGeometryShaderInputPrimitiveType();
@@ -559,6 +562,7 @@ bool TCompiler::validateAST(TIntermNode *root)
 #if defined(ANGLE_ENABLE_ASSERTS)
         if (!valid)
         {
+            OutputTree(root, mInfoSink.info);
             fprintf(stderr, "AST validation error(s):\n%s\n", mInfoSink.info.c_str());
         }
 #endif
