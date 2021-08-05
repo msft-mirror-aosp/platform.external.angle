@@ -24,9 +24,10 @@ namespace fuzz {
 FuzzerPassWrapVectorSynonym::FuzzerPassWrapVectorSynonym(
     opt::IRContext* ir_context, TransformationContext* transformation_context,
     FuzzerContext* fuzzer_context,
-    protobufs::TransformationSequence* transformations)
+    protobufs::TransformationSequence* transformations,
+    bool ignore_inapplicable_transformations)
     : FuzzerPass(ir_context, transformation_context, fuzzer_context,
-                 transformations) {}
+                 transformations, ignore_inapplicable_transformations) {}
 
 void FuzzerPassWrapVectorSynonym::Apply() {
   ForEachInstructionWithInstructionDescriptor(
@@ -45,13 +46,6 @@ void FuzzerPassWrapVectorSynonym::Apply() {
         // result id, type id, or is not supported type.
         if (!TransformationWrapVectorSynonym::IsInstructionSupported(
                 GetIRContext(), *instruction_iterator)) {
-          return;
-        }
-
-        // The transformation will not be applicable if the id of the scalar
-        // operation is irrelevant.
-        if (GetTransformationContext()->GetFactManager()->IdIsIrrelevant(
-                instruction_iterator->result_id())) {
           return;
         }
 
@@ -77,6 +71,25 @@ void FuzzerPassWrapVectorSynonym::Apply() {
         uint32_t target_id1 = instruction_iterator->GetSingleWordInOperand(0);
         uint32_t target_id2 = instruction_iterator->GetSingleWordInOperand(1);
 
+        // We need to be able to make a synonym of the scalar operation's result
+        // id, as well as the operand ids (for example, they cannot be
+        // irrelevant).
+        if (!fuzzerutil::CanMakeSynonymOf(GetIRContext(),
+                                          *GetTransformationContext(),
+                                          *instruction_iterator)) {
+          return;
+        }
+        if (!fuzzerutil::CanMakeSynonymOf(
+                GetIRContext(), *GetTransformationContext(),
+                *GetIRContext()->get_def_use_mgr()->GetDef(target_id1))) {
+          return;
+        }
+        if (!fuzzerutil::CanMakeSynonymOf(
+                GetIRContext(), *GetTransformationContext(),
+                *GetIRContext()->get_def_use_mgr()->GetDef(target_id2))) {
+          return;
+        }
+
         // Stores the ids of scalar constants.
         std::vector<uint32_t> vec1_components;
         std::vector<uint32_t> vec2_components;
@@ -95,19 +108,21 @@ void FuzzerPassWrapVectorSynonym::Apply() {
         }
 
         // Add two OpCompositeConstruct to the module with result id returned.
+        const uint32_t vector_type_id =
+            FindOrCreateVectorType(operand_type_id, vector_size);
 
         // Add the first OpCompositeConstruct that wraps the id of the first
         // operand.
         uint32_t result_id1 = GetFuzzerContext()->GetFreshId();
         ApplyTransformation(TransformationCompositeConstruct(
-            operand_type_id, vec1_components, instruction_descriptor,
+            vector_type_id, vec1_components, instruction_descriptor,
             result_id1));
 
         // Add the second OpCompositeConstruct that wraps the id of the second
         // operand.
         uint32_t result_id2 = GetFuzzerContext()->GetFreshId();
         ApplyTransformation(TransformationCompositeConstruct(
-            operand_type_id, vec2_components, instruction_descriptor,
+            vector_type_id, vec2_components, instruction_descriptor,
             result_id2));
 
         // Apply transformation to do vector operation and add synonym between

@@ -6,6 +6,7 @@
 
 #include "compiler/translator/ValidateAST.h"
 
+#include "common/utilities.h"
 #include "compiler/translator/Diagnostics.h"
 #include "compiler/translator/ImmutableStringBuilder.h"
 #include "compiler/translator/Symbol.h"
@@ -54,11 +55,15 @@ class ValidateAST : public TIntermTraverser
     void visitStructOrInterfaceBlockDeclaration(const TType &type, const TSourceLoc &location);
     void visitStructInDeclarationUsage(const TType &type, const TSourceLoc &location);
     // Visit a unary or aggregate node and validate its built-in op against its built-in function.
-    void visitBuiltIn(TIntermOperator *op, const TFunction *function);
+    void visitBuiltInFunction(TIntermOperator *op, const TFunction *function);
     // Visit an aggregate node and validate its function call is to one that's already defined.
     void visitFunctionCall(TIntermAggregate *node);
     // Visit a binary node and validate its type against its operands.
     void validateExpressionTypeBinary(TIntermBinary *node);
+    // Visit a symbol node and validate it's declared previously.
+    void visitVariableNeedingDeclaration(TIntermSymbol *node);
+    // Visit a built-in symbol node and validate it's consistently used across the tree.
+    void visitBuiltInVariable(TIntermSymbol *node);
 
     void scope(Visit visit);
     bool isVariableDeclared(const TVariable *variable);
@@ -80,6 +85,7 @@ class ValidateAST : public TIntermTraverser
     // For validateVariableReferences:
     std::vector<std::set<const TVariable *>> mDeclaredVariables;
     std::set<const TInterfaceBlock *> mNamelessInterfaceBlocks;
+    std::map<ImmutableString, const TVariable *> mReferencedBuiltIns;
     bool mVariableReferencesFailed = false;
 
     // For validateBuiltInOps:
@@ -275,7 +281,7 @@ void ValidateAST::visitStructInDeclarationUsage(const TType &type, const TSource
     }
 }
 
-void ValidateAST::visitBuiltIn(TIntermOperator *node, const TFunction *function)
+void ValidateAST::visitBuiltInFunction(TIntermOperator *node, const TFunction *function)
 {
     const TOperator op = node->getOp();
     if (!BuiltInGroup::IsBuiltIn(op))
@@ -391,6 +397,91 @@ void ValidateAST::validateExpressionTypeBinary(TIntermBinary *node)
     }
 }
 
+void ValidateAST::visitVariableNeedingDeclaration(TIntermSymbol *node)
+{
+    const TVariable *variable = &node->variable();
+    const TType &type         = node->getType();
+
+    // If it's a reference to a field of a nameless interface block, match it by index and name.
+    if (type.getInterfaceBlock() && !type.isInterfaceBlock())
+    {
+        const TInterfaceBlock *interfaceBlock = type.getInterfaceBlock();
+        const TFieldList &fieldList           = interfaceBlock->fields();
+        const size_t fieldIndex               = type.getInterfaceBlockFieldIndex();
+
+        if (mNamelessInterfaceBlocks.count(interfaceBlock) == 0)
+        {
+            mDiagnostics->error(node->getLine(),
+                                "Found reference to undeclared or inconsistenly transformed "
+                                "nameless interface block <validateVariableReferences>",
+                                node->getName().data());
+            mVariableReferencesFailed = true;
+        }
+        else if (fieldIndex >= fieldList.size() || node->getName() != fieldList[fieldIndex]->name())
+        {
+            mDiagnostics->error(node->getLine(),
+                                "Found reference to inconsistenly transformed nameless "
+                                "interface block field <validateVariableReferences>",
+                                node->getName().data());
+            mVariableReferencesFailed = true;
+        }
+        return;
+    }
+
+    const bool isStructDeclaration =
+        type.isStructSpecifier() && variable->symbolType() == SymbolType::Empty;
+
+    if (!isStructDeclaration && !isVariableDeclared(variable))
+    {
+        mDiagnostics->error(node->getLine(),
+                            "Found reference to undeclared or inconsistently transformed "
+                            "variable <validateVariableReferences>",
+                            node->getName().data());
+        mVariableReferencesFailed = true;
+    }
+}
+
+void ValidateAST::visitBuiltInVariable(TIntermSymbol *node)
+{
+    const TVariable *variable = &node->variable();
+    ImmutableString name      = variable->name();
+
+    if (mOptions.validateVariableReferences)
+    {
+        auto iter = mReferencedBuiltIns.find(name);
+        if (iter == mReferencedBuiltIns.end())
+        {
+            mReferencedBuiltIns[name] = variable;
+            return;
+        }
+
+        if (variable != iter->second)
+        {
+            mDiagnostics->error(
+                node->getLine(),
+                "Found inconsistent references to built-in variable <validateVariableReferences>",
+                name.data());
+            mVariableReferencesFailed = true;
+        }
+    }
+
+    if (mOptions.validateQualifiers)
+    {
+        TQualifier qualifier = variable->getType().getQualifier();
+
+        if ((name == "gl_ClipDistance" && qualifier != EvqClipDistance) ||
+            (name == "gl_CullDistance" && qualifier != EvqCullDistance) ||
+            (name == "gl_LastFragData" && qualifier != EvqLastFragData))
+        {
+            mDiagnostics->error(
+                node->getLine(),
+                "Incorrect qualifier applied to redeclared built-in <validateQualifiers>",
+                name.data());
+            mQualifiersFailed = true;
+        }
+    }
+}
+
 void ValidateAST::scope(Visit visit)
 {
     if (mOptions.validateVariableReferences)
@@ -436,7 +527,7 @@ bool ValidateAST::isVariableDeclared(const TVariable *variable)
 bool ValidateAST::variableNeedsDeclaration(const TVariable *variable)
 {
     // Don't expect declaration for built-in variables.
-    if (variable->name().beginsWith("gl_"))
+    if (gl::IsBuiltInName(variable->name().data()))
     {
         return false;
     }
@@ -502,49 +593,18 @@ void ValidateAST::visitSymbol(TIntermSymbol *node)
     visitNode(PreVisit, node);
 
     const TVariable *variable = &node->variable();
-    const TType &type         = node->getType();
 
-    if (mOptions.validateVariableReferences && variableNeedsDeclaration(variable))
+    if (mOptions.validateVariableReferences)
     {
-        // If it's a reference to a field of a nameless interface block, match it by index and name.
-        if (type.getInterfaceBlock() && !type.isInterfaceBlock())
+        if (variableNeedsDeclaration(variable))
         {
-            const TInterfaceBlock *interfaceBlock = type.getInterfaceBlock();
-            const TFieldList &fieldList           = interfaceBlock->fields();
-            const size_t fieldIndex               = type.getInterfaceBlockFieldIndex();
-
-            if (mNamelessInterfaceBlocks.count(interfaceBlock) == 0)
-            {
-                mDiagnostics->error(node->getLine(),
-                                    "Found reference to undeclared or inconsistenly transformed "
-                                    "nameless interface block <validateVariableReferences>",
-                                    node->getName().data());
-                mVariableReferencesFailed = true;
-            }
-            else if (fieldIndex >= fieldList.size() ||
-                     node->getName() != fieldList[fieldIndex]->name())
-            {
-                mDiagnostics->error(node->getLine(),
-                                    "Found reference to inconsistenly transformed nameless "
-                                    "interface block field <validateVariableReferences>",
-                                    node->getName().data());
-                mVariableReferencesFailed = true;
-            }
+            visitVariableNeedingDeclaration(node);
         }
-        else
-        {
-            const bool isStructDeclaration =
-                type.isStructSpecifier() && variable->symbolType() == SymbolType::Empty;
+    }
 
-            if (!isStructDeclaration && !isVariableDeclared(variable))
-            {
-                mDiagnostics->error(node->getLine(),
-                                    "Found reference to undeclared or inconsistently transformed "
-                                    "variable <validateVariableReferences>",
-                                    node->getName().data());
-                mVariableReferencesFailed = true;
-            }
-        }
+    if (gl::IsBuiltInName(variable->name().data()))
+    {
+        visitBuiltInVariable(node);
     }
 }
 
@@ -577,7 +637,7 @@ bool ValidateAST::visitUnary(Visit visit, TIntermUnary *node)
 
     if (visit == PreVisit && mOptions.validateBuiltInOps)
     {
-        visitBuiltIn(node, node->getFunction());
+        visitBuiltInFunction(node, node->getFunction());
     }
 
     return true;
@@ -676,7 +736,7 @@ bool ValidateAST::visitAggregate(Visit visit, TIntermAggregate *node)
 
     if (visit == PreVisit && mOptions.validateBuiltInOps)
     {
-        visitBuiltIn(node, node->getFunction());
+        visitBuiltInFunction(node, node->getFunction());
     }
 
     if (visit == PreVisit && mOptions.validateFunctionCall)
@@ -737,6 +797,19 @@ bool ValidateAST::visitDeclaration(Visit visit, TIntermDeclaration *node)
 
     if (mOptions.validateMultiDeclarations && sequence.size() > 1)
     {
+        TIntermSymbol *symbol = sequence[1]->getAsSymbolNode();
+        if (symbol == nullptr)
+        {
+            TIntermBinary *init = sequence[1]->getAsBinaryNode();
+            ASSERT(init && init->getOp() == EOpInitialize);
+            symbol = init->getLeft()->getAsSymbolNode();
+        }
+        ASSERT(symbol);
+
+        mDiagnostics->error(node->getLine(),
+                            "Found multiple declarations where SeparateDeclarations should have "
+                            "separated them <validateMultiDeclarations>",
+                            symbol->variable().name().data());
         mMultiDeclarationsFailed = true;
     }
 
@@ -793,6 +866,11 @@ bool ValidateAST::visitDeclaration(Visit visit, TIntermDeclaration *node)
                 const TType &type = variable->getType();
                 if (type.isStructSpecifier() || type.isInterfaceBlock())
                     visitStructOrInterfaceBlockDeclaration(type, node->getLine());
+            }
+
+            if (gl::IsBuiltInName(variable->name().data()))
+            {
+                visitBuiltInVariable(symbol);
             }
         }
     }

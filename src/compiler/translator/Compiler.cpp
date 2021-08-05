@@ -44,14 +44,13 @@
 #include "compiler/translator/tree_ops/SeparateDeclarations.h"
 #include "compiler/translator/tree_ops/SimplifyLoopConditions.h"
 #include "compiler/translator/tree_ops/SplitSequenceOperator.h"
+#include "compiler/translator/tree_ops/apple/AddAndTrueToLoopCondition.h"
+#include "compiler/translator/tree_ops/apple/RewriteDoWhile.h"
+#include "compiler/translator/tree_ops/apple/UnfoldShortCircuitAST.h"
 #include "compiler/translator/tree_ops/gl/ClampFragDepth.h"
 #include "compiler/translator/tree_ops/gl/RegenerateStructNames.h"
 #include "compiler/translator/tree_ops/gl/RewriteRepeatedAssignToSwizzled.h"
 #include "compiler/translator/tree_ops/gl/UseInterfaceBlockFields.h"
-#include "compiler/translator/tree_ops/gl/VectorizeVectorScalarArithmetic.h"
-#include "compiler/translator/tree_ops/gl/mac/AddAndTrueToLoopCondition.h"
-#include "compiler/translator/tree_ops/gl/mac/RewriteDoWhile.h"
-#include "compiler/translator/tree_ops/gl/mac/UnfoldShortCircuitAST.h"
 #include "compiler/translator/tree_ops/vulkan/EarlyFragmentTestsOptimization.h"
 #include "compiler/translator/tree_util/BuiltIn.h"
 #include "compiler/translator/tree_util/IntermNodePatternMatcher.h"
@@ -311,6 +310,7 @@ TCompiler::TCompiler(sh::GLenum type, ShShaderSpec spec, ShShaderOutput output)
       mTessEvaluationShaderInputVertexSpacingType(EtetUndefined),
       mTessEvaluationShaderInputOrderingType(EtetUndefined),
       mTessEvaluationShaderInputPointType(EtetUndefined),
+      mHasAnyPreciseType(false),
       mCompileOptions(0)
 {}
 
@@ -516,6 +516,8 @@ void TCompiler::setASTMetadata(const TParseContext &parseContext)
 
     mNumViews = parseContext.getNumViews();
 
+    mHasAnyPreciseType = parseContext.hasAnyPreciseType();
+
     if (mShaderType == GL_GEOMETRY_SHADER_EXT)
     {
         mGeometryShaderInputPrimitiveType  = parseContext.getGeometryShaderInputPrimitiveType();
@@ -559,6 +561,7 @@ bool TCompiler::validateAST(TIntermNode *root)
 #if defined(ANGLE_ENABLE_ASSERTS)
         if (!valid)
         {
+            OutputTree(root, mInfoSink.info);
             fprintf(stderr, "AST validation error(s):\n%s\n", mInfoSink.info.c_str());
         }
 #endif
@@ -578,10 +581,23 @@ bool TCompiler::disableValidateFunctionCall()
     return wasEnabled;
 }
 
-void TCompiler::enableValidateFunctionCall(bool enable)
+void TCompiler::restoreValidateFunctionCall(bool enable)
 {
     ASSERT(!mValidateASTOptions.validateFunctionCall);
     mValidateASTOptions.validateFunctionCall = enable;
+}
+
+bool TCompiler::disableValidateVariableReferences()
+{
+    bool wasEnabled                                = mValidateASTOptions.validateVariableReferences;
+    mValidateASTOptions.validateVariableReferences = false;
+    return wasEnabled;
+}
+
+void TCompiler::restoreValidateVariableReferences(bool enable)
+{
+    ASSERT(!mValidateASTOptions.validateVariableReferences);
+    mValidateASTOptions.validateVariableReferences = enable;
 }
 
 bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
@@ -1015,14 +1031,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         }
     }
 
-    if ((compileOptions & SH_REWRITE_VECTOR_SCALAR_ARITHMETIC) != 0)
-    {
-        if (!VectorizeVectorScalarArithmetic(this, root, &getSymbolTable()))
-        {
-            return false;
-        }
-    }
-
     if ((compileOptions & SH_REMOVE_DYNAMIC_INDEXING_OF_SWIZZLED_VECTOR) != 0)
     {
         if (!sh::RemoveDynamicIndexingOfSwizzledVector(this, root, &getSymbolTable(), nullptr))
@@ -1166,6 +1174,7 @@ void TCompiler::setResourceString()
         << ":MaxFunctionParameters:" << mResources.MaxFunctionParameters
         << ":EXT_blend_func_extended:" << mResources.EXT_blend_func_extended
         << ":EXT_frag_depth:" << mResources.EXT_frag_depth
+        << ":EXT_primitive_bounding_box:" << mResources.EXT_primitive_bounding_box
         << ":EXT_shader_texture_lod:" << mResources.EXT_shader_texture_lod
         << ":EXT_shader_framebuffer_fetch:" << mResources.EXT_shader_framebuffer_fetch
         << ":EXT_shader_framebuffer_fetch_non_coherent:" << mResources.EXT_shader_framebuffer_fetch_non_coherent

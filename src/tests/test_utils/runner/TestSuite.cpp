@@ -940,8 +940,6 @@ TestQueue BatchTests(const std::vector<TestIdentifier> &tests, int batchSize)
 
 void ListTests(const std::map<TestIdentifier, TestResult> &resultsMap)
 {
-    std::map<std::string, std::vector<std::string>> suites;
-
     std::cout << "Tests list:\n";
 
     for (const auto &resultIt : resultsMap)
@@ -949,6 +947,8 @@ void ListTests(const std::map<TestIdentifier, TestResult> &resultsMap)
         const TestIdentifier &id = resultIt.first;
         std::cout << id << "\n";
     }
+
+    std::cout << "End tests list.\n";
 }
 
 // Prints the names of the tests matching the user-specified filter flag.
@@ -1071,10 +1071,7 @@ TestSuite::TestSuite(int *argc, char **argv)
 #if defined(ANGLE_PLATFORM_MACOS)
     // By default, we should hook file API functions on macOS to avoid slow Metal shader caching
     // file access.
-    // TODO(anglebug.com/5505): in the angle_end2end_tests suite,
-    // disabling the shader cache makes the tests run more slowly than
-    // leaving it enabled.
-    // angle::InitMetalFileAPIHooking(*argc, argv);
+    angle::InitMetalFileAPIHooking(*argc, argv);
 #endif
 
 #if defined(ANGLE_PLATFORM_WINDOWS)
@@ -1114,6 +1111,14 @@ TestSuite::TestSuite(int *argc, char **argv)
         }
         ++argIndex;
     }
+
+#if defined(ANGLE_PLATFORM_ANDROID)
+    // Workaround for the Android test runner requiring a GTest test list.
+    if (mListTests && filterArgIndex.valid())
+    {
+        DeleteArg(argc, argv, filterArgIndex.value());
+    }
+#endif  // defined(ANGLE_PLATFORM_ANDROID)
 
     if (!mDisableCrashHandler)
     {
@@ -1625,9 +1630,39 @@ bool TestSuite::finishProcess(ProcessInfo *processInfo)
 
 int TestSuite::run()
 {
+#if defined(ANGLE_PLATFORM_ANDROID)
+    if (mListTests && mGTestListTests)
+    {
+        // Workaround for the Android test runner requiring a GTest test list.
+        printf("PlaceholderTest.\n  Placeholder\n");
+        return EXIT_SUCCESS;
+    }
+#endif  // defined(ANGLE_PLATFORM_ANDROID)
+
     if (mListTests)
     {
         ListTests(mTestResults.results);
+
+#if defined(ANGLE_PLATFORM_ANDROID)
+        // Because of quirks with the Chromium-provided Android test runner, we need to use a few
+        // tricks to get the test list output. We add placeholder output for a single test to trick
+        // the test runner into thinking it ran the tests successfully. We also add an end marker
+        // for the tests list so we can parse the list from the more spammy Android stdout log.
+        static constexpr char kPlaceholderTestTest[] = R"(
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from PlaceholderTest
+[ RUN      ] PlaceholderTest.Placeholder
+[       OK ] PlaceholderTest.Placeholder (0 ms)
+[----------] 1 test from APITest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (24 ms total)
+[  PASSED  ] 1 test.
+)";
+        printf(kPlaceholderTestTest);
+#endif  // defined(ANGLE_PLATFORM_ANDROID)
+
         return EXIT_SUCCESS;
     }
 

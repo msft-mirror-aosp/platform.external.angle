@@ -3,11 +3,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 //
-// MonomorphizeUnsupportedFunctionsInVulkanGLSL: Monomorphize functions that are called with
-// parameters that are not compatible with Vulkan GLSL.
+// MonomorphizeUnsupportedFunctions: Monomorphize functions that are called with
+// parameters that are incompatible with both Vulkan GLSL and Metal.
 //
 
-#include "compiler/translator/tree_ops/vulkan/MonomorphizeUnsupportedFunctionsInVulkanGLSL.h"
+#include "compiler/translator/tree_ops/MonomorphizeUnsupportedFunctions.h"
 
 #include "compiler/translator/ImmutableStringBuilder.h"
 #include "compiler/translator/StaticType.h"
@@ -503,21 +503,16 @@ void SortDeclarations(TIntermBlock *root)
     // Replace root's sequence with |replacement|.
     root->replaceAllChildren(replacement);
 }
-}  // anonymous namespace
 
-bool MonomorphizeUnsupportedFunctionsInVulkanGLSL(TCompiler *compiler,
-                                                  TIntermBlock *root,
-                                                  TSymbolTable *symbolTable,
-                                                  ShCompileOptions compileOptions)
+bool MonomorphizeUnsupportedFunctionsImpl(TCompiler *compiler,
+                                          TIntermBlock *root,
+                                          TSymbolTable *symbolTable,
+                                          ShCompileOptions compileOptions)
 {
     // First, sort out the declarations such that all non-function declarations are placed before
     // function definitions.  This way when the function is replaced with one that references said
     // declarations (i.e. uniforms), the uniform declaration is already present above it.
     SortDeclarations(root);
-
-    // This function actually applies multiple transformation, and the AST may not be valid until
-    // the transformations are entirely done.  Some validation is momentarily disabled.
-    bool enableValidateFunctionCall = compiler->disableValidateFunctionCall();
 
     while (true)
     {
@@ -546,7 +541,22 @@ bool MonomorphizeUnsupportedFunctionsInVulkanGLSL(TCompiler *compiler,
         }
     }
 
-    compiler->enableValidateFunctionCall(enableValidateFunctionCall);
-    return compiler->validateAST(root);
+    return true;
+}
+}  // anonymous namespace
+
+bool MonomorphizeUnsupportedFunctions(TCompiler *compiler,
+                                      TIntermBlock *root,
+                                      TSymbolTable *symbolTable,
+                                      ShCompileOptions compileOptions)
+{
+    // This function actually applies multiple transformation, and the AST may not be valid until
+    // the transformations are entirely done.  Some validation is momentarily disabled.
+    bool enableValidateFunctionCall = compiler->disableValidateFunctionCall();
+
+    bool result = MonomorphizeUnsupportedFunctionsImpl(compiler, root, symbolTable, compileOptions);
+
+    compiler->restoreValidateFunctionCall(enableValidateFunctionCall);
+    return result && compiler->validateAST(root);
 }
 }  // namespace sh

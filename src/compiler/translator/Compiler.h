@@ -175,6 +175,8 @@ class TCompiler : public TShHandleBase
         return mTessEvaluationShaderInputPointType;
     }
 
+    bool hasAnyPreciseType() const { return mHasAnyPreciseType; }
+
     unsigned int getSharedMemorySize() const;
 
     sh::GLenum getShaderType() const { return mShaderType; }
@@ -184,7 +186,9 @@ class TCompiler : public TShHandleBase
     // Some transformations may need to temporarily disable validation until they are complete.  A
     // set of disable/enable helpers are used for this purpose.
     bool disableValidateFunctionCall();
-    void enableValidateFunctionCall(bool enable);
+    void restoreValidateFunctionCall(bool enable);
+    bool disableValidateVariableReferences();
+    void restoreValidateVariableReferences(bool enable);
 
   protected:
     // Add emulated functions to the built-in function emulator.
@@ -335,6 +339,8 @@ class TCompiler : public TShHandleBase
     TLayoutTessEvaluationType mTessEvaluationShaderInputVertexSpacingType;
     TLayoutTessEvaluationType mTessEvaluationShaderInputOrderingType;
     TLayoutTessEvaluationType mTessEvaluationShaderInputPointType;
+
+    bool mHasAnyPreciseType;
 
     // name hashing.
     NameMap mNameMap;

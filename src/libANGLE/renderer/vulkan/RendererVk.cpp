@@ -846,7 +846,7 @@ angle::Result RendererVk::initialize(DisplayVk *displayVk,
     mLibVulkanLibrary->getAs("vkGetInstanceProcAddr", &vulkanLoaderGetInstanceProcAddr);
 
     // Set all vk* function ptrs
-    ANGLE_VK_TRY(displayVk, volkInitialize());
+    volkInitializeCustom(vulkanLoaderGetInstanceProcAddr);
 
     uint32_t ver = volkGetInstanceVersion();
     if (!IsAndroid() && VK_API_VERSION_MAJOR(ver) == 1 &&
@@ -1890,7 +1890,11 @@ angle::Result RendererVk::initializeDevice(DisplayVk *displayVk, uint32_t queueF
         ANGLE_TRY(mCommandQueue.init(displayVk, graphicsQueueMap));
     }
 
-#if !defined(ANGLE_SHARED_LIBVULKAN)
+#if defined(ANGLE_SHARED_LIBVULKAN)
+    // Avoid compiler warnings on unused-but-set variables.
+    ANGLE_UNUSED_VARIABLE(hasGetMemoryRequirements2KHR);
+    ANGLE_UNUSED_VARIABLE(hasBindMemory2KHR);
+#else
     if (hasGetMemoryRequirements2KHR)
     {
         InitGetMemoryRequirements2KHRFunctions(mDevice);

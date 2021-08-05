@@ -23,7 +23,8 @@ struct ValidateASTOptions
 
     // Check that every node always has only one parent,
     bool validateSingleParent = true;
-    // Check that all symbols reference TVariables that have been declared.
+    // Check that all symbols reference TVariables that have been declared.  For built-ins, this
+    // makes sure that the same GLSL built-in uses the same TVariable consistently.
     bool validateVariableReferences = true;
     // Whether validateVariableReferences should also include specialization constants.  Their
     // declaration is output after their usage is discovered, so this is disabled until then.
@@ -47,6 +48,8 @@ struct ValidateASTOptions
     // Implemented:
     //
     //  - Function parameters having one of EvqParam* qualifiers.
+    //  - gl_ClipDistance, gl_CullDistance and gl_LastFragData are correctly qualified even when
+    //    redeclared in the shader.
     //
     // TODO:
     //

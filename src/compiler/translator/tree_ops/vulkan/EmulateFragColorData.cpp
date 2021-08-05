@@ -45,9 +45,8 @@ class EmulateFragColorDataTraverser : public TIntermTraverser
             return;
         }
 
-        unsigned int arraySize = 0;
-        int index              = 0;
-        const char *name       = "";
+        int index        = 0;
+        const char *name = "";
 
         // Replace the built-ins being emulated with a variable of the appropriate type.
         switch (type.getQualifier())
@@ -56,28 +55,23 @@ class EmulateFragColorDataTraverser : public TIntermTraverser
                 name = "webgl_FragColor";
                 break;
             case EvqFragData:
-                name      = "webgl_FragData";
-                arraySize = mResources.MaxDrawBuffers;
+                name = "webgl_FragData";
                 break;
             case EvqSecondaryFragColorEXT:
                 name  = "webgl_SecondaryFragColor";
                 index = 1;
                 break;
             case EvqSecondaryFragDataEXT:
-                name      = "webgl_SecondaryFragData";
-                index     = 1;
-                arraySize = mResources.MaxDualSourceDrawBuffers;
+                name  = "webgl_SecondaryFragData";
+                index = 1;
                 break;
             default:
                 // Not the built-in we are looking for.
                 return;
         }
 
-        TType *outputType = new TType(*StaticType::GetQualified<EbtFloat, EvqFragmentOut, 4, 1>());
-        if (arraySize > 0)
-        {
-            outputType->makeArray(arraySize);
-        }
+        TType *outputType = new TType(type);
+        outputType->setQualifier(EvqFragmentOut);
         if (index > 0)
         {
             TLayoutQualifier layoutQualifier = outputType->getLayoutQualifier();
@@ -117,6 +111,19 @@ class EmulateFragColorDataTraverser : public TIntermTraverser
     // A map of already replaced built-in variables.
     VariableReplacementMap mVariableMap;
 };
+
+bool EmulateFragColorDataImpl(TCompiler *compiler, TIntermBlock *root, TSymbolTable *symbolTable)
+{
+    EmulateFragColorDataTraverser traverser(compiler, symbolTable);
+    root->traverse(&traverser);
+    if (!traverser.updateTree(compiler, root))
+    {
+        return false;
+    }
+
+    traverser.addDeclarations(root);
+    return true;
+}
 }  // anonymous namespace
 
 bool EmulateFragColorData(TCompiler *compiler, TIntermBlock *root, TSymbolTable *symbolTable)
@@ -126,14 +133,13 @@ bool EmulateFragColorData(TCompiler *compiler, TIntermBlock *root, TSymbolTable 
         return true;
     }
 
-    EmulateFragColorDataTraverser traverser(compiler, symbolTable);
-    root->traverse(&traverser);
-    if (!traverser.updateTree(compiler, root))
-    {
-        return false;
-    }
+    // This transformation adds variable declarations after the fact and so some validation is
+    // momentarily disabled.
+    bool enableValidateVariableReferences = compiler->disableValidateVariableReferences();
 
-    traverser.addDeclarations(root);
-    return compiler->validateAST(root);
+    bool result = EmulateFragColorDataImpl(compiler, root, symbolTable);
+
+    compiler->restoreValidateVariableReferences(enableValidateVariableReferences);
+    return result && compiler->validateAST(root);
 }
 }  // namespace sh

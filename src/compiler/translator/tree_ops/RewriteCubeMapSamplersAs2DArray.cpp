@@ -6,7 +6,7 @@
 // RewriteCubeMapSamplersAs2DArray: Change samplerCube samplers to sampler2DArray for seamful cube
 // map emulation.
 //
-// Relies on MonomorphizeUnsupportedFunctionsInVulkanGLSL to ensure samplerCube variables are not
+// Relies on MonomorphizeUnsupportedFunctions to ensure samplerCube variables are not
 // passed to functions (for simplicity).
 //
 
@@ -255,7 +255,7 @@ class RewriteCubeMapSamplersAs2DArrayTraverser : public TIntermTraverser
         }
 
         // AST functions don't require modification as samplerCube function parameters are removed
-        // by MonomorphizeUnsupportedFunctionsInVulkanGLSL.
+        // by MonomorphizeUnsupportedFunctions.
         return true;
     }
 
@@ -951,15 +951,11 @@ class RewriteCubeMapSamplersAs2DArrayTraverser : public TIntermTraverser
     TIntermFunctionDefinition *mCoordTranslationFunctionImplicitDecl;
 };
 
-}  // anonymous namespace
-
-bool RewriteCubeMapSamplersAs2DArray(TCompiler *compiler,
-                                     TIntermBlock *root,
-                                     TSymbolTable *symbolTable,
-                                     bool isFragmentShader)
+bool RewriteCubeMapSamplersAs2DArrayImpl(TCompiler *compiler,
+                                         TIntermBlock *root,
+                                         TSymbolTable *symbolTable,
+                                         bool isFragmentShader)
 {
-    bool enableValidateFunctionCall = compiler->disableValidateFunctionCall();
-
     RewriteCubeMapSamplersAs2DArrayTraverser traverser(symbolTable, isFragmentShader);
     root->traverse(&traverser);
     if (!traverser.updateTree(compiler, root))
@@ -981,9 +977,24 @@ bool RewriteCubeMapSamplersAs2DArray(TCompiler *compiler,
         root->insertChildNodes(firstFunctionIndex,
                                TIntermSequence({coordTranslationFunctionDeclImplicit}));
     }
+    return true;
+}
+}  // anonymous namespace
 
-    compiler->enableValidateFunctionCall(enableValidateFunctionCall);
-    return compiler->validateAST(root);
+bool RewriteCubeMapSamplersAs2DArray(TCompiler *compiler,
+                                     TIntermBlock *root,
+                                     TSymbolTable *symbolTable,
+                                     bool isFragmentShader)
+{
+    // This transformation adds function declarations after the fact and so some validation is
+    // momentarily disabled.
+    bool enableValidateFunctionCall = compiler->disableValidateFunctionCall();
+
+    bool result =
+        RewriteCubeMapSamplersAs2DArrayImpl(compiler, root, symbolTable, isFragmentShader);
+
+    compiler->restoreValidateFunctionCall(enableValidateFunctionCall);
+    return result && compiler->validateAST(root);
 }
 
 }  // namespace sh
