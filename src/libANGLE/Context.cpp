@@ -6,7 +6,6 @@
 
 // Context.cpp: Implements the gl::Context class, managing all GL state and performing
 // rendering operations. It is the GLES2 specific implementation of EGLContext.
-
 #include "libANGLE/Context.h"
 #include "libANGLE/Context.inl.h"
 
@@ -268,7 +267,13 @@ enum SubjectIndexes : angle::SubjectIndex
     kUniformBuffer0SubjectIndex = kImageMaxSubjectIndex,
     kUniformBufferMaxSubjectIndex =
         kUniformBuffer0SubjectIndex + IMPLEMENTATION_MAX_UNIFORM_BUFFER_BINDINGS,
-    kSampler0SubjectIndex    = kUniformBufferMaxSubjectIndex,
+    kAtomicCounterBuffer0SubjectIndex = kUniformBufferMaxSubjectIndex,
+    kAtomicCounterBufferMaxSubjectIndex =
+        kAtomicCounterBuffer0SubjectIndex + IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS,
+    kShaderStorageBuffer0SubjectIndex = kAtomicCounterBufferMaxSubjectIndex,
+    kShaderStorageBufferMaxSubjectIndex =
+        kShaderStorageBuffer0SubjectIndex + IMPLEMENTATION_MAX_SHADER_STORAGE_BUFFER_BINDINGS,
+    kSampler0SubjectIndex    = kShaderStorageBufferMaxSubjectIndex,
     kSamplerMaxSubjectIndex  = kSampler0SubjectIndex + IMPLEMENTATION_MAX_ACTIVE_TEXTURES,
     kVertexArraySubjectIndex = kSamplerMaxSubjectIndex,
     kReadFramebufferSubjectIndex,
@@ -375,6 +380,18 @@ Context::Context(egl::Display *display,
          uboIndex < kUniformBufferMaxSubjectIndex; ++uboIndex)
     {
         mUniformBufferObserverBindings.emplace_back(this, uboIndex);
+    }
+
+    for (angle::SubjectIndex acbIndex = kAtomicCounterBuffer0SubjectIndex;
+         acbIndex < kAtomicCounterBufferMaxSubjectIndex; ++acbIndex)
+    {
+        mAtomicCounterBufferObserverBindings.emplace_back(this, acbIndex);
+    }
+
+    for (angle::SubjectIndex ssboIndex = kShaderStorageBuffer0SubjectIndex;
+         ssboIndex < kShaderStorageBufferMaxSubjectIndex; ++ssboIndex)
+    {
+        mShaderStorageBufferObserverBindings.emplace_back(this, ssboIndex);
     }
 
     for (angle::SubjectIndex samplerIndex = kSampler0SubjectIndex;
@@ -3569,6 +3586,14 @@ Extensions Context::generateSupportedExtensions() const
         ASSERT(supportedExtensions.textureCompressionASTCHDRKHR);
     }
 
+    // GL_KHR_protected_textures
+    // If EGL_KHR_protected_content is not supported then GL_EXT_protected_texture
+    // can not be supported.
+    if (!mDisplay->getExtensions().protectedContentEXT)
+    {
+        supportedExtensions.protectedTexturesEXT = false;
+    }
+
     // GL_ANGLE_get_tex_level_parameter is implemented in the frontend
     supportedExtensions.getTexLevelParameterANGLE = true;
 
@@ -6042,6 +6067,16 @@ void Context::bindBufferRange(BufferBinding target,
         mUniformBufferObserverBindings[index].bind(object);
         mStateCache.onUniformBufferStateChange(this);
     }
+    else if (target == BufferBinding::AtomicCounter)
+    {
+        mAtomicCounterBufferObserverBindings[index].bind(object);
+        mStateCache.onAtomicCounterBufferStateChange(this);
+    }
+    else if (target == BufferBinding::ShaderStorage)
+    {
+        mShaderStorageBufferObserverBindings[index].bind(object);
+        mStateCache.onShaderStorageBufferStateChange(this);
+    }
     else
     {
         mStateCache.onBufferBindingChange(this);
@@ -7262,6 +7297,24 @@ void Context::validateProgram(ShaderProgramID program)
 
 void Context::validateProgramPipeline(ProgramPipelineID pipeline)
 {
+    // GLES spec 3.2, Section 7.4 "Program Pipeline Objects"
+    // If pipeline is a name that has been generated (without subsequent deletion) by
+    // GenProgramPipelines, but refers to a program pipeline object that has not been
+    // previously bound, the GL first creates a new state vector in the same manner as
+    // when BindProgramPipeline creates a new program pipeline object.
+    //
+    // void BindProgramPipeline( uint pipeline );
+    // pipeline is the program pipeline object name. The resulting program pipeline
+    // object is a new state vector, comprising all the state and with the same initial values
+    // listed in table 21.20.
+    //
+    // If we do not have a pipeline object that's been created with glBindProgramPipeline, we leave
+    // VALIDATE_STATUS at it's default false value without generating a pipeline object.
+    if (!getProgramPipeline(pipeline))
+    {
+        return;
+    }
+
     ProgramPipeline *programPipeline =
         mState.mProgramPipelineManager->checkProgramPipelineAllocation(mImplementation.get(),
                                                                        pipeline);
@@ -8876,6 +8929,16 @@ void Context::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMess
                 mState.onUniformBufferStateChange(index - kUniformBuffer0SubjectIndex);
                 mStateCache.onUniformBufferStateChange(this);
             }
+            else if (index < kAtomicCounterBufferMaxSubjectIndex)
+            {
+                mState.onAtomicCounterBufferStateChange(index - kAtomicCounterBuffer0SubjectIndex);
+                mStateCache.onAtomicCounterBufferStateChange(this);
+            }
+            else if (index < kShaderStorageBufferMaxSubjectIndex)
+            {
+                mState.onShaderStorageBufferStateChange(index - kShaderStorageBuffer0SubjectIndex);
+                mStateCache.onShaderStorageBufferStateChange(this);
+            }
             else
             {
                 ASSERT(index < kSamplerMaxSubjectIndex);
@@ -9331,6 +9394,16 @@ void StateCache::onUniformBufferStateChange(Context *context)
     updateBasicDrawStatesError();
 }
 
+void StateCache::onAtomicCounterBufferStateChange(Context *context)
+{
+    updateBasicDrawStatesError();
+}
+
+void StateCache::onShaderStorageBufferStateChange(Context *context)
+{
+    updateBasicDrawStatesError();
+}
+
 void StateCache::onColorMaskChange(Context *context)
 {
     updateBasicDrawStatesError();
@@ -9537,8 +9610,8 @@ void StateCache::updateActiveImageUnitIndices(Context *context)
 
 void StateCache::updateCanDraw(Context *context)
 {
-    mCachedCanDraw = (context->isGLES1() ||
-                      (context->getState().getProgramExecutable() &&
-                       context->getState().getProgramExecutable()->hasVertexAndFragmentShader()));
+    mCachedCanDraw =
+        (context->isGLES1() || (context->getState().getProgramExecutable() &&
+                                context->getState().getProgramExecutable()->hasVertexShader()));
 }
 }  // namespace gl
