@@ -48,6 +48,7 @@ namespace trace_angle
 {
 using GenericProc = void (*)();
 using LoadProc    = GenericProc(KHRONOS_APIENTRY *)(const char *);
+ANGLE_TRACE_LOADER_EXPORT void LoadEGL(LoadProc loadProc);
 ANGLE_TRACE_LOADER_EXPORT void LoadGLES(LoadProc loadProc);
 }  // namespace trace_angle
 
@@ -138,6 +139,7 @@ enum class RestrictedTraceID
     slingshot_test1,
     slingshot_test2,
     sniper_3d,
+    sonic_the_hedgehog,
     standoff_2,
     subway_princess_runner,
     subway_surfers,
