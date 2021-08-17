@@ -184,6 +184,9 @@
 // Geometry shader support:
 5430 VULKAN : dEQP-GLES31.functional.geometry_shading.query.primitives_generated_* = FAIL
 
+// The extension is not conformant due to a small difference in maxInterpolationOffset between GL and Vulkan.
+6190 VULKAN : dEQP-GLES31.functional.state_query.multisample_interpolation.max_fragment_interpolation_offset.get_float = FAIL
+
 ////
 //// AMD Vulkan expectations
 ////
@@ -347,6 +350,16 @@
 5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.per_axis_wrap_mode.texture_2d.compressed_color.linear.s_repeat_t_clamp_to_border_npot = SKIP
 5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.per_axis_wrap_mode.texture_2d.compressed_color.linear.s_mirrored_repeat_t_clamp_to_border_pot = SKIP
 5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.per_axis_wrap_mode.texture_2d.compressed_color.linear.s_mirrored_repeat_t_clamp_to_border_npot = SKIP
+5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.formats.alpha.nearest_size_pot = SKIP
+5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.formats.alpha.nearest_size_npot = SKIP
+5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.formats.alpha.linear_size_pot = SKIP
+5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.formats.alpha.linear_size_npot = SKIP
+5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.formats.luminance_alpha.nearest_size_pot = SKIP
+5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.formats.luminance_alpha.nearest_size_npot = SKIP
+5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.formats.luminance_alpha.linear_size_pot = SKIP
+5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.formats.luminance_alpha.linear_size_npot = SKIP
+5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.unused_channels.alpha = SKIP
+5978 VULKAN NVIDIA : dEQP-GLES31.functional.texture.border_clamp.unused_channels.luminance_alpha = SKIP
 
 // Pixel 4 expectations.
 5990 PIXEL4ORXL VULKAN : dEQP-GLES31.functional.android_extension_pack.extensions.oes_sample_variables = SKIP
@@ -1455,3 +1468,5 @@
 5990 PIXEL4ORXL VULKAN : dEQP-GLES31.functional.uniform_location.struct.case_10 = SKIP
 5990 PIXEL4ORXL VULKAN : dEQP-GLES31.functional.vertex_attribute_binding.usage.multiple_bindings.zero_stride = SKIP
 
+// Fails when the expression being interpolated as an indexed varying array.
+6194 PIXEL4ORXL VULKAN : dEQP-GLES31.functional.shaders.multisample_interpolation.interpolate_at_offset.array_element.* = FAIL

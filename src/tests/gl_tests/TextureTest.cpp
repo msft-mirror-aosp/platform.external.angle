@@ -412,6 +412,50 @@ class Texture2DTestES3 : public Texture2DTest
         Texture2DTest::testSetUp();
         setUpProgram();
     }
+
+    void createImmutableTexture2D(GLuint texture,
+                                  size_t width,
+                                  size_t height,
+                                  GLenum format,
+                                  GLenum internalFormat,
+                                  GLenum type,
+                                  GLsizei levels,
+                                  GLubyte data[4])
+    {
+        // Support only 1 level for now
+        ASSERT(levels == 1);
+
+        glBindTexture(GL_TEXTURE_2D, texture);
+
+        glTexStorage2D(GL_TEXTURE_2D, levels, internalFormat, width, height);
+        ASSERT_GL_NO_ERROR();
+
+        if (data != nullptr)
+        {
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, format, type, data);
+            ASSERT_GL_NO_ERROR();
+        }
+
+        // Disable mipmapping
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        ASSERT_GL_NO_ERROR();
+    }
+
+    void verifyResults2D(GLuint texture, GLubyte referenceColor[4])
+    {
+        // Draw a quad with the target texture
+        glUseProgram(mProgram);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glUniform1i(mTexture2DUniformLocation, 0);
+
+        drawQuad(mProgram, "position", 0.5f);
+
+        // Expect that the rendered quad's color is the same as the reference color with a tolerance
+        // of 1
+        EXPECT_PIXEL_NEAR(0, 0, referenceColor[0], referenceColor[1], referenceColor[2],
+                          referenceColor[3], 1);
+    }
 };
 
 class Texture2DBaseMaxTestES3 : public ANGLETest
@@ -1753,6 +1797,8 @@ class PBOCompressedTextureTest : public Texture2DTest
         Texture2DTest::testTearDown();
     }
 
+    void runCompressedSubImage();
+
     GLuint mPBO;
 };
 
@@ -2832,6 +2878,172 @@ TEST_P(Texture2DTestES3, TexImageWithDepthStencilPBO)
     ASSERT_GL_NO_ERROR();
 
     EXPECT_PIXEL_RECT_EQ(0, 0, kSize, kSize, GLColor::red);
+}
+
+// Test functionality of GL_ANGLE_yuv_internal_format while cycling through RGB and YUV sources
+TEST_P(Texture2DTestES3, TexStorage2DCycleThroughYuvAndRgbSources)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_yuv_internal_format"));
+
+    // Create YUV texture
+    GLTexture yuvTexture;
+    GLubyte yuvColor[6]         = {40, 40, 40, 40, 240, 109};
+    GLubyte expectedRgbColor[4] = {0, 0, 255, 255};
+    createImmutableTexture2D(yuvTexture, 2, 2, GL_G8_B8R8_2PLANE_420_UNORM_ANGLE,
+                             GL_G8_B8R8_2PLANE_420_UNORM_ANGLE, GL_UNSIGNED_BYTE, 1, yuvColor);
+
+    // Create RGBA texture
+    GLTexture rgbaTexture;
+    GLubyte rgbaColor[4] = {0, 0, 255, 255};
+    createImmutableTexture2D(rgbaTexture, 1, 1, GL_RGBA, GL_RGBA8, GL_UNSIGNED_BYTE, 1, rgbaColor);
+
+    // Cycle through source textures
+    // RGBA source
+    verifyResults2D(rgbaTexture, rgbaColor);
+    ASSERT_GL_NO_ERROR();
+
+    // YUV source
+    verifyResults2D(yuvTexture, expectedRgbColor);
+    ASSERT_GL_NO_ERROR();
+
+    // RGBA source
+    verifyResults2D(rgbaTexture, rgbaColor);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test functionality of GL_ANGLE_yuv_internal_format with large number of YUV sources
+TEST_P(Texture2DTestES3, TexStorage2DLargeYuvTextureCount)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_yuv_internal_format"));
+
+    constexpr uint32_t kTextureCount = 16;
+
+    // Create YUV texture
+    GLTexture yuvTexture[kTextureCount];
+    for (uint32_t i = 0; i < kTextureCount; i++)
+    {
+        // Create 2 plane YCbCr 420 texture
+        createImmutableTexture2D(yuvTexture[i], 2, 2, GL_G8_B8R8_2PLANE_420_UNORM_ANGLE,
+                                 GL_G8_B8R8_2PLANE_420_UNORM_ANGLE, GL_UNSIGNED_BYTE, 1, nullptr);
+    }
+
+    // Cycle through YUV source textures
+    glUseProgram(mProgram);
+    glUniform1i(mTexture2DUniformLocation, 0);
+
+    for (uint32_t i = 0; i < kTextureCount; i++)
+    {
+        glBindTexture(GL_TEXTURE_2D, yuvTexture[i]);
+        drawQuad(mProgram, "position", 0.5f);
+        ASSERT_GL_NO_ERROR();
+    }
+}
+
+// Test functionality of GL_ANGLE_yuv_internal_format with simultaneous use of multiple YUV sources
+TEST_P(Texture2DTestES3, TexStorage2DSimultaneousUseOfMultipleYuvSourcesNoData)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_yuv_internal_format"));
+
+    // Create YUV texture
+    // Create 2 plane YCbCr 420 texture
+    GLTexture twoPlaneYuvTexture;
+    createImmutableTexture2D(twoPlaneYuvTexture, 2, 2, GL_G8_B8R8_2PLANE_420_UNORM_ANGLE,
+                             GL_G8_B8R8_2PLANE_420_UNORM_ANGLE, GL_UNSIGNED_BYTE, 1, nullptr);
+
+    // Create 3 plane YCbCr 420 texture
+    GLTexture threePlaneYuvTexture;
+    createImmutableTexture2D(threePlaneYuvTexture, 2, 2, GL_G8_B8_R8_3PLANE_420_UNORM_ANGLE,
+                             GL_G8_B8_R8_3PLANE_420_UNORM_ANGLE, GL_UNSIGNED_BYTE, 1, nullptr);
+
+    // Cycle through YUV source textures
+    // Create program with 2 samplers
+    const char *vertexShaderSource   = getVertexShaderSource();
+    const char *fragmentShaderSource = R"(#version 300 es
+precision highp float;
+uniform sampler2D tex0;
+uniform sampler2D tex1;
+in vec2 texcoord;
+out vec4 fragColor;
+
+void main()
+{
+    vec4 color0 = texture(tex0, texcoord);
+    vec4 color1 = texture(tex1, texcoord);
+    fragColor = color0 + color1;
+})";
+
+    ANGLE_GL_PROGRAM(twoSamplersProgram, vertexShaderSource, fragmentShaderSource);
+    glUseProgram(twoSamplersProgram);
+    GLint tex0Location = glGetUniformLocation(twoSamplersProgram, "tex0");
+    ASSERT_NE(-1, tex0Location);
+    GLint tex1Location = glGetUniformLocation(twoSamplersProgram, "tex1");
+    ASSERT_NE(-1, tex1Location);
+
+    glUniform1i(tex0Location, 0);
+    glUniform1i(tex1Location, 1);
+
+    // Bind 2 plane YUV source
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, twoPlaneYuvTexture);
+    ASSERT_GL_NO_ERROR();
+
+    // Bind 3 plane YUV source
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, threePlaneYuvTexture);
+    ASSERT_GL_NO_ERROR();
+
+    drawQuad(twoSamplersProgram, "position", 0.5f);
+    ASSERT_GL_NO_ERROR();
+
+    // Switch active texture index and draw again
+    // Bind 2 plane YUV source
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, twoPlaneYuvTexture);
+    ASSERT_GL_NO_ERROR();
+
+    // Bind 3 plane YUV source
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, threePlaneYuvTexture);
+    ASSERT_GL_NO_ERROR();
+
+    drawQuad(twoSamplersProgram, "position", 0.5f);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test functional of GL_ANGLE_yuv_internal_format while cycling through YUV sources
+TEST_P(Texture2DTestES3, TexStorage2DCycleThroughYuvSourcesNoData)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_yuv_internal_format"));
+
+    // Create YUV texture
+    // Create 2 plane YCbCr 420 texture
+    GLTexture twoPlaneYuvTexture;
+    createImmutableTexture2D(twoPlaneYuvTexture, 2, 2, GL_G8_B8R8_2PLANE_420_UNORM_ANGLE,
+                             GL_G8_B8R8_2PLANE_420_UNORM_ANGLE, GL_UNSIGNED_BYTE, 1, nullptr);
+
+    // Create 3 plane YCbCr 420 texture
+    GLTexture threePlaneYuvTexture;
+    createImmutableTexture2D(threePlaneYuvTexture, 2, 2, GL_G8_B8_R8_3PLANE_420_UNORM_ANGLE,
+                             GL_G8_B8_R8_3PLANE_420_UNORM_ANGLE, GL_UNSIGNED_BYTE, 1, nullptr);
+
+    // Cycle through YUV source textures
+    glUseProgram(mProgram);
+    glUniform1i(mTexture2DUniformLocation, 0);
+
+    // 2 plane YUV source
+    glBindTexture(GL_TEXTURE_2D, twoPlaneYuvTexture);
+    drawQuad(mProgram, "position", 0.5f);
+    ASSERT_GL_NO_ERROR();
+
+    // 3 plane YUV source
+    glBindTexture(GL_TEXTURE_2D, threePlaneYuvTexture);
+    drawQuad(mProgram, "position", 0.5f);
+    ASSERT_GL_NO_ERROR();
+
+    // 2 plane YUV source
+    glBindTexture(GL_TEXTURE_2D, twoPlaneYuvTexture);
+    drawQuad(mProgram, "position", 0.5f);
+    ASSERT_GL_NO_ERROR();
 }
 
 // Tests CopySubImage for float formats
@@ -6557,7 +6769,7 @@ class TextureLimitsTest : public ANGLETest
 
         drawQuad(mProgram, "position", 0.5f);
         ASSERT_GL_NO_ERROR();
-        EXPECT_PIXEL_EQ(0, 0, expectedSum.R, expectedSum.G, 0, 255);
+        EXPECT_PIXEL_NEAR(0, 0, expectedSum.R, expectedSum.G, 0, 255, 1);
     }
 
     GLuint mProgram;
@@ -8774,6 +8986,26 @@ void main()
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
 }
 
+// Test if the RenderTargetCache is updated when the TextureStorage object is freed
+TEST_P(Texture2DTestES3, UpdateRenderTargetCacheOnDestroyTexStorage)
+{
+    ANGLE_GL_PROGRAM(drawRed, essl3_shaders::vs::Simple(), essl3_shaders::fs::Red());
+    const GLenum attachments[] = {GL_COLOR_ATTACHMENT0};
+
+    GLTexture tex;
+    GLFramebuffer fb;
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexStorage2D(GL_TEXTURE_2D, 2, GL_RGBA8, 100, 1);
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, attachments);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 1);
+    drawQuad(drawRed, essl3_shaders::PositionAttrib(), 1.0f);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_PIXEL_RECT_EQ(0, 0, 100, 1, GLColor::red);
+}
+
 // Draw a quad with an integer texture with a non-zero base level, and test that the color of the
 // texture is output.
 TEST_P(Texture2DIntegerTestES3, IntegerTextureNonZeroBaseLevel)
@@ -8963,8 +9195,7 @@ TEST_P(Texture3DIntegerTestES3, NonZeroBaseLevel)
     EXPECT_PIXEL_COLOR_EQ(width - 1, height - 1, color);
 }
 
-// Test that uses glCompressedTexSubImage2D combined with a PBO
-TEST_P(PBOCompressedTextureTest, PBOCompressedSubImage)
+void PBOCompressedTextureTest::runCompressedSubImage()
 {
     // ETC texture formats are not supported on Mac OpenGL. http://anglebug.com/3853
     ANGLE_SKIP_TEST_IF(IsOSX() && IsDesktopOpenGL());
@@ -9020,6 +9251,23 @@ TEST_P(PBOCompressedTextureTest, PBOCompressedSubImage)
 
     EXPECT_PIXEL_COLOR_EQ(getWindowWidth() / 2, getWindowHeight() / 2, GLColor::red);
     ASSERT_GL_NO_ERROR();
+}
+
+// Test that uses glCompressedTexSubImage2D combined with a PBO
+TEST_P(PBOCompressedTextureTest, PBOCompressedSubImage)
+{
+    runCompressedSubImage();
+}
+
+// Verify the row length state is ignored when using compressed tex image calls.
+TEST_P(PBOCompressedTextureTest, PBOCompressedSubImageWithUnpackRowLength)
+{
+    // ROW_LENGTH requires ES3 or an extension.
+    ANGLE_SKIP_TEST_IF(getClientMajorVersion() < 3 &&
+                       !IsGLExtensionEnabled("GL_EXT_unpack_subimage"));
+
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 1);
+    runCompressedSubImage();
 }
 
 // Test using ETC1_RGB8 with subimage updates

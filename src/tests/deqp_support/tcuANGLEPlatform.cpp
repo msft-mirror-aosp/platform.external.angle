@@ -32,7 +32,9 @@ static_assert(EGL_DONT_CARE == -1, "Unexpected value for EGL_DONT_CARE");
 
 namespace tcu
 {
-ANGLEPlatform::ANGLEPlatform(angle::LogErrorFunc logErrorFunc, uint32_t preRotation)
+ANGLEPlatform::ANGLEPlatform(angle::LogErrorFunc logErrorFunc,
+                             uint32_t preRotation,
+                             bool enableDirectSPIRVGen)
 {
     angle::SetLowPriorityProcess();
 
@@ -58,6 +60,11 @@ ANGLEPlatform::ANGLEPlatform(angle::LogErrorFunc logErrorFunc, uint32_t preRotat
             break;
     }
 
+    if (enableDirectSPIRVGen)
+    {
+        mEnableFeatureOverrides.push_back("directSPIRVGeneration");
+    }
+
     mEnableFeatureOverrides.push_back(nullptr);
 
 #if (DE_OS == DE_OS_WIN32)
@@ -67,6 +74,16 @@ ANGLEPlatform::ANGLEPlatform(angle::LogErrorFunc logErrorFunc, uint32_t preRotat
 
         auto *d3d11Factory = new ANGLENativeDisplayFactory("angle-d3d11", "ANGLE D3D11 Display",
                                                            d3d11Attribs, &mEvents);
+        m_nativeDisplayFactoryRegistry.registerFactory(d3d11Factory);
+    }
+
+    {
+        std::vector<eglw::EGLAttrib> d3d11Attribs =
+            initAttribs(EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
+                        EGL_PLATFORM_ANGLE_DEVICE_TYPE_D3D_REFERENCE_ANGLE);
+
+        auto *d3d11Factory = new ANGLENativeDisplayFactory(
+            "angle-d3d11-ref", "ANGLE D3D11 Reference Display", d3d11Attribs, &mEvents);
         m_nativeDisplayFactoryRegistry.registerFactory(d3d11Factory);
     }
 
@@ -208,12 +225,14 @@ std::vector<eglw::EGLAttrib> ANGLEPlatform::initAttribs(eglw::EGLAttrib type,
 }  // namespace tcu
 
 // Create platform
-tcu::Platform *CreateANGLEPlatform(angle::LogErrorFunc logErrorFunc, uint32_t preRotation)
+tcu::Platform *CreateANGLEPlatform(angle::LogErrorFunc logErrorFunc,
+                                   uint32_t preRotation,
+                                   bool enableDirectSPIRVGen)
 {
-    return new tcu::ANGLEPlatform(logErrorFunc, preRotation);
+    return new tcu::ANGLEPlatform(logErrorFunc, preRotation, enableDirectSPIRVGen);
 }
 
 tcu::Platform *createPlatform()
 {
-    return CreateANGLEPlatform(nullptr, 0);
+    return CreateANGLEPlatform(nullptr, 0, false);
 }

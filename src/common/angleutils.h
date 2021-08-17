@@ -13,6 +13,7 @@
 
 #if defined(ANGLE_USE_ABSEIL)
 #    include "absl/container/flat_hash_map.h"
+#    include "absl/container/flat_hash_set.h"
 #endif  // defined(ANGLE_USE_ABSEIL)
 
 #if defined(ANGLE_WITH_LSAN)
@@ -26,6 +27,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // A helper class to disallow copy and assignment operators
@@ -39,9 +41,13 @@ using Microsoft::WRL::ComPtr;
 #if defined(ANGLE_USE_ABSEIL)
 template <typename Key, typename T, class Hash = absl::container_internal::hash_default_hash<Key>>
 using HashMap = absl::flat_hash_map<Key, T, Hash>;
+template <typename Key, class Hash = absl::container_internal::hash_default_hash<Key>>
+using HashSet = absl::flat_hash_set<Key, Hash>;
 #else
 template <typename Key, typename T, class Hash = std::hash<Key>>
 using HashMap = std::unordered_map<Key, T, Hash>;
+template <typename Key, class Hash = std::hash<Key>>
+using HashSet = std::unordered_set<Key, Hash>;
 #endif  // defined(ANGLE_USE_ABSEIL)
 
 class NonCopyable
@@ -289,10 +295,6 @@ inline bool IsLittleEndian()
 #define GL_X2_RGB10_SSCALED_ANGLEX 0x6AF6
 #define GL_X2_RGB10_UNORM_ANGLEX 0x6AF7
 #define GL_X2_RGB10_SNORM_ANGLEX 0x6AF8
-
-// YUV formats
-#define GL_G8_B8_R8_3PLANE_420_UNORM_ANGLEX 0x6B00
-#define GL_G8_B8R8_2PLANE_420_UNORM_ANGLEX 0x6B01
 
 #define ANGLE_CHECK_GL_ALLOC(context, result) \
     ANGLE_CHECK(context, result, "Failed to allocate host memory", GL_OUT_OF_MEMORY)
