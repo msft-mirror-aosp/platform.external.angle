@@ -39,7 +39,7 @@ class CaptureReplayTests
     {
         // Load EGL library so we can initialize the display.
         mEntryPointsLib.reset(
-            angle::OpenSharedLibrary(ANGLE_EGL_LIBRARY_NAME, angle::SearchType::ApplicationDir));
+            angle::OpenSharedLibrary(ANGLE_EGL_LIBRARY_NAME, angle::SearchType::ModuleDir));
 
         mOSWindow = OSWindow::New();
         mOSWindow->disableErrorMessageDialog();
@@ -62,6 +62,13 @@ class CaptureReplayTests
         mOSWindow->disableErrorMessageDialog();
         mOSWindow->setVisible(true);
 
+        if (mEGLWindow && !mEGLWindow->isContextVersion(testTraceInfo.replayContextMajorVersion,
+                                                        testTraceInfo.replayContextMinorVersion))
+        {
+            EGLWindow::Delete(&mEGLWindow);
+            mEGLWindow = nullptr;
+        }
+
         if (!mEGLWindow)
         {
             mEGLWindow = EGLWindow::New(testTraceInfo.replayContextMajorVersion,
@@ -79,6 +86,7 @@ class CaptureReplayTests
         configParams.clientArraysEnabled   = testTraceInfo.areClientArraysEnabled;
         configParams.bindGeneratesResource = testTraceInfo.bindGeneratesResources;
         configParams.webGLCompatibility    = testTraceInfo.webGLCompatibility;
+        configParams.robustResourceInit    = testTraceInfo.robustResourceInit;
 
         mPlatformParams.renderer   = testTraceInfo.replayPlatformType;
         mPlatformParams.deviceType = testTraceInfo.replayDeviceType;
@@ -96,6 +104,8 @@ class CaptureReplayTests
             cleanupTest();
             return false;
         }
+
+        mStartingDirectory = angle::GetCWD().value();
 
         // Load trace
         mTraceLibrary.reset(new angle::TraceLibrary(testTraceInfo.testName.c_str()));
@@ -119,6 +129,7 @@ class CaptureReplayTests
 
     void cleanupTest()
     {
+        angle::SetCWD(mStartingDirectory.c_str());
         mTraceLibrary.reset(nullptr);
         mEGLWindow->destroyGL();
         mOSWindow->destroy();
@@ -138,9 +149,15 @@ class CaptureReplayTests
         {
             mTraceLibrary->replayFrame(frame);
 
-            const GLubyte *bytes = glGetString(GL_SERIALIZED_CONTEXT_STRING_ANGLE);
+            const char *capturedSerializedState =
+                reinterpret_cast<const char *>(glGetString(GL_SERIALIZED_CONTEXT_STRING_ANGLE));
+            const char *replayedSerializedState = mTraceLibrary->getSerializedContextState(frame);
+
             bool isEqual =
-                compareSerializedContexts(testIndex, frame, reinterpret_cast<const char *>(bytes));
+                (capturedSerializedState && replayedSerializedState)
+                    ? compareSerializedContexts(replayedSerializedState, capturedSerializedState)
+                    : (capturedSerializedState == replayedSerializedState);
+
             // Swap always to allow RenderDoc/other tools to capture frames.
             swap();
             if (!isEqual)
@@ -148,13 +165,13 @@ class CaptureReplayTests
                 std::ostringstream replayName;
                 replayName << testTraceInfo.testName << "_ContextReplayed" << frame << ".json";
                 std::ofstream debugReplay(replayName.str());
-                debugReplay << reinterpret_cast<const char *>(bytes) << "\n";
+                debugReplay << (replayedSerializedState ? replayedSerializedState : "") << "\n";
 
                 std::ostringstream captureName;
                 captureName << testTraceInfo.testName << "_ContextCaptured" << frame << ".json";
                 std::ofstream debugCapture(captureName.str());
 
-                debugCapture << mTraceLibrary->getSerializedContextState(frame) << "\n";
+                debugCapture << (capturedSerializedState ? capturedSerializedState : "") << "\n";
 
                 cleanupTest();
                 return -1;
@@ -175,15 +192,14 @@ class CaptureReplayTests
     }
 
   private:
-    bool compareSerializedContexts(uint32_t testIndex,
-                                   uint32_t frame,
+    bool compareSerializedContexts(const char *capturedSerializedContextState,
                                    const char *replaySerializedContextState)
     {
 
-        return !strcmp(replaySerializedContextState,
-                       mTraceLibrary->getSerializedContextState(frame));
+        return !strcmp(replaySerializedContextState, capturedSerializedContextState);
     }
 
+    std::string mStartingDirectory;
     OSWindow *mOSWindow   = nullptr;
     EGLWindow *mEGLWindow = nullptr;
     EGLPlatformParameters mPlatformParams;

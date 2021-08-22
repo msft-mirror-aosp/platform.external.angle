@@ -120,10 +120,18 @@ absl_source_set("str_format_internal") {
 absl_source_set("cord_internal") {
   sources = [
     "internal/cord_internal.cc",
+    "internal/cord_rep_btree.cc",
+    "internal/cord_rep_btree_navigator.cc",
+    "internal/cord_rep_btree_reader.cc",
+    "internal/cord_rep_consume.cc",
     "internal/cord_rep_ring.cc",
   ]
   public = [
     "internal/cord_internal.h",
+    "internal/cord_rep_btree.h",
+    "internal/cord_rep_btree_navigator.h",
+    "internal/cord_rep_btree_reader.h",
+    "internal/cord_rep_consume.h",
     "internal/cord_rep_flat.h",
     "internal/cord_rep_ring.h",
     "internal/cord_rep_ring_reader.h",
@@ -140,13 +148,45 @@ absl_source_set("cord_internal") {
     "//third_party/abseil-cpp/absl/container:compressed_tuple",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/container:layout",
+    "//third_party/abseil-cpp/absl/functional:function_ref",
     "//third_party/abseil-cpp/absl/meta:type_traits",
+    "//third_party/abseil-cpp/absl/types:span",
+  ]
+}
+
+absl_source_set("cord_rep_btree_test") {
+  testonly = true
+  sources = ["internal/cord_rep_btree_test.cc"]
+  deps = [
+    ":cord_internal",
+    ":cord_rep_test_util",
+    ":strings",
+    "//third_party/abseil-cpp/absl/base:config",
+    "//third_party/abseil-cpp/absl/base:raw_logging_internal",
+    "//third_party/abseil-cpp/absl/cleanup",
+    "//third_party/googletest:gmock",
+    "//third_party/googletest:gtest",
+  ]
+}
+
+absl_source_set("cord_rep_btree_reader_test") {
+  testonly = true
+  sources = ["internal/cord_rep_btree_reader_test.cc"]
+  deps = [
+    ":cord",
+    ":cord_internal",
+    ":cord_rep_test_util",
+    ":strings",
+    "//third_party/abseil-cpp/absl/base:config",
+    "//third_party/abseil-cpp/absl/base:raw_logging_internal",
+    "//third_party/googletest:gmock",
+    "//third_party/googletest:gtest",
   ]
 }
 
 absl_source_set("cordz_update_tracker") {
   public = ["internal/cordz_update_tracker.h"]
-  visibility = [ ":*" ]
+  visibility = [ "//third_party/abseil-cpp/*" ]
   deps = ["//third_party/abseil-cpp/absl/base:config"]
 }
 
@@ -192,6 +232,7 @@ absl_source_set("cord") {
 absl_source_set("cordz_handle") {
   sources = ["internal/cordz_handle.cc"]
   public = ["internal/cordz_handle.h"]
+  visibility = [ "//third_party/abseil-cpp/*" ]
   deps = [
     "//third_party/abseil-cpp/absl/base",
     "//third_party/abseil-cpp/absl/base:config",
@@ -203,6 +244,7 @@ absl_source_set("cordz_handle") {
 absl_source_set("cordz_info") {
   sources = ["internal/cordz_info.cc"]
   public = ["internal/cordz_info.h"]
+  visibility = [ "//third_party/abseil-cpp/*" ]
   deps = [
     ":cord_internal",
     ":cordz_functions",
@@ -213,6 +255,7 @@ absl_source_set("cordz_info") {
     "//third_party/abseil-cpp/absl/base:config",
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/base:raw_logging_internal",
+    "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/debugging:stacktrace",
     "//third_party/abseil-cpp/absl/synchronization",
     "//third_party/abseil-cpp/absl/types:span",
@@ -221,6 +264,7 @@ absl_source_set("cordz_info") {
 
 absl_source_set("cordz_update_scope") {
   public = ["internal/cordz_update_scope.h"]
+  visibility = [ "//third_party/abseil-cpp/*" ]
   deps = [
     ":cord_internal",
     ":cordz_info",
@@ -248,6 +292,7 @@ absl_source_set("cordz_update_scope_test") {
 absl_source_set("cordz_sample_token") {
   sources = ["internal/cordz_sample_token.cc"]
   public = ["internal/cordz_sample_token.h"]
+  visibility = [ "//third_party/abseil-cpp/*" ]
   deps = [
     ":cordz_handle",
     ":cordz_info",
@@ -258,6 +303,7 @@ absl_source_set("cordz_sample_token") {
 absl_source_set("cordz_functions") {
   sources = ["internal/cordz_functions.cc"]
   public = ["internal/cordz_functions.h"]
+  visibility = [ "//third_party/abseil-cpp/*" ]
   deps = [
     "//third_party/abseil-cpp/absl/base:config",
     "//third_party/abseil-cpp/absl/base:core_headers",
@@ -268,6 +314,7 @@ absl_source_set("cordz_functions") {
 
 absl_source_set("cordz_statistics") {
   public = ["internal/cordz_statistics.h"]
+  visibility = [ "//third_party/abseil-cpp/*" ]
   deps = [
     ":cordz_update_tracker",
     "//third_party/abseil-cpp/absl/base:config",
@@ -324,6 +371,25 @@ absl_source_set("cordz_info_test") {
   ]
 }
 
+absl_source_set("cordz_info_statistics_test") {
+  testonly = true
+  sources = [ "internal/cordz_info_statistics_test.cc" ]
+  deps = [
+    ":cord",
+    ":cord_internal",
+    ":cordz_info",
+    ":cordz_sample_token",
+    ":cordz_statistics",
+    ":cordz_update_scope",
+    ":cordz_update_tracker",
+    "//third_party/abseil-cpp/absl/base:config",
+    "//third_party/abseil-cpp/absl/synchronization",
+    "//third_party/abseil-cpp/absl/synchronization:thread_pool",
+    "//third_party/googletest:gmock",
+    "//third_party/googletest:gtest",
+  ]
+}
+
 # TODO(b/186638384): Re-enable when random is compilable on win32-archive-rel bot
 # absl_source_set("cordz_sample_token_test") {
 #   testonly = true
@@ -353,6 +419,17 @@ absl_source_set("cord_test_helpers") {
     ":cord_internal",
     ":strings",
     "//third_party/abseil-cpp/absl/base:config",
+  ]
+}
+
+absl_source_set("cord_rep_test_util") {
+  testonly = true
+  public = ["internal/cord_rep_test_util.h"]
+  deps = [
+    ":cord_internal",
+    ":strings",
+    "//third_party/abseil-cpp/absl/base:config",
+    "//third_party/abseil-cpp/absl/base:raw_logging_internal",
   ]
 }
 
@@ -389,6 +466,20 @@ absl_source_set("cordz_test") {
     "//third_party/abseil-cpp/absl/base:config",
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/base:raw_logging_internal",
+    "//third_party/googletest:gmock",
+    "//third_party/googletest:gtest",
+  ]
+}
+
+absl_source_set("cord_rep_consume_test") {
+  testonly = true
+  sources = ["internal/cord_rep_consume_test.cc"]
+  deps = [
+    ":cord_internal",
+    ":strings",
+    "//third_party/abseil-cpp/absl/base:config",
+    "//third_party/abseil-cpp/absl/base:core_headers",
+    "//third_party/abseil-cpp/absl/debugging:leak_check",
     "//third_party/googletest:gmock",
     "//third_party/googletest:gtest",
   ]
@@ -438,6 +529,20 @@ absl_source_set("string_view_test") {
     "//third_party/abseil-cpp/absl/base:config",
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/base:dynamic_annotations",
+    "//third_party/googletest:gtest",
+  ]
+}
+
+absl_source_set("cord_rep_btree_navigator_test") {
+  testonly = true
+  sources = [ "internal/cord_rep_btree_navigator_test.cc" ]
+  deps = [
+    ":cord_internal",
+    ":cord_rep_test_util",
+    ":strings",
+    "//third_party/abseil-cpp/absl/base:config",
+    "//third_party/abseil-cpp/absl/base:raw_logging_internal",
+    "//third_party/googletest:gmock",
     "//third_party/googletest:gtest",
   ]
 }

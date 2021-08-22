@@ -47,6 +47,7 @@ ANGLE_CHROMIUM_DEPS = [
     'third_party/android_build_tools/bundletool',
     'third_party/android_deps',
     'third_party/android_ndk',
+    'third_party/android_platform',
     'third_party/android_sdk',
     'third_party/android_sdk/androidx_browser/src',
     'third_party/android_sdk/public',
@@ -68,6 +69,7 @@ ANGLE_CHROMIUM_DEPS = [
     'third_party/qemu-linux-x64',
     'third_party/qemu-mac-x64',
     'third_party/r8',
+    'third_party/requests/src',
     'third_party/six',
     'third_party/turbine',
     'third_party/zlib',
@@ -78,7 +80,9 @@ ANGLE_CHROMIUM_DEPS = [
     'tools/mb',
     'tools/md_browser',
     'tools/memory',
+    'tools/perf',
     'tools/protoc_wrapper',
+    'tools/python',
     'tools/skia_goldctl/linux',
     'tools/skia_goldctl/mac',
     'tools/skia_goldctl/win',
@@ -310,7 +314,9 @@ def BuildDepsentryDict(deps_dict):
 
 def _FindChangedCipdPackages(path, old_pkgs, new_pkgs):
     pkgs_equal = ({p['package'] for p in old_pkgs} == {p['package'] for p in new_pkgs})
-    assert pkgs_equal, 'Old: %s\n New: %s' % (old_pkgs, new_pkgs)
+    assert pkgs_equal, ('Old: %s\n New: %s.\nYou need to do a manual roll '
+                        'and remove/add entries in DEPS so the old and new '
+                        'list match.' % (old_pkgs, new_pkgs))
     for old_pkg in old_pkgs:
         for new_pkg in new_pkgs:
             old_version = old_pkg['version']

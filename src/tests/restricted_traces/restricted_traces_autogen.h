@@ -10,6 +10,7 @@
 #ifndef ANGLE_RESTRICTED_TRACES_H_
 #define ANGLE_RESTRICTED_TRACES_H_
 
+#include <EGL/egl.h>
 #include <KHR/khrplatform.h>
 #include <cstdint>
 #include <vector>
@@ -47,6 +48,7 @@ namespace trace_angle
 {
 using GenericProc = void (*)();
 using LoadProc    = GenericProc(KHRONOS_APIENTRY *)(const char *);
+ANGLE_TRACE_LOADER_EXPORT void LoadEGL(LoadProc loadProc);
 ANGLE_TRACE_LOADER_EXPORT void LoadGLES(LoadProc loadProc);
 }  // namespace trace_angle
 
@@ -61,7 +63,9 @@ enum class RestrictedTraceID
     asphalt_8,
     avakin_life,
     aztec_ruins,
+    beach_buggy_racing,
     brawl_stars,
+    bricks_breaker_quest,
     bubble_shooter,
     bus_simulator_indonesia,
     call_break_offline_card_game,
@@ -73,7 +77,9 @@ enum class RestrictedTraceID
     cod_mobile,
     coin_master,
     command_and_conquer_rivals,
+    cookie_run_kingdom,
     disney_tsum_tsum,
+    dr_driving,
     dragon_ball_legends,
     dragon_raja,
     efootball_pes_2021,
@@ -81,10 +87,13 @@ enum class RestrictedTraceID
     eight_ball_pool,
     extreme_car_driving_simulator,
     fallout_shelter_online,
+    farm_heroes_saga,
     fate_grand_order,
     fifa_mobile,
+    final_fantasy,
     free_fire,
     gardenscapes,
+    genshin_impact,
     google_maps,
     happy_color,
     hay_day,
@@ -103,6 +112,7 @@ enum class RestrictedTraceID
     magic_tiles_3,
     manhattan_10,
     manhattan_31,
+    mario_kart_tour,
     marvel_contest_of_champions,
     messenger_lite,
     minecraft,
@@ -110,8 +120,11 @@ enum class RestrictedTraceID
     nba2k20_800,
     one_punch_man,
     plants_vs_zombies_2,
+    pokemon_go,
     professional_baseball_spirits,
+    pubg_mobile_battle_royale,
     pubg_mobile_lite,
+    pubg_mobile_skydive,
     ragnarok_m_eternal_love,
     raid_shadow_legends,
     real_commando_secret_mission,
@@ -121,15 +134,21 @@ enum class RestrictedTraceID
     romancing_saga,
     rope_hero_vice_town,
     saint_seiya_awakening,
+    sakura_school_simulator,
     shadow_fight_2,
     slingshot_test1,
     slingshot_test2,
     sniper_3d,
+    sonic_the_hedgehog,
     standoff_2,
+    subway_princess_runner,
     subway_surfers,
+    summoners_war,
     talking_tom_hero_dash,
     temple_run_2,
     temple_run_300,
+    toon_blast,
+    township,
     trex_200,
     whatsapp,
     world_of_tanks_blitz,
@@ -143,6 +162,7 @@ static constexpr size_t kTraceInfoMaxNameLen = 32;
 
 static constexpr uint32_t kDefaultReplayContextClientMajorVersion = 3;
 static constexpr uint32_t kDefaultReplayContextClientMinorVersion = 1;
+static constexpr uint32_t kDefaultReplayDrawSurfaceColorSpace     = EGL_COLORSPACE_LINEAR;
 
 struct TraceInfo
 {
@@ -152,6 +172,7 @@ struct TraceInfo
     uint32_t endFrame;
     uint32_t drawSurfaceWidth;
     uint32_t drawSurfaceHeight;
+    uint32_t drawSurfaceColorSpace;
     char name[kTraceInfoMaxNameLen];
 };
 

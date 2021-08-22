@@ -7,7 +7,7 @@
 # gen_restricted_traces.py:
 #   Generates integration code for the restricted trace tests.
 
-import copy
+import glob
 import fnmatch
 import json
 import os
@@ -45,6 +45,7 @@ HEADER_TEMPLATE = """\
 #include <cstdint>
 #include <vector>
 #include <KHR/khrplatform.h>
+#include <EGL/egl.h>
 
 // See util/util_export.h for details on import/export labels.
 #if !defined(ANGLE_TRACE_EXPORT)
@@ -79,6 +80,7 @@ namespace trace_angle
 {{
 using GenericProc = void (*)();
 using LoadProc    = GenericProc(KHRONOS_APIENTRY *)(const char *);
+ANGLE_TRACE_LOADER_EXPORT void LoadEGL(LoadProc loadProc);
 ANGLE_TRACE_LOADER_EXPORT void LoadGLES(LoadProc loadProc);
 }}  // namespace trace_angle
 
@@ -93,6 +95,7 @@ static constexpr size_t kTraceInfoMaxNameLen = 32;
 
 static constexpr uint32_t kDefaultReplayContextClientMajorVersion = 3;
 static constexpr uint32_t kDefaultReplayContextClientMinorVersion = 1;
+static constexpr uint32_t kDefaultReplayDrawSurfaceColorSpace = EGL_COLORSPACE_LINEAR;
 
 struct TraceInfo
 {{
@@ -102,6 +105,7 @@ struct TraceInfo
     uint32_t endFrame;
     uint32_t drawSurfaceWidth;
     uint32_t drawSurfaceHeight;
+    uint32_t drawSurfaceColorSpace;
     char name[kTraceInfoMaxNameLen];
 }};
 
@@ -172,16 +176,24 @@ def reject_duplicate_keys(pairs):
     return found_keys
 
 
+# TODO(http://anglebug.com/5878): Revert back to non-autogen'ed file names for the angledata.gz.
+def get_angledata_filename(trace):
+    angledata_files = glob.glob('%s/%s*angledata.gz' % (trace, trace))
+    assert len(angledata_files) == 1, "Trace '%s' has %d angledata.gz files" % (
+        trace, len(angledata_files))
+    return angledata_files[0]
+
+
 def gen_gni(traces, gni_file, format_args):
     test_list = []
     for trace in traces:
         context = get_context(trace)
-        files = []
+        angledata_file = get_angledata_filename(trace)
         with open('%s/%s_capture_context%s_files.txt' % (trace, trace, context)) as f:
             files = f.readlines()
             f.close()
         files = ['"%s/%s"' % (trace, file.strip()) for file in files]
-        test_list += ['["%s", %s, [%s]]' % (trace, context, ','.join(files))]
+        test_list += ['["%s", %s, [%s], "%s"]' % (trace, context, ','.join(files), angledata_file)]
 
     format_args['test_list'] = ',\n'.join(test_list)
     gni_data = GNI_TEMPLATE.format(**format_args)
@@ -190,45 +202,65 @@ def gen_gni(traces, gni_file, format_args):
     return True
 
 
-def contains_context_version(trace):
-    "Determines if the trace contains the major/minor context version"
+def contains_string(trace, string):
+    """Determines if the trace contains a string"""
     for file in os.listdir(trace):
         if fnmatch.fnmatch(file, '*.h'):
             with open(os.path.join(trace, file)) as f:
-                if 'kReplayContextClientMajorVersion' in f.read():
+                if string in f.read():
                     return True
     return False
+
+
+def contains_context_version(trace):
+    """Determines if the trace contains the major/minor context version"""
+    return contains_string(trace, 'kReplayContextClientMajorVersion')
+
+
+def contains_colorspace(trace):
+    """Determines if the trace contains an EGL surface color space"""
+    return contains_string(trace, 'kReplayDrawSurfaceColorSpace')
 
 
 def get_trace_info(trace):
     # Some traces don't contain major/minor version, so use defaults
     info = []
-    defaults = ''
     if contains_context_version(trace):
-        info += ["%s::kReplayContextClientMajorVersion", "%s::kReplayContextClientMinorVersion"]
+        info += [
+            f"{trace}::kReplayContextClientMajorVersion",
+            f"{trace}::kReplayContextClientMinorVersion"
+        ]
     else:
-        defaults = "kDefaultReplayContextClientMajorVersion, kDefaultReplayContextClientMinorVersion,"
+        info += [
+            "kDefaultReplayContextClientMajorVersion", "kDefaultReplayContextClientMinorVersion"
+        ]
 
     info += [
-        "%s::kReplayFrameStart", "%s::kReplayFrameEnd", "%s::kReplayDrawSurfaceWidth",
-        "%s::kReplayDrawSurfaceHeight", "\"%s\""
+        f"{trace}::kReplayFrameStart", f"{trace}::kReplayFrameEnd",
+        f"{trace}::kReplayDrawSurfaceWidth", f"{trace}::kReplayDrawSurfaceHeight"
     ]
 
-    merged_info = defaults + ", ".join([element % trace for element in info])
-    return merged_info
+    if contains_colorspace(trace):
+        info += [f"{trace}::kReplayDrawSurfaceColorSpace"]
+    else:
+        info += ["kDefaultReplayDrawSurfaceColorSpace"]
+
+    info += [f"\"{trace}\""]
+
+    return ", ".join(info)
 
 
 def get_context(trace):
-    "Returns the context number used by trace header file"
+    """Returns the context number used by trace txt file"""
     for file in os.listdir(trace):
         # Load up the only header present for each trace
-        if fnmatch.fnmatch(file, '*.h'):
+        if fnmatch.fnmatch(file, '*.txt'):
             # Strip the extension to isolate the context by scanning
             # for numbers leading up to the last one, i.e.:
-            #     app_capture_context123.h
+            #     app_capture_context123_files.txt
             #                          ^^
             #                  start---||---end
-            start = len(file) - 3
+            start = len(file) - 11
             end = start + 1
             while file[start - 1].isdigit():
                 start -= 1

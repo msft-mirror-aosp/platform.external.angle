@@ -64,12 +64,15 @@ struct GPUTestConfig
         kConditionMetal,
         kConditionNexus5X,
         kConditionPixel2OrXL,
+        kConditionPixel4OrXL,
         kConditionNVIDIAQuadroP400,
         kConditionSwiftShader,
         kConditionPreRotation,
         kConditionPreRotation90,
         kConditionPreRotation180,
         kConditionPreRotation270,
+        // TODO: remove when no longer needed.  http://anglebug.com/6210
+        kConditionSPIRVGen,
 
         kNumberOfConditions,
     };
@@ -78,7 +81,7 @@ struct GPUTestConfig
 
     GPUTestConfig();
     GPUTestConfig(bool isSwiftShader);
-    GPUTestConfig(const API &api, uint32_t preRotation);
+    GPUTestConfig(const API &api, uint32_t preRotation, bool enableDirectSPIRVGen);
 
     const GPUTestConfig::ConditionArray &getConditions() const;
 
