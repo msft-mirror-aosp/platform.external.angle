@@ -144,6 +144,7 @@ TextureState::TextureState(TextureType type)
       mImmutableFormat(false),
       mImmutableLevels(0),
       mUsage(GL_NONE),
+      mHasProtectedContent(false),
       mImageDescs((IMPLEMENTATION_MAX_TEXTURE_LEVELS + 1) * (type == TextureType::CubeMap ? 6 : 1)),
       mCropRect(0, 0, 0, 0),
       mGenerateMipmapHint(GL_FALSE),
@@ -1065,6 +1066,16 @@ GLenum Texture::getUsage() const
     return mState.mUsage;
 }
 
+void Texture::setProtectedContent(Context *context, bool hasProtectedContent)
+{
+    mState.mHasProtectedContent = hasProtectedContent;
+}
+
+bool Texture::hasProtectedContent() const
+{
+    return mState.mHasProtectedContent;
+}
+
 const TextureState &Texture::getTextureState() const
 {
     return mState;
@@ -1735,6 +1746,7 @@ angle::Result Texture::bindTexImageFromSurface(Context *context, egl::Surface *s
     Extents size(surface->getWidth(), surface->getHeight(), 1);
     ImageDesc desc(size, surface->getBindTexImageFormat(), InitState::Initialized);
     mState.setImageDesc(NonCubeTextureTypeToTarget(mState.mType), 0, desc);
+    mState.mHasProtectedContent = surface->hasProtectedContent();
     signalDirtyStorage(InitState::Initialized);
     return angle::Result::Continue;
 }
@@ -1748,6 +1760,7 @@ angle::Result Texture::releaseTexImageFromSurface(const Context *context)
     // Erase the image info for level 0
     ASSERT(mState.mType == TextureType::_2D || mState.mType == TextureType::Rectangle);
     mState.clearImageDesc(NonCubeTextureTypeToTarget(mState.mType), 0);
+    mState.mHasProtectedContent = false;
     signalDirtyStorage(InitState::Initialized);
     return angle::Result::Continue;
 }
@@ -1838,6 +1851,7 @@ angle::Result Texture::setEGLImageTarget(Context *context,
     mState.clearImageDescs();
     mState.setImageDesc(NonCubeTextureTypeToTarget(type), 0,
                         ImageDesc(size, imageTarget->getFormat(), initState));
+    mState.mHasProtectedContent = imageTarget->hasProtectedContent();
     signalDirtyStorage(initState);
 
     return angle::Result::Continue;
@@ -2048,6 +2062,7 @@ angle::Result Texture::syncState(const Context *context, Command source)
     ASSERT(hasAnyDirtyBit() || source == Command::GenerateMipmap);
     ANGLE_TRY(mTexture->syncState(context, mDirtyBits, source));
     mDirtyBits.reset();
+    mState.mInitState = InitState::Initialized;
     return angle::Result::Continue;
 }
 
@@ -2267,6 +2282,15 @@ void Texture::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMess
                 desc.size.width         = static_cast<GLuint>(size / pixelBytes);
 
                 mState.setImageDesc(TextureTarget::Buffer, 0, desc);
+            }
+            break;
+        case angle::SubjectMessage::StorageReleased:
+            // When the TextureStorage is released, it needs to update the
+            // RenderTargetCache of the Framebuffer attaching this Texture.
+            // This is currently only for D3D back-end. See http://crbug.com/1234829
+            if (index == rx::kTextureImageImplObserverMessageIndex)
+            {
+                onStateChange(angle::SubjectMessage::StorageReleased);
             }
             break;
         case angle::SubjectMessage::SubjectMapped:

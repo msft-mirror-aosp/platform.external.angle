@@ -10,6 +10,7 @@
 #ifndef ANGLE_RESTRICTED_TRACES_H_
 #define ANGLE_RESTRICTED_TRACES_H_
 
+#include <EGL/egl.h>
 #include <KHR/khrplatform.h>
 #include <cstdint>
 #include <vector>
@@ -47,6 +48,7 @@ namespace trace_angle
 {
 using GenericProc = void (*)();
 using LoadProc    = GenericProc(KHRONOS_APIENTRY *)(const char *);
+ANGLE_TRACE_LOADER_EXPORT void LoadEGL(LoadProc loadProc);
 ANGLE_TRACE_LOADER_EXPORT void LoadGLES(LoadProc loadProc);
 }  // namespace trace_angle
 
@@ -88,6 +90,7 @@ enum class RestrictedTraceID
     farm_heroes_saga,
     fate_grand_order,
     fifa_mobile,
+    final_fantasy,
     free_fire,
     gardenscapes,
     genshin_impact,
@@ -119,7 +122,9 @@ enum class RestrictedTraceID
     plants_vs_zombies_2,
     pokemon_go,
     professional_baseball_spirits,
+    pubg_mobile_battle_royale,
     pubg_mobile_lite,
+    pubg_mobile_skydive,
     ragnarok_m_eternal_love,
     raid_shadow_legends,
     real_commando_secret_mission,
@@ -134,6 +139,7 @@ enum class RestrictedTraceID
     slingshot_test1,
     slingshot_test2,
     sniper_3d,
+    sonic_the_hedgehog,
     standoff_2,
     subway_princess_runner,
     subway_surfers,
@@ -156,6 +162,7 @@ static constexpr size_t kTraceInfoMaxNameLen = 32;
 
 static constexpr uint32_t kDefaultReplayContextClientMajorVersion = 3;
 static constexpr uint32_t kDefaultReplayContextClientMinorVersion = 1;
+static constexpr uint32_t kDefaultReplayDrawSurfaceColorSpace     = EGL_COLORSPACE_LINEAR;
 
 struct TraceInfo
 {
@@ -165,6 +172,7 @@ struct TraceInfo
     uint32_t endFrame;
     uint32_t drawSurfaceWidth;
     uint32_t drawSurfaceHeight;
+    uint32_t drawSurfaceColorSpace;
     char name[kTraceInfoMaxNameLen];
 };
 

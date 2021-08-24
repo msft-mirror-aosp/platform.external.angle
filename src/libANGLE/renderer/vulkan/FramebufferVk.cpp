@@ -1735,22 +1735,47 @@ angle::Result FramebufferVk::flushColorAttachmentUpdates(const gl::Context *cont
                                                          bool deferClears,
                                                          uint32_t colorIndexGL)
 {
-    ContextVk *contextVk = vk::GetImpl(context);
+    ContextVk *contextVk             = vk::GetImpl(context);
+    RenderTargetVk *readRenderTarget = nullptr;
+    RenderTargetVk *drawRenderTarget = nullptr;
 
-    RenderTargetVk *renderTarget = mRenderTargetCache.getColors()[colorIndexGL];
-    if (renderTarget == nullptr)
+    // It's possible for the read and draw color attachments to be different if different surfaces
+    // are bound, so we need to flush any staged updates to both.
+
+    // Read
+    if (mState.getReadBufferState() != GL_NONE && mState.getReadIndex() == colorIndexGL)
+    {
+        readRenderTarget = mRenderTargetCache.getColorRead(mState);
+        if (readRenderTarget)
+        {
+            if (deferClears && mState.getEnabledDrawBuffers().test(colorIndexGL))
+            {
+                ANGLE_TRY(
+                    readRenderTarget->flushStagedUpdates(contextVk, &mDeferredClears, colorIndexGL,
+                                                         mCurrentFramebufferDesc.getLayerCount()));
+            }
+            else
+            {
+                ANGLE_TRY(readRenderTarget->flushStagedUpdates(
+                    contextVk, nullptr, 0, mCurrentFramebufferDesc.getLayerCount()));
+            }
+        }
+    }
+
+    // Draw
+    drawRenderTarget = mRenderTargetCache.getColorDraw(mState, colorIndexGL);
+    if (drawRenderTarget == nullptr || readRenderTarget == drawRenderTarget)
     {
         return angle::Result::Continue;
     }
-
     if (deferClears && mState.getEnabledDrawBuffers().test(colorIndexGL))
     {
-        return renderTarget->flushStagedUpdates(contextVk, &mDeferredClears, colorIndexGL,
-                                                mCurrentFramebufferDesc.getLayerCount());
+        return drawRenderTarget->flushStagedUpdates(contextVk, &mDeferredClears, colorIndexGL,
+                                                    mCurrentFramebufferDesc.getLayerCount());
     }
 
-    return renderTarget->flushStagedUpdates(contextVk, nullptr, 0,
-                                            mCurrentFramebufferDesc.getLayerCount());
+    return drawRenderTarget->flushStagedUpdates(contextVk, nullptr, 0,
+                                                mCurrentFramebufferDesc.getLayerCount());
 }
 
 angle::Result FramebufferVk::flushDepthStencilAttachmentUpdates(const gl::Context *context,
@@ -1860,14 +1885,10 @@ angle::Result FramebufferVk::syncState(const gl::Context *context,
     if (shouldUpdateSrgbWriteControlMode)
     {
         // Framebuffer colorspace state has been modified, so refresh the current framebuffer
-        // descriptor to reflect the new state, and notify the context of the state change.
+        // descriptor to reflect the new state.
         gl::SrgbWriteControlMode newSrgbWriteControlMode = mState.getWriteControlMode();
         mCurrentFramebufferDesc.setWriteControlMode(newSrgbWriteControlMode);
         mRenderPassDesc.setWriteControlMode(newSrgbWriteControlMode);
-        mFramebuffer = nullptr;
-
-        angle::Result result = contextVk->onFramebufferChange(this);
-        ANGLE_UNUSED_VARIABLE(result);
     }
 
     if (shouldUpdateColorMask)

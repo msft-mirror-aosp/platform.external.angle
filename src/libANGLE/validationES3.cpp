@@ -1409,17 +1409,26 @@ bool ValidateES3TexStorageParametersBase(const Context *context,
         return false;
     }
 
-    if (formatInfo.compressed && target == TextureType::Rectangle)
+    if (formatInfo.compressed)
     {
-        context->validationError(GL_INVALID_ENUM, kRectangleTextureCompressed);
-        return false;
-    }
-
-    if (formatInfo.compressed && target == TextureType::_3D)
-    {
-        if (!ValidateES3CompressedFormatForTexture3D(context, formatInfo.internalFormat))
+        if (target == TextureType::Rectangle)
         {
-            // Error already generated.
+            context->validationError(GL_INVALID_ENUM, kRectangleTextureCompressed);
+            return false;
+        }
+
+        if (target == TextureType::_3D)
+        {
+            if (!ValidateES3CompressedFormatForTexture3D(context, formatInfo.internalFormat))
+            {
+                // Error already generated.
+                return false;
+            }
+        }
+
+        if (!ValidCompressedImageSize(context, formatInfo.internalFormat, 0, width, height, depth))
+        {
+            context->validationError(GL_INVALID_OPERATION, kInvalidCompressedImageSize);
             return false;
         }
     }
@@ -3172,8 +3181,13 @@ bool ValidateCopyBufferSubData(const Context *context,
         return false;
     }
 
-    // Verify that readBuffer and writeBuffer are not currently mapped
-    if (readBuffer->isMapped() || writeBuffer->isMapped())
+    // EXT_buffer_storage allows persistently mapped buffers to be updated via glCopyBufferSubData
+    bool isReadPersistent  = (readBuffer->getAccessFlags() & GL_MAP_PERSISTENT_BIT_EXT) != 0;
+    bool isWritePersistent = (writeBuffer->getAccessFlags() & GL_MAP_PERSISTENT_BIT_EXT) != 0;
+
+    // Verify that readBuffer and writeBuffer are not currently mapped unless persistent
+    if ((readBuffer->isMapped() && !isReadPersistent) ||
+        (writeBuffer->isMapped() && !isWritePersistent))
     {
         context->validationError(GL_INVALID_OPERATION, kBufferMapped);
         return false;

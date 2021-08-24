@@ -135,10 +135,10 @@ config("internal_config") {
   if (angle_use_vulkan_null_display) {
     defines += [ "ANGLE_USE_VULKAN_NULL_DISPLAY" ]
   } else if (angle_use_vulkan_display) {
-    defines += [
-      "ANGLE_USE_VULKAN_DISPLAY",
-      "EGL_NO_X11",
-    ]
+    defines += [ "ANGLE_USE_VULKAN_DISPLAY" ]
+    if (!angle_use_x11) {
+      defines += [ "EGL_NO_X11" ]
+    }
     if (angle_vulkan_display_mode == "simple") {
       defines += [ "ANGLE_VULKAN_DISPLAY_MODE_SIMPLE" ]
     } else if (angle_vulkan_display_mode == "headless") {
@@ -200,13 +200,14 @@ config("extra_warnings") {
       "-Wundefined-reinterpret-cast",
       "-Wunneeded-internal-declaration",
       "-Wweak-template-vtables",
+      "-Wunused-but-set-variable",
 
       # The below warnings are used by WebKit. We enable them to make rolling
       # ANGLE in WebKit easier.
       "-Wparentheses",
       "-Wrange-loop-analysis",
       "-Wstrict-prototypes",
-      "-Wunreachable-code",
+      "-Wunreachable-code-aggressive",
       "-Wshorten-64-to-32",
     ]
     if (!use_xcode_clang) {
@@ -539,10 +540,12 @@ template("translator_lib") {
       _needs_glsl_base = true
       _needs_glsl_and_vulkan_base = true
       sources += angle_translator_glsl_sources
-      if (is_apple) {
-        sources += angle_translator_glsl_mac_sources
-      }
       defines += [ "ANGLE_ENABLE_GLSL" ]
+    }
+
+    if (angle_enable_apple_translator_workarounds) {
+      sources += angle_translator_apple_sources
+      defines += [ "ANGLE_ENABLE_APPLE_WORKAROUNDS" ]
     }
 
     if (angle_enable_hlsl || use_fuzzing_engine) {
@@ -966,7 +969,10 @@ group("angle_abseil") {
     if (build_with_chromium || is_component_build) {
       public_deps = [ "$angle_abseil_cpp_dir:absl" ]
     } else {
-      public_deps = [ "$angle_abseil_cpp_dir/absl/container:flat_hash_map" ]
+      public_deps = [
+        "$angle_abseil_cpp_dir/absl/container:flat_hash_map",
+        "$angle_abseil_cpp_dir/absl/container:flat_hash_set",
+      ]
     }
 
     public_configs = [ ":angle_abseil_config" ]
