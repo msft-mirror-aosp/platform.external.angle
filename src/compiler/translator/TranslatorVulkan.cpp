@@ -22,6 +22,7 @@
 #include "compiler/translator/StaticType.h"
 #include "compiler/translator/glslang_wrapper.h"
 #include "compiler/translator/tree_ops/MonomorphizeUnsupportedFunctions.h"
+#include "compiler/translator/tree_ops/RecordConstantPrecision.h"
 #include "compiler/translator/tree_ops/RemoveAtomicCounterBuiltins.h"
 #include "compiler/translator/tree_ops/RemoveInactiveInterfaceVariables.h"
 #include "compiler/translator/tree_ops/RewriteArrayOfArrayOfOpaqueUniforms.h"
@@ -146,7 +147,6 @@ bool DeclareDefaultUniforms(TCompiler *compiler,
         if (IsDefaultUniform(type))
         {
             TType *fieldType = new TType(type);
-            fieldType->setPrecision(EbpUndefined);
 
             uniformList->push_back(new TField(fieldType, symbol->getName(), symbol->getLine(),
                                               symbol->variable().symbolType()));
@@ -168,7 +168,6 @@ bool DeclareDefaultUniforms(TCompiler *compiler,
         const TVariable *variable = uniformVars[fieldIndex];
 
         TType *replacementType = new TType(variable->getType());
-        replacementType->setPrecision(EbpUndefined);
         replacementType->setInterfaceBlockField(uniformBlock->getType().getInterfaceBlock(),
                                                 fieldIndex);
 
@@ -204,8 +203,9 @@ ANGLE_NO_DISCARD bool RotateAndFlipBuiltinVariable(TCompiler *compiler,
     TIntermSwizzle *builtinXY    = new TIntermSwizzle(builtinRef, swizzleOffsetXY);
 
     // Create a symbol reference to our new variable that will hold the modified builtin.
-    const TType *type = StaticType::GetForVec<EbtFloat>(
-        EvqGlobal, static_cast<unsigned char>(builtin->getType().getNominalSize()));
+    TType *type = new TType(builtin->getType());
+    type->setQualifier(EvqGlobal);
+    type->setPrimarySize(static_cast<unsigned char>(builtin->getType().getNominalSize()));
     TVariable *replacementVar =
         new TVariable(symbolTable, flippedVariableName, type, SymbolType::AngleInternal);
     DeclareGlobalVariable(root, replacementVar);
@@ -337,7 +337,7 @@ ANGLE_NO_DISCARD bool AddBresenhamEmulationVS(TCompiler *compiler,
     // Clamp position to subpixel grid.
     // Do perspective divide (get normalized device coords)
     // "vec2 ndc = gl_Position.xy / gl_Position.w"
-    const TType *vec2Type        = StaticType::GetTemporary<EbtFloat, 2>();
+    const TType *vec2Type        = StaticType::GetTemporary<EbtFloat, EbpHigh, 2>();
     TIntermBinary *viewportRef   = driverUniforms->getViewportRef();
     TIntermSymbol *glPos         = new TIntermSymbol(BuiltInVariable::gl_Position());
     TIntermSwizzle *glPosXY      = CreateSwizzle(glPos, 0, 1);
@@ -415,7 +415,7 @@ ANGLE_NO_DISCARD bool AddXfbEmulationSupport(TCompiler *compiler,
 
     constexpr uint32_t kMaxXfbBuffers = 4;
 
-    const TType *ivec4Type = StaticType::GetBasic<EbtInt, kMaxXfbBuffers>();
+    const TType *ivec4Type = StaticType::GetBasic<EbtInt, EbpHigh, kMaxXfbBuffers>();
     TType *stridesType     = new TType(*ivec4Type);
     stridesType->setQualifier(EvqParamConst);
 
@@ -469,7 +469,7 @@ ANGLE_NO_DISCARD bool AddXfbEmulationSupport(TCompiler *compiler,
     //     void ANGLECaptureXfb()
     //     {
     //     }
-    const TType *voidType = StaticType::GetBasic<EbtVoid>();
+    const TType *voidType = StaticType::GetBasic<EbtVoid, EbpUndefined>();
 
     // Create the function body, which is empty.
     body = new TIntermBlock;
@@ -538,7 +538,7 @@ ANGLE_NO_DISCARD bool AddXfbEmulationSupport(TCompiler *compiler,
     for (uint32_t bufferIndex = 0; bufferIndex < kMaxXfbBuffers; ++bufferIndex)
     {
         TFieldList *fieldList = new TFieldList;
-        TType *xfbOutType     = new TType(EbtFloat);
+        TType *xfbOutType     = new TType(EbtFloat, EbpHigh, EvqGlobal);
         xfbOutType->makeArray(0);
 
         TField *field = new TField(xfbOutType, ImmutableString(vk::kXfbEmulationBufferFieldName),
@@ -686,7 +686,7 @@ ANGLE_NO_DISCARD bool AddBresenhamEmulationFS(TCompiler *compiler,
                                               bool usesFragCoord)
 {
     TVariable *anglePosition = AddANGLEPositionVaryingDeclaration(root, symbolTable, EvqVaryingIn);
-    const TType *vec2Type    = StaticType::GetTemporary<EbtFloat, 2>();
+    const TType *vec2Type    = StaticType::GetTemporary<EbtFloat, EbpHigh, 2>();
 
     TIntermBinary *viewportRef = driverUniforms->getViewportRef();
 
@@ -1381,6 +1381,15 @@ bool TranslatorVulkan::translate(TIntermBlock *root,
         return OutputSPIRV(this, root, compileOptions);
     }
 #endif
+
+    // When generating text, glslang cannot know the precision of folded constants so it may infer
+    // the wrong precisions.  The following transformation gives constants names with precision to
+    // guide glslang.  This is not an issue for SPIR-V generation because the precision information
+    // is present in the tree already.
+    if (!RecordConstantPrecision(this, root, &getSymbolTable()))
+    {
+        return false;
+    }
 
     // Write translated shader.
     TOutputVulkanGLSL outputGLSL(this, sink, enablePrecision, compileOptions);
