@@ -3694,7 +3694,8 @@ bool ValidateCopyTexImageParametersBase(const Context *context,
         }
     }
 
-    if (textureFormatOut)
+    // Do not leak the previous texture format for non-subImage case.
+    if (textureFormatOut && isSubImage)
     {
         *textureFormatOut = texture->getFormat(target, level);
     }
@@ -4028,6 +4029,12 @@ const char *ValidateDrawStates(const Context *context)
             if (vao->hasTransformFeedbackBindingConflict(context))
             {
                 return kVertexBufferBoundForTransformFeedback;
+            }
+
+            // Validate that we are rendering with a linked program.
+            if (!program->isLinked())
+            {
+                return kProgramNotLinked;
             }
         }
     }
