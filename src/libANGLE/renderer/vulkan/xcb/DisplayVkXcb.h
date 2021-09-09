@@ -31,13 +31,17 @@ class DisplayVkXcb : public DisplayVk
                                        EGLNativeWindowType window) override;
 
     egl::ConfigSet generateConfigs() override;
-    bool checkConfigSupport(egl::Config *config) override;
+    void checkConfigSupport(egl::Config *config) override;
 
     const char *getWSIExtension() const override;
     angle::Result waitNativeImpl() override;
 
   private:
     xcb_connection_t *mXcbConnection;
+    // If there is no X Display, obviously it's impossible to connect to it with Xcb,
+    // so rendering to windows is not supported, but rendering to pbuffers is still supported.
+    // This mode is used in headless ozone testing.
+    bool mHasXDisplay;
 };
 
 }  // namespace rx

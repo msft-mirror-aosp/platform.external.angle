@@ -9,8 +9,10 @@
 
 #include "libANGLE/renderer/vulkan/xcb/DisplayVkXcb.h"
 
+#include <X11/Xutil.h>
 #include <xcb/xcb.h>
 
+#include "common/system_utils.h"
 #include "libANGLE/Display.h"
 #include "libANGLE/renderer/vulkan/vk_caps_utils.h"
 #include "libANGLE/renderer/vulkan/xcb/WindowSurfaceVkXcb.h"
@@ -41,29 +43,42 @@ EGLint GetXcbVisualType(xcb_screen_t *screen)
 }  // namespace
 
 DisplayVkXcb::DisplayVkXcb(const egl::DisplayState &state)
-    : DisplayVk(state), mXcbConnection(nullptr)
+    : DisplayVk(state), mXcbConnection(nullptr), mHasXDisplay(false)
 {}
 
 egl::Error DisplayVkXcb::initialize(egl::Display *display)
 {
-    mXcbConnection = xcb_connect(nullptr, nullptr);
-    if (mXcbConnection == nullptr)
+    mHasXDisplay = !angle::GetEnvironmentVar("DISPLAY").empty();
+    if (mHasXDisplay)
     {
-        return egl::EglNotInitialized();
+        mXcbConnection = xcb_connect(nullptr, nullptr);
+        ASSERT(mXcbConnection != nullptr);
+        int xcb_connection_error = xcb_connection_has_error(mXcbConnection);
+        if (xcb_connection_error)
+        {
+            ERR() << "xcb_connect() failed, error " << xcb_connection_error;
+            xcb_disconnect(mXcbConnection);
+            mXcbConnection = nullptr;
+            return egl::EglNotInitialized();
+        }
     }
     return DisplayVk::initialize(display);
 }
 
 void DisplayVkXcb::terminate()
 {
-    ASSERT(mXcbConnection != nullptr);
-    xcb_disconnect(mXcbConnection);
-    mXcbConnection = nullptr;
+    if (mHasXDisplay)
+    {
+        ASSERT(mXcbConnection != nullptr);
+        xcb_disconnect(mXcbConnection);
+        mXcbConnection = nullptr;
+    }
     DisplayVk::terminate();
 }
 
 bool DisplayVkXcb::isValidNativeWindow(EGLNativeWindowType window) const
 {
+    ASSERT(mHasXDisplay);
     // There doesn't appear to be an xcb function explicitly for checking the validity of a
     // window ID, but xcb_query_tree_reply will return nullptr if the window doesn't exist.
     xcb_query_tree_cookie_t cookie =
@@ -80,17 +95,36 @@ bool DisplayVkXcb::isValidNativeWindow(EGLNativeWindowType window) const
 SurfaceImpl *DisplayVkXcb::createWindowSurfaceVk(const egl::SurfaceState &state,
                                                  EGLNativeWindowType window)
 {
+    ASSERT(mHasXDisplay);
     return new WindowSurfaceVkXcb(state, window, mXcbConnection);
 }
 
 egl::ConfigSet DisplayVkXcb::generateConfigs()
 {
-    constexpr GLenum kColorFormats[] = {GL_BGRA8_EXT, GL_BGRX8_ANGLEX};
-    return egl_vk::GenerateConfigs(kColorFormats, egl_vk::kConfigDepthStencilFormats, this);
+    const std::array<GLenum, 1> kColorFormats = {GL_BGRA8_EXT};
+
+    std::vector<GLenum> depthStencilFormats(
+        egl_vk::kConfigDepthStencilFormats,
+        egl_vk::kConfigDepthStencilFormats + ArraySize(egl_vk::kConfigDepthStencilFormats));
+
+    if (getCaps().stencil8)
+    {
+        depthStencilFormats.push_back(GL_STENCIL_INDEX8);
+    }
+    return egl_vk::GenerateConfigs(kColorFormats.data(), kColorFormats.size(),
+                                   depthStencilFormats.data(), depthStencilFormats.size(), this);
 }
 
-bool DisplayVkXcb::checkConfigSupport(egl::Config *config)
+void DisplayVkXcb::checkConfigSupport(egl::Config *config)
 {
+    // If no window system, cannot support windows.
+    if (!mHasXDisplay)
+    {
+        // No window support if no X11.
+        config->surfaceType &= ~EGL_WINDOW_BIT;
+        return;
+    }
+
     // TODO(geofflang): Test for native support and modify the config accordingly.
     // http://anglebug.com/2692
 
@@ -104,8 +138,6 @@ bool DisplayVkXcb::checkConfigSupport(egl::Config *config)
     // Visual id is root_visual of the screen
     config->nativeVisualID   = screen->root_visual;
     config->nativeVisualType = GetXcbVisualType(screen);
-
-    return true;
 }
 
 const char *DisplayVkXcb::getWSIExtension() const
@@ -125,7 +157,7 @@ DisplayImpl *CreateVulkanXcbDisplay(const egl::DisplayState &state)
 
 angle::Result DisplayVkXcb::waitNativeImpl()
 {
-    XSync(mState.displayId, False);
+    XSync(reinterpret_cast<Display *>(mState.displayId), False);
     return angle::Result::Continue;
 }
 }  // namespace rx
