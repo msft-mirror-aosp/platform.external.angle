@@ -1,5 +1,5 @@
-# Copyright 2013 The ANGLE Project Authors. All rights reserved.
-# Use of this source code is governed by a BSD-style license that can be
+# Copyright 2013 The ANGLE Project Authors.All rights reserved.
+# Use of this source code is governed by a BSD - style license that can be
 # found in the LICENSE file.
 
 angle_translator_exported_headers = [
@@ -127,6 +127,8 @@ angle_translator_sources = [
   "src/compiler/translator/tree_ops/ClampIndirectIndices.h",
   "src/compiler/translator/tree_ops/ClampPointSize.cpp",
   "src/compiler/translator/tree_ops/ClampPointSize.h",
+  "src/compiler/translator/tree_ops/ConvertUnsupportedConstructorsToFunctionCalls.cpp",
+  "src/compiler/translator/tree_ops/ConvertUnsupportedConstructorsToFunctionCalls.h",
   "src/compiler/translator/tree_ops/DeclareAndInitBuiltinsForInstancedMultiview.cpp",
   "src/compiler/translator/tree_ops/DeclareAndInitBuiltinsForInstancedMultiview.h",
   "src/compiler/translator/tree_ops/DeferGlobalInitializers.cpp",
@@ -213,9 +215,12 @@ angle_translator_sources = [
   "src/compiler/translator/tree_util/IntermNodePatternMatcher.h",
   "src/compiler/translator/tree_util/IntermNode_util.cpp",
   "src/compiler/translator/tree_util/IntermNode_util.h",
+  "src/compiler/translator/tree_util/IntermRebuild.cpp",
+  "src/compiler/translator/tree_util/IntermRebuild.h",
   "src/compiler/translator/tree_util/IntermTraverse.cpp",
   "src/compiler/translator/tree_util/IntermTraverse.h",
   "src/compiler/translator/tree_util/NodeSearch.h",
+  "src/compiler/translator/tree_util/NodeType.h",
   "src/compiler/translator/tree_util/ReplaceArrayOfMatrixVarying.cpp",
   "src/compiler/translator/tree_util/ReplaceArrayOfMatrixVarying.h",
   "src/compiler/translator/tree_util/ReplaceClipCullDistanceVariable.cpp",
@@ -258,7 +263,6 @@ angle_translator_glsl_sources = [
   "src/compiler/translator/ExtensionGLSL.h",
   "src/compiler/translator/TranslatorGLSL.cpp",
   "src/compiler/translator/VersionGLSL.cpp",
-  "src/compiler/translator/VersionGLSL.h",
   "src/compiler/translator/tree_ops/gl/ClampFragDepth.cpp",
   "src/compiler/translator/tree_ops/gl/RegenerateStructNames.cpp",
   "src/compiler/translator/tree_ops/gl/RewriteRepeatedAssignToSwizzled.cpp",
@@ -351,23 +355,19 @@ angle_translator_lib_vulkan_sources = [
   "src/compiler/translator/tree_ops/vulkan/RewriteR32fImages.cpp",
   "src/compiler/translator/tree_ops/vulkan/RewriteR32fImages.h",
 ]
-if (is_android) {
-  angle_translator_sources += [
-    "src/compiler/translator/ImmutableString_ESSL_autogen.cpp",
-    "src/compiler/translator/SymbolTable_ESSL_autogen.cpp",
-  ]
-} else {
-  angle_translator_sources += [
-    "src/compiler/translator/ImmutableString_autogen.cpp",
-    "src/compiler/translator/SymbolTable_autogen.cpp",
-  ]
-}
+
+angle_translator_essl_symbol_table_sources = [
+  "src/compiler/translator/ImmutableString_ESSL_autogen.cpp",
+  "src/compiler/translator/SymbolTable_ESSL_autogen.cpp",
+]
+angle_translator_glsl_symbol_table_sources = [
+  "src/compiler/translator/ImmutableString_autogen.cpp",
+  "src/compiler/translator/SymbolTable_autogen.cpp",
+]
 
 angle_translator_lib_metal_sources = [
   "src/compiler/translator/TranslatorMetal.cpp",
   "src/compiler/translator/TranslatorMetalDirect.cpp",
-  "src/compiler/translator/TranslatorMetalDirect/AddExplicitTypeCasts.cpp",
-  "src/compiler/translator/TranslatorMetalDirect/AddExplicitTypeCasts.h",
   "src/compiler/translator/TranslatorMetalDirect/AstHelpers.cpp",
   "src/compiler/translator/TranslatorMetalDirect/AstHelpers.h",
   "src/compiler/translator/TranslatorMetalDirect/DebugSink.h",
@@ -383,8 +383,6 @@ angle_translator_lib_metal_sources = [
   "src/compiler/translator/TranslatorMetalDirect/HoistConstants.h",
   "src/compiler/translator/TranslatorMetalDirect/IdGen.cpp",
   "src/compiler/translator/TranslatorMetalDirect/IdGen.h",
-  "src/compiler/translator/TranslatorMetalDirect/IntermRebuild.cpp",
-  "src/compiler/translator/TranslatorMetalDirect/IntermRebuild.h",
   "src/compiler/translator/TranslatorMetalDirect/IntroduceVertexIndexID.cpp",
   "src/compiler/translator/TranslatorMetalDirect/IntroduceVertexIndexID.h",
   "src/compiler/translator/TranslatorMetalDirect/Layout.cpp",
@@ -399,7 +397,6 @@ angle_translator_lib_metal_sources = [
   "src/compiler/translator/TranslatorMetalDirect/Name.h",
   "src/compiler/translator/TranslatorMetalDirect/NameEmbeddedUniformStructsMetal.cpp",
   "src/compiler/translator/TranslatorMetalDirect/NameEmbeddedUniformStructsMetal.h",
-  "src/compiler/translator/TranslatorMetalDirect/NodeType.h",
   "src/compiler/translator/TranslatorMetalDirect/Pipeline.cpp",
   "src/compiler/translator/TranslatorMetalDirect/Pipeline.h",
   "src/compiler/translator/TranslatorMetalDirect/ProgramPrelude.cpp",

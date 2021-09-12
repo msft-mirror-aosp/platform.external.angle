@@ -744,6 +744,9 @@ struct Extensions
 
     // GL_EXT_protected_textures
     bool protectedTexturesEXT = false;
+
+    // GL_EXT_EGL_image_storage
+    bool eglImageStorageEXT = false;
 };
 
 // Pointer to a boolean memeber of the Extensions struct
@@ -807,6 +810,9 @@ struct Limitations
 
     // ETC1 texture support is emulated.
     bool emulatedEtc1 = false;
+
+    // No compressed TEXTURE_3D support.
+    bool noCompressedTexture3D = false;
 };
 
 struct TypePrecision

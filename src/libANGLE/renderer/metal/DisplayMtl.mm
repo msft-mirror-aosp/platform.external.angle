@@ -750,13 +750,23 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.programBinaryFormats.push_back(GL_PROGRAM_BINARY_ANGLE);
 
     // GL_APPLE_clip_distance
-    mNativeCaps.maxClipDistances = 8;
+    mNativeCaps.maxClipDistances = mFeatures.directMetalGeneration.enabled ? 0 : 8;
 
     // Metal doesn't support GL_TEXTURE_COMPARE_MODE=GL_NONE for shadow samplers
     mNativeLimitations.noShadowSamplerCompareModeNone = true;
 
     // Apple platforms require PVRTC1 textures to be squares.
     mNativeLimitations.squarePvrtc1 = true;
+
+    // Older Metal does not support compressed formats for TEXTURE_3D target.
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.0, 13.0))
+    {
+        mNativeLimitations.noCompressedTexture3D = !supportsEitherGPUFamily(3, 1);
+    }
+    else
+    {
+        mNativeLimitations.noCompressedTexture3D = true;
+    }
 
     // Direct-to-metal constants:
     mNativeCaps.driverUniformsBindingIndex    = mtl::kDriverUniformsBindingIndex;
@@ -847,7 +857,7 @@ void DisplayMtl::initializeExtensions() const
     mNativeExtensions.getProgramBinaryOES = true;
 
     // GL_APPLE_clip_distance
-    mNativeExtensions.clipDistanceAPPLE = true;
+    mNativeExtensions.clipDistanceAPPLE = !mFeatures.directMetalGeneration.enabled;
 
     // GL_NV_pixel_buffer_object
     mNativeExtensions.pixelBufferObjectNV = true;
