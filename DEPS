@@ -34,7 +34,7 @@ vars = {
   'checkout_android_native_support': 'checkout_android or checkout_chromeos',
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': 'e1a053dddd92cd61254ed3702fe4cc1e1025c9a8',
+  'chromium_revision': '6aa22be0c26ffa7e5020998616629b830c0796b3',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
@@ -69,7 +69,7 @@ vars = {
   # mirror of third_party/jsoncpp located here:
   # https://chromium.googlesource.com/chromium/src/third_party/jsoncpp/
   # Then get the new hash for jsoncpp_revision from the root Chrome DEPS file:
-  # https://source.chromium.org/chromium/chromium/src/+/master:DEPS
+  # https://source.chromium.org/chromium/chromium/src/+/main:DEPS
   'chromium_jsoncpp_revision': '30a6ac108e24dabac7c2e0df4d33d55032af4ee7',
 
   # Current revision of patched-yasm.
@@ -79,12 +79,12 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': '2331f088546de8f58dcc02daf8212254aaeb2d4c',
+  'catapult_revision': '8141144003019719d7aff618ecb8f3d3f3d6d36a',
 
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling luci-go
   # and whatever else without interference from each other.
-  'luci_go': 'git_revision:3e1f1f7a109ed8aefc7feba94fa737f0b5b4847e',
+  'luci_go': 'git_revision:7b62727dc713b47d7a7ce9bca27500cb8e82ebd7',
 
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling android_sdk_build-tools_version
@@ -119,7 +119,7 @@ vars = {
 deps = {
 
   'build': {
-    'url': '{chromium_git}/chromium/src/build.git@e2b29e04ac858c5a7d81ab683d6f1aaac34966ea',
+    'url': '{chromium_git}/chromium/src/build.git@0c04087fbf850f06f62336eeb5c355f857919e04',
     'condition': 'not build_with_chromium',
   },
 
@@ -161,7 +161,7 @@ deps = {
   },
 
   'buildtools/third_party/libc++abi/trunk': {
-    'url': '{chromium_git}/external/github.com/llvm/llvm-project/libcxxabi.git@fc376196a1b4365b542db5ef2a07dcd1b557aa35',
+    'url': '{chromium_git}/external/github.com/llvm/llvm-project/libcxxabi.git@17de75220a90f23a16f9f87fbc5c00dce475b726',
     'condition': 'not build_with_chromium',
   },
 
@@ -177,12 +177,12 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@eeafbf2b441e138e02fd0f512abaf57f966eb101',
+    'url': '{chromium_git}/chromium/src/testing@2829dbd8e170a8968c63a00478c6ab7160665f82',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/abseil-cpp': {
-    'url': '{chromium_git}/chromium/src/third_party/abseil-cpp@789af048b388657987c59d4da406859034fe310f',
+    'url': '{chromium_git}/chromium/src/third_party/abseil-cpp@fec7b4e901bbb77d9af10db1c11cb9f6c2116b73',
     'condition': 'not build_with_chromium',
   },
 
@@ -327,7 +327,7 @@ deps = {
   },
 
   'third_party/depot_tools': {
-    'url': '{chromium_git}/chromium/tools/depot_tools.git@d579cbcbc257d93f16334163c9816e4e581b7be2',
+    'url': '{chromium_git}/chromium/tools/depot_tools.git@e1482c55484acb20a6383bd9e458a0e1574d0a10',
     'condition': 'not build_with_chromium',
   },
 
@@ -469,7 +469,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
-              'version': 'dvPOJ_8iAF6OHGO79d86VbJjyKj7Xn0SFxlVVC9LHdcC',
+              'version': 'j4P6kTwiJeMkYRbaOqRCB-ZrYyISP0NrcyNNAd8MRM0C',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -491,7 +491,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': '{swiftshader_git}/SwiftShader@aed9a7633481fa60ccd63a5cc37733f53b15d9dc',
+    'url': '{swiftshader_git}/SwiftShader@446e61c24b37e2d3cb1bd3334dd3854ec8f682bb',
     'condition': 'not build_with_chromium',
   },
 
@@ -531,7 +531,7 @@ deps = {
   },
 
   'tools/clang': {
-    'url': '{chromium_git}/chromium/src/tools/clang.git@1277083d6fef317ff83fceee3bc0364d9ba1009f',
+    'url': '{chromium_git}/chromium/src/tools/clang.git@664e4259b150e07f1a1e440459f59fbc68edb82f',
     'condition': 'not build_with_chromium',
   },
 
@@ -566,7 +566,7 @@ deps = {
   },
 
   'tools/mb': {
-    'url': '{chromium_git}/chromium/src/tools/mb@56d74d41aa78d62f0d13e077180c5fec1f68c8fb',
+    'url': '{chromium_git}/chromium/src/tools/mb@c56679b89ffe059f1c5389b09c530cbe447de1f2',
     'condition': 'not build_with_chromium',
   },
 
@@ -581,7 +581,7 @@ deps = {
   },
 
   'tools/perf': {
-    'url': '{chromium_git}/chromium/src/tools/perf@df796b313d9a0ceb35086ab4587e7a0b9a9aad32',
+    'url': '{chromium_git}/chromium/src/tools/perf@184ebcc93f893895c8037c5fed1bcddbb37812df',
     'condition': 'not build_with_chromium',
   },
 
@@ -599,7 +599,7 @@ deps = {
       'packages': [
         {
           'package': 'skia/tools/goldctl/linux-amd64',
-          'version': 'piyuI_96IF7jF_1vY-tHI0jfepKADnKhEEILxpHKvz4C',
+          'version': 'rnLFFuc3uwQMer-UqF4iPw87LYBXcTHecmsEr5XSsqEC',
         },
       ],
       'dep_type': 'cipd',
@@ -610,7 +610,7 @@ deps = {
       'packages': [
         {
           'package': 'skia/tools/goldctl/windows-amd64',
-          'version': 'AfrF2K3fb2csgVwLyDcljBC9fLFeLBpCqtTzxBiyMxgC',
+          'version': '93HPekEUblvrn33MgtM_mPQjnsJ5_IqJUTt3XiUUloYC',
         },
       ],
       'dep_type': 'cipd',
@@ -621,7 +621,7 @@ deps = {
       'packages': [
         {
           'package': 'skia/tools/goldctl/mac-amd64',
-          'version': 'hLDvCRtQ02S_V4ABz5oABBehzUF-j18kIHZwnU6gctYC',
+          'version': 'Js84h2dElAXI-6j3tIs5oGaaEymkLbyu50DlJXn6WJIC',
         },
       ],
       'dep_type': 'cipd',
@@ -703,6 +703,16 @@ deps = {
       'packages': [
         {
             'package': 'angle/traces/beach_buggy_racing',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
+  'src/tests/restricted_traces/blockman_go': {
+      'packages': [
+        {
+            'package': 'angle/traces/blockman_go',
             'version': 'version:1',
         },
       ],

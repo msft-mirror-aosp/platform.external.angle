@@ -1039,7 +1039,9 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
             {
                 return false;
             }
-            DeclareRightBeforeMain(*root, *BuiltInVariable::gl_FragCoord());
+            const TVariable *fragCoord = static_cast<const TVariable *>(
+                getSymbolTable().findBuiltIn(ImmutableString("gl_FragCoord"), getShaderVersion()));
+            DeclareRightBeforeMain(*root, *fragCoord);
         }
 
         if (!RewriteDfdy(this, compileOptions, root, getSymbolTable(), getShaderVersion(),
@@ -1061,7 +1063,9 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
 
         if (FindSymbolNode(root, BuiltInVariable::gl_PointSize()->name()))
         {
-            DeclareRightBeforeMain(*root, *BuiltInVariable::gl_PointSize());
+            const TVariable *pointSize = static_cast<const TVariable *>(
+                getSymbolTable().findBuiltIn(ImmutableString("gl_PointSize"), getShaderVersion()));
+            DeclareRightBeforeMain(*root, *pointSize);
         }
 
         if (FindSymbolNode(root, BuiltInVariable::gl_VertexIndex()->name()))
@@ -1183,7 +1187,7 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
         return false;
     }
 
-    if (!ConvertUnsupportedConstructorsToFunctionCalls(*this, *root, symbolEnv))
+    if (!ConvertUnsupportedConstructorsToFunctionCalls(*this, *root))
     {
         return false;
     }

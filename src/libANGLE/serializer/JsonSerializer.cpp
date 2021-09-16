@@ -26,11 +26,6 @@ JsonSerializer::JsonSerializer() : mDoc(js::kObjectType), mAllocator(mDoc.GetAll
 
 JsonSerializer::~JsonSerializer() {}
 
-void JsonSerializer::startDocument(const std::string &name)
-{
-    startGroup(name);
-}
-
 void JsonSerializer::startGroup(const std::string &name)
 {
     mGroupValueStack.push(SortedValueGroup());
@@ -39,18 +34,16 @@ void JsonSerializer::startGroup(const std::string &name)
 
 void JsonSerializer::endGroup()
 {
-    ASSERT(mGroupValueStack.size() >= 2);
+    ASSERT(!mGroupValueStack.empty());
     ASSERT(!mGroupNameStack.empty());
 
-    SortedValueGroup &group = mGroupValueStack.top();
-    std::string &name       = mGroupNameStack.top();
-
-    SortedValueGroup::value_type new_entry = std::make_pair(name, makeValueGroup(group));
+    rapidjson::Value group = makeValueGroup(mGroupValueStack.top());
+    std::string name       = mGroupNameStack.top();
 
     mGroupValueStack.pop();
     mGroupNameStack.pop();
 
-    mGroupValueStack.top().insert(std::move(new_entry));
+    addValue(name, std::move(group));
 }
 
 void JsonSerializer::addBlob(const std::string &name, const uint8_t *blob, size_t length)
@@ -83,7 +76,7 @@ void JsonSerializer::addCString(const std::string &name, const char *value)
 {
     rapidjson::Value tag(name.c_str(), mAllocator);
     rapidjson::Value val(value, mAllocator);
-    mGroupValueStack.top().insert(std::make_pair(name, std::move(val)));
+    addValue(name, std::move(val));
 }
 
 void JsonSerializer::addString(const std::string &name, const std::string &value)
@@ -94,41 +87,42 @@ void JsonSerializer::addString(const std::string &name, const std::string &value
 void JsonSerializer::addVectorOfStrings(const std::string &name,
                                         const std::vector<std::string> &value)
 {
-    rapidjson::Value array(rapidjson::kArrayType);
-    array.SetArray();
+    rapidjson::Value arrayValue(rapidjson::kArrayType);
+    arrayValue.SetArray();
 
     for (const std::string &v : value)
     {
         rapidjson::Value str(v.c_str(), mAllocator);
-        array.PushBack(str, mAllocator);
+        arrayValue.PushBack(str, mAllocator);
     }
 
-    mGroupValueStack.top().insert(std::make_pair(name, std::move(array)));
+    addValue(name, std::move(arrayValue));
 }
 
-const char *JsonSerializer::data() const
+void JsonSerializer::addBool(const std::string &name, bool value)
 {
+    rapidjson::Value boolValue(value);
+    addValue(name, std::move(boolValue));
+}
+
+const char *JsonSerializer::data()
+{
+    ensureEndDocument();
     return mResult.c_str();
 }
 
-std::vector<uint8_t> JsonSerializer::getData() const
+std::vector<uint8_t> JsonSerializer::getData()
 {
+    ensureEndDocument();
     return std::vector<uint8_t>(mResult.begin(), mResult.end());
 }
 
-void JsonSerializer::endDocument()
+void JsonSerializer::ensureEndDocument()
 {
-    // finalize last group
-    ASSERT(!mGroupValueStack.empty());
-    ASSERT(!mGroupNameStack.empty());
-
-    rapidjson::Value nameValue(mGroupNameStack.top().c_str(), mAllocator);
-    mDoc.AddMember(nameValue, makeValueGroup(mGroupValueStack.top()), mAllocator);
-
-    mGroupValueStack.pop();
-    mGroupNameStack.pop();
-    ASSERT(mGroupValueStack.empty());
-    ASSERT(mGroupNameStack.empty());
+    if (!mResult.empty())
+    {
+        return;
+    }
 
     std::stringstream os;
     js::OStreamWrapper osw(os);
@@ -137,8 +131,9 @@ void JsonSerializer::endDocument()
     mResult = os.str();
 }
 
-size_t JsonSerializer::length() const
+size_t JsonSerializer::length()
 {
+    ensureEndDocument();
     return mResult.length();
 }
 
@@ -153,4 +148,16 @@ rapidjson::Value JsonSerializer::makeValueGroup(SortedValueGroup &group)
     return valueGroup;
 }
 
+void JsonSerializer::addValue(const std::string &name, rapidjson::Value &&value)
+{
+    if (!mGroupValueStack.empty())
+    {
+        mGroupValueStack.top().insert(std::make_pair(name, std::move(value)));
+    }
+    else
+    {
+        rapidjson::Value nameValue(name, mAllocator);
+        mDoc.AddMember(nameValue, std::move(value), mAllocator);
+    }
+}
 }  // namespace angle
