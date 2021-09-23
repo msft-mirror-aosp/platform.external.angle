@@ -53,7 +53,7 @@ class FramebufferVk;
 
 namespace vk
 {
-struct Format;
+class Format;
 
 static constexpr size_t kMaxExtensionNames = 400;
 using ExtensionNameList                    = angle::FixedVector<const char *, kMaxExtensionNames>;
@@ -222,7 +222,14 @@ class RendererVk : angle::NonCopyable
 
     ANGLE_INLINE egl::ContextPriority getDriverPriority(egl::ContextPriority priority)
     {
-        return mCommandQueue.getDriverPriority(priority);
+        if (mFeatures.asyncCommandQueue.enabled)
+        {
+            return mCommandProcessor.getDriverPriority(priority);
+        }
+        else
+        {
+            return mCommandQueue.getDriverPriority(priority);
+        }
     }
 
     // This command buffer should be submitted immediately via queueSubmitOneOff.

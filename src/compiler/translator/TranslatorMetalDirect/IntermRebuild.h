@@ -7,8 +7,8 @@
 #ifndef COMPILER_TRANSLATOR_TRANSLATORMETALDIRECT_INTERMREBUILD_H_
 #define COMPILER_TRANSLATOR_TRANSLATORMETALDIRECT_INTERMREBUILD_H_
 
-#include "compiler/translator/TranslatorMetalDirect/NodeType.h"
 #include "compiler/translator/tree_util/IntermTraverse.h"
+#include "compiler/translator/tree_util/NodeType.h"
 
 namespace sh
 {

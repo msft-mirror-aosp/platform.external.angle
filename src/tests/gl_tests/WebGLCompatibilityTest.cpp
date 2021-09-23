@@ -5078,18 +5078,40 @@ void WebGLCompatibilityTest::testCompressedTexLevelDimension(GLenum format,
         EXPECT_GL_ERROR(expectedError) << explanation;
     }
 
-    if (level == 0 && width > 0 && getClientMajorVersion() >= 3)
+    if (level == 0 && width > 0)
     {
         GLTexture sourceTextureStorage;
         glBindTexture(GL_TEXTURE_2D, sourceTextureStorage);
-        glTexStorage2D(GL_TEXTURE_2D, 1, format, width, height);
-        if (expectedError == 0)
+
+        if (getClientMajorVersion() >= 3)
         {
-            EXPECT_GL_NO_ERROR() << explanation << " (texStorage)";
+            glTexStorage2D(GL_TEXTURE_2D, 1, format, width, height);
+            if (expectedError == 0)
+            {
+                EXPECT_GL_NO_ERROR() << explanation << " (texStorage2D)";
+            }
+            else
+            {
+                EXPECT_GL_ERROR(expectedError) << explanation << " (texStorage2D)";
+            }
         }
         else
         {
-            EXPECT_GL_ERROR(expectedError) << explanation << " (texStorage)";
+            if (IsGLExtensionRequestable("GL_EXT_texture_storage"))
+            {
+                glRequestExtensionANGLE("GL_EXT_texture_storage");
+                ASSERT_TRUE(IsGLExtensionEnabled("GL_EXT_texture_storage"));
+
+                glTexStorage2DEXT(GL_TEXTURE_2D, 1, format, width, height);
+                if (expectedError == 0)
+                {
+                    EXPECT_GL_NO_ERROR() << explanation << " (texStorage2DEXT)";
+                }
+                else
+                {
+                    EXPECT_GL_ERROR(expectedError) << explanation << " (texStorage2DEXT)";
+                }
+            }
         }
     }
 }
@@ -5263,7 +5285,7 @@ void main()
 
     constexpr char kVSArrayMuchTooLarge[] =
         R"(varying vec4 color;
-const int array_size = 795418649;
+const int array_size = 556007917;
 void main()
 {
     mat2 array[array_size];

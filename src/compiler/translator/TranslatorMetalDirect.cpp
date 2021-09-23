@@ -12,7 +12,6 @@
 #include "compiler/translator/ImmutableStringBuilder.h"
 #include "compiler/translator/OutputGLSLBase.h"
 #include "compiler/translator/StaticType.h"
-#include "compiler/translator/TranslatorMetalDirect/AddExplicitTypeCasts.h"
 #include "compiler/translator/TranslatorMetalDirect/AstHelpers.h"
 #include "compiler/translator/TranslatorMetalDirect/EmitMetal.h"
 #include "compiler/translator/TranslatorMetalDirect/FixTypeConstructors.h"
@@ -33,6 +32,7 @@
 #include "compiler/translator/TranslatorMetalDirect/ToposortStructs.h"
 #include "compiler/translator/TranslatorMetalDirect/TranslatorMetalUtils.h"
 #include "compiler/translator/TranslatorMetalDirect/WrapMain.h"
+#include "compiler/translator/tree_ops/ConvertUnsupportedConstructorsToFunctionCalls.h"
 #include "compiler/translator/tree_ops/InitializeVariables.h"
 #include "compiler/translator/tree_ops/MonomorphizeUnsupportedFunctions.h"
 #include "compiler/translator/tree_ops/NameNamelessUniformBuffers.h"
@@ -266,7 +266,7 @@ ANGLE_NO_DISCARD bool RotateAndFlipBuiltinVariable(TCompiler *compiler,
     TIntermSwizzle *builtinXY    = new TIntermSwizzle(builtinRef, swizzleOffsetXY);
 
     // Create a symbol reference to our new variable that will hold the modified builtin.
-    const TType *type = StaticType::GetForVec<EbtFloat>(
+    const TType *type = StaticType::GetForVec<EbtFloat, EbpHigh>(
         EvqGlobal, static_cast<unsigned char>(builtin->getType().getNominalSize()));
     TVariable *replacementVar =
         new TVariable(symbolTable, flippedVariableName.rawName(), type, SymbolType::AngleInternal);
@@ -344,9 +344,11 @@ ANGLE_NO_DISCARD bool InsertFragCoordCorrection(TCompiler *compiler,
             fragRotation = driverUniforms->getFragRotationMatrixRef();
         }
     }
+
+    const TVariable *fragCoord = static_cast<const TVariable *>(
+        symbolTable->findBuiltIn(ImmutableString("gl_FragCoord"), compiler->getShaderVersion()));
     return RotateAndFlipBuiltinVariable(compiler, root, insertSequence, flipXY, symbolTable,
-                                        BuiltInVariable::gl_FragCoord(), kFlippedFragCoordName,
-                                        pivot, fragRotation);
+                                        fragCoord, kFlippedFragCoordName, pivot, fragRotation);
 }
 
 void DeclareRightBeforeMain(TIntermBlock &root, const TVariable &var)
@@ -449,6 +451,19 @@ ANGLE_NO_DISCARD bool EmulateInstanceID(TCompiler &compiler,
     return ReplaceVariableWithTyped(&compiler, &root, instanceID, emuInstanceID);
 }
 
+ANGLE_NO_DISCARD bool AppendVertexShaderTransformFeedbackOutputToMain(TCompiler &compiler,
+                                                                      SymbolEnv &mSymbolEnv,
+                                                                      TIntermBlock &root)
+{
+    TSymbolTable &symbolTable = compiler.getSymbolTable();
+
+    // Append the assignment as a statement at the end of the shader.
+    return RunAtTheEndOfShader(&compiler, &root,
+                               &(mSymbolEnv.callFunctionOverload(Name("@@XFB-OUT@@"), *new TType(),
+                                                                 *new TIntermSequence())),
+                               &symbolTable);
+}
+
 // Unlike Vulkan having auto viewport flipping extension, in Metal we have to flip gl_Position.y
 // manually.
 // This operation performs flipping the gl_Position.y using this expression:
@@ -506,9 +521,9 @@ ANGLE_NO_DISCARD bool TranslatorMetalDirect::insertSampleMaskWritingLogic(
         new TVariable(symbolTable, sh::ImmutableString(sh::mtl::kCoverageMaskEnabledConstName),
                       boolType, SymbolType::AngleInternal);
 
-    TFunction *sampleMaskWriteFunc = new TFunction(symbolTable, kSampleMaskWriteFuncName.rawName(),
-                                                   kSampleMaskWriteFuncName.symbolType(),
-                                                   StaticType::GetBasic<EbtVoid>(), false);
+    TFunction *sampleMaskWriteFunc = new TFunction(
+        symbolTable, kSampleMaskWriteFuncName.rawName(), kSampleMaskWriteFuncName.symbolType(),
+        StaticType::GetBasic<EbtVoid, EbpUndefined>(), false);
 
     TType *uintType = new TType(EbtUInt);
     TVariable *maskArg =
@@ -561,10 +576,10 @@ ANGLE_NO_DISCARD bool TranslatorMetalDirect::insertRasterizationDiscardLogic(TIn
     // Create vec4(-3, -3, -3, 1):
     auto vec4Type             = new TType(EbtFloat, 4);
     TIntermSequence *vec4Args = new TIntermSequence();
-    vec4Args->push_back(CreateFloatNode(-3.0f));
-    vec4Args->push_back(CreateFloatNode(-3.0f));
-    vec4Args->push_back(CreateFloatNode(-3.0f));
-    vec4Args->push_back(CreateFloatNode(1.0f));
+    vec4Args->push_back(CreateFloatNode(-3.0f, EbpMedium));
+    vec4Args->push_back(CreateFloatNode(-3.0f, EbpMedium));
+    vec4Args->push_back(CreateFloatNode(-3.0f, EbpMedium));
+    vec4Args->push_back(CreateFloatNode(1.0f, EbpMedium));
     TIntermAggregate *constVarConstructor =
         TIntermAggregate::CreateConstructor(*vec4Type, vec4Args);
 
@@ -604,6 +619,38 @@ bool TranslatorMetalDirect::transformDepthBeforeCorrection(TIntermBlock *root,
     // Create the assignment "gl_Position.z = gl_Position.z * depthRange.reserved"
     TIntermTyped *positionZLHS = positionZ->deepCopy();
     TIntermBinary *assignment  = new TIntermBinary(TOperator::EOpAssign, positionZLHS, zScale);
+
+    // Append the assignment as a statement at the end of the shader.
+    return RunAtTheEndOfShader(this, root, assignment, &getSymbolTable());
+}
+
+// This operation performs the viewport depth translation needed by Metal. GL uses a
+// clip space z range of -1 to +1 where as Metal uses 0 to 1. The translation becomes
+// this expression
+//
+//     z_metal = 0.5 * (w_gl + z_gl)
+//
+// where z_metal is the depth output of a Metal vertex shader and z_gl is the same for GL.
+bool TranslatorMetalDirect::appendVertexShaderDepthCorrectionToMain(TIntermBlock *root)
+{
+    const TVariable *position  = BuiltInVariable::gl_Position();
+    TIntermSymbol *positionRef = new TIntermSymbol(position);
+
+    TVector<int> swizzleOffsetZ = {2};
+    TIntermSwizzle *positionZ   = new TIntermSwizzle(positionRef, swizzleOffsetZ);
+
+    TIntermConstantUnion *oneHalf = CreateFloatNode(0.5f, EbpMedium);
+
+    TVector<int> swizzleOffsetW = {3};
+    TIntermSwizzle *positionW   = new TIntermSwizzle(positionRef->deepCopy(), swizzleOffsetW);
+
+    // Create the expression "(gl_Position.z + gl_Position.w) * 0.5".
+    TIntermBinary *zPlusW = new TIntermBinary(EOpAdd, positionZ->deepCopy(), positionW->deepCopy());
+    TIntermBinary *halfZPlusW = new TIntermBinary(EOpMul, zPlusW, oneHalf->deepCopy());
+
+    // Create the assignment "gl_Position.z = (gl_Position.z + gl_Position.w) * 0.5"
+    TIntermTyped *positionZLHS = positionZ->deepCopy();
+    TIntermBinary *assignment  = new TIntermBinary(TOperator::EOpAssign, positionZLHS, halfZPlusW);
 
     // Append the assignment as a statement at the end of the shader.
     return RunAtTheEndOfShader(this, root, assignment, &getSymbolTable());
@@ -979,7 +1026,7 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
             {
                 flipNegXY = driverUniforms->getNegFlipXYRef();
             }
-            TIntermConstantUnion *pivot = CreateFloatNode(0.5f);
+            TIntermConstantUnion *pivot = CreateFloatNode(0.5f, EbpMedium);
             TIntermTyped *fragRotation  = nullptr;
             if (usePreRotation)
             {
@@ -1005,7 +1052,9 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
             {
                 return false;
             }
-            DeclareRightBeforeMain(*root, *BuiltInVariable::gl_FragCoord());
+            const TVariable *fragCoord = static_cast<const TVariable *>(
+                getSymbolTable().findBuiltIn(ImmutableString("gl_FragCoord"), getShaderVersion()));
+            DeclareRightBeforeMain(*root, *fragCoord);
         }
 
         if (!RewriteDfdy(this, compileOptions, root, getSymbolTable(), getShaderVersion(),
@@ -1027,7 +1076,9 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
 
         if (FindSymbolNode(root, BuiltInVariable::gl_PointSize()->name()))
         {
-            DeclareRightBeforeMain(*root, *BuiltInVariable::gl_PointSize());
+            const TVariable *pointSize = static_cast<const TVariable *>(
+                getSymbolTable().findBuiltIn(ImmutableString("gl_PointSize"), getShaderVersion()));
+            DeclareRightBeforeMain(*root, *pointSize);
         }
 
         if (FindSymbolNode(root, BuiltInVariable::gl_VertexIndex()->name()))
@@ -1037,6 +1088,12 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
                 return false;
             }
             DeclareRightBeforeMain(*root, kgl_VertexIDMetal);
+        }
+
+        // Append a macro for transform feedback substitution prior to modifying depth.
+        if (!AppendVertexShaderTransformFeedbackOutputToMain(*this, symbolEnv, *root))
+        {
+            return false;
         }
 
         // Search for the gl_ClipDistance usage, if its used, we need to do some replacements.
@@ -1058,6 +1115,11 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
         }
 
         if (!transformDepthBeforeCorrection(root, driverUniforms))
+        {
+            return false;
+        }
+
+        if (!appendVertexShaderDepthCorrectionToMain(root))
         {
             return false;
         }
@@ -1120,12 +1182,12 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
         return false;
     }
 
-    if (!ReduceInterfaceBlocks(*this, *root, idGen))
+    if (!ReduceInterfaceBlocks(*this, *root, idGen, &getSymbolTable()))
     {
         return false;
     }
 
-    if (!SeparateCompoundStructDeclarations(*this, idGen, *root))
+    if (!SeparateCompoundStructDeclarations(*this, idGen, *root, &getSymbolTable()))
     {
         return false;
     }
@@ -1144,7 +1206,7 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
         return false;
     }
 
-    if (!AddExplicitTypeCasts(*this, *root, symbolEnv))
+    if (!ConvertUnsupportedConstructorsToFunctionCalls(*this, *root))
     {
         return false;
     }
@@ -1221,6 +1283,8 @@ bool TranslatorMetalDirect::translate(TIntermBlock *root,
     // TODO: refactor the code in TranslatorMetalDirect to not issue raw function calls.
     // http://anglebug.com/6059#c2
     mValidateASTOptions.validateNoRawFunctionCalls = false;
+    // A validation error is generated in this backend due to bool uniforms.
+    mValidateASTOptions.validatePrecision = false;
 
     TInfoSinkBase &sink = getInfoSink().obj;
 

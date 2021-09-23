@@ -51,6 +51,9 @@ enum class SubjectMessage
     // gl::VertexArray, into gl::Context. Used to track validation.
     SubjectMapped,
     SubjectUnmapped,
+    // Indicates a bound buffer was reallocated when it was mapped, to prevent having to flush
+    // pending commands and waiting for the GPU to become idle.
+    InternalMemoryAllocationChanged,
 
     // Indicates an external change to the default framebuffer.
     SurfaceChanged,
@@ -64,6 +67,9 @@ enum class SubjectMessage
 
     // Indicates a Storage of back-end in gl::Texture has been released.
     StorageReleased,
+
+    // Indicates that all pending updates are complete in the subject.
+    InitializationComplete,
 };
 
 // The observing class inherits from this interface class.

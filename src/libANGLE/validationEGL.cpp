@@ -259,7 +259,7 @@ bool ValidateConfigAttribute(const ValidationContext *val,
             break;
 
         default:
-            val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute.");
+            val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04X", attribute);
             return false;
     }
 
@@ -1060,7 +1060,8 @@ bool ValidateDisplayPointer(const ValidationContext *val, const Display *display
     {
         if (val)
         {
-            val->setError(EGL_BAD_DISPLAY, "display is not a valid display.");
+            val->setError(EGL_BAD_DISPLAY, "display is not a valid display: 0x%04" PRIXPTR,
+                          display);
         }
         return false;
     }
@@ -1235,7 +1236,7 @@ bool ValidateCreateSyncBase(const ValidationContext *val,
 
             ANGLE_VALIDATION_TRY(ValidateContext(val, currentDisplay, currentContext));
 
-            if (!currentContext->getExtensions().eglSyncOES)
+            if (!currentContext->getExtensions().EGLSyncOES)
             {
                 val->setError(EGL_BAD_MATCH,
                               "EGL_SYNC_FENCE_KHR cannot be used without "
@@ -1267,7 +1268,7 @@ bool ValidateCreateSyncBase(const ValidationContext *val,
 
             ANGLE_VALIDATION_TRY(ValidateContext(val, currentDisplay, currentContext));
 
-            if (!currentContext->getExtensions().eglSyncOES)
+            if (!currentContext->getExtensions().EGLSyncOES)
             {
                 val->setError(EGL_BAD_MATCH,
                               "EGL_SYNC_FENCE_KHR cannot be used without "
@@ -1823,7 +1824,7 @@ bool ValidateCreateContext(const ValidationContext *val,
                 break;
 
             case EGL_CONTEXT_PROGRAM_BINARY_CACHE_ENABLED_ANGLE:
-                if (!display->getExtensions().programCacheControl)
+                if (!display->getExtensions().programCacheControlANGLE)
                 {
                     val->setError(EGL_BAD_ATTRIBUTE,
                                   "Attribute EGL_CONTEXT_PROGRAM_BINARY_CACHE_ENABLED_ANGLE "
@@ -1840,7 +1841,7 @@ bool ValidateCreateContext(const ValidationContext *val,
                 break;
 
             case EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE:
-                if (!display->getExtensions().robustResourceInitialization)
+                if (!display->getExtensions().robustResourceInitializationANGLE)
                 {
                     val->setError(EGL_BAD_ATTRIBUTE,
                                   "Attribute EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE "
@@ -2008,7 +2009,7 @@ bool ValidateCreateContext(const ValidationContext *val,
                 break;
 
             default:
-                val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute.");
+                val->setError(EGL_BAD_ATTRIBUTE, "Unknown attribute: 0x%04X", attribute);
                 return false;
         }
     }
@@ -2205,7 +2206,7 @@ bool ValidateCreateWindowSurface(const ValidationContext *val,
                 break;
 
             case EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE:
-                if (!display->getExtensions().robustResourceInitialization)
+                if (!display->getExtensions().robustResourceInitializationANGLE)
                 {
                     val->setError(EGL_BAD_ATTRIBUTE,
                                   "Attribute EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE "
@@ -2244,6 +2245,23 @@ bool ValidateCreateWindowSurface(const ValidationContext *val,
                     val->setError(EGL_BAD_ATTRIBUTE,
                                   "EGL_PROTECTED_CONTENT_EXT must "
                                   "be either EGL_TRUE or EGL_FALSE.");
+                    return false;
+                }
+                break;
+
+            case EGL_SWAP_INTERVAL_ANGLE:
+                if (!displayExtensions.createSurfaceSwapIntervalANGLE)
+                {
+                    val->setError(EGL_BAD_ATTRIBUTE,
+                                  "Attribute EGL_SWAP_INTERVAL_ANGLE requires "
+                                  "extension EGL_ANGLE_create_surface_swap_interval.");
+                    return false;
+                }
+                if (value < config->minSwapInterval || value > config->maxSwapInterval)
+                {
+                    val->setError(EGL_BAD_ATTRIBUTE,
+                                  "EGL_SWAP_INTERVAL_ANGLE must "
+                                  "be within the EGLConfig min and max swap intervals.");
                     return false;
                 }
                 break;
@@ -2349,7 +2367,7 @@ bool ValidateCreatePbufferSurface(const ValidationContext *val,
                 break;
 
             case EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE:
-                if (!displayExtensions.robustResourceInitialization)
+                if (!displayExtensions.robustResourceInitializationANGLE)
                 {
                     val->setError(EGL_BAD_ATTRIBUTE,
                                   "Attribute EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE "
@@ -3759,7 +3777,7 @@ bool ValidateWaitSync(const ValidationContext *val,
         return false;
     }
 
-    if (!context->getExtensions().eglSyncOES)
+    if (!context->getExtensions().EGLSyncOES)
     {
         val->setError(EGL_BAD_MATCH,
                       "Server-side waits cannot be performed without "
@@ -3924,7 +3942,7 @@ bool ValidateStreamConsumerGLTextureExternalKHR(const ValidationContext *val,
         return false;
     }
 
-    if (!context->getExtensions().eglStreamConsumerExternalNV)
+    if (!context->getExtensions().EGLStreamConsumerExternalNV)
     {
         val->setError(EGL_BAD_ACCESS, "EGL stream consumer external GL extension not enabled");
         return false;
@@ -4078,7 +4096,7 @@ bool ValidateStreamConsumerGLTextureExternalAttribsNV(const ValidationContext *v
     // Although technically not a requirement in spec, the context needs to be checked for support
     // for external textures or future logic will cause assertations. This extension is also
     // effectively useless without external textures.
-    if (!context->getExtensions().eglStreamConsumerExternalNV)
+    if (!context->getExtensions().EGLStreamConsumerExternalNV)
     {
         val->setError(EGL_BAD_ACCESS, "EGL stream consumer external GL extension not enabled");
         return false;
@@ -4807,7 +4825,7 @@ bool ValidateProgramCacheGetAttribANGLE(const ValidationContext *val,
 {
     ANGLE_VALIDATION_TRY(ValidateDisplay(val, display));
 
-    if (!display->getExtensions().programCacheControl)
+    if (!display->getExtensions().programCacheControlANGLE)
     {
         val->setError(EGL_BAD_ACCESS, "Extension not supported");
         return false;
@@ -4837,7 +4855,7 @@ bool ValidateProgramCacheQueryANGLE(const ValidationContext *val,
 {
     ANGLE_VALIDATION_TRY(ValidateDisplay(val, display));
 
-    if (!display->getExtensions().programCacheControl)
+    if (!display->getExtensions().programCacheControlANGLE)
     {
         val->setError(EGL_BAD_ACCESS, "Extension not supported");
         return false;
@@ -4879,7 +4897,7 @@ bool ValidateProgramCachePopulateANGLE(const ValidationContext *val,
 {
     ANGLE_VALIDATION_TRY(ValidateDisplay(val, display));
 
-    if (!display->getExtensions().programCacheControl)
+    if (!display->getExtensions().programCacheControlANGLE)
     {
         val->setError(EGL_BAD_ACCESS, "Extension not supported");
         return false;
@@ -4914,7 +4932,7 @@ bool ValidateProgramCacheResizeANGLE(const ValidationContext *val,
 {
     ANGLE_VALIDATION_TRY(ValidateDisplay(val, display));
 
-    if (!display->getExtensions().programCacheControl)
+    if (!display->getExtensions().programCacheControlANGLE)
     {
         val->setError(EGL_BAD_ACCESS, "Extension not supported");
         return false;
@@ -5066,7 +5084,7 @@ bool ValidateSurfaceAttrib(const ValidationContext *val,
             break;
 
         default:
-            val->setError(EGL_BAD_ATTRIBUTE, "Invalid surface attribute.");
+            val->setError(EGL_BAD_ATTRIBUTE, "Invalid surface attribute: 0x%04X", attribute);
             return false;
     }
 
@@ -5162,7 +5180,7 @@ bool ValidateQuerySurface(const ValidationContext *val,
             break;
 
         case EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE:
-            if (!display->getExtensions().robustResourceInitialization)
+            if (!display->getExtensions().robustResourceInitializationANGLE)
             {
                 val->setError(EGL_BAD_ATTRIBUTE,
                               "EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE cannot be "
@@ -5204,7 +5222,7 @@ bool ValidateQuerySurface(const ValidationContext *val,
         break;
 
         default:
-            val->setError(EGL_BAD_ATTRIBUTE, "Invalid surface attribute.");
+            val->setError(EGL_BAD_ATTRIBUTE, "Invalid surface attribute: 0x%04X", attribute);
             return false;
     }
 
@@ -5228,7 +5246,7 @@ bool ValidateQueryContext(const ValidationContext *val,
             break;
 
         case EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE:
-            if (!display->getExtensions().robustResourceInitialization)
+            if (!display->getExtensions().robustResourceInitializationANGLE)
             {
                 val->setError(EGL_BAD_ATTRIBUTE,
                               "EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE cannot be "
@@ -5249,7 +5267,7 @@ bool ValidateQueryContext(const ValidationContext *val,
             break;
 
         default:
-            val->setError(EGL_BAD_ATTRIBUTE, "Invalid context attribute.");
+            val->setError(EGL_BAD_ATTRIBUTE, "Invalid context attribute: 0x%04X", attribute);
             return false;
     }
 

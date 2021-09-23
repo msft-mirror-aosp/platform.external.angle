@@ -16,7 +16,7 @@
 #endif  // defined(GL_GLES_PROTOTYPES)
 
 #include "angle_gl.h"
-#include "restricted_traces_autogen.h"
+#include "restricted_traces_export.h"
 
 #define glAlphaFunc t_glAlphaFunc
 #define glClipPlanef t_glClipPlanef
@@ -471,6 +471,7 @@
 #define glCopyTexture3DANGLE t_glCopyTexture3DANGLE
 #define glBlitFramebufferANGLE t_glBlitFramebufferANGLE
 #define glRenderbufferStorageMultisampleANGLE t_glRenderbufferStorageMultisampleANGLE
+#define glGetCompressedTexImageANGLE t_glGetCompressedTexImageANGLE
 #define glGetRenderbufferImageANGLE t_glGetRenderbufferImageANGLE
 #define glGetTexImageANGLE t_glGetTexImageANGLE
 #define glGetTexLevelParameterfvANGLE t_glGetTexLevelParameterfvANGLE
@@ -568,6 +569,8 @@
 #define glCopyTextureCHROMIUM t_glCopyTextureCHROMIUM
 #define glCoverageModulationCHROMIUM t_glCoverageModulationCHROMIUM
 #define glLoseContextCHROMIUM t_glLoseContextCHROMIUM
+#define glEGLImageTargetTexStorageEXT t_glEGLImageTargetTexStorageEXT
+#define glEGLImageTargetTextureStorageEXT t_glEGLImageTargetTextureStorageEXT
 #define glBindFragDataLocationEXT t_glBindFragDataLocationEXT
 #define glBindFragDataLocationIndexedEXT t_glBindFragDataLocationIndexedEXT
 #define glGetFragDataIndexEXT t_glGetFragDataIndexEXT
@@ -1264,6 +1267,7 @@ ANGLE_TRACE_LOADER_EXPORT extern PFNGLCOPYTEXTURE3DANGLEPROC t_glCopyTexture3DAN
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLBLITFRAMEBUFFERANGLEPROC t_glBlitFramebufferANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLRENDERBUFFERSTORAGEMULTISAMPLEANGLEPROC
     t_glRenderbufferStorageMultisampleANGLE;
+ANGLE_TRACE_LOADER_EXPORT extern PFNGLGETCOMPRESSEDTEXIMAGEANGLEPROC t_glGetCompressedTexImageANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLGETRENDERBUFFERIMAGEANGLEPROC t_glGetRenderbufferImageANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLGETTEXIMAGEANGLEPROC t_glGetTexImageANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLGETTEXLEVELPARAMETERFVANGLEPROC
@@ -1411,6 +1415,10 @@ ANGLE_TRACE_LOADER_EXPORT extern PFNGLCOPYSUBTEXTURECHROMIUMPROC t_glCopySubText
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLCOPYTEXTURECHROMIUMPROC t_glCopyTextureCHROMIUM;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLCOVERAGEMODULATIONCHROMIUMPROC t_glCoverageModulationCHROMIUM;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLLOSECONTEXTCHROMIUMPROC t_glLoseContextCHROMIUM;
+ANGLE_TRACE_LOADER_EXPORT extern PFNGLEGLIMAGETARGETTEXSTORAGEEXTPROC
+    t_glEGLImageTargetTexStorageEXT;
+ANGLE_TRACE_LOADER_EXPORT extern PFNGLEGLIMAGETARGETTEXTURESTORAGEEXTPROC
+    t_glEGLImageTargetTextureStorageEXT;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLBINDFRAGDATALOCATIONEXTPROC t_glBindFragDataLocationEXT;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLBINDFRAGDATALOCATIONINDEXEDEXTPROC
     t_glBindFragDataLocationIndexedEXT;

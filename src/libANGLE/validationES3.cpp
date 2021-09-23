@@ -36,7 +36,7 @@ bool ValidateFramebufferTextureMultiviewBaseANGLE(const Context *context,
                                                   GLint level,
                                                   GLsizei numViews)
 {
-    if (!(context->getExtensions().multiview || context->getExtensions().multiview2))
+    if (!(context->getExtensions().multiviewOVR || context->getExtensions().multiview2OVR))
     {
         context->validationError(GL_INVALID_OPERATION, kMultiviewNotAvailable);
         return false;
@@ -53,8 +53,7 @@ bool ValidateFramebufferTextureMultiviewBaseANGLE(const Context *context,
         return false;
     }
 
-    const Extensions &extensions = context->getExtensions();
-    if (static_cast<GLuint>(numViews) > extensions.maxViews)
+    if (static_cast<GLuint>(numViews) > context->getCaps().maxViews)
     {
         context->validationError(GL_INVALID_VALUE, kMultiviewViewsTooLarge);
         return false;
@@ -153,7 +152,7 @@ bool ValidateCopyTexture3DCommon(const Context *context,
         return false;
     }
 
-    if (!context->getExtensions().copyTexture3d)
+    if (!context->getExtensions().copyTexture3dANGLE)
     {
         context->validationError(GL_INVALID_OPERATION, kANGLECopyTexture3DUnavailable);
         return false;
@@ -373,8 +372,25 @@ static bool ValidateTexImageFormatCombination(const Context *context,
     return true;
 }
 
+static bool ValidateES3CompressedFormatForTexture2DArray(const Context *context, GLenum format)
+{
+    if (IsETC1Format(format) || IsPVRTC1Format(format))
+    {
+        context->validationError(GL_INVALID_OPERATION, kInternalFormatRequiresTexture2D);
+        return false;
+    }
+
+    return true;
+}
+
 static bool ValidateES3CompressedFormatForTexture3D(const Context *context, GLenum format)
 {
+    if (IsETC1Format(format) || IsPVRTC1Format(format))
+    {
+        context->validationError(GL_INVALID_OPERATION, kInternalFormatRequiresTexture2D);
+        return false;
+    }
+
     if (IsETC2EACFormat(format))
     {
         // ES 3.1, Section 8.7, page 169.
@@ -382,8 +398,8 @@ static bool ValidateES3CompressedFormatForTexture3D(const Context *context, GLen
         return false;
     }
 
-    if (IsASTC2DFormat(format) && !(context->getExtensions().textureCompressionASTCHDRKHR ||
-                                    context->getExtensions().textureCompressionSliced3dASTCKHR))
+    if (IsASTC2DFormat(format) && !(context->getExtensions().textureCompressionAstcHdrKHR ||
+                                    context->getExtensions().textureCompressionAstcSliced3dKHR))
     {
         // GL_KHR_texture_compression_astc_hdr, TEXTURE_3D is not supported without HDR profile
         context->validationError(GL_INVALID_OPERATION, kInternalFormatRequiresTexture2DArrayASTC);
@@ -403,6 +419,14 @@ static bool ValidateES3CompressedFormatForTexture3D(const Context *context, GLen
         context->validationError(GL_INVALID_OPERATION, kInternalFormatRequiresTexture2DArrayRGTC);
         return false;
     }
+
+    if (IsBPTCFormat(format) && (context->getLimitations().noCompressedTexture3D))
+    {
+        // GL_EXT_texture_compression_bptc
+        context->validationError(GL_INVALID_OPERATION, kInternalFormatRequiresTexture2DArrayBPTC);
+        return false;
+    }
+
     return true;
 }
 
@@ -585,16 +609,6 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         return false;
     }
 
-    if (isCompressed && texType == TextureType::_3D)
-    {
-        GLenum compressedDataFormat = isSubImage ? format : internalformat;
-        if (!ValidateES3CompressedFormatForTexture3D(context, compressedDataFormat))
-        {
-            // Error already generated.
-            return false;
-        }
-    }
-
     // Validate texture formats
     GLenum actualInternalFormat =
         isSubImage ? texture->getFormat(target, level).info->internalFormat : internalformat;
@@ -609,10 +623,41 @@ bool ValidateES3TexImageParametersBase(const Context *context,
                                                  : GetInternalFormatInfo(internalformat, type);
     if (isCompressed)
     {
-        if (!actualFormatInfo.compressed)
+        // compressedTexSubImage does not generate GL_INVALID_ENUM when format is unknown or invalid
+        if (!isSubImage)
         {
-            context->validationError(GL_INVALID_ENUM, kCompressedMismatch);
-            return false;
+            if (!actualFormatInfo.compressed)
+            {
+                context->validationError(GL_INVALID_ENUM, kCompressedMismatch);
+                return false;
+            }
+
+            if (!actualFormatInfo.textureSupport(context->getClientVersion(),
+                                                 context->getExtensions()))
+            {
+                context->validationError(GL_INVALID_ENUM, kInvalidFormat);
+                return false;
+            }
+        }
+
+        if (texType == TextureType::_2DArray)
+        {
+            GLenum compressedDataFormat = isSubImage ? format : internalformat;
+            if (!ValidateES3CompressedFormatForTexture2DArray(context, compressedDataFormat))
+            {
+                // Error already generated.
+                return false;
+            }
+        }
+
+        if (texType == TextureType::_3D)
+        {
+            GLenum compressedDataFormat = isSubImage ? format : internalformat;
+            if (!ValidateES3CompressedFormatForTexture3D(context, compressedDataFormat))
+            {
+                // Error already generated.
+                return false;
+            }
         }
 
         if (isSubImage)
@@ -634,7 +679,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
 
             // GL_EXT_compressed_ETC1_RGB8_sub_texture allows this format
             if (actualInternalFormat == GL_ETC1_RGB8_OES &&
-                !context->getExtensions().compressedETC1RGB8SubTexture)
+                !context->getExtensions().compressedETC1RGB8SubTextureEXT)
             {
                 context->validationError(GL_INVALID_OPERATION, kInvalidInternalFormat);
                 return false;
@@ -648,12 +693,6 @@ bool ValidateES3TexImageParametersBase(const Context *context,
                 context->validationError(GL_INVALID_OPERATION, kInvalidCompressedImageSize);
                 return false;
             }
-        }
-
-        if (!actualFormatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
-        {
-            context->validationError(GL_INVALID_ENUM, kInvalidFormat);
-            return false;
         }
 
         // Disallow 3D-only compressed formats from being set on 2D textures
@@ -745,7 +784,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         }
     }
 
-    if (context->getExtensions().webglCompatibility)
+    if (context->getExtensions().webglCompatibilityANGLE)
     {
         // Define:
         //   DataStoreWidth  = (GL_UNPACK_ROW_LENGTH ? GL_UNPACK_ROW_LENGTH : width)
@@ -1415,6 +1454,15 @@ bool ValidateES3TexStorageParametersBase(const Context *context,
         {
             context->validationError(GL_INVALID_ENUM, kRectangleTextureCompressed);
             return false;
+        }
+
+        if (target == TextureType::_2DArray)
+        {
+            if (!ValidateES3CompressedFormatForTexture2DArray(context, formatInfo.internalFormat))
+            {
+                // Error already generated.
+                return false;
+            }
         }
 
         if (target == TextureType::_3D)
@@ -2184,7 +2232,7 @@ bool ValidateClearBufferiv(const Context *context,
                 context->validationError(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
                 return false;
             }
-            if (context->getExtensions().webglCompatibility)
+            if (context->getExtensions().webglCompatibilityANGLE)
             {
                 constexpr GLenum validComponentTypes[] = {GL_INT};
                 if (!ValidateWebGLFramebufferAttachmentClearType(
@@ -2224,7 +2272,7 @@ bool ValidateClearBufferuiv(const Context *context,
                 context->validationError(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
                 return false;
             }
-            if (context->getExtensions().webglCompatibility)
+            if (context->getExtensions().webglCompatibilityANGLE)
             {
                 constexpr GLenum validComponentTypes[] = {GL_UNSIGNED_INT};
                 if (!ValidateWebGLFramebufferAttachmentClearType(
@@ -2256,7 +2304,7 @@ bool ValidateClearBufferfv(const Context *context,
                 context->validationError(GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
                 return false;
             }
-            if (context->getExtensions().webglCompatibility)
+            if (context->getExtensions().webglCompatibilityANGLE)
             {
                 constexpr GLenum validComponentTypes[] = {GL_FLOAT, GL_UNSIGNED_NORMALIZED,
                                                           GL_SIGNED_NORMALIZED};
@@ -2772,7 +2820,7 @@ bool ValidateBeginTransformFeedback(const Context *context, PrimitiveMode primit
                 return false;
             }
             if ((context->getLimitations().noDoubleBoundTransformFeedbackBuffers ||
-                 context->getExtensions().webglCompatibility) &&
+                 context->getExtensions().webglCompatibilityANGLE) &&
                 buffer->isDoubleBoundForTransformFeedback())
             {
                 context->validationError(GL_INVALID_OPERATION,
@@ -2838,7 +2886,7 @@ bool ValidateGetBufferPointervRobustANGLE(const Context *context,
 
     GLsizei numParams = 0;
 
-    if (context->getClientMajorVersion() < 3 && !context->getExtensions().mapBufferOES)
+    if (context->getClientMajorVersion() < 3 && !context->getExtensions().mapbufferOES)
     {
         context->validationError(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
@@ -3193,9 +3241,8 @@ bool ValidateCopyBufferSubData(const Context *context,
         return false;
     }
 
-    if (context->getExtensions().webglCompatibility &&
-        (readBuffer->isBoundForTransformFeedbackAndOtherUse() ||
-         writeBuffer->isBoundForTransformFeedbackAndOtherUse()))
+    if (readBuffer->hasWebGLXFBBindingConflict(context->isWebGL()) ||
+        writeBuffer->hasWebGLXFBBindingConflict(context->isWebGL()))
     {
         context->validationError(GL_INVALID_OPERATION, kBufferBoundForTransformFeedback);
         return false;
@@ -3275,7 +3322,7 @@ bool ValidateGetStringi(const Context *context, GLenum name, GLuint index)
             break;
 
         case GL_REQUESTABLE_EXTENSIONS_ANGLE:
-            if (!context->getExtensions().requestExtension)
+            if (!context->getExtensions().requestExtensionANGLE)
             {
                 context->validationError(GL_INVALID_ENUM, kInvalidName);
                 return false;
@@ -3393,7 +3440,7 @@ bool ValidateVertexAttribIPointer(const Context *context,
         return false;
     }
 
-    if (context->getExtensions().webglCompatibility)
+    if (context->getExtensions().webglCompatibilityANGLE)
     {
         if (!ValidateWebGLVertexAttribPointer(context, type, false, stride, pointer, true))
         {
@@ -3411,7 +3458,7 @@ bool ValidateGetSynciv(const Context *context,
                        const GLsizei *length,
                        const GLint *values)
 {
-    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().glSyncARB)
+    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().syncARB)
     {
         context->validationError(GL_INVALID_OPERATION, kES3Required);
         return false;
@@ -3485,7 +3532,7 @@ bool ValidateMultiDrawArraysInstancedANGLE(const Context *context,
                                            const GLsizei *instanceCounts,
                                            GLsizei drawcount)
 {
-    if (!context->getExtensions().multiDraw)
+    if (!context->getExtensions().multiDrawANGLE)
     {
         context->validationError(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
@@ -3521,7 +3568,7 @@ bool ValidateMultiDrawElementsInstancedANGLE(const Context *context,
                                              const GLsizei *instanceCounts,
                                              GLsizei drawcount)
 {
-    if (!context->getExtensions().multiDraw)
+    if (!context->getExtensions().multiDrawANGLE)
     {
         context->validationError(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
@@ -3556,7 +3603,7 @@ bool ValidateDrawArraysInstancedBaseInstanceANGLE(const Context *context,
                                                   GLsizei instanceCount,
                                                   GLuint baseInstance)
 {
-    if (!context->getExtensions().baseVertexBaseInstance)
+    if (!context->getExtensions().baseVertexBaseInstanceANGLE)
     {
         context->validationError(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
@@ -3577,7 +3624,7 @@ bool ValidateDrawElementsInstancedBaseVertexBaseInstanceANGLE(const Context *con
                                                               GLint baseVertex,
                                                               GLuint baseInstance)
 {
-    if (!context->getExtensions().baseVertexBaseInstance)
+    if (!context->getExtensions().baseVertexBaseInstanceANGLE)
     {
         context->validationError(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
@@ -3597,7 +3644,7 @@ bool ValidateMultiDrawArraysInstancedBaseInstanceANGLE(const Context *context,
                                                        const GLuint *baseInstances,
                                                        GLsizei drawcount)
 {
-    if (!context->getExtensions().multiDraw)
+    if (!context->getExtensions().multiDrawANGLE)
     {
         context->validationError(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
@@ -3627,7 +3674,7 @@ bool ValidateMultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(const Context
                                                                    const GLuint *baseInstances,
                                                                    GLsizei drawcount)
 {
-    if (!context->getExtensions().multiDraw)
+    if (!context->getExtensions().multiDrawANGLE)
     {
         context->validationError(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
@@ -3679,7 +3726,7 @@ bool ValidateFramebufferTextureMultiviewOVR(const Context *context,
             {
                 if (tex->getType() == TextureType::_2DMultisampleArray)
                 {
-                    if (!context->getExtensions().multiviewMultisample)
+                    if (!context->getExtensions().multiviewMultisampleANGLE)
                     {
                         context->validationError(GL_INVALID_OPERATION, kInvalidTextureType);
                         return false;
@@ -4177,7 +4224,7 @@ bool ValidateGetActiveUniformsiv(const Context *context,
         case GL_UNIFORM_SIZE:
             break;
         case GL_UNIFORM_NAME_LENGTH:
-            if (context->getExtensions().webglCompatibility)
+            if (context->getExtensions().webglCompatibilityANGLE)
             {
                 context->validationError(GL_INVALID_ENUM, kEnumNotSupported);
                 return false;
@@ -4321,7 +4368,7 @@ bool ValidateDrawArraysInstanced(const Context *context,
 
 bool ValidateFenceSync(const Context *context, GLenum condition, GLbitfield flags)
 {
-    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().glSyncARB)
+    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().syncARB)
     {
         context->validationError(GL_INVALID_OPERATION, kES3Required);
         return false;
@@ -4344,7 +4391,7 @@ bool ValidateFenceSync(const Context *context, GLenum condition, GLbitfield flag
 
 bool ValidateIsSync(const Context *context, GLsync sync)
 {
-    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().glSyncARB)
+    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().syncARB)
     {
         context->validationError(GL_INVALID_OPERATION, kES3Required);
         return false;
@@ -4355,7 +4402,7 @@ bool ValidateIsSync(const Context *context, GLsync sync)
 
 bool ValidateDeleteSync(const Context *context, GLsync sync)
 {
-    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().glSyncARB)
+    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().syncARB)
     {
         context->validationError(GL_INVALID_OPERATION, kES3Required);
         return false;
@@ -4372,7 +4419,7 @@ bool ValidateDeleteSync(const Context *context, GLsync sync)
 
 bool ValidateClientWaitSync(const Context *context, GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
-    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().glSyncARB)
+    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().syncARB)
     {
         context->validationError(GL_INVALID_OPERATION, kES3Required);
         return false;
@@ -4396,7 +4443,7 @@ bool ValidateClientWaitSync(const Context *context, GLsync sync, GLbitfield flag
 
 bool ValidateWaitSync(const Context *context, GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
-    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().glSyncARB)
+    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().syncARB)
     {
         context->validationError(GL_INVALID_OPERATION, kES3Required);
         return false;
@@ -4426,7 +4473,7 @@ bool ValidateWaitSync(const Context *context, GLsync sync, GLbitfield flags, GLu
 
 bool ValidateGetInteger64v(const Context *context, GLenum pname, const GLint64 *params)
 {
-    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().glSyncARB)
+    if ((context->getClientMajorVersion() < 3) && !context->getExtensions().syncARB)
     {
         context->validationError(GL_INVALID_OPERATION, kES3Required);
         return false;
@@ -4670,7 +4717,7 @@ bool ValidateBindFragDataLocationIndexedEXT(const Context *context,
                                             GLuint index,
                                             const char *name)
 {
-    if (!context->getExtensions().blendFuncExtended)
+    if (!context->getExtensions().blendFuncExtendedEXT)
     {
         context->validationError(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
@@ -4690,7 +4737,7 @@ bool ValidateBindFragDataLocationIndexedEXT(const Context *context,
     }
     if (index == 1)
     {
-        if (colorNumber >= context->getExtensions().maxDualSourceDrawBuffers)
+        if (colorNumber >= context->getCaps().maxDualSourceDrawBuffers)
         {
             context->validationError(GL_INVALID_VALUE,
                                      kColorNumberGreaterThanMaxDualSourceDrawBuffers);
@@ -4723,7 +4770,7 @@ bool ValidateBindFragDataLocationEXT(const Context *context,
 
 bool ValidateGetFragDataIndexEXT(const Context *context, ShaderProgramID program, const char *name)
 {
-    if (!context->getExtensions().blendFuncExtended)
+    if (!context->getExtensions().blendFuncExtendedEXT)
     {
         context->validationError(GL_INVALID_OPERATION, kExtensionNotEnabled);
         return false;
@@ -4754,7 +4801,7 @@ bool ValidateTexStorage2DMultisampleANGLE(const Context *context,
                                           GLsizei height,
                                           GLboolean fixedSampleLocations)
 {
-    if (!context->getExtensions().textureMultisample)
+    if (!context->getExtensions().textureMultisampleANGLE)
     {
         context->validationError(GL_INVALID_OPERATION, kMultisampleTextureExtensionOrES31Required);
         return false;
@@ -4770,7 +4817,7 @@ bool ValidateGetTexLevelParameterfvANGLE(const Context *context,
                                          GLenum pname,
                                          const GLfloat *params)
 {
-    if (!context->getExtensions().textureMultisample &&
+    if (!context->getExtensions().textureMultisampleANGLE &&
         !context->getExtensions().getTexLevelParameterANGLE)
     {
         context->validationError(
@@ -4788,7 +4835,7 @@ bool ValidateGetTexLevelParameterivANGLE(const Context *context,
                                          GLenum pname,
                                          const GLint *params)
 {
-    if (!context->getExtensions().textureMultisample &&
+    if (!context->getExtensions().textureMultisampleANGLE &&
         !context->getExtensions().getTexLevelParameterANGLE)
     {
         context->validationError(
@@ -4805,7 +4852,7 @@ bool ValidateGetMultisamplefvANGLE(const Context *context,
                                    GLuint index,
                                    const GLfloat *val)
 {
-    if (!context->getExtensions().textureMultisample)
+    if (!context->getExtensions().textureMultisampleANGLE)
     {
         context->validationError(GL_INVALID_OPERATION, kMultisampleTextureExtensionOrES31Required);
         return false;
@@ -4816,7 +4863,7 @@ bool ValidateGetMultisamplefvANGLE(const Context *context,
 
 bool ValidateSampleMaskiANGLE(const Context *context, GLuint maskNumber, GLbitfield mask)
 {
-    if (!context->getExtensions().textureMultisample)
+    if (!context->getExtensions().textureMultisampleANGLE)
     {
         context->validationError(GL_INVALID_OPERATION, kMultisampleTextureExtensionOrES31Required);
         return false;

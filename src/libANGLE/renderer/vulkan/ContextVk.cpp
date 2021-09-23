@@ -1334,9 +1334,17 @@ angle::Result ContextVk::handleDirtyEventLogImpl(vk::CommandBuffer *commandBuffe
     // ---vkCmdEndDebugUtilsLabelEXT() #2 for "OpenGL ES Commands"
     // --VK SetupDraw & Draw-related commands will be embedded here under glDraw #1
     // --vkCmdEndDebugUtilsLabelEXT() #1 is called after each vkDraw* or vkDispatch* call
+
+    // AGI desires no parameters on the top-level of the hierarchy.
+    std::string topLevelCommand = mEventLog.back();
+    size_t startOfParameters    = topLevelCommand.find("(");
+    if (startOfParameters != std::string::npos)
+    {
+        topLevelCommand = topLevelCommand.substr(0, startOfParameters);
+    }
     VkDebugUtilsLabelEXT label = {VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
                                   nullptr,
-                                  mEventLog.back().c_str(),
+                                  topLevelCommand.c_str(),
                                   {0.0f, 0.0f, 0.0f, 0.0f}};
     // This is #1 from comment above
     commandBuffer->beginDebugUtilsLabelEXT(label);
@@ -3130,7 +3138,7 @@ angle::Result ContextVk::handleNoopDrawEvent()
 
 angle::Result ContextVk::handleGraphicsEventLog(GraphicsEventCmdBuf queryEventType)
 {
-    ASSERT(mQueryEventType == GraphicsEventCmdBuf::NotInQueryCmd);
+    ASSERT(mQueryEventType == GraphicsEventCmdBuf::NotInQueryCmd || mEventLog.empty());
     if (!mRenderer->angleDebuggerMode())
     {
         return angle::Result::Continue;
@@ -5086,6 +5094,17 @@ angle::Result ContextVk::updateActiveTextures(const gl::Context *context)
             ANGLE_TRY(textureVk->ensureMutable(this));
         }
 
+        if (textureVk->getImage().hasEmulatedImageFormat())
+        {
+            char stringBuffer[100];
+            snprintf(
+                stringBuffer, sizeof(stringBuffer),
+                "The Vulkan driver does not support texture format 0x%04X, emulating with 0x%04X",
+                textureVk->getImage().getIntendedFormat().glInternalFormat,
+                textureVk->getImage().getActualFormat().glInternalFormat);
+            ANGLE_PERF_WARNING(getDebug(), GL_DEBUG_SEVERITY_LOW, stringBuffer);
+        }
+
         vk::ImageOrBufferViewSubresourceSerial imageViewSerial =
             textureVk->getImageViewSubresourceSerial(samplerState);
         mActiveTexturesDesc.update(textureUnit, imageViewSerial, samplerHelper.getSamplerSerial());
@@ -5093,7 +5112,7 @@ angle::Result ContextVk::updateActiveTextures(const gl::Context *context)
         if (textureVk->getImage().hasImmutableSampler())
         {
             uint64_t externalFormat = textureVk->getImage().getExternalFormat();
-            VkFormat vkFormat       = textureVk->getImage().getFormat().actualImageVkFormat();
+            VkFormat vkFormat       = textureVk->getImage().getActualVkFormat();
             if (externalFormat != 0)
             {
                 externalFormatIndexMap[externalFormat] = static_cast<uint32_t>(textureUnit);

@@ -50,14 +50,14 @@ constexpr unsigned int kEmulatedAlphaValue = 1;
 
 bool HasSrcBlitFeature(RendererVk *renderer, RenderTargetVk *srcRenderTarget)
 {
-    angle::FormatID srcFormat = srcRenderTarget->getImageFormat().actualImageFormatID;
-    return renderer->hasImageFormatFeatureBits(srcFormat, VK_FORMAT_FEATURE_BLIT_SRC_BIT);
+    angle::FormatID srcFormatID = srcRenderTarget->getImageActualFormatID();
+    return renderer->hasImageFormatFeatureBits(srcFormatID, VK_FORMAT_FEATURE_BLIT_SRC_BIT);
 }
 
 bool HasDstBlitFeature(RendererVk *renderer, RenderTargetVk *dstRenderTarget)
 {
-    angle::FormatID dstFormat = dstRenderTarget->getImageFormat().actualImageFormatID;
-    return renderer->hasImageFormatFeatureBits(dstFormat, VK_FORMAT_FEATURE_BLIT_DST_BIT);
+    angle::FormatID dstFormatID = dstRenderTarget->getImageActualFormatID();
+    return renderer->hasImageFormatFeatureBits(dstFormatID, VK_FORMAT_FEATURE_BLIT_DST_BIT);
 }
 
 // Returns false if destination has any channel the source doesn't.  This means that channel was
@@ -65,8 +65,8 @@ bool HasDstBlitFeature(RendererVk *renderer, RenderTargetVk *dstRenderTarget)
 bool AreSrcAndDstColorChannelsBlitCompatible(RenderTargetVk *srcRenderTarget,
                                              RenderTargetVk *dstRenderTarget)
 {
-    const angle::Format &srcFormat = srcRenderTarget->getImageFormat().intendedFormat();
-    const angle::Format &dstFormat = dstRenderTarget->getImageFormat().intendedFormat();
+    const angle::Format &srcFormat = srcRenderTarget->getImageIntendedFormat();
+    const angle::Format &dstFormat = dstRenderTarget->getImageIntendedFormat();
 
     // Luminance/alpha formats are not renderable, so they can't have ended up in a framebuffer to
     // participate in a blit.
@@ -85,17 +85,17 @@ bool AreSrcAndDstColorChannelsBlitCompatible(RenderTargetVk *srcRenderTarget,
 // the same for depth/stencil formats.
 bool AreSrcAndDstFormatsIdentical(RenderTargetVk *srcRenderTarget, RenderTargetVk *dstRenderTarget)
 {
-    const vk::Format &srcFormat = srcRenderTarget->getImageFormat();
-    const vk::Format &dstFormat = dstRenderTarget->getImageFormat();
+    angle::FormatID srcFormatID = srcRenderTarget->getImageActualFormatID();
+    angle::FormatID dstFormatID = dstRenderTarget->getImageActualFormatID();
 
-    return srcFormat.actualImageFormatID == dstFormat.actualImageFormatID;
+    return srcFormatID == dstFormatID;
 }
 
 bool AreSrcAndDstDepthStencilChannelsBlitCompatible(RenderTargetVk *srcRenderTarget,
                                                     RenderTargetVk *dstRenderTarget)
 {
-    const angle::Format &srcFormat = srcRenderTarget->getImageFormat().intendedFormat();
-    const angle::Format &dstFormat = dstRenderTarget->getImageFormat().intendedFormat();
+    const angle::Format &srcFormat = srcRenderTarget->getImageIntendedFormat();
+    const angle::Format &dstFormat = dstRenderTarget->getImageIntendedFormat();
 
     return (dstFormat.depthBits > 0 || srcFormat.depthBits == 0) &&
            (dstFormat.stencilBits > 0 || srcFormat.stencilBits == 0);
@@ -712,7 +712,7 @@ const gl::InternalFormat &FramebufferVk::getImplementationColorReadFormat(
     ContextVk *contextVk       = vk::GetImpl(context);
     GLenum sizedFormat         = mState.getReadAttachment()->getFormat().info->sizedInternalFormat;
     const vk::Format &vkFormat = contextVk->getRenderer()->getFormat(sizedFormat);
-    GLenum implFormat          = vkFormat.actualImageFormat().fboImplementationInternalFormat;
+    GLenum implFormat = vkFormat.getActualRenderableImageFormat().fboImplementationInternalFormat;
     return gl::GetSizedInternalFormatInfo(implFormat);
 }
 
@@ -1653,11 +1653,11 @@ angle::Result FramebufferVk::updateColorAttachment(const gl::Context *context,
     RenderTargetVk *renderTarget = mRenderTargetCache.getColors()[colorIndexGL];
     if (renderTarget)
     {
-        const angle::Format &actualFormat = renderTarget->getImageFormat().actualImageFormat();
+        const angle::Format &actualFormat = renderTarget->getImageActualFormat();
         updateActiveColorMasks(colorIndexGL, actualFormat.redBits > 0, actualFormat.greenBits > 0,
                                actualFormat.blueBits > 0, actualFormat.alphaBits > 0);
 
-        const angle::Format &intendedFormat = renderTarget->getImageFormat().intendedFormat();
+        const angle::Format &intendedFormat = renderTarget->getImageIntendedFormat();
         mEmulatedAlphaAttachmentMask.set(
             colorIndexGL, intendedFormat.alphaBits == 0 && actualFormat.alphaBits > 0);
 
@@ -1742,40 +1742,38 @@ angle::Result FramebufferVk::flushColorAttachmentUpdates(const gl::Context *cont
     // It's possible for the read and draw color attachments to be different if different surfaces
     // are bound, so we need to flush any staged updates to both.
 
-    // Read
-    if (mState.getReadBufferState() != GL_NONE && mState.getReadIndex() == colorIndexGL)
+    // Draw
+    drawRenderTarget = mRenderTargetCache.getColorDraw(mState, colorIndexGL);
+    if (drawRenderTarget)
     {
-        readRenderTarget = mRenderTargetCache.getColorRead(mState);
-        if (readRenderTarget)
+        if (deferClears && mState.getEnabledDrawBuffers().test(colorIndexGL))
         {
-            if (deferClears && mState.getEnabledDrawBuffers().test(colorIndexGL))
-            {
-                ANGLE_TRY(
-                    readRenderTarget->flushStagedUpdates(contextVk, &mDeferredClears, colorIndexGL,
-                                                         mCurrentFramebufferDesc.getLayerCount()));
-            }
-            else
-            {
-                ANGLE_TRY(readRenderTarget->flushStagedUpdates(
-                    contextVk, nullptr, 0, mCurrentFramebufferDesc.getLayerCount()));
-            }
+            ANGLE_TRY(
+                drawRenderTarget->flushStagedUpdates(contextVk, &mDeferredClears, colorIndexGL,
+                                                     mCurrentFramebufferDesc.getLayerCount()));
+        }
+        else
+        {
+            ANGLE_TRY(drawRenderTarget->flushStagedUpdates(
+                contextVk, nullptr, 0, mCurrentFramebufferDesc.getLayerCount()));
         }
     }
 
-    // Draw
-    drawRenderTarget = mRenderTargetCache.getColorDraw(mState, colorIndexGL);
-    if (drawRenderTarget == nullptr || readRenderTarget == drawRenderTarget)
+    // Read
+    if (mState.getReadBufferState() != GL_NONE && mState.getReadIndex() == colorIndexGL)
     {
-        return angle::Result::Continue;
-    }
-    if (deferClears && mState.getEnabledDrawBuffers().test(colorIndexGL))
-    {
-        return drawRenderTarget->flushStagedUpdates(contextVk, &mDeferredClears, colorIndexGL,
-                                                    mCurrentFramebufferDesc.getLayerCount());
+        // Flush staged updates to the read render target as well, but only if it's not the same as
+        // the draw render target.  This can happen when the read render target is bound to another
+        // surface.
+        readRenderTarget = mRenderTargetCache.getColorRead(mState);
+        if (readRenderTarget && readRenderTarget != drawRenderTarget)
+        {
+            ANGLE_TRY(readRenderTarget->flushStagedUpdates(
+                contextVk, nullptr, 0, mCurrentFramebufferDesc.getLayerCount()));
+        }
     }
 
-    return drawRenderTarget->flushStagedUpdates(contextVk, nullptr, 0,
-                                                mCurrentFramebufferDesc.getLayerCount());
+    return angle::Result::Continue;
 }
 
 angle::Result FramebufferVk::flushDepthStencilAttachmentUpdates(const gl::Context *context,
@@ -1964,8 +1962,7 @@ void FramebufferVk::updateRenderPassDesc(ContextVk *contextVk)
             RenderTargetVk *colorRenderTarget = colorRenderTargets[colorIndexGL];
             ASSERT(colorRenderTarget);
             mRenderPassDesc.packColorAttachment(
-                colorIndexGL,
-                colorRenderTarget->getImageForRenderPass().getFormat().intendedFormatID);
+                colorIndexGL, colorRenderTarget->getImageForRenderPass().getActualFormatID());
 
             // Add the resolve attachment, if any.
             if (colorRenderTarget->hasResolveAttachment())
@@ -1984,7 +1981,7 @@ void FramebufferVk::updateRenderPassDesc(ContextVk *contextVk)
     if (depthStencilRenderTarget)
     {
         mRenderPassDesc.packDepthStencilAttachment(
-            depthStencilRenderTarget->getImageForRenderPass().getFormat().intendedFormatID);
+            depthStencilRenderTarget->getImageForRenderPass().getActualFormatID());
 
         // Add the resolve attachment, if any.
         if (depthStencilRenderTarget->hasResolveAttachment())
@@ -2225,8 +2222,7 @@ angle::Result FramebufferVk::clearWithDraw(ContextVk *contextVk,
         const RenderTargetVk *colorRenderTarget = colorRenderTargets[colorIndexGL];
         ASSERT(colorRenderTarget);
 
-        params.colorFormat =
-            &colorRenderTarget->getImageForRenderPass().getFormat().actualImageFormat();
+        params.colorFormat = &colorRenderTarget->getImageForRenderPass().getActualFormat();
         params.colorAttachmentIndexGL = static_cast<uint32_t>(colorIndexGL);
         params.colorMaskFlags =
             gl::BlendStateExt::ColorMaskStorage::GetValueIndexed(colorIndexGL, colorMasks);
@@ -2272,17 +2268,15 @@ VkClearValue FramebufferVk::getCorrectedColorClearValue(size_t colorIndexGL,
     // If the render target doesn't have alpha, but its emulated format has it, clear the alpha
     // to 1.
     RenderTargetVk *renderTarget = getColorDrawRenderTarget(colorIndexGL);
-    const vk::Format &format     = renderTarget->getImageFormat();
-    if (format.vkFormatIsInt)
+    const angle::Format &format  = renderTarget->getImageActualFormat();
+
+    if (format.isUint())
     {
-        if (format.vkFormatIsUnsigned)
-        {
-            clearValue.color.uint32[3] = kEmulatedAlphaValue;
-        }
-        else
-        {
-            clearValue.color.int32[3] = kEmulatedAlphaValue;
-        }
+        clearValue.color.uint32[3] = kEmulatedAlphaValue;
+    }
+    else if (format.isSint())
+    {
+        clearValue.color.int32[3] = kEmulatedAlphaValue;
     }
     else
     {
@@ -2447,24 +2441,24 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
 
         if (mDeferredClears.test(colorIndexGL))
         {
-            renderPassAttachmentOps.setOps(colorIndexVk, VK_ATTACHMENT_LOAD_OP_CLEAR, storeOp);
+            renderPassAttachmentOps.setOps(colorIndexVk, vk::RenderPassLoadOp::Clear, storeOp);
             packedClearValues.store(colorIndexVk, VK_IMAGE_ASPECT_COLOR_BIT,
                                     mDeferredClears[colorIndexGL]);
             mDeferredClears.reset(colorIndexGL);
         }
         else
         {
-            const VkAttachmentLoadOp loadOp = colorRenderTarget->hasDefinedContent()
-                                                  ? VK_ATTACHMENT_LOAD_OP_LOAD
-                                                  : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            const vk::RenderPassLoadOp loadOp = colorRenderTarget->hasDefinedContent()
+                                                    ? vk::RenderPassLoadOp::Load
+                                                    : vk::RenderPassLoadOp::DontCare;
 
-            if (loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE &&
+            if (loadOp == vk::RenderPassLoadOp::DontCare &&
                 mEmulatedAlphaAttachmentMask[colorIndexGL])
             {
                 // This color attachment has a format with no alpha channel, but is emulated with a
                 // format that does have an alpha channel, which must be cleared to 1.0 in order to
                 // be visible.
-                renderPassAttachmentOps.setOps(colorIndexVk, VK_ATTACHMENT_LOAD_OP_CLEAR, storeOp);
+                renderPassAttachmentOps.setOps(colorIndexVk, vk::RenderPassLoadOp::Clear, storeOp);
                 VkClearValue emulatedAlphaClearValue =
                     getCorrectedColorClearValue(colorIndexGL, {});
                 packedClearValues.store(colorIndexVk, VK_IMAGE_ASPECT_COLOR_BIT,
@@ -2477,7 +2471,7 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
                                         kUninitializedClearValue);
             }
         }
-        renderPassAttachmentOps.setStencilOps(colorIndexVk, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        renderPassAttachmentOps.setStencilOps(colorIndexVk, vk::RenderPassLoadOp::DontCare,
                                               vk::RenderPassStoreOp::DontCare);
 
         // If there's a resolve attachment, and loadOp needs to be LOAD, the multisampled attachment
@@ -2520,8 +2514,8 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
         // depth stencil attachment always immediately follows color attachment
         depthStencilAttachmentIndex = colorIndexVk;
 
-        VkAttachmentLoadOp depthLoadOp       = VK_ATTACHMENT_LOAD_OP_LOAD;
-        VkAttachmentLoadOp stencilLoadOp     = VK_ATTACHMENT_LOAD_OP_LOAD;
+        vk::RenderPassLoadOp depthLoadOp     = vk::RenderPassLoadOp::Load;
+        vk::RenderPassLoadOp stencilLoadOp   = vk::RenderPassLoadOp::Load;
         vk::RenderPassStoreOp depthStoreOp   = vk::RenderPassStoreOp::Store;
         vk::RenderPassStoreOp stencilStoreOp = vk::RenderPassStoreOp::Store;
 
@@ -2532,12 +2526,12 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
         if (!depthStencilRenderTarget->hasDefinedContent() ||
             depthStencilRenderTarget->isEntirelyTransient())
         {
-            depthLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            depthLoadOp = vk::RenderPassLoadOp::DontCare;
         }
         if (!depthStencilRenderTarget->hasDefinedStencilContent() ||
             depthStencilRenderTarget->isEntirelyTransient())
         {
-            stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            stencilLoadOp = vk::RenderPassLoadOp::DontCare;
         }
 
         // If depth/stencil image is transient, no need to store its data at the end of the render
@@ -2560,14 +2554,14 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
 
             if (mDeferredClears.testDepth())
             {
-                depthLoadOp                   = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                depthLoadOp                   = vk::RenderPassLoadOp::Clear;
                 clearValue.depthStencil.depth = mDeferredClears.getDepthValue();
                 mDeferredClears.reset(vk::kUnpackedDepthIndex);
             }
 
             if (mDeferredClears.testStencil())
             {
-                stencilLoadOp                   = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                stencilLoadOp                   = vk::RenderPassLoadOp::Clear;
                 clearValue.depthStencil.stencil = mDeferredClears.getStencilValue();
                 mDeferredClears.reset(vk::kUnpackedStencilIndex);
             }
@@ -2583,17 +2577,17 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
                                     kUninitializedClearValue);
         }
 
-        const vk::Format &format = depthStencilRenderTarget->getImageFormat();
+        const angle::Format &format = depthStencilRenderTarget->getImageIntendedFormat();
         // If the format we picked has stencil but user did not ask for it due to hardware
         // limitations, use DONT_CARE for load/store. The same logic for depth follows.
-        if (format.intendedFormat().stencilBits == 0)
+        if (format.stencilBits == 0)
         {
-            stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            stencilLoadOp  = vk::RenderPassLoadOp::DontCare;
             stencilStoreOp = vk::RenderPassStoreOp::DontCare;
         }
-        if (format.intendedFormat().depthBits == 0)
+        if (format.depthBits == 0)
         {
-            depthLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            depthLoadOp  = vk::RenderPassLoadOp::DontCare;
             depthStoreOp = vk::RenderPassStoreOp::DontCare;
         }
 
@@ -2605,18 +2599,18 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
         if (depthStencilRenderTarget->hasResolveAttachment() &&
             depthStencilRenderTarget->isImageTransient())
         {
-            const bool unresolveDepth = depthLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD;
+            const bool unresolveDepth = depthLoadOp == vk::RenderPassLoadOp::Load;
             const bool unresolveStencil =
-                stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD && canExportStencil;
+                stencilLoadOp == vk::RenderPassLoadOp::Load && canExportStencil;
 
             if (unresolveDepth)
             {
-                depthLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                depthLoadOp = vk::RenderPassLoadOp::DontCare;
             }
 
             if (unresolveStencil)
             {
-                stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                stencilLoadOp = vk::RenderPassLoadOp::DontCare;
             }
 
             if (unresolveDepth || unresolveStencil)
