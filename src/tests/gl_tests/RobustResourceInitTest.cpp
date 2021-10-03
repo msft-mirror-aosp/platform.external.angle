@@ -1532,6 +1532,7 @@ void RobustResourceInitTest::maskedDepthClear(ClearFunc clearFunc)
     // Draw red with a depth function that checks for the clear value.
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_EQUAL);
+    glViewport(0, 0, kSize, kSize);
 
     ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
 
@@ -1614,6 +1615,7 @@ void RobustResourceInitTest::maskedStencilClear(ClearFunc clearFunc)
     glEnable(GL_STENCIL_TEST);
     glStencilFunc(GL_EQUAL, 0x00, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    glViewport(0, 0, kSize, kSize);
 
     ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
 
@@ -2304,13 +2306,8 @@ TEST_P(RobustResourceInitTestES3, BlitDepthStencilAfterClearBuffer)
     // http://anglebug.com/5300
     ANGLE_SKIP_TEST_IF(IsD3D11());
 
-    // http://anglebug.com/4919
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsMetal());
-
-    // Test failure introduced by Apple's changes (anglebug.com/5505)
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && IsMetal());
-
     constexpr GLsizei kSize = 16;
+    glViewport(0, 0, kSize, kSize);
 
     GLFramebuffer readFbo, drawFbo;
     GLRenderbuffer readDepthStencil, drawDepthStencil;
