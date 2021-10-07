@@ -22,6 +22,7 @@
 #include "libANGLE/Observer.h"
 #include "libANGLE/renderer/serial_utils.h"
 #include "libANGLE/renderer/vulkan/SecondaryCommandBuffer.h"
+#include "libANGLE/renderer/vulkan/VulkanSecondaryCommandBuffer.h"
 #include "libANGLE/renderer/vulkan/vk_wrapper.h"
 #include "vulkan/vulkan_fuchsia_ext.h"
 
@@ -183,13 +184,15 @@ class Context : angle::NonCopyable
     RendererVk *const mRenderer;
 };
 
+class RenderPassDesc;
+
 #if ANGLE_USE_CUSTOM_VULKAN_CMD_BUFFERS
 using CommandBuffer = priv::SecondaryCommandBuffer;
 #else
-using CommandBuffer                          = priv::CommandBuffer;
+using CommandBuffer                          = VulkanSecondaryCommandBuffer;
 #endif
 
-using PrimaryCommandBuffer = priv::CommandBuffer;
+using SecondaryCommandBufferList = std::vector<CommandBuffer>;
 
 VkImageAspectFlags GetDepthStencilAspectFlags(const angle::Format &format);
 VkImageAspectFlags GetFormatAspectFlags(const angle::Format &format);
@@ -883,6 +886,7 @@ struct PerfCounters
     uint32_t shaderBuffersDescriptorSetCacheHits;
     uint32_t shaderBuffersDescriptorSetCacheMisses;
     uint32_t buffersGhosted;
+    uint32_t vertexArraySyncStateCalls;
 };
 
 // A Vulkan image level index.

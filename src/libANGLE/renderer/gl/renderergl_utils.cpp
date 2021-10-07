@@ -504,14 +504,6 @@ static gl::TextureCaps GenerateTextureFormatCaps(const FunctionsGL *functions,
             functions->getInternalformativ(GL_RENDERBUFFER, queryInternalFormat, GL_SAMPLES,
                                            static_cast<GLsizei>(samples.size()), &samples[0]);
 
-            if (internalFormat == GL_STENCIL_INDEX8)
-            {
-                // The query below does generates an error with STENCIL_INDEX8 on NVIDIA driver
-                // 382.33. So for now we assume that the same sampling modes are conformant for
-                // STENCIL_INDEX8 as for DEPTH24_STENCIL8. Clean this up once the driver is fixed.
-                // http://anglebug.com/2059
-                queryInternalFormat = GL_DEPTH24_STENCIL8;
-            }
             for (size_t sampleIndex = 0; sampleIndex < samples.size(); sampleIndex++)
             {
                 if (features.limitMaxMSAASamplesTo4.enabled && samples[sampleIndex] > 4)
@@ -2005,7 +1997,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
                             IsAndroid() || (IsApple() && (isIntel || isAMD || isNvidia)));
     ANGLE_FEATURE_CONDITION(features, limitMax3dArrayTextureSizeTo1024, limitMaxTextureSize);
 
-    ANGLE_FEATURE_CONDITION(features, allowClearForRobustResourceInit, IsApple());
+    ANGLE_FEATURE_CONDITION(features, allowClearForRobustResourceInit, false);
 
     // The WebGL conformance/uniforms/out-of-bounds-uniform-array-access test has been seen to fail
     // on AMD and Android devices.
