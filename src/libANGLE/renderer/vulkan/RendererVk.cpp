@@ -190,6 +190,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-RuntimeSpirv-OpImage-06377",
     // http://anglebug.com/6492
     "VUID-RuntimeSpirv-OpImage-06376",
+    // http://anglebug.com/6514
+    "vkEnumeratePhysicalDevices: One or more layers modified physical devices",
 };
 
 struct SkippedSyncvalMessage
@@ -2451,9 +2453,6 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // is enabled.
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsSurfaceProtectedSwapchains, IsAndroid());
 
-    // http://anglebug.com/2838
-    ANGLE_FEATURE_CONDITION(&mFeatures, extraCopyBufferRegion, IsWindows() && isIntel);
-
     // Work around incorrect NVIDIA point size range clamping.
     // http://anglebug.com/2970#c10
     // Clamp if driver version is:
@@ -3271,7 +3270,9 @@ angle::Result RendererVk::submitFrame(vk::Context *context,
 
         ANGLE_TRY(mCommandProcessor.submitFrame(
             context, hasProtectedContent, contextPriority, waitSemaphores, waitSemaphoreStageMasks,
-            signalSemaphore, std::move(currentGarbage), commandPool, submitQueueSerial));
+            signalSemaphore, std::move(currentGarbage),
+            std::move(mCommandBufferRecycler.getCommandBuffersToReset()), commandPool,
+            submitQueueSerial));
     }
     else
     {
@@ -3279,7 +3280,9 @@ angle::Result RendererVk::submitFrame(vk::Context *context,
 
         ANGLE_TRY(mCommandQueue.submitFrame(
             context, hasProtectedContent, contextPriority, waitSemaphores, waitSemaphoreStageMasks,
-            signalSemaphore, std::move(currentGarbage), commandPool, submitQueueSerial));
+            signalSemaphore, std::move(currentGarbage),
+            std::move(mCommandBufferRecycler.getCommandBuffersToReset()), commandPool,
+            submitQueueSerial));
     }
 
     waitSemaphores.clear();
@@ -3444,7 +3447,8 @@ angle::Result RendererVk::getCommandBufferHelper(vk::Context *context,
                                                          commandBufferHelperOut);
 }
 
-void RendererVk::recycleCommandBufferHelper(VkDevice device, vk::CommandBufferHelper *commandBuffer)
+void RendererVk::recycleCommandBufferHelper(VkDevice device,
+                                            vk::CommandBufferHelper **commandBuffer)
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "RendererVk::recycleCommandBufferHelper");
     std::lock_guard<std::mutex> lock(mCommandBufferRecyclerMutex);
