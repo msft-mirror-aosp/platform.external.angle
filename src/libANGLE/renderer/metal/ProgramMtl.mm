@@ -181,42 +181,6 @@ void InitArgumentBufferEncoder(mtl::Context *context,
     }
 }
 
-angle::Result CreateMslShader(mtl::Context *context,
-                              id<MTLLibrary> shaderLib,
-                              MTLFunctionConstantValues *funcConstants,
-                              mtl::AutoObjCPtr<id<MTLFunction>> *shaderOut)
-{
-    NSError *nsErr = nil;
-
-    id<MTLFunction> mtlShader;
-    if (funcConstants)
-    {
-        mtlShader = [shaderLib newFunctionWithName:SHADER_ENTRY_NAME
-                                    constantValues:funcConstants
-                                             error:&nsErr];
-    }
-    else
-    {
-        mtlShader = [shaderLib newFunctionWithName:SHADER_ENTRY_NAME];
-    }
-
-    [mtlShader ANGLE_MTL_AUTORELEASE];
-    if (nsErr && !mtlShader)
-    {
-        std::ostringstream ss;
-        ss << "Internal error compiling Metal shader:\n"
-           << nsErr.localizedDescription.UTF8String << "\n";
-
-        ERR() << ss.str();
-
-        ANGLE_MTL_CHECK(context, false, GL_INVALID_OPERATION);
-    }
-
-    shaderOut->retainAssign(mtlShader);
-
-    return angle::Result::Continue;
-}
-
 }  // namespace
 
 // ProgramArgumentBufferEncoderMtl implementation
@@ -272,6 +236,7 @@ void ProgramMtl::reset(ContextMtl *context)
     for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         mMslShaderTranslateInfo[shaderType].reset();
+        mCurrentShaderVariants[shaderType] = nullptr;
     }
     mMslXfbOnlyVertexShaderInfo.reset();
 
@@ -432,6 +397,25 @@ angle::Result ProgramMtl::linkImplDirect(const gl::Context *glContext,
     return angle::Result::Continue;
 }
 
+bool ProgramMtl::programHasFlatAttributes() const
+{
+    const auto &programInputs = mState.getProgramInputs();
+    for (auto &attribute : programInputs)
+    {
+        if (attribute.interpolation == sh::INTERPOLATION_FLAT)
+            return true;
+    }
+    const auto &flatVaryings =
+        mState.getAttachedShader(gl::ShaderType::Vertex)->getOutputVaryings();
+    for (auto &attribute : flatVaryings)
+    {
+        if (attribute.interpolation == sh::INTERPOLATION_FLAT)
+            return true;
+    }
+
+    return false;
+}
+
 angle::Result ProgramMtl::linkImpl(const gl::Context *glContext,
                                    const gl::ProgramLinkedResources &resources,
                                    gl::InfoLog &infoLog)
@@ -440,15 +424,16 @@ angle::Result ProgramMtl::linkImpl(const gl::Context *glContext,
     ContextMtl *contextMtl = mtl::GetImpl(glContext);
     if (contextMtl->getDisplay()->useDirectToMetalCompiler())
     {
-        return linkImplDirect(glContext, resources, infoLog);
+        ANGLE_TRY(linkImplDirect(glContext, resources, infoLog));
     }
     else
     {
-        return linkImplSpirv(glContext, resources, infoLog);
+        ANGLE_TRY(linkImplSpirv(glContext, resources, infoLog));
     }
 #else
-    return linkImplDirect(glContext, resources, infoLog);
+    ANGLE_TRY(linkImplDirect(glContext, resources, infoLog));
 #endif
+    return angle::Result::Continue;
 }
 
 angle::Result ProgramMtl::linkTranslatedShaders(const gl::Context *glContext,
@@ -588,7 +573,7 @@ angle::Result ProgramMtl::getSpecializedShader(mtl::Context *context,
 {
     static_assert(YES == 1, "YES should have value of 1");
 #if ANGLE_ENABLE_METAL_SPIRV
-    static const bool useSpirv = !context->getDisplay()->useDirectToMetalCompiler();
+    const bool useSpirv = !context->getDisplay()->useDirectToMetalCompiler();
 #endif
 
     mtl::TranslatedShaderInfo *translatedMslInfo = &mMslShaderTranslateInfo[shaderType];
@@ -702,8 +687,8 @@ angle::Result ProgramMtl::getSpecializedShader(mtl::Context *context,
     // Create Metal shader object
     ANGLE_MTL_OBJC_SCOPE
     {
-        ANGLE_TRY(CreateMslShader(context, translatedMslInfo->metalLibrary, funcConstants,
-                                  &shaderVariant->metalShader));
+        ANGLE_TRY(CreateMslShader(context, translatedMslInfo->metalLibrary, SHADER_ENTRY_NAME,
+                                  funcConstants, &shaderVariant->metalShader));
         [funcConstants ANGLE_MTL_AUTORELEASE];
     }
 
@@ -743,8 +728,11 @@ angle::Result ProgramMtl::createMslShaderLib(
 
         // Convert to actual binary shader
         mtl::AutoObjCPtr<NSError *> err = nil;
-        translatedMslInfo->metalLibrary = mtl::CreateShaderLibrary(
-            mtlDevice, translatedMslInfo->metalShaderSource, substitutionMacros, &err);
+        bool disableFastMath = (context->getDisplay()->getFeatures().intelDisableFastMath.enabled &&
+                                translatedMslInfo->hasInvariantOrAtan);
+        translatedMslInfo->metalLibrary =
+            mtl::CreateShaderLibrary(mtlDevice, translatedMslInfo->metalShaderSource,
+                                     substitutionMacros, !disableFastMath, &err);
         if (err && !translatedMslInfo->metalLibrary)
         {
             std::ostringstream ss;
@@ -833,6 +821,7 @@ void ProgramMtl::saveShaderInternalInfo(gl::BinaryOutputStream *stream)
         {
             stream->writeInt<uint32_t>(uboBinding);
         }
+        stream->writeBool(mMslShaderTranslateInfo[shaderType].hasInvariantOrAtan);
     }
     for (size_t xfbBindIndex = 0; xfbBindIndex < mtl::kMaxShaderXFBs; xfbBindIndex++)
     {
@@ -876,7 +865,9 @@ void ProgramMtl::loadShaderInternalInfo(gl::BinaryInputStream *stream)
         {
             uboBinding = stream->readInt<uint32_t>();
         }
+        mMslShaderTranslateInfo[shaderType].hasInvariantOrAtan = stream->readBool();
     }
+
     for (size_t xfbBindIndex = 0; xfbBindIndex < mtl::kMaxShaderXFBs; xfbBindIndex++)
     {
         stream->readInt(
@@ -1280,8 +1271,9 @@ angle::Result ProgramMtl::updateTextures(const gl::Context *glContext,
         }
 
         const mtl::TranslatedShaderInfo &shaderInfo =
-            *mCurrentShaderVariants[shaderType]->translatedSrcInfo;
-
+            mCurrentShaderVariants[shaderType]->translatedSrcInfo
+                ? *mCurrentShaderVariants[shaderType]->translatedSrcInfo
+                : mMslShaderTranslateInfo[shaderType];
         bool hasDepthSampler = false;
 
         for (uint32_t textureIndex = 0; textureIndex < mState.getSamplerBindings().size();
@@ -1498,6 +1490,7 @@ angle::Result ProgramMtl::encodeUniformBuffersInfoArgumentBuffer(
     gl::ShaderType shaderType)
 {
     const gl::State &glState = context->getState();
+    ASSERT(mCurrentShaderVariants[shaderType]->translatedSrcInfo);
     const mtl::TranslatedShaderInfo &shaderInfo =
         *mCurrentShaderVariants[shaderType]->translatedSrcInfo;
 

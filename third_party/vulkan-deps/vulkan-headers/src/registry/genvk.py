@@ -20,6 +20,7 @@ from generator import write
 from spirvcapgenerator import SpirvCapabilityOutputGenerator
 from hostsyncgenerator import HostSynchronizationOutputGenerator
 from pygenerator import PyOutputGenerator
+from rubygenerator import RubyOutputGenerator
 from reflib import logDiag, logWarn, setLogFile
 from reg import Registry
 from validitygenerator import ValidityOutputGenerator
@@ -182,6 +183,27 @@ def makeGenOpts(args):
             reparentEnums     = False)
         ]
 
+    # Ruby representation of API information, used by scripts that
+    # don't need to load the full XML.
+    genOpts['api.rb'] = [
+          RubyOutputGenerator,
+          DocGeneratorOptions(
+            conventions       = conventions,
+            filename          = 'api.rb',
+            directory         = directory,
+            genpath           = None,
+            apiname           = 'vulkan',
+            profile           = None,
+            versions          = featuresPat,
+            emitversions      = featuresPat,
+            defaultExtensions = None,
+            addExtensions     = addExtensionsPat,
+            removeExtensions  = removeExtensionsPat,
+            emitExtensions    = emitExtensionsPat,
+            reparentEnums     = False)
+        ]
+
+
     # API validity files for spec
     genOpts['validinc'] = [
           ValidityOutputGenerator,
@@ -314,10 +336,13 @@ def makeGenOpts(args):
     platforms = [
         [ 'vulkan_android.h',     [ 'VK_KHR_android_surface',
                                     'VK_ANDROID_external_memory_android_hardware_buffer'
-                                                                  ], commonSuppressExtensions ],
+                                                                  ], commonSuppressExtensions +
+                                                                     [ 'VK_KHR_format_feature_flags2',
+                                                                     ] ],
         [ 'vulkan_fuchsia.h',     [ 'VK_FUCHSIA_imagepipe_surface',
                                     'VK_FUCHSIA_external_memory',
-                                    'VK_FUCHSIA_external_semaphore' ], commonSuppressExtensions ],
+                                    'VK_FUCHSIA_external_semaphore',
+                                    'VK_FUCHSIA_buffer_collection' ], commonSuppressExtensions ],
         [ 'vulkan_ggp.h',         [ 'VK_GGP_stream_descriptor_surface',
                                     'VK_GGP_frame_token'          ], commonSuppressExtensions ],
         [ 'vulkan_ios.h',         [ 'VK_MVK_ios_surface'          ], commonSuppressExtensions ],
