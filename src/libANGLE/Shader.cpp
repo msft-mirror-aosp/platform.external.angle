@@ -391,6 +391,8 @@ void Shader::compile(const Context *context)
         mImplementation->compile(context, &(mCompilingState->shCompilerInstance), options);
 }
 
+// TODO(b/200617543): figure out why ScopedExit has issues.
+[[clang::optnone]]
 void Shader::resolveCompile()
 {
     if (!mState.compilePending())
