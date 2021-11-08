@@ -87,6 +87,17 @@
 //
 // This probing function guarantees that after N probes, all the groups of the
 // table will be probed exactly once.
+//
+// The control state and slot array are stored contiguously in a shared heap
+// allocation. The layout of this allocation is: `capacity()` control bytes,
+// one sentinel control byte, `Group::kWidth - 1` cloned control bytes,
+// <possible padding>, `capacity()` slots. The sentinel control byte is used in
+// iteration so we know when we reach the end of the table. The cloned control
+// bytes at the end of the table are cloned from the beginning of the table so
+// groups that begin near the end of the table can see a full group. In cases in
+// which there are more than `capacity()` cloned control bytes, the extra bytes
+// are `kEmpty`, and these ensure that we always see at least one empty slot and
+// can stop an unsuccessful search.
 
 #ifndef ABSL_CONTAINER_INTERNAL_RAW_HASH_SET_H_
 #define ABSL_CONTAINER_INTERNAL_RAW_HASH_SET_H_
@@ -570,6 +581,7 @@ inline probe_seq<Group::kWidth> probe(const ctrl_t* ctrl, size_t hash,
 // - the input is already a set
 // - there are enough slots
 // - the element with the hash is not in the table
+template <typename = void>
 inline FindInfo find_first_non_full(const ctrl_t* ctrl, size_t hash,
                                     size_t capacity) {
   auto seq = probe(ctrl, hash, capacity);
@@ -592,6 +604,11 @@ inline FindInfo find_first_non_full(const ctrl_t* ctrl, size_t hash,
     assert(seq.index() <= capacity && "full table!");
   }
 }
+
+// Extern template for inline function keep possibility of inlining.
+// When compiler decided to not inline, no symbols will be added to the
+// corresponding translation unit.
+extern template FindInfo find_first_non_full(const ctrl_t*, size_t, size_t);
 
 // Reset all ctrl bytes back to ctrl_t::kEmpty, except the sentinel.
 inline void ResetCtrl(size_t capacity, ctrl_t* ctrl, const void* slot,
@@ -1063,6 +1080,8 @@ class raw_hash_set {
     // past that we simply deallocate the array.
     if (capacity_ > 127) {
       destroy_slots();
+
+      infoz().RecordClearedReservation();
     } else if (capacity_) {
       for (size_t i = 0; i != capacity_; ++i) {
         if (IsFull(ctrl_[i])) {
@@ -1376,14 +1395,20 @@ class raw_hash_set {
     if (n == 0 && size_ == 0) {
       destroy_slots();
       infoz().RecordStorageChanged(0, 0);
+      infoz().RecordClearedReservation();
       return;
     }
+
     // bitor is a faster way of doing `max` here. We will round up to the next
     // power-of-2-minus-1, so bitor is good enough.
     auto m = NormalizeCapacity(n | GrowthToLowerboundCapacity(size()));
     // n == 0 unconditionally rehashes as per the standard.
     if (n == 0 || m > capacity_) {
       resize(m);
+
+      // This is after resize, to ensure that we have completed the allocation
+      // and have potentially sampled the hashtable.
+      infoz().RecordReservation(n);
     }
   }
 
@@ -1391,6 +1416,10 @@ class raw_hash_set {
     if (n > size() + growth_left()) {
       size_t m = GrowthToLowerboundCapacity(n);
       resize(NormalizeCapacity(m));
+
+      // This is after resize, to ensure that we have completed the allocation
+      // and have potentially sampled the hashtable.
+      infoz().RecordReservation(n);
     }
   }
 
@@ -1417,6 +1446,7 @@ class raw_hash_set {
   void prefetch(const key_arg<K>& key) const {
     (void)key;
 #if defined(__GNUC__)
+    prefetch_heap_block();
     auto seq = probe(ctrl_, hash_ref()(key), capacity_);
     __builtin_prefetch(static_cast<const void*>(ctrl_ + seq.offset()));
     __builtin_prefetch(static_cast<const void*>(slots_ + seq.offset()));
@@ -1448,6 +1478,7 @@ class raw_hash_set {
   }
   template <class K = key_type>
   iterator find(const key_arg<K>& key) {
+    prefetch_heap_block();
     return find(key, hash_ref()(key));
   }
 
@@ -1457,6 +1488,7 @@ class raw_hash_set {
   }
   template <class K = key_type>
   const_iterator find(const key_arg<K>& key) const {
+    prefetch_heap_block();
     return find(key, hash_ref()(key));
   }
 
@@ -1611,7 +1643,7 @@ class raw_hash_set {
     // bound more carefully.
     if (std::is_same<SlotAlloc, std::allocator<slot_type>>::value &&
         slots_ == nullptr) {
-      infoz() = Sample();
+      infoz() = Sample(sizeof(slot_type));
     }
 
     char* mem = static_cast<char*>(Allocate<alignof(slot_type)>(
@@ -1632,6 +1664,7 @@ class raw_hash_set {
         PolicyTraits::destroy(&alloc_ref(), slots_ + i);
       }
     }
+
     // Unpoison before returning the memory to the allocator.
     SanitizerUnpoisonMemoryRegion(slots_, sizeof(slot_type) * capacity_);
     Deallocate<alignof(slot_type)>(
@@ -1826,6 +1859,7 @@ class raw_hash_set {
  protected:
   template <class K>
   std::pair<size_t, bool> find_or_prepare_insert(const K& key) {
+    prefetch_heap_block();
     auto hash = hash_ref()(key);
     auto seq = probe(ctrl_, hash, capacity_);
     while (true) {
@@ -1888,6 +1922,15 @@ class raw_hash_set {
 
   size_t& growth_left() { return settings_.template get<0>(); }
 
+  void prefetch_heap_block() const {
+    // Prefetch the heap-allocated memory region to resolve potential TLB
+    // misses.  This is intended to overlap with execution of calculating the
+    // hash for a key.
+#if defined(__GNUC__)
+    __builtin_prefetch(static_cast<const void*>(ctrl_), 0, 1);
+#endif  // __GNUC__
+  }
+
   HashtablezInfoHandle& infoz() { return settings_.template get<1>(); }
 
   hasher& hash_ref() { return settings_.template get<2>(); }
@@ -1915,11 +1958,12 @@ class raw_hash_set {
 
 // Erases all elements that satisfy the predicate `pred` from the container `c`.
 template <typename P, typename H, typename E, typename A, typename Predicate>
-void EraseIf(Predicate pred, raw_hash_set<P, H, E, A>* c) {
+void EraseIf(Predicate& pred, raw_hash_set<P, H, E, A>* c) {
   for (auto it = c->begin(), last = c->end(); it != last;) {
-    auto copy_it = it++;
-    if (pred(*copy_it)) {
-      c->erase(copy_it);
+    if (pred(*it)) {
+      c->erase(it++);
+    } else {
+      ++it;
     }
   }
 }

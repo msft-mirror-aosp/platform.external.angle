@@ -375,6 +375,14 @@ void main()
 
     void testTextureSize(int testCaseIndex);
 
+    struct UploadThenUseStageParam
+    {
+        GLenum useStage;
+        bool closeRenderPassAfterUse;
+    };
+
+    void testUploadThenUseInDifferentStages(const std::vector<UploadThenUseStageParam> &uses);
+
     GLuint mTexture2D;
     GLint mTexture2DUniformLocation;
 };
@@ -2655,6 +2663,74 @@ TEST_P(Texture2DTest, TexImageWithRGBA5551PBO)
     EXPECT_PIXEL_EQ(width / 2 - 1, height / 2 - 1, 0, 255, 0, 255);
 }
 
+// Test if the KHR debug label is set and passed to D3D correctly using glCopyTexImage2D.
+TEST_P(Texture2DTest, TextureKHRDebugLabelWithCopyTexImage2D)
+{
+    GLTexture texture2D;
+    glBindTexture(GL_TEXTURE_2D, texture2D);
+
+    // Create a texture and copy into, to initialize storage object.
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, 32, 32, 0);
+
+    // Set KHR Debug Label.
+    std::string label = "TestKHR.DebugLabel";
+    glObjectLabelKHR(GL_TEXTURE, texture2D, -1, label.c_str());
+
+    std::vector<char> labelBuf(label.length() + 1);
+    GLsizei labelLengthBuf = 0;
+
+    glGetObjectLabelKHR(GL_TEXTURE, texture2D, static_cast<GLsizei>(labelBuf.size()),
+                        &labelLengthBuf, labelBuf.data());
+
+    EXPECT_EQ(static_cast<GLsizei>(label.length()), labelLengthBuf);
+    EXPECT_STREQ(label.c_str(), labelBuf.data());
+
+    // Delete the texture.
+    texture2D.reset();
+    EXPECT_GL_NO_ERROR();
+
+    glObjectLabelKHR(GL_TEXTURE, texture2D, -1, label.c_str());
+    EXPECT_GL_ERROR(GL_INVALID_VALUE);
+
+    glGetObjectLabelKHR(GL_TEXTURE, texture2D, static_cast<GLsizei>(labelBuf.size()),
+                        &labelLengthBuf, labelBuf.data());
+    EXPECT_GL_ERROR(GL_INVALID_VALUE);
+}
+
+// Test to call labeling API before the storage texture is created.
+TEST_P(Texture2DTest, CallKHRDebugLabelBeforeTexStorageCreation)
+{
+    GLTexture texture2D;
+    glBindTexture(GL_TEXTURE_2D, texture2D);
+
+    // Set label before texture storage creation.
+    std::string label = "TestKHR.DebugLabel";
+    glObjectLabelKHR(GL_TEXTURE, texture2D, -1, label.c_str());
+
+    // Create a texture and copy into, to initialize storage object.
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, 32, 32, 0);
+
+    std::vector<char> labelBuf(label.length() + 1);
+    GLsizei labelLengthBuf = 0;
+
+    glGetObjectLabelKHR(GL_TEXTURE, texture2D, static_cast<GLsizei>(labelBuf.size()),
+                        &labelLengthBuf, labelBuf.data());
+
+    EXPECT_EQ(static_cast<GLsizei>(label.length()), labelLengthBuf);
+    EXPECT_STREQ(label.c_str(), labelBuf.data());
+
+    // Delete the texture.
+    texture2D.reset();
+    EXPECT_GL_NO_ERROR();
+
+    glObjectLabelKHR(GL_TEXTURE, texture2D, -1, label.c_str());
+    EXPECT_GL_ERROR(GL_INVALID_VALUE);
+
+    glGetObjectLabelKHR(GL_TEXTURE, texture2D, static_cast<GLsizei>(labelBuf.size()),
+                        &labelLengthBuf, labelBuf.data());
+    EXPECT_GL_ERROR(GL_INVALID_VALUE);
+}
+
 // Test that glTexSubImage2D combined with a PBO works properly when glTexStorage2D has
 // initialized the image with a depth-only format.
 TEST_P(Texture2DTestES3, TexImageWithDepthPBO)
@@ -2664,9 +2740,6 @@ TEST_P(Texture2DTestES3, TexImageWithDepthPBO)
 
     // http://anglebug.com/5315
     ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
-
-    // http://anglebug.com/5316
-    ANGLE_SKIP_TEST_IF(IsMetal() && IsOSX());
 
     constexpr GLsizei kSize = 4;
 
@@ -2733,9 +2806,6 @@ TEST_P(Texture2DTestES3, TexImageWithStencilPBO)
 
     // http://anglebug.com/5315
     ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
-
-    // http://anglebug.com/5316
-    ANGLE_SKIP_TEST_IF(IsMetal() && IsOSX());
 
     // http://anglebug.com/5317
     ANGLE_SKIP_TEST_IF(IsWindows() && IsD3D());
@@ -2811,9 +2881,6 @@ TEST_P(Texture2DTestES3, TexImageWithDepthStencilPBO)
 
     // http://anglebug.com/5315
     ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
-
-    // http://anglebug.com/5316
-    ANGLE_SKIP_TEST_IF(IsMetal() && IsOSX());
 
     // http://anglebug.com/5317
     ANGLE_SKIP_TEST_IF(IsWindows() && IsD3D());
@@ -3079,9 +3146,6 @@ TEST_P(Texture2DTest, CopySubImageFloat_RGB_RGB)
     // TODO(cwallez): Fix on Linux Intel drivers (http://anglebug.com/1346)
     ANGLE_SKIP_TEST_IF(IsIntel() && IsLinux() && IsOpenGL());
 
-    // Ignore SDK layers messages on D3D11 FL 9.3 (http://anglebug.com/1284)
-    ANGLE_SKIP_TEST_IF(IsD3D11_FL93());
-
     testFloatCopySubImage(3, 3);
 }
 
@@ -3097,17 +3161,11 @@ TEST_P(Texture2DTest, CopySubImageFloat_RGBA_RG)
 
 TEST_P(Texture2DTest, CopySubImageFloat_RGBA_RGB)
 {
-    // Ignore SDK layers messages on D3D11 FL 9.3 (http://anglebug.com/1284)
-    ANGLE_SKIP_TEST_IF(IsD3D11_FL93());
-
     testFloatCopySubImage(4, 3);
 }
 
 TEST_P(Texture2DTest, CopySubImageFloat_RGBA_RGBA)
 {
-    // Ignore SDK layers messages on D3D11 FL 9.3 (http://anglebug.com/1284)
-    ANGLE_SKIP_TEST_IF(IsD3D11_FL93());
-
     testFloatCopySubImage(4, 4);
 }
 
@@ -3286,9 +3344,6 @@ void FillLevel(GLint level,
 // conformance/textures/misc/texture-size.html does
 void Texture2DTest::testTextureSize(int testCaseIndex)
 {
-    // http://anglebug.com/6296
-    ANGLE_SKIP_TEST_IF(IsMetal());
-
     std::array<GLColor, 6> kNewMipColors = {
         GLColor::green,  GLColor::red,     GLColor::blue,
         GLColor::yellow, GLColor::magenta, GLColor::cyan,
@@ -4468,15 +4523,12 @@ TEST_P(Texture2DBaseMaxTestES3, RedefineIncompatibleLevelBeyondMaxLevel)
 }
 
 // Port test from web_gl/conformance2/textures/misc/fuzz-545-immutable-tex-render-feedback.html.
-// What this try to do is create a renderer feedback loop and ensure it is not crashing.
+// What this tries to do is create a render feedback loop and ensure it is not crashing.
 TEST_P(Texture2DBaseMaxTestES3, Fuzz545ImmutableTexRenderFeedback)
 {
-    // http://crbug.com/1212206
-    ANGLE_SKIP_TEST_IF(IsMetal());
-
     ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Texture2D(), essl1_shaders::fs::Texture2D());
 
-    constexpr uint32_t MIPS = 3;
+    constexpr uint32_t MIPS = 2;
     constexpr uint32_t SIZE = 10;
 
     GLTexture immutTex;
@@ -5649,6 +5701,20 @@ TEST_P(Texture2DTest, TextureLuminance16ImplicitAlpha1)
     EXPECT_PIXEL_ALPHA_EQ(0, 0, 255);
 }
 
+// Test that CopyTexImage2D does not trigger assertion after CompressedTexImage2D.
+// https://crbug.com/1216276
+TEST_P(Texture2DTest, CopyAfterCompressed)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_texture_compression_dxt1"));
+
+    glBindTexture(GL_TEXTURE_2D, mTexture2D);
+    glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, 8, nullptr);
+    EXPECT_GL_NO_ERROR();
+
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, 0, 0, 4, 4, 0);
+    EXPECT_GL_NO_ERROR();
+}
+
 // When sampling a texture without an alpha channel, "1" is returned as the alpha value.
 // ES 3.0.4 table 3.24
 TEST_P(Texture2DUnsignedIntegerAlpha1TestES3, TextureRGB8UIImplicitAlpha1)
@@ -5794,9 +5860,6 @@ TEST_P(Texture2DTestES3, TextureCOMPRESSEDRGB8ETC2ImplicitAlpha1)
     // ETC texture formats are not supported on Mac OpenGL. http://anglebug.com/3853
     ANGLE_SKIP_TEST_IF(IsOSX() && IsDesktopOpenGL());
 
-    // http://anglebug.com/5187
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsMetal());
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mTexture2D);
     glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGB8_ETC2, 1, 1, 0, 8, nullptr);
@@ -5813,9 +5876,6 @@ TEST_P(Texture2DTestES3, TextureCOMPRESSEDSRGB8ETC2ImplicitAlpha1)
 {
     // ETC texture formats are not supported on Mac OpenGL. http://anglebug.com/3853
     ANGLE_SKIP_TEST_IF(IsOSX() && IsDesktopOpenGL());
-
-    // http://anglebug.com/5187
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsMetal());
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mTexture2D);
@@ -6799,11 +6859,6 @@ TEST_P(TextureLimitsTest, MaxFragmentTextures)
 // Test rendering with maximum combined texture units.
 TEST_P(TextureLimitsTest, MaxCombinedTextures)
 {
-    // TODO(timvp): http://anglebug.com/3570
-    // max per-stage sampled image bindings count (32) exceeds device
-    // maxPerStageDescriptorSampledImages limit (16)
-    ANGLE_SKIP_TEST_IF(isSwiftshader());
-
     GLint vertexTextures = mMaxVertexTextures;
 
     if (vertexTextures + mMaxFragmentTextures > mMaxCombinedTextures)
@@ -7008,15 +7063,16 @@ class Texture2DNorm16TestES3 : public Texture2DTestES3
 
         char errorInfo[200];
 
-        for (GLuint y = 0; y < height; ++y)
+        for (GLuint row = 0; row < height; ++row)
         {
             GLushort *curPixel = pixelRowStart;
-            for (GLuint x = 0, len = (y == height - 1) ? width : std::min(l, width); x < len; ++x)
+            for (GLuint col = 0, len = (row == height - 1) ? width : std::min(l, width); col < len;
+                 ++col)
             {
                 snprintf(errorInfo, sizeof(errorInfo),
                          "extent: {%u, %u}, coord: (%u, %u), rowLength: %d, alignment: %d, "
                          "skipPixels: %d, skipRows: %d\n",
-                         width, height, x, y, packRowLength, packAlignment, packSkipPixels,
+                         width, height, col, row, packRowLength, packAlignment, packSkipPixels,
                          packSkipRows);
                 EXPECT_EQ(color.R, curPixel[0]) << errorInfo;
                 EXPECT_EQ(color.G, curPixel[1]) << errorInfo;
@@ -7703,7 +7759,7 @@ TEST_P(Texture2DFloatTestES2, TextureHalfFloatSampleLegacyTest)
 TEST_P(Texture2DFloatTestES3, TextureFloatLinearTest)
 {
     // TODO(anglebug.com/5360): Failing on ARM-based Apple DTKs.
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && (IsDesktopOpenGL() || IsMetal()));
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && (IsDesktopOpenGL()));
 
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_float_linear"));
 
@@ -7714,7 +7770,7 @@ TEST_P(Texture2DFloatTestES3, TextureFloatLinearTest)
 TEST_P(Texture2DFloatTestES2, TextureFloatLinearTest)
 {
     // TODO(anglebug.com/5360): Failing on ARM-based Apple DTKs.
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && (IsDesktopOpenGL() || IsMetal()));
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && (IsDesktopOpenGL()));
 
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_float_linear"));
 
@@ -7742,7 +7798,7 @@ TEST_P(Texture2DFloatTestES2, TextureHalfFloatLinearTest)
 TEST_P(Texture2DFloatTestES3, TextureFloatLinearLegacyTest)
 {
     // TODO(anglebug.com/5360): Failing on ARM-based Apple DTKs.
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && (IsDesktopOpenGL() || IsMetal()));
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && (IsDesktopOpenGL()));
 
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_float"));
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_float_linear"));
@@ -7762,7 +7818,7 @@ TEST_P(Texture2DFloatTestES3, TextureFloatLinearLegacyTest)
 TEST_P(Texture2DFloatTestES2, TextureFloatLinearLegacyTest)
 {
     // TODO(anglebug.com/5360): Failing on ARM-based Apple DTKs.
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && (IsDesktopOpenGL() || IsMetal()));
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && (IsDesktopOpenGL()));
 
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_float"));
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_float_linear"));
@@ -8191,9 +8247,6 @@ TEST_P(Texture2DDepthTest, DepthTextureES2Compatibility)
     // http://anglebug.com/4092
     ANGLE_SKIP_TEST_IF(IsOpenGL() || IsOpenGLES());
     ANGLE_SKIP_TEST_IF(IsARM64() && IsWindows() && IsD3D());
-
-    // http://anglebug.com/4908
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsMetal());
 
     // When the depth texture is specified with unsized internalformat implementations follow
     // OES_depth_texture behavior. Otherwise they follow GLES 3.0 behavior.
@@ -8900,11 +8953,244 @@ TEST_P(Texture2DTestES3, MinificationWithSamplerNoMipmapping)
     EXPECT_PIXEL_COLOR_EQ(getWindowWidth() / 2, getWindowHeight() / 2, angle::GLColor::white);
 }
 
+void Texture2DTest::testUploadThenUseInDifferentStages(
+    const std::vector<UploadThenUseStageParam> &uses)
+{
+    constexpr char kVSSampleVS[] = R"(attribute vec4 a_position;
+uniform sampler2D u_tex2D;
+varying vec4 v_color;
+
+void main()
+{
+    gl_Position = vec4(a_position.xy, 0.0, 1.0);
+    v_color = texture2D(u_tex2D, a_position.xy * 0.5 + vec2(0.5));
+})";
+
+    constexpr char kVSSampleFS[] = R"(precision mediump float;
+varying vec4 v_color;
+
+void main()
+{
+    gl_FragColor = v_color;
+})";
+
+    ANGLE_GL_PROGRAM(sampleInVS, kVSSampleVS, kVSSampleFS);
+    ANGLE_GL_PROGRAM(sampleInFS, essl1_shaders::vs::Texture2D(), essl1_shaders::fs::Texture2D());
+
+    GLFramebuffer fbo[2];
+    GLTexture color[2];
+    for (uint32_t i = 0; i < 2; ++i)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo[i]);
+        glBindTexture(GL_TEXTURE_2D, color[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color[i], 0);
+    }
+
+    const GLColor kImageColor(63, 31, 0, 255);
+
+    GLTexture tex;
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &kImageColor);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glActiveTexture(GL_TEXTURE0);
+    ASSERT_GL_NO_ERROR();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+
+    glClearColor(0, 0, 0, 1);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo[1]);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    uint32_t curFboIndex     = 0;
+    uint32_t fboDrawCount[2] = {};
+
+    for (const UploadThenUseStageParam &use : uses)
+    {
+        const GLProgram &program = use.useStage == GL_VERTEX_SHADER ? sampleInVS : sampleInFS;
+        drawQuad(program, essl1_shaders::PositionAttrib(), 0.5);
+        ASSERT_GL_NO_ERROR();
+
+        ++fboDrawCount[curFboIndex];
+
+        if (use.closeRenderPassAfterUse)
+        {
+            // Close the render pass without accidentally incurring additional barriers.
+            curFboIndex = 1 - curFboIndex;
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo[curFboIndex]);
+        }
+    }
+
+    // Make sure the transfer operations below aren't reordered with the rendering above and thus
+    // introduce additional synchronization.
+    glFinish();
+
+    for (uint32_t i = 0; i < 2; ++i)
+    {
+        const GLColor kExpectedColor(63 * std::min(4u, fboDrawCount[i]),
+                                     31 * std::min(8u, fboDrawCount[i]), 0, 255);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo[i]);
+        EXPECT_PIXEL_COLOR_EQ(0, 0, kExpectedColor);
+    }
+}
+
+// Test synchronization when a texture is used in different shader stages after data upload.
+//
+// - Use in VS
+// - Use in FS
+TEST_P(Texture2DTest, UploadThenVSThenFS)
+{
+    testUploadThenUseInDifferentStages({
+        {GL_VERTEX_SHADER, false},
+        {GL_FRAGMENT_SHADER, false},
+    });
+}
+
+// Test synchronization when a texture is used in different shader stages after data upload.
+//
+// - Use in VS
+// - Break render pass
+// - Use in FS
+TEST_P(Texture2DTest, UploadThenVSThenNewRPThenFS)
+{
+    testUploadThenUseInDifferentStages({
+        {GL_VERTEX_SHADER, true},
+        {GL_FRAGMENT_SHADER, false},
+    });
+}
+
+// Test synchronization when a texture is used in different shader stages after data upload.
+//
+// - Use in FS
+// - Use in VS
+TEST_P(Texture2DTest, UploadThenFSThenVS)
+{
+    testUploadThenUseInDifferentStages({
+        {GL_FRAGMENT_SHADER, false},
+        {GL_VERTEX_SHADER, false},
+    });
+}
+
+// Test synchronization when a texture is used in different shader stages after data upload.
+//
+// - Use in FS
+// - Break render pass
+// - Use in VS
+TEST_P(Texture2DTest, UploadThenFSThenNewRPThenVS)
+{
+    testUploadThenUseInDifferentStages({
+        {GL_FRAGMENT_SHADER, true},
+        {GL_VERTEX_SHADER, false},
+    });
+}
+
+// Test synchronization when a texture is used in different shader stages after data upload.
+//
+// - Use in VS
+// - Use in FS
+// - Use in VS
+TEST_P(Texture2DTest, UploadThenVSThenFSThenVS)
+{
+    testUploadThenUseInDifferentStages({
+        {GL_VERTEX_SHADER, false},
+        {GL_FRAGMENT_SHADER, false},
+        {GL_VERTEX_SHADER, false},
+    });
+}
+
+// Test synchronization when a texture is used in different shader stages after data upload.
+//
+// - Use in VS
+// - Break render pass
+// - Use in FS
+// - Use in VS
+TEST_P(Texture2DTest, UploadThenVSThenNewRPThenFSThenVS)
+{
+    testUploadThenUseInDifferentStages({
+        {GL_VERTEX_SHADER, true},
+        {GL_FRAGMENT_SHADER, false},
+        {GL_VERTEX_SHADER, false},
+    });
+}
+
+// Test synchronization when a texture is used in different shader stages after data upload.
+//
+// - Use in VS
+// - Break render pass
+// - Use in FS
+// - Break render pass
+// - Use in VS
+TEST_P(Texture2DTest, UploadThenVSThenNewRPThenFSThenNewRPThenVS)
+{
+    testUploadThenUseInDifferentStages({
+        {GL_VERTEX_SHADER, true},
+        {GL_FRAGMENT_SHADER, true},
+        {GL_VERTEX_SHADER, false},
+    });
+}
+
+// Test synchronization when a texture is used in different shader stages after data upload.
+//
+// - Use in FS
+// - Use in VS
+// - Break render pass
+// - Use in FS
+TEST_P(Texture2DTest, UploadThenFSThenVSThenNewRPThenFS)
+{
+    testUploadThenUseInDifferentStages({
+        {GL_FRAGMENT_SHADER, false},
+        {GL_VERTEX_SHADER, true},
+        {GL_FRAGMENT_SHADER, false},
+    });
+}
+
+// Test synchronization when a texture is used in different shader stages after data upload.
+//
+// - Use in FS
+// - Break render pass
+// - Use in VS
+// - Use in FS
+TEST_P(Texture2DTest, UploadThenFSThenNewRPThenVSThenFS)
+{
+    testUploadThenUseInDifferentStages({
+        {GL_FRAGMENT_SHADER, true},
+        {GL_VERTEX_SHADER, false},
+        {GL_FRAGMENT_SHADER, false},
+    });
+}
+
+// Test synchronization when a texture is used in different shader stages after data upload.
+//
+// - Use in FS
+// - Break render pass
+// - Use in FS
+// - Use in VS
+TEST_P(Texture2DTest, UploadThenFSThenNewRPThenFSThenVS)
+{
+    testUploadThenUseInDifferentStages({
+        {GL_FRAGMENT_SHADER, true},
+        {GL_FRAGMENT_SHADER, false},
+        {GL_VERTEX_SHADER, false},
+    });
+}
+
 // Test that clears due to emulated formats are to the correct level given non-zero base level.
 TEST_P(Texture2DTestES3, NonZeroBaseEmulatedClear)
 {
     // Tests behavior of the Vulkan backend with emulated formats.
     ANGLE_SKIP_TEST_IF(!IsVulkan());
+
+    // This test assumes GL_RGB is always emulated, which overrides the WithAllocateNonZeroMemory
+    // memory feature, clearing the memory to zero. However, if the format is *not* emulated and the
+    // feature WithAllocateNonZeroMemory is enabled, the texture memory will contain non-zero
+    // memory, which means the color is not black (causing the test to fail).
+    ANGLE_SKIP_TEST_IF(isAllocateNonZeroMemoryEnabled());
 
     setUpProgram();
 
@@ -9617,6 +9903,66 @@ void main()
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::cyan);
 }
 
+// Test that mapping a texture buffer with GL_MAP_INVALIDATE_BUFFER_BIT and writing to it works
+// correctly.
+TEST_P(TextureBufferTestES31, MapTextureBufferInvalidateThenWrite)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_buffer"));
+
+    // TODO(http://anglebug.com/5832): Claims to support GL_OES_texture_buffer, but fails
+    // compilation of shader because "extension 'GL_OES_texture_buffer' is not supported".
+    ANGLE_SKIP_TEST_IF(IsQualcomm() && IsOpenGLES());
+    // TODO(http://anglebug.com/6396): The OpenGL backend doesn't correctly handle texture buffers
+    // being invalidated when mapped.
+    ANGLE_SKIP_TEST_IF(IsOpenGL());
+
+    const std::array<GLColor, 4> kInitialData = {GLColor::red, GLColor::red, GLColor::red,
+                                                 GLColor::red};
+    const std::array<GLColor, 4> kUpdateData  = {GLColor::blue, GLColor::blue, GLColor::blue,
+                                                GLColor::blue};
+
+    GLBuffer buffer;
+    glBindBuffer(GL_TEXTURE_BUFFER, buffer);
+    glBufferData(GL_TEXTURE_BUFFER, sizeof(kInitialData), kInitialData.data(), GL_DYNAMIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, buffer);
+    EXPECT_GL_NO_ERROR();
+
+    // Bind as texture buffer
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_BUFFER, texture);
+    glTexBufferEXT(GL_TEXTURE_BUFFER, GL_RGBA8, buffer);
+    EXPECT_GL_NO_ERROR();
+
+    constexpr char kSamplerBuffer[] = R"(#version 310 es
+#extension GL_OES_texture_buffer : require
+precision mediump float;
+uniform highp samplerBuffer s;
+out vec4 colorOut;
+void main()
+{
+    colorOut = texelFetch(s, 0);
+})";
+
+    ANGLE_GL_PROGRAM(initialSamplerBuffer, essl31_shaders::vs::Simple(), kSamplerBuffer);
+    drawQuad(initialSamplerBuffer, essl31_shaders::PositionAttrib(), 0.5);
+    EXPECT_GL_NO_ERROR();
+
+    // Don't read back, so we don't break the render pass.
+
+    // Map the buffer and update it.
+    void *mappedBuffer = glMapBufferRange(GL_TEXTURE_BUFFER, 0, sizeof(kInitialData),
+                                          GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    memcpy(mappedBuffer, kUpdateData.data(), sizeof(kInitialData));
+
+    // Draw with the updated buffer data.
+    ANGLE_GL_PROGRAM(updateSamplerBuffer, essl31_shaders::vs::Simple(), kSamplerBuffer);
+    drawQuad(updateSamplerBuffer, essl31_shaders::PositionAttrib(), 0.5);
+    EXPECT_GL_NO_ERROR();
+
+    // Make sure both draw calls succeed
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+}
+
 // Test that the correct error is generated if texture buffer support used anyway when not enabled.
 TEST_P(TextureBufferTestES31, TestErrorWhenNotEnabled)
 {
@@ -9709,12 +10055,11 @@ void main()
     WithEmulateCopyTexImage2DFromRenderbuffers(ES3_OPENGL()), \
         WithEmulateCopyTexImage2DFromRenderbuffers(ES3_OPENGLES())
 ANGLE_INSTANTIATE_TEST(Texture2DTest, ANGLE_ALL_TEST_PLATFORMS_ES2, ES2_EMULATE_COPY_TEX_IMAGE());
-ANGLE_INSTANTIATE_TEST_ES2_AND(TextureCubeTest, WithDirectSPIRVGeneration(ES2_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES2(TextureCubeTest);
 ANGLE_INSTANTIATE_TEST_ES2(Texture2DTestWithDrawScale);
 ANGLE_INSTANTIATE_TEST_ES2(Sampler2DAsFunctionParameterTest);
 ANGLE_INSTANTIATE_TEST_ES2(SamplerArrayTest);
-ANGLE_INSTANTIATE_TEST_ES2_AND(SamplerArrayAsFunctionParameterTest,
-                               WithDirectSPIRVGeneration(ES2_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES2(SamplerArrayAsFunctionParameterTest);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3);
 ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DTestES3, WithAllocateNonZeroMemory(ES3_VULKAN()));
@@ -9728,7 +10073,7 @@ ANGLE_INSTANTIATE_TEST_ES3(Texture2DBaseMaxTestES3);
 ANGLE_INSTANTIATE_TEST_ES2(Texture3DTestES2);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture3DTestES3);
-ANGLE_INSTANTIATE_TEST_ES3_AND(Texture3DTestES3, WithDirectSPIRVGeneration(ES3_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES3(Texture3DTestES3);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DIntegerAlpha1TestES3);
 ANGLE_INSTANTIATE_TEST_ES3(Texture2DIntegerAlpha1TestES3);
@@ -9737,18 +10082,16 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DUnsignedIntegerAlpha1Test
 ANGLE_INSTANTIATE_TEST_ES3(Texture2DUnsignedIntegerAlpha1TestES3);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ShadowSamplerPlusSampler3DTestES3);
-ANGLE_INSTANTIATE_TEST_ES3_AND(ShadowSamplerPlusSampler3DTestES3,
-                               WithDirectSPIRVGeneration(ES3_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES3(ShadowSamplerPlusSampler3DTestES3);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(SamplerTypeMixTestES3);
-ANGLE_INSTANTIATE_TEST_ES3_AND(SamplerTypeMixTestES3, WithDirectSPIRVGeneration(ES3_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES3(SamplerTypeMixTestES3);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DArrayTestES3);
-ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DArrayTestES3, WithDirectSPIRVGeneration(ES3_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DArrayTestES3);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureSizeTextureArrayTest);
-ANGLE_INSTANTIATE_TEST_ES3_AND(TextureSizeTextureArrayTest,
-                               WithDirectSPIRVGeneration(ES3_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES3(TextureSizeTextureArrayTest);
 
 ANGLE_INSTANTIATE_TEST_ES2(SamplerInStructTest);
 ANGLE_INSTANTIATE_TEST_ES2(SamplerInStructAsFunctionParameterTest);
@@ -9793,24 +10136,22 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureCubeIntegerEdgeTestES3);
 ANGLE_INSTANTIATE_TEST_ES3(TextureCubeIntegerEdgeTestES3);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DIntegerProjectiveOffsetTestES3);
-ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DIntegerProjectiveOffsetTestES3,
-                               WithDirectSPIRVGeneration(ES3_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DIntegerProjectiveOffsetTestES3);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DArrayIntegerTestES3);
-ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DArrayIntegerTestES3,
-                               WithDirectSPIRVGeneration(ES3_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DArrayIntegerTestES3);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture3DIntegerTestES3);
 ANGLE_INSTANTIATE_TEST_ES3(Texture3DIntegerTestES3);
 
-ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(Texture2DDepthTest, WithDirectSPIRVGeneration(ES3_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(Texture2DDepthTest);
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(PBOCompressedTextureTest);
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(ETC1CompressedTextureTest);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBufferTestES31);
-ANGLE_INSTANTIATE_TEST_ES31_AND(TextureBufferTestES31, WithDirectSPIRVGeneration(ES31_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES31(TextureBufferTestES31);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CopyImageTestES31);
-ANGLE_INSTANTIATE_TEST_ES31_AND(CopyImageTestES31, WithDirectSPIRVGeneration(ES31_VULKAN()));
+ANGLE_INSTANTIATE_TEST_ES31(CopyImageTestES31);
 
 }  // anonymous namespace

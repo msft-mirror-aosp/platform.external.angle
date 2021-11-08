@@ -39,6 +39,7 @@ bool IsPixelXL();
 bool IsPixel2();
 bool IsPixel2XL();
 bool IsPixel4();
+bool IsPixel4XL();
 bool IsNVIDIAShield();
 
 // GPU vendors.
@@ -289,6 +290,9 @@ bool IsConfigSelected();
 
 // Check whether texture swizzle is natively supported on Metal device.
 bool IsMetalTextureSwizzleAvailable();
+
+// Check whether TEXTURE_3D target is supported for compressed formats on Metal device.
+bool IsMetalCompressedTexture3DAvailable();
 
 extern bool gEnableANGLEPerTestCaptureLabel;
 

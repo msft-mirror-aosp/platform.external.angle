@@ -37,7 +37,7 @@ class CordzInfo;
 
 // Default feature enable states for cord ring buffers
 enum CordFeatureDefaults {
-  kCordEnableBtreeDefault = false,
+  kCordEnableBtreeDefault = true,
   kCordEnableRingBufferDefault = false,
   kCordShallowSubcordsDefault = false
 };
@@ -80,12 +80,16 @@ enum Constants {
   kMaxBytesToCopy = 511
 };
 
-// Wraps std::atomic for reference counting.
-class Refcount {
+// Compact class for tracking the reference count and state flags for CordRep
+// instances.  Data is stored in an atomic int32_t for compactness and speed.
+class RefcountAndFlags {
  public:
-  constexpr Refcount() : count_{kRefIncrement} {}
+  constexpr RefcountAndFlags() : count_{kRefIncrement} {}
   struct Immortal {};
-  explicit constexpr Refcount(Immortal) : count_(kImmortalTag) {}
+  explicit constexpr RefcountAndFlags(Immortal) : count_(kImmortalFlag) {}
+  struct WithCrc {};
+  explicit constexpr RefcountAndFlags(WithCrc)
+      : count_(kCrcFlag | kRefIncrement) {}
 
   // Increments the reference count. Imposes no memory ordering.
   inline void Increment() {
@@ -98,55 +102,82 @@ class Refcount {
   // Returns false if there are no references outstanding; true otherwise.
   // Inserts barriers to ensure that state written before this method returns
   // false will be visible to a thread that just observed this method returning
-  // false.
+  // false.  Always returns false when the immortal bit is set.
   inline bool Decrement() {
-    int32_t refcount = count_.load(std::memory_order_acquire);
-    assert(refcount > 0 || refcount & kImmortalTag);
+    int32_t refcount = count_.load(std::memory_order_acquire) & kRefcountMask;
+    assert(refcount > 0 || refcount & kImmortalFlag);
     return refcount != kRefIncrement &&
-           count_.fetch_sub(kRefIncrement, std::memory_order_acq_rel) !=
-               kRefIncrement;
+           (count_.fetch_sub(kRefIncrement, std::memory_order_acq_rel) &
+            kRefcountMask) != kRefIncrement;
   }
 
   // Same as Decrement but expect that refcount is greater than 1.
   inline bool DecrementExpectHighRefcount() {
     int32_t refcount =
-        count_.fetch_sub(kRefIncrement, std::memory_order_acq_rel);
-    assert(refcount > 0 || refcount & kImmortalTag);
+        count_.fetch_sub(kRefIncrement, std::memory_order_acq_rel) &
+        kRefcountMask;
+    assert(refcount > 0 || refcount & kImmortalFlag);
     return refcount != kRefIncrement;
   }
 
   // Returns the current reference count using acquire semantics.
   inline int32_t Get() const {
-    return count_.load(std::memory_order_acquire) >> kImmortalShift;
+    return count_.load(std::memory_order_acquire) >> kNumFlags;
   }
 
-  // Returns whether the atomic integer is 1.
-  // If the reference count is used in the conventional way, a
-  // reference count of 1 implies that the current thread owns the
-  // reference and no other thread shares it.
-  // This call performs the test for a reference count of one, and
-  // performs the memory barrier needed for the owning thread
-  // to act on the object, knowing that it has exclusive access to the
-  // object.
+  // Returns true if the referenced object carries a CRC value.
+  bool HasCrc() const {
+    return (count_.load(std::memory_order_relaxed) & kCrcFlag) != 0;
+  }
+
+  // Returns true iff the atomic integer is 1 and this node does not store
+  // a CRC.  When both these conditions are met, the current thread owns
+  // the reference and no other thread shares it, so its contents may be
+  // safely mutated.
+  //
+  // If the referenced item is shared, carries a CRC, or is immortal,
+  // it should not be modified in-place, and this function returns false.
+  //
+  // This call performs the memory barrier needed for the owning thread
+  // to act on the object, so that if it returns true, it may safely
+  // assume exclusive access to the object.
+  inline bool IsMutable() {
+    return (count_.load(std::memory_order_acquire)) == kRefIncrement;
+  }
+
+  // Returns whether the atomic integer is 1.  Similar to IsMutable(),
+  // but does not check for a stored CRC.  (An unshared node with a CRC is not
+  // mutable, because changing its data would invalidate the CRC.)
+  //
+  // When this returns true, there are no other references, and data sinks
+  // may safely adopt the children of the CordRep.
   inline bool IsOne() {
-    return count_.load(std::memory_order_acquire) == kRefIncrement;
+    return (count_.load(std::memory_order_acquire) & kRefcountMask) ==
+           kRefIncrement;
   }
 
   bool IsImmortal() const {
-    return (count_.load(std::memory_order_relaxed) & kImmortalTag) != 0;
+    return (count_.load(std::memory_order_relaxed) & kImmortalFlag) != 0;
   }
 
  private:
-  // We reserve the bottom bit to tag a reference count as immortal.
-  // By making it `1` we ensure that we never reach `0` when adding/subtracting
-  // `2`, thus it never looks as if it should be destroyed.
-  // These are used for the StringConstant constructor where we do not increase
-  // the refcount at construction time (due to constinit requirements) but we
-  // will still decrease it at destruction time to avoid branching on Unref.
+  // We reserve the bottom bits for flags.
+  // kImmortalBit indicates that this entity should never be collected; it is
+  // used for the StringConstant constructor to avoid collecting immutable
+  // constant cords.
+  // kReservedFlag is reserved for future use.
   enum {
-    kImmortalShift = 1,
-    kRefIncrement = 1 << kImmortalShift,
-    kImmortalTag = kRefIncrement - 1
+    kNumFlags = 2,
+
+    kImmortalFlag = 0x1,
+    kCrcFlag = 0x2,
+    kRefIncrement = (1 << kNumFlags),
+
+    // Bitmask to use when checking refcount by equality.  This masks out
+    // all flags except kImmortalFlag, which is part of the refcount for
+    // purposes of equality.  (A refcount of 0 or 1 does not count as 0 or 1
+    // if the immortal bit is set.)
+    kRefcountMask = ~kCrcFlag,
   };
 
   std::atomic<int32_t> count_;
@@ -195,13 +226,13 @@ static_assert(FLAT == EXTERNAL + 1, "EXTERNAL and FLAT not consecutive");
 
 struct CordRep {
   CordRep() = default;
-  constexpr CordRep(Refcount::Immortal immortal, size_t l)
+  constexpr CordRep(RefcountAndFlags::Immortal immortal, size_t l)
       : length(l), refcount(immortal), tag(EXTERNAL), storage{} {}
 
   // The following three fields have to be less than 32 bytes since
   // that is the smallest supported flat node size.
   size_t length;
-  Refcount refcount;
+  RefcountAndFlags refcount;
   // If tag < FLAT, it represents CordRepKind and indicates the type of node.
   // Otherwise, the node type is CordRepFlat and the tag is the encoded size.
   uint8_t tag;
@@ -275,7 +306,7 @@ using ExternalReleaserInvoker = void (*)(CordRepExternal*);
 struct CordRepExternal : public CordRep {
   CordRepExternal() = default;
   explicit constexpr CordRepExternal(absl::string_view str)
-      : CordRep(Refcount::Immortal{}, str.size()),
+      : CordRep(RefcountAndFlags::Immortal{}, str.size()),
         base(str.data()),
         releaser_invoker(nullptr) {}
 
@@ -529,7 +560,7 @@ class InlineData {
   // store the size in the last char of `as_chars_` shifted left + 1.
   // Else we store it in a tree and store a pointer to that tree in
   // `as_tree_.rep` and store a tag in `tagged_size`.
-  union  {
+  union {
     char as_chars_[kMaxInline + 1];
     AsTree as_tree_;
   };

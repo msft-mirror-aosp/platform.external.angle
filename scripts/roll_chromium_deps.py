@@ -38,6 +38,7 @@ ANGLE_CHROMIUM_DEPS = [
     'buildtools/mac',
     'buildtools/third_party/libc++/trunk',
     'buildtools/third_party/libc++abi/trunk',
+    'buildtools/third_party/libunwind/trunk',
     'buildtools/win',
     'testing',
     'third_party/abseil-cpp',
@@ -86,7 +87,6 @@ ANGLE_CHROMIUM_DEPS = [
     'tools/skia_goldctl/linux',
     'tools/skia_goldctl/mac',
     'tools/skia_goldctl/win',
-    'tools/swarming_client',
 ]
 
 ANGLE_URL = 'https://chromium.googlesource.com/angle/angle'

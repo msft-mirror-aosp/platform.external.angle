@@ -17,6 +17,7 @@
 #include "libANGLE/ImageIndex.h"
 #include "libANGLE/Stream.h"
 #include "libANGLE/Texture.h"
+#include "libANGLE/angletypes.h"
 #include "libANGLE/renderer/FramebufferAttachmentObjectImpl.h"
 
 namespace egl
@@ -27,10 +28,6 @@ class Image;
 
 namespace gl
 {
-struct Box;
-struct Extents;
-struct Offset;
-struct Rectangle;
 class Framebuffer;
 class MemoryObject;
 struct PixelUnpackState;
@@ -212,6 +209,8 @@ class TextureImpl : public FramebufferAttachmentObjectImpl
     virtual angle::Result bindTexImage(const gl::Context *context, egl::Surface *surface) = 0;
     virtual angle::Result releaseTexImage(const gl::Context *context)                     = 0;
 
+    virtual void onLabelUpdate() {}
+
     // Override if accurate native memory size information is available
     virtual GLint getMemorySize() const;
     virtual GLint getLevelMemorySize(gl::TextureTarget target, GLint level);
@@ -233,6 +232,13 @@ class TextureImpl : public FramebufferAttachmentObjectImpl
                                       GLenum format,
                                       GLenum type,
                                       void *pixels);
+
+    virtual angle::Result getCompressedTexImage(const gl::Context *context,
+                                                const gl::PixelPackState &packState,
+                                                gl::Buffer *packBuffer,
+                                                gl::TextureTarget target,
+                                                GLint level,
+                                                void *pixels);
 
     virtual GLint getRequiredExternalTextureImageUnits(const gl::Context *context);
 

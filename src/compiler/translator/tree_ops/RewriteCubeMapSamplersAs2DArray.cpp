@@ -90,8 +90,8 @@ void TransformDerivativeXMajor(TIntermBlock *block,
     // and the negations.
     TIntermTyped *duValue = DerivativeQuotient(z, dz, x, dx, xRecip);
     TIntermTyped *dvValue = DerivativeQuotient(y, dy, x, dx, xRecip);
-    duValue               = new TIntermBinary(EOpMul, duValue, CreateFloatNode(0.5f));
-    dvValue               = new TIntermBinary(EOpMul, dvValue, CreateFloatNode(0.5f));
+    duValue               = new TIntermBinary(EOpMul, duValue, CreateFloatNode(0.5f, EbpMedium));
+    dvValue               = new TIntermBinary(EOpMul, dvValue, CreateFloatNode(0.5f, EbpMedium));
     block->appendStatement(new TIntermBinary(EOpAssign, du->deepCopy(), duValue));
     block->appendStatement(new TIntermBinary(EOpAssign, dv->deepCopy(), dvValue));
 }
@@ -143,8 +143,8 @@ void TransformDerivativeYMajor(TIntermBlock *block,
     // and the negations.
     TIntermTyped *duValue = DerivativeQuotient(x, dx, y, dy, yRecip);
     TIntermTyped *dvValue = DerivativeQuotient(z, dz, y, dy, yRecip);
-    duValue               = new TIntermBinary(EOpMul, duValue, CreateFloatNode(0.5f));
-    dvValue               = new TIntermBinary(EOpMul, dvValue, CreateFloatNode(0.5f));
+    duValue               = new TIntermBinary(EOpMul, duValue, CreateFloatNode(0.5f, EbpMedium));
+    dvValue               = new TIntermBinary(EOpMul, dvValue, CreateFloatNode(0.5f, EbpMedium));
     block->appendStatement(new TIntermBinary(EOpAssign, du->deepCopy(), duValue));
     block->appendStatement(new TIntermBinary(EOpAssign, dv->deepCopy(), dvValue));
 }
@@ -196,8 +196,8 @@ void TransformDerivativeZMajor(TIntermBlock *block,
     // and the negations.
     TIntermTyped *duValue = DerivativeQuotient(x, dx, z, dz, zRecip);
     TIntermTyped *dvValue = DerivativeQuotient(y, dy, z, dz, zRecip);
-    duValue               = new TIntermBinary(EOpMul, duValue, CreateFloatNode(0.5f));
-    dvValue               = new TIntermBinary(EOpMul, dvValue, CreateFloatNode(0.5f));
+    duValue               = new TIntermBinary(EOpMul, duValue, CreateFloatNode(0.5f, EbpMedium));
+    dvValue               = new TIntermBinary(EOpMul, dvValue, CreateFloatNode(0.5f, EbpMedium));
     block->appendStatement(new TIntermBinary(EOpAssign, du->deepCopy(), duValue));
     block->appendStatement(new TIntermBinary(EOpAssign, dv->deepCopy(), dvValue));
 }
@@ -459,14 +459,15 @@ class RewriteCubeMapSamplersAs2DArrayTraverser : public TIntermTraverser
         const TType *mat3Type     = StaticType::GetBasic<EbtFloat, EbpHigh, 3, 3>();
         TIntermSymbol *recipOuter = new TIntermSymbol(CreateTempVariable(mSymbolTable, mat3Type));
 
-        TIntermTyped *pRecip     = new TIntermBinary(EOpDiv, CreateFloatNode(1.0), p->deepCopy());
+        TIntermTyped *pRecip =
+            new TIntermBinary(EOpDiv, CreateFloatNode(1.0, EbpMedium), p->deepCopy());
         TIntermSymbol *pRecipVar = new TIntermSymbol(CreateTempVariable(mSymbolTable, vec3Type));
 
         body->appendStatement(CreateTempInitDeclarationNode(&pRecipVar->variable(), pRecip));
 
         TIntermSequence args = {
-            p->deepCopy(),
-            new TIntermBinary(EOpVectorTimesScalar, CreateFloatNode(0.5), pRecipVar->deepCopy())};
+            p->deepCopy(), new TIntermBinary(EOpVectorTimesScalar, CreateFloatNode(0.5, EbpMedium),
+                                             pRecipVar->deepCopy())};
         TIntermDeclaration *recipOuterDecl = CreateTempInitDeclarationNode(
             &recipOuter->variable(),
             CreateBuiltInFunctionCallNode("outerProduct", &args, *mSymbolTable, 300));
@@ -566,7 +567,7 @@ class RewriteCubeMapSamplersAs2DArrayTraverser : public TIntermTraverser
         //     layer = 2 + float(y < 0)
         TIntermSequence argsNegY = {isNegY};
         TIntermTyped *yl =
-            new TIntermBinary(EOpAdd, CreateFloatNode(2.0f),
+            new TIntermBinary(EOpAdd, CreateFloatNode(2.0f, EbpMedium),
                               TIntermAggregate::CreateConstructor(*floatType, &argsNegY));
 
         TIntermBlock *calculateYL = new TIntermBlock;
@@ -576,7 +577,7 @@ class RewriteCubeMapSamplersAs2DArrayTraverser : public TIntermTraverser
         //     layer = 4 + float(z < 0)
         TIntermSequence argsNegZ = {isNegZ};
         TIntermTyped *zl =
-            new TIntermBinary(EOpAdd, CreateFloatNode(4.0f),
+            new TIntermBinary(EOpAdd, CreateFloatNode(4.0f, EbpMedium),
                               TIntermAggregate::CreateConstructor(*floatType, &argsNegZ));
 
         TIntermBlock *calculateZL = new TIntermBlock;
@@ -594,8 +595,8 @@ class RewriteCubeMapSamplersAs2DArrayTraverser : public TIntermTraverser
         // of the three transformations to apply.  Previously, ma == |X| and ma == |Y| was used,
         // which is no longer correct for helper invocations.  The value of ma is updated in each
         // case for these invocations.
-        isXMajor = new TIntermBinary(EOpLessThan, l->deepCopy(), CreateFloatNode(1.5f));
-        isYMajor = new TIntermBinary(EOpLessThan, l->deepCopy(), CreateFloatNode(3.5f));
+        isXMajor = new TIntermBinary(EOpLessThan, l->deepCopy(), CreateFloatNode(1.5f, EbpMedium));
+        isYMajor = new TIntermBinary(EOpLessThan, l->deepCopy(), CreateFloatNode(3.5f, EbpMedium));
 
         TIntermSwizzle *dPdxX = new TIntermSwizzle(dPdx->deepCopy(), {0});
         TIntermSwizzle *dPdxY = new TIntermSwizzle(dPdx->deepCopy(), {1});
@@ -657,15 +658,17 @@ class RewriteCubeMapSamplersAs2DArrayTraverser : public TIntermTraverser
 
         // u = (1 + uc/|ma|) / 2
         // v = (1 + vc/|ma|) / 2
-        TIntermTyped *maTimesTwoRecip =
-            new TIntermBinary(EOpAssign, ma->deepCopy(),
-                              new TIntermBinary(EOpDiv, CreateFloatNode(0.5f), ma->deepCopy()));
+        TIntermTyped *maTimesTwoRecip = new TIntermBinary(
+            EOpAssign, ma->deepCopy(),
+            new TIntermBinary(EOpDiv, CreateFloatNode(0.5f, EbpMedium), ma->deepCopy()));
         body->appendStatement(maTimesTwoRecip);
 
-        TIntermTyped *ucDivMa     = new TIntermBinary(EOpMul, uc, ma->deepCopy());
-        TIntermTyped *vcDivMa     = new TIntermBinary(EOpMul, vc, ma->deepCopy());
-        TIntermTyped *uNormalized = new TIntermBinary(EOpAdd, CreateFloatNode(0.5f), ucDivMa);
-        TIntermTyped *vNormalized = new TIntermBinary(EOpAdd, CreateFloatNode(0.5f), vcDivMa);
+        TIntermTyped *ucDivMa = new TIntermBinary(EOpMul, uc, ma->deepCopy());
+        TIntermTyped *vcDivMa = new TIntermBinary(EOpMul, vc, ma->deepCopy());
+        TIntermTyped *uNormalized =
+            new TIntermBinary(EOpAdd, CreateFloatNode(0.5f, EbpMedium), ucDivMa);
+        TIntermTyped *vNormalized =
+            new TIntermBinary(EOpAdd, CreateFloatNode(0.5f, EbpMedium), vcDivMa);
 
         body->appendStatement(new TIntermBinary(EOpAssign, uc->deepCopy(), uNormalized));
         body->appendStatement(new TIntermBinary(EOpAssign, vc->deepCopy(), vNormalized));
@@ -950,18 +953,15 @@ class RewriteCubeMapSamplersAs2DArrayTraverser : public TIntermTraverser
     TIntermFunctionDefinition *mCoordTranslationFunctionDecl;
     TIntermFunctionDefinition *mCoordTranslationFunctionImplicitDecl;
 };
+}  // anonymous namespace
 
-bool RewriteCubeMapSamplersAs2DArrayImpl(TCompiler *compiler,
-                                         TIntermBlock *root,
-                                         TSymbolTable *symbolTable,
-                                         bool isFragmentShader)
+bool RewriteCubeMapSamplersAs2DArray(TCompiler *compiler,
+                                     TIntermBlock *root,
+                                     TSymbolTable *symbolTable,
+                                     bool isFragmentShader)
 {
     RewriteCubeMapSamplersAs2DArrayTraverser traverser(symbolTable, isFragmentShader);
     root->traverse(&traverser);
-    if (!traverser.updateTree(compiler, root))
-    {
-        return false;
-    }
 
     TIntermFunctionDefinition *coordTranslationFunctionDecl =
         traverser.getCoordTranslationFunctionDecl();
@@ -977,24 +977,8 @@ bool RewriteCubeMapSamplersAs2DArrayImpl(TCompiler *compiler,
         root->insertChildNodes(firstFunctionIndex,
                                TIntermSequence({coordTranslationFunctionDeclImplicit}));
     }
-    return true;
-}
-}  // anonymous namespace
 
-bool RewriteCubeMapSamplersAs2DArray(TCompiler *compiler,
-                                     TIntermBlock *root,
-                                     TSymbolTable *symbolTable,
-                                     bool isFragmentShader)
-{
-    // This transformation adds function declarations after the fact and so some validation is
-    // momentarily disabled.
-    bool enableValidateFunctionCall = compiler->disableValidateFunctionCall();
-
-    bool result =
-        RewriteCubeMapSamplersAs2DArrayImpl(compiler, root, symbolTable, isFragmentShader);
-
-    compiler->restoreValidateFunctionCall(enableValidateFunctionCall);
-    return result && compiler->validateAST(root);
+    return traverser.updateTree(compiler, root);
 }
 
 }  // namespace sh

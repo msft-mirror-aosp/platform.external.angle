@@ -767,9 +767,10 @@ angle::Result Context11::popDebugGroup(const gl::Context *context)
 
 angle::Result Context11::syncState(const gl::Context *context,
                                    const gl::State::DirtyBits &dirtyBits,
-                                   const gl::State::DirtyBits &bitMask)
+                                   const gl::State::DirtyBits &bitMask,
+                                   gl::Command command)
 {
-    mRenderer->getStateManager()->syncState(context, dirtyBits);
+    mRenderer->getStateManager()->syncState(context, dirtyBits, command);
     return angle::Result::Continue;
 }
 
@@ -785,6 +786,12 @@ GLint64 Context11::getTimestamp()
 
 angle::Result Context11::onMakeCurrent(const gl::Context *context)
 {
+    // Immediately return if the device has been lost.
+    if (!mRenderer->getDevice())
+    {
+        return angle::Result::Continue;
+    }
+
     return mRenderer->getStateManager()->onMakeCurrent(context);
 }
 

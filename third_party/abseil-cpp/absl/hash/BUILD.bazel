@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load(
     "//absl:copts/configure_copts.bzl",
     "ABSL_DEFAULT_COPTS",
@@ -152,6 +151,7 @@ cc_library(
     deps = [
         "//absl/base:config",
         "//absl/base:endian",
+        "//absl/numeric:bits",
         "//absl/numeric:int128",
     ],
 )

@@ -419,7 +419,7 @@ void Cord::InlineRep::PrependTree(CordRep* tree, MethodIdentifier method) {
 // written to region and the actual size increase will be written to size.
 static inline bool PrepareAppendRegion(CordRep* root, char** region,
                                        size_t* size, size_t max_length) {
-  if (root->IsBtree() && root->refcount.IsOne()) {
+  if (root->IsBtree() && root->refcount.IsMutable()) {
     Span<char> span = root->btree()->GetAppendBuffer(max_length);
     if (!span.empty()) {
       *region = span.data();
@@ -430,11 +430,11 @@ static inline bool PrepareAppendRegion(CordRep* root, char** region,
 
   // Search down the right-hand path for a non-full FLAT node.
   CordRep* dst = root;
-  while (dst->IsConcat() && dst->refcount.IsOne()) {
+  while (dst->IsConcat() && dst->refcount.IsMutable()) {
     dst = dst->concat()->right;
   }
 
-  if (!dst->IsFlat() || !dst->refcount.IsOne()) {
+  if (!dst->IsFlat() || !dst->refcount.IsMutable()) {
     *region = nullptr;
     *size = 0;
     return false;
@@ -649,7 +649,7 @@ Cord& Cord::operator=(absl::string_view src) {
   if (tree != nullptr) {
     CordzUpdateScope scope(contents_.cordz_info(), method);
     if (tree->IsFlat() && tree->flat()->Capacity() >= length &&
-        tree->refcount.IsOne()) {
+        tree->refcount.IsMutable()) {
       // Copy in place if the existing FLAT node is reusable.
       memmove(tree->flat()->Data(), data, length);
       tree->length = length;
@@ -689,13 +689,10 @@ void Cord::InlineRep::AppendArray(absl::string_view src,
       return;
     }
 
-    // Note: we don't concern ourselves if src aliases data stored in the
-    // inlined data of 'this',  as we update the InlineData only at the end.
-    // We are going from an inline size to beyond inline size. Make the new size
-    // either double the inlined size, or the added size + 10%.
-    const size_t size1 = inline_length * 2 + src.size();
-    const size_t size2 = inline_length + src.size() / 10;
-    rep = CordRepFlat::New(std::max<size_t>(size1, size2));
+    // Allocate flat to be a perfect fit on first append exceeding inlined size.
+    // Subsequent growth will use amortized growth until we reach maximum flat
+    // size.
+    rep = CordRepFlat::New(inline_length + src.size());
     appended = std::min(src.size(), rep->flat()->Capacity() - inline_length);
     memcpy(rep->flat()->Data(), data_.as_chars(), inline_length);
     memcpy(rep->flat()->Data() + inline_length, src.data(), appended);
@@ -711,8 +708,8 @@ void Cord::InlineRep::AppendArray(absl::string_view src,
   if (btree_enabled()) {
     // TODO(b/192061034): keep legacy 10% growth rate: consider other rates.
     rep = ForceBtree(rep);
-    const size_t alloc_hint = (std::min)(kMaxFlatLength, rep->length / 10);
-    rep = CordRepBtree::Append(rep->btree(), src, alloc_hint);
+    const size_t min_growth = std::max<size_t>(rep->length / 10, src.size());
+    rep = CordRepBtree::Append(rep->btree(), src, min_growth - src.size());
   } else {
     // Use new block(s) for any remaining bytes that were not handled above.
     // Alloc extra memory only if the right child of the root of the new tree
@@ -822,7 +819,7 @@ void Cord::Prepend(const Cord& src) {
   return Prepend(src_contents);
 }
 
-void Cord::Prepend(absl::string_view src) {
+void Cord::PrependArray(absl::string_view src, MethodIdentifier method) {
   if (src.empty()) return;  // memcpy(_, nullptr, 0) is undefined.
   if (!contents_.is_tree()) {
     size_t cur_size = contents_.inline_size();
@@ -837,7 +834,7 @@ void Cord::Prepend(absl::string_view src) {
     }
   }
   CordRep* rep = NewTree(src.data(), src.size(), 0);
-  contents_.PrependTree(rep, CordzUpdateTracker::kPrependString);
+  contents_.PrependTree(rep, method);
 }
 
 template <typename T, Cord::EnableIfString<T>>
@@ -897,7 +894,7 @@ static CordRep* RemoveSuffixFrom(CordRep* node, size_t n) {
   if (n >= node->length) return nullptr;
   if (n == 0) return CordRep::Ref(node);
   absl::InlinedVector<CordRep*, kInlinedVectorSize> lhs_stack;
-  bool inplace_ok = node->refcount.IsOne();
+  bool inplace_ok = node->refcount.IsMutable();
 
   while (node->IsConcat()) {
     assert(n <= node->length);
@@ -910,7 +907,7 @@ static CordRep* RemoveSuffixFrom(CordRep* node, size_t n) {
       n -= node->concat()->right->length;
       node = node->concat()->left;
     }
-    inplace_ok = inplace_ok && node->refcount.IsOne();
+    inplace_ok = inplace_ok && node->refcount.IsMutable();
   }
   assert(n <= node->length);
 
@@ -971,9 +968,7 @@ void Cord::RemoveSuffix(size_t n) {
     auto constexpr method = CordzUpdateTracker::kRemoveSuffix;
     CordzUpdateScope scope(contents_.cordz_info(), method);
     if (tree->IsBtree()) {
-      CordRep* old = tree;
-      tree = tree->btree()->SubTree(0, tree->length - n);
-      CordRep::Unref(old);
+      tree = CordRepBtree::RemoveSuffix(tree->btree(), n);
     } else {
       CordRep* newrep = RemoveSuffixFrom(tree, n);
       CordRep::Unref(tree);

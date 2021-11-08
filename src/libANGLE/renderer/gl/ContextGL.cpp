@@ -856,7 +856,8 @@ angle::Result ContextGL::popDebugGroup(const gl::Context *context)
 
 angle::Result ContextGL::syncState(const gl::Context *context,
                                    const gl::State::DirtyBits &dirtyBits,
-                                   const gl::State::DirtyBits &bitMask)
+                                   const gl::State::DirtyBits &bitMask,
+                                   gl::Command command)
 {
     return mRenderer->getStateManager()->syncState(context, dirtyBits, bitMask);
 }
@@ -879,6 +880,7 @@ angle::Result ContextGL::onMakeCurrent(const gl::Context *context)
 
 angle::Result ContextGL::onUnMakeCurrent(const gl::Context *context)
 {
+    ANGLE_TRY(flush(context));
     if (getFeaturesGL().unbindFBOOnContextSwitch.enabled)
     {
         mRenderer->getStateManager()->bindFramebuffer(GL_FRAMEBUFFER, 0);

@@ -111,6 +111,7 @@ struct CallCapture
     EntryPoint entryPoint;
     std::string customFunctionName;
     ParamBuffer params;
+    bool isActive = true;
 };
 
 class ReplayContext
@@ -330,6 +331,10 @@ class ResourceTracker final : angle::NonCopyable
 // Used by the CPP replay to filter out unnecessary code.
 using HasResourceTypeMap = angle::PackedEnumBitSet<ResourceIDType>;
 
+// Map of ResourceType to IDs and range of setup calls
+using ResourceIDToSetupCallsMap =
+    PackedEnumMap<ResourceIDType, std::map<GLuint, gl::Range<size_t>>>;
+
 // Map of buffer ID to offset and size used when mapped
 using BufferDataMap = std::map<gl::BufferID, std::pair<GLintptr, GLsizeiptr>>;
 
@@ -456,8 +461,14 @@ class FrameCaptureShared final : angle::NonCopyable
     void setCaptureActive() { mCaptureActive = true; }
     void setCaptureInactive() { mCaptureActive = false; }
     bool isCaptureActive() { return mCaptureActive; }
+    bool usesMidExecutionCapture() { return mCaptureStartFrame > 1; }
 
     gl::ContextID getWindowSurfaceContextID() const { return mWindowSurfaceContextID; }
+
+    void markResourceSetupCallsInactive(std::vector<CallCapture> *setupCalls,
+                                        ResourceIDType type,
+                                        GLuint id,
+                                        gl::Range<size_t> range);
 
     void updateReadBufferSize(size_t readBufferSize)
     {
@@ -500,8 +511,13 @@ class FrameCaptureShared final : angle::NonCopyable
     void captureCompressedTextureData(const gl::Context *context, const CallCapture &call);
 
     void reset();
-    void maybeOverrideEntryPoint(const gl::Context *context, CallCapture &call);
-    void maybeCapturePreCallUpdates(const gl::Context *context, CallCapture &call);
+    void maybeOverrideEntryPoint(const gl::Context *context,
+                                 CallCapture &call,
+                                 std::vector<CallCapture> &newCalls);
+    void maybeCapturePreCallUpdates(const gl::Context *context,
+                                    CallCapture &call,
+                                    std::vector<CallCapture> *shareGroupSetupCalls,
+                                    ResourceIDToSetupCallsMap *resourceIDToSetupCalls);
     void maybeCapturePostCallUpdates(const gl::Context *context);
     void maybeCaptureDrawArraysClientData(const gl::Context *context,
                                           CallCapture &call,
@@ -510,14 +526,21 @@ class FrameCaptureShared final : angle::NonCopyable
                                             CallCapture &call,
                                             size_t instanceCount);
     void updateCopyImageSubData(CallCapture &call);
+    void overrideProgramBinary(const gl::Context *context,
+                               CallCapture &call,
+                               std::vector<CallCapture> &outCalls);
+    void updateResourceCounts(const CallCapture &call);
 
     void runMidExecutionCapture(const gl::Context *context);
+
+    void scanSetupCalls(const gl::Context *context, std::vector<CallCapture> &setupCalls);
 
     static void ReplayCall(gl::Context *context,
                            ReplayContext *replayContext,
                            const CallCapture &call);
 
     std::vector<CallCapture> mFrameCalls;
+    gl::ContextID mLastContextId;
 
     // We save one large buffer of binary data for the whole CPP replay.
     // This simplifies a lot of file management.
@@ -538,7 +561,12 @@ class FrameCaptureShared final : angle::NonCopyable
     gl::AttribArray<size_t> mClientArraySizes;
     size_t mReadBufferSize;
     HasResourceTypeMap mHasResourceType;
+    ResourceIDToSetupCallsMap mResourceIDToSetupCalls;
     BufferDataMap mBufferDataMap;
+    bool mValidateSerializedState = false;
+    std::string mValidationExpression;
+    bool mTrimEnabled = true;
+    PackedEnumMap<ResourceIDType, uint32_t> mMaxAccessedResourceIDs;
 
     ResourceTracker mResourceTracker;
 
@@ -555,10 +583,11 @@ class FrameCaptureShared final : angle::NonCopyable
     ProgramSourceMap mCachedProgramSources;
 
     // Cache a shadow copy of texture level data
-    TextureLevels mCachedTextureLevels;
     TextureLevelDataMap mCachedTextureLevelData;
 
     gl::ContextID mWindowSurfaceContextID;
+
+    std::vector<CallCapture> mShareGroupSetupCalls;
 };
 
 template <typename CaptureFuncT, typename... ArgsT>
@@ -610,8 +639,6 @@ void ParamBuffer::addEnumParam(const char *paramName,
     capture.enumGroup = enumGroup;
     mParamCaptures.emplace_back(std::move(capture));
 }
-
-std::ostream &operator<<(std::ostream &os, const ParamCapture &capture);
 
 // Pointer capture helpers.
 void CaptureMemory(const void *source, size_t size, ParamCapture *paramCapture);
@@ -674,9 +701,19 @@ void WriteParamValueReplay<ParamType::TGLboolean>(std::ostream &os,
                                                   GLboolean value);
 
 template <>
+void WriteParamValueReplay<ParamType::TGLbooleanPointer>(std::ostream &os,
+                                                         const CallCapture &call,
+                                                         GLboolean *value);
+
+template <>
 void WriteParamValueReplay<ParamType::TvoidConstPointer>(std::ostream &os,
                                                          const CallCapture &call,
                                                          const void *value);
+
+template <>
+void WriteParamValueReplay<ParamType::TvoidPointer>(std::ostream &os,
+                                                    const CallCapture &call,
+                                                    void *value);
 
 template <>
 void WriteParamValueReplay<ParamType::TGLfloatConstPointer>(std::ostream &os,
@@ -787,6 +824,21 @@ template <>
 void WriteParamValueReplay<ParamType::TGLubyte>(std::ostream &os,
                                                 const CallCapture &call,
                                                 GLubyte value);
+
+template <>
+void WriteParamValueReplay<ParamType::TEGLContext>(std::ostream &os,
+                                                   const CallCapture &call,
+                                                   EGLContext value);
+
+template <>
+void WriteParamValueReplay<ParamType::TEGLDisplay>(std::ostream &os,
+                                                   const CallCapture &call,
+                                                   EGLContext value);
+
+template <>
+void WriteParamValueReplay<ParamType::TEGLSurface>(std::ostream &os,
+                                                   const CallCapture &call,
+                                                   EGLContext value);
 
 template <>
 void WriteParamValueReplay<ParamType::TEGLDEBUGPROCKHR>(std::ostream &os,

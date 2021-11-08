@@ -99,6 +99,12 @@ TType *GetFieldType(const TType &indexedType)
         ASSERT(indexedType.isVector());
         fieldType->toComponentType();
     }
+    // Default precision to highp if not specified.  For example in |vec3(0)[i], i < 0|, there is no
+    // precision assigned to vec3(0).
+    if (fieldType->getPrecision() == EbpUndefined)
+    {
+        fieldType->setPrecision(EbpHigh);
+    }
     return fieldType;
 }
 
@@ -535,6 +541,10 @@ bool RemoveDynamicIndexingIf(DynamicIndexingNodeMatcher &&matcher,
                              TSymbolTable *symbolTable,
                              PerformanceDiagnostics *perfDiagnostics)
 {
+    // This transformation adds function declarations after the fact and so some validation is
+    // momentarily disabled.
+    bool enableValidateFunctionCall = compiler->disableValidateFunctionCall();
+
     RemoveDynamicIndexingTraverser traverser(std::move(matcher), symbolTable, perfDiagnostics);
     do
     {
@@ -551,6 +561,8 @@ bool RemoveDynamicIndexingIf(DynamicIndexingNodeMatcher &&matcher,
     // TIntermLValueTrackingTraverser, and creates intricacies that are not easily apparent from a
     // superficial reading of the code.
     traverser.insertHelperDefinitions(root);
+
+    compiler->restoreValidateFunctionCall(enableValidateFunctionCall);
     return compiler->validateAST(root);
 }
 

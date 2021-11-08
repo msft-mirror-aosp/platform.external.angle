@@ -469,7 +469,8 @@ void RunTextureFormatCompatChromiumTest(bool useMemoryObjectFlags,
                                         VkImageCreateFlags createFlags,
                                         VkImageUsageFlags usageFlags,
                                         bool isSwiftshader,
-                                        bool enableDebugLayers)
+                                        bool enableDebugLayers,
+                                        bool isES3)
 {
     ASSERT(EnsureGLExtensionEnabled(Traits::MemoryObjectExtension()));
 
@@ -478,7 +479,9 @@ void RunTextureFormatCompatChromiumTest(bool useMemoryObjectFlags,
     for (const ImageFormatPair &format : kChromeFormats)
     {
         // https://crbug.com/angleproject/5046
-        if (format.vkFormat == VK_FORMAT_R4G4B4A4_UNORM_PACK16 && IsIntel())
+        if ((format.vkFormat == VK_FORMAT_R4G4B4A4_UNORM_PACK16 ||
+             format.internalFormat == GL_RGB8_OES) &&
+            IsIntel())
         {
             continue;
         }
@@ -490,6 +493,12 @@ void RunTextureFormatCompatChromiumTest(bool useMemoryObjectFlags,
         }
 
         if (format.requiredExtension && !IsGLExtensionEnabled(format.requiredExtension))
+        {
+            continue;
+        }
+
+        if (format.internalFormat == GL_RGB10_A2_EXT && !isES3 &&
+            !IsGLExtensionEnabled("GL_EXT_texture_type_2_10_10_10_REV"))
         {
             continue;
         }
@@ -541,9 +550,9 @@ void RunTextureFormatCompatChromiumTest(bool useMemoryObjectFlags,
 TEST_P(VulkanExternalImageTest, TextureFormatCompatChromiumFd)
 {
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_EXT_memory_object_fd"));
-    RunTextureFormatCompatChromiumTest<OpaqueFdTraits>(false, kDefaultImageCreateFlags,
-                                                       kDefaultImageUsageFlags, isSwiftshader(),
-                                                       enableDebugLayers());
+    RunTextureFormatCompatChromiumTest<OpaqueFdTraits>(
+        false, kDefaultImageCreateFlags, kDefaultImageUsageFlags, isSwiftshader(),
+        enableDebugLayers(), getClientMajorVersion() >= 3);
 }
 
 // Test all format combinations used by Chrome import successfully (opaque fd), using
@@ -552,9 +561,9 @@ TEST_P(VulkanExternalImageTest, TextureFormatCompatChromiumWithFlagsFd)
 {
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_EXT_memory_object_fd"));
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_memory_object_flags"));
-    RunTextureFormatCompatChromiumTest<OpaqueFdTraits>(true, kDefaultImageCreateFlags,
-                                                       kDefaultImageUsageFlags, isSwiftshader(),
-                                                       enableDebugLayers());
+    RunTextureFormatCompatChromiumTest<OpaqueFdTraits>(
+        true, kDefaultImageCreateFlags, kDefaultImageUsageFlags, isSwiftshader(),
+        enableDebugLayers(), getClientMajorVersion() >= 3);
 }
 
 // Test all format combinations used by Chrome import successfully (opaque fd), without STORAGE
@@ -563,9 +572,9 @@ TEST_P(VulkanExternalImageTest, TextureFormatCompatChromiumNoStorageFd)
 {
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_EXT_memory_object_fd"));
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_memory_object_flags"));
-    RunTextureFormatCompatChromiumTest<OpaqueFdTraits>(true, kDefaultImageCreateFlags,
-                                                       kNoStorageImageUsageFlags, isSwiftshader(),
-                                                       enableDebugLayers());
+    RunTextureFormatCompatChromiumTest<OpaqueFdTraits>(
+        true, kDefaultImageCreateFlags, kNoStorageImageUsageFlags, isSwiftshader(),
+        enableDebugLayers(), getClientMajorVersion() >= 3);
 }
 
 // Test all format combinations used by Chrome import successfully (opaque fd), without STORAGE
@@ -578,18 +587,18 @@ TEST_P(VulkanExternalImageTest, TextureFormatCompatChromiumMutableNoStorageFd)
     // http://anglebug.com/5682
     ANGLE_SKIP_TEST_IF(IsLinux() && IsAMD() && IsVulkan());
 
-    RunTextureFormatCompatChromiumTest<OpaqueFdTraits>(true, kMutableImageCreateFlags,
-                                                       kNoStorageImageUsageFlags, isSwiftshader(),
-                                                       enableDebugLayers());
+    RunTextureFormatCompatChromiumTest<OpaqueFdTraits>(
+        true, kMutableImageCreateFlags, kNoStorageImageUsageFlags, isSwiftshader(),
+        enableDebugLayers(), getClientMajorVersion() >= 3);
 }
 
 // Test all format combinations used by Chrome import successfully (fuchsia).
 TEST_P(VulkanExternalImageTest, TextureFormatCompatChromiumZirconVmo)
 {
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_memory_object_fuchsia"));
-    RunTextureFormatCompatChromiumTest<FuchsiaTraits>(false, kDefaultImageCreateFlags,
-                                                      kDefaultImageUsageFlags, isSwiftshader(),
-                                                      enableDebugLayers());
+    RunTextureFormatCompatChromiumTest<FuchsiaTraits>(
+        false, kDefaultImageCreateFlags, kDefaultImageUsageFlags, isSwiftshader(),
+        enableDebugLayers(), getClientMajorVersion() >= 3);
 }
 
 // Test all format combinations used by Chrome import successfully (fuchsia), using
@@ -598,9 +607,9 @@ TEST_P(VulkanExternalImageTest, TextureFormatCompatChromiumWithFlagsZirconVmo)
 {
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_memory_object_fuchsia"));
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_memory_object_flags"));
-    RunTextureFormatCompatChromiumTest<FuchsiaTraits>(true, kDefaultImageCreateFlags,
-                                                      kDefaultImageUsageFlags, isSwiftshader(),
-                                                      enableDebugLayers());
+    RunTextureFormatCompatChromiumTest<FuchsiaTraits>(
+        true, kDefaultImageCreateFlags, kDefaultImageUsageFlags, isSwiftshader(),
+        enableDebugLayers(), getClientMajorVersion() >= 3);
 }
 
 // Test all format combinations used by Chrome import successfully (fuchsia), without STORAGE usage.
@@ -608,9 +617,9 @@ TEST_P(VulkanExternalImageTest, TextureFormatCompatChromiumNoStorageZirconVmo)
 {
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_memory_object_fuchsia"));
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_memory_object_flags"));
-    RunTextureFormatCompatChromiumTest<FuchsiaTraits>(true, kDefaultImageCreateFlags,
-                                                      kNoStorageImageUsageFlags, isSwiftshader(),
-                                                      enableDebugLayers());
+    RunTextureFormatCompatChromiumTest<FuchsiaTraits>(
+        true, kDefaultImageCreateFlags, kNoStorageImageUsageFlags, isSwiftshader(),
+        enableDebugLayers(), getClientMajorVersion() >= 3);
 }
 
 // Test all format combinations used by Chrome import successfully (fuchsia), without STORAGE usage
@@ -619,9 +628,9 @@ TEST_P(VulkanExternalImageTest, TextureFormatCompatChromiumMutableNoStorageZirco
 {
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_memory_object_fuchsia"));
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_memory_object_flags"));
-    RunTextureFormatCompatChromiumTest<FuchsiaTraits>(true, kMutableImageCreateFlags,
-                                                      kNoStorageImageUsageFlags, isSwiftshader(),
-                                                      enableDebugLayers());
+    RunTextureFormatCompatChromiumTest<FuchsiaTraits>(
+        true, kMutableImageCreateFlags, kNoStorageImageUsageFlags, isSwiftshader(),
+        enableDebugLayers(), getClientMajorVersion() >= 3);
 }
 
 template <typename Traits>
@@ -738,7 +747,6 @@ void RunShouldClearWithSemaphoresTest(bool useMemoryObjectFlags,
                                             vkReleaseSemaphore);
         uint8_t pixels[4];
         VkOffset3D offset = {};
-        VkExtent3D extent = {1, 1, 1};
         helper.readPixels(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, format, offset, extent,
                           pixels, sizeof(pixels));
 
@@ -976,7 +984,6 @@ void VulkanExternalImageTest::runShouldDrawTest(bool isSwiftshader, bool enableD
 
         uint8_t pixels[4];
         VkOffset3D offset = {};
-        VkExtent3D extent = {1, 1, 1};
         helper.readPixels(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, format, offset, extent,
                           pixels, sizeof(pixels));
 
@@ -1147,7 +1154,6 @@ void VulkanExternalImageTest::runWaitSemaphoresRetainsContentTest(bool isSwiftsh
 
         uint8_t pixels[4];
         VkOffset3D offset = {};
-        VkExtent3D extent = {1, 1, 1};
         helper.readPixels(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, format, offset, extent,
                           pixels, sizeof(pixels));
 
