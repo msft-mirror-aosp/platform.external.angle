@@ -636,6 +636,9 @@ struct DisplayExtensions
 
     // EGL_ANGLE_context_virtualization
     bool contextVirtualizationANGLE = false;
+
+    // EGL_KHR_lock_surface3
+    bool lockSurface3KHR = false;
 };
 
 struct DeviceExtensions
@@ -734,6 +737,9 @@ struct ClientExtensions
 
     // EGL_EXT_device_query
     bool deviceQueryEXT = false;
+
+    // EGL_ANGLE_display_power_preference
+    bool displayPowerPreferenceANGLE = false;
 };
 
 }  // namespace egl
