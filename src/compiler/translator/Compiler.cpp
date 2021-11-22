@@ -937,7 +937,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     }
 
     // Built-in function emulation needs to happen after validateLimitations pass.
-    // TODO(jmadill): Remove global pool allocator.
     GetGlobalPoolAllocator()->lock();
     initBuiltInFunctionEmulator(&mBuiltInFunctionEmulator, compileOptions);
     GetGlobalPoolAllocator()->unlock();
@@ -1608,7 +1607,13 @@ bool TCompiler::initializeOutputVariables(TIntermBlock *root)
         ASSERT(mShaderType == GL_FRAGMENT_SHADER);
         for (const sh::ShaderVariable &var : mOutputVariables)
         {
-            list.push_back(var);
+            // in-out variables represent the context of the framebuffer
+            // when the draw call starts, so they have to be considered
+            // as already initialized.
+            if (!var.isFragmentInOut)
+            {
+                list.push_back(var);
+            }
         }
     }
     return InitializeVariables(this, root, list, &mSymbolTable, mShaderVersion, mExtensionBehavior,

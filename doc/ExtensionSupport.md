@@ -88,6 +88,7 @@ using data from registry_xml.py and gl.xml.
 | [GL_EXT_map_buffer_range](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_map_buffer_range.txt) | &#10004; | &#10004; | &#10004; | &#10004; | &#10004; | &#10004; |
 | [GL_EXT_memory_object](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_memory_object.txt) | &#10004; | &#10004; | &#10004; | &#10004; | &#10004; | &#10004; |
 | [GL_EXT_memory_object_fd](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_external_objects_fd.txt) | &#10060; | &#10060; | &#10004; | &#10004; | &#10060; | &#10004; |
+| [GL_EXT_multi_draw_indirect](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_multi_draw_indirect.txt) | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; |
 | [GL_EXT_multisample_compatibility](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_multisample_compatibility.txt) | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; |
 | [GL_EXT_multisampled_render_to_texture](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_multisampled_render_to_texture.txt) | &#10004; | &#10060; | &#10004; | &#10004; | &#10004; | &#10004; |
 | [GL_EXT_multisampled_render_to_texture2](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_multisampled_render_to_texture2.txt) | &#10004; | &#10060; | &#10004; | &#10004; | &#10004; | &#10004; |
@@ -208,6 +209,7 @@ using data from registry_xml.py and gl.xml.
 | [GL_ANGLE_relaxed_vertex_attribute_type](https://chromium.googlesource.com/angle/angle/+/refs/heads/main/extensions/ANGLE_relaxed_vertex_attribute_type.txt) | &#10004; | &#10004; | &#10004; | &#10004; | &#10004; | &#10004; |
 | [GL_ANGLE_request_extension](https://chromium.googlesource.com/angle/angle/+/refs/heads/main/extensions/ANGLE_request_extension.txt) | &#10004; | &#10004; | &#10004; | &#10004; | &#10004; | &#10004; |
 | [GL_ANGLE_robust_client_memory](https://chromium.googlesource.com/angle/angle/+/refs/heads/main/extensions/ANGLE_robust_client_memory.txt) | &#10004; | &#10004; | &#10004; | &#10004; | &#10004; | &#10004; |
+| [GL_ANGLE_robust_fragment_shader_output](https://chromium.googlesource.com/angle/angle/+/refs/heads/main/extensions/ANGLE_robust_fragment_shader_output.txt) | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; |
 | [GL_ANGLE_robust_resource_initialization](https://chromium.googlesource.com/angle/angle/+/refs/heads/main/extensions/ANGLE_robust_resource_initialization.txt) | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; |
 | [GL_ANGLE_semaphore_fuchsia](https://chromium.googlesource.com/angle/angle/+/refs/heads/main/extensions/ANGLE_semaphore_fuchsia.txt) | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; |
 | [GL_CHROMIUM_sync_query](https://chromium.googlesource.com/angle/angle/+/refs/heads/main/extensions/CHROMIUM_sync_query.txt) | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; | &#10060; |

@@ -176,6 +176,7 @@ const char *ResultTypeToString(TestResultType type)
         case TestResultType::Timeout:
             return "TIMEOUT";
         case TestResultType::Unknown:
+        default:
             return "UNKNOWN";
     }
 }
@@ -1037,7 +1038,8 @@ TestSuite::TestSuite(int *argc, char **argv)
       mBatchId(-1),
       mFlakyRetries(0),
       mMaxFailures(kDefaultMaxFailures),
-      mFailureCount(0)
+      mFailureCount(0),
+      mModifiedPreferredDevice(false)
 {
     ASSERT(mInstance == nullptr);
     mInstance = this;
@@ -1125,6 +1127,34 @@ TestSuite::TestSuite(int *argc, char **argv)
         {
             std::stringstream shardCountStream(envTotalShards);
             shardCountStream >> mShardCount;
+        }
+    }
+
+    // The test harness reads the active GPU from SystemInfo and uses that for test expectations.
+    // However, some ANGLE backends don't have a concept of an "active" GPU, and instead use power
+    // preference to select GPU. We can use the environment variable ANGLE_PREFERRED_DEVICE to
+    // ensure ANGLE's selected GPU matches the GPU expected for this test suite.
+    const GPUTestConfig testConfig      = GPUTestConfig();
+    const char kPreferredDeviceEnvVar[] = "ANGLE_PREFERRED_DEVICE";
+    if (GetEnvironmentVar(kPreferredDeviceEnvVar).empty())
+    {
+        mModifiedPreferredDevice                        = true;
+        const GPUTestConfig::ConditionArray &conditions = testConfig.getConditions();
+        if (conditions[GPUTestConfig::kConditionAMD])
+        {
+            SetEnvironmentVar(kPreferredDeviceEnvVar, "amd");
+        }
+        else if (conditions[GPUTestConfig::kConditionNVIDIA])
+        {
+            SetEnvironmentVar(kPreferredDeviceEnvVar, "nvidia");
+        }
+        else if (conditions[GPUTestConfig::kConditionIntel])
+        {
+            SetEnvironmentVar(kPreferredDeviceEnvVar, "intel");
+        }
+        else if (conditions[GPUTestConfig::kConditionApple])
+        {
+            SetEnvironmentVar(kPreferredDeviceEnvVar, "apple");
         }
     }
 
@@ -1282,6 +1312,12 @@ TestSuite::TestSuite(int *argc, char **argv)
 
 TestSuite::~TestSuite()
 {
+    const char kPreferredDeviceEnvVar[] = "ANGLE_PREFERRED_DEVICE";
+    if (mModifiedPreferredDevice && !angle::GetEnvironmentVar(kPreferredDeviceEnvVar).empty())
+    {
+        angle::UnsetEnvironmentVar(kPreferredDeviceEnvVar);
+    }
+
     if (mWatchdogThread.joinable())
     {
         mWatchdogThread.detach();
@@ -1600,7 +1636,7 @@ bool TestSuite::finishProcess(ProcessInfo *processInfo)
         // Note: we should be aware that this cleanup won't happen if the harness itself
         // crashes. If this situation comes up in the future we should add crash cleanup to the
         // harness.
-        if (!angle::DeleteFile(tempFile.c_str()))
+        if (!angle::DeleteSystemFile(tempFile.c_str()))
         {
             std::cerr << "Warning: Error cleaning up temp file: " << tempFile << "\n";
         }
@@ -2001,6 +2037,7 @@ const char *TestResultTypeToString(TestResultType type)
         case TestResultType::Timeout:
             return "Timeout";
         case TestResultType::Unknown:
+        default:
             return "Unknown";
     }
 }

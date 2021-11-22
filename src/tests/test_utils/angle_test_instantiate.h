@@ -53,24 +53,7 @@ bool IsQualcomm();
 bool IsSwiftshaderDevice();
 bool IsIntelUHD630Mobile();
 
-// Compiler configs.
-inline bool IsASan()
-{
-#if defined(ANGLE_WITH_ASAN)
-    return true;
-#else
-    return false;
-#endif  // defined(ANGLE_WITH_ASAN)
-}
-
-inline bool IsTSan()
-{
-#if defined(THREAD_SANITIZER)
-    return true;
-#else
-    return false;
-#endif  // defined(THREAD_SANITIZER)
-}
+bool Is64Bit();
 
 bool IsPlatformAvailable(const PlatformParameters &param);
 
@@ -142,13 +125,11 @@ struct CombinedPrintToStringParamName
 
 #define ANGLE_ALL_TEST_PLATFORMS_ES2                                                               \
     ES2_D3D9(), ES2_D3D11(), ES2_OPENGL(), ES2_OPENGLES(), ES2_VULKAN(), ES2_VULKAN_SWIFTSHADER(), \
-        ES2_METAL(), WithAsyncCommandQueueFeatureVulkan(ES2_VULKAN()),                             \
-        WithDirectMetalGeneration(ES2_METAL())
+        ES2_METAL(), WithAsyncCommandQueueFeatureVulkan(ES2_VULKAN())
 
 #define ANGLE_ALL_TEST_PLATFORMS_ES3                                                   \
     ES3_D3D11(), ES3_OPENGL(), ES3_OPENGLES(), ES3_VULKAN(), ES3_VULKAN_SWIFTSHADER(), \
-        ES3_METAL(), WithAsyncCommandQueueFeatureVulkan(ES3_VULKAN()),                 \
-        WithDirectMetalGeneration(ES3_METAL())
+        ES3_METAL(), WithAsyncCommandQueueFeatureVulkan(ES3_VULKAN())
 
 #define ANGLE_ALL_TEST_PLATFORMS_ES31                                                       \
     ES31_D3D11(), ES31_OPENGL(), ES31_OPENGLES(), ES31_VULKAN(), ES31_VULKAN_SWIFTSHADER(), \

@@ -94,16 +94,30 @@ struct TypeIdentity {
 template <typename T>
 using NoTypeDeduction = typename TypeIdentity<T>::type;
 
+template <typename A, bool IsTriviallyDestructible =
+                          absl::is_trivially_destructible<ValueType<A>>::value>
+struct DestroyAdapter;
+
 template <typename A>
-void DestroyElements(NoTypeDeduction<A>& allocator, Pointer<A> destroy_first,
-                     SizeType<A> destroy_size) {
-  if (destroy_first != nullptr) {
+struct DestroyAdapter<A, /* IsTriviallyDestructible */ false> {
+  static void DestroyElements(A& allocator, Pointer<A> destroy_first,
+                              SizeType<A> destroy_size) {
     for (SizeType<A> i = destroy_size; i != 0;) {
       --i;
       AllocatorTraits<A>::destroy(allocator, destroy_first + i);
     }
   }
-}
+};
+
+template <typename A>
+struct DestroyAdapter<A, /* IsTriviallyDestructible */ true> {
+  static void DestroyElements(A& allocator, Pointer<A> destroy_first,
+                              SizeType<A> destroy_size) {
+    static_cast<void>(allocator);
+    static_cast<void>(destroy_first);
+    static_cast<void>(destroy_size);
+  }
+};
 
 template <typename A>
 struct Allocation {
@@ -126,23 +140,6 @@ struct MallocAdapter {
   }
 };
 
-// If kUseMemcpy is true, memcpy(dst, src, n); else do nothing.
-// Useful to avoid compiler warnings when memcpy() is used for T values
-// that are not trivially copyable in non-reachable code.
-template <bool kUseMemcpy>
-inline void MemcpyIfAllowed(void* dst, const void* src, size_t n);
-
-// memcpy when allowed.
-template <>
-inline void MemcpyIfAllowed<true>(void* dst, const void* src, size_t n) {
-  memcpy(dst, src, n);
-}
-
-// Do nothing for types that are not memcpy-able. This function is only
-// called from non-reachable branches.
-template <>
-inline void MemcpyIfAllowed<false>(void*, const void*, size_t) {}
-
 template <typename A, typename ValueAdapter>
 void ConstructElements(NoTypeDeduction<A>& allocator,
                        Pointer<A> construct_first, ValueAdapter& values,
@@ -150,7 +147,7 @@ void ConstructElements(NoTypeDeduction<A>& allocator,
   for (SizeType<A> i = 0; i < construct_size; ++i) {
     ABSL_INTERNAL_TRY { values.ConstructNext(allocator, construct_first + i); }
     ABSL_INTERNAL_CATCH_ANY {
-      DestroyElements<A>(allocator, construct_first, i);
+      DestroyAdapter<A>::DestroyElements(allocator, construct_first, i);
       ABSL_INTERNAL_RETHROW;
     }
   }
@@ -270,7 +267,7 @@ class ConstructionTransaction {
 
   ~ConstructionTransaction() {
     if (DidConstruct()) {
-      DestroyElements<A>(GetAllocator(), GetData(), GetSize());
+      DestroyAdapter<A>::DestroyElements(GetAllocator(), GetData(), GetSize());
     }
   }
 
@@ -288,7 +285,7 @@ class ConstructionTransaction {
     GetData() = data;
     GetSize() = size;
   }
-  void Commit() {
+  void Commit() && {
     GetData() = nullptr;
     GetSize() = 0;
   }
@@ -433,7 +430,7 @@ class Storage {
   }
 
   void SubtractSize(SizeType<A> count) {
-    assert(count <= GetSize());
+    ABSL_HARDENING_ASSERT(count <= GetSize());
 
     GetSizeAndIsAllocated() -= count << static_cast<SizeType<A>>(1);
   }
@@ -444,7 +441,8 @@ class Storage {
   }
 
   void MemcpyFrom(const Storage& other_storage) {
-    assert(IsMemcpyOk<A>::value || other_storage.GetIsAllocated());
+    ABSL_HARDENING_ASSERT(IsMemcpyOk<A>::value ||
+                          other_storage.GetIsAllocated());
 
     GetSizeAndIsAllocated() = other_storage.GetSizeAndIsAllocated();
     data_ = other_storage.data_;
@@ -486,14 +484,14 @@ class Storage {
 template <typename T, size_t N, typename A>
 void Storage<T, N, A>::DestroyContents() {
   Pointer<A> data = GetIsAllocated() ? GetAllocatedData() : GetInlinedData();
-  DestroyElements<A>(GetAllocator(), data, GetSize());
+  DestroyAdapter<A>::DestroyElements(GetAllocator(), data, GetSize());
   DeallocateIfAllocated();
 }
 
 template <typename T, size_t N, typename A>
 void Storage<T, N, A>::InitFrom(const Storage& other) {
   const SizeType<A> n = other.GetSize();
-  assert(n > 0);  // Empty sources handled handled in caller.
+  ABSL_HARDENING_ASSERT(n > 0);  // Empty sources handled handled in caller.
   ConstPointer<A> src;
   Pointer<A> dst;
   if (!other.GetIsAllocated()) {
@@ -511,7 +509,8 @@ void Storage<T, N, A>::InitFrom(const Storage& other) {
     src = other.GetAllocatedData();
   }
   if (IsMemcpyOk<A>::value) {
-    MemcpyIfAllowed<IsMemcpyOk<A>::value>(dst, src, sizeof(dst[0]) * n);
+    std::memcpy(reinterpret_cast<char*>(dst),
+                reinterpret_cast<const char*>(src), n * sizeof(ValueType<A>));
   } else {
     auto values = IteratorValueAdapter<A, ConstPointer<A>>(src);
     ConstructElements<A>(GetAllocator(), dst, values, n);
@@ -524,8 +523,8 @@ template <typename ValueAdapter>
 auto Storage<T, N, A>::Initialize(ValueAdapter values, SizeType<A> new_size)
     -> void {
   // Only callable from constructors!
-  assert(!GetIsAllocated());
-  assert(GetSize() == 0);
+  ABSL_HARDENING_ASSERT(!GetIsAllocated());
+  ABSL_HARDENING_ASSERT(GetSize() == 0);
 
   Pointer<A> construct_data;
   if (new_size > GetInlinedCapacity()) {
@@ -582,7 +581,8 @@ auto Storage<T, N, A>::Assign(ValueAdapter values, SizeType<A> new_size)
   ConstructElements<A>(GetAllocator(), construct_loop.data(), values,
                        construct_loop.size());
 
-  DestroyElements<A>(GetAllocator(), destroy_loop.data(), destroy_loop.size());
+  DestroyAdapter<A>::DestroyElements(GetAllocator(), destroy_loop.data(),
+                                     destroy_loop.size());
 
   if (allocation_tx.DidAllocate()) {
     DeallocateIfAllocated();
@@ -603,7 +603,7 @@ auto Storage<T, N, A>::Resize(ValueAdapter values, SizeType<A> new_size)
   A& alloc = GetAllocator();
   if (new_size <= size) {
     // Destroy extra old elements.
-    DestroyElements<A>(alloc, base + new_size, size - new_size);
+    DestroyAdapter<A>::DestroyElements(alloc, base + new_size, size - new_size);
   } else if (new_size <= storage_view.capacity) {
     // Construct new elements in place.
     ConstructElements<A>(alloc, base + size, values, new_size - size);
@@ -627,8 +627,8 @@ auto Storage<T, N, A>::Resize(ValueAdapter values, SizeType<A> new_size)
         (MoveIterator<A>(base)));
     ConstructElements<A>(alloc, new_data, move_values, size);
 
-    DestroyElements<A>(alloc, base, size);
-    construction_tx.Commit();
+    DestroyAdapter<A>::DestroyElements(alloc, base, size);
+    std::move(construction_tx).Commit();
     DeallocateIfAllocated();
     SetAllocation(std::move(allocation_tx).Release());
     SetIsAllocated();
@@ -666,10 +666,11 @@ auto Storage<T, N, A>::Insert(ConstIterator<A> pos, ValueAdapter values,
     ConstructElements<A>(GetAllocator(), new_data + insert_end_index,
                          move_values, storage_view.size - insert_index);
 
-    DestroyElements<A>(GetAllocator(), storage_view.data, storage_view.size);
+    DestroyAdapter<A>::DestroyElements(GetAllocator(), storage_view.data,
+                                       storage_view.size);
 
-    construction_tx.Commit();
-    move_construction_tx.Commit();
+    std::move(construction_tx).Commit();
+    std::move(move_construction_tx).Commit();
     DeallocateIfAllocated();
     SetAllocation(std::move(allocation_tx).Release());
 
@@ -721,7 +722,7 @@ auto Storage<T, N, A>::Insert(ConstIterator<A> pos, ValueAdapter values,
     ConstructElements<A>(GetAllocator(), insert_construction.data(), values,
                          insert_construction.size());
 
-    move_construction_tx.Commit();
+    std::move(move_construction_tx).Commit();
 
     AddSize(insert_count);
     return Iterator<A>(storage_view.data + insert_index);
@@ -769,7 +770,8 @@ auto Storage<T, N, A>::EmplaceBackSlow(Args&&... args) -> Reference<A> {
     ABSL_INTERNAL_RETHROW;
   }
   // Destroy elements in old backing store.
-  DestroyElements<A>(GetAllocator(), storage_view.data, storage_view.size);
+  DestroyAdapter<A>::DestroyElements(GetAllocator(), storage_view.data,
+                                     storage_view.size);
 
   DeallocateIfAllocated();
   SetAllocation(std::move(allocation_tx).Release());
@@ -794,9 +796,9 @@ auto Storage<T, N, A>::Erase(ConstIterator<A> from, ConstIterator<A> to)
   AssignElements<A>(storage_view.data + erase_index, move_values,
                     storage_view.size - erase_end_index);
 
-  DestroyElements<A>(GetAllocator(),
-                     storage_view.data + (storage_view.size - erase_size),
-                     erase_size);
+  DestroyAdapter<A>::DestroyElements(
+      GetAllocator(), storage_view.data + (storage_view.size - erase_size),
+      erase_size);
 
   SubtractSize(erase_size);
   return Iterator<A>(storage_view.data + erase_index);
@@ -820,7 +822,8 @@ auto Storage<T, N, A>::Reserve(SizeType<A> requested_capacity) -> void {
   ConstructElements<A>(GetAllocator(), new_data, move_values,
                        storage_view.size);
 
-  DestroyElements<A>(GetAllocator(), storage_view.data, storage_view.size);
+  DestroyAdapter<A>::DestroyElements(GetAllocator(), storage_view.data,
+                                     storage_view.size);
 
   DeallocateIfAllocated();
   SetAllocation(std::move(allocation_tx).Release());
@@ -830,7 +833,7 @@ auto Storage<T, N, A>::Reserve(SizeType<A> requested_capacity) -> void {
 template <typename T, size_t N, typename A>
 auto Storage<T, N, A>::ShrinkToFit() -> void {
   // May only be called on allocated instances!
-  assert(GetIsAllocated());
+  ABSL_HARDENING_ASSERT(GetIsAllocated());
 
   StorageView<A> storage_view{GetAllocatedData(), GetSize(),
                               GetAllocatedCapacity()};
@@ -863,7 +866,8 @@ auto Storage<T, N, A>::ShrinkToFit() -> void {
     ABSL_INTERNAL_RETHROW;
   }
 
-  DestroyElements<A>(GetAllocator(), storage_view.data, storage_view.size);
+  DestroyAdapter<A>::DestroyElements(GetAllocator(), storage_view.data,
+                                     storage_view.size);
 
   MallocAdapter<A>::Deallocate(GetAllocator(), storage_view.data,
                                storage_view.capacity);
@@ -878,7 +882,7 @@ auto Storage<T, N, A>::ShrinkToFit() -> void {
 template <typename T, size_t N, typename A>
 auto Storage<T, N, A>::Swap(Storage* other_storage_ptr) -> void {
   using std::swap;
-  assert(this != other_storage_ptr);
+  ABSL_HARDENING_ASSERT(this != other_storage_ptr);
 
   if (GetIsAllocated() && other_storage_ptr->GetIsAllocated()) {
     swap(data_.allocated, other_storage_ptr->data_.allocated);
@@ -899,9 +903,10 @@ auto Storage<T, N, A>::Swap(Storage* other_storage_ptr) -> void {
                          move_values,
                          large_ptr->GetSize() - small_ptr->GetSize());
 
-    DestroyElements<A>(large_ptr->GetAllocator(),
-                       large_ptr->GetInlinedData() + small_ptr->GetSize(),
-                       large_ptr->GetSize() - small_ptr->GetSize());
+    DestroyAdapter<A>::DestroyElements(
+        large_ptr->GetAllocator(),
+        large_ptr->GetInlinedData() + small_ptr->GetSize(),
+        large_ptr->GetSize() - small_ptr->GetSize());
   } else {
     Storage* allocated_ptr = this;
     Storage* inlined_ptr = other_storage_ptr;
@@ -925,8 +930,9 @@ auto Storage<T, N, A>::Swap(Storage* other_storage_ptr) -> void {
       ABSL_INTERNAL_RETHROW;
     }
 
-    DestroyElements<A>(inlined_ptr->GetAllocator(),
-                       inlined_ptr->GetInlinedData(), inlined_ptr->GetSize());
+    DestroyAdapter<A>::DestroyElements(inlined_ptr->GetAllocator(),
+                                       inlined_ptr->GetInlinedData(),
+                                       inlined_ptr->GetSize());
 
     inlined_ptr->SetAllocation(
         {allocated_storage_view.data, allocated_storage_view.capacity});

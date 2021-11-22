@@ -548,7 +548,7 @@ GPUTestConfig::GPUTestConfig(bool isSwiftShader)
     mConditions[kConditionVulkan]    = true;
     mConditions[kConditionMetal]     = true;
 
-    // Devices are irrelevent if we are running on SW
+    // Devices are irrelevant if we are running on SW
     mConditions[kConditionNexus5X]          = !isSwiftShader && IsNexus5X();
     mConditions[kConditionPixel2OrXL]       = !isSwiftShader && (IsPixel2() || IsPixel2XL());
     mConditions[kConditionPixel4OrXL]       = !isSwiftShader && (IsPixel4() || IsPixel4XL());
@@ -559,11 +559,13 @@ GPUTestConfig::GPUTestConfig(bool isSwiftShader)
     mConditions[kConditionPreRotation180] = false;
     mConditions[kConditionPreRotation270] = false;
 
-    mConditions[kConditionSPIRVGen] = false;
+    mConditions[kConditionASan]  = IsASan();
+    mConditions[kConditionTSan]  = IsTSan();
+    mConditions[kConditionUBSan] = IsUBSan();
 }
 
 // If the constructor is passed an API, load those conditions as well
-GPUTestConfig::GPUTestConfig(const API &api, uint32_t preRotation, bool enableDirectSPIRVGen)
+GPUTestConfig::GPUTestConfig(const API &api, uint32_t preRotation)
     : GPUTestConfig(IsSwiftShader(api))
 {
     mConditions[kConditionD3D9]      = IsD3D9(api);
@@ -589,11 +591,6 @@ GPUTestConfig::GPUTestConfig(const API &api, uint32_t preRotation, bool enableDi
             break;
         default:
             break;
-    }
-
-    if (enableDirectSPIRVGen)
-    {
-        mConditions[kConditionSPIRVGen] = true;
     }
 }
 

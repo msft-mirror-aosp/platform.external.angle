@@ -265,6 +265,9 @@ struct Extensions
     // GL_EXT_memory_object_fd
     bool memoryObjectFdEXT = false;
 
+    // GL_EXT_multi_draw_indirect
+    bool multiDrawIndirectEXT = false;
+
     // GL_EXT_multisample_compatibility
     bool multisampleCompatibilityEXT = false;
 
@@ -606,6 +609,9 @@ struct Extensions
 
     // GL_ANGLE_robust_client_memory
     bool robustClientMemoryANGLE = false;
+
+    // GL_ANGLE_robust_fragment_shader_output
+    bool robustFragmentShaderOutputANGLE = false;
 
     // GL_ANGLE_robust_resource_initialization
     bool robustResourceInitializationANGLE = false;

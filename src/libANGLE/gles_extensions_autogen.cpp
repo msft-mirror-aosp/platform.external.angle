@@ -104,6 +104,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_EXT_map_buffer_range"] = enableableExtension(&Extensions::mapBufferRangeEXT);
         map["GL_EXT_memory_object"] = enableableExtension(&Extensions::memoryObjectEXT);
         map["GL_EXT_memory_object_fd"] = enableableExtension(&Extensions::memoryObjectFdEXT);
+        map["GL_EXT_multi_draw_indirect"] = enableableExtension(&Extensions::multiDrawIndirectEXT);
         map["GL_EXT_multisample_compatibility"] = esOnlyExtension(&Extensions::multisampleCompatibilityEXT);
         map["GL_EXT_multisampled_render_to_texture"] = enableableExtension(&Extensions::multisampledRenderToTextureEXT);
         map["GL_EXT_multisampled_render_to_texture2"] = enableableExtension(&Extensions::multisampledRenderToTexture2EXT);
@@ -220,6 +221,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_ANGLE_relaxed_vertex_attribute_type"] = esOnlyExtension(&Extensions::relaxedVertexAttributeTypeANGLE);
         map["GL_ANGLE_request_extension"] = esOnlyExtension(&Extensions::requestExtensionANGLE);
         map["GL_ANGLE_robust_client_memory"] = esOnlyExtension(&Extensions::robustClientMemoryANGLE);
+        map["GL_ANGLE_robust_fragment_shader_output"] = enableableExtension(&Extensions::robustFragmentShaderOutputANGLE);
         map["GL_ANGLE_robust_resource_initialization"] = esOnlyExtension(&Extensions::robustResourceInitializationANGLE);
         map["GL_ANGLE_semaphore_fuchsia"] = enableableExtension(&Extensions::semaphoreFuchsiaANGLE);
         map["GL_CHROMIUM_sync_query"] = enableableExtension(&Extensions::syncQueryCHROMIUM);
