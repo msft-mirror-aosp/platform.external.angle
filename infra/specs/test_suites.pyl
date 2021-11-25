@@ -634,7 +634,7 @@
         ],
         'args': [
           'angle_gles1_conformance_tests',
-          '--test-timeout=40',
+          '--test-timeout=300',
         ],
         'desktop_args': [
           '--bot-mode',
@@ -934,7 +934,7 @@
       },
     },
 
-    'swangle_isolated_scripts': {
+    'swangle_restricted_trace_gold_isolated_scripts': {
       'angle_restricted_trace_gold_tests': {
         'args': [
           '--test-machine-name',
@@ -951,7 +951,7 @@
           'chrome-gpu-gold-service-account',
         ],
         'swarming': {
-          'shards': 2,
+          'shards': 6,
         },
       },
     },
@@ -1017,12 +1017,12 @@
       'angle_deqp_gles2_metal_gtests',
       'angle_deqp_gles3_gl_gtests',
       'angle_deqp_gles3_metal_gtests',
-      'angle_end2end_gtests',
+      'angle_end2end_with_retry_gtests',
       'angle_unit_gtests',
     ],
 
     'mac_nvidia_gtests': [
-      'angle_end2end_gtests',
+      'angle_end2end_with_retry_gtests',
       'angle_unit_gtests',
     ],
 
