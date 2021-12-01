@@ -17,6 +17,7 @@ namespace sh
 namespace
 {
 constexpr const ImmutableString kHashedNamePrefix("webgl_");
+constexpr const ImmutableString kStructNamePrefix("s_");
 
 ImmutableString HashName(const ImmutableString &name, ShHashFunction64 hashFunction)
 {
@@ -176,6 +177,14 @@ ImmutableString HashName(const TSymbol *symbol, ShHashFunction64 hashFunction, N
     {
         return symbol->name();
     }
+#ifdef __APPLE__
+    if (symbol->isStruct()) {
+        ImmutableStringBuilder nameBuilder(kStructNamePrefix.length() + symbol->name().length());
+        nameBuilder << kStructNamePrefix << symbol->name();
+        ImmutableString name = nameBuilder;
+        return HashName(name, hashFunction, nameMap);
+    }
+#endif
     return HashName(symbol->name(), hashFunction, nameMap);
 }
 
