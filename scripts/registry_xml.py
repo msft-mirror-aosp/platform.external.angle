@@ -40,6 +40,7 @@ angle_toggleable_extensions = [
 
 angle_requestable_extensions = [
     "GL_ANGLE_base_vertex_base_instance",
+    "GL_ANGLE_base_vertex_base_instance_shader_builtin",
     "GL_ANGLE_compressed_texture_etc",
     "GL_ANGLE_copy_texture_3d",
     "GL_ANGLE_framebuffer_multisample",
@@ -58,6 +59,7 @@ angle_requestable_extensions = [
     "GL_ANGLE_texture_compression_dxt5",
     "GL_ANGLE_texture_external_update",
     "GL_ANGLE_texture_multisample",
+    "GL_ANGLE_vulkan_image",
     "GL_ANGLE_yuv_internal_format",
     "GL_CHROMIUM_color_buffer_float_rgb",
     "GL_CHROMIUM_color_buffer_float_rgba",
@@ -204,6 +206,7 @@ angle_es_only_extensions = [
     "GL_ANGLE_program_cache_control",
     "GL_ANGLE_relaxed_vertex_attribute_type",
     "GL_ANGLE_request_extension",
+    "GL_ANGLE_rgbx_internal_format",
     "GL_ANGLE_robust_client_memory",
     "GL_ANGLE_robust_resource_initialization",
     "GL_ANGLE_webgl_compatibility",
@@ -293,6 +296,7 @@ supported_egl_extensions = [
     "EGL_ANGLE_surface_d3d_texture_2d_share_handle",
     "EGL_ANGLE_swap_with_frame_token",
     "EGL_ANGLE_sync_control_rate",
+    "EGL_ANGLE_vulkan_image",
     "EGL_ANGLE_window_fixed_size",
     "EGL_CHROMIUM_sync_control",
     "EGL_EXT_create_context_robustness",

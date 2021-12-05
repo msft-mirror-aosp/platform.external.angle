@@ -1194,6 +1194,8 @@ void MarkResourceIDActive(ResourceIDType resourceType,
     }
 }
 
+// Some replay functions can get quite large. If over a certain size, this method breaks up the
+// function into parts to avoid overflowing the stack and causing slow compilation.
 void WriteCppReplayFunctionWithParts(const gl::ContextID contextID,
                                      ReplayFunc replayFunc,
                                      DataTracker *dataTracker,
@@ -1201,22 +1203,21 @@ void WriteCppReplayFunctionWithParts(const gl::ContextID contextID,
                                      std::vector<uint8_t> *binaryData,
                                      const std::vector<CallCapture> &calls,
                                      std::stringstream &header,
-                                     std::stringstream &callStream,
                                      std::stringstream &out)
 {
-    std::stringstream callStreamParts;
-
     int callCount = 0;
     int partCount = 0;
 
-    // Setup can get quite large. If over a certain size, break up the function to avoid
-    // overflowing the stack
     if (calls.size() > kFunctionSizeLimit)
     {
-        callStreamParts << "void " << FmtFunction(replayFunc, contextID, frameIndex, ++partCount)
-                        << "\n";
-        callStreamParts << "{\n";
+        out << "void " << FmtFunction(replayFunc, contextID, frameIndex, ++partCount) << "\n";
     }
+    else
+    {
+        out << "void " << FmtFunction(replayFunc, contextID, frameIndex, kNoPartId) << "\n";
+    }
+
+    out << "{\n";
 
     for (const CallCapture &call : calls)
     {
@@ -1226,38 +1227,33 @@ void WriteCppReplayFunctionWithParts(const gl::ContextID contextID,
             continue;
         }
 
-        callStreamParts << "    ";
-        WriteCppReplayForCall(call, dataTracker, callStreamParts, header, binaryData);
-        callStreamParts << ";\n";
+        out << "    ";
+        WriteCppReplayForCall(call, dataTracker, out, header, binaryData);
+        out << ";\n";
 
         if (partCount > 0 && ++callCount % kFunctionSizeLimit == 0)
         {
-            callStreamParts << "}\n";
-            callStreamParts << "\n";
-            callStreamParts << "void "
-                            << FmtFunction(replayFunc, contextID, frameIndex, ++partCount) << "\n";
-            callStreamParts << "{\n";
+            out << "}\n";
+            out << "\n";
+            out << "void " << FmtFunction(replayFunc, contextID, frameIndex, ++partCount) << "\n";
+            out << "{\n";
         }
     }
+    out << "}\n";
 
     if (partCount > 0)
     {
-        callStreamParts << "}\n";
-        callStreamParts << "\n";
+        out << "\n";
+        out << "void " << FmtFunction(replayFunc, contextID, frameIndex, kNoPartId) << "\n";
+        out << "{\n";
 
-        // Write out the parts
-        out << callStreamParts.str();
-
-        // Write out the calls to the parts
+        // Write out the main call which calls all the parts.
         for (int i = 1; i <= partCount; i++)
         {
-            callStream << "    " << FmtFunction(replayFunc, contextID, frameIndex, i) << ";\n";
+            out << "    " << FmtFunction(replayFunc, contextID, frameIndex, i) << ";\n";
         }
-    }
-    else
-    {
-        // If we didn't chunk it up, write all the calls directly to SetupContext
-        callStream << callStreamParts.str();
+
+        out << "}\n";
     }
 }
 
@@ -1298,17 +1294,11 @@ void WriteAuxiliaryContextCppSetupReplay(bool compression,
         out << "{\n";
     }
 
-    std::stringstream setupCallStream;
-
     header << "void " << FmtSetupFunction(kNoPartId, context->id()) << ";\n";
-    setupCallStream << "void " << FmtSetupFunction(kNoPartId, context->id()) << "\n";
-    setupCallStream << "{\n";
 
     WriteCppReplayFunctionWithParts(context->id(), ReplayFunc::Setup, &dataTracker, frameIndex,
-                                    binaryData, setupCalls, include, setupCallStream, out);
+                                    binaryData, setupCalls, header, out);
 
-    out << setupCallStream.str();
-    out << "}\n";
     out << "\n";
 
     if (!captureLabel.empty())
@@ -1371,16 +1361,9 @@ void WriteShareGroupCppSetupReplay(bool compression,
         out << "{\n";
     }
 
-    std::stringstream setupCallStream;
-
-    setupCallStream << "void " << FmtSetupFunction(kNoPartId, kSharedContextId) << "\n";
-    setupCallStream << "{\n";
-
     WriteCppReplayFunctionWithParts(kSharedContextId, ReplayFunc::Setup, &dataTracker, frameIndex,
-                                    binaryData, setupCalls, include, setupCallStream, out);
+                                    binaryData, setupCalls, include, out);
 
-    out << setupCallStream.str();
-    out << "}\n";
     out << "\n";
 
     if (!captureLabel.empty())
@@ -2135,11 +2118,22 @@ void CaptureVertexArrayState(std::vector<CallCapture> *setupCalls,
                 // Check if we can use strictly ES2 semantics, and track indexes that do.
                 vertexPointerBindings.set(attribIndex);
 
-                Capture(setupCalls,
-                        CaptureVertexAttribPointer(
-                            *replayState, true, attribIndex, attrib.format->channelCount,
-                            attrib.format->vertexAttribType, attrib.format->isNorm(),
-                            attrib.vertexAttribArrayStride, attrib.pointer));
+                if (attrib.format->isPureInt())
+                {
+                    Capture(setupCalls, CaptureVertexAttribIPointer(*replayState, true, attribIndex,
+                                                                    attrib.format->channelCount,
+                                                                    attrib.format->vertexAttribType,
+                                                                    attrib.vertexAttribArrayStride,
+                                                                    attrib.pointer));
+                }
+                else
+                {
+                    Capture(setupCalls,
+                            CaptureVertexAttribPointer(
+                                *replayState, true, attribIndex, attrib.format->channelCount,
+                                attrib.format->vertexAttribType, attrib.format->isNorm(),
+                                attrib.vertexAttribArrayStride, attrib.pointer));
+                }
 
                 if (binding.getDivisor() != 0)
                 {
@@ -2151,11 +2145,22 @@ void CaptureVertexArrayState(std::vector<CallCapture> *setupCalls,
             {
                 ASSERT(context->getClientVersion() >= gl::ES_3_1);
 
-                Capture(setupCalls,
-                        CaptureVertexAttribFormat(*replayState, true, attribIndex,
-                                                  attrib.format->channelCount,
-                                                  attrib.format->vertexAttribType,
-                                                  attrib.format->isNorm(), attrib.relativeOffset));
+                if (attrib.format->isPureInt())
+                {
+                    Capture(setupCalls, CaptureVertexAttribIFormat(*replayState, true, attribIndex,
+                                                                   attrib.format->channelCount,
+                                                                   attrib.format->vertexAttribType,
+                                                                   attrib.relativeOffset));
+                }
+                else
+                {
+                    Capture(setupCalls, CaptureVertexAttribFormat(*replayState, true, attribIndex,
+                                                                  attrib.format->channelCount,
+                                                                  attrib.format->vertexAttribType,
+                                                                  attrib.format->isNorm(),
+                                                                  attrib.relativeOffset));
+                }
+
                 Capture(setupCalls, CaptureVertexAttribBinding(*replayState, true, attribIndex,
                                                                attrib.bindingIndex));
             }
@@ -3401,6 +3406,10 @@ void CaptureMidExecutionSetup(const gl::Context *context,
         cap(framebufferFuncs.bindFramebuffer(replayState, true, GL_FRAMEBUFFER, id));
         currentDrawFramebuffer = currentReadFramebuffer = id;
 
+        resourceTracker->getTrackedResource(ResourceIDType::Framebuffer)
+            .getStartingResources()
+            .insert(id.value);
+
         // Color Attachments.
         for (const gl::FramebufferAttachment &colorAttachment : framebuffer->getColorAttachments())
         {
@@ -4095,6 +4104,19 @@ GLint GetAdjustedTextureCacheLevel(gl::TextureTarget target, GLint level)
 
     return adjustedLevel;
 }
+
+template <typename ParamValueType>
+struct ParamValueTrait
+{
+    static_assert(sizeof(ParamValueType) == 0, "invalid ParamValueType");
+};
+
+template <>
+struct ParamValueTrait<gl::FramebufferID>
+{
+    static constexpr const char *name = "framebufferPacked";
+    static const ParamType typeID     = ParamType::TFramebufferID;
+};
 }  // namespace
 
 ParamCapture::ParamCapture() : type(ParamType::TGLenum), enumGroup(gl::GLenumGroup::DefaultGroup) {}
@@ -5000,8 +5022,7 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
 
         case EntryPoint::GLBindFramebuffer:
         case EntryPoint::GLBindFramebufferOES:
-            maybeGenResourceOnBind<gl::FramebufferID>(call, "framebufferPacked",
-                                                      ParamType::TFramebufferID);
+            maybeGenResourceOnBind<gl::FramebufferID>(call);
             break;
 
         case EntryPoint::GLGenTextures:
@@ -5368,10 +5389,11 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
 }
 
 template <typename ParamValueType>
-void FrameCaptureShared::maybeGenResourceOnBind(CallCapture &call,
-                                                const char *paramName,
-                                                ParamType paramType)
+void FrameCaptureShared::maybeGenResourceOnBind(CallCapture &call)
 {
+    const char *paramName     = ParamValueTrait<ParamValueType>::name;
+    const ParamType paramType = ParamValueTrait<ParamValueType>::typeID;
+
     const ParamCapture &param = call.params.getParam(paramName, paramType, 1);
     const ParamValueType id   = AccessParamValue<ParamValueType>(paramType, param.value);
 
@@ -5963,7 +5985,8 @@ void TrackedResource::setGennedResource(GLuint id)
 
 bool TrackedResource::resourceIsGenerated(GLuint id)
 {
-    return mNewResources.find(id) != mNewResources.end();
+    return mStartingResources.find(id) != mStartingResources.end() ||
+           mNewResources.find(id) != mNewResources.end();
 }
 
 void TrackedResource::setDeletedResource(GLuint id)
@@ -6360,16 +6383,9 @@ void FrameCaptureShared::writeMainContextCppReplay(const gl::Context *context,
 
     if (frameIndex == 1)
     {
-        std::stringstream setupCallStream;
-
-        setupCallStream << "void " << FmtSetupFunction(kNoPartId, context->id()) << "\n";
-        setupCallStream << "{\n";
-
         WriteCppReplayFunctionWithParts(context->id(), ReplayFunc::Setup, &dataTracker, frameIndex,
-                                        &mBinaryData, setupCalls, header, setupCallStream, out);
+                                        &mBinaryData, setupCalls, header, out);
 
-        out << setupCallStream.str();
-        out << "}\n";
         out << "\n";
         out << "void SetupReplay()\n";
         out << "{\n";
@@ -6465,16 +6481,8 @@ void FrameCaptureShared::writeMainContextCppReplay(const gl::Context *context,
 
     if (!mFrameCalls.empty())
     {
-        std::stringstream callStream;
-
-        callStream << "void " << FmtReplayFunction(context->id(), frameIndex) << "\n";
-        callStream << "{\n";
-
         WriteCppReplayFunctionWithParts(context->id(), ReplayFunc::Replay, &dataTracker, frameIndex,
-                                        &mBinaryData, mFrameCalls, header, callStream, out);
-
-        out << callStream.str();
-        out << "}\n";
+                                        &mBinaryData, mFrameCalls, header, out);
     }
 
     if (mSerializeStateEnabled)
