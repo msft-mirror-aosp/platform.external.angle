@@ -149,14 +149,14 @@ bool CanMultiDrawIndirectUseCmd(ContextVk *contextVk,
     // Use the generic implementation if multiDrawIndirect is disabled, if line loop is being used
     // for multiDraw, if drawcount is greater than maxDrawIndirectCount, or if there are streaming
     // vertex attributes.
+    ASSERT(drawcount > 1);
     const bool supportsMultiDrawIndirect =
         contextVk->getFeatures().supportsMultiDrawIndirect.enabled;
-    const bool isMultiDrawLineLoop = (mode == gl::PrimitiveMode::LineLoop && drawcount > 1);
+    const bool isMultiDrawLineLoop = (mode == gl::PrimitiveMode::LineLoop);
     const bool isDrawCountBeyondLimit =
         (static_cast<uint32_t>(drawcount) >
          contextVk->getRenderer()->getPhysicalDeviceProperties().limits.maxDrawIndirectCount);
-    const bool isMultiDrawWithStreamingAttribs =
-        (vertexArray->getStreamingVertexAttribsMask().any() && drawcount > 1);
+    const bool isMultiDrawWithStreamingAttribs = vertexArray->getStreamingVertexAttribsMask().any();
 
     const bool canMultiDrawIndirectUseCmd = supportsMultiDrawIndirect && !isMultiDrawLineLoop &&
                                             !isDrawCountBeyondLimit &&
@@ -929,7 +929,13 @@ angle::Result ContextVk::initialize()
 
 angle::Result ContextVk::flush(const gl::Context *context)
 {
-    if (mRenderer->getFeatures().deferFlushUntilEndRenderPass.enabled && hasStartedRenderPass())
+    const bool isSingleBuffer =
+        (mCurrentWindowSurface != nullptr) && mCurrentWindowSurface->isSharedPresentMode();
+
+    // Don't defer flushes in single-buffer mode.  In this mode, the application is not required to
+    // call eglSwapBuffers(), and glFlush() is expected to ensure that work is submitted.
+    if (mRenderer->getFeatures().deferFlushUntilEndRenderPass.enabled && hasStartedRenderPass() &&
+        !isSingleBuffer)
     {
         mHasDeferredFlush = true;
         return angle::Result::Continue;
@@ -2902,7 +2908,7 @@ angle::Result ContextVk::multiDrawArraysIndirectHelper(const gl::Context *contex
                                                        GLsizei drawcount,
                                                        GLsizei stride)
 {
-    if (!rx::CanMultiDrawIndirectUseCmd(this, mVertexArray, mode, drawcount, stride))
+    if (drawcount > 1 && !CanMultiDrawIndirectUseCmd(this, mVertexArray, mode, drawcount, stride))
     {
         return rx::MultiDrawArraysIndirectGeneral(this, context, mode, indirect, drawcount, stride);
     }
@@ -3004,7 +3010,7 @@ angle::Result ContextVk::multiDrawElementsIndirectHelper(const gl::Context *cont
                                                          GLsizei drawcount,
                                                          GLsizei stride)
 {
-    if (!rx::CanMultiDrawIndirectUseCmd(this, mVertexArray, mode, drawcount, stride))
+    if (drawcount > 1 && !CanMultiDrawIndirectUseCmd(this, mVertexArray, mode, drawcount, stride))
     {
         return rx::MultiDrawElementsIndirectGeneral(this, context, mode, type, indirect, drawcount,
                                                     stride);
@@ -6174,15 +6180,21 @@ angle::Result ContextVk::endRenderPassQuery(QueryVk *queryVk)
     // Emit debug-util markers before calling the query command.
     ANGLE_TRY(handleGraphicsEventLog(rx::GraphicsEventCmdBuf::InRenderPassCmdBufQueryCmd));
 
-    if (mRenderPassCommandBuffer)
+    // End the query inside the render pass.  In some situations, the query may not have actually
+    // been issued, so there is nothing to do there.  That is the case for transform feedback
+    // queries which are deferred until a draw call with transform feedback active is issued, which
+    // may have never happened.
+    ASSERT(mRenderPassCommandBuffer == nullptr ||
+           type == gl::QueryType::TransformFeedbackPrimitivesWritten || queryVk->hasQueryBegun());
+    if (mRenderPassCommandBuffer && queryVk->hasQueryBegun())
     {
         queryVk->getQueryHelper()->endRenderPassQuery(this);
+    }
 
-        // Update rasterizer discard emulation with primitives generated query if necessary.
-        if (type == gl::QueryType::PrimitivesGenerated)
-        {
-            updateRasterizerDiscardEnabled(false);
-        }
+    // Update rasterizer discard emulation with primitives generated query if necessary.
+    if (type == gl::QueryType::PrimitivesGenerated)
+    {
+        updateRasterizerDiscardEnabled(false);
     }
 
     ASSERT(mActiveRenderPassQueries[type] == queryVk);
