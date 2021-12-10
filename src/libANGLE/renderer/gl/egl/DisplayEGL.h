@@ -11,6 +11,7 @@
 
 #include <map>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "libANGLE/renderer/gl/DisplayGL.h"
@@ -19,6 +20,7 @@
 namespace rx
 {
 
+class FunctionsEGL;
 class FunctionsEGLDL;
 class RendererEGL;
 class WorkerContext;
@@ -35,8 +37,6 @@ class DisplayEGL : public DisplayGL
                            const egl::AttributeMap &attribs) override;
 
     EGLSyncImpl *createSync(const egl::AttributeMap &attribs) override;
-
-    std::string getVendorString() const override;
 
     void setBlobCacheFuncs(EGLSetBlobFuncANDROID set, EGLGetBlobFuncANDROID get) override;
 
@@ -74,13 +74,16 @@ class DisplayEGL : public DisplayGL
     egl::Error restoreLostDevice(const egl::Display *display) override;
 
     bool isValidNativeWindow(EGLNativeWindowType window) const override;
-
-    DeviceImpl *createDevice() override;
+    egl::Error validateClientBuffer(const egl::Config *configuration,
+                                    EGLenum buftype,
+                                    EGLClientBuffer clientBuffer,
+                                    const egl::AttributeMap &attribs) const override;
 
     egl::Error waitClient(const gl::Context *context) override;
     egl::Error waitNative(const gl::Context *context, EGLint engine) override;
 
-    egl::Error makeCurrent(egl::Surface *drawSurface,
+    egl::Error makeCurrent(egl::Display *display,
+                           egl::Surface *drawSurface,
                            egl::Surface *readSurface,
                            gl::Context *context) override;
 
@@ -89,6 +92,8 @@ class DisplayEGL : public DisplayGL
     void initializeFrontendFeatures(angle::FrontendFeatures *features) const override;
 
     void populateFeatureList(angle::FeatureList *features) override;
+
+    RendererGL *getRenderer() const override;
 
     egl::Error validateImageClientBuffer(const gl::Context *context,
                                          EGLenum target,
@@ -100,7 +105,14 @@ class DisplayEGL : public DisplayGL
                                                          EGLClientBuffer buffer,
                                                          const egl::AttributeMap &attribs) override;
 
+    const FunctionsEGL *getFunctionsEGL() const;
+
   protected:
+    virtual EGLint fixSurfaceType(EGLint surfaceType) const;
+
+  private:
+    const char *getEGLPath() const;
+
     egl::Error initializeContext(EGLContext shareContext,
                                  const egl::AttributeMap &eglAttributes,
                                  EGLContext *outContext,
@@ -108,7 +120,10 @@ class DisplayEGL : public DisplayGL
 
     void generateExtensions(egl::DisplayExtensions *outExtensions) const override;
 
-    egl::Error createRenderer(EGLContext shareContext, std::shared_ptr<RendererEGL> *outRenderer);
+    egl::Error createRenderer(EGLContext shareContext,
+                              bool makeNewContextCurrent,
+                              bool isExternalContext,
+                              std::shared_ptr<RendererEGL> *outRenderer);
 
     egl::Error makeCurrentSurfaceless(gl::Context *context) override;
 
@@ -123,15 +138,34 @@ class DisplayEGL : public DisplayGL
                                     const U &defaultValue) const;
 
     std::shared_ptr<RendererEGL> mRenderer;
-    FunctionsEGLDL *mEGL;
-    EGLConfig mConfig;
+    std::map<EGLAttrib, std::weak_ptr<RendererEGL>> mVirtualizationGroups;
+
+    FunctionsEGLDL *mEGL = nullptr;
+    EGLConfig mConfig    = EGL_NO_CONFIG_KHR;
     egl::AttributeMap mDisplayAttributes;
     std::vector<EGLint> mConfigAttribList;
 
-  private:
+    struct CurrentNativeContext
+    {
+        EGLSurface surface = EGL_NO_SURFACE;
+        EGLContext context = EGL_NO_CONTEXT;
+        // True if the current context is an external context. and both surface and context will be
+        // unset when an external context is current.
+        bool isExternalContext = false;
+    };
+    angle::HashMap<std::thread::id, CurrentNativeContext> mCurrentNativeContexts;
+
     void generateCaps(egl::Caps *outCaps) const override;
 
     std::map<EGLint, EGLint> mConfigIds;
+
+    bool mHasEXTCreateContextRobustness   = false;
+    bool mHasNVRobustnessVideoMemoryPurge = false;
+
+    bool mSupportsSurfaceless      = false;
+    bool mSupportsNoConfigContexts = false;
+
+    EGLSurface mMockPbuffer = EGL_NO_SURFACE;
 };
 
 }  // namespace rx

@@ -109,18 +109,6 @@ class DisplayGbm final : public DisplayEGL
     SurfaceImpl *createPbufferSurface(const egl::SurfaceState &state,
                                       const egl::AttributeMap &attribs) override;
 
-    ContextImpl *createContext(const gl::State &state,
-                               gl::ErrorSet *errorSet,
-                               const egl::Config *configuration,
-                               const gl::Context *shareContext,
-                               const egl::AttributeMap &attribs) override;
-
-    egl::Error makeCurrent(egl::Surface *drawSurface,
-                           egl::Surface *readSurface,
-                           gl::Context *context) override;
-
-    egl::ConfigSet generateConfigs() override;
-
     bool isValidNativeWindow(EGLNativeWindowType window) const override;
 
     // TODO(fjhenigman) Implement this.
@@ -129,12 +117,8 @@ class DisplayGbm final : public DisplayEGL
     // one required so that the subsequent swapBuffers acts as expected.
     void setSwapInterval(EGLSurface drawable, SwapControlData *data);
 
-    WorkerContext *createWorkerContext(std::string *infoLog,
-                                       EGLContext sharedContext,
-                                       const native_egl::AttributeVector workerAttribs) override;
-
   private:
-    void generateExtensions(egl::DisplayExtensions *outExtensions) const override;
+    EGLint fixSurfaceType(EGLint surfaceType) const override;
 
     GLuint makeShader(GLuint type, const char *src);
     void drawBuffer(const gl::Context *context, Buffer *buffer);

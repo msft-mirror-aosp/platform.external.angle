@@ -9,6 +9,7 @@
 
 #include "libANGLE/renderer/d3d/d3d9/Context9.h"
 
+#include "common/entry_points_enum_autogen.h"
 #include "common/string_utils.h"
 #include "libANGLE/renderer/OverlayImpl.h"
 #include "libANGLE/renderer/d3d/CompilerD3D.h"
@@ -283,19 +284,99 @@ angle::Result Context9::drawElementsIndirect(const gl::Context *context,
     return angle::Result::Stop;
 }
 
+angle::Result Context9::multiDrawArrays(const gl::Context *context,
+                                        gl::PrimitiveMode mode,
+                                        const GLint *firsts,
+                                        const GLsizei *counts,
+                                        GLsizei drawcount)
+{
+    return rx::MultiDrawArraysGeneral(this, context, mode, firsts, counts, drawcount);
+}
+
+angle::Result Context9::multiDrawArraysInstanced(const gl::Context *context,
+                                                 gl::PrimitiveMode mode,
+                                                 const GLint *firsts,
+                                                 const GLsizei *counts,
+                                                 const GLsizei *instanceCounts,
+                                                 GLsizei drawcount)
+{
+    return rx::MultiDrawArraysInstancedGeneral(this, context, mode, firsts, counts, instanceCounts,
+                                               drawcount);
+}
+
+angle::Result Context9::multiDrawArraysIndirect(const gl::Context *context,
+                                                gl::PrimitiveMode mode,
+                                                const void *indirect,
+                                                GLsizei drawcount,
+                                                GLsizei stride)
+{
+    UNREACHABLE();
+    return angle::Result::Stop;
+}
+
+angle::Result Context9::multiDrawElements(const gl::Context *context,
+                                          gl::PrimitiveMode mode,
+                                          const GLsizei *counts,
+                                          gl::DrawElementsType type,
+                                          const GLvoid *const *indices,
+                                          GLsizei drawcount)
+{
+    return rx::MultiDrawElementsGeneral(this, context, mode, counts, type, indices, drawcount);
+}
+
+angle::Result Context9::multiDrawElementsInstanced(const gl::Context *context,
+                                                   gl::PrimitiveMode mode,
+                                                   const GLsizei *counts,
+                                                   gl::DrawElementsType type,
+                                                   const GLvoid *const *indices,
+                                                   const GLsizei *instanceCounts,
+                                                   GLsizei drawcount)
+{
+    return rx::MultiDrawElementsInstancedGeneral(this, context, mode, counts, type, indices,
+                                                 instanceCounts, drawcount);
+}
+
+angle::Result Context9::multiDrawElementsIndirect(const gl::Context *context,
+                                                  gl::PrimitiveMode mode,
+                                                  gl::DrawElementsType type,
+                                                  const void *indirect,
+                                                  GLsizei drawcount,
+                                                  GLsizei stride)
+{
+    UNREACHABLE();
+    return angle::Result::Stop;
+}
+
+angle::Result Context9::multiDrawArraysInstancedBaseInstance(const gl::Context *context,
+                                                             gl::PrimitiveMode mode,
+                                                             const GLint *firsts,
+                                                             const GLsizei *counts,
+                                                             const GLsizei *instanceCounts,
+                                                             const GLuint *baseInstances,
+                                                             GLsizei drawcount)
+{
+    ANGLE_HR_UNREACHABLE(this);
+    return angle::Result::Stop;
+}
+
+angle::Result Context9::multiDrawElementsInstancedBaseVertexBaseInstance(
+    const gl::Context *context,
+    gl::PrimitiveMode mode,
+    const GLsizei *counts,
+    gl::DrawElementsType type,
+    const GLvoid *const *indices,
+    const GLsizei *instanceCounts,
+    const GLint *baseVertices,
+    const GLuint *baseInstances,
+    GLsizei drawcount)
+{
+    ANGLE_HR_UNREACHABLE(this);
+    return angle::Result::Stop;
+}
+
 gl::GraphicsResetStatus Context9::getResetStatus()
 {
     return mRenderer->getResetStatus();
-}
-
-std::string Context9::getVendorString() const
-{
-    return mRenderer->getVendorString();
-}
-
-std::string Context9::getRendererDescription() const
-{
-    return mRenderer->getRendererDescription();
 }
 
 angle::Result Context9::insertEventMarker(GLsizei length, const char *marker)
@@ -306,7 +387,8 @@ angle::Result Context9::insertEventMarker(GLsizei length, const char *marker)
 
 angle::Result Context9::pushGroupMarker(GLsizei length, const char *marker)
 {
-    mRenderer->getAnnotator()->beginEvent(marker, marker);
+    mRenderer->getAnnotator()->beginEvent(nullptr, angle::EntryPoint::GLPushGroupMarkerEXT, marker,
+                                          marker);
     mMarkerStack.push(std::string(marker));
     return angle::Result::Continue;
 }
@@ -318,7 +400,8 @@ angle::Result Context9::popGroupMarker()
     {
         marker = mMarkerStack.top().c_str();
         mMarkerStack.pop();
-        mRenderer->getAnnotator()->endEvent(marker);
+        mRenderer->getAnnotator()->endEvent(nullptr, marker,
+                                            angle::EntryPoint::GLPopGroupMarkerEXT);
     }
     return angle::Result::Continue;
 }
@@ -340,7 +423,8 @@ angle::Result Context9::popDebugGroup(const gl::Context *context)
 
 angle::Result Context9::syncState(const gl::Context *context,
                                   const gl::State::DirtyBits &dirtyBits,
-                                  const gl::State::DirtyBits &bitMask)
+                                  const gl::State::DirtyBits &bitMask,
+                                  gl::Command command)
 {
     mRenderer->getStateManager()->syncState(mState, dirtyBits);
     return angle::Result::Continue;
@@ -413,7 +497,8 @@ angle::Result Context9::getIncompleteTexture(const gl::Context *context,
                                              gl::TextureType type,
                                              gl::Texture **textureOut)
 {
-    return mIncompleteTextures.getIncompleteTexture(context, type, nullptr, textureOut);
+    return mIncompleteTextures.getIncompleteTexture(context, type, gl::SamplerFormat::Float,
+                                                    nullptr, textureOut);
 }
 
 void Context9::handleResult(HRESULT hr,

@@ -1,32 +1,42 @@
 {
+  "scripts/cl.xml":
+    "f923201d4ea3e1130763b19fa7faa7a2",
   "scripts/egl.xml":
-    "842e24514c4cfe09fba703c17a0fd292",
+    "013c552e6c523abdcf268268ea47e9fe",
   "scripts/egl_angle_ext.xml":
-    "854e99785af19f8f4eea4f73005a0451",
+    "bea2e9846b429ecf051a0a46e4f02374",
   "scripts/generate_loader.py":
-    "c6c02d859fabc61410470f50198a5a80",
+    "e67f4da64ba7f5cff39ba4e8926a05f8",
   "scripts/gl.xml":
-    "e74a595068cbdd6064300be1e71b7cc9",
+    "a442a7aeff3a2f0a1fba52ee08089500",
   "scripts/gl_angle_ext.xml":
-    "079cc4829de7ce638faf7bbf66e141ad",
+    "474989440f980a079935dff3ab4d7b24",
   "scripts/registry_xml.py":
-    "7e38cd315a93dce57645283ab2ee80d5",
+    "b7aba2b35bc12a88d2b2b1efd2efc096",
   "scripts/wgl.xml":
-    "aa96419c582af2f6673430e2847693f4",
+    "c36001431919e1c435f1215a85f7e1db",
   "src/libEGL/egl_loader_autogen.cpp":
-    "acf3ea19b84b12bfd1197fed020440b3",
+    "36e70c4f3d1720d2df468c3bf9f93058",
   "src/libEGL/egl_loader_autogen.h":
-    "5f1507c78b970f6898d1e90da20e425d",
+    "4321cb420c274ecf46c949e884df0c5c",
+  "src/tests/restricted_traces/trace_egl_loader_autogen.cpp":
+    "23c0db76eaa7d3a58623d93851422598",
+  "src/tests/restricted_traces/trace_egl_loader_autogen.h":
+    "db5602df62ad6f6ccdbdef0f51aa005e",
+  "src/tests/restricted_traces/trace_gles_loader_autogen.cpp":
+    "f9b7446a91b7bd157cb608ee4310d438",
+  "src/tests/restricted_traces/trace_gles_loader_autogen.h":
+    "0c2586426dc42239b92ac26c7347388b",
   "util/egl_loader_autogen.cpp":
-    "c2a5f6cb5e3531de16860ffc4f9df6d5",
+    "b17e2dbe04c275d69cb09ad861150197",
   "util/egl_loader_autogen.h":
-    "3b5804374e184203cd3f89cee12a0e57",
+    "b298c1d5d60990304ee37070e2b94efa",
   "util/gles_loader_autogen.cpp":
-    "e4d3034c13ac10c76b854c2749379939",
+    "797f99f5c18a6d24fed5c5f90fcfa2f1",
   "util/gles_loader_autogen.h":
-    "74dae22b00bdb4653c3295619f3676a1",
+    "4665d776c9f860f5121c22293ccca07d",
   "util/windows/wgl_loader_autogen.cpp":
-    "60a40fba3ffddd40063fe6131bc67ba5",
+    "158e6937dd7bd2879bb440983afd5a36",
   "util/windows/wgl_loader_autogen.h":
-    "572549de92e7f893ee1c2161704e1cfb"
+    "55c8eaf574db083924b7be5a8a8e5f2e"
 }

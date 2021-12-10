@@ -197,6 +197,20 @@ struct B8G8R8X8
     static void average(B8G8R8X8 *dst, const B8G8R8X8 *src1, const B8G8R8X8 *src2);
 };
 
+struct R8G8B8X8
+{
+    uint8_t R;
+    uint8_t G;
+    uint8_t B;
+    uint8_t X;
+
+    static void readColor(gl::ColorF *dst, const R8G8B8X8 *src);
+    static void readColor(gl::ColorUI *dst, const R8G8B8X8 *src);
+    static void writeColor(R8G8B8X8 *dst, const gl::ColorF *src);
+    static void writeColor(R8G8B8X8 *dst, const gl::ColorUI *src);
+    static void average(R8G8B8X8 *dst, const R8G8B8X8 *src1, const R8G8B8X8 *src2);
+};
+
 struct A1R5G5B5
 {
     uint16_t ARGB;
@@ -698,6 +712,21 @@ struct R10G10B10X2
     static void average(R10G10B10X2 *dst, const R10G10B10X2 *src1, const R10G10B10X2 *src2);
 };
 static_assert(sizeof(R10G10B10X2) == 4, "R10G10B10X2 struct not 32-bits.");
+
+struct B10G10R10A2
+{
+    uint32_t B : 10;
+    uint32_t G : 10;
+    uint32_t R : 10;
+    uint32_t A : 2;
+
+    static void readColor(gl::ColorF *dst, const B10G10R10A2 *src);
+    static void readColor(gl::ColorUI *dst, const B10G10R10A2 *src);
+    static void writeColor(B10G10R10A2 *dst, const gl::ColorF *src);
+    static void writeColor(B10G10R10A2 *dst, const gl::ColorUI *src);
+    static void average(B10G10R10A2 *dst, const B10G10R10A2 *src1, const B10G10R10A2 *src2);
+};
+static_assert(sizeof(B10G10R10A2) == 4, "B10G10R10A2 struct not 32-bits.");
 
 struct R9G9B9E5
 {

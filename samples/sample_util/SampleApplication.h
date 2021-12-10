@@ -19,11 +19,14 @@
 #include "util/egl_loader_autogen.h"
 
 class EGLWindow;
+class GLWindowBase;
 
 namespace angle
 {
 class Library;
 }  // namespace angle
+
+bool IsGLExtensionEnabled(const std::string &extName);
 
 class SampleApplication
 {
@@ -66,8 +69,11 @@ class SampleApplication
     bool mRunning;
 
     Timer mTimer;
+    uint32_t mFrameCount;
+    GLWindowBase *mGLWindow;
     EGLWindow *mEGLWindow;
     OSWindow *mOSWindow;
+    angle::GLESDriverType mDriverType;
 
     EGLPlatformParameters mPlatformParams;
 
