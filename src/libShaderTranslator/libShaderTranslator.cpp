@@ -91,7 +91,7 @@ static void fillShaderVariable(const sh::ShaderVariable& var, ST_ShaderVariable*
         fillShaderVariable(var.fields[i], out->pFields + i);
     }
 
-    out->structName = toAllocedCString(var.structName);
+    out->structName = toAllocedCString(var.getStructName());
 
     out->isRowMajorLayout = boolToUint(var.isRowMajorLayout);
 
@@ -431,7 +431,6 @@ ANGLE_EXPORT void STCompileAndResolve(
         default:
             fprintf(stderr, "%s: unknown shader type: 0x%x\n", __func__, type);
             abort();
-            break;
     }
 
     res->compileStatus = boolToUint(compileResult);
