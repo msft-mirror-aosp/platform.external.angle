@@ -366,7 +366,13 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffersWithFrameTokenANGLE(EGLDisplay dpy, 
 #define EGL_VULKAN_FEATURES_ANGLE 0x34AE
 #define EGL_VULKAN_QUEUE_ANGLE 0x34AF
 #define EGL_VULKAN_QUEUE_FAMILIY_INDEX_ANGLE 0x34D0
+#define EGL_VULKAN_GET_INSTANCE_PROC_ADDR 0x34D1
 #endif /* EGL_ANGLE_device_vulkan */
+
+#ifndef EGL_ANGLE_vulkan_image
+#define EGL_ANGLE_vulkan_image
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLEXPORTVKIMAGEANGLEPROC)(EGLDisplay dpy, EGLImage image, void* vk_image, void* vk_image_create_info);
+#endif /* EGL_ANGLE_vulkan_image */
 
 // clang-format on
 

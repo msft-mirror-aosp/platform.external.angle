@@ -998,8 +998,6 @@ angle::Result GetUnresolveFrag(
 }
 }  // namespace
 
-const uint32_t UtilsVk::kGenerateMipmapMaxLevels;
-
 UtilsVk::ConvertVertexShaderParams::ConvertVertexShaderParams() = default;
 
 UtilsVk::ImageCopyShaderParams::ImageCopyShaderParams() = default;
@@ -2109,7 +2107,8 @@ angle::Result UtilsVk::clearFramebuffer(ContextVk *contextVk,
     // render pass.
     if (isTransformFeedbackActiveUnpaused)
     {
-        ANGLE_TRY(contextVk->flushCommandsAndEndRenderPass());
+        ANGLE_TRY(contextVk->flushCommandsAndEndRenderPass(
+            RenderPassClosureReason::XfbResumeAfterDrawBasedClear));
     }
 
     return angle::Result::Continue;
@@ -2207,7 +2206,8 @@ angle::Result UtilsVk::clearImage(ContextVk *contextVk,
     contextVk->addGarbage(&destViewObject);
 
     // Close the render pass for this temporary framebuffer.
-    return contextVk->flushCommandsAndEndRenderPass();
+    return contextVk->flushCommandsAndEndRenderPass(
+        RenderPassClosureReason::TemporaryForImageClear);
 }
 
 angle::Result UtilsVk::colorBlitResolve(ContextVk *contextVk,
@@ -2877,7 +2877,7 @@ angle::Result UtilsVk::copyImage(ContextVk *contextVk,
     descriptorPoolBinding.reset();
 
     // Close the render pass for this temporary framebuffer.
-    return contextVk->flushCommandsAndEndRenderPass();
+    return contextVk->flushCommandsAndEndRenderPass(RenderPassClosureReason::TemporaryForImageCopy);
 }
 
 angle::Result UtilsVk::copyImageBits(ContextVk *contextVk,
