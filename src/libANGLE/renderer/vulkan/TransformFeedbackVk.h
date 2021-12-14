@@ -44,15 +44,16 @@ class TransformFeedbackVk : public TransformFeedbackImpl
                                     const gl::OffsetBindingPointer<gl::Buffer> &binding) override;
 
     void updateDescriptorSetLayout(ContextVk *contextVk,
-                                   ShaderInterfaceVariableInfoMap &vsVariableInfoMap,
+                                   const ShaderInterfaceVariableInfoMap &variableInfoMap,
                                    size_t xfbBufferCount,
                                    vk::DescriptorSetLayoutDesc *descSetLayoutOut) const;
     void initDescriptorSet(ContextVk *contextVk,
+                           const ShaderInterfaceVariableInfoMap &variableInfoMap,
                            size_t xfbBufferCount,
-                           vk::BufferHelper *emptyBuffer,
                            VkDescriptorSet descSet) const;
     void updateDescriptorSet(ContextVk *contextVk,
                              const gl::ProgramState &programState,
+                             const ShaderInterfaceVariableInfoMap &variableInfoMap,
                              VkDescriptorSet descSet) const;
     void getBufferOffsets(ContextVk *contextVk,
                           GLint drawCallFirstVertex,
@@ -86,17 +87,28 @@ class TransformFeedbackVk : public TransformFeedbackImpl
         return mBufferSizes;
     }
 
+    gl::TransformFeedbackBuffersArray<vk::BufferHelper> &getCounterBufferHelpers()
+    {
+        return mCounterBufferHelpers;
+    }
+
     const gl::TransformFeedbackBuffersArray<VkBuffer> &getCounterBufferHandles() const
     {
         return mCounterBufferHandles;
     }
 
+    vk::UniformsAndXfbDescriptorDesc &getTransformFeedbackDesc() { return mXFBBuffersDesc; }
+
   private:
-    angle::Result onTransformFeedbackStateChanged(ContextVk *contextVk);
     void writeDescriptorSet(ContextVk *contextVk,
+                            const ShaderInterfaceVariableInfoMap &variableInfoMap,
                             size_t xfbBufferCount,
-                            VkDescriptorBufferInfo *pBufferInfo,
+                            VkDescriptorBufferInfo *bufferInfo,
                             VkDescriptorSet descSet) const;
+
+    void initializeXFBBuffersDesc(ContextVk *contextVk, size_t xfbBufferCount);
+
+    void releaseCounterBuffers(RendererVk *renderer);
 
     // This member variable is set when glBindTransformFeedbackBuffers/glBeginTransformFeedback
     // is called and unset in dirty bit handler for transform feedback state change. If this
@@ -115,6 +127,9 @@ class TransformFeedbackVk : public TransformFeedbackImpl
     // Counter buffer used for pause and resume.
     gl::TransformFeedbackBuffersArray<vk::BufferHelper> mCounterBufferHelpers;
     gl::TransformFeedbackBuffersArray<VkBuffer> mCounterBufferHandles;
+
+    // Keys to look up in the descriptor set cache
+    vk::UniformsAndXfbDescriptorDesc mXFBBuffersDesc;
 };
 
 }  // namespace rx

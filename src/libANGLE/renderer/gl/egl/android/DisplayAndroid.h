@@ -11,7 +11,6 @@
 
 #include <map>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "libANGLE/renderer/gl/egl/DisplayEGL.h"
@@ -27,16 +26,8 @@ class DisplayAndroid : public DisplayEGL
     DisplayAndroid(const egl::DisplayState &state);
     ~DisplayAndroid() override;
 
-    egl::Error initialize(egl::Display *display) override;
-    void terminate() override;
-
-    ContextImpl *createContext(const gl::State &state,
-                               gl::ErrorSet *errorSet,
-                               const egl::Config *configuration,
-                               const gl::Context *shareContext,
-                               const egl::AttributeMap &attribs) override;
-
     bool isValidNativeWindow(EGLNativeWindowType window) const override;
+
     egl::Error validateImageClientBuffer(const gl::Context *context,
                                          EGLenum target,
                                          EGLClientBuffer clientBuffer,
@@ -46,36 +37,6 @@ class DisplayAndroid : public DisplayEGL
                                                          EGLenum target,
                                                          EGLClientBuffer buffer,
                                                          const egl::AttributeMap &attribs) override;
-
-    egl::Error makeCurrent(egl::Surface *drawSurface,
-                           egl::Surface *readSurface,
-                           gl::Context *context) override;
-
-    void destroyNativeContext(EGLContext context) override;
-
-    WorkerContext *createWorkerContext(std::string *infoLog,
-                                       EGLContext sharedContext,
-                                       const native_egl::AttributeVector workerAttribs) override;
-
-  private:
-    void generateExtensions(egl::DisplayExtensions *outExtensions) const override;
-
-    egl::Error createRenderer(EGLContext shareContext,
-                              bool makeNewContextCurrent,
-                              std::shared_ptr<RendererEGL> *outRenderer);
-
-    bool mVirtualizedContexts;
-
-    bool mSupportsSurfaceless;
-
-    EGLSurface mDummyPbuffer;
-
-    struct CurrentNativeContext
-    {
-        EGLSurface surface = EGL_NO_SURFACE;
-        EGLContext context = EGL_NO_CONTEXT;
-    };
-    std::unordered_map<std::thread::id, CurrentNativeContext> mCurrentNativeContext;
 };
 
 }  // namespace rx

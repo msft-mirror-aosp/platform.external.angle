@@ -115,12 +115,62 @@ class ContextImpl : public GLImplFactory
                                                gl::DrawElementsType type,
                                                const void *indirect) = 0;
 
+    // MultiDraw* impl added as we need workaround for promoting dynamic attributes in D3D backend
+    virtual angle::Result multiDrawArrays(const gl::Context *context,
+                                          gl::PrimitiveMode mode,
+                                          const GLint *firsts,
+                                          const GLsizei *counts,
+                                          GLsizei drawcount)                      = 0;
+    virtual angle::Result multiDrawArraysIndirect(const gl::Context *context,
+                                                  gl::PrimitiveMode mode,
+                                                  const void *indirect,
+                                                  GLsizei drawcount,
+                                                  GLsizei stride)                 = 0;
+    virtual angle::Result multiDrawArraysInstanced(const gl::Context *context,
+                                                   gl::PrimitiveMode mode,
+                                                   const GLint *firsts,
+                                                   const GLsizei *counts,
+                                                   const GLsizei *instanceCounts,
+                                                   GLsizei drawcount)             = 0;
+    virtual angle::Result multiDrawElements(const gl::Context *context,
+                                            gl::PrimitiveMode mode,
+                                            const GLsizei *counts,
+                                            gl::DrawElementsType type,
+                                            const GLvoid *const *indices,
+                                            GLsizei drawcount)                    = 0;
+    virtual angle::Result multiDrawElementsInstanced(const gl::Context *context,
+                                                     gl::PrimitiveMode mode,
+                                                     const GLsizei *counts,
+                                                     gl::DrawElementsType type,
+                                                     const GLvoid *const *indices,
+                                                     const GLsizei *instanceCounts,
+                                                     GLsizei drawcount)           = 0;
+    virtual angle::Result multiDrawElementsIndirect(const gl::Context *context,
+                                                    gl::PrimitiveMode mode,
+                                                    gl::DrawElementsType type,
+                                                    const void *indirect,
+                                                    GLsizei drawcount,
+                                                    GLsizei stride)               = 0;
+    virtual angle::Result multiDrawArraysInstancedBaseInstance(const gl::Context *context,
+                                                               gl::PrimitiveMode mode,
+                                                               const GLint *firsts,
+                                                               const GLsizei *counts,
+                                                               const GLsizei *instanceCounts,
+                                                               const GLuint *baseInstances,
+                                                               GLsizei drawcount) = 0;
+    virtual angle::Result multiDrawElementsInstancedBaseVertexBaseInstance(
+        const gl::Context *context,
+        gl::PrimitiveMode mode,
+        const GLsizei *counts,
+        gl::DrawElementsType type,
+        const GLvoid *const *indices,
+        const GLsizei *instanceCounts,
+        const GLint *baseVertices,
+        const GLuint *baseInstances,
+        GLsizei drawcount) = 0;
+
     // Device loss
     virtual gl::GraphicsResetStatus getResetStatus() = 0;
-
-    // Vendor and description strings.
-    virtual std::string getVendorString() const        = 0;
-    virtual std::string getRendererDescription() const = 0;
 
     // EXT_debug_marker
     virtual angle::Result insertEventMarker(GLsizei length, const char *marker) = 0;
@@ -133,6 +183,7 @@ class ContextImpl : public GLImplFactory
                                          GLuint id,
                                          const std::string &message) = 0;
     virtual angle::Result popDebugGroup(const gl::Context *context)  = 0;
+    virtual angle::Result handleNoopDrawEvent();
 
     // KHR_parallel_shader_compile
     virtual void setMaxShaderCompilerThreads(GLuint count) {}
@@ -140,10 +191,14 @@ class ContextImpl : public GLImplFactory
     // GL_ANGLE_texture_storage_external
     virtual void invalidateTexture(gl::TextureType target);
 
+    // EXT_shader_framebuffer_fetch_non_coherent
+    virtual void framebufferFetchBarrier() {}
+
     // State sync with dirty bits.
     virtual angle::Result syncState(const gl::Context *context,
                                     const gl::State::DirtyBits &dirtyBits,
-                                    const gl::State::DirtyBits &bitMask) = 0;
+                                    const gl::State::DirtyBits &bitMask,
+                                    gl::Command command) = 0;
 
     // Disjoint timer queries
     virtual GLint getGPUDisjoint() = 0;
@@ -190,6 +245,16 @@ class ContextImpl : public GLImplFactory
                      unsigned int line);
 
     virtual egl::ContextPriority getContextPriority() const;
+
+    // EGL_ANGLE_power_preference implementation.
+    virtual egl::Error releaseHighPowerGPU(gl::Context *context);
+    virtual egl::Error reacquireHighPowerGPU(gl::Context *context);
+
+    // GL_ANGLE_vulkan_image
+    virtual angle::Result acquireTextures(const gl::Context *context,
+                                          const gl::TextureBarrierVector &textureBarriers);
+    virtual angle::Result releaseTextures(const gl::Context *context,
+                                          gl::TextureBarrierVector *textureBarriers);
 
   protected:
     const gl::State &mState;

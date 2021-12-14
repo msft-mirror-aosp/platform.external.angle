@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <array>
 
-#define EGL_PLATFORM_ANGLE_PLATFORM_METHODS_ANGLEX 0x3482
+#define EGL_PLATFORM_ANGLE_PLATFORM_METHODS_ANGLEX 0x6AFB
 
 #if !defined(ANGLE_PLATFORM_EXPORT)
 #    if defined(_WIN32)
@@ -247,6 +247,12 @@ inline void DefaultCacheProgram(PlatformMethods *platform,
                                 const uint8_t *programBytes)
 {}
 
+using PostWorkerTaskCallback                       = void (*)(void *userData);
+using PostWorkerTaskFunc                           = void (*)(PlatformMethods *platform,
+                                    PostWorkerTaskCallback callback,
+                                    void *userData);
+constexpr PostWorkerTaskFunc DefaultPostWorkerTask = nullptr;
+
 // Platform methods are enumerated here once.
 #define ANGLE_PLATFORM_OP(OP)                                    \
     OP(currentTime, CurrentTime)                                 \
@@ -264,7 +270,8 @@ inline void DefaultCacheProgram(PlatformMethods *platform,
     OP(overrideWorkaroundsD3D, OverrideWorkaroundsD3D)           \
     OP(overrideFeaturesVk, OverrideFeaturesVk)                   \
     OP(cacheProgram, CacheProgram)                               \
-    OP(overrideFeaturesMtl, OverrideFeaturesMtl)
+    OP(overrideFeaturesMtl, OverrideFeaturesMtl)                 \
+    OP(postWorkerTask, PostWorkerTask)
 
 #define ANGLE_PLATFORM_METHOD_DEF(Name, CapsName) CapsName##Func Name = Default##CapsName;
 
@@ -314,7 +321,6 @@ ANGLE_PLATFORM_EXPORT bool ANGLE_APIENTRY ANGLEGetDisplayPlatform(angle::EGLDisp
 // Sets the platform methods back to their defaults.
 // If display is not valid, behaviour is undefined.
 ANGLE_PLATFORM_EXPORT void ANGLE_APIENTRY ANGLEResetDisplayPlatform(angle::EGLDisplayType display);
-
 }  // extern "C"
 
 namespace angle

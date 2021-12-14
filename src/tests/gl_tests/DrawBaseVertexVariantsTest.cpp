@@ -71,7 +71,7 @@ std::string DrawBaseVertexVariantsTestPrint(
     const DrawBaseVertexVariantsTestParams &params = paramsInfo.param;
     std::ostringstream out;
 
-    out << std::get<0>(params) << '_';
+    out << std::get<0>(params) << "__";
 
     switch (std::get<1>(params))
     {
@@ -434,6 +434,7 @@ TEST_P(DrawBaseVertexVariantsTest, DrawElementsInstancedBaseVertexBaseInstance)
     doDrawElementsBaseVertexVariants(DrawCallVariants::DrawElementsInstancedBaseVertexBaseInstance);
 }
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DrawBaseVertexVariantsTest);
 ANGLE_INSTANTIATE_TEST_COMBINE_1(DrawBaseVertexVariantsTest,
                                  DrawBaseVertexVariantsTestPrint,
                                  testing::ValuesIn(kBufferDataUsage),
