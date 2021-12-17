@@ -1022,6 +1022,8 @@ angle::Result BufferVk::acquireAndUpdate(ContextVk *contextVk,
     bool updateRegionBeforeSubData = mHasValidData && (offset > 0);
     bool updateRegionAfterSubData  = mHasValidData && (offsetAfterSubdata < bufferSize);
 
+    VkDeviceSize srcBufferOffset = mBufferOffset;
+
     uint8_t *srcMapPtrBeforeSubData = nullptr;
     uint8_t *srcMapPtrAfterSubData  = nullptr;
     if (updateRegionBeforeSubData || updateRegionAfterSubData)
@@ -1066,7 +1068,7 @@ angle::Result BufferVk::acquireAndUpdate(ContextVk *contextVk,
         }
         else
         {
-            copyRegions.push_back({0, mBufferOffset, offset});
+            copyRegions.push_back({srcBufferOffset, mBufferOffset, offset});
         }
     }
 
@@ -1080,8 +1082,8 @@ angle::Result BufferVk::acquireAndUpdate(ContextVk *contextVk,
         }
         else
         {
-            copyRegions.push_back(
-                {offsetAfterSubdata, mBufferOffset + offsetAfterSubdata, copySize});
+            copyRegions.push_back({srcBufferOffset + offsetAfterSubdata,
+                                   mBufferOffset + offsetAfterSubdata, copySize});
         }
     }
 
@@ -1202,6 +1204,11 @@ angle::Result BufferVk::acquireBufferHelper(ContextVk *contextVk,
         // be recreated and point to the new buffer, along with updating the descriptor sets
         // to use the new buffer.
         onStateChange(angle::SubjectMessage::InternalMemoryAllocationChanged);
+    }
+    else if (updateType == BufferUpdateType::StorageRedefined)
+    {
+        // Tell the observers (front end) that a buffer's storage has changed.
+        onStateChange(angle::SubjectMessage::BufferVkStorageChanged);
     }
 
     return angle::Result::Continue;

@@ -1152,6 +1152,11 @@ TracePerfTest::TracePerfTest(const TracePerfParams &params)
         addExtensionPrerequisite("GL_OES_EGL_image_external");
     }
 
+    if (traceNameIs("asphalt_9"))
+    {
+        addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
+    }
+
     ASSERT(mParams.surfaceType == SurfaceType::Window || gEnableAllTraceTests);
     ASSERT(mParams.eglParameters.deviceType == EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE ||
            gEnableAllTraceTests);
@@ -1656,7 +1661,7 @@ void TracePerfTest::validateSerializedState(const char *expectedCapturedSerializ
         return;
     }
 
-    printf("Serialization mismatch!\n");
+    GTEST_NONFATAL_FAILURE_("Serialization mismatch!");
 
     char aFilePath[kMaxPath] = {};
     if (CreateTemporaryFile(aFilePath, kMaxPath))

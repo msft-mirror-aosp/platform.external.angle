@@ -15,24 +15,6 @@ lucicfg.config(
     ],
 )
 
-# Enable LUCI Realms support.
-lucicfg.enable_experiment("crbug.com/1085650")
-# Launch 0% of Swarming tasks for builds in "realms-aware mode"
-# TODO(https://crbug.com/1204972): ramp up to 100%.
-# luci.builder.defaults.experiments.set({"luci.use_realms": 0})
-
-# Enable LUCI Realms support.
-lucicfg.enable_experiment("crbug.com/1085650")
-
-luci.builder.defaults.experiments.set({
-    # Launch all builds and tasks in Angle in realms mode.
-    "luci.use_realms": 100,
-    # Make the recipe use results from RDB rather than inspecting the JSON.
-    # TODO(crbug.com/1135718): This experiment can be removed after it's enabled
-    # by default in the recipe.
-    "chromium.chromium_tests.use_rdb_results": 100,
-})
-
 luci.project(
     name = "angle",
     buildbucket = "cr-buildbucket.appspot.com",
@@ -155,7 +137,7 @@ _GOMA_RBE_PROD = {
 }
 
 def _recipe_for_package(cipd_package):
-    def recipe(*, name, cipd_version = None, recipe = None, use_bbagent = False):
+    def recipe(*, name, cipd_version = None, recipe = None):
         # Force the caller to put the recipe prefix rather than adding it
         # programatically to make the string greppable
         if not name.startswith(_RECIPE_NAME_PREFIX):
@@ -168,7 +150,7 @@ def _recipe_for_package(cipd_package):
             cipd_package = cipd_package,
             cipd_version = cipd_version,
             recipe = recipe,
-            use_bbagent = use_bbagent,
+            use_bbagent = True,
         )
 
     return recipe
