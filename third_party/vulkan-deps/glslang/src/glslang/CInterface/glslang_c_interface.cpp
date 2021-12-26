@@ -244,6 +244,8 @@ c_shader_target_language_version(glslang_target_language_version_t target_langua
         return glslang::EShTargetSpv_1_4;
     case GLSLANG_TARGET_SPV_1_5:
         return glslang::EShTargetSpv_1_5;
+    case GLSLANG_TARGET_SPV_1_6:
+        return glslang::EShTargetSpv_1_6;
     default:
         break;
     }
@@ -367,6 +369,11 @@ GLSLANG_EXPORT void glslang_shader_set_options(glslang_shader_t* shader, int opt
     if (options & GLSLANG_SHADER_AUTO_MAP_LOCATIONS) {
         shader->shader->setAutoMapLocations(true);
     }
+
+    if (options & GLSLANG_SHADER_VULKAN_RULES_RELAXED) {
+        shader->shader->setEnvInputVulkanRulesRelaxed();
+    }
+
 }
 
 GLSLANG_EXPORT const char* glslang_shader_get_preprocessed_code(glslang_shader_t* shader)
