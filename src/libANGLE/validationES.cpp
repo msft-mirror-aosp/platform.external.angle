@@ -156,6 +156,9 @@ bool ValidReadPixelsFormatEnum(const Context *context, GLenum format)
         case GL_BGRA_EXT:
             return context->getExtensions().readFormatBgraEXT;
 
+        case GL_RGBX8_ANGLE:
+            return context->getExtensions().rgbxInternalFormatANGLE;
+
         default:
             return false;
     }
@@ -208,6 +211,9 @@ bool ValidReadPixelsFormatType(const Context *context,
                     return context->getExtensions().readStencilNV && (type == GL_UNSIGNED_BYTE);
                 case GL_DEPTH_COMPONENT:
                     return ValidReadPixelsUnsignedNormalizedDepthType(context, info, type);
+                case GL_RGBX8_ANGLE:
+                    return context->getExtensions().rgbxInternalFormatANGLE &&
+                           (type == GL_UNSIGNED_BYTE);
                 default:
                     return false;
             }
@@ -1756,6 +1762,97 @@ bool ValidateBindRenderbufferBase(const Context *context,
         return false;
     }
 
+    return true;
+}
+
+bool ValidateFramebufferParameteriBase(const Context *context,
+                                       angle::EntryPoint entryPoint,
+                                       GLenum target,
+                                       GLenum pname,
+                                       GLint param)
+{
+    if (!ValidFramebufferTarget(context, target))
+    {
+        context->validationError(entryPoint, GL_INVALID_ENUM, kInvalidFramebufferTarget);
+        return false;
+    }
+
+    switch (pname)
+    {
+        case GL_FRAMEBUFFER_DEFAULT_WIDTH:
+        {
+            GLint maxWidth = context->getCaps().maxFramebufferWidth;
+            if (param < 0 || param > maxWidth)
+            {
+                context->validationError(entryPoint, GL_INVALID_VALUE, kExceedsFramebufferWidth);
+                return false;
+            }
+            break;
+        }
+        case GL_FRAMEBUFFER_DEFAULT_HEIGHT:
+        {
+            GLint maxHeight = context->getCaps().maxFramebufferHeight;
+            if (param < 0 || param > maxHeight)
+            {
+                context->validationError(entryPoint, GL_INVALID_VALUE, kExceedsFramebufferHeight);
+                return false;
+            }
+            break;
+        }
+        case GL_FRAMEBUFFER_DEFAULT_SAMPLES:
+        {
+            GLint maxSamples = context->getCaps().maxFramebufferSamples;
+            if (param < 0 || param > maxSamples)
+            {
+                context->validationError(entryPoint, GL_INVALID_VALUE, kExceedsFramebufferSamples);
+                return false;
+            }
+            break;
+        }
+        case GL_FRAMEBUFFER_DEFAULT_FIXED_SAMPLE_LOCATIONS:
+        {
+            break;
+        }
+        case GL_FRAMEBUFFER_DEFAULT_LAYERS_EXT:
+        {
+            if (!context->getExtensions().geometryShaderAny() &&
+                context->getClientVersion() < ES_3_2)
+            {
+                context->validationError(entryPoint, GL_INVALID_ENUM,
+                                         kGeometryShaderExtensionNotEnabled);
+                return false;
+            }
+            GLint maxLayers = context->getCaps().maxFramebufferLayers;
+            if (param < 0 || param > maxLayers)
+            {
+                context->validationError(entryPoint, GL_INVALID_VALUE, kInvalidFramebufferLayer);
+                return false;
+            }
+            break;
+        }
+        case GL_FRAMEBUFFER_FLIP_Y_MESA:
+        {
+            if (!context->getExtensions().framebufferFlipYMESA)
+            {
+                context->validationError(entryPoint, GL_INVALID_ENUM, kInvalidPname);
+                return false;
+            }
+            break;
+        }
+        default:
+        {
+            context->validationError(entryPoint, GL_INVALID_ENUM, kInvalidPname);
+            return false;
+        }
+    }
+
+    const Framebuffer *framebuffer = context->getState().getTargetFramebuffer(target);
+    ASSERT(framebuffer);
+    if (framebuffer->isDefault())
+    {
+        context->validationError(entryPoint, GL_INVALID_OPERATION, kDefaultFramebuffer);
+        return false;
+    }
     return true;
 }
 
@@ -5527,6 +5624,57 @@ bool ValidateGetFramebufferAttachmentParameterivBase(const Context *context,
     return true;
 }
 
+bool ValidateGetFramebufferParameterivBase(const Context *context,
+                                           angle::EntryPoint entryPoint,
+                                           GLenum target,
+                                           GLenum pname,
+                                           const GLint *params)
+{
+    if (!ValidFramebufferTarget(context, target))
+    {
+        context->validationError(entryPoint, GL_INVALID_ENUM, kInvalidFramebufferTarget);
+        return false;
+    }
+
+    switch (pname)
+    {
+        case GL_FRAMEBUFFER_DEFAULT_WIDTH:
+        case GL_FRAMEBUFFER_DEFAULT_HEIGHT:
+        case GL_FRAMEBUFFER_DEFAULT_SAMPLES:
+        case GL_FRAMEBUFFER_DEFAULT_FIXED_SAMPLE_LOCATIONS:
+            break;
+        case GL_FRAMEBUFFER_DEFAULT_LAYERS_EXT:
+            if (!context->getExtensions().geometryShaderAny() &&
+                context->getClientVersion() < ES_3_2)
+            {
+                context->validationError(entryPoint, GL_INVALID_ENUM,
+                                         kGeometryShaderExtensionNotEnabled);
+                return false;
+            }
+            break;
+        case GL_FRAMEBUFFER_FLIP_Y_MESA:
+            if (!context->getExtensions().framebufferFlipYMESA)
+            {
+                context->validationError(entryPoint, GL_INVALID_ENUM, kInvalidPname);
+                return false;
+            }
+            break;
+        default:
+            context->validationError(entryPoint, GL_INVALID_ENUM, kInvalidPname);
+            return false;
+    }
+
+    const Framebuffer *framebuffer = context->getState().getTargetFramebuffer(target);
+    ASSERT(framebuffer);
+
+    if (framebuffer->isDefault())
+    {
+        context->validationError(entryPoint, GL_INVALID_OPERATION, kDefaultFramebuffer);
+        return false;
+    }
+    return true;
+}
+
 bool ValidateGetFramebufferAttachmentParameterivRobustANGLE(const Context *context,
                                                             angle::EntryPoint entryPoint,
                                                             GLenum target,
@@ -7194,7 +7342,7 @@ bool ValidateReadPixelsBase(const Context *context,
             return false;
         }
 
-        *outExtent = std::max(clippedExtent.ValueOrDie(), 0);
+        *outExtent = std::max<int>(clippedExtent.ValueOrDie(), 0);
         return true;
     };
 

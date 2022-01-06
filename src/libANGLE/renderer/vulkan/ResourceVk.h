@@ -194,6 +194,7 @@ class Resource : angle::NonCopyable
   protected:
     Resource();
     Resource(Resource &&other);
+    Resource &operator=(Resource &&rhs);
 
     // Current resource lifetime.
     SharedResourceUse mUse;
@@ -249,6 +250,7 @@ class ReadWriteResource : public angle::NonCopyable
   protected:
     ReadWriteResource();
     ReadWriteResource(ReadWriteResource &&other);
+    ReadWriteResource &operator=(ReadWriteResource &&other);
 
     // Track any use of the object. Always updated on every retain call.
     SharedResourceUse mReadOnlyUse;

@@ -24,6 +24,7 @@
 #include <cstdarg>
 #include <cstddef>
 #include <fstream>
+#include <mutex>
 #include <set>
 #include <sstream>
 #include <string>
@@ -221,8 +222,6 @@ inline std::string Str(int i)
     return strstr.str();
 }
 
-size_t FormatStringIntoVector(const char *fmt, va_list vararg, std::vector<char> &buffer);
-
 template <typename T>
 std::string ToString(const T &value)
 {
@@ -238,6 +237,32 @@ inline bool IsLittleEndian()
     return isLittleEndian;
 }
 
+// Helper class to use a mutex with the control of boolean.
+class ConditionalMutex final : angle::NonCopyable
+{
+  public:
+    ConditionalMutex() : mUseMutex(true) {}
+    void init(bool useMutex) { mUseMutex = useMutex; }
+    void lock()
+    {
+        if (mUseMutex)
+        {
+            mMutex.lock();
+        }
+    }
+    void unlock()
+    {
+        if (mUseMutex)
+        {
+            mMutex.unlock();
+        }
+    }
+
+  private:
+    std::mutex mMutex;
+    bool mUseMutex;
+};
+
 // snprintf is not defined with MSVC prior to to msvc14
 #if defined(_MSC_VER) && _MSC_VER < 1900
 #    define snprintf _snprintf
@@ -245,7 +270,6 @@ inline bool IsLittleEndian()
 
 #define GL_A1RGB5_ANGLEX 0x6AC5
 #define GL_BGRX8_ANGLEX 0x6ABA
-#define GL_RGBX8_ANGLEX 0x6AFA
 #define GL_BGR565_ANGLEX 0x6ABB
 #define GL_BGRA4_ANGLEX 0x6ABC
 #define GL_BGR5_A1_ANGLEX 0x6ABD
@@ -396,6 +420,9 @@ inline bool IsLittleEndian()
 #    define ANGLE_FORMAT_PRINTF(fmt, args)
 #endif
 
+ANGLE_FORMAT_PRINTF(1, 0)
+size_t FormatStringIntoVector(const char *fmt, va_list vararg, std::vector<char> &buffer);
+
 // Format messes up the # inside the macro.
 // clang-format off
 #ifndef ANGLE_STRINGIFY
@@ -446,13 +473,22 @@ inline bool IsASan()
 #endif  // defined(ANGLE_WITH_ASAN)
 }
 
-inline bool IsTSan()
+inline bool IsMSan()
 {
-#if defined(THREAD_SANITIZER)
+#if defined(ANGLE_WITH_MSAN)
     return true;
 #else
     return false;
-#endif  // defined(THREAD_SANITIZER)
+#endif  // defined(ANGLE_WITH_MSAN)
+}
+
+inline bool IsTSan()
+{
+#if defined(ANGLE_WITH_TSAN)
+    return true;
+#else
+    return false;
+#endif  // defined(ANGLE_WITH_TSAN)
 }
 
 inline bool IsUBSan()

@@ -52,6 +52,7 @@ if (angle_has_build) {
     angle_use_x11 = (is_linux || is_chromeos) && !is_ggp
     use_ozone = false
     ozone_platform_gbm = false
+    ozone_platform_wayland = false
     ozone_platform_headless = false
     use_fuzzing_engine = false
     is_apple = is_mac || is_ios
@@ -128,9 +129,9 @@ declare_args() {
 
   angle_enable_d3d9 = is_win && !angle_is_winuwp
   angle_enable_d3d11 = is_win
-  angle_enable_gl =
-      (ozone_platform_gbm || !is_linux || (angle_use_x11 && !is_chromeos)) &&
-      !is_fuchsia && !angle_is_winuwp && !is_ggp && !is_win_arm64
+  angle_enable_gl = (ozone_platform_gbm || ozone_platform_wayland ||
+                     !is_linux || (angle_use_x11 && !is_chromeos)) &&
+                    !is_fuchsia && !angle_is_winuwp && !is_ggp && !is_win_arm64
 
   angle_enable_vulkan =
       angle_has_build &&
@@ -535,17 +536,12 @@ template("angle_trace_fixture") {
 }
 
 template("angle_trace") {
-  _trace_prefix = invoker.trace_prefix
   angle_shared_library(target_name) {
     testonly = true
 
     # Similar to capture replay sample, use the file index for sources
-    sources = [
-                "${_trace_prefix}.cpp",
-                "${_trace_prefix}.h",
-              ] + invoker.sources
+    sources = invoker.sources
 
-    # TODO(http://anglebug.com/5133): Revert back to non-autogen'ed data.
     data = invoker.data
     defines = [ "ANGLE_REPLAY_IMPLEMENTATION" ]
     suppressed_configs += [ "$angle_root:constructor_and_destructor_warnings" ]
@@ -576,8 +572,60 @@ template("angle_trace") {
       output_name = invoker.output_name
     }
   }
+}
 
-  angle_source_set(target_name + "_headers") {
-    sources = [ "${_trace_prefix}.h" ]
+set_defaults("angle_trace_library") {
+  # Uses a short name to work around file path limits on Windows.
+  short_names = false
+}
+
+template("angle_trace_library") {
+  _trace_json = read_file(invoker.json_path, "json")
+  _trace_targets = []
+
+  if (invoker.short_names) {
+    _trace_counter = 1
+  }
+
+  foreach(_trace_and_version, _trace_json.traces) {
+    _trace_and_version_arr = []
+    _trace_and_version_arr = string_split(_trace_and_version)
+    _trace = _trace_and_version_arr[0]
+    if (defined(invoker.trace_dir)) {
+      _trace_dir = invoker.trace_dir
+    } else {
+      _trace_dir = _trace
+    }
+    _trace_json_path = "$_trace_dir/$_trace.json"
+    _trace_data = []
+    _trace_data = read_file(_trace_json_path, "json")
+
+    if (invoker.short_names) {
+      _target = "cr_trace_${_trace_counter}"
+      _trace_counter += 1
+    } else {
+      _target = "${target_name}_$_trace"
+    }
+    angle_trace(_target) {
+      sources = rebase_path(_trace_data.TraceFiles, ".", _trace_dir)
+
+      data = [
+        "$_trace_dir/$_trace.json",
+        "$_trace_dir/$_trace.angledata.gz",
+      ]
+      fixture = invoker.trace_fixture
+
+      if (invoker.short_names) {
+        output_name = _trace
+      }
+    }
+
+    _trace_targets += [ ":$_target" ]
+  }
+
+  group(target_name) {
+    testonly = true
+    data = [ invoker.json_path ]
+    data_deps = _trace_targets
   }
 }

@@ -329,7 +329,7 @@ static TLSIndex GetCurrentValidContextTLSIndex()
     static dispatch_once_t once;
     dispatch_once(&once, ^{
       ASSERT(CurrentValidContextIndex == TLS_INVALID_INDEX);
-      CurrentValidContextIndex = CreateTLSIndex();
+      CurrentValidContextIndex = CreateTLSIndex(nullptr);
     });
     return CurrentValidContextIndex;
 }
@@ -916,14 +916,7 @@ GLuint Context::createShaderProgramv(ShaderType type, GLsizei count, const GLcha
                     return 0u;
                 }
 
-                // If frame capture is enabled, don't detach the shader since we need the following
-                // to recreate the Shader and Program during MEC setup:
-                // 1.) Shader ID
-                // 2.) Shader source
-                if (!getShareGroup()->getFrameCaptureShared()->enabled())
-                {
-                    programObject->detachShader(this, shaderObject);
-                }
+                programObject->detachShader(this, shaderObject);
             }
 
             InfoLog &programInfoLog = programObject->getExecutable().getInfoLog();
@@ -3913,6 +3906,20 @@ void Context::initCaps()
         INFO() << "Disabling GL_OES_depth32 during capture, which is not widely supported on "
                   "mobile";
         mState.mExtensions.depth32OES = false;
+
+        // Pixel 4 (Qualcomm) only supports 6 atomic counter buffer bindings.
+        constexpr GLint maxAtomicCounterBufferBindings = 6;
+        INFO() << "Limiting max atomic counter buffer bindings to "
+               << maxAtomicCounterBufferBindings;
+        ANGLE_LIMIT_CAP(mState.mCaps.maxAtomicCounterBufferBindings,
+                        maxAtomicCounterBufferBindings);
+
+        // SwiftShader only supports 12 shader storage buffer bindings.
+        constexpr GLint maxShaderStorageBufferBindings = 12;
+        INFO() << "Limiting max shader storage buffer bindings to "
+               << maxShaderStorageBufferBindings;
+        ANGLE_LIMIT_CAP(mState.mCaps.maxShaderStorageBufferBindings,
+                        maxShaderStorageBufferBindings);
     }
 
     // Disable support for OES_get_program_binary
@@ -4269,7 +4276,9 @@ void Context::clear(GLbitfield mask)
 
     // If all stencil bits are masked, don't attempt to clear stencil.
     if (mState.getDrawFramebuffer()->getStencilAttachment() == nullptr ||
-        mState.getDepthStencilState().stencilWritemask == 0)
+        (angle::BitMask<uint32_t>(
+             mState.getDrawFramebuffer()->getStencilAttachment()->getStencilSize()) &
+         mState.getDepthStencilState().stencilWritemask) == 0)
     {
         mask &= ~GL_STENCIL_BUFFER_BIT;
     }
@@ -5013,7 +5022,9 @@ void Context::compressedTexImage2D(TextureTarget target,
 
     Extents size(width, height, 1);
     Texture *texture = getTextureByTarget(target);
-    ANGLE_CONTEXT_TRY(texture->setCompressedImage(this, mState.getUnpackState(), target, level,
+    // From OpenGL ES 3 spec: All pixel storage modes are ignored when decoding a compressed texture
+    // image. So we use an empty PixelUnpackState.
+    ANGLE_CONTEXT_TRY(texture->setCompressedImage(this, PixelUnpackState(), target, level,
                                                   internalformat, size, imageSize,
                                                   static_cast<const uint8_t *>(data)));
 }
@@ -5045,7 +5056,9 @@ void Context::compressedTexImage3D(TextureTarget target,
 
     Extents size(width, height, depth);
     Texture *texture = getTextureByTarget(target);
-    ANGLE_CONTEXT_TRY(texture->setCompressedImage(this, mState.getUnpackState(), target, level,
+    // From OpenGL ES 3 spec: All pixel storage modes are ignored when decoding a compressed texture
+    // image. So we use an empty PixelUnpackState.
+    ANGLE_CONTEXT_TRY(texture->setCompressedImage(this, PixelUnpackState(), target, level,
                                                   internalformat, size, imageSize,
                                                   static_cast<const uint8_t *>(data)));
 }
@@ -5079,8 +5092,10 @@ void Context::compressedTexSubImage2D(TextureTarget target,
 
     Box area(xoffset, yoffset, 0, width, height, 1);
     Texture *texture = getTextureByTarget(target);
-    ANGLE_CONTEXT_TRY(texture->setCompressedSubImage(this, mState.getUnpackState(), target, level,
-                                                     area, format, imageSize,
+    // From OpenGL ES 3 spec: All pixel storage modes are ignored when decoding a compressed texture
+    // image. So we use an empty PixelUnpackState.
+    ANGLE_CONTEXT_TRY(texture->setCompressedSubImage(this, PixelUnpackState(), target, level, area,
+                                                     format, imageSize,
                                                      static_cast<const uint8_t *>(data)));
 }
 
@@ -5121,8 +5136,10 @@ void Context::compressedTexSubImage3D(TextureTarget target,
 
     Box area(xoffset, yoffset, zoffset, width, height, depth);
     Texture *texture = getTextureByTarget(target);
-    ANGLE_CONTEXT_TRY(texture->setCompressedSubImage(this, mState.getUnpackState(), target, level,
-                                                     area, format, imageSize,
+    // From OpenGL ES 3 spec: All pixel storage modes are ignored when decoding a compressed texture
+    // image. So we use an empty PixelUnpackState.
+    ANGLE_CONTEXT_TRY(texture->setCompressedSubImage(this, PixelUnpackState(), target, level, area,
+                                                     format, imageSize,
                                                      static_cast<const uint8_t *>(data)));
 }
 
@@ -6452,12 +6469,15 @@ void Context::multiDrawArraysInstanced(PrimitiveMode mode,
                                                                 instanceCounts, drawcount));
 }
 
-void Context::multiDrawArraysIndirect(GLenum mode,
+void Context::multiDrawArraysIndirect(PrimitiveMode mode,
                                       const void *indirect,
                                       GLsizei drawcount,
                                       GLsizei stride)
 {
-    UNIMPLEMENTED();
+    ANGLE_CONTEXT_TRY(prepareForDraw(mode));
+    ANGLE_CONTEXT_TRY(
+        mImplementation->multiDrawArraysIndirect(this, mode, indirect, drawcount, stride));
+    MarkShaderStorageUsage(this);
 }
 
 void Context::multiDrawElements(PrimitiveMode mode,
@@ -6483,13 +6503,16 @@ void Context::multiDrawElementsInstanced(PrimitiveMode mode,
                                                                   instanceCounts, drawcount));
 }
 
-void Context::multiDrawElementsIndirect(GLenum mode,
-                                        GLenum type,
+void Context::multiDrawElementsIndirect(PrimitiveMode mode,
+                                        DrawElementsType type,
                                         const void *indirect,
                                         GLsizei drawcount,
                                         GLsizei stride)
 {
-    UNIMPLEMENTED();
+    ANGLE_CONTEXT_TRY(prepareForDraw(mode));
+    ANGLE_CONTEXT_TRY(
+        mImplementation->multiDrawElementsIndirect(this, mode, type, indirect, drawcount, stride));
+    MarkShaderStorageUsage(this);
 }
 
 void Context::drawArraysInstancedBaseInstance(PrimitiveMode mode,
@@ -8628,6 +8651,33 @@ void Context::getSemaphoreParameterui64v(SemaphoreID semaphore, GLenum pname, GL
     UNIMPLEMENTED();
 }
 
+void Context::acquireTextures(GLuint numTextures,
+                              const TextureID *textureIds,
+                              const GLenum *layouts)
+{
+    TextureBarrierVector textureBarriers(numTextures);
+    for (size_t i = 0; i < numTextures; i++)
+    {
+        textureBarriers[i].texture = getTexture(textureIds[i]);
+        textureBarriers[i].layout  = layouts[i];
+    }
+    ANGLE_CONTEXT_TRY(mImplementation->acquireTextures(this, textureBarriers));
+}
+
+void Context::releaseTextures(GLuint numTextures, const TextureID *textureIds, GLenum *layouts)
+{
+    TextureBarrierVector textureBarriers(numTextures);
+    for (size_t i = 0; i < numTextures; i++)
+    {
+        textureBarriers[i].texture = getTexture(textureIds[i]);
+    }
+    ANGLE_CONTEXT_TRY(mImplementation->releaseTextures(this, &textureBarriers));
+    for (size_t i = 0; i < numTextures; i++)
+    {
+        layouts[i] = textureBarriers[i].layout;
+    }
+}
+
 void Context::waitSemaphore(SemaphoreID semaphoreHandle,
                             GLuint numBufferBarriers,
                             const BufferID *buffers,
@@ -8900,6 +8950,16 @@ void Context::maxShaderCompilerThreads(GLuint count)
     }
     mThreadPool->setMaxThreads(count);
     mImplementation->setMaxShaderCompilerThreads(count);
+}
+
+void Context::framebufferParameteriMESA(GLenum target, GLenum pname, GLint param)
+{
+    framebufferParameteri(target, pname, param);
+}
+
+void Context::getFramebufferParameterivMESA(GLenum target, GLenum pname, GLint *params)
+{
+    getFramebufferParameteriv(target, pname, params);
 }
 
 bool Context::isGLES1() const

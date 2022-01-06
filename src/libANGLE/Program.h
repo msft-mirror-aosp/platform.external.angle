@@ -287,7 +287,10 @@ class ProgramState final : angle::NonCopyable
     const RangeUI &getDefaultUniformRange() const { return mExecutable->getDefaultUniformRange(); }
     const RangeUI &getSamplerUniformRange() const { return mExecutable->getSamplerUniformRange(); }
     const RangeUI &getImageUniformRange() const { return mExecutable->getImageUniformRange(); }
-    const RangeUI &getAtomicCounterUniformRange() const { return mAtomicCounterUniformRange; }
+    const RangeUI &getAtomicCounterUniformRange() const
+    {
+        return mExecutable->getAtomicCounterUniformRange();
+    }
     const RangeUI &getFragmentInoutRange() const { return mExecutable->getFragmentInoutRange(); }
 
     const std::vector<TransformFeedbackVarying> &getLinkedTransformFeedbackVaryings() const
@@ -385,7 +388,6 @@ class ProgramState final : angle::NonCopyable
 
     std::vector<VariableLocation> mUniformLocations;
     std::vector<BufferVariable> mBufferVariables;
-    RangeUI mAtomicCounterUniformRange;
 
     bool mBinaryRetrieveableHint;
     bool mSeparable;
@@ -398,7 +400,7 @@ class ProgramState final : angle::NonCopyable
     // GL_ANGLE_multi_draw
     int mDrawIDLocation;
 
-    // GL_ANGLE_base_vertex_base_instance
+    // GL_ANGLE_base_vertex_base_instance_shader_builtin
     int mBaseVertexLocation;
     int mBaseInstanceLocation;
     // Cached value of base vertex and base instance
