@@ -841,11 +841,26 @@ using PipelineBarrierArray = angle::PackedEnumMap<PipelineStage, PipelineBarrier
 
 class FramebufferHelper;
 
+enum class MemoryCoherency
+{
+    NonCoherent,
+    Coherent
+};
+
+enum class MemoryHostVisibility
+{
+    NonVisible,
+    Visible
+};
+
 class BufferHelper : public ReadWriteResource
 {
   public:
     BufferHelper();
     ~BufferHelper() override;
+
+    BufferHelper(BufferHelper &&other);
+    BufferHelper &operator=(BufferHelper &&other);
 
     angle::Result init(ContextVk *contextVk,
                        const VkBufferCreateInfo &createInfo,
@@ -858,6 +873,9 @@ class BufferHelper : public ReadWriteResource
                                     uint32_t memoryTypeIndex,
                                     size_t size,
                                     size_t alignment);
+
+    // Initialize a host visible buffer with alignment good for copyBuffer .
+    angle::Result initForCopyBuffer(ContextVk *contextVk, size_t size, MemoryCoherency coherency);
 
     void destroy(RendererVk *renderer);
     void release(RendererVk *renderer);
@@ -925,6 +943,7 @@ class BufferHelper : public ReadWriteResource
                             PipelineBarrier *barrier);
 
   private:
+    void initializeBarrierTracker(Context *context);
     angle::Result initializeNonZeroMemory(Context *context,
                                           VkBufferUsageFlags usage,
                                           VkDeviceSize size);
@@ -1582,7 +1601,8 @@ class ImageHelper final : public Resource, public angle::Subject
                                                LevelIndex baseMipLevelVk,
                                                uint32_t levelCount,
                                                uint32_t baseArrayLayer,
-                                               uint32_t layerCount) const;
+                                               uint32_t layerCount,
+                                               const gl::SamplerState &samplerState) const;
     angle::Result initReinterpretedLayerImageView(Context *context,
                                                   gl::TextureType textureType,
                                                   VkImageAspectFlags aspectMask,
@@ -2274,18 +2294,18 @@ class ImageHelper final : public Resource, public angle::Subject
     const LevelContentDefinedMask &getLevelContentDefined(LevelIndex level) const;
     const LevelContentDefinedMask &getLevelStencilContentDefined(LevelIndex level) const;
 
-    angle::Result initLayerImageViewImpl(
-        Context *context,
-        gl::TextureType textureType,
-        VkImageAspectFlags aspectMask,
-        const gl::SwizzleState &swizzleMap,
-        ImageView *imageViewOut,
-        LevelIndex baseMipLevelVk,
-        uint32_t levelCount,
-        uint32_t baseArrayLayer,
-        uint32_t layerCount,
-        VkFormat imageFormat,
-        const VkImageViewUsageCreateInfo *imageViewUsageCreateInfo) const;
+    angle::Result initLayerImageViewImpl(Context *context,
+                                         gl::TextureType textureType,
+                                         VkImageAspectFlags aspectMask,
+                                         const gl::SwizzleState &swizzleMap,
+                                         ImageView *imageViewOut,
+                                         LevelIndex baseMipLevelVk,
+                                         uint32_t levelCount,
+                                         uint32_t baseArrayLayer,
+                                         uint32_t layerCount,
+                                         VkFormat imageFormat,
+                                         const VkImageViewUsageCreateInfo *imageViewUsageCreateInfo,
+                                         const gl::SamplerState *samplerState) const;
 
     bool canCopyWithTransformForReadPixels(const PackPixelsParams &packPixelsParams,
                                            const angle::Format *readFormat);
@@ -2481,7 +2501,8 @@ class ImageViewHelper final : public Resource
                                 uint32_t baseLayer,
                                 uint32_t layerCount,
                                 bool requiresSRGBViews,
-                                VkImageUsageFlags imageUsageFlags);
+                                VkImageUsageFlags imageUsageFlags,
+                                const gl::SamplerState &samplerState);
 
     // Creates a storage view with all layers of the level.
     angle::Result getLevelStorageImageView(ContextVk *contextVk,
@@ -2577,7 +2598,8 @@ class ImageViewHelper final : public Resource
                                     LevelIndex baseLevel,
                                     uint32_t levelCount,
                                     uint32_t baseLayer,
-                                    uint32_t layerCount);
+                                    uint32_t layerCount,
+                                    const gl::SamplerState &samplerState);
 
     // Create SRGB-reinterpreted read views
     angle::Result initSRGBReadViewsImpl(ContextVk *contextVk,

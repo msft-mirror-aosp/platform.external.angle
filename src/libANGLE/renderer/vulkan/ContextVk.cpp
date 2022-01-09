@@ -916,19 +916,7 @@ angle::Result ContextVk::initialize()
 
     constexpr VkImageUsageFlags kStagingBufferUsageFlags =
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    size_t stagingBufferAlignment =
-        static_cast<size_t>(mRenderer->getPhysicalDeviceProperties().limits.minMemoryMapAlignment);
-    ASSERT(gl::isPow2(mRenderer->getPhysicalDeviceProperties().limits.nonCoherentAtomSize));
-    ASSERT(gl::isPow2(
-        mRenderer->getPhysicalDeviceProperties().limits.optimalBufferCopyOffsetAlignment));
-    stagingBufferAlignment = static_cast<size_t>(std::max(
-        stagingBufferAlignment,
-        static_cast<size_t>(
-            mRenderer->getPhysicalDeviceProperties().limits.optimalBufferCopyOffsetAlignment)));
-    stagingBufferAlignment = static_cast<size_t>(std::max(
-        stagingBufferAlignment,
-        static_cast<size_t>(mRenderer->getPhysicalDeviceProperties().limits.nonCoherentAtomSize)));
-
+    size_t stagingBufferAlignment       = mRenderer->getStagingBufferAlignment();
     constexpr size_t kStagingBufferSize = 1024u * 1024u;  // 1M
     mStagingBuffer.init(mRenderer, kStagingBufferUsageFlags, stagingBufferAlignment,
                         kStagingBufferSize, true, vk::DynamicBufferPolicy::SporadicTextureUpload);
@@ -3941,8 +3929,8 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                 gl::DrawBufferMask newColorAttachmentMask =
                     mDrawFramebuffer->getState().getColorAttachmentsMask();
                 mGraphicsPipelineDesc->resetBlendFuncsAndEquations(
-                    &mGraphicsPipelineTransition, mCachedDrawFramebufferColorAttachmentMask,
-                    newColorAttachmentMask);
+                    &mGraphicsPipelineTransition, glState.getBlendStateExt(),
+                    mCachedDrawFramebufferColorAttachmentMask, newColorAttachmentMask);
                 mCachedDrawFramebufferColorAttachmentMask = newColorAttachmentMask;
 
                 mGraphicsPipelineDesc->resetSubpass(&mGraphicsPipelineTransition);
