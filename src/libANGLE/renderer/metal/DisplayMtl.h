@@ -133,8 +133,6 @@ class DisplayMtl : public DisplayImpl
     bool isSimulator() const;
 
     id<MTLDevice> getMetalDevice() const { return mMetalDevice; }
-
-    mtl::CommandQueue &cmdQueue() { return mCmdQueue; }
     const mtl::FormatTable &getFormatTable() const { return mFormatTable; }
     mtl::RenderUtils &getUtils() { return mUtils; }
     mtl::StateCache &getStateCache() { return mStateCache; }
@@ -181,8 +179,6 @@ class DisplayMtl : public DisplayImpl
 
     mtl::AutoObjCPtr<id<MTLDevice>> mMetalDevice = nil;
     uint32_t mMetalDeviceVendorId                = 0;
-
-    mtl::CommandQueue mCmdQueue;
 
     mutable mtl::FormatTable mFormatTable;
     mtl::StateCache mStateCache;
