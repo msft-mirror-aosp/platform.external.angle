@@ -398,8 +398,7 @@ constexpr SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
      "SYNC_IMAGE_LAYOUT_TRANSITION",
      "", false},
     // From various tests. The validation layer does not calculate the exact vertexCounts that's
-    // been
-    // accessed. http://anglebug.com/6725
+    // been accessed. http://anglebug.com/6725
     {"SYNC-HAZARD-READ_AFTER_WRITE", "vkCmdDrawIndexed: Hazard READ_AFTER_WRITE for vertex",
      "usage: SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ", false},
     {"SYNC-HAZARD-READ_AFTER_WRITE", "vkCmdDrawIndexedIndirect: Hazard READ_AFTER_WRITE for vertex",
@@ -410,6 +409,11 @@ constexpr SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
      "usage: SYNC_INDEX_INPUT_INDEX_READ", false},
     {"SYNC-HAZARD-WRITE_AFTER_READ", "vkCmdDraw: Hazard WRITE_AFTER_READ for VkBuffer",
      "Access info (usage: SYNC_VERTEX_SHADER_SHADER_STORAGE_WRITE, prior_usage: "
+     "SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
+     false},
+    {"SYNC-HAZARD-WRITE_AFTER_READ",
+     "vkCmdCopyImageToBuffer(): Hazard WRITE_AFTER_READ for dstBuffer VkBuffer",
+     "Access info (usage: SYNC_COPY_TRANSFER_WRITE, prior_usage: "
      "SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
      false},
     {"SYNC-HAZARD-WRITE_AFTER_READ", "vkCmdDispatch: Hazard WRITE_AFTER_READ for VkBuffer",
@@ -998,6 +1002,12 @@ RendererVk::RendererVk()
       mDefaultUniformBufferSize(kPreferredDefaultUniformBufferSize),
       mDevice(VK_NULL_HANDLE),
       mDeviceLost(false),
+      mCoherentStagingBufferMemoryTypeIndex(kInvalidMemoryTypeIndex),
+      mNonCoherentStagingBufferMemoryTypeIndex(kInvalidMemoryTypeIndex),
+      mStagingBufferAlignment(1),
+      mHostVisibleVertexConversionBufferMemoryTypeIndex(kInvalidMemoryTypeIndex),
+      mDeviceLocalVertexConversionBufferMemoryTypeIndex(kInvalidMemoryTypeIndex),
+      mVertexConversionBufferAlignment(1),
       mPipelineCacheVkUpdateTimeout(kPipelineCacheVkUpdatePeriod),
       mPipelineCacheDirty(false),
       mPipelineCacheInitialized(false),
@@ -1288,7 +1298,7 @@ angle::Result RendererVk::initialize(DisplayVk *displayVk,
     applicationInfo.engineVersion      = 1;
 
     auto enumerateInstanceVersion = reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
-        vkGetInstanceProcAddr(mInstance, "vkEnumerateInstanceVersion"));
+        vkGetInstanceProcAddr(nullptr, "vkEnumerateInstanceVersion"));
     if (!enumerateInstanceVersion)
     {
         mApiVersion = VK_API_VERSION_1_0;
@@ -1469,6 +1479,70 @@ angle::Result RendererVk::initialize(DisplayVk *displayVk,
 
     // Create buffer memory allocator
     ANGLE_VK_TRY(displayVk, mBufferMemoryAllocator.initialize(this, preferredLargeHeapBlockSize));
+
+    ANGLE_VK_CHECK(displayVk, mMemoryProperties.getMemoryTypeCount() > 0,
+                   VK_ERROR_INITIALIZATION_FAILED);
+    // Initialize staging buffer memory type index and alignment.
+    // These buffers will only be used as transfer sources or transfer targets.
+    constexpr VkImageUsageFlags kUsageFlags =
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+    VkBufferCreateInfo createInfo    = {};
+    createInfo.sType                 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    createInfo.flags                 = 0;
+    createInfo.size                  = 4096;
+    createInfo.usage                 = kUsageFlags;
+    createInfo.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.queueFamilyIndexCount = 0;
+    createInfo.pQueueFamilyIndices   = nullptr;
+
+    VkMemoryPropertyFlags requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    bool persistentlyMapped             = mFeatures.persistentlyMappedBuffers.enabled;
+
+    // Coherent staging buffer
+    VkMemoryPropertyFlags preferredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    ANGLE_VK_TRY(displayVk, mBufferMemoryAllocator.findMemoryTypeIndexForBufferInfo(
+                                this, createInfo, requiredFlags, preferredFlags, persistentlyMapped,
+                                &mCoherentStagingBufferMemoryTypeIndex));
+    ASSERT(mCoherentStagingBufferMemoryTypeIndex != kInvalidMemoryTypeIndex);
+
+    // Non-coherent staging buffer
+    ANGLE_VK_TRY(displayVk, mBufferMemoryAllocator.findMemoryTypeIndexForBufferInfo(
+                                this, createInfo, requiredFlags, 0, persistentlyMapped,
+                                &mNonCoherentStagingBufferMemoryTypeIndex));
+    ASSERT(mNonCoherentStagingBufferMemoryTypeIndex != kInvalidMemoryTypeIndex);
+
+    // Alignment
+    mStagingBufferAlignment =
+        static_cast<size_t>(mPhysicalDeviceProperties.limits.minMemoryMapAlignment);
+    ASSERT(gl::isPow2(mPhysicalDeviceProperties.limits.nonCoherentAtomSize));
+    ASSERT(gl::isPow2(mPhysicalDeviceProperties.limits.optimalBufferCopyOffsetAlignment));
+    mStagingBufferAlignment = std::max(
+        mStagingBufferAlignment,
+        static_cast<size_t>(mPhysicalDeviceProperties.limits.optimalBufferCopyOffsetAlignment));
+    mStagingBufferAlignment =
+        std::max(mStagingBufferAlignment,
+                 static_cast<size_t>(mPhysicalDeviceProperties.limits.nonCoherentAtomSize));
+    ASSERT(gl::isPow2(mStagingBufferAlignment));
+
+    // Device local vertex conversion buffer
+    createInfo.usage = vk::kVertexBufferUsageFlags;
+    requiredFlags    = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    preferredFlags   = 0;
+    ANGLE_VK_TRY(displayVk, mBufferMemoryAllocator.findMemoryTypeIndexForBufferInfo(
+                                this, createInfo, requiredFlags, preferredFlags, persistentlyMapped,
+                                &mDeviceLocalVertexConversionBufferMemoryTypeIndex));
+    ASSERT(mDeviceLocalVertexConversionBufferMemoryTypeIndex != kInvalidMemoryTypeIndex);
+
+    // Host visible and non-coherent vertex conversion buffer, which is the same as non-coherent
+    // staging buffer
+    mHostVisibleVertexConversionBufferMemoryTypeIndex = mNonCoherentStagingBufferMemoryTypeIndex;
+    // We may use compute shader to do conversion, so we must meet
+    // minStorageBufferOffsetAlignment requirement as well.
+    mVertexConversionBufferAlignment = std::max(
+        vk::kVertexBufferAlignment,
+        static_cast<size_t>(mPhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment));
+    ASSERT(gl::isPow2(mVertexConversionBufferAlignment));
 
     {
         ANGLE_TRACE_EVENT0("gpu.angle,startup", "GlslangWarmup");
@@ -2854,9 +2928,13 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     //
     // Note that emulation of GL_EXT_multisampled_render_to_texture is only really useful on tiling
     // hardware, but is exposed on desktop platforms purely to increase testing coverage.
+    const bool supportsIndependentDepthStencilResolve =
+        mFeatures.supportsDepthStencilResolve.enabled &&
+        mDepthStencilResolveProperties.independentResolveNone == VK_TRUE;
     ANGLE_FEATURE_CONDITION(&mFeatures, enableMultisampledRenderToTexture,
                             mFeatures.supportsMultisampledRenderToSingleSampled.enabled ||
-                                (!isSwiftShader && !(IsWindows() && (isIntel || isAMD))));
+                                (supportsIndependentDepthStencilResolve && !isSwiftShader &&
+                                 !(IsWindows() && (isIntel || isAMD))));
 
     // Currently we enable cube map arrays based on the imageCubeArray Vk feature.
     // TODO: Check device caps for full cube map array support. http://anglebug.com/5143
