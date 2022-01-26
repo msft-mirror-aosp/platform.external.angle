@@ -23,11 +23,6 @@
 
 namespace rx
 {
-ANGLE_INLINE bool UseLineRaster(const ContextVk *contextVk, gl::PrimitiveMode mode)
-{
-    return contextVk->getFeatures().basicGLLineRasterization.enabled && gl::IsLineMode(mode);
-}
-
 class ProgramVk : public ProgramImpl
 {
   public:
@@ -41,8 +36,6 @@ class ProgramVk : public ProgramImpl
     void save(const gl::Context *context, gl::BinaryOutputStream *stream) override;
     void setBinaryRetrievableHint(bool retrievable) override;
     void setSeparable(bool separable) override;
-
-    void fillProgramStateMap(gl::ShaderMap<const gl::ProgramState *> *programStatesOut);
 
     std::unique_ptr<LinkEvent> link(const gl::Context *context,
                                     const gl::ProgramLinkedResources &resources,
@@ -128,9 +121,9 @@ class ProgramVk : public ProgramImpl
     ProgramExecutableVk &getExecutable() { return mExecutable; }
 
     gl::ShaderMap<DefaultUniformBlock> &getDefaultUniformBlocks() { return mDefaultUniformBlocks; }
-    size_t getDefaultUniformAlignedSize(ContextVk *contextVk, const gl::ShaderType shaderType) const
+    size_t getDefaultUniformAlignedSize(vk::Context *context, const gl::ShaderType shaderType) const
     {
-        RendererVk *renderer = contextVk->getRenderer();
+        RendererVk *renderer = context->getRenderer();
         size_t alignment     = static_cast<size_t>(
             renderer->getPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment);
         return roundUp(mDefaultUniformBlocks[shaderType].uniformData.size(), alignment);
