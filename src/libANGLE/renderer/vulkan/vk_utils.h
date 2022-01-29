@@ -12,6 +12,7 @@
 
 #include <atomic>
 #include <limits>
+#include <queue>
 
 #include "GLSLANG/ShaderLang.h"
 #include "common/FixedVector.h"
@@ -201,11 +202,14 @@ class Context : angle::NonCopyable
 
 class RenderPassDesc;
 
-#if ANGLE_USE_CUSTOM_VULKAN_CMD_BUFFERS
+#if ANGLE_USE_CUSTOM_VULKAN_OUTSIDE_RENDER_PASS_CMD_BUFFERS
 using OutsideRenderPassCommandBuffer = priv::SecondaryCommandBuffer;
-using RenderPassCommandBuffer        = priv::SecondaryCommandBuffer;
 #else
 using OutsideRenderPassCommandBuffer         = VulkanSecondaryCommandBuffer;
+#endif
+#if ANGLE_USE_CUSTOM_VULKAN_RENDER_PASS_CMD_BUFFERS
+using RenderPassCommandBuffer = priv::SecondaryCommandBuffer;
+#else
 using RenderPassCommandBuffer                = VulkanSecondaryCommandBuffer;
 #endif
 
@@ -363,7 +367,7 @@ using GarbageAndSerial = ObjectAndSerial<GarbageList>;
 
 // Houses multiple lists of garbage objects. Each sub-list has a different lifetime. They should be
 // sorted such that later-living garbage is ordered later in the list.
-using GarbageQueue = std::vector<GarbageAndSerial>;
+using GarbageQueue = std::queue<GarbageAndSerial>;
 
 class MemoryProperties final : angle::NonCopyable
 {
