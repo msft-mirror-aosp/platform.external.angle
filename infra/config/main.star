@@ -137,7 +137,7 @@ _GOMA_RBE_PROD = {
 }
 
 def _recipe_for_package(cipd_package):
-    def recipe(*, name, cipd_version = None, recipe = None):
+    def recipe(*, name, cipd_version = None, recipe = None, use_python3 = False):
         # Force the caller to put the recipe prefix rather than adding it
         # programatically to make the string greppable
         if not name.startswith(_RECIPE_NAME_PREFIX):
@@ -151,6 +151,7 @@ def _recipe_for_package(cipd_package):
             cipd_version = cipd_version,
             recipe = recipe,
             use_bbagent = True,
+            use_python3 = use_python3,
         )
 
     return recipe
@@ -165,6 +166,7 @@ build_recipe(
 
 build_recipe(
     name = "recipe:run_presubmit",
+    use_python3 = True,
 )
 
 def get_os_from_name(name):
@@ -375,6 +377,7 @@ luci.gitiles_poller(
 angle_builder("android-arm-compile", cpu = "arm")
 angle_builder("android-arm-dbg-compile", cpu = "arm")
 angle_builder("android-arm64-dbg-compile", cpu = "arm64")
+angle_builder("android-arm64-exp-test", cpu = "arm64")
 angle_builder("android-arm64-test", cpu = "arm64")
 angle_builder("linux-asan-test", cpu = "x64")
 angle_builder("linux-tsan-test", cpu = "x64")

@@ -12,6 +12,7 @@
 
 #include <atomic>
 #include <limits>
+#include <queue>
 
 #include "GLSLANG/ShaderLang.h"
 #include "common/FixedVector.h"
@@ -201,11 +202,14 @@ class Context : angle::NonCopyable
 
 class RenderPassDesc;
 
-#if ANGLE_USE_CUSTOM_VULKAN_CMD_BUFFERS
+#if ANGLE_USE_CUSTOM_VULKAN_OUTSIDE_RENDER_PASS_CMD_BUFFERS
 using OutsideRenderPassCommandBuffer = priv::SecondaryCommandBuffer;
-using RenderPassCommandBuffer        = priv::SecondaryCommandBuffer;
 #else
 using OutsideRenderPassCommandBuffer         = VulkanSecondaryCommandBuffer;
+#endif
+#if ANGLE_USE_CUSTOM_VULKAN_RENDER_PASS_CMD_BUFFERS
+using RenderPassCommandBuffer = priv::SecondaryCommandBuffer;
+#else
 using RenderPassCommandBuffer                = VulkanSecondaryCommandBuffer;
 #endif
 
@@ -269,6 +273,12 @@ template <typename T>
 GetImplType<T> *GetImpl(const T *glObject)
 {
     return GetImplAs<GetImplType<T>>(glObject);
+}
+
+template <typename T>
+GetImplType<T> *SafeGetImpl(const T *glObject)
+{
+    return SafeGetImplAs<GetImplType<T>>(glObject);
 }
 
 template <>
@@ -357,7 +367,7 @@ using GarbageAndSerial = ObjectAndSerial<GarbageList>;
 
 // Houses multiple lists of garbage objects. Each sub-list has a different lifetime. They should be
 // sorted such that later-living garbage is ordered later in the list.
-using GarbageQueue = std::vector<GarbageAndSerial>;
+using GarbageQueue = std::queue<GarbageAndSerial>;
 
 class MemoryProperties final : angle::NonCopyable
 {
@@ -399,11 +409,11 @@ class BufferMemory : angle::NonCopyable
 
     void destroy(RendererVk *renderer);
 
-    angle::Result map(ContextVk *contextVk, VkDeviceSize size, uint8_t **ptrOut)
+    angle::Result map(Context *context, VkDeviceSize size, uint8_t **ptrOut)
     {
         if (mMappedMemory == nullptr)
         {
-            ANGLE_TRY(mapImpl(contextVk, size));
+            ANGLE_TRY(mapImpl(context, size));
         }
         *ptrOut = mMappedMemory;
         return angle::Result::Continue;
@@ -422,7 +432,7 @@ class BufferMemory : angle::NonCopyable
     Allocation *getMemoryObject() { return &mAllocation; }
 
   private:
-    angle::Result mapImpl(ContextVk *contextVk, VkDeviceSize size);
+    angle::Result mapImpl(Context *context, VkDeviceSize size);
 
     Allocation mAllocation;        // use mAllocation if isExternalBuffer() is false
     DeviceMemory mExternalMemory;  // use mExternalMemory if isExternalBuffer() is true
@@ -943,7 +953,7 @@ class BufferBlock final : angle::NonCopyable
                        Allocation &allocation,
                        VkMemoryPropertyFlags memoryPropertyFlags,
                        VkDeviceSize size);
-    void initWithoutVirtualBlock(ContextVk *contextVk,
+    void initWithoutVirtualBlock(Context *context,
                                  Buffer &buffer,
                                  Allocation &allocation,
                                  VkMemoryPropertyFlags memoryPropertyFlags,
@@ -966,7 +976,7 @@ class BufferBlock final : angle::NonCopyable
     bool isHostVisible() const;
     bool isCoherent() const;
     bool isMapped() const;
-    angle::Result map(ContextVk *contextVk);
+    angle::Result map(Context *context);
     void unmap(const Allocator &allocator);
     uint8_t *getMappedMemory() const;
 
@@ -993,51 +1003,51 @@ class BufferBlock final : angle::NonCopyable
 };
 using BufferBlockPointerVector = std::vector<std::unique_ptr<BufferBlock>>;
 
-// BufferSubAllocation
-struct VmaBufferSubAllocation_T
+// BufferSuballocation
+struct VmaBufferSuballocation_T
 {
     BufferBlock *mBufferBlock;
     VkDeviceSize mOffset;
     VkDeviceSize mSize;
 };
-VK_DEFINE_HANDLE(VmaBufferSubAllocation)
+VK_DEFINE_HANDLE(VmaBufferSuballocation)
 ANGLE_INLINE VkResult
-CreateVmaBufferSubAllocation(BufferBlock *block,
+CreateVmaBufferSuballocation(BufferBlock *block,
                              VkDeviceSize offset,
                              VkDeviceSize size,
-                             VmaBufferSubAllocation *vmaBufferSubAllocationOut)
+                             VmaBufferSuballocation *vmaBufferSuballocationOut)
 {
-    *vmaBufferSubAllocationOut = new VmaBufferSubAllocation_T{block, offset, size};
-    return *vmaBufferSubAllocationOut != VK_NULL_HANDLE ? VK_SUCCESS : VK_ERROR_OUT_OF_HOST_MEMORY;
+    *vmaBufferSuballocationOut = new VmaBufferSuballocation_T{block, offset, size};
+    return *vmaBufferSuballocationOut != VK_NULL_HANDLE ? VK_SUCCESS : VK_ERROR_OUT_OF_HOST_MEMORY;
 }
-ANGLE_INLINE void DestroyVmaBufferSubAllocation(RendererVk *renderer,
-                                                VmaBufferSubAllocation vmaBufferSubAllocation)
+ANGLE_INLINE void DestroyVmaBufferSuballocation(RendererVk *renderer,
+                                                VmaBufferSuballocation vmaBufferSuballocation)
 {
-    ASSERT(vmaBufferSubAllocation->mBufferBlock);
-    if (vmaBufferSubAllocation->mBufferBlock->hasVirtualBlock())
+    ASSERT(vmaBufferSuballocation->mBufferBlock);
+    if (vmaBufferSuballocation->mBufferBlock->hasVirtualBlock())
     {
-        vmaBufferSubAllocation->mBufferBlock->free(vmaBufferSubAllocation->mOffset);
+        vmaBufferSuballocation->mBufferBlock->free(vmaBufferSuballocation->mOffset);
     }
     else
     {
         // When virtual block is invalid, this is the standalone buffer that are created by
-        // BufferSubAllocation::initWithEntireBuffer call. In this case, vmaBufferSubAllocation owns
+        // BufferSuballocation::initWithEntireBuffer call. In this case, vmaBufferSuballocation owns
         // block, we must properly delete the block object.
-        vmaBufferSubAllocation->mBufferBlock->destroy(renderer);
-        delete vmaBufferSubAllocation->mBufferBlock;
+        vmaBufferSuballocation->mBufferBlock->destroy(renderer);
+        delete vmaBufferSuballocation->mBufferBlock;
     }
 
-    delete vmaBufferSubAllocation;
+    delete vmaBufferSuballocation;
 }
 
-class BufferSubAllocation final : public WrappedObject<BufferSubAllocation, VmaBufferSubAllocation>
+class BufferSuballocation final : public WrappedObject<BufferSuballocation, VmaBufferSuballocation>
 {
   public:
-    BufferSubAllocation() = default;
+    BufferSuballocation() = default;
     void destroy(RendererVk *renderer);
 
     VkResult init(VkDevice device, BufferBlock *block, VkDeviceSize offset, VkDeviceSize size);
-    VkResult initWithEntireBuffer(ContextVk *contextVk,
+    VkResult initWithEntireBuffer(Context *context,
                                   Buffer &buffer,
                                   Allocation &allocation,
                                   VkMemoryPropertyFlags memoryPropertyFlags,
@@ -1056,6 +1066,167 @@ class BufferSubAllocation final : public WrappedObject<BufferSubAllocation, VmaB
     void invalidate(const Allocator &allocator) const;
     VkDeviceSize getOffset() const;
 };
+
+// BufferBlock implementation.
+ANGLE_INLINE Buffer *BufferBlock::getBuffer()
+{
+    return &mBuffer;
+}
+
+ANGLE_INLINE const Allocation &BufferBlock::getAllocation() const
+{
+    return mAllocation;
+}
+
+ANGLE_INLINE VkMemoryPropertyFlags BufferBlock::getMemoryPropertyFlags() const
+{
+    return mMemoryPropertyFlags;
+}
+
+ANGLE_INLINE VkDeviceSize BufferBlock::getMemorySize() const
+{
+    return mSize;
+}
+
+ANGLE_INLINE VkBool32 BufferBlock::isEmpty()
+{
+    std::lock_guard<ConditionalMutex> lock(mVirtualBlockMutex);
+    return vma::IsVirtualBlockEmpty(mVirtualBlock.getHandle());
+}
+
+ANGLE_INLINE bool BufferBlock::isHostVisible() const
+{
+    return (mMemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
+}
+
+ANGLE_INLINE bool BufferBlock::isCoherent() const
+{
+    return (mMemoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0;
+}
+
+ANGLE_INLINE bool BufferBlock::isMapped() const
+{
+    return mMappedMemory != nullptr;
+}
+
+ANGLE_INLINE uint8_t *BufferBlock::getMappedMemory() const
+{
+    ASSERT(mMappedMemory != nullptr);
+    return mMappedMemory;
+}
+
+ANGLE_INLINE VkResult BufferBlock::allocate(VkDeviceSize size,
+                                            VkDeviceSize alignment,
+                                            VkDeviceSize *offsetOut)
+{
+    std::lock_guard<ConditionalMutex> lock(mVirtualBlockMutex);
+    mCountRemainsEmpty = 0;
+    return mVirtualBlock.allocate(size, alignment, offsetOut);
+}
+
+// BufferSuballocation implementation.
+ANGLE_INLINE void BufferSuballocation::destroy(RendererVk *renderer)
+{
+    if (valid())
+    {
+        DestroyVmaBufferSuballocation(renderer, mHandle);
+        mHandle = VK_NULL_HANDLE;
+    }
+}
+
+ANGLE_INLINE VkResult BufferSuballocation::init(VkDevice device,
+                                                BufferBlock *block,
+                                                VkDeviceSize offset,
+                                                VkDeviceSize size)
+{
+    ASSERT(!valid());
+    ASSERT(block != nullptr);
+    ASSERT(offset != VK_WHOLE_SIZE);
+    return CreateVmaBufferSuballocation(block, offset, size, &mHandle);
+}
+
+ANGLE_INLINE VkResult
+BufferSuballocation::initWithEntireBuffer(Context *context,
+                                          Buffer &buffer,
+                                          Allocation &allocation,
+                                          VkMemoryPropertyFlags memoryPropertyFlags,
+                                          VkDeviceSize size)
+{
+    ASSERT(!valid());
+
+    std::unique_ptr<BufferBlock> block = std::make_unique<BufferBlock>();
+    block->initWithoutVirtualBlock(context, buffer, allocation, memoryPropertyFlags, size);
+
+    VmaBufferSuballocation vmaBufferSuballocation = new VmaBufferSuballocation_T;
+    if (vmaBufferSuballocation == nullptr)
+    {
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+    else
+    {
+        vmaBufferSuballocation->mBufferBlock = block.release();
+        vmaBufferSuballocation->mOffset      = 0;
+        vmaBufferSuballocation->mSize = vmaBufferSuballocation->mBufferBlock->getMemorySize();
+    }
+
+    mHandle = vmaBufferSuballocation;
+    return VK_SUCCESS;
+}
+
+ANGLE_INLINE BufferBlock *BufferSuballocation::getBlock() const
+{
+    return mHandle->mBufferBlock;
+}
+
+ANGLE_INLINE const Buffer &BufferSuballocation::getBuffer() const
+{
+    return *getBlock()->getBuffer();
+}
+
+ANGLE_INLINE VkDeviceSize BufferSuballocation::getSize() const
+{
+    return mHandle->mSize;
+}
+
+ANGLE_INLINE const Allocation &BufferSuballocation::getAllocation() const
+{
+    return mHandle->mBufferBlock->getAllocation();
+}
+
+ANGLE_INLINE VkMemoryMapFlags BufferSuballocation::getMemoryPropertyFlags() const
+{
+    return mHandle->mBufferBlock->getMemoryPropertyFlags();
+}
+
+ANGLE_INLINE bool BufferSuballocation::isHostVisible() const
+{
+    return mHandle->mBufferBlock->isHostVisible();
+}
+ANGLE_INLINE bool BufferSuballocation::isCoherent() const
+{
+    return mHandle->mBufferBlock->isCoherent();
+}
+ANGLE_INLINE bool BufferSuballocation::isMapped() const
+{
+    return mHandle->mBufferBlock->isMapped();
+}
+ANGLE_INLINE uint8_t *BufferSuballocation::getMappedMemory() const
+{
+    return mHandle->mBufferBlock->getMappedMemory() + getOffset();
+}
+ANGLE_INLINE void BufferSuballocation::flush(const Allocator &allocator) const
+{
+    mHandle->mBufferBlock->getAllocation().flush(allocator, getOffset(), mHandle->mSize);
+}
+ANGLE_INLINE void BufferSuballocation::invalidate(const Allocator &allocator) const
+{
+    mHandle->mBufferBlock->getAllocation().invalidate(allocator, getOffset(), mHandle->mSize);
+}
+
+ANGLE_INLINE VkDeviceSize BufferSuballocation::getOffset() const
+{
+    return mHandle->mOffset;
+}
 
 #if defined(ANGLE_ENABLE_PERF_COUNTER_OUTPUT)
 constexpr bool kOutputCumulativePerfCounters = ANGLE_ENABLE_PERF_COUNTER_OUTPUT;

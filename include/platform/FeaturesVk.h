@@ -594,6 +594,23 @@ struct FeaturesVk : FeatureSetBase
     Feature supportsSharedPresentableImageExtension = {
         "supportsSharedPresentableImageExtension", FeatureCategory::VulkanFeatures,
         "VkSurface supports the VK_KHR_shared_presentable_images extension", &members};
+
+    // Feature to control whether the Vulkan backend can support
+    // GL_EXT_shader_framebuffer_fetch
+    Feature supportsShaderFramebufferFetch = {
+        "supportsShaderFramebufferFetch", FeatureCategory::VulkanFeatures,
+        "Whether the Vulkan backend supports coherent framebuffer fetch", &members};
+
+    // Feature to control whether the Vulkan backend can support
+    // GL_EXT_shader_framebuffer_fetch_non_coherent
+    Feature supportsShaderFramebufferFetchNonCoherent = {
+        "supportsShaderFramebufferFetchNonCoherent", FeatureCategory::VulkanFeatures,
+        "Whether the Vulkan backend supports non-coherent framebuffer fetch", &members};
+
+    // Whether the Surface supports EGL_KHR_lock_surface3.
+    Feature supportsLockSurfaceExtension = {
+        "supportsLockSurfaceExtension", FeatureCategory::VulkanFeatures,
+        "Surface supports the EGL_KHR_lock_surface3 extension", &members};
 };
 
 inline FeaturesVk::FeaturesVk()  = default;

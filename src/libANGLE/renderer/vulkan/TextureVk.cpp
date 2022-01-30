@@ -1585,12 +1585,25 @@ angle::Result TextureVk::redefineLevel(const gl::Context *context,
 
     if (mImage != nullptr)
     {
-        // If there is any staged changes for this index, we can remove them since we're going to
+        // If there are any staged changes for this index, we can remove them since we're going to
         // override them with this call.
         gl::LevelIndex levelIndexGL(index.getLevelIndex());
         uint32_t layerIndex = index.hasLayer() ? index.getLayerIndex() : 0;
-        mImage->removeSingleSubresourceStagedUpdates(contextVk, levelIndexGL, layerIndex,
-                                                     index.getLayerCount());
+        if (gl::IsArrayTextureType(index.getType()))
+        {
+            // A multi-layer texture is being redefined, remove all updates to this level; the
+            // number of layers may have changed.
+            mImage->removeStagedUpdates(contextVk, levelIndexGL, levelIndexGL);
+        }
+        else
+        {
+            // Otherwise remove only updates to this layer.  For example, cube map updates can be
+            // done through glTexImage2D, one per cube face (i.e. layer) and so should not remove
+            // updates to the other layers.
+            ASSERT(index.getLayerCount() == 1);
+            mImage->removeSingleSubresourceStagedUpdates(contextVk, levelIndexGL, layerIndex,
+                                                         index.getLayerCount());
+        }
 
         if (mImage->valid())
         {
@@ -2509,7 +2522,7 @@ void TextureVk::prepareForGenerateMipmap(ContextVk *contextVk)
     // Generate bitmask for (baseLevel, maxLevel]. `+1` because bitMask takes `the number of bits`
     // but levels start counting from 0
     gl::TexLevelMask levelsMask(angle::BitMask<uint32_t>(maxLevel.get() + 1));
-    levelsMask &= static_cast<uint32_t>(~angle::Bit<uint32_t>(baseLevel.get()));
+    levelsMask &= static_cast<uint32_t>(~angle::BitMask<uint32_t>(firstGeneratedLevel.get()));
     // Remove (baseLevel, maxLevel] from mRedefinedLevels. These levels are no longer incompatibly
     // defined if they previously were.  The corresponding bits in mRedefinedLevels should be
     // cleared.

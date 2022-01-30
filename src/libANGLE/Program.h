@@ -632,6 +632,7 @@ class Program final : public LabeledObject, public angle::Subject
     GLint getActiveUniformBlockMaxNameLength() const;
     GLint getActiveShaderStorageBlockMaxNameLength() const;
 
+    const std::vector<LinkedUniform> &getUniforms() const { return mState.getUniforms(); }
     GLuint getUniformBlockIndex(const std::string &name) const;
     GLuint getShaderStorageBlockIndex(const std::string &name) const;
 
@@ -797,21 +798,12 @@ class Program final : public LabeledObject, public angle::Subject
 
     bool linkValidateShaders(InfoLog &infoLog);
     bool linkAttributes(const Context *context, InfoLog &infoLog);
-    bool linkInterfaceBlocks(const Caps &caps,
-                             const Version &version,
-                             bool webglCompatibility,
-                             InfoLog &infoLog,
-                             GLuint *combinedShaderStorageBlocksCount);
     bool linkVaryings(InfoLog &infoLog) const;
 
-    bool linkUniforms(const Caps &caps,
-                      const Version &version,
-                      InfoLog &infoLog,
-                      const ProgramAliasedBindings &uniformLocationBindings,
-                      GLuint *combinedImageUniformsCount,
-                      std::vector<UnusedUniform> *unusedUniforms);
-    void linkSamplerAndImageBindings(GLuint *combinedImageUniformsCount);
-    bool linkAtomicCounterBuffers();
+    bool linkUniforms(const Context *context,
+                      std::vector<UnusedUniform> *unusedUniformsOutOrNull,
+                      GLuint *combinedImageUniformsOut,
+                      InfoLog &infoLog);
 
     void updateLinkedShaderStages();
 
@@ -860,6 +852,21 @@ class Program final : public LabeledObject, public angle::Subject
     void resolveLinkImpl(const gl::Context *context);
 
     void postResolveLink(const gl::Context *context);
+
+    template <typename UniformT,
+              GLint UniformSize,
+              void (rx::ProgramImpl::*SetUniformFunc)(GLint, GLsizei, const UniformT *)>
+    void setUniformGeneric(UniformLocation location, GLsizei count, const UniformT *v);
+
+    template <
+        typename UniformT,
+        GLint MatrixC,
+        GLint MatrixR,
+        void (rx::ProgramImpl::*SetUniformMatrixFunc)(GLint, GLsizei, GLboolean, const UniformT *)>
+    void setUniformMatrixGeneric(UniformLocation location,
+                                 GLsizei count,
+                                 GLboolean transpose,
+                                 const UniformT *v);
 
     rx::Serial mSerial;
     ProgramState mState;

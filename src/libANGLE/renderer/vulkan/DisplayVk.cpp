@@ -324,6 +324,9 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
         getRenderer()->getFeatures().supportsSharedPresentableImageExtension.enabled;
 
     outExtensions->vulkanImageANGLE = true;
+
+    outExtensions->lockSurface3KHR =
+        getRenderer()->getFeatures().supportsLockSurfaceExtension.enabled;
 }
 
 void DisplayVk::generateCaps(egl::Caps *outCaps) const
@@ -402,23 +405,47 @@ void ShareGroupVk::onDestroy(const egl::Display *display)
         }
     }
 
+    if (mSmallBufferPool)
+    {
+        mSmallBufferPool->destroy(renderer);
+    }
+
     mPipelineLayoutCache.destroy(renderer);
     mDescriptorSetLayoutCache.destroy(renderer);
 
     ASSERT(mResourceUseLists.empty());
 }
 
-vk::BufferPool *ShareGroupVk::getDefaultBufferPool(RendererVk *renderer, uint32_t memoryTypeIndex)
+vk::BufferPool *ShareGroupVk::getDefaultBufferPool(RendererVk *renderer,
+                                                   VkDeviceSize size,
+                                                   uint32_t memoryTypeIndex)
 {
-    if (!mDefaultBufferPools[memoryTypeIndex])
+    if (size <= kMaxSizeToUseSmallBufferPool &&
+        memoryTypeIndex ==
+            renderer->getVertexConversionBufferMemoryTypeIndex(vk::MemoryHostVisibility::Visible))
     {
-        vk::BufferMemoryAllocator &bufferMemoryAllocator = renderer->getBufferMemoryAllocator();
+        if (!mSmallBufferPool)
+        {
+            const vk::Allocator &allocator = renderer->getAllocator();
+            VkBufferUsageFlags usageFlags  = GetDefaultBufferUsageFlags(renderer);
 
-        VkBufferUsageFlags usageFlags = GetDefaultBufferUsageFlags(renderer);
+            VkMemoryPropertyFlags memoryPropertyFlags;
+            allocator.getMemoryTypeProperties(memoryTypeIndex, &memoryPropertyFlags);
+
+            std::unique_ptr<vk::BufferPool> pool = std::make_unique<vk::BufferPool>();
+            pool->initWithFlags(renderer, vma::VirtualBlockCreateFlagBits::BUDDY, usageFlags, 0,
+                                memoryTypeIndex, memoryPropertyFlags);
+            mSmallBufferPool = std::move(pool);
+        }
+        return mSmallBufferPool.get();
+    }
+    else if (!mDefaultBufferPools[memoryTypeIndex])
+    {
+        const vk::Allocator &allocator = renderer->getAllocator();
+        VkBufferUsageFlags usageFlags  = GetDefaultBufferUsageFlags(renderer);
 
         VkMemoryPropertyFlags memoryPropertyFlags;
-        bufferMemoryAllocator.getMemoryTypeProperties(renderer, memoryTypeIndex,
-                                                      &memoryPropertyFlags);
+        allocator.getMemoryTypeProperties(memoryTypeIndex, &memoryPropertyFlags);
 
         std::unique_ptr<vk::BufferPool> pool = std::make_unique<vk::BufferPool>();
         pool->initWithFlags(renderer, vma::VirtualBlockCreateFlagBits::GENERAL, usageFlags, 0,
@@ -439,6 +466,10 @@ void ShareGroupVk::pruneDefaultBufferPools(RendererVk *renderer)
         {
             pool->pruneEmptyBuffers(renderer);
         }
+    }
+    if (mSmallBufferPool)
+    {
+        mSmallBufferPool->pruneEmptyBuffers(renderer);
     }
 }
 

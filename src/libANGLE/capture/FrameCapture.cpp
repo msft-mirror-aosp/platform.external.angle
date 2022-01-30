@@ -1455,6 +1455,9 @@ void CaptureUpdateResourceIDs(const CallCapture &call,
 
     const IDType *returnedIDs = reinterpret_cast<const IDType *>(param.data[0].data());
 
+    ResourceSet &startingSet =
+        resourceTracker->getTrackedResource(resourceIDType).getStartingResources();
+
     for (GLsizei idIndex = 0; idIndex < n; ++idIndex)
     {
         IDType id                = returnedIDs[idIndex];
@@ -1464,7 +1467,11 @@ void CaptureUpdateResourceIDs(const CallCapture &call,
         params.addValueParam("readBufferOffset", ParamType::TGLsizei, readBufferOffset);
         callsOut->emplace_back(updateFuncName, std::move(params));
 
-        resourceTracker->getTrackedResource(resourceIDType).getNewResources().insert(id.value);
+        // Add only if not in starting resources.
+        if (startingSet.find(id.value) == startingSet.end())
+        {
+            resourceTracker->getTrackedResource(resourceIDType).getNewResources().insert(id.value);
+        }
     }
 }
 
@@ -2553,8 +2560,6 @@ void CaptureBufferResetCalls(const gl::State &replayState,
 
     // Track this as a starting resource that may need to be restored.
     TrackedResource &trackedBuffers = resourceTracker->getTrackedResource(ResourceIDType::Buffer);
-    ResourceSet &startingBuffers    = trackedBuffers.getStartingResources();
-    startingBuffers.insert(bufferID);
 
     // Track calls to regenerate a given buffer
     ResourceCalls &bufferRegenCalls = trackedBuffers.getResourceRegenCalls();
@@ -2562,14 +2567,33 @@ void CaptureBufferResetCalls(const gl::State &replayState,
     Capture(&bufferRegenCalls[bufferID], CaptureGenBuffers(replayState, true, 1, id));
     MaybeCaptureUpdateResourceIDs(resourceTracker, &bufferRegenCalls[bufferID]);
 
+    // Call glBufferStorageEXT when regenerating immutable buffers,
+    // as we can't call glBufferData on restore.
+    if (buffer->isImmutable())
+    {
+        Capture(&bufferRegenCalls[bufferID],
+                CaptureBindBuffer(replayState, true, gl::BufferBinding::Array, *id));
+        Capture(
+            &bufferRegenCalls[bufferID],
+            CaptureBufferStorageEXT(replayState, true, gl::BufferBinding::Array,
+                                    static_cast<GLsizeiptr>(buffer->getSize()),
+                                    buffer->getMapPointer(), buffer->getStorageExtUsageFlags()));
+    }
+
     // Track calls to restore a given buffer's contents
     ResourceCalls &bufferRestoreCalls = trackedBuffers.getResourceRestoreCalls();
     Capture(&bufferRestoreCalls[bufferID],
             CaptureBindBuffer(replayState, true, gl::BufferBinding::Array, *id));
-    Capture(&bufferRestoreCalls[bufferID],
-            CaptureBufferData(replayState, true, gl::BufferBinding::Array,
-                              static_cast<GLsizeiptr>(buffer->getSize()), buffer->getMapPointer(),
-                              buffer->getUsage()));
+
+    // Mutable buffers will be restored here using glBufferData.
+    // Immutable buffers need to be restored below, after maping.
+    if (!buffer->isImmutable())
+    {
+        Capture(&bufferRestoreCalls[bufferID],
+                CaptureBufferData(replayState, true, gl::BufferBinding::Array,
+                                  static_cast<GLsizeiptr>(buffer->getSize()),
+                                  buffer->getMapPointer(), buffer->getUsage()));
+    }
 
     if (buffer->isMapped())
     {
@@ -2588,6 +2612,21 @@ void CaptureBufferResetCalls(const gl::State &replayState,
 
         // Track the bufferID that was just mapped
         bufferMapCalls[bufferID].back().params.setMappedBufferID(buffer->id());
+
+        // Restore immutable mapped buffers. Needs to happen after mapping.
+        if (buffer->isImmutable())
+        {
+            ParamBuffer dataParamBuffer;
+            dataParamBuffer.addValueParam("dest", ParamType::TGLuint, buffer->id().value);
+            ParamCapture captureData("source", ParamType::TvoidConstPointer);
+            CaptureMemory(buffer->getMapPointer(), static_cast<GLsizeiptr>(buffer->getSize()),
+                          &captureData);
+            dataParamBuffer.addParam(std::move(captureData));
+            dataParamBuffer.addValueParam<GLsizeiptr>("size", ParamType::TGLsizeiptr,
+                                                      static_cast<GLsizeiptr>(buffer->getSize()));
+            bufferMapCalls[bufferID].emplace_back("UpdateClientBufferData",
+                                                  std::move(dataParamBuffer));
+        }
     }
 
     // Track calls unmap a buffer that started as unmapped
@@ -2720,6 +2759,11 @@ void CaptureShareGroupMidExecutionSetup(const gl::Context *context,
 
         // Generate binding.
         cap(CaptureGenBuffers(replayState, true, 1, &id));
+
+        resourceTracker->getTrackedResource(ResourceIDType::Buffer)
+            .getStartingResources()
+            .insert(id.value);
+
         MaybeCaptureUpdateResourceIDs(resourceTracker, setupCalls);
 
         // Always use the array buffer binding point to upload data to keep things simple.
@@ -2759,7 +2803,7 @@ void CaptureShareGroupMidExecutionSetup(const gl::Context *context,
                 static_cast<GLsizeiptr>(buffer->getMapOffset()),
                 static_cast<GLsizeiptr>(buffer->getMapLength()),
                 (buffer->getAccessFlags() & GL_MAP_WRITE_BIT) != 0,
-                (buffer->getAccessFlags() & GL_MAP_COHERENT_BIT_EXT) != 0);
+                (buffer->getStorageExtUsageFlags() & GL_MAP_COHERENT_BIT_EXT) != 0);
         }
         else
         {
@@ -3074,6 +3118,11 @@ void CaptureShareGroupMidExecutionSetup(const gl::Context *context,
 
         // Generate renderbuffer id.
         cap(framebufferFuncs.genRenderbuffers(replayState, true, 1, &id));
+
+        resourceTracker->getTrackedResource(ResourceIDType::Renderbuffer)
+            .getStartingResources()
+            .insert(id.value);
+
         MaybeCaptureUpdateResourceIDs(resourceTracker, setupCalls);
         cap(framebufferFuncs.bindRenderbuffer(replayState, true, GL_RENDERBUFFER, id));
 
@@ -3316,6 +3365,11 @@ void CaptureMidExecutionSetup(const gl::Context *context,
         if (vertexArrayID.value != 0)
         {
             cap(CaptureGenVertexArrays(replayState, true, 1, &vertexArrayID));
+
+            resourceTracker->getTrackedResource(ResourceIDType::VertexArray)
+                .getStartingResources()
+                .insert(vertexArrayID.value);
+
             MaybeCaptureUpdateResourceIDs(resourceTracker, setupCalls);
         }
 
@@ -3460,13 +3514,14 @@ void CaptureMidExecutionSetup(const gl::Context *context,
         }
 
         cap(framebufferFuncs.genFramebuffers(replayState, true, 1, &id));
-        MaybeCaptureUpdateResourceIDs(resourceTracker, setupCalls);
-        cap(framebufferFuncs.bindFramebuffer(replayState, true, GL_FRAMEBUFFER, id));
-        currentDrawFramebuffer = currentReadFramebuffer = id;
 
         resourceTracker->getTrackedResource(ResourceIDType::Framebuffer)
             .getStartingResources()
             .insert(id.value);
+
+        MaybeCaptureUpdateResourceIDs(resourceTracker, setupCalls);
+        cap(framebufferFuncs.bindFramebuffer(replayState, true, GL_FRAMEBUFFER, id));
+        currentDrawFramebuffer = currentReadFramebuffer = id;
 
         // Color Attachments.
         for (const gl::FramebufferAttachment &colorAttachment : framebuffer->getColorAttachments())
@@ -5806,12 +5861,10 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
             bool writable =
                 access == GL_WRITE_ONLY_OES || access == GL_WRITE_ONLY || access == GL_READ_WRITE;
 
-            bool coherent = access & GL_MAP_COHERENT_BIT_EXT;
-
             FrameCaptureShared *frameCaptureShared =
                 context->getShareGroup()->getFrameCaptureShared();
             frameCaptureShared->trackBufferMapping(&call, buffer->id(), buffer, offset, length,
-                                                   writable, coherent);
+                                                   writable, false);
             break;
         }
 
@@ -6085,7 +6138,10 @@ void FrameCaptureShared::captureCall(const gl::Context *context,
 void FrameCaptureShared::maybeCapturePostCallUpdates(const gl::Context *context)
 {
     // Process resource ID updates.
-    MaybeCaptureUpdateResourceIDs(&mResourceTracker, &mFrameCalls);
+    if (isCaptureActive())
+    {
+        MaybeCaptureUpdateResourceIDs(&mResourceTracker, &mFrameCalls);
+    }
 
     CallCapture &lastCall = mFrameCalls.back();
     switch (lastCall.entryPoint)

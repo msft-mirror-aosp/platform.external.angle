@@ -24,13 +24,6 @@
 namespace
 {
 constexpr unsigned int kComponentsPerVector = 4;
-
-// Environment variable and Android property to remove the restriction on exposing
-// GL_EXT_shader_framebuffer_fetch_non_coherent on ARM and Qualcomm.
-constexpr char kEnableExtShaderFramebufferFetchNonCoherentOverrideVarName[] =
-    "ANGLE_ENABLE_EXT_SHADER_FRAMEBUFFER_FETCH_NON_COHERENT_OVERRIDE";
-constexpr char kEnableExtShaderFramebufferFetchNonCoherentOverridePropertyName[] =
-    "debug.angle.enable.ext_shader_framebuffer_fetch_non_coherent_override";
 }  // anonymous namespace
 
 namespace rx
@@ -369,10 +362,8 @@ void RendererVk::ensureCapsInitialized() const
     mNativeExtensions.copyTexture3dANGLE            = true;
     mNativeExtensions.copyCompressedTextureCHROMIUM = true;
     mNativeExtensions.debugMarkerEXT                = true;
-    mNativeExtensions.robustnessEXT =
-        !IsSwiftshader(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) &&
-        !IsARM(mPhysicalDeviceProperties.vendorID);
-    mNativeExtensions.discardFramebufferEXT = true;
+    mNativeExtensions.robustnessEXT                 = !IsARM(mPhysicalDeviceProperties.vendorID);
+    mNativeExtensions.discardFramebufferEXT         = true;
     mNativeExtensions.textureBorderClampOES = getFeatures().supportsCustomBorderColor.enabled;
     mNativeExtensions.textureBorderClampEXT = getFeatures().supportsCustomBorderColor.enabled;
     // Enable EXT_texture_type_2_10_10_10_REV
@@ -615,19 +606,19 @@ void RendererVk::ensureCapsInitialized() const
     // Looks like all floats are IEEE according to the docs here:
     // https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/html/vkspec.html#spirvenv-precision-operation
     mNativeCaps.vertexHighpFloat.setIEEEFloat();
-    mNativeCaps.vertexMediumpFloat.setIEEEFloat();
-    mNativeCaps.vertexLowpFloat.setIEEEFloat();
+    mNativeCaps.vertexMediumpFloat.setIEEEHalfFloat();
+    mNativeCaps.vertexLowpFloat.setIEEEHalfFloat();
     mNativeCaps.fragmentHighpFloat.setIEEEFloat();
-    mNativeCaps.fragmentMediumpFloat.setIEEEFloat();
-    mNativeCaps.fragmentLowpFloat.setIEEEFloat();
+    mNativeCaps.fragmentMediumpFloat.setIEEEHalfFloat();
+    mNativeCaps.fragmentLowpFloat.setIEEEHalfFloat();
 
-    // Can't find documentation on the int precision in Vulkan.
+    // Vulkan doesn't provide such information.  We provide the spec-required minimum here.
     mNativeCaps.vertexHighpInt.setTwosComplementInt(32);
-    mNativeCaps.vertexMediumpInt.setTwosComplementInt(32);
-    mNativeCaps.vertexLowpInt.setTwosComplementInt(32);
+    mNativeCaps.vertexMediumpInt.setTwosComplementInt(16);
+    mNativeCaps.vertexLowpInt.setTwosComplementInt(16);
     mNativeCaps.fragmentHighpInt.setTwosComplementInt(32);
-    mNativeCaps.fragmentMediumpInt.setTwosComplementInt(32);
-    mNativeCaps.fragmentLowpInt.setTwosComplementInt(32);
+    mNativeCaps.fragmentMediumpInt.setTwosComplementInt(16);
+    mNativeCaps.fragmentLowpInt.setTwosComplementInt(16);
 
     // Compute shader limits.
     mNativeCaps.maxComputeWorkGroupCount[0] = LimitToInt(limitsVk.maxComputeWorkGroupCount[0]);
@@ -915,32 +906,19 @@ void RendererVk::ensureCapsInitialized() const
 
     mNativeCaps.subPixelBits = limitsVk.subPixelPrecisionBits;
 
-    // Important games are not checking supported extensions properly, and are confusing the
-    // GL_EXT_shader_framebuffer_fetch_non_coherent as the GL_EXT_shader_framebuffer_fetch
-    // extension.  Therefore, don't enable the extension on Arm and Qualcomm by default.
-    // https://issuetracker.google.com/issues/186643966
-    // However, it can be enabled by using an environment variable or Android property as below.
-    const std::string enableOverrideValue = angle::GetEnvironmentVarOrAndroidProperty(
-        kEnableExtShaderFramebufferFetchNonCoherentOverrideVarName,
-        kEnableExtShaderFramebufferFetchNonCoherentOverridePropertyName);
-    const bool enableOverride =
-        !enableOverrideValue.empty() && enableOverrideValue.compare("0") != 0;
-    if (enableOverride || (!(IsARM(mPhysicalDeviceProperties.vendorID) ||
-                             IsQualcomm(mPhysicalDeviceProperties.vendorID))))
+    if (getFeatures().supportsShaderFramebufferFetch.enabled)
+    {
+        // Enable GL_EXT_shader_framebuffer_fetch
+        // gl::IMPLEMENTATION_MAX_DRAW_BUFFERS is used to support the extension.
+        mNativeExtensions.shaderFramebufferFetchEXT =
+            mNativeCaps.maxDrawBuffers >= gl::IMPLEMENTATION_MAX_DRAW_BUFFERS;
+    }
+
+    if (getFeatures().supportsShaderFramebufferFetchNonCoherent.enabled)
     {
         // Enable GL_EXT_shader_framebuffer_fetch_non_coherent
         // For supporting this extension, gl::IMPLEMENTATION_MAX_DRAW_BUFFERS is used.
         mNativeExtensions.shaderFramebufferFetchNonCoherentEXT =
-            mNativeCaps.maxDrawBuffers >= gl::IMPLEMENTATION_MAX_DRAW_BUFFERS;
-    }
-
-    // Per http://anglebug.com/6872
-    // On ARM hardware, framebuffer-fetch-like behavior on Vulkan is already coherent, so we can
-    // expose the coherent version of the GL extension despite unofficial Vulkan support.
-    if (IsARM(mPhysicalDeviceProperties.vendorID))
-    {
-        // gl::IMPLEMENTATION_MAX_DRAW_BUFFERS is used to support the extension.
-        mNativeExtensions.shaderFramebufferFetchEXT =
             mNativeCaps.maxDrawBuffers >= gl::IMPLEMENTATION_MAX_DRAW_BUFFERS;
     }
 
@@ -1011,10 +989,13 @@ void RendererVk::ensureCapsInitialized() const
         mNativeCaps.maxGeometryOutputVertices = LimitToInt(limitsVk.maxGeometryOutputVertices);
         mNativeCaps.maxGeometryTotalOutputComponents =
             LimitToInt(limitsVk.maxGeometryTotalOutputComponents);
-        mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Geometry] =
-            mNativeCaps.maxCombinedShaderOutputResources;
-        mNativeCaps.maxShaderAtomicCounterBuffers[gl::ShaderType::Geometry] =
-            maxCombinedAtomicCounterBuffers;
+        if (mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics)
+        {
+            mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Geometry] =
+                mNativeCaps.maxCombinedShaderOutputResources;
+            mNativeCaps.maxShaderAtomicCounterBuffers[gl::ShaderType::Geometry] =
+                maxCombinedAtomicCounterBuffers;
+        }
         mNativeCaps.maxGeometryShaderInvocations =
             LimitToInt(limitsVk.maxGeometryShaderInvocations);
     }
@@ -1050,15 +1031,18 @@ void RendererVk::ensureCapsInitialized() const
         mNativeCaps.maxUniformBufferBindings = LimitToInt(
             mNativeCaps.maxUniformBufferBindings + kReservedTessellationDefaultUniformBindingCount);
 
-        mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::TessControl] =
-            mNativeCaps.maxCombinedShaderOutputResources;
-        mNativeCaps.maxShaderAtomicCounterBuffers[gl::ShaderType::TessControl] =
-            maxCombinedAtomicCounterBuffers;
+        if (mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics)
+        {
+            mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::TessControl] =
+                mNativeCaps.maxCombinedShaderOutputResources;
+            mNativeCaps.maxShaderAtomicCounterBuffers[gl::ShaderType::TessControl] =
+                maxCombinedAtomicCounterBuffers;
 
-        mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::TessEvaluation] =
-            mNativeCaps.maxCombinedShaderOutputResources;
-        mNativeCaps.maxShaderAtomicCounterBuffers[gl::ShaderType::TessEvaluation] =
-            maxCombinedAtomicCounterBuffers;
+            mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::TessEvaluation] =
+                mNativeCaps.maxCombinedShaderOutputResources;
+            mNativeCaps.maxShaderAtomicCounterBuffers[gl::ShaderType::TessEvaluation] =
+                maxCombinedAtomicCounterBuffers;
+        }
     }
 
     // GL_APPLE_clip_distance/GL_EXT_clip_cull_distance
@@ -1125,7 +1109,7 @@ void RendererVk::ensureCapsInitialized() const
     mNativeExtensions.textureUsageANGLE = true;
 
     // GL_KHR_parallel_shader_compile
-    mNativeExtensions.parallelShaderCompileKHR = true;
+    mNativeExtensions.parallelShaderCompileKHR = false;
 }
 
 namespace vk
@@ -1172,6 +1156,22 @@ EGLint ComputeMaximumPBufferPixels(const VkPhysicalDeviceProperties &physicalDev
         static_cast<uint64_t>(physicalDeviceProperties.limits.maxImageDimension2D);
 
     return static_cast<EGLint>(std::min(maxDimensionsSquared, kMaxValueForEGLint));
+}
+
+EGLint GetMatchFormat(GLenum internalFormat)
+{
+    // Lock Surface match format
+    switch (internalFormat)
+    {
+        case GL_RGBA8:
+            return EGL_FORMAT_RGBA_8888_KHR;
+        case GL_BGRA8_EXT:
+            return EGL_FORMAT_RGBA_8888_EXACT_KHR;
+        case GL_RGB565:
+            return EGL_FORMAT_RGB_565_EXACT_KHR;
+        default:
+            return EGL_NONE;
+    }
 }
 
 // Generates a basic config for a combination of color format, depth stencil format and sample
@@ -1236,6 +1236,12 @@ egl::Config GenerateDefaultConfig(DisplayVk *display,
     config.transparentBlueValue  = 0;
     config.colorComponentType =
         gl_egl::GLComponentTypeToEGLColorComponentType(colorFormat.componentType);
+    // LockSurface matching
+    config.matchFormat = GetMatchFormat(colorFormat.internalFormat);
+    if (config.matchFormat != EGL_NONE)
+    {
+        config.surfaceType |= EGL_LOCK_SURFACE_BIT_KHR;
+    }
 
     // Vulkan always supports off-screen rendering.  Check the config with display to see if it can
     // also have window support.  If not, the following call should automatically remove

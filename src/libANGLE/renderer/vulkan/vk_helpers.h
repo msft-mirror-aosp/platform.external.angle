@@ -728,55 +728,57 @@ class BufferHelper : public ReadWriteResource
     BufferHelper(BufferHelper &&other);
     BufferHelper &operator=(BufferHelper &&other);
 
-    angle::Result init(ContextVk *contextVk,
+    angle::Result init(vk::Context *context,
                        const VkBufferCreateInfo &createInfo,
                        VkMemoryPropertyFlags memoryPropertyFlags);
     angle::Result initExternal(ContextVk *contextVk,
                                VkMemoryPropertyFlags memoryProperties,
                                const VkBufferCreateInfo &requestedCreateInfo,
                                GLeglClientBufferEXT clientBuffer);
-    angle::Result initSubAllocation(ContextVk *contextVk,
+    angle::Result initSuballocation(ContextVk *contextVk,
                                     uint32_t memoryTypeIndex,
                                     size_t size,
                                     size_t alignment);
 
     // Helper functions to initialize a buffer for a specific usage
-    // Initialize a buffer with alignment good for shader storage or copyBuffer .
-    angle::Result initForVertexConversion(ContextVk *contextVk,
-                                          size_t size,
-                                          MemoryHostVisibility hostVisibility);
-    // Initialize a host visible buffer with alignment good for copyBuffer .
-    angle::Result initForCopyBuffer(ContextVk *contextVk, size_t size, MemoryCoherency coherency);
-    // Initialize a host visible buffer with alignment good for copyImage .
-    angle::Result initForCopyImage(ContextVk *contextVk,
-                                   size_t size,
-                                   MemoryCoherency coherency,
-                                   angle::FormatID formatId,
-                                   VkDeviceSize *offset,
-                                   uint8_t **dataPtr);
+    // Suballocate a buffer with alignment good for shader storage or copyBuffer .
+    angle::Result allocateForVertexConversion(ContextVk *contextVk,
+                                              size_t size,
+                                              MemoryHostVisibility hostVisibility);
+    // Suballocate a host visible buffer with alignment good for copyBuffer .
+    angle::Result allocateForCopyBuffer(ContextVk *contextVk,
+                                        size_t size,
+                                        MemoryCoherency coherency);
+    // Suballocate a host visible buffer with alignment good for copyImage .
+    angle::Result allocateForCopyImage(ContextVk *contextVk,
+                                       size_t size,
+                                       MemoryCoherency coherency,
+                                       angle::FormatID formatId,
+                                       VkDeviceSize *offset,
+                                       uint8_t **dataPtr);
 
     void destroy(RendererVk *renderer);
     void release(RendererVk *renderer);
 
     BufferSerial getBufferSerial() const { return mSerial; }
-    bool valid() const { return mSubAllocation.valid(); }
-    const Buffer &getBuffer() const { return mSubAllocation.getBuffer(); }
-    const BufferBlock *getBufferBlock() const { return mSubAllocation.getBlock(); }
-    VkDeviceSize getOffset() const { return mSubAllocation.getOffset(); }
-    VkDeviceSize getSize() const { return mSubAllocation.getSize(); }
+    bool valid() const { return mSuballocation.valid(); }
+    const Buffer &getBuffer() const { return mSuballocation.getBuffer(); }
+    const BufferBlock *getBufferBlock() const { return mSuballocation.getBlock(); }
+    VkDeviceSize getOffset() const { return mSuballocation.getOffset(); }
+    VkDeviceSize getSize() const { return mSuballocation.getSize(); }
     VkMemoryMapFlags getMemoryPropertyFlags() const
     {
-        return mSubAllocation.getMemoryPropertyFlags();
+        return mSuballocation.getMemoryPropertyFlags();
     }
     uint8_t *getMappedMemory() const
     {
         ASSERT(isMapped());
-        return isExternalBuffer() ? mMemory.getMappedMemory() : mSubAllocation.getMappedMemory();
+        return isExternalBuffer() ? mMemory.getMappedMemory() : mSuballocation.getMappedMemory();
     }
-    bool isHostVisible() const { return mSubAllocation.isHostVisible(); }
-    bool isCoherent() const { return mSubAllocation.isCoherent(); }
+    bool isHostVisible() const { return mSuballocation.isHostVisible(); }
+    bool isCoherent() const { return mSuballocation.isCoherent(); }
 
-    bool isMapped() const { return isExternalBuffer() ? true : mSubAllocation.isMapped(); }
+    bool isMapped() const { return isExternalBuffer() ? true : mSuballocation.isMapped(); }
     bool isExternalBuffer() const { return mMemory.isExternalBuffer(); }
 
     // Also implicitly sets up the correct barriers.
@@ -785,8 +787,9 @@ class BufferHelper : public ReadWriteResource
                                  uint32_t regionCount,
                                  const VkBufferCopy *copyRegions);
 
-    angle::Result map(ContextVk *contextVk, uint8_t **ptrOut);
+    angle::Result map(Context *context, uint8_t **ptrOut);
     angle::Result mapWithOffset(ContextVk *contextVk, uint8_t **ptrOut, size_t offset);
+
     void unmap(RendererVk *renderer);
     // After a sequence of writes, call flush to ensure the data is visible to the device.
     angle::Result flush(RendererVk *renderer);
@@ -819,6 +822,8 @@ class BufferHelper : public ReadWriteResource
     bool recordWriteBarrier(VkAccessFlags writeAccessType,
                             VkPipelineStageFlags writeStage,
                             PipelineBarrier *barrier);
+    void fillWithColor(const angle::Color<uint8_t> &color,
+                       const gl::InternalFormat &internalFormat);
 
   private:
     void initializeBarrierTracker(Context *context);
@@ -829,8 +834,8 @@ class BufferHelper : public ReadWriteResource
     // For external memory only
     BufferMemory mMemory;
 
-    // SubAllocation object.
-    BufferSubAllocation mSubAllocation;
+    // Suballocation object.
+    BufferSuballocation mSuballocation;
 
     // For memory barriers.
     uint32_t mCurrentQueueFamilyIndex;
@@ -860,7 +865,7 @@ class BufferPool : angle::NonCopyable
     angle::Result allocateBuffer(ContextVk *contextVk,
                                  VkDeviceSize sizeInBytes,
                                  VkDeviceSize alignment,
-                                 BufferSubAllocation *suballocation);
+                                 BufferSuballocation *suballocation);
 
     // This frees resources immediately.
     void destroy(RendererVk *renderer);
@@ -1869,6 +1874,9 @@ class ImageHelper final : public Resource, public angle::Subject
                                         uint32_t layerCount) const;
     bool hasStagedUpdatesInAllocatedLevels() const;
 
+    bool removeStagedClearUpdatesAndReturnColor(gl::LevelIndex levelGL,
+                                                const VkClearColorValue **color);
+
     void recordWriteBarrier(Context *context,
                             VkImageAspectFlags aspectMask,
                             ImageLayout newLayout,
@@ -1950,6 +1958,20 @@ class ImageHelper final : public Resource, public angle::Subject
                                         const gl::Box &sourceArea,
                                         BufferHelper *dstBuffer,
                                         uint8_t **outDataPtr);
+
+    angle::Result copySurfaceImageToBuffer(DisplayVk *displayVk,
+                                           gl::LevelIndex sourceLevelGL,
+                                           uint32_t layerCount,
+                                           uint32_t baseLayer,
+                                           const gl::Box &sourceArea,
+                                           vk::BufferHelper *bufferHelperOut);
+
+    angle::Result copyBufferToSurfaceImage(DisplayVk *displayVk,
+                                           gl::LevelIndex destLevelGL,
+                                           uint32_t layerCount,
+                                           uint32_t baseLayer,
+                                           const gl::Box &destArea,
+                                           vk::BufferHelper *bufferHelper);
 
     static angle::Result GetReadPixelsParams(ContextVk *contextVk,
                                              const gl::PixelPackState &packState,
