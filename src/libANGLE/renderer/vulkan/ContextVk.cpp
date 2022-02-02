@@ -93,7 +93,8 @@ struct GraphicsDriverUniformsExtended
     std::array<float, 2> halfRenderArea;
     std::array<float, 2> flipXY;
     std::array<float, 2> negFlipXY;
-    std::array<int32_t, 2> padding;
+    uint32_t dither;
+    uint32_t padding;
 
     // Used to pre-rotate gl_FragCoord for swapchain images on Android (a mat2, which is padded to
     // the size of two vec4's).
@@ -1102,11 +1103,23 @@ angle::Result ContextVk::flush(const gl::Context *context)
         return angle::Result::Continue;
     }
 
+    if (mRenderer->getFeatures().swapbuffersOnFlushOrFinishWithSingleBuffer.enabled &&
+        isSingleBuffer)
+    {
+        return mCurrentWindowSurface->onSharedPresentContextFlush(context);
+    }
+
     return flushImpl(nullptr, RenderPassClosureReason::GLFlush);
 }
 
 angle::Result ContextVk::finish(const gl::Context *context)
 {
+    if (mRenderer->getFeatures().swapbuffersOnFlushOrFinishWithSingleBuffer.enabled &&
+        (mCurrentWindowSurface != nullptr) && mCurrentWindowSurface->isSharedPresentMode())
+    {
+        return mCurrentWindowSurface->onSharedPresentContextFlush(context);
+    }
+
     return finishImpl(RenderPassClosureReason::GLFinish);
 }
 
@@ -1139,23 +1152,12 @@ angle::Result ContextVk::setupDraw(const gl::Context *context,
         mGraphicsDirtyBits.set(DIRTY_BIT_VERTEX_BUFFERS);
     }
 
-    ProgramVk *programVk = getProgram();
-    if (programVk)
+    ProgramExecutableVk *programExecutableVk = getExecutable();
+    if (programExecutableVk->hasDirtyUniforms())
     {
-        if (programVk->hasDirtyUniforms())
-        {
-            ANGLE_TRY(programVk->updateUniforms(this));
-            mGraphicsDirtyBits.set(DIRTY_BIT_DESCRIPTOR_SETS);
-        }
-    }
-    else
-    {
-        ProgramPipelineVk *programPipelineVk = getProgramPipeline();
-        if (programPipelineVk && programPipelineVk->hasDirtyUniforms())
-        {
-            ANGLE_TRY(programPipelineVk->updateUniforms(this));
-            mGraphicsDirtyBits.set(DIRTY_BIT_DESCRIPTOR_SETS);
-        }
+        ANGLE_TRY(programExecutableVk->updateUniforms(this, *mState.getProgramExecutable(),
+                                                      &mDefaultUniformStorage));
+        mGraphicsDirtyBits.set(DIRTY_BIT_DESCRIPTOR_SETS);
     }
 
     // Update transform feedback offsets on every draw call when emulating transform feedback.  This
@@ -1382,20 +1384,12 @@ angle::Result ContextVk::setupDispatch(const gl::Context *context)
     // TODO: Remove this and fix tests.  http://anglebug.com/5070
     ANGLE_TRY(flushOutsideRenderPassCommands());
 
-    ProgramVk *programVk = getProgram();
-    if (programVk && programVk->hasDirtyUniforms())
+    ProgramExecutableVk *programExecutableVk = getExecutable();
+    if (programExecutableVk->hasDirtyUniforms())
     {
-        ANGLE_TRY(programVk->updateUniforms(this));
+        ANGLE_TRY(programExecutableVk->updateUniforms(this, *mState.getProgramExecutable(),
+                                                      &mDefaultUniformStorage));
         mComputeDirtyBits.set(DIRTY_BIT_DESCRIPTOR_SETS);
-    }
-    else
-    {
-        ProgramPipelineVk *programPipelineVk = getProgramPipeline();
-        if (programPipelineVk && programPipelineVk->hasDirtyUniforms())
-        {
-            ANGLE_TRY(programPipelineVk->updateUniforms(this));
-            mComputeDirtyBits.set(DIRTY_BIT_DESCRIPTOR_SETS);
-        }
     }
 
     DirtyBits dirtyBits = mComputeDirtyBits;
@@ -2075,8 +2069,7 @@ angle::Result ContextVk::handleDirtyGraphicsTransformFeedbackBuffersEmulation(
 
     ProgramVk *programVk = getProgram();
     return programVk->getExecutable().updateTransformFeedbackDescriptorSet(
-        programVk->getState(), programVk->getDefaultUniformBlocks(), uniformBuffer, this,
-        xfbBufferDesc);
+        this, *executable, uniformBuffer, xfbBufferDesc);
 }
 
 angle::Result ContextVk::handleDirtyGraphicsTransformFeedbackBuffersExtension(
@@ -3683,20 +3676,80 @@ void ContextVk::updateRasterizerDiscardEnabled(bool isPrimitivesGeneratedQueryAc
     }
 }
 
-void ContextVk::invalidateProgramBindingHelper(const gl::State &glState)
+void ContextVk::updateDither()
 {
-    ProgramVk *programVk = getProgram();
-    if (programVk)
+    if (!getFeatures().emulateDithering.enabled)
     {
-        programVk->onProgramBind();
+        return;
     }
-    else
+
+    FramebufferVk *framebufferVk = vk::GetImpl(mState.getDrawFramebuffer());
+
+    // Dithering in OpenGL is vaguely defined, to the extent that no dithering is also a valid
+    // dithering algorithm.  Dithering is enabled by default, but emulating it has a non-negligible
+    // cost.  Similarly to some other GLES drivers, ANGLE enables dithering only on low-bit formats
+    // where visual banding is particularly common; namely RGBA4444, RGBA5551 and RGB565.
+    //
+    // Dithering is emulated in the fragment shader and is controlled by a spec constant.  Every 2
+    // bits of the spec constant correspond to one attachment, with the value indicating:
+    //
+    // - 00: No dithering
+    // - 01: Dither for RGBA4444
+    // - 10: Dither for RGBA5551
+    // - 11: Dither for RGB565
+    //
+    uint16_t ditherControl = 0;
+    if (mState.isDitherEnabled())
     {
-        ProgramPipelineVk *programPipelineVk = getProgramPipeline();
-        if (programPipelineVk)
+        // As dithering is emulated in the fragment shader itself, there are a number of situations
+        // that can lead to incorrect blending.  When blend is enabled, dither is not enabled to
+        // avoid such situations.
+        const gl::DrawBufferMask attachmentMask =
+            framebufferVk->getState().getColorAttachmentsMask() &
+            ~mState.getBlendEnabledDrawBufferMask();
+        for (size_t colorIndex : attachmentMask)
         {
-            programPipelineVk->onProgramBind();
+            RenderTargetVk *attachment   = framebufferVk->getColorDrawRenderTarget(colorIndex);
+            const angle::FormatID format = attachment->getImageActualFormatID();
+
+            uint16_t attachmentDitherControl = sh::vk::kDitherControlNoDither;
+            switch (format)
+            {
+                case angle::FormatID::R4G4B4A4_UNORM:
+                case angle::FormatID::B4G4R4A4_UNORM:
+                    attachmentDitherControl = sh::vk::kDitherControlDither4444;
+                    break;
+                case angle::FormatID::R5G5B5A1_UNORM:
+                case angle::FormatID::B5G5R5A1_UNORM:
+                case angle::FormatID::A1R5G5B5_UNORM:
+                    attachmentDitherControl = sh::vk::kDitherControlDither5551;
+                    break;
+                case angle::FormatID::R5G6B5_UNORM:
+                case angle::FormatID::B5G6R5_UNORM:
+                    attachmentDitherControl = sh::vk::kDitherControlDither565;
+                    break;
+                default:
+                    break;
+            }
+
+            ditherControl |= static_cast<uint16_t>(attachmentDitherControl << 2 * colorIndex);
         }
+    }
+
+    if (ditherControl != mGraphicsPipelineDesc->getEmulatedDitherControl())
+    {
+        mGraphicsPipelineDesc->updateEmulatedDitherControl(&mGraphicsPipelineTransition,
+                                                           ditherControl);
+        invalidateCurrentGraphicsPipeline();
+    }
+}
+
+void ContextVk::invalidateProgramBindingHelper()
+{
+    ProgramExecutableVk *executableVk = getExecutable();
+    if (executableVk)
+    {
+        executableVk->onProgramBind(*mState.getProgramExecutable());
     }
 }
 
@@ -3725,7 +3778,7 @@ angle::Result ContextVk::invalidateProgramExecutableHelper(const gl::Context *co
 
         ProgramExecutableVk *executableVk = getExecutable();
         ASSERT(executableVk);
-        executableVk->updateEarlyFragmentTestsOptimization(this);
+        executableVk->updateEarlyFragmentTestsOptimization(this, *executable);
 
         if (mLastProgramUsesFramebufferFetch != executable->usesFramebufferFetch())
         {
@@ -3784,6 +3837,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
             case gl::State::DIRTY_BIT_BLEND_ENABLED:
                 mGraphicsPipelineDesc->updateBlendEnabled(&mGraphicsPipelineTransition,
                                                           glState.getBlendStateExt().mEnabledMask);
+                updateDither();
                 break;
             case gl::State::DIRTY_BIT_BLEND_COLOR:
                 mGraphicsPipelineDesc->updateBlendColor(&mGraphicsPipelineTransition,
@@ -3935,6 +3989,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
             case gl::State::DIRTY_BIT_PACK_BUFFER_BINDING:
                 break;
             case gl::State::DIRTY_BIT_DITHER_ENABLED:
+                updateDither();
                 break;
             case gl::State::DIRTY_BIT_READ_FRAMEBUFFER_BINDING:
                 updateFlipViewportReadFramebuffer(context->getState());
@@ -3950,7 +4005,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                 // open, such as invalidate or blit. Note that we always start a new command buffer
                 // because we currently can only support one open RenderPass at a time.
                 onRenderPassFinished(RenderPassClosureReason::FramebufferBindingChange);
-                if (mRenderer->getFeatures().preferSubmitAtFBOBoundary.enabled)
+                if (getFeatures().preferSubmitAtFBOBoundary.enabled)
                 {
                     // This will behave as if user called glFlush, but the actual flush will be
                     // triggered at endRenderPass time.
@@ -3974,6 +4029,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                                                        isYFlipEnabledForDrawFBO());
                 updateScissor(glState);
                 updateDepthStencil(glState);
+                updateDither();
 
                 // Clear the blend funcs/equations for color attachment indices that no longer
                 // exist.
@@ -4002,7 +4058,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
             case gl::State::DIRTY_BIT_DISPATCH_INDIRECT_BUFFER_BINDING:
                 break;
             case gl::State::DIRTY_BIT_PROGRAM_BINDING:
-                invalidateProgramBindingHelper(glState);
+                invalidateProgramBindingHelper();
                 static_assert(
                     gl::State::DIRTY_BIT_PROGRAM_EXECUTABLE > gl::State::DIRTY_BIT_PROGRAM_BINDING,
                     "Dirty bit order");
@@ -4574,6 +4630,9 @@ angle::Result ContextVk::onFramebufferChange(FramebufferVk *framebufferVk, gl::C
 
     // Update depth and stencil.
     updateDepthStencil(mState);
+
+    // Update dither based on attachment formats.
+    updateDither();
 
     if (mState.getProgramExecutable())
     {
@@ -5421,31 +5480,31 @@ angle::Result ContextVk::updateActiveTextures(const gl::Context *context, gl::Co
         //   The new parameter, TEXTURE_SRGB_DECODE_EXT controls whether the
         //   decoding happens at sample time. It only applies to textures with an
         //   internal format that is sRGB and is ignored for all other textures.
-        ASSERT(textureVk->getImage().valid());
-        if (textureVk->getImage().getActualFormat().isSRGB &&
-            activeTexture.srgbDecode == GL_SKIP_DECODE_EXT)
+        const vk::ImageHelper &image = textureVk->getImage();
+        ASSERT(image.valid());
+        if (image.getActualFormat().isSRGB && activeTexture.srgbDecode == GL_SKIP_DECODE_EXT)
         {
             // Make sure we use the MUTABLE bit for the storage. Because the "skip decode" is a
             // Sampler state we might not have caught this setting in TextureVk::syncState.
             ANGLE_TRY(textureVk->ensureMutable(this));
         }
 
-        if (textureVk->getImage().hasEmulatedImageFormat())
+        if (image.hasEmulatedImageFormat())
         {
             ANGLE_VK_PERF_WARNING(
                 this, GL_DEBUG_SEVERITY_LOW,
                 "The Vulkan driver does not support texture format 0x%04X, emulating with 0x%04X",
-                textureVk->getImage().getIntendedFormat().glInternalFormat,
-                textureVk->getImage().getActualFormat().glInternalFormat);
+                image.getIntendedFormat().glInternalFormat,
+                image.getActualFormat().glInternalFormat);
         }
 
         vk::ImageOrBufferViewSubresourceSerial imageViewSerial =
             textureVk->getImageViewSubresourceSerial(samplerState);
         mActiveTexturesDesc.update(textureUnit, imageViewSerial, samplerHelper.getSamplerSerial());
 
-        if (textureVk->getImage().hasImmutableSampler())
+        if (image.hasImmutableSampler())
         {
-            immutableSamplerIndexMap[*textureVk->getImage().getYcbcrConversionDesc()] =
+            immutableSamplerIndexMap[image.getYcbcrConversionDesc()] =
                 static_cast<uint32_t>(textureUnit);
         }
 
@@ -5470,19 +5529,7 @@ angle::Result ContextVk::updateActiveTextures(const gl::Context *context, gl::Co
         // dirty to get everything reallocated/rebound before the next draw.
         if (executable->hasDefaultUniforms())
         {
-            ProgramVk *programVk = getProgram();
-            if (programVk)
-            {
-                programVk->setAllDefaultUniformsDirty();
-            }
-            else
-            {
-                ProgramPipelineVk *programPipelineVk = getProgramPipeline();
-                if (programPipelineVk)
-                {
-                    programPipelineVk->setAllDefaultUniformsDirty();
-                }
-            }
+            executableVk->setAllDefaultUniformsDirty(*executable);
         }
     }
 

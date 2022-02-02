@@ -367,6 +367,20 @@ void ProgramPipeline::updateFragmentInoutRange()
     mState.mExecutable->mFragmentInoutRange     = fragmentExecutable.mFragmentInoutRange;
 }
 
+void ProgramPipeline::updateUsesEarlyFragmentTestsOptimization()
+{
+    Program *fragmentProgram = getShaderProgram(gl::ShaderType::Fragment);
+
+    if (!fragmentProgram)
+    {
+        return;
+    }
+
+    const ProgramExecutable &fragmentExecutable = fragmentProgram->getExecutable();
+    mState.mExecutable->mUsesEarlyFragmentTestsOptimization =
+        fragmentExecutable.mUsesEarlyFragmentTestsOptimization;
+}
+
 void ProgramPipeline::updateLinkedVaryings()
 {
     // Need to check all of the shader stages, not just linked, so we handle Compute correctly.
@@ -394,44 +408,6 @@ void ProgramPipeline::updateLinkedVaryings()
     }
 }
 
-void ProgramPipeline::updateHasBooleans()
-{
-    // Need to check all of the shader stages, not just linked, so we handle Compute correctly.
-    for (const gl::ShaderType shaderType : gl::AllShaderTypes())
-    {
-        const Program *shaderProgram = getShaderProgram(shaderType);
-        if (shaderProgram)
-        {
-            const ProgramExecutable &executable = shaderProgram->getExecutable();
-
-            if (executable.hasUniformBuffers())
-            {
-                mState.mExecutable->mPipelineHasUniformBuffers = true;
-            }
-            if (executable.hasStorageBuffers())
-            {
-                mState.mExecutable->mPipelineHasStorageBuffers = true;
-            }
-            if (executable.hasAtomicCounterBuffers())
-            {
-                mState.mExecutable->mPipelineHasAtomicCounterBuffers = true;
-            }
-            if (executable.hasDefaultUniforms())
-            {
-                mState.mExecutable->mPipelineHasDefaultUniforms = true;
-            }
-            if (executable.hasTextures())
-            {
-                mState.mExecutable->mPipelineHasTextures = true;
-            }
-            if (executable.hasImages())
-            {
-                mState.mExecutable->mPipelineHasImages = true;
-            }
-        }
-    }
-}
-
 void ProgramPipeline::updateExecutable()
 {
     // Vertex Shader ProgramExecutable properties
@@ -448,13 +424,11 @@ void ProgramPipeline::updateExecutable()
 
     // Fragment Shader ProgramExecutable properties
     updateFragmentInoutRange();
+    updateUsesEarlyFragmentTestsOptimization();
 
     // All Shader ProgramExecutable properties
     mState.updateExecutableTextures();
     updateLinkedVaryings();
-
-    // Must be last, since it queries things updated by earlier functions
-    updateHasBooleans();
 }
 
 // The attached shaders are checked for linking errors by matching up their variables.
@@ -704,6 +678,9 @@ void ProgramPipeline::onSubjectStateChange(angle::SubjectIndex index, angle::Sub
             }
             mState.mExecutable->mActiveSamplerRefCounts.fill(0);
             mState.updateExecutableTextures();
+            break;
+        case angle::SubjectMessage::ProgramUniformUpdated:
+            mProgramPipelineImpl->onProgramUniformUpdate(static_cast<ShaderType>(index));
             break;
         default:
             UNREACHABLE();
