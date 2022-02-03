@@ -381,6 +381,7 @@ struct ST_BuiltInResources
     int OES_texture_3D;
     int ANGLE_texture_multisample;
     int ANGLE_multi_draw;
+    // TODO(angleproject:3402) remove after chromium side removal to pass compilation
     int ANGLE_base_vertex_base_instance;
     int WEBGL_video_texture;
     int APPLE_clip_distance;
@@ -395,6 +396,8 @@ struct ST_BuiltInResources
     int OES_sample_variables;
     int EXT_clip_cull_distance;
     int EXT_primitive_bounding_box;
+    int ANGLE_base_vertex_base_instance_shader_builtin;
+    int ANDROID_extension_pack_es31a;
 
     // Set to 1 to enable replacing GL_EXT_draw_buffers #extension directives
     // with GL_NV_draw_buffers in ESSL output. This flag can be used to emulate
