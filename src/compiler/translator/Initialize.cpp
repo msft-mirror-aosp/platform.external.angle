@@ -125,9 +125,9 @@ void InitExtensionBehavior(const ShBuiltInResources &resources, TExtensionBehavi
     {
         extBehavior[TExtension::ANGLE_multi_draw] = EBhUndefined;
     }
-    if (resources.ANGLE_base_vertex_base_instance)
+    if (resources.ANGLE_base_vertex_base_instance_shader_builtin)
     {
-        extBehavior[TExtension::ANGLE_base_vertex_base_instance] = EBhUndefined;
+        extBehavior[TExtension::ANGLE_base_vertex_base_instance_shader_builtin] = EBhUndefined;
     }
     if (resources.WEBGL_video_texture)
     {
@@ -176,6 +176,10 @@ void InitExtensionBehavior(const ShBuiltInResources &resources, TExtensionBehavi
     if (resources.EXT_clip_cull_distance)
     {
         extBehavior[TExtension::EXT_clip_cull_distance] = EBhUndefined;
+    }
+    if (resources.ANDROID_extension_pack_es31a)
+    {
+        extBehavior[TExtension::ANDROID_extension_pack_es31a] = EBhUndefined;
     }
 }
 
