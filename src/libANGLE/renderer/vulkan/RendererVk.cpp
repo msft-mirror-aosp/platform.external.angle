@@ -253,7 +253,7 @@ constexpr SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
     {"SYNC-HAZARD-WRITE_AFTER_READ",
      "depth aspect during store with storeOp VK_ATTACHMENT_STORE_OP_STORE. Access info (usage: "
      "SYNC_LATE_FRAGMENT_TESTS_DEPTH_STENCIL_ATTACHMENT_WRITE, prior_usage: "
-     "SYNC_FRAGMENT_SHADER_SHADER_STORAGE_READ, read_barriers: VK_PIPELINE_STAGE_2_NONE_KHR, "
+     "SYNC_FRAGMENT_SHADER_SHADER_STORAGE_READ, read_barriers: VK_PIPELINE_STAGE_2_NONE, "
      "command: vkCmdDraw",
      "", true},
     {"SYNC-HAZARD-READ_AFTER_WRITE",
@@ -426,7 +426,7 @@ constexpr SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
      "SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
      false},
     {"SYNC-HAZARD-WRITE_AFTER_READ",
-     "vkCmdCopyImageToBuffer(): Hazard WRITE_AFTER_READ for dstBuffer VkBuffer",
+     "vkCmdCopyImageToBuffer: Hazard WRITE_AFTER_READ for dstBuffer VkBuffer",
      "Access info (usage: SYNC_COPY_TRANSFER_WRITE, prior_usage: "
      "SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
      false},
@@ -448,6 +448,14 @@ constexpr SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
     {"SYNC-HAZARD-READ_AFTER_WRITE", "usage: SYNC_VERTEX_SHADER_UNIFORM_READ", "", false},
     {"SYNC-HAZARD-WRITE_AFTER_READ", "type: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC", "", false},
     {"SYNC-HAZARD-READ_AFTER_WRITE", "type: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC", "", false},
+    // http://anglebug.com/6870
+    // From: TracePerfTest.Run/vulkan_dead_by_daylight
+    {"SYNC-HAZARD-READ_AFTER_WRITE",
+     "vkCmdBeginRenderPass: Hazard READ_AFTER_WRITE in subpass 0 for attachment 0 aspect color "
+     "during load with loadOp VK_ATTACHMENT_LOAD_OP_LOAD. Access info (usage: "
+     "SYNC_COLOR_ATTACHMENT_OUTPUT_COLOR_ATTACHMENT_READ, prior_usage: "
+     "SYNC_IMAGE_LAYOUT_TRANSITION, write_barriers: 0, command: vkCmdEndRenderPass",
+     "", false},
 };
 
 enum class DebugMessageReport
@@ -999,6 +1007,7 @@ constexpr char kEnableDebugMarkersPropertyName[] = "debug.angle.markers";
 // RendererVk implementation.
 RendererVk::RendererVk()
     : mDisplay(nullptr),
+      mLibVulkanLibrary(nullptr),
       mCapsInitialized(false),
       mApiVersion(0),
       mInstance(VK_NULL_HANDLE),
@@ -1043,12 +1052,17 @@ RendererVk::~RendererVk()
     mAllocator.release();
     mPipelineCache.release();
     ASSERT(!hasSharedGarbage());
+
+    if (mLibVulkanLibrary)
+    {
+        angle::CloseSystemLibrary(mLibVulkanLibrary);
+    }
 }
 
 bool RendererVk::hasSharedGarbage()
 {
     std::lock_guard<std::mutex> lock(mGarbageMutex);
-    return !mSharedGarbage.empty();
+    return !mSharedGarbage.empty() || !mSuballocationGarbage.empty();
 }
 
 void RendererVk::releaseSharedResources(vk::ResourceUseList *resourceList)
@@ -1152,8 +1166,9 @@ angle::Result RendererVk::initialize(DisplayVk *displayVk,
     mLibVulkanLibrary = angle::vk::OpenLibVulkan();
     ANGLE_VK_CHECK(displayVk, mLibVulkanLibrary, VK_ERROR_INITIALIZATION_FAILED);
 
-    PFN_vkGetInstanceProcAddr vulkanLoaderGetInstanceProcAddr = nullptr;
-    mLibVulkanLibrary->getAs("vkGetInstanceProcAddr", &vulkanLoaderGetInstanceProcAddr);
+    PFN_vkGetInstanceProcAddr vulkanLoaderGetInstanceProcAddr =
+        reinterpret_cast<PFN_vkGetInstanceProcAddr>(
+            angle::GetLibrarySymbol(mLibVulkanLibrary, "vkGetInstanceProcAddr"));
 
     // Set all vk* function ptrs
     volkInitializeCustom(vulkanLoaderGetInstanceProcAddr);
@@ -3028,6 +3043,16 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // Support EGL_KHR_lock_surface3 extension.
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsLockSurfaceExtension, IsAndroid());
 
+    // http://anglebug.com/6878
+    // Android needs swapbuffers to update image and present to display.
+    ANGLE_FEATURE_CONDITION(&mFeatures, swapbuffersOnFlushOrFinishWithSingleBuffer, IsAndroid());
+
+    // Applications on Android have come to rely on hardware dithering, and visually regress without
+    // it.  On desktop GPUs, OpenGL's dithering is a no-op.  The following setting mimics that
+    // behavior.  Dithering is also currently not enabled on SwiftShader, but can be as needed
+    // (which would require Chromium and Capture/Replay test expectations updates).
+    ANGLE_FEATURE_CONDITION(&mFeatures, emulateDithering, IsAndroid());
+
     angle::PlatformMethods *platform = ANGLEPlatformCurrent();
     platform->overrideFeaturesVk(platform, &mFeatures);
 
@@ -3388,8 +3413,10 @@ bool RendererVk::haveSameFormatFeatureBits(angle::FormatID formatID1,
 
 angle::Result RendererVk::cleanupGarbage(Serial lastCompletedQueueSerial)
 {
-    vk::SharedGarbageList remainingGarbage;
     std::lock_guard<std::mutex> lock(mGarbageMutex);
+
+    // Clean up general garbages
+    vk::SharedGarbageList remainingGarbage;
     while (!mSharedGarbage.empty())
     {
         vk::SharedGarbage &garbage = mSharedGarbage.front();
@@ -3399,10 +3426,25 @@ angle::Result RendererVk::cleanupGarbage(Serial lastCompletedQueueSerial)
         }
         mSharedGarbage.pop();
     }
-
     if (!remainingGarbage.empty())
     {
         mSharedGarbage = std::move(remainingGarbage);
+    }
+
+    // Clean up suballocation garbages
+    vk::SharedBufferSuballocationGarbageList remainingSuballocationGarbage;
+    while (!mSuballocationGarbage.empty())
+    {
+        vk::SharedBufferSuballocationGarbage &garbage = mSuballocationGarbage.front();
+        if (!garbage.destroyIfComplete(this, lastCompletedQueueSerial))
+        {
+            remainingSuballocationGarbage.push(std::move(garbage));
+        }
+        mSuballocationGarbage.pop();
+    }
+    if (!remainingSuballocationGarbage.empty())
+    {
+        mSuballocationGarbage = std::move(remainingSuballocationGarbage);
     }
 
     return angle::Result::Continue;
@@ -3837,19 +3879,17 @@ angle::Result RendererVk::getFormatDescriptorCountForExternalFormat(ContextVk *c
                                                                     uint64_t format,
                                                                     uint32_t *descriptorCountOut)
 {
-    // TODO: need to query for external formats as well once spec is fixed. http://anglebug.com/6141
-    if (getFeatures().useMultipleDescriptorsForExternalFormats.enabled)
-    {
-        // Vulkan spec has a gap in that there is no mechanism available to query the immutable
-        // sampler descriptor count of an external format. For now, return a default value.
-        constexpr uint32_t kExternalFormatDefaultDescriptorCount = 4;
-        ASSERT(descriptorCountOut);
-        *descriptorCountOut = kExternalFormatDefaultDescriptorCount;
-        return angle::Result::Continue;
-    }
+    ASSERT(descriptorCountOut);
 
-    ANGLE_VK_UNREACHABLE(contextVk);
-    return angle::Result::Stop;
+    // TODO: need to query for external formats as well once spec is fixed. http://anglebug.com/6141
+    ANGLE_VK_CHECK(contextVk, getFeatures().useMultipleDescriptorsForExternalFormats.enabled,
+                   VK_ERROR_INCOMPATIBLE_DRIVER);
+
+    // Vulkan spec has a gap in that there is no mechanism available to query the immutable
+    // sampler descriptor count of an external format. For now, return a default value.
+    constexpr uint32_t kExternalFormatDefaultDescriptorCount = 4;
+    *descriptorCountOut = kExternalFormatDefaultDescriptorCount;
+    return angle::Result::Continue;
 }
 
 void RendererVk::onAllocateHandle(vk::HandleType handleType)
