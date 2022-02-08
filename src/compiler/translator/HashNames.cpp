@@ -100,6 +100,7 @@ ImmutableString HashName(const ImmutableString &name,
             return name;
         }
 
+#ifdef AEMU_TRANSLATOR
         static const char* coreBuiltinConflictNames[] = {
             // Keywords in GLSL ES 1.00 but not in GLSL ES 3.00
             "texture",
@@ -158,6 +159,13 @@ ImmutableString HashName(const ImmutableString &name,
         }
 
         return name;
+#else // AEMU_TRANSLATOR
+        ImmutableStringBuilder prefixedName(kUnhashedNamePrefix.length() + name.length());
+        prefixedName << kUnhashedNamePrefix << name;
+        ImmutableString res = prefixedName;
+        AddToNameMapIfNotMapped(name, res, nameMap);
+        return res;
+#endif // AEMU_TRANSLATOR
     }
 
     // Has a hash function
