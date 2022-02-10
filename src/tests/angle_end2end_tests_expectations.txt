@@ -25,6 +25,8 @@
 6347 OPENGL : FramebufferTestWithFormatFallback.RGBA4444_BlitCopyTexImage/* = SKIP
 6347 GLES : FramebufferTestWithFormatFallback.R5G5B5A1_BlitCopyTexImage/* = SKIP
 6347 GLES : FramebufferTestWithFormatFallback.RGBA4444_BlitCopyTexImage/* = SKIP
+6989 OPENGL : BlitFramebufferTestES31.OOBResolve/* = SKIP
+6989 GLES : BlitFramebufferTestES31.OOBResolve/* = SKIP
 
 6743 OPENGL : SimpleStateChangeTestES3.RespecifyBufferAfterBeginTransformFeedback/* = SKIP
 6743 GLES : SimpleStateChangeTestES3.RespecifyBufferAfterBeginTransformFeedback/* = SKIP
@@ -88,6 +90,8 @@
 // Generates invalid errors when compiling the shader in the GL backend
 6172 NVIDIA OpenGL : GLSLTest_ES31.TypesUsedInDifferentBlockStorages/* = SKIP
 6172 NVIDIA GLES : GLSLTest_ES31.TypesUsedInDifferentBlockStorages/* = SKIP
+6977 NVIDIA OpenGL : MipmapTestES31.UpdateBaseLevel/* = SKIP
+6977 NVIDIA GLES : MipmapTestES31.UpdateBaseLevel/* = SKIP
 
 // Intel Vulkan
 
@@ -105,6 +109,7 @@
 6068 INTEL VULKAN : MultiviewRenderPrimitiveTest.LineStrip/* = SKIP
 // Fails on older mesa in some sequence of test
 6563 LINUX INTEL VULKAN : TransformFeedbackTest.EndWithDifferentProgram/* = SKIP
+6962 WIN INTEL VULKAN : BlitFramebufferTestES31.PartialResolve/* = SKIP
 
 // Linux AMD
 6855 LINUX AMD OPENGL : ClearTestES3.ClearMaxAttachmentsAfterDraw/* = SKIP
@@ -475,6 +480,10 @@
 // ASAN flakes with Vulkan / SwiftShader / AsyncQueue
 6875 ASAN VULKAN SWIFTSHADER : ComputeShaderTest.*/ES3_1_Vulkan_SwiftShader_AsyncQueue = SKIP
 6875 SWIFTSHADER : TransformFeedbackTest.SpanMultipleRenderPasses/* = SKIP
+
+// ASAN flaky timeouts and crashes with Win / Vulkan / Swiftshader
+6965 ASAN WIN VULKAN SWIFTSHADER : MipmapTest* = SKIP
+6968 ASAN WIN VULKAN SWIFTSHADER : MultithreadingTest.MultiContextDrawWithSwapBuffers/ES3_Vulkan_SwiftShader = SKIP
 
 // Regression after a buffer change.
 6881 INTEL VULKAN LINUX : Texture2DTest.TexStorageWithPBOMiddlePixelDifferent/* = SKIP

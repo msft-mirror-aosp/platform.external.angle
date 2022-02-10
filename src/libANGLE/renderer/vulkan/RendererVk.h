@@ -318,6 +318,13 @@ class RendererVk : angle::NonCopyable
         }
     }
 
+    void collectSuballocationGarbage(vk::SharedResourceUse &&use,
+                                     vk::BufferSuballocation &&suballocation)
+    {
+        std::lock_guard<std::mutex> lock(mGarbageMutex);
+        mSuballocationGarbage.emplace(std::move(use), std::move(suballocation));
+    }
+
     angle::Result getPipelineCache(vk::PipelineCache **pipelineCache);
     void onNewGraphicsPipeline()
     {
@@ -327,6 +334,9 @@ class RendererVk : angle::NonCopyable
 
     void onNewValidationMessage(const std::string &message);
     std::string getAndClearLastValidationMessage(uint32_t *countSinceLastClear);
+
+    void onFramebufferFetchUsed();
+    bool isFramebufferFetchUsed() const { return mIsFramebufferFetchUsed; }
 
     uint64_t getMaxFenceWaitTimeNs() const;
 
@@ -528,7 +538,7 @@ class RendererVk : angle::NonCopyable
 
     egl::Display *mDisplay;
 
-    std::unique_ptr<angle::Library> mLibVulkanLibrary;
+    void *mLibVulkanLibrary;
 
     mutable bool mCapsInitialized;
     mutable gl::Caps mNativeCaps;
@@ -592,6 +602,7 @@ class RendererVk : angle::NonCopyable
 
     std::mutex mGarbageMutex;
     vk::SharedGarbageList mSharedGarbage;
+    vk::SharedBufferSuballocationGarbageList mSuballocationGarbage;
 
     vk::MemoryProperties mMemoryProperties;
     vk::FormatTable mFormatTable;
@@ -619,6 +630,10 @@ class RendererVk : angle::NonCopyable
     // Latest validation data for debug overlay.
     std::string mLastValidationMessage;
     uint32_t mValidationMessageCount;
+
+    // Whether framebuffer fetch has been used, for the purposes of more accurate syncval error
+    // filtering.
+    bool mIsFramebufferFetchUsed;
 
     DebugAnnotatorVk mAnnotator;
 
