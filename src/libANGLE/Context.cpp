@@ -1213,6 +1213,13 @@ void Context::bindTexture(TextureType target, TextureID handle)
 {
     Texture *texture = nullptr;
 
+    // Some apps enable KHR_create_context_no_error but pass in an invalid texture type.
+    // Workaround this by silently returning in such situations.
+    if (target == TextureType::InvalidEnum)
+    {
+        return;
+    }
+
     if (handle.value == 0)
     {
         texture = mZeroTextures[target].get();
@@ -1304,6 +1311,7 @@ void Context::useProgramStages(ProgramPipelineID pipeline,
 
     ASSERT(programPipeline);
     ANGLE_CONTEXT_TRY(programPipeline->useProgramStages(this, stages, shaderProgram));
+    mState.mDirtyBits.set(State::DirtyBitType::DIRTY_BIT_PROGRAM_EXECUTABLE);
 }
 
 void Context::bindTransformFeedback(GLenum target, TransformFeedbackID transformFeedbackHandle)
@@ -2484,6 +2492,13 @@ void Context::texParameterfvRobust(TextureType target,
 
 void Context::texParameteri(TextureType target, GLenum pname, GLint param)
 {
+    // Some apps enable KHR_create_context_no_error but pass in an invalid texture type.
+    // Workaround this by silently returning in such situations.
+    if (target == TextureType::InvalidEnum)
+    {
+        return;
+    }
+
     Texture *const texture = getTextureByType(target);
     SetTexParameteri(this, texture, pname, param);
 }
@@ -3505,10 +3520,6 @@ Extensions Context::generateSupportedExtensions() const
         supportedExtensions.drawBuffersIndexedOES        = false;
         supportedExtensions.EGLImageArrayEXT             = false;
         supportedExtensions.textureFormatSRGBOverrideEXT = false;
-
-        // The spec requires ES 3.1 but these are used for WebGL 2.0
-        supportedExtensions.baseVertexBaseInstanceANGLE              = false;
-        supportedExtensions.baseVertexBaseInstanceShaderBuiltinANGLE = false;
 
         // Requires immutable textures
         supportedExtensions.yuvInternalFormatANGLE = false;

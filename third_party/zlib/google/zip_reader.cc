@@ -8,7 +8,10 @@
 
 #include "base/bind.h"
 #include "base/files/file.h"
+#include "base/i18n/icu_string_conversions.h"
 #include "base/logging.h"
+#include "base/strings/strcat.h"
+#include "base/strings/string_piece.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/threading/sequenced_task_runner_handle.h"
@@ -29,8 +32,27 @@
 #endif
 
 namespace zip {
-
 namespace {
+
+enum UnzipError : int;
+
+std::ostream& operator<<(std::ostream& out, UnzipError error) {
+#define SWITCH_ERR(X) \
+  case X:             \
+    return out << #X;
+  switch (error) {
+    SWITCH_ERR(UNZ_OK);
+    SWITCH_ERR(UNZ_END_OF_LIST_OF_FILE);
+    SWITCH_ERR(UNZ_ERRNO);
+    SWITCH_ERR(UNZ_PARAMERROR);
+    SWITCH_ERR(UNZ_BADZIPFILE);
+    SWITCH_ERR(UNZ_INTERNALERROR);
+    SWITCH_ERR(UNZ_CRCERROR);
+    default:
+      return out << "UNZ" << static_cast<int>(error);
+  }
+#undef SWITCH_ERR
+}
 
 // StringWriterDelegate --------------------------------------------------------
 
@@ -65,12 +87,9 @@ class StringWriterDelegate : public WriterDelegate {
 
 StringWriterDelegate::StringWriterDelegate(size_t max_read_bytes,
                                            std::string* output)
-    : max_read_bytes_(max_read_bytes),
-      output_(output) {
-}
+    : max_read_bytes_(max_read_bytes), output_(output) {}
 
-StringWriterDelegate::~StringWriterDelegate() {
-}
+StringWriterDelegate::~StringWriterDelegate() {}
 
 bool StringWriterDelegate::PrepareOutput() {
   return true;
@@ -116,63 +135,6 @@ void SetPosixFilePermissions(int fd, int mode) {
 
 }  // namespace
 
-// TODO(satorux): The implementation assumes that file names in zip files
-// are encoded in UTF-8. This is true for zip files created by Zip()
-// function in zip.h, but not true for user-supplied random zip files.
-ZipReader::EntryInfo::EntryInfo(const std::string& file_name_in_zip,
-                                const unz_file_info& raw_file_info)
-    : file_path_(base::FilePath::FromUTF8Unsafe(file_name_in_zip)),
-      is_directory_(false),
-      is_unsafe_(false),
-      is_encrypted_(false),
-      posix_mode_(0) {
-  original_size_ = raw_file_info.uncompressed_size;
-
-  // Directory entries in zip files end with "/".
-  is_directory_ = base::EndsWith(file_name_in_zip, "/",
-                                 base::CompareCase::INSENSITIVE_ASCII);
-
-  // Check the file name here for directory traversal issues.
-  is_unsafe_ = file_path_.ReferencesParent();
-
-  // We also consider that the file name is unsafe, if it's invalid UTF-8.
-  std::u16string file_name_utf16;
-  if (!base::UTF8ToUTF16(file_name_in_zip.data(), file_name_in_zip.size(),
-                         &file_name_utf16)) {
-    is_unsafe_ = true;
-  }
-
-  // We also consider that the file name is unsafe, if it's absolute.
-  // On Windows, IsAbsolute() returns false for paths starting with "/".
-  if (file_path_.IsAbsolute() ||
-      base::StartsWith(file_name_in_zip, "/",
-                       base::CompareCase::INSENSITIVE_ASCII))
-    is_unsafe_ = true;
-
-  // Whether the file is encrypted is bit 0 of the flag.
-  is_encrypted_ = raw_file_info.flag & 1;
-
-  // Construct the last modified time. The timezone info is not present in
-  // zip files, so we construct the time as local time.
-  base::Time::Exploded exploded_time = {};  // Zero-clear.
-  exploded_time.year = raw_file_info.tmu_date.tm_year;
-  // The month in zip file is 0-based, whereas ours is 1-based.
-  exploded_time.month = raw_file_info.tmu_date.tm_mon + 1;
-  exploded_time.day_of_month = raw_file_info.tmu_date.tm_mday;
-  exploded_time.hour = raw_file_info.tmu_date.tm_hour;
-  exploded_time.minute = raw_file_info.tmu_date.tm_min;
-  exploded_time.second = raw_file_info.tmu_date.tm_sec;
-  exploded_time.millisecond = 0;
-
-  if (!base::Time::FromUTCExploded(exploded_time, &last_modified_))
-    last_modified_ = base::Time::UnixEpoch();
-
-#if defined(OS_POSIX)
-  posix_mode_ =
-      (raw_file_info.external_fa >> 16L) & (S_IRWXU | S_IRWXG | S_IRWXO);
-#endif
-}
-
 ZipReader::ZipReader() {
   Reset();
 }
@@ -181,13 +143,17 @@ ZipReader::~ZipReader() {
   Close();
 }
 
-bool ZipReader::Open(const base::FilePath& zip_file_path) {
+bool ZipReader::Open(const base::FilePath& zip_path) {
   DCHECK(!zip_file_);
 
   // Use of "Unsafe" function does not look good, but there is no way to do
   // this safely on Linux. See file_util.h for details.
-  zip_file_ = internal::OpenForUnzipping(zip_file_path.AsUTF8Unsafe());
+  zip_file_ = internal::OpenForUnzipping(zip_path.AsUTF8Unsafe());
   if (!zip_file_) {
+    LOG(ERROR) << "Cannot open ZIP archive "
+               << (LOG_IS_ON(INFO)
+                       ? base::StrCat({"'", zip_path.AsUTF8Unsafe(), "'"})
+                       : "(redacted)");
     return false;
   }
 
@@ -203,6 +169,7 @@ bool ZipReader::OpenFromPlatformFile(base::PlatformFile zip_fd) {
   zip_file_ = internal::OpenHandleForUnzipping(zip_fd);
 #endif
   if (!zip_file_) {
+    LOG(ERROR) << "Cannot open ZIP from file handle " << zip_fd;
     return false;
   }
 
@@ -234,43 +201,105 @@ bool ZipReader::AdvanceToNextEntry() {
   if (reached_end_)
     return false;
 
-  unz_file_pos position = {};
-  if (unzGetFilePos(zip_file_, &position) != UNZ_OK)
-    return false;
-  const int current_entry_index = position.num_of_file;
-  // If we are currently at the last entry, then the next position is the
-  // end of the zip file, so mark that we reached the end.
-  if (current_entry_index + 1 == num_entries_) {
+  if (const int err = unzGoToNextFile(zip_file_); err != UNZ_OK) {
     reached_end_ = true;
-  } else {
-    DCHECK_LT(current_entry_index + 1, num_entries_);
-    if (unzGoToNextFile(zip_file_) != UNZ_OK) {
+    if (err != UNZ_END_OF_LIST_OF_FILE) {
+      LOG(ERROR) << "Cannot go to next entry in ZIP: " << UnzipError(err);
+      ok_ = false;
       return false;
     }
   }
-  current_entry_info_.reset();
+
+  entry_ = {};
+  current_entry_ = nullptr;
   return true;
+}
+
+const ZipReader::Entry* ZipReader::Next() {
+  DCHECK(zip_file_);
+
+  if (reached_end_)
+    return nullptr;
+
+  if (next_index_ > 0 && (!AdvanceToNextEntry() || reached_end_))
+    return nullptr;
+
+  next_index_++;
+
+  if (!OpenCurrentEntryInZip()) {
+    reached_end_ = true;
+    ok_ = false;
+    return nullptr;
+  }
+
+  return &entry_;
 }
 
 bool ZipReader::OpenCurrentEntryInZip() {
   DCHECK(zip_file_);
 
-  unz_file_info raw_file_info = {};
-  char raw_file_name_in_zip[internal::kZipMaxPath] = {};
-  const int result = unzGetCurrentFileInfo(zip_file_,
-                                           &raw_file_info,
-                                           raw_file_name_in_zip,
-                                           sizeof(raw_file_name_in_zip) - 1,
-                                           NULL,  // extraField.
-                                           0,  // extraFieldBufferSize.
-                                           NULL,  // szComment.
-                                           0);  // commentBufferSize.
-  if (result != UNZ_OK)
+  current_entry_ = nullptr;
+
+  // Get entry info.
+  unz_file_info info = {};
+  char path_in_zip[internal::kZipMaxPath] = {};
+  if (const int err = unzGetCurrentFileInfo(zip_file_, &info, path_in_zip,
+                                            sizeof(path_in_zip) - 1, nullptr, 0,
+                                            nullptr, 0);
+      err != UNZ_OK) {
+    LOG(ERROR) << "Cannot get entry from ZIP: " << UnzipError(err);
     return false;
-  if (raw_file_name_in_zip[0] == '\0')
+  }
+
+  Entry& entry = entry_;
+  entry.path_in_original_encoding = path_in_zip;
+
+  // Convert path from original encoding to Unicode.
+  std::u16string path_in_utf16;
+  const char* const encoding = encoding_.empty() ? "UTF-8" : encoding_.c_str();
+  if (!base::CodepageToUTF16(entry.path_in_original_encoding, encoding,
+                             base::OnStringConversionError::SUBSTITUTE,
+                             &path_in_utf16)) {
+    LOG(ERROR) << "Cannot convert path from encoding " << encoding;
     return false;
-  current_entry_info_.reset(
-      new EntryInfo(raw_file_name_in_zip, raw_file_info));
+  }
+
+  entry.path = base::FilePath::FromUTF16Unsafe(path_in_utf16);
+  entry.original_size = info.uncompressed_size;
+
+  // Directory entries in ZIP have a path ending with "/".
+  entry.is_directory = base::EndsWith(path_in_utf16, u"/");
+
+  // Check the entry path for directory traversal issues. We consider entry
+  // paths unsafe if they are absolute or if they contain "..". On Windows,
+  // IsAbsolute() returns false for paths starting with "/".
+  entry.is_unsafe = entry.path.ReferencesParent() || entry.path.IsAbsolute() ||
+                    base::StartsWith(path_in_utf16, u"/");
+
+  // The file content of this entry is encrypted if flag bit 0 is set.
+  entry.is_encrypted = info.flag & 1;
+
+  // Construct the last modified time. The timezone info is not present in ZIP
+  // archives, so we construct the time as UTC.
+  base::Time::Exploded exploded_time = {};
+  exploded_time.year = info.tmu_date.tm_year;
+  exploded_time.month = info.tmu_date.tm_mon + 1;  // 0-based vs 1-based
+  exploded_time.day_of_month = info.tmu_date.tm_mday;
+  exploded_time.hour = info.tmu_date.tm_hour;
+  exploded_time.minute = info.tmu_date.tm_min;
+  exploded_time.second = info.tmu_date.tm_sec;
+  exploded_time.millisecond = 0;
+
+  if (!base::Time::FromUTCExploded(exploded_time, &entry.last_modified))
+    entry.last_modified = base::Time::UnixEpoch();
+
+#if defined(OS_POSIX)
+  entry.posix_mode = (info.external_fa >> 16L) & (S_IRWXU | S_IRWXG | S_IRWXO);
+#else
+  entry.posix_mode = 0;
+#endif
+
+  current_entry_ = &entry_;
   return true;
 }
 
@@ -278,40 +307,47 @@ bool ZipReader::ExtractCurrentEntry(WriterDelegate* delegate,
                                     uint64_t num_bytes_to_extract) const {
   DCHECK(zip_file_);
 
-  const int open_result = unzOpenCurrentFile(zip_file_);
-  if (open_result != UNZ_OK)
+  if (const int err = unzOpenCurrentFile(zip_file_); err != UNZ_OK) {
+    LOG(ERROR) << "Cannot open file from ZIP entry: " << UnzipError(err);
     return false;
+  }
 
   if (!delegate->PrepareOutput())
     return false;
-  std::unique_ptr<char[]> buf(new char[internal::kZipBufSize]);
 
   uint64_t remaining_capacity = num_bytes_to_extract;
   bool entire_file_extracted = false;
 
   while (remaining_capacity > 0) {
+    char buf[internal::kZipBufSize];
     const int num_bytes_read =
-        unzReadCurrentFile(zip_file_, buf.get(), internal::kZipBufSize);
+        unzReadCurrentFile(zip_file_, buf, internal::kZipBufSize);
 
     if (num_bytes_read == 0) {
       entire_file_extracted = true;
       break;
-    } else if (num_bytes_read < 0) {
-      // If num_bytes_read < 0, then it's a specific UNZ_* error code.
-      break;
-    } else if (num_bytes_read > 0) {
-      uint64_t num_bytes_to_write = std::min<uint64_t>(
-          remaining_capacity, base::checked_cast<uint64_t>(num_bytes_read));
-      if (!delegate->WriteBytes(buf.get(), num_bytes_to_write))
-        break;
-      if (remaining_capacity == base::checked_cast<uint64_t>(num_bytes_read)) {
-        // Ensures function returns true if the entire file has been read.
-        entire_file_extracted =
-            (unzReadCurrentFile(zip_file_, buf.get(), 1) == 0);
-      }
-      CHECK_GE(remaining_capacity, num_bytes_to_write);
-      remaining_capacity -= num_bytes_to_write;
     }
+
+    if (num_bytes_read < 0) {
+      LOG(ERROR) << "Error " << UnzipError(num_bytes_read)
+                 << " while reading data from file in ZIP";
+      break;
+    }
+
+    DCHECK_LT(0, num_bytes_read);
+    CHECK_LE(num_bytes_read, internal::kZipBufSize);
+
+    uint64_t num_bytes_to_write = std::min<uint64_t>(
+        remaining_capacity, base::checked_cast<uint64_t>(num_bytes_read));
+    if (!delegate->WriteBytes(buf, num_bytes_to_write))
+      break;
+
+    if (remaining_capacity == base::checked_cast<uint64_t>(num_bytes_read)) {
+      // Ensures function returns true if the entire file has been read.
+      entire_file_extracted = (unzReadCurrentFile(zip_file_, buf, 1) == 0);
+    }
+    CHECK_GE(remaining_capacity, num_bytes_to_write);
+    remaining_capacity -= num_bytes_to_write;
   }
 
   unzCloseCurrentFile(zip_file_);
@@ -332,7 +368,7 @@ void ZipReader::ExtractCurrentEntryToFilePathAsync(
     FailureCallback failure_callback,
     const ProgressCallback& progress_callback) {
   DCHECK(zip_file_);
-  DCHECK(current_entry_info_.get());
+  DCHECK(current_entry_);
 
   // If this is a directory, just create it and return.
   if (current_entry_info()->is_directory()) {
@@ -347,8 +383,8 @@ void ZipReader::ExtractCurrentEntryToFilePathAsync(
     return;
   }
 
-  if (unzOpenCurrentFile(zip_file_) != UNZ_OK) {
-    DVLOG(1) << "Unzip failed: unable to open current zip entry.";
+  if (const int err = unzOpenCurrentFile(zip_file_); err != UNZ_OK) {
+    LOG(ERROR) << "Cannot open file from ZIP entry: " << UnzipError(err);
     base::SequencedTaskRunnerHandle::Get()->PostTask(
         FROM_HERE, std::move(failure_callback));
     return;
@@ -427,23 +463,25 @@ bool ZipReader::OpenInternal() {
   DCHECK(zip_file_);
 
   unz_global_info zip_info = {};  // Zero-clear.
-  if (unzGetGlobalInfo(zip_file_, &zip_info) != UNZ_OK) {
+  if (const int err = unzGetGlobalInfo(zip_file_, &zip_info); err != UNZ_OK) {
+    LOG(ERROR) << "Cannot get ZIP info: " << UnzipError(err);
     return false;
   }
-  num_entries_ = zip_info.number_entry;
-  if (num_entries_ < 0)
-    return false;
 
-  // We are already at the end if the zip file is empty.
-  reached_end_ = (num_entries_ == 0);
+  num_entries_ = zip_info.number_entry;
+  reached_end_ = (num_entries_ <= 0);
+  ok_ = true;
   return true;
 }
 
 void ZipReader::Reset() {
-  zip_file_ = NULL;
+  zip_file_ = nullptr;
   num_entries_ = 0;
+  next_index_ = 0;
   reached_end_ = false;
-  current_entry_info_.reset();
+  ok_ = false;
+  entry_ = {};
+  current_entry_ = nullptr;
 }
 
 void ZipReader::ExtractChunk(base::File output_file,
@@ -453,9 +491,8 @@ void ZipReader::ExtractChunk(base::File output_file,
                              const int64_t offset) {
   char buffer[internal::kZipBufSize];
 
-  const int num_bytes_read = unzReadCurrentFile(zip_file_,
-                                                buffer,
-                                                internal::kZipBufSize);
+  const int num_bytes_read =
+      unzReadCurrentFile(zip_file_, buffer, internal::kZipBufSize);
 
   if (num_bytes_read == 0) {
     unzCloseCurrentFile(zip_file_);
