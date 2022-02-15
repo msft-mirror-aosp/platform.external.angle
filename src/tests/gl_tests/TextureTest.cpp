@@ -468,6 +468,12 @@ class Texture2DTestES3 : public Texture2DTest
     }
 };
 
+class Texture2DTestES3RobustInit : public Texture2DTestES3
+{
+  protected:
+    Texture2DTestES3RobustInit() : Texture2DTestES3() { setRobustResourceInit(true); }
+};
+
 class Texture2DBaseMaxTestES3 : public ANGLETest
 {
   protected:
@@ -5942,6 +5948,36 @@ TEST_P(Texture2DTestES3, TextureCOMPRESSEDSRGB8ETC2ImplicitAlpha1)
     EXPECT_PIXEL_ALPHA_EQ(0, 0, 255);
 }
 
+// ETC2 punchthrough alpha formats must be initialized to opaque black when emulated
+// http://anglebug.com/6936
+TEST_P(Texture2DTestES3RobustInit, TextureCOMPRESSEDRGB8A1ETC2)
+{
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, mTexture2D);
+    glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2, 1, 1, 0,
+                           8, nullptr);
+    EXPECT_GL_NO_ERROR();
+
+    drawQuad(mProgram, "position", 0.5f);
+
+    EXPECT_PIXEL_ALPHA_EQ(0, 0, 255);
+}
+
+// ETC2 punchthrough alpha formats must be initialized to opaque black when emulated
+// http://anglebug.com/6936
+TEST_P(Texture2DTestES3RobustInit, TextureCOMPRESSEDSRGB8A1ETC2)
+{
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, mTexture2D);
+    glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2, 1, 1, 0,
+                           8, nullptr);
+    EXPECT_GL_NO_ERROR();
+
+    drawQuad(mProgram, "position", 0.5f);
+
+    EXPECT_PIXEL_ALPHA_EQ(0, 0, 255);
+}
+
 // Test that compressed textures ignore the pixel unpack state.
 // (https://crbug.org/1267496)
 TEST_P(Texture2DTestES3, PixelUnpackStateTexImage)
@@ -5949,11 +5985,11 @@ TEST_P(Texture2DTestES3, PixelUnpackStateTexImage)
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_texture_compression_s3tc") &&
                        !IsGLExtensionEnabled("GL_ANGLE_texture_compression_dxt3"));
 
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 5);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 9);
     glBindTexture(GL_TEXTURE_2D, mTexture2D);
 
-    uint8_t data[16] = {0};
-    glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 4, 4, 0, 16, data);
+    uint8_t data[64] = {0};
+    glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 8, 8, 0, 64, data);
     EXPECT_GL_NO_ERROR();
 }
 
@@ -5966,13 +6002,13 @@ TEST_P(Texture2DTestES3, PixelUnpackStateTexSubImage)
 
     glBindTexture(GL_TEXTURE_2D, mTexture2D);
 
-    uint8_t data[16] = {0};
-    glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 4, 4, 0, 16, data);
+    uint8_t data[64] = {0};
+    glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 8, 8, 0, 64, data);
     EXPECT_GL_NO_ERROR();
 
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 5);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 9);
 
-    glCompressedTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4, 4, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 16,
+    glCompressedTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 8, 8, GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 64,
                               data);
     EXPECT_GL_NO_ERROR();
 }
@@ -8754,6 +8790,79 @@ TEST_P(TextureCubeTestES3, SpecifyAndSampleFromBaseLevel1)
     EXPECT_PIXEL_COLOR_EQ(0, 0, angle::GLColor::white);
 }
 
+// Test GL_PIXEL_UNPACK_BUFFER with GL_TEXTURE_CUBE_MAP.
+TEST_P(TextureCubeTestES3, CubeMapPixelUnpackBuffer)
+{
+    // Check http://anglebug.com/2155.
+    ANGLE_SKIP_TEST_IF(IsOSX() && IsNVIDIA());
+
+    constexpr char kVS[] =
+        R"(#version 300 es
+        precision mediump float;
+        in vec3 pos;
+        void main() {
+            gl_Position = vec4(pos, 1.0);
+        })";
+
+    constexpr char kFS[] =
+        R"(#version 300 es
+        precision mediump float;
+        out vec4 color;
+        uniform samplerCube uTex;
+        void main(){
+            color = texture(uTex, vec3(1.0));
+        })";
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+    glUseProgram(program);
+
+    glUniform1i(glGetUniformLocation(program, "uTex"), 0);
+    glActiveTexture(GL_TEXTURE0);
+
+    GLTexture cubeTex;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeTex);
+
+    const int kFaceWidth  = 4;
+    const int kFaceHeight = 4;
+
+    uint16_t kHalfFloatOne  = 0x3C00;
+    uint16_t kHalfFloatZero = 0;
+
+    glTexStorage2D(GL_TEXTURE_CUBE_MAP, 1, GL_RGBA16F, kFaceWidth, kFaceHeight);
+    struct RGBA16F
+    {
+        uint16_t R, G, B, A;
+    };
+    RGBA16F redColor = {kHalfFloatOne, kHalfFloatZero, kHalfFloatZero, kHalfFloatOne};
+
+    std::vector<RGBA16F> pixels(kFaceWidth * kFaceHeight, redColor);
+    GLBuffer buffer;
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer.get());
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, pixels.size() * sizeof(RGBA16F), pixels.data(),
+                 GL_DYNAMIC_DRAW);
+    EXPECT_GL_NO_ERROR();
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    for (GLenum faceIndex = 0; faceIndex < 6; faceIndex++)
+    {
+        glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex, 0, 0, 0, kFaceWidth,
+                        kFaceHeight, GL_RGBA, GL_HALF_FLOAT, 0);
+        EXPECT_GL_NO_ERROR();
+    }
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_REPEAT);
+
+    drawQuad(program, "pos", 0.5f, 1.0f, true);
+    ASSERT_GL_NO_ERROR();
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, angle::GLColor::red);
+}
+
 // Verify that using negative texture base level and max level generates GL_INVALID_VALUE.
 TEST_P(Texture2DTestES3, NegativeTextureBaseLevelAndMaxLevel)
 {
@@ -10136,6 +10245,118 @@ void main()
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
 
+class TextureChangeStorageUploadTest : public ANGLETest
+{
+  protected:
+    TextureChangeStorageUploadTest()
+    {
+        setWindowWidth(256);
+        setWindowHeight(256);
+        setConfigRedBits(8);
+        setConfigGreenBits(8);
+        setConfigBlueBits(8);
+        setConfigAlphaBits(8);
+    }
+
+    void testSetUp() override
+    {
+        mProgram = CompileProgram(essl1_shaders::vs::Simple(), essl1_shaders::fs::UniformColor());
+        if (mProgram == 0)
+        {
+            FAIL() << "shader compilation failed.";
+        }
+
+        glUseProgram(mProgram);
+
+        glClearColor(0, 0, 0, 0);
+        glClearDepthf(0.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glEnable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+
+        glGenTextures(1, &mTexture);
+        ASSERT_GL_NO_ERROR();
+    }
+
+    void testTearDown() override
+    {
+        glDeleteTextures(1, &mTexture);
+        glDeleteProgram(mProgram);
+    }
+
+    GLuint mProgram;
+    GLint mColorLocation;
+    GLuint mTexture;
+};
+
+// Verify that respecifying storage and re-uploading doesn't crash.
+TEST_P(TextureChangeStorageUploadTest, Basic)
+{
+    constexpr int kImageSize        = 8;  // 4 doesn't trip ASAN
+    constexpr int kSmallerImageSize = kImageSize / 2;
+    EXPECT_GT(kImageSize, kSmallerImageSize);
+    EXPECT_GT(kSmallerImageSize / 2, 0);
+
+    std::array<GLColor, kImageSize * kImageSize> kColor;
+
+    glBindTexture(GL_TEXTURE_2D, mTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, kImageSize, kImageSize, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 kColor.data());
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, kSmallerImageSize, kSmallerImageSize);
+    // need partial update to sidestep optimizations that remove the full upload
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, kSmallerImageSize / 2, kSmallerImageSize / 2, GL_RGBA,
+                    GL_UNSIGNED_BYTE, kColor.data());
+    EXPECT_GL_NO_ERROR();
+}
+
+class ExtraSamplerCubeShadowUseTest : public ANGLETest
+{
+  protected:
+    ExtraSamplerCubeShadowUseTest() : ANGLETest() {}
+
+    const char *getVertexShaderSource() { return "#version 300 es\nvoid main() {}"; }
+
+    const char *getFragmentShaderSource()
+    {
+        return R"(#version 300 es
+precision mediump float;
+
+uniform mediump samplerCube var_0002; // this has to be there
+uniform highp samplerCubeShadow var_0004; // this has to be a cube shadow sampler
+out vec4 color;
+void main() {
+
+    vec4 var_0031 = texture(var_0002, vec3(1,1,1));
+    ivec2 size = textureSize(var_0004, 0) ;
+    var_0031.x += float(size.y);
+
+    color = var_0031;
+})";
+    }
+
+    void testSetUp() override
+    {
+        mProgram = CompileProgram(getVertexShaderSource(), getFragmentShaderSource());
+        if (mProgram == 0)
+        {
+            FAIL() << "shader compilation failed.";
+        }
+        glUseProgram(mProgram);
+        ASSERT_GL_NO_ERROR();
+    }
+
+    void testTearDown() override { glDeleteProgram(mProgram); }
+
+    GLuint mProgram;
+};
+
+TEST_P(ExtraSamplerCubeShadowUseTest, Basic)
+{
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 3);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+}
+
 // Use this to select which configurations (e.g. which renderer, which GLES major version) these
 // tests should be run against.
 #define ES2_EMULATE_COPY_TEX_IMAGE()                          \
@@ -10153,6 +10374,9 @@ ANGLE_INSTANTIATE_TEST_ES2(SamplerArrayAsFunctionParameterTest);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3);
 ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DTestES3, WithAllocateNonZeroMemory(ES3_VULKAN()));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3RobustInit);
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DTestES3RobustInit);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES31PPO);
 ANGLE_INSTANTIATE_TEST_ES31(Texture2DTestES31PPO);
@@ -10243,5 +10467,9 @@ ANGLE_INSTANTIATE_TEST_ES31(TextureBufferTestES31);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CopyImageTestES31);
 ANGLE_INSTANTIATE_TEST_ES31(CopyImageTestES31);
+
+ANGLE_INSTANTIATE_TEST_ES3(TextureChangeStorageUploadTest);
+
+ANGLE_INSTANTIATE_TEST_ES3(ExtraSamplerCubeShadowUseTest);
 
 }  // anonymous namespace

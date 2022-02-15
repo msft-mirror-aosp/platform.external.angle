@@ -51,6 +51,11 @@ angle::Result CreateOrResizeTexture(const gl::Context *context,
     if (*textureOut)
     {
         ANGLE_TRY((*textureOut)->resize(contextMtl, width, height));
+        size_t resourceSize = EstimateTextureSizeInBytes(format, width, height, 1, samples, 1);
+        if (*textureOut)
+        {
+            (*textureOut)->setEstimatedByteSize(resourceSize);
+        }
     }
     else if (samples > 1)
     {
@@ -416,8 +421,6 @@ egl::Error WindowSurfaceMtl::initialize(const egl::Display *display)
 
     DisplayMtl *displayMtl    = mtl::GetImpl(display);
     id<MTLDevice> metalDevice = displayMtl->getMetalDevice();
-
-    StartFrameCapture(metalDevice, displayMtl->cmdQueue().get());
 
     ANGLE_MTL_OBJC_SCOPE
     {

@@ -595,6 +595,10 @@ template("translator_lib") {
       }
     }
 
+    if (invoker.aemu) {
+      defines += [ "AEMU_TRANSLATOR" ]
+    }
+
     if (_needs_glsl_base) {
       sources += angle_translator_glsl_base_sources
     }
@@ -644,11 +648,13 @@ template("translator_lib") {
 
 translator_lib("translator") {
   gl_d3d_only = false
+  aemu = false
 }
 
 if (angle_enable_essl || angle_enable_glsl || angle_enable_hlsl) {
   translator_lib("translator_gl_d3d_only") {
     gl_d3d_only = true
+    aemu = false
   }
 }
 
@@ -1487,6 +1493,11 @@ group("angle") {
   ]
 }
 
+translator_lib("translator_aemu") {
+  gl_d3d_only = false
+  aemu = true
+}
+
 shared_library("shadertranslator") {
 
   defines = [ "LIBANGLE_IMPLEMENTATION" ]
@@ -1496,6 +1507,6 @@ shared_library("shadertranslator") {
   ]
 
   deps = [
-    ":translator",
+    ":translator_aemu",
   ]
 }
