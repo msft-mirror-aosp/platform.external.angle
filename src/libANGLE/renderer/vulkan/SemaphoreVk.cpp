@@ -17,6 +17,42 @@
 namespace rx
 {
 
+namespace
+{
+vk::ImageLayout GetVulkanImageLayout(GLenum layout)
+{
+    switch (layout)
+    {
+        case GL_NONE:
+            return vk::ImageLayout::Undefined;
+        case GL_LAYOUT_GENERAL_EXT:
+            return vk::ImageLayout::ExternalShadersWrite;
+        case GL_LAYOUT_COLOR_ATTACHMENT_EXT:
+            return vk::ImageLayout::ColorAttachment;
+        case GL_LAYOUT_DEPTH_STENCIL_ATTACHMENT_EXT:
+        case GL_LAYOUT_DEPTH_STENCIL_READ_ONLY_EXT:
+        case GL_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_EXT:
+        case GL_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_EXT:
+            // Note: once VK_KHR_separate_depth_stencil_layouts becomes core or ubiquitous, we
+            // should optimize depth/stencil image layout transitions to only be performed on the
+            // aspect that needs transition.  In that case, these four layouts can be distinguished
+            // and optimized.  Note that the exact equivalent of these layouts are specified in
+            // VK_KHR_maintenance2, which are also usable, granted we transition the pair of
+            // depth/stencil layouts accordingly elsewhere in ANGLE.
+            return vk::ImageLayout::DepthStencilAttachment;
+        case GL_LAYOUT_SHADER_READ_ONLY_EXT:
+            return vk::ImageLayout::ExternalShadersReadOnly;
+        case GL_LAYOUT_TRANSFER_SRC_EXT:
+            return vk::ImageLayout::TransferSrc;
+        case GL_LAYOUT_TRANSFER_DST_EXT:
+            return vk::ImageLayout::TransferDst;
+        default:
+            UNREACHABLE();
+            return vk::ImageLayout::Undefined;
+    }
+}
+}  // anonymous namespace
+
 SemaphoreVk::SemaphoreVk() = default;
 
 SemaphoreVk::~SemaphoreVk() = default;
@@ -79,9 +115,10 @@ angle::Result SemaphoreVk::wait(gl::Context *context,
         for (gl::Buffer *buffer : bufferBarriers)
         {
             BufferVk *bufferVk             = vk::GetImpl(buffer);
-            vk::BufferHelper &bufferHelper = bufferVk->getBuffer();
+            VkDeviceSize bufferOffset      = 0;
+            vk::BufferHelper &bufferHelper = bufferVk->getBufferAndOffset(&bufferOffset);
 
-            vk::OutsideRenderPassCommandBuffer *commandBuffer;
+            vk::CommandBuffer *commandBuffer;
             ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
 
             // Queue ownership transfer.
@@ -95,18 +132,19 @@ angle::Result SemaphoreVk::wait(gl::Context *context,
         // Perform a queue ownership transfer for each texture.  Additionally, we are being
         // informed that the layout of the image has been externally transitioned, so we need to
         // update our internal state tracking.
-        for (const gl::TextureAndLayout &textureBarrier : textureBarriers)
+        for (const gl::TextureAndLayout &textureAndLayout : textureBarriers)
         {
-            TextureVk *textureVk   = vk::GetImpl(textureBarrier.texture);
+            TextureVk *textureVk   = vk::GetImpl(textureAndLayout.texture);
             vk::ImageHelper &image = textureVk->getImage();
-            vk::ImageLayout layout = vk::GetImageLayoutFromGLImageLayout(textureBarrier.layout);
+            vk::ImageLayout layout = GetVulkanImageLayout(textureAndLayout.layout);
 
-            vk::OutsideRenderPassCommandBuffer *commandBuffer;
+            vk::CommandBuffer *commandBuffer;
             ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
 
             // Image should not be accessed while unowned. Emulated formats may have staged updates
             // to clear the image after initialization.
-            ASSERT(!image.hasStagedUpdatesInAllocatedLevels() || image.hasEmulatedImageChannels());
+            ASSERT(!image.hasStagedUpdatesInAllocatedLevels() ||
+                   image.getFormat().hasEmulatedImageChannels());
 
             // Queue ownership transfer and layout transition.
             image.acquireFromExternal(contextVk, VK_QUEUE_FAMILY_EXTERNAL, rendererQueueFamilyIndex,
@@ -123,9 +161,8 @@ angle::Result SemaphoreVk::signal(gl::Context *context,
                                   const gl::TextureBarrierVector &textureBarriers)
 {
     ContextVk *contextVk = vk::GetImpl(context);
-    RendererVk *renderer = contextVk->getRenderer();
 
-    uint32_t rendererQueueFamilyIndex = renderer->getQueueFamilyIndex();
+    uint32_t rendererQueueFamilyIndex = contextVk->getRenderer()->getQueueFamilyIndex();
 
     if (!bufferBarriers.empty())
     {
@@ -133,10 +170,11 @@ angle::Result SemaphoreVk::signal(gl::Context *context,
         for (gl::Buffer *buffer : bufferBarriers)
         {
             BufferVk *bufferVk             = vk::GetImpl(buffer);
-            vk::BufferHelper &bufferHelper = bufferVk->getBuffer();
+            VkDeviceSize bufferOffset      = 0;
+            vk::BufferHelper &bufferHelper = bufferVk->getBufferAndOffset(&bufferOffset);
 
             ANGLE_TRY(contextVk->onBufferReleaseToExternal(bufferHelper));
-            vk::OutsideRenderPassCommandBuffer *commandBuffer;
+            vk::CommandBuffer *commandBuffer;
             ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
 
             // Queue ownership transfer.
@@ -149,11 +187,11 @@ angle::Result SemaphoreVk::signal(gl::Context *context,
     {
         // Perform a queue ownership transfer for each texture.  Additionally, transition the image
         // to the requested layout.
-        for (const gl::TextureAndLayout &textureBarrier : textureBarriers)
+        for (const gl::TextureAndLayout &textureAndLayout : textureBarriers)
         {
-            TextureVk *textureVk   = vk::GetImpl(textureBarrier.texture);
+            TextureVk *textureVk   = vk::GetImpl(textureAndLayout.texture);
             vk::ImageHelper &image = textureVk->getImage();
-            vk::ImageLayout layout = vk::GetImageLayoutFromGLImageLayout(textureBarrier.layout);
+            vk::ImageLayout layout = GetVulkanImageLayout(textureAndLayout.layout);
 
             // Don't transition to Undefined layout.  If external wants to transition the image away
             // from Undefined after this operation, it's perfectly fine to keep the layout as is in
@@ -166,7 +204,7 @@ angle::Result SemaphoreVk::signal(gl::Context *context,
             ANGLE_TRY(textureVk->ensureImageInitialized(contextVk, ImageMipLevels::EnabledLevels));
 
             ANGLE_TRY(contextVk->onImageReleaseToExternal(image));
-            vk::OutsideRenderPassCommandBuffer *commandBuffer;
+            vk::CommandBuffer *commandBuffer;
             ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
 
             // Queue ownership transfer and layout transition.
@@ -181,19 +219,7 @@ angle::Result SemaphoreVk::signal(gl::Context *context,
         ANGLE_TRY(contextVk->syncExternalMemory());
     }
 
-    ANGLE_TRY(contextVk->flushImpl(&mSemaphore, RenderPassClosureReason::ExternalSemaphoreSignal));
-
-    // The external has asked for the semaphore to be signaled.  It will wait on this semaphore and
-    // so we must ensure that the above flush (resulting in vkQueueSubmit) has actually been
-    // submitted (as opposed to simply being scheduled as a task for another thread).  Per the
-    // Vulkan spec:
-    //
-    // > ... when a semaphore wait operation is submitted to a queue:
-    // >
-    // > - A binary semaphore must be signaled, or have an associated semaphore signal operation
-    // >   that is pending execution.
-    //
-    return renderer->ensureNoPendingWork(contextVk);
+    return contextVk->flushImpl(&mSemaphore);
 }
 
 angle::Result SemaphoreVk::importOpaqueFd(ContextVk *contextVk, GLint fd)

@@ -32,13 +32,6 @@ namespace rx
 namespace mtl
 {
 
-enum CommandBufferFinishOperation
-{
-    NoWait,
-    WaitUntilScheduled,
-    WaitUntilFinished
-};
-
 class CommandBuffer;
 class CommandEncoder;
 class RenderCommandEncoder;
@@ -110,7 +103,9 @@ class CommandBuffer final : public WrappedObject<id<MTLCommandBuffer>>, angle::N
     // Return true if command buffer can be encoded into. Return false if it has been committed
     // and hasn't been restarted.
     bool ready() const;
-    void commit(CommandBufferFinishOperation operation);
+    void commit();
+    // wait for committed command buffer to finish.
+    void finish();
 
     void present(id<CAMetalDrawable> presentationDrawable);
 
@@ -131,14 +126,12 @@ class CommandBuffer final : public WrappedObject<id<MTLCommandBuffer>>, angle::N
     void setActiveCommandEncoder(CommandEncoder *encoder);
     void invalidateActiveCommandEncoder(CommandEncoder *encoder);
 
-    bool needsFlushForDrawCallLimits() const;
-
   private:
     void set(id<MTLCommandBuffer> metalBuffer);
     void cleanup();
 
     bool readyImpl() const;
-    bool commitImpl();
+    void commitImpl();
     void forceEndingCurrentEncoder();
 
     void setPendingEvents();
@@ -147,9 +140,6 @@ class CommandBuffer final : public WrappedObject<id<MTLCommandBuffer>>, angle::N
 
     void pushDebugGroupImpl(const std::string &marker);
     void popDebugGroupImpl();
-
-    void setResourceUsedByCommandBuffer(const ResourceRef &resource);
-    void clearResourceListAndSize();
 
     using ParentClass = WrappedObject<id<MTLCommandBuffer>>;
 
@@ -163,11 +153,10 @@ class CommandBuffer final : public WrappedObject<id<MTLCommandBuffer>>, angle::N
 
     std::vector<std::string> mPendingDebugSigns;
     std::vector<std::pair<mtl::SharedEventRef, uint64_t>> mPendingSignalEvents;
+
     std::vector<std::string> mDebugGroups;
 
-    std::unordered_set<id> mResourceList;
-    size_t mWorkingResourceSize = 0;
-    bool mCommitted             = false;
+    bool mCommitted = false;
 };
 
 class CommandEncoder : public WrappedObject<id<MTLCommandEncoder>>, angle::NonCopyable

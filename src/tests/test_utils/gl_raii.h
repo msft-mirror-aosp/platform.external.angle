@@ -11,7 +11,6 @@
 
 #include <functional>
 
-#include "common/debug.h"
 #include "util/shader_utils.h"
 
 namespace angle
@@ -70,14 +69,8 @@ class GLWrapper : angle::NonCopyable
         }
         return mHandle;
     }
-    GLuint get() const
-    {
-        ASSERT(mHandle);
-        return mHandle;
-    }
 
     operator GLuint() { return get(); }
-    operator GLuint() const { return get(); }
 
   private:
     GLGen *mGenFunc;
@@ -150,9 +143,9 @@ class GLShader : angle::NonCopyable
 
     ~GLShader() { glDeleteShader(mHandle); }
 
-    GLuint get() const { return mHandle; }
+    GLuint get() { return mHandle; }
 
-    operator GLuint() const { return get(); }
+    operator GLuint() { return get(); }
 
     void reset()
     {
@@ -229,11 +222,6 @@ class GLProgram
         }
         return mHandle;
     }
-    GLuint get() const
-    {
-        ASSERT(mHandle);
-        return mHandle;
-    }
 
     void reset()
     {
@@ -245,7 +233,6 @@ class GLProgram
     }
 
     operator GLuint() { return get(); }
-    operator GLuint() const { return get(); }
 
   private:
     GLuint mHandle;

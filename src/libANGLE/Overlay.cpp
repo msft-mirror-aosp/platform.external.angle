@@ -39,7 +39,7 @@ Overlay::~Overlay() = default;
 angle::Result Overlay::init(const Context *context)
 {
     initOverlayWidgets();
-    mLastPerSecondUpdate = angle::GetCurrentSystemTime();
+    mLastPerSecondUpdate = angle::GetCurrentTime();
 
     ASSERT(std::all_of(
         mState.mOverlayWidgets.begin(), mState.mOverlayWidgets.end(),
@@ -84,7 +84,7 @@ void Overlay::onSwap() const
     getPerSecondWidget(WidgetId::FPS)->add(1);
 
     // Update per second values every second.
-    double currentTime = angle::GetCurrentSystemTime();
+    double currentTime = angle::GetCurrentTime();
     double timeDiff    = currentTime - mLastPerSecondUpdate;
     if (timeDiff >= 1.0)
     {

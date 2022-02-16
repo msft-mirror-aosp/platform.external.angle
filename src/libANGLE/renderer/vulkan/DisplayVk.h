@@ -14,7 +14,6 @@
 #include "libANGLE/renderer/DisplayImpl.h"
 #include "libANGLE/renderer/vulkan/ResourceVk.h"
 #include "libANGLE/renderer/vulkan/vk_cache_utils.h"
-#include "libANGLE/renderer/vulkan/vk_helpers.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
 
 namespace rx
@@ -45,11 +44,9 @@ class ShareGroupVk : public ShareGroupImpl
         mResourceUseLists.emplace_back(std::move(resourceUseList));
     }
 
-    vk::BufferPool *getDefaultBufferPool(RendererVk *renderer,
-                                         VkDeviceSize size,
-                                         uint32_t memoryTypeIndex);
-    void pruneDefaultBufferPools(RendererVk *renderer);
-    bool isDueForBufferPoolPrune();
+    bool isSyncObjectPendingFlush() { return mSyncObjectPendingFlush; }
+    void setSyncObjectPendingFlush() { mSyncObjectPendingFlush = true; }
+    void clearSyncObjectPendingFlush() { mSyncObjectPendingFlush = false; }
 
   private:
     // ANGLE uses a PipelineLayout cache to store compatible pipeline layouts.
@@ -65,15 +62,7 @@ class ShareGroupVk : public ShareGroupImpl
     // ShareGroupVk submits the next command.
     std::vector<vk::ResourceUseList> mResourceUseLists;
 
-    // The per shared group buffer pools that all buffers should sub-allocate from.
-    vk::BufferPoolPointerArray mDefaultBufferPools;
-
-    // The pool dedicated for small allocations that uses faster buddy algorithm
-    std::unique_ptr<vk::BufferPool> mSmallBufferPool;
-    static constexpr VkDeviceSize kMaxSizeToUseSmallBufferPool = 256;
-
-    // The system time when last pruneEmptyBuffer gets called.
-    double mLastPruneTime;
+    bool mSyncObjectPendingFlush;
 };
 
 class DisplayVk : public DisplayImpl, public vk::Context
@@ -96,8 +85,6 @@ class DisplayVk : public DisplayImpl, public vk::Context
     std::string getRendererDescription() override;
     std::string getVendorString() override;
     std::string getVersionString() override;
-
-    DeviceImpl *createDevice() override;
 
     egl::Error waitClient(const gl::Context *context) override;
     egl::Error waitNative(const gl::Context *context, EGLint engine) override;
@@ -134,14 +121,6 @@ class DisplayVk : public DisplayImpl, public vk::Context
     gl::Version getMaxSupportedESVersion() const override;
     gl::Version getMaxConformantESVersion() const override;
 
-    egl::Error validateImageClientBuffer(const gl::Context *context,
-                                         EGLenum target,
-                                         EGLClientBuffer clientBuffer,
-                                         const egl::AttributeMap &attribs) const override;
-    ExternalImageSiblingImpl *createExternalImageSibling(const gl::Context *context,
-                                                         EGLenum target,
-                                                         EGLClientBuffer buffer,
-                                                         const egl::AttributeMap &attribs) override;
     virtual const char *getWSIExtension() const = 0;
     virtual const char *getWSILayer() const;
     virtual bool isUsingSwapchain() const;

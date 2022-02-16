@@ -553,19 +553,12 @@ void DynamicHLSL::generateShaderLinkHLSL(const gl::Caps &caps,
         }
         else
         {
-            vertexGenerateOutput
-                << "    output.dx_Position.y = clipControlOrigin * gl_Position.y;\n";
+            vertexGenerateOutput << "    output.dx_Position.y = - gl_Position.y;\n";
         }
 
         vertexGenerateOutput
-            << "    if (clipControlZeroToOne)\n"
-            << "    {\n"
-            << "        output.dx_Position.z = gl_Position.z;\n"
-            << "    } else {\n"
-            << "        output.dx_Position.z = (gl_Position.z + gl_Position.w) * 0.5;\n"
-            << "    }\n";
-
-        vertexGenerateOutput << "    output.dx_Position.w = gl_Position.w;\n";
+            << "    output.dx_Position.z = (gl_Position.z + gl_Position.w) * 0.5;\n"
+            << "    output.dx_Position.w = gl_Position.w;\n";
     }
     else
     {
@@ -583,20 +576,14 @@ void DynamicHLSL::generateShaderLinkHLSL(const gl::Caps &caps,
         }
         else
         {
-            vertexGenerateOutput << "    output.dx_Position.y = clipControlOrigin * (gl_Position.y "
-                                    "* dx_ViewAdjust.w + "
-                                    "dx_ViewAdjust.y * gl_Position.w);\n";
+            vertexGenerateOutput
+                << "    output.dx_Position.y = -(gl_Position.y * dx_ViewAdjust.w + "
+                   "dx_ViewAdjust.y * gl_Position.w);\n";
         }
 
         vertexGenerateOutput
-            << "    if (clipControlZeroToOne)\n"
-            << "    {\n"
-            << "        output.dx_Position.z = gl_Position.z;\n"
-            << "    } else {\n"
-            << "        output.dx_Position.z = (gl_Position.z + gl_Position.w) * 0.5;\n"
-            << "    }\n";
-
-        vertexGenerateOutput << "    output.dx_Position.w = gl_Position.w;\n";
+            << "    output.dx_Position.z = (gl_Position.z + gl_Position.w) * 0.5;\n"
+            << "    output.dx_Position.w = gl_Position.w;\n";
     }
 
     // We don't need to output gl_PointSize if we use are emulating point sprites via instancing.
@@ -1257,7 +1244,7 @@ void DynamicHLSL::getPixelShaderOutputKey(const gl::State &data,
         if (metadata.usesSecondaryColor())
         {
             for (unsigned int secondaryIndex = 0;
-                 secondaryIndex < data.getCaps().maxDualSourceDrawBuffers; secondaryIndex++)
+                 secondaryIndex < data.getExtensions().maxDualSourceDrawBuffers; secondaryIndex++)
             {
                 PixelShaderOutputVariable outputKeyVariable;
                 outputKeyVariable.type           = GL_FLOAT_VEC4;

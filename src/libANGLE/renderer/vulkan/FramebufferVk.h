@@ -138,7 +138,7 @@ class FramebufferVk : public FramebufferImpl
 
     angle::Result startNewRenderPass(ContextVk *contextVk,
                                      const gl::Rectangle &scissoredRenderArea,
-                                     vk::RenderPassCommandBuffer **commandBufferOut,
+                                     vk::CommandBuffer **commandBufferOut,
                                      bool *renderPassDescChangedOut);
 
     GLint getSamples() const;
@@ -157,7 +157,7 @@ class FramebufferVk : public FramebufferImpl
     }
     bool isReadOnlyDepthFeedbackLoopMode() const { return mReadOnlyDepthFeedbackLoopMode; }
     void updateRenderPassReadOnlyDepthMode(ContextVk *contextVk,
-                                           vk::RenderPassCommandBufferHelper *renderPass);
+                                           vk::CommandBufferHelper *renderPass);
 
     void onSwitchProgramFramebufferFetch(ContextVk *contextVk, bool programUsesFramebufferFetch);
 
@@ -211,7 +211,7 @@ class FramebufferVk : public FramebufferImpl
                                 const VkClearDepthStencilValue &clearDepthStencilValue);
     void redeferClears(ContextVk *contextVk);
     angle::Result clearWithCommand(ContextVk *contextVk,
-                                   vk::RenderPassCommandBufferHelper *renderpassCommands,
+                                   vk::CommandBufferHelper *renderpassCommands,
                                    const gl::Rectangle &scissoredRenderArea);
     void updateActiveColorMasks(size_t colorIndex, bool r, bool g, bool b, bool a);
     void updateRenderPassDesc(ContextVk *contextVk);
@@ -251,6 +251,7 @@ class FramebufferVk : public FramebufferImpl
     // channel is masked out, we check against the Framebuffer Attachments (RenderTargets) to see
     // if the masked out channel is present in any of the attachments.
     gl::BlendStateExt::ColorMaskStorage::Type mActiveColorComponentMasksForClear;
+    vk::DynamicBuffer mReadPixelBuffer;
 
     // When we draw to the framebuffer, and the real format has an alpha channel but the format of
     // the framebuffer does not, we need to mask out the alpha channel. This DrawBufferMask will
