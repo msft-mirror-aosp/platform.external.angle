@@ -35,7 +35,6 @@ class QueryVk : public QueryImpl
     angle::Result isResultAvailable(const gl::Context *context, bool *available) override;
 
     void onTransformFeedbackEnd(GLsizeiptr primitivesDrawn);
-    bool hasQueryBegun() const { return mQueryHelper.isReferenced(); }
     vk::QueryHelper *getQueryHelper()
     {
         ASSERT(mQueryHelper.isReferenced());

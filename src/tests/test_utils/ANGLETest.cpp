@@ -170,11 +170,6 @@ const char *GetColorName(GLColor color)
     return nullptr;
 }
 
-const char *GetColorName(GLColorRGB color)
-{
-    return GetColorName(GLColor(color.R, color.G, color.B, 255));
-}
-
 // Always re-use displays when using --bot-mode in the test runner.
 bool gReuseDisplays = false;
 
@@ -222,13 +217,6 @@ GPUTestConfig::API GetTestConfigAPIFromRenderer(EGLenum renderer, EGLenum device
 
 GLColorRGB::GLColorRGB(const Vector3 &floatColor)
     : R(ColorDenorm(floatColor.x())), G(ColorDenorm(floatColor.y())), B(ColorDenorm(floatColor.z()))
-{}
-
-GLColor::GLColor(const Vector3 &floatColor)
-    : R(ColorDenorm(floatColor.x())),
-      G(ColorDenorm(floatColor.y())),
-      B(ColorDenorm(floatColor.z())),
-      A(255)
 {}
 
 GLColor::GLColor(const Vector4 &floatColor)
@@ -318,30 +306,6 @@ std::ostream &operator<<(std::ostream &ostream, const GLColor &color)
     return ostream;
 }
 
-bool operator==(const GLColorRGB &a, const GLColorRGB &b)
-{
-    return a.R == b.R && a.G == b.G && a.B == b.B;
-}
-
-bool operator!=(const GLColorRGB &a, const GLColorRGB &b)
-{
-    return !(a == b);
-}
-
-std::ostream &operator<<(std::ostream &ostream, const GLColorRGB &color)
-{
-    const char *colorName = GetColorName(color);
-    if (colorName)
-    {
-        return ostream << colorName;
-    }
-
-    ostream << "(" << static_cast<unsigned int>(color.R) << ", "
-            << static_cast<unsigned int>(color.G) << ", " << static_cast<unsigned int>(color.B)
-            << ")";
-    return ostream;
-}
-
 bool operator==(const GLColor32F &a, const GLColor32F &b)
 {
     return a.R == b.R && a.G == b.G && a.B == b.B && a.A == b.A;
@@ -391,7 +355,6 @@ constexpr char kEnableANGLEPerTestCaptureLabel[] = "--angle-per-test-capture-lab
 constexpr char kBatchId[]                        = "--batch-id=";
 constexpr char kDelayTestStart[]                 = "--delay-test-start=";
 constexpr char kRenderDoc[]                      = "--renderdoc";
-constexpr char kNoRenderDoc[]                    = "--no-renderdoc";
 
 void SetupEnvironmentVarsForCaptureReplay()
 {
@@ -416,11 +379,7 @@ void SetTestStartDelay(const char *testStartDelay)
     gTestStartDelaySeconds = std::stoi(testStartDelay);
 }
 
-#if defined(ANGLE_TEST_ENABLE_RENDERDOC_CAPTURE)
-bool gEnableRenderDocCapture = true;
-#else
 bool gEnableRenderDocCapture = false;
-#endif
 
 // static
 std::array<Vector3, 6> ANGLETestBase::GetQuadVertices()
@@ -438,24 +397,6 @@ std::array<GLushort, 6> ANGLETestBase::GetQuadIndices()
 std::array<Vector3, 4> ANGLETestBase::GetIndexedQuadVertices()
 {
     return kIndexedQuadVertices;
-}
-
-testing::AssertionResult AssertEGLEnumsEqual(const char *lhsExpr,
-                                             const char *rhsExpr,
-                                             EGLenum lhs,
-                                             EGLenum rhs)
-{
-    if (lhs == rhs)
-    {
-        return testing::AssertionSuccess();
-    }
-    else
-    {
-        std::stringstream strstr;
-        strstr << std::hex << lhsExpr << " (0x" << int(lhs) << ") != " << rhsExpr << " (0x"
-               << int(rhs) << ")";
-        return testing::AssertionFailure() << strstr.str();
-    }
 }
 
 ANGLETestBase::ANGLETestBase(const PlatformParameters &params)
@@ -634,9 +575,8 @@ void ANGLETestBase::ANGLETestSetUp()
     fullTestNameStr << testInfo->test_case_name() << "." << testInfo->name();
     std::string fullTestName = fullTestNameStr.str();
 
-    TestSuite *testSuite = TestSuite::GetInstance();
-    int32_t testExpectation =
-        testSuite->getTestExpectationWithConfigAndUpdateTimeout(testConfig, fullTestName);
+    TestSuite *testSuite    = TestSuite::GetInstance();
+    int32_t testExpectation = testSuite->getTestExpectationWithConfig(testConfig, fullTestName);
 
     if (testExpectation == GPUTestExpectationsParser::kGpuTestSkip)
     {
@@ -725,8 +665,8 @@ void ANGLETestBase::ANGLETestSetUp()
             FAIL() << "Internal parameter conflict error.";
         }
 
-        if (mFixture->eglWindow->initializeSurface(
-                mFixture->osWindow, driverLib, mFixture->configParams) != GLWindowResult::NoError)
+        if (!mFixture->eglWindow->initializeSurface(mFixture->osWindow, driverLib,
+                                                    mFixture->configParams))
         {
             FAIL() << "egl surface init failed.";
         }
@@ -1060,7 +1000,7 @@ void ANGLETestBase::drawIndexedQuad(GLuint program,
                                     GLfloat positionAttribZ,
                                     GLfloat positionAttribXYScale)
 {
-    ASSERT(!mFixture || !mFixture->configParams.webGLCompatibility.valid() ||
+    ASSERT(!mFixture->configParams.webGLCompatibility.valid() ||
            !mFixture->configParams.webGLCompatibility.value());
     drawIndexedQuad(program, positionAttribName, positionAttribZ, positionAttribXYScale, false);
 }
@@ -1234,15 +1174,12 @@ void ANGLETestBase::draw3DTexturedQuad(GLfloat positionAttribZ,
 
 bool ANGLETestBase::platformSupportsMultithreading() const
 {
-    return (mFixture && mFixture->eglWindow &&
-            IsEGLDisplayExtensionEnabled(mFixture->eglWindow->getDisplay(),
-                                         "EGL_ANGLE_context_virtualization")) ||
-           IsVulkan();
+    return (IsOpenGLES() && IsAndroid()) || IsVulkan();
 }
 
 void ANGLETestBase::checkD3D11SDKLayersMessages()
 {
-#if defined(ANGLE_ENABLE_D3D11)
+#if defined(ANGLE_PLATFORM_WINDOWS)
     // On Windows D3D11, check ID3D11InfoQueue to see if any D3D11 SDK Layers messages
     // were outputted by the test. We enable the Debug layers in Release tests as well.
     if (mIgnoreD3D11SDKLayersWarnings ||
@@ -1310,7 +1247,7 @@ void ANGLETestBase::checkD3D11SDKLayersMessages()
     }
 
     SafeRelease(infoQueue);
-#endif  // defined(ANGLE_ENABLE_D3D11)
+#endif  // defined(ANGLE_PLATFORM_WINDOWS)
 }
 
 void ANGLETestBase::setWindowWidth(int width)
@@ -1610,10 +1547,6 @@ void ANGLEProcessTestArgs(int *argc, char *argv[])
         else if (strncmp(argv[argIndex], kRenderDoc, strlen(kRenderDoc)) == 0)
         {
             gEnableRenderDocCapture = true;
-        }
-        else if (strncmp(argv[argIndex], kNoRenderDoc, strlen(kNoRenderDoc)) == 0)
-        {
-            gEnableRenderDocCapture = false;
         }
     }
 }

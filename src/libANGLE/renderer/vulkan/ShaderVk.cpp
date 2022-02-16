@@ -29,9 +29,11 @@ std::shared_ptr<WaitableCompileEvent> ShaderVk::compile(const gl::Context *conte
 
     ContextVk *contextVk = vk::GetImpl(context);
 
-    if (context->isWebGL())
+    bool isWebGL = context->getExtensions().webglCompatibility;
+
+    if (isWebGL)
     {
-        // Only WebGL requires initialization of local variables, others don't.
+        // Only webgl requires initialization of local variables, others don't.
         // Extra initialization in spirv shader may affect performance.
         compileOptions |= SH_INITIALIZE_UNINITIALIZED_LOCALS;
 
@@ -99,9 +101,14 @@ std::shared_ptr<WaitableCompileEvent> ShaderVk::compile(const gl::Context *conte
         compileOptions |= SH_ADD_VULKAN_XFB_EMULATION_SUPPORT_CODE;
     }
 
-    if (contextVk->getFeatures().generateSPIRVThroughGlslang.enabled)
+    if (contextVk->getFeatures().directSPIRVGeneration.enabled)
     {
-        compileOptions |= SH_GENERATE_SPIRV_THROUGH_GLSLANG;
+        compileOptions |= SH_GENERATE_SPIRV_DIRECTLY;
+
+        if (contextVk->getFeatures().directSPIRVGenerationWorkarounds.enabled)
+        {
+            compileOptions |= SH_GENERATE_SPIRV_WORKAROUNDS;
+        }
     }
 
     return compileImpl(context, compilerInstance, mState.getSource(), compileOptions | options);

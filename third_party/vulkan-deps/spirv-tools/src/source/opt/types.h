@@ -96,8 +96,7 @@ class Type {
     kNamedBarrier,
     kAccelerationStructureNV,
     kCooperativeMatrixNV,
-    kRayQueryKHR,
-    kLast
+    kRayQueryKHR
   };
 
   Type(Kind k) : kind_(k) {}

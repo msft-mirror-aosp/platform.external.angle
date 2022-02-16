@@ -20,11 +20,8 @@ class ObjectAllocationTest : public ANGLETest
     ObjectAllocationTest() {}
 };
 
-class ObjectAllocationTestES3 : public ObjectAllocationTest
-{};
-
 // Test that we don't re-allocate a bound framebuffer ID.
-TEST_P(ObjectAllocationTestES3, BindFramebufferBeforeGen)
+TEST_P(ObjectAllocationTest, BindFramebufferBeforeGen)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 1);
     GLuint fbo = 0;
@@ -35,7 +32,7 @@ TEST_P(ObjectAllocationTestES3, BindFramebufferBeforeGen)
 }
 
 // Test that we don't re-allocate a bound framebuffer ID, other pattern.
-TEST_P(ObjectAllocationTestES3, BindFramebufferAfterGen)
+TEST_P(ObjectAllocationTest, BindFramebufferAfterGen)
 {
     GLuint firstFBO = 0;
     glGenFramebuffers(1, &firstFBO);
@@ -52,25 +49,7 @@ TEST_P(ObjectAllocationTestES3, BindFramebufferAfterGen)
     EXPECT_GL_NO_ERROR();
 }
 
-// Test that we don't re-allocate a bound framebuffer ID.
-TEST_P(ObjectAllocationTest, BindRenderbuffer)
-{
-    GLuint rbId;
-    glGenRenderbuffers(1, &rbId);
-    glBindRenderbuffer(GL_RENDERBUFFER, rbId);
-    EXPECT_GL_NO_ERROR();
-
-    // Swap now to trigger the serialization of the renderbuffer that
-    // was initialized with the default values
-    swapBuffers();
-
-    glDeleteRenderbuffers(1, &rbId);
-    EXPECT_GL_NO_ERROR();
-}
-
 }  // anonymous namespace
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ObjectAllocationTest);
-ANGLE_INSTANTIATE_TEST_ES2(ObjectAllocationTest);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ObjectAllocationTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(ObjectAllocationTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(ObjectAllocationTest);
