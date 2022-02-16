@@ -53,14 +53,13 @@ class VertexArrayGL : public VertexArrayImpl
                             gl::VertexArray::DirtyAttribBitsArray *attribBits,
                             gl::VertexArray::DirtyBindingBitsArray *bindingBits) override;
 
-    angle::Result applyNumViewsToDivisor(const gl::Context *context, int numViews);
-    angle::Result applyActiveAttribLocationsMask(const gl::Context *context,
-                                                 const gl::AttributesMask &activeMask);
+    void applyNumViewsToDivisor(const gl::Context *context, int numViews);
+    void applyActiveAttribLocationsMask(const gl::Context *context,
+                                        const gl::AttributesMask &activeMask);
 
-    angle::Result validateState(const gl::Context *context) const;
+    void validateState(const gl::Context *context) const;
 
-    angle::Result recoverForcedStreamingAttributesForDrawArraysInstanced(
-        const gl::Context *context) const;
+    void recoverForcedStreamingAttributesForDrawArraysInstanced(const gl::Context *context) const;
 
   private:
     angle::Result syncDrawState(const gl::Context *context,
@@ -97,32 +96,32 @@ class VertexArrayGL : public VertexArrayImpl
                                    GLsizei instanceCount,
                                    const gl::IndexRange &indexRange,
                                    bool applyExtraOffsetWorkaroundForInstancedAttributes) const;
-    angle::Result syncDirtyAttrib(const gl::Context *context,
-                                  size_t attribIndex,
-                                  const gl::VertexArray::DirtyAttribBits &dirtyAttribBits);
-    angle::Result syncDirtyBinding(const gl::Context *context,
-                                   size_t bindingIndex,
-                                   const gl::VertexArray::DirtyBindingBits &dirtyBindingBits);
+    void syncDirtyAttrib(const gl::Context *context,
+                         size_t attribIndex,
+                         const gl::VertexArray::DirtyAttribBits &dirtyAttribBits);
+    void syncDirtyBinding(const gl::Context *context,
+                          size_t bindingIndex,
+                          const gl::VertexArray::DirtyBindingBits &dirtyBindingBits);
 
-    angle::Result updateAttribEnabled(const gl::Context *context, size_t attribIndex);
-    angle::Result updateAttribPointer(const gl::Context *context, size_t attribIndex);
+    void updateAttribEnabled(const gl::Context *context, size_t attribIndex);
+    void updateAttribPointer(const gl::Context *context, size_t attribIndex);
 
     bool supportVertexAttribBinding(const gl::Context *context) const;
 
-    angle::Result updateAttribFormat(const gl::Context *context, size_t attribIndex);
-    angle::Result updateAttribBinding(const gl::Context *context, size_t attribIndex);
-    angle::Result updateBindingBuffer(const gl::Context *context, size_t bindingIndex);
-    angle::Result updateBindingDivisor(const gl::Context *context, size_t bindingIndex);
+    void updateAttribFormat(const gl::Context *context, size_t attribIndex);
+    void updateAttribBinding(const gl::Context *context, size_t attribIndex);
+    void updateBindingBuffer(const gl::Context *context, size_t bindingIndex);
+    void updateBindingDivisor(const gl::Context *context, size_t bindingIndex);
 
-    angle::Result updateElementArrayBufferBinding(const gl::Context *context) const;
+    void updateElementArrayBufferBinding(const gl::Context *context) const;
 
-    angle::Result callVertexAttribPointer(const gl::Context *context,
-                                          GLuint attribIndex,
-                                          const gl::VertexAttribute &attrib,
-                                          GLsizei stride,
-                                          GLintptr offset) const;
+    void callVertexAttribPointer(const gl::Context *context,
+                                 GLuint attribIndex,
+                                 const gl::VertexAttribute &attrib,
+                                 GLsizei stride,
+                                 GLintptr offset) const;
 
-    angle::Result recoverForcedStreamingAttributesForDrawArraysInstanced(
+    void recoverForcedStreamingAttributesForDrawArraysInstanced(
         const gl::Context *context,
         gl::AttributesMask *attributeMask) const;
 

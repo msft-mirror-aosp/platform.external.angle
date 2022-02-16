@@ -87,17 +87,6 @@
 //
 // This probing function guarantees that after N probes, all the groups of the
 // table will be probed exactly once.
-//
-// The control state and slot array are stored contiguously in a shared heap
-// allocation. The layout of this allocation is: `capacity()` control bytes,
-// one sentinel control byte, `Group::kWidth - 1` cloned control bytes,
-// <possible padding>, `capacity()` slots. The sentinel control byte is used in
-// iteration so we know when we reach the end of the table. The cloned control
-// bytes at the end of the table are cloned from the beginning of the table so
-// groups that begin near the end of the table can see a full group. In cases in
-// which there are more than `capacity()` cloned control bytes, the extra bytes
-// are `kEmpty`, and these ensure that we always see at least one empty slot and
-// can stop an unsuccessful search.
 
 #ifndef ABSL_CONTAINER_INTERNAL_RAW_HASH_SET_H_
 #define ABSL_CONTAINER_INTERNAL_RAW_HASH_SET_H_
@@ -123,6 +112,7 @@
 #include "absl/container/internal/hashtable_debug_hooks.h"
 #include "absl/container/internal/hashtablez_sampler.h"
 #include "absl/container/internal/have_sse.h"
+#include "absl/container/internal/layout.h"
 #include "absl/memory/memory.h"
 #include "absl/meta/type_traits.h"
 #include "absl/numeric/bits.h"
@@ -201,7 +191,7 @@ constexpr bool IsNoThrowSwappable(std::false_type /* is_swappable */) {
 template <typename T>
 uint32_t TrailingZeros(T x) {
   ABSL_INTERNAL_ASSUME(x != 0);
-  return static_cast<uint32_t>(countr_zero(x));
+  return countr_zero(x);
 }
 
 // An abstraction over a bitmask. It provides an easy way to iterate through the
@@ -230,7 +220,7 @@ class BitMask {
     return *this;
   }
   explicit operator bool() const { return mask_ != 0; }
-  uint32_t operator*() const { return LowestBitSet(); }
+  int operator*() const { return LowestBitSet(); }
   uint32_t LowestBitSet() const {
     return container_internal::TrailingZeros(mask_) >> Shift;
   }
@@ -248,7 +238,7 @@ class BitMask {
   uint32_t LeadingZeros() const {
     constexpr int total_significant_bits = SignificantBits << Shift;
     constexpr int extra_bits = sizeof(T) * 8 - total_significant_bits;
-    return static_cast<uint32_t>(countl_zero(mask_ << extra_bits)) >> Shift;
+    return countl_zero(mask_ << extra_bits) >> Shift;
   }
 
  private:
@@ -262,53 +252,48 @@ class BitMask {
   T mask_;
 };
 
+using ctrl_t = signed char;
 using h2_t = uint8_t;
 
 // The values here are selected for maximum performance. See the static asserts
-// below for details. We use an enum class so that when strict aliasing is
-// enabled, the compiler knows ctrl_t doesn't alias other types.
-enum class ctrl_t : int8_t {
+// below for details.
+enum Ctrl : ctrl_t {
   kEmpty = -128,   // 0b10000000
   kDeleted = -2,   // 0b11111110
   kSentinel = -1,  // 0b11111111
 };
 static_assert(
-    (static_cast<int8_t>(ctrl_t::kEmpty) &
-     static_cast<int8_t>(ctrl_t::kDeleted) &
-     static_cast<int8_t>(ctrl_t::kSentinel) & 0x80) != 0,
+    kEmpty & kDeleted & kSentinel & 0x80,
     "Special markers need to have the MSB to make checking for them efficient");
-static_assert(
-    ctrl_t::kEmpty < ctrl_t::kSentinel && ctrl_t::kDeleted < ctrl_t::kSentinel,
-    "ctrl_t::kEmpty and ctrl_t::kDeleted must be smaller than "
-    "ctrl_t::kSentinel to make the SIMD test of IsEmptyOrDeleted() efficient");
-static_assert(
-    ctrl_t::kSentinel == static_cast<ctrl_t>(-1),
-    "ctrl_t::kSentinel must be -1 to elide loading it from memory into SIMD "
-    "registers (pcmpeqd xmm, xmm)");
-static_assert(ctrl_t::kEmpty == static_cast<ctrl_t>(-128),
-              "ctrl_t::kEmpty must be -128 to make the SIMD check for its "
+static_assert(kEmpty < kSentinel && kDeleted < kSentinel,
+              "kEmpty and kDeleted must be smaller than kSentinel to make the "
+              "SIMD test of IsEmptyOrDeleted() efficient");
+static_assert(kSentinel == -1,
+              "kSentinel must be -1 to elide loading it from memory into SIMD "
+              "registers (pcmpeqd xmm, xmm)");
+static_assert(kEmpty == -128,
+              "kEmpty must be -128 to make the SIMD check for its "
               "existence efficient (psignb xmm, xmm)");
-static_assert(
-    (~static_cast<int8_t>(ctrl_t::kEmpty) &
-     ~static_cast<int8_t>(ctrl_t::kDeleted) &
-     static_cast<int8_t>(ctrl_t::kSentinel) & 0x7F) != 0,
-    "ctrl_t::kEmpty and ctrl_t::kDeleted must share an unset bit that is not "
-    "shared by ctrl_t::kSentinel to make the scalar test for "
-    "MatchEmptyOrDeleted() efficient");
-static_assert(ctrl_t::kDeleted == static_cast<ctrl_t>(-2),
-              "ctrl_t::kDeleted must be -2 to make the implementation of "
+static_assert(~kEmpty & ~kDeleted & kSentinel & 0x7F,
+              "kEmpty and kDeleted must share an unset bit that is not shared "
+              "by kSentinel to make the scalar test for MatchEmptyOrDeleted() "
+              "efficient");
+static_assert(kDeleted == -2,
+              "kDeleted must be -2 to make the implementation of "
               "ConvertSpecialToEmptyAndFullToDeleted efficient");
 
 // A single block of empty control bytes for tables without any slots allocated.
 // This enables removing a branch in the hot path of find().
-ABSL_DLL extern const ctrl_t kEmptyGroup[16];
 inline ctrl_t* EmptyGroup() {
-  return const_cast<ctrl_t*>(kEmptyGroup);
+  alignas(16) static constexpr ctrl_t empty_group[] = {
+      kSentinel, kEmpty, kEmpty, kEmpty, kEmpty, kEmpty, kEmpty, kEmpty,
+      kEmpty,    kEmpty, kEmpty, kEmpty, kEmpty, kEmpty, kEmpty, kEmpty};
+  return const_cast<ctrl_t*>(empty_group);
 }
 
 // Mixes a randomly generated per-process seed with `hash` and `ctrl` to
 // randomize insertion order within groups.
-bool ShouldInsertBackwards(size_t hash, const ctrl_t* ctrl);
+bool ShouldInsertBackwards(size_t hash, ctrl_t* ctrl);
 
 // Returns a hash seed.
 //
@@ -324,12 +309,12 @@ inline size_t HashSeed(const ctrl_t* ctrl) {
 inline size_t H1(size_t hash, const ctrl_t* ctrl) {
   return (hash >> 7) ^ HashSeed(ctrl);
 }
-inline h2_t H2(size_t hash) { return hash & 0x7F; }
+inline ctrl_t H2(size_t hash) { return hash & 0x7F; }
 
-inline bool IsEmpty(ctrl_t c) { return c == ctrl_t::kEmpty; }
-inline bool IsFull(ctrl_t c) { return c >= static_cast<ctrl_t>(0); }
-inline bool IsDeleted(ctrl_t c) { return c == ctrl_t::kDeleted; }
-inline bool IsEmptyOrDeleted(ctrl_t c) { return c < ctrl_t::kSentinel; }
+inline bool IsEmpty(ctrl_t c) { return c == kEmpty; }
+inline bool IsFull(ctrl_t c) { return c >= 0; }
+inline bool IsDeleted(ctrl_t c) { return c == kDeleted; }
+inline bool IsEmptyOrDeleted(ctrl_t c) { return c < kSentinel; }
 
 #if ABSL_INTERNAL_RAW_HASH_SET_HAVE_SSE2
 
@@ -360,31 +345,30 @@ struct GroupSse2Impl {
   BitMask<uint32_t, kWidth> Match(h2_t hash) const {
     auto match = _mm_set1_epi8(hash);
     return BitMask<uint32_t, kWidth>(
-        static_cast<uint32_t>(_mm_movemask_epi8(_mm_cmpeq_epi8(match, ctrl))));
+        _mm_movemask_epi8(_mm_cmpeq_epi8(match, ctrl)));
   }
 
   // Returns a bitmask representing the positions of empty slots.
   BitMask<uint32_t, kWidth> MatchEmpty() const {
 #if ABSL_INTERNAL_RAW_HASH_SET_HAVE_SSSE3
-    // This only works because ctrl_t::kEmpty is -128.
+    // This only works because kEmpty is -128.
     return BitMask<uint32_t, kWidth>(
-        static_cast<uint32_t>(_mm_movemask_epi8(_mm_sign_epi8(ctrl, ctrl))));
+        _mm_movemask_epi8(_mm_sign_epi8(ctrl, ctrl)));
 #else
-    return Match(static_cast<h2_t>(ctrl_t::kEmpty));
+    return Match(static_cast<h2_t>(kEmpty));
 #endif
   }
 
   // Returns a bitmask representing the positions of empty or deleted slots.
   BitMask<uint32_t, kWidth> MatchEmptyOrDeleted() const {
-    auto special = _mm_set1_epi8(static_cast<uint8_t>(ctrl_t::kSentinel));
+    auto special = _mm_set1_epi8(kSentinel);
     return BitMask<uint32_t, kWidth>(
-        static_cast<uint32_t>(
-            _mm_movemask_epi8(_mm_cmpgt_epi8_fixed(special, ctrl))));
+        _mm_movemask_epi8(_mm_cmpgt_epi8_fixed(special, ctrl)));
   }
 
   // Returns the number of trailing empty or deleted elements in the group.
   uint32_t CountLeadingEmptyOrDeleted() const {
-    auto special = _mm_set1_epi8(static_cast<uint8_t>(ctrl_t::kSentinel));
+    auto special = _mm_set1_epi8(kSentinel);
     return TrailingZeros(static_cast<uint32_t>(
         _mm_movemask_epi8(_mm_cmpgt_epi8_fixed(special, ctrl)) + 1));
   }
@@ -419,7 +403,7 @@ struct GroupPortableImpl {
     //
     // Caveat: there are false positives but:
     // - they only occur if there is a real match
-    // - they never occur on ctrl_t::kEmpty, ctrl_t::kDeleted, ctrl_t::kSentinel
+    // - they never occur on kEmpty, kDeleted, kSentinel
     // - they will be handled gracefully by subsequent checks in code
     //
     // Example:
@@ -475,8 +459,8 @@ inline bool IsValidCapacity(size_t n) { return ((n + 1) & n) == 0 && n > 0; }
 
 // PRECONDITION:
 //   IsValidCapacity(capacity)
-//   ctrl[capacity] == ctrl_t::kSentinel
-//   ctrl[i] != ctrl_t::kSentinel for all i < capacity
+//   ctrl[capacity] == kSentinel
+//   ctrl[i] != kSentinel for all i < capacity
 // Applies mapping for every byte in ctrl:
 //   DELETED -> EMPTY
 //   EMPTY -> EMPTY
@@ -535,19 +519,15 @@ size_t SelectBucketCountForIterRange(InputIter first, InputIter last,
 }
 
 inline void AssertIsFull(ctrl_t* ctrl) {
-  ABSL_HARDENING_ASSERT(
-      (ctrl != nullptr && IsFull(*ctrl)) &&
-      "Invalid operation on iterator. The element might have "
-      "been erased, the table might have rehashed, or this may "
-      "be an end() iterator.");
+  ABSL_HARDENING_ASSERT((ctrl != nullptr && IsFull(*ctrl)) &&
+                        "Invalid operation on iterator. The element might have "
+                        "been erased, or the table might have rehashed.");
 }
 
 inline void AssertIsValid(ctrl_t* ctrl) {
-  ABSL_HARDENING_ASSERT(
-      (ctrl == nullptr || IsFull(*ctrl)) &&
-      "Invalid operation on iterator. The element might have "
-      "been erased, the table might have rehashed, or this may "
-      "be an end() iterator.");
+  ABSL_HARDENING_ASSERT((ctrl == nullptr || IsFull(*ctrl)) &&
+                        "Invalid operation on iterator. The element might have "
+                        "been erased, or the table might have rehashed.");
 }
 
 struct FindInfo {
@@ -565,29 +545,27 @@ struct FindInfo {
 //  This is important to make 1 a valid capacity.
 //
 //  - In small mode only the first `capacity()` control bytes after the
-//  sentinel are valid. The rest contain dummy ctrl_t::kEmpty values that do not
+//  sentinel are valid. The rest contain dummy kEmpty values that do not
 //  represent a real slot. This is important to take into account on
 //  find_first_non_full(), where we never try ShouldInsertBackwards() for
 //  small tables.
 inline bool is_small(size_t capacity) { return capacity < Group::kWidth - 1; }
 
-inline probe_seq<Group::kWidth> probe(const ctrl_t* ctrl, size_t hash,
+inline probe_seq<Group::kWidth> probe(ctrl_t* ctrl, size_t hash,
                                       size_t capacity) {
   return probe_seq<Group::kWidth>(H1(hash, ctrl), capacity);
 }
 
 // Probes the raw_hash_set with the probe sequence for hash and returns the
 // pointer to the first empty or deleted slot.
-// NOTE: this function must work with tables having both ctrl_t::kEmpty and
-// ctrl_t::kDeleted in one group. Such tables appears during
-// drop_deletes_without_resize.
+// NOTE: this function must work with tables having both kEmpty and kDelete
+// in one group. Such tables appears during drop_deletes_without_resize.
 //
 // This function is very useful when insertions happen and:
 // - the input is already a set
 // - there are enough slots
 // - the element with the hash is not in the table
-template <typename = void>
-inline FindInfo find_first_non_full(const ctrl_t* ctrl, size_t hash,
+inline FindInfo find_first_non_full(ctrl_t* ctrl, size_t hash,
                                     size_t capacity) {
   auto seq = probe(ctrl, hash, capacity);
   while (true) {
@@ -608,56 +586,6 @@ inline FindInfo find_first_non_full(const ctrl_t* ctrl, size_t hash,
     seq.next();
     assert(seq.index() <= capacity && "full table!");
   }
-}
-
-// Extern template for inline function keep possibility of inlining.
-// When compiler decided to not inline, no symbols will be added to the
-// corresponding translation unit.
-extern template FindInfo find_first_non_full(const ctrl_t*, size_t, size_t);
-
-// Reset all ctrl bytes back to ctrl_t::kEmpty, except the sentinel.
-inline void ResetCtrl(size_t capacity, ctrl_t* ctrl, const void* slot,
-                      size_t slot_size) {
-  std::memset(ctrl, static_cast<int8_t>(ctrl_t::kEmpty),
-              capacity + 1 + NumClonedBytes());
-  ctrl[capacity] = ctrl_t::kSentinel;
-  SanitizerPoisonMemoryRegion(slot, slot_size * capacity);
-}
-
-// Sets the control byte, and if `i < NumClonedBytes()`, set the cloned byte
-// at the end too.
-inline void SetCtrl(size_t i, ctrl_t h, size_t capacity, ctrl_t* ctrl,
-                    const void* slot, size_t slot_size) {
-  assert(i < capacity);
-
-  auto* slot_i = static_cast<const char*>(slot) + i * slot_size;
-  if (IsFull(h)) {
-    SanitizerUnpoisonMemoryRegion(slot_i, slot_size);
-  } else {
-    SanitizerPoisonMemoryRegion(slot_i, slot_size);
-  }
-
-  ctrl[i] = h;
-  ctrl[((i - NumClonedBytes()) & capacity) + (NumClonedBytes() & capacity)] = h;
-}
-
-inline void SetCtrl(size_t i, h2_t h, size_t capacity, ctrl_t* ctrl,
-                    const void* slot, size_t slot_size) {
-  SetCtrl(i, static_cast<ctrl_t>(h), capacity, ctrl, slot, slot_size);
-}
-
-// The allocated block consists of `capacity + 1 + NumClonedBytes()` control
-// bytes followed by `capacity` slots, which must be aligned to `slot_align`.
-// SlotOffset returns the offset of the slots into the allocated block.
-inline size_t SlotOffset(size_t capacity, size_t slot_align) {
-  assert(IsValidCapacity(capacity));
-  const size_t num_control_bytes = capacity + 1 + NumClonedBytes();
-  return (num_control_bytes + slot_align - 1) & (~slot_align + 1);
-}
-
-// Returns the size of the allocated block. See also above comment.
-inline size_t AllocSize(size_t capacity, size_t slot_size, size_t slot_align) {
-  return SlotOffset(capacity, slot_align) + capacity * slot_size;
 }
 
 // Policy: a policy defines how to perform different operations on
@@ -715,6 +643,15 @@ class raw_hash_set {
   // Give an early error when key_type is not hashable/eq.
   auto KeyTypeCanBeHashed(const Hash& h, const key_type& k) -> decltype(h(k));
   auto KeyTypeCanBeEq(const Eq& eq, const key_type& k) -> decltype(eq(k, k));
+
+  using Layout = absl::container_internal::Layout<ctrl_t, slot_type>;
+
+  static Layout MakeLayout(size_t capacity) {
+    assert(IsValidCapacity(capacity));
+    // The extra control bytes are for 1 sentinel byte followed by
+    // NumClonedBytes() bytes that are cloned from the beginning.
+    return Layout(capacity + 1 + NumClonedBytes(), capacity);
+  }
 
   using AllocTraits = absl::allocator_traits<allocator_type>;
   using SlotAlloc = typename absl::allocator_traits<
@@ -818,7 +755,7 @@ class raw_hash_set {
         ctrl_ += shift;
         slot_ += shift;
       }
-      if (ABSL_PREDICT_FALSE(*ctrl_ == ctrl_t::kSentinel)) ctrl_ = nullptr;
+      if (ABSL_PREDICT_FALSE(*ctrl_ == kSentinel)) ctrl_ = nullptr;
     }
 
     ctrl_t* ctrl_ = nullptr;
@@ -988,8 +925,7 @@ class raw_hash_set {
     for (const auto& v : that) {
       const size_t hash = PolicyTraits::apply(HashElement{hash_ref()}, v);
       auto target = find_first_non_full(ctrl_, hash, capacity_);
-      SetCtrl(target.offset, H2(hash), capacity_, ctrl_, slots_,
-              sizeof(slot_type));
+      set_ctrl(target.offset, H2(hash));
       emplace_at(target.offset, v);
       infoz().RecordInsert(hash, target.probe_length);
     }
@@ -1085,8 +1021,6 @@ class raw_hash_set {
     // past that we simply deallocate the array.
     if (capacity_ > 127) {
       destroy_slots();
-
-      infoz().RecordClearedReservation();
     } else if (capacity_) {
       for (size_t i = 0; i != capacity_; ++i) {
         if (IsFull(ctrl_[i])) {
@@ -1094,7 +1028,7 @@ class raw_hash_set {
         }
       }
       size_ = 0;
-      ResetCtrl(capacity_, ctrl_, slots_, sizeof(slot_type));
+      reset_ctrl();
       reset_growth_left();
     }
     assert(empty());
@@ -1400,20 +1334,14 @@ class raw_hash_set {
     if (n == 0 && size_ == 0) {
       destroy_slots();
       infoz().RecordStorageChanged(0, 0);
-      infoz().RecordClearedReservation();
       return;
     }
-
     // bitor is a faster way of doing `max` here. We will round up to the next
     // power-of-2-minus-1, so bitor is good enough.
     auto m = NormalizeCapacity(n | GrowthToLowerboundCapacity(size()));
     // n == 0 unconditionally rehashes as per the standard.
     if (n == 0 || m > capacity_) {
       resize(m);
-
-      // This is after resize, to ensure that we have completed the allocation
-      // and have potentially sampled the hashtable.
-      infoz().RecordReservation(n);
     }
   }
 
@@ -1421,10 +1349,6 @@ class raw_hash_set {
     if (n > size() + growth_left()) {
       size_t m = GrowthToLowerboundCapacity(n);
       resize(NormalizeCapacity(m));
-
-      // This is after resize, to ensure that we have completed the allocation
-      // and have potentially sampled the hashtable.
-      infoz().RecordReservation(n);
     }
   }
 
@@ -1451,7 +1375,6 @@ class raw_hash_set {
   void prefetch(const key_arg<K>& key) const {
     (void)key;
 #if defined(__GNUC__)
-    prefetch_heap_block();
     auto seq = probe(ctrl_, hash_ref()(key), capacity_);
     __builtin_prefetch(static_cast<const void*>(ctrl_ + seq.offset()));
     __builtin_prefetch(static_cast<const void*>(slots_ + seq.offset()));
@@ -1470,7 +1393,7 @@ class raw_hash_set {
     auto seq = probe(ctrl_, hash, capacity_);
     while (true) {
       Group g{ctrl_ + seq.offset()};
-      for (uint32_t i : g.Match(H2(hash))) {
+      for (int i : g.Match(H2(hash))) {
         if (ABSL_PREDICT_TRUE(PolicyTraits::apply(
                 EqualElement<K>{key, eq_ref()},
                 PolicyTraits::element(slots_ + seq.offset(i)))))
@@ -1483,7 +1406,6 @@ class raw_hash_set {
   }
   template <class K = key_type>
   iterator find(const key_arg<K>& key) {
-    prefetch_heap_block();
     return find(key, hash_ref()(key));
   }
 
@@ -1493,7 +1415,6 @@ class raw_hash_set {
   }
   template <class K = key_type>
   const_iterator find(const key_arg<K>& key) const {
-    prefetch_heap_block();
     return find(key, hash_ref()(key));
   }
 
@@ -1541,14 +1462,6 @@ class raw_hash_set {
 
   friend bool operator!=(const raw_hash_set& a, const raw_hash_set& b) {
     return !(a == b);
-  }
-
-  template <typename H>
-  friend typename std::enable_if<H::template is_hashable<value_type>::value,
-                                 H>::type
-  AbslHashValue(H h, const raw_hash_set& s) {
-    return H::combine(H::combine_unordered(std::move(h), s.begin(), s.end()),
-                      s.size());
   }
 
   friend void swap(raw_hash_set& a,
@@ -1623,7 +1536,7 @@ class raw_hash_set {
   void erase_meta_only(const_iterator it) {
     assert(IsFull(*it.inner_.ctrl_) && "erasing a dangling iterator");
     --size_;
-    const size_t index = static_cast<size_t>(it.inner_.ctrl_ - ctrl_);
+    const size_t index = it.inner_.ctrl_ - ctrl_;
     const size_t index_before = (index - Group::kWidth) & capacity_;
     const auto empty_after = Group(it.inner_.ctrl_).MatchEmpty();
     const auto empty_before = Group(ctrl_ + index_before).MatchEmpty();
@@ -1636,8 +1549,7 @@ class raw_hash_set {
         static_cast<size_t>(empty_after.TrailingZeros() +
                             empty_before.LeadingZeros()) < Group::kWidth;
 
-    SetCtrl(index, was_never_full ? ctrl_t::kEmpty : ctrl_t::kDeleted,
-            capacity_, ctrl_, slots_, sizeof(slot_type));
+    set_ctrl(index, was_never_full ? kEmpty : kDeleted);
     growth_left() += was_never_full;
     infoz().RecordErase();
   }
@@ -1656,16 +1568,15 @@ class raw_hash_set {
     // bound more carefully.
     if (std::is_same<SlotAlloc, std::allocator<slot_type>>::value &&
         slots_ == nullptr) {
-      infoz() = Sample(sizeof(slot_type));
+      infoz() = Sample();
     }
 
-    char* mem = static_cast<char*>(Allocate<alignof(slot_type)>(
-        &alloc_ref(),
-        AllocSize(capacity_, sizeof(slot_type), alignof(slot_type))));
-    ctrl_ = reinterpret_cast<ctrl_t*>(mem);
-    slots_ = reinterpret_cast<slot_type*>(
-        mem + SlotOffset(capacity_, alignof(slot_type)));
-    ResetCtrl(capacity_, ctrl_, slots_, sizeof(slot_type));
+    auto layout = MakeLayout(capacity_);
+    char* mem = static_cast<char*>(
+        Allocate<Layout::Alignment()>(&alloc_ref(), layout.AllocSize()));
+    ctrl_ = layout.template Pointer<0>(mem);
+    slots_ = layout.template Pointer<1>(mem);
+    reset_ctrl();
     reset_growth_left();
     infoz().RecordStorageChanged(size_, capacity_);
   }
@@ -1677,12 +1588,10 @@ class raw_hash_set {
         PolicyTraits::destroy(&alloc_ref(), slots_ + i);
       }
     }
-
+    auto layout = MakeLayout(capacity_);
     // Unpoison before returning the memory to the allocator.
     SanitizerUnpoisonMemoryRegion(slots_, sizeof(slot_type) * capacity_);
-    Deallocate<alignof(slot_type)>(
-        &alloc_ref(), ctrl_,
-        AllocSize(capacity_, sizeof(slot_type), alignof(slot_type)));
+    Deallocate<Layout::Alignment()>(&alloc_ref(), ctrl_, layout.AllocSize());
     ctrl_ = EmptyGroup();
     slots_ = nullptr;
     size_ = 0;
@@ -1706,16 +1615,16 @@ class raw_hash_set {
         auto target = find_first_non_full(ctrl_, hash, capacity_);
         size_t new_i = target.offset;
         total_probe_length += target.probe_length;
-        SetCtrl(new_i, H2(hash), capacity_, ctrl_, slots_, sizeof(slot_type));
+        set_ctrl(new_i, H2(hash));
         PolicyTraits::transfer(&alloc_ref(), slots_ + new_i, old_slots + i);
       }
     }
     if (old_capacity) {
       SanitizerUnpoisonMemoryRegion(old_slots,
                                     sizeof(slot_type) * old_capacity);
-      Deallocate<alignof(slot_type)>(
-          &alloc_ref(), old_ctrl,
-          AllocSize(old_capacity, sizeof(slot_type), alignof(slot_type)));
+      auto layout = MakeLayout(old_capacity);
+      Deallocate<Layout::Alignment()>(&alloc_ref(), old_ctrl,
+                                      layout.AllocSize());
     }
     infoz().RecordRehash(total_probe_length);
   }
@@ -1761,19 +1670,19 @@ class raw_hash_set {
 
       // Element doesn't move.
       if (ABSL_PREDICT_TRUE(probe_index(new_i) == probe_index(i))) {
-        SetCtrl(i, H2(hash), capacity_, ctrl_, slots_, sizeof(slot_type));
+        set_ctrl(i, H2(hash));
         continue;
       }
       if (IsEmpty(ctrl_[new_i])) {
         // Transfer element to the empty spot.
-        // SetCtrl poisons/unpoisons the slots so we have to call it at the
+        // set_ctrl poisons/unpoisons the slots so we have to call it at the
         // right time.
-        SetCtrl(new_i, H2(hash), capacity_, ctrl_, slots_, sizeof(slot_type));
+        set_ctrl(new_i, H2(hash));
         PolicyTraits::transfer(&alloc_ref(), slots_ + new_i, slots_ + i);
-        SetCtrl(i, ctrl_t::kEmpty, capacity_, ctrl_, slots_, sizeof(slot_type));
+        set_ctrl(i, kEmpty);
       } else {
         assert(IsDeleted(ctrl_[new_i]));
-        SetCtrl(new_i, H2(hash), capacity_, ctrl_, slots_, sizeof(slot_type));
+        set_ctrl(new_i, H2(hash));
         // Until we are done rehashing, DELETED marks previously FULL slots.
         // Swap i and new_i elements.
         PolicyTraits::transfer(&alloc_ref(), slot, slots_ + i);
@@ -1789,50 +1698,8 @@ class raw_hash_set {
   void rehash_and_grow_if_necessary() {
     if (capacity_ == 0) {
       resize(1);
-    } else if (capacity_ > Group::kWidth &&
-               // Do these calcuations in 64-bit to avoid overflow.
-               size() * uint64_t{32} <= capacity_ * uint64_t{25}) {
+    } else if (size() <= CapacityToGrowth(capacity()) / 2) {
       // Squash DELETED without growing if there is enough capacity.
-      //
-      // Rehash in place if the current size is <= 25/32 of capacity_.
-      // Rationale for such a high factor: 1) drop_deletes_without_resize() is
-      // faster than resize, and 2) it takes quite a bit of work to add
-      // tombstones.  In the worst case, seems to take approximately 4
-      // insert/erase pairs to create a single tombstone and so if we are
-      // rehashing because of tombstones, we can afford to rehash-in-place as
-      // long as we are reclaiming at least 1/8 the capacity without doing more
-      // than 2X the work.  (Where "work" is defined to be size() for rehashing
-      // or rehashing in place, and 1 for an insert or erase.)  But rehashing in
-      // place is faster per operation than inserting or even doubling the size
-      // of the table, so we actually afford to reclaim even less space from a
-      // resize-in-place.  The decision is to rehash in place if we can reclaim
-      // at about 1/8th of the usable capacity (specifically 3/28 of the
-      // capacity) which means that the total cost of rehashing will be a small
-      // fraction of the total work.
-      //
-      // Here is output of an experiment using the BM_CacheInSteadyState
-      // benchmark running the old case (where we rehash-in-place only if we can
-      // reclaim at least 7/16*capacity_) vs. this code (which rehashes in place
-      // if we can recover 3/32*capacity_).
-      //
-      // Note that although in the worst-case number of rehashes jumped up from
-      // 15 to 190, but the number of operations per second is almost the same.
-      //
-      // Abridged output of running BM_CacheInSteadyState benchmark from
-      // raw_hash_set_benchmark.   N is the number of insert/erase operations.
-      //
-      //      | OLD (recover >= 7/16        | NEW (recover >= 3/32)
-      // size |    N/s LoadFactor NRehashes |    N/s LoadFactor NRehashes
-      //  448 | 145284       0.44        18 | 140118       0.44        19
-      //  493 | 152546       0.24        11 | 151417       0.48        28
-      //  538 | 151439       0.26        11 | 151152       0.53        38
-      //  583 | 151765       0.28        11 | 150572       0.57        50
-      //  628 | 150241       0.31        11 | 150853       0.61        66
-      //  672 | 149602       0.33        12 | 150110       0.66        90
-      //  717 | 149998       0.35        12 | 149531       0.70       129
-      //  762 | 149836       0.37        13 | 148559       0.74       190
-      //  807 | 149736       0.39        14 | 151107       0.39        14
-      //  852 | 150204       0.42        15 | 151019       0.42        15
       drop_deletes_without_resize();
     } else {
       // Otherwise grow the container.
@@ -1845,7 +1712,7 @@ class raw_hash_set {
     auto seq = probe(ctrl_, hash, capacity_);
     while (true) {
       Group g{ctrl_ + seq.offset()};
-      for (uint32_t i : g.Match(H2(hash))) {
+      for (int i : g.Match(H2(hash))) {
         if (ABSL_PREDICT_TRUE(PolicyTraits::element(slots_ + seq.offset(i)) ==
                               elem))
           return true;
@@ -1872,12 +1739,11 @@ class raw_hash_set {
  protected:
   template <class K>
   std::pair<size_t, bool> find_or_prepare_insert(const K& key) {
-    prefetch_heap_block();
     auto hash = hash_ref()(key);
     auto seq = probe(ctrl_, hash, capacity_);
     while (true) {
       Group g{ctrl_ + seq.offset()};
-      for (uint32_t i : g.Match(H2(hash))) {
+      for (int i : g.Match(H2(hash))) {
         if (ABSL_PREDICT_TRUE(PolicyTraits::apply(
                 EqualElement<K>{key, eq_ref()},
                 PolicyTraits::element(slots_ + seq.offset(i)))))
@@ -1899,8 +1765,7 @@ class raw_hash_set {
     }
     ++size_;
     growth_left() -= IsEmpty(ctrl_[target.offset]);
-    SetCtrl(target.offset, H2(hash), capacity_, ctrl_, slots_,
-            sizeof(slot_type));
+    set_ctrl(target.offset, H2(hash));
     infoz().RecordInsert(hash, target.probe_length);
     return target.offset;
   }
@@ -1929,20 +1794,34 @@ class raw_hash_set {
  private:
   friend struct RawHashSetTestOnlyAccess;
 
+  // Reset all ctrl bytes back to kEmpty, except the sentinel.
+  void reset_ctrl() {
+    std::memset(ctrl_, kEmpty, capacity_ + Group::kWidth);
+    ctrl_[capacity_] = kSentinel;
+    SanitizerPoisonMemoryRegion(slots_, sizeof(slot_type) * capacity_);
+  }
+
   void reset_growth_left() {
     growth_left() = CapacityToGrowth(capacity()) - size_;
   }
 
-  size_t& growth_left() { return settings_.template get<0>(); }
+  // Sets the control byte, and if `i < Group::kWidth - 1`, set the cloned byte
+  // at the end too.
+  void set_ctrl(size_t i, ctrl_t h) {
+    assert(i < capacity_);
 
-  void prefetch_heap_block() const {
-    // Prefetch the heap-allocated memory region to resolve potential TLB
-    // misses.  This is intended to overlap with execution of calculating the
-    // hash for a key.
-#if defined(__GNUC__)
-    __builtin_prefetch(static_cast<const void*>(ctrl_), 0, 1);
-#endif  // __GNUC__
+    if (IsFull(h)) {
+      SanitizerUnpoisonObject(slots_ + i);
+    } else {
+      SanitizerPoisonObject(slots_ + i);
+    }
+
+    ctrl_[i] = h;
+    ctrl_[((i - NumClonedBytes()) & capacity_) +
+          (NumClonedBytes() & capacity_)] = h;
   }
+
+  size_t& growth_left() { return settings_.template get<0>(); }
 
   HashtablezInfoHandle& infoz() { return settings_.template get<1>(); }
 
@@ -1965,23 +1844,19 @@ class raw_hash_set {
   absl::container_internal::CompressedTuple<size_t /* growth_left */,
                                             HashtablezInfoHandle, hasher,
                                             key_equal, allocator_type>
-      settings_{0u, HashtablezInfoHandle{}, hasher{}, key_equal{},
+      settings_{0, HashtablezInfoHandle{}, hasher{}, key_equal{},
                 allocator_type{}};
 };
 
 // Erases all elements that satisfy the predicate `pred` from the container `c`.
 template <typename P, typename H, typename E, typename A, typename Predicate>
-typename raw_hash_set<P, H, E, A>::size_type EraseIf(
-    Predicate& pred, raw_hash_set<P, H, E, A>* c) {
-  const auto initial_size = c->size();
+void EraseIf(Predicate pred, raw_hash_set<P, H, E, A>* c) {
   for (auto it = c->begin(), last = c->end(); it != last;) {
-    if (pred(*it)) {
-      c->erase(it++);
-    } else {
-      ++it;
+    auto copy_it = it++;
+    if (pred(*copy_it)) {
+      c->erase(copy_it);
     }
   }
-  return initial_size - c->size();
 }
 
 namespace hashtable_debug_internal {
@@ -1997,7 +1872,7 @@ struct HashtableDebugAccess<Set, absl::void_t<typename Set::raw_hash_set>> {
     auto seq = probe(set.ctrl_, hash, set.capacity_);
     while (true) {
       container_internal::Group g{set.ctrl_ + seq.offset()};
-      for (uint32_t i : g.Match(container_internal::H2(hash))) {
+      for (int i : g.Match(container_internal::H2(hash))) {
         if (Traits::apply(
                 typename Set::template EqualElement<typename Set::key_type>{
                     key, set.eq_ref()},
@@ -2014,7 +1889,8 @@ struct HashtableDebugAccess<Set, absl::void_t<typename Set::raw_hash_set>> {
   static size_t AllocatedByteSize(const Set& c) {
     size_t capacity = c.capacity_;
     if (capacity == 0) return 0;
-    size_t m = AllocSize(capacity, sizeof(Slot), alignof(Slot));
+    auto layout = Set::MakeLayout(capacity);
+    size_t m = layout.AllocSize();
 
     size_t per_slot = Traits::space_used(static_cast<const Slot*>(nullptr));
     if (per_slot != ~size_t{}) {
@@ -2032,8 +1908,8 @@ struct HashtableDebugAccess<Set, absl::void_t<typename Set::raw_hash_set>> {
   static size_t LowerBoundAllocatedByteSize(size_t size) {
     size_t capacity = GrowthToLowerboundCapacity(size);
     if (capacity == 0) return 0;
-    size_t m =
-        AllocSize(NormalizeCapacity(capacity), sizeof(Slot), alignof(Slot));
+    auto layout = Set::MakeLayout(NormalizeCapacity(capacity));
+    size_t m = layout.AllocSize();
     size_t per_slot = Traits::space_used(static_cast<const Slot*>(nullptr));
     if (per_slot != ~size_t{}) {
       m += per_slot * size;

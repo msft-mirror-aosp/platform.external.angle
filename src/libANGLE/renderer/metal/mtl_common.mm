@@ -82,6 +82,11 @@ ImageNativeIndexIterator ImageNativeIndex::getLayerIterator(GLint layerCount) co
 // Context implementation
 Context::Context(DisplayMtl *display) : mDisplay(display) {}
 
+id<MTLDevice> Context::getMetalDevice() const
+{
+    return mDisplay->getMetalDevice();
+}
+
 mtl::CommandQueue &Context::cmdQueue()
 {
     return mDisplay->cmdQueue();

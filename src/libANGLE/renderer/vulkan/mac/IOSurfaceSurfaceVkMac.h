@@ -49,8 +49,6 @@ class IOSurfaceSurfaceVkMac : public OffscreenSurfaceVk
     angle::Result initializeImpl(DisplayVk *displayVk) override;
 
   private:
-    int computeAlignment() const;
-
     IOSurfaceRef mIOSurface;
 
     int mPlane;

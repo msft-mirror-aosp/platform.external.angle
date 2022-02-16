@@ -74,7 +74,7 @@ TIntermTyped *CreateZeroNode(const TType &type)
                     // CreateZeroNode is called by ParseContext that keeps parsing even when an
                     // error occurs, so it is possible for CreateZeroNode to be called with
                     // non-basic types. This happens only on error condition but CreateZeroNode
-                    // needs to return a value with the correct type to continue the type check.
+                    // needs to return a value with the correct type to continue the typecheck.
                     // That's why we handle non-basic type by setting whatever value, we just need
                     // the type to be right.
                     u[i].setIConst(42);
@@ -113,12 +113,12 @@ TIntermTyped *CreateZeroNode(const TType &type)
     return TIntermAggregate::CreateConstructor(constType, &arguments);
 }
 
-TIntermConstantUnion *CreateFloatNode(float value, TPrecision precision)
+TIntermConstantUnion *CreateFloatNode(float value)
 {
     TConstantUnion *u = new TConstantUnion[1];
     u[0].setFConst(value);
 
-    TType type(EbtFloat, precision, EvqConst, 1);
+    TType type(EbtFloat, EbpUndefined, EvqConst, 1);
     return new TIntermConstantUnion(u, type);
 }
 
@@ -127,7 +127,7 @@ TIntermConstantUnion *CreateIndexNode(int index)
     TConstantUnion *u = new TConstantUnion[1];
     u[0].setIConst(index);
 
-    TType type(EbtInt, EbpHigh, EvqConst, 1);
+    TType type(EbtInt, EbpUndefined, EvqConst, 1);
     return new TIntermConstantUnion(u, type);
 }
 
@@ -136,7 +136,7 @@ TIntermConstantUnion *CreateUIntNode(unsigned int value)
     TConstantUnion *u = new TConstantUnion[1];
     u[0].setUConst(value);
 
-    TType type(EbtUInt, EbpHigh, EvqConst, 1);
+    TType type(EbtUInt, EbpUndefined, EvqConst, 1);
     return new TIntermConstantUnion(u, type);
 }
 
@@ -323,9 +323,9 @@ TIntermBlock *EnsureBlock(TIntermNode *node)
 
 TIntermSymbol *ReferenceGlobalVariable(const ImmutableString &name, const TSymbolTable &symbolTable)
 {
-    const TSymbol *symbol = symbolTable.findGlobal(name);
-    ASSERT(symbol && symbol->isVariable());
-    return new TIntermSymbol(static_cast<const TVariable *>(symbol));
+    const TVariable *var = static_cast<const TVariable *>(symbolTable.findGlobal(name));
+    ASSERT(var);
+    return new TIntermSymbol(var);
 }
 
 TIntermSymbol *ReferenceBuiltInVariable(const ImmutableString &name,

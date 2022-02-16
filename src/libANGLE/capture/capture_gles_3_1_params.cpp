@@ -75,7 +75,7 @@ void CaptureGetBooleani_v_data(const State &glState,
                                GLboolean *data,
                                ParamCapture *paramCapture)
 {
-    CaptureMemory(data, sizeof(GLboolean), paramCapture);
+    UNIMPLEMENTED();
 }
 
 void CaptureGetFramebufferParameteriv_params(const State &glState,
@@ -117,10 +117,7 @@ void CaptureGetProgramPipelineInfoLog_length(const State &glState,
                                              GLchar *infoLog,
                                              ParamCapture *paramCapture)
 {
-    if (length)
-    {
-        CaptureMemory(length, sizeof(GLsizei), paramCapture);
-    }
+    UNIMPLEMENTED();
 }
 
 void CaptureGetProgramPipelineInfoLog_infoLog(const State &glState,
@@ -131,18 +128,7 @@ void CaptureGetProgramPipelineInfoLog_infoLog(const State &glState,
                                               GLchar *infoLog,
                                               ParamCapture *paramCapture)
 {
-    if (bufSize > 0)
-    {
-        ASSERT(infoLog);
-        if (length)
-        {
-            CaptureArray(infoLog, *length, paramCapture);
-        }
-        else
-        {
-            CaptureString(infoLog, paramCapture);
-        }
-    }
+    UNIMPLEMENTED();
 }
 
 void CaptureGetProgramPipelineiv_params(const State &glState,
@@ -152,7 +138,7 @@ void CaptureGetProgramPipelineiv_params(const State &glState,
                                         GLint *params,
                                         ParamCapture *paramCapture)
 {
-    CaptureMemory(params, sizeof(GLint), paramCapture);
+    UNIMPLEMENTED();
 }
 
 void CaptureGetProgramResourceIndex_name(const State &glState,
@@ -162,7 +148,7 @@ void CaptureGetProgramResourceIndex_name(const State &glState,
                                          const GLchar *name,
                                          ParamCapture *paramCapture)
 {
-    CaptureString(name, paramCapture);
+    UNIMPLEMENTED();
 }
 
 void CaptureGetProgramResourceLocation_name(const State &glState,
@@ -172,7 +158,7 @@ void CaptureGetProgramResourceLocation_name(const State &glState,
                                             const GLchar *name,
                                             ParamCapture *paramCapture)
 {
-    CaptureString(name, paramCapture);
+    UNIMPLEMENTED();
 }
 
 void CaptureGetProgramResourceName_length(const State &glState,
@@ -243,10 +229,18 @@ void CaptureGetProgramResourceiv_params(const State &glState,
                                         GLint *params,
                                         ParamCapture *paramCapture)
 {
-    // Prefer to only capture as many parameters as are returned,
-    // but if this is not known, then capture the whole buffer
-    int paramLength = length != nullptr ? *length : bufSize;
-    CaptureMemory(params, sizeof(GLint) * paramLength, paramCapture);
+    // See QueryProgramResourceiv for details on how these are handled
+    for (int i = 0; i < propCount; ++i)
+    {
+        if (props[i] == GL_ACTIVE_VARIABLES)
+        {
+            // This appears to be the only property that isn't a single integer
+            UNIMPLEMENTED();
+            return;
+        }
+    }
+
+    CaptureMemory(props, sizeof(GLint) * propCount, paramCapture);
 }
 
 void CaptureGetTexLevelParameterfv_params(const State &glState,
@@ -257,7 +251,7 @@ void CaptureGetTexLevelParameterfv_params(const State &glState,
                                           GLfloat *params,
                                           ParamCapture *paramCapture)
 {
-    CaptureMemory(params, sizeof(GLfloat), paramCapture);
+    UNIMPLEMENTED();
 }
 
 void CaptureGetTexLevelParameteriv_params(const State &glState,
@@ -268,7 +262,7 @@ void CaptureGetTexLevelParameteriv_params(const State &glState,
                                           GLint *params,
                                           ParamCapture *paramCapture)
 {
-    CaptureMemory(params, sizeof(GLint), paramCapture);
+    UNIMPLEMENTED();
 }
 
 void CaptureProgramUniform1fv_value(const State &glState,

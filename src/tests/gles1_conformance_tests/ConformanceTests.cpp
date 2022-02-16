@@ -515,9 +515,6 @@ TEST_P(GLES1ConformanceTest, PointSizeArray)
 
 TEST_P(GLES1ConformanceTest, PointSprite)
 {
-    // http://anglebug.com/6652
-    ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
-
     ASSERT_NE(CONFORMANCE_TEST_ERROR, PointSpriteExec());
 }
 

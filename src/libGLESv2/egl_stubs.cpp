@@ -8,7 +8,7 @@
 
 #include "libGLESv2/egl_stubs_autogen.h"
 
-#include "common/angle_version_info.h"
+#include "common/angle_version.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Display.h"
 #include "libANGLE/EGLSync.h"
@@ -449,13 +449,9 @@ EGLBoolean Initialize(Thread *thread, Display *display, EGLint *major, EGLint *m
                          EGL_FALSE);
 
     if (major)
-    {
-        *major = kEglMajorVersion;
-    }
+        *major = 1;
     if (minor)
-    {
-        *minor = kEglMinorVersion;
-    }
+        *minor = 5;
 
     thread->setSuccess();
     return EGL_TRUE;
@@ -538,12 +534,8 @@ const char *QueryString(Thread *thread, Display *display, EGLint name)
             result = display->getVendorString().c_str();
             break;
         case EGL_VERSION:
-        {
-            static const char *sVersionString =
-                MakeStaticString(std::string("1.5 (ANGLE ") + angle::GetANGLEVersionString() + ")");
-            result = sVersionString;
+            result = "1.5 (ANGLE " ANGLE_VERSION_STRING ")";
             break;
-        }
         default:
             UNREACHABLE();
             break;
@@ -624,9 +616,7 @@ EGLBoolean SurfaceAttrib(Thread *thread,
 {
     ANGLE_EGL_TRY_RETURN(thread, display->prepareForCall(), "eglSurfaceAttrib",
                          GetDisplayIfValid(display), EGL_FALSE);
-
-    ANGLE_EGL_TRY_RETURN(thread, SetSurfaceAttrib(eglSurface, attribute, value), "eglSurfaceAttrib",
-                         GetDisplayIfValid(display), EGL_FALSE);
+    SetSurfaceAttrib(eglSurface, attribute, value);
 
     thread->setSuccess();
     return EGL_TRUE;
@@ -667,8 +657,11 @@ EGLBoolean Terminate(Thread *thread, Display *display)
 
     ScopedSyncCurrentContextFromThread scopedSyncCurrent(thread);
 
-    ANGLE_EGL_TRY_RETURN(thread, display->terminate(thread, Display::TerminateReason::Api),
-                         "eglTerminate", GetDisplayIfValid(display), EGL_FALSE);
+    ANGLE_EGL_TRY_RETURN(
+        thread, display->makeCurrent(thread, thread->getContext(), nullptr, nullptr, nullptr),
+        "eglTerminate", GetDisplayIfValid(display), EGL_FALSE);
+    ANGLE_EGL_TRY_RETURN(thread, display->terminate(thread), "eglTerminate",
+                         GetDisplayIfValid(display), EGL_FALSE);
 
     thread->setSuccess();
     return EGL_TRUE;

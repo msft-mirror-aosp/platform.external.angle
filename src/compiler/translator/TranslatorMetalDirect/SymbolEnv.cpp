@@ -9,8 +9,8 @@
 
 #include "compiler/translator/ImmutableStringBuilder.h"
 #include "compiler/translator/TranslatorMetalDirect/AstHelpers.h"
+#include "compiler/translator/TranslatorMetalDirect/IntermRebuild.h"
 #include "compiler/translator/TranslatorMetalDirect/SymbolEnv.h"
-#include "compiler/translator/tree_util/IntermRebuild.h"
 
 using namespace sh;
 
@@ -218,12 +218,12 @@ Name SymbolEnv::TemplateName::fullName(std::string &buffer) const
                     break;
 
                 case TemplateArg::Kind::Int:
-                    snprintf(argBuffer, sizeof(argBuffer), "%i", value.i);
+                    sprintf(argBuffer, "%i", value.i);
                     buffer += argBuffer;
                     break;
 
                 case TemplateArg::Kind::UInt:
-                    snprintf(argBuffer, sizeof(argBuffer), "%u", value.u);
+                    sprintf(argBuffer, "%u", value.u);
                     buffer += argBuffer;
                     break;
 
@@ -240,15 +240,15 @@ Name SymbolEnv::TemplateName::fullName(std::string &buffer) const
                         buffer += type.getBasicString();
                         if (type.isVector())
                         {
-                            snprintf(argBuffer, sizeof(argBuffer), "%u", type.getNominalSize());
+                            sprintf(argBuffer, "%i", type.getNominalSize());
                             buffer += argBuffer;
                         }
                         else if (type.isMatrix())
                         {
-                            snprintf(argBuffer, sizeof(argBuffer), "%u", type.getCols());
+                            sprintf(argBuffer, "%i", type.getCols());
                             buffer += argBuffer;
                             buffer += "x";
-                            snprintf(argBuffer, sizeof(argBuffer), "%u", type.getRows());
+                            sprintf(argBuffer, "%i", type.getRows());
                             buffer += argBuffer;
                         }
                     }
@@ -389,12 +389,13 @@ const TStructure &SymbolEnv::getTextureEnv(TBasicType samplerType)
     if (env == nullptr)
     {
         auto *textureType = new TType(samplerType);
-        auto *texture =
-            new TField(textureType, ImmutableString("texture"), kNoSourceLoc, SymbolType::BuiltIn);
+        auto *texture     = new TField(textureType, ImmutableString("texture"), kNoSourceLoc,
+                                   SymbolType::UserDefined);
         markAsPointer(*texture, AddressSpace::Thread);
 
-        auto *sampler = new TField(new TType(&getSamplerStruct(), false),
-                                   ImmutableString("sampler"), kNoSourceLoc, SymbolType::BuiltIn);
+        auto *sampler =
+            new TField(new TType(&getSamplerStruct(), false), ImmutableString("sampler"),
+                       kNoSourceLoc, SymbolType::UserDefined);
         markAsPointer(*sampler, AddressSpace::Thread);
 
         std::string envName;
@@ -413,7 +414,7 @@ const TStructure &SymbolEnv::getSamplerStruct()
     if (!mSampler)
     {
         mSampler = new TStructure(&mSymbolTable, ImmutableString("metal::sampler"),
-                                  new TFieldList(), SymbolType::BuiltIn);
+                                  new TFieldList(), SymbolType::UserDefined);
     }
     return *mSampler;
 }
@@ -697,5 +698,5 @@ Name sh::GetTextureTypeName(TBasicType samplerType)
 
 #undef HANDLE_TEXTURE_NAME
 
-    return Name(name, SymbolType::BuiltIn);
+    return Name(name, SymbolType::UserDefined);
 }

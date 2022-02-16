@@ -50,18 +50,6 @@ static std::set<OSXWindow *> &AllWindows()
     }
     [super sendEvent:nsEvent];
 }
-
-// Override internal method to try to diagnose unexpected crashes in Core Animation.
-// anglebug.com/6570
-// See also:
-//   https://github.com/microsoft/appcenter-sdk-apple/issues/1944
-//   https://stackoverflow.com/questions/220159/how-do-you-print-out-a-stack-trace-to-the-console-log-in-cocoa
-- (void)_crashOnException:(NSException *)exception
-{
-    NSLog(@"*** OSXWindow aborting on exception:  <%@> %@", [exception name], [exception reason]);
-    NSLog(@"%@", [exception callStackSymbols]);
-    abort();
-}
 @end
 
 // The Delegate receiving application-wide events.
@@ -724,31 +712,20 @@ void OSXWindow::messageLoop()
     {
         while (true)
         {
-            // TODO(http://anglebug.com/6570): @try/@catch is a workaround for
-            // exceptions being thrown from Cocoa-internal function
-            // NS_setFlushesWithDisplayLink starting in macOS 11.
-            @try
+            NSEvent *event = [NSApp nextEventMatchingMask:NSAnyEventMask
+                                                untilDate:[NSDate distantPast]
+                                                   inMode:NSDefaultRunLoopMode
+                                                  dequeue:YES];
+            if (event == nil)
             {
-                NSEvent *event = [NSApp nextEventMatchingMask:NSAnyEventMask
-                                                    untilDate:[NSDate distantPast]
-                                                       inMode:NSDefaultRunLoopMode
-                                                      dequeue:YES];
-                if (event == nil)
-                {
-                    break;
-                }
+                break;
+            }
 
-                if ([event type] == NSAppKitDefined)
-                {
-                    continue;
-                }
-                [NSApp sendEvent:event];
-            }
-            @catch (NSException *localException)
+            if ([event type] == NSAppKitDefined)
             {
-                NSLog(@"*** OSXWindow discarding exception: <%@> %@", [localException name],
-                      [localException reason]);
+                continue;
             }
+            [NSApp sendEvent:event];
         }
     }
 }

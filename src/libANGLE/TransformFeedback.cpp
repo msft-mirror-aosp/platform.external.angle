@@ -306,11 +306,11 @@ size_t TransformFeedback::getIndexedBufferCount() const
     return mState.mIndexedBuffers.size();
 }
 
-bool TransformFeedback::buffersBoundForOtherUseInWebGL() const
+bool TransformFeedback::buffersBoundForOtherUse() const
 {
     for (auto &buffer : mState.mIndexedBuffers)
     {
-        if (buffer.get() && buffer->hasWebGLXFBBindingConflict(true))
+        if (buffer.get() && buffer->isBoundForTransformFeedbackAndOtherUse())
         {
             return true;
         }

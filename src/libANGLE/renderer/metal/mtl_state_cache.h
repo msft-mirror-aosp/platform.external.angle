@@ -18,7 +18,6 @@
 #include "libANGLE/State.h"
 #include "libANGLE/angletypes.h"
 #include "libANGLE/renderer/metal/mtl_common.h"
-#include "libANGLE/renderer/metal/mtl_context_device.h"
 #include "libANGLE/renderer/metal/mtl_resources.h"
 
 static inline bool operator==(const MTLClearColor &lhs, const MTLClearColor &rhs);
@@ -293,24 +292,6 @@ struct alignas(4) RenderPipelineDesc
     bool emulateCoverageMask : 1;
 };
 
-struct alignas(4) ProvokingVertexComputePipelineDesc
-{
-    ProvokingVertexComputePipelineDesc();
-    ProvokingVertexComputePipelineDesc(const ProvokingVertexComputePipelineDesc &src);
-    ProvokingVertexComputePipelineDesc(const ProvokingVertexComputePipelineDesc &&src);
-
-    ProvokingVertexComputePipelineDesc &operator=(const ProvokingVertexComputePipelineDesc &src);
-
-    bool operator==(const ProvokingVertexComputePipelineDesc &rhs) const;
-    bool operator!=(const ProvokingVertexComputePipelineDesc &rhs) const;
-    size_t hash() const;
-
-    gl::PrimitiveMode primitiveMode;
-    uint8_t elementType;
-    bool primitiveRestartEnabled;
-    bool generateIndices;
-};
-
 struct RenderPassAttachmentDesc
 {
     RenderPassAttachmentDesc();
@@ -432,14 +413,6 @@ struct hash<rx::mtl::RenderPipelineDesc>
     size_t operator()(const rx::mtl::RenderPipelineDesc &key) const { return key.hash(); }
 };
 
-template <>
-struct hash<rx::mtl::ProvokingVertexComputePipelineDesc>
-{
-    size_t operator()(const rx::mtl::ProvokingVertexComputePipelineDesc &key) const
-    {
-        return key.hash();
-    }
-};
 }  // namespace std
 
 namespace rx
@@ -453,7 +426,7 @@ class RenderPipelineCacheSpecializeShaderFactory
   public:
     virtual ~RenderPipelineCacheSpecializeShaderFactory() = default;
     // Get specialized shader for the render pipeline cache.
-    virtual angle::Result getSpecializedShader(ContextMtl *context,
+    virtual angle::Result getSpecializedShader(Context *context,
                                                gl::ShaderType shaderType,
                                                const RenderPipelineDesc &renderPipelineDesc,
                                                id<MTLFunction> *shaderOut) = 0;
@@ -461,26 +434,6 @@ class RenderPipelineCacheSpecializeShaderFactory
     // If not, the render pipeline cache will use the supplied non-specialized shaders.
     virtual bool hasSpecializedShader(gl::ShaderType shaderType,
                                       const RenderPipelineDesc &renderPipelineDesc) = 0;
-};
-
-// Abstract factory to create specialized provoking vertex compute shaders based off of
-// compute shader pipeline descs
-
-class ProvokingVertexCacheSpecializeShaderFactory
-{
-  public:
-    virtual ~ProvokingVertexCacheSpecializeShaderFactory() = default;
-    // Get specialized shader for the render pipeline cache.
-    virtual angle::Result getSpecializedShader(
-        Context *context,
-        gl::ShaderType shaderType,
-        const ProvokingVertexComputePipelineDesc &renderPipelineDesc,
-        id<MTLFunction> *shaderOut) = 0;
-    // Check whether specialized shaders is required for the specified RenderPipelineDesc.
-    // If not, the render pipeline cache will use the supplied non-specialized shaders.
-    virtual bool hasSpecializedShader(
-        gl::ShaderType shaderType,
-        const ProvokingVertexComputePipelineDesc &renderPipelineDesc) = 0;
 };
 
 // Render pipeline state cache per shader program.
@@ -496,8 +449,8 @@ class RenderPipelineCache final : angle::NonCopyable
     // RenderPipelineCacheSpecializeShaderFactory.hasSpecializedShader() returns false for a
     // particular RenderPipelineDesc, the render pipeline cache will use the non-specialized
     // shaders.
-    void setVertexShader(ContextMtl *context, id<MTLFunction> shader);
-    void setFragmentShader(ContextMtl *context, id<MTLFunction> shader);
+    void setVertexShader(Context *context, id<MTLFunction> shader);
+    void setFragmentShader(Context *context, id<MTLFunction> shader);
 
     // Get non-specialized shaders supplied via set*Shader().
     id<MTLFunction> getVertexShader() { return mVertexShader; }
@@ -516,13 +469,13 @@ class RenderPipelineCache final : angle::NonCopyable
 
   private:
     void clearPipelineStates();
-    void recreatePipelineStates(ContextMtl *context);
+    void recreatePipelineStates(Context *context);
     AutoObjCPtr<id<MTLRenderPipelineState>> insertRenderPipelineState(
-        ContextMtl *context,
+        Context *context,
         const RenderPipelineDesc &desc,
         bool insertDefaultAttribLayout);
     AutoObjCPtr<id<MTLRenderPipelineState>> createRenderPipelineState(
-        ContextMtl *context,
+        Context *context,
         const RenderPipelineDesc &desc,
         bool insertDefaultAttribLayout);
 
@@ -534,52 +487,6 @@ class RenderPipelineCache final : angle::NonCopyable
     RenderPipelineCacheSpecializeShaderFactory *mSpecializedShaderFactory;
 };
 
-// render pipeline state cache per shader program
-class ProvokingVertexComputePipelineCache final : angle::NonCopyable
-{
-  public:
-    ProvokingVertexComputePipelineCache();
-    ProvokingVertexComputePipelineCache(
-        ProvokingVertexCacheSpecializeShaderFactory *specializedShaderFactory);
-    ~ProvokingVertexComputePipelineCache();
-
-    // Set non-specialized vertex/fragment shader to be used by render pipeline cache to create
-    // render pipeline state. If the internal
-    // RenderPipelineCacheSpecializeShaderFactory.hasSpecializedShader() returns false for a
-    // particular RenderPipelineDesc, the render pipeline cache will use the non-specialized
-    // shaders.
-    void setComputeShader(ContextMtl *context, id<MTLFunction> shader);
-    id<MTLFunction> getComputeShader() { return mComputeShader; }
-
-    AutoObjCPtr<id<MTLComputePipelineState>> getComputePipelineState(
-        ContextMtl *context,
-        const ProvokingVertexComputePipelineDesc &desc);
-
-    void clear();
-
-  protected:
-    // Non-specialized compute shader
-    AutoObjCPtr<id<MTLFunction>> mComputeShader;
-
-  private:
-    void clearPipelineStates();
-    void recreatePipelineStates(ContextMtl *context);
-    AutoObjCPtr<id<MTLComputePipelineState>> insertComputePipelineState(
-        ContextMtl *context,
-        const ProvokingVertexComputePipelineDesc &desc);
-
-    AutoObjCPtr<id<MTLComputePipelineState>> createComputePipelineState(
-        ContextMtl *context,
-        const ProvokingVertexComputePipelineDesc &desc);
-
-    bool hasDefaultAttribs(const RenderPipelineDesc &desc) const;
-
-    // One table with default attrib and one table without.
-    std::unordered_map<ProvokingVertexComputePipelineDesc, AutoObjCPtr<id<MTLComputePipelineState>>>
-        mComputePipelineStates;
-    ProvokingVertexCacheSpecializeShaderFactory *mSpecializedShaderFactory;
-};
-
 class StateCache final : angle::NonCopyable
 {
   public:
@@ -587,15 +494,17 @@ class StateCache final : angle::NonCopyable
     ~StateCache();
 
     // Null depth stencil state has depth/stecil read & write disabled.
-    AutoObjCPtr<id<MTLDepthStencilState>> getNullDepthStencilState(
-        const mtl::ContextDevice &device);
-    AutoObjCPtr<id<MTLDepthStencilState>> getDepthStencilState(const mtl::ContextDevice &device,
+    inline AutoObjCPtr<id<MTLDepthStencilState>> getNullDepthStencilState(Context *context)
+    {
+        return getNullDepthStencilState(context->getMetalDevice());
+    }
+    AutoObjCPtr<id<MTLDepthStencilState>> getNullDepthStencilState(id<MTLDevice> device);
+    AutoObjCPtr<id<MTLDepthStencilState>> getDepthStencilState(id<MTLDevice> device,
                                                                const DepthStencilDesc &desc);
-    AutoObjCPtr<id<MTLSamplerState>> getSamplerState(const mtl::ContextDevice &device,
-                                                     const SamplerDesc &desc);
+    AutoObjCPtr<id<MTLSamplerState>> getSamplerState(id<MTLDevice> device, const SamplerDesc &desc);
     // Null sampler state uses default SamplerDesc
-    AutoObjCPtr<id<MTLSamplerState>> getNullSamplerState(ContextMtl *context);
-    AutoObjCPtr<id<MTLSamplerState>> getNullSamplerState(const mtl::ContextDevice &device);
+    AutoObjCPtr<id<MTLSamplerState>> getNullSamplerState(Context *context);
+    AutoObjCPtr<id<MTLSamplerState>> getNullSamplerState(id<MTLDevice> device);
     void clear();
 
   private:
