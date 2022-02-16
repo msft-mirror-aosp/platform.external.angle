@@ -13,54 +13,11 @@
 #include <random>
 #include <sstream>
 
-#include "common/debug.h"
 #include "util/shader_utils.h"
 
 namespace angle
 {
 constexpr unsigned int kIterationsPerStep = 256;
-
-enum class Frequency
-{
-    Always,
-    Sometimes,
-    Never
-};
-
-size_t GetFrequencyValue(Frequency frequency, size_t sometimesValue)
-{
-    switch (frequency)
-    {
-        case Frequency::Always:
-            return 1;
-        case Frequency::Never:
-            return std::numeric_limits<size_t>::max();
-        case Frequency::Sometimes:
-            return sometimesValue;
-        default:
-            UNREACHABLE();
-            return 0;
-    }
-}
-
-std::string FrequencyToString(Frequency frequency)
-{
-    switch (frequency)
-    {
-        case Frequency::Always:
-            return "always";
-        case Frequency::Sometimes:
-            return "sometimes";
-        case Frequency::Never:
-            return "never";
-        default:
-            UNREACHABLE();
-            return "";
-    }
-}
-
-constexpr size_t kRebindSometimesFrequency      = 5;
-constexpr size_t kStateUpdateSometimesFrequency = 3;
 
 struct TexturesParams final : public RenderTestParams
 {
@@ -75,8 +32,8 @@ struct TexturesParams final : public RenderTestParams
         windowHeight = 720;
 
         numTextures                 = 8;
-        textureRebindFrequency      = Frequency::Sometimes;
-        textureStateUpdateFrequency = Frequency::Sometimes;
+        textureRebindFrequency      = 5;
+        textureStateUpdateFrequency = 3;
         textureMipCount             = 8;
 
         webgl = false;
@@ -84,8 +41,8 @@ struct TexturesParams final : public RenderTestParams
 
     std::string story() const override;
     size_t numTextures;
-    Frequency textureRebindFrequency;
-    Frequency textureStateUpdateFrequency;
+    size_t textureRebindFrequency;
+    size_t textureStateUpdateFrequency;
     size_t textureMipCount;
 
     bool webgl;
@@ -102,8 +59,10 @@ std::string TexturesParams::story() const
     std::stringstream strstr;
 
     strstr << RenderTestParams::story();
-    strstr << "_" << FrequencyToString(textureRebindFrequency) << "_rebind";
-    strstr << "_" << FrequencyToString(textureStateUpdateFrequency) << "_update";
+    strstr << "_" << numTextures << "_textures";
+    strstr << "_" << textureRebindFrequency << "_rebind";
+    strstr << "_" << textureStateUpdateFrequency << "_state";
+    strstr << "_" << textureMipCount << "_mips";
 
     if (webgl)
     {
@@ -248,17 +207,12 @@ void TexturesBenchmark::drawBenchmark()
 {
     const auto &params = GetParam();
 
-    size_t textureRebindPeriod =
-        GetFrequencyValue(params.textureRebindFrequency, kRebindSometimesFrequency);
-    size_t textureStateUpdatePeriod =
-        GetFrequencyValue(params.textureStateUpdateFrequency, kStateUpdateSometimesFrequency);
-
     for (size_t it = 0; it < params.iterationsPerStep; ++it)
     {
-        if (it % textureRebindPeriod == 0)
+        if (it % params.textureRebindFrequency == 0)
         {
             // Swap two textures
-            size_t swapTexture = (it / textureRebindPeriod) % (params.numTextures - 1);
+            size_t swapTexture = (it / params.textureRebindFrequency) % (params.numTextures - 1);
 
             glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + swapTexture));
             glBindTexture(GL_TEXTURE_2D, mTextures[swapTexture]);
@@ -267,10 +221,10 @@ void TexturesBenchmark::drawBenchmark()
             std::swap(mTextures[swapTexture], mTextures[swapTexture + 1]);
         }
 
-        if (it % textureStateUpdatePeriod == 0)
+        if (it % params.textureStateUpdateFrequency == 0)
         {
             // Update a texture's state
-            size_t stateUpdateCount = it / textureStateUpdatePeriod;
+            size_t stateUpdateCount = it / params.textureStateUpdateFrequency;
 
             const size_t numUpdateTextures = 4;
             ASSERT_LE(numUpdateTextures, params.numTextures);
@@ -319,44 +273,43 @@ void TexturesBenchmark::drawBenchmark()
     ASSERT_GL_NO_ERROR();
 }
 
-TexturesParams ApplyFrequencies(const TexturesParams &paramsIn,
-                                Frequency rebindFrequency,
-                                Frequency stateUpdateFrequency)
-{
-    TexturesParams paramsOut              = paramsIn;
-    paramsOut.textureRebindFrequency      = rebindFrequency;
-    paramsOut.textureStateUpdateFrequency = stateUpdateFrequency;
-    return paramsOut;
-}
-
-TexturesParams D3D11Params(bool webglCompat,
-                           Frequency rebindFrequency,
-                           Frequency stateUpdateFrequency)
+TexturesParams D3D11Params(bool webglCompat, bool frequentUpdate)
 {
     TexturesParams params;
     params.eglParameters = egl_platform::D3D11_NULL();
     params.webgl         = webglCompat;
-    return ApplyFrequencies(params, rebindFrequency, stateUpdateFrequency);
+    if (frequentUpdate)
+    {
+        params.textureRebindFrequency      = 1;
+        params.textureStateUpdateFrequency = 1;
+    }
+    return params;
 }
 
-TexturesParams OpenGLOrGLESParams(bool webglCompat,
-                                  Frequency rebindFrequency,
-                                  Frequency stateUpdateFrequency)
+TexturesParams OpenGLOrGLESParams(bool webglCompat, bool frequentUpdate)
 {
     TexturesParams params;
     params.eglParameters = egl_platform::OPENGL_OR_GLES_NULL();
     params.webgl         = webglCompat;
-    return ApplyFrequencies(params, rebindFrequency, stateUpdateFrequency);
+    if (frequentUpdate)
+    {
+        params.textureRebindFrequency      = 1;
+        params.textureStateUpdateFrequency = 1;
+    }
+    return params;
 }
 
-TexturesParams VulkanParams(bool webglCompat,
-                            Frequency rebindFrequency,
-                            Frequency stateUpdateFrequency)
+TexturesParams VulkanParams(bool webglCompat, bool frequentUpdate)
 {
     TexturesParams params;
     params.eglParameters = egl_platform::VULKAN_NULL();
     params.webgl         = webglCompat;
-    return ApplyFrequencies(params, rebindFrequency, stateUpdateFrequency);
+    if (frequentUpdate)
+    {
+        params.textureRebindFrequency      = 1;
+        params.textureStateUpdateFrequency = 1;
+    }
+    return params;
 }
 
 TEST_P(TexturesBenchmark, Run)
@@ -365,17 +318,16 @@ TEST_P(TexturesBenchmark, Run)
 }
 
 ANGLE_INSTANTIATE_TEST(TexturesBenchmark,
-                       D3D11Params(false, Frequency::Sometimes, Frequency::Sometimes),
-                       D3D11Params(true, Frequency::Sometimes, Frequency::Sometimes),
-                       D3D11Params(false, Frequency::Always, Frequency::Always),
-                       D3D11Params(true, Frequency::Always, Frequency::Always),
-                       OpenGLOrGLESParams(false, Frequency::Sometimes, Frequency::Sometimes),
-                       OpenGLOrGLESParams(true, Frequency::Sometimes, Frequency::Sometimes),
-                       OpenGLOrGLESParams(false, Frequency::Always, Frequency::Always),
-                       OpenGLOrGLESParams(true, Frequency::Always, Frequency::Always),
-                       VulkanParams(false, Frequency::Sometimes, Frequency::Sometimes),
-                       VulkanParams(true, Frequency::Sometimes, Frequency::Sometimes),
-                       VulkanParams(false, Frequency::Always, Frequency::Always),
-                       VulkanParams(true, Frequency::Always, Frequency::Always),
-                       VulkanParams(false, Frequency::Always, Frequency::Never));
+                       D3D11Params(false, false),
+                       D3D11Params(true, false),
+                       D3D11Params(false, true),
+                       D3D11Params(true, true),
+                       OpenGLOrGLESParams(false, false),
+                       OpenGLOrGLESParams(true, false),
+                       OpenGLOrGLESParams(false, true),
+                       OpenGLOrGLESParams(true, true),
+                       VulkanParams(false, false),
+                       VulkanParams(true, false),
+                       VulkanParams(false, true),
+                       VulkanParams(true, true));
 }  // namespace angle

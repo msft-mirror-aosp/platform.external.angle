@@ -44,9 +44,6 @@ class ZipWriter {
   static std::unique_ptr<ZipWriter> Create(const base::FilePath& zip_file,
                                            FileAccessor* file_accessor);
 
-  ZipWriter(const ZipWriter&) = delete;
-  ZipWriter& operator=(const ZipWriter&) = delete;
-
   ~ZipWriter();
 
   // Sets the optional progress callback. The callback is called once for each
@@ -55,11 +52,6 @@ class ZipWriter {
   void SetProgressCallback(ProgressCallback callback, base::TimeDelta period) {
     progress_callback_ = std::move(callback);
     progress_period_ = std::move(period);
-  }
-
-  // Should ignore missing files and directories?
-  void ContinueOnError(bool continue_on_error) {
-    continue_on_error_ = continue_on_error;
   }
 
   // Sets the recursive flag, indicating whether the contents of subdirectories
@@ -144,8 +136,7 @@ class ZipWriter {
   // Should recursively add directories?
   bool recursive_ = false;
 
-  // Should ignore missing files and directories?
-  bool continue_on_error_ = false;
+  DISALLOW_COPY_AND_ASSIGN(ZipWriter);
 };
 
 }  // namespace internal

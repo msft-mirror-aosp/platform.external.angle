@@ -72,9 +72,6 @@ extern PFN_vkImportSemaphoreFdKHR vkImportSemaphoreFdKHR;
 // VK_EXT_external_memory_host
 extern PFN_vkGetMemoryHostPointerPropertiesEXT vkGetMemoryHostPointerPropertiesEXT;
 
-// VK_EXT_host_query_reset
-extern PFN_vkResetQueryPoolEXT vkResetQueryPoolEXT;
-
 // VK_EXT_transform_feedback
 extern PFN_vkCmdBindTransformFeedbackBuffersEXT vkCmdBindTransformFeedbackBuffersEXT;
 extern PFN_vkCmdBeginTransformFeedbackEXT vkCmdBeginTransformFeedbackEXT;
@@ -123,9 +120,6 @@ extern PFN_vkGetMemoryAndroidHardwareBufferANDROID vkGetMemoryAndroidHardwareBuf
 #    if defined(ANGLE_PLATFORM_GGP)
 extern PFN_vkCreateStreamDescriptorSurfaceGGP vkCreateStreamDescriptorSurfaceGGP;
 #    endif  // defined(ANGLE_PLATFORM_GGP)
-
-// VK_KHR_shared_presentable_image
-extern PFN_vkGetSwapchainStatusKHR vkGetSwapchainStatusKHR;
 
 }  // namespace rx
 

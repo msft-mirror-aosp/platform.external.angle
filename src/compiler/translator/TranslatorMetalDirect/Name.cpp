@@ -68,20 +68,9 @@ void Name::emit(TInfoSinkBase &out) const
     switch (mSymbolType)
     {
         case SymbolType::BuiltIn:
-            ASSERT(!mRawName.empty());
-            out << mRawName;
-            break;
-
         case SymbolType::UserDefined:
             ASSERT(!mRawName.empty());
-            if (mRawName != "main")
-            {
-                out << kUserDefinedNamePrefix << mRawName;
-            }
-            else
-            {
-                out << mRawName;
-            }
+            out << mRawName;
             break;
 
         case SymbolType::AngleInternal:

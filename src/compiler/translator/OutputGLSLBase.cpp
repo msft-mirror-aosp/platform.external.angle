@@ -81,18 +81,22 @@ Stream &operator<<(Stream &out, CommaSeparatedListItemPrefixGenerator &gen)
 
 }  // namespace
 
-TOutputGLSLBase::TOutputGLSLBase(TCompiler *compiler,
-                                 TInfoSinkBase &objSink,
+TOutputGLSLBase::TOutputGLSLBase(TInfoSinkBase &objSink,
+                                 ShHashFunction64 hashFunction,
+                                 NameMap &nameMap,
+                                 TSymbolTable *symbolTable,
+                                 sh::GLenum shaderType,
+                                 int shaderVersion,
+                                 ShShaderOutput output,
                                  ShCompileOptions compileOptions)
-    : TIntermTraverser(true, true, true, &compiler->getSymbolTable()),
+    : TIntermTraverser(true, true, true, symbolTable),
       mObjSink(objSink),
       mDeclaringVariable(false),
-      mHashFunction(compiler->getHashFunction()),
-      mNameMap(compiler->getNameMap()),
-      mShaderType(compiler->getShaderType()),
-      mShaderVersion(compiler->getShaderVersion()),
-      mOutput(compiler->getOutputType()),
-      mHighPrecisionSupported(compiler->isHighPrecisionSupported()),
+      mHashFunction(hashFunction),
+      mNameMap(nameMap),
+      mShaderType(shaderType),
+      mShaderVersion(shaderVersion),
+      mOutput(output),
       mCompileOptions(compileOptions)
 {}
 
@@ -360,34 +364,7 @@ const char *TOutputGLSLBase::mapQualifierToString(TQualifier qualifier)
                 break;
         }
     }
-
-    // Handle qualifiers that produce different output based on shader type.
-    switch (qualifier)
-    {
-        case EvqClipDistance:
-        case EvqCullDistance:
-            return mShaderType == GL_FRAGMENT_SHADER ? "in" : "out";
-        default:
-            break;
-    }
-
     return sh::getQualifierString(qualifier);
-}
-
-namespace
-{
-
-constexpr char kIndent[]      = "                    ";  // 10x2 spaces
-constexpr int kIndentWidth    = 2;
-constexpr int kMaxIndentLevel = sizeof(kIndent) / kIndentWidth;
-
-}  // namespace
-
-const char *TOutputGLSLBase::getIndentPrefix(int extraIndentation)
-{
-    int indentDepth = std::min(kMaxIndentLevel, getCurrentBlockDepth() + extraIndentation);
-    ASSERT(indentDepth >= 0);
-    return kIndent + (kMaxIndentLevel - indentDepth) * kIndentWidth;
 }
 
 void TOutputGLSLBase::writeVariableType(const TType &type,
@@ -445,13 +422,9 @@ void TOutputGLSLBase::writeFunctionParameters(const TFunction *func)
         writeVariableType(type, param, true);
 
         if (param->symbolType() != SymbolType::Empty)
-        {
             out << " " << hashName(param);
-        }
         if (type.isArray())
-        {
             out << ArrayString(type);
-        }
 
         // Put a comma if this is not the last argument.
         if (i != paramCount - 1)
@@ -808,7 +781,7 @@ bool TOutputGLSLBase::visitIfElse(Visit visit, TIntermIfElse *node)
 
     if (node->getFalseBlock())
     {
-        out << getIndentPrefix() << "else\n";
+        out << "else\n";
         visitCodeBlock(node->getFalseBlock());
     }
     return false;
@@ -851,9 +824,6 @@ bool TOutputGLSLBase::visitBlock(Visit visit, TIntermBlock *node)
     {
         TIntermNode *curNode = *iter;
         ASSERT(curNode != nullptr);
-
-        out << getIndentPrefix(curNode->getAsCaseNode() ? -1 : 0);
-
         curNode->traverse(this);
 
         if (isSingleStatement(curNode))
@@ -863,7 +833,7 @@ bool TOutputGLSLBase::visitBlock(Visit visit, TIntermBlock *node)
     // Scope the blocks except when at the global scope.
     if (getCurrentTraversalDepth() > 0)
     {
-        out << getIndentPrefix(-1) << "}\n";
+        out << "}\n";
     }
     return false;
 }
@@ -917,10 +887,8 @@ bool TOutputGLSLBase::visitAggregate(Visit visit, TIntermAggregate *node)
         ImmutableString functionName = node->getFunction()->name();
         if (visit == PreVisit)
         {
-            // No raw function is expected.
-            ASSERT(node->getOp() != EOpCallInternalRawFunction);
-
-            if (node->getOp() == EOpCallFunctionInAST)
+            if (node->getOp() == EOpCallFunctionInAST ||
+                node->getOp() == EOpCallInternalRawFunction)
             {
                 functionName = hashFunctionNameIfNeeded(node->getFunction());
             }
@@ -943,12 +911,13 @@ bool TOutputGLSLBase::visitDeclaration(Visit visit, TIntermDeclaration *node)
     if (visit == PreVisit)
     {
         const TIntermSequence &sequence = *(node->getSequence());
-        TIntermTyped *decl              = sequence.front()->getAsTyped();
-        TIntermSymbol *symbolNode       = decl->getAsSymbolNode();
+        TIntermTyped *variable          = sequence.front()->getAsTyped();
+        TIntermSymbol *symbolNode       = variable->getAsSymbolNode();
         if (symbolNode == nullptr)
         {
-            ASSERT(decl->getAsBinaryNode() && decl->getAsBinaryNode()->getOp() == EOpInitialize);
-            symbolNode = decl->getAsBinaryNode()->getLeft()->getAsSymbolNode();
+            ASSERT(variable->getAsBinaryNode() &&
+                   variable->getAsBinaryNode()->getOp() == EOpInitialize);
+            symbolNode = variable->getAsBinaryNode()->getLeft()->getAsSymbolNode();
         }
         ASSERT(symbolNode);
 
@@ -959,7 +928,11 @@ bool TOutputGLSLBase::visitDeclaration(Visit visit, TIntermDeclaration *node)
             writeLayoutQualifier(symbolNode);
         }
 
-        writeVariableType(symbolNode->getType(), &symbolNode->variable(), false);
+        // Note: the TIntermDeclaration type is used for variable declaration instead of the
+        // TIntermSymbol one.  The TIntermDeclaration type includes precision promotions from the
+        // right hand side that the symbol may be missing.  This is an inconsistency in the tree
+        // that is too ingrained.
+        writeVariableType(variable->getType(), &symbolNode->variable(), false);
         if (symbolNode->variable().symbolType() != SymbolType::Empty)
         {
             out << " ";
@@ -1055,7 +1028,6 @@ void TOutputGLSLBase::visitCodeBlock(TIntermBlock *node)
     TInfoSinkBase &out = objSink();
     if (node != nullptr)
     {
-        out << getIndentPrefix();
         node->traverse(this);
         // Single statements not part of a sequence need to be terminated
         // with semi-colon.
@@ -1156,25 +1128,15 @@ void TOutputGLSLBase::declareStruct(const TStructure *structure)
     const TFieldList &fields = structure->fields();
     for (size_t i = 0; i < fields.size(); ++i)
     {
-        out << getIndentPrefix(1);
-        const TField *field    = fields[i];
-        const TType &fieldType = *field->type();
-        if (writeVariablePrecision(fieldType.getPrecision()))
-        {
+        const TField *field = fields[i];
+        if (writeVariablePrecision(field->type()->getPrecision()))
             out << " ";
-        }
-        if (fieldType.isPrecise())
-        {
-            writePreciseQualifier(fieldType);
-        }
-        out << getTypeName(fieldType) << " " << hashFieldName(field);
-        if (fieldType.isArray())
-        {
-            out << ArrayString(fieldType);
-        }
+        out << getTypeName(*field->type()) << " " << hashFieldName(field);
+        if (field->type()->isArray())
+            out << ArrayString(*field->type());
         out << ";\n";
     }
-    out << getIndentPrefix() << "}";
+    out << "}";
 }
 
 void TOutputGLSLBase::declareInterfaceBlockLayout(const TType &type)
@@ -1261,7 +1223,6 @@ void TOutputGLSLBase::declareInterfaceBlock(const TType &type)
     const TFieldList &fields = interfaceBlock->fields();
     for (const TField *field : fields)
     {
-        out << getIndentPrefix(1);
         if (!IsShaderIoBlock(type.getQualifier()) && type.getQualifier() != EvqPatchIn &&
             type.getQualifier() != EvqPatchOut)
         {
@@ -1276,10 +1237,6 @@ void TOutputGLSLBase::declareInterfaceBlock(const TType &type)
         if (fieldType.isInvariant())
         {
             writeInvariantQualifier(fieldType);
-        }
-        if (fieldType.isPrecise())
-        {
-            writePreciseQualifier(fieldType);
         }
 
         const char *qualifier = getVariableInterpolation(fieldType.getQualifier());

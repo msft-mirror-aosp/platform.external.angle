@@ -25,7 +25,6 @@ constexpr ImmutableString kSurfaceRotationSpecConstVarName =
     ImmutableString("ANGLESurfaceRotation");
 constexpr ImmutableString kDrawableWidthSpecConstVarName  = ImmutableString("ANGLEDrawableWidth");
 constexpr ImmutableString kDrawableHeightSpecConstVarName = ImmutableString("ANGLEDrawableHeight");
-constexpr ImmutableString kDitherSpecConstVarName         = ImmutableString("ANGLEDither");
 
 // When an Android surface is rotated differently than the device's native orientation, ANGLE must
 // rotate gl_Position in the vertex shader and gl_FragCoord in the fragment shader.  The following
@@ -56,15 +55,28 @@ constexpr Mat2x2EnumMap kFragRotationMatrices = {
      {vk::SurfaceRotation::FlippedRotated180Degrees, {{1.0f, 0.0f, 0.0f, 1.0f}}},
      {vk::SurfaceRotation::FlippedRotated270Degrees, {{0.0f, 1.0f, 1.0f, 0.0f}}}}};
 
+// TODO: https://issuetracker.google.com/174066134. This is to make sure the specialization constant
+// code path behaves exactly the same as driver uniform code path. Not sure why this has to be
+// different from kFragRotationMatrices.
+constexpr Mat2x2EnumMap kHalfRenderAreaRotationMatrices = {
+    {{vk::SurfaceRotation::Identity, {{1.0f, 0.0f, 0.0f, 1.0f}}},
+     {vk::SurfaceRotation::Rotated90Degrees, {{0.0f, 1.0f, 1.0f, 0.0f}}},
+     {vk::SurfaceRotation::Rotated180Degrees, {{1.0f, 0.0f, 0.0f, 1.0f}}},
+     {vk::SurfaceRotation::Rotated270Degrees, {{1.0f, 0.0f, 0.0f, 1.0f}}},
+     {vk::SurfaceRotation::FlippedIdentity, {{1.0f, 0.0f, 0.0f, 1.0f}}},
+     {vk::SurfaceRotation::FlippedRotated90Degrees, {{0.0f, 1.0f, 1.0f, 0.0f}}},
+     {vk::SurfaceRotation::FlippedRotated180Degrees, {{1.0f, 0.0f, 0.0f, 1.0f}}},
+     {vk::SurfaceRotation::FlippedRotated270Degrees, {{1.0f, 0.0f, 0.0f, 1.0f}}}}};
+
 // Returns mat2(m0, m1, m2, m3)
 TIntermAggregate *CreateMat2x2(const Mat2x2EnumMap &matrix, vk::SurfaceRotation rotation)
 {
     auto mat2Type = new TType(EbtFloat, 2, 2);
     TIntermSequence mat2Args;
-    mat2Args.push_back(CreateFloatNode(matrix[rotation][0], EbpLow));
-    mat2Args.push_back(CreateFloatNode(matrix[rotation][1], EbpLow));
-    mat2Args.push_back(CreateFloatNode(matrix[rotation][2], EbpLow));
-    mat2Args.push_back(CreateFloatNode(matrix[rotation][3], EbpLow));
+    mat2Args.push_back(CreateFloatNode(matrix[rotation][0]));
+    mat2Args.push_back(CreateFloatNode(matrix[rotation][1]));
+    mat2Args.push_back(CreateFloatNode(matrix[rotation][2]));
+    mat2Args.push_back(CreateFloatNode(matrix[rotation][3]));
     TIntermAggregate *constVarConstructor =
         TIntermAggregate::CreateConstructor(*mat2Type, &mat2Args);
     return constVarConstructor;
@@ -105,12 +117,12 @@ constexpr Vec2EnumMap kFlipXYValue = {
 
 // Returns [[flipX*m0+flipY*m1]  [flipX*m2+flipY*m3]] where [m0 m1] is the first column of
 // kFragRotation matrix and [m2 m3] is the second column of kFragRotation matrix.
-constexpr Mat2x2 CalcFragRotationMultiplyFlipXY(vk::SurfaceRotation rotation)
+constexpr Vec2 CalcFragRotationMultiplyFlipXY(vk::SurfaceRotation rotation)
 {
-    return Mat2x2({kFlipXYValue[rotation][0] * kFragRotationMatrices[rotation][0],
-                   kFlipXYValue[rotation][1] * kFragRotationMatrices[rotation][1],
-                   kFlipXYValue[rotation][0] * kFragRotationMatrices[rotation][2],
-                   kFlipXYValue[rotation][1] * kFragRotationMatrices[rotation][3]});
+    return Vec2({kFlipXYValue[rotation][0] * kFragRotationMatrices[rotation][0] +
+                     kFlipXYValue[rotation][1] * kFragRotationMatrices[rotation][1],
+                 kFlipXYValue[rotation][0] * kFragRotationMatrices[rotation][2] +
+                     kFlipXYValue[rotation][1] * kFragRotationMatrices[rotation][3]});
 }
 
 // Returns vec2(vec2Values.x, vec2Values.y*yscale)
@@ -118,8 +130,8 @@ TIntermAggregate *CreateVec2(Vec2EnumMap vec2Values, float yscale, vk::SurfaceRo
 {
     auto vec2Type = new TType(EbtFloat, 2);
     TIntermSequence vec2Args;
-    vec2Args.push_back(CreateFloatNode(vec2Values[rotation][0], EbpLow));
-    vec2Args.push_back(CreateFloatNode(vec2Values[rotation][1] * yscale, EbpLow));
+    vec2Args.push_back(CreateFloatNode(vec2Values[rotation][0]));
+    vec2Args.push_back(CreateFloatNode(vec2Values[rotation][1] * yscale));
     TIntermAggregate *constVarConstructor =
         TIntermAggregate::CreateConstructor(*vec2Type, &vec2Args);
     return constVarConstructor;
@@ -199,28 +211,22 @@ TIntermTyped *CreateFloatArrayWithRotationIndex(const Vec2EnumMap &valuesEnumMap
                                                 float scale,
                                                 TIntermSymbol *rotation)
 {
-    const TType *floatType = StaticType::GetBasic<EbtFloat, EbpHigh>();
+    const TType *floatType = StaticType::GetBasic<EbtFloat>();
     TType *typeFloat8      = new TType(*floatType);
     typeFloat8->makeArray(static_cast<unsigned int>(vk::SurfaceRotation::EnumCount));
 
     TIntermSequence sequences = {
-        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::Identity][subscript] * scale, EbpLow),
-        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::Rotated90Degrees][subscript] * scale,
-                        EbpLow),
-        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::Rotated180Degrees][subscript] * scale,
-                        EbpLow),
-        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::Rotated270Degrees][subscript] * scale,
-                        EbpLow),
-        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::FlippedIdentity][subscript] * scale,
-                        EbpLow),
-        CreateFloatNode(
-            valuesEnumMap[vk::SurfaceRotation::FlippedRotated90Degrees][subscript] * scale, EbpLow),
-        CreateFloatNode(
-            valuesEnumMap[vk::SurfaceRotation::FlippedRotated180Degrees][subscript] * scale,
-            EbpLow),
-        CreateFloatNode(
-            valuesEnumMap[vk::SurfaceRotation::FlippedRotated270Degrees][subscript] * scale,
-            EbpLow)};
+        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::Identity][subscript] * scale),
+        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::Rotated90Degrees][subscript] * scale),
+        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::Rotated180Degrees][subscript] * scale),
+        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::Rotated270Degrees][subscript] * scale),
+        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::FlippedIdentity][subscript] * scale),
+        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::FlippedRotated90Degrees][subscript] *
+                        scale),
+        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::FlippedRotated180Degrees][subscript] *
+                        scale),
+        CreateFloatNode(valuesEnumMap[vk::SurfaceRotation::FlippedRotated270Degrees][subscript] *
+                        scale)};
     TIntermTyped *array = TIntermAggregate::CreateConstructor(*typeFloat8, &sequences);
 
     return new TIntermBinary(EOpIndexIndirect, array, rotation);
@@ -247,8 +253,7 @@ SpecConst::SpecConst(TSymbolTable *symbolTable, ShCompileOptions compileOptions,
       mLineRasterEmulationVar(nullptr),
       mSurfaceRotationVar(nullptr),
       mDrawableWidthVar(nullptr),
-      mDrawableHeightVar(nullptr),
-      mDitherVar(nullptr)
+      mDrawableHeightVar(nullptr)
 {
     if (shaderType == GL_FRAGMENT_SHADER || shaderType == GL_COMPUTE_SHADER)
     {
@@ -292,7 +297,7 @@ void SpecConst::declareSpecConsts(TIntermBlock *root)
     {
         TIntermDeclaration *decl = new TIntermDeclaration();
         decl->appendDeclarator(
-            new TIntermBinary(EOpInitialize, getDrawableWidth(), CreateFloatNode(0, EbpMedium)));
+            new TIntermBinary(EOpInitialize, getDrawableWidth(), CreateFloatNode(0)));
         root->insertStatement(0, decl);
     }
 
@@ -300,16 +305,8 @@ void SpecConst::declareSpecConsts(TIntermBlock *root)
     {
         TIntermDeclaration *decl = new TIntermDeclaration();
         decl->appendDeclarator(
-            new TIntermBinary(EOpInitialize, getDrawableHeight(), CreateFloatNode(0, EbpMedium)));
+            new TIntermBinary(EOpInitialize, getDrawableHeight(), CreateFloatNode(0)));
         root->insertStatement(1, decl);
-    }
-
-    if (mDitherVar != nullptr)
-    {
-        TIntermDeclaration *decl = new TIntermDeclaration();
-        decl->appendDeclarator(new TIntermBinary(EOpInitialize, getDither(), CreateUIntNode(0)));
-
-        root->insertStatement(0, decl);
     }
 }
 
@@ -321,7 +318,7 @@ TIntermSymbol *SpecConst::getLineRasterEmulation()
     }
     if (mLineRasterEmulationVar == nullptr)
     {
-        const TType *type = MakeSpecConst(*StaticType::GetBasic<EbtBool, EbpUndefined>(),
+        const TType *type = MakeSpecConst(*StaticType::GetBasic<EbtBool>(),
                                           vk::SpecializationConstantId::LineRasterEmulation);
 
         mLineRasterEmulationVar = new TVariable(mSymbolTable, kLineRasterEmulationSpecConstVarName,
@@ -335,7 +332,7 @@ TIntermSymbol *SpecConst::getFlipRotation()
 {
     if (mSurfaceRotationVar == nullptr)
     {
-        const TType *type = MakeSpecConst(*StaticType::GetBasic<EbtUInt, EbpHigh>(),
+        const TType *type = MakeSpecConst(*StaticType::GetBasic<EbtUInt>(),
                                           vk::SpecializationConstantId::SurfaceRotation);
 
         mSurfaceRotationVar = new TVariable(mSymbolTable, kSurfaceRotationSpecConstVarName, type,
@@ -408,6 +405,16 @@ TIntermTyped *SpecConst::getFragRotationMatrix()
     return GenerateMat2x2ArrayWithIndex(kFragRotationMatrices, getFlipRotation());
 }
 
+TIntermTyped *SpecConst::getHalfRenderAreaRotationMatrix()
+{
+    if ((mCompileOptions & SH_USE_SPECIALIZATION_CONSTANT) == 0)
+    {
+        return nullptr;
+    }
+    mUsageBits.set(vk::SpecConstUsage::Rotation);
+    return GenerateMat2x2ArrayWithIndex(kHalfRenderAreaRotationMatrices, getFlipRotation());
+}
+
 TIntermTyped *SpecConst::getFlipXY()
 {
     if ((mCompileOptions & SH_USE_SPECIALIZATION_CONSTANT) == 0)
@@ -455,7 +462,7 @@ TIntermTyped *SpecConst::getFragRotationMultiplyFlipXY()
         return nullptr;
     }
 
-    constexpr Mat2x2EnumMap kFragRotationMultiplyFlipXY = {
+    constexpr Vec2EnumMap kFragRotationMultiplyFlipXY = {
         {{vk::SurfaceRotation::Identity,
           CalcFragRotationMultiplyFlipXY(vk::SurfaceRotation::Identity)},
          {vk::SurfaceRotation::Rotated90Degrees,
@@ -475,14 +482,14 @@ TIntermTyped *SpecConst::getFragRotationMultiplyFlipXY()
 
     mUsageBits.set(vk::SpecConstUsage::YFlip);
     mUsageBits.set(vk::SpecConstUsage::Rotation);
-    return GenerateMat2x2ArrayWithIndex(kFragRotationMultiplyFlipXY, getFlipRotation());
+    return CreateVec2ArrayWithIndex(kFragRotationMultiplyFlipXY, 1.0, getFlipRotation());
 }
 
 TIntermSymbol *SpecConst::getDrawableWidth()
 {
     if (mDrawableWidthVar == nullptr)
     {
-        const TType *type = MakeSpecConst(*StaticType::GetBasic<EbtFloat, EbpHigh>(),
+        const TType *type = MakeSpecConst(*StaticType::GetBasic<EbtFloat>(),
                                           vk::SpecializationConstantId::DrawableWidth);
 
         mDrawableWidthVar = new TVariable(mSymbolTable, kDrawableWidthSpecConstVarName, type,
@@ -495,7 +502,7 @@ TIntermSymbol *SpecConst::getDrawableHeight()
 {
     if (mDrawableHeightVar == nullptr)
     {
-        const TType *type = MakeSpecConst(*StaticType::GetBasic<EbtFloat, EbpHigh>(),
+        const TType *type = MakeSpecConst(*StaticType::GetBasic<EbtFloat>(),
                                           vk::SpecializationConstantId::DrawableHeight);
 
         mDrawableHeightVar = new TVariable(mSymbolTable, kDrawableHeightSpecConstVarName, type,
@@ -504,7 +511,7 @@ TIntermSymbol *SpecConst::getDrawableHeight()
     return new TIntermSymbol(mDrawableHeightVar);
 }
 
-TIntermTyped *SpecConst::getHalfRenderArea()
+TIntermBinary *SpecConst::getHalfRenderArea()
 {
     if ((mCompileOptions & SH_USE_SPECIALIZATION_CONSTANT) == 0)
     {
@@ -521,24 +528,14 @@ TIntermTyped *SpecConst::getHalfRenderArea()
 
     // drawableSize * 0.5f
     TIntermBinary *halfRenderArea =
-        new TIntermBinary(EOpVectorTimesScalar, drawableSize, CreateFloatNode(0.5, EbpMedium));
+        new TIntermBinary(EOpVectorTimesScalar, drawableSize, CreateFloatNode(0.5));
     mUsageBits.set(vk::SpecConstUsage::DrawableSize);
 
-    // No rotation needed because drawableSize is already rotated.
-    return halfRenderArea;
-}
+    // drawableSize * 0.5f * halfRenderAreaRotationMatrix (See comment in
+    // kHalfRenderAreaRotationMatrices)
+    TIntermBinary *rotatedHalfRenderArea =
+        new TIntermBinary(EOpMatrixTimesVector, getHalfRenderAreaRotationMatrix(), halfRenderArea);
 
-TIntermTyped *SpecConst::getDither()
-{
-    if (mDitherVar == nullptr)
-    {
-        const TType *type = MakeSpecConst(*StaticType::GetBasic<EbtUInt, EbpHigh>(),
-                                          vk::SpecializationConstantId::Dither);
-
-        mDitherVar =
-            new TVariable(mSymbolTable, kDitherSpecConstVarName, type, SymbolType::AngleInternal);
-        mUsageBits.set(vk::SpecConstUsage::Dither);
-    }
-    return new TIntermSymbol(mDitherVar);
+    return rotatedHalfRenderArea;
 }
 }  // namespace sh

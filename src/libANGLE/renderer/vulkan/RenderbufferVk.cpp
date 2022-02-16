@@ -45,10 +45,9 @@ angle::Result RenderbufferVk::setStorageImpl(const gl::Context *context,
                                              GLsizei height,
                                              gl::MultisamplingMode mode)
 {
-    ContextVk *contextVk            = vk::GetImpl(context);
-    RendererVk *renderer            = contextVk->getRenderer();
-    const vk::Format &format        = renderer->getFormat(internalformat);
-    angle::FormatID textureFormatID = format.getActualRenderableImageFormatID();
+    ContextVk *contextVk     = vk::GetImpl(context);
+    RendererVk *renderer     = contextVk->getRenderer();
+    const vk::Format &format = renderer->getFormat(internalformat);
 
     if (!mOwnsImage)
     {
@@ -79,11 +78,16 @@ angle::Result RenderbufferVk::setStorageImpl(const gl::Context *context,
         mImageViews.init(renderer);
     }
 
-    const angle::Format &textureFormat = format.getActualRenderableImageFormat();
+    const angle::Format &textureFormat = format.actualImageFormat();
     const bool isDepthStencilFormat    = textureFormat.hasDepthOrStencilBits();
     ASSERT(textureFormat.redBits > 0 || isDepthStencilFormat);
 
-    const bool isRenderToTexture = mode == gl::MultisamplingMode::MultisampledRenderToTexture;
+    // TODO(syoussefi): Currently not supported for depth/stencil images if
+    // VK_KHR_depth_stencil_resolve is not supported.  Chromium only uses this for depth/stencil
+    // buffers and doesn't attempt to read from it.  http://anglebug.com/5065
+    const bool isRenderToTexture =
+        mode == gl::MultisamplingMode::MultisampledRenderToTexture &&
+        (!isDepthStencilFormat || renderer->getFeatures().supportsDepthStencilResolve.enabled);
     const bool hasRenderToTextureEXT =
         renderer->getFeatures().supportsMultisampledRenderToSingleSampled.enabled;
 
@@ -99,10 +103,9 @@ angle::Result RenderbufferVk::setStorageImpl(const gl::Context *context,
     bool robustInit = contextVk->isRobustResourceInitEnabled();
 
     VkExtent3D extents = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1u};
-    ANGLE_TRY(mImage->initExternal(contextVk, gl::TextureType::_2D, extents,
-                                   format.getIntendedFormatID(), textureFormatID, imageSamples,
+    ANGLE_TRY(mImage->initExternal(contextVk, gl::TextureType::_2D, extents, format, imageSamples,
                                    usage, vk::kVkImageCreateFlagsNone, vk::ImageLayout::Undefined,
-                                   nullptr, gl::LevelIndex(0), 1, 1, robustInit, false));
+                                   nullptr, gl::LevelIndex(0), 1, 1, robustInit, nullptr, false));
 
     VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     ANGLE_TRY(mImage->initMemory(contextVk, false, renderer->getMemoryProperties(), flags));
@@ -166,7 +169,7 @@ angle::Result RenderbufferVk::setStorageEGLImageTarget(const gl::Context *contex
     mImageViews.init(renderer);
 
     const vk::Format &vkFormat = renderer->getFormat(image->getFormat().info->sizedInternalFormat);
-    const angle::Format &textureFormat = vkFormat.getActualRenderableImageFormat();
+    const angle::Format &textureFormat = vkFormat.actualImageFormat();
 
     VkImageAspectFlags aspect = vk::GetFormatAspectFlags(textureFormat);
 
@@ -174,10 +177,18 @@ angle::Result RenderbufferVk::setStorageEGLImageTarget(const gl::Context *contex
     uint32_t rendererQueueFamilyIndex = contextVk->getRenderer()->getQueueFamilyIndex();
     if (mImage->isQueueChangeNeccesary(rendererQueueFamilyIndex))
     {
-        vk::OutsideRenderPassCommandBuffer *commandBuffer;
+        vk::CommandBuffer *commandBuffer;
         ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
         mImage->changeLayoutAndQueue(contextVk, aspect, vk::ImageLayout::ColorAttachment,
                                      rendererQueueFamilyIndex, commandBuffer);
+    }
+
+    gl::TextureType viewType = imageVk->getImageTextureType();
+
+    if (imageVk->getImageTextureType() == gl::TextureType::CubeMap)
+    {
+        viewType = vk::Get2DTextureType(imageVk->getImage()->getLayerCount(),
+                                        imageVk->getImage()->getSamples());
     }
 
     mRenderTarget.init(mImage, &mImageViews, nullptr, nullptr, imageVk->getImageLevel(),
@@ -278,7 +289,7 @@ void RenderbufferVk::releaseImage(ContextVk *contextVk)
     if (mImage && mOwnsImage)
     {
         mImage->releaseImageFromShareContexts(renderer, contextVk);
-        mImage->releaseStagedUpdates(renderer);
+        mImage->releaseStagingBuffer(renderer);
     }
     else
     {
@@ -297,7 +308,7 @@ void RenderbufferVk::releaseImage(ContextVk *contextVk)
 
 const gl::InternalFormat &RenderbufferVk::getImplementationSizedFormat() const
 {
-    GLenum internalFormat = mImage->getActualFormat().glInternalFormat;
+    GLenum internalFormat = mImage->getFormat().actualImageFormat().glInternalFormat;
     return gl::GetSizedInternalFormatInfo(internalFormat);
 }
 
@@ -332,7 +343,7 @@ angle::Result RenderbufferVk::getRenderbufferImage(const gl::Context *context,
     gl::MaybeOverrideLuminance(format, type, getColorReadFormat(context),
                                getColorReadType(context));
 
-    return mImage->readPixelsForGetImage(contextVk, packState, packBuffer, gl::LevelIndex(0), 0, 0,
+    return mImage->readPixelsForGetImage(contextVk, packState, packBuffer, gl::LevelIndex(0), 0,
                                          format, type, pixels);
 }
 
@@ -347,13 +358,9 @@ angle::Result RenderbufferVk::ensureImageInitialized(const gl::Context *context)
 void RenderbufferVk::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message)
 {
     ASSERT(index == kRenderbufferImageSubjectIndex &&
-           (message == angle::SubjectMessage::SubjectChanged ||
-            message == angle::SubjectMessage::InitializationComplete));
+           message == angle::SubjectMessage::SubjectChanged);
 
     // Forward the notification to the parent class that the staging buffer changed.
-    if (message == angle::SubjectMessage::SubjectChanged)
-    {
-        onStateChange(angle::SubjectMessage::SubjectChanged);
-    }
+    onStateChange(angle::SubjectMessage::SubjectChanged);
 }
 }  // namespace rx
