@@ -415,9 +415,7 @@ enum TOperator : uint16_t
     // with AST traversers:
     // * They should not return arrays.
     // * They should not have out parameters.
-    //
-    // DEPRECATED; DO NOT USE.  TODO: remove this.  http://anglebug.com/6059
-    //
+    // TODO: remove this.  http://anglebug.com/6059
     EOpCallInternalRawFunction,
 
     //
@@ -662,8 +660,7 @@ def get_basic_mangled_name(basic):
 
 
 essl_levels = [
-    'ESSL3_2_BUILTINS', 'ESSL3_1_BUILTINS', 'ESSL3_BUILTINS', 'ESSL1_BUILTINS', 'COMMON_BUILTINS',
-    'ESSL_VULKAN_BUILTINS'
+    'ESSL3_2_BUILTINS', 'ESSL3_1_BUILTINS', 'ESSL3_BUILTINS', 'ESSL1_BUILTINS', 'COMMON_BUILTINS'
 ]
 
 glsl_levels = [
@@ -685,8 +682,6 @@ def generate_suffix_from_level(level):
 def get_essl_shader_version_for_level(level):
     if level == None:
         return '-1'
-    elif level == 'ESSL_VULKAN_BUILTINS':
-        return 'kESSLVulkanOnly'
     elif level == 'ESSL3_2_BUILTINS':
         return '320'
     elif level == 'ESSL3_1_BUILTINS':
@@ -857,7 +852,7 @@ class GroupedList:
     def get_offsets(self):
         return self.offsets
 
-    def update_arrays(self, essl_only):
+    def update_arrays(self):
 
         def add_rule(rules, spec, level, shaders, extension, symbol):
             var = ("&TableBase::%s" % symbol) if symbol.startswith("m_gl") else None
@@ -899,7 +894,7 @@ class GroupedList:
                     add_rule(rules, "ESSL", data['essl_level'], data['shader_type'], None,
                              data["symbol"])
 
-                if "symbol" in data and "glsl_level" in data and not essl_only:
+                if "symbol" in data and "glsl_level" in data:
                     add_rule(rules, "GLSL", data['glsl_level'], data['shader_type'], None,
                              data["symbol"])
 
@@ -907,7 +902,7 @@ class GroupedList:
                     add_rule(rules, "ESSL", data['essl_level2'], data['shader_type2'], None,
                              data["symbol2"])
 
-                if "symbol2" in data and "glsl_level2" in data and not essl_only:
+                if "symbol2" in data and "glsl_level2" in data:
                     add_rule(rules, "GLSL", data['glsl_level2'], data['shader_type2'], None,
                              data["symbol2"])
 
@@ -915,7 +910,7 @@ class GroupedList:
                     add_rule(rules, "ESSL", data['essl_level3'], data['shader_type3'], None,
                              data["symbol3"])
 
-                if "symbol3" in data and "glsl_level3" in data and not essl_only:
+                if "symbol3" in data and "glsl_level3" in data:
                     add_rule(rules, "GLSL", data['glsl_level3'], data['shader_type3'], None,
                              data["symbol3"])
 
@@ -923,7 +918,7 @@ class GroupedList:
                     add_rule(rules, "ESSL", data['essl_level4'], data['shader_type4'], None,
                              data["symbol4"])
 
-                if "symbol4" in data and "glsl_level4" in data and not essl_only:
+                if "symbol4" in data and "glsl_level4" in data:
                     add_rule(rules, "GLSL", data['glsl_level4'], data['shader_type4'], None,
                              data["symbol4"])
 
@@ -931,7 +926,7 @@ class GroupedList:
                     add_rule(rules, "ESSL", data["essl_ext_level"], data["essl_ext_shader_type"],
                              data["essl_extension"], data["essl_ext_symbol"])
 
-                if "glsl_ext_symbol" in data and not essl_only:
+                if "glsl_ext_symbol" in data:
                     add_rule(rules, "GLSL", data["glsl_ext_level"], data["glsl_ext_shader_type"],
                              data["glsl_extension"], data["glsl_ext_symbol"])
 
@@ -1148,11 +1143,11 @@ class TType:
             return type_obj
         if glsl_header_type.startswith('out '):
             type_obj = self.parse_type(glsl_header_type[4:])
-            type_obj['qualifier'] = 'ParamOut'
+            type_obj['qualifier'] = 'Out'
             return type_obj
         if glsl_header_type.startswith('inout '):
             type_obj = self.parse_type(glsl_header_type[6:])
-            type_obj['qualifier'] = 'ParamInOut'
+            type_obj['qualifier'] = 'InOut'
             return type_obj
 
         basic_type_map = {
@@ -1461,8 +1456,8 @@ def get_known_to_not_have_side_effects(function_props):
         return 'false'
     else:
         for param in get_parameters(function_props):
-            if 'qualifier' in param.data and (param.data['qualifier'] == 'ParamOut' or
-                                              param.data['qualifier'] == 'ParamInOut'):
+            if 'qualifier' in param.data and (param.data['qualifier'] == 'Out' or
+                                              param.data['qualifier'] == 'InOut'):
                 return 'false'
         return 'true'
 
@@ -1497,9 +1492,9 @@ def get_unique_identifier_name(function_name, parameters):
 def get_variable_name_to_store_parameter(param):
     unique_name = 'pt'
     if 'qualifier' in param.data:
-        if param.data['qualifier'] == 'ParamOut':
+        if param.data['qualifier'] == 'Out':
             unique_name += '_o_'
-        if param.data['qualifier'] == 'ParamInOut':
+        if param.data['qualifier'] == 'InOut':
             unique_name += '_io_'
     unique_name += param.get_mangled_name()
     return unique_name
@@ -1511,9 +1506,9 @@ def get_variable_name_to_store_parameters(parameters):
     unique_name = 'p'
     for param in parameters:
         if 'qualifier' in param.data:
-            if param.data['qualifier'] == 'ParamOut':
+            if param.data['qualifier'] == 'Out':
                 unique_name += '_o_'
-            if param.data['qualifier'] == 'ParamInOut':
+            if param.data['qualifier'] == 'InOut':
                 unique_name += '_io_'
         unique_name += param.get_mangled_name()
     return unique_name
@@ -1839,7 +1834,7 @@ def prune_parameters_arrays(parameter_declarations, function_declarations):
     for param_variable_name, param_declaration in sorted(
             parameter_declarations.items(), key=lambda item: -len(item[0])):
         replaced = False
-        for used in sorted(used_param_variable_names):
+        for used in used_param_variable_names:
             if used.startswith(param_variable_name):
                 parameter_variable_name_replacements[param_variable_name] = used
                 replaced = True
@@ -2121,7 +2116,7 @@ def generate_files(essl_only, args, functions_txt_filename, variables_json_filen
     for group_name, group in parsed_variables.items():
         process_variable_group('NONE', group_name, group, symbols, variables, mangled_builtins)
 
-    mangled_builtins.update_arrays(essl_only)
+    mangled_builtins.update_arrays()
 
     output_strings = {
         'script_name':

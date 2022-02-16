@@ -95,7 +95,7 @@ void RenderTargetVk::onColorDraw(ContextVk *contextVk,
                                  uint32_t framebufferLayerCount,
                                  vk::PackedAttachmentIndex packedAttachmentIndex)
 {
-    ASSERT(!mImage->getActualFormat().hasDepthOrStencilBits());
+    ASSERT(!mImage->getFormat().actualImageFormat().hasDepthOrStencilBits());
     ASSERT(framebufferLayerCount <= mLayerCount);
 
     contextVk->onColorDraw(mImage, mResolveImage, packedAttachmentIndex);
@@ -113,7 +113,7 @@ void RenderTargetVk::onColorDraw(ContextVk *contextVk,
 
 void RenderTargetVk::onColorResolve(ContextVk *contextVk, uint32_t framebufferLayerCount)
 {
-    ASSERT(!mImage->getActualFormat().hasDepthOrStencilBits());
+    ASSERT(!mImage->getFormat().actualImageFormat().hasDepthOrStencilBits());
     ASSERT(framebufferLayerCount <= mLayerCount);
     ASSERT(mResolveImage == nullptr);
 
@@ -125,7 +125,7 @@ void RenderTargetVk::onColorResolve(ContextVk *contextVk, uint32_t framebufferLa
 
 void RenderTargetVk::onDepthStencilDraw(ContextVk *contextVk, uint32_t framebufferLayerCount)
 {
-    const angle::Format &format = mImage->getActualFormat();
+    const angle::Format &format = mImage->getFormat().actualImageFormat();
     ASSERT(format.hasDepthOrStencilBits());
     ASSERT(framebufferLayerCount <= mLayerCount);
 
@@ -237,28 +237,10 @@ angle::Result RenderTargetVk::getAndRetainCopyImageView(ContextVk *contextVk,
                                        : getImageView(contextVk, imageViewOut);
 }
 
-angle::FormatID RenderTargetVk::getImageActualFormatID() const
+const vk::Format &RenderTargetVk::getImageFormat() const
 {
     ASSERT(mImage && mImage->valid());
-    return mImage->getActualFormatID();
-}
-
-angle::FormatID RenderTargetVk::getImageIntendedFormatID() const
-{
-    ASSERT(mImage && mImage->valid());
-    return mImage->getIntendedFormatID();
-}
-
-const angle::Format &RenderTargetVk::getImageActualFormat() const
-{
-    ASSERT(mImage && mImage->valid());
-    return mImage->getActualFormat();
-}
-
-const angle::Format &RenderTargetVk::getImageIntendedFormat() const
-{
-    ASSERT(mImage && mImage->valid());
-    return mImage->getIntendedFormat();
+    return mImage->getFormat();
 }
 
 gl::Extents RenderTargetVk::getExtents() const

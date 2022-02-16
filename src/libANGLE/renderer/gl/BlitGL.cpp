@@ -705,7 +705,7 @@ angle::Result BlitGL::copySubTextureCPUReadback(const gl::Context *context,
 
     mStateManager->bindFramebuffer(GL_FRAMEBUFFER, mScratchFBO);
     bool supportExternalTarget =
-        source->getType() == gl::TextureType::External && context->getExtensions().YUVTargetEXT;
+        source->getType() == gl::TextureType::External && context->getExtensions().yuvTargetEXT;
     GLenum status = GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT;
     if (supportExternalTarget || source->getType() != gl::TextureType::External)
     {

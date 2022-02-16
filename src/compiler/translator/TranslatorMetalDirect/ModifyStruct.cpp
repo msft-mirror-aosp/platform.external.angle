@@ -362,7 +362,8 @@ class ConvertStructState : angle::NonCopyable
         const ModifiedStructMachinery *m = outMachineries.find(structure);
         if (m == nullptr)
         {
-            TranslatorMetalReflection *reflection = mtl::getTranslatorMetalReflection(&mCompiler);
+            TranslatorMetalReflection *reflection =
+                ((sh::TranslatorMetalDirect *)&mCompiler)->getTranslatorMetalReflection();
             reflection->addOriginalName(structure.uniqueId().get(), structure.name().data());
             const Name name = idGen.createNewName(structure.name().data());
             if (!TryCreateModifiedStruct(mCompiler, symbolEnv, idGen, config, structure, name,
@@ -419,11 +420,6 @@ class ConvertStructState : angle::NonCopyable
                 ASSERT(padAmount == 1);
                 padAmount -= 1;
                 padType = new TType(TBasicType::EbtBool);
-            }
-
-            if (padType->getBasicType() != EbtBool)
-            {
-                padType->setPrecision(EbpLow);
             }
 
             if (updateLayout)
@@ -743,10 +739,10 @@ bool SplitMatrixColumns(ConvertStructState &state,
         return false;
     }
 
-    const uint8_t cols = type.getCols();
-    TType &rowType     = DropColumns(type);
+    const int cols = type.getCols();
+    TType &rowType = DropColumns(type);
 
-    for (uint8_t c = 0; c < cols; ++c)
+    for (int c = 0; c < cols; ++c)
     {
         state.pushPath(c);
 
@@ -775,30 +771,30 @@ bool SaturateMatrixRows(ConvertStructState &state,
     {
         return false;
     }
-    const bool isRowMajor    = type.getLayoutQualifier().matrixPacking == EmpRowMajor;
-    const uint8_t rows       = type.getRows();
-    const uint8_t saturation = state.config.saturateMatrixRows(field);
+    const bool isRowMajor = type.getLayoutQualifier().matrixPacking == EmpRowMajor;
+    const int rows        = type.getRows();
+    const int saturation  = state.config.saturateMatrixRows(field);
     if (saturation <= rows && !isRowMajor)
     {
         return false;
     }
 
-    const uint8_t cols = type.getCols();
-    TType &satType     = SetMatrixRowDim(type, saturation);
+    const int cols = type.getCols();
+    TType &satType = SetMatrixRowDim(type, saturation);
     state.addModifiedField(field, satType, storage, packing, state.symbolEnv.isPointer(field));
     if (state.symbolEnv.isPointer(field))
     {
         state.symbolEnv.removePointer(field);
     }
 
-    for (uint8_t c = 0; c < cols; ++c)
+    for (int c = 0; c < cols; ++c)
     {
-        for (uint8_t r = 0; r < rows; ++r)
+        for (int r = 0; r < rows; ++r)
         {
             state.addConversion([=](Access::Env &, OriginalAccess &o, ModifiedAccess &m) {
-                uint8_t firstModifiedIndex  = isRowMajor ? r : c;
-                uint8_t secondModifiedIndex = isRowMajor ? c : r;
-                auto &o_                    = AccessIndex(AccessIndex(o, c), r);
+                int firstModifiedIndex  = isRowMajor ? r : c;
+                int secondModifiedIndex = isRowMajor ? c : r;
+                auto &o_                = AccessIndex(AccessIndex(o, c), r);
                 auto &m_ = AccessIndex(AccessIndex(m, firstModifiedIndex), secondModifiedIndex);
                 return Access{o_, m_};
             });
@@ -852,8 +848,8 @@ bool SaturateScalarOrVectorCommon(ConvertStructState &state,
     }
     const auto saturator =
         array ? state.config.saturateScalarOrVectorArrays : state.config.saturateScalarOrVector;
-    const uint8_t dim        = type.getNominalSize();
-    const uint8_t saturation = saturator(field);
+    const int dim        = type.getNominalSize();
+    const int saturation = saturator(field);
     if (saturation <= dim)
     {
         return false;
@@ -871,7 +867,7 @@ bool SaturateScalarOrVectorCommon(ConvertStructState &state,
         state.symbolEnv.removePointer(field);
     }
 
-    for (uint8_t d = 0; d < dim; ++d)
+    for (int d = 0; d < dim; ++d)
     {
         state.addConversion([=](Access::Env &env, OriginalAccess &o, ModifiedAccess &m) {
             auto &o_ = dim > 1 ? AccessIndex(o, d) : o;
@@ -976,6 +972,7 @@ bool InlineArray(ConvertStructState &state,
     const bool isMultiDim = type.isArrayOfArrays();
 
     auto &innermostType = InnermostType(type);
+    const TField innermostField(&innermostType, field.name(), field.line(), field.symbolType());
 
     if (isMultiDim)
     {
@@ -985,15 +982,6 @@ bool InlineArray(ConvertStructState &state,
     for (unsigned i = 0; i < volume; ++i)
     {
         state.pushPath(i);
-        TType setType(innermostType);
-        if (setType.getLayoutQualifier().locationsSpecified)
-        {
-            TLayoutQualifier qualifier(innermostType.getLayoutQualifier());
-            qualifier.location           = innermostType.getLayoutQualifier().location + i;
-            qualifier.locationsSpecified = 1;
-            setType.setLayoutQualifier(qualifier);
-        }
-        const TField innermostField(&setType, field.name(), field.line(), field.symbolType());
         ModifyCommon(state, innermostField, storage, packing);
         state.popPath();
     }

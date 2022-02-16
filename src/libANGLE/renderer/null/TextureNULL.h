@@ -129,8 +129,7 @@ class TextureNULL : public TextureImpl
                                            gl::MemoryObject *memoryObject,
                                            GLuint64 offset,
                                            GLbitfield createFlags,
-                                           GLbitfield usageFlags,
-                                           const void *imageCreateInfoPNext) override;
+                                           GLbitfield usageFlags) override;
 
     angle::Result setEGLImageTarget(const gl::Context *context,
                                     gl::TextureType type,

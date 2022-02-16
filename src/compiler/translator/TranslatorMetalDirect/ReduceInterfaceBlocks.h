@@ -12,7 +12,6 @@
 
 namespace sh
 {
-class TSymbolTable;
 
 // This rewrites interface block declarations only.
 //
@@ -29,11 +28,7 @@ class TSymbolTable;
 // Becomes:
 //  struct Foo { int x; }; uniform Foo x;
 //
-
-ANGLE_NO_DISCARD bool ReduceInterfaceBlocks(TCompiler &compiler,
-                                            TIntermBlock &root,
-                                            IdGen &idGen,
-                                            TSymbolTable *symbolTable);
+ANGLE_NO_DISCARD bool ReduceInterfaceBlocks(TCompiler &compiler, TIntermBlock &root, IdGen &idGen);
 
 }  // namespace sh
 

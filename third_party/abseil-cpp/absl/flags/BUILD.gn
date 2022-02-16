@@ -129,7 +129,6 @@ absl_source_set("flag_internal") {
     "//third_party/abseil-cpp/absl/base",
     "//third_party/abseil-cpp/absl/base:config",
     "//third_party/abseil-cpp/absl/base:core_headers",
-    "//third_party/abseil-cpp/absl/base:dynamic_annotations",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/meta:type_traits",
     "//third_party/abseil-cpp/absl/strings",
@@ -143,10 +142,7 @@ absl_source_set("flag_internal") {
 }
 
 absl_source_set("flag") {
-  sources = [
-    "flag.cc",
-    "internal/flag_msvc.inc",
-  ]
+  sources = [ "flag.cc" ]
   public = [
     "declare.h",
     "flag.h",

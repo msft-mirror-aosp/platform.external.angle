@@ -135,11 +135,9 @@ kernel void genTriFanIndicesFromArray(uint idx [[thread_position_in_grid]],
 
     uint vertexIdx = options.firstVertex + 2 + idx;
 
-    // Triangle fan provoking vertex by default is i+1, not pivot
-    // vertex.
-    output[3 * idx ]    = vertexIdx - 1;
-    output[3 * idx + 1] = vertexIdx;
-    output[3 * idx + 2] = options.firstVertex;
+    output[3 * idx]     = options.firstVertex;
+    output[3 * idx + 1] = vertexIdx - 1;
+    output[3 * idx + 2] = vertexIdx;
 }
 
 inline uint getIndexU32(uint offset,
