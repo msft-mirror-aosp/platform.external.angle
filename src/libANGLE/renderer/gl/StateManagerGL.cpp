@@ -146,7 +146,7 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
       mClearColor(0.0f, 0.0f, 0.0f, 0.0f),
       mClearDepth(1.0f),
       mClearStencil(0),
-      mFramebufferSRGBAvailable(extensions.sRGBWriteControlEXT),
+      mFramebufferSRGBAvailable(extensions.sRGBWriteControl),
       mFramebufferSRGBEnabled(false),
       mHasSeparateFramebufferBindings(mFunctions->isAtLeastGL(gl::Version(3, 0)) ||
                                       mFunctions->isAtLeastGLES(gl::Version(3, 0))),
@@ -155,13 +155,13 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
       mMultisamplingEnabled(true),
       mSampleAlphaToOneEnabled(false),
       mCoverageModulation(GL_NONE),
-      mIsMultiviewEnabled(extensions.multiviewOVR || extensions.multiview2OVR),
+      mIsMultiviewEnabled(extensions.multiview || extensions.multiview2),
       mProvokingVertex(GL_LAST_VERTEX_CONVENTION),
       mMaxClipDistances(rendererCaps.maxClipDistances),
       mLocalDirtyBits()
 {
     ASSERT(mFunctions);
-    ASSERT(rendererCaps.maxViews >= 1u);
+    ASSERT(extensions.maxViews >= 1u);
 
     mIndexedBuffers[gl::BufferBinding::Uniform].resize(rendererCaps.maxUniformBufferBindings);
     mIndexedBuffers[gl::BufferBinding::AtomicCounter].resize(
@@ -925,12 +925,7 @@ void StateManagerGL::updateProgramTextureBindings(const gl::Context *context)
         if (texture != nullptr)
         {
             const TextureGL *textureGL = GetImplAs<TextureGL>(texture);
-            // The DIRTY_BIT_BOUND_AS_ATTACHMENT may get inserted when texture is attached to
-            // FBO and if texture is already bound, Texture::syncState will not get called and dirty
-            // bit not gets cleared. But this bit is not used by GL backend at all, so it is
-            // harmless even though we expect texture is clean when reaching here. The bit will
-            // still get cleared next time syncState been called.
-            ASSERT(!texture->hasAnyDirtyBitExcludingBoundAsAttachmentBit());
+            ASSERT(!texture->hasAnyDirtyBit());
             ASSERT(!textureGL->hasAnyDirtyBit());
 
             activeTexture(textureUnitIndex);
@@ -2025,8 +2020,8 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 VertexArrayGL *vaoGL = GetImplAs<VertexArrayGL>(state.getVertexArray());
                 bindVertexArray(vaoGL->getVertexArrayID(), vaoGL->getNativeState());
 
-                ANGLE_TRY(propagateProgramToVAO(context, state.getProgram(),
-                                                GetImplAs<VertexArrayGL>(state.getVertexArray())));
+                propagateProgramToVAO(context, state.getProgram(),
+                                      GetImplAs<VertexArrayGL>(state.getVertexArray()));
 
                 if (mFeatures.syncVertexArraysToDefault.enabled)
                 {
@@ -2109,8 +2104,8 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 if (!program ||
                     !program->getExecutable().hasLinkedShaderStage(gl::ShaderType::Compute))
                 {
-                    ANGLE_TRY(propagateProgramToVAO(
-                        context, program, GetImplAs<VertexArrayGL>(state.getVertexArray())));
+                    propagateProgramToVAO(context, program,
+                                          GetImplAs<VertexArrayGL>(state.getVertexArray()));
                 }
                 break;
             }
@@ -2432,13 +2427,13 @@ void StateManagerGL::setTextureCubemapSeamlessEnabled(bool enabled)
     }
 }
 
-angle::Result StateManagerGL::propagateProgramToVAO(const gl::Context *context,
-                                                    const gl::Program *program,
-                                                    VertexArrayGL *vao)
+void StateManagerGL::propagateProgramToVAO(const gl::Context *context,
+                                           const gl::Program *program,
+                                           VertexArrayGL *vao)
 {
     if (vao == nullptr)
     {
-        return angle::Result::Continue;
+        return;
     }
 
     // Number of views:
@@ -2449,17 +2444,15 @@ angle::Result StateManagerGL::propagateProgramToVAO(const gl::Context *context,
         {
             programNumViews = program->getNumViews();
         }
-        ANGLE_TRY(vao->applyNumViewsToDivisor(context, programNumViews));
+        vao->applyNumViewsToDivisor(context, programNumViews);
     }
 
     // Attribute enabled mask:
     if (program)
     {
-        ANGLE_TRY(vao->applyActiveAttribLocationsMask(
-            context, program->getExecutable().getActiveAttribLocationsMask()));
+        vao->applyActiveAttribLocationsMask(
+            context, program->getExecutable().getActiveAttribLocationsMask());
     }
-
-    return angle::Result::Continue;
 }
 
 void StateManagerGL::updateMultiviewBaseViewLayerIndexUniformImpl(
@@ -2783,7 +2776,7 @@ void StateManagerGL::syncFromNativeContext(const gl::Extensions &extensions,
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_SAMPLE_COVERAGE_ENABLED);
     }
 
-    if (extensions.multisampleCompatibilityEXT)
+    if (extensions.multisampleCompatibility)
     {
         get(GL_MULTISAMPLE, &state->multisampleEnabled);
         if (mMultisamplingEnabled != state->multisampleEnabled)
@@ -2847,7 +2840,7 @@ void StateManagerGL::restoreNativeContext(const gl::Extensions &extensions,
 
     setSampleCoverageEnabled(state->enableSampleCoverage);
 
-    if (extensions.multisampleCompatibilityEXT)
+    if (extensions.multisampleCompatibility)
         setMultisamplingStateEnabled(state->multisampleEnabled);
 
     restoreBlendNativeContext(extensions, state);

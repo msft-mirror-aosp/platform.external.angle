@@ -270,7 +270,6 @@ enum TBuiltInVariable {
     EbvWorldToObject,
     EbvWorldToObject3x4,
     EbvIncomingRayFlags,
-    EbvCurrentRayTimeNV,
     // barycentrics
     EbvBaryCoordNV,
     EbvBaryCoordNoPerspNV,
@@ -476,7 +475,6 @@ __inline const char* GetBuiltInVariableString(TBuiltInVariable v)
     case EbvIncomingRayFlags:           return "IncomingRayFlagsNV";
     case EbvObjectToWorld:              return "ObjectToWorldNV";
     case EbvWorldToObject:              return "WorldToObjectNV";
-    case EbvCurrentRayTimeNV:           return "CurrentRayTimeNV";
 
     case EbvBaryCoordNV:                return "BaryCoordNV";
     case EbvBaryCoordNoPerspNV:         return "BaryCoordNoPerspNV";
