@@ -362,6 +362,7 @@ TEST_P(GPUTestExpectationsParserTest, GPUTestExpectationsParserMisspelledExpecta
     }
 }
 
+// Wild characters that match groups of expectations can be overridden with more specific lines.
 // The parse should still compute correctly which lines were used and which were unused.
 TEST_P(GPUTestExpectationsParserTest, GPUTestExpectationsParserOverrideExpectation)
 {
@@ -369,17 +370,20 @@ TEST_P(GPUTestExpectationsParserTest, GPUTestExpectationsParserOverrideExpectati
     std::string line = R"(100 : dEQP-GLES31.functional.layout_binding.* = FAIL
 100 : dEQP-GLES31.functional.layout_binding.ubo.* = SKIP)";
     EXPECT_TRUE(load(line));
+    EXPECT_TRUE(parser.getErrorMessages().empty());
     // Default behavior is to let missing tests pass
     EXPECT_EQ(get("dEQP-GLES31.functional.layout_binding.ubo.vertex_binding_max"),
-              GPUTestExpectationsParser::kGpuTestFail);
+              GPUTestExpectationsParser::kGpuTestSkip);
     // The FAIL expectation was unused because it was overridden.
-    ASSERT_EQ(parser.getUnusedExpectationsMessages().size(), 1u);
-    EXPECT_EQ(parser.getUnusedExpectationsMessages()[0], "Line 2: expectation was unused.");
+    EXPECT_EQ(parser.getUnusedExpectationsMessages().size(), 1u);
+    if (parser.getUnusedExpectationsMessages().size() >= 1)
+    {
+        EXPECT_EQ(parser.getUnusedExpectationsMessages()[0], "Line 1: expectation was unused.");
+    }
     // Now try a test that doesn't match the override criteria
     EXPECT_EQ(get("dEQP-GLES31.functional.layout_binding.image.test"),
               GPUTestExpectationsParser::kGpuTestFail);
-    ASSERT_EQ(parser.getUnusedExpectationsMessages().size(), 1u);
-    EXPECT_EQ(parser.getUnusedExpectationsMessages()[0], "Line 2: expectation was unused.");
+    EXPECT_TRUE(parser.getUnusedExpectationsMessages().empty());
 }
 
 // This test is the same as GPUTestExpectationsParserOverrideExpectation, but verifying the order
@@ -390,6 +394,7 @@ TEST_P(GPUTestExpectationsParserTest, GPUTestExpectationsParserOverrideExpectati
     std::string line = R"(100 : dEQP-GLES31.functional.layout_binding.ubo.* = SKIP
 100 : dEQP-GLES31.functional.layout_binding.* = FAIL)";
     EXPECT_TRUE(load(line));
+    EXPECT_TRUE(parser.getErrorMessages().empty());
     // Default behavior is to let missing tests pass
     EXPECT_EQ(get("dEQP-GLES31.functional.layout_binding.ubo.vertex_binding_max"),
               GPUTestExpectationsParser::kGpuTestSkip);

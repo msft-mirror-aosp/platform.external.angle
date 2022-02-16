@@ -241,7 +241,6 @@ protected:
     // override this to set the language-specific name
     virtual const char* getAtomicCounterBlockName() const { return ""; }
     virtual void setAtomicCounterBlockDefaults(TType&) const {}
-    virtual void setInvariant(const TSourceLoc&, const char*) {}
     virtual void finalizeAtomicCounterBlockLayout(TVariable&) {}
     bool isAtomicCounterBlock(const TSymbol& symbol) {
         const TVariable* var = symbol.getAsVariable();
@@ -472,7 +471,7 @@ public:
     // Determine loop control from attributes
     void handleLoopAttributes(const TAttributes& attributes, TIntermNode*);
     // Function attributes
-    void handleFunctionAttributes(const TSourceLoc&, const TAttributes&);
+    void handleFunctionAttributes(const TSourceLoc&, const TAttributes&, TFunction*);
 
     // GL_EXT_spirv_intrinsics
     TSpirvRequirement* makeSpirvRequirement(const TSourceLoc& loc, const TString& name,
@@ -480,6 +479,7 @@ public:
     TSpirvRequirement* mergeSpirvRequirements(const TSourceLoc& loc, TSpirvRequirement* spirvReq1,
                                                 TSpirvRequirement* spirvReq2);
     TSpirvTypeParameters* makeSpirvTypeParameters(const TSourceLoc& loc, const TIntermConstantUnion* constant);
+    TSpirvTypeParameters* makeSpirvTypeParameters(const TPublicType& type);
     TSpirvTypeParameters* mergeSpirvTypeParameters(TSpirvTypeParameters* spirvTypeParams1,
                                                    TSpirvTypeParameters* spirvTypeParams2);
     TSpirvInstruction* makeSpirvInstruction(const TSourceLoc& loc, const TString& name, const TString& value);
@@ -511,7 +511,6 @@ protected:
     virtual const char* getAtomicCounterBlockName() const override;
     virtual void finalizeAtomicCounterBlockLayout(TVariable&) override;
     virtual void setAtomicCounterBlockDefaults(TType& block) const override;
-    virtual void setInvariant(const TSourceLoc& loc, const char* builtin) override;
 
 public:
     //

@@ -9,13 +9,20 @@
 #ifndef COMPILER_TRANSLATOR_TREEUTIL_REPLACEVARIABLE_H_
 #define COMPILER_TRANSLATOR_TREEUTIL_REPLACEVARIABLE_H_
 
-#include "common/angleutils.h"
+#include "common/debug.h"
+
+#include <stack>
+#include <unordered_map>
 
 namespace sh
 {
 
 class TCompiler;
+class TFunction;
+class TIntermAggregate;
 class TIntermBlock;
+class TIntermFunctionPrototype;
+class TIntermNode;
 class TIntermTyped;
 class TSymbolTable;
 class TVariable;

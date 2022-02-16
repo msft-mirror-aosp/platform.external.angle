@@ -17,6 +17,7 @@ using namespace testing;
 
 namespace
 {
+
 template <typename T>
 class BitSetIteratorPerfTest : public ANGLEPerfTest
 {
@@ -30,7 +31,7 @@ class BitSetIteratorPerfTest : public ANGLEPerfTest
 
 template <typename T>
 BitSetIteratorPerfTest<T>::BitSetIteratorPerfTest()
-    : ANGLEPerfTest(::testing::UnitTest::GetInstance()->current_test_case()->name(), "", "_run", 1)
+    : ANGLEPerfTest("BitSetIteratorPerf", "", "_run", 1)
 {}
 
 template <typename T>
@@ -46,26 +47,13 @@ void BitSetIteratorPerfTest<T>::step()
     mBits.reset();
 }
 
+// These type names unfortunately don't get printed correctly in Gtest.
 using TestTypes = Types<angle::BitSet32<32>,
                         angle::BitSet64<32>,
                         angle::BitSet64<64>,
                         angle::BitSet<96>,
                         angle::BitSetArray<96>>;
-
-constexpr char kTestTypeNames[][100] = {"BitSet32_32", "BitSet64_32", "BitSet64_64", "BitSet_96",
-                                        "BitSetArray_96"};
-
-class BitSetIteratorTypeNames
-{
-  public:
-    template <typename BitSetType>
-    static std::string GetName(int typeIndex)
-    {
-        return kTestTypeNames[typeIndex];
-    }
-};
-
-TYPED_TEST_SUITE(BitSetIteratorPerfTest, TestTypes, BitSetIteratorTypeNames);
+TYPED_TEST_SUITE(BitSetIteratorPerfTest, TestTypes);
 
 TYPED_TEST(BitSetIteratorPerfTest, Run)
 {

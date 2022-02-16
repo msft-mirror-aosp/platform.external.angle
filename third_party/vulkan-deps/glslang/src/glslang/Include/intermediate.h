@@ -926,7 +926,6 @@ enum TOperator {
     EOpMul32x16,
 
     EOpTraceNV,
-    EOpTraceRayMotionNV,
     EOpTraceKHR,
     EOpReportIntersection,
     EOpIgnoreIntersectionNV,
@@ -1155,7 +1154,7 @@ public:
     virtual bool isIntegerDomain() const { return type.isIntegerDomain(); }
     bool isAtomic() const { return type.isAtomic(); }
     bool isReference() const { return type.isReference(); }
-    TString getCompleteString(bool enhanced = false) const { return type.getCompleteString(enhanced); }
+    TString getCompleteString() const { return type.getCompleteString(); }
 
 protected:
     TIntermTyped& operator=(const TIntermTyped&);
@@ -1643,7 +1642,6 @@ public:
     ~TIntermAggregate() { delete pragmaTable; }
     virtual       TIntermAggregate* getAsAggregate()       { return this; }
     virtual const TIntermAggregate* getAsAggregate() const { return this; }
-    virtual void updatePrecision();
     virtual void setOperator(TOperator o) { op = o; }
     virtual       TIntermSequence& getSequence()       { return sequence; }
     virtual const TIntermSequence& getSequence() const { return sequence; }

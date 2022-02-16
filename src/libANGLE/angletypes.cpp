@@ -12,8 +12,6 @@
 #include "libANGLE/VertexArray.h"
 #include "libANGLE/VertexAttribute.h"
 
-#include <limits>
-
 namespace gl
 {
 namespace
@@ -626,17 +624,30 @@ static void MinMax(int a, int b, int *minimum, int *maximum)
     }
 }
 
-template <>
-bool RectangleImpl<int>::empty() const
+Rectangle Rectangle::flip(bool flipX, bool flipY) const
 {
-    return width == 0 && height == 0;
+    Rectangle flipped = *this;
+    if (flipX)
+    {
+        flipped.x     = flipped.x + flipped.width;
+        flipped.width = -flipped.width;
+    }
+    if (flipY)
+    {
+        flipped.y      = flipped.y + flipped.height;
+        flipped.height = -flipped.height;
+    }
+    return flipped;
 }
 
-template <>
-bool RectangleImpl<float>::empty() const
+Rectangle Rectangle::removeReversal() const
 {
-    return std::abs(width) < std::numeric_limits<float>::epsilon() &&
-           std::abs(height) < std::numeric_limits<float>::epsilon();
+    return flip(isReversedX(), isReversedY());
+}
+
+bool Rectangle::encloses(const gl::Rectangle &inside) const
+{
+    return x0() <= inside.x0() && y0() <= inside.y0() && x1() >= inside.x1() && y1() >= inside.y1();
 }
 
 bool ClipRectangle(const Rectangle &source, const Rectangle &clip, Rectangle *intersection)

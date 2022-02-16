@@ -5,7 +5,7 @@
 //
 
 #include "compiler/translator/TranslatorMetalDirect/RewriteOutArgs.h"
-#include "compiler/translator/tree_util/IntermRebuild.h"
+#include "compiler/translator/TranslatorMetalDirect/IntermRebuild.h"
 
 using namespace sh;
 
@@ -124,8 +124,8 @@ class Rewriter : public TIntermRebuild
             const TQualifier paramQual = paramType.getQualifier();
             switch (paramQual)
             {
-                case TQualifier::EvqParamOut:
-                case TQualifier::EvqParamInOut:
+                case TQualifier::EvqOut:
+                case TQualifier::EvqInOut:
                     if (!mSymbolEnv.isReference(param))
                     {
                         mSymbolEnv.markAsReference(param, AddressSpace::Thread);
@@ -145,8 +145,8 @@ class Rewriter : public TIntermRebuild
 
             switch (paramQual)
             {
-                case TQualifier::EvqParamOut:
-                case TQualifier::EvqParamInOut:
+                case TQualifier::EvqOut:
+                case TQualifier::EvqInOut:
                 {
                     const TVariable *var = GetVariable(*args[i]);
                     if (mVarBuffer.insert(var).count > 1)
@@ -184,12 +184,12 @@ class Rewriter : public TIntermRebuild
                     {
                         switch (paramQual)
                         {
-                            case TQualifier::EvqParamOut:
+                            case TQualifier::EvqOut:
                                 args[i] = &mSymbolEnv.callFunctionOverload(
                                     Name("out"), arg->getType(), *new TIntermSequence{arg});
                                 break;
 
-                            case TQualifier::EvqParamInOut:
+                            case TQualifier::EvqInOut:
                                 args[i] = &mSymbolEnv.callFunctionOverload(
                                     Name("inout"), arg->getType(), *new TIntermSequence{arg});
                                 break;

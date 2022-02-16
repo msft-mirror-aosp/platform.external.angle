@@ -25,13 +25,11 @@ enum class StateChange
     Program,
     VertexBufferCycle,
     Scissor,
-    ManyTextureDraw,
     InvalidEnum,
     EnumCount = InvalidEnum,
 };
 
-constexpr size_t kCycleVBOPoolSize  = 200;
-constexpr size_t kManyTexturesCount = 8;
+constexpr size_t kCycleVBOPoolSize = 200;
 
 struct DrawArraysPerfParams : public DrawCallPerfParams
 {
@@ -72,9 +70,6 @@ std::string DrawArraysPerfParams::story() const
         case StateChange::Scissor:
             strstr << "_scissor_change";
             break;
-        case StateChange::ManyTextureDraw:
-            strstr << "_many_tex_draw";
-            break;
         default:
             break;
     }
@@ -103,13 +98,13 @@ GLuint CreateSimpleTexture2D()
     // Load the texture: 2x2 Image, 3 bytes per pixel (R, G, B)
     constexpr size_t width             = 2;
     constexpr size_t height            = 2;
-    GLubyte pixels[width * height * 4] = {
-        255, 0,   0,   0,  // Red
-        0,   255, 0,   0,  // Green
-        0,   0,   255, 0,  // Blue
-        255, 255, 0,   0   // Yellow
+    GLubyte pixels[width * height * 3] = {
+        255, 0,   0,    // Red
+        0,   255, 0,    // Green
+        0,   0,   255,  // Blue
+        255, 255, 0,    // Yellow
     };
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
     // Set the filtering mode
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -131,13 +126,13 @@ class DrawCallPerfBenchmark : public ANGLERenderTest,
   private:
     GLuint mProgram1   = 0;
     GLuint mProgram2   = 0;
-    GLuint mProgram3   = 0;
     GLuint mBuffer1    = 0;
     GLuint mBuffer2    = 0;
     GLuint mFBO        = 0;
     GLuint mFBOTexture = 0;
-    std::vector<GLuint> mTextures;
-    int mNumTris = GetParam().numTris;
+    GLuint mTexture1   = 0;
+    GLuint mTexture2   = 0;
+    int mNumTris       = GetParam().numTris;
     std::vector<GLuint> mVBOPool;
     size_t mCurrentVBO = 0;
 };
@@ -151,18 +146,12 @@ void DrawCallPerfBenchmark::initializeBenchmark()
     if (params.stateChange == StateChange::Texture)
     {
         mProgram1 = SetupSimpleTextureProgram();
-        ASSERT_NE(0u, mProgram1);
     }
-    else if (params.stateChange == StateChange::ManyTextureDraw)
-    {
-        mProgram3 = SetupEightTextureProgram();
-        ASSERT_NE(0u, mProgram3);
-    }
-    else if (params.stateChange == StateChange::Program)
+    if (params.stateChange == StateChange::Program)
     {
         mProgram1 = SetupSimpleTextureProgram();
         mProgram2 = SetupDoubleTextureProgram();
-        ASSERT_NE(0u, mProgram1);
+
         ASSERT_NE(0u, mProgram2);
     }
     else if (params.stateChange == StateChange::ManyVertexBuffers)
@@ -191,7 +180,6 @@ void main()
 })";
 
         mProgram1 = CompileProgram(kVS, kFS);
-        ASSERT_NE(0u, mProgram1);
         glBindAttribLocation(mProgram1, 1, "v0");
         glBindAttribLocation(mProgram1, 2, "v1");
         glBindAttribLocation(mProgram1, 3, "v2");
@@ -204,7 +192,6 @@ void main()
     else if (params.stateChange == StateChange::VertexBufferCycle)
     {
         mProgram1 = SetupSimpleDrawProgram();
-        ASSERT_NE(0u, mProgram1);
 
         for (size_t bufferIndex = 0; bufferIndex < kCycleVBOPoolSize; ++bufferIndex)
         {
@@ -215,27 +202,19 @@ void main()
     else
     {
         mProgram1 = SetupSimpleDrawProgram();
-        ASSERT_NE(0u, mProgram1);
     }
 
+    ASSERT_NE(0u, mProgram1);
+
     // Re-link program to ensure the attrib bindings are used.
-    if (mProgram1)
-    {
-        glBindAttribLocation(mProgram1, 0, "vPosition");
-        glLinkProgram(mProgram1);
-        glUseProgram(mProgram1);
-    }
+    glBindAttribLocation(mProgram1, 0, "vPosition");
+    glLinkProgram(mProgram1);
+    glUseProgram(mProgram1);
 
     if (mProgram2)
     {
         glBindAttribLocation(mProgram2, 0, "vPosition");
         glLinkProgram(mProgram2);
-    }
-
-    if (mProgram3)
-    {
-        glBindAttribLocation(mProgram3, 0, "vPosition");
-        glLinkProgram(mProgram3);
     }
 
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -254,10 +233,8 @@ void main()
         CreateColorFBO(getWindow()->getWidth(), getWindow()->getHeight(), &mFBOTexture, &mFBO);
     }
 
-    for (size_t i = 0; i < kManyTexturesCount; ++i)
-    {
-        mTextures.emplace_back(CreateSimpleTexture2D());
-    }
+    mTexture1 = CreateSimpleTexture2D();
+    mTexture2 = CreateSimpleTexture2D();
 
     if (params.stateChange == StateChange::Program)
     {
@@ -272,30 +249,12 @@ void main()
         glUseProgram(mProgram2);
         glUniform1i(program2Tex1Loc, 0);
         glUniform1i(program2Tex2Loc, 1);
-    }
 
-    if (params.stateChange == StateChange::ManyTextureDraw)
-    {
-        GLint program3TexLocs[kManyTexturesCount];
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, mTexture1);
 
-        for (size_t i = 0; i < mTextures.size(); ++i)
-        {
-            char stringBuffer[8];
-            snprintf(stringBuffer, sizeof(stringBuffer), "tex%zu", i);
-            program3TexLocs[i] = glGetUniformLocation(mProgram3, stringBuffer);
-        }
-
-        glUseProgram(mProgram3);
-        for (size_t i = 0; i < mTextures.size(); ++i)
-        {
-            glUniform1i(program3TexLocs[i], i);
-        }
-
-        for (size_t i = 0; i < mTextures.size(); ++i)
-        {
-            glActiveTexture(GL_TEXTURE0 + i);
-            glBindTexture(GL_TEXTURE_2D, mTextures[i]);
-        }
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, mTexture2);
     }
 
     ASSERT_GL_NO_ERROR();
@@ -305,11 +264,11 @@ void DrawCallPerfBenchmark::destroyBenchmark()
 {
     glDeleteProgram(mProgram1);
     glDeleteProgram(mProgram2);
-    glDeleteProgram(mProgram3);
     glDeleteBuffers(1, &mBuffer1);
     glDeleteBuffers(1, &mBuffer2);
     glDeleteTextures(1, &mFBOTexture);
-    glDeleteTextures(mTextures.size(), mTextures.data());
+    glDeleteTextures(1, &mTexture1);
+    glDeleteTextures(1, &mTexture2);
     glDeleteFramebuffers(1, &mFBO);
 
     if (!mVBOPool.empty())
@@ -508,23 +467,6 @@ void ChangeScissorThenDraw(unsigned int iterations,
     }
 }
 
-void DrawWithEightTextures(unsigned int iterations,
-                           GLsizei numElements,
-                           std::vector<GLuint> textures)
-{
-    for (unsigned int it = 0; it < iterations; it++)
-    {
-        for (size_t i = 0; i < textures.size(); ++i)
-        {
-            glActiveTexture(GL_TEXTURE0 + i);
-            size_t index = (it + i) % textures.size();
-            glBindTexture(GL_TEXTURE_2D, textures[index]);
-        }
-
-        glDrawArrays(GL_TRIANGLES, 0, numElements);
-    }
-}
-
 void DrawCallPerfBenchmark::drawBenchmark()
 {
     // This workaround fixes a huge queue of graphics commands accumulating on the GL
@@ -548,8 +490,7 @@ void DrawCallPerfBenchmark::drawBenchmark()
                                           mBuffer2);
             break;
         case StateChange::Texture:
-            ChangeTextureThenDraw(params.iterationsPerStep, numElements, mTextures[0],
-                                  mTextures[1]);
+            ChangeTextureThenDraw(params.iterationsPerStep, numElements, mTexture1, mTexture2);
             break;
         case StateChange::Program:
             ChangeProgramThenDraw(params.iterationsPerStep, numElements, mProgram1, mProgram2);
@@ -573,10 +514,6 @@ void DrawCallPerfBenchmark::drawBenchmark()
         case StateChange::Scissor:
             ChangeScissorThenDraw(params.iterationsPerStep, numElements, getWindow()->getWidth(),
                                   getWindow()->getHeight());
-            break;
-        case StateChange::ManyTextureDraw:
-            glUseProgram(mProgram3);
-            DrawWithEightTextures(params.iterationsPerStep, numElements, mTextures);
             break;
         case StateChange::InvalidEnum:
             ADD_FAILURE() << "Invalid state change.";
