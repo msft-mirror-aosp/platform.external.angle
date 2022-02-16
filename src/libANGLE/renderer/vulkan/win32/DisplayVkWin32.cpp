@@ -63,27 +63,26 @@ egl::Error DisplayVkWin32::initialize(egl::Display *display)
 
     HINSTANCE hinstance = GetModuleHandle(nullptr);
 
-    std::wostringstream stream;
-    stream << L"ANGLE DisplayVkWin32 " << gl::FmtHex<egl::Display *, wchar_t>(display)
-           << L" Intermediate Window Class";
+    std::ostringstream stream;
+    stream << "ANGLE DisplayVkWin32 " << gl::FmtHex(display) << " Intermediate Window Class";
 
-    const LPWSTR idcArrow  = MAKEINTRESOURCEW(32512);
-    std::wstring className = stream.str();
-    WNDCLASSW wndClass;
-    if (!GetClassInfoW(hinstance, className.c_str(), &wndClass))
+    const LPSTR idcArrow  = MAKEINTRESOURCEA(32512);
+    std::string className = stream.str();
+    WNDCLASSA wndClass;
+    if (!GetClassInfoA(hinstance, className.c_str(), &wndClass))
     {
-        WNDCLASSW intermediateClassDesc     = {};
+        WNDCLASSA intermediateClassDesc     = {};
         intermediateClassDesc.style         = CS_OWNDC;
-        intermediateClassDesc.lpfnWndProc   = DefWindowProcW;
+        intermediateClassDesc.lpfnWndProc   = DefWindowProcA;
         intermediateClassDesc.cbClsExtra    = 0;
         intermediateClassDesc.cbWndExtra    = 0;
         intermediateClassDesc.hInstance     = GetModuleHandle(nullptr);
         intermediateClassDesc.hIcon         = nullptr;
-        intermediateClassDesc.hCursor       = LoadCursorW(nullptr, idcArrow);
-        intermediateClassDesc.hbrBackground = nullptr;
+        intermediateClassDesc.hCursor       = LoadCursorA(nullptr, idcArrow);
+        intermediateClassDesc.hbrBackground = 0;
         intermediateClassDesc.lpszMenuName  = nullptr;
         intermediateClassDesc.lpszClassName = className.c_str();
-        mWindowClass                        = RegisterClassW(&intermediateClassDesc);
+        mWindowClass                        = RegisterClassA(&intermediateClassDesc);
         if (!mWindowClass)
         {
             return egl::EglNotInitialized()
@@ -92,9 +91,10 @@ egl::Error DisplayVkWin32::initialize(egl::Display *display)
         }
     }
 
-    mMockWindow = CreateWindowExW(0, reinterpret_cast<LPCWSTR>(mWindowClass), L"ANGLE Mock Window",
-                                  WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-                                  CW_USEDEFAULT, nullptr, nullptr, nullptr, nullptr);
+    mMockWindow =
+        CreateWindowExA(0, reinterpret_cast<const char *>(mWindowClass), "ANGLE Mock Window",
+                        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                        CW_USEDEFAULT, nullptr, nullptr, nullptr, nullptr);
     if (!mMockWindow)
     {
         return egl::EglNotInitialized() << "Failed to create mock OpenGL window.";
@@ -163,7 +163,7 @@ void DisplayVkWin32::checkConfigSupport(egl::Config *config)
 
     for (const VkSurfaceFormatKHR &surfaceFormat : mSurfaceFormats)
     {
-        if (surfaceFormat.format == formatVk.getActualRenderableImageVkFormat())
+        if (surfaceFormat.format == formatVk.actualImageVkFormat())
         {
             return;
         }

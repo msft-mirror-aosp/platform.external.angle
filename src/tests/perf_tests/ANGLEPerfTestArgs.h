@@ -30,7 +30,6 @@ extern bool gNoFinish;
 extern bool gEnableAllTraceTests;
 extern bool gRetraceMode;
 extern bool gMinimizeGPUWork;
-extern bool gTraceTestValidation;
 
 inline bool OneFrame()
 {
