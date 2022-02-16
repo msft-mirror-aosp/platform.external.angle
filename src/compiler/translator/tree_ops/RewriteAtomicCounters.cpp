@@ -10,6 +10,7 @@
 
 #include "compiler/translator/Compiler.h"
 #include "compiler/translator/ImmutableStringBuilder.h"
+#include "compiler/translator/StaticType.h"
 #include "compiler/translator/SymbolTable.h"
 #include "compiler/translator/tree_util/IntermNode_util.h"
 #include "compiler/translator/tree_util/IntermTraverse.h"
@@ -27,7 +28,7 @@ const TVariable *DeclareAtomicCountersBuffers(TIntermBlock *root, TSymbolTable *
 {
     // Define `uint counters[];` as the only field in the interface block.
     TFieldList *fieldList = new TFieldList;
-    TType *counterType    = new TType(EbtUInt, EbpHigh, EvqGlobal);
+    TType *counterType    = new TType(EbtUInt);
     counterType->makeArray(0);
 
     TField *countersField =
@@ -43,13 +44,10 @@ const TVariable *DeclareAtomicCountersBuffers(TIntermBlock *root, TSymbolTable *
     constexpr uint32_t kMaxAtomicCounterBuffers = 8;
 
     // Define a storage block "ANGLEAtomicCounters" with instance name "atomicCounters".
-    TLayoutQualifier layoutQualifier = TLayoutQualifier::Create();
-    layoutQualifier.blockStorage     = EbsStd430;
-
-    return DeclareInterfaceBlock(root, symbolTable, fieldList, EvqBuffer, layoutQualifier,
-                                 coherentMemory, kMaxAtomicCounterBuffers,
-                                 ImmutableString(vk::kAtomicCountersBlockName),
-                                 kAtomicCountersVarName);
+    return DeclareInterfaceBlock(
+        root, symbolTable, fieldList, EvqBuffer, TLayoutQualifier::Create(), coherentMemory,
+        kMaxAtomicCounterBuffers, ImmutableString(vk::kAtomicCountersBlockName),
+        kAtomicCountersVarName);
 }
 
 TIntermTyped *CreateUniformBufferOffset(const TIntermTyped *uniformBufferOffsets, int binding)
@@ -105,7 +103,7 @@ TIntermBinary *CreateAtomicCounterRef(TIntermTyped *atomicCounterExpression,
     //     atomicCounters[binding].counters[offset + index]
     //
     // In either case, an offset given through uniforms is also added to |offset|.  The binding is
-    // necessarily a constant thanks to MonomorphizeUnsupportedFunctions.
+    // necessarily a constant thanks to MonomorphizeUnsupportedFunctionsInVulkanGLSL.
 
     // First determine if there's an index, and extract the atomic counter symbol out of the
     // expression.
@@ -223,7 +221,7 @@ class RewriteAtomicCountersTraverser : public TIntermTraverser
         }
 
         // AST functions don't require modification as atomic counter function parameters are
-        // removed by MonomorphizeUnsupportedFunctions.
+        // removed by MonomorphizeUnsupportedFunctionsInVulkanGLSL.
         return true;
     }
 

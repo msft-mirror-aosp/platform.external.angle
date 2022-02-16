@@ -43,8 +43,8 @@ class Separator : public TIntermTraverser
             if (structure->symbolType() == SymbolType::Empty)
             {
                 const TStructure *structDefn =
-                    new TStructure(mSymbolTable, mIdGen.createNewName().rawName(),
-                                   &structure->fields(), SymbolType::AngleInternal);
+                    new TStructure(mSymbolTable, mIdGen.createNewName("__unnamed").rawName(),
+                                   &(structure->fields()), SymbolType::AngleInternal);
                 structVar    = new TVariable(mSymbolTable, ImmutableString(""),
                                           new TType(structDefn, true), SymbolType::Empty);
                 instanceType = new TType(structDefn, false);
@@ -55,35 +55,25 @@ class Separator : public TIntermTraverser
                                           new TType(structure, true), SymbolType::Empty);
                 instanceType = new TType(structure, false);
             }
-            if (type.isArray())
-            {
-                instanceType->makeArrays(type.getArraySizes());
-            }
             instanceType->setQualifier(type.getQualifier());
             auto *instanceVar =
                 new TVariable(mSymbolTable, var.name(), instanceType, symbolType, var.extensions());
 
             TIntermSequence replacements;
-            replacements.push_back(new TIntermDeclaration({structVar}));
+            replacements.push_back(new TIntermSymbol(structVar));
 
             TIntermSymbol *instanceSymbol    = new TIntermSymbol(instanceVar);
-            TIntermDeclaration *instanceDecl = new TIntermDeclaration;
+            TIntermNode *instanceReplacement = instanceSymbol;
             if (declaration.initExpr)
             {
-                instanceDecl->appendDeclarator(new TIntermBinary(
-                    TOperator::EOpInitialize, instanceSymbol, declaration.initExpr));
+                instanceReplacement =
+                    new TIntermBinary(EOpInitialize, instanceSymbol, declaration.initExpr);
             }
-            else
-            {
-                instanceDecl->appendDeclarator(instanceSymbol);
-            }
-            replacements.push_back(instanceDecl);
+            replacements.push_back(instanceReplacement);
 
             replacementMap[declaration.symbol.uniqueId().get()] = instanceSymbol;
-            ASSERT(getParentNode() != nullptr);
-            ASSERT(getParentNode()->getAsBlock() != nullptr);
             mMultiReplacements.push_back(NodeReplaceWithMultipleEntry(
-                getParentNode()->getAsBlock(), declNode, std::move(replacements)));
+                declNode, declNode->getChildNode(0), std::move(replacements)));
         }
 
         return false;
@@ -103,10 +93,7 @@ class Separator : public TIntermTraverser
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool sh::SeparateCompoundStructDeclarations(TCompiler &compiler,
-                                            IdGen &idGen,
-                                            TIntermBlock &root,
-                                            TSymbolTable *symbolTable)
+bool sh::SeparateCompoundStructDeclarations(TCompiler &compiler, IdGen &idGen, TIntermBlock &root)
 {
     Separator separator(compiler.getSymbolTable(), idGen);
     root.traverse(&separator);
@@ -115,7 +102,7 @@ bool sh::SeparateCompoundStructDeclarations(TCompiler &compiler,
         return false;
     }
 
-    if (!SeparateDeclarations(&compiler, &root, symbolTable))
+    if (!SeparateDeclarations(&compiler, &root))
     {
         return false;
     }

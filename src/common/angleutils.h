@@ -13,7 +13,6 @@
 
 #if defined(ANGLE_USE_ABSEIL)
 #    include "absl/container/flat_hash_map.h"
-#    include "absl/container/flat_hash_set.h"
 #endif  // defined(ANGLE_USE_ABSEIL)
 
 #if defined(ANGLE_WITH_LSAN)
@@ -23,13 +22,10 @@
 #include <climits>
 #include <cstdarg>
 #include <cstddef>
-#include <fstream>
-#include <mutex>
 #include <set>
 #include <sstream>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 // A helper class to disallow copy and assignment operators
@@ -43,13 +39,9 @@ using Microsoft::WRL::ComPtr;
 #if defined(ANGLE_USE_ABSEIL)
 template <typename Key, typename T, class Hash = absl::container_internal::hash_default_hash<Key>>
 using HashMap = absl::flat_hash_map<Key, T, Hash>;
-template <typename Key, class Hash = absl::container_internal::hash_default_hash<Key>>
-using HashSet = absl::flat_hash_set<Key, Hash>;
 #else
 template <typename Key, typename T, class Hash = std::hash<Key>>
 using HashMap = std::unordered_map<Key, T, Hash>;
-template <typename Key, class Hash = std::hash<Key>>
-using HashSet = std::unordered_set<Key, Hash>;
 #endif  // defined(ANGLE_USE_ABSEIL)
 
 class NonCopyable
@@ -64,30 +56,6 @@ class NonCopyable
 };
 
 extern const uintptr_t DirtyPointer;
-
-struct SaveFileHelper
-{
-  public:
-    // We always use ios::binary to avoid inconsistent line endings when captured on Linux vs Win.
-    SaveFileHelper(const std::string &filePathIn);
-    ~SaveFileHelper();
-
-    template <typename T>
-    SaveFileHelper &operator<<(const T &value)
-    {
-        mOfs << value;
-        checkError();
-        return *this;
-    }
-
-    void write(const uint8_t *data, size_t size);
-
-  private:
-    void checkError();
-
-    std::ofstream mOfs;
-    std::string mFilePath;
-};
 
 }  // namespace angle
 
@@ -222,6 +190,8 @@ inline std::string Str(int i)
     return strstr.str();
 }
 
+size_t FormatStringIntoVector(const char *fmt, va_list vararg, std::vector<char> &buffer);
+
 template <typename T>
 std::string ToString(const T &value)
 {
@@ -236,32 +206,6 @@ inline bool IsLittleEndian()
     const bool isLittleEndian          = *reinterpret_cast<const uint8_t *>(&kEndiannessTest) == 1;
     return isLittleEndian;
 }
-
-// Helper class to use a mutex with the control of boolean.
-class ConditionalMutex final : angle::NonCopyable
-{
-  public:
-    ConditionalMutex() : mUseMutex(true) {}
-    void init(bool useMutex) { mUseMutex = useMutex; }
-    void lock()
-    {
-        if (mUseMutex)
-        {
-            mMutex.lock();
-        }
-    }
-    void unlock()
-    {
-        if (mUseMutex)
-        {
-            mMutex.unlock();
-        }
-    }
-
-  private:
-    std::mutex mMutex;
-    bool mUseMutex;
-};
 
 // snprintf is not defined with MSVC prior to to msvc14
 #if defined(_MSC_VER) && _MSC_VER < 1900
@@ -420,9 +364,6 @@ class ConditionalMutex final : angle::NonCopyable
 #    define ANGLE_FORMAT_PRINTF(fmt, args)
 #endif
 
-ANGLE_FORMAT_PRINTF(1, 0)
-size_t FormatStringIntoVector(const char *fmt, va_list vararg, std::vector<char> &buffer);
-
 // Format messes up the # inside the macro.
 // clang-format off
 #ifndef ANGLE_STRINGIFY
@@ -457,46 +398,4 @@ size_t FormatStringIntoVector(const char *fmt, va_list vararg, std::vector<char>
 #    define ANGLE_REQUIRE_CONSTANT_INIT
 #endif  // __has_cpp_attribute(require_constant_initialization)
 
-#if __has_cpp_attribute(clang::fallthrough)
-#    define ANGLE_FALLTHROUGH [[clang::fallthrough]]
-#else
-#    define ANGLE_FALLTHROUGH
-#endif
-
-// Compiler configs.
-inline bool IsASan()
-{
-#if defined(ANGLE_WITH_ASAN)
-    return true;
-#else
-    return false;
-#endif  // defined(ANGLE_WITH_ASAN)
-}
-
-inline bool IsMSan()
-{
-#if defined(ANGLE_WITH_MSAN)
-    return true;
-#else
-    return false;
-#endif  // defined(ANGLE_WITH_MSAN)
-}
-
-inline bool IsTSan()
-{
-#if defined(ANGLE_WITH_TSAN)
-    return true;
-#else
-    return false;
-#endif  // defined(ANGLE_WITH_TSAN)
-}
-
-inline bool IsUBSan()
-{
-#if defined(ANGLE_WITH_UBSAN)
-    return true;
-#else
-    return false;
-#endif  // defined(ANGLE_WITH_UBSAN)
-}
 #endif  // COMMON_ANGLEUTILS_H_

@@ -433,7 +433,7 @@ bool CreateTemporaryFileInDir(const char *dir, char *tempFileNameOut, uint32_t m
     return true;
 }
 
-bool DeleteSystemFile(const char *path)
+bool DeleteFile(const char *path)
 {
     if (strlen(path) >= MAX_PATH)
         return false;

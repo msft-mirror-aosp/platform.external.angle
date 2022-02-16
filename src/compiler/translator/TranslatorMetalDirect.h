@@ -13,13 +13,24 @@ namespace sh
 {
 
 constexpr const char kUniformsVar[]               = "angleUniforms";
+constexpr const char kViewport[]                  = "viewport";
+constexpr const char kHalfRenderArea[]            = "halfRenderArea";
+constexpr const char kFlipXY[]                    = "flipXY";
+constexpr const char kNegFlipXY[]                 = "negFlipXY";
+constexpr const char kClipDistancesEnabled[]      = "clipDistancesEnabled";
+constexpr const char kXfbActiveUnpaused[]         = "xfbActiveUnpaused";
+constexpr const char kXfbVerticesPerDraw[]        = "xfbVerticesPerDraw";
+constexpr const char kXfbBufferOffsets[]          = "xfbBufferOffsets";
+constexpr const char kAcbBufferOffsets[]          = "acbBufferOffsets";
+constexpr const char kDepthRange[]                = "depthRange";
+constexpr const char kPreRotation[]               = "preRotation";
+constexpr const char kFragRotation[]              = "fragRotation";
 constexpr const char kUnassignedAttributeString[] = " __unassigned_attribute__";
 
 class DriverUniform;
-class DriverUniformMetal;
 class SpecConst;
 class TOutputMSL;
-class TranslatorMetalReflection;
+
 typedef std::unordered_map<size_t, std::string> originalNamesMap;
 typedef std::unordered_map<std::string, size_t> samplerBindingMap;
 typedef std::unordered_map<std::string, size_t> textureBindingMap;
@@ -31,11 +42,6 @@ struct UBOBindingInfo
     size_t arraySize = 0;
 };
 typedef std::unordered_map<std::string, UBOBindingInfo> uniformBufferBindingMap;
-
-namespace mtl
-{
-TranslatorMetalReflection *getTranslatorMetalReflection(const TCompiler *compiler);
-}
 
 class TranslatorMetalReflection
 {
@@ -122,10 +128,8 @@ class TranslatorMetalReflection
     }
     void reset()
     {
-        hasUBOs       = false;
-        hasFlatInput  = false;
-        hasAtan       = false;
-        hasInvariance = false;
+        hasUBOs      = false;
+        hasFlatInput = false;
         originalNames.clear();
         samplerBindings.clear();
         textureBindings.clear();
@@ -133,10 +137,8 @@ class TranslatorMetalReflection
         uniformBufferBindings.clear();
     }
 
-    bool hasUBOs       = false;
-    bool hasFlatInput  = false;
-    bool hasAtan       = false;
-    bool hasInvariance = false;
+    bool hasUBOs      = false;
+    bool hasFlatInput = false;
 
   private:
     originalNamesMap originalNames;
@@ -155,6 +157,7 @@ class TranslatorMetalDirect : public TCompiler
     TranslatorMetalDirect *getAsTranslatorMetalDirect() override { return this; }
 #endif
 
+    void enableEmulatedInstanceID(bool e) { mEmulatedInstanceID = e; }
     TranslatorMetalReflection *getTranslatorMetalReflection() { return &translatorMetalReflection; }
 
   protected:
@@ -162,29 +165,26 @@ class TranslatorMetalDirect : public TCompiler
                    ShCompileOptions compileOptions,
                    PerformanceDiagnostics *perfDiagnostics) override;
 
-    // Need to collect variables so that RemoveInactiveInterfaceVariables works.
-    bool shouldCollectVariables(ShCompileOptions compileOptions) override { return true; }
-
     ANGLE_NO_DISCARD bool translateImpl(TInfoSinkBase &sink,
                                         TIntermBlock *root,
                                         ShCompileOptions compileOptions,
                                         PerformanceDiagnostics *perfDiagnostics,
                                         SpecConst *specConst,
-                                        DriverUniformMetal *driverUniforms);
+                                        DriverUniform *driverUniforms);
 
     ANGLE_NO_DISCARD bool shouldFlattenPragmaStdglInvariantAll() override;
 
     ANGLE_NO_DISCARD bool transformDepthBeforeCorrection(TIntermBlock *root,
-                                                         const DriverUniformMetal *driverUniforms);
-
-    ANGLE_NO_DISCARD bool appendVertexShaderDepthCorrectionToMain(TIntermBlock *root);
+                                                         const DriverUniform *driverUniforms);
 
     ANGLE_NO_DISCARD bool insertSampleMaskWritingLogic(TIntermBlock &root,
-                                                       DriverUniformMetal &driverUniforms);
+                                                       DriverUniform &driverUniforms);
     ANGLE_NO_DISCARD bool insertRasterizationDiscardLogic(TIntermBlock &root);
 
     ANGLE_NO_DISCARD TIntermSwizzle *getDriverUniformNegFlipYRef(
         DriverUniform &driverUniforms) const;
+
+    bool mEmulatedInstanceID = false;
 
     TranslatorMetalReflection translatorMetalReflection = {};
 };

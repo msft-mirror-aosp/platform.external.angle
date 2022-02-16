@@ -84,10 +84,6 @@ EGLint LabelObjectKHR(Thread *thread,
                       ObjectType objectTypePacked,
                       EGLObjectKHR object,
                       EGLLabelKHR label);
-EGLBoolean LockSurfaceKHR(Thread *thread,
-                          egl::Display *dpyPacked,
-                          Surface *surfacePacked,
-                          const AttributeMap &attrib_listPacked);
 EGLBoolean PostSubBufferNV(Thread *thread,
                            egl::Display *dpyPacked,
                            Surface *surfacePacked,
@@ -144,11 +140,6 @@ EGLBoolean QueryStreamu64KHR(Thread *thread,
                              Stream *streamPacked,
                              EGLenum attribute,
                              EGLuint64KHR *value);
-EGLBoolean QuerySurface64KHR(Thread *thread,
-                             egl::Display *dpyPacked,
-                             Surface *surfacePacked,
-                             EGLint attribute,
-                             EGLAttribKHR *value);
 EGLBoolean QuerySurfacePointerANGLE(Thread *thread,
                                     egl::Display *dpyPacked,
                                     Surface *surfacePacked,
@@ -158,11 +149,6 @@ void SetBlobCacheFuncsANDROID(Thread *thread,
                               egl::Display *dpyPacked,
                               EGLSetBlobFuncANDROID set,
                               EGLGetBlobFuncANDROID get);
-EGLBoolean SetDamageRegionKHR(Thread *thread,
-                              egl::Display *dpyPacked,
-                              Surface *surfacePacked,
-                              EGLint *rects,
-                              EGLint n_rects);
 EGLBoolean SignalSyncKHR(Thread *thread, egl::Display *dpyPacked, Sync *syncPacked, EGLenum mode);
 EGLBoolean StreamAttribKHR(Thread *thread,
                            egl::Display *dpyPacked,
@@ -183,7 +169,6 @@ EGLBoolean SwapBuffersWithDamageKHR(Thread *thread,
                                     Surface *surfacePacked,
                                     const EGLint *rects,
                                     EGLint n_rects);
-EGLBoolean UnlockSurfaceKHR(Thread *thread, egl::Display *dpyPacked, Surface *surfacePacked);
 EGLint WaitSyncKHR(Thread *thread, egl::Display *dpyPacked, Sync *syncPacked, EGLint flags);
 EGLDeviceEXT CreateDeviceANGLE(Thread *thread,
                                EGLint device_type,
@@ -230,7 +215,6 @@ EGLBoolean SwapBuffersWithFrameTokenANGLE(Thread *thread,
                                           egl::Display *dpyPacked,
                                           Surface *surfacePacked,
                                           EGLFrameTokenANGLE frametoken);
-EGLBoolean PrepareSwapBuffersANGLE(EGLDisplay dpy, EGLSurface surface);
 void ReleaseHighPowerGPUANGLE(Thread *thread, egl::Display *dpyPacked, gl::Context *ctxPacked);
 void ReacquireHighPowerGPUANGLE(Thread *thread, egl::Display *dpyPacked, gl::Context *ctxPacked);
 void HandleGPUSwitchANGLE(Thread *thread, egl::Display *dpyPacked);
@@ -238,10 +222,5 @@ EGLBoolean QueryDisplayAttribANGLE(Thread *thread,
                                    egl::Display *dpyPacked,
                                    EGLint attribute,
                                    EGLAttrib *value);
-EGLBoolean ExportVkImageANGLE(Thread *thread,
-                              egl::Display *dpyPacked,
-                              Image *imagePacked,
-                              void *vk_image,
-                              void *vk_image_create_info);
 }  // namespace egl
 #endif  // LIBGLESV2_EGL_EXT_STUBS_AUTOGEN_H_
