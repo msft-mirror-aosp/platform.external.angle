@@ -168,8 +168,7 @@ angle::Result TextureNULL::setStorageExternalMemory(const gl::Context *context,
                                                     gl::MemoryObject *memoryObject,
                                                     GLuint64 offset,
                                                     GLbitfield createFlags,
-                                                    GLbitfield usageFlags,
-                                                    const void *imageCreateInfoPNext)
+                                                    GLbitfield usageFlags)
 {
     return angle::Result::Continue;
 }

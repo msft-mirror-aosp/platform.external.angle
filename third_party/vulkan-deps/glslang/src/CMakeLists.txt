@@ -106,17 +106,10 @@ CMAKE_DEPENDENT_OPTION(ENABLE_HLSL
 option(ENABLE_RTTI "Enables RTTI" OFF)
 option(ENABLE_EXCEPTIONS "Enables Exceptions" OFF)
 option(ENABLE_OPT "Enables spirv-opt capability if present" ON)
-
-if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND ${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-    # Workaround for CMake behavior on Mac OS with gcc, cmake generates -Xarch_* arguments
-    # which gcc rejects
-    option(ENABLE_PCH "Enables Precompiled header" OFF)
-else()
-    option(ENABLE_PCH "Enables Precompiled header" ON)
-endif()
+option(ENABLE_PCH "Enables Precompiled header" ON)
 option(ENABLE_CTEST "Enables testing" ON)
 
-if(ENABLE_GLSLANG_INSTALL AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND WIN32)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND WIN32)
     set(CMAKE_INSTALL_PREFIX "install" CACHE STRING "..." FORCE)
 endif()
 
@@ -125,7 +118,7 @@ if(USE_CCACHE)
     find_program(CCACHE_FOUND ccache)
     if(CCACHE_FOUND)
         set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-    endif()
+    endif(CCACHE_FOUND)
 endif()
 
 if(ENABLE_CTEST)
@@ -134,27 +127,26 @@ endif()
 
 if(ENABLE_HLSL)
     add_definitions(-DENABLE_HLSL)
-endif()
+endif(ENABLE_HLSL)
 
 if(ENABLE_GLSLANG_WEBMIN)
     add_definitions(-DGLSLANG_WEB)
     if(ENABLE_GLSLANG_WEBMIN_DEVEL)
         add_definitions(-DGLSLANG_WEB_DEVEL)
-    endif()
-endif()
+    endif(ENABLE_GLSLANG_WEBMIN_DEVEL)
+endif(ENABLE_GLSLANG_WEBMIN)
 
 if(WIN32)
     set(CMAKE_DEBUG_POSTFIX "d")
-    option(OVERRIDE_MSVCCRT "Overrides runtime of MSVC " ON)
-    if(MSVC AND OVERRIDE_MSVCCRT)
+    if(MSVC)
         include(ChooseMSVCCRT.cmake)
-    endif()
+    endif(MSVC)
     add_definitions(-DGLSLANG_OSINCLUDE_WIN32)
 elseif(UNIX)
     add_definitions(-DGLSLANG_OSINCLUDE_UNIX)
-else()
+else(WIN32)
     message("unknown platform")
-endif()
+endif(WIN32)
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     add_compile_options(-Wall -Wmaybe-uninitialized -Wuninitialized -Wunused -Wunused-local-typedefs
@@ -170,7 +162,7 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
         add_compile_options(-Werror=deprecated-copy)
     endif()
 
-    if(NOT CMAKE_VERSION VERSION_LESS "3.13" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    if(NOT CMAKE_VERSION VERSION_LESS "3.13")
         # Error if there's symbols that are not found at link time.
         # add_link_options() was added in CMake 3.13 - if using an earlier
         # version don't set this - it should be caught by presubmits anyway.
@@ -205,7 +197,7 @@ elseif(MSVC)
     if(ENABLE_EXCEPTIONS)
         add_compile_options(/EHsc) # Enable Exceptions
 	else()
-        string(REGEX REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") # Try to remove default /EHsc cxx_flag
+        string(REGEX REPLACE /EHsc "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}) # Try to remove default /EHsc cxx_flag
         add_compile_options(/D_HAS_EXCEPTIONS=0)
     endif()
 endif()
@@ -220,7 +212,7 @@ if(ENABLE_GLSLANG_JS)
             add_compile_options(-Wno-unused-variable -Wno-unused-const-variable)
         endif()
     endif()
-endif()
+endif(ENABLE_GLSLANG_JS)
 
 # Request C++11
 if(${CMAKE_VERSION} VERSION_LESS 3.1)
@@ -336,7 +328,7 @@ endif()
 add_subdirectory(SPIRV)
 if(ENABLE_HLSL)
     add_subdirectory(hlsl)
-endif()
+endif(ENABLE_HLSL)
 if(ENABLE_CTEST)
     add_subdirectory(gtests)
 endif()
@@ -353,11 +345,11 @@ if(ENABLE_CTEST AND BUILD_TESTING)
         set(RESULTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>/localResults)
         set(VALIDATOR_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/$<CONFIGURATION>/glslangValidator)
         set(REMAP_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/$<CONFIGURATION>/spirv-remap)
-    else()
+    else(CMAKE_CONFIGURATION_TYPES)
         set(RESULTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/localResults)
         set(VALIDATOR_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/glslangValidator)
         set(REMAP_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/spirv-remap)
-    endif()
+    endif(CMAKE_CONFIGURATION_TYPES)
 
     add_test(NAME glslang-testsuite
         COMMAND bash ${IGNORE_CR_FLAG} runtests ${RESULTS_PATH} ${VALIDATOR_PATH} ${REMAP_PATH}
