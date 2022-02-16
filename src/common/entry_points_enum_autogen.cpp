@@ -312,8 +312,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "eglDestroySyncKHR";
         case EntryPoint::EGLDupNativeFenceFDANDROID:
             return "eglDupNativeFenceFDANDROID";
-        case EntryPoint::EGLExportVkImageANGLE:
-            return "eglExportVkImageANGLE";
         case EntryPoint::EGLGetCompositorTimingANDROID:
             return "eglGetCompositorTimingANDROID";
         case EntryPoint::EGLGetCompositorTimingSupportedANDROID:
@@ -360,14 +358,10 @@ const char *GetEntryPointName(EntryPoint ep)
             return "eglInitialize";
         case EntryPoint::EGLLabelObjectKHR:
             return "eglLabelObjectKHR";
-        case EntryPoint::EGLLockSurfaceKHR:
-            return "eglLockSurfaceKHR";
         case EntryPoint::EGLMakeCurrent:
             return "eglMakeCurrent";
         case EntryPoint::EGLPostSubBufferNV:
             return "eglPostSubBufferNV";
-        case EntryPoint::EGLPrepareSwapBuffersANGLE:
-            return "eglPrepareSwapBuffersANGLE";
         case EntryPoint::EGLPresentationTimeANDROID:
             return "eglPresentationTimeANDROID";
         case EntryPoint::EGLProgramCacheGetAttribANGLE:
@@ -402,8 +396,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "eglQueryStringiANGLE";
         case EntryPoint::EGLQuerySurface:
             return "eglQuerySurface";
-        case EntryPoint::EGLQuerySurface64KHR:
-            return "eglQuerySurface64KHR";
         case EntryPoint::EGLQuerySurfacePointerANGLE:
             return "eglQuerySurfacePointerANGLE";
         case EntryPoint::EGLReacquireHighPowerGPUANGLE:
@@ -418,8 +410,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "eglReleaseThread";
         case EntryPoint::EGLSetBlobCacheFuncsANDROID:
             return "eglSetBlobCacheFuncsANDROID";
-        case EntryPoint::EGLSetDamageRegionKHR:
-            return "eglSetDamageRegionKHR";
         case EntryPoint::EGLSignalSyncKHR:
             return "eglSignalSyncKHR";
         case EntryPoint::EGLStreamAttribKHR:
@@ -446,8 +436,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "eglSwapInterval";
         case EntryPoint::EGLTerminate:
             return "eglTerminate";
-        case EntryPoint::EGLUnlockSurfaceKHR:
-            return "eglUnlockSurfaceKHR";
         case EntryPoint::EGLWaitClient:
             return "eglWaitClient";
         case EntryPoint::EGLWaitGL:
@@ -460,8 +448,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "eglWaitSyncKHR";
         case EntryPoint::GLAccum:
             return "glAccum";
-        case EntryPoint::GLAcquireTexturesANGLE:
-            return "glAcquireTexturesANGLE";
         case EntryPoint::GLActiveShaderProgram:
             return "glActiveShaderProgram";
         case EntryPoint::GLActiveShaderProgramEXT:
@@ -1048,12 +1034,8 @@ const char *GetEntryPointName(EntryPoint ep)
             return "glDrawTransformFeedbackStreamInstanced";
         case EntryPoint::GLEGLImageTargetRenderbufferStorageOES:
             return "glEGLImageTargetRenderbufferStorageOES";
-        case EntryPoint::GLEGLImageTargetTexStorageEXT:
-            return "glEGLImageTargetTexStorageEXT";
         case EntryPoint::GLEGLImageTargetTexture2DOES:
             return "glEGLImageTargetTexture2DOES";
-        case EntryPoint::GLEGLImageTargetTextureStorageEXT:
-            return "glEGLImageTargetTextureStorageEXT";
         case EntryPoint::GLEdgeFlag:
             return "glEdgeFlag";
         case EntryPoint::GLEdgeFlagPointer:
@@ -1154,8 +1136,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "glFramebufferFetchBarrierEXT";
         case EntryPoint::GLFramebufferParameteri:
             return "glFramebufferParameteri";
-        case EntryPoint::GLFramebufferParameteriMESA:
-            return "glFramebufferParameteriMESA";
         case EntryPoint::GLFramebufferRenderbuffer:
             return "glFramebufferRenderbuffer";
         case EntryPoint::GLFramebufferRenderbufferOES:
@@ -1288,8 +1268,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "glGetClipPlanex";
         case EntryPoint::GLGetCompressedTexImage:
             return "glGetCompressedTexImage";
-        case EntryPoint::GLGetCompressedTexImageANGLE:
-            return "glGetCompressedTexImageANGLE";
         case EntryPoint::GLGetCompressedTextureImage:
             return "glGetCompressedTextureImage";
         case EntryPoint::GLGetCompressedTextureSubImage:
@@ -1328,8 +1306,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "glGetFramebufferAttachmentParameterivRobustANGLE";
         case EntryPoint::GLGetFramebufferParameteriv:
             return "glGetFramebufferParameteriv";
-        case EntryPoint::GLGetFramebufferParameterivMESA:
-            return "glGetFramebufferParameterivMESA";
         case EntryPoint::GLGetFramebufferParameterivRobustANGLE:
             return "glGetFramebufferParameterivRobustANGLE";
         case EntryPoint::GLGetGraphicsResetStatus:
@@ -1982,8 +1958,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "glMultiDrawArraysIndirect";
         case EntryPoint::GLMultiDrawArraysIndirectCount:
             return "glMultiDrawArraysIndirectCount";
-        case EntryPoint::GLMultiDrawArraysIndirectEXT:
-            return "glMultiDrawArraysIndirectEXT";
         case EntryPoint::GLMultiDrawArraysInstancedANGLE:
             return "glMultiDrawArraysInstancedANGLE";
         case EntryPoint::GLMultiDrawArraysInstancedBaseInstanceANGLE:
@@ -2000,8 +1974,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "glMultiDrawElementsIndirect";
         case EntryPoint::GLMultiDrawElementsIndirectCount:
             return "glMultiDrawElementsIndirectCount";
-        case EntryPoint::GLMultiDrawElementsIndirectEXT:
-            return "glMultiDrawElementsIndirectEXT";
         case EntryPoint::GLMultiDrawElementsInstancedANGLE:
             return "glMultiDrawElementsInstancedANGLE";
         case EntryPoint::GLMultiDrawElementsInstancedBaseVertexBaseInstanceANGLE:
@@ -2230,8 +2202,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "glPrimitiveBoundingBox";
         case EntryPoint::GLPrimitiveBoundingBoxEXT:
             return "glPrimitiveBoundingBoxEXT";
-        case EntryPoint::GLPrimitiveBoundingBoxOES:
-            return "glPrimitiveBoundingBoxOES";
         case EntryPoint::GLPrimitiveRestartIndex:
             return "glPrimitiveRestartIndex";
         case EntryPoint::GLPrioritizeTextures:
@@ -2512,8 +2482,6 @@ const char *GetEntryPointName(EntryPoint ep)
             return "glRectsv";
         case EntryPoint::GLReleaseShaderCompiler:
             return "glReleaseShaderCompiler";
-        case EntryPoint::GLReleaseTexturesANGLE:
-            return "glReleaseTexturesANGLE";
         case EntryPoint::GLRenderMode:
             return "glRenderMode";
         case EntryPoint::GLRenderbufferStorage:

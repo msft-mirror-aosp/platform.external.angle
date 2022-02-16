@@ -44,14 +44,14 @@ config_setting(
 config_setting(
     name = "osx",
     constraint_values = [
-        "@platforms//os:osx",
+        "@bazel_tools//platforms:osx",
     ],
 )
 
 config_setting(
     name = "ios",
     constraint_values = [
-        "@platforms//os:ios",
+        "@bazel_tools//platforms:ios",
     ],
 )
 
@@ -67,14 +67,6 @@ config_setting(
     name = "wasm",
     values = {
         "cpu": "wasm32",
-    },
-    visibility = [":__subpackages__"],
-)
-
-config_setting(
-    name = "fuchsia",
-    values = {
-        "cpu": "fuchsia",
     },
     visibility = [":__subpackages__"],
 )

@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "compiler/translator/TranslatorMetalDirect/IdGen.h"
+#include "compiler/translator/TranslatorMetalDirect/RewriteKeywords.h"
 
 using namespace sh;
 
@@ -94,10 +94,4 @@ Name IdGen::createNewName(std::initializer_list<const char *> baseNames)
 {
     return createNewName(baseNames.size(), baseNames.begin(),
                          [](const char *s) { return ImmutableString(s); });
-}
-
-Name IdGen::createNewName()
-{
-    // TODO(anglebug.com/5505): refactor this later.
-    return createNewName<int>(0, nullptr, [](int) { return kEmptyImmutableString; });
 }

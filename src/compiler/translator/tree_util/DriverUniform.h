@@ -45,27 +45,29 @@ class DriverUniform
     bool addComputeDriverUniformsToShader(TIntermBlock *root, TSymbolTable *symbolTable);
     bool addGraphicsDriverUniformsToShader(TIntermBlock *root, TSymbolTable *symbolTable);
 
-    TIntermTyped *getViewportRef() const;
-    TIntermTyped *getAbcBufferOffsets() const;
-    TIntermTyped *getXfbVerticesPerInstance() const;
-    TIntermTyped *getXfbBufferOffsets() const;
-    TIntermTyped *getClipDistancesEnabled() const;
-    TIntermTyped *getDepthRangeRef() const;
-    TIntermTyped *getDepthRangeReservedFieldRef() const;
-    TIntermTyped *getNumSamplesRef() const;
+    TIntermBinary *getViewportRef() const;
+    TIntermBinary *getAbcBufferOffsets() const;
+    TIntermBinary *getXfbActiveUnpaused() const;
+    TIntermBinary *getXfbVerticesPerInstance() const;
+    TIntermBinary *getXfbBufferOffsets() const;
+    TIntermBinary *getClipDistancesEnabled() const;
+    TIntermBinary *getDepthRangeRef() const;
+    TIntermBinary *getDepthRangeReservedFieldRef() const;
+    TIntermBinary *getNumSamplesRef() const;
 
-    virtual TIntermTyped *getFlipXYRef() const { return nullptr; }
-    virtual TIntermTyped *getNegFlipXYRef() const { return nullptr; }
-    virtual TIntermTyped *getPreRotationMatrixRef() const { return nullptr; }
-    virtual TIntermTyped *getFragRotationMatrixRef() const { return nullptr; }
-    virtual TIntermTyped *getHalfRenderAreaRef() const { return nullptr; }
-    virtual TIntermTyped *getNegFlipYRef() const { return nullptr; }
-    virtual TIntermTyped *getDitherRef() const { return nullptr; }
+    virtual TIntermBinary *getFlipXYRef() const { return nullptr; }
+    virtual TIntermBinary *getNegFlipXYRef() const { return nullptr; }
+    virtual TIntermBinary *getPreRotationMatrixRef() const { return nullptr; }
+    virtual TIntermBinary *getFragRotationMatrixRef() const { return nullptr; }
+    virtual TIntermBinary *getHalfRenderAreaRef() const { return nullptr; }
+    virtual TIntermSwizzle *getNegFlipYRef() const { return nullptr; }
+    virtual TIntermBinary *getEmulatedInstanceId() const { return nullptr; }
+    virtual TIntermBinary *getCoverageMask() const { return nullptr; }
 
     const TVariable *getDriverUniformsVariable() const { return mDriverUniforms; }
 
   protected:
-    TIntermTyped *createDriverUniformRef(const char *fieldName) const;
+    TIntermBinary *createDriverUniformRef(const char *fieldName) const;
     virtual TFieldList *createUniformFields(TSymbolTable *symbolTable);
     TType *createEmulatedDepthRangeType(TSymbolTable *symbolTable);
 
@@ -80,13 +82,14 @@ class DriverUniformExtended : public DriverUniform
     DriverUniformExtended(DriverUniformMode mode) : DriverUniform(mode) {}
     virtual ~DriverUniformExtended() override {}
 
-    TIntermTyped *getFlipXYRef() const override;
-    TIntermTyped *getNegFlipXYRef() const override;
-    TIntermTyped *getPreRotationMatrixRef() const override;
-    TIntermTyped *getFragRotationMatrixRef() const override;
-    TIntermTyped *getHalfRenderAreaRef() const override;
-    TIntermTyped *getNegFlipYRef() const override;
-    TIntermTyped *getDitherRef() const override;
+    TIntermBinary *getFlipXYRef() const override;
+    TIntermBinary *getNegFlipXYRef() const override;
+    TIntermBinary *getPreRotationMatrixRef() const override;
+    TIntermBinary *getFragRotationMatrixRef() const override;
+    TIntermBinary *getHalfRenderAreaRef() const override;
+    TIntermSwizzle *getNegFlipYRef() const override;
+    TIntermBinary *getEmulatedInstanceId() const override;
+    TIntermBinary *getCoverageMask() const override;
 
   protected:
     virtual TFieldList *createUniformFields(TSymbolTable *symbolTable) override;

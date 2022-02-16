@@ -100,12 +100,12 @@ constexpr uint8_t kImageCopy_frag_0000000A[] = {
 // #extension GL_EXT_samplerless_texture_functions : require
 //
 // layout(set = 0, binding = 0)uniform utexture2D src;
-// layout(location = 0)out uvec4 dst;
+// layout(location = 0)out uvec4 dest;
 //
 // layout(push_constant)uniform PushConstants {
 //
 //     ivec2 srcOffset;
-//     ivec2 dstOffset;
+//     ivec2 destOffset;
 //     int srcMip;
 //     int srcLayer;
 //
@@ -115,21 +115,21 @@ constexpr uint8_t kImageCopy_frag_0000000A[] = {
 //     bool premultiplyAlpha;
 //     bool unmultiplyAlpha;
 //
-//     bool dstHasLuminance;
-//     bool dstIsAlpha;
+//     bool destHasLuminance;
+//     bool destIsAlpha;
 //
 //     bool srcIsSRGB;
-//     bool dstIsSRGB;
+//     bool destIsSRGB;
 //
-//     int dstDefaultChannelsMask;
+//     int destDefaultChannelsMask;
 //     bool rotateXY;
 // } params;
 //
 // void main()
 // {
-//     ivec2 dstSubImageCoords = ivec2(gl_FragCoord . xy)- params . dstOffset;
+//     ivec2 destSubImageCoords = ivec2(gl_FragCoord . xy)- params . destOffset;
 //
-//     ivec2 srcSubImageCoords = dstSubImageCoords;
+//     ivec2 srcSubImageCoords = destSubImageCoords;
 //
 //     if(params . flipX)
 //     {
@@ -155,32 +155,32 @@ constexpr uint8_t kImageCopy_frag_0000000A[] = {
 //         srcValue . rgb /= srcValue . a;
 //     }
 //
-//            uvec4 dstValue = uvec4(srcValue);
+//            uvec4 destValue = uvec4(srcValue);
 //
-//     if(params . dstHasLuminance)
+//     if(params . destHasLuminance)
 //     {
-//         dstValue . rg = dstValue . ra;
+//         destValue . rg = destValue . ra;
 //     }
-//     else if(params . dstIsAlpha)
+//     else if(params . destIsAlpha)
 //     {
-//         dstValue . r = dstValue . a;
+//         destValue . r = destValue . a;
 //     }
 //     else
 //     {
-//         int defaultChannelsMask = params . dstDefaultChannelsMask;
+//         int defaultChannelsMask = params . destDefaultChannelsMask;
 //         if((defaultChannelsMask & 2)!= 0)
 //         {
-//             dstValue . g = 0;
+//             destValue . g = 0;
 //         }
 //         if((defaultChannelsMask & 4)!= 0)
 //         {
-//             dstValue . b = 0;
+//             destValue . b = 0;
 //         }
 //         if((defaultChannelsMask & 8)!= 0)
 //         {
-//             dstValue . a = 1;
+//             destValue . a = 1;
 //         }
 //     }
 //
-//     dst = dstValue;
+//     dest = destValue;
 // }

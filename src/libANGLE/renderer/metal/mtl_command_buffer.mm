@@ -571,7 +571,7 @@ CommandBuffer::CommandBuffer(CommandQueue *cmdQueue) : mCmdQueue(*cmdQueue) {}
 
 CommandBuffer::~CommandBuffer()
 {
-    commit(WaitUntilFinished);
+    finish();
     cleanup();
 }
 
@@ -582,55 +582,21 @@ bool CommandBuffer::ready() const
     return readyImpl();
 }
 
-void CommandBuffer::commit(CommandBufferFinishOperation operation)
+void CommandBuffer::commit()
 {
     std::lock_guard<std::mutex> lg(mLock);
-    if (commitImpl())
-    {
-        if (operation == WaitUntilScheduled)
-        {
-            [get() waitUntilScheduled];
-        }
-        else if (operation == WaitUntilFinished)
-        {
-            [get() waitUntilCompleted];
-        }
-    }
+    commitImpl();
+}
+
+void CommandBuffer::finish()
+{
+    commit();
+    [get() waitUntilCompleted];
 }
 
 void CommandBuffer::present(id<CAMetalDrawable> presentationDrawable)
 {
     [get() presentDrawable:presentationDrawable];
-}
-
-void CommandBuffer::setResourceUsedByCommandBuffer(const ResourceRef &resource)
-{
-    if (resource)
-    {
-        auto result = mResourceList.insert(resource->getID());
-        // If we were able to add a unique Metal resource ID to the list, count it.
-        //
-        // Note that we store Metal IDs here, properly retained in non-ARC environments, rather than
-        // the ResourceRefs. There are some assumptions in TextureMtl in particular about weak refs
-        // to temporary textures being cleared out eagerly. Holding on to additional references here
-        // implies that that texture is still being used, and would require additional code to clear
-        // out temporary render targets upon texture redefinition.
-        if (result.second)
-        {
-            [resource->getID() ANGLE_MTL_RETAIN];
-            mWorkingResourceSize += resource->estimatedByteSize();
-        }
-    }
-}
-
-void CommandBuffer::clearResourceListAndSize()
-{
-    for (const id &metalID : mResourceList)
-    {
-        [metalID ANGLE_MTL_RELEASE];
-    }
-    mResourceList.clear();
-    mWorkingResourceSize = 0;
 }
 
 void CommandBuffer::setWriteDependency(const ResourceRef &resource)
@@ -648,13 +614,11 @@ void CommandBuffer::setWriteDependency(const ResourceRef &resource)
     }
 
     resource->setUsedByCommandBufferWithQueueSerial(mQueueSerial, true);
-    setResourceUsedByCommandBuffer(resource);
 }
 
 void CommandBuffer::setReadDependency(const ResourceRef &resource)
 {
     setReadDependency(resource.get());
-    setResourceUsedByCommandBuffer(resource);
 }
 
 void CommandBuffer::setReadDependency(Resource *resource)
@@ -674,11 +638,6 @@ void CommandBuffer::setReadDependency(Resource *resource)
     resource->setUsedByCommandBufferWithQueueSerial(mQueueSerial, false);
 }
 
-bool CommandBuffer::needsFlushForDrawCallLimits() const
-{
-    return mWorkingResourceSize > kMaximumResidentMemorySizeInBytes;
-}
-
 void CommandBuffer::restart()
 {
     uint64_t serial                                  = 0;
@@ -694,7 +653,7 @@ void CommandBuffer::restart()
     {
         pushDebugGroupImpl(marker);
     }
-    clearResourceListAndSize();
+
     ASSERT(metalCmdBuffer);
 }
 
@@ -816,11 +775,11 @@ bool CommandBuffer::readyImpl() const
     return !mCommitted;
 }
 
-bool CommandBuffer::commitImpl()
+void CommandBuffer::commitImpl()
 {
     if (!readyImpl())
     {
-        return false;
+        return;
     }
 
     // End the current encoder
@@ -834,10 +793,8 @@ bool CommandBuffer::commitImpl()
 
     // Do the actual commit
     [get() commit];
-    // Reset the working resource set.
-    clearResourceListAndSize();
+
     mCommitted = true;
-    return true;
 }
 
 void CommandBuffer::forceEndingCurrentEncoder()
@@ -1483,6 +1440,11 @@ RenderCommandEncoder &RenderCommandEncoder::setScissorRect(const MTLScissorRect 
         return *this;
     }
 
+    if (ANGLE_UNLIKELY(clampedRect.width == 0 || clampedRect.height == 0))
+    {
+        // An empty rectangle isn't a valid scissor.
+        return *this;
+    }
     mStateCache.scissorRect = clampedRect;
 
     mCommands.push(CmdType::SetScissorRect).push(clampedRect);

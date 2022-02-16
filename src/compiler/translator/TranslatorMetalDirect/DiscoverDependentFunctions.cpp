@@ -43,10 +43,8 @@ class Discoverer : public DiscoverEnclosingFunctionTraverser
             return;
         }
         const TFunction *owner = discoverEnclosingFunction(symbolNode);
-        if (owner)
-        {
-            mDepFunctions.insert(owner);
-        }
+        ASSERT(owner);
+        mDepFunctions.insert(owner);
     }
 
     bool visitAggregate(Visit visit, TIntermAggregate *aggregateNode) override

@@ -14,6 +14,7 @@
 #include "base/files/file.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
+#include "base/macros.h"
 #include "base/memory/weak_ptr.h"
 #include "base/time/time.h"
 
@@ -41,36 +42,25 @@ class WriterDelegate {
 
   // Sets the last-modified time of the data.
   virtual void SetTimeModified(const base::Time& time) = 0;
-
-  // Called with the POSIX file permissions of the data; POSIX implementations
-  // may apply some of the permissions (for example, the executable bit) to the
-  // output file.
-  virtual void SetPosixFilePermissions(int mode) = 0;
 };
 
-// This class is used for reading ZIP archives. A typical use case of this class
-// is to scan entries in a ZIP archive and extract them. The code will look
-// like:
+// This class is used for reading zip files. A typical use case of this
+// class is to scan entries in a zip file and extract them. The code will
+// look like:
 //
 //   ZipReader reader;
-//   if (!reader.Open(zip_path)) {
-//     // Cannot open
-//     return;
+//   reader.Open(zip_file_path);
+//   while (reader.HasMore()) {
+//     reader.OpenCurrentEntryInZip();
+//     const base::FilePath& entry_path =
+//        reader.current_entry_info()->file_path();
+//     auto writer = CreateFilePathWriterDelegate(extract_dir, entry_path);
+//     reader.ExtractCurrentEntry(writer, std::numeric_limits<uint64_t>::max());
+//     reader.AdvanceToNextEntry();
 //   }
 //
-//   while (const ZipReader::entry* entry = reader.Next()) {
-//     auto writer = CreateFilePathWriterDelegate(extract_dir, entry->path);
-//     if (!reader.ExtractCurrentEntry(
-//         writer, std::numeric_limits<uint64_t>::max())) {
-//           // Cannot extract
-//           return;
-//     }
-//   }
-//
-//   if (!reader.ok()) {
-//     // Error while enumerating entries
-//     return;
-//   }
+// For simplicity, error checking is omitted in the example code above. The
+// production code should check return values from all of these functions.
 //
 class ZipReader {
  public:
@@ -82,81 +72,62 @@ class ZipReader {
   // of bytes that have been processed so far.
   using ProgressCallback = base::RepeatingCallback<void(int64_t)>;
 
-  // Information of an entry (file or directory) in a ZIP archive.
-  struct Entry {
-    // Path of this entry, in its original encoding as it is stored in the ZIP
-    // archive. The encoding is not specified here. It might or might not be
-    // UTF-8, and the caller needs to use other means to determine the encoding
-    // if it wants to interpret this path correctly.
-    std::string path_in_original_encoding;
+  // This class represents information of an entry (file or directory) in
+  // a zip file.
+  class EntryInfo {
+   public:
+    EntryInfo(const std::string& filename_in_zip,
+              const unz_file_info& raw_file_info);
 
-    // Path of the entry, converted to Unicode. This path is usually relative
-    // (eg "foo/bar.txt"), but it can also be absolute (eg "/foo/bar.txt") or
-    // parent-relative (eg "../foo/bar.txt"). See also |is_unsafe|.
-    base::FilePath path;
+    // Returns the file path. The path is usually relative like
+    // "foo/bar.txt", but if it's absolute, is_unsafe() returns true.
+    const base::FilePath& file_path() const { return file_path_; }
 
-    // Size of the original uncompressed file, or 0 if the entry is a directory.
-    // This value should not be trusted, because it is stored as metadata in the
-    // ZIP archive and can be different from the real uncompressed size.
-    int64_t original_size;
+    // Returns the size of the original file (i.e. after uncompressed).
+    // Returns 0 if the entry is a directory.
+    // Note: this value should not be trusted, because it is stored as metadata
+    // in the zip archive and can be different from the real uncompressed size.
+    int64_t original_size() const { return original_size_; }
 
-    // Last modified time. If the timestamp stored in the ZIP archive is not
-    // valid, the Unix epoch will be returned.
+    // Returns the last modified time. If the time stored in the zip file was
+    // not valid, the unix epoch will be returned.
     //
-    // The timestamp stored in the ZIP archive uses the MS-DOS date and time
-    // format.
-    //
+    // The time stored in the zip archive uses the MS-DOS date and time format.
     // http://msdn.microsoft.com/en-us/library/ms724247(v=vs.85).aspx
-    //
     // As such the following limitations apply:
-    // * Only years from 1980 to 2107 can be represented.
-    // * The timestamp has a 2-second resolution.
-    // * There is no timezone information, so the time is interpreted as UTC.
-    base::Time last_modified;
+    // * only years from 1980 to 2107 can be represented.
+    // * the time stamp has a 2 second resolution.
+    // * there's no timezone information, so the time is interpreted as local.
+    base::Time last_modified() const { return last_modified_; }
 
-    // True if the entry is a directory.
-    // False if the entry is a file.
-    bool is_directory;
+    // Returns true if the entry is a directory.
+    bool is_directory() const { return is_directory_; }
 
-    // True if the entry path is considered unsafe, ie if it is absolute or if
-    // it contains "..".
-    bool is_unsafe;
+    // Returns true if the entry is unsafe, like having ".." or invalid
+    // UTF-8 characters in its file name, or the file path is absolute.
+    bool is_unsafe() const { return is_unsafe_; }
 
-    // True if the file content is encrypted.
-    bool is_encrypted;
+    // Returns true if the entry is encrypted.
+    bool is_encrypted() const { return is_encrypted_; }
 
-    // Entry POSIX permissions (POSIX systems only).
-    int posix_mode;
-  };
-
-  // TODO(crbug.com/1295127) Remove this struct once transition to Entry is
-  // finished.
-  struct EntryInfo : Entry {
-    const Entry& entry() const { return *this; }
-    const std::string& file_path_in_original_encoding() const {
-      return entry().path_in_original_encoding;
-    }
-    const base::FilePath& file_path() const { return entry().path; }
-    int64_t original_size() const { return entry().original_size; }
-    base::Time last_modified() const { return entry().last_modified; }
-    bool is_directory() const { return entry().is_directory; }
-    bool is_unsafe() const { return entry().is_unsafe; }
-    bool is_encrypted() const { return entry().is_encrypted; }
-    int posix_mode() const { return entry().posix_mode; }
+   private:
+    const base::FilePath file_path_;
+    int64_t original_size_;
+    base::Time last_modified_;
+    bool is_directory_;
+    bool is_unsafe_;
+    bool is_encrypted_;
+    DISALLOW_COPY_AND_ASSIGN(EntryInfo);
   };
 
   ZipReader();
-
-  ZipReader(const ZipReader&) = delete;
-  ZipReader& operator=(const ZipReader&) = delete;
-
   ~ZipReader();
 
-  // Opens the ZIP archive specified by |zip_path|. Returns true on
+  // Opens the zip file specified by |zip_file_path|. Returns true on
   // success.
-  bool Open(const base::FilePath& zip_path);
+  bool Open(const base::FilePath& zip_file_path);
 
-  // Opens the ZIP archive referred to by the platform file |zip_fd|, without
+  // Opens the zip file referred to by the platform file |zip_fd|, without
   // taking ownership of |zip_fd|. Returns true on success.
   bool OpenFromPlatformFile(base::PlatformFile zip_fd);
 
@@ -165,27 +136,9 @@ class ZipReader {
   // string until it finishes extracting files.
   bool OpenFromString(const std::string& data);
 
-  // Closes the currently opened ZIP archive. This function is called in the
+  // Closes the currently opened zip file. This function is called in the
   // destructor of the class, so you usually don't need to call this.
   void Close();
-
-  // Sets the encoding of entry paths in the ZIP archive.
-  // By default, paths are assumed to be in UTF-8.
-  void SetEncoding(std::string encoding) { encoding_ = std::move(encoding); }
-
-  // Gets the next entry. Returns null if there is no more entry. The returned
-  // Entry is owned by this ZipReader, and is valid until Next() is called
-  // again or until this ZipReader is closed.
-  //
-  // This function is used to scan entries:
-  // while (const ZipReader::Entry* entry = reader.Next()) {
-  //   // Do something with the current entry here.
-  //   ...
-  // }
-  const Entry* Next();
-
-  // Returns true if the enumeration of entries was successful.
-  bool ok() const { return ok_; }
 
   // Returns true if there is at least one entry to read. This function is
   // used to scan entries with AdvanceToNextEntry(), like:
@@ -194,24 +147,18 @@ class ZipReader {
   //   // Do something with the current file here.
   //   reader.AdvanceToNextEntry();
   // }
-  //
-  // TODO(crbug.com/1295127) Remove this method.
   bool HasMore();
 
   // Advances the next entry. Returns true on success.
-  //
-  // TODO(crbug.com/1295127) Remove this method.
   bool AdvanceToNextEntry();
 
-  // Opens the current entry in the ZIP archive. On success, returns true and
-  // updates the current entry state (i.e. current_entry_info() is updated).
-  // This function should be called before operations over the current entry
-  // like ExtractCurrentEntryToFile().
+  // Opens the current entry in the zip file. On success, returns true and
+  // updates the the current entry state (i.e. current_entry_info() is
+  // updated). This function should be called before operations over the
+  // current entry like ExtractCurrentEntryToFile().
   //
-  // Note that there is no CloseCurrentEntryInZip(). The current entry state is
-  // reset automatically as needed.
-  //
-  // TODO(crbug.com/1295127) Remove this method.
+  // Note that there is no CloseCurrentEntryInZip(). The the current entry
+  // state is reset automatically as needed.
   bool OpenCurrentEntryInZip();
 
   // Extracts |num_bytes_to_extract| bytes of the current entry to |delegate|,
@@ -249,11 +196,11 @@ class ZipReader {
 
   // Returns the current entry info. Returns NULL if the current entry is
   // not yet opened. OpenCurrentEntryInZip() must be called beforehand.
-  //
-  // TODO(crbug.com/1295127) Remove this method.
-  EntryInfo* current_entry_info() const { return current_entry_; }
+  EntryInfo* current_entry_info() const {
+    return current_entry_info_.get();
+  }
 
-  // Returns the number of entries in the ZIP archive.
+  // Returns the number of entries in the zip file.
   // Open() must be called beforehand.
   int num_entries() const { return num_entries_; }
 
@@ -272,16 +219,14 @@ class ZipReader {
                     const ProgressCallback& progress_callback,
                     const int64_t offset);
 
-  std::string encoding_;
   unzFile zip_file_;
   int num_entries_;
-  int next_index_;
   bool reached_end_;
-  bool ok_;
-  EntryInfo entry_ = {};
-  EntryInfo* current_entry_ = nullptr;
+  std::unique_ptr<EntryInfo> current_entry_info_;
 
   base::WeakPtrFactory<ZipReader> weak_ptr_factory_{this};
+
+  DISALLOW_COPY_AND_ASSIGN(ZipReader);
 };
 
 // A writer delegate that writes to a given File.
@@ -294,9 +239,6 @@ class FileWriterDelegate : public WriterDelegate {
 
   // Constructs a FileWriterDelegate that takes ownership of |file|.
   explicit FileWriterDelegate(std::unique_ptr<base::File> file);
-
-  FileWriterDelegate(const FileWriterDelegate&) = delete;
-  FileWriterDelegate& operator=(const FileWriterDelegate&) = delete;
 
   // Truncates the file to the number of bytes written.
   ~FileWriterDelegate() override;
@@ -313,10 +255,6 @@ class FileWriterDelegate : public WriterDelegate {
   // Sets the last-modified time of the data.
   void SetTimeModified(const base::Time& time) override;
 
-  // On POSIX systems, sets the file to be executable if the source file was
-  // executable.
-  void SetPosixFilePermissions(int mode) override;
-
   // Return the actual size of the file.
   int64_t file_length() { return file_length_; }
 
@@ -329,16 +267,14 @@ class FileWriterDelegate : public WriterDelegate {
   std::unique_ptr<base::File> owned_file_;
 
   int64_t file_length_ = 0;
+
+  DISALLOW_COPY_AND_ASSIGN(FileWriterDelegate);
 };
 
 // A writer delegate that writes a file at a given path.
 class FilePathWriterDelegate : public WriterDelegate {
  public:
   explicit FilePathWriterDelegate(const base::FilePath& output_file_path);
-
-  FilePathWriterDelegate(const FilePathWriterDelegate&) = delete;
-  FilePathWriterDelegate& operator=(const FilePathWriterDelegate&) = delete;
-
   ~FilePathWriterDelegate() override;
 
   // WriterDelegate methods:
@@ -353,13 +289,11 @@ class FilePathWriterDelegate : public WriterDelegate {
   // Sets the last-modified time of the data.
   void SetTimeModified(const base::Time& time) override;
 
-  // On POSIX systems, sets the file to be executable if the source file was
-  // executable.
-  void SetPosixFilePermissions(int mode) override;
-
  private:
   base::FilePath output_file_path_;
   base::File file_;
+
+  DISALLOW_COPY_AND_ASSIGN(FilePathWriterDelegate);
 };
 
 }  // namespace zip

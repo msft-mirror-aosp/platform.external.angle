@@ -147,7 +147,7 @@ angle::Result BufferPool::allocateNewBuffer(ContextMtl *contextMtl)
         // Reuse the buffer in free list:
         if (mBufferFreeList.front()->isBeingUsedByGPU(contextMtl))
         {
-            contextMtl->flushCommandBuffer(mtl::NoWait);
+            contextMtl->flushCommandBufer();
             // Force the GPU to finish its rendering and make the old buffer available.
             contextMtl->cmdQueue().ensureResourceReadyForCPU(mBufferFreeList.front());
         }
