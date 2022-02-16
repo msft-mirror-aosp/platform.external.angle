@@ -729,19 +729,6 @@ inline bool IsSampler1D(TBasicType type)
     return false;
 }
 
-inline bool IsSamplerBuffer(TBasicType type)
-{
-    switch (type)
-    {
-        case EbtSamplerBuffer:
-        case EbtISamplerBuffer:
-        case EbtUSamplerBuffer:
-            return true;
-        default:
-            return false;
-    }
-}
-
 inline bool IsShadowSampler(TBasicType type)
 {
     switch (type)
@@ -982,19 +969,6 @@ inline bool IsImageCube(TBasicType type)
     return false;
 }
 
-inline bool IsImageBuffer(TBasicType type)
-{
-    switch (type)
-    {
-        case EbtImageBuffer:
-        case EbtIImageBuffer:
-        case EbtUImageBuffer:
-            return true;
-        default:
-            return false;
-    }
-}
-
 inline bool IsInteger(TBasicType type)
 {
     return type == EbtInt || type == EbtUInt;
@@ -1015,7 +989,7 @@ enum TQualifier
 {
     EvqTemporary,   // For temporaries (within a function), read/write
     EvqGlobal,      // For globals read/write
-    EvqConst,       // User defined constants
+    EvqConst,       // User defined constants and non-output parameters in functions
     EvqAttribute,   // Readonly
     EvqVaryingIn,   // readonly, fragment shaders only
     EvqVaryingOut,  // vertex shaders only  read/write
@@ -1031,10 +1005,10 @@ enum TQualifier
     EvqFragmentInOut,  // EXT_shader_framebuffer_fetch qualifier
 
     // parameters
-    EvqParamIn,
-    EvqParamOut,
-    EvqParamInOut,
-    EvqParamConst,
+    EvqIn,
+    EvqOut,
+    EvqInOut,
+    EvqConstReadOnly,
 
     // built-ins read by vertex shader
     EvqInstanceID,
@@ -1055,7 +1029,9 @@ enum TQualifier
     // built-ins written by fragment shader
     EvqFragColor,
     EvqFragData,
-    EvqFragDepth,  // gl_FragDepth for ESSL300, or gl_FragDepthEXT for ESSL100, EXT_frag_depth.
+
+    EvqFragDepth,     // gl_FragDepth for ESSL300.
+    EvqFragDepthEXT,  // gl_FragDepthEXT for ESSL100, EXT_frag_depth.
 
     EvqSecondaryFragColorEXT,  // EXT_blend_func_extended
     EvqSecondaryFragDataEXT,   // EXT_blend_func_extended
@@ -1134,9 +1110,6 @@ enum TQualifier
     EvqTessLevelOuter,
     EvqTessLevelInner,
 
-    // GLES ES 3.1 extension EXT_primitive_bounding_box/OES_primitive_bounding_box
-    EvqBoundingBox,
-
     EvqTessEvaluationIn,
     EvqTessEvaluationOut,
     EvqTessCoord,
@@ -1202,6 +1175,11 @@ inline bool IsShaderOut(TQualifier qualifier)
         case EvqSampleOut:
         case EvqPatchOut:
         case EvqFragmentInOut:
+        // Per-vertex built-ins when used without gl_in or gl_out are always output.
+        case EvqPosition:
+        case EvqPointSize:
+        case EvqClipDistance:
+        case EvqCullDistance:
             return true;
         default:
             return false;
@@ -1219,8 +1197,6 @@ inline bool IsShaderIoBlock(TQualifier qualifier)
         case EvqTessControlOut:
         case EvqTessEvaluationIn:
         case EvqTessEvaluationOut:
-        case EvqPatchIn:
-        case EvqPatchOut:
         case EvqGeometryIn:
         case EvqGeometryOut:
         case EvqFragmentIn:
@@ -1467,7 +1443,9 @@ inline const char *getWorkGroupSizeString(size_t dimension)
     }
 }
 
-// Used for GLSL generation, debugging and error messages.
+//
+// This is just for debug and error message print out, carried along with the definitions above.
+//
 inline const char *getQualifierString(TQualifier q)
 {
     // clang-format off
@@ -1486,10 +1464,10 @@ inline const char *getQualifierString(TQualifier q)
     case EvqFragmentOut:            return "out";
     case EvqVertexOut:              return "out";
     case EvqFragmentIn:             return "in";
-    case EvqParamIn:                return "in";
-    case EvqParamOut:               return "out";
-    case EvqParamInOut:             return "inout";
-    case EvqParamConst:             return "const";
+    case EvqIn:                     return "in";
+    case EvqOut:                    return "out";
+    case EvqInOut:                  return "inout";
+    case EvqConstReadOnly:          return "const";
     case EvqInstanceID:             return "InstanceID";
     case EvqVertexID:               return "VertexID";
     case EvqPosition:               return "Position";
@@ -1501,6 +1479,7 @@ inline const char *getQualifierString(TQualifier q)
     case EvqPointCoord:             return "PointCoord";
     case EvqFragColor:              return "FragColor";
     case EvqFragData:               return "FragData";
+    case EvqFragDepthEXT:           return "FragDepth";
     case EvqFragDepth:              return "FragDepth";
     case EvqSecondaryFragColorEXT:  return "SecondaryFragColorEXT";
     case EvqSecondaryFragDataEXT:   return "SecondaryFragDataEXT";
@@ -1540,7 +1519,6 @@ inline const char *getQualifierString(TQualifier q)
     case EvqPrimitiveID:            return "gl_PrimitiveID";
     case EvqPrecise:                return "precise";
     case EvqClipDistance:           return "ClipDistance";
-    case EvqCullDistance:           return "CullDistance";
     case EvqSample:                 return "sample";
     case EvqSampleIn:               return "sample in";
     case EvqSampleOut:              return "sample out";
@@ -1557,7 +1535,6 @@ inline const char *getQualifierString(TQualifier q)
     case EvqPatchVerticesIn:        return "PatchVerticesIn";
     case EvqTessLevelOuter:         return "TessLevelOuter";
     case EvqTessLevelInner:         return "TessLevelInner";
-    case EvqBoundingBox:            return "BoundingBox";
     case EvqTessEvaluationIn:       return "in";
     case EvqTessEvaluationOut:      return "out";
     case EvqTessCoord:              return "TessCoord";

@@ -12,7 +12,6 @@
 #include "common/bitset_utils.h"
 #include "common/debug.h"
 #include "common/utilities.h"
-#include "compiler/translator/Compiler.h"
 #include "compiler/translator/SymbolTable.h"
 #include "compiler/translator/tree_util/BuiltIn.h"
 #include "compiler/translator/tree_util/IntermNode_util.h"
@@ -127,8 +126,8 @@ ANGLE_NO_DISCARD bool RewriteSampleMask(TCompiler *compiler,
     else
     {
         // User defined not found, find in built-in table
-        glSampleMaskVar = static_cast<const TVariable *>(symbolTable->findBuiltIn(
-            ImmutableString("gl_SampleMask"), compiler->getShaderVersion()));
+        glSampleMaskVar = static_cast<const TVariable *>(
+            symbolTable->findBuiltIn(ImmutableString("gl_SampleMask"), 320));
     }
     if (!glSampleMaskVar)
     {
@@ -181,7 +180,7 @@ ANGLE_NO_DISCARD bool RewriteSampleMaskIn(TCompiler *compiler,
     // Retrieve gl_SampleMaskIn variable reference
     const TVariable *glSampleMaskInVar = nullptr;
     glSampleMaskInVar                  = static_cast<const TVariable *>(
-        symbolTable->findBuiltIn(ImmutableString("gl_SampleMaskIn"), compiler->getShaderVersion()));
+        symbolTable->findBuiltIn(ImmutableString("gl_SampleMaskIn"), 320));
     if (!glSampleMaskInVar)
     {
         return false;

@@ -177,7 +177,6 @@ class GLES1State final : angle::NonCopyable
     using MatrixStack = angle::FixedVector<angle::Mat4, Caps::GlobalMatrixStackDepth>;
     MatrixStack &currentMatrixStack();
     const MatrixStack &currentMatrixStack() const;
-    const MatrixStack &getMatrixStack(MatrixType mode) const;
 
     const angle::Mat4 &getModelviewMatrix() const;
 

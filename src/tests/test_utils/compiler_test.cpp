@@ -103,7 +103,6 @@ bool compileTestShader(GLenum type,
 {
     ShBuiltInResources resources;
     sh::InitBuiltInResources(&resources);
-    resources.FragmentPrecisionHigh = 1;
     return compileTestShader(type, spec, output, shaderString, &resources, compileOptions,
                              translatedCode, infoLog);
 }
@@ -114,8 +113,7 @@ MatchOutputCodeTest::MatchOutputCodeTest(GLenum shaderType,
     : mShaderType(shaderType), mDefaultCompileOptions(defaultCompileOptions)
 {
     sh::InitBuiltInResources(&mResources);
-    mResources.FragmentPrecisionHigh = 1;
-    mOutputCode[outputType]          = std::string();
+    mOutputCode[outputType] = std::string();
 }
 
 void MatchOutputCodeTest::addOutputType(const ShShaderOutput outputType)

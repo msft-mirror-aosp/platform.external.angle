@@ -23,12 +23,6 @@
 #include "common/entry_points_enum_autogen.h"
 #include "common/platform.h"
 
-#if defined(ANGLE_PLATFORM_WINDOWS)
-#    include <sal.h>
-typedef unsigned long DWORD;
-typedef _Return_type_success_(return >= 0) long HRESULT;
-#endif
-
 #if !defined(TRACE_OUTPUT_FILE)
 #    define TRACE_OUTPUT_FILE "angle_debug.txt"
 #endif
@@ -37,7 +31,7 @@ namespace gl
 {
 class Context;
 
-// Pairs a begin event with an end event.
+// Pairs a D3D begin event with an end event.
 class ScopedPerfEventHelper : angle::NonCopyable
 {
   public:
@@ -50,7 +44,6 @@ class ScopedPerfEventHelper : angle::NonCopyable
     gl::Context *mContext;
     const angle::EntryPoint mEntryPoint;
     const char *mFunctionName;
-    bool mCalledBeginEvent;
 };
 
 using LogSeverity = int;
@@ -141,80 +134,69 @@ extern std::ostream *gSwallowStream;
 // Used by ANGLE_LOG_IS_ON to lazy-evaluate stream arguments.
 bool ShouldCreatePlatformLogMessage(LogSeverity severity);
 
-// N is the width of the output to the stream. The output is padded with zeros
-// if value is less than N characters.
-// S is the stream type, either ostream for ANSI or wostream for wide character.
-// T is the type of the value to output to the stream.
-// C is the type of characters - either char for ANSI or wchar_t for wide char.
-template <int N, typename S, typename T, typename C>
-S &FmtHex(S &stream, T value, const C *zeroX, C zero)
+template <int N, typename T>
+std::ostream &FmtHex(std::ostream &os, T value)
 {
-    stream << zeroX;
+    os << "0x";
 
-    std::ios_base::fmtflags oldFlags = stream.flags();
-    std::streamsize oldWidth         = stream.width();
-    typename S::char_type oldFill    = stream.fill();
+    std::ios_base::fmtflags oldFlags = os.flags();
+    std::streamsize oldWidth         = os.width();
+    std::ostream::char_type oldFill  = os.fill();
 
-    stream << std::hex << std::uppercase << std::setw(N) << std::setfill(zero) << value;
+    os << std::hex << std::uppercase << std::setw(N) << std::setfill('0') << value;
 
-    stream.flags(oldFlags);
-    stream.width(oldWidth);
-    stream.fill(oldFill);
+    os.flags(oldFlags);
+    os.width(oldWidth);
+    os.fill(oldFill);
 
-    return stream;
+    return os;
 }
 
-template <typename S, typename T, typename C>
-S &FmtHexAutoSized(S &stream, T value, const C *prefix, const C *zeroX, C zero)
+template <typename T>
+std::ostream &FmtHexAutoSized(std::ostream &os, T value)
 {
-    if (prefix)
-    {
-        stream << prefix;
-    }
-
     constexpr int N = sizeof(T) * 2;
-    return priv::FmtHex<N>(stream, value, zeroX, zero);
+    return priv::FmtHex<N>(os, value);
 }
 
-template <typename T, typename C>
+template <typename T>
 class FmtHexHelper
 {
   public:
-    FmtHexHelper(const C *prefix, T value) : mPrefix(prefix), mValue(value) {}
+    FmtHexHelper(const char *prefix, T value) : mPrefix(prefix), mValue(value) {}
     explicit FmtHexHelper(T value) : mPrefix(nullptr), mValue(value) {}
 
   private:
-    const C *mPrefix;
+    const char *mPrefix;
     T mValue;
 
     friend std::ostream &operator<<(std::ostream &os, const FmtHexHelper &fmt)
     {
-        return FmtHexAutoSized(os, fmt.mValue, fmt.mPrefix, "0x", '0');
-    }
-
-    friend std::wostream &operator<<(std::wostream &wos, const FmtHexHelper &fmt)
-    {
-        return FmtHexAutoSized(wos, fmt.mValue, fmt.mPrefix, L"0x", L'0');
+        if (fmt.mPrefix)
+        {
+            os << fmt.mPrefix;
+        }
+        return FmtHexAutoSized(os, fmt.mValue);
     }
 };
 
 }  // namespace priv
 
-template <typename T, typename C = char>
-priv::FmtHexHelper<T, C> FmtHex(T value)
+template <typename T>
+priv::FmtHexHelper<T> FmtHex(T value)
 {
-    return priv::FmtHexHelper<T, C>(value);
+    return priv::FmtHexHelper<T>(value);
 }
 
 #if defined(ANGLE_PLATFORM_WINDOWS)
-priv::FmtHexHelper<HRESULT, char> FmtHR(HRESULT value);
-priv::FmtHexHelper<DWORD, char> FmtErr(DWORD value);
+priv::FmtHexHelper<HRESULT> FmtHR(HRESULT value);
+priv::FmtHexHelper<DWORD> FmtErr(DWORD value);
 #endif  // defined(ANGLE_PLATFORM_WINDOWS)
 
 template <typename T>
 std::ostream &FmtHex(std::ostream &os, T value)
 {
-    return priv::FmtHexAutoSized(os, value, "", "0x", '0');
+    return priv::FmtHexAutoSized(os, value);
 }
 
 // A few definitions of macros that don't generate much code. These are used
@@ -456,6 +438,16 @@ std::ostream &FmtHex(std::ostream &os, T value)
 #else
 #    define ANGLE_DISABLE_DESTRUCTOR_OVERRIDE_WARNING
 #    define ANGLE_REENABLE_DESTRUCTOR_OVERRIDE_WARNING
+#endif
+
+#if defined(__clang__)
+#    define ANGLE_DISABLE_WEAK_TEMPLATE_VTABLES_WARNING \
+        _Pragma("clang diagnostic push")                \
+            _Pragma("clang diagnostic ignored \"-Wweak-template-vtables\"")
+#    define ANGLE_REENABLE_WEAK_TEMPLATE_VTABLES_WARNING _Pragma("clang diagnostic pop")
+#else
+#    define ANGLE_DISABLE_WEAK_TEMPLATE_VTABLES_WARNING
+#    define ANGLE_REENABLE_WEAK_TEMPLATE_VTABLES_WARNING
 #endif
 
 #if defined(__clang__)

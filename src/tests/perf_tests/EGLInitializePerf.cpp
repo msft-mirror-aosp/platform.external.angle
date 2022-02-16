@@ -29,7 +29,7 @@ struct Captures final : private angle::NonCopyable
 double CapturePlatform_currentTime(angle::PlatformMethods *platformMethods)
 {
     Captures *captures = static_cast<Captures *>(platformMethods->context);
-    return captures->timer.getElapsedWallClockTime();
+    return captures->timer.getElapsedTime();
 }
 
 void CapturePlatform_histogramCustomCounts(angle::PlatformMethods *platformMethods,

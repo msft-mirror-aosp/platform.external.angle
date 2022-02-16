@@ -29,6 +29,8 @@ template_table_autogen_cpp = """// GENERATED FILE - DO NOT EDIT.
 
 #include "libANGLE/renderer/vulkan/vk_format_utils.h"
 
+#include "image_util/copyimage.h"
+#include "image_util/generatemip.h"
 #include "image_util/loadimage.h"
 
 using namespace angle;
@@ -65,7 +67,6 @@ angle::FormatID GetFormatIDFromVkFormat(VkFormat vkFormat)
     {{
 {vk_format_cases}
         default:
-            UNREACHABLE();
             return angle::FormatID::NONE;
     }}
 }}
@@ -79,14 +80,14 @@ break;
 """
 
 format_entry_template = """case angle::FormatID::{format_id}:
-mIntendedGLFormat = {internal_format};
+intendedGLFormat = {internal_format};
 {image_template}
 {buffer_template}
 break;
 """
 
-image_basic_template = """mActualSampleOnlyImageFormatID = {image};
-mImageInitializerFunction = {image_initializer};"""
+image_basic_template = """actualImageFormatID = {image};
+imageInitializerFunction = {image_initializer};"""
 
 image_struct_template = "{{{image}, {image_initializer}}}"
 
@@ -95,10 +96,10 @@ static constexpr ImageFormatInitInfo kInfo[] = {{{image_list}}};
 initImageFallback(renderer, kInfo, ArraySize(kInfo));
 }}"""
 
-buffer_basic_template = """mActualBufferFormatID = {buffer};
-mVkBufferFormatIsPacked = {vk_buffer_format_is_packed};
-mVertexLoadFunction = {vertex_load_function};
-mVertexLoadRequiresConversion = {vertex_load_converts};"""
+buffer_basic_template = """actualBufferFormatID = {buffer};
+vkBufferFormatIsPacked = {vk_buffer_format_is_packed};
+vertexLoadFunction = {vertex_load_function};
+vertexLoadRequiresConversion = {vertex_load_converts};"""
 
 buffer_struct_template = """{{{buffer}, {vk_buffer_format_is_packed}, 
 {vertex_load_function}, {vertex_load_converts}}}"""

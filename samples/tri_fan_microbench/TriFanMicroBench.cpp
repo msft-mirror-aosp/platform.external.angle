@@ -198,9 +198,8 @@ void main()
         }
         mFanTimer.stop();
 
-        mFanTotalTime +=
-            static_cast<unsigned int>(mFanTimer.getElapsedWallClockTime() *
-                                      1000);  // convert from usec to msec when accumulating
+        mFanTotalTime += static_cast<unsigned int>(
+            mFanTimer.getElapsedTime() * 1000);  // convert from usec to msec when accumulating
 
         // Clear to eliminate driver-side gains from occlusion
         glClear(GL_COLOR_BUFFER_BIT);
@@ -215,9 +214,8 @@ void main()
         }
         mTriTimer.stop();
 
-        mTriTotalTime +=
-            static_cast<unsigned int>(mTriTimer.getElapsedWallClockTime() *
-                                      1000);  // convert from usec to msec when accumulating
+        mTriTotalTime += static_cast<unsigned int>(
+            mTriTimer.getElapsedTime() * 1000);  // convert from usec to msec when accumulating
 
         mFrameCount++;
     }

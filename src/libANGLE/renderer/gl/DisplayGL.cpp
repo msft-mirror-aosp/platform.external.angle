@@ -87,15 +87,6 @@ ImageImpl *DisplayGL::createImage(const egl::ImageState &state,
     return nullptr;
 }
 
-SurfaceImpl *DisplayGL::createPbufferFromClientBuffer(const egl::SurfaceState &state,
-                                                      EGLenum buftype,
-                                                      EGLClientBuffer clientBuffer,
-                                                      const egl::AttributeMap &attribs)
-{
-    UNIMPLEMENTED();
-    return nullptr;
-}
-
 StreamProducerImpl *DisplayGL::createStreamProducerD3DTexture(
     egl::Stream::ConsumerType consumerType,
     const egl::AttributeMap &attribs)
@@ -145,7 +136,7 @@ void DisplayGL::generateExtensions(egl::DisplayExtensions *outExtensions) const
 {
     // Advertise robust resource initialization on all OpenGL backends for testing even though it is
     // not fully implemented.
-    outExtensions->robustResourceInitializationANGLE = true;
+    outExtensions->robustResourceInitialization = true;
 }
 
 egl::Error DisplayGL::makeCurrentSurfaceless(gl::Context *context)
