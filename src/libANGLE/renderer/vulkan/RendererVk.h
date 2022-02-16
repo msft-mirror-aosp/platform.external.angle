@@ -517,6 +517,11 @@ class RendererVk : angle::NonCopyable
     }
     size_t getVertexConversionBufferAlignment() const { return mVertexConversionBufferAlignment; }
 
+    uint32_t getDeviceLocalMemoryTypeIndex() const
+    {
+        return mDeviceLocalVertexConversionBufferMemoryTypeIndex;
+    }
+
   private:
     angle::Result initializeDevice(DisplayVk *displayVk, uint32_t queueFamilyIndex);
     void ensureCapsInitialized() const;
@@ -571,6 +576,7 @@ class RendererVk : angle::NonCopyable
     VkPhysicalDeviceTransformFeedbackFeaturesEXT mTransformFeedbackFeatures;
     VkPhysicalDeviceIndexTypeUint8FeaturesEXT mIndexTypeUint8Features;
     VkPhysicalDeviceSubgroupProperties mSubgroupProperties;
+    VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR mSubgroupExtendedTypesFeatures;
     VkPhysicalDeviceDeviceMemoryReportFeaturesEXT mMemoryReportFeatures;
     VkDeviceDeviceMemoryReportCreateInfoEXT mMemoryReportCallback;
     VkPhysicalDeviceExternalMemoryHostPropertiesEXT mExternalMemoryHostProperties;
