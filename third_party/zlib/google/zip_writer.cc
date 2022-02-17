@@ -74,13 +74,21 @@ bool ZipWriter::OpenNewFileEntry(const base::FilePath& path,
                                  bool is_directory,
                                  base::Time last_modified) {
   std::string str_path = path.AsUTF8Unsafe();
+
 #if defined(OS_WIN)
   base::ReplaceSubstringsAfterOffset(&str_path, 0u, "\\", "/");
 #endif
-  if (is_directory)
-    str_path += "/";
 
-  return zip::internal::ZipOpenNewFileInZip(zip_file_, str_path, last_modified);
+  Compression compression = kDeflated;
+
+  if (is_directory) {
+    str_path += "/";
+  } else {
+    compression = GetCompressionMethod(path);
+  }
+
+  return zip::internal::ZipOpenNewFileInZip(zip_file_, str_path, last_modified,
+                                            compression);
 }
 
 bool ZipWriter::CloseNewFileEntry() {
@@ -104,12 +112,10 @@ bool ZipWriter::AddFileEntry(const base::FilePath& path, base::File file) {
 
 bool ZipWriter::AddDirectoryEntry(const base::FilePath& path) {
   FileAccessor::Info info;
-  if (!file_accessor_->GetInfo(path, &info))
-    return false;
-
-  if (!info.is_directory) {
+  if (!file_accessor_->GetInfo(path, &info) || !info.is_directory) {
     LOG(ERROR) << "Not a directory: " << Redact(path);
-    return false;
+    progress_.errors++;
+    return continue_on_error_;
   }
 
   if (!OpenNewFileEntry(path, /*is_directory=*/true, info.last_modified))
@@ -254,6 +260,11 @@ bool ZipWriter::AddFileEntries(Paths paths) {
 
       if (!file.IsValid()) {
         LOG(ERROR) << "Cannot open " << Redact(relative_path);
+        progress_.errors++;
+
+        if (continue_on_error_)
+          continue;
+
         return false;
       }
 
@@ -277,8 +288,10 @@ bool ZipWriter::AddDirectoryEntries(Paths paths) {
 bool ZipWriter::AddDirectoryContents(const base::FilePath& path) {
   std::vector<base::FilePath> files, subdirs;
 
-  if (!file_accessor_->List(path, &files, &subdirs))
-    return false;
+  if (!file_accessor_->List(path, &files, &subdirs)) {
+    progress_.errors++;
+    return continue_on_error_;
+  }
 
   Filter(&files);
   Filter(&subdirs);
