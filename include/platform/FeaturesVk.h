@@ -43,13 +43,6 @@ struct FeaturesVk : FeatureSetBase
                                "Enable provoking vertex mode via VK_EXT_provoking_vertex extension",
                                &members};
 
-    // Add an extra copy region when using vkCmdCopyBuffer as the Windows Intel driver seems
-    // to have a bug where the last region is ignored.
-    Feature extraCopyBufferRegion = {
-        "extraCopyBufferRegion", FeatureCategory::VulkanWorkarounds,
-        "Some drivers seem to have a bug where the last copy region in vkCmdCopyBuffer is ignored",
-        &members};
-
     // This flag is added for the sole purpose of end2end tests, to test the correctness
     // of various algorithms when a fallback format is used, such as using a packed format to
     // emulate a depth- or stencil-only format.
@@ -71,15 +64,6 @@ struct FeaturesVk : FeatureSetBase
         "The depth value is not clamped to [0,1] for floating point depth buffers.", &members,
         "http://anglebug.com/3970"};
 
-    // On some android devices, the memory barrier between the compute shader that converts vertex
-    // attributes and the vertex shader that reads from it is ineffective.  Only known workaround is
-    // to perform a flush after the conversion.  http://anglebug.com/3016
-    Feature flushAfterVertexConversion = {
-        "flushAfterVertexConversion", FeatureCategory::VulkanWorkarounds,
-        "The memory barrier between the compute shader that converts vertex attributes and the "
-        "vertex shader that reads from it is ineffective",
-        &members, "http://anglebug.com/3016"};
-
     Feature supportsRenderpass2 = {"supportsRenderpass2", FeatureCategory::VulkanFeatures,
                                    "VkDevice supports the VK_KHR_create_renderpass2 extension",
                                    &members};
@@ -89,14 +73,6 @@ struct FeaturesVk : FeatureSetBase
     Feature supportsIncrementalPresent = {
         "supportsIncrementalPresent", FeatureCategory::VulkanFeatures,
         "VkDevice supports the VK_KHR_incremental_present extension", &members};
-
-    // Whether texture copies on cube map targets should be done on GPU.  This is a workaround for
-    // Intel drivers on windows that have an issue with creating single-layer views on cube map
-    // textures.
-    Feature forceCPUPathForCubeMapCopy = {
-        "forceCPUPathForCubeMapCopy", FeatureCategory::VulkanWorkarounds,
-        "Some drivers have an issue with creating single-layer views on cube map textures",
-        &members};
 
     // Whether the VkDevice supports the VK_ANDROID_external_memory_android_hardware_buffer
     // extension, on which the EGL_ANDROID_image_native_buffer extension can be layered.
@@ -199,6 +175,11 @@ struct FeaturesVk : FeatureSetBase
         "Transform feedback uses the VK_EXT_transform_feedback extension.", &members,
         "http://anglebug.com/3206"};
 
+    Feature supportsGeometryStreamsCapability = {
+        "supportsGeometryStreamsCapability", FeatureCategory::VulkanFeatures,
+        "Implementation supports the GeometryStreams SPIR-V capability.", &members,
+        "http://anglebug.com/3206"};
+
     // Whether the VkDevice supports the VK_EXT_index_type_uint8 extension
     // http://anglebug.com/4405
     Feature supportsIndexTypeUint8 = {"supportsIndexTypeUint8", FeatureCategory::VulkanFeatures,
@@ -207,10 +188,16 @@ struct FeaturesVk : FeatureSetBase
 
     // Whether the VkDevice supports the VK_EXT_custom_border_color extension
     // http://anglebug.com/3577
-    Feature supportsCustomBorderColorEXT = {
-        "supports_custom_border_color", FeatureCategory::VulkanFeatures,
+    Feature supportsCustomBorderColor = {
+        "supportsCustomBorderColor", FeatureCategory::VulkanFeatures,
         "VkDevice supports the VK_EXT_custom_border_color extension", &members,
         "http://anglebug.com/3577"};
+
+    // Whether the VkDevice supports multiDrawIndirect (drawIndirect with drawCount > 1)
+    // http://anglebug.com/6439
+    Feature supportsMultiDrawIndirect = {
+        "supportsMultiDrawIndirect", FeatureCategory::VulkanFeatures,
+        "VkDevice supports the multiDrawIndirect extension", &members, "http://anglebug.com/6439"};
 
     // Whether the VkDevice supports the VK_KHR_depth_stencil_resolve extension with the
     // independentResolveNone feature.
@@ -297,12 +284,14 @@ struct FeaturesVk : FeatureSetBase
         "pads up every buffer allocation size to be a multiple of the maximum stride.",
         &members, "http://anglebug.com/4428"};
 
-    // Whether the VkDevice supports the VK_EXT_swapchain_colorspace extension
-    // http://anglebug.com/2514
-    Feature supportsSwapchainColorspace = {
-        "supportsSwapchainColorspace", FeatureCategory::VulkanFeatures,
-        "VkDevice supports the VK_EXT_swapchain_colorspace extension", &members,
-        "http://anglebug.com/2514"};
+    // Whether the VkDevice supports the VK_EXT_external_memory_dma_buf and
+    // VK_EXT_image_drm_format_modifier extensions.  These extensions are always used together to
+    // implement EGL_EXT_image_dma_buf_import and EGL_EXT_image_dma_buf_import_modifiers.
+    Feature supportsExternalMemoryDmaBufAndModifiers = {
+        "supportsExternalMemoryDmaBufAndModifiers", FeatureCategory::VulkanFeatures,
+        "VkDevice supports the VK_EXT_external_memory_dma_buf and VK_EXT_image_drm_format_modifier "
+        "extensions",
+        &members, "http://anglebug.com/6248"};
 
     // Whether the VkDevice supports the VK_EXT_external_memory_host extension, on which the
     // ANGLE_iosurface_client_buffer extension can be layered.
@@ -335,6 +324,15 @@ struct FeaturesVk : FeatureSetBase
         "shadowBuffers", FeatureCategory::VulkanFeatures,
         "Allocate a shadow buffer for GL buffer objects to reduce glMap* latency.", &members,
         "http://anglebug.com/4339"};
+
+    // When we update buffer data we usually face a choice to either clone a buffer and copy the
+    // data or stage a buffer update and use the GPU to do the copy. For some GPUs, a performance
+    // penalty to use the GPU to do copies. Setting this flag to true will always try to create a
+    // new buffer and use the CPU to copy data when possible.
+    Feature preferCPUForBufferSubData = {
+        "preferCPUForBufferSubData", FeatureCategory::VulkanFeatures,
+        "Prefer use CPU to do bufferSubData instead of staged update.", &members,
+        "http://issuetracker.google.com/200067929"};
 
     // Persistently map buffer memory until destroy, saves on map/unmap IOCTL overhead
     // for buffers that are updated frequently.
@@ -393,6 +391,19 @@ struct FeaturesVk : FeatureSetBase
         "VkDevice supports VK_QCOM_render_pass_store_ops extension.", &members,
         "http://anglebug.com/5055"};
 
+    // Whether the VkDevice supports the VK_EXT_load_store_op_none extension
+    // http://anglebug.com/5371
+    Feature supportsRenderPassLoadStoreOpNone = {
+        "supportsRenderPassLoadStoreOpNone", FeatureCategory::VulkanFeatures,
+        "VkDevice supports VK_EXT_load_store_op_none extension.", &members,
+        "http://anglebug.com/5371"};
+
+    // Whether the VkDevice supports the VK_EXT_depth_clip_control extension
+    // http://anglebug.com/5421
+    Feature supportsDepthClipControl = {"supportsDepthClipControl", FeatureCategory::VulkanFeatures,
+                                        "VkDevice supports VK_EXT_depth_clip_control extension.",
+                                        &members, "http://anglebug.com/5421"};
+
     // Force maxUniformBufferSize to 16K on Qualcomm's Adreno 540. Pixel2's Adreno540 reports
     // maxUniformBufferSize 64k but various tests failed with that size. For that specific
     // device, we set to 16k for now which is known to pass all tests.
@@ -416,13 +427,6 @@ struct FeaturesVk : FeatureSetBase
     Feature enableMultisampledRenderToTexture = {
         "enableMultisampledRenderToTexture", FeatureCategory::VulkanWorkarounds,
         "Expose EXT_multisampled_render_to_texture", &members, "http://anglebug.com/4937"};
-
-    // Qualcomm fails some tests when reducing the preferred block size to 4M.
-    // http://anglebug.com/4995
-    Feature preferredLargeHeapBlockSize4MB = {
-        "preferredLargeHeapBlockSize4MB", FeatureCategory::VulkanWorkarounds,
-        "Use 4 MB preferred large heap block size with AMD allocator", &members,
-        "http://anglebug.com/4995"};
 
     // Manhattan is calling glFlush in the middle of renderpass which breaks renderpass and hurts
     // performance on tile based GPU. When this is enabled, we will defer the glFlush call made in
@@ -500,17 +504,11 @@ struct FeaturesVk : FeatureSetBase
                                       "Emulate 270-degree prerotation.", &members,
                                       "http://anglebug.com/4901"};
 
-    // Whether SPIR-V should be generated directly instead of through glslang.  Transitory feature
-    // until the work is complete.
-    Feature directSPIRVGeneration = {"directSPIRVGeneration", FeatureCategory::VulkanFeatures,
-                                     "Direct translation to SPIR-V.", &members,
-                                     "http://anglebug.com/4889"};
-
-    // Whether SPIR-V should be generated with workarounds for buggy drivers.
-    Feature directSPIRVGenerationWorkarounds = {
-        "directSPIRVGenerationWorkarounds", FeatureCategory::VulkanWorkarounds,
-        "Work around driver bugs when translating to SPIR-V.", &members,
-        "http://anglebug.com/6110"};
+    // Whether SPIR-V should be generated through glslang.  Transitory feature while confidence is
+    // built on the SPIR-V generation code.
+    Feature generateSPIRVThroughGlslang = {
+        "generateSPIRVThroughGlslang", FeatureCategory::VulkanFeatures,
+        "Translate SPIR-V through glslang.", &members, "http://anglebug.com/4889"};
 
     // Whether we should use driver uniforms over specialization constants for some shader
     // modifications like yflip and rotation.
@@ -560,9 +558,15 @@ struct FeaturesVk : FeatureSetBase
         "http://anglebug.com/6141"};
 
     // Whether the VkDevice can support Protected Memory.
-    Feature supportsProtectedMemory = {"supports_protected_memory", FeatureCategory::VulkanFeatures,
+    Feature supportsProtectedMemory = {"supportsProtectedMemory", FeatureCategory::VulkanFeatures,
                                        "VkDevice supports protected memory", &members,
                                        "http://anglebug.com/3965"};
+
+    // Whether the VkDevice supports the VK_EXT_host_query_reset extension
+    // http://anglebug.com/6692
+    Feature supportsHostQueryReset = {"supportsHostQueryReset", FeatureCategory::VulkanFeatures,
+                                      "VkDevice supports VK_EXT_host_query_reset extension",
+                                      &members, "http://anglebug.com/6692"};
 
     // Whether the VkInstance supports the VK_KHR_get_surface_capabilities2 extension.
     Feature supportsSurfaceCapabilities2Extension = {
@@ -579,6 +583,58 @@ struct FeaturesVk : FeatureSetBase
     Feature supportsSurfaceProtectedSwapchains = {
         "supportsSurfaceProtectedSwapchains", FeatureCategory::VulkanFeatures,
         "VkSurface supportsProtected for protected swapchains", &members};
+
+    // Whether surface format GL_RGB8 should be overridden to GL_RGBA8.
+    Feature overrideSurfaceFormatRGB8toRGBA8 = {
+        "overrideSurfaceFormatRGB8toRGBA8", FeatureCategory::VulkanWorkarounds,
+        "Override surface format GL_RGB8 to GL_RGBA8", &members, "http://anglebug.com/6651"};
+
+    // Whether the VkSurface supports VK_KHR_shared_presentable_images.
+    Feature supportsSharedPresentableImageExtension = {
+        "supportsSharedPresentableImageExtension", FeatureCategory::VulkanFeatures,
+        "VkSurface supports the VK_KHR_shared_presentable_images extension", &members};
+
+    // Feature to control whether the Vulkan backend can support
+    // GL_EXT_shader_framebuffer_fetch
+    Feature supportsShaderFramebufferFetch = {
+        "supportsShaderFramebufferFetch", FeatureCategory::VulkanFeatures,
+        "Whether the Vulkan backend supports coherent framebuffer fetch", &members};
+
+    // Feature to control whether the Vulkan backend can support
+    // GL_EXT_shader_framebuffer_fetch_non_coherent
+    Feature supportsShaderFramebufferFetchNonCoherent = {
+        "supportsShaderFramebufferFetchNonCoherent", FeatureCategory::VulkanFeatures,
+        "Whether the Vulkan backend supports non-coherent framebuffer fetch", &members};
+
+    // Whether the Surface supports EGL_KHR_lock_surface3.
+    Feature supportsLockSurfaceExtension = {
+        "supportsLockSurfaceExtension", FeatureCategory::VulkanFeatures,
+        "Surface supports the EGL_KHR_lock_surface3 extension", &members};
+
+    // When mutable_render_buffer goes into SINGLE_BUFFER mode, need to call swapbuffers at
+    // flush and finish so that the image is updated and presented to the display.
+    Feature swapbuffersOnFlushOrFinishWithSingleBuffer = {
+        "swapbuffersOnFlushOrFinishWithSingleBuffer", FeatureCategory::VulkanFeatures,
+        "Bypass deferredFlush with calling swapbuffers on flush or finish when in Shared Present "
+        "mode",
+        &members, "http://anglebug.com/6878"};
+
+    // Whether dithering should be emulated.
+    Feature emulateDithering = {"emulateDithering", FeatureCategory::VulkanFeatures,
+                                "Emulate OpenGL dithering", &members, "http://anglebug.com/6755"};
+
+    // Android bug workaround which assumes VkPresentRegionsKHR to have a bottom-left origin
+    // instead of top-left as specified by VK_KHR_incremental_present
+    Feature bottomLeftOriginPresentRegionRectangles = {
+        "bottomLeftOriginPresentRegionRectangles", FeatureCategory::VulkanWorkarounds,
+        "On some platforms present region rectangles are expected to have a bottom-left origin, "
+        "instead of top-left origin as from spec",
+        &members};
+
+    // Whether we force submit updates to immutable textures.
+    Feature forceSubmitImmutableTextureUpdates = {
+        "forceSubmitImmutableTextureUpdates", FeatureCategory::AppWorkarounds,
+        "Force submit updates to immutable textures", &members, "http://anglebug.com/6929"};
 };
 
 inline FeaturesVk::FeaturesVk()  = default;
