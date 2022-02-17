@@ -11,10 +11,10 @@
 #ifndef ANGLE_RESTRICTED_TRACES_EGL_LOADER_AUTOGEN_H_
 #define ANGLE_RESTRICTED_TRACES_EGL_LOADER_AUTOGEN_H_
 
-#include "restricted_traces_autogen.h"
-
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+
+#include "restricted_traces_export.h"
 
 #define eglChooseConfig t_eglChooseConfig
 #define eglCopyBuffers t_eglCopyBuffers
@@ -77,6 +77,7 @@
 #define eglHandleGPUSwitchANGLE t_eglHandleGPUSwitchANGLE
 #define eglReacquireHighPowerGPUANGLE t_eglReacquireHighPowerGPUANGLE
 #define eglReleaseHighPowerGPUANGLE t_eglReleaseHighPowerGPUANGLE
+#define eglPrepareSwapBuffersANGLE t_eglPrepareSwapBuffersANGLE
 #define eglProgramCacheGetAttribANGLE t_eglProgramCacheGetAttribANGLE
 #define eglProgramCachePopulateANGLE t_eglProgramCachePopulateANGLE
 #define eglProgramCacheQueryANGLE t_eglProgramCacheQueryANGLE
@@ -86,6 +87,7 @@
 #define eglStreamPostD3DTextureANGLE t_eglStreamPostD3DTextureANGLE
 #define eglSwapBuffersWithFrameTokenANGLE t_eglSwapBuffersWithFrameTokenANGLE
 #define eglGetMscRateANGLE t_eglGetMscRateANGLE
+#define eglExportVkImageANGLE t_eglExportVkImageANGLE
 #define eglGetSyncValuesCHROMIUM t_eglGetSyncValuesCHROMIUM
 #define eglQueryDeviceAttribEXT t_eglQueryDeviceAttribEXT
 #define eglQueryDeviceStringEXT t_eglQueryDeviceStringEXT
@@ -102,6 +104,10 @@
 #define eglGetSyncAttribKHR t_eglGetSyncAttribKHR
 #define eglCreateImageKHR t_eglCreateImageKHR
 #define eglDestroyImageKHR t_eglDestroyImageKHR
+#define eglLockSurfaceKHR t_eglLockSurfaceKHR
+#define eglQuerySurface64KHR t_eglQuerySurface64KHR
+#define eglUnlockSurfaceKHR t_eglUnlockSurfaceKHR
+#define eglSetDamageRegionKHR t_eglSetDamageRegionKHR
 #define eglSignalSyncKHR t_eglSignalSyncKHR
 #define eglCreateStreamKHR t_eglCreateStreamKHR
 #define eglDestroyStreamKHR t_eglDestroyStreamKHR
@@ -185,6 +191,7 @@ ANGLE_TRACE_LOADER_EXPORT extern PFNEGLHANDLEGPUSWITCHANGLEPROC t_eglHandleGPUSw
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLREACQUIREHIGHPOWERGPUANGLEPROC
     t_eglReacquireHighPowerGPUANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLRELEASEHIGHPOWERGPUANGLEPROC t_eglReleaseHighPowerGPUANGLE;
+ANGLE_TRACE_LOADER_EXPORT extern PFNEGLPREPARESWAPBUFFERSANGLEPROC t_eglPrepareSwapBuffersANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLPROGRAMCACHEGETATTRIBANGLEPROC
     t_eglProgramCacheGetAttribANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLPROGRAMCACHEPOPULATEANGLEPROC t_eglProgramCachePopulateANGLE;
@@ -197,6 +204,7 @@ ANGLE_TRACE_LOADER_EXPORT extern PFNEGLSTREAMPOSTD3DTEXTUREANGLEPROC t_eglStream
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLSWAPBUFFERSWITHFRAMETOKENANGLEPROC
     t_eglSwapBuffersWithFrameTokenANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLGETMSCRATEANGLEPROC t_eglGetMscRateANGLE;
+ANGLE_TRACE_LOADER_EXPORT extern PFNEGLEXPORTVKIMAGEANGLEPROC t_eglExportVkImageANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLGETSYNCVALUESCHROMIUMPROC t_eglGetSyncValuesCHROMIUM;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLQUERYDEVICEATTRIBEXTPROC t_eglQueryDeviceAttribEXT;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLQUERYDEVICESTRINGEXTPROC t_eglQueryDeviceStringEXT;
@@ -215,6 +223,10 @@ ANGLE_TRACE_LOADER_EXPORT extern PFNEGLDESTROYSYNCKHRPROC t_eglDestroySyncKHR;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLGETSYNCATTRIBKHRPROC t_eglGetSyncAttribKHR;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLCREATEIMAGEKHRPROC t_eglCreateImageKHR;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLDESTROYIMAGEKHRPROC t_eglDestroyImageKHR;
+ANGLE_TRACE_LOADER_EXPORT extern PFNEGLLOCKSURFACEKHRPROC t_eglLockSurfaceKHR;
+ANGLE_TRACE_LOADER_EXPORT extern PFNEGLQUERYSURFACE64KHRPROC t_eglQuerySurface64KHR;
+ANGLE_TRACE_LOADER_EXPORT extern PFNEGLUNLOCKSURFACEKHRPROC t_eglUnlockSurfaceKHR;
+ANGLE_TRACE_LOADER_EXPORT extern PFNEGLSETDAMAGEREGIONKHRPROC t_eglSetDamageRegionKHR;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLSIGNALSYNCKHRPROC t_eglSignalSyncKHR;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLCREATESTREAMKHRPROC t_eglCreateStreamKHR;
 ANGLE_TRACE_LOADER_EXPORT extern PFNEGLDESTROYSTREAMKHRPROC t_eglDestroyStreamKHR;

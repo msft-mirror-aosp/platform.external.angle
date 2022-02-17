@@ -176,6 +176,11 @@ bool IsMetalTextureSwizzleAvailable()
 {
     return false;
 }
+
+bool IsMetalCompressedTexture3DAvailable()
+{
+    return false;
+}
 #endif
 
 SystemInfo *GetTestSystemInfo()
@@ -337,6 +342,11 @@ bool IsPixel4()
     return IsAndroidDevice("Pixel 4");
 }
 
+bool IsPixel4XL()
+{
+    return IsAndroidDevice("Pixel 4 XL");
+}
+
 bool IsNVIDIAShield()
 {
     return IsAndroidDevice("SHIELD Android TV");
@@ -355,6 +365,11 @@ bool IsIntelUHD630Mobile()
 bool IsAMD()
 {
     return HasSystemVendorID(kVendorID_AMD);
+}
+
+bool IsApple()
+{
+    return HasSystemVendorID(kVendorID_Apple);
 }
 
 bool IsARM()
@@ -381,7 +396,17 @@ bool IsNVIDIA()
 
 bool IsQualcomm()
 {
-    return IsNexus5X() || IsNexus9() || IsPixelXL() || IsPixel2() || IsPixel2XL();
+    return IsNexus5X() || IsNexus9() || IsPixelXL() || IsPixel2() || IsPixel2XL() || IsPixel4() ||
+           IsPixel4XL();
+}
+
+bool Is64Bit()
+{
+#if defined(ANGLE_IS_64_BIT_CPU)
+    return true;
+#else
+    return false;
+#endif  // defined(ANGLE_IS_64_BIT_CPU)
 }
 
 bool IsConfigAllowlisted(const SystemInfo &systemInfo, const PlatformParameters &param)
@@ -674,10 +699,11 @@ bool IsPlatformAvailable(const PlatformParameters &param)
 #endif
 
         case EGL_PLATFORM_ANGLE_TYPE_NULL_ANGLE:
-#ifndef ANGLE_ENABLE_NULL
+#if !defined(ANGLE_ENABLE_NULL)
             return false;
-#endif
+#else
             break;
+#endif
 
         default:
             std::cout << "Unknown test platform: " << param << std::endl;
