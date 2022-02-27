@@ -398,7 +398,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     void invalidateComputeDescriptorSet(DescriptorSetIndex usedDescriptorSet);
     void invalidateViewportAndScissor();
 
-    void optimizeRenderPassForPresent(VkFramebuffer framebufferHandle);
+    void optimizeRenderPassForPresent(VkFramebuffer framebufferHandle, vk::ImageHelper *colorImage);
 
     vk::DynamicQueryPool *getQueryPool(gl::QueryType queryType);
 
@@ -843,7 +843,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     angle::Result updateActiveTextures(const gl::Context *context, gl::Command command);
     template <typename CommandBufferHelperT>
     angle::Result updateActiveImages(CommandBufferHelperT *commandBufferHelper);
-    angle::Result updateDefaultAttribute(size_t attribIndex);
 
     ANGLE_INLINE void invalidateCurrentGraphicsPipeline()
     {
@@ -1171,7 +1170,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     GraphicsEventCmdBuf mQueryEventType;
 
     // Transform feedback buffers.
-    angle::FastUnorderedSet<const vk::BufferHelper *,
+    angle::FlatUnorderedSet<const vk::BufferHelper *,
                             gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_BUFFERS>
         mCurrentTransformFeedbackBuffers;
 

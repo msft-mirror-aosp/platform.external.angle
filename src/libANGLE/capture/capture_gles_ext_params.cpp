@@ -2011,7 +2011,7 @@ void CaptureGetTexLevelParameterfvANGLE_params(const State &glState,
                                                GLfloat *params,
                                                ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    CaptureMemory(params, sizeof(GLfloat), paramCapture);
 }
 
 void CaptureGetMultisamplefvANGLE_val(const State &glState,
@@ -3557,12 +3557,20 @@ void CaptureGetTexImageANGLE_pixels(const State &glState,
 
 void CaptureGetCompressedTexImageANGLE_pixels(const State &glState,
                                               bool isCallValid,
-                                              TextureTarget targetPacked,
+                                              TextureTarget target,
                                               GLint level,
                                               void *pixels,
                                               angle::ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    const Texture *texture = glState.getTargetTexture(TextureTargetToType(target));
+    ASSERT(texture);
+    const gl::InternalFormat *formatInfo = texture->getFormat(target, level).info;
+    const gl::Extents &levelExtents      = texture->getExtents(target, level);
+
+    GLuint size;
+    bool result = formatInfo->computeCompressedImageSize(levelExtents, &size);
+    ASSERT(result);
+    paramCapture->readBufferSizeBytes = size;
 }
 
 void CaptureGetRenderbufferImageANGLE_pixels(const State &glState,
