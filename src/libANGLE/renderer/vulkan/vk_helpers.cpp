@@ -795,23 +795,6 @@ void DestroyBufferList(RendererVk *renderer, BufferHelperPointerVector *buffers)
     buffers->clear();
 }
 
-bool ShouldReleaseFreeBuffer(const vk::BufferHelper &buffer,
-                             size_t dynamicBufferSize,
-                             DynamicBufferPolicy policy,
-                             size_t freeListSize)
-{
-    constexpr size_t kLimitedFreeListMaxSize = 1;
-
-    // If the dynamic buffer was resized we cannot reuse the retained buffer.  Additionally,
-    // only reuse the buffer if specifically requested.
-    const bool sizeMismatch    = buffer.getSize() != dynamicBufferSize;
-    const bool releaseByPolicy = policy == DynamicBufferPolicy::OneShotUse ||
-                                 (policy == DynamicBufferPolicy::SporadicTextureUpload &&
-                                  freeListSize >= kLimitedFreeListMaxSize);
-
-    return sizeMismatch || releaseByPolicy;
-}
-
 // Helper functions used below
 char GetLoadOpShorthand(RenderPassLoadOp loadOp)
 {
@@ -1032,8 +1015,6 @@ CommandBufferHelperCommon::~CommandBufferHelperCommon() {}
 void CommandBufferHelperCommon::initializeImpl(Context *context, CommandPool *commandPool)
 {
     ASSERT(mUsedBuffers.empty());
-    constexpr size_t kInitialBufferCount = 128;
-    mUsedBuffers.ensureCapacity(kInitialBufferCount);
 
     mAllocator.initialize(kDefaultPoolAllocatorPageSize, 1);
     // Push a scope into the pool allocator so we can easily free and re-init on reset()
@@ -1062,9 +1043,9 @@ void CommandBufferHelperCommon::bufferRead(ContextVk *contextVk,
     }
 
     ASSERT(!usesBufferForWrite(*buffer));
-    if (!mUsedBuffers.contains(buffer->getBufferSerial().getValue()))
+    if (!mUsedBuffers.contains(buffer->getBufferSerial()))
     {
-        mUsedBuffers.insert(buffer->getBufferSerial().getValue(), BufferAccess::Read);
+        mUsedBuffers.insert(buffer->getBufferSerial(), BufferAccess::Read);
         buffer->retainReadOnly(&contextVk->getResourceUseList());
     }
 }
@@ -1089,7 +1070,7 @@ void CommandBufferHelperCommon::bufferWrite(ContextVk *contextVk,
     if (aliasingMode == AliasingMode::Disallowed)
     {
         ASSERT(!usesBuffer(*buffer));
-        mUsedBuffers.insert(buffer->getBufferSerial().getValue(), BufferAccess::Write);
+        mUsedBuffers.insert(buffer->getBufferSerial(), BufferAccess::Write);
     }
 
     // Make sure host-visible buffer writes result in a barrier inserted at the end of the frame to
@@ -1103,13 +1084,13 @@ void CommandBufferHelperCommon::bufferWrite(ContextVk *contextVk,
 
 bool CommandBufferHelperCommon::usesBuffer(const BufferHelper &buffer) const
 {
-    return mUsedBuffers.contains(buffer.getBufferSerial().getValue());
+    return mUsedBuffers.contains(buffer.getBufferSerial());
 }
 
 bool CommandBufferHelperCommon::usesBufferForWrite(const BufferHelper &buffer) const
 {
     BufferAccess access;
-    if (!mUsedBuffers.get(buffer.getBufferSerial().getValue(), &access))
+    if (!mUsedBuffers.get(buffer.getBufferSerial(), &access))
     {
         return false;
     }
@@ -1280,6 +1261,7 @@ RenderPassCommandBufferHelper::RenderPassCommandBufferHelper()
       mClearValues{},
       mRenderPassStarted(false),
       mTransformFeedbackCounterBuffers{},
+      mTransformFeedbackCounterBufferOffsets{},
       mValidTransformFeedbackBufferCount(0),
       mRebindTransformFeedbackBuffers(false),
       mIsTransformFeedbackActiveUnpaused(false),
@@ -1364,7 +1346,7 @@ void RenderPassCommandBufferHelper::imageRead(ContextVk *contextVk,
     // We allow duplicate uses in the RP to accommodate for normal GL sampler usage.
     if (!usesImage(*image))
     {
-        mRenderPassUsedImages.insert(image->getImageSerial().getValue());
+        mRenderPassUsedImages.insert(image->getImageSerial());
         image->retain(&contextVk->getResourceUseList());
     }
 }
@@ -1388,7 +1370,7 @@ void RenderPassCommandBufferHelper::imageWrite(ContextVk *contextVk,
     }
     if (!usesImage(*image))
     {
-        mRenderPassUsedImages.insert(image->getImageSerial().getValue());
+        mRenderPassUsedImages.insert(image->getImageSerial());
     }
 }
 
@@ -1404,7 +1386,7 @@ void RenderPassCommandBufferHelper::colorImagesDraw(ResourceUseList *resourceUse
     {
         // This is possible due to different layers of the same texture being attached to different
         // attachments
-        mRenderPassUsedImages.insert(image->getImageSerial().getValue());
+        mRenderPassUsedImages.insert(image->getImageSerial());
     }
     ASSERT(mColorImages[packedAttachmentIndex] == nullptr);
     mColorImages[packedAttachmentIndex] = image;
@@ -1415,7 +1397,7 @@ void RenderPassCommandBufferHelper::colorImagesDraw(ResourceUseList *resourceUse
         resolveImage->retain(resourceUseList);
         if (!usesImage(*resolveImage))
         {
-            mRenderPassUsedImages.insert(resolveImage->getImageSerial().getValue());
+            mRenderPassUsedImages.insert(resolveImage->getImageSerial());
         }
         ASSERT(mColorResolveImages[packedAttachmentIndex] == nullptr);
         mColorResolveImages[packedAttachmentIndex] = resolveImage;
@@ -1437,7 +1419,7 @@ void RenderPassCommandBufferHelper::depthStencilImagesDraw(ResourceUseList *reso
     // defer the image layout changes until endRenderPass time or when images going away so that we
     // only insert layout change barrier once.
     image->retain(resourceUseList);
-    mRenderPassUsedImages.insert(image->getImageSerial().getValue());
+    mRenderPassUsedImages.insert(image->getImageSerial());
     mDepthStencilImage      = image;
     mDepthStencilLevelIndex = level;
     mDepthStencilLayerIndex = layerStart;
@@ -1450,7 +1432,7 @@ void RenderPassCommandBufferHelper::depthStencilImagesDraw(ResourceUseList *reso
         // depth/stencil image as currently it can only ever come from
         // multisampled-render-to-texture renderbuffers.
         resolveImage->retain(resourceUseList);
-        mRenderPassUsedImages.insert(resolveImage->getImageSerial().getValue());
+        mRenderPassUsedImages.insert(resolveImage->getImageSerial());
         mDepthStencilResolveImage = resolveImage;
         resolveImage->setRenderPassUsageFlag(RenderPassUsage::RenderTargetAttachment);
     }
@@ -1985,6 +1967,7 @@ angle::Result RenderPassCommandBufferHelper::nextSubpass(ContextVk *contextVk,
 
 void RenderPassCommandBufferHelper::beginTransformFeedback(size_t validBufferCount,
                                                            const VkBuffer *counterBuffers,
+                                                           const VkDeviceSize *counterBufferOffsets,
                                                            bool rebindBuffers)
 {
     mValidTransformFeedbackBufferCount = static_cast<uint32_t>(validBufferCount);
@@ -1992,7 +1975,8 @@ void RenderPassCommandBufferHelper::beginTransformFeedback(size_t validBufferCou
 
     for (size_t index = 0; index < validBufferCount; index++)
     {
-        mTransformFeedbackCounterBuffers[index] = counterBuffers[index];
+        mTransformFeedbackCounterBuffers[index]       = counterBuffers[index];
+        mTransformFeedbackCounterBufferOffsets[index] = counterBufferOffsets[index];
     }
 }
 
@@ -2106,7 +2090,8 @@ void RenderPassCommandBufferHelper::resumeTransformFeedback()
     mIsTransformFeedbackActiveUnpaused = true;
 
     getCommandBuffer().beginTransformFeedback(0, numCounterBuffers,
-                                              mTransformFeedbackCounterBuffers.data(), nullptr);
+                                              mTransformFeedbackCounterBuffers.data(),
+                                              mTransformFeedbackCounterBufferOffsets.data());
 }
 
 void RenderPassCommandBufferHelper::pauseTransformFeedback()
@@ -2114,7 +2099,8 @@ void RenderPassCommandBufferHelper::pauseTransformFeedback()
     ASSERT(isTransformFeedbackStarted() && isTransformFeedbackActiveUnpaused());
     mIsTransformFeedbackActiveUnpaused = false;
     getCommandBuffer().endTransformFeedback(0, mValidTransformFeedbackBufferCount,
-                                            mTransformFeedbackCounterBuffers.data(), nullptr);
+                                            mTransformFeedbackCounterBuffers.data(),
+                                            mTransformFeedbackCounterBufferOffsets.data());
 }
 
 void RenderPassCommandBufferHelper::updateRenderPassColorClear(PackedAttachmentIndex colorIndexVk,
@@ -2315,7 +2301,6 @@ void CommandBufferRecycler<CommandBufferT, CommandBufferHelperT>::resetCommandBu
 DynamicBuffer::DynamicBuffer()
     : mUsage(0),
       mHostVisible(false),
-      mPolicy(DynamicBufferPolicy::OneShotUse),
       mInitialSize(0),
       mNextAllocationOffset(0),
       mSize(0),
@@ -2326,7 +2311,6 @@ DynamicBuffer::DynamicBuffer()
 DynamicBuffer::DynamicBuffer(DynamicBuffer &&other)
     : mUsage(other.mUsage),
       mHostVisible(other.mHostVisible),
-      mPolicy(other.mPolicy),
       mInitialSize(other.mInitialSize),
       mBuffer(std::move(other.mBuffer)),
       mNextAllocationOffset(other.mNextAllocationOffset),
@@ -2341,14 +2325,12 @@ void DynamicBuffer::init(RendererVk *renderer,
                          VkBufferUsageFlags usage,
                          size_t alignment,
                          size_t initialSize,
-                         bool hostVisible,
-                         DynamicBufferPolicy policy)
+                         bool hostVisible)
 {
     mUsage       = usage;
     mHostVisible = hostVisible;
     mMemoryPropertyFlags =
         (hostVisible) ? VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT : VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    mPolicy = policy;
 
     // Check that we haven't overriden the initial size of the buffer in setMinimumSizeForTesting.
     if (mInitialSize == 0)
@@ -2403,6 +2385,9 @@ angle::Result DynamicBuffer::allocateNewBuffer(ContextVk *contextVk)
 
 bool DynamicBuffer::allocateFromCurrentBuffer(size_t sizeInBytes, BufferHelper **bufferHelperOut)
 {
+    mNextAllocationOffset =
+        roundUp<uint32_t>(mNextAllocationOffset, static_cast<uint32_t>(mAlignment));
+
     ASSERT(bufferHelperOut);
     size_t sizeToAllocate                                      = roundUp(sizeInBytes, mAlignment);
     angle::base::CheckedNumeric<size_t> checkedNextWriteOffset = mNextAllocationOffset;
@@ -2416,7 +2401,7 @@ bool DynamicBuffer::allocateFromCurrentBuffer(size_t sizeInBytes, BufferHelper *
     ASSERT(mBuffer != nullptr);
     ASSERT(mHostVisible);
     ASSERT(mBuffer->getMappedMemory());
-    mBuffer->getSuballocation().setOffsetSize(mNextAllocationOffset, sizeToAllocate);
+    mBuffer->setSuballocationOffsetAndSize(mNextAllocationOffset, sizeToAllocate);
     *bufferHelperOut = mBuffer.get();
 
     mNextAllocationOffset += static_cast<uint32_t>(sizeToAllocate);
@@ -2428,60 +2413,54 @@ angle::Result DynamicBuffer::allocate(ContextVk *contextVk,
                                       BufferHelper **bufferHelperOut,
                                       bool *newBufferAllocatedOut)
 {
-    mNextAllocationOffset =
-        roundUp<uint32_t>(mNextAllocationOffset, static_cast<uint32_t>(mAlignment));
+    bool newBuffer = !allocateFromCurrentBuffer(sizeInBytes, bufferHelperOut);
+    if (newBufferAllocatedOut)
+    {
+        *newBufferAllocatedOut = newBuffer;
+    }
+
+    if (!newBuffer)
+    {
+        return angle::Result::Continue;
+    }
+
     size_t sizeToAllocate = roundUp(sizeInBytes, mAlignment);
 
-    angle::base::CheckedNumeric<size_t> checkedNextWriteOffset = mNextAllocationOffset;
-    checkedNextWriteOffset += sizeToAllocate;
-
-    if (!checkedNextWriteOffset.IsValid() || checkedNextWriteOffset.ValueOrDie() >= mSize)
+    if (mBuffer)
     {
-        if (mBuffer)
-        {
-            // Make sure the buffer is not released externally.
-            ASSERT(mBuffer->valid());
-            mInFlightBuffers.push_back(std::move(mBuffer));
-            ASSERT(!mBuffer);
-        }
-
-        const size_t sizeIgnoringHistory = std::max(mInitialSize, sizeToAllocate);
-        if (sizeToAllocate > mSize || sizeIgnoringHistory < mSize / 4)
-        {
-            mSize = sizeIgnoringHistory;
-            // Clear the free list since the free buffers are now either too small or too big.
-            ReleaseBufferListToRenderer(contextVk->getRenderer(), &mBufferFreeList);
-        }
-
-        // The front of the free list should be the oldest. Thus if it is in use the rest of the
-        // free list should be in use as well.
-        if (mBufferFreeList.empty() ||
-            mBufferFreeList.front()->isCurrentlyInUse(contextVk->getLastCompletedQueueSerial()))
-        {
-            ANGLE_TRY(allocateNewBuffer(contextVk));
-        }
-        else
-        {
-            mBuffer = std::move(mBufferFreeList.front());
-            mBufferFreeList.erase(mBufferFreeList.begin());
-        }
-
-        ASSERT(mBuffer->getSize() == mSize);
-
-        mNextAllocationOffset = 0;
-
-        if (newBufferAllocatedOut != nullptr)
-        {
-            *newBufferAllocatedOut = true;
-        }
+        // Make sure the buffer is not released externally.
+        ASSERT(mBuffer->valid());
+        mInFlightBuffers.push_back(std::move(mBuffer));
+        ASSERT(!mBuffer);
     }
-    else if (newBufferAllocatedOut != nullptr)
+
+    const size_t sizeIgnoringHistory = std::max(mInitialSize, sizeToAllocate);
+    if (sizeToAllocate > mSize || sizeIgnoringHistory < mSize / 4)
     {
-        *newBufferAllocatedOut = false;
+        mSize = sizeIgnoringHistory;
+        // Clear the free list since the free buffers are now either too small or too big.
+        ReleaseBufferListToRenderer(contextVk->getRenderer(), &mBufferFreeList);
     }
+
+    // The front of the free list should be the oldest. Thus if it is in use the rest of the
+    // free list should be in use as well.
+    if (mBufferFreeList.empty() ||
+        mBufferFreeList.front()->isCurrentlyInUse(contextVk->getLastCompletedQueueSerial()))
+    {
+        ANGLE_TRY(allocateNewBuffer(contextVk));
+    }
+    else
+    {
+        mBuffer = std::move(mBufferFreeList.front());
+        mBufferFreeList.erase(mBufferFreeList.begin());
+    }
+
+    ASSERT(mBuffer->getBlockMemorySize() == mSize);
+
+    mNextAllocationOffset = 0;
 
     ASSERT(mBuffer != nullptr);
-    mBuffer->getSuballocation().setOffsetSize(mNextAllocationOffset, sizeToAllocate);
+    mBuffer->setSuballocationOffsetAndSize(mNextAllocationOffset, sizeToAllocate);
     *bufferHelperOut = mBuffer.get();
 
     mNextAllocationOffset += static_cast<uint32_t>(sizeToAllocate);
@@ -2512,7 +2491,9 @@ void DynamicBuffer::releaseInFlightBuffersToResourceUseList(ContextVk *contextVk
         // unfortunately.
         bufferHelper->retainReadOnly(resourceUseList);
 
-        if (ShouldReleaseFreeBuffer(*bufferHelper, mSize, mPolicy, mBufferFreeList.size()))
+        // We only keep free buffers that have the same size. Note that bufferHelper's size is
+        // suballocation's size. We need to use the whole block memory size here.
+        if (bufferHelper->getBlockMemorySize() != mSize)
         {
             bufferHelper->release(contextVk->getRenderer());
         }
@@ -2704,26 +2685,23 @@ angle::Result BufferPool::allocateNewBuffer(ContextVk *contextVk, VkDeviceSize s
     allocator.getMemoryTypeProperties(mMemoryTypeIndex, &memoryPropertyFlags);
 
     DeviceScoped<Buffer> buffer(renderer->getDevice());
-    AllocatorScoped<Allocation> allocation(renderer->getAllocator());
-    uint32_t memoryTypeIndex = kInvalidMemoryTypeIndex;
-    ANGLE_VK_TRY(contextVk,
-                 allocator.createBuffer(createInfo, memoryPropertyFlags, 0,
-                                        renderer->getFeatures().persistentlyMappedBuffers.enabled,
-                                        &memoryTypeIndex, &buffer.get(), &allocation.get()));
-    ASSERT(memoryTypeIndex != kInvalidMemoryTypeIndex);
-    if (memoryTypeIndex != mMemoryTypeIndex)
-    {
-        allocator.getMemoryTypeProperties(memoryTypeIndex, &memoryPropertyFlags);
-    }
+    ANGLE_VK_TRY(contextVk, buffer.get().init(contextVk->getDevice(), createInfo));
+
+    DeviceScoped<DeviceMemory> deviceMemory(renderer->getDevice());
+    VkMemoryPropertyFlags memoryPropertyFlagsOut;
+    VkDeviceSize sizeOut;
+    ANGLE_TRY(AllocateBufferMemory(contextVk, memoryPropertyFlags, &memoryPropertyFlagsOut, nullptr,
+                                   &buffer.get(), &deviceMemory.get(), &sizeOut));
+    ASSERT(sizeOut >= mSize);
 
     // Allocate bufferBlock
     std::unique_ptr<BufferBlock> block = std::make_unique<BufferBlock>();
-    ANGLE_TRY(block->init(contextVk, buffer.get(), mVirtualBlockCreateFlags, allocation.get(),
-                          memoryPropertyFlags, mSize));
+    ANGLE_TRY(block->init(contextVk, buffer.get(), mVirtualBlockCreateFlags, deviceMemory.get(),
+                          memoryPropertyFlagsOut, mSize));
 
     if (mHostVisible)
     {
-        ANGLE_TRY(block->map(contextVk));
+        ANGLE_VK_TRY(contextVk, block->map(contextVk->getDevice()));
     }
 
     // Append the bufferBlock into the pool
@@ -3820,7 +3798,6 @@ BufferHelper &BufferHelper::operator=(BufferHelper &&other)
 {
     ReadWriteResource::operator=(std::move(other));
 
-    mMemory        = std::move(other.mMemory);
     mSuballocation = std::move(other.mSuballocation);
 
     mCurrentQueueFamilyIndex = other.mCurrentQueueFamilyIndex;
@@ -3874,16 +3851,17 @@ angle::Result BufferHelper::init(vk::Context *context,
 
     // Allocate buffer object
     DeviceScoped<Buffer> buffer(renderer->getDevice());
-    AllocatorScoped<Allocation> allocation(renderer->getAllocator());
-    ANGLE_VK_TRY(context, allocator.createBuffer(*createInfo, requiredFlags, preferredFlags,
-                                                 persistentlyMapped, &memoryTypeIndex,
-                                                 &buffer.get(), &allocation.get()));
-    VkMemoryPropertyFlags memoryPropertyFlagsOut;
-    allocator.getMemoryTypeProperties(memoryTypeIndex, &memoryPropertyFlagsOut);
+    ANGLE_VK_TRY(context, buffer.get().init(context->getDevice(), *createInfo));
 
-    ANGLE_VK_TRY(context, mSuballocation.initWithEntireBuffer(
-                              context, buffer.get(), allocation.get(), memoryPropertyFlagsOut,
-                              requestedCreateInfo.size));
+    DeviceScoped<DeviceMemory> deviceMemory(renderer->getDevice());
+    VkMemoryPropertyFlags memoryPropertyFlagsOut;
+    VkDeviceSize sizeOut;
+    ANGLE_TRY(AllocateBufferMemory(context, requiredFlags, &memoryPropertyFlagsOut, nullptr,
+                                   &buffer.get(), &deviceMemory.get(), &sizeOut));
+    ASSERT(sizeOut >= createInfo->size);
+
+    mSuballocation.initWithEntireBuffer(context, buffer.get(), deviceMemory.get(),
+                                        memoryPropertyFlagsOut, requestedCreateInfo.size);
 
     if (isHostVisible())
     {
@@ -3921,16 +3899,13 @@ angle::Result BufferHelper::initExternal(ContextVk *contextVk,
     DeviceScoped<Buffer> buffer(renderer->getDevice());
     ANGLE_VK_TRY(contextVk, buffer.get().init(renderer->getDevice(), modifiedCreateInfo));
 
+    DeviceScoped<DeviceMemory> deviceMemory(renderer->getDevice());
     VkMemoryPropertyFlags memoryPropertyFlagsOut;
     ANGLE_TRY(InitAndroidExternalMemory(contextVk, clientBuffer, memoryProperties, &buffer.get(),
-                                        &memoryPropertyFlagsOut,
-                                        mMemory.getExternalMemoryObject()));
+                                        &memoryPropertyFlagsOut, &deviceMemory.get()));
 
-    ANGLE_TRY(mMemory.initExternal(clientBuffer));
-
-    ANGLE_VK_TRY(contextVk, mSuballocation.initWithEntireBuffer(
-                                contextVk, buffer.get(), *mMemory.getMemoryObject(),
-                                memoryPropertyFlagsOut, requestedCreateInfo.size));
+    mSuballocation.initWithEntireBuffer(contextVk, buffer.get(), deviceMemory.get(),
+                                        memoryPropertyFlagsOut, requestedCreateInfo.size);
 
     if (isHostVisible())
     {
@@ -4085,6 +4060,8 @@ angle::Result BufferHelper::initializeNonZeroMemory(Context *context,
 
         commandBuffer.copyBuffer(stagingBuffer.getBuffer(), getBuffer(), 1, &copyRegion);
 
+        ANGLE_VK_TRY(context, commandBuffer.end());
+
         Serial serial;
         ANGLE_TRY(renderer->queueSubmitOneOff(context, std::move(commandBuffer), false,
                                               egl::ContextPriority::Medium, nullptr, 0, nullptr,
@@ -4098,7 +4075,6 @@ angle::Result BufferHelper::initializeNonZeroMemory(Context *context,
     }
     else if (isHostVisible())
     {
-        const Allocator &allocator = renderer->getAllocator();
         // Can map the memory.
         // Pick an arbitrary value to initialize non-zero memory for sanitization.
         constexpr int kNonZeroInitValue = 55;
@@ -4106,7 +4082,7 @@ angle::Result BufferHelper::initializeNonZeroMemory(Context *context,
         memset(mapPointer, kNonZeroInitValue, static_cast<size_t>(getSize()));
         if (!isCoherent())
         {
-            mSuballocation.flush(allocator);
+            mSuballocation.flush(renderer->getDevice());
         }
     }
 
@@ -4118,22 +4094,13 @@ void BufferHelper::destroy(RendererVk *renderer)
     unmap(renderer);
 
     mSuballocation.destroy(renderer);
-    mMemory.destroy(renderer);
 }
 
 void BufferHelper::release(RendererVk *renderer)
 {
     unmap(renderer);
 
-    if (isExternalBuffer())
-    {
-        renderer->collectGarbageAndReinit(&mReadOnlyUse, &mSuballocation,
-                                          mMemory.getExternalMemoryObject(),
-                                          mMemory.getMemoryObject());
-        mReadWriteUse.release();
-        mReadWriteUse.init();
-    }
-    else if (mSuballocation.valid())
+    if (mSuballocation.valid())
     {
         if (mReadOnlyUse.isCurrentlyInUse(renderer->getLastCompletedQueueSerial()))
         {
@@ -4181,18 +4148,11 @@ angle::Result BufferHelper::copyFromBuffer(ContextVk *contextVk,
 
 angle::Result BufferHelper::map(Context *context, uint8_t **ptrOut)
 {
-    if (isExternalBuffer())
+    if (!mSuballocation.isMapped())
     {
-        ANGLE_TRY(mMemory.map(context, getSize(), ptrOut));
+        ANGLE_VK_TRY(context, mSuballocation.map(context));
     }
-    else
-    {
-        if (!mSuballocation.isMapped())
-        {
-            ANGLE_TRY(mSuballocation.getBlock()->map(context));
-        }
-        *ptrOut = mSuballocation.getMappedMemory();
-    }
+    *ptrOut = mSuballocation.getMappedMemory();
     return angle::Result::Continue;
 }
 
@@ -4204,27 +4164,9 @@ angle::Result BufferHelper::mapWithOffset(ContextVk *contextVk, uint8_t **ptrOut
     return angle::Result::Continue;
 }
 
-void BufferHelper::unmap(RendererVk *renderer)
-{
-    if (isExternalBuffer())
-    {
-        mMemory.unmap(renderer);
-    }
-}
-
 angle::Result BufferHelper::flush(RendererVk *renderer, VkDeviceSize offset, VkDeviceSize size)
 {
-    if (isExternalBuffer())
-    {
-        if (!isCoherent())
-        {
-            mMemory.flush(renderer, offset, size);
-        }
-    }
-    else
-    {
-        mSuballocation.flush(renderer->getAllocator());
-    }
+    mSuballocation.flush(renderer->getDevice());
     return angle::Result::Continue;
 }
 angle::Result BufferHelper::flush(RendererVk *renderer)
@@ -4234,17 +4176,7 @@ angle::Result BufferHelper::flush(RendererVk *renderer)
 
 angle::Result BufferHelper::invalidate(RendererVk *renderer, VkDeviceSize offset, VkDeviceSize size)
 {
-    if (isExternalBuffer())
-    {
-        if (!isCoherent())
-        {
-            mMemory.invalidate(renderer, getMemoryPropertyFlags(), offset, size);
-        }
-    }
-    else
-    {
-        mSuballocation.invalidate(renderer->getAllocator());
-    }
+    mSuballocation.invalidate(renderer->getDevice());
     return angle::Result::Continue;
 }
 angle::Result BufferHelper::invalidate(RendererVk *renderer)
@@ -6378,8 +6310,10 @@ angle::Result ImageHelper::reformatStagedBufferUpdates(ContextVk *contextVk,
 
                 // Retrieve source buffer
                 vk::BufferHelper *srcBuffer = update.data.buffer.bufferHelper;
-                uint8_t *srcData =
-                    srcBuffer->getBufferBlock()->getMappedMemory() + copy.bufferOffset;
+                ASSERT(srcBuffer->isMapped());
+                // The bufferOffset is relative to the buffer block. We have to use the buffer
+                // block's memory pointer to get the source data pointer.
+                uint8_t *srcData = srcBuffer->getBlockMemory() + copy.bufferOffset;
 
                 // Allocate memory with dstFormat
                 std::unique_ptr<RefCounted<BufferHelper>> stagingBuffer =
@@ -7973,6 +7907,62 @@ angle::Result ImageHelper::readPixelsForGetImage(ContextVk *contextVk,
     return angle::Result::Continue;
 }
 
+angle::Result ImageHelper::readPixelsForCompressedGetImage(ContextVk *contextVk,
+                                                           const gl::PixelPackState &packState,
+                                                           gl::Buffer *packBuffer,
+                                                           gl::LevelIndex levelGL,
+                                                           uint32_t layer,
+                                                           uint32_t layerCount,
+                                                           void *pixels)
+{
+    PackPixelsParams params;
+    GLuint outputSkipBytes = 0;
+
+    const LevelIndex levelVk = toVkLevel(levelGL);
+    gl::Extents mipExtents   = getLevelExtents(levelVk);
+    gl::Rectangle area(0, 0, mipExtents.width, mipExtents.height);
+
+    VkImageAspectFlagBits aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+
+    const angle::Format *readFormat = &getActualFormat();
+
+    // TODO(anglebug.com/6177): Implement encoding for emuluated compression formats
+    ANGLE_VK_CHECK(contextVk, readFormat->isBlock, VK_ERROR_FORMAT_NOT_SUPPORTED);
+
+    if (mExtents.depth > 1 || layerCount > 1)
+    {
+        ASSERT(layer == 0);
+        ASSERT(layerCount == 1 || mipExtents.depth == 1);
+
+        uint32_t lastLayer = std::max(static_cast<uint32_t>(mipExtents.depth), layerCount);
+
+        const vk::Format &vkFormat = contextVk->getRenderer()->getFormat(readFormat->id);
+        const gl::InternalFormat &storageFormatInfo =
+            vkFormat.getInternalFormatInfo(readFormat->componentType);
+
+        // Calculate size for one layer
+        mipExtents.depth = 1;
+        GLuint layerSize;
+        ANGLE_VK_CHECK_MATH(contextVk,
+                            storageFormatInfo.computeCompressedImageSize(mipExtents, &layerSize));
+
+        // Depth > 1 means this is a 3D texture and we need to copy all layers
+        for (uint32_t mipLayer = 0; mipLayer < lastLayer; mipLayer++)
+        {
+            ANGLE_TRY(readPixels(contextVk, area, params, aspectFlags, levelGL, mipLayer,
+                                 static_cast<uint8_t *>(pixels) + outputSkipBytes));
+            outputSkipBytes += layerSize;
+        }
+    }
+    else
+    {
+        ANGLE_TRY(readPixels(contextVk, area, params, aspectFlags, levelGL, layer,
+                             static_cast<uint8_t *>(pixels) + outputSkipBytes));
+    }
+
+    return angle::Result::Continue;
+}
+
 bool ImageHelper::canCopyWithTransformForReadPixels(const PackPixelsParams &packPixelsParams,
                                                     const angle::Format *readFormat)
 {
@@ -8038,6 +8028,9 @@ angle::Result ImageHelper::readPixels(ContextVk *contextVk,
     ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
 
     const angle::Format *readFormat = &getActualFormat();
+    const vk::Format &vkFormat      = contextVk->getRenderer()->getFormat(readFormat->id);
+    const gl::InternalFormat &storageFormatInfo =
+        vkFormat.getInternalFormatInfo(readFormat->componentType);
 
     if (copyAspectFlags != VK_IMAGE_ASPECT_COLOR_BIT)
     {
@@ -8141,6 +8134,16 @@ angle::Result ImageHelper::readPixels(ContextVk *contextVk,
     region.imageOffset       = srcOffset;
     region.imageSubresource  = srcSubresource;
 
+    // For compressed textures, vkCmdCopyImageToBuffer requires
+    // a region that is a multiple of the block size.
+    if (readFormat->isBlock)
+    {
+        region.bufferRowLength =
+            roundUp(region.bufferRowLength, storageFormatInfo.compressedBlockWidth);
+        region.bufferImageHeight =
+            roundUp(region.bufferImageHeight, storageFormatInfo.compressedBlockHeight);
+    }
+
     CommandBufferAccess readbackAccess;
     readbackAccess.onBufferTransferWrite(stagingBuffer);
 
@@ -8156,7 +8159,19 @@ angle::Result ImageHelper::readPixels(ContextVk *contextVk,
     // TODO(jmadill): Don't block on asynchronous readback.
     ANGLE_TRY(contextVk->finishImpl(RenderPassClosureReason::GLReadPixels));
 
-    if (packPixelsParams.packBuffer)
+    if (readFormat->isBlock)
+    {
+        const LevelIndex levelVk = toVkLevel(levelGL);
+        gl::Extents levelExtents = getLevelExtents(levelVk);
+
+        // Calculate size of one layer
+        levelExtents.depth = 1;
+        GLuint layerSize;
+        ANGLE_VK_CHECK_MATH(contextVk,
+                            storageFormatInfo.computeCompressedImageSize(levelExtents, &layerSize));
+        memcpy(pixels, readPixelBuffer, layerSize);
+    }
+    else if (packPixelsParams.packBuffer)
     {
         // Must map the PBO in order to read its contents (and then unmap it later)
         BufferVk *packBufferVk = GetImpl(packPixelsParams.packBuffer);

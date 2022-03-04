@@ -101,6 +101,8 @@ const ProcEntry g_procTable[] = {
     {"eglQueryDeviceStringEXT", P(EGL_QueryDeviceStringEXT)},
     {"eglQueryDisplayAttribANGLE", P(EGL_QueryDisplayAttribANGLE)},
     {"eglQueryDisplayAttribEXT", P(EGL_QueryDisplayAttribEXT)},
+    {"eglQueryDmaBufFormatsEXT", P(EGL_QueryDmaBufFormatsEXT)},
+    {"eglQueryDmaBufModifiersEXT", P(EGL_QueryDmaBufModifiersEXT)},
     {"eglQueryStreamKHR", P(EGL_QueryStreamKHR)},
     {"eglQueryStreamu64KHR", P(EGL_QueryStreamu64KHR)},
     {"eglQueryString", P(EGL_QueryString)},
@@ -114,6 +116,7 @@ const ProcEntry g_procTable[] = {
     {"eglReleaseTexImage", P(EGL_ReleaseTexImage)},
     {"eglReleaseThread", P(EGL_ReleaseThread)},
     {"eglSetBlobCacheFuncsANDROID", P(EGL_SetBlobCacheFuncsANDROID)},
+    {"eglSetDamageRegionKHR", P(EGL_SetDamageRegionKHR)},
     {"eglSignalSyncKHR", P(EGL_SignalSyncKHR)},
     {"eglStreamAttribKHR", P(EGL_StreamAttribKHR)},
     {"eglStreamConsumerAcquireKHR", P(EGL_StreamConsumerAcquireKHR)},
@@ -931,5 +934,5 @@ const ProcEntry g_procTable[] = {
     {"glWaitSync", P(GL_WaitSync)},
     {"glWeightPointerOES", P(GL_WeightPointerOES)}};
 
-const size_t g_numProcs = 898;
+const size_t g_numProcs = 901;
 }  // namespace egl

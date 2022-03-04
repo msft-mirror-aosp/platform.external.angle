@@ -94,9 +94,9 @@ class DisplayImpl : public EGLImplFactory, public angle::Subject
                                       EGLNativePixmapType pixmap,
                                       const egl::AttributeMap &attributes) const;
 
-    virtual std::string getRendererDescription() = 0;
-    virtual std::string getVendorString()        = 0;
-    virtual std::string getVersionString()       = 0;
+    virtual std::string getRendererDescription()                  = 0;
+    virtual std::string getVendorString()                         = 0;
+    virtual std::string getVersionString(bool includeFullVersion) = 0;
 
     virtual DeviceImpl *createDevice();
 
@@ -120,6 +120,8 @@ class DisplayImpl : public EGLImplFactory, public angle::Subject
     const egl::DisplayState &getState() const { return mState; }
 
     virtual egl::Error handleGPUSwitch();
+
+    virtual bool isX11() const;
 
   protected:
     const egl::DisplayState &mState;

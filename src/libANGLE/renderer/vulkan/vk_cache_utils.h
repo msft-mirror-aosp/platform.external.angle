@@ -434,8 +434,10 @@ static_assert(kPackedStencilOpSize == 4, "Size check failed");
 
 struct DepthStencilEnableFlags final
 {
-    uint8_t depthTest : 2;  // these only need one bit each. the extra is used as padding.
-    uint8_t depthWrite : 2;
+    uint8_t viewportNegativeOneToOne : 1;
+
+    uint8_t depthTest : 1;
+    uint8_t depthWrite : 2;  // these only need one bit each. the extra is used as padding.
     uint8_t depthBoundsTest : 2;
     uint8_t stencilTest : 2;
 };
@@ -594,9 +596,13 @@ class GraphicsPipelineDesc final
                            GLuint relativeOffset);
 
     // Input assembly info
+    void setTopology(gl::PrimitiveMode drawMode);
     void updateTopology(GraphicsPipelineTransitionBits *transition, gl::PrimitiveMode drawMode);
     void updatePrimitiveRestartEnabled(GraphicsPipelineTransitionBits *transition,
                                        bool primitiveRestartEnabled);
+
+    // Viewport states
+    void updateDepthClipControl(GraphicsPipelineTransitionBits *transition, bool negativeOneToOne);
 
     // Raster states
     void setCullMode(VkCullModeFlagBits cullMode);
@@ -630,6 +636,11 @@ class GraphicsPipelineDesc final
                               const RenderPassDesc &renderPassDesc);
 
     // Blend states
+    void setSingleBlend(uint32_t colorIndexGL,
+                        bool enabled,
+                        VkBlendOp op,
+                        VkBlendFactor srcFactor,
+                        VkBlendFactor dstFactor);
     void updateBlendEnabled(GraphicsPipelineTransitionBits *transition,
                             gl::DrawBufferMask blendEnabledMask);
     void updateBlendColor(GraphicsPipelineTransitionBits *transition, const gl::ColorF &color);
@@ -798,15 +809,16 @@ constexpr size_t kMaxDescriptorSetLayouts = 4;
 
 struct PackedPushConstantRange
 {
-    uint32_t offset;
-    uint32_t size;
+    uint8_t offset;
+    uint8_t size;
+    uint16_t stageMask;
 };
+
+static_assert(sizeof(PackedPushConstantRange) == sizeof(uint32_t), "Unexpected Size");
 
 template <typename T>
 using DescriptorSetArray              = angle::PackedEnumMap<DescriptorSetIndex, T>;
 using DescriptorSetLayoutPointerArray = DescriptorSetArray<BindingPointer<DescriptorSetLayout>>;
-template <typename T>
-using PushConstantRangeArray = gl::ShaderMap<T>;
 
 class PipelineLayoutDesc final
 {
@@ -821,26 +833,24 @@ class PipelineLayoutDesc final
 
     void updateDescriptorSetLayout(DescriptorSetIndex setIndex,
                                    const DescriptorSetLayoutDesc &desc);
-    void updatePushConstantRange(gl::ShaderType shaderType, uint32_t offset, uint32_t size);
+    void updatePushConstantRange(VkShaderStageFlags stageMask, uint32_t offset, uint32_t size);
 
-    const PushConstantRangeArray<PackedPushConstantRange> &getPushConstantRanges() const;
+    const PackedPushConstantRange &getPushConstantRange() const { return mPushConstantRange; }
 
   private:
     DescriptorSetArray<DescriptorSetLayoutDesc> mDescriptorSetLayouts;
-    PushConstantRangeArray<PackedPushConstantRange> mPushConstantRanges;
+    PackedPushConstantRange mPushConstantRange;
+    ANGLE_MAYBE_UNUSED uint32_t mPadding;
 
     // Verify the arrays are properly packed.
     static_assert(sizeof(decltype(mDescriptorSetLayouts)) ==
                       (sizeof(DescriptorSetLayoutDesc) * kMaxDescriptorSetLayouts),
                   "Unexpected size");
-    static_assert(sizeof(decltype(mPushConstantRanges)) ==
-                      (sizeof(PackedPushConstantRange) * angle::EnumSize<gl::ShaderType>()),
-                  "Unexpected size");
 };
 
 // Verify the structure is properly packed.
-static_assert(sizeof(PipelineLayoutDesc) == (sizeof(DescriptorSetArray<DescriptorSetLayoutDesc>) +
-                                             sizeof(gl::ShaderMap<PackedPushConstantRange>)),
+static_assert(sizeof(PipelineLayoutDesc) == sizeof(DescriptorSetArray<DescriptorSetLayoutDesc>) +
+                                                sizeof(PackedPushConstantRange) + sizeof(uint32_t),
               "Unexpected Size");
 
 struct YcbcrConversionDesc final
@@ -1510,6 +1520,7 @@ class CacheStats final : angle::NonCopyable
     {
         mHitCount += stats.mHitCount;
         mMissCount += stats.mMissCount;
+        mSize = stats.mSize;
     }
 
     uint64_t getHitCount() const { return mHitCount; }
@@ -1527,15 +1538,21 @@ class CacheStats final : angle::NonCopyable
         }
     }
 
+    ANGLE_INLINE void incrementSize() { ++mSize; }
+
+    ANGLE_INLINE uint64_t getSize() const { return mSize; }
+
     void reset()
     {
         mHitCount  = 0;
         mMissCount = 0;
+        mSize      = 0;
     }
 
   private:
     uint64_t mHitCount;
     uint64_t mMissCount;
+    uint64_t mSize;
 };
 
 template <VulkanCacheType CacheType>
@@ -1769,8 +1786,11 @@ class DriverUniformsDescriptorSetCache final
 
     ANGLE_INLINE void clear() { mPayload.clear(); }
 
+    size_t getSize() const { return mPayload.size(); }
+
   private:
-    angle::FastIntegerMap<VkDescriptorSet> mPayload;
+    static constexpr uint32_t kFlatMapSize = 16;
+    angle::FlatUnorderedMap<uint32_t, VkDescriptorSet, kFlatMapSize> mPayload;
 };
 
 // Templated Descriptors Cache
@@ -1798,6 +1818,7 @@ class DescriptorSetCache final : angle::NonCopyable
     ANGLE_INLINE void insert(const vk::DescriptorSetDesc &desc, VkDescriptorSet descriptorSet)
     {
         mPayload.emplace(desc, descriptorSet);
+        mCacheStats.incrementSize();
     }
 
     template <typename Accumulator>

@@ -376,12 +376,6 @@ VkRectLayerKHR ToVkRectLayer(const EGLint *eglRect,
 
 }  // namespace
 
-#if defined(ANGLE_ENABLE_OVERLAY)
-constexpr bool kEnableOverlay = ANGLE_ENABLE_OVERLAY;
-#else
-constexpr bool kEnableOverlay = false;
-#endif
-
 SurfaceVk::SurfaceVk(const egl::SurfaceState &surfaceState) : SurfaceImpl(surfaceState) {}
 
 SurfaceVk::~SurfaceVk() = default;
@@ -1284,17 +1278,6 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context,
         imageUsageFlags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
     }
 
-    // We need storage image for compute writes (debug overlay output).
-    if (kEnableOverlay)
-    {
-        VkFormatFeatureFlags featureBits = renderer->getImageFormatFeatureBits(
-            format.getActualRenderableImageFormatID(), VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT);
-        if ((featureBits & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT) != 0)
-        {
-            imageUsageFlags |= VK_IMAGE_USAGE_STORAGE_BIT;
-        }
-    }
-
     VkSwapchainCreateInfoKHR swapchainInfo = {};
     swapchainInfo.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchainInfo.flags = mState.hasProtectedContent() ? VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR : 0;
@@ -1648,6 +1631,11 @@ angle::Result WindowSurfaceVk::computePresentOutOfDate(vk::Context *context,
 
 vk::Framebuffer &WindowSurfaceVk::chooseFramebuffer()
 {
+    if (isMultiSampled())
+    {
+        return mFramebufferMS;
+    }
+
     // Choose which framebuffer to use based on fetch, so it will have a matching renderpass
     return mFramebufferFetchMode == FramebufferFetchMode::Enabled
                ? mSwapchainImages[mCurrentSwapchainImageIndex].fetchFramebuffer
@@ -1676,7 +1664,6 @@ angle::Result WindowSurfaceVk::present(ContextVk *contextVk,
     vk::Framebuffer &currentFramebuffer = chooseFramebuffer();
 
     updateOverlay(contextVk);
-    bool overlayHasWidget = overlayHasEnabledWidget(contextVk);
 
     // Make sure deferred clears are applied, if any.
     ANGLE_TRY(
@@ -1685,9 +1672,10 @@ angle::Result WindowSurfaceVk::present(ContextVk *contextVk,
     // We can only do present related optimization if this is the last renderpass that touches the
     // swapchain image. MSAA resolve and overlay will insert another renderpass which disqualifies
     // the optimization.
-    if (!mColorImageMS.valid() && !overlayHasWidget && currentFramebuffer.valid())
+    if (currentFramebuffer.valid())
     {
-        contextVk->optimizeRenderPassForPresent(currentFramebuffer.getHandle());
+        contextVk->optimizeRenderPassForPresent(
+            currentFramebuffer.getHandle(), mColorImageMS.valid() ? &mColorImageMS : &image.image);
     }
 
     // Because the color attachment defers layout changes until endRenderPass time, we must call
@@ -1721,7 +1709,7 @@ angle::Result WindowSurfaceVk::present(ContextVk *contextVk,
         mColorImageMS.resolve(&image.image, resolveRegion, commandBuffer);
     }
 
-    if (overlayHasWidget)
+    if (overlayHasEnabledWidget(contextVk))
     {
         ANGLE_TRY(drawOverlay(contextVk, &image));
         ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
@@ -2173,7 +2161,7 @@ angle::Result WindowSurfaceVk::getCurrentFramebuffer(ContextVk *contextVk,
     // Track the new fetch mode
     mFramebufferFetchMode = fetchMode;
 
-    vk::Framebuffer &currentFramebuffer = isMultiSampled() ? mFramebufferMS : chooseFramebuffer();
+    vk::Framebuffer &currentFramebuffer = chooseFramebuffer();
 
     if (currentFramebuffer.valid())
     {

@@ -99,6 +99,11 @@ class TransformFeedbackVk : public TransformFeedbackImpl, public angle::Observer
 
     vk::DescriptorSetDesc &getTransformFeedbackDesc() { return mXFBBuffersDesc; }
 
+    const gl::TransformFeedbackBuffersArray<VkDeviceSize> &getCounterBufferOffsets() const
+    {
+        return mCounterBufferOffsets;
+    }
+
     void onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message) override;
 
   private:
@@ -123,12 +128,10 @@ class TransformFeedbackVk : public TransformFeedbackImpl, public angle::Observer
     gl::TransformFeedbackBuffersArray<VkDeviceSize> mBufferOffsets;
     gl::TransformFeedbackBuffersArray<VkDeviceSize> mBufferSizes;
 
-    // Aligned offset for emulation. Could be smaller than offset.
-    gl::TransformFeedbackBuffersArray<VkDeviceSize> mAlignedBufferOffsets;
-
     // Counter buffer used for pause and resume.
     gl::TransformFeedbackBuffersArray<vk::BufferHelper> mCounterBufferHelpers;
     gl::TransformFeedbackBuffersArray<VkBuffer> mCounterBufferHandles;
+    gl::TransformFeedbackBuffersArray<VkDeviceSize> mCounterBufferOffsets;
 
     // Keys to look up in the descriptor set cache
     vk::DescriptorSetDesc mXFBBuffersDesc;

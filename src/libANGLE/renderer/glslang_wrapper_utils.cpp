@@ -135,7 +135,13 @@ ShaderInterfaceVariableInfo *AddLocationInfo(ShaderInterfaceVariableInfoMap *inf
 
     ASSERT(info.descriptorSet == ShaderInterfaceVariableInfo::kInvalid);
     ASSERT(info.binding == ShaderInterfaceVariableInfo::kInvalid);
-    ASSERT(info.location == ShaderInterfaceVariableInfo::kInvalid);
+    if (info.location != ShaderInterfaceVariableInfo::kInvalid)
+    {
+        // TODO: Correctly support in and out interface variables with identical name.
+        // anglebug.com/4524
+        ASSERT(info.location == location);
+        ASSERT(info.component == component);
+    }
     ASSERT(info.component == ShaderInterfaceVariableInfo::kInvalid);
 
     info.location  = location;
@@ -3431,6 +3437,9 @@ TransformationState SpirvTransformer::transformDecorate(const uint32_t *instruct
                 mXfbCodeGenerator.addMemberDecorate(*info, id, mSpirvBlobOut);
             }
             break;
+        case spv::DecorationInvariant:
+            spirv::WriteDecorate(mSpirvBlobOut, id, spv::DecorationInvariant, {});
+            return TransformationState::Transformed;
         default:
             break;
     }

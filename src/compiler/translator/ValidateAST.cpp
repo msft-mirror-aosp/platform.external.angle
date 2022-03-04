@@ -119,6 +119,10 @@ class ValidateAST : public TIntermTraverser
 
     // For validateMultiDeclarations:
     bool mMultiDeclarationsFailed = false;
+
+    // For validateNoStatementsAfterBranch:
+    bool mIsBranchVisitedInBlock        = false;
+    bool mNoStatementsAfterBranchFailed = false;
 };
 
 bool IsSameType(const TType &a, const TType &b)
@@ -181,6 +185,18 @@ void ValidateAST::visitNode(Visit visit, TIntermNode *node)
             mParent[child] = node;
         }
     }
+
+    if (visit == PreVisit && mOptions.validateNoStatementsAfterBranch)
+    {
+        // If a branch has already been visited in this block, there should be no statements that
+        // follow.  Only expected node visit should be PostVisit of the block.
+        if (mIsBranchVisitedInBlock)
+        {
+            mDiagnostics->error(node->getLine(), "Found dead code after branch",
+                                "<validateNoStatementsAfterBranch>");
+            mNoStatementsAfterBranchFailed = true;
+        }
+    }
 }
 
 void ValidateAST::visitStructOrInterfaceBlockDeclaration(const TType &type,
@@ -198,18 +214,27 @@ void ValidateAST::visitStructOrInterfaceBlockDeclaration(const TType &type,
     if (structOrBlock)
     {
         ASSERT(!typeName.empty());
-
-        // Allow gl_PerVertex to be doubly-defined.
-        if (typeName == "gl_PerVertex")
+        // Structures are not allowed to be doubly defined
+        if (type.getStruct() == nullptr)
         {
+            // Allow interfaces to be doubly-defined.
+            std::string name(typeName.data());
+
             if (IsShaderIn(type.getQualifier()))
             {
-                typeName = ImmutableString("gl_PerVertex<input>");
+                typeName = ImmutableString(name + "<input>");
             }
-            else
+            else if (IsShaderOut(type.getQualifier()))
             {
-                ASSERT(IsShaderOut(type.getQualifier()));
-                typeName = ImmutableString("gl_PerVertex<output>");
+                typeName = ImmutableString(name + "<output>");
+            }
+            else if (IsStorageBuffer(type.getQualifier()))
+            {
+                typeName = ImmutableString(name + "<buffer>");
+            }
+            else if (type.getQualifier() == EvqUniform)
+            {
+                typeName = ImmutableString(name + "<uniform>");
             }
         }
 
@@ -726,7 +751,12 @@ bool ValidateAST::visitSwitch(Visit visit, TIntermSwitch *node)
 
 bool ValidateAST::visitCase(Visit visit, TIntermCase *node)
 {
+    // Case is allowed to come after a branch, and for dead-code-elimination purposes acts as if a
+    // new block is started.
+    mIsBranchVisitedInBlock = false;
+
     visitNode(visit, node);
+
     return true;
 }
 
@@ -866,6 +896,18 @@ bool ValidateAST::visitBlock(Visit visit, TIntermBlock *node)
     visitNode(visit, node);
     scope(visit);
     expectNonNullChildren(visit, node, 0);
+
+    if (visit == PostVisit)
+    {
+        // If the parent is a block and mIsBranchVisitedInBlock is set, this is a nested block
+        // without any condition (like if, loop or switch), so the rest of the parent block is also
+        // dead code.  Otherwise the parent block can contain code after this.
+        if (getParentNode() == nullptr || getParentNode()->getAsBlock() == nullptr)
+        {
+            mIsBranchVisitedInBlock = false;
+        }
+    }
+
     return true;
 }
 
@@ -1018,6 +1060,12 @@ bool ValidateAST::visitLoop(Visit visit, TIntermLoop *node)
 bool ValidateAST::visitBranch(Visit visit, TIntermBranch *node)
 {
     visitNode(visit, node);
+
+    if (visit == PostVisit)
+    {
+        mIsBranchVisitedInBlock = true;
+    }
+
     return true;
 }
 
@@ -1031,7 +1079,7 @@ bool ValidateAST::validateInternal()
     return !mSingleParentFailed && !mVariableReferencesFailed && !mBuiltInOpsFailed &&
            !mFunctionCallFailed && !mNoRawFunctionCallsFailed && !mNullNodesFailed &&
            !mQualifiersFailed && !mPrecisionFailed && !mStructUsageFailed &&
-           !mExpressionTypesFailed && !mMultiDeclarationsFailed;
+           !mExpressionTypesFailed && !mMultiDeclarationsFailed && !mNoStatementsAfterBranchFailed;
 }
 
 }  // anonymous namespace

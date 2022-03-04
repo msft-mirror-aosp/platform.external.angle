@@ -63,19 +63,6 @@ struct TextureUnit final
 class BufferHelper;
 using BufferHelperPointerVector = std::vector<std::unique_ptr<BufferHelper>>;
 
-enum class DynamicBufferPolicy
-{
-    // Used where future allocations from the dynamic buffer are unlikely, so it's best to free the
-    // memory when the allocated buffers are no longer in use.
-    OneShotUse,
-    // Used where multiple small allocations are made every frame, so it's worth keeping the free
-    // buffers around to avoid release/reallocation.
-    FrequentSmallAllocations,
-    // Used where bursts of allocation happen occasionally, but the steady state may make
-    // allocations every now and then.  In that case, a limited number of buffers are retained.
-    SporadicTextureUpload,
-};
-
 class DynamicBuffer : angle::NonCopyable
 {
   public:
@@ -87,8 +74,7 @@ class DynamicBuffer : angle::NonCopyable
               VkBufferUsageFlags usage,
               size_t alignment,
               size_t initialSize,
-              bool hostVisible,
-              DynamicBufferPolicy policy);
+              bool hostVisible);
 
     // This call will allocate a new region at the end of the current buffer. If it can't find
     // enough space in the current buffer, it returns false. This gives caller a chance to deal with
@@ -138,7 +124,6 @@ class DynamicBuffer : angle::NonCopyable
 
     VkBufferUsageFlags mUsage;
     bool mHostVisible;
-    DynamicBufferPolicy mPolicy;
     size_t mInitialSize;
     std::unique_ptr<BufferHelper> mBuffer;
     uint32_t mNextAllocationOffset;
@@ -728,9 +713,13 @@ class BufferHelper : public ReadWriteResource
     void release(RendererVk *renderer);
 
     BufferSerial getBufferSerial() const { return mSerial; }
+    BufferSerial getBlockSerial() const
+    {
+        ASSERT(mSuballocation.valid());
+        return mSuballocation.getBlockSerial();
+    }
     bool valid() const { return mSuballocation.valid(); }
     const Buffer &getBuffer() const { return mSuballocation.getBuffer(); }
-    const BufferBlock *getBufferBlock() const { return mSuballocation.getBlock(); }
     VkDeviceSize getOffset() const { return mSuballocation.getOffset(); }
     VkDeviceSize getSize() const { return mSuballocation.getSize(); }
     VkMemoryMapFlags getMemoryPropertyFlags() const
@@ -740,13 +729,15 @@ class BufferHelper : public ReadWriteResource
     uint8_t *getMappedMemory() const
     {
         ASSERT(isMapped());
-        return isExternalBuffer() ? mMemory.getMappedMemory() : mSuballocation.getMappedMemory();
+        return mSuballocation.getMappedMemory();
     }
+    // Returns the main buffer block's pointer.
+    uint8_t *getBlockMemory() const { return mSuballocation.getBlockMemory(); }
+    VkDeviceSize getBlockMemorySize() const { return mSuballocation.getBlockMemorySize(); }
     bool isHostVisible() const { return mSuballocation.isHostVisible(); }
     bool isCoherent() const { return mSuballocation.isCoherent(); }
 
-    bool isMapped() const { return isExternalBuffer() ? true : mSuballocation.isMapped(); }
-    bool isExternalBuffer() const { return mMemory.isExternalBuffer(); }
+    bool isMapped() const { return mSuballocation.isMapped(); }
 
     // Also implicitly sets up the correct barriers.
     angle::Result copyFromBuffer(ContextVk *contextVk,
@@ -756,8 +747,7 @@ class BufferHelper : public ReadWriteResource
 
     angle::Result map(Context *context, uint8_t **ptrOut);
     angle::Result mapWithOffset(ContextVk *contextVk, uint8_t **ptrOut, size_t offset);
-
-    void unmap(RendererVk *renderer);
+    void unmap(RendererVk *renderer) {}
     // After a sequence of writes, call flush to ensure the data is visible to the device.
     angle::Result flush(RendererVk *renderer);
     angle::Result flush(RendererVk *renderer, VkDeviceSize offset, VkDeviceSize size);
@@ -792,16 +782,18 @@ class BufferHelper : public ReadWriteResource
     void fillWithColor(const angle::Color<uint8_t> &color,
                        const gl::InternalFormat &internalFormat);
 
-    BufferSuballocation &getSuballocation() { return mSuballocation; }
-
   private:
     void initializeBarrierTracker(Context *context);
     angle::Result initializeNonZeroMemory(Context *context,
                                           VkBufferUsageFlags usage,
                                           VkDeviceSize size);
 
-    // For external memory only
-    BufferMemory mMemory;
+    // Only called by DynamicBuffer.
+    friend class DynamicBuffer;
+    void setSuballocationOffsetAndSize(VkDeviceSize offset, VkDeviceSize size)
+    {
+        mSuballocation.setOffsetAndSize(offset, size);
+    }
 
     // Suballocation object.
     BufferSuballocation mSuballocation;
@@ -1006,7 +998,8 @@ class CommandBufferHelperCommon : angle::NonCopyable
 
     // Tracks resources used in the command buffer.
     // For Buffers, we track the read/write access type so we can enable simultaneous reads.
-    angle::FastIntegerMap<BufferAccess> mUsedBuffers;
+    static constexpr uint32_t kFlatMapSize = 16;
+    angle::FlatUnorderedMap<BufferSerial, BufferAccess, kFlatMapSize> mUsedBuffers;
 };
 
 class OutsideRenderPassCommandBufferHelper final : public CommandBufferHelperCommon
@@ -1131,6 +1124,7 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
 
     void beginTransformFeedback(size_t validBufferCount,
                                 const VkBuffer *counterBuffers,
+                                const VkDeviceSize *counterBufferOffsets,
                                 bool rebindBuffers);
 
     void endTransformFeedback();
@@ -1260,6 +1254,7 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
 
     // Transform feedback state
     gl::TransformFeedbackBuffersArray<VkBuffer> mTransformFeedbackCounterBuffers;
+    gl::TransformFeedbackBuffersArray<VkDeviceSize> mTransformFeedbackCounterBufferOffsets;
     uint32_t mValidTransformFeedbackBufferCount;
     bool mRebindTransformFeedbackBuffers;
     bool mIsTransformFeedbackActiveUnpaused;
@@ -1288,7 +1283,7 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     // Tracks resources used in the command buffer.
     // Images have unique layouts unlike buffers therefore we can't support simultaneous reads with
     // different layout.
-    angle::FastIntegerSet mRenderPassUsedImages;
+    angle::FlatUnorderedSet<ImageSerial, kFlatMapSize> mRenderPassUsedImages;
 
     ImageHelper *mDepthStencilImage;
     ImageHelper *mDepthStencilResolveImage;
@@ -1962,6 +1957,14 @@ class ImageHelper final : public Resource, public angle::Subject
                                         GLenum type,
                                         void *pixels);
 
+    angle::Result readPixelsForCompressedGetImage(ContextVk *contextVk,
+                                                  const gl::PixelPackState &packState,
+                                                  gl::Buffer *packBuffer,
+                                                  gl::LevelIndex levelGL,
+                                                  uint32_t layer,
+                                                  uint32_t layerCount,
+                                                  void *pixels);
+
     angle::Result readPixels(ContextVk *contextVk,
                              const gl::Rectangle &area,
                              const PackPixelsParams &packPixelsParams,
@@ -2300,7 +2303,7 @@ class ImageHelper final : public Resource, public angle::Subject
 
 ANGLE_INLINE bool RenderPassCommandBufferHelper::usesImage(const ImageHelper &image) const
 {
-    return mRenderPassUsedImages.contains(image.getImageSerial().getValue());
+    return mRenderPassUsedImages.contains(image.getImageSerial());
 }
 
 // A vector of image views, such as one per level or one per layer.

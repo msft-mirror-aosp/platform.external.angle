@@ -536,6 +536,34 @@ std::string BuildBigInitialStackShader(int length)
     return result;
 }
 
+// Tests a shader from conformance.olges/GL/build/build_017_to_024
+// This shader uses chained assign-equals ops with swizzle, often reusing the same variable
+// as part of a swizzle.
+
+// Skipped on NV: angleproject:7029
+TEST_P(GLSLTest, SwizzledChainedAssignIncrement)
+{
+    constexpr char kFS[] =
+        R"(
+        precision mediump float;
+        void main() {
+            vec2 v = vec2(1,5);
+            // at the end of next statement, values in
+            // v.x = 12, v.y = 12
+            v.xy += v.yx += v.xy;
+            // v1 and v2, both are initialized with (12,12)
+            vec2 v1 = v, v2 = v;
+            v1.xy += v2.yx += ++(v.xy);  // v1 = 37, v2 = 25 each
+            v1.xy += v2.yx += (v.xy)++;  // v1 = 75, v2 = 38 each
+            gl_FragColor = vec4(v1,v2)/255.;  // 75, 75, 38, 38
+        })";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor(75, 75, 38, 38));
+}
+
 TEST_P(GLSLTest, NamelessScopedStructs)
 {
     constexpr char kFS[] = R"(precision mediump float;
@@ -5828,6 +5856,45 @@ TEST_P(GLSLTest_ES3, ConstantStatementAsLoopInit)
     glDeleteShader(shader);
 }
 
+// Tests that using a constant condition guarding a discard works
+// Covers a failing case in the Vulkan backend: http://anglebug.com/7033
+TEST_P(GLSLTest_ES3, ConstantConditionGuardingDiscard)
+{
+    constexpr char kFS[] = R"(#version 300 es
+void main()
+{
+    if (true)
+    {
+        discard;
+    }
+})";
+
+    GLuint shader = CompileShader(GL_FRAGMENT_SHADER, kFS);
+    EXPECT_NE(0u, shader);
+    glDeleteShader(shader);
+}
+
+// Tests that nesting a discard in unconditional blocks works
+// Covers a failing case in the Vulkan backend: http://anglebug.com/7033
+TEST_P(GLSLTest_ES3, NestedUnconditionalDiscards)
+{
+    constexpr char kFS[] = R"(#version 300 es
+out mediump vec4 c;
+void main()
+{
+    {
+        c = vec4(0);
+        {
+            discard;
+        }
+    }
+})";
+
+    GLuint shader = CompileShader(GL_FRAGMENT_SHADER, kFS);
+    EXPECT_NE(0u, shader);
+    glDeleteShader(shader);
+}
+
 // Test that uninitialized local variables are initialized to 0.
 TEST_P(WebGL2GLSLTest, InitUninitializedLocals)
 {
@@ -6481,6 +6548,86 @@ TEST_P(GLSLTest_ES31, VaryingSampleInAndOutDifferentPrecision)
     ASSERT_GL_NO_ERROR();
 
     EXPECT_PIXEL_COLOR_EQ(getWindowWidth() - 1, 0, GLColor::red);
+}
+
+// Test that a shader IO block varying whose block name is declared multiple(in/out) time links
+// successfully.
+TEST_P(GLSLTest_ES31, VaryingIOBlockDeclaredAsInAndOut)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_tessellation_shader"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_io_blocks"));
+
+    constexpr char kVS[] = R"(#version 310 es
+    #extension GL_EXT_shader_io_blocks : require
+    precision highp float;
+    in vec4 inputAttribute;
+    out Vertex
+    {
+        vec4 fv;
+    } outVertex;
+    void main()
+    {
+        gl_Position = inputAttribute;
+        outVertex.fv = gl_Position;
+    })";
+
+    constexpr char kTCS[] = R"(#version 310 es
+    #extension GL_EXT_tessellation_shader : require
+    #extension GL_EXT_shader_io_blocks : require
+    precision mediump float;
+    in Vertex
+    {
+        vec4 fv;
+    } inVertex[];
+    layout(vertices = 2) out;
+    out Vertex
+    {
+        vec4 fv;
+    } outVertex[];
+
+    void main()
+    {
+        gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+        outVertex[gl_InvocationID].fv = inVertex[gl_InvocationID].fv;
+        gl_TessLevelInner[0] = 1.0;
+            gl_TessLevelInner[1] = 1.0;
+            gl_TessLevelOuter[0] = 1.0;
+            gl_TessLevelOuter[1] = 1.0;
+            gl_TessLevelOuter[2] = 1.0;
+            gl_TessLevelOuter[3] = 1.0;
+    })";
+
+    constexpr char kTES[] = R"(#version 310 es
+    #extension GL_EXT_tessellation_shader : require
+    #extension GL_EXT_shader_io_blocks : require
+    precision mediump float;
+    layout (isolines, point_mode) in;
+    in Vertex
+    {
+        vec4 fv;
+    } inVertex[];
+    out vec4 result_fv;
+
+    void main()
+    {
+        gl_Position = gl_in[0].gl_Position;
+        result_fv = inVertex[0].fv;
+    })";
+
+    constexpr char kFS[] = R"(#version 310 es
+    precision mediump float;
+
+    layout(location = 0) out mediump vec4 color;
+
+    void main()
+    {
+        // Output solid green
+        color = vec4(0, 1.0, 0, 1.0);
+    })";
+
+    ANGLE_GL_PROGRAM_WITH_TESS(program, kVS, kTCS, kTES, kFS);
+    drawPatches(program.get(), "inputAttribute", 0.5f, 1.0f, GL_FALSE);
+    ASSERT_GL_NO_ERROR();
 }
 
 // Test that a varying struct that's not declared in the fragment shader links successfully.
