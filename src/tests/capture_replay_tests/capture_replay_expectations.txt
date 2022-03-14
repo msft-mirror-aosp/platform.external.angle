@@ -110,7 +110,8 @@
 6180 WIN : TransformFeedbackTest.DrawWithoutTransformFeedbackThenWith/* = FLAKY
 6180 : TransformFeedbackTest.TransformFeedbackQueryPausedDrawThenResume/* = FLAKY
 6513 : TransformFeedbackTest.MultiContext/* = FLAKY
-
+6180 WIN : TransformFeedbackTest.BufferOutOfMemory/* = FLAKY
+6180 WIN : VertexAttributeTestES3.DrawWithUnalignedData/* = FLAKY
 
 6180 : UniformBufferTest.BlockArrayContainingArrayOfStructs/* = FAIL
 6180 : UniformBufferTest.ManyBlocks/* = FAIL
@@ -124,15 +125,12 @@
 6314 : FramebufferTest_ES3.RenderAndInvalidateImmutableTextureWithBeyondMaxLevel/* = CRASH
 6180 : ImageTestES3.SourceCubeTargetExternalESSL3/* = FAIL
 6334 : MipmapTestES3.GenerateMipmapBaseLevelOutOfRangeImmutableTexture/* = CRASH
-6333 : Texture2DFloatTestES3.TextureHalfFloatLinearLegacyTest/* = CRASH
-6333 : Texture2DFloatTestES3.TextureHalfFloatSampleLegacyTest/* = CRASH
 6334 : Texture2DTestES3.ImmutableTextureBaseLevelOutOfRange/* = CRASH
 6399 : Texture2DTestES3.TexStorage2DCycleThroughYuvSourcesNoData/* = CRASH
 6334 : Texture2DTestES3.TextureBaseLevelGreaterThanMaxLevel/* = CRASH
 6399 : Texture2DTestES3.TexStorage2DSimultaneousUseOfMultipleYuvSourcesNoData/* = CRASH
 6400 : Texture2DTestES3.TextureCompletenessChangesWithBaseLevel/* = CRASH
 6399 : Texture2DTestES3.TexStorage2DLargeYuvTextureCount/* = CRASH
-6314 : Texture2DTestES3.UpdateRenderTargetCacheOnDestroyTexStorage/* = CRASH
 6335 DEBUG : VulkanExternalImageTest.ShouldImportSemaphoreOpaqueFd/* = CRASH
 
 
@@ -205,3 +203,5 @@
 # GLES 3.2 tests that fail because of missing features
 5366 : GeometryShaderTestES32.MaxGeometryImageUniforms/* = CRASH
 5366 : ProgramPipelineTest32.MaxGeometryImageUniforms/* = CRASH
+
+7088 : VulkanPerformanceCounterTest* = SKIP_FOR_CAPTURE
