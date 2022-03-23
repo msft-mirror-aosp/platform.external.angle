@@ -371,11 +371,11 @@ std::string DisplayD3D::getVendorString()
     return std::string();
 }
 
-std::string DisplayD3D::getVersionString(bool includeFullVersion)
+std::string DisplayD3D::getVersionString()
 {
     if (mRenderer)
     {
-        return mRenderer->getVersionString(includeFullVersion);
+        return mRenderer->getVersionString();
     }
     return std::string();
 }
@@ -385,7 +385,7 @@ void DisplayD3D::generateCaps(egl::Caps *outCaps) const
     // Display must be initialized to generate caps
     ASSERT(mRenderer != nullptr);
 
-    outCaps->textureNPOT = mRenderer->getNativeExtensions().textureNpotOES;
+    outCaps->textureNPOT = mRenderer->getNativeExtensions().textureNPOTOES;
 }
 
 egl::Error DisplayD3D::waitClient(const gl::Context *context)

@@ -299,7 +299,6 @@ inline unsigned short float32ToFloat11(float fp32)
             // Convert it to a denormalized value.
             const unsigned int shift = (float32ExponentBias - float11ExponentBias) -
                                        (float32Val >> float32ExponentFirstBit);
-            ASSERT(shift < 32);
             float32Val =
                 ((1 << float32ExponentFirstBit) | (float32Val & float32MantissaMask)) >> shift;
         }
@@ -379,7 +378,6 @@ inline unsigned short float32ToFloat10(float fp32)
             // Convert it to a denormalized value.
             const unsigned int shift = (float32ExponentBias - float10ExponentBias) -
                                        (float32Val >> float32ExponentFirstBit);
-            ASSERT(shift < 32);
             float32Val =
                 ((1 << float32ExponentFirstBit) | (float32Val & float32MantissaMask)) >> shift;
         }
@@ -469,8 +467,9 @@ inline float float10ToFloat32(unsigned short fp10)
     }
 }
 
-// Converts to and from float and 16.16 fixed point format.
-inline float ConvertFixedToFloat(int32_t fixedInput)
+// Convers to and from float and 16.16 fixed point format.
+
+inline float ConvertFixedToFloat(uint32_t fixedInput)
 {
     return static_cast<float>(fixedInput) / 65536.0f;
 }
@@ -1376,13 +1375,6 @@ constexpr T roundUpPow2(const T value, const T alignment)
 {
     ASSERT(gl::isPow2(alignment));
     return (value + alignment - 1) & ~(alignment - 1);
-}
-
-template <typename T>
-constexpr T roundDownPow2(const T value, const T alignment)
-{
-    ASSERT(gl::isPow2(alignment));
-    return value & ~(alignment - 1);
 }
 
 template <typename T>

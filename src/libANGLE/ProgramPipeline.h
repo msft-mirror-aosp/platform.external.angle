@@ -38,7 +38,12 @@ class ProgramPipelineState final : angle::NonCopyable
 
     const std::string &getLabel() const;
 
-    ProgramExecutable &getExecutable() const
+    const ProgramExecutable &getProgramExecutable() const
+    {
+        ASSERT(mExecutable);
+        return *mExecutable;
+    }
+    ProgramExecutable &getProgramExecutable()
     {
         ASSERT(mExecutable);
         return *mExecutable;
@@ -87,7 +92,7 @@ class ProgramPipelineState final : angle::NonCopyable
 class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
                               public LabeledObject,
                               public angle::ObserverInterface,
-                              public angle::Subject
+                              public HasAttachedShaders
 {
   public:
     ProgramPipeline(rx::GLImplFactory *factory, ProgramPipelineID handle);
@@ -101,7 +106,8 @@ class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
     const ProgramPipelineState &getState() const { return mState; }
     ProgramPipelineState &getState() { return mState; }
 
-    ProgramExecutable &getExecutable() const { return mState.getExecutable(); }
+    const ProgramExecutable &getExecutable() const { return mState.getProgramExecutable(); }
+    ProgramExecutable &getExecutable() { return mState.getProgramExecutable(); }
 
     rx::ProgramPipelineImpl *getImplementation() const;
 
@@ -117,9 +123,7 @@ class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
         return program;
     }
 
-    angle::Result useProgramStages(const Context *context,
-                                   GLbitfield stages,
-                                   Program *shaderProgram);
+    void useProgramStages(const Context *context, GLbitfield stages, Program *shaderProgram);
 
     Program *getShaderProgram(ShaderType shaderType) const { return mState.mPrograms[shaderType]; }
 
@@ -128,10 +132,12 @@ class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
     bool linkVaryings(InfoLog &infoLog) const;
     void validate(const gl::Context *context);
     GLboolean isValid() const { return mState.isValid(); }
-    bool isLinked() const { return mState.mIsLinked; }
 
     // ObserverInterface implementation.
     void onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message) override;
+
+    // HasAttachedShaders implementation
+    Shader *getAttachedShader(ShaderType shaderType) const override;
 
   private:
     void updateLinkedShaderStages();
@@ -142,8 +148,8 @@ class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
     void updateExecutableGeometryProperties();
     void updateExecutableTessellationProperties();
     void updateFragmentInoutRange();
-    void updateUsesEarlyFragmentTestsOptimization();
     void updateLinkedVaryings();
+    void updateHasBooleans();
     void updateExecutable();
 
     std::unique_ptr<rx::ProgramPipelineImpl> mProgramPipelineImpl;

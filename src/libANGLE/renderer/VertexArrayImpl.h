@@ -45,14 +45,8 @@ class VertexArrayImpl : angle::NonCopyable
 
     const gl::VertexArrayState &getState() const { return mState; }
 
-    void setContentsObservers(gl::VertexArrayBufferContentsObservers *observers)
-    {
-        mContentsObservers = observers;
-    }
-
   protected:
     const gl::VertexArrayState &mState;
-    gl::VertexArrayBufferContentsObservers *mContentsObservers = nullptr;
 };
 
 inline angle::Result VertexArrayImpl::syncState(const gl::Context *context,

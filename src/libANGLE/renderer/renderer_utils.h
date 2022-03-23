@@ -174,6 +174,7 @@ struct LoadTextureBorderFunctionInfo
 using LoadTextureBorderFunctionMap = LoadTextureBorderFunctionInfo (*)();
 
 bool ShouldUseDebugLayers(const egl::AttributeMap &attribs);
+bool ShouldUseVirtualizedContexts(const egl::AttributeMap &attribs, bool defaultValue);
 
 void CopyImageCHROMIUM(const uint8_t *sourceData,
                        size_t sourceRowPitch,
@@ -375,12 +376,6 @@ angle::Result MultiDrawArraysGeneral(ContextImpl *contextImpl,
                                      const GLint *firsts,
                                      const GLsizei *counts,
                                      GLsizei drawcount);
-angle::Result MultiDrawArraysIndirectGeneral(ContextImpl *contextImpl,
-                                             const gl::Context *context,
-                                             gl::PrimitiveMode mode,
-                                             const void *indirect,
-                                             GLsizei drawcount,
-                                             GLsizei stride);
 angle::Result MultiDrawArraysInstancedGeneral(ContextImpl *contextImpl,
                                               const gl::Context *context,
                                               gl::PrimitiveMode mode,
@@ -395,13 +390,6 @@ angle::Result MultiDrawElementsGeneral(ContextImpl *contextImpl,
                                        gl::DrawElementsType type,
                                        const GLvoid *const *indices,
                                        GLsizei drawcount);
-angle::Result MultiDrawElementsIndirectGeneral(ContextImpl *contextImpl,
-                                               const gl::Context *context,
-                                               gl::PrimitiveMode mode,
-                                               gl::DrawElementsType type,
-                                               const void *indirect,
-                                               GLsizei drawcount,
-                                               GLsizei stride);
 angle::Result MultiDrawElementsInstancedGeneral(ContextImpl *contextImpl,
                                                 const gl::Context *context,
                                                 gl::PrimitiveMode mode,
@@ -448,21 +436,12 @@ class ResetBaseVertexBaseInstance : angle::NonCopyable
 angle::FormatID ConvertToSRGB(angle::FormatID formatID);
 angle::FormatID ConvertToLinear(angle::FormatID formatID);
 bool IsOverridableLinearFormat(angle::FormatID formatID);
-
-enum class PipelineType
-{
-    Graphics = 0,
-    Compute  = 1,
-
-    InvalidEnum = 2,
-    EnumCount   = 2,
-};
 }  // namespace rx
 
 // MultiDraw macro patterns
 // These macros are to avoid too much code duplication as we don't want to have if detect for
-// hasDrawID/BaseVertex/BaseInstance inside for loop in a multiDrawANGLE call Part of these are put
-// in the header as we want to share with specialized context impl on some platforms for multidraw
+// hasDrawID/BaseVertex/BaseInstance inside for loop in a multiDraw call Part of these are put in
+// the header as we want to share with specialized context impl on some platforms for multidraw
 #define ANGLE_SET_DRAW_ID_UNIFORM_0(drawID) \
     {}
 #define ANGLE_SET_DRAW_ID_UNIFORM_1(drawID) programObject->setDrawIDUniform(drawID)

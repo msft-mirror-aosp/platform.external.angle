@@ -211,8 +211,6 @@ angle::Result Image9::CopyImage(const gl::Context *context,
                       destD3DFormatInfo.info().componentType, sourceRect.width, sourceRect.height,
                       1, unpackFlipY, unpackPremultiplyAlpha, unpackUnmultiplyAlpha);
 
-    dest->markDirty();
-
     destSurface->UnlockRect();
     sourceSurface->UnlockRect();
 

@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#! /usr/bin/python
 
 # Copyright 2019 The ANGLE Project Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -10,7 +10,6 @@
 #  NOTE: don't run this script directly. Run scripts/run_code_generation.py.
 
 import json
-import os
 import sys
 
 OUT_SOURCE_FILE_NAME = 'Overlay_autogen.cpp'
@@ -122,7 +121,7 @@ def extract_type_and_constructor(properties):
 
 
 def get_font_size_constant(properties):
-    return 'kFontMip' + properties['font'].capitalize()
+    return 'kFontLayer' + properties['font'].capitalize()
 
 
 def is_graph_type(type):
@@ -161,7 +160,7 @@ class OverlayWidget:
 
 def is_negative_coord(coords, axis, widgets_so_far):
 
-    if isinstance(coords[axis], str):
+    if isinstance(coords[axis], unicode):
         coord_split = coords[axis].split('.')
         # The coordinate is in the form other_widget.edge.mode
         # We simply need to know if other_widget's coordinate is negative or not.
@@ -197,7 +196,7 @@ def get_offset_helper(widget, axis, smaller_coord_side):
     # The case for the Y axis is similar, with the edge values being top or bottom.
 
     coord = widget.coords[axis]
-    if not isinstance(coord, str):
+    if not isinstance(coord, unicode):
         is_left = coord >= 0
         return coord, is_left
 
@@ -251,8 +250,8 @@ def generate_widget_init_helper(widget, is_graph_description=False):
     if is_text_type(widget.type):
         # Attributes deriven from text properties
         font_size = widget.font
-        width = str(widget.length) + ' * (kFontGlyphWidth >> fontSize)'
-        height = '(kFontGlyphHeight >> fontSize)'
+        width = str(widget.length) + ' * kFontGlyphWidths[fontSize]'
+        height = 'kFontGlyphHeights[fontSize]'
     else:
         # Attributes deriven from graph properties
         width = str(widget.bar_width) + ' * static_cast<uint32_t>(widget->runningValues.size())'
@@ -346,7 +345,7 @@ def main():
     with open(OUT_SOURCE_FILE_NAME, 'w') as outfile:
         outfile.write(
             OUT_SOURCE_FILE_TEMPLATE.format(
-                script_name=os.path.basename(__file__),
+                script_name=__file__,
                 input_file_name=IN_JSON_FILE_NAME,
                 out_file_name=OUT_SOURCE_FILE_NAME,
                 init_widgets='\n'.join(init_widgets)))
@@ -358,7 +357,7 @@ def main():
 
         outfile.write(
             OUT_HEADER_FILE_TEMPLATE.format(
-                script_name=os.path.basename(__file__),
+                script_name=__file__,
                 input_file_name=IN_JSON_FILE_NAME,
                 out_file_name=OUT_SOURCE_FILE_NAME,
                 widget_ids=''.join(widget_ids),

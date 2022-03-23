@@ -179,11 +179,6 @@ class ContextGL : public ContextImpl
                                            const GLsizei *counts,
                                            const GLsizei *instanceCounts,
                                            GLsizei drawcount) override;
-    angle::Result multiDrawArraysIndirect(const gl::Context *context,
-                                          gl::PrimitiveMode mode,
-                                          const void *indirect,
-                                          GLsizei drawcount,
-                                          GLsizei stride) override;
     angle::Result multiDrawElements(const gl::Context *context,
                                     gl::PrimitiveMode mode,
                                     const GLsizei *counts,
@@ -197,12 +192,6 @@ class ContextGL : public ContextImpl
                                              const GLvoid *const *indices,
                                              const GLsizei *instanceCounts,
                                              GLsizei drawcount) override;
-    angle::Result multiDrawElementsIndirect(const gl::Context *context,
-                                            gl::PrimitiveMode mode,
-                                            gl::DrawElementsType type,
-                                            const void *indirect,
-                                            GLsizei drawcount,
-                                            GLsizei stride) override;
     angle::Result multiDrawArraysInstancedBaseInstance(const gl::Context *context,
                                                        gl::PrimitiveMode mode,
                                                        const GLint *firsts,
@@ -238,8 +227,7 @@ class ContextGL : public ContextImpl
     // State sync with dirty bits.
     angle::Result syncState(const gl::Context *context,
                             const gl::State::DirtyBits &dirtyBits,
-                            const gl::State::DirtyBits &bitMask,
-                            gl::Command command) override;
+                            const gl::State::DirtyBits &bitMask) override;
 
     // Disjoint timer queries
     GLint getGPUDisjoint() override;

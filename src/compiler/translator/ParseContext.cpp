@@ -10,7 +10,6 @@
 #include <stdio.h>
 
 #include "common/mathutil.h"
-#include "common/utilities.h"
 #include "compiler/preprocessor/SourceLocation.h"
 #include "compiler/translator/Declarator.h"
 #include "compiler/translator/StaticType.h"
@@ -148,10 +147,6 @@ TIntermTyped *FindLValueBase(TIntermTyped *node)
     } while (true);
 }
 
-void AddAdvancedBlendEquation(gl::BlendEquationType eq, TLayoutQualifier *qualifier)
-{
-    qualifier->advancedBlendEquations.set(static_cast<uint32_t>(eq));
-}
 }  // namespace
 
 // This tracks each binding point's current default offset for inheritance of subsequent
@@ -215,7 +210,11 @@ TParseContext::TParseContext(TSymbolTable &symt,
       mDefaultBufferMatrixPacking(EmpColumnMajor),
       mDefaultBufferBlockStorage(sh::IsWebGLBasedSpec(spec) ? EbsStd140 : EbsShared),
       mDiagnostics(diagnostics),
-      mDirectiveHandler(ext, *mDiagnostics, mShaderVersion, mShaderType),
+      mDirectiveHandler(ext,
+                        *mDiagnostics,
+                        mShaderVersion,
+                        mShaderType,
+                        resources.WEBGL_debug_shader_precision == 1),
       mPreprocessor(mDiagnostics, &mDirectiveHandler, angle::pp::PreprocessorSettings(spec)),
       mScanner(nullptr),
       mMinProgramTexelOffset(resources.MinProgramTexelOffset),
@@ -247,8 +246,6 @@ TParseContext::TParseContext(TSymbolTable &symt,
       mTessEvaluationShaderInputVertexSpacingType(EtetUndefined),
       mTessEvaluationShaderInputOrderingType(EtetUndefined),
       mTessEvaluationShaderInputPointType(EtetUndefined),
-      mHasAnyPreciseType(false),
-      mAdvancedBlendEquations(0),
       mFunctionBodyNewScope(false),
       mOutputType(outputType)
 {}
@@ -556,7 +553,7 @@ bool TParseContext::checkCanBeLValue(const TSourceLoc &line, const char *op, TIn
         case EvqConst:
             message = "can't modify a const";
             break;
-        case EvqParamConst:
+        case EvqConstReadOnly:
             message = "can't modify a const";
             break;
         case EvqAttribute:
@@ -745,7 +742,7 @@ bool TParseContext::checkIsAtGlobalLevel(const TSourceLoc &line, const char *tok
 bool TParseContext::checkIsNotReserved(const TSourceLoc &line, const ImmutableString &identifier)
 {
     static const char *reservedErrMsg = "reserved built-in name";
-    if (gl::IsBuiltInName(identifier.data()))
+    if (identifier.beginsWith("gl_"))
     {
         error(line, reservedErrMsg, "gl_");
         return false;
@@ -765,30 +762,11 @@ bool TParseContext::checkIsNotReserved(const TSourceLoc &line, const ImmutableSt
     }
     if (identifier.contains("__"))
     {
-        if (sh::IsWebGLBasedSpec(mShaderSpec))
-        {
-            error(line,
-                  "identifiers containing two consecutive underscores (__) are reserved as "
-                  "possible future keywords",
-                  identifier);
-            return false;
-        }
-        else
-        {
-            // Using double underscores is allowed, but may result in unintended behaviors, so a
-            // warning is issued.
-            // OpenGL ES Shader Language 3.2 specification:
-            // > 3.7. Keywords
-            // > ...
-            // > In addition, all identifiers containing two consecutive underscores (__) are
-            // > reserved for use by underlying software layers. Defining such a name in a shader
-            // > does not itself result in an error, but may result in unintended behaviors that
-            // > stem from having multiple definitions of the same name.
-            warning(line,
-                    "all identifiers containing two consecutive underscores (__) are reserved - "
-                    "unintented behaviors are possible",
-                    identifier.data());
-        }
+        error(line,
+              "identifiers containing two consecutive underscores (__) are reserved as "
+              "possible future keywords",
+              identifier);
+        return false;
     }
     return true;
 }
@@ -1053,7 +1031,7 @@ void TParseContext::checkOutParameterIsNotOpaqueType(const TSourceLoc &line,
                                                      TQualifier qualifier,
                                                      const TType &type)
 {
-    ASSERT(qualifier == EvqParamOut || qualifier == EvqParamInOut);
+    ASSERT(qualifier == EvqOut || qualifier == EvqInOut);
     if (IsOpaqueType(type.getBasicType()))
     {
         error(line, "opaque types cannot be output parameters", type.getBasicString());
@@ -1268,19 +1246,7 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
 {
     ASSERT((*variable) == nullptr);
 
-    SymbolType symbolType = SymbolType::UserDefined;
-    switch (type->getQualifier())
-    {
-        case EvqClipDistance:
-        case EvqCullDistance:
-        case EvqLastFragData:
-            symbolType = SymbolType::BuiltIn;
-            break;
-        default:
-            break;
-    }
-
-    (*variable) = new TVariable(&symbolTable, identifier, type, symbolType);
+    (*variable) = new TVariable(&symbolTable, identifier, type, SymbolType::UserDefined);
 
     ASSERT(type->getLayoutQualifier().index == -1 ||
            (isExtensionEnabled(TExtension::EXT_blend_func_extended) &&
@@ -1360,8 +1326,7 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
         else if (static_cast<int>(type->getOutermostArraySize()) <=
                  maxClipDistances->getConstPointer()->getIConst())
         {
-            const TSymbol *builtInSymbol = symbolTable.findBuiltIn(identifier, mShaderVersion);
-            if (builtInSymbol)
+            if (const TSymbol *builtInSymbol = symbolTable.findBuiltIn(identifier, mShaderVersion))
             {
                 needsReservedCheck = !checkCanUseOneOfExtensions(line, builtInSymbol->extensions());
             }
@@ -1427,7 +1392,7 @@ void TParseContext::checkIsParameterQualifierValid(
     // The only parameter qualifiers a parameter can have are in, out, inout or const.
     TTypeQualifier typeQualifier = typeQualifierBuilder.getParameterTypeQualifier(mDiagnostics);
 
-    if (typeQualifier.qualifier == EvqParamOut || typeQualifier.qualifier == EvqParamInOut)
+    if (typeQualifier.qualifier == EvqOut || typeQualifier.qualifier == EvqInOut)
     {
         checkOutParameterIsNotOpaqueType(line, typeQualifier.qualifier, *type);
     }
@@ -1446,11 +1411,6 @@ void TParseContext::checkIsParameterQualifierValid(
     if (typeQualifier.precision != EbpUndefined)
     {
         type->setPrecision(typeQualifier.precision);
-    }
-
-    if (typeQualifier.precise)
-    {
-        type->setPrecise(true);
     }
 }
 
@@ -1841,10 +1801,9 @@ void TParseContext::checkBindingIsValid(const TSourceLoc &identifierLocation, co
 
 void TParseContext::checkCanUseLayoutQualifier(const TSourceLoc &location)
 {
-    constexpr std::array<TExtension, 3u> extensions{
+    constexpr std::array<TExtension, 2u> extensions{
         {TExtension::EXT_shader_framebuffer_fetch,
-         TExtension::EXT_shader_framebuffer_fetch_non_coherent,
-         TExtension::KHR_blend_equation_advanced}};
+         TExtension::EXT_shader_framebuffer_fetch_non_coherent}};
     if (getShaderVersion() < 300 && !checkCanUseOneOfExtensions(location, extensions))
     {
         error(location, "qualifier supported in GLSL ES 3.00 and above only", "layout");
@@ -2073,8 +2032,8 @@ void TParseContext::functionCallRValueLValueErrorCheck(const TFunction *fnCandid
     {
         TQualifier qual        = fnCandidate->getParam(i)->getType().getQualifier();
         TIntermTyped *argument = (*(fnCall->getSequence()))[i]->getAsTyped();
-        bool argumentIsRead    = (IsQualifierUnspecified(qual) || qual == EvqParamIn ||
-                               qual == EvqParamInOut || qual == EvqParamConst);
+        bool argumentIsRead = (IsQualifierUnspecified(qual) || qual == EvqIn || qual == EvqInOut ||
+                               qual == EvqConstReadOnly);
         if (argumentIsRead)
         {
             markStaticReadIfSymbol(argument);
@@ -2089,7 +2048,7 @@ void TParseContext::functionCallRValueLValueErrorCheck(const TFunction *fnCandid
                 }
             }
         }
-        if (qual == EvqParamOut || qual == EvqParamInOut)
+        if (qual == EvqOut || qual == EvqInOut)
         {
             if (!checkCanBeLValue(argument->getLine(), "assign", argument))
             {
@@ -2123,20 +2082,6 @@ void TParseContext::checkInvariantVariableQualifier(bool invariant,
         {
             error(invariantLocation, "Cannot be qualified as invariant.", "invariant");
         }
-    }
-}
-
-void TParseContext::checkAdvancedBlendEquationsNotSpecified(
-    const TSourceLoc &location,
-    const AdvancedBlendEquations &advancedBlendEquations,
-    const TQualifier &qualifier)
-{
-    if (advancedBlendEquations.any() && qualifier != EvqFragmentOut)
-    {
-        error(location,
-              "invalid layout qualifier: blending equation qualifiers are only permitted on the "
-              "fragment 'out' qualifier ",
-              "blend_support_qualifier");
     }
 }
 
@@ -2295,22 +2240,6 @@ TIntermTyped *TParseContext::parseVariableIdentifier(const TSourceLoc &location,
     ASSERT(node != nullptr);
     node->setLine(location);
     return node;
-}
-
-void TParseContext::adjustRedeclaredBuiltInType(const ImmutableString &identifier, TType *type)
-{
-    if (identifier == "gl_ClipDistance")
-    {
-        type->setQualifier(EvqClipDistance);
-    }
-    else if (identifier == "gl_CullDistance")
-    {
-        type->setQualifier(EvqCullDistance);
-    }
-    else if (identifier == "gl_LastFragData")
-    {
-        type->setQualifier(EvqLastFragData);
-    }
 }
 
 // Initializers show up in several places in the grammar.  Have one set of
@@ -2877,46 +2806,42 @@ void TParseContext::checkTessellationShaderUnsizedArraysAndSetSize(const TSource
             case EvqSmoothOut:
             case EvqSampleOut:
                 // Declaring an array size is optional. If no size is specified, it will be taken
-                // from output patch size declared in the shader.  If the patch size is not yet
-                // declared, this is deferred until such time as it does.
-                if (mTessControlShaderOutputVertices == 0)
-                {
-                    mTessControlDeferredArrayTypesToSize.push_back(type);
-                }
-                else
-                {
-                    type->sizeOutermostUnsizedArray(mTessControlShaderOutputVertices);
-                }
+                // from output patch size declared in the shader.
+                type->sizeOutermostUnsizedArray(mTessControlShaderOutputVertices);
                 break;
             default:
                 UNREACHABLE();
                 break;
         }
-        return;
     }
+    else
+    {
+        if (IsTessellationControlShaderInput(mShaderType, qualifier) ||
+            IsTessellationEvaluationShaderInput(mShaderType, qualifier))
+        {
+            if (outermostSize != static_cast<unsigned int>(mMaxPatchVertices))
+            {
+                error(
+                    location,
+                    "If a size is specified for a tessellation control or evaluation user-defined "
+                    "input variable, it must match the maximum patch size (gl_MaxPatchVertices).",
+                    token);
+            }
+        }
+        else if (IsTessellationControlShaderOutput(mShaderType, qualifier))
+        {
+            if (outermostSize != static_cast<unsigned int>(mTessControlShaderOutputVertices) &&
+                mTessControlShaderOutputVertices != 0)
+            {
+                error(location,
+                      "If a size is specified for a tessellation control user-defined per-vertex "
+                      "output variable, it must match the the number of vertices in the output "
+                      "patch.",
+                      token);
+            }
+        }
 
-    if (IsTessellationControlShaderInput(mShaderType, qualifier) ||
-        IsTessellationEvaluationShaderInput(mShaderType, qualifier))
-    {
-        if (outermostSize != static_cast<unsigned int>(mMaxPatchVertices))
-        {
-            error(location,
-                  "If a size is specified for a tessellation control or evaluation user-defined "
-                  "input variable, it must match the maximum patch size (gl_MaxPatchVertices).",
-                  token);
-        }
-    }
-    else if (IsTessellationControlShaderOutput(mShaderType, qualifier))
-    {
-        if (outermostSize != static_cast<unsigned int>(mTessControlShaderOutputVertices) &&
-            mTessControlShaderOutputVertices != 0)
-        {
-            error(location,
-                  "If a size is specified for a tessellation control user-defined per-vertex "
-                  "output variable, it must match the the number of vertices in the output "
-                  "patch.",
-                  token);
-        }
+        return;
     }
 }
 
@@ -3037,8 +2962,6 @@ TIntermDeclaration *TParseContext::parseSingleArrayDeclaration(
 
         checkAtomicCounterOffsetAlignment(identifierLocation, *arrayType);
     }
-
-    adjustRedeclaredBuiltInType(identifier, arrayType);
 
     TIntermDeclaration *declaration = new TIntermDeclaration();
     declaration->setLine(identifierLocation);
@@ -3214,8 +3137,6 @@ void TParseContext::parseDeclarator(TPublicType &publicType,
         checkAtomicCounterOffsetAlignment(identifierLocation, *type);
     }
 
-    adjustRedeclaredBuiltInType(identifier, type);
-
     TVariable *variable = nullptr;
     if (declareVariable(identifierLocation, identifier, type, &variable))
     {
@@ -3258,8 +3179,6 @@ void TParseContext::parseArrayDeclarator(TPublicType &elementType,
 
             checkAtomicCounterOffsetAlignment(identifierLocation, *arrayType);
         }
-
-        adjustRedeclaredBuiltInType(identifier, arrayType);
 
         TVariable *variable = nullptr;
         if (declareVariable(identifierLocation, identifier, arrayType, &variable))
@@ -3537,12 +3456,6 @@ bool TParseContext::parseTessControlShaderOutputLayoutQualifier(const TTypeQuali
     if (mTessControlShaderOutputVertices == 0)
     {
         mTessControlShaderOutputVertices = layoutQualifier.vertices;
-
-        // Size any implicitly sized arrays that have already been declared.
-        for (TType *type : mTessControlDeferredArrayTypesToSize)
-        {
-            type->sizeOutermostUnsizedArray(mTessControlShaderOutputVertices);
-        }
     }
     else
     {
@@ -3645,9 +3558,6 @@ void TParseContext::parseGlobalLayoutQualifier(const TTypeQualifierBuilder &type
 
     checkStd430IsForShaderStorageBlock(typeQualifier.line, layoutQualifier.blockStorage,
                                        typeQualifier.qualifier);
-
-    checkAdvancedBlendEquationsNotSpecified(
-        typeQualifier.line, layoutQualifier.advancedBlendEquations, typeQualifier.qualifier);
 
     if (typeQualifier.qualifier != EvqFragmentIn)
     {
@@ -3779,28 +3689,6 @@ void TParseContext::parseGlobalLayoutQualifier(const TTypeQualifierBuilder &type
         }
 
         mEarlyFragmentTestsSpecified = true;
-    }
-    else if (typeQualifier.qualifier == EvqFragmentOut)
-    {
-        if (mShaderVersion < 320 && !isExtensionEnabled(TExtension::KHR_blend_equation_advanced))
-        {
-            error(typeQualifier.line,
-                  "out type qualifier without variable declaration is supported in GLSL ES 3.20,"
-                  " or if GL_KHR_blend_equation_advanced is enabled",
-                  "layout");
-            return;
-        }
-
-        if (!layoutQualifier.advancedBlendEquations.any())
-        {
-            error(typeQualifier.line,
-                  "only blend equations are allowed as layout qualifier when not declaring a "
-                  "variable",
-                  "layout");
-            return;
-        }
-
-        mAdvancedBlendEquations |= layoutQualifier.advancedBlendEquations;
     }
     else if (typeQualifier.qualifier == EvqTessControlOut)
     {
@@ -4023,20 +3911,17 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
     for (size_t i = 0u; i < function->getParamCount(); ++i)
     {
         const TVariable *param = function->getParam(i);
-        const TType &paramType = param->getType();
-
-        if (paramType.isStructSpecifier())
+        if (param->getType().isStructSpecifier())
         {
             // ESSL 3.00.6 section 12.10.
             error(location, "Function parameter type cannot be a structure definition",
                   function->name());
         }
-
-        checkPrecisionSpecified(location, paramType.getPrecision(), paramType.getBasicType());
     }
 
     if (getShaderVersion() >= 300)
     {
+
         if (symbolTable.isUnmangledBuiltInName(function->name(), getShaderVersion(),
                                                extensionBehavior()))
         {
@@ -4327,12 +4212,7 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
     const TVector<unsigned int> *arraySizes,
     const TSourceLoc &arraySizesLine)
 {
-    const bool isGLPerVertex = blockName == "gl_PerVertex";
-    // gl_PerVertex is allowed to be redefined and therefore not reserved
-    if (!isGLPerVertex)
-    {
-        checkIsNotReserved(nameLine, blockName);
-    }
+    checkIsNotReserved(nameLine, blockName);
 
     TTypeQualifier typeQualifier = typeQualifierBuilder.getVariableTypeQualifier(mDiagnostics);
 
@@ -4381,12 +4261,7 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
                       getQualifierString(typeQualifier.qualifier));
             }
 
-            // Both inputs and outputs of tessellation control shaders must be arrays.
-            // For tessellation evaluation shaders, only inputs must necessarily be arrays.
-            const bool isTCS = mShaderType == GL_TESS_CONTROL_SHADER;
-            const bool isTESIn =
-                mShaderType == GL_TESS_EVALUATION_SHADER && IsShaderIn(typeQualifier.qualifier);
-            if (arraySizes == nullptr && (isTCS || isTESIn))
+            if (mShaderType == GL_TESS_CONTROL_SHADER && arraySizes == nullptr)
             {
                 error(typeQualifier.line, "type must be an array", blockName);
             }
@@ -4638,14 +4513,9 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
         }
     }
 
-    SymbolType instanceSymbolType = SymbolType::UserDefined;
-    if (isGLPerVertex)
-    {
-        instanceSymbolType = SymbolType::BuiltIn;
-    }
-    TInterfaceBlock *interfaceBlock = new TInterfaceBlock(&symbolTable, blockName, fieldList,
-                                                          blockLayoutQualifier, instanceSymbolType);
-    if (!symbolTable.declare(interfaceBlock) && isUniformOrBuffer)
+    TInterfaceBlock *interfaceBlock = new TInterfaceBlock(
+        &symbolTable, blockName, fieldList, blockLayoutQualifier, SymbolType::UserDefined);
+    if (!symbolTable.declare(interfaceBlock))
     {
         error(nameLine, "redefinition of an interface block name", blockName);
     }
@@ -4655,10 +4525,6 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
     if (arraySizes)
     {
         interfaceBlockType->makeArrays(*arraySizes);
-
-        checkGeometryShaderInputAndSetArraySize(instanceLine, instanceName, interfaceBlockType);
-        checkTessellationShaderUnsizedArraysAndSetSize(instanceLine, instanceName,
-                                                       interfaceBlockType);
     }
 
     // The instance variable gets created to refer to the interface block type from the AST
@@ -4681,21 +4547,8 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
 
             fieldType->setQualifier(typeQualifier.qualifier);
 
-            SymbolType symbolType = SymbolType::UserDefined;
-            if (field->name() == "gl_Position" || field->name() == "gl_PointSize" ||
-                field->name() == "gl_ClipDistance" || field->name() == "gl_CullDistance")
-            {
-                // These builtins can be redifined only when used within a redefiend gl_PerVertex
-                // block
-                if (interfaceBlock->name() != "gl_PerVertex")
-                {
-                    error(field->line(), "redefinition in an invalid interface block",
-                          field->name());
-                }
-                symbolType = SymbolType::BuiltIn;
-            }
             TVariable *fieldVariable =
-                new TVariable(&symbolTable, field->name(), fieldType, symbolType);
+                new TVariable(&symbolTable, field->name(), fieldType, SymbolType::UserDefined);
             if (!symbolTable.declare(fieldVariable))
             {
                 error(field->line(), "redefinition of an interface block member name",
@@ -4964,8 +4817,9 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
             {
                 TConstantUnion *safeConstantUnion = new TConstantUnion();
                 safeConstantUnion->setIConst(safeIndex);
-                indexExpression =
-                    new TIntermConstantUnion(safeConstantUnion, TType(indexExpression->getType()));
+                indexExpression = new TIntermConstantUnion(
+                    safeConstantUnion, TType(EbtInt, indexExpression->getPrecision(),
+                                             indexExpression->getQualifier()));
             }
 
             TIntermBinary *node =
@@ -5326,95 +5180,15 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
             error(qualifierTypeLine, "invalid layout qualifier", qualifierType);
         }
     }
-    else if (mShaderType == GL_FRAGMENT_SHADER)
+    else if (qualifierType == "noncoherent" && mShaderType == GL_FRAGMENT_SHADER)
     {
-        if (qualifierType == "noncoherent")
+        if (checkCanUseOneOfExtensions(
+                qualifierTypeLine, std::array<TExtension, 2u>{
+                                       {TExtension::EXT_shader_framebuffer_fetch,
+                                        TExtension::EXT_shader_framebuffer_fetch_non_coherent}}))
         {
-            if (checkCanUseOneOfExtensions(
-                    qualifierTypeLine,
-                    std::array<TExtension, 2u>{
-                        {TExtension::EXT_shader_framebuffer_fetch,
-                         TExtension::EXT_shader_framebuffer_fetch_non_coherent}}))
-            {
-                checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 100);
-                qualifier.noncoherent = true;
-            }
-        }
-        else if (qualifierType == "blend_support_multiply")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Multiply, &qualifier);
-        }
-        else if (qualifierType == "blend_support_screen")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Screen, &qualifier);
-        }
-        else if (qualifierType == "blend_support_overlay")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Overlay, &qualifier);
-        }
-        else if (qualifierType == "blend_support_darken")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Darken, &qualifier);
-        }
-        else if (qualifierType == "blend_support_lighten")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Lighten, &qualifier);
-        }
-        else if (qualifierType == "blend_support_colordodge")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Colordodge, &qualifier);
-        }
-        else if (qualifierType == "blend_support_colorburn")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Colorburn, &qualifier);
-        }
-        else if (qualifierType == "blend_support_hardlight")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Hardlight, &qualifier);
-        }
-        else if (qualifierType == "blend_support_softlight")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Softlight, &qualifier);
-        }
-        else if (qualifierType == "blend_support_difference")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Difference, &qualifier);
-        }
-        else if (qualifierType == "blend_support_exclusion")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::Exclusion, &qualifier);
-        }
-        else if (qualifierType == "blend_support_hsl_hue")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::HslHue, &qualifier);
-        }
-        else if (qualifierType == "blend_support_hsl_saturation")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::HslSaturation, &qualifier);
-        }
-        else if (qualifierType == "blend_support_hsl_color")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::HslColor, &qualifier);
-        }
-        else if (qualifierType == "blend_support_hsl_luminosity")
-        {
-            AddAdvancedBlendEquation(gl::BlendEquationType::HslLuminosity, &qualifier);
-        }
-        else if (qualifierType == "blend_support_all_equations")
-        {
-            qualifier.advancedBlendEquations.setAll();
-        }
-        else
-        {
-            error(qualifierTypeLine, "invalid layout qualifier", qualifierType);
-        }
-
-        if (qualifier.advancedBlendEquations.any() && mShaderVersion < 320)
-        {
-            if (!checkCanUseExtension(qualifierTypeLine, TExtension::KHR_blend_equation_advanced))
-            {
-                qualifier.advancedBlendEquations.reset();
-            }
+            checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 100);
+            qualifier.noncoherent = true;
         }
     }
     else
@@ -5672,7 +5446,7 @@ TStorageQualifierWrapper *TParseContext::parseInQualifier(const TSourceLoc &loc)
 {
     if (declaringFunction())
     {
-        return new TStorageQualifierWrapper(EvqParamIn, loc);
+        return new TStorageQualifierWrapper(EvqIn, loc);
     }
 
     switch (getShaderType())
@@ -5722,7 +5496,7 @@ TStorageQualifierWrapper *TParseContext::parseOutQualifier(const TSourceLoc &loc
 {
     if (declaringFunction())
     {
-        return new TStorageQualifierWrapper(EvqParamOut, loc);
+        return new TStorageQualifierWrapper(EvqOut, loc);
     }
     switch (getShaderType())
     {
@@ -5745,7 +5519,7 @@ TStorageQualifierWrapper *TParseContext::parseOutQualifier(const TSourceLoc &loc
         case GL_COMPUTE_SHADER:
         {
             error(loc, "storage qualifier isn't supported in compute shaders", "out");
-            return new TStorageQualifierWrapper(EvqParamOut, loc);
+            return new TStorageQualifierWrapper(EvqOut, loc);
         }
         case GL_GEOMETRY_SHADER_EXT:
         {
@@ -5771,16 +5545,6 @@ TStorageQualifierWrapper *TParseContext::parseInOutQualifier(const TSourceLoc &l
 {
     if (!declaringFunction())
     {
-        if (mShaderVersion < 300 && !IsDesktopGLSpec(mShaderSpec))
-        {
-            error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "inout");
-        }
-
-        if (getShaderType() != GL_FRAGMENT_SHADER)
-        {
-            error(loc, "storage qualifier isn't supported in non-fragment shaders", "inout");
-        }
-
         if (isExtensionEnabled(TExtension::EXT_shader_framebuffer_fetch) ||
             isExtensionEnabled(TExtension::EXT_shader_framebuffer_fetch_non_coherent))
         {
@@ -5792,7 +5556,7 @@ TStorageQualifierWrapper *TParseContext::parseInOutQualifier(const TSourceLoc &l
               "fetching input attachment data",
               "inout");
     }
-    return new TStorageQualifierWrapper(EvqParamInOut, loc);
+    return new TStorageQualifierWrapper(EvqInOut, loc);
 }
 
 TLayoutQualifier TParseContext::joinLayoutQualifiers(TLayoutQualifier leftQualifier,
@@ -5806,6 +5570,7 @@ TLayoutQualifier TParseContext::joinLayoutQualifiers(TLayoutQualifier leftQualif
 TDeclarator *TParseContext::parseStructDeclarator(const ImmutableString &identifier,
                                                   const TSourceLoc &loc)
 {
+    checkIsNotReserved(loc, identifier);
     return new TDeclarator(identifier, loc);
 }
 
@@ -5813,6 +5578,7 @@ TDeclarator *TParseContext::parseStructArrayDeclarator(const ImmutableString &id
                                                        const TSourceLoc &loc,
                                                        const TVector<unsigned int> *arraySizes)
 {
+    checkIsNotReserved(loc, identifier);
     return new TDeclarator(identifier, arraySizes, loc);
 }
 
@@ -5900,17 +5666,8 @@ TFieldList *TParseContext::addStructDeclaratorList(const TPublicType &typeSpecif
             type->makeArrays(*declarator->arraySizes());
         }
 
-        SymbolType symbolType = SymbolType::UserDefined;
-        if (declarator->name() == "gl_Position" || declarator->name() == "gl_PointSize" ||
-            declarator->name() == "gl_ClipDistance" || declarator->name() == "gl_CullDistance")
-        {
-            symbolType = SymbolType::BuiltIn;
-        }
-        else
-        {
-            checkIsNotReserved(typeSpecifier.getLine(), declarator->name());
-        }
-        TField *field = new TField(type, declarator->name(), declarator->line(), symbolType);
+        TField *field =
+            new TField(type, declarator->name(), declarator->line(), SymbolType::UserDefined);
         checkIsBelowStructNestingLimit(typeSpecifier.getLine(), *field);
         fieldList->push_back(field);
     }
@@ -6793,13 +6550,10 @@ void TParseContext::checkTextureOffset(TIntermAggregate *functionCall)
     if (isTextureGatherOffsets)
     {
         // If textureGatherOffsets, the offsets parameter is an array, which is expected as an
-        // aggregate constructor node or as a symbol node with a constant value.
+        // aggregate constructor node.
         TIntermAggregate *offsetAggregate = offset->getAsAggregate();
-        TIntermSymbol *offsetSymbol       = offset->getAsSymbolNode();
-
         const TConstantUnion *offsetValues =
-            offsetAggregate ? offsetAggregate->getConstantValue()
-                            : offsetSymbol ? offsetSymbol->getConstantValue() : nullptr;
+            offsetAggregate ? offsetAggregate->getConstantValue() : nullptr;
 
         if (offsetValues == nullptr)
         {
@@ -6809,16 +6563,17 @@ void TParseContext::checkTextureOffset(TIntermAggregate *functionCall)
         }
 
         constexpr unsigned int kOffsetsCount = 4;
-        const TType &offsetType =
-            offsetAggregate != nullptr ? offsetAggregate->getType() : offsetSymbol->getType();
-        if (offsetType.getNumArraySizes() != 1 || offsetType.getArraySizes()[0] != kOffsetsCount)
+        const TType &offsetAggregateType     = offsetAggregate->getType();
+        if (offsetAggregateType.getNumArraySizes() != 1 ||
+            offsetAggregateType.getArraySizes()[0] != kOffsetsCount)
         {
             error(functionCall->getLine(), "Texture offsets must be an array of 4 elements",
                   func->name());
             return;
         }
 
-        size_t size = offsetType.getObjectSize() / kOffsetsCount;
+        TIntermNode *firstOffset = offsetAggregate->getSequence()->front();
+        size_t size              = firstOffset->getAsTyped()->getType().getObjectSize();
         for (unsigned int i = 0; i < kOffsetsCount; ++i)
         {
             checkSingleTextureOffset(offset->getLine(), &offsetValues[i * size], size,

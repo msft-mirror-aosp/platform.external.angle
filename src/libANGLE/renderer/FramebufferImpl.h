@@ -14,7 +14,6 @@
 #include "libANGLE/Error.h"
 #include "libANGLE/Framebuffer.h"
 #include "libANGLE/State.h"
-#include "libANGLE/angletypes.h"
 
 namespace gl
 {
@@ -22,6 +21,8 @@ class Buffer;
 class Framebuffer;
 class FramebufferAttachment;
 struct PixelPackState;
+struct Rectangle;
+class State;
 }  // namespace gl
 
 namespace rx

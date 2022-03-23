@@ -52,15 +52,13 @@ class ImageSibling : public gl::FramebufferAttachmentObject
                       GLenum binding,
                       const gl::ImageIndex &imageIndex) const override;
     bool isYUV() const override;
-    bool hasProtectedContent() const override;
 
   protected:
     // Set the image target of this sibling
     void setTargetImage(const gl::Context *context, egl::Image *imageTarget);
 
     // Orphan all EGL image sources and targets
-    angle::Result orphanImages(const gl::Context *context,
-                               RefCountObjectReleaser<Image> *outReleaseImage);
+    angle::Result orphanImages(const gl::Context *context);
 
     void notifySiblings(angle::SubjectMessage message);
 
@@ -101,7 +99,6 @@ class ExternalImageSibling : public ImageSibling
                       const gl::ImageIndex &imageIndex) const override;
     bool isTextureable(const gl::Context *context) const;
     bool isYUV() const override;
-    bool hasProtectedContent() const override;
 
     void onAttach(const gl::Context *context, rx::Serial framebufferSerial) override;
     void onDetach(const gl::Context *context, rx::Serial framebufferSerial) override;
@@ -140,7 +137,6 @@ struct ImageState : private angle::NonCopyable
     size_t samples;
     EGLenum sourceType;
     EGLenum colorspace;
-    bool hasProtectedContent;
 };
 
 class Image final : public RefCountObject, public LabeledObject
@@ -166,7 +162,6 @@ class Image final : public RefCountObject, public LabeledObject
     size_t getHeight() const;
     bool isLayered() const;
     size_t getSamples() const;
-    bool hasProtectedContent() const;
 
     Error initialize(const Display *display);
 
@@ -175,8 +170,6 @@ class Image final : public RefCountObject, public LabeledObject
     bool orphaned() const;
     gl::InitState sourceInitState() const;
     void setInitState(gl::InitState initState);
-
-    Error exportVkImage(void *vkImage, void *vkImageCreateInfo);
 
   private:
     friend class ImageSibling;

@@ -23,7 +23,7 @@ TIntermFunctionDefinition *CreateInternalFunctionDefinitionNode(const TFunction 
                                                                 TIntermBlock *functionBody);
 
 TIntermTyped *CreateZeroNode(const TType &type);
-TIntermConstantUnion *CreateFloatNode(float value, TPrecision precision);
+TIntermConstantUnion *CreateFloatNode(float value);
 TIntermConstantUnion *CreateIndexNode(int index);
 TIntermConstantUnion *CreateUIntNode(unsigned int value);
 TIntermConstantUnion *CreateBoolNode(bool value);
