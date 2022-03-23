@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+
+# NOTE: This script requires python 3.
 
 """Script to generate Chromium's Abseil .def files at roll time.
 

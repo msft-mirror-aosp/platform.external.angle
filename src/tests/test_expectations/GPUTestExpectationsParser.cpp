@@ -60,7 +60,6 @@ enum Token
     kConfigAMD,
     kConfigIntel,
     kConfigVMWare,
-    kConfigApple,
     // build type
     kConfigRelease,
     kConfigDebug,
@@ -76,20 +75,13 @@ enum Token
     kConfigNexus5X,
     kConfigPixel2,
     kConfigPixel4,
-    kConfigPixel6,
     // GPU devices
     kConfigNVIDIAQuadroP400,
-    kConfigNVIDIAGTX1660,
     // PreRotation
     kConfigPreRotation,
     kConfigPreRotation90,
     kConfigPreRotation180,
     kConfigPreRotation270,
-    // Sanitizers
-    kConfigNoSan,
-    kConfigASan,
-    kConfigTSan,
-    kConfigUBSan,
     // expectation
     kExpectationPass,
     kExpectationFail,
@@ -170,7 +162,6 @@ constexpr TokenInfo kTokenData[kNumberOfTokens] = {
     {"amd", GPUTestConfig::kConditionAMD},
     {"intel", GPUTestConfig::kConditionIntel},
     {"vmware", GPUTestConfig::kConditionVMWare},
-    {"apple", GPUTestConfig::kConditionApple},
     {"release", GPUTestConfig::kConditionRelease},
     {"debug", GPUTestConfig::kConditionDebug},
     {"d3d9", GPUTestConfig::kConditionD3D9},
@@ -183,17 +174,11 @@ constexpr TokenInfo kTokenData[kNumberOfTokens] = {
     {"nexus5x", GPUTestConfig::kConditionNexus5X},
     {"pixel2orxl", GPUTestConfig::kConditionPixel2OrXL},
     {"pixel4orxl", GPUTestConfig::kConditionPixel4OrXL},
-    {"pixel6", GPUTestConfig::kConditionPixel6},
     {"quadrop400", GPUTestConfig::kConditionNVIDIAQuadroP400},
-    {"gtx1660", GPUTestConfig::kConditionNVIDIAGTX1660},
     {"prerotation", GPUTestConfig::kConditionPreRotation},
     {"prerotation90", GPUTestConfig::kConditionPreRotation90},
     {"prerotation180", GPUTestConfig::kConditionPreRotation180},
     {"prerotation270", GPUTestConfig::kConditionPreRotation270},
-    {"nosan", GPUTestConfig::kConditionNoSan},
-    {"asan", GPUTestConfig::kConditionASan},
-    {"tsan", GPUTestConfig::kConditionTSan},
-    {"ubsan", GPUTestConfig::kConditionUBSan},
     {"pass", GPUTestConfig::kConditionNone, GPUTestExpectationsParser::kGpuTestPass},
     {"fail", GPUTestConfig::kConditionNone, GPUTestExpectationsParser::kGpuTestFail},
     {"flaky", GPUTestConfig::kConditionNone, GPUTestExpectationsParser::kGpuTestFlaky},
@@ -387,10 +372,14 @@ bool GPUTestExpectationsParser::loadAllTestExpectationsFromFile(const std::strin
 int32_t GPUTestExpectationsParser::getTestExpectationImpl(const GPUTestConfig *config,
                                                           const std::string &testName)
 {
+    size_t maxExpectationLen            = 0;
+    GPUTestExpectationEntry *foundEntry = nullptr;
     for (GPUTestExpectationEntry &entry : mEntries)
     {
         if (NamesMatchWithWildcard(entry.testName.c_str(), testName.c_str()))
         {
+            size_t expectationLen = entry.testName.length();
+
             // Filter by condition first.
             bool satisfiesConditions = true;
             if (config)
@@ -405,13 +394,18 @@ int32_t GPUTestExpectationsParser::getTestExpectationImpl(const GPUTestConfig *c
                 }
             }
 
-            // Use the first matching expectation in the file as the matching expression.
-            if (satisfiesConditions)
+            // The longest/most specific matching expectation overrides any others.
+            if (satisfiesConditions && expectationLen > maxExpectationLen)
             {
-                entry.used = true;
-                return entry.testExpectation;
+                maxExpectationLen = expectationLen;
+                foundEntry        = &entry;
             }
         }
+    }
+    if (foundEntry != nullptr)
+    {
+        foundEntry->used = true;
+        return foundEntry->testExpectation;
     }
     return kGpuTestPass;
 }
@@ -490,7 +484,6 @@ bool GPUTestExpectationsParser::parseLine(const GPUTestConfig *config,
             case kConfigAMD:
             case kConfigIntel:
             case kConfigVMWare:
-            case kConfigApple:
             case kConfigRelease:
             case kConfigDebug:
             case kConfigD3D9:
@@ -503,17 +496,11 @@ bool GPUTestExpectationsParser::parseLine(const GPUTestConfig *config,
             case kConfigNexus5X:
             case kConfigPixel2:
             case kConfigPixel4:
-            case kConfigPixel6:
             case kConfigNVIDIAQuadroP400:
-            case kConfigNVIDIAGTX1660:
             case kConfigPreRotation:
             case kConfigPreRotation90:
             case kConfigPreRotation180:
             case kConfigPreRotation270:
-            case kConfigNoSan:
-            case kConfigASan:
-            case kConfigTSan:
-            case kConfigUBSan:
                 // MODIFIERS, check each condition and add accordingly.
                 if (stage != kLineParserConfigs && stage != kLineParserBugID)
                 {

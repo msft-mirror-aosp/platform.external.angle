@@ -42,7 +42,7 @@ class DisplayNULL : public DisplayImpl
 
     std::string getRendererDescription() override;
     std::string getVendorString() override;
-    std::string getVersionString(bool includeFullVersion) override;
+    std::string getVersionString() override;
 
     DeviceImpl *createDevice() override;
 

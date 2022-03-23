@@ -129,7 +129,7 @@ ShaderD3D::ShaderD3D(const gl::ShaderState &state,
     {
         mAdditionalOptions |= SH_ALLOW_TRANSLATE_UNIFORM_BLOCK_TO_STRUCTUREDBUFFER;
     }
-    if (extensions.multiviewOVR || extensions.multiview2OVR)
+    if (extensions.multiview || extensions.multiview2)
     {
         mAdditionalOptions |= SH_INITIALIZE_BUILTINS_FOR_INSTANCED_MULTIVIEW;
     }

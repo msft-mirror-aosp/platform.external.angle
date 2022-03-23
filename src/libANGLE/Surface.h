@@ -50,7 +50,6 @@ struct SurfaceState final : private angle::NonCopyable
 
     bool isRobustResourceInitEnabled() const;
     bool hasProtectedContent() const;
-    EGLint getPreferredSwapInterval() const;
 
     EGLLabelKHR label;
     const egl::Config *config;
@@ -60,7 +59,6 @@ struct SurfaceState final : private angle::NonCopyable
     SupportedCompositorTiming supportedCompositorTimings;
     SupportedTimestamps supportedTimestamps;
     bool directComposition;
-    EGLenum swapBehavior;
 };
 
 class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
@@ -76,7 +74,6 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
     Error initialize(const Display *display);
     Error makeCurrent(const gl::Context *context);
     Error unMakeCurrent(const gl::Context *context);
-    Error prepareSwap(const gl::Context *context);
     Error swap(const gl::Context *context);
     Error swapWithDamage(const gl::Context *context, const EGLint *rects, EGLint n_rects);
     Error swapWithFrameToken(const gl::Context *context, EGLFrameTokenANGLE frameToken);
@@ -136,23 +133,7 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
     EGLint getHorizontalResolution() const;
     EGLint getVerticalResolution() const;
     EGLenum getMultisampleResolve() const;
-    bool hasProtectedContent() const override;
-
-    // For lock surface buffer
-    EGLint getBitmapPitch() const;
-    EGLint getBitmapOrigin() const;
-    EGLint getRedOffset() const;
-    EGLint getGreenOffset() const;
-    EGLint getBlueOffset() const;
-    EGLint getAlphaOffset() const;
-    EGLint getLuminanceOffset() const;
-    EGLint getBitmapPixelSize() const;
-    EGLAttribKHR getBitmapPointer() const;
-    egl::Error lockSurfaceKHR(const egl::Display *display, const AttributeMap &attributes);
-    egl::Error unlockSurfaceKHR(const egl::Display *display);
-
-    bool isLocked() const;
-    bool isCurrentOnAnyContext() const { return mIsCurrentOnAnyContext; }
+    bool hasProtectedContent() const;
 
     gl::Texture *getBoundTexture() const { return mTexture; }
 
@@ -171,6 +152,10 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
     void onDetach(const gl::Context *context, rx::Serial framebufferSerial) override {}
     GLuint getId() const override;
 
+    bool flexibleSurfaceCompatibilityRequested() const
+    {
+        return mFlexibleSurfaceCompatibilityRequested;
+    }
     EGLint getOrientation() const { return mOrientation; }
 
     bool directComposition() const { return mState.directComposition; }
@@ -205,7 +190,7 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
 
     Error getBufferAge(const gl::Context *context, EGLint *age) const;
 
-    Error setRenderBuffer(EGLint renderBuffer);
+    void setRenderBuffer(EGLint value);
 
   protected:
     Surface(EGLint surfaceType,
@@ -231,6 +216,7 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
     EGLenum mBuftype;
 
     bool mPostSubBufferRequested;
+    bool mFlexibleSurfaceCompatibilityRequested;
 
     bool mLargestPbuffer;
     EGLenum mGLColorspace;
@@ -253,6 +239,7 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
 
     EGLint mPixelAspectRatio;  // Display aspect ratio
     EGLenum mRenderBuffer;     // Render buffer
+    EGLenum mSwapBehavior;     // Buffer swap behavior
 
     EGLint mOrientation;
 
@@ -264,10 +251,6 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
     gl::Format mDSFormat;
 
     gl::Offset mTextureOffset;
-
-    bool mIsCurrentOnAnyContext;  // The surface is current to a context/client API
-    uint8_t *mLockBufferPtr;      // Memory owned by backend.
-    EGLint mLockBufferPitch;
 
   private:
     Error destroyImpl(const Display *display);

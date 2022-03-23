@@ -632,43 +632,39 @@ void main()
     drawQuad(programRed, "a_position", 0);
     EXPECT_GL_NO_ERROR();
 
-    {
-        // All pixels on the left of the plane x = -0.5 must be blue
-        GLuint x      = 0;
-        GLuint y      = 0;
-        GLuint width  = getWindowWidth() / 4 - 1;
-        GLuint height = getWindowHeight();
-        EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::blue);
+    // All pixels on the left of the plane x = -0.5 must be blue
+    GLuint x      = 0;
+    GLuint y      = 0;
+    GLuint width  = getWindowWidth() / 4 - 1;
+    GLuint height = getWindowHeight();
+    EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::blue);
 
-        // All pixels on the right of the plane x = -0.5 must be red, except those in the upper
-        // right triangle
-        x      = getWindowWidth() / 4 + 2;
-        y      = 0;
-        width  = getWindowWidth() / 2 - x;
-        height = getWindowHeight();
-        EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::red);
-    }
+    // All pixels on the right of the plane x = -0.5 must be red, except those in the upper right
+    // triangle
+    x      = getWindowWidth() / 4 + 2;
+    y      = 0;
+    width  = getWindowWidth() / 2 - x;
+    height = getWindowHeight();
+    EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::red);
 
+    std::vector<GLColor> actualColors(getWindowWidth() * getWindowHeight());
+    glReadPixels(0, 0, getWindowWidth(), getWindowHeight(), GL_RGBA, GL_UNSIGNED_BYTE,
+                 actualColors.data());
+    for (int y = 0; y < getWindowHeight(); ++y)
     {
-        std::vector<GLColor> actualColors(getWindowWidth() * getWindowHeight());
-        glReadPixels(0, 0, getWindowWidth(), getWindowHeight(), GL_RGBA, GL_UNSIGNED_BYTE,
-                     actualColors.data());
-        for (int y = 0; y < getWindowHeight(); ++y)
+        for (int x = getWindowWidth() / 2; x < getWindowWidth(); ++x)
         {
-            for (int x = getWindowWidth() / 2; x < getWindowWidth(); ++x)
-            {
-                const int currentPosition = y * getWindowHeight() + x;
+            const int currentPosition = y * getWindowHeight() + x;
 
-                if (x < getWindowWidth() * 3 / 2 - y - 1 && x < getWindowWidth() * 3 / 4 - 1)
-                {
-                    // bottom left triangle clipped by x=0.5 plane
-                    EXPECT_EQ(GLColor::red, actualColors[currentPosition]);
-                }
-                else if (x > getWindowWidth() * 3 / 2 - y + 1 || x > getWindowWidth() * 3 / 4 + 1)
-                {
-                    // upper right triangle plus right of x=0.5 plane
-                    EXPECT_EQ(GLColor::blue, actualColors[currentPosition]);
-                }
+            if (x < getWindowWidth() * 3 / 2 - y - 1 && x < getWindowWidth() * 3 / 4 - 1)
+            {
+                // bottom left triangle clipped by x=0.5 plane
+                EXPECT_EQ(GLColor::red, actualColors[currentPosition]);
+            }
+            else if (x > getWindowWidth() * 3 / 2 - y + 1 || x > getWindowWidth() * 3 / 4 + 1)
+            {
+                // upper right triangle plus right of x=0.5 plane
+                EXPECT_EQ(GLColor::blue, actualColors[currentPosition]);
             }
         }
     }
@@ -694,17 +690,14 @@ void main()
         }
     }
 
-    {
-        // All pixels on the right of the plane x = -0.5 must be red, except those in the upper
-        // right triangle
-        GLuint x      = getWindowWidth() / 4 + 2;
-        GLuint y      = 0;
-        GLuint width  = getWindowWidth() / 2 - x;
-        GLuint height = getWindowHeight();
-        EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::red);
-    }
+    // All pixels on the right of the plane x = -0.5 must be red, except those in the upper right
+    // triangle
+    x      = getWindowWidth() / 4 + 2;
+    y      = 0;
+    width  = getWindowWidth() / 2 - x;
+    height = getWindowHeight();
+    EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::red);
 
-    std::vector<GLColor> actualColors(getWindowWidth() * getWindowHeight());
     glReadPixels(0, 0, getWindowWidth(), getWindowHeight(), GL_RGBA, GL_UNSIGNED_BYTE,
                  actualColors.data());
     for (int y = 0; y < getWindowHeight(); ++y)
@@ -782,22 +775,20 @@ void main()
     drawQuad(programRed, "a_position", 0);
     EXPECT_GL_NO_ERROR();
 
-    {
-        // All pixels on the left of the plane x = -0.5 must be blue
-        GLuint x      = 0;
-        GLuint y      = 0;
-        GLuint width  = getWindowWidth() / 4 - 1;
-        GLuint height = getWindowHeight();
-        EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::blue);
+    // All pixels on the left of the plane x = -0.5 must be blue
+    GLuint x      = 0;
+    GLuint y      = 0;
+    GLuint width  = getWindowWidth() / 4 - 1;
+    GLuint height = getWindowHeight();
+    EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::blue);
 
-        // All pixels on the right of the plane x = -0.5 must be red, except those in the upper
-        // right triangle
-        x      = getWindowWidth() / 4 + 2;
-        y      = 0;
-        width  = getWindowWidth() / 2 - x;
-        height = getWindowHeight();
-        EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::red);
-    }
+    // All pixels on the right of the plane x = -0.5 must be red, except those in the upper right
+    // triangle
+    x      = getWindowWidth() / 4 + 2;
+    y      = 0;
+    width  = getWindowWidth() / 2 - x;
+    height = getWindowHeight();
+    EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::red);
 
     std::vector<GLColor> actualColors(getWindowWidth() * getWindowHeight());
     glReadPixels(0, 0, getWindowWidth(), getWindowHeight(), GL_RGBA, GL_UNSIGNED_BYTE,
@@ -856,14 +847,12 @@ void main()
     drawQuad(programRed, "a_position", 0);
     EXPECT_GL_NO_ERROR();
 
-    {
-        // All pixels must be red
-        GLuint x      = 0;
-        GLuint y      = 0;
-        GLuint width  = getWindowWidth();
-        GLuint height = getWindowHeight();
-        EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::red);
-    }
+    // All pixels must be red
+    GLuint x      = 0;
+    GLuint y      = 0;
+    GLuint width  = getWindowWidth();
+    GLuint height = getWindowHeight();
+    EXPECT_PIXEL_RECT_EQ(x, y, width, height, GLColor::red);
 
     // Clear to green
     glClearColor(0, 1, 0, 1);
@@ -1382,6 +1371,8 @@ void main()
     }
 }
 
+// Use this to select which configurations (e.g. which renderer, which GLES major version) these
+// tests should be run against.
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(ClipDistanceTest);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ClipCullDistanceTest);

@@ -117,7 +117,7 @@ std::string DisplayNULL::getVendorString()
     return "NULL";
 }
 
-std::string DisplayNULL::getVersionString(bool includeFullVersion)
+std::string DisplayNULL::getVersionString()
 {
     return std::string();
 }
@@ -217,7 +217,7 @@ void DisplayNULL::generateExtensions(egl::DisplayExtensions *outExtensions) cons
     outExtensions->glTexture3DImage                   = true;
     outExtensions->glRenderbufferImage                = true;
     outExtensions->getAllProcAddresses                = true;
-    outExtensions->noConfigContext                    = true;
+    outExtensions->flexibleSurfaceCompatibility       = true;
     outExtensions->directComposition                  = true;
     outExtensions->createContextNoError               = true;
     outExtensions->createContextWebGLCompatibility    = true;
@@ -228,8 +228,8 @@ void DisplayNULL::generateExtensions(egl::DisplayExtensions *outExtensions) cons
     outExtensions->displayTextureShareGroup           = true;
     outExtensions->displaySemaphoreShareGroup         = true;
     outExtensions->createContextClientArrays          = true;
-    outExtensions->programCacheControlANGLE           = true;
-    outExtensions->robustResourceInitializationANGLE  = true;
+    outExtensions->programCacheControl                = true;
+    outExtensions->robustResourceInitialization       = true;
 }
 
 void DisplayNULL::generateCaps(egl::Caps *outCaps) const
