@@ -46,11 +46,7 @@ class ANGLE_UTIL_EXPORT OSWindow
     // multiple EGLSurfaces.
     virtual void resetNativeWindow() = 0;
 
-    virtual EGLNativeWindowType getNativeWindow() const = 0;
-
-    // Returns a native pointer that can be used for eglCreatePlatformWindowSurfaceEXT().
-    virtual void *getPlatformExtension();
-
+    virtual EGLNativeWindowType getNativeWindow() const   = 0;
     virtual EGLNativeDisplayType getNativeDisplay() const = 0;
 
     virtual void messageLoop() = 0;

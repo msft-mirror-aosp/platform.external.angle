@@ -59,7 +59,6 @@ std::string FileNameAsCustomTestSuffix(
 
 using HlslCompileTest = GlslangTest<::testing::TestWithParam<FileNameEntryPointPair>>;
 using HlslVulkan1_1CompileTest = GlslangTest<::testing::TestWithParam<FileNameEntryPointPair>>;
-using HlslSpv1_6CompileTest = GlslangTest<::testing::TestWithParam<FileNameEntryPointPair>>;
 using HlslCompileAndFlattenTest = GlslangTest<::testing::TestWithParam<FileNameEntryPointPair>>;
 using HlslLegalizeTest = GlslangTest<::testing::TestWithParam<FileNameEntryPointPair>>;
 using HlslDebugTest = GlslangTest<::testing::TestWithParam<FileNameEntryPointPair>>;
@@ -79,13 +78,6 @@ TEST_P(HlslVulkan1_1CompileTest, FromFile)
 {
     loadFileCompileAndCheck(GlobalTestSettings.testRoot, GetParam().fileName,
                             Source::HLSL, Semantics::Vulkan, glslang::EShTargetVulkan_1_1, glslang::EShTargetSpv_1_3,
-                            Target::BothASTAndSpv, true, GetParam().entryPoint);
-}
-
-TEST_P(HlslSpv1_6CompileTest, FromFile)
-{
-    loadFileCompileAndCheck(GlobalTestSettings.testRoot, GetParam().fileName,
-                            Source::HLSL, Semantics::Vulkan, glslang::EShTargetVulkan_1_3, glslang::EShTargetSpv_1_6,
                             Target::BothASTAndSpv, true, GetParam().entryPoint);
 }
 
@@ -243,7 +235,6 @@ INSTANTIATE_TEST_SUITE_P(
         {"hlsl.groupid.comp", "main"},
         {"hlsl.identifier.sample.frag", "main"},
         {"hlsl.if.frag", "PixelShaderFunction"},
-        {"hlsl.imageload-subvec4.comp", "main"},
         {"hlsl.imagefetch-subvec4.comp", "main"},
         {"hlsl.implicitBool.frag", "main"},
         {"hlsl.inf.vert", "main"},
@@ -393,7 +384,6 @@ INSTANTIATE_TEST_SUITE_P(
         {"hlsl.structbuffer.fn2.comp", "main"},
         {"hlsl.structbuffer.rw.frag", "main"},
         {"hlsl.structbuffer.rwbyte.frag", "main"},
-        {"hlsl.structbuffer.rwbyte2.comp", "main"},
         {"hlsl.structin.vert", "main"},
         {"hlsl.structIoFourWay.frag", "main"},
         {"hlsl.structStructName.frag", "main"},
@@ -453,16 +443,6 @@ INSTANTIATE_TEST_SUITE_P(
         {"hlsl.wavevote.comp", "CSMain"},
         { "hlsl.type.type.conversion.valid.frag", "main" },
         {"hlsl.int.dot.frag", "main"}
-    }),
-    FileNameAsCustomTestSuffix
-);
-// clang-format on
-
-// clang-format off
-INSTANTIATE_TEST_SUITE_P(
-    ToSpirv, HlslSpv1_6CompileTest,
-    ::testing::ValuesIn(std::vector<FileNameEntryPointPair>{
-       {"hlsl.spv.1.6.discard.frag", "PixelShaderFunction"}
     }),
     FileNameAsCustomTestSuffix
 );

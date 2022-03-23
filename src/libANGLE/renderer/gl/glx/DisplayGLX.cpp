@@ -1079,9 +1079,4 @@ RendererGL *DisplayGLX::getRenderer() const
     return mRenderer.get();
 }
 
-bool DisplayGLX::isX11() const
-{
-    return true;
-}
-
 }  // namespace rx
