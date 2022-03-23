@@ -228,6 +228,7 @@ bool ValidateCopyTexture3DCommon(const Context *context,
         case GL_RG32UI:
         case GL_RG32I:
         case GL_RGB8:
+        case GL_RGBX8_ANGLE:
         case GL_SRGB8:
         case GL_RGB565:
         case GL_RGB8_SNORM:
@@ -2977,17 +2978,10 @@ bool ValidateBeginTransformFeedback(const Context *context,
         return false;
     }
 
-    size_t programXfbCount = programExecutable->getTransformFeedbackBufferCount();
-    for (size_t programXfbIndex = 0; programXfbIndex < programXfbCount; ++programXfbIndex)
+    if (!ValidateProgramExecutableXFBBuffersPresent(context, programExecutable))
     {
-        const OffsetBindingPointer<Buffer> &buffer =
-            transformFeedback->getIndexedBuffer(programXfbIndex);
-        if (!buffer.get())
-        {
-            context->validationError(entryPoint, GL_INVALID_OPERATION,
-                                     kTransformFeedbackBufferMissing);
-            return false;
-        }
+        context->validationError(entryPoint, GL_INVALID_OPERATION, kTransformFeedbackBufferMissing);
+        return false;
     }
 
     return true;

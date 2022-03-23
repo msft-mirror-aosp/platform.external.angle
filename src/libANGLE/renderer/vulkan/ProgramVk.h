@@ -96,64 +96,24 @@ class ProgramVk : public ProgramImpl
     void getUniformiv(const gl::Context *context, GLint location, GLint *params) const override;
     void getUniformuiv(const gl::Context *context, GLint location, GLuint *params) const override;
 
-    angle::Result updateUniforms(ContextVk *contextVk);
-
-    void setAllDefaultUniformsDirty();
-    bool hasDirtyUniforms() const { return mDefaultUniformBlocksDirty.any(); }
-    bool isShaderUniformDirty(gl::ShaderType shaderType) const
+    bool areShaderUniformsDirty(gl::ShaderType shaderType) const
     {
-        return mDefaultUniformBlocksDirty[shaderType];
+        return mExecutable.mDefaultUniformBlocksDirty[shaderType];
     }
     void setShaderUniformDirtyBit(gl::ShaderType shaderType)
     {
-        if (!mDefaultUniformBlocks[shaderType].uniformData.empty())
+        if (!mExecutable.mDefaultUniformBlocks[shaderType]->uniformData.empty())
         {
-            mDefaultUniformBlocksDirty.set(shaderType);
+            mExecutable.mDefaultUniformBlocksDirty.set(shaderType);
         }
     }
     void clearShaderUniformDirtyBit(gl::ShaderType shaderType)
     {
-        mDefaultUniformBlocksDirty.reset(shaderType);
+        mExecutable.mDefaultUniformBlocksDirty.reset(shaderType);
     }
-    void onProgramBind();
 
     const ProgramExecutableVk &getExecutable() const { return mExecutable; }
     ProgramExecutableVk &getExecutable() { return mExecutable; }
-
-    gl::ShaderMap<DefaultUniformBlock> &getDefaultUniformBlocks() { return mDefaultUniformBlocks; }
-    size_t getDefaultUniformAlignedSize(vk::Context *context, const gl::ShaderType shaderType) const
-    {
-        RendererVk *renderer = context->getRenderer();
-        size_t alignment     = static_cast<size_t>(
-            renderer->getPhysicalDeviceProperties().limits.minUniformBufferOffsetAlignment);
-        return roundUp(mDefaultUniformBlocks[shaderType].uniformData.size(), alignment);
-    }
-
-    size_t calcUniformUpdateRequiredSpace(ContextVk *contextVk,
-                                          const gl::ProgramExecutable &glExecutable,
-                                          gl::ShaderMap<VkDeviceSize> &uniformOffsets) const;
-
-    ANGLE_INLINE angle::Result initGraphicsShaderProgram(
-        ContextVk *contextVk,
-        const gl::ShaderType shaderType,
-        bool isLastPreFragmentStage,
-        ProgramTransformOptions optionBits,
-        ProgramInfo *programInfo,
-        const ShaderInterfaceVariableInfoMap &variableInfoMap)
-    {
-        return initProgram(contextVk, shaderType, isLastPreFragmentStage, optionBits, programInfo,
-                           variableInfoMap);
-    }
-
-    ANGLE_INLINE angle::Result initComputeProgram(
-        ContextVk *contextVk,
-        ProgramInfo *programInfo,
-        const ShaderInterfaceVariableInfoMap &variableInfoMap)
-    {
-        ProgramTransformOptions optionBits = {};
-        return initProgram(contextVk, gl::ShaderType::Compute, false, optionBits, programInfo,
-                           variableInfoMap);
-    }
 
     const GlslangProgramInterfaceInfo &getGlslangProgramInterfaceInfo()
     {
@@ -172,8 +132,6 @@ class ProgramVk : public ProgramImpl
     void generateUniformLayoutMapping(gl::ShaderMap<sh::BlockLayoutMap> &layoutMap,
                                       gl::ShaderMap<size_t> &requiredBufferSize);
     void initDefaultUniformLayoutMapping(gl::ShaderMap<sh::BlockLayoutMap> &layoutMap);
-    angle::Result resizeUniformBlockMemory(ContextVk *contextVk,
-                                           gl::ShaderMap<size_t> &requiredBufferSize);
 
     template <class T>
     void getUniformImpl(GLint location, T *v, GLenum entryPointType) const;
@@ -182,36 +140,9 @@ class ProgramVk : public ProgramImpl
     void setUniformImpl(GLint location, GLsizei count, const T *v, GLenum entryPointType);
     void linkResources(const gl::ProgramLinkedResources &resources);
 
-    ANGLE_INLINE angle::Result initProgram(ContextVk *contextVk,
-                                           const gl::ShaderType shaderType,
-                                           bool isLastPreFragmentStage,
-                                           ProgramTransformOptions optionBits,
-                                           ProgramInfo *programInfo,
-                                           const ShaderInterfaceVariableInfoMap &variableInfoMap)
-    {
-        ASSERT(mOriginalShaderInfo.valid());
-
-        // Create the program pipeline.  This is done lazily and once per combination of
-        // specialization constants.
-        if (!programInfo->valid(shaderType))
-        {
-            const bool isTransformFeedbackProgram =
-                !mState.getLinkedTransformFeedbackVaryings().empty();
-            ANGLE_TRY(programInfo->initProgram(contextVk, shaderType, isLastPreFragmentStage,
-                                               isTransformFeedbackProgram, mOriginalShaderInfo,
-                                               optionBits, variableInfoMap));
-        }
-        ASSERT(programInfo->valid(shaderType));
-
-        return angle::Result::Continue;
-    }
-
-    gl::ShaderMap<DefaultUniformBlock> mDefaultUniformBlocks;
-    gl::ShaderBitSet mDefaultUniformBlocksDirty;
+    angle::Result createGraphicsPipelineWithDefaultState(const gl::Context *context);
 
     // We keep the SPIR-V code to use for draw call pipeline creation.
-    ShaderInfo mOriginalShaderInfo;
-
     GlslangProgramInterfaceInfo mGlslangProgramInterfaceInfo;
 
     ProgramExecutableVk mExecutable;

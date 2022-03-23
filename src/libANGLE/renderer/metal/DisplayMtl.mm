@@ -218,7 +218,7 @@ std::string DisplayMtl::getVendorString()
     return GetVendorString(mMetalDeviceVendorId);
 }
 
-std::string DisplayMtl::getVersionString()
+std::string DisplayMtl::getVersionString(bool includeFullVersion)
 {
     ANGLE_MTL_OBJC_SCOPE
     {
@@ -1093,6 +1093,8 @@ void DisplayMtl::initializeFeatures()
                             isIntel() && GetMacOSVersion() < OSVersion(11, 0, 0));
     ANGLE_FEATURE_CONDITION((&mFeatures), intelDisableFastMath,
                             isIntel() && GetMacOSVersion() < OSVersion(12, 0, 0));
+
+    ANGLE_FEATURE_CONDITION((&mFeatures), multisampleColorFormatShaderReadWorkaround, isAMD());
 
     ANGLE_FEATURE_CONDITION((&mFeatures), forceNonCSBaseMipmapGeneration, isIntel());
 

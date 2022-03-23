@@ -18,6 +18,7 @@
 #include "common/utilities.h"
 #include "libANGLE/Caps.h"
 #include "libANGLE/ProgramLinkedResources.h"
+#include "libANGLE/renderer/ShaderInterfaceVariableInfoMap.h"
 #include "libANGLE/trace.h"
 
 namespace spirv = angle::spirv;
@@ -134,7 +135,13 @@ ShaderInterfaceVariableInfo *AddLocationInfo(ShaderInterfaceVariableInfoMap *inf
 
     ASSERT(info.descriptorSet == ShaderInterfaceVariableInfo::kInvalid);
     ASSERT(info.binding == ShaderInterfaceVariableInfo::kInvalid);
-    ASSERT(info.location == ShaderInterfaceVariableInfo::kInvalid);
+    if (info.location != ShaderInterfaceVariableInfo::kInvalid)
+    {
+        // TODO: Correctly support in and out interface variables with identical name.
+        // anglebug.com/4524
+        ASSERT(info.location == location);
+        ASSERT(info.component == component);
+    }
     ASSERT(info.component == ShaderInterfaceVariableInfo::kInvalid);
 
     info.location  = location;
@@ -3430,6 +3437,9 @@ TransformationState SpirvTransformer::transformDecorate(const uint32_t *instruct
                 mXfbCodeGenerator.addMemberDecorate(*info, id, mSpirvBlobOut);
             }
             break;
+        case spv::DecorationInvariant:
+            spirv::WriteDecorate(mSpirvBlobOut, id, spv::DecorationInvariant, {});
+            return TransformationState::Transformed;
         default:
             break;
     }
@@ -4701,72 +4711,6 @@ UniformBindingInfo::UniformBindingInfo(uint32_t bindingIndex,
 {}
 
 UniformBindingInfo::UniformBindingInfo() {}
-
-// ShaderInterfaceVariableInfo implementation.
-ShaderInterfaceVariableInfo::ShaderInterfaceVariableInfo() {}
-
-// ShaderInterfaceVariableInfoMap implementation.
-ShaderInterfaceVariableInfoMap::ShaderInterfaceVariableInfoMap() = default;
-
-ShaderInterfaceVariableInfoMap::~ShaderInterfaceVariableInfoMap() = default;
-
-void ShaderInterfaceVariableInfoMap::clear()
-{
-    for (VariableNameToInfoMap &shaderMap : mData)
-    {
-        shaderMap.clear();
-    }
-}
-
-bool ShaderInterfaceVariableInfoMap::contains(gl::ShaderType shaderType,
-                                              const std::string &variableName) const
-{
-    return mData[shaderType].find(variableName) != mData[shaderType].end();
-}
-
-const ShaderInterfaceVariableInfo &ShaderInterfaceVariableInfoMap::get(
-    gl::ShaderType shaderType,
-    const std::string &variableName) const
-{
-    auto it = mData[shaderType].find(variableName);
-    ASSERT(it != mData[shaderType].end());
-    return it->second;
-}
-
-ShaderInterfaceVariableInfo &ShaderInterfaceVariableInfoMap::get(gl::ShaderType shaderType,
-                                                                 const std::string &variableName)
-{
-    auto it = mData[shaderType].find(variableName);
-    ASSERT(it != mData[shaderType].end());
-    return it->second;
-}
-
-void ShaderInterfaceVariableInfoMap::markAsDuplicate(gl::ShaderType shaderType,
-                                                     const std::string &variableName)
-{
-    ASSERT(contains(shaderType, variableName));
-    mData[shaderType][variableName].isDuplicate = true;
-}
-
-ShaderInterfaceVariableInfo &ShaderInterfaceVariableInfoMap::add(gl::ShaderType shaderType,
-                                                                 const std::string &variableName)
-{
-    ASSERT(!contains(shaderType, variableName));
-    return mData[shaderType][variableName];
-}
-
-ShaderInterfaceVariableInfo &ShaderInterfaceVariableInfoMap::addOrGet(
-    gl::ShaderType shaderType,
-    const std::string &variableName)
-{
-    return mData[shaderType][variableName];
-}
-
-ShaderInterfaceVariableInfoMap::Iterator ShaderInterfaceVariableInfoMap::getIterator(
-    gl::ShaderType shaderType) const
-{
-    return Iterator(mData[shaderType].begin(), mData[shaderType].end());
-}
 
 // Strip indices from the name.  If there are non-zero indices, return false to indicate that this
 // image uniform doesn't require set/binding.  That is done on index 0.

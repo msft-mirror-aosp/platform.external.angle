@@ -4,7 +4,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# main.star: lucicfg configuration for ANGLE's standalone builers.
+# main.star: lucicfg configuration for ANGLE's standalone builders.
+
+# Use LUCI Scheduler BBv2 names and add Scheduler realms configs.
+lucicfg.enable_experiment("crbug.com/1182002")
 
 lucicfg.config(
     fail_on_warnings = True,
@@ -137,7 +140,7 @@ _GOMA_RBE_PROD = {
 }
 
 def _recipe_for_package(cipd_package):
-    def recipe(*, name, cipd_version = None, recipe = None):
+    def recipe(*, name, cipd_version = None, recipe = None, use_python3 = False):
         # Force the caller to put the recipe prefix rather than adding it
         # programatically to make the string greppable
         if not name.startswith(_RECIPE_NAME_PREFIX):
@@ -151,6 +154,7 @@ def _recipe_for_package(cipd_package):
             cipd_version = cipd_version,
             recipe = recipe,
             use_bbagent = True,
+            use_python3 = use_python3,
         )
 
     return recipe
@@ -161,10 +165,12 @@ build_recipe = _recipe_for_package(
 
 build_recipe(
     name = "recipe:angle",
+    use_python3 = True,
 )
 
 build_recipe(
     name = "recipe:run_presubmit",
+    use_python3 = True,
 )
 
 def get_os_from_name(name):

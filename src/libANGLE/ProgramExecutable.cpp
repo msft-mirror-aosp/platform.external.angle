@@ -182,12 +182,7 @@ ProgramExecutable::ProgramExecutable()
       mImageUniformRange(0, 0),
       mAtomicCounterUniformRange(0, 0),
       mFragmentInoutRange(0, 0),
-      mPipelineHasUniformBuffers(false),
-      mPipelineHasStorageBuffers(false),
-      mPipelineHasAtomicCounterBuffers(false),
-      mPipelineHasDefaultUniforms(false),
-      mPipelineHasTextures(false),
-      mPipelineHasImages(false),
+      mUsesEarlyFragmentTestsOptimization(false),
       // [GL_EXT_geometry_shader] Table 20.22
       mGeometryShaderInputPrimitiveType(PrimitiveMode::Triangles),
       mGeometryShaderOutputPrimitiveType(PrimitiveMode::TriangleStrip),
@@ -235,12 +230,7 @@ ProgramExecutable::ProgramExecutable(const ProgramExecutable &other)
       mAtomicCounterBuffers(other.mAtomicCounterBuffers),
       mShaderStorageBlocks(other.mShaderStorageBlocks),
       mFragmentInoutRange(other.mFragmentInoutRange),
-      mPipelineHasUniformBuffers(other.mPipelineHasUniformBuffers),
-      mPipelineHasStorageBuffers(other.mPipelineHasStorageBuffers),
-      mPipelineHasAtomicCounterBuffers(other.mPipelineHasAtomicCounterBuffers),
-      mPipelineHasDefaultUniforms(other.mPipelineHasDefaultUniforms),
-      mPipelineHasTextures(other.mPipelineHasTextures),
-      mPipelineHasImages(other.mPipelineHasImages)
+      mUsesEarlyFragmentTestsOptimization(other.mUsesEarlyFragmentTestsOptimization)
 {
     reset();
 }
@@ -284,11 +274,8 @@ void ProgramExecutable::reset()
     mImageUniformRange         = RangeUI(0, 0);
     mAtomicCounterUniformRange = RangeUI(0, 0);
 
-    mPipelineHasUniformBuffers       = false;
-    mPipelineHasStorageBuffers       = false;
-    mPipelineHasAtomicCounterBuffers = false;
-    mPipelineHasDefaultUniforms      = false;
-    mPipelineHasTextures             = false;
+    mFragmentInoutRange                 = RangeUI(0, 0);
+    mUsesEarlyFragmentTestsOptimization = false;
 
     mGeometryShaderInputPrimitiveType  = PrimitiveMode::Triangles;
     mGeometryShaderOutputPrimitiveType = PrimitiveMode::TriangleStrip;
@@ -319,13 +306,9 @@ void ProgramExecutable::load(bool isSeparable, gl::BinaryInputStream *stream)
     unsigned int fragmentInoutRangeHigh = stream->readInt<uint32_t>();
     mFragmentInoutRange                 = RangeUI(fragmentInoutRangeLow, fragmentInoutRangeHigh);
 
-    mLinkedShaderStages = ShaderBitSet(stream->readInt<uint8_t>());
+    mUsesEarlyFragmentTestsOptimization = stream->readBool();
 
-    mPipelineHasUniformBuffers       = stream->readBool();
-    mPipelineHasStorageBuffers       = stream->readBool();
-    mPipelineHasAtomicCounterBuffers = stream->readBool();
-    mPipelineHasDefaultUniforms      = stream->readBool();
-    mPipelineHasTextures             = stream->readBool();
+    mLinkedShaderStages = ShaderBitSet(stream->readInt<uint8_t>());
 
     mGeometryShaderInputPrimitiveType  = stream->readEnum<PrimitiveMode>();
     mGeometryShaderOutputPrimitiveType = stream->readEnum<PrimitiveMode>();
@@ -551,13 +534,9 @@ void ProgramExecutable::save(bool isSeparable, gl::BinaryOutputStream *stream) c
     stream->writeInt(mFragmentInoutRange.low());
     stream->writeInt(mFragmentInoutRange.high());
 
-    stream->writeInt(mLinkedShaderStages.bits());
+    stream->writeBool(mUsesEarlyFragmentTestsOptimization);
 
-    stream->writeBool(mPipelineHasUniformBuffers);
-    stream->writeBool(mPipelineHasStorageBuffers);
-    stream->writeBool(mPipelineHasAtomicCounterBuffers);
-    stream->writeBool(mPipelineHasDefaultUniforms);
-    stream->writeBool(mPipelineHasTextures);
+    stream->writeInt(mLinkedShaderStages.bits());
 
     ASSERT(mGeometryShaderInvocations >= 1 && mGeometryShaderMaxVertices >= 0);
     stream->writeEnum(mGeometryShaderInputPrimitiveType);
@@ -759,34 +738,32 @@ AttributesMask ProgramExecutable::getAttributesMask() const
 
 bool ProgramExecutable::hasDefaultUniforms() const
 {
-    return !getDefaultUniformRange().empty() || mPipelineHasDefaultUniforms;
+    return !getDefaultUniformRange().empty();
 }
 
 bool ProgramExecutable::hasTextures() const
 {
-    return !getSamplerBindings().empty() || mPipelineHasTextures;
+    return !getSamplerBindings().empty();
 }
 
-// TODO: http://anglebug.com/3570: Remove mHas*UniformBuffers once PPO's have valid data in
-// mUniformBlocks
 bool ProgramExecutable::hasUniformBuffers() const
 {
-    return !mUniformBlocks.empty() || mPipelineHasUniformBuffers;
+    return !mUniformBlocks.empty();
 }
 
 bool ProgramExecutable::hasStorageBuffers() const
 {
-    return !mShaderStorageBlocks.empty() || mPipelineHasStorageBuffers;
+    return !mShaderStorageBlocks.empty();
 }
 
 bool ProgramExecutable::hasAtomicCounterBuffers() const
 {
-    return !mAtomicCounterBuffers.empty() || mPipelineHasAtomicCounterBuffers;
+    return !mAtomicCounterBuffers.empty();
 }
 
 bool ProgramExecutable::hasImages() const
 {
-    return !mImageBindings.empty() || mPipelineHasImages;
+    return !mImageBindings.empty();
 }
 
 bool ProgramExecutable::usesFramebufferFetch() const
@@ -1702,6 +1679,9 @@ void ProgramExecutable::copyUniformsFromProgramMap(const ShaderMap<Program *> &p
     };
     mAtomicCounterUniformRange =
         AddUniforms(programs, mLinkedShaderStages, mUniforms, getAtomicRange);
-}
 
+    // Merge fragment in/out uniforms.
+    auto getInoutRange  = [](const ProgramState &state) { return state.getFragmentInoutRange(); };
+    mFragmentInoutRange = AddUniforms(programs, mLinkedShaderStages, mUniforms, getInoutRange);
+}
 }  // namespace gl

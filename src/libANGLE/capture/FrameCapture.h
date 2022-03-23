@@ -308,7 +308,7 @@ class TrackedResource final : angle::NonCopyable
     ResourceCalls &getResourceRestoreCalls() { return mResourceRestoreCalls; }
 
   private:
-    // Resource regen calls will delete and gen a resource
+    // Resource regen calls will gen a resource
     ResourceCalls mResourceRegenCalls;
     // Resource restore calls will restore the contents of a resource
     ResourceCalls mResourceRestoreCalls;
@@ -776,6 +776,8 @@ class FrameCaptureShared final : angle::NonCopyable
     bool mCaptureActive;
     std::vector<uint32_t> mActiveFrameIndices;
 
+    bool mMidExecutionCaptureActive;
+
     // Cache most recently compiled and linked sources.
     ShaderSourceMap mCachedShaderSource;
     ProgramSourceMap mCachedProgramSources;
@@ -917,6 +919,11 @@ template <>
 void WriteParamValueReplay<ParamType::TGLfloatConstPointer>(std::ostream &os,
                                                             const CallCapture &call,
                                                             const GLfloat *value);
+
+template <>
+void WriteParamValueReplay<ParamType::TGLintConstPointer>(std::ostream &os,
+                                                          const CallCapture &call,
+                                                          const GLint *value);
 
 template <>
 void WriteParamValueReplay<ParamType::TGLuintConstPointer>(std::ostream &os,

@@ -86,6 +86,8 @@ PFNEGLGETSYNCVALUESCHROMIUMPROC l_EGL_GetSyncValuesCHROMIUM;
 PFNEGLQUERYDEVICEATTRIBEXTPROC l_EGL_QueryDeviceAttribEXT;
 PFNEGLQUERYDEVICESTRINGEXTPROC l_EGL_QueryDeviceStringEXT;
 PFNEGLQUERYDISPLAYATTRIBEXTPROC l_EGL_QueryDisplayAttribEXT;
+PFNEGLQUERYDMABUFFORMATSEXTPROC l_EGL_QueryDmaBufFormatsEXT;
+PFNEGLQUERYDMABUFMODIFIERSEXTPROC l_EGL_QueryDmaBufModifiersEXT;
 PFNEGLCREATEPLATFORMPIXMAPSURFACEEXTPROC l_EGL_CreatePlatformPixmapSurfaceEXT;
 PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC l_EGL_CreatePlatformWindowSurfaceEXT;
 PFNEGLGETPLATFORMDISPLAYEXTPROC l_EGL_GetPlatformDisplayEXT;
@@ -101,6 +103,7 @@ PFNEGLDESTROYIMAGEKHRPROC l_EGL_DestroyImageKHR;
 PFNEGLLOCKSURFACEKHRPROC l_EGL_LockSurfaceKHR;
 PFNEGLQUERYSURFACE64KHRPROC l_EGL_QuerySurface64KHR;
 PFNEGLUNLOCKSURFACEKHRPROC l_EGL_UnlockSurfaceKHR;
+PFNEGLSETDAMAGEREGIONKHRPROC l_EGL_SetDamageRegionKHR;
 PFNEGLSIGNALSYNCKHRPROC l_EGL_SignalSyncKHR;
 PFNEGLCREATESTREAMKHRPROC l_EGL_CreateStreamKHR;
 PFNEGLDESTROYSTREAMKHRPROC l_EGL_DestroyStreamKHR;
@@ -248,6 +251,10 @@ void LoadEGL_EGL(LoadProc loadProc)
         reinterpret_cast<PFNEGLQUERYDEVICESTRINGEXTPROC>(loadProc("EGL_QueryDeviceStringEXT"));
     l_EGL_QueryDisplayAttribEXT =
         reinterpret_cast<PFNEGLQUERYDISPLAYATTRIBEXTPROC>(loadProc("EGL_QueryDisplayAttribEXT"));
+    l_EGL_QueryDmaBufFormatsEXT =
+        reinterpret_cast<PFNEGLQUERYDMABUFFORMATSEXTPROC>(loadProc("EGL_QueryDmaBufFormatsEXT"));
+    l_EGL_QueryDmaBufModifiersEXT = reinterpret_cast<PFNEGLQUERYDMABUFMODIFIERSEXTPROC>(
+        loadProc("EGL_QueryDmaBufModifiersEXT"));
     l_EGL_CreatePlatformPixmapSurfaceEXT =
         reinterpret_cast<PFNEGLCREATEPLATFORMPIXMAPSURFACEEXTPROC>(
             loadProc("EGL_CreatePlatformPixmapSurfaceEXT"));
@@ -278,6 +285,8 @@ void LoadEGL_EGL(LoadProc loadProc)
         reinterpret_cast<PFNEGLQUERYSURFACE64KHRPROC>(loadProc("EGL_QuerySurface64KHR"));
     l_EGL_UnlockSurfaceKHR =
         reinterpret_cast<PFNEGLUNLOCKSURFACEKHRPROC>(loadProc("EGL_UnlockSurfaceKHR"));
+    l_EGL_SetDamageRegionKHR =
+        reinterpret_cast<PFNEGLSETDAMAGEREGIONKHRPROC>(loadProc("EGL_SetDamageRegionKHR"));
     l_EGL_SignalSyncKHR = reinterpret_cast<PFNEGLSIGNALSYNCKHRPROC>(loadProc("EGL_SignalSyncKHR"));
     l_EGL_CreateStreamKHR =
         reinterpret_cast<PFNEGLCREATESTREAMKHRPROC>(loadProc("EGL_CreateStreamKHR"));

@@ -1444,8 +1444,7 @@ void FramebufferTestWithFormatFallback::cubeTexImageFollowedByFBORead(GLenum int
         GLint j = target - GL_TEXTURE_CUBE_MAP_POSITIVE_X;
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, cubeTex2D, 0);
         EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
-        EXPECT_PIXEL_EQ(kTexWidth / 2, kTexHeight / 2, kColors[j].R, kColors[j].G, kColors[j].B,
-                        kColors[j].A);
+        EXPECT_PIXEL_COLOR_EQ(kTexWidth / 2, kTexHeight / 2, kColors[j]) << "face " << j;
     }
     ASSERT_GL_NO_ERROR();
 }
@@ -1458,7 +1457,7 @@ TEST_P(FramebufferTestWithFormatFallback, R4G4B4A4_CubeTexImage)
     cubeTexImageFollowedByFBORead(GL_RGBA4, GL_UNSIGNED_SHORT_4_4_4_4);
 }
 
-// Tests that the out-of-range staged update is reformated when mipmapping is enabled, but not
+// Tests that the out-of-range staged update is reformatted when mipmapping is enabled, but not
 // before it.
 TEST_P(FramebufferTestWithFormatFallback, R4G4B4A4_OutOfRangeStagedUpdateReformated)
 {
@@ -4118,6 +4117,57 @@ TEST_P(FramebufferTest_ES3, BindRenderbufferThenModifySize)
 
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
     ASSERT_GL_NO_ERROR();
+}
+
+// Tests redefining a layered framebuffer attachment.
+TEST_P(FramebufferTest_ES3, RedefineLayerAttachment)
+{
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_3D, texture);
+    std::vector<uint8_t> imgData(20480, 0);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, 8, 8, 8, 0, GL_RED, GL_UNSIGNED_BYTE, imgData.data());
+
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, 8);
+    glGenerateMipmap(GL_TEXTURE_3D);
+
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_R8UI, 16, 16, 16, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE,
+                 imgData.data());
+    glCopyTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 2, 2, 15, 16, 16);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Covers a bug when changing a base level of a texture bound to a FBO.
+TEST_P(FramebufferTest_ES3, ReattachToInvalidBaseLevel)
+{
+    ANGLE_GL_PROGRAM(testProgram, essl1_shaders::vs::Texture2D(), essl1_shaders::fs::Texture2D());
+    glUseProgram(testProgram);
+
+    GLTexture tex;
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    for (int mip = 0; mip <= 2; ++mip)
+    {
+        int size = 10 >> mip;
+        glTexImage2D(GL_TEXTURE_2D, mip, GL_RGBA8, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     nullptr);
+    }
+
+    GLFramebuffer fb;
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 1);
+    EXPECT_GL_NO_ERROR();
+
+    // Set base level 1 and draw.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 1);
+    glDrawArrays(GL_POINTS, 0, 1);
+    EXPECT_GL_NO_ERROR();
+    // Set base level 0. The FBO is incomplete because the FBO attachment binds to level 1.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glDrawArrays(GL_POINTS, 0, 1);
+    EXPECT_GL_ERROR(GL_INVALID_FRAMEBUFFER_OPERATION);
 }
 
 ANGLE_INSTANTIATE_TEST_ES2(AddMockTextureNoRenderTargetTest);

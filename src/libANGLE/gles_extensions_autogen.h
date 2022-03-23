@@ -59,6 +59,10 @@ struct Extensions
     bool framebufferBlitAny() const { return (framebufferBlitANGLE || framebufferBlitNV); }
     bool geometryShaderAny() const { return (geometryShaderEXT || geometryShaderOES); }
     bool instancedArraysAny() const { return (instancedArraysANGLE || instancedArraysEXT); }
+    bool primitiveBoundingBoxAny() const
+    {
+        return (primitiveBoundingBoxEXT || primitiveBoundingBoxOES);
+    }
     bool shaderIoBlocksAny() const { return (shaderIoBlocksEXT || shaderIoBlocksOES); }
     bool textureBorderClampAny() const { return (textureBorderClampEXT || textureBorderClampOES); }
     bool textureBufferAny() const { return (textureBufferEXT || textureBufferOES); }
@@ -307,11 +311,17 @@ struct Extensions
     // GL_KHR_parallel_shader_compile
     bool parallelShaderCompileKHR = false;
 
+    // GL_AMD_performance_monitor
+    bool performanceMonitorAMD = false;
+
     // GL_NV_pixel_buffer_object
     bool pixelBufferObjectNV = false;
 
     // GL_EXT_primitive_bounding_box
     bool primitiveBoundingBoxEXT = false;
+
+    // GL_OES_primitive_bounding_box
+    bool primitiveBoundingBoxOES = false;
 
     // GL_EXT_protected_textures
     bool protectedTexturesEXT = false;

@@ -337,6 +337,20 @@ bool ValidateQueryDisplayAttribEXT(const ValidationContext *val,
                                    EGLint attribute,
                                    const EGLAttrib *value);
 
+// EGL_EXT_image_dma_buf_import_modifiers
+bool ValidateQueryDmaBufFormatsEXT(const ValidationContext *val,
+                                   const egl::Display *dpyPacked,
+                                   EGLint max_formats,
+                                   const EGLint *formats,
+                                   const EGLint *num_formats);
+bool ValidateQueryDmaBufModifiersEXT(const ValidationContext *val,
+                                     const egl::Display *dpyPacked,
+                                     EGLint format,
+                                     EGLint max_modifiers,
+                                     const EGLuint64KHR *modifiers,
+                                     const EGLBoolean *external_only,
+                                     const EGLint *num_modifiers);
+
 // EGL_EXT_platform_base
 bool ValidateCreatePlatformPixmapSurfaceEXT(const ValidationContext *val,
                                             const egl::Display *dpyPacked,
@@ -407,6 +421,13 @@ bool ValidateQuerySurface64KHR(const ValidationContext *val,
 bool ValidateUnlockSurfaceKHR(const ValidationContext *val,
                               const egl::Display *dpyPacked,
                               const Surface *surfacePacked);
+
+// EGL_KHR_partial_update
+bool ValidateSetDamageRegionKHR(const ValidationContext *val,
+                                const egl::Display *dpyPacked,
+                                const Surface *surfacePacked,
+                                const EGLint *rects,
+                                EGLint n_rects);
 
 // EGL_KHR_reusable_sync
 bool ValidateSignalSyncKHR(const ValidationContext *val,

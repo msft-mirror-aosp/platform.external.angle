@@ -8,8 +8,6 @@
 
 // Geometry shader support (conditioned to windows as that's our only bot capable of running these
 // tests)
-// Translator's lack of support for redefining gl_PerVertex
-5579 VULKAN WIN : KHR-GLES32.core.geometry_shader.api.getProgramiv3 = FAIL
 // API validation bugs
 5579 VULKAN WIN : KHR-GLES32.core.geometry_shader.qualifiers.flat_interpolation = FAIL
 // Wrong results
@@ -37,8 +35,6 @@
 5557 VULKAN WIN : KHR-GLES32.core.tessellation_shader.tessellation_shader_triangles_tessellation.degenerate_triangle = FAIL
 // Missing names in mVariableInfo map (fail on ASSERT in SPIR-V transformer)
 5557 VULKAN WIN : KHR-GLES32.core.tessellation_shader.single.xfb_captures_data_from_correct_stage = SKIP
-// Translator validation bugs
-5557 VULKAN WIN : KHR-GLES32.core.tessellation_shader.single.max_patch_vertices = FAIL
 // Bug in front-end where builtins are not correctly marked active in every stage
 // Test failures
 5557 VULKAN WIN : KHR-GLES32.core.tessellation_shader.tessellation_shader_quads_tessellation.* = FAIL

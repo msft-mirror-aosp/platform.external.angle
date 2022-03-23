@@ -99,6 +99,7 @@ set(SPIRV_TOOLS_OPT_SOURCES
   reflect.h
   register_pressure.h
   relax_float_ops_pass.h
+  remove_dontinline_pass.h
   remove_duplicates_pass.h
   remove_unused_interface_variables_pass.h
   replace_desc_array_access_using_var_index.h
@@ -108,6 +109,7 @@ set(SPIRV_TOOLS_OPT_SOURCES
   scalar_replacement_pass.h
   set_spec_constant_default_value_pass.h
   simplification_pass.h
+  spread_volatile_semantics.h
   ssa_rewrite_pass.h
   strength_reduction_pass.h
   strip_debug_info_pass.h
@@ -206,6 +208,7 @@ set(SPIRV_TOOLS_OPT_SOURCES
   redundancy_elimination.cpp
   register_pressure.cpp
   relax_float_ops_pass.cpp
+  remove_dontinline_pass.cpp
   remove_duplicates_pass.cpp
   remove_unused_interface_variables_pass.cpp
   replace_desc_array_access_using_var_index.cpp
@@ -215,6 +218,7 @@ set(SPIRV_TOOLS_OPT_SOURCES
   scalar_replacement_pass.cpp
   set_spec_constant_default_value_pass.cpp
   simplification_pass.cpp
+  spread_volatile_semantics.cpp
   ssa_rewrite_pass.cpp
   strength_reduction_pass.cpp
   strip_debug_info_pass.cpp
