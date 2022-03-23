@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #if defined(_WIN32)
 #        define ANGLE_EXPORT __declspec(dllexport)
 #elif defined(__GNUC__)
@@ -430,7 +432,7 @@ struct ST_BuiltInResources
     // Name Hashing.
     // Set a 64 bit hash function to enable user-defined name hashing.
     // Default is NULL.
-    ShHashFunction64 HashFunction;
+    ST_HashFunction64 HashFunction;
 
     // The maximum complexity an expression can be when SH_LIMIT_EXPRESSION_COMPLEXITY is turned on.
     int MaxExpressionComplexity;
