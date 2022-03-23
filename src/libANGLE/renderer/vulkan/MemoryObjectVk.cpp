@@ -101,12 +101,6 @@ angle::Result MemoryObjectVk::setDedicatedMemory(const gl::Context *context, boo
     return angle::Result::Continue;
 }
 
-angle::Result MemoryObjectVk::setProtectedMemory(const gl::Context *context, bool protectedMemory)
-{
-    mProtectedMemory = protectedMemory;
-    return angle::Result::Continue;
-}
-
 angle::Result MemoryObjectVk::importFd(gl::Context *context,
                                        GLuint64 size,
                                        gl::HandleType handleType,
@@ -173,46 +167,53 @@ angle::Result MemoryObjectVk::createImage(ContextVk *contextVk,
                                           GLuint64 offset,
                                           vk::ImageHelper *image,
                                           GLbitfield createFlags,
-                                          GLbitfield usageFlags,
-                                          const void *imageCreateInfoPNext)
+                                          GLbitfield usageFlags)
 {
     RendererVk *renderer = contextVk->getRenderer();
 
-    const vk::Format &vkFormat     = renderer->getFormat(internalFormat);
-    angle::FormatID actualFormatID = vkFormat.getActualRenderableImageFormatID();
+    const vk::Format &vkFormat = renderer->getFormat(internalFormat);
 
     // EXT_external_objects issue 13 says that all supported usage flags must be specified.
     // However, ANGLE_external_objects_flags allows these flags to be masked.  Note that the GL enum
     // values constituting the bits of |usageFlags| are identical to their corresponding Vulkan
     // value.
     const VkImageUsageFlags imageUsageFlags =
-        vk::GetMaximalImageUsageFlags(renderer, actualFormatID) & usageFlags;
+        vk::GetMaximalImageUsageFlags(renderer, vkFormat.actualImageFormatID) & usageFlags;
 
     VkExternalMemoryImageCreateInfo externalMemoryImageCreateInfo = {};
     externalMemoryImageCreateInfo.sType       = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
-    externalMemoryImageCreateInfo.pNext       = imageCreateInfoPNext;
     externalMemoryImageCreateInfo.handleTypes = ToVulkanHandleType(mHandleType);
 
     VkExtent3D vkExtents;
     uint32_t layerCount;
     gl_vk::GetExtentsAndLayerCount(type, size, &vkExtents, &layerCount);
 
+    // Initialize VkImage with initial layout of VK_IMAGE_LAYOUT_UNDEFINED.
+    //
+    // Binding a VkImage with an initial layout of VK_IMAGE_LAYOUT_UNDEFINED to external memory
+    // whose content has already been defined does not make the content undefined (see 11.7.1.
+    // External Resource Sharing).
+    //
+    // If the content is already defined, the ownership rules imply that the first operation on the
+    // texture must be a call to glWaitSemaphoreEXT that grants ownership of the image and informs
+    // us of the true layout.
+    //
+    // If the content is not already defined, the first operation may not be a glWaitSemaphore, but
+    // in this case undefined layout is appropriate.
+    //
     // ANGLE_external_objects_flags allows create flags to be specified by the application instead
     // of getting defaulted to zero.  Note that the GL enum values constituting the bits of
-    // |createFlags| are identical to their corresponding Vulkan value.  There are no additional
-    // structs allowed to be chained to VkImageCreateInfo other than
-    // VkExternalMemoryImageCreateInfo.
-    bool hasProtectedContent = mProtectedMemory;
-    ANGLE_TRY(image->initExternal(
-        contextVk, type, vkExtents, vkFormat.getIntendedFormatID(), actualFormatID, 1,
-        imageUsageFlags, createFlags, vk::ImageLayout::ExternalPreInitialized,
-        &externalMemoryImageCreateInfo, gl::LevelIndex(0), static_cast<uint32_t>(levels),
-        layerCount, contextVk->isRobustResourceInitEnabled(), hasProtectedContent));
+    // |createFlags| are identical to their corresponding Vulkan value.
+    ANGLE_TRY(image->initExternal(contextVk, type, vkExtents, vkFormat, 1, imageUsageFlags,
+                                  createFlags, vk::ImageLayout::Undefined,
+                                  &externalMemoryImageCreateInfo, gl::LevelIndex(0),
+                                  static_cast<uint32_t>(levels), layerCount,
+                                  contextVk->isRobustResourceInitEnabled(), nullptr, false));
 
     VkMemoryRequirements externalMemoryRequirements;
     image->getImage().getMemoryRequirements(renderer->getDevice(), &externalMemoryRequirements);
 
-    const void *importMemoryInfo                              = nullptr;
+    void *importMemoryInfo                                    = nullptr;
     VkMemoryDedicatedAllocateInfo memoryDedicatedAllocateInfo = {};
     if (mDedicatedMemory)
     {
@@ -251,9 +252,9 @@ angle::Result MemoryObjectVk::createImage(ContextVk *contextVk,
     ASSERT(offset == 0);
     ASSERT(externalMemoryRequirements.size == mSize);
 
-    VkMemoryPropertyFlags flags = hasProtectedContent ? VK_MEMORY_PROPERTY_PROTECTED_BIT : 0;
+    VkMemoryPropertyFlags flags = 0;
     ANGLE_TRY(image->initExternalMemory(contextVk, renderer->getMemoryProperties(),
-                                        externalMemoryRequirements, 1, &importMemoryInfo,
+                                        externalMemoryRequirements, nullptr, importMemoryInfo,
                                         renderer->getQueueFamilyIndex(), flags));
 
     return angle::Result::Continue;

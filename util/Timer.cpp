@@ -14,24 +14,22 @@ Timer::Timer() : mRunning(false), mStartTime(0), mStopTime(0) {}
 
 void Timer::start()
 {
-    mStartTime    = angle::GetCurrentSystemTime();
-    mStartCpuTime = angle::GetCurrentProcessCpuTime();
-    mRunning      = true;
+    mStartTime = angle::GetCurrentTime();
+    mRunning   = true;
 }
 
 void Timer::stop()
 {
-    mStopTime    = angle::GetCurrentSystemTime();
-    mStopCpuTime = angle::GetCurrentProcessCpuTime();
-    mRunning     = false;
+    mStopTime = angle::GetCurrentTime();
+    mRunning  = false;
 }
 
-double Timer::getElapsedWallClockTime() const
+double Timer::getElapsedTime() const
 {
     double endTime;
     if (mRunning)
     {
-        endTime = angle::GetCurrentSystemTime();
+        endTime = angle::GetCurrentTime();
     }
     else
     {
@@ -39,19 +37,4 @@ double Timer::getElapsedWallClockTime() const
     }
 
     return endTime - mStartTime;
-}
-
-double Timer::getElapsedCpuTime() const
-{
-    double endTime;
-    if (mRunning)
-    {
-        endTime = angle::GetCurrentProcessCpuTime();
-    }
-    else
-    {
-        endTime = mStopCpuTime;
-    }
-
-    return endTime - mStartCpuTime;
 }

@@ -596,23 +596,23 @@ spv_result_t ValidateVariable(ValidationState_t& _, const Instruction* inst) {
         }
       }
     }
+  }
 
-    // Initializers in Vulkan are only allowed in some storage clases
-    if (inst->operands().size() > 3) {
+  // Vulkan Appendix A: Check that if contains initializer, then
+  // storage class is Output, Private, or Function.
+  if (inst->operands().size() > 3 && storage_class != SpvStorageClassOutput &&
+      storage_class != SpvStorageClassPrivate &&
+      storage_class != SpvStorageClassFunction) {
+    if (spvIsVulkanEnv(_.context()->target_env)) {
       if (storage_class == SpvStorageClassWorkgroup) {
         auto init_id = inst->GetOperandAs<uint32_t>(3);
         auto init = _.FindDef(init_id);
         if (init->opcode() != SpvOpConstantNull) {
           return _.diag(SPV_ERROR_INVALID_ID, inst)
-                 << _.VkErrorID(4734) << "OpVariable, <id> '"
-                 << _.getIdName(inst->id())
-                 << "', initializers are limited to OpConstantNull in "
-                    "Workgroup "
-                    "storage class";
+                 << "Variable initializers in Workgroup storage class are "
+                    "limited to OpConstantNull";
         }
-      } else if (storage_class != SpvStorageClassOutput &&
-                 storage_class != SpvStorageClassPrivate &&
-                 storage_class != SpvStorageClassFunction) {
+      } else {
         return _.diag(SPV_ERROR_INVALID_ID, inst)
                << _.VkErrorID(4651) << "OpVariable, <id> '"
                << _.getIdName(inst->id())
@@ -891,12 +891,6 @@ spv_result_t ValidateLoad(ValidationState_t& _, const Instruction* inst) {
            << "OpLoad Result Type <id> '" << _.getIdName(inst->type_id())
            << "' does not match Pointer <id> '" << _.getIdName(pointer->id())
            << "'s type.";
-  }
-
-  if (!_.options()->before_hlsl_legalization &&
-      _.ContainsRuntimeArray(inst->type_id())) {
-    return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "Cannot load a runtime-sized array";
   }
 
   if (auto error = CheckMemoryAccess(_, inst, 3)) return error;
@@ -1411,7 +1405,7 @@ spv_result_t ValidateArrayLength(ValidationState_t& state,
            << state.getIdName(inst->id()) << "' must be an OpTypeRuntimeArray.";
   }
 
-  // The array member must the index of the last element (the run time
+  // The array member must the the index of the last element (the run time
   // array).
   if (inst->GetOperandAs<uint32_t>(3) != num_of_members - 1) {
     return state.diag(SPV_ERROR_INVALID_ID, inst)

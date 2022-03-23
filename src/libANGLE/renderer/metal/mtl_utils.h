@@ -33,6 +33,8 @@ void StopFrameCapture();
 namespace mtl
 {
 
+NS_ASSUME_NONNULL_BEGIN
+
 // Initialize texture content to black.
 angle::Result InitializeTextureContents(const gl::Context *context,
                                         const TextureRef &texture,
@@ -87,22 +89,20 @@ MTLScissorRect GetScissorRect(const gl::Rectangle &rect,
 uint32_t GetDeviceVendorId(id<MTLDevice> metalDevice);
 
 AutoObjCPtr<id<MTLLibrary>> CreateShaderLibrary(
-    const mtl::ContextDevice &metalDevice,
+    id<MTLDevice> metalDevice,
     const std::string &source,
     NSDictionary<NSString *, NSObject *> *substitutionDictionary,
-    bool enableFastMath,
     AutoObjCPtr<NSError *> *error);
 
-AutoObjCPtr<id<MTLLibrary>> CreateShaderLibrary(const mtl::ContextDevice &metalDevice,
+AutoObjCPtr<id<MTLLibrary>> CreateShaderLibrary(id<MTLDevice> metalDevice,
                                                 const std::string &source,
                                                 AutoObjCPtr<NSError *> *error);
 
 AutoObjCPtr<id<MTLLibrary>> CreateShaderLibrary(
-    const mtl::ContextDevice &metalDevice,
+    id<MTLDevice> metalDevice,
     const char *source,
     size_t sourceLen,
     NSDictionary<NSString *, NSObject *> *substitutionDictionary,
-    bool enableFastMath,
     AutoObjCPtr<NSError *> *error);
 
 AutoObjCPtr<id<MTLLibrary>> CreateShaderLibraryFromBinary(
@@ -112,7 +112,7 @@ AutoObjCPtr<id<MTLLibrary>> CreateShaderLibraryFromBinary(
     NSDictionary<NSString *, NSObject *> *substitutionDictionary,
     AutoObjCPtr<NSError *> *error);
 
-bool SupportsAppleGPUFamily(id<MTLDevice> device, uint8_t appleFamily);
+bool supportsAppleGPUFamily(id<MTLDevice> device, uint8_t appleFamily);
 
 bool SupportsMacGPUFamily(id<MTLDevice> device, uint8_t macFamily);
 
@@ -158,15 +158,9 @@ MTLColorWriteMask GetEmulatedColorWriteMask(const mtl::Format &mtlFormat,
                                             bool *emulatedChannelsOut);
 MTLColorWriteMask GetEmulatedColorWriteMask(const mtl::Format &mtlFormat);
 bool IsFormatEmulated(const mtl::Format &mtlFormat);
-size_t EstimateTextureSizeInBytes(const mtl::Format &mtlFormat,
-                                  size_t width,
-                                  size_t height,
-                                  size_t depth,
-                                  size_t sampleCount,
-                                  size_t numMips);
 
-NSUInteger GetMaxRenderTargetSizeForDeviceInBytes(const mtl::ContextDevice &device);
-NSUInteger GetMaxNumberOfRenderTargetsForDevice(const mtl::ContextDevice &device);
+NSUInteger GetMaxRenderTargetSizeForDeviceInBytes(id<MTLDevice> device);
+NSUInteger GetMaxNumberOfRenderTargetsForDevice(id<MTLDevice> device);
 bool DeviceHasMaximumRenderTargetSize(id<MTLDevice> device);
 
 // Useful to set clear color for texture originally having no alpha in GL, but backend's format
@@ -175,12 +169,12 @@ MTLClearColor EmulatedAlphaClearColor(MTLClearColor color, MTLColorWriteMask col
 
 NSUInteger ComputeTotalSizeUsedForMTLRenderPassDescriptor(const MTLRenderPassDescriptor *descriptor,
                                                           const Context *context,
-                                                          const mtl::ContextDevice &device);
+                                                          id<MTLDevice> device);
 
 NSUInteger ComputeTotalSizeUsedForMTLRenderPipelineDescriptor(
     const MTLRenderPipelineDescriptor *descriptor,
     const Context *context,
-    const mtl::ContextDevice &device);
+    id<MTLDevice> device);
 
 gl::Box MTLRegionToGLBox(const MTLRegion &mtlRegion);
 
@@ -193,18 +187,7 @@ angle::Result GetTriangleFanIndicesCount(ContextMtl *context,
                                          GLsizei vetexCount,
                                          uint32_t *numElemsOut);
 
-angle::Result CreateMslShader(Context *context,
-                              id<MTLLibrary> shaderLib,
-                              NSString *shaderName,
-                              MTLFunctionConstantValues *funcConstants,
-                              AutoObjCPtr<id<MTLFunction>> *shaderOut);
-
-angle::Result CreateMslShader(Context *context,
-                              id<MTLLibrary> shaderLib,
-                              NSString *shaderName,
-                              MTLFunctionConstantValues *funcConstants,
-                              id<MTLFunction> *shaderOut);
-
+NS_ASSUME_NONNULL_END
 }  // namespace mtl
 }  // namespace rx
 

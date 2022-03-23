@@ -15,7 +15,7 @@ namespace angle
 {
 namespace vk
 {
-void *OpenLibVulkan()
+std::unique_ptr<Library> OpenLibVulkan()
 {
     constexpr const char *kLibVulkanNames[] = {
 #if defined(ANGLE_PLATFORM_WINDOWS)
@@ -43,8 +43,9 @@ void *OpenLibVulkan()
     {
         for (const char *libraryName : kLibVulkanNames)
         {
-            void *library = OpenSystemLibraryWithExtension(libraryName, searchType);
-            if (library)
+            std::unique_ptr<Library> library(
+                OpenSharedLibraryWithExtension(libraryName, searchType));
+            if (library && library->getNative())
             {
                 return library;
             }

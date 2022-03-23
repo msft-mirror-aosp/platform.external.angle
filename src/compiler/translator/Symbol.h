@@ -319,8 +319,6 @@ class TFunction : public TSymbol
     bool isDefined() const { return defined; }
     void setHasPrototypeDeclaration() { mHasPrototypeDeclaration = true; }
     bool hasPrototypeDeclaration() const { return mHasPrototypeDeclaration; }
-    void setHasVoidParameter() { mHasVoidParameter = true; }
-    bool hasVoidParameter() const { return mHasVoidParameter; }
 
     size_t getParamCount() const { return mParamCount; }
     const TVariable *getParam(size_t i) const { return mParameters[i]; }
@@ -353,8 +351,7 @@ class TFunction : public TSymbol
           mOp(op),
           defined(false),
           mHasPrototypeDeclaration(false),
-          mKnownToNotHaveSideEffects(knownToNotHaveSideEffects),
-          mHasVoidParameter(false)
+          mKnownToNotHaveSideEffects(knownToNotHaveSideEffects)
     {}
 
     template <size_t ExtensionCount>
@@ -375,8 +372,7 @@ class TFunction : public TSymbol
           mOp(op),
           defined(false),
           mHasPrototypeDeclaration(false),
-          mKnownToNotHaveSideEffects(knownToNotHaveSideEffects),
-          mHasVoidParameter(false)
+          mKnownToNotHaveSideEffects(knownToNotHaveSideEffects)
     {}
 
   private:
@@ -392,9 +388,6 @@ class TFunction : public TSymbol
     bool defined : 1;
     bool mHasPrototypeDeclaration : 1;
     bool mKnownToNotHaveSideEffects : 1;
-    // Whether the parameter list of the function starts with void.  This is used to generate an
-    // error if any other parameter follows.
-    bool mHasVoidParameter : 1;
 };
 
 }  // namespace sh
