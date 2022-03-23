@@ -78,11 +78,6 @@ class TShHandleBase
     angle::PoolAllocator allocator;
 };
 
-struct TFunctionMetadata
-{
-    bool used = false;
-};
-
 //
 // The base class for the machine dependent compiler to derive from
 // for managing object code from the compile.
@@ -141,8 +136,6 @@ class TCompiler : public TShHandleBase
     ShShaderOutput getOutputType() const { return mOutputType; }
     const std::string &getBuiltInResourcesString() const { return mBuiltInResourcesString; }
 
-    bool isHighPrecisionSupported() const;
-
     bool shouldRunLoopAndIndexingValidation(ShCompileOptions compileOptions) const;
     bool shouldLimitTypeSizes() const;
 
@@ -182,25 +175,11 @@ class TCompiler : public TShHandleBase
         return mTessEvaluationShaderInputPointType;
     }
 
-    bool hasAnyPreciseType() const { return mHasAnyPreciseType; }
-
-    AdvancedBlendEquations getAdvancedBlendEquations() const { return mAdvancedBlendEquations; }
-
     unsigned int getSharedMemorySize() const;
 
     sh::GLenum getShaderType() const { return mShaderType; }
 
-    // Validate the AST and produce errors if it is inconsistent.
     bool validateAST(TIntermNode *root);
-    // Some transformations may need to temporarily disable validation until they are complete.  A
-    // set of disable/enable helpers are used for this purpose.
-    bool disableValidateFunctionCall();
-    void restoreValidateFunctionCall(bool enable);
-    bool disableValidateVariableReferences();
-    void restoreValidateVariableReferences(bool enable);
-    // When the AST is post-processed (such as to determine precise-ness of intermediate nodes),
-    // it's expected to no longer transform.
-    void enableValidateNoMoreTransformations();
 
   protected:
     // Add emulated functions to the built-in function emulator.
@@ -221,6 +200,12 @@ class TCompiler : public TShHandleBase
 
     virtual bool shouldFlattenPragmaStdglInvariantAll() = 0;
     virtual bool shouldCollectVariables(ShCompileOptions compileOptions);
+    // If precision emulation needed, set isNeeded to true and emulate precision for given
+    //  outputLanguage, returning false if that fails, else returning true.
+    bool emulatePrecisionIfNeeded(TIntermBlock *root,
+                                  TInfoSinkBase &sink,
+                                  bool *isNeeded,
+                                  const ShShaderOutput outputLanguage);
 
     bool wereVariablesCollected() const;
     std::vector<sh::ShaderVariable> mAttributes;
@@ -273,7 +258,8 @@ class TCompiler : public TShHandleBase
     bool mGLPositionInitialized;
 
     // Removes unused function declarations and prototypes from the AST
-    bool pruneUnusedFunctions(TIntermBlock *root);
+    class UnusedPredicate;
+    void pruneUnusedFunctions(TIntermBlock *root);
 
     TIntermBlock *compileTreeImpl(const char *const shaderStrings[],
                                   size_t numStrings,
@@ -295,8 +281,14 @@ class TCompiler : public TShHandleBase
     ShShaderSpec mShaderSpec;
     ShShaderOutput mOutputType;
 
+    struct FunctionMetadata
+    {
+        FunctionMetadata() : used(false) {}
+        bool used;
+    };
+
     CallDAG mCallDag;
-    std::vector<TFunctionMetadata> mFunctionMetadata;
+    std::vector<FunctionMetadata> mFunctionMetadata;
 
     ShBuiltInResources mResources;
     std::string mBuiltInResourcesString;
@@ -338,11 +330,6 @@ class TCompiler : public TShHandleBase
     TLayoutTessEvaluationType mTessEvaluationShaderInputVertexSpacingType;
     TLayoutTessEvaluationType mTessEvaluationShaderInputOrderingType;
     TLayoutTessEvaluationType mTessEvaluationShaderInputPointType;
-
-    bool mHasAnyPreciseType;
-
-    // advanced blend equation parameters
-    AdvancedBlendEquations mAdvancedBlendEquations;
 
     // name hashing.
     NameMap mNameMap;

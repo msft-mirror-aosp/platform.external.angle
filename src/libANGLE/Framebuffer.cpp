@@ -36,30 +36,27 @@ namespace gl
 namespace
 {
 
-// Check the |checkAttachment| in reference to |firstAttachment| for the sake of multiview
-// framebuffer completeness.
 FramebufferStatus CheckMultiviewStateMatchesForCompleteness(
     const FramebufferAttachment *firstAttachment,
-    const FramebufferAttachment *checkAttachment)
+    const FramebufferAttachment *secondAttachment)
 {
-    ASSERT(firstAttachment && checkAttachment);
-    ASSERT(firstAttachment->isAttached() && checkAttachment->isAttached());
+    ASSERT(firstAttachment && secondAttachment);
+    ASSERT(firstAttachment->isAttached() && secondAttachment->isAttached());
 
-    if (firstAttachment->isMultiview() != checkAttachment->isMultiview())
-    {
-        return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR,
-                                             err::kFramebufferIncompleteMultiviewMismatch);
-    }
-    if (firstAttachment->getNumViews() != checkAttachment->getNumViews())
+    if (firstAttachment->getNumViews() != secondAttachment->getNumViews())
     {
         return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR,
                                              err::kFramebufferIncompleteMultiviewViewsMismatch);
     }
-    if (checkAttachment->getBaseViewIndex() + checkAttachment->getNumViews() >
-        checkAttachment->getSize().depth)
+    if (firstAttachment->getBaseViewIndex() != secondAttachment->getBaseViewIndex())
     {
         return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR,
                                              err::kFramebufferIncompleteMultiviewBaseViewMismatch);
+    }
+    if (firstAttachment->isMultiview() != secondAttachment->isMultiview())
+    {
+        return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR,
+                                             err::kFramebufferIncompleteMultiviewMismatch);
     }
 
     return FramebufferStatus::Complete();
@@ -181,7 +178,7 @@ FramebufferStatus CheckAttachmentSampleCounts(const Context *context,
         {
             // CHROMIUM_framebuffer_mixed_samples allows a framebuffer to be considered complete
             // when its depth or stencil samples are a multiple of the number of color samples.
-            if (!context->getExtensions().framebufferMixedSamplesCHROMIUM)
+            if (!context->getExtensions().framebufferMixedSamples)
             {
                 return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE,
@@ -214,8 +211,8 @@ FramebufferStatus CheckAttachmentSampleCompleteness(const Context *context,
     {
         const Texture *texture = attachment.getTexture();
         ASSERT(texture);
-        GLenum sizedInternalFormat    = attachment.getFormat().info->sizedInternalFormat;
-        const TextureCaps &formatCaps = context->getTextureCaps().get(sizedInternalFormat);
+        GLenum internalFormat         = attachment.getFormat().info->internalFormat;
+        const TextureCaps &formatCaps = context->getTextureCaps().get(internalFormat);
         if (static_cast<GLuint>(attachment.getSamples()) > formatCaps.getMaxSamples())
         {
             return FramebufferStatus::Incomplete(
@@ -363,7 +360,6 @@ FramebufferState::FramebufferState(rx::Serial serial)
       mDefaultSamples(0),
       mDefaultFixedSampleLocations(GL_FALSE),
       mDefaultLayers(0),
-      mFlipY(GL_FALSE),
       mWebGLDepthStencilConsistent(true),
       mDefaultFramebufferReadAttachmentInitialized(false),
       mSrgbWriteControlMode(SrgbWriteControlMode::Default)
@@ -386,7 +382,6 @@ FramebufferState::FramebufferState(const Caps &caps, FramebufferID id, rx::Seria
       mDefaultSamples(0),
       mDefaultFixedSampleLocations(GL_FALSE),
       mDefaultLayers(0),
-      mFlipY(GL_FALSE),
       mWebGLDepthStencilConsistent(true),
       mDefaultFramebufferReadAttachmentInitialized(false),
       mSrgbWriteControlMode(SrgbWriteControlMode::Default)
@@ -778,11 +773,6 @@ Extents FramebufferState::getExtents() const
 bool FramebufferState::isDefault() const
 {
     return mId == Framebuffer::kDefaultDrawFramebufferHandle;
-}
-
-bool FramebufferState::isBoundAsDrawFramebuffer(const Context *context) const
-{
-    return context->getState().getDrawFramebuffer()->id() == mId;
 }
 
 const FramebufferID Framebuffer::kDefaultDrawFramebufferHandle = {0};
@@ -1501,7 +1491,7 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
 
     // In ES 2.0 and WebGL, all color attachments must have the same width and height.
     // In ES 3.0, there is no such restriction.
-    if ((state.getClientMajorVersion() < 3 || state.getExtensions().webglCompatibilityANGLE) &&
+    if ((state.getClientMajorVersion() < 3 || state.getExtensions().webglCompatibility) &&
         !mState.attachmentsHaveSameDimensions())
     {
         return FramebufferStatus::Incomplete(
@@ -1521,7 +1511,7 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
     // The WebGL conformance tests implicitly define that all framebuffer
     // attachments must be unique. For example, the same level of a texture can
     // not be attached to two different color attachments.
-    if (state.getExtensions().webglCompatibilityANGLE)
+    if (state.getExtensions().webglCompatibility)
     {
         if (!mState.colorAttachmentsAreUniqueImages())
         {
@@ -1811,8 +1801,8 @@ void Framebuffer::setAttachment(const Context *context,
     {
         const InternalFormat *info = resource->getAttachmentFormat(binding, textureIndex).info;
         ASSERT(info);
-        GLenum sizedInternalFormat    = info->sizedInternalFormat;
-        const TextureCaps &formatCaps = context->getTextureCaps().get(sizedInternalFormat);
+        GLenum internalformat         = info->internalFormat;
+        const TextureCaps &formatCaps = context->getTextureCaps().get(internalformat);
         samples                       = formatCaps.getNearestSamples(samples);
     }
 
@@ -2086,14 +2076,6 @@ void Framebuffer::onSubjectStateChange(angle::SubjectIndex index, angle::Subject
             return;
         }
 
-        // This can be triggered by freeing TextureStorage in D3D back-end.
-        if (message == angle::SubjectMessage::StorageReleased)
-        {
-            mDirtyBits.set(index);
-            invalidateCompletenessCache();
-            return;
-        }
-
         // This can be triggered by the GL back-end TextureGL class.
         ASSERT(message == angle::SubjectMessage::DirtyBitsFlagged);
         return;
@@ -2229,11 +2211,6 @@ GLint Framebuffer::getDefaultLayers() const
     return mState.getDefaultLayers();
 }
 
-bool Framebuffer::getFlipY() const
-{
-    return mState.getFlipY();
-}
-
 void Framebuffer::setDefaultWidth(const Context *context, GLint defaultWidth)
 {
     mState.mDefaultWidth = defaultWidth;
@@ -2267,13 +2244,6 @@ void Framebuffer::setDefaultLayers(GLint defaultLayers)
 {
     mState.mDefaultLayers = defaultLayers;
     mDirtyBits.set(DIRTY_BIT_DEFAULT_LAYERS);
-}
-
-void Framebuffer::setFlipY(bool flipY)
-{
-    mState.mFlipY = flipY;
-    mDirtyBits.set(DIRTY_BIT_FLIP_Y);
-    invalidateCompletenessCache();
 }
 
 GLsizei Framebuffer::getNumViews() const

@@ -132,7 +132,7 @@ angle::Result ShaderInfo::initShaders(const gl::ShaderBitSet &linkedShaderStages
                                       const gl::ShaderMap<const angle::spirv::Blob *> &spirvBlobs,
                                       const ShaderInterfaceVariableInfoMap &variableInfoMap)
 {
-    clear();
+    ASSERT(!valid());
 
     for (const gl::ShaderType shaderType : gl::AllShaderTypes())
     {
@@ -149,14 +149,7 @@ angle::Result ShaderInfo::initShaders(const gl::ShaderBitSet &linkedShaderStages
     return angle::Result::Continue;
 }
 
-void ShaderInfo::initShaderFromProgram(gl::ShaderType shaderType,
-                                       const ShaderInfo &programShaderInfo)
-{
-    mSpirvBlobs[shaderType] = programShaderInfo.mSpirvBlobs[shaderType];
-    mIsInitialized          = true;
-}
-
-void ShaderInfo::clear()
+void ShaderInfo::release(ContextVk *contextVk)
 {
     for (angle::spirv::Blob &spirvBlob : mSpirvBlobs)
     {
@@ -167,8 +160,6 @@ void ShaderInfo::clear()
 
 void ShaderInfo::load(gl::BinaryInputStream *stream)
 {
-    clear();
-
     // Read in shader codes for all shader types
     for (const gl::ShaderType shaderType : gl::AllShaderTypes())
     {
@@ -217,18 +208,15 @@ angle::Result ProgramInfo::initProgram(ContextVk *contextVk,
     options.shaderType = shaderType;
     options.removeEarlyFragmentTestsOptimization =
         shaderType == gl::ShaderType::Fragment && optionBits.removeEarlyFragmentTestsOptimization;
-    options.removeDebugInfo          = !contextVk->getFeatures().retainSpirvDebugInfo.enabled;
-    options.isTransformFeedbackStage = isLastPreFragmentStage && isTransformFeedbackProgram &&
-                                       !optionBits.removeTransformFeedbackEmulation;
+    options.removeDebugInfo             = !contextVk->getRenderer()->getEnableValidationLayers();
+    options.isTransformFeedbackStage    = isLastPreFragmentStage && isTransformFeedbackProgram;
     options.isTransformFeedbackEmulated = contextVk->getFeatures().emulateTransformFeedback.enabled;
     options.negativeViewportSupported   = contextVk->getFeatures().supportsNegativeViewport.enabled;
 
     if (isLastPreFragmentStage)
     {
         options.preRotation = static_cast<SurfaceRotation>(optionBits.surfaceRotation);
-        options.transformPositionToVulkanClipSpace =
-            optionBits.enableDepthCorrection &&
-            !contextVk->getFeatures().supportsDepthClipControl.enabled;
+        options.transformPositionToVulkanClipSpace = optionBits.enableDepthCorrection;
     }
 
     ANGLE_TRY(GlslangWrapperVk::TransformSpirV(options, variableInfoMap, originalSpirvBlob,
@@ -262,15 +250,11 @@ ProgramExecutableVk::ProgramExecutableVk()
       mNumDefaultUniformDescriptors(0),
       mImmutableSamplersMaxDescriptorCount(1),
       mUniformBufferDescriptorType(VK_DESCRIPTOR_TYPE_MAX_ENUM),
-      mDynamicUniformDescriptorOffsets{},
+      mProgram(nullptr),
+      mProgramPipeline(nullptr),
       mPerfCounters{},
       mCumulativePerfCounters{}
-{
-    for (std::shared_ptr<DefaultUniformBlock> &defaultBlock : mDefaultUniformBlocks)
-    {
-        defaultBlock = std::make_shared<DefaultUniformBlock>();
-    }
-}
+{}
 
 ProgramExecutableVk::~ProgramExecutableVk()
 {
@@ -284,7 +268,8 @@ void ProgramExecutableVk::reset(ContextVk *contextVk)
         descriptorSetLayout.reset();
     }
     mImmutableSamplersMaxDescriptorCount = 1;
-    mImmutableSamplerIndexMap.clear();
+    mExternalFormatIndexMap.clear();
+    mVkFormatIndexMap.clear();
     mPipelineLayout.reset();
 
     mDescriptorSets.fill(VK_NULL_HANDLE);
@@ -303,12 +288,13 @@ void ProgramExecutableVk::reset(ContextVk *contextVk)
     }
 
     RendererVk *rendererVk = contextVk->getRenderer();
-    mTextureDescriptorsCache.destroy(rendererVk, VulkanCacheType::TextureDescriptors);
-    mUniformsAndXfbDescriptorsCache.destroy(rendererVk, VulkanCacheType::UniformsAndXfbDescriptors);
-    mShaderBufferDescriptorsCache.destroy(rendererVk, VulkanCacheType::ShaderBuffersDescriptors);
+    mTextureDescriptorsCache.destroy(rendererVk);
+    mUniformsAndXfbDescriptorsCache.destroy(rendererVk);
+    mShaderBufferDescriptorsCache.destroy(rendererVk);
 
-    // Initialize with an invalid BufferSerial
-    mCurrentDefaultUniformBufferSerial = vk::BufferSerial();
+    // Initialize with a unique BufferSerial
+    vk::ResourceSerialFactory &factory = rendererVk->getResourceSerialFactory();
+    mCurrentDefaultUniformBufferSerial = factory.generateBufferSerial();
 
     for (ProgramInfo &programInfo : mGraphicsProgramInfos)
     {
@@ -319,9 +305,7 @@ void ProgramExecutableVk::reset(ContextVk *contextVk)
     contextVk->onProgramExecutableReset(this);
 }
 
-std::unique_ptr<rx::LinkEvent> ProgramExecutableVk::load(ContextVk *contextVk,
-                                                         const gl::ProgramExecutable &glExecutable,
-                                                         gl::BinaryInputStream *stream)
+std::unique_ptr<rx::LinkEvent> ProgramExecutableVk::load(gl::BinaryInputStream *stream)
 {
     clearVariableInfoMap();
 
@@ -352,41 +336,10 @@ std::unique_ptr<rx::LinkEvent> ProgramExecutableVk::load(ContextVk *contextVk,
             info.varyingIsOutput         = stream->readBool();
             info.attributeComponentCount = stream->readInt<uint8_t>();
             info.attributeLocationCount  = stream->readInt<uint8_t>();
-            info.isDuplicate             = stream->readBool();
         }
     }
 
-    mOriginalShaderInfo.load(stream);
-
-    // Deserializes the uniformLayout data of mDefaultUniformBlocks
-    for (gl::ShaderType shaderType : gl::AllShaderTypes())
-    {
-        const size_t uniformCount = stream->readInt<size_t>();
-        for (unsigned int uniformIndex = 0; uniformIndex < uniformCount; ++uniformIndex)
-        {
-            sh::BlockMemberInfo blockInfo;
-            gl::LoadBlockMemberInfo(stream, &blockInfo);
-            mDefaultUniformBlocks[shaderType]->uniformLayout.push_back(blockInfo);
-        }
-    }
-
-    gl::ShaderMap<size_t> requiredBufferSize;
-    requiredBufferSize.fill(0);
-    // Deserializes required uniform block memory sizes
-    for (gl::ShaderType shaderType : gl::AllShaderTypes())
-    {
-        requiredBufferSize[shaderType] = stream->readInt<size_t>();
-    }
-
-    // Initialize and resize the mDefaultUniformBlocks' memory
-    angle::Result status = resizeUniformBlockMemory(contextVk, glExecutable, requiredBufferSize);
-    if (status != angle::Result::Continue)
-    {
-        return std::make_unique<LinkEventDone>(status);
-    }
-
-    status = createPipelineLayout(contextVk, glExecutable, nullptr);
-    return std::make_unique<LinkEventDone>(status);
+    return std::make_unique<LinkEventDone>(angle::Result::Continue);
 }
 
 void ProgramExecutableVk::save(gl::BinaryOutputStream *stream)
@@ -418,35 +371,59 @@ void ProgramExecutableVk::save(gl::BinaryOutputStream *stream)
             stream->writeBool(info.varyingIsOutput);
             stream->writeInt(info.attributeComponentCount);
             stream->writeInt(info.attributeLocationCount);
-            stream->writeBool(info.isDuplicate);
         }
-    }
-
-    mOriginalShaderInfo.save(stream);
-
-    // Serializes the uniformLayout data of mDefaultUniformBlocks
-    for (gl::ShaderType shaderType : gl::AllShaderTypes())
-    {
-        const size_t uniformCount = mDefaultUniformBlocks[shaderType]->uniformLayout.size();
-        stream->writeInt(uniformCount);
-        for (unsigned int uniformIndex = 0; uniformIndex < uniformCount; ++uniformIndex)
-        {
-            sh::BlockMemberInfo &blockInfo =
-                mDefaultUniformBlocks[shaderType]->uniformLayout[uniformIndex];
-            gl::WriteBlockMemberInfo(stream, blockInfo);
-        }
-    }
-
-    // Serializes required uniform block memory sizes
-    for (gl::ShaderType shaderType : gl::AllShaderTypes())
-    {
-        stream->writeInt(mDefaultUniformBlocks[shaderType]->uniformData.size());
     }
 }
 
 void ProgramExecutableVk::clearVariableInfoMap()
 {
     mVariableInfoMap.clear();
+}
+
+ProgramVk *ProgramExecutableVk::getShaderProgram(const gl::State &glState,
+                                                 gl::ShaderType shaderType) const
+{
+    if (mProgram)
+    {
+        const gl::ProgramExecutable &glExecutable = mProgram->getState().getExecutable();
+        if (glExecutable.hasLinkedShaderStage(shaderType))
+        {
+            return mProgram;
+        }
+    }
+    else if (mProgramPipeline)
+    {
+        return mProgramPipeline->getShaderProgram(glState, shaderType);
+    }
+
+    return nullptr;
+}
+
+// TODO: http://anglebug.com/3570: Move/Copy all of the necessary information into
+// the ProgramExecutable, so this function can be removed.
+void ProgramExecutableVk::fillProgramStateMap(
+    const ContextVk *contextVk,
+    gl::ShaderMap<const gl::ProgramState *> *programStatesOut)
+{
+    ASSERT(mProgram || mProgramPipeline);
+    if (mProgram)
+    {
+        mProgram->fillProgramStateMap(programStatesOut);
+    }
+    else if (mProgramPipeline)
+    {
+        mProgramPipeline->fillProgramStateMap(contextVk, programStatesOut);
+    }
+}
+
+const gl::ProgramExecutable &ProgramExecutableVk::getGlExecutable()
+{
+    ASSERT(mProgram || mProgramPipeline);
+    if (mProgram)
+    {
+        return mProgram->getState().getExecutable();
+    }
+    return mProgramPipeline->getState().getProgramExecutable();
 }
 
 uint32_t GetInterfaceBlockArraySize(const std::vector<gl::InterfaceBlock> &blocks,
@@ -483,12 +460,10 @@ uint32_t GetInterfaceBlockArraySize(const std::vector<gl::InterfaceBlock> &block
 
 angle::Result ProgramExecutableVk::allocUniformAndXfbDescriptorSet(
     ContextVk *contextVk,
-    vk::BufferHelper *defaultUniformBuffer,
-    const vk::DescriptorSetDesc &xfbBufferDesc,
+    const vk::UniformsAndXfbDescriptorDesc &xfbBufferDesc,
     bool *newDescriptorSetAllocated)
 {
-    mCurrentDefaultUniformBufferSerial =
-        defaultUniformBuffer ? defaultUniformBuffer->getBufferSerial() : vk::kInvalidBufferSerial;
+    mCurrentDefaultUniformBufferSerial = xfbBufferDesc.getDefaultUniformBufferSerial();
 
     // Look up in the cache first
     VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
@@ -510,8 +485,7 @@ angle::Result ProgramExecutableVk::allocUniformAndXfbDescriptorSet(
     // Clear descriptor set cache. It may no longer be valid.
     if (newPoolAllocated)
     {
-        mUniformsAndXfbDescriptorsCache.destroy(contextVk->getRenderer(),
-                                                VulkanCacheType::UniformsAndXfbDescriptors);
+        mUniformsAndXfbDescriptorsCache.destroy(contextVk->getRenderer());
     }
 
     // Add the descriptor set into cache
@@ -539,7 +513,7 @@ angle::Result ProgramExecutableVk::allocateDescriptorSetAndGetInfo(
     const vk::DescriptorSetLayout &descriptorSetLayout =
         mDescriptorSetLayouts[descriptorSetIndex].get();
     ANGLE_TRY(dynamicDescriptorPool.allocateSetsAndGetInfo(
-        contextVk, descriptorSetLayout, 1, &mDescriptorPoolBindings[descriptorSetIndex],
+        contextVk, descriptorSetLayout.ptr(), 1, &mDescriptorPoolBindings[descriptorSetIndex],
         &mDescriptorSets[descriptorSetIndex], newPoolAllocatedOut));
     mEmptyDescriptorSets[descriptorSetIndex] = VK_NULL_HANDLE;
 
@@ -565,17 +539,11 @@ void ProgramExecutableVk::addInterfaceBlockDescriptorSetDesc(
             continue;
         }
 
-        const std::string blockName = block.mappedName;
-
+        const std::string blockName             = block.mappedName;
         const ShaderInterfaceVariableInfo &info = mVariableInfoMap.get(shaderType, blockName);
-        if (info.isDuplicate)
-        {
-            continue;
-        }
 
-        VkShaderStageFlags activeStages = gl_vk::GetShaderStageFlags(info.activeStages);
-
-        descOut->update(info.binding, descType, arraySize, activeStages, nullptr);
+        descOut->update(info.binding, descType, arraySize, gl_vk::kShaderStageMap[shaderType],
+                        nullptr);
     }
 }
 
@@ -590,23 +558,17 @@ void ProgramExecutableVk::addAtomicCounterBufferDescriptorSetDesc(
     }
 
     std::string blockName(sh::vk::kAtomicCountersBlockName);
-
-    if (!mVariableInfoMap.contains(shaderType, blockName))
-    {
-        return;
-    }
-
     const ShaderInterfaceVariableInfo &info = mVariableInfoMap.get(shaderType, blockName);
-    if (info.isDuplicate || !info.activeStages[shaderType])
+
+    if (!info.activeStages[shaderType])
     {
         return;
     }
-
-    VkShaderStageFlags activeStages = gl_vk::GetShaderStageFlags(info.activeStages);
 
     // A single storage buffer array is used for all stages for simplicity.
     descOut->update(info.binding, kStorageBufferDescriptorType,
-                    gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, activeStages, nullptr);
+                    gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS,
+                    gl_vk::kShaderStageMap[shaderType], nullptr);
 }
 
 void ProgramExecutableVk::addImageDescriptorSetDesc(const gl::ProgramExecutable &executable,
@@ -648,12 +610,7 @@ void ProgramExecutableVk::addImageDescriptorSetDesc(const gl::ProgramExecutable 
 
             GetImageNameWithoutIndices(&imageName);
             const ShaderInterfaceVariableInfo &info = mVariableInfoMap.get(shaderType, imageName);
-            if (info.isDuplicate)
-            {
-                continue;
-            }
-
-            VkShaderStageFlags activeStages = gl_vk::GetShaderStageFlags(info.activeStages);
+            VkShaderStageFlags activeStages         = gl_vk::kShaderStageMap[shaderType];
 
             const VkDescriptorType descType = imageBinding.textureType == gl::TextureType::Buffer
                                                   ? VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER
@@ -684,13 +641,7 @@ void ProgramExecutableVk::addInputAttachmentDescriptorSetDesc(
     const gl::LinkedUniform &baseInputAttachment = uniforms.at(baseUniformIndex);
     std::string baseMappedName                   = baseInputAttachment.mappedName;
     ShaderInterfaceVariableInfo &baseInfo        = mVariableInfoMap.get(shaderType, baseMappedName);
-
-    if (baseInfo.isDuplicate)
-    {
-        return;
-    }
-
-    uint32_t baseBinding = baseInfo.binding - baseInputAttachment.location;
+    uint32_t baseBinding                         = baseInfo.binding - baseInputAttachment.location;
 
     for (uint32_t colorIndex = 0; colorIndex < gl::IMPLEMENTATION_MAX_DRAW_BUFFERS; ++colorIndex)
     {
@@ -700,20 +651,20 @@ void ProgramExecutableVk::addInputAttachmentDescriptorSetDesc(
     }
 }
 
-angle::Result ProgramExecutableVk::addTextureDescriptorSetDesc(
+void ProgramExecutableVk::addTextureDescriptorSetDesc(
     ContextVk *contextVk,
-    const gl::ProgramExecutable &executable,
+    const gl::ProgramState &programState,
     const gl::ActiveTextureArray<vk::TextureUnit> *activeTextures,
     vk::DescriptorSetLayoutDesc *descOut)
 {
-    const std::vector<gl::SamplerBinding> &samplerBindings = executable.getSamplerBindings();
-    const std::vector<gl::LinkedUniform> &uniforms         = executable.getUniforms();
+    const std::vector<gl::SamplerBinding> &samplerBindings = programState.getSamplerBindings();
+    const std::vector<gl::LinkedUniform> &uniforms         = programState.getUniforms();
 
     for (uint32_t textureIndex = 0; textureIndex < samplerBindings.size(); ++textureIndex)
     {
         const gl::SamplerBinding &samplerBinding = samplerBindings[textureIndex];
 
-        uint32_t uniformIndex = executable.getUniformIndexFromSamplerIndex(textureIndex);
+        uint32_t uniformIndex = programState.getUniformIndexFromSamplerIndex(textureIndex);
         const gl::LinkedUniform &samplerUniform = uniforms[uniformIndex];
 
         const std::string samplerName = GlslangGetMappedSamplerName(samplerUniform.name);
@@ -734,7 +685,7 @@ angle::Result ProgramExecutableVk::addTextureDescriptorSetDesc(
             arraySize *= outerArraySize;
         }
 
-        for (const gl::ShaderType shaderType : executable.getLinkedShaderStages())
+        for (const gl::ShaderType shaderType : programState.getExecutable().getLinkedShaderStages())
         {
             if (!samplerUniform.isActive(shaderType))
             {
@@ -742,12 +693,7 @@ angle::Result ProgramExecutableVk::addTextureDescriptorSetDesc(
             }
 
             const ShaderInterfaceVariableInfo &info = mVariableInfoMap.get(shaderType, samplerName);
-            if (info.isDuplicate)
-            {
-                continue;
-            }
-
-            VkShaderStageFlags activeStages = gl_vk::GetShaderStageFlags(info.activeStages);
+            VkShaderStageFlags activeStages         = gl_vk::kShaderStageMap[shaderType];
 
             // TODO: https://issuetracker.google.com/issues/158215272: how do we handle array of
             // immutable samplers?
@@ -762,28 +708,34 @@ angle::Result ProgramExecutableVk::addTextureDescriptorSetDesc(
                 const vk::Sampler &immutableSampler = textureVk->getSampler().get();
                 descOut->update(info.binding, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, arraySize,
                                 activeStages, &immutableSampler);
-                const vk::ImageHelper &image                              = textureVk->getImage();
-                mImmutableSamplerIndexMap[image.getYcbcrConversionDesc()] = textureIndex;
                 // The Vulkan spec has the following note -
                 // All descriptors in a binding use the same maximum
                 // combinedImageSamplerDescriptorCount descriptors to allow implementations to use a
                 // uniform stride for dynamic indexing of the descriptors in the binding.
-                uint64_t externalFormat        = image.getExternalFormat();
+                uint64_t externalFormat = textureVk->getImage().getExternalFormat();
+                VkFormat vkFormat       = textureVk->getImage().getFormat().actualImageVkFormat();
                 uint32_t formatDescriptorCount = 0;
-
-                RendererVk *renderer = contextVk->getRenderer();
+                angle::Result result           = angle::Result::Stop;
 
                 if (externalFormat != 0)
                 {
-                    ANGLE_TRY(renderer->getFormatDescriptorCountForExternalFormat(
-                        contextVk, externalFormat, &formatDescriptorCount));
+                    mExternalFormatIndexMap[externalFormat] = textureIndex;
+                    result = contextVk->getRenderer()->getFormatDescriptorCountForExternalFormat(
+                        contextVk, externalFormat, &formatDescriptorCount);
                 }
                 else
                 {
-                    VkFormat vkFormat = image.getActualVkFormat();
                     ASSERT(vkFormat != 0);
-                    ANGLE_TRY(renderer->getFormatDescriptorCountForVkFormat(
-                        contextVk, vkFormat, &formatDescriptorCount));
+                    mVkFormatIndexMap[vkFormat] = textureIndex;
+                    result = contextVk->getRenderer()->getFormatDescriptorCountForVkFormat(
+                        contextVk, vkFormat, &formatDescriptorCount);
+                }
+
+                if (result != angle::Result::Continue)
+                {
+                    // There was an error querying the descriptor count for this format, treat it as
+                    // a non-fatal error and move on.
+                    formatDescriptorCount = 1;
                 }
 
                 ASSERT(formatDescriptorCount > 0);
@@ -800,8 +752,6 @@ angle::Result ProgramExecutableVk::addTextureDescriptorSetDesc(
             }
         }
     }
-
-    return angle::Result::Continue;
 }
 
 void WriteBufferDescriptorSetBinding(const vk::BufferHelper &buffer,
@@ -815,29 +765,17 @@ void WriteBufferDescriptorSetBinding(const vk::BufferHelper &buffer,
                                      VkDescriptorBufferInfo *bufferInfoOut,
                                      VkWriteDescriptorSet *writeInfoOut)
 {
-    if (IsDynamicDescriptor(descType))
+    // If requiredOffsetAlignment is 0, the buffer offset is guaranteed to have the necessary
+    // alignment through other means (the backend specifying the alignment through a GLES limit that
+    // the frontend then enforces).  If it's not 0, we need to bind the buffer at an offset that's
+    // aligned.  The difference in offsets is communicated to the shader via driver uniforms.
+    if (requiredOffsetAlignment)
     {
-        ASSERT(offset == 0);
-    }
-    else
-    {
-        // Adjust offset with buffer's offset since we are sending down buffer.getBuffer() below.
-        offset = buffer.getOffset() + offset;
+        VkDeviceSize alignedOffset = (offset / requiredOffsetAlignment) * requiredOffsetAlignment;
+        VkDeviceSize offsetDiff    = offset - alignedOffset;
 
-        // If requiredOffsetAlignment is 0, the buffer offset is guaranteed to have the necessary
-        // alignment through other means (the backend specifying the alignment through a GLES limit
-        // that the frontend then enforces).  If it's not 0, we need to bind the buffer at an offset
-        // that's aligned.  The difference in offsets is communicated to the shader via driver
-        // uniforms.
-        if (requiredOffsetAlignment)
-        {
-            VkDeviceSize alignedOffset =
-                (offset / requiredOffsetAlignment) * requiredOffsetAlignment;
-            VkDeviceSize offsetDiff = offset - alignedOffset;
-
-            offset = alignedOffset;
-            size += offsetDiff;
-        }
+        offset = alignedOffset;
+        size += offsetDiff;
     }
 
     bufferInfoOut->buffer = buffer.getBuffer().getHandle();
@@ -857,55 +795,53 @@ void WriteBufferDescriptorSetBinding(const vk::BufferHelper &buffer,
     ASSERT(writeInfoOut->pBufferInfo[0].buffer != VK_NULL_HANDLE);
 }
 
-void ProgramExecutableVk::updateEarlyFragmentTestsOptimization(
-    ContextVk *contextVk,
-    const gl::ProgramExecutable &glExecutable)
+void ProgramExecutableVk::updateEarlyFragmentTestsOptimization(ContextVk *contextVk)
 {
     const gl::State &glState = contextVk->getState();
 
     mTransformOptions.removeEarlyFragmentTestsOptimization = false;
     if (!glState.canEnableEarlyFragmentTestsOptimization())
     {
-        if (glExecutable.usesEarlyFragmentTestsOptimization())
+        ProgramVk *programVk = getShaderProgram(glState, gl::ShaderType::Fragment);
+        if (programVk && programVk->getState().hasEarlyFragmentTestsOptimization())
         {
             mTransformOptions.removeEarlyFragmentTestsOptimization = true;
         }
     }
 }
 
-angle::Result ProgramExecutableVk::getGraphicsPipeline(ContextVk *contextVk,
-                                                       gl::PrimitiveMode mode,
-                                                       const vk::GraphicsPipelineDesc &desc,
-                                                       const gl::ProgramExecutable &glExecutable,
-                                                       const vk::GraphicsPipelineDesc **descPtrOut,
-                                                       vk::PipelineHelper **pipelineOut)
+angle::Result ProgramExecutableVk::getGraphicsPipeline(
+    ContextVk *contextVk,
+    gl::PrimitiveMode mode,
+    const vk::GraphicsPipelineDesc &desc,
+    const gl::AttributesMask &activeAttribLocations,
+    const vk::GraphicsPipelineDesc **descPtrOut,
+    vk::PipelineHelper **pipelineOut)
 {
-    const gl::State &glState         = contextVk->getState();
-    RendererVk *renderer             = contextVk->getRenderer();
-    vk::PipelineCache *pipelineCache = nullptr;
-
-    ASSERT(glExecutable.hasLinkedShaderStage(gl::ShaderType::Vertex));
+    const gl::State &glState                  = contextVk->getState();
+    RendererVk *renderer                      = contextVk->getRenderer();
+    vk::PipelineCache *pipelineCache          = nullptr;
+    const gl::ProgramExecutable *glExecutable = glState.getProgramExecutable();
+    ASSERT(glExecutable && !glExecutable->isCompute());
 
     mTransformOptions.enableLineRasterEmulation = contextVk->isBresenhamEmulationEnabled(mode);
     mTransformOptions.surfaceRotation           = ToUnderlying(desc.getSurfaceRotation());
     mTransformOptions.enableDepthCorrection     = !glState.isClipControlDepthZeroToOne();
-    mTransformOptions.removeTransformFeedbackEmulation =
-        contextVk->getFeatures().emulateTransformFeedback.enabled &&
-        !glState.isTransformFeedbackActiveUnpaused();
 
     // This must be called after mTransformOptions have been set.
     ProgramInfo &programInfo                  = getGraphicsProgramInfo(mTransformOptions);
-    const gl::ShaderBitSet linkedShaderStages = glExecutable.getLinkedShaderStages();
+    const gl::ShaderBitSet linkedShaderStages = glExecutable->getLinkedShaderStages();
     const gl::ShaderType lastPreFragmentStage = gl::GetLastPreFragmentStage(linkedShaderStages);
-
-    const bool isTransformFeedbackProgram =
-        !glExecutable.getLinkedTransformFeedbackVaryings().empty();
 
     for (const gl::ShaderType shaderType : linkedShaderStages)
     {
-        ANGLE_TRY(initGraphicsShaderProgram(
-            contextVk, shaderType, shaderType == lastPreFragmentStage, isTransformFeedbackProgram,
-            mTransformOptions, &programInfo, mVariableInfoMap));
+        ProgramVk *programVk = getShaderProgram(glState, shaderType);
+        if (programVk)
+        {
+            ANGLE_TRY(programVk->initGraphicsShaderProgram(
+                contextVk, shaderType, shaderType == lastPreFragmentStage, mTransformOptions,
+                &programInfo, mVariableInfoMap));
+        }
     }
 
     vk::ShaderProgramHelper *shaderProgram = programInfo.getShaderProgram();
@@ -920,47 +856,36 @@ angle::Result ProgramExecutableVk::getGraphicsPipeline(ContextVk *contextVk,
                                              dimensions.width);
     shaderProgram->setSpecializationConstant(sh::vk::SpecializationConstantId::DrawableHeight,
                                              dimensions.height);
-    // Similarly with the required dither based on the bound framebuffer attachment formats.
-    shaderProgram->setSpecializationConstant(sh::vk::SpecializationConstantId::Dither,
-                                             desc.getEmulatedDitherControl());
-
-    // Compare the fragment output interface with the framebuffer interface.
-    const gl::AttributesMask &activeAttribLocations =
-        glExecutable.getNonBuiltinAttribLocationsMask();
-
-    // Calculate missing shader outputs.
-    const gl::DrawBufferMask &shaderOutMask = glExecutable.getActiveOutputVariablesMask();
-    gl::DrawBufferMask framebufferMask      = glState.getDrawFramebuffer()->getDrawBufferMask();
-    gl::DrawBufferMask missingOutputsMask   = ~shaderOutMask & framebufferMask;
 
     ANGLE_TRY(renderer->getPipelineCache(&pipelineCache));
     return shaderProgram->getGraphicsPipeline(
         contextVk, &contextVk->getRenderPassCache(), *pipelineCache, getPipelineLayout(), desc,
-        activeAttribLocations, glExecutable.getAttributesTypeMask(), missingOutputsMask, descPtrOut,
+        activeAttribLocations, glState.getProgramExecutable()->getAttributesTypeMask(), descPtrOut,
         pipelineOut);
 }
 
 angle::Result ProgramExecutableVk::getComputePipeline(ContextVk *contextVk,
-                                                      vk::PipelineHelper **pipelineOut)
+                                                      vk::PipelineAndSerial **pipelineOut)
 {
     const gl::State &glState                  = contextVk->getState();
     const gl::ProgramExecutable *glExecutable = glState.getProgramExecutable();
-    ASSERT(glExecutable && glExecutable->hasLinkedShaderStage(gl::ShaderType::Compute));
+    ASSERT(glExecutable && glExecutable->isCompute());
 
-    ANGLE_TRY(initComputeProgram(contextVk, &mComputeProgramInfo, mVariableInfoMap));
+    ProgramVk *programVk = getShaderProgram(glState, gl::ShaderType::Compute);
+    ASSERT(programVk);
+    ProgramInfo &programInfo = getComputeProgramInfo();
+    ANGLE_TRY(programVk->initComputeProgram(contextVk, &programInfo, mVariableInfoMap));
 
-    vk::ShaderProgramHelper *shaderProgram = mComputeProgramInfo.getShaderProgram();
+    vk::ShaderProgramHelper *shaderProgram = programInfo.getShaderProgram();
     ASSERT(shaderProgram);
     return shaderProgram->getComputePipeline(contextVk, getPipelineLayout(), pipelineOut);
 }
 
-// static
-angle::Result ProgramExecutableVk::InitDynamicDescriptorPool(
-    vk::Context *context,
+angle::Result ProgramExecutableVk::initDynamicDescriptorPools(
+    ContextVk *contextVk,
     vk::DescriptorSetLayoutDesc &descriptorSetLayoutDesc,
-    VkDescriptorSetLayout descriptorSetLayout,
-    uint32_t descriptorCountMultiplier,
-    vk::DynamicDescriptorPool *dynamicDescriptorPool)
+    DescriptorSetIndex descriptorSetIndex,
+    VkDescriptorSetLayout descriptorSetLayout)
 {
     std::vector<VkDescriptorPoolSize> descriptorPoolSizes;
     vk::DescriptorSetLayoutBindingVector bindingVector;
@@ -974,44 +899,46 @@ angle::Result ProgramExecutableVk::InitDynamicDescriptorPool(
         {
             VkDescriptorPoolSize poolSize = {};
             poolSize.type                 = binding.descriptorType;
-            poolSize.descriptorCount      = binding.descriptorCount * descriptorCountMultiplier;
+            poolSize.descriptorCount =
+                binding.descriptorCount * mImmutableSamplersMaxDescriptorCount;
             descriptorPoolSizes.emplace_back(poolSize);
         }
     }
 
-    if (descriptorPoolSizes.empty())
+    RendererVk *renderer = contextVk->getRenderer();
+    if (renderer->getFeatures().bindEmptyForUnusedDescriptorSets.enabled &&
+        descriptorPoolSizes.empty())
     {
-        if (context->getRenderer()->getFeatures().bindEmptyForUnusedDescriptorSets.enabled)
-        {
-            // For this workaround, we have to create an empty descriptor set for each descriptor
-            // set index, so make sure their pools are initialized.
-            VkDescriptorPoolSize poolSize = {};
-            // The type doesn't matter, since it's not actually used for anything.
-            poolSize.type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            poolSize.descriptorCount = 1;
-            descriptorPoolSizes.emplace_back(poolSize);
-        }
-        else
-        {
-            return angle::Result::Continue;
-        }
+        // For this workaround, we have to create an empty descriptor set for each descriptor set
+        // index, so make sure their pools are initialized.
+        VkDescriptorPoolSize poolSize = {};
+        // The type doesn't matter, since it's not actually used for anything.
+        poolSize.type            = mUniformBufferDescriptorType;
+        poolSize.descriptorCount = 1;
+        descriptorPoolSizes.emplace_back(poolSize);
     }
 
-    ASSERT(!descriptorPoolSizes.empty());
-
-    ANGLE_TRY(dynamicDescriptorPool->init(context, descriptorPoolSizes.data(),
-                                          descriptorPoolSizes.size(), descriptorSetLayout));
+    if (!descriptorPoolSizes.empty())
+    {
+        ANGLE_TRY(mDynamicDescriptorPools[descriptorSetIndex].init(
+            contextVk, descriptorPoolSizes.data(), descriptorPoolSizes.size(),
+            descriptorSetLayout));
+    }
 
     return angle::Result::Continue;
 }
 
 angle::Result ProgramExecutableVk::createPipelineLayout(
-    ContextVk *contextVk,
-    const gl::ProgramExecutable &glExecutable,
+    const gl::Context *glContext,
     gl::ActiveTextureArray<vk::TextureUnit> *activeTextures)
 {
-    gl::TransformFeedback *transformFeedback = contextVk->getState().getCurrentTransformFeedback();
+    const gl::State &glState                   = glContext->getState();
+    ContextVk *contextVk                       = vk::GetImpl(glContext);
+    gl::TransformFeedback *transformFeedback   = glState.getCurrentTransformFeedback();
+    const gl::ProgramExecutable &glExecutable  = getGlExecutable();
     const gl::ShaderBitSet &linkedShaderStages = glExecutable.getLinkedShaderStages();
+    gl::ShaderMap<const gl::ProgramState *> programStates;
+    fillProgramStateMap(contextVk, &programStates);
 
     reset(contextVk);
 
@@ -1026,7 +953,7 @@ angle::Result ProgramExecutableVk::createPipelineLayout(
         const std::string uniformBlockName = kDefaultUniformNames[shaderType];
         const ShaderInterfaceVariableInfo &info =
             mVariableInfoMap.get(shaderType, uniformBlockName);
-        if (info.isDuplicate || !info.activeStages[shaderType])
+        if (!info.activeStages[shaderType])
         {
             continue;
         }
@@ -1037,11 +964,14 @@ angle::Result ProgramExecutableVk::createPipelineLayout(
     }
 
     gl::ShaderType linkedTransformFeedbackStage = glExecutable.getLinkedTransformFeedbackStage();
-    bool hasXfbVaryings = linkedTransformFeedbackStage != gl::ShaderType::InvalidEnum &&
-                          !glExecutable.getLinkedTransformFeedbackVaryings().empty();
+    bool hasXfbVaryings =
+        linkedTransformFeedbackStage != gl::ShaderType::InvalidEnum &&
+        !programStates[linkedTransformFeedbackStage]->getLinkedTransformFeedbackVaryings().empty();
     if (transformFeedback && hasXfbVaryings)
     {
-        size_t xfbBufferCount                    = glExecutable.getTransformFeedbackBufferCount();
+        const gl::ProgramExecutable &executable =
+            programStates[linkedTransformFeedbackStage]->getExecutable();
+        size_t xfbBufferCount                    = executable.getTransformFeedbackBufferCount();
         TransformFeedbackVk *transformFeedbackVk = vk::GetImpl(transformFeedback);
         transformFeedbackVk->updateDescriptorSetLayout(contextVk, mVariableInfoMap, xfbBufferCount,
                                                        &uniformsAndXfbSetDesc);
@@ -1058,7 +988,10 @@ angle::Result ProgramExecutableVk::createPipelineLayout(
     uint32_t numActiveUniformBufferDescriptors = 0;
     for (const gl::ShaderType shaderType : linkedShaderStages)
     {
-        const std::vector<gl::InterfaceBlock> &blocks = glExecutable.getUniformBlocks();
+        const gl::ProgramState *programState = programStates[shaderType];
+        ASSERT(programState);
+
+        const std::vector<gl::InterfaceBlock> &blocks = programState->getUniformBlocks();
         for (uint32_t bufferIndex = 0; bufferIndex < blocks.size();)
         {
             const gl::InterfaceBlock &block = blocks[bufferIndex];
@@ -1090,18 +1023,24 @@ angle::Result ProgramExecutableVk::createPipelineLayout(
 
     for (const gl::ShaderType shaderType : linkedShaderStages)
     {
-        addInterfaceBlockDescriptorSetDesc(glExecutable.getUniformBlocks(), shaderType,
+        const gl::ProgramState *programState = programStates[shaderType];
+        ASSERT(programState);
+
+        addInterfaceBlockDescriptorSetDesc(programState->getUniformBlocks(), shaderType,
                                            mUniformBufferDescriptorType, &resourcesSetDesc);
-        addInterfaceBlockDescriptorSetDesc(glExecutable.getShaderStorageBlocks(), shaderType,
+        addInterfaceBlockDescriptorSetDesc(programState->getShaderStorageBlocks(), shaderType,
                                            kStorageBufferDescriptorType, &resourcesSetDesc);
-        addAtomicCounterBufferDescriptorSetDesc(glExecutable.getAtomicCounterBuffers(), shaderType,
+        addAtomicCounterBufferDescriptorSetDesc(programState->getAtomicCounterBuffers(), shaderType,
                                                 &resourcesSetDesc);
     }
 
     for (const gl::ShaderType shaderType : linkedShaderStages)
     {
-        addImageDescriptorSetDesc(glExecutable, &resourcesSetDesc);
-        addInputAttachmentDescriptorSetDesc(glExecutable, shaderType, &resourcesSetDesc);
+        const gl::ProgramState *programState = programStates[shaderType];
+        ASSERT(programState);
+        addImageDescriptorSetDesc(programState->getExecutable(), &resourcesSetDesc);
+        addInputAttachmentDescriptorSetDesc(programState->getExecutable(), shaderType,
+                                            &resourcesSetDesc);
     }
 
     ANGLE_TRY(contextVk->getDescriptorSetLayoutCache().getDescriptorSetLayout(
@@ -1109,15 +1048,22 @@ angle::Result ProgramExecutableVk::createPipelineLayout(
 
     // Textures:
     vk::DescriptorSetLayoutDesc texturesSetDesc;
-    ANGLE_TRY(
-        addTextureDescriptorSetDesc(contextVk, glExecutable, activeTextures, &texturesSetDesc));
+
+    for (const gl::ShaderType shaderType : linkedShaderStages)
+    {
+        const gl::ProgramState *programState = programStates[shaderType];
+        ASSERT(programState);
+        addTextureDescriptorSetDesc(contextVk, *programState, activeTextures, &texturesSetDesc);
+    }
 
     ANGLE_TRY(contextVk->getDescriptorSetLayoutCache().getDescriptorSetLayout(
         contextVk, texturesSetDesc, &mDescriptorSetLayouts[DescriptorSetIndex::Texture]));
 
-    // Driver uniforms
+    // Driver uniforms:
+    VkShaderStageFlags driverUniformsStages =
+        glExecutable.isCompute() ? VK_SHADER_STAGE_COMPUTE_BIT : VK_SHADER_STAGE_ALL_GRAPHICS;
     vk::DescriptorSetLayoutDesc driverUniformsSetDesc =
-        contextVk->getDriverUniformsDescriptorSetDesc();
+        contextVk->getDriverUniformsDescriptorSetDesc(driverUniformsStages);
     ANGLE_TRY(contextVk->getDescriptorSetLayoutCache().getDescriptorSetLayout(
         contextVk, driverUniformsSetDesc, &mDescriptorSetLayouts[DescriptorSetIndex::Internal]));
 
@@ -1135,23 +1081,18 @@ angle::Result ProgramExecutableVk::createPipelineLayout(
         contextVk, pipelineLayoutDesc, mDescriptorSetLayouts, &mPipelineLayout));
 
     // Initialize descriptor pools.
-    ANGLE_TRY(InitDynamicDescriptorPool(
-        contextVk, uniformsAndXfbSetDesc,
-        mDescriptorSetLayouts[DescriptorSetIndex::UniformsAndXfb].get().getHandle(), 1,
-        &mDynamicDescriptorPools[DescriptorSetIndex::UniformsAndXfb]));
-    ANGLE_TRY(InitDynamicDescriptorPool(
-        contextVk, resourcesSetDesc,
-        mDescriptorSetLayouts[DescriptorSetIndex::ShaderResource].get().getHandle(), 1,
-        &mDynamicDescriptorPools[DescriptorSetIndex::ShaderResource]));
-    ANGLE_TRY(InitDynamicDescriptorPool(
-        contextVk, texturesSetDesc,
-        mDescriptorSetLayouts[DescriptorSetIndex::Texture].get().getHandle(),
-        mImmutableSamplersMaxDescriptorCount,
-        &mDynamicDescriptorPools[DescriptorSetIndex::Texture]));
-    ANGLE_TRY(InitDynamicDescriptorPool(
-        contextVk, driverUniformsSetDesc,
-        mDescriptorSetLayouts[DescriptorSetIndex::Internal].get().getHandle(), 1,
-        &mDynamicDescriptorPools[DescriptorSetIndex::Internal]));
+    ANGLE_TRY(initDynamicDescriptorPools(
+        contextVk, uniformsAndXfbSetDesc, DescriptorSetIndex::UniformsAndXfb,
+        mDescriptorSetLayouts[DescriptorSetIndex::UniformsAndXfb].get().getHandle()));
+    ANGLE_TRY(initDynamicDescriptorPools(
+        contextVk, resourcesSetDesc, DescriptorSetIndex::ShaderResource,
+        mDescriptorSetLayouts[DescriptorSetIndex::ShaderResource].get().getHandle()));
+    ANGLE_TRY(initDynamicDescriptorPools(
+        contextVk, texturesSetDesc, DescriptorSetIndex::Texture,
+        mDescriptorSetLayouts[DescriptorSetIndex::Texture].get().getHandle()));
+    ANGLE_TRY(initDynamicDescriptorPools(
+        contextVk, driverUniformsSetDesc, DescriptorSetIndex::Internal,
+        mDescriptorSetLayouts[DescriptorSetIndex::Internal].get().getHandle()));
 
     mDynamicUniformDescriptorOffsets.clear();
     mDynamicUniformDescriptorOffsets.resize(glExecutable.getLinkedShaderStageCount(), 0);
@@ -1177,7 +1118,6 @@ void ProgramExecutableVk::resolvePrecisionMismatch(const gl::ProgramMergedVaryin
 
         ASSERT(frontPrecision >= GL_LOW_FLOAT && frontPrecision <= GL_HIGH_INT);
         ASSERT(backPrecision >= GL_LOW_FLOAT && backPrecision <= GL_HIGH_INT);
-
         if (frontPrecision > backPrecision)
         {
             // The output is higher precision than the input
@@ -1199,15 +1139,14 @@ void ProgramExecutableVk::resolvePrecisionMismatch(const gl::ProgramMergedVaryin
 }
 
 void ProgramExecutableVk::updateDefaultUniformsDescriptorSet(
-    ContextVk *contextVk,
     const gl::ShaderType shaderType,
     const DefaultUniformBlock &defaultUniformBlock,
-    vk::BufferHelper *defaultUniformBuffer)
+    vk::BufferHelper *defaultUniformBuffer,
+    ContextVk *contextVk)
 {
-    const std::string uniformBlockName = kDefaultUniformNames[shaderType];
-
+    const std::string uniformBlockName      = kDefaultUniformNames[shaderType];
     const ShaderInterfaceVariableInfo &info = mVariableInfoMap.get(shaderType, uniformBlockName);
-    if (info.isDuplicate || !info.activeStages[shaderType])
+    if (!info.activeStages[shaderType])
     {
         return;
     }
@@ -1215,12 +1154,14 @@ void ProgramExecutableVk::updateDefaultUniformsDescriptorSet(
     VkWriteDescriptorSet &writeInfo    = contextVk->allocWriteDescriptorSet();
     VkDescriptorBufferInfo &bufferInfo = contextVk->allocDescriptorBufferInfo();
 
-    VkDeviceSize size              = getDefaultUniformAlignedSize(contextVk, shaderType);
+    // Size is set to the size of the empty buffer for shader statges with no uniform data,
+    // otherwise it is set to the total size of the uniform data in the current shader stage
+    VkDeviceSize size              = defaultUniformBlock.uniformData.size();
     vk::BufferHelper *bufferHelper = defaultUniformBuffer;
     if (defaultUniformBlock.uniformData.empty())
     {
         bufferHelper = &contextVk->getEmptyBuffer();
-        bufferHelper->retainReadOnly(&contextVk->getResourceUseList());
+        bufferHelper->retain(&contextVk->getResourceUseList());
         size = bufferHelper->getSize();
     }
 
@@ -1230,37 +1171,40 @@ void ProgramExecutableVk::updateDefaultUniformsDescriptorSet(
 }
 
 // Lazily allocate the descriptor set. We may not need one if all of the buffers are inactive.
-angle::Result ProgramExecutableVk::allocateShaderResourcesDescriptorSet(
+angle::Result ProgramExecutableVk::getOrAllocateShaderResourcesDescriptorSet(
     ContextVk *contextVk,
-    const vk::DescriptorSetDesc *shaderBuffersDesc)
+    const vk::ShaderBuffersDescriptorDesc *shaderBuffersDesc,
+    VkDescriptorSet *descriptorSetOut)
 {
-    ASSERT(mDescriptorSets[DescriptorSetIndex::ShaderResource] == VK_NULL_HANDLE);
-    bool newPoolAllocated = false;
-    ANGLE_TRY(allocateDescriptorSetAndGetInfo(contextVk, DescriptorSetIndex::ShaderResource,
-                                              &newPoolAllocated));
-
-    if (shaderBuffersDesc)
+    if (mDescriptorSets[DescriptorSetIndex::ShaderResource] == VK_NULL_HANDLE)
     {
-        // Clear descriptor set cache. It may no longer be valid.
-        if (newPoolAllocated)
-        {
-            mShaderBufferDescriptorsCache.destroy(contextVk->getRenderer(),
-                                                  VulkanCacheType::ShaderBuffersDescriptors);
-        }
+        bool newPoolAllocated = false;
+        ANGLE_TRY(allocateDescriptorSetAndGetInfo(contextVk, DescriptorSetIndex::ShaderResource,
+                                                  &newPoolAllocated));
 
-        mShaderBufferDescriptorsCache.insert(*shaderBuffersDesc,
-                                             mDescriptorSets[DescriptorSetIndex::ShaderResource]);
+        if (shaderBuffersDesc)
+        {
+            // Clear descriptor set cache. It may no longer be valid.
+            if (newPoolAllocated)
+            {
+                mShaderBufferDescriptorsCache.destroy(contextVk->getRenderer());
+            }
+
+            mShaderBufferDescriptorsCache.insert(
+                *shaderBuffersDesc, mDescriptorSets[DescriptorSetIndex::ShaderResource]);
+        }
     }
+    *descriptorSetOut = mDescriptorSets[DescriptorSetIndex::ShaderResource];
+    ASSERT(*descriptorSetOut != VK_NULL_HANDLE);
     return angle::Result::Continue;
 }
 
 angle::Result ProgramExecutableVk::updateBuffersDescriptorSet(
     ContextVk *contextVk,
     const gl::ShaderType shaderType,
-    const vk::DescriptorSetDesc &shaderBuffersDesc,
+    const vk::ShaderBuffersDescriptorDesc &shaderBuffersDesc,
     const std::vector<gl::InterfaceBlock> &blocks,
     VkDescriptorType descriptorType,
-    VkDeviceSize maxBoundBufferRange,
     bool cacheHit)
 {
     // Early exit if no blocks or no update needed.
@@ -1272,9 +1216,6 @@ angle::Result ProgramExecutableVk::updateBuffersDescriptorSet(
     ASSERT(descriptorType == mUniformBufferDescriptorType ||
            descriptorType == kStorageBufferDescriptorType);
     const bool isStorageBuffer = descriptorType == kStorageBufferDescriptorType;
-
-    VkDescriptorSet descriptorSet = mDescriptorSets[DescriptorSetIndex::ShaderResource];
-    ASSERT(descriptorSet != VK_NULL_HANDLE);
 
     // Write uniform or storage buffers.
     const gl::State &glState = contextVk->getState();
@@ -1290,40 +1231,25 @@ angle::Result ProgramExecutableVk::updateBuffersDescriptorSet(
             continue;
         }
 
-        const ShaderInterfaceVariableInfo &info =
-            mVariableInfoMap.get(shaderType, block.mappedName);
-        if (info.isDuplicate)
+        if (bufferBinding.get() == nullptr)
         {
             continue;
         }
 
+        const ShaderInterfaceVariableInfo &info =
+            mVariableInfoMap.get(shaderType, block.mappedName);
         uint32_t binding      = info.binding;
         uint32_t arrayElement = block.isArray ? block.arrayElement : 0;
 
-        if (bufferBinding.get() == nullptr)
+        VkDeviceSize size;
+        if (!isStorageBuffer)
         {
-            vk::BufferHelper &emptyBuffer = contextVk->getEmptyBuffer();
-            if (!cacheHit)
-            {
-                VkDescriptorBufferInfo &bufferInfo = contextVk->allocDescriptorBufferInfo();
-                VkWriteDescriptorSet &writeInfo    = contextVk->allocWriteDescriptorSet();
-
-                emptyBuffer.retainReadOnly(&contextVk->getResourceUseList());
-                WriteBufferDescriptorSetBinding(emptyBuffer, 0, emptyBuffer.getSize(),
-                                                descriptorSet, descriptorType, binding,
-                                                arrayElement, 0, &bufferInfo, &writeInfo);
-            }
-            if (IsDynamicDescriptor(descriptorType))
-            {
-                mDynamicShaderBufferDescriptorOffsets.push_back(
-                    static_cast<uint32_t>(emptyBuffer.getOffset()));
-            }
-            continue;
+            size = block.dataSize;
         }
-
-        // Limit bound buffer size to maximum resource binding size.
-        GLsizeiptr boundBufferSize = gl::GetBoundBufferAvailableSize(bufferBinding);
-        VkDeviceSize size          = std::min<VkDeviceSize>(boundBufferSize, maxBoundBufferRange);
+        else
+        {
+            size = gl::GetBoundBufferAvailableSize(bufferBinding);
+        }
 
         // Make sure there's no possible under/overflow with binding size.
         static_assert(sizeof(VkDeviceSize) >= sizeof(bufferBinding.getSize()),
@@ -1331,15 +1257,19 @@ angle::Result ProgramExecutableVk::updateBuffersDescriptorSet(
         ASSERT(bufferBinding.getSize() >= 0);
 
         BufferVk *bufferVk             = vk::GetImpl(bufferBinding.get());
-        vk::BufferHelper &bufferHelper = bufferVk->getBuffer();
+        VkDeviceSize bufferOffset      = 0;
+        vk::BufferHelper &bufferHelper = bufferVk->getBufferAndOffset(&bufferOffset);
 
         if (!cacheHit)
         {
             VkDescriptorBufferInfo &bufferInfo = contextVk->allocDescriptorBufferInfo();
             VkWriteDescriptorSet &writeInfo    = contextVk->allocWriteDescriptorSet();
 
+            VkDescriptorSet descriptorSet;
+            ANGLE_TRY(getOrAllocateShaderResourcesDescriptorSet(contextVk, &shaderBuffersDesc,
+                                                                &descriptorSet));
             VkDeviceSize offset =
-                IsDynamicDescriptor(descriptorType) ? 0 : bufferBinding.getOffset();
+                IsDynamicDescriptor(descriptorType) ? 0 : bufferOffset + bufferBinding.getOffset();
             WriteBufferDescriptorSetBinding(bufferHelper, offset, size, descriptorSet,
                                             descriptorType, binding, arrayElement, 0, &bufferInfo,
                                             &writeInfo);
@@ -1347,7 +1277,7 @@ angle::Result ProgramExecutableVk::updateBuffersDescriptorSet(
         if (IsDynamicDescriptor(descriptorType))
         {
             mDynamicShaderBufferDescriptorOffsets.push_back(
-                static_cast<uint32_t>(bufferHelper.getOffset() + bufferBinding.getOffset()));
+                static_cast<uint32_t>(bufferOffset + bufferBinding.getOffset()));
         }
     }
 
@@ -1356,14 +1286,14 @@ angle::Result ProgramExecutableVk::updateBuffersDescriptorSet(
 
 angle::Result ProgramExecutableVk::updateAtomicCounterBuffersDescriptorSet(
     ContextVk *contextVk,
-    const gl::ProgramExecutable &executable,
+    const gl::ProgramState &programState,
     const gl::ShaderType shaderType,
-    const vk::DescriptorSetDesc &shaderBuffersDesc,
+    const vk::ShaderBuffersDescriptorDesc &shaderBuffersDesc,
     bool cacheHit)
 {
     const gl::State &glState = contextVk->getState();
     const std::vector<gl::AtomicCounterBuffer> &atomicCounterBuffers =
-        executable.getAtomicCounterBuffers();
+        programState.getAtomicCounterBuffers();
 
     if (atomicCounterBuffers.empty() || cacheHit)
     {
@@ -1371,14 +1301,9 @@ angle::Result ProgramExecutableVk::updateAtomicCounterBuffersDescriptorSet(
     }
 
     std::string blockName(sh::vk::kAtomicCountersBlockName);
-
-    if (!mVariableInfoMap.contains(shaderType, blockName))
-    {
-        return angle::Result::Continue;
-    }
-
     const ShaderInterfaceVariableInfo &info = mVariableInfoMap.get(shaderType, blockName);
-    if (info.isDuplicate || !info.activeStages[shaderType])
+
+    if (!info.activeStages[shaderType])
     {
         return angle::Result::Continue;
     }
@@ -1389,7 +1314,9 @@ angle::Result ProgramExecutableVk::updateAtomicCounterBuffersDescriptorSet(
     const VkDeviceSize requiredOffsetAlignment =
         rendererVk->getPhysicalDeviceProperties().limits.minStorageBufferOffsetAlignment;
 
-    VkDescriptorSet descriptorSet = mDescriptorSets[DescriptorSetIndex::ShaderResource];
+    VkDescriptorSet descriptorSet;
+    ANGLE_TRY(
+        getOrAllocateShaderResourcesDescriptorSet(contextVk, &shaderBuffersDesc, &descriptorSet));
 
     // Write atomic counter buffers.
     for (uint32_t bufferIndex = 0; bufferIndex < atomicCounterBuffers.size(); ++bufferIndex)
@@ -1412,27 +1339,28 @@ angle::Result ProgramExecutableVk::updateAtomicCounterBuffersDescriptorSet(
         VkWriteDescriptorSet &writeInfo    = contextVk->allocWriteDescriptorSet();
 
         BufferVk *bufferVk             = vk::GetImpl(bufferBinding.get());
-        vk::BufferHelper &bufferHelper = bufferVk->getBuffer();
+        VkDeviceSize bufferOffset      = 0;
+        vk::BufferHelper &bufferHelper = bufferVk->getBufferAndOffset(&bufferOffset);
 
         VkDeviceSize size = gl::GetBoundBufferAvailableSize(bufferBinding);
-        WriteBufferDescriptorSetBinding(bufferHelper,
-                                        static_cast<uint32_t>(bufferBinding.getOffset()), size,
-                                        descriptorSet, kStorageBufferDescriptorType, info.binding,
-                                        binding, requiredOffsetAlignment, &bufferInfo, &writeInfo);
+        WriteBufferDescriptorSetBinding(
+            bufferHelper, static_cast<uint32_t>(bufferOffset + bufferBinding.getOffset()), size,
+            descriptorSet, kStorageBufferDescriptorType, info.binding, binding,
+            requiredOffsetAlignment, &bufferInfo, &writeInfo);
 
         writtenBindings.set(binding);
     }
 
     // Bind the empty buffer to every array slot that's unused.
     vk::BufferHelper &emptyBuffer = contextVk->getEmptyBuffer();
-    emptyBuffer.retainReadOnly(&contextVk->getResourceUseList());
+    emptyBuffer.retain(&contextVk->getResourceUseList());
     size_t count                        = (~writtenBindings).count();
     VkDescriptorBufferInfo *bufferInfos = contextVk->allocDescriptorBufferInfos(count);
     VkWriteDescriptorSet *writeInfos    = contextVk->allocWriteDescriptorSets(count);
     size_t writeCount                   = 0;
     for (size_t binding : ~writtenBindings)
     {
-        WriteBufferDescriptorSetBinding(emptyBuffer, 0, emptyBuffer.getSize(), descriptorSet,
+        WriteBufferDescriptorSetBinding(emptyBuffer, 0, VK_WHOLE_SIZE, descriptorSet,
                                         kStorageBufferDescriptorType, info.binding,
                                         static_cast<uint32_t>(binding), 0, &bufferInfos[writeCount],
                                         &writeInfos[writeCount]);
@@ -1461,8 +1389,6 @@ angle::Result ProgramExecutableVk::updateImagesDescriptorSet(
 
     angle::HashMap<std::string, uint32_t> mappedImageNameToArrayOffset;
 
-    VkDescriptorSet descriptorSet = mDescriptorSets[DescriptorSetIndex::ShaderResource];
-
     // Write images.
     for (uint32_t imageIndex = 0; imageIndex < imageBindings.size(); ++imageIndex)
     {
@@ -1474,6 +1400,9 @@ angle::Result ProgramExecutableVk::updateImagesDescriptorSet(
         {
             continue;
         }
+
+        VkDescriptorSet descriptorSet;
+        ANGLE_TRY(getOrAllocateShaderResourcesDescriptorSet(contextVk, nullptr, &descriptorSet));
 
         std::string mappedImageName = GlslangGetMappedSamplerName(imageUniform.name);
 
@@ -1487,25 +1416,18 @@ angle::Result ProgramExecutableVk::updateImagesDescriptorSet(
         // time we process a nested array.
         mappedImageNameToArrayOffset[mappedImageName] += arraySize;
 
+        VkWriteDescriptorSet *writeInfos = contextVk->allocWriteDescriptorSets(arraySize);
+
         // Texture buffers use buffer views, so they are especially handled.
         if (imageBinding.textureType == gl::TextureType::Buffer)
         {
-            // Handle format reinterpretation by looking for a view with the format specified in
+            // Handle format reinterpration by looking for a view with the format specified in
             // the shader (if any, instead of the format specified to glTexBuffer).
             const vk::Format *format = nullptr;
             if (imageUniform.imageUnitFormat != GL_NONE)
             {
                 format = &renderer->getFormat(imageUniform.imageUnitFormat);
             }
-
-            const ShaderInterfaceVariableInfo &info =
-                mVariableInfoMap.get(shaderType, mappedImageName);
-            if (info.isDuplicate)
-            {
-                continue;
-            }
-
-            VkWriteDescriptorSet *writeInfos = contextVk->allocWriteDescriptorSets(arraySize);
 
             for (uint32_t arrayElement = 0; arrayElement < arraySize; ++arrayElement)
             {
@@ -1514,6 +1436,9 @@ angle::Result ProgramExecutableVk::updateImagesDescriptorSet(
 
                 const vk::BufferView *view = nullptr;
                 ANGLE_TRY(textureVk->getBufferViewAndRecordUse(contextVk, format, true, &view));
+
+                const ShaderInterfaceVariableInfo &info =
+                    mVariableInfoMap.get(shaderType, mappedImageName);
 
                 writeInfos[arrayElement].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeInfos[arrayElement].pNext            = nullptr;
@@ -1529,14 +1454,6 @@ angle::Result ProgramExecutableVk::updateImagesDescriptorSet(
             continue;
         }
 
-        const std::string imageName             = GlslangGetMappedSamplerName(imageUniform.name);
-        const ShaderInterfaceVariableInfo &info = mVariableInfoMap.get(shaderType, imageName);
-        if (info.isDuplicate)
-        {
-            continue;
-        }
-
-        VkWriteDescriptorSet *writeInfos  = contextVk->allocWriteDescriptorSets(arraySize);
         VkDescriptorImageInfo *imageInfos = contextVk->allocDescriptorImageInfos(arraySize);
         for (uint32_t arrayElement = 0; arrayElement < arraySize; ++arrayElement)
         {
@@ -1554,6 +1471,9 @@ angle::Result ProgramExecutableVk::updateImagesDescriptorSet(
             imageInfos[arrayElement].sampler     = VK_NULL_HANDLE;
             imageInfos[arrayElement].imageView   = imageView->getHandle();
             imageInfos[arrayElement].imageLayout = image->getCurrentLayout();
+
+            const std::string imageName = GlslangGetMappedSamplerName(imageUniform.name);
+            const ShaderInterfaceVariableInfo &info = mVariableInfoMap.get(shaderType, imageName);
 
             writeInfos[arrayElement].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeInfos[arrayElement].pNext            = nullptr;
@@ -1574,7 +1494,8 @@ angle::Result ProgramExecutableVk::updateImagesDescriptorSet(
 angle::Result ProgramExecutableVk::updateShaderResourcesDescriptorSet(
     ContextVk *contextVk,
     FramebufferVk *framebufferVk,
-    const vk::DescriptorSetDesc &shaderBuffersDesc)
+    const vk::ShaderBuffersDescriptorDesc &shaderBuffersDesc,
+    vk::CommandBufferHelper *commandBufferHelper)
 {
     const gl::ProgramExecutable *executable = contextVk->getState().getProgramExecutable();
     ASSERT(executable);
@@ -1583,13 +1504,6 @@ angle::Result ProgramExecutableVk::updateShaderResourcesDescriptorSet(
     mDescriptorSets[DescriptorSetIndex::ShaderResource]      = VK_NULL_HANDLE;
     mEmptyDescriptorSets[DescriptorSetIndex::ShaderResource] = VK_NULL_HANDLE;
     mDynamicShaderBufferDescriptorOffsets.clear();
-
-    if (!mDynamicDescriptorPools[DescriptorSetIndex::ShaderResource].valid())
-    {
-        return angle::Result::Continue;
-    }
-
-    bool cacheHit = false;
 
     if (!executable->hasImages() && !executable->usesFramebufferFetch())
     {
@@ -1601,36 +1515,30 @@ angle::Result ProgramExecutableVk::updateShaderResourcesDescriptorSet(
             // each time the descriptor set is used in a new command.
             mDescriptorPoolBindings[DescriptorSetIndex::ShaderResource].get().retain(
                 &contextVk->getResourceUseList());
-            cacheHit = true;
-        }
-        else
-        {
-            ANGLE_TRY(allocateShaderResourcesDescriptorSet(contextVk, &shaderBuffersDesc));
         }
     }
-    else
-    {
-        ANGLE_TRY(allocateShaderResourcesDescriptorSet(contextVk, nullptr));
-    }
 
-    ASSERT(mDescriptorSets[DescriptorSetIndex::ShaderResource] != VK_NULL_HANDLE);
+    bool cacheHit = mDescriptorSets[DescriptorSetIndex::ShaderResource] != VK_NULL_HANDLE;
 
-    const VkPhysicalDeviceLimits &limits =
-        contextVk->getRenderer()->getPhysicalDeviceProperties().limits;
+    gl::ShaderMap<const gl::ProgramState *> programStates;
+    fillProgramStateMap(contextVk, &programStates);
 
     for (const gl::ShaderType shaderType : executable->getLinkedShaderStages())
     {
-        ANGLE_TRY(updateBuffersDescriptorSet(
-            contextVk, shaderType, shaderBuffersDesc, executable->getUniformBlocks(),
-            mUniformBufferDescriptorType, limits.maxUniformBufferRange, cacheHit));
-        ANGLE_TRY(updateBuffersDescriptorSet(
-            contextVk, shaderType, shaderBuffersDesc, executable->getShaderStorageBlocks(),
-            kStorageBufferDescriptorType, limits.maxStorageBufferRange, cacheHit));
-        ANGLE_TRY(updateAtomicCounterBuffersDescriptorSet(contextVk, *executable, shaderType,
+        const gl::ProgramState *programState = programStates[shaderType];
+        ASSERT(programState);
+
+        ANGLE_TRY(updateBuffersDescriptorSet(contextVk, shaderType, shaderBuffersDesc,
+                                             programState->getUniformBlocks(),
+                                             mUniformBufferDescriptorType, cacheHit));
+        ANGLE_TRY(updateBuffersDescriptorSet(contextVk, shaderType, shaderBuffersDesc,
+                                             programState->getShaderStorageBlocks(),
+                                             kStorageBufferDescriptorType, cacheHit));
+        ANGLE_TRY(updateAtomicCounterBuffersDescriptorSet(contextVk, *programState, shaderType,
                                                           shaderBuffersDesc, cacheHit));
-        ANGLE_TRY(updateImagesDescriptorSet(contextVk, *executable, shaderType));
-        ANGLE_TRY(
-            updateInputAttachmentDescriptorSet(*executable, shaderType, contextVk, framebufferVk));
+        ANGLE_TRY(updateImagesDescriptorSet(contextVk, programState->getExecutable(), shaderType));
+        ANGLE_TRY(updateInputAttachmentDescriptorSet(programState->getExecutable(), shaderType,
+                                                     contextVk, framebufferVk));
     }
 
     return angle::Result::Continue;
@@ -1657,19 +1565,14 @@ angle::Result ProgramExecutableVk::updateInputAttachmentDescriptorSet(
     const uint32_t baseUniformIndex              = executable.getFragmentInoutRange().low();
     const gl::LinkedUniform &baseInputAttachment = uniforms.at(baseUniformIndex);
     std::string baseMappedName                   = baseInputAttachment.mappedName;
-
-    ShaderInterfaceVariableInfo &baseInfo = mVariableInfoMap.get(shaderType, baseMappedName);
-    if (baseInfo.isDuplicate)
-    {
-        return angle::Result::Continue;
-    }
-
-    uint32_t baseBinding = baseInfo.binding - baseInputAttachment.location;
-
-    VkDescriptorSet descriptorSet = mDescriptorSets[DescriptorSetIndex::ShaderResource];
+    ShaderInterfaceVariableInfo &baseInfo        = mVariableInfoMap.get(shaderType, baseMappedName);
+    uint32_t baseBinding                         = baseInfo.binding - baseInputAttachment.location;
 
     for (size_t colorIndex : framebufferVk->getState().getColorAttachmentsMask())
     {
+        VkDescriptorSet descriptorSet;
+        ANGLE_TRY(getOrAllocateShaderResourcesDescriptorSet(contextVk, nullptr, &descriptorSet));
+
         VkWriteDescriptorSet *writeInfos  = contextVk->allocWriteDescriptorSets(1);
         VkDescriptorImageInfo *imageInfos = contextVk->allocDescriptorImageInfos(1);
         RenderTargetVk *renderTargetVk    = framebufferVk->getColorDrawRenderTarget(colorIndex);
@@ -1697,36 +1600,39 @@ angle::Result ProgramExecutableVk::updateInputAttachmentDescriptorSet(
 }
 
 angle::Result ProgramExecutableVk::updateTransformFeedbackDescriptorSet(
-    ContextVk *contextVk,
-    const gl::ProgramExecutable &executable,
+    const gl::ProgramState &programState,
+    gl::ShaderMap<DefaultUniformBlock> &defaultUniformBlocks,
     vk::BufferHelper *defaultUniformBuffer,
-    const vk::DescriptorSetDesc &xfbBufferDesc)
+    ContextVk *contextVk,
+    const vk::UniformsAndXfbDescriptorDesc &xfbBufferDesc)
 {
+    const gl::ProgramExecutable &executable = programState.getExecutable();
     ASSERT(executable.hasTransformFeedbackOutput());
 
     bool newDescriptorSetAllocated;
-    ANGLE_TRY(allocUniformAndXfbDescriptorSet(contextVk, defaultUniformBuffer, xfbBufferDesc,
-                                              &newDescriptorSetAllocated));
+    ANGLE_TRY(
+        allocUniformAndXfbDescriptorSet(contextVk, xfbBufferDesc, &newDescriptorSetAllocated));
 
     if (newDescriptorSetAllocated)
     {
         for (const gl::ShaderType shaderType : executable.getLinkedShaderStages())
         {
-            updateDefaultUniformsDescriptorSet(
-                contextVk, shaderType, *mDefaultUniformBlocks[shaderType], defaultUniformBuffer);
+            updateDefaultUniformsDescriptorSet(shaderType, defaultUniformBlocks[shaderType],
+                                               defaultUniformBuffer, contextVk);
         }
-        updateTransformFeedbackDescriptorSetImpl(contextVk, executable);
+        updateTransformFeedbackDescriptorSetImpl(programState, contextVk);
     }
 
     return angle::Result::Continue;
 }
 
 void ProgramExecutableVk::updateTransformFeedbackDescriptorSetImpl(
-    ContextVk *contextVk,
-    const gl::ProgramExecutable &executable)
+    const gl::ProgramState &programState,
+    ContextVk *contextVk)
 {
     const gl::State &glState                 = contextVk->getState();
     gl::TransformFeedback *transformFeedback = glState.getCurrentTransformFeedback();
+    const gl::ProgramExecutable &executable  = programState.getExecutable();
 
     if (!executable.hasTransformFeedbackOutput())
     {
@@ -1749,13 +1655,13 @@ void ProgramExecutableVk::updateTransformFeedbackDescriptorSetImpl(
     }
 
     TransformFeedbackVk *transformFeedbackVk = vk::GetImpl(glState.getCurrentTransformFeedback());
-    transformFeedbackVk->updateDescriptorSet(contextVk, executable, mVariableInfoMap,
+    transformFeedbackVk->updateDescriptorSet(contextVk, programState, mVariableInfoMap,
                                              mDescriptorSets[DescriptorSetIndex::UniformsAndXfb]);
 }
 
 angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
     ContextVk *contextVk,
-    const vk::DescriptorSetDesc &texturesDesc)
+    const vk::TextureDescriptorDesc &texturesDesc)
 {
     const gl::ProgramExecutable *executable = contextVk->getState().getProgramExecutable();
     ASSERT(executable);
@@ -1779,27 +1685,24 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
     const gl::ActiveTextureArray<vk::TextureUnit> &activeTextures = contextVk->getActiveTextures();
     bool emulateSeamfulCubeMapSampling = contextVk->emulateSeamfulCubeMapSampling();
 
+    gl::ShaderMap<const gl::ProgramState *> programStates;
+    fillProgramStateMap(contextVk, &programStates);
+
     for (const gl::ShaderType shaderType : executable->getLinkedShaderStages())
     {
         angle::HashMap<std::string, uint32_t> mappedSamplerNameToArrayOffset;
-        for (uint32_t textureIndex = 0; textureIndex < executable->getSamplerBindings().size();
+        const gl::ProgramState *programState = programStates[shaderType];
+        ASSERT(programState);
+        for (uint32_t textureIndex = 0; textureIndex < programState->getSamplerBindings().size();
              ++textureIndex)
         {
             const gl::SamplerBinding &samplerBinding =
-                executable->getSamplerBindings()[textureIndex];
-            uint32_t uniformIndex = executable->getUniformIndexFromSamplerIndex(textureIndex);
-            const gl::LinkedUniform &samplerUniform = executable->getUniforms()[uniformIndex];
+                programState->getSamplerBindings()[textureIndex];
+            uint32_t uniformIndex = programState->getUniformIndexFromSamplerIndex(textureIndex);
+            const gl::LinkedUniform &samplerUniform = programState->getUniforms()[uniformIndex];
             std::string mappedSamplerName = GlslangGetMappedSamplerName(samplerUniform.name);
 
             if (!samplerUniform.isActive(shaderType))
-            {
-                continue;
-            }
-
-            const std::string samplerName = GlslangGetMappedSamplerName(samplerUniform.name);
-
-            const ShaderInterfaceVariableInfo &info = mVariableInfoMap.get(shaderType, samplerName);
-            if (info.isDuplicate)
             {
                 continue;
             }
@@ -1815,8 +1718,7 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
                 // Clear descriptor set cache. It may no longer be valid.
                 if (newPoolAllocated)
                 {
-                    mTextureDescriptorsCache.destroy(contextVk->getRenderer(),
-                                                     VulkanCacheType::TextureDescriptors);
+                    mTextureDescriptorsCache.destroy(contextVk->getRenderer());
                 }
 
                 descriptorSet = mDescriptorSets[DescriptorSetIndex::Texture];
@@ -1845,6 +1747,11 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
                     ANGLE_TRY(
                         textureVk->getBufferViewAndRecordUse(contextVk, nullptr, false, &view));
 
+                    const std::string samplerName =
+                        GlslangGetMappedSamplerName(samplerUniform.name);
+                    const ShaderInterfaceVariableInfo &info =
+                        mVariableInfoMap.get(shaderType, samplerName);
+
                     writeInfos[arrayElement].sType      = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                     writeInfos[arrayElement].pNext      = nullptr;
                     writeInfos[arrayElement].dstSet     = descriptorSet;
@@ -1867,8 +1774,6 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
                 const vk::TextureUnit &unit = activeTextures[textureUnit];
                 TextureVk *textureVk        = unit.texture;
                 const vk::SamplerHelper &samplerHelper = *unit.sampler;
-
-                ASSERT(textureVk);
 
                 vk::ImageHelper &image = textureVk->getImage();
 
@@ -1895,6 +1800,9 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
                 {
                     imageInfos[arrayElement].sampler = textureVk->getSampler().get().getHandle();
                 }
+                const std::string samplerName = GlslangGetMappedSamplerName(samplerUniform.name);
+                const ShaderInterfaceVariableInfo &info =
+                    mVariableInfoMap.get(shaderType, samplerName);
 
                 writeInfos[arrayElement].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeInfos[arrayElement].pNext           = nullptr;
@@ -1913,10 +1821,8 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
     return angle::Result::Continue;
 }
 
-template <typename CommandBufferT>
 angle::Result ProgramExecutableVk::updateDescriptorSets(ContextVk *contextVk,
-                                                        CommandBufferT *commandBuffer,
-                                                        PipelineType pipelineType)
+                                                        vk::CommandBuffer *commandBuffer)
 {
     // Can probably use better dirty bits here.
 
@@ -1936,7 +1842,8 @@ angle::Result ProgramExecutableVk::updateDescriptorSets(ContextVk *contextVk,
         }
     }
 
-    const VkPipelineBindPoint pipelineBindPoint = pipelineType == PipelineType::Compute
+    const gl::State &glState                    = contextVk->getState();
+    const VkPipelineBindPoint pipelineBindPoint = glState.getProgramExecutable()->isCompute()
                                                       ? VK_PIPELINE_BIND_POINT_COMPUTE
                                                       : VK_PIPELINE_BIND_POINT_GRAPHICS;
 
@@ -1963,8 +1870,9 @@ angle::Result ProgramExecutableVk::updateDescriptorSets(ContextVk *contextVk,
                 const vk::DescriptorSetLayout &descriptorSetLayout =
                     mDescriptorSetLayouts[descriptorSetIndex].get();
 
-                ANGLE_TRY(mDynamicDescriptorPools[descriptorSetIndex].allocateDescriptorSets(
-                    contextVk, descriptorSetLayout, 1, &mDescriptorPoolBindings[descriptorSetIndex],
+                ANGLE_TRY(mDynamicDescriptorPools[descriptorSetIndex].allocateSets(
+                    contextVk, descriptorSetLayout.ptr(), 1,
+                    &mDescriptorPoolBindings[descriptorSetIndex],
                     &mEmptyDescriptorSets[descriptorSetIndex]));
 
                 ++mPerfCounters.descriptorSetAllocations[descriptorSetIndex];
@@ -1998,15 +1906,6 @@ angle::Result ProgramExecutableVk::updateDescriptorSets(ContextVk *contextVk,
 
     return angle::Result::Continue;
 }
-
-template angle::Result ProgramExecutableVk::updateDescriptorSets<vk::priv::SecondaryCommandBuffer>(
-    ContextVk *contextVk,
-    vk::priv::SecondaryCommandBuffer *commandBuffer,
-    PipelineType pipelineType);
-template angle::Result ProgramExecutableVk::updateDescriptorSets<vk::VulkanSecondaryCommandBuffer>(
-    ContextVk *contextVk,
-    vk::VulkanSecondaryCommandBuffer *commandBuffer,
-    PipelineType pipelineType);
 
 // Requires that trace is enabled to see the output, which is supported with is_debug=true
 void ProgramExecutableVk::outputCumulativePerfCounters()
@@ -2047,28 +1946,18 @@ void ProgramExecutableVk::outputCumulativePerfCounters()
 
 ProgramExecutablePerfCounters ProgramExecutableVk::getAndResetObjectPerfCounters()
 {
-    mUniformsAndXfbDescriptorsCache.accumulateCacheStats(VulkanCacheType::UniformsAndXfbDescriptors,
-                                                         this);
-    mTextureDescriptorsCache.accumulateCacheStats(VulkanCacheType::TextureDescriptors, this);
-    mShaderBufferDescriptorsCache.accumulateCacheStats(VulkanCacheType::ShaderBuffersDescriptors,
-                                                       this);
-
-    mPerfCounters.descriptorSetCacheKeySizesBytes[DescriptorSetIndex::UniformsAndXfb] =
-        static_cast<uint32_t>(mUniformsAndXfbDescriptorsCache.getTotalCacheKeySizeBytes());
-    mPerfCounters.descriptorSetCacheKeySizesBytes[DescriptorSetIndex::Texture] =
-        static_cast<uint32_t>(mTextureDescriptorsCache.getTotalCacheKeySizeBytes());
-    mPerfCounters.descriptorSetCacheKeySizesBytes[DescriptorSetIndex::ShaderResource] =
-        static_cast<uint32_t>(mShaderBufferDescriptorsCache.getTotalCacheKeySizeBytes());
+    mUniformsAndXfbDescriptorsCache.accumulateCacheStats(this);
+    mTextureDescriptorsCache.accumulateCacheStats(this);
+    mShaderBufferDescriptorsCache.accumulateCacheStats(this);
 
     mCumulativePerfCounters.descriptorSetAllocations += mPerfCounters.descriptorSetAllocations;
     mCumulativePerfCounters.descriptorSetCacheHits += mPerfCounters.descriptorSetCacheHits;
     mCumulativePerfCounters.descriptorSetCacheMisses += mPerfCounters.descriptorSetCacheMisses;
 
-    ProgramExecutablePerfCounters counters        = mPerfCounters;
-    mPerfCounters.descriptorSetAllocations        = {};
-    mPerfCounters.descriptorSetCacheHits          = {};
-    mPerfCounters.descriptorSetCacheMisses        = {};
-    mPerfCounters.descriptorSetCacheKeySizesBytes = {};
+    ProgramExecutablePerfCounters counters = mPerfCounters;
+    mPerfCounters.descriptorSetAllocations = {};
+    mPerfCounters.descriptorSetCacheHits   = {};
+    mPerfCounters.descriptorSetCacheMisses = {};
     return counters;
 }
 
@@ -2081,163 +1970,5 @@ void ProgramExecutableVk::accumulateCacheStats(VulkanCacheType cacheType,
         static_cast<uint32_t>(cacheStats.getHitCount());
     mPerfCounters.descriptorSetCacheMisses[dsIndex] +=
         static_cast<uint32_t>(cacheStats.getMissCount());
-    mPerfCounters.descriptorSetCacheSizes[dsIndex] = static_cast<uint32_t>(cacheStats.getSize());
-}
-
-void ProgramExecutableVk::setAllDefaultUniformsDirty(const gl::ProgramExecutable &executable)
-{
-    mDefaultUniformBlocksDirty.reset();
-    for (gl::ShaderType shaderType : executable.getLinkedShaderStages())
-    {
-        if (!mDefaultUniformBlocks[shaderType]->uniformData.empty())
-        {
-            mDefaultUniformBlocksDirty.set(shaderType);
-        }
-    }
-}
-
-angle::Result ProgramExecutableVk::updateUniforms(ContextVk *contextVk,
-                                                  const gl::ProgramExecutable &glExecutable,
-                                                  vk::DynamicBuffer *defaultUniformStorage)
-{
-    ASSERT(hasDirtyUniforms());
-
-    vk::BufferHelper *defaultUniformBuffer;
-    bool anyNewBufferAllocated          = false;
-    gl::ShaderMap<VkDeviceSize> offsets = {};  // offset to the beginning of bufferData
-    uint32_t offsetIndex                = 0;
-    size_t requiredSpace;
-
-    // We usually only update uniform data for shader stages that are actually dirty. But when the
-    // buffer for uniform data have switched, because all shader stages are using the same buffer,
-    // we then must update uniform data for all shader stages to keep all shader stages' uniform
-    // data in the same buffer.
-    requiredSpace = calcUniformUpdateRequiredSpace(contextVk, glExecutable, &offsets);
-    ASSERT(requiredSpace > 0);
-
-    // Allocate space from dynamicBuffer. Always try to allocate from the current buffer first.
-    // If that failed, we deal with fall out and try again.
-    if (!defaultUniformStorage->allocateFromCurrentBuffer(requiredSpace, &defaultUniformBuffer))
-    {
-        setAllDefaultUniformsDirty(glExecutable);
-
-        requiredSpace = calcUniformUpdateRequiredSpace(contextVk, glExecutable, &offsets);
-        ANGLE_TRY(defaultUniformStorage->allocate(contextVk, requiredSpace, &defaultUniformBuffer,
-                                                  &anyNewBufferAllocated));
-    }
-
-    uint8_t *bufferData       = defaultUniformBuffer->getMappedMemory();
-    VkDeviceSize bufferOffset = defaultUniformBuffer->getOffset();
-    for (const gl::ShaderType shaderType : glExecutable.getLinkedShaderStages())
-    {
-        if (mDefaultUniformBlocksDirty[shaderType])
-        {
-            const angle::MemoryBuffer &uniformData = mDefaultUniformBlocks[shaderType]->uniformData;
-            memcpy(&bufferData[offsets[shaderType]], uniformData.data(), uniformData.size());
-            mDynamicUniformDescriptorOffsets[offsetIndex] =
-                static_cast<uint32_t>(bufferOffset + offsets[shaderType]);
-            mDefaultUniformBlocksDirty.reset(shaderType);
-        }
-        ++offsetIndex;
-    }
-    ANGLE_TRY(defaultUniformBuffer->flush(contextVk->getRenderer()));
-
-    // Because the uniform buffers are per context, we can't rely on dynamicBuffer's allocate
-    // function to tell us if you have got a new buffer or not. Other program's use of the buffer
-    // might already pushed dynamicBuffer to a new buffer. We record which buffer (represented by
-    // the unique BufferSerial number) we were using with the current descriptor set and then we
-    // use that recorded BufferSerial compare to the current uniform buffer to quickly detect if
-    // there is a buffer switch or not. We need to retrieve from the descriptor set cache or
-    // allocate a new descriptor set whenever there is uniform buffer switch.
-    if (mCurrentDefaultUniformBufferSerial != defaultUniformBuffer->getBufferSerial())
-    {
-        // We need to reinitialize the descriptor sets if we newly allocated buffers since we can't
-        // modify the descriptor sets once initialized.
-        vk::DescriptorSetDesc defaultUniformsDesc;
-        vk::DescriptorSetDesc *uniformsAndXfbBufferDesc;
-
-        if (glExecutable.hasTransformFeedbackOutput())
-        {
-            TransformFeedbackVk *transformFeedbackVk =
-                vk::GetImpl(contextVk->getState().getCurrentTransformFeedback());
-            uniformsAndXfbBufferDesc = &transformFeedbackVk->getTransformFeedbackDesc();
-            uniformsAndXfbBufferDesc->updateDefaultUniformBuffer(
-                defaultUniformBuffer->getBufferSerial());
-        }
-        else
-        {
-            defaultUniformsDesc.updateDefaultUniformBuffer(defaultUniformBuffer->getBufferSerial());
-            uniformsAndXfbBufferDesc = &defaultUniformsDesc;
-        }
-
-        bool newDescriptorSetAllocated;
-        ANGLE_TRY(allocUniformAndXfbDescriptorSet(contextVk, defaultUniformBuffer,
-                                                  *uniformsAndXfbBufferDesc,
-                                                  &newDescriptorSetAllocated));
-
-        if (newDescriptorSetAllocated)
-        {
-            for (const gl::ShaderType shaderType : glExecutable.getLinkedShaderStages())
-            {
-                updateDefaultUniformsDescriptorSet(contextVk, shaderType,
-                                                   *mDefaultUniformBlocks[shaderType],
-                                                   defaultUniformBuffer);
-                updateTransformFeedbackDescriptorSetImpl(contextVk, glExecutable);
-            }
-        }
-    }
-
-    return angle::Result::Continue;
-}
-
-size_t ProgramExecutableVk::calcUniformUpdateRequiredSpace(
-    ContextVk *contextVk,
-    const gl::ProgramExecutable &glExecutable,
-    gl::ShaderMap<VkDeviceSize> *uniformOffsets) const
-{
-    size_t requiredSpace = 0;
-    for (const gl::ShaderType shaderType : glExecutable.getLinkedShaderStages())
-    {
-        if (mDefaultUniformBlocksDirty[shaderType])
-        {
-            (*uniformOffsets)[shaderType] = requiredSpace;
-            requiredSpace += getDefaultUniformAlignedSize(contextVk, shaderType);
-        }
-    }
-    return requiredSpace;
-}
-
-void ProgramExecutableVk::onProgramBind(const gl::ProgramExecutable &glExecutable)
-{
-    // Because all programs share default uniform buffers, when we switch programs, we have to
-    // re-update all uniform data. We could do more tracking to avoid update if the context's
-    // current uniform buffer is still the same buffer we last time used and buffer has not been
-    // recycled. But statistics gathered on gfxbench shows that app always update uniform data on
-    // program bind anyway, so not really worth it to add more tracking logic here.
-    setAllDefaultUniformsDirty(glExecutable);
-}
-
-angle::Result ProgramExecutableVk::resizeUniformBlockMemory(
-    ContextVk *contextVk,
-    const gl::ProgramExecutable &glExecutable,
-    const gl::ShaderMap<size_t> &requiredBufferSize)
-{
-    for (const gl::ShaderType shaderType : glExecutable.getLinkedShaderStages())
-    {
-        if (requiredBufferSize[shaderType] > 0)
-        {
-            if (!mDefaultUniformBlocks[shaderType]->uniformData.resize(
-                    requiredBufferSize[shaderType]))
-            {
-                ANGLE_VK_CHECK(contextVk, false, VK_ERROR_OUT_OF_HOST_MEMORY);
-            }
-
-            // Initialize uniform buffer memory to zero by default.
-            mDefaultUniformBlocks[shaderType]->uniformData.fill(0);
-            mDefaultUniformBlocksDirty.set(shaderType);
-        }
-    }
-
-    return angle::Result::Continue;
 }
 }  // namespace rx
