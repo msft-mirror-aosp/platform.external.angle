@@ -19,6 +19,7 @@ namespace rx
 {
 namespace vk
 {
+struct Format;
 class FramebufferHelper;
 class ImageHelper;
 class ImageView;
@@ -94,11 +95,7 @@ class RenderTargetVk final : public FramebufferAttachmentRenderTarget
     angle::Result getAndRetainCopyImageView(ContextVk *contextVk,
                                             const vk::ImageView **imageViewOut) const;
 
-    angle::FormatID getImageActualFormatID() const;
-    const angle::Format &getImageActualFormat() const;
-    angle::FormatID getImageIntendedFormatID() const;
-    const angle::Format &getImageIntendedFormat() const;
-
+    const vk::Format &getImageFormat() const;
     gl::Extents getExtents() const;
     gl::Extents getRotatedExtents() const;
     gl::LevelIndex getLevelIndex() const { return mLevelIndexGL; }
@@ -118,6 +115,8 @@ class RenderTargetVk final : public FramebufferAttachmentRenderTarget
                                      vk::ClearValuesArray *deferredClears,
                                      uint32_t deferredClearIndex,
                                      uint32_t framebufferLayerCount);
+
+    void retainImageViews(ContextVk *contextVk) const;
 
     bool hasDefinedContent() const;
     bool hasDefinedStencilContent() const;

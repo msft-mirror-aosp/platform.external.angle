@@ -17,11 +17,6 @@
 
 namespace
 {
-constexpr int kColorBits   = 24;
-constexpr int kAlphaBits   = 8;
-constexpr int kDepthBits   = 24;
-constexpr int kStencilBits = 8;
-
 PIXELFORMATDESCRIPTOR GetDefaultPixelFormatDescriptor()
 {
     PIXELFORMATDESCRIPTOR pixelFormatDescriptor = {};
@@ -30,10 +25,10 @@ PIXELFORMATDESCRIPTOR GetDefaultPixelFormatDescriptor()
     pixelFormatDescriptor.dwFlags =
         PFD_DRAW_TO_WINDOW | PFD_GENERIC_ACCELERATED | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
     pixelFormatDescriptor.iPixelType   = PFD_TYPE_RGBA;
-    pixelFormatDescriptor.cColorBits   = kColorBits;
-    pixelFormatDescriptor.cAlphaBits   = kAlphaBits;
-    pixelFormatDescriptor.cDepthBits   = kDepthBits;
-    pixelFormatDescriptor.cStencilBits = kStencilBits;
+    pixelFormatDescriptor.cColorBits   = 24;
+    pixelFormatDescriptor.cAlphaBits   = 8;
+    pixelFormatDescriptor.cDepthBits   = 24;
+    pixelFormatDescriptor.cStencilBits = 8;
     pixelFormatDescriptor.iLayerType   = PFD_MAIN_PLANE;
 
     return pixelFormatDescriptor;
@@ -62,56 +57,6 @@ void DumpLastWindowsError()
 {
     std::cerr << "Last Windows error code: 0x" << std::hex << GetLastError() << std::endl;
 }
-
-// Based on GetDefaultPixelFormatAttributes from wgl_utils.cpp
-std::vector<int> GetPixelFormatAttributes(const ConfigParameters &configParams)
-{
-    std::vector<int> attribs;
-    attribs.push_back(WGL_DRAW_TO_WINDOW_ARB);
-    attribs.push_back(TRUE);
-
-    attribs.push_back(WGL_ACCELERATION_ARB);
-    attribs.push_back(WGL_FULL_ACCELERATION_ARB);
-
-    attribs.push_back(WGL_SUPPORT_OPENGL_ARB);
-    attribs.push_back(TRUE);
-
-    attribs.push_back(WGL_DOUBLE_BUFFER_ARB);
-    attribs.push_back(TRUE);
-
-    attribs.push_back(WGL_PIXEL_TYPE_ARB);
-    attribs.push_back(WGL_TYPE_RGBA_ARB);
-
-    attribs.push_back(WGL_COLOR_BITS_ARB);
-    attribs.push_back(kColorBits);
-
-    attribs.push_back(WGL_ALPHA_BITS_ARB);
-    attribs.push_back(kAlphaBits);
-
-    attribs.push_back(WGL_DEPTH_BITS_ARB);
-    attribs.push_back(kDepthBits);
-
-    attribs.push_back(WGL_STENCIL_BITS_ARB);
-    attribs.push_back(kStencilBits);
-
-    attribs.push_back(WGL_SWAP_METHOD_ARB);
-    attribs.push_back(WGL_SWAP_UNDEFINED_ARB);
-
-    attribs.push_back(WGL_COLORSPACE_EXT);
-    if (configParams.colorSpace == EGL_COLORSPACE_sRGB)
-    {
-        attribs.push_back(WGL_COLORSPACE_SRGB_EXT);
-    }
-    else
-    {
-        attribs.push_back(WGL_COLORSPACE_LINEAR_EXT);
-    }
-
-    attribs.push_back(0);
-
-    return attribs;
-}
-
 }  // namespace
 
 WGLWindow::WGLWindow(int glesMajorVersion, int glesMinorVersion)
@@ -124,16 +69,16 @@ WGLWindow::WGLWindow(int glesMajorVersion, int glesMinorVersion)
 WGLWindow::~WGLWindow() {}
 
 // Internally initializes GL resources.
-GLWindowResult WGLWindow::initializeGLWithResult(OSWindow *osWindow,
-                                                 angle::Library *glWindowingLibrary,
-                                                 angle::GLESDriverType driverType,
-                                                 const EGLPlatformParameters &platformParams,
-                                                 const ConfigParameters &configParams)
+bool WGLWindow::initializeGL(OSWindow *osWindow,
+                             angle::Library *glWindowingLibrary,
+                             angle::GLESDriverType driverType,
+                             const EGLPlatformParameters &platformParams,
+                             const ConfigParameters &configParams)
 {
     if (driverType != angle::GLESDriverType::SystemWGL)
     {
         std::cerr << "WGLWindow requires angle::GLESDriverType::SystemWGL.\n";
-        return GLWindowResult::Error;
+        return false;
     }
 
     glWindowingLibrary->getAs("wglGetProcAddress", &gCurrentWGLGetProcAddress);
@@ -141,7 +86,7 @@ GLWindowResult WGLWindow::initializeGLWithResult(OSWindow *osWindow,
     if (!gCurrentWGLGetProcAddress)
     {
         std::cerr << "Error loading wglGetProcAddress." << std::endl;
-        return GLWindowResult::Error;
+        return false;
     }
 
     gCurrentModule = reinterpret_cast<HMODULE>(glWindowingLibrary->getNative());
@@ -151,38 +96,12 @@ GLWindowResult WGLWindow::initializeGLWithResult(OSWindow *osWindow,
     mDeviceContext                                    = GetDC(mWindow);
     const PIXELFORMATDESCRIPTOR pixelFormatDescriptor = GetDefaultPixelFormatDescriptor();
 
-    int pixelFormat = 0;
-
-    if (!_wglChoosePixelFormatARB)
-    {
-        std::cout << "Driver does not expose wglChoosePixelFormatARB." << std::endl;
-    }
-    else
-    {
-        std::vector<int> pixelFormatAttribs = GetPixelFormatAttributes(configParams);
-
-        UINT matchingFormats = 0;
-        _wglChoosePixelFormatARB(mDeviceContext, &pixelFormatAttribs[0], nullptr, 1u, &pixelFormat,
-                                 &matchingFormats);
-    }
-
-    if (pixelFormat == 0 && configParams.colorSpace != EGL_COLORSPACE_LINEAR)
-    {
-        std::cerr << "Could not find a compatible pixel format for a non-linear color space."
-                  << std::endl;
-        return GLWindowResult::NoColorspaceSupport;
-    }
-
-    if (pixelFormat == 0)
-    {
-        pixelFormat = ChoosePixelFormat(mDeviceContext, &pixelFormatDescriptor);
-    }
-
+    int pixelFormat = ChoosePixelFormat(mDeviceContext, &pixelFormatDescriptor);
     if (pixelFormat == 0)
     {
         std::cerr << "Could not find a compatible pixel format." << std::endl;
         DumpLastWindowsError();
-        return GLWindowResult::Error;
+        return false;
     }
 
     // According to the Windows docs, it is an error to set a pixel format twice.
@@ -193,51 +112,20 @@ GLWindowResult WGLWindow::initializeGLWithResult(OSWindow *osWindow,
         {
             std::cerr << "Failed to set the pixel format." << std::endl;
             DumpLastWindowsError();
-            return GLWindowResult::Error;
+            return false;
         }
     }
 
-    mWGLContext = createContext(configParams, nullptr);
-    if (mWGLContext == nullptr)
+    mWGLContext = _wglCreateContext(mDeviceContext);
+    if (!mWGLContext)
     {
-        return GLWindowResult::Error;
+        std::cerr << "Failed to create a WGL context." << std::endl;
+        return false;
     }
 
     if (!makeCurrent())
     {
-        return GLWindowResult::Error;
-    }
-
-    mPlatform     = platformParams;
-    mConfigParams = configParams;
-
-    angle::LoadGLES(GetProcAddressWithFallback);
-    return GLWindowResult::NoError;
-}
-
-bool WGLWindow::initializeGL(OSWindow *osWindow,
-                             angle::Library *glWindowingLibrary,
-                             angle::GLESDriverType driverType,
-                             const EGLPlatformParameters &platformParams,
-                             const ConfigParameters &configParams)
-{
-    return initializeGLWithResult(osWindow, glWindowingLibrary, driverType, platformParams,
-                                  configParams) == GLWindowResult::NoError;
-}
-
-HGLRC WGLWindow::createContext(const ConfigParameters &configParams, HGLRC shareContext)
-{
-    HGLRC context = _wglCreateContext(mDeviceContext);
-    if (!context)
-    {
-        std::cerr << "Failed to create a WGL context." << std::endl;
-        return context;
-    }
-
-    if (!makeCurrent(context))
-    {
-        std::cerr << "Failed to make WGL context current." << std::endl;
-        return context;
+        return false;
     }
 
     // Reload entry points to capture extensions.
@@ -246,7 +134,7 @@ HGLRC WGLWindow::createContext(const ConfigParameters &configParams, HGLRC share
     if (!_wglGetExtensionsStringARB)
     {
         std::cerr << "Driver does not expose wglGetExtensionsStringARB." << std::endl;
-        return context;
+        return false;
     }
 
     const char *extensionsString = _wglGetExtensionsStringARB(mDeviceContext);
@@ -257,17 +145,17 @@ HGLRC WGLWindow::createContext(const ConfigParameters &configParams, HGLRC share
     if (!HasExtension(extensions, "WGL_EXT_create_context_es2_profile"))
     {
         std::cerr << "Driver does not expose WGL_EXT_create_context_es2_profile." << std::endl;
-        return context;
+        return false;
     }
 
-    if (mConfigParams.webGLCompatibility.valid() || mConfigParams.robustResourceInit.valid())
+    if (configParams.webGLCompatibility.valid() || configParams.robustResourceInit.valid())
     {
         std::cerr << "WGLWindow does not support the requested feature set." << std::endl;
-        return context;
+        return false;
     }
 
     // Tear down the context and create another with ES2 compatibility.
-    _wglDeleteContext(context);
+    _wglDeleteContext(mWGLContext);
 
     // This could be extended to cover ES1 compatiblity.
     int kCreateAttribs[] = {WGL_CONTEXT_MAJOR_VERSION_ARB,
@@ -279,14 +167,23 @@ HGLRC WGLWindow::createContext(const ConfigParameters &configParams, HGLRC share
                             0,
                             0};
 
-    context = _wglCreateContextAttribsARB(mDeviceContext, shareContext, kCreateAttribs);
-    if (!context)
+    mWGLContext = _wglCreateContextAttribsARB(mDeviceContext, nullptr, kCreateAttribs);
+    if (!mWGLContext)
     {
         std::cerr << "Failed to create an ES2 compatible WGL context." << std::endl;
-        return context;
+        return false;
     }
 
-    return context;
+    if (!makeCurrent())
+    {
+        return false;
+    }
+
+    mPlatform     = platformParams;
+    mConfigParams = configParams;
+
+    angle::LoadGLES(GetProcAddressWithFallback);
+    return true;
 }
 
 void WGLWindow::destroyGL()
@@ -309,39 +206,9 @@ bool WGLWindow::isGLInitialized() const
     return mWGLContext != nullptr;
 }
 
-GLWindowContext WGLWindow::getCurrentContextGeneric()
-{
-    return reinterpret_cast<GLWindowContext>(mWGLContext);
-}
-
-GLWindowContext WGLWindow::createContextGeneric(GLWindowContext share)
-{
-    HGLRC shareContext = reinterpret_cast<HGLRC>(share);
-    HGLRC newContext   = createContext(mConfigParams, shareContext);
-
-    // createContext() calls makeCurrent(newContext), so we need to restore the current context.
-    if (!makeCurrent())
-    {
-        return nullptr;
-    }
-
-    return reinterpret_cast<GLWindowContext>(newContext);
-}
-
 bool WGLWindow::makeCurrent()
 {
-    return makeCurrent(mWGLContext);
-}
-
-bool WGLWindow::makeCurrentGeneric(GLWindowContext context)
-{
-    HGLRC wglContext = reinterpret_cast<HGLRC>(context);
-    return makeCurrent(wglContext);
-}
-
-bool WGLWindow::makeCurrent(HGLRC context)
-{
-    if (_wglMakeCurrent(mDeviceContext, context) == FALSE)
+    if (_wglMakeCurrent(mDeviceContext, mWGLContext) == FALSE)
     {
         std::cerr << "Error during wglMakeCurrent.\n";
         return false;

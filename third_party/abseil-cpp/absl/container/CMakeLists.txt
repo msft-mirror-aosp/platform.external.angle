@@ -35,7 +35,6 @@ absl_cc_library(
     absl::core_headers
     absl::layout
     absl::memory
-    absl::raw_logging_internal
     absl::strings
     absl::throw_delegate
     absl::type_traits
@@ -275,7 +274,6 @@ absl_cc_library(
     ${ABSL_DEFAULT_COPTS}
   DEPS
     absl::container_memory
-    absl::core_headers
     absl::hash_function_defaults
     absl::raw_hash_map
     absl::algorithm_container
@@ -349,9 +347,8 @@ absl_cc_library(
     ${ABSL_DEFAULT_COPTS}
   DEPS
     absl::container_memory
-    absl::core_headers
     absl::hash_function_defaults
-    absl::node_slot_policy
+    absl::node_hash_policy
     absl::raw_hash_map
     absl::algorithm_container
     absl::memory
@@ -384,9 +381,8 @@ absl_cc_library(
   COPTS
     ${ABSL_DEFAULT_COPTS}
   DEPS
-    absl::core_headers
     absl::hash_function_defaults
-    absl::node_slot_policy
+    absl::node_hash_policy
     absl::raw_hash_set
     absl::algorithm_container
     absl::memory
@@ -552,7 +548,6 @@ absl_cc_library(
     absl::base
     absl::exponential_biased
     absl::have_sse
-    absl::sample_recorder
     absl::synchronization
 )
 
@@ -603,9 +598,9 @@ absl_cc_library(
 
 absl_cc_library(
   NAME
-    node_slot_policy
+    node_hash_policy
   HDRS
-    "internal/node_slot_policy.h"
+    "internal/node_hash_policy.h"
   COPTS
     ${ABSL_DEFAULT_COPTS}
   DEPS
@@ -615,14 +610,14 @@ absl_cc_library(
 
 absl_cc_test(
   NAME
-    node_slot_policy_test
+    node_hash_policy_test
   SRCS
-    "internal/node_slot_policy_test.cc"
+    "internal/node_hash_policy_test.cc"
   COPTS
     ${ABSL_TEST_COPTS}
   DEPS
     absl::hash_policy_traits
-    absl::node_slot_policy
+    absl::node_hash_policy
     GTest::gmock_main
 )
 
@@ -671,6 +666,7 @@ absl_cc_library(
     absl::hash_policy_traits
     absl::hashtable_debug_hooks
     absl::have_sse
+    absl::layout
     absl::memory
     absl::meta
     absl::optional
@@ -896,20 +892,5 @@ absl_cc_test(
     absl::unordered_map_lookup_test
     absl::unordered_map_members_test
     absl::unordered_map_modifiers_test
-    GTest::gmock_main
-)
-
-absl_cc_test(
-  NAME
-    sample_element_size_test
-  SRCS
-    "sample_element_size_test.cc"
-  COPTS
-    ${ABSL_TEST_COPTS}
-  DEPS
-    absl::flat_hash_map
-    absl::flat_hash_set
-    absl::node_hash_map
-    absl::node_hash_set
     GTest::gmock_main
 )

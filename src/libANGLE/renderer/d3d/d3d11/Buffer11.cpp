@@ -999,11 +999,6 @@ angle::Result Buffer11::updateBufferStorage(const gl::Context *context,
         return angle::Result::Continue;
     }
 
-    if (latestBuffer->getSize() == 0 || storage->getSize() == 0)
-    {
-        return angle::Result::Continue;
-    }
-
     // Copy through a staging buffer if we're copying from or to a non-staging, mappable
     // buffer storage. This is because we can't map a GPU buffer, and copy CPU
     // data directly. If we're already using a staging buffer we're fine.
@@ -1235,7 +1230,7 @@ angle::Result Buffer11::NativeStorage::resize(const gl::Context *context,
     d3d11::Buffer newBuffer;
     ANGLE_TRY(
         mRenderer->allocateResource(SafeGetImplAs<Context11>(context), bufferDesc, &newBuffer));
-    newBuffer.setInternalName("Buffer11::NativeStorage");
+    newBuffer.setDebugName("Buffer11::NativeStorage");
 
     if (mBuffer.valid() && preserveData)
     {
@@ -1483,7 +1478,7 @@ angle::Result Buffer11::StructuredBufferStorage::resizeStructuredBuffer(
     d3d11::Buffer newBuffer;
     ANGLE_TRY(
         mRenderer->allocateResource(SafeGetImplAs<Context11>(context), bufferDesc, &newBuffer));
-    newBuffer.setInternalName("Buffer11::StructuredBufferStorage");
+    newBuffer.setDebugName("Buffer11::StructuredBufferStorage");
 
     // No longer need the old buffer
     mBuffer = std::move(newBuffer);
@@ -1637,7 +1632,7 @@ angle::Result Buffer11::EmulatedIndexedStorage::getBuffer(const gl::Context *con
 
         ANGLE_TRY(mRenderer->allocateResource(GetImplAs<Context11>(context), bufferDesc,
                                               &subResourceData, &mBuffer));
-        mBuffer.setInternalName("Buffer11::EmulatedIndexedStorage");
+        mBuffer.setDebugName("Buffer11::EmulatedIndexedStorage");
     }
 
     *bufferOut = &mBuffer;

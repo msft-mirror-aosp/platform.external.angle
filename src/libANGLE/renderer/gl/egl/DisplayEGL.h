@@ -20,7 +20,6 @@
 namespace rx
 {
 
-class FunctionsEGL;
 class FunctionsEGLDL;
 class RendererEGL;
 class WorkerContext;
@@ -74,10 +73,6 @@ class DisplayEGL : public DisplayGL
     egl::Error restoreLostDevice(const egl::Display *display) override;
 
     bool isValidNativeWindow(EGLNativeWindowType window) const override;
-    egl::Error validateClientBuffer(const egl::Config *configuration,
-                                    EGLenum buftype,
-                                    EGLClientBuffer clientBuffer,
-                                    const egl::AttributeMap &attribs) const override;
 
     egl::Error waitClient(const gl::Context *context) override;
     egl::Error waitNative(const gl::Context *context, EGLint engine) override;
@@ -105,14 +100,7 @@ class DisplayEGL : public DisplayGL
                                                          EGLClientBuffer buffer,
                                                          const egl::AttributeMap &attribs) override;
 
-    const FunctionsEGL *getFunctionsEGL() const;
-
   protected:
-    virtual EGLint fixSurfaceType(EGLint surfaceType) const;
-
-  private:
-    const char *getEGLPath() const;
-
     egl::Error initializeContext(EGLContext shareContext,
                                  const egl::AttributeMap &eglAttributes,
                                  EGLContext *outContext,
@@ -120,12 +108,11 @@ class DisplayEGL : public DisplayGL
 
     void generateExtensions(egl::DisplayExtensions *outExtensions) const override;
 
-    egl::Error createRenderer(EGLContext shareContext,
-                              bool makeNewContextCurrent,
-                              bool isExternalContext,
-                              std::shared_ptr<RendererEGL> *outRenderer);
+    egl::Error createRenderer(EGLContext shareContext, std::shared_ptr<RendererEGL> *outRenderer);
 
     egl::Error makeCurrentSurfaceless(gl::Context *context) override;
+
+    virtual EGLint fixSurfaceType(EGLint surfaceType) const;
 
     template <typename T>
     void getConfigAttrib(EGLConfig config, EGLint attribute, T *value) const;
@@ -138,10 +125,8 @@ class DisplayEGL : public DisplayGL
                                     const U &defaultValue) const;
 
     std::shared_ptr<RendererEGL> mRenderer;
-    std::map<EGLAttrib, std::weak_ptr<RendererEGL>> mVirtualizationGroups;
-
-    FunctionsEGLDL *mEGL = nullptr;
-    EGLConfig mConfig    = EGL_NO_CONFIG_KHR;
+    FunctionsEGLDL *mEGL;
+    EGLConfig mConfig;
     egl::AttributeMap mDisplayAttributes;
     std::vector<EGLint> mConfigAttribList;
 
@@ -155,17 +140,13 @@ class DisplayEGL : public DisplayGL
     };
     angle::HashMap<std::thread::id, CurrentNativeContext> mCurrentNativeContexts;
 
+  private:
     void generateCaps(egl::Caps *outCaps) const override;
 
     std::map<EGLint, EGLint> mConfigIds;
 
-    bool mHasEXTCreateContextRobustness   = false;
-    bool mHasNVRobustnessVideoMemoryPurge = false;
-
-    bool mSupportsSurfaceless      = false;
-    bool mSupportsNoConfigContexts = false;
-
-    EGLSurface mMockPbuffer = EGL_NO_SURFACE;
+    bool mHasEXTCreateContextRobustness;
+    bool mHasNVRobustnessVideoMemoryPurge;
 };
 
 }  // namespace rx

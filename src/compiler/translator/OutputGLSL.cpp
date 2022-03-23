@@ -11,10 +11,22 @@
 namespace sh
 {
 
-TOutputGLSL::TOutputGLSL(TCompiler *compiler,
-                         TInfoSinkBase &objSink,
+TOutputGLSL::TOutputGLSL(TInfoSinkBase &objSink,
+                         ShHashFunction64 hashFunction,
+                         NameMap &nameMap,
+                         TSymbolTable *symbolTable,
+                         sh::GLenum shaderType,
+                         int shaderVersion,
+                         ShShaderOutput output,
                          ShCompileOptions compileOptions)
-    : TOutputGLSLBase(compiler, objSink, compileOptions)
+    : TOutputGLSLBase(objSink,
+                      hashFunction,
+                      nameMap,
+                      symbolTable,
+                      shaderType,
+                      shaderVersion,
+                      output,
+                      compileOptions)
 {}
 
 bool TOutputGLSL::writeVariablePrecision(TPrecision)

@@ -8,8 +8,6 @@
 //
 
 #include "compiler/translator/UtilsHLSL.h"
-
-#include "common/utilities.h"
 #include "compiler/translator/IntermNode.h"
 #include "compiler/translator/StructureHLSL.h"
 #include "compiler/translator/SymbolTable.h"
@@ -841,7 +839,7 @@ TString DecoratePrivate(const ImmutableString &privateText)
 
 TString Decorate(const ImmutableString &string)
 {
-    if (!gl::IsBuiltInName(string.data()))
+    if (!string.beginsWith("gl_"))
     {
         return "_" + TString(string.data());
     }
@@ -883,7 +881,7 @@ TString DecorateFunctionIfNeeded(const TFunction *func)
         ASSERT(!func->name().beginsWith("_"));
         return TString(func->name().data());
     }
-    ASSERT(!gl::IsBuiltInName(func->name().data()));
+    ASSERT(!func->name().beginsWith("gl_"));
     // Add an additional f prefix to functions so that they're always disambiguated from variables.
     // This is necessary in the corner case where a variable declaration hides a function that it
     // uses in its initializer.
@@ -906,8 +904,8 @@ TString TypeString(const TType &type)
     }
     else if (type.isMatrix())
     {
-        uint8_t cols = type.getCols();
-        uint8_t rows = type.getRows();
+        int cols = type.getCols();
+        int rows = type.getRows();
         return "float" + str(cols) + "x" + str(rows);
     }
     else
@@ -1078,14 +1076,14 @@ const char *QualifierString(TQualifier qualifier)
 {
     switch (qualifier)
     {
-        case EvqParamIn:
+        case EvqIn:
             return "in";
-        case EvqParamOut:
+        case EvqOut:
             return "inout";  // 'out' results in an HLSL error if not all fields are written, for
                              // GLSL it's undefined
-        case EvqParamInOut:
+        case EvqInOut:
             return "inout";
-        case EvqParamConst:
+        case EvqConstReadOnly:
             return "const";
         case EvqSampleOut:
             return "sample";

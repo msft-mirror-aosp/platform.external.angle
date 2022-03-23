@@ -18,10 +18,6 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
 {
     switch (param.type)
     {
-        case ParamType::TAHardwareBufferConstPointer:
-            WriteParamValueReplay<ParamType::TAHardwareBufferConstPointer>(
-                os, call, param.value.AHardwareBufferConstPointerVal);
-            break;
         case ParamType::TAlphaTestFunc:
             WriteParamValueReplay<ParamType::TAlphaTestFunc>(os, call,
                                                              param.value.AlphaTestFuncVal);
@@ -34,12 +30,12 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TBufferID>(os, call, param.value.BufferIDVal);
             break;
         case ParamType::TBufferIDConstPointer:
-            WriteParamValueReplay<ParamType::TBufferIDConstPointer>(
-                os, call, param.value.BufferIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TBufferIDPointer:
-            WriteParamValueReplay<ParamType::TBufferIDPointer>(os, call,
-                                                               param.value.BufferIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TBufferUsage:
             WriteParamValueReplay<ParamType::TBufferUsage>(os, call, param.value.BufferUsageVal);
@@ -48,10 +44,6 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TClientVertexArrayType>(
                 os, call, param.value.ClientVertexArrayTypeVal);
             break;
-        case ParamType::TCompositorTiming:
-            WriteParamValueReplay<ParamType::TCompositorTiming>(os, call,
-                                                                param.value.CompositorTimingVal);
-            break;
         case ParamType::TCullFaceMode:
             WriteParamValueReplay<ParamType::TCullFaceMode>(os, call, param.value.CullFaceModeVal);
             break;
@@ -59,118 +51,28 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TDrawElementsType>(os, call,
                                                                 param.value.DrawElementsTypeVal);
             break;
-        case ParamType::TEGLAttrib:
-            WriteParamValueReplay<ParamType::TEGLAttrib>(os, call, param.value.EGLAttribVal);
-            break;
-        case ParamType::TEGLAttribKHR:
-            WriteParamValueReplay<ParamType::TEGLAttribKHR>(os, call, param.value.EGLAttribKHRVal);
-            break;
-        case ParamType::TEGLBoolean:
-            WriteParamValueReplay<ParamType::TEGLBoolean>(os, call, param.value.EGLBooleanVal);
-            break;
-        case ParamType::TEGLClientBuffer:
-            WriteParamValueReplay<ParamType::TEGLClientBuffer>(os, call,
-                                                               param.value.EGLClientBufferVal);
-            break;
-        case ParamType::TEGLConfig:
-            WriteParamValueReplay<ParamType::TEGLConfig>(os, call, param.value.EGLConfigVal);
-            break;
-        case ParamType::TEGLContext:
-            WriteParamValueReplay<ParamType::TEGLContext>(os, call, param.value.EGLContextVal);
-            break;
-        case ParamType::TEGLDEBUGPROCKHR:
-            WriteParamValueReplay<ParamType::TEGLDEBUGPROCKHR>(os, call,
-                                                               param.value.EGLDEBUGPROCKHRVal);
-            break;
-        case ParamType::TEGLDeviceEXT:
-            WriteParamValueReplay<ParamType::TEGLDeviceEXT>(os, call, param.value.EGLDeviceEXTVal);
-            break;
-        case ParamType::TEGLDisplay:
-            WriteParamValueReplay<ParamType::TEGLDisplay>(os, call, param.value.EGLDisplayVal);
-            break;
-        case ParamType::TEGLFrameTokenANGLE:
-            WriteParamValueReplay<ParamType::TEGLFrameTokenANGLE>(
-                os, call, param.value.EGLFrameTokenANGLEVal);
-            break;
-        case ParamType::TEGLGetBlobFuncANDROID:
-            WriteParamValueReplay<ParamType::TEGLGetBlobFuncANDROID>(
-                os, call, param.value.EGLGetBlobFuncANDROIDVal);
-            break;
-        case ParamType::TEGLImage:
-            WriteParamValueReplay<ParamType::TEGLImage>(os, call, param.value.EGLImageVal);
-            break;
-        case ParamType::TEGLLabelKHR:
-            WriteParamValueReplay<ParamType::TEGLLabelKHR>(os, call, param.value.EGLLabelKHRVal);
-            break;
-        case ParamType::TEGLNativeDisplayType:
-            WriteParamValueReplay<ParamType::TEGLNativeDisplayType>(
-                os, call, param.value.EGLNativeDisplayTypeVal);
-            break;
-        case ParamType::TEGLNativePixmapType:
-            WriteParamValueReplay<ParamType::TEGLNativePixmapType>(
-                os, call, param.value.EGLNativePixmapTypeVal);
-            break;
-        case ParamType::TEGLNativeWindowType:
-            WriteParamValueReplay<ParamType::TEGLNativeWindowType>(
-                os, call, param.value.EGLNativeWindowTypeVal);
-            break;
-        case ParamType::TEGLObjectKHR:
-            WriteParamValueReplay<ParamType::TEGLObjectKHR>(os, call, param.value.EGLObjectKHRVal);
-            break;
-        case ParamType::TEGLSetBlobFuncANDROID:
-            WriteParamValueReplay<ParamType::TEGLSetBlobFuncANDROID>(
-                os, call, param.value.EGLSetBlobFuncANDROIDVal);
-            break;
-        case ParamType::TEGLStreamKHR:
-            WriteParamValueReplay<ParamType::TEGLStreamKHR>(os, call, param.value.EGLStreamKHRVal);
-            break;
-        case ParamType::TEGLSurface:
-            WriteParamValueReplay<ParamType::TEGLSurface>(os, call, param.value.EGLSurfaceVal);
-            break;
-        case ParamType::TEGLSync:
-            WriteParamValueReplay<ParamType::TEGLSync>(os, call, param.value.EGLSyncVal);
-            break;
-        case ParamType::TEGLTime:
-            WriteParamValueReplay<ParamType::TEGLTime>(os, call, param.value.EGLTimeVal);
-            break;
-        case ParamType::TEGLTimeKHR:
-            WriteParamValueReplay<ParamType::TEGLTimeKHR>(os, call, param.value.EGLTimeKHRVal);
-            break;
-        case ParamType::TEGLenum:
-            WriteParamValueReplay<ParamType::TEGLenum>(os, call, param.value.EGLenumVal);
-            break;
-        case ParamType::TEGLint:
-            WriteParamValueReplay<ParamType::TEGLint>(os, call, param.value.EGLintVal);
-            break;
-        case ParamType::TEGLnsecsANDROID:
-            WriteParamValueReplay<ParamType::TEGLnsecsANDROID>(os, call,
-                                                               param.value.EGLnsecsANDROIDVal);
-            break;
-        case ParamType::TEGLuint64KHR:
-            WriteParamValueReplay<ParamType::TEGLuint64KHR>(os, call, param.value.EGLuint64KHRVal);
-            break;
         case ParamType::TFenceNVID:
             WriteParamValueReplay<ParamType::TFenceNVID>(os, call, param.value.FenceNVIDVal);
             break;
         case ParamType::TFenceNVIDConstPointer:
-            WriteParamValueReplay<ParamType::TFenceNVIDConstPointer>(
-                os, call, param.value.FenceNVIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TFenceNVIDPointer:
-            WriteParamValueReplay<ParamType::TFenceNVIDPointer>(os, call,
-                                                                param.value.FenceNVIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TFramebufferID:
             WriteParamValueReplay<ParamType::TFramebufferID>(os, call,
                                                              param.value.FramebufferIDVal);
             break;
         case ParamType::TFramebufferIDConstPointer:
-            WriteParamValueReplay<ParamType::TFramebufferIDConstPointer>(
-                os, call, param.value.FramebufferIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TFramebufferIDPointer:
-            WriteParamValueReplay<ParamType::TFramebufferIDPointer>(
-                os, call, param.value.FramebufferIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLDEBUGPROC:
             WriteParamValueReplay<ParamType::TGLDEBUGPROC>(os, call, param.value.GLDEBUGPROCVal);
@@ -186,31 +88,31 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TGLboolean>(os, call, param.value.GLbooleanVal);
             break;
         case ParamType::TGLbooleanConstPointer:
-            WriteParamValueReplay<ParamType::TGLbooleanConstPointer>(
-                os, call, param.value.GLbooleanConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLbooleanPointer:
-            WriteParamValueReplay<ParamType::TGLbooleanPointer>(os, call,
-                                                                param.value.GLbooleanPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLbyte:
             WriteParamValueReplay<ParamType::TGLbyte>(os, call, param.value.GLbyteVal);
             break;
         case ParamType::TGLbyteConstPointer:
-            WriteParamValueReplay<ParamType::TGLbyteConstPointer>(
-                os, call, param.value.GLbyteConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLcharConstPointer:
-            WriteParamValueReplay<ParamType::TGLcharConstPointer>(
-                os, call, param.value.GLcharConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLcharConstPointerPointer:
-            WriteParamValueReplay<ParamType::TGLcharConstPointerPointer>(
-                os, call, param.value.GLcharConstPointerPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLcharPointer:
-            WriteParamValueReplay<ParamType::TGLcharPointer>(os, call,
-                                                             param.value.GLcharPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLclampx:
             WriteParamValueReplay<ParamType::TGLclampx>(os, call, param.value.GLclampxVal);
@@ -219,12 +121,12 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TGLdouble>(os, call, param.value.GLdoubleVal);
             break;
         case ParamType::TGLdoubleConstPointer:
-            WriteParamValueReplay<ParamType::TGLdoubleConstPointer>(
-                os, call, param.value.GLdoubleConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLdoublePointer:
-            WriteParamValueReplay<ParamType::TGLdoublePointer>(os, call,
-                                                               param.value.GLdoublePointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLeglClientBufferEXT:
             WriteParamValueReplay<ParamType::TGLeglClientBufferEXT>(
@@ -238,80 +140,81 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TGLenum>(os, call, param.value.GLenumVal);
             break;
         case ParamType::TGLenumConstPointer:
-            WriteParamValueReplay<ParamType::TGLenumConstPointer>(
-                os, call, param.value.GLenumConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLenumPointer:
-            WriteParamValueReplay<ParamType::TGLenumPointer>(os, call,
-                                                             param.value.GLenumPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLfixed:
             WriteParamValueReplay<ParamType::TGLfixed>(os, call, param.value.GLfixedVal);
             break;
         case ParamType::TGLfixedConstPointer:
-            WriteParamValueReplay<ParamType::TGLfixedConstPointer>(
-                os, call, param.value.GLfixedConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLfixedPointer:
-            WriteParamValueReplay<ParamType::TGLfixedPointer>(os, call,
-                                                              param.value.GLfixedPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLfloat:
             WriteParamValueReplay<ParamType::TGLfloat>(os, call, param.value.GLfloatVal);
             break;
         case ParamType::TGLfloatConstPointer:
-            WriteParamValueReplay<ParamType::TGLfloatConstPointer>(
-                os, call, param.value.GLfloatConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLfloatPointer:
-            WriteParamValueReplay<ParamType::TGLfloatPointer>(os, call,
-                                                              param.value.GLfloatPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLint:
             WriteParamValueReplay<ParamType::TGLint>(os, call, param.value.GLintVal);
             break;
         case ParamType::TGLint64Pointer:
-            WriteParamValueReplay<ParamType::TGLint64Pointer>(os, call,
-                                                              param.value.GLint64PointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLintConstPointer:
-            WriteParamValueReplay<ParamType::TGLintConstPointer>(os, call,
-                                                                 param.value.GLintConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLintPointer:
-            WriteParamValueReplay<ParamType::TGLintPointer>(os, call, param.value.GLintPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLintptr:
             WriteParamValueReplay<ParamType::TGLintptr>(os, call, param.value.GLintptrVal);
             break;
         case ParamType::TGLintptrConstPointer:
-            WriteParamValueReplay<ParamType::TGLintptrConstPointer>(
-                os, call, param.value.GLintptrConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLshort:
             WriteParamValueReplay<ParamType::TGLshort>(os, call, param.value.GLshortVal);
             break;
         case ParamType::TGLshortConstPointer:
-            WriteParamValueReplay<ParamType::TGLshortConstPointer>(
-                os, call, param.value.GLshortConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLsizei:
             WriteParamValueReplay<ParamType::TGLsizei>(os, call, param.value.GLsizeiVal);
             break;
         case ParamType::TGLsizeiConstPointer:
-            WriteParamValueReplay<ParamType::TGLsizeiConstPointer>(
-                os, call, param.value.GLsizeiConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLsizeiPointer:
-            WriteParamValueReplay<ParamType::TGLsizeiPointer>(os, call,
-                                                              param.value.GLsizeiPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLsizeiptr:
             WriteParamValueReplay<ParamType::TGLsizeiptr>(os, call, param.value.GLsizeiptrVal);
             break;
         case ParamType::TGLsizeiptrConstPointer:
-            WriteParamValueReplay<ParamType::TGLsizeiptrConstPointer>(
-                os, call, param.value.GLsizeiptrConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLsync:
             WriteParamValueReplay<ParamType::TGLsync>(os, call, param.value.GLsyncVal);
@@ -320,12 +223,12 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TGLubyte>(os, call, param.value.GLubyteVal);
             break;
         case ParamType::TGLubyteConstPointer:
-            WriteParamValueReplay<ParamType::TGLubyteConstPointer>(
-                os, call, param.value.GLubyteConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLubytePointer:
-            WriteParamValueReplay<ParamType::TGLubytePointer>(os, call,
-                                                              param.value.GLubytePointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLuint:
             WriteParamValueReplay<ParamType::TGLuint>(os, call, param.value.GLuintVal);
@@ -334,39 +237,39 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TGLuint64>(os, call, param.value.GLuint64Val);
             break;
         case ParamType::TGLuint64ConstPointer:
-            WriteParamValueReplay<ParamType::TGLuint64ConstPointer>(
-                os, call, param.value.GLuint64ConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLuint64Pointer:
-            WriteParamValueReplay<ParamType::TGLuint64Pointer>(os, call,
-                                                               param.value.GLuint64PointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLuintConstPointer:
-            WriteParamValueReplay<ParamType::TGLuintConstPointer>(
-                os, call, param.value.GLuintConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLuintPointer:
-            WriteParamValueReplay<ParamType::TGLuintPointer>(os, call,
-                                                             param.value.GLuintPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLushort:
             WriteParamValueReplay<ParamType::TGLushort>(os, call, param.value.GLushortVal);
             break;
         case ParamType::TGLushortConstPointer:
-            WriteParamValueReplay<ParamType::TGLushortConstPointer>(
-                os, call, param.value.GLushortConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLushortPointer:
-            WriteParamValueReplay<ParamType::TGLushortPointer>(os, call,
-                                                               param.value.GLushortPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLvoidConstPointer:
-            WriteParamValueReplay<ParamType::TGLvoidConstPointer>(
-                os, call, param.value.GLvoidConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGLvoidConstPointerPointer:
-            WriteParamValueReplay<ParamType::TGLvoidConstPointerPointer>(
-                os, call, param.value.GLvoidConstPointerPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TGraphicsResetStatus:
             WriteParamValueReplay<ParamType::TGraphicsResetStatus>(
@@ -395,15 +298,12 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
                                                               param.value.MemoryObjectIDVal);
             break;
         case ParamType::TMemoryObjectIDConstPointer:
-            WriteParamValueReplay<ParamType::TMemoryObjectIDConstPointer>(
-                os, call, param.value.MemoryObjectIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TMemoryObjectIDPointer:
-            WriteParamValueReplay<ParamType::TMemoryObjectIDPointer>(
-                os, call, param.value.MemoryObjectIDPointerVal);
-            break;
-        case ParamType::TObjectType:
-            WriteParamValueReplay<ParamType::TObjectType>(os, call, param.value.ObjectTypeVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TPointParameter:
             WriteParamValueReplay<ParamType::TPointParameter>(os, call,
@@ -418,12 +318,12 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
                                                                  param.value.ProgramPipelineIDVal);
             break;
         case ParamType::TProgramPipelineIDConstPointer:
-            WriteParamValueReplay<ParamType::TProgramPipelineIDConstPointer>(
-                os, call, param.value.ProgramPipelineIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TProgramPipelineIDPointer:
-            WriteParamValueReplay<ParamType::TProgramPipelineIDPointer>(
-                os, call, param.value.ProgramPipelineIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TProvokingVertexConvention:
             WriteParamValueReplay<ParamType::TProvokingVertexConvention>(
@@ -433,12 +333,12 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TQueryID>(os, call, param.value.QueryIDVal);
             break;
         case ParamType::TQueryIDConstPointer:
-            WriteParamValueReplay<ParamType::TQueryIDConstPointer>(
-                os, call, param.value.QueryIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TQueryIDPointer:
-            WriteParamValueReplay<ParamType::TQueryIDPointer>(os, call,
-                                                              param.value.QueryIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TQueryType:
             WriteParamValueReplay<ParamType::TQueryType>(os, call, param.value.QueryTypeVal);
@@ -448,46 +348,46 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
                                                               param.value.RenderbufferIDVal);
             break;
         case ParamType::TRenderbufferIDConstPointer:
-            WriteParamValueReplay<ParamType::TRenderbufferIDConstPointer>(
-                os, call, param.value.RenderbufferIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TRenderbufferIDPointer:
-            WriteParamValueReplay<ParamType::TRenderbufferIDPointer>(
-                os, call, param.value.RenderbufferIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TSamplerID:
             WriteParamValueReplay<ParamType::TSamplerID>(os, call, param.value.SamplerIDVal);
             break;
         case ParamType::TSamplerIDConstPointer:
-            WriteParamValueReplay<ParamType::TSamplerIDConstPointer>(
-                os, call, param.value.SamplerIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TSamplerIDPointer:
-            WriteParamValueReplay<ParamType::TSamplerIDPointer>(os, call,
-                                                                param.value.SamplerIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TSemaphoreID:
             WriteParamValueReplay<ParamType::TSemaphoreID>(os, call, param.value.SemaphoreIDVal);
             break;
         case ParamType::TSemaphoreIDConstPointer:
-            WriteParamValueReplay<ParamType::TSemaphoreIDConstPointer>(
-                os, call, param.value.SemaphoreIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TSemaphoreIDPointer:
-            WriteParamValueReplay<ParamType::TSemaphoreIDPointer>(
-                os, call, param.value.SemaphoreIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TShaderProgramID:
             WriteParamValueReplay<ParamType::TShaderProgramID>(os, call,
                                                                param.value.ShaderProgramIDVal);
             break;
         case ParamType::TShaderProgramIDConstPointer:
-            WriteParamValueReplay<ParamType::TShaderProgramIDConstPointer>(
-                os, call, param.value.ShaderProgramIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TShaderProgramIDPointer:
-            WriteParamValueReplay<ParamType::TShaderProgramIDPointer>(
-                os, call, param.value.ShaderProgramIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TShaderType:
             WriteParamValueReplay<ParamType::TShaderType>(os, call, param.value.ShaderTypeVal);
@@ -507,12 +407,12 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
             WriteParamValueReplay<ParamType::TTextureID>(os, call, param.value.TextureIDVal);
             break;
         case ParamType::TTextureIDConstPointer:
-            WriteParamValueReplay<ParamType::TTextureIDConstPointer>(
-                os, call, param.value.TextureIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TTextureIDPointer:
-            WriteParamValueReplay<ParamType::TTextureIDPointer>(os, call,
-                                                                param.value.TextureIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TTextureTarget:
             WriteParamValueReplay<ParamType::TTextureTarget>(os, call,
@@ -521,20 +421,17 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
         case ParamType::TTextureType:
             WriteParamValueReplay<ParamType::TTextureType>(os, call, param.value.TextureTypeVal);
             break;
-        case ParamType::TTimestamp:
-            WriteParamValueReplay<ParamType::TTimestamp>(os, call, param.value.TimestampVal);
-            break;
         case ParamType::TTransformFeedbackID:
             WriteParamValueReplay<ParamType::TTransformFeedbackID>(
                 os, call, param.value.TransformFeedbackIDVal);
             break;
         case ParamType::TTransformFeedbackIDConstPointer:
-            WriteParamValueReplay<ParamType::TTransformFeedbackIDConstPointer>(
-                os, call, param.value.TransformFeedbackIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TTransformFeedbackIDPointer:
-            WriteParamValueReplay<ParamType::TTransformFeedbackIDPointer>(
-                os, call, param.value.TransformFeedbackIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TUniformBlockIndex:
             WriteParamValueReplay<ParamType::TUniformBlockIndex>(os, call,
@@ -549,35 +446,32 @@ void WriteParamCaptureReplay(std::ostream &os, const CallCapture &call, const Pa
                                                              param.value.VertexArrayIDVal);
             break;
         case ParamType::TVertexArrayIDConstPointer:
-            WriteParamValueReplay<ParamType::TVertexArrayIDConstPointer>(
-                os, call, param.value.VertexArrayIDConstPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TVertexArrayIDPointer:
-            WriteParamValueReplay<ParamType::TVertexArrayIDPointer>(
-                os, call, param.value.VertexArrayIDPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TVertexAttribType:
             WriteParamValueReplay<ParamType::TVertexAttribType>(os, call,
                                                                 param.value.VertexAttribTypeVal);
-            break;
-        case ParamType::TcharConstPointer:
-            WriteParamValueReplay<ParamType::TcharConstPointer>(os, call,
-                                                                param.value.charConstPointerVal);
             break;
         case ParamType::TvoidConstPointer:
             WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
                                                                 param.value.voidConstPointerVal);
             break;
         case ParamType::TvoidConstPointerPointer:
-            WriteParamValueReplay<ParamType::TvoidConstPointerPointer>(
-                os, call, param.value.voidConstPointerPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TvoidPointer:
-            WriteParamValueReplay<ParamType::TvoidPointer>(os, call, param.value.voidPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         case ParamType::TvoidPointerPointer:
-            WriteParamValueReplay<ParamType::TvoidPointerPointer>(
-                os, call, param.value.voidPointerPointerVal);
+            WriteParamValueReplay<ParamType::TvoidConstPointer>(os, call,
+                                                                param.value.voidConstPointerVal);
             break;
         default:
             os << "unknown";
@@ -589,8 +483,6 @@ const char *ParamTypeToString(ParamType paramType)
 {
     switch (paramType)
     {
-        case ParamType::TAHardwareBufferConstPointer:
-            return "const GLenum *";
         case ParamType::TAlphaTestFunc:
             return "GLenum";
         case ParamType::TBufferBinding:
@@ -605,65 +497,9 @@ const char *ParamTypeToString(ParamType paramType)
             return "GLenum";
         case ParamType::TClientVertexArrayType:
             return "GLenum";
-        case ParamType::TCompositorTiming:
-            return "GLenum";
         case ParamType::TCullFaceMode:
             return "GLenum";
         case ParamType::TDrawElementsType:
-            return "GLenum";
-        case ParamType::TEGLAttrib:
-            return "GLenum";
-        case ParamType::TEGLAttribKHR:
-            return "GLenum";
-        case ParamType::TEGLBoolean:
-            return "GLenum";
-        case ParamType::TEGLClientBuffer:
-            return "GLenum";
-        case ParamType::TEGLConfig:
-            return "GLenum";
-        case ParamType::TEGLContext:
-            return "GLenum";
-        case ParamType::TEGLDEBUGPROCKHR:
-            return "GLenum";
-        case ParamType::TEGLDeviceEXT:
-            return "GLenum";
-        case ParamType::TEGLDisplay:
-            return "GLenum";
-        case ParamType::TEGLFrameTokenANGLE:
-            return "GLenum";
-        case ParamType::TEGLGetBlobFuncANDROID:
-            return "GLuint";
-        case ParamType::TEGLImage:
-            return "GLenum";
-        case ParamType::TEGLLabelKHR:
-            return "GLenum";
-        case ParamType::TEGLNativeDisplayType:
-            return "GLenum";
-        case ParamType::TEGLNativePixmapType:
-            return "GLenum";
-        case ParamType::TEGLNativeWindowType:
-            return "GLenum";
-        case ParamType::TEGLObjectKHR:
-            return "GLenum";
-        case ParamType::TEGLSetBlobFuncANDROID:
-            return "GLuint";
-        case ParamType::TEGLStreamKHR:
-            return "GLenum";
-        case ParamType::TEGLSurface:
-            return "GLenum";
-        case ParamType::TEGLSync:
-            return "GLenum";
-        case ParamType::TEGLTime:
-            return "GLenum";
-        case ParamType::TEGLTimeKHR:
-            return "GLenum";
-        case ParamType::TEGLenum:
-            return "GLenum";
-        case ParamType::TEGLint:
-            return "GLenum";
-        case ParamType::TEGLnsecsANDROID:
-            return "GLuint";
-        case ParamType::TEGLuint64KHR:
             return "GLenum";
         case ParamType::TFenceNVID:
             return "GLuint";
@@ -803,8 +639,6 @@ const char *ParamTypeToString(ParamType paramType)
             return "const GLuint *";
         case ParamType::TMemoryObjectIDPointer:
             return "GLuint *";
-        case ParamType::TObjectType:
-            return "GLenum";
         case ParamType::TPointParameter:
             return "GLenum";
         case ParamType::TPrimitiveMode:
@@ -867,8 +701,6 @@ const char *ParamTypeToString(ParamType paramType)
             return "GLenum";
         case ParamType::TTextureType:
             return "GLenum";
-        case ParamType::TTimestamp:
-            return "GLenum";
         case ParamType::TTransformFeedbackID:
             return "GLuint";
         case ParamType::TTransformFeedbackIDConstPointer:
@@ -887,8 +719,6 @@ const char *ParamTypeToString(ParamType paramType)
             return "GLuint *";
         case ParamType::TVertexAttribType:
             return "GLenum";
-        case ParamType::TcharConstPointer:
-            return "const GLenum *";
         case ParamType::TvoidConstPointer:
             return "const void *";
         case ParamType::TvoidConstPointerPointer:

@@ -161,9 +161,8 @@ template <class T, size_t N, class Storage>
 template <class InputIt, std::enable_if_t<!std::is_integral<InputIt>::value, bool>>
 FastVector<T, N, Storage>::FastVector(InputIt first, InputIt last)
 {
-    size_t newSize = last - first;
-    ensure_capacity(newSize);
-    mSize = newSize;
+    mSize = last - first;
+    ensure_capacity(mSize);
     std::copy(first, last, begin());
 }
 
@@ -180,7 +179,7 @@ FastVector<T, N, Storage> &FastVector<T, N, Storage>::operator=(
 template <class T, size_t N, class Storage>
 FastVector<T, N, Storage> &FastVector<T, N, Storage>::operator=(FastVector<T, N, Storage> &&other)
 {
-    swap(other);
+    swap(*this, other);
     return *this;
 }
 
@@ -449,13 +448,13 @@ void FastVector<T, N, Storage>::ensure_capacity(size_t capacity)
 }
 
 template <class Key, class Value, size_t N>
-class FlatUnorderedMap final
+class FastUnorderedMap final
 {
   public:
     using Pair = std::pair<Key, Value>;
 
-    FlatUnorderedMap() {}
-    ~FlatUnorderedMap() {}
+    FastUnorderedMap() {}
+    ~FastUnorderedMap() {}
 
     void insert(Key key, Value value)
     {
@@ -497,11 +496,11 @@ class FlatUnorderedMap final
 };
 
 template <class T, size_t N>
-class FlatUnorderedSet final
+class FastUnorderedSet final
 {
   public:
-    FlatUnorderedSet() {}
-    ~FlatUnorderedSet() {}
+    FastUnorderedSet() {}
+    ~FastUnorderedSet() {}
 
     bool empty() const { return mData.empty(); }
 

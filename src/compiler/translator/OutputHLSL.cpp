@@ -969,17 +969,14 @@ void OutputHLSL::header(TInfoSinkBase &out,
                 out << "    float multiviewSelectViewportIndex : packoffset(c3.z);\n";
             }
 
-            out << "    float clipControlOrigin : packoffset(c3.w);\n";
-            out << "    float clipControlZeroToOne : packoffset(c4);\n";
-
             if (mOutputType == SH_HLSL_4_1_OUTPUT)
             {
-                mResourcesHLSL->samplerMetadataUniforms(out, 5);
+                mResourcesHLSL->samplerMetadataUniforms(out, 4);
             }
 
             if (mUsesVertexID)
             {
-                out << "    uint dx_VertexID : packoffset(c4.y);\n";
+                out << "    uint dx_VertexID : packoffset(c3.w);\n";
             }
 
             out << "};\n"
@@ -993,12 +990,8 @@ void OutputHLSL::header(TInfoSinkBase &out,
             }
 
             out << "uniform float4 dx_ViewAdjust : register(c1);\n";
-            out << "uniform float2 dx_ViewCoords : register(c2);\n";
-
-            out << "static const float clipControlOrigin = -1.0f;\n";
-            out << "static const float clipControlZeroToOne = 0.0f;\n";
-
-            out << "\n";
+            out << "uniform float2 dx_ViewCoords : register(c2);\n"
+                   "\n";
         }
 
         if (mUsesDepthRange)
@@ -2382,10 +2375,6 @@ bool OutputHLSL::visitAggregate(Visit visit, TIntermAggregate *node)
 
             bool lod0 = (mInsideDiscontinuousLoop || mOutputLod0Function) &&
                         mShaderType == GL_FRAGMENT_SHADER;
-
-            // No raw function is expected.
-            ASSERT(node->getOp() != EOpCallInternalRawFunction);
-
             if (node->getOp() == EOpCallFunctionInAST)
             {
                 if (node->isArray())
@@ -2399,6 +2388,12 @@ bool OutputHLSL::visitAggregate(Visit visit, TIntermAggregate *node)
                 out << DecorateFunctionIfNeeded(node->getFunction());
                 out << DisambiguateFunctionName(node->getSequence());
                 out << (lod0 ? "Lod0(" : "(");
+            }
+            else if (node->getOp() == EOpCallInternalRawFunction)
+            {
+                // This path is used for internal functions that don't have their definitions in the
+                // AST, such as precision emulation functions.
+                out << DecorateFunctionIfNeeded(node->getFunction()) << "(";
             }
             else if (node->getFunction()->isImageFunction())
             {
@@ -2991,7 +2986,7 @@ bool OutputHLSL::handleExcessiveLoop(TInfoSinkBase &out, TIntermLoop *node)
             {
                 TIntermBinary *assign = variable->getAsBinaryNode();
 
-                if (assign != nullptr && assign->getOp() == EOpInitialize)
+                if (assign->getOp() == EOpInitialize)
                 {
                     TIntermSymbol *symbol          = assign->getLeft()->getAsSymbolNode();
                     TIntermConstantUnion *constant = assign->getRight()->getAsConstantUnion();
@@ -3233,7 +3228,7 @@ void OutputHLSL::writeParameter(const TVariable *param, TInfoSinkBase &out)
         if (mOutputType == SH_HLSL_4_1_OUTPUT)
         {
             // Samplers are passed as indices to the sampler array.
-            ASSERT(qualifier != EvqParamOut && qualifier != EvqParamInOut);
+            ASSERT(qualifier != EvqOut && qualifier != EvqInOut);
             out << "const uint " << nameStr << ArrayString(type);
             return;
         }
@@ -3264,7 +3259,7 @@ void OutputHLSL::writeParameter(const TVariable *param, TInfoSinkBase &out)
     // separate parameters. HLSL doesn't natively support samplers in structs.
     if (type.isStructureContainingSamplers())
     {
-        ASSERT(qualifier != EvqParamOut && qualifier != EvqParamInOut);
+        ASSERT(qualifier != EvqOut && qualifier != EvqInOut);
         TVector<const TVariable *> samplerSymbols;
         std::string namePrefix = "angle";
         namePrefix += nameStr.c_str();

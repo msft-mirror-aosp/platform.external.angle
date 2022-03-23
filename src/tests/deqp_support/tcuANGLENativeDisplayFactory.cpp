@@ -83,8 +83,7 @@ constexpr eglu::NativeWindow::Capability kWindowCapabilities =
         eglu::NativeWindow::CAPABILITY_GET_SCREEN_SIZE |
         eglu::NativeWindow::CAPABILITY_READ_SCREEN_PIXELS |
         eglu::NativeWindow::CAPABILITY_SET_SURFACE_SIZE |
-        eglu::NativeWindow::CAPABILITY_CHANGE_VISIBILITY |
-        eglu::NativeWindow::CAPABILITY_CREATE_SURFACE_PLATFORM_EXTENSION);
+        eglu::NativeWindow::CAPABILITY_CHANGE_VISIBILITY);
 
 class ANGLENativeDisplay : public eglu::NativeDisplay
 {
@@ -170,7 +169,6 @@ class NativeWindow : public eglu::NativeWindow
     ~NativeWindow() override;
 
     eglw::EGLNativeWindowType getLegacyNative() override;
-    void *getPlatformExtension() override;
     IVec2 getSurfaceSize() const override;
     IVec2 getScreenSize() const override { return getSurfaceSize(); }
     void processEvents() override;
@@ -337,11 +335,6 @@ NativeWindow::~NativeWindow()
 eglw::EGLNativeWindowType NativeWindow::getLegacyNative()
 {
     return reinterpret_cast<eglw::EGLNativeWindowType>(mWindow->getNativeWindow());
-}
-
-void *NativeWindow::getPlatformExtension()
-{
-    return mWindow->getPlatformExtension();
 }
 
 IVec2 NativeWindow::getSurfaceSize() const

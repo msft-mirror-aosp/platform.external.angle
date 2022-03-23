@@ -42,7 +42,7 @@ class EGLBufferAgeTest : public ANGLETest
         ASSERT_EGL_SUCCESS() << "Error during test TearDown";
     }
 
-    bool chooseConfig(EGLConfig *config) const
+    bool chooseConfig(EGLConfig *config)
     {
         bool result          = false;
         EGLint count         = 0;
@@ -77,7 +77,7 @@ class EGLBufferAgeTest : public ANGLETest
         return result;
     }
 
-    bool createWindowSurface(EGLConfig config, EGLNativeWindowType win, EGLSurface *surface) const
+    bool createWindowSurface(EGLConfig config, EGLNativeWindowType win, EGLSurface *surface)
     {
         bool result      = false;
         EGLint attribs[] = {EGL_NONE};
@@ -88,20 +88,12 @@ class EGLBufferAgeTest : public ANGLETest
         return result;
     }
 
-    EGLint queryAge(EGLSurface surface) const
+    EGLint queryAge(EGLSurface surface)
     {
-        EGLint age  = 0;
-        bool result = eglQuerySurface(mDisplay, surface, EGL_BUFFER_AGE_EXT, &age);
+        EGLint value = 0;
+        bool result  = eglQuerySurface(mDisplay, surface, EGL_BUFFER_AGE_EXT, &value);
         EXPECT_TRUE(result);
-        return age;
-    }
-
-    EGLint querySwapBehavior(EGLSurface surface) const
-    {
-        EGLint swapBehavior = EGL_NONE;
-        bool result         = eglQuerySurface(mDisplay, surface, EGL_SWAP_BEHAVIOR, &swapBehavior);
-        EXPECT_TRUE(result);
-        return swapBehavior;
+        return value;
     }
 
     EGLDisplay mDisplay      = EGL_NO_DISPLAY;
@@ -152,17 +144,7 @@ TEST_P(EGLBufferAgeTest, QueryBufferAge)
         eglSwapBuffers(mDisplay, surface);
         ASSERT_EGL_SUCCESS() << "eglSwapBuffers failed.";
     }
-
-    // If swap behavior is EGL_BUFFER_DESTROYED, age should be 0.
-    EGLint swapBehavior = querySwapBehavior(surface);
-    if (swapBehavior == EGL_BUFFER_DESTROYED)
-    {
-        EXPECT_EQ(expectedAge, 0);
-    }
-    else
-    {
-        EXPECT_GT(expectedAge, 0);
-    }
+    EXPECT_GT(expectedAge, 0);
 
     EXPECT_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
     ASSERT_EGL_SUCCESS() << "eglMakeCurrent - uncurrent failed.";
@@ -230,17 +212,7 @@ TEST_P(EGLBufferAgeTest, VerifyContents)
         eglSwapBuffers(mDisplay, surface);
         ASSERT_EGL_SUCCESS() << "eglSwapBuffers failed.";
     }
-
-    // If swap behavior is EGL_BUFFER_DESTROYED, age should be 0.
-    EGLint swapBehavior = querySwapBehavior(surface);
-    if (swapBehavior == EGL_BUFFER_DESTROYED)
-    {
-        EXPECT_EQ(age, 0);
-    }
-    else
-    {
-        EXPECT_GT(age, 0);
-    }
+    EXPECT_GT(age, 0);
 
     EXPECT_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
     ASSERT_EGL_SUCCESS() << "eglMakeCurrent - uncurrent failed.";
