@@ -754,7 +754,7 @@
         "shader_type": "FRAGMENT",
         "variables":{
             "gl_FragCoord":{
-                "essl_level":"ESSL1_BUILTINS",
+                "essl_level":"COMMON_BUILTINS",
                 "type":{
                     "basic":"Float",
                     "precision":"Medium",
@@ -808,20 +808,6 @@
             }
         },
         "subgroups":{
-            "ES300":{
-                "variables":{
-                    "gl_FragCoord":{
-                        "essl_level":"ESSL3_BUILTINS",
-                        "suffix":"300",
-                        "type":{
-                            "basic":"Float",
-                            "precision":"High",
-                            "qualifier":"FragCoord",
-                            "primarySize":4
-                        }
-                    }
-                }
-            },
             "EXTBlendFuncExtended":{
                 "variables":{
                     "gl_SecondaryFragColorEXT":{
@@ -846,7 +832,7 @@
                     "gl_FragDepthEXT":{
                         "essl_level":"ESSL1_BUILTINS",
                         "essl_extension":"EXT_frag_depth",
-                        "initDynamicType":"TType *{type_name} = new TType(EbtFloat, resources.FragmentPrecisionHigh ? EbpHigh : EbpMedium, EvqFragDepth, 1);"
+                        "initDynamicType":"TType *{type_name} = new TType(EbtFloat, resources.FragmentPrecisionHigh ? EbpHigh : EbpMedium, EvqFragDepthEXT, 1);"
                     }
                 }
             },
@@ -854,7 +840,17 @@
                 "variables":{
                     "gl_LastFragData":{
                         "essl_level":"ESSL1_BUILTINS",
-                        "essl_extension":"EXT_shader_framebuffer_fetch, EXT_shader_framebuffer_fetch_non_coherent",
+                        "essl_extension":"EXT_shader_framebuffer_fetch",
+                        "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpMedium, EvqLastFragData, 4, 1); {type_name}->makeArray(resources.MaxDrawBuffers);"
+                    }
+                }
+            },
+            "EXTShaderFramebufferFetchNonCoherent":{
+                "variables":{
+                    "gl_LastFragData":{
+                        "essl_level":"ESSL1_BUILTINS",
+                        "suffix":"NonCoherent",
+                        "essl_extension":"EXT_shader_framebuffer_fetch_non_coherent",
                         "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpMedium, EvqLastFragData, 4, 1); {type_name}->makeArray(resources.MaxDrawBuffers);"
                     }
                 }
@@ -983,7 +979,7 @@
                 }
             },
             "gl_PointSize":{
-                "essl_level":"ESSL1_BUILTINS",
+                "essl_level":"COMMON_BUILTINS",
                 "type":{
                     "basic":"Float",
                     "precision":"Medium",
@@ -1045,19 +1041,6 @@
             }
         },
         "subgroups":{
-            "ES300":{
-                "variables":{
-                    "gl_PointSize":{
-                        "essl_level":"ESSL3_BUILTINS",
-                        "suffix":"300",
-                        "type":{
-                            "basic":"Float",
-                            "precision":"High",
-                            "qualifier":"PointSize"
-                        }
-                    }
-                }
-            },
             "ANGLEMultiDraw":{
                 "subgroups":{
                   "ESSL3":{
@@ -1081,7 +1064,7 @@
                         "variables":{
                             "gl_BaseVertex":{
                                 "essl_level":"ESSL3_BUILTINS",
-                                "essl_extension":"ANGLE_base_vertex_base_instance_shader_builtin",
+                                "essl_extension":"ANGLE_base_vertex_base_instance",
                                 "type":{
                                     "basic":"Int",
                                     "precision":"High",
@@ -1090,7 +1073,7 @@
                             },
                             "gl_BaseInstance":{
                                 "essl_level":"ESSL3_BUILTINS",
-                                "essl_extension":"ANGLE_base_vertex_base_instance_shader_builtin",
+                                "essl_extension":"ANGLE_base_vertex_base_instance",
                                 "type":{
                                     "basic":"Int",
                                     "precision":"High",
@@ -1099,7 +1082,7 @@
                             },
                             "angle_BaseVertex":{
                                 "essl_level":"COMMON_BUILTINS",
-                                "essl_extension":"ANGLE_base_vertex_base_instance_shader_builtin",
+                                "essl_extension":"ANGLE_base_vertex_base_instance",
                                 "type":{
                                     "basic":"Int",
                                     "precision":"High",
@@ -1108,7 +1091,7 @@
                             },
                             "angle_BaseInstance":{
                                 "essl_level":"COMMON_BUILTINS",
-                                "essl_extension":"ANGLE_base_vertex_base_instance_shader_builtin",
+                                "essl_extension":"ANGLE_base_vertex_base_instance",
                                 "type":{
                                     "basic":"Int",
                                     "precision":"High",
@@ -1374,13 +1357,6 @@
                 "essl_extension":"EXT_tessellation_shader",
                 "essl_extension_becomes_core_in":"ESSL3_2_BUILTINS",
                 "initDynamicType":"TType *{type_name} = new TType(gl_PerVertex, EvqPerVertexOut, TLayoutQualifier::Create()); {type_name}->makeArray(resources.MaxPatchVertices);"
-            },
-            "gl_BoundingBox":{
-                "suffix":"TCS",
-                "essl_level":"ESSL3_2_BUILTINS",
-                "essl_extension":"EXT_tessellation_shader",
-                "essl_extension_becomes_core_in":"ESSL3_2_BUILTINS",
-                "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpHigh, EvqBoundingBox, 4); {type_name}->makeArray(2u);"
             }
         },
         "subgroups":{
@@ -1408,28 +1384,6 @@
                         "essl_extension":"EXT_tessellation_shader",
                         "essl_extension_becomes_core_in":"ESSL3_2_BUILTINS",
                         "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpHigh, EvqPosition, 4); {type_name}->setInterfaceBlock(gl_PerVertexOutTcsBlock{ext_or_core_suffix});"
-                    }
-                }
-            },
-            "EXTPrimitiveBoundingBox":{
-                "variables":{
-                    "gl_BoundingBoxEXT":{
-                        "suffix":"TCS",
-                        "essl_level":"ESSL3_1_BUILTINS",
-                        "essl_extension":"EXT_tessellation_shader",
-                        "essl_extension_becomes_core_in":"ESSL3_2_BUILTINS",
-                        "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpHigh, EvqBoundingBox, 4); {type_name}->makeArray(2u);"
-                    }
-                }
-            },
-            "OESPrimitiveBoundingBox":{
-                "variables":{
-                    "gl_BoundingBoxOES":{
-                        "suffix":"TCS",
-                        "essl_level":"ESSL3_1_BUILTINS",
-                        "essl_extension":"EXT_tessellation_shader",
-                        "essl_extension_becomes_core_in":"ESSL3_2_BUILTINS",
-                        "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpHigh, EvqBoundingBox, 4); {type_name}->makeArray(2u);"
                     }
                 }
             }
@@ -1465,8 +1419,7 @@
                 "type":{
                     "basic":"Float",
                     "precision":"High",
-                    "primarySize":3,
-                    "qualifier":"TessCoord"
+                    "primarySize":3
                 }
             },
             "gl_TessLevelOuter":{

@@ -28,7 +28,7 @@ namespace
 
 using DynamicIndexingNodeMatcher = std::function<bool(TIntermBinary *)>;
 
-const TType *kIndexType = StaticType::Get<EbtInt, EbpHigh, EvqParamIn, 1, 1>();
+const TType *kIndexType = StaticType::Get<EbtInt, EbpHigh, EvqIn, 1, 1>();
 
 constexpr const ImmutableString kBaseName("base");
 constexpr const ImmutableString kIndexName("index");
@@ -44,8 +44,7 @@ std::string GetIndexFunctionName(const TType &type, bool write)
     }
     if (type.isMatrix())
     {
-        nameSink << "mat" << static_cast<uint32_t>(type.getCols()) << "x"
-                 << static_cast<uint32_t>(type.getRows());
+        nameSink << "mat" << type.getCols() << "x" << type.getRows();
     }
     else
     {
@@ -66,7 +65,7 @@ std::string GetIndexFunctionName(const TType &type, bool write)
             default:
                 UNREACHABLE();
         }
-        nameSink << static_cast<uint32_t>(type.getNominalSize());
+        nameSink << type.getNominalSize();
     }
     return nameSink.str();
 }
@@ -90,23 +89,16 @@ TIntermTyped *EnsureSignedInt(TIntermTyped *node)
 
 TType *GetFieldType(const TType &indexedType)
 {
-    TType *fieldType = new TType(indexedType);
     if (indexedType.isMatrix())
     {
-        fieldType->toMatrixColumnType();
+        TType *fieldType = new TType(indexedType.getBasicType(), indexedType.getPrecision());
+        fieldType->setPrimarySize(static_cast<unsigned char>(indexedType.getRows()));
+        return fieldType;
     }
     else
     {
-        ASSERT(indexedType.isVector());
-        fieldType->toComponentType();
+        return new TType(indexedType.getBasicType(), indexedType.getPrecision());
     }
-    // Default precision to highp if not specified.  For example in |vec3(0)[i], i < 0|, there is no
-    // precision assigned to vec3(0).
-    if (fieldType->getPrecision() == EbpUndefined)
-    {
-        fieldType->setPrecision(EbpHigh);
-    }
-    return fieldType;
 }
 
 const TType *GetBaseType(const TType &type, bool write)
@@ -117,9 +109,9 @@ const TType *GetBaseType(const TType &type, bool write)
     // highp values are being indexed in the shader. For HLSL precision doesn't matter, but in
     // principle this code could be used with multiple backends.
     baseType->setPrecision(EbpHigh);
-    baseType->setQualifier(EvqParamInOut);
+    baseType->setQualifier(EvqInOut);
     if (!write)
-        baseType->setQualifier(EvqParamIn);
+        baseType->setQualifier(EvqIn);
     return baseType;
 }
 
@@ -173,7 +165,7 @@ TIntermFunctionDefinition *GetIndexFunctionDefinition(const TType &type,
 {
     ASSERT(!type.isArray());
 
-    uint8_t numCases = 0;
+    int numCases = 0;
     if (type.isMatrix())
     {
         numCases = type.getCols();
@@ -195,7 +187,7 @@ TIntermFunctionDefinition *GetIndexFunctionDefinition(const TType &type,
     }
 
     TIntermBlock *statementList = new TIntermBlock();
-    for (uint8_t i = 0; i < numCases; ++i)
+    for (int i = 0; i < numCases; ++i)
     {
         TIntermCase *caseNode = new TIntermCase(CreateIntConstantNode(i));
         statementList->getSequence()->push_back(caseNode);
@@ -466,14 +458,14 @@ bool RemoveDynamicIndexingTraverser::visitBinary(Visit visit, TIntermBinary *nod
                         GetIndexFunctionName(node->getLeft()->getType(), true));
                     indexedWriteFunction =
                         new TFunction(mSymbolTable, functionName, SymbolType::AngleInternal,
-                                      StaticType::GetBasic<EbtVoid, EbpUndefined>(), false);
+                                      StaticType::GetBasic<EbtVoid>(), false);
                     indexedWriteFunction->addParameter(new TVariable(mSymbolTable, kBaseName,
                                                                      GetBaseType(type, true),
                                                                      SymbolType::AngleInternal));
                     indexedWriteFunction->addParameter(new TVariable(
                         mSymbolTable, kIndexName, kIndexType, SymbolType::AngleInternal));
                     TType *valueType = GetFieldType(type);
-                    valueType->setQualifier(EvqParamIn);
+                    valueType->setQualifier(EvqIn);
                     indexedWriteFunction->addParameter(new TVariable(
                         mSymbolTable, kValueName, static_cast<const TType *>(valueType),
                         SymbolType::AngleInternal));
@@ -542,10 +534,6 @@ bool RemoveDynamicIndexingIf(DynamicIndexingNodeMatcher &&matcher,
                              TSymbolTable *symbolTable,
                              PerformanceDiagnostics *perfDiagnostics)
 {
-    // This transformation adds function declarations after the fact and so some validation is
-    // momentarily disabled.
-    bool enableValidateFunctionCall = compiler->disableValidateFunctionCall();
-
     RemoveDynamicIndexingTraverser traverser(std::move(matcher), symbolTable, perfDiagnostics);
     do
     {
@@ -562,8 +550,6 @@ bool RemoveDynamicIndexingIf(DynamicIndexingNodeMatcher &&matcher,
     // TIntermLValueTrackingTraverser, and creates intricacies that are not easily apparent from a
     // superficial reading of the code.
     traverser.insertHelperDefinitions(root);
-
-    compiler->restoreValidateFunctionCall(enableValidateFunctionCall);
     return compiler->validateAST(root);
 }
 

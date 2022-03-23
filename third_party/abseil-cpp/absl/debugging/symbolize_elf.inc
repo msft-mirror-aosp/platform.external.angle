@@ -77,10 +77,6 @@
 #include "absl/debugging/internal/vdso_support.h"
 #include "absl/strings/string_view.h"
 
-#if defined(__FreeBSD__) && !defined(ElfW)
-#define ElfW(x) __ElfN(x)
-#endif
-
 namespace absl {
 ABSL_NAMESPACE_BEGIN
 
@@ -323,7 +319,6 @@ class Symbolizer {
                                            const ptrdiff_t relocation,
                                            char *out, int out_size,
                                            char *tmp_buf, int tmp_buf_size);
-  const char *GetUncachedSymbol(const void *pc);
 
   enum {
     SYMBOL_BUF_SIZE = 3072,
@@ -1334,7 +1329,13 @@ static bool MaybeInitializeObjFile(ObjFile *obj) {
 // they are called here as well.
 // To keep stack consumption low, we would like this function to not
 // get inlined.
-const char *Symbolizer::GetUncachedSymbol(const void *pc) {
+const char *Symbolizer::GetSymbol(const void *const pc) {
+  const char *entry = FindSymbolInCache(pc);
+  if (entry != nullptr) {
+    return entry;
+  }
+  symbol_buf_[0] = '\0';
+
   ObjFile *const obj = FindObjFile(pc, 1);
   ptrdiff_t relocation = 0;
   int fd = -1;
@@ -1420,42 +1421,6 @@ const char *Symbolizer::GetUncachedSymbol(const void *pc) {
   }
   symbol_buf_[sizeof(symbol_buf_) - 1] = '\0';  // Paranoia.
   return InsertSymbolInCache(pc, symbol_buf_);
-}
-
-const char *Symbolizer::GetSymbol(const void *pc) {
-  const char *entry = FindSymbolInCache(pc);
-  if (entry != nullptr) {
-    return entry;
-  }
-  symbol_buf_[0] = '\0';
-
-#ifdef __hppa__
-  {
-    // In some contexts (e.g., return addresses), PA-RISC uses the lowest two
-    // bits of the address to indicate the privilege level. Clear those bits
-    // before trying to symbolize.
-    const auto pc_bits = reinterpret_cast<uintptr_t>(pc);
-    const auto address = pc_bits & ~0x3;
-    entry = GetUncachedSymbol(reinterpret_cast<const void *>(address));
-    if (entry != nullptr) {
-      return entry;
-    }
-
-    // In some contexts, PA-RISC also uses bit 1 of the address to indicate that
-    // this is a cross-DSO function pointer. Such function pointers actually
-    // point to a procedure label, a struct whose first 32-bit (pointer) element
-    // actually points to the function text. With no symbol found for this
-    // address so far, try interpreting it as a cross-DSO function pointer and
-    // see how that goes.
-    if (pc_bits & 0x2) {
-      return GetUncachedSymbol(*reinterpret_cast<const void *const *>(address));
-    }
-
-    return nullptr;
-  }
-#else
-  return GetUncachedSymbol(pc);
-#endif
 }
 
 bool RemoveAllSymbolDecorators(void) {

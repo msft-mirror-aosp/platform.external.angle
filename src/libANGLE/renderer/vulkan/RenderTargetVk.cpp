@@ -95,7 +95,7 @@ void RenderTargetVk::onColorDraw(ContextVk *contextVk,
                                  uint32_t framebufferLayerCount,
                                  vk::PackedAttachmentIndex packedAttachmentIndex)
 {
-    ASSERT(!mImage->getActualFormat().hasDepthOrStencilBits());
+    ASSERT(!mImage->getFormat().actualImageFormat().hasDepthOrStencilBits());
     ASSERT(framebufferLayerCount <= mLayerCount);
 
     contextVk->onColorDraw(mImage, mResolveImage, packedAttachmentIndex);
@@ -108,27 +108,30 @@ void RenderTargetVk::onColorDraw(ContextVk *contextVk,
         mResolveImage->onWrite(mLevelIndexGL, 1, mLayerIndex, framebufferLayerCount,
                                VK_IMAGE_ASPECT_COLOR_BIT);
     }
+    retainImageViews(contextVk);
 }
 
 void RenderTargetVk::onColorResolve(ContextVk *contextVk, uint32_t framebufferLayerCount)
 {
-    ASSERT(!mImage->getActualFormat().hasDepthOrStencilBits());
+    ASSERT(!mImage->getFormat().actualImageFormat().hasDepthOrStencilBits());
     ASSERT(framebufferLayerCount <= mLayerCount);
     ASSERT(mResolveImage == nullptr);
 
     contextVk->onImageRenderPassWrite(mLevelIndexGL, mLayerIndex, framebufferLayerCount,
                                       VK_IMAGE_ASPECT_COLOR_BIT, vk::ImageLayout::ColorAttachment,
                                       mImage);
+    retainImageViews(contextVk);
 }
 
 void RenderTargetVk::onDepthStencilDraw(ContextVk *contextVk, uint32_t framebufferLayerCount)
 {
-    const angle::Format &format = mImage->getActualFormat();
+    const angle::Format &format = mImage->getFormat().actualImageFormat();
     ASSERT(format.hasDepthOrStencilBits());
     ASSERT(framebufferLayerCount <= mLayerCount);
 
     contextVk->onDepthStencilDraw(mLevelIndexGL, mLayerIndex, framebufferLayerCount, mImage,
                                   mResolveImage);
+    retainImageViews(contextVk);
 }
 
 vk::ImageHelper &RenderTargetVk::getImageForRenderPass()
@@ -214,6 +217,8 @@ vk::ImageHelper *RenderTargetVk::getOwnerOfData() const
 angle::Result RenderTargetVk::getAndRetainCopyImageView(ContextVk *contextVk,
                                                         const vk::ImageView **imageViewOut) const
 {
+    retainImageViews(contextVk);
+
     const vk::ImageViewHelper *imageViews =
         isResolveImageOwnerOfData() ? mResolveImageViews : mImageViews;
 
@@ -232,28 +237,10 @@ angle::Result RenderTargetVk::getAndRetainCopyImageView(ContextVk *contextVk,
                                        : getImageView(contextVk, imageViewOut);
 }
 
-angle::FormatID RenderTargetVk::getImageActualFormatID() const
+const vk::Format &RenderTargetVk::getImageFormat() const
 {
     ASSERT(mImage && mImage->valid());
-    return mImage->getActualFormatID();
-}
-
-angle::FormatID RenderTargetVk::getImageIntendedFormatID() const
-{
-    ASSERT(mImage && mImage->valid());
-    return mImage->getIntendedFormatID();
-}
-
-const angle::Format &RenderTargetVk::getImageActualFormat() const
-{
-    ASSERT(mImage && mImage->valid());
-    return mImage->getActualFormat();
-}
-
-const angle::Format &RenderTargetVk::getImageIntendedFormat() const
-{
-    ASSERT(mImage && mImage->valid());
-    return mImage->getIntendedFormat();
+    return mImage->getFormat();
 }
 
 gl::Extents RenderTargetVk::getExtents() const
@@ -335,6 +322,15 @@ angle::Result RenderTargetVk::flushStagedUpdates(ContextVk *contextVk,
     return image->flushSingleSubresourceStagedUpdates(contextVk, mLevelIndexGL, layerIndex,
                                                       framebufferLayerCount, deferredClears,
                                                       deferredClearIndex);
+}
+
+void RenderTargetVk::retainImageViews(ContextVk *contextVk) const
+{
+    mImageViews->retain(&contextVk->getResourceUseList());
+    if (mResolveImageViews)
+    {
+        mResolveImageViews->retain(&contextVk->getResourceUseList());
+    }
 }
 
 bool RenderTargetVk::hasDefinedContent() const

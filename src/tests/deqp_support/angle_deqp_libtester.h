@@ -37,18 +37,13 @@ enum class dEQPTestResult
     Exception,
 };
 
-struct dEQPOptions
-{
-    uint32_t preRotation;
-    bool enableRenderDocCapture;
-};
-
 // Exported to the tester app.
 ANGLE_LIBTESTER_EXPORT int deqp_libtester_main(int argc, const char *argv[]);
 ANGLE_LIBTESTER_EXPORT bool deqp_libtester_init_platform(int argc,
                                                          const char *argv[],
                                                          void *logErrorFunc,
-                                                         const dEQPOptions &options);
+                                                         uint32_t preRotation,
+                                                         bool enableRenderDocCapture);
 ANGLE_LIBTESTER_EXPORT void deqp_libtester_shutdown_platform();
 ANGLE_LIBTESTER_EXPORT dEQPTestResult deqp_libtester_run(const char *caseName);
 
