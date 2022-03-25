@@ -205,15 +205,6 @@ struct FeaturesGL : FeatureSetBase
         "The point size range reported from the API is inconsistent with the actual behavior",
         &members};
 
-    // On some NVIDIA drivers certain types of GLSL arithmetic ops mixing vectors and scalars may be
-    // executed incorrectly. Change them in the shader translator. Tracking bug:
-    // http://crbug.com/772651
-    Feature rewriteVectorScalarArithmetic = {"rewrite_vector_scalar_arithmetic",
-                                             FeatureCategory::OpenGLWorkarounds,
-                                             "Certain types of GLSL arithmetic ops mixing vectors "
-                                             "and scalars may be executed incorrectly",
-                                             &members, "http://crbug.com/772651"};
-
     // On some Android devices for loops used to initialize variables hit native GLSL compiler bugs.
     Feature dontUseLoopsToInitializeVariables = {
         "dont_use_loops_to_initialize_variables", FeatureCategory::OpenGLWorkarounds,
@@ -416,14 +407,6 @@ struct FeaturesGL : FeatureSetBase
         "Rewrite row major matrices in shaders as column major as a driver bug workaround",
         &members, "http://anglebug.com/2273"};
 
-    // Bugs exist in various OpenGL Intel drivers on Windows that produce incorrect
-    // values for GL_COMPRESSED_SRGB_S3TC_DXT1_EXT format. Replace it with
-    // GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT as it's the closest option allowed by
-    // the WebGL extension spec.
-    Feature avoidDXT1sRGBTextureFormat = {
-        "avoid_dxt1_srgb_texture_format", FeatureCategory::OpenGLWorkarounds,
-        "Replaces DXT1 sRGB with DXT1 sRGB Alpha as a driver bug workaround.", &members};
-
     // Bugs exist in OpenGL AMD drivers on Windows that produce incorrect pipeline state for
     // colorMaski calls.
     Feature disableDrawBuffersIndexed = {"disable_draw_buffers_indexed",
@@ -562,6 +545,13 @@ struct FeaturesGL : FeatureSetBase
         "chunked_texture_upload", FeatureCategory::OpenGLWorkarounds,
         "Upload texture data in <120kb chunks to work around Mac driver hangs and crashes.",
         &members, "http://crbug.com/1181068"};
+
+    // Qualcomm drivers may sometimes reject immutable ASTC sliced 3D texture
+    // allocation. Instead, use non-immutable allocation internally.
+    Feature emulateImmutableCompressedTexture3D = {
+        "emulate_immutable_compressed_texture_3d", FeatureCategory::OpenGLWorkarounds,
+        "Use non-immutable texture allocation to work around a driver bug.", &members,
+        "https://crbug.com/1060012"};
 };
 
 inline FeaturesGL::FeaturesGL()  = default;

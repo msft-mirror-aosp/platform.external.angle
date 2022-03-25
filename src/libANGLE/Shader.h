@@ -135,6 +135,7 @@ class ShaderState final : angle::NonCopyable
     std::vector<sh::ShaderVariable> mActiveOutputVariables;
 
     bool mEarlyFragmentTestsOptimization;
+    BlendEquationBitSet mAdvancedBlendEquations;
     rx::SpecConstUsageBits mSpecConstUsageBits;
 
     // ANGLE_multiview.
@@ -203,6 +204,7 @@ class Shader final : angle::NonCopyable, public LabeledObject
     {
         return mState.mEarlyFragmentTestsOptimization;
     }
+    BlendEquationBitSet getAdvancedBlendEquations() const { return mState.mAdvancedBlendEquations; }
     rx::SpecConstUsageBits getSpecConstUsageBits() const { return mState.mSpecConstUsageBits; }
 
     int getShaderVersion();
@@ -247,6 +249,8 @@ class Shader final : angle::NonCopyable, public LabeledObject
     unsigned int getMaxComputeSharedMemory() const { return mMaxComputeSharedMemory; }
     bool hasBeenDeleted() const { return mDeleteStatus; }
 
+    void resolveCompile();
+
   private:
     struct CompilingState;
 
@@ -255,8 +259,6 @@ class Shader final : angle::NonCopyable, public LabeledObject
                               GLsizei bufSize,
                               GLsizei *length,
                               char *buffer);
-
-    void resolveCompile();
 
     ShaderState mState;
     std::unique_ptr<rx::ShaderImpl> mImplementation;
