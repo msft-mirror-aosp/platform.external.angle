@@ -42,7 +42,7 @@ class EGLBufferAgeTest : public ANGLETest
         ASSERT_EGL_SUCCESS() << "Error during test TearDown";
     }
 
-    bool chooseConfig(EGLConfig *config)
+    bool chooseConfig(EGLConfig *config) const
     {
         bool result          = false;
         EGLint count         = 0;
@@ -77,7 +77,7 @@ class EGLBufferAgeTest : public ANGLETest
         return result;
     }
 
-    bool createWindowSurface(EGLConfig config, EGLNativeWindowType win, EGLSurface *surface)
+    bool createWindowSurface(EGLConfig config, EGLNativeWindowType win, EGLSurface *surface) const
     {
         bool result      = false;
         EGLint attribs[] = {EGL_NONE};
@@ -88,12 +88,12 @@ class EGLBufferAgeTest : public ANGLETest
         return result;
     }
 
-    EGLint queryAge(EGLSurface surface)
+    EGLint queryAge(EGLSurface surface) const
     {
-        EGLint value = 0;
-        bool result  = eglQuerySurface(mDisplay, surface, EGL_BUFFER_AGE_EXT, &value);
+        EGLint age  = 0;
+        bool result = eglQuerySurface(mDisplay, surface, EGL_BUFFER_AGE_EXT, &age);
         EXPECT_TRUE(result);
-        return value;
+        return age;
     }
 
     EGLDisplay mDisplay      = EGL_NO_DISPLAY;
@@ -144,6 +144,7 @@ TEST_P(EGLBufferAgeTest, QueryBufferAge)
         eglSwapBuffers(mDisplay, surface);
         ASSERT_EGL_SUCCESS() << "eglSwapBuffers failed.";
     }
+
     EXPECT_GT(expectedAge, 0);
 
     EXPECT_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
@@ -212,6 +213,7 @@ TEST_P(EGLBufferAgeTest, VerifyContents)
         eglSwapBuffers(mDisplay, surface);
         ASSERT_EGL_SUCCESS() << "eglSwapBuffers failed.";
     }
+
     EXPECT_GT(age, 0);
 
     EXPECT_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
