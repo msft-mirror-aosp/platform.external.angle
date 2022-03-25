@@ -21,11 +21,6 @@ struct FeaturesMtl : FeatureSetBase
         "has_base_vertex_instanced_draw", FeatureCategory::MetalFeatures,
         "The renderer supports base vertex instanced draw", &members};
 
-    // Support depth texture filtering
-    Feature hasDepthTextureFiltering = {
-        "has_depth_texture_filtering", FeatureCategory::MetalFeatures,
-        "The renderer supports depth texture's filtering other than nearest", &members};
-
     // Support explicit memory barrier
     Feature hasExplicitMemBarrier = {"has_explicit_mem_barrier_mtl", FeatureCategory::MetalFeatures,
                                      "The renderer supports explicit memory barrier", &members};
@@ -103,11 +98,11 @@ struct FeaturesMtl : FeatureSetBase
         "macOS), force using GPU memory allocation for buffers everytime or not.",
         &members};
 
-    // Whether SPIR-V should be generated directly instead of through glslang.  Transitory feature
-    // until the work is complete.
-    Feature directSPIRVGeneration = {"directSPIRVGeneration", FeatureCategory::MetalFeatures,
-                                     "Direct translation to SPIR-V.", &members,
-                                     "http://anglebug.com/4889"};
+    // Generate Metal directly instead of generating SPIR-V and then using SPIR-V Cross.  Transitory
+    // feature until the work is complete.
+    Feature directMetalGeneration = {"directMetalGeneration", FeatureCategory::MetalFeatures,
+                                     "Direct translation to Metal.", &members,
+                                     "http://anglebug.com/5505"};
 
     Feature forceNonCSBaseMipmapGeneration = {
         "force_non_cs_mipmap_gen", FeatureCategory::MetalFeatures,
@@ -123,6 +118,21 @@ struct FeaturesMtl : FeatureSetBase
     Feature rewriteRowMajorMatrices = {"rewrite_row_major_matrices", FeatureCategory::MetalFeatures,
                                        "Rewrite row major matrices in shaders as column major.",
                                        &members};
+
+    Feature intelExplicitBoolCastWorkaround = {
+        "intel_explicit_bool_cast_workaround", FeatureCategory::MetalWorkarounds,
+        "Insert explicit casts for float/double/unsigned/signed int on macOS 10.15 with Intel "
+        "driver",
+        &members};
+
+    Feature intelDisableFastMath = {
+        "intel_disable_fast_math", FeatureCategory::MetalWorkarounds,
+        "Disable fast math in atan and invariance cases when running below macOS 12.0", &members};
+
+    Feature multisampleColorFormatShaderReadWorkaround = {
+        "multisample_color_format_shader_read_workaround", FeatureCategory::MetalWorkarounds,
+        "Add shaderRead usage to some multisampled texture formats", &members,
+        "http://anglebug.com/7049"};
 };
 
 }  // namespace angle

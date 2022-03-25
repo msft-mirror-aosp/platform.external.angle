@@ -105,6 +105,7 @@ absl_cc_library(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::config
+    absl::dynamic_annotations
     absl::fast_type_id
 )
 
@@ -202,6 +203,7 @@ absl_cc_library(
   HDRS
     "declare.h"
     "flag.h"
+    "internal/flag_msvc.inc"
   COPTS
     ${ABSL_DEFAULT_COPTS}
   LINKOPTS
