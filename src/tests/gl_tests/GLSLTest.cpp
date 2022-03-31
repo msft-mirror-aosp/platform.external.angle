@@ -3145,10 +3145,10 @@ void main()
 
     mat3x2 m = mat3x2(ivec2(i), uvec2(u), bvec2(b));
 
-    color = vec4(mi[0][0] == float(i) ? 1 : 0,
-                 mu[2][2] == float(u) ? 1 : 0,
-                 mb[1][1] == float(b) ? 1 : 0,
-                 m[0][1] == float(i) && m[1][0] == float(u) && m[2][0] == float(b) ? 1 : 0);
+    color = vec4(mi[0][0] == -123.0 ? 1 : 0,
+                 mu[2][2] == 456.0 ? 1 : 0,
+                 mb[1][1] == 1.0 ? 1 : 0,
+                 m[0][1] == -123.0 && m[1][0] == 456.0 && m[2][0] == 1.0 ? 1 : 0);
 })";
 
     ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
@@ -3187,9 +3187,9 @@ void main()
     vec3 v3 = vec3(b, u);
     vec4 v4 = vec4(i, u);
 
-    color = vec4(v2.x == float(i.x) && v2.y == float(b.x) ? 1 : 0,
-                 v3.x == float(b.x) && v3.y == float(b.y) && v3.z == float(u.x) ? 1 : 0,
-                 v4.x == float(i.x) && v4.y == float(i.y) && v4.z == float(u.x) && v4.w == float(u.y) ? 1 : 0,
+    color = vec4(v2.x == -123.0 && v2.y == 1.0 ? 1 : 0,
+                 v3.x == 1.0 && v3.y == 0.0 && v3.z == 456.0 ? 1 : 0,
+                 v4.x == -123.0 && v4.y == -23.0 && v4.z == 456.0 && v4.w == 76.0 ? 1 : 0,
                  1);
 })";
 
@@ -6624,6 +6624,85 @@ TEST_P(GLSLTest_ES31, VaryingIOBlockDeclaredAsInAndOut)
         // Output solid green
         color = vec4(0, 1.0, 0, 1.0);
     })";
+
+    ANGLE_GL_PROGRAM_WITH_TESS(program, kVS, kTCS, kTES, kFS);
+    drawPatches(program.get(), "inputAttribute", 0.5f, 1.0f, GL_FALSE);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that texture buffers can be accessed in a tessellation stage
+// Triggers a bug in the Vulkan backend: http://anglebug.com/7135
+TEST_P(GLSLTest_ES31, TessellationTextureBufferAccess)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_tessellation_shader"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_texture_buffer"));
+
+    constexpr char kVS[] = R"(#version 310 es
+    precision highp float;
+    in vec4 inputAttribute;
+
+    void main()
+    {
+        gl_Position = inputAttribute;
+    })";
+
+    constexpr char kTCS[] = R"(#version 310 es
+    #extension GL_EXT_tessellation_shader : require
+    precision mediump float;
+    layout(vertices = 2) out;
+
+    void main()
+    {
+        gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+        gl_TessLevelInner[0] = 1.0;
+        gl_TessLevelInner[1] = 1.0;
+        gl_TessLevelOuter[0] = 1.0;
+        gl_TessLevelOuter[1] = 1.0;
+        gl_TessLevelOuter[2] = 1.0;
+        gl_TessLevelOuter[3] = 1.0;
+    })";
+
+    constexpr char kTES[] = R"(#version 310 es
+    #extension GL_EXT_tessellation_shader : require
+    #extension GL_OES_texture_buffer : require
+    precision mediump float;
+    layout (isolines, point_mode) in;
+
+    uniform highp samplerBuffer tex;
+
+    out vec4 tex_color;
+
+    void main()
+    {
+        tex_color = texelFetch(tex, 0);
+        gl_Position = gl_in[0].gl_Position;
+    })";
+
+    constexpr char kFS[] = R"(#version 310 es
+    precision mediump float;
+    layout(location = 0) out mediump vec4 color;
+
+    in vec4 tex_color;
+
+    void main()
+    {
+        color = tex_color;
+    })";
+
+    constexpr GLint kBufferSize = 32;
+    GLubyte texData[]           = {0u, 255u, 0u, 255u};
+
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_BUFFER, texture);
+
+    GLBuffer buffer;
+    glBindBuffer(GL_TEXTURE_BUFFER, buffer);
+    glBufferData(GL_TEXTURE_BUFFER, kBufferSize, texData, GL_STATIC_DRAW);
+    glTexBufferEXT(GL_TEXTURE_BUFFER, GL_RGBA8, buffer);
+    ASSERT_GL_NO_ERROR();
+
+    glClearColor(1.0, 0, 0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     ANGLE_GL_PROGRAM_WITH_TESS(program, kVS, kTCS, kTES, kFS);
     drawPatches(program.get(), "inputAttribute", 0.5f, 1.0f, GL_FALSE);
@@ -14997,6 +15076,110 @@ void main() {
     glGetShaderiv(shader, GL_COMPILE_STATUS, &compileResult);
     EXPECT_NE(compileResult, 0);
 }
+
+// Test that loop body ending in a branch doesn't fail compilation
+TEST_P(GLSLTest, LoopBodyEndingInBranch1)
+{
+    constexpr char kFS[] = R"(void main(){for(int a,i;;gl_FragCoord)continue;})";
+
+    GLuint shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    const char *sourceArray[1] = {kFS};
+    GLint lengths[1]           = {static_cast<GLint>(sizeof(kFS) - 1)};
+    glShaderSource(shader, 1, sourceArray, lengths);
+    glCompileShader(shader);
+
+    GLint compileResult;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compileResult);
+    EXPECT_NE(compileResult, 0);
+}
+
+// Test that loop body ending in a branch doesn't fail compilation
+TEST_P(GLSLTest, LoopBodyEndingInBranch2)
+{
+    constexpr char kFS[] =
+        R"(void main(){for(int a,i;bool(gl_FragCoord.x);gl_FragCoord){continue;}})";
+
+    GLuint shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    const char *sourceArray[1] = {kFS};
+    GLint lengths[1]           = {static_cast<GLint>(sizeof(kFS) - 1)};
+    glShaderSource(shader, 1, sourceArray, lengths);
+    glCompileShader(shader);
+
+    GLint compileResult;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compileResult);
+    EXPECT_NE(compileResult, 0);
+}
+
+// Test that loop body ending in a branch doesn't fail compilation
+TEST_P(GLSLTest, LoopBodyEndingInBranch3)
+{
+    constexpr char kFS[] = R"(void main(){for(int a,i;;gl_FragCoord){{continue;}}})";
+
+    GLuint shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    const char *sourceArray[1] = {kFS};
+    GLint lengths[1]           = {static_cast<GLint>(sizeof(kFS) - 1)};
+    glShaderSource(shader, 1, sourceArray, lengths);
+    glCompileShader(shader);
+
+    GLint compileResult;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compileResult);
+    EXPECT_NE(compileResult, 0);
+}
+
+// Test that loop body ending in a branch doesn't fail compilation
+TEST_P(GLSLTest, LoopBodyEndingInBranch4)
+{
+    constexpr char kFS[] = R"(void main(){for(int a,i;;gl_FragCoord){{continue;}{}{}{{}{}}}})";
+
+    GLuint shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    const char *sourceArray[1] = {kFS};
+    GLint lengths[1]           = {static_cast<GLint>(sizeof(kFS) - 1)};
+    glShaderSource(shader, 1, sourceArray, lengths);
+    glCompileShader(shader);
+
+    GLint compileResult;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compileResult);
+    EXPECT_NE(compileResult, 0);
+}
+
+// Test that loop body ending in a branch doesn't fail compilation
+TEST_P(GLSLTest, LoopBodyEndingInBranch5)
+{
+    constexpr char kFS[] = R"(void main(){while(bool(gl_FragCoord.x)){{continue;{}}{}}})";
+
+    GLuint shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    const char *sourceArray[1] = {kFS};
+    GLint lengths[1]           = {static_cast<GLint>(sizeof(kFS) - 1)};
+    glShaderSource(shader, 1, sourceArray, lengths);
+    glCompileShader(shader);
+
+    GLint compileResult;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compileResult);
+    EXPECT_NE(compileResult, 0);
+}
+
+// Test that loop body ending in a branch doesn't fail compilation
+TEST_P(GLSLTest, LoopBodyEndingInBranch6)
+{
+    constexpr char kFS[] = R"(void main(){do{{continue;{}}{}}while(bool(gl_FragCoord.x));})";
+
+    GLuint shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    const char *sourceArray[1] = {kFS};
+    GLint lengths[1]           = {static_cast<GLint>(sizeof(kFS) - 1)};
+    glShaderSource(shader, 1, sourceArray, lengths);
+    glCompileShader(shader);
+
+    GLint compileResult;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compileResult);
+    EXPECT_NE(compileResult, 0);
+}
+
 }  // anonymous namespace
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(GLSLTest, WithGlslang(ES2_VULKAN()));

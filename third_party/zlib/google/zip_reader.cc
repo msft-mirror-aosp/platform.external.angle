@@ -19,6 +19,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/threading/sequenced_task_runner_handle.h"
 #include "build/build_config.h"
+#include "third_party/zlib/google/redact.h"
 #include "third_party/zlib/google/zip_internal.h"
 
 #if defined(USE_SYSTEM_MINIZIP)
@@ -55,15 +56,6 @@ std::ostream& operator<<(std::ostream& out, UnzipError error) {
       return out << "UNZ" << static_cast<int>(error);
   }
 #undef SWITCH_ERR
-}
-
-struct Redact {
-  explicit Redact(const base::FilePath& path) : path(path) {}
-  const base::FilePath& path;
-};
-
-std::ostream& operator<<(std::ostream& out, Redact r) {
-  return LOG_IS_ON(INFO) ? out << "'" << r.path << "'" : out << "(redacted)";
 }
 
 // A writer delegate that writes to a given string.
@@ -153,8 +145,8 @@ bool ZipReader::OpenFromString(const std::string& data) {
 
 void ZipReader::Close() {
   if (zip_file_) {
-    if (const int err = unzClose(zip_file_); err != UNZ_OK) {
-      LOG(ERROR) << "Error while closing ZIP archive: " << UnzipError(err);
+    if (const UnzipError err{unzClose(zip_file_)}; err != UNZ_OK) {
+      LOG(ERROR) << "Error while closing ZIP archive: " << err;
     }
   }
   Reset();
@@ -170,10 +162,10 @@ const ZipReader::Entry* ZipReader::Next() {
 
   // Move to the next entry if we're not trying to open the first entry.
   if (next_index_ > 0) {
-    if (const int err = unzGoToNextFile(zip_file_); err != UNZ_OK) {
+    if (const UnzipError err{unzGoToNextFile(zip_file_)}; err != UNZ_OK) {
       reached_end_ = true;
       if (err != UNZ_END_OF_LIST_OF_FILE) {
-        LOG(ERROR) << "Cannot go to next entry in ZIP: " << UnzipError(err);
+        LOG(ERROR) << "Cannot go to next entry in ZIP: " << err;
         ok_ = false;
       }
       return nullptr;
@@ -197,11 +189,11 @@ bool ZipReader::OpenEntry() {
   // Get entry info.
   unz_file_info64 info = {};
   char path_in_zip[internal::kZipMaxPath] = {};
-  if (const int err = unzGetCurrentFileInfo64(zip_file_, &info, path_in_zip,
-                                              sizeof(path_in_zip) - 1, nullptr,
-                                              0, nullptr, 0);
+  if (const UnzipError err{unzGetCurrentFileInfo64(
+          zip_file_, &info, path_in_zip, sizeof(path_in_zip) - 1, nullptr, 0,
+          nullptr, 0)};
       err != UNZ_OK) {
-    LOG(ERROR) << "Cannot get entry from ZIP: " << UnzipError(err);
+    LOG(ERROR) << "Cannot get entry from ZIP: " << err;
     return false;
   }
 
@@ -267,10 +259,10 @@ bool ZipReader::ExtractCurrentEntry(WriterDelegate* delegate,
   // is needed, and must be nullptr.
   const char* const password =
       entry_.is_encrypted ? password_.c_str() : nullptr;
-  if (const int err = unzOpenCurrentFilePassword(zip_file_, password);
+  if (const UnzipError err{unzOpenCurrentFilePassword(zip_file_, password)};
       err != UNZ_OK) {
     LOG(ERROR) << "Cannot open file " << Redact(entry_.path)
-               << " from ZIP: " << UnzipError(err);
+               << " from ZIP: " << err;
     return false;
   }
 
@@ -317,17 +309,19 @@ bool ZipReader::ExtractCurrentEntry(WriterDelegate* delegate,
     remaining_capacity -= num_bytes_to_write;
   }
 
+  if (const UnzipError err{unzCloseCurrentFile(zip_file_)}; err != UNZ_OK) {
+    LOG(ERROR) << "Cannot extract file " << Redact(entry_.path)
+               << " from ZIP: " << err;
+    entire_file_extracted = false;
+  }
+
   if (entire_file_extracted) {
     delegate->SetPosixFilePermissions(entry_.posix_mode);
     if (entry_.last_modified != base::Time::UnixEpoch()) {
       delegate->SetTimeModified(entry_.last_modified);
     }
-  }
-
-  if (const int err = unzCloseCurrentFile(zip_file_); err != UNZ_OK) {
-    LOG(ERROR) << "Cannot extract file " << Redact(entry_.path)
-               << " from ZIP: " << UnzipError(err);
-    return false;
+  } else {
+    delegate->OnError();
   }
 
   return entire_file_extracted;
@@ -360,10 +354,10 @@ void ZipReader::ExtractCurrentEntryToFilePathAsync(
   // is needed, and must be nullptr.
   const char* const password =
       entry_.is_encrypted ? password_.c_str() : nullptr;
-  if (const int err = unzOpenCurrentFilePassword(zip_file_, password);
+  if (const UnzipError err{unzOpenCurrentFilePassword(zip_file_, password)};
       err != UNZ_OK) {
     LOG(ERROR) << "Cannot open file " << Redact(entry_.path)
-               << " from ZIP: " << UnzipError(err);
+               << " from ZIP: " << err;
     base::SequencedTaskRunnerHandle::Get()->PostTask(
         FROM_HERE, std::move(failure_callback));
     return;
@@ -426,8 +420,9 @@ bool ZipReader::OpenInternal() {
   DCHECK(zip_file_);
 
   unz_global_info zip_info = {};  // Zero-clear.
-  if (const int err = unzGetGlobalInfo(zip_file_, &zip_info); err != UNZ_OK) {
-    LOG(ERROR) << "Cannot get ZIP info: " << UnzipError(err);
+  if (const UnzipError err{unzGetGlobalInfo(zip_file_, &zip_info)};
+      err != UNZ_OK) {
+    LOG(ERROR) << "Cannot get ZIP info: " << err;
     return false;
   }
 
@@ -457,9 +452,9 @@ void ZipReader::ExtractChunk(base::File output_file,
       unzReadCurrentFile(zip_file_, buffer, internal::kZipBufSize);
 
   if (num_bytes_read == 0) {
-    if (const int err = unzCloseCurrentFile(zip_file_); err != UNZ_OK) {
+    if (const UnzipError err{unzCloseCurrentFile(zip_file_)}; err != UNZ_OK) {
       LOG(ERROR) << "Cannot extract file " << Redact(entry_.path)
-                 << " from ZIP: " << UnzipError(err);
+                 << " from ZIP: " << err;
       std::move(failure_callback).Run();
       return;
     }
@@ -495,19 +490,25 @@ void ZipReader::ExtractChunk(base::File output_file,
 
 // FileWriterDelegate ----------------------------------------------------------
 
-FileWriterDelegate::FileWriterDelegate(base::File* file) : file_(file) {}
-
-FileWriterDelegate::FileWriterDelegate(std::unique_ptr<base::File> file)
-    : file_(file.get()), owned_file_(std::move(file)) {}
-
-FileWriterDelegate::~FileWriterDelegate() {
-  if (!file_->SetLength(file_length_)) {
-    DVPLOG(1) << "Failed updating length of written file";
-  }
+FileWriterDelegate::FileWriterDelegate(base::File* file) : file_(file) {
+  DCHECK(file_);
 }
 
+FileWriterDelegate::FileWriterDelegate(base::File owned_file)
+    : owned_file_(std::move(owned_file)) {
+  DCHECK_EQ(file_, &owned_file_);
+}
+
+FileWriterDelegate::~FileWriterDelegate() {}
+
 bool FileWriterDelegate::PrepareOutput() {
-  return file_->Seek(base::File::FROM_BEGIN, 0) >= 0;
+  DCHECK(file_);
+  const bool ok = file_->IsValid();
+  if (ok) {
+    DCHECK_EQ(file_->GetLength(), 0)
+        << " The output file should be initially empty";
+  }
+  return ok;
 }
 
 bool FileWriterDelegate::WriteBytes(const char* data, int num_bytes) {
@@ -527,38 +528,44 @@ void FileWriterDelegate::SetPosixFilePermissions(int mode) {
 #endif
 }
 
+void FileWriterDelegate::OnError() {
+  file_length_ = 0;
+  file_->SetLength(0);
+}
+
 // FilePathWriterDelegate ------------------------------------------------------
 
-FilePathWriterDelegate::FilePathWriterDelegate(
-    const base::FilePath& output_file_path)
-    : output_file_path_(output_file_path) {}
+FilePathWriterDelegate::FilePathWriterDelegate(base::FilePath output_file_path)
+    : FileWriterDelegate(base::File()),
+      output_file_path_(std::move(output_file_path)) {}
 
 FilePathWriterDelegate::~FilePathWriterDelegate() {}
 
 bool FilePathWriterDelegate::PrepareOutput() {
   // We can't rely on parent directory entries being specified in the
   // zip, so we make sure they are created.
-  if (!base::CreateDirectory(output_file_path_.DirName()))
+  if (const base::FilePath dir = output_file_path_.DirName();
+      !base::CreateDirectory(dir)) {
+    PLOG(ERROR) << "Cannot create directory " << Redact(dir);
     return false;
+  }
 
-  file_.Initialize(output_file_path_,
-                   base::File::FLAG_CREATE_ALWAYS | base::File::FLAG_WRITE);
-  return file_.IsValid();
+  owned_file_.Initialize(output_file_path_,
+                         base::File::FLAG_CREATE | base::File::FLAG_WRITE);
+  PLOG_IF(ERROR, !owned_file_.IsValid())
+      << "Cannot create file " << Redact(output_file_path_) << ": "
+      << base::File::ErrorToString(owned_file_.error_details());
+  return FileWriterDelegate::PrepareOutput();
 }
 
-bool FilePathWriterDelegate::WriteBytes(const char* data, int num_bytes) {
-  return num_bytes == file_.WriteAtCurrentPos(data, num_bytes);
-}
+void FilePathWriterDelegate::OnError() {
+  FileWriterDelegate::OnError();
+  owned_file_.Close();
 
-void FilePathWriterDelegate::SetTimeModified(const base::Time& time) {
-  file_.Close();
-  base::TouchFile(output_file_path_, base::Time::Now(), time);
-}
-
-void FilePathWriterDelegate::SetPosixFilePermissions(int mode) {
-#if defined(OS_POSIX)
-  zip::SetPosixFilePermissions(file_.GetPlatformFile(), mode);
-#endif
+  if (!base::DeleteFile(output_file_path_)) {
+    LOG(ERROR) << "Cannot delete partially extracted file "
+               << Redact(output_file_path_);
+  }
 }
 
 }  // namespace zip

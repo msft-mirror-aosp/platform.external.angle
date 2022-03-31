@@ -74,10 +74,49 @@ uint8_t PackGLBlendOp(GLenum blendOp)
             return static_cast<uint8_t>(VK_BLEND_OP_MIN);
         case GL_MAX:
             return static_cast<uint8_t>(VK_BLEND_OP_MAX);
+        case GL_MULTIPLY_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_MULTIPLY_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_SCREEN_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_SCREEN_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_OVERLAY_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_OVERLAY_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_DARKEN_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_DARKEN_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_LIGHTEN_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_LIGHTEN_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_COLORDODGE_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_COLORDODGE_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_COLORBURN_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_COLORBURN_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_HARDLIGHT_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_HARDLIGHT_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_SOFTLIGHT_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_SOFTLIGHT_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_DIFFERENCE_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_DIFFERENCE_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_EXCLUSION_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_EXCLUSION_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_HSL_HUE_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_HSL_HUE_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_HSL_SATURATION_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_HSL_SATURATION_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_HSL_COLOR_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_HSL_COLOR_EXT - VK_BLEND_OP_ZERO_EXT);
+        case GL_HSL_LUMINOSITY_KHR:
+            return static_cast<uint8_t>(VK_BLEND_OP_HSL_LUMINOSITY_EXT - VK_BLEND_OP_ZERO_EXT);
         default:
             UNREACHABLE();
             return 0;
     }
+}
+
+VkBlendOp UnpackBlendOp(uint8_t packedBlendOp)
+{
+    if (packedBlendOp <= VK_BLEND_OP_MAX)
+    {
+        return static_cast<VkBlendOp>(packedBlendOp);
+    }
+    return static_cast<VkBlendOp>(packedBlendOp + VK_BLEND_OP_ZERO_EXT);
 }
 
 uint8_t PackGLBlendFactor(GLenum blendFactor)
@@ -284,10 +323,10 @@ void UnpackBlendAttachmentState(const PackedColorBlendAttachmentState &packedSta
 {
     stateOut->srcColorBlendFactor = static_cast<VkBlendFactor>(packedState.srcColorBlendFactor);
     stateOut->dstColorBlendFactor = static_cast<VkBlendFactor>(packedState.dstColorBlendFactor);
-    stateOut->colorBlendOp        = static_cast<VkBlendOp>(packedState.colorBlendOp);
+    stateOut->colorBlendOp        = UnpackBlendOp(packedState.colorBlendOp);
     stateOut->srcAlphaBlendFactor = static_cast<VkBlendFactor>(packedState.srcAlphaBlendFactor);
     stateOut->dstAlphaBlendFactor = static_cast<VkBlendFactor>(packedState.dstAlphaBlendFactor);
-    stateOut->alphaBlendOp        = static_cast<VkBlendOp>(packedState.alphaBlendOp);
+    stateOut->alphaBlendOp        = UnpackBlendOp(packedState.alphaBlendOp);
 }
 
 void SetPipelineShaderStageInfo(const VkStructureType type,
@@ -594,20 +633,51 @@ void InitializeUnresolveSubpassDependencies(const SubpassVector<VkSubpassDescrip
     dependency->dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 }
 
-void InitializeInputAttachmentSubpassDependencies(
-    std::vector<VkSubpassDependency> *subpassDependencies,
-    uint32_t subpassIndex)
+// glFramebufferFetchBarrierEXT and glBlendBarrierKHR require a pipeline barrier to be inserted in
+// the render pass.  This requires a subpass self-dependency.
+//
+// For framebuffer fetch:
+//
+//     srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+//     dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+//     srcAccess = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+//     dstAccess = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT
+//
+// For advanced blend:
+//
+//     srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+//     dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+//     srcAccess = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+//     dstAccess = VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT
+//
+// Subpass dependencies cannot be added after the fact at the end of the render pass due to render
+// pass compatibility rules.  ANGLE specifies a subpass self-dependency with the above stage/access
+// masks in preparation of potential framebuffer fetch and advanced blend barriers.  This is known
+// not to add any overhead on any hardware we have been able to gather information from.
+void InitializeDefaultSubpassSelfDependencies(vk::Context *context,
+                                              const RenderPassDesc &desc,
+                                              uint32_t subpassIndex,
+                                              std::vector<VkSubpassDependency> *subpassDependencies)
 {
     subpassDependencies->emplace_back();
     VkSubpassDependency *dependency = &subpassDependencies->back();
 
-    dependency->srcSubpass      = subpassIndex;
-    dependency->dstSubpass      = subpassIndex;
-    dependency->srcStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency->dstStageMask    = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    dependency->srcAccessMask   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependency->dstAccessMask   = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+    dependency->srcSubpass   = subpassIndex;
+    dependency->dstSubpass   = subpassIndex;
+    dependency->srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency->dstStageMask =
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency->srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency->dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+    if (context->getRenderer()->getFeatures().supportsBlendOperationAdvanced.enabled)
+    {
+        dependency->dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT;
+    }
     dependency->dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+    if (desc.viewCount() > 0)
+    {
+        dependency->dependencyFlags |= VK_DEPENDENCY_VIEW_LOCAL_BIT;
+    }
 }
 
 void ToAttachmentDesciption2(const VkAttachmentDescription &desc,
@@ -816,8 +886,29 @@ angle::Result CreateRenderPass2(Context *context,
 }
 
 void UpdateRenderPassColorPerfCounters(const VkRenderPassCreateInfo &createInfo,
-                                       const VkSubpassDescription &subpass,
+                                       FramebufferAttachmentMask depthStencilAttachmentIndices,
                                        RenderPassPerfCounters *countersOut)
+{
+    for (uint32_t index = 0; index < createInfo.attachmentCount; index++)
+    {
+        if (depthStencilAttachmentIndices.test(index))
+        {
+            continue;
+        }
+
+        VkAttachmentLoadOp loadOp   = createInfo.pAttachments[index].loadOp;
+        VkAttachmentStoreOp storeOp = createInfo.pAttachments[index].storeOp;
+        countersOut->colorLoadOpClears += loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? 1 : 0;
+        countersOut->colorLoadOpLoads += loadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? 1 : 0;
+        countersOut->colorLoadOpNones += loadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT ? 1 : 0;
+        countersOut->colorStoreOpStores += storeOp == VK_ATTACHMENT_STORE_OP_STORE ? 1 : 0;
+        countersOut->colorStoreOpNones += storeOp == VK_ATTACHMENT_STORE_OP_NONE_EXT ? 1 : 0;
+    }
+}
+
+void UpdateSubpassColorPerfCounters(const VkRenderPassCreateInfo &createInfo,
+                                    const VkSubpassDescription &subpass,
+                                    RenderPassPerfCounters *countersOut)
 {
     // Color resolve counters.
     if (subpass.pResolveAttachments == nullptr)
@@ -848,15 +939,18 @@ void UpdateRenderPassDepthStencilPerfCounters(const VkRenderPassCreateInfo &crea
     // Depth/stencil ops counters.
     const VkAttachmentDescription &ds = createInfo.pAttachments[renderPassIndex];
 
-    countersOut->depthClears += ds.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? 1 : 0;
-    countersOut->depthLoads += ds.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? 1 : 0;
-    countersOut->depthStores +=
-        ds.storeOp == static_cast<uint16_t>(RenderPassStoreOp::Store) ? 1 : 0;
+    countersOut->depthLoadOpClears += ds.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? 1 : 0;
+    countersOut->depthLoadOpLoads += ds.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? 1 : 0;
+    countersOut->depthLoadOpNones += ds.loadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT ? 1 : 0;
+    countersOut->depthStoreOpStores += ds.storeOp == VK_ATTACHMENT_STORE_OP_STORE ? 1 : 0;
+    countersOut->depthStoreOpNones += ds.storeOp == VK_ATTACHMENT_STORE_OP_NONE_EXT ? 1 : 0;
 
-    countersOut->stencilClears += ds.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? 1 : 0;
-    countersOut->stencilLoads += ds.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? 1 : 0;
-    countersOut->stencilStores +=
-        ds.stencilStoreOp == static_cast<uint16_t>(RenderPassStoreOp::Store) ? 1 : 0;
+    countersOut->stencilLoadOpClears += ds.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? 1 : 0;
+    countersOut->stencilLoadOpLoads += ds.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? 1 : 0;
+    countersOut->stencilLoadOpNones += ds.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_NONE_EXT ? 1 : 0;
+    countersOut->stencilStoreOpStores += ds.stencilStoreOp == VK_ATTACHMENT_STORE_OP_STORE ? 1 : 0;
+    countersOut->stencilStoreOpNones +=
+        ds.stencilStoreOp == VK_ATTACHMENT_STORE_OP_NONE_EXT ? 1 : 0;
 
     // Depth/stencil read-only mode.
     countersOut->readOnlyDepthStencil +=
@@ -884,14 +978,16 @@ void UpdateRenderPassDepthStencilResolvePerfCounters(
     const VkAttachmentDescription &dsResolve = createInfo.pAttachments[resolveRenderPassIndex];
 
     // Resolve depth/stencil ops counters.
-    countersOut->depthClears += dsResolve.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? 1 : 0;
-    countersOut->depthLoads += dsResolve.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? 1 : 0;
-    countersOut->depthStores +=
+    countersOut->depthLoadOpClears += dsResolve.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? 1 : 0;
+    countersOut->depthLoadOpLoads += dsResolve.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? 1 : 0;
+    countersOut->depthStoreOpStores +=
         dsResolve.storeOp == static_cast<uint16_t>(RenderPassStoreOp::Store) ? 1 : 0;
 
-    countersOut->stencilClears += dsResolve.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? 1 : 0;
-    countersOut->stencilLoads += dsResolve.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? 1 : 0;
-    countersOut->stencilStores +=
+    countersOut->stencilLoadOpClears +=
+        dsResolve.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? 1 : 0;
+    countersOut->stencilLoadOpLoads +=
+        dsResolve.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? 1 : 0;
+    countersOut->stencilStoreOpStores +=
         dsResolve.stencilStoreOp == static_cast<uint16_t>(RenderPassStoreOp::Store) ? 1 : 0;
 
     // Depth/stencil resolve counters.
@@ -915,9 +1011,9 @@ void UpdateRenderPassPerfCounters(
     {
         const VkSubpassDescription &subpass = createInfo.pSubpasses[subpassIndex];
 
-        // Color counters.  Note: currently there are no counters for load/store ops of color
-        // attachments, so there's no risk of double counting.
-        UpdateRenderPassColorPerfCounters(createInfo, subpass, countersOut);
+        // Color counters.
+        // NOTE: For simplicity, this will accumulate counts for all subpasses in the renderpass.
+        UpdateSubpassColorPerfCounters(createInfo, subpass, countersOut);
 
         // Record index of depth/stencil attachment.
         if (subpass.pDepthStencilAttachment != nullptr)
@@ -929,6 +1025,8 @@ void UpdateRenderPassPerfCounters(
             }
         }
     }
+
+    UpdateRenderPassColorPerfCounters(createInfo, depthStencilAttachmentIndices, countersOut);
 
     // Depth/stencil counters.  Currently, both subpasses use the same depth/stencil attachment (if
     // any).
@@ -1203,11 +1301,9 @@ angle::Result InitializeRenderPassFromDesc(ContextVk *contextVk,
             desc.hasDepthStencilUnresolveAttachment(), &subpassDependencies);
     }
 
-    if (needInputAttachments)
-    {
-        uint32_t drawSubpassIndex = static_cast<uint32_t>(subpassDesc.size()) - 1;
-        InitializeInputAttachmentSubpassDependencies(&subpassDependencies, drawSubpassIndex);
-    }
+    const uint32_t drawSubpassIndex = static_cast<uint32_t>(subpassDesc.size()) - 1;
+    InitializeDefaultSubpassSelfDependencies(contextVk, desc, drawSubpassIndex,
+                                             &subpassDependencies);
 
     VkRenderPassCreateInfo createInfo = {};
     createInfo.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -1278,15 +1374,24 @@ void GetRenderPassAndUpdateCounters(ContextVk *contextVk,
     *renderPassOut = &renderPassHelper->getRenderPass();
     if (updatePerfCounters)
     {
-        PerfCounters &counters                   = contextVk->getPerfCounters();
+        angle::VulkanPerfCounters &counters      = contextVk->getPerfCounters();
         const RenderPassPerfCounters &rpCounters = renderPassHelper->getPerfCounters();
 
-        counters.depthClears += rpCounters.depthClears;
-        counters.depthLoads += rpCounters.depthLoads;
-        counters.depthStores += rpCounters.depthStores;
-        counters.stencilClears += rpCounters.stencilClears;
-        counters.stencilLoads += rpCounters.stencilLoads;
-        counters.stencilStores += rpCounters.stencilStores;
+        counters.colorLoadOpClears += rpCounters.colorLoadOpClears;
+        counters.colorLoadOpLoads += rpCounters.colorLoadOpLoads;
+        counters.colorLoadOpNones += rpCounters.colorLoadOpNones;
+        counters.colorStoreOpStores += rpCounters.colorStoreOpStores;
+        counters.colorStoreOpNones += rpCounters.colorStoreOpNones;
+        counters.depthLoadOpClears += rpCounters.depthLoadOpClears;
+        counters.depthLoadOpLoads += rpCounters.depthLoadOpLoads;
+        counters.depthLoadOpNones += rpCounters.depthLoadOpNones;
+        counters.depthStoreOpStores += rpCounters.depthStoreOpStores;
+        counters.depthStoreOpNones += rpCounters.depthStoreOpNones;
+        counters.stencilLoadOpClears += rpCounters.stencilLoadOpClears;
+        counters.stencilLoadOpLoads += rpCounters.stencilLoadOpLoads;
+        counters.stencilLoadOpNones += rpCounters.stencilLoadOpNones;
+        counters.stencilStoreOpStores += rpCounters.stencilStoreOpStores;
+        counters.stencilStoreOpNones += rpCounters.stencilStoreOpNones;
         counters.colorAttachmentUnresolves += rpCounters.colorAttachmentUnresolves;
         counters.colorAttachmentResolves += rpCounters.colorAttachmentResolves;
         counters.depthAttachmentUnresolves += rpCounters.depthAttachmentUnresolves;
