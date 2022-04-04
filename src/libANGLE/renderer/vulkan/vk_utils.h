@@ -196,8 +196,12 @@ class Context : angle::NonCopyable
     VkDevice getDevice() const;
     RendererVk *getRenderer() const { return mRenderer; }
 
+    const angle::VulkanPerfCounters &getPerfCounters() const { return mPerfCounters; }
+    angle::VulkanPerfCounters &getPerfCounters() { return mPerfCounters; }
+
   protected:
     RendererVk *const mRenderer;
+    angle::VulkanPerfCounters mPerfCounters;
 };
 
 class RenderPassDesc;
@@ -462,6 +466,18 @@ angle::Result AllocateBufferMemoryWithRequirements(Context *context,
                                                    Buffer *buffer,
                                                    VkMemoryPropertyFlags *memoryPropertyFlagsOut,
                                                    DeviceMemory *deviceMemoryOut);
+class BufferPool;
+static constexpr VkDeviceSize kMaxSizeToUseSmallBufferPool = 256;
+using BufferPoolPointerArray = std::array<std::unique_ptr<BufferPool>, VK_MAX_MEMORY_TYPES>;
+BufferPool *GetDefaultBufferPool(std::unique_ptr<vk::BufferPool> &smallBufferPool,
+                                 vk::BufferPoolPointerArray &defaultBufferPools,
+                                 RendererVk *renderer,
+                                 VkDeviceSize size,
+                                 uint32_t memoryTypeIndex);
+void PruneDefaultBufferPools(RendererVk *renderer,
+                             BufferPoolPointerArray &defaultBufferPools,
+                             std::unique_ptr<vk::BufferPool> &smallBufferPool);
+bool IsDueForBufferPoolPrune(double lastPruneTime);
 
 using ShaderAndSerial = ObjectAndSerial<ShaderModule>;
 
@@ -481,7 +497,7 @@ enum class RecordingMode
 // Helper class to handle RAII patterns for initialization. Requires that T have a destroy method
 // that takes a VkDevice and returns void.
 template <typename T>
-class DeviceScoped final : angle::NonCopyable
+class ANGLE_NO_DISCARD DeviceScoped final : angle::NonCopyable
 {
   public:
     DeviceScoped(VkDevice device) : mDevice(device) {}
@@ -498,7 +514,7 @@ class DeviceScoped final : angle::NonCopyable
 };
 
 template <typename T>
-class AllocatorScoped final : angle::NonCopyable
+class ANGLE_NO_DISCARD AllocatorScoped final : angle::NonCopyable
 {
   public:
     AllocatorScoped(const Allocator &allocator) : mAllocator(allocator) {}
@@ -517,7 +533,7 @@ class AllocatorScoped final : angle::NonCopyable
 // Similar to DeviceScoped, but releases objects instead of destroying them. Requires that T have a
 // release method that takes a ContextVk * and returns void.
 template <typename T>
-class ContextScoped final : angle::NonCopyable
+class ANGLE_NO_DISCARD ContextScoped final : angle::NonCopyable
 {
   public:
     ContextScoped(ContextVk *contextVk) : mContextVk(contextVk) {}
@@ -534,7 +550,7 @@ class ContextScoped final : angle::NonCopyable
 };
 
 template <typename T>
-class RendererScoped final : angle::NonCopyable
+class ANGLE_NO_DISCARD RendererScoped final : angle::NonCopyable
 {
   public:
     RendererScoped(RendererVk *renderer) : mRenderer(renderer) {}
@@ -993,6 +1009,7 @@ class BufferSuballocation final : angle::NonCopyable
     BufferSerial getBlockSerial() const;
     uint8_t *getBlockMemory() const;
     VkDeviceSize getBlockMemorySize() const;
+    bool isSuballocated() const { return mBufferBlock->hasVirtualBlock(); }
 
   private:
     // Only used by DynamicBuffer where DynamicBuffer does the actual suballocation and pass the
@@ -1228,12 +1245,21 @@ constexpr bool kOutputCumulativePerfCounters = false;
 struct RenderPassPerfCounters
 {
     // load/storeOps. Includes ops for resolve attachment. Maximum value = 2.
-    uint8_t depthClears;
-    uint8_t depthLoads;
-    uint8_t depthStores;
-    uint8_t stencilClears;
-    uint8_t stencilLoads;
-    uint8_t stencilStores;
+    uint8_t colorLoadOpClears;
+    uint8_t colorLoadOpLoads;
+    uint8_t colorLoadOpNones;
+    uint8_t colorStoreOpStores;
+    uint8_t colorStoreOpNones;
+    uint8_t depthLoadOpClears;
+    uint8_t depthLoadOpLoads;
+    uint8_t depthLoadOpNones;
+    uint8_t depthStoreOpStores;
+    uint8_t depthStoreOpNones;
+    uint8_t stencilLoadOpClears;
+    uint8_t stencilLoadOpLoads;
+    uint8_t stencilLoadOpNones;
+    uint8_t stencilStoreOpStores;
+    uint8_t stencilStoreOpNones;
     // Number of unresolve and resolve operations.  Maximum value for color =
     // gl::IMPLEMENTATION_MAX_DRAW_BUFFERS and for depth/stencil = 1 each.
     uint8_t colorAttachmentUnresolves;

@@ -90,6 +90,8 @@ struct SaveFileHelper
 };
 
 // AMD_performance_monitor helpers.
+constexpr char kPerfMonitorExtensionName[] = "GL_AMD_performance_monitor";
+
 struct PerfMonitorCounter
 {
     PerfMonitorCounter();
@@ -131,15 +133,28 @@ struct PerfMonitorTriplet
 #define ANGLE_VK_PERF_COUNTERS_X(FN)              \
     FN(primaryBuffers)                            \
     FN(renderPasses)                              \
+    FN(submittedFrames)                           \
     FN(writeDescriptorSets)                       \
     FN(flushedOutsideRenderPassCommandBuffers)    \
     FN(resolveImageCommands)                      \
-    FN(depthClears)                               \
-    FN(depthLoads)                                \
-    FN(depthStores)                               \
-    FN(stencilClears)                             \
-    FN(stencilLoads)                              \
-    FN(stencilStores)                             \
+    FN(colorLoadOpClears)                         \
+    FN(colorLoadOpLoads)                          \
+    FN(colorLoadOpNones)                          \
+    FN(colorStoreOpStores)                        \
+    FN(colorStoreOpNones)                         \
+    FN(colorClearAttachments)                     \
+    FN(depthLoadOpClears)                         \
+    FN(depthLoadOpLoads)                          \
+    FN(depthLoadOpNones)                          \
+    FN(depthStoreOpStores)                        \
+    FN(depthStoreOpNones)                         \
+    FN(depthClearAttachments)                     \
+    FN(stencilLoadOpClears)                       \
+    FN(stencilLoadOpLoads)                        \
+    FN(stencilLoadOpNones)                        \
+    FN(stencilStoreOpStores)                      \
+    FN(stencilStoreOpNones)                       \
+    FN(stencilClearAttachments)                   \
     FN(colorAttachmentUnresolves)                 \
     FN(depthAttachmentUnresolves)                 \
     FN(stencilAttachmentUnresolves)               \
@@ -161,7 +176,8 @@ struct PerfMonitorTriplet
     FN(shaderBuffersDescriptorSetCacheTotalSize)  \
     FN(buffersGhosted)                            \
     FN(vertexArraySyncStateCalls)                 \
-    FN(allocateNewBufferBlockCalls)
+    FN(allocateNewBufferBlockCalls)               \
+    FN(dynamicBufferAllocations)
 
 #define ANGLE_DECLARE_PERF_COUNTER(COUNTER) uint32_t COUNTER;
 
