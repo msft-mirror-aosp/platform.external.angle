@@ -749,7 +749,7 @@ angle::Result CreateRenderPass2(Context *context,
                                 const VkRenderPassMultiviewCreateInfo &multiviewInfo,
                                 bool unresolveDepth,
                                 bool unresolveStencil,
-                                bool isRenderToTexture,
+                                bool isRenderToTextureThroughExtension,
                                 uint8_t renderToTextureSamples,
                                 RenderPass *renderPass)
 {
@@ -845,14 +845,14 @@ angle::Result CreateRenderPass2(Context *context,
     // Append the depth/stencil resolve attachment to the pNext chain of last subpass, if any.
     if (depthStencilResolve.pDepthStencilResolveAttachment != nullptr)
     {
-        ASSERT(!isRenderToTexture);
+        ASSERT(!isRenderToTextureThroughExtension);
         subpassDescriptions.back().pNext = &depthStencilResolve;
     }
     else
     {
         RendererVk *renderer = context->getRenderer();
 
-        ASSERT(isRenderToTexture);
+        ASSERT(isRenderToTextureThroughExtension);
         ASSERT(renderer->getFeatures().supportsMultisampledRenderToSingleSampled.enabled);
         ASSERT(subpassDescriptions.size() == 1);
 
@@ -1058,11 +1058,15 @@ angle::Result InitializeRenderPassFromDesc(ContextVk *contextVk,
         VK_IMAGE_LAYOUT_UNDEFINED, 0};
 
     const bool needInputAttachments = desc.getFramebufferFetchMode();
-    const bool isRenderToTexture    = desc.isRenderToTexture();
+    const bool isRenderToTextureThroughExtension =
+        desc.isRenderToTexture() &&
+        contextVk->getFeatures().supportsMultisampledRenderToSingleSampled.enabled;
+    const bool isRenderToTextureThroughEmulation =
+        desc.isRenderToTexture() && !isRenderToTextureThroughExtension;
 
     const uint8_t descSamples            = desc.samples();
-    const uint8_t attachmentSamples      = isRenderToTexture ? 1 : descSamples;
-    const uint8_t renderToTextureSamples = isRenderToTexture ? descSamples : 1;
+    const uint8_t attachmentSamples      = isRenderToTextureThroughExtension ? 1 : descSamples;
+    const uint8_t renderToTextureSamples = isRenderToTextureThroughExtension ? descSamples : 1;
 
     // Unpack the packed and split representation into the format required by Vulkan.
     gl::DrawBuffersVector<VkAttachmentReference> colorAttachmentRefs;
@@ -1184,9 +1188,13 @@ angle::Result InitializeRenderPassFromDesc(ContextVk *contextVk,
             colorResolveAttachmentRefs.push_back(colorRef);
         }
 
+        // When multisampled-render-to-texture is used, invalidating an attachment invalidates both
+        // the multisampled and the resolve attachments.  Otherwise, the resolve attachment is
+        // independent of the multisampled attachment, and is never invalidated.
         UnpackColorResolveAttachmentDesc(
             &attachmentDescs[attachmentCount.get()], attachmentFormatID,
-            desc.hasColorUnresolveAttachment(colorIndexGL), isColorInvalidated.test(colorIndexGL));
+            desc.hasColorUnresolveAttachment(colorIndexGL),
+            isColorInvalidated.test(colorIndexGL) && isRenderToTextureThroughEmulation);
 
         ++attachmentCount;
     }
@@ -1344,12 +1352,14 @@ angle::Result InitializeRenderPassFromDesc(ContextVk *contextVk,
     // If depth/stencil resolve is used, we need to create the render pass with
     // vkCreateRenderPass2KHR.  Same when using the VK_EXT_multisampled_render_to_single_sampled
     // extension.
-    if (depthStencilResolve.pDepthStencilResolveAttachment != nullptr || desc.isRenderToTexture())
+    if (depthStencilResolve.pDepthStencilResolveAttachment != nullptr ||
+        isRenderToTextureThroughExtension)
     {
         ANGLE_TRY(CreateRenderPass2(contextVk, createInfo, depthStencilResolve, multiviewInfo,
                                     desc.hasDepthUnresolveAttachment(),
-                                    desc.hasStencilUnresolveAttachment(), desc.isRenderToTexture(),
-                                    renderToTextureSamples, &renderPassHelper->getRenderPass()));
+                                    desc.hasStencilUnresolveAttachment(),
+                                    isRenderToTextureThroughExtension, renderToTextureSamples,
+                                    &renderPassHelper->getRenderPass()));
     }
     else
     {
@@ -1449,6 +1459,92 @@ void InitializeSpecializationInfo(
     specializationInfoOut->pMapEntries   = specializationEntriesOut->data();
     specializationInfoOut->dataSize      = sizeof(specConsts);
     specializationInfoOut->pData         = &specConsts;
+}
+
+// Adjust border color value according to intended format.
+gl::ColorGeneric AdjustBorderColor(const angle::ColorGeneric &borderColorGeneric,
+                                   const angle::Format &format,
+                                   bool stencilMode)
+{
+    gl::ColorGeneric adjustedBorderColor = borderColorGeneric;
+
+    // Handle depth formats
+    if (format.hasDepthOrStencilBits())
+    {
+        if (stencilMode)
+        {
+            // Stencil component
+            adjustedBorderColor.colorUI.red = gl::clampForBitCount<unsigned int>(
+                borderColorGeneric.colorUI.red, format.stencilBits);
+        }
+        else
+        {
+            // Depth component
+            if (format.isUnorm())
+            {
+                adjustedBorderColor.colorF.red = gl::clamp01(borderColorGeneric.colorF.red);
+            }
+        }
+
+        return adjustedBorderColor;
+    }
+
+    // Handle LUMA formats
+    if (format.isLUMA() && format.alphaBits > 0)
+    {
+        if (format.luminanceBits > 0)
+        {
+            adjustedBorderColor.colorF.green = borderColorGeneric.colorF.alpha;
+        }
+        else
+        {
+            adjustedBorderColor.colorF.red = borderColorGeneric.colorF.alpha;
+        }
+
+        return adjustedBorderColor;
+    }
+
+    // Handle all other formats
+    if (format.isSint())
+    {
+        adjustedBorderColor.colorI.red =
+            gl::clampForBitCount<int>(borderColorGeneric.colorI.red, format.redBits);
+        adjustedBorderColor.colorI.green =
+            gl::clampForBitCount<int>(borderColorGeneric.colorI.green, format.greenBits);
+        adjustedBorderColor.colorI.blue =
+            gl::clampForBitCount<int>(borderColorGeneric.colorI.blue, format.blueBits);
+        adjustedBorderColor.colorI.alpha =
+            gl::clampForBitCount<int>(borderColorGeneric.colorI.alpha, format.alphaBits);
+    }
+    else if (format.isUint())
+    {
+        adjustedBorderColor.colorUI.red =
+            gl::clampForBitCount<unsigned int>(borderColorGeneric.colorUI.red, format.redBits);
+        adjustedBorderColor.colorUI.green =
+            gl::clampForBitCount<unsigned int>(borderColorGeneric.colorUI.green, format.greenBits);
+        adjustedBorderColor.colorUI.blue =
+            gl::clampForBitCount<unsigned int>(borderColorGeneric.colorUI.blue, format.blueBits);
+        adjustedBorderColor.colorUI.alpha =
+            gl::clampForBitCount<unsigned int>(borderColorGeneric.colorUI.alpha, format.alphaBits);
+    }
+    else if (format.isSnorm())
+    {
+        // clamp between -1.0f and 1.0f
+        adjustedBorderColor.colorF.red   = gl::clamp(borderColorGeneric.colorF.red, -1.0f, 1.0f);
+        adjustedBorderColor.colorF.green = gl::clamp(borderColorGeneric.colorF.green, -1.0f, 1.0f);
+        adjustedBorderColor.colorF.blue  = gl::clamp(borderColorGeneric.colorF.blue, -1.0f, 1.0f);
+        adjustedBorderColor.colorF.alpha = gl::clamp(borderColorGeneric.colorF.alpha, -1.0f, 1.0f);
+    }
+    else if (format.isUnorm())
+    {
+        // clamp between 0.0f and 1.0f
+        adjustedBorderColor.colorF.red   = gl::clamp01(borderColorGeneric.colorF.red);
+        adjustedBorderColor.colorF.green = gl::clamp01(borderColorGeneric.colorF.green);
+        adjustedBorderColor.colorF.blue  = gl::clamp01(borderColorGeneric.colorF.blue);
+        adjustedBorderColor.colorF.alpha = gl::clamp01(borderColorGeneric.colorF.alpha);
+    }
+
+    return adjustedBorderColor;
 }
 
 // Utility for setting a value on a packed 4-bit integer array.
@@ -3407,13 +3503,11 @@ void SamplerDesc::update(ContextVk *contextVk,
     mBorderColorType =
         (samplerState.getBorderColor().type == angle::ColorGeneric::Type::Float) ? 0 : 1;
 
+    // Adjust border color according to intended format
     const vk::Format &vkFormat = contextVk->getRenderer()->getFormat(intendedFormatID);
-    mBorderColor               = samplerState.getBorderColor().colorF;
-    if (vkFormat.getIntendedFormatID() != angle::FormatID::NONE)
-    {
-        LoadTextureBorderFunctionInfo loadFunction = vkFormat.getTextureBorderLoadFunctions();
-        loadFunction.loadFunction(mBorderColor);
-    }
+    gl::ColorGeneric adjustedBorderColor =
+        AdjustBorderColor(samplerState.getBorderColor(), vkFormat.getIntendedFormat(), stencilMode);
+    mBorderColor = adjustedBorderColor.colorF;
 
     mReserved = 0;
 }
