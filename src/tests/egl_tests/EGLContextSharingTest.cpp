@@ -8,11 +8,14 @@
 
 #include <gtest/gtest.h>
 
-#include "EGLMultiThreadSteps.h"
 #include "test_utils/ANGLETest.h"
 #include "test_utils/angle_test_configs.h"
 #include "test_utils/gl_raii.h"
 #include "util/EGLWindow.h"
+
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 
 using namespace angle;
 
@@ -149,13 +152,15 @@ TEST_P(EGLContextSharingTest, DisplayShareGroupObjectSharing)
     ASSERT_EGL_SUCCESS();
 
     // Create a texture and buffer in ctx 0
-    GLTexture textureFromCtx0;
+    GLuint textureFromCtx0 = 0;
+    glGenTextures(1, &textureFromCtx0);
     glBindTexture(GL_TEXTURE_2D, textureFromCtx0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glBindTexture(GL_TEXTURE_2D, 0);
     ASSERT_GL_TRUE(glIsTexture(textureFromCtx0));
 
-    GLBuffer bufferFromCtx0;
+    GLuint bufferFromCtx0 = 0;
+    glGenBuffers(1, &bufferFromCtx0);
     glBindBuffer(GL_ARRAY_BUFFER, bufferFromCtx0);
     glBufferData(GL_ARRAY_BUFFER, 1, nullptr, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -170,10 +175,12 @@ TEST_P(EGLContextSharingTest, DisplayShareGroupObjectSharing)
     ASSERT_GL_TRUE(glIsTexture(textureFromCtx0));
 
     ASSERT_GL_FALSE(glIsBuffer(bufferFromCtx0));
+    glDeleteBuffers(1, &bufferFromCtx0);
     ASSERT_GL_NO_ERROR();
 
     // Call readpixels on the texture to verify that the backend has proper support
-    GLFramebuffer fbo;
+    GLuint fbo = 0;
+    glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureFromCtx0, 0);
 
@@ -181,9 +188,19 @@ TEST_P(EGLContextSharingTest, DisplayShareGroupObjectSharing)
     glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
     ASSERT_GL_NO_ERROR();
 
+    glDeleteFramebuffers(1, &fbo);
+
+    glDeleteTextures(1, &textureFromCtx0);
+    ASSERT_GL_NO_ERROR();
+    ASSERT_GL_FALSE(glIsTexture(textureFromCtx0));
+
     // Switch back to context 0 and delete the buffer
     ASSERT_EGL_TRUE(eglMakeCurrent(display, surface, surface, mContexts[0]));
     ASSERT_EGL_SUCCESS();
+
+    ASSERT_GL_TRUE(glIsBuffer(bufferFromCtx0));
+    glDeleteBuffers(1, &bufferFromCtx0);
+    ASSERT_GL_NO_ERROR();
 }
 
 // Tests that shared textures using EGL_ANGLE_display_texture_share_group are released when the last
@@ -210,7 +227,8 @@ TEST_P(EGLContextSharingTest, DisplayShareGroupReleasedWithLastContext)
 
     // Create a texture and buffer in ctx 0
     ASSERT_EGL_TRUE(eglMakeCurrent(display, surface, surface, mContexts[0]));
-    GLTexture textureFromCtx0;
+    GLuint textureFromCtx0 = 0;
+    glGenTextures(1, &textureFromCtx0);
     glBindTexture(GL_TEXTURE_2D, textureFromCtx0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -222,16 +240,10 @@ TEST_P(EGLContextSharingTest, DisplayShareGroupReleasedWithLastContext)
 
     // Destroy both contexts, the texture should be cleaned up automatically
     ASSERT_EGL_TRUE(eglDestroyContext(display, mContexts[0]));
-    mContexts[0] = EGL_NO_CONTEXT;
     ASSERT_EGL_TRUE(eglDestroyContext(display, mContexts[1]));
-    mContexts[1] = EGL_NO_CONTEXT;
-
-    // Unmake current, so the context can be released.
-    ASSERT_EGL_TRUE(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
 
     // Create a new context and verify it cannot access the texture previously created
     mContexts[0] = eglCreateContext(display, config, nullptr, inShareGroupContextAttribs);
-    ASSERT_EGL_TRUE(eglMakeCurrent(display, surface, surface, mContexts[0]));
 
     ASSERT_GL_FALSE(glIsTexture(textureFromCtx0));
 }
@@ -363,8 +375,6 @@ TEST_P(EGLContextSharingTest, SamplerLifetime)
 TEST_P(EGLContextSharingTest, DeleteReaderOfSharedTexture)
 {
     ANGLE_SKIP_TEST_IF(!platformSupportsMultithreading());
-    // GL Fences require GLES 3.0+
-    ANGLE_SKIP_TEST_IF(getClientMajorVersion() < 3);
 
     // Initialize contexts
     EGLWindow *window = getEGLWindow();
@@ -428,8 +438,6 @@ TEST_P(EGLContextSharingTest, DeleteReaderOfSharedTexture)
     // Synchronization tools to ensure the two threads are interleaved as designed by this test.
     std::mutex mutex;
     std::condition_variable condVar;
-    std::atomic<GLsync> deletingThreadSyncObj;
-    std::atomic<GLsync> continuingThreadSyncObj;
 
     enum class Step
     {
@@ -442,40 +450,83 @@ TEST_P(EGLContextSharingTest, DeleteReaderOfSharedTexture)
     };
     Step currentStep = Step::Start;
 
+    // Helper functions to synchronize the threads so that the operations are executed in the
+    // specific order the test is written for.
+    auto waitForStep = [&](Step waitStep) -> bool {
+        std::unique_lock<std::mutex> lock(mutex);
+        while (currentStep != waitStep)
+        {
+            // If necessary, abort execution as the other thread has encountered a GL error.
+            if (currentStep == Step::Abort)
+            {
+                return false;
+            }
+            condVar.wait(lock);
+        }
+
+        return true;
+    };
+    auto nextStep = [&](Step newStep) {
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            currentStep = newStep;
+        }
+        condVar.notify_one();
+    };
+
+    class AbortOnFailure
+    {
+      public:
+        AbortOnFailure(Step *currentStep, std::mutex *mutex, std::condition_variable *condVar)
+            : mCurrentStep(currentStep), mMutex(mutex), mCondVar(condVar)
+        {}
+
+        ~AbortOnFailure()
+        {
+            bool isAborting = false;
+            {
+                std::unique_lock<std::mutex> lock(*mMutex);
+                isAborting = *mCurrentStep != Step::Finish;
+
+                if (isAborting)
+                {
+                    *mCurrentStep = Step::Abort;
+                }
+            }
+            mCondVar->notify_all();
+        }
+
+      private:
+        Step *mCurrentStep;
+        std::mutex *mMutex;
+        std::condition_variable *mCondVar;
+    };
+
     std::thread deletingThread = std::thread([&]() {
-        ThreadSynchronization<Step> threadSynchronization(&currentStep, &mutex, &condVar);
+        AbortOnFailure abortOnFailure(&currentStep, &mutex, &condVar);
 
         EXPECT_EGL_TRUE(eglMakeCurrent(dpy, surface[0], surface[0], ctx[0]));
         EXPECT_EGL_SUCCESS();
 
-        ASSERT_TRUE(threadSynchronization.waitForStep(Step::Start));
+        ASSERT_TRUE(waitForStep(Step::Start));
 
         // Draw using the shared texture.
         drawQuad(program[0].get(), essl1_shaders::PositionAttrib(), 0.5f);
 
-        deletingThreadSyncObj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-        ASSERT_GL_NO_ERROR();
-        // Force the fence to be created
-        glFlush();
-
         // Wait for the other thread to also draw using the shared texture.
-        threadSynchronization.nextStep(Step::Thread0Draw);
-        ASSERT_TRUE(threadSynchronization.waitForStep(Step::Thread1Draw));
-
-        ASSERT_TRUE(continuingThreadSyncObj != nullptr);
-        glWaitSync(continuingThreadSyncObj, 0, GL_TIMEOUT_IGNORED);
-        ASSERT_GL_NO_ERROR();
-        glDeleteSync(continuingThreadSyncObj);
-        ASSERT_GL_NO_ERROR();
-        continuingThreadSyncObj = nullptr;
+        nextStep(Step::Thread0Draw);
+        ASSERT_TRUE(waitForStep(Step::Thread1Draw));
 
         // Delete this thread's framebuffer (reader of the shared texture).
         fbo[0].reset();
 
+        // Flush to make sure the graph nodes associated with this context are deleted.
+        glFlush();
+
         // Wait for the other thread to use the shared texture again before unbinding the
         // context (so no implicit flush happens).
-        threadSynchronization.nextStep(Step::Thread0Delete);
-        ASSERT_TRUE(threadSynchronization.waitForStep(Step::Finish));
+        nextStep(Step::Thread0Delete);
+        ASSERT_TRUE(waitForStep(Step::Finish));
 
         EXPECT_GL_NO_ERROR();
         EXPECT_EGL_TRUE(eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
@@ -483,32 +534,20 @@ TEST_P(EGLContextSharingTest, DeleteReaderOfSharedTexture)
     });
 
     std::thread continuingThread = std::thread([&]() {
-        ThreadSynchronization<Step> threadSynchronization(&currentStep, &mutex, &condVar);
+        AbortOnFailure abortOnFailure(&currentStep, &mutex, &condVar);
 
         EXPECT_EGL_TRUE(eglMakeCurrent(dpy, surface[1], surface[1], ctx[1]));
         EXPECT_EGL_SUCCESS();
 
         // Wait for first thread to draw using the shared texture.
-        ASSERT_TRUE(threadSynchronization.waitForStep(Step::Thread0Draw));
-
-        ASSERT_TRUE(deletingThreadSyncObj != nullptr);
-        glWaitSync(deletingThreadSyncObj, 0, GL_TIMEOUT_IGNORED);
-        ASSERT_GL_NO_ERROR();
-        glDeleteSync(deletingThreadSyncObj);
-        ASSERT_GL_NO_ERROR();
-        deletingThreadSyncObj = nullptr;
+        ASSERT_TRUE(waitForStep(Step::Thread0Draw));
 
         // Draw using the shared texture.
         drawQuad(program[0].get(), essl1_shaders::PositionAttrib(), 0.5f);
 
-        continuingThreadSyncObj = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-        ASSERT_GL_NO_ERROR();
-        // Force the fence to be created
-        glFlush();
-
         // Wait for the other thread to delete its framebuffer.
-        threadSynchronization.nextStep(Step::Thread1Draw);
-        ASSERT_TRUE(threadSynchronization.waitForStep(Step::Thread0Delete));
+        nextStep(Step::Thread1Draw);
+        ASSERT_TRUE(waitForStep(Step::Thread0Delete));
 
         // Write to the shared texture differently, so a dependency is created from the previous
         // readers of the shared texture (the two framebuffers of the two threads) to the new
@@ -522,7 +561,7 @@ TEST_P(EGLContextSharingTest, DeleteReaderOfSharedTexture)
                      &kTexData2);
         drawQuad(program[0].get(), essl1_shaders::PositionAttrib(), 0.5f);
 
-        threadSynchronization.nextStep(Step::Finish);
+        nextStep(Step::Finish);
 
         EXPECT_EGL_TRUE(eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
         EXPECT_EGL_SUCCESS();
@@ -542,12 +581,10 @@ TEST_P(EGLContextSharingTest, DeleteReaderOfSharedTexture)
 }
 }  // anonymous namespace
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EGLContextSharingTest);
 ANGLE_INSTANTIATE_TEST(EGLContextSharingTest,
                        ES2_D3D9(),
                        ES2_D3D11(),
                        ES3_D3D11(),
-                       ES2_METAL(),
                        ES2_OPENGL(),
                        ES3_OPENGL(),
                        ES2_VULKAN(),

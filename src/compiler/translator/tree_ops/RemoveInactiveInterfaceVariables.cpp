@@ -24,7 +24,6 @@ class RemoveInactiveInterfaceVariablesTraverser : public TIntermTraverser
 {
   public:
     RemoveInactiveInterfaceVariablesTraverser(
-        TSymbolTable *symbolTable,
         const std::vector<sh::ShaderVariable> &attributes,
         const std::vector<sh::ShaderVariable> &inputVaryings,
         const std::vector<sh::ShaderVariable> &outputVariables,
@@ -42,13 +41,12 @@ class RemoveInactiveInterfaceVariablesTraverser : public TIntermTraverser
 };
 
 RemoveInactiveInterfaceVariablesTraverser::RemoveInactiveInterfaceVariablesTraverser(
-    TSymbolTable *symbolTable,
     const std::vector<sh::ShaderVariable> &attributes,
     const std::vector<sh::ShaderVariable> &inputVaryings,
     const std::vector<sh::ShaderVariable> &outputVariables,
     const std::vector<sh::ShaderVariable> &uniforms,
     const std::vector<sh::InterfaceBlock> &interfaceBlocks)
-    : TIntermTraverser(true, false, false, symbolTable),
+    : TIntermTraverser(true, false, false),
       mAttributes(attributes),
       mInputVaryings(inputVaryings),
       mOutputVariables(outputVariables),
@@ -101,15 +99,7 @@ bool RemoveInactiveInterfaceVariablesTraverser::visitDeclaration(Visit visit,
 
     if (type.isInterfaceBlock())
     {
-        // When a member has an explicit location, interface block should not be removed.
-        // If the member or interface would be removed, GetProgramResource could not return the
-        // location.
-        if (!IsShaderIoBlock(type.getQualifier()) && type.getQualifier() != EvqPatchIn &&
-            type.getQualifier() != EvqPatchOut)
-        {
-            removeDeclaration =
-                !IsVariableActive(mInterfaceBlocks, type.getInterfaceBlock()->name());
-        }
+        removeDeclaration = !IsVariableActive(mInterfaceBlocks, type.getInterfaceBlock()->name());
     }
     else if (qualifier == EvqUniform)
     {
@@ -130,21 +120,8 @@ bool RemoveInactiveInterfaceVariablesTraverser::visitDeclaration(Visit visit,
 
     if (removeDeclaration)
     {
-        TIntermSequence replacement;
-
-        // If the declaration was of a struct, keep the struct declaration itself.
-        if (type.isStructSpecifier())
-        {
-            TType *structSpecifierType      = new TType(type.getStruct(), true);
-            TVariable *emptyVariable        = new TVariable(mSymbolTable, kEmptyImmutableString,
-                                                     structSpecifierType, SymbolType::Empty);
-            TIntermDeclaration *declaration = new TIntermDeclaration();
-            declaration->appendDeclarator(new TIntermSymbol(emptyVariable));
-            replacement.push_back(declaration);
-        }
-
-        mMultiReplacements.emplace_back(getParentNode()->getAsBlock(), node,
-                                        std::move(replacement));
+        TIntermSequence emptySequence;
+        mMultiReplacements.emplace_back(getParentNode()->getAsBlock(), node, emptySequence);
     }
 
     return false;
@@ -154,15 +131,14 @@ bool RemoveInactiveInterfaceVariablesTraverser::visitDeclaration(Visit visit,
 
 bool RemoveInactiveInterfaceVariables(TCompiler *compiler,
                                       TIntermBlock *root,
-                                      TSymbolTable *symbolTable,
                                       const std::vector<sh::ShaderVariable> &attributes,
                                       const std::vector<sh::ShaderVariable> &inputVaryings,
                                       const std::vector<sh::ShaderVariable> &outputVariables,
                                       const std::vector<sh::ShaderVariable> &uniforms,
                                       const std::vector<sh::InterfaceBlock> &interfaceBlocks)
 {
-    RemoveInactiveInterfaceVariablesTraverser traverser(symbolTable, attributes, inputVaryings,
-                                                        outputVariables, uniforms, interfaceBlocks);
+    RemoveInactiveInterfaceVariablesTraverser traverser(attributes, inputVaryings, outputVariables,
+                                                        uniforms, interfaceBlocks);
     root->traverse(&traverser);
     return traverser.updateTree(compiler, root);
 }

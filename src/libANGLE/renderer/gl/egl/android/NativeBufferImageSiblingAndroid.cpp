@@ -13,7 +13,7 @@
 namespace rx
 {
 NativeBufferImageSiblingAndroid::NativeBufferImageSiblingAndroid(EGLClientBuffer buffer)
-    : mBuffer(buffer), mFormat(GL_NONE), mYUV(false)
+    : mBuffer(buffer), mFormat(GL_NONE)
 {}
 
 NativeBufferImageSiblingAndroid::~NativeBufferImageSiblingAndroid() {}
@@ -25,7 +25,6 @@ egl::Error NativeBufferImageSiblingAndroid::initialize(const egl::Display *displ
         angle::android::ClientBufferToANativeWindowBuffer(mBuffer), &mSize.width, &mSize.height,
         &mSize.depth, &pixelFormat);
     mFormat = gl::Format(angle::android::NativePixelFormatToGLInternalFormat(pixelFormat));
-    mYUV    = angle::android::NativePixelFormatIsYUV(pixelFormat);
 
     return egl::NoError();
 }
@@ -43,11 +42,6 @@ bool NativeBufferImageSiblingAndroid::isRenderable(const gl::Context *context) c
 bool NativeBufferImageSiblingAndroid::isTexturable(const gl::Context *context) const
 {
     return true;
-}
-
-bool NativeBufferImageSiblingAndroid::isYUV() const
-{
-    return mYUV;
 }
 
 gl::Extents NativeBufferImageSiblingAndroid::getSize() const

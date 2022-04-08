@@ -34,8 +34,6 @@ void ImageVk::onDestroy(const egl::Display *display)
 
     if (mImage != nullptr && mOwnsImage)
     {
-        // TODO: We need to handle the case that EGLImage used in two context that aren't shared.
-        // https://issuetracker.google.com/169868803
         mImage->releaseImage(renderer);
         mImage->releaseStagingBuffer(renderer);
         SafeDelete(mImage);
@@ -47,11 +45,6 @@ void ImageVk::onDestroy(const egl::Display *display)
             GetImplAs<ExternalImageSiblingVk>(GetAs<egl::ExternalImageSibling>(mState.source));
         externalImageSibling->release(renderer);
         mImage = nullptr;
-
-        // This is called as a special case where resources may be allocated by the caller, without
-        // the caller ever issuing a draw command to free them. Specifically, SurfaceFlinger
-        // optimistically allocates EGLImages that it may never draw to.
-        renderer->cleanupCompletedCommandsGarbage();
     }
 }
 
@@ -74,7 +67,7 @@ egl::Error ImageVk::initialize(const egl::Display *display)
         mOwnsImage = false;
 
         mImageTextureType = mState.imageIndex.getType();
-        mImageLevel       = gl::LevelIndex(mState.imageIndex.getLevelIndex());
+        mImageLevel       = mState.imageIndex.getLevelIndex();
         mImageLayer       = mState.imageIndex.hasLayer() ? mState.imageIndex.getLayerIndex() : 0;
     }
     else
@@ -104,18 +97,14 @@ egl::Error ImageVk::initialize(const egl::Display *display)
             return egl::EglBadAccess();
         }
 
-        // start with some reasonable alignment that's safe for the case where intendedFormatID is
-        // FormatID::NONE
-        size_t alignment = mImage->getFormat().getValidImageCopyBufferAlignment();
-
         // Make sure a staging buffer is ready to use to upload data
-        mImage->initStagingBuffer(renderer, alignment, vk::kStagingBufferFlags,
+        mImage->initStagingBuffer(renderer, mImage->getFormat(), vk::kStagingBufferFlags,
                                   vk::kStagingBufferSize);
 
         mOwnsImage = false;
 
         mImageTextureType = gl::TextureType::_2D;
-        mImageLevel       = gl::LevelIndex(0);
+        mImageLevel       = 0;
         mImageLayer       = 0;
     }
 

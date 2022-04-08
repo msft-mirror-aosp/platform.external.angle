@@ -65,8 +65,9 @@ ProcessHandle::ProcessHandle() : mProcess(nullptr) {}
 ProcessHandle::ProcessHandle(Process *process) : mProcess(process) {}
 
 ProcessHandle::ProcessHandle(const std::vector<const char *> &args,
-                             ProcessOutputCapture captureOutput)
-    : mProcess(LaunchProcess(args, captureOutput))
+                             bool captureStdout,
+                             bool captureStderr)
+    : mProcess(LaunchProcess(args, captureStdout, captureStderr))
 {}
 
 ProcessHandle::~ProcessHandle()

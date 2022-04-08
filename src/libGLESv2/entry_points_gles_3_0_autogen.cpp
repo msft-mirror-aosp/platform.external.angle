@@ -10,29 +10,27 @@
 
 #include "libGLESv2/entry_points_gles_3_0_autogen.h"
 
-#include "common/entry_points_enum_autogen.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Context.inl.h"
-#include "libANGLE/capture/capture_gles_3_0_autogen.h"
-#include "libANGLE/capture/gl_enum_utils.h"
+#include "libANGLE/capture_gles_3_0_autogen.h"
 #include "libANGLE/entry_points_utils.h"
+#include "libANGLE/gl_enum_utils.h"
 #include "libANGLE/validationES3.h"
 #include "libGLESv2/global_state.h"
 
-using namespace gl;
-
-extern "C" {
-void GL_APIENTRY GL_BeginQuery(GLenum target, GLuint id)
+namespace gl
+{
+void GL_APIENTRY BeginQuery(GLenum target, GLuint id)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLBeginQuery, "context = %d, target = %s, id = %u", CID(context),
+    EVENT("glBeginQuery", "context = %d, GLenum target = %s, GLuint id = %u", CID(context),
           GLenumToString(GLenumGroup::QueryTarget, target), id);
 
     if (context)
     {
-        QueryType targetPacked                                = PackParam<QueryType>(target);
-        QueryID idPacked                                      = PackParam<QueryID>(id);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        QueryType targetPacked                                = FromGL<QueryType>(target);
+        QueryID idPacked                                      = FromGL<QueryID>(id);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateBeginQuery(context, targetPacked, idPacked));
         if (isCallValid)
@@ -41,22 +39,18 @@ void GL_APIENTRY GL_BeginQuery(GLenum target, GLuint id)
         }
         ANGLE_CAPTURE(BeginQuery, isCallValid, context, targetPacked, idPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_BeginTransformFeedback(GLenum primitiveMode)
+void GL_APIENTRY BeginTransformFeedback(GLenum primitiveMode)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLBeginTransformFeedback, "context = %d, primitiveMode = %s", CID(context),
+    EVENT("glBeginTransformFeedback", "context = %d, GLenum primitiveMode = %s", CID(context),
           GLenumToString(GLenumGroup::PrimitiveType, primitiveMode));
 
     if (context)
     {
-        PrimitiveMode primitiveModePacked = PackParam<PrimitiveMode>(primitiveMode);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        PrimitiveMode primitiveModePacked = FromGL<PrimitiveMode>(primitiveMode);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateBeginTransformFeedback(context, primitiveModePacked));
         if (isCallValid)
@@ -65,23 +59,20 @@ void GL_APIENTRY GL_BeginTransformFeedback(GLenum primitiveMode)
         }
         ANGLE_CAPTURE(BeginTransformFeedback, isCallValid, context, primitiveModePacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_BindBufferBase(GLenum target, GLuint index, GLuint buffer)
+void GL_APIENTRY BindBufferBase(GLenum target, GLuint index, GLuint buffer)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLBindBufferBase, "context = %d, target = %s, index = %u, buffer = %u",
-          CID(context), GLenumToString(GLenumGroup::BufferTargetARB, target), index, buffer);
+    EVENT("glBindBufferBase",
+          "context = %d, GLenum target = %s, GLuint index = %u, GLuint buffer = %u", CID(context),
+          GLenumToString(GLenumGroup::BufferTargetARB, target), index, buffer);
 
     if (context)
     {
-        BufferBinding targetPacked                            = PackParam<BufferBinding>(target);
-        BufferID bufferPacked                                 = PackParam<BufferID>(buffer);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        BufferBinding targetPacked                            = FromGL<BufferBinding>(target);
+        BufferID bufferPacked                                 = FromGL<BufferID>(buffer);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateBindBufferBase(context, targetPacked, index, bufferPacked));
         if (isCallValid)
@@ -90,26 +81,23 @@ void GL_APIENTRY GL_BindBufferBase(GLenum target, GLuint index, GLuint buffer)
         }
         ANGLE_CAPTURE(BindBufferBase, isCallValid, context, targetPacked, index, bufferPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
 void GL_APIENTRY
-GL_BindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
+BindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLBindBufferRange,
-          "context = %d, target = %s, index = %u, buffer = %u, offset = %llu, size = %llu",
+    EVENT("glBindBufferRange",
+          "context = %d, GLenum target = %s, GLuint index = %u, GLuint buffer = %u, GLintptr "
+          "offset = %llu, GLsizeiptr size = %llu",
           CID(context), GLenumToString(GLenumGroup::BufferTargetARB, target), index, buffer,
           static_cast<unsigned long long>(offset), static_cast<unsigned long long>(size));
 
     if (context)
     {
-        BufferBinding targetPacked                            = PackParam<BufferBinding>(target);
-        BufferID bufferPacked                                 = PackParam<BufferID>(buffer);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        BufferBinding targetPacked                            = FromGL<BufferBinding>(target);
+        BufferID bufferPacked                                 = FromGL<BufferID>(buffer);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateBindBufferRange(context, targetPacked, index, bufferPacked, offset, size));
@@ -120,22 +108,18 @@ GL_BindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, 
         ANGLE_CAPTURE(BindBufferRange, isCallValid, context, targetPacked, index, bufferPacked,
                       offset, size);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_BindSampler(GLuint unit, GLuint sampler)
+void GL_APIENTRY BindSampler(GLuint unit, GLuint sampler)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLBindSampler, "context = %d, unit = %u, sampler = %u", CID(context), unit,
-          sampler);
+    EVENT("glBindSampler", "context = %d, GLuint unit = %u, GLuint sampler = %u", CID(context),
+          unit, sampler);
 
     if (context)
     {
-        SamplerID samplerPacked                               = PackParam<SamplerID>(sampler);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        SamplerID samplerPacked                               = FromGL<SamplerID>(sampler);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateBindSampler(context, unit, samplerPacked));
         if (isCallValid)
@@ -144,22 +128,18 @@ void GL_APIENTRY GL_BindSampler(GLuint unit, GLuint sampler)
         }
         ANGLE_CAPTURE(BindSampler, isCallValid, context, unit, samplerPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_BindTransformFeedback(GLenum target, GLuint id)
+void GL_APIENTRY BindTransformFeedback(GLenum target, GLuint id)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLBindTransformFeedback, "context = %d, target = %s, id = %u", CID(context),
-          GLenumToString(GLenumGroup::BindTransformFeedbackTarget, target), id);
+    EVENT("glBindTransformFeedback", "context = %d, GLenum target = %s, GLuint id = %u",
+          CID(context), GLenumToString(GLenumGroup::BindTransformFeedbackTarget, target), id);
 
     if (context)
     {
-        TransformFeedbackID idPacked                          = PackParam<TransformFeedbackID>(id);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TransformFeedbackID idPacked                          = FromGL<TransformFeedbackID>(id);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateBindTransformFeedback(context, target, idPacked));
         if (isCallValid)
@@ -168,21 +148,17 @@ void GL_APIENTRY GL_BindTransformFeedback(GLenum target, GLuint id)
         }
         ANGLE_CAPTURE(BindTransformFeedback, isCallValid, context, target, idPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_BindVertexArray(GLuint array)
+void GL_APIENTRY BindVertexArray(GLuint array)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLBindVertexArray, "context = %d, array = %u", CID(context), array);
+    EVENT("glBindVertexArray", "context = %d, GLuint array = %u", CID(context), array);
 
     if (context)
     {
-        VertexArrayID arrayPacked                             = PackParam<VertexArrayID>(array);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        VertexArrayID arrayPacked                             = FromGL<VertexArrayID>(array);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateBindVertexArray(context, arrayPacked));
         if (isCallValid)
@@ -191,34 +167,31 @@ void GL_APIENTRY GL_BindVertexArray(GLuint array)
         }
         ANGLE_CAPTURE(BindVertexArray, isCallValid, context, arrayPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_BlitFramebuffer(GLint srcX0,
-                                    GLint srcY0,
-                                    GLint srcX1,
-                                    GLint srcY1,
-                                    GLint dstX0,
-                                    GLint dstY0,
-                                    GLint dstX1,
-                                    GLint dstY1,
-                                    GLbitfield mask,
-                                    GLenum filter)
+void GL_APIENTRY BlitFramebuffer(GLint srcX0,
+                                 GLint srcY0,
+                                 GLint srcX1,
+                                 GLint srcY1,
+                                 GLint dstX0,
+                                 GLint dstY0,
+                                 GLint dstX1,
+                                 GLint dstY1,
+                                 GLbitfield mask,
+                                 GLenum filter)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLBlitFramebuffer,
-          "context = %d, srcX0 = %d, srcY0 = %d, srcX1 = %d, srcY1 = %d, dstX0 = %d, dstY0 = %d, "
-          "dstX1 = %d, dstY1 = %d, mask = %s, filter = %s",
+    EVENT("glBlitFramebuffer",
+          "context = %d, GLint srcX0 = %d, GLint srcY0 = %d, GLint srcX1 = %d, GLint srcY1 = %d, "
+          "GLint dstX0 = %d, GLint dstY0 = %d, GLint dstX1 = %d, GLint dstY1 = %d, GLbitfield mask "
+          "= %s, GLenum filter = %s",
           CID(context), srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1,
           GLbitfieldToString(GLenumGroup::ClearBufferMask, mask).c_str(),
           GLenumToString(GLenumGroup::BlitFramebufferFilter, filter));
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateBlitFramebuffer(context, srcX0, srcY0, srcX1, srcY1, dstX0,
                                                     dstY0, dstX1, dstY1, mask, filter));
@@ -230,22 +203,19 @@ void GL_APIENTRY GL_BlitFramebuffer(GLint srcX0,
         ANGLE_CAPTURE(BlitFramebuffer, isCallValid, context, srcX0, srcY0, srcX1, srcY1, dstX0,
                       dstY0, dstX1, dstY1, mask, filter);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_ClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
+void GL_APIENTRY ClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLClearBufferfi,
-          "context = %d, buffer = %s, drawbuffer = %d, depth = %f, stencil = %d", CID(context),
-          GLenumToString(GLenumGroup::Buffer, buffer), drawbuffer, depth, stencil);
+    EVENT("glClearBufferfi",
+          "context = %d, GLenum buffer = %s, GLint drawbuffer = %d, GLfloat depth = %f, GLint "
+          "stencil = %d",
+          CID(context), GLenumToString(GLenumGroup::Buffer, buffer), drawbuffer, depth, stencil);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateClearBufferfi(context, buffer, drawbuffer, depth, stencil));
         if (isCallValid)
@@ -254,22 +224,19 @@ void GL_APIENTRY GL_ClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth
         }
         ANGLE_CAPTURE(ClearBufferfi, isCallValid, context, buffer, drawbuffer, depth, stencil);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_ClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
+void GL_APIENTRY ClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLClearBufferfv,
-          "context = %d, buffer = %s, drawbuffer = %d, value = 0x%016" PRIxPTR "", CID(context),
-          GLenumToString(GLenumGroup::Buffer, buffer), drawbuffer, (uintptr_t)value);
+    EVENT("glClearBufferfv",
+          "context = %d, GLenum buffer = %s, GLint drawbuffer = %d, const GLfloat *value = "
+          "0x%016" PRIxPTR "",
+          CID(context), GLenumToString(GLenumGroup::Buffer, buffer), drawbuffer, (uintptr_t)value);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateClearBufferfv(context, buffer, drawbuffer, value));
         if (isCallValid)
@@ -278,22 +245,19 @@ void GL_APIENTRY GL_ClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat
         }
         ANGLE_CAPTURE(ClearBufferfv, isCallValid, context, buffer, drawbuffer, value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_ClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
+void GL_APIENTRY ClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLClearBufferiv,
-          "context = %d, buffer = %s, drawbuffer = %d, value = 0x%016" PRIxPTR "", CID(context),
-          GLenumToString(GLenumGroup::Buffer, buffer), drawbuffer, (uintptr_t)value);
+    EVENT("glClearBufferiv",
+          "context = %d, GLenum buffer = %s, GLint drawbuffer = %d, const GLint *value = "
+          "0x%016" PRIxPTR "",
+          CID(context), GLenumToString(GLenumGroup::Buffer, buffer), drawbuffer, (uintptr_t)value);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateClearBufferiv(context, buffer, drawbuffer, value));
         if (isCallValid)
@@ -302,22 +266,19 @@ void GL_APIENTRY GL_ClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *
         }
         ANGLE_CAPTURE(ClearBufferiv, isCallValid, context, buffer, drawbuffer, value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_ClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
+void GL_APIENTRY ClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLClearBufferuiv,
-          "context = %d, buffer = %s, drawbuffer = %d, value = 0x%016" PRIxPTR "", CID(context),
-          GLenumToString(GLenumGroup::Buffer, buffer), drawbuffer, (uintptr_t)value);
+    EVENT("glClearBufferuiv",
+          "context = %d, GLenum buffer = %s, GLint drawbuffer = %d, const GLuint *value = "
+          "0x%016" PRIxPTR "",
+          CID(context), GLenumToString(GLenumGroup::Buffer, buffer), drawbuffer, (uintptr_t)value);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateClearBufferuiv(context, buffer, drawbuffer, value));
         if (isCallValid)
@@ -326,24 +287,22 @@ void GL_APIENTRY GL_ClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint
         }
         ANGLE_CAPTURE(ClearBufferuiv, isCallValid, context, buffer, drawbuffer, value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-GLenum GL_APIENTRY GL_ClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
+GLenum GL_APIENTRY ClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLClientWaitSync,
-          "context = %d, sync = 0x%016" PRIxPTR ", flags = %s, timeout = %llu", CID(context),
-          (uintptr_t)sync, GLbitfieldToString(GLenumGroup::SyncObjectMask, flags).c_str(),
+    EVENT("glClientWaitSync",
+          "context = %d, GLsync sync = 0x%016" PRIxPTR
+          ", GLbitfield flags = %s, GLuint64 timeout = %llu",
+          CID(context), (uintptr_t)sync,
+          GLbitfieldToString(GLenumGroup::SyncObjectMask, flags).c_str(),
           static_cast<unsigned long long>(timeout));
 
     GLenum returnValue;
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateClientWaitSync(context, sync, flags, timeout));
         if (isCallValid)
@@ -352,40 +311,40 @@ GLenum GL_APIENTRY GL_ClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 tim
         }
         else
         {
-            returnValue = GetDefaultReturnValue<angle::EntryPoint::GLClientWaitSync, GLenum>();
+            returnValue = GetDefaultReturnValue<EntryPoint::ClientWaitSync, GLenum>();
         }
         ANGLE_CAPTURE(ClientWaitSync, isCallValid, context, sync, flags, timeout, returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLClientWaitSync, GLenum>();
+        returnValue = GetDefaultReturnValue<EntryPoint::ClientWaitSync, GLenum>();
     }
     return returnValue;
 }
 
-void GL_APIENTRY GL_CompressedTexImage3D(GLenum target,
-                                         GLint level,
-                                         GLenum internalformat,
-                                         GLsizei width,
-                                         GLsizei height,
-                                         GLsizei depth,
-                                         GLint border,
-                                         GLsizei imageSize,
-                                         const void *data)
+void GL_APIENTRY CompressedTexImage3D(GLenum target,
+                                      GLint level,
+                                      GLenum internalformat,
+                                      GLsizei width,
+                                      GLsizei height,
+                                      GLsizei depth,
+                                      GLint border,
+                                      GLsizei imageSize,
+                                      const void *data)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLCompressedTexImage3D,
-          "context = %d, target = %s, level = %d, internalformat = %s, width = %d, height = %d, "
-          "depth = %d, border = %d, imageSize = %d, data = 0x%016" PRIxPTR "",
+    EVENT("glCompressedTexImage3D",
+          "context = %d, GLenum target = %s, GLint level = %d, GLenum internalformat = %s, GLsizei "
+          "width = %d, GLsizei height = %d, GLsizei depth = %d, GLint border = %d, GLsizei "
+          "imageSize = %d, const void *data = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLenumGroup::TextureTarget, target), level,
           GLenumToString(GLenumGroup::InternalFormat, internalformat), width, height, depth, border,
           imageSize, (uintptr_t)data);
 
     if (context)
     {
-        TextureTarget targetPacked                            = PackParam<TextureTarget>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TextureTarget targetPacked                            = FromGL<TextureTarget>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateCompressedTexImage3D(context, targetPacked, level, internalformat, width,
@@ -398,36 +357,33 @@ void GL_APIENTRY GL_CompressedTexImage3D(GLenum target,
         ANGLE_CAPTURE(CompressedTexImage3D, isCallValid, context, targetPacked, level,
                       internalformat, width, height, depth, border, imageSize, data);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_CompressedTexSubImage3D(GLenum target,
-                                            GLint level,
-                                            GLint xoffset,
-                                            GLint yoffset,
-                                            GLint zoffset,
-                                            GLsizei width,
-                                            GLsizei height,
-                                            GLsizei depth,
-                                            GLenum format,
-                                            GLsizei imageSize,
-                                            const void *data)
+void GL_APIENTRY CompressedTexSubImage3D(GLenum target,
+                                         GLint level,
+                                         GLint xoffset,
+                                         GLint yoffset,
+                                         GLint zoffset,
+                                         GLsizei width,
+                                         GLsizei height,
+                                         GLsizei depth,
+                                         GLenum format,
+                                         GLsizei imageSize,
+                                         const void *data)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLCompressedTexSubImage3D,
-          "context = %d, target = %s, level = %d, xoffset = %d, yoffset = %d, zoffset = %d, width "
-          "= %d, height = %d, depth = %d, format = %s, imageSize = %d, data = 0x%016" PRIxPTR "",
+    EVENT("glCompressedTexSubImage3D",
+          "context = %d, GLenum target = %s, GLint level = %d, GLint xoffset = %d, GLint yoffset = "
+          "%d, GLint zoffset = %d, GLsizei width = %d, GLsizei height = %d, GLsizei depth = %d, "
+          "GLenum format = %s, GLsizei imageSize = %d, const void *data = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLenumGroup::TextureTarget, target), level, xoffset, yoffset,
           zoffset, width, height, depth, GLenumToString(GLenumGroup::PixelFormat, format),
           imageSize, (uintptr_t)data);
 
     if (context)
     {
-        TextureTarget targetPacked                            = PackParam<TextureTarget>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TextureTarget targetPacked                            = FromGL<TextureTarget>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateCompressedTexSubImage3D(context, targetPacked, level, xoffset,
                                                             yoffset, zoffset, width, height, depth,
@@ -440,22 +396,18 @@ void GL_APIENTRY GL_CompressedTexSubImage3D(GLenum target,
         ANGLE_CAPTURE(CompressedTexSubImage3D, isCallValid, context, targetPacked, level, xoffset,
                       yoffset, zoffset, width, height, depth, format, imageSize, data);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_CopyBufferSubData(GLenum readTarget,
-                                      GLenum writeTarget,
-                                      GLintptr readOffset,
-                                      GLintptr writeOffset,
-                                      GLsizeiptr size)
+void GL_APIENTRY CopyBufferSubData(GLenum readTarget,
+                                   GLenum writeTarget,
+                                   GLintptr readOffset,
+                                   GLintptr writeOffset,
+                                   GLsizeiptr size)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLCopyBufferSubData,
-          "context = %d, readTarget = %s, writeTarget = %s, readOffset = %llu, writeOffset = %llu, "
-          "size = %llu",
+    EVENT("glCopyBufferSubData",
+          "context = %d, GLenum readTarget = %s, GLenum writeTarget = %s, GLintptr readOffset = "
+          "%llu, GLintptr writeOffset = %llu, GLsizeiptr size = %llu",
           CID(context), GLenumToString(GLenumGroup::CopyBufferSubDataTarget, readTarget),
           GLenumToString(GLenumGroup::CopyBufferSubDataTarget, writeTarget),
           static_cast<unsigned long long>(readOffset), static_cast<unsigned long long>(writeOffset),
@@ -463,9 +415,9 @@ void GL_APIENTRY GL_CopyBufferSubData(GLenum readTarget,
 
     if (context)
     {
-        BufferBinding readTargetPacked  = PackParam<BufferBinding>(readTarget);
-        BufferBinding writeTargetPacked = PackParam<BufferBinding>(writeTarget);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        BufferBinding readTargetPacked                        = FromGL<BufferBinding>(readTarget);
+        BufferBinding writeTargetPacked                       = FromGL<BufferBinding>(writeTarget);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateCopyBufferSubData(context, readTargetPacked, writeTargetPacked,
                                                       readOffset, writeOffset, size));
@@ -477,33 +429,30 @@ void GL_APIENTRY GL_CopyBufferSubData(GLenum readTarget,
         ANGLE_CAPTURE(CopyBufferSubData, isCallValid, context, readTargetPacked, writeTargetPacked,
                       readOffset, writeOffset, size);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_CopyTexSubImage3D(GLenum target,
-                                      GLint level,
-                                      GLint xoffset,
-                                      GLint yoffset,
-                                      GLint zoffset,
-                                      GLint x,
-                                      GLint y,
-                                      GLsizei width,
-                                      GLsizei height)
+void GL_APIENTRY CopyTexSubImage3D(GLenum target,
+                                   GLint level,
+                                   GLint xoffset,
+                                   GLint yoffset,
+                                   GLint zoffset,
+                                   GLint x,
+                                   GLint y,
+                                   GLsizei width,
+                                   GLsizei height)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLCopyTexSubImage3D,
-          "context = %d, target = %s, level = %d, xoffset = %d, yoffset = %d, zoffset = %d, x = "
-          "%d, y = %d, width = %d, height = %d",
+    EVENT("glCopyTexSubImage3D",
+          "context = %d, GLenum target = %s, GLint level = %d, GLint xoffset = %d, GLint yoffset = "
+          "%d, GLint zoffset = %d, GLint x = %d, GLint y = %d, GLsizei width = %d, GLsizei height "
+          "= %d",
           CID(context), GLenumToString(GLenumGroup::TextureTarget, target), level, xoffset, yoffset,
           zoffset, x, y, width, height);
 
     if (context)
     {
-        TextureTarget targetPacked                            = PackParam<TextureTarget>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TextureTarget targetPacked                            = FromGL<TextureTarget>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateCopyTexSubImage3D(context, targetPacked, level, xoffset,
                                                       yoffset, zoffset, x, y, width, height));
@@ -515,22 +464,18 @@ void GL_APIENTRY GL_CopyTexSubImage3D(GLenum target,
         ANGLE_CAPTURE(CopyTexSubImage3D, isCallValid, context, targetPacked, level, xoffset,
                       yoffset, zoffset, x, y, width, height);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_DeleteQueries(GLsizei n, const GLuint *ids)
+void GL_APIENTRY DeleteQueries(GLsizei n, const GLuint *ids)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLDeleteQueries, "context = %d, n = %d, ids = 0x%016" PRIxPTR "", CID(context),
-          n, (uintptr_t)ids);
+    EVENT("glDeleteQueries", "context = %d, GLsizei n = %d, const GLuint *ids = 0x%016" PRIxPTR "",
+          CID(context), n, (uintptr_t)ids);
 
     if (context)
     {
-        const QueryID *idsPacked                              = PackParam<const QueryID *>(ids);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        const QueryID *idsPacked                              = FromGL<const QueryID *>(ids);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateDeleteQueries(context, n, idsPacked));
         if (isCallValid)
@@ -539,22 +484,19 @@ void GL_APIENTRY GL_DeleteQueries(GLsizei n, const GLuint *ids)
         }
         ANGLE_CAPTURE(DeleteQueries, isCallValid, context, n, idsPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_DeleteSamplers(GLsizei count, const GLuint *samplers)
+void GL_APIENTRY DeleteSamplers(GLsizei count, const GLuint *samplers)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLDeleteSamplers, "context = %d, count = %d, samplers = 0x%016" PRIxPTR "",
+    EVENT("glDeleteSamplers",
+          "context = %d, GLsizei count = %d, const GLuint *samplers = 0x%016" PRIxPTR "",
           CID(context), count, (uintptr_t)samplers);
 
     if (context)
     {
-        const SamplerID *samplersPacked = PackParam<const SamplerID *>(samplers);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        const SamplerID *samplersPacked                       = FromGL<const SamplerID *>(samplers);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateDeleteSamplers(context, count, samplersPacked));
         if (isCallValid)
@@ -563,21 +505,17 @@ void GL_APIENTRY GL_DeleteSamplers(GLsizei count, const GLuint *samplers)
         }
         ANGLE_CAPTURE(DeleteSamplers, isCallValid, context, count, samplersPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_DeleteSync(GLsync sync)
+void GL_APIENTRY DeleteSync(GLsync sync)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLDeleteSync, "context = %d, sync = 0x%016" PRIxPTR "", CID(context),
+    EVENT("glDeleteSync", "context = %d, GLsync sync = 0x%016" PRIxPTR "", CID(context),
           (uintptr_t)sync);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateDeleteSync(context, sync));
         if (isCallValid)
         {
@@ -585,22 +523,19 @@ void GL_APIENTRY GL_DeleteSync(GLsync sync)
         }
         ANGLE_CAPTURE(DeleteSync, isCallValid, context, sync);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_DeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
+void GL_APIENTRY DeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLDeleteTransformFeedbacks, "context = %d, n = %d, ids = 0x%016" PRIxPTR "",
-          CID(context), n, (uintptr_t)ids);
+    EVENT("glDeleteTransformFeedbacks",
+          "context = %d, GLsizei n = %d, const GLuint *ids = 0x%016" PRIxPTR "", CID(context), n,
+          (uintptr_t)ids);
 
     if (context)
     {
-        const TransformFeedbackID *idsPacked = PackParam<const TransformFeedbackID *>(ids);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        const TransformFeedbackID *idsPacked = FromGL<const TransformFeedbackID *>(ids);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateDeleteTransformFeedbacks(context, n, idsPacked));
         if (isCallValid)
@@ -609,22 +544,19 @@ void GL_APIENTRY GL_DeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
         }
         ANGLE_CAPTURE(DeleteTransformFeedbacks, isCallValid, context, n, idsPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_DeleteVertexArrays(GLsizei n, const GLuint *arrays)
+void GL_APIENTRY DeleteVertexArrays(GLsizei n, const GLuint *arrays)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLDeleteVertexArrays, "context = %d, n = %d, arrays = 0x%016" PRIxPTR "",
-          CID(context), n, (uintptr_t)arrays);
+    EVENT("glDeleteVertexArrays",
+          "context = %d, GLsizei n = %d, const GLuint *arrays = 0x%016" PRIxPTR "", CID(context), n,
+          (uintptr_t)arrays);
 
     if (context)
     {
-        const VertexArrayID *arraysPacked = PackParam<const VertexArrayID *>(arrays);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        const VertexArrayID *arraysPacked = FromGL<const VertexArrayID *>(arrays);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateDeleteVertexArrays(context, n, arraysPacked));
         if (isCallValid)
@@ -633,26 +565,21 @@ void GL_APIENTRY GL_DeleteVertexArrays(GLsizei n, const GLuint *arrays)
         }
         ANGLE_CAPTURE(DeleteVertexArrays, isCallValid, context, n, arraysPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_DrawArraysInstanced(GLenum mode,
-                                        GLint first,
-                                        GLsizei count,
-                                        GLsizei instancecount)
+void GL_APIENTRY DrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLDrawArraysInstanced,
-          "context = %d, mode = %s, first = %d, count = %d, instancecount = %d", CID(context),
-          GLenumToString(GLenumGroup::PrimitiveType, mode), first, count, instancecount);
+    EVENT("glDrawArraysInstanced",
+          "context = %d, GLenum mode = %s, GLint first = %d, GLsizei count = %d, GLsizei "
+          "instancecount = %d",
+          CID(context), GLenumToString(GLenumGroup::PrimitiveType, mode), first, count,
+          instancecount);
 
     if (context)
     {
-        PrimitiveMode modePacked                              = PackParam<PrimitiveMode>(mode);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        PrimitiveMode modePacked                              = FromGL<PrimitiveMode>(mode);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateDrawArraysInstanced(context, modePacked, first, count, instancecount));
@@ -663,21 +590,17 @@ void GL_APIENTRY GL_DrawArraysInstanced(GLenum mode,
         ANGLE_CAPTURE(DrawArraysInstanced, isCallValid, context, modePacked, first, count,
                       instancecount);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_DrawBuffers(GLsizei n, const GLenum *bufs)
+void GL_APIENTRY DrawBuffers(GLsizei n, const GLenum *bufs)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLDrawBuffers, "context = %d, n = %d, bufs = 0x%016" PRIxPTR "", CID(context), n,
-          (uintptr_t)bufs);
+    EVENT("glDrawBuffers", "context = %d, GLsizei n = %d, const GLenum *bufs = 0x%016" PRIxPTR "",
+          CID(context), n, (uintptr_t)bufs);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateDrawBuffers(context, n, bufs));
         if (isCallValid)
         {
@@ -685,30 +608,26 @@ void GL_APIENTRY GL_DrawBuffers(GLsizei n, const GLenum *bufs)
         }
         ANGLE_CAPTURE(DrawBuffers, isCallValid, context, n, bufs);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_DrawElementsInstanced(GLenum mode,
-                                          GLsizei count,
-                                          GLenum type,
-                                          const void *indices,
-                                          GLsizei instancecount)
+void GL_APIENTRY DrawElementsInstanced(GLenum mode,
+                                       GLsizei count,
+                                       GLenum type,
+                                       const void *indices,
+                                       GLsizei instancecount)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLDrawElementsInstanced,
-          "context = %d, mode = %s, count = %d, type = %s, indices = 0x%016" PRIxPTR
-          ", instancecount = %d",
+    EVENT("glDrawElementsInstanced",
+          "context = %d, GLenum mode = %s, GLsizei count = %d, GLenum type = %s, const void "
+          "*indices = 0x%016" PRIxPTR ", GLsizei instancecount = %d",
           CID(context), GLenumToString(GLenumGroup::PrimitiveType, mode), count,
           GLenumToString(GLenumGroup::DrawElementsType, type), (uintptr_t)indices, instancecount);
 
     if (context)
     {
-        PrimitiveMode modePacked                              = PackParam<PrimitiveMode>(mode);
-        DrawElementsType typePacked                           = PackParam<DrawElementsType>(type);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        PrimitiveMode modePacked                              = FromGL<PrimitiveMode>(mode);
+        DrawElementsType typePacked                           = FromGL<DrawElementsType>(type);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateDrawElementsInstanced(context, modePacked, count, typePacked,
                                                           indices, instancecount));
@@ -719,31 +638,27 @@ void GL_APIENTRY GL_DrawElementsInstanced(GLenum mode,
         ANGLE_CAPTURE(DrawElementsInstanced, isCallValid, context, modePacked, count, typePacked,
                       indices, instancecount);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_DrawRangeElements(GLenum mode,
-                                      GLuint start,
-                                      GLuint end,
-                                      GLsizei count,
-                                      GLenum type,
-                                      const void *indices)
+void GL_APIENTRY DrawRangeElements(GLenum mode,
+                                   GLuint start,
+                                   GLuint end,
+                                   GLsizei count,
+                                   GLenum type,
+                                   const void *indices)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLDrawRangeElements,
-          "context = %d, mode = %s, start = %u, end = %u, count = %d, type = %s, indices = "
-          "0x%016" PRIxPTR "",
+    EVENT("glDrawRangeElements",
+          "context = %d, GLenum mode = %s, GLuint start = %u, GLuint end = %u, GLsizei count = %d, "
+          "GLenum type = %s, const void *indices = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLenumGroup::PrimitiveType, mode), start, end, count,
           GLenumToString(GLenumGroup::DrawElementsType, type), (uintptr_t)indices);
 
     if (context)
     {
-        PrimitiveMode modePacked                              = PackParam<PrimitiveMode>(mode);
-        DrawElementsType typePacked                           = PackParam<DrawElementsType>(type);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        PrimitiveMode modePacked                              = FromGL<PrimitiveMode>(mode);
+        DrawElementsType typePacked                           = FromGL<DrawElementsType>(type);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateDrawRangeElements(context, modePacked, start, end,
                                                                     count, typePacked, indices));
@@ -754,22 +669,18 @@ void GL_APIENTRY GL_DrawRangeElements(GLenum mode,
         ANGLE_CAPTURE(DrawRangeElements, isCallValid, context, modePacked, start, end, count,
                       typePacked, indices);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_EndQuery(GLenum target)
+void GL_APIENTRY EndQuery(GLenum target)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLEndQuery, "context = %d, target = %s", CID(context),
+    EVENT("glEndQuery", "context = %d, GLenum target = %s", CID(context),
           GLenumToString(GLenumGroup::QueryTarget, target));
 
     if (context)
     {
-        QueryType targetPacked                                = PackParam<QueryType>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        QueryType targetPacked                                = FromGL<QueryType>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateEndQuery(context, targetPacked));
         if (isCallValid)
         {
@@ -777,20 +688,16 @@ void GL_APIENTRY GL_EndQuery(GLenum target)
         }
         ANGLE_CAPTURE(EndQuery, isCallValid, context, targetPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_EndTransformFeedback()
+void GL_APIENTRY EndTransformFeedback()
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLEndTransformFeedback, "context = %d", CID(context));
+    EVENT("glEndTransformFeedback", "context = %d", CID(context));
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateEndTransformFeedback(context));
         if (isCallValid)
         {
@@ -798,23 +705,19 @@ void GL_APIENTRY GL_EndTransformFeedback()
         }
         ANGLE_CAPTURE(EndTransformFeedback, isCallValid, context);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-GLsync GL_APIENTRY GL_FenceSync(GLenum condition, GLbitfield flags)
+GLsync GL_APIENTRY FenceSync(GLenum condition, GLbitfield flags)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLFenceSync, "context = %d, condition = %s, flags = %s", CID(context),
+    EVENT("glFenceSync", "context = %d, GLenum condition = %s, GLbitfield flags = %s", CID(context),
           GLenumToString(GLenumGroup::SyncCondition, condition),
           GLbitfieldToString(GLenumGroup::DefaultGroup, flags).c_str());
 
     GLsync returnValue;
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateFenceSync(context, condition, flags));
         if (isCallValid)
@@ -823,30 +726,29 @@ GLsync GL_APIENTRY GL_FenceSync(GLenum condition, GLbitfield flags)
         }
         else
         {
-            returnValue = GetDefaultReturnValue<angle::EntryPoint::GLFenceSync, GLsync>();
+            returnValue = GetDefaultReturnValue<EntryPoint::FenceSync, GLsync>();
         }
         ANGLE_CAPTURE(FenceSync, isCallValid, context, condition, flags, returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLFenceSync, GLsync>();
+        returnValue = GetDefaultReturnValue<EntryPoint::FenceSync, GLsync>();
     }
     return returnValue;
 }
 
-void GL_APIENTRY GL_FlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
+void GL_APIENTRY FlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLFlushMappedBufferRange,
-          "context = %d, target = %s, offset = %llu, length = %llu", CID(context),
-          GLenumToString(GLenumGroup::BufferTargetARB, target),
+    EVENT("glFlushMappedBufferRange",
+          "context = %d, GLenum target = %s, GLintptr offset = %llu, GLsizeiptr length = %llu",
+          CID(context), GLenumToString(GLenumGroup::BufferTargetARB, target),
           static_cast<unsigned long long>(offset), static_cast<unsigned long long>(length));
 
     if (context)
     {
-        BufferBinding targetPacked                            = PackParam<BufferBinding>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        BufferBinding targetPacked                            = FromGL<BufferBinding>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateFlushMappedBufferRange(context, targetPacked, offset, length));
         if (isCallValid)
@@ -855,28 +757,22 @@ void GL_APIENTRY GL_FlushMappedBufferRange(GLenum target, GLintptr offset, GLsiz
         }
         ANGLE_CAPTURE(FlushMappedBufferRange, isCallValid, context, targetPacked, offset, length);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_FramebufferTextureLayer(GLenum target,
-                                            GLenum attachment,
-                                            GLuint texture,
-                                            GLint level,
-                                            GLint layer)
+void GL_APIENTRY
+FramebufferTextureLayer(GLenum target, GLenum attachment, GLuint texture, GLint level, GLint layer)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLFramebufferTextureLayer,
-          "context = %d, target = %s, attachment = %s, texture = %u, level = %d, layer = %d",
+    EVENT("glFramebufferTextureLayer",
+          "context = %d, GLenum target = %s, GLenum attachment = %s, GLuint texture = %u, GLint "
+          "level = %d, GLint layer = %d",
           CID(context), GLenumToString(GLenumGroup::FramebufferTarget, target),
           GLenumToString(GLenumGroup::FramebufferAttachment, attachment), texture, level, layer);
 
     if (context)
     {
-        TextureID texturePacked                               = PackParam<TextureID>(texture);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TextureID texturePacked                               = FromGL<TextureID>(texture);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateFramebufferTextureLayer(context, target, attachment,
                                                             texturePacked, level, layer));
@@ -887,22 +783,18 @@ void GL_APIENTRY GL_FramebufferTextureLayer(GLenum target,
         ANGLE_CAPTURE(FramebufferTextureLayer, isCallValid, context, target, attachment,
                       texturePacked, level, layer);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GenQueries(GLsizei n, GLuint *ids)
+void GL_APIENTRY GenQueries(GLsizei n, GLuint *ids)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGenQueries, "context = %d, n = %d, ids = 0x%016" PRIxPTR "", CID(context), n,
-          (uintptr_t)ids);
+    EVENT("glGenQueries", "context = %d, GLsizei n = %d, GLuint *ids = 0x%016" PRIxPTR "",
+          CID(context), n, (uintptr_t)ids);
 
     if (context)
     {
-        QueryID *idsPacked                                    = PackParam<QueryID *>(ids);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        QueryID *idsPacked                                    = FromGL<QueryID *>(ids);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateGenQueries(context, n, idsPacked));
         if (isCallValid)
         {
@@ -910,22 +802,18 @@ void GL_APIENTRY GL_GenQueries(GLsizei n, GLuint *ids)
         }
         ANGLE_CAPTURE(GenQueries, isCallValid, context, n, idsPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GenSamplers(GLsizei count, GLuint *samplers)
+void GL_APIENTRY GenSamplers(GLsizei count, GLuint *samplers)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGenSamplers, "context = %d, count = %d, samplers = 0x%016" PRIxPTR "",
+    EVENT("glGenSamplers", "context = %d, GLsizei count = %d, GLuint *samplers = 0x%016" PRIxPTR "",
           CID(context), count, (uintptr_t)samplers);
 
     if (context)
     {
-        SamplerID *samplersPacked                             = PackParam<SamplerID *>(samplers);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        SamplerID *samplersPacked                             = FromGL<SamplerID *>(samplers);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateGenSamplers(context, count, samplersPacked));
         if (isCallValid)
@@ -934,22 +822,19 @@ void GL_APIENTRY GL_GenSamplers(GLsizei count, GLuint *samplers)
         }
         ANGLE_CAPTURE(GenSamplers, isCallValid, context, count, samplersPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GenTransformFeedbacks(GLsizei n, GLuint *ids)
+void GL_APIENTRY GenTransformFeedbacks(GLsizei n, GLuint *ids)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGenTransformFeedbacks, "context = %d, n = %d, ids = 0x%016" PRIxPTR "",
-          CID(context), n, (uintptr_t)ids);
+    EVENT("glGenTransformFeedbacks",
+          "context = %d, GLsizei n = %d, GLuint *ids = 0x%016" PRIxPTR "", CID(context), n,
+          (uintptr_t)ids);
 
     if (context)
     {
-        TransformFeedbackID *idsPacked = PackParam<TransformFeedbackID *>(ids);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TransformFeedbackID *idsPacked                        = FromGL<TransformFeedbackID *>(ids);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateGenTransformFeedbacks(context, n, idsPacked));
         if (isCallValid)
@@ -958,22 +843,18 @@ void GL_APIENTRY GL_GenTransformFeedbacks(GLsizei n, GLuint *ids)
         }
         ANGLE_CAPTURE(GenTransformFeedbacks, isCallValid, context, n, idsPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GenVertexArrays(GLsizei n, GLuint *arrays)
+void GL_APIENTRY GenVertexArrays(GLsizei n, GLuint *arrays)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGenVertexArrays, "context = %d, n = %d, arrays = 0x%016" PRIxPTR "",
+    EVENT("glGenVertexArrays", "context = %d, GLsizei n = %d, GLuint *arrays = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)arrays);
 
     if (context)
     {
-        VertexArrayID *arraysPacked                           = PackParam<VertexArrayID *>(arrays);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        VertexArrayID *arraysPacked                           = FromGL<VertexArrayID *>(arrays);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateGenVertexArrays(context, n, arraysPacked));
         if (isCallValid)
@@ -982,99 +863,85 @@ void GL_APIENTRY GL_GenVertexArrays(GLsizei n, GLuint *arrays)
         }
         ANGLE_CAPTURE(GenVertexArrays, isCallValid, context, n, arraysPacked);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetActiveUniformBlockName(GLuint program,
-                                              GLuint uniformBlockIndex,
-                                              GLsizei bufSize,
-                                              GLsizei *length,
-                                              GLchar *uniformBlockName)
+void GL_APIENTRY GetActiveUniformBlockName(GLuint program,
+                                           GLuint uniformBlockIndex,
+                                           GLsizei bufSize,
+                                           GLsizei *length,
+                                           GLchar *uniformBlockName)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(
-        context, GLGetActiveUniformBlockName,
-        "context = %d, program = %u, uniformBlockIndex = %u, bufSize = %d, length = 0x%016" PRIxPTR
-        ", uniformBlockName = 0x%016" PRIxPTR "",
-        CID(context), program, uniformBlockIndex, bufSize, (uintptr_t)length,
-        (uintptr_t)uniformBlockName);
+    EVENT("glGetActiveUniformBlockName",
+          "context = %d, GLuint program = %u, GLuint uniformBlockIndex = %u, GLsizei bufSize = %d, "
+          "GLsizei *length = 0x%016" PRIxPTR ", GLchar *uniformBlockName = 0x%016" PRIxPTR "",
+          CID(context), program, uniformBlockIndex, bufSize, (uintptr_t)length,
+          (uintptr_t)uniformBlockName);
 
     if (context)
     {
-        ShaderProgramID programPacked             = PackParam<ShaderProgramID>(program);
-        UniformBlockIndex uniformBlockIndexPacked = PackParam<UniformBlockIndex>(uniformBlockIndex);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
-             ValidateGetActiveUniformBlockName(context, programPacked, uniformBlockIndexPacked,
-                                               bufSize, length, uniformBlockName));
+             ValidateGetActiveUniformBlockName(context, programPacked, uniformBlockIndex, bufSize,
+                                               length, uniformBlockName));
         if (isCallValid)
         {
-            context->getActiveUniformBlockName(programPacked, uniformBlockIndexPacked, bufSize,
-                                               length, uniformBlockName);
+            context->getActiveUniformBlockName(programPacked, uniformBlockIndex, bufSize, length,
+                                               uniformBlockName);
         }
         ANGLE_CAPTURE(GetActiveUniformBlockName, isCallValid, context, programPacked,
-                      uniformBlockIndexPacked, bufSize, length, uniformBlockName);
-    }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
+                      uniformBlockIndex, bufSize, length, uniformBlockName);
     }
 }
 
-void GL_APIENTRY GL_GetActiveUniformBlockiv(GLuint program,
-                                            GLuint uniformBlockIndex,
-                                            GLenum pname,
-                                            GLint *params)
+void GL_APIENTRY GetActiveUniformBlockiv(GLuint program,
+                                         GLuint uniformBlockIndex,
+                                         GLenum pname,
+                                         GLint *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetActiveUniformBlockiv,
-          "context = %d, program = %u, uniformBlockIndex = %u, pname = %s, params = 0x%016" PRIxPTR
-          "",
+    EVENT("glGetActiveUniformBlockiv",
+          "context = %d, GLuint program = %u, GLuint uniformBlockIndex = %u, GLenum pname = %s, "
+          "GLint *params = 0x%016" PRIxPTR "",
           CID(context), program, uniformBlockIndex,
           GLenumToString(GLenumGroup::UniformBlockPName, pname), (uintptr_t)params);
 
     if (context)
     {
-        ShaderProgramID programPacked             = PackParam<ShaderProgramID>(program);
-        UniformBlockIndex uniformBlockIndexPacked = PackParam<UniformBlockIndex>(uniformBlockIndex);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
-                            ValidateGetActiveUniformBlockiv(
-                                context, programPacked, uniformBlockIndexPacked, pname, params));
+                            ValidateGetActiveUniformBlockiv(context, programPacked,
+                                                            uniformBlockIndex, pname, params));
         if (isCallValid)
         {
-            context->getActiveUniformBlockiv(programPacked, uniformBlockIndexPacked, pname, params);
+            context->getActiveUniformBlockiv(programPacked, uniformBlockIndex, pname, params);
         }
         ANGLE_CAPTURE(GetActiveUniformBlockiv, isCallValid, context, programPacked,
-                      uniformBlockIndexPacked, pname, params);
-    }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
+                      uniformBlockIndex, pname, params);
     }
 }
 
-void GL_APIENTRY GL_GetActiveUniformsiv(GLuint program,
-                                        GLsizei uniformCount,
-                                        const GLuint *uniformIndices,
-                                        GLenum pname,
-                                        GLint *params)
+void GL_APIENTRY GetActiveUniformsiv(GLuint program,
+                                     GLsizei uniformCount,
+                                     const GLuint *uniformIndices,
+                                     GLenum pname,
+                                     GLint *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetActiveUniformsiv,
-          "context = %d, program = %u, uniformCount = %d, uniformIndices = 0x%016" PRIxPTR
-          ", pname = %s, params = 0x%016" PRIxPTR "",
+    EVENT("glGetActiveUniformsiv",
+          "context = %d, GLuint program = %u, GLsizei uniformCount = %d, const GLuint "
+          "*uniformIndices = 0x%016" PRIxPTR ", GLenum pname = %s, GLint *params = 0x%016" PRIxPTR
+          "",
           CID(context), program, uniformCount, (uintptr_t)uniformIndices,
           GLenumToString(GLenumGroup::UniformPName, pname), (uintptr_t)params);
 
     if (context)
     {
-        ShaderProgramID programPacked                         = PackParam<ShaderProgramID>(program);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetActiveUniformsiv(context, programPacked, uniformCount,
                                                         uniformIndices, pname, params));
@@ -1086,24 +953,21 @@ void GL_APIENTRY GL_GetActiveUniformsiv(GLuint program,
         ANGLE_CAPTURE(GetActiveUniformsiv, isCallValid, context, programPacked, uniformCount,
                       uniformIndices, pname, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetBufferParameteri64v(GLenum target, GLenum pname, GLint64 *params)
+void GL_APIENTRY GetBufferParameteri64v(GLenum target, GLenum pname, GLint64 *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetBufferParameteri64v,
-          "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
-          GLenumToString(GLenumGroup::BufferTargetARB, target),
+    EVENT("glGetBufferParameteri64v",
+          "context = %d, GLenum target = %s, GLenum pname = %s, GLint64 *params = 0x%016" PRIxPTR
+          "",
+          CID(context), GLenumToString(GLenumGroup::BufferTargetARB, target),
           GLenumToString(GLenumGroup::DefaultGroup, pname), (uintptr_t)params);
 
     if (context)
     {
-        BufferBinding targetPacked                            = PackParam<BufferBinding>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        BufferBinding targetPacked                            = FromGL<BufferBinding>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetBufferParameteri64v(context, targetPacked, pname, params));
         if (isCallValid)
@@ -1112,24 +976,20 @@ void GL_APIENTRY GL_GetBufferParameteri64v(GLenum target, GLenum pname, GLint64 
         }
         ANGLE_CAPTURE(GetBufferParameteri64v, isCallValid, context, targetPacked, pname, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetBufferPointerv(GLenum target, GLenum pname, void **params)
+void GL_APIENTRY GetBufferPointerv(GLenum target, GLenum pname, void **params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetBufferPointerv,
-          "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
-          GLenumToString(GLenumGroup::BufferTargetARB, target),
+    EVENT("glGetBufferPointerv",
+          "context = %d, GLenum target = %s, GLenum pname = %s, void **params = 0x%016" PRIxPTR "",
+          CID(context), GLenumToString(GLenumGroup::BufferTargetARB, target),
           GLenumToString(GLenumGroup::DefaultGroup, pname), (uintptr_t)params);
 
     if (context)
     {
-        BufferBinding targetPacked                            = PackParam<BufferBinding>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        BufferBinding targetPacked                            = FromGL<BufferBinding>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetBufferPointerv(context, targetPacked, pname, params));
         if (isCallValid)
@@ -1138,23 +998,20 @@ void GL_APIENTRY GL_GetBufferPointerv(GLenum target, GLenum pname, void **params
         }
         ANGLE_CAPTURE(GetBufferPointerv, isCallValid, context, targetPacked, pname, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-GLint GL_APIENTRY GL_GetFragDataLocation(GLuint program, const GLchar *name)
+GLint GL_APIENTRY GetFragDataLocation(GLuint program, const GLchar *name)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetFragDataLocation, "context = %d, program = %u, name = 0x%016" PRIxPTR "",
-          CID(context), program, (uintptr_t)name);
+    EVENT("glGetFragDataLocation",
+          "context = %d, GLuint program = %u, const GLchar *name = 0x%016" PRIxPTR "", CID(context),
+          program, (uintptr_t)name);
 
     GLint returnValue;
     if (context)
     {
-        ShaderProgramID programPacked                         = PackParam<ShaderProgramID>(program);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetFragDataLocation(context, programPacked, name));
         if (isCallValid)
@@ -1163,28 +1020,27 @@ GLint GL_APIENTRY GL_GetFragDataLocation(GLuint program, const GLchar *name)
         }
         else
         {
-            returnValue = GetDefaultReturnValue<angle::EntryPoint::GLGetFragDataLocation, GLint>();
+            returnValue = GetDefaultReturnValue<EntryPoint::GetFragDataLocation, GLint>();
         }
         ANGLE_CAPTURE(GetFragDataLocation, isCallValid, context, programPacked, name, returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLGetFragDataLocation, GLint>();
+        returnValue = GetDefaultReturnValue<EntryPoint::GetFragDataLocation, GLint>();
     }
     return returnValue;
 }
 
-void GL_APIENTRY GL_GetInteger64i_v(GLenum target, GLuint index, GLint64 *data)
+void GL_APIENTRY GetInteger64i_v(GLenum target, GLuint index, GLint64 *data)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetInteger64i_v,
-          "context = %d, target = %s, index = %u, data = 0x%016" PRIxPTR "", CID(context),
-          GLenumToString(GLenumGroup::TypeEnum, target), index, (uintptr_t)data);
+    EVENT("glGetInteger64i_v",
+          "context = %d, GLenum target = %s, GLuint index = %u, GLint64 *data = 0x%016" PRIxPTR "",
+          CID(context), GLenumToString(GLenumGroup::TypeEnum, target), index, (uintptr_t)data);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateGetInteger64i_v(context, target, index, data));
         if (isCallValid)
@@ -1193,21 +1049,17 @@ void GL_APIENTRY GL_GetInteger64i_v(GLenum target, GLuint index, GLint64 *data)
         }
         ANGLE_CAPTURE(GetInteger64i_v, isCallValid, context, target, index, data);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetInteger64v(GLenum pname, GLint64 *data)
+void GL_APIENTRY GetInteger64v(GLenum pname, GLint64 *data)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetInteger64v, "context = %d, pname = %s, data = 0x%016" PRIxPTR "",
+    EVENT("glGetInteger64v", "context = %d, GLenum pname = %s, GLint64 *data = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLenumGroup::GetPName, pname), (uintptr_t)data);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateGetInteger64v(context, pname, data));
         if (isCallValid)
@@ -1216,22 +1068,18 @@ void GL_APIENTRY GL_GetInteger64v(GLenum pname, GLint64 *data)
         }
         ANGLE_CAPTURE(GetInteger64v, isCallValid, context, pname, data);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetIntegeri_v(GLenum target, GLuint index, GLint *data)
+void GL_APIENTRY GetIntegeri_v(GLenum target, GLuint index, GLint *data)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetIntegeri_v,
-          "context = %d, target = %s, index = %u, data = 0x%016" PRIxPTR "", CID(context),
-          GLenumToString(GLenumGroup::TypeEnum, target), index, (uintptr_t)data);
+    EVENT("glGetIntegeri_v",
+          "context = %d, GLenum target = %s, GLuint index = %u, GLint *data = 0x%016" PRIxPTR "",
+          CID(context), GLenumToString(GLenumGroup::TypeEnum, target), index, (uintptr_t)data);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateGetIntegeri_v(context, target, index, data));
         if (isCallValid)
@@ -1240,29 +1088,25 @@ void GL_APIENTRY GL_GetIntegeri_v(GLenum target, GLuint index, GLint *data)
         }
         ANGLE_CAPTURE(GetIntegeri_v, isCallValid, context, target, index, data);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetInternalformativ(GLenum target,
-                                        GLenum internalformat,
-                                        GLenum pname,
-                                        GLsizei bufSize,
-                                        GLint *params)
+void GL_APIENTRY GetInternalformativ(GLenum target,
+                                     GLenum internalformat,
+                                     GLenum pname,
+                                     GLsizei bufSize,
+                                     GLint *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetInternalformativ,
-          "context = %d, target = %s, internalformat = %s, pname = %s, bufSize = %d, params = "
-          "0x%016" PRIxPTR "",
+    EVENT("glGetInternalformativ",
+          "context = %d, GLenum target = %s, GLenum internalformat = %s, GLenum pname = %s, "
+          "GLsizei bufSize = %d, GLint *params = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLenumGroup::TextureTarget, target),
           GLenumToString(GLenumGroup::InternalFormat, internalformat),
           GLenumToString(GLenumGroup::InternalFormatPName, pname), bufSize, (uintptr_t)params);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateGetInternalformativ(context, target, internalformat, pname, bufSize, params));
@@ -1273,29 +1117,26 @@ void GL_APIENTRY GL_GetInternalformativ(GLenum target,
         ANGLE_CAPTURE(GetInternalformativ, isCallValid, context, target, internalformat, pname,
                       bufSize, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetProgramBinary(GLuint program,
-                                     GLsizei bufSize,
-                                     GLsizei *length,
-                                     GLenum *binaryFormat,
-                                     void *binary)
+void GL_APIENTRY GetProgramBinary(GLuint program,
+                                  GLsizei bufSize,
+                                  GLsizei *length,
+                                  GLenum *binaryFormat,
+                                  void *binary)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetProgramBinary,
-          "context = %d, program = %u, bufSize = %d, length = 0x%016" PRIxPTR
-          ", binaryFormat = 0x%016" PRIxPTR ", binary = 0x%016" PRIxPTR "",
-          CID(context), program, bufSize, (uintptr_t)length, (uintptr_t)binaryFormat,
-          (uintptr_t)binary);
+    EVENT(
+        "glGetProgramBinary",
+        "context = %d, GLuint program = %u, GLsizei bufSize = %d, GLsizei *length = 0x%016" PRIxPTR
+        ", GLenum *binaryFormat = 0x%016" PRIxPTR ", void *binary = 0x%016" PRIxPTR "",
+        CID(context), program, bufSize, (uintptr_t)length, (uintptr_t)binaryFormat,
+        (uintptr_t)binary);
 
     if (context)
     {
-        ShaderProgramID programPacked                         = PackParam<ShaderProgramID>(program);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateGetProgramBinary(context, programPacked, bufSize,
                                                                    length, binaryFormat, binary));
@@ -1306,23 +1147,20 @@ void GL_APIENTRY GL_GetProgramBinary(GLuint program,
         ANGLE_CAPTURE(GetProgramBinary, isCallValid, context, programPacked, bufSize, length,
                       binaryFormat, binary);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
+void GL_APIENTRY GetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetQueryObjectuiv,
-          "context = %d, id = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context), id,
-          GLenumToString(GLenumGroup::QueryObjectParameterName, pname), (uintptr_t)params);
+    EVENT("glGetQueryObjectuiv",
+          "context = %d, GLuint id = %u, GLenum pname = %s, GLuint *params = 0x%016" PRIxPTR "",
+          CID(context), id, GLenumToString(GLenumGroup::QueryObjectParameterName, pname),
+          (uintptr_t)params);
 
     if (context)
     {
-        QueryID idPacked                                      = PackParam<QueryID>(id);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        QueryID idPacked                                      = FromGL<QueryID>(id);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetQueryObjectuiv(context, idPacked, pname, params));
         if (isCallValid)
@@ -1331,24 +1169,20 @@ void GL_APIENTRY GL_GetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
         }
         ANGLE_CAPTURE(GetQueryObjectuiv, isCallValid, context, idPacked, pname, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetQueryiv(GLenum target, GLenum pname, GLint *params)
+void GL_APIENTRY GetQueryiv(GLenum target, GLenum pname, GLint *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetQueryiv,
-          "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
-          GLenumToString(GLenumGroup::QueryTarget, target),
+    EVENT("glGetQueryiv",
+          "context = %d, GLenum target = %s, GLenum pname = %s, GLint *params = 0x%016" PRIxPTR "",
+          CID(context), GLenumToString(GLenumGroup::QueryTarget, target),
           GLenumToString(GLenumGroup::QueryParameterName, pname), (uintptr_t)params);
 
     if (context)
     {
-        QueryType targetPacked                                = PackParam<QueryType>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        QueryType targetPacked                                = FromGL<QueryType>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateGetQueryiv(context, targetPacked, pname, params));
         if (isCallValid)
@@ -1357,23 +1191,21 @@ void GL_APIENTRY GL_GetQueryiv(GLenum target, GLenum pname, GLint *params)
         }
         ANGLE_CAPTURE(GetQueryiv, isCallValid, context, targetPacked, pname, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetSamplerParameterfv(GLuint sampler, GLenum pname, GLfloat *params)
+void GL_APIENTRY GetSamplerParameterfv(GLuint sampler, GLenum pname, GLfloat *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetSamplerParameterfv,
-          "context = %d, sampler = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
-          sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname), (uintptr_t)params);
+    EVENT("glGetSamplerParameterfv",
+          "context = %d, GLuint sampler = %u, GLenum pname = %s, GLfloat *params = 0x%016" PRIxPTR
+          "",
+          CID(context), sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname),
+          (uintptr_t)params);
 
     if (context)
     {
-        SamplerID samplerPacked                               = PackParam<SamplerID>(sampler);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        SamplerID samplerPacked                               = FromGL<SamplerID>(sampler);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetSamplerParameterfv(context, samplerPacked, pname, params));
         if (isCallValid)
@@ -1382,23 +1214,20 @@ void GL_APIENTRY GL_GetSamplerParameterfv(GLuint sampler, GLenum pname, GLfloat 
         }
         ANGLE_CAPTURE(GetSamplerParameterfv, isCallValid, context, samplerPacked, pname, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
+void GL_APIENTRY GetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetSamplerParameteriv,
-          "context = %d, sampler = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
-          sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname), (uintptr_t)params);
+    EVENT("glGetSamplerParameteriv",
+          "context = %d, GLuint sampler = %u, GLenum pname = %s, GLint *params = 0x%016" PRIxPTR "",
+          CID(context), sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname),
+          (uintptr_t)params);
 
     if (context)
     {
-        SamplerID samplerPacked                               = PackParam<SamplerID>(sampler);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        SamplerID samplerPacked                               = FromGL<SamplerID>(sampler);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetSamplerParameteriv(context, samplerPacked, pname, params));
         if (isCallValid)
@@ -1407,22 +1236,18 @@ void GL_APIENTRY GL_GetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *p
         }
         ANGLE_CAPTURE(GetSamplerParameteriv, isCallValid, context, samplerPacked, pname, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-const GLubyte *GL_APIENTRY GL_GetStringi(GLenum name, GLuint index)
+const GLubyte *GL_APIENTRY GetStringi(GLenum name, GLuint index)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetStringi, "context = %d, name = %s, index = %u", CID(context),
+    EVENT("glGetStringi", "context = %d, GLenum name = %s, GLuint index = %u", CID(context),
           GLenumToString(GLenumGroup::StringName, name), index);
 
     const GLubyte *returnValue;
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateGetStringi(context, name, index));
         if (isCallValid)
         {
@@ -1430,31 +1255,31 @@ const GLubyte *GL_APIENTRY GL_GetStringi(GLenum name, GLuint index)
         }
         else
         {
-            returnValue = GetDefaultReturnValue<angle::EntryPoint::GLGetStringi, const GLubyte *>();
+            returnValue = GetDefaultReturnValue<EntryPoint::GetStringi, const GLubyte *>();
         }
         ANGLE_CAPTURE(GetStringi, isCallValid, context, name, index, returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLGetStringi, const GLubyte *>();
+        returnValue = GetDefaultReturnValue<EntryPoint::GetStringi, const GLubyte *>();
     }
     return returnValue;
 }
 
 void GL_APIENTRY
-GL_GetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length, GLint *values)
+GetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length, GLint *values)
 {
     Context *context = GetGlobalContext();
-    EVENT(context, GLGetSynciv,
-          "context = %d, sync = 0x%016" PRIxPTR
-          ", pname = %s, bufSize = %d, length = 0x%016" PRIxPTR ", values = 0x%016" PRIxPTR "",
+    EVENT("glGetSynciv",
+          "context = %d, GLsync sync = 0x%016" PRIxPTR
+          ", GLenum pname = %s, GLsizei bufSize = %d, GLsizei *length = 0x%016" PRIxPTR
+          ", GLint *values = 0x%016" PRIxPTR "",
           CID(context), (uintptr_t)sync, GLenumToString(GLenumGroup::SyncParameterName, pname),
           bufSize, (uintptr_t)length, (uintptr_t)values);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetSynciv(context, sync, pname, bufSize, length, values));
         if (isCallValid)
@@ -1463,29 +1288,28 @@ GL_GetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length, GLint 
         }
         ANGLE_CAPTURE(GetSynciv, isCallValid, context, sync, pname, bufSize, length, values);
     }
-    else
-    {}
 }
 
-void GL_APIENTRY GL_GetTransformFeedbackVarying(GLuint program,
-                                                GLuint index,
-                                                GLsizei bufSize,
-                                                GLsizei *length,
-                                                GLsizei *size,
-                                                GLenum *type,
-                                                GLchar *name)
+void GL_APIENTRY GetTransformFeedbackVarying(GLuint program,
+                                             GLuint index,
+                                             GLsizei bufSize,
+                                             GLsizei *length,
+                                             GLsizei *size,
+                                             GLenum *type,
+                                             GLchar *name)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetTransformFeedbackVarying,
-          "context = %d, program = %u, index = %u, bufSize = %d, length = 0x%016" PRIxPTR
-          ", size = 0x%016" PRIxPTR ", type = 0x%016" PRIxPTR ", name = 0x%016" PRIxPTR "",
+    EVENT("glGetTransformFeedbackVarying",
+          "context = %d, GLuint program = %u, GLuint index = %u, GLsizei bufSize = %d, GLsizei "
+          "*length = 0x%016" PRIxPTR ", GLsizei *size = 0x%016" PRIxPTR
+          ", GLenum *type = 0x%016" PRIxPTR ", GLchar *name = 0x%016" PRIxPTR "",
           CID(context), program, index, bufSize, (uintptr_t)length, (uintptr_t)size,
           (uintptr_t)type, (uintptr_t)name);
 
     if (context)
     {
-        ShaderProgramID programPacked                         = PackParam<ShaderProgramID>(program);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetTransformFeedbackVarying(context, programPacked, index,
                                                                 bufSize, length, size, type, name));
@@ -1497,24 +1321,20 @@ void GL_APIENTRY GL_GetTransformFeedbackVarying(GLuint program,
         ANGLE_CAPTURE(GetTransformFeedbackVarying, isCallValid, context, programPacked, index,
                       bufSize, length, size, type, name);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-GLuint GL_APIENTRY GL_GetUniformBlockIndex(GLuint program, const GLchar *uniformBlockName)
+GLuint GL_APIENTRY GetUniformBlockIndex(GLuint program, const GLchar *uniformBlockName)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetUniformBlockIndex,
-          "context = %d, program = %u, uniformBlockName = 0x%016" PRIxPTR "", CID(context), program,
-          (uintptr_t)uniformBlockName);
+    EVENT("glGetUniformBlockIndex",
+          "context = %d, GLuint program = %u, const GLchar *uniformBlockName = 0x%016" PRIxPTR "",
+          CID(context), program, (uintptr_t)uniformBlockName);
 
     GLuint returnValue;
     if (context)
     {
-        ShaderProgramID programPacked                         = PackParam<ShaderProgramID>(program);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetUniformBlockIndex(context, programPacked, uniformBlockName));
         if (isCallValid)
@@ -1523,35 +1343,33 @@ GLuint GL_APIENTRY GL_GetUniformBlockIndex(GLuint program, const GLchar *uniform
         }
         else
         {
-            returnValue =
-                GetDefaultReturnValue<angle::EntryPoint::GLGetUniformBlockIndex, GLuint>();
+            returnValue = GetDefaultReturnValue<EntryPoint::GetUniformBlockIndex, GLuint>();
         }
         ANGLE_CAPTURE(GetUniformBlockIndex, isCallValid, context, programPacked, uniformBlockName,
                       returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLGetUniformBlockIndex, GLuint>();
+        returnValue = GetDefaultReturnValue<EntryPoint::GetUniformBlockIndex, GLuint>();
     }
     return returnValue;
 }
 
-void GL_APIENTRY GL_GetUniformIndices(GLuint program,
-                                      GLsizei uniformCount,
-                                      const GLchar *const *uniformNames,
-                                      GLuint *uniformIndices)
+void GL_APIENTRY GetUniformIndices(GLuint program,
+                                   GLsizei uniformCount,
+                                   const GLchar *const *uniformNames,
+                                   GLuint *uniformIndices)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetUniformIndices,
-          "context = %d, program = %u, uniformCount = %d, uniformNames = 0x%016" PRIxPTR
-          ", uniformIndices = 0x%016" PRIxPTR "",
+    EVENT("glGetUniformIndices",
+          "context = %d, GLuint program = %u, GLsizei uniformCount = %d, const GLchar "
+          "*const*uniformNames = 0x%016" PRIxPTR ", GLuint *uniformIndices = 0x%016" PRIxPTR "",
           CID(context), program, uniformCount, (uintptr_t)uniformNames, (uintptr_t)uniformIndices);
 
     if (context)
     {
-        ShaderProgramID programPacked                         = PackParam<ShaderProgramID>(program);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetUniformIndices(context, programPacked, uniformCount,
                                                       uniformNames, uniformIndices));
@@ -1562,24 +1380,21 @@ void GL_APIENTRY GL_GetUniformIndices(GLuint program,
         ANGLE_CAPTURE(GetUniformIndices, isCallValid, context, programPacked, uniformCount,
                       uniformNames, uniformIndices);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetUniformuiv(GLuint program, GLint location, GLuint *params)
+void GL_APIENTRY GetUniformuiv(GLuint program, GLint location, GLuint *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetUniformuiv,
-          "context = %d, program = %u, location = %d, params = 0x%016" PRIxPTR "", CID(context),
-          program, location, (uintptr_t)params);
+    EVENT("glGetUniformuiv",
+          "context = %d, GLuint program = %u, GLint location = %d, GLuint *params = 0x%016" PRIxPTR
+          "",
+          CID(context), program, location, (uintptr_t)params);
 
     if (context)
     {
-        ShaderProgramID programPacked  = PackParam<ShaderProgramID>(program);
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetUniformuiv(context, programPacked, locationPacked, params));
         if (isCallValid)
@@ -1588,22 +1403,19 @@ void GL_APIENTRY GL_GetUniformuiv(GLuint program, GLint location, GLuint *params
         }
         ANGLE_CAPTURE(GetUniformuiv, isCallValid, context, programPacked, locationPacked, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetVertexAttribIiv(GLuint index, GLenum pname, GLint *params)
+void GL_APIENTRY GetVertexAttribIiv(GLuint index, GLenum pname, GLint *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetVertexAttribIiv,
-          "context = %d, index = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context), index,
-          GLenumToString(GLenumGroup::VertexAttribEnum, pname), (uintptr_t)params);
+    EVENT("glGetVertexAttribIiv",
+          "context = %d, GLuint index = %u, GLenum pname = %s, GLint *params = 0x%016" PRIxPTR "",
+          CID(context), index, GLenumToString(GLenumGroup::VertexAttribEnum, pname),
+          (uintptr_t)params);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetVertexAttribIiv(context, index, pname, params));
         if (isCallValid)
@@ -1612,22 +1424,19 @@ void GL_APIENTRY GL_GetVertexAttribIiv(GLuint index, GLenum pname, GLint *params
         }
         ANGLE_CAPTURE(GetVertexAttribIiv, isCallValid, context, index, pname, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_GetVertexAttribIuiv(GLuint index, GLenum pname, GLuint *params)
+void GL_APIENTRY GetVertexAttribIuiv(GLuint index, GLenum pname, GLuint *params)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLGetVertexAttribIuiv,
-          "context = %d, index = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context), index,
-          GLenumToString(GLenumGroup::VertexAttribEnum, pname), (uintptr_t)params);
+    EVENT("glGetVertexAttribIuiv",
+          "context = %d, GLuint index = %u, GLenum pname = %s, GLuint *params = 0x%016" PRIxPTR "",
+          CID(context), index, GLenumToString(GLenumGroup::VertexAttribEnum, pname),
+          (uintptr_t)params);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateGetVertexAttribIuiv(context, index, pname, params));
         if (isCallValid)
@@ -1636,25 +1445,22 @@ void GL_APIENTRY GL_GetVertexAttribIuiv(GLuint index, GLenum pname, GLuint *para
         }
         ANGLE_CAPTURE(GetVertexAttribIuiv, isCallValid, context, index, pname, params);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_InvalidateFramebuffer(GLenum target,
-                                          GLsizei numAttachments,
-                                          const GLenum *attachments)
+void GL_APIENTRY InvalidateFramebuffer(GLenum target,
+                                       GLsizei numAttachments,
+                                       const GLenum *attachments)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLInvalidateFramebuffer,
-          "context = %d, target = %s, numAttachments = %d, attachments = 0x%016" PRIxPTR "",
+    EVENT("glInvalidateFramebuffer",
+          "context = %d, GLenum target = %s, GLsizei numAttachments = %d, const GLenum "
+          "*attachments = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLenumGroup::FramebufferTarget, target), numAttachments,
           (uintptr_t)attachments);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateInvalidateFramebuffer(context, target, numAttachments, attachments));
@@ -1665,30 +1471,27 @@ void GL_APIENTRY GL_InvalidateFramebuffer(GLenum target,
         ANGLE_CAPTURE(InvalidateFramebuffer, isCallValid, context, target, numAttachments,
                       attachments);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_InvalidateSubFramebuffer(GLenum target,
-                                             GLsizei numAttachments,
-                                             const GLenum *attachments,
-                                             GLint x,
-                                             GLint y,
-                                             GLsizei width,
-                                             GLsizei height)
+void GL_APIENTRY InvalidateSubFramebuffer(GLenum target,
+                                          GLsizei numAttachments,
+                                          const GLenum *attachments,
+                                          GLint x,
+                                          GLint y,
+                                          GLsizei width,
+                                          GLsizei height)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLInvalidateSubFramebuffer,
-          "context = %d, target = %s, numAttachments = %d, attachments = 0x%016" PRIxPTR
-          ", x = %d, y = %d, width = %d, height = %d",
+    EVENT("glInvalidateSubFramebuffer",
+          "context = %d, GLenum target = %s, GLsizei numAttachments = %d, const GLenum "
+          "*attachments = 0x%016" PRIxPTR
+          ", GLint x = %d, GLint y = %d, GLsizei width = %d, GLsizei height = %d",
           CID(context), GLenumToString(GLenumGroup::DefaultGroup, target), numAttachments,
           (uintptr_t)attachments, x, y, width, height);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateInvalidateSubFramebuffer(context, target, numAttachments,
                                                              attachments, x, y, width, height));
@@ -1700,22 +1503,18 @@ void GL_APIENTRY GL_InvalidateSubFramebuffer(GLenum target,
         ANGLE_CAPTURE(InvalidateSubFramebuffer, isCallValid, context, target, numAttachments,
                       attachments, x, y, width, height);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-GLboolean GL_APIENTRY GL_IsQuery(GLuint id)
+GLboolean GL_APIENTRY IsQuery(GLuint id)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLIsQuery, "context = %d, id = %u", CID(context), id);
+    EVENT("glIsQuery", "context = %d, GLuint id = %u", CID(context), id);
 
     GLboolean returnValue;
     if (context)
     {
-        QueryID idPacked                                      = PackParam<QueryID>(id);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        QueryID idPacked                                      = FromGL<QueryID>(id);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateIsQuery(context, idPacked));
         if (isCallValid)
         {
@@ -1723,28 +1522,27 @@ GLboolean GL_APIENTRY GL_IsQuery(GLuint id)
         }
         else
         {
-            returnValue = GetDefaultReturnValue<angle::EntryPoint::GLIsQuery, GLboolean>();
+            returnValue = GetDefaultReturnValue<EntryPoint::IsQuery, GLboolean>();
         }
         ANGLE_CAPTURE(IsQuery, isCallValid, context, idPacked, returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLIsQuery, GLboolean>();
+        returnValue = GetDefaultReturnValue<EntryPoint::IsQuery, GLboolean>();
     }
     return returnValue;
 }
 
-GLboolean GL_APIENTRY GL_IsSampler(GLuint sampler)
+GLboolean GL_APIENTRY IsSampler(GLuint sampler)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLIsSampler, "context = %d, sampler = %u", CID(context), sampler);
+    EVENT("glIsSampler", "context = %d, GLuint sampler = %u", CID(context), sampler);
 
     GLboolean returnValue;
     if (context)
     {
-        SamplerID samplerPacked                               = PackParam<SamplerID>(sampler);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        SamplerID samplerPacked                               = FromGL<SamplerID>(sampler);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateIsSampler(context, samplerPacked));
         if (isCallValid)
         {
@@ -1752,28 +1550,27 @@ GLboolean GL_APIENTRY GL_IsSampler(GLuint sampler)
         }
         else
         {
-            returnValue = GetDefaultReturnValue<angle::EntryPoint::GLIsSampler, GLboolean>();
+            returnValue = GetDefaultReturnValue<EntryPoint::IsSampler, GLboolean>();
         }
         ANGLE_CAPTURE(IsSampler, isCallValid, context, samplerPacked, returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLIsSampler, GLboolean>();
+        returnValue = GetDefaultReturnValue<EntryPoint::IsSampler, GLboolean>();
     }
     return returnValue;
 }
 
-GLboolean GL_APIENTRY GL_IsSync(GLsync sync)
+GLboolean GL_APIENTRY IsSync(GLsync sync)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLIsSync, "context = %d, sync = 0x%016" PRIxPTR "", CID(context),
+    EVENT("glIsSync", "context = %d, GLsync sync = 0x%016" PRIxPTR "", CID(context),
           (uintptr_t)sync);
 
     GLboolean returnValue;
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateIsSync(context, sync));
         if (isCallValid)
         {
@@ -1781,28 +1578,27 @@ GLboolean GL_APIENTRY GL_IsSync(GLsync sync)
         }
         else
         {
-            returnValue = GetDefaultReturnValue<angle::EntryPoint::GLIsSync, GLboolean>();
+            returnValue = GetDefaultReturnValue<EntryPoint::IsSync, GLboolean>();
         }
         ANGLE_CAPTURE(IsSync, isCallValid, context, sync, returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLIsSync, GLboolean>();
+        returnValue = GetDefaultReturnValue<EntryPoint::IsSync, GLboolean>();
     }
     return returnValue;
 }
 
-GLboolean GL_APIENTRY GL_IsTransformFeedback(GLuint id)
+GLboolean GL_APIENTRY IsTransformFeedback(GLuint id)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLIsTransformFeedback, "context = %d, id = %u", CID(context), id);
+    EVENT("glIsTransformFeedback", "context = %d, GLuint id = %u", CID(context), id);
 
     GLboolean returnValue;
     if (context)
     {
-        TransformFeedbackID idPacked                          = PackParam<TransformFeedbackID>(id);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TransformFeedbackID idPacked                          = FromGL<TransformFeedbackID>(id);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateIsTransformFeedback(context, idPacked));
         if (isCallValid)
@@ -1811,29 +1607,27 @@ GLboolean GL_APIENTRY GL_IsTransformFeedback(GLuint id)
         }
         else
         {
-            returnValue =
-                GetDefaultReturnValue<angle::EntryPoint::GLIsTransformFeedback, GLboolean>();
+            returnValue = GetDefaultReturnValue<EntryPoint::IsTransformFeedback, GLboolean>();
         }
         ANGLE_CAPTURE(IsTransformFeedback, isCallValid, context, idPacked, returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLIsTransformFeedback, GLboolean>();
+        returnValue = GetDefaultReturnValue<EntryPoint::IsTransformFeedback, GLboolean>();
     }
     return returnValue;
 }
 
-GLboolean GL_APIENTRY GL_IsVertexArray(GLuint array)
+GLboolean GL_APIENTRY IsVertexArray(GLuint array)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLIsVertexArray, "context = %d, array = %u", CID(context), array);
+    EVENT("glIsVertexArray", "context = %d, GLuint array = %u", CID(context), array);
 
     GLboolean returnValue;
     if (context)
     {
-        VertexArrayID arrayPacked                             = PackParam<VertexArrayID>(array);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        VertexArrayID arrayPacked                             = FromGL<VertexArrayID>(array);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateIsVertexArray(context, arrayPacked));
         if (isCallValid)
@@ -1842,35 +1636,35 @@ GLboolean GL_APIENTRY GL_IsVertexArray(GLuint array)
         }
         else
         {
-            returnValue = GetDefaultReturnValue<angle::EntryPoint::GLIsVertexArray, GLboolean>();
+            returnValue = GetDefaultReturnValue<EntryPoint::IsVertexArray, GLboolean>();
         }
         ANGLE_CAPTURE(IsVertexArray, isCallValid, context, arrayPacked, returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLIsVertexArray, GLboolean>();
+        returnValue = GetDefaultReturnValue<EntryPoint::IsVertexArray, GLboolean>();
     }
     return returnValue;
 }
 
-void *GL_APIENTRY GL_MapBufferRange(GLenum target,
-                                    GLintptr offset,
-                                    GLsizeiptr length,
-                                    GLbitfield access)
+void *GL_APIENTRY MapBufferRange(GLenum target,
+                                 GLintptr offset,
+                                 GLsizeiptr length,
+                                 GLbitfield access)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLMapBufferRange,
-          "context = %d, target = %s, offset = %llu, length = %llu, access = %s", CID(context),
-          GLenumToString(GLenumGroup::BufferTargetARB, target),
+    EVENT("glMapBufferRange",
+          "context = %d, GLenum target = %s, GLintptr offset = %llu, GLsizeiptr length = %llu, "
+          "GLbitfield access = %s",
+          CID(context), GLenumToString(GLenumGroup::BufferTargetARB, target),
           static_cast<unsigned long long>(offset), static_cast<unsigned long long>(length),
           GLbitfieldToString(GLenumGroup::BufferAccessMask, access).c_str());
 
     void *returnValue;
     if (context)
     {
-        BufferBinding targetPacked                            = PackParam<BufferBinding>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        BufferBinding targetPacked                            = FromGL<BufferBinding>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateMapBufferRange(context, targetPacked, offset, length, access));
         if (isCallValid)
@@ -1879,27 +1673,26 @@ void *GL_APIENTRY GL_MapBufferRange(GLenum target,
         }
         else
         {
-            returnValue = GetDefaultReturnValue<angle::EntryPoint::GLMapBufferRange, void *>();
+            returnValue = GetDefaultReturnValue<EntryPoint::MapBufferRange, void *>();
         }
         ANGLE_CAPTURE(MapBufferRange, isCallValid, context, targetPacked, offset, length, access,
                       returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLMapBufferRange, void *>();
+        returnValue = GetDefaultReturnValue<EntryPoint::MapBufferRange, void *>();
     }
     return returnValue;
 }
 
-void GL_APIENTRY GL_PauseTransformFeedback()
+void GL_APIENTRY PauseTransformFeedback()
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLPauseTransformFeedback, "context = %d", CID(context));
+    EVENT("glPauseTransformFeedback", "context = %d", CID(context));
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidatePauseTransformFeedback(context));
         if (isCallValid)
         {
@@ -1907,27 +1700,24 @@ void GL_APIENTRY GL_PauseTransformFeedback()
         }
         ANGLE_CAPTURE(PauseTransformFeedback, isCallValid, context);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_ProgramBinary(GLuint program,
-                                  GLenum binaryFormat,
-                                  const void *binary,
-                                  GLsizei length)
+void GL_APIENTRY ProgramBinary(GLuint program,
+                               GLenum binaryFormat,
+                               const void *binary,
+                               GLsizei length)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLProgramBinary,
-          "context = %d, program = %u, binaryFormat = %s, binary = 0x%016" PRIxPTR ", length = %d",
+    EVENT("glProgramBinary",
+          "context = %d, GLuint program = %u, GLenum binaryFormat = %s, const void *binary = "
+          "0x%016" PRIxPTR ", GLsizei length = %d",
           CID(context), program, GLenumToString(GLenumGroup::DefaultGroup, binaryFormat),
           (uintptr_t)binary, length);
 
     if (context)
     {
-        ShaderProgramID programPacked                         = PackParam<ShaderProgramID>(program);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateProgramBinary(context, programPacked, binaryFormat, binary, length));
@@ -1938,22 +1728,19 @@ void GL_APIENTRY GL_ProgramBinary(GLuint program,
         ANGLE_CAPTURE(ProgramBinary, isCallValid, context, programPacked, binaryFormat, binary,
                       length);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_ProgramParameteri(GLuint program, GLenum pname, GLint value)
+void GL_APIENTRY ProgramParameteri(GLuint program, GLenum pname, GLint value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLProgramParameteri, "context = %d, program = %u, pname = %s, value = %d",
-          CID(context), program, GLenumToString(GLenumGroup::ProgramParameterPName, pname), value);
+    EVENT("glProgramParameteri",
+          "context = %d, GLuint program = %u, GLenum pname = %s, GLint value = %d", CID(context),
+          program, GLenumToString(GLenumGroup::ProgramParameterPName, pname), value);
 
     if (context)
     {
-        ShaderProgramID programPacked                         = PackParam<ShaderProgramID>(program);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateProgramParameteri(context, programPacked, pname, value));
         if (isCallValid)
@@ -1962,21 +1749,17 @@ void GL_APIENTRY GL_ProgramParameteri(GLuint program, GLenum pname, GLint value)
         }
         ANGLE_CAPTURE(ProgramParameteri, isCallValid, context, programPacked, pname, value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_ReadBuffer(GLenum src)
+void GL_APIENTRY ReadBuffer(GLenum src)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLReadBuffer, "context = %d, src = %s", CID(context),
+    EVENT("glReadBuffer", "context = %d, GLenum src = %s", CID(context),
           GLenumToString(GLenumGroup::ReadBufferMode, src));
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateReadBuffer(context, src));
         if (isCallValid)
         {
@@ -1984,27 +1767,24 @@ void GL_APIENTRY GL_ReadBuffer(GLenum src)
         }
         ANGLE_CAPTURE(ReadBuffer, isCallValid, context, src);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_RenderbufferStorageMultisample(GLenum target,
-                                                   GLsizei samples,
-                                                   GLenum internalformat,
-                                                   GLsizei width,
-                                                   GLsizei height)
+void GL_APIENTRY RenderbufferStorageMultisample(GLenum target,
+                                                GLsizei samples,
+                                                GLenum internalformat,
+                                                GLsizei width,
+                                                GLsizei height)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLRenderbufferStorageMultisample,
-          "context = %d, target = %s, samples = %d, internalformat = %s, width = %d, height = %d",
+    EVENT("glRenderbufferStorageMultisample",
+          "context = %d, GLenum target = %s, GLsizei samples = %d, GLenum internalformat = %s, "
+          "GLsizei width = %d, GLsizei height = %d",
           CID(context), GLenumToString(GLenumGroup::RenderbufferTarget, target), samples,
           GLenumToString(GLenumGroup::InternalFormat, internalformat), width, height);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateRenderbufferStorageMultisample(context, target, samples,
                                                                    internalformat, width, height));
@@ -2015,20 +1795,16 @@ void GL_APIENTRY GL_RenderbufferStorageMultisample(GLenum target,
         ANGLE_CAPTURE(RenderbufferStorageMultisample, isCallValid, context, target, samples,
                       internalformat, width, height);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_ResumeTransformFeedback()
+void GL_APIENTRY ResumeTransformFeedback()
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLResumeTransformFeedback, "context = %d", CID(context));
+    EVENT("glResumeTransformFeedback", "context = %d", CID(context));
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid = (context->skipValidation() || ValidateResumeTransformFeedback(context));
         if (isCallValid)
         {
@@ -2036,22 +1812,19 @@ void GL_APIENTRY GL_ResumeTransformFeedback()
         }
         ANGLE_CAPTURE(ResumeTransformFeedback, isCallValid, context);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_SamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
+void GL_APIENTRY SamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLSamplerParameterf, "context = %d, sampler = %u, pname = %s, param = %f",
-          CID(context), sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname), param);
+    EVENT("glSamplerParameterf",
+          "context = %d, GLuint sampler = %u, GLenum pname = %s, GLfloat param = %f", CID(context),
+          sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname), param);
 
     if (context)
     {
-        SamplerID samplerPacked                               = PackParam<SamplerID>(sampler);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        SamplerID samplerPacked                               = FromGL<SamplerID>(sampler);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateSamplerParameterf(context, samplerPacked, pname, param));
         if (isCallValid)
@@ -2060,23 +1833,21 @@ void GL_APIENTRY GL_SamplerParameterf(GLuint sampler, GLenum pname, GLfloat para
         }
         ANGLE_CAPTURE(SamplerParameterf, isCallValid, context, samplerPacked, pname, param);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_SamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *param)
+void GL_APIENTRY SamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *param)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLSamplerParameterfv,
-          "context = %d, sampler = %u, pname = %s, param = 0x%016" PRIxPTR "", CID(context),
-          sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname), (uintptr_t)param);
+    EVENT("glSamplerParameterfv",
+          "context = %d, GLuint sampler = %u, GLenum pname = %s, const GLfloat *param = "
+          "0x%016" PRIxPTR "",
+          CID(context), sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname),
+          (uintptr_t)param);
 
     if (context)
     {
-        SamplerID samplerPacked                               = PackParam<SamplerID>(sampler);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        SamplerID samplerPacked                               = FromGL<SamplerID>(sampler);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateSamplerParameterfv(context, samplerPacked, pname, param));
         if (isCallValid)
@@ -2085,22 +1856,19 @@ void GL_APIENTRY GL_SamplerParameterfv(GLuint sampler, GLenum pname, const GLflo
         }
         ANGLE_CAPTURE(SamplerParameterfv, isCallValid, context, samplerPacked, pname, param);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_SamplerParameteri(GLuint sampler, GLenum pname, GLint param)
+void GL_APIENTRY SamplerParameteri(GLuint sampler, GLenum pname, GLint param)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLSamplerParameteri, "context = %d, sampler = %u, pname = %s, param = %d",
-          CID(context), sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname), param);
+    EVENT("glSamplerParameteri",
+          "context = %d, GLuint sampler = %u, GLenum pname = %s, GLint param = %d", CID(context),
+          sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname), param);
 
     if (context)
     {
-        SamplerID samplerPacked                               = PackParam<SamplerID>(sampler);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        SamplerID samplerPacked                               = FromGL<SamplerID>(sampler);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateSamplerParameteri(context, samplerPacked, pname, param));
         if (isCallValid)
@@ -2109,23 +1877,22 @@ void GL_APIENTRY GL_SamplerParameteri(GLuint sampler, GLenum pname, GLint param)
         }
         ANGLE_CAPTURE(SamplerParameteri, isCallValid, context, samplerPacked, pname, param);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_SamplerParameteriv(GLuint sampler, GLenum pname, const GLint *param)
+void GL_APIENTRY SamplerParameteriv(GLuint sampler, GLenum pname, const GLint *param)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLSamplerParameteriv,
-          "context = %d, sampler = %u, pname = %s, param = 0x%016" PRIxPTR "", CID(context),
-          sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname), (uintptr_t)param);
+    EVENT(
+        "glSamplerParameteriv",
+        "context = %d, GLuint sampler = %u, GLenum pname = %s, const GLint *param = 0x%016" PRIxPTR
+        "",
+        CID(context), sampler, GLenumToString(GLenumGroup::SamplerParameterName, pname),
+        (uintptr_t)param);
 
     if (context)
     {
-        SamplerID samplerPacked                               = PackParam<SamplerID>(sampler);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        SamplerID samplerPacked                               = FromGL<SamplerID>(sampler);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateSamplerParameteriv(context, samplerPacked, pname, param));
         if (isCallValid)
@@ -2134,35 +1901,32 @@ void GL_APIENTRY GL_SamplerParameteriv(GLuint sampler, GLenum pname, const GLint
         }
         ANGLE_CAPTURE(SamplerParameteriv, isCallValid, context, samplerPacked, pname, param);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_TexImage3D(GLenum target,
-                               GLint level,
-                               GLint internalformat,
-                               GLsizei width,
-                               GLsizei height,
-                               GLsizei depth,
-                               GLint border,
-                               GLenum format,
-                               GLenum type,
-                               const void *pixels)
+void GL_APIENTRY TexImage3D(GLenum target,
+                            GLint level,
+                            GLint internalformat,
+                            GLsizei width,
+                            GLsizei height,
+                            GLsizei depth,
+                            GLint border,
+                            GLenum format,
+                            GLenum type,
+                            const void *pixels)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLTexImage3D,
-          "context = %d, target = %s, level = %d, internalformat = %d, width = %d, height = %d, "
-          "depth = %d, border = %d, format = %s, type = %s, pixels = 0x%016" PRIxPTR "",
+    EVENT("glTexImage3D",
+          "context = %d, GLenum target = %s, GLint level = %d, GLint internalformat = %d, GLsizei "
+          "width = %d, GLsizei height = %d, GLsizei depth = %d, GLint border = %d, GLenum format = "
+          "%s, GLenum type = %s, const void *pixels = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLenumGroup::TextureTarget, target), level, internalformat,
           width, height, depth, border, GLenumToString(GLenumGroup::PixelFormat, format),
           GLenumToString(GLenumGroup::PixelType, type), (uintptr_t)pixels);
 
     if (context)
     {
-        TextureTarget targetPacked                            = PackParam<TextureTarget>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TextureTarget targetPacked                            = FromGL<TextureTarget>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateTexImage3D(context, targetPacked, level, internalformat, width,
                                                height, depth, border, format, type, pixels));
@@ -2174,25 +1938,22 @@ void GL_APIENTRY GL_TexImage3D(GLenum target,
         ANGLE_CAPTURE(TexImage3D, isCallValid, context, targetPacked, level, internalformat, width,
                       height, depth, border, format, type, pixels);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
 void GL_APIENTRY
-GL_TexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
+TexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLTexStorage2D,
-          "context = %d, target = %s, levels = %d, internalformat = %s, width = %d, height = %d",
+    EVENT("glTexStorage2D",
+          "context = %d, GLenum target = %s, GLsizei levels = %d, GLenum internalformat = %s, "
+          "GLsizei width = %d, GLsizei height = %d",
           CID(context), GLenumToString(GLenumGroup::TextureTarget, target), levels,
           GLenumToString(GLenumGroup::InternalFormat, internalformat), width, height);
 
     if (context)
     {
-        TextureType targetPacked                              = PackParam<TextureType>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TextureType targetPacked                              = FromGL<TextureType>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateTexStorage2D(context, targetPacked, levels, internalformat, width, height));
@@ -2203,30 +1964,26 @@ GL_TexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei wi
         ANGLE_CAPTURE(TexStorage2D, isCallValid, context, targetPacked, levels, internalformat,
                       width, height);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_TexStorage3D(GLenum target,
-                                 GLsizei levels,
-                                 GLenum internalformat,
-                                 GLsizei width,
-                                 GLsizei height,
-                                 GLsizei depth)
+void GL_APIENTRY TexStorage3D(GLenum target,
+                              GLsizei levels,
+                              GLenum internalformat,
+                              GLsizei width,
+                              GLsizei height,
+                              GLsizei depth)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLTexStorage3D,
-          "context = %d, target = %s, levels = %d, internalformat = %s, width = %d, height = %d, "
-          "depth = %d",
+    EVENT("glTexStorage3D",
+          "context = %d, GLenum target = %s, GLsizei levels = %d, GLenum internalformat = %s, "
+          "GLsizei width = %d, GLsizei height = %d, GLsizei depth = %d",
           CID(context), GLenumToString(GLenumGroup::TextureTarget, target), levels,
           GLenumToString(GLenumGroup::InternalFormat, internalformat), width, height, depth);
 
     if (context)
     {
-        TextureType targetPacked                              = PackParam<TextureType>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TextureType targetPacked                              = FromGL<TextureType>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateTexStorage3D(context, targetPacked, levels, internalformat,
                                                  width, height, depth));
@@ -2237,36 +1994,33 @@ void GL_APIENTRY GL_TexStorage3D(GLenum target,
         ANGLE_CAPTURE(TexStorage3D, isCallValid, context, targetPacked, levels, internalformat,
                       width, height, depth);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_TexSubImage3D(GLenum target,
-                                  GLint level,
-                                  GLint xoffset,
-                                  GLint yoffset,
-                                  GLint zoffset,
-                                  GLsizei width,
-                                  GLsizei height,
-                                  GLsizei depth,
-                                  GLenum format,
-                                  GLenum type,
-                                  const void *pixels)
+void GL_APIENTRY TexSubImage3D(GLenum target,
+                               GLint level,
+                               GLint xoffset,
+                               GLint yoffset,
+                               GLint zoffset,
+                               GLsizei width,
+                               GLsizei height,
+                               GLsizei depth,
+                               GLenum format,
+                               GLenum type,
+                               const void *pixels)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLTexSubImage3D,
-          "context = %d, target = %s, level = %d, xoffset = %d, yoffset = %d, zoffset = %d, width "
-          "= %d, height = %d, depth = %d, format = %s, type = %s, pixels = 0x%016" PRIxPTR "",
+    EVENT("glTexSubImage3D",
+          "context = %d, GLenum target = %s, GLint level = %d, GLint xoffset = %d, GLint yoffset = "
+          "%d, GLint zoffset = %d, GLsizei width = %d, GLsizei height = %d, GLsizei depth = %d, "
+          "GLenum format = %s, GLenum type = %s, const void *pixels = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLenumGroup::TextureTarget, target), level, xoffset, yoffset,
           zoffset, width, height, depth, GLenumToString(GLenumGroup::PixelFormat, format),
           GLenumToString(GLenumGroup::PixelType, type), (uintptr_t)pixels);
 
     if (context)
     {
-        TextureTarget targetPacked                            = PackParam<TextureTarget>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        TextureTarget targetPacked                            = FromGL<TextureTarget>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateTexSubImage3D(context, targetPacked, level, xoffset, yoffset, zoffset, width,
@@ -2279,27 +2033,24 @@ void GL_APIENTRY GL_TexSubImage3D(GLenum target,
         ANGLE_CAPTURE(TexSubImage3D, isCallValid, context, targetPacked, level, xoffset, yoffset,
                       zoffset, width, height, depth, format, type, pixels);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_TransformFeedbackVaryings(GLuint program,
-                                              GLsizei count,
-                                              const GLchar *const *varyings,
-                                              GLenum bufferMode)
+void GL_APIENTRY TransformFeedbackVaryings(GLuint program,
+                                           GLsizei count,
+                                           const GLchar *const *varyings,
+                                           GLenum bufferMode)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLTransformFeedbackVaryings,
-          "context = %d, program = %u, count = %d, varyings = 0x%016" PRIxPTR ", bufferMode = %s",
+    EVENT("glTransformFeedbackVaryings",
+          "context = %d, GLuint program = %u, GLsizei count = %d, const GLchar *const*varyings = "
+          "0x%016" PRIxPTR ", GLenum bufferMode = %s",
           CID(context), program, count, (uintptr_t)varyings,
           GLenumToString(GLenumGroup::DefaultGroup, bufferMode));
 
     if (context)
     {
-        ShaderProgramID programPacked                         = PackParam<ShaderProgramID>(program);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateTransformFeedbackVaryings(
                                               context, programPacked, count, varyings, bufferMode));
@@ -2310,22 +2061,18 @@ void GL_APIENTRY GL_TransformFeedbackVaryings(GLuint program,
         ANGLE_CAPTURE(TransformFeedbackVaryings, isCallValid, context, programPacked, count,
                       varyings, bufferMode);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_Uniform1ui(GLint location, GLuint v0)
+void GL_APIENTRY Uniform1ui(GLint location, GLuint v0)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniform1ui, "context = %d, location = %d, v0 = %u", CID(context), location,
-          v0);
+    EVENT("glUniform1ui", "context = %d, GLint location = %d, GLuint v0 = %u", CID(context),
+          location, v0);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateUniform1ui(context, locationPacked, v0));
         if (isCallValid)
@@ -2334,23 +2081,20 @@ void GL_APIENTRY GL_Uniform1ui(GLint location, GLuint v0)
         }
         ANGLE_CAPTURE(Uniform1ui, isCallValid, context, locationPacked, v0);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_Uniform1uiv(GLint location, GLsizei count, const GLuint *value)
+void GL_APIENTRY Uniform1uiv(GLint location, GLsizei count, const GLuint *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniform1uiv,
-          "context = %d, location = %d, count = %d, value = 0x%016" PRIxPTR "", CID(context),
-          location, count, (uintptr_t)value);
+    EVENT("glUniform1uiv",
+          "context = %d, GLint location = %d, GLsizei count = %d, const GLuint *value = "
+          "0x%016" PRIxPTR "",
+          CID(context), location, count, (uintptr_t)value);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateUniform1uiv(context, locationPacked, count, value));
         if (isCallValid)
@@ -2359,22 +2103,18 @@ void GL_APIENTRY GL_Uniform1uiv(GLint location, GLsizei count, const GLuint *val
         }
         ANGLE_CAPTURE(Uniform1uiv, isCallValid, context, locationPacked, count, value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_Uniform2ui(GLint location, GLuint v0, GLuint v1)
+void GL_APIENTRY Uniform2ui(GLint location, GLuint v0, GLuint v1)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniform2ui, "context = %d, location = %d, v0 = %u, v1 = %u", CID(context),
-          location, v0, v1);
+    EVENT("glUniform2ui", "context = %d, GLint location = %d, GLuint v0 = %u, GLuint v1 = %u",
+          CID(context), location, v0, v1);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateUniform2ui(context, locationPacked, v0, v1));
         if (isCallValid)
@@ -2383,23 +2123,20 @@ void GL_APIENTRY GL_Uniform2ui(GLint location, GLuint v0, GLuint v1)
         }
         ANGLE_CAPTURE(Uniform2ui, isCallValid, context, locationPacked, v0, v1);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_Uniform2uiv(GLint location, GLsizei count, const GLuint *value)
+void GL_APIENTRY Uniform2uiv(GLint location, GLsizei count, const GLuint *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniform2uiv,
-          "context = %d, location = %d, count = %d, value = 0x%016" PRIxPTR "", CID(context),
-          location, count, (uintptr_t)value);
+    EVENT("glUniform2uiv",
+          "context = %d, GLint location = %d, GLsizei count = %d, const GLuint *value = "
+          "0x%016" PRIxPTR "",
+          CID(context), location, count, (uintptr_t)value);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateUniform2uiv(context, locationPacked, count, value));
         if (isCallValid)
@@ -2408,22 +2145,19 @@ void GL_APIENTRY GL_Uniform2uiv(GLint location, GLsizei count, const GLuint *val
         }
         ANGLE_CAPTURE(Uniform2uiv, isCallValid, context, locationPacked, count, value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_Uniform3ui(GLint location, GLuint v0, GLuint v1, GLuint v2)
+void GL_APIENTRY Uniform3ui(GLint location, GLuint v0, GLuint v1, GLuint v2)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniform3ui, "context = %d, location = %d, v0 = %u, v1 = %u, v2 = %u",
+    EVENT("glUniform3ui",
+          "context = %d, GLint location = %d, GLuint v0 = %u, GLuint v1 = %u, GLuint v2 = %u",
           CID(context), location, v0, v1, v2);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateUniform3ui(context, locationPacked, v0, v1, v2));
         if (isCallValid)
@@ -2432,23 +2166,20 @@ void GL_APIENTRY GL_Uniform3ui(GLint location, GLuint v0, GLuint v1, GLuint v2)
         }
         ANGLE_CAPTURE(Uniform3ui, isCallValid, context, locationPacked, v0, v1, v2);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_Uniform3uiv(GLint location, GLsizei count, const GLuint *value)
+void GL_APIENTRY Uniform3uiv(GLint location, GLsizei count, const GLuint *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniform3uiv,
-          "context = %d, location = %d, count = %d, value = 0x%016" PRIxPTR "", CID(context),
-          location, count, (uintptr_t)value);
+    EVENT("glUniform3uiv",
+          "context = %d, GLint location = %d, GLsizei count = %d, const GLuint *value = "
+          "0x%016" PRIxPTR "",
+          CID(context), location, count, (uintptr_t)value);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateUniform3uiv(context, locationPacked, count, value));
         if (isCallValid)
@@ -2457,22 +2188,20 @@ void GL_APIENTRY GL_Uniform3uiv(GLint location, GLsizei count, const GLuint *val
         }
         ANGLE_CAPTURE(Uniform3uiv, isCallValid, context, locationPacked, count, value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_Uniform4ui(GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3)
+void GL_APIENTRY Uniform4ui(GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniform4ui, "context = %d, location = %d, v0 = %u, v1 = %u, v2 = %u, v3 = %u",
+    EVENT("glUniform4ui",
+          "context = %d, GLint location = %d, GLuint v0 = %u, GLuint v1 = %u, GLuint v2 = %u, "
+          "GLuint v3 = %u",
           CID(context), location, v0, v1, v2, v3);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateUniform4ui(context, locationPacked, v0, v1, v2, v3));
         if (isCallValid)
@@ -2481,23 +2210,20 @@ void GL_APIENTRY GL_Uniform4ui(GLint location, GLuint v0, GLuint v1, GLuint v2, 
         }
         ANGLE_CAPTURE(Uniform4ui, isCallValid, context, locationPacked, v0, v1, v2, v3);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_Uniform4uiv(GLint location, GLsizei count, const GLuint *value)
+void GL_APIENTRY Uniform4uiv(GLint location, GLsizei count, const GLuint *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniform4uiv,
-          "context = %d, location = %d, count = %d, value = 0x%016" PRIxPTR "", CID(context),
-          location, count, (uintptr_t)value);
+    EVENT("glUniform4uiv",
+          "context = %d, GLint location = %d, GLsizei count = %d, const GLuint *value = "
+          "0x%016" PRIxPTR "",
+          CID(context), location, count, (uintptr_t)value);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid                                      = (context->skipValidation() ||
                             ValidateUniform4uiv(context, locationPacked, count, value));
         if (isCallValid)
@@ -2506,58 +2232,49 @@ void GL_APIENTRY GL_Uniform4uiv(GLint location, GLsizei count, const GLuint *val
         }
         ANGLE_CAPTURE(Uniform4uiv, isCallValid, context, locationPacked, count, value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_UniformBlockBinding(GLuint program,
-                                        GLuint uniformBlockIndex,
-                                        GLuint uniformBlockBinding)
+void GL_APIENTRY UniformBlockBinding(GLuint program,
+                                     GLuint uniformBlockIndex,
+                                     GLuint uniformBlockBinding)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniformBlockBinding,
-          "context = %d, program = %u, uniformBlockIndex = %u, uniformBlockBinding = %u",
+    EVENT("glUniformBlockBinding",
+          "context = %d, GLuint program = %u, GLuint uniformBlockIndex = %u, GLuint "
+          "uniformBlockBinding = %u",
           CID(context), program, uniformBlockIndex, uniformBlockBinding);
 
     if (context)
     {
-        ShaderProgramID programPacked             = PackParam<ShaderProgramID>(program);
-        UniformBlockIndex uniformBlockIndexPacked = PackParam<UniformBlockIndex>(uniformBlockIndex);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
-        bool isCallValid =
-            (context->skipValidation() ||
-             ValidateUniformBlockBinding(context, programPacked, uniformBlockIndexPacked,
-                                         uniformBlockBinding));
+        ShaderProgramID programPacked                         = FromGL<ShaderProgramID>(program);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
+        bool isCallValid                                      = (context->skipValidation() ||
+                            ValidateUniformBlockBinding(context, programPacked, uniformBlockIndex,
+                                                        uniformBlockBinding));
         if (isCallValid)
         {
-            context->uniformBlockBinding(programPacked, uniformBlockIndexPacked,
-                                         uniformBlockBinding);
+            context->uniformBlockBinding(programPacked, uniformBlockIndex, uniformBlockBinding);
         }
-        ANGLE_CAPTURE(UniformBlockBinding, isCallValid, context, programPacked,
-                      uniformBlockIndexPacked, uniformBlockBinding);
-    }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
+        ANGLE_CAPTURE(UniformBlockBinding, isCallValid, context, programPacked, uniformBlockIndex,
+                      uniformBlockBinding);
     }
 }
 
-void GL_APIENTRY GL_UniformMatrix2x3fv(GLint location,
-                                       GLsizei count,
-                                       GLboolean transpose,
-                                       const GLfloat *value)
+void GL_APIENTRY UniformMatrix2x3fv(GLint location,
+                                    GLsizei count,
+                                    GLboolean transpose,
+                                    const GLfloat *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniformMatrix2x3fv,
-          "context = %d, location = %d, count = %d, transpose = %s, value = 0x%016" PRIxPTR "",
+    EVENT("glUniformMatrix2x3fv",
+          "context = %d, GLint location = %d, GLsizei count = %d, GLboolean transpose = %s, const "
+          "GLfloat *value = 0x%016" PRIxPTR "",
           CID(context), location, count, GLbooleanToString(transpose), (uintptr_t)value);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateUniformMatrix2x3fv(context, locationPacked, count, transpose, value));
@@ -2568,26 +2285,23 @@ void GL_APIENTRY GL_UniformMatrix2x3fv(GLint location,
         ANGLE_CAPTURE(UniformMatrix2x3fv, isCallValid, context, locationPacked, count, transpose,
                       value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_UniformMatrix2x4fv(GLint location,
-                                       GLsizei count,
-                                       GLboolean transpose,
-                                       const GLfloat *value)
+void GL_APIENTRY UniformMatrix2x4fv(GLint location,
+                                    GLsizei count,
+                                    GLboolean transpose,
+                                    const GLfloat *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniformMatrix2x4fv,
-          "context = %d, location = %d, count = %d, transpose = %s, value = 0x%016" PRIxPTR "",
+    EVENT("glUniformMatrix2x4fv",
+          "context = %d, GLint location = %d, GLsizei count = %d, GLboolean transpose = %s, const "
+          "GLfloat *value = 0x%016" PRIxPTR "",
           CID(context), location, count, GLbooleanToString(transpose), (uintptr_t)value);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateUniformMatrix2x4fv(context, locationPacked, count, transpose, value));
@@ -2598,26 +2312,23 @@ void GL_APIENTRY GL_UniformMatrix2x4fv(GLint location,
         ANGLE_CAPTURE(UniformMatrix2x4fv, isCallValid, context, locationPacked, count, transpose,
                       value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_UniformMatrix3x2fv(GLint location,
-                                       GLsizei count,
-                                       GLboolean transpose,
-                                       const GLfloat *value)
+void GL_APIENTRY UniformMatrix3x2fv(GLint location,
+                                    GLsizei count,
+                                    GLboolean transpose,
+                                    const GLfloat *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniformMatrix3x2fv,
-          "context = %d, location = %d, count = %d, transpose = %s, value = 0x%016" PRIxPTR "",
+    EVENT("glUniformMatrix3x2fv",
+          "context = %d, GLint location = %d, GLsizei count = %d, GLboolean transpose = %s, const "
+          "GLfloat *value = 0x%016" PRIxPTR "",
           CID(context), location, count, GLbooleanToString(transpose), (uintptr_t)value);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateUniformMatrix3x2fv(context, locationPacked, count, transpose, value));
@@ -2628,26 +2339,23 @@ void GL_APIENTRY GL_UniformMatrix3x2fv(GLint location,
         ANGLE_CAPTURE(UniformMatrix3x2fv, isCallValid, context, locationPacked, count, transpose,
                       value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_UniformMatrix3x4fv(GLint location,
-                                       GLsizei count,
-                                       GLboolean transpose,
-                                       const GLfloat *value)
+void GL_APIENTRY UniformMatrix3x4fv(GLint location,
+                                    GLsizei count,
+                                    GLboolean transpose,
+                                    const GLfloat *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniformMatrix3x4fv,
-          "context = %d, location = %d, count = %d, transpose = %s, value = 0x%016" PRIxPTR "",
+    EVENT("glUniformMatrix3x4fv",
+          "context = %d, GLint location = %d, GLsizei count = %d, GLboolean transpose = %s, const "
+          "GLfloat *value = 0x%016" PRIxPTR "",
           CID(context), location, count, GLbooleanToString(transpose), (uintptr_t)value);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateUniformMatrix3x4fv(context, locationPacked, count, transpose, value));
@@ -2658,26 +2366,23 @@ void GL_APIENTRY GL_UniformMatrix3x4fv(GLint location,
         ANGLE_CAPTURE(UniformMatrix3x4fv, isCallValid, context, locationPacked, count, transpose,
                       value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_UniformMatrix4x2fv(GLint location,
-                                       GLsizei count,
-                                       GLboolean transpose,
-                                       const GLfloat *value)
+void GL_APIENTRY UniformMatrix4x2fv(GLint location,
+                                    GLsizei count,
+                                    GLboolean transpose,
+                                    const GLfloat *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniformMatrix4x2fv,
-          "context = %d, location = %d, count = %d, transpose = %s, value = 0x%016" PRIxPTR "",
+    EVENT("glUniformMatrix4x2fv",
+          "context = %d, GLint location = %d, GLsizei count = %d, GLboolean transpose = %s, const "
+          "GLfloat *value = 0x%016" PRIxPTR "",
           CID(context), location, count, GLbooleanToString(transpose), (uintptr_t)value);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateUniformMatrix4x2fv(context, locationPacked, count, transpose, value));
@@ -2688,26 +2393,23 @@ void GL_APIENTRY GL_UniformMatrix4x2fv(GLint location,
         ANGLE_CAPTURE(UniformMatrix4x2fv, isCallValid, context, locationPacked, count, transpose,
                       value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_UniformMatrix4x3fv(GLint location,
-                                       GLsizei count,
-                                       GLboolean transpose,
-                                       const GLfloat *value)
+void GL_APIENTRY UniformMatrix4x3fv(GLint location,
+                                    GLsizei count,
+                                    GLboolean transpose,
+                                    const GLfloat *value)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUniformMatrix4x3fv,
-          "context = %d, location = %d, count = %d, transpose = %s, value = 0x%016" PRIxPTR "",
+    EVENT("glUniformMatrix4x3fv",
+          "context = %d, GLint location = %d, GLsizei count = %d, GLboolean transpose = %s, const "
+          "GLfloat *value = 0x%016" PRIxPTR "",
           CID(context), location, count, GLbooleanToString(transpose), (uintptr_t)value);
 
     if (context)
     {
-        UniformLocation locationPacked = PackParam<UniformLocation>(location);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        UniformLocation locationPacked                        = FromGL<UniformLocation>(location);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateUniformMatrix4x3fv(context, locationPacked, count, transpose, value));
@@ -2718,23 +2420,19 @@ void GL_APIENTRY GL_UniformMatrix4x3fv(GLint location,
         ANGLE_CAPTURE(UniformMatrix4x3fv, isCallValid, context, locationPacked, count, transpose,
                       value);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-GLboolean GL_APIENTRY GL_UnmapBuffer(GLenum target)
+GLboolean GL_APIENTRY UnmapBuffer(GLenum target)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLUnmapBuffer, "context = %d, target = %s", CID(context),
+    EVENT("glUnmapBuffer", "context = %d, GLenum target = %s", CID(context),
           GLenumToString(GLenumGroup::BufferTargetARB, target));
 
     GLboolean returnValue;
     if (context)
     {
-        BufferBinding targetPacked                            = PackParam<BufferBinding>(target);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        BufferBinding targetPacked                            = FromGL<BufferBinding>(target);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateUnmapBuffer(context, targetPacked));
         if (isCallValid)
@@ -2743,27 +2441,26 @@ GLboolean GL_APIENTRY GL_UnmapBuffer(GLenum target)
         }
         else
         {
-            returnValue = GetDefaultReturnValue<angle::EntryPoint::GLUnmapBuffer, GLboolean>();
+            returnValue = GetDefaultReturnValue<EntryPoint::UnmapBuffer, GLboolean>();
         }
         ANGLE_CAPTURE(UnmapBuffer, isCallValid, context, targetPacked, returnValue);
     }
     else
     {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-        returnValue = GetDefaultReturnValue<angle::EntryPoint::GLUnmapBuffer, GLboolean>();
+        returnValue = GetDefaultReturnValue<EntryPoint::UnmapBuffer, GLboolean>();
     }
     return returnValue;
 }
 
-void GL_APIENTRY GL_VertexAttribDivisor(GLuint index, GLuint divisor)
+void GL_APIENTRY VertexAttribDivisor(GLuint index, GLuint divisor)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLVertexAttribDivisor, "context = %d, index = %u, divisor = %u", CID(context),
-          index, divisor);
+    EVENT("glVertexAttribDivisor", "context = %d, GLuint index = %u, GLuint divisor = %u",
+          CID(context), index, divisor);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateVertexAttribDivisor(context, index, divisor));
         if (isCallValid)
@@ -2772,21 +2469,18 @@ void GL_APIENTRY GL_VertexAttribDivisor(GLuint index, GLuint divisor)
         }
         ANGLE_CAPTURE(VertexAttribDivisor, isCallValid, context, index, divisor);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_VertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w)
+void GL_APIENTRY VertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLVertexAttribI4i, "context = %d, index = %u, x = %d, y = %d, z = %d, w = %d",
+    EVENT("glVertexAttribI4i",
+          "context = %d, GLuint index = %u, GLint x = %d, GLint y = %d, GLint z = %d, GLint w = %d",
           CID(context), index, x, y, z, w);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateVertexAttribI4i(context, index, x, y, z, w));
         if (isCallValid)
@@ -2795,21 +2489,18 @@ void GL_APIENTRY GL_VertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLi
         }
         ANGLE_CAPTURE(VertexAttribI4i, isCallValid, context, index, x, y, z, w);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_VertexAttribI4iv(GLuint index, const GLint *v)
+void GL_APIENTRY VertexAttribI4iv(GLuint index, const GLint *v)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLVertexAttribI4iv, "context = %d, index = %u, v = 0x%016" PRIxPTR "",
-          CID(context), index, (uintptr_t)v);
+    EVENT("glVertexAttribI4iv",
+          "context = %d, GLuint index = %u, const GLint *v = 0x%016" PRIxPTR "", CID(context),
+          index, (uintptr_t)v);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateVertexAttribI4iv(context, index, v));
         if (isCallValid)
@@ -2818,21 +2509,19 @@ void GL_APIENTRY GL_VertexAttribI4iv(GLuint index, const GLint *v)
         }
         ANGLE_CAPTURE(VertexAttribI4iv, isCallValid, context, index, v);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_VertexAttribI4ui(GLuint index, GLuint x, GLuint y, GLuint z, GLuint w)
+void GL_APIENTRY VertexAttribI4ui(GLuint index, GLuint x, GLuint y, GLuint z, GLuint w)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLVertexAttribI4ui, "context = %d, index = %u, x = %u, y = %u, z = %u, w = %u",
+    EVENT("glVertexAttribI4ui",
+          "context = %d, GLuint index = %u, GLuint x = %u, GLuint y = %u, GLuint z = %u, GLuint w "
+          "= %u",
           CID(context), index, x, y, z, w);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateVertexAttribI4ui(context, index, x, y, z, w));
         if (isCallValid)
@@ -2841,21 +2530,18 @@ void GL_APIENTRY GL_VertexAttribI4ui(GLuint index, GLuint x, GLuint y, GLuint z,
         }
         ANGLE_CAPTURE(VertexAttribI4ui, isCallValid, context, index, x, y, z, w);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_VertexAttribI4uiv(GLuint index, const GLuint *v)
+void GL_APIENTRY VertexAttribI4uiv(GLuint index, const GLuint *v)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLVertexAttribI4uiv, "context = %d, index = %u, v = 0x%016" PRIxPTR "",
-          CID(context), index, (uintptr_t)v);
+    EVENT("glVertexAttribI4uiv",
+          "context = %d, GLuint index = %u, const GLuint *v = 0x%016" PRIxPTR "", CID(context),
+          index, (uintptr_t)v);
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateVertexAttribI4uiv(context, index, v));
         if (isCallValid)
@@ -2864,26 +2550,22 @@ void GL_APIENTRY GL_VertexAttribI4uiv(GLuint index, const GLuint *v)
         }
         ANGLE_CAPTURE(VertexAttribI4uiv, isCallValid, context, index, v);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
 void GL_APIENTRY
-GL_VertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer)
+VertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLVertexAttribIPointer,
-          "context = %d, index = %u, size = %d, type = %s, stride = %d, pointer = 0x%016" PRIxPTR
-          "",
+    EVENT("glVertexAttribIPointer",
+          "context = %d, GLuint index = %u, GLint size = %d, GLenum type = %s, GLsizei stride = "
+          "%d, const void *pointer = 0x%016" PRIxPTR "",
           CID(context), index, size, GLenumToString(GLenumGroup::VertexAttribPointerType, type),
           stride, (uintptr_t)pointer);
 
     if (context)
     {
-        VertexAttribType typePacked                           = PackParam<VertexAttribType>(type);
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        VertexAttribType typePacked                           = FromGL<VertexAttribType>(type);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateVertexAttribIPointer(context, index, size, typePacked, stride, pointer));
@@ -2894,23 +2576,21 @@ GL_VertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, c
         ANGLE_CAPTURE(VertexAttribIPointer, isCallValid, context, index, size, typePacked, stride,
                       pointer);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
 
-void GL_APIENTRY GL_WaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
+void GL_APIENTRY WaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
 {
     Context *context = GetValidGlobalContext();
-    EVENT(context, GLWaitSync, "context = %d, sync = 0x%016" PRIxPTR ", flags = %s, timeout = %llu",
+    EVENT("glWaitSync",
+          "context = %d, GLsync sync = 0x%016" PRIxPTR
+          ", GLbitfield flags = %s, GLuint64 timeout = %llu",
           CID(context), (uintptr_t)sync,
           GLbitfieldToString(GLenumGroup::DefaultGroup, flags).c_str(),
           static_cast<unsigned long long>(timeout));
 
     if (context)
     {
-        std::unique_lock<angle::GlobalMutex> shareContextLock = GetContextLock(context);
+        std::unique_lock<angle::GlobalMutex> shareContextLock = GetShareGroupLock(context);
         bool isCallValid =
             (context->skipValidation() || ValidateWaitSync(context, sync, flags, timeout));
         if (isCallValid)
@@ -2919,10 +2599,5 @@ void GL_APIENTRY GL_WaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
         }
         ANGLE_CAPTURE(WaitSync, isCallValid, context, sync, flags, timeout);
     }
-    else
-    {
-        GenerateContextLostErrorOnCurrentGlobalContext();
-    }
 }
-
-}  // extern "C"
+}  // namespace gl

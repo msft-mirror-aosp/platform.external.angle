@@ -23,9 +23,8 @@
 #include "libANGLE/renderer/gl/RendererGL.h"
 #include "libANGLE/renderer/gl/ShaderGL.h"
 #include "libANGLE/renderer/gl/StateManagerGL.h"
-#include "libANGLE/trace.h"
 #include "platform/FeaturesGL.h"
-#include "platform/PlatformMethods.h"
+#include "platform/Platform.h"
 
 namespace rx
 {
@@ -60,7 +59,6 @@ std::unique_ptr<LinkEvent> ProgramGL::load(const gl::Context *context,
                                            gl::BinaryInputStream *stream,
                                            gl::InfoLog &infoLog)
 {
-    ANGLE_TRACE_EVENT0("gpu.angle", "ProgramGL::load");
     preLink();
 
     // Read the binary format, size and blob
@@ -137,12 +135,7 @@ class ProgramGL::LinkTask final : public angle::Closure
     LinkTask(LinkImplFunctor &&functor) : mLinkImplFunctor(functor), mFallbackToMainContext(false)
     {}
 
-    void operator()() override
-    {
-        ANGLE_TRACE_EVENT0("gpu.angle", "ProgramGL::LinkTask::run");
-        mFallbackToMainContext = mLinkImplFunctor(mInfoLog);
-    }
-
+    void operator()() override { mFallbackToMainContext = mLinkImplFunctor(mInfoLog); }
     bool fallbackToMainContext() { return mFallbackToMainContext; }
     const std::string &getInfoLog() { return mInfoLog; }
 
@@ -166,8 +159,6 @@ class ProgramGL::LinkEventNativeParallel final : public LinkEvent
 
     angle::Result wait(const gl::Context *context) override
     {
-        ANGLE_TRACE_EVENT0("gpu.angle", "ProgramGL::LinkEventNativeParallel::wait");
-
         GLint linkStatus = GL_FALSE;
         mFunctions->getProgramiv(mProgramID, GL_LINK_STATUS, &linkStatus);
         if (linkStatus == GL_TRUE)
@@ -205,8 +196,6 @@ class ProgramGL::LinkEventGL final : public LinkEvent
 
     angle::Result wait(const gl::Context *context) override
     {
-        ANGLE_TRACE_EVENT0("gpu.angle", "ProgramGL::LinkEventGL::wait");
-
         mWaitableEvent->wait();
         return mPostLinkImplFunctor(mLinkTask->fallbackToMainContext(), mLinkTask->getInfoLog());
     }
@@ -221,11 +210,8 @@ class ProgramGL::LinkEventGL final : public LinkEvent
 
 std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
                                            const gl::ProgramLinkedResources &resources,
-                                           gl::InfoLog &infoLog,
-                                           const gl::ProgramMergedVaryings & /*mergedVaryings*/)
+                                           gl::InfoLog &infoLog)
 {
-    ANGLE_TRACE_EVENT0("gpu.angle", "ProgramGL::link");
-
     preLink();
 
     if (mState.getAttachedShader(gl::ShaderType::Compute))
@@ -242,7 +228,7 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
         for (const auto &tfVarying : mState.getTransformFeedbackVaryingNames())
         {
             gl::ShaderType tfShaderType =
-                mState.getExecutable().hasLinkedShaderStage(gl::ShaderType::Geometry)
+                mState.getProgramExecutable().hasLinkedShaderStage(gl::ShaderType::Geometry)
                     ? gl::ShaderType::Geometry
                     : gl::ShaderType::Vertex;
             std::string tfVaryingMappedName =
@@ -324,12 +310,12 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
                         mFunctions->bindFragDataLocationIndexed(mProgramID, 0, 0,
                                                                 "webgl_FragColor");
                         mFunctions->bindFragDataLocationIndexed(mProgramID, 0, 1,
-                                                                "webgl_SecondaryFragColor");
+                                                                "angle_SecondaryFragColor");
                     }
                     else if (output.name == "gl_SecondaryFragDataEXT")
                     {
                         // Basically we should have a loop here going over the output
-                        // array binding "webgl_FragData[i]" and "webgl_SecondaryFragData[i]" array
+                        // array binding "webgl_FragData[i]" and "angle_SecondaryFragData[i]" array
                         // indices to the correct color buffers and color indices.
                         // However I'm not sure if this construct is legal or not, neither ARB or
                         // EXT version of the spec mention this. They only mention that
@@ -349,7 +335,7 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
 
                         mFunctions->bindFragDataLocationIndexed(mProgramID, 0, 0, "webgl_FragData");
                         mFunctions->bindFragDataLocationIndexed(mProgramID, 0, 1,
-                                                                "webgl_SecondaryFragData");
+                                                                "angle_SecondaryFragData");
                     }
                 }
             }
@@ -368,12 +354,12 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
                     {
                         const sh::ShaderVariable &outputVar =
                             mState.getOutputVariables()[outputLocation.index];
-                        if (outputVar.location == -1 || outputVar.index == -1)
+                        if (outputVar.location == -1)
                         {
                             // We only need to assign the location and index via the API in case the
-                            // variable doesn't have a shader-assigned location and index. If a
-                            // variable doesn't have its location set in the shader it doesn't have
-                            // the index set either.
+                            // variable doesn't have its location set in the shader. If a variable
+                            // doesn't have its location set in the shader it doesn't have the index
+                            // set either.
                             ASSERT(outputVar.index == -1);
                             mFunctions->bindFragDataLocationIndexed(
                                 mProgramID, static_cast<int>(outputLocationIndex), 0,
@@ -476,7 +462,6 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
     if (mRenderer->hasNativeParallelCompile())
     {
         mFunctions->linkProgram(mProgramID);
-
         return std::make_unique<LinkEventNativeParallel>(postLinkImplTask, mFunctions, mProgramID);
     }
     else if (workerPool->isAsync() &&
@@ -1088,22 +1073,12 @@ void ProgramGL::markUnusedUniformLocations(std::vector<gl::VariableLocation> *un
             if (mState.isSamplerUniformIndex(locationRef.index))
             {
                 GLuint samplerIndex = mState.getSamplerIndexFromUniformIndex(locationRef.index);
-                gl::SamplerBinding &samplerBinding = (*samplerBindings)[samplerIndex];
-                if (locationRef.arrayIndex < samplerBinding.boundTextureUnits.size())
-                {
-                    // Crop unused sampler bindings in the sampler array.
-                    samplerBinding.boundTextureUnits.resize(locationRef.arrayIndex);
-                }
+                (*samplerBindings)[samplerIndex].unreferenced = true;
             }
             else if (mState.isImageUniformIndex(locationRef.index))
             {
                 GLuint imageIndex = mState.getImageIndexFromUniformIndex(locationRef.index);
-                gl::ImageBinding &imageBinding = (*imageBindings)[imageIndex];
-                if (locationRef.arrayIndex < imageBinding.boundImageUnits.size())
-                {
-                    // Crop unused image bindings in the image array.
-                    imageBinding.boundImageUnits.resize(locationRef.arrayIndex);
-                }
+                (*imageBindings)[imageIndex].unreferenced = true;
             }
             // If the location has been previously bound by a glBindUniformLocation call, it should
             // be marked as ignored. Otherwise it's unused.

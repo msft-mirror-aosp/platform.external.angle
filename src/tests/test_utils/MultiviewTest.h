@@ -79,9 +79,6 @@ std::ostream &operator<<(std::ostream &os, const MultiviewImplementationParams &
 MultiviewImplementationParams VertexShaderOpenGL(GLint majorVersion,
                                                  GLint minorVersion,
                                                  ExtensionName multiviewExtension);
-MultiviewImplementationParams VertexShaderVulkan(GLint majorVersion,
-                                                 GLint minorVersion,
-                                                 ExtensionName multiviewExtension);
 MultiviewImplementationParams VertexShaderD3D11(GLint majorVersion,
                                                 GLint minorVersion,
                                                 ExtensionName multiviewExtension);

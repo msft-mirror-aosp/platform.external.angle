@@ -6,18 +6,12 @@
 // TestSuite:
 //   Basic implementation of a test harness in ANGLE.
 
-#ifndef ANGLE_TESTS_TEST_UTILS_TEST_SUITE_H_
-#define ANGLE_TESTS_TEST_UTILS_TEST_SUITE_H_
-
 #include <map>
 #include <memory>
 #include <mutex>
-#include <queue>
 #include <string>
 #include <thread>
 
-#include "HistogramWriter.h"
-#include "tests/test_expectations/GPUTestExpectationsParser.h"
 #include "util/test_utils.h"
 
 namespace angle
@@ -59,9 +53,8 @@ enum class TestResultType
 {
     Crash,
     Fail,
-    NoResult,
-    Pass,
     Skip,
+    Pass,
     Timeout,
     Unknown,
 };
@@ -70,9 +63,8 @@ const char *TestResultTypeToString(TestResultType type);
 
 struct TestResult
 {
-    TestResultType type       = TestResultType::NoResult;
+    TestResultType type       = TestResultType::Skip;
     double elapsedTimeSeconds = 0.0;
-    uint32_t flakyFailures    = 0;
 };
 
 inline bool operator==(const TestResult &a, const TestResult &b)
@@ -94,10 +86,7 @@ struct TestResults
     std::mutex currentTestMutex;
     TestIdentifier currentTest;
     Timer currentTestTimer;
-    double currentTestTimeout = 0.0;
-    bool allDone              = false;
-    std::string testArtifactsFakeTestName;
-    std::vector<std::string> testArtifactPaths;
+    bool allDone = false;
 };
 
 struct FileLine
@@ -118,10 +107,7 @@ struct ProcessInfo : angle::NonCopyable
     std::string resultsFileName;
     std::string filterFileName;
     std::string commandLine;
-    std::string filterString;
 };
-
-using TestQueue = std::queue<std::vector<TestIdentifier>>;
 
 class TestSuite
 {
@@ -131,81 +117,37 @@ class TestSuite
 
     int run();
     void onCrashOrTimeout(TestResultType crashOrTimeout);
-    void addHistogramSample(const std::string &measurement,
-                            const std::string &story,
-                            double value,
-                            const std::string &units);
-    void registerSlowTests(const char *slowTests[], size_t numSlowTests);
-
-    static TestSuite *GetInstance() { return mInstance; }
-
-    // Returns the path to the artifact in the output directory.
-    std::string addTestArtifact(const std::string &artifactName);
-
-    int getShardIndex() const { return mShardIndex; }
-    int getBatchId() const { return mBatchId; }
-
-    // Test expectation processing.
-    bool loadTestExpectationsFromFileWithConfig(const GPUTestConfig &config,
-                                                const std::string &fileName);
-    bool loadAllTestExpectationsFromFile(const std::string &fileName);
-    int32_t getTestExpectation(const std::string &testName);
-    int32_t getTestExpectationWithConfig(const GPUTestConfig &config, const std::string &testName);
-    bool logAnyUnusedTestExpectations();
-    void setTestExpectationsAllowMask(uint32_t mask)
-    {
-        mTestExpectationsParser.setTestExpectationsAllowMask(mask);
-    }
 
   private:
     bool parseSingleArg(const char *argument);
-    bool launchChildTestProcess(uint32_t batchId, const std::vector<TestIdentifier> &testsInBatch);
+    bool launchChildTestProcess(const std::vector<TestIdentifier> &testsInBatch);
     bool finishProcess(ProcessInfo *processInfo);
     int printFailuresAndReturnCount() const;
     void startWatchdog();
-    void dumpTestExpectationsErrorMessages();
-
-    static TestSuite *mInstance;
 
     std::string mTestExecutableName;
     std::string mTestSuiteName;
-    TestQueue mTestQueue;
+    std::vector<TestIdentifier> mTestQueue;
     std::string mFilterString;
     std::string mFilterFile;
     std::string mResultsDirectory;
     std::string mResultsFile;
-    std::string mHistogramJsonFile;
     int mShardCount;
     int mShardIndex;
     angle::CrashCallback mCrashCallback;
     TestResults mTestResults;
     bool mBotMode;
-    bool mDebugTestGroups;
-    bool mGTestListTests;
-    bool mListTests;
-    bool mPrintTestStdout;
-    bool mDisableCrashHandler;
     int mBatchSize;
     int mCurrentResultCount;
     int mTotalResultCount;
     int mMaxProcesses;
     int mTestTimeout;
     int mBatchTimeout;
-    int mBatchId;
-    int mFlakyRetries;
-    int mMaxFailures;
-    int mFailureCount;
-    std::vector<std::string> mChildProcessArgs;
+    std::vector<std::string> mGoogleTestCommandLineArgs;
     std::map<TestIdentifier, FileLine> mTestFileLines;
     std::vector<ProcessInfo> mCurrentProcesses;
     std::thread mWatchdogThread;
-    HistogramWriter mHistogramWriter;
-    std::vector<std::string> mSlowTests;
-    std::string mTestArtifactDirectory;
-    GPUTestExpectationsParser mTestExpectationsParser;
 };
 
 bool GetTestResultsFromFile(const char *fileName, TestResults *resultsOut);
 }  // namespace angle
-
-#endif  // ANGLE_TESTS_TEST_UTILS_TEST_SUITE_H_

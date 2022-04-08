@@ -46,9 +46,7 @@ egl::Error SurfaceEGL::swap(const gl::Context *context)
     return egl::NoError();
 }
 
-egl::Error SurfaceEGL::swapWithDamage(const gl::Context *context,
-                                      const EGLint *rects,
-                                      EGLint n_rects)
+egl::Error SurfaceEGL::swapWithDamage(const gl::Context *context, EGLint *rects, EGLint n_rects)
 {
     EGLBoolean success;
     if (mHasSwapBuffersWithDamage)
@@ -235,11 +233,6 @@ egl::Error SurfaceEGL::getFrameTimestamps(EGLuint64KHR frameId,
         return egl::Error(mEGL->getError(), "eglGetFrameTimestampsANDROID failed");
     }
     return egl::NoError();
-}
-
-bool SurfaceEGL::isExternal() const
-{
-    return false;
 }
 
 }  // namespace rx

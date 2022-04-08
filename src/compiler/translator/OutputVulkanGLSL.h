@@ -4,13 +4,10 @@
 // found in the LICENSE file.
 //
 // OutputVulkanGLSL:
-//   Code that outputs shaders that fit GL_KHR_vulkan_glsl, to be fed to glslang to generate
-//   SPIR-V.
+//   Code that outputs shaders that fit GL_KHR_vulkan_glsl.
+//   The shaders are then fed into glslang to spit out SPIR-V (libANGLE-side).
 //   See: https://www.khronos.org/registry/vulkan/specs/misc/GL_KHR_vulkan_glsl.txt
 //
-
-#ifndef COMPILER_TRANSLATOR_OUTPUTVULKANGLSL_H_
-#define COMPILER_TRANSLATOR_OUTPUTVULKANGLSL_H_
 
 #include "compiler/translator/OutputGLSL.h"
 
@@ -21,6 +18,7 @@ class TOutputVulkanGLSL : public TOutputGLSL
 {
   public:
     TOutputVulkanGLSL(TInfoSinkBase &objSink,
+                      ShArrayIndexClampingStrategy clampingStrategy,
                       ShHashFunction64 hashFunction,
                       NameMap &nameMap,
                       TSymbolTable *symbolTable,
@@ -30,6 +28,8 @@ class TOutputVulkanGLSL : public TOutputGLSL
                       bool forceHighp,
                       bool enablePrecision,
                       ShCompileOptions compileOptions);
+
+    void writeStructType(const TStructure *structure);
 
     uint32_t nextUnusedBinding() { return mNextUnusedBinding++; }
     uint32_t nextUnusedInputLocation(uint32_t consumedCount)
@@ -46,7 +46,7 @@ class TOutputVulkanGLSL : public TOutputGLSL
     }
 
   protected:
-    void writeLayoutQualifier(TIntermSymbol *variable) override;
+    void writeLayoutQualifier(TIntermTyped *variable) override;
     void writeVariableType(const TType &type,
                            const TSymbol *symbol,
                            bool isFunctionArgument) override;
@@ -67,5 +67,3 @@ class TOutputVulkanGLSL : public TOutputGLSL
 };
 
 }  // namespace sh
-
-#endif  // COMPILER_TRANSLATOR_OUTPUTVULKANGLSL_H_

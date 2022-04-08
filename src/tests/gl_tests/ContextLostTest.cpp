@@ -13,17 +13,7 @@ namespace angle
 class ContextLostTest : public ANGLETest
 {
   protected:
-    ContextLostTest()
-    {
-        if (IsEGLClientExtensionEnabled("EGL_EXT_create_context_robustness"))
-        {
-            setContextResetStrategy(EGL_LOSE_CONTEXT_ON_RESET_EXT);
-        }
-        else
-        {
-            setContextResetStrategy(EGL_NO_RESET_NOTIFICATION_EXT);
-        }
-    }
+    ContextLostTest() { setContextResetStrategy(EGL_LOSE_CONTEXT_ON_RESET_EXT); }
 };
 
 // GL_CHROMIUM_lose_context is implemented in the frontend
@@ -36,19 +26,14 @@ TEST_P(ContextLostTest, ExtensionStringExposed)
 TEST_P(ContextLostTest, BasicUsage)
 {
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_CHROMIUM_lose_context"));
-    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_EXT_robustness") ||
-                       !IsEGLClientExtensionEnabled("EGL_EXT_create_context_robustness"));
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_EXT_robustness"));
 
     glLoseContextCHROMIUM(GL_GUILTY_CONTEXT_RESET, GL_INNOCENT_CONTEXT_RESET);
     EXPECT_GL_NO_ERROR();
     EXPECT_GLENUM_EQ(glGetGraphicsResetStatusEXT(), GL_GUILTY_CONTEXT_RESET);
 
-    // Errors should be continually generated
-    for (size_t i = 0; i < 10; i++)
-    {
-        glBindTexture(GL_TEXTURE_2D, 0);
-        EXPECT_GL_ERROR(GL_CONTEXT_LOST);
-    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    EXPECT_GL_ERROR(GL_OUT_OF_MEMORY);
 }
 
 // When context is lost, polling queries such as glGetSynciv with GL_SYNC_STATUS should always
@@ -123,15 +108,8 @@ class ContextLostSkipValidationTest : public ANGLETest
   protected:
     ContextLostSkipValidationTest()
     {
-        if (IsEGLClientExtensionEnabled("EGL_EXT_create_context_robustness"))
-        {
-            setContextResetStrategy(EGL_LOSE_CONTEXT_ON_RESET_EXT);
-            setNoErrorEnabled(true);
-        }
-        else
-        {
-            setContextResetStrategy(EGL_NO_RESET_NOTIFICATION_EXT);
-        }
+        setContextResetStrategy(EGL_LOSE_CONTEXT_ON_RESET_EXT);
+        setNoErrorEnabled(true);
     }
 };
 

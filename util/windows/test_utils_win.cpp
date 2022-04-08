@@ -134,7 +134,8 @@ class WindowsProcess : public Process
 {
   public:
     WindowsProcess(const std::vector<const char *> &commandLineArgs,
-                   ProcessOutputCapture captureOutput)
+                   bool captureStdOut,
+                   bool captureStdErr)
     {
         mProcessInfo.hProcess = INVALID_HANDLE_VALUE;
         mProcessInfo.hThread  = INVALID_HANDLE_VALUE;
@@ -161,17 +162,10 @@ class WindowsProcess : public Process
 
         STARTUPINFOA startInfo = {};
 
-        const bool captureStdout = captureOutput != ProcessOutputCapture::Nothing;
-        const bool captureStderr =
-            captureOutput == ProcessOutputCapture::StdoutAndStderrInterleaved ||
-            captureOutput == ProcessOutputCapture::StdoutAndStderrSeparately;
-        const bool pipeStderrToStdout =
-            captureOutput == ProcessOutputCapture::StdoutAndStderrInterleaved;
-
         // Create pipes for stdout and stderr.
         startInfo.cb        = sizeof(STARTUPINFOA);
         startInfo.hStdInput = ::GetStdHandle(STD_INPUT_HANDLE);
-        if (captureStdout)
+        if (captureStdOut)
         {
             if (!mStdoutPipe.initPipe(&securityAttribs))
             {
@@ -184,11 +178,7 @@ class WindowsProcess : public Process
             startInfo.hStdOutput = ::GetStdHandle(STD_OUTPUT_HANDLE);
         }
 
-        if (pipeStderrToStdout)
-        {
-            startInfo.hStdError = startInfo.hStdOutput;
-        }
-        else if (captureStderr)
+        if (captureStdErr)
         {
             if (!mStderrPipe.initPipe(&securityAttribs))
             {
@@ -202,7 +192,7 @@ class WindowsProcess : public Process
         }
 
 #if !defined(ANGLE_ENABLE_WINDOWS_UWP)
-        if (captureStdout || captureStderr)
+        if (captureStdOut || captureStdErr)
         {
             startInfo.dwFlags |= STARTF_USESTDHANDLES;
         }
@@ -403,23 +393,16 @@ void WriteDebugMessage(const char *format, ...)
     OutputDebugStringA(buffer.data());
 }
 
-Process *LaunchProcess(const std::vector<const char *> &args, ProcessOutputCapture captureOutput)
+Process *LaunchProcess(const std::vector<const char *> &args,
+                       bool captureStdout,
+                       bool captureStderr)
 {
-    return new WindowsProcess(args, captureOutput);
+    return new WindowsProcess(args, captureStdout, captureStderr);
 }
 
 bool GetTempDir(char *tempDirOut, uint32_t maxDirNameLen)
 {
     DWORD pathLen = ::GetTempPathA(maxDirNameLen, tempDirOut);
-    // Strip last path character if present.
-    if (pathLen > 0)
-    {
-        size_t lastChar = strlen(tempDirOut) - 1;
-        if (tempDirOut[lastChar] == '\\')
-        {
-            tempDirOut[lastChar] = 0;
-        }
-    }
     return (pathLen < MAX_PATH && pathLen > 0);
 }
 
@@ -460,10 +443,5 @@ bool DeleteFile(const char *path)
     }
 
     return !!::DeleteFileA(path) ? true : ReturnSuccessOnNotFound();
-}
-
-const char *GetNativeEGLLibraryNameWithExtension()
-{
-    return "libEGL.dll";
 }
 }  // namespace angle

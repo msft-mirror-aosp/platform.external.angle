@@ -78,9 +78,6 @@ egl::Error ImageEGL::initialize(const egl::Display *display)
             GetImplAs<ExternalImageSiblingEGL>(GetAs<egl::ExternalImageSibling>(mState.source));
         buffer                = externalImageSibling->getBuffer();
         mNativeInternalFormat = externalImageSibling->getFormat().info->sizedInternalFormat;
-
-        // Add any additional attributes this type of image sibline requires
-        externalImageSibling->getImageCreationAttributes(&attributes);
     }
     else
     {

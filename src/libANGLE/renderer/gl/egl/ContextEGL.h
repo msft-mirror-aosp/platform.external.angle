@@ -14,26 +14,18 @@
 
 namespace rx
 {
-
-struct ExternalContextState;
-
 class ContextEGL : public ContextGL
 {
   public:
     ContextEGL(const gl::State &state,
                gl::ErrorSet *errorSet,
-               const std::shared_ptr<RendererEGL> &renderer,
-               RobustnessVideoMemoryPurgeStatus robustnessVideoMemoryPurgeStatus);
+               const std::shared_ptr<RendererEGL> &renderer);
     ~ContextEGL() override;
-
-    angle::Result onMakeCurrent(const gl::Context *context) override;
-    angle::Result onUnMakeCurrent(const gl::Context *context) override;
 
     EGLContext getContext() const;
 
   private:
     std::shared_ptr<RendererEGL> mRendererEGL;
-    std::unique_ptr<ExternalContextState> mExtState;
 };
 }  // namespace rx
 

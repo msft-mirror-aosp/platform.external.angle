@@ -14,7 +14,6 @@
 #include "common/utilities.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Query.h"
-#include "libANGLE/Surface.h"
 #include "libANGLE/VertexArray.h"
 #include "libANGLE/renderer/d3d/DisplayD3D.h"
 #include "libANGLE/renderer/d3d/TextureD3D.h"
@@ -194,7 +193,7 @@ void SortAttributesByLayout(const ProgramD3D &programD3D,
     sortedAttributesOut->clear();
 
     const AttribIndexArray &locationToSemantic = programD3D.getAttribLocationToD3DSemantics();
-    const gl::ProgramExecutable &executable    = programD3D.getState().getExecutable();
+    const gl::ProgramExecutable &executable    = programD3D.getState().getProgramExecutable();
 
     for (auto locationIndex : executable.getActiveAttribLocationsMask())
     {
@@ -541,10 +540,9 @@ void ShaderConstants11::onViewportChange(const gl::Rectangle &glViewport,
 }
 
 // Update the ShaderConstants with a new first vertex and return whether the update dirties them.
-ANGLE_INLINE bool ShaderConstants11::onFirstVertexChange(GLint firstVertex)
+ANGLE_INLINE bool ShaderConstants11::onFirstVertexChange(GLint firstVertex, GLint baseVertex)
 {
-    // firstVertex should already include baseVertex, if any.
-    uint32_t newFirstVertex = static_cast<uint32_t>(firstVertex);
+    uint32_t newFirstVertex = static_cast<uint32_t>(firstVertex + baseVertex);
 
     bool firstVertexDirty = (mVertex.firstVertex != newFirstVertex);
     if (firstVertexDirty)
@@ -669,7 +667,7 @@ StateManager11::StateManager11(Renderer11 *renderer)
     : mRenderer(renderer),
       mInternalDirtyBits(),
       mCurSampleAlphaToCoverage(false),
-      mCurBlendStateExt(),
+      mCurBlendStateArray(),
       mCurBlendColor(0, 0, 0, 0),
       mCurSampleMask(0),
       mCurStencilRef(0),
@@ -952,40 +950,63 @@ void StateManager11::syncState(const gl::Context *context, const gl::State::Dirt
         {
             case gl::State::DIRTY_BIT_BLEND_EQUATIONS:
             {
-                const gl::BlendStateExt &blendStateExt = state.getBlendStateExt();
-                ASSERT(mCurBlendStateExt.mMaxDrawBuffers == blendStateExt.mMaxDrawBuffers);
-                // Compare blend equations only for buffers with blending enabled because
-                // subsequent sync stages enforce default values for buffers with blending disabled.
-                if ((blendStateExt.mEnabledMask &
-                     mCurBlendStateExt.compareEquations(blendStateExt.mEquationColor,
-                                                        blendStateExt.mEquationAlpha))
-                        .any())
+                const gl::BlendStateArray &blendStateArray = state.getBlendStateArray();
+                const size_t statesCount = mIndependentBlendStates ? blendStateArray.size() : 1;
+                for (size_t i = 0; i < statesCount; i++)
                 {
-                    mInternalDirtyBits.set(DIRTY_BIT_BLEND_STATE);
+                    const gl::BlendState &blendState = blendStateArray[i];
+                    if (!blendState.blend)
+                    {
+                        // Subsequent sync stages enforce default values for buffers with disabled
+                        // blending anyway, no need to touch internal dirty bits.
+                        continue;
+                    }
+                    const gl::BlendState &curBlendState = mCurBlendStateArray[i];
+                    if (blendState.blendEquationRGB != curBlendState.blendEquationRGB ||
+                        blendState.blendEquationAlpha != curBlendState.blendEquationAlpha)
+                    {
+                        mInternalDirtyBits.set(DIRTY_BIT_BLEND_STATE);
+                        break;
+                    }
                 }
                 break;
             }
             case gl::State::DIRTY_BIT_BLEND_FUNCS:
             {
-                const gl::BlendStateExt &blendStateExt = state.getBlendStateExt();
-                ASSERT(mCurBlendStateExt.mMaxDrawBuffers == blendStateExt.mMaxDrawBuffers);
-                // Compare blend factors only for buffers with blending enabled because
-                // subsequent sync stages enforce default values for buffers with blending disabled.
-                if ((blendStateExt.mEnabledMask &
-                     mCurBlendStateExt.compareFactors(
-                         blendStateExt.mSrcColor, blendStateExt.mDstColor, blendStateExt.mSrcAlpha,
-                         blendStateExt.mDstAlpha))
-                        .any())
+                const gl::BlendStateArray &blendStateArray = state.getBlendStateArray();
+                const size_t statesCount = mIndependentBlendStates ? blendStateArray.size() : 1;
+                for (size_t i = 0; i < statesCount; i++)
                 {
-                    mInternalDirtyBits.set(DIRTY_BIT_BLEND_STATE);
+                    const gl::BlendState &blendState = blendStateArray[i];
+                    if (!blendState.blend)
+                    {
+                        // Subsequent sync stages enforce default values for buffers with disabled
+                        // blending anyway, no need to touch internal dirty bits.
+                        continue;
+                    }
+                    const gl::BlendState &curBlendState = mCurBlendStateArray[i];
+                    if (blendState.sourceBlendRGB != curBlendState.sourceBlendRGB ||
+                        blendState.destBlendRGB != curBlendState.destBlendRGB ||
+                        blendState.sourceBlendAlpha != curBlendState.sourceBlendAlpha ||
+                        blendState.destBlendAlpha != curBlendState.destBlendAlpha)
+                    {
+                        mInternalDirtyBits.set(DIRTY_BIT_BLEND_STATE);
+                        break;
+                    }
                 }
                 break;
             }
             case gl::State::DIRTY_BIT_BLEND_ENABLED:
             {
-                if (state.getBlendStateExt().mEnabledMask != mCurBlendStateExt.mEnabledMask)
+                const gl::BlendStateArray &blendStateArray = state.getBlendStateArray();
+                const size_t statesCount = mIndependentBlendStates ? blendStateArray.size() : 1;
+                for (size_t i = 0; i < statesCount; i++)
                 {
-                    mInternalDirtyBits.set(DIRTY_BIT_BLEND_STATE);
+                    if (blendStateArray[i].blend != mCurBlendStateArray[i].blend)
+                    {
+                        mInternalDirtyBits.set(DIRTY_BIT_BLEND_STATE);
+                        break;
+                    }
                 }
                 break;
             }
@@ -1003,9 +1024,20 @@ void StateManager11::syncState(const gl::Context *context, const gl::State::Dirt
                 break;
             case gl::State::DIRTY_BIT_COLOR_MASK:
             {
-                if (state.getBlendStateExt().mColorMask != mCurBlendStateExt.mColorMask)
+                const gl::BlendStateArray &blendStateArray = state.getBlendStateArray();
+                const size_t statesCount = mIndependentBlendStates ? blendStateArray.size() : 1;
+                for (size_t i = 0; i < statesCount; i++)
                 {
-                    mInternalDirtyBits.set(DIRTY_BIT_BLEND_STATE);
+                    const gl::BlendState &blendState    = blendStateArray[i];
+                    const gl::BlendState &curBlendState = mCurBlendStateArray[i];
+                    if (blendState.colorMaskRed != curBlendState.colorMaskRed ||
+                        blendState.colorMaskGreen != curBlendState.colorMaskGreen ||
+                        blendState.colorMaskBlue != curBlendState.colorMaskBlue ||
+                        blendState.colorMaskAlpha != curBlendState.colorMaskAlpha)
+                    {
+                        mInternalDirtyBits.set(DIRTY_BIT_BLEND_STATE);
+                        break;
+                    }
                 }
                 break;
             }
@@ -1229,7 +1261,7 @@ void StateManager11::handleMultiviewDrawFramebufferChange(const gl::Context *con
 }
 
 angle::Result StateManager11::syncBlendState(const gl::Context *context,
-                                             const gl::BlendStateExt &blendStateExt,
+                                             const gl::BlendStateArray &blendStateArray,
                                              const gl::ColorF &blendColor,
                                              unsigned int sampleMask,
                                              bool sampleAlphaToCoverage,
@@ -1237,7 +1269,7 @@ angle::Result StateManager11::syncBlendState(const gl::Context *context,
 {
     const d3d11::BlendState *dxBlendState = nullptr;
     const d3d11::BlendStateKey &key       = RenderStateCache::GetBlendStateKey(
-        context, mFramebuffer11, blendStateExt, sampleAlphaToCoverage);
+        context, mFramebuffer11, blendStateArray, sampleAlphaToCoverage);
 
     ANGLE_TRY(mRenderer->getBlendState(context, key, &dxBlendState));
 
@@ -1255,7 +1287,7 @@ angle::Result StateManager11::syncBlendState(const gl::Context *context,
 
     mRenderer->getDeviceContext()->OMSetBlendState(dxBlendState->get(), blendColors, sampleMask);
 
-    mCurBlendStateExt         = blendStateExt;
+    mCurBlendStateArray       = blendStateArray;
     mCurBlendColor            = blendColor;
     mCurSampleMask            = sampleMask;
     mCurSampleAlphaToCoverage = sampleAlphaToCoverage;
@@ -1372,28 +1404,19 @@ angle::Result StateManager11::syncRasterizerState(const gl::Context *context,
     return angle::Result::Continue;
 }
 
-void StateManager11::syncScissorRectangle(const gl::Context *context)
+void StateManager11::syncScissorRectangle(const gl::Rectangle &scissor, bool enabled)
 {
-    const auto &glState          = context->getState();
-    gl::Framebuffer *framebuffer = glState.getDrawFramebuffer();
-    const gl::Rectangle &scissor = glState.getScissor();
-    const bool enabled           = glState.isScissorTestEnabled();
-
-    mCurScissorOffset = framebuffer->getSurfaceTextureOffset();
-
-    int scissorX = scissor.x + mCurScissorOffset.x;
-    int scissorY = scissor.y + mCurScissorOffset.y;
-
+    int modifiedScissorY = scissor.y;
     if (mCurPresentPathFastEnabled)
     {
-        scissorY = mCurPresentPathFastColorBufferHeight - scissor.height - scissor.y;
+        modifiedScissorY = mCurPresentPathFastColorBufferHeight - scissor.height - scissor.y;
     }
 
     if (enabled)
     {
         D3D11_RECT rect;
-        int x       = scissorX;
-        int y       = scissorY;
+        int x       = scissor.x;
+        int y       = modifiedScissorY;
         rect.left   = std::max(0, x);
         rect.top    = std::max(0, y);
         rect.right  = x + std::max(0, scissor.width);
@@ -1436,14 +1459,10 @@ void StateManager11::syncViewport(const gl::Context *context)
     int dxViewportWidth    = 0;
     int dxViewportHeight   = 0;
 
-    mCurViewportOffset = framebuffer->getSurfaceTextureOffset();
-
-    dxViewportTopLeftX =
-        gl::clamp(viewport.x + mCurViewportOffset.x, dxMinViewportBoundsX, dxMaxViewportBoundsX);
-    dxViewportTopLeftY =
-        gl::clamp(viewport.y + mCurViewportOffset.y, dxMinViewportBoundsY, dxMaxViewportBoundsY);
-    dxViewportWidth  = gl::clamp(viewport.width, 0, dxMaxViewportBoundsX - dxViewportTopLeftX);
-    dxViewportHeight = gl::clamp(viewport.height, 0, dxMaxViewportBoundsY - dxViewportTopLeftY);
+    dxViewportTopLeftX = gl::clamp(viewport.x, dxMinViewportBoundsX, dxMaxViewportBoundsX);
+    dxViewportTopLeftY = gl::clamp(viewport.y, dxMinViewportBoundsY, dxMaxViewportBoundsY);
+    dxViewportWidth    = gl::clamp(viewport.width, 0, dxMaxViewportBoundsX - dxViewportTopLeftX);
+    dxViewportHeight   = gl::clamp(viewport.height, 0, dxMaxViewportBoundsY - dxViewportTopLeftY);
 
     D3D11_VIEWPORT dxViewport;
     dxViewport.TopLeftX = static_cast<float>(dxViewportTopLeftX);
@@ -1520,16 +1539,6 @@ void StateManager11::processFramebufferInvalidation(const gl::Context *context)
 
     gl::Framebuffer *fbo = context->getState().getDrawFramebuffer();
     ASSERT(fbo);
-
-    // Dirty scissor and viewport because surface texture offset might have changed.
-    if (mCurViewportOffset != fbo->getSurfaceTextureOffset())
-    {
-        mInternalDirtyBits.set(DIRTY_BIT_VIEWPORT_STATE);
-    }
-    if (mCurScissorOffset != fbo->getSurfaceTextureOffset())
-    {
-        mInternalDirtyBits.set(DIRTY_BIT_SCISSOR_STATE);
-    }
 
     // Disable the depth test/depth write if we are using a stencil-only attachment.
     // This is because ANGLE emulates stencil-only with D24S8 on D3D11 - we should neither read
@@ -1927,10 +1936,6 @@ angle::Result StateManager11::ensureInitialized(const gl::Context *context)
 
     mIndependentBlendStates = extensions.drawBuffersIndexedAny();  // requires FL10_1
 
-    // FL9_3 is limited to 4; ES3.1 context on FL11_0 is limited to 7
-    mCurBlendStateExt =
-        gl::BlendStateExt(GetImplAs<Context11>(context)->getNativeCaps().maxDrawBuffers);
-
     ANGLE_TRY(mVertexDataManager.initialize(context));
 
     mCurrentAttributes.reserve(gl::MAX_VERTEX_ATTRIBS);
@@ -2048,7 +2053,7 @@ angle::Result StateManager11::syncCurrentValueAttribs(
     const gl::Context *context,
     const std::vector<gl::VertexAttribCurrentValueData> &currentValues)
 {
-    const gl::ProgramExecutable &executable = mProgramD3D->getState().getExecutable();
+    const gl::ProgramExecutable &executable = mProgramD3D->getState().getProgramExecutable();
     const auto &activeAttribsMask           = executable.getActiveAttribLocationsMask();
     const auto &dirtyActiveAttribs          = (activeAttribsMask & mDirtyCurrentValueAttribs);
 
@@ -2168,9 +2173,7 @@ angle::Result StateManager11::updateState(const gl::Context *context,
                                           gl::DrawElementsType indexTypeOrInvalid,
                                           const void *indices,
                                           GLsizei instanceCount,
-                                          GLint baseVertex,
-                                          GLuint baseInstance,
-                                          bool promoteDynamic)
+                                          GLint baseVertex)
 {
     const gl::State &glState = context->getState();
 
@@ -2214,7 +2217,7 @@ angle::Result StateManager11::updateState(const gl::Context *context,
 
     ANGLE_TRY(mVertexArray11->syncStateForDraw(context, firstVertex, vertexOrIndexCount,
                                                indexTypeOrInvalid, indices, instanceCount,
-                                               baseVertex, baseInstance, promoteDynamic));
+                                               baseVertex));
 
     // Changes in the draw call can affect the vertex buffer translations.
     if (!mLastFirstVertex.valid() || mLastFirstVertex.value() != firstVertex)
@@ -2226,18 +2229,7 @@ angle::Result StateManager11::updateState(const gl::Context *context,
     // The ShaderConstants only need to be updated when the program uses vertexID
     if (mProgramD3D->usesVertexID())
     {
-        GLint firstVertexOnChange = firstVertex + baseVertex;
-        ASSERT(mVertexArray11);
-        if (mVertexArray11->hasActiveDynamicAttrib(context) &&
-            indexTypeOrInvalid != gl::DrawElementsType::InvalidEnum)
-        {
-            // drawElements with Dynamic attribute
-            // the firstVertex is already including baseVertex when
-            // doing ComputeStartVertex
-            firstVertexOnChange = firstVertex;
-        }
-
-        if (mShaderConstants.onFirstVertexChange(firstVertexOnChange))
+        if (mShaderConstants.onFirstVertexChange(firstVertex, baseVertex))
         {
             mInternalDirtyBits.set(DIRTY_BIT_DRIVER_UNIFORMS);
         }
@@ -2277,14 +2269,14 @@ angle::Result StateManager11::updateState(const gl::Context *context,
                 syncViewport(context);
                 break;
             case DIRTY_BIT_SCISSOR_STATE:
-                syncScissorRectangle(context);
+                syncScissorRectangle(glState.getScissor(), glState.isScissorTestEnabled());
                 break;
             case DIRTY_BIT_RASTERIZER_STATE:
                 ANGLE_TRY(syncRasterizerState(context, mode));
                 break;
             case DIRTY_BIT_BLEND_STATE:
                 ANGLE_TRY(syncBlendState(
-                    context, glState.getBlendStateExt(), glState.getBlendColor(), sampleMask,
+                    context, glState.getBlendStateArray(), glState.getBlendColor(), sampleMask,
                     glState.isSampleAlphaToCoverageEnabled(), glState.hasConstantAlphaBlendFunc()));
                 break;
             case DIRTY_BIT_DEPTH_STENCIL_STATE:

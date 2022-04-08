@@ -26,7 +26,7 @@ DisplayVk::DisplayVk(const egl::DisplayState &state)
     : DisplayImpl(state),
       vk::Context(new RendererVk()),
       mScratchBuffer(1000u),
-      mSavedError({VK_SUCCESS, "", "", 0})
+      mHasSurfaceWithRobustInit(false)
 {}
 
 DisplayVk::~DisplayVk()
@@ -47,18 +47,13 @@ void DisplayVk::terminate()
     mRenderer->reloadVolkIfNeeded();
 
     ASSERT(mRenderer);
-    mRenderer->onDestroy(this);
+    mRenderer->onDestroy();
 }
 
-egl::Error DisplayVk::makeCurrent(egl::Display * /*display*/,
-                                  egl::Surface * /*drawSurface*/,
+egl::Error DisplayVk::makeCurrent(egl::Surface * /*drawSurface*/,
                                   egl::Surface * /*readSurface*/,
                                   gl::Context * /*context*/)
 {
-    // Ensure the appropriate global DebugAnnotator is used
-    ASSERT(mRenderer);
-    mRenderer->setGlobalDebugAnnotator();
-
     return egl::NoError();
 }
 
@@ -74,31 +69,21 @@ egl::Error DisplayVk::restoreLostDevice(const egl::Display *display)
     return egl::EglBadDisplay();
 }
 
-std::string DisplayVk::getRendererDescription()
+std::string DisplayVk::getVendorString() const
 {
+    std::string vendorString = "Google Inc.";
     if (mRenderer)
     {
-        return mRenderer->getRendererDescription();
+        vendorString += " " + mRenderer->getVendorString();
     }
-    return std::string();
+
+    return vendorString;
 }
 
-std::string DisplayVk::getVendorString()
+DeviceImpl *DisplayVk::createDevice()
 {
-    if (mRenderer)
-    {
-        return mRenderer->getVendorString();
-    }
-    return std::string();
-}
-
-std::string DisplayVk::getVersionString()
-{
-    if (mRenderer)
-    {
-        return mRenderer->getVersionString();
-    }
-    return std::string();
+    UNIMPLEMENTED();
+    return nullptr;
 }
 
 egl::Error DisplayVk::waitClient(const gl::Context *context)
@@ -123,14 +108,24 @@ SurfaceImpl *DisplayVk::createWindowSurface(const egl::SurfaceState &state,
                                             EGLNativeWindowType window,
                                             const egl::AttributeMap &attribs)
 {
+    if (attribs.get(EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE, EGL_FALSE) == EGL_TRUE)
+    {
+        mHasSurfaceWithRobustInit = true;
+    }
+
     return createWindowSurfaceVk(state, window);
 }
 
 SurfaceImpl *DisplayVk::createPbufferSurface(const egl::SurfaceState &state,
                                              const egl::AttributeMap &attribs)
 {
+    if (attribs.get(EGL_ROBUST_RESOURCE_INITIALIZATION_ANGLE, EGL_FALSE) == EGL_TRUE)
+    {
+        mHasSurfaceWithRobustInit = true;
+    }
+
     ASSERT(mRenderer);
-    return new OffscreenSurfaceVk(state, mRenderer);
+    return new OffscreenSurfaceVk(state);
 }
 
 SurfaceImpl *DisplayVk::createPbufferFromClientBuffer(const egl::SurfaceState &state,
@@ -158,16 +153,11 @@ ImageImpl *DisplayVk::createImage(const egl::ImageState &state,
     return new ImageVk(state, context);
 }
 
-ShareGroupImpl *DisplayVk::createShareGroup()
-{
-    return new ShareGroupVk();
-}
-
-ContextImpl *DisplayVk::createContext(const gl::State &state,
-                                      gl::ErrorSet *errorSet,
-                                      const egl::Config *configuration,
-                                      const gl::Context *shareContext,
-                                      const egl::AttributeMap &attribs)
+rx::ContextImpl *DisplayVk::createContext(const gl::State &state,
+                                          gl::ErrorSet *errorSet,
+                                          const egl::Config *configuration,
+                                          const gl::Context *shareContext,
+                                          const egl::AttributeMap &attribs)
 {
     return new ContextVk(state, errorSet, mRenderer);
 }
@@ -200,7 +190,6 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
     outExtensions->createContextRobustness      = getRenderer()->getNativeExtensions().robustness;
     outExtensions->surfaceOrientation           = true;
     outExtensions->displayTextureShareGroup     = true;
-    outExtensions->displaySemaphoreShareGroup   = true;
     outExtensions->robustResourceInitialization = true;
 
     // The Vulkan implementation will always say that EGL_KHR_swap_buffers_with_damage is supported.
@@ -222,49 +211,30 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
         getRenderer()->getFeatures().supportsAndroidHardwareBuffer.enabled;
     outExtensions->surfacelessContext = true;
     outExtensions->glColorspace = getRenderer()->getFeatures().supportsSwapchainColorspace.enabled;
-    outExtensions->imageGlColorspace =
-        outExtensions->glColorspace && getRenderer()->getFeatures().supportsImageFormatList.enabled;
+    outExtensions->imageGlColorspace = outExtensions->glColorspace;
 
 #if defined(ANGLE_PLATFORM_ANDROID)
-    outExtensions->getNativeClientBufferANDROID = true;
-    outExtensions->framebufferTargetANDROID     = true;
+    outExtensions->framebufferTargetANDROID = true;
 #endif  // defined(ANGLE_PLATFORM_ANDROID)
 
     // Disable context priority when non-zero memory init is enabled. This enforces a queue order.
     outExtensions->contextPriority = !getRenderer()->getFeatures().allocateNonZeroMemory.enabled;
     outExtensions->noConfigContext = true;
 
-#if defined(ANGLE_PLATFORM_ANDROID)
-    outExtensions->nativeFenceSyncANDROID =
-        getRenderer()->getFeatures().supportsAndroidNativeFenceSync.enabled;
-#endif  // defined(ANGLE_PLATFORM_ANDROID)
-
 #if defined(ANGLE_PLATFORM_GGP)
     outExtensions->ggpStreamDescriptor = true;
-    outExtensions->swapWithFrameToken  = getRenderer()->getFeatures().supportsGGPFrameToken.enabled;
+    outExtensions->swapWithFrameToken  = true;
 #endif  // defined(ANGLE_PLATFORM_GGP)
-
-    outExtensions->bufferAgeEXT = true;
-
-    outExtensions->protectedContentEXT =
-        (getRenderer()->getFeatures().supportsProtectedMemory.enabled &&
-         getRenderer()->getFeatures().supportsSurfaceProtectedSwapchains.enabled);
 }
 
 void DisplayVk::generateCaps(egl::Caps *outCaps) const
 {
     outCaps->textureNPOT = true;
-    outCaps->stencil8    = getRenderer()->getNativeExtensions().stencilIndex8;
 }
 
 const char *DisplayVk::getWSILayer() const
 {
     return nullptr;
-}
-
-bool DisplayVk::isUsingSwapchain() const
-{
-    return true;
 }
 
 bool DisplayVk::getScratchBuffer(size_t requstedSizeBytes,
@@ -280,15 +250,14 @@ void DisplayVk::handleError(VkResult result,
 {
     ASSERT(result != VK_SUCCESS);
 
-    mSavedError.errorCode = result;
-    mSavedError.file      = file;
-    mSavedError.function  = function;
-    mSavedError.line      = line;
+    std::stringstream errorStream;
+    errorStream << "Internal Vulkan error: " << VulkanResultString(result) << ", in " << file
+                << ", " << function << ":" << line << ".";
+    mStoredErrorString = errorStream.str();
 
     if (result == VK_ERROR_DEVICE_LOST)
     {
-        WARN() << "Internal Vulkan error (" << result << "): " << VulkanResultString(result)
-               << ", in " << file << ", " << function << ":" << line << ".";
+        WARN() << mStoredErrorString;
         mRenderer->notifyDeviceLost();
     }
 }
@@ -296,13 +265,7 @@ void DisplayVk::handleError(VkResult result,
 // TODO(jmadill): Remove this. http://anglebug.com/3041
 egl::Error DisplayVk::getEGLError(EGLint errorCode)
 {
-    std::stringstream errorStream;
-    errorStream << "Internal Vulkan error (" << mSavedError.errorCode
-                << "): " << VulkanResultString(mSavedError.errorCode) << ", in " << mSavedError.file
-                << ", " << mSavedError.function << ":" << mSavedError.line << ".";
-    std::string errorString = errorStream.str();
-
-    return egl::Error(errorCode, 0, std::move(errorString));
+    return egl::Error(errorCode, 0, std::move(mStoredErrorString));
 }
 
 void DisplayVk::populateFeatureList(angle::FeatureList *features)
@@ -310,15 +273,9 @@ void DisplayVk::populateFeatureList(angle::FeatureList *features)
     mRenderer->getFeatures().populateFeatureList(features);
 }
 
-ShareGroupVk::ShareGroupVk() : mSyncObjectPendingFlush(false) {}
-
-void ShareGroupVk::onDestroy(const egl::Display *display)
+bool DisplayVk::isRobustResourceInitEnabled() const
 {
-    DisplayVk *displayVk = vk::GetImpl(display);
-
-    mPipelineLayoutCache.destroy(displayVk->getRenderer());
-    mDescriptorSetLayoutCache.destroy(displayVk->getRenderer());
-
-    ASSERT(mResourceUseLists.empty());
+    // We return true if any surface was created with robust resource init enabled.
+    return mHasSurfaceWithRobustInit;
 }
 }  // namespace rx

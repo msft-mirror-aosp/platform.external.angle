@@ -13,7 +13,6 @@
 #include "common/angleutils.h"
 #include "libANGLE/Error.h"
 #include "libANGLE/angletypes.h"
-#include "libANGLE/renderer/gl/formatutilsgl.h"
 
 #include <map>
 
@@ -36,7 +35,6 @@ class FunctionsGL;
 class RenderbufferGL;
 class StateManagerGL;
 class TextureGL;
-struct VertexArrayStateGL;
 
 class BlitGL : angle::NonCopyable
 {
@@ -71,26 +69,7 @@ class BlitGL : angle::NonCopyable
                                             const gl::Framebuffer *dest,
                                             const gl::Rectangle &sourceArea,
                                             const gl::Rectangle &destArea,
-                                            GLenum filter,
-                                            bool writeAlpha);
-
-    angle::Result blitColorBufferWithShader(const gl::Context *context,
-                                            const gl::Framebuffer *source,
-                                            const GLuint destFramebuffer,
-                                            const gl::Rectangle &sourceArea,
-                                            const gl::Rectangle &destArea,
-                                            GLenum filter,
-                                            bool writeAlpha);
-
-    angle::Result blitColorBufferWithShader(const gl::Context *context,
-                                            const gl::Framebuffer *source,
-                                            const GLuint destTexture,
-                                            const gl::TextureTarget destTarget,
-                                            const size_t destLevel,
-                                            const gl::Rectangle &sourceArea,
-                                            const gl::Rectangle &destArea,
-                                            GLenum filter,
-                                            bool writeAlpha);
+                                            GLenum filter);
 
     angle::Result copySubTexture(const gl::Context *context,
                                  TextureGL *source,
@@ -156,12 +135,6 @@ class BlitGL : angle::NonCopyable
                                                    gl::TextureTarget target,
                                                    size_t level);
 
-    angle::Result generateSRGBMipmap(const gl::Context *context,
-                                     TextureGL *source,
-                                     GLuint baseLevel,
-                                     GLuint levelCount,
-                                     const gl::Extents &sourceBaseLevelSize);
-
     angle::Result initializeResources(const gl::Context *context);
 
   private:
@@ -169,8 +142,6 @@ class BlitGL : angle::NonCopyable
     angle::Result setScratchTextureParameter(const gl::Context *context,
                                              GLenum param,
                                              GLenum value);
-    angle::Result setVAOState(const gl::Context *context);
-    angle::Result initializeVAOState(const gl::Context *context);
 
     const FunctionsGL *mFunctions;
     const angle::FeaturesGL &mFeatures;
@@ -192,23 +163,15 @@ class BlitGL : angle::NonCopyable
                                  GLenum destComponentType,
                                  BlitProgram **program);
 
-    bool mResourcesInitialized = false;
-
     // SourceType, SourceComponentType, DestComponentType
     using BlitProgramType = std::tuple<gl::TextureType, GLenum, GLenum>;
     std::map<BlitProgramType, BlitProgram> mBlitPrograms;
 
-    GLuint mScratchTextures[2] = {0};
-    GLuint mScratchFBO         = 0;
+    GLuint mScratchTextures[2];
+    GLuint mScratchFBO;
 
-    GLuint mVAO                   = 0;
-    VertexArrayStateGL *mVAOState = nullptr;
-    bool mOwnsVAOState            = false;
-
-    const GLuint mTexcoordAttribLocation = 0;
-    GLuint mVertexBuffer                 = 0;
-
-    nativegl::TexImageFormat mSRGBMipmapGenerationFormat;
+    GLuint mVAO;
+    GLuint mVertexBuffer;
 };
 }  // namespace rx
 

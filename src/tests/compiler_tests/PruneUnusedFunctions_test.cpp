@@ -4,7 +4,7 @@
 // found in the LICENSE file.
 //
 // PruneUnusedFunctions_test.cpp:
-//   Test for the pruning of unused functions
+//   Test for the pruning of unused function with the SH_PRUNE_UNUSED_FUNCTIONS compile flag
 //
 
 #include "GLSLANG/ShaderLang.h"
@@ -23,9 +23,9 @@ class PruneUnusedFunctionsTest : public MatchOutputCodeTest
     PruneUnusedFunctionsTest() : MatchOutputCodeTest(GL_FRAGMENT_SHADER, 0, SH_ESSL_OUTPUT) {}
 
   protected:
-    void compile(const std::string &shaderString)
+    void compile(const std::string &shaderString, bool prune)
     {
-        int compilationFlags = SH_VARIABLES;
+        int compilationFlags = SH_VARIABLES | (prune ? 0 : SH_DONT_PRUNE_UNUSED_FUNCTIONS);
         MatchOutputCodeTest::compile(shaderString, compilationFlags);
     }
 };
@@ -42,8 +42,12 @@ TEST_F(PruneUnusedFunctionsTest, UnusedFunctionAndProto)
         "float unused(float a) {\n"
         "    return a;\n"
         "}\n";
-    compile(shaderString);
+    compile(shaderString, true);
     EXPECT_TRUE(notFoundInCode("unused("));
+    EXPECT_TRUE(foundInCode("main(", 1));
+
+    compile(shaderString, false);
+    EXPECT_TRUE(foundInCode("unused(", 2));
     EXPECT_TRUE(foundInCode("main(", 1));
 }
 
@@ -56,8 +60,12 @@ TEST_F(PruneUnusedFunctionsTest, UnimplementedPrototype)
         "void main() {\n"
         "    gl_FragColor = vec4(1.0);\n"
         "}\n";
-    compile(shaderString);
+    compile(shaderString, true);
     EXPECT_TRUE(notFoundInCode("unused("));
+    EXPECT_TRUE(foundInCode("main(", 1));
+
+    compile(shaderString, false);
+    EXPECT_TRUE(foundInCode("unused(", 1));
     EXPECT_TRUE(foundInCode("main(", 1));
 }
 
@@ -73,7 +81,11 @@ TEST_F(PruneUnusedFunctionsTest, UsedFunction)
         "float used(float a) {\n"
         "    return a;\n"
         "}\n";
-    compile(shaderString);
+    compile(shaderString, true);
+    EXPECT_TRUE(foundInCode("used(", 3));
+    EXPECT_TRUE(foundInCode("main(", 1));
+
+    compile(shaderString, false);
     EXPECT_TRUE(foundInCode("used(", 3));
     EXPECT_TRUE(foundInCode("main(", 1));
 }

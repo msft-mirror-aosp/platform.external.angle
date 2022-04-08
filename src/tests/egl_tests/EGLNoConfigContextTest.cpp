@@ -127,7 +127,6 @@ TEST_P(EGLNoConfigContextTest, RenderCheck)
     }
 }
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EGLNoConfigContextTest);
 ANGLE_INSTANTIATE_TEST(EGLNoConfigContextTest,
                        WithNoFixture(ES2_OPENGL()),
                        WithNoFixture(ES2_VULKAN()),

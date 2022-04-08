@@ -88,7 +88,9 @@ class EGLPresentPathD3D11 : public ANGLETest
         EGLAttrib device      = 0;
         EGLAttrib angleDevice = 0;
 
-        EXPECT_TRUE(IsEGLClientExtensionEnabled("EGL_EXT_device_query"));
+        const char *extensionString =
+            static_cast<const char *>(eglQueryString(mDisplay, EGL_EXTENSIONS));
+        EXPECT_TRUE(strstr(extensionString, "EGL_EXT_device_query"));
 
         ASSERT_EGL_TRUE(eglQueryDisplayAttribEXT(mDisplay, EGL_DEVICE_EXT, &angleDevice));
         ASSERT_EGL_TRUE(eglQueryDeviceAttribEXT(reinterpret_cast<EGLDeviceEXT>(angleDevice),

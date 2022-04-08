@@ -62,8 +62,6 @@ class FramebufferGL : public FramebufferImpl
                              const gl::Rectangle &area,
                              GLenum format,
                              GLenum type,
-                             const gl::PixelPackState &pack,
-                             gl::Buffer *packBuffer,
                              void *pixels) override;
 
     angle::Result blit(const gl::Context *context,
@@ -79,15 +77,13 @@ class FramebufferGL : public FramebufferImpl
     // The GL back-end requires a full sync state before we call checkStatus.
     bool shouldSyncStateBeforeCheckStatus() const override;
 
-    gl::FramebufferStatus checkStatus(const gl::Context *context) const override;
+    bool checkStatus(const gl::Context *context) const override;
 
     angle::Result syncState(const gl::Context *context,
                             GLenum binding,
-                            const gl::Framebuffer::DirtyBits &dirtyBits,
-                            gl::Command command) override;
+                            const gl::Framebuffer::DirtyBits &dirtyBits) override;
 
     GLuint getFramebufferID() const;
-    void updateDefaultFramebufferID(GLuint framebufferID);
     bool isDefault() const;
 
     bool hasEmulatedAlphaChannelTextureAttachment() const;

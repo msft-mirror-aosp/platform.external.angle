@@ -168,7 +168,6 @@ TEST_P(DispatchComputePerfBenchmark, Run)
     run();
 }
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DispatchComputePerfBenchmark);
 ANGLE_INSTANTIATE_TEST(DispatchComputePerfBenchmark,
                        DispatchComputePerfOpenGLOrGLESParams(true),
                        DispatchComputePerfOpenGLOrGLESParams(false));

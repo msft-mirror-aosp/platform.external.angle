@@ -11,6 +11,7 @@
 
 #include "GLSLANG/ShaderLang.h"
 #include "angle_gl.h"
+#include "compiler/translator/TranslatorESSL.h"
 #include "tests/test_utils/ShaderCompileTreeTest.h"
 #include "tests/test_utils/compiler_test.h"
 

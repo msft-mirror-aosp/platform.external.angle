@@ -20,7 +20,6 @@ class TSymbolTable;
 ANGLE_NO_DISCARD bool RewriteRowMajorMatrices(TCompiler *compiler,
                                               TIntermBlock *root,
                                               TSymbolTable *symbolTable);
-
 }  // namespace sh
 
 #endif  // COMPILER_TRANSLATOR_TREEOPS_REWRITEROWMAJORMATRICES_H_

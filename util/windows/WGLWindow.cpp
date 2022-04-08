@@ -71,16 +71,9 @@ WGLWindow::~WGLWindow() {}
 // Internally initializes GL resources.
 bool WGLWindow::initializeGL(OSWindow *osWindow,
                              angle::Library *glWindowingLibrary,
-                             angle::GLESDriverType driverType,
                              const EGLPlatformParameters &platformParams,
                              const ConfigParameters &configParams)
 {
-    if (driverType != angle::GLESDriverType::SystemWGL)
-    {
-        std::cerr << "WGLWindow requires angle::GLESDriverType::SystemWGL.\n";
-        return false;
-    }
-
     glWindowingLibrary->getAs("wglGetProcAddress", &gCurrentWGLGetProcAddress);
 
     if (!gCurrentWGLGetProcAddress)
@@ -238,11 +231,6 @@ void WGLWindow::swap()
 bool WGLWindow::hasError() const
 {
     return GetLastError() != S_OK;
-}
-
-angle::GenericProc WGLWindow::getProcAddress(const char *name)
-{
-    return GetProcAddressWithFallback(name);
 }
 
 // static

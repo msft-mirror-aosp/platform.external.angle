@@ -15,25 +15,13 @@
 namespace angle
 {
 extern bool gCalibration;
-extern int gStepsPerTrial;
-extern int gMaxStepsPerformed;
+extern int gStepsToRunOverride;
 extern bool gEnableTrace;
 extern const char *gTraceFile;
-extern const char *gScreenShotDir;
-extern int gScreenShotFrame;
-extern bool gVerboseLogging;
-extern int gWarmupLoops;
-extern double gCalibrationTimeSeconds;
-extern double gMaxTrialTimeSeconds;
-extern int gTestTrials;
-extern bool gNoFinish;
-extern bool gEnableAllTraceTests;
-extern bool gRetraceMode;
-extern bool gMinimizeGPUWork;
 
 inline bool OneFrame()
 {
-    return gStepsPerTrial == 1 || gMaxStepsPerformed == 1;
+    return gStepsToRunOverride == 1;
 }
 }  // namespace angle
 

@@ -166,5 +166,4 @@ void main()
     EXPECT_PIXEL_COLOR_EQ(64, 64, GLColor::white);
 }
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ShaderNonConstGlobalInitializerTest);
 ANGLE_INSTANTIATE_TEST_ES3(ShaderNonConstGlobalInitializerTest);

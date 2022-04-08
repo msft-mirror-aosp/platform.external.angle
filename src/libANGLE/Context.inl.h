@@ -46,24 +46,14 @@ ANGLE_INLINE void MarkTransformFeedbackBufferUsage(const Context *context,
     }
 }
 
-ANGLE_INLINE void MarkShaderStorageUsage(const Context *context)
+ANGLE_INLINE void MarkShaderStorageBufferUsage(const Context *context)
 {
     for (size_t index : context->getStateCache().getActiveShaderStorageBufferIndices())
     {
-        Buffer *buffer = context->getState().getIndexedShaderStorageBuffer(index).get();
+        gl::Buffer *buffer = context->getState().getIndexedShaderStorageBuffer(index).get();
         if (buffer)
         {
             buffer->onDataChanged();
-        }
-    }
-
-    for (size_t index : context->getStateCache().getActiveImageUnitIndices())
-    {
-        const ImageUnit &imageUnit = context->getState().getImageUnit(index);
-        const Texture *texture     = imageUnit.texture.get();
-        if (texture)
-        {
-            texture->onStateChange(angle::SubjectMessage::ContentsChanged);
         }
     }
 }
@@ -74,13 +64,8 @@ ANGLE_INLINE void MarkShaderStorageUsage(const Context *context)
 //  an error. ANGLE will treat this as a no-op.
 //  A no-op draw occurs if the count of vertices is less than the minimum required to
 //  have a valid primitive for this mode (0 for points, 0-1 for lines, 0-2 for tris).
-ANGLE_INLINE bool Context::noopDraw(PrimitiveMode mode, GLsizei count) const
+ANGLE_INLINE bool Context::noopDraw(PrimitiveMode mode, GLsizei count)
 {
-    if (!mStateCache.getCanDraw())
-    {
-        return true;
-    }
-
     return count < kMinimumPrimitiveCounts[mode];
 }
 
@@ -100,10 +85,9 @@ ANGLE_INLINE angle::Result Context::syncDirtyBits(const State::DirtyBits &bitMas
     return angle::Result::Continue;
 }
 
-ANGLE_INLINE angle::Result Context::syncDirtyObjects(const State::DirtyObjects &objectMask,
-                                                     Command command)
+ANGLE_INLINE angle::Result Context::syncDirtyObjects(const State::DirtyObjects &objectMask)
 {
-    return mState.syncDirtyObjects(this, objectMask, command);
+    return mState.syncDirtyObjects(this, objectMask);
 }
 
 ANGLE_INLINE angle::Result Context::prepareForDraw(PrimitiveMode mode)
@@ -113,7 +97,7 @@ ANGLE_INLINE angle::Result Context::prepareForDraw(PrimitiveMode mode)
         ANGLE_TRY(mGLES1Renderer->prepareForDraw(mode, this, &mState));
     }
 
-    ANGLE_TRY(syncDirtyObjects(mDrawDirtyObjects, Command::Draw));
+    ANGLE_TRY(syncDirtyObjects(mDrawDirtyObjects));
     ASSERT(!isRobustResourceInitEnabled() ||
            !mState.getDrawFramebuffer()->hasResourceThatNeedsInit());
     return syncDirtyBits();
@@ -124,7 +108,6 @@ ANGLE_INLINE void Context::drawArrays(PrimitiveMode mode, GLint first, GLsizei c
     // No-op if count draws no primitives for given mode
     if (noopDraw(mode, count))
     {
-        ANGLE_CONTEXT_TRY(mImplementation->handleNoopDrawEvent());
         return;
     }
 
@@ -141,7 +124,6 @@ ANGLE_INLINE void Context::drawElements(PrimitiveMode mode,
     // No-op if count draws no primitives for given mode
     if (noopDraw(mode, count))
     {
-        ANGLE_CONTEXT_TRY(mImplementation->handleNoopDrawEvent());
         return;
     }
 

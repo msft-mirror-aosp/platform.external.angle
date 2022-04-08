@@ -11,7 +11,6 @@
 #define LIBANGLE_RENDERER_GL_RENDERERGLUTILS_H_
 
 #include "common/debug.h"
-#include "libANGLE/Caps.h"
 #include "libANGLE/Error.h"
 #include "libANGLE/Version.h"
 #include "libANGLE/angletypes.h"
@@ -46,20 +45,6 @@ enum class MultiviewImplementationTypeGL
 {
     NV_VIEWPORT_ARRAY2,
     UNSPECIFIED
-};
-
-// State-tracking data for the swap control to allow DisplayGL to remember per
-// drawable information for swap control.
-struct SwapControlData
-{
-    SwapControlData();
-
-    // Set by the drawable
-    int targetSwapInterval;
-
-    // DisplayGL-side state-tracking
-    int maxSwapInterval;
-    int currentSwapInterval;
 };
 
 VendorID GetVendorID(const FunctionsGL *functions);
@@ -102,19 +87,15 @@ void GenerateCaps(const FunctionsGL *functions,
                   gl::Caps *caps,
                   gl::TextureCapsMap *textureCapsMap,
                   gl::Extensions *extensions,
-                  gl::Limitations *limitations,
                   gl::Version *maxSupportedESVersion,
                   MultiviewImplementationTypeGL *multiviewImplementationType);
 
 void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *features);
 void InitializeFrontendFeatures(const FunctionsGL *functions, angle::FrontendFeatures *features);
-void ReInitializeFeaturesAtGPUSwitch(const FunctionsGL *functions, angle::FeaturesGL *features);
 }  // namespace nativegl_gl
 
 namespace nativegl
 {
-bool SupportsVertexArrayObjects(const FunctionsGL *functions);
-bool CanUseDefaultVertexArrayObject(const FunctionsGL *functions);
 bool SupportsCompute(const FunctionsGL *functions);
 bool SupportsFenceSync(const FunctionsGL *functions);
 bool SupportsOcclusionQueries(const FunctionsGL *functions);
@@ -169,11 +150,6 @@ struct ContextCreationTry
 };
 
 std::vector<ContextCreationTry> GenerateContextCreationToTry(EGLint requestedType, bool isMesaGLX);
-
-std::string GetRendererString(const FunctionsGL *functions);
-std::string GetVendorString(const FunctionsGL *functions);
-std::string GetVersionString(const FunctionsGL *functions);
-
 }  // namespace rx
 
 #endif  // LIBANGLE_RENDERER_GL_RENDERERGLUTILS_H_

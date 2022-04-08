@@ -11,7 +11,6 @@
 
 #include "common/debug.h"
 
-#include "libANGLE/Display.h"
 #include "libANGLE/renderer/null/ContextNULL.h"
 #include "libANGLE/renderer/null/DeviceNULL.h"
 #include "libANGLE/renderer/null/ImageNULL.h"
@@ -37,15 +36,10 @@ void DisplayNULL::terminate()
     mAllocationTracker.reset();
 }
 
-egl::Error DisplayNULL::makeCurrent(egl::Display *display,
-                                    egl::Surface *drawSurface,
+egl::Error DisplayNULL::makeCurrent(egl::Surface *drawSurface,
                                     egl::Surface *readSurface,
                                     gl::Context *context)
 {
-    // Ensure that the correct global DebugAnnotator is installed when the end2end tests change
-    // the ANGLE back-end (done frequently).
-    display->setGlobalDebugAnnotator();
-
     return egl::NoError();
 }
 
@@ -107,19 +101,9 @@ bool DisplayNULL::isValidNativeWindow(EGLNativeWindowType window) const
     return true;
 }
 
-std::string DisplayNULL::getRendererDescription()
+std::string DisplayNULL::getVendorString() const
 {
     return "NULL";
-}
-
-std::string DisplayNULL::getVendorString()
-{
-    return "NULL";
-}
-
-std::string DisplayNULL::getVersionString()
-{
-    return std::string();
 }
 
 DeviceImpl *DisplayNULL::createDevice()
@@ -200,16 +184,12 @@ StreamProducerImpl *DisplayNULL::createStreamProducerD3DTexture(
     return nullptr;
 }
 
-ShareGroupImpl *DisplayNULL::createShareGroup()
-{
-    return new ShareGroupNULL();
-}
-
 void DisplayNULL::generateExtensions(egl::DisplayExtensions *outExtensions) const
 {
     outExtensions->createContextRobustness            = true;
     outExtensions->postSubBuffer                      = true;
     outExtensions->createContext                      = true;
+    outExtensions->deviceQuery                        = true;
     outExtensions->image                              = true;
     outExtensions->imageBase                          = true;
     outExtensions->glTexture2DImage                   = true;
@@ -226,7 +206,6 @@ void DisplayNULL::generateExtensions(egl::DisplayExtensions *outExtensions) cons
     outExtensions->pixelFormatFloat                   = true;
     outExtensions->surfacelessContext                 = true;
     outExtensions->displayTextureShareGroup           = true;
-    outExtensions->displaySemaphoreShareGroup         = true;
     outExtensions->createContextClientArrays          = true;
     outExtensions->programCacheControl                = true;
     outExtensions->robustResourceInitialization       = true;

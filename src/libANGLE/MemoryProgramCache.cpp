@@ -7,23 +7,19 @@
 //   always have to be re-compiled. Can be used in conjunction with the platform
 //   layer to warm up the cache from disk.
 
-// Include zlib first, otherwise FAR gets defined elsewhere.
-#define USE_SYSTEM_ZLIB
-#include "compression_utils_portable.h"
-
 #include "libANGLE/MemoryProgramCache.h"
 
 #include <GLSLANG/ShaderVars.h>
 #include <anglebase/sha1.h>
 
-#include "common/angle_version.h"
 #include "common/utilities.h"
+#include "common/version.h"
 #include "libANGLE/BinaryStream.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Uniform.h"
 #include "libANGLE/histogram_macros.h"
 #include "libANGLE/renderer/ProgramImpl.h"
-#include "platform/PlatformMethods.h"
+#include "platform/Platform.h"
 
 namespace gl
 {
@@ -49,7 +45,7 @@ class HashStream final : angle::NonCopyable
     std::ostringstream mStringStream;
 };
 
-HashStream &operator<<(HashStream &stream, Shader *shader)
+HashStream &operator<<(HashStream &stream, const Shader *shader)
 {
     if (shader)
     {
@@ -61,7 +57,7 @@ HashStream &operator<<(HashStream &stream, Shader *shader)
 
 HashStream &operator<<(HashStream &stream, const ProgramBindings &bindings)
 {
-    for (const auto &binding : bindings.getStableIterationMap())
+    for (const auto &binding : bindings)
     {
         stream << binding.first << binding.second;
     }
@@ -70,7 +66,7 @@ HashStream &operator<<(HashStream &stream, const ProgramBindings &bindings)
 
 HashStream &operator<<(HashStream &stream, const ProgramAliasedBindings &bindings)
 {
-    for (const auto &binding : bindings.getStableIterationMap())
+    for (const auto &binding : bindings)
     {
         stream << binding.first << binding.second.location;
     }
@@ -144,19 +140,11 @@ angle::Result MemoryProgramCache::getProgram(const Context *context,
 
     ComputeHash(context, program, hashOut);
     egl::BlobCache::Value binaryProgram;
-    size_t programSize = 0;
-    if (get(context, *hashOut, &binaryProgram, &programSize))
+    if (get(context, *hashOut, &binaryProgram))
     {
-        angle::MemoryBuffer uncompressedData;
-        if (!egl::DecompressBlobCacheData(binaryProgram.data(), programSize, &uncompressedData))
-        {
-            ERR() << "Error decompressing binary data.";
-            return angle::Result::Incomplete;
-        }
-
         angle::Result result =
-            program->loadBinary(context, GL_PROGRAM_BINARY_ANGLE, uncompressedData.data(),
-                                static_cast<int>(uncompressedData.size()));
+            program->loadBinary(context, GL_PROGRAM_BINARY_ANGLE, binaryProgram.data(),
+                                static_cast<int>(binaryProgram.size()));
         ANGLE_HISTOGRAM_BOOLEAN("GPU.ANGLE.ProgramCache.LoadBinarySuccess",
                                 result == angle::Result::Continue);
         ANGLE_TRY(result);
@@ -182,10 +170,9 @@ angle::Result MemoryProgramCache::getProgram(const Context *context,
 
 bool MemoryProgramCache::get(const Context *context,
                              const egl::BlobCache::Key &programHash,
-                             egl::BlobCache::Value *programOut,
-                             size_t *programSizeOut)
+                             egl::BlobCache::Value *programOut)
 {
-    return mBlobCache.get(context->getScratchBuffer(), programHash, programOut, programSizeOut);
+    return mBlobCache.get(context->getScratchBuffer(), programHash, programOut);
 }
 
 bool MemoryProgramCache::getAt(size_t index,
@@ -213,23 +200,16 @@ angle::Result MemoryProgramCache::putProgram(const egl::BlobCache::Key &programH
     angle::MemoryBuffer serializedProgram;
     ANGLE_TRY(program->serialize(context, &serializedProgram));
 
-    angle::MemoryBuffer compressedData;
-    if (!egl::CompressBlobCacheData(serializedProgram.size(), serializedProgram.data(),
-                                    &compressedData))
-    {
-        ERR() << "Error compressing binary data.";
-        return angle::Result::Incomplete;
-    }
-
     ANGLE_HISTOGRAM_COUNTS("GPU.ANGLE.ProgramCache.ProgramBinarySizeBytes",
-                           static_cast<int>(compressedData.size()));
+                           static_cast<int>(serializedProgram.size()));
 
     // TODO(syoussefi): to be removed.  Compatibility for Chrome until it supports
     // EGL_ANDROID_blob_cache. http://anglebug.com/2516
     auto *platform = ANGLEPlatformCurrent();
-    platform->cacheProgram(platform, programHash, compressedData.size(), compressedData.data());
+    platform->cacheProgram(platform, programHash, serializedProgram.size(),
+                           serializedProgram.data());
 
-    mBlobCache.put(programHash, std::move(compressedData));
+    mBlobCache.put(programHash, std::move(serializedProgram));
     return angle::Result::Continue;
 }
 

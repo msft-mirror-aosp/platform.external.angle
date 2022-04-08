@@ -35,18 +35,23 @@ class UwpLibrary : public Library
   public:
     UwpLibrary(const char *libraryName, SearchType searchType)
     {
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-        std::wstring wideBuffer = converter.from_bytes(libraryName);
+        char buffer[MAX_PATH];
+        int ret = snprintf(buffer, MAX_PATH, "%s.%s", libraryName, GetSharedLibraryExtension());
 
-        switch (searchType)
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+        std::wstring wideBuffer = converter.from_bytes(buffer);
+
+        if (ret > 0 && ret < MAX_PATH)
         {
-            case SearchType::ModuleDir:
-                mModule = LoadPackagedLibrary(wideBuffer.c_str(), 0);
-                break;
-            case SearchType::SystemDir:
-            case SearchType::AlreadyLoaded:
-                // Not supported in UWP
-                break;
+            switch (searchType)
+            {
+                case SearchType::ApplicationDir:
+                    mModule = LoadPackagedLibrary(wideBuffer.c_str(), 0);
+                    break;
+                case SearchType::SystemDir:
+                    // Not supported in UWP
+                    break;
+            }
         }
     }
 
@@ -70,43 +75,11 @@ class UwpLibrary : public Library
 
     void *getNative() const override { return reinterpret_cast<void *>(mModule); }
 
-    std::string getPath() const override
-    {
-        if (!mModule)
-        {
-            return "";
-        }
-
-        std::array<char, MAX_PATH> buffer;
-        if (GetModuleFileNameA(mModule, buffer.data(), buffer.size()) == 0)
-        {
-            return "";
-        }
-
-        return std::string(buffer.data());
-    }
-
   private:
     HMODULE mModule = nullptr;
 };
 
 Library *OpenSharedLibrary(const char *libraryName, SearchType searchType)
-{
-    char buffer[MAX_PATH];
-    int ret = snprintf(buffer, MAX_PATH, "%s.%s", libraryName, GetSharedLibraryExtension());
-
-    if (ret > 0 && ret < MAX_PATH)
-    {
-        return OpenSharedLibraryWithExtension(buffer, searchType);
-    }
-    else
-    {
-        fprintf(stderr, "Error loading shared library: 0x%x", ret);
-        return nullptr;
-    }
-}
-
-Library *OpenSharedLibraryWithExtension(const char *libraryName, SearchType searchType)
 {
     return new UwpLibrary(libraryName, searchType);
 }

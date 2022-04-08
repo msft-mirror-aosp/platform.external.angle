@@ -51,5 +51,4 @@ TEST_P(ObjectAllocationTest, BindFramebufferAfterGen)
 
 }  // anonymous namespace
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ObjectAllocationTest);
 ANGLE_INSTANTIATE_TEST_ES3(ObjectAllocationTest);

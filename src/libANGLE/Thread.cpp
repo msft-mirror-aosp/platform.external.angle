@@ -11,18 +11,10 @@
 #include "libANGLE/Context.h"
 #include "libANGLE/Debug.h"
 #include "libANGLE/Error.h"
-
-namespace angle
-{
-bool gUseAndroidOpenGLTlsSlot;
-}  // namespace angle
+#include "libANGLE/ErrorStrings.h"
 
 namespace egl
 {
-namespace
-{
-Debug *sDebug = nullptr;
-}  // namespace
 
 Thread::Thread()
     : mLabel(nullptr),
@@ -46,29 +38,18 @@ void Thread::setSuccess()
     mError = EGL_SUCCESS;
 }
 
-void Thread::setError(EGLint error,
+void Thread::setError(const Error &error,
+                      const Debug *debug,
                       const char *command,
-                      const LabeledObject *object,
-                      const char *message)
+                      const LabeledObject *object)
 {
-    mError = error;
-    if (error != EGL_SUCCESS && message)
-    {
-        EnsureDebugAllocated();
-        sDebug->insertMessage(error, command, ErrorCodeToMessageType(error), getLabel(),
-                              object ? object->getLabel() : nullptr, message);
-    }
-}
+    ASSERT(debug != nullptr);
 
-void Thread::setError(const Error &error, const char *command, const LabeledObject *object)
-{
     mError = error.getCode();
     if (error.isError() && !error.getMessage().empty())
     {
-        EnsureDebugAllocated();
-        sDebug->insertMessage(error.getCode(), command, ErrorCodeToMessageType(error.getCode()),
-                              getLabel(), object ? object->getLabel() : nullptr,
-                              error.getMessage());
+        debug->insertMessage(error.getCode(), command, ErrorCodeToMessageType(error.getCode()),
+                             getLabel(), object ? object->getLabel() : nullptr, error.getMessage());
     }
 }
 
@@ -115,6 +96,18 @@ gl::Context *Thread::getContext() const
     return mContext;
 }
 
+gl::Context *Thread::getValidContext() const
+{
+    if (mContext && mContext->isContextLost())
+    {
+        mContext->handleError(GL_OUT_OF_MEMORY, gl::err::kContextLost, __FILE__, ANGLE_FUNCTION,
+                              __LINE__);
+        return nullptr;
+    }
+
+    return mContext;
+}
+
 Display *Thread::getDisplay() const
 {
     if (mContext)
@@ -124,23 +117,4 @@ Display *Thread::getDisplay() const
     return nullptr;
 }
 
-void EnsureDebugAllocated()
-{
-    // All EGL calls use a global lock, this is thread safe
-    if (sDebug == nullptr)
-    {
-        sDebug = new Debug();
-    }
-}
-
-void DeallocateDebug()
-{
-    SafeDelete(sDebug);
-}
-
-Debug *GetDebug()
-{
-    EnsureDebugAllocated();
-    return sDebug;
-}
 }  // namespace egl

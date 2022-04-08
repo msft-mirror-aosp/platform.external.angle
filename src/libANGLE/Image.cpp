@@ -49,8 +49,6 @@ const Display *DisplayFromContext(const gl::Context *context)
 {
     return (context ? context->getDisplay() : nullptr);
 }
-
-angle::SubjectIndex kExternalImageImplSubjectIndex = 0;
 }  // anonymous namespace
 
 ImageSibling::ImageSibling() : FramebufferAttachmentObject(), mSourcesOf(), mTargetOf() {}
@@ -130,11 +128,6 @@ bool ImageSibling::isRenderable(const gl::Context *context,
     return mTargetOf->isRenderable(context);
 }
 
-bool ImageSibling::isYUV() const
-{
-    return mTargetOf.get() && mTargetOf->isYUV();
-}
-
 void ImageSibling::notifySiblings(angle::SubjectMessage message)
 {
     if (mTargetOf.get())
@@ -152,11 +145,8 @@ ExternalImageSibling::ExternalImageSibling(rx::EGLImplFactory *factory,
                                            EGLenum target,
                                            EGLClientBuffer buffer,
                                            const AttributeMap &attribs)
-    : mImplementation(factory->createExternalImageSibling(context, target, buffer, attribs)),
-      mImplObserverBinding(this, kExternalImageImplSubjectIndex)
-{
-    mImplObserverBinding.bind(mImplementation.get());
-}
+    : mImplementation(factory->createExternalImageSibling(context, target, buffer, attribs))
+{}
 
 ExternalImageSibling::~ExternalImageSibling() = default;
 
@@ -198,14 +188,9 @@ bool ExternalImageSibling::isTextureable(const gl::Context *context) const
     return mImplementation->isTexturable(context);
 }
 
-bool ExternalImageSibling::isYUV() const
-{
-    return mImplementation->isYUV();
-}
+void ExternalImageSibling::onAttach(const gl::Context *context) {}
 
-void ExternalImageSibling::onAttach(const gl::Context *context, rx::Serial framebufferSerial) {}
-
-void ExternalImageSibling::onDetach(const gl::Context *context, rx::Serial framebufferSerial) {}
+void ExternalImageSibling::onDetach(const gl::Context *context) {}
 
 GLuint ExternalImageSibling::getId() const
 {
@@ -226,12 +211,6 @@ rx::ExternalImageSiblingImpl *ExternalImageSibling::getImplementation() const
     return mImplementation.get();
 }
 
-void ExternalImageSibling::onSubjectStateChange(angle::SubjectIndex index,
-                                                angle::SubjectMessage message)
-{
-    onStateChange(message);
-}
-
 rx::FramebufferAttachmentObjectImpl *ExternalImageSibling::getAttachmentImpl() const
 {
     return mImplementation.get();
@@ -244,7 +223,6 @@ ImageState::ImageState(EGLenum target, ImageSibling *buffer, const AttributeMap 
       source(buffer),
       targets(),
       format(GL_NONE),
-      yuv(false),
       size(),
       samples(),
       sourceType(target),
@@ -389,11 +367,6 @@ bool Image::isTexturable(const gl::Context *context) const
     return false;
 }
 
-bool Image::isYUV() const
-{
-    return mState.yuv;
-}
-
 size_t Image::getWidth() const
 {
     return mState.size.width;
@@ -402,11 +375,6 @@ size_t Image::getWidth() const
 size_t Image::getHeight() const
 {
     return mState.size.height;
-}
-
-bool Image::isLayered() const
-{
-    return mState.imageIndex.isLayered();
 }
 
 size_t Image::getSamples() const
@@ -423,11 +391,7 @@ Error Image::initialize(const Display *display)
 {
     if (IsExternalImageTarget(mState.sourceType))
     {
-        ExternalImageSibling *externalSibling = rx::GetAs<ExternalImageSibling>(mState.source);
-        ANGLE_TRY(externalSibling->initialize(display));
-
-        // Only external siblings can be YUV
-        mState.yuv = externalSibling->isYUV();
+        ANGLE_TRY(rx::GetAs<ExternalImageSibling>(mState.source)->initialize(display));
     }
 
     mState.format = mState.source->getAttachmentFormat(GL_NONE, mState.imageIndex);

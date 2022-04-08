@@ -26,40 +26,35 @@ class VaryingPackingTest : public ::testing::TestWithParam<GLuint>
   protected:
     VaryingPackingTest() {}
 
-    bool testVaryingPacking(GLint maxVaryings,
-                            PackMode packMode,
-                            const std::vector<sh::ShaderVariable> &shVaryings)
+    bool testVaryingPacking(const std::vector<sh::ShaderVariable> &shVaryings,
+                            VaryingPacking *varyingPacking)
     {
-        ProgramMergedVaryings mergedVaryings;
+        std::vector<PackedVarying> packedVaryings;
         for (const sh::ShaderVariable &shVarying : shVaryings)
         {
-            ProgramVaryingRef ref;
-            ref.frontShader      = &shVarying;
-            ref.backShader       = &shVarying;
-            ref.frontShaderStage = ShaderType::Vertex;
-            ref.backShaderStage  = ShaderType::Fragment;
-            mergedVaryings.push_back(ref);
+            packedVaryings.push_back(PackedVarying(
+                VaryingInShaderRef(ShaderType::Vertex, &shVarying),
+                VaryingInShaderRef(ShaderType::Fragment, &shVarying), shVarying.interpolation));
         }
 
         InfoLog infoLog;
         std::vector<std::string> transformFeedbackVaryings;
 
-        VaryingPacking varyingPacking;
-        return varyingPacking.collectAndPackUserVaryings(
-            infoLog, maxVaryings, packMode, ShaderType::Vertex, ShaderType::Fragment,
-            mergedVaryings, transformFeedbackVaryings, false);
+        return varyingPacking->packUserVaryings(infoLog, packedVaryings);
     }
 
     // Uses the "relaxed" ANGLE packing mode.
-    bool packVaryings(GLint maxVaryings, const std::vector<sh::ShaderVariable> &shVaryings)
+    bool packVaryings(GLuint maxVaryings, const std::vector<sh::ShaderVariable> &shVaryings)
     {
-        return testVaryingPacking(maxVaryings, PackMode::ANGLE_RELAXED, shVaryings);
+        VaryingPacking varyingPacking(maxVaryings, PackMode::ANGLE_RELAXED);
+        return testVaryingPacking(shVaryings, &varyingPacking);
     }
 
     // Uses the stricter WebGL style packing rules.
-    bool packVaryingsStrict(GLint maxVaryings, const std::vector<sh::ShaderVariable> &shVaryings)
+    bool packVaryingsStrict(GLuint maxVaryings, const std::vector<sh::ShaderVariable> &shVaryings)
     {
-        return testVaryingPacking(maxVaryings, PackMode::WEBGL_STRICT, shVaryings);
+        VaryingPacking varyingPacking(maxVaryings, PackMode::WEBGL_STRICT);
+        return testVaryingPacking(shVaryings, &varyingPacking);
     }
 
     const int kMaxVaryings = GetParam();

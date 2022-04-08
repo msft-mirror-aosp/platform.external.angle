@@ -67,15 +67,11 @@ bool IsValidShiftOffset(const TConstantUnion &rhs)
 
 }  // anonymous namespace
 
-TConstantUnion::TConstantUnion() : iConst(0), type(EbtVoid) {}
-
-TConstantUnion::TConstantUnion(int i) : iConst(i), type(EbtInt) {}
-
-TConstantUnion::TConstantUnion(unsigned int u) : uConst(u), type(EbtUInt) {}
-
-TConstantUnion::TConstantUnion(float f) : fConst(f), type(EbtFloat) {}
-
-TConstantUnion::TConstantUnion(bool b) : bConst(b), type(EbtBool) {}
+TConstantUnion::TConstantUnion()
+{
+    iConst = 0;
+    type   = EbtVoid;
+}
 
 int TConstantUnion::getIConst() const
 {

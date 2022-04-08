@@ -11,9 +11,7 @@
 namespace rx
 {
 
-angle::Result ProgramPipelineImpl::link(const gl::Context *context,
-                                        const gl::ProgramMergedVaryings &mergedVaryings,
-                                        const gl::ProgramVaryingPacking &varyingPacking)
+angle::Result ProgramPipelineImpl::link(const gl::Context *context)
 {
     return angle::Result::Continue;
 }

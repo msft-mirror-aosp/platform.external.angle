@@ -23,67 +23,37 @@ namespace rx
 {
 namespace vk
 {
-
-// Represents an invalid native fence FD.
-constexpr int kInvalidFenceFd = EGL_NO_NATIVE_FENCE_FD_ANDROID;
-
-// Implementation of fence types - glFenceSync, and EGLSync(EGL_SYNC_FENCE_KHR).
-// The behaviors of SyncVk and EGLFenceSyncVk as fence syncs are currently
+// The behaviors of SyncImpl and EGLSyncImpl as fence syncs (only supported type) are currently
 // identical for the Vulkan backend, and this class implements both interfaces.
-class SyncHelper : public vk::Resource
+class SyncHelper
 {
   public:
     SyncHelper();
-    ~SyncHelper() override;
+    ~SyncHelper();
 
-    virtual void releaseToRenderer(RendererVk *renderer);
+    void releaseToRenderer(RendererVk *renderer);
 
-    virtual angle::Result initialize(ContextVk *contextVk, bool isEglSyncObject);
-    virtual angle::Result clientWait(Context *context,
-                                     ContextVk *contextVk,
-                                     bool flushCommands,
-                                     uint64_t timeout,
-                                     VkResult *outResult);
-    virtual angle::Result serverWait(ContextVk *contextVk);
-    virtual angle::Result getStatus(Context *context, bool *signaled) const;
-    virtual angle::Result dupNativeFenceFD(Context *context, int *fdOut) const
-    {
-        return angle::Result::Stop;
-    }
+    angle::Result initialize(ContextVk *contextVk);
+    angle::Result clientWait(Context *context,
+                             ContextVk *contextVk,
+                             bool flushCommands,
+                             uint64_t timeout,
+                             VkResult *outResult);
+    angle::Result serverWait(ContextVk *contextVk);
+    angle::Result getStatus(Context *context, bool *signaled);
 
   private:
     // The vkEvent that's signaled on `init` and can be waited on in `serverWait`, or queried with
     // `getStatus`.
     Event mEvent;
+    // The fence is signaled once the CB including the `init` signal is executed.
+    // `clientWait` waits on this fence.
+    Shared<Fence> mFence;
+
+    SharedResourceUse mUse;
 };
-
-// Implementation of sync types: EGLSync(EGL_SYNC_ANDROID_NATIVE_FENCE_ANDROID).
-class SyncHelperNativeFence : public SyncHelper
-{
-  public:
-    SyncHelperNativeFence();
-    ~SyncHelperNativeFence() override;
-
-    void releaseToRenderer(RendererVk *renderer) override;
-
-    angle::Result initializeWithFd(ContextVk *contextVk, int inFd);
-    angle::Result clientWait(Context *context,
-                             ContextVk *contextVk,
-                             bool flushCommands,
-                             uint64_t timeout,
-                             VkResult *outResult) override;
-    angle::Result serverWait(ContextVk *contextVk) override;
-    angle::Result getStatus(Context *context, bool *signaled) const override;
-    angle::Result dupNativeFenceFD(Context *context, int *fdOut) const override;
-
-  private:
-    vk::Fence mFenceWithFd;
-    int mNativeFenceFd;
-};
-
 }  // namespace vk
 
-// Implementor for glFenceSync.
 class SyncVk final : public SyncImpl
 {
   public:
@@ -103,10 +73,9 @@ class SyncVk final : public SyncImpl
     angle::Result getStatus(const gl::Context *context, GLint *outResult) override;
 
   private:
-    vk::SyncHelper mSyncHelper;
+    vk::SyncHelper mFenceSync;
 };
 
-// Implementor for EGLSync.
 class EGLSyncVk final : public EGLSyncImpl
 {
   public:
@@ -128,12 +97,10 @@ class EGLSyncVk final : public EGLSyncImpl
                           EGLint flags) override;
     egl::Error getStatus(const egl::Display *display, EGLint *outStatus) override;
 
-    egl::Error dupNativeFenceFD(const egl::Display *display, EGLint *fdOut) const override;
+    egl::Error dupNativeFenceFD(const egl::Display *display, EGLint *result) const override;
 
   private:
-    EGLenum mType;
-    vk::SyncHelper *mSyncHelper;  // SyncHelper or SyncHelperNativeFence decided at run-time.
-    const egl::AttributeMap &mAttribs;
+    vk::SyncHelper mFenceSync;
 };
 }  // namespace rx
 

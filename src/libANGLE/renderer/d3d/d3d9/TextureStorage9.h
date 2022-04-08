@@ -64,7 +64,7 @@ class TextureStorage9 : public TextureStorage
 
     Renderer9 *mRenderer;
 
-    TextureStorage9(Renderer9 *renderer, DWORD usage, const std::string &label);
+    TextureStorage9(Renderer9 *renderer, DWORD usage);
 
   private:
     const DWORD mD3DUsage;
@@ -74,14 +74,13 @@ class TextureStorage9 : public TextureStorage
 class TextureStorage9_2D : public TextureStorage9
 {
   public:
-    TextureStorage9_2D(Renderer9 *renderer, SwapChain9 *swapchain, const std::string &label);
+    TextureStorage9_2D(Renderer9 *renderer, SwapChain9 *swapchain);
     TextureStorage9_2D(Renderer9 *renderer,
                        GLenum internalformat,
                        bool renderTarget,
                        GLsizei width,
                        GLsizei height,
-                       int levels,
-                       const std::string &label);
+                       int levels);
     ~TextureStorage9_2D() override;
 
     angle::Result getSurfaceLevel(const gl::Context *context,
@@ -89,10 +88,6 @@ class TextureStorage9_2D : public TextureStorage9
                                   int level,
                                   bool dirty,
                                   IDirect3DSurface9 **outSurface) override;
-    angle::Result findRenderTarget(const gl::Context *context,
-                                   const gl::ImageIndex &index,
-                                   GLsizei samples,
-                                   RenderTargetD3D **outRT) const override;
     angle::Result getRenderTarget(const gl::Context *context,
                                   const gl::ImageIndex &index,
                                   GLsizei samples,
@@ -112,10 +107,7 @@ class TextureStorage9_2D : public TextureStorage9
 class TextureStorage9_EGLImage final : public TextureStorage9
 {
   public:
-    TextureStorage9_EGLImage(Renderer9 *renderer,
-                             EGLImageD3D *image,
-                             RenderTarget9 *renderTarget9,
-                             const std::string &label);
+    TextureStorage9_EGLImage(Renderer9 *renderer, EGLImageD3D *image, RenderTarget9 *renderTarget9);
     ~TextureStorage9_EGLImage() override;
 
     angle::Result getSurfaceLevel(const gl::Context *context,
@@ -123,10 +115,6 @@ class TextureStorage9_EGLImage final : public TextureStorage9
                                   int level,
                                   bool dirty,
                                   IDirect3DSurface9 **outSurface) override;
-    angle::Result findRenderTarget(const gl::Context *context,
-                                   const gl::ImageIndex &index,
-                                   GLsizei samples,
-                                   RenderTargetD3D **outRT) const override;
     angle::Result getRenderTarget(const gl::Context *context,
                                   const gl::ImageIndex &index,
                                   GLsizei samples,
@@ -150,9 +138,7 @@ class TextureStorage9_Cube : public TextureStorage9
                          bool renderTarget,
                          int size,
                          int levels,
-                         bool hintLevelZeroOnly,
-                         const std::string &label);
-
+                         bool hintLevelZeroOnly);
     ~TextureStorage9_Cube() override;
 
     angle::Result getSurfaceLevel(const gl::Context *context,
@@ -160,10 +146,6 @@ class TextureStorage9_Cube : public TextureStorage9
                                   int level,
                                   bool dirty,
                                   IDirect3DSurface9 **outSurface) override;
-    angle::Result findRenderTarget(const gl::Context *context,
-                                   const gl::ImageIndex &index,
-                                   GLsizei samples,
-                                   RenderTargetD3D **outRT) const override;
     angle::Result getRenderTarget(const gl::Context *context,
                                   const gl::ImageIndex &index,
                                   GLsizei samples,

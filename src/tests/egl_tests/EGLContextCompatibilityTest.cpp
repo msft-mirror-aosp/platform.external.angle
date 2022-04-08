@@ -71,10 +71,6 @@ bool ShouldSkipConfig(EGLDisplay display, EGLConfig config, bool windowSurfaceTe
             return windowSurfaceTest;
     }
 
-    // Linux failures: http://anglebug.com/4990
-    if (IsLinux())
-        return true;
-
     return false;
 }
 
@@ -482,7 +478,7 @@ void RegisterContextCompatibilityTests()
         EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE,
     }};
 
-    LoadEntryPointsWithUtilLoader(angle::GLESDriverType::AngleEGL);
+    LoadEntryPointsWithUtilLoader();
 
     if (eglGetPlatformDisplayEXT == nullptr)
     {
@@ -493,7 +489,7 @@ void RegisterContextCompatibilityTests()
     for (EGLint renderer : renderers)
     {
         PlatformParameters params = FromRenderer(renderer);
-        if (!IsPlatformAvailable(params))
+        if (IsPlatformAvailable(params))
             continue;
 
         EGLint dispattrs[] = {EGL_PLATFORM_ANGLE_TYPE_ANGLE, renderer, EGL_NONE};

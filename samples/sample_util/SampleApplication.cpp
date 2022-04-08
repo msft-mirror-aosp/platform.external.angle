@@ -6,26 +6,18 @@
 
 #include "SampleApplication.h"
 
-#include "common/debug.h"
 #include "util/EGLWindow.h"
 #include "util/gles_loader_autogen.h"
 #include "util/random_utils.h"
-#include "util/shader_utils.h"
 #include "util/test_utils.h"
-#include "util/util_gl.h"
 
 #include <string.h>
 #include <iostream>
 #include <utility>
 
-#if defined(ANGLE_PLATFORM_WINDOWS)
-#    include "util/windows/WGLWindow.h"
-#endif  // defined(ANGLE_PLATFORM_WINDOWS)
-
 namespace
 {
 const char *kUseAngleArg = "--use-angle=";
-const char *kUseGlArg    = "--use-gl=native";
 
 using DisplayTypeInfo = std::pair<const char *, EGLint>;
 
@@ -66,12 +58,6 @@ EGLint GetDeviceTypeFromArg(const char *displayTypeArg)
         return EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE;
     }
 }
-
-ANGLE_MAYBE_UNUSED bool IsGLExtensionEnabled(const std::string &extName)
-{
-    return angle::CheckExtensionExists(reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS)),
-                                       extName);
-}
 }  // anonymous namespace
 
 SampleApplication::SampleApplication(std::string name,
@@ -85,57 +71,29 @@ SampleApplication::SampleApplication(std::string name,
       mWidth(width),
       mHeight(height),
       mRunning(false),
-      mFrameCount(0),
-      mGLWindow(nullptr),
       mEGLWindow(nullptr),
-      mOSWindow(nullptr),
-      mDriverType(angle::GLESDriverType::AngleEGL)
+      mOSWindow(nullptr)
 {
     mPlatformParams.renderer = EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE;
-    bool useNativeGL         = false;
 
-    for (int argIndex = 1; argIndex < argc; argIndex++)
+    if (argc > 1 && strncmp(argv[1], kUseAngleArg, strlen(kUseAngleArg)) == 0)
     {
-        if (strncmp(argv[argIndex], kUseAngleArg, strlen(kUseAngleArg)) == 0)
-        {
-            const char *arg            = argv[argIndex] + strlen(kUseAngleArg);
-            mPlatformParams.renderer   = GetDisplayTypeFromArg(arg);
-            mPlatformParams.deviceType = GetDeviceTypeFromArg(arg);
-        }
-
-        if (strncmp(argv[argIndex], kUseGlArg, strlen(kUseGlArg)) == 0)
-        {
-            useNativeGL = true;
-        }
+        const char *arg            = argv[1] + strlen(kUseAngleArg);
+        mPlatformParams.renderer   = GetDisplayTypeFromArg(arg);
+        mPlatformParams.deviceType = GetDeviceTypeFromArg(arg);
     }
-
-    mOSWindow = OSWindow::New();
 
     // Load EGL library so we can initialize the display.
-    if (useNativeGL)
-    {
-#if defined(ANGLE_PLATFORM_WINDOWS)
-        mGLWindow = WGLWindow::New(glesMajorVersion, glesMinorVersion);
-        mEntryPointsLib.reset(angle::OpenSharedLibrary("opengl32", angle::SearchType::SystemDir));
-        mDriverType = angle::GLESDriverType::SystemWGL;
-#else
-        mGLWindow = EGLWindow::New(glesMajorVersion, glesMinorVersion);
-        mEntryPointsLib.reset(angle::OpenSharedLibraryWithExtension(
-            angle::GetNativeEGLLibraryNameWithExtension(), angle::SearchType::SystemDir));
-        mDriverType = angle::GLESDriverType::SystemEGL;
-#endif  // defined(ANGLE_PLATFORM_WINDOWS)
-    }
-    else
-    {
-        mGLWindow = mEGLWindow = EGLWindow::New(glesMajorVersion, glesMinorVersion);
-        mEntryPointsLib.reset(
-            angle::OpenSharedLibrary(ANGLE_EGL_LIBRARY_NAME, angle::SearchType::ModuleDir));
-    }
+    mEntryPointsLib.reset(
+        angle::OpenSharedLibrary(ANGLE_EGL_LIBRARY_NAME, angle::SearchType::ApplicationDir));
+
+    mEGLWindow = EGLWindow::New(glesMajorVersion, glesMinorVersion);
+    mOSWindow  = OSWindow::New();
 }
 
 SampleApplication::~SampleApplication()
 {
-    GLWindowBase::Delete(&mGLWindow);
+    EGLWindow::Delete(&mEGLWindow);
     OSWindow::Delete(&mOSWindow);
 }
 
@@ -152,7 +110,7 @@ void SampleApplication::draw() {}
 
 void SampleApplication::swap()
 {
-    mGLWindow->swap();
+    mEGLWindow->swap();
 }
 
 OSWindow *SampleApplication::getWindow() const
@@ -162,25 +120,21 @@ OSWindow *SampleApplication::getWindow() const
 
 EGLConfig SampleApplication::getConfig() const
 {
-    ASSERT(mEGLWindow);
     return mEGLWindow->getConfig();
 }
 
 EGLDisplay SampleApplication::getDisplay() const
 {
-    ASSERT(mEGLWindow);
     return mEGLWindow->getDisplay();
 }
 
 EGLSurface SampleApplication::getSurface() const
 {
-    ASSERT(mEGLWindow);
     return mEGLWindow->getSurface();
 }
 
 EGLContext SampleApplication::getContext() const
 {
-    ASSERT(mEGLWindow);
     return mEGLWindow->getContext();
 }
 
@@ -201,27 +155,21 @@ int SampleApplication::run()
     configParams.depthBits   = 24;
     configParams.stencilBits = 8;
 
-    if (!mGLWindow->initializeGL(mOSWindow, mEntryPointsLib.get(), mDriverType, mPlatformParams,
-                                 configParams))
+    if (!mEGLWindow->initializeGL(mOSWindow, mEntryPointsLib.get(), mPlatformParams, configParams))
     {
         return -1;
     }
 
     // Disable vsync
-    if (!mGLWindow->setSwapInterval(0))
+    if (!mEGLWindow->setSwapInterval(0))
     {
         return -1;
     }
 
+    angle::LoadGLES(eglGetProcAddress);
+
     mRunning   = true;
     int result = 0;
-
-#if defined(ANGLE_ENABLE_ASSERTS)
-    if (IsGLExtensionEnabled("GL_KHR_debug"))
-    {
-        EnableDebugCallback(nullptr, nullptr);
-    }
-#endif
 
     if (!initialize())
     {
@@ -271,18 +219,10 @@ int SampleApplication::run()
         mOSWindow->messageLoop();
 
         prevTime = elapsedTime;
-
-        mFrameCount++;
-
-        if (mFrameCount % 100 == 0)
-        {
-            printf("Rate: %0.2lf frames / second\n",
-                   static_cast<double>(mFrameCount) / mTimer.getElapsedTime());
-        }
     }
 
     destroy();
-    mGLWindow->destroyGL();
+    mEGLWindow->destroyGL();
     mOSWindow->destroy();
 
     return result;

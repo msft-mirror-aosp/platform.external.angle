@@ -10,12 +10,10 @@
 #define LIBANGLE_RENDERER_GL_GLX_DISPLAYGLX_H_
 
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "common/Optional.h"
 #include "libANGLE/renderer/gl/DisplayGL.h"
-#include "libANGLE/renderer/gl/RendererGL.h"
 #include "libANGLE/renderer/gl/glx/FunctionsGLX.h"
 
 namespace rx
@@ -24,7 +22,19 @@ namespace rx
 class FunctionsGLX;
 class WorkerContext;
 
-struct SwapControlData;
+// State-tracking data for the swap control to allow DisplayGLX to remember per
+// drawable information for swap control.
+struct SwapControlData
+{
+    SwapControlData();
+
+    // Set by the drawable
+    int targetSwapInterval;
+
+    // DisplayGLX-side state-tracking
+    int maxSwapInterval;
+    int currentSwapInterval;
+};
 
 class DisplayGLX : public DisplayGL
 {
@@ -35,8 +45,7 @@ class DisplayGLX : public DisplayGL
     egl::Error initialize(egl::Display *display) override;
     void terminate() override;
 
-    egl::Error makeCurrent(egl::Display *display,
-                           egl::Surface *drawSurface,
+    egl::Error makeCurrent(egl::Surface *drawSurface,
                            egl::Surface *readSurface,
                            gl::Context *context) override;
 
@@ -53,10 +62,6 @@ class DisplayGLX : public DisplayGL
                                      NativePixmapType nativePixmap,
                                      const egl::AttributeMap &attribs) override;
 
-    egl::Error validatePixmap(const egl::Config *config,
-                              EGLNativePixmapType pixmap,
-                              const egl::AttributeMap &attributes) const override;
-
     ContextImpl *createContext(const gl::State &state,
                                gl::ErrorSet *errorSet,
                                const egl::Config *configuration,
@@ -70,18 +75,20 @@ class DisplayGLX : public DisplayGL
 
     bool isValidNativeWindow(EGLNativeWindowType window) const override;
 
+    DeviceImpl *createDevice() override;
+
+    std::string getVendorString() const override;
+
     egl::Error waitClient(const gl::Context *context) override;
     egl::Error waitNative(const gl::Context *context, EGLint engine) override;
 
     gl::Version getMaxSupportedESVersion() const override;
 
-    // Synchronizes with the X server.
+    // Synchronizes with the X server, if the display has been opened by ANGLE.
     // Calling this is required at the end of every functions that does buffered
     // X calls (not for glX calls) otherwise there might be race conditions
     // between the application's display and ANGLE's one.
-    // Calling this only syncs if ANGLE opened the display, or if alwaysSync
-    // is true.
-    void syncXCommands(bool alwaysSync) const;
+    void syncXCommands() const;
 
     // Depending on the supported GLX extension, swap interval can be set
     // globally or per drawable. This function will make sure the drawable's
@@ -89,16 +96,13 @@ class DisplayGLX : public DisplayGL
     // acts as expected.
     void setSwapInterval(glx::Drawable drawable, SwapControlData *data);
 
-    bool isWindowVisualIdSpecified() const;
-    bool isMatchingWindowVisualId(unsigned long visualId) const;
+    bool isValidWindowVisualId(unsigned long visualId) const;
 
     WorkerContext *createWorkerContext(std::string *infoLog);
 
     void initializeFrontendFeatures(angle::FrontendFeatures *features) const override;
 
     void populateFeatureList(angle::FeatureList *features) override;
-
-    RendererGL *getRenderer() const override;
 
   private:
     egl::Error initializeContext(glx::FBConfig config,
@@ -126,10 +130,8 @@ class DisplayGLX : public DisplayGL
     XVisualInfo *mVisuals;
     glx::Context mContext;
     glx::Context mSharedContext;
-    angle::HashMap<std::thread::id, glx::Context> mCurrentNativeContexts;
-
     // A pbuffer the context is current on during ANGLE initialization
-    glx::Pbuffer mInitPbuffer;
+    glx::Pbuffer mDummyPbuffer;
 
     std::vector<glx::Pbuffer> mWorkerPbufferPool;
 
@@ -140,7 +142,6 @@ class DisplayGLX : public DisplayGL
     bool mHasARBCreateContextProfile;
     bool mHasARBCreateContextRobustness;
     bool mHasEXTCreateContextES2Profile;
-    bool mHasNVRobustnessVideoMemoryPurge;
 
     enum class SwapControl
     {

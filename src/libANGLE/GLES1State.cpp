@@ -51,8 +51,6 @@ ClipPlaneParameters::ClipPlaneParameters(bool enabled, const angle::Vector4 &equ
 
 ClipPlaneParameters::ClipPlaneParameters(const ClipPlaneParameters &other) = default;
 
-ClipPlaneParameters &ClipPlaneParameters::operator=(const ClipPlaneParameters &other) = default;
-
 GLES1State::GLES1State()
     : mGLState(nullptr),
       mVertexArrayEnabled(false),
@@ -217,13 +215,6 @@ void GLES1State::setCurrentNormal(const angle::Vector3 &normal)
 const angle::Vector3 &GLES1State::getCurrentNormal() const
 {
     return mCurrentNormal;
-}
-
-bool GLES1State::shouldHandleDirtyProgram()
-{
-    bool ret = isDirty(DIRTY_GLES1_PROGRAM);
-    clearDirtyBits(DIRTY_GLES1_PROGRAM);
-    return ret;
 }
 
 void GLES1State::setCurrentTextureCoords(unsigned int unit, const TextureCoordF &coords)
@@ -395,10 +386,6 @@ bool GLES1State::isTexCoordArrayEnabled(unsigned int unit) const
 
 bool GLES1State::isTextureTargetEnabled(unsigned int unit, const TextureType type) const
 {
-    if (mTexUnitEnables.empty())
-    {
-        return false;
-    }
     return mTexUnitEnables[unit].test(type);
 }
 
@@ -570,6 +557,26 @@ GLenum GLES1State::getHint(GLenum target) const
             UNREACHABLE();
             return 0;
     }
+}
+
+void GLES1State::setDirty(DirtyGles1Type type)
+{
+    mDirtyBits.set(type);
+}
+
+void GLES1State::setAllDirty()
+{
+    mDirtyBits.set();
+}
+
+void GLES1State::clearDirty()
+{
+    mDirtyBits.reset();
+}
+
+bool GLES1State::isDirty(DirtyGles1Type type) const
+{
+    return mDirtyBits.test(type);
 }
 
 }  // namespace gl

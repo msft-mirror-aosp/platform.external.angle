@@ -12,6 +12,7 @@ namespace sh
 {
 
 TOutputGLSL::TOutputGLSL(TInfoSinkBase &objSink,
+                         ShArrayIndexClampingStrategy clampingStrategy,
                          ShHashFunction64 hashFunction,
                          NameMap &nameMap,
                          TSymbolTable *symbolTable,
@@ -20,6 +21,7 @@ TOutputGLSL::TOutputGLSL(TInfoSinkBase &objSink,
                          ShShaderOutput output,
                          ShCompileOptions compileOptions)
     : TOutputGLSLBase(objSink,
+                      clampingStrategy,
                       hashFunction,
                       nameMap,
                       symbolTable,
@@ -61,11 +63,11 @@ void TOutputGLSL::visitSymbol(TIntermSymbol *node)
     }
     else if (name == "gl_SecondaryFragColorEXT")
     {
-        out << "webgl_SecondaryFragColor";
+        out << "angle_SecondaryFragColor";
     }
     else if (name == "gl_SecondaryFragDataEXT")
     {
-        out << "webgl_SecondaryFragData";
+        out << "angle_SecondaryFragData";
     }
     else
     {
@@ -115,8 +117,7 @@ ImmutableString TOutputGLSL::translateTextureFunction(const ImmutableString &nam
         "textureCubeLodEXT", "textureLod", "texture2DGradEXT", "textureGrad",
         "texture2DProjGradEXT", "textureProjGrad", "textureCubeGradEXT", "textureGrad", "texture3D",
         "texture", "texture3DProj", "textureProj", "texture3DLod", "textureLod", "texture3DProjLod",
-        "textureProjLod", "shadow2DEXT", "texture", "shadow2DProjEXT", "textureProj", nullptr,
-        nullptr};
+        "textureProjLod", nullptr, nullptr};
     const char **mapping =
         (sh::IsGLSL130OrNewer(getShaderOutput())) ? legacyToCoreRename : simpleRename;
 

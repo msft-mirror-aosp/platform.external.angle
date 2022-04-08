@@ -30,17 +30,25 @@ class GlslangWrapperVk
     static void ResetGlslangProgramInterfaceInfo(
         GlslangProgramInterfaceInfo *glslangProgramInterfaceInfo);
 
-    static void GetShaderCode(const angle::FeaturesVk &features,
-                              const gl::ProgramState &programState,
-                              const gl::ProgramLinkedResources &resources,
-                              GlslangProgramInterfaceInfo *programInterfaceInfo,
-                              gl::ShaderMap<const angle::spirv::Blob *> *spirvBlobsOut,
-                              ShaderInterfaceVariableInfoMap *variableInfoMapOut);
+    static void GetShaderSource(const angle::FeaturesVk &features,
+                                const gl::ProgramState &programState,
+                                const gl::ProgramLinkedResources &resources,
+                                GlslangProgramInterfaceInfo *programInterfaceInfo,
+                                gl::ShaderMap<std::string> *shaderSourcesOut,
+                                ShaderMapInterfaceVariableInfoMap *variableInfoMapOut);
 
-    static angle::Result TransformSpirV(const GlslangSpirvOptions &options,
+    static angle::Result GetShaderCode(vk::Context *context,
+                                       const gl::Caps &glCaps,
+                                       const gl::ShaderMap<std::string> &shaderSources,
+                                       const ShaderMapInterfaceVariableInfoMap &variableInfoMap,
+                                       gl::ShaderMap<std::vector<uint32_t>> *shaderCodesOut);
+
+    static angle::Result TransformSpirV(vk::Context *context,
+                                        const gl::ShaderType shaderType,
+                                        bool removeEarlyFragmentTestsOptimization,
                                         const ShaderInterfaceVariableInfoMap &variableInfoMap,
-                                        const angle::spirv::Blob &initialSpirvBlob,
-                                        angle::spirv::Blob *shaderCodeOut);
+                                        const SpirvBlob &initialSpirvBlob,
+                                        SpirvBlob *shaderCodeOut);
 };
 }  // namespace rx
 

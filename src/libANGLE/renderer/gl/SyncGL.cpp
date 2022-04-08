@@ -36,11 +36,9 @@ void SyncGL::onDestroy(const gl::Context *context)
 angle::Result SyncGL::set(const gl::Context *context, GLenum condition, GLbitfield flags)
 {
     ASSERT(condition == GL_SYNC_GPU_COMMANDS_COMPLETE && flags == 0);
-    ContextGL *contextGL = GetImplAs<ContextGL>(context);
-    mSyncObject          = mFunctions->fenceSync(condition, flags);
-    ANGLE_CHECK(contextGL, mSyncObject != 0, "glFenceSync failed to create a GLsync object.",
-                GL_OUT_OF_MEMORY);
-    contextGL->markWorkSubmitted();
+    mSyncObject = mFunctions->fenceSync(condition, flags);
+    ANGLE_CHECK(GetImplAs<ContextGL>(context), mSyncObject != 0,
+                "glFenceSync failed to create a GLsync object.", GL_OUT_OF_MEMORY);
     return angle::Result::Continue;
 }
 

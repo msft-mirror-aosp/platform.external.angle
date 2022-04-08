@@ -125,10 +125,9 @@ void TraverseArrayOfArraysVariable(const ShaderVariable &variable,
         }
         else
         {
-            if (gl::IsSamplerType(variable.type) || gl::IsImageType(variable.type) ||
-                variable.isFragmentInOut)
+            if (gl::IsSamplerType(variable.type))
             {
-                visitor->visitOpaqueObject(elementVar);
+                visitor->visitSampler(elementVar);
             }
             else
             {
@@ -199,24 +198,6 @@ BlockMemberInfo BlockLayoutEncoder::encodeType(GLenum type,
     return memberInfo;
 }
 
-BlockMemberInfo BlockLayoutEncoder::encodeArrayOfPreEncodedStructs(
-    size_t size,
-    const std::vector<unsigned int> &arraySizes)
-{
-    const unsigned int innerArraySizeProduct = gl::InnerArraySizeProduct(arraySizes);
-    const unsigned int outermostArraySize    = gl::OutermostArraySize(arraySizes);
-
-    // The size of struct is expected to be already aligned appropriately.
-    const size_t arrayStride = size * innerArraySizeProduct;
-
-    const BlockMemberInfo memberInfo(static_cast<int>(mCurrentOffset * kBytesPerComponent),
-                                     static_cast<int>(arrayStride), -1, false);
-
-    mCurrentOffset += arrayStride * outermostArraySize / kBytesPerComponent;
-
-    return memberInfo;
-}
-
 size_t BlockLayoutEncoder::getShaderVariableSize(const ShaderVariable &structVar, bool isRowMajor)
 {
     size_t currentOffset = mCurrentOffset;
@@ -247,12 +228,12 @@ void BlockLayoutEncoder::align(size_t baseAlignment)
     mCurrentOffset = rx::roundUp<size_t>(mCurrentOffset, baseAlignment);
 }
 
-// StubBlockEncoder implementation.
-void StubBlockEncoder::getBlockLayoutInfo(GLenum type,
-                                          const std::vector<unsigned int> &arraySizes,
-                                          bool isRowMajorMatrix,
-                                          int *arrayStrideOut,
-                                          int *matrixStrideOut)
+// DummyBlockEncoder implementation.
+void DummyBlockEncoder::getBlockLayoutInfo(GLenum type,
+                                           const std::vector<unsigned int> &arraySizes,
+                                           bool isRowMajorMatrix,
+                                           int *arrayStrideOut,
+                                           int *matrixStrideOut)
 {
     *arrayStrideOut  = 0;
     *matrixStrideOut = 0;
@@ -474,24 +455,24 @@ std::string VariableNameVisitor::collapseMappedNameStack() const
     return CollapseNameStack(mMappedNameStack);
 }
 
-void VariableNameVisitor::visitOpaqueObject(const sh::ShaderVariable &variable)
+void VariableNameVisitor::visitSampler(const sh::ShaderVariable &sampler)
 {
-    if (!variable.hasParentArrayIndex())
+    if (!sampler.hasParentArrayIndex())
     {
-        mNameStack.push_back(variable.name);
-        mMappedNameStack.push_back(variable.mappedName);
+        mNameStack.push_back(sampler.name);
+        mMappedNameStack.push_back(sampler.mappedName);
     }
 
     std::string name       = collapseNameStack();
     std::string mappedName = collapseMappedNameStack();
 
-    if (!variable.hasParentArrayIndex())
+    if (!sampler.hasParentArrayIndex())
     {
         mNameStack.pop_back();
         mMappedNameStack.pop_back();
     }
 
-    visitNamedOpaqueObject(variable, name, mappedName, mArraySizeStack);
+    visitNamedSampler(sampler, name, mappedName, mArraySizeStack);
 }
 
 void VariableNameVisitor::visitVariable(const ShaderVariable &variable, bool isRowMajor)
@@ -629,10 +610,9 @@ void TraverseShaderVariable(const ShaderVariable &variable,
     {
         TraverseArrayOfArraysVariable(variable, 0u, isRowMajor, visitor);
     }
-    else if (gl::IsSamplerType(variable.type) || gl::IsImageType(variable.type) ||
-             variable.isFragmentInOut)
+    else if (gl::IsSamplerType(variable.type))
     {
-        visitor->visitOpaqueObject(variable);
+        visitor->visitSampler(variable);
     }
     else
     {

@@ -47,17 +47,10 @@ class EGLSurfacelessContextTest : public ANGLETest
             eglGetConfigAttrib(mDisplay, config, EGL_SURFACE_TYPE, &surfaceType);
             if (surfaceType & EGL_PBUFFER_BIT)
             {
-                mConfig           = config;
-                mSupportsPbuffers = true;
+                mConfig = config;
                 break;
             }
         }
-
-        if (!mConfig)
-        {
-            mConfig = configs[0];
-        }
-
         ASSERT_NE(nullptr, mConfig);
     }
 
@@ -90,11 +83,6 @@ class EGLSurfacelessContextTest : public ANGLETest
 
     EGLSurface createPbuffer(int width, int height)
     {
-        if (!mSupportsPbuffers)
-        {
-            return EGL_NO_SURFACE;
-        }
-
         const EGLint pbufferAttribs[] = {
             EGL_WIDTH, 500, EGL_HEIGHT, 500, EGL_NONE,
         };
@@ -111,7 +99,7 @@ class EGLSurfacelessContextTest : public ANGLETest
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 500, 500, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex->get(), 0);
-        ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+        EXPECT_GLENUM_EQ(GL_FRAMEBUFFER_COMPLETE, glCheckFramebufferStatus(GL_FRAMEBUFFER));
     }
 
     bool checkExtension(bool verbose = true) const
@@ -128,11 +116,10 @@ class EGLSurfacelessContextTest : public ANGLETest
         return true;
     }
 
-    EGLContext mContext    = EGL_NO_CONTEXT;
-    EGLSurface mPbuffer    = EGL_NO_SURFACE;
-    bool mSupportsPbuffers = false;
-    EGLConfig mConfig      = 0;
-    EGLDisplay mDisplay    = EGL_NO_DISPLAY;
+    EGLContext mContext = EGL_NO_CONTEXT;
+    EGLSurface mPbuffer = EGL_NO_SURFACE;
+    EGLConfig mConfig   = 0;
+    EGLDisplay mDisplay = EGL_NO_DISPLAY;
 };
 
 // Test surfaceless MakeCurrent returns the correct value.
@@ -197,7 +184,7 @@ TEST_P(EGLSurfacelessContextTest, CheckFramebufferStatus)
     GLTexture tex;
     createFramebuffer(&fbo, &tex);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo.get());
-    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    ASSERT_GLENUM_EQ(GL_FRAMEBUFFER_COMPLETE, glCheckFramebufferStatus(GL_FRAMEBUFFER));
 }
 
 // Test that clearing and readpixels work when done in an FBO.
@@ -227,11 +214,10 @@ TEST_P(EGLSurfacelessContextTest, ClearReadPixelsInFBO)
 // Test clear+readpixels in an FBO in surfaceless and in the default FBO in a pbuffer
 TEST_P(EGLSurfacelessContextTest, Switcheroo)
 {
-    ANGLE_SKIP_TEST_IF(!checkExtension());
-    ANGLE_SKIP_TEST_IF(!mSupportsPbuffers);
-
-    // Fails on NVIDIA Shield TV (http://anglebug.com/4924)
-    ANGLE_SKIP_TEST_IF(IsAndroid() && IsNVIDIA());
+    if (!checkExtension())
+    {
+        return;
+    }
 
     EGLContext context = createContext();
     EGLSurface pbuffer = createPbuffer(500, 500);
@@ -274,7 +260,5 @@ TEST_P(EGLSurfacelessContextTest, Switcheroo)
 ANGLE_INSTANTIATE_TEST(EGLSurfacelessContextTest,
                        WithNoFixture(ES2_D3D9()),
                        WithNoFixture(ES2_D3D11()),
-                       WithNoFixture(ES2_METAL()),
                        WithNoFixture(ES2_OPENGL()),
-                       WithNoFixture(ES2_OPENGLES()),
                        WithNoFixture(ES2_VULKAN()));

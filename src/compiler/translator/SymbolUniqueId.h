@@ -37,7 +37,7 @@ class TSymbolUniqueId
     int mId;
 };
 
-enum class SymbolType : uint8_t
+enum class SymbolType
 {
     BuiltIn,
     UserDefined,
@@ -45,7 +45,7 @@ enum class SymbolType : uint8_t
     Empty  // Meaning symbol without a name.
 };
 
-enum class SymbolClass : uint8_t
+enum class SymbolClass
 {
     Function,
     Variable,

@@ -27,15 +27,13 @@
 #include "deUniquePtr.hpp"
 #include "tcuTestHierarchyIterator.hpp"
 
-#include "tests/test_utils/RenderDoc.h"
-
 namespace tcu
 {
 
 class RandomOrderExecutor
 {
   public:
-    RandomOrderExecutor(TestPackageRoot &root, TestContext &testCtx, bool enableRenderDocCapture);
+    RandomOrderExecutor(TestPackageRoot &root, TestContext &testCtx);
     ~RandomOrderExecutor(void);
 
     TestStatus execute(const std::string &path);
@@ -61,8 +59,6 @@ class RandomOrderExecutor
     std::vector<NodeStackEntry> m_nodeStack;
 
     de::MovePtr<TestCaseExecutor> m_caseExecutor;
-
-    RenderDoc mRenderDoc;
 };
 
 }  // namespace tcu

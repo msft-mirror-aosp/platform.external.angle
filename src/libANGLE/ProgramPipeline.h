@@ -38,22 +38,11 @@ class ProgramPipelineState final : angle::NonCopyable
 
     const std::string &getLabel() const;
 
-    const ProgramExecutable &getProgramExecutable() const
-    {
-        ASSERT(mExecutable);
-        return *mExecutable;
-    }
-    ProgramExecutable &getProgramExecutable()
-    {
-        ASSERT(mExecutable);
-        return *mExecutable;
-    }
+    const ProgramExecutable &getProgramExecutable() const { return mExecutable; }
+    ProgramExecutable &getProgramExecutable() { return mExecutable; }
 
     void activeShaderProgram(Program *shaderProgram);
-    void useProgramStages(const Context *context,
-                          GLbitfield stages,
-                          Program *shaderProgram,
-                          std::vector<angle::ObserverBinding> *programObserverBindings);
+    void useProgramStages(const Context *context, GLbitfield stages, Program *shaderProgram);
 
     Program *getActiveShaderProgram() { return mActiveShaderProgram; }
 
@@ -63,15 +52,16 @@ class ProgramPipelineState final : angle::NonCopyable
 
     bool usesShaderProgram(ShaderProgramID program) const;
 
-    void updateExecutableTextures();
-
-    rx::SpecConstUsageBits getSpecConstUsageBits() const;
+    bool hasDefaultUniforms() const;
+    bool hasTextures() const;
+    bool hasUniformBuffers() const;
+    bool hasStorageBuffers() const;
+    bool hasAtomicCounterBuffers() const;
+    bool hasImages() const;
+    bool hasTransformFeedbackOutput() const;
 
   private:
-    void useProgramStage(const Context *context,
-                         ShaderType shaderType,
-                         Program *shaderProgram,
-                         angle::ObserverBinding *programObserverBindings);
+    void useProgramStage(const Context *context, ShaderType shaderType, Program *shaderProgram);
 
     friend class ProgramPipeline;
 
@@ -84,15 +74,12 @@ class ProgramPipelineState final : angle::NonCopyable
 
     GLboolean mValid;
 
-    ProgramExecutable *mExecutable;
+    GLboolean mHasBeenBound;
 
-    bool mIsLinked;
+    ProgramExecutable mExecutable;
 };
 
-class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
-                              public LabeledObject,
-                              public angle::ObserverInterface,
-                              public HasAttachedShaders
+class ProgramPipeline final : public RefCountObject<ProgramPipelineID>, public LabeledObject
 {
   public:
     ProgramPipeline(rx::GLImplFactory *factory, ProgramPipelineID handle);
@@ -104,7 +91,6 @@ class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
     const std::string &getLabel() const override;
 
     const ProgramPipelineState &getState() const { return mState; }
-    ProgramPipelineState &getState() { return mState; }
 
     const ProgramExecutable &getExecutable() const { return mState.getProgramExecutable(); }
     ProgramExecutable &getExecutable() { return mState.getProgramExecutable(); }
@@ -125,39 +111,53 @@ class ProgramPipeline final : public RefCountObject<ProgramPipelineID>,
 
     void useProgramStages(const Context *context, GLbitfield stages, Program *shaderProgram);
 
+    void updateExecutableAttributes();
+    void updateExecutableTextures();
+    void updateExecutable();
+
     Program *getShaderProgram(ShaderType shaderType) const { return mState.mPrograms[shaderType]; }
 
-    void resetIsLinked() { mState.mIsLinked = false; }
+    ProgramMergedVaryings getMergedVaryings() const;
     angle::Result link(const gl::Context *context);
     bool linkVaryings(InfoLog &infoLog) const;
     void validate(const gl::Context *context);
+    bool validateSamplers(InfoLog *infoLog, const Caps &caps);
+
+    bool usesShaderProgram(ShaderProgramID program) const
+    {
+        return mState.usesShaderProgram(program);
+    }
+
+    bool hasAnyDirtyBit() const { return mDirtyBits.any(); }
+
     GLboolean isValid() const { return mState.isValid(); }
 
-    // ObserverInterface implementation.
-    void onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message) override;
+    void bind() { mState.mHasBeenBound = true; }
+    GLboolean hasBeenBound() const { return mState.mHasBeenBound; }
 
-    // HasAttachedShaders implementation
-    Shader *getAttachedShader(ShaderType shaderType) const override;
+    // Program pipeline dirty bits.
+    enum DirtyBitType
+    {
+        // One of the program stages in the PPO changed.
+        DIRTY_BIT_PROGRAM_STAGE,
+        DIRTY_BIT_DUMMY,  // Used to make DIRTY_BIT_COUNT > 0
+
+        DIRTY_BIT_COUNT = DIRTY_BIT_DUMMY,
+    };
+
+    using DirtyBits = angle::BitSet<DIRTY_BIT_COUNT>;
+
+    angle::Result syncState(const Context *context);
+    void setDirtyBit(DirtyBitType dirtyBitType) { mDirtyBits.set(dirtyBitType); }
 
   private:
     void updateLinkedShaderStages();
-    void updateExecutableAttributes();
-    void updateTransformFeedbackMembers();
-    void updateShaderStorageBlocks();
-    void updateImageBindings();
-    void updateExecutableGeometryProperties();
-    void updateExecutableTessellationProperties();
-    void updateFragmentInoutRange();
-    void updateLinkedVaryings();
-    void updateHasBooleans();
-    void updateExecutable();
 
     std::unique_ptr<rx::ProgramPipelineImpl> mProgramPipelineImpl;
 
     ProgramPipelineState mState;
 
-    std::vector<angle::ObserverBinding> mProgramObserverBindings;
-    angle::ObserverBinding mExecutableObserverBinding;
+    DirtyBits mDirtyBits;
 };
 }  // namespace gl
 

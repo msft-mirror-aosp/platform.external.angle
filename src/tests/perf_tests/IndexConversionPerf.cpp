@@ -219,7 +219,4 @@ TEST_P(IndexConversionPerfTest, Run)
 ANGLE_INSTANTIATE_TEST(IndexConversionPerfTest,
                        IndexConversionPerfD3D11Params(),
                        IndexRangeOffsetPerfD3D11Params());
-
-// This test suite is not instantiated on some OSes.
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(IndexConversionPerfTest);
 }  // namespace

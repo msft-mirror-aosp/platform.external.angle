@@ -60,12 +60,11 @@ FramebufferAttachment::FramebufferAttachment(const Context *context,
                                              GLenum type,
                                              GLenum binding,
                                              const ImageIndex &textureIndex,
-                                             FramebufferAttachmentObject *resource,
-                                             rx::Serial framebufferSerial)
+                                             FramebufferAttachmentObject *resource)
     : mResource(nullptr)
 {
     attach(context, type, binding, textureIndex, resource, kDefaultNumViews, kDefaultBaseViewIndex,
-           false, kDefaultRenderToTextureSamples, framebufferSerial);
+           false, kDefaultRenderToTextureSamples);
 }
 
 FramebufferAttachment::FramebufferAttachment(FramebufferAttachment &&other)
@@ -91,12 +90,12 @@ FramebufferAttachment::~FramebufferAttachment()
     ASSERT(!isAttached());
 }
 
-void FramebufferAttachment::detach(const Context *context, rx::Serial framebufferSerial)
+void FramebufferAttachment::detach(const Context *context)
 {
     mType = GL_NONE;
     if (mResource != nullptr)
     {
-        mResource->onDetach(context, framebufferSerial);
+        mResource->onDetach(context);
         mResource = nullptr;
     }
     mNumViews      = kDefaultNumViews;
@@ -115,12 +114,11 @@ void FramebufferAttachment::attach(const Context *context,
                                    GLsizei numViews,
                                    GLuint baseViewIndex,
                                    bool isMultiview,
-                                   GLsizei samples,
-                                   rx::Serial framebufferSerial)
+                                   GLsizei samples)
 {
     if (resource == nullptr)
     {
-        detach(context, framebufferSerial);
+        detach(context);
         return;
     }
 
@@ -130,11 +128,11 @@ void FramebufferAttachment::attach(const Context *context,
     mBaseViewIndex          = baseViewIndex;
     mIsMultiview            = isMultiview;
     mRenderToTextureSamples = samples;
-    resource->onAttach(context, framebufferSerial);
+    resource->onAttach(context);
 
     if (mResource != nullptr)
     {
-        mResource->onDetach(context, framebufferSerial);
+        mResource->onDetach(context);
     }
 
     mResource = resource;
@@ -283,6 +281,18 @@ void FramebufferAttachment::setInitState(InitState initState) const
     mResource->setInitState(mTarget.textureIndex(), initState);
 }
 
+bool FramebufferAttachment::isBoundAsSamplerOrImage(ContextID contextID) const
+{
+    if (mType != GL_TEXTURE)
+    {
+        return false;
+    }
+
+    const gl::TextureState &textureState = getTexture()->getTextureState();
+    return textureState.isBoundAsImageTexture(contextID) ||
+           textureState.isBoundAsSamplerTexture(contextID);
+}
+
 ////// FramebufferAttachmentObject Implementation //////
 
 FramebufferAttachmentObject::FramebufferAttachmentObject() {}
@@ -306,14 +316,19 @@ angle::Result FramebufferAttachmentObject::initializeContents(const Context *con
     ASSERT(context->isRobustResourceInitEnabled());
 
     // Because gl::Texture cannot support tracking individual layer dirtiness, we only handle
-    // initializing entire mip levels for textures with layers
-    if (imageIndex.usesTex3D() && imageIndex.hasLayer())
+    // initializing entire mip levels for 2D array textures.
+    if (imageIndex.getType() == TextureType::_2DArray && imageIndex.hasLayer())
     {
-        // Compute the layer count so we get a correct layer index.
+        // Compute the layer count so we get a correct 2D array index.
         const gl::Extents &size = getAttachmentSize(imageIndex);
 
-        ImageIndex fullMipIndex = ImageIndex::MakeFromType(
-            imageIndex.getType(), imageIndex.getLevelIndex(), ImageIndex::kEntireLevel, size.depth);
+        ImageIndex fullMipIndex = ImageIndex::Make2DArrayRange(
+            imageIndex.getLevelIndex(), ImageIndex::kEntireLevel, size.depth);
+        return getAttachmentImpl()->initializeContents(context, fullMipIndex);
+    }
+    else if (imageIndex.getType() == TextureType::_2DMultisampleArray && imageIndex.hasLayer())
+    {
+        ImageIndex fullMipIndex = ImageIndex::Make2DMultisampleArray(ImageIndex::kEntireLevel);
         return getAttachmentImpl()->initializeContents(context, fullMipIndex);
     }
     else

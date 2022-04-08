@@ -79,11 +79,6 @@ class BlockLayoutEncoder
     BlockMemberInfo encodeType(GLenum type,
                                const std::vector<unsigned int> &arraySizes,
                                bool isRowMajorMatrix);
-    // Advance the offset based on struct size and array dimensions.  Size can be calculated with
-    // getShaderVariableSize() or equivalent.  |enterAggregateType|/|exitAggregateType| is necessary
-    // around this call.
-    BlockMemberInfo encodeArrayOfPreEncodedStructs(size_t size,
-                                                   const std::vector<unsigned int> &arraySizes);
 
     size_t getCurrentOffset() const { return mCurrentOffset * kBytesPerComponent; }
     size_t getShaderVariableSize(const ShaderVariable &structVar, bool isRowMajor);
@@ -116,10 +111,10 @@ class BlockLayoutEncoder
 };
 
 // Will return default values for everything.
-class StubBlockEncoder : public BlockLayoutEncoder
+class DummyBlockEncoder : public BlockLayoutEncoder
 {
   public:
-    StubBlockEncoder() = default;
+    DummyBlockEncoder() = default;
 
     void enterAggregateType(const ShaderVariable &structVar) override {}
     void exitAggregateType(const ShaderVariable &structVar) override {}
@@ -206,7 +201,7 @@ class ShaderVariableVisitor
     virtual void enterArrayElement(const ShaderVariable &arrayVar, unsigned int arrayElement) {}
     virtual void exitArrayElement(const ShaderVariable &arrayVar, unsigned int arrayElement) {}
 
-    virtual void visitOpaqueObject(const sh::ShaderVariable &variable) {}
+    virtual void visitSampler(const sh::ShaderVariable &sampler) {}
 
     virtual void visitVariable(const ShaderVariable &variable, bool isRowMajor) = 0;
 
@@ -230,10 +225,10 @@ class VariableNameVisitor : public ShaderVariableVisitor
     void exitArrayElement(const ShaderVariable &arrayVar, unsigned int arrayElement) override;
 
   protected:
-    virtual void visitNamedOpaqueObject(const sh::ShaderVariable &variable,
-                                        const std::string &name,
-                                        const std::string &mappedName,
-                                        const std::vector<unsigned int> &arraySizes)
+    virtual void visitNamedSampler(const sh::ShaderVariable &sampler,
+                                   const std::string &name,
+                                   const std::string &mappedName,
+                                   const std::vector<unsigned int> &arraySizes)
     {}
     virtual void visitNamedVariable(const ShaderVariable &variable,
                                     bool isRowMajor,
@@ -245,7 +240,7 @@ class VariableNameVisitor : public ShaderVariableVisitor
     std::string collapseMappedNameStack() const;
 
   private:
-    void visitOpaqueObject(const sh::ShaderVariable &variable) final;
+    void visitSampler(const sh::ShaderVariable &sampler) final;
     void visitVariable(const ShaderVariable &variable, bool isRowMajor) final;
 
     std::vector<std::string> mNameStack;

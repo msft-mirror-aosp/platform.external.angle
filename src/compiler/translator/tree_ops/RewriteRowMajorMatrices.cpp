@@ -116,14 +116,13 @@ TIntermSymbol *CopyToTempVariable(TSymbolTable *symbolTable,
 
 TIntermAggregate *CreateStructCopyCall(const TFunction *copyFunc, TIntermTyped *expression)
 {
-    TIntermSequence args = {expression};
-    return TIntermAggregate::CreateFunctionCall(*copyFunc, &args);
+    return TIntermAggregate::CreateFunctionCall(*copyFunc, new TIntermSequence({expression}));
 }
 
 TIntermTyped *CreateTransposeCall(TSymbolTable *symbolTable, TIntermTyped *expression)
 {
-    TIntermSequence args = {expression};
-    return CreateBuiltInFunctionCallNode("transpose", &args, *symbolTable, 300);
+    return CreateBuiltInFunctionCallNode("transpose", new TIntermSequence({expression}),
+                                         *symbolTable, 300);
 }
 
 TOperator GetIndex(TSymbolTable *symbolTable,
@@ -186,7 +185,7 @@ TOperator GetIndexOp(TIntermNode *node)
 }
 
 bool IsConvertedField(TIntermTyped *indexNode,
-                      const angle::HashMap<const TField *, bool> &convertedFields)
+                      const std::unordered_map<const TField *, bool> &convertedFields)
 {
     TIntermBinary *asBinary = indexNode->getAsBinaryNode();
     if (asBinary == nullptr)
@@ -262,10 +261,7 @@ class TransformArrayHelper
         // The last value is unused, and is not present.
         TVector<unsigned int> accumulatedArraySizes(arraySizes.size() - 1);
 
-        if (accumulatedArraySizes.size() > 0)
-        {
-            accumulatedArraySizes[0] = arraySizes[0];
-        }
+        accumulatedArraySizes[0] = arraySizes[0];
         for (size_t index = 1; index + 1 < arraySizes.size(); ++index)
         {
             accumulatedArraySizes[index] = accumulatedArraySizes[index - 1] * arraySizes[index];
@@ -533,9 +529,9 @@ class RewriteRowMajorMatricesTraverser : public TIntermTraverser
     TIntermSequence *getStructCopyFunctions() { return &mOuterPass.copyFunctionDefinitions; }
 
   private:
-    typedef angle::HashMap<const TStructure *, StructConversionData> StructMap;
-    typedef angle::HashMap<const TVariable *, TVariable *> InterfaceBlockMap;
-    typedef angle::HashMap<const TField *, bool> InterfaceBlockFieldConverted;
+    typedef std::unordered_map<const TStructure *, StructConversionData> StructMap;
+    typedef std::unordered_map<const TVariable *, TVariable *> InterfaceBlockMap;
+    typedef std::unordered_map<const TField *, bool> InterfaceBlockFieldConverted;
 
     RewriteRowMajorMatricesTraverser(
         TSymbolTable *symbolTable,
@@ -597,7 +593,7 @@ class RewriteRowMajorMatricesTraverser : public TIntermTraverser
 
         TInterfaceBlock *newInterfaceBlock =
             new TInterfaceBlock(mSymbolTable, block->name(), newFields, blockLayoutQualifier,
-                                block->symbolType(), block->extensions());
+                                block->symbolType(), block->extension());
 
         // Create a new declaration with the new type.  Declarations are separated at this point,
         // so there should be only one variable here.
@@ -623,7 +619,7 @@ class RewriteRowMajorMatricesTraverser : public TIntermTraverser
             variableIsTemp ? kEmptyImmutableString : variable->name();
 
         TVariable *newVariable = new TVariable(mSymbolTable, variableName, newType,
-                                               variable->symbolType(), variable->extensions());
+                                               variable->symbolType(), variable->extension());
 
         newDeclaration->appendDeclarator(new TIntermSymbol(newVariable));
 
@@ -633,8 +629,7 @@ class RewriteRowMajorMatricesTraverser : public TIntermTraverser
 
         // Replace the interface block definition with the new one, prepending any new struct
         // definitions.
-        mMultiReplacements.emplace_back(getParentNode()->getAsBlock(), node,
-                                        std::move(newDeclarations));
+        mMultiReplacements.emplace_back(getParentNode()->getAsBlock(), node, newDeclarations);
     }
 
     bool convertNamelessInterfaceBlockField(TIntermSymbol *symbol)
@@ -663,29 +658,35 @@ class RewriteRowMajorMatricesTraverser : public TIntermTraverser
 
             // Find which field it is
             const TVector<TField *> fields = interfaceBlock->fields();
-            const size_t fieldIndex        = variable->getType().getInterfaceBlockFieldIndex();
-            ASSERT(fieldIndex < fields.size());
-
-            const TField *field = fields[fieldIndex];
-            ASSERT(field->name() == symbolName);
-
-            // If this field doesn't need a rewrite, there's nothing to do.
-            if (mInterfaceBlockFieldConvertedIn.count(field) == 0 ||
-                !mInterfaceBlockFieldConvertedIn.at(field))
+            for (size_t fieldIndex = 0; fieldIndex < fields.size(); ++fieldIndex)
             {
-                break;
+                const TField *field = fields[fieldIndex];
+                if (field->name() != symbolName)
+                {
+                    continue;
+                }
+
+                // If this field doesn't need a rewrite, there's nothing to do.
+                if (mInterfaceBlockFieldConvertedIn.count(field) == 0 ||
+                    !mInterfaceBlockFieldConvertedIn.at(field))
+                {
+                    break;
+                }
+
+                // Create a new variable that references the replaced interface block.
+                TType *newType = new TType(variable->getType());
+                newType->setInterfaceBlock(iter.second->getType().getInterfaceBlock());
+
+                TVariable *newVariable =
+                    new TVariable(mSymbolTable, variable->name(), newType, variable->symbolType(),
+                                  variable->extension());
+
+                (*mInterfaceBlockMap)[variable] = newVariable;
+
+                return true;
             }
 
-            // Create a new variable that references the replaced interface block.
-            TType *newType = new TType(variable->getType());
-            newType->setInterfaceBlockField(iter.second->getType().getInterfaceBlock(), fieldIndex);
-
-            TVariable *newVariable = new TVariable(mSymbolTable, variable->name(), newType,
-                                                   variable->symbolType(), variable->extensions());
-
-            (*mInterfaceBlockMap)[variable] = newVariable;
-
-            return true;
+            break;
         }
 
         return false;

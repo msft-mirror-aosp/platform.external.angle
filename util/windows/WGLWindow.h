@@ -30,7 +30,6 @@ class ANGLE_UTIL_EXPORT WGLWindow : public GLWindowBase
     // Internally initializes GL resources.
     bool initializeGL(OSWindow *osWindow,
                       angle::Library *glWindowingLibrary,
-                      angle::GLESDriverType driverType,
                       const EGLPlatformParameters &platformParams,
                       const ConfigParameters &configParams) override;
     void destroyGL() override;
@@ -40,7 +39,6 @@ class ANGLE_UTIL_EXPORT WGLWindow : public GLWindowBase
     void swap() override;
     bool hasError() const override;
     bool setSwapInterval(EGLint swapInterval) override;
-    angle::GenericProc getProcAddress(const char *name) override;
 
   private:
     WGLWindow(int glesMajorVersion, int glesMinorVersion);

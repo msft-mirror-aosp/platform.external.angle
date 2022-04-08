@@ -4,8 +4,8 @@
 // found in the LICENSE file.
 //
 // OutputVulkanGLSL:
-//   Code that outputs shaders that fit GL_KHR_vulkan_glsl, to be fed to glslang to generate
-//   SPIR-V.
+//   Code that outputs shaders that fit GL_KHR_vulkan_glsl.
+//   The shaders are then fed into glslang to spit out SPIR-V (libANGLE-side).
 //   See: https://www.khronos.org/registry/vulkan/specs/misc/GL_KHR_vulkan_glsl.txt
 //
 
@@ -20,6 +20,7 @@ namespace sh
 {
 
 TOutputVulkanGLSL::TOutputVulkanGLSL(TInfoSinkBase &objSink,
+                                     ShArrayIndexClampingStrategy clampingStrategy,
                                      ShHashFunction64 hashFunction,
                                      NameMap &nameMap,
                                      TSymbolTable *symbolTable,
@@ -30,6 +31,7 @@ TOutputVulkanGLSL::TOutputVulkanGLSL(TInfoSinkBase &objSink,
                                      bool enablePrecision,
                                      ShCompileOptions compileOptions)
     : TOutputGLSL(objSink,
+                  clampingStrategy,
                   hashFunction,
                   nameMap,
                   symbolTable,
@@ -44,22 +46,17 @@ TOutputVulkanGLSL::TOutputVulkanGLSL(TInfoSinkBase &objSink,
       mEnablePrecision(enablePrecision)
 {}
 
-void TOutputVulkanGLSL::writeLayoutQualifier(TIntermSymbol *symbol)
+void TOutputVulkanGLSL::writeLayoutQualifier(TIntermTyped *variable)
 {
-    const TType &type = symbol->getType();
+    const TType &type = variable->getType();
 
-    bool needsSetBinding = IsSampler(type.getBasicType()) ||
-                           (type.isInterfaceBlock() && (type.getQualifier() == EvqUniform ||
-                                                        type.getQualifier() == EvqBuffer)) ||
-                           IsImage(type.getBasicType()) || IsSubpassInputType(type.getBasicType());
+    bool needsSetBinding =
+        IsSampler(type.getBasicType()) || type.isInterfaceBlock() || IsImage(type.getBasicType());
     bool needsLocation = type.getQualifier() == EvqAttribute ||
                          type.getQualifier() == EvqVertexIn ||
                          type.getQualifier() == EvqFragmentOut || IsVarying(type.getQualifier());
-    bool needsInputAttachmentIndex = IsSubpassInputType(type.getBasicType());
-    bool needsSpecConstId          = type.getQualifier() == EvqSpecConst;
 
-    if (!NeedsToWriteLayoutQualifier(type) && !needsSetBinding && !needsLocation &&
-        !needsInputAttachmentIndex && !needsSpecConstId)
+    if (!NeedsToWriteLayoutQualifier(type) && !needsSetBinding && !needsLocation)
     {
         return;
     }
@@ -69,12 +66,19 @@ void TOutputVulkanGLSL::writeLayoutQualifier(TIntermSymbol *symbol)
 
     // This isn't super clean, but it gets the job done.
     // See corresponding code in glslang_wrapper_utils.cpp.
+    TIntermSymbol *symbol = variable->getAsSymbolNode();
+    ASSERT(symbol);
+
+    ImmutableString name      = symbol->getName();
     const char *blockStorage  = nullptr;
     const char *matrixPacking = nullptr;
 
+    // For interface blocks, use the block name instead.  When the layout qualifier is being
+    // replaced in the backend, that would be the name that's available.
     if (type.isInterfaceBlock())
     {
         const TInterfaceBlock *interfaceBlock = type.getInterfaceBlock();
+        name                                  = interfaceBlock->name();
         TLayoutBlockStorage storage           = interfaceBlock->blockStorage();
 
         // Make sure block storage format is specified.
@@ -99,62 +103,42 @@ void TOutputVulkanGLSL::writeLayoutQualifier(TIntermSymbol *symbol)
     {
         matrixPacking = getMatrixPackingString(layoutQualifier.matrixPacking);
     }
-    const char *kCommaSeparator = ", ";
-    const char *separator       = "";
+
+    const char *separator = "";
     out << "layout(";
-
-    // If the resource declaration is about input attachment, need to specify input_attachment_index
-    if (needsInputAttachmentIndex)
-    {
-        out << "input_attachment_index=" << layoutQualifier.inputAttachmentIndex;
-        separator = kCommaSeparator;
-    }
-
-    // If it's a specialization constant, add that constant_id qualifier.
-    if (needsSpecConstId)
-    {
-        out << separator << "constant_id=" << layoutQualifier.location;
-    }
 
     // If the resource declaration requires set & binding layout qualifiers, specify arbitrary
     // ones.
     if (needsSetBinding)
     {
-        out << separator << "set=0, binding=" << nextUnusedBinding();
-        separator = kCommaSeparator;
+        out << "set=0, binding=" << nextUnusedBinding();
+        separator = ", ";
     }
 
     if (needsLocation)
     {
-        uint32_t location = 0;
-        if (layoutQualifier.index <= 0)
-        {
-            // Note: for index == 1 (dual source blending), don't count locations as they are
-            // expected to alias the color output locations.  Only one dual-source output is
-            // supported, so location will be always 0.
-            const unsigned int locationCount =
-                CalculateVaryingLocationCount(symbol->getType(), getShaderType());
-            location = IsShaderIn(type.getQualifier()) ? nextUnusedInputLocation(locationCount)
-                                                       : nextUnusedOutputLocation(locationCount);
-        }
+        const unsigned int locationCount = CalculateVaryingLocationCount(symbol, getShaderType());
+        uint32_t location                = IsShaderIn(type.getQualifier())
+                                ? nextUnusedInputLocation(locationCount)
+                                : nextUnusedOutputLocation(locationCount);
 
-        out << separator << "location=" << location;
-        separator = kCommaSeparator;
+        out << "location=" << location;
+        separator = ", ";
     }
 
     // Output the list of qualifiers already known at this stage, i.e. everything other than
     // `location` and `set`/`binding`.
-    std::string otherQualifiers = getCommonLayoutQualifiers(symbol);
+    std::string otherQualifiers = getCommonLayoutQualifiers(variable);
 
     if (blockStorage)
     {
         out << separator << blockStorage;
-        separator = kCommaSeparator;
+        separator = ", ";
     }
     if (matrixPacking)
     {
         out << separator << matrixPacking;
-        separator = kCommaSeparator;
+        separator = ", ";
     }
     if (!otherQualifiers.empty())
     {
@@ -177,6 +161,15 @@ void TOutputVulkanGLSL::writeVariableType(const TType &type,
     }
 
     TOutputGLSL::writeVariableType(overrideType, symbol, isFunctionArgument);
+}
+
+void TOutputVulkanGLSL::writeStructType(const TStructure *structure)
+{
+    if (!structDeclared(structure))
+    {
+        declareStruct(structure);
+        objSink() << ";\n";
+    }
 }
 
 bool TOutputVulkanGLSL::writeVariablePrecision(TPrecision precision)

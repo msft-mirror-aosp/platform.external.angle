@@ -62,31 +62,14 @@ class EGLRobustnessTest : public ANGLETest
         ASSERT_TRUE(eglGetConfigs(mDisplay, nullptr, 0, &nConfigs) == EGL_TRUE);
         ASSERT_LE(1, nConfigs);
 
-        std::vector<EGLConfig> allConfigs(nConfigs);
         int nReturnedConfigs = 0;
-        ASSERT_TRUE(eglGetConfigs(mDisplay, allConfigs.data(), nConfigs, &nReturnedConfigs) ==
-                    EGL_TRUE);
-        ASSERT_EQ(nConfigs, nReturnedConfigs);
+        ASSERT_TRUE(eglGetConfigs(mDisplay, &mConfig, 1, &nReturnedConfigs) == EGL_TRUE);
+        ASSERT_EQ(1, nReturnedConfigs);
 
-        for (const EGLConfig &config : allConfigs)
-        {
-            EGLint surfaceType;
-            eglGetConfigAttrib(mDisplay, config, EGL_SURFACE_TYPE, &surfaceType);
+        mWindow = eglCreateWindowSurface(mDisplay, mConfig, mOSWindow->getNativeWindow(), nullptr);
+        ASSERT_EGL_SUCCESS();
 
-            if ((surfaceType & EGL_WINDOW_BIT) != 0)
-            {
-                mConfig      = config;
-                mInitialized = true;
-                break;
-            }
-        }
-
-        if (mInitialized)
-        {
-            mWindow =
-                eglCreateWindowSurface(mDisplay, mConfig, mOSWindow->getNativeWindow(), nullptr);
-            ASSERT_EGL_SUCCESS();
-        }
+        mInitialized = true;
     }
 
     void testTearDown() override
@@ -222,7 +205,6 @@ TEST_P(EGLRobustnessTest, DISABLED_ResettingDisplayWorks)
     ASSERT_TRUE(glGetGraphicsResetStatusEXT() == GL_NO_ERROR);
 }
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EGLRobustnessTest);
 ANGLE_INSTANTIATE_TEST(EGLRobustnessTest,
                        WithNoFixture(ES2_VULKAN()),
                        WithNoFixture(ES2_D3D9()),

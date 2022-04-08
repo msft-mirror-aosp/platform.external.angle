@@ -1,9 +1,27 @@
-## Configuration files for chrome-infra services.
+## Configurations files for chrome-infra services.
 
-The project configuration is maintained in [main.star](main.star). To regenerate the config
-run `lucicfg generate main.star`. See [online docs][docs] for `lucicfg`.
+There are two kinds of configs: **global** and **ref-specific**.
+
+
+## Global configs.
+
+Apply to the whole repo regardless of the ref (branch).
+
+Located in [global](global) directory.
 
 Currently active version can be checked at
 https://luci-config.appspot.com/#/projects/angle .
 
-[docs]: https://chromium.googlesource.com/infra/luci/luci-go/+/refs/heads/master/lucicfg/doc/README.md
+
+## Ref-specific configs.
+
+Apply only to a ref(branch) they are located in.
+
+Located in [branch](branch) directory.
+
+Currently active version can be checked at
+
+    https://luci-config.appspot.com/#/projects/angle/<ref>
+    # For example, for master branch:
+    #   https://luci-config.appspot.com/#/projects/angle/refs/heads/master
+

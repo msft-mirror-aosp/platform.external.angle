@@ -5,8 +5,8 @@
 //
 
 // SystemInfo_vulkan.cpp: Generic vulkan implementation of SystemInfo.h
-// TODO: Use VK_KHR_driver_properties. http://anglebug.com/5103
 
+#include <dlfcn.h>
 #include <vulkan/vulkan.h>
 #include "gpu_info_util/SystemInfo_internal.h"
 
@@ -15,31 +15,31 @@
 
 #include "common/angleutils.h"
 #include "common/debug.h"
-#include "common/system_utils.h"
-#include "common/vulkan/libvulkan_loader.h"
 
 namespace angle
 {
 class VulkanLibrary final : NonCopyable
 {
   public:
-    VulkanLibrary() = default;
-
+    VulkanLibrary() {}
     ~VulkanLibrary()
     {
         if (mInstance != VK_NULL_HANDLE)
         {
-            auto pfnDestroyInstance = getProc<PFN_vkDestroyInstance>("vkDestroyInstance");
+            PFN_vkDestroyInstance pfnDestroyInstance =
+                reinterpret_cast<PFN_vkDestroyInstance>(dlsym(mLibVulkan, "vkDestroyInstance"));
             if (pfnDestroyInstance)
             {
                 pfnDestroyInstance(mInstance, nullptr);
             }
         }
+        if (mLibVulkan)
+            dlclose(mLibVulkan);
     }
-
     VkInstance getVulkanInstance()
     {
-        mLibVulkan = vk::OpenLibVulkan();
+        // Find the system's Vulkan library and open it:
+        mLibVulkan = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
         if (!mLibVulkan)
         {
             // If Vulkan doesn't exist, bail-out early:
@@ -49,8 +49,9 @@ class VulkanLibrary final : NonCopyable
         // Determine the available Vulkan instance version:
         uint32_t instanceVersion = VK_API_VERSION_1_0;
 #if defined(VK_VERSION_1_1)
-        auto pfnEnumerateInstanceVersion =
-            getProc<PFN_vkEnumerateInstanceVersion>("vkEnumerateInstanceVersion");
+        PFN_vkEnumerateInstanceVersion pfnEnumerateInstanceVersion =
+            reinterpret_cast<PFN_vkEnumerateInstanceVersion>(
+                dlsym(mLibVulkan, "vkEnumerateInstanceVersion"));
         if (!pfnEnumerateInstanceVersion ||
             pfnEnumerateInstanceVersion(&instanceVersion) != VK_SUCCESS)
         {
@@ -78,7 +79,8 @@ class VulkanLibrary final : NonCopyable
         createInstanceInfo.enabledExtensionCount   = 0;
         createInstanceInfo.ppEnabledExtensionNames = nullptr;
 
-        auto pfnCreateInstance = getProc<PFN_vkCreateInstance>("vkCreateInstance");
+        PFN_vkCreateInstance pfnCreateInstance =
+            reinterpret_cast<PFN_vkCreateInstance>(dlsym(mLibVulkan, "vkCreateInstance"));
         if (!pfnCreateInstance ||
             pfnCreateInstance(&createInstanceInfo, nullptr, &mInstance) != VK_SUCCESS)
         {
@@ -87,16 +89,12 @@ class VulkanLibrary final : NonCopyable
 
         return mInstance;
     }
-
-    template <typename Func>
-    Func getProc(const char *fn) const
-    {
-        return reinterpret_cast<Func>(mLibVulkan->getSymbol(fn));
-    }
+    void *gpa(std::string fn) { return dlsym(mLibVulkan, fn.c_str()); }
+#define GPA(ob, type, fn) reinterpret_cast<type>(ob.gpa(fn))
 
   private:
-    std::unique_ptr<Library> mLibVulkan = nullptr;
-    VkInstance mInstance                = VK_NULL_HANDLE;
+    void *mLibVulkan     = nullptr;
+    VkInstance mInstance = VK_NULL_HANDLE;
 };
 
 ANGLE_FORMAT_PRINTF(1, 2)
@@ -105,7 +103,7 @@ std::string FormatString(const char *fmt, ...)
     va_list vararg;
     va_start(vararg, fmt);
 
-    std::vector<char> buffer;
+    std::vector<char> buffer(512);
     size_t len = FormatStringIntoVector(fmt, vararg, buffer);
     va_end(vararg);
 
@@ -127,12 +125,12 @@ bool GetSystemInfoVulkan(SystemInfo *info)
     }
 
     // Enumerate the Vulkan physical devices, which are ANGLE gpus:
-    auto pfnEnumeratePhysicalDevices =
-        vkLibrary.getProc<PFN_vkEnumeratePhysicalDevices>("vkEnumeratePhysicalDevices");
-    auto pfnGetPhysicalDeviceProperties =
-        vkLibrary.getProc<PFN_vkGetPhysicalDeviceProperties>("vkGetPhysicalDeviceProperties");
+    PFN_vkEnumeratePhysicalDevices pfnEnumeratePhysicalDevices =
+        GPA(vkLibrary, PFN_vkEnumeratePhysicalDevices, "vkEnumeratePhysicalDevices");
+    PFN_vkGetPhysicalDeviceProperties pfnGetPhysicalDeviceProperties =
+        GPA(vkLibrary, PFN_vkGetPhysicalDeviceProperties, "vkGetPhysicalDeviceProperties");
     uint32_t physicalDeviceCount = 0;
-    if (!pfnEnumeratePhysicalDevices || !pfnGetPhysicalDeviceProperties ||
+    if (!pfnEnumeratePhysicalDevices ||
         pfnEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr) != VK_SUCCESS)
     {
         return false;

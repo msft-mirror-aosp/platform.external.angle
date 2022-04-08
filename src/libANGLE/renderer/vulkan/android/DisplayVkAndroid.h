@@ -11,7 +11,6 @@
 #define LIBANGLE_RENDERER_VULKAN_ANDROID_DISPLAYVKANDROID_H_
 
 #include "libANGLE/renderer/vulkan/DisplayVk.h"
-#include "libANGLE/renderer/vulkan/android/AHBFunctions.h"
 
 namespace rx
 {
@@ -28,7 +27,7 @@ class DisplayVkAndroid : public DisplayVk
                                        EGLNativeWindowType window) override;
 
     egl::ConfigSet generateConfigs() override;
-    void checkConfigSupport(egl::Config *config) override;
+    bool checkConfigSupport(egl::Config *config) override;
 
     egl::Error validateImageClientBuffer(const gl::Context *context,
                                          EGLenum target,
@@ -41,13 +40,6 @@ class DisplayVkAndroid : public DisplayVk
                                                          const egl::AttributeMap &attribs) override;
 
     const char *getWSIExtension() const override;
-
-    const AHBFunctions &getAHBFunctions() const { return mAHBFunctions; }
-
-  private:
-    void enableRecordableIfSupported(egl::Config *config);
-
-    AHBFunctions mAHBFunctions;
 };
 
 }  // namespace rx

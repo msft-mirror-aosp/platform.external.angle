@@ -15,7 +15,8 @@ ColumnLimit: 100
 # Always break before braces
 BreakBeforeBraces: Custom
 BraceWrapping:
-  AfterCaseLabel: true
+#  TODO(lujc) wait for clang-format-9 support in Chromium tools
+#  AfterCaseLabel: true
   AfterClass: true
   AfterControlStatement: true
   AfterEnum: true

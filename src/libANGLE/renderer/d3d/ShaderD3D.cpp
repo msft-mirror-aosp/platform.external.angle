@@ -16,7 +16,6 @@
 #include "libANGLE/features.h"
 #include "libANGLE/renderer/d3d/ProgramD3D.h"
 #include "libANGLE/renderer/d3d/RendererD3D.h"
-#include "libANGLE/trace.h"
 
 namespace rx
 {
@@ -37,7 +36,6 @@ class TranslateTaskD3D : public angle::Closure
 
     void operator()() override
     {
-        ANGLE_TRACE_EVENT1("gpu.angle", "TranslateTask::run", "source", mSource);
         std::vector<const char *> srcStrings;
         if (!mSourcePath.empty())
         {
@@ -87,10 +85,10 @@ class WaitableCompileEventD3D final : public WaitableCompileEvent
     std::shared_ptr<TranslateTaskD3D> mTranslateTask;
 };
 
-ShaderD3D::ShaderD3D(const gl::ShaderState &state,
+ShaderD3D::ShaderD3D(const gl::ShaderState &data,
                      const angle::FeaturesD3D &features,
                      const gl::Extensions &extensions)
-    : ShaderImpl(state), mAdditionalOptions(0)
+    : ShaderImpl(data), mAdditionalOptions(0)
 {
     uncompile();
 
@@ -117,7 +115,7 @@ ShaderD3D::ShaderD3D(const gl::ShaderState &state,
         mAdditionalOptions |= SH_EMULATE_ISNAN_FLOAT_FUNCTION;
     }
     if (features.skipVSConstantRegisterZero.enabled &&
-        mState.getShaderType() == gl::ShaderType::Vertex)
+        mData.getShaderType() == gl::ShaderType::Vertex)
     {
         mAdditionalOptions |= SH_SKIP_D3D_CONSTANT_REGISTER_ZERO;
     }
@@ -125,9 +123,9 @@ ShaderD3D::ShaderD3D(const gl::ShaderState &state,
     {
         mAdditionalOptions |= SH_FORCE_ATOMIC_VALUE_RESOLUTION;
     }
-    if (features.allowTranslateUniformBlockToStructuredBuffer.enabled)
+    if (features.dontTranslateUniformBlockToStructuredBuffer.enabled)
     {
-        mAdditionalOptions |= SH_ALLOW_TRANSLATE_UNIFORM_BLOCK_TO_STRUCTUREDBUFFER;
+        mAdditionalOptions |= SH_DONT_TRANSLATE_UNIFORM_BLOCK_TO_STRUCTUREDBUFFER;
     }
     if (extensions.multiview || extensions.multiview2)
     {
@@ -144,7 +142,7 @@ std::string ShaderD3D::getDebugInfo() const
         return "";
     }
 
-    return mDebugInfo + std::string("\n// ") + gl::GetShaderTypeString(mState.getShaderType()) +
+    return mDebugInfo + std::string("\n// ") + gl::GetShaderTypeString(mData.getShaderType()) +
            " SHADER END\n";
 }
 
@@ -240,23 +238,11 @@ bool ShaderD3D::useImage2DFunction(const std::string &functionName) const
     return mUsedImage2DFunctionNames.find(functionName) != mUsedImage2DFunctionNames.end();
 }
 
-const std::set<std::string> &ShaderD3D::getSlowCompilingUniformBlockSet() const
-{
-    return mSlowCompilingUniformBlockSet;
-}
-
 const std::map<std::string, unsigned int> &GetUniformRegisterMap(
     const std::map<std::string, unsigned int> *uniformRegisterMap)
 {
     ASSERT(uniformRegisterMap);
     return *uniformRegisterMap;
-}
-
-const std::set<std::string> &GetSlowCompilingUniformBlockSet(
-    const std::set<std::string> *slowCompilingUniformBlockSet)
-{
-    ASSERT(slowCompilingUniformBlockSet);
-    return *slowCompilingUniformBlockSet;
 }
 
 const std::set<std::string> &GetUsedImage2DFunctionNames(
@@ -275,7 +261,7 @@ std::shared_ptr<WaitableCompileEvent> ShaderD3D::compile(const gl::Context *cont
 
     ShCompileOptions additionalOptions = 0;
 
-    const std::string &source = mState.getSource();
+    const std::string &source = mData.getSource();
 
 #if !defined(ANGLE_ENABLE_WINDOWS_UWP)
     if (gl::DebugAnnotationsActive())
@@ -294,7 +280,7 @@ std::shared_ptr<WaitableCompileEvent> ShaderD3D::compile(const gl::Context *cont
         // TODO(jmadill): We shouldn't need to cache this.
         mCompilerOutputType = compiler->getShaderOutputType();
 
-        const std::string &translatedSource = mState.getTranslatedSource();
+        const std::string &translatedSource = mData.getTranslatedSource();
 
         mUsesMultipleRenderTargets = translatedSource.find("GL_USES_MRT") != std::string::npos;
         mUsesFragColor      = translatedSource.find("GL_USES_FRAG_COLOR") != std::string::npos;
@@ -326,7 +312,7 @@ std::shared_ptr<WaitableCompileEvent> ShaderD3D::compile(const gl::Context *cont
         mUsedImage2DFunctionNames =
             GetUsedImage2DFunctionNames(sh::GetUsedImage2DFunctionNames(compilerHandle));
 
-        for (const sh::InterfaceBlock &interfaceBlock : mState.getUniformBlocks())
+        for (const sh::InterfaceBlock &interfaceBlock : mData.getUniformBlocks())
         {
             if (interfaceBlock.active)
             {
@@ -342,10 +328,7 @@ std::shared_ptr<WaitableCompileEvent> ShaderD3D::compile(const gl::Context *cont
             }
         }
 
-        mSlowCompilingUniformBlockSet =
-            GetSlowCompilingUniformBlockSet(sh::GetSlowCompilingUniformBlockSet(compilerHandle));
-
-        for (const sh::InterfaceBlock &interfaceBlock : mState.getShaderStorageBlocks())
+        for (const sh::InterfaceBlock &interfaceBlock : mData.getShaderStorageBlocks())
         {
             if (interfaceBlock.active)
             {
@@ -358,9 +341,9 @@ std::shared_ptr<WaitableCompileEvent> ShaderD3D::compile(const gl::Context *cont
             }
         }
 
-        mDebugInfo += std::string("// ") + gl::GetShaderTypeString(mState.getShaderType()) +
-                      " SHADER BEGIN\n";
-        mDebugInfo += "\n// GLSL BEGIN\n\n" + mState.getSource() + "\n\n// GLSL END\n\n\n";
+        mDebugInfo +=
+            std::string("// ") + gl::GetShaderTypeString(mData.getShaderType()) + " SHADER BEGIN\n";
+        mDebugInfo += "\n// GLSL BEGIN\n\n" + mData.getSource() + "\n\n// GLSL END\n\n\n";
         mDebugInfo +=
             "// INITIAL HLSL BEGIN\n\n" + translatedSource + "\n// INITIAL HLSL END\n\n\n";
         // Successive steps will append more info

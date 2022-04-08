@@ -56,17 +56,6 @@ static void ValidateStateHelper(const FunctionsGL *functions,
 
 }  // anonymous namespace
 
-VertexArrayStateGL::VertexArrayStateGL(size_t maxAttribs, size_t maxBindings)
-    : attributes(std::min<size_t>(maxAttribs, gl::MAX_VERTEX_ATTRIBS)),
-      bindings(std::min<size_t>(maxBindings, gl::MAX_VERTEX_ATTRIBS))
-{
-    // Set the cached vertex attribute array and vertex attribute binding array size
-    for (GLuint i = 0; i < attributes.size(); i++)
-    {
-        attributes[i].bindingIndex = i;
-    }
-}
-
 StateManagerGL::IndexedBufferBinding::IndexedBufferBinding() : offset(0), size(0), buffer(0) {}
 
 StateManagerGL::StateManagerGL(const FunctionsGL *functions,
@@ -78,8 +67,6 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
       mProgram(0),
       mVAO(0),
       mVertexAttribCurrentValues(rendererCaps.maxVertexAttributes),
-      mDefaultVAOState(rendererCaps.maxVertexAttributes, rendererCaps.maxVertexAttribBindings),
-      mVAOState(&mDefaultVAOState),
       mBuffers(),
       mIndexedBuffers(),
       mTextureUnitIndex(0),
@@ -89,7 +76,7 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
       mTransformFeedback(0),
       mCurrentTransformFeedback(nullptr),
       mQueries(),
-      mPrevDrawContext({0}),
+      mPrevDrawContext(0),
       mUnpackAlignment(4),
       mUnpackRowLength(0),
       mUnpackSkipRows(0),
@@ -107,9 +94,18 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
       mViewport(0, 0, 0, 0),
       mNear(0.0f),
       mFar(1.0f),
+      mBlendEnabled(false),
       mBlendColor(0, 0, 0, 0),
-      mBlendStateExt(rendererCaps.maxDrawBuffers),
-      mIndependentBlendStates(extensions.drawBuffersIndexedAny()),
+      mSourceBlendRGB(GL_ONE),
+      mDestBlendRGB(GL_ZERO),
+      mSourceBlendAlpha(GL_ONE),
+      mDestBlendAlpha(GL_ZERO),
+      mBlendEquationRGB(GL_FUNC_ADD),
+      mBlendEquationAlpha(GL_FUNC_ADD),
+      mColorMaskRed(true),
+      mColorMaskGreen(true),
+      mColorMaskBlue(true),
+      mColorMaskAlpha(true),
       mSampleAlphaToCoverageEnabled(false),
       mSampleCoverageEnabled(false),
       mSampleCoverageValue(1.0f),
@@ -146,10 +142,7 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
       mClearColor(0.0f, 0.0f, 0.0f, 0.0f),
       mClearDepth(1.0f),
       mClearStencil(0),
-      mFramebufferSRGBAvailable(extensions.sRGBWriteControl),
       mFramebufferSRGBEnabled(false),
-      mHasSeparateFramebufferBindings(mFunctions->isAtLeastGL(gl::Version(3, 0)) ||
-                                      mFunctions->isAtLeastGLES(gl::Version(3, 0))),
       mDitherEnabled(true),
       mTextureCubemapSeamlessEnabled(false),
       mMultisamplingEnabled(true),
@@ -157,7 +150,6 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
       mCoverageModulation(GL_NONE),
       mIsMultiviewEnabled(extensions.multiview || extensions.multiview2),
       mProvokingVertex(GL_LAST_VERTEX_CONVENTION),
-      mMaxClipDistances(rendererCaps.maxClipDistances),
       mLocalDirtyBits()
 {
     ASSERT(mFunctions);
@@ -195,26 +187,9 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
         mFunctions->primitiveRestartIndex(primitiveRestartIndex);
         mPrimitiveRestartIndex = primitiveRestartIndex;
     }
-
-    // It's possible we've enabled the emulated VAO feature for testing but we're on a core profile.
-    // Use a generated VAO as the default VAO so we can still test.
-    if (features.syncVertexArraysToDefault.enabled &&
-        !nativegl::CanUseDefaultVertexArrayObject(mFunctions))
-    {
-        ASSERT(nativegl::SupportsVertexArrayObjects(mFunctions));
-        mFunctions->genVertexArrays(1, &mDefaultVAO);
-        mFunctions->bindVertexArray(mDefaultVAO);
-        mVAO = mDefaultVAO;
-    }
 }
 
-StateManagerGL::~StateManagerGL()
-{
-    if (mDefaultVAO != 0)
-    {
-        mFunctions->deleteVertexArrays(1, &mDefaultVAO);
-    }
-}
+StateManagerGL::~StateManagerGL() {}
 
 void StateManagerGL::deleteProgram(GLuint program)
 {
@@ -235,8 +210,9 @@ void StateManagerGL::deleteVertexArray(GLuint vao)
     {
         if (mVAO == vao)
         {
-            bindVertexArray(0, &mDefaultVAOState);
+            bindVertexArray(0, 0);
         }
+
         mFunctions->deleteVertexArrays(1, &vao);
     }
 }
@@ -311,22 +287,6 @@ void StateManagerGL::deleteBuffer(GLuint buffer)
         }
     }
 
-    if (mVAOState)
-    {
-        if (mVAOState->elementArrayBuffer == buffer)
-        {
-            mVAOState->elementArrayBuffer = 0;
-        }
-
-        for (VertexBindingGL &binding : mVAOState->bindings)
-        {
-            if (binding.buffer == buffer)
-            {
-                binding.buffer = 0;
-            }
-        }
-    }
-
     mFunctions->deleteBuffers(1, &buffer);
 }
 
@@ -334,25 +294,13 @@ void StateManagerGL::deleteFramebuffer(GLuint fbo)
 {
     if (fbo != 0)
     {
-        if (mHasSeparateFramebufferBindings)
+        for (size_t binding = 0; binding < mFramebuffers.size(); ++binding)
         {
-            for (size_t binding = 0; binding < mFramebuffers.size(); ++binding)
+            if (mFramebuffers[binding] == fbo)
             {
-                if (mFramebuffers[binding] == fbo)
-                {
-                    GLenum enumValue = angle::FramebufferBindingToEnum(
-                        static_cast<angle::FramebufferBinding>(binding));
-                    bindFramebuffer(enumValue, 0);
-                }
-            }
-        }
-        else
-        {
-            ASSERT(mFramebuffers[angle::FramebufferBindingRead] ==
-                   mFramebuffers[angle::FramebufferBindingDraw]);
-            if (mFramebuffers[angle::FramebufferBindingRead] == fbo)
-            {
-                bindFramebuffer(GL_FRAMEBUFFER, 0);
+                GLenum enumValue = angle::FramebufferBindingToEnum(
+                    static_cast<angle::FramebufferBinding>(binding));
+                bindFramebuffer(enumValue, 0);
             }
         }
         mFunctions->deleteFramebuffers(1, &fbo);
@@ -406,17 +354,12 @@ void StateManagerGL::forceUseProgram(GLuint program)
     mLocalDirtyBits.set(gl::State::DIRTY_BIT_PROGRAM_BINDING);
 }
 
-void StateManagerGL::bindVertexArray(GLuint vao, VertexArrayStateGL *vaoState)
+void StateManagerGL::bindVertexArray(GLuint vao, GLuint elementArrayBuffer)
 {
-    ASSERT(vaoState);
     if (mVAO != vao)
     {
-        ASSERT(!mFeatures.syncVertexArraysToDefault.enabled);
-
         mVAO                                      = vao;
-        mVAOState                                 = vaoState;
-        mBuffers[gl::BufferBinding::ElementArray] = vaoState ? vaoState->elementArrayBuffer : 0;
-
+        mBuffers[gl::BufferBinding::ElementArray] = elementArrayBuffer;
         mFunctions->bindVertexArray(vao);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_VERTEX_ARRAY_BINDING);
@@ -537,13 +480,12 @@ void StateManagerGL::bindImageTexture(size_t unit,
     }
 }
 
-angle::Result StateManagerGL::setPixelUnpackState(const gl::Context *context,
-                                                  const gl::PixelUnpackState &unpack)
+void StateManagerGL::setPixelUnpackState(const gl::PixelUnpackState &unpack)
 {
     if (mUnpackAlignment != unpack.alignment)
     {
         mUnpackAlignment = unpack.alignment;
-        ANGLE_GL_TRY(context, mFunctions->pixelStorei(GL_UNPACK_ALIGNMENT, mUnpackAlignment));
+        mFunctions->pixelStorei(GL_UNPACK_ALIGNMENT, mUnpackAlignment);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_UNPACK_STATE);
     }
@@ -551,7 +493,7 @@ angle::Result StateManagerGL::setPixelUnpackState(const gl::Context *context,
     if (mUnpackRowLength != unpack.rowLength)
     {
         mUnpackRowLength = unpack.rowLength;
-        ANGLE_GL_TRY(context, mFunctions->pixelStorei(GL_UNPACK_ROW_LENGTH, mUnpackRowLength));
+        mFunctions->pixelStorei(GL_UNPACK_ROW_LENGTH, mUnpackRowLength);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_UNPACK_STATE);
     }
@@ -559,7 +501,7 @@ angle::Result StateManagerGL::setPixelUnpackState(const gl::Context *context,
     if (mUnpackSkipRows != unpack.skipRows)
     {
         mUnpackSkipRows = unpack.skipRows;
-        ANGLE_GL_TRY(context, mFunctions->pixelStorei(GL_UNPACK_SKIP_ROWS, mUnpackSkipRows));
+        mFunctions->pixelStorei(GL_UNPACK_SKIP_ROWS, mUnpackSkipRows);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_UNPACK_STATE);
     }
@@ -567,7 +509,7 @@ angle::Result StateManagerGL::setPixelUnpackState(const gl::Context *context,
     if (mUnpackSkipPixels != unpack.skipPixels)
     {
         mUnpackSkipPixels = unpack.skipPixels;
-        ANGLE_GL_TRY(context, mFunctions->pixelStorei(GL_UNPACK_SKIP_PIXELS, mUnpackSkipPixels));
+        mFunctions->pixelStorei(GL_UNPACK_SKIP_PIXELS, mUnpackSkipPixels);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_UNPACK_STATE);
     }
@@ -575,7 +517,7 @@ angle::Result StateManagerGL::setPixelUnpackState(const gl::Context *context,
     if (mUnpackImageHeight != unpack.imageHeight)
     {
         mUnpackImageHeight = unpack.imageHeight;
-        ANGLE_GL_TRY(context, mFunctions->pixelStorei(GL_UNPACK_IMAGE_HEIGHT, mUnpackImageHeight));
+        mFunctions->pixelStorei(GL_UNPACK_IMAGE_HEIGHT, mUnpackImageHeight);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_UNPACK_STATE);
     }
@@ -583,16 +525,13 @@ angle::Result StateManagerGL::setPixelUnpackState(const gl::Context *context,
     if (mUnpackSkipImages != unpack.skipImages)
     {
         mUnpackSkipImages = unpack.skipImages;
-        ANGLE_GL_TRY(context, mFunctions->pixelStorei(GL_UNPACK_SKIP_IMAGES, mUnpackSkipImages));
+        mFunctions->pixelStorei(GL_UNPACK_SKIP_IMAGES, mUnpackSkipImages);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_UNPACK_STATE);
     }
-
-    return angle::Result::Continue;
 }
 
-angle::Result StateManagerGL::setPixelUnpackBuffer(const gl::Context *context,
-                                                   const gl::Buffer *pixelBuffer)
+void StateManagerGL::setPixelUnpackBuffer(const gl::Buffer *pixelBuffer)
 {
     GLuint bufferID = 0;
     if (pixelBuffer != nullptr)
@@ -600,17 +539,14 @@ angle::Result StateManagerGL::setPixelUnpackBuffer(const gl::Context *context,
         bufferID = GetImplAs<BufferGL>(pixelBuffer)->getBufferID();
     }
     bindBuffer(gl::BufferBinding::PixelUnpack, bufferID);
-
-    return angle::Result::Continue;
 }
 
-angle::Result StateManagerGL::setPixelPackState(const gl::Context *context,
-                                                const gl::PixelPackState &pack)
+void StateManagerGL::setPixelPackState(const gl::PixelPackState &pack)
 {
     if (mPackAlignment != pack.alignment)
     {
         mPackAlignment = pack.alignment;
-        ANGLE_GL_TRY(context, mFunctions->pixelStorei(GL_PACK_ALIGNMENT, mPackAlignment));
+        mFunctions->pixelStorei(GL_PACK_ALIGNMENT, mPackAlignment);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_PACK_STATE);
     }
@@ -618,7 +554,7 @@ angle::Result StateManagerGL::setPixelPackState(const gl::Context *context,
     if (mPackRowLength != pack.rowLength)
     {
         mPackRowLength = pack.rowLength;
-        ANGLE_GL_TRY(context, mFunctions->pixelStorei(GL_PACK_ROW_LENGTH, mPackRowLength));
+        mFunctions->pixelStorei(GL_PACK_ROW_LENGTH, mPackRowLength);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_PACK_STATE);
     }
@@ -626,7 +562,7 @@ angle::Result StateManagerGL::setPixelPackState(const gl::Context *context,
     if (mPackSkipRows != pack.skipRows)
     {
         mPackSkipRows = pack.skipRows;
-        ANGLE_GL_TRY(context, mFunctions->pixelStorei(GL_PACK_SKIP_ROWS, mPackSkipRows));
+        mFunctions->pixelStorei(GL_PACK_SKIP_ROWS, mPackSkipRows);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_PACK_STATE);
     }
@@ -634,16 +570,13 @@ angle::Result StateManagerGL::setPixelPackState(const gl::Context *context,
     if (mPackSkipPixels != pack.skipPixels)
     {
         mPackSkipPixels = pack.skipPixels;
-        ANGLE_GL_TRY(context, mFunctions->pixelStorei(GL_PACK_SKIP_PIXELS, mPackSkipPixels));
+        mFunctions->pixelStorei(GL_PACK_SKIP_PIXELS, mPackSkipPixels);
 
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_PACK_STATE);
     }
-
-    return angle::Result::Continue;
 }
 
-angle::Result StateManagerGL::setPixelPackBuffer(const gl::Context *context,
-                                                 const gl::Buffer *pixelBuffer)
+void StateManagerGL::setPixelPackBuffer(const gl::Buffer *pixelBuffer)
 {
     GLuint bufferID = 0;
     if (pixelBuffer != nullptr)
@@ -651,13 +584,10 @@ angle::Result StateManagerGL::setPixelPackBuffer(const gl::Context *context,
         bufferID = GetImplAs<BufferGL>(pixelBuffer)->getBufferID();
     }
     bindBuffer(gl::BufferBinding::PixelPack, bufferID);
-
-    return angle::Result::Continue;
 }
 
 void StateManagerGL::bindFramebuffer(GLenum type, GLuint framebuffer)
 {
-    bool framebufferChanged = false;
     switch (type)
     {
         case GL_FRAMEBUFFER:
@@ -670,45 +600,32 @@ void StateManagerGL::bindFramebuffer(GLenum type, GLuint framebuffer)
 
                 mLocalDirtyBits.set(gl::State::DIRTY_BIT_READ_FRAMEBUFFER_BINDING);
                 mLocalDirtyBits.set(gl::State::DIRTY_BIT_DRAW_FRAMEBUFFER_BINDING);
-
-                framebufferChanged = true;
             }
             break;
 
         case GL_READ_FRAMEBUFFER:
-            ASSERT(mHasSeparateFramebufferBindings);
             if (mFramebuffers[angle::FramebufferBindingRead] != framebuffer)
             {
                 mFramebuffers[angle::FramebufferBindingRead] = framebuffer;
                 mFunctions->bindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
 
                 mLocalDirtyBits.set(gl::State::DIRTY_BIT_READ_FRAMEBUFFER_BINDING);
-
-                framebufferChanged = true;
             }
             break;
 
         case GL_DRAW_FRAMEBUFFER:
-            ASSERT(mHasSeparateFramebufferBindings);
             if (mFramebuffers[angle::FramebufferBindingDraw] != framebuffer)
             {
                 mFramebuffers[angle::FramebufferBindingDraw] = framebuffer;
                 mFunctions->bindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
 
                 mLocalDirtyBits.set(gl::State::DIRTY_BIT_DRAW_FRAMEBUFFER_BINDING);
-
-                framebufferChanged = true;
             }
             break;
 
         default:
             UNREACHABLE();
             break;
-    }
-
-    if (framebufferChanged && mFeatures.flushOnFramebufferChange.enabled)
-    {
-        mFunctions->flush();
     }
 }
 
@@ -1144,75 +1061,20 @@ void StateManagerGL::setDepthRange(float near, float far)
 
 void StateManagerGL::setBlendEnabled(bool enabled)
 {
-    const gl::DrawBufferMask mask =
-        enabled ? mBlendStateExt.mMaxEnabledMask : gl::DrawBufferMask::Zero();
-    if (mBlendStateExt.mEnabledMask == mask)
+    if (mBlendEnabled != enabled)
     {
-        return;
-    }
-
-    if (enabled)
-    {
-        mFunctions->enable(GL_BLEND);
-    }
-    else
-    {
-        mFunctions->disable(GL_BLEND);
-    }
-
-    mBlendStateExt.setEnabled(enabled);
-    mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_ENABLED);
-}
-
-void StateManagerGL::setBlendEnabledIndexed(const gl::DrawBufferMask enabledMask)
-{
-    if (mBlendStateExt.mEnabledMask == enabledMask)
-    {
-        return;
-    }
-
-    // Get DrawBufferMask of buffers with different blend enable state
-    gl::DrawBufferMask diffMask = mBlendStateExt.mEnabledMask ^ enabledMask;
-    const size_t diffCount      = diffMask.count();
-
-    // Check if enabling or disabling blending for all buffers reduces the number of subsequent
-    // indexed commands. Implicitly handles the case when the new blend enable state is the same for
-    // all buffers.
-    if (diffCount > 1)
-    {
-        // The number of indexed blend enable commands in case a mass disable is used.
-        const size_t enabledCount = enabledMask.count();
-
-        // The mask and the number of indexed blend disable commands in case a mass enable is used.
-        const gl::DrawBufferMask disabledMask = enabledMask ^ mBlendStateExt.mMaxEnabledMask;
-        const size_t disabledCount            = disabledMask.count();
-
-        if (enabledCount < diffCount && enabledCount <= disabledCount)
+        mBlendEnabled = enabled;
+        if (mBlendEnabled)
         {
-            diffMask = enabledMask;
-            mFunctions->disable(GL_BLEND);
-        }
-        else if (disabledCount < diffCount && disabledCount <= enabledCount)
-        {
-            diffMask = disabledMask;
             mFunctions->enable(GL_BLEND);
-        }
-    }
-
-    for (size_t drawBufferIndex : diffMask)
-    {
-        if (enabledMask.test(drawBufferIndex))
-        {
-            mFunctions->enablei(GL_BLEND, static_cast<GLuint>(drawBufferIndex));
         }
         else
         {
-            mFunctions->disablei(GL_BLEND, static_cast<GLuint>(drawBufferIndex));
+            mFunctions->disable(GL_BLEND);
         }
-    }
 
-    mBlendStateExt.mEnabledMask = enabledMask;
-    mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_ENABLED);
+        mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_ENABLED);
+    }
 }
 
 void StateManagerGL::setBlendColor(const gl::ColorF &blendColor)
@@ -1227,179 +1089,50 @@ void StateManagerGL::setBlendColor(const gl::ColorF &blendColor)
     }
 }
 
-void StateManagerGL::setBlendFuncs(const gl::BlendStateExt &blendStateExt)
+void StateManagerGL::setBlendFuncs(GLenum sourceBlendRGB,
+                                   GLenum destBlendRGB,
+                                   GLenum sourceBlendAlpha,
+                                   GLenum destBlendAlpha)
 {
-    if (mBlendStateExt.mSrcColor == blendStateExt.mSrcColor &&
-        mBlendStateExt.mDstColor == blendStateExt.mDstColor &&
-        mBlendStateExt.mSrcAlpha == blendStateExt.mSrcAlpha &&
-        mBlendStateExt.mDstAlpha == blendStateExt.mDstAlpha)
+    if (mSourceBlendRGB != sourceBlendRGB || mDestBlendRGB != destBlendRGB ||
+        mSourceBlendAlpha != sourceBlendAlpha || mDestBlendAlpha != destBlendAlpha)
     {
-        return;
+        mSourceBlendRGB   = sourceBlendRGB;
+        mDestBlendRGB     = destBlendRGB;
+        mSourceBlendAlpha = sourceBlendAlpha;
+        mDestBlendAlpha   = destBlendAlpha;
+
+        mFunctions->blendFuncSeparate(mSourceBlendRGB, mDestBlendRGB, mSourceBlendAlpha,
+                                      mDestBlendAlpha);
+
+        mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_FUNCS);
     }
-
-    if (!mIndependentBlendStates)
-    {
-        mFunctions->blendFuncSeparate(
-            blendStateExt.getSrcColorIndexed(0), blendStateExt.getDstColorIndexed(0),
-            blendStateExt.getSrcAlphaIndexed(0), blendStateExt.getDstAlphaIndexed(0));
-    }
-    else
-    {
-        // Get DrawBufferMask of buffers with different blend factors
-        gl::DrawBufferMask diffMask =
-            mBlendStateExt.compareFactors(blendStateExt.mSrcColor, blendStateExt.mDstColor,
-                                          blendStateExt.mSrcAlpha, blendStateExt.mDstAlpha);
-        size_t diffCount = diffMask.count();
-
-        // Check if setting all buffers to the same value reduces the number of subsequent indexed
-        // commands. Implicitly handles the case when the new blend function state is the same for
-        // all buffers.
-        if (diffCount > 1)
-        {
-            bool found                                            = false;
-            gl::BlendStateExt::FactorStorage::Type commonSrcColor = 0;
-            gl::BlendStateExt::FactorStorage::Type commonDstColor = 0;
-            gl::BlendStateExt::FactorStorage::Type commonSrcAlpha = 0;
-            gl::BlendStateExt::FactorStorage::Type commonDstAlpha = 0;
-            for (size_t i = 0; i < mBlendStateExt.mMaxDrawBuffers - 1; i++)
-            {
-                const gl::BlendStateExt::FactorStorage::Type tempCommonSrcColor =
-                    blendStateExt.expandSrcColorIndexed(i);
-                const gl::BlendStateExt::FactorStorage::Type tempCommonDstColor =
-                    blendStateExt.expandDstColorIndexed(i);
-                const gl::BlendStateExt::FactorStorage::Type tempCommonSrcAlpha =
-                    blendStateExt.expandSrcAlphaIndexed(i);
-                const gl::BlendStateExt::FactorStorage::Type tempCommonDstAlpha =
-                    blendStateExt.expandDstAlphaIndexed(i);
-
-                const gl::DrawBufferMask tempDiffMask = blendStateExt.compareFactors(
-                    tempCommonSrcColor, tempCommonDstColor, tempCommonSrcAlpha, tempCommonDstAlpha);
-
-                const size_t tempDiffCount = tempDiffMask.count();
-                if (tempDiffCount < diffCount)
-                {
-                    found          = true;
-                    diffMask       = tempDiffMask;
-                    diffCount      = tempDiffCount;
-                    commonSrcColor = tempCommonSrcColor;
-                    commonDstColor = tempCommonDstColor;
-                    commonSrcAlpha = tempCommonSrcAlpha;
-                    commonDstAlpha = tempCommonDstAlpha;
-                    if (tempDiffCount == 0)
-                    {
-                        break;  // the blend factors are the same for all buffers
-                    }
-                }
-            }
-            if (found)
-            {
-                mFunctions->blendFuncSeparate(
-                    ToGLenum(gl::BlendStateExt::FactorStorage::GetValueIndexed(0, commonSrcColor)),
-                    ToGLenum(gl::BlendStateExt::FactorStorage::GetValueIndexed(0, commonDstColor)),
-                    ToGLenum(gl::BlendStateExt::FactorStorage::GetValueIndexed(0, commonSrcAlpha)),
-                    ToGLenum(gl::BlendStateExt::FactorStorage::GetValueIndexed(0, commonDstAlpha)));
-            }
-        }
-
-        for (size_t drawBufferIndex : diffMask)
-        {
-            mFunctions->blendFuncSeparatei(static_cast<GLuint>(drawBufferIndex),
-                                           blendStateExt.getSrcColorIndexed(drawBufferIndex),
-                                           blendStateExt.getDstColorIndexed(drawBufferIndex),
-                                           blendStateExt.getSrcAlphaIndexed(drawBufferIndex),
-                                           blendStateExt.getDstAlphaIndexed(drawBufferIndex));
-        }
-    }
-    mBlendStateExt.mSrcColor = blendStateExt.mSrcColor;
-    mBlendStateExt.mDstColor = blendStateExt.mDstColor;
-    mBlendStateExt.mSrcAlpha = blendStateExt.mSrcAlpha;
-    mBlendStateExt.mDstAlpha = blendStateExt.mDstAlpha;
-    mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_FUNCS);
 }
 
-void StateManagerGL::setBlendEquations(const gl::BlendStateExt &blendStateExt)
+void StateManagerGL::setBlendEquations(GLenum blendEquationRGB, GLenum blendEquationAlpha)
 {
-    if (mBlendStateExt.mEquationColor == blendStateExt.mEquationColor &&
-        mBlendStateExt.mEquationAlpha == blendStateExt.mEquationAlpha)
+    if (mBlendEquationRGB != blendEquationRGB || mBlendEquationAlpha != blendEquationAlpha)
     {
-        return;
+        mBlendEquationRGB   = blendEquationRGB;
+        mBlendEquationAlpha = blendEquationAlpha;
+
+        mFunctions->blendEquationSeparate(mBlendEquationRGB, mBlendEquationAlpha);
+
+        mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_EQUATIONS);
     }
-
-    if (!mIndependentBlendStates)
-    {
-        mFunctions->blendEquationSeparate(blendStateExt.getEquationColorIndexed(0),
-                                          blendStateExt.getEquationAlphaIndexed(0));
-    }
-    else
-    {
-        // Get DrawBufferMask of buffers with different blend equations
-        gl::DrawBufferMask diffMask = mBlendStateExt.compareEquations(blendStateExt.mEquationColor,
-                                                                      blendStateExt.mEquationAlpha);
-        size_t diffCount            = diffMask.count();
-
-        // Check if setting all buffers to the same value reduces the number of subsequent indexed
-        // commands. Implicitly handles the case when the new blend equation state is the same for
-        // all buffers.
-        if (diffCount > 1)
-        {
-            bool found                                                   = false;
-            gl::BlendStateExt::EquationStorage::Type commonEquationColor = 0;
-            gl::BlendStateExt::EquationStorage::Type commonEquationAlpha = 0;
-            for (size_t i = 0; i < mBlendStateExt.mMaxDrawBuffers - 1; i++)
-            {
-                const gl::BlendStateExt::EquationStorage::Type tempCommonEquationColor =
-                    blendStateExt.expandEquationColorIndexed(i);
-                const gl::BlendStateExt::EquationStorage::Type tempCommonEquationAlpha =
-                    blendStateExt.expandEquationAlphaIndexed(i);
-
-                const gl::DrawBufferMask tempDiffMask = blendStateExt.compareEquations(
-                    tempCommonEquationColor, tempCommonEquationAlpha);
-
-                const size_t tempDiffCount = tempDiffMask.count();
-                if (tempDiffCount < diffCount)
-                {
-                    found               = true;
-                    diffMask            = tempDiffMask;
-                    diffCount           = tempDiffCount;
-                    commonEquationColor = tempCommonEquationColor;
-                    commonEquationAlpha = tempCommonEquationAlpha;
-                    if (tempDiffCount == 0)
-                    {
-                        break;  // the new blend equations are the same for all buffers
-                    }
-                }
-            }
-            if (found)
-            {
-                mFunctions->blendEquationSeparate(
-                    ToGLenum(gl::BlendStateExt::EquationStorage::GetValueIndexed(
-                        0, commonEquationColor)),
-                    ToGLenum(gl::BlendStateExt::EquationStorage::GetValueIndexed(
-                        0, commonEquationAlpha)));
-            }
-        }
-
-        for (size_t drawBufferIndex : diffMask)
-        {
-            mFunctions->blendEquationSeparatei(
-                static_cast<GLuint>(drawBufferIndex),
-                blendStateExt.getEquationColorIndexed(drawBufferIndex),
-                blendStateExt.getEquationAlphaIndexed(drawBufferIndex));
-        }
-    }
-    mBlendStateExt.mEquationColor = blendStateExt.mEquationColor;
-    mBlendStateExt.mEquationAlpha = blendStateExt.mEquationAlpha;
-    mLocalDirtyBits.set(gl::State::DIRTY_BIT_COLOR_MASK);
 }
 
 void StateManagerGL::setColorMask(bool red, bool green, bool blue, bool alpha)
 {
-    const gl::BlendStateExt::ColorMaskStorage::Type mask =
-        mBlendStateExt.expandColorMaskValue(red, green, blue, alpha);
-    if (mBlendStateExt.mColorMask != mask)
+    if (mColorMaskRed != red || mColorMaskGreen != green || mColorMaskBlue != blue ||
+        mColorMaskAlpha != alpha)
     {
-        mFunctions->colorMask(red, green, blue, alpha);
-        mBlendStateExt.mColorMask = mask;
+        mColorMaskRed   = red;
+        mColorMaskGreen = green;
+        mColorMaskBlue  = blue;
+        mColorMaskAlpha = alpha;
+        mFunctions->colorMask(mColorMaskRed, mColorMaskGreen, mColorMaskBlue, mColorMaskAlpha);
+
         mLocalDirtyBits.set(gl::State::DIRTY_BIT_COLOR_MASK);
     }
 }
@@ -1828,36 +1561,33 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 setDepthRange(state.getNearPlane(), state.getFarPlane());
                 break;
             case gl::State::DIRTY_BIT_BLEND_ENABLED:
-                if (mIndependentBlendStates)
-                {
-                    setBlendEnabledIndexed(state.getBlendEnabledDrawBufferMask());
-                }
-                else
-                {
-                    setBlendEnabled(state.isBlendEnabled());
-                }
+                setBlendEnabled(state.isBlendEnabled());
                 break;
             case gl::State::DIRTY_BIT_BLEND_COLOR:
                 setBlendColor(state.getBlendColor());
                 break;
             case gl::State::DIRTY_BIT_BLEND_FUNCS:
             {
-                setBlendFuncs(state.getBlendStateExt());
+                const auto &blendState = state.getBlendState();
+                setBlendFuncs(blendState.sourceBlendRGB, blendState.destBlendRGB,
+                              blendState.sourceBlendAlpha, blendState.destBlendAlpha);
                 break;
             }
             case gl::State::DIRTY_BIT_BLEND_EQUATIONS:
             {
-                setBlendEquations(state.getBlendStateExt());
+                const auto &blendState = state.getBlendState();
+                setBlendEquations(blendState.blendEquationRGB, blendState.blendEquationAlpha);
                 break;
             }
             case gl::State::DIRTY_BIT_COLOR_MASK:
             {
-                const gl::Framebuffer *framebuffer = state.getDrawFramebuffer();
-                const FramebufferGL *framebufferGL = GetImplAs<FramebufferGL>(framebuffer);
-                const bool disableAlphaWrite =
-                    framebufferGL->hasEmulatedAlphaChannelTextureAttachment();
+                gl::Framebuffer *framebuffer = state.getDrawFramebuffer();
+                FramebufferGL *framebufferGL = GetImplAs<FramebufferGL>(framebuffer);
 
-                setColorMaskForFramebuffer(state.getBlendStateExt(), disableAlphaWrite);
+                const auto &blendState = state.getBlendState();
+                setColorMaskForFramebuffer(blendState.colorMaskRed, blendState.colorMaskGreen,
+                                           blendState.colorMaskBlue, blendState.colorMaskAlpha,
+                                           framebufferGL);
                 break;
             }
             case gl::State::DIRTY_BIT_SAMPLE_ALPHA_TO_COVERAGE_ENABLED:
@@ -1955,21 +1685,25 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 setClearStencil(state.getStencilClearValue());
                 break;
             case gl::State::DIRTY_BIT_UNPACK_STATE:
-                ANGLE_TRY(setPixelUnpackState(context, state.getUnpackState()));
+                setPixelUnpackState(state.getUnpackState());
                 break;
             case gl::State::DIRTY_BIT_UNPACK_BUFFER_BINDING:
-                ANGLE_TRY(setPixelUnpackBuffer(
-                    context, state.getTargetBuffer(gl::BufferBinding::PixelUnpack)));
+                setPixelUnpackBuffer(state.getTargetBuffer(gl::BufferBinding::PixelUnpack));
                 break;
             case gl::State::DIRTY_BIT_PACK_STATE:
-                ANGLE_TRY(setPixelPackState(context, state.getPackState()));
+                setPixelPackState(state.getPackState());
                 break;
             case gl::State::DIRTY_BIT_PACK_BUFFER_BINDING:
-                ANGLE_TRY(setPixelPackBuffer(context,
-                                             state.getTargetBuffer(gl::BufferBinding::PixelPack)));
+                setPixelPackBuffer(state.getTargetBuffer(gl::BufferBinding::PixelPack));
                 break;
             case gl::State::DIRTY_BIT_DITHER_ENABLED:
                 setDitherEnabled(state.isDitherEnabled());
+                break;
+            case gl::State::DIRTY_BIT_GENERATE_MIPMAP_HINT:
+                // TODO(jmadill): implement this
+                break;
+            case gl::State::DIRTY_BIT_SHADER_DERIVATIVE_HINT:
+                // TODO(jmadill): implement this
                 break;
             case gl::State::DIRTY_BIT_READ_FRAMEBUFFER_BINDING:
             {
@@ -1980,9 +1714,7 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                     continue;
 
                 FramebufferGL *framebufferGL = GetImplAs<FramebufferGL>(framebuffer);
-                bindFramebuffer(
-                    mHasSeparateFramebufferBindings ? GL_READ_FRAMEBUFFER : GL_FRAMEBUFFER,
-                    framebufferGL->getFramebufferID());
+                bindFramebuffer(GL_READ_FRAMEBUFFER, framebufferGL->getFramebufferID());
                 break;
             }
             case gl::State::DIRTY_BIT_DRAW_FRAMEBUFFER_BINDING:
@@ -1994,9 +1726,7 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                     continue;
 
                 FramebufferGL *framebufferGL = GetImplAs<FramebufferGL>(framebuffer);
-                bindFramebuffer(
-                    mHasSeparateFramebufferBindings ? GL_DRAW_FRAMEBUFFER : GL_FRAMEBUFFER,
-                    framebufferGL->getFramebufferID());
+                bindFramebuffer(GL_DRAW_FRAMEBUFFER, framebufferGL->getFramebufferID());
 
                 const gl::Program *program = state.getProgram();
                 if (program)
@@ -2005,7 +1735,10 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 }
 
                 // Changing the draw framebuffer binding sometimes requires resetting srgb blending.
-                iter.setLaterBit(gl::State::DIRTY_BIT_FRAMEBUFFER_SRGB_WRITE_CONTROL_MODE);
+                if (mFunctions->standard == STANDARD_GL_DESKTOP)
+                {
+                    iter.setLaterBit(gl::State::DIRTY_BIT_FRAMEBUFFER_SRGB);
+                }
 
                 // If the framebuffer is emulating RGB on top of RGBA, the color mask has to be
                 // updated
@@ -2017,37 +1750,11 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 break;
             case gl::State::DIRTY_BIT_VERTEX_ARRAY_BINDING:
             {
-                VertexArrayGL *vaoGL = GetImplAs<VertexArrayGL>(state.getVertexArray());
-                bindVertexArray(vaoGL->getVertexArrayID(), vaoGL->getNativeState());
+                const VertexArrayGL *vaoGL = GetImplAs<VertexArrayGL>(state.getVertexArray());
+                bindVertexArray(vaoGL->getVertexArrayID(), vaoGL->getAppliedElementArrayBufferID());
 
-                propagateProgramToVAO(context, state.getProgram(),
+                propagateProgramToVAO(state.getProgram(),
                                       GetImplAs<VertexArrayGL>(state.getVertexArray()));
-
-                if (mFeatures.syncVertexArraysToDefault.enabled)
-                {
-                    // Re-sync the vertex array because all frontend VAOs share the same backend
-                    // state. Only sync bits that can be set in ES2.0 or 3.0
-                    gl::VertexArray::DirtyBits dirtyBits;
-                    gl::VertexArray::DirtyAttribBitsArray dirtyAttribBits;
-                    gl::VertexArray::DirtyBindingBitsArray dirtBindingBits;
-
-                    dirtyBits.set(gl::VertexArray::DIRTY_BIT_ELEMENT_ARRAY_BUFFER);
-                    for (size_t attrib = 0; attrib < mDefaultVAOState.attributes.size(); attrib++)
-                    {
-                        dirtyBits.set(gl::VertexArray::DIRTY_BIT_ATTRIB_0 + attrib);
-                        dirtyAttribBits[attrib].set(gl::VertexArray::DIRTY_ATTRIB_ENABLED);
-                        dirtyAttribBits[attrib].set(gl::VertexArray::DIRTY_ATTRIB_POINTER);
-                        dirtyAttribBits[attrib].set(gl::VertexArray::DIRTY_ATTRIB_POINTER_BUFFER);
-                    }
-                    for (size_t binding = 0; binding < mDefaultVAOState.bindings.size(); binding++)
-                    {
-                        dirtyBits.set(gl::VertexArray::DIRTY_BIT_BINDING_0 + binding);
-                        dirtBindingBits[binding].set(gl::VertexArray::DIRTY_BINDING_DIVISOR);
-                    }
-
-                    ANGLE_TRY(
-                        vaoGL->syncState(context, dirtyBits, &dirtyAttribBits, &dirtBindingBits));
-                }
                 break;
             }
             case gl::State::DIRTY_BIT_DRAW_INDIRECT_BUFFER_BINDING:
@@ -2104,7 +1811,7 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 if (!program ||
                     !program->getExecutable().hasLinkedShaderStage(gl::ShaderType::Compute))
                 {
-                    propagateProgramToVAO(context, program,
+                    propagateProgramToVAO(program,
                                           GetImplAs<VertexArrayGL>(state.getVertexArray()));
                 }
                 break;
@@ -2139,7 +1846,7 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
             case gl::State::DIRTY_BIT_COVERAGE_MODULATION:
                 setCoverageModulation(state.getCoverageModulation());
                 break;
-            case gl::State::DIRTY_BIT_FRAMEBUFFER_SRGB_WRITE_CONTROL_MODE:
+            case gl::State::DIRTY_BIT_FRAMEBUFFER_SRGB:
                 setFramebufferSRGBEnabledForFramebuffer(
                     context, state.getFramebufferSRGB(),
                     GetImplAs<FramebufferGL>(state.getDrawFramebuffer()));
@@ -2172,19 +1879,6 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
             case gl::State::DIRTY_BIT_PROVOKING_VERTEX:
                 setProvokingVertex(ToGLenum(state.getProvokingVertex()));
                 break;
-            case gl::State::DIRTY_BIT_EXTENDED:
-                // Handling clip distance enabled flags:
-                setClipDistancesEnable(state.getEnabledClipDistances());
-                // TODO(jmadill): handle mipmap generation hint
-                // TODO(jmadill): handle shader derivative hint
-                // Nothing to do until EXT_clip_contorl is implemented.
-                break;
-            case gl::State::DIRTY_BIT_SAMPLE_SHADING:
-                // Nothing to do until OES_sample_shading is implemented.
-                break;
-            case gl::State::DIRTY_BIT_PATCH_VERTICES:
-                // Nothing to do until EXT_tessellation_shader is implemented.
-                break;
             default:
                 UNREACHABLE();
                 break;
@@ -2198,7 +1892,7 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
 
 void StateManagerGL::setFramebufferSRGBEnabled(const gl::Context *context, bool enabled)
 {
-    if (!mFramebufferSRGBAvailable)
+    if (!context->getExtensions().sRGBWriteControl)
     {
         return;
     }
@@ -2214,7 +1908,7 @@ void StateManagerGL::setFramebufferSRGBEnabled(const gl::Context *context, bool 
         {
             mFunctions->disable(GL_FRAMEBUFFER_SRGB);
         }
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_FRAMEBUFFER_SRGB_WRITE_CONTROL_MODE);
+        mLocalDirtyBits.set(gl::State::DIRTY_BIT_FRAMEBUFFER_SRGB);
     }
 }
 
@@ -2222,10 +1916,10 @@ void StateManagerGL::setFramebufferSRGBEnabledForFramebuffer(const gl::Context *
                                                              bool enabled,
                                                              const FramebufferGL *framebuffer)
 {
-    if (framebuffer->isDefault())
+    if (mFunctions->standard == STANDARD_GL_DESKTOP && framebuffer->isDefault())
     {
         // Obey the framebuffer sRGB state for blending on all framebuffers except the default
-        // framebuffer.
+        // framebuffer on Desktop OpenGL.
         // When SRGB blending is enabled, only SRGB capable formats will use it but the default
         // framebuffer will always use it if it is enabled.
         // TODO(geofflang): Update this when the framebuffer binding dirty changes, when it exists.
@@ -2237,75 +1931,18 @@ void StateManagerGL::setFramebufferSRGBEnabledForFramebuffer(const gl::Context *
     }
 }
 
-void StateManagerGL::setColorMaskForFramebuffer(const gl::BlendStateExt &blendStateExt,
-                                                const bool disableAlpha)
+void StateManagerGL::setColorMaskForFramebuffer(bool red,
+                                                bool green,
+                                                bool blue,
+                                                bool alpha,
+                                                const FramebufferGL *framebuffer)
 {
-    bool r, g, b, a;
-
-    // Given that disableAlpha can be true only on macOS backbuffers and color mask is re-synced on
-    // bound draw framebuffer change, switch all draw buffers color masks to avoid special case
-    // later.
-    if (!mIndependentBlendStates || disableAlpha)
+    bool modifiedAlphaMask = alpha;
+    if (framebuffer->hasEmulatedAlphaChannelTextureAttachment())
     {
-        blendStateExt.getColorMaskIndexed(0, &r, &g, &b, &a);
-        setColorMask(r, g, b, disableAlpha ? false : a);
-        return;
+        modifiedAlphaMask = false;
     }
-
-    // Check if the current mask already matches the new state
-    if (mBlendStateExt.mColorMask == blendStateExt.mColorMask)
-    {
-        return;
-    }
-
-    // Get DrawBufferMask of buffers with different color masks
-    gl::DrawBufferMask diffMask = mBlendStateExt.compareColorMask(blendStateExt.mColorMask);
-    size_t diffCount            = diffMask.count();
-
-    // Check if setting all buffers to the same value reduces the number of subsequent indexed
-    // commands. Implicitly handles the case when the new mask is the same for all buffers.
-    // For instance, let's say that previously synced mask is ccccff00 and the new state is
-    // ffeeeeee. Instead of calling colorMaski 8 times, ANGLE can set all buffers to `e` and then
-    // use colorMaski only twice. On the other hand, if the new state is cceeee00, a non-indexed
-    // call will increase the total number of GL commands.
-    if (diffCount > 1)
-    {
-        bool found                                                = false;
-        gl::BlendStateExt::ColorMaskStorage::Type commonColorMask = 0;
-        for (size_t i = 0; i < mBlendStateExt.mMaxDrawBuffers - 1; i++)
-        {
-            const gl::BlendStateExt::ColorMaskStorage::Type tempCommonColorMask =
-                blendStateExt.expandColorMaskIndexed(i);
-            const gl::DrawBufferMask tempDiffMask =
-                blendStateExt.compareColorMask(tempCommonColorMask);
-            const size_t tempDiffCount = tempDiffMask.count();
-            if (tempDiffCount < diffCount)
-            {
-                found           = true;
-                diffMask        = tempDiffMask;
-                diffCount       = tempDiffCount;
-                commonColorMask = tempCommonColorMask;
-                if (tempDiffCount == 0)
-                {
-                    break;  // the new mask is the same for all buffers
-                }
-            }
-        }
-        if (found)
-        {
-            gl::BlendStateExt::UnpackColorMask(commonColorMask, &r, &g, &b, &a);
-            mFunctions->colorMask(r, g, b, a);
-        }
-    }
-
-    for (size_t drawBufferIndex : diffMask)
-    {
-        blendStateExt.getColorMaskIndexed(drawBufferIndex, &r, &g, &b, &a);
-        mFunctions->colorMaski(static_cast<GLuint>(drawBufferIndex), r, g, b, a);
-    }
-
-    mBlendStateExt.mColorMask = blendStateExt.mColorMask;
-    mLocalDirtyBits.set(gl::State::DIRTY_BIT_COLOR_MASK);
+    setColorMask(red, green, blue, modifiedAlphaMask);
 }
 
 void StateManagerGL::setDitherEnabled(bool enabled)
@@ -2380,31 +2017,6 @@ void StateManagerGL::setProvokingVertex(GLenum mode)
     }
 }
 
-void StateManagerGL::setClipDistancesEnable(const gl::State::ClipDistanceEnableBits &enables)
-{
-    if (enables == mEnabledClipDistances)
-    {
-        return;
-    }
-    ASSERT(mMaxClipDistances <= gl::IMPLEMENTATION_MAX_CLIP_DISTANCES);
-
-    gl::State::ClipDistanceEnableBits diff = enables ^ mEnabledClipDistances;
-    for (size_t i : diff)
-    {
-        if (enables.test(i))
-        {
-            mFunctions->enable(GL_CLIP_DISTANCE0_EXT + static_cast<uint32_t>(i));
-        }
-        else
-        {
-            mFunctions->disable(GL_CLIP_DISTANCE0_EXT + static_cast<uint32_t>(i));
-        }
-    }
-
-    mEnabledClipDistances = enables;
-    mLocalDirtyBits.set(gl::State::DIRTY_BIT_EXTENDED);
-}
-
 void StateManagerGL::setTextureCubemapSeamlessEnabled(bool enabled)
 {
     // TODO(jmadill): Also check for seamless extension.
@@ -2427,9 +2039,7 @@ void StateManagerGL::setTextureCubemapSeamlessEnabled(bool enabled)
     }
 }
 
-void StateManagerGL::propagateProgramToVAO(const gl::Context *context,
-                                           const gl::Program *program,
-                                           VertexArrayGL *vao)
+void StateManagerGL::propagateProgramToVAO(const gl::Program *program, VertexArrayGL *vao)
 {
     if (vao == nullptr)
     {
@@ -2444,14 +2054,14 @@ void StateManagerGL::propagateProgramToVAO(const gl::Context *context,
         {
             programNumViews = program->getNumViews();
         }
-        vao->applyNumViewsToDivisor(context, programNumViews);
+        vao->applyNumViewsToDivisor(programNumViews);
     }
 
     // Attribute enabled mask:
     if (program)
     {
         vao->applyActiveAttribLocationsMask(
-            context, program->getExecutable().getActiveAttribLocationsMask());
+            program->getExecutable().getActiveAttribLocationsMask());
     }
 }
 
@@ -2508,16 +2118,6 @@ void StateManagerGL::syncTransformFeedbackState(const gl::Context *context)
     }
 }
 
-GLuint StateManagerGL::getDefaultVAO() const
-{
-    return mDefaultVAO;
-}
-
-VertexArrayStateGL *StateManagerGL::getDefaultVAOState()
-{
-    return &mDefaultVAOState;
-}
-
 void StateManagerGL::validateState() const
 {
     // Current program
@@ -2552,623 +2152,6 @@ void StateManagerGL::validateState() const
     // Vertex array object
     ValidateStateHelper(mFunctions, mVAO, GL_VERTEX_ARRAY_BINDING, "mVAO",
                         "GL_VERTEX_ARRAY_BINDING");
-}
-
-template <>
-void StateManagerGL::get(GLenum name, GLboolean *value)
-{
-    mFunctions->getBooleanv(name, value);
-}
-
-template <>
-void StateManagerGL::get(GLenum name, bool *value)
-{
-    GLboolean v;
-    get(name, &v);
-    *value = (v == GL_TRUE);
-}
-
-template <>
-void StateManagerGL::get(GLenum name, std::array<bool, 4> *values)
-{
-    GLboolean v[4];
-    get(name, v);
-    for (size_t i = 0; i < 4; i++)
-    {
-        (*values)[i] = (v[i] == GL_TRUE);
-    }
-}
-
-template <>
-void StateManagerGL::get(GLenum name, GLint *value)
-{
-    mFunctions->getIntegerv(name, value);
-}
-
-template <>
-void StateManagerGL::get(GLenum name, GLenum *value)
-{
-    GLint v;
-    get(name, &v);
-    *value = static_cast<GLenum>(v);
-}
-
-template <>
-void StateManagerGL::get(GLenum name, gl::Rectangle *rect)
-{
-    GLint v[4];
-    get(name, v);
-    *rect = gl::Rectangle(v[0], v[1], v[2], v[3]);
-}
-
-template <>
-void StateManagerGL::get(GLenum name, GLfloat *value)
-{
-    mFunctions->getFloatv(name, value);
-}
-
-template <>
-void StateManagerGL::get(GLenum name, gl::ColorF *color)
-{
-    GLfloat v[4];
-    get(name, v);
-    *color = gl::ColorF(v[0], v[1], v[2], v[3]);
-}
-
-void StateManagerGL::syncFromNativeContext(const gl::Extensions &extensions,
-                                           ExternalContextState *state)
-{
-    ASSERT(mFunctions->getError() == GL_NO_ERROR);
-
-    get(GL_VIEWPORT, &state->viewport);
-    if (mViewport != state->viewport)
-    {
-        mViewport = state->viewport;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_VIEWPORT);
-    }
-
-    get(GL_SCISSOR_TEST, &state->scissorTest);
-    if (mScissorTestEnabled != static_cast<bool>(state->scissorTest))
-    {
-        mScissorTestEnabled = state->scissorTest;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_SCISSOR_TEST_ENABLED);
-    }
-
-    get(GL_SCISSOR_BOX, &state->scissorBox);
-    if (mScissor != state->scissorBox)
-    {
-        mScissor = state->scissorBox;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_SCISSOR);
-    }
-
-    get(GL_DEPTH_TEST, &state->depthTest);
-    if (mDepthTestEnabled != state->depthTest)
-    {
-        mDepthTestEnabled = state->depthTest;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_DEPTH_TEST_ENABLED);
-    }
-
-    get(GL_CULL_FACE, &state->cullFace);
-    if (mCullFaceEnabled != state->cullFace)
-    {
-        mCullFaceEnabled = state->cullFace;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_CULL_FACE_ENABLED);
-    }
-
-    get(GL_CULL_FACE_MODE, &state->cullFaceMode);
-    if (mCullFace != gl::FromGLenum<gl::CullFaceMode>(state->cullFaceMode))
-    {
-        mCullFace = gl::FromGLenum<gl::CullFaceMode>(state->cullFaceMode);
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_CULL_FACE);
-    }
-
-    get(GL_COLOR_WRITEMASK, &state->colorMask);
-    auto colorMask = mBlendStateExt.expandColorMaskValue(state->colorMask[0], state->colorMask[1],
-                                                         state->colorMask[2], state->colorMask[3]);
-    if (mBlendStateExt.mColorMask != colorMask)
-    {
-        mBlendStateExt.mColorMask = colorMask;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_COLOR_MASK);
-    }
-
-    get(GL_CURRENT_PROGRAM, &state->currentProgram);
-    if (mProgram != static_cast<GLuint>(state->currentProgram))
-    {
-        mProgram = state->currentProgram;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_PROGRAM_BINDING);
-    }
-
-    get(GL_COLOR_CLEAR_VALUE, &state->colorClear);
-    if (mClearColor != state->colorClear)
-    {
-        mClearColor = state->colorClear;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_CLEAR_COLOR);
-    }
-
-    get(GL_DEPTH_CLEAR_VALUE, &state->depthClear);
-    if (mClearDepth != state->depthClear)
-    {
-        mClearDepth = state->depthClear;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_CLEAR_DEPTH);
-    }
-
-    get(GL_DEPTH_FUNC, &state->depthFunc);
-    if (mDepthFunc != static_cast<GLenum>(state->depthFunc))
-    {
-        mDepthFunc = state->depthFunc;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_DEPTH_FUNC);
-    }
-
-    get(GL_DEPTH_WRITEMASK, &state->depthMask);
-    if (mDepthMask != state->depthMask)
-    {
-        mDepthMask = state->depthMask;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_DEPTH_MASK);
-    }
-
-    get(GL_DEPTH_RANGE, state->depthRage);
-    if (mNear != state->depthRage[0] || mFar != state->depthRage[1])
-    {
-        mNear = state->depthRage[0];
-        mFar  = state->depthRage[1];
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_DEPTH_RANGE);
-    }
-
-    get(GL_FRONT_FACE, &state->frontFace);
-    if (mFrontFace != static_cast<GLenum>(state->frontFace))
-    {
-        mFrontFace = state->frontFace;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_FRONT_FACE);
-    }
-
-    get(GL_LINE_WIDTH, &state->lineWidth);
-    if (mLineWidth != state->lineWidth)
-    {
-        mLineWidth = state->lineWidth;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_LINE_WIDTH);
-    }
-
-    get(GL_POLYGON_OFFSET_FACTOR, &state->polygonOffsetFactor);
-    get(GL_POLYGON_OFFSET_UNITS, &state->polygonOffsetUnits);
-    if (mPolygonOffsetFactor != state->polygonOffsetFactor ||
-        mPolygonOffsetUnits != state->polygonOffsetUnits)
-    {
-        mPolygonOffsetFactor = state->polygonOffsetFactor;
-        mPolygonOffsetUnits  = state->polygonOffsetUnits;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_POLYGON_OFFSET);
-    }
-
-    get(GL_SAMPLE_COVERAGE_VALUE, &state->sampleCoverageValue);
-    get(GL_SAMPLE_COVERAGE_INVERT, &state->sampleCoverageInvert);
-    if (mSampleCoverageValue != state->sampleCoverageValue ||
-        mSampleCoverageInvert != state->sampleCoverageInvert)
-    {
-        mSampleCoverageValue  = state->sampleCoverageValue;
-        mSampleCoverageInvert = state->sampleCoverageInvert;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_SAMPLE_COVERAGE);
-    }
-
-    get(GL_DITHER, &state->enableDither);
-    if (mDitherEnabled != state->enableDither)
-    {
-        mDitherEnabled = state->enableDither;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_DITHER_ENABLED);
-    }
-
-    get(GL_POLYGON_OFFSET_FILL, &state->enablePolygonOffsetFill);
-    if (mPolygonOffsetFillEnabled != state->enablePolygonOffsetFill)
-    {
-        mPolygonOffsetFillEnabled = state->enablePolygonOffsetFill;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_POLYGON_OFFSET_FILL_ENABLED);
-    }
-
-    get(GL_SAMPLE_ALPHA_TO_COVERAGE, &state->enableSampleAlphaToCoverage);
-    if (mSampleAlphaToOneEnabled != state->enableSampleAlphaToCoverage)
-    {
-        mSampleAlphaToOneEnabled = state->enableSampleAlphaToCoverage;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_SAMPLE_ALPHA_TO_ONE);
-    }
-
-    get(GL_SAMPLE_COVERAGE, &state->enableSampleCoverage);
-    if (mSampleCoverageEnabled != state->enableSampleCoverage)
-    {
-        mSampleCoverageEnabled = state->enableSampleCoverage;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_SAMPLE_COVERAGE_ENABLED);
-    }
-
-    if (extensions.multisampleCompatibility)
-    {
-        get(GL_MULTISAMPLE, &state->multisampleEnabled);
-        if (mMultisamplingEnabled != state->multisampleEnabled)
-        {
-            mMultisamplingEnabled = state->multisampleEnabled;
-            mLocalDirtyBits.set(gl::State::DIRTY_BIT_MULTISAMPLING);
-        }
-    }
-
-    syncBlendFromNativeContext(extensions, state);
-    syncFramebufferFromNativeContext(extensions, state);
-    syncPixelPackUnpackFromNativeContext(extensions, state);
-    syncStencilFromNativeContext(extensions, state);
-    syncVertexArraysFromNativeContext(extensions, state);
-    syncBufferBindingsFromNativeContext(extensions, state);
-    syncTextureUnitsFromNativeContext(extensions, state);
-
-    ASSERT(mFunctions->getError() == GL_NO_ERROR);
-}
-
-void StateManagerGL::restoreNativeContext(const gl::Extensions &extensions,
-                                          const ExternalContextState *state)
-{
-    ASSERT(mFunctions->getError() == GL_NO_ERROR);
-
-    setViewport(state->viewport);
-
-    setScissorTestEnabled(state->scissorTest);
-    setScissor(state->scissorBox);
-
-    setDepthTestEnabled(state->depthTest);
-
-    setCullFaceEnabled(state->cullFace);
-    setCullFace(gl::FromGLenum<gl::CullFaceMode>(state->cullFaceMode));
-
-    setColorMask(state->colorMask[0], state->colorMask[1], state->colorMask[2],
-                 state->colorMask[3]);
-
-    forceUseProgram(state->currentProgram);
-
-    setClearColor(state->colorClear);
-
-    setClearDepth(state->depthClear);
-    setDepthFunc(state->depthFunc);
-    setDepthMask(state->depthMask);
-    setDepthRange(state->depthRage[0], state->depthRage[1]);
-
-    setFrontFace(state->frontFace);
-
-    setLineWidth(state->lineWidth);
-
-    setPolygonOffset(state->polygonOffsetFactor, state->polygonOffsetUnits);
-
-    setSampleCoverage(state->sampleCoverageValue, state->sampleCoverageInvert);
-
-    setDitherEnabled(state->enableDither);
-
-    setPolygonOffsetFillEnabled(state->enablePolygonOffsetFill);
-
-    setSampleAlphaToOneStateEnabled(state->enableSampleAlphaToCoverage);
-
-    setSampleCoverageEnabled(state->enableSampleCoverage);
-
-    if (extensions.multisampleCompatibility)
-        setMultisamplingStateEnabled(state->multisampleEnabled);
-
-    restoreBlendNativeContext(extensions, state);
-    restoreFramebufferNativeContext(extensions, state);
-    restorePixelPackUnpackNativeContext(extensions, state);
-    restoreStencilNativeContext(extensions, state);
-    restoreVertexArraysNativeContext(extensions, state);
-    restoreBufferBindingsNativeContext(extensions, state);
-    restoreTextureUnitsNativeContext(extensions, state);
-
-    // if (mFunctions->coverageModulationNV) ?
-    setCoverageModulation(GL_NONE);
-
-    ASSERT(mFunctions->getError() == GL_NO_ERROR);
-}
-
-void StateManagerGL::syncBlendFromNativeContext(const gl::Extensions &extensions,
-                                                ExternalContextState *state)
-{
-    get(GL_BLEND, &state->blendEnabled);
-    if (mBlendStateExt.mEnabledMask !=
-        (state->blendEnabled ? mBlendStateExt.mMaxEnabledMask : gl::DrawBufferMask::Zero()))
-    {
-        mBlendStateExt.setEnabled(state->blendEnabled);
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_ENABLED);
-    }
-
-    get(GL_BLEND_SRC_RGB, &state->blendSrcRgb);
-    get(GL_BLEND_DST_RGB, &state->blendDestRgb);
-    get(GL_BLEND_SRC_ALPHA, &state->blendSrcAlpha);
-    get(GL_BLEND_DST_ALPHA, &state->blendDestAlpha);
-    if (mBlendStateExt.mSrcColor != static_cast<uint64_t>(state->blendSrcRgb) ||
-        mBlendStateExt.mDstColor != static_cast<uint64_t>(state->blendDestRgb) ||
-        mBlendStateExt.mSrcAlpha != static_cast<uint64_t>(state->blendSrcAlpha) ||
-        mBlendStateExt.mDstAlpha != static_cast<uint64_t>(state->blendDestAlpha))
-    {
-        mBlendStateExt.mSrcColor = state->blendSrcRgb;
-        mBlendStateExt.mDstColor = state->blendDestRgb;
-        mBlendStateExt.mSrcAlpha = state->blendSrcAlpha;
-        mBlendStateExt.mDstAlpha = state->blendDestAlpha;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_FUNCS);
-    }
-
-    get(GL_BLEND_COLOR, &state->blendColor);
-    if (mBlendColor != state->blendColor)
-    {
-        mBlendColor = state->blendColor;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_COLOR);
-    }
-
-    get(GL_BLEND_EQUATION_RGB, &state->blendEquationRgb);
-    get(GL_BLEND_EQUATION_ALPHA, &state->blendEquationAlpha);
-}
-
-void StateManagerGL::restoreBlendNativeContext(const gl::Extensions &extensions,
-                                               const ExternalContextState *state)
-{
-    setBlendEnabled(state->blendEnabled);
-    // TODO: use setBlendFuncs()
-    mFunctions->blendFuncSeparate(state->blendSrcRgb, state->blendDestRgb, state->blendSrcAlpha,
-                                  state->blendDestAlpha);
-    mBlendStateExt.mSrcColor = state->blendSrcRgb;
-    mBlendStateExt.mDstColor = state->blendDestRgb;
-    mBlendStateExt.mSrcAlpha = state->blendSrcAlpha;
-    mBlendStateExt.mDstAlpha = state->blendDestAlpha;
-    mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_FUNCS);
-
-    setBlendColor(state->blendColor);
-
-    // TODO: use setBlendEquations()
-    mFunctions->blendEquationSeparate(state->blendEquationRgb, state->blendEquationAlpha);
-    mBlendStateExt.mEquationColor = state->blendEquationRgb;
-    mBlendStateExt.mEquationAlpha = state->blendEquationAlpha;
-    mLocalDirtyBits.set(gl::State::DIRTY_BIT_BLEND_EQUATIONS);
-}
-
-void StateManagerGL::syncFramebufferFromNativeContext(const gl::Extensions &extensions,
-                                                      ExternalContextState *state)
-{
-    // TODO: wrap fbo into an EGLSurface
-    get(GL_FRAMEBUFFER_BINDING, &state->framebufferBinding);
-    if (mFramebuffers[angle::FramebufferBindingDraw] !=
-        static_cast<GLenum>(state->framebufferBinding))
-    {
-        mFramebuffers[angle::FramebufferBindingDraw] =
-            static_cast<GLenum>(state->framebufferBinding);
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_DRAW_FRAMEBUFFER_BINDING);
-    }
-    if (mFramebuffers[angle::FramebufferBindingRead] !=
-        static_cast<GLenum>(state->framebufferBinding))
-    {
-        mFramebuffers[angle::FramebufferBindingRead] =
-            static_cast<GLenum>(state->framebufferBinding);
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_READ_FRAMEBUFFER_BINDING);
-    }
-}
-
-void StateManagerGL::restoreFramebufferNativeContext(const gl::Extensions &extensions,
-                                                     const ExternalContextState *state)
-{
-    bindFramebuffer(GL_FRAMEBUFFER, state->framebufferBinding);
-}
-
-void StateManagerGL::syncPixelPackUnpackFromNativeContext(const gl::Extensions &extensions,
-                                                          ExternalContextState *state)
-{
-    get(GL_PACK_ALIGNMENT, &state->packAlignment);
-    if (mPackAlignment != state->packAlignment)
-    {
-        mPackAlignment = state->packAlignment;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_PACK_STATE);
-    }
-
-    get(GL_UNPACK_ALIGNMENT, &state->unpackAlignment);
-    if (mUnpackAlignment != state->unpackAlignment)
-    {
-        mUnpackAlignment = state->unpackAlignment;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_UNPACK_STATE);
-    }
-}
-
-void StateManagerGL::restorePixelPackUnpackNativeContext(const gl::Extensions &extensions,
-                                                         const ExternalContextState *state)
-{
-    if (mPackAlignment != state->packAlignment)
-    {
-        mFunctions->pixelStorei(GL_PACK_ALIGNMENT, state->packAlignment);
-        mPackAlignment = state->packAlignment;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_PACK_STATE);
-    }
-
-    if (mUnpackAlignment != state->unpackAlignment)
-    {
-        mFunctions->pixelStorei(GL_UNPACK_ALIGNMENT, state->unpackAlignment);
-        mUnpackAlignment = state->unpackAlignment;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_UNPACK_STATE);
-    }
-}
-
-void StateManagerGL::syncStencilFromNativeContext(const gl::Extensions &extensions,
-                                                  ExternalContextState *state)
-{
-    get(GL_STENCIL_TEST, &state->stencilState.stencilTestEnabled);
-    if (state->stencilState.stencilTestEnabled != mStencilTestEnabled)
-    {
-        mStencilTestEnabled = state->stencilState.stencilTestEnabled;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_STENCIL_TEST_ENABLED);
-    }
-
-    get(GL_STENCIL_FUNC, &state->stencilState.stencilFrontFunc);
-    get(GL_STENCIL_VALUE_MASK, &state->stencilState.stencilFrontMask);
-    get(GL_STENCIL_REF, &state->stencilState.stencilFrontRef);
-    if (state->stencilState.stencilFrontFunc != mStencilFrontFunc ||
-        state->stencilState.stencilFrontMask != mStencilFrontValueMask ||
-        state->stencilState.stencilFrontRef != mStencilFrontRef)
-    {
-        mStencilFrontFunc      = state->stencilState.stencilFrontFunc;
-        mStencilFrontValueMask = state->stencilState.stencilFrontMask;
-        mStencilFrontRef       = state->stencilState.stencilFrontRef;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_STENCIL_FUNCS_FRONT);
-    }
-
-    get(GL_STENCIL_BACK_FUNC, &state->stencilState.stencilBackFunc);
-    get(GL_STENCIL_BACK_VALUE_MASK, &state->stencilState.stencilBackMask);
-    get(GL_STENCIL_BACK_REF, &state->stencilState.stencilBackRef);
-    if (state->stencilState.stencilBackFunc != mStencilBackFunc ||
-        state->stencilState.stencilBackMask != mStencilBackValueMask ||
-        state->stencilState.stencilBackRef != mStencilBackRef)
-    {
-        mStencilBackFunc      = state->stencilState.stencilBackFunc;
-        mStencilBackValueMask = state->stencilState.stencilBackMask;
-        mStencilBackRef       = state->stencilState.stencilBackRef;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_STENCIL_FUNCS_BACK);
-    }
-
-    get(GL_STENCIL_CLEAR_VALUE, &state->stencilState.stencilClear);
-    if (mClearStencil != state->stencilState.stencilClear)
-    {
-        mClearStencil = state->stencilState.stencilClear;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_CLEAR_STENCIL);
-    }
-
-    get(GL_STENCIL_WRITEMASK, &state->stencilState.stencilFrontWritemask);
-    if (mStencilFrontWritemask != static_cast<GLenum>(state->stencilState.stencilFrontWritemask))
-    {
-        mStencilFrontWritemask = state->stencilState.stencilFrontWritemask;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_STENCIL_WRITEMASK_FRONT);
-    }
-
-    get(GL_STENCIL_BACK_WRITEMASK, &state->stencilState.stencilBackWritemask);
-    if (mStencilBackWritemask != static_cast<GLenum>(state->stencilState.stencilBackWritemask))
-    {
-        mStencilBackWritemask = state->stencilState.stencilBackWritemask;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_STENCIL_WRITEMASK_FRONT);
-    }
-
-    get(GL_STENCIL_FAIL, &state->stencilState.stencilFrontFailOp);
-    get(GL_STENCIL_PASS_DEPTH_FAIL, &state->stencilState.stencilFrontZFailOp);
-    get(GL_STENCIL_PASS_DEPTH_PASS, &state->stencilState.stencilFrontZPassOp);
-    if (mStencilFrontStencilFailOp != static_cast<GLenum>(state->stencilState.stencilFrontFailOp) ||
-        mStencilFrontStencilPassDepthFailOp !=
-            static_cast<GLenum>(state->stencilState.stencilFrontZFailOp) ||
-        mStencilFrontStencilPassDepthPassOp !=
-            static_cast<GLenum>(state->stencilState.stencilFrontZPassOp))
-    {
-        mStencilFrontStencilFailOp = static_cast<GLenum>(state->stencilState.stencilFrontFailOp);
-        mStencilFrontStencilPassDepthFailOp =
-            static_cast<GLenum>(state->stencilState.stencilFrontZFailOp);
-        mStencilFrontStencilPassDepthPassOp =
-            static_cast<GLenum>(state->stencilState.stencilFrontZPassOp);
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_STENCIL_OPS_FRONT);
-    }
-
-    get(GL_STENCIL_BACK_FAIL, &state->stencilState.stencilBackFailOp);
-    get(GL_STENCIL_BACK_PASS_DEPTH_FAIL, &state->stencilState.stencilBackZFailOp);
-    get(GL_STENCIL_BACK_PASS_DEPTH_PASS, &state->stencilState.stencilBackZPassOp);
-    if (mStencilBackStencilFailOp != static_cast<GLenum>(state->stencilState.stencilBackFailOp) ||
-        mStencilBackStencilPassDepthFailOp !=
-            static_cast<GLenum>(state->stencilState.stencilBackZFailOp) ||
-        mStencilBackStencilPassDepthPassOp !=
-            static_cast<GLenum>(state->stencilState.stencilBackZPassOp))
-    {
-        mStencilBackStencilFailOp = static_cast<GLenum>(state->stencilState.stencilBackFailOp);
-        mStencilBackStencilPassDepthFailOp =
-            static_cast<GLenum>(state->stencilState.stencilBackZFailOp);
-        mStencilBackStencilPassDepthPassOp =
-            static_cast<GLenum>(state->stencilState.stencilBackZPassOp);
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_STENCIL_OPS_BACK);
-    }
-}
-
-void StateManagerGL::restoreStencilNativeContext(const gl::Extensions &extensions,
-                                                 const ExternalContextState *state)
-{
-    setStencilTestEnabled(state->stencilState.stencilTestEnabled);
-    setStencilFrontFuncs(state->stencilState.stencilFrontFunc, state->stencilState.stencilFrontMask,
-                         state->stencilState.stencilFrontRef);
-    setStencilBackFuncs(state->stencilState.stencilBackFunc, state->stencilState.stencilBackMask,
-                        state->stencilState.stencilBackRef);
-    setClearStencil(state->stencilState.stencilClear);
-    setStencilFrontWritemask(state->stencilState.stencilFrontWritemask);
-    setStencilBackWritemask(state->stencilState.stencilBackWritemask);
-    setStencilFrontOps(state->stencilState.stencilFrontFailOp,
-                       state->stencilState.stencilFrontZFailOp,
-                       state->stencilState.stencilFrontZPassOp);
-    setStencilBackOps(state->stencilState.stencilBackFailOp, state->stencilState.stencilBackZFailOp,
-                      state->stencilState.stencilBackZPassOp);
-}
-
-void StateManagerGL::syncBufferBindingsFromNativeContext(const gl::Extensions &extensions,
-                                                         ExternalContextState *state)
-{
-    get(GL_ARRAY_BUFFER_BINDING, &state->vertexArrayBufferBinding);
-    mBuffers[gl::BufferBinding::Array] = state->vertexArrayBufferBinding;
-
-    get(GL_ELEMENT_ARRAY_BUFFER_BINDING, &state->elementArrayBufferBinding);
-    mBuffers[gl::BufferBinding::ElementArray] = state->elementArrayBufferBinding;
-}
-
-void StateManagerGL::restoreBufferBindingsNativeContext(const gl::Extensions &extensions,
-                                                        const ExternalContextState *state)
-{
-    bindBuffer(gl::BufferBinding::Array, state->vertexArrayBufferBinding);
-    bindBuffer(gl::BufferBinding::ElementArray, state->elementArrayBufferBinding);
-}
-
-void StateManagerGL::syncTextureUnitsFromNativeContext(const gl::Extensions &extensions,
-                                                       ExternalContextState *state)
-{
-    get(GL_ACTIVE_TEXTURE, &state->activeTexture);
-
-    for (size_t i = 0; i < state->textureBindings.size(); ++i)
-    {
-        auto &bindings = state->textureBindings[i];
-        activeTexture(i);
-        get(GL_TEXTURE_BINDING_2D, &bindings.texture2d);
-        get(GL_TEXTURE_BINDING_CUBE_MAP, &bindings.textureCubeMap);
-        get(GL_TEXTURE_BINDING_EXTERNAL_OES, &bindings.textureExternalOES);
-        if (mTextures[gl::TextureType::_2D][i] != static_cast<GLuint>(bindings.texture2d) ||
-            mTextures[gl::TextureType::CubeMap][i] !=
-                static_cast<GLuint>(bindings.textureCubeMap) ||
-            mTextures[gl::TextureType::External][i] !=
-                static_cast<GLuint>(bindings.textureExternalOES))
-        {
-            mTextures[gl::TextureType::_2D][i]      = bindings.texture2d;
-            mTextures[gl::TextureType::CubeMap][i]  = bindings.textureCubeMap;
-            mTextures[gl::TextureType::External][i] = bindings.textureExternalOES;
-            mLocalDirtyBits.set(gl::State::DIRTY_BIT_TEXTURE_BINDINGS);
-        }
-    }
-}
-
-void StateManagerGL::restoreTextureUnitsNativeContext(const gl::Extensions &extensions,
-                                                      const ExternalContextState *state)
-{
-    for (size_t i = 0; i < state->textureBindings.size(); ++i)
-    {
-        const auto &bindings = state->textureBindings[i];
-        activeTexture(i);
-        bindTexture(gl::TextureType::_2D, bindings.texture2d);
-        bindTexture(gl::TextureType::CubeMap, bindings.textureCubeMap);
-        bindTexture(gl::TextureType::External, bindings.textureExternalOES);
-        bindSampler(i, 0);
-    }
-    activeTexture(state->activeTexture - GL_TEXTURE0);
-}
-
-void StateManagerGL::syncVertexArraysFromNativeContext(const gl::Extensions &extensions,
-                                                       ExternalContextState *state)
-{
-    get(GL_VERTEX_ARRAY_BINDING, &state->vertexArrayBinding);
-    if (mVAO != static_cast<GLuint>(state->vertexArrayBinding))
-    {
-        mVAO                                      = state->vertexArrayBinding;
-        mBuffers[gl::BufferBinding::ElementArray] = 0;
-        mLocalDirtyBits.set(gl::State::DIRTY_BIT_VERTEX_ARRAY_BINDING);
-    }
-}
-
-void StateManagerGL::restoreVertexArraysNativeContext(const gl::Extensions &extensions,
-                                                      const ExternalContextState *state)
-{
-    bindVertexArray(state->vertexArrayBinding, 0);
-}
-
-void StateManagerGL::setDefaultVAOStateDirty()
-{
-    mLocalDirtyBits.set(gl::State::DIRTY_BIT_VERTEX_ARRAY_BINDING);
 }
 
 }  // namespace rx

@@ -10,7 +10,6 @@
 
 #include "common/bitset_utils.h"
 #include "libANGLE/Context.h"
-#include "libANGLE/ErrorStrings.h"
 #include "libANGLE/Framebuffer.h"
 #include "libANGLE/FramebufferAttachment.h"
 #include "libANGLE/Surface.h"
@@ -35,6 +34,8 @@ ClearParameters GetClearParameters(const gl::State &state, GLbitfield mask)
     ClearParameters clearParams;
     memset(&clearParams, 0, sizeof(ClearParameters));
 
+    const auto &blendStateArray = state.getBlendStateArray();
+
     clearParams.colorF           = state.getColorClearValue();
     clearParams.colorType        = GL_FLOAT;
     clearParams.clearDepth       = false;
@@ -42,35 +43,21 @@ ClearParameters GetClearParameters(const gl::State &state, GLbitfield mask)
     clearParams.clearStencil     = false;
     clearParams.stencilValue     = state.getStencilClearValue();
     clearParams.stencilWriteMask = state.getDepthStencilState().stencilWritemask;
+    clearParams.scissorEnabled   = state.isScissorTestEnabled();
+    clearParams.scissor          = state.getScissor();
 
-    const auto *framebufferObject      = state.getDrawFramebuffer();
-    const gl::Extents &framebufferSize = framebufferObject->getFirstNonNullAttachment()->getSize();
-    const gl::Offset &surfaceTextureOffset = framebufferObject->getSurfaceTextureOffset();
-    if (state.isScissorTestEnabled())
-    {
-        clearParams.scissorEnabled = true;
-        clearParams.scissor        = state.getScissor();
-        clearParams.scissor.x      = clearParams.scissor.x + surfaceTextureOffset.x;
-        clearParams.scissor.y      = clearParams.scissor.y + surfaceTextureOffset.y;
-    }
-    else if (surfaceTextureOffset != gl::kOffsetZero)
-    {
-        clearParams.scissorEnabled = true;
-        clearParams.scissor        = gl::Rectangle(surfaceTextureOffset.x, surfaceTextureOffset.y,
-                                            framebufferSize.width, framebufferSize.height);
-    }
-
+    const gl::Framebuffer *framebufferObject = state.getDrawFramebuffer();
     const bool clearColor =
         (mask & GL_COLOR_BUFFER_BIT) && framebufferObject->hasEnabledDrawBuffer();
-    if (clearColor)
+    ASSERT(blendStateArray.size() == gl::IMPLEMENTATION_MAX_DRAW_BUFFERS);
+    for (size_t i = 0; i < blendStateArray.size(); i++)
     {
-        clearParams.clearColor.set();
+        clearParams.clearColor[i]     = clearColor;
+        clearParams.colorMaskRed[i]   = blendStateArray[i].colorMaskRed;
+        clearParams.colorMaskGreen[i] = blendStateArray[i].colorMaskGreen;
+        clearParams.colorMaskBlue[i]  = blendStateArray[i].colorMaskBlue;
+        clearParams.colorMaskAlpha[i] = blendStateArray[i].colorMaskAlpha;
     }
-    else
-    {
-        clearParams.clearColor.reset();
-    }
-    clearParams.colorMask = state.getBlendStateExt().mColorMask;
 
     if (mask & GL_DEPTH_BUFFER_BIT)
     {
@@ -99,7 +86,7 @@ ClearParameters::ClearParameters() = default;
 ClearParameters::ClearParameters(const ClearParameters &other) = default;
 
 FramebufferD3D::FramebufferD3D(const gl::FramebufferState &data, RendererD3D *renderer)
-    : FramebufferImpl(data), mRenderer(renderer), mMockAttachment()
+    : FramebufferImpl(data), mRenderer(renderer), mDummyAttachment()
 {}
 
 FramebufferD3D::~FramebufferD3D() {}
@@ -201,8 +188,6 @@ angle::Result FramebufferD3D::readPixels(const gl::Context *context,
                                          const gl::Rectangle &area,
                                          GLenum format,
                                          GLenum type,
-                                         const gl::PixelPackState &pack,
-                                         gl::Buffer *packBuffer,
                                          void *pixels)
 {
     // Clip read area to framebuffer.
@@ -215,22 +200,24 @@ angle::Result FramebufferD3D::readPixels(const gl::Context *context,
         return angle::Result::Continue;
     }
 
+    const gl::PixelPackState &packState = context->getState().getPackState();
+
     const gl::InternalFormat &sizedFormatInfo = gl::GetInternalFormatInfo(format, type);
 
     ContextD3D *contextD3D = GetImplAs<ContextD3D>(context);
 
     GLuint outputPitch = 0;
     ANGLE_CHECK_GL_MATH(contextD3D,
-                        sizedFormatInfo.computeRowPitch(type, area.width, pack.alignment,
-                                                        pack.rowLength, &outputPitch));
+                        sizedFormatInfo.computeRowPitch(type, area.width, packState.alignment,
+                                                        packState.rowLength, &outputPitch));
 
     GLuint outputSkipBytes = 0;
-    ANGLE_CHECK_GL_MATH(contextD3D, sizedFormatInfo.computeSkipBytes(type, outputPitch, 0, pack,
-                                                                     false, &outputSkipBytes));
+    ANGLE_CHECK_GL_MATH(contextD3D, sizedFormatInfo.computeSkipBytes(
+                                        type, outputPitch, 0, packState, false, &outputSkipBytes));
     outputSkipBytes += (clippedArea.x - area.x) * sizedFormatInfo.pixelBytes +
                        (clippedArea.y - area.y) * outputPitch;
 
-    return readPixelsImpl(context, clippedArea, format, type, outputPitch, pack, packBuffer,
+    return readPixelsImpl(context, clippedArea, format, type, outputPitch, packState,
                           static_cast<uint8_t *>(pixels) + outputSkipBytes);
 }
 
@@ -250,15 +237,13 @@ angle::Result FramebufferD3D::blit(const gl::Context *context,
     return angle::Result::Continue;
 }
 
-gl::FramebufferStatus FramebufferD3D::checkStatus(const gl::Context *context) const
+bool FramebufferD3D::checkStatus(const gl::Context *context) const
 {
     // if we have both a depth and stencil buffer, they must refer to the same object
     // since we only support packed_depth_stencil and not separate depth and stencil
     if (mState.hasSeparateDepthAndStencilAttachments())
     {
-        return gl::FramebufferStatus::Incomplete(
-            GL_FRAMEBUFFER_UNSUPPORTED,
-            gl::err::kFramebufferIncompleteUnsupportedSeparateDepthStencilBuffers);
+        return false;
     }
 
     // D3D11 does not allow for overlapping RenderTargetViews.
@@ -269,27 +254,22 @@ gl::FramebufferStatus FramebufferD3D::checkStatus(const gl::Context *context) co
     {
         if (!mState.colorAttachmentsAreUniqueImages())
         {
-            return gl::FramebufferStatus::Incomplete(
-                GL_FRAMEBUFFER_UNSUPPORTED,
-                gl::err::kFramebufferIncompleteUnsupportedNonUniqueAttachments);
+            return false;
         }
     }
 
     // D3D requires all render targets to have the same dimensions.
     if (!mState.attachmentsHaveSameDimensions())
     {
-        return gl::FramebufferStatus::Incomplete(
-            GL_FRAMEBUFFER_UNSUPPORTED,
-            gl::err::kFramebufferIncompleteUnsupportedMissmatchedDimensions);
+        return false;
     }
 
-    return gl::FramebufferStatus::Complete();
+    return true;
 }
 
 angle::Result FramebufferD3D::syncState(const gl::Context *context,
                                         GLenum binding,
-                                        const gl::Framebuffer::DirtyBits &dirtyBits,
-                                        gl::Command command)
+                                        const gl::Framebuffer::DirtyBits &dirtyBits)
 {
     if (!mColorAttachmentsForRender.valid())
     {
@@ -349,8 +329,8 @@ const gl::AttachmentList &FramebufferD3D::getColorAttachmentsForRender(const gl:
 
     // When rendering with no render target on D3D, two bugs lead to incorrect behavior on Intel
     // drivers < 4815. The rendering samples always pass neglecting discard statements in pixel
-    // shader. We add a mock texture as render target in such case.
-    if (mRenderer->getFeatures().addMockTextureNoRenderTarget.enabled &&
+    // shader. We add a dummy texture as render target in such case.
+    if (mRenderer->getFeatures().addDummyTextureNoRenderTarget.enabled &&
         colorAttachmentsForRender.empty() && activeProgramOutputs.any())
     {
         static_assert(static_cast<size_t>(activeProgramOutputs.size()) <= 32,
@@ -358,30 +338,31 @@ const gl::AttachmentList &FramebufferD3D::getColorAttachmentsForRender(const gl:
         const GLuint activeProgramLocation = static_cast<GLuint>(
             gl::ScanForward(static_cast<uint32_t>(activeProgramOutputs.bits())));
 
-        if (mMockAttachment.isAttached() &&
-            (mMockAttachment.getBinding() - GL_COLOR_ATTACHMENT0) == activeProgramLocation)
+        if (mDummyAttachment.isAttached() &&
+            (mDummyAttachment.getBinding() - GL_COLOR_ATTACHMENT0) == activeProgramLocation)
         {
-            colorAttachmentsForRender.push_back(&mMockAttachment);
+            colorAttachmentsForRender.push_back(&mDummyAttachment);
         }
         else
         {
-            // Remove mock attachment to prevents us from leaking it, and the program may require
+            // Remove dummy attachment to prevents us from leaking it, and the program may require
             // it to be attached to a new binding point.
-            if (mMockAttachment.isAttached())
+            if (mDummyAttachment.isAttached())
             {
-                mMockAttachment.detach(context, Serial());
+                mDummyAttachment.detach(context);
             }
 
-            gl::Texture *mockTex = nullptr;
-            // TODO(jmadill): Handle error if mock texture can't be created.
-            (void)mRenderer->getIncompleteTexture(context, gl::TextureType::_2D, &mockTex);
-            if (mockTex)
+            gl::Texture *dummyTex = nullptr;
+            // TODO(Jamie): Handle error if dummy texture can't be created.
+            (void)mRenderer->getIncompleteTexture(context, gl::TextureType::_2D, &dummyTex);
+            if (dummyTex)
             {
+
                 gl::ImageIndex index = gl::ImageIndex::Make2D(0);
-                mMockAttachment      = gl::FramebufferAttachment(
+                mDummyAttachment     = gl::FramebufferAttachment(
                     context, GL_TEXTURE, GL_COLOR_ATTACHMENT0_EXT + activeProgramLocation, index,
-                    mockTex, Serial());
-                colorAttachmentsForRender.push_back(&mMockAttachment);
+                    dummyTex);
+                colorAttachmentsForRender.push_back(&mDummyAttachment);
             }
         }
     }
@@ -394,9 +375,9 @@ const gl::AttachmentList &FramebufferD3D::getColorAttachmentsForRender(const gl:
 
 void FramebufferD3D::destroy(const gl::Context *context)
 {
-    if (mMockAttachment.isAttached())
+    if (mDummyAttachment.isAttached())
     {
-        mMockAttachment.detach(context, Serial());
+        mDummyAttachment.detach(context);
     }
 }
 

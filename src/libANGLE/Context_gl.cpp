@@ -2831,6 +2831,11 @@ void Context::bindVertexBuffers(GLuint first,
     UNIMPLEMENTED();
 }
 
+void Context::bufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
+{
+    UNIMPLEMENTED();
+}
+
 void Context::clearTexImage(TextureID texture,
                             GLint level,
                             GLenum format,
@@ -2931,6 +2936,11 @@ void Context::clearNamedFramebufferuiv(FramebufferID framebuffer,
                                        GLenum buffer,
                                        GLint drawbuffer,
                                        const GLuint *value)
+{
+    UNIMPLEMENTED();
+}
+
+void Context::clipControl(GLenum origin, GLenum depth)
 {
     UNIMPLEMENTED();
 }
