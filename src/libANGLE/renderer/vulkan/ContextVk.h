@@ -43,11 +43,6 @@ static constexpr VkDeviceSize kMaxBufferToImageCopySize = 1 << 28;
 
 using ContextVkDescriptorSetList = angle::PackedEnumMap<PipelineType, uint32_t>;
 
-struct ContextVkPerfCounters
-{
-    ContextVkDescriptorSetList descriptorSetsAllocated;
-};
-
 enum class GraphicsEventCmdBuf
 {
     NotInQueryCmd              = 0,
@@ -90,12 +85,6 @@ class UpdateDescriptorSetsBuilder final : angle::NonCopyable
     std::vector<VkDescriptorBufferInfo> mDescriptorBufferInfos;
     std::vector<VkDescriptorImageInfo> mDescriptorImageInfos;
     std::vector<VkWriteDescriptorSet> mWriteDescriptorSets;
-};
-
-enum class SubmitFrameType
-{
-    OutsideAndRPCommands,
-    OutsideRPCommandsOnly,
 };
 
 // Why depth/stencil feedback loop is being updated.  Based on whether it's due to a draw or clear,
@@ -1091,9 +1080,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     angle::Result submitFrame(const vk::Semaphore *signalSemaphore, Serial *submitSerialOut);
     angle::Result submitFrameOutsideCommandBufferOnly(Serial *submitSerialOut);
-    angle::Result submitFrameImpl(const vk::Semaphore *signalSemaphore,
-                                  Serial *submitSerialOut,
-                                  SubmitFrameType submitFrameType);
+    angle::Result submitCommands(const vk::Semaphore *signalSemaphore, Serial *submitSerialOut);
 
     angle::Result synchronizeCpuGpuTime();
     angle::Result traceGpuEventImpl(vk::OutsideRenderPassCommandBuffer *commandBuffer,
@@ -1164,11 +1151,11 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     angle::Result pushDebugGroupImpl(GLenum source, GLuint id, const char *message);
     angle::Result popDebugGroupImpl();
 
-    void outputCumulativePerfCounters();
-
     void updateSampleShadingWithRasterizationSamples(const uint32_t rasterizationSamples);
     void updateRasterizationSamples(const uint32_t rasterizationSamples);
     void updateRasterizerDiscardEnabled(bool isPrimitivesGeneratedQueryActive);
+
+    void updateAdvancedBlendEquations(const gl::ProgramExecutable *executable);
 
     void updateDither();
 
@@ -1177,10 +1164,9 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     void updateShaderResourcesDescriptorDesc(PipelineType pipelineType);
 
-    ContextVkPerfCounters getAndResetObjectPerfCounters();
-
     bool isDueForBufferPoolPrune() const;
     void pruneDefaultBufferPools();
+    void resetPerFramePerfCounters();
 
     std::array<GraphicsDirtyBitHandler, DIRTY_BIT_MAX> mGraphicsDirtyBitHandlers;
     std::array<ComputeDirtyBitHandler, DIRTY_BIT_MAX> mComputeDirtyBitHandlers;
@@ -1343,9 +1329,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     bool mHasDeferredFlush;
 
-    // GL_EXT_shader_framebuffer_fetch_non_coherent
-    bool mLastProgramUsesFramebufferFetch;
-
     // The size of copy commands issued between buffers and images. Used to submit the command
     // buffer for the outside render pass.
     VkDeviceSize mTotalBufferToImageCopySize = 0;
@@ -1364,8 +1347,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     // A mix of per-frame and per-run counters.
     angle::PerfMonitorCounterGroups mPerfMonitorCounters;
-    ContextVkPerfCounters mContextPerfCounters;
-    ContextVkPerfCounters mCumulativeContextPerfCounters;
 
     gl::State::DirtyBits mPipelineDirtyBitsMask;
 
