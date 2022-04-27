@@ -104,24 +104,32 @@ struct ANGLEPlatformDisplay
     ANGLEPlatformDisplay() = default;
 
     ANGLEPlatformDisplay(EGLNativeDisplayType nativeDisplayType)
-        : nativeDisplayType(nativeDisplayType),
-          powerPreference(EGL_LOW_POWER_ANGLE),
-          platformANGLEType(EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE)
+        : nativeDisplayType(nativeDisplayType)
     {}
 
     ANGLEPlatformDisplay(EGLNativeDisplayType nativeDisplayType,
                          EGLAttrib powerPreference,
-                         EGLAttrib platformANGLEType)
+                         EGLAttrib platformANGLEType,
+                         EGLAttrib deviceIdHigh,
+                         EGLAttrib deviceIdLow)
         : nativeDisplayType(nativeDisplayType),
           powerPreference(powerPreference),
-          platformANGLEType(platformANGLEType)
+          platformANGLEType(platformANGLEType),
+          deviceIdHigh(deviceIdHigh),
+          deviceIdLow(deviceIdLow)
     {}
 
-    auto tie() const { return std::tie(nativeDisplayType, powerPreference, platformANGLEType); }
+    auto tie() const
+    {
+        return std::tie(nativeDisplayType, powerPreference, platformANGLEType, deviceIdHigh,
+                        deviceIdLow);
+    }
 
-    EGLNativeDisplayType nativeDisplayType;
-    EGLAttrib powerPreference;
-    EGLAttrib platformANGLEType;
+    EGLNativeDisplayType nativeDisplayType{EGL_DEFAULT_DISPLAY};
+    EGLAttrib powerPreference{EGL_LOW_POWER_ANGLE};
+    EGLAttrib platformANGLEType{EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE};
+    EGLAttrib deviceIdHigh{0};
+    EGLAttrib deviceIdLow{0};
 };
 
 inline bool operator<(const ANGLEPlatformDisplay &a, const ANGLEPlatformDisplay &b)
@@ -272,6 +280,8 @@ EGLAttrib GetPlatformTypeFromEnvironment()
     return 0;
 #elif defined(ANGLE_USE_X11)
     return EGL_PLATFORM_X11_EXT;
+#elif defined(ANGLE_USE_WAYLAND)
+    return EGL_PLATFORM_WAYLAND_EXT;
 #elif defined(ANGLE_USE_VULKAN_DISPLAY) && defined(ANGLE_VULKAN_DISPLAY_MODE_SIMPLE)
     return EGL_PLATFORM_VULKAN_DISPLAY_MODE_SIMPLE_ANGLE;
 #elif defined(ANGLE_USE_VULKAN_DISPLAY) && defined(ANGLE_VULKAN_DISPLAY_MODE_HEADLESS)
@@ -421,6 +431,13 @@ rx::DisplayImpl *CreateDisplayFromAttribs(EGLAttrib displayType,
             if (platformType == EGL_PLATFORM_X11_EXT && rx::IsVulkanXcbDisplayAvailable())
             {
                 impl = rx::CreateVulkanXcbDisplay(state);
+                break;
+            }
+#        endif
+#        if defined(ANGLE_USE_WAYLAND)
+            if (platformType == EGL_PLATFORM_WAYLAND_EXT && rx::IsVulkanWaylandDisplayAvailable())
+            {
+                impl = rx::CreateVulkanWaylandDisplay(state);
                 break;
             }
 #        endif
@@ -686,9 +703,12 @@ Display *Display::GetDisplayFromNativeDisplay(EGLNativeDisplayType nativeDisplay
         updatedAttribMap.get(EGL_POWER_PREFERENCE_ANGLE, EGL_LOW_POWER_ANGLE);
     EGLAttrib platformANGLEType =
         updatedAttribMap.get(EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE);
+    EGLAttrib deviceIdHigh = updatedAttribMap.get(EGL_PLATFORM_ANGLE_DEVICE_ID_HIGH_ANGLE, 0);
+    EGLAttrib deviceIdLow  = updatedAttribMap.get(EGL_PLATFORM_ANGLE_DEVICE_ID_LOW_ANGLE, 0);
     ANGLEPlatformDisplayMap *displays = GetANGLEPlatformDisplayMap();
-    const auto &iter =
-        displays->find(ANGLEPlatformDisplay(nativeDisplay, powerPreference, platformANGLEType));
+    ANGLEPlatformDisplay displayKey(nativeDisplay, powerPreference, platformANGLEType, deviceIdHigh,
+                                    deviceIdLow);
+    const auto &iter = displays->find(displayKey);
     if (iter != displays->end())
     {
         display = iter->second;
@@ -703,8 +723,7 @@ Display *Display::GetDisplayFromNativeDisplay(EGLNativeDisplayType nativeDisplay
         }
 
         display = new Display(EGL_PLATFORM_ANGLE_ANGLE, nativeDisplay, nullptr);
-        displays->insert(std::make_pair(
-            ANGLEPlatformDisplay(nativeDisplay, powerPreference, platformANGLEType), display));
+        displays->insert(std::make_pair(displayKey, display));
     }
     // Apply new attributes if the display is not initialized yet.
     if (!display->isInitialized())
@@ -855,8 +874,9 @@ Display::~Display()
         ANGLEPlatformDisplayMap *displays      = GetANGLEPlatformDisplayMap();
         ANGLEPlatformDisplayMap::iterator iter = displays->find(ANGLEPlatformDisplay(
             mState.displayId, mAttributeMap.get(EGL_POWER_PREFERENCE_ANGLE, EGL_LOW_POWER_ANGLE),
-            mAttributeMap.get(EGL_PLATFORM_ANGLE_TYPE_ANGLE,
-                              EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE)));
+            mAttributeMap.get(EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE),
+            mAttributeMap.get(EGL_PLATFORM_ANGLE_DEVICE_ID_HIGH_ANGLE, 0),
+            mAttributeMap.get(EGL_PLATFORM_ANGLE_DEVICE_ID_LOW_ANGLE, 0)));
         if (iter != displays->end())
         {
             displays->erase(iter);
@@ -1314,7 +1334,7 @@ Error Display::createPixmapSurface(const Config *configuration,
     return NoError();
 }
 
-Error Display::createImage(const gl::Context *context,
+Error Display::createImage(gl::Context *context,
                            EGLenum target,
                            EGLClientBuffer buffer,
                            const AttributeMap &attribs,
@@ -1345,6 +1365,13 @@ Error Display::createImage(const gl::Context *context,
         UNREACHABLE();
     }
     ASSERT(sibling != nullptr);
+
+    if (context)
+    {
+        // If the source comes from a context, make sure it's marked as shared because its resources
+        // can now be used by contects outside of its share group.
+        context->setShared();
+    }
 
     angle::UniqueObjectPointer<Image, Display> imagePtr(
         new Image(mImplementation, context, target, sibling, attribs), this);
@@ -1680,6 +1707,12 @@ Error Display::destroyContext(Thread *thread, gl::Context *context)
     {
         // Keep |currentContext| alive, while releasing |context|.
         gl::ScopedContextRef scopedContextRef(currentContext);
+
+        // keep |currentDrawSurface| and |currentReadSurface| alive as well
+        // while releasing |context|.
+        ScopedSurfaceRef drawSurfaceRef(currentDrawSurface);
+        ScopedSurfaceRef readSurfaceRef(
+            currentReadSurface == currentDrawSurface ? nullptr : currentReadSurface);
 
         // Make the context current, so we can release resources belong to the context, and then
         // when context is released from the current, it will be destroyed.
@@ -2357,6 +2390,13 @@ void Display::returnScratchBufferImpl(angle::ScratchBuffer scratchBuffer,
 Error Display::handleGPUSwitch()
 {
     ANGLE_TRY(mImplementation->handleGPUSwitch());
+    initVendorString();
+    return NoError();
+}
+
+Error Display::forceGPUSwitch(EGLint gpuIDHigh, EGLint gpuIDLow)
+{
+    ANGLE_TRY(mImplementation->forceGPUSwitch(gpuIDHigh, gpuIDLow));
     initVendorString();
     return NoError();
 }

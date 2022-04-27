@@ -2385,6 +2385,16 @@ bool ValidateCreateContext(const ValidationContext *val,
                               clientMajorVersion, clientMinorVersion, max.major, max.minor);
                 return false;
             }
+            if ((attributes.get(EGL_CONTEXT_WEBGL_COMPATIBILITY_ANGLE, EGL_FALSE) == EGL_TRUE) &&
+                (clientMinorVersion > 1))
+            {
+                val->setError(EGL_BAD_ATTRIBUTE,
+                              "Requested GLES version (%" PRIxPTR ".%" PRIxPTR
+                              ") is greater than "
+                              "max supported 3.1 for WebGL.",
+                              clientMajorVersion, clientMinorVersion);
+                return false;
+            }
             break;
         default:
             val->setError(EGL_BAD_ATTRIBUTE);
@@ -6224,6 +6234,15 @@ bool ValidateHandleGPUSwitchANGLE(const ValidationContext *val, const Display *d
     return true;
 }
 
+bool ValidateForceGPUSwitchANGLE(const ValidationContext *val,
+                                 const Display *display,
+                                 EGLint gpuIDHigh,
+                                 EGLint gpuIDLow)
+{
+    ANGLE_VALIDATION_TRY(ValidateDisplay(val, display));
+    return true;
+}
+
 bool ValidateGetCurrentDisplay(const ValidationContext *val)
 {
     return true;
@@ -6515,7 +6534,42 @@ bool ValidateSetDamageRegionKHR(const ValidationContext *val,
     ANGLE_VALIDATION_TRY(ValidateDisplay(val, display));
     ANGLE_VALIDATION_TRY(ValidateSurface(val, display, surface));
 
-    return false;
+    if (!(surface->getType() & EGL_WINDOW_BIT))
+    {
+        val->setError(EGL_BAD_MATCH, "surface is not a postable surface");
+        return false;
+    }
+
+    if (surface != val->eglThread->getCurrentDrawSurface())
+    {
+        val->setError(EGL_BAD_MATCH,
+                      "surface is not the current draw surface for the calling thread");
+        return false;
+    }
+
+    if (surface->getSwapBehavior() != EGL_BUFFER_DESTROYED)
+    {
+        val->setError(EGL_BAD_MATCH, "surface's swap behavior is not EGL_BUFFER_DESTROYED");
+        return false;
+    }
+
+    if (surface->isDamageRegionSet())
+    {
+        val->setError(
+            EGL_BAD_ACCESS,
+            "damage region has already been set on surface since the most recent frame boundary");
+        return false;
+    }
+
+    if (!surface->bufferAgeQueriedSinceLastSwap())
+    {
+        val->setError(EGL_BAD_ACCESS,
+                      "EGL_BUFFER_AGE_KHR attribute of surface has not been queried since the most "
+                      "recent frame boundary");
+        return false;
+    }
+
+    return true;
 }
 
 bool ValidateQueryDmaBufFormatsEXT(ValidationContext const *val,

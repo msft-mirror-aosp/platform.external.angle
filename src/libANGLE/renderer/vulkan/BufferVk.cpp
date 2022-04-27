@@ -38,27 +38,6 @@ VkBufferUsageFlags GetDefaultBufferUsageFlags(RendererVk *renderer)
     return defaultBufferUsageFlags;
 }
 
-size_t GetDefaultBufferAlignment(RendererVk *renderer)
-{
-    // The buffer may be used for a number of different operations, so its allocations should
-    // have an alignment that satisifies all.
-    const VkPhysicalDeviceLimits &limitsVk = renderer->getPhysicalDeviceProperties().limits;
-
-    // All known vendors have power-of-2 alignment requirements, so std::max can work instead of
-    // lcm.
-    ASSERT(gl::isPow2(limitsVk.minUniformBufferOffsetAlignment));
-    ASSERT(gl::isPow2(limitsVk.minStorageBufferOffsetAlignment));
-    ASSERT(gl::isPow2(limitsVk.minTexelBufferOffsetAlignment));
-    ASSERT(gl::isPow2(limitsVk.minMemoryMapAlignment));
-
-    size_t alignment = std::max({static_cast<size_t>(limitsVk.minUniformBufferOffsetAlignment),
-                                 static_cast<size_t>(limitsVk.minStorageBufferOffsetAlignment),
-                                 static_cast<size_t>(limitsVk.minTexelBufferOffsetAlignment),
-                                 limitsVk.minMemoryMapAlignment});
-
-    return alignment;
-}
-
 namespace
 {
 // Vertex attribute buffers are used as storage buffers for conversion in compute, where access to
@@ -386,11 +365,12 @@ angle::Result BufferVk::setDataWithMemoryType(const gl::Context *context,
         return angle::Result::Continue;
     }
 
-    const bool wholeSize = size == static_cast<size_t>(mState.getSize());
+    const bool bufferSizeChanged              = size != static_cast<size_t>(mState.getSize());
+    const bool inUseAndRespecifiedWithoutData = (data == nullptr && isCurrentlyInUse(contextVk));
 
-    // BufferData call is re-specifying the entire buffer
-    // Release and init a new mBuffer with this new size
-    if (!wholeSize)
+    // The entire buffer is being respecified, possibly with null data.
+    // Release and init a new mBuffer with requested size.
+    if (bufferSizeChanged || inUseAndRespecifiedWithoutData)
     {
         // Release and re-create the memory and buffer.
         release(contextVk);
@@ -404,8 +384,8 @@ angle::Result BufferVk::setDataWithMemoryType(const gl::Context *context,
     if (data)
     {
         // Treat full-buffer updates as SubData calls.
-        BufferUpdateType updateType =
-            wholeSize ? BufferUpdateType::ContentsUpdate : BufferUpdateType::StorageRedefined;
+        BufferUpdateType updateType = bufferSizeChanged ? BufferUpdateType::StorageRedefined
+                                                        : BufferUpdateType::ContentsUpdate;
 
         ANGLE_TRY(setDataImpl(contextVk, static_cast<const uint8_t *>(data), size, 0, updateType));
     }
@@ -569,7 +549,7 @@ angle::Result BufferVk::ghostMappedBuffer(ContextVk *contextVk,
                                           GLbitfield access,
                                           void **mapPtr)
 {
-    // We should't get to here if it is external memory
+    // We shouldn't get here if it is external memory
     ASSERT(!isExternalBuffer());
 
     ++contextVk->getPerfCounters().buffersGhosted;
@@ -578,9 +558,6 @@ angle::Result BufferVk::ghostMappedBuffer(ContextVk *contextVk,
     // also need to copy the contents of the previous buffer into the new buffer, in
     // case the caller only updates a portion of the new buffer.
     vk::BufferHelper src = std::move(mBuffer);
-
-    // Retain it to prevent acquireBufferHelper from actually releasing it.
-    src.retainReadOnly(&contextVk->getResourceUseList());
 
     ANGLE_TRY(acquireBufferHelper(contextVk, static_cast<size_t>(mState.getSize()),
                                   BufferUpdateType::ContentsUpdate));
@@ -882,12 +859,6 @@ angle::Result BufferVk::acquireAndUpdate(ContextVk *contextVk,
     {
         src = std::move(mBuffer);
 
-        // It's possible for acquireBufferHelper() to garbage collect the original (src) buffer
-        // before copyFromBuffer() has a chance to retain it, so retain it now. This may end up
-        // double-retaining the buffer, which is a necessary side-effect to prevent a
-        // use-after-free.
-        src.retainReadOnly(&contextVk->getResourceUseList());
-
         // The total bytes that we need to copy from old buffer to new buffer
         size_t copySize = bufferSize - updateSize;
 
@@ -1034,7 +1005,7 @@ angle::Result BufferVk::acquireBufferHelper(ContextVk *contextVk,
 {
     RendererVk *renderer = contextVk->getRenderer();
     size_t size          = roundUpPow2(sizeInBytes, kBufferSizeGranularity);
-    size_t alignment     = GetDefaultBufferAlignment(renderer);
+    size_t alignment     = renderer->getDefaultBufferAlignment();
 
     if (mBuffer.valid())
     {

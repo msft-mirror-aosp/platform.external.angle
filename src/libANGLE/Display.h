@@ -180,7 +180,7 @@ class Display final : public LabeledObject,
                               const AttributeMap &attribs,
                               Surface **outSurface);
 
-    Error createImage(const gl::Context *context,
+    Error createImage(gl::Context *context,
                       EGLenum target,
                       EGLClientBuffer buffer,
                       const AttributeMap &attribs,
@@ -303,6 +303,7 @@ class Display final : public LabeledObject,
     void returnZeroFilledBuffer(angle::ScratchBuffer zeroFilledBuffer);
 
     egl::Error handleGPUSwitch();
+    egl::Error forceGPUSwitch(EGLint gpuIDHigh, EGLint gpuIDLow);
 
     std::mutex &getDisplayGlobalMutex() { return mDisplayGlobalMutex; }
     std::mutex &getProgramCacheMutex() { return mProgramCacheMutex; }
