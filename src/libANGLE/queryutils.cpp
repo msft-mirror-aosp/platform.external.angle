@@ -3301,7 +3301,7 @@ bool GetQueryParameterInfo(const State &glState,
             {
                 break;
             }
-            if (!extensions.clipDistanceAPPLE)
+            if (!extensions.clipDistanceAPPLE && !extensions.clipCullDistanceEXT)
             {
                 // NOTE(hqle): if client version is 1. GL_MAX_CLIP_DISTANCES_EXT is equal
                 // to GL_MAX_CLIP_PLANES which is a valid enum.
@@ -4233,7 +4233,7 @@ void QueryContextAttrib(const gl::Context *context, EGLint attribute, EGLint *va
 
 egl::Error QuerySurfaceAttrib(const Display *display,
                               const gl::Context *context,
-                              const Surface *surface,
+                              Surface *surface,
                               EGLint attribute,
                               EGLint *value)
 {

@@ -253,12 +253,25 @@ GLuint createShaderProgram(GLenum type, const GLchar *shaderString)
     glShaderSource(shader, 1, &shaderString, nullptr);
     glCompileShader(shader);
 
+    GLint compiled;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+
+    if (!compiled)
+    {
+        GLint infoLogLength;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
+        std::vector<GLchar> infoLog(infoLogLength);
+        glGetShaderInfoLog(shader, infoLogLength, NULL, infoLog.data());
+        INFO() << "Compilation failed:\n"
+               << infoLog.data() << "\n for shader:\n'<< shaderString << '\n";
+        glDeleteShader(shader);
+        return 0;
+    }
+
     GLuint program = glCreateProgram();
 
     if (program)
     {
-        GLint compiled;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
         glProgramParameteri(program, GL_PROGRAM_SEPARABLE, GL_TRUE);
         if (compiled)
         {
@@ -316,6 +329,85 @@ TEST_P(ProgramPipelineTest31, UseProgramStages)
     drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+}
+
+// Test glUseProgramStages with different programs
+TEST_P(ProgramPipelineTest31, UseProgramStagesWithDifferentPrograms)
+{
+    ANGLE_SKIP_TEST_IF(!IsVulkan());
+
+    // Create two separable program objects from a
+    // single source string respectively (vertSrc and fragSrc)
+    const GLchar *vertString  = essl31_shaders::vs::Simple();
+    const GLchar *fragString1 = R"(#version 310 es
+precision highp float;
+uniform float redColorIn;
+uniform float greenColorIn;
+out vec4 my_FragColor;
+void main()
+{
+    my_FragColor = vec4(redColorIn, greenColorIn, 0.0, 1.0);
+})";
+    const GLchar *fragString2 = R"(#version 310 es
+precision highp float;
+uniform float greenColorIn;
+uniform float blueColorIn;
+out vec4 my_FragColor;
+void main()
+{
+    my_FragColor = vec4(0.0, greenColorIn, blueColorIn, 1.0);
+})";
+
+    bindProgramPipeline(vertString, fragString1);
+
+    // Set the output color to red
+    GLint location = glGetUniformLocation(mFragProg, "redColorIn");
+    glActiveShaderProgram(mPipeline, mFragProg);
+    glUniform1f(location, 1.0);
+    location = glGetUniformLocation(mFragProg, "greenColorIn");
+    glActiveShaderProgram(mPipeline, mFragProg);
+    glUniform1f(location, 0.0);
+
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    GLuint fragProg;
+    fragProg = glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, &fragString2);
+    ASSERT_NE(fragProg, 0u);
+    EXPECT_GL_NO_ERROR();
+
+    glUseProgramStages(mPipeline, GL_FRAGMENT_SHADER_BIT, fragProg);
+    EXPECT_GL_NO_ERROR();
+
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Set the output color to blue
+    location = glGetUniformLocation(fragProg, "greenColorIn");
+    glActiveShaderProgram(mPipeline, fragProg);
+    glUniform1f(location, 0.0);
+    location = glGetUniformLocation(fragProg, "blueColorIn");
+    glActiveShaderProgram(mPipeline, fragProg);
+    glUniform1f(location, 1.0);
+
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+
+    glUseProgramStages(mPipeline, GL_FRAGMENT_SHADER_BIT, mFragProg);
+    EXPECT_GL_NO_ERROR();
+
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    glDeleteProgram(mVertProg);
+    glDeleteProgram(mFragProg);
+    glDeleteProgram(fragProg);
 }
 
 // Test glUseProgramStages

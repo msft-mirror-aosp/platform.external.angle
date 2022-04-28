@@ -441,6 +441,7 @@ Renderer11::Renderer11(egl::Display *display)
     mCreatedWithDeviceEXT = false;
 
     mDevice         = nullptr;
+    mDevice1        = nullptr;
     mDeviceContext  = nullptr;
     mDeviceContext1 = nullptr;
     mDeviceContext3 = nullptr;
@@ -965,6 +966,8 @@ egl::Error Renderer11::initializeD3DDevice()
     mAnnotator.initialize(mDeviceContext);
     gl::InitializeDebugAnnotations(&mAnnotator);
 
+    mDevice->QueryInterface(__uuidof(ID3D11Device1), reinterpret_cast<void **>(&mDevice1));
+
     return egl::NoError();
 }
 
@@ -1082,7 +1085,7 @@ void Renderer11::populateRenderer11DeviceCaps()
                                  &mRenderer11DeviceCaps.B5G6R5maxSamples);
     }
 
-    if (getFeatures().allowES3OnFL10_0.enabled)
+    if (getFeatures().allowES3OnFL100.enabled)
     {
         mRenderer11DeviceCaps.allowES3OnFL10_0 = true;
     }
@@ -1642,6 +1645,12 @@ egl::Error Renderer11::validateShareHandle(const egl::Config *config,
     ID3D11Resource *tempResource11 = nullptr;
     HRESULT result = mDevice->OpenSharedResource(shareHandle, __uuidof(ID3D11Resource),
                                                  (void **)&tempResource11);
+    if (FAILED(result) && mDevice1)
+    {
+        result = mDevice1->OpenSharedResource1(shareHandle, __uuidof(ID3D11Resource),
+                                               (void **)&tempResource11);
+    }
+
     if (FAILED(result))
     {
         return egl::EglBadParameter() << "Failed to open share handle, " << gl::FmtHR(result);
@@ -1759,6 +1768,8 @@ angle::Result Renderer11::drawArrays(const gl::Context *context,
         return angle::Result::Continue;
     }
 
+    ANGLE_TRY(markRawBufferUsage(context));
+
     ProgramD3D *programD3D        = mStateManager.getProgramD3D();
     GLsizei adjustedInstanceCount = GetAdjustedInstanceCount(programD3D, instanceCount);
 
@@ -1851,6 +1862,8 @@ angle::Result Renderer11::drawElements(const gl::Context *context,
         return angle::Result::Continue;
     }
 
+    ANGLE_TRY(markRawBufferUsage(context));
+
     // Transform feedback is not allowed for DrawElements, this error should have been caught at the
     // API validation layer.
     const gl::State &glState = context->getState();
@@ -1936,6 +1949,8 @@ angle::Result Renderer11::drawArraysIndirect(const gl::Context *context, const v
         return angle::Result::Continue;
     }
 
+    ANGLE_TRY(markRawBufferUsage(context));
+
     const gl::State &glState = context->getState();
     ASSERT(!glState.isTransformFeedbackActiveUnpaused());
 
@@ -1957,6 +1972,8 @@ angle::Result Renderer11::drawElementsIndirect(const gl::Context *context, const
     {
         return angle::Result::Continue;
     }
+
+    ANGLE_TRY(markRawBufferUsage(context));
 
     const gl::State &glState = context->getState();
     ASSERT(!glState.isTransformFeedbackActiveUnpaused());
@@ -2223,6 +2240,7 @@ void Renderer11::release()
     }
 
     SafeRelease(mDevice);
+    SafeRelease(mDevice1);
     SafeRelease(mDebug);
 
     if (mD3d11Module)
@@ -3069,7 +3087,7 @@ angle::Result Renderer11::compileToExecutable(d3d::Context *context,
                                               gl::ShaderType type,
                                               const std::vector<D3DVarying> &streamOutVaryings,
                                               bool separatedOutputBuffers,
-                                              const angle::CompilerWorkaroundsD3D &workarounds,
+                                              const CompilerWorkaroundsD3D &workarounds,
                                               ShaderExecutableD3D **outExectuable)
 {
     std::stringstream profileStream;
@@ -4336,13 +4354,13 @@ std::string Renderer11::getVendorString() const
     return GetVendorString(mAdapterDescription.VendorId);
 }
 
-std::string Renderer11::getVersionString() const
+std::string Renderer11::getVersionString(bool includeFullVersion) const
 {
     std::ostringstream versionString;
-    versionString << "D3D11-";
-    if (mRenderer11DeviceCaps.driverVersion.valid())
+    versionString << "D3D11";
+    if (includeFullVersion && mRenderer11DeviceCaps.driverVersion.valid())
     {
-        versionString << GetDriverVersionString(mRenderer11DeviceCaps.driverVersion.value());
+        versionString << "-" << GetDriverVersionString(mRenderer11DeviceCaps.driverVersion.value());
     }
     return versionString.str();
 }

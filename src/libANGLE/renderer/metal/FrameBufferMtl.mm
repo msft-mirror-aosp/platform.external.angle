@@ -487,7 +487,7 @@ angle::Result FramebufferMtl::blitWithDraw(const gl::Context *context,
             dsBlitParams.srcLevel   = srcStencilRt->getLevelIndex();
             dsBlitParams.srcLayer   = srcStencilRt->getLayerIndex();
 
-            if (!contextMtl->getDisplay()->getFeatures().hasStencilOutput.enabled &&
+            if (!contextMtl->getDisplay()->getFeatures().hasShaderStencilOutput.enabled &&
                 mStencilRenderTarget)
             {
                 // Directly writing to stencil in shader is not supported, use temporary copy buffer
@@ -551,7 +551,7 @@ gl::FramebufferStatus FramebufferMtl::checkStatus(const gl::Context *context) co
     }
 
     ContextMtl *contextMtl = mtl::GetImpl(context);
-    if (!contextMtl->getDisplay()->getFeatures().allowSeparatedDepthStencilBuffers.enabled &&
+    if (!contextMtl->getDisplay()->getFeatures().allowSeparateDepthStencilBuffers.enabled &&
         mState.hasSeparateDepthAndStencilAttachments())
     {
         return gl::FramebufferStatus::Incomplete(
@@ -687,6 +687,26 @@ angle::Result FramebufferMtl::getSamplePosition(const gl::Context *context,
     return angle::Result::Stop;
 }
 
+bool FramebufferMtl::prepareForUse(const gl::Context *context) const
+{
+    if (mBackbuffer)
+    {
+        // Backbuffer might obtain new drawable, which means it might change the
+        // the native texture used as the target of the render pass.
+        // We need to call this before creating render encoder.
+        if (IsError(mBackbuffer->ensureCurrentDrawableObtained(context)))
+        {
+            return false;
+        }
+
+        if (mBackbuffer->hasRobustResourceInit())
+        {
+            (void)mBackbuffer->initializeContents(context, gl::ImageIndex::Make2D(0));
+        }
+    }
+    return true;
+}
+
 RenderTargetMtl *FramebufferMtl::getColorReadRenderTarget(const gl::Context *context) const
 {
     if (mState.getReadIndex() >= mColorRenderTargets.size())
@@ -694,18 +714,9 @@ RenderTargetMtl *FramebufferMtl::getColorReadRenderTarget(const gl::Context *con
         return nullptr;
     }
 
-    if (mBackbuffer)
+    if (!prepareForUse(context))
     {
-        bool isNewDrawable = false;
-        if (IsError(mBackbuffer->ensureCurrentDrawableObtained(context, &isNewDrawable)))
-        {
-            return nullptr;
-        }
-
-        if (isNewDrawable && mBackbuffer->hasRobustResourceInit())
-        {
-            (void)mBackbuffer->initializeContents(context, gl::ImageIndex::Make2D(0));
-        }
+        return nullptr;
     }
 
     return mColorRenderTargets[mState.getReadIndex()];
@@ -761,22 +772,9 @@ mtl::RenderCommandEncoder *FramebufferMtl::ensureRenderPassStarted(const gl::Con
 {
     ContextMtl *contextMtl = mtl::GetImpl(context);
 
-    if (mBackbuffer)
+    if (!prepareForUse(context))
     {
-        // Backbuffer might obtain new drawable, which means it might change the
-        // the native texture used as the target of the render pass.
-        // We need to call this before creating render encoder.
-        bool isNewDrawable;
-        if (IsError(mBackbuffer->ensureCurrentDrawableObtained(context, &isNewDrawable)))
-        {
-            return nullptr;
-        }
-
-        if (isNewDrawable && mBackbuffer->hasRobustResourceInit())
-        {
-            // Apply robust resource initialization on newly obtained drawable.
-            (void)mBackbuffer->initializeContents(context, gl::ImageIndex::Make2D(0));
-        }
+        return nullptr;
     }
 
     // Only support ensureRenderPassStarted() with different load & store options only. The
@@ -809,9 +807,7 @@ void FramebufferMtl::setLoadStoreActionOnRenderPassFirstStart(
 
     mtl::RenderPassAttachmentDesc &attachment = *attachmentOut;
 
-    if (!forceDepthStencilMultisampleLoad &&
-        (attachment.storeAction == MTLStoreActionDontCare ||
-         attachment.storeAction == MTLStoreActionMultisampleResolve))
+    if (!forceDepthStencilMultisampleLoad && attachment.storeAction == MTLStoreActionDontCare)
     {
         // If we previously discarded attachment's content, then don't need to load it.
         attachment.loadAction = MTLLoadActionDontCare;
@@ -823,17 +819,7 @@ void FramebufferMtl::setLoadStoreActionOnRenderPassFirstStart(
 
     if (attachment.hasImplicitMSTexture())
     {
-        if (mBackbuffer)
-        {
-            // Default action for default framebuffer is resolve and keep MS texture's content.
-            // We only discard MS texture's content at the end of the frame. See onFrameEnd().
-            attachment.storeAction = MTLStoreActionStoreAndMultisampleResolve;
-        }
-        else
-        {
-            // Default action is resolve but don't keep MS texture's content.
-            attachment.storeAction = MTLStoreActionMultisampleResolve;
-        }
+        attachment.storeAction = MTLStoreActionStoreAndMultisampleResolve;
     }
     else
     {
@@ -1136,6 +1122,19 @@ angle::Result FramebufferMtl::clearWithLoadOpRenderPassNotStarted(
             OverrideMTLClearColor(texture, clearOpts.clearColor.value(),
                                   &colorAttachment.clearColor);
         }
+        else
+        {
+            colorAttachment.loadAction = MTLLoadActionLoad;
+        }
+
+        if (colorAttachment.hasImplicitMSTexture())
+        {
+            colorAttachment.storeAction = MTLStoreActionStoreAndMultisampleResolve;
+        }
+        else
+        {
+            colorAttachment.storeAction = MTLStoreActionStore;
+        }
     }
 
     if (clearOpts.clearDepth.valid())
@@ -1143,11 +1142,37 @@ angle::Result FramebufferMtl::clearWithLoadOpRenderPassNotStarted(
         tempDesc.depthAttachment.loadAction = MTLLoadActionClear;
         tempDesc.depthAttachment.clearDepth = clearOpts.clearDepth.value();
     }
+    else
+    {
+        tempDesc.depthAttachment.loadAction = MTLLoadActionLoad;
+    }
+
+    if (tempDesc.depthAttachment.hasImplicitMSTexture())
+    {
+        tempDesc.depthAttachment.storeAction = MTLStoreActionStoreAndMultisampleResolve;
+    }
+    else
+    {
+        tempDesc.depthAttachment.storeAction = MTLStoreActionStore;
+    }
 
     if (clearOpts.clearStencil.valid())
     {
         tempDesc.stencilAttachment.loadAction   = MTLLoadActionClear;
         tempDesc.stencilAttachment.clearStencil = clearOpts.clearStencil.value();
+    }
+    else
+    {
+        tempDesc.stencilAttachment.loadAction = MTLLoadActionLoad;
+    }
+
+    if (tempDesc.stencilAttachment.hasImplicitMSTexture())
+    {
+        tempDesc.stencilAttachment.storeAction = MTLStoreActionStoreAndMultisampleResolve;
+    }
+    else
+    {
+        tempDesc.stencilAttachment.storeAction = MTLStoreActionStore;
     }
 
     // Start new render encoder with loadOp=Clear
@@ -1459,6 +1484,20 @@ angle::Result FramebufferMtl::readPixelsImpl(const gl::Context *context,
         }
         ANGLE_MTL_CHECK(contextMtl, texture->samples() == 1, GL_INVALID_OPERATION);
     }
+
+    if (contextMtl->getDisplay()
+            ->getFeatures()
+            .copyIOSurfaceToNonIOSurfaceForReadOptimization.enabled &&
+        texture->hasIOSurface() && texture->mipmapLevels() == 1 &&
+        texture->textureType() == MTLTextureType2D)
+    {
+        // Reading a texture may be slow if it's an IOSurface because metal has to lock/unlock the
+        // surface, whereas copying the texture to non IOSurface texture and then reading from that
+        // may be fast depending on the GPU/driver.
+        ANGLE_TRY(contextMtl->copy2DTextureSlice0Level0ToWorkTexture(texture));
+        texture = contextMtl->getWorkTexture();
+    }
+
     if (texture->isBeingUsedByGPU(contextMtl))
     {
         contextMtl->flushCommandBuffer(mtl::WaitUntilFinished);

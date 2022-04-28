@@ -45,7 +45,6 @@ enum class BufferUpdateType
 };
 
 VkBufferUsageFlags GetDefaultBufferUsageFlags(RendererVk *renderer);
-size_t GetDefaultBufferAlignment(RendererVk *renderer);
 
 class BufferVk : public BufferImpl
 {
@@ -182,6 +181,8 @@ class BufferVk : public BufferImpl
                                       size_t sizeInBytes,
                                       BufferUpdateType updateType);
 
+    bool isExternalBuffer() const { return mClientBuffer != nullptr; }
+
     struct VertexConversionBuffer : public ConversionBuffer
     {
         VertexConversionBuffer(RendererVk *renderer,
@@ -200,6 +201,9 @@ class BufferVk : public BufferImpl
     };
 
     vk::BufferHelper mBuffer;
+
+    // If not null, this is the external memory pointer passed from client API.
+    void *mClientBuffer;
 
     uint32_t mMemoryTypeIndex;
     // Memory/Usage property that will be used for memory allocation.

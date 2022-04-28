@@ -257,10 +257,10 @@ TEST(FastVector, NonCopyable)
     EXPECT_EQ(3, copy[0].x);
 }
 
-// Basic functionality for FastUnorderedMap
-TEST(FastUnorderedMap, BasicUsage)
+// Basic functionality for FlatUnorderedMap
+TEST(FlatUnorderedMap, BasicUsage)
 {
-    FastUnorderedMap<int, bool, 3> testMap;
+    FlatUnorderedMap<int, bool, 3> testMap;
     EXPECT_TRUE(testMap.empty());
     EXPECT_EQ(testMap.size(), 0u);
 
@@ -294,10 +294,10 @@ TEST(FastUnorderedMap, BasicUsage)
     }
 }
 
-// Basic functionality for FastUnorderedSet
-TEST(FastUnorderedSet, BasicUsage)
+// Basic functionality for FlatUnorderedSet
+TEST(FlatUnorderedSet, BasicUsage)
 {
-    FastUnorderedSet<int, 3> testMap;
+    FlatUnorderedSet<int, 3> testMap;
     EXPECT_TRUE(testMap.empty());
 
     testMap.insert(5);
@@ -383,5 +383,28 @@ TEST(FastIntegerMap, BasicUsage)
     testMap.clear();
     EXPECT_TRUE(testMap.empty());
     EXPECT_EQ(testMap.size(), 0u);
+}
+
+// Basic usage tests of fast map.
+TEST(FastMap, Basic)
+{
+    FastMap<int, 5> testMap;
+    EXPECT_TRUE(testMap.empty());
+
+    testMap[5] = 5;
+    EXPECT_FALSE(testMap.empty());
+
+    testMap.clear();
+    EXPECT_TRUE(testMap.empty());
+
+    for (int i = 0; i < 10; ++i)
+    {
+        testMap[i] = i;
+    }
+
+    for (int i = 0; i < 10; ++i)
+    {
+        EXPECT_TRUE(testMap[i] == i);
+    }
 }
 }  // namespace angle

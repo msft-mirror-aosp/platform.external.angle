@@ -21,7 +21,7 @@
 //    - Depth/Stencil blit/resolve: Used by FramebufferVk::blit() to implement blit or multisample
 //      resolve on depth/stencil images.
 //    - Generate mipmap: Used by TextureVk::generateMipmapsWithCompute().
-//    - Overlay Cull/Draw: Used by OverlayVk to efficiently draw a UI for debugging.
+//    - Overlay Draw: Used by OverlayVk to draw a UI for debugging.
 //    - Mipmap generation: Used by TextureVk to generate mipmaps more efficiently in compute.
 //
 
@@ -34,12 +34,6 @@
 
 namespace rx
 {
-struct InternalShaderPerfCounters
-{
-    // Total descriptor set allocations for all UtilsVk::Functions
-    uint32_t descriptorSetsAllocated;
-};
-
 class UtilsVk : angle::NonCopyable
 {
   public:
@@ -173,14 +167,10 @@ class UtilsVk : angle::NonCopyable
         uint32_t copyExtents[3];
     };
 
-    struct OverlayCullParameters
-    {
-        uint32_t subgroupSize[2];
-    };
-
     struct OverlayDrawParameters
     {
-        uint32_t subgroupSize[2];
+        uint32_t textWidgetCount;
+        uint32_t graphWidgetCount;
         bool rotateXY;
     };
 
@@ -285,24 +275,14 @@ class UtilsVk : angle::NonCopyable
                             const UnresolveParameters &params);
 
     // Overlay utilities.
-    angle::Result cullOverlayWidgets(ContextVk *contextVk,
-                                     vk::BufferHelper *enabledWidgetsBuffer,
-                                     vk::ImageHelper *dst,
-                                     const vk::ImageView *dstView,
-                                     const OverlayCullParameters &params);
-
     angle::Result drawOverlay(ContextVk *contextVk,
                               vk::BufferHelper *textWidgetsBuffer,
                               vk::BufferHelper *graphWidgetsBuffer,
                               vk::ImageHelper *font,
                               const vk::ImageView *fontView,
-                              vk::ImageHelper *culledWidgets,
-                              const vk::ImageView *culledWidgetsView,
                               vk::ImageHelper *dst,
                               const vk::ImageView *dstView,
                               const OverlayDrawParameters &params);
-
-    InternalShaderPerfCounters getAndResetObjectPerfCounters();
 
   private:
     ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
@@ -429,9 +409,10 @@ class UtilsVk : angle::NonCopyable
 
     struct OverlayDrawShaderParams
     {
-        // Structure matching PushConstants in OverlayDraw.comp
-        uint32_t outputSize[2] = {};
-        uint32_t rotateXY;
+        // Structure matching PushConstants in OverlayDraw.vert and OverlayDraw.frag
+        uint32_t viewportSize[2] = {};
+        uint32_t isText          = 0;
+        uint32_t rotateXY        = 0;
     };
 
     struct GenerateMipmapShaderParams
@@ -450,33 +431,32 @@ class UtilsVk : angle::NonCopyable
         ImageClear  = 0,
         ImageCopy   = 1,
         BlitResolve = 2,
+        OverlayDraw = 3,
         // Note: unresolve is special as it has a different layout per attachment count.  Depth and
         // stencil each require a binding, so are counted separately.
-        Unresolve1Attachment   = 3,
-        Unresolve2Attachments  = 4,
-        Unresolve3Attachments  = 5,
-        Unresolve4Attachments  = 6,
-        Unresolve5Attachments  = 7,
-        Unresolve6Attachments  = 8,
-        Unresolve7Attachments  = 9,
-        Unresolve8Attachments  = 10,
-        Unresolve9Attachments  = 11,
-        Unresolve10Attachments = 12,
+        Unresolve1Attachment   = 4,
+        Unresolve2Attachments  = 5,
+        Unresolve3Attachments  = 6,
+        Unresolve4Attachments  = 7,
+        Unresolve5Attachments  = 8,
+        Unresolve6Attachments  = 9,
+        Unresolve7Attachments  = 10,
+        Unresolve8Attachments  = 11,
+        Unresolve9Attachments  = 12,
+        Unresolve10Attachments = 13,
 
         // Functions implemented in compute
-        ComputeStartIndex          = 13,  // Special value to separate draw and dispatch functions.
-        ConvertIndexBuffer         = 13,
-        ConvertVertexBuffer        = 14,
-        BlitResolveStencilNoExport = 15,
-        OverlayCull                = 16,
-        OverlayDraw                = 17,
-        ConvertIndexIndirectBuffer = 18,
-        ConvertIndexIndirectLineLoopBuffer = 19,
-        ConvertIndirectLineLoopBuffer      = 20,
-        GenerateMipmap                     = 21,
+        ComputeStartIndex          = 14,  // Special value to separate draw and dispatch functions.
+        ConvertIndexBuffer         = 14,
+        ConvertVertexBuffer        = 15,
+        BlitResolveStencilNoExport = 16,
+        ConvertIndexIndirectBuffer = 17,
+        ConvertIndexIndirectLineLoopBuffer = 18,
+        ConvertIndirectLineLoopBuffer      = 19,
+        GenerateMipmap                     = 20,
 
-        InvalidEnum = 22,
-        EnumCount   = 22,
+        InvalidEnum = 21,
+        EnumCount   = 21,
     };
 
     // Common functions that create the pipeline for the specified function, binds it and prepares
@@ -522,7 +502,6 @@ class UtilsVk : angle::NonCopyable
     angle::Result ensureImageCopyResourcesInitialized(ContextVk *contextVk);
     angle::Result ensureBlitResolveResourcesInitialized(ContextVk *contextVk);
     angle::Result ensureBlitResolveStencilNoExportResourcesInitialized(ContextVk *contextVk);
-    angle::Result ensureOverlayCullResourcesInitialized(ContextVk *contextVk);
     angle::Result ensureOverlayDrawResourcesInitialized(ContextVk *contextVk);
     angle::Result ensureGenerateMipmapResourcesInitialized(ContextVk *contextVk);
     angle::Result ensureUnresolveResourcesInitialized(ContextVk *contextVk,
@@ -561,8 +540,6 @@ class UtilsVk : angle::NonCopyable
                                         vk::RefCountedDescriptorPoolBinding *bindingOut,
                                         VkDescriptorSet *descriptorSetOut);
 
-    void outputCumulativePerfCounters();
-
     angle::PackedEnumMap<Function, vk::DescriptorSetLayoutPointerArray> mDescriptorSetLayouts;
     angle::PackedEnumMap<Function, vk::BindingPointer<vk::PipelineLayout>> mPipelineLayouts;
     angle::PackedEnumMap<Function, vk::DynamicDescriptorPool> mDescriptorPools;
@@ -580,8 +557,7 @@ class UtilsVk : angle::NonCopyable
     vk::ShaderProgramHelper mBlitResolvePrograms[vk::InternalShader::BlitResolve_frag::kArrayLen];
     vk::ShaderProgramHelper mBlitResolveStencilNoExportPrograms
         [vk::InternalShader::BlitResolveStencilNoExport_comp::kArrayLen];
-    vk::ShaderProgramHelper mOverlayCullPrograms[vk::InternalShader::OverlayCull_comp::kArrayLen];
-    vk::ShaderProgramHelper mOverlayDrawPrograms[vk::InternalShader::OverlayDraw_comp::kArrayLen];
+    vk::ShaderProgramHelper mOverlayDrawProgram;
     vk::ShaderProgramHelper
         mGenerateMipmapPrograms[vk::InternalShader::GenerateMipmap_comp::kArrayLen];
 
@@ -592,9 +568,6 @@ class UtilsVk : angle::NonCopyable
 
     vk::Sampler mPointSampler;
     vk::Sampler mLinearSampler;
-
-    InternalShaderPerfCounters mPerfCounters;
-    InternalShaderPerfCounters mCumulativePerfCounters;
 };
 
 }  // namespace rx

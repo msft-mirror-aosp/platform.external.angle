@@ -26,7 +26,7 @@
 namespace rx
 {
 // Time interval in seconds that we should try to prune default buffer pools.
-constexpr double kTimeElapsedForPruneDefaultBufferPool = 1;
+constexpr double kTimeElapsedForPruneDefaultBufferPool = 0.25;
 
 DisplayVk::DisplayVk(const egl::DisplayState &state)
     : DisplayImpl(state),
@@ -98,11 +98,11 @@ std::string DisplayVk::getVendorString()
     return std::string();
 }
 
-std::string DisplayVk::getVersionString()
+std::string DisplayVk::getVersionString(bool includeFullVersion)
 {
     if (mRenderer)
     {
-        return mRenderer->getVersionString();
+        return mRenderer->getVersionString(includeFullVersion);
     }
     return std::string();
 }
@@ -222,6 +222,25 @@ egl::Error DisplayVk::validateImageClientBuffer(const gl::Context *context,
                 return egl::EglBadParameter() << "clientBuffer is invalid.";
             }
 
+            GLenum internalFormat =
+                static_cast<GLenum>(attribs.get(EGL_TEXTURE_INTERNAL_FORMAT_ANGLE, GL_NONE));
+            switch (internalFormat)
+            {
+                case GL_RGBA:
+                case GL_BGRA_EXT:
+                case GL_RGB:
+                case GL_RED_EXT:
+                case GL_RG_EXT:
+                case GL_RGB10_A2_EXT:
+                case GL_R16_EXT:
+                case GL_RG16_EXT:
+                case GL_NONE:
+                    break;
+                default:
+                    return egl::EglBadParameter() << "Invalid EGLImage texture internal format: 0x"
+                                                  << std::hex << internalFormat;
+            }
+
             uint64_t hi = static_cast<uint64_t>(attribs.get(EGL_VULKAN_IMAGE_CREATE_INFO_HI_ANGLE));
             uint64_t lo = static_cast<uint64_t>(attribs.get(EGL_VULKAN_IMAGE_CREATE_INFO_LO_ANGLE));
             uint64_t info = ((hi & 0xffffffff) << 32) | (lo & 0xffffffff);
@@ -327,6 +346,8 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
 
     outExtensions->lockSurface3KHR =
         getRenderer()->getFeatures().supportsLockSurfaceExtension.enabled;
+
+    outExtensions->partialUpdateKHR = true;
 }
 
 void DisplayVk::generateCaps(egl::Caps *outCaps) const
@@ -390,7 +411,23 @@ void DisplayVk::populateFeatureList(angle::FeatureList *features)
 
 ShareGroupVk::ShareGroupVk()
 {
-    mLastPruneTime = angle::GetCurrentSystemTime();
+    mLastPruneTime             = angle::GetCurrentSystemTime();
+    mOrphanNonEmptyBufferBlock = false;
+}
+
+void ShareGroupVk::addContext(ContextVk *contextVk)
+{
+    mContexts.insert(contextVk);
+
+    if (contextVk->getState().hasDisplayTextureShareGroup())
+    {
+        mOrphanNonEmptyBufferBlock = true;
+    }
+}
+
+void ShareGroupVk::removeContext(ContextVk *contextVk)
+{
+    mContexts.erase(contextVk);
 }
 
 void ShareGroupVk::onDestroy(const egl::Display *display)
@@ -401,19 +438,31 @@ void ShareGroupVk::onDestroy(const egl::Display *display)
     {
         if (pool)
         {
-            pool->destroy(renderer);
+            pool->destroy(renderer, mOrphanNonEmptyBufferBlock);
         }
     }
 
     if (mSmallBufferPool)
     {
-        mSmallBufferPool->destroy(renderer);
+        mSmallBufferPool->destroy(renderer, mOrphanNonEmptyBufferBlock);
     }
 
     mPipelineLayoutCache.destroy(renderer);
     mDescriptorSetLayoutCache.destroy(renderer);
 
     ASSERT(mResourceUseLists.empty());
+}
+
+void ShareGroupVk::releaseResourceUseLists(const Serial &submitSerial)
+{
+    if (!mResourceUseLists.empty())
+    {
+        for (vk::ResourceUseList &it : mResourceUseLists)
+        {
+            it.releaseResourceUsesAndUpdateSerials(submitSerial);
+        }
+        mResourceUseLists.clear();
+    }
 }
 
 vk::BufferPool *ShareGroupVk::getDefaultBufferPool(RendererVk *renderer,
