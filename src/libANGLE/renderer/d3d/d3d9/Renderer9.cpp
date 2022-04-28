@@ -2669,7 +2669,7 @@ angle::Result Renderer9::compileToExecutable(d3d::Context *context,
                                              gl::ShaderType type,
                                              const std::vector<D3DVarying> &streamOutVaryings,
                                              bool separatedOutputBuffers,
-                                             const angle::CompilerWorkaroundsD3D &workarounds,
+                                             const CompilerWorkaroundsD3D &workarounds,
                                              ShaderExecutableD3D **outExectuable)
 {
     // Transform feedback is not supported in ES2 or D3D9
@@ -3296,7 +3296,7 @@ std::string Renderer9::getVendorString() const
     return GetVendorString(getVendorId());
 }
 
-std::string Renderer9::getVersionString() const
+std::string Renderer9::getVersionString(bool includeFullVersion) const
 {
     std::ostringstream versionString;
     std::string driverName(mAdapterIdentifier.Driver);
@@ -3306,10 +3306,14 @@ std::string Renderer9::getVersionString() const
     }
     else
     {
-        versionString << "D3D9 ";
+        versionString << "D3D9";
     }
-    versionString << "-";
-    versionString << GetDriverVersionString(mAdapterIdentifier.DriverVersion);
+
+    if (includeFullVersion)
+    {
+        versionString << " -";
+        versionString << GetDriverVersionString(mAdapterIdentifier.DriverVersion);
+    }
 
     return versionString.str();
 }
