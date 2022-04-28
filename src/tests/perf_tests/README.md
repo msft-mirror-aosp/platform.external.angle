@@ -33,6 +33,7 @@ Several command-line arguments control how the tests run:
 * `--render-test-output-dir=dir`: Equivalent to `--screenshot-dir dir`.
 * `--verbose`: Print extra timing information.
 * `--warmup-loops x`: Number of times to warm up the test before starting timing. Defaults to 3.
+* `--warmup-steps x`: Maximum number of steps for the warmup loops. Defaults to unlimited.
 * `--no-warmup`: Skip warming up the tests. Equivalent to `--warmup-steps 0`.
 * `--calibration-time`: Run each test calibration step in a fixed time. Defaults to 1 second.
 * `--max-trial-time x`: Run each test trial under this max time. Defaults to 10 seconds.
@@ -42,6 +43,7 @@ Several command-line arguments control how the tests run:
 * `--enable-all-trace-tests`: Offscreen and vsync-limited trace tests are disabled by default to reduce test time.
 * `--minimize-gpu-work`: Modify API calls so that GPU work is reduced to minimum.
 * `--validation`: Enable serialization validation in the trace tests. Normally used with SwiftShader and retracing.
+* `--perf-counters`: Additional performance counters to include in the result output. Separate multiple entries with colons: ':'.
 
 For example, for an endless run with no warmup, run:
 
