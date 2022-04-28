@@ -207,7 +207,7 @@ class Renderer11 : public RendererD3D
                                       gl::ShaderType type,
                                       const std::vector<D3DVarying> &streamOutVaryings,
                                       bool separatedOutputBuffers,
-                                      const angle::CompilerWorkaroundsD3D &workarounds,
+                                      const CompilerWorkaroundsD3D &workarounds,
                                       ShaderExecutableD3D **outExectuable) override;
     angle::Result ensureHLSLCompilerInitialized(d3d::Context *context) override;
 
@@ -491,7 +491,7 @@ class Renderer11 : public RendererD3D
 
     std::string getRendererDescription() const override;
     std::string getVendorString() const override;
-    std::string getVersionString() const override;
+    std::string getVersionString(bool includeFullVersion) const override;
 
   private:
     void generateCaps(gl::Caps *outCaps,
