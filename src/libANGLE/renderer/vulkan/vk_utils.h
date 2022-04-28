@@ -466,18 +466,6 @@ angle::Result AllocateBufferMemoryWithRequirements(Context *context,
                                                    Buffer *buffer,
                                                    VkMemoryPropertyFlags *memoryPropertyFlagsOut,
                                                    DeviceMemory *deviceMemoryOut);
-class BufferPool;
-static constexpr VkDeviceSize kMaxSizeToUseSmallBufferPool = 256;
-using BufferPoolPointerArray = std::array<std::unique_ptr<BufferPool>, VK_MAX_MEMORY_TYPES>;
-BufferPool *GetDefaultBufferPool(std::unique_ptr<vk::BufferPool> &smallBufferPool,
-                                 vk::BufferPoolPointerArray &defaultBufferPools,
-                                 RendererVk *renderer,
-                                 VkDeviceSize size,
-                                 uint32_t memoryTypeIndex);
-void PruneDefaultBufferPools(RendererVk *renderer,
-                             BufferPoolPointerArray &defaultBufferPools,
-                             std::unique_ptr<vk::BufferPool> &smallBufferPool);
-bool IsDueForBufferPoolPrune(double lastPruneTime);
 
 using ShaderAndSerial = ObjectAndSerial<ShaderModule>;
 
@@ -918,7 +906,7 @@ class BufferBlock final : angle::NonCopyable
     ~BufferBlock();
 
     void destroy(RendererVk *renderer);
-    angle::Result init(ContextVk *contextVk,
+    angle::Result init(Context *context,
                        Buffer &buffer,
                        vma::VirtualBlockCreateFlags flags,
                        DeviceMemory &deviceMemory,
@@ -1009,6 +997,7 @@ class BufferSuballocation final : angle::NonCopyable
     BufferSerial getBlockSerial() const;
     uint8_t *getBlockMemory() const;
     VkDeviceSize getBlockMemorySize() const;
+    bool isSuballocated() const { return mBufferBlock->hasVirtualBlock(); }
 
   private:
     // Only used by DynamicBuffer where DynamicBuffer does the actual suballocation and pass the

@@ -790,6 +790,13 @@ class BufferHelper : public ReadWriteResource
     void fillWithColor(const angle::Color<uint8_t> &color,
                        const gl::InternalFormat &internalFormat);
 
+    // Special handling for VertexArray code so that we can create a dedicated VkBuffer for the
+    // sub-range of memory of the actual buffer data size that user requested (i.e, excluding extra
+    // paddings that we added for alignment, which will not get zero filled).
+    const Buffer &getBufferForVertexArray(ContextVk *contextVk,
+                                          VkDeviceSize actualDataSize,
+                                          VkDeviceSize *offsetOut);
+
   private:
     void initializeBarrierTracker(Context *context);
     angle::Result initializeNonZeroMemory(Context *context,
@@ -805,6 +812,11 @@ class BufferHelper : public ReadWriteResource
 
     // Suballocation object.
     BufferSuballocation mSuballocation;
+    // This normally is invalid. We always use the BufferBlock's buffer and offset combination. But
+    // when robust resource init is enabled, we may want to create a dedicated VkBuffer for the
+    // suballocation so that vulkan driver will ensure no access beyond this sub-range. In that
+    // case, this VkBuffer will be created lazily as needed.
+    Buffer mBufferForVertexArray;
 
     // For memory barriers.
     uint32_t mCurrentQueueFamilyIndex;
@@ -831,20 +843,21 @@ class BufferPool : angle::NonCopyable
                        uint32_t memoryTypeIndex,
                        VkMemoryPropertyFlags memoryProperty);
 
-    angle::Result allocateBuffer(ContextVk *contextVk,
+    angle::Result allocateBuffer(Context *context,
                                  VkDeviceSize sizeInBytes,
                                  VkDeviceSize alignment,
                                  BufferSuballocation *suballocation);
 
-    // This frees resources immediately.
-    void destroy(RendererVk *renderer);
-
+    // Frees resources immediately, or orphan the non-empty BufferBlocks if allowed. If orphan is
+    // not allowed, it will assert if BufferBlock is still not empty.
+    void destroy(RendererVk *renderer, bool orphanAllowed);
+    // Remove and destroy empty BufferBlocks
     void pruneEmptyBuffers(RendererVk *renderer);
 
     bool valid() const { return mSize != 0; }
 
   private:
-    angle::Result allocateNewBuffer(ContextVk *contextVk, VkDeviceSize sizeInBytes);
+    angle::Result allocateNewBuffer(Context *context, VkDeviceSize sizeInBytes);
 
     vma::VirtualBlockCreateFlags mVirtualBlockCreateFlags;
     VkBufferUsageFlags mUsage;
@@ -859,7 +872,11 @@ class BufferPool : angle::NonCopyable
     // and only to find out that we have to allocate a new one next frame.
     static constexpr int32_t kMaxCountRemainsEmpty = 4;
     static constexpr int32_t kMaxEmptyBufferCount  = 16;
+    // max size to go down the suballocation code path. Any allocation greater or equal this size
+    // will call into vulkan directly to allocate a dedicated VkDeviceMemory.
+    static constexpr size_t kMaxBufferSizeForSuballocation = 4 * 1024 * 1024;
 };
+using BufferPoolPointerArray = std::array<std::unique_ptr<BufferPool>, VK_MAX_MEMORY_TYPES>;
 
 enum class BufferAccess
 {
@@ -925,6 +942,7 @@ class RenderPassAttachment final
                            RenderPassStoreOp *storeOp,
                            bool *isInvalidatedOut);
     void restoreContent();
+    bool hasAnyAccess() const { return mAccess != ResourceAccess::Unused; }
     bool hasWriteAccess() const { return mAccess == ResourceAccess::Write; }
 
     ImageHelper *getImage() { return mImage; }
@@ -1019,6 +1037,8 @@ class CommandBufferHelperCommon : angle::NonCopyable
 
     bool hasGLMemoryBarrierIssued() const { return mHasGLMemoryBarrierIssued; }
 
+    vk::ResourceUseList &getResourceUseList() { return mResourceUseList; }
+
     // Dumping the command stream is disabled by default.
     static constexpr bool kEnableCommandStreamDiagnostics = false;
 
@@ -1075,6 +1095,7 @@ class CommandBufferHelperCommon : angle::NonCopyable
     // For Buffers, we track the read/write access type so we can enable simultaneous reads.
     static constexpr uint32_t kFlatMapSize = 16;
     angle::FlatUnorderedMap<BufferSerial, BufferAccess, kFlatMapSize> mUsedBuffers;
+    vk::ResourceUseList mResourceUseList;
 };
 
 class OutsideRenderPassCommandBufferHelper final : public CommandBufferHelperCommon
@@ -1244,6 +1265,14 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     void onColorAccess(PackedAttachmentIndex packedAttachmentIndex, ResourceAccess access);
     void onDepthAccess(ResourceAccess access);
     void onStencilAccess(ResourceAccess access);
+
+    bool hasAnyColorAccess(PackedAttachmentIndex packedAttachmentIndex)
+    {
+        ASSERT(packedAttachmentIndex < mColorAttachmentsCount);
+        return mColorAttachments[packedAttachmentIndex].hasAnyAccess();
+    }
+    bool hasAnyDepthAccess() { return mDepthAttachment.hasAnyAccess(); }
+    bool hasAnyStencilAccess() { return mStencilAttachment.hasAnyAccess(); }
 
     void updateRenderPassForResolve(ContextVk *contextVk,
                                     Framebuffer *newFramebuffer,

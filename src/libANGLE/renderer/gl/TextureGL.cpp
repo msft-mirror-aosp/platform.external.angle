@@ -38,6 +38,8 @@ namespace rx
 
 namespace
 {
+// For use with the uploadTextureDataInChunks feature.  See http://crbug.com/1181068
+constexpr const size_t kUploadTextureDataInChunksUploadSize = (120 * 1024) - 1;
 
 size_t GetLevelInfoIndex(gl::TextureTarget target, size_t level)
 {
@@ -71,7 +73,7 @@ bool GetDepthStencilWorkaround(GLenum format)
 bool GetEmulatedAlphaChannel(const angle::FeaturesGL &features,
                              const gl::InternalFormat &originalInternalFormat)
 {
-    return (features.rgbDXT1TexturesSampleZeroAlpha.enabled &&
+    return (features.RGBDXT1TexturesSampleZeroAlpha.enabled &&
             originalInternalFormat.sizedInternalFormat == GL_COMPRESSED_RGB_S3TC_DXT1_EXT) ||
            (features.emulateRGB10.enabled && originalInternalFormat.format == GL_RGB &&
             originalInternalFormat.type == GL_UNSIGNED_INT_2_10_10_10_REV_EXT);
@@ -365,9 +367,9 @@ angle::Result TextureGL::setSubImage(const gl::Context *context,
 
     if (features.uploadTextureDataInChunks.enabled)
     {
-        return setSubImageRowByRowWorkaround(
-            context, target, level, area, format, type, unpack, unpackBuffer,
-            angle::FeaturesGL::kUploadTextureDataInChunksUploadSize, pixels);
+        return setSubImageRowByRowWorkaround(context, target, level, area, format, type, unpack,
+                                             unpackBuffer, kUploadTextureDataInChunksUploadSize,
+                                             pixels);
     }
 
     if (nativegl::UseTexImage2D(getType()))
@@ -1358,7 +1360,7 @@ angle::Result TextureGL::generateMipmap(const gl::Context *context)
 
     stateManager->bindTexture(getType(), mTextureID);
     if (baseLevelInternalFormat.colorEncoding == GL_SRGB &&
-        features.encodeAndDecodeSRGBForGenerateMipmap.enabled && getType() == gl::TextureType::_2D)
+        features.decodeEncodeSRGBForGenerateMipmap.enabled && getType() == gl::TextureType::_2D)
     {
         nativegl::TexImageFormat texImageFormat = nativegl::GetTexImageFormat(
             functions, features, baseLevelInternalFormat.internalFormat,
@@ -2110,7 +2112,7 @@ angle::Result TextureGL::initializeContents(const gl::Context *context,
                 ANGLE_TRY(setSubImageRowByRowWorkaround(
                     context, imageIndex.getTarget(), imageIndex.getLevelIndex(), area,
                     nativeSubImageFormat.format, nativeSubImageFormat.type, unpackState, nullptr,
-                    angle::FeaturesGL::kUploadTextureDataInChunksUploadSize, zero->data()));
+                    kUploadTextureDataInChunksUploadSize, zero->data()));
             }
             else
             {
