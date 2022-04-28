@@ -196,8 +196,12 @@ class Context : angle::NonCopyable
     VkDevice getDevice() const;
     RendererVk *getRenderer() const { return mRenderer; }
 
+    const angle::VulkanPerfCounters &getPerfCounters() const { return mPerfCounters; }
+    angle::VulkanPerfCounters &getPerfCounters() { return mPerfCounters; }
+
   protected:
     RendererVk *const mRenderer;
+    angle::VulkanPerfCounters mPerfCounters;
 };
 
 class RenderPassDesc;
@@ -481,7 +485,7 @@ enum class RecordingMode
 // Helper class to handle RAII patterns for initialization. Requires that T have a destroy method
 // that takes a VkDevice and returns void.
 template <typename T>
-class DeviceScoped final : angle::NonCopyable
+class ANGLE_NO_DISCARD DeviceScoped final : angle::NonCopyable
 {
   public:
     DeviceScoped(VkDevice device) : mDevice(device) {}
@@ -498,7 +502,7 @@ class DeviceScoped final : angle::NonCopyable
 };
 
 template <typename T>
-class AllocatorScoped final : angle::NonCopyable
+class ANGLE_NO_DISCARD AllocatorScoped final : angle::NonCopyable
 {
   public:
     AllocatorScoped(const Allocator &allocator) : mAllocator(allocator) {}
@@ -517,7 +521,7 @@ class AllocatorScoped final : angle::NonCopyable
 // Similar to DeviceScoped, but releases objects instead of destroying them. Requires that T have a
 // release method that takes a ContextVk * and returns void.
 template <typename T>
-class ContextScoped final : angle::NonCopyable
+class ANGLE_NO_DISCARD ContextScoped final : angle::NonCopyable
 {
   public:
     ContextScoped(ContextVk *contextVk) : mContextVk(contextVk) {}
@@ -534,7 +538,7 @@ class ContextScoped final : angle::NonCopyable
 };
 
 template <typename T>
-class RendererScoped final : angle::NonCopyable
+class ANGLE_NO_DISCARD RendererScoped final : angle::NonCopyable
 {
   public:
     RendererScoped(RendererVk *renderer) : mRenderer(renderer) {}
@@ -773,6 +777,7 @@ class Recycler final : angle::NonCopyable
         {
             object.destroy(device);
         }
+        mObjectFreeList.clear();
     }
 
     bool empty() const { return mObjectFreeList.empty(); }
@@ -901,7 +906,7 @@ class BufferBlock final : angle::NonCopyable
     ~BufferBlock();
 
     void destroy(RendererVk *renderer);
-    angle::Result init(ContextVk *contextVk,
+    angle::Result init(Context *context,
                        Buffer &buffer,
                        vma::VirtualBlockCreateFlags flags,
                        DeviceMemory &deviceMemory,
@@ -915,9 +920,9 @@ class BufferBlock final : angle::NonCopyable
 
     BufferBlock &operator=(BufferBlock &&other);
 
-    Buffer *getBuffer();
-    const DeviceMemory &getDeviceMemory() const;
-    DeviceMemory *getDeviceMemory() { return &mDeviceMemory; }
+    const Buffer &getBuffer() const { return mBuffer; }
+    const DeviceMemory &getDeviceMemory() const { return mDeviceMemory; }
+    DeviceMemory &getDeviceMemory() { return mDeviceMemory; }
     BufferSerial getBufferSerial() const { return mSerial; }
 
     VkMemoryPropertyFlags getMemoryPropertyFlags() const;
@@ -959,56 +964,23 @@ class BufferBlock final : angle::NonCopyable
 using BufferBlockPointerVector = std::vector<std::unique_ptr<BufferBlock>>;
 
 // BufferSuballocation
-struct VmaBufferSuballocation_T
-{
-    BufferBlock *mBufferBlock;
-    VkDeviceSize mOffset;
-    VkDeviceSize mSize;
-};
-VK_DEFINE_HANDLE(VmaBufferSuballocation)
-ANGLE_INLINE VkResult
-CreateVmaBufferSuballocation(BufferBlock *block,
-                             VkDeviceSize offset,
-                             VkDeviceSize size,
-                             VmaBufferSuballocation *vmaBufferSuballocationOut)
-{
-    *vmaBufferSuballocationOut = new VmaBufferSuballocation_T{block, offset, size};
-    return *vmaBufferSuballocationOut != VK_NULL_HANDLE ? VK_SUCCESS : VK_ERROR_OUT_OF_HOST_MEMORY;
-}
-ANGLE_INLINE void DestroyVmaBufferSuballocation(RendererVk *renderer,
-                                                VmaBufferSuballocation vmaBufferSuballocation)
-{
-    ASSERT(vmaBufferSuballocation->mBufferBlock);
-    if (vmaBufferSuballocation->mBufferBlock->hasVirtualBlock())
-    {
-        vmaBufferSuballocation->mBufferBlock->free(vmaBufferSuballocation->mOffset);
-    }
-    else
-    {
-        // When virtual block is invalid, this is the standalone buffer that are created by
-        // BufferSuballocation::initWithEntireBuffer call. In this case, vmaBufferSuballocation owns
-        // block, we must properly delete the block object.
-        vmaBufferSuballocation->mBufferBlock->destroy(renderer);
-        delete vmaBufferSuballocation->mBufferBlock;
-    }
-
-    delete vmaBufferSuballocation;
-}
-
-class BufferSuballocation final : public WrappedObject<BufferSuballocation, VmaBufferSuballocation>
+class BufferSuballocation final : angle::NonCopyable
 {
   public:
-    BufferSuballocation() = default;
+    BufferSuballocation();
+
+    BufferSuballocation(BufferSuballocation &&other);
+    BufferSuballocation &operator=(BufferSuballocation &&other);
+
     void destroy(RendererVk *renderer);
 
-    VkResult init(VkDevice device, BufferBlock *block, VkDeviceSize offset, VkDeviceSize size);
-    VkResult initWithEntireBuffer(Context *context,
-                                  Buffer &buffer,
-                                  DeviceMemory &deviceMemory,
-                                  VkMemoryPropertyFlags memoryPropertyFlags,
-                                  VkDeviceSize size);
+    void init(VkDevice device, BufferBlock *block, VkDeviceSize offset, VkDeviceSize size);
+    void initWithEntireBuffer(Context *context,
+                              Buffer &buffer,
+                              DeviceMemory &deviceMemory,
+                              VkMemoryPropertyFlags memoryPropertyFlags,
+                              VkDeviceSize size);
 
-    BufferBlock *getBlock() const;
     const Buffer &getBuffer() const;
     VkDeviceSize getSize() const;
     const DeviceMemory &getDeviceMemory() const;
@@ -1020,27 +992,27 @@ class BufferSuballocation final : public WrappedObject<BufferSuballocation, VmaB
     void flush(const VkDevice &device);
     void invalidate(const VkDevice &device);
     VkDeviceSize getOffset() const;
+    bool valid() const;
+    VkResult map(Context *context);
+    BufferSerial getBlockSerial() const;
+    uint8_t *getBlockMemory() const;
+    VkDeviceSize getBlockMemorySize() const;
+    bool isSuballocated() const { return mBufferBlock->hasVirtualBlock(); }
 
   private:
     // Only used by DynamicBuffer where DynamicBuffer does the actual suballocation and pass the
     // offset/size to this object. Since DynamicBuffer does not have a VMA virtual allocator, they
     // will be ignored at destroy time. The offset/size is set here mainly for easy retrieval when
     // the BufferHelper object is passed around.
-    friend class DynamicBuffer;
-    void setOffsetSize(VkDeviceSize offset, VkDeviceSize size);
+    friend class BufferHelper;
+    void setOffsetAndSize(VkDeviceSize offset, VkDeviceSize size);
+
+    BufferBlock *mBufferBlock;
+    VkDeviceSize mOffset;
+    VkDeviceSize mSize;
 };
 
 // BufferBlock implementation.
-ANGLE_INLINE Buffer *BufferBlock::getBuffer()
-{
-    return &mBuffer;
-}
-
-ANGLE_INLINE const DeviceMemory &BufferBlock::getDeviceMemory() const
-{
-    return mDeviceMemory;
-}
-
 ANGLE_INLINE VkMemoryPropertyFlags BufferBlock::getMemoryPropertyFlags() const
 {
     return mMemoryPropertyFlags;
@@ -1088,129 +1060,168 @@ ANGLE_INLINE VkResult BufferBlock::allocate(VkDeviceSize size,
 }
 
 // BufferSuballocation implementation.
+ANGLE_INLINE BufferSuballocation::BufferSuballocation()
+    : mBufferBlock(nullptr), mOffset(0), mSize(0)
+{}
+
+ANGLE_INLINE BufferSuballocation::BufferSuballocation(BufferSuballocation &&other)
+    : BufferSuballocation()
+{
+    *this = std::move(other);
+}
+
+ANGLE_INLINE BufferSuballocation &BufferSuballocation::operator=(BufferSuballocation &&other)
+{
+    std::swap(mBufferBlock, other.mBufferBlock);
+    std::swap(mSize, other.mSize);
+    std::swap(mOffset, other.mOffset);
+    return *this;
+}
+
+ANGLE_INLINE bool BufferSuballocation::valid() const
+{
+    return mBufferBlock != nullptr;
+}
+
 ANGLE_INLINE void BufferSuballocation::destroy(RendererVk *renderer)
 {
     if (valid())
     {
-        DestroyVmaBufferSuballocation(renderer, mHandle);
-        mHandle = VK_NULL_HANDLE;
+        ASSERT(mBufferBlock);
+        if (mBufferBlock->hasVirtualBlock())
+        {
+            mBufferBlock->free(mOffset);
+            mBufferBlock = nullptr;
+        }
+        else
+        {
+            // When virtual block is invalid, this is the standalone buffer that are created by
+            // BufferSuballocation::initWithEntireBuffer call. In this case, vmaBufferSuballocation
+            // owns block, we must properly delete the block object.
+            mBufferBlock->destroy(renderer);
+            SafeDelete(mBufferBlock);
+        }
+        mOffset = 0;
+        mSize   = 0;
     }
 }
 
-ANGLE_INLINE VkResult BufferSuballocation::init(VkDevice device,
-                                                BufferBlock *block,
-                                                VkDeviceSize offset,
-                                                VkDeviceSize size)
+ANGLE_INLINE void BufferSuballocation::init(VkDevice device,
+                                            BufferBlock *block,
+                                            VkDeviceSize offset,
+                                            VkDeviceSize size)
 {
     ASSERT(!valid());
     ASSERT(block != nullptr);
     ASSERT(offset != VK_WHOLE_SIZE);
-    return CreateVmaBufferSuballocation(block, offset, size, &mHandle);
+    mBufferBlock = block;
+    mOffset      = offset;
+    mSize        = size;
 }
 
-ANGLE_INLINE VkResult
-BufferSuballocation::initWithEntireBuffer(Context *context,
-                                          Buffer &buffer,
-                                          DeviceMemory &deviceMemory,
-                                          VkMemoryPropertyFlags memoryPropertyFlags,
-                                          VkDeviceSize size)
+ANGLE_INLINE void BufferSuballocation::initWithEntireBuffer(
+    Context *context,
+    Buffer &buffer,
+    DeviceMemory &deviceMemory,
+    VkMemoryPropertyFlags memoryPropertyFlags,
+    VkDeviceSize size)
 {
     ASSERT(!valid());
 
     std::unique_ptr<BufferBlock> block = std::make_unique<BufferBlock>();
     block->initWithoutVirtualBlock(context, buffer, deviceMemory, memoryPropertyFlags, size);
 
-    VmaBufferSuballocation vmaBufferSuballocation = new VmaBufferSuballocation_T;
-    if (vmaBufferSuballocation == nullptr)
-    {
-        return VK_ERROR_OUT_OF_HOST_MEMORY;
-    }
-    else
-    {
-        vmaBufferSuballocation->mBufferBlock = block.release();
-        vmaBufferSuballocation->mOffset      = 0;
-        vmaBufferSuballocation->mSize = vmaBufferSuballocation->mBufferBlock->getMemorySize();
-    }
-
-    mHandle = vmaBufferSuballocation;
-    return VK_SUCCESS;
-}
-
-ANGLE_INLINE BufferBlock *BufferSuballocation::getBlock() const
-{
-    return mHandle->mBufferBlock;
+    mBufferBlock = block.release();
+    mOffset      = 0;
+    mSize        = mBufferBlock->getMemorySize();
 }
 
 ANGLE_INLINE const Buffer &BufferSuballocation::getBuffer() const
 {
-    return *getBlock()->getBuffer();
+    return mBufferBlock->getBuffer();
 }
 
 ANGLE_INLINE VkDeviceSize BufferSuballocation::getSize() const
 {
-    return mHandle->mSize;
+    return mSize;
 }
 
 ANGLE_INLINE const DeviceMemory &BufferSuballocation::getDeviceMemory() const
 {
-    return *mHandle->mBufferBlock->getDeviceMemory();
+    return mBufferBlock->getDeviceMemory();
 }
 
 ANGLE_INLINE VkMemoryMapFlags BufferSuballocation::getMemoryPropertyFlags() const
 {
-    return mHandle->mBufferBlock->getMemoryPropertyFlags();
+    return mBufferBlock->getMemoryPropertyFlags();
 }
 
 ANGLE_INLINE bool BufferSuballocation::isHostVisible() const
 {
-    return mHandle->mBufferBlock->isHostVisible();
+    return mBufferBlock->isHostVisible();
 }
 ANGLE_INLINE bool BufferSuballocation::isCoherent() const
 {
-    return mHandle->mBufferBlock->isCoherent();
+    return mBufferBlock->isCoherent();
 }
 ANGLE_INLINE bool BufferSuballocation::isMapped() const
 {
-    return mHandle->mBufferBlock->isMapped();
+    return mBufferBlock->isMapped();
 }
 ANGLE_INLINE uint8_t *BufferSuballocation::getMappedMemory() const
 {
-    return mHandle->mBufferBlock->getMappedMemory() + getOffset();
+    return mBufferBlock->getMappedMemory() + getOffset();
 }
+
 ANGLE_INLINE void BufferSuballocation::flush(const VkDevice &device)
 {
     if (!isCoherent())
     {
         VkMappedMemoryRange mappedRange = {};
         mappedRange.sType               = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-        mappedRange.memory              = mHandle->mBufferBlock->getDeviceMemory()->getHandle();
+        mappedRange.memory              = mBufferBlock->getDeviceMemory().getHandle();
         mappedRange.offset              = getOffset();
-        mappedRange.size                = mHandle->mSize;
-        mHandle->mBufferBlock->getDeviceMemory()->flush(device, mappedRange);
+        mappedRange.size                = mSize;
+        mBufferBlock->getDeviceMemory().flush(device, mappedRange);
     }
 }
+
 ANGLE_INLINE void BufferSuballocation::invalidate(const VkDevice &device)
 {
     if (!isCoherent())
     {
         VkMappedMemoryRange mappedRange = {};
         mappedRange.sType               = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-        mappedRange.memory              = mHandle->mBufferBlock->getDeviceMemory()->getHandle();
+        mappedRange.memory              = mBufferBlock->getDeviceMemory().getHandle();
         mappedRange.offset              = getOffset();
-        mappedRange.size                = mHandle->mSize;
-        mHandle->mBufferBlock->getDeviceMemory()->invalidate(device, mappedRange);
+        mappedRange.size                = mSize;
+        mBufferBlock->getDeviceMemory().invalidate(device, mappedRange);
     }
 }
 
 ANGLE_INLINE VkDeviceSize BufferSuballocation::getOffset() const
 {
-    return mHandle->mOffset;
+    return mOffset;
 }
 
-ANGLE_INLINE void BufferSuballocation::setOffsetSize(VkDeviceSize offset, VkDeviceSize size)
+ANGLE_INLINE void BufferSuballocation::setOffsetAndSize(VkDeviceSize offset, VkDeviceSize size)
 {
-    mHandle->mOffset = offset;
-    mHandle->mSize   = size;
+    mOffset = offset;
+    mSize   = size;
+}
+
+ANGLE_INLINE uint8_t *BufferSuballocation::getBlockMemory() const
+{
+    return mBufferBlock->getMappedMemory();
+}
+ANGLE_INLINE VkDeviceSize BufferSuballocation::getBlockMemorySize() const
+{
+    return mBufferBlock->getMemorySize();
+}
+ANGLE_INLINE BufferSerial BufferSuballocation::getBlockSerial() const
+{
+    ASSERT(valid());
+    return mBufferBlock->getBufferSerial();
 }
 #if defined(ANGLE_ENABLE_PERF_COUNTER_OUTPUT)
 constexpr bool kOutputCumulativePerfCounters = ANGLE_ENABLE_PERF_COUNTER_OUTPUT;
@@ -1222,12 +1233,21 @@ constexpr bool kOutputCumulativePerfCounters = false;
 struct RenderPassPerfCounters
 {
     // load/storeOps. Includes ops for resolve attachment. Maximum value = 2.
-    uint8_t depthClears;
-    uint8_t depthLoads;
-    uint8_t depthStores;
-    uint8_t stencilClears;
-    uint8_t stencilLoads;
-    uint8_t stencilStores;
+    uint8_t colorLoadOpClears;
+    uint8_t colorLoadOpLoads;
+    uint8_t colorLoadOpNones;
+    uint8_t colorStoreOpStores;
+    uint8_t colorStoreOpNones;
+    uint8_t depthLoadOpClears;
+    uint8_t depthLoadOpLoads;
+    uint8_t depthLoadOpNones;
+    uint8_t depthStoreOpStores;
+    uint8_t depthStoreOpNones;
+    uint8_t stencilLoadOpClears;
+    uint8_t stencilLoadOpLoads;
+    uint8_t stencilLoadOpNones;
+    uint8_t stencilStoreOpStores;
+    uint8_t stencilStoreOpNones;
     // Number of unresolve and resolve operations.  Maximum value for color =
     // gl::IMPLEMENTATION_MAX_DRAW_BUFFERS and for depth/stencil = 1 each.
     uint8_t colorAttachmentUnresolves;
@@ -1238,33 +1258,6 @@ struct RenderPassPerfCounters
     uint8_t stencilAttachmentResolves;
     // Whether the depth/stencil attachment is using a read-only layout.
     uint8_t readOnlyDepthStencil;
-};
-
-struct PerfCounters
-{
-    uint32_t primaryBuffers;
-    uint32_t renderPasses;
-    uint32_t writeDescriptorSets;
-    uint32_t flushedOutsideRenderPassCommandBuffers;
-    uint32_t resolveImageCommands;
-    uint32_t depthClears;
-    uint32_t depthLoads;
-    uint32_t depthStores;
-    uint32_t stencilClears;
-    uint32_t stencilLoads;
-    uint32_t stencilStores;
-    uint32_t colorAttachmentUnresolves;
-    uint32_t depthAttachmentUnresolves;
-    uint32_t stencilAttachmentUnresolves;
-    uint32_t colorAttachmentResolves;
-    uint32_t depthAttachmentResolves;
-    uint32_t stencilAttachmentResolves;
-    uint32_t readOnlyDepthStencilRenderPasses;
-    uint32_t descriptorSetAllocations;
-    uint32_t shaderBuffersDescriptorSetCacheHits;
-    uint32_t shaderBuffersDescriptorSetCacheMisses;
-    uint32_t buffersGhosted;
-    uint32_t vertexArraySyncStateCalls;
 };
 
 // A Vulkan image level index.
@@ -1474,9 +1467,6 @@ enum class RenderPassClosureReason
     TemporaryForImageClear,
     TemporaryForImageCopy,
     TemporaryForOverlayDraw,
-
-    // Misc
-    OverlayFontCreation,
 
     InvalidEnum,
     EnumCount = InvalidEnum,
