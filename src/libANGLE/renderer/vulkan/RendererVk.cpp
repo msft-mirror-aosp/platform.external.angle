@@ -542,6 +542,18 @@ constexpr SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
         "prior_usage: SYNC_COLOR_ATTACHMENT_OUTPUT_COLOR_ATTACHMENT_WRITE, write_barriers: 0, "
         "command: vkCmdBeginRenderPass",
     },
+    // From: TracePerfTest.Run/vulkan_car_chase http://anglebug.com/7125
+    {
+        "SYNC-HAZARD-WRITE_AFTER_READ",
+        "type: VK_DESCRIPTOR_TYPE_STORAGE_BUFFER",
+    },
+    // From: TracePerfTest.Run/vulkan_special_forces_group_2 http://anglebug.com/5592
+    {
+        "SYNC-HAZARD-WRITE_AFTER_READ",
+        "Access info (usage: SYNC_IMAGE_LAYOUT_TRANSITION, prior_usage: "
+        "SYNC_FRAGMENT_SHADER_SHADER_STORAGE_READ, read_barriers: "
+        "VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, command: vkCmdDrawIndexed",
+    },
 };
 
 enum class DebugMessageReport
@@ -572,7 +584,7 @@ DebugMessageReport ShouldReportDebugMessage(RendererVk *renderer,
     // Then check with syncval messages:
     const bool isStoreOpNoneSupported =
         renderer->getFeatures().supportsRenderPassLoadStoreOpNone.enabled ||
-        renderer->getFeatures().supportsRenderPassStoreOpNoneQCOM.enabled;
+        renderer->getFeatures().supportsRenderPassStoreOpNone.enabled;
     const bool isFramebufferFetchUsed = renderer->isFramebufferFetchUsed();
     for (const SkippedSyncvalMessage &msg : kSkippedSyncvalMessages)
     {
@@ -1130,8 +1142,7 @@ RendererVk::RendererVk()
       mPipelineCacheInitialized(false),
       mValidationMessageCount(0),
       mCommandProcessor(this),
-      mSupportedVulkanPipelineStageMask(0),
-      mLastPruneTime(angle::GetCurrentSystemTime())
+      mSupportedVulkanPipelineStageMask(0)
 {
     VkFormatProperties invalid = {0, 0, kInvalidFormatFeatureFlags};
     mFormatProperties.fill(invalid);
@@ -1186,18 +1197,12 @@ void RendererVk::onDestroy(vk::Context *context)
         handleDeviceLost();
     }
 
-    for (std::unique_ptr<vk::BufferPool> &pool : mDefaultBufferPools)
+    for (std::unique_ptr<vk::BufferBlock> &block : mOrphanedBufferBlocks)
     {
-        if (pool)
-        {
-            pool->destroy(this);
-        }
+        ASSERT(block->isEmpty());
+        block->destroy(this);
     }
-
-    if (mSmallBufferPool)
-    {
-        mSmallBufferPool->destroy(this);
-    }
+    mOrphanedBufferBlocks.clear();
 
     {
         vk::ScopedCommandQueueLock lock(this, mCommandQueueMutex);
@@ -1848,10 +1853,6 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
     mBlendOperationAdvancedFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT;
 
-    mBlendOperationAdvancedProperties = {};
-    mBlendOperationAdvancedProperties.sType =
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_PROPERTIES_EXT;
-
     if (!vkGetPhysicalDeviceProperties2KHR || !vkGetPhysicalDeviceFeatures2KHR)
     {
         return;
@@ -1982,7 +1983,6 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
     if (ExtensionFound(VK_EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(&deviceFeatures, &mBlendOperationAdvancedFeatures);
-        vk::AddToPNextChain(&deviceProperties, &mBlendOperationAdvancedProperties);
     }
 
     vkGetPhysicalDeviceFeatures2KHR(mPhysicalDevice, &deviceFeatures);
@@ -2012,7 +2012,6 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
     mHostQueryResetFeatures.pNext                    = nullptr;
     mDepthClipControlFeatures.pNext                  = nullptr;
     mBlendOperationAdvancedFeatures.pNext            = nullptr;
-    mBlendOperationAdvancedProperties.pNext          = nullptr;
 }
 
 angle::Result RendererVk::initializeDevice(DisplayVk *displayVk, uint32_t queueFamilyIndex)
@@ -2239,7 +2238,7 @@ angle::Result RendererVk::initializeDevice(DisplayVk *displayVk, uint32_t queueF
     {
         mEnabledDeviceExtensions.push_back(VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME);
     }
-    else if (getFeatures().supportsRenderPassStoreOpNoneQCOM.enabled)
+    else if (getFeatures().supportsRenderPassStoreOpNone.enabled)
     {
         mEnabledDeviceExtensions.push_back(VK_QCOM_RENDER_PASS_STORE_OPS_EXTENSION_NAME);
     }
@@ -3039,7 +3038,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
         ExtensionFound(VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME, deviceExtensionNames));
 
     ANGLE_FEATURE_CONDITION(
-        &mFeatures, supportsRenderPassStoreOpNoneQCOM,
+        &mFeatures, supportsRenderPassStoreOpNone,
         !mFeatures.supportsRenderPassLoadStoreOpNone.enabled &&
             ExtensionFound(VK_QCOM_RENDER_PASS_STORE_OPS_EXTENSION_NAME, deviceExtensionNames));
 
@@ -3243,16 +3242,6 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // Android mistakenly destroys the old swapchain when creating a new one.
     ANGLE_FEATURE_CONDITION(&mFeatures, waitIdleBeforeSwapchainRecreation, IsAndroid() && isARM);
 
-    for (size_t lodOffsetFeatureIdx = 0;
-         lodOffsetFeatureIdx < mFeatures.forceTextureLODOffset.size(); lodOffsetFeatureIdx++)
-    {
-        ANGLE_FEATURE_CONDITION(&mFeatures, forceTextureLODOffset[lodOffsetFeatureIdx], false);
-    }
-    ANGLE_FEATURE_CONDITION(&mFeatures, forceNearestFiltering, false);
-    ANGLE_FEATURE_CONDITION(&mFeatures, forceNearestMipFiltering, false);
-
-    ANGLE_FEATURE_CONDITION(&mFeatures, compressVertexData, false);
-
     // vkCmdClearAttachments races with draw calls on Qualcomm hardware as observed on Pixel2 and
     // Pixel4.  https://issuetracker.google.com/issues/166809097
     ANGLE_FEATURE_CONDITION(&mFeatures, preferDrawClearOverVkCmdClearAttachments, isQualcomm);
@@ -3286,7 +3275,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // Android prevents creating swapchain images with VK_FORMAT_R8G8B8_UNORM.
     // Do this for all platforms, since few (none?) IHVs support 24-bit formats with their HW
     // natively anyway.
-    ANGLE_FEATURE_CONDITION(&mFeatures, overrideSurfaceFormatRGB8toRGBA8, true);
+    ANGLE_FEATURE_CONDITION(&mFeatures, overrideSurfaceFormatRGB8ToRGBA8, true);
 
     // http://anglebug.com/6872
     // On ARM hardware, framebuffer-fetch-like behavior on Vulkan is already coherent, so we can
@@ -3314,18 +3303,25 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // (which would require Chromium and Capture/Replay test expectations updates).
     ANGLE_FEATURE_CONDITION(&mFeatures, emulateDithering, IsAndroid());
 
+    // GL_KHR_blend_equation_advanced is emulated when the equivalent Vulkan extension is not
+    // usable.  Additionally, the following platforms don't support INPUT_ATTACHMENT usage for the
+    // swapchain, so they are excluded:
+    //
+    // - Intel
+    //
+    // Without VK_GOOGLE_surfaceless_query, there is no way to automatically deduce this support.
+    ANGLE_FEATURE_CONDITION(&mFeatures, emulateAdvancedBlendEquations,
+                            !mFeatures.supportsBlendOperationAdvanced.enabled && !isIntel);
+
     // http://anglebug.com/6933
     // Android expects VkPresentRegionsKHR rectangles with a bottom-left origin, while spec
     // states they should have a top-left origin.
     ANGLE_FEATURE_CONDITION(&mFeatures, bottomLeftOriginPresentRegionRectangles, IsAndroid());
 
     // Retain debug info in SPIR-V blob.
-    ANGLE_FEATURE_CONDITION(&mFeatures, retainSpirvDebugInfo, getEnableValidationLayers());
+    ANGLE_FEATURE_CONDITION(&mFeatures, retainSPIRVDebugInfo, getEnableValidationLayers());
 
     ANGLE_FEATURE_CONDITION(&mFeatures, generateSPIRVThroughGlslang, kUseSpirvGenThroughGlslang);
-
-    angle::PlatformMethods *platform = ANGLEPlatformCurrent();
-    platform->overrideFeaturesVk(platform, &mFeatures);
 
     ApplyFeatureOverrides(&mFeatures, displayVk->getState());
 
@@ -3688,9 +3684,34 @@ bool RendererVk::haveSameFormatFeatureBits(angle::FormatID formatID1,
            hasImageFormatFeatureBits(formatID2, fmt1OptimalFeatureBits);
 }
 
+void RendererVk::addBufferBlockToOrphanList(vk::BufferBlock *block)
+{
+    std::lock_guard<std::mutex> lock(mGarbageMutex);
+    mOrphanedBufferBlocks.emplace_back(block);
+}
+
+void RendererVk::pruneOrphanedBufferBlocks()
+{
+    for (auto iter = mOrphanedBufferBlocks.begin(); iter != mOrphanedBufferBlocks.end();)
+    {
+        if (!(*iter)->isEmpty())
+        {
+            ++iter;
+            continue;
+        }
+        (*iter)->destroy(this);
+        iter = mOrphanedBufferBlocks.erase(iter);
+    }
+}
+
 angle::Result RendererVk::cleanupGarbage(Serial lastCompletedQueueSerial)
 {
     std::lock_guard<std::mutex> lock(mGarbageMutex);
+
+    if (!mOrphanedBufferBlocks.empty())
+    {
+        pruneOrphanedBufferBlocks();
+    }
 
     // Clean up general garbages
     while (!mSharedGarbage.empty())
@@ -4234,24 +4255,6 @@ VkDeviceSize RendererVk::getPreferedBufferBlockSize(uint32_t memoryTypeIndex) co
     // Try not to exceed 1/64 of heap size to begin with.
     const VkDeviceSize heapSize = getMemoryProperties().getHeapSizeForMemoryType(memoryTypeIndex);
     return std::min(heapSize / 64, mPreferredLargeHeapBlockSize);
-}
-
-vk::BufferPool *RendererVk::getDefaultBufferPool(VkDeviceSize size, uint32_t memoryTypeIndex)
-{
-    return vk::GetDefaultBufferPool(mSmallBufferPool, mDefaultBufferPools, this, size,
-                                    memoryTypeIndex);
-}
-
-void RendererVk::pruneDefaultBufferPools()
-{
-    mLastPruneTime = angle::GetCurrentSystemTime();
-
-    vk::PruneDefaultBufferPools(this, mDefaultBufferPools, mSmallBufferPool);
-}
-
-bool RendererVk::isDueForBufferPoolPrune()
-{
-    return vk::IsDueForBufferPoolPrune(mLastPruneTime);
 }
 
 namespace vk
