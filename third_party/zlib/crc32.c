@@ -1,5 +1,5 @@
 /* crc32.c -- compute the CRC-32 of a data stream
- * Copyright (C) 1995-2006, 2010, 2011, 2012, 2016, 2018 Mark Adler
+ * Copyright (C) 1995-2022 Mark Adler
  * For conditions of distribution and use, see copyright notice in zlib.h
  *
  * This interleaved implementation of a CRC makes use of pipelined multiple
@@ -107,11 +107,42 @@
 /* Local functions. */
 local z_crc_t multmodp OF((z_crc_t a, z_crc_t b));
 local z_crc_t x2nmodp OF((z_off64_t n, unsigned k));
-#ifdef W
-   local z_word_t byte_swap OF((z_word_t word));
-   local z_crc_t crc_word OF((z_word_t data));
-   local z_word_t crc_word_big OF((z_word_t data));
-#endif /* W */
+
+/* If available, use the ARM processor CRC32 instruction. */
+#if defined(__aarch64__) && defined(__ARM_FEATURE_CRC32) && W == 8 \
+    && defined(USE_CANONICAL_ARMV8_CRC32)
+#  define ARMCRC32_CANONICAL_ZLIB
+#endif
+
+#if defined(W) && (!defined(ARMCRC32_CANONICAL_ZLIB) || defined(DYNAMIC_CRC_TABLE))
+/*
+  Swap the bytes in a z_word_t to convert between little and big endian. Any
+  self-respecting compiler will optimize this to a single machine byte-swap
+  instruction, if one is available. This assumes that word_t is either 32 bits
+  or 64 bits.
+ */
+local z_word_t byte_swap(word)
+    z_word_t word;
+{
+#  if W == 8
+    return
+        (word & 0xff00000000000000) >> 56 |
+        (word & 0xff000000000000) >> 40 |
+        (word & 0xff0000000000) >> 24 |
+        (word & 0xff00000000) >> 8 |
+        (word & 0xff000000) << 8 |
+        (word & 0xff0000) << 24 |
+        (word & 0xff00) << 40 |
+        (word & 0xff) << 56;
+#  else   /* W == 4 */
+    return
+        (word & 0xff000000) >> 24 |
+        (word & 0xff0000) >> 8 |
+        (word & 0xff00) << 8 |
+        (word & 0xff) << 24;
+#  endif
+}
+#endif
 
 /* CRC polynomial. */
 #define POLY 0xedb88320         /* p(x) reflected, with x^32 implied */
@@ -230,7 +261,7 @@ local once_t made = ONCE_INIT;
   is just exclusive-or, and multiplying a polynomial by x is a right shift by
   one. If we call the above polynomial p, and represent a byte as the
   polynomial q, also with the lowest power in the most significant bit (so the
-  byte 0xb1 is the polynomial x^7+x^3+x+1), then the CRC is (q*x^32) mod p,
+  byte 0xb1 is the polynomial x^7+x^3+x^2+1), then the CRC is (q*x^32) mod p,
   where a mod b means the remainder after dividing a by b.
 
   This calculation is done using the shift-register method of multiplying and
@@ -554,35 +585,135 @@ local z_crc_t x2nmodp(n, k)
     return p;
 }
 
-#ifdef W
+/* =========================================================================
+ * This function can be used by asm versions of crc32(), and to force the
+ * generation of the CRC tables in a threaded application.
+ */
+const z_crc_t FAR * ZEXPORT get_crc_table()
+{
+#ifdef DYNAMIC_CRC_TABLE
+    once(&made, make_crc_table);
+#endif /* DYNAMIC_CRC_TABLE */
+    return (const z_crc_t FAR *)crc_table;
+}
+
+/* =========================================================================
+ * Use ARM machine instructions if available. This will compute the CRC about
+ * ten times faster than the braided calculation. This code does not check for
+ * the presence of the CRC instruction at run time. __ARM_FEATURE_CRC32 will
+ * only be defined if the compilation specifies an ARM processor architecture
+ * that has the instructions. For example, compiling with -march=armv8.1-a or
+ * -march=armv8-a+crc, or -march=native if the compile machine has the crc32
+ * instructions.
+ */
+#if ARMCRC32_CANONICAL_ZLIB
 
 /*
-  Swap the bytes in a z_word_t to convert between little and big endian. Any
-  self-respecting compiler will optimize this to a single machine byte-swap
-  instruction, if one is available. This assumes that word_t is either 32 bits
-  or 64 bits.
+   Constants empirically determined to maximize speed. These values are from
+   measurements on a Cortex-A57. Your mileage may vary.
  */
-local z_word_t byte_swap(word)
-    z_word_t word;
+#define Z_BATCH 3990                /* number of words in a batch */
+#define Z_BATCH_ZEROS 0xa10d3d0c    /* computed from Z_BATCH = 3990 */
+#define Z_BATCH_MIN 800             /* fewest words in a final batch */
+
+unsigned long ZEXPORT crc32_z(crc, buf, len)
+    unsigned long crc;
+    const unsigned char FAR *buf;
+    z_size_t len;
 {
-#if W == 8
-    return
-        (word & 0xff00000000000000) >> 56 |
-        (word & 0xff000000000000) >> 40 |
-        (word & 0xff0000000000) >> 24 |
-        (word & 0xff00000000) >> 8 |
-        (word & 0xff000000) << 8 |
-        (word & 0xff0000) << 24 |
-        (word & 0xff00) << 40 |
-        (word & 0xff) << 56;
-#else   /* W == 4 */
-    return
-        (word & 0xff000000) >> 24 |
-        (word & 0xff0000) >> 8 |
-        (word & 0xff00) << 8 |
-        (word & 0xff) << 24;
-#endif
+    z_crc_t val;
+    z_word_t crc1, crc2;
+    const z_word_t *word;
+    z_word_t val0, val1, val2;
+    z_size_t last, last2, i;
+    z_size_t num;
+
+    /* Return initial CRC, if requested. */
+    if (buf == Z_NULL) return 0;
+
+#ifdef DYNAMIC_CRC_TABLE
+    once(&made, make_crc_table);
+#endif /* DYNAMIC_CRC_TABLE */
+
+    /* Pre-condition the CRC */
+    crc = (~crc) & 0xffffffff;
+
+    /* Compute the CRC up to a word boundary. */
+    while (len && ((z_size_t)buf & 7) != 0) {
+        len--;
+        val = *buf++;
+        __asm__ volatile("crc32b %w0, %w0, %w1" : "+r"(crc) : "r"(val));
+    }
+
+    /* Prepare to compute the CRC on full 64-bit words word[0..num-1]. */
+    word = (z_word_t const *)buf;
+    num = len >> 3;
+    len &= 7;
+
+    /* Do three interleaved CRCs to realize the throughput of one crc32x
+       instruction per cycle. Each CRC is calcuated on Z_BATCH words. The three
+       CRCs are combined into a single CRC after each set of batches. */
+    while (num >= 3 * Z_BATCH) {
+        crc1 = 0;
+        crc2 = 0;
+        for (i = 0; i < Z_BATCH; i++) {
+            val0 = word[i];
+            val1 = word[i + Z_BATCH];
+            val2 = word[i + 2 * Z_BATCH];
+            __asm__ volatile("crc32x %w0, %w0, %x1" : "+r"(crc) : "r"(val0));
+            __asm__ volatile("crc32x %w0, %w0, %x1" : "+r"(crc1) : "r"(val1));
+            __asm__ volatile("crc32x %w0, %w0, %x1" : "+r"(crc2) : "r"(val2));
+        }
+        word += 3 * Z_BATCH;
+        num -= 3 * Z_BATCH;
+        crc = multmodp(Z_BATCH_ZEROS, crc) ^ crc1;
+        crc = multmodp(Z_BATCH_ZEROS, crc) ^ crc2;
+    }
+
+    /* Do one last smaller batch with the remaining words, if there are enough
+       to pay for the combination of CRCs. */
+    last = num / 3;
+    if (last >= Z_BATCH_MIN) {
+        last2 = last << 1;
+        crc1 = 0;
+        crc2 = 0;
+        for (i = 0; i < last; i++) {
+            val0 = word[i];
+            val1 = word[i + last];
+            val2 = word[i + last2];
+            __asm__ volatile("crc32x %w0, %w0, %x1" : "+r"(crc) : "r"(val0));
+            __asm__ volatile("crc32x %w0, %w0, %x1" : "+r"(crc1) : "r"(val1));
+            __asm__ volatile("crc32x %w0, %w0, %x1" : "+r"(crc2) : "r"(val2));
+        }
+        word += 3 * last;
+        num -= 3 * last;
+        val = x2nmodp(last, 6);
+        crc = multmodp(val, crc) ^ crc1;
+        crc = multmodp(val, crc) ^ crc2;
+    }
+
+    /* Compute the CRC on any remaining words. */
+    for (i = 0; i < num; i++) {
+        val0 = word[i];
+        __asm__ volatile("crc32x %w0, %w0, %x1" : "+r"(crc) : "r"(val0));
+    }
+    word += num;
+
+    /* Complete the CRC on any remaining bytes. */
+    buf = (const unsigned char FAR *)word;
+    while (len) {
+        len--;
+        val = *buf++;
+        __asm__ volatile("crc32b %w0, %w0, %w1" : "+r"(crc) : "r"(val));
+    }
+
+    /* Return the CRC, post-conditioned. */
+    return crc ^ 0xffffffff;
 }
+
+#else
+
+#ifdef W
 
 /*
   Return the CRC of the W bytes in the word_t data, taking the
@@ -608,19 +739,7 @@ local z_word_t crc_word_big(data)
     return data;
 }
 
-#endif /* W */
-
-/* =========================================================================
- * This function can be used by asm versions of crc32(), and to force the
- * generation of the CRC tables in a threaded application.
- */
-const z_crc_t FAR * ZEXPORT get_crc_table()
-{
-#ifdef DYNAMIC_CRC_TABLE
-    once(&made, make_crc_table);
-#endif /* DYNAMIC_CRC_TABLE */
-    return (const z_crc_t FAR *)crc_table;
-}
+#endif
 
 /* ========================================================================= */
 unsigned long ZEXPORT crc32_z(crc, buf, len)
@@ -666,7 +785,7 @@ unsigned long ZEXPORT crc32_z(crc, buf, len)
     once(&made, make_crc_table);
 #endif /* DYNAMIC_CRC_TABLE */
     /* Pre-condition the CRC */
-    crc ^= 0xffffffff;
+    crc = (~crc) & 0xffffffff;
 
 #ifdef W
 
@@ -974,6 +1093,8 @@ unsigned long ZEXPORT crc32_z(crc, buf, len)
     return crc ^ 0xffffffff;
 }
 
+#endif
+
 /* ========================================================================= */
 unsigned long ZEXPORT crc32(crc, buf, len)
     unsigned long crc;
@@ -1010,7 +1131,7 @@ uLong ZEXPORT crc32_combine64(crc1, crc2, len2)
 #ifdef DYNAMIC_CRC_TABLE
     once(&made, make_crc_table);
 #endif /* DYNAMIC_CRC_TABLE */
-    return multmodp(x2nmodp(len2, 3), crc1) ^ crc2;
+    return multmodp(x2nmodp(len2, 3), crc1) ^ (crc2 & 0xffffffff);
 }
 
 /* ========================================================================= */
@@ -1044,7 +1165,7 @@ uLong ZEXPORT crc32_combine_op(crc1, crc2, op)
     uLong crc2;
     uLong op;
 {
-    return multmodp(op, crc1) ^ crc2;
+    return multmodp(op, crc1) ^ (crc2 & 0xffffffff);
 }
 
 ZLIB_INTERNAL void crc_reset(deflate_state *const s)

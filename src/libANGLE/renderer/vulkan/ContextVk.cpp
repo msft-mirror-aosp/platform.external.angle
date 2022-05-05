@@ -198,8 +198,8 @@ void ApplySampleCoverage(const gl::State &glState,
 
     uint32_t maskBitOffset = maskNumber * 32;
     uint32_t coverageMask  = coverageSampleCount >= (maskBitOffset + 32)
-                                ? std::numeric_limits<uint32_t>::max()
-                                : (1u << (coverageSampleCount - maskBitOffset)) - 1;
+                                 ? std::numeric_limits<uint32_t>::max()
+                                 : (1u << (coverageSampleCount - maskBitOffset)) - 1;
 
     if (glState.getSampleCoverageInvert())
     {
@@ -301,7 +301,7 @@ vk::ResourceAccess GetColorAccess(const gl::State &state,
 
     const gl::BlendStateExt &blendStateExt = state.getBlendStateExt();
     uint8_t colorMask                      = gl::BlendStateExt::ColorMaskStorage::GetValueIndexed(
-        colorIndexGL, blendStateExt.getColorMaskBits());
+                             colorIndexGL, blendStateExt.getColorMaskBits());
     if (emulatedAlphaMask[colorIndexGL])
     {
         colorMask &= ~VK_COLOR_COMPONENT_A_BIT;
@@ -762,6 +762,8 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, RendererVk 
       mGpuEventsEnabled(false),
       mPrimaryBufferEventCounter(0),
       mHasDeferredFlush(false),
+      mHasAnyCommandsPendingSubmission(false),
+      mTotalBufferToImageCopySize(0),
       mGpuClockSync{std::numeric_limits<double>::max(), std::numeric_limits<double>::max()},
       mGpuEventTimestampOrigin(0),
       mContextPriority(renderer->getDriverPriority(GetContextPriority(state))),
@@ -1159,6 +1161,13 @@ angle::Result ContextVk::initialize()
 
 angle::Result ContextVk::flush(const gl::Context *context)
 {
+    // Skip the flush if there's nothing recorded.
+    if (!mHasAnyCommandsPendingSubmission && !hasStartedRenderPass() &&
+        mOutsideRenderPassCommands->empty())
+    {
+        return angle::Result::Continue;
+    }
+
     const bool isSingleBuffer =
         (mCurrentWindowSurface != nullptr) && mCurrentWindowSurface->isSharedPresentMode();
 
@@ -2737,6 +2746,8 @@ angle::Result ContextVk::submitFrame(const vk::Semaphore *signalSemaphore, Seria
 
     ANGLE_TRY(submitCommands(signalSemaphore, submitSerialOut));
 
+    mHasAnyCommandsPendingSubmission = false;
+
     onRenderPassFinished(RenderPassClosureReason::AlreadySpecifiedElsewhere);
     return angle::Result::Continue;
 }
@@ -2786,18 +2797,18 @@ angle::Result ContextVk::submitCommands(const vk::Semaphore *signalSemaphore,
         ANGLE_TRY(checkCompletedGpuEvents());
     }
 
-    resetTotalBufferToImageCopySize();
+    mTotalBufferToImageCopySize = 0;
 
     return angle::Result::Continue;
 }
 
 angle::Result ContextVk::onCopyUpdate(VkDeviceSize size)
 {
-    mTotalBufferToImageCopySize += size;
     ANGLE_TRACE_EVENT0("gpu.angle", "ContextVk::onCopyUpdate");
+
+    mTotalBufferToImageCopySize += size;
     // If the copy size exceeds the specified threshold, submit the outside command buffer.
-    VkDeviceSize copySize = getTotalBufferToImageCopySize();
-    if (copySize >= kMaxBufferToImageCopySize)
+    if (mTotalBufferToImageCopySize >= kMaxBufferToImageCopySize)
     {
         ANGLE_TRY(submitOutsideRenderPassCommandsImpl());
     }
@@ -3654,7 +3665,11 @@ angle::Result ContextVk::optimizeRenderPassForPresent(VkFramebuffer framebufferH
     }
 
     // Resolve the multisample image
-    if (colorImageMS->valid())
+    vk::RenderPassCommandBufferHelper &commandBufferHelper = getStartedRenderPassCommands();
+    gl::Rectangle renderArea                               = commandBufferHelper.getRenderArea();
+    const gl::Rectangle invalidateArea(0, 0, colorImageMS->getExtents().width,
+                                       colorImageMS->getExtents().height);
+    if (colorImageMS->valid() && renderArea == invalidateArea)
     {
         vk::ImageOrBufferViewSubresourceSerial resolveImageViewSerial =
             colorImageView->getSubresourceSerial(gl::LevelIndex(0), 1, 0, vk::LayerMode::All,
@@ -3672,7 +3687,6 @@ angle::Result ContextVk::optimizeRenderPassForPresent(VkFramebuffer framebufferH
         ANGLE_TRY(drawFramebufferVk->getFramebuffer(this, &newFramebuffer, resolveImageView,
                                                     kSwapchainResolveMode));
 
-        vk::RenderPassCommandBufferHelper &commandBufferHelper = getStartedRenderPassCommands();
         commandBufferHelper.updateRenderPassForResolve(this, newFramebuffer,
                                                        drawFramebufferVk->getRenderPassDesc());
 
@@ -3683,8 +3697,6 @@ angle::Result ContextVk::optimizeRenderPassForPresent(VkFramebuffer framebufferH
         // why this is not done when in DEMAND_REFRESH mode.
         if (presentMode != VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR)
         {
-            const gl::Rectangle invalidateArea(0, 0, colorImageMS->getExtents().width,
-                                               colorImageMS->getExtents().height);
             commandBufferHelper.invalidateRenderPassColorAttachment(
                 mState, 0, vk::PackedAttachmentIndex(0), invalidateArea);
         }
@@ -4116,9 +4128,23 @@ void ContextVk::updateSampleShadingWithRasterizationSamples(const uint32_t raste
 {
     bool sampleShadingEnable =
         (rasterizationSamples <= 1 ? false : mState.isSampleShadingEnabled());
+    float minSampleShading = mState.getMinSampleShading();
+
+    // If sample shading is not enabled, check if it should be implicitly enabled according to the
+    // program.  Normally the driver should do this, but some drivers don't.
+    if (rasterizationSamples > 1 && !sampleShadingEnable &&
+        getFeatures().explicitlyEnablePerSampleShading.enabled)
+    {
+        const gl::ProgramExecutable *executable = mState.getProgramExecutable();
+        if (executable && executable->enablesPerSampleShading())
+        {
+            sampleShadingEnable = true;
+            minSampleShading    = 1.0;
+        }
+    }
 
     mGraphicsPipelineDesc->updateSampleShading(&mGraphicsPipelineTransition, sampleShadingEnable,
-                                               mState.getMinSampleShading());
+                                               minSampleShading);
 }
 
 // If the target is switched between a single-sampled and multisample, the dependency related to the
@@ -4610,6 +4636,15 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                               "Dirty bit order");
                 iter.setLaterBit(gl::State::DIRTY_BIT_ATOMIC_COUNTER_BUFFER_BINDING);
                 ANGLE_TRY(invalidateProgramExecutableHelper(context));
+
+                static_assert(
+                    gl::State::DIRTY_BIT_SAMPLE_SHADING > gl::State::DIRTY_BIT_PROGRAM_EXECUTABLE,
+                    "Dirty bit order");
+                if (getFeatures().explicitlyEnablePerSampleShading.enabled)
+                {
+                    iter.setLaterBit(gl::State::DIRTY_BIT_SAMPLE_SHADING);
+                }
+
                 break;
             }
             case gl::State::DIRTY_BIT_SAMPLER_BINDINGS:
@@ -6638,6 +6673,8 @@ angle::Result ContextVk::flushCommandsAndEndRenderPassImpl(QueueSubmitType queue
         ANGLE_TRY(flushOutsideRenderPassCommands());
     }
 
+    mHasAnyCommandsPendingSubmission = true;
+
     if (mHasDeferredFlush && queueSubmit == QueueSubmitType::PerformQueueSubmit)
     {
         // If we have deferred glFlush call in the middle of renderpass, flush them now.
@@ -6790,6 +6827,8 @@ angle::Result ContextVk::flushOutsideRenderPassCommands()
     // Make sure appropriate dirty bits are set, in case another thread makes a submission before
     // the next dispatch call.
     mComputeDirtyBits |= mNewComputeCommandBufferDirtyBits;
+
+    mHasAnyCommandsPendingSubmission = true;
 
     mPerfCounters.flushedOutsideRenderPassCommandBuffers++;
     return angle::Result::Continue;

@@ -569,6 +569,11 @@ struct FeaturesVk : FeatureSetBase
                                     "Emulate OpenGL dithering", &members,
                                     "http://anglebug.com/6755"};
 
+    FeatureInfo roundOutputAfterDithering = {
+        "roundOutputAfterDithering", FeatureCategory::VulkanWorkarounds,
+        "Round output after dithering to workaround a driver bug that rounds the output up",
+        &members, "http://anglebug.com/6953"};
+
     FeatureInfo emulateAdvancedBlendEquations = {
         "emulateAdvancedBlendEquations", FeatureCategory::VulkanFeatures,
         "Emulate GL_KHR_blend_equation_advanced", &members, "http://anglebug.com/3586"};
@@ -603,6 +608,12 @@ struct FeaturesVk : FeatureSetBase
         "supportsFragmentShadingRate", FeatureCategory::VulkanFeatures,
         "VkDevice supports VK_KHR_fragment_shading_rate extension", &members,
         "http://anglebug.com/7172"};
+
+    FeatureInfo explicitlyEnablePerSampleShading = {
+        "explicitlyEnablePerSampleShading", FeatureCategory::VulkanWorkarounds,
+        "Explicitly enable per-sample shading if the fragment shader contains the "
+        "sample qualifier",
+        &members, "http://anglebug.com/6876"};
 };
 
 inline FeaturesVk::FeaturesVk()  = default;
