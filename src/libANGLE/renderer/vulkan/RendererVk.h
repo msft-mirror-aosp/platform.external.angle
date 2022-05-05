@@ -547,10 +547,8 @@ class RendererVk : angle::NonCopyable
         return mDeviceLocalVertexConversionBufferMemoryTypeIndex;
     }
 
-    vk::BufferPool *getDefaultBufferPool(VkDeviceSize size, uint32_t memoryTypeIndex);
-
-    void pruneDefaultBufferPools();
-    bool isDueForBufferPoolPrune();
+    void addBufferBlockToOrphanList(vk::BufferBlock *block);
+    void pruneOrphanedBufferBlocks();
 
   private:
     angle::Result initializeDevice(DisplayVk *displayVk, uint32_t queueFamilyIndex);
@@ -627,7 +625,6 @@ class RendererVk : angle::NonCopyable
     VkPhysicalDeviceHostQueryResetFeaturesEXT mHostQueryResetFeatures;
     VkPhysicalDeviceDepthClipControlFeaturesEXT mDepthClipControlFeatures;
     VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT mBlendOperationAdvancedFeatures;
-    VkPhysicalDeviceBlendOperationAdvancedPropertiesEXT mBlendOperationAdvancedProperties;
     VkPhysicalDeviceSamplerYcbcrConversionFeatures mSamplerYcbcrConversionFeatures;
     std::vector<VkQueueFamilyProperties> mQueueFamilyProperties;
     uint32_t mMaxVertexAttribDivisor;
@@ -670,6 +667,9 @@ class RendererVk : angle::NonCopyable
     uint32_t mHostVisibleVertexConversionBufferMemoryTypeIndex;
     uint32_t mDeviceLocalVertexConversionBufferMemoryTypeIndex;
     size_t mVertexConversionBufferAlignment;
+
+    // Holds orphaned BufferBlocks when ShareGroup gets destroyed
+    vk::BufferBlockPointerVector mOrphanedBufferBlocks;
 
     // All access to the pipeline cache is done through EGL objects so it is thread safe to not use
     // a lock.
@@ -754,12 +754,6 @@ class RendererVk : angle::NonCopyable
 
     vk::ExtensionNameList mEnabledInstanceExtensions;
     vk::ExtensionNameList mEnabledDeviceExtensions;
-
-    vk::BufferPoolPointerArray mDefaultBufferPools;
-
-    std::unique_ptr<vk::BufferPool> mSmallBufferPool;
-
-    double mLastPruneTime;
 };
 
 }  // namespace rx

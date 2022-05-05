@@ -47,8 +47,8 @@ constexpr size_t kInitialTraceEventBufferSize = 50000;
 constexpr double kMilliSecondsPerSecond       = 1e3;
 constexpr double kMicroSecondsPerSecond       = 1e6;
 constexpr double kNanoSecondsPerSecond        = 1e9;
-constexpr char kPeakMemoryMetric[]            = ".peak_memory";
-constexpr char kMedianMemoryMetric[]          = ".median_memory";
+constexpr char kPeakMemoryMetric[]            = ".memory_max";
+constexpr char kMedianMemoryMetric[]          = ".memory_median";
 
 struct TraceCategory
 {
@@ -67,12 +67,6 @@ void CustomLogError(PlatformMethods *platform, const char *errorMessage)
 {
     auto *angleRenderTest = static_cast<ANGLERenderTest *>(platform->context);
     angleRenderTest->onErrorMessage(errorMessage);
-}
-
-void OverrideWorkaroundsD3D(PlatformMethods *platform, FeaturesD3D *featuresD3D)
-{
-    auto *angleRenderTest = static_cast<ANGLERenderTest *>(platform->context);
-    angleRenderTest->overrideWorkaroundsD3D(featuresD3D);
 }
 
 TraceEventHandle AddPerfTraceEvent(PlatformMethods *platform,
@@ -437,35 +431,46 @@ void ANGLEPerfTest::processResults()
         const std::string &counterName = iter.second.name;
         std::vector<GLuint> samples    = iter.second.samples;
 
-        size_t midpoint = samples.size() >> 1;
-        std::nth_element(samples.begin(), samples.begin() + midpoint, samples.end());
-
+        // Median
         {
+            size_t midpoint = samples.size() >> 1;
+            std::nth_element(samples.begin(), samples.begin() + midpoint, samples.end());
+
             std::stringstream medianStr;
             medianStr << "." << counterName << "_median";
             std::string medianName = medianStr.str();
 
             mReporter->AddResult(medianName, static_cast<size_t>(samples[midpoint]));
-        }
 
-        {
             std::string measurement = mName + mBackend + "." + counterName + "_median";
             TestSuite::GetInstance()->addHistogramSample(measurement, mStory, samples[midpoint],
                                                          "count");
         }
 
-        const auto &maxIt = std::max_element(samples.begin(), samples.end());
-
+        // Maximum
         {
+            const auto &maxIt = std::max_element(samples.begin(), samples.end());
+
             std::stringstream maxStr;
             maxStr << "." << counterName << "_max";
             std::string maxName = maxStr.str();
             mReporter->AddResult(maxName, static_cast<size_t>(*maxIt));
-        }
 
-        {
             std::string measurement = mName + mBackend + "." + counterName + "_max";
             TestSuite::GetInstance()->addHistogramSample(measurement, mStory, *maxIt, "count");
+        }
+
+        // Sum
+        {
+            GLuint sum = std::accumulate(samples.begin(), samples.end(), 0);
+
+            std::stringstream sumStr;
+            sumStr << "." << counterName << "_sum";
+            std::string sumName = sumStr.str();
+            mReporter->AddResult(sumName, static_cast<size_t>(sum));
+
+            std::string measurement = mName + mBackend + "." + counterName + "_sum";
+            TestSuite::GetInstance()->addHistogramSample(measurement, mStory, sum, "count");
         }
     }
 }
@@ -763,7 +768,6 @@ void ANGLERenderTest::SetUp()
         return;
     }
 
-    mPlatformMethods.overrideWorkaroundsD3D      = OverrideWorkaroundsD3D;
     mPlatformMethods.logError                    = CustomLogError;
     mPlatformMethods.logWarning                  = EmptyPlatformMethod;
     mPlatformMethods.logInfo                     = EmptyPlatformMethod;
@@ -864,8 +868,7 @@ void ANGLERenderTest::SetUp()
 
     for (int loopIndex = 0; loopIndex < gWarmupLoops; ++loopIndex)
     {
-        doRunLoop(gCalibrationTimeSeconds, std::numeric_limits<int>::max(),
-                  RunLoopPolicy::FinishEveryStep);
+        doRunLoop(gCalibrationTimeSeconds, gWarmupSteps, RunLoopPolicy::FinishEveryStep);
         if (gVerboseLogging)
         {
             printf("Warm-up loop took %.2lf seconds.\n", mTimer.getElapsedWallClockTime());
@@ -931,30 +934,44 @@ void ANGLERenderTest::initPerfCounters()
                            angle::SplitResult::SPLIT_WANT_NONEMPTY);
     for (const std::string &counter : counters)
     {
-        auto iter = indexMap.find(counter);
-        if (iter == indexMap.end())
+        bool found = false;
+
+        for (const auto &indexMapIter : indexMap)
         {
-            fprintf(stderr, "Counter '%s' not in list of available perf counters.\n",
-                    counter.c_str());
+            const std::string &indexMapName = indexMapIter.first;
+            if (NamesMatchWithWildcard(counter.c_str(), indexMapName.c_str()))
+            {
+                {
+                    std::stringstream medianStr;
+                    medianStr << '.' << indexMapName << "_median";
+                    std::string medianName = medianStr.str();
+                    mReporter->RegisterImportantMetric(medianName, "count");
+                }
+
+                {
+                    std::stringstream maxStr;
+                    maxStr << '.' << indexMapName << "_max";
+                    std::string maxName = maxStr.str();
+                    mReporter->RegisterImportantMetric(maxName, "count");
+                }
+
+                {
+                    std::stringstream sumStr;
+                    sumStr << '.' << indexMapName << "_sum";
+                    std::string sumName = sumStr.str();
+                    mReporter->RegisterImportantMetric(sumName, "count");
+                }
+
+                GLuint index            = indexMapIter.second;
+                mPerfCounterInfo[index] = {indexMapName, {}};
+
+                found = true;
+            }
         }
-        else
+
+        if (!found)
         {
-            {
-                std::stringstream medianStr;
-                medianStr << '.' << counter << "_median";
-                std::string medianName = medianStr.str();
-                mReporter->RegisterImportantMetric(medianName, "count");
-            }
-
-            {
-                std::stringstream maxStr;
-                maxStr << '.' << counter << "_max";
-                std::string maxName = maxStr.str();
-                mReporter->RegisterImportantMetric(maxName, "count");
-            }
-
-            GLuint index            = indexMap[counter];
-            mPerfCounterInfo[index] = {counter, {}};
+            fprintf(stderr, "'%s' does not match any available perf counters.\n", counter.c_str());
         }
     }
 }

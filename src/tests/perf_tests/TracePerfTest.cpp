@@ -1200,7 +1200,7 @@ TracePerfTest::TracePerfTest(const TracePerfParams &params)
 
     if (traceNameIs("car_chase"))
     {
-        if (IsWindows() && IsIntelHD630Mobile())
+        if (IsWindows() && IsIntel())
         {
             skipTest("http://anglebug.com/7173 Fails on Intel HD 630 Mobile");
         }
@@ -1210,6 +1210,16 @@ TracePerfTest::TracePerfTest(const TracePerfParams &params)
         addExtensionPrerequisite("GL_EXT_tessellation_shader");
         addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
         addExtensionPrerequisite("GL_EXT_texture_cube_map_array");
+    }
+
+    if (traceNameIs("aztec_ruins_high"))
+    {
+        addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
+    }
+
+    if (traceNameIs("special_forces_group_2"))
+    {
+        addExtensionPrerequisite("GL_EXT_texture_buffer");
     }
 
     ASSERT(mParams.surfaceType == SurfaceType::Window || gEnableAllTraceTests);
@@ -2058,10 +2068,10 @@ void RegisterTraceTests()
         if (gTraceTestValidation)
         {
             // Enable limits when validating traces because we usually turn off capture.
-            overrideParams.eglParameters.captureLimits = EGL_TRUE;
+            overrideParams.eglParameters.enable(Feature::EnableCaptureLimits);
 
             // This feature should also be enabled in capture to mirror the replay.
-            overrideParams.eglParameters.forceInitShaderVariables = EGL_TRUE;
+            overrideParams.eglParameters.enable(Feature::ForceInitShaderVariables);
         }
 
         auto factory          = [overrideParams]() { return new TracePerfTest(overrideParams); };

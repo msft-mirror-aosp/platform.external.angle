@@ -13,10 +13,10 @@
 
 #include "libANGLE/renderer/glslang_wrapper_utils.h"
 #include "libANGLE/renderer/vulkan/ContextVk.h"
-#include "libANGLE/renderer/vulkan/DisplayVk.h"
 #include "libANGLE/renderer/vulkan/FramebufferVk.h"
 #include "libANGLE/renderer/vulkan/RenderTargetVk.h"
 #include "libANGLE/renderer/vulkan/RendererVk.h"
+#include "libANGLE/renderer/vulkan/SurfaceVk.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
 
 namespace rx
@@ -1066,15 +1066,13 @@ uint32_t UtilsVk::GetGenerateMipmapMaxLevels(ContextVk *contextVk)
                : kGenerateMipmapMaxLevels;
 }
 
-UtilsVk::UtilsVk() : mPerfCounters{}, mCumulativePerfCounters{} {}
+UtilsVk::UtilsVk() = default;
 
 UtilsVk::~UtilsVk() = default;
 
 void UtilsVk::destroy(RendererVk *renderer)
 {
     VkDevice device = renderer->getDevice();
-
-    outputCumulativePerfCounters();
 
     for (Function f : angle::AllEnums<Function>())
     {
@@ -2014,7 +2012,8 @@ angle::Result UtilsVk::clearFramebuffer(ContextVk *contextVk,
     vk::RenderPassCommandBuffer *commandBuffer;
 
     // Start a new render pass if not already started
-    ANGLE_TRY(framebuffer->getFramebuffer(contextVk, &currentFramebuffer, nullptr));
+    ANGLE_TRY(framebuffer->getFramebuffer(contextVk, &currentFramebuffer, nullptr,
+                                          SwapchainResolveMode::Disabled));
     if (contextVk->hasStartedRenderPassWithFramebuffer(currentFramebuffer))
     {
         commandBuffer = &contextVk->getStartedRenderPassCommands().getCommandBuffer();
@@ -3539,8 +3538,6 @@ angle::Result UtilsVk::allocateDescriptorSet(ContextVk *contextVk,
         mDescriptorSetLayouts[function][DescriptorSetIndex::Internal].get(), 1, bindingOut,
         descriptorSetOut));
 
-    mPerfCounters.descriptorSetsAllocated++;
-
     return angle::Result::Continue;
 }
 
@@ -3555,25 +3552,4 @@ UtilsVk::ClearFramebufferParameters::ClearFramebufferParameters()
       colorClearValue{},
       depthStencilClearValue{}
 {}
-
-// Requires that trace is enabled to see the output, which is supported with is_debug=true
-void UtilsVk::outputCumulativePerfCounters()
-{
-    if (!vk::kOutputCumulativePerfCounters)
-    {
-        return;
-    }
-
-    INFO() << "Utils Descriptor Set Allocations: "
-           << mCumulativePerfCounters.descriptorSetsAllocated;
-}
-
-InternalShaderPerfCounters UtilsVk::getAndResetObjectPerfCounters()
-{
-    mCumulativePerfCounters.descriptorSetsAllocated += mPerfCounters.descriptorSetsAllocated;
-
-    InternalShaderPerfCounters counters   = mPerfCounters;
-    mPerfCounters.descriptorSetsAllocated = 0;
-    return counters;
-}
 }  // namespace rx
