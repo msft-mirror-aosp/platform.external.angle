@@ -118,6 +118,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_ANGLE_pack_reverse_row_order"] = enableableExtension(&Extensions::packReverseRowOrderANGLE);
         map["GL_NV_pack_subimage"] = enableableExtension(&Extensions::packSubimageNV);
         map["GL_KHR_parallel_shader_compile"] = enableableExtension(&Extensions::parallelShaderCompileKHR);
+        map["GL_AMD_performance_monitor"] = esOnlyExtension(&Extensions::performanceMonitorAMD);
         map["GL_NV_pixel_buffer_object"] = enableableExtension(&Extensions::pixelBufferObjectNV);
         map["GL_EXT_primitive_bounding_box"] = esOnlyExtension(&Extensions::primitiveBoundingBoxEXT);
         map["GL_OES_primitive_bounding_box"] = esOnlyExtension(&Extensions::primitiveBoundingBoxOES);
@@ -144,6 +145,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_EXT_shader_non_constant_global_initializers"] = enableableExtension(&Extensions::shaderNonConstantGlobalInitializersEXT);
         map["GL_NV_shader_noperspective_interpolation"] = enableableExtension(&Extensions::shaderNoperspectiveInterpolationNV);
         map["GL_EXT_shader_texture_lod"] = enableableExtension(&Extensions::shaderTextureLodEXT);
+        map["GL_QCOM_shading_rate"] = enableableExtension(&Extensions::shadingRateQCOM);
         map["GL_EXT_shadow_samplers"] = enableableExtension(&Extensions::shadowSamplersEXT);
         map["GL_EXT_sRGB"] = enableableExtension(&Extensions::sRGBEXT);
         map["GL_EXT_sRGB_write_control"] = esOnlyExtension(&Extensions::sRGBWriteControlEXT);

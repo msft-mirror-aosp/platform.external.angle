@@ -393,6 +393,7 @@ void RendererVk::ensureCapsInitialized() const
     mNativeExtensions.EGLImageExternalWrapModesEXT = true;
     mNativeExtensions.EGLImageExternalEssl3OES     = true;
     mNativeExtensions.EGLImageArrayEXT             = true;
+    mNativeExtensions.EGLImageStorageEXT           = true;
     mNativeExtensions.memoryObjectEXT              = true;
     mNativeExtensions.memoryObjectFdEXT            = getFeatures().supportsExternalMemoryFd.enabled;
     mNativeExtensions.memoryObjectFlagsANGLE       = true;
@@ -523,6 +524,18 @@ void RendererVk::ensureCapsInitialized() const
     constexpr unsigned int kNotSupportedSampleCounts = VK_SAMPLE_COUNT_64_BIT;
     mNativeExtensions.sampleVariablesOES =
         supportSampleRateShading && vk_gl::GetMaxSampleCount(kNotSupportedSampleCounts) == 0;
+
+    // GL_KHR_blend_equation_advanced.  According to the spec, only color attachment zero can be
+    // used with advanced blend:
+    //
+    // > Advanced blending equations are supported only when rendering to a single
+    // > color buffer using fragment color zero.
+    //
+    // Vulkan requires advancedBlendMaxColorAttachments to be at least one, so we can support
+    // advanced blend as long as the Vulkan extension is supported.  Otherwise, the extension is
+    // emulated where possible.
+    mNativeExtensions.blendEquationAdvancedKHR = mFeatures.supportsBlendOperationAdvanced.enabled ||
+                                                 mFeatures.emulateAdvancedBlendEquations.enabled;
 
     // Enable EXT_unpack_subimage
     mNativeExtensions.unpackSubimageEXT = true;
@@ -789,7 +802,10 @@ void RendererVk::ensureCapsInitialized() const
     // Set maxShaderAtomicCounters to zero if atomic is not supported.
     if (!mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics)
     {
-        mNativeCaps.maxShaderAtomicCounters[gl::ShaderType::Vertex] = 0;
+        mNativeCaps.maxShaderAtomicCounters[gl::ShaderType::Vertex]         = 0;
+        mNativeCaps.maxShaderAtomicCounters[gl::ShaderType::Geometry]       = 0;
+        mNativeCaps.maxShaderAtomicCounters[gl::ShaderType::TessControl]    = 0;
+        mNativeCaps.maxShaderAtomicCounters[gl::ShaderType::TessEvaluation] = 0;
     }
     if (!mPhysicalDeviceFeatures.fragmentStoresAndAtomics)
     {
@@ -865,7 +881,8 @@ void RendererVk::ensureCapsInitialized() const
     {
         reservedVaryingComponentCount += kReservedVaryingComponentsForGLLineRasterization;
     }
-    if (getFeatures().supportsTransformFeedbackExtension.enabled)
+    if (getFeatures().supportsTransformFeedbackExtension.enabled &&
+        !getFeatures().supportsDepthClipControl.enabled)
     {
         reservedVaryingComponentCount += kReservedVaryingComponentsForTransformFeedbackExtension;
     }
@@ -976,12 +993,8 @@ void RendererVk::ensureCapsInitialized() const
         mNativeExtensions.geometryShaderOES = geometryShader;
         mNativeCaps.maxFramebufferLayers    = LimitToInt(limitsVk.maxFramebufferLayers);
 
-        // If the provoking vertex feature is enabled, angle specifies to use
-        // the "last" convention in order to match GL behavior. Otherwise, use
-        // "first" as vulkan follows this convention for provoking vertex.
-        mNativeCaps.layerProvokingVertex = (mFeatures.provokingVertex.enabled)
-                                               ? GL_LAST_VERTEX_CONVENTION_EXT
-                                               : GL_FIRST_VERTEX_CONVENTION_EXT;
+        // Use "undefined" which means APP would have to set gl_Layer identically.
+        mNativeCaps.layerProvokingVertex = GL_UNDEFINED_VERTEX_EXT;
 
         mNativeCaps.maxGeometryInputComponents =
             LimitToInt(limitsVk.maxGeometryInputComponents) - reservedVaryingComponentCount;
@@ -1114,6 +1127,9 @@ void RendererVk::ensureCapsInitialized() const
 
     // GL_KHR_parallel_shader_compile
     mNativeExtensions.parallelShaderCompileKHR = false;
+
+    // GL_QCOM_shading_rate
+    mNativeExtensions.shadingRateQCOM = mFeatures.supportsFragmentShadingRate.enabled;
 }
 
 namespace vk

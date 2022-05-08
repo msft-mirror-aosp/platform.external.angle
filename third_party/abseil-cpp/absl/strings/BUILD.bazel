@@ -736,7 +736,6 @@ cc_test(
         "no_test_android_arm",
         "no_test_android_arm64",
         "no_test_android_x86",
-        "no_test_darwin_x86_64",
         "no_test_ios_x86_64",
         "no_test_loonix",
         "no_test_msvc_x64",
@@ -1192,6 +1191,7 @@ cc_test(
     deps = [
         ":str_format_internal",
         ":strings",
+        "//absl/base:core_headers",
         "//absl/base:raw_logging_internal",
         "//absl/types:optional",
         "@com_google_googletest//:gtest_main",

@@ -32,6 +32,7 @@
 #include "compiler/translator/tree_ops/RewriteStructSamplers.h"
 #include "compiler/translator/tree_ops/SeparateStructFromUniformDeclarations.h"
 #include "compiler/translator/tree_ops/vulkan/DeclarePerVertexBlocks.h"
+#include "compiler/translator/tree_ops/vulkan/EmulateAdvancedBlendEquations.h"
 #include "compiler/translator/tree_ops/vulkan/EmulateDithering.h"
 #include "compiler/translator/tree_ops/vulkan/EmulateFragColorData.h"
 #include "compiler/translator/tree_ops/vulkan/FlagSamplersWithTexelFetch.h"
@@ -158,8 +159,8 @@ bool DeclareDefaultUniforms(TCompiler *compiler,
     TLayoutQualifier layoutQualifier = TLayoutQualifier::Create();
     layoutQualifier.blockStorage     = EbsStd140;
     const TVariable *uniformBlock    = DeclareInterfaceBlock(
-        root, symbolTable, uniformList, EvqUniform, layoutQualifier, TMemoryQualifier::Create(), 0,
-        ImmutableString(kDefaultUniformNames[shaderType]), ImmutableString(""));
+           root, symbolTable, uniformList, EvqUniform, layoutQualifier, TMemoryQualifier::Create(), 0,
+           ImmutableString(kDefaultUniformNames[shaderType]), ImmutableString(""));
 
     // Create a map from the uniform variables to new variables that reference the fields of the
     // block.
@@ -1195,6 +1196,18 @@ bool TranslatorVulkan::translateImpl(TInfoSinkBase &sink,
                 return false;
             }
 
+            // This should be operated after doing ReplaceLastFragData and ReplaceInOutVariables,
+            // because they will create the input attachment variables. AddBlendMainCaller will
+            // check the existing input attachment variables and if there is no existing input
+            // attachment variable then create a new one.
+            if (getAdvancedBlendEquations().any() &&
+                (compileOptions & SH_ADD_ADVANCED_BLEND_EQUATIONS_EMULATION) != 0 &&
+                !EmulateAdvancedBlendEquations(this, root, &getSymbolTable(), driverUniforms,
+                                               &mUniforms, getAdvancedBlendEquations()))
+            {
+                return false;
+            }
+
             if (!RewriteDfdy(this, compileOptions, root, getSymbolTable(), getShaderVersion(),
                              specConst, driverUniforms))
             {
@@ -1232,7 +1245,8 @@ bool TranslatorVulkan::translateImpl(TInfoSinkBase &sink,
                 }
             }
 
-            if (!EmulateDithering(this, root, &getSymbolTable(), specConst, driverUniforms))
+            if (!EmulateDithering(this, compileOptions, root, &getSymbolTable(), specConst,
+                                  driverUniforms))
             {
                 return false;
             }

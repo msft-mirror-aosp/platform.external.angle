@@ -66,6 +66,7 @@ enum SourceLanguage {
     SourceLanguageOpenCL_CPP = 4,
     SourceLanguageHLSL = 5,
     SourceLanguageCPP_for_OpenCL = 6,
+    SourceLanguageSYCL = 7,
     SourceLanguageMax = 0x7fffffff,
 };
 
@@ -180,6 +181,7 @@ enum ExecutionMode {
     ExecutionModeNoGlobalOffsetINTEL = 5895,
     ExecutionModeNumSIMDWorkitemsINTEL = 5896,
     ExecutionModeSchedulerTargetFmaxMhzINTEL = 5903,
+    ExecutionModeNamedBarrierCountINTEL = 6417,
     ExecutionModeMax = 0x7fffffff,
 };
 
@@ -1077,6 +1079,7 @@ enum Capability {
     CapabilityDotProduct = 6019,
     CapabilityDotProductKHR = 6019,
     CapabilityBitInstructions = 6025,
+    CapabilityGroupNonUniformRotateKHR = 6026,
     CapabilityAtomicFloat32AddEXT = 6033,
     CapabilityAtomicFloat64AddEXT = 6034,
     CapabilityLongConstantCompositeINTEL = 6089,
@@ -1084,6 +1087,7 @@ enum Capability {
     CapabilityAtomicFloat16AddEXT = 6095,
     CapabilityDebugInfoModuleINTEL = 6114,
     CapabilitySplitBarrierINTEL = 6141,
+    CapabilityGroupUniformArithmeticKHR = 6400,
     CapabilityMax = 0x7fffffff,
 };
 
@@ -1539,6 +1543,7 @@ enum Op {
     OpSubgroupAllKHR = 4428,
     OpSubgroupAnyKHR = 4429,
     OpSubgroupAllEqualKHR = 4430,
+    OpGroupNonUniformRotateKHR = 4431,
     OpSubgroupReadInvocationKHR = 4432,
     OpTraceRayKHR = 4445,
     OpExecuteCallableKHR = 4446,
@@ -1848,6 +1853,14 @@ enum Op {
     OpSpecConstantCompositeContinuedINTEL = 6092,
     OpControlBarrierArriveINTEL = 6142,
     OpControlBarrierWaitINTEL = 6143,
+    OpGroupIMulKHR = 6401,
+    OpGroupFMulKHR = 6402,
+    OpGroupBitwiseAndKHR = 6403,
+    OpGroupBitwiseOrKHR = 6404,
+    OpGroupBitwiseXorKHR = 6405,
+    OpGroupLogicalAndKHR = 6406,
+    OpGroupLogicalOrKHR = 6407,
+    OpGroupLogicalXorKHR = 6408,
     OpMax = 0x7fffffff,
 };
 
@@ -2209,6 +2222,7 @@ inline void HasResultAndType(Op opcode, bool *hasResult, bool *hasResultType) {
     case OpSubgroupAllKHR: *hasResult = true; *hasResultType = true; break;
     case OpSubgroupAnyKHR: *hasResult = true; *hasResultType = true; break;
     case OpSubgroupAllEqualKHR: *hasResult = true; *hasResultType = true; break;
+    case OpGroupNonUniformRotateKHR: *hasResult = true; *hasResultType = true; break;
     case OpSubgroupReadInvocationKHR: *hasResult = true; *hasResultType = true; break;
     case OpTraceRayKHR: *hasResult = false; *hasResultType = false; break;
     case OpExecuteCallableKHR: *hasResult = false; *hasResultType = false; break;
@@ -2507,6 +2521,14 @@ inline void HasResultAndType(Op opcode, bool *hasResult, bool *hasResultType) {
     case OpSpecConstantCompositeContinuedINTEL: *hasResult = false; *hasResultType = false; break;
     case OpControlBarrierArriveINTEL: *hasResult = false; *hasResultType = false; break;
     case OpControlBarrierWaitINTEL: *hasResult = false; *hasResultType = false; break;
+    case OpGroupIMulKHR: *hasResult = true; *hasResultType = true; break;
+    case OpGroupFMulKHR: *hasResult = true; *hasResultType = true; break;
+    case OpGroupBitwiseAndKHR: *hasResult = true; *hasResultType = true; break;
+    case OpGroupBitwiseOrKHR: *hasResult = true; *hasResultType = true; break;
+    case OpGroupBitwiseXorKHR: *hasResult = true; *hasResultType = true; break;
+    case OpGroupLogicalAndKHR: *hasResult = true; *hasResultType = true; break;
+    case OpGroupLogicalOrKHR: *hasResult = true; *hasResultType = true; break;
+    case OpGroupLogicalXorKHR: *hasResult = true; *hasResultType = true; break;
     }
 }
 #endif /* SPV_ENABLE_UTILITY_CODE */

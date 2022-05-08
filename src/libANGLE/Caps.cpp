@@ -940,9 +940,9 @@ void TypePrecision::get(GLint *returnRange, GLint *returnPrecision) const
     *returnPrecision = precision;
 }
 
-Caps::Caps()                  = default;
-Caps::Caps(const Caps &other) = default;
-Caps::~Caps()                 = default;
+Caps::Caps()                             = default;
+Caps::Caps(const Caps &other)            = default;
+Caps::~Caps()                            = default;
 Caps &Caps::operator=(const Caps &other) = default;
 
 Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensions)
@@ -1300,6 +1300,7 @@ std::vector<std::string> DisplayExtensions::getStrings() const
     InsertExtensionString("EGL_KHR_lock_surface3",                               lockSurface3KHR,                    &extensionStrings);
     InsertExtensionString("EGL_ANGLE_vulkan_image",                              vulkanImageANGLE,                   &extensionStrings);
     InsertExtensionString("EGL_ANGLE_metal_create_context_ownership_identity",   metalCreateContextOwnershipIdentityANGLE, &extensionStrings);
+    InsertExtensionString("EGL_KHR_partial_update",                              partialUpdateKHR,                   &extensionStrings);
     // clang-format on
 
     return extensionStrings;

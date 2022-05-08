@@ -344,6 +344,7 @@ class CommandBuffer : public WrappedObject<CommandBuffer, VkCommandBuffer>
     void writeTimestamp(VkPipelineStageFlagBits pipelineStage,
                         const QueryPool &queryPool,
                         uint32_t query);
+    void setShadingRate(const VkExtent2D *fragmentSize, VkFragmentShadingRateCombinerOpKHR ops[2]);
 
     // VK_EXT_transform_feedback
     void beginTransformFeedback(uint32_t firstCounterBuffer,
@@ -412,7 +413,6 @@ class Semaphore final : public WrappedObject<Semaphore, VkSemaphore>
     void destroy(VkDevice device);
 
     VkResult init(VkDevice device);
-    VkResult init(VkDevice device, const VkSemaphoreCreateInfo &createInfo);
     VkResult importFd(VkDevice device, const VkImportSemaphoreFdInfoKHR &importFdInfo) const;
 };
 
@@ -516,7 +516,7 @@ class Buffer final : public WrappedObject<Buffer, VkBuffer>
     void destroy(VkDevice device);
 
     VkResult init(VkDevice device, const VkBufferCreateInfo &createInfo);
-    VkResult bindMemory(VkDevice device, const DeviceMemory &deviceMemory);
+    VkResult bindMemory(VkDevice device, const DeviceMemory &deviceMemory, VkDeviceSize offset);
     void getMemoryRequirements(VkDevice device, VkMemoryRequirements *memoryRequirementsOut);
 
   private:
@@ -660,6 +660,7 @@ class VirtualBlock final : public WrappedObject<VirtualBlock, VmaVirtualBlock>
 
     VkResult allocate(VkDeviceSize size, VkDeviceSize alignment, VkDeviceSize *offsetOut);
     void free(VkDeviceSize offset);
+    void calculateStats(vma::StatInfo *pStatInfo) const;
 };
 
 // CommandPool implementation.
@@ -1035,6 +1036,13 @@ ANGLE_INLINE void CommandBuffer::writeTimestamp(VkPipelineStageFlagBits pipeline
     vkCmdWriteTimestamp(mHandle, pipelineStage, queryPool.getHandle(), query);
 }
 
+ANGLE_INLINE void CommandBuffer::setShadingRate(const VkExtent2D *fragmentSize,
+                                                VkFragmentShadingRateCombinerOpKHR ops[2])
+{
+    ASSERT(valid() && fragmentSize != nullptr);
+    vkCmdSetFragmentShadingRateKHR(mHandle, fragmentSize, ops);
+}
+
 ANGLE_INLINE void CommandBuffer::draw(uint32_t vertexCount,
                                       uint32_t instanceCount,
                                       uint32_t firstVertex,
@@ -1273,12 +1281,6 @@ ANGLE_INLINE VkResult Semaphore::init(VkDevice device)
     return vkCreateSemaphore(device, &semaphoreInfo, nullptr, &mHandle);
 }
 
-ANGLE_INLINE VkResult Semaphore::init(VkDevice device, const VkSemaphoreCreateInfo &createInfo)
-{
-    ASSERT(valid());
-    return vkCreateSemaphore(device, &createInfo, nullptr, &mHandle);
-}
-
 ANGLE_INLINE VkResult Semaphore::importFd(VkDevice device,
                                           const VkImportSemaphoreFdInfoKHR &importFdInfo) const
 {
@@ -1495,10 +1497,12 @@ ANGLE_INLINE VkResult Buffer::init(VkDevice device, const VkBufferCreateInfo &cr
     return vkCreateBuffer(device, &createInfo, nullptr, &mHandle);
 }
 
-ANGLE_INLINE VkResult Buffer::bindMemory(VkDevice device, const DeviceMemory &deviceMemory)
+ANGLE_INLINE VkResult Buffer::bindMemory(VkDevice device,
+                                         const DeviceMemory &deviceMemory,
+                                         VkDeviceSize offset)
 {
     ASSERT(valid() && deviceMemory.valid());
-    return vkBindBufferMemory(device, mHandle, deviceMemory.getHandle(), 0);
+    return vkBindBufferMemory(device, mHandle, deviceMemory.getHandle(), offset);
 }
 
 ANGLE_INLINE void Buffer::getMemoryRequirements(VkDevice device,
@@ -1853,6 +1857,11 @@ ANGLE_INLINE VkResult VirtualBlock::allocate(VkDeviceSize size,
 ANGLE_INLINE void VirtualBlock::free(VkDeviceSize offset)
 {
     vma::VirtualFree(mHandle, offset);
+}
+
+ANGLE_INLINE void VirtualBlock::calculateStats(vma::StatInfo *pStatInfo) const
+{
+    vma::CalculateVirtualBlockStats(mHandle, pStatInfo);
 }
 }  // namespace vk
 }  // namespace rx

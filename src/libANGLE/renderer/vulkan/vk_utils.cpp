@@ -181,7 +181,7 @@ angle::Result AllocateAndBindBufferOrImageMemory(vk::Context *context,
     ANGLE_TRY(FindAndAllocateCompatibleMemory(
         context, memoryProperties, requestedMemoryPropertyFlags, memoryPropertyFlagsOut,
         memoryRequirements, extraAllocationInfo, deviceMemoryOut));
-    ANGLE_VK_TRY(context, buffer->bindMemory(context->getDevice(), *deviceMemoryOut));
+    ANGLE_VK_TRY(context, buffer->bindMemory(context->getDevice(), *deviceMemoryOut, 0));
     return angle::Result::Continue;
 }
 
@@ -211,9 +211,9 @@ angle::Result AllocateBufferOrImageMemory(vk::Context *context,
 constexpr char kVkKhronosValidationLayerName[]  = "VK_LAYER_KHRONOS_validation";
 constexpr char kVkStandardValidationLayerName[] = "VK_LAYER_LUNARG_standard_validation";
 const char *kVkValidationLayerNames[]           = {
-    "VK_LAYER_GOOGLE_threading", "VK_LAYER_LUNARG_parameter_validation",
-    "VK_LAYER_LUNARG_object_tracker", "VK_LAYER_LUNARG_core_validation",
-    "VK_LAYER_GOOGLE_unique_objects"};
+              "VK_LAYER_GOOGLE_threading", "VK_LAYER_LUNARG_parameter_validation",
+              "VK_LAYER_LUNARG_object_tracker", "VK_LAYER_LUNARG_core_validation",
+              "VK_LAYER_GOOGLE_unique_objects"};
 
 bool HasValidationLayer(const std::vector<VkLayerProperties> &layerProps, const char *layerName)
 {
@@ -363,7 +363,6 @@ namespace vk
 {
 const char *gLoaderLayersPathEnv   = "VK_LAYER_PATH";
 const char *gLoaderICDFilenamesEnv = "VK_ICD_FILENAMES";
-const char *gANGLEPreferredDevice  = "ANGLE_PREFERRED_DEVICE";
 
 VkImageAspectFlags GetDepthStencilAspectFlags(const angle::Format &format)
 {
@@ -381,7 +380,7 @@ VkImageAspectFlags GetFormatAspectFlags(const angle::Format &format)
 }
 
 // Context implementation.
-Context::Context(RendererVk *renderer) : mRenderer(renderer) {}
+Context::Context(RendererVk *renderer) : mRenderer(renderer), mPerfCounters{} {}
 
 Context::~Context() {}
 
@@ -974,6 +973,10 @@ PFN_vkCreateStreamDescriptorSurfaceGGP vkCreateStreamDescriptorSurfaceGGP = null
 // VK_KHR_shared_presentable_image
 PFN_vkGetSwapchainStatusKHR vkGetSwapchainStatusKHR = nullptr;
 
+// VK_KHR_fragment_shading_rate
+PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR vkGetPhysicalDeviceFragmentShadingRatesKHR = nullptr;
+PFN_vkCmdSetFragmentShadingRateKHR vkCmdSetFragmentShadingRateKHR                         = nullptr;
+
 void InitDebugUtilsEXTFunctions(VkInstance instance)
 {
     GET_INSTANCE_FUNC(vkCreateDebugUtilsMessengerEXT);
@@ -1093,6 +1096,13 @@ void InitExternalSemaphoreCapabilitiesFunctions(VkInstance instance)
 void InitGetSwapchainStatusKHRFunctions(VkDevice device)
 {
     GET_DEVICE_FUNC(vkGetSwapchainStatusKHR);
+}
+
+// VK_KHR_fragment_shading_rate
+void InitFragmentShadingRateKHRFunctions(VkDevice device)
+{
+    GET_DEVICE_FUNC(vkGetPhysicalDeviceFragmentShadingRatesKHR);
+    GET_DEVICE_FUNC(vkCmdSetFragmentShadingRateKHR);
 }
 
 #    undef GET_INSTANCE_FUNC
@@ -1607,20 +1617,20 @@ void BufferBlock::destroy(RendererVk *renderer)
     mDeviceMemory.destroy(device);
 }
 
-angle::Result BufferBlock::init(ContextVk *contextVk,
+angle::Result BufferBlock::init(Context *context,
                                 Buffer &buffer,
                                 vma::VirtualBlockCreateFlags flags,
                                 DeviceMemory &deviceMemory,
                                 VkMemoryPropertyFlags memoryPropertyFlags,
                                 VkDeviceSize size)
 {
-    RendererVk *renderer = contextVk->getRenderer();
+    RendererVk *renderer = context->getRenderer();
     ASSERT(!mVirtualBlock.valid());
     ASSERT(!mBuffer.valid());
     ASSERT(!mDeviceMemory.valid());
 
     mVirtualBlockMutex.init(renderer->isAsyncCommandQueueEnabled());
-    ANGLE_VK_TRY(contextVk, mVirtualBlock.init(renderer->getDevice(), flags, size));
+    ANGLE_VK_TRY(context, mVirtualBlock.init(renderer->getDevice(), flags, size));
 
     mBuffer              = std::move(buffer);
     mDeviceMemory        = std::move(deviceMemory);
@@ -1672,6 +1682,12 @@ void BufferBlock::free(VkDeviceSize offset)
 int32_t BufferBlock::getAndIncrementEmptyCounter()
 {
     return ++mCountRemainsEmpty;
+}
+
+void BufferBlock::calculateStats(vma::StatInfo *pStatInfo) const
+{
+    std::lock_guard<ConditionalMutex> lock(mVirtualBlockMutex);
+    mVirtualBlock.calculateStats(pStatInfo);
 }
 
 // BufferSuballocation implementation.

@@ -323,6 +323,9 @@ void InitializeFeatures(const Renderer11DeviceCaps &deviceCaps,
                         const DXGI_ADAPTER_DESC &adapterDesc,
                         angle::FeaturesD3D *features);
 
+void InitializeFrontendFeatures(const DXGI_ADAPTER_DESC &adapterDesc,
+                                angle::FrontendFeatures *features);
+
 enum ReservedConstantBufferSlot
 {
     RESERVED_CONSTANT_BUFFER_SLOT_DEFAULT_UNIFORM_BLOCK = 0,
@@ -335,7 +338,7 @@ void InitConstantBufferDesc(D3D11_BUFFER_DESC *constantBufferDescription, size_t
 
 // Helper class for RAII patterning.
 template <typename T>
-class ScopedUnmapper final : angle::NonCopyable
+class ANGLE_NO_DISCARD ScopedUnmapper final : angle::NonCopyable
 {
   public:
     ScopedUnmapper(T *object) : mObject(object) {}

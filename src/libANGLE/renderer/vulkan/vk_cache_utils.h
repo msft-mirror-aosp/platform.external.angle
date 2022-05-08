@@ -634,6 +634,8 @@ class GraphicsPipelineDesc final
     void setRenderPassDesc(const RenderPassDesc &renderPassDesc);
     void updateRenderPassDesc(GraphicsPipelineTransitionBits *transition,
                               const RenderPassDesc &renderPassDesc);
+    void setRenderPassSampleCount(GLint samples);
+    void setRenderPassColorAttachmentFormat(size_t colorIndexGL, angle::FormatID formatID);
 
     // Blend states
     void setSingleBlend(uint32_t colorIndexGL,
@@ -853,8 +855,9 @@ static_assert(sizeof(PipelineLayoutDesc) == sizeof(DescriptorSetArray<Descriptor
                                                 sizeof(PackedPushConstantRange) + sizeof(uint32_t),
               "Unexpected Size");
 
-struct YcbcrConversionDesc final
+class YcbcrConversionDesc final
 {
+  public:
     YcbcrConversionDesc();
     ~YcbcrConversionDesc();
     YcbcrConversionDesc(const YcbcrConversionDesc &other);
@@ -874,7 +877,12 @@ struct YcbcrConversionDesc final
                 VkFilter chromaFilter,
                 VkComponentMapping components,
                 angle::FormatID intendedFormatID);
+    void updateChromaFilter(VkFilter filter);
+    uint64_t getExternalFormat() const { return mIsExternalFormat ? mExternalOrVkFormat : 0; }
 
+    angle::Result init(Context *context, SamplerYcbcrConversion *conversionOut) const;
+
+  private:
     // If the sampler needs to convert the image content (e.g. from YUV to RGB) then
     // mExternalOrVkFormat will be non-zero. The value is either the external format
     // as returned by vkGetAndroidHardwareBufferPropertiesANDROID or a YUV VkFormat.
@@ -1116,6 +1124,12 @@ struct ImageOrBufferViewSubresourceSerial
     ImageSubresourceRange subresource;
 };
 
+inline bool operator==(const ImageOrBufferViewSubresourceSerial &a,
+                       const ImageOrBufferViewSubresourceSerial &b)
+{
+    return a.viewSerial == b.viewSerial && a.subresource == b.subresource;
+}
+
 constexpr ImageOrBufferViewSubresourceSerial kInvalidImageOrBufferViewSubresourceSerial = {
     kInvalidImageOrBufferViewSerial, kInvalidImageSubresourceRange};
 
@@ -1141,6 +1155,8 @@ class DescriptorSetDesc
     size_t hash() const;
 
     void reset() { mPayload.clear(); }
+
+    size_t getKeySizeBytes() const { return mPayload.size() * sizeof(uint32_t); }
 
     bool operator==(const DescriptorSetDesc &other) const
     {
@@ -1321,6 +1337,7 @@ class FramebufferDesc
     void updateLayerCount(uint32_t layerCount);
     uint32_t getLayerCount() const { return mLayerCount; }
     void updateFramebufferFetchMode(bool hasFramebufferFetch);
+    bool hasFramebufferFetch() const { return mHasFramebufferFetch; }
 
     bool isMultiview() const { return mIsMultiview; }
 
@@ -1476,11 +1493,14 @@ struct hash<rx::vk::SamplerDesc>
 };
 
 // See Resource Serial types defined in vk_utils.h.
-#define ANGLE_HASH_VK_SERIAL(Type)                                                          \
-    template <>                                                                             \
-    struct hash<rx::vk::Type##Serial>                                                       \
-    {                                                                                       \
-        size_t operator()(const rx::vk::Type##Serial &key) const { return key.getValue(); } \
+#define ANGLE_HASH_VK_SERIAL(Type)                               \
+    template <>                                                  \
+    struct hash<rx::vk::Type##Serial>                            \
+    {                                                            \
+        size_t operator()(const rx::vk::Type##Serial &key) const \
+        {                                                        \
+            return key.getValue();                               \
+        }                                                        \
     };
 
 ANGLE_VK_SERIAL_OP(ANGLE_HASH_VK_SERIAL)
@@ -1513,6 +1533,18 @@ class CacheStats final : angle::NonCopyable
   public:
     CacheStats() { reset(); }
     ~CacheStats() {}
+
+    CacheStats(const CacheStats &rhs)
+        : mHitCount(rhs.mHitCount), mMissCount(rhs.mMissCount), mSize(rhs.mSize)
+    {}
+
+    CacheStats &operator=(const CacheStats &rhs)
+    {
+        mHitCount  = rhs.mHitCount;
+        mMissCount = rhs.mMissCount;
+        mSize      = rhs.mSize;
+        return *this;
+    }
 
     ANGLE_INLINE void hit() { mHitCount++; }
     ANGLE_INLINE void miss() { mMissCount++; }
@@ -1547,6 +1579,12 @@ class CacheStats final : angle::NonCopyable
         mHitCount  = 0;
         mMissCount = 0;
         mSize      = 0;
+    }
+
+    void resetHitAndMissCount()
+    {
+        mHitCount  = 0;
+        mMissCount = 0;
     }
 
   private:
@@ -1800,36 +1838,44 @@ class DescriptorSetCache final : angle::NonCopyable
     DescriptorSetCache() = default;
     ~DescriptorSetCache() { ASSERT(mPayload.empty()); }
 
-    void destroy(RendererVk *rendererVk, VulkanCacheType cacheType);
+    ANGLE_INLINE void clear() { mPayload.clear(); }
 
-    ANGLE_INLINE bool get(const vk::DescriptorSetDesc &desc, VkDescriptorSet *descriptorSet)
+    ANGLE_INLINE bool get(const vk::DescriptorSetDesc &desc,
+                          VkDescriptorSet *descriptorSet,
+                          CacheStats *cacheStats)
     {
         auto iter = mPayload.find(desc);
         if (iter != mPayload.end())
         {
             *descriptorSet = iter->second;
-            mCacheStats.hit();
+            cacheStats->hit();
             return true;
         }
-        mCacheStats.miss();
+        cacheStats->miss();
         return false;
     }
 
-    ANGLE_INLINE void insert(const vk::DescriptorSetDesc &desc, VkDescriptorSet descriptorSet)
+    ANGLE_INLINE void insert(const vk::DescriptorSetDesc &desc,
+                             VkDescriptorSet descriptorSet,
+                             CacheStats *cacheStats)
     {
         mPayload.emplace(desc, descriptorSet);
-        mCacheStats.incrementSize();
+        cacheStats->incrementSize();
     }
 
-    template <typename Accumulator>
-    void accumulateCacheStats(VulkanCacheType cacheType, Accumulator *accumulator)
+    size_t getTotalCacheKeySizeBytes() const
     {
-        accumulator->accumulateCacheStats(cacheType, mCacheStats);
+        size_t totalSize = 0;
+        for (const auto &iter : mPayload)
+        {
+            const vk::DescriptorSetDesc &desc = iter.first;
+            totalSize += desc.getKeySizeBytes();
+        }
+        return totalSize;
     }
 
   private:
     angle::HashMap<vk::DescriptorSetDesc, VkDescriptorSet> mPayload;
-    CacheStats mCacheStats;
 };
 
 // Only 1 driver uniform binding is used.

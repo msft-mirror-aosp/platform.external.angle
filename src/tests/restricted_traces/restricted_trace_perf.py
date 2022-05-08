@@ -39,17 +39,22 @@ import sys
 import time
 import statistics
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from datetime import datetime
 from psutil import process_iter
 
 DEFAULT_TEST_DIR = '.'
 DEFAULT_TEST_JSON = 'restricted_traces.json'
 DEFAULT_LOG_LEVEL = 'info'
+SELECTED_DEVICE = ''
+
+Result = namedtuple('Result', ['process', 'time'])
 
 
 def run_command(args):
     logging.debug('Running %s' % args)
+
+    start_time = time.time()
 
     try:
         process = subprocess.Popen(
@@ -64,7 +69,9 @@ def run_command(args):
 
     process.wait()
 
-    return process
+    time_elapsed = time.time() - start_time
+
+    return Result(process, time_elapsed)
 
 
 def run_async_command(args):
@@ -86,8 +93,69 @@ def run_async_command(args):
     return async_process
 
 
+def get_adb_dev():
+    return 'adb {} '.format(SELECTED_DEVICE)
+
+
+def run_adb_command(args):
+    return run_command(get_adb_dev() + args)
+
+
+def run_async_adb_command(args):
+    return run_async_command(get_adb_dev() + args)
+
+
 def cleanup():
-    process = run_command('adb shell rm -f /sdcard/Download/out.txt /sdcard/Download/gpumem.txt')
+    run_adb_command('shell rm -f /sdcard/Download/out.txt /sdcard/Download/gpumem.txt')
+
+
+def select_device(device_arg):
+    # The output from 'adb devices' always includes a header and a new line at the end.
+    global SELECTED_DEVICE
+    result_dev = run_command('adb devices')
+    result_dev_out = result_dev.process.stdout.read().strip()
+
+    result_header_end = result_dev_out.find('\n')
+    result_dev_out = '' if result_header_end == -1 else result_dev_out[result_header_end:]
+    result_dev_out = result_dev_out.split()[0::2]
+
+    def print_device_list():
+        print('\nList of available devices:\n{}'.format('\n'.join(result_dev_out)))
+
+    num_connected_devices = len(result_dev_out)
+
+    # Check the device arg first. If there is none, use the ANDROID SERIAL env var.
+    android_serial_env = os.environ.get('ANDROID_SERIAL')
+    device_serial = device_arg if device_arg != '' else android_serial_env
+
+    # Check for device exceptions
+    if num_connected_devices == 0:
+        logging.error('DeviceError: No devices detected. Please connect a device and try again.')
+        exit()
+
+    if num_connected_devices > 1 and device_serial is None:
+        logging.error(
+            'DeviceError: More than one device detected. Please specify a target device\n'
+            'through either the --device option or $ANDROID_SERIAL, and try again.')
+        print_device_list()
+        exit()
+
+    if device_serial is not None and device_serial not in result_dev_out:
+        logging.error('DeviceError: Device with serial {} not detected.'.format(device_serial))
+        if device_arg != '':
+            logging.error('Please update the --device input and try again.')
+        else:
+            logging.error('Please update $ANDROID_SERIAL and try again.')
+        print_device_list()
+        exit()
+
+    # Select device
+    if device_serial is not None:
+        logging.info('Device with serial {} selected.'.format(device_serial))
+        SELECTED_DEVICE = '-s {}'.format(device_serial)
+
+    else:
+        logging.info('Default device ({}) selected.'.format(result_dev_out[0]))
 
 
 def get_mode(args):
@@ -115,12 +183,13 @@ def run_trace(trace, renderer, args):
     if mode != '':
         mode = '_' + mode
 
-    # Kick off a subprocess that collects gpumem every second
-    run_command('adb push gpumem.sh /data/local/tmp')
-    power_command = 'adb shell sh /data/local/tmp/gpumem.sh'
-    power_process = run_async_command(power_command)
+    # Kick off a subprocess that collects peak gpu memory periodically
+    # Note the 0.25 below is the delay (in seconds) between memory checks
+    run_adb_command('push gpumem.sh /data/local/tmp')
+    memory_command = 'shell sh /data/local/tmp/gpumem.sh 0.25'
+    memory_process = run_async_adb_command(memory_command)
 
-    adb_command = 'adb shell am instrument -w '
+    adb_command = 'shell am instrument -w '
     adb_command += '-e org.chromium.native_test.NativeTestInstrumentationTestRunner.StdoutFile /sdcard/Download/out.txt '
     adb_command += '-e org.chromium.native_test.NativeTest.CommandLineFlags "--gtest_filter=TracePerfTest.Run/' + renderer + mode + '_' + trace + '\ '
     if args.maxsteps != '':
@@ -137,20 +206,22 @@ def run_trace(trace, renderer, args):
     adb_command += '-e org.chromium.native_test.NativeTestInstrumentationTestRunner.NativeTestActivity com.android.angle.test.AngleUnitTestActivity '
     adb_command += 'com.android.angle.test/org.chromium.build.gtest_apk.NativeTestInstrumentationTestRunner'
 
-    process = run_command(adb_command)
+    result = run_adb_command(adb_command)
 
     logging.debug('Killing gpumem subprocess')
-    power_process.kill()
+    memory_process.kill()
+
+    return result.time
 
 
 def get_test_time(renderer, time):
     # Pull the results from the device and parse
-    process = run_command('adb shell cat /sdcard/Download/out.txt | grep -v Error | grep -v Frame')
+    result = run_adb_command('shell cat /sdcard/Download/out.txt | grep -v Error | grep -v Frame')
 
     measured_time = ''
 
     while True:
-        line = process.stdout.readline()
+        line = result.process.stdout.readline()
         logging.debug('Checking line: %s' % line)
         if not line:
             break
@@ -171,33 +242,39 @@ def get_test_time(renderer, time):
     return measured_time
 
 
-def get_gpu_memory():
+def get_gpu_memory(trace_duration):
     # Pull the results from the device and parse
-    process = run_command('adb shell cat /sdcard/Download/gpumem.txt | awk "NF"')
+    result = run_adb_command('shell cat /sdcard/Download/gpumem.txt | awk "NF"')
 
     # The gpumem script grabs snapshots of memory per process
-    # Output looks like this, repeated once per second of the test:
+    # Output looks like this, repeated once per sleep_duration of the test:
     #
-    # com.android.angle.test:test_process 31933
+    # time_elapsed: 9
+    # com.android.angle.test:test_process 16513
     # Memory snapshot for GPU 0:
-    # Global total: 391626752
-    # Proc 12875 total: 123355136
-    # Proc 13033 total: 31166464
-    # Proc 13238 total: 14389248
-    # Proc 13705 total: 25128960
-    # Proc 14098 total: 1282048
-    # Proc 14600 total: 1028096
-    # Proc 15144 total: 1421312
-    # Proc 31933 total: 235184128
+    # Global total: 516833280
+    # Proc 504 total: 170385408
+    # Proc 1708 total: 33767424
+    # Proc 2011 total: 17018880
+    # Proc 16513 total: 348479488
+    # Proc 27286 total: 20877312
+    # Proc 27398 total: 1028096
 
     # Gather the memory at each snapshot
+    time_elapsed = ''
     test_process = ''
     gpu_mem = []
+    gpu_mem_sustained = []
     while True:
-        line = process.stdout.readline()
+        line = result.process.stdout.readline()
         logging.debug('Checking line: %s' % line)
         if not line:
             break
+
+        if "time_elapsed" in line:
+            time_elapsed = line.split()[-1]
+            logging.debug('time_elapsed: %s' % time_elapsed)
+            continue
 
         # Look for this line and grab the last entry:
         #   com.android.angle.test:test_process 31933
@@ -216,28 +293,34 @@ def get_gpu_memory():
         #   Proc 31933 total: 235184128
         if test_process in line:
             gpu_mem_entry = line.split()[-1]
-            logging.debug('Adding: %s' % gpu_mem_entry)
+            logging.debug('Adding: %s to gpu_mem' % gpu_mem_entry)
             gpu_mem.append(int(gpu_mem_entry))
             # logging.debug('gpu_mem contains: %i' % ' '.join(gpu_mem))
+            if safe_cast_float(time_elapsed) >= (safe_cast_float(trace_duration) / 2):
+                # Start tracking sustained memory usage at the half way point
+                logging.debug('Adding: %s to gpu_mem_sustained' % gpu_mem_entry)
+                gpu_mem_sustained.append(int(gpu_mem_entry))
             continue
 
-    gpu_mem_average = 0
     gpu_mem_max = 0
     if len(gpu_mem) != 0:
-        gpu_mem_average = statistics.mean(gpu_mem)
         gpu_mem_max = max(gpu_mem)
+
+    gpu_mem_average = 0
+    if len(gpu_mem_sustained) != 0:
+        gpu_mem_average = statistics.mean(gpu_mem_sustained)
 
     return gpu_mem_average, gpu_mem_max
 
 
 def get_gpu_time():
     # Pull the results from the device and parse
-    process = run_command('adb shell cat /sdcard/Download/out.txt')
+    result = run_adb_command('shell cat /sdcard/Download/out.txt')
     gpu_time = ''
 
     while True:
         # Look for "gpu_time" in the line and grab the second to last entry:
-        line = process.stdout.readline()
+        line = result.process.stdout.readline()
         logging.debug('Checking line: %s' % line)
         if not line:
             break
@@ -251,12 +334,12 @@ def get_gpu_time():
 
 def get_cpu_time():
     # Pull the results from the device and parse
-    process = run_command('adb shell cat /sdcard/Download/out.txt')
+    result = run_adb_command('shell cat /sdcard/Download/out.txt')
     cpu_time = ''
 
     while True:
         # Look for "cpu_time" in the line and grab the second to last entry:
-        line = process.stdout.readline()
+        line = result.process.stdout.readline()
         logging.debug('Checking line: %s' % line)
         if not line:
             break
@@ -270,12 +353,12 @@ def get_cpu_time():
 
 def get_frame_count():
     # Pull the results from the device and parse
-    process = run_command('adb shell cat /sdcard/Download/out.txt | grep -v Error | grep -v Frame')
+    result = run_adb_command('shell cat /sdcard/Download/out.txt | grep -v Error | grep -v Frame')
 
     frame_count = 0
 
     while True:
-        line = process.stdout.readline()
+        line = result.process.stdout.readline()
         logging.debug('Checking line: %s' % line)
         if not line:
             break
@@ -298,11 +381,11 @@ class GPUPowerStats():
         self.little_cpu_power = 0
 
     def get_power_data(self):
-        gpu_power_command = 'adb shell "'
+        gpu_power_command = 'shell "'
         gpu_power_command += 'cat /sys/bus/iio/devices/iio:device1/energy_value'
         gpu_power_command += '"'
 
-        gpu_process = run_command(gpu_power_command)
+        gpu_result = run_adb_command(gpu_power_command)
 
         # Read the last value from this line:
         # CH6(T=251741617)[S2S_VDD_G3D], 3702041607
@@ -320,7 +403,7 @@ class GPUPowerStats():
 
         # Read the starting power
         while True:
-            line = gpu_process.stdout.readline()
+            line = gpu_result.process.stdout.readline()
             logging.debug('Checking line: %s' % line)
             if not line:
                 break
@@ -331,11 +414,11 @@ class GPUPowerStats():
         logging.debug("self.gpu_power %s" % self.gpu_power)
 
         # Also grab the sum of CPU powers
-        cpu_power_command = 'adb shell "'
+        cpu_power_command = 'shell "'
         cpu_power_command += 'cat /sys/bus/iio/devices/iio:device0/energy_value'
         cpu_power_command += '"'
 
-        cpu_process = run_command(cpu_power_command)
+        cpu_result = run_adb_command(cpu_power_command)
 
         # Output like this
         # t=16086645
@@ -350,7 +433,7 @@ class GPUPowerStats():
 
         # Sum up the CPU parts
         while True:
-            line = cpu_process.stdout.readline()
+            line = cpu_result.process.stdout.readline()
             logging.debug('Checking line: %s' % line)
             if not line:
                 break
@@ -360,7 +443,7 @@ class GPUPowerStats():
         logging.debug("self.big_cpu_power %s" % self.big_cpu_power)
 
         while True:
-            line = cpu_process.stdout.readline()
+            line = cpu_result.process.stdout.readline()
             logging.debug('Checking line: %s' % line)
             if not line:
                 break
@@ -370,7 +453,7 @@ class GPUPowerStats():
         logging.debug("self.mid_cpu_power %s" % self.mid_cpu_power)
 
         while True:
-            line = cpu_process.stdout.readline()
+            line = cpu_result.process.stdout.readline()
             logging.debug('Checking line: %s' % line)
             if not line:
                 break
@@ -441,6 +524,8 @@ def main():
     parser.add_argument('--output-tag', help='Tag for output files.', required=True)
     parser.add_argument(
         '--loop-count', help='How many times to loop through the traces', default=5)
+    parser.add_argument(
+        '--device', help='Which device to run the tests on (use serial)', default='')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -471,6 +556,9 @@ def main():
     mode = get_mode(args)
     trace_width = get_trace_width(mode)
 
+    # Select the target device
+    select_device(args.device)
+
     # Add an underscore to the mode for use in loop below
     if mode != '':
         mode = mode + '_'
@@ -483,18 +571,18 @@ def main():
     if args.walltimeonly:
         print('%-*s' % (trace_width, 'wall_time_per_frame'))
     elif args.power:
-        print('%-*s %-*s %-*s %-*s %-*s %-*s %-*s' %
+        print('%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s' %
               (trace_width, 'trace', 30, 'wall_time', 30, 'gpu_time', 20, 'cpu_time', 20,
-               'gpu_power', 20, 'cpu_power', 20, 'gpu_mem'))
+               'gpu_power', 20, 'cpu_power', 20, 'gpu_mem_sustained', 20, 'gpu_mem_peak'))
         output_writer.writerow([
             'trace', 'wall_time(ms)', 'gpu_time(ms)', 'cpu_time(ms)', 'gpu_power(uWs)',
-            'cpu_power(uWs)', 'gpu_mem'
+            'cpu_power(uWs)', 'gpu_mem_sustained', 'gpu_mem_peak'
         ])
     else:
         print('%-*s %-*s %-*s' %
               (trace_width, 'trace', 30, 'wall_time_per_frame(ms)', 30, 'gpu_time_per_frame'))
 
-    run_command('adb root')
+    run_adb_command('root')
 
     if args.power:
         starting_power = GPUPowerStats()
@@ -511,7 +599,8 @@ def main():
     cpu_times = defaultdict(dict)
     gpu_power_per_frames = defaultdict(dict)
     cpu_power_per_frames = defaultdict(dict)
-    gpu_mem = defaultdict(dict)
+    gpu_mem_sustaineds = defaultdict(dict)
+    gpu_mem_peaks = defaultdict(dict)
 
     for renderer in renderers:
         for i in range(int(args.loop_count)):
@@ -532,7 +621,7 @@ def main():
                                   int(starting_power.little_cpu_power))
 
                 logging.debug('Running %s' % test)
-                run_trace(test, renderer, args)
+                test_time = run_trace(test, renderer, args)
 
                 if args.power:
                     ending_power.get_power_data()
@@ -567,9 +656,10 @@ def main():
                         consumed_cpu_power = consumed_big_cpu_power + consumed_mid_cpu_power + consumed_little_cpu_power
                         cpu_power_per_frame = consumed_cpu_power / int(frame_count)
 
-                gpu_average_mem, gpu_max_mem = get_gpu_memory()
-                logging.debug('%s = %i, %s = %i' %
-                              ('gpu_average_mem', gpu_average_mem, 'gpu_max_mem', gpu_max_mem))
+                gpu_mem_sustained, gpu_mem_peak = get_gpu_memory(test_time)
+                logging.debug(
+                    '%s = %i, %s = %i' %
+                    ('gpu_mem_sustained', gpu_mem_sustained, 'gpu_mem_peak', gpu_mem_peak))
 
                 trace_name = mode + renderer + '_' + test
 
@@ -589,9 +679,13 @@ def main():
                     cpu_power_per_frames[test] = defaultdict(list)
                 cpu_power_per_frames[test][renderer].append(safe_cast_int(cpu_power_per_frame))
 
-                if len(gpu_mem[test]) == 0:
-                    gpu_mem[test] = defaultdict(list)
-                gpu_mem[test][renderer].append(safe_cast_int(gpu_average_mem))
+                if len(gpu_mem_sustaineds[test]) == 0:
+                    gpu_mem_sustaineds[test] = defaultdict(list)
+                gpu_mem_sustaineds[test][renderer].append(safe_cast_int(gpu_mem_sustained))
+
+                if len(gpu_mem_peaks[test]) == 0:
+                    gpu_mem_peaks[test] = defaultdict(list)
+                gpu_mem_peaks[test][renderer].append(safe_cast_int(gpu_mem_peak))
 
                 if len(cpu_times[test]) == 0:
                     cpu_times[test] = defaultdict(list)
@@ -600,12 +694,13 @@ def main():
                 if args.walltimeonly:
                     print('%-*s' % (trace_width, wall_time))
                 elif args.power:
-                    print('%-*s %-*s %-*s %-*s %-*i %-*i %-*i' %
+                    print('%-*s %-*s %-*s %-*s %-*i %-*i %-*i %-*i' %
                           (trace_width, trace_name, 30, wall_time, 30, gpu_time, 20, cpu_time, 20,
-                           gpu_power_per_frame, 20, cpu_power_per_frame, 20, gpu_average_mem))
+                           gpu_power_per_frame, 20, cpu_power_per_frame, 20, gpu_mem_sustained, 20,
+                           gpu_mem_peak))
                     output_writer.writerow([
                         mode + renderer + '_' + test, wall_time, gpu_time, cpu_time,
-                        gpu_power_per_frame, cpu_power_per_frame, gpu_average_mem
+                        gpu_power_per_frame, cpu_power_per_frame, gpu_mem_sustained, gpu_mem_peak
                     ])
                 else:
                     print('%-*s %-*s %-*s' %
@@ -619,8 +714,11 @@ def main():
     summary_file = open("summary." + args.output_tag + ".csv", 'w', newline='')
     summary_writer = csv.writer(summary_file)
 
-    android_version = run_command('adb shell getprop ro.build.fingerprint').stdout.read().strip()
-    angle_version = run_command('git rev-parse HEAD').stdout.read().strip()
+    android_result = run_adb_command('shell getprop ro.build.fingerprint')
+    android_version = android_result.process.stdout.read().strip()
+
+    angle_result = run_command('git rev-parse HEAD')
+    angle_version = angle_result.process.stdout.read().strip()
     # test_time = run_command('date \"+%Y%m%d\"').stdout.read().strip()
 
     summary_writer.writerow([
@@ -643,7 +741,10 @@ def main():
         "\"Native\nCPU\npower\nvariance\"", "\"ANGLE\nCPU\npower\nper\nframe\n(uWs)\"",
         "\"ANGLE\nCPU\npower\nvariance\"", "\"CPU\npower\ncompare\"", "\"Native\nGPU\nmem\n(B)\"",
         "\"Native\nGPU\nmem\nvariance\"", "\"ANGLE\nGPU\nmem\n(B)\"",
-        "\"ANGLE\nGPU\nmem\nvariance\"", "\"GPU\nmem\ncompare\""
+        "\"ANGLE\nGPU\nmem\nvariance\"", "\"GPU\nmem\ncompare\"",
+        "\"Native\npeak\nGPU\nmem\n(B)\"", "\"Native\npeak\nGPU\nmem\nvariance\"",
+        "\"ANGLE\npeak\nGPU\nmem\n(B)\"", "\"ANGLE\npeak\nGPU\nmem\nvariance\"",
+        "\"GPU\npeak\nmem\ncompare\""
     ])
 
     rows = defaultdict(dict)
@@ -671,8 +772,19 @@ def main():
     for name, results in cpu_power_per_frames.items():
         populate_row(rows, name, results)
 
-    for name, results in gpu_mem.items():
+    for name, results in gpu_mem_sustaineds.items():
         populate_row(rows, name, results)
+
+    for name, results in gpu_mem_peaks.items():
+        populate_row(rows, name, results)
+
+    for name, data in rows.items():
+        if "native" in data and "vulkan" in data:
+            # The remaining code in this script expects both native and vulkan results
+            break
+        else:
+            logging.info("Skipping summary file due to single renderer")
+            exit()
 
     # Write the summary file
     trace_number = 0
@@ -709,7 +821,12 @@ def main():
             percent(data["native"][11]),
             int(data["vulkan"][10]),
             percent(data["vulkan"][11]),
-            percent(safe_divide(data["native"][10], data["vulkan"][10]))
+            percent(safe_divide(data["native"][10], data["vulkan"][10])),
+            int(data["native"][12]),
+            percent(data["native"][13]),
+            int(data["vulkan"][12]),
+            percent(data["vulkan"][13]),
+            percent(safe_divide(data["native"][12], data["vulkan"][12]))
         ])
 
     return 0

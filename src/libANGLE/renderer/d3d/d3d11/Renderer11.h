@@ -207,7 +207,7 @@ class Renderer11 : public RendererD3D
                                       gl::ShaderType type,
                                       const std::vector<D3DVarying> &streamOutVaryings,
                                       bool separatedOutputBuffers,
-                                      const angle::CompilerWorkaroundsD3D &workarounds,
+                                      const CompilerWorkaroundsD3D &workarounds,
                                       ShaderExecutableD3D **outExectuable) override;
     angle::Result ensureHLSLCompilerInitialized(d3d::Context *context) override;
 
@@ -500,6 +500,8 @@ class Renderer11 : public RendererD3D
                       gl::Limitations *outLimitations) const override;
 
     void initializeFeatures(angle::FeaturesD3D *features) const override;
+
+    void initializeFrontendFeatures(angle::FrontendFeatures *features) const override;
 
     angle::Result drawLineLoop(const gl::Context *context,
                                GLuint count,

@@ -4184,6 +4184,21 @@
       "version" : "None"
     },
     {
+      "opname" : "OpGroupNonUniformRotateKHR",
+      "class"  : "Group",
+      "opcode" : 4431,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdScope", "name" : "'Execution'" },
+        { "kind" : "IdRef", "name" : "'Value'" },
+        { "kind" : "IdRef", "name" : "'Delta'" },
+        { "kind" : "IdRef", "name" : "'ClusterSize'", "quantifier" : "?" }
+      ],
+      "capabilities" : [ "GroupNonUniformRotateKHR" ],
+      "version" : "None"
+    },
+    {
       "opname" : "OpSubgroupReadInvocationKHR",
       "class"  : "Group",
       "opcode" : 4432,
@@ -8573,6 +8588,118 @@
       ],
       "capabilities" : [ "SplitBarrierINTEL" ],
       "version" : "None"
+    },
+    {
+      "opname" : "OpGroupIMulKHR",
+      "class"  : "Group",
+      "opcode" : 6401,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdScope",        "name" : "'Execution'" },
+        { "kind" : "GroupOperation", "name" : "'Operation'" },
+        { "kind" : "IdRef",          "name" : "'X'" }
+      ],
+      "capabilities" : [ "GroupUniformArithmeticKHR" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpGroupFMulKHR",
+      "class"  : "Group",
+      "opcode" : 6402,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdScope",        "name" : "'Execution'" },
+        { "kind" : "GroupOperation", "name" : "'Operation'" },
+        { "kind" : "IdRef",          "name" : "'X'" }
+      ],
+      "capabilities" : [ "GroupUniformArithmeticKHR" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpGroupBitwiseAndKHR",
+      "class"  : "Group",
+      "opcode" : 6403,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdScope",        "name" : "'Execution'" },
+        { "kind" : "GroupOperation", "name" : "'Operation'" },
+        { "kind" : "IdRef",          "name" : "'X'" }
+      ],
+      "capabilities" : [ "GroupUniformArithmeticKHR" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpGroupBitwiseOrKHR",
+      "class"  : "Group",
+      "opcode" : 6404,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdScope",        "name" : "'Execution'" },
+        { "kind" : "GroupOperation", "name" : "'Operation'" },
+        { "kind" : "IdRef",          "name" : "'X'" }
+      ],
+      "capabilities" : [ "GroupUniformArithmeticKHR" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpGroupBitwiseXorKHR",
+      "class"  : "Group",
+      "opcode" : 6405,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdScope",        "name" : "'Execution'" },
+        { "kind" : "GroupOperation", "name" : "'Operation'" },
+        { "kind" : "IdRef",          "name" : "'X'" }
+      ],
+      "capabilities" : [ "GroupUniformArithmeticKHR" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpGroupLogicalAndKHR",
+      "class"  : "Group",
+      "opcode" : 6406,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdScope",        "name" : "'Execution'" },
+        { "kind" : "GroupOperation", "name" : "'Operation'" },
+        { "kind" : "IdRef",          "name" : "'X'" }
+      ],
+      "capabilities" : [ "GroupUniformArithmeticKHR" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpGroupLogicalOrKHR",
+      "class"  : "Group",
+      "opcode" : 6407,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdScope",        "name" : "'Execution'" },
+        { "kind" : "GroupOperation", "name" : "'Operation'" },
+        { "kind" : "IdRef",          "name" : "'X'" }
+      ],
+      "capabilities" : [ "GroupUniformArithmeticKHR" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpGroupLogicalXorKHR",
+      "class"  : "Group",
+      "opcode" : 6408,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdScope",        "name" : "'Execution'" },
+        { "kind" : "GroupOperation", "name" : "'Operation'" },
+        { "kind" : "IdRef",          "name" : "'X'" }
+      ],
+      "capabilities" : [ "GroupUniformArithmeticKHR" ],
+      "version" : "None"
     }
   ],
   "operand_kinds" : [
@@ -9322,6 +9449,10 @@
         {
           "enumerant" : "CPP_for_OpenCL",
           "value" : 6
+        },
+        {
+          "enumerant" : "SYCL",
+          "value" : 7
         }
       ]
     },
@@ -9997,6 +10128,15 @@
             { "kind" : "LiteralInteger", "name" : "'target_fmax'" }
           ],
           "capabilities" : [ "FPGAKernelAttributesINTEL" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "NamedBarrierCountINTEL",
+          "value" : 6417,
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Barrier Count'" }
+          ],
+          "capabilities" : [ "VectorComputeINTEL" ],
           "version" : "None"
         }
       ]
@@ -13871,6 +14011,13 @@
           "version" : "None"
         },
         {
+          "enumerant" : "GroupNonUniformRotateKHR",
+          "value" : 6026,
+          "capabilities" : [ "GroupNonUniform" ],
+          "extensions" : [ "SPV_KHR_subgroup_rotate" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "AtomicFloat32AddEXT",
           "value" : 6033,
           "extensions" : [ "SPV_EXT_shader_atomic_float_add" ],
@@ -13910,6 +14057,12 @@
           "enumerant" : "SplitBarrierINTEL",
           "value" : 6141,
           "extensions" : [ "SPV_INTEL_split_barrier" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "GroupUniformArithmeticKHR",
+          "value" : 6400,
+          "extensions" : [ "SPV_KHR_uniform_group_instructions"],
           "version" : "None"
         }
       ]

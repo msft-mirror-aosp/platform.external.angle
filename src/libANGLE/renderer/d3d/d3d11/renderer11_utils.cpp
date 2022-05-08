@@ -29,7 +29,7 @@
 #include "libANGLE/renderer/d3d/d3d11/texture_format_table.h"
 #include "libANGLE/renderer/driver_utils.h"
 #include "libANGLE/renderer/dxgi_support_table.h"
-#include "platform/FeaturesD3D.h"
+#include "platform/FeaturesD3D_autogen.h"
 #include "platform/PlatformMethods.h"
 
 namespace rx
@@ -1703,6 +1703,9 @@ void GenerateCaps(ID3D11Device *device,
     // D3D11 does not support vertex attribute aliasing
     limitations->noVertexAttributeAliasing = true;
 
+    // D3D11 does not support compressed textures where the base mip level is not a multiple of 4
+    limitations->compressedBaseMipLevelMultipleOfFour = true;
+
 #ifdef ANGLE_ENABLE_WINDOWS_UWP
     // Setting a non-zero divisor on attribute zero doesn't work on certain Windows Phone 8-era
     // devices. We should prevent developers from doing this on ALL Windows Store devices. This will
@@ -2443,7 +2446,7 @@ void InitializeFeatures(const Renderer11DeviceCaps &deviceCaps,
     ANGLE_FEATURE_CONDITION(features, mrtPerfWorkaround, true);
     ANGLE_FEATURE_CONDITION(features, zeroMaxLodWorkaround, isFeatureLevel9_3);
     ANGLE_FEATURE_CONDITION(features, useInstancedPointSpriteEmulation, isFeatureLevel9_3);
-    ANGLE_FEATURE_CONDITION(features, allowES3OnFL10_0, false);
+    ANGLE_FEATURE_CONDITION(features, allowES3OnFL100, false);
 
     // TODO(jmadill): Disable workaround when we have a fixed compiler DLL.
     ANGLE_FEATURE_CONDITION(features, expandIntegerPowExpressions, true);
@@ -2502,10 +2505,14 @@ void InitializeFeatures(const Renderer11DeviceCaps &deviceCaps,
     // to work around a slow fxc compile performance issue with dynamic uniform indexing.
     ANGLE_FEATURE_CONDITION(features, allowTranslateUniformBlockToStructuredBuffer,
                             IsWin10OrGreater());
+}
 
-    // Call platform hooks for testing overrides.
-    auto *platform = ANGLEPlatformCurrent();
-    platform->overrideWorkaroundsD3D(platform, features);
+void InitializeFrontendFeatures(const DXGI_ADAPTER_DESC &adapterDesc,
+                                angle::FrontendFeatures *features)
+{
+    bool isAMD = IsAMD(adapterDesc.VendorId);
+
+    ANGLE_FEATURE_CONDITION(features, forceDepthAttachmentInitOnClear, isAMD);
 }
 
 void InitConstantBufferDesc(D3D11_BUFFER_DESC *constantBufferDescription, size_t byteWidth)
