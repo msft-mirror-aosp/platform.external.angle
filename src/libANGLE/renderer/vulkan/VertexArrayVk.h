@@ -40,11 +40,7 @@ class VertexArrayVk : public VertexArrayImpl
 
     angle::Result updateActiveAttribInfo(ContextVk *contextVk);
 
-    angle::Result updateDefaultAttrib(ContextVk *contextVk,
-                                      size_t attribIndex,
-                                      VkBuffer bufferHandle,
-                                      vk::BufferHelper *buffer,
-                                      uint32_t offset);
+    angle::Result updateDefaultAttrib(ContextVk *contextVk, size_t attribIndex);
 
     angle::Result updateStreamedAttribs(const gl::Context *context,
                                         GLint firstVertex,
@@ -85,6 +81,9 @@ class VertexArrayVk : public VertexArrayImpl
     {
         return mCurrentArrayBuffers;
     }
+
+    // Update mCurrentElementArrayBuffer based on the vertex array state
+    void updateCurrentElementArrayBuffer();
 
     vk::BufferHelper *getCurrentElementArrayBuffer() const { return mCurrentElementArrayBuffer; }
 

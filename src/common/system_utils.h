@@ -14,6 +14,7 @@
 
 #include <functional>
 #include <string>
+#include <string_view>
 
 namespace angle
 {
@@ -163,6 +164,8 @@ bool IsDebuggerAttached();
 // Calls system APIs to break into the debugger.
 void BreakDebugger();
 
+uint64_t GetProcessMemoryUsageKB();
+
 bool ProtectMemory(uintptr_t start, size_t size);
 bool UnprotectMemory(uintptr_t start, size_t size);
 
@@ -200,6 +203,13 @@ class PageFaultHandler : angle::NonCopyable
 // Creates single instance page fault handler
 PageFaultHandler *CreatePageFaultHandler(PageFaultCallback callback);
 
+#ifdef ANGLE_PLATFORM_WINDOWS
+// Convert an UTF-16 wstring to an UTF-8 string.
+std::string Narrow(const std::wstring_view &utf16);
+
+// Convert an UTF-8 string to an UTF-16 wstring.
+std::wstring Widen(const std::string_view &utf8);
+#endif
 }  // namespace angle
 
 #endif  // COMMON_SYSTEM_UTILS_H_
