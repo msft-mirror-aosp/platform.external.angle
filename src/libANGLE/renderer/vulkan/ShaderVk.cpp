@@ -29,13 +29,15 @@ std::shared_ptr<WaitableCompileEvent> ShaderVk::compile(const gl::Context *conte
 
     ContextVk *contextVk = vk::GetImpl(context);
 
-    bool isWebGL = context->getExtensions().webglCompatibility;
-
-    if (isWebGL)
+    if (context->isWebGL())
     {
-        // Only webgl requires initialization of local variables, others don't.
+        // Only WebGL requires initialization of local variables, others don't.
         // Extra initialization in spirv shader may affect performance.
         compileOptions |= SH_INITIALIZE_UNINITIALIZED_LOCALS;
+
+        // WebGL shaders may contain OOB array accesses which in turn cause undefined behavior,
+        // which may result in security issues. See https://crbug.com/1189110.
+        compileOptions |= SH_CLAMP_INDIRECT_ARRAY_BOUNDS;
 
         if (mState.getShaderType() != gl::ShaderType::Compute)
         {
@@ -51,6 +53,11 @@ std::shared_ptr<WaitableCompileEvent> ShaderVk::compile(const gl::Context *conte
     if (contextVk->getFeatures().basicGLLineRasterization.enabled)
     {
         compileOptions |= SH_ADD_BRESENHAM_LINE_RASTER_EMULATION;
+    }
+
+    if (contextVk->getFeatures().emulateAdvancedBlendEquations.enabled)
+    {
+        compileOptions |= SH_ADD_ADVANCED_BLEND_EQUATIONS_EMULATION;
     }
 
     if (contextVk->emulateSeamfulCubeMapSampling())
@@ -95,6 +102,11 @@ std::shared_ptr<WaitableCompileEvent> ShaderVk::compile(const gl::Context *conte
              contextVk->getFeatures().emulateTransformFeedback.enabled)
     {
         compileOptions |= SH_ADD_VULKAN_XFB_EMULATION_SUPPORT_CODE;
+    }
+
+    if (contextVk->getFeatures().generateSPIRVThroughGlslang.enabled)
+    {
+        compileOptions |= SH_GENERATE_SPIRV_THROUGH_GLSLANG;
     }
 
     return compileImpl(context, compilerInstance, mState.getSource(), compileOptions | options);

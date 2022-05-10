@@ -27,6 +27,9 @@ class DisplayMtl;
 
 namespace mtl
 {
+class ContextDevice;
+
+LoadFunctionMap GetLoadFunctionsMap(GLenum internalFormat, angle::FormatID angleFormat);
 
 struct FormatBase
 {
@@ -48,13 +51,18 @@ struct FormatCaps
 {
     bool isRenderable() const { return colorRenderable || depthRenderable; }
 
-    bool filterable      = false;
-    bool writable        = false;
-    bool colorRenderable = false;
-    bool depthRenderable = false;
-    bool blendable       = false;
-    bool multisample     = false;  // can be used as MSAA target
-    bool resolve         = false;  // Can be used as resolve target
+    bool filterable           = false;
+    bool writable             = false;
+    bool colorRenderable      = false;
+    bool depthRenderable      = false;
+    bool blendable            = false;
+    bool multisample          = false;  // can be used as MSAA target
+    bool resolve              = false;  // Can be used as resolve target
+    bool compressed           = false;
+    NSUInteger pixelBytes     = 0;
+    NSUInteger pixelBytesMSAA = 0;
+    NSUInteger channels       = 0;
+    uint8_t alignment         = 0;
 };
 
 // Pixel format
@@ -145,6 +153,7 @@ class FormatTable final : angle::NonCopyable
   private:
     void initNativeFormatCapsAutogen(const DisplayMtl *display);
     void initNativeFormatCaps(const DisplayMtl *display);
+
     void setFormatCaps(MTLPixelFormat formatId,
                        bool filterable,
                        bool writable,
@@ -152,6 +161,17 @@ class FormatTable final : angle::NonCopyable
                        bool multisample,
                        bool resolve,
                        bool colorRenderable);
+
+    void setFormatCaps(MTLPixelFormat formatId,
+                       bool filterable,
+                       bool writable,
+                       bool blendable,
+                       bool multisample,
+                       bool resolve,
+                       bool colorRenderable,
+                       NSUInteger bytesPerChannel,
+                       NSUInteger channels);
+
     void setFormatCaps(MTLPixelFormat formatId,
                        bool filterable,
                        bool writable,
@@ -161,7 +181,23 @@ class FormatTable final : angle::NonCopyable
                        bool colorRenderable,
                        bool depthRenderable);
 
+    void setFormatCaps(MTLPixelFormat formatId,
+                       bool filterable,
+                       bool writable,
+                       bool blendable,
+                       bool multisample,
+                       bool resolve,
+                       bool colorRenderable,
+                       bool depthRenderable,
+                       NSUInteger bytesPerChannel,
+                       NSUInteger channels);
+
     void setCompressedFormatCaps(MTLPixelFormat formatId, bool filterable);
+
+    void adjustFormatCapsForDevice(const mtl::ContextDevice &device,
+                                   MTLPixelFormat id,
+                                   bool supportsiOS2,
+                                   bool supportsiOS4);
 
     std::array<Format, angle::kNumANGLEFormats> mPixelFormatTable;
     angle::HashMap<MTLPixelFormat, FormatCaps> mNativePixelFormatCapsTable;

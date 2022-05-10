@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env vpython3
 # Copyright 2021 The ANGLE Project Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -22,7 +22,26 @@ sys.path.insert(0, TESTING_BBOT_DIR)
 import generate_buildbot_json
 
 # Add custom mixins here.
-ADDITIONAL_MIXINS = {}
+ADDITIONAL_MIXINS = {
+    'angle_skia_gold_test': {
+        '$mixin_append': {
+            'args': [
+                '--git-revision=${got_angle_revision}',
+                # BREAK GLASS IN CASE OF EMERGENCY
+                # Uncommenting this argument will bypass all interactions with Skia
+                # Gold in any tests that use it. This is meant as a temporary
+                # emergency stop in case of a Gold outage that's affecting the bots.
+                # '--bypass-skia-gold-functionality',
+            ],
+            'precommit_args': [
+                '--gerrit-issue=${patch_issue}',
+                '--gerrit-patchset=${patch_set}',
+                '--buildbucket-id=${buildbucket_build_id}',
+            ],
+        }
+    },
+}
+
 MIXIN_FILE_NAME = os.path.join(THIS_DIR, 'mixins.pyl')
 MIXINS_PYL_TEMPLATE = """\
 # GENERATED FILE - DO NOT EDIT.
@@ -75,7 +94,7 @@ def main():
     seen_mixins = set()
     for waterfall in angle_generator.waterfalls:
         seen_mixins = seen_mixins.union(waterfall.get('mixins', set()))
-        for bot_name, tester in waterfall['machines'].iteritems():
+        for bot_name, tester in waterfall['machines'].items():
             seen_mixins = seen_mixins.union(tester.get('mixins', set()))
     for suite in angle_generator.test_suites.values():
         if isinstance(suite, list):
@@ -86,13 +105,12 @@ def main():
             assert isinstance(test, dict)
             seen_mixins = seen_mixins.union(test.get('mixins', set()))
 
-    found_mixins = {}
+    found_mixins = ADDITIONAL_MIXINS.copy()
     for mixin in seen_mixins:
-        assert (mixin in chromium_generator.mixins)
+        if mixin in found_mixins:
+            continue
+        assert (mixin in chromium_generator.mixins), 'Error with %s mixin' % mixin
         found_mixins[mixin] = chromium_generator.mixins[mixin]
-
-    for mixin_name, mixin in ADDITIONAL_MIXINS.items():
-        found_mixins[mixin_name] = mixin
 
     pp = pprint.PrettyPrinter(indent=2)
 

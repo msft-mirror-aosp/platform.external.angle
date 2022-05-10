@@ -21,8 +21,8 @@ class TransformFeedbackTestBase : public ANGLETest
   protected:
     TransformFeedbackTestBase() : mProgram(0), mTransformFeedbackBuffer(0), mTransformFeedback(0)
     {
-        setWindowWidth(128);
-        setWindowHeight(128);
+        setWindowWidth(48);
+        setWindowHeight(32);
         setConfigRedBits(8);
         setConfigGreenBits(8);
         setConfigBlueBits(8);
@@ -86,6 +86,87 @@ class TransformFeedbackTest : public TransformFeedbackTestBase
     void midRecordOpDoesNotContributeTest(std::function<void()> op);
 };
 
+// Test that using a transform feedback program without transform feedback active works, and that
+// using it with transform feedback afterwards also works.
+TEST_P(TransformFeedbackTest, NoCaptureThenCapture)
+{
+    constexpr char kFS[] = R"(#version 300 es
+out mediump vec4 color;
+void main()
+{
+  color = vec4(0.6, 0.0, 0.0, 1.0);
+})";
+
+    // Set the program's transform feedback varyings (just gl_Position)
+    std::vector<std::string> tfVaryings;
+    tfVaryings.push_back("gl_Position");
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(drawColor, essl3_shaders::vs::Simple(), kFS, tfVaryings,
+                                        GL_INTERLEAVED_ATTRIBS);
+
+    glUseProgram(drawColor);
+    GLint positionLocation = glGetAttribLocation(drawColor, essl3_shaders::PositionAttrib());
+    ASSERT_NE(positionLocation, -1);
+
+    const GLfloat vertices[] = {
+        -1.0f, 1.0f, 0.5f, -1.0f, -1.0f, 0.5f, 1.0f, -1.0f, 0.5f,
+        -1.0f, 1.0f, 0.5f, 1.0f,  -1.0f, 0.5f, 1.0f, 1.0f,  0.5f,
+    };
+
+    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+    glEnableVertexAttribArray(positionLocation);
+
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+
+    GLQuery primitivesWrittenQuery;
+    glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, primitivesWrittenQuery);
+    ASSERT_GL_NO_ERROR();
+
+    // Don't bind a buffer for transform feedback output and don't activate transform feedback.
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    // Draw again, with xfb capture enabled.
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, mTransformFeedbackBuffer);
+    glBeginTransformFeedback(GL_TRIANGLES);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glEndTransformFeedback();
+
+    glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+
+    // Ensure that both draw calls succeed.
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    EXPECT_GL_NO_ERROR();
+
+    GLuint primitivesWritten = 0;
+    glGetQueryObjectuiv(primitivesWrittenQuery, GL_QUERY_RESULT_EXT, &primitivesWritten);
+
+    // Ensure that only one draw call produced transform feedback data.
+    EXPECT_EQ(2u, primitivesWritten);
+    EXPECT_GL_NO_ERROR();
+
+    // Ensure that triangles were actually captured.
+    void *mappedBuffer =
+        glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, sizeof(float) * 24, GL_MAP_READ_BIT);
+    ASSERT_NE(nullptr, mappedBuffer);
+
+    const GLfloat expect[] = {
+        -1.0f, 1.0f, 0.5f, 1.0f, -1.0f, -1.0f, 0.5f, 1.0f, 1.0f, -1.0f, 0.5f, 1.0f,
+        -1.0f, 1.0f, 0.5f, 1.0f, 1.0f,  -1.0f, 0.5f, 1.0f, 1.0f, 1.0f,  0.5f, 1.0f,
+    };
+
+    float *mappedFloats = static_cast<float *>(mappedBuffer);
+    for (uint32_t i = 0; i < 24; ++i)
+    {
+        EXPECT_EQ(mappedFloats[i], expect[i]);
+    }
+    glUnmapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER);
+
+    EXPECT_GL_NO_ERROR();
+}
+
 TEST_P(TransformFeedbackTest, ZeroSizedViewport)
 {
     // http://anglebug.com/5154
@@ -125,6 +206,45 @@ TEST_P(TransformFeedbackTest, ZeroSizedViewport)
     EXPECT_GL_NO_ERROR();
 
     EXPECT_EQ(2u, primitivesWritten);
+}
+
+// Test that using a transform feedback query in the following scenario doesn't crash:
+//
+// - Enable xfb query
+// - Draw without xfb
+// - Begin xfb
+// - End xfb
+// - End xfb query
+//
+TEST_P(TransformFeedbackTest, QueryActiveNoXfbDrawThenXfbBeginEnd)
+{
+    // Set the program's transform feedback varyings (just gl_Position)
+    std::vector<std::string> tfVaryings;
+    tfVaryings.push_back("gl_Position");
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(drawColor, essl3_shaders::vs::Simple(),
+                                        essl3_shaders::fs::Red(), tfVaryings,
+                                        GL_INTERLEAVED_ATTRIBS);
+
+    glUseProgram(drawColor);
+
+    GLQuery primitivesWrittenQuery;
+    glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, primitivesWrittenQuery);
+    ASSERT_GL_NO_ERROR();
+
+    drawQuad(drawColor, essl3_shaders::PositionAttrib(), 0.5f);
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, mTransformFeedbackBuffer);
+    glBeginTransformFeedback(GL_TRIANGLES);
+    glEndTransformFeedback();
+
+    glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+
+    // Check that no primitives were written.
+    GLuint primitivesWritten = 0;
+    glGetQueryObjectuiv(primitivesWrittenQuery, GL_QUERY_RESULT_EXT, &primitivesWritten);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_EQ(primitivesWritten, 0u);
 }
 
 // Test that rebinding a buffer with the same offset resets the offset (no longer appending from the
@@ -283,6 +403,7 @@ TEST_P(TransformFeedbackTest, RecordAndDraw)
 // Test that transform feedback can cover multiple render passes.
 TEST_P(TransformFeedbackTest, SpanMultipleRenderPasses)
 {
+
     // TODO(anglebug.com/4533) This fails after the upgrade to the 26.20.100.7870 driver.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
 
@@ -537,6 +658,7 @@ void TransformFeedbackTest::midRecordOpDoesNotContributeTest(std::function<void(
 // Test that draw-based clear between draws does not contribute to transform feedback.
 TEST_P(TransformFeedbackTest, ClearWhileRecordingDoesNotContribute)
 {
+
     // TODO(anglebug.com/4533) This fails after the upgrade to the 26.20.100.7870 driver.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
 
@@ -576,6 +698,7 @@ TEST_P(TransformFeedbackTest, ClearWhileRecordingDoesNotContribute)
 // Test that copy in the middle of rendering doesn't contribute to transform feedback.
 TEST_P(TransformFeedbackTest, CopyWhileRecordingDoesNotContribute)
 {
+
     // TODO(anglebug.com/4533) This fails after the upgrade to the 26.20.100.7870 driver.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
 
@@ -1018,11 +1141,10 @@ TEST_P(TransformFeedbackTest, MultiContext)
 
     ANGLE_SKIP_TEST_IF(IsLinux() && IsAMD() && IsOpenGL());
 
+    ANGLE_SKIP_TEST_IF(IsAndroid() && IsOpenGL());
+
     // Flaky on Win Intel Vulkan. http://anglebug.com/4497
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
-
-    // Flaky on Metal. http://anglebug.com/5713
-    ANGLE_SKIP_TEST_IF(IsMetal());
 
     EGLint contextAttributes[] = {
         EGL_CONTEXT_MAJOR_VERSION_KHR,
@@ -1483,6 +1605,7 @@ TEST_P(TransformFeedbackTest, OffsetResetOnBeginTransformFeedback)
 // Test that the captured buffer can be copied to other buffers.
 TEST_P(TransformFeedbackTest, CaptureAndCopy)
 {
+
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -2120,6 +2243,9 @@ TEST_P(TransformFeedbackTest, EndWithDifferentProgram)
     // AMD drivers fail because they perform transform feedback when it should be paused.
     ANGLE_SKIP_TEST_IF(IsAMD() && IsOpenGL());
 
+    // https://crbug.com/1207380 Pixel 2 is crashing during ES3_Vulkan_AsyncCommandQueue testing
+    ANGLE_SKIP_TEST_IF(IsVulkan() && IsPixel2());
+
     std::vector<std::string> tfVaryings;
     tfVaryings.push_back("gl_Position");
     compileDefaultProgram(tfVaryings, GL_INTERLEAVED_ATTRIBS);
@@ -2248,9 +2374,6 @@ TEST_P(TransformFeedbackTest, BufferOutOfMemory)
     // The GL back-end throws an internal error that we can't deal with in this test.
     ANGLE_SKIP_TEST_IF(IsOpenGL());
 
-    // TODO: http://anglebug.com/5345: fails consistently on Mac FYI GPU ASAN Release bot
-    ANGLE_SKIP_TEST_IF(IsMetal() && (IsIntel() || IsAMD()));
-
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -2260,7 +2383,8 @@ TEST_P(TransformFeedbackTest, BufferOutOfMemory)
     compileDefaultProgram(tfVaryings, GL_INTERLEAVED_ATTRIBS);
 
     GLint positionLocation   = glGetAttribLocation(mProgram, essl1_shaders::PositionAttrib());
-    const GLfloat vertices[] = {-1.0f, -0.5f, 0.0f, 0.5f, 1.0f};
+    const GLfloat vertices[] = {-1.0f, -0.5f, 0.0f,  0.5f, 1.0f,  1.0f, -0.5f, 0.0f,
+                                0.5f,  1.0f,  -1.0f, 0.0f, -0.5f, 0.0f, 1.0f};
 
     glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 0, vertices);
     glEnableVertexAttribArray(positionLocation);
@@ -2334,6 +2458,7 @@ void VerifyVertexFloats(const GLfloat *mapPtrFloat,
 // Tests that stopping XFB works as expected.
 TEST_P(TransformFeedbackTest, Overrun)
 {
+
     // TODO(anglebug.com/4533) This fails after the upgrade to the 26.20.100.7870 driver.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
 
@@ -2363,6 +2488,7 @@ TEST_P(TransformFeedbackTest, Overrun)
 // Similar to the overrun test but with Pause instead of End.
 TEST_P(TransformFeedbackTest, OverrunWithPause)
 {
+
     // TODO(anglebug.com/4533) This fails after the upgrade to the 26.20.100.7870 driver.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
 
@@ -2397,6 +2523,7 @@ TEST_P(TransformFeedbackTest, OverrunWithPause)
 // Similar to the overrun test but with Pause instead of End.
 TEST_P(TransformFeedbackTest, OverrunWithPauseAndResume)
 {
+
     // TODO(anglebug.com/4533) This fails after the upgrade to the 26.20.100.7870 driver.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
 
@@ -2438,6 +2565,7 @@ TEST_P(TransformFeedbackTest, OverrunWithPauseAndResume)
 // Similar to the overrun Pause/Resume test but with more than one Pause and Resume.
 TEST_P(TransformFeedbackTest, OverrunWithMultiplePauseAndResume)
 {
+
     // TODO(anglebug.com/4533) This fails after the upgrade to the 26.20.100.7870 driver.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
 
@@ -2487,6 +2615,7 @@ TEST_P(TransformFeedbackTest, OverrunWithMultiplePauseAndResume)
 // Tests begin/draw/end/*bindBuffer*/begin/draw/end.
 TEST_P(TransformFeedbackTest, EndThenBindNewBufferAndRestart)
 {
+
     // TODO(anglebug.com/4533) This fails after the upgrade to the 26.20.100.7870 driver.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
 
@@ -2811,8 +2940,93 @@ TEST_P(TransformFeedbackWithDepthBufferTest, RecordAndDrawWithDepthWriteEnabled)
     EXPECT_GL_NO_ERROR();
 }
 
+// Test that changing the transform feedback binding offset works.
+TEST_P(TransformFeedbackTest, RecordTwiceWithBindingOffsetChange)
+{
+    constexpr char kVS[] = R"(
+varying vec4 v;
+
+void main()
+{
+    v = vec4(0.25, 0.5, 0.75, 1.0);
+})";
+
+    constexpr char kFS[] = R"(
+precision mediump float;
+void main()
+{
+    gl_FragColor = vec4(0);
+})";
+
+    // Capture the varying "v"
+    const std::vector<std::string> tfVaryings = {"v"};
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(program, kVS, kFS, tfVaryings, GL_INTERLEAVED_ATTRIBS);
+    EXPECT_GL_NO_ERROR();
+
+    glUseProgram(program);
+
+    constexpr std::array<GLenum, 3> kUsages = {GL_STATIC_DRAW, GL_STREAM_DRAW, GL_DYNAMIC_DRAW};
+
+    constexpr uint32_t kVaryingSize  = 4;
+    constexpr uint32_t kFirstOffset  = 8;
+    constexpr uint32_t kSecondOffset = 24;
+    constexpr uint32_t kBufferSize   = 40;
+
+    const std::vector<float> initialData(kBufferSize, 0);
+    std::vector<float> expectedData = initialData;
+
+    expectedData[kFirstOffset + 0] = expectedData[kSecondOffset + 0] = 0.25f;
+    expectedData[kFirstOffset + 1] = expectedData[kSecondOffset + 1] = 0.5f;
+    expectedData[kFirstOffset + 2] = expectedData[kSecondOffset + 2] = 0.75f;
+    expectedData[kFirstOffset + 3] = expectedData[kSecondOffset + 3] = 1.0f;
+
+    for (GLenum usage : kUsages)
+    {
+        GLTransformFeedback xfb;
+        glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, xfb);
+
+        GLBuffer xfbBuffer;
+        glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, xfbBuffer);
+        glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, kBufferSize * sizeof(float), initialData.data(),
+                     GL_DYNAMIC_DRAW);
+
+        // Record into first offset
+        glBindBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, xfbBuffer, kFirstOffset * sizeof(float),
+                          kVaryingSize * sizeof(float));
+        glBeginTransformFeedback(GL_POINTS);
+        glDrawArrays(GL_POINTS, 0, 1);
+        glEndTransformFeedback();
+
+        // Record into second offset
+        glBindBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, xfbBuffer, kSecondOffset * sizeof(float),
+                          kVaryingSize * sizeof(float));
+        glBeginTransformFeedback(GL_POINTS);
+        glDrawArrays(GL_POINTS, 0, 1);
+        glEndTransformFeedback();
+
+        const float *bufferData = static_cast<float *>(glMapBufferRange(
+            GL_TRANSFORM_FEEDBACK_BUFFER, 0, kBufferSize * sizeof(float), GL_MAP_READ_BIT));
+        EXPECT_GL_NO_ERROR();
+
+        for (uint32_t index = 0; index < kBufferSize; ++index)
+        {
+            EXPECT_NEAR(bufferData[index], expectedData[index], 1e-6)
+                << "index: " << index << " usage: " << usage;
+        }
+
+        glUnmapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER);
+    }
+}
+
 class TransformFeedbackTestES32 : public TransformFeedbackTest
-{};
+{
+  public:
+    TransformFeedbackTestES32() : TransformFeedbackTest()
+    {
+        setConfigDepthBits(24);
+        setConfigStencilBits(8);
+    }
+};
 
 // Test that simultaneous use of transform feedback primitives written and primitives generated
 // queries works.
@@ -2821,7 +3035,7 @@ TEST_P(TransformFeedbackTestES32, PrimitivesWrittenAndGenerated)
     // TODO(anglebug.com/4533) This fails after the upgrade to the 26.20.100.7870 driver.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
 
-    // No ES3.2 support on out bots.  http://anglebug.com/5435
+    // No ES3.2 support on our bots.  http://anglebug.com/5435
     ANGLE_SKIP_TEST_IF(IsPixel2() && IsVulkan());
 
     // No VK_EXT_transform_feedback support on the following configurations.
@@ -2971,9 +3185,372 @@ TEST_P(TransformFeedbackTestES32, PrimitivesWrittenAndGenerated)
     }
 }
 
+// Test that primitives generated query and rasterizer discard interact well.
+TEST_P(TransformFeedbackTestES32, PrimitivesGeneratedVsRasterizerDiscard)
+{
+    // No ES3.2 support on our bots.  http://anglebug.com/5435
+    ANGLE_SKIP_TEST_IF(IsPixel2() && IsVulkan());
+
+    // No pipelineStatisticsQuery or VK_EXT_transform_feedback support on the following
+    // configurations.  http://anglebug.com/5435
+    ANGLE_SKIP_TEST_IF(IsVulkan() && IsAMD() && IsWindows());
+    ANGLE_SKIP_TEST_IF(IsVulkan() && IsNVIDIA() && IsWindows7());
+
+    // http://anglebug.com/5539
+    ANGLE_SKIP_TEST_IF(IsVulkan() && IsLinux());
+
+    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClearDepthf(0.1f);
+    glClearStencil(0x5A);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    ANGLE_GL_PROGRAM(drawColor, essl1_shaders::vs::Simple(), essl1_shaders::fs::UniformColor());
+    glUseProgram(drawColor);
+    GLint colorUniformLocation =
+        glGetUniformLocation(drawColor, angle::essl1_shaders::ColorUniform());
+    ASSERT_NE(colorUniformLocation, -1);
+
+    // First, disable all output.
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_ALWAYS);
+    glDepthMask(GL_FALSE);
+
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_ALWAYS, 0x3E, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    glStencilMask(0xFF);
+
+    int w = getWindowWidth();
+    int h = getWindowHeight();
+
+    // Render to a part of the output.  It should produce nothing.
+    glScissor(0, 0, w / 4, h / 2);
+    glEnable(GL_SCISSOR_TEST);
+    glUniform4f(colorUniformLocation, 0.1f, 0.2f, 0.3f, 0.4f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Then enable the primitives generated query, and issue another draw call.  Still no output
+    // should be produced.
+    GLQuery primitivesGeneratedQuery;
+    glBeginQuery(GL_PRIMITIVES_GENERATED, primitivesGeneratedQuery);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Enable rasterizer discard.  Still no output should be produced.
+    glEnable(GL_RASTERIZER_DISCARD);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Enable color output.  Render to another part.  No output should be produced.
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glScissor(w / 4, 0, w / 4, h / 2);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Enable depth and stencil output.  Render to another part.  No output should be produced.
+    glDepthMask(GL_TRUE);
+    glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+    glScissor(w / 2, 0, w / 4, h / 2);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Disable rasterizer discard.  Render to another part.  Should produce output.
+    glDisable(GL_RASTERIZER_DISCARD);
+    glScissor(3 * w / 4, 0, w / 4, h / 2);
+    glUniform4f(colorUniformLocation, 1.0f, 0.0f, 0.0f, 1.0f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+    ASSERT_GL_NO_ERROR();
+
+    // Break the render pass by validating the results.  Note that the query is still active, and
+    // rasterizer discard is not.
+    EXPECT_PIXEL_RECT_EQ(0, 0, 3 * w / 4, h / 2, GLColor::blue);
+    EXPECT_PIXEL_RECT_EQ(3 * w / 4, 0, w / 4, h / 2, GLColor::red);
+
+    // Start another render pass.  Render to the another part.  Should produce output.
+    glScissor(0, h / 2, w / 4, h / 2);
+    glUniform4f(colorUniformLocation, 0.0f, 1.0f, 0.0f, 1.0f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Enable rasterizer discard.  Render to another part.  No output should be produced.
+    glEnable(GL_RASTERIZER_DISCARD);
+    glScissor(w / 4, h / 2, w / 4, h / 2);
+    glUniform4f(colorUniformLocation, 0.1f, 0.2f, 0.3f, 0.4f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+    ASSERT_GL_NO_ERROR();
+
+    // Break the render pass by validating the results.  Note that the query is still active, and
+    // so is rasterizer discard.
+    EXPECT_PIXEL_RECT_EQ(0, h / 2, w / 4, h / 2, GLColor::green);
+    EXPECT_PIXEL_RECT_EQ(w / 4, h / 2, w / 4, h / 2, GLColor::blue);
+
+    // Start another render pass.  Render to the another part.  No output should be produced.
+    glScissor(w / 2, h / 2, w / 4, h / 2);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Disable rasterizer discard.  Render to another part.  Should produce output.
+    glDisable(GL_RASTERIZER_DISCARD);
+    glScissor(3 * w / 4, h / 2, w / 4, h / 2);
+    glUniform4f(colorUniformLocation, 1.0f, 1.0f, 0.0f, 1.0f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+    ASSERT_GL_NO_ERROR();
+
+    // Verify color results
+    EXPECT_PIXEL_RECT_EQ(w / 2, h / 2, w / 4, h / 2, GLColor::blue);
+    EXPECT_PIXEL_RECT_EQ(3 * w / 4, h / 2, w / 4, h / 2, GLColor::yellow);
+
+    // Verify that depth/stencil has correct results.
+    glDepthFunc(GL_LESS);
+    glStencilFunc(GL_EQUAL, 0x3E, 0xFF);
+
+    glScissor(0, 0, w, h);
+    glUniform4f(colorUniformLocation, 0.0f, 1.0f, 1.0f, 1.0f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.55f);
+    ASSERT_GL_NO_ERROR();
+
+    // Validate that depth/stencil is modified only where color is modified above.
+    EXPECT_PIXEL_RECT_EQ(0, 0, 3 * w / 4, h / 2, GLColor::blue);
+    EXPECT_PIXEL_RECT_EQ(3 * w / 4, 0, w / 4, h / 2, GLColor::cyan);
+
+    EXPECT_PIXEL_RECT_EQ(0, h / 2, w / 4, h / 2, GLColor::cyan);
+    EXPECT_PIXEL_RECT_EQ(w / 4, h / 2, w / 4, h / 2, GLColor::blue);
+
+    EXPECT_PIXEL_RECT_EQ(w / 2, h / 2, w / 4, h / 2, GLColor::blue);
+    EXPECT_PIXEL_RECT_EQ(3 * w / 4, h / 2, w / 4, h / 2, GLColor::cyan);
+
+    // End the query and verify the count.
+    glEndQuery(GL_PRIMITIVES_GENERATED);
+    EXPECT_GL_NO_ERROR();
+
+    GLuint primitivesGenerated = 0;
+    glGetQueryObjectuiv(primitivesGeneratedQuery, GL_QUERY_RESULT, &primitivesGenerated);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_EQ(primitivesGenerated, 20u);  // 10 draw calls, 2 triangles each.
+}
+
+// Test that multiple primitives generated querys and rasterizer discard interact well.
+TEST_P(TransformFeedbackTestES32, MultiPrimitivesGeneratedVsRasterizerDiscard)
+{
+    // No ES3.2 support on our bots.  http://anglebug.com/5435
+    ANGLE_SKIP_TEST_IF(IsPixel2() && IsVulkan());
+
+    // No pipelineStatisticsQuery or VK_EXT_transform_feedback support on the following
+    // configurations.  http://anglebug.com/5435
+    ANGLE_SKIP_TEST_IF(IsVulkan() && IsAMD() && IsWindows());
+    ANGLE_SKIP_TEST_IF(IsVulkan() && IsNVIDIA() && IsWindows7());
+
+    // http://anglebug.com/5539
+    ANGLE_SKIP_TEST_IF(IsVulkan() && IsLinux());
+
+    ANGLE_GL_PROGRAM(drawColor, essl1_shaders::vs::Simple(), essl1_shaders::fs::UniformColor());
+    glUseProgram(drawColor);
+
+    // Enable rasterizer discard.
+    glEnable(GL_RASTERIZER_DISCARD);
+
+    // Start first primitives generated query
+    GLQuery primitivesGeneratedQuery;
+    glBeginQuery(GL_PRIMITIVES_GENERATED, primitivesGeneratedQuery);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+    ASSERT_GL_NO_ERROR();
+
+    // End the query and verify the count.
+    glEndQuery(GL_PRIMITIVES_GENERATED);
+    ASSERT_GL_NO_ERROR();
+
+    GLuint primitivesGenerated = 0;
+    glGetQueryObjectuiv(primitivesGeneratedQuery, GL_QUERY_RESULT, &primitivesGenerated);
+    ASSERT_GL_NO_ERROR();
+
+    EXPECT_EQ(primitivesGenerated, 2u);  // 1 draw call, 2 triangles each.
+
+    // Start second primitives generated query
+    glBeginQuery(GL_PRIMITIVES_GENERATED, primitivesGeneratedQuery);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+    ASSERT_GL_NO_ERROR();
+
+    // End the query and verify the count.
+    glEndQuery(GL_PRIMITIVES_GENERATED);
+    ASSERT_GL_NO_ERROR();
+
+    primitivesGenerated = 0;
+    glGetQueryObjectuiv(primitivesGeneratedQuery, GL_QUERY_RESULT, &primitivesGenerated);
+    ASSERT_GL_NO_ERROR();
+
+    EXPECT_EQ(primitivesGenerated, 2u);  // 1 draw call, 2 triangles each.
+    glDisable(GL_RASTERIZER_DISCARD);
+}
+
+// Test that primitives generated query and rasterizer discard interact well when the framebuffer
+// changes.
+TEST_P(TransformFeedbackTestES32, PrimitivesGeneratedVsRasterizerDiscardAndFramebufferChange)
+{
+    // No ES3.2 support on our bots.  http://anglebug.com/5435
+    ANGLE_SKIP_TEST_IF(IsPixel2() && IsVulkan());
+
+    // No pipelineStatisticsQuery or VK_EXT_transform_feedback support on the following
+    // configurations.  http://anglebug.com/5435
+    ANGLE_SKIP_TEST_IF(IsVulkan() && IsAMD() && IsWindows());
+    ANGLE_SKIP_TEST_IF(IsVulkan() && IsNVIDIA() && IsWindows7());
+
+    // http://anglebug.com/5539
+    ANGLE_SKIP_TEST_IF(IsVulkan() && IsLinux());
+
+    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClearDepthf(0.1f);
+    glClearStencil(0x5A);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    constexpr GLsizei kFBOSize = 16;
+    GLTexture colorTexture;
+    glBindTexture(GL_TEXTURE_2D, colorTexture);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, kFBOSize, kFBOSize);
+
+    GLTexture depthStencilTexture;
+    glBindTexture(GL_TEXTURE_2D, depthStencilTexture);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH24_STENCIL8, kFBOSize, kFBOSize);
+
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
+                           depthStencilTexture, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    ASSERT_GL_NO_ERROR();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    ANGLE_GL_PROGRAM(drawColor, essl1_shaders::vs::Simple(), essl1_shaders::fs::UniformColor());
+    glUseProgram(drawColor);
+    GLint colorUniformLocation =
+        glGetUniformLocation(drawColor, angle::essl1_shaders::ColorUniform());
+    ASSERT_NE(colorUniformLocation, -1);
+
+    // First, disable all output.
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_ALWAYS);
+    glDepthMask(GL_FALSE);
+
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_ALWAYS, 0x3E, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+    glStencilMask(0xFF);
+
+    int w = getWindowWidth();
+    int h = getWindowHeight();
+
+    // Render to a part of the output.  It should produce nothing.
+    glScissor(0, 0, w / 4, h);
+    glEnable(GL_SCISSOR_TEST);
+    glUniform4f(colorUniformLocation, 0.1f, 0.2f, 0.3f, 0.4f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Then enable the primitives generated query, and issue another draw call.  Still no output
+    // should be produced.
+    GLQuery primitivesGeneratedQuery;
+    glBeginQuery(GL_PRIMITIVES_GENERATED, primitivesGeneratedQuery);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Enable rasterizer discard.  Still no output should be produced.
+    glEnable(GL_RASTERIZER_DISCARD);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Enable color output.  Render to another part.  No output should be produced.
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glScissor(w / 4, 0, w / 4, h);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Enable depth and stencil output and disable rasterizer discard.  Render to another part.
+    // Should produce output.
+    glDisable(GL_RASTERIZER_DISCARD);
+    glDepthMask(GL_TRUE);
+    glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+    glScissor(w / 2, 0, w / 4, h);
+    glUniform4f(colorUniformLocation, 1.0f, 0.0f, 0.0f, 1.0f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Enable rasterizer discard again.  Render to another part.  No output should be produced.
+    glEnable(GL_RASTERIZER_DISCARD);
+    glScissor(3 * w / 4, 0, w / 4, h);
+    glUniform4f(colorUniformLocation, 0.1f, 0.2f, 0.3f, 0.4f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+    ASSERT_GL_NO_ERROR();
+
+    // Break the render pass by validating the results.  Note that the query is still active, and
+    // so is rasterizer discard.
+    EXPECT_PIXEL_RECT_EQ(0, 0, w / 2, h, GLColor::blue);
+    EXPECT_PIXEL_RECT_EQ(3 * w / 4, 0, w / 4, h, GLColor::blue);
+    EXPECT_PIXEL_RECT_EQ(w / 2, 0, w / 4, h, GLColor::red);
+
+    // Switch to another framebuffer.
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    // Start another render pass.  Render to a part of the framebuffer.  No output should be
+    // produced.
+    glScissor(0, 0, kFBOSize / 2, kFBOSize);
+    glUniform4f(colorUniformLocation, 0.4f, 0.3f, 0.2f, 0.1f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Enable rasterizer discard.  Render to another part.  Should produce output.
+    glDisable(GL_RASTERIZER_DISCARD);
+    glScissor(kFBOSize / 2, 0, kFBOSize / 2, kFBOSize);
+    glUniform4f(colorUniformLocation, 0.0f, 1.0f, 0.0f, 1.0f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+
+    // Disable color write.  Render to the same part.  No output should be produced.
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glUniform4f(colorUniformLocation, 0.4f, 0.3f, 0.2f, 0.1f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.6f);
+    ASSERT_GL_NO_ERROR();
+
+    // Break the render pass by validating the results.  Note that the query is still active, and
+    // rasterizer discard is not.
+    EXPECT_PIXEL_RECT_EQ(0, 0, kFBOSize / 2, kFBOSize, GLColor::blue);
+    EXPECT_PIXEL_RECT_EQ(kFBOSize / 2, 0, kFBOSize / 2, kFBOSize, GLColor::green);
+
+    // Verify that depth/stencil has correct results in the FBO.
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glDepthFunc(GL_LESS);
+    glStencilFunc(GL_EQUAL, 0x3E, 0xFF);
+
+    glScissor(0, 0, kFBOSize, kFBOSize);
+    glUniform4f(colorUniformLocation, 1.0f, 0.0f, 1.0f, 1.0f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.55f);
+
+    // Validate that depth/stencil is modified only where color is modified above.
+    EXPECT_PIXEL_RECT_EQ(0, 0, kFBOSize / 2, kFBOSize, GLColor::blue);
+    EXPECT_PIXEL_RECT_EQ(kFBOSize / 2, 0, kFBOSize / 2, kFBOSize, GLColor::magenta);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Verify that depth/stencil has correct results.
+    glScissor(0, 0, w, h);
+    glUniform4f(colorUniformLocation, 1.0f, 1.0f, 0.0f, 1.0f);
+    drawQuad(drawColor, essl1_shaders::PositionAttrib(), 0.55f);
+
+    // Validate that depth/stencil is modified only where color is modified above.
+    EXPECT_PIXEL_RECT_EQ(0, 0, w / 2, h, GLColor::blue);
+    EXPECT_PIXEL_RECT_EQ(3 * w / 4, 0, w / 4, h, GLColor::blue);
+    EXPECT_PIXEL_RECT_EQ(w / 2, 0, w / 4, h, GLColor::yellow);
+
+    // End the query and verify the count.
+    glEndQuery(GL_PRIMITIVES_GENERATED);
+    EXPECT_GL_NO_ERROR();
+
+    GLuint primitivesGenerated = 0;
+    glGetQueryObjectuiv(primitivesGeneratedQuery, GL_QUERY_RESULT, &primitivesGenerated);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_EQ(primitivesGenerated, 20u);  // 10 draw calls, 2 triangles each.
+}
+
+class TransformFeedbackTestIOBlocks : public TransformFeedbackTestES31
+{};
+
 // Verify that capture of I/O block fields works, both when the instance name is specified and when
 // not.  This test uses interleaved components.
-TEST_P(TransformFeedbackTestES31, IOBlocksInterleaved)
+TEST_P(TransformFeedbackTestIOBlocks, Interleaved)
 {
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_io_blocks"));
 
@@ -3080,7 +3657,7 @@ void main()
 }
 
 // Verify that capture of I/O block fields works.  This test uses separate components.
-TEST_P(TransformFeedbackTestES31, IOBlocksSeparate)
+TEST_P(TransformFeedbackTestIOBlocks, Separate)
 {
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_io_blocks"));
 
@@ -3177,6 +3754,392 @@ void main()
     }
 }
 
+// Tests transform feedback with no buffer bound.
+TEST_P(TransformFeedbackTest, MissingBuffer)
+{
+    constexpr char kVS[] = R"(#version 300 es
+in vec2 position;
+in float attrib;
+out float varyingAttrib;
+void main() {
+  gl_Position = vec4(position, 0, 1);
+  varyingAttrib = attrib;
+})";
+
+    const std::vector<std::string> tfVaryings = {"varyingAttrib"};
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(prog, kVS, essl3_shaders::fs::Green(), tfVaryings,
+                                        GL_INTERLEAVED_ATTRIBS);
+    glUseProgram(prog);
+
+    GLTransformFeedback xfb;
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, xfb);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0);
+
+    std::vector<float> attribData;
+    for (unsigned int cnt = 0; cnt < 100; ++cnt)
+    {
+        attribData.push_back(static_cast<float>(cnt));
+    }
+
+    GLint attribLocation = glGetAttribLocation(prog, "attrib");
+    ASSERT_NE(-1, attribLocation);
+
+    glVertexAttribPointer(attribLocation, 1, GL_FLOAT, GL_FALSE, 4, &attribData[0]);
+    glEnableVertexAttribArray(attribLocation);
+
+    // GLES 3.1 spec: 12.1. TRANSFORM FEEDBACK
+    // The error INVALID_OPERATION is generated by BeginTransformFeedback if any binding point used
+    // in transform feedback mode does not have a buffer object bound.
+    glBeginTransformFeedback(GL_TRIANGLES);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+}
+
+// Test that transform feedback query works when render pass is started while transform feedback is
+// paused.
+TEST_P(TransformFeedbackTest, TransformFeedbackQueryPausedDrawThenResume)
+{
+    constexpr char kVS[] = R"(
+attribute vec4 pos;
+varying vec4 v;
+
+void main()
+{
+    v = vec4(0.25, 0.5, 0.75, 1.0);
+    gl_Position = pos;
+})";
+
+    constexpr char kFS[] = R"(
+precision mediump float;
+varying vec4 v;
+void main()
+{
+    gl_FragColor = v;
+})";
+
+    const std::vector<std::string> tfVaryings = {"v"};
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(program, kVS, kFS, tfVaryings, GL_INTERLEAVED_ATTRIBS);
+    ANGLE_GL_PROGRAM(drawRed, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
+
+    const GLfloat vertices[] = {
+        -0.5f, 0.5f, 0.5f, -0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f,
+    };
+    GLint positionLocation = glGetAttribLocation(program, "pos");
+    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+    glEnableVertexAttribArray(positionLocation);
+
+    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClearDepthf(0.1f);
+    glClearStencil(0x5A);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, mTransformFeedbackBuffer);
+
+    // Test the following:
+    //
+    // - Start xfb and query
+    // - Draw
+    // - Pause query
+    // - break the render pass
+    //
+    // - Draw without xfb, starts a new render pass
+    // - Without breaking the render pass, resume xfb
+    // - Draw with xfb
+    // - End query and xfb
+    //
+    // The test ensures that the query is made active on resume.
+
+    glUseProgram(program);
+    glBeginTransformFeedback(GL_POINTS);
+    EXPECT_GL_NO_ERROR();
+
+    GLQuery xfbQuery;
+    glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, xfbQuery);
+    EXPECT_GL_NO_ERROR();
+
+    // Draw with xfb.
+    glDrawArrays(GL_POINTS, 0, 3);
+
+    glPauseTransformFeedback();
+
+    // Issue a copy to make sure the render pass is broken.
+    GLTexture copyTex;
+    glBindTexture(GL_TEXTURE_2D, copyTex);
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, 1, 1, 0);
+
+    // Start a render pass without xfb.
+    glUseProgram(drawRed);
+    glDrawArrays(GL_POINTS, 0, 3);
+
+    // Resume xfb and issue another draw call.
+    glUseProgram(program);
+    glResumeTransformFeedback();
+    glDrawArrays(GL_POINTS, 0, 3);
+
+    // End the query and verify results.
+    glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+    glEndTransformFeedback();
+
+    GLuint primitivesWritten = 0;
+    glGetQueryObjectuiv(xfbQuery, GL_QUERY_RESULT_EXT, &primitivesWritten);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_EQ(primitivesWritten, 6u);
+
+    void *mappedBuffer = glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0,
+                                          sizeof(float) * 4 * 3 * 2, GL_MAP_READ_BIT);
+    ASSERT_NE(nullptr, mappedBuffer);
+
+    float *mappedFloats = static_cast<float *>(mappedBuffer);
+    for (unsigned int cnt = 0; cnt < 6; ++cnt)
+    {
+        EXPECT_NEAR(mappedFloats[4 * cnt + 0], 0.25f, 0.01f) << cnt;
+        EXPECT_NEAR(mappedFloats[4 * cnt + 1], 0.5f, 0.01f) << cnt;
+        EXPECT_NEAR(mappedFloats[4 * cnt + 2], 0.75f, 0.01f) << cnt;
+        EXPECT_NEAR(mappedFloats[4 * cnt + 3], 1.0f, 0.01f) << cnt;
+    }
+    glUnmapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER);
+
+    EXPECT_GL_NO_ERROR();
+}
+
+TEST_P(TransformFeedbackTest, TransformFeedbackPausedDrawThenResume)
+{
+    constexpr char kVS[] = R"(#version 300 es
+layout(location = 0) in float a;
+out float b;
+
+void main (void)
+{
+  b = a * 2.0;
+}
+)";
+
+    constexpr char kFS[] = R"(#version 300 es
+void main (void)
+{
+}
+)";
+
+    const std::vector<std::string> tfVaryings = {"b"};
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(program, kVS, kFS, tfVaryings, GL_INTERLEAVED_ATTRIBS);
+    glUseProgram(program);
+
+    GLBuffer xfbBuf;
+    GLTransformFeedback tf;
+    GLQuery query;
+
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, tf);
+    glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, xfbBuf);
+
+    constexpr size_t maxResults = 10;
+    std::vector<float> clearData(10, 100.0);
+    glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, maxResults * 4, clearData.data(), GL_DYNAMIC_READ);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, xfbBuf);
+
+    GLBuffer srcBuffer;
+    glBindBuffer(GL_ARRAY_BUFFER, srcBuffer);
+    constexpr float srcData[] = {
+        11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    };
+    glBufferData(GL_ARRAY_BUFFER, sizeof(srcData), srcData, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 1, GL_FLOAT, false, 4, nullptr);
+
+    // this is just so inside angle less state is updated so we can compare
+    // the next 2 draw calls easier.
+    glDrawArrays(GL_TRIANGLES, 0, 1);
+
+    glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query);
+    glBeginTransformFeedback(GL_TRIANGLES);
+    glDrawArrays(GL_TRIANGLES, 0, 7);  // 2 triangles
+    glDrawArrays(GL_TRIANGLES, 7, 4);  // 1 triangle
+    glEndTransformFeedback();
+    glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+    GLuint primitivesWritten = 0u;
+    glGetQueryObjectuiv(query, GL_QUERY_RESULT_EXT, &primitivesWritten);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_EQ(primitivesWritten, 3u);
+
+    void *resultBuffer =
+        glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, maxResults * 4, GL_MAP_READ_BIT);
+    const float *actual        = reinterpret_cast<const float *>(resultBuffer);
+    constexpr float expected[] = {
+        22,  24, 26, 28, 30, 32,  // from first draw, 2 triangles
+        36,  38, 40,              // from second draw, 1 triangle
+        100,                      // initial value
+    };
+
+    for (size_t i = 0; i < ArraySize(expected); ++i)
+    {
+        EXPECT_EQ(actual[i], expected[i]) << "i:" << i;
+    }
+
+    glUnmapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER);
+    EXPECT_GL_NO_ERROR();
+}
+
+// Tests that we don't produce undefined behaviour when deleting a current XFB buffer.
+TEST_P(TransformFeedbackTest, DeleteTransformFeedbackBuffer)
+{
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(testProgram, essl1_shaders::vs::Simple(),
+                                        essl1_shaders::fs::Green(), {"gl_Position"},
+                                        GL_INTERLEAVED_ATTRIBS);
+    glUseProgram(testProgram);
+
+    GLBuffer buf;
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buf);
+    std::vector<uint8_t> bufData(100000, 0);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, bufData.size(), bufData.data(), GL_DYNAMIC_COPY);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buf);
+    glBeginTransformFeedback(GL_POINTS);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+    buf.reset();
+    glDrawArrays(GL_POINTS, 0, 1);
+}
+
+// Same as the above, with a paused transform feedback.
+TEST_P(TransformFeedbackTest, DeletePausedTransformFeedbackBuffer)
+{
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(testProgram, essl1_shaders::vs::Simple(),
+                                        essl1_shaders::fs::Green(), {"gl_Position"},
+                                        GL_INTERLEAVED_ATTRIBS);
+    glUseProgram(testProgram);
+
+    GLBuffer buffer;
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buffer);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, 3, nullptr, GL_STATIC_DRAW);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buffer);
+
+    glBeginTransformFeedback(GL_POINTS);
+    glPauseTransformFeedback();
+    buffer.reset();
+    glDrawArrays(GL_POINTS, 0, 1);
+}
+
+// Test that using a transform feedback program with a base instance draw call works.
+TEST_P(TransformFeedbackTest, BaseInstance)
+{
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_ANGLE_base_vertex_base_instance"));
+
+    constexpr char kVS[] =
+        "#version 300 es\n"
+        "in float in_value;\n"
+        "out float out_value;\n"
+        "void main() {\n"
+        "  out_value = in_value * 2.0;\n"
+        "}";
+
+    constexpr char kFS[] =
+        "#version 300 es\n"
+        "out mediump vec4 color;\n"
+        "void main() {\n"
+        "  color = vec4(0.0, 1.0, 0.0, 1.0);\n"
+        "}";
+
+    std::vector<std::string> tfVaryings;
+    tfVaryings.push_back("out_value");
+
+    mProgram = CompileProgramWithTransformFeedback(kVS, kFS, tfVaryings, GL_INTERLEAVED_ATTRIBS);
+    ASSERT_NE(0u, mProgram);
+
+    glUseProgram(mProgram);
+
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, mTransformFeedback);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, mTransformFeedbackBuffer);
+
+    std::vector<float> attribData;
+    for (unsigned int cnt = 0; cnt < 10; ++cnt)
+    {
+        attribData.push_back(static_cast<float>(cnt));
+    }
+
+    GLint attribLocation = glGetAttribLocation(mProgram, "in_value");
+    ASSERT_NE(-1, attribLocation);
+
+    glVertexAttribPointer(attribLocation, 1, GL_FLOAT, GL_FALSE, 4, &attribData[0]);
+    glEnableVertexAttribArray(attribLocation);
+
+    glBeginTransformFeedback(GL_POINTS);
+    glDrawArraysInstancedBaseInstanceANGLE(GL_POINTS, 0, 10, 1, 1);
+    glEndTransformFeedback();
+    ASSERT_GL_NO_ERROR();
+
+    glUseProgram(0);
+
+    void *mappedBuffer =
+        glMapBufferRange(GL_TRANSFORM_FEEDBACK_BUFFER, 0, sizeof(float) * 10, GL_MAP_READ_BIT);
+    ASSERT_NE(nullptr, mappedBuffer);
+
+    float *mappedFloats = static_cast<float *>(mappedBuffer);
+    for (unsigned int cnt = 0; cnt < 10; ++cnt)
+    {
+        EXPECT_EQ(attribData[cnt] * 2, mappedFloats[cnt]);
+    }
+    glUnmapBuffer(GL_TRANSFORM_FEEDBACK_BUFFER);
+
+    EXPECT_GL_NO_ERROR();
+}
+
+// Tests that deleting a buffer then resuming transform feedback produces an error.
+TEST_P(TransformFeedbackTest, ResumingTransformFeedbackAfterDeletebuffer)
+{
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(testProgram, essl1_shaders::vs::Simple(),
+                                        essl1_shaders::fs::Green(), {"gl_Position"},
+                                        GL_INTERLEAVED_ATTRIBS);
+    glUseProgram(testProgram);
+
+    std::vector<uint8_t> bufData(100, 0);
+
+    GLBuffer buf;
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, buf);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, bufData.size(), bufData.data(), GL_DYNAMIC_COPY);
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buf);
+    glBeginTransformFeedback(GL_POINTS);
+    glPauseTransformFeedback();
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+    buf.reset();
+    ASSERT_GL_NO_ERROR();
+
+    // Should produce an error because of a missing buffer binding.
+    glResumeTransformFeedback();
+    ASSERT_GL_ERROR(GL_INVALID_OPERATION);
+}
+
+// Validates that drawing after deleting a buffer in a paused XFB.
+TEST_P(TransformFeedbackTest, DrawAfterDeletingPausedBuffer)
+{
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(testProgram, essl1_shaders::vs::Simple(),
+                                        essl1_shaders::fs::Green(), {"gl_Position"},
+                                        GL_INTERLEAVED_ATTRIBS);
+    glUseProgram(testProgram);
+
+    std::vector<uint8_t> data(100, 0);
+
+    std::array<Vector3, 6> quadVerts = GetQuadVertices();
+
+    GLint loc = glGetAttribLocation(testProgram, essl1_shaders::PositionAttrib());
+    ASSERT_NE(-1, loc);
+
+    GLBuffer posBuf;
+    glBindBuffer(GL_ARRAY_BUFFER, posBuf);
+    glBufferData(GL_ARRAY_BUFFER, quadVerts.size() * sizeof(quadVerts[0]), quadVerts.data(),
+                 GL_STATIC_DRAW);
+    glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(loc);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    GLBuffer buf;
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buf);
+    glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, data.size() * sizeof(data[0]), data.data(),
+                 GL_STATIC_DRAW);
+    glBeginTransformFeedback(GL_POINTS);
+    glPauseTransformFeedback();
+    glDrawArrays(GL_POINTS, 0, 1);
+    buf.reset();
+    glDrawArrays(GL_POINTS, 0, 1);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+}
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TransformFeedbackTest);
 ANGLE_INSTANTIATE_TEST_ES3(TransformFeedbackTest);
 
@@ -3185,6 +4148,9 @@ ANGLE_INSTANTIATE_TEST_ES3(TransformFeedbackLifetimeTest);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TransformFeedbackTestES31);
 ANGLE_INSTANTIATE_TEST_ES31(TransformFeedbackTestES31);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TransformFeedbackTestIOBlocks);
+ANGLE_INSTANTIATE_TEST_ES31(TransformFeedbackTestIOBlocks);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TransformFeedbackTestES32);
 ANGLE_INSTANTIATE_TEST_ES32(TransformFeedbackTestES32);

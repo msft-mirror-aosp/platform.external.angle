@@ -98,23 +98,15 @@ TYPED_TEST(BitSetTest, Basic)
     EXPECT_FALSE(mBits.any());
     EXPECT_TRUE(mBits.none());
     EXPECT_EQ(mBits.count(), 0u);
-
-    // Test that out-of-bound sets don't modify the bitset
-    constexpr uint32_t kMask = (1 << 12) - 1;
-
-    EXPECT_EQ(mBits.set(12).bits() & ~kMask, 0u);
-    EXPECT_EQ(mBits.set(13).bits() & ~kMask, 0u);
-    EXPECT_EQ(mBits.flip(12).bits() & ~kMask, 0u);
-    EXPECT_EQ(mBits.flip(13).bits() & ~kMask, 0u);
 }
 
 TYPED_TEST(BitSetTest, BitwiseOperators)
 {
     TypeParam mBits = this->mBits;
-    // Use a value that has a 1 in the 12th and 13th bits, to make sure masking to exactly 12 bits
-    // does not have an off-by-one error.
-    constexpr uint32_t kSelfValue  = 0xF9E4;
-    constexpr uint32_t kOtherValue = 0x5C6A;
+    // Use a value that has a 1 in the 12th bit, to make sure masking to exactly 12 bits does not
+    // have an off-by-one error.
+    constexpr uint32_t kSelfValue  = 0x9E4;
+    constexpr uint32_t kOtherValue = 0xC6A;
 
     constexpr uint32_t kMask             = (1 << 12) - 1;
     constexpr uint32_t kSelfMaskedValue  = kSelfValue & kMask;
@@ -574,5 +566,48 @@ TYPED_TEST(BitSetArrayTest, BasicTest)
     {
         EXPECT_TRUE(testBitSet.test(bit));
     }
+}
+
+TYPED_TEST(BitSetArrayTest, IterationWithGaps)
+{
+    TypeParam &mBits = this->mBitSet;
+
+    // Test iterator works with gap in bitset.
+    std::set<size_t> bitsToBeSet = {0, mBits.size() / 2, mBits.size() - 1};
+    for (size_t bit : bitsToBeSet)
+    {
+        mBits.set(bit);
+    }
+    std::set<size_t> bitsActuallySet = {};
+    for (size_t bit : mBits)
+    {
+        bitsActuallySet.insert(bit);
+    }
+    EXPECT_EQ(bitsToBeSet, bitsActuallySet);
+    EXPECT_EQ(mBits.count(), bitsToBeSet.size());
+    mBits.reset();
+}
+
+// Unit test for angle::Bit
+TEST(Bit, Test)
+{
+    EXPECT_EQ(Bit<uint32_t>(0), 1u);
+    EXPECT_EQ(Bit<uint32_t>(1), 2u);
+    EXPECT_EQ(Bit<uint32_t>(2), 4u);
+    EXPECT_EQ(Bit<uint32_t>(3), 8u);
+    EXPECT_EQ(Bit<uint32_t>(31), 0x8000'0000u);
+    EXPECT_EQ(Bit<uint64_t>(63), static_cast<uint64_t>(0x8000'0000'0000'0000llu));
+}
+
+// Unit test for angle::BitMask
+TEST(BitMask, Test)
+{
+    EXPECT_EQ(BitMask<uint32_t>(1), 1u);
+    EXPECT_EQ(BitMask<uint32_t>(2), 3u);
+    EXPECT_EQ(BitMask<uint32_t>(3), 7u);
+    EXPECT_EQ(BitMask<uint32_t>(31), 0x7FFF'FFFFu);
+    EXPECT_EQ(BitMask<uint32_t>(32), 0xFFFF'FFFFu);
+    EXPECT_EQ(BitMask<uint64_t>(63), static_cast<uint64_t>(0x7FFF'FFFF'FFFF'FFFFllu));
+    EXPECT_EQ(BitMask<uint64_t>(64), static_cast<uint64_t>(0xFFFF'FFFF'FFFF'FFFFllu));
 }
 }  // anonymous namespace

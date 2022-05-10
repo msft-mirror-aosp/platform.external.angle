@@ -40,6 +40,7 @@ class CordzUpdateTracker {
   enum MethodIdentifier {
     kUnknown,
     kAppendCord,
+    kAppendCordBuffer,
     kAppendExternalMemory,
     kAppendString,
     kAssignCord,
@@ -49,15 +50,18 @@ class CordzUpdateTracker {
     kConstructorString,
     kCordReader,
     kFlatten,
+    kGetAppendBuffer,
     kGetAppendRegion,
     kMakeCordFromExternal,
     kMoveAppendCord,
     kMoveAssignCord,
     kMovePrependCord,
     kPrependCord,
+    kPrependCordBuffer,
     kPrependString,
     kRemovePrefix,
     kRemoveSuffix,
+    kSetExpectedChecksum,
     kSubCord,
 
     // kNumMethods defines the number of entries: must be the last entry.
@@ -89,6 +93,16 @@ class CordzUpdateTracker {
     auto& value = values_[method];
     value.store(value.load(std::memory_order_relaxed) + n,
                 std::memory_order_relaxed);
+  }
+
+  // Adds all the values from `src` to this instance
+  void LossyAdd(const CordzUpdateTracker& src) {
+    for (int i = 0; i < kNumMethods; ++i) {
+      MethodIdentifier method = static_cast<MethodIdentifier>(i);
+      if (int64_t value = src.Value(method)) {
+        LossyAdd(method, value);
+      }
+    }
   }
 
  private:

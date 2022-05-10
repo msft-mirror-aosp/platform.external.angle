@@ -206,6 +206,31 @@ bool EndsWith(const char *str, const char *suffix)
     return EndsWithSuffix(str, strlen(str), suffix, strlen(suffix));
 }
 
+bool ContainsToken(const std::string &tokenStr, char delimiter, const std::string &token)
+{
+    if (token.empty())
+    {
+        return false;
+    }
+    // Compare token with all sub-strings terminated by delimiter or end of string
+    std::string::size_type start = 0u;
+    do
+    {
+        std::string::size_type end = tokenStr.find(delimiter, start);
+        if (end == std::string::npos)
+        {
+            end = tokenStr.length();
+        }
+        const std::string::size_type length = end - start;
+        if (length == token.length() && tokenStr.compare(start, length, token) == 0)
+        {
+            return true;
+        }
+        start = end + 1u;
+    } while (start < tokenStr.size());
+    return false;
+}
+
 void ToLower(std::string *str)
 {
     for (char &ch : *str)
@@ -233,6 +258,42 @@ bool ReplaceSubstring(std::string *str,
     }
     str->replace(replacePos, substring.size(), replacement);
     return true;
+}
+
+int ReplaceAllSubstrings(std::string *str,
+                         const std::string &substring,
+                         const std::string &replacement)
+{
+    int count = 0;
+    while (ReplaceSubstring(str, substring, replacement))
+    {
+        count++;
+    }
+    return count;
+}
+
+std::string ToCamelCase(const std::string &str)
+{
+    std::string result;
+
+    bool lastWasUnderscore = false;
+    for (char c : str)
+    {
+        if (c == '_')
+        {
+            lastWasUnderscore = true;
+            continue;
+        }
+
+        if (lastWasUnderscore)
+        {
+            c                 = static_cast<char>(std::toupper(c));
+            lastWasUnderscore = false;
+        }
+        result += c;
+    }
+
+    return result;
 }
 
 std::vector<std::string> GetStringsFromEnvironmentVarOrAndroidProperty(const char *varName,
