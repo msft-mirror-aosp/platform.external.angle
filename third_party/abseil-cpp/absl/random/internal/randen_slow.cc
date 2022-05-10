@@ -19,6 +19,7 @@
 #include <cstring>
 
 #include "absl/base/attributes.h"
+#include "absl/base/internal/endian.h"
 #include "absl/numeric/int128.h"
 #include "absl/random/internal/platform.h"
 #include "absl/random/internal/randen_traits.h"
@@ -40,7 +41,7 @@ namespace {
 
 // AES portions based on rijndael-alg-fst.c,
 // https://fastcrypto.org/front/misc/rijndael-alg-fst.c, and modified for
-// little-endianness.
+// platform-endianness.
 //
 // Implementation of
 // http://www.csrc.nist.gov/publications/fips/fips197/fips-197.pdf
@@ -251,6 +252,7 @@ inline ABSL_RANDOM_INTERNAL_ATTRIBUTE_ALWAYS_INLINE void Vector128Store(
 inline ABSL_RANDOM_INTERNAL_ATTRIBUTE_ALWAYS_INLINE Vector128
 AesRound(const Vector128& state, const Vector128& round_key) {
   Vector128 result;
+#ifdef ABSL_IS_LITTLE_ENDIAN
   result.s[0] = round_key.s[0] ^                  //
                 te0[uint8_t(state.s[0])] ^        //
                 te1[uint8_t(state.s[1] >> 8)] ^   //
@@ -271,6 +273,28 @@ AesRound(const Vector128& state, const Vector128& round_key) {
                 te1[uint8_t(state.s[0] >> 8)] ^   //
                 te2[uint8_t(state.s[1] >> 16)] ^  //
                 te3[uint8_t(state.s[2] >> 24)];
+#else
+  result.s[0] = round_key.s[0] ^                  //
+                te0[uint8_t(state.s[0])] ^        //
+                te1[uint8_t(state.s[3] >> 8)] ^   //
+                te2[uint8_t(state.s[2] >> 16)] ^  //
+                te3[uint8_t(state.s[1] >> 24)];
+  result.s[1] = round_key.s[1] ^                  //
+                te0[uint8_t(state.s[1])] ^        //
+                te1[uint8_t(state.s[0] >> 8)] ^   //
+                te2[uint8_t(state.s[3] >> 16)] ^  //
+                te3[uint8_t(state.s[2] >> 24)];
+  result.s[2] = round_key.s[2] ^                  //
+                te0[uint8_t(state.s[2])] ^        //
+                te1[uint8_t(state.s[1] >> 8)] ^   //
+                te2[uint8_t(state.s[0] >> 16)] ^  //
+                te3[uint8_t(state.s[3] >> 24)];
+  result.s[3] = round_key.s[3] ^                  //
+                te0[uint8_t(state.s[3])] ^        //
+                te1[uint8_t(state.s[2] >> 8)] ^   //
+                te2[uint8_t(state.s[1] >> 16)] ^  //
+                te3[uint8_t(state.s[0] >> 24)];
+#endif
   return result;
 }
 
@@ -371,6 +395,23 @@ inline ABSL_RANDOM_INTERNAL_ATTRIBUTE_ALWAYS_INLINE void Permute(
   }
 }
 
+// Enables native loads in the round loop by pre-swapping.
+inline ABSL_RANDOM_INTERNAL_ATTRIBUTE_ALWAYS_INLINE void SwapEndian(
+    absl::uint128* state) {
+#ifdef ABSL_IS_BIG_ENDIAN
+  for (uint32_t block = 0; block < RandenTraits::kFeistelBlocks; ++block) {
+    uint64_t new_lo = absl::little_endian::ToHost64(
+        static_cast<uint64_t>(state[block] >> 64));
+    uint64_t new_hi = absl::little_endian::ToHost64(
+        static_cast<uint64_t>((state[block] << 64) >> 64));
+    state[block] = (static_cast<absl::uint128>(new_hi) << 64) | new_lo;
+  }
+#else
+  // Avoid warning about unused variable.
+  (void)state;
+#endif
+}
+
 }  // namespace
 
 namespace absl {
@@ -380,7 +421,11 @@ namespace random_internal {
 const void* RandenSlow::GetKeys() {
   // Round keys for one AES per Feistel round and branch.
   // The canonical implementation uses first digits of Pi.
+#ifdef ABSL_IS_LITTLE_ENDIAN
   return kRandenRoundKeys;
+#else
+  return kRandenRoundKeysBE;
+#endif
 }
 
 void RandenSlow::Absorb(const void* seed_void, void* state_void) {
@@ -411,7 +456,11 @@ void RandenSlow::Generate(const void* keys_void, void* state_void) {
 
   const absl::uint128 prev_inner = state[0];
 
+  SwapEndian(state);
+
   Permute(state, keys);
+
+  SwapEndian(state);
 
   // Ensure backtracking resistance.
   *state ^= prev_inner;
