@@ -315,13 +315,22 @@ void BM_ReserveStringTable(benchmark::State& state) {
 }
 BENCHMARK(BM_ReserveStringTable)->Range(128, 4096);
 
+// Like std::iota, except that ctrl_t doesn't support operator++.
+template <typename CtrlIter>
+void Iota(CtrlIter begin, CtrlIter end, int value) {
+  for (; begin != end; ++begin, ++value) {
+    *begin = static_cast<ctrl_t>(value);
+  }
+}
+
 void BM_Group_Match(benchmark::State& state) {
   std::array<ctrl_t, Group::kWidth> group;
-  std::iota(group.begin(), group.end(), -4);
+  Iota(group.begin(), group.end(), -4);
   Group g{group.data()};
   h2_t h = 1;
   for (auto _ : state) {
     ::benchmark::DoNotOptimize(h);
+    ::benchmark::DoNotOptimize(g);
     ::benchmark::DoNotOptimize(g.Match(h));
   }
 }
@@ -329,42 +338,56 @@ BENCHMARK(BM_Group_Match);
 
 void BM_Group_MatchEmpty(benchmark::State& state) {
   std::array<ctrl_t, Group::kWidth> group;
-  std::iota(group.begin(), group.end(), -4);
+  Iota(group.begin(), group.end(), -4);
   Group g{group.data()};
-  for (auto _ : state) ::benchmark::DoNotOptimize(g.MatchEmpty());
+  for (auto _ : state) {
+    ::benchmark::DoNotOptimize(g);
+    ::benchmark::DoNotOptimize(g.MatchEmpty());
+  }
 }
 BENCHMARK(BM_Group_MatchEmpty);
 
 void BM_Group_MatchEmptyOrDeleted(benchmark::State& state) {
   std::array<ctrl_t, Group::kWidth> group;
-  std::iota(group.begin(), group.end(), -4);
+  Iota(group.begin(), group.end(), -4);
   Group g{group.data()};
-  for (auto _ : state) ::benchmark::DoNotOptimize(g.MatchEmptyOrDeleted());
+  for (auto _ : state) {
+    ::benchmark::DoNotOptimize(g);
+    ::benchmark::DoNotOptimize(g.MatchEmptyOrDeleted());
+  }
 }
 BENCHMARK(BM_Group_MatchEmptyOrDeleted);
 
 void BM_Group_CountLeadingEmptyOrDeleted(benchmark::State& state) {
   std::array<ctrl_t, Group::kWidth> group;
-  std::iota(group.begin(), group.end(), -2);
+  Iota(group.begin(), group.end(), -2);
   Group g{group.data()};
-  for (auto _ : state)
+  for (auto _ : state) {
+    ::benchmark::DoNotOptimize(g);
     ::benchmark::DoNotOptimize(g.CountLeadingEmptyOrDeleted());
+  }
 }
 BENCHMARK(BM_Group_CountLeadingEmptyOrDeleted);
 
 void BM_Group_MatchFirstEmptyOrDeleted(benchmark::State& state) {
   std::array<ctrl_t, Group::kWidth> group;
-  std::iota(group.begin(), group.end(), -2);
+  Iota(group.begin(), group.end(), -2);
   Group g{group.data()};
-  for (auto _ : state) ::benchmark::DoNotOptimize(*g.MatchEmptyOrDeleted());
+  for (auto _ : state) {
+    ::benchmark::DoNotOptimize(g);
+    ::benchmark::DoNotOptimize(*g.MatchEmptyOrDeleted());
+  }
 }
 BENCHMARK(BM_Group_MatchFirstEmptyOrDeleted);
 
 void BM_DropDeletes(benchmark::State& state) {
   constexpr size_t capacity = (1 << 20) - 1;
   std::vector<ctrl_t> ctrl(capacity + 1 + Group::kWidth);
-  ctrl[capacity] = kSentinel;
-  std::vector<ctrl_t> pattern = {kEmpty, 2, kDeleted, 2, kEmpty, 1, kDeleted};
+  ctrl[capacity] = ctrl_t::kSentinel;
+  std::vector<ctrl_t> pattern = {ctrl_t::kEmpty,   static_cast<ctrl_t>(2),
+                                 ctrl_t::kDeleted, static_cast<ctrl_t>(2),
+                                 ctrl_t::kEmpty,   static_cast<ctrl_t>(1),
+                                 ctrl_t::kDeleted};
   for (size_t i = 0; i != capacity; ++i) {
     ctrl[i] = pattern[i % pattern.size()];
   }
