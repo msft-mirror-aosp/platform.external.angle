@@ -71,7 +71,6 @@ angle::Result QueryMtl::end(const gl::Context *context)
         case gl::QueryType::TransformFeedbackPrimitivesWritten:
             onTransformFeedbackEnd(context);
             break;
-            break;
         default:
             UNIMPLEMENTED();
             break;
@@ -97,7 +96,7 @@ angle::Result QueryMtl::waitAndGetResult(const gl::Context *context, T *params)
             ASSERT(mVisibilityResultBuffer);
             if (mVisibilityResultBuffer->hasPendingWorks(contextMtl))
             {
-                contextMtl->flushCommandBufer();
+                contextMtl->flushCommandBuffer(mtl::NoWait);
             }
             // map() will wait for the pending GPU works to finish
             const uint8_t *visibilityResultBytes = mVisibilityResultBuffer->mapReadOnly(contextMtl);
@@ -130,7 +129,7 @@ angle::Result QueryMtl::isResultAvailable(const gl::Context *context, bool *avai
             ASSERT(mVisibilityResultBuffer);
             if (mVisibilityResultBuffer->hasPendingWorks(contextMtl))
             {
-                contextMtl->flushCommandBufer();
+                contextMtl->flushCommandBuffer(mtl::NoWait);
             }
 
             *available = !mVisibilityResultBuffer->isBeingUsedByGPU(contextMtl);
