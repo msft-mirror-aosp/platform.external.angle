@@ -193,7 +193,34 @@ void verify_equal(const char* input, size_t size, std::string* output) {
   exit(3);
 }
 
-void zlib_file(const char* name, const zlib_wrapper type) {
+void check_file(const Data& file, zlib_wrapper type) {
+  std::string compressed;
+  zlib_compress(type, file.data.get(), file.size, &compressed, true);
+
+  unsigned long check = crc32_z(0, Z_NULL, 0);
+  const Bytef* data = (const Bytef*)compressed.data();
+  static_assert(sizeof(z_size_t) == sizeof(size_t), "z_size_t size");
+  check = crc32_z(check, data, (z_size_t)compressed.size());
+
+  const size_t compressed_length = compressed.size();
+  printf("data crc32 %.8lx length %zu\n", check, compressed_length);
+
+  if (type == kWrapperGZIP) {
+    uint32_t prev_word, last_word;
+    data += compressed_length - 8;
+    prev_word = data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
+    data += 4;  // last compressed data word
+    last_word = data[3] << 24 | data[2] << 16 | data[1] << 8 | data[0];
+    printf("gzip crc32 %.8x length %u\n", prev_word, last_word);
+  } else if (type == kWrapperZLIB) {
+    uint32_t last_word;
+    data += compressed_length - 4;
+    last_word = data[0] << 24 | data[1] << 16 | data[2] << 8 | data[3];
+    printf("zlib adler %.8x\n", last_word);
+  }
+}
+
+void zlib_file(const char* name, zlib_wrapper type, int width, int check) {
   /*
    * Read the file data.
    */
@@ -206,6 +233,14 @@ void zlib_file(const char* name, const zlib_wrapper type) {
    */
   const char* strategy = zlib_level_strategy_name(zlib_compression_level);
   printf("%s%-40s :\n", strategy, name);
+
+  /*
+   * Compress file: report output data checks.
+   */
+  if (check) {
+    check_file(file, type);
+    return;
+  }
 
   /*
    * Chop the data into blocks.
@@ -283,9 +318,9 @@ void zlib_file(const char* name, const zlib_wrapper type) {
   double inflate_rate_max = length * repeats / mega_byte / utime[0];
 
   // type, block size, compression ratio, etc
-  printf("%s: [b %dM] bytes %6d -> %6u %4.1f%%",
-    zlib_wrapper_name(type), block_size / (1 << 20), length,
-    static_cast<unsigned>(output_length), output_length * 100.0 / length);
+  printf("%s: [b %dM] bytes %*d -> %*u %4.2f%%",
+    zlib_wrapper_name(type), block_size / (1 << 20), width, length, width,
+    unsigned(output_length), output_length * 100.0 / length);
 
   // compress / uncompress median (max) rates
   printf(" comp %5.1f (%5.1f) MB/s uncomp %5.1f (%5.1f) MB/s\n",
@@ -300,16 +335,21 @@ char* get_option(int argc, char* argv[], const char* option) {
   return nullptr;
 }
 
-bool get_compression(int argc, char* argv[], int* value) {
+bool get_compression(int argc, char* argv[], int& value) {
   if (argn < argc)
-    *value = isdigit(argv[argn][0]) ? atoi(argv[argn++]) : -1;
-  return *value >= 0 && *value <= 9;
+    value = isdigit(argv[argn][0]) ? atoi(argv[argn++]) : -1;
+  return value >= 0 && value <= 9;
 }
 
-const char* options = "gzip|zlib|raw [--compression 0:9] [--huffman|--rle]";
+void get_field_width(int argc, char* argv[], int& value) {
+  value = atoi(argv[argn++]);
+}
 
 void usage_exit(const char* program) {
-  printf("usage: %s %s files...", program, options);
+  static auto* options = "gzip|zlib|raw"
+    " [--compression 0:9] [--huffman|--rle] [--field width] [--check]";
+  printf("usage: %s %s files ...\n", program, options);
+  printf("zlib version: %s\n", ZLIB_VERSION);
   exit(1);
 }
 
@@ -324,14 +364,21 @@ int main(int argc, char* argv[]) {
   else
     usage_exit(argv[0]);
 
+  int size_field_width = 0;
+  int file_check = 0;
+
   while (argn < argc && argv[argn][0] == '-') {
     if (get_option(argc, argv, "--compression")) {
-      if (!get_compression(argc, argv, &zlib_compression_level))
+      if (!get_compression(argc, argv, zlib_compression_level))
         usage_exit(argv[0]);
     } else if (get_option(argc, argv, "--huffman")) {
       zlib_strategy = Z_HUFFMAN_ONLY;
     } else if (get_option(argc, argv, "--rle")) {
       zlib_strategy = Z_RLE;
+    } else if (get_option(argc, argv, "--check")) {
+      file_check = 1;
+    } else if (get_option(argc, argv, "--field")) {
+      get_field_width(argc, argv, size_field_width);
     } else {
       usage_exit(argv[0]);
     }
@@ -339,8 +386,11 @@ int main(int argc, char* argv[]) {
 
   if (argn >= argc)
     usage_exit(argv[0]);
+
+  if (size_field_width < 6)
+    size_field_width = 6;
   while (argn < argc)
-    zlib_file(argv[argn++], type);
+    zlib_file(argv[argn++], type, size_field_width, file_check);
 
   return 0;
 }

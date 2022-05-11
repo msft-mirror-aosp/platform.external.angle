@@ -193,7 +193,8 @@ angle::Result TextureD3D::setStorageExternalMemory(const gl::Context *context,
                                                    gl::MemoryObject *memoryObject,
                                                    GLuint64 offset,
                                                    GLbitfield createFlags,
-                                                   GLbitfield usageFlags)
+                                                   GLbitfield usageFlags,
+                                                   const void *imageCreateInfoPNext)
 {
     ANGLE_HR_UNREACHABLE(GetImplAs<ContextD3D>(context));
     return angle::Result::Continue;
@@ -402,7 +403,7 @@ angle::Result TextureD3D::fastUnpackPixels(const gl::Context *context,
 GLint TextureD3D::creationLevels(GLsizei width, GLsizei height, GLsizei depth) const
 {
     if ((gl::isPow2(width) && gl::isPow2(height) && gl::isPow2(depth)) ||
-        mRenderer->getNativeExtensions().textureNPOTOES)
+        mRenderer->getNativeExtensions().textureNpotOES)
     {
         // Maximum number of levels
         return gl::log2(std::max(std::max(width, height), depth)) + 1;
@@ -448,9 +449,9 @@ angle::Result TextureD3D::generateMipmap(const gl::Context *context)
     if (mTexStorage && mRenderer->getFeatures().zeroMaxLodWorkaround.enabled)
     {
         // Switch to using the mipmapped texture.
-        TextureStorage *textureStorage = nullptr;
-        ANGLE_TRY(getNativeTexture(context, &textureStorage));
-        ANGLE_TRY(textureStorage->useLevelZeroWorkaroundTexture(context, false));
+        TextureStorage *textureStorageEXT = nullptr;
+        ANGLE_TRY(getNativeTexture(context, &textureStorageEXT));
+        ANGLE_TRY(textureStorageEXT->useLevelZeroWorkaroundTexture(context, false));
     }
 
     // Set up proper mipmap chain in our Image array.
@@ -695,6 +696,14 @@ angle::Result TextureD3D::setBaseLevel(const gl::Context *context, GLuint baseLe
     return angle::Result::Continue;
 }
 
+void TextureD3D::onLabelUpdate()
+{
+    if (mTexStorage)
+    {
+        mTexStorage->onLabelUpdate();
+    }
+}
+
 angle::Result TextureD3D::syncState(const gl::Context *context,
                                     const gl::Texture::DirtyBits &dirtyBits,
                                     gl::Command source)
@@ -709,6 +718,8 @@ angle::Result TextureD3D::releaseTexStorage(const gl::Context *context)
     {
         return angle::Result::Continue;
     }
+
+    onStateChange(angle::SubjectMessage::StorageReleased);
 
     auto err = mTexStorage->onDestroy(context);
     SafeDelete(mTexStorage);
@@ -1067,8 +1078,7 @@ angle::Result TextureD3D_2D::copyImage(const gl::Context *context,
     // WebGL requires that pixels that would be outside the framebuffer are treated as zero values,
     // so clear the mip level to 0 prior to making the copy if any pixel would be sampled outside.
     // Same thing for robust resource init.
-    if (outside &&
-        (context->getExtensions().webglCompatibility || context->isRobustResourceInitEnabled()))
+    if (outside && (context->isWebGL() || context->isRobustResourceInitEnabled()))
     {
         ANGLE_TRY(initializeContents(context, index));
     }
@@ -1136,6 +1146,7 @@ angle::Result TextureD3D_2D::copySubImage(const gl::Context *context,
         ANGLE_TRY(mImageArray[index.getLevelIndex()]->copyFromFramebuffer(context, clippedOffset,
                                                                           clippedArea, source));
         mDirtyImages = true;
+        onStateChange(angle::SubjectMessage::DirtyBitsFlagged);
     }
     else
     {
@@ -1307,7 +1318,8 @@ angle::Result TextureD3D_2D::setStorage(const gl::Context *context,
     bool renderTarget = IsRenderTargetUsage(mState.getUsage());
     TexStoragePointer storage(context);
     storage.reset(mRenderer->createTextureStorage2D(internalFormat, renderTarget, size.width,
-                                                    size.height, static_cast<int>(levels), false));
+                                                    size.height, static_cast<int>(levels),
+                                                    mState.getLabel(), false));
 
     ANGLE_TRY(setCompleteTexStorage(context, storage.get()));
     storage.release();
@@ -1331,7 +1343,7 @@ angle::Result TextureD3D_2D::bindTexImage(const gl::Context *context, egl::Surfa
     SurfaceD3D *surfaceD3D = GetImplAs<SurfaceD3D>(surface);
     ASSERT(surfaceD3D);
 
-    mTexStorage     = mRenderer->createTextureStorage2D(surfaceD3D->getSwapChain());
+    mTexStorage = mRenderer->createTextureStorage2D(surfaceD3D->getSwapChain(), mState.getLabel());
     mEGLImageTarget = false;
 
     mDirtyImages = false;
@@ -1379,7 +1391,8 @@ angle::Result TextureD3D_2D::setEGLImageTarget(const gl::Context *context,
     RenderTargetD3D *renderTargetD3D = nullptr;
     ANGLE_TRY(eglImaged3d->getRenderTarget(context, &renderTargetD3D));
 
-    mTexStorage     = mRenderer->createTextureStorageEGLImage(eglImaged3d, renderTargetD3D);
+    mTexStorage =
+        mRenderer->createTextureStorageEGLImage(eglImaged3d, renderTargetD3D, mState.getLabel());
     mEGLImageTarget = true;
 
     return angle::Result::Continue;
@@ -1524,8 +1537,8 @@ angle::Result TextureD3D_2D::createCompleteStorage(bool renderTarget,
     }
 
     // TODO(geofflang): Determine if the texture creation succeeded
-    outStorage->reset(mRenderer->createTextureStorage2D(internalFormat, renderTarget, width, height,
-                                                        levels, hintLevelZeroOnly));
+    outStorage->reset(mRenderer->createTextureStorage2D(
+        internalFormat, renderTarget, width, height, levels, mState.getLabel(), hintLevelZeroOnly));
 
     return angle::Result::Continue;
 }
@@ -1820,8 +1833,7 @@ angle::Result TextureD3D_Cube::copyImage(const gl::Context *context,
     // WebGL requires that pixels that would be outside the framebuffer are treated as zero values,
     // so clear the mip level to 0 prior to making the copy if any pixel would be sampled outside.
     // Same thing for robust resource init.
-    if (outside &&
-        (context->getExtensions().webglCompatibility || context->isRobustResourceInitEnabled()))
+    if (outside && (context->isWebGL() || context->isRobustResourceInitEnabled()))
     {
         ANGLE_TRY(initializeContents(context, index));
     }
@@ -1843,6 +1855,7 @@ angle::Result TextureD3D_Cube::copyImage(const gl::Context *context,
         ANGLE_TRY(mImageArray[faceIndex][index.getLevelIndex()]->copyFromFramebuffer(
             context, destOffset, clippedArea, source));
         mDirtyImages = true;
+        onStateChange(angle::SubjectMessage::DirtyBitsFlagged);
     }
     else
     {
@@ -1887,6 +1900,7 @@ angle::Result TextureD3D_Cube::copySubImage(const gl::Context *context,
         ANGLE_TRY(mImageArray[faceIndex][index.getLevelIndex()]->copyFromFramebuffer(
             context, clippedOffset, clippedArea, source));
         mDirtyImages = true;
+        onStateChange(angle::SubjectMessage::DirtyBitsFlagged);
     }
     else
     {
@@ -2046,7 +2060,8 @@ angle::Result TextureD3D_Cube::setStorage(const gl::Context *context,
 
     TexStoragePointer storage(context);
     storage.reset(mRenderer->createTextureStorageCube(internalFormat, renderTarget, size.width,
-                                                      static_cast<int>(levels), false));
+                                                      static_cast<int>(levels), false,
+                                                      mState.getLabel()));
 
     ANGLE_TRY(setCompleteTexStorage(context, storage.get()));
     storage.release();
@@ -2173,8 +2188,8 @@ angle::Result TextureD3D_Cube::createCompleteStorage(bool renderTarget,
     bool hintLevelZeroOnly = false;
     if (mRenderer->getFeatures().zeroMaxLodWorkaround.enabled)
     {
-        // If any of the CPU images (levels >= 1) are dirty, then the textureStorage should use the
-        // mipped texture to begin with. Otherwise, it should use the level-zero-only texture.
+        // If any of the CPU images (levels >= 1) are dirty, then the textureStorageEXT should use
+        // the mipped texture to begin with. Otherwise, it should use the level-zero-only texture.
         hintLevelZeroOnly = true;
         for (int faceIndex = 0;
              faceIndex < static_cast<int>(gl::kCubeFaceCount) && hintLevelZeroOnly; faceIndex++)
@@ -2188,8 +2203,9 @@ angle::Result TextureD3D_Cube::createCompleteStorage(bool renderTarget,
     }
 
     // TODO (geofflang): detect if storage creation succeeded
-    outStorage->reset(mRenderer->createTextureStorageCube(
-        getBaseLevelInternalFormat(), renderTarget, size, levels, hintLevelZeroOnly));
+    outStorage->reset(mRenderer->createTextureStorageCube(getBaseLevelInternalFormat(),
+                                                          renderTarget, size, levels,
+                                                          hintLevelZeroOnly, mState.getLabel()));
 
     return angle::Result::Continue;
 }
@@ -2614,6 +2630,7 @@ angle::Result TextureD3D_3D::copySubImage(const gl::Context *context,
     ANGLE_TRY(mImageArray[index.getLevelIndex()]->copyFromFramebuffer(context, clippedDestOffset,
                                                                       clippedSourceArea, source));
     mDirtyImages = true;
+    onStateChange(angle::SubjectMessage::DirtyBitsFlagged);
 
     if (syncTexStorage)
     {
@@ -2759,7 +2776,7 @@ angle::Result TextureD3D_3D::setStorage(const gl::Context *context,
     TexStoragePointer storage(context);
     storage.reset(mRenderer->createTextureStorage3D(internalFormat, renderTarget, size.width,
                                                     size.height, size.depth,
-                                                    static_cast<int>(levels)));
+                                                    static_cast<int>(levels), mState.getLabel()));
 
     ANGLE_TRY(setCompleteTexStorage(context, storage.get()));
     storage.release();
@@ -2866,7 +2883,7 @@ angle::Result TextureD3D_3D::createCompleteStorage(bool renderTarget,
 
     // TODO: Verify creation of the storage succeeded
     outStorage->reset(mRenderer->createTextureStorage3D(internalFormat, renderTarget, width, height,
-                                                        depth, levels));
+                                                        depth, levels, mState.getLabel()));
 
     return angle::Result::Continue;
 }
@@ -3302,6 +3319,7 @@ angle::Result TextureD3D_2DArray::copySubImage(const gl::Context *context,
         ANGLE_TRY(mImageArray[index.getLevelIndex()][clippedDestOffset.z]->copyFromFramebuffer(
             context, destLayerOffset, clippedSourceArea, source));
         mDirtyImages = true;
+        onStateChange(angle::SubjectMessage::DirtyBitsFlagged);
     }
     else
     {
@@ -3489,9 +3507,9 @@ angle::Result TextureD3D_2DArray::setStorage(const gl::Context *context,
     // TODO(geofflang): Verify storage creation had no errors
     bool renderTarget = IsRenderTargetUsage(mState.getUsage());
     TexStoragePointer storage(context);
-    storage.reset(mRenderer->createTextureStorage2DArray(internalFormat, renderTarget, size.width,
-                                                         size.height, size.depth,
-                                                         static_cast<int>(levels)));
+    storage.reset(mRenderer->createTextureStorage2DArray(
+        internalFormat, renderTarget, size.width, size.height, size.depth, static_cast<int>(levels),
+        mState.getLabel()));
 
     ANGLE_TRY(setCompleteTexStorage(context, storage.get()));
     storage.release();
@@ -3592,8 +3610,8 @@ angle::Result TextureD3D_2DArray::createCompleteStorage(bool renderTarget,
     GLint levels = (mTexStorage ? mTexStorage->getLevelCount() : creationLevels(width, height, 1));
 
     // TODO(geofflang): Verify storage creation succeeds
-    outStorage->reset(mRenderer->createTextureStorage2DArray(internalFormat, renderTarget, width,
-                                                             height, depth, levels));
+    outStorage->reset(mRenderer->createTextureStorage2DArray(
+        internalFormat, renderTarget, width, height, depth, levels, mState.getLabel()));
 
     return angle::Result::Continue;
 }
@@ -3955,7 +3973,7 @@ angle::Result TextureD3D_External::setImageExternal(const gl::Context *context,
     // If the stream is null, the external image is unbound and we release the storage
     if (stream != nullptr)
     {
-        mTexStorage = mRenderer->createTextureStorageExternal(stream, desc);
+        mTexStorage = mRenderer->createTextureStorageExternal(stream, desc, mState.getLabel());
     }
 
     return angle::Result::Continue;
@@ -3972,7 +3990,8 @@ angle::Result TextureD3D_External::setEGLImageTarget(const gl::Context *context,
     ANGLE_TRY(eglImaged3d->getRenderTarget(context, &renderTargetD3D));
 
     ANGLE_TRY(releaseTexStorage(context));
-    mTexStorage = mRenderer->createTextureStorageEGLImage(eglImaged3d, renderTargetD3D);
+    mTexStorage =
+        mRenderer->createTextureStorageEGLImage(eglImaged3d, renderTargetD3D, mState.getLabel());
 
     return angle::Result::Continue;
 }
@@ -4067,9 +4086,9 @@ angle::Result TextureD3D_2DMultisample::setStorageMultisample(const gl::Context 
     // We allocate storage immediately instead of doing it lazily like other TextureD3D classes do.
     // This requires less state in this class.
     TexStoragePointer storage(context);
-    storage.reset(mRenderer->createTextureStorage2DMultisample(internalformat, size.width,
-                                                               size.height, static_cast<int>(0),
-                                                               samples, fixedSampleLocations));
+    storage.reset(mRenderer->createTextureStorage2DMultisample(
+        internalformat, size.width, size.height, static_cast<int>(0), samples, fixedSampleLocations,
+        mState.getLabel()));
 
     ANGLE_TRY(setCompleteTexStorage(context, storage.get()));
     storage.release();
@@ -4187,7 +4206,7 @@ angle::Result TextureD3D_2DMultisampleArray::setStorageMultisample(const gl::Con
     TexStoragePointer storage(context);
     storage.reset(mRenderer->createTextureStorage2DMultisampleArray(
         internalformat, size.width, size.height, size.depth, static_cast<int>(0), samples,
-        fixedSampleLocations));
+        fixedSampleLocations, mState.getLabel()));
 
     ANGLE_TRY(setCompleteTexStorage(context, storage.get()));
     storage.release();

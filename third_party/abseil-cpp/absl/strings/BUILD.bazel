@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load(
     "//absl:copts/configure_copts.bzl",
     "ABSL_DEFAULT_COPTS",
@@ -269,10 +268,21 @@ cc_library(
     name = "cord_internal",
     srcs = [
         "internal/cord_internal.cc",
+        "internal/cord_rep_btree.cc",
+        "internal/cord_rep_btree_navigator.cc",
+        "internal/cord_rep_btree_reader.cc",
+        "internal/cord_rep_consume.cc",
+        "internal/cord_rep_crc.cc",
         "internal/cord_rep_ring.cc",
     ],
     hdrs = [
+        "internal/cord_data_edge.h",
         "internal/cord_internal.h",
+        "internal/cord_rep_btree.h",
+        "internal/cord_rep_btree_navigator.h",
+        "internal/cord_rep_btree_reader.h",
+        "internal/cord_rep_consume.h",
+        "internal/cord_rep_crc.h",
         "internal/cord_rep_flat.h",
         "internal/cord_rep_ring.h",
         "internal/cord_rep_ring_reader.h",
@@ -292,7 +302,88 @@ cc_library(
         "//absl/container:compressed_tuple",
         "//absl/container:inlined_vector",
         "//absl/container:layout",
+        "//absl/functional:function_ref",
         "//absl/meta:type_traits",
+        "//absl/types:span",
+    ],
+)
+
+cc_test(
+    name = "cord_data_edge_test",
+    size = "small",
+    srcs = ["internal/cord_data_edge_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    visibility = ["//visibility:private"],
+    deps = [
+        ":cord_internal",
+        ":cord_rep_test_util",
+        ":strings",
+        "//absl/base:config",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "cord_rep_btree_test",
+    size = "medium",
+    srcs = ["internal/cord_rep_btree_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    visibility = ["//visibility:private"],
+    deps = [
+        ":cord_internal",
+        ":cord_rep_test_util",
+        ":strings",
+        "//absl/base:config",
+        "//absl/base:raw_logging_internal",
+        "//absl/cleanup",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "cord_rep_btree_navigator_test",
+    size = "medium",
+    srcs = ["internal/cord_rep_btree_navigator_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    visibility = ["//visibility:private"],
+    deps = [
+        ":cord_internal",
+        ":cord_rep_test_util",
+        ":strings",
+        "//absl/base:config",
+        "//absl/base:raw_logging_internal",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "cord_rep_btree_reader_test",
+    size = "medium",
+    srcs = ["internal/cord_rep_btree_reader_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    visibility = ["//visibility:private"],
+    deps = [
+        ":cord",
+        ":cord_internal",
+        ":cord_rep_test_util",
+        ":strings",
+        "//absl/base:config",
+        "//absl/base:raw_logging_internal",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "cord_rep_crc_test",
+    size = "small",
+    srcs = ["internal/cord_rep_crc_test.cc"],
+    copts = ABSL_TEST_COPTS,
+    visibility = ["//visibility:private"],
+    deps = [
+        ":cord_internal",
+        ":cord_rep_test_util",
+        "//absl/base:config",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -300,7 +391,9 @@ cc_library(
     name = "cordz_update_tracker",
     hdrs = ["internal/cordz_update_tracker.h"],
     copts = ABSL_DEFAULT_COPTS,
-    visibility = ["//visibility:private"],
+    visibility = [
+        "//absl:__subpackages__",
+    ],
     deps = ["//absl/base:config"],
 )
 
@@ -320,6 +413,8 @@ cc_library(
     name = "cord",
     srcs = [
         "cord.cc",
+        "cord_analysis.cc",
+        "cord_analysis.h",
     ],
     hdrs = [
         "cord.h",
@@ -344,7 +439,9 @@ cc_library(
         "//absl/container:inlined_vector",
         "//absl/functional:function_ref",
         "//absl/meta:type_traits",
+        "//absl/numeric:bits",
         "//absl/types:optional",
+        "//absl/types:span",
     ],
 )
 
@@ -353,6 +450,9 @@ cc_library(
     srcs = ["internal/cordz_handle.cc"],
     hdrs = ["internal/cordz_handle.h"],
     copts = ABSL_DEFAULT_COPTS,
+    visibility = [
+        "//absl:__subpackages__",
+    ],
     deps = [
         "//absl/base",
         "//absl/base:config",
@@ -366,6 +466,9 @@ cc_library(
     srcs = ["internal/cordz_info.cc"],
     hdrs = ["internal/cordz_info.h"],
     copts = ABSL_DEFAULT_COPTS,
+    visibility = [
+        "//absl:__subpackages__",
+    ],
     deps = [
         ":cord_internal",
         ":cordz_functions",
@@ -376,6 +479,7 @@ cc_library(
         "//absl/base:config",
         "//absl/base:core_headers",
         "//absl/base:raw_logging_internal",
+        "//absl/container:inlined_vector",
         "//absl/debugging:stacktrace",
         "//absl/synchronization",
         "//absl/types:span",
@@ -386,6 +490,9 @@ cc_library(
     name = "cordz_update_scope",
     hdrs = ["internal/cordz_update_scope.h"],
     copts = ABSL_DEFAULT_COPTS,
+    visibility = [
+        "//absl:__subpackages__",
+    ],
     deps = [
         ":cord_internal",
         ":cordz_info",
@@ -415,6 +522,9 @@ cc_library(
     srcs = ["internal/cordz_sample_token.cc"],
     hdrs = ["internal/cordz_sample_token.h"],
     copts = ABSL_DEFAULT_COPTS,
+    visibility = [
+        "//absl:__subpackages__",
+    ],
     deps = [
         ":cordz_handle",
         ":cordz_info",
@@ -427,11 +537,14 @@ cc_library(
     srcs = ["internal/cordz_functions.cc"],
     hdrs = ["internal/cordz_functions.h"],
     copts = ABSL_DEFAULT_COPTS,
+    visibility = [
+        "//absl:__subpackages__",
+    ],
     deps = [
         "//absl/base:config",
         "//absl/base:core_headers",
-        "//absl/base:exponential_biased",
         "//absl/base:raw_logging_internal",
+        "//absl/profiling:exponential_biased",
     ],
 )
 
@@ -439,6 +552,9 @@ cc_library(
     name = "cordz_statistics",
     hdrs = ["internal/cordz_statistics.h"],
     copts = ABSL_DEFAULT_COPTS,
+    visibility = [
+        "//absl:__subpackages__",
+    ],
     deps = [
         ":cordz_update_tracker",
         "//absl/base:config",
@@ -498,6 +614,26 @@ cc_test(
 )
 
 cc_test(
+    name = "cordz_info_statistics_test",
+    srcs = [
+        "internal/cordz_info_statistics_test.cc",
+    ],
+    deps = [
+        ":cord",
+        ":cord_internal",
+        ":cordz_info",
+        ":cordz_sample_token",
+        ":cordz_statistics",
+        ":cordz_update_scope",
+        ":cordz_update_tracker",
+        "//absl/base:config",
+        "//absl/synchronization",
+        "//absl/synchronization:thread_pool",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "cordz_sample_token_test",
     srcs = [
         "internal/cordz_sample_token_test.cc",
@@ -530,6 +666,19 @@ cc_library(
         ":cord_internal",
         ":strings",
         "//absl/base:config",
+    ],
+)
+
+cc_library(
+    name = "cord_rep_test_util",
+    testonly = 1,
+    hdrs = ["internal/cord_rep_test_util.h"],
+    copts = ABSL_DEFAULT_COPTS,
+    deps = [
+        ":cord_internal",
+        ":strings",
+        "//absl/base:config",
+        "//absl/base:raw_logging_internal",
     ],
 )
 
@@ -571,6 +720,8 @@ cc_test(
         "//absl/base:endian",
         "//absl/base:raw_logging_internal",
         "//absl/container:fixed_array",
+        "//absl/hash",
+        "//absl/random",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -585,7 +736,6 @@ cc_test(
         "no_test_android_arm",
         "no_test_android_arm64",
         "no_test_android_x86",
-        "no_test_darwin_x86_64",
         "no_test_ios_x86_64",
         "no_test_loonix",
         "no_test_msvc_x64",
@@ -687,6 +837,7 @@ cc_test(
         ":strings",
         "//absl/base:core_headers",
         "//absl/base:dynamic_annotations",
+        "//absl/container:btree",
         "//absl/container:flat_hash_map",
         "//absl/container:node_hash_map",
         "@com_google_googletest//:gtest_main",

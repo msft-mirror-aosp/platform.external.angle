@@ -149,7 +149,7 @@ def gl_format_channels(internal_format):
         if (internal_format.find('ALPHA') >= 0):
             return 'la'
         return 'l'
-    if channels_string == 'SRGB':
+    if channels_string == 'SRGB' or channels_string == 'RGB':
         if (internal_format.find('ALPHA') >= 0):
             return 'rgba'
         return 'rgb'
@@ -166,6 +166,11 @@ def get_internal_format_initializer(internal_format, format_id):
     gl_channels = gl_format_channels(internal_format)
     gl_format_no_alpha = gl_channels == 'rgb' or gl_channels == 'l'
     component_type, bits, channels = get_format_info(format_id)
+
+    # ETC2 punchthrough formats have per-pixel alpha values but a zero-filled block is parsed as opaque black.
+    # Ensure correct initialization when the formats are emulated.
+    if 'PUNCHTHROUGH_ALPHA1_ETC2' in internal_format and 'ETC2' not in format_id:
+        return 'Initialize4ComponentData<GLubyte, 0x00, 0x00, 0x00, 0xFF>'
 
     if not gl_format_no_alpha or channels != 'rgba':
         return 'nullptr'
@@ -242,8 +247,9 @@ def get_vertex_copy_function(src_format, dst_format):
     if dst_format == "NONE":
         return "nullptr"
 
-    num_channel = len(get_channel_tokens(src_format))
-    if num_channel < 1 or num_channel > 4:
+    src_num_channel = len(get_channel_tokens(src_format))
+    dst_num_channel = len(get_channel_tokens(dst_format))
+    if src_num_channel < 1 or src_num_channel > 4:
         return "nullptr"
 
     if src_format.endswith('_VERTEX'):
@@ -259,7 +265,7 @@ def get_vertex_copy_function(src_format, dst_format):
     if 'FIXED' in src_format:
         assert 'FLOAT' in dst_format, (
             'get_vertex_copy_function: can only convert fixed to float,' + ' not to ' + dst_format)
-        return 'Copy32FixedTo32FVertexData<%d, %d>' % (num_channel, num_channel)
+        return 'Copy32FixedTo32FVertexData<%d, %d>' % (src_num_channel, dst_num_channel)
 
     src_gl_type = get_format_gl_type(src_format)
     dst_gl_type = get_format_gl_type(dst_format)
@@ -268,13 +274,24 @@ def get_vertex_copy_function(src_format, dst_format):
         return "nullptr"
 
     if src_gl_type == dst_gl_type:
-        dst_num_channel = len(get_channel_tokens(dst_format))
-        return 'CopyNativeVertexData<%s, %d, %d, 0>' % (src_gl_type, num_channel, dst_num_channel)
+        default_alpha = '1'
+
+        if src_num_channel == dst_num_channel or dst_num_channel < 4:
+            default_alpha = '0'
+        elif 'A16_FLOAT' in dst_format:
+            default_alpha = 'gl::Float16One'
+        elif 'A32_FLOAT' in dst_format:
+            default_alpha = 'gl::Float32One'
+        elif 'NORM' in dst_format:
+            default_alpha = 'std::numeric_limits<%s>::max()' % (src_gl_type)
+
+        return 'CopyNativeVertexData<%s, %d, %d, %s>' % (src_gl_type, src_num_channel,
+                                                         dst_num_channel, default_alpha)
 
     assert 'FLOAT' in dst_format, (
         'get_vertex_copy_function: can only convert to float,' + ' not to ' + dst_format)
     normalized = 'true' if 'NORM' in src_format else 'false'
 
     dst_is_half = 'true' if dst_gl_type == 'GLhalf' else 'false'
-    return "CopyToFloatVertexData<%s, %d, %d, %s, %s>" % (src_gl_type, num_channel, num_channel,
-                                                          normalized, dst_is_half)
+    return "CopyToFloatVertexData<%s, %d, %d, %s, %s>" % (src_gl_type, src_num_channel,
+                                                          dst_num_channel, normalized, dst_is_half)
