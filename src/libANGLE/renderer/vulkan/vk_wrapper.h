@@ -344,6 +344,7 @@ class CommandBuffer : public WrappedObject<CommandBuffer, VkCommandBuffer>
     void writeTimestamp(VkPipelineStageFlagBits pipelineStage,
                         const QueryPool &queryPool,
                         uint32_t query);
+    void setShadingRate(const VkExtent2D *fragmentSize, VkFragmentShadingRateCombinerOpKHR ops[2]);
 
     // VK_EXT_transform_feedback
     void beginTransformFeedback(uint32_t firstCounterBuffer,
@@ -659,6 +660,7 @@ class VirtualBlock final : public WrappedObject<VirtualBlock, VmaVirtualBlock>
 
     VkResult allocate(VkDeviceSize size, VkDeviceSize alignment, VkDeviceSize *offsetOut);
     void free(VkDeviceSize offset);
+    void calculateStats(vma::StatInfo *pStatInfo) const;
 };
 
 // CommandPool implementation.
@@ -1032,6 +1034,13 @@ ANGLE_INLINE void CommandBuffer::writeTimestamp(VkPipelineStageFlagBits pipeline
 {
     ASSERT(valid());
     vkCmdWriteTimestamp(mHandle, pipelineStage, queryPool.getHandle(), query);
+}
+
+ANGLE_INLINE void CommandBuffer::setShadingRate(const VkExtent2D *fragmentSize,
+                                                VkFragmentShadingRateCombinerOpKHR ops[2])
+{
+    ASSERT(valid() && fragmentSize != nullptr);
+    vkCmdSetFragmentShadingRateKHR(mHandle, fragmentSize, ops);
 }
 
 ANGLE_INLINE void CommandBuffer::draw(uint32_t vertexCount,
@@ -1848,6 +1857,11 @@ ANGLE_INLINE VkResult VirtualBlock::allocate(VkDeviceSize size,
 ANGLE_INLINE void VirtualBlock::free(VkDeviceSize offset)
 {
     vma::VirtualFree(mHandle, offset);
+}
+
+ANGLE_INLINE void VirtualBlock::calculateStats(vma::StatInfo *pStatInfo) const
+{
+    vma::CalculateVirtualBlockStats(mHandle, pStatInfo);
 }
 }  // namespace vk
 }  // namespace rx

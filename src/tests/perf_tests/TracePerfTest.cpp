@@ -1217,6 +1217,33 @@ TracePerfTest::TracePerfTest(const TracePerfParams &params)
         addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
     }
 
+    if (traceNameIs("special_forces_group_2"))
+    {
+        addExtensionPrerequisite("GL_EXT_texture_buffer");
+    }
+
+    if (traceNameIs("tessellation"))
+    {
+        if (IsNVIDIA() && mParams.isVulkan())
+        {
+            skipTest("http://anglebug.com/7240 Tessellation driver bugs on Nvidia");
+        }
+
+        addExtensionPrerequisite("GL_EXT_geometry_shader");
+        addExtensionPrerequisite("GL_EXT_primitive_bounding_box");
+        addExtensionPrerequisite("GL_EXT_tessellation_shader");
+        addExtensionPrerequisite("GL_EXT_texture_cube_map_array");
+    }
+
+    if (traceNameIs("basemark_gpu"))
+    {
+        addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
+    }
+    if (traceNameIs("mortal_kombat"))
+    {
+        addExtensionPrerequisite("GL_EXT_texture_buffer");
+    }
+
     ASSERT(mParams.surfaceType == SurfaceType::Window || gEnableAllTraceTests);
     ASSERT(mParams.eglParameters.deviceType == EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE ||
            gEnableAllTraceTests);
@@ -2063,7 +2090,7 @@ void RegisterTraceTests()
         if (gTraceTestValidation)
         {
             // Enable limits when validating traces because we usually turn off capture.
-            overrideParams.eglParameters.enable(Feature::CaptureLimits);
+            overrideParams.eglParameters.enable(Feature::EnableCaptureLimits);
 
             // This feature should also be enabled in capture to mirror the replay.
             overrideParams.eglParameters.enable(Feature::ForceInitShaderVariables);
