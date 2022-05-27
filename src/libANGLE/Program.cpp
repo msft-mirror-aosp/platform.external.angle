@@ -1206,7 +1206,7 @@ angle::Result Program::linkImpl(const Context *context)
     // use the previously linked program if linking the shaders fails.
     mLinked = false;
 
-    mState.mExecutable->getInfoLog().reset();
+    mState.mExecutable->resetInfoLog();
 
     // Validate we have properly attached shaders before checking the cache.
     if (!linkValidateShaders(mState.mExecutable->getInfoLog()))
@@ -1341,8 +1341,6 @@ angle::Result Program::linkImpl(const Context *context)
                 return angle::Result::Continue;
             }
 
-            mState.mExecutable->mUsesEarlyFragmentTestsOptimization =
-                fragmentShader->hasEarlyFragmentTestsOptimization();
             mState.mExecutable->mEnablesPerSampleShading =
                 fragmentShader->enablesPerSampleShading();
             mState.mExecutable->mAdvancedBlendEquations =
@@ -1394,6 +1392,7 @@ void Program::resolveLinkImpl(const Context *context)
     std::unique_ptr<LinkingState> linkingState = std::move(mLinkingState);
     if (!mLinked)
     {
+        mState.mExecutable->reset(false);
         return;
     }
 
@@ -1525,7 +1524,7 @@ void Program::unlink()
         // the last successfully linked ProgramExecutable, so we don't lose any state information.
         mState.mExecutable.reset(new ProgramExecutable(*mLinkingState->linkedExecutable));
     }
-    mState.mExecutable->reset();
+    mState.mExecutable->reset(true);
 
     mState.mUniformLocations.clear();
     mState.mBufferVariables.clear();

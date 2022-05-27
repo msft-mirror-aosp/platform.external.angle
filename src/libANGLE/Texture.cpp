@@ -141,6 +141,7 @@ TextureState::TextureState(TextureType type)
       mMaxLevel(kInitialMaxLevel),
       mDepthStencilTextureMode(GL_DEPTH_COMPONENT),
       mHasBeenBoundAsImage(false),
+      mIs3DAndHasBeenBoundAs2DImage(false),
       mHasBeenBoundAsAttachment(false),
       mImmutableFormat(false),
       mImmutableLevels(0),
@@ -1705,15 +1706,15 @@ angle::Result Texture::setStorageExternalMemory(Context *context,
     egl::RefCountObjectReleaser<egl::Image> releaseImage;
     ANGLE_TRY(orphanImages(context, &releaseImage));
 
-    ANGLE_TRY(mTexture->setStorageExternalMemory(context, type, levels, internalFormat, size,
-                                                 memoryObject, offset, createFlags, usageFlags,
-                                                 imageCreateInfoPNext));
-
     mState.mImmutableFormat = true;
     mState.mImmutableLevels = static_cast<GLuint>(levels);
     mState.clearImageDescs();
     mState.setImageDescChain(0, static_cast<GLuint>(levels - 1), size, Format(internalFormat),
                              InitState::Initialized);
+
+    ANGLE_TRY(mTexture->setStorageExternalMemory(context, type, levels, internalFormat, size,
+                                                 memoryObject, offset, createFlags, usageFlags,
+                                                 imageCreateInfoPNext));
 
     // Changing the texture to immutable can trigger a change in the base and max levels:
     // GLES 3.0.4 section 3.8.10 pg 158:
@@ -1902,8 +1903,6 @@ angle::Result Texture::setEGLImageTargetImpl(Context *context,
     egl::RefCountObjectReleaser<egl::Image> releaseImage;
     ANGLE_TRY(orphanImages(context, &releaseImage));
 
-    ANGLE_TRY(mTexture->setEGLImageTarget(context, type, imageTarget));
-
     setTargetImage(context, imageTarget);
 
     auto initState = imageTarget->sourceInitState();
@@ -1912,6 +1911,9 @@ angle::Result Texture::setEGLImageTargetImpl(Context *context,
     mState.setImageDescChain(0, levels - 1, imageTarget->getExtents(), imageTarget->getFormat(),
                              initState);
     mState.mHasProtectedContent = imageTarget->hasProtectedContent();
+
+    ANGLE_TRY(mTexture->setEGLImageTarget(context, type, imageTarget));
+
     signalDirtyStorage(initState);
 
     return angle::Result::Continue;
@@ -2414,8 +2416,6 @@ void Texture::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMess
             // points to the newly allocated buffer and update the texture descriptor set.
             signalDirtyState(DIRTY_BIT_IMPLEMENTATION);
             break;
-        case angle::SubjectMessage::BufferVkStorageChanged:
-            break;
         default:
             UNREACHABLE();
             break;
@@ -2473,6 +2473,15 @@ void Texture::onBindAsImageTexture()
     {
         mDirtyBits.set(DIRTY_BIT_BOUND_AS_IMAGE);
         mState.mHasBeenBoundAsImage = true;
+    }
+}
+
+void Texture::onBind3DTextureAs2DImage()
+{
+    if (!mState.mIs3DAndHasBeenBoundAs2DImage)
+    {
+        mDirtyBits.set(DIRTY_BIT_BOUND_AS_IMAGE);
+        mState.mIs3DAndHasBeenBoundAs2DImage = true;
     }
 }
 

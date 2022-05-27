@@ -135,6 +135,22 @@ def _LogTestEndpoints(device, test_name):
         check_return=True)
 
 
+@contextlib.contextmanager
+def _VoiceInteractionService(device, use_voice_interaction_service):
+  def set_voice_interaction_service(service):
+    device.RunShellCommand('settings put secure voice_interaction_service %s' %
+                           service)
+
+  try:
+    default_voice_interaction_service = device.RunShellCommand(
+        'settings get secure voice_interaction_service', single_line=True)
+
+    set_voice_interaction_service(use_voice_interaction_service)
+    yield
+  finally:
+    set_voice_interaction_service(default_voice_interaction_service)
+
+
 def DismissCrashDialogs(device):
   # Dismiss any error dialogs. Limit the number in case we have an error
   # loop or we are failing to dismiss.
@@ -227,17 +243,21 @@ class LocalDeviceInstrumentationTestRun(
                          modules=None,
                          fake_modules=None,
                          permissions=None,
-                         additional_locales=None):
+                         additional_locales=None,
+                         instant_app=False):
 
         @instrumentation_tracing.no_tracing
         @trace_event.traced
         def install_helper_internal(d, apk_path=None):
           # pylint: disable=unused-argument
-          d.Install(apk,
-                    modules=modules,
-                    fake_modules=fake_modules,
-                    permissions=permissions,
-                    additional_locales=additional_locales)
+          d.Install(
+              apk,
+              modules=modules,
+              fake_modules=fake_modules,
+              permissions=permissions,
+              additional_locales=additional_locales,
+              instant_app=instant_app,
+              force_queryable=self._test_instance.IsApkForceQueryable(apk))
 
         return install_helper_internal
 
@@ -247,19 +267,25 @@ class LocalDeviceInstrumentationTestRun(
         def incremental_install_helper_internal(d, apk_path=None):
           # pylint: disable=unused-argument
           installer.Install(d, json_path, apk=apk, permissions=permissions)
+
         return incremental_install_helper_internal
 
       permissions = self._test_instance.test_apk.GetPermissions()
       if self._test_instance.test_apk_incremental_install_json:
-        steps.append(incremental_install_helper(
-                         self._test_instance.test_apk,
-                         self._test_instance.
-                             test_apk_incremental_install_json,
-                         permissions))
+        if self._test_instance.test_apk_as_instant:
+          raise Exception('Test APK cannot be installed as an instant '
+                          'app if it is incremental')
+
+        steps.append(
+            incremental_install_helper(
+                self._test_instance.test_apk,
+                self._test_instance.test_apk_incremental_install_json,
+                permissions))
       else:
         steps.append(
-            install_helper(
-                self._test_instance.test_apk, permissions=permissions))
+            install_helper(self._test_instance.test_apk,
+                           permissions=permissions,
+                           instant_app=self._test_instance.test_apk_as_instant))
 
       steps.extend(
           install_helper(apk) for apk in self._test_instance.additional_apks)
@@ -295,6 +321,22 @@ class LocalDeviceInstrumentationTestRun(
           self._context_managers[str(dev)].append(webview_context)
 
         steps.append(use_webview_provider)
+
+      if self._test_instance.use_voice_interaction_service:
+
+        @trace_event.traced
+        def use_voice_interaction_service(device):
+          voice_interaction_service_context = _VoiceInteractionService(
+              device, self._test_instance.use_voice_interaction_service)
+          # Pylint is not smart enough to realize that this field has
+          # an __enter__ method, and will complain loudly.
+          # pylint: disable=no-member
+          voice_interaction_service_context.__enter__()
+          # pylint: enable=no-member
+          self._context_managers[str(device)].append(
+              voice_interaction_service_context)
+
+        steps.append(use_voice_interaction_service)
 
       # The apk under test needs to be installed last since installing other
       # apks after will unintentionally clear the fake module directory.

@@ -190,6 +190,10 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
                                      GLenum binding,
                                      const gl::ImageIndex &imageIndex) override;
 
+    angle::Result initializeContentsWithBlack(const gl::Context *context,
+                                              GLenum binding,
+                                              const gl::ImageIndex &imageIndex);
+
     const vk::ImageHelper &getImage() const
     {
         ASSERT(mImage && mImage->valid());
@@ -257,6 +261,8 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
     }
 
     vk::ImageOrBufferViewSubresourceSerial getBufferViewSerial() const;
+    vk::ImageOrBufferViewSubresourceSerial getStorageImageViewSerial(
+        const gl::ImageUnit &binding) const;
 
     GLenum getColorReadFormat(const gl::Context *context) override;
     GLenum getColorReadType(const gl::Context *context) override;
@@ -454,7 +460,7 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
     angle::Result reinitImageAsRenderable(ContextVk *contextVk,
                                           const vk::Format &format,
                                           gl::TexLevelMask skipLevelsMask);
-    angle::Result initImageViews(ContextVk *contextVk, const bool sized, uint32_t levelCount);
+    angle::Result initImageViews(ContextVk *contextVk, uint32_t levelCount);
     void initSingleLayerRenderTargets(ContextVk *contextVk,
                                       GLuint layerCount,
                                       gl::LevelIndex levelIndexGL,
@@ -504,7 +510,9 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
     }
 
     angle::Result refreshImageViews(ContextVk *contextVk);
-    bool shouldDecodeSRGB(vk::Context *context, GLenum srgbDecode, bool texelFetchStaticUse) const;
+    bool shouldDecodeSRGB(vk::Context *contextVk,
+                          GLenum srgbDecode,
+                          bool texelFetchStaticUse) const;
     void initImageUsageFlags(ContextVk *contextVk, angle::FormatID actualFormatID);
     void handleImmutableSamplerTransition(const vk::ImageHelper *previousImage,
                                           const vk::ImageHelper *nextImage);
