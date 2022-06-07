@@ -3337,7 +3337,7 @@ angle::Result StateManager11::generateSwizzle(const gl::Context *context, gl::Te
     {
         TextureStorage11 *storage11          = GetAs<TextureStorage11>(texStorage);
         const gl::TextureState &textureState = texture->getTextureState();
-        ANGLE_TRY(storage11->generateSwizzles(context, textureState.getSwizzleState()));
+        ANGLE_TRY(storage11->generateSwizzles(context, textureState));
     }
 
     return angle::Result::Continue;
@@ -3357,7 +3357,7 @@ angle::Result StateManager11::generateSwizzlesForShader(const gl::Context *conte
         {
             gl::Texture *texture = glState.getSamplerTexture(textureUnit, textureType);
             ASSERT(texture);
-            if (texture->getTextureState().swizzleRequired())
+            if (SwizzleRequired(texture->getTextureState()))
             {
                 ANGLE_TRY(generateSwizzle(context, texture));
             }
@@ -3605,9 +3605,9 @@ angle::Result StateManager11::syncUniformBuffersForShader(const gl::Context *con
         {
             case gl::ShaderType::Vertex:
             {
-                if (mCurrentConstantBufferVS[bufferIndex] == constantBuffer->getSerial() &&
-                    mCurrentConstantBufferVSOffset[bufferIndex] == uniformBufferOffset &&
-                    mCurrentConstantBufferVSSize[bufferIndex] == uniformBufferSize)
+                if (mCurrentConstantBufferVS[cache.registerIndex] == constantBuffer->getSerial() &&
+                    mCurrentConstantBufferVSOffset[cache.registerIndex] == uniformBufferOffset &&
+                    mCurrentConstantBufferVSSize[cache.registerIndex] == uniformBufferSize)
                 {
                     continue;
                 }
@@ -3633,9 +3633,9 @@ angle::Result StateManager11::syncUniformBuffersForShader(const gl::Context *con
 
             case gl::ShaderType::Fragment:
             {
-                if (mCurrentConstantBufferPS[bufferIndex] == constantBuffer->getSerial() &&
-                    mCurrentConstantBufferPSOffset[bufferIndex] == uniformBufferOffset &&
-                    mCurrentConstantBufferPSSize[bufferIndex] == uniformBufferSize)
+                if (mCurrentConstantBufferPS[cache.registerIndex] == constantBuffer->getSerial() &&
+                    mCurrentConstantBufferPSOffset[cache.registerIndex] == uniformBufferOffset &&
+                    mCurrentConstantBufferPSSize[cache.registerIndex] == uniformBufferSize)
                 {
                     continue;
                 }
