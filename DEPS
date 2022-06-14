@@ -37,13 +37,13 @@ vars = {
   'checkout_android_native_support': 'checkout_android or checkout_chromeos',
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': '4697545681bda8d928ccf75305fe247065d96a05',
+  'chromium_revision': '66a3aa3f63decb944c7aa85068d0d74e6fbde25e',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': 'acf70aaf3fdb856cd993accbd83b27a59a3eb2e3',
+  'vk_gl_cts_revision': '50754c3c19c0ade27dedb8162288e4b1af9518fa',
 
   # Current revision of googletest.
   # Note: this dep cannot be auto-rolled b/c of nesting.
@@ -82,11 +82,11 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': 'd8360ff77566291ac763415f5ff6c1dce7e931a7',
+  'catapult_revision': 'ba0a827bb8b930307595ff9e15bc41875fece7d2',
 
   # the commit queue can handle CLs rolling Fuchsia sdk
   # and whatever else without interference from each other.
-  'fuchsia_version': 'version:8.20220604.2.1',
+  'fuchsia_version': 'version:8.20220612.1.1',
 
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling luci-go
@@ -126,7 +126,7 @@ vars = {
 deps = {
 
   'build': {
-    'url': '{chromium_git}/chromium/src/build.git@1ec4567f5a05f64e3c649cbe82e6c86658027945',
+    'url': '{chromium_git}/chromium/src/build.git@c8976641ac85b5ca3094c5988726891e6c958828',
     'condition': 'not build_with_chromium',
   },
 
@@ -144,7 +144,7 @@ deps = {
     'packages': [
       {
         'package': 'gn/gn/linux-${{arch}}',
-        'version': 'git_revision:37baefb026b199605affa7bcb24810d1724ce373',
+        'version': 'git_revision:2ecd43a10266bd091c98e6dcde507c64f6a0dad3',
       }
     ],
     'dep_type': 'cipd',
@@ -155,7 +155,7 @@ deps = {
     'packages': [
       {
         'package': 'gn/gn/mac-${{arch}}',
-        'version': 'git_revision:37baefb026b199605affa7bcb24810d1724ce373',
+        'version': 'git_revision:2ecd43a10266bd091c98e6dcde507c64f6a0dad3',
       }
     ],
     'dep_type': 'cipd',
@@ -168,12 +168,12 @@ deps = {
   },
 
   'buildtools/third_party/libc++abi/trunk': {
-    'url': '{chromium_git}/external/github.com/llvm/llvm-project/libcxxabi.git@c30c515c84377a2a76e27fe8b457e24dbd6abf10',
+    'url': '{chromium_git}/external/github.com/llvm/llvm-project/libcxxabi.git@013bcd820a353ec1d3ff472f2971553fea7232cf',
     'condition': 'not build_with_chromium',
   },
 
   'buildtools/third_party/libunwind/trunk': {
-    'url': '{chromium_git}/external/github.com/llvm/llvm-project/libunwind.git@2c4970601e8e7cec1350afc0814d535b34c015d8',
+    'url': '{chromium_git}/external/github.com/llvm/llvm-project/libunwind.git@1644d070bf374182739543c3a12df88dfec0b88a',
     'condition': 'not build_with_chromium',
   },
 
@@ -181,7 +181,7 @@ deps = {
     'packages': [
       {
         'package': 'gn/gn/windows-amd64',
-        'version': 'git_revision:37baefb026b199605affa7bcb24810d1724ce373',
+        'version': 'git_revision:2ecd43a10266bd091c98e6dcde507c64f6a0dad3',
       }
     ],
     'dep_type': 'cipd',
@@ -189,12 +189,12 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@32159ca2eef9da4606899aff1c7bd2f1916da1c9',
+    'url': '{chromium_git}/chromium/src/testing@decc2411ddd23b5180074be6cb23d0eb3a30d4b6',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/abseil-cpp': {
-    'url': '{chromium_git}/chromium/src/third_party/abseil-cpp@e9b1c7879f35407d7524ba33a73a12c7c61d102f',
+    'url': '{chromium_git}/chromium/src/third_party/abseil-cpp@67fb565748a580dffbb7fd243bb551dca1d0baab',
     'condition': 'not build_with_chromium',
   },
 
@@ -207,7 +207,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/android_build_tools/aapt2',
-              'version': 'kZqQH92bSO1p0a7_hcrana_9YjtSBU1te7TEtNVBoCUC',
+              'version': 'jziPmg_EUjoj-eSkO24eMaf5ylm449Q7BKO1-ga2tbgC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -335,7 +335,7 @@ deps = {
   },
 
   'third_party/depot_tools': {
-    'url': '{chromium_git}/chromium/tools/depot_tools.git@89b222dba5ea3fd91598e821c0b82797f2e2fa3c',
+    'url': '{chromium_git}/chromium/tools/depot_tools.git@6fbb744238c72cc9e6fc4038368f768abb96e8d2',
     'condition': 'not build_with_chromium',
   },
 
@@ -448,7 +448,7 @@ deps = {
   },
 
   'third_party/protobuf': {
-    'url': '{chromium_git}/chromium/src/third_party/protobuf@d56805c40096b32f52aad60dfc55f7d3d5476fa6',
+    'url': '{chromium_git}/chromium/src/third_party/protobuf@4963453edd2d058865510d37fb0161b88a31b886',
     'condition': 'not build_with_chromium',
   },
 
@@ -513,7 +513,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/turbine',
-              'version': 'aSG-acwWsASjZaTfSzYcOuM9qoD6S_o3JL6iIFslVdUC',
+              'version': 'A5bkaoLBc1JYa6Xv31jYUCK5TnXYCbxRrA4FBPXXcWgC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -525,7 +525,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': '{chromium_git}/vulkan-deps@23b710f1a0b3c44d51035c6400a554415f95d9c6',
+    'url': '{chromium_git}/vulkan-deps@1762849caed4eaf56fcb8b5b8af04b055a4b05f3',
     'condition': 'not build_with_chromium',
   },
 
@@ -545,12 +545,12 @@ deps = {
   },
 
   'tools/android/errorprone_plugin': {
-    'url': '{chromium_git}/chromium/src/tools/android/errorprone_plugin@bd76c90eacab3446f7cfc32531d0881117e94324',
+    'url': '{chromium_git}/chromium/src/tools/android/errorprone_plugin@633cc2d7635766e1a778d81ca6fce176954f4a8f',
     'condition': 'checkout_android and not build_with_chromium',
   },
 
   'tools/clang': {
-    'url': '{chromium_git}/chromium/src/tools/clang.git@a455f338a1a9251a7fe44f0113123f7683637100',
+    'url': '{chromium_git}/chromium/src/tools/clang.git@2b3af067be9d4aed70602ca0a5465f794cf8e7de',
     'condition': 'not build_with_chromium',
   },
 
@@ -581,7 +581,7 @@ deps = {
   },
 
   'tools/mb': {
-    'url': '{chromium_git}/chromium/src/tools/mb@3e5ac252f71330ccab5e1ee210d86e6f9968480a',
+    'url': '{chromium_git}/chromium/src/tools/mb@1b996d871091f6a17d592fdf5c526d3a6afaa5ae',
     'condition': 'not build_with_chromium',
   },
 
@@ -596,7 +596,7 @@ deps = {
   },
 
   'tools/perf': {
-    'url': '{chromium_git}/chromium/src/tools/perf@6cc9656eb9cdec7b06bd76291b3aa8c5061f243e',
+    'url': '{chromium_git}/chromium/src/tools/perf@e20744b236bbd693aea34f59a8620521702dc38e',
     'condition': 'not build_with_chromium',
   },
 
@@ -1820,6 +1820,16 @@ deps = {
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_traces',
   },
+  'src/tests/restricted_traces/rush_royale': {
+      'packages': [
+        {
+            'package': 'angle/traces/rush_royale',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
   'src/tests/restricted_traces/saint_seiya_awakening': {
       'packages': [
         {
@@ -1865,6 +1875,16 @@ deps = {
         {
             'package': 'angle/traces/shadow_fight_2',
             'version': 'version:5',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
+  'src/tests/restricted_traces/shadow_fight_3': {
+      'packages': [
+        {
+            'package': 'angle/traces/shadow_fight_3',
+            'version': 'version:1',
         },
       ],
       'dep_type': 'cipd',
@@ -1945,6 +1965,16 @@ deps = {
         {
             'package': 'angle/traces/standoff_2',
             'version': 'version:5',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
+  'src/tests/restricted_traces/star_wars_kotor': {
+      'packages': [
+        {
+            'package': 'angle/traces/star_wars_kotor',
+            'version': 'version:1',
         },
       ],
       'dep_type': 'cipd',
