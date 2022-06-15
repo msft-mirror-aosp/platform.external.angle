@@ -389,11 +389,6 @@ bool OSWindow::takeScreenshot(uint8_t *pixelData)
     return false;
 }
 
-void *OSWindow::getPlatformExtension()
-{
-    return reinterpret_cast<void *>(getNativeWindow());
-}
-
 bool OSWindow::popEvent(Event *event)
 {
     if (mEvents.size() > 0 && event)

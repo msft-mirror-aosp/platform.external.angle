@@ -161,9 +161,8 @@ template <class T, size_t N, class Storage>
 template <class InputIt, std::enable_if_t<!std::is_integral<InputIt>::value, bool>>
 FastVector<T, N, Storage>::FastVector(InputIt first, InputIt last)
 {
-    size_t newSize = last - first;
-    ensure_capacity(newSize);
-    mSize = newSize;
+    mSize = last - first;
+    ensure_capacity(mSize);
     std::copy(first, last, begin());
 }
 
@@ -180,7 +179,7 @@ FastVector<T, N, Storage> &FastVector<T, N, Storage>::operator=(
 template <class T, size_t N, class Storage>
 FastVector<T, N, Storage> &FastVector<T, N, Storage>::operator=(FastVector<T, N, Storage> &&other)
 {
-    swap(other);
+    swap(*this, other);
     return *this;
 }
 
@@ -448,53 +447,14 @@ void FastVector<T, N, Storage>::ensure_capacity(size_t capacity)
     }
 }
 
-template <class Value, size_t N>
-class FastMap final
-{
-  public:
-    FastMap() {}
-    ~FastMap() {}
-
-    Value &operator[](uint32_t key)
-    {
-        if (mData.size() <= key)
-        {
-            mData.resize(key + 1, {});
-        }
-        return mData[key];
-    }
-
-    const Value &operator[](uint32_t key) const
-    {
-        ASSERT(key < mData.size());
-        return mData[key];
-    }
-
-    void clear() { mData.clear(); }
-
-    bool empty() const { return mData.empty(); }
-    size_t size() const { return mData.size(); }
-
-    const Value *data() const { return mData.data(); }
-
-    bool operator==(const FastMap<Value, N> &other) const
-    {
-        return (size() == other.size()) &&
-               (memcmp(data(), other.data(), size() * sizeof(Value)) == 0);
-    }
-
-  private:
-    FastVector<Value, N> mData;
-};
-
 template <class Key, class Value, size_t N>
-class FlatUnorderedMap final
+class FastUnorderedMap final
 {
   public:
     using Pair = std::pair<Key, Value>;
 
-    FlatUnorderedMap() {}
-    ~FlatUnorderedMap() {}
+    FastUnorderedMap() {}
+    ~FastUnorderedMap() {}
 
     void insert(Key key, Value value)
     {
@@ -536,11 +496,11 @@ class FlatUnorderedMap final
 };
 
 template <class T, size_t N>
-class FlatUnorderedSet final
+class FastUnorderedSet final
 {
   public:
-    FlatUnorderedSet() {}
-    ~FlatUnorderedSet() {}
+    FastUnorderedSet() {}
+    ~FastUnorderedSet() {}
 
     bool empty() const { return mData.empty(); }
 

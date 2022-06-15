@@ -26,7 +26,6 @@
 #include "egluGLContextFactory.hpp"
 #include "tcuANGLENativeDisplayFactory.h"
 #include "tcuNullContextFactory.hpp"
-#include "util/angle_features_autogen.h"
 #include "util/test_utils.h"
 
 static_assert(EGL_DONT_CARE == -1, "Unexpected value for EGL_DONT_CARE");
@@ -41,23 +40,19 @@ ANGLEPlatform::ANGLEPlatform(angle::LogErrorFunc logErrorFunc, uint32_t preRotat
 
     // Enable non-conformant ES versions and extensions for testing.  Our test expectations would
     // suppress failing tests, but allowing continuous testing of the pieces that are implemented.
-    mEnableFeatureOverrides.push_back(
-        angle::GetFeatureName(angle::Feature::ExposeNonConformantExtensionsAndVersions));
+    mEnableFeatureOverrides.push_back("exposeNonConformantExtensionsAndVersions");
 
     // Create pre-rotation attributes.
     switch (preRotation)
     {
         case 90:
-            mEnableFeatureOverrides.push_back(
-                angle::GetFeatureName(angle::Feature::EmulatedPrerotation90));
+            mEnableFeatureOverrides.push_back("emulatedPrerotation90");
             break;
         case 180:
-            mEnableFeatureOverrides.push_back(
-                angle::GetFeatureName(angle::Feature::EmulatedPrerotation180));
+            mEnableFeatureOverrides.push_back("emulatedPrerotation180");
             break;
         case 270:
-            mEnableFeatureOverrides.push_back(
-                angle::GetFeatureName(angle::Feature::EmulatedPrerotation270));
+            mEnableFeatureOverrides.push_back("emulatedPrerotation270");
             break;
         default:
             break;
@@ -92,6 +87,16 @@ ANGLEPlatform::ANGLEPlatform(angle::LogErrorFunc logErrorFunc, uint32_t preRotat
         auto *d3d9Factory = new ANGLENativeDisplayFactory("angle-d3d9", "ANGLE D3D9 Display",
                                                           d3d9Attribs, &mEvents);
         m_nativeDisplayFactoryRegistry.registerFactory(d3d9Factory);
+    }
+
+    {
+        std::vector<eglw::EGLAttrib> d3d1193Attribs =
+            initAttribs(EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
+                        EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE, 9, 3);
+
+        auto *d3d1193Factory = new ANGLENativeDisplayFactory(
+            "angle-d3d11-fl93", "ANGLE D3D11 FL9_3 Display", d3d1193Attribs, &mEvents);
+        m_nativeDisplayFactoryRegistry.registerFactory(d3d1193Factory);
     }
 #endif  // (DE_OS == DE_OS_WIN32)
 

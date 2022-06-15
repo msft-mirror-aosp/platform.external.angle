@@ -12,8 +12,6 @@
 #include "libANGLE/VertexArray.h"
 #include "libANGLE/VertexAttribute.h"
 
-#include <limits>
-
 namespace gl
 {
 namespace
@@ -35,12 +33,6 @@ bool IsStencilNoOp(GLenum stencilFunc,
 bool EnclosesRange(int outsideLow, int outsideHigh, int insideLow, int insideHigh)
 {
     return outsideLow <= insideLow && outsideHigh >= insideHigh;
-}
-
-bool IsAdvancedBlendEquation(gl::BlendEquationType blendEquation)
-{
-    return blendEquation >= gl::BlendEquationType::Multiply &&
-           blendEquation <= gl::BlendEquationType::HslLuminosity;
 }
 }  // anonymous namespace
 
@@ -359,6 +351,7 @@ BlendStateExt::BlendStateExt(const size_t drawBuffers)
       mColorMask(ColorMaskStorage::GetReplicatedValue(PackColorMask(true, true, true, true),
                                                       mMaxColorMask)),
       mMaxEnabledMask(0xFF >> (8 - drawBuffers)),
+      mEnabledMask(),
       mMaxDrawBuffers(drawBuffers)
 {}
 
@@ -439,10 +432,10 @@ DrawBufferMask BlendStateExt::compareColorMask(ColorMaskStorage::Type other) con
     return ColorMaskStorage::GetDiffMask(mColorMask, other);
 }
 
-BlendStateExt::EquationStorage::Type BlendStateExt::expandEquationValue(
-    const gl::BlendEquationType equation) const
+BlendStateExt::EquationStorage::Type BlendStateExt::expandEquationValue(const GLenum mode) const
 {
-    return EquationStorage::GetReplicatedValue(equation, mMaxEquationMask);
+    return EquationStorage::GetReplicatedValue(FromGLenum<BlendEquationType>(mode),
+                                               mMaxEquationMask);
 }
 
 BlendStateExt::EquationStorage::Type BlendStateExt::expandEquationColorIndexed(
@@ -461,22 +454,8 @@ BlendStateExt::EquationStorage::Type BlendStateExt::expandEquationAlphaIndexed(
 
 void BlendStateExt::setEquations(const GLenum modeColor, const GLenum modeAlpha)
 {
-    const gl::BlendEquationType colorEquation = FromGLenum<BlendEquationType>(modeColor);
-    const gl::BlendEquationType alphaEquation = FromGLenum<BlendEquationType>(modeAlpha);
-
-    mEquationColor = expandEquationValue(colorEquation);
-    mEquationAlpha = expandEquationValue(alphaEquation);
-
-    // Note that advanced blend equations cannot be independently set for color and alpha, so only
-    // the color equation can be checked.
-    if (IsAdvancedBlendEquation(colorEquation))
-    {
-        mUsesAdvancedBlendEquationMask = mMaxEnabledMask;
-    }
-    else
-    {
-        mUsesAdvancedBlendEquationMask.reset();
-    }
+    mEquationColor = expandEquationValue(modeColor);
+    mEquationAlpha = expandEquationValue(modeAlpha);
 }
 
 void BlendStateExt::setEquationsIndexed(const size_t index,
@@ -484,14 +463,10 @@ void BlendStateExt::setEquationsIndexed(const size_t index,
                                         const GLenum modeAlpha)
 {
     ASSERT(index < mMaxDrawBuffers);
-
-    const gl::BlendEquationType colorEquation = FromGLenum<BlendEquationType>(modeColor);
-    const gl::BlendEquationType alphaEquation = FromGLenum<BlendEquationType>(modeAlpha);
-
-    EquationStorage::SetValueIndexed(index, colorEquation, &mEquationColor);
-    EquationStorage::SetValueIndexed(index, alphaEquation, &mEquationAlpha);
-
-    mUsesAdvancedBlendEquationMask.set(index, IsAdvancedBlendEquation(colorEquation));
+    EquationStorage::SetValueIndexed(index, FromGLenum<BlendEquationType>(modeColor),
+                                     &mEquationColor);
+    EquationStorage::SetValueIndexed(index, FromGLenum<BlendEquationType>(modeAlpha),
+                                     &mEquationAlpha);
 }
 
 void BlendStateExt::setEquationsIndexed(const size_t index,
@@ -500,16 +475,12 @@ void BlendStateExt::setEquationsIndexed(const size_t index,
 {
     ASSERT(index < mMaxDrawBuffers);
     ASSERT(sourceIndex < source.mMaxDrawBuffers);
-
-    const gl::BlendEquationType colorEquation =
-        EquationStorage::GetValueIndexed(sourceIndex, source.mEquationColor);
-    const gl::BlendEquationType alphaEquation =
-        EquationStorage::GetValueIndexed(sourceIndex, source.mEquationAlpha);
-
-    EquationStorage::SetValueIndexed(index, colorEquation, &mEquationColor);
-    EquationStorage::SetValueIndexed(index, alphaEquation, &mEquationAlpha);
-
-    mUsesAdvancedBlendEquationMask.set(index, IsAdvancedBlendEquation(colorEquation));
+    EquationStorage::SetValueIndexed(
+        index, EquationStorage::GetValueIndexed(sourceIndex, source.mEquationColor),
+        &mEquationColor);
+    EquationStorage::SetValueIndexed(
+        index, EquationStorage::GetValueIndexed(sourceIndex, source.mEquationAlpha),
+        &mEquationAlpha);
 }
 
 GLenum BlendStateExt::getEquationColorIndexed(size_t index) const
@@ -653,17 +624,30 @@ static void MinMax(int a, int b, int *minimum, int *maximum)
     }
 }
 
-template <>
-bool RectangleImpl<int>::empty() const
+Rectangle Rectangle::flip(bool flipX, bool flipY) const
 {
-    return width == 0 && height == 0;
+    Rectangle flipped = *this;
+    if (flipX)
+    {
+        flipped.x     = flipped.x + flipped.width;
+        flipped.width = -flipped.width;
+    }
+    if (flipY)
+    {
+        flipped.y      = flipped.y + flipped.height;
+        flipped.height = -flipped.height;
+    }
+    return flipped;
 }
 
-template <>
-bool RectangleImpl<float>::empty() const
+Rectangle Rectangle::removeReversal() const
 {
-    return std::abs(width) < std::numeric_limits<float>::epsilon() &&
-           std::abs(height) < std::numeric_limits<float>::epsilon();
+    return flip(isReversedX(), isReversedY());
+}
+
+bool Rectangle::encloses(const gl::Rectangle &inside) const
+{
+    return x0() <= inside.x0() && y0() <= inside.y0() && x1() >= inside.x1() && y1() >= inside.y1();
 }
 
 bool ClipRectangle(const Rectangle &source, const Rectangle &clip, Rectangle *intersection)

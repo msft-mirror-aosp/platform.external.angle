@@ -34,67 +34,16 @@ namespace angle
 {
 namespace
 {
-std::string UnitAndDirectionToString(proto::UnitAndDirection unit)
+std::string AsJsonString(const std::string string)
 {
-    std::stringstream strstr;
-
-    switch (unit.unit())
-    {
-        case proto::MS_BEST_FIT_FORMAT:
-            strstr << "msBestFitFormat";
-            break;
-        case proto::COUNT:
-            strstr << "count";
-            break;
-        case proto::SIZE_IN_BYTES:
-            strstr << "sizeInBytes";
-            break;
-        default:
-            UNREACHABLE();
-            strstr << "error";
-            break;
-    }
-
-    switch (unit.improvement_direction())
-    {
-        case proto::NOT_SPECIFIED:
-            break;
-        case proto::SMALLER_IS_BETTER:
-            strstr << "_smallerIsBetter";
-            break;
-        default:
-            UNREACHABLE();
-            break;
-    }
-
-    return strstr.str();
+    return "\"" + string + "\"";
 }
 
-proto::UnitAndDirection StringToUnitAndDirection(const std::string &str)
+std::string GetUnitAndDirection(proto::UnitAndDirection unit)
 {
-    proto::UnitAndDirection unitAndDirection;
-
-    if (str == "count")
-    {
-        unitAndDirection.set_improvement_direction(proto::NOT_SPECIFIED);
-        unitAndDirection.set_unit(proto::COUNT);
-    }
-    else if (str == "msBestFitFormat_smallerIsBetter")
-    {
-        unitAndDirection.set_improvement_direction(proto::SMALLER_IS_BETTER);
-        unitAndDirection.set_unit(proto::MS_BEST_FIT_FORMAT);
-    }
-    else if (str == "sizeInBytes_smallerIsBetter")
-    {
-        unitAndDirection.set_improvement_direction(proto::SMALLER_IS_BETTER);
-        unitAndDirection.set_unit(proto::SIZE_IN_BYTES);
-    }
-    else
-    {
-        UNREACHABLE();
-    }
-
-    return unitAndDirection;
+    ASSERT(unit.improvement_direction() == proto::SMALLER_IS_BETTER);
+    ASSERT(unit.unit() == proto::MS_BEST_FIT_FORMAT);
+    return "msBestFitFormat";
 }
 }  // namespace
 
@@ -110,7 +59,9 @@ void HistogramWriter::addSample(const std::string &measurement,
     std::string measurementAndStory = measurement + story;
     if (mHistograms.count(measurementAndStory) == 0)
     {
-        proto::UnitAndDirection unitAndDirection = StringToUnitAndDirection(units);
+        proto::UnitAndDirection unitAndDirection;
+        unitAndDirection.set_improvement_direction(proto::SMALLER_IS_BETTER);
+        unitAndDirection.set_unit(proto::MS_BEST_FIT_FORMAT);
 
         std::unique_ptr<catapult::HistogramBuilder> builder =
             std::make_unique<catapult::HistogramBuilder>(measurement, unitAndDirection);
@@ -122,7 +73,7 @@ void HistogramWriter::addSample(const std::string &measurement,
 
         proto::Diagnostic stories;
         proto::GenericSet *genericSet = stories.mutable_generic_set();
-        genericSet->add_values(story);
+        genericSet->add_values(AsJsonString(story));
         mHistograms[measurementAndStory]->AddDiagnostic(catapult::kStoriesDiagnostic, stories);
     }
 
@@ -156,7 +107,7 @@ void HistogramWriter::getAsJSON(js::Document *doc) const
         js::Value description(histogram.description(), allocator);
         obj.AddMember("description", description, allocator);
 
-        js::Value unitAndDirection(UnitAndDirectionToString(histogram.unit()), allocator);
+        js::Value unitAndDirection(GetUnitAndDirection(histogram.unit()), allocator);
         obj.AddMember("unit", unitAndDirection, allocator);
 
         if (histogram.has_diagnostics())

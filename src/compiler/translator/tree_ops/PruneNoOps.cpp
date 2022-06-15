@@ -136,43 +136,57 @@ bool PruneNoOpsTraverser::visitDeclaration(Visit visit, TIntermDeclaration *node
 
 bool PruneNoOpsTraverser::visitBlock(Visit visit, TIntermBlock *node)
 {
-    ASSERT(visit == PreVisit);
-
-    TIntermSequence &statements = *node->getSequence();
-
-    // Visit each statement in the block one by one.  Once a branch is visited (break, continue,
-    // return or discard), drop the rest of the statements.
-    for (size_t statementIndex = 0; statementIndex < statements.size(); ++statementIndex)
+    if (visit == PreVisit)
     {
-        TIntermNode *statement = statements[statementIndex];
+        return true;
+    }
 
-        // If the statement is a switch case label, stop pruning and continue visiting the children.
-        if (statement->getAsCaseNode() != nullptr)
+    TIntermSequence *statements = node->getSequence();
+    const size_t lastChildIndex = getLastTraversedChildIndex(visit);
+    TIntermSequence emptyReplacement;
+
+    // If a branch is visited, prune the rest of the statements.
+    if (mIsBranchVisited)
+    {
+        for (size_t removeIndex = lastChildIndex + 1; removeIndex < statements->size();
+             ++removeIndex)
+        {
+            TIntermNode *statement = (*statements)[removeIndex];
+
+            // If the statement is a switch case label, stop pruning and continue visiting the
+            // children.
+            if (statement->getAsCaseNode() != nullptr)
+            {
+                mIsBranchVisited = false;
+                return true;
+            }
+
+            mMultiReplacements.emplace_back(node, statement, std::move(emptyReplacement));
+        }
+
+        // If the parent is a block, this is a nested block without any condition (like if, loop or
+        // switch), so the rest of the parent block should also be pruned.  Otherwise the parent
+        // block should be unaffected.
+        if (getParentNode()->getAsBlock() == nullptr)
         {
             mIsBranchVisited = false;
         }
 
-        // If a branch is visited, prune the statement.  If the statement is a no-op, also prune it.
-        if (mIsBranchVisited || IsNoOp(statement))
-        {
-            TIntermSequence emptyReplacement;
-            mMultiReplacements.emplace_back(node, statement, std::move(emptyReplacement));
-            continue;
-        }
-
-        // Visit the statement if not pruned.
-        statement->traverse(this);
+        // Don't visit the pruned children.
+        return false;
     }
 
-    // If the parent is a block and mIsBranchVisited is set, this is a nested block without any
-    // condition (like if, loop or switch), so the rest of the parent block should also be pruned.
-    // Otherwise the parent block should be unaffected.
-    if (mIsBranchVisited && getParentNode()->getAsBlock() == nullptr)
+    // If the statement is a noop, prune it.
+    if (!statements->empty())
     {
-        mIsBranchVisited = false;
+        TIntermNode *statement = (*statements)[lastChildIndex];
+        if (IsNoOp(statement))
+        {
+            mMultiReplacements.emplace_back(node, statement, std::move(emptyReplacement));
+        }
     }
 
-    return false;
+    return true;
 }
 
 bool PruneNoOpsTraverser::visitLoop(Visit visit, TIntermLoop *loop)

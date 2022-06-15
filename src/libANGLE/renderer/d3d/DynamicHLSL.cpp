@@ -28,10 +28,6 @@ namespace rx
 namespace
 {
 
-// kShaderStorageDeclarationString must be the same as outputHLSL.
-constexpr const char kShaderStorageDeclarationString[] =
-    "// @@ SHADER STORAGE DECLARATION STRING @@";
-
 const char *HLSLComponentTypeString(GLenum componentType)
 {
     switch (componentType)
@@ -129,39 +125,6 @@ void WriteArrayString(std::ostringstream &strstr, unsigned int i)
     strstr << "]";
 }
 
-bool ReplaceShaderStorageDeclaration(const std::vector<ShaderStorageBlock> &shaderStorageBlocks,
-                                     std::string *hlsl,
-                                     size_t baseUAVRegister,
-                                     gl::ShaderType shaderType)
-{
-    std::string ssboHeader;
-    std::ostringstream out(ssboHeader);
-    for (const ShaderStorageBlock &ssbo : shaderStorageBlocks)
-    {
-        size_t uavRegister = baseUAVRegister + ssbo.registerIndex;
-        std::string name   = ssbo.name;
-        if (ssbo.arraySize > 0)
-        {
-            for (unsigned int arrayIndex = 0; arrayIndex < ssbo.arraySize; arrayIndex++)
-            {
-                out << "RWByteAddressBuffer "
-                    << "dx_" << name << "_" << arrayIndex << ": register(u"
-                    << uavRegister + arrayIndex << ");\n";
-            }
-        }
-        else
-        {
-            out << "RWByteAddressBuffer "
-                << "_" << name << ": register(u" << uavRegister << ");\n";
-        }
-    }
-    if (out.str().empty())
-    {
-        return true;
-    }
-    return angle::ReplaceSubstring(hlsl, kShaderStorageDeclarationString, out.str());
-}
-
 constexpr const char *VERTEX_ATTRIBUTE_STUB_STRING      = "@@ VERTEX ATTRIBUTES @@";
 constexpr const char *VERTEX_OUTPUT_STUB_STRING         = "@@ VERTEX OUTPUT @@";
 constexpr const char *PIXEL_OUTPUT_STUB_STRING          = "@@ PIXEL OUTPUT @@";
@@ -181,9 +144,7 @@ DynamicHLSL::DynamicHLSL(RendererD3D *const renderer) : mRenderer(renderer) {}
 std::string DynamicHLSL::generateVertexShaderForInputLayout(
     const std::string &sourceShader,
     const InputLayout &inputLayout,
-    const std::vector<sh::ShaderVariable> &shaderAttributes,
-    const std::vector<rx::ShaderStorageBlock> &shaderStorageBlocks,
-    size_t baseUAVRegister) const
+    const std::vector<sh::ShaderVariable> &shaderAttributes) const
 {
     std::ostringstream structStream;
     std::ostringstream initStream;
@@ -308,10 +269,6 @@ std::string DynamicHLSL::generateVertexShaderForInputLayout(
         angle::ReplaceSubstring(&vertexHLSL, VERTEX_ATTRIBUTE_STUB_STRING, structStream.str());
     ASSERT(success);
 
-    success = ReplaceShaderStorageDeclaration(shaderStorageBlocks, &vertexHLSL, baseUAVRegister,
-                                              gl::ShaderType::Vertex);
-    ASSERT(success);
-
     return vertexHLSL;
 }
 
@@ -319,9 +276,7 @@ std::string DynamicHLSL::generatePixelShaderForOutputSignature(
     const std::string &sourceShader,
     const std::vector<PixelShaderOutputVariable> &outputVariables,
     bool usesFragDepth,
-    const std::vector<GLenum> &outputLayout,
-    const std::vector<ShaderStorageBlock> &shaderStorageBlocks,
-    size_t baseUAVRegister) const
+    const std::vector<GLenum> &outputLayout) const
 {
     const int shaderModel      = mRenderer->getMajorShaderModel();
     std::string targetSemantic = (shaderModel >= 4) ? "SV_TARGET" : "COLOR";
@@ -395,30 +350,26 @@ std::string DynamicHLSL::generatePixelShaderForOutputSignature(
         angle::ReplaceSubstring(&pixelHLSL, PIXEL_OUTPUT_STUB_STRING, declarationStream.str());
     ASSERT(success);
 
-    success = ReplaceShaderStorageDeclaration(shaderStorageBlocks, &pixelHLSL, baseUAVRegister,
-                                              gl::ShaderType::Fragment);
-    ASSERT(success);
-
     return pixelHLSL;
 }
 
-std::string DynamicHLSL::generateShaderForImage2DBindSignature(
+std::string DynamicHLSL::generateComputeShaderForImage2DBindSignature(
     const d3d::Context *context,
     ProgramD3D &programD3D,
     const gl::ProgramState &programData,
-    gl::ShaderType shaderType,
     std::vector<sh::ShaderVariable> &image2DUniforms,
     const gl::ImageUnitTextureTypeMap &image2DBindLayout) const
 {
-    std::string shaderHLSL(programData.getAttachedShader(shaderType)->getTranslatedSource());
+    std::string computeHLSL(
+        programData.getAttachedShader(ShaderType::Compute)->getTranslatedSource());
 
     if (image2DUniforms.empty())
     {
-        return shaderHLSL;
+        return computeHLSL;
     }
 
-    return GenerateShaderForImage2DBindSignature(context, programD3D, programData, shaderType,
-                                                 image2DUniforms, image2DBindLayout);
+    return GenerateComputeShaderForImage2DBindSignature(context, programD3D, programData,
+                                                        image2DUniforms, image2DBindLayout);
 }
 
 void DynamicHLSL::generateVaryingLinkHLSL(const VaryingPacking &varyingPacking,
@@ -602,19 +553,12 @@ void DynamicHLSL::generateShaderLinkHLSL(const gl::Caps &caps,
         }
         else
         {
-            vertexGenerateOutput
-                << "    output.dx_Position.y = clipControlOrigin * gl_Position.y;\n";
+            vertexGenerateOutput << "    output.dx_Position.y = - gl_Position.y;\n";
         }
 
         vertexGenerateOutput
-            << "    if (clipControlZeroToOne)\n"
-            << "    {\n"
-            << "        output.dx_Position.z = gl_Position.z;\n"
-            << "    } else {\n"
-            << "        output.dx_Position.z = (gl_Position.z + gl_Position.w) * 0.5;\n"
-            << "    }\n";
-
-        vertexGenerateOutput << "    output.dx_Position.w = gl_Position.w;\n";
+            << "    output.dx_Position.z = (gl_Position.z + gl_Position.w) * 0.5;\n"
+            << "    output.dx_Position.w = gl_Position.w;\n";
     }
     else
     {
@@ -632,20 +576,14 @@ void DynamicHLSL::generateShaderLinkHLSL(const gl::Caps &caps,
         }
         else
         {
-            vertexGenerateOutput << "    output.dx_Position.y = clipControlOrigin * (gl_Position.y "
-                                    "* dx_ViewAdjust.w + "
-                                    "dx_ViewAdjust.y * gl_Position.w);\n";
+            vertexGenerateOutput
+                << "    output.dx_Position.y = -(gl_Position.y * dx_ViewAdjust.w + "
+                   "dx_ViewAdjust.y * gl_Position.w);\n";
         }
 
         vertexGenerateOutput
-            << "    if (clipControlZeroToOne)\n"
-            << "    {\n"
-            << "        output.dx_Position.z = gl_Position.z;\n"
-            << "    } else {\n"
-            << "        output.dx_Position.z = (gl_Position.z + gl_Position.w) * 0.5;\n"
-            << "    }\n";
-
-        vertexGenerateOutput << "    output.dx_Position.w = gl_Position.w;\n";
+            << "    output.dx_Position.z = (gl_Position.z + gl_Position.w) * 0.5;\n"
+            << "    output.dx_Position.w = gl_Position.w;\n";
     }
 
     // We don't need to output gl_PointSize if we use are emulating point sprites via instancing.
@@ -1306,7 +1244,7 @@ void DynamicHLSL::getPixelShaderOutputKey(const gl::State &data,
         if (metadata.usesSecondaryColor())
         {
             for (unsigned int secondaryIndex = 0;
-                 secondaryIndex < data.getCaps().maxDualSourceDrawBuffers; secondaryIndex++)
+                 secondaryIndex < data.getExtensions().maxDualSourceDrawBuffers; secondaryIndex++)
             {
                 PixelShaderOutputVariable outputKeyVariable;
                 outputKeyVariable.type           = GL_FLOAT_VEC4;

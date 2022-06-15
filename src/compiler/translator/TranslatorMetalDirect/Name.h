@@ -61,8 +61,6 @@ class Name
     SymbolType mSymbolType;
 };
 
-constexpr Name kBaseInstanceName = Name("baseInstance");
-
 ANGLE_NO_DISCARD bool ExpressionContainsName(const Name &name, TIntermTyped &node);
 
 }  // namespace sh

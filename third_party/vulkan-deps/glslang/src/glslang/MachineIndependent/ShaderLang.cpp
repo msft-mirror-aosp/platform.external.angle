@@ -813,7 +813,6 @@ bool ProcessDeferred(
     // set version/profile to defaultVersion/defaultProfile regardless of the #version
     // directive in the source code
     bool forceDefaultVersionAndProfile,
-    int overrideVersion, // overrides version specified by #verison or default version
     bool forwardCompatible,     // give errors for use of deprecated features
     EShMessages messages,       // warnings/errors/AST; things to print out
     TIntermediate& intermediate, // returned tree, etc.
@@ -900,9 +899,6 @@ bool ProcessDeferred(
         }
         version = defaultVersion;
         profile = defaultProfile;
-    }
-    if (source == EShSourceGlsl && overrideVersion != 0) {
-        version = overrideVersion;
     }
 
     bool goodVersion = DeduceVersionProfile(compiler->infoSink, stage,
@@ -1279,7 +1275,6 @@ bool PreprocessDeferred(
     int defaultVersion,         // use 100 for ES environment, 110 for desktop
     EProfile defaultProfile,
     bool forceDefaultVersionAndProfile,
-    int overrideVersion,        // use 0 if not overriding GLSL version
     bool forwardCompatible,     // give errors for use of deprecated features
     EShMessages messages,       // warnings/errors/AST; things to print out
     TShader::Includer& includer,
@@ -1290,7 +1285,7 @@ bool PreprocessDeferred(
     DoPreprocessing parser(outputString);
     return ProcessDeferred(compiler, shaderStrings, numStrings, inputLengths, stringNames,
                            preamble, optLevel, resources, defaultVersion,
-                           defaultProfile, forceDefaultVersionAndProfile, overrideVersion,
+                           defaultProfile, forceDefaultVersionAndProfile,
                            forwardCompatible, messages, intermediate, parser,
                            false, includer, "", environment);
 }
@@ -1319,7 +1314,6 @@ bool CompileDeferred(
     int defaultVersion,         // use 100 for ES environment, 110 for desktop
     EProfile defaultProfile,
     bool forceDefaultVersionAndProfile,
-    int overrideVersion,        // use 0 if not overriding GLSL version
     bool forwardCompatible,     // give errors for use of deprecated features
     EShMessages messages,       // warnings/errors/AST; things to print out
     TIntermediate& intermediate,// returned tree, etc.
@@ -1330,7 +1324,7 @@ bool CompileDeferred(
     DoFullParse parser;
     return ProcessDeferred(compiler, shaderStrings, numStrings, inputLengths, stringNames,
                            preamble, optLevel, resources, defaultVersion,
-                           defaultProfile, forceDefaultVersionAndProfile, overrideVersion,
+                           defaultProfile, forceDefaultVersionAndProfile,
                            forwardCompatible, messages, intermediate, parser,
                            true, includer, sourceEntryPointName, environment);
 }
@@ -1349,6 +1343,7 @@ int ShInitialize()
 
     glslang::GetGlobalLock();
     ++NumberOfClients;
+    glslang::ReleaseGlobalLock();
 
     if (PerProcessGPA == nullptr)
         PerProcessGPA = new TPoolAllocator();
@@ -1358,7 +1353,6 @@ int ShInitialize()
     glslang::HlslScanContext::fillInKeywordMap();
 #endif
 
-    glslang::ReleaseGlobalLock();
     return 1;
 }
 
@@ -1421,10 +1415,9 @@ int ShFinalize()
     --NumberOfClients;
     assert(NumberOfClients >= 0);
     bool finalize = NumberOfClients == 0;
-    if (! finalize) {
-        glslang::ReleaseGlobalLock();
+    glslang::ReleaseGlobalLock();
+    if (! finalize)
         return 1;
-    }
 
     for (int version = 0; version < VersionCount; ++version) {
         for (int spvVersion = 0; spvVersion < SpvVersionCount; ++spvVersion) {
@@ -1462,7 +1455,6 @@ int ShFinalize()
     glslang::HlslScanContext::deleteKeywordMap();
 #endif
 
-    glslang::ReleaseGlobalLock();
     return 1;
 }
 
@@ -1504,7 +1496,7 @@ int ShCompile(
     TIntermediate intermediate(compiler->getLanguage());
     TShader::ForbidIncluder includer;
     bool success = CompileDeferred(compiler, shaderStrings, numStrings, inputLengths, nullptr,
-                                   "", optLevel, resources, defaultVersion, ENoProfile, false, 0,
+                                   "", optLevel, resources, defaultVersion, ENoProfile, false,
                                    forwardCompatible, messages, intermediate, includer);
 
     //
@@ -1765,7 +1757,7 @@ public:
 };
 
 TShader::TShader(EShLanguage s)
-    : stage(s), lengths(nullptr), stringNames(nullptr), preamble(""), overrideVersion(0)
+    : stage(s), lengths(nullptr), stringNames(nullptr), preamble("")
 {
     pool = new TPoolAllocator;
     infoSink = new TInfoSink;
@@ -1834,14 +1826,7 @@ void  TShader::setUniqueId(unsigned long long id)
     intermediate->setUniqueId(id);
 }
 
-void TShader::setOverrideVersion(int version)
-{
-    overrideVersion = version;
-}
-
 void TShader::setInvertY(bool invert)                   { intermediate->setInvertY(invert); }
-void TShader::setDxPositionW(bool invert)               { intermediate->setDxPositionW(invert); }
-void TShader::setEnhancedMsgs()                         { intermediate->setEnhancedMsgs(); }
 void TShader::setNanMinMaxClamp(bool useNonNan)         { intermediate->setNanMinMaxClamp(useNonNan); }
 
 #ifndef GLSLANG_WEB
@@ -1921,7 +1906,7 @@ bool TShader::parse(const TBuiltInResource* builtInResources, int defaultVersion
 
     return CompileDeferred(compiler, strings, numStrings, lengths, stringNames,
                            preamble, EShOptNone, builtInResources, defaultVersion,
-                           defaultProfile, forceDefaultVersionAndProfile, overrideVersion,
+                           defaultProfile, forceDefaultVersionAndProfile,
                            forwardCompatible, messages, *intermediate, includer, sourceEntryPointName,
                            &environment);
 }
@@ -1948,7 +1933,7 @@ bool TShader::preprocess(const TBuiltInResource* builtInResources,
 
     return PreprocessDeferred(compiler, strings, numStrings, lengths, stringNames, preamble,
                               EShOptNone, builtInResources, defaultVersion,
-                              defaultProfile, forceDefaultVersionAndProfile, overrideVersion,
+                              defaultProfile, forceDefaultVersionAndProfile,
                               forwardCompatible, message, includer, *intermediate, output_string,
                               &environment);
 }
@@ -2061,8 +2046,6 @@ bool TProgram::linkStage(EShLanguage stage, EShMessages messages)
                                                 firstIntermediate->getVersion(),
                                                 firstIntermediate->getProfile());
         intermediate[stage]->setLimits(firstIntermediate->getLimits());
-        if (firstIntermediate->getEnhancedMsgs())
-            intermediate[stage]->setEnhancedMsgs();
 
         // The new TIntermediate must use the same origin as the original TIntermediates.
         // Otherwise linking will fail due to different coordinate systems.

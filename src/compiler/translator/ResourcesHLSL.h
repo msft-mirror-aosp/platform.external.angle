@@ -41,8 +41,6 @@ class ResourcesHLSL : angle::NonCopyable
     TString uniformBlocksHeader(
         const ReferencedInterfaceBlocks &referencedInterfaceBlocks,
         const std::map<int, const TInterfaceBlock *> &uniformBlockOptimizedMap);
-    void allocateShaderStorageBlockRegisters(
-        const ReferencedInterfaceBlocks &referencedInterfaceBlocks);
     TString shaderStorageBlocksHeader(const ReferencedInterfaceBlocks &referencedInterfaceBlocks);
 
     // Used for direct index references

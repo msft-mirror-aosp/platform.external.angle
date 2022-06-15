@@ -13,18 +13,12 @@
 
 #include "common/PoolAlloc.h"
 #include "common/vulkan/vk_headers.h"
-#include "libANGLE/renderer/vulkan/vk_command_buffer_utils.h"
 #include "libANGLE/renderer/vulkan/vk_wrapper.h"
 
 namespace rx
 {
-class ContextVk;
-
 namespace vk
 {
-class Context;
-class RenderPassDesc;
-
 namespace priv
 {
 
@@ -68,6 +62,7 @@ enum class CommandID : uint16_t
     EndDebugUtilsLabel,
     EndQuery,
     EndTransformFeedback,
+    ExecutionBarrier,
     FillBuffer,
     ImageBarrier,
     InsertDebugUtilsLabel,
@@ -263,8 +258,6 @@ struct DrawIndexedIndirectParams
 {
     VkBuffer buffer;
     VkDeviceSize offset;
-    uint32_t drawCount;
-    uint32_t stride;
 };
 VERIFY_4_BYTE_ALIGNMENT(DrawIndexedIndirectParams)
 
@@ -297,8 +290,6 @@ struct DrawIndirectParams
 {
     VkBuffer buffer;
     VkDeviceSize offset;
-    uint32_t drawCount;
-    uint32_t stride;
 };
 VERIFY_4_BYTE_ALIGNMENT(DrawIndirectParams)
 
@@ -335,6 +326,12 @@ struct EndTransformFeedbackParams
     uint32_t bufferCount;
 };
 VERIFY_4_BYTE_ALIGNMENT(EndTransformFeedbackParams)
+
+struct ExecutionBarrierParams
+{
+    VkPipelineStageFlags stageMask;
+};
+VERIFY_4_BYTE_ALIGNMENT(ExecutionBarrierParams)
 
 struct FillBufferParams
 {
@@ -480,22 +477,6 @@ class SecondaryCommandBuffer final : angle::NonCopyable
     // buffer.
     static constexpr bool ExecutesInline() { return true; }
 
-    static angle::Result InitializeCommandPool(Context *context,
-                                               CommandPool *pool,
-                                               uint32_t queueFamilyIndex,
-                                               bool hasProtectedContent)
-    {
-        return angle::Result::Continue;
-    }
-    static angle::Result InitializeRenderPassInheritanceInfo(
-        ContextVk *contextVk,
-        const Framebuffer &framebuffer,
-        const RenderPassDesc &renderPassDesc,
-        VkCommandBufferInheritanceInfo *inheritanceInfoOut)
-    {
-        return angle::Result::Continue;
-    }
-
     // Add commands
     void beginDebugUtilsLabelEXT(const VkDebugUtilsLabelEXT &label);
 
@@ -626,6 +607,8 @@ class SecondaryCommandBuffer final : angle::NonCopyable
                               const VkBuffer *counterBuffers,
                               const VkDeviceSize *counterBufferOffsets);
 
+    void executionBarrier(VkPipelineStageFlags stageMask);
+
     void fillBuffer(const Buffer &dstBuffer,
                     VkDeviceSize dstOffset,
                     VkDeviceSize size,
@@ -695,7 +678,7 @@ class SecondaryCommandBuffer final : angle::NonCopyable
     VkResult end() { return VK_SUCCESS; }
 
     // Parse the cmds in this cmd buffer into given primary cmd buffer for execution
-    void executeCommands(PrimaryCommandBuffer *primary);
+    void executeCommands(VkCommandBuffer cmdBuffer);
 
     // Calculate memory usage of this command buffer for diagnostics.
     void getMemoryUsageStats(size_t *usedMemoryOut, size_t *allocatedMemoryOut) const;
@@ -710,10 +693,7 @@ class SecondaryCommandBuffer final : angle::NonCopyable
     static_assert((kBlockSize % 4) == 0, "Check kBlockSize alignment");
 
     // Initialize the SecondaryCommandBuffer by setting the allocator it will use
-    angle::Result initialize(vk::Context *context,
-                             vk::CommandPool *pool,
-                             bool isRenderPassCommandBuffer,
-                             angle::PoolAllocator *allocator)
+    void initialize(angle::PoolAllocator *allocator)
     {
         ASSERT(allocator);
         ASSERT(mCommands.empty());
@@ -721,15 +701,7 @@ class SecondaryCommandBuffer final : angle::NonCopyable
         allocateNewBlock();
         // Set first command to Invalid to start
         reinterpret_cast<CommandHeader *>(mCurrentWritePointer)->id = CommandID::Invalid;
-
-        return angle::Result::Continue;
     }
-
-    angle::Result begin(Context *context, const VkCommandBufferInheritanceInfo &inheritanceInfo)
-    {
-        return angle::Result::Continue;
-    }
-    angle::Result end(Context *context) { return angle::Result::Continue; }
 
     void open() { mIsOpen = true; }
     void close() { mIsOpen = false; }
@@ -737,9 +709,7 @@ class SecondaryCommandBuffer final : angle::NonCopyable
     void reset()
     {
         mCommands.clear();
-        mCurrentWritePointer   = nullptr;
-        mCurrentBytesRemaining = 0;
-        mCommandTracker.reset();
+        initialize(mAllocator);
     }
 
     // This will cause the SecondaryCommandBuffer to become invalid by clearing its allocator
@@ -747,10 +717,15 @@ class SecondaryCommandBuffer final : angle::NonCopyable
     // The SecondaryCommandBuffer is valid if it's been initialized
     bool valid() const { return mAllocator != nullptr; }
 
+    static bool CanKnowIfEmpty() { return true; }
     bool empty() const { return mCommands.size() == 0 || mCommands[0]->id == CommandID::Invalid; }
-    uint32_t getRenderPassWriteCommandCount() const
+    // The following is used to give the size of the command buffer in bytes
+    uint32_t getCommandSize() const
     {
-        return mCommandTracker.getRenderPassWriteCommandCount();
+        ASSERT(mCommands.size() > 0 || mCurrentBytesRemaining == 0);
+        uint32_t rtn =
+            static_cast<uint32_t>((mCommands.size() * kBlockSize) - mCurrentBytesRemaining);
+        return rtn;
     }
 
   private:
@@ -851,8 +826,6 @@ class SecondaryCommandBuffer final : angle::NonCopyable
 
     uint8_t *mCurrentWritePointer;
     size_t mCurrentBytesRemaining;
-
-    CommandBufferCommandTracker mCommandTracker;
 };
 
 ANGLE_INLINE SecondaryCommandBuffer::SecondaryCommandBuffer()
@@ -874,7 +847,7 @@ ANGLE_INLINE void SecondaryCommandBuffer::commonDebugUtilsLabel(CommandID cmd,
     paramStruct->color[1] = label.color[1];
     paramStruct->color[2] = label.color[2];
     paramStruct->color[3] = label.color[3];
-    storePointerParameter(writePtr, label.pLabelName, stringSize);
+    storePointerParameter(writePtr, label.pLabelName, alignedStringSize);
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::beginDebugUtilsLabelEXT(const VkDebugUtilsLabelEXT &label)
@@ -899,14 +872,13 @@ ANGLE_INLINE void SecondaryCommandBuffer::beginTransformFeedback(
     const VkDeviceSize *counterBufferOffsets)
 {
     ASSERT(firstCounterBuffer == 0);
+    ASSERT(counterBufferOffsets == nullptr);
     uint8_t *writePtr;
     size_t bufferSize                         = bufferCount * sizeof(VkBuffer);
-    size_t offsetSize                         = bufferCount * sizeof(VkDeviceSize);
     BeginTransformFeedbackParams *paramStruct = initCommand<BeginTransformFeedbackParams>(
-        CommandID::BeginTransformFeedback, bufferSize + offsetSize, &writePtr);
+        CommandID::BeginTransformFeedback, bufferSize, &writePtr);
     paramStruct->bufferCount = bufferCount;
-    writePtr                 = storePointerParameter(writePtr, counterBuffers, bufferSize);
-    storePointerParameter(writePtr, counterBufferOffsets, offsetSize);
+    storePointerParameter(writePtr, counterBuffers, bufferSize);
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::bindComputePipeline(const Pipeline &pipeline)
@@ -1041,8 +1013,6 @@ ANGLE_INLINE void SecondaryCommandBuffer::clearAttachments(uint32_t attachmentCo
     paramStruct->rect            = rects[0];
     // Copy variable sized data
     storePointerParameter(writePtr, attachments, attachSize);
-
-    mCommandTracker.onClearAttachments();
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::clearColorImage(const Image &image,
@@ -1162,16 +1132,12 @@ ANGLE_INLINE void SecondaryCommandBuffer::draw(uint32_t vertexCount, uint32_t fi
     DrawParams *paramStruct  = initCommand<DrawParams>(CommandID::Draw);
     paramStruct->vertexCount = vertexCount;
     paramStruct->firstVertex = firstVertex;
-
-    mCommandTracker.onDraw();
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::drawIndexed(uint32_t indexCount)
 {
     DrawIndexedParams *paramStruct = initCommand<DrawIndexedParams>(CommandID::DrawIndexed);
     paramStruct->indexCount        = indexCount;
-
-    mCommandTracker.onDraw();
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::drawIndexedBaseVertex(uint32_t indexCount,
@@ -1181,8 +1147,6 @@ ANGLE_INLINE void SecondaryCommandBuffer::drawIndexedBaseVertex(uint32_t indexCo
         initCommand<DrawIndexedBaseVertexParams>(CommandID::DrawIndexedBaseVertex);
     paramStruct->indexCount   = indexCount;
     paramStruct->vertexOffset = vertexOffset;
-
-    mCommandTracker.onDraw();
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::drawIndexedIndirect(const Buffer &buffer,
@@ -1192,12 +1156,9 @@ ANGLE_INLINE void SecondaryCommandBuffer::drawIndexedIndirect(const Buffer &buff
 {
     DrawIndexedIndirectParams *paramStruct =
         initCommand<DrawIndexedIndirectParams>(CommandID::DrawIndexedIndirect);
-    paramStruct->buffer    = buffer.getHandle();
-    paramStruct->offset    = offset;
-    paramStruct->drawCount = drawCount;
-    paramStruct->stride    = stride;
-
-    mCommandTracker.onDraw();
+    paramStruct->buffer = buffer.getHandle();
+    paramStruct->offset = offset;
+    ASSERT(drawCount == 1);
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::drawIndexedInstanced(uint32_t indexCount,
@@ -1207,8 +1168,6 @@ ANGLE_INLINE void SecondaryCommandBuffer::drawIndexedInstanced(uint32_t indexCou
         initCommand<DrawIndexedInstancedParams>(CommandID::DrawIndexedInstanced);
     paramStruct->indexCount    = indexCount;
     paramStruct->instanceCount = instanceCount;
-
-    mCommandTracker.onDraw();
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::drawIndexedInstancedBaseVertex(uint32_t indexCount,
@@ -1221,8 +1180,6 @@ ANGLE_INLINE void SecondaryCommandBuffer::drawIndexedInstancedBaseVertex(uint32_
     paramStruct->indexCount    = indexCount;
     paramStruct->instanceCount = instanceCount;
     paramStruct->vertexOffset  = vertexOffset;
-
-    mCommandTracker.onDraw();
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::drawIndexedInstancedBaseVertexBaseInstance(
@@ -1240,8 +1197,6 @@ ANGLE_INLINE void SecondaryCommandBuffer::drawIndexedInstancedBaseVertexBaseInst
     paramStruct->firstIndex    = firstIndex;
     paramStruct->vertexOffset  = vertexOffset;
     paramStruct->firstInstance = firstInstance;
-
-    mCommandTracker.onDraw();
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::drawIndirect(const Buffer &buffer,
@@ -1252,10 +1207,10 @@ ANGLE_INLINE void SecondaryCommandBuffer::drawIndirect(const Buffer &buffer,
     DrawIndirectParams *paramStruct = initCommand<DrawIndirectParams>(CommandID::DrawIndirect);
     paramStruct->buffer             = buffer.getHandle();
     paramStruct->offset             = offset;
-    paramStruct->drawCount          = drawCount;
-    paramStruct->stride             = stride;
 
-    mCommandTracker.onDraw();
+    // OpenGL ES doesn't have a way to specify a drawCount or stride, throw assert if something
+    // changes.
+    ASSERT(drawCount == 1);
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::drawInstanced(uint32_t vertexCount,
@@ -1266,8 +1221,6 @@ ANGLE_INLINE void SecondaryCommandBuffer::drawInstanced(uint32_t vertexCount,
     paramStruct->vertexCount         = vertexCount;
     paramStruct->instanceCount       = instanceCount;
     paramStruct->firstVertex         = firstVertex;
-
-    mCommandTracker.onDraw();
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::drawInstancedBaseInstance(uint32_t vertexCount,
@@ -1281,8 +1234,6 @@ ANGLE_INLINE void SecondaryCommandBuffer::drawInstancedBaseInstance(uint32_t ver
     paramStruct->instanceCount = instanceCount;
     paramStruct->firstVertex   = firstVertex;
     paramStruct->firstInstance = firstInstance;
-
-    mCommandTracker.onDraw();
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::endDebugUtilsLabelEXT()
@@ -1304,14 +1255,20 @@ ANGLE_INLINE void SecondaryCommandBuffer::endTransformFeedback(
     const VkDeviceSize *counterBufferOffsets)
 {
     ASSERT(firstCounterBuffer == 0);
+    ASSERT(counterBufferOffsets == nullptr);
     uint8_t *writePtr;
     size_t bufferSize                       = counterBufferCount * sizeof(VkBuffer);
-    size_t offsetSize                       = counterBufferCount * sizeof(VkDeviceSize);
     EndTransformFeedbackParams *paramStruct = initCommand<EndTransformFeedbackParams>(
-        CommandID::EndTransformFeedback, bufferSize + offsetSize, &writePtr);
+        CommandID::EndTransformFeedback, bufferSize, &writePtr);
     paramStruct->bufferCount = counterBufferCount;
-    writePtr                 = storePointerParameter(writePtr, counterBuffers, bufferSize);
-    storePointerParameter(writePtr, counterBufferOffsets, offsetSize);
+    storePointerParameter(writePtr, counterBuffers, bufferSize);
+}
+
+ANGLE_INLINE void SecondaryCommandBuffer::executionBarrier(VkPipelineStageFlags stageMask)
+{
+    ExecutionBarrierParams *paramStruct =
+        initCommand<ExecutionBarrierParams>(CommandID::ExecutionBarrier);
+    paramStruct->stageMask = stageMask;
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::fillBuffer(const Buffer &dstBuffer,

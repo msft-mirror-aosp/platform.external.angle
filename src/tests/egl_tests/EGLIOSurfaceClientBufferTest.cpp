@@ -29,7 +29,7 @@ void AddIntegerValue(CFMutableDictionaryRef dictionary, const CFStringRef key, i
     CFRelease(number);
 }
 
-class ANGLE_NO_DISCARD ScopedIOSurfaceRef : angle::NonCopyable
+class ScopedIOSurfaceRef : angle::NonCopyable
 {
   public:
     explicit ScopedIOSurfaceRef(IOSurfaceRef surface) : mSurface(surface) {}
@@ -455,6 +455,9 @@ TEST_P(IOSurfaceClientBufferTest, RenderToBGRA8888IOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
 
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
+
     ScopedIOSurfaceRef ioSurface = CreateSinglePlaneIOSurface(1, 1, 'BGRA', 4);
 
     GLColor color(3, 2, 1, 4);
@@ -465,6 +468,9 @@ TEST_P(IOSurfaceClientBufferTest, RenderToBGRA8888IOSurface)
 TEST_P(IOSurfaceClientBufferTest, ReadFromBGRA8888IOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
+
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
 
     ScopedIOSurfaceRef ioSurface = CreateSinglePlaneIOSurface(1, 1, 'BGRA', 4);
 
@@ -477,6 +483,9 @@ TEST_P(IOSurfaceClientBufferTest, ReadFromBGRA8888IOSurface)
 TEST_P(IOSurfaceClientBufferTest, RenderToBGRX8888IOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
+
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
 
     ScopedIOSurfaceRef ioSurface = CreateSinglePlaneIOSurface(1, 1, 'BGRA', 4);
 
@@ -500,6 +509,9 @@ TEST_P(IOSurfaceClientBufferTest, RenderToRG88IOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
 
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
+
     ScopedIOSurfaceRef ioSurface = CreateSinglePlaneIOSurface(1, 1, '2C08', 2);
 
     std::array<uint8_t, 2> color{1, 2};
@@ -521,6 +533,9 @@ TEST_P(IOSurfaceClientBufferTest, ReadFromRG88IOSurface)
 TEST_P(IOSurfaceClientBufferTest, RenderToR8IOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
+
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
 
     ScopedIOSurfaceRef ioSurface = CreateSinglePlaneIOSurface(1, 1, 'L008', 1);
 
@@ -547,6 +562,9 @@ TEST_P(IOSurfaceClientBufferTest, RenderToR16IOSurface)
     // This test only works on ES3 since it requires an integer texture.
     ANGLE_SKIP_TEST_IF(getClientMajorVersion() < 3);
 
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
+
     // HACK(cwallez@chromium.org) 'L016' doesn't seem to be an official pixel format but it works
     // sooooooo let's test using it
     ScopedIOSurfaceRef ioSurface = CreateSinglePlaneIOSurface(1, 1, 'L016', 2);
@@ -561,6 +579,9 @@ TEST_P(IOSurfaceClientBufferTest, RenderToR16IOSurface)
 TEST_P(IOSurfaceClientBufferTest, RenderToBGRA1010102IOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
+
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
 
     ScopedIOSurfaceRef ioSurface = CreateSinglePlaneIOSurface(1, 1, 'l10r', 4);
 
@@ -586,6 +607,9 @@ TEST_P(IOSurfaceClientBufferTest, RenderToRGBA16FIOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
 
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
+
     ScopedIOSurfaceRef ioSurface = CreateSinglePlaneIOSurface(1, 1, 'RGhA', 8);
 
     std::array<GLushort, 4> color{
@@ -598,6 +622,9 @@ TEST_P(IOSurfaceClientBufferTest, RenderToRGBA16FIOSurface)
 TEST_P(IOSurfaceClientBufferTest, ReadFromToRGBA16FIOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
+
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
 
     ScopedIOSurfaceRef ioSurface = CreateSinglePlaneIOSurface(1, 1, 'RGhA', 8);
 
@@ -612,6 +639,9 @@ TEST_P(IOSurfaceClientBufferTest, ReadFromToRGBA16FIOSurface)
 TEST_P(IOSurfaceClientBufferTest, RenderToYUV420IOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
+
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
 
     std::vector<IOSurfacePlaneInfo> planes{{2, 2, 1}, {1, 1, 2}};
     ScopedIOSurfaceRef ioSurface = CreateIOSurface('420v', planes);
@@ -634,6 +664,9 @@ TEST_P(IOSurfaceClientBufferTest, ReadFromToYUV420IOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
 
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
+
     std::vector<IOSurfacePlaneInfo> planes{{2, 2, 1}, {1, 1, 2}};
     ScopedIOSurfaceRef ioSurface = CreateIOSurface('420v', planes);
 
@@ -655,6 +688,9 @@ TEST_P(IOSurfaceClientBufferTest, RenderToP010IOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
 
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
+
     std::vector<IOSurfacePlaneInfo> planes{{2, 2, 2}, {1, 1, 4}};
     ScopedIOSurfaceRef ioSurface = CreateIOSurface('x420', planes);
 
@@ -675,6 +711,9 @@ TEST_P(IOSurfaceClientBufferTest, RenderToP010IOSurface)
 TEST_P(IOSurfaceClientBufferTest, ReadFromToP010IOSurface)
 {
     ANGLE_SKIP_TEST_IF(!hasIOSurfaceExt());
+
+    // TODO(http://anglebug.com/4369)
+    ANGLE_SKIP_TEST_IF(isSwiftshader());
 
     std::vector<IOSurfacePlaneInfo> planes{{2, 2, 2}, {1, 1, 4}};
     ScopedIOSurfaceRef ioSurface = CreateIOSurface('x420', planes);

@@ -8,7 +8,6 @@
 #include <map>
 
 #include "common/system_utils.h"
-#include "compiler/translator/BaseTypes.h"
 #include "compiler/translator/ImmutableStringBuilder.h"
 #include "compiler/translator/SymbolTable.h"
 #include "compiler/translator/TranslatorMetalDirect.h"
@@ -82,6 +81,7 @@ class GenMetalTraverser : public TIntermTraverser
                       Sink &out,
                       IdGen &idGen,
                       const PipelineStructs &pipelineStructs,
+                      const Invariants &invariants,
                       SymbolEnv &symbolEnv,
                       TSymbolTable *symbolTable);
 
@@ -182,6 +182,7 @@ class GenMetalTraverser : public TIntermTraverser
     Sink &mOut;
     const TCompiler &mCompiler;
     const PipelineStructs &mPipelineStructs;
+    const Invariants &mInvariants;
     SymbolEnv &mSymbolEnv;
     IdGen &mIdGen;
     int mIndentLevel                  = -1;
@@ -198,6 +199,7 @@ class GenMetalTraverser : public TIntermTraverser
     size_t mDriverUniformsBindingIndex    = 0;
     size_t mUBOArgumentBufferBindingIndex = 0;
 };
+
 }  // anonymous namespace
 
 GenMetalTraverser::~GenMetalTraverser()
@@ -211,12 +213,14 @@ GenMetalTraverser::GenMetalTraverser(const TCompiler &compiler,
                                      Sink &out,
                                      IdGen &idGen,
                                      const PipelineStructs &pipelineStructs,
+                                     const Invariants &invariants,
                                      SymbolEnv &symbolEnv,
                                      TSymbolTable *symbolTable)
     : TIntermTraverser(true, false, false),
       mOut(out),
       mCompiler(compiler),
       mPipelineStructs(pipelineStructs),
+      mInvariants(invariants),
       mSymbolEnv(symbolEnv),
       mIdGen(idGen),
       mMainUniformBufferIndex(symbolTable->getDefaultUniformsBindingIndex()),
@@ -259,8 +263,7 @@ void GenMetalTraverser::emitClosingPointerParen()
 static const char *GetOperatorString(TOperator op,
                                      const TType &resultType,
                                      const TType *argType0,
-                                     const TType *argType1,
-                                     const TType *argType2)
+                                     const TType *argType1 = nullptr)
 {
     switch (op)
     {
@@ -515,8 +518,6 @@ static const char *GetOperatorString(TOperator op,
         case TOperator::EOpClamp:
             return "metal::clamp";  // TODO fast vs precise namespace
         case TOperator::EOpMix:
-            if (argType2 && argType2->getBasicType() == EbtBool)
-                return "ANGLE_mix_bool";
             return "metal::mix";
         case TOperator::EOpStep:
             return "metal::step";
@@ -677,9 +678,9 @@ static const char *GetOperatorString(TOperator op,
 static bool IsSymbolicOperator(TOperator op,
                                const TType &resultType,
                                const TType *argType0,
-                               const TType *argType1)
+                               const TType *argType1 = nullptr)
 {
-    const char *operatorString = GetOperatorString(op, resultType, argType0, argType1, nullptr);
+    const char *operatorString = GetOperatorString(op, resultType, argType0, argType1);
     if (operatorString == nullptr)
     {
         return false;
@@ -721,7 +722,7 @@ static bool Parenthesize(TIntermNode &node)
         // TODO: Use a precedence and associativity rules instead of this ad-hoc impl.
         const TType &resultType = unaryNode->getType();
         const TType &argType    = unaryNode->getOperand()->getType();
-        return IsSymbolicOperator(unaryNode->getOp(), resultType, &argType, nullptr);
+        return IsSymbolicOperator(unaryNode->getOp(), resultType, &argType);
     }
 
     if (TIntermBinary *binaryNode = node.getAsBinaryNode())
@@ -774,12 +775,9 @@ void GenMetalTraverser::emitPostQualifier(const EmitVariableDeclarationConfig &e
                                           const VarDecl &decl,
                                           const TQualifier qualifier)
 {
-    bool isInvariant = false;
     switch (qualifier)
     {
         case TQualifier::EvqPosition:
-            isInvariant = decl.type().isInvariant();
-            ANGLE_FALLTHROUGH;
         case TQualifier::EvqFragCoord:
             mOut << " [[position]]";
             break;
@@ -813,12 +811,14 @@ void GenMetalTraverser::emitPostQualifier(const EmitVariableDeclarationConfig &e
             break;
     }
 
+    const bool isInvariant =
+        (decl.isField() ? mInvariants.contains(decl.field())
+                        : mInvariants.contains(decl.variable())) &&
+        (qualifier == TQualifier::EvqPosition || qualifier == TQualifier::EvqFragCoord);
+
     if (isInvariant)
     {
         mOut << " [[invariant]]";
-
-        TranslatorMetalReflection *reflection = mtl::getTranslatorMetalReflection(&mCompiler);
-        reflection->hasInvariance             = true;
     }
 }
 
@@ -961,12 +961,11 @@ void GenMetalTraverser::emitType(const TType &type, const EmitTypeConfig &etConf
 
     if (type.isVector())
     {
-        mOut << static_cast<uint32_t>(type.getNominalSize());
+        mOut << type.getNominalSize();
     }
     else if (type.isMatrix())
     {
-        mOut << static_cast<uint32_t>(type.getCols()) << "x"
-             << static_cast<uint32_t>(type.getRows());
+        mOut << type.getCols() << "x" << type.getRows();
     }
 
     if (!isUBO)
@@ -1030,7 +1029,7 @@ void GenMetalTraverser::emitFieldDeclaration(const TField &field,
             {
                 mOut << " [[flat]]";
                 TranslatorMetalReflection *reflection =
-                    mtl::getTranslatorMetalReflection(&mCompiler);
+                    ((sh::TranslatorMetalDirect *)&mCompiler)->getTranslatorMetalReflection();
                 reflection->hasFlatInput = true;
             }
             break;
@@ -1044,22 +1043,19 @@ void GenMetalTraverser::emitFieldDeclaration(const TField &field,
                       basic == TBasicType::EbtFloat)) ||
                     type.getQualifier() == EvqFragData)
                 {
-                    // The OpenGL ES 3.0 spec says locations must be specified
-                    // unless there is only a single output, in which case the
-                    // location is 0. So, when we get to this point the shader
-                    // will have been rejected if locations are not specified
-                    // and there is more than one output.
-                    const TLayoutQualifier &layoutQualifier = type.getLayoutQualifier();
-                    size_t index = layoutQualifier.locationsSpecified ? layoutQualifier.location
-                                                                      : annotationIndices.color++;
+                    // TODO:
+                    // This is not correct in general and needs a reimplementation.
+                    // In GLSL 3.0, We can't always assume this is going to be a safe index.
+                    // See 4.3.8.2
+                    // https://www.khronos.org/registry/OpenGL/specs/es/3.0/GLSL_ES_Specification_3.00.pdf
+                    size_t index = annotationIndices.color++;
                     mOut << " [[color(" << index << ")]]";
                 }
             }
             break;
 
         case TQualifier::EvqFragDepth:
-            mOut << " [[depth(any), function_constant(" << sh::mtl::kDepthWriteEnabledConstName
-                 << ")]]";
+            mOut << " [[depth(any)]]";
             break;
 
         case TQualifier::EvqSampleMask:
@@ -1162,7 +1158,8 @@ void GenMetalTraverser::emitUniformBufferDeclaration(const TField &field,
     const TType &type   = *field.type();
     const int arraySize = type.isArray() ? type.getArraySizeProduct() : 1;
 
-    TranslatorMetalReflection *reflection = mtl::getTranslatorMetalReflection(&mCompiler);
+    TranslatorMetalReflection *reflection =
+        ((sh::TranslatorMetalDirect *)&mCompiler)->getTranslatorMetalReflection();
     ASSERT(type.getBasicType() == TBasicType::EbtStruct);
     const TStructure *structure    = type.getStruct();
     const std::string originalName = reflection->getOriginalName(structure->uniqueId().get());
@@ -1339,23 +1336,7 @@ void GenMetalTraverser::emitSingleConstant(const TConstantUnion *const constUnio
 
         case TBasicType::EbtFloat:
         {
-            float value = constUnion->getFConst();
-            if (std::isnan(value))
-            {
-                mOut << "NAN";
-            }
-            else if (std::isinf(value))
-            {
-                if (value < 0)
-                {
-                    mOut << "-";
-                }
-                mOut << "INFINITY";
-            }
-            else
-            {
-                mOut << value << "f";
-            }
+            mOut << constUnion->getFConst() << "f";
         }
         break;
 
@@ -1533,10 +1514,10 @@ bool GenMetalTraverser::visitBinary(Visit, TIntermBinary *binaryNode)
                 }
                 else
                 {
-                    uint32_t maxSize;
+                    int maxSize;
                     if (leftType.isArray())
                     {
-                        maxSize = leftType.getOutermostArraySize() - 1;
+                        maxSize = static_cast<int>(leftType.getOutermostArraySize()) - 1;
                     }
                     else
                     {
@@ -1567,13 +1548,13 @@ bool GenMetalTraverser::visitBinary(Visit, TIntermBinary *binaryNode)
                 {
                     emitClosingPointerParen();
                 }
-                mOut << GetOperatorString(op, resultType, &leftType, &rightType, nullptr) << " ";
+                mOut << GetOperatorString(op, resultType, &leftType, &rightType) << " ";
                 groupedTraverse(rightNode);
             }
             else
             {
                 emitClosingPointerParen();
-                mOut << GetOperatorString(op, resultType, &leftType, &rightType, nullptr) << "(";
+                mOut << GetOperatorString(op, resultType, &leftType, &rightType) << "(";
                 leftNode.traverse(this);
                 mOut << ", ";
                 rightNode.traverse(this);
@@ -1606,9 +1587,9 @@ bool GenMetalTraverser::visitUnary(Visit, TIntermUnary *unaryNode)
     TIntermTyped &arg    = *unaryNode->getOperand();
     const TType &argType = arg.getType();
 
-    const char *name = GetOperatorString(op, resultType, &argType, nullptr, nullptr);
+    const char *name = GetOperatorString(op, resultType, &argType);
 
-    if (IsSymbolicOperator(op, resultType, &argType, nullptr))
+    if (IsSymbolicOperator(op, resultType, &argType))
     {
         const bool postfix = IsPostfix(op);
         if (!postfix)
@@ -1740,11 +1721,11 @@ void GenMetalTraverser::emitFunctionSignature(const TFunction &func)
         const TVariable &param = *func.getParam(i);
         emitFunctionParameter(func, param);
     }
-
-    if (isTraversingVertexMain)
-    {
-        mOut << " @@XFB-Bindings@@ ";
-    }
+    // TODO(anglebug.com/5505): reimplement transform feedback support.
+    //    if (isTraversingVertexMain)
+    //    {
+    //        mOut << " @@XFB-Bindings@@ ";
+    //    }
 
     mOut << ")";
 }
@@ -1795,7 +1776,8 @@ void GenMetalTraverser::emitFunctionParameter(const TFunction &func, const TVari
 
     if (isMain)
     {
-        TranslatorMetalReflection *reflection = mtl::getTranslatorMetalReflection(&mCompiler);
+        TranslatorMetalReflection *reflection =
+            ((sh::TranslatorMetalDirect *)&mCompiler)->getTranslatorMetalReflection();
         if (structure)
         {
             if (mPipelineStructs.fragmentIn.matches(*structure) ||
@@ -1839,10 +1821,6 @@ void GenMetalTraverser::emitFunctionParameter(const TFunction &func, const TVari
                                     Pipeline::Variant::Modified))
         {
             mOut << " [[instance_id]]";
-        }
-        else if (Name(param) == kBaseInstanceName)
-        {
-            mOut << " [[base_instance]]";
         }
     }
 }
@@ -1893,22 +1871,16 @@ GenMetalTraverser::FuncToName GenMetalTraverser::BuildFuncToName()
     putAngle("texture1DLod");
     putAngle("texture1DProjLod");
     putAngle("texture2D");
-    putAngle("texture2DGradEXT");
     putAngle("texture2DLod");
-    putAngle("texture2DLodEXT");
     putAngle("texture2DProj");
-    putAngle("texture2DProjGradEXT");
-    putAngle("texture2DProjLod");
-    putAngle("texture2DProjLodEXT");
     putAngle("texture2DRect");
+    putAngle("texture2DProjLod");
     putAngle("texture2DRectProj");
     putAngle("texture3D");
     putAngle("texture3DLod");
     putAngle("texture3DProjLod");
     putAngle("textureCube");
-    putAngle("textureCubeGradEXT");
     putAngle("textureCubeLod");
-    putAngle("textureCubeLodEXT");
     putAngle("textureCubeProjLod");
     putAngle("textureGrad");
     putAngle("textureGradOffset");
@@ -1991,11 +1963,6 @@ bool GenMetalTraverser::visitAggregate(Visit, TIntermAggregate *aggregateNode)
     else
     {
         const TOperator op = aggregateNode->getOp();
-        if (op == EOpAtan)
-        {
-            TranslatorMetalReflection *reflection = mtl::getTranslatorMetalReflection(&mCompiler);
-            reflection->hasAtan                   = true;
-        }
         switch (op)
         {
             case TOperator::EOpCallFunctionInAST:
@@ -2031,10 +1998,9 @@ bool GenMetalTraverser::visitAggregate(Visit, TIntermAggregate *aggregateNode)
                 ASSERT(!args.empty());
                 const TType *argType0 = getArgType(0);
                 const TType *argType1 = getArgType(1);
-                const TType *argType2 = getArgType(2);
                 ASSERT(argType0);
 
-                const char *opName = GetOperatorString(op, retType, argType0, argType1, argType2);
+                const char *opName = GetOperatorString(op, retType, argType0, argType1);
 
                 if (IsSymbolicOperator(op, retType, argType0, argType1))
                 {
@@ -2047,14 +2013,16 @@ bool GenMetalTraverser::visitAggregate(Visit, TIntermAggregate *aggregateNode)
                             {
                                 mOut << opName;
                                 groupedTraverse(operandNode);
+                                return false;
                             }
                             else
                             {
                                 groupedTraverse(operandNode);
                                 mOut << opName;
+                                return false;
                             }
-                            return false;
                         }
+                        break;
 
                         case 2:
                         {
@@ -2065,6 +2033,7 @@ bool GenMetalTraverser::visitAggregate(Visit, TIntermAggregate *aggregateNode)
                             groupedTraverse(rightNode);
                             return false;
                         }
+                        break;
 
                         default:
                             UNREACHABLE();
@@ -2226,6 +2195,7 @@ bool GenMetalTraverser::visitBlock(Visit, TIntermBlock *blockNode)
 
 bool GenMetalTraverser::visitGlobalQualifierDeclaration(Visit, TIntermGlobalQualifierDeclaration *)
 {
+    UNREACHABLE();  // RewriteGlobalQualifierDecls should have been called before this.
     return false;
 }
 
@@ -2451,6 +2421,7 @@ bool sh::EmitMetal(TCompiler &compiler,
                    TIntermBlock &root,
                    IdGen &idGen,
                    const PipelineStructs &pipelineStructs,
+                   const Invariants &invariants,
                    SymbolEnv &symbolEnv,
                    const ProgramPreludeConfig &ppc,
                    TSymbolTable *symbolTable)
@@ -2510,7 +2481,8 @@ bool sh::EmitMetal(TCompiler &compiler,
 #else
         TInfoSinkBase &outWrapper = out;
 #endif
-        GenMetalTraverser gen(compiler, outWrapper, idGen, pipelineStructs, symbolEnv, symbolTable);
+        GenMetalTraverser gen(compiler, outWrapper, idGen, pipelineStructs, invariants, symbolEnv,
+                              symbolTable);
         root.traverse(&gen);
     }
 

@@ -191,7 +191,9 @@ struct ScopedDisableOcclusionQuery
     angle::Result *mResultOut;
 };
 
-void GetBlitTexCoords(const NormalizedCoords &normalizedCoords,
+void GetBlitTexCoords(uint32_t srcWidth,
+                      uint32_t srcHeight,
+                      const gl::Rectangle &srcRect,
                       bool srcYFlipped,
                       bool unpackFlipX,
                       bool unpackFlipY,
@@ -200,26 +202,33 @@ void GetBlitTexCoords(const NormalizedCoords &normalizedCoords,
                       float *u1,
                       float *v1)
 {
-    *u0 = normalizedCoords.v[0];
-    *v0 = normalizedCoords.v[1];
-    *u1 = normalizedCoords.v[2];
-    *v1 = normalizedCoords.v[3];
-
+    int x0 = srcRect.x0();  // left
+    int x1 = srcRect.x1();  // right
+    int y0 = srcRect.y0();  // lower
+    int y1 = srcRect.y1();  // upper
     if (srcYFlipped)
     {
-        *v0 = 1.0 - *v0;
-        *v1 = 1.0 - *v1;
+        // If source's Y has been flipped, such as default framebuffer, then adjust the real source
+        // rectangle.
+        y0 = srcHeight - y1;
+        y1 = y0 + srcRect.height;
+        std::swap(y0, y1);
     }
 
     if (unpackFlipX)
     {
-        std::swap(*u0, *u1);
+        std::swap(x0, x1);
     }
 
     if (unpackFlipY)
     {
-        std::swap(*v0, *v1);
+        std::swap(y0, y1);
     }
+
+    *u0 = static_cast<float>(x0) / srcWidth;
+    *u1 = static_cast<float>(x1) / srcWidth;
+    *v0 = static_cast<float>(y0) / srcHeight;
+    *v1 = static_cast<float>(y1) / srcHeight;
 }
 
 template <typename T>
@@ -502,7 +511,7 @@ int GetPixelTypeIndex(const angle::Format &angleFormat)
 }
 
 ANGLE_INLINE
-void EnsureComputePipelineInitialized(ContextMtl *context,
+void EnsureComputePipelineInitialized(DisplayMtl *display,
                                       NSString *functionName,
                                       AutoObjCPtr<id<MTLComputePipelineState>> *pipelineOut)
 {
@@ -514,14 +523,15 @@ void EnsureComputePipelineInitialized(ContextMtl *context,
 
     ANGLE_MTL_OBJC_SCOPE
     {
-        const mtl::ContextDevice &metalDevice = context->getMetalDevice();
-        auto shaderLib                        = context->getDisplay()->getDefaultShadersLib();
-        NSError *err                          = nil;
-        id<MTLFunction> shader                = [shaderLib newFunctionWithName:functionName];
+        id<MTLDevice> metalDevice = display->getMetalDevice();
+        auto shaderLib            = display->getDefaultShadersLib();
+        NSError *err              = nil;
+        id<MTLFunction> shader    = [shaderLib newFunctionWithName:functionName];
 
         [shader ANGLE_MTL_AUTORELEASE];
 
-        pipeline = metalDevice.newComputePipelineStateWithFunction(shader, &err);
+        pipeline = [[metalDevice newComputePipelineStateWithFunction:shader
+                                                               error:&err] ANGLE_MTL_AUTORELEASE];
         if (err && !pipeline)
         {
             ERR() << "Internal error: " << err.localizedDescription.UTF8String << "\n";
@@ -533,7 +543,7 @@ void EnsureComputePipelineInitialized(ContextMtl *context,
 
 ANGLE_INLINE
 void EnsureSpecializedComputePipelineInitialized(
-    ContextMtl *context,
+    DisplayMtl *display,
     NSString *functionName,
     MTLFunctionConstantValues *funcConstants,
     AutoObjCPtr<id<MTLComputePipelineState>> *pipelineOut)
@@ -541,7 +551,7 @@ void EnsureSpecializedComputePipelineInitialized(
     if (!funcConstants)
     {
         // Non specialized constants provided, use default creation function.
-        EnsureComputePipelineInitialized(context, functionName, pipelineOut);
+        EnsureComputePipelineInitialized(display, functionName, pipelineOut);
         return;
     }
 
@@ -553,19 +563,21 @@ void EnsureSpecializedComputePipelineInitialized(
 
     ANGLE_MTL_OBJC_SCOPE
     {
-        const mtl::ContextDevice &metalDevice = context->getMetalDevice();
-        auto shaderLib                        = context->getDisplay()->getDefaultShadersLib();
-        NSError *err                          = nil;
+        id<MTLDevice> metalDevice = display->getMetalDevice();
+        auto shaderLib            = display->getDefaultShadersLib();
+        NSError *err              = nil;
 
-        auto shader = adoptObjCObj([shaderLib newFunctionWithName:functionName
-                                                   constantValues:funcConstants
-                                                            error:&err]);
+        id<MTLFunction> shader = [shaderLib newFunctionWithName:functionName
+                                                 constantValues:funcConstants
+                                                          error:&err];
         if (err && !shader)
         {
             ERR() << "Internal error: " << err.localizedDescription.UTF8String << "\n";
         }
+        ASSERT([shader ANGLE_MTL_AUTORELEASE]);
 
-        pipeline = metalDevice.newComputePipelineStateWithFunction(shader, &err);
+        pipeline = [[metalDevice newComputePipelineStateWithFunction:shader
+                                                               error:&err] ANGLE_MTL_AUTORELEASE];
         if (err && !pipeline)
         {
             ERR() << "Internal error: " << err.localizedDescription.UTF8String << "\n";
@@ -576,7 +588,7 @@ void EnsureSpecializedComputePipelineInitialized(
 
 // Function to initialize render pipeline cache with only vertex shader.
 ANGLE_INLINE
-void EnsureVertexShaderOnlyPipelineCacheInitialized(ContextMtl *context,
+void EnsureVertexShaderOnlyPipelineCacheInitialized(Context *context,
                                                     NSString *vertexFunctionName,
                                                     id<MTLLibrary> shaderLib,
                                                     RenderPipelineCache *pipelineCacheOut)
@@ -587,14 +599,21 @@ void EnsureVertexShaderOnlyPipelineCacheInitialized(ContextMtl *context,
         // Already initialized
         return;
     }
-    auto shader = adoptObjCObj([shaderLib newFunctionWithName:vertexFunctionName]);
-    pipelineCache.setVertexShader(context, shader);
+
+    ANGLE_MTL_OBJC_SCOPE
+    {
+        id<MTLFunction> shader = [shaderLib newFunctionWithName:vertexFunctionName];
+
+        ASSERT([shader ANGLE_MTL_AUTORELEASE]);
+
+        pipelineCache.setVertexShader(context, shader);
+    }
 }
 
 // Function to initialize specialized render pipeline cache with only vertex shader.
 ANGLE_INLINE
 void EnsureSpecializedVertexShaderOnlyPipelineCacheInitialized(
-    ContextMtl *context,
+    Context *context,
     NSString *vertexFunctionName,
     MTLFunctionConstantValues *funcConstants,
     RenderPipelineCache *pipelineCacheOut)
@@ -621,13 +640,16 @@ void EnsureSpecializedVertexShaderOnlyPipelineCacheInitialized(
         DisplayMtl *display = context->getDisplay();
         auto shaderLib      = display->getDefaultShadersLib();
         NSError *err        = nil;
-        auto shader         = adoptObjCObj([shaderLib newFunctionWithName:vertexFunctionName
-                                                   constantValues:funcConstants
-                                                            error:&err]);
+
+        id<MTLFunction> shader = [shaderLib newFunctionWithName:vertexFunctionName
+                                                 constantValues:funcConstants
+                                                          error:&err];
         if (err && !shader)
         {
             ERR() << "Internal error: " << err.localizedDescription.UTF8String << "\n";
         }
+        ASSERT([shader ANGLE_MTL_AUTORELEASE]);
+
         pipelineCache.setVertexShader(context, shader);
     }
 }
@@ -648,6 +670,19 @@ RenderPipelineDesc GetComputingVertexShaderOnlyRenderPipelineDesc(RenderCommandE
 
 // Get pipeline descriptor for render pipeline that contains vertex shader acting as transform
 // feedback.
+ANGLE_INLINE
+RenderPipelineDesc GetTransformFeedbackRenderPipelineDesc(RenderCommandEncoder *cmdEncoder,
+                                                          mtl::RenderPipelineDesc &pipelineDesc)
+{
+    RenderPipelineDesc xfbPipelineDesc   = RenderPipelineDesc(pipelineDesc);
+    const RenderPassDesc &renderPassDesc = cmdEncoder->renderPassDesc();
+
+    renderPassDesc.populateRenderPipelineOutputDesc(&pipelineDesc.outputDescriptor);
+    xfbPipelineDesc.rasterizationType      = RenderPipelineRasterization::Disabled;
+    xfbPipelineDesc.inputPrimitiveTopology = kPrimitiveTopologyClassPoint;
+
+    return xfbPipelineDesc;
+}
 
 template <typename T>
 void ClearRenderPipelineCacheArray(T *pipelineCacheArray)
@@ -750,8 +785,27 @@ void SetupBlitWithDrawUniformData(RenderCommandEncoder *cmdEncoder,
         uniformParams.dstLuminance         = colorParams->dstLuminance ? 1 : 0;
     }
 
+    // Compute source texCoords
+    uint32_t srcWidth = 0, srcHeight = 0;
+    if (params.src)
+    {
+        srcWidth  = params.src->width(params.srcLevel);
+        srcHeight = params.src->height(params.srcLevel);
+    }
+    else if (!isColorBlit)
+    {
+        const DepthStencilBlitParams *dsParams =
+            static_cast<const DepthStencilBlitParams *>(&params);
+        srcWidth  = dsParams->srcStencil->width(dsParams->srcLevel);
+        srcHeight = dsParams->srcStencil->height(dsParams->srcLevel);
+    }
+    else
+    {
+        UNREACHABLE();
+    }
+
     float u0, v0, u1, v1;
-    GetBlitTexCoords(params.srcNormalizedCoords, params.srcYFlipped, params.unpackFlipX,
+    GetBlitTexCoords(srcWidth, srcHeight, params.srcRect, params.srcYFlipped, params.unpackFlipX,
                      params.unpackFlipY, &u0, &v0, &u1, &v1);
 
     float du = u1 - u0;
@@ -856,44 +910,20 @@ ANGLE_INLINE void SetPipelineState(ComputeCommandEncoder *encoder,
 
 }  // namespace
 
-NormalizedCoords::NormalizedCoords() : v{0.0f, 0.0f, 1.0f, 1.0f} {}
-
-NormalizedCoords::NormalizedCoords(float x,
-                                   float y,
-                                   float width,
-                                   float height,
-                                   const gl::Rectangle &rect)
-    : v{
-          x / rect.width,
-          y / rect.height,
-          (x + width) / rect.width,
-          (y + height) / rect.height,
-      }
-{}
-
-NormalizedCoords::NormalizedCoords(const gl::Rectangle &rect, const gl::Extents &extents)
-    : v{
-          static_cast<float>(rect.x0()) / extents.width,
-          static_cast<float>(rect.y0()) / extents.height,
-          static_cast<float>(rect.x1()) / extents.width,
-          static_cast<float>(rect.y1()) / extents.height,
-      }
-{}
-
 // StencilBlitViaBufferParams implementation
 StencilBlitViaBufferParams::StencilBlitViaBufferParams() {}
 
 StencilBlitViaBufferParams::StencilBlitViaBufferParams(const DepthStencilBlitParams &srcParams)
 {
-    dstTextureSize      = srcParams.dstTextureSize;
-    dstRect             = srcParams.dstRect;
-    dstScissorRect      = srcParams.dstScissorRect;
-    dstFlipY            = srcParams.dstFlipY;
-    dstFlipX            = srcParams.dstFlipX;
-    srcNormalizedCoords = srcParams.srcNormalizedCoords;
-    srcYFlipped         = srcParams.srcYFlipped;
-    unpackFlipX         = srcParams.unpackFlipX;
-    unpackFlipY         = srcParams.unpackFlipY;
+    dstTextureSize = srcParams.dstTextureSize;
+    dstRect        = srcParams.dstRect;
+    dstScissorRect = srcParams.dstScissorRect;
+    dstFlipY       = srcParams.dstFlipY;
+    dstFlipX       = srcParams.dstFlipX;
+    srcRect        = srcParams.srcRect;
+    srcYFlipped    = srcParams.srcYFlipped;
+    unpackFlipX    = srcParams.unpackFlipX;
+    unpackFlipY    = srcParams.unpackFlipY;
 
     srcStencil = srcParams.srcStencil;
 }
@@ -1008,9 +1038,8 @@ angle::Result RenderUtils::blitColorWithDraw(const gl::Context *context,
     params.dstTextureSize = gl::Extents(static_cast<int>(srcTexture->widthAt0()),
                                         static_cast<int>(srcTexture->heightAt0()),
                                         static_cast<int>(srcTexture->depthAt0()));
-    params.dstRect        = params.dstScissorRect =
+    params.dstRect = params.dstScissorRect = params.srcRect =
         gl::Rectangle(0, 0, params.dstTextureSize.width, params.dstTextureSize.height);
-    params.srcNormalizedCoords = NormalizedCoords();
 
     return blitColorWithDraw(context, cmdEncoder, srcAngleFormat, params);
 }
@@ -1182,6 +1211,21 @@ angle::Result RenderUtils::expandVertexFormatComponentsVS(const gl::Context *con
                                                              params);
 }
 
+angle::Result RenderUtils::createTransformFeedbackPSO(const gl::Context *context,
+                                                      RenderCommandEncoder *renderEncoder,
+                                                      mtl::RenderPipelineDesc &pipelineDesc)
+{
+    ContextMtl *contextMtl = mtl::GetImpl(context);
+    // Create and cache the PSO
+    auto pso = mTransformFeedbackUtils.getTransformFeedbackRenderPipeline(contextMtl, renderEncoder,
+                                                                          pipelineDesc);
+    if (pso)
+    {
+        return angle::Result::Continue;
+    }
+    return angle::Result::Stop;
+}
+
 // ClearUtils implementation
 ClearUtils::ClearUtils(const std::string &fragmentShaderName)
     : mFragmentShaderName(fragmentShaderName)
@@ -1237,8 +1281,7 @@ id<MTLDepthStencilState> ClearUtils::getClearDepthStencilState(const gl::Context
     if (!params.clearDepth.valid() && !params.clearStencil.valid())
     {
         // Doesn't clear depth nor stencil
-        return contextMtl->getDisplay()->getStateCache().getNullDepthStencilState(
-            contextMtl->getMetalDevice());
+        return contextMtl->getDisplay()->getStateCache().getNullDepthStencilState(contextMtl);
     }
 
     DepthStencilDesc desc;
@@ -1296,18 +1339,13 @@ id<MTLRenderPipelineState> ClearUtils::getClearRenderPipelineState(const gl::Con
     return cache.getRenderPipelineState(contextMtl, pipelineDesc);
 }
 
-angle::Result ClearUtils::setupClearWithDraw(const gl::Context *context,
-                                             RenderCommandEncoder *cmdEncoder,
-                                             const ClearRectParams &params)
+void ClearUtils::setupClearWithDraw(const gl::Context *context,
+                                    RenderCommandEncoder *cmdEncoder,
+                                    const ClearRectParams &params)
 {
     // Generate render pipeline state
     id<MTLRenderPipelineState> renderPipelineState =
         getClearRenderPipelineState(context, cmdEncoder, params);
-    if (renderPipelineState == nil)
-    {
-        // Return early
-        return angle::Result::Stop;
-    }
     ASSERT(renderPipelineState);
     // Setup states
     SetupFullscreenQuadDrawCommonStates(cmdEncoder);
@@ -1341,7 +1379,6 @@ angle::Result ClearUtils::setupClearWithDraw(const gl::Context *context,
 
     cmdEncoder->setVertexData(uniformParams, 0);
     cmdEncoder->setFragmentData(uniformParams, 0);
-    return angle::Result::Continue;
 }
 
 angle::Result ClearUtils::clearWithDraw(const gl::Context *context,
@@ -1370,7 +1407,7 @@ angle::Result ClearUtils::clearWithDraw(const gl::Context *context,
         return angle::Result::Continue;
     }
     ContextMtl *contextMtl = GetImpl(context);
-    ANGLE_TRY(setupClearWithDraw(context, cmdEncoder, overridedParams));
+    setupClearWithDraw(context, cmdEncoder, overridedParams);
 
     angle::Result result;
     {
@@ -1472,7 +1509,8 @@ id<MTLRenderPipelineState> ColorBlitUtils::getColorBlitRenderPipelineState(
     RenderPipelineDesc pipelineDesc;
     const RenderPassDesc &renderPassDesc = cmdEncoder->renderPassDesc();
 
-    renderPassDesc.populateRenderPipelineOutputDesc(&pipelineDesc.outputDescriptor);
+    renderPassDesc.populateRenderPipelineOutputDesc(params.blitWriteMaskArray,
+                                                    &pipelineDesc.outputDescriptor);
 
     // Disable blit for some outputs that are not enabled
     pipelineDesc.outputDescriptor.updateEnabledDrawBuffers(params.enabledBuffers);
@@ -1505,9 +1543,9 @@ id<MTLRenderPipelineState> ColorBlitUtils::getColorBlitRenderPipelineState(
     return pipelineCache->getRenderPipelineState(contextMtl, pipelineDesc);
 }
 
-angle::Result ColorBlitUtils::setupColorBlitWithDraw(const gl::Context *context,
-                                                     RenderCommandEncoder *cmdEncoder,
-                                                     const ColorBlitParams &params)
+void ColorBlitUtils::setupColorBlitWithDraw(const gl::Context *context,
+                                            RenderCommandEncoder *cmdEncoder,
+                                            const ColorBlitParams &params)
 {
     ASSERT(cmdEncoder->renderPassDesc().numColorAttachments >= 1 && params.src);
 
@@ -1517,16 +1555,10 @@ angle::Result ColorBlitUtils::setupColorBlitWithDraw(const gl::Context *context,
     id<MTLRenderPipelineState> renderPipelineState =
         getColorBlitRenderPipelineState(context, cmdEncoder, params);
     ASSERT(renderPipelineState);
-    if (!renderPipelineState)
-    {
-        // return early
-        return angle::Result::Stop;
-    }
     // Setup states
     cmdEncoder->setRenderPipelineState(renderPipelineState);
     cmdEncoder->setDepthStencilState(
-        contextMtl->getDisplay()->getStateCache().getNullDepthStencilState(
-            contextMtl->getMetalDevice()));
+        contextMtl->getDisplay()->getStateCache().getNullDepthStencilState(contextMtl));
 
     SetupCommonBlitWithDrawStates(context, cmdEncoder, params, true);
 
@@ -1538,7 +1570,6 @@ angle::Result ColorBlitUtils::setupColorBlitWithDraw(const gl::Context *context,
     cmdEncoder->setFragmentSamplerState(contextMtl->getDisplay()->getStateCache().getSamplerState(
                                             contextMtl->getMetalDevice(), samplerDesc),
                                         0, FLT_MAX, 0);
-    return angle::Result::Continue;
 }
 
 angle::Result ColorBlitUtils::blitColorWithDraw(const gl::Context *context,
@@ -1550,7 +1581,7 @@ angle::Result ColorBlitUtils::blitColorWithDraw(const gl::Context *context,
         return angle::Result::Continue;
     }
     ContextMtl *contextMtl = GetImpl(context);
-    ANGLE_TRY(setupColorBlitWithDraw(context, cmdEncoder, params));
+    setupColorBlitWithDraw(context, cmdEncoder, params);
 
     angle::Result result;
     {
@@ -1657,8 +1688,8 @@ id<MTLComputePipelineState> DepthStencilBlitUtils::getStencilToBufferComputePipe
                                    type:MTLDataTypeInt
                                withName:SOURCE_TEXTURE2_TYPE_CONSTANT_NAME];
 
-        EnsureSpecializedComputePipelineInitialized(contextMtl, @"blitStencilToBufferCS",
-                                                    funcConstants, &cache);
+        EnsureSpecializedComputePipelineInitialized(
+            contextMtl->getDisplay(), @"blitStencilToBufferCS", funcConstants, &cache);
     }
 
     return cache;
@@ -1705,10 +1736,9 @@ id<MTLRenderPipelineState> DepthStencilBlitUtils::getDepthStencilBlitRenderPipel
     return pipelineCache->getRenderPipelineState(contextMtl, pipelineDesc);
 }
 
-angle::Result DepthStencilBlitUtils::setupDepthStencilBlitWithDraw(
-    const gl::Context *context,
-    RenderCommandEncoder *cmdEncoder,
-    const DepthStencilBlitParams &params)
+void DepthStencilBlitUtils::setupDepthStencilBlitWithDraw(const gl::Context *context,
+                                                          RenderCommandEncoder *cmdEncoder,
+                                                          const DepthStencilBlitParams &params)
 {
     ContextMtl *contextMtl = mtl::GetImpl(context);
 
@@ -1719,10 +1749,7 @@ angle::Result DepthStencilBlitUtils::setupDepthStencilBlitWithDraw(
     // Generate render pipeline state
     id<MTLRenderPipelineState> renderPipelineState =
         getDepthStencilBlitRenderPipelineState(context, cmdEncoder, params);
-    if (!renderPipelineState)
-    {
-        return angle::Result::Stop;
-    }
+    ASSERT(renderPipelineState);
     // Setup states
     cmdEncoder->setRenderPipelineState(renderPipelineState);
 
@@ -1746,7 +1773,7 @@ angle::Result DepthStencilBlitUtils::setupDepthStencilBlitWithDraw(
     {
         cmdEncoder->setFragmentTexture(params.srcStencil, 1);
 
-        if (!contextMtl->getDisplay()->getFeatures().hasShaderStencilOutput.enabled)
+        if (!contextMtl->getDisplay()->getFeatures().hasStencilOutput.enabled)
         {
             // Hardware must support stencil writing directly in shader.
             UNREACHABLE();
@@ -1764,7 +1791,6 @@ angle::Result DepthStencilBlitUtils::setupDepthStencilBlitWithDraw(
 
     cmdEncoder->setDepthStencilState(contextMtl->getDisplay()->getStateCache().getDepthStencilState(
         contextMtl->getMetalDevice(), dsStateDesc));
-    return angle::Result::Continue;
 }
 
 angle::Result DepthStencilBlitUtils::blitDepthStencilWithDraw(const gl::Context *context,
@@ -1777,7 +1803,7 @@ angle::Result DepthStencilBlitUtils::blitDepthStencilWithDraw(const gl::Context 
     }
     ContextMtl *contextMtl = GetImpl(context);
 
-    ANGLE_TRY(setupDepthStencilBlitWithDraw(context, cmdEncoder, params));
+    setupDepthStencilBlitWithDraw(context, cmdEncoder, params);
 
     angle::Result result;
     {
@@ -1825,6 +1851,9 @@ angle::Result DepthStencilBlitUtils::blitStencilViaCopyBuffer(
 
     cmdEncoder->setComputePipelineState(pipeline);
 
+    uint32_t srcWidth  = params.srcStencil->width(params.srcLevel);
+    uint32_t srcHeight = params.srcStencil->height(params.srcLevel);
+
     float u0, v0, u1, v1;
     bool unpackFlipX = params.unpackFlipX;
     bool unpackFlipY = params.unpackFlipY;
@@ -1836,8 +1865,8 @@ angle::Result DepthStencilBlitUtils::blitStencilViaCopyBuffer(
     {
         unpackFlipY = !unpackFlipY;
     }
-    GetBlitTexCoords(params.srcNormalizedCoords, params.srcYFlipped, unpackFlipX, unpackFlipY, &u0,
-                     &v0, &u1, &v1);
+    GetBlitTexCoords(srcWidth, srcHeight, params.srcRect, params.srcYFlipped, unpackFlipX,
+                     unpackFlipY, &u0, &v0, &u1, &v1);
 
     BlitStencilToBufferParamsUniform uniform;
     uniform.srcTexCoordSteps[0]  = (u1 - u0) / params.dstRect.width;
@@ -1938,8 +1967,8 @@ AutoObjCPtr<id<MTLComputePipelineState>> IndexGeneratorUtils::getIndexConversion
                     UNREACHABLE();
             }
 
-            EnsureSpecializedComputePipelineInitialized(contextMtl, shaderName, funcConstants,
-                                                        &cache);
+            EnsureSpecializedComputePipelineInitialized(contextMtl->getDisplay(), shaderName,
+                                                        funcConstants, &cache);
         }
     }
 
@@ -1999,8 +2028,8 @@ IndexGeneratorUtils::getIndicesFromElemArrayGeneratorPipeline(
                                        type:MTLDataTypeBool
                                    withName:SOURCE_IDX_IS_U32_CONSTANT_NAME];
 
-            EnsureSpecializedComputePipelineInitialized(contextMtl, shaderName, funcConstants,
-                                                        &cache);
+            EnsureSpecializedComputePipelineInitialized(contextMtl->getDisplay(), shaderName,
+                                                        funcConstants, &cache);
         }
     }
 
@@ -2009,20 +2038,20 @@ IndexGeneratorUtils::getIndicesFromElemArrayGeneratorPipeline(
 
 void IndexGeneratorUtils::ensureTriFanFromArrayGeneratorInitialized(ContextMtl *contextMtl)
 {
-    EnsureComputePipelineInitialized(contextMtl, @"genTriFanIndicesFromArray",
+    EnsureComputePipelineInitialized(contextMtl->getDisplay(), @"genTriFanIndicesFromArray",
                                      &mTriFanFromArraysGeneratorPipeline);
 }
 
 void IndexGeneratorUtils::ensureLineLoopFromArrayGeneratorInitialized(ContextMtl *contextMtl)
 {
-    EnsureComputePipelineInitialized(contextMtl, @"genLineLoopIndicesFromArray",
+    EnsureComputePipelineInitialized(contextMtl->getDisplay(), @"genLineLoopIndicesFromArray",
                                      &mLineLoopFromArraysGeneratorPipeline);
 }
 
 angle::Result IndexGeneratorUtils::convertIndexBufferGPU(ContextMtl *contextMtl,
                                                          const IndexConversionParams &params)
 {
-    ComputeCommandEncoder *cmdEncoder = contextMtl->getIndexPreprocessingCommandEncoder();
+    ComputeCommandEncoder *cmdEncoder = contextMtl->getComputeCommandEncoder();
     ASSERT(cmdEncoder);
 
     AutoObjCPtr<id<MTLComputePipelineState>> pipelineState =
@@ -2459,8 +2488,8 @@ AutoObjCPtr<id<MTLComputePipelineState>> VisibilityResultUtils::getVisibilityRes
                                    type:MTLDataTypeBool
                                withName:VISIBILITY_RESULT_KEEP_OLD_VAL_CONSTANT_NAME];
 
-        EnsureSpecializedComputePipelineInitialized(contextMtl, @"combineVisibilityResult",
-                                                    funcConstants, &cache);
+        EnsureSpecializedComputePipelineInitialized(
+            contextMtl->getDisplay(), @"combineVisibilityResult", funcConstants, &cache);
     }
 
     return cache;
@@ -2515,23 +2544,25 @@ void MipmapUtils::onDestroy()
 
 void MipmapUtils::ensure3DMipGeneratorPipelineInitialized(ContextMtl *contextMtl)
 {
-    EnsureComputePipelineInitialized(contextMtl, @"generate3DMipmaps", &m3DMipGeneratorPipeline);
+    EnsureComputePipelineInitialized(contextMtl->getDisplay(), @"generate3DMipmaps",
+                                     &m3DMipGeneratorPipeline);
 }
 
 void MipmapUtils::ensure2DMipGeneratorPipelineInitialized(ContextMtl *contextMtl)
 {
-    EnsureComputePipelineInitialized(contextMtl, @"generate2DMipmaps", &m2DMipGeneratorPipeline);
+    EnsureComputePipelineInitialized(contextMtl->getDisplay(), @"generate2DMipmaps",
+                                     &m2DMipGeneratorPipeline);
 }
 
 void MipmapUtils::ensure2DArrayMipGeneratorPipelineInitialized(ContextMtl *contextMtl)
 {
-    EnsureComputePipelineInitialized(contextMtl, @"generate2DArrayMipmaps",
+    EnsureComputePipelineInitialized(contextMtl->getDisplay(), @"generate2DArrayMipmaps",
                                      &m2DArrayMipGeneratorPipeline);
 }
 
 void MipmapUtils::ensureCubeMipGeneratorPipelineInitialized(ContextMtl *contextMtl)
 {
-    EnsureComputePipelineInitialized(contextMtl, @"generateCubeMipmaps",
+    EnsureComputePipelineInitialized(contextMtl->getDisplay(), @"generateCubeMipmaps",
                                      &mCubeMipGeneratorPipeline);
 }
 
@@ -2715,8 +2746,8 @@ AutoObjCPtr<id<MTLComputePipelineState>> CopyPixelsUtils::getPixelsCopyPipeline(
                 shaderName = [NSString stringWithUTF8String:mReadShaderName.c_str()];
             }
 
-            EnsureSpecializedComputePipelineInitialized(contextMtl, shaderName, funcConstants,
-                                                        &cache);
+            EnsureSpecializedComputePipelineInitialized(contextMtl->getDisplay(), shaderName,
+                                                        funcConstants, &cache);
         }
     }
 
@@ -2864,10 +2895,6 @@ angle::Result VertexFormatConversionUtils::setupCommonConvertVertexFormatToFloat
     const angle::Format &srcAngleFormat,
     const VertexFormatConvertParams &params)
 {
-    if (pipeline == nullptr)
-    {
-        return angle::Result::Stop;
-    }
     SetPipelineState(cmdEncoder, pipeline);
     SetComputeOrVertexBuffer(cmdEncoder, params.srcBuffer, 0, 1);
     SetComputeOrVertexBufferForWrite(cmdEncoder, params.dstBuffer, 0, 2);
@@ -2916,10 +2943,6 @@ angle::Result VertexFormatConversionUtils::expandVertexFormatComponentsVS(
 
     AutoObjCPtr<id<MTLRenderPipelineState>> pipeline =
         getComponentsExpandRenderPipeline(contextMtl, cmdEncoder);
-    if (pipeline == nullptr)
-    {
-        return angle::Result::Stop;
-    }
 
     ANGLE_TRY(setupCommonExpandVertexFormatComponents(contextMtl, cmdEncoder, pipeline,
                                                       srcAngleFormat, params));
@@ -2943,10 +2966,6 @@ angle::Result VertexFormatConversionUtils::setupCommonExpandVertexFormatComponen
     const angle::Format &srcAngleFormat,
     const VertexFormatConvertParams &params)
 {
-    if (pipeline == nullptr)
-    {
-        return angle::Result::Stop;
-    }
     SetPipelineState(cmdEncoder, pipeline);
     SetComputeOrVertexBuffer(cmdEncoder, params.srcBuffer, 0, 1);
     SetComputeOrVertexBufferForWrite(cmdEncoder, params.dstBuffer, 0, 2);
@@ -2971,7 +2990,7 @@ angle::Result VertexFormatConversionUtils::setupCommonExpandVertexFormatComponen
 void VertexFormatConversionUtils::ensureComponentsExpandComputePipelineCreated(
     ContextMtl *contextMtl)
 {
-    EnsureComputePipelineInitialized(contextMtl, @"expandVertexFormatComponentsCS",
+    EnsureComputePipelineInitialized(contextMtl->getDisplay(), @"expandVertexFormatComponentsCS",
                                      &mComponentsExpandCompPipeline);
 }
 
@@ -3009,8 +3028,8 @@ VertexFormatConversionUtils::getFloatConverstionComputePipeline(ContextMtl *cont
                                        type:MTLDataTypeInt
                                    withName:COPY_FORMAT_TYPE_CONSTANT_NAME];
 
-            EnsureSpecializedComputePipelineInitialized(contextMtl, @"convertToFloatVertexFormatCS",
-                                                        funcConstants, &cache);
+            EnsureSpecializedComputePipelineInitialized(
+                contextMtl->getDisplay(), @"convertToFloatVertexFormatCS", funcConstants, &cache);
         }
     }
 
@@ -3045,6 +3064,56 @@ VertexFormatConversionUtils::getFloatConverstionRenderPipeline(ContextMtl *conte
     RenderPipelineDesc pipelineDesc = GetComputingVertexShaderOnlyRenderPipelineDesc(cmdEncoder);
 
     return cache.getRenderPipelineState(contextMtl, pipelineDesc);
+}
+
+AutoObjCPtr<id<MTLLibrary>> TransformFeedbackUtils::createMslXfbLibrary(
+    ContextMtl *contextMtl,
+    const std::string &translatedMsl)
+{
+    ANGLE_MTL_OBJC_SCOPE
+    {
+        DisplayMtl *display     = contextMtl->getDisplay();
+        id<MTLDevice> mtlDevice = display->getMetalDevice();
+
+        // Convert to actual binary shader
+        mtl::AutoObjCPtr<NSError *> err               = nil;
+        mtl::AutoObjCPtr<id<MTLLibrary>> mtlShaderLib = mtl::CreateShaderLibrary(
+            mtlDevice, translatedMsl, @{@"TRANSFORM_FEEDBACK_ENABLED" : @"1"}, &err);
+        if (err && !mtlShaderLib)
+        {
+            NSLog(@"%@", err.get());
+            assert(0);
+        }
+        mtlShaderLib.get().label = @"TransformFeedback";
+        return mtlShaderLib;
+    }
+}
+
+AutoObjCPtr<id<MTLRenderPipelineState>> TransformFeedbackUtils::getTransformFeedbackRenderPipeline(
+    ContextMtl *contextMtl,
+    RenderCommandEncoder *cmdEncoder,
+    mtl::RenderPipelineDesc &pipelineDesc)
+{
+    const ProgramMtl *programMtl = mtl::GetImpl(contextMtl->getState().getProgram());
+    RenderPipelineCache &cache   = *programMtl->mMetalXfbRenderPipelineCache;
+
+    if (!cache.getVertexShader())
+    {
+        // Pipeline cache not intialized, do it now:
+        ANGLE_MTL_OBJC_SCOPE
+        {
+            auto shaderLib = createMslXfbLibrary(
+                contextMtl, programMtl->getTranslatedShaderSource(gl::ShaderType::Vertex));
+            // Non specialized constants provided, use default creation function.
+            EnsureVertexShaderOnlyPipelineCacheInitialized(contextMtl, SHADER_ENTRY_NAME, shaderLib,
+                                                           &cache);
+        }
+    }
+
+    RenderPipelineDesc xfbPipelineDesc =
+        GetTransformFeedbackRenderPipelineDesc(cmdEncoder, pipelineDesc);
+
+    return cache.getRenderPipelineState(contextMtl, xfbPipelineDesc);
 }
 
 }  // namespace mtl

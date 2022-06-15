@@ -87,7 +87,6 @@ absl_cc_library(
     absl::config
     absl::core_headers
     absl::log_severity
-    absl::optional
     absl::strings
     absl::str_format
 )
@@ -106,7 +105,6 @@ absl_cc_library(
     ${ABSL_DEFAULT_LINKOPTS}
   DEPS
     absl::config
-    absl::dynamic_annotations
     absl::fast_type_id
 )
 
@@ -204,7 +202,6 @@ absl_cc_library(
   HDRS
     "declare.h"
     "flag.h"
-    "internal/flag_msvc.inc"
   COPTS
     ${ABSL_DEFAULT_COPTS}
   LINKOPTS

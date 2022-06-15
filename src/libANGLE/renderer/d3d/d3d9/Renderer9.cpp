@@ -596,7 +596,7 @@ void Renderer9::generateDisplayExtensions(egl::DisplayExtensions *outExtensions)
     outExtensions->glTexture2DImage    = true;
     outExtensions->glRenderbufferImage = true;
 
-    outExtensions->noConfigContext = true;
+    outExtensions->flexibleSurfaceCompatibility = true;
 
     // Contexts are virtualized so textures and semaphores can be shared globally
     outExtensions->displayTextureShareGroup   = true;
@@ -605,7 +605,7 @@ void Renderer9::generateDisplayExtensions(egl::DisplayExtensions *outExtensions)
     // D3D9 can be used without an output surface
     outExtensions->surfacelessContext = true;
 
-    outExtensions->robustResourceInitializationANGLE = true;
+    outExtensions->robustResourceInitialization = true;
 }
 
 void Renderer9::startScene()
@@ -1019,16 +1019,12 @@ angle::Result Renderer9::setSamplerState(const gl::Context *context,
         mDevice->SetSamplerState(d3dSampler, D3DSAMP_MIPFILTER, d3dMipFilter);
         mDevice->SetSamplerState(d3dSampler, D3DSAMP_MAXMIPLEVEL, baseLevel);
         mDevice->SetSamplerState(d3dSampler, D3DSAMP_MIPMAPLODBIAS, static_cast<DWORD>(lodBias));
-        if (getNativeExtensions().textureFilterAnisotropicEXT)
+        if (getNativeExtensions().textureFilterAnisotropic)
         {
             DWORD maxAnisotropy = std::min(mDeviceCaps.MaxAnisotropy,
                                            static_cast<DWORD>(samplerState.getMaxAnisotropy()));
             mDevice->SetSamplerState(d3dSampler, D3DSAMP_MAXANISOTROPY, maxAnisotropy);
         }
-
-        const bool isSrgb = gl::GetSizedInternalFormatInfo(textureD3D->getBaseLevelInternalFormat())
-                                .colorEncoding == GL_SRGB;
-        mDevice->SetSamplerState(d3dSampler, D3DSAMP_SRGBTEXTURE, isSrgb);
 
         ASSERT(texture->getBorderColor().type == angle::ColorGeneric::Type::Float);
         mDevice->SetSamplerState(d3dSampler, D3DSAMP_BORDERCOLOR,
@@ -1120,9 +1116,6 @@ angle::Result Renderer9::updateState(const gl::Context *context, gl::PrimitiveMo
         ANGLE_TRY(firstColorAttachment->getRenderTarget(context, firstColorAttachment->getSamples(),
                                                         &renderTarget));
         samples = renderTarget->getSamples();
-
-        mDevice->SetRenderState(D3DRS_SRGBWRITEENABLE,
-                                renderTarget->getInternalFormat() == GL_SRGB8_ALPHA8);
     }
     gl::RasterizerState rasterizer = glState.getRasterizerState();
     rasterizer.pointDrawMode       = (drawMode == gl::PrimitiveMode::Points);
@@ -1277,8 +1270,9 @@ angle::Result Renderer9::applyRenderTarget(const gl::Context *context,
     }
     ASSERT(colorRenderTarget != nullptr);
 
-    size_t renderTargetWidth  = 0;
-    size_t renderTargetHeight = 0;
+    size_t renderTargetWidth     = 0;
+    size_t renderTargetHeight    = 0;
+    D3DFORMAT renderTargetFormat = D3DFMT_UNKNOWN;
 
     bool renderTargetChanged        = false;
     unsigned int renderTargetSerial = colorRenderTarget->getSerial();
@@ -1293,6 +1287,7 @@ angle::Result Renderer9::applyRenderTarget(const gl::Context *context,
 
         renderTargetWidth  = colorRenderTarget->getWidth();
         renderTargetHeight = colorRenderTarget->getHeight();
+        renderTargetFormat = colorRenderTarget->getD3DFormat();
 
         mAppliedRenderTargetSerial = renderTargetSerial;
         renderTargetChanged        = true;
@@ -2669,7 +2664,7 @@ angle::Result Renderer9::compileToExecutable(d3d::Context *context,
                                              gl::ShaderType type,
                                              const std::vector<D3DVarying> &streamOutVaryings,
                                              bool separatedOutputBuffers,
-                                             const CompilerWorkaroundsD3D &workarounds,
+                                             const angle::CompilerWorkaroundsD3D &workarounds,
                                              ShaderExecutableD3D **outExectuable)
 {
     // Transform feedback is not supported in ES2 or D3D9
@@ -3296,7 +3291,7 @@ std::string Renderer9::getVendorString() const
     return GetVendorString(getVendorId());
 }
 
-std::string Renderer9::getVersionString(bool includeFullVersion) const
+std::string Renderer9::getVersionString() const
 {
     std::ostringstream versionString;
     std::string driverName(mAdapterIdentifier.Driver);
@@ -3306,14 +3301,10 @@ std::string Renderer9::getVersionString(bool includeFullVersion) const
     }
     else
     {
-        versionString << "D3D9";
+        versionString << "D3D9 ";
     }
-
-    if (includeFullVersion)
-    {
-        versionString << " -";
-        versionString << GetDriverVersionString(mAdapterIdentifier.DriverVersion);
-    }
+    versionString << "-";
+    versionString << GetDriverVersionString(mAdapterIdentifier.DriverVersion);
 
     return versionString.str();
 }

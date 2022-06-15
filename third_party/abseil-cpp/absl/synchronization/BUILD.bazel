@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load(
     "//absl:copts/configure_copts.bzl",
     "ABSL_DEFAULT_COPTS",
@@ -34,9 +35,7 @@ cc_library(
     hdrs = [
         "internal/graphcycles.h",
     ],
-    copts = ABSL_DEFAULT_COPTS + select({
-        "//conditions:default": [],
-    }),
+    copts = ABSL_DEFAULT_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
     visibility = [
         "//absl:__subpackages__",

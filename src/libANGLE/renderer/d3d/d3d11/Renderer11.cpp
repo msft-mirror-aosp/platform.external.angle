@@ -441,7 +441,6 @@ Renderer11::Renderer11(egl::Display *display)
     mCreatedWithDeviceEXT = false;
 
     mDevice         = nullptr;
-    mDevice1        = nullptr;
     mDeviceContext  = nullptr;
     mDeviceContext1 = nullptr;
     mDeviceContext3 = nullptr;
@@ -700,16 +699,10 @@ HRESULT Renderer11::callD3D11CreateDevice(PFN_D3D11_CREATE_DEVICE createDevice, 
     angle::ComPtr<IDXGIAdapter> adapter;
 
     const egl::AttributeMap &attributes = mDisplay->getAttributeMap();
-    // Check EGL_ANGLE_platform_angle_d3d_luid
     long high = static_cast<long>(attributes.get(EGL_PLATFORM_ANGLE_D3D_LUID_HIGH_ANGLE, 0));
     unsigned long low =
         static_cast<unsigned long>(attributes.get(EGL_PLATFORM_ANGLE_D3D_LUID_LOW_ANGLE, 0));
-    // Check EGL_ANGLE_platform_angle_device_id
-    if (high == 0 && low == 0)
-    {
-        high = static_cast<long>(attributes.get(EGL_PLATFORM_ANGLE_DEVICE_ID_HIGH_ANGLE, 0));
-        low = static_cast<unsigned long>(attributes.get(EGL_PLATFORM_ANGLE_DEVICE_ID_LOW_ANGLE, 0));
-    }
+
     if (high != 0 || low != 0)
     {
         angle::ComPtr<IDXGIFactory1> factory;
@@ -961,12 +954,10 @@ egl::Error Renderer11::initializeD3DDevice()
 
     mResourceManager11.setAllocationsInitialized(mCreateDebugDevice);
 
-    d3d11::SetDebugName(mDeviceContext, "DeviceContext", nullptr);
+    d3d11::SetDebugName(mDeviceContext, "DeviceContext");
 
     mAnnotator.initialize(mDeviceContext);
     gl::InitializeDebugAnnotations(&mAnnotator);
-
-    mDevice->QueryInterface(__uuidof(ID3D11Device1), reinterpret_cast<void **>(&mDevice1));
 
     return egl::NoError();
 }
@@ -1085,7 +1076,7 @@ void Renderer11::populateRenderer11DeviceCaps()
                                  &mRenderer11DeviceCaps.B5G6R5maxSamples);
     }
 
-    if (getFeatures().allowES3OnFL100.enabled)
+    if (getFeatures().allowES3OnFL10_0.enabled)
     {
         mRenderer11DeviceCaps.allowES3OnFL10_0 = true;
     }
@@ -1318,8 +1309,8 @@ void Renderer11::generateDisplayExtensions(egl::DisplayExtensions *outExtensions
     outExtensions->streamConsumerGLTextureYUV = true;
     outExtensions->streamProducerD3DTexture   = true;
 
-    outExtensions->noConfigContext   = true;
-    outExtensions->directComposition = !!mDCompModule;
+    outExtensions->flexibleSurfaceCompatibility = true;
+    outExtensions->directComposition            = !!mDCompModule;
 
     // Contexts are virtualized so textures and semaphores can be shared globally
     outExtensions->displayTextureShareGroup   = true;
@@ -1332,7 +1323,7 @@ void Renderer11::generateDisplayExtensions(egl::DisplayExtensions *outExtensions
     outExtensions->surfacelessContext = true;
 
     // All D3D feature levels support robust resource init
-    outExtensions->robustResourceInitializationANGLE = true;
+    outExtensions->robustResourceInitialization = true;
 
 #ifdef ANGLE_ENABLE_D3D11_COMPOSITOR_NATIVE_WINDOW
     // Compositor Native Window capabilies require WinVer >= 1803
@@ -1541,10 +1532,6 @@ egl::Error Renderer11::getD3DTextureInfo(const egl::Config *configuration,
             case DXGI_FORMAT_R16G16B16A16_FLOAT:
             case DXGI_FORMAT_R32G32B32A32_FLOAT:
             case DXGI_FORMAT_R10G10B10A2_UNORM:
-            case DXGI_FORMAT_R8_UNORM:
-            case DXGI_FORMAT_R8G8_UNORM:
-            case DXGI_FORMAT_R16_UNORM:
-            case DXGI_FORMAT_R16G16_UNORM:
                 break;
 
             default:
@@ -1566,11 +1553,6 @@ egl::Error Renderer11::getD3DTextureInfo(const egl::Config *configuration,
                 case GL_RGBA:
                 case GL_BGRA_EXT:
                 case GL_RGB:
-                case GL_RED_EXT:
-                case GL_RG_EXT:
-                case GL_RGB10_A2_EXT:
-                case GL_R16_EXT:
-                case GL_RG16_EXT:
                     break;
                 default:
                     return egl::EglBadParameter()
@@ -1645,12 +1627,6 @@ egl::Error Renderer11::validateShareHandle(const egl::Config *config,
     ID3D11Resource *tempResource11 = nullptr;
     HRESULT result = mDevice->OpenSharedResource(shareHandle, __uuidof(ID3D11Resource),
                                                  (void **)&tempResource11);
-    if (FAILED(result) && mDevice1)
-    {
-        result = mDevice1->OpenSharedResource1(shareHandle, __uuidof(ID3D11Resource),
-                                               (void **)&tempResource11);
-    }
-
     if (FAILED(result))
     {
         return egl::EglBadParameter() << "Failed to open share handle, " << gl::FmtHR(result);
@@ -1760,15 +1736,12 @@ angle::Result Renderer11::drawArrays(const gl::Context *context,
                                      GLint firstVertex,
                                      GLsizei vertexCount,
                                      GLsizei instanceCount,
-                                     GLuint baseInstance,
-                                     bool isInstancedDraw)
+                                     GLuint baseInstance)
 {
     if (mStateManager.getCullEverything())
     {
         return angle::Result::Continue;
     }
-
-    ANGLE_TRY(markRawBufferUsage(context));
 
     ProgramD3D *programD3D        = mStateManager.getProgramD3D();
     GLsizei adjustedInstanceCount = GetAdjustedInstanceCount(programD3D, instanceCount);
@@ -1835,7 +1808,7 @@ angle::Result Renderer11::drawArrays(const gl::Context *context,
     }
 
     // "Normal" draw case.
-    if (!isInstancedDraw && adjustedInstanceCount == 0)
+    if (adjustedInstanceCount == 0)
     {
         mDeviceContext->Draw(clampedVertexCount, 0);
     }
@@ -1854,15 +1827,12 @@ angle::Result Renderer11::drawElements(const gl::Context *context,
                                        const void *indices,
                                        GLsizei instanceCount,
                                        GLint baseVertex,
-                                       GLuint baseInstance,
-                                       bool isInstancedDraw)
+                                       GLuint baseInstance)
 {
     if (mStateManager.getCullEverything())
     {
         return angle::Result::Continue;
     }
-
-    ANGLE_TRY(markRawBufferUsage(context));
 
     // Transform feedback is not allowed for DrawElements, this error should have been caught at the
     // API validation layer.
@@ -1889,7 +1859,7 @@ angle::Result Renderer11::drawElements(const gl::Context *context,
 
     if (mode != gl::PrimitiveMode::Points || !programD3D->usesInstancedPointSpriteEmulation())
     {
-        if (!isInstancedDraw && adjustedInstanceCount == 0)
+        if (adjustedInstanceCount == 0)
         {
             mDeviceContext->DrawIndexed(indexCount, 0, baseVertexAdjusted);
         }
@@ -1949,8 +1919,6 @@ angle::Result Renderer11::drawArraysIndirect(const gl::Context *context, const v
         return angle::Result::Continue;
     }
 
-    ANGLE_TRY(markRawBufferUsage(context));
-
     const gl::State &glState = context->getState();
     ASSERT(!glState.isTransformFeedbackActiveUnpaused());
 
@@ -1972,8 +1940,6 @@ angle::Result Renderer11::drawElementsIndirect(const gl::Context *context, const
     {
         return angle::Result::Continue;
     }
-
-    ANGLE_TRY(markRawBufferUsage(context));
 
     const gl::State &glState = context->getState();
     ASSERT(!glState.isTransformFeedbackActiveUnpaused());
@@ -2240,7 +2206,6 @@ void Renderer11::release()
     }
 
     SafeRelease(mDevice);
-    SafeRelease(mDevice1);
     SafeRelease(mDebug);
 
     if (mD3d11Module)
@@ -2372,7 +2337,7 @@ bool Renderer11::getShareHandleSupport() const
 
     // We only currently support share handles with BGRA surfaces, because
     // chrome needs BGRA. Once chrome fixes this, we should always support them.
-    if (!getNativeExtensions().textureFormatBGRA8888EXT)
+    if (!getNativeExtensions().textureFormatBGRA8888)
     {
         mSupportsShareHandles = false;
         return false;
@@ -2902,7 +2867,7 @@ angle::Result Renderer11::createRenderTarget(const gl::Context *context,
 
         TextureHelper11 texture;
         ANGLE_TRY(allocateTexture(context11, desc, formatInfo, &texture));
-        texture.setInternalName("createRenderTarget.Texture");
+        texture.setDebugName("createRenderTarget.Texture");
 
         d3d11::SharedSRV srv;
         d3d11::SharedSRV blitSRV;
@@ -2916,7 +2881,7 @@ angle::Result Renderer11::createRenderTarget(const gl::Context *context,
             srvDesc.Texture2D.MipLevels       = 1;
 
             ANGLE_TRY(allocateResource(context11, srvDesc, texture.get(), &srv));
-            srv.setInternalName("createRenderTarget.SRV");
+            srv.setDebugName("createRenderTarget.SRV");
 
             if (formatInfo.blitSRVFormat != formatInfo.srvFormat)
             {
@@ -2929,7 +2894,7 @@ angle::Result Renderer11::createRenderTarget(const gl::Context *context,
                 blitSRVDesc.Texture2D.MipLevels       = 1;
 
                 ANGLE_TRY(allocateResource(context11, blitSRVDesc, texture.get(), &blitSRV));
-                blitSRV.setInternalName("createRenderTarget.BlitSRV");
+                blitSRV.setDebugName("createRenderTarget.BlitSRV");
             }
             else
             {
@@ -2948,7 +2913,7 @@ angle::Result Renderer11::createRenderTarget(const gl::Context *context,
 
             d3d11::DepthStencilView dsv;
             ANGLE_TRY(allocateResource(context11, dsvDesc, texture.get(), &dsv));
-            dsv.setInternalName("createRenderTarget.DSV");
+            dsv.setDebugName("createRenderTarget.DSV");
 
             *outRT = new TextureRenderTarget11(std::move(dsv), texture, srv, format, formatInfo,
                                                width, height, 1, supportedSamples);
@@ -2963,7 +2928,7 @@ angle::Result Renderer11::createRenderTarget(const gl::Context *context,
 
             d3d11::RenderTargetView rtv;
             ANGLE_TRY(allocateResource(context11, rtvDesc, texture.get(), &rtv));
-            rtv.setInternalName("createRenderTarget.RTV");
+            rtv.setDebugName("createRenderTarget.RTV");
 
             if (formatInfo.dataInitializerFunction != nullptr)
             {
@@ -3087,7 +3052,7 @@ angle::Result Renderer11::compileToExecutable(d3d::Context *context,
                                               gl::ShaderType type,
                                               const std::vector<D3DVarying> &streamOutVaryings,
                                               bool separatedOutputBuffers,
-                                              const CompilerWorkaroundsD3D &workarounds,
+                                              const angle::CompilerWorkaroundsD3D &workarounds,
                                               ShaderExecutableD3D **outExectuable)
 {
     std::stringstream profileStream;
@@ -3479,7 +3444,7 @@ angle::Result Renderer11::readFromAttachment(const gl::Context *context,
     ANGLE_TRY(createStagingTexture(context, textureHelper.getTextureType(),
                                    textureHelper.getFormatSet(), safeSize, StagingAccess::READ,
                                    &stagingHelper));
-    stagingHelper.setInternalName("readFromAttachment::stagingHelper");
+    stagingHelper.setDebugName("readFromAttachment::stagingHelper");
 
     TextureHelper11 resolvedTextureHelper;
 
@@ -3504,7 +3469,7 @@ angle::Result Renderer11::readFromAttachment(const gl::Context *context,
 
         ANGLE_TRY(allocateTexture(GetImplAs<Context11>(context), resolveDesc,
                                   textureHelper.getFormatSet(), &resolvedTextureHelper));
-        resolvedTextureHelper.setInternalName("readFromAttachment::resolvedTextureHelper");
+        resolvedTextureHelper.setDebugName("readFromAttachment::resolvedTextureHelper");
 
         mDeviceContext->ResolveSubresource(resolvedTextureHelper.get(), 0, textureHelper.get(),
                                            sourceSubResource, textureHelper.getFormat());
@@ -4354,13 +4319,13 @@ std::string Renderer11::getVendorString() const
     return GetVendorString(mAdapterDescription.VendorId);
 }
 
-std::string Renderer11::getVersionString(bool includeFullVersion) const
+std::string Renderer11::getVersionString() const
 {
     std::ostringstream versionString;
-    versionString << "D3D11";
-    if (includeFullVersion && mRenderer11DeviceCaps.driverVersion.valid())
+    versionString << "D3D11-";
+    if (mRenderer11DeviceCaps.driverVersion.valid())
     {
-        versionString << "-" << GetDriverVersionString(mRenderer11DeviceCaps.driverVersion.value());
+        versionString << GetDriverVersionString(mRenderer11DeviceCaps.driverVersion.value());
     }
     return versionString.str();
 }

@@ -38,39 +38,38 @@ namespace mtl
 namespace
 {
 
-#define ANGLE_MTL_CMD_X(PROC)                        \
-    PROC(Invalid)                                    \
-    PROC(SetRenderPipelineState)                     \
-    PROC(SetTriangleFillMode)                        \
-    PROC(SetFrontFacingWinding)                      \
-    PROC(SetCullMode)                                \
-    PROC(SetDepthStencilState)                       \
-    PROC(SetDepthBias)                               \
-    PROC(SetStencilRefVals)                          \
-    PROC(SetViewport)                                \
-    PROC(SetScissorRect)                             \
-    PROC(SetBlendColor)                              \
-    PROC(SetVertexBuffer)                            \
-    PROC(SetVertexBufferOffset)                      \
-    PROC(SetVertexBytes)                             \
-    PROC(SetVertexSamplerState)                      \
-    PROC(SetVertexTexture)                           \
-    PROC(SetFragmentBuffer)                          \
-    PROC(SetFragmentBufferOffset)                    \
-    PROC(SetFragmentBytes)                           \
-    PROC(SetFragmentSamplerState)                    \
-    PROC(SetFragmentTexture)                         \
-    PROC(Draw)                                       \
-    PROC(DrawInstanced)                              \
-    PROC(DrawInstancedBaseInstance)                  \
-    PROC(DrawIndexed)                                \
-    PROC(DrawIndexedInstanced)                       \
-    PROC(DrawIndexedInstancedBaseVertexBaseInstance) \
-    PROC(SetVisibilityResultMode)                    \
-    PROC(UseResource)                                \
-    PROC(MemoryBarrierWithResource)                  \
-    PROC(InsertDebugsign)                            \
-    PROC(PushDebugGroup)                             \
+#define ANGLE_MTL_CMD_X(PROC)            \
+    PROC(Invalid)                        \
+    PROC(SetRenderPipelineState)         \
+    PROC(SetTriangleFillMode)            \
+    PROC(SetFrontFacingWinding)          \
+    PROC(SetCullMode)                    \
+    PROC(SetDepthStencilState)           \
+    PROC(SetDepthBias)                   \
+    PROC(SetStencilRefVals)              \
+    PROC(SetViewport)                    \
+    PROC(SetScissorRect)                 \
+    PROC(SetBlendColor)                  \
+    PROC(SetVertexBuffer)                \
+    PROC(SetVertexBufferOffset)          \
+    PROC(SetVertexBytes)                 \
+    PROC(SetVertexSamplerState)          \
+    PROC(SetVertexTexture)               \
+    PROC(SetFragmentBuffer)              \
+    PROC(SetFragmentBufferOffset)        \
+    PROC(SetFragmentBytes)               \
+    PROC(SetFragmentSamplerState)        \
+    PROC(SetFragmentTexture)             \
+    PROC(Draw)                           \
+    PROC(DrawInstanced)                  \
+    PROC(DrawIndexed)                    \
+    PROC(DrawIndexedInstanced)           \
+    PROC(DrawIndexedInstancedBaseVertex) \
+    PROC(SetVisibilityResultMode)        \
+    PROC(UseResource)                    \
+    PROC(MemoryBarrierWithResource)      \
+    PROC(InsertDebugsign)                \
+    PROC(PushDebugGroup)                 \
     PROC(PopDebugGroup)
 
 #define ANGLE_MTL_TYPE_DECL(CMD) CMD,
@@ -273,21 +272,6 @@ void DrawInstancedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandSt
               instanceCount:instances];
 }
 
-void DrawInstancedBaseInstanceCmd(id<MTLRenderCommandEncoder> encoder,
-                                  IntermediateCommandStream *stream)
-{
-    MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
-    uint32_t vertexStart           = stream->fetch<uint32_t>();
-    uint32_t vertexCount           = stream->fetch<uint32_t>();
-    uint32_t instances             = stream->fetch<uint32_t>();
-    uint32_t baseInstance          = stream->fetch<uint32_t>();
-    [encoder drawPrimitives:primitiveType
-                vertexStart:vertexStart
-                vertexCount:vertexCount
-              instanceCount:instances
-               baseInstance:baseInstance];
-}
-
 void DrawIndexedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
@@ -320,8 +304,8 @@ void DrawIndexedInstancedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCo
     [indexBuffer ANGLE_MTL_RELEASE];
 }
 
-void DrawIndexedInstancedBaseVertexBaseInstanceCmd(id<MTLRenderCommandEncoder> encoder,
-                                                   IntermediateCommandStream *stream)
+void DrawIndexedInstancedBaseVertexCmd(id<MTLRenderCommandEncoder> encoder,
+                                       IntermediateCommandStream *stream)
 {
     MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
     uint32_t indexCount            = stream->fetch<uint32_t>();
@@ -330,7 +314,6 @@ void DrawIndexedInstancedBaseVertexBaseInstanceCmd(id<MTLRenderCommandEncoder> e
     size_t bufferOffset            = stream->fetch<size_t>();
     uint32_t instances             = stream->fetch<uint32_t>();
     uint32_t baseVertex            = stream->fetch<uint32_t>();
-    uint32_t baseInstance          = stream->fetch<uint32_t>();
     [encoder drawIndexedPrimitives:primitiveType
                         indexCount:indexCount
                          indexType:indexType
@@ -338,7 +321,7 @@ void DrawIndexedInstancedBaseVertexBaseInstanceCmd(id<MTLRenderCommandEncoder> e
                  indexBufferOffset:bufferOffset
                      instanceCount:instances
                         baseVertex:baseVertex
-                      baseInstance:baseInstance];
+                      baseInstance:0];
     [indexBuffer ANGLE_MTL_RELEASE];
 }
 
@@ -442,15 +425,24 @@ void CommandQueue::set(id<MTLCommandQueue> metalQueue)
 
 void CommandQueue::finishAllCommands()
 {
-    std::deque<CmdBufferQueueEntry> commandBuffers;
     {
+        // Copy to temp list
         std::lock_guard<std::mutex> lg(mLock);
-        mMetalCmdBuffers.swap(commandBuffers);
+
+        for (CmdBufferQueueEntry &metalBufferEntry : mMetalCmdBuffers)
+        {
+            mMetalCmdBuffersTmp.push_back(metalBufferEntry);
+        }
+
+        mMetalCmdBuffers.clear();
     }
-    for (CmdBufferQueueEntry &entry : commandBuffers)
+
+    // Wait for command buffers to finish
+    for (CmdBufferQueueEntry &metalBufferEntry : mMetalCmdBuffersTmp)
     {
-        [entry.buffer waitUntilCompleted];
+        [metalBufferEntry.buffer waitUntilCompleted];
     }
+    mMetalCmdBuffersTmp.clear();
 }
 
 void CommandQueue::ensureResourceReadyForCPU(const ResourceRef &resource)
@@ -526,6 +518,8 @@ AutoObjCPtr<id<MTLCommandBuffer>> CommandQueue::makeMetalCommandBuffer(uint64_t 
           onCommandBufferCompleted(buf, serial);
         }];
 
+        [metalCmdBuffer enqueue];
+
         ASSERT(metalCmdBuffer);
 
         *queueSerialOut = serial;
@@ -539,8 +533,6 @@ void CommandQueue::onCommandBufferCommitted(id<MTLCommandBuffer> buf, uint64_t s
     std::lock_guard<std::mutex> lg(mLock);
 
     ANGLE_MTL_LOG("Committed MTLCommandBuffer %llu:%p", serial, buf);
-    ++mLastCommittedSerial;
-    ASSERT(serial == mLastCommittedSerial && "Verify that CommandBuffers are submitted in order");
 
     mCommittedBufferSerial.store(
         std::max(mCommittedBufferSerial.load(std::memory_order_relaxed), serial),
@@ -579,7 +571,7 @@ CommandBuffer::CommandBuffer(CommandQueue *cmdQueue) : mCmdQueue(*cmdQueue) {}
 
 CommandBuffer::~CommandBuffer()
 {
-    commit(WaitUntilFinished);
+    finish();
     cleanup();
 }
 
@@ -590,55 +582,21 @@ bool CommandBuffer::ready() const
     return readyImpl();
 }
 
-void CommandBuffer::commit(CommandBufferFinishOperation operation)
+void CommandBuffer::commit()
 {
     std::lock_guard<std::mutex> lg(mLock);
-    if (commitImpl())
-    {
-        if (operation == WaitUntilScheduled)
-        {
-            [get() waitUntilScheduled];
-        }
-        else if (operation == WaitUntilFinished)
-        {
-            [get() waitUntilCompleted];
-        }
-    }
+    commitImpl();
+}
+
+void CommandBuffer::finish()
+{
+    commit();
+    [get() waitUntilCompleted];
 }
 
 void CommandBuffer::present(id<CAMetalDrawable> presentationDrawable)
 {
     [get() presentDrawable:presentationDrawable];
-}
-
-void CommandBuffer::setResourceUsedByCommandBuffer(const ResourceRef &resource)
-{
-    if (resource)
-    {
-        auto result = mResourceList.insert(resource->getID());
-        // If we were able to add a unique Metal resource ID to the list, count it.
-        //
-        // Note that we store Metal IDs here, properly retained in non-ARC environments, rather than
-        // the ResourceRefs. There are some assumptions in TextureMtl in particular about weak refs
-        // to temporary textures being cleared out eagerly. Holding on to additional references here
-        // implies that that texture is still being used, and would require additional code to clear
-        // out temporary render targets upon texture redefinition.
-        if (result.second)
-        {
-            [resource->getID() ANGLE_MTL_RETAIN];
-            mWorkingResourceSize += resource->estimatedByteSize();
-        }
-    }
-}
-
-void CommandBuffer::clearResourceListAndSize()
-{
-    for (const id &metalID : mResourceList)
-    {
-        [metalID ANGLE_MTL_RELEASE];
-    }
-    mResourceList.clear();
-    mWorkingResourceSize = 0;
 }
 
 void CommandBuffer::setWriteDependency(const ResourceRef &resource)
@@ -656,13 +614,11 @@ void CommandBuffer::setWriteDependency(const ResourceRef &resource)
     }
 
     resource->setUsedByCommandBufferWithQueueSerial(mQueueSerial, true);
-    setResourceUsedByCommandBuffer(resource);
 }
 
 void CommandBuffer::setReadDependency(const ResourceRef &resource)
 {
     setReadDependency(resource.get());
-    setResourceUsedByCommandBuffer(resource);
 }
 
 void CommandBuffer::setReadDependency(Resource *resource)
@@ -682,11 +638,6 @@ void CommandBuffer::setReadDependency(Resource *resource)
     resource->setUsedByCommandBufferWithQueueSerial(mQueueSerial, false);
 }
 
-bool CommandBuffer::needsFlushForDrawCallLimits() const
-{
-    return mWorkingResourceSize > kMaximumResidentMemorySizeInBytes;
-}
-
 void CommandBuffer::restart()
 {
     uint64_t serial                                  = 0;
@@ -702,7 +653,7 @@ void CommandBuffer::restart()
     {
         pushDebugGroupImpl(marker);
     }
-    clearResourceListAndSize();
+
     ASSERT(metalCmdBuffer);
 }
 
@@ -824,11 +775,11 @@ bool CommandBuffer::readyImpl() const
     return !mCommitted;
 }
 
-bool CommandBuffer::commitImpl()
+void CommandBuffer::commitImpl()
 {
     if (!readyImpl())
     {
-        return false;
+        return;
     }
 
     // End the current encoder
@@ -841,12 +792,9 @@ bool CommandBuffer::commitImpl()
     mCmdQueue.onCommandBufferCommitted(get(), mQueueSerial);
 
     // Do the actual commit
-    [get() enqueue];
     [get() commit];
-    // Reset the working resource set.
-    clearResourceListAndSize();
+
     mCommitted = true;
-    return true;
 }
 
 void CommandBuffer::forceEndingCurrentEncoder()
@@ -1492,6 +1440,11 @@ RenderCommandEncoder &RenderCommandEncoder::setScissorRect(const MTLScissorRect 
         return *this;
     }
 
+    if (ANGLE_UNLIKELY(clampedRect.width == 0 || clampedRect.height == 0))
+    {
+        // An empty rectangle isn't a valid scissor.
+        return *this;
+    }
     mStateCache.scissorRect = clampedRect;
 
     mCommands.push(CmdType::SetScissorRect).push(clampedRect);
@@ -1695,26 +1648,6 @@ RenderCommandEncoder &RenderCommandEncoder::drawInstanced(MTLPrimitiveType primi
     return *this;
 }
 
-RenderCommandEncoder &RenderCommandEncoder::drawInstancedBaseInstance(
-    MTLPrimitiveType primitiveType,
-    uint32_t vertexStart,
-    uint32_t vertexCount,
-    uint32_t instances,
-    uint32_t baseInstance)
-{
-    ASSERT(mPipelineStateSet &&
-           "Render Pipeline State was never set and we've issued a draw command.");
-    mHasDrawCalls = true;
-    mCommands.push(CmdType::DrawInstancedBaseInstance)
-        .push(primitiveType)
-        .push(vertexStart)
-        .push(vertexCount)
-        .push(instances)
-        .push(baseInstance);
-
-    return *this;
-}
-
 RenderCommandEncoder &RenderCommandEncoder::drawIndexed(MTLPrimitiveType primitiveType,
                                                         uint32_t indexCount,
                                                         MTLIndexType indexType,
@@ -1769,15 +1702,14 @@ RenderCommandEncoder &RenderCommandEncoder::drawIndexedInstanced(MTLPrimitiveTyp
     return *this;
 }
 
-RenderCommandEncoder &RenderCommandEncoder::drawIndexedInstancedBaseVertexBaseInstance(
+RenderCommandEncoder &RenderCommandEncoder::drawIndexedInstancedBaseVertex(
     MTLPrimitiveType primitiveType,
     uint32_t indexCount,
     MTLIndexType indexType,
     const BufferRef &indexBuffer,
     size_t bufferOffset,
     uint32_t instances,
-    uint32_t baseVertex,
-    uint32_t baseInstance)
+    uint32_t baseVertex)
 {
     ASSERT(mPipelineStateSet &&
            "Render Pipeline State was never set and we've issued a draw command.");
@@ -1789,15 +1721,14 @@ RenderCommandEncoder &RenderCommandEncoder::drawIndexedInstancedBaseVertexBaseIn
     mHasDrawCalls = true;
     cmdBuffer().setReadDependency(indexBuffer);
 
-    mCommands.push(CmdType::DrawIndexedInstancedBaseVertexBaseInstance)
+    mCommands.push(CmdType::DrawIndexedInstancedBaseVertex)
         .push(primitiveType)
         .push(indexCount)
         .push(indexType)
         .push([indexBuffer->get() ANGLE_MTL_RETAIN])
         .push(bufferOffset)
         .push(instances)
-        .push(baseVertex)
-        .push(baseInstance);
+        .push(baseVertex);
 
     return *this;
 }

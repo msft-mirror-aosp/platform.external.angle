@@ -150,18 +150,12 @@ angle::Result IOSurfaceSurfaceMtl::ensureColorTextureCreated(const gl::Context *
 
         texDesc.usage = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
 
-        mColorTexture =
-            mtl::Texture::MakeFromMetal(contextMtl->getMetalDevice().newTextureWithDescriptor(
-                texDesc, mIOSurface, mIOSurfacePlane));
+        id<MTLTexture> texture =
+            [contextMtl->getMetalDevice() newTextureWithDescriptor:texDesc
+                                                         iosurface:mIOSurface
+                                                             plane:mIOSurfacePlane];
 
-        if (mColorTexture)
-        {
-            size_t resourceSize = EstimateTextureSizeInBytes(
-                mColorFormat, mColorTexture->widthAt0(), mColorTexture->heightAt0(),
-                mColorTexture->depthAt0(), mColorTexture->samples(), mColorTexture->mipmapLevels());
-
-            mColorTexture->setEstimatedByteSize(resourceSize);
-        }
+        mColorTexture = mtl::Texture::MakeFromMetal([texture ANGLE_MTL_AUTORELEASE]);
     }
 
     mColorRenderTarget.set(mColorTexture, mtl::kZeroNativeMipLevel, 0, mColorFormat);
@@ -219,14 +213,11 @@ bool IOSurfaceSurfaceMtl::ValidateAttributes(EGLClientBuffer buffer,
         return false;
     }
 
-    // FIXME: Check that the format matches this IOSurface plane for pixel formats that we know of.
-    // We could map IOSurfaceGetPixelFormat to expected type plane and format type.
-    // However, the caller might supply us non-public pixel format, which makes exhaustive checks
-    // problematic.
+    // Check that the format matches this IOSurface plane
     if (IOSurfaceGetBytesPerElementOfPlane(ioSurface, plane) !=
         kIOSurfaceFormats[formatIndex].componentBytes)
     {
-        WARN() << "IOSurface bytes per elements does not match the pbuffer internal format.";
+        return false;
     }
 
     return true;

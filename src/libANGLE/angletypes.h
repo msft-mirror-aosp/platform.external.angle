@@ -38,7 +38,6 @@ enum class Command
     Dispatch,
     Draw,
     GenerateMipmap,
-    Invalidate,
     ReadPixels,
     TexImage,
     Other
@@ -50,72 +49,39 @@ enum class InitState
     Initialized,
 };
 
-template <typename T>
-struct RectangleImpl
+struct Rectangle
 {
-    RectangleImpl() : x(T(0)), y(T(0)), width(T(0)), height(T(0)) {}
-    constexpr RectangleImpl(T x_in, T y_in, T width_in, T height_in)
+    Rectangle() : x(0), y(0), width(0), height(0) {}
+    constexpr Rectangle(int x_in, int y_in, int width_in, int height_in)
         : x(x_in), y(y_in), width(width_in), height(height_in)
     {}
-    explicit constexpr RectangleImpl(const T corners[4])
-        : x(corners[0]),
-          y(corners[1]),
-          width(corners[2] - corners[0]),
-          height(corners[3] - corners[1])
-    {}
-    template <typename S>
-    explicit constexpr RectangleImpl(const RectangleImpl<S> rect)
-        : x(rect.x), y(rect.y), width(rect.width), height(rect.height)
-    {}
 
-    T x0() const { return x; }
-    T y0() const { return y; }
-    T x1() const { return x + width; }
-    T y1() const { return y + height; }
+    int x0() const { return x; }
+    int y0() const { return y; }
+    int x1() const { return x + width; }
+    int y1() const { return y + height; }
 
-    bool isReversedX() const { return width < T(0); }
-    bool isReversedY() const { return height < T(0); }
+    bool isReversedX() const { return width < 0; }
+    bool isReversedY() const { return height < 0; }
 
     // Returns a rectangle with the same area but flipped in X, Y, neither or both.
-    RectangleImpl<T> flip(bool flipX, bool flipY) const
-    {
-        RectangleImpl flipped = *this;
-        if (flipX)
-        {
-            flipped.x     = flipped.x + flipped.width;
-            flipped.width = -flipped.width;
-        }
-        if (flipY)
-        {
-            flipped.y      = flipped.y + flipped.height;
-            flipped.height = -flipped.height;
-        }
-        return flipped;
-    }
+    Rectangle flip(bool flipX, bool flipY) const;
 
     // Returns a rectangle with the same area but with height and width guaranteed to be positive.
-    RectangleImpl<T> removeReversal() const { return flip(isReversedX(), isReversedY()); }
+    Rectangle removeReversal() const;
 
-    bool encloses(const RectangleImpl<T> &inside) const
-    {
-        return x0() <= inside.x0() && y0() <= inside.y0() && x1() >= inside.x1() &&
-               y1() >= inside.y1();
-    }
+    bool encloses(const gl::Rectangle &inside) const;
 
-    bool empty() const;
+    bool empty() const { return width == 0 && height == 0; }
 
-    T x;
-    T y;
-    T width;
-    T height;
+    int x;
+    int y;
+    int width;
+    int height;
 };
 
-template <typename T>
-bool operator==(const RectangleImpl<T> &a, const RectangleImpl<T> &b);
-template <typename T>
-bool operator!=(const RectangleImpl<T> &a, const RectangleImpl<T> &b);
-
-using Rectangle = RectangleImpl<int>;
+bool operator==(const Rectangle &a, const Rectangle &b);
+bool operator!=(const Rectangle &a, const Rectangle &b);
 
 enum class ClipSpaceOrigin
 {
@@ -665,7 +631,7 @@ class BlendStateExt final
 
     ///////// Blend Equation /////////
 
-    EquationStorage::Type expandEquationValue(const gl::BlendEquationType equation) const;
+    EquationStorage::Type expandEquationValue(const GLenum mode) const;
     EquationStorage::Type expandEquationColorIndexed(const size_t index) const;
     EquationStorage::Type expandEquationAlphaIndexed(const size_t index) const;
     void setEquations(const GLenum modeColor, const GLenum modeAlpha);
@@ -721,8 +687,6 @@ class BlendStateExt final
 
     DrawBufferMask mMaxEnabledMask;
     DrawBufferMask mEnabledMask;
-    // Cache of whether the blend equation for each index is from KHR_blend_equation_advanced.
-    DrawBufferMask mUsesAdvancedBlendEquationMask;
 
     size_t mMaxDrawBuffers;
 };

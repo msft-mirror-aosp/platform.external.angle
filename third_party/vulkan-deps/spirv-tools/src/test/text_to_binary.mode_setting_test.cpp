@@ -290,8 +290,7 @@ using TextToBinaryCapability = spvtest::TextToBinaryTest;
 
 TEST_F(TextToBinaryCapability, BadMissingCapability) {
   EXPECT_THAT(CompileFailure("OpCapability"),
-              Eq("Expected operand for OpCapability instruction, but found the "
-                 "end of the stream."));
+              Eq("Expected operand, found end of stream."));
 }
 
 TEST_F(TextToBinaryCapability, BadInvalidCapability) {

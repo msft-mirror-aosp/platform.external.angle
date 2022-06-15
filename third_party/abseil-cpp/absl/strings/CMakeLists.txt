@@ -68,7 +68,6 @@ absl_cc_library(
   PUBLIC
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     strings_internal
@@ -386,7 +385,6 @@ absl_cc_library(
   PUBLIC
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     str_format_internal
@@ -525,7 +523,6 @@ absl_cc_test(
     GTest::gmock_main
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     pow10_helper
@@ -553,27 +550,17 @@ absl_cc_test(
     GTest::gmock_main
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     cord_internal
   HDRS
-    "internal/cord_data_edge.h"
     "internal/cord_internal.h"
-    "internal/cord_rep_btree.h"
-    "internal/cord_rep_btree_navigator.h"
-    "internal/cord_rep_btree_reader.h"
-    "internal/cord_rep_crc.h"
     "internal/cord_rep_consume.h"
     "internal/cord_rep_flat.h"
     "internal/cord_rep_ring.h"
     "internal/cord_rep_ring_reader.h"
   SRCS
     "internal/cord_internal.cc"
-    "internal/cord_rep_btree.cc"
-    "internal/cord_rep_btree_navigator.cc"
-    "internal/cord_rep_btree_reader.cc"
-    "internal/cord_rep_crc.cc"
     "internal/cord_rep_consume.cc"
     "internal/cord_rep_ring.cc"
   COPTS
@@ -592,7 +579,6 @@ absl_cc_library(
     absl::type_traits
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     cordz_update_tracker
@@ -619,7 +605,6 @@ absl_cc_test(
     GTest::gmock_main
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     cordz_functions
@@ -648,7 +633,6 @@ absl_cc_test(
     GTest::gmock_main
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     cordz_statistics
@@ -663,7 +647,6 @@ absl_cc_library(
     absl::synchronization
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     cordz_handle
@@ -697,7 +680,6 @@ absl_cc_test(
     GTest::gmock_main
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     cordz_info
@@ -765,7 +747,6 @@ absl_cc_test(
     GTest::gmock_main
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     cordz_sample_token
@@ -804,7 +785,6 @@ absl_cc_test(
     GTest::gmock_main
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     cordz_update_scope
@@ -845,8 +825,6 @@ absl_cc_library(
     "cord.h"
   SRCS
     "cord.cc"
-    "cord_analysis.cc"
-    "cord_analysis.h"
   COPTS
     ${ABSL_DEFAULT_COPTS}
   DEPS
@@ -864,26 +842,9 @@ absl_cc_library(
     absl::inlined_vector
     absl::optional
     absl::raw_logging_internal
-    absl::span
     absl::strings
     absl::type_traits
   PUBLIC
-)
-
-# Internal-only target, do not depend on directly.
-absl_cc_library(
-  NAME
-    cord_rep_test_util
-  HDRS
-    "internal/cord_rep_test_util.h"
-  COPTS
-    ${ABSL_TEST_COPTS}
-  DEPS
-    absl::config
-    absl::cord_internal
-    absl::raw_logging_internal
-    absl::strings
-  TESTONLY
 )
 
 absl_cc_library(
@@ -901,7 +862,6 @@ absl_cc_library(
   TESTONLY
 )
 
-# Internal-only target, do not depend on directly.
 absl_cc_library(
   NAME
     cordz_test_helpers
@@ -939,8 +899,6 @@ absl_cc_test(
     absl::cordz_test_helpers
     absl::core_headers
     absl::endian
-    absl::hash
-    absl::random_random
     absl::raw_logging_internal
     absl::fixed_array
     GTest::gmock_main
@@ -948,87 +906,19 @@ absl_cc_test(
 
 absl_cc_test(
   NAME
-    cord_data_edge_test
+    cord_rep_consume_test
   SRCS
-    "internal/cord_data_edge_test.cc"
+    "internal/cord_rep_consume_test.cc"
   COPTS
     ${ABSL_TEST_COPTS}
   DEPS
     absl::base
     absl::config
     absl::cord_internal
-    absl::cord_rep_test_util
     absl::core_headers
-    absl::strings
-    GTest::gmock_main
-)
-
-absl_cc_test(
-  NAME
-    cord_rep_btree_test
-  SRCS
-    "internal/cord_rep_btree_test.cc"
-  COPTS
-    ${ABSL_TEST_COPTS}
-  DEPS
-    absl::base
-    absl::cleanup
-    absl::config
-    absl::cord_internal
-    absl::cord_rep_test_util
-    absl::core_headers
+    absl::function_ref
     absl::raw_logging_internal
     absl::strings
-    GTest::gmock_main
-)
-
-absl_cc_test(
-  NAME
-    cord_rep_btree_navigator_test
-  SRCS
-    "internal/cord_rep_btree_navigator_test.cc"
-  COPTS
-    ${ABSL_TEST_COPTS}
-  DEPS
-    absl::base
-    absl::config
-    absl::cord_internal
-    absl::cord_rep_test_util
-    absl::core_headers
-    absl::raw_logging_internal
-    absl::strings
-    GTest::gmock_main
-)
-
-absl_cc_test(
-  NAME
-    cord_rep_btree_reader_test
-  SRCS
-    "internal/cord_rep_btree_reader_test.cc"
-  COPTS
-    ${ABSL_TEST_COPTS}
-  DEPS
-    absl::base
-    absl::config
-    absl::cord_internal
-    absl::cord_rep_test_util
-    absl::core_headers
-    absl::raw_logging_internal
-    absl::strings
-    GTest::gmock_main
-)
-
-absl_cc_test(
-  NAME
-    cord_rep_crc_test
-  SRCS
-    "internal/cord_rep_crc_test.cc"
-  COPTS
-    ${ABSL_TEST_COPTS}
-  DEPS
-    absl::config
-    absl::cord_internal
-    absl::cord_rep_test_util
     GTest::gmock_main
 )
 

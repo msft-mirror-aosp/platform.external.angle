@@ -53,34 +53,18 @@ std::string SanitizeRendererString(std::string rendererString)
 
 // OpenGL ES requires a prefix of "OpenGL ES" for the GL_VERSION string.
 // We can also add the prefix to desktop OpenGL for consistency.
-std::string SanitizeVersionString(std::string versionString, bool isES, bool includeFullVersion)
+std::string SanitizeVersionString(std::string versionString, bool isES)
 {
-    const std::string GLString = "OpenGL ";
-    const std::string ESString = "ES ";
-    size_t openGLESPos         = versionString.find(GLString);
-    std::ostringstream result;
-
-    if (openGLESPos == std::string::npos)
+    if (versionString.find("OpenGL") == std::string::npos)
     {
-        openGLESPos = 0;
+        std::string prefix = "OpenGL ";
+        if (isES)
+        {
+            prefix += "ES ";
+        }
+        versionString = prefix + versionString;
     }
-    else
-    {
-        openGLESPos += GLString.size() + (isES ? ESString.size() : 0);
-    }
-
-    result << GLString << (isES ? ESString : "");
-    if (includeFullVersion)
-    {
-        result << versionString.substr(openGLESPos);
-    }
-    else
-    {
-        size_t postVersionSpace = versionString.find(" ", openGLESPos);
-        result << versionString.substr(openGLESPos, postVersionSpace - openGLESPos);
-    }
-
-    return result.str();
+    return versionString;
 }
 
 DisplayGL::DisplayGL(const egl::DisplayState &state) : DisplayImpl(state) {}
@@ -98,15 +82,6 @@ ImageImpl *DisplayGL::createImage(const egl::ImageState &state,
                                   const gl::Context *context,
                                   EGLenum target,
                                   const egl::AttributeMap &attribs)
-{
-    UNIMPLEMENTED();
-    return nullptr;
-}
-
-SurfaceImpl *DisplayGL::createPbufferFromClientBuffer(const egl::SurfaceState &state,
-                                                      EGLenum buftype,
-                                                      EGLClientBuffer clientBuffer,
-                                                      const egl::AttributeMap &attribs)
 {
     UNIMPLEMENTED();
     return nullptr;
@@ -161,7 +136,7 @@ void DisplayGL::generateExtensions(egl::DisplayExtensions *outExtensions) const
 {
     // Advertise robust resource initialization on all OpenGL backends for testing even though it is
     // not fully implemented.
-    outExtensions->robustResourceInitializationANGLE = true;
+    outExtensions->robustResourceInitialization = true;
 }
 
 egl::Error DisplayGL::makeCurrentSurfaceless(gl::Context *context)
@@ -175,7 +150,7 @@ std::string DisplayGL::getRendererDescription()
     std::string rendererString        = GetRendererString(getRenderer()->getFunctions());
     const angle::FeaturesGL &features = getRenderer()->getFeatures();
 
-    if (features.sanitizeAMDGPURendererString.enabled)
+    if (features.sanitizeAmdGpuRendererString.enabled)
     {
         return SanitizeRendererString(rendererString);
     }
@@ -187,12 +162,11 @@ std::string DisplayGL::getVendorString()
     return GetVendorString(getRenderer()->getFunctions());
 }
 
-std::string DisplayGL::getVersionString(bool includeFullVersion)
+std::string DisplayGL::getVersionString()
 {
     std::string versionString = GetVersionString(getRenderer()->getFunctions());
     return SanitizeVersionString(versionString,
-                                 getRenderer()->getFunctions()->standard == STANDARD_GL_ES,
-                                 includeFullVersion);
+                                 getRenderer()->getFunctions()->standard == STANDARD_GL_ES);
 }
 
 }  // namespace rx

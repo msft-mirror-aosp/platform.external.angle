@@ -61,56 +61,6 @@ enum class NoopOp
 using MemoryBarrierVariationsTestParams =
     std::tuple<angle::PlatformParameters, ShaderWritePipeline, WriteResource, NoopOp, NoopOp>;
 
-std::ostream &operator<<(std::ostream &out, WriteResource writeResource)
-{
-    switch (writeResource)
-    {
-        case WriteResource::Image:
-            out << "image";
-            break;
-        case WriteResource::Buffer:
-            out << "buffer";
-            break;
-        case WriteResource::ImageBuffer:
-            out << "imagebuffer";
-            break;
-    }
-
-    return out;
-}
-
-std::ostream &operator<<(std::ostream &out, ShaderWritePipeline writePipeline)
-{
-    if (writePipeline == ShaderWritePipeline::Graphics)
-    {
-        out << "graphics";
-    }
-    else
-    {
-        out << "compute";
-    }
-
-    return out;
-}
-
-std::ostream &operator<<(std::ostream &out, NoopOp noop)
-{
-    switch (noop)
-    {
-        case NoopOp::Draw:
-            out << "NoopDraw";
-            break;
-        case NoopOp::Dispatch:
-            out << "NoopDispatch";
-            break;
-        case NoopOp::None:
-            out << "NoopNone";
-            break;
-    }
-
-    return out;
-}
-
 void ParseMemoryBarrierVariationsTestParams(const MemoryBarrierVariationsTestParams &params,
                                             ShaderWritePipeline *writePipelineOut,
                                             WriteResource *writeResourceOut,
@@ -139,16 +89,48 @@ std::string MemoryBarrierVariationsTestPrint(
     ParseMemoryBarrierVariationsTestParams(params, &writePipeline, &writeResource, &preBarrierOp,
                                            &postBarrierOp);
 
-    out << "__" << writePipeline << "_" << writeResource;
+    out << "_";
 
-    if (preBarrierOp != NoopOp::None)
+    if (writePipeline == ShaderWritePipeline::Graphics)
     {
-        out << "_prebarrier" << preBarrierOp;
+        out << "_graphics";
     }
-    if (postBarrierOp != NoopOp::None)
+    else
     {
-        out << "_postbarrier" << postBarrierOp;
+        out << "_compute";
     }
+
+    switch (writeResource)
+    {
+        case WriteResource::Image:
+            out << "_image";
+            break;
+        case WriteResource::Buffer:
+            out << "_buffer";
+            break;
+        case WriteResource::ImageBuffer:
+            out << "_imagebuffer";
+            break;
+    }
+
+    if (preBarrierOp == NoopOp::Draw)
+    {
+        out << "_prebarrierNoopDraw";
+    }
+    else if (preBarrierOp == NoopOp::Dispatch)
+    {
+        out << "_prebarrierNoopDispatch";
+    }
+
+    if (postBarrierOp == NoopOp::Draw)
+    {
+        out << "_postbarrierNoopDraw";
+    }
+    else if (postBarrierOp == NoopOp::Dispatch)
+    {
+        out << "_postbarrierNoopDispatch";
+    }
+
     return out.str();
 }
 
@@ -1748,12 +1730,9 @@ void MemoryBarrierTestBase::transformFeedbackBitBufferWriteThenCapture(
 
     GLBuffer xfbBuffer;
     GLTexture xfbTextureBuffer;
-    constexpr size_t kOneInstanceDataSize                                       = 4;
-    constexpr size_t kInstanceCount                                             = 6;
-    constexpr std::array<float, kOneInstanceDataSize *kInstanceCount> kInitData = {12.34, 5.6,
-                                                                                   78.91, 123.456};
-    createStorageBuffer(writeResource, xfbBuffer, xfbTextureBuffer,
-                        sizeof(kInitData[0]) * kInitData.size(), kInitData.data());
+    constexpr std::array<float, 4> kInitData = {12.34, 5.6, 78.91, 123.456};
+    createStorageBuffer(writeResource, xfbBuffer, xfbTextureBuffer, sizeof(kInitData) * 6,
+                        kInitData.data());
 
     constexpr std::array<float, 4> kWriteData = {1.5, 3.75, 5.0, 12.125};
     setUniformData(writeProgram, kWriteData);
@@ -1805,12 +1784,9 @@ void MemoryBarrierTestBase::transformFeedbackBitCaptureThenBufferWrite(
 
     GLBuffer xfbBuffer;
     GLTexture xfbTextureBuffer;
-    constexpr size_t kOneInstanceDataSize                                       = 4;
-    constexpr size_t kInstanceCount                                             = 6;
-    constexpr std::array<float, kOneInstanceDataSize *kInstanceCount> kInitData = {12.34, 5.6,
-                                                                                   78.91, 123.456};
-    createStorageBuffer(writeResource, xfbBuffer, xfbTextureBuffer,
-                        sizeof(kInitData[0]) * kInitData.size(), kInitData.data());
+    constexpr std::array<float, 4> kInitData = {12.34, 5.6, 78.91, 123.456};
+    createStorageBuffer(writeResource, xfbBuffer, xfbTextureBuffer, sizeof(kInitData) * 6,
+                        kInitData.data());
 
     // Use the buffer
     GLProgram xfbProgram;

@@ -47,7 +47,7 @@ class ShCompileTest : public testing::Test
 
     ShBuiltInResources mResources;
 
-    class ANGLE_NO_DISCARD ScopedRestoreDefaultLocale : angle::NonCopyable
+    class ScopedRestoreDefaultLocale : angle::NonCopyable
     {
       public:
         ScopedRestoreDefaultLocale();
@@ -188,6 +188,8 @@ TEST_F(ShCompileTest, DecimalSepLocale)
     })";
     const char *parts[]  = {kSource};
 
+    int testedLocales = 0;
+
     // Ensure the locale is reset after the test runs.
     ScopedRestoreDefaultLocale restoreLocale;
 
@@ -219,12 +221,11 @@ TEST_F(ShCompileTest, DecimalSepLocale)
 
             ASSERT_EQ(referenceOut, localizedOut)
                 << "different output with locale (" << localizedLoc.name() << ") set";
+
+            testedLocales++;
         }
     }
 }
-
-// Desktop GLSL support is not enabled on Android
-#if !defined(ANGLE_PLATFORM_ANDROID)
 
 // For testing Desktop GL Shaders
 class ShCompileDesktopGLTest : public ShCompileTest
@@ -363,5 +364,3 @@ TEST_F(ShCompileDesktopGLTest, ImplicitConversionFunction)
 
     testCompile(shaderStrings, 1, true);
 }
-
-#endif  // !defined(ANGLE_PLATFORM_ANDROID)

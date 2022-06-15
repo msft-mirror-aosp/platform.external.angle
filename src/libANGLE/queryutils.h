@@ -276,16 +276,11 @@ void QueryContextAttrib(const gl::Context *context, EGLint attribute, EGLint *va
 
 egl::Error QuerySurfaceAttrib(const Display *display,
                               const gl::Context *context,
-                              Surface *surface,
+                              const Surface *surface,
                               EGLint attribute,
                               EGLint *value);
-egl::Error SetSurfaceAttrib(Surface *surface, EGLint attribute, EGLint value);
+void SetSurfaceAttrib(Surface *surface, EGLint attribute, EGLint value);
 Error GetSyncAttrib(Display *display, Sync *sync, EGLint attribute, EGLint *value);
-egl::Error QuerySurfaceAttrib64KHR(const Display *display,
-                                   const gl::Context *context,
-                                   const Surface *surface,
-                                   EGLint attribute,
-                                   EGLAttribKHR *value);
 
 }  // namespace egl
 

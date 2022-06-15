@@ -62,7 +62,7 @@ class WorkerContext : angle::NonCopyable
     virtual void unmakeCurrent() = 0;
 };
 
-class ANGLE_NO_DISCARD ScopedWorkerContextGL
+class ScopedWorkerContextGL
 {
   public:
     ScopedWorkerContextGL(RendererGL *renderer, std::string *infoLog);

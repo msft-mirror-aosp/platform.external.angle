@@ -59,15 +59,15 @@ In this example we'll be recording a buffer copy command:
 ```
     // Ensure that ANGLE sets proper read and write barriers for the Buffers.
     vk::CommandBufferAccess access;
-    access.onBufferTransferWrite(dstBuffer);
+    access.onBufferTransferWrite(destBuffer);
     access.onBufferTransferRead(srcBuffer);
 
     // Get a pointer to a secondary command buffer for command recording.
-    vk::OutsideRenderPassCommandBuffer *commandBuffer;
+    vk::CommandBuffer *commandBuffer;
     ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
 
     // Record the copy command into the secondary buffer. We're done!
-    commandBuffer->copyBuffer(srcBuffer->getBuffer(), dstBuffer->getBuffer(), copyCount, copies);
+    commandBuffer->copyBuffer(srcBuffer->getBuffer(), destBuffer->getBuffer(), copyCount, copies);
 ```
 
 ## Additional Reading

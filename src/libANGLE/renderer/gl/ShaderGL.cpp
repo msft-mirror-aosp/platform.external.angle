@@ -246,7 +246,7 @@ std::shared_ptr<WaitableCompileEvent> ShaderGL::compile(const gl::Context *conte
 
     ShCompileOptions additionalOptions = SH_INIT_GL_POSITION;
 
-    bool isWebGL = context->isWebGL();
+    bool isWebGL = context->getExtensions().webglCompatibility;
     if (isWebGL && mState.getShaderType() != gl::ShaderType::Compute)
     {
         additionalOptions |= SH_INIT_OUTPUT_VARIABLES;
@@ -314,6 +314,11 @@ std::shared_ptr<WaitableCompileEvent> ShaderGL::compile(const gl::Context *conte
         additionalOptions |= SH_CLAMP_POINT_SIZE;
     }
 
+    if (features.rewriteVectorScalarArithmetic.enabled)
+    {
+        additionalOptions |= SH_REWRITE_VECTOR_SCALAR_ARITHMETIC;
+    }
+
     if (features.dontUseLoopsToInitializeVariables.enabled)
     {
         additionalOptions |= SH_DONT_USE_LOOPS_TO_INITIALIZE_VARIABLES;
@@ -340,7 +345,7 @@ std::shared_ptr<WaitableCompileEvent> ShaderGL::compile(const gl::Context *conte
         additionalOptions |= SH_CLAMP_INDIRECT_ARRAY_BOUNDS;
     }
 
-    if (features.vertexIDDoesNotIncludeBaseVertex.enabled)
+    if (features.addBaseVertexToVertexID.enabled)
     {
         additionalOptions |= SH_ADD_BASE_VERTEX_TO_VERTEX_ID;
     }
@@ -372,7 +377,7 @@ std::shared_ptr<WaitableCompileEvent> ShaderGL::compile(const gl::Context *conte
 
     options |= additionalOptions;
 
-    auto workerThreadPool = context->getShaderCompileThreadPool();
+    auto workerThreadPool = context->getWorkerThreadPool();
 
     const std::string &source = mState.getSource();
 

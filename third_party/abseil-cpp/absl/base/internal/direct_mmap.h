@@ -20,7 +20,7 @@
 
 #include "absl/base/config.h"
 
-#ifdef ABSL_HAVE_MMAP
+#if ABSL_HAVE_MMAP
 
 #include <sys/mman.h>
 
