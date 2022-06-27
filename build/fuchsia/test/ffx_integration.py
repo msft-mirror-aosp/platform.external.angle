@@ -13,7 +13,21 @@ import tempfile
 from contextlib import AbstractContextManager
 from typing import Iterable, Optional
 
-from common import get_host_arch, run_ffx_command, run_continuous_ffx_command
+from common import get_host_arch, run_ffx_command, run_continuous_ffx_command, \
+                   SDK_ROOT
+
+
+def get_config(name: str) -> Optional[str]:
+    """Run a ffx config get command to retrieve the config value."""
+
+    try:
+        return run_ffx_command(['config', 'get', name],
+                               capture_output=True).stdout.strip()
+    except subprocess.CalledProcessError as cpe:
+        # A return code of 2 indicates no previous value set.
+        if cpe.returncode == 2:
+            return None
+        raise
 
 
 class ScopedFfxConfig(AbstractContextManager):
@@ -34,14 +48,7 @@ class ScopedFfxConfig(AbstractContextManager):
         """Override the configuration."""
 
         # Cache the old value.
-        try:
-            self._old_value = run_ffx_command(
-                ['config', 'get', self._name],
-                capture_output=True).stdout.strip()
-        except subprocess.CalledProcessError as cpe:
-            # A return code of 2 indicates no previous value set.
-            if cpe.returncode != 2:
-                raise
+        self._old_value = get_config(self._name)
         if self._new_value != self._old_value:
             run_ffx_command(['config', 'set', self._name, self._new_value])
         return self
@@ -86,6 +93,15 @@ class FfxEmulator(AbstractContextManager):
         node_name_suffix = random.randint(1, 9999)
         self._node_name = f'fuchsia-emulator-{node_name_suffix}'
 
+    @staticmethod
+    def _check_ssh_config_file() -> None:
+        """Checks for ssh keys and generates them if they are missing."""
+        script_path = os.path.join(SDK_ROOT, 'bin', 'fuchsia-common.sh')
+        check_cmd = [
+            'bash', '-c', f'. {script_path}; check-fuchsia-ssh-config'
+        ]
+        subprocess.run(check_cmd, check=True)
+
     def _download_product_bundle_if_necessary(self) -> None:
         """Download the image for a given product bundle."""
 
@@ -107,6 +123,7 @@ class FfxEmulator(AbstractContextManager):
             The node name of the emulator.
         """
 
+        self._check_ssh_config_file()
         self._download_product_bundle_if_necessary()
         emu_command = [
             'emu', 'start', self._product_bundle, '--name', self._node_name
