@@ -298,8 +298,8 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
     outExtensions->imagePixmap           = false;  // ANGLE does not support pixmaps
     outExtensions->glTexture2DImage      = true;
     outExtensions->glTextureCubemapImage = true;
-    outExtensions->glTexture3DImage      = false;
-    outExtensions->glRenderbufferImage   = true;
+    outExtensions->glTexture3DImage = getRenderer()->getFeatures().supportsImage2dViewOf3d.enabled;
+    outExtensions->glRenderbufferImage = true;
     outExtensions->imageNativeBuffer =
         getRenderer()->getFeatures().supportsAndroidHardwareBuffer.enabled;
     outExtensions->surfacelessContext = true;
@@ -407,15 +407,19 @@ egl::Error DisplayVk::getEGLError(EGLint errorCode)
     return egl::Error(errorCode, 0, std::move(errorString));
 }
 
+void DisplayVk::initializeFrontendFeatures(angle::FrontendFeatures *features) const
+{
+    mRenderer->initializeFrontendFeatures(features);
+}
+
 void DisplayVk::populateFeatureList(angle::FeatureList *features)
 {
     mRenderer->getFeatures().populateFeatureList(features);
 }
 
-ShareGroupVk::ShareGroupVk()
+ShareGroupVk::ShareGroupVk() : mOrphanNonEmptyBufferBlock(false)
 {
-    mLastPruneTime             = angle::GetCurrentSystemTime();
-    mOrphanNonEmptyBufferBlock = false;
+    mLastPruneTime = angle::GetCurrentSystemTime();
 }
 
 void ShareGroupVk::addContext(ContextVk *contextVk)
@@ -452,6 +456,15 @@ void ShareGroupVk::onDestroy(const egl::Display *display)
 
     mPipelineLayoutCache.destroy(renderer);
     mDescriptorSetLayoutCache.destroy(renderer);
+
+    mMetaDescriptorPools[DescriptorSetIndex::UniformsAndXfb].destroy(
+        renderer, VulkanCacheType::UniformsAndXfbDescriptors);
+    mMetaDescriptorPools[DescriptorSetIndex::Texture].destroy(renderer,
+                                                              VulkanCacheType::TextureDescriptors);
+    mMetaDescriptorPools[DescriptorSetIndex::ShaderResource].destroy(
+        renderer, VulkanCacheType::ShaderResourcesDescriptors);
+
+    mFramebufferCache.destroy(renderer);
 
     ASSERT(mResourceUseLists.empty());
 }

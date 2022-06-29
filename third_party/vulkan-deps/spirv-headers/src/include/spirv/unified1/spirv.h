@@ -31,7 +31,7 @@
 
 /*
 ** Enumeration tokens for SPIR-V, in various styles:
-**   C, C++, C++11, JSON, Lua, Python, C#, D
+**   C, C++, C++11, JSON, Lua, Python, C#, D, Beef
 ** 
 ** - C will have tokens with a "Spv" prefix, e.g.: SpvSourceLanguageGLSL
 ** - C++ will have tokens in the "spv" name space, e.g.: spv::SourceLanguageGLSL
@@ -41,6 +41,8 @@
 ** - C# will use enum classes in the Specification class located in the "Spv" namespace,
 **     e.g.: Spv.Specification.SourceLanguage.GLSL
 ** - D will have tokens under the "spv" module, e.g: spv.SourceLanguage.GLSL
+** - Beef will use enum classes in the Specification class located in the "Spv" namespace,
+**     e.g.: Spv.Specification.SourceLanguage.GLSL
 ** 
 ** Some tokens act like mask values, which can be OR'd together,
 ** while others are mutually exclusive.  The mask-like ones have
@@ -163,7 +165,14 @@ typedef enum SpvExecutionMode_ {
     SpvExecutionModeSignedZeroInfNanPreserve = 4461,
     SpvExecutionModeRoundingModeRTE = 4462,
     SpvExecutionModeRoundingModeRTZ = 4463,
+    SpvExecutionModeEarlyAndLateFragmentTestsAMD = 5017,
     SpvExecutionModeStencilRefReplacingEXT = 5027,
+    SpvExecutionModeStencilRefUnchangedFrontAMD = 5079,
+    SpvExecutionModeStencilRefGreaterFrontAMD = 5080,
+    SpvExecutionModeStencilRefLessFrontAMD = 5081,
+    SpvExecutionModeStencilRefUnchangedBackAMD = 5082,
+    SpvExecutionModeStencilRefGreaterBackAMD = 5083,
+    SpvExecutionModeStencilRefLessBackAMD = 5084,
     SpvExecutionModeOutputLinesNV = 5269,
     SpvExecutionModeOutputPrimitivesNV = 5270,
     SpvExecutionModeDerivativeGroupQuadsNV = 5289,
@@ -681,6 +690,7 @@ typedef enum SpvBuiltIn_ {
     SpvBuiltInSMCountNV = 5375,
     SpvBuiltInWarpIDNV = 5376,
     SpvBuiltInSMIDNV = 5377,
+    SpvBuiltInCullMaskKHR = 6021,
     SpvBuiltInMax = 0x7fffffff,
 } SpvBuiltIn;
 
@@ -1082,6 +1092,7 @@ typedef enum SpvCapability_ {
     SpvCapabilityDotProductInput4x8BitPackedKHR = 6018,
     SpvCapabilityDotProduct = 6019,
     SpvCapabilityDotProductKHR = 6019,
+    SpvCapabilityRayCullMaskKHR = 6020,
     SpvCapabilityBitInstructions = 6025,
     SpvCapabilityGroupNonUniformRotateKHR = 6026,
     SpvCapabilityAtomicFloat32AddEXT = 6033,

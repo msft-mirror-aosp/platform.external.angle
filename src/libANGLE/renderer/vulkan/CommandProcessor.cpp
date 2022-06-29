@@ -70,7 +70,7 @@ void ResetSecondaryCommandBuffers(VkDevice device,
 }
 
 template <>
-ANGLE_MAYBE_UNUSED void ResetSecondaryCommandBuffers<std::vector<VulkanSecondaryCommandBuffer>>(
+[[maybe_unused]] void ResetSecondaryCommandBuffers<std::vector<VulkanSecondaryCommandBuffer>>(
     VkDevice device,
     vk::CommandPool *commandPool,
     std::vector<VulkanSecondaryCommandBuffer> *commandBuffers)
@@ -1492,18 +1492,6 @@ uint32_t QueueFamily::FindIndex(const std::vector<VkQueueFamilyProperties> &queu
     }
 
     return index;
-}
-
-// ScopedCommandQueueLock implementation
-ScopedCommandQueueLock::~ScopedCommandQueueLock()
-{
-    // Before unlocking the mutex, see if device loss has occured, and if so handle it.
-    if (mRenderer->isDeviceLost())
-    {
-        mRenderer->handleDeviceLostNoLock();
-    }
-
-    mLock.unlock();
 }
 
 }  // namespace vk

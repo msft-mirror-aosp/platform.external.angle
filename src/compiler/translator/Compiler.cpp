@@ -206,7 +206,7 @@ int GetMaxUniformVectorsForShaderType(GLenum shaderType, const ShBuiltInResource
 namespace
 {
 
-class ANGLE_NO_DISCARD TScopedPoolAllocator
+class [[nodiscard]] TScopedPoolAllocator
 {
   public:
     TScopedPoolAllocator(angle::PoolAllocator *allocator) : mAllocator(allocator)
@@ -224,7 +224,7 @@ class ANGLE_NO_DISCARD TScopedPoolAllocator
     angle::PoolAllocator *mAllocator;
 };
 
-class ANGLE_NO_DISCARD TScopedSymbolTableLevel
+class [[nodiscard]] TScopedSymbolTableLevel
 {
   public:
     TScopedSymbolTableLevel(TSymbolTable *table) : mTable(table)
@@ -1105,16 +1105,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         if (!sh::RemoveDynamicIndexingOfSwizzledVector(this, root, &getSymbolTable(), nullptr))
         {
             return false;
-        }
-    }
-
-    mEarlyFragmentTestsOptimized = false;
-    if ((compileOptions & SH_EARLY_FRAGMENT_TESTS_OPTIMIZATION) != 0)
-    {
-        if (mShaderVersion <= 300 && mShaderType == GL_FRAGMENT_SHADER &&
-            !isEarlyFragmentTestsSpecified())
-        {
-            mEarlyFragmentTestsOptimized = CheckEarlyFragmentTestsFeasible(this, root);
         }
     }
 

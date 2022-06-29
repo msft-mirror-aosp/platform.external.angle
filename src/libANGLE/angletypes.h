@@ -125,9 +125,9 @@ enum class ClipSpaceOrigin
 };
 
 // Calculate the intersection of two rectangles.  Returns false if the intersection is empty.
-ANGLE_NO_DISCARD bool ClipRectangle(const Rectangle &source,
-                                    const Rectangle &clip,
-                                    Rectangle *intersection);
+[[nodiscard]] bool ClipRectangle(const Rectangle &source,
+                                 const Rectangle &clip,
+                                 Rectangle *intersection);
 // Calculate the smallest rectangle that covers both rectangles.  This rectangle may cover areas
 // not covered by the two rectangles, for example in this situation:
 //
@@ -168,7 +168,7 @@ struct Extents
     Extents() : width(0), height(0), depth(0) {}
     Extents(int width_, int height_, int depth_) : width(width_), height(height_), depth(depth_) {}
 
-    Extents(const Extents &other) = default;
+    Extents(const Extents &other)            = default;
     Extents &operator=(const Extents &other) = default;
 
     bool empty() const { return (width * height * depth) == 0; }
@@ -196,12 +196,15 @@ struct Box
           height(size.height),
           depth(size.depth)
     {}
+    bool valid() const;
     bool operator==(const Box &other) const;
     bool operator!=(const Box &other) const;
     Rectangle toRect() const;
 
     // Whether the Box has offset 0 and the same extents as argument.
     bool coversSameExtent(const Extents &size) const;
+
+    bool contains(const Box &other) const;
 
     int x;
     int y;
@@ -782,7 +785,7 @@ class BlendStateExt final
 
     uint8_t mDrawBufferCount;
 
-    ANGLE_MAYBE_UNUSED uint32_t kUnused = 0;
+    [[maybe_unused]] uint32_t kUnused = 0;
 };
 
 static_assert(sizeof(BlendStateExt) == sizeof(uint64_t) +
@@ -795,6 +798,9 @@ static_assert(sizeof(BlendStateExt) == sizeof(uint64_t) +
 
 // Used in StateCache
 using StorageBuffersMask = angle::BitSet<IMPLEMENTATION_MAX_SHADER_STORAGE_BUFFER_BINDINGS>;
+
+template <typename T>
+using SampleMaskArray = std::array<T, IMPLEMENTATION_MAX_SAMPLE_MASK_WORDS>;
 
 template <typename T>
 using TexLevelArray = std::array<T, IMPLEMENTATION_MAX_TEXTURE_LEVELS>;
@@ -969,6 +975,9 @@ using BarrierVector = angle::FastVector<T, kBarrierVectorDefaultSize>;
 
 using BufferBarrierVector = BarrierVector<Buffer *>;
 
+using SamplerBindingVector = std::vector<BindingPointer<Sampler>>;
+using BufferVector         = std::vector<OffsetBindingPointer<Buffer>>;
+
 struct TextureAndLayout
 {
     Texture *texture;
@@ -988,7 +997,7 @@ class LevelIndexWrapper
   public:
     LevelIndexWrapper() = default;
     explicit constexpr LevelIndexWrapper(T levelIndex) : mLevelIndex(levelIndex) {}
-    constexpr LevelIndexWrapper(const LevelIndexWrapper &other) = default;
+    constexpr LevelIndexWrapper(const LevelIndexWrapper &other)            = default;
     constexpr LevelIndexWrapper &operator=(const LevelIndexWrapper &other) = default;
 
     constexpr T get() const { return mLevelIndex; }

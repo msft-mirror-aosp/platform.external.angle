@@ -109,6 +109,7 @@ template("angle_common_test_utils") {
     ]
     sources = [
       "$angle_root/third_party/renderdoc/src/renderdoc_app.h",
+      "test_utils/MultiThreadSteps.cpp",
       "test_utils/MultiThreadSteps.h",
       "test_utils/RenderDoc.cpp",
       "test_utils/RenderDoc.h",
@@ -410,14 +411,18 @@ if (is_win || is_linux || is_chromeos || is_android || is_apple) {
     ]
     data_deps = [ "//testing:run_perf_test" ]
 
-    # These tests depend on vulkan_command_buffer_utils, which is
-    # not yet compatible with mac and vulkan display/headless backend.
-    if (angle_enable_vulkan && !angle_use_vulkan_display && !is_apple) {
+    if (angle_enable_vulkan) {
       sources += angle_white_box_perf_tests_vulkan_sources
       deps += [
         "$angle_glslang_dir:glslang_lib_sources",
         "$angle_root/src/common/vulkan:angle_vulkan_entry_points",
       ]
+    }
+
+    # These tests depend on vulkan_command_buffer_utils, which is
+    # not yet compatible with mac and vulkan display/headless backend.
+    if (angle_enable_vulkan && !angle_use_vulkan_display && !is_apple) {
+      sources += angle_white_box_perf_tests_vulkan_command_buffer_sources
     }
   }
 }

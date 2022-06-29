@@ -138,6 +138,11 @@ bool ImageSibling::isYUV() const
     return mTargetOf.get() && mTargetOf->isYUV();
 }
 
+bool ImageSibling::isCreatedWithAHB() const
+{
+    return mTargetOf.get() && mTargetOf->isCreatedWithAHB();
+}
+
 bool ImageSibling::hasProtectedContent() const
 {
     return mTargetOf.get() && mTargetOf->hasProtectedContent();
@@ -423,6 +428,11 @@ bool Image::isYUV() const
     return mState.yuv;
 }
 
+bool Image::isCreatedWithAHB() const
+{
+    return mState.target == EGL_NATIVE_BUFFER_ANDROID;
+}
+
 bool Image::isCubeMap() const
 {
     return mState.cubeMap;
@@ -478,7 +488,8 @@ Error Image::initialize(const Display *display)
         mState.hasProtectedContent = externalSibling->hasProtectedContent();
         mState.levelCount          = externalSibling->getLevelCount();
         mState.cubeMap             = externalSibling->isCubeMap();
-        // Only external siblings can be YUV
+
+        // External siblings can be YUV
         mState.yuv = externalSibling->isYUV();
     }
 
@@ -493,6 +504,13 @@ Error Image::initialize(const Display *display)
             return egl::EglBadMatch();
         }
         mState.format = gl::Format(nonLinearFormat);
+    }
+
+    if (!IsExternalImageTarget(mState.sourceType))
+    {
+        // Account for the fact that GL_ANGLE_yuv_internal_format extension maybe enabled,
+        // in which case the internal format itself could be YUV.
+        mState.yuv = gl::IsYuvFormat(mState.format.info->sizedInternalFormat);
     }
 
     mState.size    = mState.source->getAttachmentSize(mState.imageIndex);

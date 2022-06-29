@@ -62,11 +62,9 @@ static constexpr Version ES_3_2 = Version(3, 2);
 template <typename T>
 using BufferBindingMap     = angle::PackedEnumMap<BufferBinding, T>;
 using BoundBufferMap       = BufferBindingMap<BindingPointer<Buffer>>;
-using SamplerBindingVector = std::vector<BindingPointer<Sampler>>;
 using TextureBindingVector = std::vector<BindingPointer<Texture>>;
 using TextureBindingMap    = angle::PackedEnumMap<TextureType, TextureBindingVector>;
 using ActiveQueryMap       = angle::PackedEnumMap<QueryType, BindingPointer<Query>>;
-using BufferVector         = std::vector<OffsetBindingPointer<Buffer>>;
 
 class ActiveTexturesCache final : angle::NonCopyable
 {
@@ -126,6 +124,8 @@ class State : angle::NonCopyable
     bool isWebGL() const { return mExtensions.webglCompatibilityANGLE; }
 
     bool isWebGL1() const { return (isWebGL() && mClientVersion.major == 2); }
+
+    bool isGLES1() const { return mClientVersion < ES_2_0; }
 
     const TextureCaps &getTextureCap(GLenum internalFormat) const
     {
@@ -246,10 +246,7 @@ class State : angle::NonCopyable
         ASSERT(maskNumber < mMaxSampleMaskWords);
         return mSampleMaskValues[maskNumber];
     }
-    std::array<GLbitfield, MAX_SAMPLE_MASK_WORDS> getSampleMaskValues() const
-    {
-        return mSampleMaskValues;
-    }
+    SampleMaskArray<GLbitfield> getSampleMaskValues() const { return mSampleMaskValues; }
     GLuint getMaxSampleMaskWords() const { return mMaxSampleMaskWords; }
 
     // Multisampling/alpha to one manipulation.
@@ -878,11 +875,6 @@ class State : angle::NonCopyable
         return mNoSimultaneousConstantColorAndAlphaBlendFunc;
     }
 
-    bool canEnableEarlyFragmentTestsOptimization() const
-    {
-        return !isSampleAlphaToCoverageEnabled();
-    }
-
     const BufferVector &getOffsetBindingPointerUniformBuffers() const { return mUniformBuffers; }
 
     const BufferVector &getOffsetBindingPointerAtomicCounterBuffers() const
@@ -1023,7 +1015,7 @@ class State : angle::NonCopyable
     bool mSampleCoverageInvert;
     bool mSampleMask;
     GLuint mMaxSampleMaskWords;
-    std::array<GLbitfield, MAX_SAMPLE_MASK_WORDS> mSampleMaskValues;
+    SampleMaskArray<GLbitfield> mSampleMaskValues;
     bool mIsSampleShadingEnabled;
     float mMinSampleShading;
 

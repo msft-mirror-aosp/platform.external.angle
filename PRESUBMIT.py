@@ -14,6 +14,10 @@ import subprocess
 import sys
 import tempfile
 
+# This line is 'magic' in that git-cl looks for it to decide whether to
+# use Python3 instead of Python2 when running the code in this file.
+USE_PYTHON3 = True
+
 # Fragment of a regular expression that matches C/C++ and Objective-C++ implementation files and headers.
 _IMPLEMENTATION_AND_HEADER_EXTENSIONS = r'\.(c|cc|cpp|cxx|mm|h|hpp|hxx)$'
 
@@ -239,7 +243,7 @@ def _CheckCodeGeneration(input_api, output_api):
     code_gen_path = input_api.os_path.join(input_api.PresubmitLocalPath(),
                                            'scripts/run_code_generation.py')
     cmd_name = 'run_code_generation'
-    cmd = [input_api.python_executable, code_gen_path, '--verify-no-dirty']
+    cmd = [input_api.python3_executable, code_gen_path, '--verify-no-dirty']
     test_cmd = input_api.Command(name=cmd_name, cmd=cmd, kwargs={}, message=Msg)
     if input_api.verbose:
         print('Running ' + cmd_name)
@@ -383,10 +387,11 @@ def _CheckNonAsciiInSourceFiles(input_api, output_api):
 
 
 def _CheckCommentBeforeTestInTestFiles(input_api, output_api):
-    """Require a comment before TEST_P() tests. """
+    """Require a comment before TEST_P() and other tests. """
 
     def test_files(f):
-        return input_api.FilterSourceFile(f, files_to_check=(r'^src\/tests\/.+\.cpp$',))
+        return input_api.FilterSourceFile(
+            f, files_to_check=(r'^src\/tests\/.+\.cpp$', r'^src\/.+_unittest\.cpp$'))
 
     tests_with_no_comment = []
     for f in input_api.AffectedSourceFiles(test_files):
@@ -398,7 +403,9 @@ def _CheckCommentBeforeTestInTestFiles(input_api, output_api):
                 continue
 
             new_line_is_comment = line.startswith(' //') or line.startswith('+//')
-            new_line_is_test_declaration = line.startswith('+TEST_P(')
+            new_line_is_test_declaration = (
+                line.startswith('+TEST_P(') or line.startswith('+TEST(') or
+                line.startswith('+TYPED_TEST('))
 
             if new_line_is_test_declaration and not last_line_was_comment:
                 tests_with_no_comment.append(line[1:])
