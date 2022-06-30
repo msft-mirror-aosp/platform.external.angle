@@ -338,13 +338,13 @@ void Overlay::initOverlayWidgets()
             widget->color[2]  = 0.29411764705882354f;
             widget->color[3]  = 0.7843137254901961f;
         }
-        mState.mOverlayWidgets[WidgetId::VulkanShaderBufferDSHitRate].reset(widget);
+        mState.mOverlayWidgets[WidgetId::VulkanShaderResourceDSHitRate].reset(widget);
         {
             const int32_t fontSize = GetFontSize(kFontMipSmall, kLargeFont);
             const int32_t offsetX =
-                mState.mOverlayWidgets[WidgetId::VulkanShaderBufferDSHitRate]->coords[0];
+                mState.mOverlayWidgets[WidgetId::VulkanShaderResourceDSHitRate]->coords[0];
             const int32_t offsetY =
-                mState.mOverlayWidgets[WidgetId::VulkanShaderBufferDSHitRate]->coords[1];
+                mState.mOverlayWidgets[WidgetId::VulkanShaderResourceDSHitRate]->coords[1];
             const int32_t width  = 40 * (kFontGlyphWidth >> fontSize);
             const int32_t height = (kFontGlyphHeight >> fontSize);
 
@@ -531,6 +531,29 @@ void Overlay::initOverlayWidgets()
             widget->description.color[2]  = 0.29411764705882354f;
             widget->description.color[3]  = 1.0f;
         }
+    }
+
+    {
+        Count *widget = new Count;
+        {
+            const int32_t fontSize = GetFontSize(kFontMipSmall, kLargeFont);
+            const int32_t offsetX  = 10;
+            const int32_t offsetY  = 100;
+            const int32_t width    = 30 * (kFontGlyphWidth >> fontSize);
+            const int32_t height   = (kFontGlyphHeight >> fontSize);
+
+            widget->type      = WidgetType::Count;
+            widget->fontSize  = fontSize;
+            widget->coords[0] = offsetX;
+            widget->coords[1] = offsetY;
+            widget->coords[2] = offsetX + width;
+            widget->coords[3] = offsetY + height;
+            widget->color[0]  = 1.0f;
+            widget->color[1]  = 1.0f;
+            widget->color[2]  = 1.0f;
+            widget->color[3]  = 1.0f;
+        }
+        mState.mOverlayWidgets[WidgetId::VulkanDescriptorCacheKeySize].reset(widget);
     }
 }
 

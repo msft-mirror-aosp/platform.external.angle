@@ -447,15 +447,15 @@ void AppendWidgetDataHelper::AppendVulkanDescriptorSetAllocations(const overlay:
     AppendRunningGraphCommon(widget, imageExtent, textWidget, graphWidget, widgetCounts, format);
 }
 
-void AppendWidgetDataHelper::AppendVulkanShaderBufferDSHitRate(const overlay::Widget *widget,
-                                                               const gl::Extents &imageExtent,
-                                                               TextWidgetData *textWidget,
-                                                               GraphWidgetData *graphWidget,
-                                                               OverlayWidgetCounts *widgetCounts)
+void AppendWidgetDataHelper::AppendVulkanShaderResourceDSHitRate(const overlay::Widget *widget,
+                                                                 const gl::Extents &imageExtent,
+                                                                 TextWidgetData *textWidget,
+                                                                 GraphWidgetData *graphWidget,
+                                                                 OverlayWidgetCounts *widgetCounts)
 {
     auto format = [](size_t maxValue) {
         std::ostringstream text;
-        text << "Shader Buffer DS Hit Rate (Max: " << maxValue << "%)";
+        text << "Shader Resource DS Hit Rate (Max: " << maxValue << "%)";
         return text.str();
     };
 
@@ -522,6 +522,20 @@ void AppendWidgetDataHelper::AppendVulkanDescriptorCacheSize(const overlay::Widg
     };
 
     AppendRunningGraphCommon(widget, imageExtent, textWidget, graphWidget, widgetCounts, format);
+}
+
+void AppendWidgetDataHelper::AppendVulkanDescriptorCacheKeySize(const overlay::Widget *widget,
+                                                                const gl::Extents &imageExtent,
+                                                                TextWidgetData *textWidget,
+                                                                GraphWidgetData *graphWidget,
+                                                                OverlayWidgetCounts *widgetCounts)
+{
+    const overlay::Count *countWidget = static_cast<const overlay::Count *>(widget);
+    std::ostringstream text;
+    double kb = static_cast<double>(countWidget->count) / 1000.0;
+    text << "DS Cache Key Size: " << std::fixed << std::setprecision(1) << kb << " kb";
+
+    AppendTextCommon(widget, imageExtent, text.str(), textWidget, widgetCounts);
 }
 
 std::ostream &AppendWidgetDataHelper::OutputPerSecond(std::ostream &out,

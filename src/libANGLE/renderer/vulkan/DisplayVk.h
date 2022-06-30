@@ -34,12 +34,9 @@ class ShareGroupVk : public ShareGroupImpl
     // synchronous update to the caches.
     PipelineLayoutCache &getPipelineLayoutCache() { return mPipelineLayoutCache; }
     DescriptorSetLayoutCache &getDescriptorSetLayoutCache() { return mDescriptorSetLayoutCache; }
-    ContextVkSet *getContexts() { return &mContexts; }
+    const ContextVkSet &getContexts() const { return mContexts; }
 
-    std::vector<vk::ResourceUseList> &&releaseResourceUseLists()
-    {
-        return std::move(mResourceUseLists);
-    }
+    void releaseResourceUseLists(const Serial &submitSerial);
     void acquireResourceUseList(vk::ResourceUseList &&resourceUseList)
     {
         mResourceUseLists.emplace_back(std::move(resourceUseList));
@@ -50,6 +47,9 @@ class ShareGroupVk : public ShareGroupImpl
                                          uint32_t memoryTypeIndex);
     void pruneDefaultBufferPools(RendererVk *renderer);
     bool isDueForBufferPoolPrune();
+
+    void addContext(ContextVk *contextVk);
+    void removeContext(ContextVk *contextVk);
 
   private:
     // ANGLE uses a PipelineLayout cache to store compatible pipeline layouts.
@@ -74,6 +74,10 @@ class ShareGroupVk : public ShareGroupImpl
 
     // The system time when last pruneEmptyBuffer gets called.
     double mLastPruneTime;
+
+    // If true, it is expected that a BufferBlock may still in used by textures that outlived
+    // ShareGroup. The non-empty BufferBlock will be put into RendererVk's orphan list instead.
+    bool mOrphanNonEmptyBufferBlock;
 };
 
 class DisplayVk : public DisplayImpl, public vk::Context
@@ -163,6 +167,8 @@ class DisplayVk : public DisplayImpl, public vk::Context
 
     // TODO(jmadill): Remove this once refactor is done. http://anglebug.com/3041
     egl::Error getEGLError(EGLint errorCode);
+
+    void initializeFrontendFeatures(angle::FrontendFeatures *features) const override;
 
     void populateFeatureList(angle::FeatureList *features) override;
 

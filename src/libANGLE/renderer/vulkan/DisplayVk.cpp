@@ -26,7 +26,7 @@
 namespace rx
 {
 // Time interval in seconds that we should try to prune default buffer pools.
-constexpr double kTimeElapsedForPruneDefaultBufferPool = 1;
+constexpr double kTimeElapsedForPruneDefaultBufferPool = 0.25;
 
 DisplayVk::DisplayVk(const egl::DisplayState &state)
     : DisplayImpl(state),
@@ -346,6 +346,8 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
 
     outExtensions->lockSurface3KHR =
         getRenderer()->getFeatures().supportsLockSurfaceExtension.enabled;
+
+    outExtensions->partialUpdateKHR = true;
 }
 
 void DisplayVk::generateCaps(egl::Caps *outCaps) const
@@ -402,6 +404,11 @@ egl::Error DisplayVk::getEGLError(EGLint errorCode)
     return egl::Error(errorCode, 0, std::move(errorString));
 }
 
+void DisplayVk::initializeFrontendFeatures(angle::FrontendFeatures *features) const
+{
+    mRenderer->initializeFrontendFeatures(features);
+}
+
 void DisplayVk::populateFeatureList(angle::FeatureList *features)
 {
     mRenderer->getFeatures().populateFeatureList(features);
@@ -409,7 +416,23 @@ void DisplayVk::populateFeatureList(angle::FeatureList *features)
 
 ShareGroupVk::ShareGroupVk()
 {
-    mLastPruneTime = angle::GetCurrentSystemTime();
+    mLastPruneTime             = angle::GetCurrentSystemTime();
+    mOrphanNonEmptyBufferBlock = false;
+}
+
+void ShareGroupVk::addContext(ContextVk *contextVk)
+{
+    mContexts.insert(contextVk);
+
+    if (contextVk->getState().hasDisplayTextureShareGroup())
+    {
+        mOrphanNonEmptyBufferBlock = true;
+    }
+}
+
+void ShareGroupVk::removeContext(ContextVk *contextVk)
+{
+    mContexts.erase(contextVk);
 }
 
 void ShareGroupVk::onDestroy(const egl::Display *display)
@@ -420,19 +443,31 @@ void ShareGroupVk::onDestroy(const egl::Display *display)
     {
         if (pool)
         {
-            pool->destroy(renderer);
+            pool->destroy(renderer, mOrphanNonEmptyBufferBlock);
         }
     }
 
     if (mSmallBufferPool)
     {
-        mSmallBufferPool->destroy(renderer);
+        mSmallBufferPool->destroy(renderer, mOrphanNonEmptyBufferBlock);
     }
 
     mPipelineLayoutCache.destroy(renderer);
     mDescriptorSetLayoutCache.destroy(renderer);
 
     ASSERT(mResourceUseLists.empty());
+}
+
+void ShareGroupVk::releaseResourceUseLists(const Serial &submitSerial)
+{
+    if (!mResourceUseLists.empty())
+    {
+        for (vk::ResourceUseList &it : mResourceUseLists)
+        {
+            it.releaseResourceUsesAndUpdateSerials(submitSerial);
+        }
+        mResourceUseLists.clear();
+    }
 }
 
 vk::BufferPool *ShareGroupVk::getDefaultBufferPool(RendererVk *renderer,

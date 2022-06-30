@@ -134,8 +134,8 @@
             }
         },
         {
-            "name": "VulkanShaderBufferDSHitRate",
-            "comment": "Shader Buffer Descriptor Set Cache Hit Rate.",
+            "name": "VulkanShaderResourceDSHitRate",
+            "comment": "Shader Resource Descriptor Set Cache Hit Rate.",
             "type": "RunningGraph(60)",
             "color": [255, 0, 75, 200],
             "coords": [-50, 360],
@@ -143,8 +143,8 @@
             "height": 100,
             "description": {
                 "color": [255, 0, 75, 255],
-                "coords": ["VulkanShaderBufferDSHitRate.left.align",
-                           "VulkanShaderBufferDSHitRate.top.adjacent"],
+                "coords": ["VulkanShaderResourceDSHitRate.left.align",
+                           "VulkanShaderResourceDSHitRate.top.adjacent"],
                 "font": "small",
                 "length": 40
             }
@@ -212,6 +212,15 @@
                 "font": "small",
                 "length": 90
             }
+        },
+        {
+            "name": "VulkanDescriptorCacheKeySize",
+            "comment": "Total size of all keys in the descriptor set caches",
+            "type": "Count",
+            "color": [255, 255, 255, 255],
+            "coords": [10, 100],
+            "font": "small",
+            "length": 30
         }
     ]
 }
