@@ -884,7 +884,8 @@ class YcbcrConversionDesc final
                 VkFilter chromaFilter,
                 VkComponentMapping components,
                 angle::FormatID intendedFormatID);
-    void updateChromaFilter(VkFilter filter);
+    VkFilter getChromaFilter() const { return static_cast<VkFilter>(mChromaFilter); }
+    bool updateChromaFilter(RendererVk *rendererVk, VkFilter filter);
     uint64_t getExternalFormat() const { return mIsExternalFormat ? mExternalOrVkFormat : 0; }
 
     angle::Result init(Context *context, SamplerYcbcrConversion *conversionOut) const;
@@ -1095,6 +1096,38 @@ class PipelineHelper final : public Resource
     std::vector<GraphicsPipelineTransition> mTransitions;
     Pipeline mPipeline;
     CacheLookUpFeedback mCacheLookUpFeedback = CacheLookUpFeedback::None;
+};
+
+class FramebufferHelper : public Resource
+{
+  public:
+    FramebufferHelper();
+    ~FramebufferHelper() override;
+
+    FramebufferHelper(FramebufferHelper &&other);
+    FramebufferHelper &operator=(FramebufferHelper &&other);
+
+    angle::Result init(ContextVk *contextVk, const VkFramebufferCreateInfo &createInfo);
+    void destroy(RendererVk *rendererVk);
+    void release(ContextVk *contextVk);
+
+    bool valid() { return mFramebuffer.valid(); }
+
+    const Framebuffer &getFramebuffer() const
+    {
+        ASSERT(mFramebuffer.valid());
+        return mFramebuffer;
+    }
+
+    Framebuffer &getFramebuffer()
+    {
+        ASSERT(mFramebuffer.valid());
+        return mFramebuffer;
+    }
+
+  private:
+    // Vulkan object.
+    Framebuffer mFramebuffer;
 };
 
 ANGLE_INLINE PipelineHelper::PipelineHelper(Pipeline &&pipeline, CacheLookUpFeedback feedback)
@@ -1418,8 +1451,6 @@ constexpr size_t kFramebufferDescColorResolveIndexOffset =
 // Enable struct padding warnings for the code below since it is used in caches.
 ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
 
-class FramebufferHelper;
-
 class FramebufferDesc
 {
   public:
@@ -1569,11 +1600,16 @@ class SharedCacheKeyManager
     ~SharedCacheKeyManager() { ASSERT(empty()); }
     // Store the pointer to the cache key and retains it
     void addKey(const SharedCacheKeyT &key);
-    // Iterate over the descriptor array and destroy the descriptor and cache.
+    // Iterate over the descriptor array and release the descriptor and cache.
     void releaseKeys(ContextVk *contextVk);
-    void destroy();
-    bool empty() { return mSharedCacheKeys.empty(); }
+    // Iterate over the descriptor array and destroy the descriptor and cache.
+    void destroyKeys();
+    void clear();
+
+    // The following APIs are expected to be used for assertion only
     bool containsKey(const SharedCacheKeyT &key) const;
+    bool empty() const { return mSharedCacheKeys.empty(); }
+    void assertAllEntriesDestroyed();
 
   private:
     // Tracks an array of cache keys with refcounting. Note this owns one refcount of
@@ -2091,6 +2127,8 @@ class DescriptorSetCache final : angle::NonCopyable
         }
         return totalSize;
     }
+
+    bool empty() const { return mPayload.empty(); }
 
   private:
     angle::HashMap<vk::DescriptorSetDesc, VkDescriptorSet> mPayload;

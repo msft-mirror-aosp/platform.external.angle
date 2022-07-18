@@ -94,8 +94,8 @@
 /tools/valgrind
 angle.iml
 angle_debug.txt
-build
-buildtools/
+/build
+/buildtools
 debug.txt
 Debug/
 Debug_ARM/

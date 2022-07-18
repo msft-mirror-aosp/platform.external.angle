@@ -1316,7 +1316,7 @@ angle::Result ProgramExecutableVk::getOrAllocateDescriptorSet(
 }
 
 angle::Result ProgramExecutableVk::updateShaderResourcesDescriptorSet(
-    ContextVk *contextVk,
+    vk::Context *context,
     UpdateDescriptorSetsBuilder *updateBuilder,
     vk::CommandBufferHelperCommon *commandBufferHelper,
     const vk::DescriptorSetDescBuilder &shaderResourcesDesc)
@@ -1326,7 +1326,7 @@ angle::Result ProgramExecutableVk::updateShaderResourcesDescriptorSet(
         return angle::Result::Continue;
     }
 
-    ANGLE_TRY(getOrAllocateDescriptorSet(contextVk, updateBuilder, commandBufferHelper,
+    ANGLE_TRY(getOrAllocateDescriptorSet(context, updateBuilder, commandBufferHelper,
                                          shaderResourcesDesc, DescriptorSetIndex::ShaderResource));
 
     size_t numOffsets = shaderResourcesDesc.getDynamicOffsetsSize();
@@ -1377,6 +1377,11 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
     {
         vk::SharedDescriptorSetCacheKey sharedCacheKey = CreateSharedDescriptorSetCacheKey(
             texturesDesc, &mDescriptorPoolBindings[DescriptorSetIndex::Texture].get());
+
+        // Let each pool know there is a shared cache key created and destroys the shared cache key
+        // when it destroys the pool.
+        mDescriptorPoolBindings[DescriptorSetIndex::Texture].get().onNewDescriptorSetAllocated(
+            sharedCacheKey);
 
         vk::DescriptorSetDescBuilder fullDesc;
         ANGLE_TRY(fullDesc.updateFullActiveTextures(context, mVariableInfoMap, executable, textures,
@@ -1442,9 +1447,9 @@ angle::Result ProgramExecutableVk::bindDescriptorSets(
             // later sets to misbehave.
             if (mEmptyDescriptorSets[descriptorSetIndex] == VK_NULL_HANDLE)
             {
-                ANGLE_TRY(mDescriptorPools[descriptorSetIndex].get().allocateDescriptorSets(
+                ANGLE_TRY(mDescriptorPools[descriptorSetIndex].get().allocateDescriptorSet(
                     context, commandBufferHelper, mDescriptorSetLayouts[descriptorSetIndex].get(),
-                    1, &mDescriptorPoolBindings[descriptorSetIndex],
+                    &mDescriptorPoolBindings[descriptorSetIndex],
                     &mEmptyDescriptorSets[descriptorSetIndex]));
             }
             descSet = mEmptyDescriptorSets[descriptorSetIndex];

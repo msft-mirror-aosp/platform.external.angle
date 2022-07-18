@@ -232,9 +232,6 @@ def AddTestExecutionArgs(arg_parser):
                          help='Directory to place code coverage information. '
                          'Only relevant when --code-coverage set to true. '
                          'Defaults to current directory.')
-  test_args.add_argument('--child-arg',
-                         action='append',
-                         help='Arguments for the test process.')
   test_args.add_argument('--gtest_also_run_disabled_tests',
                          default=False,
                          action='store_true',
@@ -242,6 +239,8 @@ def AddTestExecutionArgs(arg_parser):
   test_args.add_argument('child_args',
                          nargs='*',
                          help='Arguments for the test process.')
+  test_args.add_argument('--use-vulkan',
+                         help='\'native\', \'swiftshader\' or \'none\'.')
 
 
 def main():
@@ -319,14 +318,22 @@ def main():
   if args.gtest_also_run_disabled_tests:
     child_args.append('--gtest_also_run_disabled_tests')
 
-  if args.child_arg:
-    child_args.extend(args.child_arg)
   if args.child_args:
     child_args.extend(args.child_args)
 
   test_realms = []
   if args.use_run_test_component:
     test_realms = [TEST_REALM_NAME]
+
+  if args.use_vulkan:
+    child_args.append('--use-vulkan=' + args.use_vulkan)
+  elif args.target_cpu == 'x64':
+    # TODO(crbug.com/1261646) Remove once Vulkan is enabled by default.
+    child_args.append('--use-vulkan=native')
+  else:
+    # Use swiftshader on arm64 by default because arm64 bots currently
+    # don't support Vulkan emulation.
+    child_args.append('--use-vulkan=swiftshader')
 
   try:
     with GetDeploymentTargetForArgs(args) as target, \

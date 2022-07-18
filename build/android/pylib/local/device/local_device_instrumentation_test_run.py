@@ -26,6 +26,7 @@ from devil.android import device_errors
 from devil.android import device_temp_file
 from devil.android import flag_changer
 from devil.android.sdk import shared_prefs
+from devil.android.sdk import version_codes
 from devil.android import logcat_monitor
 from devil.android.tools import system_app
 from devil.android.tools import webview_app
@@ -97,6 +98,9 @@ EXTRA_TRACE_FILE = ('org.chromium.base.test.BaseJUnit4ClassRunner.TraceFile')
 
 _EXTRA_TEST_LIST = (
     'org.chromium.base.test.BaseChromiumAndroidJUnitRunner.TestList')
+
+_EXTRA_TEST_IS_UNIT = (
+    'org.chromium.base.test.BaseChromiumAndroidJUnitRunner.IsUnitTest')
 
 _EXTRA_PACKAGE_UNDER_TEST = ('org.chromium.chrome.test.pagecontroller.rules.'
                              'ChromeUiApplicationTestRule.PackageUnderTest')
@@ -383,6 +387,10 @@ class LocalDeviceInstrumentationTestRun(
               shared_pref, setting)
 
       @trace_event.traced
+      def approve_app_links(dev):
+        self._ToggleAppLinks(dev, 'STATE_APPROVED')
+
+      @trace_event.traced
       def set_vega_permissions(dev):
         # Normally, installation of VrCore automatically grants storage
         # permissions. However, since VrCore is part of the system image on
@@ -424,8 +432,8 @@ class LocalDeviceInstrumentationTestRun(
             dev, self._test_instance.timeout_scale)
 
       steps += [
-          set_debug_app, edit_shared_prefs, push_test_data, create_flag_changer,
-          set_vega_permissions, DismissCrashDialogs
+          set_debug_app, edit_shared_prefs, approve_app_links, push_test_data,
+          create_flag_changer, set_vega_permissions, DismissCrashDialogs
       ]
 
       def bind_crash_handler(step, dev):
@@ -507,6 +515,9 @@ class LocalDeviceInstrumentationTestRun(
       for pref_to_restore in self._shared_prefs_to_restore:
         pref_to_restore.Commit(force_commit=True)
 
+      # If we've force approved app links for a package, undo that now.
+      self._ToggleAppLinks(dev, 'STATE_NO_RESPONSE')
+
       # Context manager exit handlers are applied in reverse order
       # of the enter handlers.
       for context in reversed(self._context_managers[str(dev)]):
@@ -516,6 +527,24 @@ class LocalDeviceInstrumentationTestRun(
         # pylint: enable=no-member
 
     self._env.parallel_devices.pMap(individual_device_tear_down)
+
+  def _ToggleAppLinks(self, dev, state):
+    # The set-app-links command was added in Android 12 (sdk = 31). The
+    # restrictions that require us to set the app links were also added in
+    # Android 12, so doing nothing on earlier Android versions is fine.
+    if dev.build_version_sdk < version_codes.S:
+      return
+
+    package = self._test_instance.approve_app_links_package
+    domain = self._test_instance.approve_app_links_domain
+
+    if not package or not domain:
+      return
+
+    cmd = [
+        'pm', 'set-app-links', '--package', package, state, domain
+    ]
+    dev.RunShellCommand(cmd, check_return=True)
 
   def _CreateFlagChangerIfNeeded(self, device):
     if str(device) not in self._flag_changers:
@@ -610,6 +639,9 @@ class LocalDeviceInstrumentationTestRun(
   #override
   def _RunTest(self, device, test):
     extras = {}
+
+    if self._test_instance.is_unit_test:
+      extras[_EXTRA_TEST_IS_UNIT] = 'true'
 
     # Provide package name under test for apk_under_test.
     if self._test_instance.apk_under_test:
@@ -1209,21 +1241,6 @@ class LocalDeviceInstrumentationTestRun(
     has_batch_limit = self._test_instance.test_launcher_batch_limit is not None
     return is_tryjob and has_filter and has_batch_limit
 
-  def _IsFlakeEndorserRun(self):
-    """Checks whether this test run is part of the flake endorser.
-
-    Returns:
-      True iff this is being run on a trybot and the current step is part of the
-      flake endorser.
-    """
-    is_tryjob = self._test_instance.skia_gold_properties.IsTryjobRun()
-    # Flake endorser shards automatically pass in --gtest_repeat,
-    # --gtest_filter, and --test-launcher-retry-limit. This is similar to retry
-    # without patch steps, but does NOT include --test-launcher-batch-limit.
-    has_filter = bool(self._test_instance.test_filter)
-    has_batch_limit = self._test_instance.test_launcher_batch_limit is not None
-    return is_tryjob and has_filter and not has_batch_limit
-
   def _ProcessSkiaGoldRenderTestResults(self, device, results):
     gold_dir = posixpath.join(self._render_tests_device_output_dir,
                               _DEVICE_GOLD_DIR)
@@ -1301,16 +1318,6 @@ class LocalDeviceInstrumentationTestRun(
         gold_session = self._skia_gold_session_manager.GetSkiaGoldSession(
             keys_input=json_path)
 
-        # Both retry without patch steps and flake endorser runs run into an
-        # issue where they can clobber untriaged results we care about with
-        # previously triaged (usually good) results. So, run those in dryrun
-        # mode. In the case of a flake endorser run, we want to re-run the
-        # comparison without dryrun if the dryrun fails so that the image that
-        # needs triaging is uploaded.
-        should_force_dryrun = (self._IsRetryWithoutPatch()
-                               or self._IsFlakeEndorserRun())
-        should_redo_on_failed_dryrun = self._IsFlakeEndorserRun()
-
         try:
           status, error = gold_session.RunComparison(
               name=render_name,
@@ -1318,23 +1325,11 @@ class LocalDeviceInstrumentationTestRun(
               output_manager=self._env.output_manager,
               use_luci=use_luci,
               optional_keys=optional_dict,
-              force_dryrun=should_force_dryrun)
+              force_dryrun=self._IsRetryWithoutPatch())
         except Exception as e:  # pylint: disable=broad-except
-          error = e
-          if should_redo_on_failed_dryrun:
-            try:
-              status, error = gold_session.RunComparison(
-                  name=render_name,
-                  png_file=image_path,
-                  output_manager=self._env.output_manager,
-                  use_luci=use_luci,
-                  optional_keys=optional_dict,
-                  force_dryrun=False)
-            except Exception as inner_e:  # pylint: disable=broad-except
-              error = inner_e
           _FailTestIfNecessary(results, full_test_name)
           _AppendToLog(results, full_test_name,
-                       'Skia Gold comparison raised exception: %s' % error)
+                       'Skia Gold comparison raised exception: %s' % e)
           continue
 
         if not status:

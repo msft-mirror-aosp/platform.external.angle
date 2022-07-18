@@ -3008,6 +3008,8 @@ angle::Result BufferPool::allocateBuffer(Context *context,
     VmaVirtualAllocation allocation;
     VkDeviceSize offset;
     VkDeviceSize alignedSize = roundUp(sizeInBytes, alignment);
+    bool extraBufferLoggingAndChecking =
+        context->getRenderer()->getFeatures().extraBufferLoggingAndChecking.enabled;
 
     if (alignedSize >= kMaxBufferSizeForSuballocation)
     {
@@ -3039,6 +3041,13 @@ angle::Result BufferPool::allocateBuffer(Context *context,
         VkDeviceSize sizeOut;
         ANGLE_TRY(AllocateBufferMemory(context, memoryPropertyFlags, &memoryPropertyFlagsOut,
                                        nullptr, &buffer.get(), &deviceMemory.get(), &sizeOut));
+        // Explicitly check the ASSERT on Android-Swiftshader
+        if (extraBufferLoggingAndChecking && !(sizeOut >= alignedSize))
+        {
+            ERR() << "BufferPool::allocateBuffer(): ASSERT FAILED: \"sizeOut >= alignedSize\""
+                     " with sizeOut = "
+                  << sizeOut << ", and alignSize = " << alignedSize;
+        }
         ASSERT(sizeOut >= alignedSize);
 
         suballocation->initWithEntireBuffer(context, buffer.get(), deviceMemory.get(),
@@ -3064,10 +3073,25 @@ angle::Result BufferPool::allocateBuffer(Context *context,
             continue;
         }
 
+        if (extraBufferLoggingAndChecking)
+        {
+            WARN() << "BufferPool::allocateBuffer(): about to call block->allocate(alignedSize = "
+                   << alignedSize << ", alignment = " << alignment << ", ...)";
+        }
         if (block->allocate(alignedSize, alignment, &allocation, &offset) == VK_SUCCESS)
         {
+            if (extraBufferLoggingAndChecking)
+            {
+                WARN() << "BufferPool::allocateBuffer(): block->allocate() returned VK_SUCCESS "
+                          "with offset = "
+                       << offset;
+            }
             suballocation->init(context->getDevice(), block.get(), allocation, offset, alignedSize);
             return angle::Result::Continue;
+        }
+        if (extraBufferLoggingAndChecking)
+        {
+            WARN() << "BufferPool::allocateBuffer(): block->allocate() DID NOT return VK_SUCCESS";
         }
         ++iter;
     }
@@ -3164,7 +3188,12 @@ void BufferPool::addStats(std::ostringstream *out) const
 // DescriptorPoolHelper implementation.
 DescriptorPoolHelper::DescriptorPoolHelper() : mFreeDescriptorSets(0) {}
 
-DescriptorPoolHelper::~DescriptorPoolHelper() = default;
+DescriptorPoolHelper::~DescriptorPoolHelper()
+{
+    // Caller must have already freed all caches
+    ASSERT(mDescriptorSetCacheManager.empty());
+    ASSERT(mDescriptorSetCache.empty());
+}
 
 bool DescriptorPoolHelper::hasCapacity(uint32_t descriptorSetCount) const
 {
@@ -3179,7 +3208,7 @@ angle::Result DescriptorPoolHelper::init(Context *context,
 
     // If there are descriptorSet garbage, they no longer relevant since the entire pool is going to
     // be destroyed.
-    resetGarbageList();
+    mDescriptorSetGarbageList.clear();
 
     if (mDescriptorPool.valid())
     {
@@ -3197,10 +3226,10 @@ angle::Result DescriptorPoolHelper::init(Context *context,
 
     VkDescriptorPoolCreateInfo descriptorPoolInfo = {};
     descriptorPoolInfo.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    descriptorPoolInfo.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    descriptorPoolInfo.maxSets       = maxSets;
-    descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    descriptorPoolInfo.pPoolSizes    = poolSizes.data();
+    descriptorPoolInfo.flags                      = 0;
+    descriptorPoolInfo.maxSets                    = maxSets;
+    descriptorPoolInfo.poolSizeCount              = static_cast<uint32_t>(poolSizes.size());
+    descriptorPoolInfo.pPoolSizes                 = poolSizes.data();
 
     mFreeDescriptorSets = maxSets;
 
@@ -3211,75 +3240,72 @@ angle::Result DescriptorPoolHelper::init(Context *context,
 
 void DescriptorPoolHelper::destroy(RendererVk *renderer, VulkanCacheType cacheType)
 {
+    resetCache();
     mDescriptorPool.destroy(renderer->getDevice());
-    mDescriptorSetCache.resetCache();
 }
 
 void DescriptorPoolHelper::release(ContextVk *contextVk, VulkanCacheType cacheType)
 {
+    resetCache();
     contextVk->addGarbage(&mDescriptorPool);
-    mDescriptorSetCache.resetCache();
 }
 
-void DescriptorPoolHelper::resetGarbageList()
+bool DescriptorPoolHelper::allocateDescriptorSet(Context *context,
+                                                 CommandBufferHelperCommon *commandBufferHelper,
+                                                 const DescriptorSetLayout &descriptorSetLayout,
+                                                 VkDescriptorSet *descriptorSetsOut)
 {
-    mFreeDescriptorSets += mDescriptorSetGarbageList.size();
-    mDescriptorSetGarbageList.clear();
-}
-
-void DescriptorPoolHelper::cleanupGarbage(Context *context)
-{
-    RendererVk *rendererVk          = context->getRenderer();
-    Serial lastCompletedQueueSerial = rendererVk->getLastCompletedQueueSerial();
-    while (!mDescriptorSetGarbageList.empty())
+    // Try to reuse descriptorSet garbage first
+    if (!mDescriptorSetGarbageList.empty())
     {
+        RendererVk *rendererVk          = context->getRenderer();
+        Serial lastCompletedQueueSerial = rendererVk->getLastCompletedQueueSerial();
+
         DescriptorSetHelper &garbage = mDescriptorSetGarbageList.front();
-        if (garbage.isCurrentlyInUse(lastCompletedQueueSerial))
+        if (!garbage.isCurrentlyInUse(lastCompletedQueueSerial))
         {
-            break;
+            *descriptorSetsOut = garbage.getDescriptorSet();
+            commandBufferHelper->retainResource(this);
+            mDescriptorSetGarbageList.pop_front();
+            return true;
         }
-        garbage.destroy(rendererVk->getDevice(), mDescriptorPool);
-        mDescriptorSetGarbageList.pop_front();
-        mFreeDescriptorSets++;
     }
+
+    if (mFreeDescriptorSets > 0)
+    {
+        VkDescriptorSetAllocateInfo allocInfo = {};
+        allocInfo.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool              = mDescriptorPool.getHandle();
+        allocInfo.descriptorSetCount          = 1;
+        allocInfo.pSetLayouts                 = descriptorSetLayout.ptr();
+
+        VkResult result = mDescriptorPool.allocateDescriptorSets(context->getDevice(), allocInfo,
+                                                                 descriptorSetsOut);
+        // If fail, it means our own accounting has a bug.
+        ASSERT(result == VK_SUCCESS);
+        mFreeDescriptorSets--;
+
+        // The pool is still in use every time a new descriptor set is allocated from it.
+        commandBufferHelper->retainResource(this);
+        return true;
+    }
+
+    return false;
 }
 
-angle::Result DescriptorPoolHelper::allocateDescriptorSets(
-    Context *context,
-    CommandBufferHelperCommon *commandBufferHelper,
-    const DescriptorSetLayout &descriptorSetLayout,
-    uint32_t descriptorSetCount,
-    VkDescriptorSet *descriptorSetsOut)
-{
-    VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool              = mDescriptorPool.getHandle();
-    allocInfo.descriptorSetCount          = descriptorSetCount;
-    allocInfo.pSetLayouts                 = descriptorSetLayout.ptr();
-
-    ASSERT(mFreeDescriptorSets >= descriptorSetCount);
-    mFreeDescriptorSets -= descriptorSetCount;
-
-    ANGLE_VK_TRY(context, mDescriptorPool.allocateDescriptorSets(context->getDevice(), allocInfo,
-                                                                 descriptorSetsOut));
-
-    // The pool is still in use every time a new descriptor set is allocated from it.
-    commandBufferHelper->retainResource(this);
-
-    return angle::Result::Continue;
-}
-
-angle::Result DescriptorPoolHelper::allocateAndCacheDescriptorSet(
+bool DescriptorPoolHelper::allocateAndCacheDescriptorSet(
     Context *context,
     CommandBufferHelperCommon *commandBufferHelper,
     const DescriptorSetDesc &desc,
     const DescriptorSetLayout &descriptorSetLayout,
     VkDescriptorSet *descriptorSetOut)
 {
-    ANGLE_TRY(allocateDescriptorSets(context, commandBufferHelper, descriptorSetLayout, 1,
-                                     descriptorSetOut));
-    mDescriptorSetCache.insertDescriptorSet(desc, *descriptorSetOut);
-    return angle::Result::Continue;
+    if (allocateDescriptorSet(context, commandBufferHelper, descriptorSetLayout, descriptorSetOut))
+    {
+        mDescriptorSetCache.insertDescriptorSet(desc, *descriptorSetOut);
+        return true;
+    }
+    return false;
 }
 
 bool DescriptorPoolHelper::getCachedDescriptorSet(const DescriptorSetDesc &desc,
@@ -3303,8 +3329,15 @@ void DescriptorPoolHelper::releaseCachedDescriptorSet(ContextVk *contextVk,
     }
 }
 
+void DescriptorPoolHelper::destroyCachedDescriptorSet(const DescriptorSetDesc &desc)
+{
+    // Remove from the cache hash map
+    mDescriptorSetCache.eraseDescriptorSet(desc);
+}
+
 void DescriptorPoolHelper::resetCache()
 {
+    mDescriptorSetCacheManager.destroyKeys();
     mDescriptorSetCache.resetCache();
 }
 
@@ -3379,41 +3412,35 @@ void DynamicDescriptorPool::release(ContextVk *contextVk, VulkanCacheType cacheT
     mCachedDescriptorSetLayout = VK_NULL_HANDLE;
 }
 
-angle::Result DynamicDescriptorPool::allocateDescriptorSets(
+angle::Result DynamicDescriptorPool::allocateDescriptorSet(
     Context *context,
     CommandBufferHelperCommon *commandBufferHelper,
     const DescriptorSetLayout &descriptorSetLayout,
-    uint32_t descriptorSetCount,
     RefCountedDescriptorPoolBinding *bindingOut,
     VkDescriptorSet *descriptorSetsOut)
 {
     ASSERT(!mDescriptorPools.empty());
     ASSERT(descriptorSetLayout.getHandle() == mCachedDescriptorSetLayout);
 
-    bool hasCapacity = false;
-    if (bindingOut->valid())
+    if (!bindingOut->valid() ||
+        !bindingOut->get().allocateDescriptorSet(context, commandBufferHelper, descriptorSetLayout,
+                                                 descriptorSetsOut))
     {
-        // Free descriptorSet garbage before check
-        bindingOut->get().cleanupGarbage(context);
-        hasCapacity = bindingOut->get().hasCapacity(descriptorSetCount);
-    }
-
-    if (!hasCapacity)
-    {
-        mDescriptorPools[mCurrentPoolIndex]->get().cleanupGarbage(context);
-        hasCapacity = mDescriptorPools[mCurrentPoolIndex]->get().hasCapacity(descriptorSetCount);
-        if (!hasCapacity)
+        ASSERT(mDescriptorPools[mCurrentPoolIndex]->get().valid());
+        if (!mDescriptorPools[mCurrentPoolIndex]->get().allocateDescriptorSet(
+                context, commandBufferHelper, descriptorSetLayout, descriptorSetsOut))
         {
             ANGLE_TRY(allocateNewPool(context));
+            bool success = mDescriptorPools[mCurrentPoolIndex]->get().allocateDescriptorSet(
+                context, commandBufferHelper, descriptorSetLayout, descriptorSetsOut);
+            // Allocation in new pool must succeed
+            ASSERT(success);
         }
-
         bindingOut->set(mDescriptorPools[mCurrentPoolIndex]);
     }
 
     ++context->getPerfCounters().descriptorSetAllocations;
-
-    return bindingOut->get().allocateDescriptorSets(
-        context, commandBufferHelper, descriptorSetLayout, descriptorSetCount, descriptorSetsOut);
+    return angle::Result::Continue;
 }
 
 angle::Result DynamicDescriptorPool::getOrAllocateDescriptorSet(
@@ -3442,29 +3469,22 @@ angle::Result DynamicDescriptorPool::getOrAllocateDescriptorSet(
     ASSERT(!mDescriptorPools.empty());
     ASSERT(descriptorSetLayout.getHandle() == mCachedDescriptorSetLayout);
 
-    constexpr uint32_t kDescriptorSetCount = 1;
-
-    bool hasCapacity = false;
-    if (bindingOut->valid())
+    if (!bindingOut->valid() ||
+        !bindingOut->get().allocateAndCacheDescriptorSet(context, commandBufferHelper, desc,
+                                                         descriptorSetLayout, descriptorSetOut))
     {
-        // Free descriptorSet garbage before check
-        bindingOut->get().cleanupGarbage(context);
-        hasCapacity = bindingOut->get().hasCapacity(kDescriptorSetCount);
-    }
-
-    if (!hasCapacity)
-    {
-        mDescriptorPools[mCurrentPoolIndex]->get().cleanupGarbage(context);
-        hasCapacity = mDescriptorPools[mCurrentPoolIndex]->get().hasCapacity(kDescriptorSetCount);
-        if (!hasCapacity)
+        ASSERT(mDescriptorPools[mCurrentPoolIndex]->get().valid());
+        if (!mDescriptorPools[mCurrentPoolIndex]->get().allocateAndCacheDescriptorSet(
+                context, commandBufferHelper, desc, descriptorSetLayout, descriptorSetOut))
         {
             ANGLE_TRY(allocateNewPool(context));
+            bool success = mDescriptorPools[mCurrentPoolIndex]->get().allocateAndCacheDescriptorSet(
+                context, commandBufferHelper, desc, descriptorSetLayout, descriptorSetOut);
+            ASSERT(success);
         }
+        bindingOut->set(mDescriptorPools[mCurrentPoolIndex]);
     }
 
-    bindingOut->set(mDescriptorPools[mCurrentPoolIndex]);
-    ANGLE_TRY(mDescriptorPools[mCurrentPoolIndex]->get().allocateAndCacheDescriptorSet(
-        context, commandBufferHelper, desc, descriptorSetLayout, descriptorSetOut));
     *cacheResultOut = DescriptorCacheResult::NewAllocation;
     ++context->getPerfCounters().descriptorSetAllocations;
     return angle::Result::Continue;
@@ -5200,7 +5220,7 @@ angle::Result ImageHelper::initExternal(Context *context,
                                                             : VK_CHROMA_LOCATION_MIDPOINT;
         VkSamplerYcbcrModelConversion conversionModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601;
         VkSamplerYcbcrRange colorRange                = VK_SAMPLER_YCBCR_RANGE_ITU_NARROW;
-        VkFilter chromaFilter                         = rendererVk->getPreferredFilterForYUV();
+        VkFilter chromaFilter                         = kDefaultYCbCrChromaFilter;
         VkComponentMapping components                 = {
                             VK_COMPONENT_SWIZZLE_IDENTITY,
                             VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -7052,21 +7072,6 @@ void ImageHelper::onWrite(gl::LevelIndex levelStart,
 
     // Mark contents of the given subresource as defined.
     setContentDefined(toVkLevel(levelStart), levelCount, layerStart, layerCount, aspectFlags);
-}
-
-void ImageHelper::updateImmutableSamplerState(const gl::SamplerState &samplerState)
-{
-    // VUID-VkSamplerCreateInfo-minFilter VkCreateSampler:
-    // VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT
-    // specifies that the format can have different chroma, min, and mag filters. However,
-    // VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT is
-    // not supported for VkSamplerYcbcrConversionCreateInfo.format = VK_FORMAT_UNDEFINED so
-    // chromaFilter needs to be equal to minFilter/magFilter.
-    if (mYcbcrConversionDesc.getExternalFormat() != 0)
-    {
-        ASSERT(samplerState.getMinFilter() == samplerState.getMagFilter());
-        mYcbcrConversionDesc.updateChromaFilter(gl_vk::GetFilter(samplerState.getMinFilter()));
-    }
 }
 
 bool ImageHelper::hasSubresourceDefinedContent(gl::LevelIndex level,
@@ -9266,40 +9271,6 @@ VkColorComponentFlags ImageHelper::getEmulatedChannelsMask() const
            (textureFmt.redBits != 0));
 
     return emulatedChannelsMask;
-}
-
-// FramebufferHelper implementation.
-FramebufferHelper::FramebufferHelper() = default;
-
-FramebufferHelper::~FramebufferHelper() = default;
-
-FramebufferHelper::FramebufferHelper(FramebufferHelper &&other) : Resource(std::move(other))
-{
-    mFramebuffer = std::move(other.mFramebuffer);
-}
-
-FramebufferHelper &FramebufferHelper::operator=(FramebufferHelper &&other)
-{
-    std::swap(mUse, other.mUse);
-    std::swap(mFramebuffer, other.mFramebuffer);
-    return *this;
-}
-
-angle::Result FramebufferHelper::init(ContextVk *contextVk,
-                                      const VkFramebufferCreateInfo &createInfo)
-{
-    ANGLE_VK_TRY(contextVk, mFramebuffer.init(contextVk->getDevice(), createInfo));
-    return angle::Result::Continue;
-}
-
-void FramebufferHelper::destroy(RendererVk *rendererVk)
-{
-    mFramebuffer.destroy(rendererVk->getDevice());
-}
-
-void FramebufferHelper::release(ContextVk *contextVk)
-{
-    contextVk->addGarbage(&mFramebuffer);
 }
 
 LayerMode GetLayerMode(const vk::ImageHelper &image, uint32_t layerCount)

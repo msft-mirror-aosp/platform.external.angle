@@ -97,7 +97,7 @@ GLColor32F SliceFormatColor32F(GLenum format, GLColor32F full)
     }
 }
 
-class TexCoordDrawTest : public ANGLETest
+class TexCoordDrawTest : public ANGLETest<>
 {
   protected:
     TexCoordDrawTest() : ANGLETest(), mProgram(0), mFramebuffer(0), mFramebufferColorTexture(0)
@@ -465,13 +465,16 @@ class Texture2DTestES3 : public Texture2DTest
     }
 };
 
+class Texture2DTestES3YUV : public Texture2DTestES3
+{};
+
 class Texture2DTestES3RobustInit : public Texture2DTestES3
 {
   protected:
     Texture2DTestES3RobustInit() : Texture2DTestES3() { setRobustResourceInit(true); }
 };
 
-class Texture2DBaseMaxTestES3 : public ANGLETest
+class Texture2DBaseMaxTestES3 : public ANGLETest<>
 {
   protected:
     static constexpr size_t kMip0Size   = 13;
@@ -928,7 +931,7 @@ class TextureCubeTest : public TexCoordDrawTest
     GLint mTextureCubeUniformLocation;
 };
 
-class TextureCubeTestES3 : public ANGLETest
+class TextureCubeTestES3 : public ANGLETest<>
 {
   protected:
     TextureCubeTestES3() {}
@@ -3250,6 +3253,36 @@ TEST_P(Texture2DTestES3, TexImageWithDepthStencilPBO)
     ASSERT_GL_NO_ERROR();
 
     EXPECT_PIXEL_RECT_EQ(0, 0, kSize, kSize, GLColor::red);
+}
+
+// Test functionality of GL_ANGLE_yuv_internal_format with min/mag filters
+// set to nearest and linear modes.
+TEST_P(Texture2DTestES3YUV, TexStorage2DYuvFilterModes)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_yuv_internal_format"));
+
+    // Create YUV texture
+    GLTexture yuvTexture;
+    GLubyte yuvColor[]         = {40, 40, 40, 40, 40, 40, 40, 40, 240, 109, 240, 109};
+    GLubyte expectedRgbColor[] = {0, 0, 255, 255};
+    createImmutableTexture2D(yuvTexture, 2, 4, GL_G8_B8R8_2PLANE_420_UNORM_ANGLE,
+                             GL_G8_B8R8_2PLANE_420_UNORM_ANGLE, GL_UNSIGNED_BYTE, 1, yuvColor);
+
+    // Default is nearest filter mode
+    verifyResults2D(yuvTexture, expectedRgbColor);
+    ASSERT_GL_NO_ERROR();
+
+    // Enable linear filter mode
+    glBindTexture(GL_TEXTURE_2D, yuvTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    verifyResults2D(yuvTexture, expectedRgbColor);
+    ASSERT_GL_NO_ERROR();
+
+    const int windowHeight = getWindowHeight();
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor::blue, 1);
+    EXPECT_PIXEL_COLOR_NEAR(0, windowHeight - 1, GLColor::blue, 1);
+    EXPECT_PIXEL_COLOR_NEAR(0, windowHeight / 2, GLColor::blue, 1);
 }
 
 // Test functionality of GL_ANGLE_yuv_internal_format while cycling through RGB and YUV sources
@@ -7165,7 +7198,7 @@ TEST_P(TextureBorderClampIntegerTestES3, TextureBorderClampIntegerUnsigned2)
 
 // ~GL_OES_texture_border_clamp
 
-class TextureLimitsTest : public ANGLETest
+class TextureLimitsTest : public ANGLETest<>
 {
   protected:
     struct RGBA8
@@ -10163,6 +10196,87 @@ TEST_P(PBOCompressedTextureTest, PBOCompressedSubImageWithUnpackRowLength)
     runCompressedSubImage();
 }
 
+class PBOCompressedTexture3DTest : public ANGLETest<>
+{
+  protected:
+    PBOCompressedTexture3DTest() {}
+};
+
+// Test that uses glCompressedTexSubImage3D combined with a PBO
+TEST_P(PBOCompressedTexture3DTest, 2DArray)
+{
+    // We use GetTexImage to determine if the internal texture format is emulated
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_get_image"));
+
+    const GLuint width  = 4u;
+    const GLuint height = 4u;
+    const GLuint depth  = 1u;
+
+    setWindowWidth(width);
+    setWindowHeight(height);
+
+    // Setup primary texture as a 2DArray holding ETC2 data
+    GLTexture texture2DArray;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture2DArray);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_COMPRESSED_RGB8_ETC2, width, height, depth);
+
+    // If the format emulated, we can't transfer it from a PBO
+    ANGLE_SKIP_TEST_IF(IsFormatEmulated(GL_TEXTURE_2D_ARRAY));
+
+    // Set up a VS that simply passes through position and texcord
+    const char kVS[] = R"(#version 300 es
+in vec4 position;
+out vec3 texCoord;
+
+void main()
+{
+    gl_Position = vec4(position.xy, 0.0, 1.0);
+    texCoord = vec3(position.xy * 0.5 + vec2(0.5), 0.0);
+})";
+
+    // and FS that pulls from the 2DArray, writing out color
+    const char kFS[] = R"(#version 300 es
+precision mediump float;
+uniform highp sampler2DArray tex2DArray;
+in vec3 texCoord;
+out vec4 fragColor;
+
+void main()
+{
+    fragColor = texture(tex2DArray, texCoord);
+})";
+
+    // Compile the shaders and create the program
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+    ASSERT_GL_NO_ERROR();
+
+    // Setup PBO and fill it with a red
+    GLBuffer pbo;
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * depth / 2u, kCompressedImageETC2,
+                 GL_STATIC_DRAW);
+    ASSERT_GL_NO_ERROR();
+
+    // Write PBO to texture2DArray
+    glCompressedTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, depth,
+                              GL_COMPRESSED_RGB8_ETC2, width * height * depth / 2u, nullptr);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Draw using PBO updated texture
+    glUseProgram(program);
+    glUniform1i(glGetUniformLocation(program, "tex2DArray"), 0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture2DArray);
+    drawQuad(program, "position", 0.5f);
+    ASSERT_GL_NO_ERROR();
+
+    // Verify the texture now contains data from the PBO
+    EXPECT_PIXEL_COLOR_EQ(getWindowWidth() / 2, getWindowHeight() / 2, GLColor::red);
+    ASSERT_GL_NO_ERROR();
+}
+
 // Test using ETC1_RGB8 with subimage updates
 TEST_P(ETC1CompressedTextureTest, ETC1CompressedSubImage)
 {
@@ -10406,7 +10520,7 @@ TEST_P(ETC1CompressedTextureTest, ETC1ShrinkThenGrowMaxLevels)
     ASSERT_GL_NO_ERROR();
 }
 
-class TextureBufferTestES31 : public ANGLETest
+class TextureBufferTestES31 : public ANGLETest<>
 {
   protected:
     TextureBufferTestES31() {}
@@ -10630,7 +10744,7 @@ TEST_P(TextureBufferTestES31, TestErrorWhenNotEnabled)
     ASSERT_GL_ERROR(GL_INVALID_ENUM);
 }
 
-class CopyImageTestES31 : public ANGLETest
+class CopyImageTestES31 : public ANGLETest<>
 {
   protected:
     CopyImageTestES31() {}
@@ -10703,7 +10817,7 @@ void main()
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
 
-class TextureChangeStorageUploadTest : public ANGLETest
+class TextureChangeStorageUploadTest : public ANGLETest<>
 {
   protected:
     TextureChangeStorageUploadTest()
@@ -10768,7 +10882,7 @@ TEST_P(TextureChangeStorageUploadTest, Basic)
     EXPECT_GL_NO_ERROR();
 }
 
-class ExtraSamplerCubeShadowUseTest : public ANGLETest
+class ExtraSamplerCubeShadowUseTest : public ANGLETest<>
 {
   protected:
     ExtraSamplerCubeShadowUseTest() : ANGLETest() {}
@@ -10833,6 +10947,10 @@ ANGLE_INSTANTIATE_TEST_ES2(SamplerArrayAsFunctionParameterTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3);
 ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DTestES3,
                                ES3_VULKAN().enable(Feature::AllocateNonZeroMemory));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3YUV);
+ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DTestES3YUV,
+                               ES3_VULKAN().enable(Feature::PreferLinearFilterForYUV));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3RobustInit);
 ANGLE_INSTANTIATE_TEST_ES3(Texture2DTestES3RobustInit);
@@ -10920,6 +11038,7 @@ ANGLE_INSTANTIATE_TEST_ES3(Texture3DIntegerTestES3);
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(Texture2DDepthTest);
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(PBOCompressedTextureTest);
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(ETC1CompressedTextureTest);
+ANGLE_INSTANTIATE_TEST_ES3(PBOCompressedTexture3DTest);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBufferTestES31);
 ANGLE_INSTANTIATE_TEST_ES31(TextureBufferTestES31);

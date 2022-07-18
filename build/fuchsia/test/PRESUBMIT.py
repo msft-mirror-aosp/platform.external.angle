@@ -9,32 +9,33 @@ for more details about the presubmit API built into depot_tools.
 
 USE_PYTHON3 = True
 
+_EXTRA_PATHS_COMPONENTS = [('testing', )]
 
 # pylint: disable=invalid-name,missing-function-docstring
 def CommonChecks(input_api, output_api):
-    presubmit_dir = input_api.PresubmitLocalPath()
-
-    def J(*dirs):
-        """Returns a path relative to presubmit directory."""
-
-        return input_api.os_path.join(presubmit_dir, *dirs)
-
     tests = []
-    unit_tests = [
-        J('publish_package_unittests.py'),
-    ]
 
+    chromium_src_path = input_api.os_path.realpath(
+        input_api.os_path.join(input_api.PresubmitLocalPath(), '..', '..',
+                               '..'))
+    pylint_extra_paths = [
+        input_api.os_path.join(chromium_src_path, *component)
+        for component in _EXTRA_PATHS_COMPONENTS
+    ]
     tests.extend(
         input_api.canned_checks.GetPylint(input_api,
                                           output_api,
+                                          extra_paths_list=pylint_extra_paths,
                                           pylintrc='pylintrc',
                                           version='2.7'))
-    tests.extend(
-        input_api.canned_checks.GetUnitTests(input_api,
-                                             output_api,
-                                             unit_tests=unit_tests,
-                                             run_on_python2=False,
-                                             run_on_python3=True))
+
+    # coveragetest.py is responsible for running unit tests in this directory
+    tests.append(
+        input_api.Command(
+            name='coveragetest',
+            cmd=[input_api.python3_executable, 'coveragetest.py'],
+            kwargs={},
+            message=output_api.PresubmitError))
     return input_api.RunTests(tests)
 
 

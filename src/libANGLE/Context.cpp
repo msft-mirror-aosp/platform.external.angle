@@ -169,6 +169,11 @@ Version GetClientVersion(egl::Display *display, const egl::AttributeMap &attribs
     }
 }
 
+EGLint GetProfileMask(const egl::AttributeMap &attribs)
+{
+    return attribs.getAsInt(EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT);
+}
+
 GLenum GetResetStrategy(const egl::AttributeMap &attribs)
 {
     EGLAttrib resetStrategyExt =
@@ -444,6 +449,7 @@ Context::Context(egl::Display *display,
              &mOverlay,
              clientType,
              GetClientVersion(display, attribs),
+             GetProfileMask(attribs),
              GetDebug(attribs),
              GetBindGeneratesResource(attribs),
              GetClientArraysEnabled(attribs),
@@ -1220,7 +1226,7 @@ void Context::objectLabel(GLenum identifier, GLuint name, GLsizei length, const 
     ASSERT(object != nullptr);
 
     std::string labelName = GetObjectLabelFromPointer(length, label);
-    object->setLabel(this, labelName);
+    ANGLE_CONTEXT_TRY(object->setLabel(this, labelName));
 
     // TODO(jmadill): Determine if the object is dirty based on 'name'. Conservatively assume the
     // specified object is active until we do this.
@@ -1238,7 +1244,7 @@ void Context::labelObject(GLenum type, GLuint object, GLsizei length, const GLch
         size_t labelLength = length == 0 ? strlen(label) : length;
         labelName          = std::string(label, labelLength);
     }
-    obj->setLabel(this, labelName);
+    ANGLE_CONTEXT_TRY(obj->setLabel(this, labelName));
     mState.setObjectDirty(type);
 }
 
@@ -1248,7 +1254,7 @@ void Context::objectPtrLabel(const void *ptr, GLsizei length, const GLchar *labe
     ASSERT(object != nullptr);
 
     std::string labelName = GetObjectLabelFromPointer(length, label);
-    object->setLabel(this, labelName);
+    ANGLE_CONTEXT_TRY(object->setLabel(this, labelName));
 }
 
 void Context::getObjectLabel(GLenum identifier,
@@ -4014,7 +4020,8 @@ void Context::initCaps()
     // Hide emulated ETC1 extension from WebGL contexts.
     if (mWebGLContext && getLimitations().emulatedEtc1)
     {
-        mSupportedExtensions.compressedETC1RGB8TextureOES = false;
+        mSupportedExtensions.compressedETC1RGB8SubTextureEXT = false;
+        mSupportedExtensions.compressedETC1RGB8TextureOES    = false;
     }
 
     // If we're capturing application calls for replay, apply some feature limits to increase
@@ -4171,7 +4178,7 @@ void Context::updateCaps()
         // OpenGL ES does not support multisampling with non-rendererable formats
         // OpenGL ES 3.0 or prior does not support multisampling with integer formats
         if (!formatCaps.renderbuffer ||
-            (getClientVersion() < ES_3_1 && !mSupportedExtensions.textureMultisampleANGLE &&
+            (getClientVersion() < ES_3_1 && !mState.mExtensions.textureMultisampleANGLE &&
              formatInfo.isInt()))
         {
             formatCaps.sampleCounts.clear();
@@ -4193,7 +4200,7 @@ void Context::updateCaps()
             }
 
             // Handle GLES 3.1 MAX_*_SAMPLES values similarly to MAX_SAMPLES.
-            if (getClientVersion() >= ES_3_1 || mSupportedExtensions.textureMultisampleANGLE)
+            if (getClientVersion() >= ES_3_1 || mState.mExtensions.textureMultisampleANGLE)
             {
                 // GLES 3.1 section 9.2.5: "Implementations must support creation of renderbuffers
                 // in these required formats with up to the value of MAX_SAMPLES multisamples, with

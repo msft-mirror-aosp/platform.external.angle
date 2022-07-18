@@ -294,6 +294,11 @@ struct FeaturesVk : FeatureSetBase
         "Persistently map buffer memory to reduce map/unmap IOCTL overhead.", &members,
         "http://anglebug.com/2162"};
 
+    FeatureInfo extraBufferLoggingAndChecking = {
+        "extraBufferLoggingAndChecking", FeatureCategory::VulkanFeatures,
+        "Enable extra buffer logging and checking to catch rare crashes", &members,
+        "https://issuetracker.google.com/236098131"};
+
     FeatureInfo enablePreRotateSurfaces = {"enablePreRotateSurfaces",
                                            FeatureCategory::VulkanFeatures,
                                            "Enable Android pre-rotation for landscape applications",
@@ -596,6 +601,14 @@ struct FeaturesVk : FeatureSetBase
     FeatureInfo emulateAdvancedBlendEquations = {
         "emulateAdvancedBlendEquations", FeatureCategory::VulkanFeatures,
         "Emulate GL_KHR_blend_equation_advanced", &members, "http://anglebug.com/3586"};
+
+    FeatureInfo precisionSafeDivision = {
+        "precisionSafeDivision",
+        FeatureCategory::VulkanWorkarounds,
+        "Special case handling for platforms that do not generate 1.0f even when the dividend and"
+        "divisor have the same value",
+        &members,
+    };
 
     FeatureInfo bottomLeftOriginPresentRegionRectangles = {
         "bottomLeftOriginPresentRegionRectangles",
