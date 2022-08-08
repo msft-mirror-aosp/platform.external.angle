@@ -121,12 +121,13 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state, egl::Disp
     mResources.EXT_shader_io_blocks  = extensions.shaderIoBlocksEXT;
     mResources.OES_texture_storage_multisample_2d_array =
         extensions.textureStorageMultisample2dArrayOES;
-    mResources.OES_texture_3D            = extensions.texture3DOES;
-    mResources.ANGLE_texture_multisample = extensions.textureMultisampleANGLE;
-    mResources.ANGLE_multi_draw          = extensions.multiDrawANGLE;
+    mResources.OES_texture_3D = extensions.texture3DOES;
     mResources.ANGLE_base_vertex_base_instance_shader_builtin =
         extensions.baseVertexBaseInstanceShaderBuiltinANGLE;
-    mResources.APPLE_clip_distance = extensions.clipDistanceAPPLE;
+    mResources.ANGLE_multi_draw                 = extensions.multiDrawANGLE;
+    mResources.ANGLE_shader_pixel_local_storage = extensions.shaderPixelLocalStorageANGLE;
+    mResources.ANGLE_texture_multisample        = extensions.textureMultisampleANGLE;
+    mResources.APPLE_clip_distance              = extensions.clipDistanceAPPLE;
     // OES_shader_multisample_interpolation
     mResources.OES_shader_multisample_interpolation = extensions.shaderMultisampleInterpolationOES;
     mResources.OES_shader_image_atomic              = extensions.shaderImageAtomicOES;
@@ -303,6 +304,10 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state, egl::Disp
     mResources.DriverUniformsBindingIndex    = caps.driverUniformsBindingIndex;
     mResources.DefaultUniformsBindingIndex   = caps.defaultUniformsBindingIndex;
     mResources.UBOArgumentBufferBindingIndex = caps.UBOArgumentBufferBindingIndex;
+
+    // For ANGLE_shader_pixel_local_storage_coherent.
+    mResources.FragmentSynchronizationType =
+        mImplementation->getBackendFeatures().fragmentSynchronizationType;
 }
 
 Compiler::~Compiler() = default;

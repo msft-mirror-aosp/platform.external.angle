@@ -141,13 +141,20 @@ bool GetWebGLContext(const egl::AttributeMap &attribs)
     return (attribs.get(EGL_CONTEXT_WEBGL_COMPATIBILITY_ANGLE, EGL_FALSE) == EGL_TRUE);
 }
 
-Version GetClientVersion(egl::Display *display, const egl::AttributeMap &attribs)
+Version GetClientVersion(egl::Display *display,
+                         const egl::AttributeMap &attribs,
+                         const EGLenum clientType)
 {
     Version requestedVersion =
         Version(GetClientMajorVersion(attribs), GetClientMinorVersion(attribs));
     if (GetBackwardCompatibleContext(attribs))
     {
-        if (requestedVersion.major == 1)
+        if (clientType == EGL_OPENGL_API)
+        {
+            return std::max(display->getImplementation()->getMaxSupportedDesktopVersion(),
+                            requestedVersion);
+        }
+        else if (requestedVersion.major == 1)
         {
             // If the user requests an ES1 context, we cannot return an ES 2+ context.
             return Version(1, 1);
@@ -448,7 +455,7 @@ Context::Context(egl::Display *display,
              shareSemaphores,
              &mOverlay,
              clientType,
-             GetClientVersion(display, attribs),
+             GetClientVersion(display, attribs, clientType),
              GetProfileMask(attribs),
              GetDebug(attribs),
              GetBindGeneratesResource(attribs),
@@ -591,14 +598,16 @@ void Context::initializeDefaultResources()
         }
     }
 
-    if (getClientVersion() >= Version(3, 2) || mSupportedExtensions.textureCubeMapArrayAny())
+    if ((getClientType() != EGL_OPENGL_API && getClientVersion() >= Version(3, 2)) ||
+        mSupportedExtensions.textureCubeMapArrayAny())
     {
         Texture *zeroTextureCubeMapArray =
             new Texture(mImplementation.get(), {0}, TextureType::CubeMapArray);
         mZeroTextures[TextureType::CubeMapArray].set(this, zeroTextureCubeMapArray);
     }
 
-    if (getClientVersion() >= Version(3, 2) || mSupportedExtensions.textureBufferAny())
+    if ((getClientType() != EGL_OPENGL_API && getClientVersion() >= Version(3, 2)) ||
+        mSupportedExtensions.textureBufferAny())
     {
         Texture *zeroTextureBuffer = new Texture(mImplementation.get(), {0}, TextureType::Buffer);
         mZeroTextures[TextureType::Buffer].set(this, zeroTextureBuffer);
@@ -1860,7 +1869,7 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
         break;
         case GL_CONTEXT_PROFILE_MASK:
             ASSERT(getClientType() == EGL_OPENGL_API);
-            *params = GL_CONTEXT_COMPATIBILITY_PROFILE_BIT;
+            *params = mState.getProfileMask();
             break;
 
         // GL_ANGLE_request_extension
@@ -3669,16 +3678,18 @@ Extensions Context::generateSupportedExtensions() const
     if (getClientVersion() < ES_3_1)
     {
         // Disable ES3.1+ extensions
-        supportedExtensions.geometryShaderEXT       = false;
-        supportedExtensions.geometryShaderOES       = false;
-        supportedExtensions.tessellationShaderEXT   = false;
-        supportedExtensions.gpuShader5EXT           = false;
-        supportedExtensions.primitiveBoundingBoxEXT = false;
-        supportedExtensions.shaderImageAtomicOES    = false;
-        supportedExtensions.shaderIoBlocksEXT       = false;
-        supportedExtensions.shaderIoBlocksOES       = false;
-        supportedExtensions.textureBufferEXT        = false;
-        supportedExtensions.textureBufferOES        = false;
+        supportedExtensions.geometryShaderEXT                    = false;
+        supportedExtensions.geometryShaderOES                    = false;
+        supportedExtensions.gpuShader5EXT                        = false;
+        supportedExtensions.primitiveBoundingBoxEXT              = false;
+        supportedExtensions.shaderImageAtomicOES                 = false;
+        supportedExtensions.shaderIoBlocksEXT                    = false;
+        supportedExtensions.shaderIoBlocksOES                    = false;
+        supportedExtensions.shaderPixelLocalStorageANGLE         = false;
+        supportedExtensions.shaderPixelLocalStorageCoherentANGLE = false;
+        supportedExtensions.tessellationShaderEXT                = false;
+        supportedExtensions.textureBufferEXT                     = false;
+        supportedExtensions.textureBufferOES                     = false;
 
         // TODO(http://anglebug.com/2775): Multisample arrays could be supported on ES 3.0 as well
         // once 2D multisample texture extension is exposed there.
@@ -3714,6 +3725,12 @@ Extensions Context::generateSupportedExtensions() const
     if (getFrontendFeatures().disableAnisotropicFiltering.enabled)
     {
         supportedExtensions.textureFilterAnisotropicEXT = false;
+    }
+
+    if (!getFrontendFeatures().emulatePixelLocalStorage.enabled)
+    {
+        supportedExtensions.shaderPixelLocalStorageANGLE         = false;
+        supportedExtensions.shaderPixelLocalStorageCoherentANGLE = false;
     }
 
     // Some extensions are always available because they are implemented in the GL layer.
@@ -3914,6 +3931,16 @@ void Context::initCaps()
         ANGLE_LIMIT_CAP(mState.mCaps.maxVertexAttribBindings, MAX_VERTEX_ATTRIB_BINDINGS);
     }
 
+    if (mWebGLContext && getLimitations().limitWebglMaxTextureSizeTo4096)
+    {
+        constexpr GLint kMaxTextureSize = 4096;
+        ANGLE_LIMIT_CAP(mState.mCaps.max2DTextureSize, kMaxTextureSize);
+        ANGLE_LIMIT_CAP(mState.mCaps.max3DTextureSize, kMaxTextureSize);
+        ANGLE_LIMIT_CAP(mState.mCaps.maxCubeMapTextureSize, kMaxTextureSize);
+        ANGLE_LIMIT_CAP(mState.mCaps.maxArrayTextureLayers, kMaxTextureSize);
+        ANGLE_LIMIT_CAP(mState.mCaps.maxRectangleTextureSize, kMaxTextureSize);
+    }
+
     ANGLE_LIMIT_CAP(mState.mCaps.max2DTextureSize, IMPLEMENTATION_MAX_2D_TEXTURE_SIZE);
     ANGLE_LIMIT_CAP(mState.mCaps.maxCubeMapTextureSize, IMPLEMENTATION_MAX_CUBE_MAP_TEXTURE_SIZE);
     ANGLE_LIMIT_CAP(mState.mCaps.max3DTextureSize, IMPLEMENTATION_MAX_3D_TEXTURE_SIZE);
@@ -4022,6 +4049,21 @@ void Context::initCaps()
     {
         mSupportedExtensions.compressedETC1RGB8SubTextureEXT = false;
         mSupportedExtensions.compressedETC1RGB8TextureOES    = false;
+    }
+
+    if (getLimitations().emulatedAstc)
+    {
+        // Hide emulated ASTC extension from WebGL contexts.
+        if (mWebGLContext)
+        {
+            mSupportedExtensions.textureCompressionAstcLdrKHR = false;
+            mState.mExtensions.textureCompressionAstcLdrKHR   = false;
+        }
+#if !defined(ANGLE_HAS_ASTCENC)
+        // Don't expose emulated ASTC when it's not built.
+        mSupportedExtensions.textureCompressionAstcLdrKHR = false;
+        mState.mExtensions.textureCompressionAstcLdrKHR   = false;
+#endif
     }
 
     // If we're capturing application calls for replay, apply some feature limits to increase
@@ -9784,6 +9826,7 @@ StateCache::StateCache()
       mCachedInstancedVertexElementLimit(0),
       mCachedBasicDrawStatesError(kInvalidPointer),
       mCachedBasicDrawElementsError(kInvalidPointer),
+      mCachedProgramPipelineError(kInvalidPointer),
       mCachedTransformFeedbackActiveUnpaused(false),
       mCachedCanDraw(false)
 {
@@ -9887,6 +9930,11 @@ void StateCache::updateBasicDrawStatesError()
     mCachedBasicDrawStatesError = kInvalidPointer;
 }
 
+void StateCache::updateProgramPipelineError()
+{
+    mCachedProgramPipelineError = kInvalidPointer;
+}
+
 void StateCache::updateBasicDrawElementsError()
 {
     mCachedBasicDrawElementsError = kInvalidPointer;
@@ -9897,6 +9945,13 @@ intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context) const
     ASSERT(mCachedBasicDrawStatesError == kInvalidPointer);
     mCachedBasicDrawStatesError = reinterpret_cast<intptr_t>(ValidateDrawStates(context));
     return mCachedBasicDrawStatesError;
+}
+
+intptr_t StateCache::getProgramPipelineErrorImpl(const Context *context) const
+{
+    ASSERT(mCachedProgramPipelineError == kInvalidPointer);
+    mCachedProgramPipelineError = reinterpret_cast<intptr_t>(ValidateProgramPipeline(context));
+    return mCachedProgramPipelineError;
 }
 
 intptr_t StateCache::getBasicDrawElementsErrorImpl(const Context *context) const
@@ -9919,6 +9974,7 @@ void StateCache::onProgramExecutableChange(Context *context)
     updateActiveAttribsMask(context);
     updateVertexElementLimits(context);
     updateBasicDrawStatesError();
+    updateProgramPipelineError();
     updateValidDrawModes(context);
     updateActiveShaderStorageBufferIndices(context);
     updateActiveImageUnitIndices(context);

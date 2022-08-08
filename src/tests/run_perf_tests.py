@@ -9,7 +9,6 @@
 
 import argparse
 import fnmatch
-import functools
 import importlib
 import io
 import json
@@ -38,7 +37,7 @@ from tracing.value import histogram
 from tracing.value import histogram_set
 from tracing.value import merge_histograms
 
-DEFAULT_TEST_SUITE = 'angle_perftests'
+ANGLE_PERFTESTS = 'angle_perftests'
 DEFAULT_LOG = 'info'
 DEFAULT_SAMPLES = 4
 DEFAULT_TRIALS = 3
@@ -56,17 +55,6 @@ SKIP = 'SKIP'
 
 EXIT_FAILURE = 1
 EXIT_SUCCESS = 0
-
-
-def is_windows():
-    return sys.platform == 'cygwin' or sys.platform.startswith('win')
-
-
-def get_binary_name(binary):
-    if is_windows():
-        return '.\\%s.exe' % binary
-    else:
-        return './%s' % binary
 
 
 def _popen(*args, **kwargs):
@@ -94,14 +82,10 @@ def run_command_with_output(argv, stdoutfile, env=None, cwd=None, log=True):
         return process.returncode
 
 
-@functools.lru_cache()
-def _use_adb(test_suite):
-    return android_helper.ApkFileExists(test_suite)
-
-
 def _run_and_get_output(args, cmd, env, runner_args):
-    if _use_adb(args.test_suite):
-        result, output = android_helper.RunTests(cmd[1:], log_output=args.show_test_stdout)
+    if android_helper.IsAndroid():
+        result, output = android_helper.RunTests(
+            args.test_suite, cmd[1:], log_output=args.show_test_stdout)
         return result, output.decode().split('\n')
 
     runner_cmd = cmd + runner_args
@@ -230,6 +214,9 @@ class Results:
         }
         self._test_results = {}
 
+    def has_failures(self):
+        return self._results['num_failures_by_type'][FAIL] > 0
+
     def has_result(self, test):
         return test in self._test_results
 
@@ -267,7 +254,7 @@ def main():
     parser.add_argument('--isolated-script-test-perf-output', type=str)
     parser.add_argument(
         '-f', '--filter', '--isolated-script-test-filter', type=str, help='Test filter.')
-    parser.add_argument('--test-suite', help='Test suite to run.', default=DEFAULT_TEST_SUITE)
+    parser.add_argument('--test-suite', help='Test suite to run.', default=ANGLE_PERFTESTS)
     parser.add_argument('--xvfb', help='Use xvfb.', action='store_true')
     parser.add_argument(
         '--shard-count',
@@ -321,7 +308,7 @@ def main():
 
     args, extra_flags = parser.parse_known_args()
 
-    angle_test_util.setupLogging(args.log.upper())
+    angle_test_util.SetupLogging(args.log.upper())
 
     start_time = time.time()
 
@@ -333,22 +320,20 @@ def main():
 
     env = os.environ.copy()
 
-    # Get sharding args
-    if 'GTEST_TOTAL_SHARDS' in env and int(env['GTEST_TOTAL_SHARDS']) != 1:
-        if 'GTEST_SHARD_INDEX' not in env:
-            logging.error('Sharding params must be specified together.')
-            sys.exit(1)
-        args.shard_count = int(env.pop('GTEST_TOTAL_SHARDS'))
-        args.shard_index = int(env.pop('GTEST_SHARD_INDEX'))
+    if angle_test_util.HasGtestShardsAndIndex(env):
+        args.shard_count, args.shard_index = angle_test_util.PopGtestShardsAndIndex(env)
+
+    android_helper.Initialize(args.test_suite)
 
     # Get test list
-    if _use_adb(args.test_suite):
-        android_helper.PrepareTestSuite(args.test_suite)
-        tests = android_helper.ListTests()
-        if args.test_suite == DEFAULT_TEST_SUITE:
-            android_helper.RunSmokeTest()
+    if android_helper.IsAndroid():
+        tests = android_helper.ListTests(args.test_suite)
     else:
-        cmd = [get_binary_name(args.test_suite), '--list-tests', '--verbose']
+        cmd = [
+            angle_test_util.ExecutablePathInCurrentDir(args.test_suite),
+            '--list-tests',
+            '--verbose',
+        ]
         exit_code, lines = _run_and_get_output(args, cmd, env, [])
         if exit_code != EXIT_SUCCESS:
             logging.fatal('Could not find test list from test output:\n%s' % '\n'.join(lines))
@@ -365,6 +350,9 @@ def main():
         logging.error('No tests to run.')
         return EXIT_FAILURE
 
+    if android_helper.IsAndroid() and args.test_suite == ANGLE_PERFTESTS:
+        android_helper.RunSmokeTest()
+
     logging.info('Running %d test%s' % (num_tests, 's' if num_tests > 1 else ' '))
 
     # Run tests
@@ -377,14 +365,14 @@ def main():
     for test_index in range(num_tests):
         test = tests[test_index]
 
-        if _use_adb(args.test_suite):
+        if android_helper.IsAndroid():
             trace = android_helper.GetTraceFromTestName(test)
             if trace and trace not in prepared_traces:
                 android_helper.PrepareRestrictedTraces([trace])
                 prepared_traces.add(trace)
 
         cmd = [
-            get_binary_name(args.test_suite),
+            angle_test_util.ExecutablePathInCurrentDir(args.test_suite),
             '--gtest_filter=%s' % test,
             '--verbose',
             '--calibration-time',
@@ -517,21 +505,10 @@ def main():
     end_time = time.time()
     logging.info('Elapsed time: %.2lf seconds.' % (end_time - start_time))
 
+    if results.has_failures():
+        return EXIT_FAILURE
     return EXIT_SUCCESS
 
 
-# This is not really a "script test" so does not need to manually add
-# any additional compile targets.
-def main_compile_targets(args):
-    json.dump([], args.output)
-
-
 if __name__ == '__main__':
-    # Conform minimally to the protocol defined by ScriptTest.
-    if 'compile_targets' in sys.argv:
-        funcs = {
-            'run': None,
-            'compile_targets': main_compile_targets,
-        }
-        sys.exit(common.run_script(sys.argv[1:], funcs))
     sys.exit(main())

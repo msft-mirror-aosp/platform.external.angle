@@ -279,7 +279,7 @@ bool TIntermLoop::replaceChildNode(TIntermNode *original, TIntermNode *replaceme
 }
 
 TIntermBranch::TIntermBranch(const TIntermBranch &node)
-    : TIntermBranch(node.mFlowOp, node.mExpression->deepCopy())
+    : TIntermBranch(node.mFlowOp, node.mExpression ? node.mExpression->deepCopy() : nullptr)
 {}
 
 size_t TIntermBranch::getChildCount() const
@@ -622,6 +622,14 @@ TIntermAggregate *TIntermAggregate::CreateBuiltInFunctionCall(const TFunction &f
 TIntermAggregate *TIntermAggregate::CreateConstructor(const TType &type, TIntermSequence *arguments)
 {
     return new TIntermAggregate(nullptr, type, EOpConstruct, arguments);
+}
+
+TIntermAggregate *TIntermAggregate::CreateConstructor(
+    const TType &type,
+    const std::initializer_list<TIntermNode *> &arguments)
+{
+    TIntermSequence argSequence(arguments);
+    return CreateConstructor(type, &argSequence);
 }
 
 TIntermAggregate::TIntermAggregate(const TFunction *func,
@@ -1602,9 +1610,9 @@ TIntermLoop::TIntermLoop(TLoopType type,
 
 TIntermLoop::TIntermLoop(const TIntermLoop &node)
     : TIntermLoop(node.mType,
-                  node.mInit->deepCopy(),
-                  node.mCond->deepCopy(),
-                  node.mExpr->deepCopy(),
+                  node.mInit ? node.mInit->deepCopy() : nullptr,
+                  node.mCond ? node.mCond->deepCopy() : nullptr,
+                  node.mExpr ? node.mExpr->deepCopy() : nullptr,
                   node.mBody->deepCopy())
 {}
 
@@ -1997,7 +2005,7 @@ TPrecision TIntermBinary::derivePrecision() const
             const TFieldList &fields = mOp == EOpIndexDirectStruct
                                            ? mLeft->getType().getStruct()->fields()
                                            : mLeft->getType().getInterfaceBlock()->fields();
-            const int fieldIndex = mRight->getAsConstantUnion()->getIConst(0);
+            const int fieldIndex     = mRight->getAsConstantUnion()->getIConst(0);
             return fields[fieldIndex]->type()->getPrecision();
         }
 

@@ -310,6 +310,13 @@ void RendererVk::ensureCapsInitialized() const
         mNativeLimitations.emulatedEtc1 = true;
     }
 
+    // When ASTC formats are not natively supported
+    // mark potentially-available ASTC extension as emulated.
+    if (mPhysicalDeviceFeatures.textureCompressionASTC_LDR == VK_FALSE)
+    {
+        mNativeLimitations.emulatedAstc = true;
+    }
+
     // Vulkan doesn't support ASTC 3D block textures, which are required by
     // GL_OES_texture_compression_astc.
     mNativeExtensions.textureCompressionAstcOES = false;
@@ -388,6 +395,7 @@ void RendererVk::ensureCapsInitialized() const
     mNativeExtensions.semaphoreFdEXT = getFeatures().supportsExternalSemaphoreFd.enabled;
     mNativeExtensions.semaphoreFuchsiaANGLE =
         getFeatures().supportsExternalSemaphoreFuchsia.enabled;
+    mNativeExtensions.shaderPixelLocalStorageANGLE = true;
 
     mNativeExtensions.vertexHalfFloatOES = true;
 
@@ -1127,6 +1135,11 @@ void RendererVk::ensureCapsInitialized() const
     // GL_KHR_parallel_shader_compile
     mNativeExtensions.parallelShaderCompileKHR = false;
 
+    // GL_NV_read_depth, GL_NV_read_depth_stencil, GL_NV_read_stencil
+    mNativeExtensions.readDepthNV        = true;
+    mNativeExtensions.readDepthStencilNV = true;
+    mNativeExtensions.readStencilNV      = true;
+
     // GL_QCOM_shading_rate
     mNativeExtensions.shadingRateQCOM = mFeatures.supportsFragmentShadingRate.enabled;
 }
@@ -1204,12 +1217,14 @@ egl::Config GenerateDefaultConfig(DisplayVk *display,
 
     const VkPhysicalDeviceProperties &physicalDeviceProperties =
         renderer->getPhysicalDeviceProperties();
-    gl::Version maxSupportedESVersion = renderer->getMaxSupportedESVersion();
+    gl::Version maxSupportedESVersion      = renderer->getMaxSupportedESVersion();
+    gl::Version maxSupportedDesktopVersion = display->getMaxSupportedDesktopVersion();
 
     // ES3 features are required to emulate ES1
-    EGLint es1Support = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES_BIT : 0);
-    EGLint es2Support = (maxSupportedESVersion.major >= 2 ? EGL_OPENGL_ES2_BIT : 0);
-    EGLint es3Support = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES3_BIT : 0);
+    EGLint es1Support     = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES_BIT : 0);
+    EGLint es2Support     = (maxSupportedESVersion.major >= 2 ? EGL_OPENGL_ES2_BIT : 0);
+    EGLint es3Support     = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES3_BIT : 0);
+    EGLint desktopSupport = (maxSupportedDesktopVersion.major != 0 ? EGL_OPENGL_BIT : 0);
 
     egl::Config config;
 
@@ -1238,7 +1253,7 @@ egl::Config GenerateDefaultConfig(DisplayVk *display,
     config.nativeRenderable   = EGL_TRUE;
     config.nativeVisualID     = static_cast<EGLint>(GetNativeVisualID(colorFormat));
     config.nativeVisualType   = EGL_NONE;
-    config.renderableType     = es1Support | es2Support | es3Support;
+    config.renderableType     = es1Support | es2Support | es3Support | desktopSupport;
     config.sampleBuffers      = (sampleCount > 0) ? 1 : 0;
     config.samples            = sampleCount;
     config.surfaceType        = EGL_WINDOW_BIT | EGL_PBUFFER_BIT;
