@@ -978,7 +978,6 @@ Error Display::initialize()
 
     gl::InitializeDebugMutexIfNeeded();
 
-    SCOPED_ANGLE_HISTOGRAM_TIMER("GPU.ANGLE.DisplayInitializeMS");
     ANGLE_TRACE_EVENT0("gpu.angle", "egl::Display::initialize");
 
     if (isInitialized())
@@ -1074,10 +1073,10 @@ Error Display::destroyInvalidEglObjects()
     {
         // Retrieve objects to be destroyed
         std::lock_guard<std::mutex> lock(mInvalidEglObjectsMutex);
-        images   = mInvalidImageSet;
-        streams  = mInvalidStreamSet;
-        surfaces = mInvalidSurfaceSet;
-        syncs    = mInvalidSyncSet;
+        images   = std::move(mInvalidImageSet);
+        streams  = std::move(mInvalidStreamSet);
+        surfaces = std::move(mInvalidSurfaceSet);
+        syncs    = std::move(mInvalidSyncSet);
 
         // Update invalid object sets
         mInvalidImageSet.clear();
