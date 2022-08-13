@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 300
+#define ANGLE_SH_VERSION 303
 
 enum ShShaderSpec
 {
@@ -83,7 +83,8 @@ enum ShShaderOutput
 // Instructs the compiler which fragment synchronization method to use, if any.
 enum class ShFragmentSynchronizationType
 {
-    None,
+    NoSynchronization,
+
     FragmentShaderInterlock_NV_GL,
     FragmentShaderOrdering_INTEL_GL,
     FragmentShaderInterlock_ARB_GL,
@@ -380,6 +381,11 @@ struct ShCompileOptions
     // Even when the dividend and divisor have the same value some platforms do not return 1.0f.
     // Need to emit different division code for such platforms.
     uint64_t precisionSafeDivision : 1;
+
+    // anglebug.com/7527: packUnorm4x8 fails on Pixel 4 if it is not passed a highp vec4.
+    // TODO(anglebug.com/7527): This workaround is currently only applied for pixel local storage.
+    // We may want to apply it generally.
+    uint64_t passHighpToPackUnormSnormBuiltins : 1;
 
     ShCompileOptionsMetal metal;
     ShCompileOptionsPLS pls;
@@ -805,6 +811,7 @@ unsigned int GetImage2DRegisterIndex(const ShHandle handle);
 // handle: Specifies the compiler
 const std::set<std::string> *GetUsedImage2DFunctionNames(const ShHandle handle);
 
+bool HasDiscardInFragmentShader(const ShHandle handle);
 bool HasValidGeometryShaderInputPrimitiveType(const ShHandle handle);
 bool HasValidGeometryShaderOutputPrimitiveType(const ShHandle handle);
 bool HasValidGeometryShaderMaxVertices(const ShHandle handle);

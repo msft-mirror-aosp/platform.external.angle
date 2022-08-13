@@ -538,7 +538,6 @@
 7158 PIXEL6 VULKAN : ImageTestES3.SourceAHBMipTarget2DMip/* = SKIP
 7158 PIXEL6 VULKAN : ImageTestES3.SourceAHBMipTarget2DMipGenerateMipmap/* = SKIP
 7279 PIXEL6 VULKAN : PixelLocalStorageTest.EarlyFragmentTests/ES3_1_Vulkan_EmulatePixelLocalStorage* = SKIP
-7556 PIXEL6 VULKAN : StateChangeTestES3.StencilWriteMaskVsDiscard/* = SKIP
 
 // ARM drivers cannot support xfb emulation because they lack support for the
 // vertexPipelineStoresAndAtomics Vulkan feature.  The tests that force-enable this feature are
@@ -667,9 +666,6 @@
 7484 D3D11 : GLSLTest_ES31.*Image2DAsFunctionArg/* = SKIP
 7484 OpenGL : GLSLTest_ES31.*Image2DAsFunctionArg/* = SKIP
 7484 GLES : GLSLTest_ES31.*Image2DAsFunctionArg/* = SKIP
-
-// imageLoad after imageStore with barrier is not coherent on Pixel 4 GLES.
-7388 ANDROID GLES : PixelLocalStorageTest.*/ES3_1_OpenGLES_EmulatePixelLocalStorage = SKIP
 
 // Flaky hangs on Linux SwANGLE
 7431 LINUX SWIFTSHADER : MultithreadingTestES3.ThreadB*BeforeThreadASyncFinish/ES3_Vulkan_SwiftShader = SKIP
