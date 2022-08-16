@@ -239,6 +239,8 @@ def AddTestExecutionArgs(arg_parser):
   test_args.add_argument('child_args',
                          nargs='*',
                          help='Arguments for the test process.')
+  test_args.add_argument('--use-vulkan',
+                         help='\'native\', \'swiftshader\' or \'none\'.')
 
 
 def main():
@@ -323,6 +325,16 @@ def main():
   if args.use_run_test_component:
     test_realms = [TEST_REALM_NAME]
 
+  if args.use_vulkan:
+    child_args.append('--use-vulkan=' + args.use_vulkan)
+  elif args.target_cpu == 'x64':
+    # TODO(crbug.com/1261646) Remove once Vulkan is enabled by default.
+    child_args.append('--use-vulkan=native')
+  else:
+    # Use swiftshader on arm64 by default because arm64 bots currently
+    # don't support Vulkan emulation.
+    child_args.append('--use-vulkan=swiftshader')
+
   try:
     with GetDeploymentTargetForArgs(args) as target, \
          MakeTestOutputs(args.component_version,
@@ -367,8 +379,10 @@ def main():
       test_server = None
       if args.enable_test_server:
         assert test_concurrency
-        test_server = SetupTestServer(target, test_concurrency,
-                                      args.package_name, test_realms)
+        (test_server,
+         spawner_url_base) = SetupTestServer(target, test_concurrency)
+        child_args.append('--remote-test-server-spawner-url-base=' +
+                          spawner_url_base)
 
       run_package_args = RunTestPackageArgs.FromCommonArgs(args)
       if args.use_run_test_component:

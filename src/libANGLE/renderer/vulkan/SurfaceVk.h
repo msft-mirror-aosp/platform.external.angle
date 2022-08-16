@@ -33,6 +33,7 @@ class SurfaceVk : public SurfaceImpl, public angle::ObserverInterface
     SurfaceVk(const egl::SurfaceState &surfaceState);
     ~SurfaceVk() override;
 
+    void destroy(const egl::Display *display) override;
     // We monitor the staging buffer for changes. This handles staged data from outside this class.
     void onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message) override;
 
@@ -298,12 +299,17 @@ class WindowSurfaceVk : public SurfaceVk
 
     angle::Result onSharedPresentContextFlush(const gl::Context *context);
 
+    bool hasStagedUpdates() const;
+
   protected:
     angle::Result prepareSwapImpl(const gl::Context *context);
     angle::Result swapImpl(const gl::Context *context,
                            const EGLint *rects,
                            EGLint n_rects,
                            const void *pNextChain);
+    // Called when a swapchain image whose acquisition was deferred must be acquired.  This method
+    // will recreate the swapchain (if needed) and call the acquireNextSwapchainImage() method.
+    angle::Result doDeferredAcquireNextImage(const gl::Context *context, bool presentOutOfDate);
 
     EGLNativeWindowType mNativeWindowType;
     VkSurfaceKHR mSurface;
@@ -332,9 +338,7 @@ class WindowSurfaceVk : public SurfaceVk
     // This method is called when a swapchain image is presented.  It schedules
     // acquireNextSwapchainImage() to be called later.
     void deferAcquireNextImage();
-    // Called when a swapchain image whose acquisition was deferred must be acquired.  This method
-    // will recreate the swapchain (if needed) and call the acquireNextSwapchainImage() method.
-    angle::Result doDeferredAcquireNextImage(const gl::Context *context, bool presentOutOfDate);
+
     angle::Result computePresentOutOfDate(vk::Context *context,
                                           VkResult result,
                                           bool *presentOutOfDate);

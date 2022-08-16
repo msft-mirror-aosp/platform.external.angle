@@ -162,9 +162,10 @@ class RendererVk : angle::NonCopyable
     {
         return mPhysicalDeviceProperties;
     }
-    const VkPhysicalDeviceSubgroupProperties &getPhysicalDeviceSubgroupProperties() const
+    const VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT &
+    getPhysicalDevicePrimitivesGeneratedQueryFeatures() const
     {
-        return mSubgroupProperties;
+        return mPrimitivesGeneratedQueryFeatures;
     }
     const VkPhysicalDeviceFeatures &getPhysicalDeviceFeatures() const
     {
@@ -540,6 +541,11 @@ class RendererVk : angle::NonCopyable
         return mSupportedVulkanPipelineStageMask;
     }
 
+    VkShaderStageFlags getSupportedVulkanShaderStageMask() const
+    {
+        return mSupportedVulkanShaderStageMask;
+    }
+
     angle::Result getFormatDescriptorCountForVkFormat(ContextVk *contextVk,
                                                       VkFormat format,
                                                       uint32_t *descriptorCountOut);
@@ -606,10 +612,9 @@ class RendererVk : angle::NonCopyable
         return mSuballocationGarbageSizeInBytesCachedAtomic.load(std::memory_order_consume);
     }
 
-    ANGLE_INLINE VkFilter getPreferredFilterForYUV()
+    ANGLE_INLINE VkFilter getPreferredFilterForYUV(VkFilter defaultFilter)
     {
-        return getFeatures().preferLinearFilterForYUV.enabled ? VK_FILTER_LINEAR
-                                                              : VK_FILTER_NEAREST;
+        return getFeatures().preferLinearFilterForYUV.enabled ? VK_FILTER_LINEAR : defaultFilter;
     }
 
   private:
@@ -684,7 +689,7 @@ class RendererVk : angle::NonCopyable
     VkPhysicalDeviceExternalMemoryHostPropertiesEXT mExternalMemoryHostProperties;
     VkPhysicalDeviceShaderFloat16Int8FeaturesKHR mShaderFloat16Int8Features;
     VkPhysicalDeviceDepthStencilResolvePropertiesKHR mDepthStencilResolveProperties;
-    VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT
+    VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesGoogleX
         mMultisampledRenderToSingleSampledFeatures;
     VkPhysicalDeviceImage2DViewOf3DFeaturesEXT mImage2dViewOf3dFeatures;
     VkPhysicalDeviceMultiviewFeatures mMultiviewFeatures;
@@ -696,12 +701,15 @@ class RendererVk : angle::NonCopyable
     VkPhysicalDeviceProtectedMemoryProperties mProtectedMemoryProperties;
     VkPhysicalDeviceHostQueryResetFeaturesEXT mHostQueryResetFeatures;
     VkPhysicalDeviceDepthClipControlFeaturesEXT mDepthClipControlFeatures;
+    VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT mPrimitivesGeneratedQueryFeatures;
     VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT mBlendOperationAdvancedFeatures;
     VkPhysicalDeviceSamplerYcbcrConversionFeatures mSamplerYcbcrConversionFeatures;
     VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT mPipelineCreationCacheControlFeatures;
     VkPhysicalDeviceExtendedDynamicStateFeaturesEXT mExtendedDynamicStateFeatures;
     VkPhysicalDeviceExtendedDynamicState2FeaturesEXT mExtendedDynamicState2Features;
     VkPhysicalDeviceFragmentShadingRateFeaturesKHR mFragmentShadingRateFeatures;
+    VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT mFragmentShaderInterlockFeatures;
+    VkPhysicalDeviceImagelessFramebufferFeaturesKHR mImagelessFramebufferFeatures;
     angle::PackedEnumBitSet<gl::ShadingRate, uint8_t> mSupportedFragmentShadingRates;
     std::vector<VkQueueFamilyProperties> mQueueFamilyProperties;
     uint32_t mMaxVertexAttribDivisor;
@@ -839,6 +847,7 @@ class RendererVk : angle::NonCopyable
     // Note that this mask can have bits set that don't correspond to valid stages, so it's strictly
     // only useful for masking out unsupported stages in an otherwise valid set of stages.
     VkPipelineStageFlags mSupportedVulkanPipelineStageMask;
+    VkShaderStageFlags mSupportedVulkanShaderStageMask;
 
     // Use thread pool to compress cache data.
     std::shared_ptr<rx::WaitableCompressEvent> mCompressEvent;

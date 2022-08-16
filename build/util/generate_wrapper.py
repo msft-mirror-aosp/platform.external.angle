@@ -106,12 +106,9 @@ PY_TEMPLATE = textwrap.dedent("""\
       return outdir, remaining_args
 
     def InsertWrapperScriptArgs(args):
-      i = 0
-      while i < len(args):
-        if args[i] == '--wrapper-script-args':
-          args.insert(i + 1, "'%s'" % shlex.join(s for s in sys.argv))
-          break
-        i += 1
+      if '--wrapper-script-args' in args:
+        idx = args.index('--wrapper-script-args')
+        args.insert(idx + 1, shlex.join(sys.argv))
 
     def FilterIsolatedOutdirBasedArgs(outdir, args):
       rargs = []
@@ -153,7 +150,7 @@ PY_TEMPLATE = textwrap.dedent("""\
       InsertWrapperScriptArgs(args)
       args = FilterIsolatedOutdirBasedArgs(outdir, args)
       executable_args = ExpandWrappedPaths(args)
-      cmd = [executable_path] + args + remaining_args
+      cmd = [executable_path] + executable_args + remaining_args
       if executable_path.endswith('.py'):
         cmd = [sys.executable] + cmd
       return subprocess.call(cmd)
