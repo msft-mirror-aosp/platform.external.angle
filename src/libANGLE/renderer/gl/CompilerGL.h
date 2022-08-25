@@ -14,7 +14,6 @@
 namespace rx
 {
 class ContextGL;
-class FunctionsGL;
 
 class CompilerGL : public CompilerImpl
 {
@@ -23,11 +22,9 @@ class CompilerGL : public CompilerImpl
     ~CompilerGL() override {}
 
     ShShaderOutput getTranslatorOutputType() const override;
-    CompilerBackendFeatures getBackendFeatures() const override { return mBackendFeatures; }
 
   private:
     ShShaderOutput mTranslatorOutputType;
-    CompilerBackendFeatures mBackendFeatures;
 };
 
 }  // namespace rx

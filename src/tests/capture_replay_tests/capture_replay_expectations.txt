@@ -148,6 +148,9 @@
 7423 : MultithreadingTestES3.ThreadBServerWaitBeforeThreadASyncFlush/* = SKIP_FOR_CAPTURE
 7423 : MultithreadingTestES3.ThreadCWaitBeforeThreadBSyncFinish/* = SKIP_FOR_CAPTURE
 
+# Also multi-threaded
+7423 : EGLMultiContextTest.RepeatedEglInitAndTerminate/* = SKIP_FOR_CAPTURE
+
 7419 : MultithreadingTestES3.CreateFramebufferFetchBeforeRenderPass/* = NOT_RUN
 7419 : MultithreadingTestES3.CreateFramebufferFetchMidRenderPass/* = NOT_RUN
 
@@ -162,3 +165,21 @@
 7483 : MultisampleTestES3.ResolveToFBO/* = SKIP_FOR_CAPTURE
 
 6723 : EGLMultiContextTest.ReuseUnterminatedDisplay/* = SKIP_FOR_CAPTURE
+
+# No support yet for Capture/Replay of External Textures using other attribs
+7570 : ImageTest.MipLevels/* = SKIP_FOR_CAPTURE
+7570 : ImageTest.Source2DTarget2D_Colorspace/* = SKIP_FOR_CAPTURE
+7570 : ImageTest.Source2DTarget2DArray_Colorspace/* = SKIP_FOR_CAPTURE
+7570 : ImageTest.Source2DTargetExternal_Colorspace/* = SKIP_FOR_CAPTURE
+7570 : ImageTest.SourceCubeTarget2D_Colorspace/* = SKIP_FOR_CAPTURE
+7570 : ImageTest.SourceCubeTargetExternal_Colorspace/* = SKIP_FOR_CAPTURE
+7570 : ImageTest.SourceRenderbufferTargetTexture_Colorspace/* = SKIP_FOR_CAPTURE
+7570 : ImageTest.SourceRenderbufferTargetTextureExternal_Colorspace/* = SKIP_FOR_CAPTURE
+7570 : ImageTest.ValidationGLEGLImage_Colorspace/* = SKIP_FOR_CAPTURE
+7570 : ImageTest.ValidationImageBase/* = SKIP_FOR_CAPTURE
+7570 : ImageTestES3.Source2DTargetExternalESSL3_Colorspace/* = SKIP_FOR_CAPTURE
+7570 : ImageTestES3.SourceCubeTargetExternalESSL3/* = SKIP_FOR_CAPTURE
+7570 : ImageTestES3.SourceCubeTargetExternalESSL3_Colorspace/* = SKIP_FOR_CAPTURE
+7570 : ImageTestES3.SourceRenderbufferTargetTextureExternalESSL3_Colorspace/* = SKIP_FOR_CAPTURE
+
+7581 : FramebufferTest_ES3.BlitWithDifferentPreRotations/* = SKIP_FOR_CAPTURE

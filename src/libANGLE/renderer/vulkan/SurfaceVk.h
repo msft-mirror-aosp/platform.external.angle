@@ -33,6 +33,7 @@ class SurfaceVk : public SurfaceImpl, public angle::ObserverInterface
     SurfaceVk(const egl::SurfaceState &surfaceState);
     ~SurfaceVk() override;
 
+    void destroy(const egl::Display *display) override;
     // We monitor the staging buffer for changes. This handles staged data from outside this class.
     void onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message) override;
 
@@ -299,6 +300,8 @@ class WindowSurfaceVk : public SurfaceVk
     angle::Result onSharedPresentContextFlush(const gl::Context *context);
 
     bool hasStagedUpdates() const;
+
+    void setTimestampsEnabled(bool enabled) override;
 
   protected:
     angle::Result prepareSwapImpl(const gl::Context *context);

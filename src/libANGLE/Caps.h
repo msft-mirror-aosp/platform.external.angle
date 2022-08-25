@@ -390,11 +390,6 @@ struct Caps
     // ES 3.2 Table 20.41: Implementation Dependent Values (cont.)
     GLint maxTextureBufferSize         = 0;
     GLint textureBufferOffsetAlignment = 0;
-
-    // Direct-to-metal constants:
-    GLuint driverUniformsBindingIndex    = 0;
-    GLuint defaultUniformsBindingIndex   = 0;
-    GLuint UBOArgumentBufferBindingIndex = 0;
 };
 
 Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensions);
@@ -558,6 +553,9 @@ struct DisplayExtensions
 
     // EGL_ANDROID_get_frame_timestamps
     bool getFrameTimestamps = false;
+
+    // EGL_ANGLE_timestamp_surface_attribute
+    bool timestampSurfaceAttributeANGLE = false;
 
     // EGL_ANDROID_recordable
     bool recordable = false;

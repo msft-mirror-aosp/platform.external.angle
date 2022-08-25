@@ -194,6 +194,7 @@ libangle_includes = [
   "include/GLES3/gl3platform.h",
   "include/GLES3/gl31.h",
   "include/GLES3/gl32.h",
+  "include/GLX/glxext.h",
   "include/KHR/khrplatform.h",
   "include/WGL/wgl.h",
   "include/platform/Feature.h",
@@ -249,6 +250,7 @@ libangle_headers = [
   "src/libANGLE/LoggingAnnotator.h",
   "src/libANGLE/MemoryObject.h",
   "src/libANGLE/MemoryProgramCache.h",
+  "src/libANGLE/MemoryShaderCache.h",
   "src/libANGLE/Observer.h",
   "src/libANGLE/Overlay.h",
   "src/libANGLE/OverlayWidgets.h",
@@ -378,6 +380,7 @@ libangle_sources = [
   "src/libANGLE/LoggingAnnotator.cpp",
   "src/libANGLE/MemoryObject.cpp",
   "src/libANGLE/MemoryProgramCache.cpp",
+  "src/libANGLE/MemoryShaderCache.cpp",
   "src/libANGLE/Observer.cpp",
   "src/libANGLE/Overlay.cpp",
   "src/libANGLE/OverlayWidgets.cpp",
@@ -570,6 +573,7 @@ libangle_capture_sources = [
   "src/libANGLE/capture/frame_capture_utils_autogen.cpp",
   "src/libANGLE/capture/gl_enum_utils.cpp",
   "src/libANGLE/capture/gl_enum_utils_autogen.cpp",
+  "src/libGLESv2/global_state.h",
   "src/third_party/ceval/ceval.h",
 ]
 

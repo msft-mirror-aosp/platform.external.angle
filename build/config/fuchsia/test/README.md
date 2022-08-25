@@ -21,7 +21,11 @@ For tests that test fonts by providing `fuchsia.fonts.Provider`. The injected
 #### fonts.shard.test-cml
 For tests that access system fonts.
 
-#### jit_capabilities.test-cmx
+#### test_fonts.shard.test-cml
+For tests that use the fonts in `//third_party/test_fonts` by way of
+`//skia:test_fonts_cfv2`.
+
+#### jit_capabilities.test-cmx and mark_vmo_executable.shard.test-cml
 Required by tests that execute JavaScript. Should only be required in a small
 number of tests.
 

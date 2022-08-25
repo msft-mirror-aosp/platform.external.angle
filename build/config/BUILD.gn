@@ -86,7 +86,7 @@ config("feature_flags") {
   if (is_msan) {
     defines += [ "MEMORY_SANITIZER" ]
   }
-  if (is_ubsan || is_ubsan_null || is_ubsan_vptr || is_ubsan_security) {
+  if (is_ubsan || is_ubsan_vptr || is_ubsan_security) {
     defines += [ "UNDEFINED_SANITIZER" ]
   }
   if (is_official_build) {
@@ -378,4 +378,11 @@ config("precompiled_headers") {
       precompiled_source = "//build/precompile.h"
     }
   }
+}
+
+# Add this config to link steps in order to compress debug sections. This is
+# especially useful on 32-bit architectures in order to keep file sizes under
+# 4gb.
+config("compress_debug_sections") {
+  ldflags = [ "-gz" ]
 }

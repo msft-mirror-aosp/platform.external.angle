@@ -3947,6 +3947,39 @@ TEST_P(FramebufferTest, BindAndDrawDifferentSizedFBOs)
     EXPECT_PIXEL_RECT_EQ(0, 0, kLargeWidth, kLargeHeight, GLColor::blue);
 }
 
+// Test FBOs with same attachments. Destroy one framebuffer should not affect the other framebuffer
+// (chromium:1351170).
+TEST_P(FramebufferTest_ES3, TwoFramebuffersWithSameAttachments)
+{
+    ANGLE_GL_PROGRAM(redProgram, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
+    glUseProgram(redProgram);
+
+    GLRenderbuffer rb;
+    glBindRenderbuffer(GL_RENDERBUFFER, rb);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, 1, 1);
+
+    GLuint fbs[2];
+    glGenFramebuffers(2, fbs);
+    // Create fbos[0]
+    glBindFramebuffer(GL_FRAMEBUFFER, fbs[0]);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    const GLenum colorAttachment0 = {GL_COLOR_ATTACHMENT0};
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, &colorAttachment0);
+    // Create fbos[1] with same attachment as fbos[0]
+    glBindFramebuffer(GL_FRAMEBUFFER, fbs[1]);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, &colorAttachment0);
+    // Destroy fbos[0]
+    glDeleteFramebuffers(1, &fbs[0]);
+    // fbos[1] should still work, not crash.
+    GLuint data;
+    glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &data);
+    drawQuad(redProgram.get(), std::string(essl1_shaders::PositionAttrib()), 0.0f);
+    ASSERT_GL_NO_ERROR();
+}
+
 // Regression test based on a fuzzer failure.  A crash was encountered in the following situation:
 //
 // - Texture bound as sampler with MAX_LEVEL 0
@@ -4469,6 +4502,76 @@ void main()
     resizeWindow(kWidth, kHeight);
 
     ASSERT_GL_NO_ERROR();
+}
+
+// Tests blits between draw and read surfaces with different pre-rotation values.
+TEST_P(FramebufferTest_ES3, BlitWithDifferentPreRotations)
+{
+    // TODO(anglebug.com/7594): Untriaged bot failures with non-Vulkan backends
+    ANGLE_SKIP_TEST_IF(!IsVulkan());
+
+    EGLWindow *window = getEGLWindow();
+    ASSERT(window);
+    EGLConfig config   = window->getConfig();
+    EGLContext context = window->getContext();
+    EGLDisplay dpy     = window->getDisplay();
+    EGLint surfaceType = 0;
+
+    // Skip if pbuffer surface is not supported
+    eglGetConfigAttrib(dpy, config, EGL_SURFACE_TYPE, &surfaceType);
+    ANGLE_SKIP_TEST_IF((surfaceType & EGL_PBUFFER_BIT) == 0);
+
+    const EGLint surfaceWidth        = static_cast<EGLint>(getWindowWidth());
+    const EGLint surfaceHeight       = static_cast<EGLint>(getWindowHeight());
+    const EGLint pBufferAttributes[] = {
+        EGL_WIDTH, surfaceWidth, EGL_HEIGHT, surfaceHeight, EGL_NONE,
+    };
+
+    // Create Pbuffer surface
+    EGLSurface pbufferSurface = eglCreatePbufferSurface(dpy, config, pBufferAttributes);
+    ASSERT_NE(pbufferSurface, EGL_NO_SURFACE);
+    ASSERT_EGL_SUCCESS();
+
+    EGLSurface windowSurface = window->getSurface();
+    ASSERT_NE(windowSurface, EGL_NO_SURFACE);
+
+    // Clear window surface with red color
+    EXPECT_EGL_TRUE(eglMakeCurrent(dpy, windowSurface, windowSurface, context));
+    ASSERT_EGL_SUCCESS();
+    glClearColor(1, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    EXPECT_PIXEL_RECT_EQ(0, 0, surfaceWidth, surfaceHeight, GLColor::red);
+
+    // Blit from window surface to pbuffer surface and expect red color
+    EXPECT_EGL_TRUE(eglMakeCurrent(dpy, pbufferSurface, windowSurface, context));
+    ASSERT_EGL_SUCCESS();
+
+    glBlitFramebuffer(0, 0, surfaceWidth, surfaceHeight, 0, 0, surfaceWidth, surfaceHeight,
+                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_RECT_EQ(0, 0, surfaceWidth, surfaceHeight, GLColor::red);
+
+    // Clear pbuffer surface with blue color
+    EXPECT_EGL_TRUE(eglMakeCurrent(dpy, pbufferSurface, pbufferSurface, context));
+    ASSERT_EGL_SUCCESS();
+    glClearColor(0, 0, 1, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    EXPECT_PIXEL_RECT_EQ(0, 0, surfaceWidth, surfaceHeight, GLColor::blue);
+
+    // Blit from pbuffer surface to window surface and expect blue color
+    EXPECT_EGL_TRUE(eglMakeCurrent(dpy, windowSurface, pbufferSurface, context));
+    ASSERT_EGL_SUCCESS();
+
+    glBlitFramebuffer(0, 0, surfaceWidth, surfaceHeight, 0, 0, surfaceWidth, surfaceHeight,
+                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_RECT_EQ(0, 0, surfaceWidth, surfaceHeight, GLColor::blue);
+
+    EXPECT_EGL_TRUE(eglMakeCurrent(dpy, windowSurface, windowSurface, context));
+    ASSERT_EGL_SUCCESS();
+
+    EXPECT_EGL_TRUE(eglDestroySurface(dpy, pbufferSurface));
+    ASSERT_EGL_SUCCESS();
 }
 
 ANGLE_INSTANTIATE_TEST_ES2_AND(AddMockTextureNoRenderTargetTest,
