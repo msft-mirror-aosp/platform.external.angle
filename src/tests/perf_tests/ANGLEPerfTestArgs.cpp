@@ -19,6 +19,7 @@ int gMaxStepsPerformed         = 0;
 bool gEnableTrace              = false;
 const char *gTraceFile         = "ANGLETrace.json";
 const char *gScreenShotDir     = nullptr;
+bool gSaveScreenshots          = false;
 int gScreenShotFrame           = 1;
 bool gVerboseLogging           = false;
 double gCalibrationTimeSeconds = 1.0;
@@ -34,6 +35,7 @@ const char *gPerfCounters      = nullptr;
 // Default to three warmup loops. There's no science to this. More than two loops was experimentally
 // helpful on a Windows NVIDIA setup when testing with Vulkan and native trace tests.
 int gWarmupLoops = 3;
+int gWarmupSteps = std::numeric_limits<int>::max();
 }  // namespace angle
 
 namespace
@@ -48,8 +50,7 @@ int ReadIntArgument(const char *arg)
     return value;
 }
 
-// The same as --screenshot-dir, but used by Chrome tests.
-constexpr char kRenderTestDirArg[] = "--render-test-output-dir=";
+constexpr char kRenderTestOutputDir[] = "--render-test-output-dir=";
 }  // namespace
 
 using namespace angle;
@@ -104,8 +105,17 @@ void ANGLEProcessPerfTestArgs(int *argc, char **argv)
         }
         else if (strcmp("--screenshot-dir", argv[argIndex]) == 0 && argIndex < *argc - 1)
         {
-            gScreenShotDir = argv[argIndex + 1];
+            gScreenShotDir   = argv[argIndex + 1];
+            gSaveScreenshots = true;  // implicitly set here but not when using kRenderTestOutputDir
             argIndex++;
+        }
+        else if (strncmp(kRenderTestOutputDir, argv[argIndex], strlen(kRenderTestOutputDir)) == 0)
+        {
+            gScreenShotDir = argv[argIndex] + strlen(kRenderTestOutputDir);
+        }
+        else if (strcmp("--save-screenshots", argv[argIndex]) == 0)
+        {
+            gSaveScreenshots = true;
         }
         else if (strcmp("--screenshot-frame", argv[argIndex]) == 0 && argIndex < *argc - 1)
         {
@@ -123,13 +133,15 @@ void ANGLEProcessPerfTestArgs(int *argc, char **argv)
             // Skip an additional argument.
             argIndex++;
         }
+        else if (strcmp("--warmup-steps", argv[argIndex]) == 0)
+        {
+            gWarmupSteps = ReadIntArgument(argv[argIndex + 1]);
+            // Skip an additional argument.
+            argIndex++;
+        }
         else if (strcmp("--no-warmup", argv[argIndex]) == 0)
         {
             gWarmupLoops = 0;
-        }
-        else if (strncmp(kRenderTestDirArg, argv[argIndex], strlen(kRenderTestDirArg)) == 0)
-        {
-            gScreenShotDir = argv[argIndex] + strlen(kRenderTestDirArg);
         }
         else if (strcmp("--calibration-time", argv[argIndex]) == 0)
         {

@@ -331,6 +331,20 @@ static bool Float32BlendableSupport(const Version &clientVersion, const Extensio
            extensions.floatBlendEXT;
 }
 
+template <ExtensionBool bool1>
+static bool ETC2EACSupport(const Version &clientVersion, const Extensions &extensions)
+{
+    if (extensions.compressedTextureEtcANGLE)
+    {
+        return true;
+    }
+
+    // ETC2/EAC formats are always available in ES 3.0+ but require an extension (checked above)
+    // in WebGL. If that extension is not available, hide these formats from WebGL contexts.
+    return !extensions.webglCompatibilityANGLE &&
+           (clientVersion >= Version(3, 0) || extensions.*bool1);
+}
+
 InternalFormat::InternalFormat()
     : internalFormat(GL_NONE),
       sized(false),
@@ -514,9 +528,7 @@ bool InternalFormat::isRequiredRenderbufferFormat(const Version &version) const
             return true;
         default:
             UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
             return false;
-#endif
     }
 }
 
@@ -538,7 +550,7 @@ Format::Format(GLenum internalFormat, GLenum type)
     : info(&GetInternalFormatInfo(internalFormat, type))
 {}
 
-Format::Format(const Format &other) = default;
+Format::Format(const Format &other)            = default;
 Format &Format::operator=(const Format &other) = default;
 
 bool Format::valid() const
@@ -565,6 +577,12 @@ static GLenum EquivalentBlitInternalFormat(GLenum internalformat)
 
     // GL_ANGLE_rgbx_internal_format: Treat RGBX8 as RGB8, since the X channel is ignored.
     if (internalformat == GL_RGBX8_ANGLE)
+    {
+        return GL_RGB8;
+    }
+
+    // Treat ANGLE's BGRX8 as RGB8 since it's swizzled and the X channel is ignored.
+    if (internalformat == GL_BGRX8_ANGLEX)
     {
         return GL_RGB8;
     }
@@ -1079,12 +1097,14 @@ static InternalFormatInfoMap BuildInternalFormatInfoMap()
     AddRGBAFormat(&map, GL_BGRA8_SRGB_ANGLEX, true,  8,  8,  8,  8, 0, GL_BGRA_EXT,     GL_UNSIGNED_BYTE,                  GL_UNSIGNED_NORMALIZED, true,  NeverSupported,                                    AlwaysSupported, AlwaysSupported,                                   AlwaysSupported,                               AlwaysSupported);
 
     // Special format which is not really supported, so always false for all supports.
-    AddRGBAFormat(&map, GL_BGRX8_ANGLEX,      true,  8,  8,  8,  0, 0, GL_BGRA_EXT,     GL_UNSIGNED_BYTE,                  GL_UNSIGNED_NORMALIZED, false, NeverSupported,                                    NeverSupported,  NeverSupported,                                    NeverSupported,                                NeverSupported);
     AddRGBAFormat(&map, GL_BGR565_ANGLEX,     true,  5,  6,  5,  0, 0, GL_BGRA_EXT,     GL_UNSIGNED_SHORT_5_6_5,           GL_UNSIGNED_NORMALIZED, false, NeverSupported,                                    NeverSupported,  NeverSupported,                                    NeverSupported,                                NeverSupported);
     AddRGBAFormat(&map, GL_BGR10_A2_ANGLEX,   true, 10, 10, 10,  2, 0, GL_BGRA_EXT,     GL_UNSIGNED_INT_2_10_10_10_REV,    GL_UNSIGNED_NORMALIZED, false, NeverSupported,                                    NeverSupported,  NeverSupported,                                    NeverSupported,                                NeverSupported);
 
     // Special format to emulate RGB8 with RGBA8 within ANGLE.
     AddRGBAFormat(&map, GL_RGBX8_ANGLE,      true,   8,  8,  8,  0, 0, GL_RGB,          GL_UNSIGNED_BYTE,                  GL_UNSIGNED_NORMALIZED, false, AlwaysSupported,                                   AlwaysSupported, AlwaysSupported,                                   AlwaysSupported,                               NeverSupported);
+
+    // Special format to emulate BGR8 with BGRA8 within ANGLE.
+    AddRGBAFormat(&map, GL_BGRX8_ANGLEX,      true,  8,  8,  8,  0, 0, GL_BGRA_EXT,     GL_UNSIGNED_BYTE,                  GL_UNSIGNED_NORMALIZED, false, NeverSupported,                                    AlwaysSupported,  NeverSupported,                                    NeverSupported,                                NeverSupported);
 
     // This format is supported on ES 2.0 with two extensions, so keep it out-of-line to not widen the table above even more.
     //                 | Internal format     |sized| R | G | B | A |S | Format         | Type                             | Component type        | SRGB | Texture supported                                                                            | Filterable     | Texture attachment                               | Renderbuffer                                   | Blend
@@ -1127,17 +1147,17 @@ static InternalFormatInfoMap BuildInternalFormatInfoMap()
     AddLUMAFormat(&map, GL_LUMINANCE_ALPHA32F_EXT, true, 32, 32, GL_LUMINANCE_ALPHA, GL_FLOAT,          GL_FLOAT,               RequireExtAndExt<&Extensions::textureStorageEXT, &Extensions::textureFloatOES>,  RequireExt<&Extensions::textureFloatLinearOES>,  NeverSupported,      NeverSupported, NeverSupported);
 
     // Compressed formats, From ES 3.0.1 spec, table 3.16
-    //                       | Internal format                             |W |H |D | BS |CC| SRGB | Texture supported                                                                                                         | Filterable     | Texture attachment | Renderbuffer  | Blend
-    AddCompressedFormat(&map, GL_COMPRESSED_R11_EAC,                        4, 4, 1,  64, 1, false, RequireESOrExtOrExt<3, 0, &Extensions::compressedTextureEtcANGLE, &Extensions::compressedEACR11UnsignedTextureOES>,              AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
-    AddCompressedFormat(&map, GL_COMPRESSED_SIGNED_R11_EAC,                 4, 4, 1,  64, 1, false, RequireESOrExtOrExt<3, 0, &Extensions::compressedTextureEtcANGLE, &Extensions::compressedEACR11SignedTextureOES>,                AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
-    AddCompressedFormat(&map, GL_COMPRESSED_RG11_EAC,                       4, 4, 1, 128, 2, false, RequireESOrExtOrExt<3, 0, &Extensions::compressedTextureEtcANGLE, &Extensions::compressedEACRG11UnsignedTextureOES>,             AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
-    AddCompressedFormat(&map, GL_COMPRESSED_SIGNED_RG11_EAC,                4, 4, 1, 128, 2, false, RequireESOrExtOrExt<3, 0, &Extensions::compressedTextureEtcANGLE, &Extensions::compressedEACRG11SignedTextureOES>,               AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
-    AddCompressedFormat(&map, GL_COMPRESSED_RGB8_ETC2,                      4, 4, 1,  64, 3, false, RequireESOrExtOrExt<3, 0, &Extensions::compressedTextureEtcANGLE, &Extensions::compressedETC2RGB8TextureOES>,                    AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
-    AddCompressedFormat(&map, GL_COMPRESSED_SRGB8_ETC2,                     4, 4, 1,  64, 3, true,  RequireESOrExtOrExt<3, 0, &Extensions::compressedTextureEtcANGLE, &Extensions::compressedETC2SRGB8TextureOES>,                   AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
-    AddCompressedFormat(&map, GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2,  4, 4, 1,  64, 3, false, RequireESOrExtOrExt<3, 0, &Extensions::compressedTextureEtcANGLE, &Extensions::compressedETC2PunchthroughARGBA8TextureOES>,       AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
-    AddCompressedFormat(&map, GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2, 4, 4, 1,  64, 3, true,  RequireESOrExtOrExt<3, 0, &Extensions::compressedTextureEtcANGLE, &Extensions::compressedETC2PunchthroughASRGB8AlphaTextureOES>, AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
-    AddCompressedFormat(&map, GL_COMPRESSED_RGBA8_ETC2_EAC,                 4, 4, 1, 128, 4, false, RequireESOrExtOrExt<3, 0, &Extensions::compressedTextureEtcANGLE, &Extensions::compressedETC2RGBA8TextureOES>,                   AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
-    AddCompressedFormat(&map, GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC,          4, 4, 1, 128, 4, true,  RequireESOrExtOrExt<3, 0, &Extensions::compressedTextureEtcANGLE, &Extensions::compressedETC2SRGB8Alpha8TextureOES>,             AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
+    //                       | Internal format                             |W |H |D | BS |CC| SRGB | Texture supported                                                          | Filterable     | Texture attachment | Renderbuffer  | Blend
+    AddCompressedFormat(&map, GL_COMPRESSED_R11_EAC,                        4, 4, 1,  64, 1, false, ETC2EACSupport<&Extensions::compressedEACR11UnsignedTextureOES>,              AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
+    AddCompressedFormat(&map, GL_COMPRESSED_SIGNED_R11_EAC,                 4, 4, 1,  64, 1, false, ETC2EACSupport<&Extensions::compressedEACR11SignedTextureOES>,                AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
+    AddCompressedFormat(&map, GL_COMPRESSED_RG11_EAC,                       4, 4, 1, 128, 2, false, ETC2EACSupport<&Extensions::compressedEACRG11UnsignedTextureOES>,             AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
+    AddCompressedFormat(&map, GL_COMPRESSED_SIGNED_RG11_EAC,                4, 4, 1, 128, 2, false, ETC2EACSupport<&Extensions::compressedEACRG11SignedTextureOES>,               AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
+    AddCompressedFormat(&map, GL_COMPRESSED_RGB8_ETC2,                      4, 4, 1,  64, 3, false, ETC2EACSupport<&Extensions::compressedETC2RGB8TextureOES>,                    AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
+    AddCompressedFormat(&map, GL_COMPRESSED_SRGB8_ETC2,                     4, 4, 1,  64, 3, true,  ETC2EACSupport<&Extensions::compressedETC2SRGB8TextureOES>,                   AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
+    AddCompressedFormat(&map, GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2,  4, 4, 1,  64, 4, false, ETC2EACSupport<&Extensions::compressedETC2PunchthroughARGBA8TextureOES>,      AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
+    AddCompressedFormat(&map, GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2, 4, 4, 1,  64, 4, true,  ETC2EACSupport<&Extensions::compressedETC2PunchthroughASRGB8AlphaTextureOES>, AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
+    AddCompressedFormat(&map, GL_COMPRESSED_RGBA8_ETC2_EAC,                 4, 4, 1, 128, 4, false, ETC2EACSupport<&Extensions::compressedETC2RGBA8TextureOES>,                   AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
+    AddCompressedFormat(&map, GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC,          4, 4, 1, 128, 4, true,  ETC2EACSupport<&Extensions::compressedETC2SRGB8Alpha8TextureOES>,             AlwaysSupported, NeverSupported,      NeverSupported, NeverSupported);
 
     // From GL_EXT_texture_compression_dxt1
     //                       | Internal format                   |W |H |D | BS |CC| SRGB | Texture supported                                    | Filterable     | Texture attachment | Renderbuffer  | Blend
@@ -1275,6 +1295,11 @@ static InternalFormatInfoMap BuildInternalFormatInfoMap()
     // From EXT_texture_sRGB_RG8
     //                 | Internal format    |sized| R | G | B | A |S | Format | Type             | Component type        | SRGB | Texture supported                     | Filterable     | Texture attachment                    | Renderbuffer                          | Blend
     AddRGBAFormat(&map, GL_SRG8_EXT,         true,  8,  8,  0,  0, 0, GL_RG,   GL_UNSIGNED_BYTE,  GL_UNSIGNED_NORMALIZED, true,  RequireExt<&Extensions::textureSRGBRG8EXT>,    AlwaysSupported, NeverSupported,                         NeverSupported,                         NeverSupported);
+
+    // From GL_EXT_texture_type_2_10_10_10_REV
+    // GL_RGB10_UNORM_ANGLEX is never used directly but needs to be in the list of all sized internal formats so that the backends can determine support.
+    //                  | Internal format      |sized|    R | G | B | A |S |X   | Format           | Type                          | Component type        | SRGB | Texture supported                                  | Filterable     | Texture attachment                               | Renderbuffer  | Blend
+    AddRGBAXFormat(&map, GL_RGB10_UNORM_ANGLEX, true, FB<10, 10, 10,  0, 0, 2>(), GL_RGB,            GL_UNSIGNED_INT_2_10_10_10_REV, GL_UNSIGNED_NORMALIZED, false, NeverSupported,                                     NeverSupported,  NeverSupported,                                    NeverSupported, NeverSupported);
 
     // Unsized formats
     //                  | Internal format  |sized |    R | G | B | A |S |X   | Format           | Type                          | Component type        | SRGB | Texture supported                                  | Filterable     | Texture attachment                               | Renderbuffer  | Blend
@@ -1931,9 +1956,7 @@ AttributeType GetAttributeType(GLenum enumValue)
             return ATTRIBUTE_MAT4x3;
         default:
             UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
             return ATTRIBUTE_FLOAT;
-#endif
     }
 }
 
@@ -1973,9 +1996,7 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::R8G8B8A8_SSCALED;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         case VertexAttribType::UnsignedByte:
             switch (components)
@@ -2006,9 +2027,7 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::R8G8B8A8_USCALED;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         case VertexAttribType::Short:
             switch (components)
@@ -2039,9 +2058,7 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::R16G16B16A16_SSCALED;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         case VertexAttribType::UnsignedShort:
             switch (components)
@@ -2072,9 +2089,7 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::R16G16B16A16_USCALED;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         case VertexAttribType::Int:
             switch (components)
@@ -2105,9 +2120,7 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::R32G32B32A32_SSCALED;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         case VertexAttribType::UnsignedInt:
             switch (components)
@@ -2138,9 +2151,7 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::R32G32B32A32_USCALED;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         case VertexAttribType::Float:
             switch (components)
@@ -2155,9 +2166,7 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::R32G32B32A32_FLOAT;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         case VertexAttribType::HalfFloat:
         case VertexAttribType::HalfFloatOES:
@@ -2173,9 +2182,7 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::R16G16B16A16_FLOAT;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         case VertexAttribType::Fixed:
             switch (components)
@@ -2190,9 +2197,7 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::R32G32B32A32_FIXED;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         case VertexAttribType::Int2101010:
             if (pureInteger)
@@ -2223,9 +2228,7 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::A2R10G10B10_SSCALED_VERTEX;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         case VertexAttribType::UnsignedInt1010102:
             switch (components)
@@ -2245,15 +2248,11 @@ angle::FormatID GetVertexFormatID(VertexAttribType type,
                     return angle::FormatID::A2R10G10B10_USCALED_VERTEX;
                 default:
                     UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
                     return angle::FormatID::NONE;
-#endif
             }
         default:
             UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
             return angle::FormatID::NONE;
-#endif
     }
 }
 
@@ -2924,9 +2923,7 @@ size_t GetVertexFormatSize(angle::FormatID vertexFormatID)
         case angle::FormatID::NONE:
         default:
             UNREACHABLE();
-#if !UNREACHABLE_IS_NORETURN
             return 0;
-#endif
     }
 }
 
@@ -3100,10 +3097,8 @@ angle::FormatID ConvertFormatSignedness(const angle::Format &format)
             return angle::FormatID::R10G10B10A2_SNORM;
         default:
             UNREACHABLE();
+            return angle::FormatID::NONE;
     }
-#if !UNREACHABLE_IS_NORETURN
-    return angle::FormatID::NONE;
-#endif
 }
 
 bool ValidES3InternalFormat(GLenum internalFormat)

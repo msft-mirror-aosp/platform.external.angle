@@ -16,7 +16,7 @@ using namespace angle;
 namespace
 {
 
-class ProvokingVertexTest : public ANGLETest
+class ProvokingVertexTest : public ANGLETest<>
 {
   protected:
     ProvokingVertexTest()
@@ -135,9 +135,6 @@ TEST_P(ProvokingVertexTest, FlatTriangle)
 // Ensure that any provoking vertex shenanigans still gives correct vertex streams.
 TEST_P(ProvokingVertexTest, FlatTriWithTransformFeedback)
 {
-    // http://anglebug.com/4092
-    ANGLE_SKIP_TEST_IF(IsAndroid() && IsVulkan());
-
     // TODO(cwallez) figure out why it is broken on AMD on Mac
     ANGLE_SKIP_TEST_IF(IsOSX() && IsAMD());
 
@@ -179,8 +176,6 @@ TEST_P(ProvokingVertexTest, FlatTriWithTransformFeedback)
 // Test drawing a simple line with flat shading, and different valued vertices.
 TEST_P(ProvokingVertexTest, FlatLine)
 {
-    // http://anglebug.com/4092
-    ANGLE_SKIP_TEST_IF((IsWindows() || IsLinux()) && IsVulkan());
     GLfloat halfPixel = 1.0f / static_cast<GLfloat>(getWindowWidth());
 
     GLint vertexData[]     = {1, 2};
@@ -205,8 +200,6 @@ TEST_P(ProvokingVertexTest, FlatLine)
 // Test drawing a simple line with flat shading, and different valued vertices.
 TEST_P(ProvokingVertexTest, FlatLineWithFirstIndex)
 {
-    // http://anglebug.com/4092
-    ANGLE_SKIP_TEST_IF((IsWindows() || IsLinux()) && IsVulkan());
     GLfloat halfPixel = 1.0f / static_cast<GLfloat>(getWindowWidth());
 
     GLint vertexData[]     = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2};
@@ -387,7 +380,14 @@ TEST_P(ProvokingVertexTest, ANGLEProvokingVertex)
     }
     if (hasExt)
     {
+        GLint mode;
+        glGetIntegerv(GL_PROVOKING_VERTEX, &mode);
+        EXPECT_EQ(mode, GL_LAST_VERTEX_CONVENTION);
+
         glProvokingVertexANGLE(GL_FIRST_VERTEX_CONVENTION);
+        glGetIntegerv(GL_PROVOKING_VERTEX, &mode);
+        EXPECT_EQ(mode, GL_FIRST_VERTEX_CONVENTION);
+
         fnExpectId(0);
     }
 }

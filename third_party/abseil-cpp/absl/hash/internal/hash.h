@@ -444,7 +444,7 @@ H AbslHashValue(H hash_state, T C::* ptr) {
     // On other platforms, we assume that pointers-to-members do not have
     // padding.
 #ifdef __cpp_lib_has_unique_object_representations
-    static_assert(std::has_unique_object_representations_v<T C::*>);
+    static_assert(std::has_unique_object_representations<T C::*>::value);
 #endif  // __cpp_lib_has_unique_object_representations
     return n;
 #endif
@@ -1090,15 +1090,10 @@ class ABSL_DLL MixingHashState : public HashStateBase<MixingHashState> {
   }
 
   ABSL_ATTRIBUTE_ALWAYS_INLINE static uint64_t Mix(uint64_t state, uint64_t v) {
-#if defined(__aarch64__)
-    // On AArch64, calculating a 128-bit product is inefficient, because it
-    // requires a sequence of two instructions to calculate the upper and lower
-    // halves of the result.
-    using MultType = uint64_t;
-#else
+    // Though the 128-bit product on AArch64 needs two instructions, it is
+    // still a good balance between speed and hash quality.
     using MultType =
         absl::conditional_t<sizeof(size_t) == 4, uint64_t, uint128>;
-#endif
     // We do the addition in 64-bit space to make sure the 128-bit
     // multiplication is fast. If we were to do it as MultType the compiler has
     // to assume that the high word is non-zero and needs to perform 2

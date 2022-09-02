@@ -92,10 +92,9 @@ class ClearBenchmark : public ANGLERenderTest, public ::testing::WithParamInterf
 
 ClearBenchmark::ClearBenchmark() : ANGLERenderTest("Clear", GetParam()), mProgram(0u)
 {
-    // Crashes on nvidia+d3d11. http://crbug.com/945415
     if (GetParam().getRenderer() == EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE)
     {
-        mSkipTest = true;
+        skipTest("http://crbug.com/945415 Crashes on nvidia+d3d11");
     }
 }
 
@@ -200,6 +199,13 @@ ClearParams D3D11Params()
     return params;
 }
 
+ClearParams MetalParams()
+{
+    ClearParams params;
+    params.eglParameters = egl_platform::METAL();
+    return params;
+}
+
 ClearParams OpenGLOrGLESParams()
 {
     ClearParams params;
@@ -228,6 +234,7 @@ TEST_P(ClearBenchmark, Run)
 
 ANGLE_INSTANTIATE_TEST(ClearBenchmark,
                        D3D11Params(),
+                       MetalParams(),
                        OpenGLOrGLESParams(),
                        VulkanParams(false, false),
                        VulkanParams(true, false),

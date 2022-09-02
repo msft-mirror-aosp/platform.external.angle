@@ -458,6 +458,20 @@ class FlattenUniformVisitor : public sh::VariableNameVisitor
             {
                 linkedUniform.setParentArrayIndex(variable.parentArrayIndex());
             }
+
+            std::vector<unsigned int> arrayDims = arraySizes;
+            ASSERT(variable.arraySizes.size() == 1 || variable.arraySizes.size() == 0);
+            arrayDims.push_back(variable.arraySizes.empty() ? 1 : variable.arraySizes[0]);
+
+            size_t numDimensions = arraySizes.size();
+            uint32_t arrayStride = 1;
+            for (size_t dimension = numDimensions; dimension > 0;)
+            {
+                --dimension;
+                arrayStride *= arrayDims[dimension + 1];
+                linkedUniform.outerArrayOffset += arrayStride * mArrayElementStack[dimension];
+            }
+
             if (mMarkActive)
             {
                 linkedUniform.setActive(mShaderType, true);
@@ -505,6 +519,18 @@ class FlattenUniformVisitor : public sh::VariableNameVisitor
         sh::VariableNameVisitor::exitStructAccess(structVar, isRowMajor);
     }
 
+    void enterArrayElement(const sh::ShaderVariable &arrayVar, unsigned int arrayElement) override
+    {
+        mArrayElementStack.push_back(arrayElement);
+        sh::VariableNameVisitor::enterArrayElement(arrayVar, arrayElement);
+    }
+
+    void exitArrayElement(const sh::ShaderVariable &arrayVar, unsigned int arrayElement) override
+    {
+        mArrayElementStack.pop_back();
+        sh::VariableNameVisitor::exitArrayElement(arrayVar, arrayElement);
+    }
+
     ShaderUniformCount getCounts() const { return mUniformCount; }
 
   private:
@@ -525,6 +551,7 @@ class FlattenUniformVisitor : public sh::VariableNameVisitor
     std::vector<LinkedUniform> *mAtomicCounterUniforms;
     std::vector<LinkedUniform> *mInputAttachmentUniforms;
     std::vector<UnusedUniform> *mUnusedUniforms;
+    std::vector<unsigned int> mArrayElementStack;
     ShaderUniformCount mUniformCount;
     unsigned int mStructStackSize = 0;
 };
@@ -1485,17 +1512,17 @@ ProgramLinkedResources::ProgramLinkedResources() = default;
 
 ProgramLinkedResources::~ProgramLinkedResources() = default;
 
-LinkingVariables::LinkingVariables(const ProgramState &state)
+LinkingVariables::LinkingVariables(const Context *context, const ProgramState &state)
 {
     for (ShaderType shaderType : kAllGraphicsShaderTypes)
     {
         Shader *shader = state.getAttachedShader(shaderType);
         if (shader)
         {
-            outputVaryings[shaderType] = shader->getOutputVaryings();
-            inputVaryings[shaderType]  = shader->getInputVaryings();
-            uniforms[shaderType]       = shader->getUniforms();
-            uniformBlocks[shaderType]  = shader->getUniformBlocks();
+            outputVaryings[shaderType] = shader->getOutputVaryings(context);
+            inputVaryings[shaderType]  = shader->getInputVaryings(context);
+            uniforms[shaderType]       = shader->getUniforms(context);
+            uniformBlocks[shaderType]  = shader->getUniformBlocks(context);
             isShaderStageUsedBitset.set(shaderType);
         }
     }
@@ -1530,7 +1557,8 @@ void ProgramLinkedResources::init(std::vector<InterfaceBlock> *uniformBlocksOut,
     atomicCounterBufferLinker.init(atomicCounterBuffersOut);
 }
 
-void ProgramLinkedResourcesLinker::linkResources(const ProgramState &programState,
+void ProgramLinkedResourcesLinker::linkResources(const Context *context,
+                                                 const ProgramState &programState,
                                                  const ProgramLinkedResources &resources) const
 {
     // Gather uniform interface block info.
@@ -1540,7 +1568,7 @@ void ProgramLinkedResourcesLinker::linkResources(const ProgramState &programStat
         Shader *shader = programState.getAttachedShader(shaderType);
         if (shader)
         {
-            uniformBlockInfo.getShaderBlockInfo(shader->getUniformBlocks());
+            uniformBlockInfo.getShaderBlockInfo(shader->getUniformBlocks(context));
         }
     }
 
@@ -1565,7 +1593,7 @@ void ProgramLinkedResourcesLinker::linkResources(const ProgramState &programStat
         Shader *shader = programState.getAttachedShader(shaderType);
         if (shader)
         {
-            shaderStorageBlockInfo.getShaderBlockInfo(shader->getShaderStorageBlocks());
+            shaderStorageBlockInfo.getShaderBlockInfo(shader->getShaderStorageBlocks(context));
         }
     }
     auto getShaderStorageBlockSize = [&shaderStorageBlockInfo](const std::string &name,

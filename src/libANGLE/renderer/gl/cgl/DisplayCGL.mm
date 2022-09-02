@@ -18,6 +18,7 @@
 
 #    include "common/debug.h"
 #    include "common/gl/cgl/FunctionsCGL.h"
+#    include "common/system_utils.h"
 #    include "gpu_info_util/SystemInfo.h"
 #    include "libANGLE/Display.h"
 #    include "libANGLE/Error.h"
@@ -36,7 +37,7 @@ const char *kDefaultOpenGLDylibName =
     "/System/Library/Frameworks/OpenGL.framework/Libraries/libGL.dylib";
 const char *kFallbackOpenGLDylibName = "GL";
 
-}
+}  // namespace
 
 namespace rx
 {
@@ -209,15 +210,33 @@ egl::Error DisplayCGL::initialize(egl::Display *display)
 
     if (mSupportsGPUSwitching)
     {
-        // Determine the currently active GPU on the system.
-        mCurrentGPUID = angle::GetGpuIDFromDisplayID(kCGDirectMainDisplay);
+        auto gpuIndex = info.getPreferredGPUIndex();
+        if (gpuIndex)
+        {
+            auto gpuID         = info.gpus[*gpuIndex].systemDeviceId;
+            auto virtualScreen = GetVirtualScreenByRegistryID(mPixelFormat, gpuID);
+            if (virtualScreen)
+            {
+                CGLError error = CGLSetVirtualScreen(mContext, *virtualScreen);
+                ASSERT(error == kCGLNoError);
+                if (error == kCGLNoError)
+                {
+                    mCurrentGPUID = gpuID;
+                }
+            }
+        }
+        if (mCurrentGPUID == 0)
+        {
+            // Determine the currently active GPU on the system.
+            mCurrentGPUID = angle::GetGpuIDFromDisplayID(kCGDirectMainDisplay);
+        }
     }
 
     if (CGLSetCurrentContext(mContext) != kCGLNoError)
     {
         return egl::EglNotInitialized() << "Could not make the CGL context current.";
     }
-    mThreadsWithCurrentContext.insert(std::this_thread::get_id());
+    mThreadsWithCurrentContext.insert(angle::GetCurrentThreadUniqueId());
 
     // There is no equivalent getProcAddress in CGL so we open the dylib directly
     void *handle = dlopen(kDefaultOpenGLDylibName, RTLD_NOW);
@@ -279,7 +298,7 @@ egl::Error DisplayCGL::prepareForCall()
     {
         return egl::EglNotInitialized() << "Context not allocated.";
     }
-    auto threadId = std::this_thread::get_id();
+    auto threadId = angle::GetCurrentThreadUniqueId();
     if (mDeviceContextIsVolatile ||
         mThreadsWithCurrentContext.find(threadId) == mThreadsWithCurrentContext.end())
     {
@@ -295,7 +314,7 @@ egl::Error DisplayCGL::prepareForCall()
 egl::Error DisplayCGL::releaseThread()
 {
     ASSERT(mContext);
-    auto threadId = std::this_thread::get_id();
+    auto threadId = angle::GetCurrentThreadUniqueId();
     if (mThreadsWithCurrentContext.find(threadId) != mThreadsWithCurrentContext.end())
     {
         if (CGLSetCurrentContext(nullptr) != kCGLNoError)

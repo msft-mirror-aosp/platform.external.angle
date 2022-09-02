@@ -578,7 +578,10 @@ bool ValidatePushGroupMarkerEXT(const Context *context,
                                 angle::EntryPoint entryPoint,
                                 GLsizei length,
                                 const char *marker);
-
+bool ValidateEGLImageObject(const Context *context,
+                            angle::EntryPoint entryPoint,
+                            TextureType type,
+                            GLeglImageOES image);
 bool ValidateEGLImageTargetTexture2DOES(const Context *context,
                                         angle::EntryPoint entryPoint,
                                         TextureType type,
@@ -887,6 +890,14 @@ bool ValidateES3CopyTexImage2DParameters(const Context *context,
                                          GLsizei width,
                                          GLsizei height,
                                          GLint border);
+bool ValidateES3TexStorageParametersBase(const Context *context,
+                                         angle::EntryPoint entryPoint,
+                                         TextureType target,
+                                         GLsizei levels,
+                                         GLenum internalformat,
+                                         GLsizei width,
+                                         GLsizei height,
+                                         GLsizei depth);
 bool ValidateES3TexStorage2DParameters(const Context *context,
                                        angle::EntryPoint entryPoint,
                                        TextureType target,
@@ -942,6 +953,7 @@ const char *ValidateProgramPipelineDrawStates(const State &state,
                                               ProgramPipeline *programPipeline);
 const char *ValidateProgramPipelineAttachedPrograms(ProgramPipeline *programPipeline);
 const char *ValidateDrawStates(const Context *context);
+const char *ValidateProgramPipeline(const Context *context);
 
 void RecordDrawAttribsError(const Context *context, angle::EntryPoint entryPoint);
 
@@ -1073,7 +1085,7 @@ ANGLE_INLINE bool ValidateDrawElementsBase(const Context *context,
         }
 
         ASSERT(type == DrawElementsType::InvalidEnum);
-        context->validationError(entryPoint, GL_INVALID_ENUM, err::kEnumNotSupported);
+        context->validationErrorF(entryPoint, GL_INVALID_ENUM, err::kEnumInvalid);
         return false;
     }
 
@@ -1242,7 +1254,7 @@ ANGLE_INLINE bool ValidateVertexAttribIndex(const Context *context,
                                             angle::EntryPoint entryPoint,
                                             GLuint index)
 {
-    if (index >= MAX_VERTEX_ATTRIBS)
+    if (index >= static_cast<GLuint>(context->getCaps().maxVertexAttributes))
     {
         context->validationError(entryPoint, GL_INVALID_VALUE,
                                  err::kIndexExceedsMaxVertexAttribute);

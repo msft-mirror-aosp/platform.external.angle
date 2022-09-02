@@ -343,8 +343,6 @@ class ProgramState final : angle::NonCopyable
     }
 
     bool hasImages() const { return !getImageBindings().empty(); }
-    bool hasEarlyFragmentTestsOptimization() const { return mEarlyFramentTestsOptimization; }
-    BlendEquationBitSet getAdvancedBlendEquations() const { return mAdvancedBlendEquations; }
     rx::SpecConstUsageBits getSpecConstUsageBits() const { return mSpecConstUsageBits; }
 
     // A Program can only either be graphics or compute, but never both, so it
@@ -372,8 +370,8 @@ class ProgramState final : angle::NonCopyable
     friend class Program;
 
     void updateActiveSamplers();
-    void updateProgramInterfaceInputs();
-    void updateProgramInterfaceOutputs();
+    void updateProgramInterfaceInputs(const Context *context);
+    void updateProgramInterfaceOutputs(const Context *context);
 
     // Scans the sampler bindings for type conflicts with sampler 'textureUnitIndex'.
     void setSamplerUniformTextureTypeAndFormat(size_t textureUnitIndex);
@@ -392,9 +390,6 @@ class ProgramState final : angle::NonCopyable
 
     bool mBinaryRetrieveableHint;
     bool mSeparable;
-    bool mEarlyFramentTestsOptimization;
-    // KHR_blend_equation_advanced supported equation list
-    BlendEquationBitSet mAdvancedBlendEquations;
     rx::SpecConstUsageBits mSpecConstUsageBits;
 
     // ANGLE_multiview.
@@ -444,7 +439,7 @@ class Program final : public LabeledObject, public angle::Subject
 
     ShaderProgramID id() const;
 
-    void setLabel(const Context *context, const std::string &label) override;
+    angle::Result setLabel(const Context *context, const std::string &label) override;
     const std::string &getLabel() const override;
 
     ANGLE_INLINE rx::ProgramImpl *getImplementation() const
@@ -605,7 +600,8 @@ class Program final : public LabeledObject, public angle::Subject
     void getUniformiv(const Context *context, UniformLocation location, GLint *params) const;
     void getUniformuiv(const Context *context, UniformLocation location, GLuint *params) const;
 
-    void getActiveUniformBlockName(const UniformBlockIndex blockIndex,
+    void getActiveUniformBlockName(const Context *context,
+                                   const UniformBlockIndex blockIndex,
                                    GLsizei bufSize,
                                    GLsizei *length,
                                    GLchar *blockName) const;
@@ -799,9 +795,9 @@ class Program final : public LabeledObject, public angle::Subject
 
     angle::Result linkImpl(const Context *context);
 
-    bool linkValidateShaders(InfoLog &infoLog);
+    bool linkValidateShaders(const Context *context, InfoLog &infoLog);
     bool linkAttributes(const Context *context, InfoLog &infoLog);
-    bool linkVaryings(InfoLog &infoLog) const;
+    bool linkVaryings(const Context *context, InfoLog &infoLog) const;
 
     bool linkUniforms(const Context *context,
                       std::vector<UnusedUniform> *unusedUniformsOutOrNull,
@@ -893,6 +889,8 @@ class Program final : public LabeledObject, public angle::Subject
     const ShaderProgramID mHandle;
 
     DirtyBits mDirtyBits;
+
+    std::mutex mHistogramMutex;
 };
 }  // namespace gl
 

@@ -62,9 +62,14 @@ void Buffer::onDestroy(const Context *context)
         mImpl->destroy(context);
 }
 
-void Buffer::setLabel(const Context *context, const std::string &label)
+angle::Result Buffer::setLabel(const Context *context, const std::string &label)
 {
     mState.mLabel = label;
+    if (mImpl)
+    {
+        return mImpl->onLabelUpdate(context);
+    }
+    return angle::Result::Continue;
 }
 
 const std::string &Buffer::getLabel() const
@@ -125,7 +130,7 @@ angle::Result Buffer::bufferDataImpl(Context *context,
     // If we are using robust resource init, make sure the buffer starts cleared.
     // Note: the Context is checked for nullptr because of some testing code.
     // TODO(jmadill): Investigate lazier clearing.
-    if (context && context->getState().isRobustResourceInitEnabled() && !data && size > 0)
+    if (context && context->isRobustResourceInitEnabled() && !data && size > 0)
     {
         angle::MemoryBuffer *scratchBuffer = nullptr;
         ANGLE_CHECK_GL_ALLOC(
@@ -391,11 +396,6 @@ angle::Result Buffer::getSubData(const gl::Context *context,
 
 void Buffer::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message)
 {
-    if (message == angle::SubjectMessage::BufferVkStorageChanged)
-    {
-        return;
-    }
-
     // Pass it along!
     ASSERT(index == kImplementationSubjectIndex);
     ASSERT(message == angle::SubjectMessage::SubjectChanged ||

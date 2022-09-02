@@ -170,6 +170,9 @@ bool ZipFiles(const base::FilePath& src_dir,
               int dest_fd);
 #endif  // defined(OS_POSIX) || defined(OS_FUCHSIA)
 
+// Callback reporting the number of bytes written during Unzip.
+using UnzipProgressCallback = base::RepeatingCallback<void(uint64_t bytes)>;
+
 // Options of the Unzip function, with valid default values.
 struct UnzipOptions {
   // Encoding of entry paths in the ZIP archive. By default, paths are assumed
@@ -180,8 +183,14 @@ struct UnzipOptions {
   // everything gets extracted.
   FilterCallback filter;
 
+  // Callback to report bytes extracted from the ZIP.
+  UnzipProgressCallback progress;
+
   // Password to decrypt the encrypted files.
   std::string password;
+
+  // Should ignore errors when extracting files?
+  bool continue_on_error = false;
 };
 
 typedef base::RepeatingCallback<std::unique_ptr<WriterDelegate>(

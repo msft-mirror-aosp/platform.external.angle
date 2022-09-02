@@ -20,6 +20,7 @@
 #include "libANGLE/renderer/vulkan/RendererVk.h"
 #include "libANGLE/renderer/vulkan/SurfaceVk.h"
 #include "libANGLE/renderer/vulkan/SyncVk.h"
+#include "libANGLE/renderer/vulkan/TextureVk.h"
 #include "libANGLE/renderer/vulkan/VkImageImageSiblingVk.h"
 #include "libANGLE/trace.h"
 
@@ -27,6 +28,9 @@ namespace rx
 {
 // Time interval in seconds that we should try to prune default buffer pools.
 constexpr double kTimeElapsedForPruneDefaultBufferPool = 0.25;
+
+// Set to true will log bufferpool stats into INFO stream
+#define ANGLE_ENABLE_BUFFER_POOL_STATS_LOGGING 0
 
 DisplayVk::DisplayVk(const egl::DisplayState &state)
     : DisplayImpl(state),
@@ -295,14 +299,18 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
     outExtensions->imagePixmap           = false;  // ANGLE does not support pixmaps
     outExtensions->glTexture2DImage      = true;
     outExtensions->glTextureCubemapImage = true;
-    outExtensions->glTexture3DImage      = false;
-    outExtensions->glRenderbufferImage   = true;
+    outExtensions->glTexture3DImage = getRenderer()->getFeatures().supportsImage2dViewOf3d.enabled;
+    outExtensions->glRenderbufferImage = true;
     outExtensions->imageNativeBuffer =
         getRenderer()->getFeatures().supportsAndroidHardwareBuffer.enabled;
     outExtensions->surfacelessContext = true;
     outExtensions->glColorspace       = true;
+
+    // TODO(b/205995945): drop the !AHB condition after sRGB texture upload for AHB gets fixed.
     outExtensions->imageGlColorspace =
-        outExtensions->glColorspace && getRenderer()->getFeatures().supportsImageFormatList.enabled;
+        outExtensions->glColorspace &&
+        getRenderer()->getFeatures().supportsImageFormatList.enabled &&
+        !getRenderer()->getFeatures().supportsAndroidHardwareBuffer.enabled;
 
 #if defined(ANGLE_PLATFORM_ANDROID)
     outExtensions->getNativeClientBufferANDROID = true;
@@ -348,6 +356,13 @@ void DisplayVk::generateExtensions(egl::DisplayExtensions *outExtensions) const
         getRenderer()->getFeatures().supportsLockSurfaceExtension.enabled;
 
     outExtensions->partialUpdateKHR = true;
+
+    outExtensions->timestampSurfaceAttributeANGLE =
+        getRenderer()->getFeatures().supportsTimestampSurfaceAttribute.enabled;
+
+    outExtensions->eglColorspaceAttributePassthroughANGLE =
+        outExtensions->glColorspace &&
+        getRenderer()->getFeatures().eglColorspaceAttributePassthrough.enabled;
 }
 
 void DisplayVk::generateCaps(egl::Caps *outCaps) const
@@ -404,14 +419,34 @@ egl::Error DisplayVk::getEGLError(EGLint errorCode)
     return egl::Error(errorCode, 0, std::move(errorString));
 }
 
+void DisplayVk::initializeFrontendFeatures(angle::FrontendFeatures *features) const
+{
+    mRenderer->initializeFrontendFeatures(features);
+}
+
 void DisplayVk::populateFeatureList(angle::FeatureList *features)
 {
     mRenderer->getFeatures().populateFeatureList(features);
 }
 
-ShareGroupVk::ShareGroupVk()
+ShareGroupVk::ShareGroupVk() : mOrphanNonEmptyBufferBlock(false)
 {
     mLastPruneTime = angle::GetCurrentSystemTime();
+}
+
+void ShareGroupVk::addContext(ContextVk *contextVk)
+{
+    mContexts.insert(contextVk);
+
+    if (contextVk->getState().hasDisplayTextureShareGroup())
+    {
+        mOrphanNonEmptyBufferBlock = true;
+    }
+}
+
+void ShareGroupVk::removeContext(ContextVk *contextVk)
+{
+    mContexts.erase(contextVk);
 }
 
 void ShareGroupVk::onDestroy(const egl::Display *display)
@@ -422,17 +457,24 @@ void ShareGroupVk::onDestroy(const egl::Display *display)
     {
         if (pool)
         {
-            pool->destroy(renderer);
+            pool->destroy(renderer, mOrphanNonEmptyBufferBlock);
         }
     }
 
     if (mSmallBufferPool)
     {
-        mSmallBufferPool->destroy(renderer);
+        mSmallBufferPool->destroy(renderer, mOrphanNonEmptyBufferBlock);
     }
 
     mPipelineLayoutCache.destroy(renderer);
     mDescriptorSetLayoutCache.destroy(renderer);
+
+    mMetaDescriptorPools[DescriptorSetIndex::UniformsAndXfb].destroy(renderer);
+    mMetaDescriptorPools[DescriptorSetIndex::Texture].destroy(renderer);
+    mMetaDescriptorPools[DescriptorSetIndex::ShaderResource].destroy(renderer);
+
+    mFramebufferCache.destroy(renderer);
+    resetPrevTexture();
 
     ASSERT(mResourceUseLists.empty());
 }
@@ -446,6 +488,58 @@ void ShareGroupVk::releaseResourceUseLists(const Serial &submitSerial)
             it.releaseResourceUsesAndUpdateSerials(submitSerial);
         }
         mResourceUseLists.clear();
+    }
+}
+
+angle::Result ShareGroupVk::onMutableTextureUpload(ContextVk *contextVk, TextureVk *newTexture)
+{
+    return mTextureUpload.onMutableTextureUpload(contextVk, newTexture);
+}
+
+void ShareGroupVk::onTextureRelease(TextureVk *textureVk)
+{
+    mTextureUpload.onTextureRelease(textureVk);
+}
+
+angle::Result TextureUpload::onMutableTextureUpload(ContextVk *contextVk, TextureVk *newTexture)
+{
+    // This feature is currently disabled in the case of display-level texture sharing.
+    ASSERT(!contextVk->hasDisplayTextureShareGroup());
+
+    // If the previous texture is null, it should be set to the current texture. We also have to
+    // make sure that the previous texture pointer is still a mutable texture. Otherwise, we skip
+    // the optimization.
+    if (mPrevUploadedMutableTexture == nullptr || mPrevUploadedMutableTexture->isImmutable())
+    {
+        mPrevUploadedMutableTexture = newTexture;
+        return angle::Result::Continue;
+    }
+
+    // Skip the optimization if we have not switched to a new texture yet.
+    if (mPrevUploadedMutableTexture == newTexture)
+    {
+        return angle::Result::Continue;
+    }
+
+    // If the mutable texture is consistently specified, we initialize a full mip chain for it.
+    if (mPrevUploadedMutableTexture->isMutableTextureConsistentlySpecifiedForFlush())
+    {
+        ANGLE_TRY(mPrevUploadedMutableTexture->ensureImageInitialized(
+            contextVk, ImageMipLevels::FullMipChain));
+        contextVk->getPerfCounters().mutableTexturesUploaded++;
+    }
+
+    // Update the mutable texture pointer with the new pointer for the next potential flush.
+    mPrevUploadedMutableTexture = newTexture;
+
+    return angle::Result::Continue;
+}
+
+void TextureUpload::onTextureRelease(TextureVk *textureVk)
+{
+    if (mPrevUploadedMutableTexture == textureVk)
+    {
+        resetPrevTexture();
     }
 }
 
@@ -493,6 +587,12 @@ void ShareGroupVk::pruneDefaultBufferPools(RendererVk *renderer)
 {
     mLastPruneTime = angle::GetCurrentSystemTime();
 
+    // Bail out if no suballocation have been destroyed since last prune.
+    if (renderer->getSuballocationDestroyedSize() == 0)
+    {
+        return;
+    }
+
     for (std::unique_ptr<vk::BufferPool> &pool : mDefaultBufferPools)
     {
         if (pool)
@@ -504,11 +604,74 @@ void ShareGroupVk::pruneDefaultBufferPools(RendererVk *renderer)
     {
         mSmallBufferPool->pruneEmptyBuffers(renderer);
     }
+
+    renderer->onBufferPoolPrune();
+
+#if ANGLE_ENABLE_BUFFER_POOL_STATS_LOGGING
+    logBufferPools();
+#endif
 }
 
-bool ShareGroupVk::isDueForBufferPoolPrune()
+bool ShareGroupVk::isDueForBufferPoolPrune(RendererVk *renderer)
 {
+    // Ensure we periodically prune to maintain the heuristic information
     double timeElapsed = angle::GetCurrentSystemTime() - mLastPruneTime;
-    return timeElapsed > kTimeElapsedForPruneDefaultBufferPool;
+    if (timeElapsed > kTimeElapsedForPruneDefaultBufferPool)
+    {
+        return true;
+    }
+
+    // If we have destroyed a lot of memory, also prune to ensure memory gets freed as soon as
+    // possible
+    if (renderer->getSuballocationDestroyedSize() >= kMaxTotalEmptyBufferBytes)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+void ShareGroupVk::calculateTotalBufferCount(size_t *bufferCount, VkDeviceSize *totalSize) const
+{
+    *bufferCount = 0;
+    *totalSize   = 0;
+    for (const std::unique_ptr<vk::BufferPool> &pool : mDefaultBufferPools)
+    {
+        if (pool)
+        {
+            *bufferCount += pool->getBufferCount();
+            *totalSize += pool->getMemorySize();
+        }
+    }
+    if (mSmallBufferPool)
+    {
+        *bufferCount += mSmallBufferPool->getBufferCount();
+        *totalSize += mSmallBufferPool->getMemorySize();
+    }
+}
+
+void ShareGroupVk::logBufferPools() const
+{
+    size_t totalBufferCount;
+    VkDeviceSize totalMemorySize;
+    calculateTotalBufferCount(&totalBufferCount, &totalMemorySize);
+
+    INFO() << "BufferBlocks count:" << totalBufferCount << " memorySize:" << totalMemorySize / 1024
+           << " UnusedBytes/memorySize (KBs):";
+    for (const std::unique_ptr<vk::BufferPool> &pool : mDefaultBufferPools)
+    {
+        if (pool && pool->getBufferCount() > 0)
+        {
+            std::ostringstream log;
+            pool->addStats(&log);
+            INFO() << "\t" << log.str();
+        }
+    }
+    if (mSmallBufferPool && mSmallBufferPool->getBufferCount() > 0)
+    {
+        std::ostringstream log;
+        mSmallBufferPool->addStats(&log);
+        INFO() << "\t" << log.str();
+    }
 }
 }  // namespace rx

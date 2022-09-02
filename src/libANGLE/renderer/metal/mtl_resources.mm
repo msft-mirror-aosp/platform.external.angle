@@ -244,23 +244,6 @@ angle::Result Texture::Make3DTexture(ContextMtl *context,
         return MakeTexture(context, format, desc, mips, renderTargetOnly, allowFormatView, refOut);
     }  // ANGLE_MTL_OBJC_SCOPE
 }
-angle::Result Texture::MakeIOSurfaceTexture(ContextMtl *context,
-                                            const Format &format,
-                                            uint32_t width,
-                                            uint32_t height,
-                                            IOSurfaceRef ref,
-                                            uint32_t plane,
-                                            TextureRef *refOut)
-{
-    MTLTextureDescriptor *desc = [[MTLTextureDescriptor new] ANGLE_MTL_AUTORELEASE];
-    desc.textureType           = MTLTextureType2D;
-    desc.pixelFormat           = format.metalFormat;
-    desc.width                 = width;
-    desc.height                = height;
-    desc.mipmapLevelCount      = 1;
-    desc.sampleCount           = 1;
-    return MakeTexture(context, format, desc, ref, plane, NO, refOut);
-}
 
 /** static */
 angle::Result Texture::MakeTexture(ContextMtl *context,
@@ -288,11 +271,13 @@ angle::Result Texture::MakeTexture(ContextMtl *context,
     {
         return angle::Result::Stop;
     }
-    refOut->reset(new Texture(context, desc, mips, renderTargetOnly, allowFormatView, memoryLess));
-    if (!refOut || !refOut->get())
-    {
-        ANGLE_MTL_CHECK(context, false, GL_OUT_OF_MEMORY);
-    }
+
+    ASSERT(refOut);
+    Texture *newTexture =
+        new Texture(context, desc, mips, renderTargetOnly, allowFormatView, memoryLess);
+    ANGLE_MTL_CHECK(context, newTexture->valid(), GL_OUT_OF_MEMORY);
+    refOut->reset(newTexture);
+
     if (!mtlFormat.hasDepthAndStencilBits())
     {
         refOut->get()->setColorWritableMask(GetEmulatedColorWriteMask(mtlFormat));
@@ -317,12 +302,10 @@ angle::Result Texture::MakeTexture(ContextMtl *context,
                                    TextureRef *refOut)
 {
 
-    refOut->reset(new Texture(context, desc, surfaceRef, slice, renderTargetOnly));
-
-    if (!(*refOut) || !(*refOut)->get())
-    {
-        ANGLE_MTL_CHECK(context, false, GL_OUT_OF_MEMORY);
-    }
+    ASSERT(refOut);
+    Texture *newTexture = new Texture(context, desc, surfaceRef, slice, renderTargetOnly);
+    ANGLE_MTL_CHECK(context, newTexture->valid(), GL_OUT_OF_MEMORY);
+    refOut->reset(newTexture);
     if (!mtlFormat.hasDepthAndStencilBits())
     {
         refOut->get()->setColorWritableMask(GetEmulatedColorWriteMask(mtlFormat));
@@ -347,7 +330,10 @@ bool needMultisampleColorFormatShaderReadWorkaround(ContextMtl *context, MTLText
 /** static */
 TextureRef Texture::MakeFromMetal(id<MTLTexture> metalTexture)
 {
-    ANGLE_MTL_OBJC_SCOPE { return TextureRef(new Texture(metalTexture)); }
+    ANGLE_MTL_OBJC_SCOPE
+    {
+        return TextureRef(new Texture(metalTexture));
+    }
 }
 
 Texture::Texture(id<MTLTexture> metalTexture)
@@ -769,6 +755,20 @@ uint32_t Texture::samples() const
     return static_cast<uint32_t>(get().sampleCount);
 }
 
+bool Texture::hasIOSurface() const
+{
+    return (get().iosurface) != nullptr;
+}
+
+bool Texture::sameTypeAndDimemsionsAs(const TextureRef &other) const
+{
+    return textureType() == other->textureType() && pixelFormat() == other->pixelFormat() &&
+           mipmapLevels() == other->mipmapLevels() &&
+           cubeFacesOrArrayLength() == other->cubeFacesOrArrayLength() &&
+           widthAt0() == other->widthAt0() && heightAt0() == other->heightAt0() &&
+           depthAt0() == other->depthAt0();
+}
+
 angle::Result Texture::resize(ContextMtl *context, uint32_t width, uint32_t height)
 {
     // Resizing texture view is not supported.
@@ -1075,5 +1075,5 @@ bool Buffer::useSharedMem() const
 {
     return get().storageMode == MTLStorageModeShared;
 }
-}
-}
+}  // namespace mtl
+}  // namespace rx

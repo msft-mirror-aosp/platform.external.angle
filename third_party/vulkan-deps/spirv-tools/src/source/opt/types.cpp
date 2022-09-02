@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <cstdint>
 #include <sstream>
 #include <string>
@@ -246,6 +247,35 @@ size_t Type::HashValue() const {
   return ComputeHashValue(0, &seen);
 }
 
+uint64_t Type::NumberOfComponents() const {
+  switch (kind()) {
+    case kVector:
+      return AsVector()->element_count();
+    case kMatrix:
+      return AsMatrix()->element_count();
+    case kArray: {
+      Array::LengthInfo length_info = AsArray()->length_info();
+      if (length_info.words[0] != Array::LengthInfo::kConstant) {
+        return UINT64_MAX;
+      }
+      assert(length_info.words.size() <= 3 &&
+             "The size of the array could not fit size_t.");
+      uint64_t length = 0;
+      length |= length_info.words[1];
+      if (length_info.words.size() > 2) {
+        length |= static_cast<uint64_t>(length_info.words[2]) << 32;
+      }
+      return length;
+    }
+    case kRuntimeArray:
+      return UINT64_MAX;
+    case kStruct:
+      return AsStruct()->element_types().size();
+    default:
+      return 0;
+  }
+}
+
 bool Integer::IsSameImpl(const Type* that, IsSameCache*) const {
   const Integer* it = that->AsInteger();
   return it && width_ == it->width_ && signed_ == it->signed_ &&
@@ -418,6 +448,12 @@ size_t Array::ComputeExtraStateHash(size_t hash, SeenTypes* seen) const {
 }
 
 void Array::ReplaceElementType(const Type* type) { element_type_ = type; }
+
+Array::LengthInfo Array::GetConstantLengthInfo(uint32_t const_id,
+                                               uint32_t length) const {
+  std::vector<uint32_t> extra_words{LengthInfo::Case::kConstant, length};
+  return {const_id, extra_words};
+}
 
 RuntimeArray::RuntimeArray(const Type* type)
     : Type(kRuntimeArray), element_type_(type) {

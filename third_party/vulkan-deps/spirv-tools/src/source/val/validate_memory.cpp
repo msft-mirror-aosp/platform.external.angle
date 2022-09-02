@@ -35,8 +35,8 @@ bool HaveLayoutCompatibleMembers(ValidationState_t&, const Instruction*,
                                  const Instruction*);
 bool HaveSameLayoutDecorations(ValidationState_t&, const Instruction*,
                                const Instruction*);
-bool HasConflictingMemberOffsets(const std::vector<Decoration>&,
-                                 const std::vector<Decoration>&);
+bool HasConflictingMemberOffsets(const std::set<Decoration>&,
+                                 const std::set<Decoration>&);
 
 bool IsAllowedTypeOrArrayOfSame(ValidationState_t& _, const Instruction* type,
                                 std::initializer_list<uint32_t> allowed) {
@@ -105,10 +105,8 @@ bool HaveSameLayoutDecorations(ValidationState_t& _, const Instruction* type1,
          "type1 must be an OpTypeStruct instruction.");
   assert(type2->opcode() == SpvOpTypeStruct &&
          "type2 must be an OpTypeStruct instruction.");
-  const std::vector<Decoration>& type1_decorations =
-      _.id_decorations(type1->id());
-  const std::vector<Decoration>& type2_decorations =
-      _.id_decorations(type2->id());
+  const std::set<Decoration>& type1_decorations = _.id_decorations(type1->id());
+  const std::set<Decoration>& type2_decorations = _.id_decorations(type2->id());
 
   // TODO: Will have to add other check for arrays an matricies if we want to
   // handle them.
@@ -120,8 +118,8 @@ bool HaveSameLayoutDecorations(ValidationState_t& _, const Instruction* type1,
 }
 
 bool HasConflictingMemberOffsets(
-    const std::vector<Decoration>& type1_decorations,
-    const std::vector<Decoration>& type2_decorations) {
+    const std::set<Decoration>& type1_decorations,
+    const std::set<Decoration>& type2_decorations) {
   {
     // We are interested in conflicting decoration.  If a decoration is in one
     // list but not the other, then we will assume the code is correct.  We are
@@ -315,11 +313,12 @@ spv_result_t CheckMemoryAccess(ValidationState_t& _, const Instruction* inst,
   SpvStorageClass dst_sc, src_sc;
   std::tie(dst_sc, src_sc) = GetStorageClass(_, inst);
   if (inst->operands().size() <= index) {
-    if (src_sc == SpvStorageClassPhysicalStorageBufferEXT ||
-        dst_sc == SpvStorageClassPhysicalStorageBufferEXT) {
+    // Cases where lack of some operand is invalid
+    if (src_sc == SpvStorageClassPhysicalStorageBuffer ||
+        dst_sc == SpvStorageClassPhysicalStorageBuffer) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
-             << "Memory accesses with PhysicalStorageBufferEXT must use "
-                "Aligned.";
+             << _.VkErrorID(4708)
+             << "Memory accesses with PhysicalStorageBuffer must use Aligned.";
     }
     return SPV_SUCCESS;
   }
@@ -368,7 +367,7 @@ spv_result_t CheckMemoryAccess(ValidationState_t& _, const Instruction* inst,
         dst_sc != SpvStorageClassCrossWorkgroup &&
         dst_sc != SpvStorageClassGeneric && dst_sc != SpvStorageClassImage &&
         dst_sc != SpvStorageClassStorageBuffer &&
-        dst_sc != SpvStorageClassPhysicalStorageBufferEXT) {
+        dst_sc != SpvStorageClassPhysicalStorageBuffer) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
              << "NonPrivatePointerKHR requires a pointer in Uniform, "
              << "Workgroup, CrossWorkgroup, Generic, Image or StorageBuffer "
@@ -379,7 +378,7 @@ spv_result_t CheckMemoryAccess(ValidationState_t& _, const Instruction* inst,
         src_sc != SpvStorageClassCrossWorkgroup &&
         src_sc != SpvStorageClassGeneric && src_sc != SpvStorageClassImage &&
         src_sc != SpvStorageClassStorageBuffer &&
-        src_sc != SpvStorageClassPhysicalStorageBufferEXT) {
+        src_sc != SpvStorageClassPhysicalStorageBuffer) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
              << "NonPrivatePointerKHR requires a pointer in Uniform, "
              << "Workgroup, CrossWorkgroup, Generic, Image or StorageBuffer "
@@ -388,11 +387,11 @@ spv_result_t CheckMemoryAccess(ValidationState_t& _, const Instruction* inst,
   }
 
   if (!(mask & SpvMemoryAccessAlignedMask)) {
-    if (src_sc == SpvStorageClassPhysicalStorageBufferEXT ||
-        dst_sc == SpvStorageClassPhysicalStorageBufferEXT) {
+    if (src_sc == SpvStorageClassPhysicalStorageBuffer ||
+        dst_sc == SpvStorageClassPhysicalStorageBuffer) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
-             << "Memory accesses with PhysicalStorageBufferEXT must use "
-                "Aligned.";
+             << _.VkErrorID(4708)
+             << "Memory accesses with PhysicalStorageBuffer must use Aligned.";
     }
   }
 
@@ -439,11 +438,11 @@ spv_result_t ValidateVariable(ValidationState_t& _, const Instruction* inst) {
       storage_class != SpvStorageClassCrossWorkgroup &&
       storage_class != SpvStorageClassPrivate &&
       storage_class != SpvStorageClassFunction &&
-      storage_class != SpvStorageClassRayPayloadNV &&
-      storage_class != SpvStorageClassIncomingRayPayloadNV &&
-      storage_class != SpvStorageClassHitAttributeNV &&
-      storage_class != SpvStorageClassCallableDataNV &&
-      storage_class != SpvStorageClassIncomingCallableDataNV) {
+      storage_class != SpvStorageClassRayPayloadKHR &&
+      storage_class != SpvStorageClassIncomingRayPayloadKHR &&
+      storage_class != SpvStorageClassHitAttributeKHR &&
+      storage_class != SpvStorageClassCallableDataKHR &&
+      storage_class != SpvStorageClassIncomingCallableDataKHR) {
     bool storage_input_or_output = storage_class == SpvStorageClassInput ||
                                    storage_class == SpvStorageClassOutput;
     bool builtin = false;
@@ -455,12 +454,23 @@ spv_result_t ValidateVariable(ValidationState_t& _, const Instruction* inst) {
         }
       }
     }
-    if (!(storage_input_or_output && builtin) &&
+    if (!builtin &&
         ContainsInvalidBool(_, value_type, storage_input_or_output)) {
-      return _.diag(SPV_ERROR_INVALID_ID, inst)
-             << "If OpTypeBool is stored in conjunction with OpVariable, it "
-             << "can only be used with non-externally visible shader Storage "
-             << "Classes: Workgroup, CrossWorkgroup, Private, and Function";
+      if (storage_input_or_output) {
+        return _.diag(SPV_ERROR_INVALID_ID, inst)
+               << "If OpTypeBool is stored in conjunction with OpVariable "
+                  "using Input or Output Storage Classes it requires a BuiltIn "
+                  "decoration";
+
+      } else {
+        return _.diag(SPV_ERROR_INVALID_ID, inst)
+               << "If OpTypeBool is stored in conjunction with OpVariable, it "
+                  "can only be used with non-externally visible shader Storage "
+                  "Classes: Workgroup, CrossWorkgroup, Private, Function, "
+                  "Input, Output, RayPayloadKHR, IncomingRayPayloadKHR, "
+                  "HitAttributeKHR, CallableDataKHR, or "
+                  "IncomingCallableDataKHR";
+      }
     }
   }
 
@@ -525,8 +535,8 @@ spv_result_t ValidateVariable(ValidationState_t& _, const Instruction* inst) {
     if (storage_class == SpvStorageClassPushConstant) {
       if (pointee->opcode() != SpvOpTypeStruct) {
         return _.diag(SPV_ERROR_INVALID_ID, inst)
-               << "PushConstant OpVariable <id> '" << _.getIdName(inst->id())
-               << "' has illegal type.\n"
+               << _.VkErrorID(6808) << "PushConstant OpVariable <id> '"
+               << _.getIdName(inst->id()) << "' has illegal type.\n"
                << "From Vulkan spec, Push Constant Interface section:\n"
                << "Such variables must be typed as OpTypeStruct";
       }
@@ -553,9 +563,9 @@ spv_result_t ValidateVariable(ValidationState_t& _, const Instruction* inst) {
     if (storage_class == SpvStorageClassUniform) {
       if (!IsAllowedTypeOrArrayOfSame(_, pointee, {SpvOpTypeStruct})) {
         return _.diag(SPV_ERROR_INVALID_ID, inst)
-               << "Uniform OpVariable <id> '" << _.getIdName(inst->id())
-               << "' has illegal type.\n"
-               << "From Vulkan spec, section 14.5.2:\n"
+               << _.VkErrorID(6807) << "Uniform OpVariable <id> '"
+               << _.getIdName(inst->id()) << "' has illegal type.\n"
+               << "From Vulkan spec:\n"
                << "Variables identified with the Uniform storage class are "
                << "used to access transparent buffer backed resources. Such "
                << "variables must be typed as OpTypeStruct, or an array of "
@@ -566,9 +576,9 @@ spv_result_t ValidateVariable(ValidationState_t& _, const Instruction* inst) {
     if (storage_class == SpvStorageClassStorageBuffer) {
       if (!IsAllowedTypeOrArrayOfSame(_, pointee, {SpvOpTypeStruct})) {
         return _.diag(SPV_ERROR_INVALID_ID, inst)
-               << "StorageBuffer OpVariable <id> '" << _.getIdName(inst->id())
-               << "' has illegal type.\n"
-               << "From Vulkan spec, section 14.5.2:\n"
+               << _.VkErrorID(6807) << "StorageBuffer OpVariable <id> '"
+               << _.getIdName(inst->id()) << "' has illegal type.\n"
+               << "From Vulkan spec:\n"
                << "Variables identified with the StorageBuffer storage class "
                   "are used to access transparent buffer backed resources. "
                   "Such variables must be typed as OpTypeStruct, or an array "
@@ -628,9 +638,9 @@ spv_result_t ValidateVariable(ValidationState_t& _, const Instruction* inst) {
     }
   }
 
-  if (storage_class == SpvStorageClassPhysicalStorageBufferEXT) {
+  if (storage_class == SpvStorageClassPhysicalStorageBuffer) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "PhysicalStorageBufferEXT must not be used with OpVariable.";
+           << "PhysicalStorageBuffer must not be used with OpVariable.";
   }
 
   auto pointee_base = pointee;
@@ -639,23 +649,23 @@ spv_result_t ValidateVariable(ValidationState_t& _, const Instruction* inst) {
   }
   if (pointee_base->opcode() == SpvOpTypePointer) {
     if (pointee_base->GetOperandAs<uint32_t>(1u) ==
-        SpvStorageClassPhysicalStorageBufferEXT) {
-      // check for AliasedPointerEXT/RestrictPointerEXT
+        SpvStorageClassPhysicalStorageBuffer) {
+      // check for AliasedPointer/RestrictPointer
       bool foundAliased =
-          _.HasDecoration(inst->id(), SpvDecorationAliasedPointerEXT);
+          _.HasDecoration(inst->id(), SpvDecorationAliasedPointer);
       bool foundRestrict =
-          _.HasDecoration(inst->id(), SpvDecorationRestrictPointerEXT);
+          _.HasDecoration(inst->id(), SpvDecorationRestrictPointer);
       if (!foundAliased && !foundRestrict) {
         return _.diag(SPV_ERROR_INVALID_ID, inst)
                << "OpVariable " << inst->id()
-               << ": expected AliasedPointerEXT or RestrictPointerEXT for "
-               << "PhysicalStorageBufferEXT pointer.";
+               << ": expected AliasedPointer or RestrictPointer for "
+               << "PhysicalStorageBuffer pointer.";
       }
       if (foundAliased && foundRestrict) {
         return _.diag(SPV_ERROR_INVALID_ID, inst)
                << "OpVariable " << inst->id()
-               << ": can't specify both AliasedPointerEXT and "
-               << "RestrictPointerEXT for PhysicalStorageBufferEXT pointer.";
+               << ": can't specify both AliasedPointer and "
+               << "RestrictPointer for PhysicalStorageBuffer pointer.";
       }
     }
   }
@@ -753,7 +763,7 @@ spv_result_t ValidateVariable(ValidationState_t& _, const Instruction* inst) {
           SPV_OPERAND_TYPE_STORAGE_CLASS, storage_class);
       switch (storage_class) {
         case SpvStorageClassStorageBuffer:
-        case SpvStorageClassPhysicalStorageBufferEXT:
+        case SpvStorageClassPhysicalStorageBuffer:
           if (!_.HasCapability(SpvCapabilityStorageBuffer16BitAccess)) {
             storage_class_ok = false;
           }
@@ -815,7 +825,7 @@ spv_result_t ValidateVariable(ValidationState_t& _, const Instruction* inst) {
           SPV_OPERAND_TYPE_STORAGE_CLASS, storage_class);
       switch (storage_class) {
         case SpvStorageClassStorageBuffer:
-        case SpvStorageClassPhysicalStorageBufferEXT:
+        case SpvStorageClassPhysicalStorageBuffer:
           if (!_.HasCapability(SpvCapabilityStorageBuffer8BitAccess)) {
             storage_class_ok = false;
           }
@@ -869,17 +879,14 @@ spv_result_t ValidateLoad(ValidationState_t& _, const Instruction* inst) {
            << "' is not defined.";
   }
 
-  const bool uses_variable_pointers =
-      _.features().variable_pointers ||
-      _.features().variable_pointers_storage_buffer;
   const auto pointer_index = 2;
   const auto pointer_id = inst->GetOperandAs<uint32_t>(pointer_index);
   const auto pointer = _.FindDef(pointer_id);
   if (!pointer ||
       ((_.addressing_model() == SpvAddressingModelLogical) &&
-       ((!uses_variable_pointers &&
+       ((!_.features().variable_pointers &&
          !spvOpcodeReturnsLogicalPointer(pointer->opcode())) ||
-        (uses_variable_pointers &&
+        (_.features().variable_pointers &&
          !spvOpcodeReturnsLogicalVariablePointer(pointer->opcode()))))) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << "OpLoad Pointer <id> '" << _.getIdName(pointer_id)
@@ -893,8 +900,11 @@ spv_result_t ValidateLoad(ValidationState_t& _, const Instruction* inst) {
            << "' is not a pointer type.";
   }
 
-  const auto pointee_type = _.FindDef(pointer_type->GetOperandAs<uint32_t>(2));
-  if (!pointee_type || result_type->id() != pointee_type->id()) {
+  uint32_t pointee_data_type;
+  uint32_t storage_class;
+  if (!_.GetPointerTypeInfo(pointer_type->id(), &pointee_data_type,
+                            &storage_class) ||
+      result_type->id() != pointee_data_type) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << "OpLoad Result Type <id> '" << _.getIdName(inst->type_id())
            << "' does not match Pointer <id> '" << _.getIdName(pointer->id())
@@ -925,17 +935,14 @@ spv_result_t ValidateLoad(ValidationState_t& _, const Instruction* inst) {
 }
 
 spv_result_t ValidateStore(ValidationState_t& _, const Instruction* inst) {
-  const bool uses_variable_pointer =
-      _.features().variable_pointers ||
-      _.features().variable_pointers_storage_buffer;
   const auto pointer_index = 0;
   const auto pointer_id = inst->GetOperandAs<uint32_t>(pointer_index);
   const auto pointer = _.FindDef(pointer_id);
   if (!pointer ||
       (_.addressing_model() == SpvAddressingModelLogical &&
-       ((!uses_variable_pointer &&
+       ((!_.features().variable_pointers &&
          !spvOpcodeReturnsLogicalPointer(pointer->opcode())) ||
-        (uses_variable_pointer &&
+        (_.features().variable_pointers &&
          !spvOpcodeReturnsLogicalVariablePointer(pointer->opcode()))))) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << "OpStore Pointer <id> '" << _.getIdName(pointer_id)
@@ -971,6 +978,26 @@ spv_result_t ValidateStore(ValidationState_t& _, const Instruction* inst) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
              << "OpStore Pointer <id> '" << _.getIdName(pointer_id)
              << "' storage class is read-only";
+    } else if (storage_class == SpvStorageClassShaderRecordBufferKHR) {
+      return _.diag(SPV_ERROR_INVALID_ID, inst)
+             << "ShaderRecordBufferKHR Storage Class variables are read only";
+    } else if (storage_class == SpvStorageClassHitAttributeKHR) {
+      std::string errorVUID = _.VkErrorID(4703);
+      _.function(inst->function()->id())
+          ->RegisterExecutionModelLimitation(
+              [errorVUID](SpvExecutionModel model, std::string* message) {
+                if (model == SpvExecutionModelAnyHitKHR ||
+                    model == SpvExecutionModelClosestHitKHR) {
+                  if (message) {
+                    *message =
+                        errorVUID +
+                        "HitAttributeKHR Storage Class variables are read only "
+                        "with AnyHitKHR and ClosestHitKHR";
+                  }
+                  return false;
+                }
+                return true;
+              });
     }
 
     if (spvIsVulkanEnv(_.context()->target_env) &&
@@ -987,6 +1014,7 @@ spv_result_t ValidateStore(ValidationState_t& _, const Instruction* inst) {
         }
         if (_.HasDecoration(base_type->id(), SpvDecorationBlock)) {
           return _.diag(SPV_ERROR_INVALID_ID, inst)
+                 << _.VkErrorID(6925)
                  << "In the Vulkan environment, cannot store to Uniform Blocks";
         }
       }
@@ -1146,8 +1174,6 @@ spv_result_t ValidateCopyMemory(ValidationState_t& _, const Instruction* inst) {
              << "'s type does not match Source <id> '"
              << _.getIdName(source_type->id()) << "'s type.";
     }
-
-    if (auto error = CheckMemoryAccess(_, inst, 2)) return error;
   } else {
     const auto size_id = inst->GetOperandAs<uint32_t>(2);
     const auto size = _.FindDef(size_id);
@@ -1190,8 +1216,6 @@ spv_result_t ValidateCopyMemory(ValidationState_t& _, const Instruction* inst) {
         // Cannot infer any other opcodes.
         break;
     }
-
-    if (auto error = CheckMemoryAccess(_, inst, 3)) return error;
   }
   if (auto error = ValidateCopyMemoryMemoryAccess(_, inst)) return error;
 
@@ -1365,8 +1389,7 @@ spv_result_t ValidateAccessChain(ValidationState_t& _,
 spv_result_t ValidatePtrAccessChain(ValidationState_t& _,
                                     const Instruction* inst) {
   if (_.addressing_model() == SpvAddressingModelLogical) {
-    if (!_.features().variable_pointers &&
-        !_.features().variable_pointers_storage_buffer) {
+    if (!_.features().variable_pointers) {
       return _.diag(SPV_ERROR_INVALID_DATA, inst)
              << "Generating variable pointers requires capability "
              << "VariablePointers or VariablePointersStorageBuffer";
@@ -1484,18 +1507,15 @@ spv_result_t ValidateCooperativeMatrixLoadStoreNV(ValidationState_t& _,
     }
   }
 
-  const bool uses_variable_pointers =
-      _.features().variable_pointers ||
-      _.features().variable_pointers_storage_buffer;
   const auto pointer_index =
       (inst->opcode() == SpvOpCooperativeMatrixLoadNV) ? 2u : 0u;
   const auto pointer_id = inst->GetOperandAs<uint32_t>(pointer_index);
   const auto pointer = _.FindDef(pointer_id);
   if (!pointer ||
       ((_.addressing_model() == SpvAddressingModelLogical) &&
-       ((!uses_variable_pointers &&
+       ((!_.features().variable_pointers &&
          !spvOpcodeReturnsLogicalPointer(pointer->opcode())) ||
-        (uses_variable_pointers &&
+        (_.features().variable_pointers &&
          !spvOpcodeReturnsLogicalVariablePointer(pointer->opcode()))))) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << opname << " Pointer <id> '" << _.getIdName(pointer_id)
@@ -1516,7 +1536,7 @@ spv_result_t ValidateCooperativeMatrixLoadStoreNV(ValidationState_t& _,
 
   if (storage_class != SpvStorageClassWorkgroup &&
       storage_class != SpvStorageClassStorageBuffer &&
-      storage_class != SpvStorageClassPhysicalStorageBufferEXT) {
+      storage_class != SpvStorageClassPhysicalStorageBuffer) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
            << opname << " storage class for pointer type <id> '"
            << _.getIdName(pointer_type_id)
@@ -1567,10 +1587,10 @@ spv_result_t ValidateCooperativeMatrixLoadStoreNV(ValidationState_t& _,
 spv_result_t ValidatePtrComparison(ValidationState_t& _,
                                    const Instruction* inst) {
   if (_.addressing_model() == SpvAddressingModelLogical &&
-      !_.features().variable_pointers_storage_buffer) {
+      !_.features().variable_pointers) {
     return _.diag(SPV_ERROR_INVALID_ID, inst)
-           << "Instruction cannot be used without a variable pointers "
-              "capability";
+           << "Instruction cannot for logical addressing model be used without "
+              "a variable pointers capability";
   }
 
   const auto result_type = _.FindDef(inst->type_id());
@@ -1605,7 +1625,8 @@ spv_result_t ValidatePtrComparison(ValidationState_t& _,
              << "Invalid pointer storage class";
     }
 
-    if (sc == SpvStorageClassWorkgroup && !_.features().variable_pointers) {
+    if (sc == SpvStorageClassWorkgroup &&
+        !_.HasCapability(SpvCapabilityVariablePointers)) {
       return _.diag(SPV_ERROR_INVALID_ID, inst)
              << "Workgroup storage class pointer requires VariablePointers "
                 "capability to be specified";

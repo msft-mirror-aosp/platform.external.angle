@@ -206,7 +206,9 @@ bool Unzip(const base::PlatformFile& src_file,
   while (const ZipReader::Entry* const entry = reader.Next()) {
     if (entry->is_unsafe) {
       LOG(ERROR) << "Found unsafe entry " << Redact(entry->path) << " in ZIP";
-      return false;
+      if (!options.continue_on_error)
+        return false;
+      continue;
     }
 
     if (options.filter && !options.filter.Run(entry->path)) {
@@ -218,7 +220,8 @@ bool Unzip(const base::PlatformFile& src_file,
       // It's a directory.
       if (!directory_creator.Run(entry->path)) {
         LOG(ERROR) << "Cannot create directory " << Redact(entry->path);
-        return false;
+        if (!options.continue_on_error)
+          return false;
       }
 
       continue;
@@ -226,10 +229,14 @@ bool Unzip(const base::PlatformFile& src_file,
 
     // It's a file.
     std::unique_ptr<WriterDelegate> writer = writer_factory.Run(entry->path);
-    if (!writer || !reader.ExtractCurrentEntry(writer.get())) {
+    if (!writer ||
+        (options.progress ? !reader.ExtractCurrentEntryWithListener(
+                                writer.get(), options.progress)
+                          : !reader.ExtractCurrentEntry(writer.get()))) {
       LOG(ERROR) << "Cannot extract file " << Redact(entry->path)
                  << " from ZIP";
-      return false;
+      if (!options.continue_on_error)
+        return false;
     }
   }
 

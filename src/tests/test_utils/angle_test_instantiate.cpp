@@ -47,7 +47,8 @@ bool IsAngleEGLConfigSupported(const PlatformParameters &param, OSWindow *osWind
         angle::OpenSharedLibrary(ANGLE_EGL_LIBRARY_NAME, angle::SearchType::ModuleDir));
 #endif
 
-    EGLWindow *eglWindow = EGLWindow::New(param.majorVersion, param.minorVersion);
+    EGLWindow *eglWindow =
+        EGLWindow::New(param.clientType, param.majorVersion, param.minorVersion, param.profileMask);
     ConfigParameters configParams;
     bool result =
         eglWindow->initializeGL(osWindow, eglLibrary.get(), angle::GLESDriverType::AngleEGL,
@@ -63,7 +64,8 @@ bool IsSystemWGLConfigSupported(const PlatformParameters &param, OSWindow *osWin
     std::unique_ptr<angle::Library> openglLibrary(
         angle::OpenSharedLibrary("opengl32", angle::SearchType::SystemDir));
 
-    WGLWindow *wglWindow = WGLWindow::New(param.majorVersion, param.minorVersion);
+    WGLWindow *wglWindow =
+        WGLWindow::New(param.clientType, param.majorVersion, param.minorVersion, param.profileMask);
     ConfigParameters configParams;
     bool result =
         wglWindow->initializeGL(osWindow, openglLibrary.get(), angle::GLESDriverType::SystemWGL,
@@ -84,7 +86,8 @@ bool IsSystemEGLConfigSupported(const PlatformParameters &param, OSWindow *osWin
     eglLibrary.reset(OpenSharedLibraryWithExtension(GetNativeEGLLibraryNameWithExtension(),
                                                     SearchType::SystemDir));
 
-    EGLWindow *eglWindow = EGLWindow::New(param.majorVersion, param.minorVersion);
+    EGLWindow *eglWindow =
+        EGLWindow::New(param.clientType, param.majorVersion, param.minorVersion, param.profileMask);
     ConfigParameters configParams;
     bool result =
         eglWindow->initializeGL(osWindow, eglLibrary.get(), angle::GLESDriverType::SystemEGL,
@@ -436,6 +439,14 @@ bool IsConfigAllowlisted(const SystemInfo &systemInfo, const PlatformParameters 
         return false;
     }
 
+// Skip test configs that target the desktop OpenGL frontend when it's not enabled.
+#if !defined(ANGLE_ENABLE_GL_DESKTOP_FRONTEND)
+    if (param.isDesktopOpenGLFrontend())
+    {
+        return false;
+    }
+#endif
+
     if (IsWindows())
     {
         switch (param.driver)
@@ -572,7 +583,8 @@ bool IsConfigAllowlisted(const SystemInfo &systemInfo, const PlatformParameters 
                 return true;
             case EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE:
                 // http://issuetracker.google.com/173004081
-                return !IsIntel() || param.eglParameters.asyncCommandQueueFeatureVulkan != EGL_TRUE;
+                return !IsIntel() || !param.isEnabled(Feature::AsyncCommandQueue) ||
+                       param.isDisabled(Feature::AsyncCommandQueue);
             default:
                 return false;
         }
@@ -606,7 +618,7 @@ bool IsConfigAllowlisted(const SystemInfo &systemInfo, const PlatformParameters 
                 {
                     return false;
                 }
-                if (param.eglParameters.supportsVulkanViewportFlip == EGL_FALSE)
+                if (param.isDisabled(Feature::SupportsNegativeViewport))
                 {
                     return false;
                 }

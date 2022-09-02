@@ -160,6 +160,10 @@ class Type {
 
   size_t ComputeHashValue(size_t hash, SeenTypes* seen) const;
 
+  // Returns the number of components in a composite type.  Returns 0 for a
+  // non-composite type.
+  uint64_t NumberOfComponents() const;
+
 // A bunch of methods for casting this type to a given type. Returns this if the
 // cast can be done, nullptr otherwise.
 // clang-format off
@@ -390,6 +394,7 @@ class Array : public Type {
   size_t ComputeExtraStateHash(size_t hash, SeenTypes* seen) const override;
 
   void ReplaceElementType(const Type* element_type);
+  LengthInfo GetConstantLengthInfo(uint32_t const_id, uint32_t length) const;
 
  private:
   bool IsSameImpl(const Type* that, IsSameCache*) const override;

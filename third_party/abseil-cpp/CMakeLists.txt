@@ -64,11 +64,15 @@ else()
 endif()
 
 option(ABSL_PROPAGATE_CXX_STD
-  "Use CMake C++ standard meta features (e.g. cxx_std_11) that propagate to targets that link to Abseil"
+  "Use CMake C++ standard meta features (e.g. cxx_std_14) that propagate to targets that link to Abseil"
   OFF)  # TODO: Default to ON for CMake 3.8 and greater.
 if((${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.8) AND (NOT ABSL_PROPAGATE_CXX_STD))
   message(WARNING "A future Abseil release will default ABSL_PROPAGATE_CXX_STD to ON for CMake 3.8 and up. We recommend enabling this option to ensure your project still builds correctly.")
 endif()
+
+option(ABSL_USE_SYSTEM_INCLUDES
+  "Silence warnings in Abseil headers by marking them as SYSTEM includes"
+  OFF)
 
 list(APPEND CMAKE_MODULE_PATH
   ${CMAKE_CURRENT_LIST_DIR}/CMake
@@ -111,7 +115,7 @@ option(ABSL_BUILD_TESTING
   "If ON, Abseil will build all of Abseil's own tests." OFF)
 
 option(ABSL_USE_EXTERNAL_GOOGLETEST
-  "If ON, Abseil will assume that the targets for GoogleTest are already provided by the including project. This makes sense when Abseil is used with add_subproject." OFF)
+  "If ON, Abseil will assume that the targets for GoogleTest are already provided by the including project. This makes sense when Abseil is used with add_subdirectory." OFF)
 
 cmake_dependent_option(ABSL_FIND_GOOGLETEST
   "If ON, Abseil will use find_package(GTest) rather than assuming that GoogleTest is already provided by the including project."
