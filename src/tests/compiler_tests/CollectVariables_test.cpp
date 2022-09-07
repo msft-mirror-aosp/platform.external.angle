@@ -56,8 +56,10 @@ class CollectVariablesTest : public testing::Test
     // For use in the gl_DepthRange tests.
     void validateDepthRangeShader(const std::string &shaderString)
     {
-        const char *shaderStrings[] = {shaderString.c_str()};
-        ASSERT_TRUE(mTranslator->compile(shaderStrings, 1, SH_VARIABLES));
+        const char *shaderStrings[]     = {shaderString.c_str()};
+        ShCompileOptions compileOptions = {};
+        compileOptions.variables        = true;
+        ASSERT_TRUE(mTranslator->compile(shaderStrings, 1, compileOptions));
 
         const std::vector<ShaderVariable> &uniforms = mTranslator->getUniforms();
         ASSERT_EQ(1u, uniforms.size());
@@ -106,8 +108,10 @@ class CollectVariablesTest : public testing::Test
                                          const char *varName,
                                          const ShaderVariable **outResult)
     {
-        const char *shaderStrings[] = {shaderString.c_str()};
-        ASSERT_TRUE(mTranslator->compile(shaderStrings, 1, SH_VARIABLES))
+        const char *shaderStrings[]     = {shaderString.c_str()};
+        ShCompileOptions compileOptions = {};
+        compileOptions.variables        = true;
+        ASSERT_TRUE(mTranslator->compile(shaderStrings, 1, compileOptions))
             << mTranslator->getInfoSink().info.str();
 
         const auto &outputVariables = mTranslator->getOutputVariables();
@@ -120,13 +124,19 @@ class CollectVariablesTest : public testing::Test
         *outResult = &outputVariable;
     }
 
-    void compile(const std::string &shaderString, ShCompileOptions compileOptions)
+    void compile(const std::string &shaderString, ShCompileOptions *compileOptions)
     {
+        compileOptions->variables = true;
+
         const char *shaderStrings[] = {shaderString.c_str()};
-        ASSERT_TRUE(mTranslator->compile(shaderStrings, 1, SH_VARIABLES | compileOptions));
+        ASSERT_TRUE(mTranslator->compile(shaderStrings, 1, *compileOptions));
     }
 
-    void compile(const std::string &shaderString) { compile(shaderString, 0u); }
+    void compile(const std::string &shaderString)
+    {
+        ShCompileOptions options = {};
+        compile(shaderString, &options);
+    }
 
     void checkUniformStaticallyUsedButNotActive(const char *name)
     {
@@ -634,6 +644,32 @@ TEST_F(CollectFragmentVariablesTest, OutputVarESSL1FragData)
     EXPECT_GLENUM_EQ(GL_MEDIUM_FLOAT, outputVariable->precision);
 }
 
+// Test that gl_FragData built-in usage in ESSL1 fragment shader is reflected in the output
+// variables list, even if the EXT_draw_buffers extension isn't exposed. This covers the
+// usage in the dEQP test dEQP-GLES3.functional.shaders.fragdata.draw_buffers.
+TEST_F(CollectFragmentVariablesTest, OutputVarESSL1FragDataUniform)
+{
+    const std::string &fragDataShader =
+        "precision mediump float;\n"
+        "uniform int uniIndex;"
+        "void main() {\n"
+        "   gl_FragData[uniIndex] = vec4(1.0);\n"
+        "}\n";
+
+    ShBuiltInResources resources       = mTranslator->getResources();
+    const unsigned int kMaxDrawBuffers = 3u;
+    resources.MaxDrawBuffers           = kMaxDrawBuffers;
+    initTranslator(resources);
+
+    const ShaderVariable *outputVariable = nullptr;
+    validateOutputVariableForShader(fragDataShader, 0u, "gl_FragData", &outputVariable);
+    ASSERT_NE(outputVariable, nullptr);
+    ASSERT_EQ(1u, outputVariable->arraySizes.size());
+    EXPECT_EQ(kMaxDrawBuffers, outputVariable->arraySizes.back());
+    EXPECT_GLENUM_EQ(GL_FLOAT_VEC4, outputVariable->type);
+    EXPECT_GLENUM_EQ(GL_MEDIUM_FLOAT, outputVariable->precision);
+}
+
 // Test that gl_FragDataEXT built-in usage in ESSL1 fragment shader is reflected in the output
 // variables list. Also test that the precision is mediump.
 TEST_F(CollectFragmentVariablesTest, OutputVarESSL1FragDepthMediump)
@@ -1007,8 +1043,10 @@ TEST_F(CollectVertexVariablesTest, ViewID_OVR)
     resources.MaxViewsOVR        = 4;
     initTranslator(resources);
 
-    compile(shaderString, SH_INITIALIZE_BUILTINS_FOR_INSTANCED_MULTIVIEW |
-                              SH_SELECT_VIEW_IN_NV_GLSL_VERTEX_SHADER);
+    ShCompileOptions compileOptions                        = {};
+    compileOptions.initializeBuiltinsForInstancedMultiview = true;
+    compileOptions.selectViewInNvGLSLVertexShader          = true;
+    compile(shaderString, &compileOptions);
 
     // The internal ViewID_OVR varying is not exposed through the ShaderVars interface.
     const auto &varyings = mTranslator->getOutputVaryings();

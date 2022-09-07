@@ -56,7 +56,7 @@ TIntermRebuild::BaseResult::BaseResult(TIntermNode *node, VisitBits visit)
       mSingle(node)
 {}
 
-TIntermRebuild::BaseResult::BaseResult(nullptr_t)
+TIntermRebuild::BaseResult::BaseResult(std::nullptr_t)
     : mAction(Action::Drop), mVisit(VisitBits::Neither), mSingle(nullptr)
 {}
 
@@ -116,7 +116,7 @@ using PreResult = TIntermRebuild::PreResult;
 
 PreResult::PreResult(TIntermNode &node, VisitBits visit) : BaseResult(node, visit) {}
 PreResult::PreResult(TIntermNode *node, VisitBits visit) : BaseResult(node, visit) {}
-PreResult::PreResult(nullptr_t) : BaseResult(nullptr) {}
+PreResult::PreResult(std::nullptr_t) : BaseResult(nullptr) {}
 PreResult::PreResult(Fail) : BaseResult(Fail()) {}
 
 PreResult::PreResult(BaseResult &&other) : BaseResult(other) {}
@@ -133,7 +133,7 @@ using PostResult = TIntermRebuild::PostResult;
 
 PostResult::PostResult(TIntermNode &node) : BaseResult(node, VisitBits::Neither) {}
 PostResult::PostResult(TIntermNode *node) : BaseResult(node, VisitBits::Neither) {}
-PostResult::PostResult(nullptr_t) : BaseResult(nullptr) {}
+PostResult::PostResult(std::nullptr_t) : BaseResult(nullptr) {}
 PostResult::PostResult(Fail) : BaseResult(Fail()) {}
 
 PostResult::PostResult(PostResult &&other) : BaseResult(other) {}
@@ -304,9 +304,11 @@ struct TIntermRebuild::NodeStackGuard
 {
     ConsList<TIntermNode *> oldNodeStack;
     ConsList<TIntermNode *> &nodeStack;
-    NodeStackGuard(ConsList<TIntermNode *> &nodeStack)
+    NodeStackGuard(ConsList<TIntermNode *> &nodeStack, TIntermNode *node)
         : oldNodeStack(nodeStack), nodeStack(nodeStack)
-    {}
+    {
+        nodeStack = {node, &oldNodeStack};
+    }
     ~NodeStackGuard() { nodeStack = oldNodeStack; }
 };
 
@@ -339,8 +341,7 @@ PreResult TIntermRebuild::traversePre(TIntermNode &originalNode)
         return {originalNode, VisitBits::Both};
     }
 
-    NodeStackGuard guard(mNodeStack);
-    mNodeStack = {&originalNode, &guard.oldNodeStack};
+    NodeStackGuard guard(mNodeStack, &originalNode);
 
     const NodeType originalNodeType = getNodeType(originalNode);
 
@@ -407,8 +408,7 @@ TIntermNode *TIntermRebuild::traverseChildren(NodeType currNodeType,
         return &currNode;
     }
 
-    NodeStackGuard guard(mNodeStack);
-    mNodeStack = {&currNode, &guard.oldNodeStack};
+    NodeStackGuard guard(mNodeStack, &currNode);
 
     switch (currNodeType)
     {
@@ -478,8 +478,7 @@ PostResult TIntermRebuild::traversePost(NodeType currNodeType,
         return currNode;
     }
 
-    NodeStackGuard guard(mNodeStack);
-    mNodeStack = {&currNode, &guard.oldNodeStack};
+    NodeStackGuard guard(mNodeStack, &currNode);
 
     switch (currNodeType)
     {

@@ -8,9 +8,11 @@
 #define SAMPLE_UTIL_SHADER_UTILS_H
 
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
+#include "common/angleutils.h"
 #include "util/util_export.h"
 #include "util/util_gl.h"
 
@@ -51,6 +53,14 @@ ANGLE_UTIL_EXPORT GLuint LoadBinaryProgramES3(const std::vector<uint8_t> &binary
 
 ANGLE_UTIL_EXPORT void EnableDebugCallback(GLDEBUGPROC callbackChain, const void *userParam);
 
+using CounterNameToIndexMap = std::map<std::string, GLuint>;
+using CounterNameToValueMap = std::map<std::string, GLuint64>;
+
+ANGLE_UTIL_EXPORT CounterNameToIndexMap BuildCounterNameToIndexMap();
+ANGLE_UTIL_EXPORT angle::VulkanPerfCounters GetPerfCounters(const CounterNameToIndexMap &indexMap);
+ANGLE_UTIL_EXPORT CounterNameToValueMap BuildCounterNameToValueMap();
+ANGLE_UTIL_EXPORT std::vector<angle::PerfMonitorTriplet> GetPerfMonitorTriplets();
+
 namespace angle
 {
 
@@ -69,6 +79,9 @@ ANGLE_UTIL_EXPORT const char *Zero();
 
 // A shader that sets gl_Position to attribute a_position.
 ANGLE_UTIL_EXPORT const char *Simple();
+
+// A shader that sets gl_Position to attribute a_position, and sets gl_PointSize to 1.
+ANGLE_UTIL_EXPORT const char *SimpleForPoints();
 
 // A shader that passes through attribute a_position, setting it to gl_Position and varying
 // v_position.
@@ -125,6 +138,9 @@ ANGLE_UTIL_EXPORT const char *Zero();
 
 // A shader that sets gl_Position to attribute a_position.
 ANGLE_UTIL_EXPORT const char *Simple();
+
+// A shader that sets gl_Position to attribute a_position, and sets gl_PointSize to 1.
+ANGLE_UTIL_EXPORT const char *SimpleForPoints();
 
 // A shader that simply passes through attribute a_position, setting it to gl_Position and varying
 // v_position.

@@ -23,6 +23,7 @@ set(VAL_TEST_COMMON_SRCS
 add_spvtools_unittest(TARGET val_abcde
   SRCS
        val_adjacency_test.cpp
+       val_annotation_test.cpp
        val_arithmetics_test.cpp
        val_atomics_test.cpp
        val_barriers_test.cpp
@@ -44,6 +45,7 @@ add_spvtools_unittest(TARGET val_abcde
        val_extension_spv_khr_integer_dot_product.cpp
        val_extension_spv_khr_bit_instructions.cpp
        val_extension_spv_khr_terminate_invocation.cpp
+       val_extension_spv_khr_subgroup_rotate.cpp
        val_ext_inst_test.cpp
        val_ext_inst_debug_test.cpp
        ${VAL_TEST_COMMON_SRCS}
@@ -86,8 +88,10 @@ add_spvtools_unittest(TARGET val_fghijklmnop
   PCH_FILE pch_test_val
 )
 
-add_spvtools_unittest(TARGET val_stuvw
+add_spvtools_unittest(TARGET val_rstuvw
   SRCS
+       val_ray_query.cpp
+       val_ray_tracing.cpp
        val_small_type_uses_test.cpp
        val_ssa_test.cpp
        val_state_test.cpp

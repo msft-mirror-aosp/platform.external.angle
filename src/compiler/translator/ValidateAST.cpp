@@ -54,13 +54,15 @@ class ValidateAST : public TIntermTraverser
     void visitNode(Visit visit, TIntermNode *node);
     // Visit a structure or interface block, and recursively visit its fields of structure type.
     void visitStructOrInterfaceBlockDeclaration(const TType &type, const TSourceLoc &location);
-    void visitStructInDeclarationUsage(const TType &type, const TSourceLoc &location);
+    void visitStructUsage(const TType &type, const TSourceLoc &location);
     // Visit a unary or aggregate node and validate its built-in op against its built-in function.
     void visitBuiltInFunction(TIntermOperator *op, const TFunction *function);
     // Visit an aggregate node and validate its function call is to one that's already defined.
     void visitFunctionCall(TIntermAggregate *node);
     // Visit a binary node and validate its type against its operands.
     void validateExpressionTypeBinary(TIntermBinary *node);
+    // Visit a switch node and validate its selector type is integer.
+    void validateExpressionTypeSwitch(TIntermSwitch *node);
     // Visit a symbol node and validate it's declared previously.
     void visitVariableNeedingDeclaration(TIntermSymbol *node);
     // Visit a built-in symbol node and validate it's consistently used across the tree.
@@ -117,6 +119,13 @@ class ValidateAST : public TIntermTraverser
 
     // For validateMultiDeclarations:
     bool mMultiDeclarationsFailed = false;
+
+    // For validateNoSwizzleOfSwizzle:
+    bool mNoSwizzleOfSwizzleFailed = false;
+
+    // For validateNoStatementsAfterBranch:
+    bool mIsBranchVisitedInBlock        = false;
+    bool mNoStatementsAfterBranchFailed = false;
 };
 
 bool IsSameType(const TType &a, const TType &b)
@@ -148,6 +157,7 @@ ValidateAST::ValidateAST(TIntermNode *root,
     {
         mOptions.validateVariableReferences = false;
         mOptions.validateFunctionCall       = false;
+        mOptions.validateStructUsage        = false;
     }
 
     if (mOptions.validateSingleParent)
@@ -179,6 +189,18 @@ void ValidateAST::visitNode(Visit visit, TIntermNode *node)
             mParent[child] = node;
         }
     }
+
+    if (visit == PreVisit && mOptions.validateNoStatementsAfterBranch)
+    {
+        // If a branch has already been visited in this block, there should be no statements that
+        // follow.  Only expected node visit should be PostVisit of the block.
+        if (mIsBranchVisitedInBlock)
+        {
+            mDiagnostics->error(node->getLine(), "Found dead code after branch",
+                                "<validateNoStatementsAfterBranch>");
+            mNoStatementsAfterBranchFailed = true;
+        }
+    }
 }
 
 void ValidateAST::visitStructOrInterfaceBlockDeclaration(const TType &type,
@@ -191,23 +213,51 @@ void ValidateAST::visitStructOrInterfaceBlockDeclaration(const TType &type,
 
     // Make sure the structure or interface block is not doubly defined.
     ImmutableString typeName("");
-    const TFieldListCollection *structOrBlock = getStructOrInterfaceBlock(type, &typeName);
+    const TFieldListCollection *namedStructOrBlock = getStructOrInterfaceBlock(type, &typeName);
 
-    if (structOrBlock)
+    // Recurse the fields of the structure or interface block and check members of structure type.
+    // This is done before visiting the struct itself, because if the fields refer to a struct with
+    // the same name, they would be referencing the struct declared in an outer scope.
+    {
+        // Note that structOrBlock was previously only set for named structures, so make sure
+        // nameless structs are also recursed.
+        const TFieldListCollection *structOrBlock = namedStructOrBlock;
+        if (structOrBlock == nullptr)
+        {
+            structOrBlock = type.getStruct();
+        }
+        ASSERT(structOrBlock != nullptr);
+
+        for (const TField *field : structOrBlock->fields())
+        {
+            visitStructUsage(*field->type(), field->line());
+        }
+    }
+
+    if (namedStructOrBlock)
     {
         ASSERT(!typeName.empty());
-
-        // Allow gl_PerVertex to be doubly-defined.
-        if (typeName == "gl_PerVertex")
+        // Structures are not allowed to be doubly defined
+        if (type.getStruct() == nullptr)
         {
+            // Allow interfaces to be doubly-defined.
+            std::string name(typeName.data());
+
             if (IsShaderIn(type.getQualifier()))
             {
-                typeName = ImmutableString("gl_PerVertex<input>");
+                typeName = ImmutableString(name + "<input>");
             }
-            else
+            else if (IsShaderOut(type.getQualifier()))
             {
-                ASSERT(IsShaderOut(type.getQualifier()));
-                typeName = ImmutableString("gl_PerVertex<output>");
+                typeName = ImmutableString(name + "<output>");
+            }
+            else if (IsStorageBuffer(type.getQualifier()))
+            {
+                typeName = ImmutableString(name + "<buffer>");
+            }
+            else if (type.getQualifier() == EvqUniform)
+            {
+                typeName = ImmutableString(name + "<uniform>");
             }
         }
 
@@ -222,26 +272,12 @@ void ValidateAST::visitStructOrInterfaceBlockDeclaration(const TType &type,
         else
         {
             // First encounter.
-            mStructsAndBlocksByName.back()[typeName] = structOrBlock;
+            mStructsAndBlocksByName.back()[typeName] = namedStructOrBlock;
         }
-    }
-
-    // Recurse the fields of the structure or interface block and check members of structure type.
-    // Note that structOrBlock was previously only set for named structures, so make sure nameless
-    // structs are also recursed.
-    if (structOrBlock == nullptr)
-    {
-        structOrBlock = type.getStruct();
-    }
-    ASSERT(structOrBlock != nullptr);
-
-    for (const TField *field : structOrBlock->fields())
-    {
-        visitStructInDeclarationUsage(*field->type(), field->line());
     }
 }
 
-void ValidateAST::visitStructInDeclarationUsage(const TType &type, const TSourceLoc &location)
+void ValidateAST::visitStructUsage(const TType &type, const TSourceLoc &location)
 {
     if (type.getStruct() == nullptr)
     {
@@ -272,6 +308,8 @@ void ValidateAST::visitStructInDeclarationUsage(const TType &type, const TSource
                                     typeName.data());
                 mStructUsageFailed = true;
             }
+
+            break;
         }
     }
 
@@ -398,6 +436,42 @@ void ValidateAST::validateExpressionTypeBinary(TIntermBinary *node)
         default:
             // TODO: Validate other expressions. http://anglebug.com/2733
             break;
+    }
+
+    switch (node->getOp())
+    {
+        case EOpIndexDirect:
+        case EOpIndexDirectStruct:
+        case EOpIndexDirectInterfaceBlock:
+            if (node->getRight()->getAsConstantUnion() == nullptr)
+            {
+                mDiagnostics->error(node->getLine(),
+                                    "Found direct index node with a non-constant index",
+                                    "<validateExpressionTypes>");
+                mExpressionTypesFailed = true;
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void ValidateAST::validateExpressionTypeSwitch(TIntermSwitch *node)
+{
+    const TType &selectorType = node->getInit()->getType();
+
+    if (selectorType.getBasicType() != EbtYuvCscStandardEXT &&
+        selectorType.getBasicType() != EbtInt && selectorType.getBasicType() != EbtUInt)
+    {
+        mDiagnostics->error(node->getLine(), "Found switch selector expression that is not integer",
+                            "<validateExpressionTypes>");
+        mExpressionTypesFailed = true;
+    }
+    else if (!selectorType.isScalar())
+    {
+        mDiagnostics->error(node->getLine(), "Found switch selector expression that is not scalar",
+                            "<validateExpressionTypes>");
+        mExpressionTypesFailed = true;
     }
 }
 
@@ -634,6 +708,17 @@ void ValidateAST::visitConstantUnion(TIntermConstantUnion *node)
 bool ValidateAST::visitSwizzle(Visit visit, TIntermSwizzle *node)
 {
     visitNode(visit, node);
+
+    if (mOptions.validateNoSwizzleOfSwizzle)
+    {
+        if (node->getOperand()->getAsSwizzleNode() != nullptr)
+        {
+            mDiagnostics->error(node->getLine(), "Found swizzle applied to swizzle",
+                                "<validateNoSwizzleOfSwizzle>");
+            mNoSwizzleOfSwizzleFailed = true;
+        }
+    }
+
     return true;
 }
 
@@ -676,12 +761,23 @@ bool ValidateAST::visitIfElse(Visit visit, TIntermIfElse *node)
 bool ValidateAST::visitSwitch(Visit visit, TIntermSwitch *node)
 {
     visitNode(visit, node);
+
+    if (mOptions.validateExpressionTypes && visit == PreVisit)
+    {
+        validateExpressionTypeSwitch(node);
+    }
+
     return true;
 }
 
 bool ValidateAST::visitCase(Visit visit, TIntermCase *node)
 {
+    // Case is allowed to come after a branch, and for dead-code-elimination purposes acts as if a
+    // new block is started.
+    mIsBranchVisitedInBlock = false;
+
     visitNode(visit, node);
+
     return true;
 }
 
@@ -696,10 +792,38 @@ void ValidateAST::visitFunctionPrototype(TIntermFunctionPrototype *node)
     }
 
     const TFunction *function = node->getFunction();
+    const TType &returnType   = function->getReturnType();
+    if (mOptions.validatePrecision && IsPrecisionApplicableToType(returnType.getBasicType()) &&
+        returnType.getPrecision() == EbpUndefined)
+    {
+        mDiagnostics->error(
+            node->getLine(),
+            "Found function with undefined precision on return value <validatePrecision>",
+            function->name().data());
+        mPrecisionFailed = true;
+    }
+
+    if (mOptions.validateStructUsage)
+    {
+        if (returnType.isStructSpecifier())
+        {
+            visitStructOrInterfaceBlockDeclaration(returnType, node->getLine());
+        }
+        else
+        {
+            visitStructUsage(returnType, node->getLine());
+        }
+    }
+
     for (size_t paramIndex = 0; paramIndex < function->getParamCount(); ++paramIndex)
     {
         const TVariable *param = function->getParam(paramIndex);
         const TType &paramType = param->getType();
+
+        if (mOptions.validateStructUsage)
+        {
+            visitStructUsage(paramType, node->getLine());
+        }
 
         if (mOptions.validateQualifiers)
         {
@@ -713,6 +837,16 @@ void ValidateAST::visitFunctionPrototype(TIntermFunctionPrototype *node)
                                     param->name().data());
                 mQualifiersFailed = true;
             }
+
+            if (IsOpaqueType(paramType.getBasicType()) && qualifier != EvqParamIn)
+            {
+                mDiagnostics->error(
+                    node->getLine(),
+                    "Found function prototype with an invalid qualifier on opaque parameter "
+                    "<validateQualifiers>",
+                    param->name().data());
+                mQualifiersFailed = true;
+            }
         }
 
         if (mOptions.validatePrecision && IsPrecisionApplicableToType(paramType.getBasicType()) &&
@@ -724,17 +858,6 @@ void ValidateAST::visitFunctionPrototype(TIntermFunctionPrototype *node)
                 param->name().data());
             mPrecisionFailed = true;
         }
-    }
-
-    const TType &returnType = function->getReturnType();
-    if (mOptions.validatePrecision && IsPrecisionApplicableToType(returnType.getBasicType()) &&
-        returnType.getPrecision() == EbpUndefined)
-    {
-        mDiagnostics->error(
-            node->getLine(),
-            "Found function with undefined precision on return value <validatePrecision>",
-            function->name().data());
-        mPrecisionFailed = true;
     }
 }
 
@@ -804,6 +927,18 @@ bool ValidateAST::visitBlock(Visit visit, TIntermBlock *node)
     visitNode(visit, node);
     scope(visit);
     expectNonNullChildren(visit, node, 0);
+
+    if (visit == PostVisit)
+    {
+        // If the parent is a block and mIsBranchVisitedInBlock is set, this is a nested block
+        // without any condition (like if, loop or switch), so the rest of the parent block is also
+        // dead code.  Otherwise the parent block can contain code after this.
+        if (getParentNode() == nullptr || getParentNode()->getAsBlock() == nullptr)
+        {
+            mIsBranchVisitedInBlock = false;
+        }
+    }
+
     return true;
 }
 
@@ -901,11 +1036,17 @@ bool ValidateAST::visitDeclaration(Visit visit, TIntermDeclaration *node)
 
             if (validateStructUsage)
             {
-                // Only declare the struct once.
+                // Only declare and/or validate the struct once.
                 validateStructUsage = false;
 
                 if (type.isStructSpecifier() || type.isInterfaceBlock())
+                {
                     visitStructOrInterfaceBlockDeclaration(type, node->getLine());
+                }
+                else
+                {
+                    visitStructUsage(type, node->getLine());
+                }
             }
 
             if (gl::IsBuiltInName(variable->name().data()))
@@ -950,6 +1091,12 @@ bool ValidateAST::visitLoop(Visit visit, TIntermLoop *node)
 bool ValidateAST::visitBranch(Visit visit, TIntermBranch *node)
 {
     visitNode(visit, node);
+
+    if (visit == PostVisit)
+    {
+        mIsBranchVisitedInBlock = true;
+    }
+
     return true;
 }
 
@@ -963,7 +1110,8 @@ bool ValidateAST::validateInternal()
     return !mSingleParentFailed && !mVariableReferencesFailed && !mBuiltInOpsFailed &&
            !mFunctionCallFailed && !mNoRawFunctionCallsFailed && !mNullNodesFailed &&
            !mQualifiersFailed && !mPrecisionFailed && !mStructUsageFailed &&
-           !mExpressionTypesFailed && !mMultiDeclarationsFailed;
+           !mExpressionTypesFailed && !mMultiDeclarationsFailed && !mNoSwizzleOfSwizzleFailed &&
+           !mNoStatementsAfterBranchFailed;
 }
 
 }  // anonymous namespace

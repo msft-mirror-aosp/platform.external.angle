@@ -17,6 +17,7 @@
 
 namespace rx
 {
+class ShaderInterfaceVariableInfoMap;
 constexpr gl::ShaderMap<const char *> kDefaultUniformNames = {
     {gl::ShaderType::Vertex, sh::vk::kDefaultUniformsNameVS},
     {gl::ShaderType::TessControl, sh::vk::kDefaultUniformsNameTCS},
@@ -48,19 +49,17 @@ struct GlslangSourceOptions
     bool supportsTransformFeedbackExtension = false;
     bool supportsTransformFeedbackEmulation = false;
     bool enableTransformFeedbackEmulation   = false;
-    bool emulateBresenhamLines              = false;
 };
 
 struct GlslangSpirvOptions
 {
-    gl::ShaderType shaderType                 = gl::ShaderType::InvalidEnum;
-    SurfaceRotation preRotation               = SurfaceRotation::Identity;
-    bool negativeViewportSupported            = false;
-    bool transformPositionToVulkanClipSpace   = false;
-    bool removeEarlyFragmentTestsOptimization = false;
-    bool removeDebugInfo                      = false;
-    bool isTransformFeedbackStage             = false;
-    bool isTransformFeedbackEmulated          = false;
+    gl::ShaderType shaderType           = gl::ShaderType::InvalidEnum;
+    bool negativeViewportSupported      = false;
+    bool removeDebugInfo                = false;
+    bool isLastPreFragmentStage         = false;
+    bool isTransformFeedbackStage       = false;
+    bool isTransformFeedbackEmulated    = false;
+    bool isMultisampledFramebufferFetch = false;
 };
 
 struct UniformBindingInfo final
@@ -119,63 +118,16 @@ struct ShaderInterfaceVariableInfo
     // Used for transform feedback extension to decorate vertex shader output.
     ShaderInterfaceVariableXfbInfo xfb;
     std::vector<ShaderInterfaceVariableXfbInfo> fieldXfb;
-    // Indicates that the precision needs to be modified in the generated SPIR-V
-    // to support only transferring medium precision data when there's a precision
-    // mismatch between the shaders. For example, either the VS casts highp->mediump
-    // or the FS casts mediump->highp.
-    bool useRelaxedPrecision = false;
     // Indicate if varying is input or output, or both (in case of for example gl_Position in a
     // geometry shader)
-    bool varyingIsInput  = false;
-    bool varyingIsOutput = false;
+    bool builtinIsInput  = false;
+    bool builtinIsOutput = false;
     // For vertex attributes, this is the number of components / locations.  These are used by the
     // vertex attribute aliasing transformation only.
     uint8_t attributeComponentCount = 0;
     uint8_t attributeLocationCount  = 0;
     // Indicate if this variable has been deduplicated.
     bool isDuplicate = false;
-};
-
-// TODO: http://anglebug.com/4524: Need a different hash key than a string, since that's slow to
-// calculate.
-class ShaderInterfaceVariableInfoMap final : angle::NonCopyable
-{
-  public:
-    ShaderInterfaceVariableInfoMap();
-    ~ShaderInterfaceVariableInfoMap();
-
-    void clear();
-    bool contains(gl::ShaderType shaderType, const std::string &variableName) const;
-    const ShaderInterfaceVariableInfo &get(gl::ShaderType shaderType,
-                                           const std::string &variableName) const;
-    ShaderInterfaceVariableInfo &get(gl::ShaderType shaderType, const std::string &variableName);
-    ShaderInterfaceVariableInfo &add(gl::ShaderType shaderType, const std::string &variableName);
-    void markAsDuplicate(gl::ShaderType shaderType, const std::string &variableName);
-    ShaderInterfaceVariableInfo &addOrGet(gl::ShaderType shaderType,
-                                          const std::string &variableName);
-    size_t variableCount(gl::ShaderType shaderType) const { return mData[shaderType].size(); }
-
-    using VariableNameToInfoMap = angle::HashMap<std::string, ShaderInterfaceVariableInfo>;
-
-    class Iterator final
-    {
-      public:
-        Iterator(VariableNameToInfoMap::const_iterator beginIt,
-                 VariableNameToInfoMap::const_iterator endIt)
-            : mBeginIt(beginIt), mEndIt(endIt)
-        {}
-        VariableNameToInfoMap::const_iterator begin() { return mBeginIt; }
-        VariableNameToInfoMap::const_iterator end() { return mEndIt; }
-
-      private:
-        VariableNameToInfoMap::const_iterator mBeginIt;
-        VariableNameToInfoMap::const_iterator mEndIt;
-    };
-
-    Iterator getIterator(gl::ShaderType shaderType) const;
-
-  private:
-    gl::ShaderMap<VariableNameToInfoMap> mData;
 };
 
 bool GetImageNameWithoutIndices(std::string *name);
@@ -185,7 +137,7 @@ std::string GlslangGetMappedSamplerName(const std::string &originalName);
 std::string GetXfbBufferName(const uint32_t bufferIndex);
 
 void GlslangAssignLocations(const GlslangSourceOptions &options,
-                            const gl::ProgramState &programState,
+                            const gl::ProgramExecutable &programExecutable,
                             const gl::ProgramVaryingPacking &varyingPacking,
                             const gl::ShaderType shaderType,
                             const gl::ShaderType frontShaderType,
@@ -195,13 +147,14 @@ void GlslangAssignLocations(const GlslangSourceOptions &options,
                             ShaderInterfaceVariableInfoMap *variableInfoMapOut);
 
 void GlslangAssignTransformFeedbackLocations(gl::ShaderType shaderType,
-                                             const gl::ProgramState &programState,
+                                             const gl::ProgramExecutable &programExecutable,
                                              bool isTransformFeedbackStage,
                                              GlslangProgramInterfaceInfo *programInterfaceInfo,
                                              ShaderInterfaceVariableInfoMap *variableInfoMapOut);
 
 // Retrieves the compiled SPIR-V code for each shader stage, and calls |GlslangAssignLocations|.
-void GlslangGetShaderSpirvCode(const GlslangSourceOptions &options,
+void GlslangGetShaderSpirvCode(const gl::Context *context,
+                               const GlslangSourceOptions &options,
                                const gl::ProgramState &programState,
                                const gl::ProgramLinkedResources &resources,
                                GlslangProgramInterfaceInfo *programInterfaceInfo,

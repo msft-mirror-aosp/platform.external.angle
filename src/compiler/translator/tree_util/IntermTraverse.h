@@ -94,7 +94,7 @@ class TIntermTraverser : angle::NonCopyable
     //
     // Compiler is used to validate the tree.  Node is the same given to traverse().  Returns false
     // if the tree is invalid after update.
-    ANGLE_NO_DISCARD bool updateTree(TCompiler *compiler, TIntermNode *node);
+    [[nodiscard]] bool updateTree(TCompiler *compiler, TIntermNode *node);
 
   protected:
     void setMaxAllowedDepth(int depth);
@@ -111,9 +111,10 @@ class TIntermTraverser : angle::NonCopyable
     void decrementDepth() { mPath.pop_back(); }
 
     int getCurrentTraversalDepth() const { return static_cast<int>(mPath.size()) - 1; }
+    int getCurrentBlockDepth() const { return static_cast<int>(mParentBlockStack.size()) - 1; }
 
     // RAII helper for incrementDepth/decrementDepth
-    class ScopedNodeInTraversalPath
+    class [[nodiscard]] ScopedNodeInTraversalPath
     {
       public:
         ScopedNodeInTraversalPath(TIntermTraverser *traverser, TIntermNode *current)

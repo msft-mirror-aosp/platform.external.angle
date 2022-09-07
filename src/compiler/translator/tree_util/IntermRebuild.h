@@ -94,7 +94,7 @@ class TIntermRebuild : angle::NonCopyable
 
     class BaseResult
     {
-        BaseResult(const BaseResult &) = delete;
+        BaseResult(const BaseResult &)            = delete;
         BaseResult &operator=(const BaseResult &) = delete;
 
       public:
@@ -102,7 +102,7 @@ class TIntermRebuild : angle::NonCopyable
         BaseResult(BaseResult &other);  // For subclass move constructor impls
         BaseResult(TIntermNode &node, VisitBits visit);
         BaseResult(TIntermNode *node, VisitBits visit);
-        BaseResult(nullptr_t);
+        BaseResult(std::nullptr_t);
         BaseResult(Fail);
         BaseResult(std::vector<TIntermNode *> &&nodes);
 
@@ -142,8 +142,8 @@ class TIntermRebuild : angle::NonCopyable
         PreResult(PreResult &&other);
         PreResult(TIntermNode &node, VisitBits visit = VisitBits::BothWhenSame);
         PreResult(TIntermNode *node, VisitBits visit = VisitBits::BothWhenSame);
-        PreResult(nullptr_t);  // Used to drop a node.
-        PreResult(Fail);       // Used to signal failure.
+        PreResult(std::nullptr_t);  // Used to drop a node.
+        PreResult(Fail);            // Used to signal failure.
 
         void operator=(PreResult &&other);
 
@@ -175,8 +175,8 @@ class TIntermRebuild : angle::NonCopyable
         PostResult(PostResult &&other);
         PostResult(TIntermNode &node);
         PostResult(TIntermNode *node);
-        PostResult(nullptr_t);  // Used to drop a node
-        PostResult(Fail);       // Used to signal failure.
+        PostResult(std::nullptr_t);  // Used to drop a node
+        PostResult(Fail);            // Used to signal failure.
 
         void operator=(PostResult &&other);
 
@@ -208,7 +208,7 @@ class TIntermRebuild : angle::NonCopyable
     // Rebuilds the tree starting at the provided root. If a new node would be returned for the
     // root, the root node's children become that of the new node instead. Returns false if failure
     // occurred.
-    ANGLE_NO_DISCARD bool rebuildRoot(TIntermBlock &root);
+    [[nodiscard]] bool rebuildRoot(TIntermBlock &root);
 
   protected:
     virtual PreResult visitSymbolPre(TIntermSymbol &node);
@@ -251,19 +251,19 @@ class TIntermRebuild : angle::NonCopyable
 
     // Can be used to rebuild a specific node during a traversal. Useful for fine control of
     // rebuilding a node's children.
-    ANGLE_NO_DISCARD PostResult rebuild(TIntermNode &node);
+    [[nodiscard]] PostResult rebuild(TIntermNode &node);
 
     // Rebuilds the provided node in place. If a new node would be returned, the old node's children
     // become that of the new node instead. Returns false if failure occurred.
-    ANGLE_NO_DISCARD bool rebuildInPlace(TIntermAggregate &node);
+    [[nodiscard]] bool rebuildInPlace(TIntermAggregate &node);
 
     // Rebuilds the provided node in place. If a new node would be returned, the old node's children
     // become that of the new node instead. Returns false if failure occurred.
-    ANGLE_NO_DISCARD bool rebuildInPlace(TIntermBlock &node);
+    [[nodiscard]] bool rebuildInPlace(TIntermBlock &node);
 
     // Rebuilds the provided node in place. If a new node would be returned, the old node's children
     // become that of the new node instead. Returns false if failure occurred.
-    ANGLE_NO_DISCARD bool rebuildInPlace(TIntermDeclaration &node);
+    [[nodiscard]] bool rebuildInPlace(TIntermDeclaration &node);
 
     // If currently at or below a function declaration body, this returns the function that encloses
     // the currently visited node. (This returns null if at a function declaration node.)
@@ -273,7 +273,7 @@ class TIntermRebuild : angle::NonCopyable
 
   private:
     template <typename Node>
-    ANGLE_NO_DISCARD bool rebuildInPlaceImpl(Node &node);
+    [[nodiscard]] bool rebuildInPlaceImpl(Node &node);
 
     PostResult traverseAny(TIntermNode &node);
 

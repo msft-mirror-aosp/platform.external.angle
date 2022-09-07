@@ -13,7 +13,7 @@ using namespace angle;
 namespace
 {
 
-class WEBGLVideoTextureTest : public ANGLETest
+class WEBGLVideoTextureTest : public ANGLETest<>
 {
   protected:
     WEBGLVideoTextureTest()
@@ -27,7 +27,7 @@ class WEBGLVideoTextureTest : public ANGLETest
     }
 };
 
-class WEBGLVideoTextureES300Test : public ANGLETest
+class WEBGLVideoTextureES300Test : public ANGLETest<>
 {
   protected:
     WEBGLVideoTextureES300Test()
@@ -106,7 +106,7 @@ precision mediump float;
 varying mediump vec2 texCoord;
 uniform mediump samplerVideoWEBGL s;
 
-vec4 wrapTextureVideoWEBGL(samplerVideoWEBGL sampler, vec2 coord)
+vec4 wrapTextureVideoWEBGL(mediump samplerVideoWEBGL sampler, vec2 coord)
 {
     return textureVideoWEBGL(sampler, coord);
 }

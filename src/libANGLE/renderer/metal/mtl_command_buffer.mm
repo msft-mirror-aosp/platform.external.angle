@@ -38,38 +38,39 @@ namespace mtl
 namespace
 {
 
-#define ANGLE_MTL_CMD_X(PROC)            \
-    PROC(Invalid)                        \
-    PROC(SetRenderPipelineState)         \
-    PROC(SetTriangleFillMode)            \
-    PROC(SetFrontFacingWinding)          \
-    PROC(SetCullMode)                    \
-    PROC(SetDepthStencilState)           \
-    PROC(SetDepthBias)                   \
-    PROC(SetStencilRefVals)              \
-    PROC(SetViewport)                    \
-    PROC(SetScissorRect)                 \
-    PROC(SetBlendColor)                  \
-    PROC(SetVertexBuffer)                \
-    PROC(SetVertexBufferOffset)          \
-    PROC(SetVertexBytes)                 \
-    PROC(SetVertexSamplerState)          \
-    PROC(SetVertexTexture)               \
-    PROC(SetFragmentBuffer)              \
-    PROC(SetFragmentBufferOffset)        \
-    PROC(SetFragmentBytes)               \
-    PROC(SetFragmentSamplerState)        \
-    PROC(SetFragmentTexture)             \
-    PROC(Draw)                           \
-    PROC(DrawInstanced)                  \
-    PROC(DrawIndexed)                    \
-    PROC(DrawIndexedInstanced)           \
-    PROC(DrawIndexedInstancedBaseVertex) \
-    PROC(SetVisibilityResultMode)        \
-    PROC(UseResource)                    \
-    PROC(MemoryBarrierWithResource)      \
-    PROC(InsertDebugsign)                \
-    PROC(PushDebugGroup)                 \
+#define ANGLE_MTL_CMD_X(PROC)                        \
+    PROC(Invalid)                                    \
+    PROC(SetRenderPipelineState)                     \
+    PROC(SetTriangleFillMode)                        \
+    PROC(SetFrontFacingWinding)                      \
+    PROC(SetCullMode)                                \
+    PROC(SetDepthStencilState)                       \
+    PROC(SetDepthBias)                               \
+    PROC(SetStencilRefVals)                          \
+    PROC(SetViewport)                                \
+    PROC(SetScissorRect)                             \
+    PROC(SetBlendColor)                              \
+    PROC(SetVertexBuffer)                            \
+    PROC(SetVertexBufferOffset)                      \
+    PROC(SetVertexBytes)                             \
+    PROC(SetVertexSamplerState)                      \
+    PROC(SetVertexTexture)                           \
+    PROC(SetFragmentBuffer)                          \
+    PROC(SetFragmentBufferOffset)                    \
+    PROC(SetFragmentBytes)                           \
+    PROC(SetFragmentSamplerState)                    \
+    PROC(SetFragmentTexture)                         \
+    PROC(Draw)                                       \
+    PROC(DrawInstanced)                              \
+    PROC(DrawInstancedBaseInstance)                  \
+    PROC(DrawIndexed)                                \
+    PROC(DrawIndexedInstanced)                       \
+    PROC(DrawIndexedInstancedBaseVertexBaseInstance) \
+    PROC(SetVisibilityResultMode)                    \
+    PROC(UseResource)                                \
+    PROC(MemoryBarrierWithResource)                  \
+    PROC(InsertDebugsign)                            \
+    PROC(PushDebugGroup)                             \
     PROC(PopDebugGroup)
 
 #define ANGLE_MTL_TYPE_DECL(CMD) CMD,
@@ -81,46 +82,48 @@ enum class CmdType : uint8_t
 };
 
 // Commands decoder
-void InvalidCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void InvalidCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     UNREACHABLE();
 }
 
-void SetRenderPipelineStateCmd(id<MTLRenderCommandEncoder> encoder,
-                               IntermediateCommandStream *stream)
+inline void SetRenderPipelineStateCmd(id<MTLRenderCommandEncoder> encoder,
+                                      IntermediateCommandStream *stream)
 {
     id<MTLRenderPipelineState> state = stream->fetch<id<MTLRenderPipelineState>>();
     [encoder setRenderPipelineState:state];
     [state ANGLE_MTL_RELEASE];
 }
 
-void SetTriangleFillModeCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetTriangleFillModeCmd(id<MTLRenderCommandEncoder> encoder,
+                                   IntermediateCommandStream *stream)
 {
     MTLTriangleFillMode mode = stream->fetch<MTLTriangleFillMode>();
     [encoder setTriangleFillMode:mode];
 }
 
-void SetFrontFacingWindingCmd(id<MTLRenderCommandEncoder> encoder,
-                              IntermediateCommandStream *stream)
+inline void SetFrontFacingWindingCmd(id<MTLRenderCommandEncoder> encoder,
+                                     IntermediateCommandStream *stream)
 {
     MTLWinding winding = stream->fetch<MTLWinding>();
     [encoder setFrontFacingWinding:winding];
 }
 
-void SetCullModeCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetCullModeCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     MTLCullMode mode = stream->fetch<MTLCullMode>();
     [encoder setCullMode:mode];
 }
 
-void SetDepthStencilStateCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetDepthStencilStateCmd(id<MTLRenderCommandEncoder> encoder,
+                                    IntermediateCommandStream *stream)
 {
     id<MTLDepthStencilState> state = stream->fetch<id<MTLDepthStencilState>>();
     [encoder setDepthStencilState:state];
     [state ANGLE_MTL_RELEASE];
 }
 
-void SetDepthBiasCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetDepthBiasCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     float depthBias  = stream->fetch<float>();
     float slopeScale = stream->fetch<float>();
@@ -128,7 +131,8 @@ void SetDepthBiasCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStr
     [encoder setDepthBias:depthBias slopeScale:slopeScale clamp:clamp];
 }
 
-void SetStencilRefValsCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetStencilRefValsCmd(id<MTLRenderCommandEncoder> encoder,
+                                 IntermediateCommandStream *stream)
 {
     // Metal has some bugs when reference values are larger than 0xff
     uint32_t frontRef = stream->fetch<uint32_t>();
@@ -136,19 +140,20 @@ void SetStencilRefValsCmd(id<MTLRenderCommandEncoder> encoder, IntermediateComma
     [encoder setStencilFrontReferenceValue:frontRef backReferenceValue:backRef];
 }
 
-void SetViewportCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetViewportCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     MTLViewport viewport = stream->fetch<MTLViewport>();
     [encoder setViewport:viewport];
 }
 
-void SetScissorRectCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetScissorRectCmd(id<MTLRenderCommandEncoder> encoder,
+                              IntermediateCommandStream *stream)
 {
     MTLScissorRect rect = stream->fetch<MTLScissorRect>();
     [encoder setScissorRect:rect];
 }
 
-void SetBlendColorCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetBlendColorCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     float r = stream->fetch<float>();
     float g = stream->fetch<float>();
@@ -157,7 +162,8 @@ void SetBlendColorCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandSt
     [encoder setBlendColorRed:r green:g blue:b alpha:a];
 }
 
-void SetVertexBufferCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetVertexBufferCmd(id<MTLRenderCommandEncoder> encoder,
+                               IntermediateCommandStream *stream)
 {
     id<MTLBuffer> buffer = stream->fetch<id<MTLBuffer>>();
     uint32_t offset      = stream->fetch<uint32_t>();
@@ -166,15 +172,16 @@ void SetVertexBufferCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommand
     [buffer ANGLE_MTL_RELEASE];
 }
 
-void SetVertexBufferOffsetCmd(id<MTLRenderCommandEncoder> encoder,
-                              IntermediateCommandStream *stream)
+inline void SetVertexBufferOffsetCmd(id<MTLRenderCommandEncoder> encoder,
+                                     IntermediateCommandStream *stream)
 {
     uint32_t offset = stream->fetch<uint32_t>();
     uint32_t index  = stream->fetch<uint32_t>();
     [encoder setVertexBufferOffset:offset atIndex:index];
 }
 
-void SetVertexBytesCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetVertexBytesCmd(id<MTLRenderCommandEncoder> encoder,
+                              IntermediateCommandStream *stream)
 {
     size_t size          = stream->fetch<size_t>();
     const uint8_t *bytes = stream->fetch(size);
@@ -182,8 +189,8 @@ void SetVertexBytesCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandS
     [encoder setVertexBytes:bytes length:size atIndex:index];
 }
 
-void SetVertexSamplerStateCmd(id<MTLRenderCommandEncoder> encoder,
-                              IntermediateCommandStream *stream)
+inline void SetVertexSamplerStateCmd(id<MTLRenderCommandEncoder> encoder,
+                                     IntermediateCommandStream *stream)
 {
     id<MTLSamplerState> state = stream->fetch<id<MTLSamplerState>>();
     float lodMinClamp         = stream->fetch<float>();
@@ -197,7 +204,8 @@ void SetVertexSamplerStateCmd(id<MTLRenderCommandEncoder> encoder,
     [state ANGLE_MTL_RELEASE];
 }
 
-void SetVertexTextureCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetVertexTextureCmd(id<MTLRenderCommandEncoder> encoder,
+                                IntermediateCommandStream *stream)
 {
     id<MTLTexture> texture = stream->fetch<id<MTLTexture>>();
     uint32_t index         = stream->fetch<uint32_t>();
@@ -205,7 +213,8 @@ void SetVertexTextureCmd(id<MTLRenderCommandEncoder> encoder, IntermediateComman
     [texture ANGLE_MTL_RELEASE];
 }
 
-void SetFragmentBufferCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetFragmentBufferCmd(id<MTLRenderCommandEncoder> encoder,
+                                 IntermediateCommandStream *stream)
 {
     id<MTLBuffer> buffer = stream->fetch<id<MTLBuffer>>();
     uint32_t offset      = stream->fetch<uint32_t>();
@@ -214,15 +223,16 @@ void SetFragmentBufferCmd(id<MTLRenderCommandEncoder> encoder, IntermediateComma
     [buffer ANGLE_MTL_RELEASE];
 }
 
-void SetFragmentBufferOffsetCmd(id<MTLRenderCommandEncoder> encoder,
-                                IntermediateCommandStream *stream)
+inline void SetFragmentBufferOffsetCmd(id<MTLRenderCommandEncoder> encoder,
+                                       IntermediateCommandStream *stream)
 {
     uint32_t offset = stream->fetch<uint32_t>();
     uint32_t index  = stream->fetch<uint32_t>();
     [encoder setFragmentBufferOffset:offset atIndex:index];
 }
 
-void SetFragmentBytesCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetFragmentBytesCmd(id<MTLRenderCommandEncoder> encoder,
+                                IntermediateCommandStream *stream)
 {
     size_t size          = stream->fetch<size_t>();
     const uint8_t *bytes = stream->fetch(size);
@@ -230,8 +240,8 @@ void SetFragmentBytesCmd(id<MTLRenderCommandEncoder> encoder, IntermediateComman
     [encoder setFragmentBytes:bytes length:size atIndex:index];
 }
 
-void SetFragmentSamplerStateCmd(id<MTLRenderCommandEncoder> encoder,
-                                IntermediateCommandStream *stream)
+inline void SetFragmentSamplerStateCmd(id<MTLRenderCommandEncoder> encoder,
+                                       IntermediateCommandStream *stream)
 {
     id<MTLSamplerState> state = stream->fetch<id<MTLSamplerState>>();
     float lodMinClamp         = stream->fetch<float>();
@@ -244,7 +254,8 @@ void SetFragmentSamplerStateCmd(id<MTLRenderCommandEncoder> encoder,
     [state ANGLE_MTL_RELEASE];
 }
 
-void SetFragmentTextureCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void SetFragmentTextureCmd(id<MTLRenderCommandEncoder> encoder,
+                                  IntermediateCommandStream *stream)
 {
     id<MTLTexture> texture = stream->fetch<id<MTLTexture>>();
     uint32_t index         = stream->fetch<uint32_t>();
@@ -252,7 +263,7 @@ void SetFragmentTextureCmd(id<MTLRenderCommandEncoder> encoder, IntermediateComm
     [texture ANGLE_MTL_RELEASE];
 }
 
-void DrawCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void DrawCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
     uint32_t vertexStart           = stream->fetch<uint32_t>();
@@ -260,7 +271,7 @@ void DrawCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *str
     [encoder drawPrimitives:primitiveType vertexStart:vertexStart vertexCount:vertexCount];
 }
 
-void DrawInstancedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void DrawInstancedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
     uint32_t vertexStart           = stream->fetch<uint32_t>();
@@ -272,7 +283,22 @@ void DrawInstancedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandSt
               instanceCount:instances];
 }
 
-void DrawIndexedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void DrawInstancedBaseInstanceCmd(id<MTLRenderCommandEncoder> encoder,
+                                         IntermediateCommandStream *stream)
+{
+    MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
+    uint32_t vertexStart           = stream->fetch<uint32_t>();
+    uint32_t vertexCount           = stream->fetch<uint32_t>();
+    uint32_t instances             = stream->fetch<uint32_t>();
+    uint32_t baseInstance          = stream->fetch<uint32_t>();
+    [encoder drawPrimitives:primitiveType
+                vertexStart:vertexStart
+                vertexCount:vertexCount
+              instanceCount:instances
+               baseInstance:baseInstance];
+}
+
+inline void DrawIndexedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
     uint32_t indexCount            = stream->fetch<uint32_t>();
@@ -287,7 +313,8 @@ void DrawIndexedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStre
     [indexBuffer ANGLE_MTL_RELEASE];
 }
 
-void DrawIndexedInstancedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void DrawIndexedInstancedCmd(id<MTLRenderCommandEncoder> encoder,
+                                    IntermediateCommandStream *stream)
 {
     MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
     uint32_t indexCount            = stream->fetch<uint32_t>();
@@ -304,8 +331,8 @@ void DrawIndexedInstancedCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCo
     [indexBuffer ANGLE_MTL_RELEASE];
 }
 
-void DrawIndexedInstancedBaseVertexCmd(id<MTLRenderCommandEncoder> encoder,
-                                       IntermediateCommandStream *stream)
+inline void DrawIndexedInstancedBaseVertexBaseInstanceCmd(id<MTLRenderCommandEncoder> encoder,
+                                                          IntermediateCommandStream *stream)
 {
     MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
     uint32_t indexCount            = stream->fetch<uint32_t>();
@@ -314,6 +341,7 @@ void DrawIndexedInstancedBaseVertexCmd(id<MTLRenderCommandEncoder> encoder,
     size_t bufferOffset            = stream->fetch<size_t>();
     uint32_t instances             = stream->fetch<uint32_t>();
     uint32_t baseVertex            = stream->fetch<uint32_t>();
+    uint32_t baseInstance          = stream->fetch<uint32_t>();
     [encoder drawIndexedPrimitives:primitiveType
                         indexCount:indexCount
                          indexType:indexType
@@ -321,19 +349,19 @@ void DrawIndexedInstancedBaseVertexCmd(id<MTLRenderCommandEncoder> encoder,
                  indexBufferOffset:bufferOffset
                      instanceCount:instances
                         baseVertex:baseVertex
-                      baseInstance:0];
+                      baseInstance:baseInstance];
     [indexBuffer ANGLE_MTL_RELEASE];
 }
 
-void SetVisibilityResultModeCmd(id<MTLRenderCommandEncoder> encoder,
-                                IntermediateCommandStream *stream)
+inline void SetVisibilityResultModeCmd(id<MTLRenderCommandEncoder> encoder,
+                                       IntermediateCommandStream *stream)
 {
     MTLVisibilityResultMode mode = stream->fetch<MTLVisibilityResultMode>();
     size_t offset                = stream->fetch<size_t>();
     [encoder setVisibilityResultMode:mode offset:offset];
 }
 
-void UseResourceCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void UseResourceCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     id<MTLResource> resource = stream->fetch<id<MTLResource>>();
     MTLResourceUsage usage   = stream->fetch<MTLResourceUsage>();
@@ -352,8 +380,8 @@ void UseResourceCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStre
     [resource ANGLE_MTL_RELEASE];
 }
 
-void MemoryBarrierWithResourceCmd(id<MTLRenderCommandEncoder> encoder,
-                                  IntermediateCommandStream *stream)
+inline void MemoryBarrierWithResourceCmd(id<MTLRenderCommandEncoder> encoder,
+                                         IntermediateCommandStream *stream)
 {
     id<MTLResource> resource = stream->fetch<id<MTLResource>>();
     mtl::RenderStages after  = stream->fetch<mtl::RenderStages>();
@@ -372,30 +400,26 @@ void MemoryBarrierWithResourceCmd(id<MTLRenderCommandEncoder> encoder,
     [resource ANGLE_MTL_RELEASE];
 }
 
-void InsertDebugsignCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void InsertDebugsignCmd(id<MTLRenderCommandEncoder> encoder,
+                               IntermediateCommandStream *stream)
 {
     NSString *label = stream->fetch<NSString *>();
     [encoder insertDebugSignpost:label];
     [label ANGLE_MTL_RELEASE];
 }
 
-void PushDebugGroupCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void PushDebugGroupCmd(id<MTLRenderCommandEncoder> encoder,
+                              IntermediateCommandStream *stream)
 {
     NSString *label = stream->fetch<NSString *>();
     [encoder pushDebugGroup:label];
     [label ANGLE_MTL_RELEASE];
 }
 
-void PopDebugGroupCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+inline void PopDebugGroupCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
 {
     [encoder popDebugGroup];
 }
-
-// Command encoder mapping
-#define ANGLE_MTL_CMD_MAP(CMD) CMD##Cmd,
-
-using CommandEncoderFunc = void (*)(id<MTLRenderCommandEncoder>, IntermediateCommandStream *);
-constexpr CommandEncoderFunc gCommandEncoders[] = {ANGLE_MTL_CMD_X(ANGLE_MTL_CMD_MAP)};
 
 NSString *cppLabelToObjC(const std::string &marker)
 {
@@ -407,7 +431,7 @@ NSString *cppLabelToObjC(const std::string &marker)
     }
     return label;
 }
-}
+}  // namespace
 
 // CommandQueue implementation
 void CommandQueue::reset()
@@ -425,24 +449,15 @@ void CommandQueue::set(id<MTLCommandQueue> metalQueue)
 
 void CommandQueue::finishAllCommands()
 {
+    std::deque<CmdBufferQueueEntry> commandBuffers;
     {
-        // Copy to temp list
         std::lock_guard<std::mutex> lg(mLock);
-
-        for (CmdBufferQueueEntry &metalBufferEntry : mMetalCmdBuffers)
-        {
-            mMetalCmdBuffersTmp.push_back(metalBufferEntry);
-        }
-
-        mMetalCmdBuffers.clear();
+        mMetalCmdBuffers.swap(commandBuffers);
     }
-
-    // Wait for command buffers to finish
-    for (CmdBufferQueueEntry &metalBufferEntry : mMetalCmdBuffersTmp)
+    for (CmdBufferQueueEntry &entry : commandBuffers)
     {
-        [metalBufferEntry.buffer waitUntilCompleted];
+        [entry.buffer waitUntilCompleted];
     }
-    mMetalCmdBuffersTmp.clear();
 }
 
 void CommandQueue::ensureResourceReadyForCPU(const ResourceRef &resource)
@@ -518,8 +533,6 @@ AutoObjCPtr<id<MTLCommandBuffer>> CommandQueue::makeMetalCommandBuffer(uint64_t 
           onCommandBufferCompleted(buf, serial);
         }];
 
-        [metalCmdBuffer enqueue];
-
         ASSERT(metalCmdBuffer);
 
         *queueSerialOut = serial;
@@ -571,7 +584,7 @@ CommandBuffer::CommandBuffer(CommandQueue *cmdQueue) : mCmdQueue(*cmdQueue) {}
 
 CommandBuffer::~CommandBuffer()
 {
-    finish();
+    commit(WaitUntilFinished);
     cleanup();
 }
 
@@ -582,21 +595,55 @@ bool CommandBuffer::ready() const
     return readyImpl();
 }
 
-void CommandBuffer::commit()
+void CommandBuffer::commit(CommandBufferFinishOperation operation)
 {
     std::lock_guard<std::mutex> lg(mLock);
-    commitImpl();
-}
-
-void CommandBuffer::finish()
-{
-    commit();
-    [get() waitUntilCompleted];
+    if (commitImpl())
+    {
+        if (operation == WaitUntilScheduled)
+        {
+            [get() waitUntilScheduled];
+        }
+        else if (operation == WaitUntilFinished)
+        {
+            [get() waitUntilCompleted];
+        }
+    }
 }
 
 void CommandBuffer::present(id<CAMetalDrawable> presentationDrawable)
 {
     [get() presentDrawable:presentationDrawable];
+}
+
+void CommandBuffer::setResourceUsedByCommandBuffer(const ResourceRef &resource)
+{
+    if (resource)
+    {
+        auto result = mResourceList.insert(resource->getID());
+        // If we were able to add a unique Metal resource ID to the list, count it.
+        //
+        // Note that we store Metal IDs here, properly retained in non-ARC environments, rather than
+        // the ResourceRefs. There are some assumptions in TextureMtl in particular about weak refs
+        // to temporary textures being cleared out eagerly. Holding on to additional references here
+        // implies that that texture is still being used, and would require additional code to clear
+        // out temporary render targets upon texture redefinition.
+        if (result.second)
+        {
+            [resource->getID() ANGLE_MTL_RETAIN];
+            mWorkingResourceSize += resource->estimatedByteSize();
+        }
+    }
+}
+
+void CommandBuffer::clearResourceListAndSize()
+{
+    for (const id &metalID : mResourceList)
+    {
+        [metalID ANGLE_MTL_RELEASE];
+    }
+    mResourceList.clear();
+    mWorkingResourceSize = 0;
 }
 
 void CommandBuffer::setWriteDependency(const ResourceRef &resource)
@@ -614,11 +661,13 @@ void CommandBuffer::setWriteDependency(const ResourceRef &resource)
     }
 
     resource->setUsedByCommandBufferWithQueueSerial(mQueueSerial, true);
+    setResourceUsedByCommandBuffer(resource);
 }
 
 void CommandBuffer::setReadDependency(const ResourceRef &resource)
 {
     setReadDependency(resource.get());
+    setResourceUsedByCommandBuffer(resource);
 }
 
 void CommandBuffer::setReadDependency(Resource *resource)
@@ -638,6 +687,11 @@ void CommandBuffer::setReadDependency(Resource *resource)
     resource->setUsedByCommandBufferWithQueueSerial(mQueueSerial, false);
 }
 
+bool CommandBuffer::needsFlushForDrawCallLimits() const
+{
+    return mWorkingResourceSize > kMaximumResidentMemorySizeInBytes;
+}
+
 void CommandBuffer::restart()
 {
     uint64_t serial                                  = 0;
@@ -653,7 +707,7 @@ void CommandBuffer::restart()
     {
         pushDebugGroupImpl(marker);
     }
-
+    clearResourceListAndSize();
     ASSERT(metalCmdBuffer);
 }
 
@@ -775,11 +829,11 @@ bool CommandBuffer::readyImpl() const
     return !mCommitted;
 }
 
-void CommandBuffer::commitImpl()
+bool CommandBuffer::commitImpl()
 {
     if (!readyImpl())
     {
-        return;
+        return false;
     }
 
     // End the current encoder
@@ -792,9 +846,12 @@ void CommandBuffer::commitImpl()
     mCmdQueue.onCommandBufferCommitted(get(), mQueueSerial);
 
     // Do the actual commit
+    [get() enqueue];
     [get() commit];
-
+    // Reset the working resource set.
+    clearResourceListAndSize();
     mCommitted = true;
+    return true;
 }
 
 void CommandBuffer::forceEndingCurrentEncoder()
@@ -1251,16 +1308,24 @@ void RenderCommandEncoder::encodeMetalEncoder()
 
         while (mCommands.good())
         {
-            CmdType cmdType            = mCommands.fetch<CmdType>();
-            CommandEncoderFunc encoder = gCommandEncoders[static_cast<int>(cmdType)];
-            encoder(metalCmdEncoder, &mCommands);
+            CmdType cmdType = mCommands.fetch<CmdType>();
+            switch (cmdType)
+            {
+#define ANGLE_MTL_CMD_MAP(CMD)                 \
+    case CmdType::CMD:                         \
+        CMD##Cmd(metalCmdEncoder, &mCommands); \
+        break;
+                ANGLE_MTL_CMD_X(ANGLE_MTL_CMD_MAP)
+#undef ANGLE_MTL_CMD_MAP
+            }
         }
 
         mCommands.clear();
     }
 }
 
-RenderCommandEncoder &RenderCommandEncoder::restart(const RenderPassDesc &desc)
+RenderCommandEncoder &RenderCommandEncoder::restart(const RenderPassDesc &desc,
+                                                    uint32_t deviceMaxRenderTargets)
 {
     if (valid())
     {
@@ -1298,7 +1363,7 @@ RenderCommandEncoder &RenderCommandEncoder::restart(const RenderPassDesc &desc)
     initAttachmentWriteDependencyAndScissorRect(mRenderPassDesc.stencilAttachment);
 
     // Convert to Objective-C descriptor
-    mRenderPassDesc.convertToMetalDesc(mCachedRenderPassDescObjC);
+    mRenderPassDesc.convertToMetalDesc(mCachedRenderPassDescObjC, deviceMaxRenderTargets);
 
     // The actual Objective-C encoder will be created later in endEncoding(), we do so in order
     // to be able to sort the commands or do the preprocessing before the actual encoding.
@@ -1440,11 +1505,6 @@ RenderCommandEncoder &RenderCommandEncoder::setScissorRect(const MTLScissorRect 
         return *this;
     }
 
-    if (ANGLE_UNLIKELY(clampedRect.width == 0 || clampedRect.height == 0))
-    {
-        // An empty rectangle isn't a valid scissor.
-        return *this;
-    }
     mStateCache.scissorRect = clampedRect;
 
     mCommands.push(CmdType::SetScissorRect).push(clampedRect);
@@ -1648,6 +1708,26 @@ RenderCommandEncoder &RenderCommandEncoder::drawInstanced(MTLPrimitiveType primi
     return *this;
 }
 
+RenderCommandEncoder &RenderCommandEncoder::drawInstancedBaseInstance(
+    MTLPrimitiveType primitiveType,
+    uint32_t vertexStart,
+    uint32_t vertexCount,
+    uint32_t instances,
+    uint32_t baseInstance)
+{
+    ASSERT(mPipelineStateSet &&
+           "Render Pipeline State was never set and we've issued a draw command.");
+    mHasDrawCalls = true;
+    mCommands.push(CmdType::DrawInstancedBaseInstance)
+        .push(primitiveType)
+        .push(vertexStart)
+        .push(vertexCount)
+        .push(instances)
+        .push(baseInstance);
+
+    return *this;
+}
+
 RenderCommandEncoder &RenderCommandEncoder::drawIndexed(MTLPrimitiveType primitiveType,
                                                         uint32_t indexCount,
                                                         MTLIndexType indexType,
@@ -1702,14 +1782,15 @@ RenderCommandEncoder &RenderCommandEncoder::drawIndexedInstanced(MTLPrimitiveTyp
     return *this;
 }
 
-RenderCommandEncoder &RenderCommandEncoder::drawIndexedInstancedBaseVertex(
+RenderCommandEncoder &RenderCommandEncoder::drawIndexedInstancedBaseVertexBaseInstance(
     MTLPrimitiveType primitiveType,
     uint32_t indexCount,
     MTLIndexType indexType,
     const BufferRef &indexBuffer,
     size_t bufferOffset,
     uint32_t instances,
-    uint32_t baseVertex)
+    uint32_t baseVertex,
+    uint32_t baseInstance)
 {
     ASSERT(mPipelineStateSet &&
            "Render Pipeline State was never set and we've issued a draw command.");
@@ -1721,14 +1802,15 @@ RenderCommandEncoder &RenderCommandEncoder::drawIndexedInstancedBaseVertex(
     mHasDrawCalls = true;
     cmdBuffer().setReadDependency(indexBuffer);
 
-    mCommands.push(CmdType::DrawIndexedInstancedBaseVertex)
+    mCommands.push(CmdType::DrawIndexedInstancedBaseVertexBaseInstance)
         .push(primitiveType)
         .push(indexCount)
         .push(indexType)
         .push([indexBuffer->get() ANGLE_MTL_RETAIN])
         .push(bufferOffset)
         .push(instances)
-        .push(baseVertex);
+        .push(baseVertex)
+        .push(baseInstance);
 
     return *this;
 }
@@ -2268,5 +2350,5 @@ ComputeCommandEncoder &ComputeCommandEncoder::dispatchNonUniform(const MTLSize &
 #endif
     return *this;
 }
-}
-}
+}  // namespace mtl
+}  // namespace rx

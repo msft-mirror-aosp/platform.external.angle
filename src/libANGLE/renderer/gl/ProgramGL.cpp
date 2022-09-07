@@ -24,7 +24,7 @@
 #include "libANGLE/renderer/gl/ShaderGL.h"
 #include "libANGLE/renderer/gl/StateManagerGL.h"
 #include "libANGLE/trace.h"
-#include "platform/FeaturesGL.h"
+#include "platform/FeaturesGL_autogen.h"
 #include "platform/PlatformMethods.h"
 
 namespace rx
@@ -247,7 +247,7 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
                     : gl::ShaderType::Vertex;
             std::string tfVaryingMappedName =
                 mState.getAttachedShader(tfShaderType)
-                    ->getTransformFeedbackVaryingMappedName(tfVarying);
+                    ->getTransformFeedbackVaryingMappedName(context, tfVarying);
             transformFeedbackVaryingMappedNames.push_back(tfVaryingMappedName);
         }
 
@@ -297,10 +297,10 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
         // Bind the secondary fragment color outputs defined in EXT_blend_func_extended. We only use
         // the API to bind fragment output locations in case EXT_blend_func_extended is enabled.
         // Otherwise shader-assigned locations will work.
-        if (context->getExtensions().blendFuncExtended)
+        if (context->getExtensions().blendFuncExtendedEXT)
         {
             gl::Shader *fragmentShader = mState.getAttachedShader(gl::ShaderType::Fragment);
-            if (fragmentShader && fragmentShader->getShaderVersion() == 100)
+            if (fragmentShader && fragmentShader->getShaderVersion(context) == 100)
             {
                 // TODO(http://anglebug.com/2833): The bind done below is only valid in case the
                 // compiler transforms the shader outputs to the angle/webgl prefixed ones. If we
@@ -311,8 +311,8 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
                 //    the compiler doesn't support transforming GLSL ES 1.00 shaders to GLSL ES 3.00
                 //    shaders in general, but support for that might be required. Or we might be
                 //    able to skip the bind in case the compiler outputs GLSL ES 1.00.
-                const auto &shaderOutputs =
-                    mState.getAttachedShader(gl::ShaderType::Fragment)->getActiveOutputVariables();
+                const auto &shaderOutputs = mState.getAttachedShader(gl::ShaderType::Fragment)
+                                                ->getActiveOutputVariables(context);
                 for (const auto &output : shaderOutputs)
                 {
                     // TODO(http://anglebug.com/1085) This could be cleaner if the transformed names
@@ -407,7 +407,7 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
             }
         }
     }
-    auto workerPool = context->getWorkerThreadPool();
+    auto workerPool = context->getShaderCompileThreadPool();
     auto linkTask   = std::make_shared<LinkTask>([this](std::string &infoLog) {
         std::string workerInfoLog;
         ScopedWorkerContextGL worker(mRenderer.get(), &workerInfoLog);

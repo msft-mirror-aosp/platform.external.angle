@@ -78,46 +78,12 @@ SyncHelper::SyncHelper() {}
 
 SyncHelper::~SyncHelper() {}
 
-void SyncHelper::releaseToRenderer(RendererVk *renderer)
+void SyncHelper::releaseToRenderer(RendererVk *renderer) {}
+
+angle::Result SyncHelper::initialize(ContextVk *contextVk, bool isEGLSyncObject)
 {
-    renderer->collectGarbageAndReinit(&mUse, &mEvent);
-}
-
-angle::Result SyncHelper::initialize(ContextVk *contextVk, bool isEglSyncObject)
-{
-    ASSERT(!mEvent.valid());
-
-    // Break the current render pass to ensure the proper ordering of the sync object in the
-    // commands.
-    ANGLE_TRY(contextVk->flushCommandsAndEndRenderPass());
-
-    RendererVk *renderer = contextVk->getRenderer();
-    VkDevice device      = renderer->getDevice();
-
-    VkEventCreateInfo eventCreateInfo = {};
-    eventCreateInfo.sType             = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
-    eventCreateInfo.flags             = 0;
-
-    DeviceScoped<Event> event(device);
-    ANGLE_VK_TRY(contextVk, event.get().init(device, eventCreateInfo));
-
-    mEvent = event.release();
-
-    vk::CommandBuffer *commandBuffer;
-    ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
-    commandBuffer->setEvent(mEvent.getHandle(), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-    retain(&contextVk->getResourceUseList());
-
-    if (isEglSyncObject)
-    {
-        contextVk->onEGLSyncHelperInitialize();
-    }
-    else
-    {
-        contextVk->onSyncHelperInitialize();
-    }
-
-    return angle::Result::Continue;
+    ASSERT(!mUse.getSerial().valid());
+    return contextVk->onSyncObjectInit(this, isEGLSyncObject);
 }
 
 angle::Result SyncHelper::clientWait(Context *context,
@@ -130,44 +96,28 @@ angle::Result SyncHelper::clientWait(Context *context,
 
     // If the event is already set, don't wait
     bool alreadySignaled = false;
-    ANGLE_TRY(getStatus(context, &alreadySignaled));
+    ANGLE_TRY(getStatus(context, contextVk, &alreadySignaled));
     if (alreadySignaled)
     {
         *outResult = VK_EVENT_SET;
         return angle::Result::Continue;
     }
 
-    // We defer (ignore) flushes, so it's possible that the glFence's signal operation is pending
-    // submission.
-    if (contextVk)
-    {
-        if (flushCommands || usedInRecordedCommands())
-        {
-            ANGLE_TRY(contextVk->flushImpl(nullptr));
-        }
-    }
-    else
-    {
-        if (!mUse.getSerial().valid())
-        {
-            // The sync object wasn't flushed before waiting, so the wait will always necessarily
-            // time out.
-            WARN() << "clientWaitSync called without flushing sync object and/or a valid context "
-                      "active.";
-            *outResult = VK_TIMEOUT;
-            return angle::Result::Continue;
-        }
-    }
-
     // If timeout is zero, there's no need to wait, so return timeout already.
-    // Do this after (possibly) flushing, since some apps/tests/traces are relying on this behavior.
     if (timeout == 0)
     {
         *outResult = VK_TIMEOUT;
         return angle::Result::Continue;
     }
 
-    ASSERT(mUse.getSerial().valid());
+    // Submit commands if requested
+    if (flushCommands && contextVk)
+    {
+        ANGLE_TRY(contextVk->flushCommandsAndEndRenderPassIfDeferredSyncInit(
+            RenderPassClosureReason::SyncObjectClientWait));
+    }
+    // Submit commands if it was deferred on the context that issued the sync object
+    ANGLE_TRY(submitSyncIfDeferred(contextVk, RenderPassClosureReason::SyncObjectClientWait));
 
     VkResult status = VK_SUCCESS;
     ANGLE_TRY(renderer->waitForSerialWithUserTimeout(context, mUse.getSerial(), timeout, &status));
@@ -184,23 +134,70 @@ angle::Result SyncHelper::clientWait(Context *context,
 
 angle::Result SyncHelper::serverWait(ContextVk *contextVk)
 {
-    vk::CommandBuffer *commandBuffer;
+    // Submit commands if it was deferred on the context that issued the sync object
+    ANGLE_TRY(submitSyncIfDeferred(contextVk, RenderPassClosureReason::SyncObjectClientWait));
+
+    // Every resource already tracks its usage and issues the appropriate barriers, so there's
+    // really nothing to do here.  An execution barrier is issued to strictly satisfy what the
+    // application asked for.
+    vk::OutsideRenderPassCommandBuffer *commandBuffer;
     ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer({}, &commandBuffer));
-    commandBuffer->waitEvents(1, mEvent.ptr(), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                              VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, nullptr, 0, nullptr, 0,
-                              nullptr);
-    retain(&contextVk->getResourceUseList());
+    commandBuffer->pipelineBarrier(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                   VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 0,
+                                   nullptr);
     return angle::Result::Continue;
 }
 
-angle::Result SyncHelper::getStatus(Context *context, bool *signaled) const
+angle::Result SyncHelper::getStatus(Context *context, ContextVk *contextVk, bool *signaled)
 {
-    VkResult result = mEvent.getStatus(context->getDevice());
-    if (result != VK_EVENT_SET && result != VK_EVENT_RESET)
+    // Submit commands if it was deferred on the context that issued the sync object
+    ANGLE_TRY(submitSyncIfDeferred(contextVk, RenderPassClosureReason::SyncObjectClientWait));
+
+    ANGLE_TRY(context->getRenderer()->checkCompletedCommands(context));
+    *signaled = !isCurrentlyInUse(context->getRenderer()->getLastCompletedQueueSerial());
+    return angle::Result::Continue;
+}
+
+angle::Result SyncHelper::submitSyncIfDeferred(ContextVk *contextVk, RenderPassClosureReason reason)
+{
+    if (mUse.getSerial().valid())
     {
-        ANGLE_VK_TRY(context, result);
+        ASSERT(!usedInRecordedCommands());
+        return angle::Result::Continue;
     }
-    *signaled = (result == VK_EVENT_SET);
+
+    // The submission of a sync object may be deferred to allow further optimizations to an open
+    // render pass before a submission happens for another reason.  If the sync object is being
+    // waited on by the current context, the application must have used GL_SYNC_FLUSH_COMMANDS_BIT.
+    // However, when waited on by other contexts, the application must have ensured the original
+    // context is flushed.  Due to the deferFlushUntilEndRenderPass feature, a glFlush is not
+    // sufficient to guarantee this.
+    //
+    // Deferring the submission is restricted to non-EGL sync objects, so it's sufficient to ensure
+    // that the contexts in the share group issue their deferred flushes.  Technically only the
+    // context that issued the sync object needs a flush, but practically it would be rare for more
+    // than one context to have flushes deferred at this time.  If necessary, the context could be
+    // queried to know whether it's the one retaining the sync object, so only that would be
+    // flushed.
+
+    // Cannot reach here from EGL syncs, because serial should already be valid.
+    ASSERT(contextVk != nullptr);
+
+    const ContextVkSet &shareContextSet = contextVk->getShareGroup()->getContexts();
+    for (ContextVk *ctx : shareContextSet)
+    {
+        ANGLE_TRY(ctx->flushCommandsAndEndRenderPassIfDeferredSyncInit(reason));
+
+        // If this was the context that issued the fence sync, no need to go over the other
+        // contexts.
+        if (mUse.getSerial().valid())
+        {
+            break;
+        }
+    }
+
+    ASSERT(mUse.getSerial().valid() && !usedInRecordedCommands());
+
     return angle::Result::Continue;
 }
 
@@ -268,18 +265,21 @@ angle::Result SyncHelperNativeFence::initializeWithFd(ContextVk *contextVk, int 
       with the newly created sync object.
     */
     // Flush first because the fence comes after current pending set of commands.
-    ANGLE_TRY(contextVk->flushImpl(nullptr));
+    ANGLE_TRY(contextVk->flushImpl(nullptr, RenderPassClosureReason::SyncObjectWithFdInit));
 
-    retain(&contextVk->getResourceUseList());
+    ResourceUseList resourceUseList;
+    retain(&resourceUseList);
+    contextVk->getShareGroup()->acquireResourceUseList(std::move(resourceUseList));
 
     Serial serialOut;
     // exportFd is exporting VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT_KHR type handle which
     // obeys copy semantics. This means that the fence must already be signaled or the work to
     // signal it is in the graphics pipeline at the time we export the fd. Thus we need to
     // EnsureSubmitted here.
-    ANGLE_TRY(renderer->queueSubmitOneOff(
-        contextVk, vk::PrimaryCommandBuffer(), contextVk->hasProtectedContent(),
-        contextVk->getPriority(), &fence.get(), vk::SubmitPolicy::EnsureSubmitted, &serialOut));
+    ANGLE_TRY(renderer->queueSubmitOneOff(contextVk, vk::PrimaryCommandBuffer(),
+                                          contextVk->hasProtectedContent(),
+                                          contextVk->getPriority(), nullptr, 0, &fence.get(),
+                                          vk::SubmitPolicy::EnsureSubmitted, &serialOut));
 
     VkFenceGetFdInfoKHR fenceGetFdInfo = {};
     fenceGetFdInfo.sType               = VK_STRUCTURE_TYPE_FENCE_GET_FD_INFO_KHR;
@@ -302,7 +302,7 @@ angle::Result SyncHelperNativeFence::clientWait(Context *context,
 
     // If already signaled, don't wait
     bool alreadySignaled = false;
-    ANGLE_TRY(getStatus(context, &alreadySignaled));
+    ANGLE_TRY(getStatus(context, contextVk, &alreadySignaled));
     if (alreadySignaled)
     {
         *outResult = VK_SUCCESS;
@@ -318,11 +318,11 @@ angle::Result SyncHelperNativeFence::clientWait(Context *context,
 
     if (flushCommands && contextVk)
     {
-        ANGLE_TRY(contextVk->flushImpl(nullptr));
+        ANGLE_TRY(contextVk->flushImpl(nullptr, RenderPassClosureReason::SyncObjectClientWait));
     }
 
     VkResult status = VK_SUCCESS;
-    if (mUse.valid())
+    if (mUse.getSerial().valid())
     {
         // We have a valid serial to wait on
         ANGLE_TRY(
@@ -361,9 +361,6 @@ angle::Result SyncHelperNativeFence::serverWait(ContextVk *contextVk)
     importFdInfo.fd                         = dup(mNativeFenceFd);
     ANGLE_VK_TRY(contextVk, waitSemaphore.get().importFd(device, importFdInfo));
 
-    // Flush current work, block after current pending commands.
-    ANGLE_TRY(contextVk->flushImpl(nullptr));
-
     // Add semaphore to next submit job.
     contextVk->addWaitSemaphore(waitSemaphore.get().getHandle(),
                                 VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
@@ -371,10 +368,12 @@ angle::Result SyncHelperNativeFence::serverWait(ContextVk *contextVk)
     return angle::Result::Continue;
 }
 
-angle::Result SyncHelperNativeFence::getStatus(Context *context, bool *signaled) const
+angle::Result SyncHelperNativeFence::getStatus(Context *context,
+                                               ContextVk *contextVk,
+                                               bool *signaled)
 {
     // We've got a serial, check if the serial is still in use
-    if (mUse.valid())
+    if (mUse.getSerial().valid())
     {
         *signaled = !isCurrentlyInUse(context->getRenderer()->getLastCompletedQueueSerial());
         return angle::Result::Continue;
@@ -469,13 +468,8 @@ angle::Result SyncVk::serverWait(const gl::Context *context, GLbitfield flags, G
 angle::Result SyncVk::getStatus(const gl::Context *context, GLint *outResult)
 {
     ContextVk *contextVk = vk::GetImpl(context);
-    if (contextVk->getShareGroupVk()->isSyncObjectPendingFlush())
-    {
-        ANGLE_TRY(contextVk->flushImpl(nullptr));
-    }
-
-    bool signaled = false;
-    ANGLE_TRY(mSyncHelper.getStatus(contextVk, &signaled));
+    bool signaled        = false;
+    ANGLE_TRY(mSyncHelper.getStatus(contextVk, contextVk, &signaled));
 
     *outResult = signaled ? GL_SIGNALED : GL_UNSIGNALED;
     return angle::Result::Continue;
@@ -584,7 +578,7 @@ egl::Error EGLSyncVk::serverWait(const egl::Display *display,
 egl::Error EGLSyncVk::getStatus(const egl::Display *display, EGLint *outStatus)
 {
     bool signaled = false;
-    if (mSyncHelper->getStatus(vk::GetImpl(display), &signaled) == angle::Result::Stop)
+    if (mSyncHelper->getStatus(vk::GetImpl(display), nullptr, &signaled) == angle::Result::Stop)
     {
         return egl::Error(EGL_BAD_ALLOC);
     }

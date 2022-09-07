@@ -14,7 +14,7 @@ using namespace angle;
 namespace
 {
 
-class GeometryShaderTest : public ANGLETest
+class GeometryShaderTest : public ANGLETest<>
 {
   protected:
     GeometryShaderTest()
@@ -79,7 +79,7 @@ class GeometryShaderTest : public ANGLETest
                                               GLsizei layerCount);
 
     void layeredFramebufferClearTest(GLenum colorTarget);
-    void layeredFramebufferPreRenderClearTest(GLenum colorTarget);
+    void layeredFramebufferPreRenderClearTest(GLenum colorTarget, bool doubleClear);
     void layeredFramebufferMidRenderClearTest(GLenum colorTarget);
 
     static constexpr GLsizei kWidth              = 16;
@@ -91,10 +91,10 @@ class GeometryShaderTest : public ANGLETest
         std::min({kColor0Layers, kColor1Layers, kDepthStencilLayers});
 };
 
-class GeometryShaderTestES3 : public ANGLETest
+class GeometryShaderTestES3 : public ANGLETest<>
 {};
 
-class GeometryShaderTestES32 : public ANGLETest
+class GeometryShaderTestES32 : public ANGLETest<>
 {};
 
 // Verify that Geometry Shader cannot be created in an OpenGL ES 3.0 context.
@@ -141,6 +141,42 @@ void main()
     glDeleteShader(geometryShader);
     glDeleteProgram(programID);
 
+    EXPECT_GL_NO_ERROR();
+}
+
+// Verify that Geometry Shader can be compiled when geometry shader array input size
+// is set after shader input variables.
+// http://anglebug.com/7125 GFXBench Car Chase uses this pattern
+TEST_P(GeometryShaderTest, DeferredSetOfArrayInputSize)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_geometry_shader"));
+    // "layout (invocations = 3, triangles) in;" should be declared before "in vec4 texcoord [];",
+    // but here it is declared later.
+    constexpr char kGS[]  = R"(#version 310 es
+#extension GL_EXT_geometry_shader : require
+in vec4 texcoord[];
+out vec4 o_texcoord;
+layout (invocations = 3, triangles_adjacency) in;
+layout (triangle_strip, max_vertices = 3) out;
+void main()
+{
+    int n;
+    for (n = 0; n < gl_in.length(); n++)
+    {
+        gl_Position = gl_in[n].gl_Position;
+        gl_Layer   = gl_InvocationID;
+        o_texcoord = texcoord[n];
+        EmitVertex();
+    }
+    EndPrimitive();
+})";
+    GLuint geometryShader = CompileShader(GL_GEOMETRY_SHADER_EXT, kGS);
+    EXPECT_NE(0u, geometryShader);
+    GLuint programID = glCreateProgram();
+    glAttachShader(programID, geometryShader);
+    glDetachShader(programID, geometryShader);
+    glDeleteShader(geometryShader);
+    glDeleteProgram(programID);
     EXPECT_GL_NO_ERROR();
 }
 
@@ -1190,7 +1226,7 @@ TEST_P(GeometryShaderTest, LayeredFramebufferClear2DArrayColor)
     layeredFramebufferClearTest(GL_TEXTURE_2D_ARRAY);
 }
 
-void GeometryShaderTest::layeredFramebufferPreRenderClearTest(GLenum colorTarget)
+void GeometryShaderTest::layeredFramebufferPreRenderClearTest(GLenum colorTarget, bool doubleClear)
 {
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_geometry_shader"));
 
@@ -1208,6 +1244,14 @@ void GeometryShaderTest::layeredFramebufferPreRenderClearTest(GLenum colorTarget
     setupLayeredFramebuffer(framebuffer, color0, color1, depthStencil, colorTarget,
                             kColor0InitColor, kColor1InitColor, kDepthInitValue, kStencilInitValue);
     setupLayeredFramebufferProgram(&program);
+
+    if (doubleClear)
+    {
+        glClearColor(0.1, 0.2, 0.8, 0.9);
+        glClearDepthf(0.2f);
+        glClearStencil(0x99);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    }
 
     glClearColor(0.5, 0.5, 0.5, 0.5);
     glClearDepthf(1.0f);
@@ -1255,13 +1299,29 @@ TEST_P(GeometryShaderTest, LayeredFramebufferPreRenderClear3DColor)
     // http://anglebug.com/5463
     ANGLE_SKIP_TEST_IF((IsAMD() || IsIntel()) && IsOpenGL() && IsLinux());
 
-    layeredFramebufferPreRenderClearTest(GL_TEXTURE_3D);
+    layeredFramebufferPreRenderClearTest(GL_TEXTURE_3D, false);
+}
+
+// Same as LayeredFramebufferPreRenderClear3DColor, but clears twice.
+TEST_P(GeometryShaderTest, LayeredFramebufferPreRenderDoubleClear3DColor)
+{
+    // Mesa considers the framebuffer with mixed 3D and 2D array attachments to be incomplete.
+    // http://anglebug.com/5463
+    ANGLE_SKIP_TEST_IF((IsAMD() || IsIntel()) && IsOpenGL() && IsLinux());
+
+    layeredFramebufferPreRenderClearTest(GL_TEXTURE_3D, true);
 }
 
 // Verify pre-render clear of layered attachments.  Uses 2D array color textures.
 TEST_P(GeometryShaderTest, LayeredFramebufferPreRenderClear2DArrayColor)
 {
-    layeredFramebufferPreRenderClearTest(GL_TEXTURE_2D_ARRAY);
+    layeredFramebufferPreRenderClearTest(GL_TEXTURE_2D_ARRAY, false);
+}
+
+// Same as LayeredFramebufferPreRenderClear2DArrayColor, but clears twice.
+TEST_P(GeometryShaderTest, LayeredFramebufferPreRenderDoubleClear2DArrayColor)
+{
+    layeredFramebufferPreRenderClearTest(GL_TEXTURE_2D_ARRAY, true);
 }
 
 void GeometryShaderTest::layeredFramebufferMidRenderClearTest(GLenum colorTarget)
@@ -1852,10 +1912,9 @@ ANGLE_INSTANTIATE_TEST_ES3(GeometryShaderTestES3);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GeometryShaderTest);
 ANGLE_INSTANTIATE_TEST_ES31_AND(GeometryShaderTest,
-                                WithEmulatedPrerotation(ES31_VULKAN(), 90),
-                                WithEmulatedPrerotation(ES31_VULKAN(), 180),
-                                WithEmulatedPrerotation(ES31_VULKAN(), 270),
-                                WithDirectSPIRVGeneration(ES31_VULKAN()));
+                                ES31_VULKAN().enable(Feature::EmulatedPrerotation90),
+                                ES31_VULKAN().enable(Feature::EmulatedPrerotation180),
+                                ES31_VULKAN().enable(Feature::EmulatedPrerotation270));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GeometryShaderTestES32);
 ANGLE_INSTANTIATE_TEST_ES32(GeometryShaderTestES32);

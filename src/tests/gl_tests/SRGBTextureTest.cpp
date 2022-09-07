@@ -14,7 +14,7 @@ namespace angle
 constexpr GLColor kLinearColor(64, 127, 191, 255);
 constexpr GLColor kNonlinearColor(13, 54, 133, 255);
 
-class SRGBTextureTest : public ANGLETest
+class SRGBTextureTest : public ANGLETest<>
 {
   protected:
     SRGBTextureTest()
@@ -572,9 +572,6 @@ TEST_P(SRGBTextureTestES3, SRGBDecodeOverridePriority)
 TEST_P(SRGBTextureTestES3, GenerateMipmaps)
 {
     ANGLE_SKIP_TEST_IF(IsOpenGL() && ((IsIntel() && IsOSX()) || IsAMD()));
-
-    // http://anglebug.com/5108
-    ANGLE_SKIP_TEST_IF(IsMetal());
 
     auto createAndReadBackTexture = [this](GLenum internalFormat, const GLColor &color) {
         constexpr GLsizei width  = 128;

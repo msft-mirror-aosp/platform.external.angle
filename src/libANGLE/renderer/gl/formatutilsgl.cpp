@@ -14,7 +14,7 @@
 #include "anglebase/no_destructor.h"
 #include "common/string_utils.h"
 #include "libANGLE/formatutils.h"
-#include "platform/FeaturesGL.h"
+#include "platform/FeaturesGL_autogen.h"
 
 namespace rx
 {
@@ -254,6 +254,10 @@ static InternalFormatInfoMap BuildInternalFormatInfoMap()
     // From GL_EXT_texture_format_BGRA8888
     InsertFormatMapping(&map, GL_BGRA8_EXT,         VersionOrExts(1, 2, "GL_EXT_bgra"),               AlwaysSupported(), VersionOrExts(1, 2, "GL_EXT_bgra"),            ExtsOnly("GL_EXT_texture_format_BGRA8888"), AlwaysSupported(), ExtsOnly("GL_EXT_texture_format_BGRA8888"), ExtsOnly("GL_EXT_texture_format_BGRA8888")                          );
     InsertFormatMapping(&map, GL_BGRA_EXT,          VersionOrExts(1, 2, "GL_EXT_bgra"),               AlwaysSupported(), VersionOrExts(1, 2, "GL_EXT_bgra"),            ExtsOnly("GL_EXT_texture_format_BGRA8888"), AlwaysSupported(), ExtsOnly("GL_EXT_texture_format_BGRA8888"), ExtsOnly("GL_EXT_texture_format_BGRA8888")                          );
+
+    // From GL_EXT_texture_type_2_10_10_10_REV
+    // Emulated with GL_RGB10_A2 on desktop GL
+    InsertFormatMapping(&map, GL_RGB10_UNORM_ANGLEX,AlwaysSupported(),                                AlwaysSupported(), NeverSupported(),                              ExtsOnly("GL_EXT_texture_type_2_10_10_10_REV"), AlwaysSupported(), NeverSupported(),                     NeverSupported()                         );
 
     // Floating point formats
     // Note 1: GL_EXT_texture_shared_exponent and GL_ARB_color_buffer_float suggest that RGB9_E5
@@ -503,7 +507,7 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
         }
 
         if (internalFormat.sizedInternalFormat == GL_RGBA4 &&
-            (features.rgba4IsNotSupportedForColorRendering.enabled ||
+            (features.RGBA4IsNotSupportedForColorRendering.enabled ||
              features.promotePackedFormatsTo8BitPerChannel.enabled))
         {
             // Use an 8-bit format instead
@@ -534,6 +538,12 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
             {
                 result = EmulateLUMA(internalFormat).sizedInternalFormat;
             }
+        }
+
+        if (internalFormat.sizedInternalFormat == GL_RGB10_UNORM_ANGLEX)
+        {
+            ASSERT(features.emulateRGB10.enabled);
+            result = GL_RGB10_A2;
         }
     }
     else if (functions->isAtLeastGLES(gl::Version(3, 0)))
@@ -566,7 +576,7 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
         }
         else if (internalFormat.colorEncoding == GL_SRGB)
         {
-            if (features.unsizedsRGBReadPixelsDoesntTransform.enabled)
+            if (features.unsizedSRGBReadPixelsDoesntTransform.enabled)
             {
                 // Work around some Adreno driver bugs that don't read back SRGB data correctly when
                 // it's in unsized SRGB texture formats.
@@ -645,7 +655,7 @@ static GLenum GetNativeFormat(const FunctionsGL *functions,
         // Transform sRGB formats to RGB if either the GLES driver doesn't support GL_EXT_sRGB, or
         // to work around Adreno driver bugs reading back unsized sRGB texture data.
         if (!functions->hasGLESExtension("GL_EXT_sRGB") ||
-            features.unsizedsRGBReadPixelsDoesntTransform.enabled)
+            features.unsizedSRGBReadPixelsDoesntTransform.enabled)
         {
             if (format == GL_SRGB)
             {
@@ -671,6 +681,12 @@ static GLenum GetNativeFormat(const FunctionsGL *functions,
         }
     }
 
+    // Emulate RGB10 with RGB10_A2.
+    if (type == GL_UNSIGNED_INT_2_10_10_10_REV && format == GL_RGB && features.emulateRGB10.enabled)
+    {
+        result = GL_RGBA;
+    }
+
     return result;
 }
 
@@ -680,22 +696,15 @@ static GLenum GetNativeCompressedFormat(const FunctionsGL *functions,
 {
     GLenum result = format;
 
-    if (functions->standard == STANDARD_GL_DESKTOP)
+    if (gl::IsETC1Format(format))
     {
-        if (format == GL_ETC1_RGB8_OES)
-        {
-            // GL_ETC1_RGB8_OES is not available in any desktop GL extension but the compression
-            // format is forwards compatible so just use the ETC2 format.
-            result = GL_COMPRESSED_RGB8_ETC2;
-        }
-    }
+        // GL_ETC1_RGB8_OES is not available in any desktop GL extension but the compression
+        // format is forwards compatible so just use the ETC2 format. Pass GL_COMPRESSED_RGB8_ETC2
+        // as the target format in ES3 and higher because it becomes a core format.
 
-    if (functions->isAtLeastGLES(gl::Version(3, 0)))
-    {
-        if (format == GL_ETC1_RGB8_OES)
+        if (functions->standard == STANDARD_GL_DESKTOP ||
+            functions->isAtLeastGLES(gl::Version(3, 0)))
         {
-            // Pass GL_COMPRESSED_RGB8_ETC2 as the target format in ES3 and higher because it
-            // becomes a core format.
             result = GL_COMPRESSED_RGB8_ETC2;
         }
     }

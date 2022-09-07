@@ -934,6 +934,8 @@ enum TOperator {
     EOpExecuteCallableNV,
     EOpExecuteCallableKHR,
     EOpWritePackedPrimitiveIndices4x8NV,
+    EOpEmitMeshTasksEXT,
+    EOpSetMeshOutputsEXT,
 
     //
     // GL_EXT_ray_query operations
@@ -1155,7 +1157,7 @@ public:
     virtual bool isIntegerDomain() const { return type.isIntegerDomain(); }
     bool isAtomic() const { return type.isAtomic(); }
     bool isReference() const { return type.isReference(); }
-    TString getCompleteString() const { return type.getCompleteString(); }
+    TString getCompleteString(bool enhanced = false) const { return type.getCompleteString(enhanced); }
 
 protected:
     TIntermTyped& operator=(const TIntermTyped&);

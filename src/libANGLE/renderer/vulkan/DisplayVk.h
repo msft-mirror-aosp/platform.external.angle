@@ -14,13 +14,29 @@
 #include "libANGLE/renderer/DisplayImpl.h"
 #include "libANGLE/renderer/vulkan/ResourceVk.h"
 #include "libANGLE/renderer/vulkan/vk_cache_utils.h"
+#include "libANGLE/renderer/vulkan/vk_helpers.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
 
 namespace rx
 {
-class RendererVk;
+constexpr VkDeviceSize kMaxTotalEmptyBufferBytes = 16 * 1024 * 1024;
 
+class RendererVk;
 using ContextVkSet = std::set<ContextVk *>;
+
+class TextureUpload
+{
+  public:
+    TextureUpload() { mPrevUploadedMutableTexture = nullptr; }
+    ~TextureUpload() { resetPrevTexture(); }
+    angle::Result onMutableTextureUpload(ContextVk *contextVk, TextureVk *newTexture);
+    void onTextureRelease(TextureVk *textureVk);
+    void resetPrevTexture() { mPrevUploadedMutableTexture = nullptr; }
+
+  private:
+    // Keep track of the previously stored texture. Used to flush mutable textures.
+    TextureVk *mPrevUploadedMutableTexture;
+};
 
 class ShareGroupVk : public ShareGroupImpl
 {
@@ -28,32 +44,56 @@ class ShareGroupVk : public ShareGroupImpl
     ShareGroupVk();
     void onDestroy(const egl::Display *display) override;
 
+    FramebufferCache &getFramebufferCache() { return mFramebufferCache; }
+
     // PipelineLayoutCache and DescriptorSetLayoutCache can be shared between multiple threads
     // accessing them via shared contexts. The ShareGroup locks around gl entrypoints ensuring
     // synchronous update to the caches.
     PipelineLayoutCache &getPipelineLayoutCache() { return mPipelineLayoutCache; }
     DescriptorSetLayoutCache &getDescriptorSetLayoutCache() { return mDescriptorSetLayoutCache; }
-    ContextVkSet *getContexts() { return &mContexts; }
-
-    std::vector<vk::ResourceUseList> &&releaseResourceUseLists()
+    const ContextVkSet &getContexts() const { return mContexts; }
+    vk::MetaDescriptorPool &getMetaDescriptorPool(DescriptorSetIndex descriptorSetIndex)
     {
-        return std::move(mResourceUseLists);
+        return mMetaDescriptorPools[descriptorSetIndex];
     }
+
+    void releaseResourceUseLists(const Serial &submitSerial);
     void acquireResourceUseList(vk::ResourceUseList &&resourceUseList)
     {
         mResourceUseLists.emplace_back(std::move(resourceUseList));
     }
 
-    bool isSyncObjectPendingFlush() { return mSyncObjectPendingFlush; }
-    void setSyncObjectPendingFlush() { mSyncObjectPendingFlush = true; }
-    void clearSyncObjectPendingFlush() { mSyncObjectPendingFlush = false; }
+    // Used to flush the mutable textures more often.
+    angle::Result onMutableTextureUpload(ContextVk *contextVk, TextureVk *newTexture);
+
+    vk::BufferPool *getDefaultBufferPool(RendererVk *renderer,
+                                         VkDeviceSize size,
+                                         uint32_t memoryTypeIndex);
+    void pruneDefaultBufferPools(RendererVk *renderer);
+    bool isDueForBufferPoolPrune(RendererVk *renderer);
+
+    void calculateTotalBufferCount(size_t *bufferCount, VkDeviceSize *totalSize) const;
+    void logBufferPools() const;
+
+    void addContext(ContextVk *contextVk);
+    void removeContext(ContextVk *contextVk);
+
+    void onTextureRelease(TextureVk *textureVk);
 
   private:
+    // VkFramebuffer caches
+    FramebufferCache mFramebufferCache;
+
+    void resetPrevTexture() { mTextureUpload.resetPrevTexture(); }
+
     // ANGLE uses a PipelineLayout cache to store compatible pipeline layouts.
     PipelineLayoutCache mPipelineLayoutCache;
 
     // DescriptorSetLayouts are also managed in a cache.
     DescriptorSetLayoutCache mDescriptorSetLayoutCache;
+
+    // Descriptor set caches
+    vk::DescriptorSetArray<vk::MetaDescriptorPool> mMetaDescriptorPools;
 
     // The list of contexts within the share group
     ContextVkSet mContexts;
@@ -62,7 +102,22 @@ class ShareGroupVk : public ShareGroupImpl
     // ShareGroupVk submits the next command.
     std::vector<vk::ResourceUseList> mResourceUseLists;
 
-    bool mSyncObjectPendingFlush;
+    // The per shared group buffer pools that all buffers should sub-allocate from.
+    vk::BufferPoolPointerArray mDefaultBufferPools;
+
+    // The pool dedicated for small allocations that uses faster buddy algorithm
+    std::unique_ptr<vk::BufferPool> mSmallBufferPool;
+    static constexpr VkDeviceSize kMaxSizeToUseSmallBufferPool = 256;
+
+    // The system time when last pruneEmptyBuffer gets called.
+    double mLastPruneTime;
+
+    // Texture update manager used to flush uploaded mutable textures.
+    TextureUpload mTextureUpload;
+
+    // If true, it is expected that a BufferBlock may still in used by textures that outlived
+    // ShareGroup. The non-empty BufferBlock will be put into RendererVk's orphan list instead.
+    bool mOrphanNonEmptyBufferBlock;
 };
 
 class DisplayVk : public DisplayImpl, public vk::Context
@@ -84,7 +139,9 @@ class DisplayVk : public DisplayImpl, public vk::Context
 
     std::string getRendererDescription() override;
     std::string getVendorString() override;
-    std::string getVersionString() override;
+    std::string getVersionString(bool includeFullVersion) override;
+
+    DeviceImpl *createDevice() override;
 
     egl::Error waitClient(const gl::Context *context) override;
     egl::Error waitNative(const gl::Context *context, EGLint engine) override;
@@ -120,7 +177,16 @@ class DisplayVk : public DisplayImpl, public vk::Context
 
     gl::Version getMaxSupportedESVersion() const override;
     gl::Version getMaxConformantESVersion() const override;
+    Optional<gl::Version> getMaxSupportedDesktopVersion() const override;
 
+    egl::Error validateImageClientBuffer(const gl::Context *context,
+                                         EGLenum target,
+                                         EGLClientBuffer clientBuffer,
+                                         const egl::AttributeMap &attribs) const override;
+    ExternalImageSiblingImpl *createExternalImageSibling(const gl::Context *context,
+                                                         EGLenum target,
+                                                         EGLClientBuffer buffer,
+                                                         const egl::AttributeMap &attribs) override;
     virtual const char *getWSIExtension() const = 0;
     virtual const char *getWSILayer() const;
     virtual bool isUsingSwapchain() const;
@@ -131,8 +197,8 @@ class DisplayVk : public DisplayImpl, public vk::Context
     // surfaceType, which would still allow the config to be used for pbuffers.
     virtual void checkConfigSupport(egl::Config *config) = 0;
 
-    ANGLE_NO_DISCARD bool getScratchBuffer(size_t requestedSizeBytes,
-                                           angle::MemoryBuffer **scratchBufferOut) const;
+    [[nodiscard]] bool getScratchBuffer(size_t requestedSizeBytes,
+                                        angle::MemoryBuffer **scratchBufferOut) const;
     angle::ScratchBuffer *getScratchBuffer() const { return &mScratchBuffer; }
 
     void handleError(VkResult result,
@@ -142,6 +208,8 @@ class DisplayVk : public DisplayImpl, public vk::Context
 
     // TODO(jmadill): Remove this once refactor is done. http://anglebug.com/3041
     egl::Error getEGLError(EGLint errorCode);
+
+    void initializeFrontendFeatures(angle::FrontendFeatures *features) const override;
 
     void populateFeatureList(angle::FeatureList *features) override;
 

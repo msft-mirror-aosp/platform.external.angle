@@ -25,14 +25,14 @@ constexpr char kBaseExt[]                     = "EGL_KHR_image_base";
 constexpr char kDeviceMtlExt[]                = "EGL_ANGLE_device_metal";
 constexpr char kEGLMtlImageNativeTextureExt[] = "EGL_ANGLE_metal_texture_client_buffer";
 constexpr EGLint kDefaultAttribs[]            = {
-    EGL_NONE,
+               EGL_NONE,
 };
 }  // anonymous namespace
 
 class ScopeMetalTextureRef : angle::NonCopyable
 {
   public:
-    explicit ScopeMetalTextureRef(id<MTLTexture> surface) : mSurface(surface) {}
+    explicit ScopeMetalTextureRef(id<MTLTexture> &&surface) : mSurface(surface) {}
 
     ~ScopeMetalTextureRef()
     {
@@ -113,14 +113,12 @@ ScopeMetalTextureRef CreateMetalTexture2D(id<MTLDevice> deviceMtl,
                                                                                     mipmapped:NO];
         desc.usage                 = MTLTextureUsageShaderRead | MTLTextureUsageRenderTarget;
 
-        id<MTLTexture> texture = [deviceMtl newTextureWithDescriptor:desc];
-
-        ScopeMetalTextureRef re(texture);
+        ScopeMetalTextureRef re([deviceMtl newTextureWithDescriptor:desc]);
         return re;
     }
 }
 
-class ImageTestMetal : public ANGLETest
+class ImageTestMetal : public ANGLETest<>
 {
   protected:
     ImageTestMetal()
