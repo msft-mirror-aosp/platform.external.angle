@@ -5,7 +5,7 @@
 //
 #include "anglebase/numerics/safe_conversions.h"
 #include "common/mathutil.h"
-#include "platform/FeaturesVk.h"
+#include "platform/FeaturesVk_autogen.h"
 #include "test_utils/ANGLETest.h"
 #include "test_utils/gl_raii.h"
 #include "util/random_utils.h"
@@ -137,7 +137,7 @@ DestT Pack1010102(std::array<SrcT, 4> input)
     }
 }
 
-class VertexAttributeTest : public ANGLETest
+class VertexAttributeTest : public ANGLETest<>
 {
   protected:
     VertexAttributeTest() : mProgram(0), mTestAttrib(-1), mExpectedAttrib(-1), mBuffer(0)

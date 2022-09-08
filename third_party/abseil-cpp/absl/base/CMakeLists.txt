@@ -66,6 +66,7 @@ absl_cc_library(
     absl::atomic_hook
     absl::config
     absl::core_headers
+    absl::errno_saver
     absl::log_severity
   COPTS
     ${ABSL_DEFAULT_COPTS}
@@ -108,8 +109,6 @@ absl_cc_library(
     dynamic_annotations
   HDRS
     "dynamic_annotations.h"
-  SRCS
-    "internal/dynamic_annotations.h"
   COPTS
     ${ABSL_DEFAULT_COPTS}
   DEPS
@@ -127,7 +126,6 @@ absl_cc_library(
     "optimization.h"
     "port.h"
     "thread_annotations.h"
-    "internal/thread_annotations.h"
   COPTS
     ${ABSL_DEFAULT_COPTS}
   DEPS
@@ -639,6 +637,32 @@ absl_cc_test(
     ${ABSL_TEST_COPTS}
   DEPS
     absl::fast_type_id
+    GTest::gtest_main
+)
+
+# Internal-only target, do not depend on directly.
+absl_cc_library(
+  NAME
+    prefetch
+  HDRS
+    "internal/prefetch.h"
+  COPTS
+    ${ABSL_DEFAULT_COPTS}
+  LINKOPTS
+    ${ABSL_DEFAULT_LINKOPTS}
+  DEPS
+    absl::config
+)
+
+absl_cc_test(
+  NAME
+    prefetch_test
+  SRCS
+    "internal/prefetch_test.cc"
+  COPTS
+    ${ABSL_TEST_COPTS}
+  DEPS
+    absl::prefetch
     GTest::gtest_main
 )
 

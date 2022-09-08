@@ -13,8 +13,8 @@
 #include <gtest/gtest.h>
 
 #include <mutex>
+#include <queue>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -142,7 +142,7 @@ class ANGLEPerfTest : public testing::Test, angle::NonCopyable
     struct CounterInfo
     {
         std::string name;
-        std::vector<GLuint> samples;
+        std::vector<GLuint64> samples;
     };
     std::map<GLuint, CounterInfo> mPerfCounterInfo;
     std::vector<uint64_t> mProcessMemoryUsageKBSamples;
@@ -169,6 +169,8 @@ struct RenderTestParams : public angle::PlatformParameters
     bool trackGpuTime              = false;
     SurfaceType surfaceType        = SurfaceType::Window;
     EGLenum colorSpace             = EGL_COLORSPACE_LINEAR;
+    bool multisample               = false;
+    EGLint samples                 = -1;
 };
 
 class ANGLERenderTest : public ANGLEPerfTest
@@ -180,6 +182,7 @@ class ANGLERenderTest : public ANGLEPerfTest
     ~ANGLERenderTest() override;
 
     void addExtensionPrerequisite(const char *extensionName);
+    void addIntegerPrerequisite(GLenum target, int min);
 
     virtual void initializeBenchmark() {}
     virtual void destroyBenchmark() {}
@@ -217,6 +220,7 @@ class ANGLERenderTest : public ANGLEPerfTest
     void updatePerfCounters();
 
     bool mIsTimestampQueryAvailable;
+    bool mEnableDebugCallback = true;
 
   private:
     void SetUp() override;
@@ -228,12 +232,19 @@ class ANGLERenderTest : public ANGLEPerfTest
     void computeGPUTime() override;
 
     void skipTestIfMissingExtensionPrerequisites();
+    void skipTestIfFailsIntegerPrerequisite();
 
     void initPerfCounters();
 
     GLWindowBase *mGLWindow;
     OSWindow *mOSWindow;
     std::vector<const char *> mExtensionPrerequisites;
+    struct IntegerPrerequisite
+    {
+        GLenum target;
+        int min;
+    };
+    std::vector<IntegerPrerequisite> mIntegerPrerequisites;
     angle::PlatformMethods mPlatformMethods;
     ConfigParameters mConfigParams;
     bool mSwapEnabled;
@@ -245,7 +256,7 @@ class ANGLERenderTest : public ANGLEPerfTest
     };
 
     GLuint mCurrentTimestampBeginQuery = 0;
-    std::vector<TimestampSample> mTimestampQueries;
+    std::queue<TimestampSample> mTimestampQueries;
 
     // Trace event record that can be output.
     std::vector<TraceEvent> mTraceEventBuffer;
@@ -253,7 +264,7 @@ class ANGLERenderTest : public ANGLEPerfTest
     // Handle to the entry point binding library.
     std::unique_ptr<angle::Library> mEntryPointsLib;
 
-    std::vector<std::thread::id> mThreadIDs;
+    std::vector<uint64_t> mThreadIDs;
     std::mutex mTraceEventMutex;
 };
 

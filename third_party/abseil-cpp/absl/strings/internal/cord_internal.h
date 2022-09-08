@@ -129,8 +129,9 @@ class RefcountAndFlags {
   }
 
   // Returns the current reference count using acquire semantics.
-  inline int32_t Get() const {
-    return count_.load(std::memory_order_acquire) >> kNumFlags;
+  inline size_t Get() const {
+    return static_cast<size_t>(count_.load(std::memory_order_acquire) >>
+                               kNumFlags);
   }
 
   // Returns whether the atomic integer is 1.
@@ -411,7 +412,8 @@ struct ConstInitExternalStorage {
 };
 
 template <typename Str>
-CordRepExternal ConstInitExternalStorage<Str>::value(Str::value);
+ABSL_CONST_INIT CordRepExternal
+    ConstInitExternalStorage<Str>::value(Str::value);
 
 enum {
   kMaxInline = 15,
@@ -569,7 +571,7 @@ class InlineData {
   // Requires the current instance to hold inline data.
   size_t inline_size() const {
     assert(!is_tree());
-    return tag() >> 1;
+    return static_cast<size_t>(tag()) >> 1;
   }
 
   // Sets the size of the inlined character data inside this instance.
@@ -631,7 +633,9 @@ inline const CordRepExternal* CordRep::external() const {
 }
 
 inline CordRep* CordRep::Ref(CordRep* rep) {
-  assert(rep != nullptr);
+  // ABSL_ASSUME is a workaround for
+  // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105585
+  ABSL_ASSUME(rep != nullptr);
   rep->refcount.Increment();
   return rep;
 }

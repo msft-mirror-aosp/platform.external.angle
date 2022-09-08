@@ -214,7 +214,7 @@ void QueryTexLevelParameterBase(const Texture *texture,
             break;
         case GL_RESOURCE_INITIALIZED_ANGLE:
             *params = CastFromGLintStateValue<ParamType>(
-                pname, texture->initState(ImageIndex::MakeFromTarget(target, level)) ==
+                pname, texture->initState(GL_NONE, ImageIndex::MakeFromTarget(target, level)) ==
                            InitState::Initialized);
             break;
         case GL_TEXTURE_BUFFER_DATA_STORE_BINDING:
@@ -1469,7 +1469,7 @@ void QueryRenderbufferiv(const Context *context,
             *params = static_cast<GLint>(renderbuffer->getImplementationColorReadType(context));
             break;
         case GL_RESOURCE_INITIALIZED_ANGLE:
-            *params = (renderbuffer->initState(ImageIndex()) == InitState::Initialized);
+            *params = (renderbuffer->initState(GL_NONE, ImageIndex()) == InitState::Initialized);
             break;
         default:
             UNREACHABLE();
@@ -1490,7 +1490,7 @@ void QueryShaderiv(const Context *context, Shader *shader, GLenum pname, GLint *
             *params = shader->isFlaggedForDeletion();
             return;
         case GL_COMPILE_STATUS:
-            *params = shader->isCompiled() ? GL_TRUE : GL_FALSE;
+            *params = shader->isCompiled(context) ? GL_TRUE : GL_FALSE;
             return;
         case GL_COMPLETION_STATUS_KHR:
             if (context->isContextLost())
@@ -1503,13 +1503,13 @@ void QueryShaderiv(const Context *context, Shader *shader, GLenum pname, GLint *
             }
             return;
         case GL_INFO_LOG_LENGTH:
-            *params = shader->getInfoLogLength();
+            *params = shader->getInfoLogLength(context);
             return;
         case GL_SHADER_SOURCE_LENGTH:
             *params = shader->getSourceLength();
             return;
         case GL_TRANSLATED_SHADER_SOURCE_LENGTH_ANGLE:
-            *params = shader->getTranslatedSourceWithDebugInfoLength();
+            *params = shader->getTranslatedSourceWithDebugInfoLength(context);
             return;
         default:
             UNREACHABLE();
@@ -2033,7 +2033,8 @@ GLuint QueryProgramResourceIndex(const Program *program,
     }
 }
 
-void QueryProgramResourceName(const Program *program,
+void QueryProgramResourceName(const Context *context,
+                              const Program *program,
                               GLenum programInterface,
                               GLuint index,
                               GLsizei bufSize,
@@ -2063,7 +2064,7 @@ void QueryProgramResourceName(const Program *program,
             break;
 
         case GL_UNIFORM_BLOCK:
-            program->getActiveUniformBlockName({index}, bufSize, length, name);
+            program->getActiveUniformBlockName(context, {index}, bufSize, length, name);
             break;
 
         case GL_TRANSFORM_FEEDBACK_VARYING:
@@ -3057,6 +3058,7 @@ unsigned int GetTexParameterCount(GLenum pname)
         case GL_TEXTURE_SRGB_DECODE_EXT:
         case GL_DEPTH_STENCIL_TEXTURE_MODE:
         case GL_TEXTURE_NATIVE_ID_ANGLE:
+        case GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES:
             return 1;
         default:
             return 0;
@@ -3336,6 +3338,14 @@ bool GetQueryParameterInfo(const State &glState,
             *type      = GL_FLOAT;
             *numParams = 8;
             return true;
+        case GL_SHADING_RATE_QCOM:
+            if (!extensions.shadingRateQCOM)
+            {
+                return false;
+            }
+            *type      = GL_INT;
+            *numParams = 1;
+            return true;
     }
 
     if (clientType == EGL_OPENGL_API ||
@@ -3590,6 +3600,13 @@ bool GetQueryParameterInfo(const State &glState,
     }
 
     if ((extensions.multiview2OVR || extensions.multiviewOVR) && pname == GL_MAX_VIEWS_OVR)
+    {
+        *type      = GL_INT;
+        *numParams = 1;
+        return true;
+    }
+
+    if (extensions.provokingVertexANGLE && pname == GL_PROVOKING_VERTEX)
     {
         *type      = GL_INT;
         *numParams = 1;
@@ -4429,6 +4446,8 @@ egl::Error SetSurfaceAttrib(Surface *surface, EGLint attribute, EGLint value)
         case EGL_TIMESTAMPS_ANDROID:
             surface->setTimestampsEnabled(value != EGL_FALSE);
             break;
+        case EGL_FRONT_BUFFER_AUTO_REFRESH_ANDROID:
+            return surface->setAutoRefreshEnabled(value == EGL_TRUE);
         case EGL_RENDER_BUFFER:
             return surface->setRenderBuffer(value);
         default:

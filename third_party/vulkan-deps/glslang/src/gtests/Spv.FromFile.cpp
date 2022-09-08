@@ -258,6 +258,7 @@ INSTANTIATE_TEST_SUITE_P(
         "rayQuery-initialization.Error.comp",
         "rayQuery-global.rgen",
         "rayQuery-types.comp",
+        "rayQuery-OpConvertUToAccelerationStructureKHR.comp",
         "spv.set.vert",
         "spv.double.comp",
         "spv.100ops.frag",
@@ -444,6 +445,7 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.textureBuffer.vert",
         "spv.image.frag",
         "spv.imageAtomic64.frag",
+        "spv.imageAtomic64.comp",
         "spv.types.frag",
         "spv.uint.frag",
         "spv.uniformArray.frag",
@@ -484,7 +486,9 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.smBuiltins.frag",
         "spv.builtin.PrimitiveShadingRateEXT.vert",
         "spv.builtin.ShadingRateEXT.frag",
-        "spv.atomicAdd.bufferReference.comp"
+        "spv.atomicAdd.bufferReference.comp",
+        "spv.fragmentShaderBarycentric3.frag",
+        "spv.fragmentShaderBarycentric4.frag",
     })),
     FileNameAsCustomTestSuffix
 );
@@ -626,6 +630,17 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.WorkgroupMemoryExplicitLayout.std140.comp",
         "spv.WorkgroupMemoryExplicitLayout.std430.comp",
         "spv.WorkgroupMemoryExplicitLayout.scalar.comp",
+
+        // SPV_EXT_mesh_shader
+        "spv.ext.meshShaderBuiltins.mesh",
+        "spv.ext.meshShaderRedeclBuiltins.mesh",
+        "spv.ext.meshShaderTaskMem.mesh",
+        "spv.ext.meshShaderUserDefined.mesh",
+        "spv.ext.meshTaskShader.task",
+        "spv.atomiAddEXT.error.mesh",
+        "spv.atomiAddEXT.task",
+        "spv.460.subgroupEXT.task",
+        "spv.460.subgroupEXT.mesh",
     })),
     FileNameAsCustomTestSuffix
 );
@@ -637,6 +652,8 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.1.6.conditionalDiscard.frag",
         "spv.1.6.helperInvocation.frag",
         "spv.1.6.specConstant.comp",
+        "spv.1.6.samplerBuffer.frag",
+        "spv.1.6.separate.frag",
     })),
     FileNameAsCustomTestSuffix
 );

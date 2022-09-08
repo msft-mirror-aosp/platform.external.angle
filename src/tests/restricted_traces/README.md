@@ -61,6 +61,16 @@ Run them like so:
 out/<config>/angle_perftests --gtest_filter=TracePerfTest*
 ```
 
+## (Optional) Reducing the trace count
+
+Since the traces are numerous, you can limit build to a subset of them if needed with the
+`angle_restricted_traces` GN arg.  This arg takes a list of traces as found in
+`restricted_traces.json`.  For example:
+
+```
+angle_restricted_traces = ["world_of_kings 5", "worms_zone_io 5"]
+```
+
 # Capturing and adding new Android traces
 
 Generally we want to use a Debug setup for recording new traces. That allows us to see asserts and
@@ -258,6 +268,11 @@ to the repo.
 Once you feel good about your trace, you can upload it to our collection of traces.  This can only
 be done by Googlers with write access to the trace CIPD prefix. If you need write access contact
 someone listed in the `OWNERS` file.
+
+Please kindly go over the trace content with ANGLE code owners before running
+below commands. You can share your trace through Google Drive for content
+iterations. We cannot delete trace files once they are up on the CIPD.
+Doing additional rounds of content check can help us save CIPD resources.
 
 ```
 ./sync_restricted_traces_to_cipd.py

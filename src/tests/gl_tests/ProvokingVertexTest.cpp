@@ -16,7 +16,7 @@ using namespace angle;
 namespace
 {
 
-class ProvokingVertexTest : public ANGLETest
+class ProvokingVertexTest : public ANGLETest<>
 {
   protected:
     ProvokingVertexTest()
@@ -380,7 +380,14 @@ TEST_P(ProvokingVertexTest, ANGLEProvokingVertex)
     }
     if (hasExt)
     {
+        GLint mode;
+        glGetIntegerv(GL_PROVOKING_VERTEX, &mode);
+        EXPECT_EQ(mode, GL_LAST_VERTEX_CONVENTION);
+
         glProvokingVertexANGLE(GL_FIRST_VERTEX_CONVENTION);
+        glGetIntegerv(GL_PROVOKING_VERTEX, &mode);
+        EXPECT_EQ(mode, GL_FIRST_VERTEX_CONVENTION);
+
         fnExpectId(0);
     }
 }
