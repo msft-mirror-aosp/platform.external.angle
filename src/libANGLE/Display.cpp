@@ -617,6 +617,11 @@ void ShareGroup::finishAllContexts()
 void ShareGroup::addSharedContext(gl::Context *context)
 {
     mContexts.insert(context);
+
+    if (context->isRobustnessEnabled())
+    {
+        mImplementation->onRobustContextAdd();
+    }
 }
 
 void ShareGroup::removeSharedContext(gl::Context *context)
@@ -1035,6 +1040,7 @@ Error Display::initialize()
     initDisplayExtensions();
     initVendorString();
     initVersionString();
+    initClientAPIString();
 
     // Populate the Display's EGLDeviceEXT if the Display wasn't created using one
     if (mPlatform == EGL_PLATFORM_DEVICE_EXT)
@@ -2177,6 +2183,19 @@ void Display::initVersionString()
     mVersionString = mImplementation->getVersionString(true);
 }
 
+void Display::initClientAPIString()
+{
+    // If the max supported desktop version is not None, we support a desktop GL frontend.
+    if (mImplementation->getMaxSupportedDesktopVersion().valid())
+    {
+        mClientAPIString = "OpenGL_ES OpenGL";
+    }
+    else
+    {
+        mClientAPIString = "OpenGL_ES";
+    }
+}
+
 void Display::initializeFrontendFeatures()
 {
     // Enable on all Impls
@@ -2216,6 +2235,11 @@ const std::string &Display::getVendorString() const
 const std::string &Display::getVersionString() const
 {
     return mVersionString;
+}
+
+const std::string &Display::getClientAPIString() const
+{
+    return mClientAPIString;
 }
 
 std::string Display::getBackendRendererDescription() const
