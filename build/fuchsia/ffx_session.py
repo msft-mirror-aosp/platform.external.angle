@@ -423,8 +423,14 @@ class FfxSession():
     self._run_summary = None
     self._suite_summary = None
     self._custom_artifact_directory = None
+    self._debug_data_directory = None
 
   def __enter__(self):
+    # Remove any stale experimental_structure_output value that may have been
+    # left behind by the previous implementation.
+    self._ffx.run_ffx(
+        ['config', 'remove', 'test.experimental_structured_output'],
+        check=False)
     if self._log_manager.IsLoggingEnabled():
       # Use a subdir of the configured log directory to hold test outputs.
       self._output_dir = os.path.join(self._log_manager.GetLogDirectory(),
@@ -466,8 +472,8 @@ class FfxSession():
       A subprocess.Popen object.
     """
     command = [
-        '--config', 'test.experimental_structured_output=false', 'test', 'run',
-        '--output-directory', self._output_dir, component_uri, '--'
+        'test', 'run', '--output-directory', self._output_dir, component_uri,
+        '--'
     ]
     command.extend(package_args)
     return ffx_target.open_ffx(command)
@@ -500,6 +506,15 @@ class FfxSession():
     assert self._run_summary['schema_id'] == RUN_SUMMARY_SCHEMA, \
       'Unsupported version found in %s' % run_summary_path
 
+    run_artifact_dir = self._run_summary.get('data', {})['artifact_dir']
+    for artifact_path, artifact in self._run_summary.get(
+        'data', {})['artifacts'].items():
+      if artifact['artifact_type'] == 'DEBUG':
+        self._debug_data_directory = os.path.join(self._output_dir,
+                                                  run_artifact_dir,
+                                                  artifact_path)
+        break
+
     # There should be precisely one suite for the test that ran.
     self._suite_summary = self._run_summary.get('data', {}).get('suites',
                                                                 [{}])[0]
@@ -511,14 +526,13 @@ class FfxSession():
                     run_summary_path)
       return
 
-    # Get the path corresponding to the CUSTOM artifact.
+    # Get the path corresponding to artifacts
     for artifact_path, artifact in self._suite_summary['artifacts'].items():
-      if artifact['artifact_type'] != 'CUSTOM':
-        continue
-      self._custom_artifact_directory = os.path.join(self._output_dir,
-                                                     artifact_dir,
-                                                     artifact_path)
-      break
+      if artifact['artifact_type'] == 'CUSTOM':
+        self._custom_artifact_directory = os.path.join(self._output_dir,
+                                                       artifact_dir,
+                                                       artifact_path)
+        break
 
   def get_custom_artifact_directory(self):
     """Returns the full path to the directory holding custom artifacts emitted
@@ -526,6 +540,13 @@ class FfxSession():
     """
     self._parse_test_outputs()
     return self._custom_artifact_directory
+
+  def get_debug_data_directory(self):
+    """Returns the full path to the directory holding custom artifacts emitted
+    by the test, or None if the path cannot be determined.
+    """
+    self._parse_test_outputs()
+    return self._debug_data_directory
 
 
 def make_arg_parser():

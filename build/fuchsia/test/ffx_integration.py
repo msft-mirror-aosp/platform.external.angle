@@ -229,8 +229,14 @@ class FfxTestRunner(AbstractContextManager):
         self._results_dir = results_dir
         self._custom_artifact_directory = None
         self._temp_results_dir = None
+        self._debug_data_directory = None
 
     def __enter__(self):
+        # Remove any stale experimental_structure_output value that may have
+        # been left behind by the previous implementation.
+        run_ffx_command(
+            ('config', 'remove', 'test.experimental_structured_output'),
+            check=False)
         if self._results_dir:
             os.makedirs(self._results_dir, exist_ok=True)
         else:
@@ -259,8 +265,8 @@ class FfxTestRunner(AbstractContextManager):
             A subprocess.Popen object.
         """
         command = [
-            '--config', 'test.experimental_structured_output=false', 'test',
-            'run', '--output-directory', self._results_dir, component_uri
+            'test', 'run', '--output-directory', self._results_dir,
+            component_uri
         ]
         if test_args:
             command.append('--')
@@ -297,6 +303,14 @@ class FfxTestRunner(AbstractContextManager):
         assert run_summary['schema_id'] == RUN_SUMMARY_SCHEMA, \
             'Unsupported version found in %s' % run_summary_path
 
+        run_artifact_dir = run_summary.get('data', {})['artifact_dir']
+        for artifact_path, artifact in run_summary.get(
+                'data', {})['artifacts'].items():
+            if artifact['artifact_type'] == 'DEBUG':
+                self._debug_data_directory = os.path.join(
+                    self._results_dir, run_artifact_dir, artifact_path)
+                break
+
         # There should be precisely one suite for the test that ran.
         suite_summary = run_summary.get('data', {}).get('suites', [{}])[0]
 
@@ -307,13 +321,12 @@ class FfxTestRunner(AbstractContextManager):
                           run_summary_path)
             return
 
-        # Get the path corresponding to the CUSTOM artifact.
+        # Get the path corresponding to artifacts
         for artifact_path, artifact in suite_summary['artifacts'].items():
-            if artifact['artifact_type'] != 'CUSTOM':
-                continue
-            self._custom_artifact_directory = os.path.join(
-                self._results_dir, artifact_dir, artifact_path)
-            break
+            if artifact['artifact_type'] == 'CUSTOM':
+                self._custom_artifact_directory = os.path.join(
+                    self._results_dir, artifact_dir, artifact_path)
+                break
 
     def get_custom_artifact_directory(self) -> str:
         """Returns the full path to the directory holding custom artifacts
@@ -321,3 +334,10 @@ class FfxTestRunner(AbstractContextManager):
         """
         self._parse_test_outputs()
         return self._custom_artifact_directory
+
+    def get_debug_data_directory(self):
+        """Returns the full path to the directory holding debug data
+        emitted by the test, or None if the path cannot be determined.
+        """
+        self._parse_test_outputs()
+        return self._debug_data_directory
