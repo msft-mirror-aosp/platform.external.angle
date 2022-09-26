@@ -123,7 +123,7 @@ RENDER_TEST_MODEL_SDK_CONFIGS = {
 }
 
 _BATCH_SUFFIX = '_batch'
-_TEST_BATCH_MAX_GROUP_SIZE = 256
+_TEST_BATCH_MAX_GROUP_SIZE = 200
 
 
 @contextlib.contextmanager
@@ -145,6 +145,7 @@ def _VoiceInteractionService(device, use_voice_interaction_service):
     device.RunShellCommand('settings put secure voice_interaction_service %s' %
                            service)
 
+  default_voice_interaction_service = None
   try:
     default_voice_interaction_service = device.RunShellCommand(
         'settings get secure voice_interaction_service', single_line=True)
@@ -295,6 +296,10 @@ class LocalDeviceInstrumentationTestRun(
           install_apex_helper(apex)
           for apex in self._test_instance.additional_apexs)
 
+      steps.extend(
+          install_helper(apk, instant_app=self._test_instance.IsApkInstant(apk))
+          for apk in self._test_instance.additional_apks)
+
       permissions = self._test_instance.test_apk.GetPermissions()
       if self._test_instance.test_apk_incremental_install_json:
         if self._test_instance.test_apk_as_instant:
@@ -311,10 +316,6 @@ class LocalDeviceInstrumentationTestRun(
             install_helper(self._test_instance.test_apk,
                            permissions=permissions,
                            instant_app=self._test_instance.test_apk_as_instant))
-
-      steps.extend(
-          install_helper(apk, instant_app=self._test_instance.IsApkInstant(apk))
-          for apk in self._test_instance.additional_apks)
 
       # We'll potentially need the package names later for setting app
       # compatibility workarounds.
