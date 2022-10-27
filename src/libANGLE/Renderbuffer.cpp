@@ -25,6 +25,12 @@ namespace gl
 namespace
 {
 angle::SubjectIndex kRenderbufferImplSubjectIndex = 0;
+
+InitState DetermineInitState(const Context *context)
+{
+    return (context && context->isRobustResourceInitEnabled()) ? InitState::MayNeedInit
+                                                               : InitState::Initialized;
+}
 }  // namespace
 
 // RenderbufferState implementation.
@@ -82,7 +88,7 @@ void RenderbufferState::update(GLsizei width,
     mFormat              = format;
     mSamples             = samples;
     mMultisamplingMode   = multisamplingMode;
-    mInitState           = InitState::MayNeedInit;
+    mInitState           = initState;
     mHasProtectedContent = false;
 }
 
@@ -115,9 +121,15 @@ void Renderbuffer::onDestroy(const Context *context)
 
 Renderbuffer::~Renderbuffer() {}
 
-void Renderbuffer::setLabel(const Context *context, const std::string &label)
+angle::Result Renderbuffer::setLabel(const Context *context, const std::string &label)
 {
     mLabel = label;
+
+    if (mImplementation)
+    {
+        return mImplementation->onLabelUpdate(context);
+    }
+    return angle::Result::Continue;
 }
 
 const std::string &Renderbuffer::getLabel() const
@@ -137,7 +149,7 @@ angle::Result Renderbuffer::setStorage(const Context *context,
     ANGLE_TRY(mImplementation->setStorage(context, internalformat, width, height));
 
     mState.update(width, height, Format(internalformat), 0, MultisamplingMode::Regular,
-                  InitState::MayNeedInit);
+                  DetermineInitState(context));
     onStateChange(angle::SubjectMessage::SubjectChanged);
 
     return angle::Result::Continue;
@@ -160,7 +172,8 @@ angle::Result Renderbuffer::setStorageMultisample(const Context *context,
     ANGLE_TRY(mImplementation->setStorageMultisample(context, samples, internalformat, width,
                                                      height, mode));
 
-    mState.update(width, height, Format(internalformat), samples, mode, InitState::MayNeedInit);
+    mState.update(width, height, Format(internalformat), samples, mode,
+                  DetermineInitState(context));
     onStateChange(angle::SubjectMessage::SubjectChanged);
 
     return angle::Result::Continue;
@@ -352,7 +365,7 @@ bool Renderbuffer::isRenderable(const Context *context,
                                                  context->getExtensions());
 }
 
-InitState Renderbuffer::initState(const gl::ImageIndex & /*imageIndex*/) const
+InitState Renderbuffer::initState(GLenum /*binding*/, const gl::ImageIndex & /*imageIndex*/) const
 {
     if (isEGLImageTarget())
     {
@@ -362,7 +375,9 @@ InitState Renderbuffer::initState(const gl::ImageIndex & /*imageIndex*/) const
     return mState.mInitState;
 }
 
-void Renderbuffer::setInitState(const gl::ImageIndex & /*imageIndex*/, InitState initState)
+void Renderbuffer::setInitState(GLenum /*binding*/,
+                                const gl::ImageIndex & /*imageIndex*/,
+                                InitState initState)
 {
     if (isEGLImageTarget())
     {

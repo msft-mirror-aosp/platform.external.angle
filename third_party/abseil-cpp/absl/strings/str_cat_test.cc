@@ -210,6 +210,11 @@ TEST(StrCat, CornerCases) {
   EXPECT_EQ(result, "");
 }
 
+TEST(StrCat, NullConstCharPtr) {
+  const char* null = nullptr;
+  EXPECT_EQ(absl::StrCat("mon", null, "key"), "monkey");
+}
+
 // A minimal allocator that uses malloc().
 template <typename T>
 struct Mallocator {
@@ -605,6 +610,26 @@ void TestFastPrints() {
 
 TEST(Numbers, TestFunctionsMovedOverFromNumbersMain) {
   TestFastPrints();
+}
+
+struct PointStringify {
+  template <typename FormatSink>
+  friend void AbslStringify(FormatSink& sink, const PointStringify& p) {
+    sink.Append("(");
+    sink.Append(absl::StrCat(p.x));
+    sink.Append(", ");
+    sink.Append(absl::StrCat(p.y));
+    sink.Append(")");
+  }
+
+  double x = 10.0;
+  double y = 20.0;
+};
+
+TEST(StrCat, AbslStringifyExample) {
+  PointStringify p;
+  EXPECT_EQ(absl::StrCat(p), "(10, 20)");
+  EXPECT_EQ(absl::StrCat("a ", p, " z"), "a (10, 20) z");
 }
 
 }  // namespace

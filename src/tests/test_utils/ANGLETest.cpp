@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cstdlib>
 
+#include "common/PackedEnums.h"
 #include "common/platform.h"
 #include "gpu_info_util/SystemInfo.h"
 #include "test_utils/runner/TestSuite.h"
@@ -83,24 +84,6 @@ void TestPlatform_logWarning(PlatformMethods *platform, const char *warningMessa
 }
 
 void TestPlatform_logInfo(PlatformMethods *platform, const char *infoMessage) {}
-
-void TestPlatform_overrideWorkaroundsD3D(PlatformMethods *platform, FeaturesD3D *featuresD3D)
-{
-    auto *testPlatformContext = static_cast<TestPlatformContext *>(platform->context);
-    if (testPlatformContext->currentTest)
-    {
-        testPlatformContext->currentTest->overrideWorkaroundsD3D(featuresD3D);
-    }
-}
-
-void TestPlatform_overrideFeaturesVk(PlatformMethods *platform, FeaturesVk *featuresVulkan)
-{
-    auto *testPlatformContext = static_cast<TestPlatformContext *>(platform->context);
-    if (testPlatformContext->currentTest)
-    {
-        testPlatformContext->currentTest->overrideFeaturesVk(featuresVulkan);
-    }
-}
 
 const std::array<Vector3, 6> kQuadVertices = {{
     Vector3(-1.0f, 1.0f, 0.5f),
@@ -190,8 +173,15 @@ bool ShouldAlwaysForceNewDisplay()
     return (!systemInfo || !IsWindows() || systemInfo->hasAMDGPU());
 }
 
-GPUTestConfig::API GetTestConfigAPIFromRenderer(EGLenum renderer, EGLenum deviceType)
+GPUTestConfig::API GetTestConfigAPIFromRenderer(angle::GLESDriverType driverType,
+                                                EGLenum renderer,
+                                                EGLenum deviceType)
 {
+    if (driverType != angle::GLESDriverType::AngleEGL)
+    {
+        return GPUTestConfig::kAPIUnknown;
+    }
+
     switch (renderer)
     {
         case EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE:
@@ -214,7 +204,7 @@ GPUTestConfig::API GetTestConfigAPIFromRenderer(EGLenum renderer, EGLenum device
         case EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE:
             return GPUTestConfig::kAPIMetal;
         default:
-            std::cerr << "Unknown Renderer enum: 0x%X\n" << renderer;
+            std::cerr << "Unknown Renderer enum: 0x" << std::hex << renderer << "\n";
             return GPUTestConfig::kAPIUnknown;
     }
 }
@@ -222,6 +212,13 @@ GPUTestConfig::API GetTestConfigAPIFromRenderer(EGLenum renderer, EGLenum device
 
 GLColorRGB::GLColorRGB(const Vector3 &floatColor)
     : R(ColorDenorm(floatColor.x())), G(ColorDenorm(floatColor.y())), B(ColorDenorm(floatColor.z()))
+{}
+
+GLColor::GLColor(const Vector3 &floatColor)
+    : R(ColorDenorm(floatColor.x())),
+      G(ColorDenorm(floatColor.y())),
+      B(ColorDenorm(floatColor.z())),
+      A(255)
 {}
 
 GLColor::GLColor(const Vector4 &floatColor)
@@ -335,11 +332,6 @@ std::ostream &operator<<(std::ostream &ostream, const GLColorRGB &color)
     return ostream;
 }
 
-bool operator==(const GLColor32F &a, const GLColor32F &b)
-{
-    return a.R == b.R && a.G == b.G && a.B == b.B && a.A == b.A;
-}
-
 std::ostream &operator<<(std::ostream &ostream, const GLColor32F &color)
 {
     ostream << "(" << color.R << ", " << color.G << ", " << color.B << ", " << color.A << ")";
@@ -361,10 +353,20 @@ void LoadEntryPointsWithUtilLoader(angle::GLESDriverType driverType)
     ANGLETestEnvironment::GetDriverLibrary(driverType)->getAs("eglGetProcAddress", &getProcAddress);
     ASSERT_NE(nullptr, getProcAddress);
 
-    LoadEGL(getProcAddress);
-    LoadGLES(getProcAddress);
+    LoadUtilEGL(getProcAddress);
+    LoadUtilGLES(getProcAddress);
 #endif  // defined(ANGLE_USE_UTIL_LOADER)
 }
+
+bool IsFormatEmulated(GLenum target)
+{
+    GLint readFormat;
+    glGetTexParameteriv(target, GL_IMPLEMENTATION_COLOR_READ_FORMAT, &readFormat);
+
+    // This helper only works for compressed formats
+    return gl::IsEmulatedCompressedFormat(readFormat);
+}
+
 }  // namespace angle
 
 using namespace angle;
@@ -384,6 +386,7 @@ constexpr char kEnableANGLEPerTestCaptureLabel[] = "--angle-per-test-capture-lab
 constexpr char kBatchId[]                        = "--batch-id=";
 constexpr char kDelayTestStart[]                 = "--delay-test-start=";
 constexpr char kRenderDoc[]                      = "--renderdoc";
+constexpr char kNoRenderDoc[]                    = "--no-renderdoc";
 
 void SetupEnvironmentVarsForCaptureReplay()
 {
@@ -408,7 +411,11 @@ void SetTestStartDelay(const char *testStartDelay)
     gTestStartDelaySeconds = std::stoi(testStartDelay);
 }
 
+#if defined(ANGLE_TEST_ENABLE_RENDERDOC_CAPTURE)
+bool gEnableRenderDocCapture = true;
+#else
 bool gEnableRenderDocCapture = false;
+#endif
 
 // static
 std::array<Vector3, 6> ANGLETestBase::GetQuadVertices()
@@ -546,7 +553,8 @@ void ANGLETestBase::initOSWindow()
         case GLESDriverType::SystemEGL:
         {
             mFixture->eglWindow =
-                EGLWindow::New(mCurrentParams->majorVersion, mCurrentParams->minorVersion);
+                EGLWindow::New(mCurrentParams->clientType, mCurrentParams->majorVersion,
+                               mCurrentParams->minorVersion, mCurrentParams->profileMask);
             break;
         }
 
@@ -599,12 +607,10 @@ void ANGLETestBase::ANGLETestSetUp()
         angle::Sleep(GetTestStartDelaySeconds() * 1000);
     }
 
-    gDefaultPlatformMethods.overrideWorkaroundsD3D = TestPlatform_overrideWorkaroundsD3D;
-    gDefaultPlatformMethods.overrideFeaturesVk     = TestPlatform_overrideFeaturesVk;
-    gDefaultPlatformMethods.logError               = TestPlatform_logError;
-    gDefaultPlatformMethods.logWarning             = TestPlatform_logWarning;
-    gDefaultPlatformMethods.logInfo                = TestPlatform_logInfo;
-    gDefaultPlatformMethods.context                = &gPlatformContext;
+    gDefaultPlatformMethods.logError   = TestPlatform_logError;
+    gDefaultPlatformMethods.logWarning = TestPlatform_logWarning;
+    gDefaultPlatformMethods.logInfo    = TestPlatform_logInfo;
+    gDefaultPlatformMethods.context    = &gPlatformContext;
 
     gPlatformContext.ignoreMessages   = false;
     gPlatformContext.warningsAsErrors = false;
@@ -614,9 +620,9 @@ void ANGLETestBase::ANGLETestSetUp()
 
     // Check the skip list.
 
-    angle::GPUTestConfig::API api = GetTestConfigAPIFromRenderer(mCurrentParams->getRenderer(),
-                                                                 mCurrentParams->getDeviceType());
-    GPUTestConfig testConfig      = GPUTestConfig(api, 0);
+    angle::GPUTestConfig::API api = GetTestConfigAPIFromRenderer(
+        mCurrentParams->driver, mCurrentParams->getRenderer(), mCurrentParams->getDeviceType());
+    GPUTestConfig testConfig = GPUTestConfig(api, 0);
 
     std::stringstream fullTestNameStr;
     fullTestNameStr << testInfo->test_case_name() << "." << testInfo->name();
@@ -667,8 +673,8 @@ void ANGLETestBase::ANGLETestSetUp()
     int osWindowWidth  = mFixture->osWindow->getWidth();
     int osWindowHeight = mFixture->osWindow->getHeight();
 
-    const bool isRotated = mCurrentParams->eglParameters.emulatedPrerotation == 90 ||
-                           mCurrentParams->eglParameters.emulatedPrerotation == 270;
+    const bool isRotated = mCurrentParams->isEnableRequested(Feature::EmulatedPrerotation90) ||
+                           mCurrentParams->isEnableRequested(Feature::EmulatedPrerotation270);
     if (isRotated)
     {
         std::swap(osWindowWidth, osWindowHeight);
@@ -713,10 +719,28 @@ void ANGLETestBase::ANGLETestSetUp()
             FAIL() << "Internal parameter conflict error.";
         }
 
-        if (mFixture->eglWindow->initializeSurface(
-                mFixture->osWindow, driverLib, mFixture->configParams) != GLWindowResult::NoError)
+        const GLWindowResult windowResult = mFixture->eglWindow->initializeSurface(
+            mFixture->osWindow, driverLib, mFixture->configParams);
+
+        if (windowResult != GLWindowResult::NoError)
         {
-            FAIL() << "egl surface init failed.";
+            if (windowResult != GLWindowResult::Error)
+            {
+                // If the test requests an extension that isn't supported, automatically skip the
+                // test.
+                GTEST_SKIP() << "Test skipped due to missing extension";
+            }
+            else if (mFixture->configParams.multisample)
+            {
+                // If the test requests a multisampled window that isn't supported, automatically
+                // skip the test.
+                GTEST_SKIP() << "Test skipped due to no multisampled configs available";
+            }
+            else
+            {
+                // Otherwise fail the test.
+                FAIL() << "egl surface init failed.";
+            }
         }
 
         if (!mDeferContextInit && !mFixture->eglWindow->initializeContext())
@@ -1048,7 +1072,7 @@ void ANGLETestBase::drawIndexedQuad(GLuint program,
                                     GLfloat positionAttribZ,
                                     GLfloat positionAttribXYScale)
 {
-    ASSERT(!mFixture->configParams.webGLCompatibility.valid() ||
+    ASSERT(!mFixture || !mFixture->configParams.webGLCompatibility.valid() ||
            !mFixture->configParams.webGLCompatibility.value());
     drawIndexedQuad(program, positionAttribName, positionAttribZ, positionAttribXYScale, false);
 }
@@ -1403,6 +1427,11 @@ void ANGLETestBase::setRobustResourceInit(bool enabled)
     mFixture->configParams.robustResourceInit = enabled;
 }
 
+void ANGLETestBase::setMutableRenderBuffer(bool enabled)
+{
+    mFixture->configParams.mutableRenderBuffer = enabled;
+}
+
 void ANGLETestBase::setContextProgramCacheEnabled(bool enabled)
 {
     mFixture->configParams.contextProgramCacheEnabled = enabled;
@@ -1448,11 +1477,6 @@ int ANGLETestBase::getWindowHeight() const
     return mHeight;
 }
 
-bool ANGLETestBase::isEmulatedPrerotation() const
-{
-    return mCurrentParams->eglParameters.emulatedPrerotation != 0;
-}
-
 void ANGLETestBase::setWindowVisible(OSWindow *osWindow, bool isVisible)
 {
     // SwiftShader windows are not required to be visible for test correctness,
@@ -1477,15 +1501,6 @@ void ANGLETestBase::ignoreD3D11SDKLayersWarnings()
 {
     // Some tests may need to disable the D3D11 SDK Layers Warnings checks
     mIgnoreD3D11SDKLayersWarnings = true;
-}
-
-void ANGLETestBase::treatPlatformWarningsAsErrors()
-{
-#if defined(ANGLE_PLATFORM_WINDOWS)
-    // Only do warnings-as-errors on 8 and above. We may fall back to the old
-    // compiler DLL on Windows 7.
-    gPlatformContext.warningsAsErrors = IsWindows8OrGreater();
-#endif  // defined(ANGLE_PLATFORM_WINDOWS)
 }
 
 ANGLETestBase::ScopedIgnorePlatformMessages::ScopedIgnorePlatformMessages()
@@ -1598,6 +1613,10 @@ void ANGLEProcessTestArgs(int *argc, char *argv[])
         else if (strncmp(argv[argIndex], kRenderDoc, strlen(kRenderDoc)) == 0)
         {
             gEnableRenderDocCapture = true;
+        }
+        else if (strncmp(argv[argIndex], kNoRenderDoc, strlen(kNoRenderDoc)) == 0)
+        {
+            gEnableRenderDocCapture = false;
         }
     }
 }

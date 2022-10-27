@@ -37,22 +37,12 @@ void TerminateCrashHandler();
 // Print a stack back trace.
 void PrintStackBacktrace();
 
-// Get temporary directory.
-bool GetTempDir(char *tempDirOut, uint32_t maxDirNameLen);
-
-// Creates a temporary file. The full path is placed in |tempFileNameOut|, and the
-// function returns true if was successful in creating the file. The file will
-// be empty and all handles closed after this function returns.
-bool CreateTemporaryFile(char *tempFileNameOut, uint32_t maxFileNameLen);
-
-// Same as CreateTemporaryFile but the file is created in |dir|.
-bool CreateTemporaryFileInDir(const char *dir, char *tempFileNameOut, uint32_t maxFileNameLen);
-
 // Deletes a file or directory.
 bool DeleteSystemFile(const char *path);
 
-// Reads a file contents into a string.
-bool ReadEntireFileToString(const char *filePath, char *contentsOut, uint32_t maxLen);
+// Reads a file contents into a string. Note: this method cannot be exported across a shared module
+// boundary because it does memory allocation.
+bool ReadEntireFileToString(const char *filePath, std::string *contentsOut);
 
 // Compute a file's size.
 bool GetFileSize(const char *filePath, uint32_t *sizeOut);
@@ -68,7 +58,7 @@ class Process : angle::NonCopyable
     virtual bool kill()       = 0;
     virtual int getExitCode() = 0;
 
-    double getElapsedTimeSeconds() const { return mTimer.getElapsedTime(); }
+    double getElapsedTimeSeconds() const { return mTimer.getElapsedWallClockTime(); }
     const std::string &getStdout() const { return mStdout; }
     const std::string &getStderr() const { return mStderr; }
 

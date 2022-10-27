@@ -46,7 +46,7 @@ bool ValidateAlphaFuncCommon(const Context *context,
         case AlphaTestFunc::NotEqual:
             return true;
         default:
-            context->validationError(entryPoint, GL_INVALID_ENUM, kEnumNotSupported);
+            context->validationError(entryPoint, GL_INVALID_ENUM, kEnumInvalid);
             return false;
     }
 }
@@ -879,6 +879,7 @@ bool ValidateFrustumf(const Context *context,
     if (l == r || b == t || n == f || n <= 0.0f || f <= 0.0f)
     {
         context->validationError(entryPoint, GL_INVALID_VALUE, kInvalidProjectionMatrix);
+        return false;
     }
     return true;
 }
@@ -896,6 +897,7 @@ bool ValidateFrustumx(const Context *context,
     if (l == r || b == t || n == f || n <= 0 || f <= 0)
     {
         context->validationError(entryPoint, GL_INVALID_VALUE, kInvalidProjectionMatrix);
+        return false;
     }
     return true;
 }
@@ -1126,29 +1128,7 @@ bool ValidateLoadMatrixx(const Context *context, angle::EntryPoint entryPoint, c
 bool ValidateLogicOp(const Context *context, angle::EntryPoint entryPoint, LogicalOperation opcode)
 {
     ANGLE_VALIDATE_IS_GLES1(context, entryPoint);
-    switch (opcode)
-    {
-        case LogicalOperation::And:
-        case LogicalOperation::AndInverted:
-        case LogicalOperation::AndReverse:
-        case LogicalOperation::Clear:
-        case LogicalOperation::Copy:
-        case LogicalOperation::CopyInverted:
-        case LogicalOperation::Equiv:
-        case LogicalOperation::Invert:
-        case LogicalOperation::Nand:
-        case LogicalOperation::Noop:
-        case LogicalOperation::Nor:
-        case LogicalOperation::Or:
-        case LogicalOperation::OrInverted:
-        case LogicalOperation::OrReverse:
-        case LogicalOperation::Set:
-        case LogicalOperation::Xor:
-            return true;
-        default:
-            context->validationError(entryPoint, GL_INVALID_ENUM, kInvalidLogicOp);
-            return false;
-    }
+    return ValidateLogicOpCommon(context, entryPoint, opcode);
 }
 
 bool ValidateMaterialf(const Context *context,
@@ -1292,6 +1272,7 @@ bool ValidateOrthof(const Context *context,
     if (l == r || b == t || n == f)
     {
         context->validationError(entryPoint, GL_INVALID_VALUE, kInvalidProjectionMatrix);
+        return false;
     }
     return true;
 }
@@ -1309,6 +1290,7 @@ bool ValidateOrthox(const Context *context,
     if (l == r || b == t || n == f)
     {
         context->validationError(entryPoint, GL_INVALID_VALUE, kInvalidProjectionMatrix);
+        return false;
     }
     return true;
 }

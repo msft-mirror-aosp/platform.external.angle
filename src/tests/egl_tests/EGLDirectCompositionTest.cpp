@@ -36,7 +36,7 @@ using namespace Microsoft::WRL::Wrappers;
 
 const int WINDOWWIDTH = 200, WINDOWHEIGHT = 200;
 
-class EGLDirectCompositionTest : public ANGLETest
+class EGLDirectCompositionTest : public ANGLETest<>
 {
   protected:
     EGLDirectCompositionTest() : mOSWindow(nullptr) {}
@@ -264,9 +264,6 @@ TEST_P(EGLDirectCompositionTest, RenderSolidColor)
 {
     // Only attempt this test when on Windows 10 1803+
     ANGLE_SKIP_TEST_IF(!mRoHelper.SupportedWindowsRelease());
-
-    // http://crbug.com/1063962
-    ANGLE_SKIP_TEST_IF(isD3D11Renderer() && IsIntel());
 
     EGLSurface s{nullptr};
     CreateSurface(mAngleHost, s);

@@ -59,7 +59,12 @@ class APPLEClipDistanceTest : public sh::ShaderExtensionTest
     {
         const char *shaderStrings[] = {testing::get<1>(GetParam()), pragma,
                                        testing::get<2>(GetParam())};
-        bool success = sh::Compile(mCompiler, shaderStrings, 3, SH_VARIABLES | SH_OBJECT_CODE);
+
+        ShCompileOptions compileOptions = {};
+        compileOptions.objectCode       = true;
+        compileOptions.variables        = true;
+
+        bool success = sh::Compile(mCompiler, shaderStrings, 3, compileOptions);
         if (success)
         {
             return ::testing::AssertionSuccess() << "Compilation success";
@@ -126,7 +131,10 @@ TEST_P(APPLEClipDistanceTest, CompileSucceedsWithoutExtSupportVulkan)
     })";
     const char *shaderStrings[]  = {kNoClipCull};
 
-    bool success = sh::Compile(mCompiler, shaderStrings, 1, SH_OBJECT_CODE);
+    ShCompileOptions compileOptions = {};
+    compileOptions.objectCode       = true;
+
+    bool success = sh::Compile(mCompiler, shaderStrings, 1, compileOptions);
     if (success)
     {
         ::testing::AssertionSuccess() << "Compilation success";
@@ -141,8 +149,20 @@ TEST_P(APPLEClipDistanceTest, CompileSucceedsWithoutExtSupportVulkan)
 #endif
 
 #if defined(ANGLE_ENABLE_METAL)
-// With extension flag and extension directive, compiling using TranslatorMetal succeeds.
+// With extension flag and extension directive, compiling using TranslatorMetalDirect succeeds.
 TEST_P(APPLEClipDistanceTest, CompileSucceedsMetal)
+{
+    mResources.APPLE_clip_distance = 1;
+    mResources.MaxClipDistances    = 8;
+
+    InitializeCompiler(SH_MSL_METAL_OUTPUT);
+    EXPECT_TRUE(TestShaderCompile(EXTPragma));
+}
+#endif
+
+#if defined(ANGLE_ENABLE_METAL_SPIRV)
+// With extension flag and extension directive, compiling using TranslatorMetal succeeds.
+TEST_P(APPLEClipDistanceTest, CompileSucceedsMetalSPIRV)
 {
     mResources.APPLE_clip_distance = 1;
     mResources.MaxClipDistances    = 8;

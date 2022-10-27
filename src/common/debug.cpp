@@ -61,7 +61,7 @@ bool ShouldCreateLogMessage(LogSeverity severity)
 #elif defined(ANGLE_ENABLE_ASSERTS)
     return severity == LOG_FATAL || severity == LOG_ERR || severity == LOG_WARN;
 #else
-    return false;
+    return severity == LOG_FATAL || severity == LOG_ERR;
 #endif
 }
 
@@ -84,19 +84,19 @@ bool ShouldCreatePlatformLogMessage(LogSeverity severity)
 std::ostream *gSwallowStream;
 }  // namespace priv
 
-bool DebugAnnotationsActive()
+bool DebugAnnotationsActive(const gl::Context *context)
 {
 #if defined(ANGLE_ENABLE_DEBUG_ANNOTATIONS) || defined(ANGLE_ENABLE_DEBUG_TRACE)
-    return g_debugAnnotator != nullptr && g_debugAnnotator->getStatus();
+    return g_debugAnnotator != nullptr && g_debugAnnotator->getStatus(context);
 #else
     return false;
 #endif
 }
 
-bool ShouldBeginScopedEvent()
+bool ShouldBeginScopedEvent(const gl::Context *context)
 {
 #if defined(ANGLE_ENABLE_ANNOTATOR_RUN_TIME_CHECKS)
-    return DebugAnnotationsActive();
+    return DebugAnnotationsActive(context);
 #else
     return true;
 #endif  // defined(ANGLE_ENABLE_ANNOTATOR_RUN_TIME_CHECKS)
@@ -180,19 +180,21 @@ LogMessage::LogMessage(const char *file, const char *function, int line, LogSeve
 
 LogMessage::~LogMessage()
 {
-    std::unique_lock<std::mutex> lock;
-    if (g_debugMutex != nullptr)
     {
-        lock = std::unique_lock<std::mutex>(*g_debugMutex);
-    }
+        std::unique_lock<std::mutex> lock;
+        if (g_debugMutex != nullptr)
+        {
+            lock = std::unique_lock<std::mutex>(*g_debugMutex);
+        }
 
-    if (DebugAnnotationsInitialized() && (mSeverity > LOG_INFO))
-    {
-        g_debugAnnotator->logMessage(*this);
-    }
-    else
-    {
-        Trace(getSeverity(), getMessage().c_str());
+        if (DebugAnnotationsInitialized() && (mSeverity > LOG_INFO))
+        {
+            g_debugAnnotator->logMessage(*this);
+        }
+        else
+        {
+            Trace(getSeverity(), getMessage().c_str());
+        }
     }
 
     if (mSeverity == LOG_FATAL)
@@ -217,7 +219,7 @@ void Trace(LogSeverity severity, const char *message)
 
     std::string str(message);
 
-    if (DebugAnnotationsActive())
+    if (DebugAnnotationsActive(/*context=*/nullptr))
     {
 
         switch (severity)
@@ -226,13 +228,13 @@ void Trace(LogSeverity severity, const char *message)
                 // Debugging logging done in ScopedPerfEventHelper
                 break;
             default:
-                g_debugAnnotator->setMarker(message);
+                g_debugAnnotator->setMarker(/*context=*/nullptr, message);
                 break;
         }
     }
 
     if (severity == LOG_FATAL || severity == LOG_ERR || severity == LOG_WARN ||
-#if defined(ANGLE_ENABLE_TRACE_ANDROID_LOGCAT)
+#if defined(ANGLE_ENABLE_TRACE_ANDROID_LOGCAT) || defined(ANGLE_ENABLE_TRACE_EVENTS)
         severity == LOG_EVENT ||
 #endif
         severity == LOG_INFO)
@@ -333,14 +335,14 @@ std::string LogMessage::getMessage() const
 }
 
 #if defined(ANGLE_PLATFORM_WINDOWS)
-priv::FmtHexHelper<HRESULT> FmtHR(HRESULT value)
+priv::FmtHexHelper<HRESULT, char> FmtHR(HRESULT value)
 {
-    return priv::FmtHexHelper<HRESULT>("HRESULT: ", value);
+    return priv::FmtHexHelper<HRESULT, char>("HRESULT: ", value);
 }
 
-priv::FmtHexHelper<DWORD> FmtErr(DWORD value)
+priv::FmtHexHelper<DWORD, char> FmtErr(DWORD value)
 {
-    return priv::FmtHexHelper<DWORD>("error: ", value);
+    return priv::FmtHexHelper<DWORD, char>("error: ", value);
 }
 #endif  // defined(ANGLE_PLATFORM_WINDOWS)
 

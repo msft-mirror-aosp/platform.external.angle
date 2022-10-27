@@ -14,7 +14,7 @@
 #include "libANGLE/renderer/Format.h"
 #include "libANGLE/renderer/copyvertex.h"
 #include "libANGLE/renderer/renderer_utils.h"
-#include "platform/FeaturesVk.h"
+#include "platform/FeaturesVk_autogen.h"
 
 #include <array>
 
@@ -74,6 +74,7 @@ class Format final : private angle::NonCopyable
     Format();
 
     bool valid() const { return mIntendedGLFormat != 0; }
+    GLenum getIntendedGLFormat() const { return mIntendedGLFormat; }
 
     // The intended format is the front-end format. For Textures this usually correponds to a
     // GLenum in the headers. Buffer formats don't always have a corresponding GLenum type.
@@ -116,10 +117,6 @@ class Format final : private angle::NonCopyable
                                                  : mTextureLoadFunctions(type);
     }
 
-    LoadTextureBorderFunctionInfo getTextureBorderLoadFunctions() const
-    {
-        return mTextureBorderLoadFunctions();
-    }
     // The actual Buffer format is used to implement the front-end format for Buffers.  This format
     // is used by vertex buffers as well as texture buffers.  Note that all formats required for
     // GL_EXT_texture_buffer have mandatory support for vertex buffers in Vulkan, so they won't be
@@ -191,7 +188,6 @@ class Format final : private angle::NonCopyable
 
     InitializeTextureDataFunction mImageInitializerFunction;
     LoadFunctionMap mTextureLoadFunctions;
-    LoadTextureBorderFunctionMap mTextureBorderLoadFunctions;
     LoadFunctionMap mRenderableTextureLoadFunctions;
     VertexCopyFunction mVertexLoadFunction;
     VertexCopyFunction mCompressedVertexLoadFunction;
@@ -214,9 +210,7 @@ class FormatTable final : angle::NonCopyable
     ~FormatTable();
 
     // Also initializes the TextureCapsMap and the compressedTextureCaps in the Caps instance.
-    void initialize(RendererVk *renderer,
-                    gl::TextureCapsMap *outTextureCapsMap,
-                    std::vector<GLenum> *outCompressedTextureFormats);
+    void initialize(RendererVk *renderer, gl::TextureCapsMap *outTextureCapsMap);
 
     ANGLE_INLINE const Format &operator[](GLenum internalFormat) const
     {
@@ -248,11 +242,15 @@ VkImageUsageFlags GetMaximalImageUsageFlags(RendererVk *renderer, angle::FormatI
 bool HasFullTextureFormatSupport(RendererVk *renderer, angle::FormatID formatID);
 // Checks if a Vulkan format supports all the features except rendering.
 bool HasNonRenderableTextureFormatSupport(RendererVk *renderer, angle::FormatID formatID);
+// Checks if it is a ETC texture format
+bool IsETCFormat(angle::FormatID formatID);
+// Checks if it is a BC texture format
+bool IsBCFormat(angle::FormatID formatID);
+
+angle::FormatID GetTranscodeBCFormatID(angle::FormatID formatID);
 
 // Get the swizzle state based on format's requirements and emulations.
-gl::SwizzleState GetFormatSwizzle(const ContextVk *contextVk,
-                                  const angle::Format &angleFormat,
-                                  const bool sized);
+gl::SwizzleState GetFormatSwizzle(const angle::Format &angleFormat, const bool sized);
 
 // Apply application's swizzle to the swizzle implied by format as received from GetFormatSwizzle.
 gl::SwizzleState ApplySwizzle(const gl::SwizzleState &formatSwizzle,

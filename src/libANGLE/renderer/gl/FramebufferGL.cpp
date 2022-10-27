@@ -26,7 +26,7 @@
 #include "libANGLE/renderer/gl/TextureGL.h"
 #include "libANGLE/renderer/gl/formatutilsgl.h"
 #include "libANGLE/renderer/gl/renderergl_utils.h"
-#include "platform/FeaturesGL.h"
+#include "platform/FeaturesGL_autogen.h"
 #include "platform/PlatformMethods.h"
 
 using namespace gl;
@@ -76,7 +76,8 @@ static BlitFramebufferBounds GetBlitFramebufferBounds(const gl::Context *context
 
 void BindFramebufferAttachment(const FunctionsGL *functions,
                                GLenum attachmentPoint,
-                               const FramebufferAttachment *attachment)
+                               const FramebufferAttachment *attachment,
+                               const angle::FeaturesGL &features)
 {
     if (attachment)
     {
@@ -159,6 +160,12 @@ void BindFramebufferAttachment(const FunctionsGL *functions,
         {
             const Renderbuffer *renderbuffer     = attachment->getRenderbuffer();
             const RenderbufferGL *renderbufferGL = GetImplAs<RenderbufferGL>(renderbuffer);
+
+            if (features.alwaysUnbindFramebufferTexture2D.enabled)
+            {
+                functions->framebufferTexture2D(GL_FRAMEBUFFER, attachmentPoint, GL_TEXTURE_2D, 0,
+                                                0);
+            }
 
             functions->framebufferRenderbuffer(GL_FRAMEBUFFER, attachmentPoint, GL_RENDERBUFFER,
                                                renderbufferGL->getRenderbufferID());
@@ -255,7 +262,7 @@ bool IsEmulatedAlphaChannelTextureAttachment(const FramebufferAttachment *attach
     return textureGL->hasEmulatedAlphaChannel(attachment->getTextureImageIndex());
 }
 
-class ScopedEXTTextureNorm16ReadbackWorkaround
+class [[nodiscard]] ScopedEXTTextureNorm16ReadbackWorkaround
 {
   public:
     ScopedEXTTextureNorm16ReadbackWorkaround()
@@ -305,8 +312,9 @@ class ScopedEXTTextureNorm16ReadbackWorkaround
                 checkedAllocatedBytes += area.width * pixelBytes - rowBytes;
             }
             ANGLE_CHECK_GL_MATH(contextGL, checkedAllocatedBytes.IsValid());
-            tmpPixels = new GLubyte[checkedAllocatedBytes.ValueOrDie()];
-            memset(tmpPixels, 0, checkedAllocatedBytes.ValueOrDie());
+            const GLuint allocatedBytes = checkedAllocatedBytes.ValueOrDie();
+            tmpPixels                   = new GLubyte[allocatedBytes];
+            memset(tmpPixels, 0, allocatedBytes);
         }
 
         return angle::Result::Continue;
@@ -407,16 +415,14 @@ bool IsValidUnsignedShortReadPixelsFormat(GLenum readFormat, const gl::Context *
 
 }  // namespace
 
-FramebufferGL::FramebufferGL(const gl::FramebufferState &data,
-                             GLuint id,
-                             bool isDefault,
-                             bool emulatedAlpha)
+FramebufferGL::FramebufferGL(const gl::FramebufferState &data, GLuint id, bool emulatedAlpha)
     : FramebufferImpl(data),
       mFramebufferID(id),
-      mIsDefault(isDefault),
       mHasEmulatedAlphaAttachment(emulatedAlpha),
       mAppliedEnabledDrawBuffers(1)
-{}
+{
+    ASSERT((isDefault() && id == 0) || !isDefault());
+}
 
 FramebufferGL::~FramebufferGL()
 {
@@ -425,9 +431,13 @@ FramebufferGL::~FramebufferGL()
 
 void FramebufferGL::destroy(const gl::Context *context)
 {
-    StateManagerGL *stateManager = GetStateManagerGL(context);
-    stateManager->deleteFramebuffer(mFramebufferID);
-    mFramebufferID = 0;
+    if (mFramebufferID)
+    {
+        ASSERT(!isDefault());
+        StateManagerGL *stateManager = GetStateManagerGL(context);
+        stateManager->deleteFramebuffer(mFramebufferID);
+        mFramebufferID = 0;
+    }
 }
 
 angle::Result FramebufferGL::discard(const gl::Context *context,
@@ -839,7 +849,7 @@ angle::Result FramebufferGL::blit(const gl::Context *context,
     gl::Rectangle finalSourceArea(sourceArea);
     gl::Rectangle finalDestArea(destArea);
 
-    if (features.adjustSrcDstRegionBlitFramebuffer.enabled)
+    if (features.adjustSrcDstRegionForBlitFramebuffer.enabled)
     {
         angle::Result result = adjustSrcDstRegion(context, finalSourceArea, finalDestArea,
                                                   &finalSourceArea, &finalDestArea);
@@ -848,7 +858,7 @@ angle::Result FramebufferGL::blit(const gl::Context *context,
             return result;
         }
     }
-    if (features.clipSrcRegionBlitFramebuffer.enabled)
+    if (features.clipSrcRegionForBlitFramebuffer.enabled)
     {
         angle::Result result = clipSrcRegion(context, finalSourceArea, finalDestArea,
                                              &finalSourceArea, &finalDestArea);
@@ -1245,7 +1255,7 @@ angle::Result FramebufferGL::syncState(const gl::Context *context,
                                        gl::Command command)
 {
     // Don't need to sync state for the default FBO.
-    if (mIsDefault)
+    if (isDefault())
     {
         return angle::Result::Continue;
     }
@@ -1265,7 +1275,8 @@ angle::Result FramebufferGL::syncState(const gl::Context *context,
             case Framebuffer::DIRTY_BIT_DEPTH_ATTACHMENT:
             {
                 const FramebufferAttachment *newAttachment = mState.getDepthAttachment();
-                BindFramebufferAttachment(functions, GL_DEPTH_ATTACHMENT, newAttachment);
+                BindFramebufferAttachment(functions, GL_DEPTH_ATTACHMENT, newAttachment,
+                                          GetFeaturesGL(context));
                 if (newAttachment)
                 {
                     attachment = newAttachment;
@@ -1275,7 +1286,8 @@ angle::Result FramebufferGL::syncState(const gl::Context *context,
             case Framebuffer::DIRTY_BIT_STENCIL_ATTACHMENT:
             {
                 const FramebufferAttachment *newAttachment = mState.getStencilAttachment();
-                BindFramebufferAttachment(functions, GL_STENCIL_ATTACHMENT, newAttachment);
+                BindFramebufferAttachment(functions, GL_STENCIL_ATTACHMENT, newAttachment,
+                                          GetFeaturesGL(context));
                 if (newAttachment)
                 {
                     attachment = newAttachment;
@@ -1314,6 +1326,10 @@ angle::Result FramebufferGL::syncState(const gl::Context *context,
                 functions->framebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_LAYERS_EXT,
                                                  mState.getDefaultLayers());
                 break;
+            case Framebuffer::DIRTY_BIT_FLIP_Y:
+                functions->framebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_FLIP_Y_MESA,
+                                                 gl::ConvertToGLBoolean(mState.getFlipY()));
+                break;
             default:
             {
                 static_assert(Framebuffer::DIRTY_BIT_COLOR_ATTACHMENT_0 == 0, "FB dirty bits");
@@ -1324,7 +1340,7 @@ angle::Result FramebufferGL::syncState(const gl::Context *context,
                     const FramebufferAttachment *newAttachment = mState.getColorAttachment(index);
                     BindFramebufferAttachment(functions,
                                               static_cast<GLenum>(GL_COLOR_ATTACHMENT0 + index),
-                                              newAttachment);
+                                              newAttachment, GetFeaturesGL(context));
                     if (newAttachment)
                     {
                         attachment = newAttachment;
@@ -1354,22 +1370,12 @@ angle::Result FramebufferGL::syncState(const gl::Context *context,
     return angle::Result::Continue;
 }
 
-GLuint FramebufferGL::getFramebufferID() const
-{
-    return mFramebufferID;
-}
-
 void FramebufferGL::updateDefaultFramebufferID(GLuint framebufferID)
 {
     // We only update framebufferID for a default frambuffer, and the framebufferID is created
     // externally. ANGLE doesn't owne it.
     ASSERT(isDefault());
     mFramebufferID = framebufferID;
-}
-
-bool FramebufferGL::isDefault() const
-{
-    return mIsDefault;
 }
 
 bool FramebufferGL::hasEmulatedAlphaChannelTextureAttachment() const
@@ -1383,7 +1389,7 @@ void FramebufferGL::syncClearState(const gl::Context *context, GLbitfield mask)
     const angle::FeaturesGL &features = GetFeaturesGL(context);
 
     if (features.doesSRGBClearsOnLinearFramebufferAttachments.enabled &&
-        (mask & GL_COLOR_BUFFER_BIT) != 0 && !mIsDefault)
+        (mask & GL_COLOR_BUFFER_BIT) != 0 && !isDefault())
     {
         bool hasSRGBAttachment = false;
         for (const auto &attachment : mState.getColorAttachments())
@@ -1399,7 +1405,7 @@ void FramebufferGL::syncClearState(const gl::Context *context, GLbitfield mask)
     }
     else
     {
-        stateManager->setFramebufferSRGBEnabled(context, !mIsDefault);
+        stateManager->setFramebufferSRGBEnabled(context, !isDefault());
     }
 }
 
@@ -1411,7 +1417,7 @@ void FramebufferGL::syncClearBufferState(const gl::Context *context,
     const angle::FeaturesGL &features = GetFeaturesGL(context);
 
     if (features.doesSRGBClearsOnLinearFramebufferAttachments.enabled && buffer == GL_COLOR &&
-        !mIsDefault)
+        !isDefault())
     {
         // If doing a clear on a color buffer, set SRGB blend enabled only if the color buffer
         // is an SRGB format.
@@ -1435,7 +1441,7 @@ void FramebufferGL::syncClearBufferState(const gl::Context *context,
     }
     else
     {
-        stateManager->setFramebufferSRGBEnabled(context, !mIsDefault);
+        stateManager->setFramebufferSRGBEnabled(context, !isDefault());
     }
 }
 
@@ -1444,7 +1450,7 @@ bool FramebufferGL::modifyInvalidateAttachmentsForEmulatedDefaultFBO(
     const GLenum *attachments,
     std::vector<GLenum> *modifiedAttachments) const
 {
-    bool needsModification = mIsDefault && mFramebufferID != 0;
+    bool needsModification = isDefault() && mFramebufferID != 0;
     if (!needsModification)
     {
         return false;

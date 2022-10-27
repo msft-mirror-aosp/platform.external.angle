@@ -18,10 +18,12 @@
 #include "common/Optional.h"
 #include "common/utilities.h"
 #include "libANGLE/renderer/ProgramImpl.h"
+#include "libANGLE/renderer/ShaderInterfaceVariableInfoMap.h"
 #include "libANGLE/renderer/glslang_wrapper_utils.h"
 #include "libANGLE/renderer/metal/mtl_buffer_pool.h"
 #include "libANGLE/renderer/metal/mtl_command_buffer.h"
 #include "libANGLE/renderer/metal/mtl_common.h"
+#include "libANGLE/renderer/metal/mtl_context_device.h"
 #include "libANGLE/renderer/metal/mtl_glslang_mtl_utils.h"
 #include "libANGLE/renderer/metal/mtl_resources.h"
 #include "libANGLE/renderer/metal/mtl_state_cache.h"
@@ -130,7 +132,7 @@ class ProgramMtl : public ProgramImpl, public mtl::RenderPipelineCacheSpecialize
     void getUniformuiv(const gl::Context *context, GLint location, GLuint *params) const override;
 
     // Override mtl::RenderPipelineCacheSpecializeShaderFactory
-    angle::Result getSpecializedShader(mtl::Context *context,
+    angle::Result getSpecializedShader(ContextMtl *context,
                                        gl::ShaderType shaderType,
                                        const mtl::RenderPipelineDesc &renderPipelineDesc,
                                        id<MTLFunction> *shaderOut) override;
@@ -138,7 +140,7 @@ class ProgramMtl : public ProgramImpl, public mtl::RenderPipelineCacheSpecialize
                               const mtl::RenderPipelineDesc &renderPipelineDesc) override;
 
     angle::Result createMslShaderLib(
-        mtl::Context *context,
+        ContextMtl *context,
         gl::ShaderType shaderType,
         gl::InfoLog &infoLog,
         mtl::TranslatedShaderInfo *translatedMslInfo,
@@ -214,7 +216,7 @@ class ProgramMtl : public ProgramImpl, public mtl::RenderPipelineCacheSpecialize
     void saveShaderInternalInfo(gl::BinaryOutputStream *stream);
     void loadShaderInternalInfo(gl::BinaryInputStream *stream);
 
-    void linkUpdateHasFlatAttributes();
+    void linkUpdateHasFlatAttributes(const gl::Context *context);
 
 #if ANGLE_ENABLE_METAL_SPIRV
 
@@ -227,7 +229,7 @@ class ProgramMtl : public ProgramImpl, public mtl::RenderPipelineCacheSpecialize
                                  const gl::ProgramLinkedResources &resources,
                                  gl::InfoLog &infoLog);
 
-    void linkResources(const gl::ProgramLinkedResources &resources);
+    void linkResources(const gl::Context *context, const gl::ProgramLinkedResources &resources);
     angle::Result linkImpl(const gl::Context *glContext,
                            const gl::ProgramLinkedResources &resources,
                            gl::InfoLog &infoLog);

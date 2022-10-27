@@ -42,6 +42,30 @@ bool IsIndex(TIntermTyped &expr)
     return expr.getAsSwizzleNode();
 }
 
+bool IsCompoundAssignment(TOperator op)
+{
+    switch (op)
+    {
+        case EOpAddAssign:
+        case EOpSubAssign:
+        case EOpMulAssign:
+        case EOpVectorTimesMatrixAssign:
+        case EOpVectorTimesScalarAssign:
+        case EOpMatrixTimesScalarAssign:
+        case EOpMatrixTimesMatrixAssign:
+        case EOpDivAssign:
+        case EOpIModAssign:
+        case EOpBitShiftLeftAssign:
+        case EOpBitShiftRightAssign:
+        case EOpBitwiseAndAssign:
+        case EOpBitwiseXorAssign:
+        case EOpBitwiseOrAssign:
+            return true;
+        default:
+            return false;
+    }
+}
+
 bool ViewBinaryChain(TOperator op, TIntermTyped &node, std::vector<TIntermTyped *> &out)
 {
     TIntermBinary *binary = node.getAsBinaryNode();
@@ -425,10 +449,10 @@ class Separator : public TIntermRebuild
             return node;
         }
 
-        const bool isAssign    = IsAssignment(op);
-        TIntermTyped *newLeft  = pullMappedExpr(left, false);
-        TIntermTyped *newRight = pullMappedExpr(right, isAssign);
-
+        const bool isAssign         = IsAssignment(op);
+        const bool isCompoundAssign = IsCompoundAssignment(op);
+        TIntermTyped *newLeft       = pullMappedExpr(left, false);
+        TIntermTyped *newRight      = pullMappedExpr(right, isAssign && !isCompoundAssign);
         if (op == TOperator::EOpComma)
         {
             pushBinding(node, *newRight);
@@ -473,8 +497,9 @@ class Separator : public TIntermRebuild
         TIntermTyped *else_ = node.getFalseExpression();
 
         const Name name = mIdGen.createNewName();
-        auto *var =
-            new TVariable(&mSymbolTable, name.rawName(), &node.getType(), name.symbolType());
+        TType *newType  = new TType(node.getType());
+        newType->setInterfaceBlock(nullptr);
+        auto *var = new TVariable(&mSymbolTable, name.rawName(), newType, name.symbolType());
 
         TIntermTyped *newElse   = pullMappedExpr(else_, false);
         TIntermBlock *elseBlock = &buildBlockWithTailAssign(*var, *newElse);

@@ -287,7 +287,10 @@ class ProgramState final : angle::NonCopyable
     const RangeUI &getDefaultUniformRange() const { return mExecutable->getDefaultUniformRange(); }
     const RangeUI &getSamplerUniformRange() const { return mExecutable->getSamplerUniformRange(); }
     const RangeUI &getImageUniformRange() const { return mExecutable->getImageUniformRange(); }
-    const RangeUI &getAtomicCounterUniformRange() const { return mAtomicCounterUniformRange; }
+    const RangeUI &getAtomicCounterUniformRange() const
+    {
+        return mExecutable->getAtomicCounterUniformRange();
+    }
     const RangeUI &getFragmentInoutRange() const { return mExecutable->getFragmentInoutRange(); }
 
     const std::vector<TransformFeedbackVarying> &getLinkedTransformFeedbackVaryings() const
@@ -340,7 +343,6 @@ class ProgramState final : angle::NonCopyable
     }
 
     bool hasImages() const { return !getImageBindings().empty(); }
-    bool hasEarlyFragmentTestsOptimization() const { return mEarlyFramentTestsOptimization; }
     rx::SpecConstUsageBits getSpecConstUsageBits() const { return mSpecConstUsageBits; }
 
     // A Program can only either be graphics or compute, but never both, so it
@@ -368,8 +370,8 @@ class ProgramState final : angle::NonCopyable
     friend class Program;
 
     void updateActiveSamplers();
-    void updateProgramInterfaceInputs();
-    void updateProgramInterfaceOutputs();
+    void updateProgramInterfaceInputs(const Context *context);
+    void updateProgramInterfaceOutputs(const Context *context);
 
     // Scans the sampler bindings for type conflicts with sampler 'textureUnitIndex'.
     void setSamplerUniformTextureTypeAndFormat(size_t textureUnitIndex);
@@ -385,11 +387,9 @@ class ProgramState final : angle::NonCopyable
 
     std::vector<VariableLocation> mUniformLocations;
     std::vector<BufferVariable> mBufferVariables;
-    RangeUI mAtomicCounterUniformRange;
 
     bool mBinaryRetrieveableHint;
     bool mSeparable;
-    bool mEarlyFramentTestsOptimization;
     rx::SpecConstUsageBits mSpecConstUsageBits;
 
     // ANGLE_multiview.
@@ -398,7 +398,7 @@ class ProgramState final : angle::NonCopyable
     // GL_ANGLE_multi_draw
     int mDrawIDLocation;
 
-    // GL_ANGLE_base_vertex_base_instance
+    // GL_ANGLE_base_vertex_base_instance_shader_builtin
     int mBaseVertexLocation;
     int mBaseInstanceLocation;
     // Cached value of base vertex and base instance
@@ -439,7 +439,7 @@ class Program final : public LabeledObject, public angle::Subject
 
     ShaderProgramID id() const;
 
-    void setLabel(const Context *context, const std::string &label) override;
+    angle::Result setLabel(const Context *context, const std::string &label) override;
     const std::string &getLabel() const override;
 
     ANGLE_INLINE rx::ProgramImpl *getImplementation() const
@@ -600,7 +600,8 @@ class Program final : public LabeledObject, public angle::Subject
     void getUniformiv(const Context *context, UniformLocation location, GLint *params) const;
     void getUniformuiv(const Context *context, UniformLocation location, GLuint *params) const;
 
-    void getActiveUniformBlockName(const UniformBlockIndex blockIndex,
+    void getActiveUniformBlockName(const Context *context,
+                                   const UniformBlockIndex blockIndex,
                                    GLsizei bufSize,
                                    GLsizei *length,
                                    GLchar *blockName) const;
@@ -630,6 +631,7 @@ class Program final : public LabeledObject, public angle::Subject
     GLint getActiveUniformBlockMaxNameLength() const;
     GLint getActiveShaderStorageBlockMaxNameLength() const;
 
+    const std::vector<LinkedUniform> &getUniforms() const { return mState.getUniforms(); }
     GLuint getUniformBlockIndex(const std::string &name) const;
     GLuint getShaderStorageBlockIndex(const std::string &name) const;
 
@@ -793,23 +795,14 @@ class Program final : public LabeledObject, public angle::Subject
 
     angle::Result linkImpl(const Context *context);
 
-    bool linkValidateShaders(InfoLog &infoLog);
+    bool linkValidateShaders(const Context *context, InfoLog &infoLog);
     bool linkAttributes(const Context *context, InfoLog &infoLog);
-    bool linkInterfaceBlocks(const Caps &caps,
-                             const Version &version,
-                             bool webglCompatibility,
-                             InfoLog &infoLog,
-                             GLuint *combinedShaderStorageBlocksCount);
-    bool linkVaryings(InfoLog &infoLog) const;
+    bool linkVaryings(const Context *context, InfoLog &infoLog) const;
 
-    bool linkUniforms(const Caps &caps,
-                      const Version &version,
-                      InfoLog &infoLog,
-                      const ProgramAliasedBindings &uniformLocationBindings,
-                      GLuint *combinedImageUniformsCount,
-                      std::vector<UnusedUniform> *unusedUniforms);
-    void linkSamplerAndImageBindings(GLuint *combinedImageUniformsCount);
-    bool linkAtomicCounterBuffers();
+    bool linkUniforms(const Context *context,
+                      std::vector<UnusedUniform> *unusedUniformsOutOrNull,
+                      GLuint *combinedImageUniformsOut,
+                      InfoLog &infoLog);
 
     void updateLinkedShaderStages();
 
@@ -859,6 +852,21 @@ class Program final : public LabeledObject, public angle::Subject
 
     void postResolveLink(const gl::Context *context);
 
+    template <typename UniformT,
+              GLint UniformSize,
+              void (rx::ProgramImpl::*SetUniformFunc)(GLint, GLsizei, const UniformT *)>
+    void setUniformGeneric(UniformLocation location, GLsizei count, const UniformT *v);
+
+    template <
+        typename UniformT,
+        GLint MatrixC,
+        GLint MatrixR,
+        void (rx::ProgramImpl::*SetUniformMatrixFunc)(GLint, GLsizei, GLboolean, const UniformT *)>
+    void setUniformMatrixGeneric(UniformLocation location,
+                                 GLsizei count,
+                                 GLboolean transpose,
+                                 const UniformT *v);
+
     rx::Serial mSerial;
     ProgramState mState;
     rx::ProgramImpl *mProgram;
@@ -881,6 +889,8 @@ class Program final : public LabeledObject, public angle::Subject
     const ShaderProgramID mHandle;
 
     DirtyBits mDirtyBits;
+
+    std::mutex mHistogramMutex;
 };
 }  // namespace gl
 

@@ -85,7 +85,10 @@ struct FunctionsEGL::EGLDispatchTable
           getFrameTimestampSupportedANDROIDPtr(nullptr),
           getFrameTimestampsANDROIDPtr(nullptr),
 
-          dupNativeFenceFDANDROIDPtr(nullptr)
+          dupNativeFenceFDANDROIDPtr(nullptr),
+
+          queryDmaBufFormatsEXTPtr(nullptr),
+          queryDmaBufModifiersEXTPtr(nullptr)
     {}
 
     // 1.0
@@ -148,6 +151,10 @@ struct FunctionsEGL::EGLDispatchTable
 
     // EGL_ANDROID_native_fence_sync
     PFNEGLDUPNATIVEFENCEFDANDROIDPROC dupNativeFenceFDANDROIDPtr;
+
+    // EGL_EXT_image_dma_buf_import_modifiers
+    PFNEGLQUERYDMABUFFORMATSEXTPROC queryDmaBufFormatsEXTPtr;
+    PFNEGLQUERYDMABUFMODIFIERSEXTPROC queryDmaBufModifiersEXTPtr;
 };
 
 FunctionsEGL::FunctionsEGL()
@@ -195,13 +202,22 @@ egl::Error FunctionsEGL::initialize(EGLNativeDisplayType nativeDisplay)
     ANGLE_GET_PROC_OR_ERROR(&mFnPtrs->swapIntervalPtr, eglSwapInterval);
 
     mEGLDisplay = mFnPtrs->getDisplayPtr(nativeDisplay);
-    if (mEGLDisplay == EGL_NO_DISPLAY)
+    if (mEGLDisplay != EGL_NO_DISPLAY)
     {
-        return egl::EglNotInitialized() << "Failed to get system egl display";
+        if (mFnPtrs->initializePtr(mEGLDisplay, &majorVersion, &minorVersion) != EGL_TRUE)
+        {
+            return egl::Error(mFnPtrs->getErrorPtr(), "Failed to initialize system egl");
+        }
     }
-    if (mFnPtrs->initializePtr(mEGLDisplay, &majorVersion, &minorVersion) != EGL_TRUE)
+    else
     {
-        return egl::Error(mFnPtrs->getErrorPtr(), "Failed to initialize system egl");
+        // If no display was available, try to fallback to the first available
+        // native device object's display.
+        mEGLDisplay = getNativeDisplay(&majorVersion, &minorVersion);
+        if (mEGLDisplay == EGL_NO_DISPLAY)
+        {
+            return egl::EglNotInitialized() << "Failed to get system egl display";
+        }
     }
     if (majorVersion < 1 || (majorVersion == 1 && minorVersion < 4))
     {
@@ -217,7 +233,7 @@ egl::Error FunctionsEGL::initialize(EGLNativeDisplayType nativeDisplay)
     const char *extensions = queryString(EGL_EXTENSIONS);
     if (!extensions)
     {
-        return egl::Error(mFnPtrs->getErrorPtr(), "Faild to query extensions in system egl");
+        return egl::Error(mFnPtrs->getErrorPtr(), "Failed to query extensions in system egl");
     }
     angle::SplitStringAlongWhitespace(extensions, &mExtensions);
 
@@ -282,6 +298,28 @@ egl::Error FunctionsEGL::initialize(EGLNativeDisplayType nativeDisplay)
         }
     }
 
+    if (hasExtension("EGL_EXT_image_dma_buf_import_modifiers"))
+    {
+        // Some drivers, notably older versions of ANGLE, announce this extension without
+        // implementing the following functions. Fail softly in such cases.
+        // See anglebug.com/7664 for details.
+        if (!SetPtr(&mFnPtrs->queryDmaBufFormatsEXTPtr,
+                    getProcAddress("eglQueryDmaBufFormatsEXT")) ||
+            !SetPtr(&mFnPtrs->queryDmaBufModifiersEXTPtr,
+                    getProcAddress("eglQueryDmaBufModifiersEXT")))
+        {
+            mFnPtrs->queryDmaBufFormatsEXTPtr   = nullptr;
+            mFnPtrs->queryDmaBufModifiersEXTPtr = nullptr;
+            mExtensions.erase(
+                std::remove_if(mExtensions.begin(), mExtensions.end(),
+                               [](const std::string &extension) {
+                                   return extension.compare(
+                                              "EGL_EXT_image_dma_buf_import_modifiers") == 0;
+                               }),
+                mExtensions.end());
+        }
+    }
+
 #undef ANGLE_GET_PROC_OR_ERROR
 
     return egl::NoError();
@@ -295,6 +333,64 @@ egl::Error FunctionsEGL::terminate()
         return egl::NoError();
     }
     return egl::Error(mFnPtrs->getErrorPtr());
+}
+
+EGLDisplay FunctionsEGL::getNativeDisplay(int *major, int *minor)
+{
+    // We haven't queried extensions yet since some platforms require a display
+    // to do so. We'll query them now since we need some for this fallback, and
+    // then re-query them again later once we have the display.
+    const char *extensions = queryString(EGL_EXTENSIONS);
+    if (!extensions)
+    {
+        return EGL_NO_DISPLAY;
+    }
+    angle::SplitStringAlongWhitespace(extensions, &mExtensions);
+
+    // This fallback mechanism makes use of:
+    // - EGL_EXT_device_enumeration or EGL_EXT_device_base for eglQueryDevicesEXT
+    // - EGL_EXT_platform_base for eglGetPlatformDisplayEXT
+    // - EGL_EXT_platform_device for EGL_PLATFORM_DEVICE_EXT
+    PFNEGLQUERYDEVICESEXTPROC queryDevices;
+    PFNEGLGETPLATFORMDISPLAYEXTPROC getPlatformDisplay;
+    bool hasQueryDevicesEXT =
+        hasExtension("EGL_EXT_device_enumeration") || hasExtension("EGL_EXT_device_base");
+    bool hasPlatformBaseEXT   = hasExtension("EGL_EXT_platform_base");
+    bool hasPlatformDeviceEXT = hasExtension("EGL_EXT_platform_device");
+    if (!hasQueryDevicesEXT || !hasPlatformBaseEXT || !hasPlatformDeviceEXT)
+    {
+        return EGL_NO_DISPLAY;
+    }
+    if (!SetPtr(&queryDevices, getProcAddress("eglQueryDevicesEXT")) ||
+        !SetPtr(&getPlatformDisplay, getProcAddress("eglGetPlatformDisplayEXT")))
+    {
+        return EGL_NO_DISPLAY;
+    }
+
+    // Get a list of native device objects.
+    const EGLint kMaxDevices = 32;
+    EGLDeviceEXT eglDevices[kMaxDevices];
+    EGLint numDevices = 0;
+    if (!queryDevices(kMaxDevices, eglDevices, &numDevices))
+    {
+        return EGL_NO_DISPLAY;
+    }
+
+    // Look for the first native device that gives us a valid display.
+    for (EGLint i = 0; i < numDevices; i++)
+    {
+        EGLDisplay display = getPlatformDisplay(EGL_PLATFORM_DEVICE_EXT, eglDevices[i], nullptr);
+        if (mFnPtrs->getErrorPtr() != EGL_SUCCESS)
+        {
+            continue;
+        }
+        if (mFnPtrs->initializePtr(display, major, minor) == EGL_TRUE)
+        {
+            return display;
+        }
+    }
+
+    return EGL_NO_DISPLAY;
 }
 
 class FunctionsGLEGL : public FunctionsGL
@@ -526,6 +622,23 @@ EGLBoolean FunctionsEGL::getFrameTimestampsANDROID(EGLSurface surface,
 EGLint FunctionsEGL::dupNativeFenceFDANDROID(EGLSync sync) const
 {
     return mFnPtrs->dupNativeFenceFDANDROIDPtr(mEGLDisplay, sync);
+}
+
+EGLint FunctionsEGL::queryDmaBufFormatsEXT(EGLint maxFormats,
+                                           EGLint *formats,
+                                           EGLint *numFormats) const
+{
+    return mFnPtrs->queryDmaBufFormatsEXTPtr(mEGLDisplay, maxFormats, formats, numFormats);
+}
+
+EGLint FunctionsEGL::queryDmaBufModifiersEXT(EGLint format,
+                                             EGLint maxModifiers,
+                                             EGLuint64KHR *modifiers,
+                                             EGLBoolean *externalOnly,
+                                             EGLint *numModifiers) const
+{
+    return mFnPtrs->queryDmaBufModifiersEXTPtr(mEGLDisplay, format, maxModifiers, modifiers,
+                                               externalOnly, numModifiers);
 }
 
 }  // namespace rx

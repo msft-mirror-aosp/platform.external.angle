@@ -20,6 +20,45 @@
 
 extern "C" {
 
+// GL_AMD_performance_monitor
+ANGLE_EXPORT void GL_APIENTRY GL_BeginPerfMonitorAMD(GLuint monitor);
+ANGLE_EXPORT void GL_APIENTRY GL_DeletePerfMonitorsAMD(GLsizei n, GLuint *monitors);
+ANGLE_EXPORT void GL_APIENTRY GL_EndPerfMonitorAMD(GLuint monitor);
+ANGLE_EXPORT void GL_APIENTRY GL_GenPerfMonitorsAMD(GLsizei n, GLuint *monitors);
+ANGLE_EXPORT void GL_APIENTRY GL_GetPerfMonitorCounterDataAMD(GLuint monitor,
+                                                              GLenum pname,
+                                                              GLsizei dataSize,
+                                                              GLuint *data,
+                                                              GLint *bytesWritten);
+ANGLE_EXPORT void GL_APIENTRY GL_GetPerfMonitorCounterInfoAMD(GLuint group,
+                                                              GLuint counter,
+                                                              GLenum pname,
+                                                              void *data);
+ANGLE_EXPORT void GL_APIENTRY GL_GetPerfMonitorCounterStringAMD(GLuint group,
+                                                                GLuint counter,
+                                                                GLsizei bufSize,
+                                                                GLsizei *length,
+                                                                GLchar *counterString);
+ANGLE_EXPORT void GL_APIENTRY GL_GetPerfMonitorCountersAMD(GLuint group,
+                                                           GLint *numCounters,
+                                                           GLint *maxActiveCounters,
+                                                           GLsizei counterSize,
+                                                           GLuint *counters);
+ANGLE_EXPORT void GL_APIENTRY GL_GetPerfMonitorGroupStringAMD(GLuint group,
+                                                              GLsizei bufSize,
+                                                              GLsizei *length,
+                                                              GLchar *groupString);
+ANGLE_EXPORT void GL_APIENTRY GL_GetPerfMonitorGroupsAMD(GLint *numGroups,
+                                                         GLsizei groupsSize,
+                                                         GLuint *groups);
+ANGLE_EXPORT void GL_APIENTRY GL_SelectPerfMonitorCountersAMD(GLuint monitor,
+                                                              GLboolean enable,
+                                                              GLuint group,
+                                                              GLint numCounters,
+                                                              GLuint *counterList);
+
+// GL_ANDROID_extension_pack_es31a
+
 // GL_ANGLE_base_vertex_base_instance
 ANGLE_EXPORT void GL_APIENTRY GL_DrawArraysInstancedBaseInstanceANGLE(GLenum mode,
                                                                       GLint first,
@@ -31,7 +70,7 @@ GL_DrawElementsInstancedBaseVertexBaseInstanceANGLE(GLenum mode,
                                                     GLsizei count,
                                                     GLenum type,
                                                     const GLvoid *indices,
-                                                    GLsizei instanceCounts,
+                                                    GLsizei instanceCount,
                                                     GLint baseVertex,
                                                     GLuint baseInstance);
 ANGLE_EXPORT void GL_APIENTRY
@@ -134,6 +173,9 @@ ANGLE_EXPORT void GL_APIENTRY GL_DrawElementsInstancedANGLE(GLenum mode,
                                                             GLsizei primcount);
 ANGLE_EXPORT void GL_APIENTRY GL_VertexAttribDivisorANGLE(GLuint index, GLuint divisor);
 
+// GL_ANGLE_logic_op
+ANGLE_EXPORT void GL_APIENTRY GL_LogicOpANGLE(GLenum opcode);
+
 // GL_ANGLE_memory_object_flags
 ANGLE_EXPORT void GL_APIENTRY GL_TexStorageMemFlags2DANGLE(GLenum target,
                                                            GLsizei levels,
@@ -143,7 +185,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_TexStorageMemFlags2DANGLE(GLenum target,
                                                            GLuint memory,
                                                            GLuint64 offset,
                                                            GLbitfield createFlags,
-                                                           GLbitfield usageFlags);
+                                                           GLbitfield usageFlags,
+                                                           const void *imageCreateInfoPNext);
 ANGLE_EXPORT void GL_APIENTRY
 GL_TexStorageMemFlags2DMultisampleANGLE(GLenum target,
                                         GLsizei samples,
@@ -154,7 +197,8 @@ GL_TexStorageMemFlags2DMultisampleANGLE(GLenum target,
                                         GLuint memory,
                                         GLuint64 offset,
                                         GLbitfield createFlags,
-                                        GLbitfield usageFlags);
+                                        GLbitfield usageFlags,
+                                        const void *imageCreateInfoPNext);
 ANGLE_EXPORT void GL_APIENTRY GL_TexStorageMemFlags3DANGLE(GLenum target,
                                                            GLsizei levels,
                                                            GLenum internalFormat,
@@ -164,7 +208,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_TexStorageMemFlags3DANGLE(GLenum target,
                                                            GLuint memory,
                                                            GLuint64 offset,
                                                            GLbitfield createFlags,
-                                                           GLbitfield usageFlags);
+                                                           GLbitfield usageFlags,
+                                                           const void *imageCreateInfoPNext);
 ANGLE_EXPORT void GL_APIENTRY
 GL_TexStorageMemFlags3DMultisampleANGLE(GLenum target,
                                         GLsizei samples,
@@ -176,7 +221,8 @@ GL_TexStorageMemFlags3DMultisampleANGLE(GLenum target,
                                         GLuint memory,
                                         GLuint64 offset,
                                         GLbitfield createFlags,
-                                        GLbitfield usageFlags);
+                                        GLbitfield usageFlags,
+                                        const void *imageCreateInfoPNext);
 
 // GL_ANGLE_memory_object_fuchsia
 ANGLE_EXPORT void GL_APIENTRY GL_ImportMemoryZirconHandleANGLE(GLuint memory,
@@ -588,10 +634,25 @@ ANGLE_EXPORT void GL_APIENTRY GL_GetQueryObjectui64vRobustANGLE(GLuint id,
                                                                 GLsizei *length,
                                                                 GLuint64 *params);
 
+// GL_ANGLE_robust_resource_initialization
+
 // GL_ANGLE_semaphore_fuchsia
 ANGLE_EXPORT void GL_APIENTRY GL_ImportSemaphoreZirconHandleANGLE(GLuint semaphore,
                                                                   GLenum handleType,
                                                                   GLuint handle);
+
+// GL_ANGLE_shader_pixel_local_storage
+ANGLE_EXPORT void GL_APIENTRY GL_FramebufferMemorylessPixelLocalStorageANGLE(GLint plane,
+                                                                             GLenum internalformat);
+ANGLE_EXPORT void GL_APIENTRY GL_FramebufferTexturePixelLocalStorageANGLE(GLint plane,
+                                                                          GLuint backingtexture,
+                                                                          GLint level,
+                                                                          GLint layer);
+ANGLE_EXPORT void GL_APIENTRY GL_BeginPixelLocalStorageANGLE(GLsizei planes,
+                                                             const GLenum *loadops,
+                                                             const void *cleardata);
+ANGLE_EXPORT void GL_APIENTRY GL_EndPixelLocalStorageANGLE();
+ANGLE_EXPORT void GL_APIENTRY GL_PixelLocalStorageBarrierANGLE();
 
 // GL_ANGLE_texture_compression_dxt3
 
@@ -622,9 +683,17 @@ ANGLE_EXPORT void GL_APIENTRY GL_SampleMaskiANGLE(GLuint maskNumber, GLbitfield 
 
 // GL_ANGLE_translated_shader_source
 ANGLE_EXPORT void GL_APIENTRY GL_GetTranslatedShaderSourceANGLE(GLuint shader,
-                                                                GLsizei bufsize,
+                                                                GLsizei bufSize,
                                                                 GLsizei *length,
                                                                 GLchar *source);
+
+// GL_ANGLE_vulkan_image
+ANGLE_EXPORT void GL_APIENTRY GL_AcquireTexturesANGLE(GLuint numTextures,
+                                                      const GLuint *textures,
+                                                      const GLenum *layouts);
+ANGLE_EXPORT void GL_APIENTRY GL_ReleaseTexturesANGLE(GLuint numTextures,
+                                                      const GLuint *textures,
+                                                      GLenum *layouts);
 
 // GL_APPLE_clip_distance
 
@@ -681,6 +750,27 @@ ANGLE_EXPORT void GL_APIENTRY GL_EGLImageTargetTextureStorageEXT(GLuint texture,
                                                                  const GLint *attrib_list);
 
 // GL_EXT_YUV_target
+
+// GL_EXT_base_instance
+ANGLE_EXPORT void GL_APIENTRY GL_DrawArraysInstancedBaseInstanceEXT(GLenum mode,
+                                                                    GLint first,
+                                                                    GLsizei count,
+                                                                    GLsizei instancecount,
+                                                                    GLuint baseinstance);
+ANGLE_EXPORT void GL_APIENTRY GL_DrawElementsInstancedBaseInstanceEXT(GLenum mode,
+                                                                      GLsizei count,
+                                                                      GLenum type,
+                                                                      const void *indices,
+                                                                      GLsizei instancecount,
+                                                                      GLuint baseinstance);
+ANGLE_EXPORT void GL_APIENTRY
+GL_DrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode,
+                                                  GLsizei count,
+                                                  GLenum type,
+                                                  const void *indices,
+                                                  GLsizei instancecount,
+                                                  GLint basevertex,
+                                                  GLuint baseinstance);
 
 // GL_EXT_blend_func_extended
 ANGLE_EXPORT void GL_APIENTRY GL_BindFragDataLocationEXT(GLuint program,
@@ -804,7 +894,7 @@ ANGLE_EXPORT void GL_APIENTRY GL_MultiDrawElementsBaseVertexEXT(GLenum mode,
                                                                 const GLsizei *count,
                                                                 GLenum type,
                                                                 const void *const *indices,
-                                                                GLsizei primcount,
+                                                                GLsizei drawcount,
                                                                 const GLint *basevertex);
 
 // GL_EXT_external_buffer
@@ -905,6 +995,17 @@ ANGLE_EXPORT void GL_APIENTRY GL_ImportMemoryFdEXT(GLuint memory,
                                                    GLenum handleType,
                                                    GLint fd);
 
+// GL_EXT_multi_draw_indirect
+ANGLE_EXPORT void GL_APIENTRY GL_MultiDrawArraysIndirectEXT(GLenum mode,
+                                                            const void *indirect,
+                                                            GLsizei drawcount,
+                                                            GLsizei stride);
+ANGLE_EXPORT void GL_APIENTRY GL_MultiDrawElementsIndirectEXT(GLenum mode,
+                                                              GLenum type,
+                                                              const void *indirect,
+                                                              GLsizei drawcount,
+                                                              GLsizei stride);
+
 // GL_EXT_multisampled_render_to_texture
 ANGLE_EXPORT void GL_APIENTRY GL_FramebufferTexture2DMultisampleEXT(GLenum target,
                                                                     GLenum attachment,
@@ -917,6 +1018,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_RenderbufferStorageMultisampleEXT(GLenum target
                                                                    GLenum internalformat,
                                                                    GLsizei width,
                                                                    GLsizei height);
+
+// GL_EXT_multisampled_render_to_texture2
 
 // GL_EXT_occlusion_query_boolean
 
@@ -1133,6 +1236,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_UseProgramStagesEXT(GLuint pipeline,
                                                      GLuint program);
 ANGLE_EXPORT void GL_APIENTRY GL_ValidateProgramPipelineEXT(GLuint pipeline);
 
+// GL_EXT_shader_framebuffer_fetch
+
 // GL_EXT_shader_framebuffer_fetch_non_coherent
 ANGLE_EXPORT void GL_APIENTRY GL_FramebufferFetchBarrierEXT();
 
@@ -1294,6 +1399,14 @@ ANGLE_EXPORT void GL_APIENTRY GL_MaxShaderCompilerThreadsKHR(GLuint count);
 
 // GL_KHR_texture_compression_astc_sliced_3d
 
+// GL_MESA_framebuffer_flip_y
+ANGLE_EXPORT void GL_APIENTRY GL_FramebufferParameteriMESA(GLenum target,
+                                                           GLenum pname,
+                                                           GLint param);
+ANGLE_EXPORT void GL_APIENTRY GL_GetFramebufferParameterivMESA(GLenum target,
+                                                               GLenum pname,
+                                                               GLint *params);
+
 // GL_NV_fence
 ANGLE_EXPORT void GL_APIENTRY GL_DeleteFencesNV(GLsizei n, const GLuint *fences);
 ANGLE_EXPORT void GL_APIENTRY GL_FinishFenceNV(GLuint fence);
@@ -1319,6 +1432,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_BlitFramebufferNV(GLint srcX0,
 
 // GL_NV_read_depth
 
+// GL_NV_read_depth_stencil
+
 // GL_NV_read_stencil
 
 // GL_NV_robustness_video_memory_purge
@@ -1335,6 +1450,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_EGLImageTargetTexture2DOES(GLenum target, GLegl
 // GL_OES_EGL_image_external_essl3
 
 // GL_OES_compressed_ETC1_RGB8_texture
+
+// GL_OES_compressed_paletted_texture
 
 // GL_OES_copy_image
 ANGLE_EXPORT void GL_APIENTRY GL_CopyImageSubDataOES(GLuint srcName,
@@ -1487,6 +1604,16 @@ ANGLE_EXPORT void GL_APIENTRY GL_PointSizePointerOES(GLenum type,
                                                      const void *pointer);
 
 // GL_OES_point_sprite
+
+// GL_OES_primitive_bounding_box
+ANGLE_EXPORT void GL_APIENTRY GL_PrimitiveBoundingBoxOES(GLfloat minX,
+                                                         GLfloat minY,
+                                                         GLfloat minZ,
+                                                         GLfloat minW,
+                                                         GLfloat maxX,
+                                                         GLfloat maxY,
+                                                         GLfloat maxZ,
+                                                         GLfloat maxW);
 
 // GL_OES_query_matrix
 ANGLE_EXPORT GLbitfield GL_APIENTRY GL_QueryMatrixxOES(GLfixed *mantissa, GLint *exponent);
@@ -1653,6 +1780,9 @@ ANGLE_EXPORT void GL_APIENTRY GL_FramebufferTextureMultiviewOVR(GLenum target,
                                                                 GLsizei numViews);
 
 // GL_OVR_multiview2
+
+// GL_QCOM_shading_rate
+ANGLE_EXPORT void GL_APIENTRY GL_ShadingRateQCOM(GLenum rate);
 }  // extern "C"
 
 #endif  // LIBGLESV2_ENTRY_POINTS_GLES_EXT_AUTOGEN_H_

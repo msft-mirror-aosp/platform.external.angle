@@ -9,6 +9,7 @@
 #include "libANGLE/renderer/gl/egl/DisplayEGL.h"
 
 #include "common/debug.h"
+#include "common/system_utils.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Display.h"
 #include "libANGLE/Surface.h"
@@ -495,6 +496,8 @@ ContextImpl *DisplayEGL::createContext(const gl::State &state,
     bool usingExternalContext = attribs.get(EGL_EXTERNAL_CONTEXT_ANGLE, EGL_FALSE) == EGL_TRUE;
     EGLAttrib virtualizationGroup =
         attribs.get(EGL_CONTEXT_VIRTUALIZATION_GROUP_ANGLE, EGL_DONT_CARE);
+    bool globalTextureShareGroup =
+        attribs.get(EGL_DISPLAY_TEXTURE_SHARE_GROUP_ANGLE, EGL_FALSE) == EGL_TRUE;
 
     std::shared_ptr<RendererEGL> renderer = mRenderer;
     if (usingExternalContext)
@@ -512,16 +515,20 @@ ContextImpl *DisplayEGL::createContext(const gl::State &state,
         renderer = mVirtualizationGroups[virtualizationGroup].lock();
         if (!renderer)
         {
+            // If the user requested a dispaly-level texture share group, all contexts must be in
+            // the same share group. Otherwise honor the user's share group request.
             EGLContext nativeShareContext = EGL_NO_CONTEXT;
-            if (shareContext)
+            if (globalTextureShareGroup)
+            {
+                nativeShareContext = mRenderer->getContext();
+            }
+            else if (shareContext)
             {
                 ContextEGL *shareContextEGL = GetImplAs<ContextEGL>(shareContext);
                 nativeShareContext          = shareContextEGL->getContext();
             }
 
-            // Create a new renderer for this context.  It only needs to share with the user's
-            // requested share context because there are no internal resources in DisplayEGL that
-            // are shared at the GL level.
+            // Create a new renderer for this context.
             egl::Error error = createRenderer(nativeShareContext, false, false, &renderer);
             if (error.isError())
             {
@@ -714,7 +721,8 @@ egl::Error DisplayEGL::makeCurrent(egl::Display *display,
                                    egl::Surface *readSurface,
                                    gl::Context *context)
 {
-    CurrentNativeContext &currentContext = mCurrentNativeContexts[std::this_thread::get_id()];
+    CurrentNativeContext &currentContext =
+        mCurrentNativeContexts[angle::GetCurrentThreadUniqueId()];
 
     EGLSurface newSurface = EGL_NO_SURFACE;
     if (drawSurface)
@@ -947,7 +955,8 @@ egl::Error DisplayEGL::createRenderer(EGLContext shareContext,
     outRenderer->reset(new RendererEGL(std::move(functionsGL), mDisplayAttributes, this, context,
                                        attribs, isExternalContext));
 
-    CurrentNativeContext &currentContext = mCurrentNativeContexts[std::this_thread::get_id()];
+    CurrentNativeContext &currentContext =
+        mCurrentNativeContexts[angle::GetCurrentThreadUniqueId()];
     if (makeNewContextCurrent)
     {
         currentContext.surface = mMockPbuffer;
@@ -1035,6 +1044,55 @@ EGLint DisplayEGL::fixSurfaceType(EGLint surfaceType) const
 const FunctionsEGL *DisplayEGL::getFunctionsEGL() const
 {
     return mEGL;
+}
+
+bool DisplayEGL::supportsDmaBufFormat(EGLint format) const
+{
+    return std::find(std::begin(mDrmFormats), std::end(mDrmFormats), format) !=
+           std::end(mDrmFormats);
+}
+
+egl::Error DisplayEGL::queryDmaBufFormats(EGLint maxFormats, EGLint *formats, EGLint *numFormats)
+
+{
+    if (!mDrmFormatsInitialized)
+    {
+        EGLint numFormatsInit = 0;
+        if (mEGL->queryDmaBufFormatsEXT(0, nullptr, &numFormatsInit) && numFormatsInit > 0)
+        {
+            mDrmFormats.resize(numFormatsInit);
+            if (!mEGL->queryDmaBufFormatsEXT(numFormatsInit, mDrmFormats.data(), &numFormatsInit))
+            {
+                mDrmFormats.resize(0);
+            }
+        }
+        mDrmFormatsInitialized = true;
+    }
+
+    EGLint formatsSize = static_cast<EGLint>(mDrmFormats.size());
+    *numFormats        = formatsSize;
+    if (maxFormats > 0)
+    {
+        // Do not copy data beyond the limits of the vector
+        maxFormats = std::min(maxFormats, formatsSize);
+        std::memcpy(formats, mDrmFormats.data(), maxFormats * sizeof(EGLint));
+    }
+
+    return egl::NoError();
+}
+
+egl::Error DisplayEGL::queryDmaBufModifiers(EGLint drmFormat,
+                                            EGLint maxModifiers,
+                                            EGLuint64KHR *modifiers,
+                                            EGLBoolean *externalOnly,
+                                            EGLint *numModifiers)
+
+{
+    if (!mEGL->queryDmaBufModifiersEXT(drmFormat, maxModifiers, modifiers, externalOnly,
+                                       numModifiers))
+        return egl::Error(mEGL->getError(), "eglQueryDmaBufModifiersEXT failed");
+
+    return egl::NoError();
 }
 
 }  // namespace rx

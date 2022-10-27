@@ -27,6 +27,7 @@
 #include "source/opt/iterator.h"
 #include "source/opt/reflect.h"
 #include "source/spirv_constant.h"
+#include "source/util/string_utils.h"
 
 namespace spvtools {
 namespace opt {
@@ -146,8 +147,7 @@ void AggressiveDCEPass::AddStores(Function* func, uint32_t ptrId) {
 bool AggressiveDCEPass::AllExtensionsSupported() const {
   // If any extension not in allowlist, return false
   for (auto& ei : get_module()->extensions()) {
-    const char* extName =
-        reinterpret_cast<const char*>(&ei.GetInOperand(0).words[0]);
+    const std::string extName = ei.GetInOperand(0).AsString();
     if (extensions_allowlist_.find(extName) == extensions_allowlist_.end())
       return false;
   }
@@ -156,11 +156,9 @@ bool AggressiveDCEPass::AllExtensionsSupported() const {
   for (auto& inst : context()->module()->ext_inst_imports()) {
     assert(inst.opcode() == SpvOpExtInstImport &&
            "Expecting an import of an extension's instruction set.");
-    const char* extension_name =
-        reinterpret_cast<const char*>(&inst.GetInOperand(0).words[0]);
-    if (0 == std::strncmp(extension_name, "NonSemantic.", 12) &&
-        0 != std::strncmp(extension_name, "NonSemantic.Shader.DebugInfo.100",
-                          32)) {
+    const std::string extension_name = inst.GetInOperand(0).AsString();
+    if (spvtools::utils::starts_with(extension_name, "NonSemantic.") &&
+        extension_name != "NonSemantic.Shader.DebugInfo.100") {
       return false;
     }
   }
@@ -340,23 +338,25 @@ void AggressiveDCEPass::ProcessWorkList(Function* func) {
   }
 }
 
+void AggressiveDCEPass::AddDebugScopeToWorkList(const Instruction* inst) {
+  auto scope = inst->GetDebugScope();
+  auto lex_scope_id = scope.GetLexicalScope();
+  if (lex_scope_id != kNoDebugScope)
+    AddToWorklist(get_def_use_mgr()->GetDef(lex_scope_id));
+  auto inlined_at_id = scope.GetInlinedAt();
+  if (inlined_at_id != kNoInlinedAt)
+    AddToWorklist(get_def_use_mgr()->GetDef(inlined_at_id));
+}
+
 void AggressiveDCEPass::AddDebugInstructionsToWorkList(
     const Instruction* inst) {
   for (auto& line_inst : inst->dbg_line_insts()) {
     if (line_inst.IsDebugLineInst()) {
       AddOperandsToWorkList(&line_inst);
     }
+    AddDebugScopeToWorkList(&line_inst);
   }
-
-  if (inst->GetDebugScope().GetLexicalScope() != kNoDebugScope) {
-    auto* scope =
-        get_def_use_mgr()->GetDef(inst->GetDebugScope().GetLexicalScope());
-    AddToWorklist(scope);
-  }
-  if (inst->GetDebugInlinedAt() != kNoInlinedAt) {
-    auto* inlined_at = get_def_use_mgr()->GetDef(inst->GetDebugInlinedAt());
-    AddToWorklist(inlined_at);
-  }
+  AddDebugScopeToWorkList(inst);
 }
 
 void AggressiveDCEPass::AddDecorationsToWorkList(const Instruction* inst) {
@@ -569,12 +569,7 @@ void AggressiveDCEPass::InitializeModuleScopeLiveInstructions() {
   }
   // Keep all entry points.
   for (auto& entry : get_module()->entry_points()) {
-    if (get_module()->version() >= SPV_SPIRV_VERSION_WORD(1, 4) &&
-        !preserve_interface_) {
-      // In SPIR-V 1.4 and later, entry points must list all global variables
-      // used. DCE can still remove non-input/output variables and update the
-      // interface list. Mark the entry point as live and inputs and outputs as
-      // live, but defer decisions all other interfaces.
+    if (!preserve_interface_) {
       live_insts_.Set(entry.unique_id());
       // The actual function is live always.
       AddToWorklist(
@@ -582,8 +577,9 @@ void AggressiveDCEPass::InitializeModuleScopeLiveInstructions() {
       for (uint32_t i = 3; i < entry.NumInOperands(); ++i) {
         auto* var = get_def_use_mgr()->GetDef(entry.GetSingleWordInOperand(i));
         auto storage_class = var->GetSingleWordInOperand(0u);
-        if (storage_class == SpvStorageClassInput ||
-            storage_class == SpvStorageClassOutput) {
+        // Vulkan support outputs without an associated input, but not inputs
+        // without an associated output.
+        if (storage_class == SpvStorageClassOutput) {
           AddToWorklist(var);
         }
       }
@@ -636,6 +632,16 @@ void AggressiveDCEPass::InitializeModuleScopeLiveInstructions() {
     auto dbg_none = context()->get_debug_info_mgr()->GetDebugInfoNone();
     AddToWorklist(dbg_none);
   }
+
+  // Add top level DebugInfo to worklist
+  for (auto& dbg : get_module()->ext_inst_debuginfo()) {
+    auto op = dbg.GetShader100DebugOpcode();
+    if (op == NonSemanticShaderDebugInfo100DebugCompilationUnit ||
+        op == NonSemanticShaderDebugInfo100DebugEntryPoint ||
+        op == NonSemanticShaderDebugInfo100DebugSourceContinued) {
+      AddToWorklist(&dbg);
+    }
+  }
 }
 
 Pass::Status AggressiveDCEPass::ProcessImpl() {
@@ -665,9 +671,14 @@ Pass::Status AggressiveDCEPass::ProcessImpl() {
 
   InitializeModuleScopeLiveInstructions();
 
-  // Process all entry point functions.
-  ProcessFunction pfn = [this](Function* fp) { return AggressiveDCE(fp); };
-  modified |= context()->ProcessReachableCallTree(pfn);
+  // Run |AggressiveDCE| on the remaining functions.  The order does not matter,
+  // since |AggressiveDCE| is intra-procedural.  This can mean that function
+  // will become dead if all function call to them are removed.  These dead
+  // function will still be in the module after this pass.  We expect this to be
+  // rare.
+  for (Function& fp : *context()->module()) {
+    modified |= AggressiveDCE(&fp);
+  }
 
   // If the decoration manager is kept live then the context will try to keep it
   // up to date.  ADCE deals with group decorations by changing the operands in
@@ -693,8 +704,9 @@ Pass::Status AggressiveDCEPass::ProcessImpl() {
   }
 
   // Cleanup all CFG including all unreachable blocks.
-  ProcessFunction cleanup = [this](Function* f) { return CFGCleanup(f); };
-  modified |= context()->ProcessReachableCallTree(cleanup);
+  for (Function& fp : *context()->module()) {
+    modified |= CFGCleanup(&fp);
+  }
 
   return modified ? Status::SuccessWithChange : Status::SuccessWithoutChange;
 }
@@ -885,8 +897,7 @@ bool AggressiveDCEPass::ProcessGlobalValues() {
     }
   }
 
-  if (get_module()->version() >= SPV_SPIRV_VERSION_WORD(1, 4) &&
-      !preserve_interface_) {
+  if (!preserve_interface_) {
     // Remove the dead interface variables from the entry point interface list.
     for (auto& entry : get_module()->entry_points()) {
       std::vector<Operand> new_operands;
@@ -974,6 +985,8 @@ void AggressiveDCEPass::InitExtensions() {
       "SPV_KHR_integer_dot_product",
       "SPV_EXT_shader_image_int64",
       "SPV_KHR_non_semantic_info",
+      "SPV_KHR_uniform_group_instructions",
+      "SPV_KHR_fragment_shader_barycentric",
   });
 }
 

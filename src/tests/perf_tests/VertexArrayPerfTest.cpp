@@ -19,6 +19,7 @@ enum class TestMode
 {
     BufferData,
     BindBuffer,
+    UpdateBufferData,
 };
 
 struct VertexArrayParams final : public RenderTestParams
@@ -36,9 +37,10 @@ struct VertexArrayParams final : public RenderTestParams
 
     std::string story() const override;
 
-    int numVertexArrays = 1000;
-    int numBuffers      = 5;
-    TestMode testMode   = TestMode::BufferData;
+    int numVertexArrays  = 2000;
+    int numBuffers       = 5;
+    GLuint bufferSize[5] = {384, 1028, 192, 384, 192};
+    TestMode testMode    = TestMode::BufferData;
 };
 
 std::ostream &operator<<(std::ostream &os, const VertexArrayParams &params)
@@ -57,6 +59,10 @@ std::string VertexArrayParams::story() const
     {
         strstr << "_bindbuffer";
     }
+    else if (testMode == TestMode::UpdateBufferData)
+    {
+        strstr << "_updatebufferdata";
+    }
 
     return strstr.str();
 }
@@ -72,6 +78,7 @@ class VertexArrayBenchmark : public ANGLERenderTest,
     void drawBenchmark() override;
 
     void rebindVertexArray(GLuint vertexArrayID, GLuint bufferID);
+    void updateBufferData(GLuint vertexArrayID, GLuint bufferID, GLuint bufferSize);
 
   private:
     std::vector<GLuint> mBuffers;
@@ -137,6 +144,19 @@ void VertexArrayBenchmark::rebindVertexArray(GLuint vertexArrayID, GLuint buffer
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void VertexArrayBenchmark::updateBufferData(GLuint vertexArrayID,
+                                            GLuint bufferID,
+                                            GLuint bufferSize)
+{
+    glBindVertexArray(vertexArrayID);
+    glBindBuffer(GL_ARRAY_BUFFER, bufferID);
+    glEnableVertexAttribArray(mAttribLocation);
+    glVertexAttribPointer(mAttribLocation, 1, GL_FLOAT, GL_FALSE, 4, nullptr);
+    glBufferData(GL_ARRAY_BUFFER, bufferSize, nullptr, GL_STATIC_DRAW);
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
 void VertexArrayBenchmark::destroyBenchmark()
 {
     glDeleteProgram(mProgram);
@@ -153,6 +173,15 @@ void VertexArrayBenchmark::drawBenchmark()
     {
         glBufferData(GL_ARRAY_BUFFER, 128, nullptr, GL_STATIC_DRAW);
     }
+    else if (params.testMode == TestMode::UpdateBufferData)
+    {
+        int bufferSizeIndex = 0;
+        for (GLuint vertexArray : mVertexArrays)
+        {
+            bufferSizeIndex = ((bufferSizeIndex + 1) == 5) ? 0 : (bufferSizeIndex + 1);
+            updateBufferData(vertexArray, mBuffers[0], params.bufferSize[bufferSizeIndex]);
+        }
+    }
     else
     {
         int bufferIndex = 0;
@@ -167,6 +196,13 @@ void VertexArrayBenchmark::drawBenchmark()
 TEST_P(VertexArrayBenchmark, Run)
 {
     run();
+}
+
+VertexArrayParams MetalParams()
+{
+    VertexArrayParams params;
+    params.eglParameters = egl_platform::METAL();
+    return params;
 }
 
 VertexArrayParams VulkanParams()
@@ -186,8 +222,10 @@ VertexArrayParams VulkanNullParams(TestMode testMode)
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(VertexArrayBenchmark);
 ANGLE_INSTANTIATE_TEST(VertexArrayBenchmark,
+                       MetalParams(),
                        VulkanParams(),
                        VulkanNullParams(TestMode::BindBuffer),
                        VulkanNullParams(TestMode::BufferData),
+                       VulkanNullParams(TestMode::UpdateBufferData),
                        params::Native(VertexArrayParams()));
 }  // namespace

@@ -42,6 +42,7 @@ There are a set of [dEQP](dEQP.md) expectations files in the
 [src/tests/deqp_support](../src/tests/deqp_support) directory.  Notice the format of a line and
 your choices for OS, driver, etc.  This is described in the directory's
 [README.md](../src/tests/deqp_support/README.md) file.  This includes:
+- `FLAKY` - For rare flakes
 - `FAIL` - For a test that flakes often or persistently fails
 - `SKIP` - For a test that crashes
 - `TIMEOUT` - For a test that is very slow and may timeout
@@ -51,9 +52,19 @@ your choices for OS, driver, etc.  This is described in the directory's
 
 These expectations all live in the
 [angle_end2end_tests_expectations.txt](../src/tests/angle_end2end_tests_expectations.txt) file.  The file format
-is the same as for the dEQP expectations.  However, `FAIL` is not valid, and so the choices are:
+is the same as for the dEQP expectations.  However, `FAIL` and `FLAKY` are not valid, and so the choices are:
 - `SKIP` - For a test that fails or crashes
 - `TIMEOUT` - For a test that is very slow and may timeout
+
+
+## Rubber stamping expectations CLs
+
+CLs that only change dEQP or angle_end2end_tests expectations don't require a human reviewer and can be
+[Rubber Stamped](https://chromium.googlesource.com/infra/infra/+/refs/heads/main/go/src/infra/appengine/rubber-stamper/README.md).
+The procedure is:
+1. Add rubber-stamper@appspot.gserviceaccount.com as the reviewer on the expectations CL. Please also CC a human reviewer for TBR.
+2. After 1 minute, Rubber Stamper should set "Bot-Commit: +1" on the CL.
+3. Now you should be able to "Commit-Queue: +2" your CL.
 
 
 ## WebGL conformance test expectations
@@ -82,6 +93,16 @@ You have two options for creating a CL to the expectations files:
       need to change your CL later), which will create a CL.
 2. Otherwise please [check out the code](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/get_the_code.md)
    and [upload a CL](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/contributing.md#Creating-a-change)
+
+
+## "internal swarming failure" on one of the test shards
+
+This might be caused by a bad bot, clicking on link "Bot assigned to task" will show recent tasks which might look bad
+(for example, lots of BOT_DIED in [crbug.com/1350556](https://crbug.com/1350556)). The best course of action in this case is to
+stop the bot by clicking the "stop the bot gracefully" button which will result in a task that looks like
+"Terminate build117-a9", then open a bug in the Infra>Labs component.
+Googlers, see also: [go/gpu-pixel-wrangler-how-to#manually-taking-a-machine-out-of-the-swarming-pool](http://go/gpu-pixel-wrangler-how-to#manually-taking-a-machine-out-of-the-swarming-pool)
+
 
 # Requesting access to the Commit Queue and issue tracker
 

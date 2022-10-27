@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("../../gni/angle.gni")
+
 angle_unittests_sources = [
   "../../util/test_utils_unittest.cpp",
   "../../util/test_utils_unittest_helper.h",
@@ -108,6 +110,7 @@ angle_unittests_compiler_tests_sources = [
   "compiler_tests/ImmutableString_test.cpp",
   "compiler_tests/InitOutputVariables_test.cpp",
   "compiler_tests/IntermNode_test.cpp",
+  "compiler_tests/KHR_blend_equation_advanced_test.cpp",
   "compiler_tests/NV_draw_buffers_test.cpp",
   "compiler_tests/OES_sample_variables_test.cpp",
   "compiler_tests/OES_standard_derivatives_test.cpp",
@@ -158,7 +161,7 @@ angle_unittests_gl_sources =
 
 angle_unittests_msl_sources = [ "../tests/compiler_tests/MSLOutput_test.cpp" ]
 
-if (is_android) {
+if (!angle_enable_desktop_glsl) {
   angle_unittests_sources +=
       [ "compiler_tests/ImmutableString_test_ESSL_autogen.cpp" ]
 } else {

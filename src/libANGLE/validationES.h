@@ -128,6 +128,11 @@ bool ValidateBindRenderbufferBase(const Context *context,
                                   angle::EntryPoint entryPoint,
                                   GLenum target,
                                   RenderbufferID renderbuffer);
+bool ValidateFramebufferParameteriBase(const Context *context,
+                                       angle::EntryPoint entryPoint,
+                                       GLenum target,
+                                       GLenum pname,
+                                       GLint param);
 bool ValidateFramebufferRenderbufferBase(const Context *context,
                                          angle::EntryPoint entryPoint,
                                          GLenum target,
@@ -497,6 +502,12 @@ bool ValidateGetUniformBase(const Context *context,
                             angle::EntryPoint entryPoint,
                             ShaderProgramID program,
                             UniformLocation location);
+bool ValidateSizedGetUniform(const Context *context,
+                             angle::EntryPoint entryPoint,
+                             ShaderProgramID program,
+                             UniformLocation location,
+                             GLsizei bufSize,
+                             GLsizei *length);
 bool ValidateGetnUniformfvEXT(const Context *context,
                               angle::EntryPoint entryPoint,
                               ShaderProgramID program,
@@ -567,7 +578,10 @@ bool ValidatePushGroupMarkerEXT(const Context *context,
                                 angle::EntryPoint entryPoint,
                                 GLsizei length,
                                 const char *marker);
-
+bool ValidateEGLImageObject(const Context *context,
+                            angle::EntryPoint entryPoint,
+                            TextureType type,
+                            GLeglImageOES image);
 bool ValidateEGLImageTargetTexture2DOES(const Context *context,
                                         angle::EntryPoint entryPoint,
                                         TextureType type,
@@ -633,6 +647,12 @@ bool ValidateGetFramebufferAttachmentParameterivBase(const Context *context,
                                                      GLenum attachment,
                                                      GLenum pname,
                                                      GLsizei *numParams);
+
+bool ValidateGetFramebufferParameterivBase(const Context *context,
+                                           angle::EntryPoint entryPoint,
+                                           GLenum target,
+                                           GLenum pname,
+                                           const GLint *params);
 
 bool ValidateGetBufferParameterBase(const Context *context,
                                     angle::EntryPoint entryPoint,
@@ -870,6 +890,14 @@ bool ValidateES3CopyTexImage2DParameters(const Context *context,
                                          GLsizei width,
                                          GLsizei height,
                                          GLint border);
+bool ValidateES3TexStorageParametersBase(const Context *context,
+                                         angle::EntryPoint entryPoint,
+                                         TextureType target,
+                                         GLsizei levels,
+                                         GLenum internalformat,
+                                         GLsizei width,
+                                         GLsizei height,
+                                         GLsizei depth);
 bool ValidateES3TexStorage2DParameters(const Context *context,
                                        angle::EntryPoint entryPoint,
                                        TextureType target,
@@ -897,6 +925,9 @@ bool ValidateSampleMaskiBase(const Context *context,
                              GLuint maskNumber,
                              GLbitfield mask);
 
+bool ValidateProgramExecutableXFBBuffersPresent(const Context *context,
+                                                const ProgramExecutable *programExecutable);
+
 // We should check with Khronos if returning INVALID_FRAMEBUFFER_OPERATION is OK when querying
 // implementation format info for incomplete framebuffers. It seems like these queries are
 // incongruent with the other errors.
@@ -922,6 +953,7 @@ const char *ValidateProgramPipelineDrawStates(const State &state,
                                               ProgramPipeline *programPipeline);
 const char *ValidateProgramPipelineAttachedPrograms(ProgramPipeline *programPipeline);
 const char *ValidateDrawStates(const Context *context);
+const char *ValidateProgramPipeline(const Context *context);
 
 void RecordDrawAttribsError(const Context *context, angle::EntryPoint entryPoint);
 
@@ -1007,6 +1039,17 @@ ANGLE_INLINE bool ValidateDrawArraysCommon(const Context *context,
         return ValidateDrawBase(context, entryPoint, mode);
     }
 
+    if (primcount <= 0)
+    {
+        if (primcount < 0)
+        {
+            context->validationError(entryPoint, GL_INVALID_VALUE, err::kNegativeCount);
+            return false;
+        }
+        // Early exit.
+        return ValidateDrawBase(context, entryPoint, mode);
+    }
+
     if (!ValidateDrawBase(context, entryPoint, mode))
     {
         return false;
@@ -1042,7 +1085,7 @@ ANGLE_INLINE bool ValidateDrawElementsBase(const Context *context,
         }
 
         ASSERT(type == DrawElementsType::InvalidEnum);
-        context->validationError(entryPoint, GL_INVALID_ENUM, err::kEnumNotSupported);
+        context->validationErrorF(entryPoint, GL_INVALID_ENUM, err::kEnumInvalid);
         return false;
     }
 
@@ -1211,7 +1254,7 @@ ANGLE_INLINE bool ValidateVertexAttribIndex(const Context *context,
                                             angle::EntryPoint entryPoint,
                                             GLuint index)
 {
-    if (index >= MAX_VERTEX_ATTRIBS)
+    if (index >= static_cast<GLuint>(context->getCaps().maxVertexAttributes))
     {
         context->validationError(entryPoint, GL_INVALID_VALUE,
                                  err::kIndexExceedsMaxVertexAttribute);
@@ -1220,6 +1263,10 @@ ANGLE_INLINE bool ValidateVertexAttribIndex(const Context *context,
 
     return true;
 }
+
+bool ValidateLogicOpCommon(const Context *context,
+                           angle::EntryPoint entryPoint,
+                           LogicalOperation opcodePacked);
 }  // namespace gl
 
 #endif  // LIBANGLE_VALIDATION_ES_H_
