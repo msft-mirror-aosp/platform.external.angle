@@ -6578,7 +6578,7 @@ android_app {
     optimize: {
         enabled: true,
         shrink: true,
-        proguard_compatibility: false,
+        // proguard_compatibility: false,
     },
     asset_dirs: [
         "src/android_system_settings/assets",
