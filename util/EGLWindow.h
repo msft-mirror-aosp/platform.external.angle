@@ -54,6 +54,7 @@ struct ANGLE_UTIL_EXPORT ConfigParameters
     bool bindGeneratesResource;
     bool clientArraysEnabled;
     bool robustAccess;
+    bool mutableRenderBuffer;
     EGLint samples;
     Optional<bool> contextProgramCacheEnabled;
     EGLenum resetStrategy;
@@ -63,32 +64,74 @@ struct ANGLE_UTIL_EXPORT ConfigParameters
 
 using GLWindowContext = struct GLWindowHandleContext_T *;
 
+enum class GLWindowResult
+{
+    NoError,
+    NoColorspaceSupport,
+    NoMutableRenderBufferSupport,
+    Error,
+};
+
 class ANGLE_UTIL_EXPORT GLWindowBase : angle::NonCopyable
 {
   public:
     static void Delete(GLWindowBase **window);
 
+    using Image        = void *;
+    using ClientBuffer = void *;
+    using Enum         = unsigned int;
+    using Attrib       = intptr_t;
+    using AttribKHR    = khronos_int32_t;
+    using Boolean      = unsigned int;
+    using Surface      = void *;
+
     // It should also be possible to set multisample and floating point framebuffers.
     EGLint getClientMajorVersion() const { return mClientMajorVersion; }
     EGLint getClientMinorVersion() const { return mClientMinorVersion; }
+    EGLenum getClientType() const { return mClientType; }
+    EGLint getProfileMask() const { return mProfileMask; }
 
     virtual bool initializeGL(OSWindow *osWindow,
                               angle::Library *glWindowingLibrary,
                               angle::GLESDriverType driverType,
                               const EGLPlatformParameters &platformParams,
                               const ConfigParameters &configParams) = 0;
-    virtual bool isGLInitialized() const                            = 0;
-    virtual void swap()                                             = 0;
-    virtual void destroyGL()                                        = 0;
-    virtual bool makeCurrent()                                      = 0;
-    virtual bool hasError() const                                   = 0;
-    virtual bool setSwapInterval(EGLint swapInterval)               = 0;
-    virtual angle::GenericProc getProcAddress(const char *name)     = 0;
+
+    virtual GLWindowResult initializeGLWithResult(OSWindow *osWindow,
+                                                  angle::Library *glWindowingLibrary,
+                                                  angle::GLESDriverType driverType,
+                                                  const EGLPlatformParameters &platformParams,
+                                                  const ConfigParameters &configParams) = 0;
+
+    virtual bool isGLInitialized() const                        = 0;
+    virtual void swap()                                         = 0;
+    virtual void destroyGL()                                    = 0;
+    virtual bool makeCurrent()                                  = 0;
+    virtual bool hasError() const                               = 0;
+    virtual bool setSwapInterval(EGLint swapInterval)           = 0;
+    virtual angle::GenericProc getProcAddress(const char *name) = 0;
     // EGLContext and HGLRC (WGL) are both "handles", which are implemented as pointers.
     // Use void* here and let the underlying implementation handle interpreting the type correctly.
     virtual GLWindowContext getCurrentContextGeneric()                  = 0;
     virtual GLWindowContext createContextGeneric(GLWindowContext share) = 0;
     virtual bool makeCurrentGeneric(GLWindowContext context)            = 0;
+    virtual Image createImage(GLWindowContext context,
+                              Enum target,
+                              ClientBuffer buffer,
+                              const Attrib *attrib_list)                = 0;
+    virtual Image createImageKHR(GLWindowContext context,
+                                 Enum target,
+                                 ClientBuffer buffer,
+                                 const AttribKHR *attrib_list)          = 0;
+    virtual EGLBoolean destroyImage(Image image)                        = 0;
+    virtual EGLBoolean destroyImageKHR(Image image)                     = 0;
+    virtual Surface createPbufferSurface(const EGLint *attrib_list)     = 0;
+    virtual EGLBoolean destroySurface(Surface surface)                  = 0;
+
+    virtual EGLBoolean bindTexImage(EGLSurface surface, EGLint buffer)    = 0;
+    virtual EGLBoolean releaseTexImage(EGLSurface surface, EGLint buffer) = 0;
+
+    virtual bool makeCurrent(EGLSurface draw, EGLSurface read, EGLContext context) = 0;
 
     bool isMultisample() const { return mConfigParams.multisample; }
     bool isDebugEnabled() const { return mConfigParams.debug; }
@@ -99,11 +142,16 @@ class ANGLE_UTIL_EXPORT GLWindowBase : angle::NonCopyable
     const ConfigParameters &getConfigParams() const { return mConfigParams; }
 
   protected:
-    GLWindowBase(EGLint glesMajorVersion, EGLint glesMinorVersion);
+    GLWindowBase(EGLenum clientType,
+                 EGLint glesMajorVersion,
+                 EGLint glesMinorVersion,
+                 EGLint profileMask);
     virtual ~GLWindowBase();
 
+    EGLenum mClientType;
     EGLint mClientMajorVersion;
     EGLint mClientMinorVersion;
+    EGLint mProfileMask;
     EGLPlatformParameters mPlatform;
     ConfigParameters mConfigParams;
 };
@@ -111,7 +159,10 @@ class ANGLE_UTIL_EXPORT GLWindowBase : angle::NonCopyable
 class ANGLE_UTIL_EXPORT EGLWindow : public GLWindowBase
 {
   public:
-    static EGLWindow *New(EGLint glesMajorVersion, EGLint glesMinorVersion);
+    static EGLWindow *New(EGLenum clientType,
+                          EGLint glesMajorVersion,
+                          EGLint glesMinorVersion,
+                          EGLint profileMask);
     static void Delete(EGLWindow **window);
 
     static EGLBoolean FindEGLConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *config);
@@ -129,6 +180,12 @@ class ANGLE_UTIL_EXPORT EGLWindow : public GLWindowBase
                       angle::GLESDriverType driverType,
                       const EGLPlatformParameters &platformParams,
                       const ConfigParameters &configParams) override;
+
+    GLWindowResult initializeGLWithResult(OSWindow *osWindow,
+                                          angle::Library *glWindowingLibrary,
+                                          angle::GLESDriverType driverType,
+                                          const EGLPlatformParameters &platformParams,
+                                          const ConfigParameters &configParams) override;
 
     bool isGLInitialized() const override;
     void swap() override;
@@ -149,14 +206,31 @@ class ANGLE_UTIL_EXPORT EGLWindow : public GLWindowBase
                            const EGLPlatformParameters &params);
 
     // Only initializes the Surface.
-    bool initializeSurface(OSWindow *osWindow,
-                           angle::Library *glWindowingLibrary,
-                           const ConfigParameters &params);
+    GLWindowResult initializeSurface(OSWindow *osWindow,
+                                     angle::Library *glWindowingLibrary,
+                                     const ConfigParameters &params);
 
     // Create an EGL context with this window's configuration
-    EGLContext createContext(EGLContext share);
+    EGLContext createContext(EGLContext share, EGLint *extraAttributes);
     // Make the EGL context current
     bool makeCurrent(EGLContext context);
+
+    Image createImage(GLWindowContext context,
+                      Enum target,
+                      ClientBuffer buffer,
+                      const Attrib *attrib_list) override;
+    Image createImageKHR(GLWindowContext context,
+                         Enum target,
+                         ClientBuffer buffer,
+                         const AttribKHR *attrib_list) override;
+    EGLBoolean destroyImage(Image image) override;
+    EGLBoolean destroyImageKHR(Image image) override;
+    Surface createPbufferSurface(const EGLint *attrib_list) override;
+    EGLBoolean destroySurface(Surface surface) override;
+
+    EGLBoolean bindTexImage(EGLSurface surface, EGLint buffer) override;
+    EGLBoolean releaseTexImage(EGLSurface surface, EGLint buffer) override;
+    bool makeCurrent(EGLSurface draw, EGLSurface read, EGLContext context) override;
 
     // Only initializes the Context.
     bool initializeContext();
@@ -167,7 +241,10 @@ class ANGLE_UTIL_EXPORT EGLWindow : public GLWindowBase
     bool isDisplayInitialized() const { return mDisplay != EGL_NO_DISPLAY; }
 
   private:
-    EGLWindow(EGLint glesMajorVersion, EGLint glesMinorVersion);
+    EGLWindow(EGLenum clientType,
+              EGLint glesMajorVersion,
+              EGLint glesMinorVersion,
+              EGLint profileMask);
     ~EGLWindow() override;
 
     EGLConfig mConfig;

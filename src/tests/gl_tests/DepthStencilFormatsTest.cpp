@@ -8,7 +8,7 @@
 #include "test_utils/gl_raii.h"
 
 #include "common/mathutil.h"
-#include "platform/FeaturesD3D.h"
+#include "platform/FeaturesD3D_autogen.h"
 
 using namespace angle;
 
@@ -22,7 +22,7 @@ struct ReadbackTestParam
     int stencilBits;
 };
 
-class DepthStencilFormatsTestBase : public ANGLETest
+class DepthStencilFormatsTestBase : public ANGLETest<>
 {
   protected:
     DepthStencilFormatsTestBase()
@@ -171,6 +171,11 @@ void main()
     }
 
     bool hasReadDepthSupport() const { return IsGLExtensionEnabled("GL_NV_read_depth"); }
+
+    bool hasReadDepthStencilSupport() const
+    {
+        return IsGLExtensionEnabled("GL_NV_read_depth_stencil");
+    }
 
     bool hasReadStencilSupport() const { return IsGLExtensionEnabled("GL_NV_read_stencil"); }
 
@@ -356,8 +361,7 @@ void DepthStencilFormatsTestBase::depthStencilReadbackCase(const ReadbackTestPar
     GLubyte actualPixels[destRes * destRes * 8];
     glReadPixels(0, 0, destRes, destRes, GL_DEPTH_COMPONENT,
                  hasFloatDepth ? GL_FLOAT : GL_UNSIGNED_SHORT, actualPixels);
-    // NV_read_depth and NV_read_stencil do not support packed depth/stencil
-    if (hasReadDepthSupport() && type.format != GL_DEPTH_STENCIL)
+    if (hasReadDepthSupport())
     {
         EXPECT_GL_NO_ERROR();
         if (hasFloatDepth)
@@ -371,17 +375,12 @@ void DepthStencilFormatsTestBase::depthStencilReadbackCase(const ReadbackTestPar
         }
         else
         {
-            auto scale = [](float f) {
-                return static_cast<uint16_t>(
-                    static_cast<float>(std::numeric_limits<uint16_t>::max()) * f);
-            };
-
             constexpr unsigned short kEpsilon = 2;
             const unsigned short *pixels = reinterpret_cast<const unsigned short *>(actualPixels);
-            ASSERT_NEAR(pixels[0], scale(d00), kEpsilon);
-            ASSERT_NEAR(pixels[0 + destRes], scale(d01), kEpsilon);
-            ASSERT_NEAR(pixels[1], scale(d10), kEpsilon);
-            ASSERT_NEAR(pixels[1 + destRes], scale(d11), kEpsilon);
+            ASSERT_NEAR(pixels[0], gl::unorm<16>(d00), kEpsilon);
+            ASSERT_NEAR(pixels[0 + destRes], gl::unorm<16>(d01), kEpsilon);
+            ASSERT_NEAR(pixels[1], gl::unorm<16>(d10), kEpsilon);
+            ASSERT_NEAR(pixels[1 + destRes], gl::unorm<16>(d11), kEpsilon);
         }
     }
     else
@@ -395,7 +394,39 @@ void DepthStencilFormatsTestBase::depthStencilReadbackCase(const ReadbackTestPar
         {
             EXPECT_GL_NO_ERROR();
             ASSERT_TRUE((actualPixels[0] == 1) && (actualPixels[1] == 2) &&
-                        (actualPixels[0 + destRes] == 3) && (actualPixels[1 + destRes] = 4));
+                        (actualPixels[0 + destRes] == 3) && (actualPixels[1 + destRes] == 4));
+        }
+        else
+        {
+            EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+        }
+
+        ASSERT(!hasFloatDepth);
+
+        glReadPixels(0, 0, destRes, destRes, GL_DEPTH_STENCIL_OES, GL_UNSIGNED_INT_24_8_OES,
+                     actualPixels);
+        if (hasReadDepthStencilSupport())
+        {
+            EXPECT_GL_NO_ERROR();
+
+            struct Pixel
+            {
+                uint32_t x;
+
+                uint32_t d24() const { return x >> 8; }
+
+                uint8_t s8() const { return x & 0xff; }
+            };
+
+            constexpr unsigned short kEpsilon = 2;
+            const Pixel *pixels               = reinterpret_cast<const Pixel *>(actualPixels);
+
+            ASSERT_NEAR(pixels[0].d24(), gl::unorm<24>(d00), kEpsilon);
+            ASSERT_NEAR(pixels[0 + destRes].d24(), gl::unorm<24>(d01), kEpsilon);
+            ASSERT_NEAR(pixels[1].d24(), gl::unorm<24>(d10), kEpsilon);
+            ASSERT_NEAR(pixels[1 + destRes].d24(), gl::unorm<24>(d11), kEpsilon);
+            ASSERT_TRUE((pixels[0].s8() == 1) && (pixels[1].s8() == 2) &&
+                        (pixels[0 + destRes].s8() == 3) && (pixels[1 + destRes].s8() == 4));
         }
         else
         {
@@ -445,6 +476,53 @@ TEST_P(DepthStencilFormatsTest, DepthStencilReadback_DepthStencil)
     depthStencilReadbackCase(type);
 }
 
+// Verify that packed D/S readPixels with a D32_FLOAT_S8X24_UINT attachment
+TEST_P(DepthStencilFormatsTestES3, DepthStencilReadback_DepthFloatStencil)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_packed_depth_stencil") ||
+                       !IsGLExtensionEnabled("GL_NV_depth_buffer_float2") ||
+                       !IsGLExtensionEnabled("GL_NV_read_depth") ||
+                       !IsGLExtensionEnabled("GL_NV_read_depth_stencil") ||
+                       !IsGLExtensionEnabled("GL_NV_read_stencil"));
+
+    GLFramebuffer FBO;
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    ASSERT_GL_NO_ERROR();
+
+    GLTexture depthStencilTexture;
+    glBindTexture(GL_TEXTURE_2D, depthStencilTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH32F_STENCIL8, getWindowWidth(), getWindowHeight(), 0,
+                 GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, nullptr);
+    ASSERT_GL_NO_ERROR();
+
+    glBindRenderbuffer(GL_RENDERBUFFER, depthStencilTexture);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH32F_STENCIL8, getWindowWidth(),
+                          getWindowHeight());
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
+                              depthStencilTexture);
+    ASSERT_GL_NO_ERROR();
+
+    constexpr float kDepthClearValue     = 0.123f;
+    constexpr uint8_t kStencilClearValue = 0x42;
+
+    glClearDepthf(kDepthClearValue);
+    glClearStencil(kStencilClearValue);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    ASSERT_GL_NO_ERROR();
+
+    struct
+    {
+        float depth;
+        uint8_t stencil;
+        char unused[3];
+    } pixel = {};
+    glReadPixels(0, 0, 1, 1, GL_DEPTH_STENCIL_OES, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, &pixel);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_FLOAT_EQ(pixel.depth, kDepthClearValue);
+    EXPECT_EQ(pixel.stencil, kStencilClearValue);
+}
+
 // This test will initialize a depth texture and then render with it and verify
 // pixel correctness.
 // This is modeled after webgl-depth-texture.html
@@ -468,7 +546,8 @@ void main()
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_depth_texture") &&
                        !IsGLExtensionEnabled("GL_ANGLE_depth_texture"));
 
-    bool depthTextureCubeSupport = IsGLExtensionEnabled("GL_OES_depth_texture_cube_map");
+    bool depthTextureCubeSupport  = IsGLExtensionEnabled("GL_OES_depth_texture_cube_map");
+    bool textureSrgbDecodeSupport = IsGLExtensionEnabled("GL_EXT_texture_sRGB_decode");
 
     // http://anglebug.com/3454
     ANGLE_SKIP_TEST_IF(IsIntel() && IsWindows() && IsD3D9());
@@ -550,6 +629,10 @@ void main()
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filterMode);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterMode);
+            if (textureSrgbDecodeSupport)
+            {
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SRGB_DECODE_EXT, GL_SKIP_DECODE_EXT);
+            }
 
             // test level > 0
             glTexImage2D(GL_TEXTURE_2D, 1, type.format, 1, 1, 0, type.format, type.type, nullptr);
@@ -879,15 +962,6 @@ TEST_P(DepthStencilFormatsTest, VerifyDepthStencilUploadData)
     // http://anglebug.com/3689
     ANGLE_SKIP_TEST_IF(IsWindows() && IsVulkan() && IsAMD());
 
-    // http://anglebug.com/4908
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsMetal());
-
-    // Test failure introduced by Apple's changes (anglebug.com/5505)
-    ANGLE_SKIP_TEST_IF(IsMetal() && IsAMD());
-
-    // Test failure introduced by Apple's changes (anglebug.com/5505)
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && IsMetal());
-
     bool shouldHaveTextureSupport = (IsGLExtensionEnabled("GL_OES_packed_depth_stencil") &&
                                      IsGLExtensionEnabled("GL_OES_depth_texture")) ||
                                     (getClientMajorVersion() >= 3);
@@ -1129,7 +1203,7 @@ ANGLE_INSTANTIATE_TEST_ES2(DepthStencilFormatsTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(DepthStencilFormatsTestES3);
 ANGLE_INSTANTIATE_TEST_ES3(DepthStencilFormatsTestES3);
 
-class TinyDepthStencilWorkaroundTest : public ANGLETest
+class TinyDepthStencilWorkaroundTest : public ANGLETest<>
 {
   public:
     TinyDepthStencilWorkaroundTest()
@@ -1141,12 +1215,6 @@ class TinyDepthStencilWorkaroundTest : public ANGLETest
         setConfigBlueBits(8);
         setConfigAlphaBits(8);
     }
-
-    // Override the features to enable "tiny" depth/stencil textures.
-    void overrideWorkaroundsD3D(FeaturesD3D *features) override
-    {
-        features->overrideFeatures({"emulate_tiny_stencil_textures"}, true);
-    }
 };
 
 // Tests that the tiny depth stencil textures workaround does not "stick" depth textures.
@@ -1155,7 +1223,6 @@ TEST_P(TinyDepthStencilWorkaroundTest, DepthTexturesStick)
 {
     // http://anglebug.com/4092
     ANGLE_SKIP_TEST_IF((IsAndroid() && IsOpenGLES()) || (IsLinux() && IsVulkan()));
-    ANGLE_SKIP_TEST_IF(isSwiftshader());
 
     // TODO(anglebug.com/5491)
     ANGLE_SKIP_TEST_IF(IsIOS() && IsOpenGLES());
@@ -1265,4 +1332,5 @@ TEST_P(TinyDepthStencilWorkaroundTest, DepthTexturesStick)
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TinyDepthStencilWorkaroundTest);
-ANGLE_INSTANTIATE_TEST_ES3(TinyDepthStencilWorkaroundTest);
+ANGLE_INSTANTIATE_TEST_ES3_AND(TinyDepthStencilWorkaroundTest,
+                               ES3_D3D11().enable(Feature::EmulateTinyStencilTextures));

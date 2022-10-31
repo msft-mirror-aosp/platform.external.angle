@@ -22,7 +22,9 @@ class TCompiler;
 class TOutputGLSLBase : public TIntermTraverser
 {
   public:
-    TOutputGLSLBase(TCompiler *compiler, TInfoSinkBase &objSink, ShCompileOptions compileOptions);
+    TOutputGLSLBase(TCompiler *compiler,
+                    TInfoSinkBase &objSink,
+                    const ShCompileOptions &compileOptions);
 
     ShShaderOutput getShaderOutput() const { return mOutput; }
 
@@ -89,6 +91,7 @@ class TOutputGLSLBase : public TIntermTraverser
 
     sh::GLenum getShaderType() const { return mShaderType; }
     bool isHighPrecisionSupported() const { return mHighPrecisionSupported; }
+    const char *getIndentPrefix(int extraIndentDepth = 0);
 
   private:
     void declareInterfaceBlockLayout(const TType &type);
@@ -111,10 +114,10 @@ class TOutputGLSLBase : public TIntermTraverser
 
     bool mHighPrecisionSupported;
 
-    ShCompileOptions mCompileOptions;
+    const ShCompileOptions &mCompileOptions;
 };
 
-void WritePragma(TInfoSinkBase &out, ShCompileOptions compileOptions, const TPragma &pragma);
+void WritePragma(TInfoSinkBase &out, const ShCompileOptions &compileOptions, const TPragma &pragma);
 
 void WriteGeometryShaderLayoutQualifiers(TInfoSinkBase &out,
                                          sh::TLayoutPrimitiveType inputPrimitive,

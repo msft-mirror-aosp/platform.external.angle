@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # Copyright 2021 The ANGLE Project Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,6 +14,9 @@ import sys
 
 # ANGLE uses SPIR-V 1.0 currently, so there's no reason to generate code for newer instructions.
 SPIRV_GRAMMAR_FILE = '../../../third_party/vulkan-deps/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json'
+
+# Cherry pick some extra extensions from here that aren't in SPIR-V 1.0.
+SPIRV_CHERRY_PICKED_EXTENSIONS_FILE = '../../../third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json'
 
 # The script has two sets of outputs, a header and source file for SPIR-V code generation, and a
 # header and source file for SPIR-V parsing.
@@ -102,16 +105,17 @@ void WriteSpirvHeader(std::vector<uint32_t> *blob, uint32_t idCount)
     //  - Version (1.0)
     //  - ANGLE's Generator number:
     //     * 24 for tool id (higher 16 bits)
-    //     * 0 for tool version (lower 16 bits))
+    //     * 1 for tool version (lower 16 bits))
     //  - Bound (idCount)
     //  - 0 (reserved)
     constexpr uint32_t kANGLEGeneratorId = 24;
+    constexpr uint32_t kANGLEGeneratorVersion = 1;
 
     ASSERT(blob->empty());
 
     blob->push_back(spv::MagicNumber);
     blob->push_back(0x00010000);
-    blob->push_back(kANGLEGeneratorId << 16 | 0);
+    blob->push_back(kANGLEGeneratorId << 16 | kANGLEGeneratorVersion);
     blob->push_back(idCount);
     blob->push_back(0x00000000);
 }
@@ -163,7 +167,7 @@ def load_grammar(grammar_file):
 
 
 def remove_chars(string, chars):
-    return filter(lambda c: c not in chars, string)
+    return ''.join(list(filter(lambda c: c not in chars, string)))
 
 
 def make_camel_case(name):
@@ -176,12 +180,21 @@ class Writer:
         self.path_prefix = os.path.dirname(os.path.realpath(__file__)) + os.path.sep
         self.grammar = load_grammar(self.path_prefix + SPIRV_GRAMMAR_FILE)
 
+        # We need some extensions that aren't in SPIR-V 1.0. Cherry pick them into our grammar.
+        cherry_picked_extensions = {'SPV_EXT_fragment_shader_interlock'}
+        cherry_picked_extensions_grammar = load_grammar(self.path_prefix +
+                                                        SPIRV_CHERRY_PICKED_EXTENSIONS_FILE)
+        self.grammar['instructions'] += [
+            i for i in cherry_picked_extensions_grammar['instructions']
+            if 'extensions' in i and set(i['extensions']) & cherry_picked_extensions
+        ]
+
         # If an instruction has a parameter of these types, the instruction is ignored
         self.unsupported_kinds = set(['LiteralSpecConstantOpInteger'])
         # If an instruction requires a capability of these kinds, the instruction is ignored
         self.unsupported_capabilities = set(['Kernel', 'Addresses'])
         # If an instruction requires an extension other than these, the instruction is ignored
-        self.supported_extensions = set([])
+        self.supported_extensions = set([]) | cherry_picked_extensions
         # List of bit masks.  These have 'Mask' added to their typename in SPIR-V headers.
         self.bit_mask_types = set([])
 
@@ -309,6 +322,7 @@ class Writer:
 
         # Otherwise, remove invalid characters and make the first letter lower case.
         name = remove_chars(name, " .,+\n~")
+
         name = make_camel_case(name)
 
         # Make sure the name is not a C++ keyword

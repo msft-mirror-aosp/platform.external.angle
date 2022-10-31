@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 #  Copyright 2019 The ANGLE Project Authors. All rights reserved.
 #  Use of this source code is governed by a BSD-style license that can be
 #  found in the LICENSE file.
@@ -20,6 +20,9 @@ def initDataDirectories(dataDirectories):
     dataDirectories.append(os.path.join("data", "gles31"))
     dataDirectories.append(os.path.join("external", "graphicsfuzz", "data", "gles3"))
     dataDirectories.append(os.path.join("external", "openglcts", "data", "gles3"))
+    dataDirectories.append(os.path.join("external", "openglcts", "data", "gles31"))
+    dataDirectories.append(os.path.join("external", "openglcts", "data", "gles32"))
+    dataDirectories.append(os.path.join("external", "openglcts", "data", "gl46"))
 
 
 def initPathReplacements(pathReplacements):

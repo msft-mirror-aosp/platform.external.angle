@@ -15,7 +15,7 @@
 
 using namespace angle;
 
-class EGLCreateContextAttribsTest : public ANGLETest
+class EGLCreateContextAttribsTest : public ANGLETest<>
 {
   public:
     EGLCreateContextAttribsTest() : mDisplay(EGL_NO_DISPLAY) {}
@@ -24,7 +24,7 @@ class EGLCreateContextAttribsTest : public ANGLETest
     {
         EGLint dispattrs[] = {EGL_PLATFORM_ANGLE_TYPE_ANGLE, GetParam().getRenderer(), EGL_NONE};
         mDisplay           = eglGetPlatformDisplayEXT(
-            EGL_PLATFORM_ANGLE_ANGLE, reinterpret_cast<void *>(EGL_DEFAULT_DISPLAY), dispattrs);
+                      EGL_PLATFORM_ANGLE_ANGLE, reinterpret_cast<void *>(EGL_DEFAULT_DISPLAY), dispattrs);
         EXPECT_TRUE(mDisplay != EGL_NO_DISPLAY);
         EXPECT_EGL_TRUE(eglInitialize(mDisplay, nullptr, nullptr) != EGL_FALSE);
     }
@@ -196,10 +196,10 @@ TEST_P(EGLCreateContextAttribsTest, IMGContextPriorityExtension)
         EXPECT_EQ(context, EGL_NO_CONTEXT);
         ASSERT_EGL_ERROR(EGL_BAD_ATTRIBUTE);
 
-        EGLint contextAttribs[] = {EGL_CONTEXT_MAJOR_VERSION, 2, EGL_CONTEXT_MINOR_VERSION, 0,
-                                   EGL_NONE};
+        EGLint noExtensionContextAttribs[] = {EGL_CONTEXT_MAJOR_VERSION, 2,
+                                              EGL_CONTEXT_MINOR_VERSION, 0, EGL_NONE};
 
-        context = eglCreateContext(mDisplay, config, nullptr, contextAttribs);
+        context = eglCreateContext(mDisplay, config, nullptr, noExtensionContextAttribs);
         EXPECT_NE(context, EGL_NO_CONTEXT);
         ASSERT_EGL_ERROR(EGL_SUCCESS);
 

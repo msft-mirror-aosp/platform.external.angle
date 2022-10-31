@@ -147,7 +147,7 @@ angle::Result BufferPool::allocateNewBuffer(ContextMtl *contextMtl)
         // Reuse the buffer in free list:
         if (mBufferFreeList.front()->isBeingUsedByGPU(contextMtl))
         {
-            contextMtl->flushCommandBufer();
+            contextMtl->flushCommandBuffer(mtl::NoWait);
             // Force the GPU to finish its rendering and make the old buffer available.
             contextMtl->cmdQueue().ensureResourceReadyForCPU(mBufferFreeList.front());
         }
@@ -300,9 +300,26 @@ void BufferPool::releaseInFlightBuffers(ContextMtl *contextMtl)
             toRelease = nullptr;
             mBuffersAllocated--;
         }
-        else
+
+        // Need to maintain the requirement of the free list that buffers in use
+        // by the GPU are stored in FIFO order and that after the first in-use
+        // buffer, the rest of the free list is in-use as well. To achieve this
+        // in-use buffers are appended to the end of the free list and free buffers
+        // are prepended to the beginning of the free list to maintain the following:
+        //
+        //  +------+------+-------+-------+-------+
+        //  | Free | Free | Inuse |  ...  | Inuse |
+        //  +------+------+-------+-------+-------+
+        //  ^             ^               ^-------- Youngest, in-use buffer
+        //  |             +------------------------ Oldest, in-use buffer
+        //  +-------------------------------------- First, free buffer
+        else if (toRelease->isBeingUsedByGPU(contextMtl))
         {
             mBufferFreeList.push_back(toRelease);
+        }
+        else
+        {
+            mBufferFreeList.push_front(toRelease);
         }
     }
 
@@ -354,5 +371,5 @@ void BufferPool::reset()
     mAlwaysAllocateNewBuffer = false;
     mBuffersAllocated        = 0;
 }
-}
-}
+}  // namespace mtl
+}  // namespace rx

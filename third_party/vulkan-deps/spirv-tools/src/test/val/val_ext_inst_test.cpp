@@ -1580,6 +1580,19 @@ TEST_F(ValidateExtInst, GlslStd450LdexpExpWrongSize) {
                         "number as Result Type"));
 }
 
+TEST_F(ValidateExtInst, GlslStd450LdexpExpNoType) {
+  const std::string body = R"(
+%val1 = OpExtInst %f32 %extinst Ldexp %f32_1 %main_entry
+)";
+
+  CompileSuccessfully(GenerateShaderCode(body));
+  ASSERT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions());
+  EXPECT_THAT(getDiagnosticString(),
+              HasSubstr("GLSL.std.450 Ldexp: "
+                        "expected operand Exp to be a 32-bit int scalar "
+                        "or vector type"));
+}
+
 TEST_F(ValidateExtInst, GlslStd450FrexpStructSuccess) {
   const std::string body = R"(
 %val1 = OpExtInst %struct_f32_u32 %extinst FrexpStruct %f32_h
@@ -6030,6 +6043,18 @@ OpMemoryModel Logical GLSL450
   EXPECT_THAT(getDiagnosticString(),
               HasSubstr("NonSemantic extended instruction sets cannot be "
                         "declared without SPV_KHR_non_semantic_info"));
+}
+
+TEST_F(ValidateClspvReflection, DoesNotRequiresNonSemanticExtensionPost1p6) {
+  const std::string text = R"(
+OpCapability Shader
+OpCapability Linkage
+%1 = OpExtInstImport "NonSemantic.ClspvReflection.1"
+OpMemoryModel Logical GLSL450
+)";
+
+  CompileSuccessfully(text, SPV_ENV_UNIVERSAL_1_6);
+  ASSERT_EQ(SPV_SUCCESS, ValidateInstructions(SPV_ENV_UNIVERSAL_1_6));
 }
 
 TEST_F(ValidateClspvReflection, MissingVersion) {

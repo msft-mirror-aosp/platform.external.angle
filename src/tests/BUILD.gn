@@ -8,8 +8,6 @@ import("../../gni/angle.gni")
 import("angle_unittests.gni")
 
 declare_args() {
-  # Don't build dEQP by default.
-  build_angle_deqp_tests = false
   build_angle_gles1_conform_tests = false
   build_angle_trace_perf_tests = false
   build_angle_perftests =
@@ -26,7 +24,7 @@ if (is_android) {
     ]
 
     deps = [
-      "//build/android:native_libraries_java",
+      "//build/android:build_java",
       "//build/android/gtest_apk:native_test_instrumentation_test_runner_java",
     ]
   }
@@ -84,6 +82,10 @@ angle_static_library("angle_test_expectations") {
 
 config("angle_common_test_utils_config") {
   include_dirs = [ "." ]
+  defines = []
+  if (angle_enable_gl_desktop_backend) {
+    defines += [ "ANGLE_ENABLE_GL_DESKTOP_BACKEND" ]
+  }
 }
 
 template("angle_common_test_utils") {
@@ -109,6 +111,7 @@ template("angle_common_test_utils") {
     ]
     sources = [
       "$angle_root/third_party/renderdoc/src/renderdoc_app.h",
+      "test_utils/MultiThreadSteps.cpp",
       "test_utils/MultiThreadSteps.h",
       "test_utils/RenderDoc.cpp",
       "test_utils/RenderDoc.h",
@@ -163,6 +166,9 @@ angle_test("angle_unittests") {
     if (is_apple) {
       sources += angle_unittests_glsl_mac_sources
     }
+    if (angle_enable_metal) {
+      sources += angle_unittests_msl_sources
+    }
   }
 
   defines = []
@@ -189,9 +195,7 @@ angle_test("angle_unittests") {
   ]
 
   if (angle_enable_vulkan) {
-    if (angle_enable_direct_spirv_gen) {
-      sources += [ "compiler_tests/Precise_test.cpp" ]
-    }
+    sources += [ "compiler_tests/Precise_test.cpp" ]
     deps += [
       "$angle_root/src/common/spirv:angle_spirv_base",
       "$angle_root/src/common/spirv:angle_spirv_headers",
@@ -205,6 +209,19 @@ angle_test("angle_unittests") {
     # platforms yet.
     data_deps = [ ":test_utils_unittest_helper" ]
   }
+
+  if (angle_has_rapidjson) {
+    sources += [ "../common/serializer/JsonSerializer_unittest.cpp" ]
+  }
+}
+
+if (is_ios) {
+  bundle_data("angle_end2end_tests_bundle_data") {
+    testonly = true
+    sources = [ "angle_end2end_tests_expectations.txt" ]
+    outputs = [ "{{bundle_resources_dir}}/" +
+                "{{source_root_relative_dir}}/{{source_file_part}}" ]
+  }
 }
 
 if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
@@ -215,7 +232,6 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
 
     sources = angle_end2end_tests_sources + [ "angle_end2end_tests_main.cpp" ]
     libs = []
-    data = [ "angle_end2end_tests_expectations.txt" ]
 
     if (is_mac) {
       sources += angle_end2end_tests_mac_sources
@@ -236,7 +252,10 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
       sources += angle_end2end_tests_win_sources
     }
     if (angle_use_x11) {
-      sources += angle_end2end_tests_x11_sources
+      sources += [ "egl_tests/EGLX11VisualTest.cpp" ]
+    }
+    if (angle_use_wayland) {
+      sources += [ "egl_tests/EGLWaylandTest.cpp" ]
     }
 
     configs += [ "${angle_root}:libANGLE_config" ]
@@ -246,6 +265,16 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
       "$angle_root:angle_gl_enum_utils",
       "$angle_root:angle_image_util",
     ]
+
+    if (is_ios) {
+      deps += [ ":angle_end2end_tests_bundle_data" ]
+    } else {
+      data = [ "angle_end2end_tests_expectations.txt" ]
+    }
+
+    if (angle_has_rapidjson) {
+      deps += [ "$angle_root:angle_json_serializer" ]
+    }
 
     if (is_android) {
       include_dirs += [ "${android_ndk_root}/sysroot/usr/includes" ]
@@ -260,19 +289,22 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
     if (angle_enable_vulkan) {
       sources += [
         "gl_tests/VulkanExternalImageTest.cpp",
-        "test_utils/VulkanExternalHelper.cpp",
-        "test_utils/VulkanExternalHelper.h",
+        "gl_tests/VulkanImageTest.cpp",
+        "test_utils/VulkanHelper.cpp",
+        "test_utils/VulkanHelper.h",
       ]
       deps += [ "$angle_root/src/common/vulkan" ]
     }
 
     if (is_fuchsia) {
-      additional_manifest_fragments = [
-        # TODO(crbug.com/1185811): Figure out why jit_capabilities is needed.
-        "//build/config/fuchsia/test/jit_capabilities.test-cmx",
+      use_cfv1 = false
 
-        "//build/config/fuchsia/test/present_view_capabilities.test-cmx",
-        "//build/config/fuchsia/test/vulkan_capabilities.test-cmx",
+      # TODO(crbug.com/1185811): Investigate removing the requirement for
+      # job_policy_ambient_mark_vmo_exec.
+      test_runner_shard = "//build/config/fuchsia/test/elf_test_ambient_exec_runner.shard.test-cml"
+      additional_manifest_fragments = [
+        "//build/config/fuchsia/test/present_view.shard.test-cml",
+        "//third_party/fuchsia-sdk/sdk/pkg/vulkan/client.shard.cml",
       ]
     }
 
@@ -324,8 +356,10 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
 
 config("angle_maybe_has_histograms") {
   if (angle_has_histograms) {
-    defines = [ "ANGLE_HAS_HISTOGRAMS" ]
+    defines = [ "ANGLE_HAS_HISTOGRAMS=1" ]
     include_dirs = [ "$root_gen_dir" ]
+  } else {
+    defines = [ "ANGLE_HAS_HISTOGRAMS=0" ]
   }
 }
 
@@ -354,11 +388,15 @@ template("angle_perftests_common") {
       "test_utils/runner/TestSuite.h",
     ]
     public_deps = [
+      "$angle_root:angle_gl_enum_utils",
       "$angle_root/src/tests:angle_test_expectations",
       "$angle_root/third_party/rapidjson:rapidjson",
       "${invoker.test_utils}",
     ]
-    public_configs += [ "${angle_root}:libANGLE_config" ]
+    public_configs += [
+      ":angle_maybe_has_histograms",
+      "$angle_root:libANGLE_config",
+    ]
   }
 }
 
@@ -379,6 +417,10 @@ if (is_win || is_linux || is_chromeos || is_android || is_apple) {
     sources =
         angle_white_box_perf_tests_sources + [ "angle_perftests_main.cpp" ]
 
+    if (angle_enable_d3d11 || angle_enable_d3d9) {
+      sources += [ "perf_tests/IndexDataManagerTest.cpp" ]
+    }
+
     deps = [
       ":angle_perftests_static",
       "$angle_root:libANGLE",
@@ -386,18 +428,32 @@ if (is_win || is_linux || is_chromeos || is_android || is_apple) {
       "$angle_root:libGLESv2_static",
     ]
 
-    data = [ "$angle_root/src/tests/run_perf_tests.py" ]
+    data = [
+      "$angle_root/scripts/process_angle_perf_results.py",
+      "$angle_root/src/tests/py_utils/android_helper.py",
+      "$angle_root/src/tests/run_perf_tests.py",
+    ]
     data_deps = [ "//testing:run_perf_test" ]
 
-    # These tests depend on vulkan_command_buffer_utils, which is
-    # not yet compatible with mac and vulkan display/headless backend.
-    if (angle_enable_vulkan && !angle_use_vulkan_display && !is_apple) {
+    if (angle_enable_vulkan) {
       sources += angle_white_box_perf_tests_vulkan_sources
       deps += [
         "$angle_glslang_dir:glslang_lib_sources",
         "$angle_root/src/common/vulkan:angle_vulkan_entry_points",
       ]
     }
+
+    # These tests depend on vulkan_command_buffer_utils, which is
+    # not yet compatible with mac and vulkan display/headless backend.
+    if (angle_enable_vulkan && !angle_use_vulkan_display && !is_apple) {
+      sources += angle_white_box_perf_tests_vulkan_command_buffer_sources
+    }
+  }
+}
+
+config("angle_enable_renderdoc") {
+  if (angle_enable_renderdoc) {
+    defines = [ "ANGLE_TEST_ENABLE_RENDERDOC_CAPTURE" ]
   }
 }
 
@@ -447,7 +503,11 @@ if (build_angle_perftests) {
       "$angle_spirv_tools_dir:spvtools_val",
     ]
 
-    data = [ "$angle_root/src/tests/run_perf_tests.py" ]
+    data = [
+      "$angle_root/scripts/process_angle_perf_results.py",
+      "$angle_root/src/tests/py_utils/android_helper.py",
+      "$angle_root/src/tests/run_perf_tests.py",
+    ]
 
     data_deps = [
       "${angle_root}:libEGL",
@@ -562,7 +622,10 @@ if (build_angle_gles1_conform_tests) {
     ]
 
     if (is_clang) {
-      cflags_c = [ "-Wno-implicit-fallthrough" ]
+      cflags_c = [
+        "-Wno-implicit-fallthrough",
+        "-Wno-shadow",
+      ]
     }
 
     testonly = true
@@ -757,6 +820,9 @@ if (build_angle_gles1_conform_tests) {
 
       sources += angle_gles1_conform_common_source
 
+      if (is_clang) {
+        cflags_c = [ "-Wno-shadow" ]
+      }
       defines = [ "ProbeEnum=ProbeEnumANGLE" ]
     }
 
@@ -775,6 +841,10 @@ if (build_angle_gles1_conform_tests) {
         "test_utils/ANGLETest.cpp",
         "test_utils/ANGLETest.h",
       ]
+
+      if (is_clang) {
+        cflags_c = [ "-Wno-shadow" ]
+      }
 
       configs += [
         ":angle_gles1_conform_support",
@@ -829,6 +899,10 @@ if (build_angle_gles1_conform_tests) {
     ]
 
     sources += angle_gles1_conform_common_source
+
+    if (is_clang) {
+      cflags_c = [ "-Wno-shadow" ]
+    }
   }
 
   angle_test("angle_gles1_primtest_tests") {
@@ -883,6 +957,10 @@ if (build_angle_gles1_conform_tests) {
 
     sources += angle_gles1_conform_common_source
 
+    if (is_clang) {
+      cflags_c = [ "-Wno-shadow" ]
+    }
+
     if (!is_win && !is_linux && !is_chromeos) {
       defines = [ "NULLWS" ]
     }
@@ -910,6 +988,10 @@ if (build_angle_gles1_conform_tests) {
     ]
 
     defines += [ "COMMON" ]
+
+    if (is_clang) {
+      cflags_c = [ "-Wno-shadow" ]
+    }
 
     if (is_win) {
       if (is_clang) {
@@ -1224,14 +1306,46 @@ if (build_angle_deqp_tests && !is_fuchsia) {
     public_configs = [ ":angle_deqp_glshared_config" ]
   }
 
+  angle_deqp_source_set("angle_deqp_framework_platform") {
+    if (is_ios) {
+      # shared libraries are hidden inside ios_framework_bundle, but we include headers from them
+      check_includes = false
+    }
+    sources = deqp_framework_platform_sources
+    libs = []
+    if (is_win) {
+      sources += [
+        "$deqp_path/framework/platform/win32/tcuWGL.cpp",
+        "$deqp_path/framework/platform/win32/tcuWGLContextFactory.cpp",
+        "$deqp_path/framework/platform/win32/tcuWin32EGLNativeDisplayFactory.cpp",
+        "$deqp_path/framework/platform/win32/tcuWin32Window.cpp",
+      ]
+    }
+    if (is_linux) {
+      sources += [
+        "$deqp_path/framework/platform/lnx/X11/tcuLnxX11.cpp",
+        "$deqp_path/framework/platform/lnx/X11/tcuLnxX11.hpp",
+        "$deqp_path/framework/platform/lnx/X11/tcuLnxX11EglDisplayFactory.cpp",
+        "$deqp_path/framework/platform/lnx/X11/tcuLnxX11EglDisplayFactory.hpp",
+        "$deqp_path/framework/platform/lnx/tcuLnx.cpp",
+        "$deqp_path/framework/platform/lnx/tcuLnx.hpp",
+        "$deqp_path/framework/platform/lnx/tcuLnxEglPlatform.cpp",
+        "$deqp_path/framework/platform/lnx/tcuLnxEglPlatform.hpp",
+      ]
+    }
+    public_deps = [
+      ":angle_deqp_framework_common",
+      ":angle_deqp_framework_egl",
+    ]
+  }
+
   angle_deqp_source_set("angle_deqp_libtester") {
     if (is_ios) {
       # shared libraries are hidden inside ios_framework_bundle, but we include headers from them
       check_includes = false
     }
     public_deps = [
-      ":angle_deqp_framework_common",
-      ":angle_deqp_framework_egl",
+      ":angle_deqp_framework_platform",
       ":angle_deqp_glshared",
       "$angle_root:angle_common",
       "$angle_root/util:angle_util",
@@ -1304,14 +1418,6 @@ if (build_angle_deqp_tests && !is_fuchsia) {
       }
     }
 
-    if (!build_with_chromium) {
-      angle_executable("angle_deqp_${_api}_no_gtest") {
-        testonly = true
-        sources = [ "deqp_support/angle_deqp_tests_main.cpp" ]
-        deps = [ ":$shared_library_name" ]
-      }
-    }
-
     angle_test("angle_deqp_${_api}_tests") {
       deps = [
         ":${shared_library_name}",
@@ -1336,11 +1442,11 @@ if (build_angle_deqp_tests && !is_fuchsia) {
     }
   }
 
-  _android_mustpass = "$deqp_path/android/cts/master"
+  _android_mustpass = "$deqp_path/android/cts/main"
   _aosp_mustpass =
-      "$deqp_path/external/openglcts/data/mustpass/gles/aosp_mustpass/master"
+      "$deqp_path/external/openglcts/data/mustpass/gles/aosp_mustpass/main"
   _khronos_mustpass =
-      "$deqp_path/external/openglcts/data/mustpass/gles/khronos_mustpass/master"
+      "$deqp_path/external/openglcts/data/mustpass/gles/khronos_mustpass/main"
 
   angle_deqp_source_set("angle_deqp_gles2_common") {
     sources = deqp_gles2_sources
@@ -1438,7 +1544,7 @@ if (build_angle_deqp_tests && !is_fuchsia) {
               deqp_khr_gles32_sources + deqp_khr_glesext_sources +
               [ "deqp_support/glcTestPackageEntry_override.cpp" ]
     public_deps = [
-      ":angle_deqp_framework_egl",
+      ":angle_deqp_framework_platform",
       ":angle_deqp_glshared",
       "${angle_glslang_dir}:glslang_lib_sources",
       "${angle_spirv_tools_dir}:spvtools_val",
@@ -1454,7 +1560,20 @@ if (build_angle_deqp_tests && !is_fuchsia) {
       forward_variables_from(invoker, "*")
       deps = [ ":angle_deqp_khr_common" ]
       deps += angle_deqp_data_copy_targets
-      data = angle_deqp_external_openglcts_data_gles3
+      if (api == "gles2") {
+        # Make sure we include something so that angle_deqp_libtester_main.cpp can find something.
+        data = [ "$root_gen_dir/vk_gl_cts_data/data/gles2/shaders/misc.test" ]
+      } else if (api == "gles3") {
+        data = angle_deqp_external_openglcts_data_gles3
+      } else if (api == "gles31") {
+        data = angle_deqp_external_openglcts_data_gles31
+      } else if (api == "gles32") {
+        data = angle_deqp_external_openglcts_data_gles32
+      } else if (api == "gl46") {
+        data = angle_deqp_external_openglcts_data_gl46
+      } else {
+        assert(false)
+      }
       mustpass_dir = _khronos_mustpass
     }
   }
@@ -1462,21 +1581,32 @@ if (build_angle_deqp_tests && !is_fuchsia) {
   angle_deqp_khr_gtest("khr_gles2") {
     defines = [ "ANGLE_DEQP_KHR_GLES2_TESTS" ]
     mustpass_name = "gles2-khr-master.txt"
+    api = "gles2"
   }
 
   angle_deqp_khr_gtest("khr_gles3") {
     defines = [ "ANGLE_DEQP_KHR_GLES3_TESTS" ]
     mustpass_name = "gles3-khr-master.txt"
+    api = "gles3"
   }
 
   angle_deqp_khr_gtest("khr_gles31") {
     defines = [ "ANGLE_DEQP_KHR_GLES31_TESTS" ]
     mustpass_name = "gles31-khr-master.txt"
+    api = "gles31"
   }
 
   angle_deqp_khr_gtest("khr_gles32") {
     defines = [ "ANGLE_DEQP_KHR_GLES32_TESTS" ]
     mustpass_name = "gles32-khr-master.txt"
+    api = "gles32"
+  }
+
+  # The core Desktop GL CTS is in the same category as these KHR tests.
+  angle_deqp_khr_gtest("gl46") {
+    defines = [ "ANGLE_DEQP_GL_TESTS" ]
+    mustpass_name = "gl46-khr-master.txt"
+    api = "gl46"
   }
 
   template("angle_deqp_rotate_gtest") {
@@ -1572,18 +1702,11 @@ group("angle_tests") {
   if (build_angle_deqp_tests && !is_fuchsia) {
     deps += [
       ":angle_deqp_egl_tests",
+      ":angle_deqp_gl46_tests",
       ":angle_deqp_gles2_tests",
       ":angle_deqp_gles31_tests",
       ":angle_deqp_gles3_tests",
     ]
-    if (!build_with_chromium) {
-      deps += [
-        ":angle_deqp_egl_no_gtest",
-        ":angle_deqp_gles2_no_gtest",
-        ":angle_deqp_gles31_no_gtest",
-        ":angle_deqp_gles3_no_gtest",
-      ]
-    }
   }
   if (build_angle_gles1_conform_tests) {
     deps += [

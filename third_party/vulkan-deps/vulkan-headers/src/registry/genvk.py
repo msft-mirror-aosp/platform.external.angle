@@ -1,17 +1,21 @@
 #!/usr/bin/python3
 #
-# Copyright 2013-2021 The Khronos Group Inc.
+# Copyright 2013-2022 The Khronos Group Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 
 import argparse
+import os
 import pdb
 import re
 import sys
 import time
 import xml.etree.ElementTree as etree
 
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 from cgenerator import CGeneratorOptions, COutputGenerator
+
 from docgenerator import DocGeneratorOptions, DocOutputGenerator
 from extensionmetadocgenerator import (ExtensionMetaDocGeneratorOptions,
                                        ExtensionMetaDocOutputGenerator)
@@ -19,12 +23,13 @@ from interfacedocgenerator import InterfaceDocGenerator
 from generator import write
 from spirvcapgenerator import SpirvCapabilityOutputGenerator
 from hostsyncgenerator import HostSynchronizationOutputGenerator
+from formatsgenerator import FormatsOutputGenerator
 from pygenerator import PyOutputGenerator
-from reflib import logDiag, logWarn, setLogFile
+from rubygenerator import RubyOutputGenerator
+from reflib import logDiag, logWarn, logErr, setLogFile
 from reg import Registry
 from validitygenerator import ValidityOutputGenerator
-from vkconventions import VulkanConventions
-
+from apiconventions import APIConventions
 
 # Simple timer functions
 startTime = None
@@ -38,7 +43,7 @@ def startTimer(timeit):
 
 def endTimer(timeit, msg):
     global startTime
-    if timeit:
+    if timeit and startTime is not None:
         endTime = time.process_time()
         logDiag(msg, endTime - startTime)
         startTime = None
@@ -77,6 +82,9 @@ def makeGenOpts(args):
     # SPIR-V capabilities / features to emit (list of extensions & capabilities)
     emitSpirv = args.emitSpirv
 
+    # Vulkan Formats to emit
+    emitFormats = args.emitFormats
+
     # Features to include (list of features)
     features = args.feature
 
@@ -86,7 +94,7 @@ def makeGenOpts(args):
     # Output target directory
     directory = args.directory
 
-    # Path to generated files, particularly api.py
+    # Path to generated files, particularly apimap.py
     genpath = args.genpath
 
     # Generate MISRA C-friendly headers
@@ -97,22 +105,23 @@ def makeGenOpts(args):
 
     # Descriptive names for various regexp patterns used to select
     # versions and extensions
-    allSpirv = allFeatures = allExtensions = r'.*'
+    allFormats = allSpirv = allFeatures = allExtensions = r'.*'
 
     # Turn lists of names/patterns into matching regular expressions
     addExtensionsPat     = makeREstring(extensions, None)
     removeExtensionsPat  = makeREstring(removeExtensions, None)
     emitExtensionsPat    = makeREstring(emitExtensions, allExtensions)
     emitSpirvPat         = makeREstring(emitSpirv, allSpirv)
+    emitFormatsPat       = makeREstring(emitFormats, allFormats)
     featuresPat          = makeREstring(features, allFeatures)
 
     # Copyright text prefixing all headers (list of strings).
     # The SPDX formatting below works around constraints of the 'reuse' tool
     prefixStrings = [
         '/*',
-        '** Copyright 2015-2021 The Khronos Group Inc.',
+        '** Copyright 2015-2022 The Khronos Group Inc.',
         '**',
-        '** SPDX' + '-License-Identifier: Apache-2.0',
+        '** SPDX-License-Identifier' + ': Apache-2.0',
         '*/',
         ''
     ]
@@ -130,7 +139,9 @@ def makeGenOpts(args):
     protectFile = protect
 
     # An API style conventions object
-    conventions = VulkanConventions()
+    conventions = APIConventions()
+
+    defaultAPIName = conventions.xml_api_name
 
     # API include files for spec and ref pages
     # Overwrites include subdirectories in spec source tree
@@ -146,7 +157,7 @@ def makeGenOpts(args):
             filename          = 'timeMarker',
             directory         = directory,
             genpath           = genpath,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -162,16 +173,16 @@ def makeGenOpts(args):
             expandEnumerants  = False)
         ]
 
-    # Python representation of API information, used by scripts that
-    # don't need to load the full XML.
-    genOpts['api.py'] = [
+    # Python and Ruby representations of API information, used by scripts
+    # that do not need to load the full XML.
+    genOpts['apimap.py'] = [
           PyOutputGenerator,
           DocGeneratorOptions(
             conventions       = conventions,
-            filename          = 'api.py',
+            filename          = 'apimap.py',
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -182,7 +193,30 @@ def makeGenOpts(args):
             reparentEnums     = False)
         ]
 
+    genOpts['apimap.rb'] = [
+          RubyOutputGenerator,
+          DocGeneratorOptions(
+            conventions       = conventions,
+            filename          = 'apimap.rb',
+            directory         = directory,
+            genpath           = None,
+            apiname           = defaultAPIName,
+            profile           = None,
+            versions          = featuresPat,
+            emitversions      = featuresPat,
+            defaultExtensions = None,
+            addExtensions     = addExtensionsPat,
+            removeExtensions  = removeExtensionsPat,
+            emitExtensions    = emitExtensionsPat,
+            reparentEnums     = False)
+        ]
+
+
     # API validity files for spec
+    #
+    # requireCommandAliases is set to True because we need validity files
+    # for the command something is promoted to even when the promoted-to
+    # feature is not included. This avoids wordy includes of validity files.
     genOpts['validinc'] = [
           ValidityOutputGenerator,
           DocGeneratorOptions(
@@ -190,14 +224,16 @@ def makeGenOpts(args):
             filename          = 'timeMarker',
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
             defaultExtensions = None,
             addExtensions     = addExtensionsPat,
             removeExtensions  = removeExtensionsPat,
-            emitExtensions    = emitExtensionsPat)
+            emitExtensions    = emitExtensionsPat,
+            requireCommandAliases = True,
+            )
         ]
 
     # API host sync table files for spec
@@ -208,7 +244,7 @@ def makeGenOpts(args):
             filename          = 'timeMarker',
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -230,7 +266,7 @@ def makeGenOpts(args):
             filename          = 'timeMarker',
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = featuresPat,
             emitversions      = None,
@@ -249,7 +285,7 @@ def makeGenOpts(args):
             filename          = 'timeMarker',
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -267,7 +303,7 @@ def makeGenOpts(args):
             filename          = 'timeMarker',
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -276,6 +312,26 @@ def makeGenOpts(args):
             removeExtensions  = removeExtensionsPat,
             emitExtensions    = emitExtensionsPat,
             emitSpirv         = emitSpirvPat,
+            reparentEnums     = False)
+        ]
+
+    # Used to generate various format chapter tables
+    genOpts['formatsinc'] = [
+          FormatsOutputGenerator,
+          DocGeneratorOptions(
+            conventions       = conventions,
+            filename          = 'timeMarker',
+            directory         = directory,
+            genpath           = None,
+            apiname           = defaultAPIName,
+            profile           = None,
+            versions          = featuresPat,
+            emitversions      = featuresPat,
+            defaultExtensions = None,
+            addExtensions     = addExtensionsPat,
+            removeExtensions  = removeExtensionsPat,
+            emitExtensions    = emitExtensionsPat,
+            emitFormats       = emitFormatsPat,
             reparentEnums     = False)
         ]
 
@@ -307,6 +363,7 @@ def makeGenOpts(args):
         'VK_EXT_video_decode_h264',
         'VK_EXT_video_decode_h265',
         'VK_EXT_video_encode_h264',
+        'VK_EXT_video_encode_h265',
     ]
 
     betaSuppressExtensions = []
@@ -314,10 +371,13 @@ def makeGenOpts(args):
     platforms = [
         [ 'vulkan_android.h',     [ 'VK_KHR_android_surface',
                                     'VK_ANDROID_external_memory_android_hardware_buffer'
-                                                                  ], commonSuppressExtensions ],
+                                                                  ], commonSuppressExtensions +
+                                                                     [ 'VK_KHR_format_feature_flags2',
+                                                                     ] ],
         [ 'vulkan_fuchsia.h',     [ 'VK_FUCHSIA_imagepipe_surface',
                                     'VK_FUCHSIA_external_memory',
-                                    'VK_FUCHSIA_external_semaphore' ], commonSuppressExtensions ],
+                                    'VK_FUCHSIA_external_semaphore',
+                                    'VK_FUCHSIA_buffer_collection' ], commonSuppressExtensions ],
         [ 'vulkan_ggp.h',         [ 'VK_GGP_stream_descriptor_surface',
                                     'VK_GGP_frame_token'          ], commonSuppressExtensions ],
         [ 'vulkan_ios.h',         [ 'VK_MVK_ios_surface'          ], commonSuppressExtensions ],
@@ -337,7 +397,8 @@ def makeGenOpts(args):
         [ 'vulkan_xlib.h',        [ 'VK_KHR_xlib_surface'         ], commonSuppressExtensions ],
         [ 'vulkan_directfb.h',    [ 'VK_EXT_directfb_surface'     ], commonSuppressExtensions ],
         [ 'vulkan_xlib_xrandr.h', [ 'VK_EXT_acquire_xlib_display' ], commonSuppressExtensions ],
-        [ 'vulkan_metal.h',       [ 'VK_EXT_metal_surface'        ], commonSuppressExtensions ],
+        [ 'vulkan_metal.h',       [ 'VK_EXT_metal_surface',
+                                    'VK_EXT_metal_objects'        ], commonSuppressExtensions ],
         [ 'vulkan_screen.h',      [ 'VK_QNX_screen_surface'       ], commonSuppressExtensions ],
         [ 'vulkan_beta.h',        betaRequireExtensions,             betaSuppressExtensions ],
     ]
@@ -357,7 +418,7 @@ def makeGenOpts(args):
             filename          = headername,
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = featuresPat,
             emitversions      = None,
@@ -398,7 +459,7 @@ def makeGenOpts(args):
             filename          = 'vulkan_core.h',
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -432,7 +493,7 @@ def makeGenOpts(args):
             filename          = 'vulkan10.h',
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = 'VK_VERSION_1_0',
             emitversions      = 'VK_VERSION_1_0',
@@ -454,6 +515,83 @@ def makeGenOpts(args):
             misracppstyle     = misracppstyle)
         ]
 
+    # Video header target - combines all video extension dependencies into a
+    # single header, at present.
+    genOpts['vk_video.h'] = [
+          COutputGenerator,
+          CGeneratorOptions(
+            conventions       = conventions,
+            filename          = 'vk_video.h',
+            directory         = directory,
+            genpath           = None,
+            apiname           = 'vulkan',
+            profile           = None,
+            versions          = None,
+            emitversions      = None,
+            defaultExtensions = defaultExtensions,
+            addExtensions     = addExtensionsPat,
+            removeExtensions  = removeExtensionsPat,
+            emitExtensions    = emitExtensionsPat,
+            prefixText        = prefixStrings + vkPrefixStrings,
+            genFuncPointers   = True,
+            protectFile       = protectFile,
+            protectFeature    = False,
+            protectProto      = '#ifndef',
+            protectProtoStr   = 'VK_NO_PROTOTYPES',
+            apicall           = '',
+            apientry          = '',
+            apientryp         = '',
+            alignFuncParam    = 48,
+            misracstyle       = misracstyle,
+            misracppstyle     = misracppstyle)
+    ]
+
+    # Video extension 'Std' interfaces, each in its own header files
+    # These are not Vulkan extensions, or a part of the Vulkan API at all,
+    # but are treated in a similar fashion for generation purposes.
+    #
+    # Each element of the videoStd[] array is an 'extension' name defining
+    # an interface, and is also the basis for the generated header file name.
+
+    videoStd = [
+        'vulkan_video_codecs_common',
+        'vulkan_video_codec_h264std',
+        'vulkan_video_codec_h264std_decode',
+        'vulkan_video_codec_h264std_encode',
+        'vulkan_video_codec_h265std',
+        'vulkan_video_codec_h265std_decode',
+        'vulkan_video_codec_h265std_encode',
+    ]
+
+    addExtensionRE = makeREstring(videoStd)
+    for codec in videoStd:
+        headername = f'{codec}.h'
+
+        # Consider all of the codecs 'extensions', but only emit this one
+        emitExtensionRE = makeREstring([codec])
+
+        opts = CGeneratorOptions(
+            conventions       = conventions,
+            filename          = headername,
+            directory         = directory,
+            genpath           = None,
+            apiname           = defaultAPIName,
+            profile           = None,
+            versions          = None,
+            emitversions      = None,
+            defaultExtensions = None,
+            addExtensions     = addExtensionRE,
+            removeExtensions  = None,
+            emitExtensions    = emitExtensionRE,
+            prefixText        = prefixStrings + vkPrefixStrings,
+            genFuncPointers   = False,
+            protectFile       = protectFile,
+            protectFeature    = False,
+            alignFuncParam    = 48,
+            )
+
+        genOpts[headername] = [ COutputGenerator, opts ]
+
     # Unused - vulkan11.h target.
     # It is possible to generate a header with just the Vulkan 1.0 +
     # extension interfaces defined, but since the promoted KHR extensions
@@ -466,7 +604,7 @@ def makeGenOpts(args):
             filename          = 'vulkan11.h',
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = '^VK_VERSION_1_[01]$',
             emitversions      = '^VK_VERSION_1_[01]$',
@@ -495,7 +633,7 @@ def makeGenOpts(args):
             filename          = 'alias.h',
             directory         = directory,
             genpath           = None,
-            apiname           = 'vulkan',
+            apiname           = defaultAPIName,
             profile           = None,
             versions          = featuresPat,
             emitversions      = featuresPat,
@@ -532,8 +670,6 @@ def genTarget(args):
     # Create generator options with parameters specified on command line
     makeGenOpts(args)
 
-    # pdb.set_trace()
-
     # Select a generator matching the requested target
     if args.target in genOpts:
         createGenerator = genOpts[args.target][0]
@@ -546,6 +682,8 @@ def genTarget(args):
         logDiag('* options.addExtensions     =', options.addExtensions)
         logDiag('* options.removeExtensions  =', options.removeExtensions)
         logDiag('* options.emitExtensions    =', options.emitExtensions)
+        logDiag('* options.emitSpirv         =', options.emitSpirv)
+        logDiag('* options.emitFormats       =', options.emitFormats)
 
         gen = createGenerator(errFile=errWarn,
                               warnFile=errWarn,
@@ -564,7 +702,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-defaultExtensions', action='store',
-                        default='vulkan',
+                        default=APIConventions().xml_api_name,
                         help='Specify a single class of extensions to add to targets')
     parser.add_argument('-extension', action='append',
                         default=[],
@@ -578,6 +716,9 @@ if __name__ == '__main__':
     parser.add_argument('-emitSpirv', action='append',
                         default=[],
                         help='Specify a SPIR-V extension or capability to emit in targets')
+    parser.add_argument('-emitFormats', action='append',
+                        default=[],
+                        help='Specify Vulkan Formats to emit in targets')
     parser.add_argument('-feature', action='append',
                         default=[],
                         help='Specify a core API feature name or names to add to targets')
@@ -600,8 +741,6 @@ if __name__ == '__main__':
                         help='Use specified registry file instead of vk.xml')
     parser.add_argument('-time', action='store_true',
                         help='Enable timing')
-    parser.add_argument('-validate', action='store_true',
-                        help='Validate the registry properties and exit')
     parser.add_argument('-genpath', action='store', default='gen',
                         help='Path to generated files')
     parser.add_argument('-o', action='store', dest='directory',
@@ -635,10 +774,12 @@ if __name__ == '__main__':
     else:
         diag = None
 
-    (gen, options) = (None, None)
-    if not args.validate:
-      # Create the API generator & generator options
-      (gen, options) = genTarget(args)
+    if args.time:
+        # Log diagnostics and warnings
+        setLogFile(setDiag = True, setWarn = True, filename = '-')
+
+    # Create the API generator & generator options
+    (gen, options) = genTarget(args)
 
     # Create the registry object with the specified generator and generator
     # options. The options are set before XML loading as they may affect it.
@@ -653,10 +794,6 @@ if __name__ == '__main__':
     startTimer(args.time)
     reg.loadElementTree(tree)
     endTimer(args.time, '* Time to parse ElementTree =')
-
-    if args.validate:
-        success = reg.validateRegistry()
-        sys.exit(0 if success else 1)
 
     if args.dump:
         logDiag('* Dumping registry to regdump.txt')

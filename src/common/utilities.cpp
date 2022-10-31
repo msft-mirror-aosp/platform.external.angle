@@ -134,6 +134,7 @@ GLenum VariableComponentType(GLenum type)
         case GL_SAMPLER_EXTERNAL_OES:
         case GL_SAMPLER_2D_MULTISAMPLE:
         case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+        case GL_INT_SAMPLER_BUFFER:
         case GL_INT_SAMPLER_2D:
         case GL_INT_SAMPLER_3D:
         case GL_INT_SAMPLER_CUBE:
@@ -172,6 +173,7 @@ GLenum VariableComponentType(GLenum type)
         case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
         case GL_IMAGE_BUFFER:
         case GL_INT_IMAGE_BUFFER:
+        case GL_UNSIGNED_INT_SAMPLER_BUFFER:
         case GL_UNSIGNED_INT_IMAGE_BUFFER:
         case GL_UNSIGNED_INT_ATOMIC_COUNTER:
         case GL_SAMPLER_VIDEO_IMAGE_WEBGL:
@@ -263,7 +265,7 @@ std::string GetGLSLTypeString(GLenum type)
             return "mat4";
         default:
             UNREACHABLE();
-            return nullptr;
+            return "";
     }
 }
 
@@ -595,6 +597,9 @@ bool IsImage2DType(GLenum type)
         case GL_IMAGE_CUBE:
         case GL_INT_IMAGE_CUBE:
         case GL_UNSIGNED_INT_IMAGE_CUBE:
+        case GL_IMAGE_BUFFER:
+        case GL_INT_IMAGE_BUFFER:
+        case GL_UNSIGNED_INT_IMAGE_BUFFER:
             return false;
         default:
             UNREACHABLE();
@@ -1275,6 +1280,7 @@ bool IsExternalImageTarget(EGLenum target)
         case EGL_D3D11_TEXTURE_ANGLE:
         case EGL_LINUX_DMA_BUF_EXT:
         case EGL_METAL_TEXTURE_ANGLE:
+        case EGL_VULKAN_IMAGE_ANGLE:
             return true;
 
         default:
@@ -1364,31 +1370,6 @@ EGLClientBuffer GLObjectHandleToEGLClientBuffer(GLuint handle)
 }  // namespace gl_egl
 
 #if !defined(ANGLE_ENABLE_WINDOWS_UWP)
-std::string getTempPath()
-{
-#    ifdef ANGLE_PLATFORM_WINDOWS
-    char path[MAX_PATH];
-    DWORD pathLen = GetTempPathA(sizeof(path) / sizeof(path[0]), path);
-    if (pathLen == 0)
-    {
-        UNREACHABLE();
-        return std::string();
-    }
-
-    UINT unique = GetTempFileNameA(path, "sh", 0, path);
-    if (unique == 0)
-    {
-        UNREACHABLE();
-        return std::string();
-    }
-
-    return path;
-#    else
-    UNIMPLEMENTED();
-    return "";
-#    endif
-}
-
 void writeFile(const char *path, const void *content, size_t size)
 {
     FILE *file = fopen(path, "w");

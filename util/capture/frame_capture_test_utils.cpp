@@ -92,10 +92,12 @@ bool LoadTraceInfoFromJSON(const std::string &traceName,
     traceInfoOut->frameStart                = meta["FrameStart"].GetInt();
     traceInfoOut->drawSurfaceHeight         = meta["DrawSurfaceHeight"].GetInt();
     traceInfoOut->drawSurfaceWidth          = meta["DrawSurfaceWidth"].GetInt();
-    traceInfoOut->drawSurfaceColorSpace     = meta["DrawSurfaceColorSpace"].GetInt();
 
-    traceInfoOut->displayPlatformType = meta["DisplayPlatformType"].GetInt();
-    traceInfoOut->displayDeviceType   = meta["DisplayDeviceType"].GetInt();
+    angle::HexStringToUInt(meta["DrawSurfaceColorSpace"].GetString(),
+                           &traceInfoOut->drawSurfaceColorSpace);
+    angle::HexStringToUInt(meta["DisplayPlatformType"].GetString(),
+                           &traceInfoOut->displayPlatformType);
+    angle::HexStringToUInt(meta["DisplayDeviceType"].GetString(), &traceInfoOut->displayDeviceType);
 
     traceInfoOut->configRedBits     = meta["ConfigRedBits"].GetInt();
     traceInfoOut->configGreenBits   = meta["ConfigGreenBits"].GetInt();
@@ -110,6 +112,7 @@ bool LoadTraceInfoFromJSON(const std::string &traceName,
         meta["IsBindGeneratesResourcesEnabled"].GetBool();
     traceInfoOut->isWebGLCompatibilityEnabled = meta["IsWebGLCompatibilityEnabled"].GetBool();
     traceInfoOut->isRobustResourceInitEnabled = meta["IsRobustResourceInitEnabled"].GetBool();
+    traceInfoOut->initialized                 = true;
 
     return true;
 }

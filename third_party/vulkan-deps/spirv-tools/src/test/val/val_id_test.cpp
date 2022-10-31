@@ -1015,7 +1015,7 @@ TEST_F(ValidateIdWithMessage, OpTypeRuntimeArrayBad) {
                 "type."));
 }
 // TODO: Object of this type can only be created with OpVariable using the
-// Unifrom Storage Class
+// Uniform Storage Class
 
 TEST_F(ValidateIdWithMessage, OpTypeStructGood) {
   std::string spirv = kGLSL450MemoryModel + R"(
@@ -2187,11 +2187,33 @@ OpFunctionEnd
 )";
   CompileSuccessfully(spirv.c_str());
   EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
-  EXPECT_THAT(getDiagnosticString(),
-              HasSubstr("If OpTypeBool is stored in conjunction with OpVariable"
-                        ", it can only be used with non-externally visible "
-                        "shader Storage Classes: Workgroup, CrossWorkgroup, "
-                        "Private, and Function"));
+  EXPECT_THAT(
+      getDiagnosticString(),
+      HasSubstr(
+          "If OpTypeBool is stored in conjunction with OpVariable, it can only "
+          "be used with non-externally visible shader Storage Classes: "
+          "Workgroup, CrossWorkgroup, Private, Function, Input, Output, "
+          "RayPayloadKHR, IncomingRayPayloadKHR, HitAttributeKHR, "
+          "CallableDataKHR, or IncomingCallableDataKHR"));
+}
+
+TEST_F(ValidateIdWithMessage, OpVariableContainsBoolPrivateGood) {
+  std::string spirv = kGLSL450MemoryModel + R"(
+%bool = OpTypeBool
+%int = OpTypeInt 32 0
+%block = OpTypeStruct %bool %int
+%_ptr_Private_block = OpTypePointer Private %block
+%var = OpVariable %_ptr_Private_block Private
+%void = OpTypeVoid
+%fnty = OpTypeFunction %void
+%main = OpFunction %void None %fnty
+%entry = OpLabel
+%load = OpLoad %block %var
+OpReturn
+OpFunctionEnd
+)";
+  CompileSuccessfully(spirv.c_str());
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions());
 }
 
 TEST_F(ValidateIdWithMessage, OpVariableContainsBoolPointerGood) {
@@ -2231,6 +2253,29 @@ OpFunctionEnd
 )";
   CompileSuccessfully(spirv.c_str());
   EXPECT_EQ(SPV_SUCCESS, ValidateInstructions());
+}
+
+TEST_F(ValidateIdWithMessage, OpVariableContainsNoBuiltinBoolBad) {
+  std::string spirv = kGLSL450MemoryModel + R"(
+%bool = OpTypeBool
+%input = OpTypeStruct %bool
+%_ptr_input = OpTypePointer Input %input
+%var = OpVariable %_ptr_input Input
+%void = OpTypeVoid
+%fnty = OpTypeFunction %void
+%main = OpFunction %void None %fnty
+%entry = OpLabel
+%load = OpLoad %input %var
+OpReturn
+OpFunctionEnd
+)";
+  CompileSuccessfully(spirv.c_str());
+  EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
+  EXPECT_THAT(
+      getDiagnosticString(),
+      HasSubstr(
+          "If OpTypeBool is stored in conjunction with OpVariable using Input "
+          "or Output Storage Classes it requires a BuiltIn decoration"));
 }
 
 TEST_F(ValidateIdWithMessage, OpVariableContainsRayPayloadBoolGood) {
@@ -2859,7 +2904,7 @@ TEST_F(ValidateIdWithMessage, OpStoreTypeRelaxedStruct) {
   EXPECT_EQ(SPV_SUCCESS, ValidateInstructions());
 }
 
-// Same code as the last test excect for an extra decoration on one of the
+// Same code as the last test except for an extra decoration on one of the
 // members. With the relaxed rules, the code is still valid.
 TEST_F(ValidateIdWithMessage, OpStoreTypeRelaxedStructWithExtraDecoration) {
   std::string spirv = kGLSL450MemoryModel + R"(
@@ -5524,9 +5569,9 @@ OpFunctionEnd
   CompileSuccessfully(spirv.c_str());
   EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
   EXPECT_THAT(getDiagnosticString(),
-              HasSubstr("OpDecorate SpecId decoration target <id> "
-                        "'1[%uint_3]' is not a scalar specialization "
-                        "constant."));
+              HasSubstr("SpecId decoration on target <id> "
+                        "'1[%uint_3]' must be a scalar specialization "
+                        "constant"));
 }
 
 TEST_F(ValidateIdWithMessage, SpecIdTargetOpSpecConstantOpBad) {
@@ -5546,8 +5591,8 @@ OpFunctionEnd
   CompileSuccessfully(spirv.c_str());
   EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
   EXPECT_THAT(getDiagnosticString(),
-              HasSubstr("OpDecorate SpecId decoration target <id> '1[%1]' is "
-                        "not a scalar specialization constant."));
+              HasSubstr("SpecId decoration on target <id> '1[%1]' "
+                        "must be a scalar specialization constant"));
 }
 
 TEST_F(ValidateIdWithMessage, SpecIdTargetOpSpecConstantCompositeBad) {
@@ -5566,8 +5611,8 @@ OpFunctionEnd
   CompileSuccessfully(spirv.c_str());
   EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
   EXPECT_THAT(getDiagnosticString(),
-              HasSubstr("OpDecorate SpecId decoration target <id> '1[%1]' is "
-                        "not a scalar specialization constant."));
+              HasSubstr("SpecId decoration on target <id> '1[%1]' "
+                        "must be a scalar specialization constant"));
 }
 
 TEST_F(ValidateIdWithMessage, SpecIdTargetGood) {
@@ -6568,6 +6613,35 @@ TEST_F(ValidateIdWithMessage, MissingForwardPointer) {
       getDiagnosticString(),
       HasSubstr(
           "Operand 3[%_ptr_Uniform__struct_2] requires a previous definition"));
+}
+
+TEST_F(ValidateIdWithMessage, NVBindlessSamplerInStruct) {
+  std::string spirv = R"(
+            OpCapability Shader
+            OpCapability BindlessTextureNV
+            OpExtension "SPV_NV_bindless_texture"
+            OpMemoryModel Logical GLSL450
+            OpSamplerImageAddressingModeNV 64
+            OpEntryPoint Fragment %main "main"
+            OpExecutionMode %main OriginUpperLeft
+    %void = OpTypeVoid
+       %3 = OpTypeFunction %void
+   %float = OpTypeFloat 32
+       %7 = OpTypeImage %float 2D 0 0 0 1 Unknown
+       %8 = OpTypeSampledImage %7
+       %9 = OpTypeImage %float 2D 0 0 0 2 Rgba32f
+      %10 = OpTypeSampler
+     %UBO = OpTypeStruct %8 %9 %10
+%_ptr_Uniform_UBO = OpTypePointer Uniform %UBO
+       %_ = OpVariable %_ptr_Uniform_UBO Uniform
+    %main = OpFunction %void None %3
+       %5 = OpLabel
+            OpReturn
+            OpFunctionEnd
+)";
+
+  CompileSuccessfully(spirv, SPV_ENV_UNIVERSAL_1_3);
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions(SPV_ENV_UNIVERSAL_1_3));
 }
 
 }  // namespace

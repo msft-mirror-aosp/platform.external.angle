@@ -14,7 +14,7 @@ using namespace angle;
 
 constexpr int kPixelColorThreshhold = 8;
 
-class ShaderInterpTest : public ANGLETest
+class ShaderInterpTest : public ANGLETest<>
 {
   protected:
     ShaderInterpTest() : ANGLETest()
@@ -101,9 +101,6 @@ TEST_P(ShaderInterpTest, Flat)
     // ratified by Khronos, the vulkan validation layers do not recognize the create info struct,
     // causing it to be stripped and thus causing the extension to behave as if it is disabled.
     ANGLE_SKIP_TEST_IF(IsVulkan());
-
-    // http://anglebug.com/5232. Metal doesn't support last provoking vertex yet.
-    ANGLE_SKIP_TEST_IF(IsMetal());
 
     const char *vertSrc = R"(#version 300 es
 precision highp float;

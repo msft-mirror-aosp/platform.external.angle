@@ -8,12 +8,15 @@
 
 #include "libGLESv2/egl_stubs_autogen.h"
 
-#include "common/angle_version.h"
+#include "common/angle_version_info.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/Display.h"
 #include "libANGLE/EGLSync.h"
 #include "libANGLE/Surface.h"
 #include "libANGLE/Thread.h"
+#include "libANGLE/capture/capture_egl.h"
+#include "libANGLE/capture/frame_capture_utils_autogen.h"
+#include "libANGLE/capture/gl_enum_utils_autogen.h"
 #include "libANGLE/queryutils.h"
 #include "libANGLE/validationEGL.h"
 #include "libGLESv2/global_state.h"
@@ -61,13 +64,15 @@ EGLBoolean BindTexImage(Thread *thread, Display *display, Surface *eglSurface, E
                          GetDisplayIfValid(display), EGL_FALSE);
 
     gl::Context *context = thread->getContext();
-    if (context)
+    if (context && !context->isContextLost())
     {
         gl::TextureType type =
             egl_gl::EGLTextureTargetToTextureType(eglSurface->getTextureTarget());
         gl::Texture *textureObject = context->getTextureByType(type);
         ANGLE_EGL_TRY_RETURN(thread, eglSurface->bindTexImage(context, textureObject, buffer),
                              "eglBindTexImage", GetSurfaceIfValid(display, eglSurface), EGL_FALSE);
+
+        ANGLE_CAPTURE_EGL(EGLBindTexImage, thread, eglSurface, buffer);
     }
 
     thread->setSuccess();
@@ -154,6 +159,8 @@ EGLImage CreateImage(Thread *thread,
         return EGL_NO_IMAGE;
     }
 
+    ANGLE_CAPTURE_EGL(EGLCreateImage, thread, context, target, buffer, attributes, image);
+
     thread->setSuccess();
     return static_cast<EGLImage>(image);
 }
@@ -187,6 +194,8 @@ EGLSurface CreatePbufferSurface(Thread *thread,
     Surface *surface = nullptr;
     ANGLE_EGL_TRY_RETURN(thread, display->createPbufferSurface(configuration, attributes, &surface),
                          "eglCreatePbufferSurface", GetDisplayIfValid(display), EGL_NO_SURFACE);
+
+    ANGLE_CAPTURE_EGL(EGLCreatePbufferSurface, thread, attributes, surface);
 
     return static_cast<EGLSurface>(surface);
 }
@@ -293,14 +302,19 @@ EGLBoolean DestroyImage(Thread *thread, Display *display, Image *img)
                          GetDisplayIfValid(display), EGL_FALSE);
     display->destroyImage(img);
 
+    ANGLE_CAPTURE_EGL(EGLDestroyImage, thread, display, img);
+
     thread->setSuccess();
     return EGL_TRUE;
 }
 
 EGLBoolean DestroySurface(Thread *thread, Display *display, Surface *eglSurface)
 {
+    ANGLE_CAPTURE_EGL(EGLDestroySurface, thread, display, eglSurface);
+
     ANGLE_EGL_TRY_RETURN(thread, display->prepareForCall(), "eglDestroySurface",
                          GetDisplayIfValid(display), EGL_FALSE);
+
     ANGLE_EGL_TRY_RETURN(thread, display->destroySurface(eglSurface), "eglDestroySurface",
                          GetSurfaceIfValid(display, eglSurface), EGL_FALSE);
 
@@ -381,7 +395,8 @@ EGLSurface GetCurrentSurface(Thread *thread, EGLint readdraw)
 
 EGLDisplay GetDisplay(Thread *thread, EGLNativeDisplayType display_id)
 {
-    return Display::GetDisplayFromNativeDisplay(display_id, AttributeMap());
+    return Display::GetDisplayFromNativeDisplay(EGL_PLATFORM_ANGLE_ANGLE, display_id,
+                                                AttributeMap());
 }
 
 EGLint GetError(Thread *thread)
@@ -396,20 +411,25 @@ EGLDisplay GetPlatformDisplay(Thread *thread,
                               void *native_display,
                               const AttributeMap &attribMap)
 {
-    if (platform == EGL_PLATFORM_ANGLE_ANGLE)
+    switch (platform)
     {
-        return Display::GetDisplayFromNativeDisplay(
-            gl::bitCast<EGLNativeDisplayType>(native_display), attribMap);
-    }
-    else if (platform == EGL_PLATFORM_DEVICE_EXT)
-    {
-        Device *eglDevice = static_cast<Device *>(native_display);
-        return Display::GetDisplayFromDevice(eglDevice, attribMap);
-    }
-    else
-    {
-        UNREACHABLE();
-        return EGL_NO_DISPLAY;
+        case EGL_PLATFORM_ANGLE_ANGLE:
+        case EGL_PLATFORM_GBM_KHR:
+        case EGL_PLATFORM_WAYLAND_EXT:
+        {
+            return Display::GetDisplayFromNativeDisplay(
+                platform, gl::bitCast<EGLNativeDisplayType>(native_display), attribMap);
+        }
+        case EGL_PLATFORM_DEVICE_EXT:
+        {
+            Device *eglDevice = static_cast<Device *>(native_display);
+            return Display::GetDisplayFromDevice(eglDevice, attribMap);
+        }
+        default:
+        {
+            UNREACHABLE();
+            return EGL_NO_DISPLAY;
+        }
     }
 }
 
@@ -449,9 +469,13 @@ EGLBoolean Initialize(Thread *thread, Display *display, EGLint *major, EGLint *m
                          EGL_FALSE);
 
     if (major)
-        *major = 1;
+    {
+        *major = kEglMajorVersion;
+    }
     if (minor)
-        *minor = 5;
+    {
+        *minor = kEglMinorVersion;
+    }
 
     thread->setSuccess();
     return EGL_TRUE;
@@ -478,6 +502,8 @@ EGLBoolean MakeCurrent(Thread *thread,
             thread,
             display->makeCurrent(thread, previousContext, drawSurface, readSurface, context),
             "eglMakeCurrent", GetContextIfValid(display, context), EGL_FALSE);
+
+        ANGLE_CAPTURE_EGL(EGLMakeCurrent, thread, drawSurface, readSurface, context);
     }
 
     thread->setSuccess();
@@ -534,8 +560,12 @@ const char *QueryString(Thread *thread, Display *display, EGLint name)
             result = display->getVendorString().c_str();
             break;
         case EGL_VERSION:
-            result = "1.5 (ANGLE " ANGLE_VERSION_STRING ")";
+        {
+            static const char *sVersionString =
+                MakeStaticString(std::string("1.5 (ANGLE ") + angle::GetANGLEVersionString() + ")");
+            result = sVersionString;
             break;
+        }
         default:
             UNREACHABLE();
             break;
@@ -565,15 +595,19 @@ EGLBoolean ReleaseTexImage(Thread *thread, Display *display, Surface *eglSurface
 {
     ANGLE_EGL_TRY_RETURN(thread, display->prepareForCall(), "eglReleaseTexImage",
                          GetDisplayIfValid(display), EGL_FALSE);
-    gl::Texture *texture = eglSurface->getBoundTexture();
-
-    if (texture)
+    gl::Context *context = thread->getContext();
+    if (context && !context->isContextLost())
     {
-        ANGLE_EGL_TRY_RETURN(thread, eglSurface->releaseTexImage(thread->getContext(), buffer),
-                             "eglReleaseTexImage", GetSurfaceIfValid(display, eglSurface),
-                             EGL_FALSE);
-    }
+        gl::Texture *texture = eglSurface->getBoundTexture();
 
+        if (texture)
+        {
+            ANGLE_EGL_TRY_RETURN(thread, eglSurface->releaseTexImage(thread->getContext(), buffer),
+                                 "eglReleaseTexImage", GetSurfaceIfValid(display, eglSurface),
+                                 EGL_FALSE);
+            ANGLE_CAPTURE_EGL(EGLReleaseTexImage, thread, eglSurface, buffer);
+        }
+    }
     thread->setSuccess();
     return EGL_TRUE;
 }
@@ -616,7 +650,9 @@ EGLBoolean SurfaceAttrib(Thread *thread,
 {
     ANGLE_EGL_TRY_RETURN(thread, display->prepareForCall(), "eglSurfaceAttrib",
                          GetDisplayIfValid(display), EGL_FALSE);
-    SetSurfaceAttrib(eglSurface, attribute, value);
+
+    ANGLE_EGL_TRY_RETURN(thread, SetSurfaceAttrib(eglSurface, attribute, value), "eglSurfaceAttrib",
+                         GetDisplayIfValid(display), EGL_FALSE);
 
     thread->setSuccess();
     return EGL_TRUE;
@@ -642,7 +678,7 @@ EGLBoolean SwapInterval(Thread *thread, Display *display, EGLint interval)
     Surface *drawSurface        = static_cast<Surface *>(thread->getCurrentDrawSurface());
     const Config *surfaceConfig = drawSurface->getConfig();
     EGLint clampedInterval      = std::min(std::max(interval, surfaceConfig->minSwapInterval),
-                                      surfaceConfig->maxSwapInterval);
+                                           surfaceConfig->maxSwapInterval);
 
     drawSurface->setSwapInterval(clampedInterval);
 
@@ -657,8 +693,8 @@ EGLBoolean Terminate(Thread *thread, Display *display)
 
     ScopedSyncCurrentContextFromThread scopedSyncCurrent(thread);
 
-    ANGLE_EGL_TRY_RETURN(thread, display->terminate(thread), "eglTerminate",
-                         GetDisplayIfValid(display), EGL_FALSE);
+    ANGLE_EGL_TRY_RETURN(thread, display->terminate(thread, Display::TerminateReason::Api),
+                         "eglTerminate", GetDisplayIfValid(display), EGL_FALSE);
 
     thread->setSuccess();
     return EGL_TRUE;

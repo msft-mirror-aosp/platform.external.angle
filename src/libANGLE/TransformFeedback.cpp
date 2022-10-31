@@ -120,9 +120,15 @@ TransformFeedback::~TransformFeedback()
     SafeDelete(mImplementation);
 }
 
-void TransformFeedback::setLabel(const Context *context, const std::string &label)
+angle::Result TransformFeedback::setLabel(const Context *context, const std::string &label)
 {
     mState.mLabel = label;
+
+    if (mImplementation)
+    {
+        return mImplementation->onLabelUpdate(context);
+    }
+    return angle::Result::Continue;
 }
 
 const std::string &TransformFeedback::getLabel() const
@@ -306,11 +312,11 @@ size_t TransformFeedback::getIndexedBufferCount() const
     return mState.mIndexedBuffers.size();
 }
 
-bool TransformFeedback::buffersBoundForOtherUse() const
+bool TransformFeedback::buffersBoundForOtherUseInWebGL() const
 {
     for (auto &buffer : mState.mIndexedBuffers)
     {
-        if (buffer.get() && buffer->isBoundForTransformFeedbackAndOtherUse())
+        if (buffer.get() && buffer->hasWebGLXFBBindingConflict(true))
         {
             return true;
         }

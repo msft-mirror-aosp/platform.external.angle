@@ -47,7 +47,8 @@ bool IsAngleEGLConfigSupported(const PlatformParameters &param, OSWindow *osWind
         angle::OpenSharedLibrary(ANGLE_EGL_LIBRARY_NAME, angle::SearchType::ModuleDir));
 #endif
 
-    EGLWindow *eglWindow = EGLWindow::New(param.majorVersion, param.minorVersion);
+    EGLWindow *eglWindow =
+        EGLWindow::New(param.clientType, param.majorVersion, param.minorVersion, param.profileMask);
     ConfigParameters configParams;
     bool result =
         eglWindow->initializeGL(osWindow, eglLibrary.get(), angle::GLESDriverType::AngleEGL,
@@ -63,7 +64,8 @@ bool IsSystemWGLConfigSupported(const PlatformParameters &param, OSWindow *osWin
     std::unique_ptr<angle::Library> openglLibrary(
         angle::OpenSharedLibrary("opengl32", angle::SearchType::SystemDir));
 
-    WGLWindow *wglWindow = WGLWindow::New(param.majorVersion, param.minorVersion);
+    WGLWindow *wglWindow =
+        WGLWindow::New(param.clientType, param.majorVersion, param.minorVersion, param.profileMask);
     ConfigParameters configParams;
     bool result =
         wglWindow->initializeGL(osWindow, openglLibrary.get(), angle::GLESDriverType::SystemWGL,
@@ -84,7 +86,8 @@ bool IsSystemEGLConfigSupported(const PlatformParameters &param, OSWindow *osWin
     eglLibrary.reset(OpenSharedLibraryWithExtension(GetNativeEGLLibraryNameWithExtension(),
                                                     SearchType::SystemDir));
 
-    EGLWindow *eglWindow = EGLWindow::New(param.majorVersion, param.minorVersion);
+    EGLWindow *eglWindow =
+        EGLWindow::New(param.clientType, param.majorVersion, param.minorVersion, param.profileMask);
     ConfigParameters configParams;
     bool result =
         eglWindow->initializeGL(osWindow, eglLibrary.get(), angle::GLESDriverType::SystemEGL,
@@ -342,6 +345,11 @@ bool IsPixel4()
     return IsAndroidDevice("Pixel 4");
 }
 
+bool IsPixel4XL()
+{
+    return IsAndroidDevice("Pixel 4 XL");
+}
+
 bool IsNVIDIAShield()
 {
     return IsAndroidDevice("SHIELD Android TV");
@@ -360,6 +368,11 @@ bool IsIntelUHD630Mobile()
 bool IsAMD()
 {
     return HasSystemVendorID(kVendorID_AMD);
+}
+
+bool IsApple()
+{
+    return HasSystemVendorID(kVendorID_Apple);
 }
 
 bool IsARM()
@@ -386,7 +399,17 @@ bool IsNVIDIA()
 
 bool IsQualcomm()
 {
-    return IsNexus5X() || IsNexus9() || IsPixelXL() || IsPixel2() || IsPixel2XL();
+    return IsNexus5X() || IsNexus9() || IsPixelXL() || IsPixel2() || IsPixel2XL() || IsPixel4() ||
+           IsPixel4XL();
+}
+
+bool Is64Bit()
+{
+#if defined(ANGLE_IS_64_BIT_CPU)
+    return true;
+#else
+    return false;
+#endif  // defined(ANGLE_IS_64_BIT_CPU)
 }
 
 bool IsConfigAllowlisted(const SystemInfo &systemInfo, const PlatformParameters &param)
@@ -415,6 +438,14 @@ bool IsConfigAllowlisted(const SystemInfo &systemInfo, const PlatformParameters 
     {
         return false;
     }
+
+// Skip test configs that target the desktop OpenGL frontend when it's not enabled.
+#if !defined(ANGLE_ENABLE_GL_DESKTOP_FRONTEND)
+    if (param.isDesktopOpenGLFrontend())
+    {
+        return false;
+    }
+#endif
 
     if (IsWindows())
     {
@@ -552,7 +583,8 @@ bool IsConfigAllowlisted(const SystemInfo &systemInfo, const PlatformParameters 
                 return true;
             case EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE:
                 // http://issuetracker.google.com/173004081
-                return !IsIntel() || param.eglParameters.asyncCommandQueueFeatureVulkan != EGL_TRUE;
+                return !IsIntel() || !param.isEnabled(Feature::AsyncCommandQueue) ||
+                       param.isDisabled(Feature::AsyncCommandQueue);
             default:
                 return false;
         }
@@ -586,7 +618,7 @@ bool IsConfigAllowlisted(const SystemInfo &systemInfo, const PlatformParameters 
                 {
                     return false;
                 }
-                if (param.eglParameters.supportsVulkanViewportFlip == EGL_FALSE)
+                if (param.isDisabled(Feature::SupportsNegativeViewport))
                 {
                     return false;
                 }

@@ -225,6 +225,9 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_ARB_shading_language_packing]     = EBhDisable;
     extensionBehavior[E_GL_ARB_texture_query_lod]            = EBhDisable;
     extensionBehavior[E_GL_ARB_vertex_attrib_64bit]          = EBhDisable;
+    extensionBehavior[E_GL_ARB_draw_instanced]               = EBhDisable;
+    extensionBehavior[E_GL_ARB_fragment_coord_conventions]   = EBhDisable;
+
 
     extensionBehavior[E_GL_KHR_shader_subgroup_basic]            = EBhDisable;
     extensionBehavior[E_GL_KHR_shader_subgroup_vote]             = EBhDisable;
@@ -256,6 +259,8 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_EXT_shader_8bit_storage]                     = EBhDisable;
     extensionBehavior[E_GL_EXT_subgroup_uniform_control_flow]           = EBhDisable;
 
+    extensionBehavior[E_GL_EXT_fragment_shader_barycentric]             = EBhDisable;
+
     // #line and #include
     extensionBehavior[E_GL_GOOGLE_cpp_style_line_directive]          = EBhDisable;
     extensionBehavior[E_GL_GOOGLE_include_directive]                 = EBhDisable;
@@ -270,6 +275,7 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_AMD_shader_image_load_store_lod]          = EBhDisable;
     extensionBehavior[E_GL_AMD_shader_fragment_mask]                 = EBhDisable;
     extensionBehavior[E_GL_AMD_gpu_shader_half_float_fetch]          = EBhDisable;
+    extensionBehavior[E_GL_AMD_shader_early_and_late_fragment_tests] = EBhDisable;
 
     extensionBehavior[E_GL_INTEL_shader_integer_functions2]          = EBhDisable;
 
@@ -331,6 +337,7 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_EXT_ray_tracing]                 = EBhDisable;
     extensionBehavior[E_GL_EXT_ray_query]                   = EBhDisable;
     extensionBehavior[E_GL_EXT_ray_flags_primitive_culling] = EBhDisable;
+    extensionBehavior[E_GL_EXT_ray_cull_mask]               = EBhDisable;
     extensionBehavior[E_GL_EXT_blend_func_extended]         = EBhDisable;
     extensionBehavior[E_GL_EXT_shader_implicit_conversions] = EBhDisable;
     extensionBehavior[E_GL_EXT_fragment_shading_rate]       = EBhDisable;
@@ -465,6 +472,8 @@ void TParseVersions::getPreamble(std::string& preamble)
             "#define GL_ARB_shader_storage_buffer_object 1\n"
             "#define GL_ARB_texture_query_lod 1\n"
             "#define GL_ARB_vertex_attrib_64bit 1\n"
+            "#define GL_ARB_draw_instanced 1\n"
+            "#define GL_ARB_fragment_coord_conventions 1\n"
             "#define GL_EXT_shader_non_constant_global_initializers 1\n"
             "#define GL_EXT_shader_image_load_formatted 1\n"
             "#define GL_EXT_post_depth_coverage 1\n"
@@ -482,6 +491,7 @@ void TParseVersions::getPreamble(std::string& preamble)
             "#define GL_EXT_debug_printf 1\n"
             "#define GL_EXT_fragment_shading_rate 1\n"
             "#define GL_EXT_shared_memory_block 1\n"
+            "#define GL_EXT_shader_integer_mix 1\n"
 
             // GL_KHR_shader_subgroup
             "#define GL_KHR_shader_subgroup_basic 1\n"
@@ -499,6 +509,7 @@ void TParseVersions::getPreamble(std::string& preamble)
             "#define GL_EXT_ray_tracing 1\n"
             "#define GL_EXT_ray_query 1\n"
             "#define GL_EXT_ray_flags_primitive_culling 1\n"
+            "#define GL_EXT_ray_cull_mask 1\n"
             "#define GL_EXT_spirv_intrinsics 1\n"
 
             "#define GL_AMD_shader_ballot 1\n"
@@ -546,6 +557,8 @@ void TParseVersions::getPreamble(std::string& preamble)
 
             "#define GL_EXT_shader_atomic_float 1\n"
             "#define GL_EXT_shader_atomic_float2 1\n"
+
+            "#define GL_EXT_fragment_shader_barycentric 1\n"
             ;
 
         if (version >= 150) {

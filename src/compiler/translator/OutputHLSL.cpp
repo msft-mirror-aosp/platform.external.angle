@@ -306,12 +306,13 @@ OutputHLSL::OutputHLSL(sh::GLenum shaderType,
                        int numRenderTargets,
                        int maxDualSourceDrawBuffers,
                        const std::vector<ShaderVariable> &uniforms,
-                       ShCompileOptions compileOptions,
+                       const ShCompileOptions &compileOptions,
                        sh::WorkGroupSize workGroupSize,
                        TSymbolTable *symbolTable,
                        PerformanceDiagnostics *perfDiagnostics,
                        const std::map<int, const TInterfaceBlock *> &uniformBlockOptimizedMap,
-                       const std::vector<InterfaceBlock> &shaderStorageBlocks)
+                       const std::vector<InterfaceBlock> &shaderStorageBlocks,
+                       bool isEarlyFragmentTestsSpecified)
     : TIntermTraverser(true, true, true, symbolTable),
       mShaderType(shaderType),
       mShaderSpec(shaderSpec),
@@ -328,6 +329,7 @@ OutputHLSL::OutputHLSL(sh::GLenum shaderType,
       mCurrentFunctionMetadata(nullptr),
       mWorkGroupSize(workGroupSize),
       mPerfDiagnostics(perfDiagnostics),
+      mIsEarlyFragmentTestsSpecified(isEarlyFragmentTestsSpecified),
       mNeedStructMapping(false)
 {
     mUsesFragColor        = false;
@@ -369,10 +371,9 @@ OutputHLSL::OutputHLSL(sh::GLenum shaderType,
     mTextureFunctionHLSL = new TextureFunctionHLSL;
     mImageFunctionHLSL   = new ImageFunctionHLSL;
     mAtomicCounterFunctionHLSL =
-        new AtomicCounterFunctionHLSL((compileOptions & SH_FORCE_ATOMIC_VALUE_RESOLUTION) != 0);
+        new AtomicCounterFunctionHLSL(compileOptions.forceAtomicValueResolution);
 
-    unsigned int firstUniformRegister =
-        (compileOptions & SH_SKIP_D3D_CONSTANT_REGISTER_ZERO) != 0 ? 1u : 0u;
+    unsigned int firstUniformRegister = compileOptions.skipD3DConstantRegisterZero ? 1u : 0u;
     mResourcesHLSL = new ResourcesHLSL(mStructureHLSL, outputType, uniforms, firstUniformRegister);
 
     if (mOutputType == SH_HLSL_3_0_OUTPUT)
@@ -412,7 +413,7 @@ void OutputHLSL::output(TIntermNode *treeRoot, TInfoSinkBase &objSink)
 {
     BuiltInFunctionEmulator builtInFunctionEmulator;
     InitBuiltInFunctionEmulatorForHLSL(&builtInFunctionEmulator);
-    if ((mCompileOptions & SH_EMULATE_ISNAN_FLOAT_FUNCTION) != 0)
+    if (mCompileOptions.emulateIsnanFloatFunction)
     {
         InitBuiltInIsnanFunctionEmulatorForHLSLWorkarounds(&builtInFunctionEmulator,
                                                            mShaderVersion);
@@ -660,7 +661,7 @@ void OutputHLSL::header(TInfoSinkBase &out,
 
     mResourcesHLSL->uniformsHeader(out, mOutputType, mReferencedUniforms, mSymbolTable);
     out << mResourcesHLSL->uniformBlocksHeader(mReferencedUniformBlocks, mUniformBlockOptimizedMap);
-    mSSBOOutputHLSL->writeShaderStorageBlocksHeader(out);
+    mSSBOOutputHLSL->writeShaderStorageBlocksHeader(mShaderType, out);
 
     if (!mEqualityFunctions.empty())
     {
@@ -854,10 +855,19 @@ void OutputHLSL::header(TInfoSinkBase &out,
 
             if (mOutputType == SH_HLSL_4_1_OUTPUT)
             {
-                mResourcesHLSL->samplerMetadataUniforms(out, 4);
+                unsigned int registerIndex = 4;
+                mResourcesHLSL->samplerMetadataUniforms(out, registerIndex);
+                // Sampler metadata struct must be two 4-vec, 32 bytes.
+                registerIndex += mResourcesHLSL->getSamplerCount() * 2;
+                mResourcesHLSL->imageMetadataUniforms(out, registerIndex);
             }
 
             out << "};\n";
+
+            if (mOutputType == SH_HLSL_4_1_OUTPUT && mResourcesHLSL->hasImages())
+            {
+                out << kImage2DFunctionString << "\n";
+            }
         }
         else
         {
@@ -969,14 +979,17 @@ void OutputHLSL::header(TInfoSinkBase &out,
                 out << "    float multiviewSelectViewportIndex : packoffset(c3.z);\n";
             }
 
+            out << "    float clipControlOrigin : packoffset(c3.w);\n";
+            out << "    float clipControlZeroToOne : packoffset(c4);\n";
+
             if (mOutputType == SH_HLSL_4_1_OUTPUT)
             {
-                mResourcesHLSL->samplerMetadataUniforms(out, 4);
+                mResourcesHLSL->samplerMetadataUniforms(out, 5);
             }
 
             if (mUsesVertexID)
             {
-                out << "    uint dx_VertexID : packoffset(c3.w);\n";
+                out << "    uint dx_VertexID : packoffset(c4.y);\n";
             }
 
             out << "};\n"
@@ -990,8 +1003,12 @@ void OutputHLSL::header(TInfoSinkBase &out,
             }
 
             out << "uniform float4 dx_ViewAdjust : register(c1);\n";
-            out << "uniform float2 dx_ViewCoords : register(c2);\n"
-                   "\n";
+            out << "uniform float2 dx_ViewCoords : register(c2);\n";
+
+            out << "static const float clipControlOrigin = -1.0f;\n";
+            out << "static const float clipControlZeroToOne = 0.0f;\n";
+
+            out << "\n";
         }
 
         if (mUsesDepthRange)
@@ -1076,8 +1093,7 @@ void OutputHLSL::header(TInfoSinkBase &out,
         out << "\n";
     }
 
-    bool getDimensionsIgnoresBaseLevel =
-        (mCompileOptions & SH_HLSL_GET_DIMENSIONS_IGNORES_BASE_LEVEL) != 0;
+    bool getDimensionsIgnoresBaseLevel = mCompileOptions.HLSLGetDimensionsIgnoresBaseLevel;
     mTextureFunctionHLSL->textureFunctionHeader(out, mOutputType, getDimensionsIgnoresBaseLevel);
     mImageFunctionHLSL->imageFunctionHeader(out);
     mAtomicCounterFunctionHLSL->atomicCounterFunctionHeader(out);
@@ -2186,8 +2202,12 @@ bool OutputHLSL::visitFunctionDefinition(Visit visit, TIntermFunctionDefinition 
                     << "VS_OUTPUT main(VS_INPUT input)";
                 break;
             case GL_FRAGMENT_SHADER:
-                out << "@@ PIXEL OUTPUT @@\n\n"
-                    << "PS_OUTPUT main(@@ PIXEL MAIN PARAMETERS @@)";
+                out << "@@ PIXEL OUTPUT @@\n\n";
+                if (mIsEarlyFragmentTestsSpecified)
+                {
+                    out << "[earlydepthstencil]\n";
+                }
+                out << "PS_OUTPUT main(@@ PIXEL MAIN PARAMETERS @@)";
                 break;
             case GL_COMPUTE_SHADER:
                 out << "[numthreads(" << mWorkGroupSize[0] << ", " << mWorkGroupSize[1] << ", "
@@ -2934,6 +2954,11 @@ bool OutputHLSL::visitBranch(Visit visit, TIntermBranch *node)
                 {
                     ASSERT(!mInsideMain);
                     out << "return ";
+                    if (IsInShaderStorageBlock(node->getExpression()))
+                    {
+                        mSSBOOutputHLSL->outputLoadFunctionCall(node->getExpression());
+                        return false;
+                    }
                 }
                 else
                 {
@@ -2984,7 +3009,7 @@ bool OutputHLSL::handleExcessiveLoop(TInfoSinkBase &out, TIntermLoop *node)
             {
                 TIntermBinary *assign = variable->getAsBinaryNode();
 
-                if (assign->getOp() == EOpInitialize)
+                if (assign != nullptr && assign->getOp() == EOpInitialize)
                 {
                     TIntermSymbol *symbol          = assign->getLeft()->getAsSymbolNode();
                     TIntermConstantUnion *constant = assign->getRight()->getAsConstantUnion();
@@ -3199,7 +3224,7 @@ void OutputHLSL::outputTriplet(TInfoSinkBase &out,
 
 void OutputHLSL::outputLineDirective(TInfoSinkBase &out, int line)
 {
-    if ((mCompileOptions & SH_LINE_DIRECTIVES) != 0 && line > 0)
+    if (mCompileOptions.lineDirectives && line > 0)
     {
         out << "\n";
         out << "#line " << line;

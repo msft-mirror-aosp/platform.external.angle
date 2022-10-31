@@ -83,7 +83,7 @@ Stream &operator<<(Stream &out, CommaSeparatedListItemPrefixGenerator &gen)
 
 TOutputGLSLBase::TOutputGLSLBase(TCompiler *compiler,
                                  TInfoSinkBase &objSink,
-                                 ShCompileOptions compileOptions)
+                                 const ShCompileOptions &compileOptions)
     : TIntermTraverser(true, true, true, &compiler->getSymbolTable()),
       mObjSink(objSink),
       mDeclaringVariable(false),
@@ -330,7 +330,7 @@ void TOutputGLSLBase::writeQualifier(TQualifier qualifier, const TType &type, co
 const char *TOutputGLSLBase::mapQualifierToString(TQualifier qualifier)
 {
     if (sh::IsGLSL410OrOlder(mOutput) && mShaderVersion >= 300 &&
-        (mCompileOptions & SH_REMOVE_INVARIANT_AND_CENTROID_FOR_ESSL3) != 0)
+        mCompileOptions.removeInvariantAndCentroidForESSL3)
     {
         switch (qualifier)
         {
@@ -372,6 +372,22 @@ const char *TOutputGLSLBase::mapQualifierToString(TQualifier qualifier)
     }
 
     return sh::getQualifierString(qualifier);
+}
+
+namespace
+{
+
+constexpr char kIndent[]      = "                    ";  // 10x2 spaces
+constexpr int kIndentWidth    = 2;
+constexpr int kMaxIndentLevel = sizeof(kIndent) / kIndentWidth;
+
+}  // namespace
+
+const char *TOutputGLSLBase::getIndentPrefix(int extraIndentation)
+{
+    int indentDepth = std::min(kMaxIndentLevel, getCurrentBlockDepth() + extraIndentation);
+    ASSERT(indentDepth >= 0);
+    return kIndent + (kMaxIndentLevel - indentDepth) * kIndentWidth;
 }
 
 void TOutputGLSLBase::writeVariableType(const TType &type,
@@ -792,7 +808,7 @@ bool TOutputGLSLBase::visitIfElse(Visit visit, TIntermIfElse *node)
 
     if (node->getFalseBlock())
     {
-        out << "else\n";
+        out << getIndentPrefix() << "else\n";
         visitCodeBlock(node->getFalseBlock());
     }
     return false;
@@ -835,6 +851,9 @@ bool TOutputGLSLBase::visitBlock(Visit visit, TIntermBlock *node)
     {
         TIntermNode *curNode = *iter;
         ASSERT(curNode != nullptr);
+
+        out << getIndentPrefix(curNode->getAsCaseNode() ? -1 : 0);
+
         curNode->traverse(this);
 
         if (isSingleStatement(curNode))
@@ -844,7 +863,7 @@ bool TOutputGLSLBase::visitBlock(Visit visit, TIntermBlock *node)
     // Scope the blocks except when at the global scope.
     if (getCurrentTraversalDepth() > 0)
     {
-        out << "}\n";
+        out << getIndentPrefix(-1) << "}\n";
     }
     return false;
 }
@@ -1036,6 +1055,7 @@ void TOutputGLSLBase::visitCodeBlock(TIntermBlock *node)
     TInfoSinkBase &out = objSink();
     if (node != nullptr)
     {
+        out << getIndentPrefix();
         node->traverse(this);
         // Single statements not part of a sequence need to be terminated
         // with semi-colon.
@@ -1136,6 +1156,7 @@ void TOutputGLSLBase::declareStruct(const TStructure *structure)
     const TFieldList &fields = structure->fields();
     for (size_t i = 0; i < fields.size(); ++i)
     {
+        out << getIndentPrefix(1);
         const TField *field    = fields[i];
         const TType &fieldType = *field->type();
         if (writeVariablePrecision(fieldType.getPrecision()))
@@ -1153,7 +1174,7 @@ void TOutputGLSLBase::declareStruct(const TStructure *structure)
         }
         out << ";\n";
     }
-    out << "}";
+    out << getIndentPrefix() << "}";
 }
 
 void TOutputGLSLBase::declareInterfaceBlockLayout(const TType &type)
@@ -1240,6 +1261,7 @@ void TOutputGLSLBase::declareInterfaceBlock(const TType &type)
     const TFieldList &fields = interfaceBlock->fields();
     for (const TField *field : fields)
     {
+        out << getIndentPrefix(1);
         if (!IsShaderIoBlock(type.getQualifier()) && type.getQualifier() != EvqPatchIn &&
             type.getQualifier() != EvqPatchOut)
         {
@@ -1273,9 +1295,9 @@ void TOutputGLSLBase::declareInterfaceBlock(const TType &type)
     out << "}";
 }
 
-void WritePragma(TInfoSinkBase &out, ShCompileOptions compileOptions, const TPragma &pragma)
+void WritePragma(TInfoSinkBase &out, const ShCompileOptions &compileOptions, const TPragma &pragma)
 {
-    if ((compileOptions & SH_FLATTEN_PRAGMA_STDGL_INVARIANT_ALL) == 0)
+    if (!compileOptions.flattenPragmaSTDGLInvariantAll)
     {
         if (pragma.stdgl.invariantAll)
             out << "#pragma STDGL invariant(all)\n";
@@ -1404,7 +1426,7 @@ bool NeedsToWriteLayoutQualifier(const TType &type)
 
 void EmitEarlyFragmentTestsGLSL(const TCompiler &compiler, TInfoSinkBase &sink)
 {
-    if (compiler.isEarlyFragmentTestsSpecified() || compiler.isEarlyFragmentTestsOptimized())
+    if (compiler.isEarlyFragmentTestsSpecified())
     {
         sink << "layout (early_fragment_tests) in;\n";
     }
@@ -1431,12 +1453,12 @@ void EmitMultiviewGLSL(const TCompiler &compiler,
         return;
 
     const bool isVertexShader = (compiler.getShaderType() == GL_VERTEX_SHADER);
-    if ((compileOptions & SH_INITIALIZE_BUILTINS_FOR_INSTANCED_MULTIVIEW) != 0)
+    if (compileOptions.initializeBuiltinsForInstancedMultiview)
     {
         // Emit ARB_shader_viewport_layer_array/NV_viewport_array2 in a vertex shader if the
         // SH_SELECT_VIEW_IN_NV_GLSL_VERTEX_SHADER option is set and the
         // OVR_multiview(2) extension is requested.
-        if (isVertexShader && (compileOptions & SH_SELECT_VIEW_IN_NV_GLSL_VERTEX_SHADER) != 0)
+        if (isVertexShader && compileOptions.selectViewInNvGLSLVertexShader)
         {
             sink << "#if defined(GL_ARB_shader_viewport_layer_array)\n"
                  << "#extension GL_ARB_shader_viewport_layer_array : require\n"
