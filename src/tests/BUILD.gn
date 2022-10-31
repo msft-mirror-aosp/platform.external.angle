@@ -297,8 +297,6 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
     }
 
     if (is_fuchsia) {
-      use_cfv1 = false
-
       # TODO(crbug.com/1185811): Investigate removing the requirement for
       # job_policy_ambient_mark_vmo_exec.
       test_runner_shard = "//build/config/fuchsia/test/elf_test_ambient_exec_runner.shard.test-cml"
@@ -763,6 +761,7 @@ if (build_angle_gles1_conform_tests) {
     ]
 
     configs += [
+      ":angle_gles1_conform_support",
       "${angle_root}:libANGLE_config",
       "${angle_root}:angle_backend_config",
     ]

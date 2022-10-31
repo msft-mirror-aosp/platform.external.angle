@@ -115,12 +115,12 @@ void PlatformParameters::initDefaultParameters()
     eglParameters.debugLayersEnabled = EGL_TRUE;
 }
 
-bool PlatformParameters::isEnabled(Feature feature) const
+bool PlatformParameters::isEnableRequested(Feature feature) const
 {
     return HasFeatureOverride(eglParameters.enabledFeatureOverrides, feature);
 }
 
-bool PlatformParameters::isDisabled(Feature feature) const
+bool PlatformParameters::isDisableRequested(Feature feature) const
 {
     return HasFeatureOverride(eglParameters.disabledFeatureOverrides, feature);
 }
@@ -871,6 +871,11 @@ PlatformParameters ES2_WGL()
 PlatformParameters ES3_WGL()
 {
     return PlatformParameters(EGL_OPENGL_ES_API, 3, 0, 0, GLESDriverType::SystemWGL);
+}
+
+PlatformParameters ES1_EGL()
+{
+    return PlatformParameters(EGL_OPENGL_ES_API, 1, 0, 0, GLESDriverType::SystemEGL);
 }
 
 PlatformParameters ES2_EGL()

@@ -194,6 +194,10 @@ declare_args() {
   angle_has_astc_encoder = angle_has_build && angle_standalone && !is_android
 }
 
+declare_args() {
+  angle_test_enable_system_egl = false
+}
+
 # OpenCL is not supported on Windows UWP, because the CL headers include DX9, which is not
 # supported by UWP. A workaround might be possible if CL support on UWP is required.
 assert(!angle_is_winuwp || !angle_enable_cl,
@@ -497,7 +501,6 @@ if (angle_standalone || build_with_chromium) {
                     ]
 
       data = invoker.data + [
-               "$angle_root/scripts/run_gtest_angle_test.py",
                "$angle_root/src/tests/py_utils/android_helper.py",
                "$angle_root/src/tests/py_utils/angle_path_util.py",
                "$angle_root/src/tests/py_utils/angle_test_util.py",

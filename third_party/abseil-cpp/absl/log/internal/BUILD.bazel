@@ -163,7 +163,10 @@ cc_library(
     srcs = ["log_sink_set.cc"],
     hdrs = ["log_sink_set.h"],
     copts = ABSL_DEFAULT_COPTS,
-    linkopts = ABSL_DEFAULT_LINKOPTS,
+    linkopts = ABSL_DEFAULT_LINKOPTS + select({
+        "//conditions:default": [],
+        "@platforms//os:android": ["-llog"],
+    }),
     deps = [
         ":config",
         ":globals",
@@ -286,6 +289,8 @@ cc_test(
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,
     tags = [
+        "no_test:os:android",
+        "no_test:os:ios",
         "no_test_android",
         "no_test_darwin_x86_64",
         "no_test_ios",

@@ -27,7 +27,7 @@
 #include "libANGLE/renderer/metal/mtl_common.h"
 #include "libANGLE/renderer/metal/shaders/mtl_default_shaders_src_autogen.inc"
 #include "libANGLE/trace.h"
-#include "platform/Platform.h"
+#include "platform/PlatformMethods.h"
 
 #ifdef ANGLE_METAL_XCODE_BUILDS_SHADERS
 #    include "libANGLE/renderer/metal/mtl_default_shaders_compiled.inc"
@@ -477,6 +477,9 @@ void DisplayMtl::generateExtensions(egl::DisplayExtensions *outExtensions) const
 
     // EGL_ANGLE_metal_create_context_ownership_identity
     outExtensions->metalCreateContextOwnershipIdentityANGLE = true;
+
+    // EGL_ANGLE_metal_sync_shared_event
+    outExtensions->mtlSyncSharedEventANGLE = true;
 }
 
 void DisplayMtl::generateCaps(egl::Caps *outCaps) const {}
@@ -666,11 +669,15 @@ const gl::Extensions &DisplayMtl::getNativeExtensions() const
     ensureCapsInitialized();
     return mNativeExtensions;
 }
-
 const gl::Limitations &DisplayMtl::getNativeLimitations() const
 {
     ensureCapsInitialized();
     return mNativeLimitations;
+}
+ShPixelLocalStorageType DisplayMtl::getNativePixelLocalStorageType() const
+{
+    // PLS isn't supported on Metal yet.
+    return ShPixelLocalStorageType::NotSupported;
 }
 
 void DisplayMtl::ensureCapsInitialized() const
@@ -1136,7 +1143,7 @@ void DisplayMtl::initializeFeatures()
 
     ANGLE_FEATURE_CONDITION((&mFeatures), multisampleColorFormatShaderReadWorkaround, isAMD());
     ANGLE_FEATURE_CONDITION((&mFeatures), copyIOSurfaceToNonIOSurfaceForReadOptimization,
-                            isIntel());
+                            isIntel() || isAMD());
     ANGLE_FEATURE_CONDITION((&mFeatures), copyTextureToBufferForReadOptimization, isAMD());
 
     ANGLE_FEATURE_CONDITION((&mFeatures), forceNonCSBaseMipmapGeneration, isIntel());
@@ -1144,8 +1151,9 @@ void DisplayMtl::initializeFeatures()
     ANGLE_FEATURE_CONDITION((&mFeatures), preemptivelyStartProvokingVertexCommandBuffer, isAMD());
 
     bool defaultDirectToMetal = true;
-
     ANGLE_FEATURE_CONDITION((&mFeatures), directMetalGeneration, defaultDirectToMetal);
+
+    ANGLE_FEATURE_CONDITION((&mFeatures), uploadDataToIosurfacesWithStagingBuffers, isAMD());
 
     ApplyFeatureOverrides(&mFeatures, getState());
 #ifdef ANGLE_ENABLE_ASSERTS
