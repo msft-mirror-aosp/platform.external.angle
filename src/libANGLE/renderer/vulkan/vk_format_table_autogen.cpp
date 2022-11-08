@@ -115,123 +115,171 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
             break;
 
         case angle::FormatID::ASTC_10x10_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_10x10_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_10x10_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_10x10_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_10x10_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_10x10_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_10x10_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_10x10_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_10x10_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_10x10_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_10x10_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_10x10_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_10x5_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_10x5_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_10x5_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_10x5_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_10x5_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_10x5_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_10x5_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_10x5_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_10x5_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_10x5_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_10x5_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_10x5_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_10x6_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_10x6_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_10x6_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_10x6_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_10x6_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_10x6_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_10x6_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_10x6_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_10x6_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_10x6_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_10x6_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_10x6_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_10x8_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_10x8_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_10x8_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_10x8_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_10x8_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_10x8_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_10x8_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_10x8_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_10x8_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_10x8_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_10x8_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_10x8_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_12x10_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_12x10_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_12x10_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_12x10_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_12x10_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_12x10_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_12x10_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_12x10_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_12x10_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_12x10_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_12x10_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_12x10_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_12x12_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_12x12_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_12x12_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_12x12_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_12x12_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_12x12_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_12x12_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_12x12_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_12x12_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_12x12_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_12x12_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_12x12_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_3x3x3_UNORM_BLOCK:
@@ -251,23 +299,31 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
             break;
 
         case angle::FormatID::ASTC_4x4_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_4x4_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_4x4_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_4x4_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_4x4_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_4x4_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_4x4_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_4x4_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_4x4_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_4x4_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_4x4_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_4x4_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_4x4x3_UNORM_BLOCK:
@@ -287,23 +343,31 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
             break;
 
         case angle::FormatID::ASTC_5x4_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_5x4_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_5x4_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_5x4_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_5x4_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_5x4_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_5x4_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_5x4_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_5x4_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_5x4_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_5x4_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_5x4_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_5x4x4_UNORM_BLOCK:
@@ -315,23 +379,31 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
             break;
 
         case angle::FormatID::ASTC_5x5_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_5x5_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_5x5_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_5x5_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_5x5_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_5x5_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_5x5_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_5x5_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_5x5_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_5x5_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_5x5_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_5x5_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_5x5x4_UNORM_BLOCK:
@@ -351,23 +423,31 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
             break;
 
         case angle::FormatID::ASTC_6x5_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_6x5_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_6x5_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_6x5_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_6x5_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_6x5_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_6x5_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_6x5_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_6x5_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_6x5_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_6x5_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_6x5_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_6x5x5_UNORM_BLOCK:
@@ -379,23 +459,31 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
             break;
 
         case angle::FormatID::ASTC_6x6_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_6x6_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_6x6_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_6x6_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_6x6_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_6x6_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_6x6_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_6x6_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_6x6_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_6x6_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_6x6_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_6x6_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_6x6x5_UNORM_BLOCK:
@@ -415,63 +503,87 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
             break;
 
         case angle::FormatID::ASTC_8x5_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_8x5_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_8x5_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_8x5_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_8x5_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_8x5_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_8x5_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_8x5_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_8x5_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_8x5_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_8x5_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_8x5_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_8x6_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_8x6_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_8x6_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_8x6_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_8x6_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_8x6_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_8x6_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_8x6_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_8x6_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_8x6_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_8x6_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_8x6_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_8x8_SRGB_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_8x8_SRGB_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_8x8_SRGB_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_8x8_SRGB_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_8x8_SRGB_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::ASTC_8x8_UNORM_BLOCK:
-            mIntendedGLFormat              = GL_COMPRESSED_RGBA_ASTC_8x8_KHR;
-            mActualSampleOnlyImageFormatID = angle::FormatID::ASTC_8x8_UNORM_BLOCK;
-            mImageInitializerFunction      = nullptr;
-            mActualBufferFormatID          = angle::FormatID::ASTC_8x8_UNORM_BLOCK;
-            mVkBufferFormatIsPacked        = false;
-            mVertexLoadFunction            = nullptr;
-            mVertexLoadRequiresConversion  = false;
+            mIntendedGLFormat = GL_COMPRESSED_RGBA_ASTC_8x8_KHR;
+            {
+                static constexpr ImageFormatInitInfo kInfo[] = {
+                    {angle::FormatID::ASTC_8x8_UNORM_BLOCK, nullptr},
+                    {angle::FormatID::R8G8B8A8_UNORM, nullptr}};
+                initImageFallback(renderer, kInfo, ArraySize(kInfo));
+            }
+            mActualBufferFormatID         = angle::FormatID::ASTC_8x8_UNORM_BLOCK;
+            mVkBufferFormatIsPacked       = false;
+            mVertexLoadFunction           = nullptr;
+            mVertexLoadRequiresConversion = false;
             break;
 
         case angle::FormatID::B10G10R10A2_UNORM:
@@ -875,7 +987,8 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
             {
                 static constexpr ImageFormatInitInfo kInfo[] = {
                     {angle::FormatID::ETC2_R8G8B8A1_SRGB_BLOCK, nullptr},
-                    {angle::FormatID::R8G8B8A8_UNORM_SRGB, nullptr}};
+                    {angle::FormatID::R8G8B8A8_UNORM_SRGB,
+                     Initialize4ComponentData<GLubyte, 0x00, 0x00, 0x00, 0xFF>}};
                 initImageFallback(renderer, kInfo, ArraySize(kInfo));
             }
             mActualBufferFormatID         = angle::FormatID::ETC2_R8G8B8A1_SRGB_BLOCK;
@@ -888,8 +1001,7 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
             mIntendedGLFormat = GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
             {
                 static constexpr ImageFormatInitInfo kInfo[] = {
-                    {angle::FormatID::ETC2_R8G8B8A1_UNORM_BLOCK,
-                     Initialize4ComponentData<GLubyte, 0x00, 0x00, 0x00, 0xFF>},
+                    {angle::FormatID::ETC2_R8G8B8A1_UNORM_BLOCK, nullptr},
                     {angle::FormatID::R8G8B8A8_UNORM,
                      Initialize4ComponentData<GLubyte, 0x00, 0x00, 0x00, 0xFF>}};
                 initImageFallback(renderer, kInfo, ArraySize(kInfo));
@@ -1028,6 +1140,76 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
             mVkBufferFormatIsPacked        = false;
             mVertexLoadFunction            = nullptr;
             mVertexLoadRequiresConversion  = false;
+            break;
+
+        case angle::FormatID::PALETTE4_R4G4B4A4_UNORM:
+            mIntendedGLFormat              = GL_PALETTE4_RGBA4_OES;
+            mActualSampleOnlyImageFormatID = angle::FormatID::R8G8B8A8_UNORM;
+            mImageInitializerFunction      = nullptr;
+
+            break;
+
+        case angle::FormatID::PALETTE4_R5G5B5A1_UNORM:
+            mIntendedGLFormat              = GL_PALETTE4_RGB5_A1_OES;
+            mActualSampleOnlyImageFormatID = angle::FormatID::R8G8B8A8_UNORM;
+            mImageInitializerFunction      = nullptr;
+
+            break;
+
+        case angle::FormatID::PALETTE4_R5G6B5_UNORM:
+            mIntendedGLFormat              = GL_PALETTE4_R5_G6_B5_OES;
+            mActualSampleOnlyImageFormatID = angle::FormatID::R8G8B8A8_UNORM;
+            mImageInitializerFunction      = nullptr;
+
+            break;
+
+        case angle::FormatID::PALETTE4_R8G8B8A8_UNORM:
+            mIntendedGLFormat              = GL_PALETTE4_RGBA8_OES;
+            mActualSampleOnlyImageFormatID = angle::FormatID::R8G8B8A8_UNORM;
+            mImageInitializerFunction      = nullptr;
+
+            break;
+
+        case angle::FormatID::PALETTE4_R8G8B8_UNORM:
+            mIntendedGLFormat              = GL_PALETTE4_RGB8_OES;
+            mActualSampleOnlyImageFormatID = angle::FormatID::R8G8B8A8_UNORM;
+            mImageInitializerFunction      = nullptr;
+
+            break;
+
+        case angle::FormatID::PALETTE8_R4G4B4A4_UNORM:
+            mIntendedGLFormat              = GL_PALETTE8_RGBA4_OES;
+            mActualSampleOnlyImageFormatID = angle::FormatID::R8G8B8A8_UNORM;
+            mImageInitializerFunction      = nullptr;
+
+            break;
+
+        case angle::FormatID::PALETTE8_R5G5B5A1_UNORM:
+            mIntendedGLFormat              = GL_PALETTE8_RGB5_A1_OES;
+            mActualSampleOnlyImageFormatID = angle::FormatID::R8G8B8A8_UNORM;
+            mImageInitializerFunction      = nullptr;
+
+            break;
+
+        case angle::FormatID::PALETTE8_R5G6B5_UNORM:
+            mIntendedGLFormat              = GL_PALETTE8_R5_G6_B5_OES;
+            mActualSampleOnlyImageFormatID = angle::FormatID::R8G8B8A8_UNORM;
+            mImageInitializerFunction      = nullptr;
+
+            break;
+
+        case angle::FormatID::PALETTE8_R8G8B8A8_UNORM:
+            mIntendedGLFormat              = GL_PALETTE8_RGBA8_OES;
+            mActualSampleOnlyImageFormatID = angle::FormatID::R8G8B8A8_UNORM;
+            mImageInitializerFunction      = nullptr;
+
+            break;
+
+        case angle::FormatID::PALETTE8_R8G8B8_UNORM:
+            mIntendedGLFormat              = GL_PALETTE8_RGB8_OES;
+            mActualSampleOnlyImageFormatID = angle::FormatID::R8G8B8A8_UNORM;
+            mImageInitializerFunction      = nullptr;
+
             break;
 
         case angle::FormatID::PVRTC1_RGBA_2BPP_UNORM_BLOCK:
@@ -1290,13 +1472,16 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
                 static constexpr BufferFormatInitInfo kInfo[] = {
                     {angle::FormatID::R16G16B16_SNORM, false,
                      CopyNativeVertexData<GLshort, 3, 3, 0>, false},
+                    {angle::FormatID::R16G16B16A16_SNORM, false,
+                     CopyNativeVertexData<GLshort, 3, 4, std::numeric_limits<GLshort>::max()>,
+                     true},
                     {angle::FormatID::R32G32B32_FLOAT, false,
                      CopyToFloatVertexData<GLshort, 3, 3, true, false>, true},
                     {angle::FormatID::R16G16B16_FLOAT, false,
                      CopyToFloatVertexData<GLshort, 3, 3, true, true>, true},
                     {angle::FormatID::R16G16B16A16_FLOAT, false,
                      CopyToFloatVertexData<GLshort, 3, 4, true, true>, true}};
-                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 2);
+                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 3);
             }
             break;
 
@@ -1308,13 +1493,15 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
                 static constexpr BufferFormatInitInfo kInfo[] = {
                     {angle::FormatID::R16G16B16_SSCALED, false,
                      CopyNativeVertexData<GLshort, 3, 3, 0>, false},
+                    {angle::FormatID::R16G16B16A16_SSCALED, false,
+                     CopyNativeVertexData<GLshort, 3, 4, 1>, true},
                     {angle::FormatID::R32G32B32_FLOAT, false,
                      CopyToFloatVertexData<GLshort, 3, 3, false, false>, true},
                     {angle::FormatID::R16G16B16_FLOAT, false,
                      CopyToFloatVertexData<GLshort, 3, 3, false, true>, true},
                     {angle::FormatID::R16G16B16A16_FLOAT, false,
                      CopyToFloatVertexData<GLshort, 3, 4, false, true>, true}};
-                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 2);
+                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 3);
             }
             break;
 
@@ -1345,13 +1532,16 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
                 static constexpr BufferFormatInitInfo kInfo[] = {
                     {angle::FormatID::R16G16B16_UNORM, false,
                      CopyNativeVertexData<GLushort, 3, 3, 0>, false},
+                    {angle::FormatID::R16G16B16A16_UNORM, false,
+                     CopyNativeVertexData<GLushort, 3, 4, std::numeric_limits<GLushort>::max()>,
+                     true},
                     {angle::FormatID::R32G32B32_FLOAT, false,
                      CopyToFloatVertexData<GLushort, 3, 3, true, false>, true},
                     {angle::FormatID::R16G16B16_FLOAT, false,
                      CopyToFloatVertexData<GLushort, 3, 3, true, true>, true},
                     {angle::FormatID::R16G16B16A16_FLOAT, false,
                      CopyToFloatVertexData<GLushort, 3, 4, true, true>, true}};
-                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 2);
+                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 3);
             }
             break;
 
@@ -1363,13 +1553,15 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
                 static constexpr BufferFormatInitInfo kInfo[] = {
                     {angle::FormatID::R16G16B16_USCALED, false,
                      CopyNativeVertexData<GLushort, 3, 3, 0>, false},
+                    {angle::FormatID::R16G16B16A16_USCALED, false,
+                     CopyNativeVertexData<GLushort, 3, 4, 1>, true},
                     {angle::FormatID::R32G32B32_FLOAT, false,
                      CopyToFloatVertexData<GLushort, 3, 3, false, false>, true},
                     {angle::FormatID::R16G16B16_FLOAT, false,
                      CopyToFloatVertexData<GLushort, 3, 3, false, true>, true},
                     {angle::FormatID::R16G16B16A16_FLOAT, false,
                      CopyToFloatVertexData<GLushort, 3, 4, false, true>, true}};
-                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 2);
+                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 3);
             }
             break;
 
@@ -1411,11 +1603,13 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
                 static constexpr BufferFormatInitInfo kInfo[] = {
                     {angle::FormatID::R16G16_SSCALED, false, CopyNativeVertexData<GLshort, 2, 2, 0>,
                      false},
+                    {angle::FormatID::R16G16B16_SSCALED, false,
+                     CopyNativeVertexData<GLshort, 2, 3, 0>, true},
                     {angle::FormatID::R32G32_FLOAT, false,
                      CopyToFloatVertexData<GLshort, 2, 2, false, false>, true},
                     {angle::FormatID::R16G16_FLOAT, false,
                      CopyToFloatVertexData<GLshort, 2, 2, false, true>, true}};
-                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 2);
+                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 3);
             }
             break;
 
@@ -1447,11 +1641,13 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
                 static constexpr BufferFormatInitInfo kInfo[] = {
                     {angle::FormatID::R16G16_USCALED, false,
                      CopyNativeVertexData<GLushort, 2, 2, 0>, false},
+                    {angle::FormatID::R16G16B16_USCALED, false,
+                     CopyNativeVertexData<GLushort, 2, 3, 0>, true},
                     {angle::FormatID::R32G32_FLOAT, false,
                      CopyToFloatVertexData<GLushort, 2, 2, false, false>, true},
                     {angle::FormatID::R16G16_FLOAT, false,
                      CopyToFloatVertexData<GLushort, 2, 2, false, true>, true}};
-                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 2);
+                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 3);
             }
             break;
 
@@ -2053,11 +2249,13 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
                 static constexpr BufferFormatInitInfo kInfo[] = {
                     {angle::FormatID::R8G8B8_SSCALED, false, CopyNativeVertexData<GLbyte, 3, 3, 0>,
                      false},
+                    {angle::FormatID::R8G8B8A8_SSCALED, false,
+                     CopyNativeVertexData<GLbyte, 3, 4, 1>, true},
                     {angle::FormatID::R16G16B16_FLOAT, false,
                      CopyToFloatVertexData<GLbyte, 3, 3, false, true>, true},
                     {angle::FormatID::R16G16B16A16_FLOAT, false,
                      CopyToFloatVertexData<GLbyte, 3, 4, false, true>, true}};
-                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 3);
+                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 4);
             }
             break;
 
@@ -2123,11 +2321,13 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
                 static constexpr BufferFormatInitInfo kInfo[] = {
                     {angle::FormatID::R8G8B8_USCALED, false, CopyNativeVertexData<GLubyte, 3, 3, 0>,
                      false},
+                    {angle::FormatID::R8G8B8A8_USCALED, false,
+                     CopyNativeVertexData<GLubyte, 3, 4, 1>, true},
                     {angle::FormatID::R16G16B16_FLOAT, false,
                      CopyToFloatVertexData<GLubyte, 3, 3, false, true>, true},
                     {angle::FormatID::R16G16B16A16_FLOAT, false,
                      CopyToFloatVertexData<GLubyte, 3, 4, false, true>, true}};
-                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 3);
+                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 4);
             }
             break;
 
@@ -2159,9 +2359,11 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
                 static constexpr BufferFormatInitInfo kInfo[] = {
                     {angle::FormatID::R8G8_SSCALED, false, CopyNativeVertexData<GLbyte, 2, 2, 0>,
                      false},
+                    {angle::FormatID::R8G8B8_SSCALED, false, CopyNativeVertexData<GLbyte, 2, 3, 0>,
+                     true},
                     {angle::FormatID::R16G16_FLOAT, false,
                      CopyToFloatVertexData<GLbyte, 2, 2, false, true>, true}};
-                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 2);
+                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 3);
             }
             break;
 
@@ -2203,9 +2405,11 @@ void Format::initialize(RendererVk *renderer, const angle::Format &angleFormat)
                 static constexpr BufferFormatInitInfo kInfo[] = {
                     {angle::FormatID::R8G8_USCALED, false, CopyNativeVertexData<GLubyte, 2, 2, 0>,
                      false},
+                    {angle::FormatID::R8G8B8_USCALED, false, CopyNativeVertexData<GLubyte, 2, 3, 0>,
+                     true},
                     {angle::FormatID::R16G16_FLOAT, false,
                      CopyToFloatVertexData<GLubyte, 2, 2, false, true>, true}};
-                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 2);
+                initBufferFallback(renderer, kInfo, ArraySize(kInfo), 3);
             }
             break;
 

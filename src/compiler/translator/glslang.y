@@ -39,6 +39,7 @@ WHICH GENERATES THE GLSL ES PARSER (glslang_tab_autogen.cpp AND glslang_tab_auto
 #endif
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunreachable-code"
+#pragma clang diagnostic ignored "-Wunused-but-set-variable"
 #endif
 
 #include "angle_gl.h"
@@ -183,6 +184,7 @@ extern void yyerror(YYLTYPE* yylloc, TParseContext* context, void *scanner, cons
 %token <lex> IMAGECUBEARRAYEXT IIMAGECUBEARRAYEXT UIMAGECUBEARRAYEXT
 %token <lex> IMAGEBUFFER IIMAGEBUFFER UIMAGEBUFFER
 %token <lex> ATOMICUINT
+%token <lex> PIXELLOCALANGLE IPIXELLOCALANGLE UPIXELLOCALANGLE
 %token <lex> LAYOUT
 %token <lex> YUVCSCSTANDARDEXT YUVCSCSTANDARDEXTCONSTANT
 
@@ -1417,6 +1419,27 @@ type_specifier_nonarray
     }
     | ATOMICUINT {
         $$.initialize(EbtAtomicCounter, @1);
+    }
+    | PIXELLOCALANGLE {
+        if (!context->checkCanUseExtension(@1, TExtension::ANGLE_shader_pixel_local_storage))
+        {
+            context->error(@1, "unsupported type", "__pixelLocalANGLE");
+        }
+        $$.initialize(EbtPixelLocalANGLE, @1);
+    }
+    | IPIXELLOCALANGLE {
+        if (!context->checkCanUseExtension(@1, TExtension::ANGLE_shader_pixel_local_storage))
+        {
+            context->error(@1, "unsupported type", "__ipixelLocalANGLE");
+        }
+        $$.initialize(EbtIPixelLocalANGLE, @1);
+    }
+    | UPIXELLOCALANGLE {
+        if (!context->checkCanUseExtension(@1, TExtension::ANGLE_shader_pixel_local_storage))
+        {
+            context->error(@1, "unsupported type", "__upixelLocalANGLE");
+        }
+        $$.initialize(EbtUPixelLocalANGLE, @1);
     }
     | struct_specifier {
         $$ = $1;

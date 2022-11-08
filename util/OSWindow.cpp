@@ -389,6 +389,11 @@ bool OSWindow::takeScreenshot(uint8_t *pixelData)
     return false;
 }
 
+void *OSWindow::getPlatformExtension()
+{
+    return reinterpret_cast<void *>(getNativeWindow());
+}
+
 bool OSWindow::popEvent(Event *event)
 {
     if (mEvents.size() > 0 && event)
@@ -455,6 +460,9 @@ bool FindTestDataPath(const char *searchPath, char *dataPathOut, size_t maxDataP
     const std::string searchPaths[] = {
         AndroidWindow::GetExternalStorageDirectory(),
         AndroidWindow::GetExternalStorageDirectory() + "/third_party/angle"};
+#elif defined(ANGLE_PLATFORM_IOS)
+    const std::string searchPaths[] = {GetExecutableDirectory(),
+                                       GetExecutableDirectory() + "/third_party/angle"};
 #else
     const std::string searchPaths[] = {
         GetExecutableDirectory(), GetExecutableDirectory() + "/../..", ".",

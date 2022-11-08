@@ -24,6 +24,12 @@ TIntermFunctionDefinition *CreateInternalFunctionDefinitionNode(const TFunction 
 
 TIntermTyped *CreateZeroNode(const TType &type);
 TIntermConstantUnion *CreateFloatNode(float value, TPrecision precision);
+TIntermConstantUnion *CreateVecNode(const float values[],
+                                    unsigned int vecSize,
+                                    TPrecision precision);
+TIntermConstantUnion *CreateUVecNode(const unsigned int values[],
+                                     unsigned int vecSize,
+                                     TPrecision precision);
 TIntermConstantUnion *CreateIndexNode(int index);
 TIntermConstantUnion *CreateUIntNode(unsigned int value);
 TIntermConstantUnion *CreateBoolNode(bool value);
@@ -83,10 +89,16 @@ TIntermTyped *CreateBuiltInFunctionCallNode(const char *name,
                                             TIntermSequence *arguments,
                                             const TSymbolTable &symbolTable,
                                             int shaderVersion);
+TIntermTyped *CreateBuiltInFunctionCallNode(const char *name,
+                                            const std::initializer_list<TIntermNode *> &arguments,
+                                            const TSymbolTable &symbolTable,
+                                            int shaderVersion);
 TIntermTyped *CreateBuiltInUnaryFunctionCallNode(const char *name,
                                                  TIntermTyped *argument,
                                                  const TSymbolTable &symbolTable,
                                                  int shaderVersion);
+
+int GetESSLOrGLSLVersion(ShShaderSpec spec, int esslVersion, int glslVersion);
 
 inline void GetSwizzleIndex(TVector<int> *indexOut) {}
 
@@ -104,6 +116,12 @@ TIntermSwizzle *CreateSwizzle(TIntermTyped *reference, ArgsT... args)
     GetSwizzleIndex(&swizzleIndex, args...);
     return new TIntermSwizzle(reference, swizzleIndex);
 }
+
+// Returns true if a block ends in a branch (break, continue, return, etc).  This is only correct
+// after PruneNoOps, because it expects empty blocks after a branch to have been already pruned,
+// i.e. a block can only end in a branch if its last statement is a branch or is a block ending in
+// branch.
+bool EndsInBranch(TIntermBlock *block);
 
 }  // namespace sh
 

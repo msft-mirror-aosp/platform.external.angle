@@ -55,12 +55,13 @@ class DisplayGL : public DisplayImpl
                            gl::Context *context) override;
 
     gl::Version getMaxConformantESVersion() const override;
+    Optional<gl::Version> getMaxSupportedDesktopVersion() const override;
 
     virtual RendererGL *getRenderer() const = 0;
 
     std::string getRendererDescription() override;
     std::string getVendorString() override;
-    std::string getVersionString() override;
+    std::string getVersionString(bool includeFullVersion) override;
 
   protected:
     void generateExtensions(egl::DisplayExtensions *outExtensions) const override;

@@ -4,7 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# main.star: lucicfg configuration for ANGLE's standalone builers.
+# main.star: lucicfg configuration for ANGLE's standalone builders.
+
+lucicfg.check_version(min = "1.31.3", message = "Update depot_tools")
+
+# Use LUCI Scheduler BBv2 names and add Scheduler realms configs.
+lucicfg.enable_experiment("crbug.com/1182002")
 
 lucicfg.config(
     fail_on_warnings = True,
@@ -14,24 +19,6 @@ lucicfg.config(
         "-function-docstring",
     ],
 )
-
-# Enable LUCI Realms support.
-lucicfg.enable_experiment("crbug.com/1085650")
-# Launch 0% of Swarming tasks for builds in "realms-aware mode"
-# TODO(https://crbug.com/1204972): ramp up to 100%.
-# luci.builder.defaults.experiments.set({"luci.use_realms": 0})
-
-# Enable LUCI Realms support.
-lucicfg.enable_experiment("crbug.com/1085650")
-
-luci.builder.defaults.experiments.set({
-    # Launch all builds and tasks in Angle in realms mode.
-    "luci.use_realms": 100,
-    # Make the recipe use results from RDB rather than inspecting the JSON.
-    # TODO(crbug.com/1135718): This experiment can be removed after it's enabled
-    # by default in the recipe.
-    "chromium.chromium_tests.use_rdb_results": 100,
-})
 
 luci.project(
     name = "angle",
@@ -152,10 +139,11 @@ _DEFAULT_BUILDERLESS_OS_CATEGORIES = [os_category.LINUX, os_category.WINDOWS]
 _GOMA_RBE_PROD = {
     "server_host": "goma.chromium.org",
     "rpc_extra_params": "?prod",
+    "use_luci_auth": True,
 }
 
 def _recipe_for_package(cipd_package):
-    def recipe(*, name, cipd_version = None, recipe = None, use_bbagent = False):
+    def recipe(*, name, cipd_version = None, recipe = None, use_python3 = False):
         # Force the caller to put the recipe prefix rather than adding it
         # programatically to make the string greppable
         if not name.startswith(_RECIPE_NAME_PREFIX):
@@ -168,7 +156,8 @@ def _recipe_for_package(cipd_package):
             cipd_package = cipd_package,
             cipd_version = cipd_version,
             recipe = recipe,
-            use_bbagent = use_bbagent,
+            use_bbagent = True,
+            use_python3 = use_python3,
         )
 
     return recipe
@@ -179,10 +168,12 @@ build_recipe = _recipe_for_package(
 
 build_recipe(
     name = "recipe:angle",
+    use_python3 = True,
 )
 
 build_recipe(
     name = "recipe:run_presubmit",
+    use_python3 = True,
 )
 
 def get_os_from_name(name):
@@ -216,6 +207,7 @@ def angle_builder(name, cpu):
     is_tsan = "-tsan" in name
     is_ubsan = "-ubsan" in name
     is_debug = "-dbg" in name
+    is_exp = "-exp" in name
     is_perf = name.endswith("-perf")
     is_trace = name.endswith("-trace")
     is_uwp = "winuwp" in name
@@ -235,7 +227,9 @@ def angle_builder(name, cpu):
 
         # Trace tests are only run on CQ if files in the capture folders change.
         location_regexp = [
+            ".+/[+]/DEPS",
             ".+/[+]/src/libANGLE/capture/.+",
+            ".+/[+]/src/tests/angle_end2end_tests_expectations.txt",
             ".+/[+]/src/tests/capture.+",
             ".+/[+]/src/tests/egl_tests/.+",
             ".+/[+]/src/tests/gl_tests/.+",
@@ -266,6 +260,8 @@ def angle_builder(name, cpu):
         short_name = "ubsan"
     elif is_debug:
         short_name = "dbg"
+    elif is_exp:
+        short_name = "exp"
     else:
         short_name = "rel"
 
@@ -277,19 +273,33 @@ def angle_builder(name, cpu):
         "test_mode": test_mode,
     }
 
+    ci_properties = {
+        "builder_group": "angle",
+        "$build/goma": goma_props,
+        "platform": config_os.console_name,
+        "toolchain": toolchain,
+        "test_mode": test_mode,
+    }
+
+    ci_properties["sheriff_rotations"] = ["angle"]
+
     luci.builder(
         name = name,
         bucket = "ci",
         triggered_by = ["main-poller"],
         executable = "recipe:angle",
         service_account = "angle-ci-builder@chops-service-accounts.iam.gserviceaccount.com",
-        properties = properties,
+        properties = ci_properties,
         dimensions = dimensions,
         build_numbers = True,
         resultdb_settings = resultdb.settings(enable = True),
         test_presentation = resultdb.test_presentation(
             column_keys = ["v.gpu"],
             grouping_keys = ["status", "v.test_suite"],
+        ),
+        triggering_policy = scheduler.policy(
+            kind = scheduler.LOGARITHMIC_BATCHING_KIND,
+            log_base = 2,
         ),
     )
 
@@ -301,7 +311,8 @@ def angle_builder(name, cpu):
     )
 
     # Do not include perf tests in "try".
-    if not is_perf:
+    # TSAN is also excluded from "try" due to excessive flakiness: crbug.com/1275223
+    if not is_perf and not is_tsan:
         luci.list_view_entry(
             list_view = "try",
             builder = "try/" + name,
@@ -322,8 +333,8 @@ def angle_builder(name, cpu):
             ),
         )
 
-        # Don't add TSAN/UBSAN to CQ (yet). http://anglebug.com/5795
-        if not is_tsan and not is_ubsan:
+        # Don't add experimental bots to CQ.
+        if not is_exp:
             luci.cq_tryjob_verifier(
                 cq_group = "main",
                 builder = "angle:try/" + name,
@@ -389,13 +400,16 @@ luci.gitiles_poller(
 angle_builder("android-arm-compile", cpu = "arm")
 angle_builder("android-arm-dbg-compile", cpu = "arm")
 angle_builder("android-arm64-dbg-compile", cpu = "arm64")
+angle_builder("android-arm64-exp-test", cpu = "arm64")
 angle_builder("android-arm64-test", cpu = "arm64")
 angle_builder("linux-asan-test", cpu = "x64")
+angle_builder("linux-exp-test", cpu = "x64")
 angle_builder("linux-tsan-test", cpu = "x64")
 angle_builder("linux-ubsan-test", cpu = "x64")
 angle_builder("linux-dbg-compile", cpu = "x64")
 angle_builder("linux-test", cpu = "x64")
 angle_builder("mac-dbg-compile", cpu = "x64")
+angle_builder("mac-exp-test", cpu = "x64")
 angle_builder("mac-test", cpu = "x64")
 angle_builder("win-asan-test", cpu = "x64")
 angle_builder("win-dbg-compile", cpu = "x64")
@@ -413,10 +427,10 @@ angle_builder("linux-trace", cpu = "x64")
 angle_builder("win-trace", cpu = "x64")
 
 angle_builder("android-pixel4-perf", cpu = "arm64")
-angle_builder("linux-intel-hd630-perf", cpu = "x64")
-angle_builder("linux-nvidia-p400-perf", cpu = "x64")
-angle_builder("win10-intel-hd630-perf", cpu = "x64")
-angle_builder("win10-nvidia-p400-perf", cpu = "x64")
+angle_builder("linux-intel-uhd630-perf", cpu = "x64")
+angle_builder("linux-nvidia-gtx1660-perf", cpu = "x64")
+angle_builder("win10-intel-uhd630-perf", cpu = "x64")
+angle_builder("win10-nvidia-gtx1660-perf", cpu = "x64")
 
 # Views
 

@@ -16,7 +16,7 @@
 #include "libANGLE/renderer/d3d/d3d9/RenderTarget9.h"
 #include "libANGLE/renderer/d3d/d3d9/formatutils9.h"
 #include "libANGLE/renderer/driver_utils.h"
-#include "platform/FeaturesD3D.h"
+#include "platform/FeaturesD3D_autogen.h"
 #include "platform/PlatformMethods.h"
 
 #include "third_party/systeminfo/SystemInfo.h"
@@ -398,7 +398,7 @@ unsigned int GetReservedVertexUniformVectors()
 
 unsigned int GetReservedFragmentUniformVectors()
 {
-    return 3;  // dx_ViewCoords, dx_DepthFront and dx_DepthRange.
+    return 4;  // dx_ViewCoords, dx_DepthFront, dx_DepthRange, dx_FragCoordoffset.
 }
 
 GLsizei GetSamplesCount(D3DMULTISAMPLE_TYPE type)
@@ -521,11 +521,6 @@ void GenerateCaps(IDirect3D9 *d3d9,
         textureCapsMap->insert(internalFormat, textureCaps);
 
         maxSamples = std::max(maxSamples, textureCaps.getMaxSamples());
-
-        if (gl::GetSizedInternalFormatInfo(internalFormat).compressed)
-        {
-            caps->compressedTextureFormats.push_back(internalFormat);
-        }
     }
 
     // GL core feature limits
@@ -682,6 +677,9 @@ void GenerateCaps(IDirect3D9 *d3d9,
     // textureRgEXT is emulated and not performant.
     extensions->textureRgEXT = false;
 
+    // GL_KHR_parallel_shader_compile
+    extensions->parallelShaderCompileKHR = true;
+
     D3DADAPTER_IDENTIFIER9 adapterId = {};
     if (SUCCEEDED(d3d9->GetAdapterIdentifier(adapter, 0, &adapterId)))
     {
@@ -751,7 +749,7 @@ void GenerateCaps(IDirect3D9 *d3d9,
     extensions->fragDepthEXT                = true;
     extensions->textureUsageANGLE           = true;
     extensions->translatedShaderSourceANGLE = true;
-    extensions->fboRenderMipmapOES          = false;
+    extensions->fboRenderMipmapOES          = true;
     extensions->discardFramebufferEXT = false;  // It would be valid to set this to true, since
                                                 // glDiscardFramebufferEXT is just a hint
     extensions->colorBufferFloatEXT   = false;
@@ -777,12 +775,18 @@ void GenerateCaps(IDirect3D9 *d3d9,
     // D3D9 cannot support constant color and alpha blend funcs together
     limitations->noSimultaneousConstantColorAndAlphaBlendFunc = true;
 
+    // D3D9 cannot support unclamped constant blend color
+    limitations->noUnclampedBlendColor = true;
+
     // D3D9 cannot support packing more than one variable to a single varying.
     // TODO(jmadill): Implement more sophisticated component packing in D3D9.
     limitations->noFlexibleVaryingPacking = true;
 
     // D3D9 does not support vertex attribute aliasing
     limitations->noVertexAttributeAliasing = true;
+
+    // D3D9 does not support compressed textures where the base mip level is not a multiple of 4
+    limitations->compressedBaseMipLevelMultipleOfFour = true;
 }
 
 }  // namespace d3d9_gl
@@ -833,10 +837,6 @@ void InitializeFeatures(angle::FeaturesD3D *features)
 
     // crbug.com/1011627 Turn this on for D3D9.
     ANGLE_FEATURE_CONDITION(features, allowClearForRobustResourceInit, true);
-
-    // Call platform hooks for testing overrides.
-    auto *platform = ANGLEPlatformCurrent();
-    platform->overrideWorkaroundsD3D(platform, features);
 }
 
 }  // namespace d3d9

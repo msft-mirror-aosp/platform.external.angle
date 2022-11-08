@@ -41,7 +41,7 @@ namespace
 constexpr char kSpirvCrossSpecConstSuffix[] = "_tmp";
 #endif
 template <typename T>
-class ScopedAutoClearVector
+class [[nodiscard]] ScopedAutoClearVector
 {
   public:
     ScopedAutoClearVector(std::vector<T> *array) : mArray(*array) {}
@@ -173,7 +173,8 @@ void InitArgumentBufferEncoder(mtl::Context *context,
                                uint32_t bufferIndex,
                                ProgramArgumentBufferEncoderMtl *encoder)
 {
-    encoder->metalArgBufferEncoder = [function newArgumentEncoderWithBufferIndex:bufferIndex];
+    encoder->metalArgBufferEncoder =
+        mtl::adoptObjCObj([function newArgumentEncoderWithBufferIndex:bufferIndex]);
     if (encoder->metalArgBufferEncoder)
     {
         encoder->bufferPool.initialize(context, encoder->metalArgBufferEncoder.get().encodedLength,
@@ -317,7 +318,7 @@ std::unique_ptr<LinkEvent> ProgramMtl::link(const gl::Context *context,
 {
     // Link resources before calling GetShaderSource to make sure they are ready for the set/binding
     // assignment done in that function.
-    linkResources(resources);
+    linkResources(context, resources);
 
     // NOTE(hqle): Parallelize linking.
     return std::make_unique<LinkEventDone>(linkImpl(context, resources, infoLog));
@@ -338,7 +339,7 @@ angle::Result ProgramMtl::linkImplSpirv(const gl::Context *glContext,
     gl::ShaderMap<const angle::spirv::Blob *> spirvBlobs;
     ShaderInterfaceVariableInfoMap variableInfoMap;
     ShaderInterfaceVariableInfoMap xfbOnlyVariableInfoMap;
-    mtl::GlslangGetShaderSpirvCode(mState, resources, &spirvBlobs, &variableInfoMap,
+    mtl::GlslangGetShaderSpirvCode(glContext, mState, resources, &spirvBlobs, &variableInfoMap,
                                    &xfbOnlyVariableInfoMap);
 
     // Convert GLSL to spirv code
@@ -384,7 +385,7 @@ angle::Result ProgramMtl::linkImplDirect(const gl::Context *glContext,
 
     gl::ShaderMap<std::string> shaderSources;
     gl::ShaderMap<std::string> translatedMslShaders;
-    mtl::MSLGetShaderSource(mState, resources, &shaderSources, &variableInfoMap);
+    mtl::MSLGetShaderSource(glContext, mState, resources, &shaderSources, &variableInfoMap);
 
     ANGLE_TRY(mtl::GlslangGetMSL(glContext, mState, contextMtl->getCaps(), shaderSources,
                                  variableInfoMap, &mMslShaderTranslateInfo, &translatedMslShaders,
@@ -400,7 +401,7 @@ angle::Result ProgramMtl::linkImplDirect(const gl::Context *glContext,
     return angle::Result::Continue;
 }
 
-void ProgramMtl::linkUpdateHasFlatAttributes()
+void ProgramMtl::linkUpdateHasFlatAttributes(const gl::Context *context)
 {
     mProgramHasFlatAttributes = false;
 
@@ -415,7 +416,7 @@ void ProgramMtl::linkUpdateHasFlatAttributes()
     }
 
     const auto &flatVaryings =
-        mState.getAttachedShader(gl::ShaderType::Vertex)->getOutputVaryings();
+        mState.getAttachedShader(gl::ShaderType::Vertex)->getOutputVaryings(context);
     for (auto &attribute : flatVaryings)
     {
         if (attribute.interpolation == sh::INTERPOLATION_FLAT)
@@ -443,7 +444,7 @@ angle::Result ProgramMtl::linkImpl(const gl::Context *glContext,
 #else
     ANGLE_TRY(linkImplDirect(glContext, resources, infoLog));
 #endif
-    linkUpdateHasFlatAttributes();
+    linkUpdateHasFlatAttributes(glContext);
     return angle::Result::Continue;
 }
 
@@ -479,12 +480,13 @@ mtl::BufferPool *ProgramMtl::getBufferPool(ContextMtl *context)
     }
     return mAuxBufferPool;
 }
-void ProgramMtl::linkResources(const gl::ProgramLinkedResources &resources)
+void ProgramMtl::linkResources(const gl::Context *context,
+                               const gl::ProgramLinkedResources &resources)
 {
     Std140BlockLayoutEncoderFactory std140EncoderFactory;
     gl::ProgramLinkedResourcesLinker linker(&std140EncoderFactory);
 
-    linker.linkResources(mState, resources);
+    linker.linkResources(context, mState, resources);
 }
 
 angle::Result ProgramMtl::initDefaultUniformBlocks(const gl::Context *glContext)
@@ -499,7 +501,7 @@ angle::Result ProgramMtl::initDefaultUniformBlocks(const gl::Context *glContext)
         gl::Shader *shader = mState.getAttachedShader(shaderType);
         if (shader)
         {
-            const std::vector<sh::Uniform> &uniforms = shader->getUniforms();
+            const std::vector<sh::Uniform> &uniforms = shader->getUniforms(glContext);
             InitDefaultUniformBlock(uniforms, shader, &layoutMap[shaderType],
                                     &requiredBufferSize[shaderType]);
         }
@@ -577,7 +579,7 @@ angle::Result ProgramMtl::resizeDefaultUniformBlocksMemory(
     return angle::Result::Continue;
 }
 
-angle::Result ProgramMtl::getSpecializedShader(mtl::Context *context,
+angle::Result ProgramMtl::getSpecializedShader(ContextMtl *context,
                                                gl::ShaderType shaderType,
                                                const mtl::RenderPipelineDesc &renderPipelineDesc,
                                                id<MTLFunction> *shaderOut)
@@ -589,7 +591,7 @@ angle::Result ProgramMtl::getSpecializedShader(mtl::Context *context,
 
     mtl::TranslatedShaderInfo *translatedMslInfo = &mMslShaderTranslateInfo[shaderType];
     ProgramShaderObjVariantMtl *shaderVariant;
-    MTLFunctionConstantValues *funcConstants = nil;
+    mtl::AutoObjCObj<MTLFunctionConstantValues> funcConstants;
 
     if (shaderType == gl::ShaderType::Vertex)
     {
@@ -639,7 +641,7 @@ angle::Result ProgramMtl::getSpecializedShader(mtl::Context *context,
                     [NSString stringWithUTF8String:sh::mtl::kRasterizerDiscardEnabledConstName];
             }
 
-            funcConstants = [[MTLFunctionConstantValues alloc] init];
+            funcConstants = mtl::adoptObjCObj([[MTLFunctionConstantValues alloc] init]);
             [funcConstants setConstantValue:&emulateDiscard
                                        type:MTLDataTypeBool
                                    withName:discardEnabledStr];
@@ -675,10 +677,20 @@ angle::Result ProgramMtl::getSpecializedShader(mtl::Context *context,
                     [NSString stringWithUTF8String:sh::mtl::kCoverageMaskEnabledConstName];
             }
 
-            funcConstants = [[MTLFunctionConstantValues alloc] init];
+            NSString *depthWriteEnabledStr =
+                [NSString stringWithUTF8String:sh::mtl::kDepthWriteEnabledConstName];
+
+            funcConstants = mtl::adoptObjCObj([[MTLFunctionConstantValues alloc] init]);
             [funcConstants setConstantValue:&emulateCoverageMask
                                        type:MTLDataTypeBool
                                    withName:coverageMaskEnabledStr];
+
+            MTLPixelFormat depthPixelFormat =
+                (MTLPixelFormat)renderPipelineDesc.outputDescriptor.depthAttachmentPixelFormat;
+            BOOL fragDepthWriteEnabled = depthPixelFormat != MTLPixelFormatInvalid;
+            [funcConstants setConstantValue:&fragDepthWriteEnabled
+                                       type:MTLDataTypeBool
+                                   withName:depthWriteEnabledStr];
         }
 
     }  // gl::ShaderType::Fragment
@@ -699,8 +711,7 @@ angle::Result ProgramMtl::getSpecializedShader(mtl::Context *context,
     ANGLE_MTL_OBJC_SCOPE
     {
         ANGLE_TRY(CreateMslShader(context, translatedMslInfo->metalLibrary, SHADER_ENTRY_NAME,
-                                  funcConstants, &shaderVariant->metalShader));
-        [funcConstants ANGLE_MTL_AUTORELEASE];
+                                  funcConstants.get(), &shaderVariant->metalShader));
     }
 
     // Store reference to the translated source for easily querying mapped bindings later.
@@ -726,7 +737,7 @@ bool ProgramMtl::hasSpecializedShader(gl::ShaderType shaderType,
 }
 
 angle::Result ProgramMtl::createMslShaderLib(
-    mtl::Context *context,
+    ContextMtl *context,
     gl::ShaderType shaderType,
     gl::InfoLog &infoLog,
     mtl::TranslatedShaderInfo *translatedMslInfo,
@@ -734,33 +745,29 @@ angle::Result ProgramMtl::createMslShaderLib(
 {
     ANGLE_MTL_OBJC_SCOPE
     {
-        DisplayMtl *display     = context->getDisplay();
-        id<MTLDevice> mtlDevice = display->getMetalDevice();
+        const mtl::ContextDevice &metalDevice = context->getMetalDevice();
 
         // Convert to actual binary shader
         mtl::AutoObjCPtr<NSError *> err = nil;
         bool disableFastMath = (context->getDisplay()->getFeatures().intelDisableFastMath.enabled &&
                                 translatedMslInfo->hasInvariantOrAtan);
         translatedMslInfo->metalLibrary =
-            mtl::CreateShaderLibrary(mtlDevice, translatedMslInfo->metalShaderSource,
+            mtl::CreateShaderLibrary(metalDevice, translatedMslInfo->metalShaderSource,
                                      substitutionMacros, !disableFastMath, &err);
         if (err && !translatedMslInfo->metalLibrary)
         {
             std::ostringstream ss;
             ss << "Internal error compiling shader with Metal backend.\n";
-#if !defined(NDEBUG)
             ss << err.get().localizedDescription.UTF8String << "\n";
             ss << "-----\n";
             ss << translatedMslInfo->metalShaderSource;
             ss << "-----\n";
-#else
-            ss << "Please submit this shader, or website as a bug to https://bugs.webkit.org\n";
-#endif
-            ERR() << ss.str();
 
+            ERR() << ss.str();
             infoLog << ss.str();
 
-            ANGLE_MTL_CHECK(context, false, GL_INVALID_OPERATION);
+            ANGLE_MTL_HANDLE_ERROR(context, ss.str().c_str(), GL_INVALID_OPERATION);
+            return angle::Result::Stop;
         }
 
         return angle::Result::Continue;
@@ -1252,20 +1259,39 @@ angle::Result ProgramMtl::commitUniforms(ContextMtl *context, mtl::RenderCommand
         {
             continue;
         }
-        // If we exceed the default uniform max size, try to allocate a buffer. Worst case
-        // scenario, fall back on a large setBytes.
-        bool needsCommitUniform = true;
-        if (needsCommitUniform)
+        if (mAuxBufferPool)
         {
-            ASSERT(uniformBlock.uniformData.size() <= mtl::kDefaultUniformsMaxSize);
+            mAuxBufferPool->releaseInFlightBuffers(context);
+        }
+        // If we exceed the default inline max size, try to allocate a buffer
+        bool needsCommitUniform = true;
+        if (needsCommitUniform && uniformBlock.uniformData.size() <= mtl::kInlineConstDataMaxSize)
+        {
+            ASSERT(uniformBlock.uniformData.size() <= mtl::kInlineConstDataMaxSize);
             cmdEncoder->setBytes(shaderType, uniformBlock.uniformData.data(),
                                  uniformBlock.uniformData.size(),
                                  mtl::kDefaultUniformsBindingIndex);
         }
+        else if (needsCommitUniform)
+        {
+            ASSERT(uniformBlock.uniformData.size() <= mtl::kDefaultUniformsMaxSize);
+            mtl::BufferRef mtlBufferOut;
+            size_t offsetOut;
+            uint8_t *ptrOut;
+            // Allocate a new Uniform buffer
+            ANGLE_TRY(getBufferPool(context)->allocate(context, uniformBlock.uniformData.size(),
+                                                       &ptrOut, &mtlBufferOut, &offsetOut));
+            // Copy the uniform result
+            memcpy(ptrOut, uniformBlock.uniformData.data(), uniformBlock.uniformData.size());
+            // Commit
+            ANGLE_TRY(getBufferPool(context)->commit(context));
+            // Set buffer
+            cmdEncoder->setBuffer(shaderType, mtlBufferOut, (uint32_t)offsetOut,
+                                  mtl::kDefaultUniformsBindingIndex);
+        }
 
         mDefaultUniformBlocksDirty.reset(shaderType);
     }
-
     return angle::Result::Continue;
 }
 

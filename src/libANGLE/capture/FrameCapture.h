@@ -11,6 +11,7 @@
 #define LIBANGLE_FRAME_CAPTURE_H_
 
 #include "common/PackedEnums.h"
+#include "common/system_utils.h"
 #include "libANGLE/Context.h"
 #include "libANGLE/angletypes.h"
 #include "libANGLE/capture/frame_capture_utils_autogen.h"
@@ -18,8 +19,9 @@
 
 namespace gl
 {
-enum class GLenumGroup;
-}
+enum class BigGLEnum;
+enum class GLESEnum;
+}  // namespace gl
 
 namespace angle
 {
@@ -37,7 +39,8 @@ struct ParamCapture : angle::NonCopyable
     std::string name;
     ParamType type;
     ParamValue value;
-    gl::GLenumGroup enumGroup;  // only used for param type GLenum, GLboolean and GLbitfield
+    gl::GLESEnum enumGroup;   // only used for param type GLenum, GLboolean and GLbitfield
+    gl::BigGLEnum bigGLEnum;  // only used for param type GLenum, GLboolean and GLbitfield
     ParamData data;
     int dataNElements           = 0;
     int arrayClientPointerIndex = -1;
@@ -59,7 +62,12 @@ class ParamBuffer final : angle::NonCopyable
     void setValueParamAtIndex(const char *paramName, ParamType paramType, T paramValue, int index);
     template <typename T>
     void addEnumParam(const char *paramName,
-                      gl::GLenumGroup enumGroup,
+                      gl::GLESEnum enumGroup,
+                      ParamType paramType,
+                      T paramValue);
+    template <typename T>
+    void addEnumParam(const char *paramName,
+                      gl::BigGLEnum enumGroup,
                       ParamType paramType,
                       T paramValue);
 
@@ -217,6 +225,7 @@ class ReplayWriter final : angle::NonCopyable
     ReplayWriter();
     ~ReplayWriter();
 
+    void setSourceFileSizeThreshold(size_t sourceFileSizeThreshold);
     void setFilenamePattern(const std::string &pattern);
     void setCaptureLabel(const std::string &label);
     void setSourcePrologue(const std::string &prologue);
@@ -235,15 +244,23 @@ class ReplayWriter final : angle::NonCopyable
                                                const std::vector<std::string> &strings,
                                                bool *isNewEntryOut);
 
-    void saveFrame(uint32_t frameIndex);
+    void saveFrame();
+    void saveFrameIfFull();
     void saveIndexFilesAndHeader();
     void saveSetupFile();
+
+    std::vector<std::string> getAndResetWrittenFiles();
 
   private:
     static std::string GetVarName(EntryPoint entryPoint, const std::string &paramName, int counter);
 
     void saveHeader();
     void writeReplaySource(const std::string &filename);
+    void addWrittenFile(const std::string &filename);
+    size_t getStoredReplaySourceSize() const;
+
+    size_t mSourceFileSizeThreshold;
+    size_t mFrameIndex;
 
     DataTracker mDataTracker;
     std::string mFilenamePattern;
@@ -259,6 +276,8 @@ class ReplayWriter final : angle::NonCopyable
 
     std::vector<std::string> mPrivateFunctionPrototypes;
     std::vector<std::string> mPrivateFunctions;
+
+    std::vector<std::string> mWrittenFiles;
 };
 
 using BufferCalls = std::map<GLuint, std::vector<CallCapture>>;
@@ -269,6 +288,23 @@ using BufferMapStatusMap = std::map<GLuint, bool>;
 using FenceSyncSet   = std::set<GLsync>;
 using FenceSyncCalls = std::map<GLsync, std::vector<CallCapture>>;
 
+// For default uniforms, we need to track which ones are dirty, and the series of calls to reset.
+// Each program has unique default uniforms, and each uniform has one or more locations in the
+// default buffer. For reset efficiency, we track only the uniforms dirty by location, per program.
+
+// A set of all default uniforms (per program) that were modified during the run
+using DefaultUniformLocationsSet = std::set<gl::UniformLocation>;
+using DefaultUniformLocationsPerProgramMap =
+    std::map<gl::ShaderProgramID, DefaultUniformLocationsSet>;
+
+// A map of programs which maps to locations and their reset calls
+using DefaultUniformCallsPerLocationMap = std::map<gl::UniformLocation, std::vector<CallCapture>>;
+using DefaultUniformCallsPerProgramMap =
+    std::map<gl::ShaderProgramID, DefaultUniformCallsPerLocationMap>;
+
+using DefaultUniformBaseLocationMap =
+    std::map<std::pair<gl::ShaderProgramID, gl::UniformLocation>, gl::UniformLocation>;
+
 using ResourceSet   = std::set<GLuint>;
 using ResourceCalls = std::map<GLuint, std::vector<CallCapture>>;
 
@@ -278,9 +314,13 @@ class TrackedResource final : angle::NonCopyable
     TrackedResource();
     ~TrackedResource();
 
+    const ResourceSet &getStartingResources() const { return mStartingResources; }
     ResourceSet &getStartingResources() { return mStartingResources; }
+    const ResourceSet &getNewResources() const { return mNewResources; }
     ResourceSet &getNewResources() { return mNewResources; }
+    const ResourceSet &getResourcesToRegen() const { return mResourcesToRegen; }
     ResourceSet &getResourcesToRegen() { return mResourcesToRegen; }
+    const ResourceSet &getResourcesToRestore() const { return mResourcesToRestore; }
     ResourceSet &getResourcesToRestore() { return mResourcesToRestore; }
 
     void setGennedResource(GLuint id);
@@ -292,7 +332,7 @@ class TrackedResource final : angle::NonCopyable
     ResourceCalls &getResourceRestoreCalls() { return mResourceRestoreCalls; }
 
   private:
-    // Resource regen calls will delete and gen a resource
+    // Resource regen calls will gen a resource
     ResourceCalls mResourceRegenCalls;
     // Resource restore calls will restore the contents of a resource
     ResourceCalls mResourceRestoreCalls;
@@ -323,8 +363,8 @@ class ResourceTracker final : angle::NonCopyable
 
     std::vector<CallCapture> &getBufferBindingCalls() { return mBufferBindingCalls; }
 
-    void setBufferMapped(GLuint id);
-    void setBufferUnmapped(GLuint id);
+    void setBufferMapped(gl::ContextID contextID, GLuint id);
+    void setBufferUnmapped(gl::ContextID contextID, GLuint id);
 
     bool getStartingBuffersMappedCurrent(GLuint id) const;
     bool getStartingBuffersMappedInitial(GLuint id) const;
@@ -346,10 +386,29 @@ class ResourceTracker final : angle::NonCopyable
     FenceSyncSet &getFenceSyncsToRegen() { return mFenceSyncsToRegen; }
     void setDeletedFenceSync(GLsync sync);
 
-    TrackedResource &getTrackedResource(ResourceIDType type)
+    DefaultUniformLocationsPerProgramMap &getDefaultUniformsToReset()
     {
-        return mTrackedResources[static_cast<uint32_t>(type)];
+        return mDefaultUniformsToReset;
     }
+    DefaultUniformCallsPerLocationMap &getDefaultUniformResetCalls(gl::ShaderProgramID id)
+    {
+        return mDefaultUniformResetCalls[id];
+    }
+    void setModifiedDefaultUniform(gl::ShaderProgramID programID, gl::UniformLocation location);
+    void setDefaultUniformBaseLocation(gl::ShaderProgramID programID,
+                                       gl::UniformLocation location,
+                                       gl::UniformLocation baseLocation);
+    gl::UniformLocation getDefaultUniformBaseLocation(gl::ShaderProgramID programID,
+                                                      gl::UniformLocation location)
+    {
+        ASSERT(mDefaultUniformBaseLocations.find({programID, location}) !=
+               mDefaultUniformBaseLocations.end());
+        return mDefaultUniformBaseLocations[{programID, location}];
+    }
+
+    TrackedResource &getTrackedResource(gl::ContextID contextID, ResourceIDType type);
+
+    void getContextIDs(std::set<gl::ContextID> &idsOut);
 
   private:
     // Buffer map calls will map a buffer with correct offset, length, and access flags
@@ -376,7 +435,17 @@ class ResourceTracker final : angle::NonCopyable
     // be regen'ed.
     FenceSyncSet mFenceSyncsToRegen;
 
-    TrackedResourceArray mTrackedResources;
+    // Default uniforms that were modified during the run
+    DefaultUniformLocationsPerProgramMap mDefaultUniformsToReset;
+    // Calls per default uniform to return to original state
+    DefaultUniformCallsPerProgramMap mDefaultUniformResetCalls;
+
+    // Base location of arrayed uniforms
+    DefaultUniformBaseLocationMap mDefaultUniformBaseLocations;
+
+    // Tracked resources per context
+    TrackedResourceArray mTrackedResourcesShared;
+    std::map<gl::ContextID, TrackedResourceArray> mTrackedResourcesPerContext;
 };
 
 // Used by the CPP replay to filter out unnecessary code.
@@ -411,6 +480,32 @@ using SurfaceParamsMap = std::map<gl::ContextID, SurfaceParams>;
 
 using CallVector = std::vector<std::vector<CallCapture> *>;
 
+// A map from API entry point to calls
+using CallResetMap = std::map<angle::EntryPoint, std::vector<CallCapture>>;
+
+// StateResetHelper provides a simple way to track whether an entry point has been called during the
+// trace, along with the reset calls to get it back to starting state.  This is useful for things
+// that are one dimensional, like context bindings or context state.
+class StateResetHelper final : angle::NonCopyable
+{
+  public:
+    StateResetHelper();
+    ~StateResetHelper();
+
+    const std::set<angle::EntryPoint> &getDirtyEntryPoints() const { return mDirtyEntryPoints; }
+    void setEntryPointDirty(EntryPoint entryPoint) { mDirtyEntryPoints.insert(entryPoint); }
+
+    CallResetMap &getResetCalls() { return mResetCalls; }
+    const CallResetMap &getResetCalls() const { return mResetCalls; }
+
+  private:
+    // Dirty state per entry point
+    std::set<angle::EntryPoint> mDirtyEntryPoints;
+
+    // Reset calls per API entry point
+    CallResetMap mResetCalls;
+};
+
 class FrameCapture final : angle::NonCopyable
 {
   public:
@@ -420,10 +515,126 @@ class FrameCapture final : angle::NonCopyable
     std::vector<CallCapture> &getSetupCalls() { return mSetupCalls; }
     void clearSetupCalls() { mSetupCalls.clear(); }
 
+    StateResetHelper &getStateResetHelper() { return mStateResetHelper; }
+    const StateResetHelper &getStateResetHelper() const { return mStateResetHelper; }
+
     void reset();
 
   private:
     std::vector<CallCapture> mSetupCalls;
+
+    StateResetHelper mStateResetHelper;
+};
+
+// Page range inside a coherent buffer
+struct PageRange
+{
+    PageRange(size_t start, size_t end);
+    ~PageRange();
+
+    // Relative start page
+    size_t start;
+
+    // First page after the relative end
+    size_t end;
+};
+
+// Memory address range defined by start and size
+struct AddressRange
+{
+    AddressRange();
+    AddressRange(uintptr_t start, size_t size);
+    ~AddressRange();
+
+    uintptr_t end();
+
+    uintptr_t start;
+    size_t size;
+};
+
+// Used to handle protection of buffers that overlap in pages.
+enum class PageSharingType
+{
+    NoneShared,
+    FirstShared,
+    LastShared,
+    FirstAndLastShared
+};
+
+class CoherentBuffer
+{
+  public:
+    CoherentBuffer(uintptr_t start, size_t size, size_t pageSize);
+    ~CoherentBuffer();
+
+    // Sets the a range in the buffer clean and protects a selected range
+    void protectPageRange(const PageRange &pageRange);
+
+    // Sets a page dirty state and sets it's protection
+    void setDirty(size_t relativePage, bool dirty);
+
+    // Removes protection
+    void removeProtection(PageSharingType sharingType);
+
+    bool contains(size_t page, size_t *relativePage);
+    bool isDirty();
+
+    // Returns dirty page ranges
+    std::vector<PageRange> getDirtyPageRanges();
+
+    // Calculates address range from page range
+    AddressRange getDirtyAddressRange(const PageRange &dirtyPageRange);
+    AddressRange getRange();
+
+  private:
+    // Actual buffer start and size
+    AddressRange mRange;
+
+    // Start and size of page aligned protected area
+    AddressRange mProtectionRange;
+
+    // Start and end of protection in relative pages, calculated from mProtectionRange.
+    size_t mProtectionStartPage;
+    size_t mProtectionEndPage;
+
+    size_t mPageCount;
+    size_t mPageSize;
+
+    // Clean pages are protected
+    std::vector<bool> mDirtyPages;
+};
+
+class CoherentBufferTracker final : angle::NonCopyable
+{
+  public:
+    CoherentBufferTracker();
+    ~CoherentBufferTracker();
+
+    bool isDirty(gl::BufferID id);
+    void addBuffer(gl::BufferID id, uintptr_t start, size_t size);
+    void removeBuffer(gl::BufferID id);
+    void disable();
+    void enable();
+    void onEndFrame();
+
+  private:
+    // Detect overlapping pages when removing protection
+    PageSharingType doesBufferSharePage(gl::BufferID id);
+
+    // Returns a map to found buffers and the corresponding pages for a given address.
+    // For addresses that are in a page shared by 2 buffers, 2 results are returned.
+    HashMap<std::shared_ptr<CoherentBuffer>, size_t> getBufferPagesForAddress(uintptr_t address);
+    PageFaultHandlerRangeType handleWrite(uintptr_t address);
+    bool haveBuffer(gl::BufferID id);
+
+  public:
+    std::mutex mMutex;
+    HashMap<GLuint, std::shared_ptr<CoherentBuffer>> mBuffers;
+
+  private:
+    bool mEnabled = false;
+    std::unique_ptr<PageFaultHandler> mPageFaultHandler;
+    size_t mPageSize;
 };
 
 // Shared class for any items that need to be tracked by FrameCapture across shared contexts
@@ -447,13 +658,18 @@ class FrameCaptureShared final : angle::NonCopyable
     // Returns a frame index starting from "1" as the first frame.
     uint32_t getReplayFrameIndex() const;
 
-    void trackBufferMapping(CallCapture *call,
+    void trackBufferMapping(const gl::Context *context,
+                            CallCapture *call,
                             gl::BufferID id,
+                            gl::Buffer *buffer,
                             GLintptr offset,
                             GLsizeiptr length,
-                            bool writable);
+                            bool writable,
+                            bool coherent);
 
     void trackTextureUpdate(const gl::Context *context, const CallCapture &call);
+    void trackDefaultUniformUpdate(const gl::Context *context, const CallCapture &call);
+    void trackVertexArrayUpdate(const gl::Context *context, const CallCapture &call);
 
     const std::string &getShaderSource(gl::ShaderProgramID id) const;
     void setShaderSource(gl::ShaderProgramID id, std::string sources);
@@ -479,6 +695,9 @@ class FrameCaptureShared final : angle::NonCopyable
                                                     gl::TextureTarget target,
                                                     GLint level,
                                                     EntryPoint entryPoint);
+
+    // Capture coherent buffer storages
+    void captureCoherentBufferSnapshot(const gl::Context *context, gl::BufferID bufferID);
 
     // Remove any cached texture levels on deletion
     void deleteCachedTextureLevelData(gl::TextureID id);
@@ -527,39 +746,41 @@ class FrameCaptureShared final : angle::NonCopyable
     }
 
     template <typename ResourceType>
-    void handleGennedResource(ResourceType resourceID)
+    void handleGennedResource(const gl::Context *context, ResourceType resourceID)
     {
         if (isCaptureActive())
         {
             ResourceIDType idType    = GetResourceIDTypeFromType<ResourceType>::IDType;
-            TrackedResource &tracker = mResourceTracker.getTrackedResource(idType);
+            TrackedResource &tracker = mResourceTracker.getTrackedResource(context->id(), idType);
             tracker.setGennedResource(resourceID.value);
         }
     }
 
     template <typename ResourceType>
-    bool resourceIsGenerated(ResourceType resourceID)
+    bool resourceIsGenerated(const gl::Context *context, ResourceType resourceID)
     {
         ResourceIDType idType    = GetResourceIDTypeFromType<ResourceType>::IDType;
-        TrackedResource &tracker = mResourceTracker.getTrackedResource(idType);
+        TrackedResource &tracker = mResourceTracker.getTrackedResource(context->id(), idType);
         return tracker.resourceIsGenerated(resourceID.value);
     }
 
     template <typename ResourceType>
-    void handleDeletedResource(ResourceType resourceID)
+    void handleDeletedResource(const gl::Context *context, ResourceType resourceID)
     {
         if (isCaptureActive())
         {
             ResourceIDType idType    = GetResourceIDTypeFromType<ResourceType>::IDType;
-            TrackedResource &tracker = mResourceTracker.getTrackedResource(idType);
+            TrackedResource &tracker = mResourceTracker.getTrackedResource(context->id(), idType);
             tracker.setDeletedResource(resourceID.value);
         }
     }
 
   private:
-    void writeCppReplayIndexFiles(const gl::Context *, bool writeResetContextCall);
+    void writeJSON(const gl::Context *context);
+    void writeCppReplayIndexFiles(const gl::Context *context, bool writeResetContextCall);
     void writeMainContextCppReplay(const gl::Context *context,
-                                   const std::vector<CallCapture> &setupCalls);
+                                   const std::vector<CallCapture> &setupCalls,
+                                   const StateResetHelper &StateResetHelper);
 
     void captureClientArraySnapshot(const gl::Context *context,
                                     size_t vertexCount,
@@ -578,7 +799,7 @@ class FrameCaptureShared final : angle::NonCopyable
                                     std::vector<CallCapture> *shareGroupSetupCalls,
                                     ResourceIDToSetupCallsMap *resourceIDToSetupCalls);
     template <typename ParamValueType>
-    void maybeGenResourceOnBind(CallCapture &call);
+    void maybeGenResourceOnBind(const gl::Context *context, CallCapture &call);
     void maybeCapturePostCallUpdates(const gl::Context *context);
     void maybeCaptureDrawArraysClientData(const gl::Context *context,
                                           CallCapture &call,
@@ -586,11 +807,13 @@ class FrameCaptureShared final : angle::NonCopyable
     void maybeCaptureDrawElementsClientData(const gl::Context *context,
                                             CallCapture &call,
                                             size_t instanceCount);
+    void maybeCaptureCoherentBuffers(const gl::Context *context);
     void updateCopyImageSubData(CallCapture &call);
     void overrideProgramBinary(const gl::Context *context,
                                CallCapture &call,
                                std::vector<CallCapture> &outCalls);
-    void updateResourceCounts(const CallCapture &call);
+    void updateResourceCountsFromParamCapture(const ParamCapture &param, ResourceIDType idType);
+    void updateResourceCountsFromCallCapture(const CallCapture &call);
 
     void runMidExecutionCapture(const gl::Context *context);
 
@@ -628,6 +851,7 @@ class FrameCaptureShared final : angle::NonCopyable
     std::string mValidationExpression;
     bool mTrimEnabled = true;
     PackedEnumMap<ResourceIDType, uint32_t> mMaxAccessedResourceIDs;
+    CoherentBufferTracker mCoherentBufferTracker;
 
     ResourceTracker mResourceTracker;
     ReplayWriter mReplayWriter;
@@ -643,9 +867,6 @@ class FrameCaptureShared final : angle::NonCopyable
     // Cache most recently compiled and linked sources.
     ShaderSourceMap mCachedShaderSource;
     ProgramSourceMap mCachedProgramSources;
-
-    // Cache a shadow copy of texture level data
-    TextureLevelDataMap mCachedTextureLevelData;
 
     gl::ContextID mWindowSurfaceContextID;
 
@@ -692,13 +913,25 @@ void ParamBuffer::setValueParamAtIndex(const char *paramName,
 
 template <typename T>
 void ParamBuffer::addEnumParam(const char *paramName,
-                               gl::GLenumGroup enumGroup,
+                               gl::GLESEnum enumGroup,
                                ParamType paramType,
                                T paramValue)
 {
     ParamCapture capture(paramName, paramType);
     InitParamValue(paramType, paramValue, &capture.value);
     capture.enumGroup = enumGroup;
+    mParamCaptures.emplace_back(std::move(capture));
+}
+
+template <typename T>
+void ParamBuffer::addEnumParam(const char *paramName,
+                               gl::BigGLEnum enumGroup,
+                               ParamType paramType,
+                               T paramValue)
+{
+    ParamCapture capture(paramName, paramType);
+    InitParamValue(paramType, paramValue, &capture.value);
+    capture.bigGLEnum = enumGroup;
     mParamCaptures.emplace_back(std::move(capture));
 }
 
@@ -781,6 +1014,16 @@ template <>
 void WriteParamValueReplay<ParamType::TGLfloatConstPointer>(std::ostream &os,
                                                             const CallCapture &call,
                                                             const GLfloat *value);
+
+template <>
+void WriteParamValueReplay<ParamType::TGLintConstPointer>(std::ostream &os,
+                                                          const CallCapture &call,
+                                                          const GLint *value);
+
+template <>
+void WriteParamValueReplay<ParamType::TGLsizeiPointer>(std::ostream &os,
+                                                       const CallCapture &call,
+                                                       GLsizei *value);
 
 template <>
 void WriteParamValueReplay<ParamType::TGLuintConstPointer>(std::ostream &os,
@@ -916,6 +1159,20 @@ template <>
 void WriteParamValueReplay<ParamType::TEGLSetBlobFuncANDROID>(std::ostream &os,
                                                               const CallCapture &call,
                                                               EGLSetBlobFuncANDROID value);
+template <>
+void WriteParamValueReplay<ParamType::TEGLClientBuffer>(std::ostream &os,
+                                                        const CallCapture &call,
+                                                        EGLClientBuffer value);
+
+template <>
+void WriteParamValueReplay<ParamType::TEGLConfig>(std::ostream &os,
+                                                  const CallCapture &call,
+                                                  EGLConfig value);
+
+template <>
+void WriteParamValueReplay<ParamType::TEGLSurface>(std::ostream &os,
+                                                   const CallCapture &call,
+                                                   EGLSurface value);
 
 // General fallback for any unspecific type.
 template <ParamType ParamT, typename T>

@@ -9,7 +9,6 @@
 #ifndef LIBANGLE_RENDERER_GL_CGL_DISPLAYCGL_H_
 #define LIBANGLE_RENDERER_GL_CGL_DISPLAYCGL_H_
 
-#include <thread>
 #include <unordered_set>
 
 #include "libANGLE/renderer/gl/DisplayGL.h"
@@ -105,6 +104,7 @@ class DisplayCGL : public DisplayGL
     egl::Error referenceDiscreteGPU();
     egl::Error unreferenceDiscreteGPU();
     egl::Error handleGPUSwitch() override;
+    egl::Error forceGPUSwitch(EGLint gpuIDHigh, EGLint gpuIDLow) override;
 
   private:
     egl::Error makeCurrentSurfaceless(gl::Context *context) override;
@@ -113,12 +113,13 @@ class DisplayCGL : public DisplayGL
     void generateCaps(egl::Caps *outCaps) const override;
 
     void checkDiscreteGPUStatus();
+    void setContextToGPU(uint64_t gpuID, GLint virtualScreen);
 
     std::shared_ptr<RendererGL> mRenderer;
 
     egl::Display *mEGLDisplay;
     CGLContextObj mContext;
-    std::unordered_set<std::thread::id> mThreadsWithCurrentContext;
+    std::unordered_set<uint64_t> mThreadsWithCurrentContext;
     CGLPixelFormatObj mPixelFormat;
     bool mSupportsGPUSwitching;
     uint64_t mCurrentGPUID;

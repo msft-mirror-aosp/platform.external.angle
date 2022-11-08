@@ -9,6 +9,7 @@
 
 #include "common/debug.h"
 #include "common/system_utils.h"
+#include "traces_export.h"
 #include "util/EGLPlatformParameters.h"
 #include "util/EGLWindow.h"
 #include "util/OSWindow.h"
@@ -24,10 +25,127 @@
 #include <string>
 #include <utility>
 
-#include "util/capture/frame_capture_test_utils.h"
+#include "frame_capture_test_utils.h"
 
+namespace
+{
+EGLWindow *gEGLWindow       = nullptr;
 constexpr char kResultTag[] = "*RESULT";
 constexpr char kTracePath[] = ANGLE_CAPTURE_REPLAY_TEST_NAMES_PATH;
+
+EGLImage KHRONOS_APIENTRY EGLCreateImage(EGLDisplay display,
+                                         EGLContext context,
+                                         EGLenum target,
+                                         EGLClientBuffer buffer,
+                                         const EGLAttrib *attrib_list)
+{
+
+    GLWindowContext ctx = reinterpret_cast<GLWindowContext>(context);
+    return gEGLWindow->createImage(ctx, target, buffer, attrib_list);
+}
+
+EGLImage KHRONOS_APIENTRY EGLCreateImageKHR(EGLDisplay display,
+                                            EGLContext context,
+                                            EGLenum target,
+                                            EGLClientBuffer buffer,
+                                            const EGLint *attrib_list)
+{
+
+    GLWindowContext ctx = reinterpret_cast<GLWindowContext>(context);
+    return gEGLWindow->createImageKHR(ctx, target, buffer, attrib_list);
+}
+
+EGLBoolean KHRONOS_APIENTRY EGLDestroyImage(EGLDisplay display, EGLImage image)
+{
+    return gEGLWindow->destroyImage(image);
+}
+
+EGLBoolean KHRONOS_APIENTRY EGLDestroyImageKHR(EGLDisplay display, EGLImage image)
+{
+    return gEGLWindow->destroyImageKHR(image);
+}
+
+EGLSurface KHRONOS_APIENTRY EGLCreatePbufferSurface(EGLDisplay display,
+                                                    EGLConfig *config,
+                                                    const EGLint *attrib_list)
+{
+    return gEGLWindow->createPbufferSurface(attrib_list);
+}
+
+EGLBoolean KHRONOS_APIENTRY EGLDestroySurface(EGLDisplay display, EGLSurface surface)
+{
+    return gEGLWindow->destroySurface(surface);
+}
+
+EGLBoolean KHRONOS_APIENTRY EGLBindTexImage(EGLDisplay display, EGLSurface surface, EGLint buffer)
+{
+    return gEGLWindow->bindTexImage(surface, buffer);
+}
+
+EGLBoolean KHRONOS_APIENTRY EGLReleaseTexImage(EGLDisplay display,
+                                               EGLSurface surface,
+                                               EGLint buffer)
+{
+    return gEGLWindow->releaseTexImage(surface, buffer);
+}
+
+EGLBoolean KHRONOS_APIENTRY EGLMakeCurrent(EGLDisplay display,
+                                           EGLSurface draw,
+                                           EGLSurface read,
+                                           EGLContext context)
+{
+    return gEGLWindow->makeCurrent(draw, read, context);
+}
+}  // namespace
+
+GenericProc KHRONOS_APIENTRY TraceLoadProc(const char *procName)
+{
+    if (!gEGLWindow)
+    {
+        std::cout << "No Window pointer in TraceLoadProc.\n";
+        return nullptr;
+    }
+    else
+    {
+        if (strcmp(procName, "eglCreateImage") == 0)
+        {
+            return reinterpret_cast<GenericProc>(EGLCreateImage);
+        }
+        if (strcmp(procName, "eglCreateImageKHR") == 0)
+        {
+            return reinterpret_cast<GenericProc>(EGLCreateImageKHR);
+        }
+        if (strcmp(procName, "eglDestroyImage") == 0)
+        {
+            return reinterpret_cast<GenericProc>(EGLDestroyImage);
+        }
+        if (strcmp(procName, "eglDestroyImageKHR") == 0)
+        {
+            return reinterpret_cast<GenericProc>(EGLDestroyImageKHR);
+        }
+        if (strcmp(procName, "eglCreatePbufferSurface") == 0)
+        {
+            return reinterpret_cast<GenericProc>(EGLCreatePbufferSurface);
+        }
+        if (strcmp(procName, "eglDestroySurface") == 0)
+        {
+            return reinterpret_cast<GenericProc>(EGLDestroySurface);
+        }
+        if (strcmp(procName, "eglBindTexImage") == 0)
+        {
+            return reinterpret_cast<GenericProc>(EGLBindTexImage);
+        }
+        if (strcmp(procName, "eglReleaseTexImage") == 0)
+        {
+            return reinterpret_cast<GenericProc>(EGLReleaseTexImage);
+        }
+        if (strcmp(procName, "eglMakeCurrent") == 0)
+        {
+            return reinterpret_cast<GenericProc>(EGLMakeCurrent);
+        }
+        return gEGLWindow->getProcAddress(procName);
+    }
+}
 
 class CaptureReplayTests
 {
@@ -68,8 +186,13 @@ class CaptureReplayTests
 
         if (!mEGLWindow)
         {
-            mEGLWindow = EGLWindow::New(traceInfo.contextClientMajorVersion,
-                                        traceInfo.contextClientMinorVersion);
+            // TODO: to support desktop OpenGL traces, capture the client api and profile mask in
+            // TraceInfo
+            const EGLenum testClientAPI  = EGL_OPENGL_ES_API;
+            const EGLint testProfileMask = 0;
+
+            mEGLWindow = EGLWindow::New(testClientAPI, traceInfo.contextClientMajorVersion,
+                                        traceInfo.contextClientMinorVersion, testProfileMask);
         }
 
         ConfigParameters configParams;
@@ -85,9 +208,9 @@ class CaptureReplayTests
         configParams.webGLCompatibility    = traceInfo.isWebGLCompatibilityEnabled;
         configParams.robustResourceInit    = traceInfo.isRobustResourceInitEnabled;
 
-        mPlatformParams.renderer                 = traceInfo.displayPlatformType;
-        mPlatformParams.deviceType               = traceInfo.displayDeviceType;
-        mPlatformParams.forceInitShaderVariables = EGL_TRUE;
+        mPlatformParams.renderer   = traceInfo.displayPlatformType;
+        mPlatformParams.deviceType = traceInfo.displayDeviceType;
+        mPlatformParams.enable(angle::Feature::ForceInitShaderVariables);
 
         if (!mEGLWindow->initializeGL(mOSWindow, mEntryPointsLib.get(),
                                       angle::GLESDriverType::AngleEGL, mPlatformParams,
@@ -96,6 +219,11 @@ class CaptureReplayTests
             mOSWindow->destroy();
             return false;
         }
+
+        gEGLWindow = mEGLWindow;
+        LoadTraceEGL(TraceLoadProc);
+        LoadTraceGLES(TraceLoadProc);
+
         // Disable vsync
         if (!mEGLWindow->setSwapInterval(0))
         {
@@ -113,7 +241,8 @@ class CaptureReplayTests
 
         if (traceInfo.isBinaryDataCompressed)
         {
-            mTraceLibrary->setBinaryDataDecompressCallback(angle::DecompressBinaryData);
+            mTraceLibrary->setBinaryDataDecompressCallback(angle::DecompressBinaryData,
+                                                           angle::DeleteBinaryData);
         }
 
         std::stringstream binaryPathStream;
@@ -128,6 +257,7 @@ class CaptureReplayTests
 
     void cleanupTest()
     {
+        mTraceLibrary->finishReplay();
         mTraceLibrary.reset(nullptr);
         mEGLWindow->destroyGL();
         mOSWindow->destroy();

@@ -45,6 +45,7 @@ class Context;
 struct Extensions;
 class Framebuffer;
 class ImageIndex;
+class PixelLocalStorage;
 class Renderbuffer;
 class TextureCapsMap;
 
@@ -81,10 +82,11 @@ class FramebufferState final : angle::NonCopyable
     const FramebufferAttachment *getDepthStencilAttachment() const;
     const FramebufferAttachment *getReadPixelsAttachment(GLenum readFormat) const;
 
-    const std::vector<GLenum> &getDrawBufferStates() const { return mDrawBufferStates; }
+    const DrawBuffersVector<GLenum> &getDrawBufferStates() const { return mDrawBufferStates; }
     DrawBufferMask getEnabledDrawBuffers() const { return mEnabledDrawBuffers; }
     GLenum getReadBufferState() const { return mReadBufferState; }
-    const std::vector<FramebufferAttachment> &getColorAttachments() const
+
+    const DrawBuffersVector<FramebufferAttachment> &getColorAttachments() const
     {
         return mColorAttachments;
     }
@@ -105,6 +107,7 @@ class FramebufferState final : angle::NonCopyable
     GLint getDefaultSamples() const { return mDefaultSamples; }
     bool getDefaultFixedSampleLocations() const { return mDefaultFixedSampleLocations; }
     GLint getDefaultLayers() const { return mDefaultLayers; }
+    bool getFlipY() const { return mFlipY; }
 
     bool hasDepth() const;
     bool hasStencil() const;
@@ -151,14 +154,14 @@ class FramebufferState final : angle::NonCopyable
     rx::Serial mFramebufferSerial;
     std::string mLabel;
 
-    std::vector<FramebufferAttachment> mColorAttachments;
+    DrawBuffersVector<FramebufferAttachment> mColorAttachments;
     FramebufferAttachment mDepthAttachment;
     FramebufferAttachment mStencilAttachment;
 
     // Tracks all the color buffers attached to this FramebufferDesc
     DrawBufferMask mColorAttachmentsMask;
 
-    std::vector<GLenum> mDrawBufferStates;
+    DrawBuffersVector<GLenum> mDrawBufferStates;
     GLenum mReadBufferState;
     DrawBufferMask mEnabledDrawBuffers;
     ComponentTypeMask mDrawBufferTypeMask;
@@ -168,6 +171,7 @@ class FramebufferState final : angle::NonCopyable
     GLint mDefaultSamples;
     bool mDefaultFixedSampleLocations;
     GLint mDefaultLayers;
+    bool mFlipY;
 
     // It's necessary to store all this extra state so we can restore attachments
     // when DEPTH_STENCIL/DEPTH/STENCIL is unbound in WebGL 1.
@@ -193,21 +197,20 @@ class Framebuffer final : public angle::ObserverInterface,
                           public angle::Subject
 {
   public:
+    // Constructor to build default framebuffers.
+    Framebuffer(const Context *context, rx::GLImplFactory *factory);
     // Constructor to build application-defined framebuffers
-    Framebuffer(const Caps &caps,
-                rx::GLImplFactory *factory,
-                FramebufferID id,
-                egl::ShareGroup *shareGroup);
-    // Constructor to build default framebuffers for a surface and context pair
-    Framebuffer(const Context *context, egl::Surface *surface, egl::Surface *readSurface);
-    // Constructor to build a fake default framebuffer when surfaceless
-    Framebuffer(const Context *context, rx::GLImplFactory *factory, egl::Surface *readSurface);
+    Framebuffer(const Context *context, rx::GLImplFactory *factory, FramebufferID id);
 
     ~Framebuffer() override;
     void onDestroy(const Context *context);
 
+    egl::Error setSurfaces(const Context *context,
+                           egl::Surface *surface,
+                           egl::Surface *readSurface);
     void setReadSurface(const Context *context, egl::Surface *readSurface);
-    void setLabel(const Context *context, const std::string &label) override;
+    egl::Error unsetSurfaces(const Context *context);
+    angle::Result setLabel(const Context *context, const std::string &label) override;
     const std::string &getLabel() const override;
 
     rx::FramebufferImpl *getImplementation() const { return mImpl; }
@@ -248,7 +251,7 @@ class Framebuffer final : public angle::ObserverInterface,
     const FramebufferAttachment *getFirstColorAttachment() const;
     const FramebufferAttachment *getFirstNonNullAttachment() const;
 
-    const std::vector<FramebufferAttachment> &getColorAttachments() const
+    const DrawBuffersVector<FramebufferAttachment> &getColorAttachments() const
     {
         return mState.mColorAttachments;
     }
@@ -264,7 +267,7 @@ class Framebuffer final : public angle::ObserverInterface,
 
     size_t getDrawbufferStateCount() const;
     GLenum getDrawBufferState(size_t drawBuffer) const;
-    const std::vector<GLenum> &getDrawBufferStates() const;
+    const DrawBuffersVector<GLenum> &getDrawBufferStates() const;
     void setDrawBuffers(size_t count, const GLenum *buffers);
     const FramebufferAttachment *getDrawBuffer(size_t drawBuffer) const;
     ComponentType getDrawbufferWriteType(size_t drawBuffer) const;
@@ -295,11 +298,13 @@ class Framebuffer final : public angle::ObserverInterface,
     GLint getDefaultSamples() const;
     bool getDefaultFixedSampleLocations() const;
     GLint getDefaultLayers() const;
+    bool getFlipY() const;
     void setDefaultWidth(const Context *context, GLint defaultWidth);
     void setDefaultHeight(const Context *context, GLint defaultHeight);
     void setDefaultSamples(const Context *context, GLint defaultSamples);
     void setDefaultFixedSampleLocations(const Context *context, bool defaultFixedSampleLocations);
     void setDefaultLayers(GLint defaultLayers);
+    void setFlipY(bool flipY);
 
     void invalidateCompletenessCache();
     ANGLE_INLINE bool cachedStatusValid() { return mCachedStatus.valid(); }
@@ -394,6 +399,7 @@ class Framebuffer final : public angle::ObserverInterface,
         DIRTY_BIT_DEFAULT_FIXED_SAMPLE_LOCATIONS,
         DIRTY_BIT_DEFAULT_LAYERS,
         DIRTY_BIT_FRAMEBUFFER_SRGB_WRITE_CONTROL_MODE,
+        DIRTY_BIT_FLIP_Y,
         DIRTY_BIT_UNKNOWN,
         DIRTY_BIT_MAX = DIRTY_BIT_UNKNOWN
     };
@@ -431,6 +437,14 @@ class Framebuffer final : public angle::ObserverInterface,
     // Conservatively initializes both read color and depth. Blit can access the depth buffer.
     angle::Result ensureReadAttachmentsInitialized(const Context *context);
     Box getDimensions() const;
+
+    // ANGLE_shader_pixel_local_storage.
+    // Lazily creates a PixelLocalStorage object for this Framebuffer.
+    PixelLocalStorage &getPixelLocalStorage(const Context *);
+    // Returns nullptr if the pixel local storage object has not been created yet.
+    const PixelLocalStorage *peekPixelLocalStorage() const { return mPixelLocalStorage.get(); }
+    // Detaches the the pixel local storage object so the Context can call deleteContextObjects().
+    std::unique_ptr<PixelLocalStorage> detachPixelLocalStorage();
 
     static const FramebufferID kDefaultDrawFramebufferHandle;
 
@@ -502,7 +516,7 @@ class Framebuffer final : public angle::ObserverInterface,
     rx::FramebufferImpl *mImpl;
 
     mutable Optional<FramebufferStatus> mCachedStatus;
-    std::vector<angle::ObserverBinding> mDirtyColorAttachmentBindings;
+    DrawBuffersVector<angle::ObserverBinding> mDirtyColorAttachmentBindings;
     angle::ObserverBinding mDirtyDepthAttachmentBinding;
     angle::ObserverBinding mDirtyStencilAttachmentBinding;
 
@@ -512,7 +526,12 @@ class Framebuffer final : public angle::ObserverInterface,
     // The dirty bits guard is checked when we get a dependent state change message. We verify that
     // we don't set a dirty bit that isn't already set, when inside the dirty bits syncState.
     mutable Optional<DirtyBits> mDirtyBitsGuard;
+
+    // ANGLE_shader_pixel_local_storage
+    std::unique_ptr<PixelLocalStorage> mPixelLocalStorage;
 };
+
+using UniqueFramebufferPointer = angle::UniqueObjectPointer<Framebuffer, Context>;
 
 }  // namespace gl
 

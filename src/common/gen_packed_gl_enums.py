@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 # Copyright 2018 The ANGLE Project Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -44,12 +44,12 @@ def load_enums(path):
         enums_dict = json.loads(map_file.read(), object_pairs_hook=OrderedDict)
 
     enums = []
-    for (enum_name, value_list) in enums_dict.iteritems():
+    for (enum_name, value_list) in enums_dict.items():
 
         values = []
         i = 0
 
-        for (value_name, value_gl_name) in value_list.iteritems():
+        for (value_name, value_gl_name) in value_list.items():
             values.append(EnumValue(value_name, value_gl_name, i))
             i += 1
 
@@ -133,7 +133,7 @@ def write_header(enums, path_prefix, file_name, data_source_name, includes, name
     header = header_template.format(
         content=''.join(content),
         data_source_name=data_source_name,
-        script_name=sys.argv[0],
+        script_name=os.path.basename(sys.argv[0]),
         file_name=file_name,
         include_guard=generate_include_guard(file_name),
         includes=includes,
@@ -229,7 +229,7 @@ def write_cpp(enums, path_prefix, file_name, data_source_name, namespace, api_en
     cpp = cpp_template.format(
         content=''.join(content),
         data_source_name=data_source_name,
-        script_name=sys.argv[0],
+        script_name=os.path.basename(sys.argv[0]),
         file_name=file_name,
         header_name=header_name_from_cpp_name(file_name),
         namespace=namespace,
@@ -253,9 +253,9 @@ def main():
             ]
 
         if sys.argv[1] == 'inputs':
-            print ','.join(inputs)
+            print(','.join(inputs))
         elif sys.argv[1] == 'outputs':
-            print ','.join(outputs)
+            print(','.join(outputs))
         else:
             print('Invalid script parameters')
             return 1

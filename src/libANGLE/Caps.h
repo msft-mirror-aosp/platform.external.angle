@@ -133,6 +133,9 @@ struct Limitations
     // and GL_CONSTANT_COLOR/GL_ONE_MINUS_CONSTANT_COLOR blend functions.
     bool noSimultaneousConstantColorAndAlphaBlendFunc = false;
 
+    // Renderer always clamps constant blend color.
+    bool noUnclampedBlendColor = false;
+
     // D3D9 does not support flexible varying register packing.
     bool noFlexibleVaryingPacking = false;
 
@@ -152,8 +155,16 @@ struct Limitations
     // ETC1 texture support is emulated.
     bool emulatedEtc1 = false;
 
+    // ASTC texture support is emulated.
+    bool emulatedAstc = false;
+
     // No compressed TEXTURE_3D support.
     bool noCompressedTexture3D = false;
+
+    // D3D does not support compressed textures where the base mip level is not a multiple of 4
+    bool compressedBaseMipLevelMultipleOfFour = false;
+
+    bool limitWebglMaxTextureSizeTo4096 = false;
 };
 
 struct TypePrecision
@@ -164,6 +175,7 @@ struct TypePrecision
     TypePrecision &operator=(const TypePrecision &other);
 
     void setIEEEFloat();
+    void setIEEEHalfFloat();
     void setTwosComplementInt(unsigned int bits);
     void setSimulatedFloat(unsigned int range, unsigned int precision);
     void setSimulatedInt(unsigned int range);
@@ -362,6 +374,11 @@ struct Caps
     GLuint maxCullDistances                = 0;
     GLuint maxCombinedClipAndCullDistances = 0;
 
+    // GL_ANGLE_shader_pixel_local_storage
+    GLuint maxPixelLocalStoragePlanes                       = 0;
+    GLuint maxColorAttachmentsWithActivePixelLocalStorage   = 0;
+    GLuint maxCombinedDrawBuffersAndPixelLocalStoragePlanes = 0;
+
     // GLES1 emulation: Caps for ES 1.1. Taken from Table 6.20 / 6.22 in the OpenGL ES 1.1 spec.
     GLuint maxMultitextureUnits                 = 0;
     GLuint maxClipPlanes                        = 0;
@@ -378,11 +395,6 @@ struct Caps
     // ES 3.2 Table 20.41: Implementation Dependent Values (cont.)
     GLint maxTextureBufferSize         = 0;
     GLint textureBufferOffsetAlignment = 0;
-
-    // Direct-to-metal constants:
-    GLuint driverUniformsBindingIndex    = 0;
-    GLuint defaultUniformsBindingIndex   = 0;
-    GLuint UBOArgumentBufferBindingIndex = 0;
 };
 
 Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensions);
@@ -547,6 +559,9 @@ struct DisplayExtensions
     // EGL_ANDROID_get_frame_timestamps
     bool getFrameTimestamps = false;
 
+    // EGL_ANGLE_timestamp_surface_attribute
+    bool timestampSurfaceAttributeANGLE = false;
+
     // EGL_ANDROID_recordable
     bool recordable = false;
 
@@ -598,6 +613,9 @@ struct DisplayExtensions
     // EGL_EXT_gl_colorspace_display_p3_passthrough
     bool glColorspaceDisplayP3Passthrough = false;
 
+    // EGL_ANGLE_colorspace_attribute_passthrough
+    bool eglColorspaceAttributePassthroughANGLE = false;
+
     // EGL_ANDROID_framebuffer_target
     bool framebufferTargetANDROID = false;
 
@@ -642,6 +660,15 @@ struct DisplayExtensions
 
     // EGL_ANGLE_vulkan_image
     bool vulkanImageANGLE = false;
+
+    // EGL_ANGLE_metal_create_context_ownership_identity
+    bool metalCreateContextOwnershipIdentityANGLE = false;
+
+    // EGL_KHR_partial_update
+    bool partialUpdateKHR = false;
+
+    // EGL_ANGLE_sync_mtl_shared_event
+    bool mtlSyncSharedEventANGLE = false;
 };
 
 struct DeviceExtensions
@@ -684,6 +711,12 @@ struct ClientExtensions
     // EGL_EXT_platform_device
     bool platformDevice = false;
 
+    // EGL_KHR_platform_gbm
+    bool platformGbmKHR = false;
+
+    // EGL_EXT_platform_wayland
+    bool platformWaylandEXT = false;
+
     // EGL_ANGLE_platform_angle
     bool platformANGLE = false;
 
@@ -710,6 +743,9 @@ struct ClientExtensions
 
     // EGL_ANGLE_platform_angle_device_context_volatile_cgl
     bool platformANGLEDeviceContextVolatileCgl = false;
+
+    // EGL_ANGLE_platform_angle_device_id
+    bool platformANGLEDeviceId = false;
 
     // EGL_ANGLE_device_creation
     bool deviceCreation = false;

@@ -160,7 +160,8 @@ GLuint QueryProgramResourceIndex(const Program *program,
                                  GLenum programInterface,
                                  const GLchar *name);
 
-void QueryProgramResourceName(const Program *program,
+void QueryProgramResourceName(const Context *context,
+                              const Program *program,
                               GLenum programInterface,
                               GLuint index,
                               GLsizei bufSize,
@@ -276,7 +277,7 @@ void QueryContextAttrib(const gl::Context *context, EGLint attribute, EGLint *va
 
 egl::Error QuerySurfaceAttrib(const Display *display,
                               const gl::Context *context,
-                              const Surface *surface,
+                              Surface *surface,
                               EGLint attribute,
                               EGLint *value);
 egl::Error SetSurfaceAttrib(Surface *surface, EGLint attribute, EGLint value);

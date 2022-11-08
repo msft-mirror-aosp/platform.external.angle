@@ -37,6 +37,8 @@ class VulkanLibrary final : NonCopyable
                 pfnDestroyInstance(mInstance, nullptr);
             }
         }
+
+        CloseSystemLibrary(mLibVulkan);
     }
 
     VkInstance getVulkanInstance()
@@ -93,12 +95,12 @@ class VulkanLibrary final : NonCopyable
     template <typename Func>
     Func getProc(const char *fn) const
     {
-        return reinterpret_cast<Func>(mLibVulkan->getSymbol(fn));
+        return reinterpret_cast<Func>(angle::GetLibrarySymbol(mLibVulkan, fn));
     }
 
   private:
-    std::unique_ptr<Library> mLibVulkan = nullptr;
-    VkInstance mInstance                = VK_NULL_HANDLE;
+    void *mLibVulkan     = nullptr;
+    VkInstance mInstance = VK_NULL_HANDLE;
 };
 
 ANGLE_FORMAT_PRINTF(1, 2)
@@ -141,6 +143,8 @@ bool GetSystemInfoVulkanWithICD(SystemInfo *info, vk::ICD preferredICD)
         vkLibrary.getProc<PFN_vkEnumeratePhysicalDevices>("vkEnumeratePhysicalDevices");
     auto pfnGetPhysicalDeviceProperties =
         vkLibrary.getProc<PFN_vkGetPhysicalDeviceProperties>("vkGetPhysicalDeviceProperties");
+    auto pfnGetPhysicalDeviceProperties2 =
+        vkLibrary.getProc<PFN_vkGetPhysicalDeviceProperties2>("vkGetPhysicalDeviceProperties2");
     uint32_t physicalDeviceCount = 0;
     if (!pfnEnumeratePhysicalDevices || !pfnGetPhysicalDeviceProperties ||
         pfnEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr) != VK_SUCCESS)
@@ -159,8 +163,23 @@ bool GetSystemInfoVulkanWithICD(SystemInfo *info, vk::ICD preferredICD)
 
     for (uint32_t i = 0; i < physicalDeviceCount; i++)
     {
-        VkPhysicalDeviceProperties properties;
+        VkPhysicalDeviceDriverProperties driverProperties = {};
+        driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+
+        VkPhysicalDeviceProperties2 properties2 = {};
+        properties2.sType                       = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        properties2.pNext                       = &driverProperties;
+
+        VkPhysicalDeviceProperties &properties = properties2.properties;
         pfnGetPhysicalDeviceProperties(physicalDevices[i], &properties);
+
+        // vkGetPhysicalDeviceProperties2() is supported since 1.1
+        // Use vkGetPhysicalDeviceProperties2() to get driver information.
+        if (properties.apiVersion >= VK_API_VERSION_1_1)
+        {
+            pfnGetPhysicalDeviceProperties2(physicalDevices[i], &properties2);
+        }
+
         // Fill in data for a given physical device (a.k.a. gpu):
         GPUDeviceInfo &gpu = info->gpus[i];
         gpu.vendorId       = properties.vendorID;
@@ -169,6 +188,8 @@ bool GetSystemInfoVulkanWithICD(SystemInfo *info, vk::ICD preferredICD)
         //
         // TODO(ianelliott): Determine the formatting used for each vendor
         // (http://anglebug.com/2677)
+        // TODO(http://anglebug.com/7677): Use driverID instead of the hardware vendorID to detect
+        // driveVendor, etc.
         switch (properties.vendorID)
         {
             case kVendorID_AMD:
@@ -244,10 +265,17 @@ bool GetSystemInfoVulkanWithICD(SystemInfo *info, vk::ICD preferredICD)
                 gpu.driverVersion               = FormatString("0x%x", properties.driverVersion);
                 gpu.detailedDriverVersion.major = properties.driverVersion;
                 break;
+            case kVendorID_Mesa:
+                gpu.driverVendor                = "Mesa";
+                gpu.driverVersion               = FormatString("0x%x", properties.driverVersion);
+                gpu.detailedDriverVersion.major = properties.driverVersion;
+                break;
             default:
                 return false;
         }
-        gpu.driverDate = "";
+        gpu.driverId         = static_cast<DriverID>(driverProperties.driverID);
+        gpu.driverApiVersion = properties.apiVersion;
+        gpu.driverDate       = "";
     }
 
     return true;

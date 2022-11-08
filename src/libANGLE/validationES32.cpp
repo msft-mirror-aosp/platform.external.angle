@@ -209,7 +209,7 @@ bool ValidateDisablei(const Context *context,
             }
             break;
         default:
-            context->validationError(entryPoint, GL_INVALID_ENUM, kEnumNotSupported);
+            context->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
             return false;
     }
     return true;
@@ -284,7 +284,7 @@ bool ValidateEnablei(const Context *context,
             }
             break;
         default:
-            context->validationError(entryPoint, GL_INVALID_ENUM, kEnumNotSupported);
+            context->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
             return false;
     }
     return true;
@@ -424,7 +424,7 @@ bool ValidateGetnUniformfv(const Context *context,
                            GLsizei bufSize,
                            const GLfloat *params)
 {
-    return true;
+    return ValidateSizedGetUniform(context, entryPoint, program, location, bufSize, nullptr);
 }
 
 bool ValidateGetnUniformiv(const Context *context,
@@ -434,7 +434,7 @@ bool ValidateGetnUniformiv(const Context *context,
                            GLsizei bufSize,
                            const GLint *params)
 {
-    return true;
+    return ValidateSizedGetUniform(context, entryPoint, program, location, bufSize, nullptr);
 }
 
 bool ValidateGetnUniformuiv(const Context *context,
@@ -444,7 +444,7 @@ bool ValidateGetnUniformuiv(const Context *context,
                             GLsizei bufSize,
                             const GLuint *params)
 {
-    return true;
+    return ValidateSizedGetUniform(context, entryPoint, program, location, bufSize, nullptr);
 }
 
 bool ValidateIsEnabledi(const Context *context,
@@ -462,7 +462,7 @@ bool ValidateIsEnabledi(const Context *context,
             }
             break;
         default:
-            context->validationError(entryPoint, GL_INVALID_ENUM, kEnumNotSupported);
+            context->validationErrorF(entryPoint, GL_INVALID_ENUM, kEnumNotSupported, target);
             return false;
     }
     return true;

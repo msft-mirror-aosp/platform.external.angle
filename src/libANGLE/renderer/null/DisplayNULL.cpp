@@ -117,7 +117,7 @@ std::string DisplayNULL::getVendorString()
     return "NULL";
 }
 
-std::string DisplayNULL::getVersionString()
+std::string DisplayNULL::getVersionString(bool includeFullVersion)
 {
     return std::string();
 }
@@ -140,6 +140,11 @@ egl::Error DisplayNULL::waitNative(const gl::Context *context, EGLint engine)
 gl::Version DisplayNULL::getMaxSupportedESVersion() const
 {
     return gl::Version(3, 2);
+}
+
+Optional<gl::Version> DisplayNULL::getMaxSupportedDesktopVersion() const
+{
+    return Optional<gl::Version>::Invalid();
 }
 
 gl::Version DisplayNULL::getMaxConformantESVersion() const

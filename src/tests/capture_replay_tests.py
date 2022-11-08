@@ -36,6 +36,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import traceback
 
@@ -85,7 +86,13 @@ def winext(name, ext):
 
 
 def AutodetectGoma():
-    return winext('compiler_proxy', 'exe') in (p.name() for p in psutil.process_iter())
+    for p in psutil.process_iter():
+        try:
+            if winext('compiler_proxy', 'exe') == p.name():
+                return True
+        except:
+            pass
+    return False
 
 
 class SubProcess():
@@ -287,8 +294,9 @@ class GroupedResult():
     Crashed = "Crashed"
     CompileFailed = "CompileFailed"
     Skipped = "Skipped"
+    FailedToTrace = "FailedToTrace"
 
-    ResultTypes = [Passed, Failed, TimedOut, Crashed, CompileFailed, Skipped]
+    ResultTypes = [Passed, Failed, TimedOut, Crashed, CompileFailed, Skipped, FailedToTrace]
 
     def __init__(self, resultcode, message, output, tests):
         self.resultcode = resultcode
@@ -361,6 +369,7 @@ class Test():
         self.context_id = 0
         self.test_index = -1  # index of test within a test batch
         self._label = self.full_test_name.replace(".", "_").replace("/", "_")
+        self.skipped_by_suite = False
 
     def __str__(self):
         return self.full_test_name + " Params: " + self.params
@@ -381,7 +390,7 @@ class Test():
         source_json_count = 0
         context_id = 0
         for f in test_files:
-            if "_frame" in f:
+            if "_001.cpp" in f:
                 frame_files_count += 1
             elif f.endswith(".json"):
                 source_json_count += 1
@@ -422,12 +431,21 @@ class TestBatch():
         test_exe_path = os.path.join(args.out_dir, 'Capture', args.test_suite)
 
         extra_env = {
-            'ANGLE_CAPTURE_FRAME_END': '{}'.format(self.CAPTURE_FRAME_END),
             'ANGLE_CAPTURE_SERIALIZE_STATE': '1',
             'ANGLE_FEATURE_OVERRIDES_ENABLED': 'forceRobustResourceInit:forceInitShaderVariables',
             'ANGLE_CAPTURE_ENABLED': '1',
             'ANGLE_CAPTURE_OUT_DIR': self.trace_folder_path,
         }
+
+        if args.mec > 0:
+            extra_env['ANGLE_CAPTURE_FRAME_START'] = '{}'.format(args.mec)
+            extra_env['ANGLE_CAPTURE_FRAME_END'] = '{}'.format(args.mec + 1)
+        else:
+            extra_env['ANGLE_CAPTURE_FRAME_END'] = '{}'.format(self.CAPTURE_FRAME_END)
+
+        if args.expose_nonconformant_features:
+            extra_env[
+                'ANGLE_FEATURE_OVERRIDES_ENABLED'] += ':exposeNonConformantExtensionsAndVersions'
 
         env = {**os.environ.copy(), **extra_env}
 
@@ -436,35 +454,59 @@ class TestBatch():
         filt = ':'.join([test.full_test_name for test in self.tests])
 
         cmd = GetRunCommand(args, test_exe_path)
-        cmd += ['--gtest_filter=%s' % filt, '--angle-per-test-capture-label']
+        results_file = tempfile.mktemp()
+        cmd += [
+            '--gtest_filter=%s' % filt,
+            '--angle-per-test-capture-label',
+            '--results-file=' + results_file,
+        ]
         self.logger.info('%s %s' % (_FormatEnv(extra_env), ' '.join(cmd)))
 
         returncode, output = child_processes_manager.RunSubprocess(
             cmd, env, timeout=SUBPROCESS_TIMEOUT)
+
         if args.show_capture_stdout:
             self.logger.info("Capture stdout: %s" % output)
+
         if returncode == -1:
             self.results.append(GroupedResult(GroupedResult.Crashed, "", output, self.tests))
             return False
         elif returncode == -2:
             self.results.append(GroupedResult(GroupedResult.TimedOut, "", "", self.tests))
             return False
+
+        with open(results_file) as f:
+            test_results = json.load(f)
+        os.unlink(results_file)
+        for test in self.tests:
+            test_result = test_results['tests'][test.full_test_name]
+            if test_result['actual'] == 'SKIP':
+                test.skipped_by_suite = True
+
         return True
 
     def RemoveTestsThatDoNotProduceAppropriateTraceFiles(self):
         continued_tests = []
         skipped_tests = []
+        failed_to_trace_tests = []
         for test in self.tests:
             if not test.CanRunReplay(self.trace_folder_path):
-                skipped_tests.append(test)
+                if test.skipped_by_suite:
+                    skipped_tests.append(test)
+                else:
+                    failed_to_trace_tests.append(test)
             else:
                 continued_tests.append(test)
         if len(skipped_tests) > 0:
             self.results.append(
-                GroupedResult(
-                    GroupedResult.Skipped,
-                    "Skipping replay since capture didn't produce necessary trace files", "",
-                    skipped_tests))
+                GroupedResult(GroupedResult.Skipped, "Skipping replay since test skipped by suite",
+                              "", skipped_tests))
+        if len(failed_to_trace_tests) > 0:
+            self.results.append(
+                GroupedResult(GroupedResult.FailedToTrace,
+                              "Test not skipped but failed to produce trace files", "",
+                              failed_to_trace_tests))
+
         return continued_tests
 
     def BuildReplay(self, replay_build_dir, composite_file_id, tests, child_processes_manager):
@@ -491,11 +533,17 @@ class TestBatch():
             return False
         return True
 
-    def RunReplay(self, replay_build_dir, replay_exe_path, child_processes_manager, tests):
+    def RunReplay(self, replay_build_dir, replay_exe_path, child_processes_manager, tests,
+                  expose_nonconformant_features):
         extra_env = {
             'ANGLE_CAPTURE_ENABLED': '0',
             'ANGLE_FEATURE_OVERRIDES_ENABLED': 'enable_capture_limits',
         }
+
+        if expose_nonconformant_features:
+            extra_env[
+                'ANGLE_FEATURE_OVERRIDES_ENABLED'] += ':exposeNonConformantExtensionsAndVersions'
+
         env = {**os.environ.copy(), **extra_env}
 
         run_cmd = GetRunCommand(self.args, replay_exe_path)
@@ -748,7 +796,7 @@ def RunTests(args, worker_id, job_queue, result_list, message_queue, logger, nin
                 logger.info(str(test_batch.GetResults()))
                 continue
             test_batch.RunReplay(replay_build_dir, replay_exec_path, child_processes_manager,
-                                 continued_tests)
+                                 continued_tests, args.expose_nonconformant_features)
             result_list.append(test_batch.GetResults())
             logger.info(str(test_batch.GetResults()))
         except KeyboardInterrupt:
@@ -1008,8 +1056,9 @@ def main(args):
         retval = EXIT_SUCCESS
 
         unexpected_test_results_count = 0
-        for count in unexpected_count.values():
-            unexpected_test_results_count += count
+        for result, count in unexpected_count.items():
+            if result != GroupedResult.Skipped:  # Suite skipping tests is ok
+                unexpected_test_results_count += count
 
         if unexpected_test_results_count > 0:
             retval = EXIT_FAILURE
@@ -1018,7 +1067,7 @@ def main(args):
                 unexpected_test_results_count))
             logger.info('')
             for result, count in unexpected_count.items():
-                if count > 0:
+                if count > 0 and result != GroupedResult.Skipped:
                     logger.info("Unexpected '{}' ({}):".format(result, count))
                     for test_result in unexpected_test_results[result]:
                         logger.info('     {}'.format(test_result))
@@ -1096,6 +1145,12 @@ if __name__ == '__main__':
         type=int,
         help='Maximum number of test processes. Default is %d.' % DEFAULT_MAX_JOBS)
     parser.add_argument(
+        '-M',
+        '--mec',
+        default=0,
+        type=int,
+        help='Enable mid execution capture starting at frame %d, (default: 0 = normal capture)')
+    parser.add_argument(
         '-a',
         '--also-run-skipped-for-capture-tests',
         action='store_true',
@@ -1107,6 +1162,11 @@ if __name__ == '__main__':
         help='Maximum number of concurrent ninja jobs to run at once.')
     parser.add_argument('--xvfb', action='store_true', help='Run with xvfb.')
     parser.add_argument('--asan', action='store_true', help='Build with ASAN.')
+    parser.add_argument(
+        '-E',
+        '--expose-nonconformant-features',
+        action='store_true',
+        help='Expose non-conformant features to advertise GLES 3.2')
     parser.add_argument(
         '--show-capture-stdout', action='store_true', help='Print test stdout during capture.')
     parser.add_argument('--debug', action='store_true', help='Debug builds (default is Release).')

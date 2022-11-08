@@ -59,7 +59,7 @@ ABSL_NAMESPACE_BEGIN
 namespace container_internal {
 
 template <typename Key, typename Data, typename Compare, typename Alloc,
-          int TargetNodeSize, bool Multi>
+          int TargetNodeSize, bool IsMulti>
 struct map_params;
 
 }  // namespace container_internal
@@ -85,7 +85,7 @@ class btree_map
     : public container_internal::btree_map_container<
           container_internal::btree<container_internal::map_params<
               Key, Value, Compare, Alloc, /*TargetNodeSize=*/256,
-              /*Multi=*/false>>> {
+              /*IsMulti=*/false>>> {
   using Base = typename btree_map::btree_map_container;
 
  public:
@@ -478,15 +478,11 @@ void swap(btree_map<K, V, C, A> &x, btree_map<K, V, C, A> &y) {
 // absl::erase_if(absl::btree_map<>, Pred)
 //
 // Erases all elements that satisfy the predicate pred from the container.
+// Returns the number of erased elements.
 template <typename K, typename V, typename C, typename A, typename Pred>
-void erase_if(btree_map<K, V, C, A> &map, Pred pred) {
-  for (auto it = map.begin(); it != map.end();) {
-    if (pred(*it)) {
-      it = map.erase(it);
-    } else {
-      ++it;
-    }
-  }
+typename btree_map<K, V, C, A>::size_type erase_if(
+    btree_map<K, V, C, A> &map, Pred pred) {
+  return container_internal::btree_access::erase_if(map, std::move(pred));
 }
 
 // absl::btree_multimap
@@ -511,7 +507,7 @@ class btree_multimap
     : public container_internal::btree_multimap_container<
           container_internal::btree<container_internal::map_params<
               Key, Value, Compare, Alloc, /*TargetNodeSize=*/256,
-              /*Multi=*/true>>> {
+              /*IsMulti=*/true>>> {
   using Base = typename btree_multimap::btree_multimap_container;
 
  public:
@@ -809,15 +805,11 @@ void swap(btree_multimap<K, V, C, A> &x, btree_multimap<K, V, C, A> &y) {
 // absl::erase_if(absl::btree_multimap<>, Pred)
 //
 // Erases all elements that satisfy the predicate pred from the container.
+// Returns the number of erased elements.
 template <typename K, typename V, typename C, typename A, typename Pred>
-void erase_if(btree_multimap<K, V, C, A> &map, Pred pred) {
-  for (auto it = map.begin(); it != map.end();) {
-    if (pred(*it)) {
-      it = map.erase(it);
-    } else {
-      ++it;
-    }
-  }
+typename btree_multimap<K, V, C, A>::size_type erase_if(
+    btree_multimap<K, V, C, A> &map, Pred pred) {
+  return container_internal::btree_access::erase_if(map, std::move(pred));
 }
 
 namespace container_internal {
@@ -825,9 +817,9 @@ namespace container_internal {
 // A parameters structure for holding the type parameters for a btree_map.
 // Compare and Alloc should be nothrow copy-constructible.
 template <typename Key, typename Data, typename Compare, typename Alloc,
-          int TargetNodeSize, bool Multi>
-struct map_params : common_params<Key, Compare, Alloc, TargetNodeSize, Multi,
-                                  map_slot_policy<Key, Data>> {
+          int TargetNodeSize, bool IsMulti>
+struct map_params : common_params<Key, Compare, Alloc, TargetNodeSize, IsMulti,
+                                  /*IsMap=*/true, map_slot_policy<Key, Data>> {
   using super_type = typename map_params::common_params;
   using mapped_type = Data;
   // This type allows us to move keys when it is safe to do so. It is safe
@@ -836,25 +828,6 @@ struct map_params : common_params<Key, Compare, Alloc, TargetNodeSize, Multi,
   using slot_type = typename super_type::slot_type;
   using value_type = typename super_type::value_type;
   using init_type = typename super_type::init_type;
-
-  using original_key_compare = typename super_type::original_key_compare;
-  // Reference: https://en.cppreference.com/w/cpp/container/map/value_compare
-  class value_compare {
-    template <typename Params>
-    friend class btree;
-
-   protected:
-    explicit value_compare(original_key_compare c) : comp(std::move(c)) {}
-
-    original_key_compare comp;  // NOLINT
-
-   public:
-    auto operator()(const value_type &lhs, const value_type &rhs) const
-        -> decltype(comp(lhs.first, rhs.first)) {
-      return comp(lhs.first, rhs.first);
-    }
-  };
-  using is_map_container = std::true_type;
 
   template <typename V>
   static auto key(const V &value) -> decltype(value.first) {

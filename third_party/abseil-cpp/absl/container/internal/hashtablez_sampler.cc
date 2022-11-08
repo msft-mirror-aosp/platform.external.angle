@@ -21,17 +21,21 @@
 #include <limits>
 
 #include "absl/base/attributes.h"
-#include "absl/container/internal/have_sse.h"
+#include "absl/base/config.h"
 #include "absl/debugging/stacktrace.h"
 #include "absl/memory/memory.h"
 #include "absl/profiling/internal/exponential_biased.h"
 #include "absl/profiling/internal/sample_recorder.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/utility/utility.h"
 
 namespace absl {
 ABSL_NAMESPACE_BEGIN
 namespace container_internal {
+
+#ifdef ABSL_INTERNAL_NEED_REDUNDANT_CONSTEXPR_DECL
 constexpr int HashtablezInfo::kMaxStackDepth;
+#endif
 
 namespace {
 ABSL_CONST_INIT std::atomic<bool> g_hashtablez_enabled{
@@ -53,7 +57,7 @@ void TriggerHashtablezConfigListener() {
 }  // namespace
 
 #if defined(ABSL_INTERNAL_HASHTABLEZ_SAMPLE)
-ABSL_PER_THREAD_TLS_KEYWORD int64_t global_next_sample = 0;
+ABSL_PER_THREAD_TLS_KEYWORD SamplingState global_next_sample = {0, 0};
 #endif  // defined(ABSL_INTERNAL_HASHTABLEZ_SAMPLE)
 
 HashtablezSampler& GlobalHashtablezSampler() {
@@ -61,13 +65,11 @@ HashtablezSampler& GlobalHashtablezSampler() {
   return *sampler;
 }
 
-// TODO(bradleybear): The comments at this constructors declaration say that the
-// fields are not initialized, but this definition does initialize the fields.
-// Something needs to be cleaned up.
-HashtablezInfo::HashtablezInfo() { PrepareForSampling(); }
+HashtablezInfo::HashtablezInfo() = default;
 HashtablezInfo::~HashtablezInfo() = default;
 
-void HashtablezInfo::PrepareForSampling() {
+void HashtablezInfo::PrepareForSampling(int64_t stride,
+                                        size_t inline_element_size_value) {
   capacity.store(0, std::memory_order_relaxed);
   size.store(0, std::memory_order_relaxed);
   num_erases.store(0, std::memory_order_relaxed);
@@ -80,11 +82,13 @@ void HashtablezInfo::PrepareForSampling() {
   max_reserve.store(0, std::memory_order_relaxed);
 
   create_time = absl::Now();
+  weight = stride;
   // The inliner makes hardcoded skip_count difficult (especially when combined
   // with LTO).  We use the ability to exclude stacks by regex when encoding
   // instead.
   depth = absl::GetStackTrace(stack, HashtablezInfo::kMaxStackDepth,
                               /* skip_count= */ 0);
+  inline_element_size = inline_element_size_value;
 }
 
 static bool ShouldForceSampling() {
@@ -107,23 +111,32 @@ static bool ShouldForceSampling() {
   return state == kForce;
 }
 
-HashtablezInfo* SampleSlow(int64_t* next_sample, size_t inline_element_size) {
+HashtablezInfo* SampleSlow(SamplingState& next_sample,
+                           size_t inline_element_size) {
   if (ABSL_PREDICT_FALSE(ShouldForceSampling())) {
-    *next_sample = 1;
-    HashtablezInfo* result = GlobalHashtablezSampler().Register();
-    result->inline_element_size = inline_element_size;
+    next_sample.next_sample = 1;
+    const int64_t old_stride = exchange(next_sample.sample_stride, 1);
+    HashtablezInfo* result =
+        GlobalHashtablezSampler().Register(old_stride, inline_element_size);
     return result;
   }
 
 #if !defined(ABSL_INTERNAL_HASHTABLEZ_SAMPLE)
-  *next_sample = std::numeric_limits<int64_t>::max();
+  next_sample = {
+      std::numeric_limits<int64_t>::max(),
+      std::numeric_limits<int64_t>::max(),
+  };
   return nullptr;
 #else
-  bool first = *next_sample < 0;
-  *next_sample = g_exponential_biased_generator.GetStride(
+  bool first = next_sample.next_sample < 0;
+
+  const int64_t next_stride = g_exponential_biased_generator.GetStride(
       g_hashtablez_sample_parameter.load(std::memory_order_relaxed));
+
+  next_sample.next_sample = next_stride;
+  const int64_t old_stride = exchange(next_sample.sample_stride, next_stride);
   // Small values of interval are equivalent to just sampling next time.
-  ABSL_ASSERT(*next_sample >= 1);
+  ABSL_ASSERT(next_stride >= 1);
 
   // g_hashtablez_enabled can be dynamically flipped, we need to set a threshold
   // low enough that we will start sampling in a reasonable time, so we just use
@@ -133,13 +146,11 @@ HashtablezInfo* SampleSlow(int64_t* next_sample, size_t inline_element_size) {
   // We will only be negative on our first count, so we should just retry in
   // that case.
   if (first) {
-    if (ABSL_PREDICT_TRUE(--*next_sample > 0)) return nullptr;
+    if (ABSL_PREDICT_TRUE(--next_sample.next_sample > 0)) return nullptr;
     return SampleSlow(next_sample, inline_element_size);
   }
 
-  HashtablezInfo* result = GlobalHashtablezSampler().Register();
-  result->inline_element_size = inline_element_size;
-  return result;
+  return GlobalHashtablezSampler().Register(old_stride, inline_element_size);
 #endif
 }
 
@@ -152,7 +163,7 @@ void RecordInsertSlow(HashtablezInfo* info, size_t hash,
   // SwissTables probe in groups of 16, so scale this to count items probes and
   // not offset from desired.
   size_t probe_length = distance_from_desired;
-#if ABSL_INTERNAL_RAW_HASH_SET_HAVE_SSE2
+#ifdef ABSL_INTERNAL_HAVE_SSE2
   probe_length /= 16;
 #else
   probe_length /= 8;
@@ -204,21 +215,20 @@ void SetHashtablezSampleParameterInternal(int32_t rate) {
   }
 }
 
-int32_t GetHashtablezMaxSamples() {
+size_t GetHashtablezMaxSamples() {
   return GlobalHashtablezSampler().GetMaxSamples();
 }
 
-void SetHashtablezMaxSamples(int32_t max) {
+void SetHashtablezMaxSamples(size_t max) {
   SetHashtablezMaxSamplesInternal(max);
   TriggerHashtablezConfigListener();
 }
 
-void SetHashtablezMaxSamplesInternal(int32_t max) {
+void SetHashtablezMaxSamplesInternal(size_t max) {
   if (max > 0) {
     GlobalHashtablezSampler().SetMaxSamples(max);
   } else {
-    ABSL_RAW_LOG(ERROR, "Invalid hashtablez max samples: %lld",
-                 static_cast<long long>(max));  // NOLINT(runtime/int)
+    ABSL_RAW_LOG(ERROR, "Invalid hashtablez max samples: 0");
   }
 }
 

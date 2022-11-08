@@ -94,38 +94,35 @@ class MultisampledRenderToTextureBenchmark
 MultisampledRenderToTextureBenchmark::MultisampledRenderToTextureBenchmark()
     : ANGLERenderTest("MultisampledRenderToTexture", GetParam())
 {
-    // Crashes on nvidia+d3d11. http://crbug.com/945415
     if (GetParam().getRenderer() == EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE)
     {
-        mSkipTest = true;
+        skipTest("http://crbug.com/945415 Crashes on nvidia+d3d11");
     }
 
-    // Fails on Windows7 NVIDIA Vulkan, presumably due to old drivers. http://crbug.com/1096510
     if (IsWindows7() && IsNVIDIA() &&
         GetParam().eglParameters.renderer == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE)
     {
-        mSkipTest = true;
+        skipTest(
+            "http://crbug.com/1096510 Fails on Windows7 NVIDIA Vulkan, presumably due to old "
+            "drivers");
     }
 
-    // Fails on Pixel 4 GLES: http://anglebug.com/5120
     if (IsPixel4() && GetParam().eglParameters.renderer == EGL_PLATFORM_ANGLE_TYPE_OPENGLES_ANGLE)
     {
-        mSkipTest = true;
+        skipTest("http://anglebug.com/5120 Fails on Pixel 4 GLES");
     }
 
-    // http://anglebug.com/5380
     if (IsLinux() && IsAMD() &&
         GetParam().eglParameters.renderer == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE &&
         GetParam().multiplePasses && GetParam().withDepthStencil)
     {
-        mSkipTest = true;
+        skipTest("http://anglebug.com/5380");
     }
 
-    // http://anglebug.com/6319
     if (IsLinux() && IsIntel() &&
         GetParam().eglParameters.renderer == EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE)
     {
-        mSkipTest = true;
+        skipTest("http://anglebug.com/6319");
     }
 }
 
@@ -133,7 +130,7 @@ void MultisampledRenderToTextureBenchmark::initializeBenchmark()
 {
     if (!IsGLExtensionEnabled("GL_EXT_multisampled_render_to_texture"))
     {
-        mSkipTest = true;
+        skipTest("missing GL_EXT_multisampled_render_to_texture");
         return;
     }
 
@@ -236,6 +233,17 @@ MultisampledRenderToTextureParams D3D11Params(bool multiplePasses, bool withDept
     return params;
 }
 
+MultisampledRenderToTextureParams MetalParams(bool multiplePasses, bool withDepthStencil)
+{
+    MultisampledRenderToTextureParams params;
+    params.eglParameters    = egl_platform::METAL();
+    params.majorVersion     = 3;
+    params.minorVersion     = 0;
+    params.multiplePasses   = multiplePasses;
+    params.withDepthStencil = withDepthStencil;
+    return params;
+}
+
 MultisampledRenderToTextureParams OpenGLOrGLESParams(bool multiplePasses, bool withDepthStencil)
 {
     MultisampledRenderToTextureParams params;
@@ -270,6 +278,8 @@ using namespace params;
 ANGLE_INSTANTIATE_TEST(MultisampledRenderToTextureBenchmark,
                        D3D11Params(false, false),
                        D3D11Params(true, true),
+                       MetalParams(false, false),
+                       MetalParams(true, true),
                        OpenGLOrGLESParams(false, false),
                        OpenGLOrGLESParams(true, true),
                        VulkanParams(false, false),

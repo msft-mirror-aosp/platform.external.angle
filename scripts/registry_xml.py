@@ -17,15 +17,23 @@ import xml.etree.ElementTree as etree
 
 from enum import Enum
 
-xml_inputs = [
-    'cl.xml',
+khronos_xml_inputs = [
+    '../third_party/EGL-Registry/src/api/egl.xml',
+    '../third_party/OpenCL-Docs/src/xml/cl.xml',
+    # TODO(jmadill): Use canonical XML. http://anglebug.com/6461
+    # '../third_party/OpenGL-Registry/src/xml/gl.xml',
     'gl.xml',
+    '../third_party/OpenGL-Registry/src/xml/glx.xml',
+    '../third_party/OpenGL-Registry/src/xml/wgl.xml',
+]
+
+angle_xml_inputs = [
     'gl_angle_ext.xml',
-    'egl.xml',
     'egl_angle_ext.xml',
-    'wgl.xml',
     'registry_xml.py',
 ]
+
+xml_inputs = sorted(khronos_xml_inputs + angle_xml_inputs)
 
 # Notes on categories of extensions:
 # 'Requestable' extensions are extensions that can be enabled with ANGLE_request_extension
@@ -40,11 +48,13 @@ angle_toggleable_extensions = [
 
 angle_requestable_extensions = [
     "GL_ANGLE_base_vertex_base_instance",
+    "GL_ANGLE_base_vertex_base_instance_shader_builtin",
     "GL_ANGLE_compressed_texture_etc",
     "GL_ANGLE_copy_texture_3d",
     "GL_ANGLE_framebuffer_multisample",
     "GL_ANGLE_get_image",
     "GL_ANGLE_get_tex_level_parameter",
+    "GL_ANGLE_logic_op",
     "GL_ANGLE_lossy_etc_decode",
     "GL_ANGLE_memory_object_flags",
     "GL_ANGLE_memory_object_fuchsia",
@@ -52,6 +62,7 @@ angle_requestable_extensions = [
     "GL_ANGLE_multi_draw",
     "GL_ANGLE_multiview_multisample",
     "GL_ANGLE_provoking_vertex",
+    "GL_ANGLE_read_only_depth_stencil_feedback_loops",
     "GL_ANGLE_robust_fragment_shader_output",
     "GL_ANGLE_semaphore_fuchsia",
     "GL_ANGLE_texture_compression_dxt3",
@@ -74,6 +85,7 @@ gles_requestable_extensions = [
     "GL_ANGLE_texture_usage",
     "GL_APPLE_clip_distance",
     "GL_ARB_sync",
+    "GL_EXT_base_instance",
     "GL_EXT_blend_func_extended",
     "GL_EXT_blend_minmax",
     "GL_EXT_buffer_storage",
@@ -109,6 +121,7 @@ gles_requestable_extensions = [
     "GL_EXT_semaphore",
     "GL_EXT_semaphore_fd",
     "GL_EXT_separate_shader_objects",
+    "GL_EXT_shader_framebuffer_fetch",
     "GL_EXT_shader_framebuffer_fetch_non_coherent",
     "GL_EXT_shader_io_blocks",
     "GL_EXT_shader_non_constant_global_initializers",
@@ -140,12 +153,14 @@ gles_requestable_extensions = [
     "GL_KHR_texture_compression_astc_hdr",
     "GL_KHR_texture_compression_astc_ldr",
     "GL_KHR_texture_compression_astc_sliced_3d",
+    "GL_MESA_framebuffer_flip_y",
     "GL_NV_depth_buffer_float2",
     "GL_NV_EGL_stream_consumer_external",
     "GL_NV_framebuffer_blit",
     "GL_NV_pack_subimage",
     "GL_NV_pixel_buffer_object",
     "GL_NV_read_depth",
+    "GL_NV_read_depth_stencil",
     "GL_NV_read_stencil",
     "GL_NV_shader_noperspective_interpolation",
     "GL_OES_compressed_EAC_R11_signed_texture",
@@ -159,6 +174,7 @@ gles_requestable_extensions = [
     "GL_OES_compressed_ETC2_RGBA8_texture",
     "GL_OES_compressed_ETC2_sRGB8_alpha8_texture",
     "GL_OES_compressed_ETC2_sRGB8_texture",
+    "GL_OES_compressed_paletted_texture",
     "GL_OES_copy_image",
     "GL_OES_depth_texture_cube_map",
     "GL_OES_draw_buffers_indexed",
@@ -195,6 +211,7 @@ gles_requestable_extensions = [
     "GL_OES_vertex_type_10_10_10_2",
     "GL_OVR_multiview",
     "GL_OVR_multiview2",
+    "GL_QCOM_shading_rate",
     "GL_WEBGL_video_texture",
 ]
 
@@ -208,6 +225,8 @@ angle_es_only_extensions = [
     "GL_ANGLE_rgbx_internal_format",
     "GL_ANGLE_robust_client_memory",
     "GL_ANGLE_robust_resource_initialization",
+    "GL_ANGLE_shader_pixel_local_storage",
+    "GL_ANGLE_shader_pixel_local_storage_coherent",
     "GL_ANGLE_webgl_compatibility",
     "GL_CHROMIUM_bind_generates_resource",
     "GL_CHROMIUM_bind_uniform_location",
@@ -217,6 +236,8 @@ angle_es_only_extensions = [
 ]
 
 gles_es_only_extensions = [
+    "GL_AMD_performance_monitor",
+    "GL_ANDROID_extension_pack_es31a",
     "GL_ANGLE_depth_texture",
     "GL_ANGLE_translated_shader_source",
     "GL_EXT_debug_label",
@@ -239,6 +260,7 @@ gles_es_only_extensions = [
     "GL_OES_depth_texture",
     "GL_OES_EGL_sync",
     "GL_OES_packed_depth_stencil",
+    "GL_OES_primitive_bounding_box",
     "GL_OES_surfaceless_context",
 ]
 
@@ -288,7 +310,10 @@ supported_egl_extensions = [
     "EGL_ANGLE_display_texture_share_group",
     "EGL_ANGLE_feature_control",
     "EGL_ANGLE_ggp_stream_descriptor",
+    "EGL_ANGLE_metal_create_context_ownership_identity",
+    "EGL_ANGLE_metal_shared_event_sync",
     "EGL_ANGLE_power_preference",
+    "EGL_ANGLE_prepare_swap_buffers",
     "EGL_ANGLE_program_cache_control",
     "EGL_ANGLE_query_surface_pointer",
     "EGL_ANGLE_stream_producer_d3d_texture",
@@ -305,6 +330,8 @@ supported_egl_extensions = [
     "EGL_EXT_gl_colorspace_display_p3_passthrough",
     "EGL_EXT_gl_colorspace_scrgb",
     "EGL_EXT_gl_colorspace_scrgb_linear",
+    "EGL_EXT_image_dma_buf_import",
+    "EGL_EXT_image_dma_buf_import_modifiers",
     "EGL_EXT_image_gl_colorspace",
     "EGL_EXT_pixel_format_float",
     "EGL_EXT_platform_base",
@@ -318,6 +345,7 @@ supported_egl_extensions = [
     "EGL_KHR_lock_surface3",
     "EGL_KHR_mutable_render_buffer",
     "EGL_KHR_no_config_context",
+    "EGL_KHR_partial_update",
     "EGL_KHR_reusable_sync",
     "EGL_KHR_stream",
     "EGL_KHR_stream_consumer_gltexture",
@@ -352,14 +380,12 @@ supported_cl_extensions = [
 ]
 
 # Strip these suffixes from Context entry point names. NV is excluded (for now).
-strip_suffixes = ["ANGLE", "EXT", "KHR", "OES", "CHROMIUM"]
+strip_suffixes = ["AMD", "ANDROID", "ANGLE", "CHROMIUM", "EXT", "KHR", "OES", "OVR"]
+check_sorted('strip_suffixes', strip_suffixes)
 
 # The EGL_ANGLE_explicit_context extension is generated differently from other extensions.
 # Toggle generation here.
 support_EGL_ANGLE_explicit_context = True
-
-# For ungrouped GLenum types
-default_enum_group_name = "DefaultGroup"
 
 # Group names that appear in command/param, but not present in groups/group
 unsupported_enum_group_names = {
@@ -384,6 +410,7 @@ DESKTOP_GL_VERSIONS = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (2, 0), (
 GLES_VERSIONS = [(2, 0), (3, 0), (3, 1), (3, 2), (1, 0)]
 EGL_VERSIONS = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4), (1, 5)]
 WGL_VERSIONS = [(1, 0)]
+GLX_VERSIONS = [(1, 0), (1, 1), (1, 2), (1, 3), (1, 4)]
 CL_VERSIONS = [(1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2), (3, 0)]
 
 
@@ -392,8 +419,13 @@ class apis:
     GL = 'GL'
     GLES = 'GLES'
     WGL = 'WGL'
+    GLX = 'GLX'
     EGL = 'EGL'
     CL = 'CL'
+
+# For GLenum types
+api_enums = {apis.GL: 'BigGLEnum', apis.GLES: 'GLESEnum'}
+default_enum_group_name = 'AllEnums'
 
 
 def script_relative(path):
@@ -406,6 +438,13 @@ def path_to(folder, file):
 
 def strip_api_prefix(cmd_name):
     return cmd_name.lstrip("cwegl")
+
+
+def find_xml_input(xml_file):
+    for found_xml in xml_inputs:
+        if found_xml == xml_file or found_xml.endswith('/' + xml_file):
+            return found_xml
+    raise Exception('Could not find XML input: ' + xml_file)
 
 
 def get_cmd_name(command_node):
@@ -441,10 +480,10 @@ class CommandNames:
 class RegistryXML:
 
     def __init__(self, xml_file, ext_file=None):
-        tree = etree.parse(script_relative(xml_file))
+        tree = etree.parse(script_relative(find_xml_input(xml_file)))
         self.root = tree.getroot()
         if (ext_file):
-            self._AppendANGLEExts(ext_file)
+            self._AppendANGLEExts(find_xml_input(ext_file))
         self.all_commands = self.root.findall('commands/command')
         self.all_cmd_names = CommandNames()
         self.commands = {}
@@ -478,6 +517,9 @@ class RegistryXML:
 
     def _ClassifySupport(self, extension):
         supported = extension.attrib['supported']
+        # Desktop GL extensions exposed in ANGLE GLES for Chrome.
+        if extension.attrib['name'] in ['GL_ARB_sync', 'GL_NV_robustness_video_memory_purge']:
+            supported += "|gles2"
         if 'gles2' in supported:
             return 'gl2ext'
         elif 'gles1' in supported:
@@ -486,6 +528,8 @@ class RegistryXML:
             return 'eglext'
         elif 'wgl' in supported:
             return 'wglext'
+        elif 'glx' in supported:
+            return 'glxext'
         elif 'cl' in supported:
             return 'clext'
         else:
@@ -553,7 +597,7 @@ class EntryPoints:
             cmd_name = get_cmd_name(command_node)
 
             if api == apis.WGL:
-                cmd_name = cmd_name if cmd_name[:3] == 'wgl' else 'wgl' + cmd_name
+                cmd_name = cmd_name if cmd_name.startswith('wgl') else 'wgl' + cmd_name
 
             if cmd_name not in commands:
                 continue

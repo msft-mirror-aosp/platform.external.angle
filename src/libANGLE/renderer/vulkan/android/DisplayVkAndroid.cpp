@@ -50,11 +50,41 @@ SurfaceImpl *DisplayVkAndroid::createWindowSurfaceVk(const egl::SurfaceState &st
 
 egl::ConfigSet DisplayVkAndroid::generateConfigs()
 {
-    // The list of supported swapchain formats is available at:
-    // https://cs.android.com/android/platform/superproject/+/master:frameworks/native/vulkan/libvulkan/swapchain.cpp;l=465-486?q=GetNativePixelFormat
-    // TODO (Issue 4062): Add conditional support for GL_RGB10_A2 and GL_RGBA16F when the
-    // Android Vulkan loader adds conditional support for them.
-    const std::array<GLenum, 3> kColorFormats = {GL_RGBA8, GL_RGB8, GL_RGB565};
+    // ANGLE's Vulkan back-end on Android traditionally supports EGLConfig's with GL_RGBA8,
+    // GL_RGB8, and GL_RGB565.  The Android Vulkan loader used to support all three of these
+    // (e.g. Android 7), but this has changed as Android now supports Vulkan devices that do not
+    // support all of those formats.  The loader always supports GL_RGBA8.  Other formats are
+    // optionally supported, depending on the underlying driver support.  This includes GL_RGB10_A2
+    // and GL_RGBA16F, which ANGLE also desires to support EGLConfig's with.
+    //
+    // The problem for ANGLE is that Vulkan requires a VkSurfaceKHR in order to query available
+    // formats from the loader, but ANGLE must determine which EGLConfig's to expose before it has
+    // a VkSurfaceKHR.  The VK_GOOGLE_surfaceless_query extension allows ANGLE to query formats
+    // without having a VkSurfaceKHR.  The old path is still kept until this extension becomes
+    // universally available.
+
+    // Assume GL_RGB8 and GL_RGBA8 is always available.
+    std::vector<GLenum> kColorFormats        = {GL_RGBA8, GL_RGB8};
+    std::vector<GLenum> kDesiredColorFormats = {GL_RGB565, GL_RGB10_A2, GL_RGBA16F};
+    if (!getRenderer()->getFeatures().supportsSurfacelessQueryExtension.enabled)
+    {
+        // Old path: Assume GL_RGB565 is available, as it is generally available on the devices
+        // that support Vulkan.
+        kColorFormats.push_back(GL_RGB565);
+    }
+    else
+    {
+        // DisplayVk should have already queried and cached supported surface formats.
+        for (GLenum glFormat : kDesiredColorFormats)
+        {
+            VkFormat vkFormat = mRenderer->getFormat(glFormat).getActualRenderableImageVkFormat();
+            ASSERT(vkFormat != VK_FORMAT_UNDEFINED);
+            if (isConfigFormatSupported(vkFormat))
+            {
+                kColorFormats.push_back(glFormat);
+            }
+        }
+    }
 
     std::vector<GLenum> depthStencilFormats(
         egl_vk::kConfigDepthStencilFormats,

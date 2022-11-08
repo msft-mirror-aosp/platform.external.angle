@@ -13,16 +13,6 @@ namespace sh
 {
 
 constexpr const char kUniformsVar[]               = "angleUniforms";
-constexpr const char kViewport[]                  = "viewport";
-constexpr const char kHalfRenderArea[]            = "halfRenderArea";
-constexpr const char kFlipXY[]                    = "flipXY";
-constexpr const char kNegFlipXY[]                 = "negFlipXY";
-constexpr const char kClipDistancesEnabled[]      = "clipDistancesEnabled";
-constexpr const char kXfbActiveUnpaused[]         = "xfbActiveUnpaused";
-constexpr const char kXfbVerticesPerDraw[]        = "xfbVerticesPerDraw";
-constexpr const char kXfbBufferOffsets[]          = "xfbBufferOffsets";
-constexpr const char kAcbBufferOffsets[]          = "acbBufferOffsets";
-constexpr const char kDepthRange[]                = "depthRange";
 constexpr const char kUnassignedAttributeString[] = " __unassigned_attribute__";
 
 class DriverUniform;
@@ -165,39 +155,33 @@ class TranslatorMetalDirect : public TCompiler
     TranslatorMetalDirect *getAsTranslatorMetalDirect() override { return this; }
 #endif
 
-    void enableEmulatedInstanceID(bool e) { mEmulatedInstanceID = e; }
     TranslatorMetalReflection *getTranslatorMetalReflection() { return &translatorMetalReflection; }
 
   protected:
     bool translate(TIntermBlock *root,
-                   ShCompileOptions compileOptions,
+                   const ShCompileOptions &compileOptions,
                    PerformanceDiagnostics *perfDiagnostics) override;
 
     // Need to collect variables so that RemoveInactiveInterfaceVariables works.
-    bool shouldCollectVariables(ShCompileOptions compileOptions) override { return true; }
+    bool shouldCollectVariables(const ShCompileOptions &compileOptions) override { return true; }
 
-    ANGLE_NO_DISCARD bool translateImpl(TInfoSinkBase &sink,
-                                        TIntermBlock *root,
-                                        ShCompileOptions compileOptions,
-                                        PerformanceDiagnostics *perfDiagnostics,
-                                        SpecConst *specConst,
-                                        DriverUniformMetal *driverUniforms);
+    [[nodiscard]] bool translateImpl(TInfoSinkBase &sink,
+                                     TIntermBlock *root,
+                                     const ShCompileOptions &compileOptions,
+                                     PerformanceDiagnostics *perfDiagnostics,
+                                     SpecConst *specConst,
+                                     DriverUniformMetal *driverUniforms);
 
-    ANGLE_NO_DISCARD bool shouldFlattenPragmaStdglInvariantAll() override;
+    [[nodiscard]] bool shouldFlattenPragmaStdglInvariantAll() override;
 
-    ANGLE_NO_DISCARD bool transformDepthBeforeCorrection(TIntermBlock *root,
-                                                         const DriverUniformMetal *driverUniforms);
+    [[nodiscard]] bool transformDepthBeforeCorrection(TIntermBlock *root,
+                                                      const DriverUniformMetal *driverUniforms);
 
-    ANGLE_NO_DISCARD bool appendVertexShaderDepthCorrectionToMain(TIntermBlock *root);
+    [[nodiscard]] bool appendVertexShaderDepthCorrectionToMain(TIntermBlock *root);
 
-    ANGLE_NO_DISCARD bool insertSampleMaskWritingLogic(TIntermBlock &root,
-                                                       DriverUniformMetal &driverUniforms);
-    ANGLE_NO_DISCARD bool insertRasterizationDiscardLogic(TIntermBlock &root);
-
-    ANGLE_NO_DISCARD TIntermSwizzle *getDriverUniformNegFlipYRef(
-        DriverUniform &driverUniforms) const;
-
-    bool mEmulatedInstanceID = false;
+    [[nodiscard]] bool insertSampleMaskWritingLogic(TIntermBlock &root,
+                                                    DriverUniformMetal &driverUniforms);
+    [[nodiscard]] bool insertRasterizationDiscardLogic(TIntermBlock &root);
 
     TranslatorMetalReflection translatorMetalReflection = {};
 };

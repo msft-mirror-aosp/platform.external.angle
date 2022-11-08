@@ -32,7 +32,7 @@ using namespace angle;
 namespace
 {
 
-class EGLSurfaceTest : public ANGLETest
+class EGLSurfaceTest : public ANGLETest<>
 {
   protected:
     EGLSurfaceTest()
@@ -245,9 +245,9 @@ class EGLSurfaceTest : public ANGLETest
         initializeSurface(defaultConfig);
     }
 
-    GLuint createProgram()
+    GLuint createProgram(const char *fs = angle::essl1_shaders::fs::Red())
     {
-        return CompileProgram(angle::essl1_shaders::vs::Simple(), angle::essl1_shaders::fs::Red());
+        return CompileProgram(angle::essl1_shaders::vs::Simple(), fs);
     }
 
     void drawWithProgram(GLuint program)
@@ -385,6 +385,85 @@ class EGLFloatSurfaceTest : public EGLSurfaceTest
     GLuint mProgram;
 };
 
+class EGLSingleBufferTest : public ANGLETest<>
+{
+  protected:
+    EGLSingleBufferTest() {}
+
+    void testSetUp() override
+    {
+        EGLint dispattrs[] = {EGL_PLATFORM_ANGLE_TYPE_ANGLE, GetParam().getRenderer(), EGL_NONE};
+        mDisplay           = eglGetPlatformDisplayEXT(
+                      EGL_PLATFORM_ANGLE_ANGLE, reinterpret_cast<void *>(EGL_DEFAULT_DISPLAY), dispattrs);
+        ASSERT_TRUE(mDisplay != EGL_NO_DISPLAY);
+        ASSERT_EGL_TRUE(eglInitialize(mDisplay, nullptr, nullptr));
+        mMajorVersion = GetParam().majorVersion;
+    }
+
+    void testTearDown() override
+    {
+        eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        eglTerminate(mDisplay);
+    }
+
+    bool chooseConfig(EGLConfig *config, bool mutableRenderBuffer) const
+    {
+        bool result          = false;
+        EGLint count         = 0;
+        EGLint clientVersion = mMajorVersion == 3 ? EGL_OPENGL_ES3_BIT : EGL_OPENGL_ES2_BIT;
+        EGLint attribs[]     = {
+                EGL_RED_SIZE,
+                8,
+                EGL_GREEN_SIZE,
+                8,
+                EGL_BLUE_SIZE,
+                8,
+                EGL_ALPHA_SIZE,
+                0,
+                EGL_RENDERABLE_TYPE,
+                clientVersion,
+                EGL_SURFACE_TYPE,
+                EGL_WINDOW_BIT | (mutableRenderBuffer ? EGL_MUTABLE_RENDER_BUFFER_BIT_KHR : 0),
+                EGL_NONE};
+
+        result = eglChooseConfig(mDisplay, attribs, config, 1, &count);
+        return result && (count > 0);
+    }
+
+    bool createContext(EGLConfig config, EGLContext *context)
+    {
+        bool result      = false;
+        EGLint attribs[] = {EGL_CONTEXT_MAJOR_VERSION, mMajorVersion, EGL_NONE};
+
+        *context = eglCreateContext(mDisplay, config, nullptr, attribs);
+        result   = (*context != EGL_NO_CONTEXT);
+        EXPECT_TRUE(result);
+        return result;
+    }
+
+    bool createWindowSurface(EGLConfig config,
+                             EGLNativeWindowType win,
+                             EGLSurface *surface,
+                             EGLint renderBuffer) const
+    {
+        bool result      = false;
+        EGLint attribs[] = {EGL_RENDER_BUFFER, renderBuffer, EGL_NONE};
+
+        *surface = eglCreateWindowSurface(mDisplay, config, win, attribs);
+        result   = (*surface != EGL_NO_SURFACE);
+        EXPECT_TRUE(result);
+        return result;
+    }
+
+    EGLDisplay mDisplay  = EGL_NO_DISPLAY;
+    EGLint mMajorVersion = 0;
+    const EGLint kWidth  = 32;
+    const EGLint kHeight = 32;
+};
+
+class EGLAndroidAutoRefreshTest : public EGLSingleBufferTest
+{};
+
 // Test clearing and checking the color is correct
 TEST_P(EGLFloatSurfaceTest, Clearing)
 {
@@ -471,6 +550,47 @@ TEST_P(EGLSurfaceTest, MakeCurrentTwice)
 
     // Simple operation to test the FBO is set appropriately
     glClear(GL_COLOR_BUFFER_BIT);
+}
+
+// This is a regression test to verify that surfaces are not prematurely destroyed.
+TEST_P(EGLSurfaceTest, SurfaceUseAfterFreeBug)
+{
+    initializeDisplay();
+
+    // Initialize an RGBA8 window and pbuffer surface
+    constexpr EGLint kSurfaceAttributes[] = {EGL_RED_SIZE,     8,
+                                             EGL_GREEN_SIZE,   8,
+                                             EGL_BLUE_SIZE,    8,
+                                             EGL_ALPHA_SIZE,   8,
+                                             EGL_SURFACE_TYPE, EGL_WINDOW_BIT | EGL_PBUFFER_BIT,
+                                             EGL_NONE};
+
+    EGLint configCount      = 0;
+    EGLConfig surfaceConfig = nullptr;
+    ASSERT_EGL_TRUE(eglChooseConfig(mDisplay, kSurfaceAttributes, &surfaceConfig, 1, &configCount));
+    ASSERT_NE(configCount, 0);
+    ASSERT_NE(surfaceConfig, nullptr);
+
+    initializeSurface(surfaceConfig);
+    ASSERT_EGL_SUCCESS();
+    ASSERT_NE(mWindowSurface, EGL_NO_SURFACE);
+    ASSERT_NE(mPbufferSurface, EGL_NO_SURFACE);
+
+    eglMakeCurrent(mDisplay, mWindowSurface, mWindowSurface, mSecondContext);
+    ASSERT_EGL_SUCCESS();
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    eglMakeCurrent(mDisplay, mPbufferSurface, mPbufferSurface, mContext);
+    ASSERT_EGL_SUCCESS();
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    eglDestroySurface(mDisplay, mPbufferSurface);
+    ASSERT_EGL_SUCCESS();
+    mPbufferSurface = EGL_NO_SURFACE;
+
+    eglDestroyContext(mDisplay, mSecondContext);
+    ASSERT_EGL_SUCCESS();
+    mSecondContext = EGL_NO_CONTEXT;
 }
 
 // Test that the window surface is correctly resized after calling swapBuffers
@@ -927,14 +1047,14 @@ TEST_P(EGLSurfaceTest3, MakeCurrentDifferentSurfaces)
     // Must be after the eglMakeCurrent() so the renderer string is initialized.
     ANGLE_SKIP_TEST_IF(IsOpenGLES() && IsAndroid());
 
-    glClearColor(GLColor::red.R, GLColor::red.G, GLColor::red.B, GLColor::red.A);
+    glClearColor(kFloatRed.R, kFloatRed.G, kFloatRed.B, kFloatRed.A);
     glClear(GL_COLOR_BUFFER_BIT);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
 
     // Use different surfaces for draw and read, read should stay the same
     EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, secondPbufferSurface, firstPbufferSurface, mContext));
-    glClearColor(GLColor::blue.R, GLColor::blue.G, GLColor::blue.B, GLColor::blue.A);
+    glClearColor(kFloatBlue.R, kFloatBlue.G, kFloatBlue.B, kFloatBlue.A);
     glClear(GL_COLOR_BUFFER_BIT);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
@@ -954,7 +1074,236 @@ TEST_P(EGLSurfaceTest3, MakeCurrentDifferentSurfaces)
 
 #if defined(ANGLE_ENABLE_D3D11)
 class EGLSurfaceTestD3D11 : public EGLSurfaceTest
-{};
+{
+  protected:
+    // offset - draw into the texture at offset (|offset|, |offset|)
+    // pix25 - the expected pixel value at (25, 25)
+    // pix75 - the expected pixel value at (75, 75)
+    void testTextureOffset(int offset, UINT pix25, UINT pix75)
+    {
+        initializeDisplay();
+
+        const EGLint configAttributes[] = {
+            EGL_RED_SIZE,   8, EGL_GREEN_SIZE,   8, EGL_BLUE_SIZE,      8, EGL_ALPHA_SIZE, 8,
+            EGL_DEPTH_SIZE, 0, EGL_STENCIL_SIZE, 0, EGL_SAMPLE_BUFFERS, 0, EGL_NONE};
+
+        EGLConfig config;
+        ASSERT_EGL_TRUE(EGLWindow::FindEGLConfig(mDisplay, configAttributes, &config));
+
+        mConfig = config;
+        initializeContext();
+
+        EGLAttrib device       = 0;
+        EGLAttrib newEglDevice = 0;
+        ASSERT_EGL_TRUE(eglQueryDisplayAttribEXT(mDisplay, EGL_DEVICE_EXT, &newEglDevice));
+        ASSERT_EGL_TRUE(eglQueryDeviceAttribEXT(reinterpret_cast<EGLDeviceEXT>(newEglDevice),
+                                                EGL_D3D11_DEVICE_ANGLE, &device));
+        angle::ComPtr<ID3D11Device> d3d11Device(reinterpret_cast<ID3D11Device *>(device));
+        ASSERT_TRUE(!!d3d11Device);
+
+        constexpr UINT kTextureWidth  = 100;
+        constexpr UINT kTextureHeight = 100;
+        constexpr Color<uint8_t> kOpaqueBlack(0, 0, 0, 255);
+        std::vector<Color<uint8_t>> textureData(kTextureWidth * kTextureHeight, kOpaqueBlack);
+
+        D3D11_SUBRESOURCE_DATA initialData = {};
+        initialData.pSysMem                = textureData.data();
+        initialData.SysMemPitch            = kTextureWidth * sizeof(kOpaqueBlack);
+
+        D3D11_TEXTURE2D_DESC desc = {};
+        desc.Format               = DXGI_FORMAT_B8G8R8A8_UNORM;
+        desc.Width                = kTextureWidth;
+        desc.Height               = kTextureHeight;
+        desc.ArraySize            = 1;
+        desc.MipLevels            = 1;
+        desc.SampleDesc.Count     = 1;
+        desc.Usage                = D3D11_USAGE_DEFAULT;
+        desc.BindFlags            = D3D11_BIND_RENDER_TARGET;
+        angle::ComPtr<ID3D11Texture2D> texture;
+        HRESULT hr = d3d11Device->CreateTexture2D(&desc, &initialData, &texture);
+        ASSERT_TRUE(SUCCEEDED(hr));
+
+        angle::ComPtr<ID3D11DeviceContext> d3d11Context;
+        d3d11Device->GetImmediateContext(&d3d11Context);
+
+        // Specify a texture offset of (50, 50) when rendering to the pbuffer surface.
+        const EGLint surfaceAttributes[] = {EGL_WIDTH,
+                                            kTextureWidth,
+                                            EGL_HEIGHT,
+                                            kTextureHeight,
+                                            EGL_TEXTURE_OFFSET_X_ANGLE,
+                                            offset,
+                                            EGL_TEXTURE_OFFSET_Y_ANGLE,
+                                            offset,
+                                            EGL_NONE};
+        EGLClientBuffer buffer           = reinterpret_cast<EGLClientBuffer>(texture.Get());
+        mPbufferSurface = eglCreatePbufferFromClientBuffer(mDisplay, EGL_D3D_TEXTURE_ANGLE, buffer,
+                                                           config, surfaceAttributes);
+        ASSERT_EGL_SUCCESS();
+
+        eglMakeCurrent(mDisplay, mPbufferSurface, mPbufferSurface, mContext);
+        ASSERT_EGL_SUCCESS();
+
+        // glClear should only clear subrect at offset (50, 50) without explicit scissor.
+        glClearColor(0, 0, 1, 1);  // Blue
+        glClear(GL_COLOR_BUFFER_BIT);
+        EXPECT_PIXEL_EQ(25, 25, 0, 0, pix25, 255);
+        EXPECT_PIXEL_EQ(75, 75, 0, 0, pix75, 255);
+        EXPECT_GL_NO_ERROR();
+
+        // Drawing with a shader should also update the same subrect only without explicit viewport.
+        GLuint program = createProgram();  // Red
+        ASSERT_NE(0u, program);
+        GLint positionLocation =
+            glGetAttribLocation(program, angle::essl1_shaders::PositionAttrib());
+        glUseProgram(program);
+        const GLfloat vertices[] = {
+            -1.0f, 1.0f, 0.5f, -1.0f, -1.0f, 0.5f, 1.0f, -1.0f, 0.5f,
+            -1.0f, 1.0f, 0.5f, 1.0f,  -1.0f, 0.5f, 1.0f, 1.0f,  0.5f,
+        };
+        glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+        glEnableVertexAttribArray(positionLocation);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDisableVertexAttribArray(positionLocation);
+        glVertexAttribPointer(positionLocation, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        EXPECT_PIXEL_EQ(25, 25, pix25, 0, 0, 255);
+        EXPECT_PIXEL_EQ(75, 75, pix75, 0, 0, 255);
+        EXPECT_GL_NO_ERROR();
+
+        glDeleteProgram(program);
+        EXPECT_GL_NO_ERROR();
+
+        // Blit framebuffer should also blit to the same subrect despite the dstX/Y arguments.
+        GLRenderbuffer renderBuffer;
+        glBindRenderbuffer(GL_RENDERBUFFER, renderBuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, 50, 50);
+        EXPECT_GL_NO_ERROR();
+
+        GLFramebuffer framebuffer;
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER,
+                                  renderBuffer);
+        EXPECT_GL_NO_ERROR();
+
+        glClearColor(0, 1, 0, 1);  // Green
+        glClear(GL_COLOR_BUFFER_BIT);
+        EXPECT_PIXEL_EQ(25, 25, 0, 255, 0, 255);
+        EXPECT_GL_NO_ERROR();
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0u);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
+        glBlitFramebuffer(0, 0, 50, 50, 0, 0, kTextureWidth, kTextureWidth, GL_COLOR_BUFFER_BIT,
+                          GL_NEAREST);
+        EXPECT_GL_NO_ERROR();
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0u);
+        EXPECT_PIXEL_EQ(25, 25, 0, pix25, 0, 255);
+        EXPECT_PIXEL_EQ(75, 75, 0, pix75, 0, 255);
+        EXPECT_GL_NO_ERROR();
+    }
+
+    // Draws into a surface at the specified offset using the values of gl_FragCoord in the
+    // fragment shader.
+    // texturedimension - dimension of the D3D texture and surface.
+    // offset - draw into the texture at offset (|offset|, |offset|)
+    void setupFragCoordOffset(int textureDimension, int offset)
+    {
+        ANGLE_SKIP_TEST_IF(!IsEGLClientExtensionEnabled("EGL_ANGLE_platform_angle_d3d"));
+        initializeDisplay();
+
+        EGLAttrib device       = 0;
+        EGLAttrib newEglDevice = 0;
+        ASSERT_EGL_TRUE(eglQueryDisplayAttribEXT(mDisplay, EGL_DEVICE_EXT, &newEglDevice));
+        ASSERT_EGL_TRUE(eglQueryDeviceAttribEXT(reinterpret_cast<EGLDeviceEXT>(newEglDevice),
+                                                EGL_D3D11_DEVICE_ANGLE, &device));
+        angle::ComPtr<ID3D11Device> d3d11Device(reinterpret_cast<ID3D11Device *>(device));
+        ASSERT_TRUE(!!d3d11Device);
+
+        D3D11_TEXTURE2D_DESC desc = {};
+        desc.Format               = DXGI_FORMAT_B8G8R8A8_UNORM;
+        desc.Width                = textureDimension;
+        desc.Height               = textureDimension;
+        desc.ArraySize            = 1;
+        desc.MipLevels            = 1;
+        desc.SampleDesc.Count     = 1;
+        desc.Usage                = D3D11_USAGE_DEFAULT;
+        desc.BindFlags            = D3D11_BIND_RENDER_TARGET;
+        angle::ComPtr<ID3D11Texture2D> texture;
+        HRESULT hr = d3d11Device->CreateTexture2D(&desc, nullptr, &texture);
+        ASSERT_TRUE(SUCCEEDED(hr));
+
+        const EGLint surfaceAttributes[] = {EGL_WIDTH,
+                                            textureDimension,
+                                            EGL_HEIGHT,
+                                            textureDimension,
+                                            EGL_TEXTURE_OFFSET_X_ANGLE,
+                                            offset,
+                                            EGL_TEXTURE_OFFSET_Y_ANGLE,
+                                            offset,
+                                            EGL_NONE};
+        EGLClientBuffer buffer           = reinterpret_cast<EGLClientBuffer>(texture.Get());
+
+        const EGLint configAttributes[] = {
+            EGL_RED_SIZE,   8, EGL_GREEN_SIZE,   8, EGL_BLUE_SIZE,      8, EGL_ALPHA_SIZE, 8,
+            EGL_DEPTH_SIZE, 0, EGL_STENCIL_SIZE, 0, EGL_SAMPLE_BUFFERS, 0, EGL_NONE};
+
+        EGLConfig config;
+        ASSERT_EGL_TRUE(EGLWindow::FindEGLConfig(mDisplay, configAttributes, &config));
+        mConfig = config;
+
+        mPbufferSurface = eglCreatePbufferFromClientBuffer(mDisplay, EGL_D3D_TEXTURE_ANGLE, buffer,
+                                                           config, surfaceAttributes);
+        ASSERT_EGL_SUCCESS();
+
+        initializeContext();
+
+        eglMakeCurrent(mDisplay, mPbufferSurface, mPbufferSurface, mContext);
+        ASSERT_EGL_SUCCESS();
+
+        // Fragment shader that uses the gl_FragCoord values to output the (x, y) position of
+        // the current pixel as the color.
+        //    - Reverse the offset that was applied to the original coordinates
+        //    - 0.5 is subtracted because gl_FragCoord gives the pixel center
+        //    - Divided by the size to give a max value of 1
+        std::stringstream fs;
+        fs << "precision mediump float;"
+           << "void main()"
+           << "{"
+           << "    float dimension = float(" << textureDimension << ");"
+           << "    float offset = float(" << offset << ");"
+           << "    gl_FragColor = vec4((gl_FragCoord.x + offset - 0.5) / dimension,"
+           << "                        (gl_FragCoord.y + offset - 0.5) / dimension,"
+           << "                         gl_FragCoord.z,"
+           << "                         gl_FragCoord.w);"
+           << "}";
+
+        GLuint program = createProgram(fs.str().c_str());
+        ASSERT_NE(0u, program);
+        glUseProgram(program);
+
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        const GLfloat vertices[] = {
+            -1.0f, 1.0f, 0.5f, -1.0f, -1.0f, 0.5f, 1.0f, -1.0f, 0.5f,
+            -1.0f, 1.0f, 0.5f, 1.0f,  -1.0f, 0.5f, 1.0f, 1.0f,  0.5f,
+        };
+
+        GLint positionLocation =
+            glGetAttribLocation(program, angle::essl1_shaders::PositionAttrib());
+        glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+        glEnableVertexAttribArray(positionLocation);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glDisableVertexAttribArray(positionLocation);
+
+        glDeleteProgram(program);
+
+        EXPECT_GL_NO_ERROR();
+    }
+};
 
 // Test that rendering to an IDCompositionSurface using a pbuffer works.
 TEST_P(EGLSurfaceTestD3D11, CreateDirectCompositionSurface)
@@ -1036,126 +1385,18 @@ TEST_P(EGLSurfaceTestD3D11, CreateDirectCompositionSurface)
     glDeleteProgram(program);
 }
 
+// Tests drawing into a surface created with negative offsets.
+TEST_P(EGLSurfaceTestD3D11, CreateSurfaceWithTextureNegativeOffset)
+{
+    ANGLE_SKIP_TEST_IF(!IsEGLClientExtensionEnabled("EGL_ANGLE_platform_angle_d3d"));
+    testTextureOffset(-50, 255, 0);
+}
+
+// Tests drawing into a surface created with offsets.
 TEST_P(EGLSurfaceTestD3D11, CreateSurfaceWithTextureOffset)
 {
     ANGLE_SKIP_TEST_IF(!IsEGLClientExtensionEnabled("EGL_ANGLE_platform_angle_d3d"));
-    initializeDisplay();
-
-    const EGLint configAttributes[] = {
-        EGL_RED_SIZE,   8, EGL_GREEN_SIZE,   8, EGL_BLUE_SIZE,      8, EGL_ALPHA_SIZE, 8,
-        EGL_DEPTH_SIZE, 0, EGL_STENCIL_SIZE, 0, EGL_SAMPLE_BUFFERS, 0, EGL_NONE};
-
-    EGLConfig config;
-    ASSERT_EGL_TRUE(EGLWindow::FindEGLConfig(mDisplay, configAttributes, &config));
-
-    mConfig = config;
-    initializeContext();
-
-    EGLAttrib device       = 0;
-    EGLAttrib newEglDevice = 0;
-    ASSERT_EGL_TRUE(eglQueryDisplayAttribEXT(mDisplay, EGL_DEVICE_EXT, &newEglDevice));
-    ASSERT_EGL_TRUE(eglQueryDeviceAttribEXT(reinterpret_cast<EGLDeviceEXT>(newEglDevice),
-                                            EGL_D3D11_DEVICE_ANGLE, &device));
-    angle::ComPtr<ID3D11Device> d3d11Device(reinterpret_cast<ID3D11Device *>(device));
-    ASSERT_TRUE(!!d3d11Device);
-
-    constexpr UINT kTextureWidth  = 100;
-    constexpr UINT kTextureHeight = 100;
-    constexpr Color<uint8_t> kOpaqueBlack(0, 0, 0, 255);
-    std::vector<Color<uint8_t>> textureData(kTextureWidth * kTextureHeight, kOpaqueBlack);
-
-    D3D11_SUBRESOURCE_DATA initialData = {};
-    initialData.pSysMem                = textureData.data();
-    initialData.SysMemPitch            = kTextureWidth * sizeof(kOpaqueBlack);
-
-    D3D11_TEXTURE2D_DESC desc = {};
-    desc.Format               = DXGI_FORMAT_B8G8R8A8_UNORM;
-    desc.Width                = kTextureWidth;
-    desc.Height               = kTextureHeight;
-    desc.ArraySize            = 1;
-    desc.MipLevels            = 1;
-    desc.SampleDesc.Count     = 1;
-    desc.Usage                = D3D11_USAGE_DEFAULT;
-    desc.BindFlags            = D3D11_BIND_RENDER_TARGET;
-    angle::ComPtr<ID3D11Texture2D> texture;
-    HRESULT hr = d3d11Device->CreateTexture2D(&desc, &initialData, &texture);
-    ASSERT_TRUE(SUCCEEDED(hr));
-
-    angle::ComPtr<ID3D11DeviceContext> d3d11Context;
-    d3d11Device->GetImmediateContext(&d3d11Context);
-
-    // Specify a texture offset of (50, 50) when rendering to the pbuffer surface.
-    const EGLint surfaceAttributes[] = {EGL_WIDTH,
-                                        kTextureWidth,
-                                        EGL_HEIGHT,
-                                        kTextureHeight,
-                                        EGL_TEXTURE_OFFSET_X_ANGLE,
-                                        50,
-                                        EGL_TEXTURE_OFFSET_Y_ANGLE,
-                                        50,
-                                        EGL_NONE};
-    EGLClientBuffer buffer           = reinterpret_cast<EGLClientBuffer>(texture.Get());
-    mPbufferSurface = eglCreatePbufferFromClientBuffer(mDisplay, EGL_D3D_TEXTURE_ANGLE, buffer,
-                                                       config, surfaceAttributes);
-    ASSERT_EGL_SUCCESS();
-
-    eglMakeCurrent(mDisplay, mPbufferSurface, mPbufferSurface, mContext);
-    ASSERT_EGL_SUCCESS();
-
-    // glClear should only clear subrect at offset (50, 50) without explicit scissor.
-    glClearColor(0, 0, 1, 1);  // Blue
-    glClear(GL_COLOR_BUFFER_BIT);
-    EXPECT_PIXEL_EQ(25, 25, 0, 0, 0, 255);
-    EXPECT_PIXEL_EQ(75, 75, 0, 0, 255, 255);
-    EXPECT_GL_NO_ERROR();
-
-    // Drawing with a shader should also update the same subrect only without explicit viewport.
-    GLuint program = createProgram();  // Red
-    ASSERT_NE(0u, program);
-    GLint positionLocation = glGetAttribLocation(program, angle::essl1_shaders::PositionAttrib());
-    glUseProgram(program);
-    const GLfloat vertices[] = {
-        -1.0f, 1.0f, 0.5f, -1.0f, -1.0f, 0.5f, 1.0f, -1.0f, 0.5f,
-        -1.0f, 1.0f, 0.5f, 1.0f,  -1.0f, 0.5f, 1.0f, 1.0f,  0.5f,
-    };
-    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 0, vertices);
-    glEnableVertexAttribArray(positionLocation);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glDisableVertexAttribArray(positionLocation);
-    glVertexAttribPointer(positionLocation, 4, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-    EXPECT_PIXEL_EQ(25, 25, 0, 0, 0, 255);
-    EXPECT_PIXEL_EQ(75, 75, 255, 0, 0, 255);
-    EXPECT_GL_NO_ERROR();
-
-    glDeleteProgram(program);
-    EXPECT_GL_NO_ERROR();
-
-    // Blit framebuffer should also blit to the same subrect despite the dstX/Y arguments.
-    GLRenderbuffer renderBuffer;
-    glBindRenderbuffer(GL_RENDERBUFFER, renderBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, 50, 50);
-    EXPECT_GL_NO_ERROR();
-
-    GLFramebuffer framebuffer;
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer);
-    EXPECT_GL_NO_ERROR();
-
-    glClearColor(0, 1, 0, 1);  // Green
-    glClear(GL_COLOR_BUFFER_BIT);
-    EXPECT_PIXEL_EQ(25, 25, 0, 255, 0, 255);
-    EXPECT_GL_NO_ERROR();
-
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0u);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
-    glBlitFramebuffer(0, 0, 50, 50, 0, 0, 50, 50, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    EXPECT_GL_NO_ERROR();
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0u);
-    EXPECT_PIXEL_EQ(25, 25, 0, 0, 0, 255);
-    EXPECT_PIXEL_EQ(75, 75, 0, 255, 0, 255);
-    EXPECT_GL_NO_ERROR();
+    testTextureOffset(50, 0, 255);
 }
 
 TEST_P(EGLSurfaceTestD3D11, CreateSurfaceWithMSAA)
@@ -1225,6 +1466,64 @@ TEST_P(EGLSurfaceTestD3D11, CreateSurfaceWithMSAA)
     glDeleteProgram(program);
 }
 
+// Tests that gl_FragCoord.xy is offset with the EGL_TEXTURE_OFFSET_[X|Y]_ANGLE values specified
+// at surface creation, using positive offsets
+TEST_P(EGLSurfaceTestD3D11, FragCoordOffset)
+{
+    constexpr int kTextureDimension = 28;
+    constexpr int kOffset           = 6;
+
+    setupFragCoordOffset(kTextureDimension, kOffset);
+
+    // With a positive offset, nothing is drawn in any pixels to the left of and above |kOffset|.
+    for (int x = 0; x < kOffset; x++)
+    {
+        for (int y = 0; y < kOffset; y++)
+        {
+            EXPECT_PIXEL_EQ(x, y, 0, 0, 0, 0);
+        }
+    }
+
+    // The rest of the texture's color should be the value of the (x, y) coordinates.
+    for (int x = kOffset; x < kTextureDimension; x++)
+    {
+        for (int y = kOffset; y < kTextureDimension; y++)
+        {
+            EXPECT_PIXEL_NEAR(x, y, x * 255.0 / kTextureDimension, y * 255.0 / kTextureDimension,
+                              191, 255, 0.5);
+        }
+    }
+}
+
+// Tests that gl_FragCoord.xy is offset with the EGL_TEXTURE_OFFSET_[X|Y]_ANGLE values specified
+// at surface creation, using negative offsets.
+TEST_P(EGLSurfaceTestD3D11, FragCoordOffsetNegative)
+{
+    constexpr int kTextureDimension = 28;
+    constexpr int kOffset           = 6;
+
+    setupFragCoordOffset(kTextureDimension, -kOffset);
+
+    // With a negative offset, nothing is drawn in pixels to the right of and below |koffset|.
+    for (int x = kTextureDimension - kOffset; x < kTextureDimension; x++)
+    {
+        for (int y = kTextureDimension - kOffset; y < kTextureDimension; y++)
+        {
+            EXPECT_PIXEL_EQ(x, y, 0, 0, 0, 0);
+        }
+    }
+
+    // The rest of the texture's color should be the value of the (x, y) coordinates.
+    for (int x = 0; x < kTextureDimension - kOffset; x++)
+    {
+        for (int y = 0; y < kTextureDimension - kOffset; y++)
+        {
+            EXPECT_PIXEL_NEAR(x, y, x * 255.0 / kTextureDimension, y * 255.0 / kTextureDimension,
+                              191, 255, 0.5);
+        }
+    }
+}
+
 #endif  // ANGLE_ENABLE_D3D11
 
 // Verify bliting between two surfaces works correctly.
@@ -1256,7 +1555,7 @@ TEST_P(EGLSurfaceTest3, BlitBetweenSurfaces)
     // Must be after the eglMakeCurrent() so the renderer string is initialized.
     ANGLE_SKIP_TEST_IF(IsOpenGLES() && (IsAndroid() || IsWindows()));
 
-    glClearColor(GLColor::red.R, GLColor::red.G, GLColor::red.B, GLColor::red.A);
+    glClearColor(kFloatRed.R, kFloatRed.G, kFloatRed.B, kFloatRed.A);
     glClear(GL_COLOR_BUFFER_BIT);
     ASSERT_GL_NO_ERROR();
 
@@ -1306,14 +1605,14 @@ TEST_P(EGLSurfaceTest3, BlitBetweenSurfacesWithDeferredClear)
     // Must be after the eglMakeCurrent() so the renderer string is initialized.
     ANGLE_SKIP_TEST_IF(IsOpenGLES() && (IsAndroid() || IsWindows()));
 
-    glClearColor(GLColor::red.R, GLColor::red.G, GLColor::red.B, GLColor::red.A);
+    glClearColor(kFloatRed.R, kFloatRed.G, kFloatRed.B, kFloatRed.A);
     glClear(GL_COLOR_BUFFER_BIT);
     ASSERT_GL_NO_ERROR();
     // Force the clear to be flushed
     EXPECT_PIXEL_COLOR_EQ(32, 32, GLColor::red);
 
     // Clear to green, but don't read it back so the clear is deferred.
-    glClearColor(GLColor::green.R, GLColor::green.G, GLColor::green.B, GLColor::green.A);
+    glClearColor(kFloatGreen.R, kFloatGreen.G, kFloatGreen.B, kFloatGreen.A);
     glClear(GL_COLOR_BUFFER_BIT);
     ASSERT_GL_NO_ERROR();
 
@@ -1501,7 +1800,272 @@ TEST_P(EGLSurfaceTest, CreateSurfaceSwapIntervalANGLE)
         initializeWindowSurfaceWithAttribs(mConfig, swapInterval1Attribs, EGL_BAD_ATTRIBUTE);
     }
 }
+
+// Test that setting a surface's timestamp attribute works when the extension
+// EGL_ANGLE_timestamp_surface_attribute is supported.
+TEST_P(EGLSurfaceTest, TimestampSurfaceAttribute)
+{
+    initializeDisplay();
+    ASSERT_NE(mDisplay, EGL_NO_DISPLAY);
+    mConfig = chooseDefaultConfig(true);
+    ASSERT_NE(mConfig, nullptr);
+    initializeSurface(mConfig);
+    ASSERT_NE(mWindowSurface, EGL_NO_SURFACE);
+    initializeContext();
+    ASSERT_NE(mContext, EGL_NO_CONTEXT);
+
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, mWindowSurface, mWindowSurface, mContext));
+    ASSERT_EGL_SUCCESS() << "eglMakeCurrent failed.";
+
+    const bool extensionSupported =
+        IsEGLDisplayExtensionEnabled(mDisplay, "EGL_ANDROID_get_frame_timestamps") ||
+        IsEGLDisplayExtensionEnabled(mDisplay, "EGL_ANGLE_timestamp_surface_attribute");
+
+    EGLBoolean setSurfaceAttrib =
+        eglSurfaceAttrib(mDisplay, mWindowSurface, EGL_TIMESTAMPS_ANDROID, EGL_TRUE);
+
+    if (extensionSupported)
+    {
+        EXPECT_EGL_TRUE(setSurfaceAttrib);
+
+        // Swap so the swapchain gets created.
+        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        EXPECT_EGL_TRUE(eglSwapBuffers(mDisplay, mWindowSurface));
+
+        // Query to confirm the attribute persists across swaps.
+        EGLint timestampEnabled = 0;
+        EXPECT_EGL_TRUE(
+            eglQuerySurface(mDisplay, mWindowSurface, EGL_TIMESTAMPS_ANDROID, &timestampEnabled));
+        EXPECT_NE(timestampEnabled, 0);
+
+        // Resize window and swap.
+        mOSWindow->resize(256, 256);
+        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        EXPECT_EGL_TRUE(eglSwapBuffers(mDisplay, mWindowSurface));
+
+        // Query to confirm the attribute persists across swapchain recreations.
+        timestampEnabled = 0;
+        EXPECT_EGL_TRUE(
+            eglQuerySurface(mDisplay, mWindowSurface, EGL_TIMESTAMPS_ANDROID, &timestampEnabled));
+        EXPECT_NE(timestampEnabled, 0);
+    }
+    else
+    {
+        EXPECT_EGL_FALSE(setSurfaceAttrib);
+        EXPECT_EGL_ERROR(EGL_BAD_ATTRIBUTE);
+    }
+
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+    ASSERT_EGL_SUCCESS() << "eglMakeCurrent - uncurrent failed.";
+}
+
+TEST_P(EGLSingleBufferTest, OnCreateWindowSurface)
+{
+    EGLConfig config = EGL_NO_CONFIG_KHR;
+    ANGLE_SKIP_TEST_IF(!chooseConfig(&config, false));
+
+    EGLContext context = EGL_NO_CONTEXT;
+    EXPECT_EGL_TRUE(createContext(config, &context));
+    ASSERT_EGL_SUCCESS() << "eglCreateContext failed.";
+
+    EGLSurface surface = EGL_NO_SURFACE;
+    OSWindow *osWindow = OSWindow::New();
+    osWindow->initialize("EGLSingleBufferTest", kWidth, kHeight);
+    EXPECT_EGL_TRUE(
+        createWindowSurface(config, osWindow->getNativeWindow(), &surface, EGL_SINGLE_BUFFER));
+    ASSERT_EGL_SUCCESS() << "eglCreateWindowSurface failed.";
+
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, surface, surface, context));
+    ASSERT_EGL_SUCCESS() << "eglMakeCurrent failed.";
+
+    EGLint actualRenderbuffer;
+    EXPECT_EGL_TRUE(eglQueryContext(mDisplay, context, EGL_RENDER_BUFFER, &actualRenderbuffer));
+    if (actualRenderbuffer == EGL_SINGLE_BUFFER)
+    {
+        EXPECT_EGL_TRUE(actualRenderbuffer == EGL_SINGLE_BUFFER);
+
+        glClearColor(0.0, 1.0, 0.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glFlush();
+        ASSERT_GL_NO_ERROR();
+        // Flush should result in update of screen. Must be visually confirmed.
+        // Pixel test for automation.
+        EXPECT_PIXEL_COLOR_EQ(1, 1, GLColor::green);
+    }
+    else
+    {
+        std::cout << "SKIP test, no EGL_SINGLE_BUFFER support." << std::endl;
+    }
+
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
+    ASSERT_EGL_SUCCESS() << "eglMakeCurrent - uncurrent failed.";
+
+    eglDestroySurface(mDisplay, surface);
+    surface = EGL_NO_SURFACE;
+    osWindow->destroy();
+    OSWindow::Delete(&osWindow);
+
+    eglDestroyContext(mDisplay, context);
+    context = EGL_NO_CONTEXT;
+}
+
+TEST_P(EGLSingleBufferTest, OnSetSurfaceAttrib)
+{
+    ANGLE_SKIP_TEST_IF(!IsEGLDisplayExtensionEnabled(mDisplay, "EGL_KHR_mutable_render_buffer"));
+
+    EGLConfig config = EGL_NO_CONFIG_KHR;
+    ANGLE_SKIP_TEST_IF(!chooseConfig(&config, true));
+
+    EGLContext context = EGL_NO_CONTEXT;
+    EXPECT_EGL_TRUE(createContext(config, &context));
+    ASSERT_EGL_SUCCESS() << "eglCreateContext failed.";
+
+    EGLSurface surface = EGL_NO_SURFACE;
+    OSWindow *osWindow = OSWindow::New();
+    osWindow->initialize("EGLSingleBufferTest", kWidth, kHeight);
+    EXPECT_EGL_TRUE(
+        createWindowSurface(config, osWindow->getNativeWindow(), &surface, EGL_BACK_BUFFER));
+    ASSERT_EGL_SUCCESS() << "eglCreateWindowSurface failed.";
+
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, surface, surface, context));
+    ASSERT_EGL_SUCCESS() << "eglMakeCurrent failed.";
+
+    if (eglSurfaceAttrib(mDisplay, surface, EGL_RENDER_BUFFER, EGL_SINGLE_BUFFER))
+    {
+        // Transition into EGL_SINGLE_BUFFER mode.
+        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        EXPECT_EGL_TRUE(eglSwapBuffers(mDisplay, surface));
+
+        EGLint actualRenderbuffer;
+        EXPECT_EGL_TRUE(eglQueryContext(mDisplay, context, EGL_RENDER_BUFFER, &actualRenderbuffer));
+        EXPECT_EGL_TRUE(actualRenderbuffer == EGL_SINGLE_BUFFER);
+
+        glClearColor(0.0, 1.0, 0.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glFlush();
+        // Flush should result in update of screen. Must be visually confirmed Green window.
+
+        // Check color for automation.
+        EXPECT_PIXEL_COLOR_EQ(1, 1, GLColor::green);
+
+        // Switch back to EGL_BACK_BUFFEr and check.
+        EXPECT_EGL_TRUE(eglSurfaceAttrib(mDisplay, surface, EGL_RENDER_BUFFER, EGL_BACK_BUFFER));
+        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        EXPECT_EGL_TRUE(eglSwapBuffers(mDisplay, surface));
+
+        EXPECT_EGL_TRUE(eglQueryContext(mDisplay, context, EGL_RENDER_BUFFER, &actualRenderbuffer));
+        EXPECT_EGL_TRUE(actualRenderbuffer == EGL_BACK_BUFFER);
+
+        glClearColor(1.0, 0.0, 0.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        EXPECT_PIXEL_COLOR_EQ(1, 1, GLColor::red);
+    }
+    else
+    {
+        std::cout << "EGL_SINGLE_BUFFER mode is not supported." << std::endl;
+    }
+
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
+    ASSERT_EGL_SUCCESS() << "eglMakeCurrent - uncurrent failed.";
+
+    eglDestroySurface(mDisplay, surface);
+    surface = EGL_NO_SURFACE;
+    osWindow->destroy();
+    OSWindow::Delete(&osWindow);
+
+    eglDestroyContext(mDisplay, context);
+    context = EGL_NO_CONTEXT;
+}
+
+// Test that setting a surface to EGL_SINGLE_BUFFER after enabling
+// EGL_FRONT_BUFFER_AUTO_REFRESH_ANDROID does not disable auto refresh
+TEST_P(EGLAndroidAutoRefreshTest, Basic)
+{
+    ANGLE_SKIP_TEST_IF(!IsEGLDisplayExtensionEnabled(mDisplay, "EGL_KHR_mutable_render_buffer"));
+    ANGLE_SKIP_TEST_IF(!IsAndroid());
+
+    EGLConfig config = EGL_NO_CONFIG_KHR;
+    ANGLE_SKIP_TEST_IF(!chooseConfig(&config, true));
+
+    EGLContext context = EGL_NO_CONTEXT;
+    EXPECT_EGL_TRUE(createContext(config, &context));
+    ASSERT_EGL_SUCCESS() << "eglCreateContext failed.";
+
+    EGLSurface surface = EGL_NO_SURFACE;
+    OSWindow *osWindow = OSWindow::New();
+    osWindow->initialize("EGLSingleBufferTest", kWidth, kHeight);
+    EXPECT_EGL_TRUE(
+        createWindowSurface(config, osWindow->getNativeWindow(), &surface, EGL_BACK_BUFFER));
+    ASSERT_EGL_SUCCESS() << "eglCreateWindowSurface failed.";
+
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, surface, surface, context));
+    ASSERT_EGL_SUCCESS() << "eglMakeCurrent failed.";
+
+    EXPECT_EGL_TRUE(
+        eglSurfaceAttrib(mDisplay, surface, EGL_FRONT_BUFFER_AUTO_REFRESH_ANDROID, EGL_TRUE));
+
+    if (eglSurfaceAttrib(mDisplay, surface, EGL_RENDER_BUFFER, EGL_SINGLE_BUFFER))
+    {
+        // Transition into EGL_SINGLE_BUFFER mode.
+        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        EXPECT_EGL_TRUE(eglSwapBuffers(mDisplay, surface));
+
+        EGLint actualRenderbuffer;
+        EXPECT_EGL_TRUE(eglQueryContext(mDisplay, context, EGL_RENDER_BUFFER, &actualRenderbuffer));
+        EXPECT_EGL_TRUE(actualRenderbuffer == EGL_SINGLE_BUFFER);
+
+        glClearColor(0.0, 1.0, 0.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glFlush();
+        // Flush should result in update of screen. Must be visually confirmed Green window.
+
+        // Check color for automation.
+        EXPECT_PIXEL_COLOR_EQ(1, 1, GLColor::green);
+
+        // Switch back to EGL_BACK_BUFFER and check.
+        EXPECT_EGL_TRUE(eglSurfaceAttrib(mDisplay, surface, EGL_RENDER_BUFFER, EGL_BACK_BUFFER));
+        glClearColor(1.0, 1.0, 1.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        EXPECT_EGL_TRUE(eglSwapBuffers(mDisplay, surface));
+
+        EXPECT_EGL_TRUE(eglQueryContext(mDisplay, context, EGL_RENDER_BUFFER, &actualRenderbuffer));
+        EXPECT_EGL_TRUE(actualRenderbuffer == EGL_BACK_BUFFER);
+
+        glClearColor(1.0, 0.0, 0.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        EXPECT_PIXEL_COLOR_EQ(1, 1, GLColor::red);
+    }
+    else
+    {
+        std::cout << "EGL_SINGLE_BUFFER mode is not supported." << std::endl;
+    }
+
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
+    ASSERT_EGL_SUCCESS() << "eglMakeCurrent - uncurrent failed.";
+
+    eglDestroySurface(mDisplay, surface);
+    surface = EGL_NO_SURFACE;
+    osWindow->destroy();
+    OSWindow::Delete(&osWindow);
+
+    eglDestroyContext(mDisplay, context);
+    context = EGL_NO_CONTEXT;
+}
+
 }  // anonymous namespace
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EGLSingleBufferTest);
+ANGLE_INSTANTIATE_TEST(EGLSingleBufferTest,
+                       WithNoFixture(ES2_VULKAN()),
+                       WithNoFixture(ES3_VULKAN()));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EGLAndroidAutoRefreshTest);
+ANGLE_INSTANTIATE_TEST(EGLAndroidAutoRefreshTest, WithNoFixture(ES3_VULKAN()));
 
 ANGLE_INSTANTIATE_TEST(EGLSurfaceTest,
                        WithNoFixture(ES2_D3D9()),

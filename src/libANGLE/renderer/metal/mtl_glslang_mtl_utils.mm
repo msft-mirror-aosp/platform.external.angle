@@ -35,7 +35,7 @@ std::string GetXfbBufferNameMtl(const uint32_t bufferIndex)
     return "xfbBuffer" + Str(bufferIndex);
 }
 
-}  //
+}  // namespace
 
 namespace mtl
 {
@@ -106,7 +106,8 @@ static std::string MSLGetMappedSamplerName(const std::string &originalName)
     return samplerName;
 }
 
-void MSLGetShaderSource(const gl::ProgramState &programState,
+void MSLGetShaderSource(const gl::Context *context,
+                        const gl::ProgramState &programState,
                         const gl::ProgramLinkedResources &resources,
                         gl::ShaderMap<std::string> *shaderSourcesOut,
                         ShaderInterfaceVariableInfoMap *variableInfoMapOut)
@@ -114,7 +115,7 @@ void MSLGetShaderSource(const gl::ProgramState &programState,
     for (const gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         gl::Shader *glShader            = programState.getAttachedShader(shaderType);
-        (*shaderSourcesOut)[shaderType] = glShader ? glShader->getTranslatedSource() : "";
+        (*shaderSourcesOut)[shaderType] = glShader ? glShader->getTranslatedSource(context) : "";
     }
 }
 
@@ -263,7 +264,8 @@ std::string GenerateTransformFeedbackVaryingOutput(const gl::TransformFeedbackVa
                 result << "ANGLE_"
                        << "xfbBuffer" << bufferIndex << "["
                        << "ANGLE_" << std::string(sh::kUniformsVar) << ".ANGLE_xfbBufferOffsets["
-                       << bufferIndex << "] + (gl_VertexID + ANGLE_instanceIdMod * "
+                       << bufferIndex
+                       << "] + (gl_VertexID + (ANGLE_instanceIdMod - ANGLE_baseInstance) * "
                        << "ANGLE_" << std::string(sh::kUniformsVar)
                        << ".ANGLE_xfbVerticesPerInstance) * " << stride << " + " << offset << "] = "
                        << "as_type<float>"
@@ -332,8 +334,7 @@ void GenerateTransformFeedbackEmulationOutputs(
             "device float* ANGLE_" + bufferName + " [[buffer(" + Str(bindingPoint) + ")]]";
     }
 
-    std::string xfbOut = "#if TRANSFORM_FEEDBACK_ENABLED\n    if (ANGLE_" +
-                         std::string(sh::kUniformsVar) + ".ANGLE_xfbActiveUnpaused != 0)\n    {\n";
+    std::string xfbOut  = "#if TRANSFORM_FEEDBACK_ENABLED\n    {\n";
     size_t outputOffset = 0;
     for (size_t varyingIndex = 0; varyingIndex < varyings.size(); ++varyingIndex)
     {

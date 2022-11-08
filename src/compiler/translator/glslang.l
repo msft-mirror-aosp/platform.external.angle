@@ -96,7 +96,7 @@ static bool is_extension_enabled_or_is_core(TParseContext *context,
 // which means in version V1, the symbol is reserved, and remains reserved until V3.  From versions
 // V2 until V3, it's a keyword if the extension is enabled.  From version V3 on, it's a keyword in
 // the spec itself.  Prior to V1, the symbol can be used as identifier.
-static int ES2_extension_2_ES3_keyword(TParseContext *context, TExtension extension1, TExtension extension2, int token);
+static int ES2_extensions_ES3_keyword(TParseContext *context, TExtension extension1, TExtension extension2, TExtension extension3, int token);
 static int ES2_reserved_ES3_keyword(TParseContext *context, int token);
 static int ES2_keyword_ES3_reserved(TParseContext *context, int token);
 static int ES3_keyword(TParseContext *context, int token);
@@ -247,7 +247,7 @@ O           [0-7]
 "samplerVideoWEBGL"    { return WEBGL_video_texture_extension(context, SAMPLERVIDEOWEBGL); }
 "struct"       { return STRUCT; }
 
-"layout"  { return ES2_extension_2_ES3_keyword(context, TExtension::EXT_shader_framebuffer_fetch, TExtension::EXT_shader_framebuffer_fetch_non_coherent, LAYOUT); }
+"layout"  { return ES2_extensions_ES3_keyword(context, TExtension::EXT_shader_framebuffer_fetch, TExtension::EXT_shader_framebuffer_fetch_non_coherent, TExtension::KHR_blend_equation_advanced, LAYOUT); }
 
 "yuvCscStandardEXT"    { return ES3_extension(context, TExtension::EXT_YUV_target, YUVCSCSTANDARDEXT); }
 "itu_601"              { return yuvcscstandardext_constant(context); }
@@ -280,6 +280,11 @@ O           [0-7]
 "atomic_uint" { return ES3_reserved_ES3_1_keyword(context, ATOMICUINT); }
 "sample" { return ES3_reserved_ES3_extension_ES3_2_keyword(context, TExtension::OES_shader_multisample_interpolation, SAMPLE); }
 "precise" { return ES3_1_reserved_ES3_1_extension_ES3_2_keyword(context, TExtension::EXT_gpu_shader5, PRECISE); }
+
+    /* ANGLE_shader_pixel_local_storage */
+"pixelLocalANGLE" { return ES3_extension(context, TExtension::ANGLE_shader_pixel_local_storage, PIXELLOCALANGLE); }
+"ipixelLocalANGLE" { return ES3_extension(context, TExtension::ANGLE_shader_pixel_local_storage, IPIXELLOCALANGLE); }
+"upixelLocalANGLE" { return ES3_extension(context, TExtension::ANGLE_shader_pixel_local_storage, UPIXELLOCALANGLE); }
 
     /* Reserved keywords for GLSL ES 3.00 that are not reserved for GLSL ES 1.00 */
 "resource"          |
@@ -612,7 +617,7 @@ int WEBGL_video_texture_extension(TParseContext *context, int token)
     return check_type(yyscanner);
 }
 
-int ES2_extension_2_ES3_keyword(TParseContext *context, TExtension extension1, TExtension extension2, int token)
+int ES2_extensions_ES3_keyword(TParseContext *context, TExtension extension1, TExtension extension2, TExtension extension3, int token)
 {
     struct yyguts_t* yyg = (struct yyguts_t*) context->getScanner();
     yyscan_t yyscanner = (yyscan_t) context->getScanner();
@@ -623,6 +628,10 @@ int ES2_extension_2_ES3_keyword(TParseContext *context, TExtension extension1, T
         return token;
     }
     else if (is_extension_enabled_or_is_core(context, 100, extension2, 300))
+    {
+        return token;
+    }
+    else if (is_extension_enabled_or_is_core(context, 100, extension3, 300))
     {
         return token;
     }

@@ -61,6 +61,10 @@ def find_clang():
                          'Release+Asserts', 'bin', binary)
 
     if not os.path.isfile(clang):
+        xcrun_clang = subprocess.run(["xcrun", "-f", binary], stdout=subprocess.PIPE, text=True)
+        if xcrun_clang.returncode == 0:
+            clang = xcrun_clang.stdout.strip()
+    if (not os.path.isfile(clang)):
         raise Exception('Cannot find clang')
 
     return clang
@@ -91,7 +95,8 @@ def main():
 
     os.chdir(sys.path[0])
 
-    boilerplate_code = template_header_boilerplate.format(script_name=sys.argv[0])
+    boilerplate_code = template_header_boilerplate.format(
+        script_name=os.path.basename(sys.argv[0]))
 
     # -------- Generate shader constants -----------
     angle_to_gl = angle_format.load_inverse_table('../../angle_format_map.json')
@@ -133,6 +138,13 @@ def main():
         out_file.write(final_combined_src_string.decode("utf-8"))
         out_file.write('\n')
         out_file.write(')";\n')
+        out_file.close()
+
+    with open('mtl_default_shaders_src_autogen.metal', 'wt') as out_file:
+        out_file.write(boilerplate_code)
+        out_file.write('\n')
+        out_file.write('// Metal version of combined Metal default shaders.\n\n')
+        out_file.write(final_combined_src_string.decode("utf-8"))
         out_file.close()
 
     os.remove(temp_fname)

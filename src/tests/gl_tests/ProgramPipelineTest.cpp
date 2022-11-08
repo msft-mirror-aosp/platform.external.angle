@@ -15,7 +15,7 @@ using namespace angle;
 namespace
 {
 
-class ProgramPipelineTest : public ANGLETest
+class ProgramPipelineTest : public ANGLETest<>
 {
   protected:
     ProgramPipelineTest()
@@ -242,7 +242,10 @@ TEST_P(ProgramPipelineTest31, IsProgramPipelineTest)
 }
 
 // Simulates a call to glCreateShaderProgramv()
-GLuint createShaderProgram(GLenum type, const GLchar *shaderString)
+GLuint createShaderProgram(GLenum type,
+                           const GLchar *shaderString,
+                           unsigned int varyingsCount,
+                           const char *const *varyings)
 {
     GLShader shader(type);
     if (!shader.get())
@@ -251,19 +254,53 @@ GLuint createShaderProgram(GLenum type, const GLchar *shaderString)
     }
 
     glShaderSource(shader, 1, &shaderString, nullptr);
+    EXPECT_GL_NO_ERROR();
+
     glCompileShader(shader);
+
+    GLint compiled;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+
+    if (!compiled)
+    {
+        GLint infoLogLength;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
+        std::vector<GLchar> infoLog(infoLogLength);
+        glGetShaderInfoLog(shader, infoLogLength, NULL, infoLog.data());
+        INFO() << "Compilation failed:\n"
+               << infoLog.data() << "\n for shader:\n"
+               << shaderString << "\n";
+
+        glDeleteShader(shader);
+        return 0;
+    }
 
     GLuint program = glCreateProgram();
 
     if (program)
     {
-        GLint compiled;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
         glProgramParameteri(program, GL_PROGRAM_SEPARABLE, GL_TRUE);
         if (compiled)
         {
             glAttachShader(program, shader);
+            EXPECT_GL_NO_ERROR();
+
+            if (varyingsCount > 0)
+            {
+                glTransformFeedbackVaryings(program, varyingsCount, varyings, GL_SEPARATE_ATTRIBS);
+                EXPECT_GL_NO_ERROR();
+            }
+
             glLinkProgram(program);
+
+            GLint linked = 0;
+            glGetProgramiv(program, GL_LINK_STATUS, &linked);
+
+            if (linked == 0)
+            {
+                glDeleteProgram(program);
+                return 0;
+            }
             glDetachShader(program, shader);
         }
     }
@@ -271,6 +308,11 @@ GLuint createShaderProgram(GLenum type, const GLchar *shaderString)
     EXPECT_GL_NO_ERROR();
 
     return program;
+}
+
+GLuint createShaderProgram(GLenum type, const GLchar *shaderString)
+{
+    return createShaderProgram(type, shaderString, 0, nullptr);
 }
 
 void ProgramPipelineTest31::drawQuadWithPPO(const std::string &positionAttribName,
@@ -316,6 +358,85 @@ TEST_P(ProgramPipelineTest31, UseProgramStages)
     drawQuadWithPPO("a_position", 0.5f, 1.0f);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+}
+
+// Test glUseProgramStages with different programs
+TEST_P(ProgramPipelineTest31, UseProgramStagesWithDifferentPrograms)
+{
+    ANGLE_SKIP_TEST_IF(!IsVulkan());
+
+    // Create two separable program objects from a
+    // single source string respectively (vertSrc and fragSrc)
+    const GLchar *vertString  = essl31_shaders::vs::Simple();
+    const GLchar *fragString1 = R"(#version 310 es
+precision highp float;
+uniform float redColorIn;
+uniform float greenColorIn;
+out vec4 my_FragColor;
+void main()
+{
+    my_FragColor = vec4(redColorIn, greenColorIn, 0.0, 1.0);
+})";
+    const GLchar *fragString2 = R"(#version 310 es
+precision highp float;
+uniform float greenColorIn;
+uniform float blueColorIn;
+out vec4 my_FragColor;
+void main()
+{
+    my_FragColor = vec4(0.0, greenColorIn, blueColorIn, 1.0);
+})";
+
+    bindProgramPipeline(vertString, fragString1);
+
+    // Set the output color to red
+    GLint location = glGetUniformLocation(mFragProg, "redColorIn");
+    glActiveShaderProgram(mPipeline, mFragProg);
+    glUniform1f(location, 1.0);
+    location = glGetUniformLocation(mFragProg, "greenColorIn");
+    glActiveShaderProgram(mPipeline, mFragProg);
+    glUniform1f(location, 0.0);
+
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    GLuint fragProg;
+    fragProg = glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, &fragString2);
+    ASSERT_NE(fragProg, 0u);
+    EXPECT_GL_NO_ERROR();
+
+    glUseProgramStages(mPipeline, GL_FRAGMENT_SHADER_BIT, fragProg);
+    EXPECT_GL_NO_ERROR();
+
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Set the output color to blue
+    location = glGetUniformLocation(fragProg, "greenColorIn");
+    glActiveShaderProgram(mPipeline, fragProg);
+    glUniform1f(location, 0.0);
+    location = glGetUniformLocation(fragProg, "blueColorIn");
+    glActiveShaderProgram(mPipeline, fragProg);
+    glUniform1f(location, 1.0);
+
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+
+    glUseProgramStages(mPipeline, GL_FRAGMENT_SHADER_BIT, mFragProg);
+    EXPECT_GL_NO_ERROR();
+
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    drawQuadWithPPO("a_position", 0.5f, 1.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    glDeleteProgram(mVertProg);
+    glDeleteProgram(mFragProg);
+    glDeleteProgram(fragProg);
 }
 
 // Test glUseProgramStages
@@ -763,6 +884,215 @@ void main()
 
     drawQuadWithPPO("position", 0.5f, 1.0f);
     EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+}
+
+// Test that uniform updates are propagated with minimal state changes.
+TEST_P(ProgramPipelineTest31, UniformUpdate)
+{
+    ANGLE_SKIP_TEST_IF(!IsVulkan());
+
+    // Create two separable program objects from a
+    // single source string respectively (vertSrc and fragSrc)
+    const GLchar *vertString = essl31_shaders::vs::Simple();
+    const GLchar *fragString = R"(#version 310 es
+precision highp float;
+uniform float redColorIn;
+uniform float greenColorIn;
+out vec4 my_FragColor;
+void main()
+{
+    my_FragColor = vec4(redColorIn, greenColorIn, 0.0, 1.0);
+})";
+
+    bindProgramPipeline(vertString, fragString);
+
+    GLint redLoc = glGetUniformLocation(mFragProg, "redColorIn");
+    ASSERT_NE(-1, redLoc);
+    GLint greenLoc = glGetUniformLocation(mFragProg, "greenColorIn");
+    ASSERT_NE(-1, greenLoc);
+
+    glActiveShaderProgram(mPipeline, mFragProg);
+
+    std::array<Vector3, 6> verts = GetQuadVertices();
+
+    GLBuffer vbo;
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(verts[0]), verts.data(), GL_STATIC_DRAW);
+
+    GLint posLoc = glGetAttribLocation(mVertProg, "a_position");
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(posLoc);
+
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Set the output color to red, draw to left half of window.
+    glUniform1f(redLoc, 1.0);
+    glUniform1f(greenLoc, 0.0);
+    glViewport(0, 0, getWindowWidth() / 2, getWindowHeight());
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+
+    // Set the output color to green, draw to right half of window.
+    glUniform1f(redLoc, 0.0);
+    glUniform1f(greenLoc, 1.0);
+
+    glViewport(getWindowWidth() / 2, 0, getWindowWidth() / 2, getWindowHeight());
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    EXPECT_PIXEL_COLOR_EQ(getWindowWidth() / 2 + 1, 0, GLColor::green);
+}
+
+// Test that uniform updates propagate to two pipelines.
+TEST_P(ProgramPipelineTest31, UniformUpdateTwoPipelines)
+{
+    ANGLE_SKIP_TEST_IF(!IsVulkan());
+
+    // Create two separable program objects from a
+    // single source string respectively (vertSrc and fragSrc)
+    const GLchar *vertString = essl31_shaders::vs::Simple();
+    const GLchar *fragString = R"(#version 310 es
+precision highp float;
+uniform float redColorIn;
+uniform float greenColorIn;
+out vec4 my_FragColor;
+void main()
+{
+    my_FragColor = vec4(redColorIn, greenColorIn, 0.0, 1.0);
+})";
+
+    mVertProg = glCreateShaderProgramv(GL_VERTEX_SHADER, 1, &vertString);
+    ASSERT_NE(mVertProg, 0u);
+    mFragProg = glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, &fragString);
+    ASSERT_NE(mFragProg, 0u);
+
+    GLint redLoc = glGetUniformLocation(mFragProg, "redColorIn");
+    ASSERT_NE(-1, redLoc);
+    GLint greenLoc = glGetUniformLocation(mFragProg, "greenColorIn");
+    ASSERT_NE(-1, greenLoc);
+
+    GLProgramPipeline ppo1;
+    glUseProgramStages(ppo1, GL_VERTEX_SHADER_BIT, mVertProg);
+    glUseProgramStages(ppo1, GL_FRAGMENT_SHADER_BIT, mFragProg);
+    glBindProgramPipeline(ppo1);
+    glActiveShaderProgram(ppo1, mFragProg);
+    ASSERT_GL_NO_ERROR();
+
+    GLProgramPipeline ppo2;
+    glUseProgramStages(ppo2, GL_VERTEX_SHADER_BIT, mVertProg);
+    glUseProgramStages(ppo2, GL_FRAGMENT_SHADER_BIT, mFragProg);
+    glBindProgramPipeline(ppo2);
+    glActiveShaderProgram(ppo2, mFragProg);
+    ASSERT_GL_NO_ERROR();
+
+    std::array<Vector3, 6> verts = GetQuadVertices();
+
+    GLBuffer vbo;
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(verts[0]), verts.data(), GL_STATIC_DRAW);
+
+    GLint posLoc = glGetAttribLocation(mVertProg, "a_position");
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(posLoc);
+
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    const GLsizei w = getWindowWidth() / 2;
+    const GLsizei h = getWindowHeight() / 2;
+
+    // Set the output color to red, draw to UL quad of window with first PPO.
+    glUniform1f(redLoc, 1.0);
+    glUniform1f(greenLoc, 0.0);
+    glBindProgramPipeline(ppo1);
+    glViewport(0, 0, w, h);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw red to UR half of window with second PPO.
+    glBindProgramPipeline(ppo2);
+    glViewport(w, 0, w, h);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw green to LL corner of window with first PPO.
+    glUniform1f(redLoc, 0.0);
+    glUniform1f(greenLoc, 1.0);
+    glBindProgramPipeline(ppo1);
+    glViewport(0, h, w, h);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw green to LR half of window with second PPO.
+    glBindProgramPipeline(ppo2);
+    glViewport(w, h, w, h);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    ASSERT_GL_NO_ERROR();
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    EXPECT_PIXEL_COLOR_EQ(w + 1, 0, GLColor::red);
+    EXPECT_PIXEL_COLOR_EQ(0, h + 1, GLColor::green);
+    EXPECT_PIXEL_COLOR_EQ(w + 1, h + 1, GLColor::green);
+}
+
+// Tests that setting sampler bindings on a program before the pipeline works as expected.
+TEST_P(ProgramPipelineTest31, BindSamplerBeforeCreatingPipeline)
+{
+    ANGLE_SKIP_TEST_IF(!IsVulkan());
+
+    // Create two textures - red and green.
+    GLTexture redTex;
+    glBindTexture(GL_TEXTURE_2D, redTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &GLColor::red);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    GLTexture greenTex;
+    glBindTexture(GL_TEXTURE_2D, greenTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &GLColor::green);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    // Bind red to texture unit 0 and green to unit 1.
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, redTex);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, greenTex);
+
+    // Create the separable programs.
+    const char *vsSource = essl1_shaders::vs::Texture2D();
+    mVertProg            = glCreateShaderProgramv(GL_VERTEX_SHADER, 1, &vsSource);
+    ASSERT_NE(0u, mVertProg);
+
+    const char *fsSource = essl1_shaders::fs::Texture2D();
+    mFragProg            = glCreateShaderProgramv(GL_FRAGMENT_SHADER, 1, &fsSource);
+    ASSERT_NE(0u, mFragProg);
+
+    // Set the program to sample from the green texture.
+    GLint texLoc = glGetUniformLocation(mFragProg, essl1_shaders::Texture2DUniform());
+    ASSERT_NE(-1, texLoc);
+
+    glUseProgram(mFragProg);
+    glUniform1i(texLoc, 1);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Create and draw with the pipeline.
+    GLProgramPipeline ppo;
+    glUseProgramStages(ppo, GL_VERTEX_SHADER_BIT, mVertProg);
+    glUseProgramStages(ppo, GL_FRAGMENT_SHADER_BIT, mFragProg);
+    glBindProgramPipeline(ppo);
+
+    ASSERT_GL_NO_ERROR();
+
+    drawQuadWithPPO(essl1_shaders::PositionAttrib(), 0.5f, 1.0f);
+    ASSERT_GL_NO_ERROR();
+
+    // We should have sampled from the second texture bound to unit 1.
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
 }
 
 // Test that a shader IO block varying with separable program links
@@ -1347,6 +1677,138 @@ void main()
 
     glDrawArrays(GL_POINTS, 0, 6);
     ASSERT_GL_NO_ERROR();
+}
+
+// Verify creation of seperable tessellation control shader program with transform feeback varying
+TEST_P(ProgramPipelineTest32, CreateProgramWithTransformFeedbackVarying)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_tessellation_shader"));
+
+    const char *kVS =
+        "#version 320 es\n"
+        "\n"
+        "#extension GL_EXT_shader_io_blocks : require\n"
+        "\n"
+        "precision highp float;\n"
+
+        "out BLOCK_INOUT { vec4 value; } user_out;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "    gl_Position    = vec4(1.0, 0.0, 0.0, 1.0);\n"
+        "    user_out.value = vec4(4.0, 5.0, 6.0, 7.0);\n"
+        "}\n";
+
+    // Fragment shader body
+    const char *kFS =
+        "#version 320 es\n"
+        "\n"
+        "#extension GL_EXT_shader_io_blocks : require\n"
+        "\n"
+        "precision highp float;\n"
+        "in BLOCK_INOUT { vec4 value; } user_in;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "}\n";
+
+    // Geometry shader body
+    const char *kGS =
+        "#version 320 es\n"
+        "\n"
+        "#extension GL_EXT_geometry_shader : require\n"
+        "\n"
+        "layout(points)                   in;\n"
+        "layout(points, max_vertices = 1) out;\n"
+        "\n"
+        "precision highp float;\n"
+        "//${IN_PER_VERTEX_DECL_ARRAY}\n"
+        "//${OUT_PER_VERTEX_DECL}\n"
+        "in  BLOCK_INOUT { vec4 value; } user_in[];\n"
+        "out BLOCK_INOUT { vec4 value; } user_out;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "    user_out.value = vec4(1.0, 2.0, 3.0, 4.0);\n"
+        "    gl_Position    = vec4(0.0, 0.0, 0.0, 1.0);\n"
+        "\n"
+        "    EmitVertex();\n"
+        "}\n";
+
+    // tessellation control shader body
+    const char *kTCS =
+        "#version 320 es\n"
+        "\n"
+        "#extension GL_EXT_tessellation_shader : require\n"
+        "#extension GL_EXT_shader_io_blocks : require\n"
+        "\n"
+        "layout (vertices=4) out;\n"
+        "\n"
+        "precision highp float;\n"
+        "in  BLOCK_INOUT { vec4 value; } user_in[];\n"
+        "out BLOCK_INOUT { vec4 value; } user_out[];\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "    gl_out   [gl_InvocationID].gl_Position = vec4(0.0, 0.0, 0.0, 1.0);\n"
+        "    user_out [gl_InvocationID].value       = vec4(2.0, 3.0, 4.0, 5.0);\n"
+        "\n"
+        "    gl_TessLevelOuter[0] = 1.0;\n"
+        "    gl_TessLevelOuter[1] = 1.0;\n"
+        "}\n";
+
+    // Tessellation evaluation shader
+    const char *kTES =
+        "#version 320 es\n"
+        "\n"
+        "#extension GL_EXT_tessellation_shader : require\n"
+        "#extension GL_EXT_shader_io_blocks : require\n"
+        "\n"
+        "layout (isolines, point_mode) in;\n"
+        "\n"
+        "precision highp float;\n"
+        "in  BLOCK_INOUT { vec4 value; } user_in[];\n"
+        "out BLOCK_INOUT { vec4 value; } user_out;\n"
+        "\n"
+        "void main()\n"
+        "{\n"
+        "    gl_Position     = gl_in[0].gl_Position;\n"
+        "    user_out.value = vec4(3.0, 4.0, 5.0, 6.0);\n"
+        "}\n";
+    const GLchar *kVaryingName = "BLOCK_INOUT.value";
+
+    GLuint fsProgram = createShaderProgram(GL_FRAGMENT_SHADER, kFS);
+    ASSERT_NE(0u, fsProgram);
+
+    GLuint vsProgram = createShaderProgram(GL_VERTEX_SHADER, kVS, 1, &kVaryingName);
+    ASSERT_NE(0u, vsProgram);
+
+    GLuint gsProgram = 0u;
+    if (IsGLExtensionEnabled("GL_EXT_geometry_shader"))
+    {
+        gsProgram = createShaderProgram(GL_GEOMETRY_SHADER, kGS, 1, &kVaryingName);
+        ASSERT_NE(0u, gsProgram);
+    }
+
+    GLuint tcsProgram = createShaderProgram(GL_TESS_CONTROL_SHADER, kTCS, 1, &kVaryingName);
+    // Should fail here.
+    ASSERT_EQ(0u, tcsProgram);
+
+    // try compiling without transform feedback varying it should pass
+    tcsProgram = createShaderProgram(GL_TESS_CONTROL_SHADER, kTCS);
+    ASSERT_NE(0u, tcsProgram);
+
+    GLuint tesProgram = createShaderProgram(GL_TESS_EVALUATION_SHADER, kTES, 1, &kVaryingName);
+    ASSERT_NE(0u, tesProgram);
+
+    glDeleteProgram(fsProgram);
+    glDeleteProgram(vsProgram);
+    if (gsProgram != 0u)
+    {
+        glDeleteProgram(gsProgram);
+    }
+    glDeleteProgram(tcsProgram);
+    glDeleteProgram(tesProgram);
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ProgramPipelineTest);

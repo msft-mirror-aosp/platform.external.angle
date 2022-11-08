@@ -19,6 +19,67 @@ namespace gl
 
 // Method Captures
 
+// GL_AMD_performance_monitor
+angle::CallCapture CaptureBeginPerfMonitorAMD(const State &glState,
+                                              bool isCallValid,
+                                              GLuint monitor);
+angle::CallCapture CaptureDeletePerfMonitorsAMD(const State &glState,
+                                                bool isCallValid,
+                                                GLsizei n,
+                                                GLuint *monitors);
+angle::CallCapture CaptureEndPerfMonitorAMD(const State &glState, bool isCallValid, GLuint monitor);
+angle::CallCapture CaptureGenPerfMonitorsAMD(const State &glState,
+                                             bool isCallValid,
+                                             GLsizei n,
+                                             GLuint *monitors);
+angle::CallCapture CaptureGetPerfMonitorCounterDataAMD(const State &glState,
+                                                       bool isCallValid,
+                                                       GLuint monitor,
+                                                       GLenum pname,
+                                                       GLsizei dataSize,
+                                                       GLuint *data,
+                                                       GLint *bytesWritten);
+angle::CallCapture CaptureGetPerfMonitorCounterInfoAMD(const State &glState,
+                                                       bool isCallValid,
+                                                       GLuint group,
+                                                       GLuint counter,
+                                                       GLenum pname,
+                                                       void *data);
+angle::CallCapture CaptureGetPerfMonitorCounterStringAMD(const State &glState,
+                                                         bool isCallValid,
+                                                         GLuint group,
+                                                         GLuint counter,
+                                                         GLsizei bufSize,
+                                                         GLsizei *length,
+                                                         GLchar *counterString);
+angle::CallCapture CaptureGetPerfMonitorCountersAMD(const State &glState,
+                                                    bool isCallValid,
+                                                    GLuint group,
+                                                    GLint *numCounters,
+                                                    GLint *maxActiveCounters,
+                                                    GLsizei counterSize,
+                                                    GLuint *counters);
+angle::CallCapture CaptureGetPerfMonitorGroupStringAMD(const State &glState,
+                                                       bool isCallValid,
+                                                       GLuint group,
+                                                       GLsizei bufSize,
+                                                       GLsizei *length,
+                                                       GLchar *groupString);
+angle::CallCapture CaptureGetPerfMonitorGroupsAMD(const State &glState,
+                                                  bool isCallValid,
+                                                  GLint *numGroups,
+                                                  GLsizei groupsSize,
+                                                  GLuint *groups);
+angle::CallCapture CaptureSelectPerfMonitorCountersAMD(const State &glState,
+                                                       bool isCallValid,
+                                                       GLuint monitor,
+                                                       GLboolean enable,
+                                                       GLuint group,
+                                                       GLint numCounters,
+                                                       GLuint *counterList);
+
+// GL_ANDROID_extension_pack_es31a
+
 // GL_ANGLE_base_vertex_base_instance
 angle::CallCapture CaptureDrawArraysInstancedBaseInstanceANGLE(const State &glState,
                                                                bool isCallValid,
@@ -34,7 +95,7 @@ angle::CallCapture CaptureDrawElementsInstancedBaseVertexBaseInstanceANGLE(
     GLsizei count,
     DrawElementsType typePacked,
     const GLvoid *indices,
-    GLsizei instanceCounts,
+    GLsizei instanceCount,
     GLint baseVertex,
     GLuint baseInstance);
 angle::CallCapture CaptureMultiDrawArraysInstancedBaseInstanceANGLE(const State &glState,
@@ -167,6 +228,11 @@ angle::CallCapture CaptureVertexAttribDivisorANGLE(const State &glState,
                                                    bool isCallValid,
                                                    GLuint index,
                                                    GLuint divisor);
+
+// GL_ANGLE_logic_op
+angle::CallCapture CaptureLogicOpANGLE(const State &glState,
+                                       bool isCallValid,
+                                       LogicalOperation opcodePacked);
 
 // GL_ANGLE_memory_object_flags
 angle::CallCapture CaptureTexStorageMemFlags2DANGLE(const State &glState,
@@ -777,12 +843,33 @@ angle::CallCapture CaptureGetQueryObjectui64vRobustANGLE(const State &glState,
                                                          GLsizei *length,
                                                          GLuint64 *params);
 
+// GL_ANGLE_robust_resource_initialization
+
 // GL_ANGLE_semaphore_fuchsia
 angle::CallCapture CaptureImportSemaphoreZirconHandleANGLE(const State &glState,
                                                            bool isCallValid,
                                                            SemaphoreID semaphorePacked,
                                                            HandleType handleTypePacked,
                                                            GLuint handle);
+
+// GL_ANGLE_shader_pixel_local_storage
+angle::CallCapture CaptureFramebufferMemorylessPixelLocalStorageANGLE(const State &glState,
+                                                                      bool isCallValid,
+                                                                      GLint plane,
+                                                                      GLenum internalformat);
+angle::CallCapture CaptureFramebufferTexturePixelLocalStorageANGLE(const State &glState,
+                                                                   bool isCallValid,
+                                                                   GLint plane,
+                                                                   TextureID backingtexturePacked,
+                                                                   GLint level,
+                                                                   GLint layer);
+angle::CallCapture CaptureBeginPixelLocalStorageANGLE(const State &glState,
+                                                      bool isCallValid,
+                                                      GLsizei planes,
+                                                      const GLenum *loadops,
+                                                      const void *cleardata);
+angle::CallCapture CaptureEndPixelLocalStorageANGLE(const State &glState, bool isCallValid);
+angle::CallCapture CapturePixelLocalStorageBarrierANGLE(const State &glState, bool isCallValid);
 
 // GL_ANGLE_texture_compression_dxt3
 
@@ -828,7 +915,7 @@ angle::CallCapture CaptureSampleMaskiANGLE(const State &glState,
 angle::CallCapture CaptureGetTranslatedShaderSourceANGLE(const State &glState,
                                                          bool isCallValid,
                                                          ShaderProgramID shaderPacked,
-                                                         GLsizei bufsize,
+                                                         GLsizei bufSize,
                                                          GLsizei *length,
                                                          GLchar *source);
 
@@ -917,6 +1004,33 @@ angle::CallCapture CaptureEGLImageTargetTextureStorageEXT(const State &glState,
                                                           const GLint *attrib_list);
 
 // GL_EXT_YUV_target
+
+// GL_EXT_base_instance
+angle::CallCapture CaptureDrawArraysInstancedBaseInstanceEXT(const State &glState,
+                                                             bool isCallValid,
+                                                             PrimitiveMode modePacked,
+                                                             GLint first,
+                                                             GLsizei count,
+                                                             GLsizei instancecount,
+                                                             GLuint baseinstance);
+angle::CallCapture CaptureDrawElementsInstancedBaseInstanceEXT(const State &glState,
+                                                               bool isCallValid,
+                                                               PrimitiveMode modePacked,
+                                                               GLsizei count,
+                                                               DrawElementsType typePacked,
+                                                               const void *indices,
+                                                               GLsizei instancecount,
+                                                               GLuint baseinstance);
+angle::CallCapture CaptureDrawElementsInstancedBaseVertexBaseInstanceEXT(
+    const State &glState,
+    bool isCallValid,
+    PrimitiveMode modePacked,
+    GLsizei count,
+    DrawElementsType typePacked,
+    const void *indices,
+    GLsizei instancecount,
+    GLint basevertex,
+    GLuint baseinstance);
 
 // GL_EXT_blend_func_extended
 angle::CallCapture CaptureBindFragDataLocationEXT(const State &glState,
@@ -1150,7 +1264,7 @@ angle::CallCapture CaptureMultiDrawElementsBaseVertexEXT(const State &glState,
                                                          const GLsizei *count,
                                                          DrawElementsType typePacked,
                                                          const void *const *indices,
-                                                         GLsizei primcount,
+                                                         GLsizei drawcount,
                                                          const GLint *basevertex);
 
 // GL_EXT_external_buffer
@@ -1304,14 +1418,14 @@ angle::CallCapture CaptureImportMemoryFdEXT(const State &glState,
 // GL_EXT_multi_draw_indirect
 angle::CallCapture CaptureMultiDrawArraysIndirectEXT(const State &glState,
                                                      bool isCallValid,
-                                                     GLenum mode,
+                                                     PrimitiveMode modePacked,
                                                      const void *indirect,
                                                      GLsizei drawcount,
                                                      GLsizei stride);
 angle::CallCapture CaptureMultiDrawElementsIndirectEXT(const State &glState,
                                                        bool isCallValid,
-                                                       GLenum mode,
-                                                       GLenum type,
+                                                       PrimitiveMode modePacked,
+                                                       DrawElementsType typePacked,
                                                        const void *indirect,
                                                        GLsizei drawcount,
                                                        GLsizei stride);
@@ -1332,6 +1446,8 @@ angle::CallCapture CaptureRenderbufferStorageMultisampleEXT(const State &glState
                                                             GLenum internalformat,
                                                             GLsizei width,
                                                             GLsizei height);
+
+// GL_EXT_multisampled_render_to_texture2
 
 // GL_EXT_occlusion_query_boolean
 
@@ -1695,6 +1811,8 @@ angle::CallCapture CaptureValidateProgramPipelineEXT(const State &glState,
                                                      bool isCallValid,
                                                      ProgramPipelineID pipelinePacked);
 
+// GL_EXT_shader_framebuffer_fetch
+
 // GL_EXT_shader_framebuffer_fetch_non_coherent
 angle::CallCapture CaptureFramebufferFetchBarrierEXT(const State &glState, bool isCallValid);
 
@@ -1913,6 +2031,18 @@ angle::CallCapture CaptureMaxShaderCompilerThreadsKHR(const State &glState,
 
 // GL_KHR_texture_compression_astc_sliced_3d
 
+// GL_MESA_framebuffer_flip_y
+angle::CallCapture CaptureFramebufferParameteriMESA(const State &glState,
+                                                    bool isCallValid,
+                                                    GLenum target,
+                                                    GLenum pname,
+                                                    GLint param);
+angle::CallCapture CaptureGetFramebufferParameterivMESA(const State &glState,
+                                                        bool isCallValid,
+                                                        GLenum target,
+                                                        GLenum pname,
+                                                        GLint *params);
+
 // GL_NV_fence
 angle::CallCapture CaptureDeleteFencesNV(const State &glState,
                                          bool isCallValid,
@@ -1961,6 +2091,8 @@ angle::CallCapture CaptureBlitFramebufferNV(const State &glState,
 
 // GL_NV_read_depth
 
+// GL_NV_read_depth_stencil
+
 // GL_NV_read_stencil
 
 // GL_NV_robustness_video_memory_purge
@@ -1982,6 +2114,8 @@ angle::CallCapture CaptureEGLImageTargetTexture2DOES(const State &glState,
 // GL_OES_EGL_image_external_essl3
 
 // GL_OES_compressed_ETC1_RGB8_texture
+
+// GL_OES_compressed_paletted_texture
 
 // GL_OES_copy_image
 angle::CallCapture CaptureCopyImageSubDataOES(const State &glState,
@@ -2260,6 +2394,18 @@ angle::CallCapture CapturePointSizePointerOES(const State &glState,
 
 // GL_OES_point_sprite
 
+// GL_OES_primitive_bounding_box
+angle::CallCapture CapturePrimitiveBoundingBoxOES(const State &glState,
+                                                  bool isCallValid,
+                                                  GLfloat minX,
+                                                  GLfloat minY,
+                                                  GLfloat minZ,
+                                                  GLfloat minW,
+                                                  GLfloat maxX,
+                                                  GLfloat maxY,
+                                                  GLfloat maxZ,
+                                                  GLfloat maxW);
+
 // GL_OES_query_matrix
 angle::CallCapture CaptureQueryMatrixxOES(const State &glState,
                                           bool isCallValid,
@@ -2519,8 +2665,118 @@ angle::CallCapture CaptureFramebufferTextureMultiviewOVR(const State &glState,
 
 // GL_OVR_multiview2
 
+// GL_QCOM_shading_rate
+angle::CallCapture CaptureShadingRateQCOM(const State &glState, bool isCallValid, GLenum rate);
+
 // Parameter Captures
 
+void CaptureDeletePerfMonitorsAMD_monitors(const State &glState,
+                                           bool isCallValid,
+                                           GLsizei n,
+                                           GLuint *monitors,
+                                           angle::ParamCapture *paramCapture);
+void CaptureGenPerfMonitorsAMD_monitors(const State &glState,
+                                        bool isCallValid,
+                                        GLsizei n,
+                                        GLuint *monitors,
+                                        angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorCounterDataAMD_data(const State &glState,
+                                              bool isCallValid,
+                                              GLuint monitor,
+                                              GLenum pname,
+                                              GLsizei dataSize,
+                                              GLuint *data,
+                                              GLint *bytesWritten,
+                                              angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorCounterDataAMD_bytesWritten(const State &glState,
+                                                      bool isCallValid,
+                                                      GLuint monitor,
+                                                      GLenum pname,
+                                                      GLsizei dataSize,
+                                                      GLuint *data,
+                                                      GLint *bytesWritten,
+                                                      angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorCounterInfoAMD_data(const State &glState,
+                                              bool isCallValid,
+                                              GLuint group,
+                                              GLuint counter,
+                                              GLenum pname,
+                                              void *data,
+                                              angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorCounterStringAMD_length(const State &glState,
+                                                  bool isCallValid,
+                                                  GLuint group,
+                                                  GLuint counter,
+                                                  GLsizei bufSize,
+                                                  GLsizei *length,
+                                                  GLchar *counterString,
+                                                  angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorCounterStringAMD_counterString(const State &glState,
+                                                         bool isCallValid,
+                                                         GLuint group,
+                                                         GLuint counter,
+                                                         GLsizei bufSize,
+                                                         GLsizei *length,
+                                                         GLchar *counterString,
+                                                         angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorCountersAMD_numCounters(const State &glState,
+                                                  bool isCallValid,
+                                                  GLuint group,
+                                                  GLint *numCounters,
+                                                  GLint *maxActiveCounters,
+                                                  GLsizei counterSize,
+                                                  GLuint *counters,
+                                                  angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorCountersAMD_maxActiveCounters(const State &glState,
+                                                        bool isCallValid,
+                                                        GLuint group,
+                                                        GLint *numCounters,
+                                                        GLint *maxActiveCounters,
+                                                        GLsizei counterSize,
+                                                        GLuint *counters,
+                                                        angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorCountersAMD_counters(const State &glState,
+                                               bool isCallValid,
+                                               GLuint group,
+                                               GLint *numCounters,
+                                               GLint *maxActiveCounters,
+                                               GLsizei counterSize,
+                                               GLuint *counters,
+                                               angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorGroupStringAMD_length(const State &glState,
+                                                bool isCallValid,
+                                                GLuint group,
+                                                GLsizei bufSize,
+                                                GLsizei *length,
+                                                GLchar *groupString,
+                                                angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorGroupStringAMD_groupString(const State &glState,
+                                                     bool isCallValid,
+                                                     GLuint group,
+                                                     GLsizei bufSize,
+                                                     GLsizei *length,
+                                                     GLchar *groupString,
+                                                     angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorGroupsAMD_numGroups(const State &glState,
+                                              bool isCallValid,
+                                              GLint *numGroups,
+                                              GLsizei groupsSize,
+                                              GLuint *groups,
+                                              angle::ParamCapture *paramCapture);
+void CaptureGetPerfMonitorGroupsAMD_groups(const State &glState,
+                                           bool isCallValid,
+                                           GLint *numGroups,
+                                           GLsizei groupsSize,
+                                           GLuint *groups,
+                                           angle::ParamCapture *paramCapture);
+void CaptureSelectPerfMonitorCountersAMD_counterList(const State &glState,
+                                                     bool isCallValid,
+                                                     GLuint monitor,
+                                                     GLboolean enable,
+                                                     GLuint group,
+                                                     GLint numCounters,
+                                                     GLuint *counterList,
+                                                     angle::ParamCapture *paramCapture);
 void CaptureDrawElementsInstancedBaseVertexBaseInstanceANGLE_indices(
     const State &glState,
     bool isCallValid,
@@ -2528,7 +2784,7 @@ void CaptureDrawElementsInstancedBaseVertexBaseInstanceANGLE_indices(
     GLsizei count,
     DrawElementsType typePacked,
     const GLvoid *indices,
-    GLsizei instanceCounts,
+    GLsizei instanceCount,
     GLint baseVertex,
     GLuint baseInstance,
     angle::ParamCapture *paramCapture);
@@ -3836,6 +4092,18 @@ void CaptureGetQueryObjectui64vRobustANGLE_params(const State &glState,
                                                   GLsizei *length,
                                                   GLuint64 *params,
                                                   angle::ParamCapture *paramCapture);
+void CaptureBeginPixelLocalStorageANGLE_loadops(const State &glState,
+                                                bool isCallValid,
+                                                GLsizei planes,
+                                                const GLenum *loadops,
+                                                const void *cleardata,
+                                                angle::ParamCapture *paramCapture);
+void CaptureBeginPixelLocalStorageANGLE_cleardata(const State &glState,
+                                                  bool isCallValid,
+                                                  GLsizei planes,
+                                                  const GLenum *loadops,
+                                                  const void *cleardata,
+                                                  angle::ParamCapture *paramCapture);
 void CaptureGetMultisamplefvANGLE_val(const State &glState,
                                       bool isCallValid,
                                       GLenum pname,
@@ -3845,14 +4113,14 @@ void CaptureGetMultisamplefvANGLE_val(const State &glState,
 void CaptureGetTranslatedShaderSourceANGLE_length(const State &glState,
                                                   bool isCallValid,
                                                   ShaderProgramID shaderPacked,
-                                                  GLsizei bufsize,
+                                                  GLsizei bufSize,
                                                   GLsizei *length,
                                                   GLchar *source,
                                                   angle::ParamCapture *paramCapture);
 void CaptureGetTranslatedShaderSourceANGLE_source(const State &glState,
                                                   bool isCallValid,
                                                   ShaderProgramID shaderPacked,
-                                                  GLsizei bufsize,
+                                                  GLsizei bufSize,
                                                   GLsizei *length,
                                                   GLchar *source,
                                                   angle::ParamCapture *paramCapture);
@@ -3898,6 +4166,26 @@ void CaptureEGLImageTargetTextureStorageEXT_attrib_list(const State &glState,
                                                         GLeglImageOES image,
                                                         const GLint *attrib_list,
                                                         angle::ParamCapture *paramCapture);
+void CaptureDrawElementsInstancedBaseInstanceEXT_indices(const State &glState,
+                                                         bool isCallValid,
+                                                         PrimitiveMode modePacked,
+                                                         GLsizei count,
+                                                         DrawElementsType typePacked,
+                                                         const void *indices,
+                                                         GLsizei instancecount,
+                                                         GLuint baseinstance,
+                                                         angle::ParamCapture *paramCapture);
+void CaptureDrawElementsInstancedBaseVertexBaseInstanceEXT_indices(
+    const State &glState,
+    bool isCallValid,
+    PrimitiveMode modePacked,
+    GLsizei count,
+    DrawElementsType typePacked,
+    const void *indices,
+    GLsizei instancecount,
+    GLint basevertex,
+    GLuint baseinstance,
+    angle::ParamCapture *paramCapture);
 void CaptureBindFragDataLocationEXT_name(const State &glState,
                                          bool isCallValid,
                                          ShaderProgramID programPacked,
@@ -4051,7 +4339,7 @@ void CaptureMultiDrawElementsBaseVertexEXT_count(const State &glState,
                                                  const GLsizei *count,
                                                  DrawElementsType typePacked,
                                                  const void *const *indices,
-                                                 GLsizei primcount,
+                                                 GLsizei drawcount,
                                                  const GLint *basevertex,
                                                  angle::ParamCapture *paramCapture);
 void CaptureMultiDrawElementsBaseVertexEXT_indices(const State &glState,
@@ -4060,7 +4348,7 @@ void CaptureMultiDrawElementsBaseVertexEXT_indices(const State &glState,
                                                    const GLsizei *count,
                                                    DrawElementsType typePacked,
                                                    const void *const *indices,
-                                                   GLsizei primcount,
+                                                   GLsizei drawcount,
                                                    const GLint *basevertex,
                                                    angle::ParamCapture *paramCapture);
 void CaptureMultiDrawElementsBaseVertexEXT_basevertex(const State &glState,
@@ -4069,7 +4357,7 @@ void CaptureMultiDrawElementsBaseVertexEXT_basevertex(const State &glState,
                                                       const GLsizei *count,
                                                       DrawElementsType typePacked,
                                                       const void *const *indices,
-                                                      GLsizei primcount,
+                                                      GLsizei drawcount,
                                                       const GLint *basevertex,
                                                       angle::ParamCapture *paramCapture);
 void CaptureDrawElementsInstancedEXT_indices(const State &glState,
@@ -4115,15 +4403,15 @@ void CaptureMemoryObjectParameterivEXT_params(const State &glState,
                                               angle::ParamCapture *paramCapture);
 void CaptureMultiDrawArraysIndirectEXT_indirect(const State &glState,
                                                 bool isCallValid,
-                                                GLenum mode,
+                                                PrimitiveMode modePacked,
                                                 const void *indirect,
                                                 GLsizei drawcount,
                                                 GLsizei stride,
                                                 angle::ParamCapture *paramCapture);
 void CaptureMultiDrawElementsIndirectEXT_indirect(const State &glState,
                                                   bool isCallValid,
-                                                  GLenum mode,
-                                                  GLenum type,
+                                                  PrimitiveMode modePacked,
+                                                  DrawElementsType typePacked,
                                                   const void *indirect,
                                                   GLsizei drawcount,
                                                   GLsizei stride,
@@ -4626,6 +4914,12 @@ void CapturePushDebugGroupKHR_message(const State &glState,
                                       GLsizei length,
                                       const GLchar *message,
                                       angle::ParamCapture *paramCapture);
+void CaptureGetFramebufferParameterivMESA_params(const State &glState,
+                                                 bool isCallValid,
+                                                 GLenum target,
+                                                 GLenum pname,
+                                                 GLint *params,
+                                                 angle::ParamCapture *paramCapture);
 void CaptureDeleteFencesNV_fencesPacked(const State &glState,
                                         bool isCallValid,
                                         GLsizei n,

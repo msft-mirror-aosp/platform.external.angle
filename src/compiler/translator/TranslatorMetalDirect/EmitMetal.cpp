@@ -83,7 +83,7 @@ class GenMetalTraverser : public TIntermTraverser
                       IdGen &idGen,
                       const PipelineStructs &pipelineStructs,
                       SymbolEnv &symbolEnv,
-                      TSymbolTable *symbolTable);
+                      const ShCompileOptions &compileOptions);
 
     void visitSymbol(TIntermSymbol *) override;
     void visitConstantUnion(TIntermConstantUnion *) override;
@@ -212,16 +212,16 @@ GenMetalTraverser::GenMetalTraverser(const TCompiler &compiler,
                                      IdGen &idGen,
                                      const PipelineStructs &pipelineStructs,
                                      SymbolEnv &symbolEnv,
-                                     TSymbolTable *symbolTable)
+                                     const ShCompileOptions &compileOptions)
     : TIntermTraverser(true, false, false),
       mOut(out),
       mCompiler(compiler),
       mPipelineStructs(pipelineStructs),
       mSymbolEnv(symbolEnv),
       mIdGen(idGen),
-      mMainUniformBufferIndex(symbolTable->getDefaultUniformsBindingIndex()),
-      mDriverUniformsBindingIndex(symbolTable->getDriverUniformsBindingIndex()),
-      mUBOArgumentBufferBindingIndex(symbolTable->getUBOArgumentBufferBindingIndex())
+      mMainUniformBufferIndex(compileOptions.metal.defaultUniformsBindingIndex),
+      mDriverUniformsBindingIndex(compileOptions.metal.driverUniformsBindingIndex),
+      mUBOArgumentBufferBindingIndex(compileOptions.metal.UBOArgumentBufferBindingIndex)
 {}
 
 void GenMetalTraverser::emitIndentation()
@@ -555,6 +555,22 @@ static const char *GetOperatorString(TOperator op,
         case TOperator::EOpIntBitsToFloat:
         case TOperator::EOpUintBitsToFloat:
         {
+#define RETURN_AS_TYPE_SCALAR()             \
+    do                                      \
+        switch (resultType.getBasicType())  \
+        {                                   \
+            case TBasicType::EbtInt:        \
+                return "as_type<int>";      \
+            case TBasicType::EbtUInt:       \
+                return "as_type<uint32_t>"; \
+            case TBasicType::EbtFloat:      \
+                return "as_type<float>";    \
+            default:                        \
+                UNIMPLEMENTED();            \
+                return "TOperator_TODO";    \
+        }                                   \
+    while (false)
+
 #define RETURN_AS_TYPE(post)                     \
     do                                           \
         switch (resultType.getBasicType())       \
@@ -573,7 +589,7 @@ static const char *GetOperatorString(TOperator op,
 
             if (resultType.isScalar())
             {
-                RETURN_AS_TYPE("");
+                RETURN_AS_TYPE_SCALAR();
             }
             else if (resultType.isVector())
             {
@@ -597,6 +613,7 @@ static const char *GetOperatorString(TOperator op,
             }
 
 #undef RETURN_AS_TYPE
+#undef RETURN_AS_TYPE_SCALAR
         }
 
         case TOperator::EOpPackUnorm2x16:
@@ -779,7 +796,7 @@ void GenMetalTraverser::emitPostQualifier(const EmitVariableDeclarationConfig &e
     {
         case TQualifier::EvqPosition:
             isInvariant = decl.type().isInvariant();
-            ANGLE_FALLTHROUGH;
+            [[fallthrough]];
         case TQualifier::EvqFragCoord:
             mOut << " [[position]]";
             break;
@@ -872,9 +889,20 @@ void GenMetalTraverser::emitBareTypeName(const TType &type, const EmitTypeConfig
         case TBasicType::EbtBool:
         case TBasicType::EbtFloat:
         case TBasicType::EbtInt:
-        case TBasicType::EbtUInt:
         {
             mOut << type.getBasicString();
+            break;
+        }
+        case TBasicType::EbtUInt:
+        {
+            if (type.isScalar())
+            {
+                mOut << "uint32_t";
+            }
+            else
+            {
+                mOut << type.getBasicString();
+            }
         }
         break;
 
@@ -961,11 +989,12 @@ void GenMetalTraverser::emitType(const TType &type, const EmitTypeConfig &etConf
 
     if (type.isVector())
     {
-        mOut << type.getNominalSize();
+        mOut << static_cast<uint32_t>(type.getNominalSize());
     }
     else if (type.isMatrix())
     {
-        mOut << type.getCols() << "x" << type.getRows();
+        mOut << static_cast<uint32_t>(type.getCols()) << "x"
+             << static_cast<uint32_t>(type.getRows());
     }
 
     if (!isUBO)
@@ -1057,7 +1086,8 @@ void GenMetalTraverser::emitFieldDeclaration(const TField &field,
             break;
 
         case TQualifier::EvqFragDepth:
-            mOut << " [[depth(any)]]";
+            mOut << " [[depth(any), function_constant(" << sh::mtl::kDepthWriteEnabledConstName
+                 << ")]]";
             break;
 
         case TQualifier::EvqSampleMask:
@@ -1531,10 +1561,10 @@ bool GenMetalTraverser::visitBinary(Visit, TIntermBinary *binaryNode)
                 }
                 else
                 {
-                    int maxSize;
+                    uint32_t maxSize;
                     if (leftType.isArray())
                     {
-                        maxSize = static_cast<int>(leftType.getOutermostArraySize()) - 1;
+                        maxSize = leftType.getOutermostArraySize() - 1;
                     }
                     else
                     {
@@ -1838,6 +1868,10 @@ void GenMetalTraverser::emitFunctionParameter(const TFunction &func, const TVari
         {
             mOut << " [[instance_id]]";
         }
+        else if (Name(param) == kBaseInstanceName)
+        {
+            mOut << " [[base_instance]]";
+        }
     }
 }
 
@@ -1887,16 +1921,22 @@ GenMetalTraverser::FuncToName GenMetalTraverser::BuildFuncToName()
     putAngle("texture1DLod");
     putAngle("texture1DProjLod");
     putAngle("texture2D");
+    putAngle("texture2DGradEXT");
     putAngle("texture2DLod");
+    putAngle("texture2DLodEXT");
     putAngle("texture2DProj");
-    putAngle("texture2DRect");
+    putAngle("texture2DProjGradEXT");
     putAngle("texture2DProjLod");
+    putAngle("texture2DProjLodEXT");
+    putAngle("texture2DRect");
     putAngle("texture2DRectProj");
     putAngle("texture3D");
     putAngle("texture3DLod");
     putAngle("texture3DProjLod");
     putAngle("textureCube");
+    putAngle("textureCubeGradEXT");
     putAngle("textureCubeLod");
+    putAngle("textureCubeLodEXT");
     putAngle("textureCubeProjLod");
     putAngle("textureGrad");
     putAngle("textureGradOffset");
@@ -2441,7 +2481,7 @@ bool sh::EmitMetal(TCompiler &compiler,
                    const PipelineStructs &pipelineStructs,
                    SymbolEnv &symbolEnv,
                    const ProgramPreludeConfig &ppc,
-                   TSymbolTable *symbolTable)
+                   const ShCompileOptions &compileOptions)
 {
     TInfoSinkBase &out = compiler.getInfoSink().obj;
 
@@ -2498,7 +2538,8 @@ bool sh::EmitMetal(TCompiler &compiler,
 #else
         TInfoSinkBase &outWrapper = out;
 #endif
-        GenMetalTraverser gen(compiler, outWrapper, idGen, pipelineStructs, symbolEnv, symbolTable);
+        GenMetalTraverser gen(compiler, outWrapper, idGen, pipelineStructs, symbolEnv,
+                              compileOptions);
         root.traverse(&gen);
     }
 

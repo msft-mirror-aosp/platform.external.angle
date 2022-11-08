@@ -81,6 +81,12 @@
 #        endif
 #    endif
 
+// Include <windows.h> to ensure tests related files can be built when building
+// vulkan only backend ANGLE on windows.
+#    if defined(ANGLE_ENABLE_VULKAN)
+#        include <windows.h>
+#    endif
+
 // Macros 'near', 'far', 'NEAR' and 'FAR' are defined by 'shared/minwindef.h' in the Windows SDK.
 // Macros 'near' and 'far' are empty. They are not used by other Windows headers and are undefined
 // here to avoid identifier conflicts. Macros 'NEAR' and 'FAR' contain 'near' and 'far'. They are
@@ -133,6 +139,16 @@
 #        if TARGET_OS_MACCATALYST
 #            define ANGLE_PLATFORM_MACCATALYST 1
 #        endif
+#    elif TARGET_OS_WATCH
+#        define ANGLE_PLATFORM_WATCHOS 1
+#        if TARGET_OS_SIMULATOR
+#            define ANGLE_PLATFORM_IOS_SIMULATOR 1
+#        endif
+#    elif TARGET_OS_TV
+#        define ANGLE_PLATFORM_APPLETV 1
+#        if TARGET_OS_SIMULATOR
+#            define ANGLE_PLATFORM_IOS_SIMULATOR 1
+#        endif
 #    endif
 #    // This might be useful globally. At the moment it is used
 #    // to differentiate MacCatalyst on Intel and Apple Silicon.
@@ -155,6 +171,13 @@
 #if defined(__has_feature)
 #    if __has_feature(address_sanitizer)
 #        define ANGLE_WITH_ASAN 1
+#    endif
+#endif
+
+// Define ANGLE_WITH_MSAN macro.
+#if defined(__has_feature)
+#    if __has_feature(memory_sanitizer)
+#        define ANGLE_WITH_MSAN 1
 #    endif
 #endif
 

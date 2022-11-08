@@ -214,7 +214,7 @@ void QueryTexLevelParameterBase(const Texture *texture,
             break;
         case GL_RESOURCE_INITIALIZED_ANGLE:
             *params = CastFromGLintStateValue<ParamType>(
-                pname, texture->initState(ImageIndex::MakeFromTarget(target, level)) ==
+                pname, texture->initState(GL_NONE, ImageIndex::MakeFromTarget(target, level)) ==
                            InitState::Initialized);
             break;
         case GL_TEXTURE_BUFFER_DATA_STORE_BINDING:
@@ -1119,6 +1119,21 @@ bool IsTextureEnvEnumParameter(TextureEnvParameter pname)
     }
 }
 
+void GetShaderProgramId(ProgramPipeline *programPipeline, ShaderType shaderType, GLint *params)
+{
+    ASSERT(params);
+
+    *params = 0;
+    if (programPipeline)
+    {
+        const Program *program = programPipeline->getShaderProgram(shaderType);
+        if (program)
+        {
+            *params = program->id().value;
+        }
+    }
+}
+
 }  // namespace
 
 void QueryFramebufferAttachmentParameteriv(const Context *context,
@@ -1454,7 +1469,7 @@ void QueryRenderbufferiv(const Context *context,
             *params = static_cast<GLint>(renderbuffer->getImplementationColorReadType(context));
             break;
         case GL_RESOURCE_INITIALIZED_ANGLE:
-            *params = (renderbuffer->initState(ImageIndex()) == InitState::Initialized);
+            *params = (renderbuffer->initState(GL_NONE, ImageIndex()) == InitState::Initialized);
             break;
         default:
             UNREACHABLE();
@@ -1475,7 +1490,7 @@ void QueryShaderiv(const Context *context, Shader *shader, GLenum pname, GLint *
             *params = shader->isFlaggedForDeletion();
             return;
         case GL_COMPILE_STATUS:
-            *params = shader->isCompiled() ? GL_TRUE : GL_FALSE;
+            *params = shader->isCompiled(context) ? GL_TRUE : GL_FALSE;
             return;
         case GL_COMPLETION_STATUS_KHR:
             if (context->isContextLost())
@@ -1488,13 +1503,13 @@ void QueryShaderiv(const Context *context, Shader *shader, GLenum pname, GLint *
             }
             return;
         case GL_INFO_LOG_LENGTH:
-            *params = shader->getInfoLogLength();
+            *params = shader->getInfoLogLength(context);
             return;
         case GL_SHADER_SOURCE_LENGTH:
             *params = shader->getSourceLength();
             return;
         case GL_TRANSLATED_SHADER_SOURCE_LENGTH_ANGLE:
-            *params = shader->getTranslatedSourceWithDebugInfoLength();
+            *params = shader->getTranslatedSourceWithDebugInfoLength(context);
             return;
         default:
             UNREACHABLE();
@@ -1690,6 +1705,9 @@ void QueryFramebufferParameteriv(const Framebuffer *framebuffer, GLenum pname, G
         case GL_FRAMEBUFFER_DEFAULT_LAYERS_EXT:
             *params = framebuffer->getDefaultLayers();
             break;
+        case GL_FRAMEBUFFER_FLIP_Y_MESA:
+            *params = ConvertToGLBoolean(framebuffer->getFlipY());
+            break;
         default:
             UNREACHABLE();
             break;
@@ -1843,6 +1861,9 @@ void SetFramebufferParameteri(const Context *context,
             break;
         case GL_FRAMEBUFFER_DEFAULT_LAYERS_EXT:
             framebuffer->setDefaultLayers(param);
+            break;
+        case GL_FRAMEBUFFER_FLIP_Y_MESA:
+            framebuffer->setFlipY(ConvertToBool(param));
             break;
         default:
             UNREACHABLE();
@@ -2012,7 +2033,8 @@ GLuint QueryProgramResourceIndex(const Program *program,
     }
 }
 
-void QueryProgramResourceName(const Program *program,
+void QueryProgramResourceName(const Context *context,
+                              const Program *program,
                               GLenum programInterface,
                               GLuint index,
                               GLsizei bufSize,
@@ -2042,7 +2064,7 @@ void QueryProgramResourceName(const Program *program,
             break;
 
         case GL_UNIFORM_BLOCK:
-            program->getActiveUniformBlockName({index}, bufSize, length, name);
+            program->getActiveUniformBlockName(context, {index}, bufSize, length, name);
             break;
 
         case GL_TRANSFORM_FEEDBACK_VARYING:
@@ -2420,18 +2442,34 @@ void SetMaterialParameters(GLES1State *state,
                            MaterialParameter pname,
                            const GLfloat *params)
 {
+    // Note: Ambient and diffuse colors are inherited from glColor when COLOR_MATERIAL is enabled,
+    // and can only be modified by this function if that is disabled:
+    //
+    // > the replaced values remain until changed by either sending a new color or by setting a
+    // > new material value when COLOR_MATERIAL is not currently enabled, to override that
+    // particular value.
+
     MaterialParameters &material = state->materialParameters();
     switch (pname)
     {
         case MaterialParameter::Ambient:
-            material.ambient = ColorF::fromData(params);
+            if (!state->isColorMaterialEnabled())
+            {
+                material.ambient = ColorF::fromData(params);
+            }
             break;
         case MaterialParameter::Diffuse:
-            material.diffuse = ColorF::fromData(params);
+            if (!state->isColorMaterialEnabled())
+            {
+                material.diffuse = ColorF::fromData(params);
+            }
             break;
         case MaterialParameter::AmbientAndDiffuse:
-            material.ambient = ColorF::fromData(params);
-            material.diffuse = ColorF::fromData(params);
+            if (!state->isColorMaterialEnabled())
+            {
+                material.ambient = ColorF::fromData(params);
+                material.diffuse = ColorF::fromData(params);
+            }
             break;
         case MaterialParameter::Specular:
             material.specular = ColorF::fromData(params);
@@ -3036,6 +3074,7 @@ unsigned int GetTexParameterCount(GLenum pname)
         case GL_TEXTURE_SRGB_DECODE_EXT:
         case GL_DEPTH_STENCIL_TEXTURE_MODE:
         case GL_TEXTURE_NATIVE_ID_ANGLE:
+        case GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES:
             return 1;
         default:
             return 0;
@@ -3050,6 +3089,7 @@ bool GetQueryParameterInfo(const State &glState,
     const Caps &caps             = glState.getCaps();
     const Extensions &extensions = glState.getExtensions();
     GLint clientMajorVersion     = glState.getClientMajorVersion();
+    EGLenum clientType           = glState.getClientType();
 
     // Please note: the query type returned for DEPTH_CLEAR_VALUE in this implementation
     // is FLOAT rather than INT, as would be suggested by the GL ES 2.0 spec. This is due
@@ -3203,6 +3243,16 @@ bool GetQueryParameterInfo(const State &glState,
             *numParams = 1;
             return true;
         }
+        case GL_COLOR_LOGIC_OP:
+        {
+            if (!extensions.logicOpANGLE)
+            {
+                return false;
+            }
+            *type      = GL_BOOL;
+            *numParams = 1;
+            return true;
+        }
         case GL_COLOR_WRITEMASK:
         {
             *type      = GL_BOOL;
@@ -3279,7 +3329,7 @@ bool GetQueryParameterInfo(const State &glState,
             {
                 break;
             }
-            if (!extensions.clipDistanceAPPLE)
+            if (!extensions.clipDistanceAPPLE && !extensions.clipCullDistanceEXT)
             {
                 // NOTE(hqle): if client version is 1. GL_MAX_CLIP_DISTANCES_EXT is equal
                 // to GL_MAX_CLIP_PLANES which is a valid enum.
@@ -3307,20 +3357,41 @@ bool GetQueryParameterInfo(const State &glState,
             *numParams = 1;
             return true;
         case GL_PRIMITIVE_BOUNDING_BOX:
-            if (!extensions.primitiveBoundingBoxEXT)
+            if (!extensions.primitiveBoundingBoxAny())
             {
                 return false;
             }
             *type      = GL_FLOAT;
             *numParams = 8;
             return true;
+        case GL_SHADING_RATE_QCOM:
+            if (!extensions.shadingRateQCOM)
+            {
+                return false;
+            }
+            *type      = GL_INT;
+            *numParams = 1;
+            return true;
     }
 
-    if (glState.getClientType() == EGL_OPENGL_API)
+    if (clientType == EGL_OPENGL_API ||
+        (clientType == EGL_OPENGL_ES_API && glState.getClientVersion() >= Version(3, 2)))
     {
         switch (pname)
         {
             case GL_CONTEXT_FLAGS:
+            {
+                *type      = GL_INT;
+                *numParams = 1;
+                return true;
+            }
+        }
+    }
+
+    if (clientType == EGL_OPENGL_API)
+    {
+        switch (pname)
+        {
             case GL_CONTEXT_PROFILE_MASK:
             {
                 *type      = GL_INT;
@@ -3561,6 +3632,13 @@ bool GetQueryParameterInfo(const State &glState,
         return true;
     }
 
+    if (extensions.provokingVertexANGLE && pname == GL_PROVOKING_VERTEX)
+    {
+        *type      = GL_INT;
+        *numParams = 1;
+        return true;
+    }
+
     if (glState.getClientVersion() < Version(2, 0))
     {
         switch (pname)
@@ -3777,6 +3855,23 @@ bool GetQueryParameterInfo(const State &glState,
         }
     }
 
+    if (extensions.shaderPixelLocalStorageANGLE)
+    {
+        switch (pname)
+        {
+            case GL_MAX_PIXEL_LOCAL_STORAGE_PLANES_ANGLE:
+            case GL_MAX_COLOR_ATTACHMENTS_WITH_ACTIVE_PIXEL_LOCAL_STORAGE_ANGLE:
+            case GL_MAX_COMBINED_DRAW_BUFFERS_AND_PIXEL_LOCAL_STORAGE_PLANES_ANGLE:
+                *type      = GL_INT;
+                *numParams = 1;
+                return true;
+            case GL_PIXEL_LOCAL_STORAGE_ACTIVE_ANGLE:
+                *type      = GL_BOOL;
+                *numParams = 1;
+                return true;
+        }
+    }
+
     if (glState.getClientVersion() < Version(3, 1))
     {
         return false;
@@ -3951,15 +4046,7 @@ void QueryProgramPipelineiv(const Context *context,
         {
             // the name of the current program object for the vertex shader type of the program
             // pipeline object is returned in params
-            *params = 0;
-            if (programPipeline)
-            {
-                const Program *program = programPipeline->getShaderProgram(ShaderType::Vertex);
-                if (program)
-                {
-                    *params = program->id().value;
-                }
-            }
+            GetShaderProgramId(programPipeline, ShaderType::Vertex, params);
             break;
         }
 
@@ -3967,15 +4054,23 @@ void QueryProgramPipelineiv(const Context *context,
         {
             // the name of the current program object for the fragment shader type of the program
             // pipeline object is returned in params
-            *params = 0;
-            if (programPipeline)
-            {
-                const Program *program = programPipeline->getShaderProgram(ShaderType::Fragment);
-                if (program)
-                {
-                    *params = program->id().value;
-                }
-            }
+            GetShaderProgramId(programPipeline, ShaderType::Fragment, params);
+            break;
+        }
+
+        case GL_TESS_CONTROL_SHADER:
+        {
+            // the name of the current program object for the tessellation control shader type of
+            // the program pipeline object is returned in params
+            GetShaderProgramId(programPipeline, ShaderType::TessControl, params);
+            break;
+        }
+
+        case GL_TESS_EVALUATION_SHADER:
+        {
+            // the name of the current program object for the tessellation evaluation shader type of
+            // the program pipeline object is returned in params
+            GetShaderProgramId(programPipeline, ShaderType::TessEvaluation, params);
             break;
         }
 
@@ -3983,15 +4078,15 @@ void QueryProgramPipelineiv(const Context *context,
         {
             // the name of the current program object for the compute shader type of the program
             // pipeline object is returned in params
-            *params = 0;
-            if (programPipeline)
-            {
-                const Program *program = programPipeline->getShaderProgram(ShaderType::Compute);
-                if (program)
-                {
-                    *params = program->id().value;
-                }
-            }
+            GetShaderProgramId(programPipeline, ShaderType::Compute, params);
+            break;
+        }
+
+        case GL_GEOMETRY_SHADER:
+        {
+            // the name of the current program object for the geometry shader type of the program
+            // pipeline object is returned in params
+            GetShaderProgramId(programPipeline, ShaderType::Geometry, params);
             break;
         }
 
@@ -4187,6 +4282,9 @@ void QueryContextAttrib(const gl::Context *context, EGLint attribute, EGLint *va
         case EGL_CONTEXT_PRIORITY_LEVEL_IMG:
             *value = static_cast<EGLint>(context->getContextPriority());
             break;
+        case EGL_PROTECTED_CONTENT_EXT:
+            *value = context->getState().hasProtectedContent();
+            break;
         default:
             UNREACHABLE();
             break;
@@ -4195,7 +4293,7 @@ void QueryContextAttrib(const gl::Context *context, EGLint attribute, EGLint *va
 
 egl::Error QuerySurfaceAttrib(const Display *display,
                               const gl::Context *context,
-                              const Surface *surface,
+                              Surface *surface,
                               EGLint attribute,
                               EGLint *value)
 {
@@ -4317,6 +4415,9 @@ egl::Error QuerySurfaceAttrib(const Display *display,
         case EGL_BITMAP_PIXEL_SIZE_KHR:
             *value = surface->getBitmapPixelSize();
             break;
+        case EGL_PROTECTED_CONTENT_EXT:
+            *value = surface->hasProtectedContent();
+            break;
         default:
             UNREACHABLE();
             break;
@@ -4388,6 +4489,8 @@ egl::Error SetSurfaceAttrib(Surface *surface, EGLint attribute, EGLint value)
         case EGL_TIMESTAMPS_ANDROID:
             surface->setTimestampsEnabled(value != EGL_FALSE);
             break;
+        case EGL_FRONT_BUFFER_AUTO_REFRESH_ANDROID:
+            return surface->setAutoRefreshEnabled(value == EGL_TRUE);
         case EGL_RENDER_BUFFER:
             return surface->setRenderBuffer(value);
         default:
