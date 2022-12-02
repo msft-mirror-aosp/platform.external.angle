@@ -36,7 +36,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-#if !defined(GLSLANG_WEB) && !defined(GLSLANG_ANGLE)
+#if !defined(GLSLANG_WEB)
 
 #include "localintermediate.h"
 #include "../Include/InfoSink.h"
@@ -665,6 +665,8 @@ bool TOutputTraverser::visitUnary(TVisit /* visit */, TIntermUnary* node)
 
     case EOpConstructReference: out.debug << "Construct reference type"; break;
 
+    case EOpDeclare: out.debug << "Declare"; break;
+
 #ifndef GLSLANG_WEB
     case EOpSpirvInst: out.debug << "spirv_instruction"; break;
 #endif
@@ -692,6 +694,7 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
 
     switch (node->getOp()) {
     case EOpSequence:      out.debug << "Sequence\n";       return true;
+    case EOpScope:         out.debug << "Scope\n";       return true;
     case EOpLinkerObjects: out.debug << "Linker Objects\n"; return true;
     case EOpComma:         out.debug << "Comma";            break;
     case EOpFunction:      out.debug << "Function Definition: " << node->getName(); break;
@@ -1109,7 +1112,7 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     default: out.debug.message(EPrefixError, "Bad aggregation op");
     }
 
-    if (node->getOp() != EOpSequence && node->getOp() != EOpParameters)
+    if (node->getOp() != EOpSequence && node->getOp() != EOpScope && node->getOp() != EOpParameters)
         out.debug << " (" << node->getCompleteString() << ")";
 
     out.debug << "\n";
@@ -1560,4 +1563,4 @@ void TIntermediate::output(TInfoSink& infoSink, bool tree)
 
 } // end namespace glslang
 
-#endif // !GLSLANG_WEB && !GLSLANG_ANGLE
+#endif // !GLSLANG_WEB

@@ -1,5 +1,5 @@
 #!/usr/bin/env vpython3
-# Copyright 2022 The Chromium Authors. All rights reserved.
+# Copyright 2022 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """Implements commands for standalone CFv2 test executables."""
@@ -13,11 +13,14 @@ import sys
 
 from typing import List, Optional
 
-from common import get_component_uri, register_common_args, \
+from common import get_component_uri, get_host_arch, register_common_args, \
                    register_device_args, register_log_args, run_ffx_command
 from compatible_utils import map_filter_file_to_package_file
 from ffx_integration import FfxTestRunner
 from test_runner import TestRunner
+from test_server import setup_test_server
+
+DEFAULT_TEST_SERVER_CONCURRENCY = 4
 
 
 def _copy_custom_output_file(test_runner: FfxTestRunner, file: str,
@@ -45,6 +48,24 @@ def _copy_coverage_files(test_runner: FfxTestRunner, dest: str) -> None:
     shutil.copytree(coverage_dir, dest, dirs_exist_ok=True)
 
 
+def _get_vulkan_args(use_vulkan: Optional[str]) -> List[str]:
+    """Helper function to set vulkan related flag."""
+
+    vulkan_args = []
+    if not use_vulkan:
+        if get_host_arch() == 'x64':
+            # TODO(crbug.com/1261646) Remove once Vulkan is enabled by
+            # default.
+            use_vulkan = 'native'
+        else:
+            # Use swiftshader on arm64 by default because most arm64 bots
+            # currently don't support Vulkan emulation.
+            use_vulkan = 'swiftshader'
+            vulkan_args.append('--ozone-platform=headless')
+    vulkan_args.append(f'--use-vulkan={use_vulkan}')
+    return vulkan_args
+
+
 class ExecutableTestRunner(TestRunner):
     """Test runner for running standalone test executables."""
 
@@ -57,16 +78,17 @@ class ExecutableTestRunner(TestRunner):
             code_coverage_dir: Optional[str],
             logs_dir: Optional[str] = None) -> None:
         super().__init__(out_dir, test_args, [test_name], target_id)
+        if not self._test_args:
+            self._test_args = []
         self._test_name = test_name
         self._code_coverage_dir = code_coverage_dir
         self._custom_artifact_directory = None
         self._isolated_script_test_output = None
         self._logs_dir = logs_dir
         self._test_launcher_summary_output = None
+        self._test_server = None
 
     def _get_args(self) -> List[str]:
-        if not self._test_args:
-            return []
         parser = argparse.ArgumentParser()
         parser.add_argument(
             '--isolated-script-test-output',
@@ -91,19 +113,31 @@ class ExecutableTestRunner(TestRunner):
             '--test-launcher-filter-file',
             help='Filter file(s) passed to target test process. Use ";" to '
             'separate multiple filter files.')
-        parser.add_argument('test_process_args',
-                            nargs='*',
-                            help='Arguments for the test process.')
+        parser.add_argument('--test-launcher-jobs',
+                            type=int,
+                            help='Sets the number of parallel test jobs.')
+        parser.add_argument('--enable-test-server',
+                            action='store_true',
+                            default=False,
+                            help='Enable Chrome test server spawner.')
+        parser.add_argument('--test-arg',
+                            dest='test_args',
+                            action='append',
+                            help='Legacy flag to pass in arguments for '
+                            'the test process. These arguments can now be '
+                            'passed in without a preceding "--" flag.')
+        parser.add_argument('--use-vulkan',
+                            help='\'native\', \'swiftshader\' or \'none\'.')
         args, child_args = parser.parse_known_args(self._test_args)
         if args.isolated_script_test_output:
             self._isolated_script_test_output = args.isolated_script_test_output
             child_args.append(
                 '--isolated-script-test-output=/custom_artifacts/%s' %
                 os.path.basename(self._isolated_script_test_output))
-        if args.test_launcher_shard_index:
+        if args.test_launcher_shard_index is not None:
             child_args.append('--test-launcher-shard-index=%d' %
                               args.test_launcher_shard_index)
-        if args.test_launcher_total_shards:
+        if args.test_launcher_total_shards is not None:
             child_args.append('--test-launcher-total-shards=%d' %
                               args.test_launcher_total_shards)
         if args.test_launcher_summary_output:
@@ -118,10 +152,23 @@ class ExecutableTestRunner(TestRunner):
                 args.test_launcher_filter_file.split(';'))
             child_args.append('--test-launcher-filter-file=' +
                               ';'.join(test_launcher_filter_files))
-        child_args.extend(args.test_process_args)
+        if args.test_launcher_jobs is not None:
+            test_concurrency = args.test_launcher_jobs
+        else:
+            test_concurrency = DEFAULT_TEST_SERVER_CONCURRENCY
+        if args.enable_test_server:
+            self._test_server, spawner_url_base = setup_test_server(
+                self._target_id, test_concurrency)
+            child_args.append('--remote-test-server-spawner-url-base=%s' %
+                              spawner_url_base)
+        child_args.extend(_get_vulkan_args(args.use_vulkan))
+        if args.test_args:
+            child_args.extend(args.test_args)
         return child_args
 
     def _postprocess(self, test_runner: FfxTestRunner) -> None:
+        if self._test_server:
+            self._test_server.Stop()
         if self._test_launcher_summary_output:
             _copy_custom_output_file(
                 test_runner,
@@ -130,7 +177,7 @@ class ExecutableTestRunner(TestRunner):
         if self._isolated_script_test_output:
             _copy_custom_output_file(
                 test_runner,
-                os.path.basename(self._test_launcher_summary_output),
+                os.path.basename(self._isolated_script_test_output),
                 self._isolated_script_test_output)
         if self._code_coverage_dir:
             _copy_coverage_files(test_runner,
@@ -144,7 +191,7 @@ class ExecutableTestRunner(TestRunner):
 
             # Symbolize output from test process and print to terminal.
             symbolize_cmd = ['debug', 'symbolize', '--']
-            for pkg_path in self._package_paths:
+            for pkg_path in self._package_deps.values():
                 symbol_path = os.path.join(os.path.dirname(pkg_path),
                                            'ids.txt')
                 symbolize_cmd.extend(('--ids-txt', symbol_path))

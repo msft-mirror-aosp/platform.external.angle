@@ -1,9 +1,10 @@
-# Copyright 2018 The Chromium Authors. All rights reserved.
+# Copyright 2018 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """Implements commands for running and interacting with Fuchsia on devices."""
 
+import errno
 import itertools
 import logging
 import os
@@ -14,16 +15,15 @@ import sys
 import target
 import time
 
-import ermine_ctl
+import legacy_ermine_ctl
 import ffx_session
 
 from common import ATTACH_RETRY_SECONDS, EnsurePathExists, \
-                   GetHostToolPathFromPlatform, RunGnSdkFunction, \
-                   SubprocessCallWithTimeout
+                   GetHostToolPathFromPlatform, RunGnSdkFunction, SDK_ROOT
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              'test')))
-from compatible_utils import get_sdk_hash
+from compatible_utils import get_sdk_hash, pave, find_image_in_sdk
 
 # The maximum times to attempt mDNS resolution when connecting to a freshly
 # booted Fuchsia instance before aborting.
@@ -103,9 +103,26 @@ class DeviceTarget(target.Target):
     self._pkg_repo = None
     self._target_context = None
     self._ffx_target = None
-    self._ermine_ctl = ermine_ctl.ErmineCtl(self)
-    if not self._system_image_dir and self._os_check != 'ignore':
-      raise Exception("Image directory must be provided if a repave is needed.")
+    self._ermine_ctl = legacy_ermine_ctl.LegacyErmineCtl(self)
+
+    if self._os_check != 'ignore':
+      if not self._system_image_dir:
+        raise Exception(
+            "Image directory must be provided if a repave is needed.")
+      # Determine if system_image_dir exists and find dynamically if not.
+      if not os.path.exists(system_image_dir):
+        logging.warning('System image dir does not exist. Assuming it\'s a '
+                        'product-bundle and dynamically searching for it')
+        sdk_root_parent = os.path.split(SDK_ROOT)[0]
+        new_dir = find_image_in_sdk(system_image_dir,
+                                    product_bundle=True,
+                                    sdk_root=sdk_root_parent)
+        if not new_dir:
+          raise FileNotFoundError(
+              errno.ENOENT,
+              'Could not find system image directory in SDK path ' +
+              sdk_root_parent, system_image_dir)
+        self._system_image_dir = new_dir
 
     if self._host and self._node_name:
       raise Exception('Only one of "--host" or "--name" can be specified.')
@@ -234,7 +251,7 @@ class DeviceTarget(target.Target):
     though calling it multiple times should have no adverse effect.
     """
     if self._ermine_ctl.exists:
-      self._ermine_ctl.TakeToShell()
+      self._ermine_ctl.take_to_shell()
 
   def Start(self):
     if self._host:
@@ -367,23 +384,7 @@ class DeviceTarget(target.Target):
     return self._ssh_config_path
 
   def _ProvisionDevice(self):
-    _, auth_keys, _ = RunGnSdkFunction('fuchsia-common.sh',
-                                       'get-fuchsia-auth-keys-file')
-    pave_command = [
-        os.path.join(self._system_image_dir, 'pave.sh'), '--authorized-keys',
-        auth_keys.strip()
-    ]
-    if self._node_name:
-      pave_command.extend(['-n', self._node_name, '-1'])
-    logging.info(' '.join(pave_command))
-    try:
-      return_code, stdout, stderr = SubprocessCallWithTimeout(pave_command,
-                                                              timeout_secs=300)
-      if return_code != 0:
-        raise ProvisionDeviceException('Could not pave device.')
-    except TimeoutError as ex:
-      raise ProvisionDeviceException('Timed out while paving device.') from ex
-    self._ParseNodename(stderr)
+    self._ParseNodename(pave(self._system_image_dir, self._node_name).stderr)
 
   def Restart(self):
     """Restart the device."""

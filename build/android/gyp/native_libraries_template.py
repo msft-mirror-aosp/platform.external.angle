@@ -1,4 +1,4 @@
-# Copyright 2019 The Chromium Authors. All rights reserved.
+# Copyright 2019 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -18,7 +18,6 @@ public class NativeLibraries {{
     // Set to true to enable the use of the Chromium Linker.
     public static {MAYBE_FINAL}boolean sUseLinker{USE_LINKER};
     public static {MAYBE_FINAL}boolean sUseLibraryInZipFile{USE_LIBRARY_IN_ZIP_FILE};
-    public static {MAYBE_FINAL}boolean sUseModernLinker{USE_MODERN_LINKER};
 
     // This is the list of native libraries to be loaded (in the correct order)
     // by LibraryLoader.java.

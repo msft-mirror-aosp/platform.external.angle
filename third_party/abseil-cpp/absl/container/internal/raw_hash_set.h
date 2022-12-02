@@ -612,9 +612,9 @@ struct GroupAArch64Impl {
 
   NonIterableBitMask<uint64_t, kWidth, 3> MaskEmpty() const {
     uint64_t mask =
-        vget_lane_u64(vreinterpret_u64_u8(
-                          vceq_s8(vdup_n_s8(static_cast<h2_t>(ctrl_t::kEmpty)),
-                                  vreinterpret_s8_u8(ctrl))),
+        vget_lane_u64(vreinterpret_u64_u8(vceq_s8(
+                          vdup_n_s8(static_cast<int8_t>(ctrl_t::kEmpty)),
+                          vreinterpret_s8_u8(ctrl))),
                       0);
     return NonIterableBitMask<uint64_t, kWidth, 3>(mask);
   }
@@ -797,15 +797,22 @@ size_t SelectBucketCountForIterRange(InputIter first, InputIter last,
   return 0;
 }
 
-#define ABSL_INTERNAL_ASSERT_IS_FULL(ctrl, msg) \
-  ABSL_HARDENING_ASSERT((ctrl != nullptr && IsFull(*ctrl)) && msg)
+#define ABSL_INTERNAL_ASSERT_IS_FULL(ctrl, operation)                         \
+  do {                                                                        \
+    ABSL_HARDENING_ASSERT(                                                    \
+        (ctrl != nullptr) && operation                                        \
+        " called on invalid iterator. The iterator might be an end() "        \
+        "iterator or may have been default constructed.");                    \
+    ABSL_HARDENING_ASSERT(                                                    \
+        (IsFull(*ctrl)) && operation                                          \
+        " called on invalid iterator. The element might have been erased or " \
+        "the table might have rehashed.");                                    \
+  } while (0)
 
 inline void AssertIsValid(ctrl_t* ctrl) {
-  ABSL_HARDENING_ASSERT(
-      (ctrl == nullptr || IsFull(*ctrl)) &&
-      "Invalid operation on iterator. The element might have "
-      "been erased, the table might have rehashed, or this may "
-      "be an end() iterator.");
+  ABSL_HARDENING_ASSERT((ctrl == nullptr || IsFull(*ctrl)) &&
+                        "Invalid operation on iterator. The element might have "
+                        "been erased or the table might have rehashed.");
 }
 
 struct FindInfo {
@@ -1034,22 +1041,19 @@ class raw_hash_set {
 
     // PRECONDITION: not an end() iterator.
     reference operator*() const {
-      ABSL_INTERNAL_ASSERT_IS_FULL(ctrl_,
-                                   "operator*() called on invalid iterator.");
+      ABSL_INTERNAL_ASSERT_IS_FULL(ctrl_, "operator*()");
       return PolicyTraits::element(slot_);
     }
 
     // PRECONDITION: not an end() iterator.
     pointer operator->() const {
-      ABSL_INTERNAL_ASSERT_IS_FULL(ctrl_,
-                                   "operator-> called on invalid iterator.");
+      ABSL_INTERNAL_ASSERT_IS_FULL(ctrl_, "operator->");
       return &operator*();
     }
 
     // PRECONDITION: not an end() iterator.
     iterator& operator++() {
-      ABSL_INTERNAL_ASSERT_IS_FULL(ctrl_,
-                                   "operator++ called on invalid iterator.");
+      ABSL_INTERNAL_ASSERT_IS_FULL(ctrl_, "operator++");
       ++ctrl_;
       ++slot_;
       skip_empty_or_deleted();
@@ -1081,7 +1085,7 @@ class raw_hash_set {
     // Fixes up `ctrl_` to point to a full by advancing it and `slot_` until
     // they reach one.
     //
-    // If a sentinel is reached, we null both of them out instead.
+    // If a sentinel is reached, we null `ctrl_` out instead.
     void skip_empty_or_deleted() {
       while (IsEmptyOrDeleted(*ctrl_)) {
         uint32_t shift = Group{ctrl_}.CountLeadingEmptyOrDeleted();
@@ -1144,11 +1148,12 @@ class raw_hash_set {
           std::is_nothrow_default_constructible<key_equal>::value&&
               std::is_nothrow_default_constructible<allocator_type>::value) {}
 
-  explicit raw_hash_set(size_t bucket_count, const hasher& hash = hasher(),
+  explicit raw_hash_set(size_t bucket_count,
+                        const hasher& hash = hasher(),
                         const key_equal& eq = key_equal(),
                         const allocator_type& alloc = allocator_type())
       : ctrl_(EmptyGroup()),
-        settings_(0, HashtablezInfoHandle(), hash, eq, alloc) {
+        settings_(0u, HashtablezInfoHandle(), hash, eq, alloc) {
     if (bucket_count) {
       capacity_ = NormalizeCapacity(bucket_count);
       initialize_slots();
@@ -1273,14 +1278,16 @@ class raw_hash_set {
               std::is_nothrow_copy_constructible<allocator_type>::value)
       : ctrl_(absl::exchange(that.ctrl_, EmptyGroup())),
         slots_(absl::exchange(that.slots_, nullptr)),
-        size_(absl::exchange(that.size_, 0)),
-        capacity_(absl::exchange(that.capacity_, 0)),
+        size_(absl::exchange(that.size_, size_t{0})),
+        capacity_(absl::exchange(that.capacity_, size_t{0})),
         // Hash, equality and allocator are copied instead of moved because
         // `that` must be left valid. If Hash is std::function<Key>, moving it
         // would create a nullptr functor that cannot be called.
-        settings_(absl::exchange(that.growth_left(), 0),
+        settings_(absl::exchange(that.growth_left(), size_t{0}),
                   absl::exchange(that.infoz(), HashtablezInfoHandle()),
-                  that.hash_ref(), that.eq_ref(), that.alloc_ref()) {}
+                  that.hash_ref(),
+                  that.eq_ref(),
+                  that.alloc_ref()) {}
 
   raw_hash_set(raw_hash_set&& that, const allocator_type& a)
       : ctrl_(EmptyGroup()),
@@ -1598,8 +1605,7 @@ class raw_hash_set {
   // This overload is necessary because otherwise erase<K>(const K&) would be
   // a better match if non-const iterator is passed as an argument.
   void erase(iterator it) {
-    ABSL_INTERNAL_ASSERT_IS_FULL(it.ctrl_,
-                                 "erase() called on invalid iterator.");
+    ABSL_INTERNAL_ASSERT_IS_FULL(it.ctrl_, "erase()");
     PolicyTraits::destroy(&alloc_ref(), it.slot_);
     erase_meta_only(it);
   }
@@ -1633,8 +1639,7 @@ class raw_hash_set {
   }
 
   node_type extract(const_iterator position) {
-    ABSL_INTERNAL_ASSERT_IS_FULL(position.inner_.ctrl_,
-                                 "extract() called on invalid iterator.");
+    ABSL_INTERNAL_ASSERT_IS_FULL(position.inner_.ctrl_, "extract()");
     auto node =
         CommonAccess::Transfer<node_type>(alloc_ref(), position.inner_.slot_);
     erase_meta_only(position);

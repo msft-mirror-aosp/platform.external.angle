@@ -17,12 +17,15 @@
 #include <assert.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 #include "absl/strings/ascii.h"
 #include "absl/strings/internal/resize_uninitialized.h"
 #include "absl/strings/numbers.h"
+#include "absl/strings/string_view.h"
 
 namespace absl {
 ABSL_NAMESPACE_BEGIN

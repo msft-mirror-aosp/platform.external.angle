@@ -1,4 +1,4 @@
-# Copyright 2015 The Chromium Authors. All rights reserved.
+# Copyright 2015 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -115,7 +115,7 @@ _DEVICE_GOLD_DIR = 'skia_gold'
 # A map of Android product models to SDK ints.
 RENDER_TEST_MODEL_SDK_CONFIGS = {
     # Android x86 emulator.
-    'Android SDK built for x86': [23],
+    'Android SDK built for x86': [23, 24],
     # We would like this to be supported, but it is currently too prone to
     # introducing flakiness due to a combination of Gold and Chromium issues.
     # See crbug.com/1233700 and skbug.com/12149 for more information.
@@ -123,7 +123,6 @@ RENDER_TEST_MODEL_SDK_CONFIGS = {
 }
 
 _BATCH_SUFFIX = '_batch'
-_TEST_BATCH_MAX_GROUP_SIZE = 256
 
 
 @contextlib.contextmanager
@@ -142,12 +141,14 @@ def _LogTestEndpoints(device, test_name):
 @contextlib.contextmanager
 def _VoiceInteractionService(device, use_voice_interaction_service):
   def set_voice_interaction_service(service):
-    device.RunShellCommand('settings put secure voice_interaction_service %s' %
-                           service)
+    device.RunShellCommand(
+        ['settings', 'put', 'secure', 'voice_interaction_service', service])
 
+  default_voice_interaction_service = None
   try:
     default_voice_interaction_service = device.RunShellCommand(
-        'settings get secure voice_interaction_service', single_line=True)
+        ['settings', 'get', 'secure', 'voice_interaction_service'],
+        single_line=True)
 
     set_voice_interaction_service(use_voice_interaction_service)
     yield
@@ -295,6 +296,10 @@ class LocalDeviceInstrumentationTestRun(
           install_apex_helper(apex)
           for apex in self._test_instance.additional_apexs)
 
+      steps.extend(
+          install_helper(apk, instant_app=self._test_instance.IsApkInstant(apk))
+          for apk in self._test_instance.additional_apks)
+
       permissions = self._test_instance.test_apk.GetPermissions()
       if self._test_instance.test_apk_incremental_install_json:
         if self._test_instance.test_apk_as_instant:
@@ -311,10 +316,6 @@ class LocalDeviceInstrumentationTestRun(
             install_helper(self._test_instance.test_apk,
                            permissions=permissions,
                            instant_app=self._test_instance.test_apk_as_instant))
-
-      steps.extend(
-          install_helper(apk, instant_app=self._test_instance.IsApkInstant(apk))
-          for apk in self._test_instance.additional_apks)
 
       # We'll potentially need the package names later for setting app
       # compatibility workarounds.
@@ -383,6 +384,17 @@ class LocalDeviceInstrumentationTestRun(
                              self._test_instance.modules,
                              self._test_instance.fake_modules, permissions,
                              self._test_instance.additional_locales))
+
+      # Execute any custom setup shell commands
+      if self._test_instance.run_setup_commands:
+
+        @trace_event.traced
+        def run_setup_commands(dev):
+          for cmd in self._test_instance.run_setup_commands:
+            logging.info('Running custom setup shell command: %s', cmd)
+            dev.RunShellCommand(cmd, shell=True, check_return=True)
+
+        steps.append(run_setup_commands)
 
       @trace_event.traced
       def set_debug_app(dev):
@@ -539,6 +551,11 @@ class LocalDeviceInstrumentationTestRun(
       # Remove package-specific configuration
       dev.RunShellCommand(['am', 'clear-debug-app'], check_return=True)
 
+      # Execute any custom teardown shell commands
+      for cmd in self._test_instance.run_teardown_commands:
+        logging.info('Running custom teardown shell command: %s', cmd)
+        dev.RunShellCommand(cmd, shell=True, check_return=True)
+
       valgrind_tools.SetChromeTimeoutScale(dev, None)
 
       # Restore any shared preference files that we stored during setup.
@@ -592,7 +609,16 @@ class LocalDeviceInstrumentationTestRun(
           device, cmdline_file)
 
   #override
-  def _CreateShards(self, tests):
+  def _CreateShardsForDevices(self, tests):
+    """Create shards of tests to run on devices.
+
+    Args:
+      tests: List containing tests or test batches.
+
+    Returns:
+      List of tests or batches.
+    """
+    # Each test or test batch will be a single shard.
     return tests
 
   #override
@@ -645,9 +671,7 @@ class LocalDeviceInstrumentationTestRun(
             batch_name += '|cmd_line_remove:' + ','.join(
                 sorted(annotations['CommandLineFlags$Remove']['value']))
 
-        if not batch_name in batched_tests:
-          batched_tests[batch_name] = []
-        batched_tests[batch_name].append(test)
+        batched_tests.setdefault(batch_name, []).append(test)
       else:
         other_tests.append(test)
 
@@ -660,13 +684,23 @@ class LocalDeviceInstrumentationTestRun(
         return tuple(dict2list(v) for v in d)
       return d
 
+    # Calculate suitable test batch max group size based on average partition
+    # size. The batch size should be below partition size to balance between
+    # shards. Choose to divide by 3 as it works fine with most of test suite
+    # without increasing too much setup/teardown time for batch tests.
+    test_count = sum(
+        [len(test) - 1 for test in tests if self._CountTestsIndividually(test)])
+    test_count += len(tests)
+    test_batch_max_group_size = \
+      max(1, test_count // self._test_instance.total_external_shards // 3)
+
     all_tests = []
     for _, btests in list(batched_tests.items()):
       # Ensure a consistent ordering across external shards.
       btests.sort(key=dict2list)
       all_tests.extend([
-          btests[i:i + _TEST_BATCH_MAX_GROUP_SIZE]
-          for i in range(0, len(btests), _TEST_BATCH_MAX_GROUP_SIZE)
+          btests[i:i + test_batch_max_group_size]
+          for i in range(0, len(btests), test_batch_max_group_size)
       ])
     all_tests.extend(other_tests)
     # Sort all tests by hash.
@@ -991,7 +1025,7 @@ class LocalDeviceInstrumentationTestRun(
 
     # Handle failures by:
     #   - optionally taking a screenshot
-    #   - logging the raw output at INFO level
+    #   - logging the raw output at ERROR level
     #   - clearing the application state while persisting permissions
     if any(r.GetType() not in (base_test_result.ResultType.PASS,
                                base_test_result.ResultType.SKIP)
@@ -999,9 +1033,9 @@ class LocalDeviceInstrumentationTestRun(
       self._SaveScreenshot(device, screenshot_device_file, test_display_name,
                            results, 'post_test_screenshot')
 
-      logging.info('detected failure in %s. raw output:', test_display_name)
+      logging.error('detected failure in %s. raw output:', test_display_name)
       for l in output:
-        logging.info('  %s', l)
+        logging.error('  %s', l)
       if not self._env.skip_clear_data:
         if self._test_instance.package_info:
           permissions = (self._test_instance.apk_under_test.GetPermissions()
@@ -1459,7 +1493,13 @@ class LocalDeviceInstrumentationTestRun(
     return True
 
   #override
-  def _ShouldShard(self):
+  def _ShouldShardTestsForDevices(self):
+    """Shard tests across several devices.
+
+    Returns:
+      True if tests should be sharded across several devices,
+      False otherwise.
+    """
     return True
 
   @classmethod

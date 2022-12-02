@@ -27,6 +27,7 @@
 #include "libANGLE/renderer/gl/FenceNVGL.h"
 #include "libANGLE/renderer/gl/FramebufferGL.h"
 #include "libANGLE/renderer/gl/FunctionsGL.h"
+#include "libANGLE/renderer/gl/PLSProgramCache.h"
 #include "libANGLE/renderer/gl/ProgramGL.h"
 #include "libANGLE/renderer/gl/QueryGL.h"
 #include "libANGLE/renderer/gl/RenderbufferGL.h"
@@ -63,6 +64,11 @@ const char *kIgnoredErrors[] = {
     "FreeAllocationOnTimestamp - Reference to buffer created from "
     "different context without a share list. Application failed to pass "
     "share_context to eglCreateContext. Results are undefined.",
+    // http://crbug.com/1348684
+    "UpdateTimestamp - Reference to buffer created from different context without a share list. "
+    "Application failed to pass share_context to eglCreateContext. Results are undefined.",
+    "Attempt to use resource over contexts without enabling context sharing. App must pass a "
+    "share_context to eglCreateContext() to share resources.",
 };
 #endif  // defined(ANGLE_PLATFORM_ANDROID)
 
@@ -208,6 +214,7 @@ RendererGL::~RendererGL()
     SafeDelete(mBlitter);
     SafeDelete(mMultiviewClearer);
     SafeDelete(mStateManager);
+    SafeDelete(mPLSProgramCache);
 
     std::lock_guard<std::mutex> lock(mWorkerMutex);
 
@@ -277,7 +284,7 @@ void RendererGL::generateCaps(gl::Caps *outCaps,
 {
     nativegl_gl::GenerateCaps(mFunctions.get(), mFeatures, outCaps, outTextureCaps, outExtensions,
                               outLimitations, &mMaxSupportedESVersion,
-                              &mMultiviewImplementationType);
+                              &mMultiviewImplementationType, &mPixelLocalStorageType);
 }
 
 GLint RendererGL::getGPUDisjoint()
@@ -326,6 +333,20 @@ const gl::Limitations &RendererGL::getNativeLimitations() const
     return mNativeLimitations;
 }
 
+ShPixelLocalStorageType RendererGL::getNativePixelLocalStorageType() const
+{
+    return mPixelLocalStorageType;
+}
+
+PLSProgramCache *RendererGL::getPLSProgramCache()
+{
+    if (!mPLSProgramCache)
+    {
+        mPLSProgramCache = new PLSProgramCache(mFunctions.get(), mNativeCaps);
+    }
+    return mPLSProgramCache;
+}
+
 MultiviewImplementationTypeGL RendererGL::getMultiviewImplementationType() const
 {
     ensureCapsInitialized();
@@ -366,6 +387,12 @@ angle::Result RendererGL::memoryBarrierByRegion(GLbitfield barriers)
     mFunctions->memoryBarrierByRegion(barriers);
     mWorkDoneSinceLastFlush = true;
     return angle::Result::Continue;
+}
+
+void RendererGL::framebufferFetchBarrier()
+{
+    mFunctions->framebufferFetchBarrierEXT();
+    mWorkDoneSinceLastFlush = true;
 }
 
 bool RendererGL::bindWorkerContext(std::string *infoLog)

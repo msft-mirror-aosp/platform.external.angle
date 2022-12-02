@@ -1,4 +1,4 @@
-# Copyright 2022 The Chromium Authors. All rights reserved.
+# Copyright 2022 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -13,5 +13,6 @@
 
 import("//build/config/fuchsia/size_optimized_cast_receiver_args.gn")
 
+enable_widevine = true
 use_internal_isolated_origins = true
 use_official_google_api_keys = false

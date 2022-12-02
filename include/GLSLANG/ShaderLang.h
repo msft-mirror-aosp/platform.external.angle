@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 305
+#define ANGLE_SH_VERSION 313
 
 enum ShShaderSpec
 {
@@ -72,24 +72,36 @@ enum ShShaderOutput
     // Output SPIR-V for the Vulkan backend.
     SH_SPIRV_VULKAN_OUTPUT = 0x8B4B,
 
-    // Output SPIR-V to be cross compiled to Metal.
-    SH_SPIRV_METAL_OUTPUT = 0x8B4C,
-
     // Output for MSL
     SH_MSL_METAL_OUTPUT = 0x8B4D,
+};
+
+// For ANGLE_shader_pixel_local_storage.
+// Instructs the compiler which pixel local storage configuration to generate code for.
+enum class ShPixelLocalStorageType
+{
+    NotSupported,
+    ImageStoreR32PackedFormats,
+    ImageStoreNativeFormats,
+    FramebufferFetch,
+    PixelLocalStorageEXT,  // GL_EXT_shader_pixel_local_storage.
 };
 
 // For ANGLE_shader_pixel_local_storage_coherent.
 // Instructs the compiler which fragment synchronization method to use, if any.
 enum class ShFragmentSynchronizationType
 {
-    NoSynchronization,
+    NotSupported,  // Fragments cannot be ordered or synchronized.
+
+    Automatic,  // Fragments are automatically raster-ordered and synchronized.
 
     FragmentShaderInterlock_NV_GL,
     FragmentShaderOrdering_INTEL_GL,
-    FragmentShaderInterlock_ARB_GL,
+    FragmentShaderInterlock_ARB_GL,  // Also compiles to SPV_EXT_fragment_shader_interlock.
 
     RasterizerOrderViews_D3D,
+
+    RasterOrderGroups_Metal,
 
     InvalidEnum,
     EnumCount = InvalidEnum,
@@ -110,8 +122,10 @@ struct ShCompileOptionsMetal
 
 struct ShCompileOptionsPLS
 {
+    ShPixelLocalStorageType type = ShPixelLocalStorageType::NotSupported;
     // For ANGLE_shader_pixel_local_storage_coherent.
-    ShFragmentSynchronizationType fragmentSynchronizationType;
+    ShFragmentSynchronizationType fragmentSynchronizationType =
+        ShFragmentSynchronizationType::NotSupported;
 };
 
 struct ShCompileOptions
@@ -373,9 +387,9 @@ struct ShCompileOptions
     // if gl_FragColor is not written.
     uint64_t initFragmentOutputVariables : 1;
 
-    // Transitory flag to select between producing SPIR-V directly vs using glslang.  Ignored in
-    // non-assert-enabled builds to avoid increasing ANGLE's binary size.
-    uint64_t generateSpirvThroughGlslang : 1;
+    // Unused.  Kept to avoid unnecessarily changing the layout of this structure and tripping up
+    // the fuzzer's hash->bug map.
+    uint64_t unused : 1;
 
     // Insert explicit casts for float/double/unsigned/signed int on macOS 10.15 with Intel driver
     uint64_t addExplicitBoolCasts : 1;
@@ -392,6 +406,9 @@ struct ShCompileOptions
     // TODO(anglebug.com/7527): This workaround is currently only applied for pixel local storage.
     // We may want to apply it generally.
     uint64_t passHighpToPackUnormSnormBuiltins : 1;
+
+    // When clip and cull distances are used simultaneously, D3D11 can support up to four of each.
+    uint64_t limitSimultaneousClipAndCullDistanceUsage : 1;
 
     ShCompileOptionsMetal metal;
     ShCompileOptionsPLS pls;
@@ -469,6 +486,7 @@ struct ShBuiltInResources
     int EXT_clip_cull_distance;
     int EXT_primitive_bounding_box;
     int OES_primitive_bounding_box;
+    int EXT_separate_shader_objects;
     int ANGLE_base_vertex_base_instance_shader_builtin;
     int ANDROID_extension_pack_es31a;
     int KHR_blend_equation_advanced;
@@ -640,6 +658,11 @@ struct ShBuiltInResources
     int MaxClipDistances;
     int MaxCullDistances;
     int MaxCombinedClipAndCullDistances;
+
+    // ANGLE_shader_pixel_local_storage.
+    int MaxPixelLocalStoragePlanes;
+    int MaxColorAttachmentsWithActivePixelLocalStorage;
+    int MaxCombinedDrawBuffersAndPixelLocalStoragePlanes;
 };
 
 //
@@ -963,12 +986,6 @@ extern const char kRasterizerDiscardEnabledConstName[];
 // Specialization constant to enable depth write in fragment shaders.
 extern const char kDepthWriteEnabledConstName[];
 }  // namespace mtl
-
-// For backends that use glslang (the Vulkan shader compiler), i.e. Vulkan and Metal, call these to
-// initialize and finalize glslang itself.  This can be called independently from Initialize() and
-// Finalize().
-void InitializeGlslang();
-void FinalizeGlslang();
 
 }  // namespace sh
 

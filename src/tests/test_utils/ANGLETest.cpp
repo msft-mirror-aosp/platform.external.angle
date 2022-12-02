@@ -353,8 +353,8 @@ void LoadEntryPointsWithUtilLoader(angle::GLESDriverType driverType)
     ANGLETestEnvironment::GetDriverLibrary(driverType)->getAs("eglGetProcAddress", &getProcAddress);
     ASSERT_NE(nullptr, getProcAddress);
 
-    LoadEGL(getProcAddress);
-    LoadGLES(getProcAddress);
+    LoadUtilEGL(getProcAddress);
+    LoadUtilGLES(getProcAddress);
 #endif  // defined(ANGLE_USE_UTIL_LOADER)
 }
 
@@ -523,9 +523,13 @@ void ANGLETestBase::initOSWindow()
         mFixture->osWindow = mOSWindowSingleton;
     }
 
-    if (!mFixture->osWindow)
+    if (mFixture->osWindow == nullptr)
     {
         mFixture->osWindow = OSWindow::New();
+        if (mFixture->osWindow == nullptr)
+        {
+            FATAL() << "Failed to create a new window";
+        }
         mFixture->osWindow->disableErrorMessageDialog();
         if (!mFixture->osWindow->initialize(windowName.c_str(), 128, 128))
         {
@@ -551,6 +555,7 @@ void ANGLETestBase::initOSWindow()
     {
         case GLESDriverType::AngleEGL:
         case GLESDriverType::SystemEGL:
+        case GLESDriverType::ZinkEGL:
         {
             mFixture->eglWindow =
                 EGLWindow::New(mCurrentParams->clientType, mCurrentParams->majorVersion,
@@ -673,8 +678,8 @@ void ANGLETestBase::ANGLETestSetUp()
     int osWindowWidth  = mFixture->osWindow->getWidth();
     int osWindowHeight = mFixture->osWindow->getHeight();
 
-    const bool isRotated = mCurrentParams->isEnabled(Feature::EmulatedPrerotation90) ||
-                           mCurrentParams->isEnabled(Feature::EmulatedPrerotation270);
+    const bool isRotated = mCurrentParams->isEnableRequested(Feature::EmulatedPrerotation90) ||
+                           mCurrentParams->isEnableRequested(Feature::EmulatedPrerotation270);
     if (isRotated)
     {
         std::swap(osWindowWidth, osWindowHeight);
@@ -819,7 +824,6 @@ void ANGLETestBase::ANGLETestTearDown()
         mFixture->eglWindow->destroySurface();
     }
 
-    // Check for quit message
     Event myEvent;
     while (mFixture->osWindow->popEvent(&myEvent))
     {
@@ -834,11 +838,31 @@ void ANGLETestBase::ReleaseFixtures()
 {
     for (auto it = gFixtures.begin(); it != gFixtures.end(); it++)
     {
-        if (it->second.eglWindow)
+        TestFixture &fixture = it->second;
+        if (fixture.eglWindow != nullptr)
         {
-            it->second.eglWindow->destroyGL();
+            fixture.eglWindow->destroyGL();
+            EGLWindow::Delete(&fixture.eglWindow);
+        }
+
+        if (IsAndroid())
+        {
+            if (mOSWindowSingleton != nullptr)
+            {
+                OSWindow::Delete(&mOSWindowSingleton);
+            }
+            fixture.osWindow = nullptr;
+        }
+        else
+        {
+            if (fixture.osWindow != nullptr)
+            {
+                OSWindow::Delete(&fixture.osWindow);
+            }
         }
     }
+
+    gFixtures.clear();
 }
 
 void ANGLETestBase::swapBuffers()
@@ -1519,6 +1543,7 @@ Optional<EGLint> ANGLETestBase::mLastRendererType;
 Optional<angle::GLESDriverType> ANGLETestBase::mLastLoadedDriver;
 
 std::unique_ptr<Library> ANGLETestEnvironment::gAngleEGLLibrary;
+std::unique_ptr<Library> ANGLETestEnvironment::gMesaEGLLibrary;
 std::unique_ptr<Library> ANGLETestEnvironment::gSystemEGLLibrary;
 std::unique_ptr<Library> ANGLETestEnvironment::gSystemWGLLibrary;
 
@@ -1540,6 +1565,8 @@ Library *ANGLETestEnvironment::GetDriverLibrary(angle::GLESDriverType driver)
             return GetSystemEGLLibrary();
         case angle::GLESDriverType::SystemWGL:
             return GetSystemWGLLibrary();
+        case angle::GLESDriverType::ZinkEGL:
+            return GetMesaEGLLibrary();
         default:
             return nullptr;
     }
@@ -1555,6 +1582,19 @@ Library *ANGLETestEnvironment::GetAngleEGLLibrary()
     }
 #endif  // defined(ANGLE_USE_UTIL_LOADER)
     return gAngleEGLLibrary.get();
+}
+
+// static
+Library *ANGLETestEnvironment::GetMesaEGLLibrary()
+{
+#if defined(ANGLE_USE_UTIL_LOADER)
+    if (!gMesaEGLLibrary)
+    {
+        gMesaEGLLibrary.reset(
+            OpenSharedLibrary(ANGLE_MESA_EGL_LIBRARY_NAME, SearchType::ModuleDir));
+    }
+#endif  // defined(ANGLE_USE_UTIL_LOADER)
+    return gMesaEGLLibrary.get();
 }
 
 // static

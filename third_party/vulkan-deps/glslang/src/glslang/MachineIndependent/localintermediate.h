@@ -283,15 +283,14 @@ class TIntermediate {
 public:
     explicit TIntermediate(EShLanguage l, int v = 0, EProfile p = ENoProfile) :
         language(l),
-#ifndef GLSLANG_ANGLE
         profile(p), version(v),
-#endif
         treeRoot(0),
         resources(TBuiltInResource{}),
         numEntryPoints(0), numErrors(0), numPushConstants(0), recursive(false),
         invertY(false),
         dxPositionW(false),
         enhancedMsgs(false),
+        debugInfo(false),
         useStorageBuffer(false),
         invariantAll(false),
         nanMinMaxClamp(false),
@@ -357,15 +356,11 @@ public:
 
     void setVersion(int v)
     {
-#ifndef GLSLANG_ANGLE
         version = v;
-#endif
     }
     void setProfile(EProfile p)
     {
-#ifndef GLSLANG_ANGLE
         profile = p;
-#endif
     }
 
     int getVersion() const { return version; }
@@ -461,6 +456,12 @@ public:
     void setEntryPointMangledName(const char* ep) { entryPointMangledName = ep; }
     const std::string& getEntryPointName() const { return entryPointName; }
     const std::string& getEntryPointMangledName() const { return entryPointMangledName; }
+
+    void setDebugInfo(bool debuginfo)
+    {
+        debugInfo = debuginfo;
+    }
+    bool getDebugInfo() const { return debugInfo; }
 
     void setInvertY(bool invert)
     {
@@ -1094,13 +1095,8 @@ protected:
     typedef std::list<TCall> TGraph;
     TGraph callGraph;
 
-#ifdef GLSLANG_ANGLE
-    const EProfile profile = ECoreProfile;
-    const int version = 450;
-#else
     EProfile profile;                           // source profile
     int version;                                // source version
-#endif
     SpvVersion spvVersion;
     TIntermNode* treeRoot;
     std::set<std::string> requestedExtensions;  // cumulation of all enabled or required extensions; not connected to what subset of the shader used them
@@ -1112,6 +1108,7 @@ protected:
     bool invertY;
     bool dxPositionW;
     bool enhancedMsgs;
+    bool debugInfo;
     bool useStorageBuffer;
     bool invariantAll;
     bool nanMinMaxClamp;            // true if desiring min/max/clamp to favor non-NaN over NaN

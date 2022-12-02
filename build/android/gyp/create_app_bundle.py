@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2018 The Chromium Authors. All rights reserved.
+# Copyright 2018 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -199,13 +199,10 @@ def _GenerateBundleConfigJson(uncompressed_assets, compress_dex,
   split_dimensions = [ _MakeSplitDimension(dim, dim in split_dimensions)
                        for dim in _ALL_SPLIT_DIMENSIONS ]
 
-  # Native libraries loaded by the crazy linker.
-  # Whether other .so files are compressed is controlled by
-  # "uncompressNativeLibraries".
-  uncompressed_globs = ['lib/*/crazy.*']
   # Locale-specific pak files stored in bundle splits need not be compressed.
-  uncompressed_globs.extend(
-      ['assets/locales#lang_*/*.pak', 'assets/fallback-locales/*.pak'])
+  uncompressed_globs = [
+      'assets/locales#lang_*/*.pak', 'assets/fallback-locales/*.pak'
+  ]
   uncompressed_globs.extend('assets/' + x for x in uncompressed_assets)
   # NOTE: Use '**' instead of '*' to work through directories!
   uncompressed_globs.extend('**.' + ext for ext in _UNCOMPRESSED_FILE_EXTS)

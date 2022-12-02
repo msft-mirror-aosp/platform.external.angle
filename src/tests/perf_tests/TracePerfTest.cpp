@@ -15,6 +15,7 @@
 #include "tests/perf_tests/ANGLEPerfTestArgs.h"
 #include "tests/perf_tests/DrawCallPerfParams.h"
 #include "util/capture/frame_capture_test_utils.h"
+#include "util/capture/trace_interpreter.h"
 #include "util/capture/traces_export.h"
 #include "util/egl_loader_autogen.h"
 #include "util/png_utils.h"
@@ -51,10 +52,51 @@ constexpr size_t kMaxPath = 1024;
 struct TracePerfParams final : public RenderTestParams
 {
     // Common default options
-    TracePerfParams()
+    TracePerfParams(const TraceInfo &traceInfoIn,
+                    GLESDriverType driverType,
+                    EGLenum platformType,
+                    EGLenum deviceType)
+        : traceInfo(traceInfoIn)
     {
+        majorVersion = traceInfo.contextClientMajorVersion;
+        minorVersion = traceInfo.contextClientMinorVersion;
+        windowWidth  = traceInfo.drawSurfaceWidth;
+        windowHeight = traceInfo.drawSurfaceHeight;
+        colorSpace   = traceInfo.drawSurfaceColorSpace;
+
         // Display the frame after every drawBenchmark invocation
         iterationsPerStep = 1;
+
+        driver                   = driverType;
+        eglParameters.renderer   = platformType;
+        eglParameters.deviceType = deviceType;
+
+        ASSERT(!gOffscreen || !gVsync);
+
+        if (gOffscreen)
+        {
+            surfaceType = SurfaceType::Offscreen;
+
+            if (!IsAndroid())
+            {
+                windowWidth /= 4;
+                windowHeight /= 4;
+            }
+        }
+        if (gVsync)
+        {
+            surfaceType = SurfaceType::WindowWithVSync;
+        }
+
+        // Force on features if we're validating serialization.
+        if (gTraceTestValidation)
+        {
+            // Enable limits when validating traces because we usually turn off capture.
+            eglParameters.enable(Feature::EnableCaptureLimits);
+
+            // This feature should also be enabled in capture to mirror the replay.
+            eglParameters.enable(Feature::ForceInitShaderVariables);
+        }
     }
 
     std::string story() const override
@@ -67,17 +109,12 @@ struct TracePerfParams final : public RenderTestParams
     TraceInfo traceInfo = {};
 };
 
-std::ostream &operator<<(std::ostream &os, const TracePerfParams &params)
-{
-    os << params.backendAndStory().substr(1);
-    return os;
-}
-
 class TracePerfTest : public ANGLERenderTest
 {
   public:
     TracePerfTest(std::unique_ptr<const TracePerfParams> params);
 
+    void startTest() override;
     void initializeBenchmark() override;
     void destroyBenchmark() override;
     void drawBenchmark() override;
@@ -103,6 +140,13 @@ class TracePerfTest : public ANGLERenderTest
                                     const EGLint *attrib_list);
     EGLBoolean onEglDestroyImage(EGLDisplay display, EGLImage image);
     EGLBoolean onEglDestroyImageKHR(EGLDisplay display, EGLImage image);
+    EGLSync onEglCreateSync(EGLDisplay dpy, EGLenum type, const EGLAttrib *attrib_list);
+    EGLSync onEglCreateSyncKHR(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list);
+    EGLBoolean onEglDestroySync(EGLDisplay dpy, EGLSync sync);
+    EGLBoolean onEglDestroySyncKHR(EGLDisplay dpy, EGLSync sync);
+    EGLint onEglClientWaitSync(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTimeKHR timeout);
+    EGLint onEglClientWaitSyncKHR(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTimeKHR timeout);
+    EGLint onEglGetError();
 
     void onReplayFramebufferChange(GLenum target, GLuint framebuffer);
     void onReplayInvalidateFramebuffer(GLenum target,
@@ -188,7 +232,7 @@ class TracePerfTest : public ANGLERenderTest
     uint32_t mOffscreenFrameCount                                       = 0;
     uint32_t mTotalFrameCount                                           = 0;
     bool mScreenshotSaved                                               = false;
-    std::unique_ptr<TraceLibrary> mTraceLibrary;
+    std::unique_ptr<TraceReplayInterface> mTraceReplay;
 };
 
 TracePerfTest *gCurrentTracePerfTest = nullptr;
@@ -242,6 +286,46 @@ EGLBoolean KHRONOS_APIENTRY EglDestroyImage(EGLDisplay display, EGLImage image)
 EGLBoolean KHRONOS_APIENTRY EglDestroyImageKHR(EGLDisplay display, EGLImage image)
 {
     return gCurrentTracePerfTest->onEglDestroyImageKHR(display, image);
+}
+
+EGLSync KHRONOS_APIENTRY EglCreateSync(EGLDisplay dpy, EGLenum type, const EGLAttrib *attrib_list)
+{
+    return gCurrentTracePerfTest->onEglCreateSync(dpy, type, attrib_list);
+}
+
+EGLSync KHRONOS_APIENTRY EglCreateSyncKHR(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list)
+{
+    return gCurrentTracePerfTest->onEglCreateSyncKHR(dpy, type, attrib_list);
+}
+
+EGLBoolean KHRONOS_APIENTRY EglDestroySync(EGLDisplay dpy, EGLSync sync)
+{
+    return gCurrentTracePerfTest->onEglDestroySync(dpy, sync);
+}
+
+EGLBoolean KHRONOS_APIENTRY EglDestroySyncKHR(EGLDisplay dpy, EGLSync sync)
+{
+    return gCurrentTracePerfTest->onEglDestroySyncKHR(dpy, sync);
+}
+
+EGLint KHRONOS_APIENTRY EglClientWaitSync(EGLDisplay dpy,
+                                          EGLSync sync,
+                                          EGLint flags,
+                                          EGLTimeKHR timeout)
+{
+    return gCurrentTracePerfTest->onEglClientWaitSync(dpy, sync, flags, timeout);
+}
+EGLint KHRONOS_APIENTRY EglClientWaitSyncKHR(EGLDisplay dpy,
+                                             EGLSync sync,
+                                             EGLint flags,
+                                             EGLTimeKHR timeout)
+{
+    return gCurrentTracePerfTest->onEglClientWaitSyncKHR(dpy, sync, flags, timeout);
+}
+
+EGLint KHRONOS_APIENTRY EglGetError()
+{
+    return gCurrentTracePerfTest->onEglGetError();
 }
 
 void KHRONOS_APIENTRY BindFramebufferProc(GLenum target, GLuint framebuffer)
@@ -556,6 +640,34 @@ angle::GenericProc KHRONOS_APIENTRY TraceLoadProc(const char *procName)
     {
         return reinterpret_cast<angle::GenericProc>(EglDestroyImageKHR);
     }
+    if (strcmp(procName, "eglCreateSync") == 0)
+    {
+        return reinterpret_cast<angle::GenericProc>(EglCreateSync);
+    }
+    if (strcmp(procName, "eglCreateSyncKHR") == 0)
+    {
+        return reinterpret_cast<angle::GenericProc>(EglCreateSyncKHR);
+    }
+    if (strcmp(procName, "eglDestroySync") == 0)
+    {
+        return reinterpret_cast<angle::GenericProc>(EglDestroySync);
+    }
+    if (strcmp(procName, "eglDestroySyncKHR") == 0)
+    {
+        return reinterpret_cast<angle::GenericProc>(EglDestroySyncKHR);
+    }
+    if (strcmp(procName, "eglClientWaitSync") == 0)
+    {
+        return reinterpret_cast<angle::GenericProc>(EglClientWaitSync);
+    }
+    if (strcmp(procName, "eglClientWaitSyncKHR") == 0)
+    {
+        return reinterpret_cast<angle::GenericProc>(EglClientWaitSyncKHR);
+    }
+    if (strcmp(procName, "eglGetError") == 0)
+    {
+        return reinterpret_cast<angle::GenericProc>(EglGetError);
+    }
 
     // GLES
     if (strcmp(procName, "glBindFramebuffer") == 0)
@@ -730,6 +842,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
     {
         failTest("Failed to load trace json.");
         return;
+    }
+
+    for (std::string extension : mParams->traceInfo.requiredExtensions)
+    {
+        addExtensionPrerequisite(extension);
     }
 
     if (IsWindows() && IsIntel() && mParams->isVulkan() && traceNameIs("manhattan_10"))
@@ -1288,15 +1405,61 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         addExtensionPrerequisite("GL_ANDROID_extension_pack_es31a");
     }
 
+    if (traceNameIs("botworld_adventure"))
+    {
+        addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
+    }
+
+    if (traceNameIs("eve_echoes"))
+    {
+        if (IsQualcomm() && mParams->isVulkan())
+        {
+            skipTest("TODO: http://anglebug.com/7690 Test crashes in LLVM on Qualcomm (Pixel 4)");
+        }
+    }
+
+    if (traceNameIs("life_is_strange"))
+    {
+        if (IsWindows() && IsNVIDIA() && mParams->isVulkan() && !mParams->isSwiftshader())
+        {
+            skipTest("http://anglebug.com/7723 Renders incorrectly on Nvidia Windows");
+        }
+
+        addExtensionPrerequisite("GL_EXT_texture_buffer");
+        addExtensionPrerequisite("GL_EXT_texture_cube_map_array");
+    }
+
+    if (traceNameIs("survivor_io"))
+    {
+        if (IsWindows() && IsNVIDIA() && mParams->isVulkan() && !mParams->isSwiftshader())
+        {
+            skipTest("http://anglebug.com/7733 Renders incorrectly on Nvidia Windows");
+        }
+
+        if (IsWindows() && IsIntel() && mParams->driver != GLESDriverType::AngleEGL)
+        {
+            skipTest(
+                "http://anglebug.com/7737 Programs fail to link on Intel Windows native driver, "
+                "citing MAX_UNIFORM_LOCATIONS exceeded");
+        }
+    }
+
+    if (traceNameIs("minetest"))
+    {
+        addExtensionPrerequisite("GL_EXT_texture_format_BGRA8888");
+        addIntegerPrerequisite(GL_MAX_TEXTURE_UNITS, 4);
+    }
+
+    if (traceNameIs("diablo_immortal"))
+    {
+        addExtensionPrerequisite("GL_EXT_shader_framebuffer_fetch");
+    }
+
     // glDebugMessageControlKHR and glDebugMessageCallbackKHR crash on ARM GLES1.
     if (IsARM() && mParams->traceInfo.contextClientMajorVersion == 1)
     {
         mEnableDebugCallback = false;
     }
-
-    ASSERT(mParams->surfaceType == SurfaceType::Window || gEnableAllTraceTests);
-    ASSERT(mParams->eglParameters.deviceType == EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE ||
-           gEnableAllTraceTests);
 
     // We already swap in TracePerfTest::drawBenchmark, no need to swap again in the harness.
     disableTestHarnessSwap();
@@ -1307,31 +1470,22 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
     {
         mStepsToRun = frameCount();
     }
+
+    if (gWarmupSteps == kAllFrames)
+    {
+        mWarmupSteps = frameCount();
+    }
+}
+
+void TracePerfTest::startTest()
+{
+    // runTrial() must align to frameCount()
+    ASSERT(mCurrentFrame == mStartFrame);
 }
 
 void TracePerfTest::initializeBenchmark()
 {
     const TraceInfo &traceInfo = mParams->traceInfo;
-
-    std::stringstream traceNameStr;
-    traceNameStr << "angle_restricted_traces_" << traceInfo.name;
-    std::string traceName = traceNameStr.str();
-    mTraceLibrary.reset(new TraceLibrary(traceName.c_str()));
-
-    trace_angle::LoadEGL(TraceLoadProc);
-    trace_angle::LoadGLES(TraceLoadProc);
-
-    if (!mTraceLibrary->valid())
-    {
-        failTest("Could not load trace library.");
-        return;
-    }
-
-    mStartFrame = traceInfo.frameStart;
-    mEndFrame   = traceInfo.frameEnd;
-    mTraceLibrary->setBinaryDataDecompressCallback(DecompressBinaryData, DeleteBinaryData);
-
-    mTraceLibrary->setValidateSerializedStateCallback(ValidateSerializedState);
 
     char testDataDir[kMaxPath] = {};
     if (!FindTraceTestDataPath(traceInfo.name, testDataDir, kMaxPath))
@@ -1340,7 +1494,32 @@ void TracePerfTest::initializeBenchmark()
         return;
     }
 
-    mTraceLibrary->setBinaryDataDir(testDataDir);
+    if (gTraceInterpreter)
+    {
+        mTraceReplay.reset(new TraceInterpreter(traceInfo, testDataDir, gVerboseLogging));
+    }
+    else
+    {
+        std::stringstream traceNameStr;
+        traceNameStr << "angle_restricted_traces_" << traceInfo.name;
+        std::string traceName = traceNameStr.str();
+        mTraceReplay.reset(new TraceLibrary(traceName.c_str()));
+    }
+
+    LoadTraceEGL(TraceLoadProc);
+    LoadTraceGLES(TraceLoadProc);
+
+    if (!mTraceReplay->valid())
+    {
+        failTest("Could not load trace.");
+        return;
+    }
+
+    mStartFrame = traceInfo.frameStart;
+    mEndFrame   = traceInfo.frameEnd;
+    mTraceReplay->setBinaryDataDecompressCallback(DecompressBinaryData, DeleteBinaryData);
+    mTraceReplay->setValidateSerializedStateCallback(ValidateSerializedState);
+    mTraceReplay->setBinaryDataDir(testDataDir);
 
     if (gMinimizeGPUWork)
     {
@@ -1398,7 +1577,7 @@ void TracePerfTest::initializeBenchmark()
     }
 
     // Potentially slow. Can load a lot of resources.
-    mTraceLibrary->setupReplay();
+    mTraceReplay->setupReplay();
 
     glFinish();
 
@@ -1431,8 +1610,8 @@ void TracePerfTest::destroyBenchmark()
         mOffscreenFramebuffers.fill(0);
     }
 
-    mTraceLibrary->finishReplay();
-    mTraceLibrary.reset(nullptr);
+    mTraceReplay->finishReplay();
+    mTraceReplay.reset(nullptr);
 }
 
 void TracePerfTest::sampleTime()
@@ -1491,11 +1670,11 @@ void TracePerfTest::drawBenchmark()
     }
 
     char frameName[32];
-    sprintf(frameName, "Frame %u", mCurrentFrame);
+    snprintf(frameName, sizeof(frameName), "Frame %u", mCurrentFrame);
     beginInternalTraceEvent(frameName);
 
     startGpuTimer();
-    mTraceLibrary->replayFrame(mCurrentFrame);
+    mTraceReplay->replayFrame(mCurrentFrame);
     stopGpuTimer();
 
     updatePerfCounters();
@@ -1568,7 +1747,7 @@ void TracePerfTest::drawBenchmark()
 
     if (mCurrentFrame == mEndFrame)
     {
-        mTraceLibrary->resetReplay();
+        mTraceReplay->resetReplay();
         mCurrentFrame = mStartFrame;
     }
     else
@@ -1591,7 +1770,7 @@ void TracePerfTest::drawBenchmark()
         if (endResultAvailable == GL_TRUE)
         {
             char fboName[32];
-            sprintf(fboName, "FBO %u", query.framebuffer);
+            snprintf(fboName, sizeof(fboName), "FBO %u", query.framebuffer);
 
             GLint64 beginTimestamp = 0;
             glGetQueryObjecti64vEXT(query.beginTimestampQuery, GL_QUERY_RESULT, &beginTimestamp);
@@ -1708,6 +1887,47 @@ EGLBoolean TracePerfTest::onEglDestroyImage(EGLDisplay display, EGLImage image)
 EGLBoolean TracePerfTest::onEglDestroyImageKHR(EGLDisplay display, EGLImage image)
 {
     return getGLWindow()->destroyImageKHR(image);
+}
+
+EGLSync TracePerfTest::onEglCreateSync(EGLDisplay dpy, EGLenum type, const EGLAttrib *attrib_list)
+{
+    return getGLWindow()->createSync(dpy, type, attrib_list);
+}
+
+EGLSync TracePerfTest::onEglCreateSyncKHR(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list)
+{
+    return getGLWindow()->createSyncKHR(dpy, type, attrib_list);
+}
+
+EGLBoolean TracePerfTest::onEglDestroySync(EGLDisplay dpy, EGLSync sync)
+{
+    return getGLWindow()->destroySync(dpy, sync);
+}
+
+EGLBoolean TracePerfTest::onEglDestroySyncKHR(EGLDisplay dpy, EGLSync sync)
+{
+    return getGLWindow()->destroySyncKHR(dpy, sync);
+}
+
+EGLint TracePerfTest::onEglClientWaitSync(EGLDisplay dpy,
+                                          EGLSync sync,
+                                          EGLint flags,
+                                          EGLTimeKHR timeout)
+{
+    return getGLWindow()->clientWaitSync(dpy, sync, flags, timeout);
+}
+
+EGLint TracePerfTest::onEglClientWaitSyncKHR(EGLDisplay dpy,
+                                             EGLSync sync,
+                                             EGLint flags,
+                                             EGLTimeKHR timeout)
+{
+    return getGLWindow()->clientWaitSyncKHR(dpy, sync, flags, timeout);
+}
+
+EGLint TracePerfTest::onEglGetError()
+{
+    return getGLWindow()->getEGLError();
 }
 
 // Triggered when the replay calls glBindFramebuffer.
@@ -1986,17 +2206,17 @@ void TracePerfTest::onReplayDiscardFramebufferEXT(GLenum target,
 void TracePerfTest::swap()
 {
     // Capture a screenshot if enabled.
-    if (gScreenShotDir != nullptr && gSaveScreenshots && !mScreenshotSaved &&
-        static_cast<uint32_t>(gScreenShotFrame) == mCurrentIteration)
+    if (gScreenshotDir != nullptr && gSaveScreenshots && !mScreenshotSaved &&
+        static_cast<uint32_t>(gScreenshotFrame) == mCurrentIteration)
     {
         std::stringstream screenshotNameStr;
-        screenshotNameStr << gScreenShotDir << GetPathSeparator() << "angle" << mBackend << "_"
+        screenshotNameStr << gScreenshotDir << GetPathSeparator() << "angle" << mBackend << "_"
                           << mStory;
 
         // Add a marker to the name for any screenshot that isn't start frame
-        if (mStartFrame != static_cast<uint32_t>(gScreenShotFrame))
+        if (mStartFrame != static_cast<uint32_t>(gScreenshotFrame))
         {
-            screenshotNameStr << "_frame" << gScreenShotFrame;
+            screenshotNameStr << "_frame" << gScreenshotFrame;
         }
 
         screenshotNameStr << ".png";
@@ -2049,44 +2269,22 @@ void TracePerfTest::saveScreenshot(const std::string &screenshotName)
         printf("Saved screenshot: '%s'\n", screenshotName.c_str());
     }
 }
-
-TracePerfParams CombineWithTraceInfo(const TracePerfParams &in, const TraceInfo &traceInfo)
-{
-    TracePerfParams out = in;
-    out.traceInfo       = traceInfo;
-    out.majorVersion    = traceInfo.contextClientMajorVersion;
-    out.minorVersion    = traceInfo.contextClientMinorVersion;
-    out.windowWidth     = traceInfo.drawSurfaceWidth;
-    out.windowHeight    = traceInfo.drawSurfaceHeight;
-    out.colorSpace      = traceInfo.drawSurfaceColorSpace;
-    return out;
-}
-
-TracePerfParams CombineWithSurfaceType(const TracePerfParams &in, SurfaceType surfaceType)
-{
-    TracePerfParams out = in;
-    out.surfaceType     = surfaceType;
-
-    if (!IsAndroid() && surfaceType == SurfaceType::Offscreen)
-    {
-        out.windowWidth /= 4;
-        out.windowHeight /= 4;
-    }
-
-    // We track GPU time only in frame-rate-limited cases.
-    out.trackGpuTime = surfaceType == SurfaceType::WindowWithVSync;
-
-    return out;
-}
-
 }  // anonymous namespace
 
 using namespace params;
-using P  = TracePerfParams;
-using PV = std::vector<P>;
 
 void RegisterTraceTests()
 {
+    GLESDriverType driverType = GetDriverTypeFromString(gUseGL, GLESDriverType::AngleEGL);
+    GLenum platformType       = EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE;
+    GLenum deviceType         = EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE;
+    if (driverType == GLESDriverType::AngleEGL)
+    {
+        platformType = GetPlatformANGLETypeFromArg(gUseANGLE, EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE);
+        deviceType =
+            GetANGLEDeviceTypeFromArg(gUseANGLE, EGL_PLATFORM_ANGLE_DEVICE_TYPE_HARDWARE_ANGLE);
+    }
+
     char rootTracePath[kMaxPath] = {};
     if (!FindRootTraceTestDataPath(rootTracePath, kMaxPath))
     {
@@ -2123,53 +2321,19 @@ void RegisterTraceTests()
         traceInfos.push_back(traceInfo);
     }
 
-    std::vector<SurfaceType> surfaceTypes = {SurfaceType::Window};
-    if (gEnableAllTraceTests)
+    for (const TraceInfo &traceInfo : traceInfos)
     {
-        surfaceTypes.push_back(SurfaceType::Offscreen);
-        surfaceTypes.push_back(SurfaceType::WindowWithVSync);
-    }
+        const TracePerfParams params(traceInfo, driverType, platformType, deviceType);
 
-    std::vector<ModifierFunc<P>> renderers = {Vulkan<P>, Native<P>};
-    if (gEnableAllTraceTests)
-    {
-        if (!IsAndroid())
-        {
-            renderers.push_back(VulkanMockICD<P>);
-        }
-        renderers.push_back(VulkanSwiftShader<P>);
-    }
-
-    PV withTraceInfo   = CombineWithValues({P()}, traceInfos, CombineWithTraceInfo);
-    PV withSurfaceType = CombineWithValues(withTraceInfo, surfaceTypes, CombineWithSurfaceType);
-    PV withRenderer    = CombineWithFuncs(withSurfaceType, renderers);
-
-    for (const TracePerfParams &params : withRenderer)
-    {
         if (!IsPlatformAvailable(params))
         {
             continue;
         }
 
-        // Force on features if we're validating serialization.
-        TracePerfParams overrideParams = params;
-        if (gTraceTestValidation)
-        {
-            // Enable limits when validating traces because we usually turn off capture.
-            overrideParams.eglParameters.enable(Feature::EnableCaptureLimits);
-
-            // This feature should also be enabled in capture to mirror the replay.
-            overrideParams.eglParameters.enable(Feature::ForceInitShaderVariables);
-        }
-
-        auto factory = [overrideParams]() {
-            return new TracePerfTest(std::make_unique<TracePerfParams>(overrideParams));
+        auto factory = [params]() {
+            return new TracePerfTest(std::make_unique<TracePerfParams>(params));
         };
-        std::string paramName = testing::PrintToString(params);
-        std::stringstream testNameStr;
-        testNameStr << "Run/" << paramName;
-        std::string testName = testNameStr.str();
-        testing::RegisterTest("TracePerfTest", testName.c_str(), nullptr, paramName.c_str(),
-                              __FILE__, __LINE__, factory);
+        testing::RegisterTest("TraceTest", traceInfo.name, nullptr, nullptr, __FILE__, __LINE__,
+                              factory);
     }
 }

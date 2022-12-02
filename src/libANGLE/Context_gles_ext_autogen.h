@@ -78,8 +78,9 @@
     /* GL_EXT_EGL_image_array */                                                                   \
     /* GL_EXT_EGL_image_external_wrap_modes */                                                     \
     /* GL_EXT_EGL_image_storage */                                                                 \
-    void eGLImageTargetTexStorage(GLenum target, GLeglImageOES image, const GLint *attrib_list);   \
-    void eGLImageTargetTextureStorage(GLuint texture, GLeglImageOES image,                         \
+    void eGLImageTargetTexStorage(GLenum target, egl::ImageID imagePacked,                         \
+                                  const GLint *attrib_list);                                       \
+    void eGLImageTargetTextureStorage(GLuint texture, egl::ImageID imagePacked,                    \
                                       const GLint *attrib_list);                                   \
     /* GL_EXT_YUV_target */                                                                        \
     /* GL_EXT_base_instance */                                                                     \
@@ -268,8 +269,8 @@
     /* GL_NV_robustness_video_memory_purge */                                                      \
     /* GL_NV_shader_noperspective_interpolation */                                                 \
     /* GL_OES_EGL_image */                                                                         \
-    void eGLImageTargetRenderbufferStorage(GLenum target, GLeglImageOES image);                    \
-    void eGLImageTargetTexture2D(TextureType targetPacked, GLeglImageOES image);                   \
+    void eGLImageTargetRenderbufferStorage(GLenum target, egl::ImageID imagePacked);               \
+    void eGLImageTargetTexture2D(TextureType targetPacked, egl::ImageID imagePacked);              \
     /* GL_OES_EGL_image_external */                                                                \
     /* GL_OES_EGL_image_external_essl3 */                                                          \
     /* GL_OES_EGL_sync */                                                                          \
@@ -284,6 +285,7 @@
     /* GL_OES_compressed_ETC2_punchthroughA_sRGB8_alpha_texture */                                 \
     /* GL_OES_compressed_ETC2_sRGB8_alpha8_texture */                                              \
     /* GL_OES_compressed_ETC2_sRGB8_texture */                                                     \
+    /* GL_OES_compressed_paletted_texture */                                                       \
     /* GL_OES_copy_image */                                                                        \
     /* GL_OES_depth24 */                                                                           \
     /* GL_OES_depth32 */                                                                           \
@@ -369,6 +371,8 @@
     void getRenderbufferImage(GLenum target, GLenum format, GLenum type, void *pixels);            \
     /* GL_ANGLE_get_serialized_context_string */                                                   \
     /* GL_ANGLE_get_tex_level_parameter */                                                         \
+    /* GL_ANGLE_logic_op */                                                                        \
+    void logicOpANGLE(LogicalOperation opcodePacked);                                              \
     /* GL_ANGLE_lossy_etc_decode */                                                                \
     /* GL_ANGLE_memory_object_flags */                                                             \
     void texStorageMemFlags2D(TextureType targetPacked, GLsizei levels, GLenum internalFormat,     \
@@ -409,7 +413,7 @@
     /* GL_ANGLE_program_binary */                                                                  \
     /* GL_ANGLE_program_cache_control */                                                           \
     /* GL_ANGLE_provoking_vertex */                                                                \
-    void provokingVertex(ProvokingVertexConvention modePacked);                                    \
+    void provokingVertex(ProvokingVertexConvention provokeModePacked);                             \
     /* GL_ANGLE_read_only_depth_stencil_feedback_loops */                                          \
     /* GL_ANGLE_relaxed_vertex_attribute_type */                                                   \
     /* GL_ANGLE_request_extension */                                                               \
@@ -563,6 +567,17 @@
     void importSemaphoreZirconHandle(SemaphoreID semaphorePacked, HandleType handleTypePacked,     \
                                      GLuint handle);                                               \
     /* GL_ANGLE_shader_pixel_local_storage */                                                      \
+    void framebufferMemorylessPixelLocalStorage(GLint plane, GLenum internalformat);               \
+    void framebufferTexturePixelLocalStorage(GLint plane, TextureID backingtexturePacked,          \
+                                             GLint level, GLint layer);                            \
+    void framebufferPixelLocalClearValuefv(GLint plane, const GLfloat *value);                     \
+    void framebufferPixelLocalClearValueiv(GLint plane, const GLint *value);                       \
+    void framebufferPixelLocalClearValueuiv(GLint plane, const GLuint *value);                     \
+    void beginPixelLocalStorage(GLsizei n, const GLenum *loadops);                                 \
+    void endPixelLocalStorage(GLsizei n, const GLenum *storeops);                                  \
+    void pixelLocalStorageBarrier();                                                               \
+    void getFramebufferPixelLocalStorageParameterfv(GLint plane, GLenum pname, GLfloat *params);   \
+    void getFramebufferPixelLocalStorageParameteriv(GLint plane, GLenum pname, GLint *params);     \
     /* GL_ANGLE_shader_pixel_local_storage_coherent */                                             \
     /* GL_ANGLE_texture_compression_dxt3 */                                                        \
     /* GL_ANGLE_texture_compression_dxt5 */                                                        \
