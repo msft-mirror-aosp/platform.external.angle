@@ -154,7 +154,8 @@ angle_test("angle_system_info_test") {
   sources = [ "angle_system_info_tests_main.cpp" ]
   deps = [
     "$angle_root:angle_gpu_info_util",
-    "$angle_root:angle_static",
+    "$angle_root:libEGL_static",
+    "$angle_root:libGLESv2_static",
     "$angle_root/util:angle_util_static",
   ]
 }
@@ -189,8 +190,12 @@ angle_test("angle_unittests") {
   deps = [
     ":angle_test_expectations",
     "$angle_root:angle_json_serializer",
-    "$angle_root:angle_static",
+    "$angle_root:libANGLE",
+    "$angle_root:libEGL_static",
+    "$angle_root:libGLESv2_static",
     "$angle_root:libfeature_support",
+    "$angle_root:preprocessor",
+    "$angle_root:translator",
     "$angle_root/util:angle_util_static",
   ]
 
@@ -262,6 +267,8 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
       sources += [ "egl_tests/EGLWaylandTest.cpp" ]
     }
 
+    configs += [ "${angle_root}:libANGLE_config" ]
+
     deps = [
       ":angle_common_test_utils_shared",
       "$angle_root:angle_gl_enum_utils",
@@ -282,7 +289,11 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
       include_dirs += [ "${android_ndk_root}/sysroot/usr/includes" ]
     }
 
-    data_deps = [ "$angle_root:angle" ]
+    data_deps = [
+      "$angle_root:libEGL",
+      "$angle_root:libGLESv1_CM",
+      "$angle_root:libGLESv2",
+    ]
 
     if (angle_build_mesa) {
       data_deps += [ "$angle_root/third_party/mesa" ]
@@ -314,7 +325,11 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
       }
 
       # Need to bundle the libraries inside the .app.
-      deps += [ "$angle_root:angle" ]
+      deps += [
+        "$angle_root:libEGL",
+        "$angle_root:libGLESv1_CM",
+        "$angle_root:libGLESv2",
+      ]
     }
   }
 }
@@ -334,7 +349,11 @@ if (is_win || is_linux || is_chromeos || is_android || is_fuchsia || is_apple) {
 
     deps = [
       ":angle_common_test_utils_static",
-      "$angle_root:angle_static",
+      "$angle_root:libANGLE",
+      "$angle_root:libEGL_static",
+      "$angle_root:libGLESv2_static",
+      "$angle_root:preprocessor",
+      "$angle_root:translator",
     ]
 
     deps += [ "${angle_root}:angle_gl_enum_utils" ]
@@ -365,7 +384,7 @@ template("angle_perftests_common") {
       check_includes = false
     }
     sources = [
-      "../common/base/anglebase/trace_event/trace_event.h",
+      "../third_party/trace_event/trace_event.h",
       "perf_tests/ANGLEPerfTest.cpp",
       "perf_tests/ANGLEPerfTest.h",
       "perf_tests/ANGLEPerfTestArgs.cpp",
@@ -415,7 +434,9 @@ if (is_win || is_linux || is_chromeos || is_android || is_apple) {
 
     deps = [
       ":angle_perftests_static",
-      "$angle_root:angle_static",
+      "$angle_root:libANGLE",
+      "$angle_root:libEGL_static",
+      "$angle_root:libGLESv2_static",
     ]
 
     data = [
@@ -467,7 +488,8 @@ if (build_angle_perftests) {
     ]
 
     data_deps = [
-      "${angle_root}:angle",
+      "${angle_root}:libEGL",
+      "${angle_root}:libGLESv2",
       "//testing:run_perf_test",
     ]
 
@@ -511,7 +533,10 @@ if (build_angle_trace_tests) {
 
     data = [ "$angle_root/src/tests/py_utils/android_helper.py" ]
 
-    data_deps = [ "${angle_root}:angle" ]
+    data_deps = [
+      "${angle_root}:libEGL",
+      "${angle_root}:libGLESv2",
+    ]
 
     if (is_clang) {
       # Allows us to edit traces and remove chunks of code without compile warnings.
@@ -628,6 +653,7 @@ if (build_angle_gles1_conform_tests) {
 
     public_configs = [
       "$angle_root/util:angle_util_config",
+      "$angle_root:angle_static",
       "$angle_root:gl_prototypes",
     ]
 
@@ -641,7 +667,11 @@ if (build_angle_gles1_conform_tests) {
     testonly = true
 
     public_deps = [
-      "$angle_root:angle_static",
+      "$angle_root:angle_common",
+      "$angle_root:libEGL_static",
+      "$angle_root:libGLESv2_static",
+      "$angle_root:preprocessor",
+      "$angle_root:translator",
       "$angle_root/util:angle_util_static",
     ]
 
@@ -784,13 +814,18 @@ if (build_angle_gles1_conform_tests) {
 
       public_configs = [
         "$angle_root/util:angle_util_config",
+        "$angle_root:angle_static",
         "$angle_root:gl_prototypes",
       ]
 
       testonly = true
 
       public_deps = [
-        "$angle_root:angle_static",
+        "$angle_root:angle_common",
+        "$angle_root:libEGL_static",
+        "$angle_root:libGLESv2_static",
+        "$angle_root:preprocessor",
+        "$angle_root:translator",
         "$angle_root/util:angle_util_static",
       ]
 
@@ -863,13 +898,18 @@ if (build_angle_gles1_conform_tests) {
 
     public_configs = [
       "$angle_root/util:angle_util_config",
+      "$angle_root:angle_static",
       "$angle_root:gl_prototypes",
     ]
 
     testonly = true
 
     public_deps = [
-      "$angle_root:angle_static",
+      "$angle_root:angle_common",
+      "$angle_root:libEGL_static",
+      "$angle_root:libGLESv2_static",
+      "$angle_root:preprocessor",
+      "$angle_root:translator",
       "$angle_root/util:angle_util_static",
     ]
 
@@ -919,6 +959,7 @@ if (build_angle_gles1_conform_tests) {
 
     configs += [
       ":angle_gles1_conform_support",
+      "${angle_root}:libANGLE_config",
       "${angle_root}:angle_backend_config",
     ]
   }
@@ -930,13 +971,18 @@ if (build_angle_gles1_conform_tests) {
 
     public_configs = [
       "$angle_root/util:angle_util_config",
+      "$angle_root:angle_static",
       "$angle_root:gl_prototypes",
     ]
 
     testonly = true
 
     public_deps = [
-      "$angle_root:angle_static",
+      "$angle_root:angle_common",
+      "$angle_root:libEGL_static",
+      "$angle_root:libGLESv2_static",
+      "$angle_root:preprocessor",
+      "$angle_root:translator",
       "$angle_root/util:angle_util_static",
     ]
 
@@ -973,7 +1019,10 @@ if (build_angle_gles1_conform_tests) {
       defines += [ "NULLWS" ]
     }
 
-    configs += [ "${angle_root}:angle_backend_config" ]
+    configs += [
+      "${angle_root}:libANGLE_config",
+      "${angle_root}:angle_backend_config",
+    ]
 
     defines += [ "COMMON" ]
 
@@ -1339,7 +1388,10 @@ if (build_angle_deqp_tests && !is_fuchsia) {
       "$angle_root/util:angle_util",
     ]
 
-    data_deps = [ "${angle_root}:angle" ]
+    data_deps = [
+      "${angle_root}:libEGL",
+      "${angle_root}:libGLESv2",
+    ]
 
     configs += [ "${angle_root}:library_name_config" ]
     public_configs += [

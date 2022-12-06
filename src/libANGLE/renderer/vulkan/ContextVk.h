@@ -323,7 +323,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     const gl::TextureCapsMap &getNativeTextureCaps() const override;
     const gl::Extensions &getNativeExtensions() const override;
     const gl::Limitations &getNativeLimitations() const override;
-    const ShPixelLocalStorageOptions &getNativePixelLocalStorageOptions() const override;
+    ShPixelLocalStorageType getNativePixelLocalStorageType() const override;
 
     // Shader creation
     CompilerImpl *createCompiler() override;
@@ -480,6 +480,9 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     angle::Result flushImpl(const vk::Semaphore *semaphore,
                             RenderPassClosureReason renderPassClosureReason);
+    angle::Result flushAndGetSerial(const vk::Semaphore *semaphore,
+                                    QueueSerial *submitSerialOut,
+                                    RenderPassClosureReason renderPassClosureReason);
     angle::Result finishImpl(RenderPassClosureReason renderPassClosureReason);
 
     void addWaitSemaphore(VkSemaphore semaphore, VkPipelineStageFlags stageMask);
@@ -775,16 +778,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     vk::ComputePipelineFlags getComputePipelineFlags() const;
 
     angle::ImageLoadContext getImageLoadContext() const;
-
-    bool hasUnsubmittedUse(const vk::ResourceUse &use) const;
-    bool hasUnsubmittedUse(const vk::Resource &resource) const
-    {
-        return hasUnsubmittedUse(resource.getResourceUse());
-    }
-    bool hasUnsubmittedUse(const vk::ReadWriteResource &resource) const
-    {
-        return hasUnsubmittedUse(resource.getResourceUse());
-    }
 
   private:
     // Dirty bits.
@@ -1209,7 +1202,9 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         AllCommands,
     };
 
-    angle::Result submitCommands(const vk::Semaphore *signalSemaphore, Submit submission);
+    angle::Result submitCommands(const vk::Semaphore *signalSemaphore,
+                                 Submit submission,
+                                 QueueSerial *submitSerialOut);
 
     angle::Result synchronizeCpuGpuTime();
     angle::Result traceGpuEventImpl(vk::OutsideRenderPassCommandBuffer *commandBuffer,
@@ -1310,12 +1305,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     angle::Result updateShaderResourcesDescriptorDesc(PipelineType pipelineType);
 
     angle::Result createGraphicsPipeline();
-
-    angle::Result allocateQueueSerialIndex();
-    void releaseQueueSerialIndex();
-
-    void generateOutsideRenderPassCommandsQueueSerial();
-    void generateRenderPassCommandsQueueSerial(QueueSerial *queueSerialOut);
 
     std::array<GraphicsDirtyBitHandler, DIRTY_BIT_MAX> mGraphicsDirtyBitHandlers;
     std::array<ComputeDirtyBitHandler, DIRTY_BIT_MAX> mComputeDirtyBitHandlers;
@@ -1563,8 +1552,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     // The latest serial used for a started render pass.
     vk::RenderPassSerial mCurrentRenderPassSerial;
     RenderPassSerialFactory mRenderPassSerialFactory;
-
-    RangedSerialFactory mOutsideRenderPassSerialFactory;
 };
 
 ANGLE_INLINE angle::Result ContextVk::endRenderPassIfTransformFeedbackBuffer(
@@ -1625,12 +1612,6 @@ ANGLE_INLINE void ContextVk::retainResource(vk::Resource *resource)
     {
         mOutsideRenderPassCommands->retainResource(resource);
     }
-}
-
-ANGLE_INLINE bool ContextVk::hasUnsubmittedUse(const vk::ResourceUse &use) const
-{
-    return mCurrentQueueSerialIndex != kInvalidQueueSerialIndex &&
-           use > QueueSerial(mCurrentQueueSerialIndex, mLastSubmittedSerial);
 }
 
 ANGLE_INLINE bool UseLineRaster(const ContextVk *contextVk, gl::PrimitiveMode mode)

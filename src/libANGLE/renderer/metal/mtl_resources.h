@@ -185,8 +185,6 @@ class Texture final : public Resource,
     // Allow shaders to read/sample this texture?
     // Texture created with renderTargetOnly flag won't be readable
     bool isShaderReadable() const;
-    // Allow shaders to write this texture?
-    bool isShaderWritable() const;
 
     bool supportFormatView() const;
 
@@ -221,10 +219,6 @@ class Texture final : public Resource,
     TextureRef createMipView(const MipmapNativeLevel &level);
     // Create a view with different format
     TextureRef createViewWithDifferentFormat(MTLPixelFormat format);
-    // Create a view for a shader image binding.
-    TextureRef createShaderImageView(const MipmapNativeLevel &level,
-                                     int layer,
-                                     MTLPixelFormat format);
     // Same as above but the target format must be compatible, for example sRGB to linear. In this
     // case texture doesn't need format view usage flag.
     TextureRef createViewWithCompatibleFormat(MTLPixelFormat format);
@@ -340,13 +334,6 @@ class Texture final : public Resource,
     Texture(Texture *original, MTLPixelFormat format);
     Texture(Texture *original, MTLTextureType type, NSRange mipmapLevelRange, NSRange slices);
     Texture(Texture *original, const TextureSwizzleChannels &swizzle);
-
-    // Creates a view for a shader image binding.
-    Texture(Texture *original,
-            MTLTextureType type,
-            const MipmapNativeLevel &level,
-            int layer,
-            MTLPixelFormat pixelFormat);
 
     void syncContentIfNeeded(ContextMtl *context);
 

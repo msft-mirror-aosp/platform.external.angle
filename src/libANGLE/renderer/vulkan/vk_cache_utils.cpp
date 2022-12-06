@@ -3942,13 +3942,13 @@ void GraphicsPipelineDesc::setSingleBlend(uint32_t colorIndexGL,
     PackedColorBlendAttachmentState &blendAttachmentState =
         mFragmentOutput.blend.attachments[colorIndexGL];
 
-    SetBitField(blendAttachmentState.colorBlendOp, op);
-    SetBitField(blendAttachmentState.alphaBlendOp, op);
+    blendAttachmentState.colorBlendOp = op;
+    blendAttachmentState.alphaBlendOp = op;
 
-    SetBitField(blendAttachmentState.srcColorBlendFactor, srcFactor);
-    SetBitField(blendAttachmentState.dstColorBlendFactor, dstFactor);
-    SetBitField(blendAttachmentState.srcAlphaBlendFactor, VK_BLEND_FACTOR_ZERO);
-    SetBitField(blendAttachmentState.dstAlphaBlendFactor, VK_BLEND_FACTOR_ONE);
+    blendAttachmentState.srcColorBlendFactor = srcFactor;
+    blendAttachmentState.dstColorBlendFactor = dstFactor;
+    blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
 }
 
 void GraphicsPipelineDesc::updateBlendEnabled(GraphicsPipelineTransitionBits *transition,

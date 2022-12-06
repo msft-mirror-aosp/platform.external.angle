@@ -902,6 +902,8 @@ bool TranslatorMetalDirect::translateImpl(TInfoSinkBase &sink,
         {
             DeclareRightBeforeMain(*root, *BuiltInVariable::gl_FrontFacing());
         }
+
+        EmitEarlyFragmentTestsGLSL(*this, sink);
     }
     else if (getShaderType() == GL_VERTEX_SHADER)
     {

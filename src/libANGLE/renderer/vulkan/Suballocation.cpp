@@ -73,8 +73,7 @@ void BufferBlock::destroy(RendererVk *renderer)
         unmap(device);
     }
 
-    renderer->onMemoryDealloc(mMemoryAllocationType, mAllocatedBufferSize,
-                              mDeviceMemory.getHandle());
+    renderer->onMemoryDealloc(mMemoryAllocationType, mAllocatedBufferSize);
 
     mVirtualBlock.destroy(device);
     mBuffer.destroy(device);
@@ -185,7 +184,7 @@ bool SharedBufferSuballocationGarbage::destroyIfComplete(RendererVk *renderer)
 
     mBuffer.destroy(renderer->getDevice());
     mSuballocation.destroy(renderer);
-
+    mLifetime.release();
     return true;
 }
 

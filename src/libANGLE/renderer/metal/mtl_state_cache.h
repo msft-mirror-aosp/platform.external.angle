@@ -406,8 +406,6 @@ struct RenderPassDesc
 
     uint32_t numColorAttachments = 0;
     uint32_t sampleCount         = 1;
-    uint32_t defaultWidth        = 0;
-    uint32_t defaultHeight       = 0;
 };
 
 }  // namespace mtl

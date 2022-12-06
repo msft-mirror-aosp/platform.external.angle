@@ -291,7 +291,12 @@ std::shared_ptr<WaitableCompileEvent> ShaderD3D::compile(const gl::Context *cont
     }
     if (extensions.shaderPixelLocalStorageANGLE)
     {
-        options->pls = mRenderer->getNativePixelLocalStorageOptions();
+        options->pls.type = mRenderer->getNativePixelLocalStorageType();
+        if (extensions.shaderPixelLocalStorageCoherentANGLE)
+        {
+            options->pls.fragmentSynchronizationType =
+                ShFragmentSynchronizationType::RasterizerOrderViews_D3D;
+        }
     }
 
     auto postTranslateFunctor = [this](gl::ShCompilerInstance *compiler, std::string *infoLog) {

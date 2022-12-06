@@ -4238,18 +4238,14 @@ void Context::initCaps()
         mMemoryProgramCache = nullptr;
     }
 
-    // Initialize ANGLE_shader_pixel_local_storage caps based on frontend GL queries.
-    //
-    // The backend may have already initialized these caps with its own custom values, in which case
-    // maxPixelLocalStoragePlanes will already be nonzero and we can skip this step.
-    if (mSupportedExtensions.shaderPixelLocalStorageANGLE &&
-        mState.mCaps.maxPixelLocalStoragePlanes == 0)
+    if (mSupportedExtensions.shaderPixelLocalStorageANGLE)
     {
         int maxDrawableAttachments =
             std::min(mState.mCaps.maxDrawBuffers, mState.mCaps.maxColorAttachments);
-        switch (mImplementation->getNativePixelLocalStorageOptions().type)
+        switch (mImplementation->getNativePixelLocalStorageType())
         {
-            case ShPixelLocalStorageType::ImageLoadStore:
+            case ShPixelLocalStorageType::ImageStoreNativeFormats:
+            case ShPixelLocalStorageType::ImageStoreR32PackedFormats:
                 mState.mCaps.maxPixelLocalStoragePlanes =
                     mState.mCaps.maxShaderImageUniforms[ShaderType::Fragment];
                 ANGLE_LIMIT_CAP(mState.mCaps.maxPixelLocalStoragePlanes,
@@ -4301,10 +4297,6 @@ void Context::initCaps()
                 break;
         }
     }
-    // Validate that pixel local storage caps were initialized within implementation limits. We
-    // can't just clamp this value here since it would potentially impact other caps.
-    ASSERT(mState.mCaps.maxPixelLocalStoragePlanes <=
-           IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES);
 
 #undef ANGLE_LIMIT_CAP
 #undef ANGLE_LOG_CAP_LIMIT
@@ -10048,7 +10040,7 @@ void Context::drawPixelLocalStorageEXTEnable(GLsizei n,
                                              const PixelLocalStoragePlane planes[],
                                              const GLenum loadops[])
 {
-    ASSERT(mImplementation->getNativePixelLocalStorageOptions().type ==
+    ASSERT(mImplementation->getNativePixelLocalStorageType() ==
            ShPixelLocalStorageType::PixelLocalStorageEXT);
     ANGLE_CONTEXT_TRY(syncState(mPixelLocalStorageEXTEnableDisableDirtyBits,
                                 mPixelLocalStorageEXTEnableDisableDirtyObjects, Command::Draw));
@@ -10058,7 +10050,7 @@ void Context::drawPixelLocalStorageEXTEnable(GLsizei n,
 void Context::drawPixelLocalStorageEXTDisable(const PixelLocalStoragePlane planes[],
                                               const GLenum storeops[])
 {
-    ASSERT(mImplementation->getNativePixelLocalStorageOptions().type ==
+    ASSERT(mImplementation->getNativePixelLocalStorageType() ==
            ShPixelLocalStorageType::PixelLocalStorageEXT);
     ANGLE_CONTEXT_TRY(syncState(mPixelLocalStorageEXTEnableDisableDirtyBits,
                                 mPixelLocalStorageEXTEnableDisableDirtyObjects, Command::Draw));

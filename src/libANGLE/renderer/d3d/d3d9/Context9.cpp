@@ -467,9 +467,9 @@ const gl::Limitations &Context9::getNativeLimitations() const
     return mRenderer->getNativeLimitations();
 }
 
-const ShPixelLocalStorageOptions &Context9::getNativePixelLocalStorageOptions() const
+ShPixelLocalStorageType Context9::getNativePixelLocalStorageType() const
 {
-    return mRenderer->getNativePixelLocalStorageOptions();
+    return mRenderer->getNativePixelLocalStorageType();
 }
 
 angle::Result Context9::dispatchCompute(const gl::Context *context,

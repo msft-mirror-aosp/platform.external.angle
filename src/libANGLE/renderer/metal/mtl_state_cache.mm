@@ -795,11 +795,6 @@ bool RenderPassDesc::equalIgnoreLoadStoreOptions(const RenderPassDesc &other) co
         }
     }
 
-    if (defaultWidth != other.defaultWidth || defaultHeight != other.defaultHeight)
-    {
-        return false;
-    }
-
     return depthAttachment.equalIgnoreLoadStoreOptions(other.depthAttachment) &&
            stencilAttachment.equalIgnoreLoadStoreOptions(other.stencilAttachment);
 }
@@ -819,11 +814,6 @@ bool RenderPassDesc::operator==(const RenderPassDesc &other) const
         {
             return false;
         }
-    }
-
-    if (defaultWidth != other.defaultWidth || defaultHeight != other.defaultHeight)
-    {
-        return false;
     }
 
     return depthAttachment == other.depthAttachment && stencilAttachment == other.stencilAttachment;
@@ -852,13 +842,6 @@ void RenderPassDesc::convertToMetalDesc(MTLRenderPassDescriptor *objCDesc,
 
     ToObjC(depthAttachment, objCDesc.depthAttachment);
     ToObjC(stencilAttachment, objCDesc.stencilAttachment);
-
-    if ((defaultWidth | defaultHeight) != 0)
-    {
-        objCDesc.renderTargetWidth        = defaultWidth;
-        objCDesc.renderTargetHeight       = defaultHeight;
-        objCDesc.defaultRasterSampleCount = 1;
-    }
 }
 
 // RenderPipelineCache implementation

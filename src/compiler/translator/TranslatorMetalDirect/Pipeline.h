@@ -61,7 +61,6 @@ class Pipeline
         InvocationFragmentGlobals,
         UniformBuffer,
         Texture,
-        Image,
         InstanceId,
     };
 
@@ -120,7 +119,6 @@ struct PipelineStructs : angle::NonCopyable
     PipelineScoped<TStructure> invocationFragmentGlobals;
     PipelineScoped<TStructure> uniformBuffers;
     PipelineScoped<TStructure> texture;
-    PipelineScoped<TStructure> image;
     PipelineScoped<TStructure> instanceId;
 
     bool matches(const TStructure &s, bool internal, bool external) const;

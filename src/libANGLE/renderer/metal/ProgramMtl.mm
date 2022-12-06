@@ -450,7 +450,7 @@ angle::Result ProgramMtl::initDefaultUniformBlocks(const gl::Context *glContext)
         if (location.used() && !location.ignored)
         {
             const gl::LinkedUniform &uniform = uniforms[location.index];
-            if (uniform.isInDefaultBlock() && !uniform.isSampler() && !uniform.isImage())
+            if (uniform.isInDefaultBlock() && !uniform.isSampler())
             {
                 std::string uniformName = uniform.name;
                 if (uniform.isArray())
@@ -739,10 +739,6 @@ void ProgramMtl::saveShaderInternalInfo(gl::BinaryOutputStream *stream)
             stream->writeInt<uint32_t>(binding.textureBinding);
             stream->writeInt<uint32_t>(binding.samplerBinding);
         }
-        for (int rwTextureBinding : mMslShaderTranslateInfo[shaderType].actualImageBindings)
-        {
-            stream->writeInt<int>(rwTextureBinding);
-        }
 
         for (uint32_t uboBinding : mMslShaderTranslateInfo[shaderType].actualUBOBindings)
         {
@@ -763,10 +759,6 @@ void ProgramMtl::saveShaderInternalInfo(gl::BinaryOutputStream *stream)
         {
             stream->writeInt<uint32_t>(binding.textureBinding);
             stream->writeInt<uint32_t>(binding.samplerBinding);
-        }
-        for (int rwTextureBinding : mMslXfbOnlyVertexShaderInfo.actualImageBindings)
-        {
-            stream->writeInt<int>(rwTextureBinding);
         }
 
         for (uint32_t &uboBinding : mMslXfbOnlyVertexShaderInfo.actualUBOBindings)
@@ -793,10 +785,6 @@ void ProgramMtl::loadShaderInternalInfo(gl::BinaryInputStream *stream)
             binding.textureBinding = stream->readInt<uint32_t>();
             binding.samplerBinding = stream->readInt<uint32_t>();
         }
-        for (int &rwTextureBinding : mMslShaderTranslateInfo[shaderType].actualImageBindings)
-        {
-            rwTextureBinding = stream->readInt<int>();
-        }
 
         for (uint32_t &uboBinding : mMslShaderTranslateInfo[shaderType].actualUBOBindings)
         {
@@ -817,10 +805,6 @@ void ProgramMtl::loadShaderInternalInfo(gl::BinaryInputStream *stream)
         {
             binding.textureBinding = stream->readInt<uint32_t>();
             binding.samplerBinding = stream->readInt<uint32_t>();
-        }
-        for (int &rwTextureBinding : mMslXfbOnlyVertexShaderInfo.actualImageBindings)
-        {
-            rwTextureBinding = stream->readInt<int>();
         }
 
         for (uint32_t &uboBinding : mMslXfbOnlyVertexShaderInfo.actualUBOBindings)
@@ -1281,29 +1265,6 @@ angle::Result ProgramMtl::updateTextures(const gl::Context *glContext,
         {
             cmdEncoder->setData(shaderType, mShadowCompareModes,
                                 mtl::kShadowSamplerCompareModesBindingIndex);
-        }
-
-        for (const gl::ImageBinding &imageBinding : mState.getImageBindings())
-        {
-            if (imageBinding.boundImageUnits.size() != 1)
-            {
-                UNIMPLEMENTED();
-                continue;
-            }
-
-            int glslImageBinding    = imageBinding.boundImageUnits[0];
-            int mtlRWTextureBinding = shaderInfo.actualImageBindings[glslImageBinding];
-            ASSERT(mtlRWTextureBinding < static_cast<int>(mtl::kMaxShaderImages));
-            if (mtlRWTextureBinding < 0)
-            {
-                continue;  // The program does not have an image bound at this unit.
-            }
-
-            const gl::ImageUnit &imageUnit = glState.getImageUnit(glslImageBinding);
-            TextureMtl *textureMtl         = mtl::GetImpl(imageUnit.texture.get());
-            ANGLE_TRY(textureMtl->bindToShaderImage(
-                glContext, cmdEncoder, shaderType, static_cast<uint32_t>(mtlRWTextureBinding),
-                imageUnit.level, imageUnit.layer, imageUnit.format));
         }
     }  // for shader types
 

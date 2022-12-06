@@ -27,7 +27,10 @@ std::shared_ptr<WaitableCompileEvent> ShaderNULL::compile(const gl::Context *con
     const gl::Extensions &extensions = context->getImplementation()->getExtensions();
     if (extensions.shaderPixelLocalStorageANGLE)
     {
-        options->pls = context->getImplementation()->getNativePixelLocalStorageOptions();
+        ASSERT(context->getImplementation()->getNativePixelLocalStorageType() ==
+               ShPixelLocalStorageType::FramebufferFetch);
+        options->pls.type                        = ShPixelLocalStorageType::FramebufferFetch;
+        options->pls.fragmentSynchronizationType = ShFragmentSynchronizationType::Automatic;
     }
     return compileImpl(context, compilerInstance, mState.getSource(), options);
 }

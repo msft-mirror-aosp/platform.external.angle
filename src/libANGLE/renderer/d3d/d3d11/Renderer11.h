@@ -505,8 +505,7 @@ class Renderer11 : public RendererD3D
     void generateCaps(gl::Caps *outCaps,
                       gl::TextureCapsMap *outTextureCaps,
                       gl::Extensions *outExtensions,
-                      gl::Limitations *outLimitations,
-                      ShPixelLocalStorageOptions *outPLSOptions) const override;
+                      gl::Limitations *outLimitations) const override;
 
     void initializeFeatures(angle::FeaturesD3D *features) const override;
 

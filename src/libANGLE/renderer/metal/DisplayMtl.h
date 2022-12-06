@@ -122,7 +122,8 @@ class DisplayMtl : public DisplayImpl
     const gl::TextureCapsMap &getNativeTextureCaps() const;
     const gl::Extensions &getNativeExtensions() const;
     const gl::Limitations &getNativeLimitations() const;
-    const ShPixelLocalStorageOptions &getNativePixelLocalStorageOptions() const;
+    ShPixelLocalStorageType getNativePixelLocalStorageType() const;
+    ShFragmentSynchronizationType getPLSSynchronizationType() const;
     const angle::FeaturesMtl &getFeatures() const { return mFeatures; }
 
     // Check whether either of the specified iOS or Mac GPU family is supported
@@ -143,7 +144,6 @@ class DisplayMtl : public DisplayImpl
     mtl::RenderUtils &getUtils() { return mUtils; }
     mtl::StateCache &getStateCache() { return mStateCache; }
     uint32_t getMaxColorTargetBits() { return mMaxColorTargetBits; }
-    bool hasFragmentMemoryBarriers() const { return mHasFragmentMemoryBarriers; }
 
     id<MTLLibrary> getDefaultShadersLib();
 
@@ -205,9 +205,12 @@ class DisplayMtl : public DisplayImpl
     mutable gl::Extensions mNativeExtensions;
     mutable gl::Caps mNativeCaps;
     mutable gl::Limitations mNativeLimitations;
-    mutable ShPixelLocalStorageOptions mNativePLSOptions;
     mutable uint32_t mMaxColorTargetBits = 0;
-    mutable bool mHasFragmentMemoryBarriers;
+
+    // GL_ANGLE_shader_pixel_local_storage.
+    mutable ShPixelLocalStorageType mPixelLocalStorageType = ShPixelLocalStorageType::NotSupported;
+    mutable ShFragmentSynchronizationType mPLSSynchronizationType =
+        ShFragmentSynchronizationType::NotSupported;
 
     angle::FeaturesMtl mFeatures;
 };

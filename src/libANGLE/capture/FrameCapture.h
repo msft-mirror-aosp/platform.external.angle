@@ -170,8 +170,6 @@ class TrackedResource final : angle::NonCopyable
     ResourceSet &getStartingResources() { return mStartingResources; }
     const ResourceSet &getNewResources() const { return mNewResources; }
     ResourceSet &getNewResources() { return mNewResources; }
-    const ResourceSet &getResourcesToDelete() const { return mResourcesToDelete; }
-    ResourceSet &getResourcesToDelete() { return mResourcesToDelete; }
     const ResourceSet &getResourcesToRegen() const { return mResourcesToRegen; }
     ResourceSet &getResourcesToRegen() { return mResourcesToRegen; }
     const ResourceSet &getResourcesToRestore() const { return mResourcesToRestore; }
@@ -196,8 +194,6 @@ class TrackedResource final : angle::NonCopyable
 
     // Resources created during the run that need to be deleted
     ResourceSet mNewResources;
-    // Resources recreated during the run that need to be deleted
-    ResourceSet mResourcesToDelete;
     // Resources deleted during the run that need to be recreated
     ResourceSet mResourcesToRegen;
     // Resources modified during the run that need to be restored
@@ -782,7 +778,7 @@ class FrameCaptureShared final : angle::NonCopyable
     std::vector<CallCapture> mShareGroupSetupCalls;
     // Track which Contexts were created and made current at least once before MEC,
     // requiring setup for replay
-    std::unordered_set<GLuint> mActiveSecondaryContexts;
+    std::unordered_set<GLuint> mCapturedContextSetups;
 };
 
 template <typename CaptureFuncT, typename... ArgsT>

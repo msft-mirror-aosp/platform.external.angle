@@ -79,8 +79,7 @@ void GenerateCaps(ID3D11Device *device,
                   gl::Caps *caps,
                   gl::TextureCapsMap *textureCapsMap,
                   gl::Extensions *extensions,
-                  gl::Limitations *limitations,
-                  ShPixelLocalStorageOptions *);
+                  gl::Limitations *limitations);
 
 D3D_FEATURE_LEVEL GetMinimumFeatureLevelForES31();
 

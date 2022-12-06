@@ -688,6 +688,14 @@ static GLint QueryQueryValue(const FunctionsGL *functions, GLenum target, GLenum
     return result;
 }
 
+static ShPixelLocalStorageType GetImageStorePLSType(StandardGL standard)
+{
+    return standard == StandardGL::STANDARD_GL_ES
+               // OpenGL ES only allows read/write access to "r32*" images.
+               ? ShPixelLocalStorageType::ImageStoreR32PackedFormats
+               : ShPixelLocalStorageType::ImageStoreNativeFormats;
+}
+
 void CapCombinedLimitToESShaders(GLint *combinedLimit, gl::ShaderMap<GLint> &perShaderLimit)
 {
     GLint combinedESLimit = 0;
@@ -707,7 +715,7 @@ void GenerateCaps(const FunctionsGL *functions,
                   gl::Limitations *limitations,
                   gl::Version *maxSupportedESVersion,
                   MultiviewImplementationTypeGL *multiviewImplementationType,
-                  ShPixelLocalStorageOptions *plsOptions)
+                  ShPixelLocalStorageType *pixelLocalStorageType)
 {
     // Start by assuming ES3.1 support and work down
     *maxSupportedESVersion = gl::Version(3, 1);
@@ -1589,8 +1597,7 @@ void GenerateCaps(const FunctionsGL *functions,
         {
             extensions->shaderPixelLocalStorageANGLE         = true;
             extensions->shaderPixelLocalStorageCoherentANGLE = true;
-            plsOptions->type             = ShPixelLocalStorageType::PixelLocalStorageEXT;
-            plsOptions->fragmentSyncType = ShFragmentSynchronizationType::Automatic;
+            *pixelLocalStorageType = ShPixelLocalStorageType::PixelLocalStorageEXT;
         }
     }
     else if (features.supportsShaderFramebufferFetchEXT.enabled)
@@ -1598,8 +1605,7 @@ void GenerateCaps(const FunctionsGL *functions,
         // We can support PLS natively, probably in tiled memory.
         extensions->shaderPixelLocalStorageANGLE         = true;
         extensions->shaderPixelLocalStorageCoherentANGLE = true;
-        plsOptions->type             = ShPixelLocalStorageType::FramebufferFetch;
-        plsOptions->fragmentSyncType = ShFragmentSynchronizationType::Automatic;
+        *pixelLocalStorageType = ShPixelLocalStorageType::FramebufferFetch;
     }
     else
     {
@@ -1631,41 +1637,19 @@ void GenerateCaps(const FunctionsGL *functions,
             // EXT_shader_framebuffer_fetch_non_coherent.
             extensions->shaderPixelLocalStorageANGLE         = true;
             extensions->shaderPixelLocalStorageCoherentANGLE = true;
-            plsOptions->type = ShPixelLocalStorageType::ImageLoadStore;
-            // Prefer vendor-specific extensions first. The PixelLocalStorageTest.Coherency test
-            // doesn't always pass on Intel when we use the ARB extension.
-            if (features.supportsFragmentShaderInterlockNV.enabled)
-            {
-                plsOptions->fragmentSyncType =
-                    ShFragmentSynchronizationType::FragmentShaderInterlock_NV_GL;
-            }
-            else if (features.supportsFragmentShaderOrderingINTEL.enabled)
-            {
-                plsOptions->fragmentSyncType =
-                    ShFragmentSynchronizationType::FragmentShaderOrdering_INTEL_GL;
-            }
-            else
-            {
-                ASSERT(features.supportsFragmentShaderInterlockARB.enabled);
-                plsOptions->fragmentSyncType =
-                    ShFragmentSynchronizationType::FragmentShaderInterlock_ARB_GL;
-            }
-            // OpenGL ES only allows read/write access to "r32*" images.
-            plsOptions->supportsNativeRGBA8ImageFormats =
-                functions->standard != StandardGL::STANDARD_GL_ES;
+            *pixelLocalStorageType = GetImageStorePLSType(functions->standard);
         }
         else if (features.supportsShaderFramebufferFetchNonCoherentEXT.enabled)
         {
-            extensions->shaderPixelLocalStorageANGLE = true;
-            plsOptions->type                         = ShPixelLocalStorageType::FramebufferFetch;
+            extensions->shaderPixelLocalStorageANGLE         = true;
+            extensions->shaderPixelLocalStorageCoherentANGLE = false;
+            *pixelLocalStorageType = ShPixelLocalStorageType::FramebufferFetch;
         }
         else if (hasFragmentShaderImageLoadStore)
         {
-            extensions->shaderPixelLocalStorageANGLE = true;
-            plsOptions->type                         = ShPixelLocalStorageType::ImageLoadStore;
-            // OpenGL ES only allows read/write access to "r32*" images.
-            plsOptions->supportsNativeRGBA8ImageFormats =
-                functions->standard != StandardGL::STANDARD_GL_ES;
+            extensions->shaderPixelLocalStorageANGLE         = true;
+            extensions->shaderPixelLocalStorageCoherentANGLE = false;
+            *pixelLocalStorageType = GetImageStorePLSType(functions->standard);
         }
     }
 

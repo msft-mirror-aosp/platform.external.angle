@@ -171,14 +171,6 @@ class TextureMtl : public TextureImpl
                                int textureSlotIndex,
                                int samplerSlotIndex);
 
-    angle::Result bindToShaderImage(const gl::Context *context,
-                                    mtl::RenderCommandEncoder *cmdEncoder,
-                                    gl::ShaderType shaderType,
-                                    int textureSlotIndex,
-                                    int level,
-                                    int layer,
-                                    GLenum format);
-
     const mtl::Format &getFormat() const { return mFormat; }
     const mtl::TextureRef &getNativeTexture() const { return mNativeTexture; }
 
@@ -325,8 +317,6 @@ class TextureMtl : public TextureImpl
 
     angle::Result generateMipmapCPU(const gl::Context *context);
 
-    bool needsFormatViewForPixelLocalStorage(const ShPixelLocalStorageOptions &) const;
-
     mtl::Format mFormat;
     egl::Surface *mBoundSurface = nullptr;
     // The real texture used by Metal draw calls.
@@ -348,9 +338,6 @@ class TextureMtl : public TextureImpl
     std::map<int, gl::TexLevelArray<ImageDefinitionMtl>> mTexImageDefs;
     std::map<int, gl::TexLevelArray<RenderTargetMtl>> mPerLayerRenderTargets;
     std::map<int, gl::TexLevelArray<mtl::TextureRef>> mImplicitMSTextures;
-
-    // Views for glBindImageTexture.
-    std::map<MTLPixelFormat, gl::TexLevelArray<mtl::TextureRef>> mShaderImageViews;
 
     // Mipmap views are indexed by native level (ignored base level):
     mtl::NativeTexLevelArray mNativeLevelViews;

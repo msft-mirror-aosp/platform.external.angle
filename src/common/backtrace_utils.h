@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 #include "debug.h"
-#include "hash_utils.h"
 
 namespace angle
 {
@@ -40,11 +39,6 @@ class BacktraceInfo
     std::vector<void *> getStackAddresses() const { return mStackAddresses; }
     std::vector<std::string> getStackSymbols() const { return mStackSymbols; }
 
-    bool operator==(const BacktraceInfo &rhs) const
-    {
-        return mStackAddresses == rhs.mStackAddresses;
-    }
-
     void *getStackAddress(size_t index) const
     {
         ASSERT(index < mStackAddresses.size());
@@ -56,8 +50,6 @@ class BacktraceInfo
         ASSERT(index < mStackSymbols.size());
         return mStackSymbols[index];
     }
-
-    size_t hash() const { return ComputeGenericHash(*this); }
 
     // Used to add the stack addresses and their corresponding symbols to the object, when
     // angle_enable_unwind_backtrace_support is enabled on Android.
@@ -77,15 +69,5 @@ BacktraceInfo getBacktraceInfo();
 void printBacktraceInfo(BacktraceInfo backtraceInfo);
 
 }  // namespace angle
-
-// Introduce std::hash for BacktraceInfo so it can be used as key for angle::HashMap.
-namespace std
-{
-template <>
-struct hash<angle::BacktraceInfo>
-{
-    size_t operator()(const angle::BacktraceInfo &key) const { return key.hash(); }
-};
-}  // namespace std
 
 #endif  // COMMON_BACKTRACEUTILS_H_

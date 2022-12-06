@@ -9,9 +9,11 @@
 # pylint: disable=W0212
 
 
+import collections
 import glob
 import logging
 import os
+import subprocess
 
 import devil.android.sdk.keyevent
 from devil.android.constants import chrome

@@ -82,7 +82,7 @@ void SyncHelper::releaseToRenderer(RendererVk *renderer) {}
 
 angle::Result SyncHelper::initialize(ContextVk *contextVk, bool isEGLSyncObject)
 {
-    ASSERT(!mUse.valid());
+    ASSERT(mUse.getSerials().size() == 0);
     return contextVk->onSyncObjectInit(this, isEGLSyncObject);
 }
 
@@ -120,7 +120,8 @@ angle::Result SyncHelper::clientWait(Context *context,
     ANGLE_TRY(submitSyncIfDeferred(contextVk, RenderPassClosureReason::SyncObjectClientWait));
 
     VkResult status = VK_SUCCESS;
-    ANGLE_TRY(renderer->waitForResourceUseToFinishWithUserTimeout(context, mUse, timeout, &status));
+    ANGLE_TRY(renderer->waitForResourceUseToFinishWithUserTimeout(context, mUse.getResourceUse(),
+                                                                  timeout, &status));
 
     // Check for errors, but don't consider timeout as such.
     if (status != VK_TIMEOUT)
@@ -155,21 +156,16 @@ angle::Result SyncHelper::getStatus(Context *context, ContextVk *contextVk, bool
     // Submit commands if it was deferred on the context that issued the sync object
     ANGLE_TRY(submitSyncIfDeferred(contextVk, RenderPassClosureReason::SyncObjectClientWait));
 
-    ANGLE_TRY(renderer->checkCompletedCommands(context));
+    ANGLE_TRY(context->getRenderer()->checkCompletedCommands(context));
     *signaled = !isCurrentlyInUse(renderer);
     return angle::Result::Continue;
 }
 
 angle::Result SyncHelper::submitSyncIfDeferred(ContextVk *contextVk, RenderPassClosureReason reason)
 {
-    if (contextVk == nullptr)
+    if (mUse.getSerials().size() > 0)
     {
-        // This is EGLSync case. We always immediately call flushImpl.
-        return angle::Result::Continue;
-    }
-
-    if (!contextVk->getRenderer()->hasUnsubmittedUse(mUse))
-    {
+        ASSERT(!usedInRecordedCommands(contextVk));
         return angle::Result::Continue;
     }
 
@@ -181,19 +177,30 @@ angle::Result SyncHelper::submitSyncIfDeferred(ContextVk *contextVk, RenderPassC
     // sufficient to guarantee this.
     //
     // Deferring the submission is restricted to non-EGL sync objects, so it's sufficient to ensure
-    // that the contexts in the share group issue their deferred flushes.
+    // that the contexts in the share group issue their deferred flushes.  Technically only the
+    // context that issued the sync object needs a flush, but practically it would be rare for more
+    // than one context to have flushes deferred at this time.  If necessary, the context could be
+    // queried to know whether it's the one retaining the sync object, so only that would be
+    // flushed.
+
+    // Cannot reach here from EGL syncs, because serial should already be valid.
+    ASSERT(contextVk != nullptr);
+
     const ContextVkSet &shareContextSet = contextVk->getShareGroup()->getContexts();
     for (ContextVk *ctx : shareContextSet)
     {
-        if (ctx->hasUnsubmittedUse(mUse))
+        ANGLE_TRY(ctx->flushCommandsAndEndRenderPassIfDeferredSyncInit(reason));
+
+        // If this was the context that issued the fence sync, no need to go over the other
+        // contexts.
+        if (mUse.getSerials().size() > 0)
         {
-            ANGLE_TRY(ctx->flushCommandsAndEndRenderPassIfDeferredSyncInit(reason));
             break;
         }
     }
-    // Note mUse could still be invalid here if it is inserted on a fresh created context, i.e.,
-    // fence is tracking nothing and is finished when inserted..
-    ASSERT(!contextVk->getRenderer()->hasUnsubmittedUse(mUse));
+
+    // For now we only support one serial
+    ASSERT(mUse.getSerials()[0].valid() && !usedInRecordedCommands(contextVk));
 
     return angle::Result::Continue;
 }
@@ -210,8 +217,7 @@ SyncHelperNativeFence::~SyncHelperNativeFence()
 
 void SyncHelperNativeFence::releaseToRenderer(RendererVk *renderer)
 {
-    renderer->collectGarbage(mUse, &mFenceWithFd);
-    mUse.reset();
+    renderer->collectGarbageAndReinit(&mUse, &mFenceWithFd);
 }
 
 // Note: We have mFenceWithFd hold the FD, so that ownership is with ICD. Meanwhile we store a dup
@@ -265,6 +271,10 @@ angle::Result SyncHelperNativeFence::initializeWithFd(ContextVk *contextVk, int 
     // Flush first because the fence comes after current pending set of commands.
     ANGLE_TRY(contextVk->flushImpl(nullptr, RenderPassClosureReason::SyncObjectWithFdInit));
 
+    ResourceUseList resourceUseList;
+    retain(&resourceUseList);
+    contextVk->getShareGroup()->acquireResourceUseList(std::move(resourceUseList));
+
     QueueSerial queueSerialOut;
     // exportFd is exporting VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT_KHR type handle which
     // obeys copy semantics. This means that the fence must already be signaled or the work to
@@ -316,11 +326,12 @@ angle::Result SyncHelperNativeFence::clientWait(Context *context,
     }
 
     VkResult status = VK_SUCCESS;
-    if (mUse.valid())
+    // For now we only support one serial
+    if (mUse.getSerials()[0].valid())
     {
         // We have a valid serial to wait on
-        ANGLE_TRY(
-            renderer->waitForResourceUseToFinishWithUserTimeout(context, mUse, timeout, &status));
+        ANGLE_TRY(renderer->waitForResourceUseToFinishWithUserTimeout(
+            context, mUse.getResourceUse(), timeout, &status));
     }
     else
     {
@@ -367,7 +378,7 @@ angle::Result SyncHelperNativeFence::getStatus(Context *context,
                                                bool *signaled)
 {
     // We've got a serial, check if the serial is still in use
-    if (mUse.valid())
+    if (mUse.getSerials().size() > 0)
     {
         *signaled = !isCurrentlyInUse(context->getRenderer());
         return angle::Result::Continue;

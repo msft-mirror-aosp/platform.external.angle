@@ -105,8 +105,7 @@ angle::Result FindAndAllocateCompatibleMemory(vk::Context *context,
 
     // Add the new allocation for tracking.
     RendererVk *renderer = context->getRenderer();
-    renderer->onMemoryAlloc(memoryAllocationType, allocInfo.allocationSize,
-                            deviceMemoryOut->getHandle());
+    renderer->onMemoryAlloc(memoryAllocationType, allocInfo.allocationSize);
 
     // Wipe memory to an invalid value when the 'allocateNonZeroMemory' feature is enabled. The
     // invalid values ensures our testing doesn't assume zero-initialized memory.
@@ -389,9 +388,7 @@ VkImageAspectFlags GetFormatAspectFlags(const angle::Format &format)
 }
 
 // Context implementation.
-Context::Context(RendererVk *renderer)
-    : mRenderer(renderer), mPerfCounters{}, mCurrentQueueSerialIndex(kInvalidQueueSerialIndex)
-{}
+Context::Context(RendererVk *renderer) : mRenderer(renderer), mPerfCounters{} {}
 
 Context::~Context() {}
 
@@ -550,8 +547,10 @@ void StagingBuffer::collectGarbage(RendererVk *renderer, const QueueSerial &queu
     garbageList.emplace_back(GetGarbage(&mBuffer));
     garbageList.emplace_back(GetGarbage(&mAllocation));
 
-    ResourceUse use(queueSerial);
-    renderer->collectGarbage(use, std::move(garbageList));
+    SharedResourceUse sharedUse;
+    sharedUse.init();
+    sharedUse.updateSerialOneOff(queueSerial);
+    renderer->collectGarbage(std::move(sharedUse), std::move(garbageList));
 }
 
 angle::Result InitMappableAllocation(Context *context,
@@ -934,11 +933,6 @@ void ApplyPipelineCreationFeedback(Context *context, const VkPipelineCreationFee
         ++perfCounters.pipelineCreationCacheMisses;
         perfCounters.pipelineCreationTotalCacheMissesDurationNs += feedback.duration;
     }
-}
-
-size_t MemoryAllocInfoMapKey::hash() const
-{
-    return angle::ComputeGenericHash(*this);
 }
 }  // namespace vk
 

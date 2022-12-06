@@ -123,8 +123,7 @@ void RendererD3D::ensureCapsInitialized() const
 {
     if (!mCapsInitialized)
     {
-        generateCaps(&mNativeCaps, &mNativeTextureCaps, &mNativeExtensions, &mNativeLimitations,
-                     &mNativePLSOptions);
+        generateCaps(&mNativeCaps, &mNativeTextureCaps, &mNativeExtensions, &mNativeLimitations);
         mCapsInitialized = true;
     }
 }
@@ -153,9 +152,14 @@ const gl::Limitations &RendererD3D::getNativeLimitations() const
     return mNativeLimitations;
 }
 
-const ShPixelLocalStorageOptions &RendererD3D::getNativePixelLocalStorageOptions() const
+ShPixelLocalStorageType RendererD3D::getNativePixelLocalStorageType() const
 {
-    return mNativePLSOptions;
+    if (!getNativeExtensions().shaderPixelLocalStorageANGLE)
+    {
+        return ShPixelLocalStorageType::NotSupported;
+    }
+    // Read/write UAVs only support "r32*" images.
+    return ShPixelLocalStorageType::ImageStoreR32PackedFormats;
 }
 
 Serial RendererD3D::generateSerial()
