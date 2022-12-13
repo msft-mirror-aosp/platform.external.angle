@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Chromium Authors. All rights reserved.
+# Copyright 2012 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -9,11 +9,9 @@
 # pylint: disable=W0212
 
 
-import collections
 import glob
 import logging
 import os
-import subprocess
 
 import devil.android.sdk.keyevent
 from devil.android.constants import chrome
@@ -80,11 +78,6 @@ PACKAGE_INFO.update({
     chrome.PackageInfo('org.chromium.webview_ui_test',
                        'org.chromium.webview_ui_test.WebViewUiTestActivity',
                        'webview-command-line', None),
-    'weblayer_browsertests':
-    chrome.PackageInfo(
-        'org.chromium.weblayer_browsertests_apk',
-        'org.chromium.weblayer_browsertests_apk.WebLayerBrowserTestsActivity',
-        'chrome-native-tests-command-line', None),
 })
 
 

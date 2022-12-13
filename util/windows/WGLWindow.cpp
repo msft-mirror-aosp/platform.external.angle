@@ -42,15 +42,15 @@ PIXELFORMATDESCRIPTOR GetDefaultPixelFormatDescriptor()
 PFNWGLGETPROCADDRESSPROC gCurrentWGLGetProcAddress = nullptr;
 HMODULE gCurrentModule                             = nullptr;
 
-angle::GenericProc WINAPI GetProcAddressWithFallback(const char *name)
+GenericProc WINAPI GetProcAddressWithFallback(const char *name)
 {
-    angle::GenericProc proc = reinterpret_cast<angle::GenericProc>(gCurrentWGLGetProcAddress(name));
+    GenericProc proc = reinterpret_cast<GenericProc>(gCurrentWGLGetProcAddress(name));
     if (proc)
     {
         return proc;
     }
 
-    return reinterpret_cast<angle::GenericProc>(GetProcAddress(gCurrentModule, name));
+    return reinterpret_cast<GenericProc>(GetProcAddress(gCurrentModule, name));
 }
 
 bool HasExtension(const std::vector<std::string> &extensions, const char *ext)
@@ -145,7 +145,7 @@ GLWindowResult WGLWindow::initializeGLWithResult(OSWindow *osWindow,
     }
 
     gCurrentModule = reinterpret_cast<HMODULE>(glWindowingLibrary->getNative());
-    angle::LoadWGL(GetProcAddressWithFallback);
+    LoadWGL(GetProcAddressWithFallback);
 
     mWindow                                           = osWindow->getNativeWindow();
     mDeviceContext                                    = GetDC(mWindow);
@@ -211,7 +211,7 @@ GLWindowResult WGLWindow::initializeGLWithResult(OSWindow *osWindow,
     mPlatform     = platformParams;
     mConfigParams = configParams;
 
-    angle::LoadGLES(GetProcAddressWithFallback);
+    LoadUtilGLES(GetProcAddressWithFallback);
     return GLWindowResult::NoError;
 }
 
@@ -241,7 +241,7 @@ HGLRC WGLWindow::createContext(const ConfigParameters &configParams, HGLRC share
     }
 
     // Reload entry points to capture extensions.
-    angle::LoadWGL(GetProcAddressWithFallback);
+    LoadWGL(GetProcAddressWithFallback);
 
     if (!_wglGetExtensionsStringARB)
     {
@@ -397,6 +397,41 @@ EGLBoolean WGLWindow::destroyImageKHR(Image image)
     return EGL_FALSE;
 }
 
+WGLWindow::Sync WGLWindow::createSync(EGLDisplay dpy, EGLenum type, const EGLAttrib *attrib_list)
+{
+    return nullptr;
+}
+
+WGLWindow::Sync WGLWindow::createSyncKHR(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list)
+{
+    return nullptr;
+}
+
+EGLBoolean WGLWindow::destroySync(EGLDisplay dpy, Sync sync)
+{
+    return EGL_FALSE;
+}
+
+EGLBoolean WGLWindow::destroySyncKHR(EGLDisplay dpy, Sync sync)
+{
+    return EGL_FALSE;
+}
+
+EGLint WGLWindow::clientWaitSync(EGLDisplay dpy, Sync sync, EGLint flags, EGLTimeKHR timeout)
+{
+    return EGL_FALSE;
+}
+
+EGLint WGLWindow::clientWaitSyncKHR(EGLDisplay dpy, Sync sync, EGLint flags, EGLTimeKHR timeout)
+{
+    return EGL_FALSE;
+}
+
+EGLint WGLWindow::getEGLError()
+{
+    return EGL_SUCCESS;
+}
+
 WGLWindow::Surface WGLWindow::createPbufferSurface(const EGLint *attrib_list)
 {
     std::cerr << "WGLWindow::createPbufferSurface not implemented.\n";
@@ -450,7 +485,7 @@ bool WGLWindow::hasError() const
     return GetLastError() != S_OK;
 }
 
-angle::GenericProc WGLWindow::getProcAddress(const char *name)
+GenericProc WGLWindow::getProcAddress(const char *name)
 {
     return GetProcAddressWithFallback(name);
 }

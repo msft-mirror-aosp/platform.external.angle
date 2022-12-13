@@ -516,6 +516,14 @@ void RendererVk::ensureCapsInitialized() const
     mNativeExtensions.sampleVariablesOES =
         supportSampleRateShading && vk_gl::GetMaxSampleCount(kNotSupportedSampleCounts) == 0;
 
+    // EXT_multisample_compatibility is necessary for GLES1 conformance so calls like
+    // glDisable(GL_MULTISAMPLE) don't fail.  This is not actually implemented in Vulkan.  However,
+    // no CTS tests actually test this extension.  GL_SAMPLE_ALPHA_TO_ONE requires the Vulkan
+    // alphaToOne feature.
+    mNativeExtensions.multisampleCompatibilityEXT =
+        mPhysicalDeviceFeatures.alphaToOne ||
+        mFeatures.exposeNonConformantExtensionsAndVersions.enabled;
+
     // GL_KHR_blend_equation_advanced.  According to the spec, only color attachment zero can be
     // used with advanced blend:
     //
@@ -1092,7 +1100,7 @@ void RendererVk::ensureCapsInitialized() const
     }
 
     // GL_EXT_blend_func_extended
-    mNativeExtensions.blendFuncExtendedEXT = (mPhysicalDeviceFeatures.dualSrcBlend == VK_TRUE);
+    mNativeExtensions.blendFuncExtendedEXT = mPhysicalDeviceFeatures.dualSrcBlend == VK_TRUE;
     mNativeCaps.maxDualSourceDrawBuffers   = LimitToInt(limitsVk.maxFragmentDualSrcAttachments);
 
     // GL_ANGLE_relaxed_vertex_attribute_type
@@ -1137,8 +1145,30 @@ void RendererVk::ensureCapsInitialized() const
 
     // GL_ANGLE_shader_pixel_local_storage
     mNativeExtensions.shaderPixelLocalStorageANGLE = true;
-    mNativeExtensions.shaderPixelLocalStorageCoherentANGLE =
-        getFeatures().supportsFragmentShaderPixelInterlock.enabled;
+    if (getFeatures().supportsShaderFramebufferFetch.enabled)
+    {
+        mNativeExtensions.shaderPixelLocalStorageCoherentANGLE = true;
+        mNativePLSOptions.type             = ShPixelLocalStorageType::FramebufferFetch;
+        mNativePLSOptions.fragmentSyncType = ShFragmentSynchronizationType::Automatic;
+    }
+    else if (getFeatures().supportsFragmentShaderPixelInterlock.enabled)
+    {
+        // Use shader images with VK_EXT_fragment_shader_interlock, instead of attachments, if
+        // they're our only option to be coherent.
+        mNativeExtensions.shaderPixelLocalStorageCoherentANGLE = true;
+        mNativePLSOptions.type = ShPixelLocalStorageType::ImageLoadStore;
+        // GL_ARB_fragment_shader_interlock compiles to SPV_EXT_fragment_shader_interlock.
+        mNativePLSOptions.fragmentSyncType =
+            ShFragmentSynchronizationType::FragmentShaderInterlock_ARB_GL;
+        mNativePLSOptions.supportsNativeRGBA8ImageFormats = true;
+    }
+    else
+    {
+        mNativePLSOptions.type = ShPixelLocalStorageType::FramebufferFetch;
+        ASSERT(mNativePLSOptions.fragmentSyncType == ShFragmentSynchronizationType::NotSupported);
+    }
+
+    mNativeExtensions.logicOpANGLE = mPhysicalDeviceFeatures.logicOp == VK_TRUE;
 }
 
 namespace vk

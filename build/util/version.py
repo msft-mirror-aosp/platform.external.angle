@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2014 The Chromium Authors. All rights reserved.
+# Copyright 2014 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -147,12 +147,10 @@ def BuildParser():
                       help='Whether the current build should be an official '
                            'build, used in addition to the environment '
                            'variable.')
-  parser.add_argument(
-      '--next',
-      action='store_true',
-      help='Whether the current build should be a "next" '
-      'build, which targets pre-release versions of '
-      'Android')
+  parser.add_argument('--next',
+                      action='store_true',
+                      help='Whether the current build should be a "next" '
+                      'build, which targets pre-release versions of Android.')
   parser.add_argument('args', nargs=argparse.REMAINDER,
                       help='For compatibility: INPUT and OUTPUT can be '
                            'passed as positional arguments.')

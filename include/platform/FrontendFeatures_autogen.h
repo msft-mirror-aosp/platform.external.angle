@@ -44,6 +44,11 @@ struct FrontendFeatures : FeatureSetBase
                                         "Disable support for GL_OES_get_program_binary", &members,
                                         "http://anglebug.com/5007"};
 
+    FeatureInfo disableDrawBuffersIndexed = {
+        "disableDrawBuffersIndexed", FeatureCategory::FrontendFeatures,
+        "Disable support for OES_draw_buffers_indexed and EXT_draw_buffers_indexed", &members,
+        "http://anglebug.com/7724"};
+
     FeatureInfo disableAnisotropicFiltering = {
         "disableAnisotropicFiltering",
         FeatureCategory::FrontendWorkarounds,
@@ -58,6 +63,13 @@ struct FrontendFeatures : FeatureSetBase
         &members,
     };
 
+    FeatureInfo singleThreadedTextureDecompression = {
+        "singleThreadedTextureDecompression",
+        FeatureCategory::FrontendWorkarounds,
+        "Disables multi-threaded decompression of compressed texture formats",
+        &members,
+    };
+
     FeatureInfo forceDepthAttachmentInitOnClear = {
         "forceDepthAttachmentInitOnClear", FeatureCategory::FrontendWorkarounds,
         "Force depth attachment initialization on clear ops", &members,
@@ -66,10 +78,6 @@ struct FrontendFeatures : FeatureSetBase
     FeatureInfo enableCaptureLimits = {"enableCaptureLimits", FeatureCategory::FrontendFeatures,
                                        "Set the context limits like frame capturing was enabled",
                                        &members, "http://anglebug.com/5750"};
-
-    FeatureInfo enableCompressingPipelineCacheInThreadPool = {
-        "enableCompressingPipelineCacheInThreadPool", FeatureCategory::FrontendWorkarounds,
-        "Enable compressing pipeline cache in thread pool.", &members, "http://anglebug.com/4722"};
 
     FeatureInfo forceRobustResourceInit = {
         "forceRobustResourceInit", FeatureCategory::FrontendFeatures,

@@ -29,13 +29,12 @@
 #include <cstdint>
 #include <limits>
 
+#include "absl/base/attributes.h"
 #include "absl/base/macros.h"
 #include "absl/base/port.h"
 #include "absl/debugging/internal/address_is_readable.h"
 #include "absl/debugging/internal/vdso_support.h"  // a no-op on non-elf or non-glibc systems
 #include "absl/debugging/stacktrace.h"
-
-#include "absl/base/internal/raw_logging.h"
 
 using absl::debugging_internal::AddressIsReadable;
 

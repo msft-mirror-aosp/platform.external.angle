@@ -47,6 +47,7 @@ class ClearMultiviewGL;
 class ContextImpl;
 class DisplayGL;
 class FunctionsGL;
+class PLSProgramCache;
 class RendererGL;
 class StateManagerGL;
 
@@ -105,12 +106,14 @@ class RendererGL : angle::NonCopyable
     const angle::FeaturesGL &getFeatures() const { return mFeatures; }
     BlitGL *getBlitter() const { return mBlitter; }
     ClearMultiviewGL *getMultiviewClearer() const { return mMultiviewClearer; }
+    PLSProgramCache *getPLSProgramCache();
 
     MultiviewImplementationTypeGL getMultiviewImplementationType() const;
     const gl::Caps &getNativeCaps() const;
     const gl::TextureCapsMap &getNativeTextureCaps() const;
     const gl::Extensions &getNativeExtensions() const;
     const gl::Limitations &getNativeLimitations() const;
+    const ShPixelLocalStorageOptions &getNativePixelLocalStorageOptions() const;
     void initializeFrontendFeatures(angle::FrontendFeatures *features) const;
 
     angle::Result dispatchCompute(const gl::Context *context,
@@ -121,6 +124,8 @@ class RendererGL : angle::NonCopyable
 
     angle::Result memoryBarrier(GLbitfield barriers);
     angle::Result memoryBarrierByRegion(GLbitfield barriers);
+
+    void framebufferFetchBarrier();
 
     bool bindWorkerContext(std::string *infoLog);
     void unbindWorkerContext();
@@ -156,6 +161,9 @@ class RendererGL : angle::NonCopyable
     BlitGL *mBlitter;
     ClearMultiviewGL *mMultiviewClearer;
 
+    // Load/store programs for EXT_shader_pixel_local_storage.
+    PLSProgramCache *mPLSProgramCache = nullptr;
+
     bool mUseDebugOutput;
 
     mutable bool mCapsInitialized;
@@ -163,6 +171,7 @@ class RendererGL : angle::NonCopyable
     mutable gl::TextureCapsMap mNativeTextureCaps;
     mutable gl::Extensions mNativeExtensions;
     mutable gl::Limitations mNativeLimitations;
+    mutable ShPixelLocalStorageOptions mNativePLSOptions;
     mutable MultiviewImplementationTypeGL mMultiviewImplementationType;
 
     bool mWorkDoneSinceLastFlush = false;

@@ -89,7 +89,7 @@ void TIntermediate::warn(TInfoSink& infoSink, const char* message, EShLanguage u
 //
 void TIntermediate::merge(TInfoSink& infoSink, TIntermediate& unit)
 {
-#if !defined(GLSLANG_WEB) && !defined(GLSLANG_ANGLE)
+#if !defined(GLSLANG_WEB)
     mergeCallGraphs(infoSink, unit);
     mergeModes(infoSink, unit);
     mergeTrees(infoSink, unit);
@@ -161,7 +161,7 @@ void TIntermediate::mergeCallGraphs(TInfoSink& infoSink, TIntermediate& unit)
     callGraph.insert(callGraph.end(), unit.callGraph.begin(), unit.callGraph.end());
 }
 
-#if !defined(GLSLANG_WEB) && !defined(GLSLANG_ANGLE)
+#if !defined(GLSLANG_WEB)
 
 #define MERGE_MAX(member) member = std::max(member, unit.member)
 #define MERGE_TRUE(member) if (unit.member) member = unit.member;
@@ -319,6 +319,7 @@ void TIntermediate::mergeModes(TInfoSink& infoSink, TIntermediate& unit)
     MERGE_TRUE(autoMapLocations);
     MERGE_TRUE(invertY);
     MERGE_TRUE(dxPositionW);
+    MERGE_TRUE(debugInfo);
     MERGE_TRUE(flattenUniformArrays);
     MERGE_TRUE(useUnknownFormat);
     MERGE_TRUE(hlslOffsets);
@@ -637,18 +638,18 @@ void TIntermediate::mergeBlockDefinitions(TInfoSink& infoSink, TIntermSymbol* bl
     class TMergeBlockTraverser : public TIntermTraverser {
     public:
         TMergeBlockTraverser(const TIntermSymbol* newSym)
-            : newSymbol(newSym), unitType(nullptr), unit(nullptr), memberIndexUpdates(nullptr)
+            : newSymbol(newSym), newType(nullptr), unit(nullptr), memberIndexUpdates(nullptr)
         {
         }
         TMergeBlockTraverser(const TIntermSymbol* newSym, const glslang::TType* unitType, glslang::TIntermediate* unit,
                              const std::map<unsigned int, unsigned int>* memberIdxUpdates)
-            : TIntermTraverser(false, true), newSymbol(newSym), unitType(unitType), unit(unit), memberIndexUpdates(memberIdxUpdates)
+            : TIntermTraverser(false, true), newSymbol(newSym), newType(unitType), unit(unit), memberIndexUpdates(memberIdxUpdates)
         {
         }
         virtual ~TMergeBlockTraverser() {}
 
         const TIntermSymbol* newSymbol;
-        const glslang::TType* unitType; // copy of original type
+        const glslang::TType* newType; // shallow copy of the new type
         glslang::TIntermediate* unit;   // intermediate that is being updated
         const std::map<unsigned int, unsigned int>* memberIndexUpdates;
 
@@ -664,10 +665,10 @@ void TIntermediate::mergeBlockDefinitions(TInfoSink& infoSink, TIntermSymbol* bl
 
         virtual bool visitBinary(TVisit, glslang::TIntermBinary* node)
         {
-            if (!unit || !unitType || !memberIndexUpdates || memberIndexUpdates->empty())
+            if (!unit || !newType || !memberIndexUpdates || memberIndexUpdates->empty())
                 return true;
 
-            if (node->getOp() == EOpIndexDirectStruct && node->getLeft()->getType() == *unitType) {
+            if (node->getOp() == EOpIndexDirectStruct && node->getLeft()->getType() == *newType) {
                 // this is a dereference to a member of the block since the
                 // member list changed, need to update this to point to the
                 // right index
@@ -695,9 +696,9 @@ void TIntermediate::mergeBlockDefinitions(TInfoSink& infoSink, TIntermSymbol* bl
     // The 'unit' intermediate needs the block structures update, but also structure entry indices
     // may have changed from the old block to the new one that it was merged into, so update those
     // in 'visitBinary'
-    TType unitType;
-    unitType.shallowCopy(unitBlock->getType());
-    TMergeBlockTraverser unitFinalLinkTraverser(block, &unitType, unit, &memberIndexUpdates);
+    TType newType;
+    newType.shallowCopy(block->getType());
+    TMergeBlockTraverser unitFinalLinkTraverser(block, &newType, unit, &memberIndexUpdates);
     unit->getTreeRoot()->traverse(&unitFinalLinkTraverser);
 
     // update the member list
@@ -827,7 +828,7 @@ void TIntermediate::mergeImplicitArraySizes(TType& type, const TType& unitType)
 //
 void TIntermediate::mergeErrorCheck(TInfoSink& infoSink, const TIntermSymbol& symbol, const TIntermSymbol& unitSymbol, EShLanguage unitStage)
 {
-#if !defined(GLSLANG_WEB) && !defined(GLSLANG_ANGLE)
+#if !defined(GLSLANG_WEB)
     bool crossStage = getStage() != unitStage;
     bool writeTypeComparison = false;
     bool errorReported = false;
@@ -1382,7 +1383,7 @@ void TIntermediate::checkCallGraphCycles(TInfoSink& infoSink)
     TCall* newRoot;
     do {
         // See if we have unvisited parts of the graph.
-        newRoot = 0;
+        newRoot = nullptr;
         for (TGraph::iterator call = callGraph.begin(); call != callGraph.end(); ++call) {
             if (! call->visited) {
                 newRoot = &(*call);
@@ -1516,7 +1517,10 @@ void TIntermediate::checkCallGraphBodies(TInfoSink& infoSink, bool keepUncalled)
     if (! keepUncalled) {
         for (int f = 0; f < (int)functionSequence.size(); ++f) {
             if (! reachable[f])
+            {
+                resetTopLevelUncalledStatus(functionSequence[f]->getAsAggregate()->getName());
                 functionSequence[f] = nullptr;
+            }
         }
         functionSequence.erase(std::remove(functionSequence.begin(), functionSequence.end(), nullptr), functionSequence.end());
     }
@@ -2011,6 +2015,15 @@ int TIntermediate::getBaseAlignmentScalar(const TType& type, int& size)
     case EbtInt16:
     case EbtUint16:  size = 2; return 2;
     case EbtReference: size = 8; return 8;
+    case EbtSampler:
+    {
+        if (type.isBindlessImage() || type.isBindlessTexture()) {
+            size = 8; return 8;
+        }
+        else {
+            size = 4; return 4;
+        }
+    }
     default:         size = 4; return 4;
     }
 }

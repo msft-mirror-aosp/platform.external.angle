@@ -1,4 +1,4 @@
-# Copyright 2022 The Chromium Authors. All rights reserved.
+# Copyright 2022 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """Provide helpers for running Fuchsia's `ffx`."""
@@ -9,14 +9,17 @@ import os
 import json
 import random
 import subprocess
+import sys
 import tempfile
 
 from contextlib import AbstractContextManager
 from typing import Iterable, Optional
 
-from common import get_host_arch, run_ffx_command, run_continuous_ffx_command, \
+from common import run_ffx_command, run_continuous_ffx_command, \
                    SDK_ROOT
+from compatible_utils import get_host_arch
 
+_EMU_COMMAND_RETRIES = 3
 RUN_SUMMARY_SCHEMA = \
     'https://fuchsia.dev/schema/ffx_test/run_summary-8d1dd964.json'
 
@@ -101,36 +104,30 @@ class FfxEmulator(AbstractContextManager):
         node_name_suffix = random.randint(1, 9999)
         self._node_name = f'fuchsia-emulator-{node_name_suffix}'
 
-        # Always set the download path parallel to Fuchsia SDK directory
-        # so that old product bundles can be properly removed.
-        self._scoped_pb_storage = ScopedFfxConfig(
-            'pbms.storage.path', os.path.join(SDK_ROOT, os.pardir, 'images'))
+        # Set the download path parallel to Fuchsia SDK directory
+        # permanently so that scripts can always find the product bundles.
+        run_ffx_command(('config', 'set', 'pbms.storage.path',
+                         os.path.join(SDK_ROOT, os.pardir, 'images')))
+
+        override_file = os.path.join(os.path.dirname(__file__), os.pardir,
+                                     'sdk_override.txt')
+        self._scoped_pb_metadata = None
+        if os.path.exists(override_file):
+            with open(override_file) as f:
+                pb_metadata = f.read().split('\n')
+                pb_metadata.append('{sdk.root}/*.json')
+                self._scoped_pb_metadata = ScopedFfxConfig(
+                    'pbms.metadata', json.dumps((pb_metadata)))
 
     @staticmethod
     def _check_ssh_config_file() -> None:
         """Checks for ssh keys and generates them if they are missing."""
+
         script_path = os.path.join(SDK_ROOT, 'bin', 'fuchsia-common.sh')
         check_cmd = [
             'bash', '-c', f'. {script_path}; check-fuchsia-ssh-config'
         ]
         subprocess.run(check_cmd, check=True)
-
-    def _download_product_bundle_if_necessary(self) -> None:
-        """Download the image for a given product bundle."""
-
-        # Check if the product bundle has already been downloaded.
-        # TODO: remove when `ffx product-bundle get` doesn't automatically
-        # redownload.
-        list_cmd = run_ffx_command(('product-bundle', 'list'),
-                                   capture_output=True)
-        sdk_version = run_ffx_command(('sdk', 'version'),
-                                      capture_output=True).stdout.strip()
-        for line in list_cmd.stdout.splitlines():
-            if (self._product_bundle in line and sdk_version in line
-                    and '*' in line):
-                return
-
-        run_ffx_command(('product-bundle', 'get', self._product_bundle))
 
     def __enter__(self) -> str:
         """Start the emulator.
@@ -139,9 +136,9 @@ class FfxEmulator(AbstractContextManager):
             The node name of the emulator.
         """
 
-        self._scoped_pb_storage.__enter__()
+        if self._scoped_pb_metadata:
+            self._scoped_pb_metadata.__enter__()
         self._check_ssh_config_file()
-        self._download_product_bundle_if_necessary()
         emu_command = [
             'emu', 'start', self._product_bundle, '--name', self._node_name
         ]
@@ -194,7 +191,19 @@ class FfxEmulator(AbstractContextManager):
                 json.dump(ast.literal_eval(qemu_arm64_meta), f)
             emu_command.extend(['--engine', 'qemu'])
 
-        run_ffx_command(emu_command)
+        with ScopedFfxConfig('emu.start.timeout', '90'):
+            for _ in range(_EMU_COMMAND_RETRIES):
+
+                # If the ffx daemon fails to establish a connection with
+                # the emulator after 85 seconds, that means the emulator
+                # failed to be brought up and a retry is needed.
+                # TODO(fxb/103540): Remove retry when start up issue is fixed.
+                try:
+                    run_ffx_command(emu_command, timeout=85)
+                    break
+                except (subprocess.TimeoutExpired,
+                        subprocess.CalledProcessError):
+                    run_ffx_command(('emu', 'stop'))
         return self._node_name
 
     def __exit__(self, exc_type, exc_value, traceback) -> bool:
@@ -204,7 +213,8 @@ class FfxEmulator(AbstractContextManager):
         # might fail.
         run_ffx_command(('emu', 'stop', self._node_name), check=False)
 
-        self._scoped_pb_storage.__exit__(exc_type, exc_value, traceback)
+        if self._scoped_pb_metadata:
+            self._scoped_pb_metadata.__exit__(exc_type, exc_value, traceback)
 
         # Do not suppress exceptions.
         return False
@@ -232,11 +242,6 @@ class FfxTestRunner(AbstractContextManager):
         self._debug_data_directory = None
 
     def __enter__(self):
-        # Remove any stale experimental_structure_output value that may have
-        # been left behind by the previous implementation.
-        run_ffx_command(
-            ('config', 'remove', 'test.experimental_structured_output'),
-            check=False)
         if self._results_dir:
             os.makedirs(self._results_dir, exist_ok=True)
         else:
@@ -311,8 +316,19 @@ class FfxTestRunner(AbstractContextManager):
                     self._results_dir, run_artifact_dir, artifact_path)
                 break
 
+        if run_summary['data']['outcome'] == "NOT_STARTED":
+            logging.critical('Test execution was interrupted. Either the '
+                             'emulator crashed while the tests were still '
+                             'running or connection to the device was lost.')
+            sys.exit(1)
+
         # There should be precisely one suite for the test that ran.
-        suite_summary = run_summary.get('data', {}).get('suites', [{}])[0]
+        suites_list = run_summary.get('data', {}).get('suites')
+        if not suites_list:
+            logging.error('Missing or empty list of suites in %s',
+                          run_summary_path)
+            return
+        suite_summary = suites_list[0]
 
         # Get the top-level directory holding all artifacts for this suite.
         artifact_dir = suite_summary.get('artifact_dir')

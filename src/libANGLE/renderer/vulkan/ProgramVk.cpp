@@ -206,10 +206,17 @@ std::unique_ptr<LinkEvent> ProgramVk::link(const gl::Context *context,
                                     &mGlslangProgramInterfaceInfo, &spirvBlobs,
                                     &mExecutable.mVariableInfoMap);
 
+    if (contextVk->getFeatures().varyingsRequireMatchingPrecisionInSpirv.enabled &&
+        contextVk->getFeatures().enablePrecisionQualifiers.enabled)
+    {
+        mExecutable.resolvePrecisionMismatch(mergedVaryings);
+    }
+
     // Compile the shaders.
     const gl::ProgramExecutable &programExecutable = mState.getExecutable();
     angle::Result status                           = mExecutable.mOriginalShaderInfo.initShaders(
-                                  programExecutable.getLinkedShaderStages(), spirvBlobs, mExecutable.mVariableInfoMap);
+                                  contextVk, programExecutable.getLinkedShaderStages(), spirvBlobs,
+                                  mExecutable.mVariableInfoMap);
     if (status != angle::Result::Continue)
     {
         return std::make_unique<LinkEventDone>(status);

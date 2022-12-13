@@ -1,4 +1,4 @@
-# Copyright (c) 2013 The Chromium Authors. All rights reserved.
+# Copyright 2013 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -17,6 +17,14 @@ import("//build/toolchain/rbe.gni")
 import("//build/toolchain/toolchain.gni")
 import("//build_overrides/build.gni")
 
+# TODO(crbug.com/1370527): This import is required to detect whether the
+# build is for the catalyst environment in order to disable the hermetic
+# swift compiler (as it does not include support for catalyst). Remove it
+# once the support is available.
+if (is_ios) {
+  import("//build/config/ios/config.gni")
+}
+
 assert((target_os == "ios" && host_os == "mac") || host_os != "win")
 
 declare_args() {
@@ -31,17 +39,21 @@ declare_args() {
   swift_toolchain_path = -1
 }
 
+# TODO(crbug.com/1370527): Remove this and replace with `build_with_chromium`
+# once the support for catalyst is available in the hermetic swift compiler.
+_can_use_hermetic_swift =
+    build_with_chromium && is_ios && target_environment != "catalyst"
+
 if (swift_toolchain_path == -1) {
-  if (build_with_chromium) {
+  if (_can_use_hermetic_swift) {
     # Version of the hermetic compiler. Needs to be updated when a new version of
     # the compiler is rolled to ensure that all outputs are regenerated. It must
     # be kept in sync with the `version` of `third_party/swift-toolchain` in
     # //DEPS.
-    swiftc_version = "swift-5.7-20220818"
+    swiftc_version = "swift-5.7-release"
 
     # Use the hermetic swift toolchain.
-    swift_toolchain_path =
-        rebase_path("//third_party/swift-toolchain/", root_build_dir)
+    swift_toolchain_path = "//third_party/swift-toolchain/"
   } else {
     swift_toolchain_path = ""
   }
@@ -633,8 +645,22 @@ template("apple_toolchain") {
           _extra_flags += " -swiftc-version $swiftc_version"
         }
 
+        # Include the version of Xcode on the command-line (if specified via
+        # toolchain_args). This causes `ninja` to consider all the compilation
+        # outputs to be dirty when the version change.
+        #
+        # This is required because sometimes module dependency changes between
+        # different version of Xcode (e.g. when moving from Xcode 14 beta 6 to
+        # Xcode 14 RC). If the swiftmodule are not rebuilt when the version
+        # changes, they may encode dependency on now non-existing frameworks
+        # causing linker failures ultimately.
+        if (defined(toolchain_args.xcode_build)) {
+          _extra_flags += " -xcode-version ${toolchain_args.xcode_build}"
+        }
+
         if (swift_toolchain_path != "") {
-          _extra_flags += " -swift-toolchain-path $swift_toolchain_path"
+          _extra_flags += " -swift-toolchain-path " +
+                          rebase_path(swift_toolchain_path, root_build_dir)
         }
 
         # The Swift compiler assumes that the generated header will be used by

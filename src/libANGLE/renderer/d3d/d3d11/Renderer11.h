@@ -58,6 +58,8 @@ struct Renderer11DeviceCaps
                                                  // when multisampled.  Textures will need to be
                                                  // resolved before reading. crbug.com/656989
     bool supportsTypedUAVLoadAdditionalFormats;  //
+    // https://learn.microsoft.com/en-us/windows/win32/direct3d11/typed-unordered-access-view-loads
+    bool supportsUAVLoadStoreCommonFormats;  // Do the common additional formats support load/store?
     bool supportsRasterizerOrderViews;
     bool allowES3OnFL10_0;
     UINT B5G6R5support;     // Bitfield of D3D11_FORMAT_SUPPORT values for DXGI_FORMAT_B5G6R5_UNORM
@@ -323,7 +325,7 @@ class Renderer11 : public RendererD3D
 
     Blit11 *getBlitter() { return mBlit; }
     Clear11 *getClearer() { return mClear; }
-    gl::DebugAnnotator *getAnnotator();
+    DebugAnnotatorContext11 *getDebugAnnotatorContext();
 
     // Buffer-to-texture and Texture-to-buffer copies
     bool supportsFastCopyBufferToTexture(GLenum internalFormat) const override;
@@ -505,7 +507,8 @@ class Renderer11 : public RendererD3D
     void generateCaps(gl::Caps *outCaps,
                       gl::TextureCapsMap *outTextureCaps,
                       gl::Extensions *outExtensions,
-                      gl::Limitations *outLimitations) const override;
+                      gl::Limitations *outLimitations,
+                      ShPixelLocalStorageOptions *outPLSOptions) const override;
 
     void initializeFeatures(angle::FeaturesD3D *features) const override;
 
@@ -620,7 +623,7 @@ class Renderer11 : public RendererD3D
 
     angle::ScratchBuffer mScratchMemoryBuffer;
 
-    DebugAnnotator11 mAnnotator;
+    DebugAnnotatorContext11 mAnnotatorContext;
 
     mutable Optional<bool> mSupportsShareHandles;
     ResourceManager11 mResourceManager11;

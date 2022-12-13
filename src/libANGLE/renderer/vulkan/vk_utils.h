@@ -18,6 +18,7 @@
 #include "common/FixedVector.h"
 #include "common/Optional.h"
 #include "common/PackedEnums.h"
+#include "common/backtrace_utils.h"
 #include "common/debug.h"
 #include "libANGLE/Error.h"
 #include "libANGLE/Observer.h"
@@ -26,6 +27,7 @@
 #include "libANGLE/renderer/vulkan/SecondaryCommandBuffer.h"
 #include "libANGLE/renderer/vulkan/VulkanSecondaryCommandBuffer.h"
 #include "libANGLE/renderer/vulkan/vk_wrapper.h"
+#include "platform/FeaturesVk_autogen.h"
 #include "vulkan/vulkan_fuchsia_ext.h"
 
 #define ANGLE_GL_OBJECTS_X(PROC) \
@@ -113,6 +115,10 @@ constexpr uint32_t kInvalidMemoryTypeIndex = UINT32_MAX;
 
 namespace vk
 {
+
+// Used for memory allocation tracking.
+enum class MemoryAllocationType;
+
 // A packed attachment index interface with vulkan API
 class PackedAttachmentIndex final
 {
@@ -183,6 +189,54 @@ struct Error
     uint32_t line;
 };
 
+class QueueSerialIndexAllocator final
+{
+  public:
+    QueueSerialIndexAllocator() : mLargestIndexEverAllocated(kInvalidQueueSerialIndex)
+    {
+        // Start with every index is free
+        mFreeIndexBitSetArray.set();
+        ASSERT(mFreeIndexBitSetArray.all());
+    }
+    SerialIndex allocate()
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        if (mFreeIndexBitSetArray.none())
+        {
+            ERR() << "Run out of queue serial index. All " << kMaxQueueSerialIndexCount
+                  << " indices are used.";
+            return kInvalidQueueSerialIndex;
+        }
+        SerialIndex index = static_cast<SerialIndex>(mFreeIndexBitSetArray.first());
+        ASSERT(index < kMaxQueueSerialIndexCount);
+        mFreeIndexBitSetArray.reset(index);
+        mLargestIndexEverAllocated = (~mFreeIndexBitSetArray).last();
+        return index;
+    }
+
+    void release(SerialIndex index)
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        ASSERT(index <= mLargestIndexEverAllocated);
+        ASSERT(!mFreeIndexBitSetArray.test(index));
+        mFreeIndexBitSetArray.set(index);
+        // mLargestIndexEverAllocated is for optimization. Even if we released queueIndex, we may
+        // still have resources still have serial the index. Thus do not decrement
+        // mLargestIndexEverAllocated here. The only downside is that we may get into slightly less
+        // optimal code path in GetBatchCountUpToSerials.
+    }
+
+    size_t getLargestIndexEverAllocated() const
+    {
+        return mLargestIndexEverAllocated.load(std::memory_order_consume);
+    }
+
+  private:
+    angle::BitSetArray<kMaxQueueSerialIndexCount> mFreeIndexBitSetArray;
+    std::atomic<size_t> mLargestIndexEverAllocated;
+    std::mutex mMutex;
+};
+
 // Abstracts error handling. Implemented by both ContextVk for GL and DisplayVk for EGL errors.
 class Context : angle::NonCopyable
 {
@@ -196,13 +250,24 @@ class Context : angle::NonCopyable
                              unsigned int line) = 0;
     VkDevice getDevice() const;
     RendererVk *getRenderer() const { return mRenderer; }
+    const angle::FeaturesVk &getFeatures() const;
 
     const angle::VulkanPerfCounters &getPerfCounters() const { return mPerfCounters; }
     angle::VulkanPerfCounters &getPerfCounters() { return mPerfCounters; }
 
+    SerialIndex getCurrentQueueSerialIndex() const { return mCurrentQueueSerialIndex; }
+    Serial getCurrentSerial() const { return mCurrentSerial; }
+    Serial getLastSubmittedSerial() const { return mLastSubmittedSerial; }
+
   protected:
     RendererVk *const mRenderer;
     angle::VulkanPerfCounters mPerfCounters;
+
+    // Per context queue serial
+    SerialIndex mCurrentQueueSerialIndex;
+    Serial mCurrentSerial;
+    Serial mLastFlushedSerial;
+    Serial mLastSubmittedSerial;
 };
 
 class RenderPassDesc;
@@ -292,43 +357,6 @@ inline OverlayVk *GetImpl(const gl::MockOverlay *glObject)
     return nullptr;
 }
 
-template <typename ObjT>
-class ObjectAndSerial final : angle::NonCopyable
-{
-  public:
-    ObjectAndSerial() {}
-
-    ObjectAndSerial(ObjT &&object, Serial serial) : mObject(std::move(object)), mSerial(serial) {}
-
-    ObjectAndSerial(ObjectAndSerial &&other)
-        : mObject(std::move(other.mObject)), mSerial(std::move(other.mSerial))
-    {}
-    ObjectAndSerial &operator=(ObjectAndSerial &&other)
-    {
-        mObject = std::move(other.mObject);
-        mSerial = std::move(other.mSerial);
-        return *this;
-    }
-
-    Serial getSerial() const { return mSerial; }
-    void updateSerial(Serial newSerial) { mSerial = newSerial; }
-
-    const ObjT &get() const { return mObject; }
-    ObjT &get() { return mObject; }
-
-    bool valid() const { return mObject.valid(); }
-
-    void destroy(VkDevice device)
-    {
-        mObject.destroy(device);
-        mSerial = Serial();
-    }
-
-  private:
-    ObjT mObject;
-    Serial mSerial;
-};
-
 // Reference to a deleted object. The object is due to be destroyed at some point in the future.
 // |mHandleType| determines the type of the object and which destroy function should be called.
 class GarbageObject
@@ -368,11 +396,39 @@ GarbageObject GetGarbage(T *obj)
 using GarbageList = std::vector<GarbageObject>;
 
 // A list of garbage objects and the associated serial after which the objects can be destroyed.
-using GarbageAndSerial = ObjectAndSerial<GarbageList>;
+class GarbageAndQueueSerial final : angle::NonCopyable
+{
+  public:
+    GarbageAndQueueSerial() {}
+
+    GarbageAndQueueSerial(GarbageList &&object, QueueSerial serial)
+        : mObject(std::move(object)), mQueueSerial(serial)
+    {}
+
+    GarbageAndQueueSerial(GarbageAndQueueSerial &&other)
+        : mObject(std::move(other.mObject)), mQueueSerial(std::move(other.mQueueSerial))
+    {}
+    GarbageAndQueueSerial &operator=(GarbageAndQueueSerial &&other)
+    {
+        mObject      = std::move(other.mObject);
+        mQueueSerial = std::move(other.mQueueSerial);
+        return *this;
+    }
+
+    QueueSerial getQueueSerial() const { return mQueueSerial; }
+    void updateQueueSerial(const QueueSerial &newQueueSerial) { mQueueSerial = newQueueSerial; }
+
+    const GarbageList &get() const { return mObject; }
+    GarbageList &get() { return mObject; }
+
+  private:
+    GarbageList mObject;
+    QueueSerial mQueueSerial;
+};
 
 // Houses multiple lists of garbage objects. Each sub-list has a different lifetime. They should be
 // sorted such that later-living garbage is ordered later in the list.
-using GarbageQueue = std::queue<GarbageAndSerial>;
+using GarbageQueue = std::queue<GarbageAndQueueSerial>;
 
 class MemoryProperties final : angle::NonCopyable
 {
@@ -395,6 +451,8 @@ class MemoryProperties final : angle::NonCopyable
         return mMemoryProperties.memoryHeaps[heapIndex].size;
     }
 
+    const VkMemoryType &getMemoryType(uint32_t i) const { return mMemoryProperties.memoryTypes[i]; }
+
     uint32_t getMemoryTypeCount() const { return mMemoryProperties.memoryTypeCount; }
 
   private:
@@ -407,7 +465,7 @@ class StagingBuffer final : angle::NonCopyable
   public:
     StagingBuffer();
     void release(ContextVk *contextVk);
-    void collectGarbage(RendererVk *renderer, Serial serial);
+    void collectGarbage(RendererVk *renderer, const QueueSerial &queueSerial);
     void destroy(RendererVk *renderer);
 
     angle::Result init(Context *context, VkDeviceSize size, StagingUsage usage);
@@ -436,6 +494,7 @@ angle::Result InitMappableDeviceMemory(Context *context,
                                        VkMemoryPropertyFlags memoryPropertyFlags);
 
 angle::Result AllocateBufferMemory(Context *context,
+                                   MemoryAllocationType memoryAllocationType,
                                    VkMemoryPropertyFlags requestedMemoryPropertyFlags,
                                    VkMemoryPropertyFlags *memoryPropertyFlagsOut,
                                    const void *extraAllocationInfo,
@@ -444,6 +503,7 @@ angle::Result AllocateBufferMemory(Context *context,
                                    VkDeviceSize *sizeOut);
 
 angle::Result AllocateImageMemory(Context *context,
+                                  MemoryAllocationType memoryAllocationType,
                                   VkMemoryPropertyFlags memoryPropertyFlags,
                                   VkMemoryPropertyFlags *memoryPropertyFlagsOut,
                                   const void *extraAllocationInfo,
@@ -453,6 +513,7 @@ angle::Result AllocateImageMemory(Context *context,
 
 angle::Result AllocateImageMemoryWithRequirements(
     Context *context,
+    MemoryAllocationType memoryAllocationType,
     VkMemoryPropertyFlags memoryPropertyFlags,
     const VkMemoryRequirements &memoryRequirements,
     const void *extraAllocationInfo,
@@ -461,6 +522,7 @@ angle::Result AllocateImageMemoryWithRequirements(
     DeviceMemory *deviceMemoryOut);
 
 angle::Result AllocateBufferMemoryWithRequirements(Context *context,
+                                                   MemoryAllocationType memoryAllocationType,
                                                    VkMemoryPropertyFlags memoryPropertyFlags,
                                                    const VkMemoryRequirements &memoryRequirements,
                                                    const void *extraAllocationInfo,
@@ -468,12 +530,10 @@ angle::Result AllocateBufferMemoryWithRequirements(Context *context,
                                                    VkMemoryPropertyFlags *memoryPropertyFlagsOut,
                                                    DeviceMemory *deviceMemoryOut);
 
-using ShaderAndSerial = ObjectAndSerial<ShaderModule>;
-
-angle::Result InitShaderAndSerial(Context *context,
-                                  ShaderAndSerial *shaderAndSerial,
-                                  const uint32_t *shaderCode,
-                                  size_t shaderCodeSize);
+angle::Result InitShaderModule(Context *context,
+                               ShaderModule *shaderModule,
+                               const uint32_t *shaderCode,
+                               size_t shaderCodeSize);
 
 gl::TextureType Get2DTextureType(uint32_t layerCount, GLint samples);
 
@@ -793,8 +853,6 @@ ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
 struct SpecializationConstants final
 {
     VkBool32 surfaceRotation;
-    float drawableWidth;
-    float drawableHeight;
     uint32_t dither;
 };
 ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
@@ -802,8 +860,8 @@ ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
 template <typename T>
 using SpecializationConstantMap = angle::PackedEnumMap<sh::vk::SpecializationConstantId, T>;
 
-using ShaderAndSerialPointer = BindingPointer<ShaderAndSerial>;
-using ShaderAndSerialMap     = gl::ShaderMap<ShaderAndSerialPointer>;
+using ShaderModulePointer = BindingPointer<ShaderModule>;
+using ShaderModuleMap     = gl::ShaderMap<ShaderModulePointer>;
 
 void MakeDebugUtilsLabel(GLenum source, const char *marker, VkDebugUtilsLabelEXT *label);
 
@@ -969,6 +1027,33 @@ angle::Result SetDebugUtilsObjectName(ContextVk *contextVk,
                                       uint64_t handle,
                                       const std::string &label);
 
+// Used to store memory allocation information for tracking purposes.
+struct MemoryAllocationInfo
+{
+    MemoryAllocationInfo() = default;
+    uint64_t id;
+    MemoryAllocationType allocType;
+    void *handle;
+    VkDeviceSize size;
+};
+
+class MemoryAllocInfoMapKey
+{
+  public:
+    MemoryAllocInfoMapKey() : handle(nullptr) {}
+    MemoryAllocInfoMapKey(void *handle) : handle(handle) {}
+
+    bool operator==(const MemoryAllocInfoMapKey &rhs) const
+    {
+        return reinterpret_cast<uint64_t>(handle) == reinterpret_cast<uint64_t>(rhs.handle);
+    }
+
+    size_t hash() const;
+
+  private:
+    void *handle;
+};
+
 }  // namespace vk
 
 #if !defined(ANGLE_SHARED_LIBVULKAN)
@@ -1029,7 +1114,8 @@ void InitExtendedDynamicStateEXTFunctions(VkDevice device);
 void InitExtendedDynamicState2EXTFunctions(VkDevice device);
 
 // VK_KHR_fragment_shading_rate
-void InitFragmentShadingRateKHRFunctions(VkDevice device);
+void InitFragmentShadingRateKHRInstanceFunction(VkInstance instance);
+void InitFragmentShadingRateKHRDeviceFunction(VkDevice device);
 
 // VK_GOOGLE_display_timing
 void InitGetPastPresentationTimingGoogleFunction(VkDevice device);
@@ -1052,6 +1138,7 @@ VkSampleCountFlagBits GetSamples(GLint sampleCount);
 VkComponentSwizzle GetSwizzle(const GLenum swizzle);
 VkCompareOp GetCompareOp(const GLenum compareFunc);
 VkStencilOp GetStencilOp(const GLenum compareOp);
+VkLogicOp GetLogicOp(const GLenum logicOp);
 
 constexpr gl::ShaderMap<VkShaderStageFlagBits> kShaderStageMap = {
     {gl::ShaderType::Vertex, VK_SHADER_STAGE_VERTEX_BIT},
@@ -1153,6 +1240,7 @@ enum class RenderPassClosureReason
     BeginNonRenderPassQuery,
     EndNonRenderPassQuery,
     TimestampQuery,
+    EndRenderPassQuery,
     GLReadPixels,
 
     // Synchronization
@@ -1178,6 +1266,7 @@ enum class RenderPassClosureReason
     CopyTextureOnCPU,
     TextureReformatToRenderable,
     DeviceLocalBufferMap,
+    OutOfReservedQueueSerialForOutsideCommands,
 
     // UtilsVk
     PrepareForBlit,
@@ -1191,6 +1280,16 @@ enum class RenderPassClosureReason
 };
 
 }  // namespace rx
+
+// Introduce std::hash for MemoryAllocInfoMapKey.
+namespace std
+{
+template <>
+struct hash<rx::vk::MemoryAllocInfoMapKey>
+{
+    size_t operator()(const rx::vk::MemoryAllocInfoMapKey &key) const { return key.hash(); }
+};
+}  // namespace std
 
 #define ANGLE_VK_TRY(context, command)                                                   \
     do                                                                                   \

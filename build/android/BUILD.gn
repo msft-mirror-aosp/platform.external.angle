@@ -1,4 +1,4 @@
-# Copyright 2014 The Chromium Authors. All rights reserved.
+# Copyright 2014 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -14,13 +14,6 @@ if (enable_java_templates) {
   # cache while linting java targets in android_lint.
   android_lint("prepare_android_lint_cache") {
     create_cache = true
-  }
-
-  if (enable_jdk_library_desugaring) {
-    dex_jdk_libs("all_jdk_libs") {
-      output = "$target_out_dir/$target_name.l8.dex"
-      min_sdk_version = default_min_sdk_version
-    }
   }
 
   generate_build_config_srcjar("build_config_gen") {
@@ -43,13 +36,14 @@ if (enable_java_templates) {
       ":native_libraries_gen",
     ]
     sources = [
-      "java/src/org/chromium/base/annotations/CheckDiscard.java",
-      "java/src/org/chromium/base/annotations/DoNotClassMerge.java",
-      "java/src/org/chromium/base/annotations/DoNotInline.java",
-      "java/src/org/chromium/base/annotations/IdentifierNameString.java",
-      "java/src/org/chromium/base/annotations/MainDex.java",
-      "java/src/org/chromium/base/annotations/MockedInTests.java",
-      "java/src/org/chromium/base/annotations/UsedByReflection.java",
+      "java/src/org/chromium/build/annotations/AlwaysInline.java",
+      "java/src/org/chromium/build/annotations/CheckDiscard.java",
+      "java/src/org/chromium/build/annotations/DoNotClassMerge.java",
+      "java/src/org/chromium/build/annotations/DoNotInline.java",
+      "java/src/org/chromium/build/annotations/IdentifierNameString.java",
+      "java/src/org/chromium/build/annotations/MainDex.java",
+      "java/src/org/chromium/build/annotations/MockedInTests.java",
+      "java/src/org/chromium/build/annotations/UsedByReflection.java",
     ]
 
     jar_excluded_patterns = [ "*/build/BuildConfig.class" ]

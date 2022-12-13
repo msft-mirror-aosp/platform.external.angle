@@ -581,15 +581,15 @@ bool ValidatePushGroupMarkerEXT(const Context *context,
 bool ValidateEGLImageObject(const Context *context,
                             angle::EntryPoint entryPoint,
                             TextureType type,
-                            GLeglImageOES image);
+                            egl::ImageID image);
 bool ValidateEGLImageTargetTexture2DOES(const Context *context,
                                         angle::EntryPoint entryPoint,
                                         TextureType type,
-                                        GLeglImageOES image);
+                                        egl::ImageID image);
 bool ValidateEGLImageTargetRenderbufferStorageOES(const Context *context,
                                                   angle::EntryPoint entryPoint,
                                                   GLenum target,
-                                                  GLeglImageOES image);
+                                                  egl::ImageID image);
 
 bool ValidateProgramBinaryBase(const Context *context,
                                angle::EntryPoint entryPoint,
@@ -1263,6 +1263,10 @@ ANGLE_INLINE bool ValidateVertexAttribIndex(const Context *context,
 
     return true;
 }
+
+bool ValidateLogicOpCommon(const Context *context,
+                           angle::EntryPoint entryPoint,
+                           LogicalOperation opcodePacked);
 }  // namespace gl
 
 #endif  // LIBANGLE_VALIDATION_ES_H_

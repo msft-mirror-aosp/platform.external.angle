@@ -41,6 +41,7 @@ absl_cc_library(
     absl::debugging_internal
     absl::config
     absl::core_headers
+    absl::raw_logging_internal
   PUBLIC
 )
 
@@ -61,7 +62,7 @@ absl_cc_library(
     ${ABSL_DEFAULT_COPTS}
   LINKOPTS
     ${ABSL_DEFAULT_LINKOPTS}
-    $<$<BOOL:${MINGW}>:"dbghelp">
+    $<$<BOOL:${MINGW}>:-ldbghelp>
   DEPS
     absl::debugging_internal
     absl::demangle_internal

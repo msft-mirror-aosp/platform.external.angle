@@ -244,6 +244,17 @@ class GeneratePipelineStruct : private TIntermRebuild
             }
             break;
 
+            case Pipeline::Type::Image:
+            {
+                for (const TVariable *var : mPipelineVariableList)
+                {
+                    auto &type  = CloneType(var->getType());
+                    auto *field = new TField(&type, var->name(), kNoSourceLoc, var->symbolType());
+                    fields.push_back(field);
+                }
+            }
+            break;
+
             case Pipeline::Type::UniformBuffer:
             {
                 for (const TVariable *var : mPipelineVariableList)
@@ -345,8 +356,12 @@ class PipelineFunctionEnv
     const std::unordered_set<const TFunction *> &mPipelineFunctions;
     const PipelineScoped<TStructure> mPipelineStruct;
     PipelineScoped<TVariable> &mPipelineMainLocalVar;
+    size_t mFirstParamIdxInMainFn = 0;
 
     std::unordered_map<const TFunction *, const TFunction *> mFuncMap;
+
+    // Optional expression with which to initialize mPipelineMainLocalVar.
+    TIntermTyped *mPipelineInitExpr = nullptr;
 
   public:
     PipelineFunctionEnv(TCompiler &compiler,
@@ -391,12 +406,30 @@ class PipelineFunctionEnv
         if (it == mFuncMap.end())
         {
             const bool isMain = func.isMain();
+            if (isMain)
+            {
+                mFirstParamIdxInMainFn = func.getParamCount();
+            }
 
             if (isMain && mPipeline.isPipelineOut())
             {
                 ASSERT(func.getReturnType().getBasicType() == TBasicType::EbtVoid);
                 newFunc = &CloneFunctionAndChangeReturnType(mSymbolTable, nullptr, func,
                                                             *mPipelineStruct.external);
+                if (mPipeline.type == Pipeline::Type::FragmentOut &&
+                    mCompiler.hasPixelLocalStorageUniforms())
+                {
+                    // Add an input argument to main() that contains the current framebuffer
+                    // attachment values, for loading pixel local storage.
+                    TType *type = new TType(mPipelineStruct.external, true);
+                    TVariable *lastFragmentOut =
+                        new TVariable(&mSymbolTable, ImmutableString("lastFragmentOut"), type,
+                                      SymbolType::AngleInternal);
+                    newFunc = &CloneFunctionAndPrependParam(mSymbolTable, nullptr, *newFunc,
+                                                            *lastFragmentOut);
+                    // Initialize the main local variable with the current framebuffer contents.
+                    mPipelineInitExpr = new TIntermSymbol(lastFragmentOut);
+                }
             }
             else if (isMain && (mPipeline.type == Pipeline::Type::InvocationVertexGlobals ||
                                 mPipeline.type == Pipeline::Type::InvocationFragmentGlobals))
@@ -508,6 +541,7 @@ class PipelineFunctionEnv
                     {
                         case Pipeline::Type::VertexIn:
                         case Pipeline::Type::FragmentIn:
+                        case Pipeline::Type::Image:
                             markAsReference = false;
                             break;
 
@@ -546,6 +580,11 @@ class PipelineFunctionEnv
         const TFunction &newFunc = getUpdatedFunction(func);
         return new TIntermFunctionPrototype(&newFunc);
     }
+
+    // If not null, this is the value we need to initialize the pipeline main local variable with.
+    TIntermTyped *getOptionalPipelineInitExpr() { return mPipelineInitExpr; }
+
+    size_t getFirstParamIdxInMainFn() const { return mFirstParamIdxInMainFn; }
 };
 
 class UpdatePipelineFunctions : private TIntermRebuild
@@ -767,7 +806,8 @@ class UpdatePipelineFunctions : private TIntermRebuild
             ASSERT(mPipelineMainLocalVar.isTotallyFull());
 
             auto *newBody = new TIntermBlock();
-            newBody->appendStatement(new TIntermDeclaration{mPipelineMainLocalVar.internal});
+            newBody->appendStatement(new TIntermDeclaration(mPipelineMainLocalVar.internal,
+                                                            mEnv.getOptionalPipelineInitExpr()));
 
             if (mPipeline.type == Pipeline::Type::InvocationVertexGlobals ||
                 mPipeline.type == Pipeline::Type::InvocationFragmentGlobals)
@@ -776,7 +816,7 @@ class UpdatePipelineFunctions : private TIntermRebuild
                 for (const TField *field : mPipelineStruct.external->fields())
                 {
                     auto *var        = new TVariable(&mSymbolTable, field->name(), field->type(),
-                                              field->symbolType());
+                                                     field->symbolType());
                     auto *symbol     = new TIntermSymbol(var);
                     auto &accessNode = AccessField(*mPipelineMainLocalVar.internal, var->name());
                     auto *assignNode = new TIntermBinary(TOperator::EOpAssign, &accessNode, symbol);
@@ -787,8 +827,8 @@ class UpdatePipelineFunctions : private TIntermRebuild
             {
                 const TFieldList &fields = mPipelineStruct.external->fields();
 
-                ASSERT(func.getParamCount() >= 2 * fields.size());
-                size_t paramIndex = func.getParamCount() - 2 * fields.size();
+                ASSERT(func.getParamCount() >= mEnv.getFirstParamIdxInMainFn() + 2 * fields.size());
+                size_t paramIndex = mEnv.getFirstParamIdxInMainFn();
 
                 for (const TField *field : fields)
                 {
@@ -994,7 +1034,8 @@ bool sh::RewritePipelines(TCompiler &compiler,
 
     Info infos[] = {
         {Pipeline::Type::InstanceId, outStructs.instanceId, nullptr, nullptr},
-        {Pipeline::Type::Texture, outStructs.texture, nullptr, nullptr},
+        {Pipeline::Type::Texture, outStructs.image, nullptr, nullptr},
+        {Pipeline::Type::Image, outStructs.texture, nullptr, nullptr},
         {Pipeline::Type::NonConstantGlobals, outStructs.nonConstantGlobals, nullptr, nullptr},
         {Pipeline::Type::AngleUniforms, outStructs.angleUniforms,
          angleUniformsGlobalInstanceVar.getDriverUniformsVariable(), nullptr},

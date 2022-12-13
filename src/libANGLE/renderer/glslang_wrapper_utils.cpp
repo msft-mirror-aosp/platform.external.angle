@@ -491,7 +491,7 @@ void AssignVaryingLocations(const GlslangSourceOptions &options,
         ShaderInterfaceVariableInfo &info =
             variableInfoMapOut->addOrGet(shaderType, ShaderVariableType::Varying, builtInName);
         info.activeStages.set(shaderType);
-        info.builtinIsOutput = true;
+        info.varyingIsOutput = true;
     }
 
     // If an output builtin is active in the previous stage, assume it's active in the input of the
@@ -505,7 +505,7 @@ void AssignVaryingLocations(const GlslangSourceOptions &options,
             ShaderInterfaceVariableInfo &info =
                 variableInfoMapOut->addOrGet(shaderType, ShaderVariableType::Varying, builtInName);
             info.activeStages.set(shaderType);
-            info.builtinIsInput = true;
+            info.varyingIsInput = true;
         }
     }
 
@@ -1225,7 +1225,7 @@ void SpirvIDDiscoverer::visitMemberName(const ShaderInterfaceVariableInfo &info,
         mOutputPerVertex.typeId = id;
 
         // Keep track of the range of members that are active.
-        if (info.builtinIsOutput && member > mOutputPerVertex.maxActiveMember)
+        if (info.varyingIsOutput && member > mOutputPerVertex.maxActiveMember)
         {
             mOutputPerVertex.maxActiveMember = member;
         }
@@ -1235,7 +1235,7 @@ void SpirvIDDiscoverer::visitMemberName(const ShaderInterfaceVariableInfo &info,
         mInputPerVertex.typeId = id;
 
         // Keep track of the range of members that are active.
-        if (info.builtinIsInput && member > mInputPerVertex.maxActiveMember)
+        if (info.varyingIsInput && member > mInputPerVertex.maxActiveMember)
         {
             mInputPerVertex.maxActiveMember = member;
         }
@@ -1708,6 +1708,182 @@ TransformationState SpirvInactiveVaryingRemover::transformVariable(spirv::IdResu
     return TransformationState::Transformed;
 }
 
+// Helper class that fixes varying precisions so they match between shader stages.
+class SpirvVaryingPrecisionFixer final : angle::NonCopyable
+{
+  public:
+    SpirvVaryingPrecisionFixer() {}
+
+    void init(size_t indexBound);
+
+    void visitTypePointer(spirv::IdResult id, spv::StorageClass storageClass, spirv::IdRef typeId);
+    void visitVariable(const ShaderInterfaceVariableInfo &info,
+                       gl::ShaderType shaderType,
+                       spirv::IdResultType typeId,
+                       spirv::IdResult id,
+                       spv::StorageClass storageClass,
+                       spirv::Blob *blobOut);
+
+    TransformationState transformVariable(const ShaderInterfaceVariableInfo &info,
+                                          spirv::IdResultType typeId,
+                                          spirv::IdResult id,
+                                          spv::StorageClass storageClass,
+                                          spirv::Blob *blobOut);
+
+    void modifyEntryPointInterfaceList(spirv::IdRefList *interfaceList);
+    void addDecorate(spirv::IdRef replacedId, spirv::Blob *blobOut);
+    void writeInputPreamble(
+        const std::vector<const ShaderInterfaceVariableInfo *> &variableInfoById,
+        gl::ShaderType shaderType,
+        spirv::Blob *blobOut);
+    void writeOutputPrologue(
+        const std::vector<const ShaderInterfaceVariableInfo *> &variableInfoById,
+        gl::ShaderType shaderType,
+        spirv::Blob *blobOut);
+
+    bool isReplaced(spirv::IdRef id) const { return mFixedVaryingId[id].valid(); }
+    spirv::IdRef getReplacementId(spirv::IdRef id) const
+    {
+        return mFixedVaryingId[id].valid() ? mFixedVaryingId[id] : id;
+    }
+
+  private:
+    std::vector<spirv::IdRef> mTypePointerTypeId;
+    std::vector<spirv::IdRef> mFixedVaryingId;
+    std::vector<spirv::IdRef> mFixedVaryingTypeId;
+};
+
+void SpirvVaryingPrecisionFixer::init(size_t indexBound)
+{
+    // Allocate storage for precision mismatch fix up.
+    mTypePointerTypeId.resize(indexBound);
+    mFixedVaryingId.resize(indexBound);
+    mFixedVaryingTypeId.resize(indexBound);
+}
+
+void SpirvVaryingPrecisionFixer::visitTypePointer(spirv::IdResult id,
+                                                  spv::StorageClass storageClass,
+                                                  spirv::IdRef typeId)
+{
+    mTypePointerTypeId[id] = typeId;
+}
+
+void SpirvVaryingPrecisionFixer::visitVariable(const ShaderInterfaceVariableInfo &info,
+                                               gl::ShaderType shaderType,
+                                               spirv::IdResultType typeId,
+                                               spirv::IdResult id,
+                                               spv::StorageClass storageClass,
+                                               spirv::Blob *blobOut)
+{
+    if (info.useRelaxedPrecision && info.activeStages[shaderType] && !mFixedVaryingId[id].valid())
+    {
+        mFixedVaryingId[id]     = SpirvTransformerBase::GetNewId(blobOut);
+        mFixedVaryingTypeId[id] = typeId;
+    }
+}
+
+TransformationState SpirvVaryingPrecisionFixer::transformVariable(
+    const ShaderInterfaceVariableInfo &info,
+    spirv::IdResultType typeId,
+    spirv::IdResult id,
+    spv::StorageClass storageClass,
+    spirv::Blob *blobOut)
+{
+    if (info.useRelaxedPrecision &&
+        (storageClass == spv::StorageClassOutput || storageClass == spv::StorageClassInput))
+    {
+        // Change existing OpVariable to use fixedVaryingId
+        ASSERT(mFixedVaryingId[id].valid());
+        spirv::WriteVariable(blobOut, typeId, mFixedVaryingId[id], storageClass, nullptr);
+
+        return TransformationState::Transformed;
+    }
+    return TransformationState::Unchanged;
+}
+
+void SpirvVaryingPrecisionFixer::writeInputPreamble(
+    const std::vector<const ShaderInterfaceVariableInfo *> &variableInfoById,
+    gl::ShaderType shaderType,
+    spirv::Blob *blobOut)
+{
+    if (shaderType == gl::ShaderType::Vertex || shaderType == gl::ShaderType::Compute)
+    {
+        return;
+    }
+
+    // Copy from corrected varyings to temp global variables with original precision.
+    for (uint32_t idIndex = spirv::kMinValidId; idIndex < variableInfoById.size(); idIndex++)
+    {
+        const spirv::IdRef id(idIndex);
+        const ShaderInterfaceVariableInfo *info = variableInfoById[id];
+        if (info && info->useRelaxedPrecision && info->activeStages[shaderType] &&
+            info->varyingIsInput)
+        {
+            // This is an input varying, need to cast the mediump value that came from
+            // the previous stage into a highp value that the code wants to work with.
+            ASSERT(mFixedVaryingTypeId[id].valid());
+
+            // Build OpLoad instruction to load the mediump value into a temporary
+            const spirv::IdRef tempVar(SpirvTransformerBase::GetNewId(blobOut));
+            const spirv::IdRef tempVarType(mTypePointerTypeId[mFixedVaryingTypeId[id]]);
+            ASSERT(tempVarType.valid());
+
+            spirv::WriteLoad(blobOut, tempVarType, tempVar, mFixedVaryingId[id], nullptr);
+
+            // Build OpStore instruction to cast the mediump value to highp for use in
+            // the function
+            spirv::WriteStore(blobOut, id, tempVar, nullptr);
+        }
+    }
+}
+
+void SpirvVaryingPrecisionFixer::modifyEntryPointInterfaceList(spirv::IdRefList *interfaceList)
+{
+    // Modify interface list if any ID was replaced due to varying precision mismatch.
+    for (size_t index = 0; index < interfaceList->size(); ++index)
+    {
+        (*interfaceList)[index] = getReplacementId((*interfaceList)[index]);
+    }
+}
+
+void SpirvVaryingPrecisionFixer::addDecorate(spirv::IdRef replacedId, spirv::Blob *blobOut)
+{
+    spirv::WriteDecorate(blobOut, replacedId, spv::DecorationRelaxedPrecision, {});
+}
+
+void SpirvVaryingPrecisionFixer::writeOutputPrologue(
+    const std::vector<const ShaderInterfaceVariableInfo *> &variableInfoById,
+    gl::ShaderType shaderType,
+    spirv::Blob *blobOut)
+{
+    if (shaderType == gl::ShaderType::Fragment || shaderType == gl::ShaderType::Compute)
+    {
+        return;
+    }
+
+    // Copy from temp global variables with original precision to corrected varyings.
+    for (uint32_t idIndex = spirv::kMinValidId; idIndex < variableInfoById.size(); idIndex++)
+    {
+        const spirv::IdRef id(idIndex);
+        const ShaderInterfaceVariableInfo *info = variableInfoById[id];
+        if (info && info->useRelaxedPrecision && info->activeStages[shaderType] &&
+            info->varyingIsOutput)
+        {
+            ASSERT(mFixedVaryingTypeId[id].valid());
+
+            // Build OpLoad instruction to load the highp value into a temporary
+            const spirv::IdRef tempVar(SpirvTransformerBase::GetNewId(blobOut));
+            const spirv::IdRef tempVarType(mTypePointerTypeId[mFixedVaryingTypeId[id]]);
+            ASSERT(tempVarType.valid());
+
+            spirv::WriteLoad(blobOut, tempVarType, tempVar, id, nullptr);
+
+            // Build OpStore instruction to cast the highp value to mediump for output
+            spirv::WriteStore(blobOut, mFixedVaryingId[id], tempVar, nullptr);
+        }
+    }
+}
+
 // Helper class that generates code for transform feedback
 class SpirvTransformFeedbackCodeGenerator final : angle::NonCopyable
 {
@@ -1748,6 +1924,8 @@ class SpirvTransformFeedbackCodeGenerator final : angle::NonCopyable
     void writeTransformFeedbackEmulationOutput(
         const SpirvIDDiscoverer &ids,
         const SpirvInactiveVaryingRemover &inactiveVaryingRemover,
+        const SpirvVaryingPrecisionFixer &varyingPrecisionFixer,
+        const bool usePrecisionFixer,
         spirv::IdRef currentFunctionId,
         spirv::Blob *blobOut);
     void addExecutionMode(spirv::IdRef entryPointId, spirv::Blob *blobOut);
@@ -2198,6 +2376,8 @@ class AccessChainIndexListAppend final : angle::NonCopyable
 void SpirvTransformFeedbackCodeGenerator::writeTransformFeedbackEmulationOutput(
     const SpirvIDDiscoverer &ids,
     const SpirvInactiveVaryingRemover &inactiveVaryingRemover,
+    const SpirvVaryingPrecisionFixer &varyingPrecisionFixer,
+    const bool usePrecisionFixer,
     spirv::IdRef currentFunctionId,
     spirv::Blob *blobOut)
 {
@@ -2338,7 +2518,9 @@ void SpirvTransformFeedbackCodeGenerator::writeTransformFeedbackEmulationOutput(
             // implementation of intBitsToFloat() and uintBitsToFloat() for non-float types).
             spirv::IdRef varyingTypeId;
             spirv::IdRef varyingTypePtr;
-            const bool isPrivate = inactiveVaryingRemover.isInactive(varying.baseId);
+            const bool isPrivate =
+                inactiveVaryingRemover.isInactive(varying.baseId) ||
+                (usePrecisionFixer && varyingPrecisionFixer.isReplaced(varying.baseId));
             getVaryingTypeIds(ids, info->componentType, isPrivate, &varyingTypeId, &varyingTypePtr);
 
             for (uint32_t arrayIndex = arrayIndexStart; arrayIndex < arrayIndexEnd; ++arrayIndex)
@@ -2982,12 +3164,14 @@ class SpirvTransformer final : public SpirvTransformerBase
     // Helpers:
     void visitTypeHelper(spirv::IdResult id, spirv::IdRef typeId);
     void writePendingDeclarations();
+    void writeInputPreamble();
     void writeOutputPrologue();
 
     // Special flags:
     GlslangSpirvOptions mOptions;
 
     // Traversal state:
+    bool mInsertFunctionVariables = false;
     spirv::IdRef mEntryPointId;
     spirv::IdRef mCurrentFunctionId;
 
@@ -2997,6 +3181,7 @@ class SpirvTransformer final : public SpirvTransformerBase
 
     SpirvPerVertexTrimmer mPerVertexTrimmer;
     SpirvInactiveVaryingRemover mInactiveVaryingRemover;
+    SpirvVaryingPrecisionFixer mVaryingPrecisionFixer;
     SpirvTransformFeedbackCodeGenerator mXfbCodeGenerator;
     SpirvPositionTransformer mPositionTransformer;
     SpirvMultiSampleTransformer mMultiSampleTransformer;
@@ -3022,6 +3207,10 @@ void SpirvTransformer::resolveVariableIds()
 
     mIds.init(indexBound);
     mInactiveVaryingRemover.init(indexBound);
+    if (mOptions.useSpirvVaryingPrecisionFixer)
+    {
+        mVaryingPrecisionFixer.init(indexBound);
+    }
 
     // Allocate storage for id-to-info map.  If %i is the id of a name in mVariableInfoMap, index i
     // in this vector will hold a pointer to the ShaderInterfaceVariableInfo object associated with
@@ -3112,6 +3301,13 @@ void SpirvTransformer::transformInstruction()
             writePendingDeclarations();
         }
         mIsInFunctionSection = true;
+
+        // Only write function variables for the EntryPoint function for non-compute shaders
+        if (mOptions.useSpirvVaryingPrecisionFixer)
+        {
+            mInsertFunctionVariables = mCurrentFunctionId == mEntryPointId &&
+                                       mOptions.shaderType != gl::ShaderType::Compute;
+        }
     }
 
     // Only look at interesting instructions.
@@ -3119,6 +3315,18 @@ void SpirvTransformer::transformInstruction()
 
     if (mIsInFunctionSection)
     {
+        // After we process an OpFunction instruction and any instructions that must come
+        // immediately after OpFunction we need to check if there are any precision mismatches that
+        // need to be handled. If so, output OpVariable for each variable that needed to change from
+        // a StorageClassOutput to a StorageClassFunction.
+        if (mOptions.useSpirvVaryingPrecisionFixer && mInsertFunctionVariables &&
+            opCode != spv::OpFunction && opCode != spv::OpFunctionParameter &&
+            opCode != spv::OpLabel && opCode != spv::OpVariable)
+        {
+            writeInputPreamble();
+            mInsertFunctionVariables = false;
+        }
+
         // Look at in-function opcodes.
         switch (opCode)
         {
@@ -3214,9 +3422,25 @@ void SpirvTransformer::writePendingDeclarations()
     }
 }
 
-// Called by transformInstruction to insert necessary instructions for modifying gl_Position.
+// Called by transformInstruction to insert necessary instructions for casting varyings.
+void SpirvTransformer::writeInputPreamble()
+{
+    if (mOptions.useSpirvVaryingPrecisionFixer)
+    {
+        mVaryingPrecisionFixer.writeInputPreamble(mVariableInfoById, mOptions.shaderType,
+                                                  mSpirvBlobOut);
+    }
+}
+
+// Called by transformInstruction to insert necessary instructions for casting varyings and
+// modifying gl_Position.
 void SpirvTransformer::writeOutputPrologue()
 {
+    if (mOptions.useSpirvVaryingPrecisionFixer)
+    {
+        mVaryingPrecisionFixer.writeOutputPrologue(mVariableInfoById, mOptions.shaderType,
+                                                   mSpirvBlobOut);
+    }
     if (!mIds.outputPerVertexId().valid())
     {
         return;
@@ -3353,6 +3577,10 @@ void SpirvTransformer::visitTypePointer(const uint32_t *instruction)
     spirv::ParseTypePointer(instruction, &id, &storageClass, &typeId);
 
     mIds.visitTypePointer(id, storageClass, typeId);
+    if (mOptions.useSpirvVaryingPrecisionFixer)
+    {
+        mVaryingPrecisionFixer.visitTypePointer(id, storageClass, typeId);
+    }
     mXfbCodeGenerator.visitTypePointer(id, storageClass, typeId);
 }
 
@@ -3401,6 +3629,12 @@ void SpirvTransformer::visitVariable(const uint32_t *instruction)
 
     // Associate the id of this name with its info.
     mVariableInfoById[id] = &info;
+
+    if (mOptions.useSpirvVaryingPrecisionFixer)
+    {
+        mVaryingPrecisionFixer.visitVariable(info, mOptions.shaderType, typeId, id, storageClass,
+                                             mSpirvBlobOut);
+    }
     if (mOptions.isTransformFeedbackStage)
     {
         mXfbCodeGenerator.visitVariable(info, mOptions.shaderType, name, typeId, id, storageClass);
@@ -3433,6 +3667,12 @@ TransformationState SpirvTransformer::transformDecorate(const uint32_t *instruct
         return TransformationState::Transformed;
     }
 
+    // If using relaxed precision, generate instructions for the replacement id instead.
+    if (mOptions.useSpirvVaryingPrecisionFixer)
+    {
+        id = mVaryingPrecisionFixer.getReplacementId(id);
+    }
+
     uint32_t newDecorationValue = ShaderInterfaceVariableInfo::kInvalid;
 
     switch (decoration)
@@ -3445,6 +3685,17 @@ TransformationState SpirvTransformer::transformDecorate(const uint32_t *instruct
             break;
         case spv::DecorationDescriptorSet:
             newDecorationValue = info->descriptorSet;
+            break;
+        case spv::DecorationFlat:
+        case spv::DecorationNoPerspective:
+        case spv::DecorationCentroid:
+        case spv::DecorationSample:
+            if (mOptions.useSpirvVaryingPrecisionFixer && info->useRelaxedPrecision)
+            {
+                // Change the id to replacement variable
+                spirv::WriteDecorate(mSpirvBlobOut, id, decoration, decorationValues);
+                return TransformationState::Transformed;
+            }
             break;
         case spv::DecorationBlock:
             // If this is the Block decoration of a shader I/O block, add the transform feedback
@@ -3477,6 +3728,13 @@ TransformationState SpirvTransformer::transformDecorate(const uint32_t *instruct
     if (decoration != spv::DecorationLocation)
     {
         return TransformationState::Transformed;
+    }
+
+    // If any, the replacement variable is always reduced precision so add that decoration to
+    // fixedVaryingId.
+    if (mOptions.useSpirvVaryingPrecisionFixer && info->useRelaxedPrecision)
+    {
+        mVaryingPrecisionFixer.addDecorate(id, mSpirvBlobOut);
     }
 
     // Add component decoration, if any.
@@ -3582,6 +3840,10 @@ TransformationState SpirvTransformer::transformEntryPoint(const uint32_t *instru
 
     mInactiveVaryingRemover.modifyEntryPointInterfaceList(mVariableInfoById, mOptions.shaderType,
                                                           &interfaceList);
+    if (mOptions.useSpirvVaryingPrecisionFixer)
+    {
+        mVaryingPrecisionFixer.modifyEntryPointInterfaceList(&interfaceList);
+    }
 
     mMultiSampleTransformer.modifyEntryPointInterfaceList(&interfaceList, mSpirvBlobOut);
 
@@ -3623,7 +3885,8 @@ TransformationState SpirvTransformer::transformReturn(const uint32_t *instructio
             // Transform feedback emulation is written to a designated function.  Allow its code to
             // be generated if this is the right function.
             mXfbCodeGenerator.writeTransformFeedbackEmulationOutput(
-                mIds, mInactiveVaryingRemover, mCurrentFunctionId, mSpirvBlobOut);
+                mIds, mInactiveVaryingRemover, mVaryingPrecisionFixer,
+                mOptions.useSpirvVaryingPrecisionFixer, mCurrentFunctionId, mSpirvBlobOut);
         }
 
         // We only need to process the precision info when returning from the entry point function
@@ -3666,6 +3929,14 @@ TransformationState SpirvTransformer::transformVariable(const uint32_t *instruct
     // is compiled separately.
     if (info->activeStages[mOptions.shaderType])
     {
+        if (mOptions.useSpirvVaryingPrecisionFixer &&
+            mVaryingPrecisionFixer.transformVariable(
+                *info, typeId, id, storageClass, mSpirvBlobOut) == TransformationState::Transformed)
+        {
+            // Make original variable a private global
+            return mInactiveVaryingRemover.transformVariable(typeId, id, storageClass,
+                                                             mSpirvBlobOut);
+        }
         return TransformationState::Unchanged;
     }
 
@@ -3705,9 +3976,19 @@ TransformationState SpirvTransformer::transformAccessChain(const uint32_t *instr
         return TransformationState::Unchanged;
     }
 
-    if (info->activeStages[mOptions.shaderType])
+    if (mOptions.useSpirvVaryingPrecisionFixer)
     {
-        return TransformationState::Unchanged;
+        if (info->activeStages[mOptions.shaderType] && !info->useRelaxedPrecision)
+        {
+            return TransformationState::Unchanged;
+        }
+    }
+    else
+    {
+        if (info->activeStages[mOptions.shaderType])
+        {
+            return TransformationState::Unchanged;
+        }
     }
 
     return mInactiveVaryingRemover.transformAccessChain(typeId, id, baseId, indexList,
@@ -4958,7 +5239,10 @@ angle::Result GlslangTransformSpirvCode(const GlslangSpirvOptions &options,
 
     spirvBlobOut->shrink_to_fit();
 
-    ASSERT(spirv::Validate(*spirvBlobOut));
+    if (options.validate)
+    {
+        ASSERT(spirv::Validate(*spirvBlobOut));
+    }
 
     return angle::Result::Continue;
 }

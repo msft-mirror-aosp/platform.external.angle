@@ -123,7 +123,8 @@ void RendererD3D::ensureCapsInitialized() const
 {
     if (!mCapsInitialized)
     {
-        generateCaps(&mNativeCaps, &mNativeTextureCaps, &mNativeExtensions, &mNativeLimitations);
+        generateCaps(&mNativeCaps, &mNativeTextureCaps, &mNativeExtensions, &mNativeLimitations,
+                     &mNativePLSOptions);
         mCapsInitialized = true;
     }
 }
@@ -150,6 +151,11 @@ const gl::Limitations &RendererD3D::getNativeLimitations() const
 {
     ensureCapsInitialized();
     return mNativeLimitations;
+}
+
+const ShPixelLocalStorageOptions &RendererD3D::getNativePixelLocalStorageOptions() const
+{
+    return mNativePLSOptions;
 }
 
 Serial RendererD3D::generateSerial()

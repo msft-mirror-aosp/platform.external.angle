@@ -15,11 +15,13 @@
 #include "libANGLE/ErrorStrings.h"
 #include "libANGLE/Framebuffer.h"
 #include "libANGLE/FramebufferAttachment.h"
+#include "libANGLE/PixelLocalStorage.h"
 #include "libANGLE/Renderbuffer.h"
 #include "libANGLE/Texture.h"
 #include "libANGLE/VertexArray.h"
 #include "libANGLE/formatutils.h"
 #include "libANGLE/validationES.h"
+#include "libANGLE/validationES3.h"
 
 using namespace angle;
 
@@ -313,7 +315,7 @@ static bool ValidateTexImageFormatCombination(const Context *context,
             }
         }
 
-        if (!ValidES3Type(type))
+        if (!ValidES3Type(type) || (type == GL_HALF_FLOAT_OES && context->isWebGL()))
         {
             context->validationError(entryPoint, GL_INVALID_ENUM, kInvalidType);
             return false;
@@ -659,7 +661,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         // compressedTexSubImage does not generate GL_INVALID_ENUM when format is unknown or invalid
         if (!isSubImage)
         {
-            if (!actualFormatInfo.compressed)
+            if (!actualFormatInfo.compressed && !actualFormatInfo.paletted)
             {
                 context->validationError(entryPoint, GL_INVALID_ENUM, kCompressedMismatch);
                 return false;
@@ -733,7 +735,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         }
 
         // Disallow 3D-only compressed formats from being set on 2D textures
-        if (actualFormatInfo.compressedBlockDepth > 1 && texType != TextureType::_2DArray)
+        if (actualFormatInfo.compressedBlockDepth > 1 && texType != TextureType::_3D)
         {
             context->validationError(entryPoint, GL_INVALID_OPERATION, kInvalidTextureTarget);
             return false;
@@ -769,19 +771,11 @@ bool ValidateES3TexImageParametersBase(const Context *context,
             return false;
         }
 
-        if (xoffset < 0 || yoffset < 0 || zoffset < 0)
-        {
-            context->validationError(entryPoint, GL_INVALID_VALUE, kNegativeOffset);
-            return false;
-        }
-
-        if (std::numeric_limits<GLsizei>::max() - xoffset < width ||
-            std::numeric_limits<GLsizei>::max() - yoffset < height ||
-            std::numeric_limits<GLsizei>::max() - zoffset < depth)
-        {
-            context->validationError(entryPoint, GL_INVALID_VALUE, kOffsetOverflow);
-            return false;
-        }
+        // Already validated above
+        ASSERT(xoffset >= 0 && yoffset >= 0 && zoffset >= 0);
+        ASSERT(std::numeric_limits<GLsizei>::max() - xoffset >= width &&
+               std::numeric_limits<GLsizei>::max() - yoffset >= height &&
+               std::numeric_limits<GLsizei>::max() - zoffset >= depth);
 
         if (static_cast<size_t>(xoffset + width) > texture->getWidth(target, level) ||
             static_cast<size_t>(yoffset + height) > texture->getHeight(target, level) ||
@@ -1934,7 +1928,7 @@ bool ValidateDrawRangeElements(const Context *context,
         return false;
     }
 
-    if (!ValidateDrawElementsCommon(context, entryPoint, mode, count, type, indices, 0))
+    if (!ValidateDrawElementsCommon(context, entryPoint, mode, count, type, indices, 1))
     {
         return false;
     }
@@ -2428,6 +2422,10 @@ bool ValidateClearBufferiv(const Context *context,
     switch (buffer)
     {
         case GL_COLOR:
+            if (!ValidateDrawBufferIndexIfActivePLS(context, entryPoint, drawbuffer, "drawbuffer"))
+            {
+                return false;
+            }
             if (drawbuffer < 0 || drawbuffer >= context->getCaps().maxDrawBuffers)
             {
                 context->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
@@ -2471,6 +2469,10 @@ bool ValidateClearBufferuiv(const Context *context,
     switch (buffer)
     {
         case GL_COLOR:
+            if (!ValidateDrawBufferIndexIfActivePLS(context, entryPoint, drawbuffer, "drawbuffer"))
+            {
+                return false;
+            }
             if (drawbuffer < 0 || drawbuffer >= context->getCaps().maxDrawBuffers)
             {
                 context->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
@@ -2505,6 +2507,10 @@ bool ValidateClearBufferfv(const Context *context,
     switch (buffer)
     {
         case GL_COLOR:
+            if (!ValidateDrawBufferIndexIfActivePLS(context, entryPoint, drawbuffer, "drawbuffer"))
+            {
+                return false;
+            }
             if (drawbuffer < 0 || drawbuffer >= context->getCaps().maxDrawBuffers)
             {
                 context->validationError(entryPoint, GL_INVALID_VALUE, kIndexExceedsMaxDrawBuffer);
@@ -3087,7 +3093,8 @@ bool ValidateBeginTransformFeedback(const Context *context,
         }
     }
 
-    const ProgramExecutable *programExecutable = context->getState().getProgramExecutable();
+    const ProgramExecutable *programExecutable =
+        context->getState().getLinkedProgramExecutable(context);
     if (!programExecutable)
     {
         context->validationError(entryPoint, GL_INVALID_OPERATION, kProgramNotBound);
@@ -4408,8 +4415,8 @@ bool ValidateResumeTransformFeedback(const Context *context, angle::EntryPoint e
         return false;
     }
 
-    if (!ValidateProgramExecutableXFBBuffersPresent(context,
-                                                    context->getState().getProgramExecutable()))
+    if (!ValidateProgramExecutableXFBBuffersPresent(
+            context, context->getState().getLinkedProgramExecutable(context)))
     {
         context->validationError(entryPoint, GL_INVALID_OPERATION, kTransformFeedbackBufferMissing);
         return false;
@@ -5276,5 +5283,30 @@ bool ValidateSampleMaskiANGLE(const Context *context,
     }
 
     return ValidateSampleMaskiBase(context, entryPoint, maskNumber, mask);
+}
+
+bool ValidateDrawBufferIndexIfActivePLS(const Context *context,
+                                        angle::EntryPoint entryPoint,
+                                        GLuint drawBufferIdx,
+                                        const char *argumentName)
+{
+    int numPLSPlanes = context->getState().getPixelLocalStorageActivePlanes();
+    if (numPLSPlanes != 0)
+    {
+        if (drawBufferIdx >= context->getCaps().maxColorAttachmentsWithActivePixelLocalStorage)
+        {
+            context->validationErrorF(entryPoint, GL_INVALID_OPERATION,
+                                      kPLSDrawBufferExceedsAttachmentLimit, argumentName);
+            return false;
+        }
+        if (drawBufferIdx >=
+            context->getCaps().maxCombinedDrawBuffersAndPixelLocalStoragePlanes - numPLSPlanes)
+        {
+            context->validationErrorF(entryPoint, GL_INVALID_OPERATION,
+                                      kPLSDrawBufferExceedsCombinedAttachmentLimit, argumentName);
+            return false;
+        }
+    }
+    return true;
 }
 }  // namespace gl

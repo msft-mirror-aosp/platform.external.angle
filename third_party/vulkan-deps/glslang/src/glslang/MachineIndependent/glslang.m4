@@ -1218,7 +1218,7 @@ fully_specified_type
         parseContext.precisionQualifierCheck($$.loc, $$.basicType, $$.qualifier);
     }
     | type_qualifier type_specifier  {
-        parseContext.globalQualifierFixCheck($1.loc, $1.qualifier);
+        parseContext.globalQualifierFixCheck($1.loc, $1.qualifier, false, &$2);
         parseContext.globalQualifierTypeCheck($1.loc, $1.qualifier, $2);
 
         if ($2.arraySizes) {
@@ -3743,7 +3743,7 @@ compound_statement
     }
       RIGHT_BRACE {
         if ($3 && $3->getAsAggregate())
-            $3->getAsAggregate()->setOperator(EOpSequence);
+            $3->getAsAggregate()->setOperator(parseContext.intermediate.getDebugInfo() ? EOpScope : EOpSequence);
         $$ = $3;
     }
     ;

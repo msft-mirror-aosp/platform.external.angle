@@ -49,6 +49,7 @@ namespace spv {
     #include "GLSL.ext.EXT.h"
     #include "GLSL.ext.AMD.h"
     #include "GLSL.ext.NV.h"
+    #include "GLSL.ext.ARM.h"
     #include "NonSemanticDebugPrintf.h"
 }
 
@@ -294,8 +295,6 @@ spv::SourceLanguage TranslateSourceLanguage(glslang::EShSource source, EProfile 
 {
 #ifdef GLSLANG_WEB
     return spv::SourceLanguageESSL;
-#elif defined(GLSLANG_ANGLE)
-    return spv::SourceLanguageGLSL;
 #endif
 
     switch (source) {
@@ -1108,6 +1107,28 @@ spv::BuiltIn TGlslangToSpvTraverser::TranslateBuiltInDecoration(glslang::TBuiltI
         builder.addExtension(spv::E_SPV_NV_shader_sm_builtins);
         builder.addCapability(spv::CapabilityShaderSMBuiltinsNV);
         return spv::BuiltInSMIDNV;
+
+   // ARM builtins
+    case glslang::EbvCoreCountARM:
+        builder.addExtension(spv::E_SPV_ARM_core_builtins);
+        builder.addCapability(spv::CapabilityCoreBuiltinsARM);
+        return spv::BuiltInCoreCountARM;
+    case glslang::EbvCoreIDARM:
+        builder.addExtension(spv::E_SPV_ARM_core_builtins);
+        builder.addCapability(spv::CapabilityCoreBuiltinsARM);
+        return spv::BuiltInCoreIDARM;
+    case glslang::EbvCoreMaxIDARM:
+        builder.addExtension(spv::E_SPV_ARM_core_builtins);
+        builder.addCapability(spv::CapabilityCoreBuiltinsARM);
+        return spv::BuiltInCoreMaxIDARM;
+    case glslang::EbvWarpIDARM:
+        builder.addExtension(spv::E_SPV_ARM_core_builtins);
+        builder.addCapability(spv::CapabilityCoreBuiltinsARM);
+        return spv::BuiltInWarpIDARM;
+    case glslang::EbvWarpMaxIDARM:
+        builder.addExtension(spv::E_SPV_ARM_core_builtins);
+        builder.addCapability(spv::CapabilityCoreBuiltinsARM);
+        return spv::BuiltInWarpMaxIDARM;
 #endif
 
     default:
@@ -1295,7 +1316,7 @@ spv::StorageClass TGlslangToSpvTraverser::TranslateStorageClass(const glslang::T
             type.getQualifier().storage == glslang::EvqUniform) {
         if (type.isAtomic())
             return spv::StorageClassAtomicCounter;
-        if (type.containsOpaque())
+        if (type.containsOpaque() && !glslangIntermediate->getBindlessMode())
             return spv::StorageClassUniformConstant;
     }
 
@@ -1578,6 +1599,10 @@ TGlslangToSpvTraverser::TGlslangToSpvTraverser(unsigned int spvVersion,
         for (auto iItr = include_txt.begin(); iItr != include_txt.end(); ++iItr)
             builder.addInclude(iItr->first, iItr->second);
     }
+
+    builder.setEmitNonSemanticShaderDebugInfo(options.emitNonSemanticShaderDebugInfo);
+    builder.setEmitNonSemanticShaderDebugSource(options.emitNonSemanticShaderDebugSource);
+
     stdBuiltins = builder.import("GLSL.std.450");
 
     spv::AddressingModel addressingModel = spv::AddressingModelLogical;
@@ -2526,6 +2551,14 @@ bool TGlslangToSpvTraverser::visitUnary(glslang::TVisit /* visit */, glslang::TI
         return false;
     }
 
+    // Force variable declaration - Debug Mode Only
+    if (node->getOp() == glslang::EOpDeclare) {
+        builder.clearAccessChain();
+        node->getOperand()->traverse(this);
+        builder.clearAccessChain();
+        return false;
+    }
+
     // Start by evaluating the operand
 
     // Does it need a swizzle inversion?  If so, evaluation is inverted;
@@ -2786,32 +2819,38 @@ bool TGlslangToSpvTraverser::visitAggregate(glslang::TVisit visit, glslang::TInt
     spv::Decoration precision = TranslatePrecisionDecoration(node->getOperationPrecision());
 
     switch (node->getOp()) {
+    case glslang::EOpScope:
     case glslang::EOpSequence:
     {
-        if (preVisit)
+        if (visit == glslang::EvPreVisit) {
             ++sequenceDepth;
-        else
+            if (sequenceDepth == 1) {
+                // If this is the parent node of all the functions, we want to see them
+                // early, so all call points have actual SPIR-V functions to reference.
+                // In all cases, still let the traverser visit the children for us.
+                makeFunctions(node->getAsAggregate()->getSequence());
+
+                // Also, we want all globals initializers to go into the beginning of the entry point, before
+                // anything else gets there, so visit out of order, doing them all now.
+                makeGlobalInitializers(node->getAsAggregate()->getSequence());
+
+                //Pre process linker objects for ray tracing stages
+                if (glslangIntermediate->isRayTracingStage())
+                  collectRayTracingLinkerObjects();
+
+                // Initializers are done, don't want to visit again, but functions and link objects need to be processed,
+                // so do them manually.
+                visitFunctions(node->getAsAggregate()->getSequence());
+
+                return false;
+            } else {
+                if (node->getOp() == glslang::EOpScope)
+                    builder.enterScope(0);
+            }
+        } else {
+            if (sequenceDepth > 1 && node->getOp() == glslang::EOpScope)
+                builder.leaveScope();
             --sequenceDepth;
-
-        if (sequenceDepth == 1) {
-            // If this is the parent node of all the functions, we want to see them
-            // early, so all call points have actual SPIR-V functions to reference.
-            // In all cases, still let the traverser visit the children for us.
-            makeFunctions(node->getAsAggregate()->getSequence());
-
-            // Also, we want all globals initializers to go into the beginning of the entry point, before
-            // anything else gets there, so visit out of order, doing them all now.
-            makeGlobalInitializers(node->getAsAggregate()->getSequence());
-
-            //Pre process linker objects for ray tracing stages
-            if (glslangIntermediate->isRayTracingStage())
-                collectRayTracingLinkerObjects();
-
-            // Initializers are done, don't want to visit again, but functions and link objects need to be processed,
-            // so do them manually.
-            visitFunctions(node->getAsAggregate()->getSequence());
-
-            return false;
         }
 
         return true;
@@ -2840,13 +2879,16 @@ bool TGlslangToSpvTraverser::visitAggregate(glslang::TVisit visit, glslang::TInt
             if (isShaderEntryPoint(node)) {
                 inEntryPoint = true;
                 builder.setBuildPoint(shaderEntry->getLastBlock());
+                builder.enterFunction(shaderEntry);
                 currentFunction = shaderEntry;
             } else {
                 handleFunctionEntry(node);
             }
             if (options.generateDebugInfo) {
                 const auto& loc = node->getLoc();
-                currentFunction->setDebugLineInfo(builder.getSourceFile(), loc.line, loc.column);
+                const char* sourceFileName = loc.getFilename();
+                spv::Id sourceFileId = sourceFileName ? builder.getStringId(sourceFileName) : builder.getSourceFile();
+                currentFunction->setDebugLineInfo(sourceFileId, loc.line, loc.column);
             }
         } else {
             if (inEntryPoint)
@@ -3826,8 +3868,8 @@ bool TGlslangToSpvTraverser::visitLoop(glslang::TVisit /* visit */, glslang::TIn
     // by a block-ending branch.  But we don't want to put any other body/test
     // instructions in it, since the body/test may have arbitrary instructions,
     // including merges of its own.
-    builder.setLine(node->getLoc().line, node->getLoc().getFilename());
     builder.setBuildPoint(&blocks.head);
+    builder.setLine(node->getLoc().line, node->getLoc().getFilename());
     builder.createLoopMerge(&blocks.merge, &blocks.continue_target, control, operands);
     if (node->testFirst() && node->getTest()) {
         spv::Block& test = builder.makeNewBlock();
@@ -4046,7 +4088,7 @@ spv::Id TGlslangToSpvTraverser::createSpvVariable(const glslang::TIntermSymbol* 
         initializer = builder.makeNullConstant(spvType);
     }
 
-    return builder.createVariable(spv::NoPrecision, storageClass, spvType, name, initializer);
+    return builder.createVariable(spv::NoPrecision, storageClass, spvType, name, initializer, false);
 }
 
 // Return type Id of the sampled type.
@@ -4134,7 +4176,7 @@ spv::Id TGlslangToSpvTraverser::convertGlslangToSpvType(const glslang::TType& ty
         if (explicitLayout != glslang::ElpNone)
             spvType = builder.makeUintType(32);
         else
-            spvType = builder.makeBoolType();
+            spvType = builder.makeBoolType(false);
         break;
     case glslang::EbtInt:
         spvType = builder.makeIntType(32);
@@ -4454,14 +4496,14 @@ spv::Id TGlslangToSpvTraverser::convertGlslangStructToSpvType(const glslang::TTy
                           // except sometimes for blocks
     std::vector<std::pair<glslang::TType*, glslang::TQualifier> > deferredForwardPointers;
     for (int i = 0; i < (int)glslangMembers->size(); i++) {
-        glslang::TType& glslangMember = *(*glslangMembers)[i].type;
-        if (glslangMember.hiddenMember()) {
+        auto& glslangMember = (*glslangMembers)[i];
+        if (glslangMember.type->hiddenMember()) {
             ++memberDelta;
             if (type.getBasicType() == glslang::EbtBlock)
                 memberRemapper[glslangTypeToIdMap[glslangMembers]][i] = -1;
         } else {
             if (type.getBasicType() == glslang::EbtBlock) {
-                if (filterMember(glslangMember)) {
+                if (filterMember(*glslangMember.type)) {
                     memberDelta++;
                     memberRemapper[glslangTypeToIdMap[glslangMembers]][i] = -1;
                     continue;
@@ -4469,7 +4511,7 @@ spv::Id TGlslangToSpvTraverser::convertGlslangStructToSpvType(const glslang::TTy
                 memberRemapper[glslangTypeToIdMap[glslangMembers]][i] = i - memberDelta;
             }
             // modify just this child's view of the qualifier
-            glslang::TQualifier memberQualifier = glslangMember.getQualifier();
+            glslang::TQualifier memberQualifier = glslangMember.type->getQualifier();
             InheritQualifiers(memberQualifier, qualifier);
 
             // manually inherit location
@@ -4480,25 +4522,38 @@ spv::Id TGlslangToSpvTraverser::convertGlslangStructToSpvType(const glslang::TTy
             bool lastBufferBlockMember = qualifier.storage == glslang::EvqBuffer &&
                                          i == (int)glslangMembers->size() - 1;
 
-            // Make forward pointers for any pointer members, and create a list of members to
-            // convert to spirv types after creating the struct.
-            if (glslangMember.isReference()) {
-                if (forwardPointers.find(glslangMember.getReferentType()) == forwardPointers.end()) {
-                    deferredForwardPointers.push_back(std::make_pair(&glslangMember, memberQualifier));
-                }
-                spvMembers.push_back(
-                    convertGlslangToSpvType(glslangMember, explicitLayout, memberQualifier, lastBufferBlockMember,
-                        true));
-            } else {
-                spvMembers.push_back(
-                    convertGlslangToSpvType(glslangMember, explicitLayout, memberQualifier, lastBufferBlockMember,
-                        false));
+            // Make forward pointers for any pointer members.
+            if (glslangMember.type->isReference() &&
+                forwardPointers.find(glslangMember.type->getReferentType()) == forwardPointers.end()) {
+                deferredForwardPointers.push_back(std::make_pair(glslangMember.type, memberQualifier));
+            }
+
+            // Create the member type.
+            auto const spvMember = convertGlslangToSpvType(*glslangMember.type, explicitLayout, memberQualifier, lastBufferBlockMember,
+                glslangMember.type->isReference());
+            spvMembers.push_back(spvMember);
+
+            // Update the builder with the type's location so that we can create debug types for the structure members.
+            // There doesn't exist a "clean" entry point for this information to be passed along to the builder so, for now,
+            // it is stored in the builder and consumed during the construction of composite debug types.
+            // TODO: This probably warrants further investigation. This approach was decided to be the least ugly of the
+            // quick and dirty approaches that were tried.
+            // Advantages of this approach:
+            //  + Relatively clean. No direct calls into debug type system.
+            //  + Handles nested recursive structures.
+            // Disadvantages of this approach:
+            //  + Not as clean as desired. Traverser queries/sets persistent state. This is fragile.
+            //  + Table lookup during creation of composite debug types. This really shouldn't be necessary.
+            if(options.emitNonSemanticShaderDebugInfo) {
+                builder.debugTypeLocs[spvMember].name = glslangMember.type->getFieldName().c_str();
+                builder.debugTypeLocs[spvMember].line = glslangMember.loc.line;
+                builder.debugTypeLocs[spvMember].column = glslangMember.loc.column;
             }
         }
     }
 
     // Make the SPIR-V type
-    spv::Id spvType = builder.makeStructType(spvMembers, type.getTypeName().c_str());
+    spv::Id spvType = builder.makeStructType(spvMembers, type.getTypeName().c_str(), false);
     if (! HasNonLayoutQualifiers(type, qualifier))
         structMap[explicitLayout][qualifier.layoutMatrix][glslangMembers] = spvType;
 
@@ -4707,6 +4762,16 @@ spv::Id TGlslangToSpvTraverser::accessChainLoad(const glslang::TType& type)
     spv::Builder::AccessChain::CoherentFlags coherentFlags = builder.getAccessChain().coherentFlags;
     coherentFlags |= TranslateCoherent(type);
 
+    spv::MemoryAccessMask accessMask = spv::MemoryAccessMask(TranslateMemoryAccess(coherentFlags) & ~spv::MemoryAccessMakePointerAvailableKHRMask);
+    // If the value being loaded is HelperInvocation, SPIR-V 1.6 is being generated (so that
+    // SPV_EXT_demote_to_helper_invocation is in core) and the memory model is in use, add
+    // the Volatile MemoryAccess semantic.
+    if (type.getQualifier().builtIn == glslang::EbvHelperInvocation &&
+        glslangIntermediate->usingVulkanMemoryModel() &&
+        glslangIntermediate->getSpv().spv >= glslang::EShTargetSpv_1_6) {
+        accessMask = spv::MemoryAccessMask(accessMask | spv::MemoryAccessVolatileMask);
+    }
+
     unsigned int alignment = builder.getAccessChain().alignment;
     alignment |= type.getBufferReferenceAlignment();
 
@@ -4714,7 +4779,7 @@ spv::Id TGlslangToSpvTraverser::accessChainLoad(const glslang::TType& type)
         TranslateNonUniformDecoration(builder.getAccessChain().coherentFlags),
         TranslateNonUniformDecoration(type.getQualifier()),
         nominalTypeId,
-        spv::MemoryAccessMask(TranslateMemoryAccess(coherentFlags) & ~spv::MemoryAccessMakePointerAvailableKHRMask),
+        accessMask,
         TranslateMemoryScope(coherentFlags),
         alignment);
 
@@ -5041,7 +5106,7 @@ bool TGlslangToSpvTraverser::originalParam(glslang::TStorageQualifier qualifier,
         return true;
     if (glslangIntermediate->getSource() == glslang::EShSourceHlsl)
         return paramType.getBasicType() == glslang::EbtBlock;
-    return paramType.containsOpaque() ||                                                       // sampler, etc.
+    return (paramType.containsOpaque() && !glslangIntermediate->getBindlessMode()) ||       // sampler, etc.
 #ifndef GLSLANG_WEB
            paramType.getQualifier().isSpirvByReference() ||                                    // spirv_by_reference
 #endif
@@ -5092,6 +5157,7 @@ void TGlslangToSpvTraverser::makeFunctions(const glslang::TIntermSequence& glslF
         //   GLSL has copy-in/copy-out semantics.  They can be handled though with a pointer to a copy.
 
         std::vector<spv::Id> paramTypes;
+        std::vector<char const*> paramNames;
         std::vector<std::vector<spv::Decoration>> paramDecorations; // list of decorations per parameter
         glslang::TIntermSequence& parameters = glslFunction->getSequence()[0]->getAsAggregate()->getSequence();
 
@@ -5116,10 +5182,14 @@ void TGlslangToSpvTraverser::makeFunctions(const glslang::TIntermSequence& glslF
             paramTypes.push_back(typeId);
         }
 
+        for (auto const parameter:parameters) {
+            paramNames.push_back(parameter->getAsSymbolNode()->getName().c_str());
+        }
+
         spv::Block* functionBlock;
         spv::Function *function = builder.makeFunctionEntry(TranslatePrecisionDecoration(glslFunction->getType()),
                                                             convertGlslangToSpvType(glslFunction->getType()),
-                                                            glslFunction->getName().c_str(), paramTypes,
+                                                            glslFunction->getName().c_str(), paramTypes, paramNames,
                                                             paramDecorations, &functionBlock);
         if (implicitThis)
             function->setImplicitThis();
@@ -5209,6 +5279,7 @@ void TGlslangToSpvTraverser::handleFunctionEntry(const glslang::TIntermAggregate
     currentFunction = functionMap[node->getName().c_str()];
     spv::Block* functionBlock = currentFunction->getEntryBlock();
     builder.setBuildPoint(functionBlock);
+    builder.enterFunction(currentFunction);
 }
 
 void TGlslangToSpvTraverser::translateArguments(const glslang::TIntermAggregate& node, std::vector<spv::Id>& arguments,
@@ -8556,9 +8627,10 @@ spv::Id TGlslangToSpvTraverser::createMiscOperation(glslang::TOperator op, spv::
         builder.createNoResultOp(spv::OpWritePackedPrimitiveIndices4x8NV, operands);
         return 0;
     case glslang::EOpEmitMeshTasksEXT:
-        if(taskPayloadID)
+        if (taskPayloadID)
             operands.push_back(taskPayloadID);
-        builder.createNoResultOp(spv::OpEmitMeshTasksEXT, operands);
+        // As per SPV_EXT_mesh_shader make it a terminating instruction in the current block
+        builder.makeStatementTerminator(spv::OpEmitMeshTasksEXT, operands, "post-OpEmitMeshTasksEXT");
         return 0;
     case glslang::EOpSetMeshOutputsEXT:
         builder.createNoResultOp(spv::OpSetMeshOutputsEXT, operands);
@@ -8927,6 +8999,7 @@ spv::Id TGlslangToSpvTraverser::getSymbolId(const glslang::TIntermSymbol* symbol
 
     // Add volatile decoration to HelperInvocation for spirv1.6 and beyond
     if (builtIn == spv::BuiltInHelperInvocation &&
+        !glslangIntermediate->usingVulkanMemoryModel() &&
         glslangIntermediate->getSpv().spv >= glslang::EShTargetSpv_1_6) {
         builder.addDecoration(id, spv::DecorationVolatile);
     }
@@ -9497,7 +9570,8 @@ int GetSpirvGeneratorVersion()
     // return 7; // GLSL volatile keyword maps to both SPIR-V decorations Volatile and Coherent
     // return 8; // switch to new dead block eliminator; use OpUnreachable
     // return 9; // don't include opaque function parameters in OpEntryPoint global's operand list
-    return 10; // Generate OpFUnordNotEqual for != comparisons
+    // return 10; // Generate OpFUnordNotEqual for != comparisons
+    return 11; // Make OpEmitMeshTasksEXT a terminal instruction
 }
 
 // Write SPIR-V out to a binary file
@@ -9517,7 +9591,7 @@ void OutputSpvBin(const std::vector<unsigned int>& spirv, const char* baseName)
 // Write SPIR-V out to a text file with 32-bit hexadecimal words
 void OutputSpvHex(const std::vector<unsigned int>& spirv, const char* baseName, const char* varName)
 {
-#if !defined(GLSLANG_WEB) && !defined(GLSLANG_ANGLE)
+#if !defined(GLSLANG_WEB)
     std::ofstream out;
     out.open(baseName, std::ios::binary | std::ios::out);
     if (out.fail())
@@ -9564,7 +9638,7 @@ void GlslangToSpv(const TIntermediate& intermediate, std::vector<unsigned int>& 
 {
     TIntermNode* root = intermediate.getTreeRoot();
 
-    if (root == 0)
+    if (root == nullptr)
         return;
 
     SpvOptions defaultOptions;

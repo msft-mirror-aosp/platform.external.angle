@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2013 The Chromium Authors. All rights reserved.
+# Copyright 2013 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """Runs Android's lint tool."""
@@ -29,6 +29,7 @@ _DISABLED_ALWAYS = [
     "InflateParams",  # Null is ok when inflating views for dialogs.
     "InlinedApi",  # Constants are copied so they are always available.
     "LintBaseline",  # Don't warn about using baseline.xml files.
+    "MissingInflatedId",  # False positives https://crbug.com/1394222
     "MissingApplicationIcon",  # False positive for non-production targets.
     "ObsoleteLintCustomCheck",  # We have no control over custom lint checks.
     "SwitchIntDef",  # Many C++ enums are not used at all in java.
