@@ -1,4 +1,4 @@
-# Copyright (c) 2013 The Chromium Authors. All rights reserved.
+# Copyright 2013 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
@@ -10,7 +10,6 @@
 # win tool. The script assumes that the root build directory is the current dir
 # and the files will be written to the current directory.
 
-from __future__ import print_function
 
 import errno
 import json
@@ -289,7 +288,7 @@ def main():
 
       if (environment_block_name != ''):
         env_block = _FormatAsEnvironmentBlock(env)
-        with open(environment_block_name, 'w') as f:
+        with open(environment_block_name, 'w', encoding='utf8') as f:
           f.write(env_block)
 
   print('vc_bin_dir = ' + gn_helpers.ToGNString(vc_bin_dir))

@@ -1,4 +1,4 @@
-// Copyright (c) 2012 The Chromium Authors. All rights reserved.
+// Copyright 2012 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -25,6 +25,9 @@
 //              or MAC or NACL or NETBSD or OPENBSD or QNX or SOLARIS
 
 // This file also adds defines specific to the platform, architecture etc.
+//
+//  Platform:
+//    IS_OZONE
 //
 //  Compiler:
 //    COMPILER_MSVC / COMPILER_GCC
@@ -243,6 +246,12 @@
 #define BUILDFLAG_INTERNAL_IS_WIN() (1)
 #else
 #define BUILDFLAG_INTERNAL_IS_WIN() (0)
+#endif
+
+#if defined(USE_OZONE)
+#define BUILDFLAG_INTERNAL_IS_OZONE() (1)
+#else
+#define BUILDFLAG_INTERNAL_IS_OZONE() (0)
 #endif
 
 // Compiler detection. Note: clang masquerades as GCC on POSIX and as MSVC on

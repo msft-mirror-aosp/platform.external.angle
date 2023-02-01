@@ -14,11 +14,17 @@
 #include <sstream>
 
 #include "GLSLANG/ShaderLang.h"
+#include "common/angle_version_info.h"
+#include "common/string_utils.h"
+#include "common/system_utils.h"
 #include "common/utilities.h"
 #include "libANGLE/Caps.h"
 #include "libANGLE/Compiler.h"
 #include "libANGLE/Constants.h"
 #include "libANGLE/Context.h"
+#include "libANGLE/Display.h"
+#include "libANGLE/MemoryShaderCache.h"
+#include "libANGLE/Program.h"
 #include "libANGLE/ResourceManager.h"
 #include "libANGLE/renderer/GLImplFactory.h"
 #include "libANGLE/renderer/ShaderImpl.h"
@@ -29,52 +35,36 @@ namespace gl
 
 namespace
 {
-template <typename VarT>
-std::vector<VarT> GetActiveShaderVariables(const std::vector<VarT> *variableList)
+constexpr uint32_t kShaderCacheIdentifier = 0x12345678;
+
+// Environment variable (and associated Android property) for the path to read and write shader
+// dumps
+constexpr char kShaderDumpPathVarName[]       = "ANGLE_SHADER_DUMP_PATH";
+constexpr char kEShaderDumpPathPropertyName[] = "debug.angle.shader_dump_path";
+
+std::string GetShaderDumpFilePath(ShaderType type, const std::string &mergedSource)
 {
-    ASSERT(variableList);
-    std::vector<VarT> result;
-    for (size_t varIndex = 0; varIndex < variableList->size(); varIndex++)
+    size_t sourceHash = std::hash<std::string>{}(mergedSource);
+
+    // Check the environment variable for the path to save and read shader dump files. If it doesn't
+    // exist, default to the temp dir. If that doesn't exist, use the current working directory.
+    std::string shaderDumpDir = angle::GetAndSetEnvironmentVarOrUnCachedAndroidProperty(
+        kShaderDumpPathVarName, kEShaderDumpPathPropertyName);
+    if (shaderDumpDir.empty() || shaderDumpDir.compare("0") == 0)
     {
-        const VarT &var = variableList->at(varIndex);
-        if (var.active)
-        {
-            result.push_back(var);
-        }
+        shaderDumpDir = angle::GetTempDirectory().valueOr("");
     }
-    return result;
-}
 
-template <typename VarT>
-const std::vector<VarT> &GetShaderVariables(const std::vector<VarT> *variableList)
-{
-    ASSERT(variableList);
-    return *variableList;
-}
+    std::stringstream path;
+    if (!shaderDumpDir.empty())
+    {
+        path << shaderDumpDir << "/";
+    }
+    path << type << "_" << sourceHash << ".essl";
 
+    return path.str();
+}
 }  // anonymous namespace
-
-// true if varying x has a higher priority in packing than y
-bool CompareShaderVar(const sh::ShaderVariable &x, const sh::ShaderVariable &y)
-{
-    if (x.type == y.type)
-    {
-        return x.getArraySizeProduct() > y.getArraySizeProduct();
-    }
-
-    // Special case for handling structs: we sort these to the end of the list
-    if (x.type == GL_NONE)
-    {
-        return false;
-    }
-
-    if (y.type == GL_NONE)
-    {
-        return true;
-    }
-
-    return gl::VariableSortOrder(x.type) < gl::VariableSortOrder(y.type);
-}
 
 const char *GetShaderTypeString(ShaderType type)
 {
@@ -121,15 +111,8 @@ struct Shader::CompilingState
 };
 
 ShaderState::ShaderState(ShaderType shaderType)
-    : mLabel(),
-      mShaderType(shaderType),
-      mShaderVersion(100),
-      mNumViews(-1),
-      mGeometryShaderInvocations(1),
-      mCompileStatus(CompileStatus::NOT_COMPILED)
-{
-    mLocalSize.fill(-1);
-}
+    : mLabel(), mCompiledShaderState(shaderType), mCompileStatus(CompileStatus::NOT_COMPILED)
+{}
 
 ShaderState::~ShaderState() {}
 
@@ -146,7 +129,8 @@ Shader::Shader(ShaderProgramManager *manager,
       mRefCount(0),
       mDeleteStatus(false),
       mResourceManager(manager),
-      mCurrentMaxComputeWorkGroupInvocations(0u)
+      mCurrentMaxComputeWorkGroupInvocations(0u),
+      mMaxComputeSharedMemory(0u)
 {
     ASSERT(mImplementation);
 }
@@ -186,7 +170,10 @@ ShaderProgramID Shader::getHandle() const
     return mHandle;
 }
 
-void Shader::setSource(GLsizei count, const char *const *string, const GLint *length)
+void Shader::setSource(const Context *context,
+                       GLsizei count,
+                       const char *const *string,
+                       const GLint *length)
 {
     std::ostringstream stream;
 
@@ -202,7 +189,35 @@ void Shader::setSource(GLsizei count, const char *const *string, const GLint *le
         }
     }
 
-    mState.mSource = stream.str();
+    std::string source = stream.str();
+
+    const angle::FrontendFeatures &frontendFeatures = context->getFrontendFeatures();
+
+    bool substitutedShader = false;
+    if (frontendFeatures.enableShaderSubstitution.enabled)
+    {
+        std::string subsitutionShaderPath = GetShaderDumpFilePath(mState.getShaderType(), source);
+
+        std::string substituteShader;
+        if (angle::ReadFileToString(subsitutionShaderPath, &substituteShader))
+        {
+            source            = std::move(substituteShader);
+            substitutedShader = true;
+            INFO() << "Shader substitute found, loading from " << subsitutionShaderPath;
+        }
+    }
+
+    // Only dump shaders that have not been previously substituted. It would write the same data
+    // back to the file.
+    if (frontendFeatures.dumpShaderSource.enabled && !substitutedShader)
+    {
+        std::string dumpFile = GetShaderDumpFilePath(mState.getShaderType(), source);
+
+        writeFile(dumpFile.c_str(), source.c_str(), source.length());
+        INFO() << "Dumped shader source: " << dumpFile;
+    }
+
+    mState.mSource = std::move(source);
 }
 
 int Shader::getInfoLogLength(const Context *context)
@@ -245,12 +260,12 @@ int Shader::getTranslatedSourceLength(const Context *context)
 {
     resolveCompile(context);
 
-    if (mState.mTranslatedSource.empty())
+    if (mState.getTranslatedSource().empty())
     {
         return 0;
     }
 
-    return (static_cast<int>(mState.mTranslatedSource.length()) + 1);
+    return (static_cast<int>(mState.getTranslatedSource().length()) + 1);
 }
 
 int Shader::getTranslatedSourceWithDebugInfoLength(const Context *context)
@@ -304,13 +319,13 @@ void Shader::getTranslatedSource(const Context *context,
 const std::string &Shader::getTranslatedSource(const Context *context)
 {
     resolveCompile(context);
-    return mState.mTranslatedSource;
+    return mState.getTranslatedSource();
 }
 
 const sh::BinaryBlob &Shader::getCompiledBinary(const Context *context)
 {
     resolveCompile(context);
-    return mState.mCompiledBinary;
+    return mState.getCompiledBinary();
 }
 
 void Shader::getTranslatedSourceWithDebugInfo(const Context *context,
@@ -327,34 +342,36 @@ void Shader::compile(const Context *context)
 {
     resolveCompile(context);
 
-    mState.mTranslatedSource.clear();
-    mState.mCompiledBinary.clear();
+    mState.mCompiledShaderState.translatedSource.clear();
+    mState.mCompiledShaderState.compiledBinary.clear();
     mInfoLog.clear();
-    mState.mShaderVersion = 100;
-    mState.mInputVaryings.clear();
-    mState.mOutputVaryings.clear();
-    mState.mUniforms.clear();
-    mState.mUniformBlocks.clear();
-    mState.mShaderStorageBlocks.clear();
-    mState.mActiveAttributes.clear();
-    mState.mActiveOutputVariables.clear();
-    mState.mNumViews = -1;
-    mState.mGeometryShaderInputPrimitiveType.reset();
-    mState.mGeometryShaderOutputPrimitiveType.reset();
-    mState.mGeometryShaderMaxVertices.reset();
-    mState.mGeometryShaderInvocations = 1;
-    mState.mTessControlShaderVertices = 0;
-    mState.mTessGenMode               = 0;
-    mState.mTessGenSpacing            = 0;
-    mState.mTessGenVertexOrder        = 0;
-    mState.mTessGenPointMode          = 0;
-    mState.mAdvancedBlendEquations.reset();
-    mState.mHasDiscard              = false;
-    mState.mEnablesPerSampleShading = false;
-    mState.mSpecConstUsageBits.reset();
+    mState.mCompiledShaderState.shaderVersion = 100;
+    mState.mCompiledShaderState.inputVaryings.clear();
+    mState.mCompiledShaderState.outputVaryings.clear();
+    mState.mCompiledShaderState.uniforms.clear();
+    mState.mCompiledShaderState.uniformBlocks.clear();
+    mState.mCompiledShaderState.shaderStorageBlocks.clear();
+    mState.mCompiledShaderState.activeAttributes.clear();
+    mState.mCompiledShaderState.activeOutputVariables.clear();
+    mState.mCompiledShaderState.numViews = -1;
+    mState.mCompiledShaderState.geometryShaderInputPrimitiveType.reset();
+    mState.mCompiledShaderState.geometryShaderOutputPrimitiveType.reset();
+    mState.mCompiledShaderState.geometryShaderMaxVertices.reset();
+    mState.mCompiledShaderState.geometryShaderInvocations = 1;
+    mState.mCompiledShaderState.tessControlShaderVertices = 0;
+    mState.mCompiledShaderState.tessGenMode               = 0;
+    mState.mCompiledShaderState.tessGenSpacing            = 0;
+    mState.mCompiledShaderState.tessGenVertexOrder        = 0;
+    mState.mCompiledShaderState.tessGenPointMode          = 0;
+    mState.mCompiledShaderState.advancedBlendEquations.reset();
+    mState.mCompiledShaderState.hasClipDistance         = false;
+    mState.mCompiledShaderState.hasDiscard              = false;
+    mState.mCompiledShaderState.enablesPerSampleShading = false;
+    mState.mCompiledShaderState.specConstUsageBits.reset();
 
-    mState.mCompileStatus = CompileStatus::COMPILE_REQUESTED;
-    mBoundCompiler.set(context, context->getCompiler());
+    mCurrentMaxComputeWorkGroupInvocations =
+        static_cast<GLuint>(context->getCaps().maxComputeWorkGroupInvocations);
+    mMaxComputeSharedMemory = context->getCaps().maxComputeSharedMemorySize;
 
     ShCompileOptions options = {};
     options.objectCode       = true;
@@ -397,17 +414,32 @@ void Shader::compile(const Context *context)
         options.initializeUninitializedLocals = true;
     }
 
-    mCurrentMaxComputeWorkGroupInvocations =
-        static_cast<GLuint>(context->getCaps().maxComputeWorkGroupInvocations);
-
-    mMaxComputeSharedMemory = context->getCaps().maxComputeSharedMemorySize;
+    mBoundCompiler.set(context, context->getCompiler());
 
     ASSERT(mBoundCompiler.get());
-    ShCompilerInstance compilerInstance = mBoundCompiler->getInstance(mState.mShaderType);
+    ShCompilerInstance compilerInstance = mBoundCompiler->getInstance(mType);
     ShHandle compilerHandle             = compilerInstance.getHandle();
     ASSERT(compilerHandle);
-    mCompilerResourcesString = compilerInstance.getBuiltinResourcesString();
 
+    // Find a shader in Blob Cache
+    setShaderKey(context, options, compilerInstance.getShaderOutputType(),
+                 compilerInstance.getBuiltInResources());
+    ASSERT(!mShaderHash.empty());
+    MemoryShaderCache *shaderCache = context->getMemoryShaderCache();
+    if (shaderCache)
+    {
+        angle::Result cacheResult =
+            shaderCache->getShader(context, this, options, compilerInstance, mShaderHash);
+
+        if (cacheResult == angle::Result::Continue)
+        {
+            compilerInstance.destroy();
+            return;
+        }
+    }
+
+    // Cache load failed, fall through normal compiling.
+    mState.mCompileStatus = CompileStatus::COMPILE_REQUESTED;
     mCompilingState.reset(new CompilingState());
     mCompilingState->shCompilerInstance = std::move(compilerInstance);
     mCompilingState->compileEvent =
@@ -416,8 +448,6 @@ void Shader::compile(const Context *context)
 
 void Shader::resolveCompile(const Context *context)
 {
-    ANGLE_UNUSED_VARIABLE(context);
-
     if (!mState.compilePending())
     {
         return;
@@ -445,18 +475,12 @@ void Shader::resolveCompile(const Context *context)
     }
 
     const ShShaderOutput outputType = mCompilingState->shCompilerInstance.getShaderOutputType();
-    const bool isBinaryOutput =
-        outputType == SH_SPIRV_VULKAN_OUTPUT || outputType == SH_SPIRV_METAL_OUTPUT;
-
-    if (isBinaryOutput)
-    {
-        mState.mCompiledBinary = sh::GetObjectBinaryBlob(compilerHandle);
-    }
-    else
-    {
-        mState.mTranslatedSource = sh::GetObjectCode(compilerHandle);
+    bool isBinaryOutput             = outputType == SH_SPIRV_VULKAN_OUTPUT;
+    mState.mCompiledShaderState.buildCompiledShaderState(compilerHandle, isBinaryOutput);
 
 #if !defined(NDEBUG)
+    if (outputType != SH_SPIRV_VULKAN_OUTPUT)
+    {
         // Prefix translated shader with commented out un-translated shader.
         // Useful in diagnostics tools which capture the shader source.
         std::ostringstream shaderStream;
@@ -481,145 +505,62 @@ void Shader::resolveCompile(const Context *context)
             shaderStream << std::endl;
         }
         shaderStream << "\n\n";
-        shaderStream << mState.mTranslatedSource;
-        mState.mTranslatedSource = shaderStream.str();
+        shaderStream << mState.mCompiledShaderState.translatedSource;
+        mState.mCompiledShaderState.translatedSource = shaderStream.str();
+    }
 #endif  // !defined(NDEBUG)
-    }
 
-    // Gather the shader information
-    mState.mShaderVersion = sh::GetShaderVersion(compilerHandle);
-
-    mState.mUniforms            = GetShaderVariables(sh::GetUniforms(compilerHandle));
-    mState.mUniformBlocks       = GetShaderVariables(sh::GetUniformBlocks(compilerHandle));
-    mState.mShaderStorageBlocks = GetShaderVariables(sh::GetShaderStorageBlocks(compilerHandle));
-    mState.mSpecConstUsageBits =
-        rx::SpecConstUsageBits(sh::GetShaderSpecConstUsageBits(compilerHandle));
-
-    switch (mState.mShaderType)
+    // Validation checks for compute shaders
+    if (mState.mCompiledShaderState.shaderType == ShaderType::Compute &&
+        mState.mCompiledShaderState.localSize.isDeclared())
     {
-        case ShaderType::Compute:
-        {
-            mState.mAllAttributes    = GetShaderVariables(sh::GetAttributes(compilerHandle));
-            mState.mActiveAttributes = GetActiveShaderVariables(&mState.mAllAttributes);
-            mState.mLocalSize        = sh::GetComputeShaderLocalGroupSize(compilerHandle);
-            if (mState.mLocalSize.isDeclared())
-            {
-                angle::CheckedNumeric<uint32_t> checked_local_size_product(mState.mLocalSize[0]);
-                checked_local_size_product *= mState.mLocalSize[1];
-                checked_local_size_product *= mState.mLocalSize[2];
+        angle::CheckedNumeric<uint32_t> checked_local_size_product(
+            mState.mCompiledShaderState.localSize[0]);
+        checked_local_size_product *= mState.mCompiledShaderState.localSize[1];
+        checked_local_size_product *= mState.mCompiledShaderState.localSize[2];
 
-                if (!checked_local_size_product.IsValid())
-                {
-                    WARN() << std::endl
-                           << "Integer overflow when computing the product of local_size_x, "
-                           << "local_size_y and local_size_z.";
-                    mState.mCompileStatus = CompileStatus::NOT_COMPILED;
-                    return;
-                }
-                if (checked_local_size_product.ValueOrDie() >
-                    mCurrentMaxComputeWorkGroupInvocations)
-                {
-                    WARN() << std::endl
-                           << "The total number of invocations within a work group exceeds "
-                           << "MAX_COMPUTE_WORK_GROUP_INVOCATIONS.";
-                    mState.mCompileStatus = CompileStatus::NOT_COMPILED;
-                    return;
-                }
-            }
-
-            unsigned int sharedMemSize = sh::GetShaderSharedMemorySize(compilerHandle);
-            if (sharedMemSize > mMaxComputeSharedMemory)
-            {
-                WARN() << std::endl << "Exceeded maximum shared memory size";
-                mState.mCompileStatus = CompileStatus::NOT_COMPILED;
-                return;
-            }
-            break;
-        }
-        case ShaderType::Vertex:
+        if (!checked_local_size_product.IsValid())
         {
-            mState.mOutputVaryings   = GetShaderVariables(sh::GetOutputVaryings(compilerHandle));
-            mState.mAllAttributes    = GetShaderVariables(sh::GetAttributes(compilerHandle));
-            mState.mActiveAttributes = GetActiveShaderVariables(&mState.mAllAttributes);
-            mState.mNumViews         = sh::GetVertexShaderNumViews(compilerHandle);
-            break;
+            WARN() << std::endl
+                   << "Integer overflow when computing the product of local_size_x, "
+                   << "local_size_y and local_size_z.";
+            mState.mCompileStatus = CompileStatus::NOT_COMPILED;
+            return;
         }
-        case ShaderType::Fragment:
+        if (checked_local_size_product.ValueOrDie() > mCurrentMaxComputeWorkGroupInvocations)
         {
-            mState.mAllAttributes    = GetShaderVariables(sh::GetAttributes(compilerHandle));
-            mState.mActiveAttributes = GetActiveShaderVariables(&mState.mAllAttributes);
-            mState.mInputVaryings    = GetShaderVariables(sh::GetInputVaryings(compilerHandle));
-            // TODO(jmadill): Figure out why we only sort in the FS, and if we need to.
-            std::sort(mState.mInputVaryings.begin(), mState.mInputVaryings.end(), CompareShaderVar);
-            mState.mActiveOutputVariables =
-                GetActiveShaderVariables(sh::GetOutputVariables(compilerHandle));
-            mState.mHasDiscard              = sh::HasDiscardInFragmentShader(compilerHandle);
-            mState.mEnablesPerSampleShading = sh::EnablesPerSampleShading(compilerHandle);
-            mState.mAdvancedBlendEquations =
-                BlendEquationBitSet(sh::GetAdvancedBlendEquations(compilerHandle));
-            break;
+            WARN() << std::endl
+                   << "The total number of invocations within a work group exceeds "
+                   << "MAX_COMPUTE_WORK_GROUP_INVOCATIONS.";
+            mState.mCompileStatus = CompileStatus::NOT_COMPILED;
+            return;
         }
-        case ShaderType::Geometry:
-        {
-            mState.mInputVaryings  = GetShaderVariables(sh::GetInputVaryings(compilerHandle));
-            mState.mOutputVaryings = GetShaderVariables(sh::GetOutputVaryings(compilerHandle));
-
-            if (sh::HasValidGeometryShaderInputPrimitiveType(compilerHandle))
-            {
-                mState.mGeometryShaderInputPrimitiveType = FromGLenum<PrimitiveMode>(
-                    sh::GetGeometryShaderInputPrimitiveType(compilerHandle));
-            }
-            if (sh::HasValidGeometryShaderOutputPrimitiveType(compilerHandle))
-            {
-                mState.mGeometryShaderOutputPrimitiveType = FromGLenum<PrimitiveMode>(
-                    sh::GetGeometryShaderOutputPrimitiveType(compilerHandle));
-            }
-            if (sh::HasValidGeometryShaderMaxVertices(compilerHandle))
-            {
-                mState.mGeometryShaderMaxVertices =
-                    sh::GetGeometryShaderMaxVertices(compilerHandle);
-            }
-            mState.mGeometryShaderInvocations = sh::GetGeometryShaderInvocations(compilerHandle);
-            break;
-        }
-        case ShaderType::TessControl:
-        {
-            mState.mInputVaryings  = GetShaderVariables(sh::GetInputVaryings(compilerHandle));
-            mState.mOutputVaryings = GetShaderVariables(sh::GetOutputVaryings(compilerHandle));
-            mState.mTessControlShaderVertices = sh::GetTessControlShaderVertices(compilerHandle);
-            break;
-        }
-        case ShaderType::TessEvaluation:
-        {
-            mState.mInputVaryings  = GetShaderVariables(sh::GetInputVaryings(compilerHandle));
-            mState.mOutputVaryings = GetShaderVariables(sh::GetOutputVaryings(compilerHandle));
-            if (sh::HasValidTessGenMode(compilerHandle))
-            {
-                mState.mTessGenMode = sh::GetTessGenMode(compilerHandle);
-            }
-            if (sh::HasValidTessGenSpacing(compilerHandle))
-            {
-                mState.mTessGenSpacing = sh::GetTessGenSpacing(compilerHandle);
-            }
-            if (sh::HasValidTessGenVertexOrder(compilerHandle))
-            {
-                mState.mTessGenVertexOrder = sh::GetTessGenVertexOrder(compilerHandle);
-            }
-            if (sh::HasValidTessGenPointMode(compilerHandle))
-            {
-                mState.mTessGenPointMode = sh::GetTessGenPointMode(compilerHandle);
-            }
-            break;
-        }
-
-        default:
-            UNREACHABLE();
     }
 
-    ASSERT(!mState.mTranslatedSource.empty() || !mState.mCompiledBinary.empty());
+    unsigned int sharedMemSize = sh::GetShaderSharedMemorySize(compilerHandle);
+    if (sharedMemSize > mMaxComputeSharedMemory)
+    {
+        WARN() << std::endl << "Exceeded maximum shared memory size";
+        mState.mCompileStatus = CompileStatus::NOT_COMPILED;
+        return;
+    }
+
+    ASSERT(!mState.mCompiledShaderState.translatedSource.empty() ||
+           !mState.mCompiledShaderState.compiledBinary.empty());
 
     bool success          = mCompilingState->compileEvent->postTranslate(&mInfoLog);
     mState.mCompileStatus = success ? CompileStatus::COMPILED : CompileStatus::NOT_COMPILED;
+
+    MemoryShaderCache *shaderCache = context->getMemoryShaderCache();
+    if (success && shaderCache)
+    {
+        // Save to the shader cache.
+        if (shaderCache->putShader(context, mShaderHash, this) != angle::Result::Continue)
+        {
+            ANGLE_PERF_WARNING(context->getState().getDebug(), GL_DEBUG_SEVERITY_LOW,
+                               "Failed to save compiled shader to memory shader cache.");
+        }
+    }
 }
 
 void Shader::addRef()
@@ -666,7 +607,7 @@ bool Shader::isCompleted()
 int Shader::getShaderVersion(const Context *context)
 {
     resolveCompile(context);
-    return mState.mShaderVersion;
+    return mState.mCompiledShaderState.shaderVersion;
 }
 
 const std::vector<sh::ShaderVariable> &Shader::getInputVaryings(const Context *context)
@@ -774,72 +715,200 @@ std::string Shader::getTransformFeedbackVaryingMappedName(const Context *context
 const sh::WorkGroupSize &Shader::getWorkGroupSize(const Context *context)
 {
     resolveCompile(context);
-    return mState.mLocalSize;
+    return mState.mCompiledShaderState.localSize;
 }
 
 int Shader::getNumViews(const Context *context)
 {
     resolveCompile(context);
-    return mState.mNumViews;
+    return mState.mCompiledShaderState.numViews;
 }
 
 Optional<PrimitiveMode> Shader::getGeometryShaderInputPrimitiveType(const Context *context)
 {
     resolveCompile(context);
-    return mState.mGeometryShaderInputPrimitiveType;
+    return mState.mCompiledShaderState.geometryShaderInputPrimitiveType;
 }
 
 Optional<PrimitiveMode> Shader::getGeometryShaderOutputPrimitiveType(const Context *context)
 {
     resolveCompile(context);
-    return mState.mGeometryShaderOutputPrimitiveType;
+    return mState.mCompiledShaderState.geometryShaderOutputPrimitiveType;
 }
 
 int Shader::getGeometryShaderInvocations(const Context *context)
 {
     resolveCompile(context);
-    return mState.mGeometryShaderInvocations;
+    return mState.mCompiledShaderState.geometryShaderInvocations;
 }
 
 Optional<GLint> Shader::getGeometryShaderMaxVertices(const Context *context)
 {
     resolveCompile(context);
-    return mState.mGeometryShaderMaxVertices;
+    return mState.mCompiledShaderState.geometryShaderMaxVertices;
 }
 
 int Shader::getTessControlShaderVertices(const Context *context)
 {
     resolveCompile(context);
-    return mState.mTessControlShaderVertices;
+    return mState.mCompiledShaderState.tessControlShaderVertices;
 }
 
 GLenum Shader::getTessGenMode(const Context *context)
 {
     resolveCompile(context);
-    return mState.mTessGenMode;
+    return mState.mCompiledShaderState.tessGenMode;
 }
 
 GLenum Shader::getTessGenSpacing(const Context *context)
 {
     resolveCompile(context);
-    return mState.mTessGenSpacing;
+    return mState.mCompiledShaderState.tessGenSpacing;
 }
 
 GLenum Shader::getTessGenVertexOrder(const Context *context)
 {
     resolveCompile(context);
-    return mState.mTessGenVertexOrder;
+    return mState.mCompiledShaderState.tessGenVertexOrder;
 }
 
 GLenum Shader::getTessGenPointMode(const Context *context)
 {
     resolveCompile(context);
-    return mState.mTessGenPointMode;
+    return mState.mCompiledShaderState.tessGenPointMode;
 }
 
-const std::string &Shader::getCompilerResourcesString() const
+angle::Result Shader::serialize(const Context *context, angle::MemoryBuffer *binaryOut) const
 {
-    return mCompilerResourcesString;
+    BinaryOutputStream stream;
+
+    stream.writeInt(kShaderCacheIdentifier);
+    mState.mCompiledShaderState.serialize(stream);
+
+    ASSERT(binaryOut);
+    if (!binaryOut->resize(stream.length()))
+    {
+        std::stringstream sstream;
+        sstream << "Failed to allocate enough memory to serialize a shader. (" << stream.length()
+                << " bytes )";
+        ANGLE_PERF_WARNING(context->getState().getDebug(), GL_DEBUG_SEVERITY_LOW,
+                           sstream.str().c_str());
+        return angle::Result::Incomplete;
+    }
+
+    memcpy(binaryOut->data(), stream.data(), stream.length());
+
+    return angle::Result::Continue;
+}
+
+angle::Result Shader::deserialize(BinaryInputStream &stream)
+{
+    mState.mCompiledShaderState.deserialize(stream);
+
+    if (stream.error())
+    {
+        // Error while deserializing binary stream
+        return angle::Result::Stop;
+    }
+
+    return angle::Result::Continue;
+}
+
+angle::Result Shader::loadBinary(const Context *context, const void *binary, GLsizei length)
+{
+    return loadBinaryImpl(context, binary, length, false);
+}
+
+angle::Result Shader::loadShaderBinary(const Context *context, const void *binary, GLsizei length)
+{
+    return loadBinaryImpl(context, binary, length, true);
+}
+
+angle::Result Shader::loadBinaryImpl(const Context *context,
+                                     const void *binary,
+                                     GLsizei length,
+                                     bool generatedWithOfflineCompiler)
+{
+    BinaryInputStream stream(binary, length);
+
+    // Shader binaries generated with offline compiler have additional fields
+    if (generatedWithOfflineCompiler)
+    {
+        // Load binary from a glShaderBinary call.
+        // Validation layer should have already verified that the shader program version and shader
+        // type match
+        std::vector<uint8_t> commitString(angle::GetANGLEShaderProgramVersionHashSize(), 0);
+        stream.readBytes(commitString.data(), commitString.size());
+        ASSERT(memcmp(commitString.data(), angle::GetANGLEShaderProgramVersion(),
+                      commitString.size()) == 0);
+
+        gl::ShaderType shaderType;
+        stream.readEnum(&shaderType);
+        ASSERT(mType == shaderType);
+
+        // Get fields needed to generate the key for memory caches.
+        ShShaderOutput outputType;
+        stream.readEnum<ShShaderOutput>(&outputType);
+
+        // Get the shader's source string.
+        mState.mSource = stream.readString();
+
+        // In the absence of element-by-element serialize/deserialize functions, read
+        // ShCompileOptions and ShBuiltInResources as raw binary blobs.
+        ShCompileOptions compileOptions;
+        stream.readBytes(reinterpret_cast<uint8_t *>(&compileOptions), sizeof(ShCompileOptions));
+
+        ShBuiltInResources resources;
+        stream.readBytes(reinterpret_cast<uint8_t *>(&resources), sizeof(ShBuiltInResources));
+
+        setShaderKey(context, compileOptions, outputType, resources);
+    }
+    else
+    {
+        // Load binary from shader cache.
+        if (stream.readInt<uint32_t>() != kShaderCacheIdentifier)
+        {
+            return angle::Result::Stop;
+        }
+    }
+
+    ANGLE_TRY(deserialize(stream));
+
+    // Only successfully-compiled shaders are serialized. If deserialization is successful, we can
+    // assume the CompileStatus.
+    mState.mCompileStatus = CompileStatus::COMPILED;
+
+    return angle::Result::Continue;
+}
+
+void Shader::setShaderKey(const Context *context,
+                          const ShCompileOptions &compileOptions,
+                          const ShShaderOutput &outputType,
+                          const ShBuiltInResources &resources)
+{
+    // Compute shader key.
+    BinaryOutputStream hashStream;
+
+    // Start with the shader type and source.
+    hashStream.writeEnum(mType);
+    hashStream.writeString(mState.getSource());
+
+    // Include the shader program version hash.
+    hashStream.writeString(angle::GetANGLEShaderProgramVersion());
+
+    hashStream.writeEnum(Compiler::SelectShaderSpec(context->getState()));
+    hashStream.writeEnum(outputType);
+    hashStream.writeBytes(reinterpret_cast<const uint8_t *>(&compileOptions),
+                          sizeof(compileOptions));
+
+    // Include the ShBuiltInResources, which represent the extensions and constants used by the
+    // shader.
+    hashStream.writeBytes(reinterpret_cast<const uint8_t *>(&resources), sizeof(resources));
+
+    // Call the secure SHA hashing function.
+    const std::vector<uint8_t> &shaderKey = hashStream.getData();
+    mShaderHash                           = {0};
+    angle::base::SHA1HashBytes(shaderKey.data(), shaderKey.size(), mShaderHash.data());
 }
 
 }  // namespace gl

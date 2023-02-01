@@ -111,6 +111,7 @@ class TCompiler : public TShHandleBase
     int getShaderVersion() const { return mShaderVersion; }
     TInfoSink &getInfoSink() { return mInfoSink; }
 
+    bool specifyEarlyFragmentTests() { return mEarlyFragmentTestsSpecified = true; }
     bool isEarlyFragmentTestsSpecified() const { return mEarlyFragmentTestsSpecified; }
     bool hasDiscard() const { return mHasDiscard; }
     bool enablesPerSampleShading() const { return mEnablesPerSampleShading; }
@@ -140,6 +141,7 @@ class TCompiler : public TShHandleBase
     TSymbolTable &getSymbolTable() { return mSymbolTable; }
     ShShaderSpec getShaderSpec() const { return mShaderSpec; }
     ShShaderOutput getOutputType() const { return mOutputType; }
+    ShBuiltInResources getBuiltInResources() const { return mResources; }
     const std::string &getBuiltInResourcesString() const { return mBuiltInResourcesString; }
 
     bool isHighPrecisionSupported() const;
@@ -187,9 +189,18 @@ class TCompiler : public TShHandleBase
 
     AdvancedBlendEquations getAdvancedBlendEquations() const { return mAdvancedBlendEquations; }
 
+    bool hasPixelLocalStorageUniforms() const { return mHasPixelLocalStorageUniforms; }
+
     unsigned int getSharedMemorySize() const;
 
     sh::GLenum getShaderType() const { return mShaderType; }
+
+    // Generate a self-contained binary representation of the shader.
+    bool getShaderBinary(const ShHandle compilerHandle,
+                         const char *const shaderStrings[],
+                         size_t numStrings,
+                         const ShCompileOptions &compileOptions,
+                         ShaderBinaryBlob *const binaryOut);
 
     // Validate the AST and produce errors if it is inconsistent.
     bool validateAST(TIntermNode *root);
@@ -202,6 +213,19 @@ class TCompiler : public TShHandleBase
     // When the AST is post-processed (such as to determine precise-ness of intermediate nodes),
     // it's expected to no longer transform.
     void enableValidateNoMoreTransformations();
+
+    bool areClipDistanceOrCullDistanceRedeclared() const
+    {
+        return mClipDistanceRedeclared || mCullDistanceRedeclared;
+    }
+
+    uint8_t getClipDistanceArraySize() const { return mClipDistanceSize; }
+
+    uint8_t getCullDistanceArraySize() const { return mCullDistanceSize; }
+
+    bool isClipDistanceRedeclared() const { return mClipDistanceRedeclared; }
+
+    bool hasClipDistance() const { return mClipDistanceUsed; }
 
   protected:
     // Add emulated functions to the built-in function emulator.
@@ -292,6 +316,8 @@ class TCompiler : public TShHandleBase
                              const TParseContext &parseContext,
                              const ShCompileOptions &compileOptions);
 
+    bool resizeClipAndCullDistanceBuiltins(TIntermBlock *root);
+
     bool postParseChecks(const TParseContext &parseContext);
 
     sh::GLenum mShaderType;
@@ -335,6 +361,13 @@ class TCompiler : public TShHandleBase
     // GL_OVR_multiview num_views.
     int mNumViews;
 
+    // Track gl_ClipDistance / gl_CullDistance usage.
+    uint8_t mClipDistanceSize;
+    uint8_t mCullDistanceSize;
+    bool mClipDistanceRedeclared;
+    bool mCullDistanceRedeclared;
+    bool mClipDistanceUsed;
+
     // geometry shader parameters.
     int mGeometryShaderMaxVertices;
     int mGeometryShaderInvocations;
@@ -352,6 +385,9 @@ class TCompiler : public TShHandleBase
 
     // advanced blend equation parameters
     AdvancedBlendEquations mAdvancedBlendEquations;
+
+    // ANGLE_shader_pixel_local_storage.
+    bool mHasPixelLocalStorageUniforms;
 
     // name hashing.
     NameMap mNameMap;
@@ -372,6 +408,18 @@ class TCompiler : public TShHandleBase
 //
 TCompiler *ConstructCompiler(sh::GLenum type, ShShaderSpec spec, ShShaderOutput output);
 void DeleteCompiler(TCompiler *);
+
+struct ShaderDumpHeader
+{
+    uint32_t type;
+    uint32_t spec;
+    uint32_t output;
+    uint8_t basicCompileOptions[32];
+    uint8_t metalCompileOptions[32];
+    uint8_t plsCompileOptions[32];
+    uint8_t padding[20];
+};
+static_assert(sizeof(ShaderDumpHeader) == 128);
 
 }  // namespace sh
 

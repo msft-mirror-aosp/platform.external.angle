@@ -362,7 +362,7 @@ class OutputSPIRVTraverser : public TIntermTraverser
                                                uint32_t fieldIndex);
 
     TCompiler *mCompiler;
-    [[maybe_unused]] const ShCompileOptions &mCompileOptions;
+    ANGLE_MAYBE_UNUSED_PRIVATE_FIELD const ShCompileOptions &mCompileOptions;
 
     SPIRVBuilder mBuilder;
 
@@ -450,6 +450,7 @@ spv::StorageClass GetStorageClass(const TType &type, GLenum shaderType)
         case EvqLocalInvocationIndex:
         case EvqViewIDOVR:
         case EvqLayerIn:
+        case EvqLastFragColor:
             return spv::StorageClassInput;
 
         case EvqPosition:
@@ -671,7 +672,7 @@ spirv::IdRef OutputSPIRVTraverser::getSymbolIdAndStorageClass(const TSymbol *sym
 
     const spirv::IdRef typeId = mBuilder.getTypeData(type, {}).id;
     const spirv::IdRef varId  = mBuilder.declareVariable(
-         typeId, *storageClass, mBuilder.getDecorations(type), nullptr, name);
+        typeId, *storageClass, mBuilder.getDecorations(type), nullptr, name);
 
     mBuilder.addEntryPointInterfaceVariableId(varId);
     spirv::WriteDecorate(mBuilder.getSpirvDecorations(), varId, spv::DecorationBuiltIn,

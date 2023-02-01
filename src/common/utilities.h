@@ -11,6 +11,7 @@
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <GLSLANG/ShaderLang.h>
 
 #include <math.h>
 #include <string>
@@ -210,6 +211,8 @@ const char *GetGenericErrorMessage(GLenum error);
 
 unsigned int ElementTypeSize(GLenum elementType);
 
+bool IsMipmapFiltered(GLenum minFilterMode);
+
 template <typename T>
 T GetClampedVertexCount(size_t vertexCount)
 {
@@ -299,9 +302,15 @@ EGLenum GLComponentTypeToEGLColorComponentType(GLenum glComponentType);
 EGLClientBuffer GLObjectHandleToEGLClientBuffer(GLuint handle);
 }  // namespace gl_egl
 
-#if !defined(ANGLE_ENABLE_WINDOWS_UWP)
+namespace angle
+{
+bool IsDrawEntryPoint(EntryPoint entryPoint);
+bool IsDispatchEntryPoint(EntryPoint entryPoint);
+bool IsClearEntryPoint(EntryPoint entryPoint);
+bool IsQueryEntryPoint(EntryPoint entryPoint);
+}  // namespace angle
+
 void writeFile(const char *path, const void *data, size_t size);
-#endif
 
 #if defined(ANGLE_PLATFORM_WINDOWS)
 void ScheduleYield();

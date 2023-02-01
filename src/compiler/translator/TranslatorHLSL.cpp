@@ -227,11 +227,12 @@ bool TranslatorHLSL::translate(TIntermBlock *root,
         }
     }
 
-    sh::OutputHLSL outputHLSL(getShaderType(), getShaderSpec(), getShaderVersion(),
-                              getExtensionBehavior(), getSourcePath(), getOutputType(),
-                              numRenderTargets, maxDualSourceDrawBuffers, getUniforms(),
-                              compileOptions, getComputeShaderLocalSize(), &getSymbolTable(),
-                              perfDiagnostics, mUniformBlockOptimizedMap, mShaderStorageBlocks);
+    sh::OutputHLSL outputHLSL(
+        getShaderType(), getShaderSpec(), getShaderVersion(), getExtensionBehavior(),
+        getSourcePath(), getOutputType(), numRenderTargets, maxDualSourceDrawBuffers, getUniforms(),
+        compileOptions, getComputeShaderLocalSize(), &getSymbolTable(), perfDiagnostics,
+        mUniformBlockOptimizedMap, mShaderStorageBlocks, getClipDistanceArraySize(),
+        getCullDistanceArraySize(), isEarlyFragmentTestsSpecified());
 
     outputHLSL.output(root, getInfoSink().obj);
 

@@ -1,4 +1,4 @@
-// Copyright 2014 The Chromium Authors. All rights reserved.
+// Copyright 2014 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -45,9 +45,6 @@ char kTSanDefaultSuppressions[] =
 
     // http://crbug.com/244856
     "race:libpulsecommon*.so\n"
-
-    // http://crbug.com/258479
-    "race:g_trace_state\n"
 
     // http://crbug.com/268924
     "race:base::g_power_monitor\n"
@@ -102,11 +99,6 @@ char kTSanDefaultSuppressions[] =
     "race:base::i18n::IsRTL\n"
     "race:base::i18n::SetICUDefaultLocale\n"
 
-    // https://crbug.com/794920
-    "race:base::debug::SetCrashKeyString\n"
-    "race:crash_reporter::internal::CrashKeyStringImpl::Clear\n"
-    "race:crash_reporter::internal::CrashKeyStringImpl::Set\n"
-
     // http://crbug.com/927330
     "race:net::(anonymous namespace)::g_network_change_notifier\n"
 
@@ -128,6 +120,11 @@ char kTSanDefaultSuppressions[] =
     // Harmless data race in ipcz block allocation. See comments in
     // ipcz::BlockAllocator::Allocate().
     "race:ipcz::BlockAllocator::Allocate\n"
+
+    // https://crbug.com/1405439
+    "race:perfetto::perfetto_track_event::internal::g_category_state_storage\n"
+    "race:perfetto::DataSource*::static_state_\n"
+    "race:perfetto::Tracing::ResetForTesting\n"
 
     // End of suppressions.
     ;  // Please keep this semicolon.

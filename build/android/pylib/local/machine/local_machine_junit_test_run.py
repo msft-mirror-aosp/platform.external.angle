@@ -1,4 +1,4 @@
-# Copyright 2016 The Chromium Authors. All rights reserved.
+# Copyright 2016 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -61,12 +61,13 @@ class LocalMachineJunitTestRun(test_run.TestRun):
   def SetUp(self):
     pass
 
-  def _GetFilterArgs(self, test_filter_override=None):
+  def _GetFilterArgs(self, shard_test_filter=None):
     ret = []
-    if test_filter_override:
-      ret += ['-gtest-filter', ':'.join(test_filter_override)]
-    elif self._test_instance.test_filter:
-      ret += ['-gtest-filter', self._test_instance.test_filter]
+    if shard_test_filter:
+      ret += ['-gtest-filter', ':'.join(shard_test_filter)]
+
+    for test_filter in self._test_instance.test_filters:
+      ret += ['-gtest-filter', test_filter]
 
     if self._test_instance.package_filter:
       ret += ['-package-filter', self._test_instance.package_filter]
@@ -83,35 +84,40 @@ class LocalMachineJunitTestRun(test_run.TestRun):
     jar_args_list = [['-json-results-file', result_file]
                      for result_file in json_result_file_paths]
     for index, jar_arg in enumerate(jar_args_list):
-      test_filter_override = group_test_list[index] if shards > 1 else None
-      jar_arg += self._GetFilterArgs(test_filter_override)
+      shard_test_filter = group_test_list[index] if shards > 1 else None
+      jar_arg += self._GetFilterArgs(shard_test_filter)
 
     return jar_args_list
 
-  def _CreateJvmArgsList(self):
+  def _CreateJvmArgsList(self, for_listing=False):
     # Creates a list of jvm_args (robolectric, code coverage, etc...)
     jvm_args = [
         '-Drobolectric.dependency.dir=%s' %
         self._test_instance.robolectric_runtime_deps_dir,
         '-Ddir.source.root=%s' % constants.DIR_SOURCE_ROOT,
+        # Use locally available sdk jars from 'robolectric.dependency.dir'
+        '-Drobolectric.offline=true',
         '-Drobolectric.resourcesMode=binary',
         '-Drobolectric.logging=stdout',
+        '-Djava.library.path=%s' % self._test_instance.native_libs_dir,
     ]
-    if self._test_instance.debug_socket:
+    if self._test_instance.debug_socket and not for_listing:
       jvm_args += [
           '-agentlib:jdwp=transport=dt_socket'
           ',server=y,suspend=y,address=%s' % self._test_instance.debug_socket
       ]
 
-    if self._test_instance.coverage_dir:
+    if self._test_instance.coverage_dir and not for_listing:
       if not os.path.exists(self._test_instance.coverage_dir):
         os.makedirs(self._test_instance.coverage_dir)
       elif not os.path.isdir(self._test_instance.coverage_dir):
         raise Exception('--coverage-dir takes a directory, not file path.')
+      # Jacoco supports concurrent processes using the same output file:
+      # https://github.com/jacoco/jacoco/blob/6cd3f0bd8e348f8fba7bffec5225407151f1cc91/org.jacoco.agent.rt/src/org/jacoco/agent/rt/internal/output/FileOutput.java#L67
+      # So no need to vary the output based on shard number.
+      jacoco_coverage_file = os.path.join(self._test_instance.coverage_dir,
+                                          '%s.exec' % self._test_instance.suite)
       if self._test_instance.coverage_on_the_fly:
-        jacoco_coverage_file = os.path.join(
-            self._test_instance.coverage_dir,
-            '%s.exec' % self._test_instance.suite)
         jacoco_agent_path = os.path.join(host_paths.DIR_SOURCE_ROOT,
                                          'third_party', 'jacoco', 'lib',
                                          'jacocoagent.jar')
@@ -121,9 +127,7 @@ class LocalMachineJunitTestRun(test_run.TestRun):
         jvm_args.append(
             jacoco_args.format(jacoco_agent_path, jacoco_coverage_file))
       else:
-        jvm_args.append('-Djacoco-agent.destfile=%s' %
-                        os.path.join(self._test_instance.coverage_dir,
-                                     '%s.exec' % self._test_instance.suite))
+        jvm_args.append('-Djacoco-agent.destfile=%s' % jacoco_coverage_file)
 
     return jvm_args
 
@@ -134,8 +138,13 @@ class LocalMachineJunitTestRun(test_run.TestRun):
 
   #override
   def GetTestsForListing(self):
-    cmd = [self._wrapper_path, '--list-tests'] + self._GetFilterArgs()
-    lines = subprocess.check_output(cmd, encoding='utf8').splitlines()
+    with tempfile_ext.NamedTemporaryDirectory() as temp_dir:
+      cmd = [self._wrapper_path, '--list-tests'] + self._GetFilterArgs()
+      jvm_args = self._CreateJvmArgsList(for_listing=True)
+      if jvm_args:
+        cmd += ['--jvm-args', '"%s"' % ' '.join(jvm_args)]
+      AddPropertiesJar([cmd], temp_dir, self._test_instance.resource_apk)
+      lines = subprocess.check_output(cmd, encoding='utf8').splitlines()
 
     PREFIX = '#TEST# '
     prefix_len = len(PREFIX)
@@ -146,10 +155,10 @@ class LocalMachineJunitTestRun(test_run.TestRun):
   def RunTests(self, results, raw_logs_fh=None):
     # This avoids searching through the classparth jars for tests classes,
     # which takes about 1-2 seconds.
-    # Do not shard when a test filter is present since we do not know at this
-    # point which tests will be filtered out.
-    if (self._test_instance.shards == 1 or self._test_instance.test_filter
-        or self._test_instance.suite in _EXCLUDED_SUITES):
+    if (self._test_instance.shards == 1
+        # TODO(crbug.com/1383650): remove this
+        or self._test_instance.has_literal_filters or
+        self._test_instance.suite in _EXCLUDED_SUITES):
       test_classes = []
       shards = 1
     else:
@@ -223,9 +232,14 @@ def AddPropertiesJar(cmd_list, temp_dir, resource_apk):
   properties_jar_path = os.path.join(temp_dir, 'properties.jar')
   with zipfile.ZipFile(properties_jar_path, 'w') as z:
     z.writestr('com/android/tools/test_config.properties',
-               'android_resource_apk=%s' % resource_apk)
-    z.writestr('robolectric.properties',
-               'application = android.app.Application')
+               'android_resource_apk=%s\n' % resource_apk)
+    props = [
+        'application = android.app.Application',
+        'sdk = 28',
+        ('shadows = org.chromium.testing.local.'
+         'CustomShadowApplicationPackageManager'),
+    ]
+    z.writestr('robolectric.properties', '\n'.join(props))
 
   for cmd in cmd_list:
     cmd.extend(['--classpath', properties_jar_path])

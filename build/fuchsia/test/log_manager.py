@@ -1,5 +1,5 @@
 #!/usr/bin/env vpython3
-# Copyright 2022 The Chromium Authors. All rights reserved.
+# Copyright 2022 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """Reads log data from a device."""
@@ -16,7 +16,7 @@ from typing import Iterable, Optional, TextIO
 from common import read_package_paths, register_common_args, \
                    register_device_args, run_continuous_ffx_command, \
                    run_ffx_command
-from ffx_integration import ScopedFfxConfig
+from ffx_integration import ScopedFfxConfig, run_symbolizer
 
 
 class LogManager(AbstractContextManager):
@@ -37,7 +37,7 @@ class LogManager(AbstractContextManager):
     def __enter__(self):
         if self._scoped_ffx_log:
             self._scoped_ffx_log.__enter__()
-            run_ffx_command(('daemon', 'stop'))
+            run_ffx_command(('daemon', 'stop'), check=False)
 
         return self
 
@@ -74,7 +74,9 @@ class LogManager(AbstractContextManager):
         self.stop()
         if self._scoped_ffx_log:
             self._scoped_ffx_log.__exit__(exc_type, exc_value, traceback)
-            run_ffx_command(('daemon', 'stop'))
+
+            # Allow command to fail while ffx team investigates the issue.
+            run_ffx_command(('daemon', 'stop'), check=False)
 
 
 def start_system_log(log_manager: LogManager,
@@ -117,17 +119,11 @@ def start_system_log(log_manager: LogManager,
                                               target_id,
                                               stdout=subprocess.PIPE)
         log_manager.add_log_process(log_proc)
-        symbolize_cmd = (['debug', 'symbolize', '--', '--omit-module-lines'])
-        for symbol_path in symbol_paths:
-            symbolize_cmd.extend(['--ids-txt', symbol_path])
         log_manager.add_log_process(
-            run_continuous_ffx_command(symbolize_cmd,
-                                       stdin=log_proc.stdout,
-                                       stdout=system_log,
-                                       stderr=subprocess.STDOUT))
+            run_symbolizer(symbol_paths, log_proc.stdout, system_log))
     else:
         log_manager.add_log_process(
-            run_continuous_ffx_command(log_cmd, stdout=system_log))
+            run_continuous_ffx_command(log_cmd, target_id, stdout=system_log))
 
 
 def main():

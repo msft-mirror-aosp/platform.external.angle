@@ -1,4 +1,4 @@
-# Copyright 2022 The Chromium Authors. All rights reserved.
+# Copyright 2022 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """Provide helpers for running Fuchsia's `ffx`."""
@@ -9,13 +9,19 @@ import os
 import json
 import random
 import subprocess
+import sys
 import tempfile
 
 from contextlib import AbstractContextManager
-from typing import Iterable, Optional
+from typing import IO, Iterable, List, Optional
 
-from common import get_host_arch, run_ffx_command, run_continuous_ffx_command, \
-                   SDK_ROOT
+from common import check_ssh_config_file, run_ffx_command, \
+                   run_continuous_ffx_command, SDK_ROOT
+from compatible_utils import get_host_arch
+
+_EMU_COMMAND_RETRIES = 3
+RUN_SUMMARY_SCHEMA = \
+    'https://fuchsia.dev/schema/ffx_test/run_summary-8d1dd964.json'
 
 
 def get_config(name: str) -> Optional[str]:
@@ -56,7 +62,14 @@ class ScopedFfxConfig(AbstractContextManager):
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         if self._new_value != self._old_value:
-            run_ffx_command(['config', 'remove', self._name])
+
+            # Allow removal of config to fail.
+            remove_cmd = run_ffx_command(['config', 'remove', self._name],
+                                         check=False)
+            if remove_cmd.returncode != 0:
+                logging.warning('Error when removing ffx config %s',
+                                self._name)
+
             if self._old_value is not None:
                 # Explicitly set the value back only if removing the new value
                 # doesn't already restore the old value.
@@ -98,36 +111,20 @@ class FfxEmulator(AbstractContextManager):
         node_name_suffix = random.randint(1, 9999)
         self._node_name = f'fuchsia-emulator-{node_name_suffix}'
 
-        # Always set the download path parallel to Fuchsia SDK directory
-        # so that old product bundles can be properly removed.
-        self._scoped_pb_storage = ScopedFfxConfig(
-            'pbms.storage.path', os.path.join(SDK_ROOT, os.pardir, 'images'))
+        # Set the download path parallel to Fuchsia SDK directory
+        # permanently so that scripts can always find the product bundles.
+        run_ffx_command(('config', 'set', 'pbms.storage.path',
+                         os.path.join(SDK_ROOT, os.pardir, 'images')))
 
-    @staticmethod
-    def _check_ssh_config_file() -> None:
-        """Checks for ssh keys and generates them if they are missing."""
-        script_path = os.path.join(SDK_ROOT, 'bin', 'fuchsia-common.sh')
-        check_cmd = [
-            'bash', '-c', f'. {script_path}; check-fuchsia-ssh-config'
-        ]
-        subprocess.run(check_cmd, check=True)
-
-    def _download_product_bundle_if_necessary(self) -> None:
-        """Download the image for a given product bundle."""
-
-        # Check if the product bundle has already been downloaded.
-        # TODO: remove when `ffx product-bundle get` doesn't automatically
-        # redownload.
-        list_cmd = run_ffx_command(('product-bundle', 'list'),
-                                   capture_output=True)
-        sdk_version = run_ffx_command(('sdk', 'version'),
-                                      capture_output=True).stdout.strip()
-        for line in list_cmd.stdout.splitlines():
-            if (self._product_bundle in line and sdk_version in line
-                    and '*' in line):
-                return
-
-        run_ffx_command(('product-bundle', 'get', self._product_bundle))
+        override_file = os.path.join(os.path.dirname(__file__), os.pardir,
+                                     'sdk_override.txt')
+        self._scoped_pb_metadata = None
+        if os.path.exists(override_file):
+            with open(override_file) as f:
+                pb_metadata = f.read().split('\n')
+                pb_metadata.append('{sdk.root}/*.json')
+                self._scoped_pb_metadata = ScopedFfxConfig(
+                    'pbms.metadata', json.dumps((pb_metadata)))
 
     def __enter__(self) -> str:
         """Start the emulator.
@@ -136,9 +133,9 @@ class FfxEmulator(AbstractContextManager):
             The node name of the emulator.
         """
 
-        self._scoped_pb_storage.__enter__()
-        self._check_ssh_config_file()
-        self._download_product_bundle_if_necessary()
+        if self._scoped_pb_metadata:
+            self._scoped_pb_metadata.__enter__()
+        check_ssh_config_file()
         emu_command = [
             'emu', 'start', self._product_bundle, '--name', self._node_name
         ]
@@ -191,7 +188,19 @@ class FfxEmulator(AbstractContextManager):
                 json.dump(ast.literal_eval(qemu_arm64_meta), f)
             emu_command.extend(['--engine', 'qemu'])
 
-        run_ffx_command(emu_command)
+        with ScopedFfxConfig('emu.start.timeout', '90'):
+            for _ in range(_EMU_COMMAND_RETRIES):
+
+                # If the ffx daemon fails to establish a connection with
+                # the emulator after 85 seconds, that means the emulator
+                # failed to be brought up and a retry is needed.
+                # TODO(fxb/103540): Remove retry when start up issue is fixed.
+                try:
+                    run_ffx_command(emu_command, timeout=85)
+                    break
+                except (subprocess.TimeoutExpired,
+                        subprocess.CalledProcessError):
+                    run_ffx_command(('emu', 'stop'))
         return self._node_name
 
     def __exit__(self, exc_type, exc_value, traceback) -> bool:
@@ -201,7 +210,8 @@ class FfxEmulator(AbstractContextManager):
         # might fail.
         run_ffx_command(('emu', 'stop', self._node_name), check=False)
 
-        self._scoped_pb_storage.__exit__(exc_type, exc_value, traceback)
+        if self._scoped_pb_metadata:
+            self._scoped_pb_metadata.__exit__(exc_type, exc_value, traceback)
 
         # Do not suppress exceptions.
         return False
@@ -225,13 +235,10 @@ class FfxTestRunner(AbstractContextManager):
         """
         self._results_dir = results_dir
         self._custom_artifact_directory = None
-        self._structured_output_config = None
         self._temp_results_dir = None
+        self._debug_data_directory = None
 
     def __enter__(self):
-        self._structured_output_config = ScopedFfxConfig(
-            'test.experimental_structured_output', 'true')
-        self._structured_output_config.__enter__()
         if self._results_dir:
             os.makedirs(self._results_dir, exist_ok=True)
         else:
@@ -243,8 +250,6 @@ class FfxTestRunner(AbstractContextManager):
         if self._temp_results_dir:
             self._temp_results_dir.__exit__(exc_type, exc_val, exc_tb)
             self._temp_results_dir = None
-        self._structured_output_config.__exit__(exc_type, exc_val, exc_tb)
-        self._structured_output_config = None
 
         # Do not suppress exceptions.
         return False
@@ -297,35 +302,44 @@ class FfxTestRunner(AbstractContextManager):
                               run_summary_path)
             return
 
-        assert run_summary['version'] == '0', \
+        assert run_summary['schema_id'] == RUN_SUMMARY_SCHEMA, \
             'Unsupported version found in %s' % run_summary_path
 
-        # There should be precisely one suite for the test that ran. Find and
-        # parse its file.
-        suite_summary_filename = run_summary.get('suites',
-                                                 [{}])[0].get('summary')
-        suite_summary_path = os.path.join(self._results_dir,
-                                          suite_summary_filename)
-        with open(suite_summary_path) as suite_summary_file:
-            suite_summary = json.load(suite_summary_file)
+        run_artifact_dir = run_summary.get('data', {})['artifact_dir']
+        for artifact_path, artifact in run_summary.get(
+                'data', {})['artifacts'].items():
+            if artifact['artifact_type'] == 'DEBUG':
+                self._debug_data_directory = os.path.join(
+                    self._results_dir, run_artifact_dir, artifact_path)
+                break
 
-        assert suite_summary['version'] == '0', \
-            'Unsupported version found in %s' % suite_summary_path
+        if run_summary['data']['outcome'] == "NOT_STARTED":
+            logging.critical('Test execution was interrupted. Either the '
+                             'emulator crashed while the tests were still '
+                             'running or connection to the device was lost.')
+            sys.exit(1)
+
+        # There should be precisely one suite for the test that ran.
+        suites_list = run_summary.get('data', {}).get('suites')
+        if not suites_list:
+            logging.error('Missing or empty list of suites in %s',
+                          run_summary_path)
+            return
+        suite_summary = suites_list[0]
 
         # Get the top-level directory holding all artifacts for this suite.
         artifact_dir = suite_summary.get('artifact_dir')
         if not artifact_dir:
             logging.error('Failed to find suite\'s artifact_dir in %s',
-                          suite_summary_path)
+                          run_summary_path)
             return
 
-        # Get the path corresponding to the CUSTOM artifact.
+        # Get the path corresponding to artifacts
         for artifact_path, artifact in suite_summary['artifacts'].items():
-            if artifact['artifact_type'] != 'CUSTOM':
-                continue
-            self._custom_artifact_directory = os.path.join(
-                self._results_dir, artifact_dir, artifact_path)
-            break
+            if artifact['artifact_type'] == 'CUSTOM':
+                self._custom_artifact_directory = os.path.join(
+                    self._results_dir, artifact_dir, artifact_path)
+                break
 
     def get_custom_artifact_directory(self) -> str:
         """Returns the full path to the directory holding custom artifacts
@@ -333,3 +347,26 @@ class FfxTestRunner(AbstractContextManager):
         """
         self._parse_test_outputs()
         return self._custom_artifact_directory
+
+    def get_debug_data_directory(self):
+        """Returns the full path to the directory holding debug data
+        emitted by the test, or None if the path cannot be determined.
+        """
+        self._parse_test_outputs()
+        return self._debug_data_directory
+
+
+def run_symbolizer(symbol_paths: List[str], input_fd: IO,
+                   output_fd: IO) -> subprocess.Popen:
+    """Runs symbolizer that symbolizes |input| and outputs to |output|."""
+
+    symbolize_cmd = ([
+        'debug', 'symbolize', '--', '--omit-module-lines', '--build-id-dir',
+        os.path.join(SDK_ROOT, '.build-id')
+    ])
+    for path in symbol_paths:
+        symbolize_cmd.extend(['--ids-txt', path])
+    return run_continuous_ffx_command(symbolize_cmd,
+                                      stdin=input_fd,
+                                      stdout=output_fd,
+                                      stderr=subprocess.STDOUT)

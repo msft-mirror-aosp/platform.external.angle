@@ -53,24 +53,6 @@ InitState DetermineInitState(const Context *context, Buffer *unpackBuffer, const
 }
 }  // namespace
 
-bool IsMipmapFiltered(GLenum minFilterMode)
-{
-    switch (minFilterMode)
-    {
-        case GL_NEAREST:
-        case GL_LINEAR:
-            return false;
-        case GL_NEAREST_MIPMAP_NEAREST:
-        case GL_LINEAR_MIPMAP_NEAREST:
-        case GL_NEAREST_MIPMAP_LINEAR:
-        case GL_LINEAR_MIPMAP_LINEAR:
-            return true;
-        default:
-            UNREACHABLE();
-            return false;
-    }
-}
-
 GLenum ConvertToNearestFilterMode(GLenum filterMode)
 {
     switch (filterMode)
@@ -2135,7 +2117,7 @@ const OffsetBindingPointer<Buffer> &Texture::getBuffer() const
     return mState.mBuffer;
 }
 
-void Texture::onAttach(const Context *context, rx::Serial framebufferSerial)
+void Texture::onAttach(const Context *context, rx::UniqueSerial framebufferSerial)
 {
     addRef();
 
@@ -2149,7 +2131,7 @@ void Texture::onAttach(const Context *context, rx::Serial framebufferSerial)
     }
 }
 
-void Texture::onDetach(const Context *context, rx::Serial framebufferSerial)
+void Texture::onDetach(const Context *context, rx::UniqueSerial framebufferSerial)
 {
     // Erase first instance. If there are multiple bindings, leave the others.
     ASSERT(isBoundToFramebuffer(framebufferSerial));

@@ -706,7 +706,8 @@ void GenerateCaps(const FunctionsGL *functions,
                   gl::Extensions *extensions,
                   gl::Limitations *limitations,
                   gl::Version *maxSupportedESVersion,
-                  MultiviewImplementationTypeGL *multiviewImplementationType)
+                  MultiviewImplementationTypeGL *multiviewImplementationType,
+                  ShPixelLocalStorageOptions *plsOptions)
 {
     // Start by assuming ES3.1 support and work down
     *maxSupportedESVersion = gl::Version(3, 1);
@@ -1469,6 +1470,7 @@ void GenerateCaps(const FunctionsGL *functions,
                                       functions->hasGLESExtension("GL_EXT_shader_texture_lod");
     extensions->fragDepthEXT = functions->standard == STANDARD_GL_DESKTOP ||
                                functions->hasGLESExtension("GL_EXT_frag_depth");
+    extensions->polygonOffsetClampEXT = functions->hasExtension("GL_EXT_polygon_offset_clamp");
 
     // Support video texture extension on non Android backends.
     // TODO(crbug.com/776222): support Android and Apple devices.
@@ -1573,15 +1575,113 @@ void GenerateCaps(const FunctionsGL *functions,
          functions->hasGLESExtension("GL_KHR_robust_buffer_access_behavior"));
 
     // ANGLE_shader_pixel_local_storage.
-    extensions->shaderPixelLocalStorageANGLE =
-        functions->isAtLeastGL(gl::Version(4, 2)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
-        functions->hasGLExtension("GL_ARB_shader_image_load_store");
-    if (extensions->shaderPixelLocalStorageANGLE)
+    if (features.supportsShaderPixelLocalStorageEXT.enabled &&
+        functions->isAtLeastGLES(gl::Version(3, 1)))
     {
-        extensions->shaderPixelLocalStorageCoherentANGLE =
-            features.supportsFragmentShaderInterlockNV.enabled ||
-            features.supportsFragmentShaderOrderingINTEL.enabled ||
-            features.supportsFragmentShaderInterlockARB.enabled;
+        // We can support PLS natively, including memoryless planes, in tiled memory.
+        // (EXT_shader_pixel_local_storage doesn't have a mechanism to preserve more than one plane
+        // of data, so we can only use this backend if we also have ES3.1 shader images.)
+        //
+        // MAX_SHADER_PIXEL_LOCAL_STORAGE_FAST_SIZE_EXT has a minimum value of 16, which gives 4
+        // planes. Only a non-conformant backend driver would have < 16.
+        caps->maxShaderPixelLocalStorageFastSizeEXT =
+            QuerySingleGLInt(functions, GL_MAX_SHADER_PIXEL_LOCAL_STORAGE_FAST_SIZE_EXT);
+        if (caps->maxShaderPixelLocalStorageFastSizeEXT >= 16)
+        {
+            extensions->shaderPixelLocalStorageANGLE         = true;
+            extensions->shaderPixelLocalStorageCoherentANGLE = true;
+            plsOptions->type             = ShPixelLocalStorageType::PixelLocalStorageEXT;
+            plsOptions->fragmentSyncType = ShFragmentSynchronizationType::Automatic;
+        }
+    }
+    else if (features.supportsShaderFramebufferFetchEXT.enabled)
+    {
+        // We can support PLS natively, probably in tiled memory.
+        extensions->shaderPixelLocalStorageANGLE         = true;
+        extensions->shaderPixelLocalStorageCoherentANGLE = true;
+        plsOptions->type             = ShPixelLocalStorageType::FramebufferFetch;
+        plsOptions->fragmentSyncType = ShFragmentSynchronizationType::Automatic;
+    }
+    else
+    {
+        bool hasFragmentShaderImageLoadStore = false;
+        if (functions->isAtLeastGL(gl::Version(4, 2)) ||
+            functions->hasGLExtension("GL_ARB_shader_image_load_store"))
+        {
+            // [ANGLE_shader_pixel_local_storage] "New Implementation Dependent State":
+            // MAX_PIXEL_LOCAL_STORAGE_PLANES_ANGLE must be at least 4.
+            //
+            // MAX_FRAGMENT_IMAGE_UNIFORMS is at least 8 on Desktop Core and ARB.
+            hasFragmentShaderImageLoadStore = true;
+        }
+        else if (functions->isAtLeastGLES(gl::Version(3, 1)))
+        {
+            // [ANGLE_shader_pixel_local_storage] "New Implementation Dependent State":
+            // MAX_PIXEL_LOCAL_STORAGE_PLANES_ANGLE must be at least 4.
+            //
+            // ES 3.1, Table 20.44: MAX_FRAGMENT_IMAGE_UNIFORMS can be 0.
+            hasFragmentShaderImageLoadStore =
+                caps->maxShaderImageUniforms[gl::ShaderType::Fragment] >= 4;
+        }
+        if (hasFragmentShaderImageLoadStore &&
+            (features.supportsFragmentShaderInterlockNV.enabled ||
+             features.supportsFragmentShaderOrderingINTEL.enabled ||
+             features.supportsFragmentShaderInterlockARB.enabled))
+        {
+            // If shader image load/store can be coherent, prefer it over
+            // EXT_shader_framebuffer_fetch_non_coherent.
+            extensions->shaderPixelLocalStorageANGLE         = true;
+            extensions->shaderPixelLocalStorageCoherentANGLE = true;
+            plsOptions->type = ShPixelLocalStorageType::ImageLoadStore;
+            // Prefer vendor-specific extensions first. The PixelLocalStorageTest.Coherency test
+            // doesn't always pass on Intel when we use the ARB extension.
+            if (features.supportsFragmentShaderInterlockNV.enabled)
+            {
+                plsOptions->fragmentSyncType =
+                    ShFragmentSynchronizationType::FragmentShaderInterlock_NV_GL;
+            }
+            else if (features.supportsFragmentShaderOrderingINTEL.enabled)
+            {
+                plsOptions->fragmentSyncType =
+                    ShFragmentSynchronizationType::FragmentShaderOrdering_INTEL_GL;
+            }
+            else
+            {
+                ASSERT(features.supportsFragmentShaderInterlockARB.enabled);
+                plsOptions->fragmentSyncType =
+                    ShFragmentSynchronizationType::FragmentShaderInterlock_ARB_GL;
+            }
+            // OpenGL ES only allows read/write access to "r32*" images.
+            plsOptions->supportsNativeRGBA8ImageFormats =
+                functions->standard != StandardGL::STANDARD_GL_ES;
+        }
+        else if (features.supportsShaderFramebufferFetchNonCoherentEXT.enabled)
+        {
+            extensions->shaderPixelLocalStorageANGLE = true;
+            plsOptions->type                         = ShPixelLocalStorageType::FramebufferFetch;
+        }
+        else if (hasFragmentShaderImageLoadStore)
+        {
+            extensions->shaderPixelLocalStorageANGLE = true;
+            plsOptions->type                         = ShPixelLocalStorageType::ImageLoadStore;
+            // OpenGL ES only allows read/write access to "r32*" images.
+            plsOptions->supportsNativeRGBA8ImageFormats =
+                functions->standard != StandardGL::STANDARD_GL_ES;
+        }
+    }
+
+    // EXT_shader_framebuffer_fetch.
+    if (features.supportsShaderFramebufferFetchEXT.enabled)
+    {
+        extensions->shaderFramebufferFetchEXT = true;
+    }
+
+    // TODO(http://anglebug.com/7882): Support ARM_shader_framebuffer_fetch
+
+    // EXT_shader_framebuffer_fetch_non_coherent.
+    if (features.supportsShaderFramebufferFetchNonCoherentEXT.enabled)
+    {
+        extensions->shaderFramebufferFetchNonCoherentEXT = true;
     }
 
     extensions->copyTextureCHROMIUM = true;
@@ -1835,16 +1935,34 @@ void GenerateCaps(const FunctionsGL *functions,
                                     functions->isAtLeastGLES(gl::Version(3, 0)) ||
                                     functions->hasGLESExtension("GL_EXT_shadow_samplers");
 
-    // GL_APPLE_clip_distance
-    extensions->clipDistanceAPPLE = functions->isAtLeastGL(gl::Version(3, 0));
+    // GL_APPLE_clip_distance cannot be implemented on top of GL_EXT_clip_cull_distance,
+    // so require either native support or desktop GL.
+    extensions->clipDistanceAPPLE = functions->isAtLeastGL(gl::Version(3, 0)) ||
+                                    functions->hasGLESExtension("GL_APPLE_clip_distance");
     if (extensions->clipDistanceAPPLE)
     {
-        caps->maxClipDistances = QuerySingleGLInt(functions, GL_MAX_CLIP_DISTANCES_EXT);
+        caps->maxClipDistances = QuerySingleGLInt(functions, GL_MAX_CLIP_DISTANCES_APPLE);
     }
-    else
+
+    // GL_EXT_clip_cull_distance spec requires shader interface blocks to support
+    // built-in array redeclarations on OpenGL ES.
+    extensions->clipCullDistanceEXT =
+        functions->isAtLeastGL(gl::Version(4, 5)) ||
+        (functions->isAtLeastGL(gl::Version(3, 0)) &&
+         functions->hasGLExtension("GL_ARB_cull_distance")) ||
+        (extensions->shaderIoBlocksEXT && functions->hasGLESExtension("GL_EXT_clip_cull_distance"));
+    if (extensions->clipCullDistanceEXT)
     {
-        caps->maxClipDistances = 0;
+        caps->maxClipDistances = QuerySingleGLInt(functions, GL_MAX_CLIP_DISTANCES_EXT);
+        caps->maxCullDistances = QuerySingleGLInt(functions, GL_MAX_CULL_DISTANCES_EXT);
+        caps->maxCombinedClipAndCullDistances =
+            QuerySingleGLInt(functions, GL_MAX_COMBINED_CLIP_AND_CULL_DISTANCES_EXT);
     }
+
+    // Same as GL_EXT_clip_cull_distance but with cull distance support being optional.
+    extensions->clipCullDistanceANGLE =
+        functions->isAtLeastGL(gl::Version(3, 0)) || extensions->clipCullDistanceEXT;
+    ASSERT(!extensions->clipCullDistanceANGLE || caps->maxClipDistances > 0);
 
     // GL_OES_shader_image_atomic
     //
@@ -1884,6 +2002,9 @@ void GenerateCaps(const FunctionsGL *functions,
 
     // GL_KHR_parallel_shader_compile
     extensions->parallelShaderCompileKHR = true;
+
+    // GL_ANGLE_logic_op
+    extensions->logicOpANGLE = functions->isAtLeastGL(gl::Version(2, 0));
 
     // PVRTC1 textures must be squares on Apple platforms.
     if (IsApple())
@@ -2323,6 +2444,9 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // https://anglebug.com/7527
     ANGLE_FEATURE_CONDITION(features, passHighpToPackUnormSnormBuiltins, isQualcomm);
 
+    // https://anglebug.com/7880
+    ANGLE_FEATURE_CONDITION(features, emulateClipDistanceState, isQualcomm);
+
     // Desktop GLSL-only fragment synchronization extensions. These are injected internally by the
     // compiler to make pixel local storage coherent.
     // https://anglebug.com/7279
@@ -2335,6 +2459,19 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     ANGLE_FEATURE_CONDITION(features, supportsFragmentShaderInterlockARB,
                             functions->isAtLeastGL(gl::Version(4, 5)) &&
                                 functions->hasGLExtension("GL_ARB_fragment_shader_interlock"));
+
+    // EXT_shader_framebuffer_fetch
+    ANGLE_FEATURE_CONDITION(features, supportsShaderFramebufferFetchEXT,
+                            functions->hasGLESExtension("GL_EXT_shader_framebuffer_fetch"));
+
+    // EXT_shader_framebuffer_fetch_non_coherent
+    ANGLE_FEATURE_CONDITION(
+        features, supportsShaderFramebufferFetchNonCoherentEXT,
+        functions->hasGLESExtension("GL_EXT_shader_framebuffer_fetch_non_coherent"));
+
+    // EXT_shader_pixel_local_storage
+    ANGLE_FEATURE_CONDITION(features, supportsShaderPixelLocalStorageEXT,
+                            functions->hasGLESExtension("GL_EXT_shader_pixel_local_storage"));
 }
 
 void InitializeFrontendFeatures(const FunctionsGL *functions, angle::FrontendFeatures *features)

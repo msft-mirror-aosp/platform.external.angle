@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2017 The Chromium Authors. All rights reserved.
+# Copyright 2017 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -87,7 +87,7 @@ def main(argv):
   args = parser.parse_args(argv)
 
   with build_utils.AtomicOutput(args.output) as output:
-    cmd = build_utils.JavaCmd(args.warnings_as_errors) + [
+    cmd = build_utils.JavaCmd() + [
         '-cp',
         args.manifest_merger_jar,
         _MANIFEST_MERGER_MAIN_CLASS,

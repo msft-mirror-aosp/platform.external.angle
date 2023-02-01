@@ -351,10 +351,11 @@ void RendererVk::ensureCapsInitialized() const
     mNativeExtensions.copyTexture3dANGLE            = true;
     mNativeExtensions.copyCompressedTextureCHROMIUM = true;
     mNativeExtensions.debugMarkerEXT                = true;
-    mNativeExtensions.robustnessEXT                 = !IsARM(mPhysicalDeviceProperties.vendorID);
+    mNativeExtensions.robustnessEXT                 = true;
     mNativeExtensions.discardFramebufferEXT         = true;
     mNativeExtensions.textureBorderClampOES = getFeatures().supportsCustomBorderColor.enabled;
     mNativeExtensions.textureBorderClampEXT = getFeatures().supportsCustomBorderColor.enabled;
+    mNativeExtensions.polygonOffsetClampEXT = mPhysicalDeviceFeatures.depthBiasClamp == VK_TRUE;
     // Enable EXT_texture_type_2_10_10_10_REV
     mNativeExtensions.textureType2101010REVEXT = true;
 
@@ -515,6 +516,14 @@ void RendererVk::ensureCapsInitialized() const
     constexpr unsigned int kNotSupportedSampleCounts = VK_SAMPLE_COUNT_64_BIT;
     mNativeExtensions.sampleVariablesOES =
         supportSampleRateShading && vk_gl::GetMaxSampleCount(kNotSupportedSampleCounts) == 0;
+
+    // EXT_multisample_compatibility is necessary for GLES1 conformance so calls like
+    // glDisable(GL_MULTISAMPLE) don't fail.  This is not actually implemented in Vulkan.  However,
+    // no CTS tests actually test this extension.  GL_SAMPLE_ALPHA_TO_ONE requires the Vulkan
+    // alphaToOne feature.
+    mNativeExtensions.multisampleCompatibilityEXT =
+        mPhysicalDeviceFeatures.alphaToOne ||
+        mFeatures.exposeNonConformantExtensionsAndVersions.enabled;
 
     // GL_KHR_blend_equation_advanced.  According to the spec, only color attachment zero can be
     // used with advanced blend:
@@ -928,6 +937,7 @@ void RendererVk::ensureCapsInitialized() const
         // gl::IMPLEMENTATION_MAX_DRAW_BUFFERS is used to support the extension.
         mNativeExtensions.shaderFramebufferFetchEXT =
             mNativeCaps.maxDrawBuffers >= gl::IMPLEMENTATION_MAX_DRAW_BUFFERS;
+        mNativeExtensions.shaderFramebufferFetchARM = mNativeExtensions.shaderFramebufferFetchEXT;
     }
 
     if (getFeatures().supportsShaderFramebufferFetchNonCoherent.enabled)
@@ -941,6 +951,9 @@ void RendererVk::ensureCapsInitialized() const
     // Enable Program Binary extension.
     mNativeExtensions.getProgramBinaryOES = true;
     mNativeCaps.programBinaryFormats.push_back(GL_PROGRAM_BINARY_ANGLE);
+
+    // Enable Shader Binary extension.
+    mNativeCaps.shaderBinaryFormats.push_back(GL_SHADER_BINARY_ANGLE);
 
     // Enable GL_NV_pixel_buffer_object extension.
     mNativeExtensions.pixelBufferObjectNV = true;
@@ -1059,7 +1072,7 @@ void RendererVk::ensureCapsInitialized() const
         }
     }
 
-    // GL_APPLE_clip_distance/GL_EXT_clip_cull_distance
+    // GL_APPLE_clip_distance / GL_EXT_clip_cull_distance / GL_ANGLE_clip_cull_distance
     // From the EXT_clip_cull_distance extension spec:
     //
     // > Modify Section 7.2, "Built-In Constants" (p. 126)
@@ -1078,8 +1091,9 @@ void RendererVk::ensureCapsInitialized() const
     if (mPhysicalDeviceFeatures.shaderClipDistance &&
         limitsVk.maxClipDistances >= kMaxClipDistancePerSpec)
     {
-        mNativeExtensions.clipDistanceAPPLE = true;
-        mNativeCaps.maxClipDistances        = limitsVk.maxClipDistances;
+        mNativeExtensions.clipDistanceAPPLE     = true;
+        mNativeExtensions.clipCullDistanceANGLE = true;
+        mNativeCaps.maxClipDistances            = limitsVk.maxClipDistances;
 
         if (mPhysicalDeviceFeatures.shaderCullDistance &&
             limitsVk.maxCullDistances >= kMaxCullDistancePerSpec &&
@@ -1092,7 +1106,7 @@ void RendererVk::ensureCapsInitialized() const
     }
 
     // GL_EXT_blend_func_extended
-    mNativeExtensions.blendFuncExtendedEXT = (mPhysicalDeviceFeatures.dualSrcBlend == VK_TRUE);
+    mNativeExtensions.blendFuncExtendedEXT = mPhysicalDeviceFeatures.dualSrcBlend == VK_TRUE;
     mNativeCaps.maxDualSourceDrawBuffers   = LimitToInt(limitsVk.maxFragmentDualSrcAttachments);
 
     // GL_ANGLE_relaxed_vertex_attribute_type
@@ -1137,8 +1151,30 @@ void RendererVk::ensureCapsInitialized() const
 
     // GL_ANGLE_shader_pixel_local_storage
     mNativeExtensions.shaderPixelLocalStorageANGLE = true;
-    mNativeExtensions.shaderPixelLocalStorageCoherentANGLE =
-        getFeatures().supportsFragmentShaderPixelInterlock.enabled;
+    if (getFeatures().supportsShaderFramebufferFetch.enabled)
+    {
+        mNativeExtensions.shaderPixelLocalStorageCoherentANGLE = true;
+        mNativePLSOptions.type             = ShPixelLocalStorageType::FramebufferFetch;
+        mNativePLSOptions.fragmentSyncType = ShFragmentSynchronizationType::Automatic;
+    }
+    else if (getFeatures().supportsFragmentShaderPixelInterlock.enabled)
+    {
+        // Use shader images with VK_EXT_fragment_shader_interlock, instead of attachments, if
+        // they're our only option to be coherent.
+        mNativeExtensions.shaderPixelLocalStorageCoherentANGLE = true;
+        mNativePLSOptions.type = ShPixelLocalStorageType::ImageLoadStore;
+        // GL_ARB_fragment_shader_interlock compiles to SPV_EXT_fragment_shader_interlock.
+        mNativePLSOptions.fragmentSyncType =
+            ShFragmentSynchronizationType::FragmentShaderInterlock_ARB_GL;
+        mNativePLSOptions.supportsNativeRGBA8ImageFormats = true;
+    }
+    else
+    {
+        mNativePLSOptions.type = ShPixelLocalStorageType::FramebufferFetch;
+        ASSERT(mNativePLSOptions.fragmentSyncType == ShFragmentSynchronizationType::NotSupported);
+    }
+
+    mNativeExtensions.logicOpANGLE = mPhysicalDeviceFeatures.logicOp == VK_TRUE;
 }
 
 namespace vk
@@ -1214,14 +1250,14 @@ egl::Config GenerateDefaultConfig(DisplayVk *display,
 
     const VkPhysicalDeviceProperties &physicalDeviceProperties =
         renderer->getPhysicalDeviceProperties();
-    gl::Version maxSupportedESVersion      = renderer->getMaxSupportedESVersion();
-    gl::Version maxSupportedDesktopVersion = display->getMaxSupportedDesktopVersion();
+    gl::Version maxSupportedESVersion                = renderer->getMaxSupportedESVersion();
+    Optional<gl::Version> maxSupportedDesktopVersion = display->getMaxSupportedDesktopVersion();
 
     // ES3 features are required to emulate ES1
     EGLint es1Support     = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES_BIT : 0);
     EGLint es2Support     = (maxSupportedESVersion.major >= 2 ? EGL_OPENGL_ES2_BIT : 0);
     EGLint es3Support     = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES3_BIT : 0);
-    EGLint desktopSupport = (maxSupportedDesktopVersion.major != 0 ? EGL_OPENGL_BIT : 0);
+    EGLint desktopSupport = (maxSupportedDesktopVersion.valid() ? EGL_OPENGL_BIT : 0);
 
     egl::Config config;
 

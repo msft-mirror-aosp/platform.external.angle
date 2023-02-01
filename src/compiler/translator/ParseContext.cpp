@@ -152,6 +152,21 @@ void AddAdvancedBlendEquation(gl::BlendEquationType eq, TLayoutQualifier *qualif
 {
     qualifier->advancedBlendEquations.set(static_cast<uint32_t>(eq));
 }
+
+constexpr bool IsValidWithPixelLocalStorage(TLayoutImageInternalFormat internalFormat)
+{
+    switch (internalFormat)
+    {
+        case EiifRGBA8:
+        case EiifRGBA8I:
+        case EiifRGBA8UI:
+        case EiifR32F:
+        case EiifR32UI:
+            return true;
+        default:
+            return false;
+    }
+}
 }  // namespace
 
 // This tracks each binding point's current default offset for inheritance of subsequent
@@ -212,6 +227,9 @@ TParseContext::TParseContext(TSymbolTable &symt,
       mEarlyFragmentTestsSpecified(false),
       mHasDiscard(false),
       mSampleQualifierSpecified(false),
+      mPositionRedeclaredForSeparateShaderObject(false),
+      mPointSizeRedeclaredForSeparateShaderObject(false),
+      mPositionOrPointSizeUsedForSeparateShaderObject(false),
       mDefaultUniformMatrixPacking(EmpColumnMajor),
       mDefaultUniformBlockStorage(sh::IsWebGLBasedSpec(spec) ? EbsStd140 : EbsShared),
       mDefaultBufferMatrixPacking(EmpColumnMajor),
@@ -1312,6 +1330,7 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
         case EvqClipDistance:
         case EvqCullDistance:
         case EvqLastFragData:
+        case EvqLastFragColor:
             symbolType = SymbolType::BuiltIn;
             break;
         default:
@@ -1380,6 +1399,14 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
             return false;
         }
     }
+    else if (identifier.beginsWith("gl_LastFragColorARM"))
+    {
+        // gl_LastFragColorARM may be redeclared with a new precision qualifier
+        if (const TSymbol *builtInSymbol = symbolTable.findBuiltIn(identifier, mShaderVersion))
+        {
+            needsReservedCheck = !checkCanUseOneOfExtensions(line, builtInSymbol->extensions());
+        }
+    }
     else if (type->isArray() && identifier == "gl_ClipDistance")
     {
         // gl_ClipDistance can be redeclared with smaller size than gl_MaxClipDistances
@@ -1439,6 +1466,42 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
             error(line, "redeclaration of gl_CullDistance with size > gl_MaxCullDistances",
                   identifier);
             return false;
+        }
+    }
+    else if (isExtensionEnabled(TExtension::EXT_separate_shader_objects) &&
+             mShaderType == GL_VERTEX_SHADER)
+    {
+        bool isRedefiningPositionOrPointSize = false;
+        if (identifier == "gl_Position")
+        {
+            if (type->getBasicType() != EbtFloat || type->getNominalSize() != 4 ||
+                type->getSecondarySize() != 1 || type->isArray())
+            {
+                error(line, "gl_Position can only be redeclared as vec4", identifier);
+                return false;
+            }
+            needsReservedCheck                         = false;
+            mPositionRedeclaredForSeparateShaderObject = true;
+            isRedefiningPositionOrPointSize            = true;
+        }
+        else if (identifier == "gl_PointSize")
+        {
+            if (type->getBasicType() != EbtFloat || type->getNominalSize() != 1 ||
+                type->getSecondarySize() != 1 || type->isArray())
+            {
+                error(line, "gl_PointSize can only be redeclared as float", identifier);
+                return false;
+            }
+            needsReservedCheck                          = false;
+            mPointSizeRedeclaredForSeparateShaderObject = true;
+            isRedefiningPositionOrPointSize             = true;
+        }
+        if (isRedefiningPositionOrPointSize && mPositionOrPointSizeUsedForSeparateShaderObject)
+        {
+            error(line,
+                  "When EXT_separate_shader_objects is enabled, both gl_Position and "
+                  "gl_PointSize must be redeclared before either is used",
+                  identifier);
         }
     }
 
@@ -1877,6 +1940,7 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
             case EiifRGBA16UI:
             case EiifRGBA32UI:
             default:
+                ASSERT(!IsValidWithPixelLocalStorage(layoutQualifier.imageInternalFormat));
                 error(identifierLocation, "illegal pixel local storage format",
                       getImageInternalFormatString(layoutQualifier.imageInternalFormat));
                 break;
@@ -1913,7 +1977,15 @@ void TParseContext::checkBindingIsValid(const TSourceLoc &identifierLocation, co
     // of arrays of blocks are specified to behave in GLSL 4.50 and a conservative interpretation
     // when it comes to which shaders are accepted by the compiler.
     int arrayTotalElementCount = type.getArraySizeProduct();
-    if (IsImage(type.getBasicType()))
+    if (IsPixelLocal(type.getBasicType()))
+    {
+        checkPixelLocalStorageBindingIsValid(identifierLocation, type);
+    }
+    else if (mShaderVersion < 310)
+    {
+        checkBindingIsNotSpecified(identifierLocation, layoutQualifier.binding);
+    }
+    else if (IsImage(type.getBasicType()))
     {
         checkImageBindingIsValid(identifierLocation, layoutQualifier.binding,
                                  arrayTotalElementCount);
@@ -1927,10 +1999,6 @@ void TParseContext::checkBindingIsValid(const TSourceLoc &identifierLocation, co
     {
         checkAtomicCounterBindingIsValid(identifierLocation, layoutQualifier.binding);
     }
-    else if (IsPixelLocal(type.getBasicType()))
-    {
-        checkPixelLocalStorageBindingIsValid(identifierLocation, type);
-    }
     else
     {
         ASSERT(!IsOpaqueType(type.getBasicType()));
@@ -1940,10 +2008,10 @@ void TParseContext::checkBindingIsValid(const TSourceLoc &identifierLocation, co
 
 void TParseContext::checkCanUseLayoutQualifier(const TSourceLoc &location)
 {
-    constexpr std::array<TExtension, 3u> extensions{
+    constexpr std::array<TExtension, 4u> extensions{
         {TExtension::EXT_shader_framebuffer_fetch,
          TExtension::EXT_shader_framebuffer_fetch_non_coherent,
-         TExtension::KHR_blend_equation_advanced}};
+         TExtension::KHR_blend_equation_advanced, TExtension::ANGLE_shader_pixel_local_storage}};
     if (getShaderVersion() < 300 && !checkCanUseOneOfExtensions(location, extensions))
     {
         error(location, "qualifier supported in GLSL ES 3.00 and above only", "layout");
@@ -1987,8 +2055,36 @@ void TParseContext::checkInternalFormatIsNotSpecified(const TSourceLoc &location
 {
     if (internalFormat != EiifUnspecified)
     {
-        error(location, "invalid layout qualifier: only valid when used with images",
-              getImageInternalFormatString(internalFormat));
+        if (mShaderVersion < 310)
+        {
+            if (IsValidWithPixelLocalStorage(internalFormat))
+            {
+                error(location,
+                      "invalid layout qualifier: not supported before GLSL ES 3.10, except pixel "
+                      "local storage",
+                      getImageInternalFormatString(internalFormat));
+            }
+            else
+            {
+                error(location, "invalid layout qualifier: not supported before GLSL ES 3.10",
+                      getImageInternalFormatString(internalFormat));
+            }
+        }
+        else
+        {
+            if (IsValidWithPixelLocalStorage(internalFormat))
+            {
+                error(location,
+                      "invalid layout qualifier: only valid when used with images or pixel local "
+                      "storage ",
+                      getImageInternalFormatString(internalFormat));
+            }
+            else
+            {
+                error(location, "invalid layout qualifier: only valid when used with images",
+                      getImageInternalFormatString(internalFormat));
+            }
+        }
     }
 }
 
@@ -2007,9 +2103,18 @@ void TParseContext::checkBindingIsNotSpecified(const TSourceLoc &location, int b
 {
     if (binding != -1)
     {
-        error(location,
-              "invalid layout qualifier: only valid when used with opaque types or blocks",
-              "binding");
+        if (mShaderVersion < 310)
+        {
+            error(location,
+                  "invalid layout qualifier: only valid when used with pixel local storage",
+                  "binding");
+        }
+        else
+        {
+            error(location,
+                  "invalid layout qualifier: only valid when used with opaque types or blocks",
+                  "binding");
+        }
     }
 }
 
@@ -2378,6 +2483,51 @@ const TVariable *TParseContext::getNamedVariable(const TSourceLoc &location,
     {
         checkNoncoherentIsSpecified(location, variable->getType().getLayoutQualifier().noncoherent);
     }
+
+    // When EXT_separate_shader_objects is enabled, gl_Position and gl_PointSize must both be
+    // redeclared before either is accessed:
+    //
+    // > The following vertex shader outputs may be redeclared at global scope to
+    // > specify a built-in output interface, with or without special qualifiers:
+    // >
+    // >     gl_Position
+    // >     gl_PointSize
+    // >
+    // >   When compiling shaders using either of the above variables, both such
+    // >   variables must be redeclared prior to use.  ((Note:  This restriction
+    // >   applies only to shaders using version 300 that enable the
+    // >   EXT_separate_shader_objects extension; shaders not enabling the
+    // >   extension do not have this requirement.))
+    //
+    // However, there are dEQP tests that enable all extensions and don't actually redeclare these
+    // variables.  Per https://gitlab.khronos.org/opengl/API/-/issues/169, there are drivers that do
+    // enforce this, but they fail linking instead of compilation.
+    //
+    // In ANGLE, we make sure that they are both redeclared before use if any is redeclared, but if
+    // neither are redeclared, we don't fail compilation.  Currently, linking also doesn't fail in
+    // ANGLE (similarly to almost all other drivers).
+    if (isExtensionEnabled(TExtension::EXT_separate_shader_objects) &&
+        mShaderType == GL_VERTEX_SHADER)
+    {
+        if (variable->getType().getQualifier() == EvqPosition ||
+            variable->getType().getQualifier() == EvqPointSize)
+        {
+            mPositionOrPointSizeUsedForSeparateShaderObject = true;
+            const bool eitherIsRedeclared = mPositionRedeclaredForSeparateShaderObject ||
+                                            mPointSizeRedeclaredForSeparateShaderObject;
+            const bool bothAreRedeclared = mPositionRedeclaredForSeparateShaderObject &&
+                                           mPointSizeRedeclaredForSeparateShaderObject;
+
+            if (eitherIsRedeclared && !bothAreRedeclared)
+            {
+                error(location,
+                      "When EXT_separate_shader_objects is enabled, both gl_Position and "
+                      "gl_PointSize must be redeclared before either is used",
+                      name);
+            }
+        }
+    }
+
     return variable;
 }
 
@@ -2435,19 +2585,50 @@ TIntermTyped *TParseContext::parseVariableIdentifier(const TSourceLoc &location,
     return node;
 }
 
-void TParseContext::adjustRedeclaredBuiltInType(const ImmutableString &identifier, TType *type)
+void TParseContext::adjustRedeclaredBuiltInType(const TSourceLoc &line,
+                                                const ImmutableString &identifier,
+                                                TType *type)
 {
     if (identifier == "gl_ClipDistance")
     {
+        const TQualifier qualifier = type->getQualifier();
+        if ((mShaderType == GL_VERTEX_SHADER &&
+             !(qualifier == EvqVertexOut || qualifier == EvqVaryingOut)) ||
+            (mShaderType == GL_FRAGMENT_SHADER && qualifier != EvqFragmentIn))
+        {
+            error(line, "invalid or missing storage qualifier", identifier);
+            return;
+        }
+
         type->setQualifier(EvqClipDistance);
     }
     else if (identifier == "gl_CullDistance")
     {
+        const TQualifier qualifier = type->getQualifier();
+        if ((mShaderType == GL_VERTEX_SHADER && qualifier != EvqVertexOut) ||
+            (mShaderType == GL_FRAGMENT_SHADER && qualifier != EvqFragmentIn))
+        {
+            error(line, "invalid or missing storage qualifier", identifier);
+            return;
+        }
+
         type->setQualifier(EvqCullDistance);
     }
     else if (identifier == "gl_LastFragData")
     {
         type->setQualifier(EvqLastFragData);
+    }
+    else if (identifier == "gl_LastFragColorARM")
+    {
+        type->setQualifier(EvqLastFragColor);
+    }
+    else if (identifier == "gl_Position")
+    {
+        type->setQualifier(EvqPosition);
+    }
+    else if (identifier == "gl_PointSize")
+    {
+        type->setQualifier(EvqPointSize);
     }
 }
 
@@ -2614,7 +2795,7 @@ TIntermNode *TParseContext::addLoop(TLoopType type,
     }
     if (cond == nullptr || typedCond)
     {
-        if (type == ELoopDoWhile)
+        if (type == ELoopDoWhile && typedCond)
         {
             checkIsScalarBool(line, typedCond);
         }
@@ -3139,6 +3320,8 @@ TIntermDeclaration *TParseContext::parseSingleDeclaration(
         }
     }
 
+    adjustRedeclaredBuiltInType(identifierOrTypeLocation, identifier, type);
+
     TIntermDeclaration *declaration = new TIntermDeclaration();
     declaration->setLine(identifierOrTypeLocation);
     if (symbol)
@@ -3182,7 +3365,7 @@ TIntermDeclaration *TParseContext::parseSingleArrayDeclaration(
         checkAtomicCounterOffsetAlignment(identifierLocation, *arrayType);
     }
 
-    adjustRedeclaredBuiltInType(identifier, arrayType);
+    adjustRedeclaredBuiltInType(identifierLocation, identifier, arrayType);
 
     TIntermDeclaration *declaration = new TIntermDeclaration();
     declaration->setLine(identifierLocation);
@@ -3358,7 +3541,7 @@ void TParseContext::parseDeclarator(TPublicType &publicType,
         checkAtomicCounterOffsetAlignment(identifierLocation, *type);
     }
 
-    adjustRedeclaredBuiltInType(identifier, type);
+    adjustRedeclaredBuiltInType(identifierLocation, identifier, type);
 
     TVariable *variable = nullptr;
     if (declareVariable(identifierLocation, identifier, type, &variable))
@@ -3403,7 +3586,7 @@ void TParseContext::parseArrayDeclarator(TPublicType &elementType,
             checkAtomicCounterOffsetAlignment(identifierLocation, *arrayType);
         }
 
-        adjustRedeclaredBuiltInType(identifier, arrayType);
+        adjustRedeclaredBuiltInType(identifierLocation, identifier, arrayType);
 
         TVariable *variable = nullptr;
         if (declareVariable(identifierLocation, identifier, arrayType, &variable))
@@ -4082,7 +4265,7 @@ TIntermFunctionPrototype *TParseContext::addFunctionPrototypeDeclaration(
     // function is declared multiple times.
     bool hadPrototypeDeclaration = false;
     const TFunction *function    = symbolTable.markFunctionHasPrototypeDeclaration(
-           parsedFunction.getMangledName(), &hadPrototypeDeclaration);
+        parsedFunction.getMangledName(), &hadPrototypeDeclaration);
 
     if (hadPrototypeDeclaration && mShaderVersion == 100)
     {
@@ -4840,7 +5023,7 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
             if (field->name() == "gl_Position" || field->name() == "gl_PointSize" ||
                 field->name() == "gl_ClipDistance" || field->name() == "gl_CullDistance")
             {
-                // These builtins can be redifined only when used within a redefiend gl_PerVertex
+                // These builtins can be redefined only when used within a redefined gl_PerVertex
                 // block
                 if (interfaceBlock->name() != "gl_PerVertex")
                 {
@@ -5341,12 +5524,18 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
     }
     else if (qualifierType == "r32f")
     {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        if (!isExtensionEnabled(TExtension::ANGLE_shader_pixel_local_storage))
+        {
+            checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        }
         qualifier.imageInternalFormat = EiifR32F;
     }
     else if (qualifierType == "rgba8")
     {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        if (!isExtensionEnabled(TExtension::ANGLE_shader_pixel_local_storage))
+        {
+            checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        }
         qualifier.imageInternalFormat = EiifRGBA8;
     }
     else if (qualifierType == "rgba8_snorm")
@@ -5366,7 +5555,10 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
     }
     else if (qualifierType == "rgba8i")
     {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        if (!isExtensionEnabled(TExtension::ANGLE_shader_pixel_local_storage))
+        {
+            checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        }
         qualifier.imageInternalFormat = EiifRGBA8I;
     }
     else if (qualifierType == "r32i")
@@ -5386,12 +5578,18 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
     }
     else if (qualifierType == "rgba8ui")
     {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        if (!isExtensionEnabled(TExtension::ANGLE_shader_pixel_local_storage))
+        {
+            checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        }
         qualifier.imageInternalFormat = EiifRGBA8UI;
     }
     else if (qualifierType == "r32ui")
     {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        if (!isExtensionEnabled(TExtension::ANGLE_shader_pixel_local_storage))
+        {
+            checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        }
         qualifier.imageInternalFormat = EiifR32UI;
     }
     else if (mShaderType == GL_GEOMETRY_SHADER_EXT &&
@@ -5715,7 +5913,10 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
     }
     else if (qualifierType == "binding")
     {
-        checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        if (!isExtensionEnabled(TExtension::ANGLE_shader_pixel_local_storage))
+        {
+            checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310);
+        }
         if (intValue < 0)
         {
             error(intValueLine, "out of range: binding must be non-negative",

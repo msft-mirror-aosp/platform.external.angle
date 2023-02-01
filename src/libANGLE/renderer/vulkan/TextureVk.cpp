@@ -27,7 +27,6 @@
 #include "libANGLE/renderer/vulkan/vk_format_utils.h"
 #include "libANGLE/renderer/vulkan/vk_helpers.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
-#include "libANGLE/trace.h"
 
 namespace rx
 {
@@ -428,7 +427,7 @@ bool TextureVk::isFastUnpackPossible(const vk::Format &vkFormat, size_t offset) 
     //    requires them to be separate.
     // 2. Can't perform a fast copy for emulated formats, except from non-emulated depth or stencil
     //    to emulated depth/stencil.
-    // 3. vkCmdCopyBufferToImage requires byte offset to be a multiple of 4
+    // 3. vkCmdCopyBufferToImage requires byte offset to be a multiple of 4.
     const angle::Format &bufferFormat = vkFormat.getActualBufferFormat(false);
     const bool isCombinedDepthStencil = bufferFormat.depthBits > 0 && bufferFormat.stencilBits > 0;
     const bool isDepthXorStencil = (bufferFormat.depthBits > 0 && bufferFormat.stencilBits == 0) ||
@@ -1146,7 +1145,7 @@ angle::Result TextureVk::copySubImageImplWithTransfer(ContextVk *contextVk,
             extents.depth = 1;
         }
 
-        vk::ImageHelper::Copy(srcImage, mImage, srcOffset, dstOffsetModified, extents,
+        vk::ImageHelper::Copy(contextVk, srcImage, mImage, srcOffset, dstOffsetModified, extents,
                               srcSubresource, destSubresource, commandBuffer);
     }
     else
@@ -1179,8 +1178,8 @@ angle::Result TextureVk::copySubImageImplWithTransfer(ContextVk *contextVk,
             extents.depth = 1;
         }
 
-        vk::ImageHelper::Copy(srcImage, &stagingImage->get(), srcOffset, gl::kOffsetZero, extents,
-                              srcSubresource, destSubresource, commandBuffer);
+        vk::ImageHelper::Copy(contextVk, srcImage, &stagingImage->get(), srcOffset, gl::kOffsetZero,
+                              extents, srcSubresource, destSubresource, commandBuffer);
 
         // Stage the copy for when the image storage is actually created.
         VkImageType imageType = gl_vk::GetImageType(mState.getType());
@@ -1333,7 +1332,8 @@ angle::Result TextureVk::copySubImageImplWithDraw(ContextVk *contextVk,
             ANGLE_TRY(stagingImage->get().initLayerImageView(
                 contextVk, stagingTextureType, VK_IMAGE_ASPECT_COLOR_BIT, gl::SwizzleState(),
                 &stagingView, vk::LevelIndex(0), 1, layerIndex, 1,
-                gl::SrgbWriteControlMode::Default, gl::YuvSamplingMode::Default));
+                gl::SrgbWriteControlMode::Default, gl::YuvSamplingMode::Default,
+                vk::ImageHelper::kDefaultImageViewUsageFlags));
 
             ANGLE_TRY(utilsVk.copyImage(contextVk, &stagingImage->get(), &stagingView, srcImage,
                                         srcView, params));
@@ -1525,11 +1525,11 @@ angle::Result TextureVk::setEGLImageTarget(const gl::Context *context,
         vk::ImageLayout newLayout = vk::ImageLayout::AllGraphicsShadersWrite;
         if (mImage->getUsage() & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
         {
-            newLayout = vk::ImageLayout::ColorAttachment;
+            newLayout = vk::ImageLayout::ColorWrite;
         }
         else if (mImage->getUsage() & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
         {
-            newLayout = vk::ImageLayout::DepthStencilAttachment;
+            newLayout = vk::ImageLayout::DepthWriteStencilWrite;
         }
         else if (mImage->getUsage() &
                  (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT))
@@ -1543,6 +1543,8 @@ angle::Result TextureVk::setEGLImageTarget(const gl::Context *context,
         ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
         mImage->changeLayoutAndQueue(contextVk, mImage->getAspectFlags(), newLayout,
                                      rendererQueueFamilyIndex, commandBuffer);
+
+        ANGLE_TRY(contextVk->onEGLImageQueueChange());
     }
 
     return angle::Result::Continue;
@@ -1620,6 +1622,8 @@ void TextureVk::releaseAndDeleteImageAndViews(ContextVk *contextVk)
 
 void TextureVk::initImageUsageFlags(ContextVk *contextVk, angle::FormatID actualFormatID)
 {
+    ASSERT(actualFormatID != angle::FormatID::NONE);
+
     mImageUsageFlags = kTransferImageFlags | VK_IMAGE_USAGE_SAMPLED_BIT;
 
     // If the image has depth/stencil support, add those as possible usage.
@@ -1890,7 +1894,7 @@ angle::Result TextureVk::copyBufferDataToImage(ContextVk *contextVk,
     ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
 
     commandBuffer->copyBufferToImage(srcBuffer->getBuffer().getHandle(), mImage->getImage(),
-                                     mImage->getCurrentLayout(), 1, &region);
+                                     mImage->getCurrentLayout(contextVk), 1, &region);
 
     return angle::Result::Continue;
 }
@@ -2191,9 +2195,9 @@ angle::Result TextureVk::copyAndStageImageData(ContextVk *contextVk,
         copyRegion.dstSubresource.mipLevel = levelVk.get();
         gl_vk::GetExtent(levelExtents, &copyRegion.extent);
 
-        commandBuffer->copyImage(srcImage->getImage(), srcImage->getCurrentLayout(),
+        commandBuffer->copyImage(srcImage->getImage(), srcImage->getCurrentLayout(contextVk),
                                  stagingImage->get().getImage(),
-                                 stagingImage->get().getCurrentLayout(), 1, &copyRegion);
+                                 stagingImage->get().getCurrentLayout(contextVk), 1, &copyRegion);
     }
 
     // Stage the staging image in the destination
@@ -2434,7 +2438,8 @@ angle::Result TextureVk::getAttachmentRenderTarget(const gl::Context *context,
     }
 
     const bool hasRenderToTextureEXT =
-        contextVk->getFeatures().supportsMultisampledRenderToSingleSampled.enabled;
+        contextVk->getFeatures().supportsMultisampledRenderToSingleSampled.enabled ||
+        contextVk->getFeatures().supportsMultisampledRenderToSingleSampledGOOGLEX.enabled;
 
     // If samples > 1 here, we have a singlesampled texture that's being multisampled rendered to.
     // In this case, create a multisampled image that is otherwise identical to the single sampled
@@ -3166,6 +3171,22 @@ angle::Result TextureVk::initImage(ContextVk *contextVk,
     {
         mImageCreateFlags |= VK_IMAGE_CREATE_PROTECTED_BIT;
     }
+    if (mOwnsImage && samples == 1 &&
+        contextVk->getFeatures().supportsMultisampledRenderToSingleSampled.enabled)
+    {
+        // Conservatively add the MSRTSS flag, because any texture might end up as an MSRTT
+        // attachment.
+        mImageCreateFlags |= VK_IMAGE_CREATE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_BIT_EXT;
+    }
+
+    if (renderer->getFeatures().supportsComputeTranscodeEtcToBc.enabled &&
+        IsETCFormat(intendedImageFormatID) && IsBCFormat(actualImageFormatID))
+    {
+        mImageCreateFlags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT |
+                             VK_IMAGE_CREATE_EXTENDED_USAGE_BIT |
+                             VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT;
+        mImageUsageFlags |= VK_IMAGE_USAGE_STORAGE_BIT;
+    }
 
     ANGLE_TRY(mImage->initExternal(
         contextVk, mState.getType(), vkExtent, intendedImageFormatID, actualImageFormatID, samples,
@@ -3215,10 +3236,13 @@ angle::Result TextureVk::initImageViews(ContextVk *contextVk, uint32_t levelCoun
     // Use this as a proxy for the SRGB override & skip decode settings.
     bool createExtraSRGBViews = mRequiresMutableStorage;
 
+    const VkImageUsageFlags kDisallowedSwizzledUsage =
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+        VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
     ANGLE_TRY(getImageViews().initReadViews(contextVk, mState.getType(), *mImage, formatSwizzle,
                                             readSwizzle, baseLevelVk, levelCount, baseLayer,
                                             getImageViewLayerCount(), createExtraSRGBViews,
-                                            mImageUsageFlags & ~VK_IMAGE_USAGE_STORAGE_BIT));
+                                            getImage().getUsage() & ~kDisallowedSwizzledUsage));
 
     updateCachedImageViewSerials();
 
@@ -3273,7 +3297,7 @@ void TextureVk::releaseImageViews(ContextVk *contextVk)
 
     for (vk::ImageViewHelper &imageViewHelper : mMultisampledImageViews)
     {
-        mImage->collectViewGarbage(renderer, &imageViewHelper);
+        imageViewHelper.release(renderer, mImage->getResourceUse());
     }
 
     for (auto &renderTargets : mSingleLayerRenderTargets)
@@ -3585,7 +3609,7 @@ angle::Result TextureVk::refreshImageViews(ContextVk *contextVk)
     else
     {
         RendererVk *renderer = contextVk->getRenderer();
-        mImage->collectViewGarbage(renderer, &imageView);
+        imageView.release(renderer, mImage->getResourceUse());
 
         for (auto &renderTargets : mSingleLayerRenderTargets)
         {

@@ -1,5 +1,5 @@
 #!/usr/bin/env vpython3
-# Copyright 2022 The Chromium Authors. All rights reserved.
+# Copyright 2022 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """Provides a class for managing emulators."""
@@ -18,6 +18,10 @@ def register_emulator_args(parser: argparse.ArgumentParser,
     """Register emulator specific arguments."""
     femu_args = parser.add_argument_group('emulator',
                                           'emulator startup arguments.')
+    femu_args.add_argument('--custom-image',
+                           dest='product_bundle',
+                           help='Backwards compatible flag that specifies an '
+                           'image used for booting up the emulator.')
     if enable_graphics:
         femu_args.add_argument('--disable-graphics',
                                action='store_false',
@@ -49,11 +53,17 @@ def create_emulator_from_args(args: argparse.Namespace) -> FfxEmulator:
 
 def main():
     """Stand-alone function for starting an emulator."""
+
+    logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
     register_emulator_args(parser, True)
     register_log_args(parser)
     args = parser.parse_args()
-    with create_emulator_from_args(args):
+    with create_emulator_from_args(args) as target_id:
+        logging.info(
+            'Emulator successfully started. You can now run Chrome '
+            'Fuchsia tests with --target-id=%s to target this emulator.',
+            target_id)
         try:
             while True:
                 time.sleep(10000)

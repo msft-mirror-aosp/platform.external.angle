@@ -1,21 +1,29 @@
 #!/usr/bin/env vpython3
-# Copyright 2017 The Chromium Authors. All rights reserved.
+# Copyright 2017 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """Ensure files in the directory are thoroughly tested."""
 
 import importlib
 import io
+import os
 import sys
 import unittest
 
 import coverage  # pylint: disable=import-error
 
-COVERED_FILES = ['log_manager.py', 'publish_package.py', 'serve_repo.py']
+COVERED_FILES = [
+    'compatible_utils.py', 'deploy_to_fuchsia.py', 'flash_device.py',
+    'log_manager.py', 'publish_package.py', 'serve_repo.py', 'test_server.py'
+]
 
 
 def main():
     """Gather coverage data, ensure included files are 100% covered."""
+
+    # Fuchsia tests not supported on Windows
+    if os.name == 'nt':
+        return 0
 
     cov = coverage.coverage(data_file=None,
                             include=COVERED_FILES,

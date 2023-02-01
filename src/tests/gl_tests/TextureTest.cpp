@@ -5101,7 +5101,7 @@ TEST_P(Texture2DTestES3, CopyCompressedImageMipMaps)
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_copy_image"));
     // TODO(http://anglebug.com/5634): Fix calls to vkCmdCopyBufferToImage() with images smaller
     // than the compressed format block size.
-    ANGLE_SKIP_TEST_IF(GetParam().isEnabled(Feature::AllocateNonZeroMemory));
+    ANGLE_SKIP_TEST_IF(getEGLWindow()->isFeatureEnabled(Feature::AllocateNonZeroMemory));
 
     constexpr uint32_t kSize             = 4;
     constexpr size_t kNumLevels          = 3;
@@ -5568,6 +5568,63 @@ TEST_P(Texture2DArrayTestES3, TextureArrayRedefineThenUse)
     drawQuad(mProgram, "position", 0.5f);
     EXPECT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(px, py, GLColor::green);
+}
+
+// Create a 2D array texture and update layers with data and test that pruning
+// of superseded updates works as expected.
+TEST_P(Texture2DArrayTestES3, TextureArrayPruneSupersededUpdates)
+{
+    constexpr uint32_t kTexWidth  = 256;
+    constexpr uint32_t kTexHeight = 256;
+    constexpr uint32_t kTexLayers = 3;
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, m2DArrayTexture);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    EXPECT_GL_NO_ERROR();
+
+    // Initialize entire texture.
+    constexpr GLColor kInitialExpectedColor = GLColor(201u, 201u, 201u, 201u);
+    std::vector<GLColor> initialData(kTexWidth * kTexHeight * kTexLayers, kInitialExpectedColor);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, kTexWidth, kTexHeight, kTexLayers, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, initialData.data());
+
+    // Upate different layers with different colors, these together should supersed
+    // the entire init update
+    constexpr GLColor kExpectedColor[] = {GLColor(32u, 32u, 32u, 32u), GLColor(64u, 64u, 64u, 64u),
+                                          GLColor(128u, 128u, 128u, 128u)};
+    std::vector<GLColor> supersedingData[] = {
+        std::vector<GLColor>(kTexWidth * kTexHeight, kExpectedColor[0]),
+        std::vector<GLColor>(kTexWidth * kTexHeight, kExpectedColor[1]),
+        std::vector<GLColor>(kTexWidth * kTexHeight, kExpectedColor[2])};
+
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, kTexWidth, kTexHeight, 1, GL_RGBA,
+                    GL_UNSIGNED_BYTE, supersedingData[0].data());
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 1, kTexWidth, kTexHeight, 1, GL_RGBA,
+                    GL_UNSIGNED_BYTE, supersedingData[1].data());
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 2, kTexWidth, kTexHeight, 1, GL_RGBA,
+                    GL_UNSIGNED_BYTE, supersedingData[2].data());
+
+    glUseProgram(mProgram);
+    EXPECT_GL_NO_ERROR();
+
+    // Draw layer 0
+    glUniform1i(mTextureArraySliceUniformLocation, 0);
+    drawQuad(mProgram, "position", 0.5f);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, kExpectedColor[0]);
+
+    // Draw layer 1
+    glUniform1i(mTextureArraySliceUniformLocation, 1);
+    drawQuad(mProgram, "position", 0.5f);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, kExpectedColor[1]);
+
+    // Draw layer 2
+    glUniform1i(mTextureArraySliceUniformLocation, 2);
+    drawQuad(mProgram, "position", 0.5f);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, kExpectedColor[2]);
 }
 
 // Create a 2D array, use it, then redefine it to have fewer layers.  Regression test for a bug in
@@ -7717,7 +7774,7 @@ class Texture2DNorm16TestES3 : public Texture2DTestES3
         GLushort pixelValue  = 0x6A35;
         GLushort imageData[] = {pixelValue, pixelValue, pixelValue, pixelValue};
         GLColor16UI color    = SliceFormatColor16UI(
-               format, GLColor16UI(pixelValue, pixelValue, pixelValue, pixelValue));
+            format, GLColor16UI(pixelValue, pixelValue, pixelValue, pixelValue));
         // Size of drawing viewport
         constexpr GLint width = 8, height = 8;
 
@@ -7996,8 +8053,9 @@ TEST_P(Texture2DRGTest, TextureRGUNormTest)
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_texture_rg"));
     // This workaround causes a GL error on Windows AMD, which is likely a driver bug.
     // The workaround is not intended to be enabled in this configuration so skip it.
-    ANGLE_SKIP_TEST_IF(GetParam().isEnabled(Feature::EmulateCopyTexImage2DFromRenderbuffers) &&
-                       IsWindows() && IsAMD());
+    ANGLE_SKIP_TEST_IF(
+        getEGLWindow()->isFeatureEnabled(Feature::EmulateCopyTexImage2DFromRenderbuffers) &&
+        IsWindows() && IsAMD());
 
     GLubyte pixelValue  = 0xab;
     GLubyte imageData[] = {pixelValue, pixelValue};
@@ -9870,7 +9928,7 @@ TEST_P(Texture2DTestES3, NonZeroBaseEmulatedClear)
     // format is *not* emulated and the feature Feature::AllocateNonZeroMemory is enabled, the
     // texture memory will contain non-zero memory, which means the color is not black (causing the
     // test to fail).
-    ANGLE_SKIP_TEST_IF(GetParam().isEnabled(Feature::AllocateNonZeroMemory));
+    ANGLE_SKIP_TEST_IF(getEGLWindow()->isFeatureEnabled(Feature::AllocateNonZeroMemory));
 
     setUpProgram();
 
@@ -10854,6 +10912,96 @@ void main()
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
 
+// Verify a common pattern used by the Unreal Engine that trips up the tracer
+TEST_P(CopyImageTestES31, CubeMapCopyImageSubData)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_copy_image"));
+
+    constexpr char kVS[] =
+        R"(#version 300 es
+        precision mediump float;
+        in vec3 pos;
+        void main() {
+            gl_Position = vec4(pos, 1.0);
+        })";
+
+    constexpr char kFS[] =
+        R"(#version 300 es
+        precision mediump float;
+        out vec4 color;
+        uniform samplerCube uTex;
+        void main(){
+            // sample from lod 1.0
+            color = textureLod(uTex, vec3(1.0), 1.0);
+        })";
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+    glUseProgram(program);
+
+    // Set up two cube maps, then verify we can copy between them
+    constexpr size_t kSize = 2;
+    constexpr int levels   = 2;
+    std::vector<GLColor> pixelsGreen(kSize * kSize, GLColor::green);
+    std::vector<GLColor> pixelsRed(kSize * kSize, GLColor::red);
+
+    // Initialize src to green
+    GLTexture texCubeSrc;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texCubeSrc);
+    for (int i = 0; i < levels; i++)
+    {
+        for (GLenum face = 0; face < 6; face++)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, i, GL_RGBA, kSize >> i, kSize >> i,
+                         0, GL_RGBA, GL_UNSIGNED_BYTE, pixelsGreen.data());
+        }
+    }
+    ASSERT_GL_NO_ERROR();
+
+    // Initialize dst to red
+    GLTexture texCubeDst;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texCubeDst);
+    for (int i = 0; i < levels; i++)
+    {
+        for (GLenum face = 0; face < 6; face++)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, i, GL_RGBA, kSize >> i, kSize >> i,
+                         0, GL_RGBA, GL_UNSIGNED_BYTE, pixelsRed.data());
+        }
+    }
+    ASSERT_GL_NO_ERROR();
+
+    // Clear to blue
+    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+
+    // Sample from the dst texture to ensure it has the right color
+    GLint textureLoc = glGetUniformLocation(program, "uTex");
+    ASSERT_NE(-1, textureLoc);
+    glUniform1i(textureLoc, 0);
+
+    // Draw once and sample from level 1, which is red
+    drawQuad(program, "pos", 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Swap to trigger MEC
+    swapBuffers();
+
+    // Copy level 1 from src to dst
+    glCopyImageSubDataEXT(texCubeSrc, GL_TEXTURE_CUBE_MAP, 1, 0, 0, 0, texCubeDst,
+                          GL_TEXTURE_CUBE_MAP, 1, 0, 0, 0, kSize >> 1, kSize >> 1, 6);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw again and verify we get green
+    drawQuad(program, "pos", 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Swap again to end the capture
+    swapBuffers();
+
+    ASSERT_GL_NO_ERROR();
+}
+
 class TextureChangeStorageUploadTest : public ANGLETest<>
 {
   protected:
@@ -11098,6 +11246,7 @@ ANGLE_INSTANTIATE_TEST_ES3(TextureChangeStorageUploadTest);
 
 ANGLE_INSTANTIATE_TEST_ES3(ExtraSamplerCubeShadowUseTest);
 
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES31);
 ANGLE_INSTANTIATE_TEST_ES31(Texture2DTestES31);
 
 }  // anonymous namespace

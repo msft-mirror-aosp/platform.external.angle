@@ -9,7 +9,12 @@
 #include <sstream>
 
 #include "angle_gl.h"
-#include "common/utilities.h"
+
+#include "common/BinaryStream.h"
+#include "common/CompiledShaderState.h"
+#include "common/PackedEnums.h"
+#include "common/angle_version_info.h"
+
 #include "compiler/translator/CallDAG.h"
 #include "compiler/translator/CollectVariables.h"
 #include "compiler/translator/Initialize.h"
@@ -33,6 +38,7 @@
 #include "compiler/translator/tree_ops/FoldExpressions.h"
 #include "compiler/translator/tree_ops/ForcePrecisionQualifier.h"
 #include "compiler/translator/tree_ops/InitializeVariables.h"
+#include "compiler/translator/tree_ops/MonomorphizeUnsupportedFunctions.h"
 #include "compiler/translator/tree_ops/PruneEmptyCases.h"
 #include "compiler/translator/tree_ops/PruneNoOps.h"
 #include "compiler/translator/tree_ops/RemoveArrayLengthMethod.h"
@@ -54,7 +60,15 @@
 #include "compiler/translator/tree_util/BuiltIn.h"
 #include "compiler/translator/tree_util/IntermNodePatternMatcher.h"
 #include "compiler/translator/tree_util/ReplaceShadowingVariables.h"
+#include "compiler/translator/tree_util/ReplaceVariable.h"
 #include "compiler/translator/util.h"
+
+// #define ANGLE_FUZZER_CORPUS_OUTPUT_DIR "corpus/"
+
+#if defined(ANGLE_FUZZER_CORPUS_OUTPUT_DIR)
+#    include "common/hash_utils.h"
+#    include "common/mathutil.h"
+#endif
 
 namespace sh
 {
@@ -98,39 +112,51 @@ bool IsTopLevelNodeUnusedFunction(const CallDAG &callDag,
     return !metadata[callDagIndex].used;
 }
 
-#if defined(ANGLE_ENABLE_FUZZER_CORPUS_OUTPUT)
+#if defined(ANGLE_FUZZER_CORPUS_OUTPUT_DIR)
 void DumpFuzzerCase(char const *const *shaderStrings,
                     size_t numStrings,
                     uint32_t type,
                     uint32_t spec,
                     uint32_t output,
-                    uint64_t options)
+                    const ShCompileOptions &options)
 {
-    static int fileIndex = 0;
+    ShaderDumpHeader header{};
+    header.type   = type;
+    header.spec   = spec;
+    header.output = output;
+    memcpy(&header.basicCompileOptions, &options, offsetof(ShCompileOptions, metal));
+    static_assert(offsetof(ShCompileOptions, metal) <= sizeof(header.basicCompileOptions));
+    memcpy(&header.metalCompileOptions, &options.metal, sizeof(options.metal));
+    static_assert(sizeof(options.metal) <= sizeof(header.metalCompileOptions));
+    memcpy(&header.plsCompileOptions, &options.pls, sizeof(options.pls));
+    static_assert(sizeof(options.pls) <= sizeof(header.plsCompileOptions));
+    size_t contentsLength = sizeof(header) + 1;  // Extra: header + nul terminator.
+    for (size_t i = 0; i < numStrings; i++)
+    {
+        contentsLength += strlen(shaderStrings[i]);
+    }
+    std::vector<uint8_t> contents(rx::roundUp<size_t>(contentsLength, 4), 0);
+    memcpy(&contents[0], &header, sizeof(header));
+    uint8_t *data = &contents[sizeof(header)];
+    for (size_t i = 0; i < numStrings; i++)
+    {
+        auto length = strlen(shaderStrings[i]);
+        memcpy(data, shaderStrings[i], length);
+        data += length;
+    }
+    auto hash = angle::ComputeGenericHash(contents.data(), contents.size());
 
     std::ostringstream o = sh::InitializeStream<std::ostringstream>();
-    o << "corpus/" << fileIndex++ << ".sample";
+    o << ANGLE_FUZZER_CORPUS_OUTPUT_DIR << std::hex << std::setw(16) << std::setfill('0') << hash
+      << ".sample";
     std::string s = o.str();
 
     // Must match the input format of the fuzzer
     FILE *f = fopen(s.c_str(), "w");
-    fwrite(&type, sizeof(type), 1, f);
-    fwrite(&spec, sizeof(spec), 1, f);
-    fwrite(&output, sizeof(output), 1, f);
-    fwrite(&options, sizeof(options), 1, f);
-
-    char zero[128 - 20] = {0};
-    fwrite(&zero, 128 - 20, 1, f);
-
-    for (size_t i = 0; i < numStrings; i++)
-    {
-        fwrite(shaderStrings[i], sizeof(char), strlen(shaderStrings[i]), f);
-    }
-    fwrite(&zero, 1, 1, f);
-
+    fwrite(contents.data(), sizeof(char), contentsLength, f);
     fclose(f);
 }
-#endif  // defined(ANGLE_ENABLE_FUZZER_CORPUS_OUTPUT)
+#endif  // defined(ANGLE_FUZZER_CORPUS_OUTPUT_DIR)
 }  // anonymous namespace
 
 bool IsGLSL130OrNewer(ShShaderOutput output)
@@ -160,7 +186,8 @@ bool RemoveInvariant(sh::GLenum shaderType,
                      ShShaderOutput outputType,
                      const ShCompileOptions &compileOptions)
 {
-    if (shaderType == GL_FRAGMENT_SHADER && IsGLSL420OrNewer(outputType))
+    if (shaderType == GL_FRAGMENT_SHADER &&
+        (IsGLSL420OrNewer(outputType) || IsOutputVulkan(outputType)))
         return true;
 
     if (compileOptions.removeInvariantAndCentroidForESSL3 && shaderVersion >= 300 &&
@@ -347,6 +374,7 @@ TCompiler::TCompiler(sh::GLenum type, ShShaderSpec spec, ShShaderOutput output)
       mTessEvaluationShaderInputPointType(EtetUndefined),
       mHasAnyPreciseType(false),
       mAdvancedBlendEquations(0),
+      mHasPixelLocalStorageUniforms(false),
       mCompileOptions{}
 {}
 
@@ -566,7 +594,8 @@ void TCompiler::setASTMetadata(const TParseContext &parseContext)
 
     if (mShaderType == GL_FRAGMENT_SHADER)
     {
-        mAdvancedBlendEquations = parseContext.getAdvancedBlendEquations();
+        mAdvancedBlendEquations       = parseContext.getAdvancedBlendEquations();
+        mHasPixelLocalStorageUniforms = !parseContext.pixelLocalStorageBindings().empty();
     }
     if (mShaderType == GL_GEOMETRY_SHADER_EXT)
     {
@@ -600,6 +629,47 @@ unsigned int TCompiler::getSharedMemorySize() const
     }
 
     return sharedMemSize;
+}
+
+bool TCompiler::getShaderBinary(const ShHandle compilerHandle,
+                                const char *const shaderStrings[],
+                                size_t numStrings,
+                                const ShCompileOptions &compileOptions,
+                                ShaderBinaryBlob *const binaryOut)
+{
+    if (!compile(shaderStrings, numStrings, compileOptions))
+    {
+        return false;
+    }
+
+    gl::BinaryOutputStream stream;
+    gl::ShaderType shaderType = gl::FromGLenum<gl::ShaderType>(mShaderType);
+    gl::CompiledShaderState state(shaderType);
+    state.buildCompiledShaderState(compilerHandle, IsOutputVulkan(mOutputType));
+
+    stream.writeBytes(
+        reinterpret_cast<const unsigned char *>(angle::GetANGLEShaderProgramVersion()),
+        angle::GetANGLEShaderProgramVersionHashSize());
+    stream.writeEnum(shaderType);
+    stream.writeEnum(mOutputType);
+
+    // Serialize the full source string for the shader. Ignore the source path if it is provided.
+    std::string sourceString;
+    size_t startingIndex = compileOptions.sourcePath ? 1 : 0;
+    for (size_t i = startingIndex; i < numStrings; ++i)
+    {
+        sourceString.append(shaderStrings[i]);
+    }
+    stream.writeString(sourceString);
+
+    stream.writeBytes(reinterpret_cast<const uint8_t *>(&compileOptions), sizeof(compileOptions));
+    stream.writeBytes(reinterpret_cast<const uint8_t *>(&mResources), sizeof(mResources));
+
+    state.serialize(stream);
+
+    ASSERT(binaryOut);
+    *binaryOut = std::move(stream.getData());
+    return true;
 }
 
 bool TCompiler::validateAST(TIntermNode *root)
@@ -675,19 +745,16 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     //   Should this actually run after collecting variables?
     //   Do we need more introspection?
     //   Do we want to hide rewritten shader image uniforms from glGetActiveUniform?
-    if (!parseContext.pixelLocalStorageBindings().empty())
+    if (hasPixelLocalStorageUniforms())
     {
         ASSERT(
             IsExtensionEnabled(mExtensionBehavior, TExtension::ANGLE_shader_pixel_local_storage));
-        if (!RewritePixelLocalStorageToImages(this, root, getSymbolTable(), compileOptions,
-                                              getShaderVersion()))
+        if (!RewritePixelLocalStorage(this, root, getSymbolTable(), compileOptions,
+                                      getShaderVersion()))
         {
             mDiagnostics.globalError("internal compiler error translating pixel local storage");
             return false;
         }
-        // When PLS is implemented with images, early_fragment_tests ensure that depth/stencil can
-        // also block stores to PLS.
-        mEarlyFragmentTestsSpecified = true;
     }
 
     // Disallow expressions deemed too complex.
@@ -807,16 +874,34 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         return false;
     }
 
+    // anglebug.com/7484: The ESSL spec has a bug with images as function arguments. The recommended
+    // workaround is to inline functions that accept image arguments.
+    if (mShaderVersion >= 310 && !MonomorphizeUnsupportedFunctions(
+                                     this, root, &mSymbolTable, compileOptions,
+                                     UnsupportedFunctionArgsBitSet{UnsupportedFunctionArgs::Image}))
+    {
+        return false;
+    }
+
     if (mShaderVersion >= 300 && mShaderType == GL_FRAGMENT_SHADER &&
         !ValidateOutputs(root, getExtensionBehavior(), mResources.MaxDrawBuffers, &mDiagnostics))
     {
         return false;
     }
 
-    if (parseContext.isExtensionEnabled(TExtension::EXT_clip_cull_distance))
+    if (parseContext.isExtensionEnabled(TExtension::ANGLE_clip_cull_distance) ||
+        parseContext.isExtensionEnabled(TExtension::EXT_clip_cull_distance) ||
+        parseContext.isExtensionEnabled(TExtension::APPLE_clip_distance))
     {
-        if (!ValidateClipCullDistance(root, &mDiagnostics,
-                                      mResources.MaxCombinedClipAndCullDistances))
+        if (!ValidateClipCullDistance(
+                root, &mDiagnostics, mResources.MaxCullDistances,
+                mResources.MaxCombinedClipAndCullDistances, &mClipDistanceSize, &mCullDistanceSize,
+                &mClipDistanceRedeclared, &mCullDistanceRedeclared, &mClipDistanceUsed))
+        {
+            return false;
+        }
+
+        if (!resizeClipAndCullDistanceBuiltins(root))
         {
             return false;
         }
@@ -1130,6 +1215,39 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     return true;
 }
 
+bool TCompiler::resizeClipAndCullDistanceBuiltins(TIntermBlock *root)
+{
+    auto resizeVariable = [=](const ImmutableString &name, uint32_t size, uint32_t maxSize) {
+        // Skip if the variable is not used or implicitly has the maximum size
+        if (size == 0 || size == maxSize)
+            return true;
+        ASSERT(size < maxSize);
+        const TVariable *builtInVar =
+            static_cast<const TVariable *>(mSymbolTable.findBuiltIn(name, getShaderVersion()));
+        TType *resizedType = new TType(builtInVar->getType());
+        resizedType->setArraySize(0, size);
+
+        TVariable *resizedVar =
+            new TVariable(&mSymbolTable, name, resizedType, SymbolType::BuiltIn);
+
+        return ReplaceVariable(this, root, builtInVar, resizedVar);
+    };
+
+    if (!mClipDistanceRedeclared && !resizeVariable(ImmutableString("gl_ClipDistance"),
+                                                    mClipDistanceSize, mResources.MaxClipDistances))
+    {
+        return false;
+    }
+
+    if (!mCullDistanceRedeclared && !resizeVariable(ImmutableString("gl_CullDistance"),
+                                                    mCullDistanceSize, mResources.MaxCullDistances))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 bool TCompiler::postParseChecks(const TParseContext &parseContext)
 {
     std::stringstream errorMessage;
@@ -1157,10 +1275,10 @@ bool TCompiler::compile(const char *const shaderStrings[],
                         size_t numStrings,
                         const ShCompileOptions &compileOptionsIn)
 {
-#if defined(ANGLE_ENABLE_FUZZER_CORPUS_OUTPUT)
+#if defined(ANGLE_FUZZER_CORPUS_OUTPUT_DIR)
     DumpFuzzerCase(shaderStrings, numStrings, mShaderType, mShaderSpec, mOutputType,
                    compileOptionsIn);
-#endif  // defined(ANGLE_ENABLE_FUZZER_CORPUS_OUTPUT)
+#endif  // defined(ANGLE_FUZZER_CORPUS_OUTPUT_DIR)
 
     if (numStrings == 0)
         return true;
@@ -1277,6 +1395,7 @@ void TCompiler::setResourceString()
         << ":EXT_frag_depth:" << mResources.EXT_frag_depth
         << ":EXT_primitive_bounding_box:" << mResources.EXT_primitive_bounding_box
         << ":OES_primitive_bounding_box:" << mResources.OES_primitive_bounding_box
+        << ":EXT_separate_shader_objects:" << mResources.EXT_separate_shader_objects
         << ":EXT_shader_texture_lod:" << mResources.EXT_shader_texture_lod
         << ":EXT_shader_framebuffer_fetch:" << mResources.EXT_shader_framebuffer_fetch
         << ":EXT_shader_framebuffer_fetch_non_coherent:" << mResources.EXT_shader_framebuffer_fetch_non_coherent
@@ -1311,6 +1430,7 @@ void TCompiler::setResourceString()
         << ":EXT_texture_buffer:" << mResources.EXT_texture_buffer
         << ":OES_sample_variables:" << mResources.OES_sample_variables
         << ":EXT_clip_cull_distance:" << mResources.EXT_clip_cull_distance
+        << ":ANGLE_clip_cull_distance:" << mResources.ANGLE_clip_cull_distance
         << ":MinProgramTextureGatherOffset:" << mResources.MinProgramTextureGatherOffset
         << ":MaxProgramTextureGatherOffset:" << mResources.MaxProgramTextureGatherOffset
         << ":MaxImageUnits:" << mResources.MaxImageUnits
@@ -1405,6 +1525,12 @@ void TCompiler::clearResults()
     mGLPositionInitialized = false;
 
     mNumViews = -1;
+
+    mClipDistanceSize       = 0;
+    mCullDistanceSize       = 0;
+    mClipDistanceRedeclared = false;
+    mCullDistanceRedeclared = false;
+    mClipDistanceUsed       = false;
 
     mGeometryShaderInputPrimitiveType  = EptUndefined;
     mGeometryShaderOutputPrimitiveType = EptUndefined;
@@ -1633,7 +1759,8 @@ bool TCompiler::initializeOutputVariables(TIntermBlock *root)
 {
     InitVariableList list;
     list.reserve(mOutputVaryings.size());
-    if (mShaderType == GL_VERTEX_SHADER || mShaderType == GL_GEOMETRY_SHADER_EXT)
+    if (mShaderType == GL_VERTEX_SHADER || mShaderType == GL_GEOMETRY_SHADER_EXT ||
+        mShaderType == GL_TESS_CONTROL_SHADER_EXT || mShaderType == GL_TESS_EVALUATION_SHADER_EXT)
     {
         for (const sh::ShaderVariable &var : mOutputVaryings)
         {

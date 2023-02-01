@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2013 The Chromium Authors. All rights reserved.
+# Copyright 2013 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -23,31 +23,32 @@ from util import zipalign
 _DEX_XMX = '2G'  # Increase this when __final_dex OOMs.
 
 _IGNORE_WARNINGS = (
-    # Caused by Play Services:
-    r'Type `libcore.io.Memory` was not found',
-    # Caused by flogger supporting these as fallbacks. Not needed at runtime.
-    r'Type `dalvik.system.VMStack` was not found',
-    r'Type `sun.misc.JavaLangAccess` was not found',
-    r'Type `sun.misc.SharedSecrets` was not found',
-    # Caused by jacoco code coverage:
-    r'Type `java.lang.management.ManagementFactory` was not found',
-    # Caused when the test apk and the apk under test do not having native libs.
+    # E.g. Triggers for weblayer_instrumentation_test_apk since both it and its
+    # apk_under_test have no shared_libraries.
+    # https://crbug.com/1364192 << To fix this in a better way.
     r'Missing class org.chromium.build.NativeLibraries',
-    # Caused by internal annotation: https://crbug.com/1180222
-    r'Missing class com.google.errorprone.annotations.RestrictedInheritance',
     # Caused by internal protobuf package: https://crbug.com/1183971
     r'referenced from: com.google.protobuf.GeneratedMessageLite$GeneratedExtension',  # pylint: disable=line-too-long
-    # Caused by using Bazel desugar instead of D8 for desugar, since Bazel
-    # desugar doesn't preserve interfaces in the same way. This should be
-    # removed when D8 is used for desugaring.
-    r'Warning: Cannot emulate interface ',
     # Desugaring configs may occasionally not match types in our program. This
     # may happen temporarily until we move over to the new desugared library
     # json flags. See crbug.com/1302088 - this should be removed when this bug
     # is fixed.
-    r'Warning: Specification conversion: The following prefixes do not match any type:',  # pylint: disable=line-too-long
-    # Only relevant for R8 when optimizing an app that doesn't use proto.
+    r'Warning: Specification conversion: The following',
+    # Caused by protobuf runtime using -identifiernamestring in a way that
+    # doesn't work with R8. Looks like:
+    # Rule matches the static final field `...`, which may have been inlined...
+    # com.google.protobuf.*GeneratedExtensionRegistryLite {
+    #   static java.lang.String CONTAINING_TYPE_*;
+    # }
+    r'GeneratedExtensionRegistryLite.CONTAINING_TYPE_',
+    # Relevant for R8 when optimizing an app that doesn't use protobuf.
     r'Ignoring -shrinkunusedprotofields since the protobuf-lite runtime is',
+    # Ignore Unused Rule Warnings in third_party libraries.
+    r'/third_party/.*Proguard configuration rule does not match anything',
+    # Ignore Unused Rule Warnings for system classes (aapt2 generates these).
+    r'Proguard configuration rule does not match anything:.*class android\.',
+    # TODO(crbug.com/1303951): Don't ignore all such warnings.
+    r'Proguard configuration rule does not match anything:',
 )
 
 _SKIPPED_CLASS_FILE_NAMES = (
@@ -104,8 +105,6 @@ def _ParseArgs(args):
       '--bootclasspath',
       action='append',
       help='GN-list of bootclasspath. Needed for --desugar')
-  parser.add_argument(
-      '--desugar-jdk-libs-json', help='Path to desugar_jdk_libs.json.')
   parser.add_argument('--show-desugar-default-interface-warnings',
                       action='store_true',
                       help='Enable desugaring warnings.')
@@ -124,6 +123,8 @@ def _ParseArgs(args):
   parser.add_argument('--force-enable-assertions',
                       action='store_true',
                       help='Forcefully enable javac generated assertion code.')
+  parser.add_argument('--assertion-handler',
+                      help='The class name of the assertion handler class.')
   parser.add_argument('--warnings-as-errors',
                       action='store_true',
                       help='Treat all warnings as errors.')
@@ -135,6 +136,10 @@ def _ParseArgs(args):
 
   if options.main_dex_rules_path and not options.multi_dex:
     parser.error('--main-dex-rules-path is unused if multidex is not enabled')
+
+  if options.force_enable_assertions and options.assertion_handler:
+    parser.error('Cannot use both --force-enable-assertions and '
+                 '--assertion-handler')
 
   options.class_inputs = build_utils.ParseGnList(options.class_inputs)
   options.class_inputs_filearg = build_utils.ParseGnList(
@@ -150,40 +155,27 @@ def _ParseArgs(args):
 
 def CreateStderrFilter(show_desugar_default_interface_warnings):
   def filter_stderr(output):
+    # Set this when debugging R8 output.
+    if os.environ.get('R8_SHOW_ALL_OUTPUT', '0') != '0':
+      return output
+
+    warnings = re.split(r'^(?=Warning)', output, flags=re.MULTILINE)
+    preamble, *warnings = warnings
+
     patterns = list(_IGNORE_WARNINGS)
 
-    # When using Bazel's Desugar tool to desugar lambdas and interface methods,
-    # we do not provide D8 with a classpath, which causes a lot of warnings from
-    # D8's default interface desugaring pass. Not having a classpath makes
-    # incremental dexing much more effective. D8 still does backported method
-    # desugaring.
-    # These warnings are also turned off when bytecode checks are turned off.
+    # Missing deps can happen for prebuilts that are missing transitive deps
+    # and have set enable_bytecode_checks=false.
     if not show_desugar_default_interface_warnings:
       patterns += ['default or static interface methods']
 
     combined_pattern = '|'.join(re.escape(p) for p in patterns)
-    output = build_utils.FilterLines(output, combined_pattern)
+    preamble = build_utils.FilterLines(preamble, combined_pattern)
 
-    # Each warning has a prefix line of the file it's from. If we've filtered
-    # out the warning, then also filter out the file header.
-    # E.g.:
-    # Warning in path/to/Foo.class:
-    #   Error message #1 indented here.
-    #   Error message #2 indented here.
-    output = re.sub(r'^Warning in .*?:\n(?!  )', '', output, flags=re.MULTILINE)
+    compiled_re = re.compile(combined_pattern, re.DOTALL)
+    warnings = [w for w in warnings if not compiled_re.search(w)]
 
-    # Caused by protobuf runtime using -identifiernamestring in a way that
-    # doesn't work with R8. Looks like:
-    # Rule matches ... (very long line) {
-    #   static java.lang.String CONTAINING_TYPE_*;
-    # }
-    output = re.sub(
-        r'Rule matches the static final field `java\.lang\.String '
-        r'com\.google\.protobuf.*\{\n.*?\n\}\n?',
-        '',
-        output,
-        flags=re.DOTALL)
-    return output
+    return preamble + ''.join(warnings)
 
   return filter_stderr
 
@@ -430,7 +422,7 @@ def _OnStaleMd5(changes, options, final_dex_inputs, dex_cmd):
 
 def MergeDexForIncrementalInstall(r8_jar_path, src_paths, dest_dex_jar,
                                   min_api):
-  dex_cmd = build_utils.JavaCmd(verify=False, xmx=_DEX_XMX) + [
+  dex_cmd = build_utils.JavaCmd(xmx=_DEX_XMX) + [
       '-cp',
       r8_jar_path,
       'com.android.tools.r8.D8',
@@ -468,7 +460,7 @@ def main(args):
     final_dex_inputs = list(options.class_inputs)
   final_dex_inputs += options.dex_inputs
 
-  dex_cmd = build_utils.JavaCmd(options.warnings_as_errors, xmx=_DEX_XMX)
+  dex_cmd = build_utils.JavaCmd(xmx=_DEX_XMX)
 
   if options.dump_inputs:
     dex_cmd += ['-Dcom.android.tools.r8.dumpinputtofile=d8inputs.zip']
@@ -515,9 +507,8 @@ def main(args):
     input_paths += options.bootclasspath
 
 
-  if options.desugar_jdk_libs_json:
-    dex_cmd += ['--desugared-lib', options.desugar_jdk_libs_json]
-    input_paths += [options.desugar_jdk_libs_json]
+  if options.assertion_handler:
+    dex_cmd += ['--force-assertions-handler:' + options.assertion_handler]
   if options.force_enable_assertions:
     dex_cmd += ['--force-enable-assertions']
 

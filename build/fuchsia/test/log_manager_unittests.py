@@ -1,5 +1,5 @@
 #!/usr/bin/env vpython3
-# Copyright 2022 The Chromium Authors. All rights reserved.
+# Copyright 2022 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """File for testing log_manager.py."""
@@ -59,19 +59,14 @@ class LogManagerTest(unittest.TestCase):
         """Test symbols are used when pkg_paths are set."""
 
         log = log_manager.LogManager(_LOGS_DIR)
-        with mock.patch('os.path.isfile', return_value=True):
-            with mock.patch('builtins.open'):
-                log_manager.start_system_log(log,
-                                             False,
-                                             pkg_paths=['test_pkg'])
-                log.stop()
+        with mock.patch('os.path.isfile', return_value=True), \
+                mock.patch('builtins.open'), \
+                mock.patch('log_manager.run_symbolizer'):
+            log_manager.start_system_log(log, False, pkg_paths=['test_pkg'])
+            log.stop()
+        self.assertEqual(mock_ffx.call_count, 1)
         self.assertEqual(mock_ffx.call_args_list[0][0][0],
                          ['log', '--no-symbols'])
-        self.assertEqual(mock_ffx.call_args_list[1][0][0], [
-            'debug', 'symbolize', '--', '--omit-module-lines', '--ids-txt',
-            'ids.txt'
-        ])
-        self.assertEqual(mock_ffx.call_count, 2)
 
     def test_no_logging_dir_exception(self) -> None:
         """Tests empty LogManager throws an exception on |open_log_file|."""

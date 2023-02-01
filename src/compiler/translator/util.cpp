@@ -718,6 +718,7 @@ bool IsBuiltinOutputVariable(TQualifier qualifier)
         case EvqClipDistance:
         case EvqCullDistance:
         case EvqLastFragData:
+        case EvqLastFragColor:
         case EvqSampleMask:
             return true;
         default:
@@ -735,6 +736,7 @@ bool IsBuiltinFragmentInputVariable(TQualifier qualifier)
         case EvqFrontFacing:
         case EvqHelperInvocation:
         case EvqLastFragData:
+        case EvqLastFragColor:
             return true;
         default:
             break;
@@ -745,6 +747,18 @@ bool IsBuiltinFragmentInputVariable(TQualifier qualifier)
 bool IsShaderOutput(TQualifier qualifier)
 {
     return IsVaryingOut(qualifier) || IsBuiltinOutputVariable(qualifier);
+}
+
+bool IsFragmentOutput(TQualifier qualifier)
+{
+    switch (qualifier)
+    {
+        case EvqFragmentOut:
+        case EvqFragmentInOut:
+            return true;
+        default:
+            return false;
+    }
 }
 
 bool IsOutputESSL(ShShaderOutput output)
@@ -789,10 +803,6 @@ bool IsOutputHLSL(ShShaderOutput output)
 bool IsOutputVulkan(ShShaderOutput output)
 {
     return output == SH_SPIRV_VULKAN_OUTPUT;
-}
-bool IsOutputMetal(ShShaderOutput output)
-{
-    return output == SH_SPIRV_METAL_OUTPUT;
 }
 bool IsOutputMetalDirect(ShShaderOutput output)
 {
@@ -992,7 +1002,8 @@ bool IsPrecisionApplicableToType(TBasicType type)
 bool IsRedeclarableBuiltIn(const ImmutableString &name)
 {
     return name == "gl_ClipDistance" || name == "gl_CullDistance" || name == "gl_LastFragData" ||
-           name == "gl_PerVertex" || name == "gl_Position" || name == "gl_PointSize";
+           name == "gl_LastFragColorARM" || name == "gl_PerVertex" || name == "gl_Position" ||
+           name == "gl_PointSize";
 }
 
 size_t FindFieldIndex(const TFieldList &fieldList, const char *fieldName)

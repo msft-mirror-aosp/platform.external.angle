@@ -46,6 +46,8 @@ BlockType GetBlockType(TQualifier qualifier)
             return BlockType::BLOCK_UNIFORM;
         case EvqBuffer:
             return BlockType::BLOCK_BUFFER;
+        case EvqPixelLocalEXT:
+            return BlockType::PIXEL_LOCAL_EXT;
         default:
             UNREACHABLE();
             return BlockType::BLOCK_UNIFORM;
@@ -209,6 +211,7 @@ class CollectVariablesTraverser : public TIntermTraverser
     bool mHelperInvocationAdded;
     bool mFragCoordAdded;
     bool mLastFragDataAdded;
+    bool mLastFragColorAdded;
     bool mFragColorAdded;
     bool mFragDataAdded;
     bool mFragDepthAdded;
@@ -292,6 +295,7 @@ CollectVariablesTraverser::CollectVariablesTraverser(
       mHelperInvocationAdded(false),
       mFragCoordAdded(false),
       mLastFragDataAdded(false),
+      mLastFragColorAdded(false),
       mFragColorAdded(false),
       mFragDataAdded(false),
       mFragDepthAdded(false),
@@ -593,6 +597,9 @@ void CollectVariablesTraverser::visitSymbol(TIntermSymbol *symbol)
                 return;
             case EvqLastFragData:
                 recordBuiltInVaryingUsed(symbol->variable(), &mLastFragDataAdded, mInputVaryings);
+                return;
+            case EvqLastFragColor:
+                recordBuiltInVaryingUsed(symbol->variable(), &mLastFragColorAdded, mInputVaryings);
                 return;
             case EvqFragColor:
                 recordBuiltInFragmentOutputUsed(symbol->variable(), &mFragColorAdded);
@@ -1061,10 +1068,11 @@ ShaderVariable CollectVariablesTraverser::recordUniform(const TIntermSymbol &var
     uniform.binding = variable.getType().getLayoutQualifier().binding;
     uniform.imageUnitFormat =
         GetImageInternalFormatType(variable.getType().getLayoutQualifier().imageInternalFormat);
-    uniform.location  = variable.getType().getLayoutQualifier().location;
-    uniform.offset    = variable.getType().getLayoutQualifier().offset;
-    uniform.readonly  = variable.getType().getMemoryQualifier().readonly;
-    uniform.writeonly = variable.getType().getMemoryQualifier().writeonly;
+    uniform.location      = variable.getType().getLayoutQualifier().location;
+    uniform.offset        = variable.getType().getLayoutQualifier().offset;
+    uniform.rasterOrdered = variable.getType().getLayoutQualifier().rasterOrdered;
+    uniform.readonly      = variable.getType().getMemoryQualifier().readonly;
+    uniform.writeonly     = variable.getType().getMemoryQualifier().writeonly;
     return uniform;
 }
 
@@ -1120,6 +1128,10 @@ bool CollectVariablesTraverser::visitDeclaration(Visit, TIntermDeclaration *node
                     break;
                 case EvqBuffer:
                     mShaderStorageBlocks->push_back(interfaceBlock);
+                    break;
+                case EvqPixelLocalEXT:
+                    // EXT_shader_pixel_local_storage is completely self-contained within the
+                    // shader, so we don't need to gather any info on it.
                     break;
                 default:
                     UNREACHABLE();
@@ -1230,8 +1242,9 @@ bool CollectVariablesTraverser::visitBinary(Visit, TIntermBinary *binaryNode)
         {
             MarkActive(ioBlockVar);
         }
-        else
+        else if (qualifier != EvqPixelLocalEXT)
         {
+
             if (!namedBlock)
             {
                 namedBlock = findNamedInterfaceBlock(interfaceBlock->name());
