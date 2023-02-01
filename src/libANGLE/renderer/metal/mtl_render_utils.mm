@@ -944,14 +944,16 @@ void RenderUtils::onDestroy()
 
 // override ErrorHandler
 void RenderUtils::handleError(GLenum glErrorCode,
+                              const char *message,
                               const char *file,
                               const char *function,
                               unsigned int line)
 {
-    ERR() << "Metal backend encountered an internal error. Code=" << glErrorCode << ".";
+    ERR() << message;
 }
 
 void RenderUtils::handleError(NSError *nserror,
+                              const char *message,
                               const char *file,
                               const char *function,
                               unsigned int line)
@@ -961,9 +963,7 @@ void RenderUtils::handleError(NSError *nserror,
         return;
     }
 
-    std::stringstream errorStream;
-    ERR() << "Metal backend encountered an internal error: \n"
-          << nserror.localizedDescription.UTF8String;
+    ERR() << message;
 }
 
 // Clear current framebuffer
@@ -2094,8 +2094,7 @@ angle::Result IndexGeneratorUtils::generateTriFanBufferFromElementsArray(
              contextMtl->getRenderCommandEncoder()))
         {
             IndexGenerationParams cpuPathParams = params;
-            cpuPathParams.indices =
-                elementBufferMtl->getClientShadowCopyData(contextMtl) + srcOffset;
+            cpuPathParams.indices = elementBufferMtl->getBufferDataReadOnly(contextMtl) + srcOffset;
             return generateTriFanBufferFromElementsArrayCPU(contextMtl, cpuPathParams,
                                                             indicesGenerated);
         }
@@ -2223,8 +2222,7 @@ angle::Result IndexGeneratorUtils::generateLineLoopBufferFromElementsArray(
              contextMtl->getRenderCommandEncoder()))
         {
             IndexGenerationParams cpuPathParams = params;
-            cpuPathParams.indices =
-                elementBufferMtl->getClientShadowCopyData(contextMtl) + srcOffset;
+            cpuPathParams.indices = elementBufferMtl->getBufferDataReadOnly(contextMtl) + srcOffset;
             return generateLineLoopBufferFromElementsArrayCPU(contextMtl, cpuPathParams,
                                                               indicesGenerated);
         }

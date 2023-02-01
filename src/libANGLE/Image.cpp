@@ -138,6 +138,16 @@ bool ImageSibling::isYUV() const
     return mTargetOf.get() && mTargetOf->isYUV();
 }
 
+bool ImageSibling::isCreatedWithAHB() const
+{
+    return mTargetOf.get() && mTargetOf->isCreatedWithAHB();
+}
+
+bool ImageSibling::hasFrontBufferUsage() const
+{
+    return mTargetOf.get() && mTargetOf->hasFrontBufferUsage();
+}
+
 bool ImageSibling::hasProtectedContent() const
 {
     return mTargetOf.get() && mTargetOf->hasProtectedContent();
@@ -216,6 +226,11 @@ bool ExternalImageSibling::isYUV() const
     return mImplementation->isYUV();
 }
 
+bool ExternalImageSibling::hasFrontBufferUsage() const
+{
+    return mImplementation->hasFrontBufferUsage();
+}
+
 bool ExternalImageSibling::isCubeMap() const
 {
     return mImplementation->isCubeMap();
@@ -226,9 +241,11 @@ bool ExternalImageSibling::hasProtectedContent() const
     return mImplementation->hasProtectedContent();
 }
 
-void ExternalImageSibling::onAttach(const gl::Context *context, rx::Serial framebufferSerial) {}
+void ExternalImageSibling::onAttach(const gl::Context *context, rx::UniqueSerial framebufferSerial)
+{}
 
-void ExternalImageSibling::onDetach(const gl::Context *context, rx::Serial framebufferSerial) {}
+void ExternalImageSibling::onDetach(const gl::Context *context, rx::UniqueSerial framebufferSerial)
+{}
 
 GLuint ExternalImageSibling::getId() const
 {
@@ -236,12 +253,15 @@ GLuint ExternalImageSibling::getId() const
     return 0;
 }
 
-gl::InitState ExternalImageSibling::initState(const gl::ImageIndex &imageIndex) const
+gl::InitState ExternalImageSibling::initState(GLenum binding,
+                                              const gl::ImageIndex &imageIndex) const
 {
     return gl::InitState::Initialized;
 }
 
-void ExternalImageSibling::setInitState(const gl::ImageIndex &imageIndex, gl::InitState initState)
+void ExternalImageSibling::setInitState(GLenum binding,
+                                        const gl::ImageIndex &imageIndex,
+                                        gl::InitState initState)
 {}
 
 rx::ExternalImageSiblingImpl *ExternalImageSibling::getImplementation() const
@@ -260,12 +280,15 @@ rx::FramebufferAttachmentObjectImpl *ExternalImageSibling::getAttachmentImpl() c
     return mImplementation.get();
 }
 
-ImageState::ImageState(EGLenum target, ImageSibling *buffer, const AttributeMap &attribs)
-    : label(nullptr),
+ImageState::ImageState(ImageID id,
+                       EGLenum target,
+                       ImageSibling *buffer,
+                       const AttributeMap &attribs)
+    : id(id),
+      label(nullptr),
       target(target),
       imageIndex(GetImageIndex(target, attribs)),
       source(buffer),
-      targets(),
       format(GL_NONE),
       yuv(false),
       cubeMap(false),
@@ -281,17 +304,17 @@ ImageState::ImageState(EGLenum target, ImageSibling *buffer, const AttributeMap 
 ImageState::~ImageState() {}
 
 Image::Image(rx::EGLImplFactory *factory,
+             ImageID id,
              const gl::Context *context,
              EGLenum target,
              ImageSibling *buffer,
              const AttributeMap &attribs)
-    : mState(target, buffer, attribs),
+    : mState(id, target, buffer, attribs),
       mImplementation(factory->createImage(mState, context, target, attribs)),
       mOrphanedAndNeedsInit(false)
 {
     ASSERT(mImplementation != nullptr);
     ASSERT(buffer != nullptr);
-    ASSERT(context == nullptr || context->isShared());
 
     mState.source->addImageSource(this);
 }
@@ -300,7 +323,10 @@ void Image::onDestroy(const Display *display)
 {
     // All targets should hold a ref to the egl image and it should not be deleted until there are
     // no siblings left.
-    ASSERT(mState.targets.empty());
+    ASSERT([&] {
+        std::unique_lock lock(mState.targetsLock);
+        return mState.targets.empty();
+    }());
 
     // Make sure the implementation gets a chance to clean up before we delete the source.
     mImplementation->onDestroy(display);
@@ -339,6 +365,7 @@ EGLLabelKHR Image::getLabel() const
 
 void Image::addTargetSibling(ImageSibling *sibling)
 {
+    std::unique_lock lock(mState.targetsLock);
     mState.targets.insert(sibling);
 }
 
@@ -351,17 +378,21 @@ angle::Result Image::orphanSibling(const gl::Context *context, ImageSibling *sib
 
     if (mState.source == sibling)
     {
-        // The external source of an image cannot be redefined so it cannot be orpahend.
+        // The external source of an image cannot be redefined so it cannot be orphaned.
         ASSERT(!IsExternalImageTarget(mState.sourceType));
 
         // If the sibling is the source, it cannot be a target.
-        ASSERT(mState.targets.find(sibling) == mState.targets.end());
+        ASSERT([&] {
+            std::unique_lock lock(mState.targetsLock);
+            return mState.targets.find(sibling) == mState.targets.end();
+        }());
         mState.source = nullptr;
         mOrphanedAndNeedsInit =
-            (sibling->initState(mState.imageIndex) == gl::InitState::MayNeedInit);
+            (sibling->initState(GL_NONE, mState.imageIndex) == gl::InitState::MayNeedInit);
     }
     else
     {
+        std::unique_lock lock(mState.targetsLock);
         mState.targets.erase(sibling);
     }
 
@@ -421,6 +452,22 @@ bool Image::isYUV() const
     return mState.yuv;
 }
 
+bool Image::isCreatedWithAHB() const
+{
+    return mState.target == EGL_NATIVE_BUFFER_ANDROID;
+}
+
+bool Image::hasFrontBufferUsage() const
+{
+    if (IsExternalImageTarget(mState.target))
+    {
+        ExternalImageSibling *externalSibling = rx::GetAs<ExternalImageSibling>(mState.source);
+        return externalSibling->hasFrontBufferUsage();
+    }
+
+    return false;
+}
+
 bool Image::isCubeMap() const
 {
     return mState.cubeMap;
@@ -476,7 +523,8 @@ Error Image::initialize(const Display *display)
         mState.hasProtectedContent = externalSibling->hasProtectedContent();
         mState.levelCount          = externalSibling->getLevelCount();
         mState.cubeMap             = externalSibling->isCubeMap();
-        // Only external siblings can be YUV
+
+        // External siblings can be YUV
         mState.yuv = externalSibling->isYUV();
     }
 
@@ -491,6 +539,13 @@ Error Image::initialize(const Display *display)
             return egl::EglBadMatch();
         }
         mState.format = gl::Format(nonLinearFormat);
+    }
+
+    if (!IsExternalImageTarget(mState.sourceType))
+    {
+        // Account for the fact that GL_ANGLE_yuv_internal_format extension maybe enabled,
+        // in which case the internal format itself could be YUV.
+        mState.yuv = gl::IsYuvFormat(mState.format.info->sizedInternalFormat);
     }
 
     mState.size    = mState.source->getAttachmentSize(mState.imageIndex);
@@ -516,7 +571,7 @@ gl::InitState Image::sourceInitState() const
         return mOrphanedAndNeedsInit ? gl::InitState::MayNeedInit : gl::InitState::Initialized;
     }
 
-    return mState.source->initState(mState.imageIndex);
+    return mState.source->initState(GL_NONE, mState.imageIndex);
 }
 
 void Image::setInitState(gl::InitState initState)
@@ -526,7 +581,7 @@ void Image::setInitState(gl::InitState initState)
         mOrphanedAndNeedsInit = false;
     }
 
-    return mState.source->setInitState(mState.imageIndex, initState);
+    return mState.source->setInitState(GL_NONE, mState.imageIndex, initState);
 }
 
 Error Image::exportVkImage(void *vkImage, void *vkImageCreateInfo)
@@ -541,6 +596,7 @@ void Image::notifySiblings(const ImageSibling *notifier, angle::SubjectMessage m
         mState.source->onSubjectStateChange(rx::kTextureImageSiblingMessageIndex, message);
     }
 
+    std::unique_lock lock(mState.targetsLock);
     for (ImageSibling *target : mState.targets)
     {
         if (target != notifier)
