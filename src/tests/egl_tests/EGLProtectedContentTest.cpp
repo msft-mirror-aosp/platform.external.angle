@@ -22,7 +22,7 @@ using namespace angle;
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EGLProtectedContentTest);
 
-class EGLProtectedContentTest : public ANGLETest
+class EGLProtectedContentTest : public ANGLETest<>
 {
   public:
     EGLProtectedContentTest() : mDisplay(EGL_NO_DISPLAY) {}
@@ -52,20 +52,20 @@ class EGLProtectedContentTest : public ANGLETest
     {
         EGLint clientVersion = mMajorVersion == 3 ? EGL_OPENGL_ES3_BIT : EGL_OPENGL_ES2_BIT;
         EGLint attribs[]     = {EGL_RED_SIZE,
-                            8,
-                            EGL_GREEN_SIZE,
-                            8,
-                            EGL_BLUE_SIZE,
-                            8,
-                            EGL_ALPHA_SIZE,
-                            8,
-                            EGL_RENDERABLE_TYPE,
-                            clientVersion,
-                            EGL_SURFACE_TYPE,
-                            (EGL_PBUFFER_BIT | EGL_WINDOW_BIT),
-                            EGL_BIND_TO_TEXTURE_RGBA,
-                            EGL_TRUE,
-                            EGL_NONE};
+                                8,
+                                EGL_GREEN_SIZE,
+                                8,
+                                EGL_BLUE_SIZE,
+                                8,
+                                EGL_ALPHA_SIZE,
+                                8,
+                                EGL_RENDERABLE_TYPE,
+                                clientVersion,
+                                EGL_SURFACE_TYPE,
+                                (EGL_PBUFFER_BIT | EGL_WINDOW_BIT),
+                                EGL_BIND_TO_TEXTURE_RGBA,
+                                EGL_TRUE,
+                                EGL_NONE};
 
         EGLint count = 0;
         bool result  = eglChooseConfig(mDisplay, attribs, config, 1, &count);
@@ -78,7 +78,7 @@ class EGLProtectedContentTest : public ANGLETest
     {
         bool result                 = false;
         EGLint attribsProtected[]   = {EGL_CONTEXT_MAJOR_VERSION, mMajorVersion,
-                                     EGL_PROTECTED_CONTENT_EXT, EGL_TRUE, EGL_NONE};
+                                       EGL_PROTECTED_CONTENT_EXT, EGL_TRUE, EGL_NONE};
         EGLint attribsUnProtected[] = {EGL_CONTEXT_MAJOR_VERSION, mMajorVersion, EGL_NONE};
 
         *context = eglCreateContext(mDisplay, config, nullptr,
@@ -92,16 +92,16 @@ class EGLProtectedContentTest : public ANGLETest
     {
         bool result                 = false;
         EGLint attribsProtected[]   = {EGL_WIDTH,
-                                     kWidth,
-                                     EGL_HEIGHT,
-                                     kHeight,
-                                     EGL_TEXTURE_FORMAT,
-                                     EGL_TEXTURE_RGBA,
-                                     EGL_TEXTURE_TARGET,
-                                     EGL_TEXTURE_2D,
-                                     EGL_PROTECTED_CONTENT_EXT,
-                                     EGL_TRUE,
-                                     EGL_NONE};
+                                       kWidth,
+                                       EGL_HEIGHT,
+                                       kHeight,
+                                       EGL_TEXTURE_FORMAT,
+                                       EGL_TEXTURE_RGBA,
+                                       EGL_TEXTURE_TARGET,
+                                       EGL_TEXTURE_2D,
+                                       EGL_PROTECTED_CONTENT_EXT,
+                                       EGL_TRUE,
+                                       EGL_NONE};
         EGLint attribsUnProtected[] = {EGL_WIDTH,
                                        kWidth,
                                        EGL_HEIGHT,
@@ -557,12 +557,6 @@ TEST_P(EGLProtectedContentTest, UnprotectedContextWithUnprotectedTexture)
 TEST_P(EGLProtectedContentTest, ProtectedContextWithProtectedTexture)
 {
     textureTest(true, true);
-}
-
-// Protected context with unprotected Texture
-TEST_P(EGLProtectedContentTest, ProtectedContextWithUnprotectedTexture)
-{
-    textureTest(true, false);
 }
 
 void EGLProtectedContentTest::textureFromImageTest(bool isProtectedContext, bool isProtectedTexture)

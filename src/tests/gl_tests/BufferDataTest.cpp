@@ -14,7 +14,7 @@
 
 using namespace angle;
 
-class BufferDataTest : public ANGLETest
+class BufferDataTest : public ANGLETest<>
 {
   protected:
     BufferDataTest()
@@ -203,7 +203,7 @@ TEST_P(BufferDataTest, RepeatedDrawDynamicBug)
     EXPECT_GL_NO_ERROR();
 }
 
-class BufferSubDataTest : public ANGLETest
+class BufferSubDataTest : public ANGLETest<>
 {
   protected:
     BufferSubDataTest()
@@ -346,7 +346,7 @@ TEST_P(BufferSubDataTest, SmallVertexDataUpdateAfterDraw)
     EXPECT_PIXEL_COLOR_EQ(getWindowWidth() - 1, 0, GLColor::green);
     EXPECT_PIXEL_COLOR_EQ(getWindowWidth() - 1, getWindowHeight() - 1, GLColor::green);
 }
-class IndexedBufferCopyTest : public ANGLETest
+class IndexedBufferCopyTest : public ANGLETest<>
 {
   protected:
     IndexedBufferCopyTest()
@@ -885,7 +885,14 @@ void main()
 
     EXPECT_PIXEL_COLOR_EQ(1, 1, GLColor::red);
     EXPECT_PIXEL_COLOR_EQ(1, 3, GLColor::red);
-    EXPECT_PIXEL_COLOR_EQ(3, 3, GLColor::green);
+
+    // The result below is undefined. The glBufferData at the top puts
+    // [red, red, red, ..., zero, zero, zero, ...]
+    // in the buffer and the glMap,glUnmap tries to overwrite the zeros with green
+    // but because UNSYNCHRONIZED was passed in there's no guarantee those
+    // zeros have been written yet. If they haven't they'll overwrite the
+    // greens.
+    // EXPECT_PIXEL_COLOR_EQ(3, 3, GLColor::green);
 }
 
 // Verify that we can map and write the buffer between draws and the second draw sees the new buffer
@@ -979,6 +986,40 @@ TEST_P(BufferDataTest, BufferSizeValidation32Bit)
     EXPECT_GL_ERROR(GL_INVALID_VALUE);
 }
 
+// Some drivers generate errors when array buffer bindings are left mapped during draw calls.
+// crbug.com/1345777
+TEST_P(BufferDataTestES3, GLDriverErrorWhenMappingArrayBuffersDuringDraw)
+{
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
+    ASSERT_NE(program, 0u);
+
+    glUseProgram(program);
+
+    auto quadVertices = GetQuadVertices();
+
+    GLBuffer vb;
+    glBindBuffer(GL_ARRAY_BUFFER, vb.get());
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * quadVertices.size(), quadVertices.data(),
+                 GL_STATIC_DRAW);
+
+    GLint positionLocation = glGetAttribLocation(program, essl3_shaders::PositionAttrib());
+    ASSERT_NE(-1, positionLocation);
+    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(positionLocation);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    EXPECT_GL_NO_ERROR();
+
+    GLBuffer pb;
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pb);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, 1024, nullptr, GL_STREAM_DRAW);
+    glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, 1024, GL_MAP_WRITE_BIT);
+    EXPECT_GL_NO_ERROR();
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    EXPECT_GL_NO_ERROR();
+}
+
 // Tests a null crash bug caused by copying from null back-end buffer pointer
 // when calling bufferData again after drawing without calling bufferData in D3D11.
 TEST_P(BufferDataTestES3, DrawWithNotCallingBufferData)
@@ -1011,6 +1052,149 @@ TEST_P(BufferDataTestES3, NoBufferInitDataCopyBug)
     glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_STATIC_DRAW);
 
     glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_ARRAY_BUFFER, 0, 0, size);
+    ASSERT_GL_NO_ERROR();
+}
+
+// This a shortened version of dEQP functional.buffer.copy.basic.array_copy_read. It provoked
+// a bug in copyBufferSubData. The bug appeared to be that conversion buffers were not marked
+// as dirty and therefore after copyBufferSubData the next draw call using the buffer that
+// just had data copied to it was not re-converted. It's not clear to me how this ever worked
+// or why changes to bufferSubData from
+// https://chromium-review.googlesource.com/c/angle/angle/+/3842641 made this issue appear and
+// why it wasn't already broken.
+TEST_P(BufferDataTestES3, CopyBufferSubDataDraw)
+{
+    const char simpleVertex[]   = R"(attribute vec2 position;
+attribute vec4 color;
+varying vec4 vColor;
+void main()
+{
+    gl_Position = vec4(position, 0, 1);
+    vColor = color;
+}
+)";
+    const char simpleFragment[] = R"(precision mediump float;
+varying vec4 vColor;
+void main()
+{
+    gl_FragColor = vColor;
+}
+)";
+
+    ANGLE_GL_PROGRAM(program, simpleVertex, simpleFragment);
+    glUseProgram(program);
+
+    GLint colorLoc = glGetAttribLocation(program, "color");
+    ASSERT_NE(-1, colorLoc);
+    GLint posLoc = glGetAttribLocation(program, "position");
+    ASSERT_NE(-1, posLoc);
+
+    glClearColor(0, 0, 0, 0);
+
+    GLBuffer srcBuffer;  // green
+    GLBuffer dstBuffer;  // red
+
+    constexpr size_t numElements = 399;
+    std::vector<GLColorRGB> reds(numElements, GLColorRGB::red);
+    std::vector<GLColorRGB> greens(numElements, GLColorRGB::green);
+    constexpr size_t sizeOfElem  = sizeof(decltype(greens)::value_type);
+    constexpr size_t sizeInBytes = numElements * sizeOfElem;
+
+    glBindBuffer(GL_ARRAY_BUFFER, srcBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeInBytes, greens.data(), GL_STREAM_DRAW);
+
+    glBindBuffer(GL_COPY_READ_BUFFER, dstBuffer);
+    glBufferData(GL_COPY_READ_BUFFER, sizeInBytes, reds.data(), GL_STREAM_DRAW);
+    ASSERT_GL_NO_ERROR();
+
+    constexpr size_t numQuads = numElements / 4;
+
+    // Generate quads that fill clip space to use all the vertex colors
+    std::vector<float> positions(numQuads * 4 * 2);
+    for (size_t quad = 0; quad < numQuads; ++quad)
+    {
+        size_t offset = quad * 4 * 2;
+        float x0      = float(quad + 0) / numQuads * 2.0f - 1.0f;
+        float x1      = float(quad + 1) / numQuads * 2.0f - 1.0f;
+
+        /*
+           2--3
+           |  |
+           0--1
+        */
+        positions[offset + 0] = x0;
+        positions[offset + 1] = -1;
+        positions[offset + 2] = x1;
+        positions[offset + 3] = -1;
+        positions[offset + 4] = x0;
+        positions[offset + 5] = 1;
+        positions[offset + 6] = x1;
+        positions[offset + 7] = 1;
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 0, positions.data());
+    ASSERT_GL_NO_ERROR();
+
+    glBindBuffer(GL_ARRAY_BUFFER, srcBuffer);
+    glEnableVertexAttribArray(colorLoc);
+    glVertexAttribPointer(colorLoc, 3, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+    ASSERT_GL_NO_ERROR();
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    std::vector<GLushort> indices(numQuads * 6);
+    for (size_t quad = 0; quad < numQuads; ++quad)
+    {
+        size_t ndx          = quad * 4;
+        size_t offset       = quad * 6;
+        indices[offset + 0] = ndx;
+        indices[offset + 1] = ndx + 1;
+        indices[offset + 2] = ndx + 2;
+        indices[offset + 3] = ndx + 2;
+        indices[offset + 4] = ndx + 1;
+        indices[offset + 5] = ndx + 3;
+    }
+    GLBuffer indexBuffer;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(decltype(indices)::value_type),
+                 indices.data(), GL_STATIC_DRAW);
+
+    // Draw with srcBuffer (green)
+    glDrawElements(GL_TRIANGLES, numQuads * 6, GL_UNSIGNED_SHORT, 0);
+    EXPECT_PIXEL_RECT_EQ(0, 0, 16, 16, GLColor::green);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw with dstBuffer (red)
+    glBindBuffer(GL_ARRAY_BUFFER, dstBuffer);
+    glEnableVertexAttribArray(colorLoc);
+    glVertexAttribPointer(colorLoc, 3, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+    glDrawElements(GL_TRIANGLES, numQuads * 6, GL_UNSIGNED_SHORT, 0);
+    EXPECT_PIXEL_RECT_EQ(0, 0, 16, 16, GLColor::red);
+    ASSERT_GL_NO_ERROR();
+
+    // Copy src to dst. Yes, we're using GL_COPY_READ_BUFFER as dest because that's what the dEQP
+    // test was testing.
+    glBindBuffer(GL_ARRAY_BUFFER, srcBuffer);
+    glBindBuffer(GL_COPY_READ_BUFFER, dstBuffer);
+    glCopyBufferSubData(GL_ARRAY_BUFFER, GL_COPY_READ_BUFFER, 0, 0, sizeInBytes);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw with srcBuffer. It should still be green.
+    glBindBuffer(GL_ARRAY_BUFFER, srcBuffer);
+    glEnableVertexAttribArray(colorLoc);
+    glVertexAttribPointer(colorLoc, 3, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+    glDrawElements(GL_TRIANGLES, numQuads * 6, GL_UNSIGNED_SHORT, 0);
+    EXPECT_PIXEL_RECT_EQ(0, 0, 16, 16, GLColor::green);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw with dstBuffer. It should now be green too.
+    glBindBuffer(GL_ARRAY_BUFFER, dstBuffer);
+    glEnableVertexAttribArray(colorLoc);
+    glVertexAttribPointer(colorLoc, 3, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+    glDrawElements(GL_TRIANGLES, numQuads * 6, GL_UNSIGNED_SHORT, 0);
+    EXPECT_PIXEL_RECT_EQ(0, 0, 16, 16, GLColor::green);
+
     ASSERT_GL_NO_ERROR();
 }
 
@@ -1195,6 +1379,38 @@ TEST_P(BufferDataTestES3, BufferDataWithNullFollowedByMap)
     EXPECT_PIXEL_COLOR_EQ(1, 1, GLColor::red);
     EXPECT_PIXEL_COLOR_EQ(getWindowWidth() - 1, getWindowHeight() - 1, GLColor::black);
     EXPECT_GL_NO_ERROR();
+}
+
+// Test glFenceSync call breaks renderPass followed by glCopyBufferSubData that read access the same
+// buffer that renderPass reads. There was a bug that this triggers assertion angleproject.com/7903.
+TEST_P(BufferDataTestES3, bufferReadFromRenderPassAndOutsideRenderPassWithFenceSyncInBetween)
+{
+    glUseProgram(mProgram);
+    glBindBuffer(GL_ARRAY_BUFFER, mBuffer);
+    std::vector<GLfloat> data(6, 1.0f);
+    GLsizei bufferSize = sizeof(GLfloat) * data.size();
+    glBufferData(GL_ARRAY_BUFFER, bufferSize, data.data(), GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(mAttribLocation, 1, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(mAttribLocation);
+    glScissor(0, 0, getWindowWidth() / 2, getWindowHeight());
+    drawQuad(mProgram, "position", 0.5f);
+    EXPECT_GL_NO_ERROR();
+
+    GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    EXPECT_GL_NO_ERROR();
+
+    GLBuffer dstBuffer;
+    glBindBuffer(GL_COPY_WRITE_BUFFER, dstBuffer);
+    glBufferData(GL_COPY_WRITE_BUFFER, bufferSize, nullptr, GL_STATIC_DRAW);
+    glCopyBufferSubData(GL_ARRAY_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, bufferSize);
+
+    glBindBuffer(GL_ARRAY_BUFFER, dstBuffer);
+    glScissor(getWindowWidth() / 2, 0, getWindowWidth() / 2, getWindowHeight());
+    drawQuad(mProgram, "position", 0.5f);
+    EXPECT_GL_NO_ERROR();
+    glClientWaitSync(sync, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
+    EXPECT_PIXEL_COLOR_EQ(1, 1, GLColor::red);
+    EXPECT_PIXEL_COLOR_EQ(getWindowWidth() - 1, getWindowHeight() - 1, GLColor::red);
 }
 
 class BufferStorageTestES3 : public BufferDataTest
@@ -1719,7 +1935,7 @@ TEST_P(BufferStorageTestES3, PageSharingBuffers)
     EXPECT_GL_NO_ERROR();
 }
 
-class BufferStorageTestES3Threaded : public ANGLETest
+class BufferStorageTestES3Threaded : public ANGLETest<>
 {
   protected:
     BufferStorageTestES3Threaded()
@@ -1927,7 +2143,7 @@ ANGLE_INSTANTIATE_TEST_ES3(BufferStorageTestES3Threaded);
 // The test uses 8 buffers with a size just under 0x2000000 to overflow max uint
 // (with the internal D3D rounding to 16-byte values) and trigger the bug.
 // Only handle this bug on 64-bit Windows for now. Harder to repro on 32-bit.
-class BufferDataOverflowTest : public ANGLETest
+class BufferDataOverflowTest : public ANGLETest<>
 {
   protected:
     BufferDataOverflowTest() {}
