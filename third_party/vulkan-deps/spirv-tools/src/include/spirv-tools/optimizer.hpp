@@ -521,8 +521,14 @@ Optimizer::PassToken CreateDeadInsertElimPass();
 // interface are considered live and are not eliminated. This mode is needed
 // by GPU-Assisted validation instrumentation, where a change in the interface
 // is not allowed.
+//
+// If |remove_outputs| is true, allow outputs to be removed from the interface.
+// This is only safe if the caller knows that there is no corresponding input
+// variable in the following shader. It is false by default.
 Optimizer::PassToken CreateAggressiveDCEPass();
 Optimizer::PassToken CreateAggressiveDCEPass(bool preserve_interface);
+Optimizer::PassToken CreateAggressiveDCEPass(bool preserve_interface,
+                                             bool remove_outputs);
 
 // Creates a remove-unused-interface-variables pass.
 // Removes variables referenced on the |OpEntryPoint| instruction that are not

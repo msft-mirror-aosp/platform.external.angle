@@ -35,6 +35,7 @@ absl_source_set("strings") {
     "charconv.h",
     "escaping.h",
     "internal/damerau_levenshtein_distance.h",
+    "internal/has_absl_stringify.h",
     "internal/string_constant.h",
     "match.h",
     "numbers.h",
@@ -101,6 +102,7 @@ absl_source_set("str_format_internal") {
     "internal/str_format/arg.h",
     "internal/str_format/bind.h",
     "internal/str_format/checker.h",
+    "internal/str_format/constexpr_parser.h",
     "internal/str_format/extension.h",
     "internal/str_format/float_conversion.h",
     "internal/str_format/output.h",
@@ -154,8 +156,10 @@ absl_source_set("cord_internal") {
     "//third_party/abseil-cpp/absl/base:raw_logging_internal",
     "//third_party/abseil-cpp/absl/base:throw_delegate",
     "//third_party/abseil-cpp/absl/container:compressed_tuple",
+    "//third_party/abseil-cpp/absl/container:container_memory",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/container:layout",
+    "//third_party/abseil-cpp/absl/crc:crc_cord_state",
     "//third_party/abseil-cpp/absl/functional:function_ref",
     "//third_party/abseil-cpp/absl/meta:type_traits",
     "//third_party/abseil-cpp/absl/types:span",
@@ -202,6 +206,7 @@ absl_test("cord_rep_crc_test") {
     ":cord_internal",
     ":cord_rep_test_util",
     "//third_party/abseil-cpp/absl/base:config",
+    "//third_party/abseil-cpp/absl/crc:crc_cord_state",
   ]
 }
 
@@ -240,7 +245,6 @@ absl_source_set("cord") {
     ":cordz_update_scope",
     ":cordz_update_tracker",
     ":internal",
-    ":str_format",
     ":strings",
     "//third_party/abseil-cpp/absl/base",
     "//third_party/abseil-cpp/absl/base:config",
@@ -249,6 +253,7 @@ absl_source_set("cord") {
     "//third_party/abseil-cpp/absl/base:raw_logging_internal",
     "//third_party/abseil-cpp/absl/container:fixed_array",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
+    "//third_party/abseil-cpp/absl/crc:crc_cord_state",
     "//third_party/abseil-cpp/absl/functional:function_ref",
     "//third_party/abseil-cpp/absl/meta:type_traits",
     "//third_party/abseil-cpp/absl/numeric:bits",
@@ -286,6 +291,7 @@ absl_source_set("cordz_info") {
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/debugging:stacktrace",
     "//third_party/abseil-cpp/absl/synchronization",
+    "//third_party/abseil-cpp/absl/time",
     "//third_party/abseil-cpp/absl/types:span",
   ]
 }
@@ -398,6 +404,7 @@ absl_test("cordz_info_statistics_test") {
     ":cordz_update_scope",
     ":cordz_update_tracker",
     "//third_party/abseil-cpp/absl/base:config",
+    "//third_party/abseil-cpp/absl/crc:crc_cord_state",
     "//third_party/abseil-cpp/absl/synchronization",
     "//third_party/abseil-cpp/absl/synchronization:thread_pool",
   ]

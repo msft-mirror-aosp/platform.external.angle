@@ -223,7 +223,7 @@ GenMetalTraverser::GenMetalTraverser(const TCompiler &compiler,
       mMainUniformBufferIndex(compileOptions.metal.defaultUniformsBindingIndex),
       mDriverUniformsBindingIndex(compileOptions.metal.driverUniformsBindingIndex),
       mUBOArgumentBufferBindingIndex(compileOptions.metal.UBOArgumentBufferBindingIndex),
-      mRasterOrderGroupsSupported(compileOptions.pls.fragmentSynchronizationType ==
+      mRasterOrderGroupsSupported(compileOptions.pls.fragmentSyncType ==
                                   ShFragmentSynchronizationType::RasterOrderGroups_Metal)
 {}
 
@@ -658,7 +658,6 @@ static const char *GetOperatorString(TOperator op,
         case TOperator::EOpMemoryBarrier:
         case TOperator::EOpMemoryBarrierAtomicCounter:
         case TOperator::EOpMemoryBarrierBuffer:
-        case TOperator::EOpMemoryBarrierImage:
         case TOperator::EOpMemoryBarrierShared:
         case TOperator::EOpGroupMemoryBarrier:
         case TOperator::EOpAtomicAdd:
@@ -941,6 +940,30 @@ void GenMetalTraverser::emitBareTypeName(const TType &type, const EmitTypeConfig
                     emitNameOf(env);
                 }
             }
+            else if (IsImage(basicType))
+            {
+                mOut << "metal::texture2d<";
+                switch (type.getBasicType())
+                {
+                    case EbtImage2D:
+                        mOut << "float";
+                        break;
+                    case EbtIImage2D:
+                        mOut << "int";
+                        break;
+                    case EbtUImage2D:
+                        mOut << "uint";
+                        break;
+                    default:
+                        UNIMPLEMENTED();
+                        break;
+                }
+                if (type.getMemoryQualifier().readonly || type.getMemoryQualifier().writeonly)
+                {
+                    UNIMPLEMENTED();
+                }
+                mOut << ", metal::access::read_write>";
+            }
             else
             {
                 UNIMPLEMENTED();
@@ -1070,6 +1093,15 @@ void GenMetalTraverser::emitFieldDeclaration(const TField &field,
             }
             break;
 
+        case TQualifier::EvqFragColor:
+            mOut << " [[color(0)]]";
+            break;
+
+        case TQualifier::EvqSecondaryFragColorEXT:
+        case TQualifier::EvqSecondaryFragDataEXT:
+            mOut << " [[color(0), index(1)]]";
+            break;
+
         case TQualifier::EvqFragmentOut:
         case TQualifier::EvqFragmentInOut:
         case TQualifier::EvqFragData:
@@ -1078,7 +1110,7 @@ void GenMetalTraverser::emitFieldDeclaration(const TField &field,
                 if ((type.isVector() &&
                      (basic == TBasicType::EbtInt || basic == TBasicType::EbtUInt ||
                       basic == TBasicType::EbtFloat)) ||
-                    type.getQualifier() == EvqFragData)
+                    qual == EvqFragData)
                 {
                     // The OpenGL ES 3.0 spec says locations must be specified
                     // unless there is only a single output, in which case the
@@ -1086,9 +1118,25 @@ void GenMetalTraverser::emitFieldDeclaration(const TField &field,
                     // will have been rejected if locations are not specified
                     // and there is more than one output.
                     const TLayoutQualifier &layoutQualifier = type.getLayoutQualifier();
-                    size_t index = layoutQualifier.locationsSpecified ? layoutQualifier.location
-                                                                      : annotationIndices.color++;
-                    mOut << " [[color(" << index << ")";
+                    if (layoutQualifier.locationsSpecified)
+                    {
+                        mOut << " [[color(" << layoutQualifier.location << ")";
+                        ASSERT(layoutQualifier.index >= -1 && layoutQualifier.index <= 1);
+                        if (layoutQualifier.index == 1)
+                        {
+                            mOut << ", index(1)";
+                        }
+                    }
+                    else if (qual == EvqFragData)
+                    {
+                        mOut << " [[color(" << annotationIndices.color++ << ")";
+                    }
+                    else
+                    {
+                        // Either the only output or EXT_blend_func_extended is used;
+                        // actual assignment will happen in UpdateFragmentShaderOutputs.
+                        mOut << " [[" << sh::kUnassignedFragmentOutputString;
+                    }
                     if (mRasterOrderGroupsSupported && qual == TQualifier::EvqFragmentInOut)
                     {
                         // Put fragment inouts in their own raster order group for better
@@ -1115,6 +1163,24 @@ void GenMetalTraverser::emitFieldDeclaration(const TField &field,
 
         default:
             break;
+    }
+
+    if (IsImage(type.getBasicType()))
+    {
+        if (type.getArraySizeProduct() != 1)
+        {
+            UNIMPLEMENTED();
+        }
+        mOut << " [[";
+        if (type.getLayoutQualifier().rasterOrdered)
+        {
+            mOut << "raster_order_group(0), ";
+        }
+        mOut << "texture(" << mMainTextureIndex << ")]]";
+        TranslatorMetalReflection *reflection = mtl::getTranslatorMetalReflection(&mCompiler);
+        reflection->addRWTextureBinding(type.getLayoutQualifier().binding,
+                                        static_cast<int>(mMainTextureIndex));
+        ++mMainTextureIndex;
     }
 }
 
@@ -1161,13 +1227,15 @@ static std::map<Name, size_t> BuildExternalAttributeIndexMap(
             ++attributeIndex;  // TODO: Might need to increment more if shader var type is a matrix.
         }
 
-        const size_t cols = internalType.isMatrix() ? internalType.getCols() : 1;
+        const size_t cols =
+            (internalType.isMatrix() && !externalFields[externalIndex]->type()->isMatrix())
+                ? internalType.getCols()
+                : 1;
 
         for (size_t c = 0; c < cols; ++c)
         {
             const TField &externalField = *externalFields[externalIndex];
             const Name externalName     = Name(externalField);
-            ASSERT(!externalField.type()->isMatrix());
 
             externalNameToAttributeIndex[externalName] = attributeIndex;
 
@@ -1278,21 +1346,6 @@ void GenMetalTraverser::emitStructDeclaration(const TType &type)
             emitFieldDeclaration(*field, structure, annotationIndices);
         }
         mOut << ";\n";
-    }
-
-    if (!mPipelineStructs.matches(structure, true, true))
-    {
-        MetalLayoutOfConfig layoutConfig;
-        layoutConfig.treatSamplersAsTextureEnv = true;
-        Layout layout                          = MetalLayoutOf(type, layoutConfig);
-        size_t pad = (kDefaultStructAlignmentSize - layout.sizeOf) % kDefaultStructAlignmentSize;
-        if (pad != 0)
-        {
-            emitIndentation();
-            mOut << "char ";
-            EmitName(mOut, mIdGen.createNewName("pad"));
-            mOut << "[" << pad << "];\n";
-        }
     }
 
     emitCloseBrace();
@@ -1815,13 +1868,17 @@ void GenMetalTraverser::emitFunctionReturn(const TFunction &func)
     if (isMain)
     {
         const TStructure *structure = returnType.getStruct();
-        ASSERT(structure != nullptr);
         if (mPipelineStructs.fragmentOut.matches(*structure))
         {
+            if (mCompiler.isEarlyFragmentTestsSpecified())
+            {
+                mOut << "[[early_fragment_tests]]\n";
+            }
             mOut << "fragment ";
         }
         else if (mPipelineStructs.vertexOut.matches(*structure))
         {
+            ASSERT(structure != nullptr);
             mOut << "vertex __VERTEX_OUT(";
             isVertexMain = true;
         }
@@ -1922,7 +1979,8 @@ bool GenMetalTraverser::visitFunctionDefinition(Visit, TIntermFunctionDefinition
     {
         const TType &returnType     = func.getReturnType();
         const TStructure *structure = returnType.getStruct();
-        isTraversingVertexMain      = (mPipelineStructs.vertexOut.matches(*structure));
+        isTraversingVertexMain      = (mPipelineStructs.vertexOut.matches(*structure)) &&
+                                 mCompiler.getShaderType() == GL_VERTEX_SHADER;
     }
     emitIndentation();
     emitFunctionSignature(func);
@@ -1981,6 +2039,9 @@ GenMetalTraverser::FuncToName GenMetalTraverser::BuildFuncToName()
     putAngle("textureProjLodOffset");
     putAngle("textureProjOffset");
     putAngle("textureSize");
+    putAngle("imageLoad");
+    putAngle("imageStore");
+    putAngle("memoryBarrierImage");
 
     return map;
 }
@@ -2087,11 +2148,9 @@ bool GenMetalTraverser::visitAggregate(Visit, TIntermAggregate *aggregateNode)
                     return nullptr;
                 };
 
-                ASSERT(!args.empty());
                 const TType *argType0 = getArgType(0);
                 const TType *argType1 = getArgType(1);
                 const TType *argType2 = getArgType(2);
-                ASSERT(argType0);
 
                 const char *opName = GetOperatorString(op, retType, argType0, argType1, argType2);
 

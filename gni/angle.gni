@@ -60,8 +60,7 @@ if (angle_has_build) {
 
   declare_args() {
     angle_use_gbm = ozone_platform_gbm
-    angle_use_x11 =
-        ozone_platform_x11 && !is_ggp && (is_linux || is_chromeos) && !is_castos
+    angle_use_x11 = ozone_platform_x11 && !is_ggp && (is_linux || is_chromeos)
     angle_use_wayland =
         ozone_platform_wayland && !is_ggp && is_linux && !is_castos
     angle_use_vulkan_display = (is_linux || is_chromeos) && !is_ggp
@@ -168,8 +167,8 @@ declare_args() {
   angle_enable_d3d11 = is_win
   angle_enable_gl =
       (ozone_platform_gbm || ozone_platform_wayland || !is_linux ||
-       ((angle_use_x11 && !is_chromeos) || angle_use_wayland)) && !is_fuchsia &&
-      !angle_is_winuwp && !is_ggp && !is_win_arm64
+       ((angle_use_x11 && !is_chromeos) || angle_use_wayland || is_castos)) &&
+      !is_fuchsia && !angle_is_winuwp && !is_ggp && !is_win_arm64
 
   angle_enable_vulkan =
       angle_has_build &&
@@ -188,7 +187,7 @@ declare_args() {
   angle_enable_gl_desktop_backend = !is_android && !is_ios
 
   # http://anglebug.com/2634
-  angle_enable_metal = is_mac
+  angle_enable_metal = is_apple
 
   # Enables the OpenCL pass-through back end
   angle_enable_cl_passthrough = angle_enable_cl
@@ -237,6 +236,10 @@ declare_args() {
   # on Android for debugging purposes. Disabled by default.
   angle_enable_unwind_backtrace_support = false
 
+  # Memory allocation logging support. This feature is for debugging only.
+  # Disabled by default.
+  angle_enable_memory_alloc_logging = false
+
   # Disable the layers in ubsan builds because of really slow builds.
   # Vulkan Validation Layers require Android NDK API level 26, i.e. Oreo, due to
   # Vulkan Validation Layers compatibility issues, see http://crrev/c/1405714.
@@ -275,7 +278,7 @@ declare_args() {
   # Vulkan.
   angle_enable_overlay = angle_enable_vulkan && angle_debug_layers_enabled
 
-  angle_build_mesa = checkout_angle_mesa && is_linux
+  angle_build_mesa = false
 }
 
 declare_args() {

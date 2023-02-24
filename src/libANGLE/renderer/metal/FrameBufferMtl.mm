@@ -1115,6 +1115,13 @@ angle::Result FramebufferMtl::prepareRenderPass(const gl::Context *context,
         desc.stencilAttachment.reset();
     }
 
+    if (desc.numColorAttachments == 0 && mDepthRenderTarget == nullptr &&
+        mStencilRenderTarget == nullptr)
+    {
+        desc.defaultWidth  = mState.getDefaultWidth();
+        desc.defaultHeight = mState.getDefaultHeight();
+    }
+
     return angle::Result::Continue;
 }
 
@@ -1628,7 +1635,6 @@ angle::Result FramebufferMtl::readPixelsImpl(const gl::Context *context,
 
         return result;
     }
-
     if (texture->isBeingUsedByGPU(contextMtl))
     {
         contextMtl->flushCommandBuffer(mtl::WaitUntilFinished);

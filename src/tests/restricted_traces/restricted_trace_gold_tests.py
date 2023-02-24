@@ -11,7 +11,6 @@
 
 import argparse
 import contextlib
-import fnmatch
 import json
 import logging
 import os
@@ -225,8 +224,31 @@ def upload_test_result_to_skia_gold(args, gold_session_manager, gold_session, go
     if not os.path.isfile(png_file_name):
         raise Exception('Screenshot not found: ' + png_file_name)
 
+    # These arguments cause Gold to use the fuzzy inexact matching algorithm.
+    # It is set to allow up to 20k pixels to differ by 1 on all channels,
+    # which is meant to help reduce triage overhead caused by new images from
+    # rounding differences.
+    #
+    # The max number of pixels is fairly arbitrary, but the diff threshold is
+    # intentional since we don't want to let in any changes that can't be
+    # attributed to rounding errors.
+    #
+    # An image that passes due to this logic is auto-approved as a new good
+    # image.
+    inexact_matching_args = [
+        '--add-test-optional-key',
+        'image_matching_algorithm:fuzzy',
+        '--add-test-optional-key',
+        'fuzzy_max_different_pixels:20000',
+        '--add-test-optional-key',
+        'fuzzy_pixel_per_channel_delta_threshold:1',
+    ]
+
     status, error = gold_session.RunComparison(
-        name=image_name, png_file=png_file_name, use_luci=use_luci)
+        name=image_name,
+        png_file=png_file_name,
+        use_luci=use_luci,
+        inexact_matching_args=inexact_matching_args)
 
     artifact_name = os.path.basename(png_file_name)
     artifacts[artifact_name] = [artifact_name]
@@ -292,16 +314,7 @@ def _run_tests(args, tests, extra_flags, env, screenshot_dir, results, test_resu
         traces = [trace.split(' ')[0] for trace in tests]
 
         if args.isolated_script_test_filter:
-            filtered = []
-            for trace in traces:
-                # Apply test filter if present.
-                full_name = 'angle_restricted_trace_gold_tests.%s' % trace
-                if not fnmatch.fnmatch(full_name, args.isolated_script_test_filter):
-                    logging.info('Skipping test %s because it does not match filter %s' %
-                                 (full_name, args.isolated_script_test_filter))
-                else:
-                    filtered += [trace]
-            traces = filtered
+            traces = angle_test_util.FilterTests(traces, args.isolated_script_test_filter)
 
         batches = _get_batches(traces, args.batch_size)
 

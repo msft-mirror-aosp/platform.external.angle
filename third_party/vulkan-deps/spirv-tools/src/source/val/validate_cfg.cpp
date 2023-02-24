@@ -560,7 +560,7 @@ spv_result_t StructuredSwitchChecks(ValidationState_t& _, Function* function,
           target_block->structurally_reachable() &&
           !header->structurally_dominates(*target_block)) {
         return _.diag(SPV_ERROR_INVALID_CFG, header->label())
-               << "Selection header " << _.getIdName(header->id())
+               << "Switch header " << _.getIdName(header->id())
                << " does not structurally dominate its case construct "
                << _.getIdName(target);
       }
@@ -671,7 +671,8 @@ spv_result_t ValidateStructuredSelections(
       // previously.
       const bool true_label_unseen = seen.insert(true_label).second;
       const bool false_label_unseen = seen.insert(false_label).second;
-      if (!merge && true_label_unseen && false_label_unseen) {
+      if ((!merge || merge->opcode() == spv::Op::OpLoopMerge) &&
+          true_label_unseen && false_label_unseen) {
         return _.diag(SPV_ERROR_INVALID_CFG, terminator)
                << "Selection must be structured";
       }
@@ -752,6 +753,7 @@ spv_result_t StructuredControlFlowChecks(
                                      _.getIdName(merge->id()),
                                      "does not structurally dominate");
     }
+
     // If it's really a merge block for a selection or loop, then it must be
     // *strictly* structrually dominated by the header.
     if (construct.ExitBlockIsMergeBlock() && (header == merge)) {

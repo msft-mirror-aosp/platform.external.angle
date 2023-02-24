@@ -180,6 +180,14 @@
             ]
         },
         {
+            "name": "allow_renderpass_without_attachment",
+            "category": "Features",
+            "description": [
+                "Allow creation of render passes without any attachments"
+            ]
+        },
+
+        {
             "name": "multisample_color_format_shader_read_workaround",
             "category": "Workarounds",
             "description": [
@@ -237,44 +245,44 @@
             "issue": "http://anglebug.com/7573"
         },
         {
-            "name": "always_use_staged_buffer_updates",
+            "name": "disable_programmable_blending",
             "category": "Features",
             "description": [
-                "Always update buffers by copying the data to a staging buffer and then blitting it to the actual buffer"
+                "Disable programmable blending in order to test read_write pixel local storage textures"
             ],
-            "issue": "http://anglebug.com/7544"
+            "issue": "http://anglebug.com/7279"
         },
         {
-            "name": "use_shadow_buffers_when_appropriate",
+            "name": "disable_r_w_texture_tier2_support",
             "category": "Features",
             "description": [
-                "On some architectures using a shadow buffer can be faster for certain size buffers"
+                "Disable tier2 read_write textures in order to test tier1 support"
             ],
-            "issue": "http://anglebug.com/7544"
+            "issue": "http://anglebug.com/7279"
         },
         {
-            "name": "always_use_managed_storage_mode_for_buffers",
+            "name": "disable_raster_order_groups",
             "category": "Features",
             "description": [
-                "Metal buffers can be managed, shared, or private. Sometimes managed is fastest"
+                "Disable raster order groups in order to test pixel local storage memory barriers"
             ],
-            "issue": "http://anglebug.com/7544"
+            "issue": "http://anglebug.com/7279"
         },
         {
-            "name": "always_use_shared_storage_mode_for_buffers",
+            "name": "enable_in_memory_mtl_library_cache",
             "category": "Features",
             "description": [
-                "Metal buffers can be managed, shared, or private. Sometimes shared is fastest"
+                "Cache MTLLibrary objects in memory."
             ],
-            "issue": "http://anglebug.com/7544"
+            "issue": "http://crbug.com/1385510"
         },
         {
-            "name": "prefer_cpu_for_buffersubdata",
+            "name": "enable_parallel_mtl_library_compilation",
             "category": "Features",
             "description": [
-                "Makes bufferSubData always update via CPU"
+                "Compile MTLLibrary in multiple threads."
             ],
-            "issue": "http://anglebug.com/7544"
+            "issue": "http://crbug.com/1385510"
         }
     ]
 }

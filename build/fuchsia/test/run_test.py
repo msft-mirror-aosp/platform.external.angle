@@ -12,7 +12,7 @@ from contextlib import ExitStack
 from typing import List
 
 from common import register_common_args, register_device_args, \
-                   register_log_args, resolve_packages, resolve_v1_packages, \
+                   register_log_args, resolve_packages, \
                    set_ffx_isolate_dir
 from compatible_utils import running_unattended
 from ffx_integration import ScopedFfxConfig, test_connection
@@ -23,6 +23,7 @@ from run_blink_test import BlinkTestRunner
 from run_executable_test import create_executable_test_runner, \
                                 register_executable_test_args
 from run_telemetry_test import TelemetryTestRunner
+from run_webpage_test import WebpageTestRunner
 from serve_repo import register_serve_args, serve_repository
 from start_emulator import create_emulator_from_args, register_emulator_args
 from test_runner import TestRunner
@@ -39,6 +40,9 @@ def _get_test_runner(runner_args: argparse.Namespace,
     if runner_args.test_type in ['gpu', 'perf']:
         return TelemetryTestRunner(runner_args.test_type, runner_args.out_dir,
                                    test_args, runner_args.target_id)
+    if runner_args.test_type in ['webpage']:
+        return WebpageTestRunner(runner_args.out_dir, test_args,
+                                 runner_args.target_id)
     return create_executable_test_runner(runner_args, test_args)
 
 
@@ -78,8 +82,8 @@ def main():
         if running_unattended():
             set_ffx_isolate_dir(
                 stack.enter_context(tempfile.TemporaryDirectory()))
-        stack.enter_context(
-            ScopedFfxConfig('repository.server.listen', '"[::]:0"'))
+            stack.enter_context(
+                ScopedFfxConfig('repository.server.listen', '"[::]:0"'))
         log_manager = stack.enter_context(LogManager(runner_args.logs_dir))
         if runner_args.device:
             update(runner_args.system_image_dir, runner_args.os_check,
@@ -113,11 +117,7 @@ def main():
         if ermine.exists:
             ermine.take_to_shell()
 
-        if test_runner.is_cfv2():
-            resolve_packages(package_deps.keys(), runner_args.target_id)
-        else:
-            # TODO(crbug.com/1256503): Remove when all packages are CFv2.
-            resolve_v1_packages(package_deps.keys(), runner_args.target_id)
+        resolve_packages(package_deps.keys(), runner_args.target_id)
         return test_runner.run_test().returncode
 
 

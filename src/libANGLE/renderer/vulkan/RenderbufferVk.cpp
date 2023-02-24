@@ -126,7 +126,8 @@ angle::Result RenderbufferVk::setStorageImpl(const gl::Context *context,
                                    gl::LevelIndex(0), 1, 1, robustInit, false));
 
     VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    ANGLE_TRY(mImage->initMemory(contextVk, false, renderer->getMemoryProperties(), flags));
+    ANGLE_TRY(mImage->initMemory(contextVk, false, renderer->getMemoryProperties(), flags,
+                                 vk::MemoryAllocationType::RenderBufferStorageImage));
 
     // If multisampled render to texture, an implicit multisampled image is created which is used as
     // the color or depth/stencil attachment.  At the end of the render pass, this image is
@@ -199,8 +200,10 @@ angle::Result RenderbufferVk::setStorageEGLImageTarget(const gl::Context *contex
         vk::CommandBufferAccess access;
         access.onExternalAcquireRelease(mImage);
         ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
-        mImage->changeLayoutAndQueue(contextVk, aspect, vk::ImageLayout::ColorAttachment,
+        mImage->changeLayoutAndQueue(contextVk, aspect, vk::ImageLayout::ColorWrite,
                                      rendererQueueFamilyIndex, commandBuffer);
+
+        ANGLE_TRY(contextVk->onEGLImageQueueChange());
     }
 
     mRenderTarget.init(mImage, &mImageViews, nullptr, nullptr, imageVk->getImageLevel(),
@@ -306,8 +309,8 @@ void RenderbufferVk::releaseImage(ContextVk *contextVk)
     else
     {
         mRenderTarget.release(contextVk);
-        mImage->collectViewGarbage(renderer, &mImageViews);
-        mImage->collectViewGarbage(renderer, &mMultisampledImageViews);
+        mImageViews.release(renderer, mImage->getResourceUse());
+        mMultisampledImageViews.release(renderer, mImage->getResourceUse());
     }
 
     if (mImage && mOwnsImage)

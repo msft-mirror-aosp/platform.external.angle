@@ -44,16 +44,16 @@ _host_tools_directory = "host_tools"
 
 _archive_suffix = "_archive"
 
-# Extracts the numeric Chrome build ID and writes it to a file in the output
+# Extracts the numeric Chrome version and writes it to a file in the output
 # directory.
 #
-# To check out the repository on the commit where the build ID was generated,
-# simply call `git checkout <build-id>`, and Git will check out the commit
-# associated with the <build-id> tag.
-process_version("build_id") {
-  template_file = "build_id.template"
+# To check out the repository on the commit where the version was generated,
+# simply call `git checkout <version>`, and Git will check out the commit
+# associated with the <version> tag.
+process_version("version") {
+  template_file = "version.template"
   sources = [ "//chrome/VERSION" ]
-  output = "${target_gen_dir}/build_id.txt"
+  output = "${target_gen_dir}/VERSION"
   process_only = true
 }
 
@@ -145,12 +145,15 @@ template("cipd_archive") {
   deps += [
     ":${target_name}_license",
     ":${target_name}_license_spdx",
+    ":version",
   ]
 
   if (!defined(sources)) {
     sources = []
   }
-  sources += get_target_outputs(":${target_name}_license")
+  sources += get_target_outputs(":${target_name}_license") +
+             get_target_outputs(":${target_name}_license_spdx") +
+             [ "${target_gen_dir}/VERSION" ]
 
   fuchsia_cipd_package("${target_name}${_archive_suffix}") {
     package = "${package_base_path}/${package_subdirectory}/${targetarch}/${invoker.target_name}"
@@ -302,7 +305,6 @@ cipd_test_archive("tests") {
     "//base:base_unittests_pkg",
     "//fuchsia_web/runners:cast_runner_integration_tests_pkg",
     "//fuchsia_web/runners:web_runner_integration_tests_pkg",
-    "//fuchsia_web/webengine:web_engine_integration_tests_cfv1_pkg",
     "//fuchsia_web/webengine:web_engine_integration_tests_pkg",
     "//ipc:ipc_tests_pkg",
     "//media:media_unittests_pkg",
@@ -319,7 +321,6 @@ cipd_test_archive("tests") {
         "${root_gen_dir}/fuchsia_web/runners/cast_runner_integration_tests/cast_runner_integration_tests.far",
         "${root_gen_dir}/fuchsia_web/runners/web_runner_integration_tests/web_runner_integration_tests.far",
         "${root_gen_dir}/fuchsia_web/webengine/web_engine_integration_tests/web_engine_integration_tests.far",
-        "${root_gen_dir}/fuchsia_web/webengine/web_engine_integration_tests_cfv1/web_engine_integration_tests_cfv1.far",
         "${root_gen_dir}/ipc/ipc_tests/ipc_tests.far",
         "${root_gen_dir}/media/media_unittests/media_unittests.far",
         "${root_gen_dir}/mojo/mojo_unittests/mojo_unittests.far",
@@ -343,7 +344,6 @@ cipd_test_archive("tests") {
       far_sources = [
         "${root_gen_dir}/fuchsia_web/runners/web_runner_integration_tests/web_runner_integration_tests.far",
         "${root_gen_dir}/fuchsia_web/webengine/web_engine_integration_tests/web_engine_integration_tests.far",
-        "${root_gen_dir}/fuchsia_web/webengine/web_engine_integration_tests_cfv1/web_engine_integration_tests_cfv1.far",
       ]
     },
     {

@@ -137,8 +137,8 @@ using BufferCalls = std::map<GLuint, std::vector<CallCapture>>;
 // true means mapped, false means unmapped
 using BufferMapStatusMap = std::map<GLuint, bool>;
 
-using FenceSyncSet   = std::set<GLsync>;
-using FenceSyncCalls = std::map<GLsync, std::vector<CallCapture>>;
+using FenceSyncSet   = std::set<gl::SyncID>;
+using FenceSyncCalls = std::map<gl::SyncID, std::vector<CallCapture>>;
 
 // For default uniforms, we need to track which ones are dirty, and the series of calls to reset.
 // Each program has unique default uniforms, and each uniform has one or more locations in the
@@ -170,6 +170,8 @@ class TrackedResource final : angle::NonCopyable
     ResourceSet &getStartingResources() { return mStartingResources; }
     const ResourceSet &getNewResources() const { return mNewResources; }
     ResourceSet &getNewResources() { return mNewResources; }
+    const ResourceSet &getResourcesToDelete() const { return mResourcesToDelete; }
+    ResourceSet &getResourcesToDelete() { return mResourcesToDelete; }
     const ResourceSet &getResourcesToRegen() const { return mResourcesToRegen; }
     ResourceSet &getResourcesToRegen() { return mResourcesToRegen; }
     const ResourceSet &getResourcesToRestore() const { return mResourcesToRestore; }
@@ -194,6 +196,8 @@ class TrackedResource final : angle::NonCopyable
 
     // Resources created during the run that need to be deleted
     ResourceSet mNewResources;
+    // Resources recreated during the run that need to be deleted
+    ResourceSet mResourcesToDelete;
     // Resources deleted during the run that need to be recreated
     ResourceSet mResourcesToRegen;
     // Resources modified during the run that need to be restored
@@ -205,7 +209,6 @@ using TrackedResourceArray =
 
 enum class ShaderProgramType
 {
-    NoneType,
     ShaderType,
     ProgramType
 };
@@ -243,7 +246,7 @@ class ResourceTracker final : angle::NonCopyable
     FenceSyncSet &getStartingFenceSyncs() { return mStartingFenceSyncs; }
     FenceSyncCalls &getFenceSyncRegenCalls() { return mFenceSyncRegenCalls; }
     FenceSyncSet &getFenceSyncsToRegen() { return mFenceSyncsToRegen; }
-    void setDeletedFenceSync(GLsync sync);
+    void setDeletedFenceSync(gl::SyncID sync);
 
     DefaultUniformLocationsPerProgramMap &getDefaultUniformsToReset()
     {
@@ -749,6 +752,7 @@ class FrameCaptureShared final : angle::NonCopyable
     SurfaceParamsMap mDrawSurfaceParams;
     gl::AttribArray<size_t> mClientArraySizes;
     size_t mReadBufferSize;
+    size_t mResourceIDBufferSize;
     HasResourceTypeMap mHasResourceType;
     ResourceIDToSetupCallsMap mResourceIDToSetupCalls;
     BufferDataMap mBufferDataMap;
@@ -778,7 +782,11 @@ class FrameCaptureShared final : angle::NonCopyable
     std::vector<CallCapture> mShareGroupSetupCalls;
     // Track which Contexts were created and made current at least once before MEC,
     // requiring setup for replay
-    std::unordered_set<GLuint> mCapturedContextSetups;
+    std::unordered_set<GLuint> mActiveSecondaryContexts;
+
+    // Invalid call counts per entry point while capture is active and inactive.
+    std::unordered_map<EntryPoint, size_t> mInvalidCallCountsActive;
+    std::unordered_map<EntryPoint, size_t> mInvalidCallCountsInactive;
 };
 
 template <typename CaptureFuncT, typename... ArgsT>

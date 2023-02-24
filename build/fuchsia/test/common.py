@@ -19,21 +19,12 @@ DIR_SRC_ROOT = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
 REPO_ALIAS = 'fuchsia.com'
 SDK_ROOT = os.path.join(DIR_SRC_ROOT, 'third_party', 'fuchsia-sdk', 'sdk')
-
 SDK_TOOLS_DIR = os.path.join(SDK_ROOT, 'tools', get_host_arch())
 _FFX_TOOL = os.path.join(SDK_TOOLS_DIR, 'ffx')
 
 # This global variable is used to set the environment variable
 # |FFX_ISOLATE_DIR| when running ffx commands in E2E testing scripts.
 _FFX_ISOLATE_DIR = None
-
-# TODO(crbug.com/1280705): Remove each entry when they are migrated to v2.
-_V1_PACKAGE_LIST = [
-    'chrome_v1',
-    'web_engine',
-    'web_engine_with_webui',
-    'web_runner',
-]
 
 
 def set_ffx_isolate_dir(isolate_dir: str) -> None:
@@ -60,6 +51,14 @@ def _get_daemon_status():
 
 def _is_daemon_running():
     return 'Running' in _get_daemon_status()
+
+
+def check_ssh_config_file() -> None:
+    """Checks for ssh keys and generates them if they are missing."""
+
+    script_path = os.path.join(SDK_ROOT, 'bin', 'fuchsia-common.sh')
+    check_cmd = ['bash', '-c', f'. {script_path}; check-fuchsia-ssh-config']
+    subprocess.run(check_cmd, check=True)
 
 
 def _wait_for_daemon(start=True, timeout_seconds=100):
@@ -166,6 +165,11 @@ def run_ffx_command(cmd: Iterable[str],
                               env=env,
                               **kwargs)
     except subprocess.CalledProcessError as cpe:
+        logging.error('%s %s failed with returncode %s.',
+                      os.path.relpath(_FFX_TOOL),
+                      subprocess.list2cmdline(ffx_cmd[1:]), cpe.returncode)
+        if cpe.output:
+            logging.error('stdout of the command: %s', cpe.output)
         if suppress_repair or (cpe.output
                                and not _run_repair_command(cpe.output)):
             raise
@@ -177,13 +181,14 @@ def run_ffx_command(cmd: Iterable[str],
 
 def run_continuous_ffx_command(cmd: Iterable[str],
                                target_id: Optional[str] = None,
+                               encoding: Optional[str] = 'utf-8',
                                **kwargs) -> subprocess.Popen:
     """Runs an ffx command asynchronously."""
     ffx_cmd = [_FFX_TOOL]
     if target_id:
         ffx_cmd.extend(('--target', target_id))
     ffx_cmd.extend(cmd)
-    return subprocess.Popen(ffx_cmd, encoding='utf-8', **kwargs)
+    return subprocess.Popen(ffx_cmd, encoding=encoding, **kwargs)
 
 
 def read_package_paths(out_dir: str, pkg_name: str) -> List[str]:
@@ -241,13 +246,30 @@ def get_component_uri(package: str) -> str:
 def resolve_packages(packages: List[str], target_id: Optional[str]) -> None:
     """Ensure that all |packages| are installed on a device."""
 
+    ssh_prefix = get_ssh_prefix(get_ssh_address(target_id))
+    subprocess.run(ssh_prefix + ['--', 'pkgctl', 'gc'], check=False)
+
     for package in packages:
-        if package in _V1_PACKAGE_LIST:
-            resolve_v1_packages([package], target_id)
-        run_ffx_command(
-            ['component', 'reload', f'/core/ffx-laboratory:{package}'],
-            target_id,
-            check=False)
+        resolve_cmd = [
+            '--', 'pkgctl', 'resolve',
+            'fuchsia-pkg://%s/%s' % (REPO_ALIAS, package)
+        ]
+        retry_command(ssh_prefix + resolve_cmd)
+
+
+def retry_command(cmd: List[str], retries: int = 2,
+                  **kwargs) -> Optional[subprocess.CompletedProcess]:
+    """Helper function for retrying a subprocess.run command."""
+
+    for i in range(retries):
+        if i == retries - 1:
+            proc = subprocess.run(cmd, **kwargs, check=True)
+            return proc
+        proc = subprocess.run(cmd, **kwargs, check=False)
+        if proc.returncode == 0:
+            return proc
+        time.sleep(3)
+    return None
 
 
 def get_ssh_address(target_id: Optional[str]) -> str:
@@ -255,17 +277,3 @@ def get_ssh_address(target_id: Optional[str]) -> str:
     return run_ffx_command(('target', 'get-ssh-address'),
                            target_id,
                            capture_output=True).stdout.strip()
-
-
-
-# TODO(crbug.com/1342460): Remove when Telemetry tests are using CFv2 packages.
-def resolve_v1_packages(packages: List[str], target_id: Optional[str]) -> None:
-    """Ensure that all cfv1 packages are installed on a device."""
-    for package in packages:
-        resolve_cmd = [
-            '--', 'pkgctl', 'resolve',
-            'fuchsia-pkg://%s/%s' % (REPO_ALIAS, package)
-        ]
-        subprocess.run(get_ssh_prefix(get_ssh_address(target_id)) +
-                       resolve_cmd,
-                       check=True)

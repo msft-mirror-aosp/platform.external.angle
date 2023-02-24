@@ -240,6 +240,7 @@ int32_t spvOpcodeIsConstant(const spv::Op opcode) {
     case spv::Op::OpConstantComposite:
     case spv::Op::OpConstantSampler:
     case spv::Op::OpConstantNull:
+    case spv::Op::OpConstantFunctionPointerINTEL:
     case spv::Op::OpSpecConstantTrue:
     case spv::Op::OpSpecConstantFalse:
     case spv::Op::OpSpecConstant:
@@ -342,6 +343,7 @@ int32_t spvOpcodeGeneratesType(spv::Op op) {
     // case spv::Op::OpTypeAccelerationStructureKHR: covered by
     // spv::Op::OpTypeAccelerationStructureNV
     case spv::Op::OpTypeRayQueryKHR:
+    case spv::Op::OpTypeHitObjectNV:
       return true;
     default:
       // In particular, OpTypeForwardPointer does not generate a type,

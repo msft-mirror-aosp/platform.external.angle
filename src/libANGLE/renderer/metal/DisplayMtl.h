@@ -16,6 +16,7 @@
 #include "libANGLE/renderer/metal/mtl_command_buffer.h"
 #include "libANGLE/renderer/metal/mtl_context_device.h"
 #include "libANGLE/renderer/metal/mtl_format_utils.h"
+#include "libANGLE/renderer/metal/mtl_library_cache.h"
 #include "libANGLE/renderer/metal/mtl_render_utils.h"
 #include "libANGLE/renderer/metal/mtl_state_cache.h"
 #include "libANGLE/renderer/metal/mtl_utils.h"
@@ -57,6 +58,8 @@ class DisplayMtl : public DisplayImpl
 
     egl::Error waitClient(const gl::Context *context) override;
     egl::Error waitNative(const gl::Context *context, EGLint engine) override;
+
+    egl::Error waitUntilWorkScheduled() override;
 
     SurfaceImpl *createWindowSurface(const egl::SurfaceState &state,
                                      EGLNativeWindowType window,
@@ -122,8 +125,7 @@ class DisplayMtl : public DisplayImpl
     const gl::TextureCapsMap &getNativeTextureCaps() const;
     const gl::Extensions &getNativeExtensions() const;
     const gl::Limitations &getNativeLimitations() const;
-    ShPixelLocalStorageType getNativePixelLocalStorageType() const;
-    ShFragmentSynchronizationType getPLSSynchronizationType() const;
+    const ShPixelLocalStorageOptions &getNativePixelLocalStorageOptions() const;
     const angle::FeaturesMtl &getFeatures() const { return mFeatures; }
 
     // Check whether either of the specified iOS or Mac GPU family is supported
@@ -143,7 +145,9 @@ class DisplayMtl : public DisplayImpl
     const mtl::FormatTable &getFormatTable() const { return mFormatTable; }
     mtl::RenderUtils &getUtils() { return mUtils; }
     mtl::StateCache &getStateCache() { return mStateCache; }
+    mtl::LibraryCache &getLibraryCache() { return mLibraryCache; }
     uint32_t getMaxColorTargetBits() { return mMaxColorTargetBits; }
+    bool hasFragmentMemoryBarriers() const { return mHasFragmentMemoryBarriers; }
 
     id<MTLLibrary> getDefaultShadersLib();
 
@@ -192,6 +196,7 @@ class DisplayMtl : public DisplayImpl
 
     mutable mtl::FormatTable mFormatTable;
     mtl::StateCache mStateCache;
+    mtl::LibraryCache mLibraryCache;
     mtl::RenderUtils mUtils;
 
     // Built-in Shaders
@@ -205,12 +210,9 @@ class DisplayMtl : public DisplayImpl
     mutable gl::Extensions mNativeExtensions;
     mutable gl::Caps mNativeCaps;
     mutable gl::Limitations mNativeLimitations;
+    mutable ShPixelLocalStorageOptions mNativePLSOptions;
     mutable uint32_t mMaxColorTargetBits = 0;
-
-    // GL_ANGLE_shader_pixel_local_storage.
-    mutable ShPixelLocalStorageType mPixelLocalStorageType = ShPixelLocalStorageType::NotSupported;
-    mutable ShFragmentSynchronizationType mPLSSynchronizationType =
-        ShFragmentSynchronizationType::NotSupported;
+    mutable bool mHasFragmentMemoryBarriers;
 
     angle::FeaturesMtl mFeatures;
 };

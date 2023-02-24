@@ -6510,6 +6510,50 @@ void main()
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
 }
 
+// Test that samplers in structs can be extracted if the first reference to the struct does not
+// select an attribute.
+TEST_P(GLSLTest, SamplerInStructNoMemberIndexing)
+{
+    constexpr char kVS[] = R"(
+uniform struct {
+    sampler2D n;
+    vec2 c;
+} s;
+void main()
+{
+    s;
+})";
+
+    constexpr char kFS[] = R"(void main()
+{
+    gl_FragColor = vec4(1);
+})";
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+}
+
+// Similar test to SamplerInStructNoMemberIndexing, but the struct variable is an array.
+TEST_P(GLSLTest, SamplerInStructArrayNoMemberIndexing)
+{
+    constexpr char kVS[] = R"(
+uniform struct
+{
+    sampler2D K;
+    vec4 c;
+} s[6];
+void main()
+{
+    s[0];
+})";
+
+    constexpr char kFS[] = R"(void main()
+{
+    gl_FragColor = vec4(1);
+})";
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+}
+
 // Tests that rewriting samplers in structs doesn't mess up indexing.
 TEST_P(GLSLTest, SamplerInStructMemberIndexing)
 {
@@ -6527,6 +6571,7 @@ uniform S uni;
 varying vec2 texCoord;
 void main()
 {
+    uni;
     if (uni.b)
     {
         gl_FragColor = texture2D(uni.samp, texCoord);
@@ -10600,45 +10645,45 @@ void main() {
 
     constexpr size_t kMatrixCount = 6;
     mat4 data[]                   = {
-                          {
-                              {0, 1, 2, 3},      //
-                              {4, 5, 6, 7},      //
-                              {8, 9, 10, 11},    //
-                              {12, 13, 14, 15},  //
+        {
+            {0, 1, 2, 3},      //
+            {4, 5, 6, 7},      //
+            {8, 9, 10, 11},    //
+            {12, 13, 14, 15},  //
         },
-                          {
-                              //     +-- we should be looking up this column
+        {
+            //     +-- we should be looking up this column
             //     V
             {0, 4, 8, 12},   //
             {1, 5, 9, 13},   //
             {2, 6, 10, 14},  //
             {3, 7, 11, 15},  //
         },
-                          {
-                              {0, 2, 4, 6},      //
-                              {8, 10, 12, 14},   //
-                              {16, 18, 20, 22},  //
-                              {24, 26, 28, 30},  //
+        {
+            {0, 2, 4, 6},      //
+            {8, 10, 12, 14},   //
+            {16, 18, 20, 22},  //
+            {24, 26, 28, 30},  //
         },
-                          {
-                              {0, 0, 0, 0},  //
-                              {0, 0, 0, 0},  //
-                              {0, 0, 0, 0},  //
-                              {0, 0, 0, 0},  //
+        {
+            {0, 0, 0, 0},  //
+            {0, 0, 0, 0},  //
+            {0, 0, 0, 0},  //
+            {0, 0, 0, 0},  //
         },
-                          {
-                              {0, 0, 0, 0},  //
-                              {0, 0, 0, 2},  //
-                              {0, 0, 0, 0},  //
-                              {0, 1, 0, 0},
-                              //  ^
-                              //  +-- we should be using this element
+        {
+            {0, 0, 0, 0},  //
+            {0, 0, 0, 2},  //
+            {0, 0, 0, 0},  //
+            {0, 1, 0, 0},
+            //  ^
+            //  +-- we should be using this element
         },
-                          {
-                              {0, 0, 0, 0},  //
-                              {0, 0, 0, 0},  //
-                              {0, 0, 0, 0},  //
-                              {0, 0, 0, 0},  //
+        {
+            {0, 0, 0, 0},  //
+            {0, 0, 0, 0},  //
+            {0, 0, 0, 0},  //
+            {0, 0, 0, 0},  //
         },
     };
 
@@ -16071,6 +16116,36 @@ TEST_P(GLSLTest_ES3, MonomorphizeForAndContinue)
     ASSERT_GL_NO_ERROR();
 }
 
+// Tests inout parameters with array references.
+TEST_P(GLSLTest_ES3, InoutWithArrayRefs)
+{
+    const char kVS[] = R"(#version 300 es
+precision highp float;
+void swap(inout float a, inout float b)
+{
+    float tmp = a;
+    a = b;
+    b = tmp;
+}
+
+void main(void)
+{
+    vec3 testVec = vec3(0.0, 1.0, 1.0);
+    swap(testVec[0], testVec[1]);
+    gl_Position = vec4(testVec[0], testVec[1], testVec[2], 1.0);
+})";
+
+    const char kFS[] = R"(#version 300 es
+precision highp float;
+out vec4 color;
+void main()
+{
+    color = vec4(0,1,0,0);
+})";
+
+    ANGLE_GL_PROGRAM(testProgram, kVS, kFS);
+}
+
 // Test that shader caching maintains uniforms across compute shader compilations.
 TEST_P(GLSLTest_ES31, ShaderCacheComputeWithUniform)
 {
@@ -16201,7 +16276,7 @@ void main() {
     ASSERT_GL_NO_ERROR();
 
     auto outputData                       = static_cast<const GLuint *>(glMapBufferRange(
-                              GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint) * kOutputInitData.size(), GL_MAP_READ_BIT));
+        GL_SHADER_STORAGE_BUFFER, 0, sizeof(GLuint) * kOutputInitData.size(), GL_MAP_READ_BIT));
     constexpr std::array<GLuint, 6> kWant = {kInput1Data, kInput1Data, kInput1Data,
                                              kInput2Data, kInput2Data, kInput2Data};
     for (int i = 0; i < static_cast<int>(kWant.size()); ++i)
