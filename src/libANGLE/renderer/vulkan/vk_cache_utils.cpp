@@ -1539,92 +1539,6 @@ void InitializeSpecializationInfo(
     specializationInfoOut->pData         = &specConsts;
 }
 
-// Adjust border color value according to intended format.
-gl::ColorGeneric AdjustBorderColor(const angle::ColorGeneric &borderColorGeneric,
-                                   const angle::Format &format,
-                                   bool stencilMode)
-{
-    gl::ColorGeneric adjustedBorderColor = borderColorGeneric;
-
-    // Handle depth formats
-    if (format.hasDepthOrStencilBits())
-    {
-        if (stencilMode)
-        {
-            // Stencil component
-            adjustedBorderColor.colorUI.red = gl::clampForBitCount<unsigned int>(
-                borderColorGeneric.colorUI.red, format.stencilBits);
-        }
-        else
-        {
-            // Depth component
-            if (format.isUnorm())
-            {
-                adjustedBorderColor.colorF.red = gl::clamp01(borderColorGeneric.colorF.red);
-            }
-        }
-
-        return adjustedBorderColor;
-    }
-
-    // Handle LUMA formats
-    if (format.isLUMA() && format.alphaBits > 0)
-    {
-        if (format.luminanceBits > 0)
-        {
-            adjustedBorderColor.colorF.green = borderColorGeneric.colorF.alpha;
-        }
-        else
-        {
-            adjustedBorderColor.colorF.red = borderColorGeneric.colorF.alpha;
-        }
-
-        return adjustedBorderColor;
-    }
-
-    // Handle all other formats
-    if (format.isSint())
-    {
-        adjustedBorderColor.colorI.red =
-            gl::clampForBitCount<int>(borderColorGeneric.colorI.red, format.redBits);
-        adjustedBorderColor.colorI.green =
-            gl::clampForBitCount<int>(borderColorGeneric.colorI.green, format.greenBits);
-        adjustedBorderColor.colorI.blue =
-            gl::clampForBitCount<int>(borderColorGeneric.colorI.blue, format.blueBits);
-        adjustedBorderColor.colorI.alpha =
-            gl::clampForBitCount<int>(borderColorGeneric.colorI.alpha, format.alphaBits);
-    }
-    else if (format.isUint())
-    {
-        adjustedBorderColor.colorUI.red =
-            gl::clampForBitCount<unsigned int>(borderColorGeneric.colorUI.red, format.redBits);
-        adjustedBorderColor.colorUI.green =
-            gl::clampForBitCount<unsigned int>(borderColorGeneric.colorUI.green, format.greenBits);
-        adjustedBorderColor.colorUI.blue =
-            gl::clampForBitCount<unsigned int>(borderColorGeneric.colorUI.blue, format.blueBits);
-        adjustedBorderColor.colorUI.alpha =
-            gl::clampForBitCount<unsigned int>(borderColorGeneric.colorUI.alpha, format.alphaBits);
-    }
-    else if (format.isSnorm())
-    {
-        // clamp between -1.0f and 1.0f
-        adjustedBorderColor.colorF.red   = gl::clamp(borderColorGeneric.colorF.red, -1.0f, 1.0f);
-        adjustedBorderColor.colorF.green = gl::clamp(borderColorGeneric.colorF.green, -1.0f, 1.0f);
-        adjustedBorderColor.colorF.blue  = gl::clamp(borderColorGeneric.colorF.blue, -1.0f, 1.0f);
-        adjustedBorderColor.colorF.alpha = gl::clamp(borderColorGeneric.colorF.alpha, -1.0f, 1.0f);
-    }
-    else if (format.isUnorm())
-    {
-        // clamp between 0.0f and 1.0f
-        adjustedBorderColor.colorF.red   = gl::clamp01(borderColorGeneric.colorF.red);
-        adjustedBorderColor.colorF.green = gl::clamp01(borderColorGeneric.colorF.green);
-        adjustedBorderColor.colorF.blue  = gl::clamp01(borderColorGeneric.colorF.blue);
-        adjustedBorderColor.colorF.alpha = gl::clamp01(borderColorGeneric.colorF.alpha);
-    }
-
-    return adjustedBorderColor;
-}
-
 // Utility for setting a value on a packed 4-bit integer array.
 template <typename SrcT>
 void Int4Array_Set(uint8_t *arrayBytes, uint32_t arrayIndex, SrcT value)
@@ -2705,11 +2619,7 @@ angle::Result InitializePipelineFromLibraries(Context *context,
     // Nothing in the create info, everything comes from the libraries.
     VkGraphicsPipelineCreateInfo createInfo = {};
     createInfo.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-
-    // Note: the pipeline layout is not necessary when linking libraries as ANGLE does not use
-    // VK_PIPELINE_LAYOUT_CREATE_INDEPENDENT_SETS_BIT_EXT.  However, some drivers have come to
-    // expect a non-null value for the layout, so the layout is provided here as a workaround.
-    createInfo.layout = pipelineLayout.getHandle();
+    createInfo.layout                       = pipelineLayout.getHandle();
 
     const std::array<VkPipeline, 3> pipelines = {
         vertexInputPipeline.getPipeline().getHandle(),
