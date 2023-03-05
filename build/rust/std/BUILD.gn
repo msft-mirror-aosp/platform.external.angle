@@ -69,17 +69,15 @@ if (toolchain_has_rust) {
   stdlib_files -= removed_rust_stdlib_libs
   stdlib_files += added_rust_stdlib_libs
 
-  if (!use_unverified_rust_toolchain) {
-    # rlib files which are distributed alongside Rust's prebuilt stdlib, but we
-    # don't need to pass to the C++ linker because they're used for specialized
-    # purposes.
-    skip_stdlib_files = [
-      "profiler_builtins",
-      "rustc_std_workspace_alloc",
-      "rustc_std_workspace_core",
-      "rustc_std_workspace_std",
-    ]
-  }
+  # rlib files which are distributed alongside Rust's prebuilt stdlib, but we
+  # don't need to pass to the C++ linker because they're used for specialized
+  # purposes.
+  skip_stdlib_files = [
+    "profiler_builtins",
+    "rustc_std_workspace_alloc",
+    "rustc_std_workspace_core",
+    "rustc_std_workspace_std",
+  ]
 
   action("find_stdlib") {
     # Collect prebuilt Rust libraries from toolchain package and copy to a known
@@ -125,6 +123,11 @@ if (toolchain_has_rust) {
       # related to the Rust standard library, we ensure libstd.rlib is first.
       "--depfile-target",
       stdlib_files[0],
+
+      # Create a dependency on the rustc version so this action is re-run when
+      # it changes. This argument is not actually read by the script.
+      "--rustc-revision",
+      rustc_revision,
     ]
 
     if (!use_unverified_rust_toolchain) {
@@ -225,6 +228,14 @@ if (toolchain_has_rust) {
     foreach(lib, stdlib_files) {
       this_file = "$out_libdir/lib$lib.rlib"
       ldflags += [ this_file ]
+    }
+    if (is_win) {
+      # Our C++ builds already link against a wide variety of Windows API import libraries,
+      # but the Rust stdlib requires a few extra.
+      ldflags += [
+        "bcrypt.lib",
+        "userenv.lib",
+      ]
     }
   }
 

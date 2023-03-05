@@ -43,6 +43,11 @@ constexpr VkImageCreateFlags kVkImageCreateFlagsNone = 0;
 
 constexpr VkFilter kDefaultYCbCrChromaFilter = VK_FILTER_NEAREST;
 
+constexpr VkPipelineStageFlags kSwapchainAcquireImageWaitStageFlags =
+    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |          // First use is a blit command.
+    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |  // First use is a draw command.
+    VK_PIPELINE_STAGE_TRANSFER_BIT;                  // First use is a clear without scissor.
+
 using StagingBufferOffsetArray = std::array<VkDeviceSize, 2>;
 
 // A dynamic buffer is conceptually an infinitely long buffer. Each time you write to the buffer,
@@ -1119,7 +1124,7 @@ class CommandBufferHelperCommon : angle::NonCopyable
 
     const QueueSerial &getQueueSerial() const { return mQueueSerial; }
 
-    SecondaryCommandBlockAllocator *getAllocator() { return &mCommandAllocator; }
+    bool hasAllocatorLinks() const { return mCommandAllocator.hasAllocatorLinks(); }
 
     // Dumping the command stream is disabled by default.
     static constexpr bool kEnableCommandStreamDiagnostics = false;
@@ -1288,7 +1293,10 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
 
     angle::Result reset(Context *context);
 
-    RenderPassCommandBuffer &getCommandBuffer() { return mCommandBuffers[mCurrentSubpass]; }
+    RenderPassCommandBuffer &getCommandBuffer()
+    {
+        return mCommandBuffers[mCurrentSubpassCommandBufferIndex];
+    }
 
     bool empty() const { return !started(); }
 
@@ -1446,6 +1454,8 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     void addCommandDiagnostics(ContextVk *contextVk);
 
   private:
+    uint32_t getSubpassCommandBufferCount() const { return mCurrentSubpassCommandBufferIndex + 1; }
+
     angle::Result initializeCommandBuffer(Context *context);
     angle::Result beginRenderPassCommandBuffer(ContextVk *contextVk);
     angle::Result endRenderPassCommandBuffer(ContextVk *contextVk);
@@ -1482,7 +1492,7 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     // dynamic.
     static constexpr size_t kMaxSubpassCount = 2;
     std::array<RenderPassCommandBuffer, kMaxSubpassCount> mCommandBuffers;
-    uint32_t mCurrentSubpass;
+    uint32_t mCurrentSubpassCommandBufferIndex;
 
     // RenderPass state
     uint32_t mCounter;
@@ -1740,7 +1750,8 @@ class ImageHelper final : public Resource, public angle::Subject
     angle::Result initMemory(Context *context,
                              bool hasProtectedContent,
                              const MemoryProperties &memoryProperties,
-                             VkMemoryPropertyFlags flags);
+                             VkMemoryPropertyFlags flags,
+                             vk::MemoryAllocationType);
     angle::Result initExternalMemory(Context *context,
                                      const MemoryProperties &memoryProperties,
                                      const VkMemoryRequirements &memoryRequirements,
@@ -2585,6 +2596,7 @@ class ImageHelper final : public Resource, public angle::Subject
     // Vulkan objects.
     Image mImage;
     DeviceMemory mDeviceMemory;
+    Allocation mVmaAllocation;
 
     // Image properties.
     VkImageCreateInfo mVkImageCreateInfo;
