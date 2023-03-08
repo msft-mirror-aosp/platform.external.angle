@@ -937,6 +937,11 @@ void DisplayMtl::initializeExtensions() const
     mNativeExtensions.copyTextureCHROMIUM           = true;
     mNativeExtensions.copyCompressedTextureCHROMIUM = false;
 
+    if (@available(iOS 14.0, macOS 10.11, macCatalyst 14.0, tvOS 16.0, *))
+    {
+        mNativeExtensions.textureMirrorClampToEdgeEXT = true;
+    }
+
     // EXT_debug_marker is not implemented yet, but the entry points must be exposed for the
     // Metal backend to be used in Chrome (http://anglebug.com/4946)
     mNativeExtensions.debugMarkerEXT = true;
@@ -988,8 +993,8 @@ void DisplayMtl::initializeExtensions() const
 
     mNativeExtensions.occlusionQueryBooleanEXT = true;
 
-    mNativeExtensions.disjointTimerQueryEXT = false;
-    mNativeCaps.queryCounterBitsTimeElapsed = 0;
+    mNativeExtensions.disjointTimerQueryEXT = true;
+    mNativeCaps.queryCounterBitsTimeElapsed = 64;
     mNativeCaps.queryCounterBitsTimestamp   = 0;
 
     mNativeExtensions.textureFilterAnisotropicEXT = true;
@@ -1042,6 +1047,13 @@ void DisplayMtl::initializeExtensions() const
     // Metal uses the opposite provoking vertex as GLES so emulation is required to use the GLES
     // behaviour. Allow users to change the provoking vertex for improved performance.
     mNativeExtensions.provokingVertexANGLE = true;
+
+    // GL_EXT_blend_func_extended
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.12, 11.0, 13.1))
+    {
+        mNativeExtensions.blendFuncExtendedEXT = true;
+        mNativeCaps.maxDualSourceDrawBuffers   = 1;
+    }
 
     // GL_ANGLE_shader_pixel_local_storage.
     if (!mFeatures.disableProgrammableBlending.enabled && supportsAppleGPUFamily(1))
@@ -1239,21 +1251,14 @@ void DisplayMtl::initializeFeatures()
 
     ANGLE_FEATURE_CONDITION((&mFeatures), preemptivelyStartProvokingVertexCommandBuffer, isAMD());
 
-    ANGLE_FEATURE_CONDITION((&mFeatures), alwaysUseStagedBufferUpdates, isAMD());
-    ANGLE_FEATURE_CONDITION((&mFeatures), alwaysUseManagedStorageModeForBuffers, isAMD());
-
-    ANGLE_FEATURE_CONDITION((&mFeatures), alwaysUseSharedStorageModeForBuffers, isIntel());
-    ANGLE_FEATURE_CONDITION((&mFeatures), useShadowBuffersWhenAppropriate, isIntel());
-
-    // At least one of these must not be set.
-    ASSERT(!mFeatures.alwaysUseManagedStorageModeForBuffers.enabled ||
-           !mFeatures.alwaysUseSharedStorageModeForBuffers.enabled);
-
     ANGLE_FEATURE_CONDITION((&mFeatures), uploadDataToIosurfacesWithStagingBuffers, isAMD());
 
     // Render passes can be rendered without attachments on Apple4 , mac2 hardware.
     ANGLE_FEATURE_CONDITION(&(mFeatures), allowRenderpassWithoutAttachment,
                             supportsEitherGPUFamily(4, 2));
+
+    ANGLE_FEATURE_CONDITION((&mFeatures), enableInMemoryMtlLibraryCache, true);
+    ANGLE_FEATURE_CONDITION((&mFeatures), enableParallelMtlLibraryCompilation, true);
 
     ApplyFeatureOverrides(&mFeatures, getState());
 }

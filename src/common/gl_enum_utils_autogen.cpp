@@ -1111,6 +1111,8 @@ const char *GLenumToString(GLESEnum enumGroup, unsigned int value)
                     return "GL_CURRENT_VERTEX_ATTRIB";
                 case 0x8645:
                     return "GL_VERTEX_ATTRIB_ARRAY_POINTER";
+                case 0x864F:
+                    return "GL_DEPTH_CLAMP_EXT";
                 case 0x86A1:
                     return "GL_TEXTURE_COMPRESSED";
                 case 0x86A2:
@@ -1135,6 +1137,8 @@ const char *GLenumToString(GLESEnum enumGroup, unsigned int value)
                     return "GL_DOT3_RGBA";
                 case 0x8741:
                     return "GL_PROGRAM_BINARY_LENGTH";
+                case 0x8743:
+                    return "GL_MIRROR_CLAMP_TO_EDGE_EXT";
                 case 0x8764:
                     return "GL_BUFFER_SIZE";
                 case 0x8765:
@@ -23480,6 +23484,10 @@ unsigned int StringToGLenum(const char *str)
         return 0x84F9;
     }
     if (strcmp(str, "GL_DEPTH_STENCIL_TEXTURE_MODE") == 0)
+    {
+        return 0x90EA;
+    }
+    if (strcmp(str, "GL_DEPTH_STENCIL_TEXTURE_MODE_ANGLE") == 0)
     {
         return 0x90EA;
     }

@@ -353,11 +353,16 @@ void RendererVk::ensureCapsInitialized() const
     mNativeExtensions.debugMarkerEXT                = true;
     mNativeExtensions.robustnessEXT                 = true;
     mNativeExtensions.discardFramebufferEXT         = true;
+    mNativeExtensions.stencilTexturingANGLE         = true;
     mNativeExtensions.textureBorderClampOES = getFeatures().supportsCustomBorderColor.enabled;
     mNativeExtensions.textureBorderClampEXT = getFeatures().supportsCustomBorderColor.enabled;
     mNativeExtensions.polygonOffsetClampEXT = mPhysicalDeviceFeatures.depthBiasClamp == VK_TRUE;
     // Enable EXT_texture_type_2_10_10_10_REV
     mNativeExtensions.textureType2101010REVEXT = true;
+
+    // Enable EXT_texture_mirror_clamp_to_edge
+    mNativeExtensions.textureMirrorClampToEdgeEXT =
+        getFeatures().supportsSamplerMirrorClampToEdge.enabled;
 
     // Enable EXT_multi_draw_indirect
     mNativeExtensions.multiDrawIndirectEXT = true;
@@ -999,11 +1004,11 @@ void RendererVk::ensureCapsInitialized() const
     // Geometry shaders are required for ES 3.2.
     if (mPhysicalDeviceFeatures.geometryShader)
     {
-        // TODO: geometry shader support is incomplete.  http://anglebug.com/3571
-        bool geometryShader = mFeatures.supportsTransformFeedbackExtension.enabled &&
-                              mFeatures.exposeNonConformantExtensionsAndVersions.enabled;
-        mNativeExtensions.geometryShaderEXT = geometryShader;
-        mNativeExtensions.geometryShaderOES = geometryShader;
+        bool geometryShaderEnabled = mFeatures.supportsTransformFeedbackExtension.enabled &&
+                                     (mFeatures.supportsPrimitivesGeneratedQuery.enabled ||
+                                      mFeatures.exposeNonConformantExtensionsAndVersions.enabled);
+        mNativeExtensions.geometryShaderEXT = geometryShaderEnabled;
+        mNativeExtensions.geometryShaderOES = geometryShaderEnabled;
         mNativeCaps.maxFramebufferLayers    = LimitToInt(limitsVk.maxFramebufferLayers);
 
         // Use "undefined" which means APP would have to set gl_Layer identically.
@@ -1032,11 +1037,12 @@ void RendererVk::ensureCapsInitialized() const
     {
         constexpr uint32_t kReservedTessellationDefaultUniformBindingCount = 2;
 
-        // TODO: tessellation shader support is incomplete.  http://anglebug.com/3572
-        mNativeExtensions.tessellationShaderEXT =
+        bool tessellationShaderEnabled =
             mFeatures.supportsTransformFeedbackExtension.enabled &&
-            mFeatures.exposeNonConformantExtensionsAndVersions.enabled;
-        mNativeCaps.maxPatchVertices = LimitToInt(limitsVk.maxTessellationPatchSize);
+            (mFeatures.supportsPrimitivesGeneratedQuery.enabled ||
+             mFeatures.exposeNonConformantExtensionsAndVersions.enabled);
+        mNativeExtensions.tessellationShaderEXT = tessellationShaderEnabled;
+        mNativeCaps.maxPatchVertices            = LimitToInt(limitsVk.maxTessellationPatchSize);
         mNativeCaps.maxTessPatchComponents =
             LimitToInt(limitsVk.maxTessellationControlPerPatchOutputComponents);
         mNativeCaps.maxTessGenLevel = LimitToInt(limitsVk.maxTessellationGenerationLevel);
@@ -1115,7 +1121,7 @@ void RendererVk::ensureCapsInitialized() const
     // GL_OVR_multiview*.  Bresenham line emulation does not work with multiview.  There's no
     // limitation in Vulkan to restrict an application to multiview 1.
     mNativeExtensions.multiviewOVR =
-        mMultiviewFeatures.multiview && mFeatures.bresenhamLineRasterization.enabled;
+        mFeatures.supportsMultiview.enabled && mFeatures.bresenhamLineRasterization.enabled;
     mNativeExtensions.multiview2OVR = mNativeExtensions.multiviewOVR;
     mNativeCaps.maxViews            = mMultiviewProperties.maxMultiviewViewCount;
 

@@ -71,10 +71,13 @@ def command_output(cmd, directory):
     Raises a RuntimeError if the command fails to launch or otherwise fails.
     """
     try:
+      # Set shell=True on Windows so that Chromium's git.bat can be found when
+      # 'git' is invoked.
       p = subprocess.Popen(cmd,
                            cwd=directory,
                            stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
+                           stderr=subprocess.PIPE,
+                           shell=os.name == 'nt')
       (stdout, stderr) = p.communicate()
       if p.returncode != 0:
         logging.error('Failed to run "{}" in "{}": {}'.format(cmd, directory, stderr.decode()))
@@ -142,7 +145,7 @@ def get_description_for_head(repo_path):
 
     success, output = command_output(['git', 'describe'], repo_path)
     if not success:
-      output = command_output(['git', 'rev-parse', 'HEAD'], repo_path)
+      success, output = command_output(['git', 'rev-parse', 'HEAD'], repo_path)
 
     if success:
       # decode() is needed here for Python3 compatibility. In Python2,
@@ -158,16 +161,12 @@ def get_description_for_head(repo_path):
     # reproducible builds, allow the builder to override the wall
     # clock time with environment variable SOURCE_DATE_EPOCH
     # containing a (presumably) fixed timestamp.
-    timestamp = int(os.environ.get('SOURCE_DATE_EPOCH', time.time()))
-    iso_date = datetime.datetime.utcfromtimestamp(timestamp).isoformat()
-    return "unknown hash, {}".format(iso_date)
-
-def is_folder_git_repo(path):
-  try:
-    success, _ = command_output(['git', 'branch'], path)
-  except NotADirectoryError as e:
-    return False
-  return success
+    if 'SOURCE_DATE_EPOCH' in os.environ:
+      timestamp = int(os.environ.get('SOURCE_DATE_EPOCH', time.time()))
+      iso_date = datetime.datetime.utcfromtimestamp(timestamp).isoformat()
+    else:
+      iso_date = datetime.datetime.now().isoformat()
+    return "unknown_hash, {}".format(iso_date)
 
 def main():
     FORMAT = '%(asctime)s %(message)s'
@@ -181,8 +180,8 @@ def main():
 
     success, version = deduce_current_release(repo_path)
     if not success:
-      logging.error("Could not deduce latest release version.")
-      sys.exit(1)
+      logging.warning("Could not deduce latest release version from history.")
+      version = "unknown_version"
 
     description = get_description_for_head(repo_path)
     content = OUTPUT_FORMAT.format(version_tag=version, description=description)

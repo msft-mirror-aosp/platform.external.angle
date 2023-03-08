@@ -666,6 +666,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_GetFramebufferPixelLocalStorageParameterivANGLE
                                                                                  GLenum pname,
                                                                                  GLint *params);
 
+// GL_ANGLE_stencil_texturing
+
 // GL_ANGLE_texture_compression_dxt3
 
 // GL_ANGLE_texture_compression_dxt5
@@ -816,6 +818,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_ClipControlEXT(GLenum origin, GLenum depth);
 
 // GL_EXT_color_buffer_half_float
 
+// GL_EXT_conservative_depth
+
 // GL_EXT_copy_image
 ANGLE_EXPORT void GL_APIENTRY GL_CopyImageSubDataEXT(GLuint srcName,
                                                      GLenum srcTarget,
@@ -845,6 +849,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_LabelObjectEXT(GLenum type,
 ANGLE_EXPORT void GL_APIENTRY GL_InsertEventMarkerEXT(GLsizei length, const GLchar *marker);
 ANGLE_EXPORT void GL_APIENTRY GL_PopGroupMarkerEXT();
 ANGLE_EXPORT void GL_APIENTRY GL_PushGroupMarkerEXT(GLsizei length, const GLchar *marker);
+
+// GL_EXT_depth_clamp
 
 // GL_EXT_discard_framebuffer
 ANGLE_EXPORT void GL_APIENTRY GL_DiscardFramebufferEXT(GLenum target,
@@ -1057,6 +1063,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_PrimitiveBoundingBoxEXT(GLfloat minX,
 // GL_EXT_pvrtc_sRGB
 
 // GL_EXT_read_format_bgra
+
+// GL_EXT_render_snorm
 
 // GL_EXT_robustness
 ANGLE_EXPORT GLenum GL_APIENTRY GL_GetGraphicsResetStatusEXT();
@@ -1320,6 +1328,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_TexBufferRangeEXT(GLenum target,
 // GL_EXT_texture_format_BGRA8888
 
 // GL_EXT_texture_format_sRGB_override
+
+// GL_EXT_texture_mirror_clamp_to_edge
 
 // GL_EXT_texture_norm16
 
@@ -1799,6 +1809,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_FramebufferTextureMultiviewOVR(GLenum target,
                                                                 GLsizei numViews);
 
 // GL_OVR_multiview2
+
+// GL_QCOM_render_shared_exponent
 
 // GL_QCOM_shading_rate
 ANGLE_EXPORT void GL_APIENTRY GL_ShadingRateQCOM(GLenum rate);

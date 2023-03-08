@@ -94,6 +94,8 @@ struct ProgramArgumentBufferEncoderMtl
     mtl::BufferPool bufferPool;
 };
 
+constexpr size_t kFragmentShaderVariants = 4;
+
 // Represents a specialized shader variant. For example, a shader variant with fragment coverage
 // mask enabled and a shader variant without.
 struct ProgramShaderObjVariantMtl
@@ -192,12 +194,6 @@ class ProgramMtl : public ProgramImpl, public mtl::RenderPipelineCacheSpecialize
     bool hasSpecializedShader(gl::ShaderType shaderType,
                               const mtl::RenderPipelineDesc &renderPipelineDesc) override;
 
-    angle::Result createMslShaderLib(
-        ContextMtl *context,
-        gl::ShaderType shaderType,
-        gl::InfoLog &infoLog,
-        mtl::TranslatedShaderInfo *translatedMslInfo,
-        NSDictionary<NSString *, NSObject *> *subtitutionDictionary = @{});
     // Calls this before drawing, changedPipelineDesc is passed when vertex attributes desc and/or
     // shader program changed.
     angle::Result setupDraw(const gl::Context *glContext,
@@ -220,6 +216,9 @@ class ProgramMtl : public ProgramImpl, public mtl::RenderPipelineCacheSpecialize
     bool hasFlatAttribute() const { return mProgramHasFlatAttributes; }
 
   private:
+    class ProgramLinkEvent;
+    class CompileMslTask;
+
     template <int cols, int rows>
     void setUniformMatrixfv(GLint location,
                             GLsizei count,
@@ -279,18 +278,9 @@ class ProgramMtl : public ProgramImpl, public mtl::RenderPipelineCacheSpecialize
 
     void linkUpdateHasFlatAttributes(const gl::Context *context);
 
-    angle::Result linkImplDirect(const gl::Context *glContext,
-                                 const gl::ProgramLinkedResources &resources,
-                                 gl::InfoLog &infoLog);
-
     void linkResources(const gl::Context *context, const gl::ProgramLinkedResources &resources);
-    angle::Result linkImpl(const gl::Context *glContext,
-                           const gl::ProgramLinkedResources &resources,
-                           gl::InfoLog &infoLog);
-
-    angle::Result linkTranslatedShaders(const gl::Context *glContext,
-                                        gl::BinaryInputStream *stream,
-                                        gl::InfoLog &infoLog);
+    std::unique_ptr<LinkEvent> compileMslShaderLibs(const gl::Context *context,
+                                                    gl::InfoLog &infoLog);
 
     mtl::BufferPool *getBufferPool(ContextMtl *context);
 
@@ -328,8 +318,8 @@ class ProgramMtl : public ProgramImpl, public mtl::RenderPipelineCacheSpecialize
     // - Vertex shader: One with emulated rasterization discard, one with true rasterization
     // discard, one without.
     mtl::RenderPipelineRasterStateMap<ProgramShaderObjVariantMtl> mVertexShaderVariants;
-    // - Fragment shader: One with sample coverage mask enabled, one with it disabled.
-    std::array<ProgramShaderObjVariantMtl, 2> mFragmentShaderVariants;
+    // - Fragment shader: Combinations of sample coverage mask and depth write enabled states.
+    std::array<ProgramShaderObjVariantMtl, kFragmentShaderVariants> mFragmentShaderVariants;
 
     // Cached references of current shader variants.
     gl::ShaderMap<ProgramShaderObjVariantMtl *> mCurrentShaderVariants;

@@ -256,17 +256,9 @@ class Context : angle::NonCopyable
     const angle::VulkanPerfCounters &getPerfCounters() const { return mPerfCounters; }
     angle::VulkanPerfCounters &getPerfCounters() { return mPerfCounters; }
 
-    SerialIndex getCurrentQueueSerialIndex() const { return mCurrentQueueSerialIndex; }
-    Serial getLastSubmittedSerial() const { return mLastSubmittedSerial; }
-
   protected:
     RendererVk *const mRenderer;
     angle::VulkanPerfCounters mPerfCounters;
-
-    // Per context queue serial
-    SerialIndex mCurrentQueueSerialIndex;
-    Serial mLastFlushedSerial;
-    Serial mLastSubmittedSerial;
 };
 
 class RenderPassDesc;
@@ -685,10 +677,9 @@ class BindingPointer final : angle::NonCopyable
     BindingPointer() = default;
     ~BindingPointer() { reset(); }
 
-    BindingPointer(BindingPointer &&other)
+    BindingPointer(BindingPointer &&other) : mRefCounted(other.mRefCounted)
     {
-        set(other.mRefCounted);
-        other.reset();
+        other.mRefCounted = nullptr;
     }
 
     void set(RefCounted<T> *refCounted)
@@ -1096,11 +1087,8 @@ void InitGGPStreamDescriptorSurfaceFunctions(VkInstance instance);
 // VK_KHR_external_semaphore_fd
 void InitExternalSemaphoreFdFunctions(VkInstance instance);
 
-// VK_EXT_external_memory_host
-void InitExternalMemoryHostFunctions(VkInstance instance);
-
-// VK_EXT_external_memory_host
-void InitHostQueryResetFunctions(VkInstance instance);
+// VK_EXT_host_query_reset
+void InitHostQueryResetFunctions(VkDevice instance);
 
 // VK_KHR_external_fence_capabilities
 void InitExternalFenceCapabilitiesFunctions(VkInstance instance);
@@ -1134,6 +1122,14 @@ void InitFragmentShadingRateKHRDeviceFunction(VkDevice device);
 void InitGetPastPresentationTimingGoogleFunction(VkDevice device);
 
 #endif  // !defined(ANGLE_SHARED_LIBVULKAN)
+
+// Promoted to Vulkan 1.1
+void InitGetPhysicalDeviceProperties2KHRFunctionsFromCore();
+void InitExternalFenceCapabilitiesFunctionsFromCore();
+void InitExternalSemaphoreCapabilitiesFunctionsFromCore();
+void InitSamplerYcbcrKHRFunctionsFromCore();
+void InitGetMemoryRequirements2KHRFunctionsFromCore();
+void InitBindMemory2KHRFunctionsFromCore();
 
 GLenum CalculateGenerateMipmapFilter(ContextVk *contextVk, angle::FormatID formatID);
 size_t PackSampleCount(GLint sampleCount);
@@ -1224,6 +1220,7 @@ enum class RenderPassClosureReason
     GLFinish,
     EGLSwapBuffers,
     EGLWaitClient,
+    SurfaceUnMakeCurrent,
 
     // Closure due to switching rendering to another framebuffer.
     FramebufferBindingChange,
