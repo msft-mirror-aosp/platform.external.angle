@@ -290,7 +290,7 @@ vk::ResourceAccess GetColorAccess(const gl::State &state,
         return hasFramebufferFetch ? vk::ResourceAccess::ReadOnly : vk::ResourceAccess::Unused;
     }
 
-    return vk::ResourceAccess::Write;
+    return vk::ResourceAccess::ReadWrite;
 }
 
 vk::ResourceAccess GetDepthAccess(const gl::DepthStencilState &dsState,
@@ -317,7 +317,7 @@ vk::ResourceAccess GetDepthAccess(const gl::DepthStencilState &dsState,
                    : vk::ResourceAccess::ReadOnly;
     }
 
-    return vk::ResourceAccess::Write;
+    return vk::ResourceAccess::ReadWrite;
 }
 
 vk::ResourceAccess GetStencilAccess(const gl::DepthStencilState &dsState,
@@ -337,7 +337,7 @@ vk::ResourceAccess GetStencilAccess(const gl::DepthStencilState &dsState,
     }
 
     return dsState.isStencilNoOp() && dsState.isStencilBackNoOp() ? vk::ResourceAccess::ReadOnly
-                                                                  : vk::ResourceAccess::Write;
+                                                                  : vk::ResourceAccess::ReadWrite;
 }
 
 egl::ContextPriority GetContextPriority(const gl::State &state)
@@ -2193,9 +2193,9 @@ angle::Result ContextVk::updateRenderPassDepthFeedbackLoopModeImpl(
     vk::ResourceAccess depthAccess       = GetDepthAccess(dsState, depthReason);
     vk::ResourceAccess stencilAccess     = GetStencilAccess(dsState, stencilReason);
 
-    if ((depthAccess == vk::ResourceAccess::Write &&
+    if ((HasResourceWriteAccess(depthAccess) &&
          drawFramebufferVk->isReadOnlyDepthFeedbackLoopMode()) ||
-        (stencilAccess == vk::ResourceAccess::Write &&
+        (HasResourceWriteAccess(stencilAccess) &&
          drawFramebufferVk->isReadOnlyStencilFeedbackLoopMode()))
     {
         // If we are switching out of read only mode and we are in feedback loop, we must end
@@ -3374,7 +3374,7 @@ angle::Result ContextVk::submitCommands(const vk::Semaphore *signalSemaphore, Su
         dumpCommandStreamDiagnostics();
     }
 
-    if (submission == Submit::AllCommands)
+    if (!mCurrentGarbage.empty() && submission == Submit::AllCommands)
     {
         // Clean up garbage.
         vk::ResourceUse use(mLastFlushedQueueSerial);
@@ -3384,7 +3384,7 @@ angle::Result ContextVk::submitCommands(const vk::Semaphore *signalSemaphore, Su
     ASSERT(mLastFlushedQueueSerial > mLastSubmittedQueueSerial);
 
     ANGLE_TRY(mRenderer->submitCommands(this, getProtectionType(), mContextPriority,
-                                        signalSemaphore, &mCommandPools, mLastFlushedQueueSerial));
+                                        signalSemaphore, mLastFlushedQueueSerial));
 
     ASSERT(mLastSubmittedQueueSerial < mLastFlushedQueueSerial);
     mLastSubmittedQueueSerial = mLastFlushedQueueSerial;
@@ -3406,15 +3406,17 @@ angle::Result ContextVk::submitCommands(const vk::Semaphore *signalSemaphore, Su
     return angle::Result::Continue;
 }
 
-angle::Result ContextVk::onCopyUpdate(VkDeviceSize size)
+angle::Result ContextVk::onCopyUpdate(VkDeviceSize size, bool *commandBufferWasFlushedOut)
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "ContextVk::onCopyUpdate");
+    *commandBufferWasFlushedOut = false;
 
     mTotalBufferToImageCopySize += size;
     // If the copy size exceeds the specified threshold, submit the outside command buffer.
     if (mTotalBufferToImageCopySize >= kMaxBufferToImageCopySize)
     {
         ANGLE_TRY(flushAndSubmitOutsideRenderPassCommands());
+        *commandBufferWasFlushedOut = true;
     }
     return angle::Result::Continue;
 }
@@ -4698,7 +4700,7 @@ void ContextVk::updateViewport(FramebufferVk *framebufferVk,
         rotatedRect, nearPlane, farPlane, invertViewport,
         // If clip space origin is upper left, viewport origin's y value will be offset by the
         // height of the viewport when clip space is mapped into screen space.
-        mState.getClipSpaceOrigin() == gl::ClipSpaceOrigin::UpperLeft,
+        mState.getClipOrigin() == gl::ClipOrigin::UpperLeft,
         // If the surface is rotated 90/270 degrees, use the framebuffer's width instead of the
         // height for calculating the final viewport.
         isRotatedAspectRatioForDrawFBO() ? fbDimensions.width : fbDimensions.height, &mViewport);
@@ -5525,7 +5527,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                             {
                                 mGraphicsPipelineDesc->updateDepthClipControl(
                                     &mGraphicsPipelineTransition,
-                                    !glState.isClipControlDepthZeroToOne());
+                                    !glState.isClipDepthModeZeroToOne());
                             }
                             else
                             {
@@ -6623,7 +6625,7 @@ angle::Result ContextVk::handleDirtyGraphicsDriverUniforms(DirtyBits::Iterator *
     const uint32_t swapXY               = IsRotatedAspectRatio(mCurrentRotationDrawFramebuffer);
     const uint32_t enabledClipDistances = mState.getEnabledClipDistances().bits();
     const uint32_t transformDepth =
-        getFeatures().supportsDepthClipControl.enabled ? 0 : !mState.isClipControlDepthZeroToOne();
+        getFeatures().supportsDepthClipControl.enabled ? 0 : !mState.isClipDepthModeZeroToOne();
 
     static_assert(angle::BitMask<uint32_t>(gl::IMPLEMENTATION_MAX_CLIP_DISTANCES) <=
                       sh::vk::kDriverUniformsMiscEnabledClipPlanesMask,
@@ -6700,7 +6702,7 @@ void ContextVk::handleError(VkResult errorCode,
     errorStream << "Internal Vulkan error (" << errorCode << "): " << VulkanResultString(errorCode)
                 << ".";
 
-    getRenderer()->logMemoryStatsOnError();
+    getRenderer()->getMemoryAllocationTracker()->logMemoryStatsOnError();
 
     if (errorCode == VK_ERROR_DEVICE_LOST)
     {

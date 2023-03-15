@@ -139,7 +139,6 @@ class CommandProcessorTask
     void initFlushAndQueueSubmit(const VkSemaphore semaphore,
                                  ProtectionType protectionType,
                                  egl::ContextPriority priority,
-                                 SecondaryCommandPools *commandPools,
                                  SecondaryCommandBufferList &&commandBuffersToReset,
                                  const QueueSerial &submitQueueSerial);
 
@@ -184,7 +183,6 @@ class CommandProcessorTask
     {
         return mRenderPassCommandBuffer;
     }
-    SecondaryCommandPools *getCommandPools() const { return mCommandPools; }
 
   private:
     void copyPresentInfo(const VkPresentInfoKHR &other);
@@ -202,7 +200,6 @@ class CommandProcessorTask
 
     // Flush data
     VkSemaphore mSemaphore;
-    SecondaryCommandPools *mCommandPools;
     SecondaryCommandBufferList mCommandBuffersToReset;
 
     // Flush command data
@@ -250,8 +247,6 @@ struct CommandBatch final : angle::NonCopyable
     void resetSecondaryCommandBuffers(VkDevice device);
 
     PrimaryCommandBuffer primaryCommands;
-    // commandPools is for secondary CommandBuffer allocation
-    SecondaryCommandPools *commandPools;
     SecondaryCommandBufferList commandBuffersToReset;
     SharedFence fence;
     QueueSerial queueSerial;
@@ -384,7 +379,6 @@ class CommandQueue : angle::NonCopyable
                                  egl::ContextPriority priority,
                                  const VkSemaphore signalSemaphore,
                                  SecondaryCommandBufferList &&commandBuffersToReset,
-                                 SecondaryCommandPools *commandPools,
                                  const QueueSerial &submitQueueSerial);
 
     angle::Result queueSubmitOneOff(Context *context,
@@ -402,11 +396,23 @@ class CommandQueue : angle::NonCopyable
                       const VkPresentInfoKHR &presentInfo,
                       SwapchainStatus *swapchainStatus);
 
-    angle::Result checkCompletedCommands(Context *context, bool *anyCommandFinished)
+    angle::Result checkCompletedCommands(Context *context)
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        ANGLE_TRY(checkCompletedCommandsLocked(context));
-        *anyCommandFinished = !mFinishedCommandBatches.empty();
+        return checkCompletedCommandsLocked(context);
+    }
+
+    bool hasFinishedCommands() const { return !mFinishedCommandBatches.empty(); }
+
+    angle::Result checkAndCleanupCompletedCommands(Context *context)
+    {
+        ANGLE_TRY(checkCompletedCommands(context));
+
+        if (!mFinishedCommandBatches.empty())
+        {
+            ANGLE_TRY(retireFinishedCommandsAndCleanupGarbage(context));
+        }
+
         return angle::Result::Continue;
     }
 
@@ -462,13 +468,14 @@ class CommandQueue : angle::NonCopyable
         std::vector<VkSemaphore> waitSemaphores;
         std::vector<VkPipelineStageFlags> waitSemaphoreStageMasks;
         PrimaryCommandBuffer primaryCommands;
-        // Keeps a free list of reusable primary command buffers.
-        PersistentCommandPool primaryCommandPool;
     };
+
+    using CommandsStateMap      = angle::PackedEnumMap<ProtectionType, CommandsState>;
+    using PrimaryCommandPoolMap = angle::PackedEnumMap<ProtectionType, PersistentCommandPool>;
 
     angle::Result initCommandPool(Context *context, ProtectionType protectionType)
     {
-        PersistentCommandPool &commandPool = mCommandsStateMap[protectionType].primaryCommandPool;
+        PersistentCommandPool &commandPool = mPrimaryCommandPoolMap[protectionType];
         return commandPool.init(context, protectionType, mQueueMap.getIndex());
     }
 
@@ -482,7 +489,9 @@ class CommandQueue : angle::NonCopyable
     // Temporary storage for finished command batches that should be reset.
     angle::FixedQueue<CommandBatch, kMaxFinishedCommandsLimit> mFinishedCommandBatches;
 
-    angle::PackedEnumMap<ProtectionType, CommandsState> mCommandsStateMap;
+    CommandsStateMap mCommandsStateMap;
+    // Keeps a free list of reusable primary command buffers.
+    PrimaryCommandPoolMap mPrimaryCommandPoolMap;
 
     // Queue serial management.
     AtomicQueueSerialFixedArray mLastSubmittedSerials;
@@ -527,7 +536,6 @@ class CommandProcessor : public Context
                                         egl::ContextPriority priority,
                                         const VkSemaphore signalSemaphore,
                                         SecondaryCommandBufferList &&commandBuffersToReset,
-                                        SecondaryCommandPools *commandPools,
                                         const QueueSerial &submitQueueSerial);
 
     void requestCommandsAndGarbageCleanup();

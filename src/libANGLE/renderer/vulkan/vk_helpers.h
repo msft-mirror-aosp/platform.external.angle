@@ -1000,7 +1000,7 @@ class RenderPassAttachment final
                            bool *isInvalidatedOut);
     void restoreContent();
     bool hasAnyAccess() const { return mAccess != ResourceAccess::Unused; }
-    bool hasWriteAccess() const { return mAccess == ResourceAccess::Write; }
+    bool hasWriteAccess() const { return HasResourceWriteAccess(mAccess); }
 
     ImageHelper *getImage() { return mImage; }
 
@@ -1706,7 +1706,6 @@ class ImageHelper final : public Resource, public angle::Subject
 {
   public:
     ImageHelper();
-    ImageHelper(ImageHelper &&other);
     ~ImageHelper() override;
 
     angle::Result init(Context *context,
