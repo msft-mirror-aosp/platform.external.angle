@@ -25,6 +25,7 @@
 #include "libANGLE/angletypes.h"
 #include "libANGLE/renderer/serial_utils.h"
 #include "libANGLE/renderer/vulkan/SecondaryCommandBuffer.h"
+#include "libANGLE/renderer/vulkan/SecondaryCommandPool.h"
 #include "libANGLE/renderer/vulkan/VulkanSecondaryCommandBuffer.h"
 #include "libANGLE/renderer/vulkan/vk_wrapper.h"
 #include "platform/FeaturesVk_autogen.h"
@@ -106,6 +107,14 @@ enum class TextureDimension
     TEX_CUBE,
     TEX_3D,
     TEX_2D_ARRAY,
+};
+
+enum class BufferUsageType
+{
+    Static      = 0,
+    Dynamic     = 1,
+    InvalidEnum = 2,
+    EnumCount   = InvalidEnum,
 };
 
 // A maximum offset of 4096 covers almost every Vulkan driver on desktop (80%) and mobile (99%). The
@@ -303,16 +312,10 @@ using RenderPassCommandBuffer = priv::SecondaryCommandBuffer;
 using RenderPassCommandBuffer                = VulkanSecondaryCommandBuffer;
 #endif
 
-struct SecondaryCommandBufferList
-{
-    std::vector<OutsideRenderPassCommandBuffer> outsideRenderPassCommandBuffers;
-    std::vector<RenderPassCommandBuffer> renderPassCommandBuffers;
-};
-
 struct SecondaryCommandPools
 {
-    CommandPool outsideRenderPassPool;
-    CommandPool renderPassPool;
+    SecondaryCommandPool outsideRenderPassPool;
+    SecondaryCommandPool renderPassPool;
 };
 
 VkImageAspectFlags GetDepthStencilAspectFlags(const angle::Format &format);
@@ -1258,7 +1261,6 @@ enum class RenderPassClosureReason
     BufferUseThenReleaseToExternal,
     ImageUseThenReleaseToExternal,
     BufferInUseWhenSynchronizedMap,
-    ImageOrphan,
     GLMemoryBarrierThenStorageResource,
     StorageResourceUseThenGLMemoryBarrier,
     ExternalSemaphoreSignal,

@@ -284,16 +284,6 @@ class RendererVk : angle::NonCopyable
         return mOneOffCommandPoolMap[protectionType].getCommandBuffer(context, commandBufferOut);
     }
 
-    void resetOutsideRenderPassCommandBuffer(vk::OutsideRenderPassCommandBuffer &&commandBuffer)
-    {
-        mOutsideRenderPassCommandBufferRecycler.resetCommandBuffer(std::move(commandBuffer));
-    }
-
-    void resetRenderPassCommandBuffer(vk::RenderPassCommandBuffer &&commandBuffer)
-    {
-        mRenderPassCommandBufferRecycler.resetCommandBuffer(std::move(commandBuffer));
-    }
-
     // Fire off a single command buffer immediately with default priority.
     // Command buffer must be allocated with getCommandBufferOneOff and is reclaimed.
     angle::Result queueSubmitOneOff(vk::Context *context,
@@ -305,6 +295,12 @@ class RendererVk : angle::NonCopyable
                                     const vk::Fence *fence,
                                     vk::SubmitPolicy submitPolicy,
                                     QueueSerial *queueSerialOut);
+
+    angle::Result queueSubmitWaitSemaphore(vk::Context *context,
+                                           egl::ContextPriority priority,
+                                           const vk::Semaphore &waitSemaphore,
+                                           VkPipelineStageFlags waitSemaphoreStageMasks,
+                                           QueueSerial submitQueueSerial);
 
     template <typename... ArgsT>
     void collectGarbage(const vk::ResourceUse &use, ArgsT... garbageIn)
@@ -422,12 +418,14 @@ class RendererVk : angle::NonCopyable
         }
     }
 
-    angle::Result waitForResourceUseToBeSubmitted(vk::Context *context, const vk::ResourceUse &use)
+    angle::Result waitForResourceUseToBeSubmittedToDevice(vk::Context *context,
+                                                          const vk::ResourceUse &use)
     {
         // This is only needed for async submission code path. For immediate submission, it is a nop
         // since everything is submitted immediately.
         if (isAsyncCommandQueueEnabled())
         {
+            ASSERT(mCommandProcessor.hasResourceUseEnqueued(use));
             return mCommandProcessor.waitForResourceUseToBeSubmitted(context, use);
         }
         // This ResourceUse must have been submitted.
@@ -435,17 +433,18 @@ class RendererVk : angle::NonCopyable
         return angle::Result::Continue;
     }
 
-    angle::Result waitForQueueSerialToBeSubmitted(vk::Context *context,
-                                                  const QueueSerial &queueSerial)
+    angle::Result waitForQueueSerialToBeSubmittedToDevice(vk::Context *context,
+                                                          const QueueSerial &queueSerial)
     {
         // This is only needed for async submission code path. For immediate submission, it is a nop
         // since everything is submitted immediately.
         if (isAsyncCommandQueueEnabled())
         {
+            ASSERT(mCommandProcessor.hasQueueSerialEnqueued(queueSerial));
             return mCommandProcessor.waitForQueueSerialToBeSubmitted(context, queueSerial);
         }
         // This queueSerial must have been submitted.
-        ASSERT(mCommandQueue.hasResourceUseSubmitted(vk::ResourceUse(queueSerial)));
+        ASSERT(mCommandQueue.hasQueueSerialSubmitted(queueSerial));
         return angle::Result::Continue;
     }
 
@@ -483,7 +482,13 @@ class RendererVk : angle::NonCopyable
                                  vk::ProtectionType protectionType,
                                  egl::ContextPriority contextPriority,
                                  const vk::Semaphore *signalSemaphore,
-                                 const QueueSerial &submitSerialOut);
+                                 const QueueSerial &submitQueueSerial);
+
+    angle::Result submitPriorityDependency(vk::Context *context,
+                                           vk::ProtectionTypes protectionTypes,
+                                           egl::ContextPriority srcContextPriority,
+                                           egl::ContextPriority dstContextPriority,
+                                           SerialIndex index);
 
     void handleDeviceLost();
     angle::Result finishResourceUse(vk::Context *context, const vk::ResourceUse &use);
@@ -496,15 +501,18 @@ class RendererVk : angle::NonCopyable
     angle::Result checkCompletedCommands(vk::Context *context);
 
     angle::Result flushWaitSemaphores(vk::ProtectionType protectionType,
+                                      egl::ContextPriority priority,
                                       std::vector<VkSemaphore> &&waitSemaphores,
                                       std::vector<VkPipelineStageFlags> &&waitSemaphoreStageMasks);
     angle::Result flushRenderPassCommands(vk::Context *context,
                                           vk::ProtectionType protectionType,
+                                          egl::ContextPriority priority,
                                           const vk::RenderPass &renderPass,
                                           vk::RenderPassCommandBufferHelper **renderPassCommands);
     angle::Result flushOutsideRPCommands(
         vk::Context *context,
         vk::ProtectionType protectionType,
+        egl::ContextPriority priority,
         vk::OutsideRenderPassCommandBufferHelper **outsideRPCommands);
 
     void queuePresent(vk::Context *context,
@@ -517,20 +525,18 @@ class RendererVk : angle::NonCopyable
 
     angle::Result getOutsideRenderPassCommandBufferHelper(
         vk::Context *context,
-        vk::CommandPool *commandPool,
+        vk::SecondaryCommandPool *commandPool,
         vk::SecondaryCommandMemoryAllocator *commandsAllocator,
         vk::OutsideRenderPassCommandBufferHelper **commandBufferHelperOut);
     angle::Result getRenderPassCommandBufferHelper(
         vk::Context *context,
-        vk::CommandPool *commandPool,
+        vk::SecondaryCommandPool *commandPool,
         vk::SecondaryCommandMemoryAllocator *commandsAllocator,
         vk::RenderPassCommandBufferHelper **commandBufferHelperOut);
 
     void recycleOutsideRenderPassCommandBufferHelper(
-        VkDevice device,
         vk::OutsideRenderPassCommandBufferHelper **commandBuffer);
-    void recycleRenderPassCommandBufferHelper(VkDevice device,
-                                              vk::RenderPassCommandBufferHelper **commandBuffer);
+    void recycleRenderPassCommandBufferHelper(vk::RenderPassCommandBufferHelper **commandBuffer);
 
     // Process GPU memory reports
     void processMemoryReportCallback(const VkDeviceMemoryReportCallbackDataEXT &callbackData)
@@ -740,7 +746,7 @@ class RendererVk : angle::NonCopyable
 
     template <typename CommandBufferHelperT, typename RecyclerT>
     angle::Result getCommandBufferImpl(vk::Context *context,
-                                       vk::CommandPool *commandPool,
+                                       vk::SecondaryCommandPool *commandPool,
                                        vk::SecondaryCommandMemoryAllocator *commandsAllocator,
                                        RecyclerT *recycler,
                                        CommandBufferHelperT **commandBufferHelperOut);
@@ -931,11 +937,9 @@ class RendererVk : angle::NonCopyable
     vk::CommandProcessor mCommandProcessor;
 
     // Command buffer pool management.
-    vk::CommandBufferRecycler<vk::OutsideRenderPassCommandBuffer,
-                              vk::OutsideRenderPassCommandBufferHelper>
+    vk::CommandBufferRecycler<vk::OutsideRenderPassCommandBufferHelper>
         mOutsideRenderPassCommandBufferRecycler;
-    vk::CommandBufferRecycler<vk::RenderPassCommandBuffer, vk::RenderPassCommandBufferHelper>
-        mRenderPassCommandBufferRecycler;
+    vk::CommandBufferRecycler<vk::RenderPassCommandBufferHelper> mRenderPassCommandBufferRecycler;
 
     SamplerCache mSamplerCache;
     SamplerYcbcrConversionCache mYuvConversionCache;

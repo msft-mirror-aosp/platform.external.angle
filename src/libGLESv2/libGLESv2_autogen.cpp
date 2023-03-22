@@ -3814,24 +3814,48 @@ void GL_APIENTRY glPixelLocalStorageBarrierANGLE()
     return GL_PixelLocalStorageBarrierANGLE();
 }
 
+void GL_APIENTRY glFramebufferPixelLocalStorageInterruptANGLE()
+{
+    return GL_FramebufferPixelLocalStorageInterruptANGLE();
+}
+
+void GL_APIENTRY glFramebufferPixelLocalStorageRestoreANGLE()
+{
+    return GL_FramebufferPixelLocalStorageRestoreANGLE();
+}
+
 void GL_APIENTRY glGetFramebufferPixelLocalStorageParameterfvANGLE(GLint plane,
                                                                    GLenum pname,
-                                                                   GLsizei bufSize,
-                                                                   GLsizei *length,
                                                                    GLfloat *params)
 {
-    return GL_GetFramebufferPixelLocalStorageParameterfvANGLE(plane, pname, bufSize, length,
-                                                              params);
+    return GL_GetFramebufferPixelLocalStorageParameterfvANGLE(plane, pname, params);
 }
 
 void GL_APIENTRY glGetFramebufferPixelLocalStorageParameterivANGLE(GLint plane,
                                                                    GLenum pname,
-                                                                   GLsizei bufSize,
-                                                                   GLsizei *length,
                                                                    GLint *params)
 {
-    return GL_GetFramebufferPixelLocalStorageParameterivANGLE(plane, pname, bufSize, length,
-                                                              params);
+    return GL_GetFramebufferPixelLocalStorageParameterivANGLE(plane, pname, params);
+}
+
+void GL_APIENTRY glGetFramebufferPixelLocalStorageParameterfvRobustANGLE(GLint plane,
+                                                                         GLenum pname,
+                                                                         GLsizei bufSize,
+                                                                         GLsizei *length,
+                                                                         GLfloat *params)
+{
+    return GL_GetFramebufferPixelLocalStorageParameterfvRobustANGLE(plane, pname, bufSize, length,
+                                                                    params);
+}
+
+void GL_APIENTRY glGetFramebufferPixelLocalStorageParameterivRobustANGLE(GLint plane,
+                                                                         GLenum pname,
+                                                                         GLsizei bufSize,
+                                                                         GLsizei *length,
+                                                                         GLint *params)
+{
+    return GL_GetFramebufferPixelLocalStorageParameterivRobustANGLE(plane, pname, bufSize, length,
+                                                                    params);
 }
 
 // GL_ANGLE_stencil_texturing

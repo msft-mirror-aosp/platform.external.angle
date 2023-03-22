@@ -50,6 +50,11 @@ template("rust_target") {
     _out_dir = target_out_dir
   }
 
+  _allow_unsafe = false
+  if (defined(invoker.allow_unsafe)) {
+    _allow_unsafe = invoker.allow_unsafe
+  }
+
   if (defined(invoker.generate_crate_root) && invoker.generate_crate_root) {
     generated_file("${_target_name}_crate_root") {
       outputs = [ "${target_gen_dir}/${target_name}.rs" ]
@@ -113,6 +118,7 @@ template("rust_target") {
                              "//build/rust:edition_",
                              _edition,
                            ]) ]
+  _test_configs = []
   if (invoker.target_type == "executable") {
     if (defined(invoker.executable_configs)) {
       _configs += invoker.executable_configs
@@ -120,6 +126,7 @@ template("rust_target") {
   } else if (invoker.target_type == "rust_proc_macro") {
     if (defined(invoker.proc_macro_configs)) {
       _configs += invoker.proc_macro_configs
+      _test_configs += [ "//build/rust:proc_macro_extern" ]
     }
   } else {
     if (defined(invoker.library_configs)) {
@@ -202,6 +209,7 @@ template("rust_target") {
 
     not_needed(invoker, "*")
     not_needed([
+                 "_allow_unsafe",
                  "_build_unit_tests",
                  "_crate_root",
                  "_crate_name",
@@ -312,6 +320,10 @@ template("rust_target") {
       if (compute_inputs_for_analyze) {
         deps += [ ":${_target_name}_analyze" ]
       }
+
+      if (!_allow_unsafe) {
+        configs += [ "//build/rust:forbid_unsafe" ]
+      }
     }
 
     if (compute_inputs_for_analyze) {
@@ -375,14 +387,22 @@ template("rust_target") {
         if (defined(invoker.executable_configs)) {
           configs = []
           configs = invoker.executable_configs
+        } else if (!defined(configs)) {
+          configs = []
         }
+        configs += _test_configs
         rustenv = _rustenv
+
+        if (!_allow_unsafe) {
+          configs += [ "//build/rust:forbid_unsafe" ]
+        }
       }
     } else {
       not_needed([
                    "_crate_root",
                    "_crate_name",
                    "_metadata",
+                   "_test_configs",
                  ])
     }
   }

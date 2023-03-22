@@ -616,9 +616,13 @@ EXPORTS
     glFramebufferPixelLocalClearValuefvANGLE
     glFramebufferPixelLocalClearValueivANGLE
     glFramebufferPixelLocalClearValueuivANGLE
+    glFramebufferPixelLocalStorageInterruptANGLE
+    glFramebufferPixelLocalStorageRestoreANGLE
     glFramebufferTexturePixelLocalStorageANGLE
     glGetFramebufferPixelLocalStorageParameterfvANGLE
+    glGetFramebufferPixelLocalStorageParameterfvRobustANGLE
     glGetFramebufferPixelLocalStorageParameterivANGLE
+    glGetFramebufferPixelLocalStorageParameterivRobustANGLE
     glPixelLocalStorageBarrierANGLE
 
     ; GL_ANGLE_stencil_texturing

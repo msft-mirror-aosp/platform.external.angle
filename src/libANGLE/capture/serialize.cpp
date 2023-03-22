@@ -409,6 +409,7 @@ void SerializeRasterizerState(JsonSerializer *json, const gl::RasterizerState &r
     json->addScalar("PolygonOffsetFactor", rasterizerState.polygonOffsetFactor);
     json->addScalar("PolygonOffsetUnits", rasterizerState.polygonOffsetUnits);
     json->addScalar("PolygonOffsetClamp", rasterizerState.polygonOffsetClamp);
+    json->addScalar("DepthClamp", rasterizerState.depthClamp);
     json->addScalar("PointDrawMode", rasterizerState.pointDrawMode);
     json->addScalar("MultiSample", rasterizerState.multiSample);
     json->addScalar("RasterizerDiscard", rasterizerState.rasterizerDiscard);
@@ -575,6 +576,8 @@ void SerializeContextState(JsonSerializer *json, const gl::State &state)
     SerializeRectangle(json, "Viewport", state.getViewport());
     json->addScalar("Near", state.getNearPlane());
     json->addScalar("Far", state.getFarPlane());
+    json->addString("ClipOrigin", ToString(state.getClipOrigin()));
+    json->addString("ClipDepthMode", ToString(state.getClipDepthMode()));
     SerializeResourceID(json, "ReadFramebufferID", state.getReadFramebuffer());
     SerializeResourceID(json, "DrawFramebufferID", state.getDrawFramebuffer());
     json->addScalar("RenderbufferID", state.getRenderbufferId().value);

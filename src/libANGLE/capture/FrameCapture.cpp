@@ -4958,6 +4958,11 @@ void CaptureMidExecutionSetup(const gl::Context *context,
         }
     }
 
+    if (currentRasterState.depthClamp != defaultRasterState.depthClamp)
+    {
+        capCap(GL_DEPTH_CLAMP_EXT, currentRasterState.depthClamp);
+    }
+
     // pointDrawMode/multiSample are only used in the D3D back-end right now.
 
     if (currentRasterState.rasterizerDiscard != defaultRasterState.rasterizerDiscard)
@@ -5245,6 +5250,13 @@ void CaptureMidExecutionSetup(const gl::Context *context,
     if (apiState.getNearPlane() != 0.0f || apiState.getFarPlane() != 1.0f)
     {
         cap(CaptureDepthRangef(replayState, true, apiState.getNearPlane(), apiState.getFarPlane()));
+    }
+
+    if (apiState.getClipOrigin() != gl::ClipOrigin::LowerLeft ||
+        apiState.getClipDepthMode() != gl::ClipDepthMode::NegativeOneToOne)
+    {
+        cap(CaptureClipControlEXT(replayState, true, apiState.getClipOrigin(),
+                                  apiState.getClipDepthMode()));
     }
 
     if (apiState.isScissorTestEnabled())
