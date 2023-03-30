@@ -15,7 +15,6 @@
 #ifndef INCLUDE_SPIRV_TOOLS_EXTRACT_SOURCE_HPP_
 #define INCLUDE_SPIRV_TOOLS_EXTRACT_SOURCE_HPP_
 
-#include <stdint.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -32,7 +31,7 @@
 //
 // Returns `true` if the extraction succeeded, `false` otherwise.
 // `output` value is undefined if `false` is returned.
-bool ExtractSourceFromModule(
+bool extract_source_from_module(
     const std::vector<uint32_t>& binary,
     std::unordered_map<std::string, std::string>* output);
 

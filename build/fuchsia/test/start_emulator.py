@@ -10,7 +10,7 @@ import sys
 import time
 
 from common import catch_sigterm, register_log_args
-from ffx_emulator import FfxEmulator
+from ffx_integration import FfxEmulator
 
 
 def register_emulator_args(parser: argparse.ArgumentParser,
@@ -47,7 +47,8 @@ def register_emulator_args(parser: argparse.ArgumentParser,
 def create_emulator_from_args(args: argparse.Namespace) -> FfxEmulator:
     """Helper method for initializing an FfxEmulator class with parsed
     arguments."""
-    return FfxEmulator(args)
+    return FfxEmulator(args.enable_graphics, args.hardware_gpu,
+                       args.product_bundle, args.with_network, args.logs_dir)
 
 
 def main():

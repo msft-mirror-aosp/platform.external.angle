@@ -1287,15 +1287,6 @@ enum TLayoutBlockStorage
     EbsLast = EbsStd430,
 };
 
-enum TLayoutDepth
-{
-    EdUnspecified,
-    EdAny,
-    EdGreater,
-    EdLess,
-    EdUnchanged,
-};
-
 enum TYuvCscStandardEXT
 {
     EycsUndefined,
@@ -1373,7 +1364,7 @@ struct TLayoutQualifier
                earlyFragmentTests == false && matrixPacking == EmpUnspecified &&
                blockStorage == EbsUnspecified && !localSize.isAnyValueSet() &&
                imageInternalFormat == EiifUnspecified && primitiveType == EptUndefined &&
-               invocations == 0 && maxVertices == -1 && vertices == 0 && depth == EdUnspecified &&
+               invocations == 0 && maxVertices == -1 && vertices == 0 &&
                tesPrimitiveType == EtetUndefined && tesVertexSpacingType == EtetUndefined &&
                tesOrderingType == EtetUndefined && tesPointType == EtetUndefined && index == -1 &&
                inputAttachmentIndex == -1 && noncoherent == false &&
@@ -1419,9 +1410,6 @@ struct TLayoutQualifier
     int offset;
 
     bool pushConstant;
-
-    // Depth layout qualifier
-    TLayoutDepth depth;
 
     // Image format layout qualifier
     TLayoutImageInternalFormat imageInternalFormat;
@@ -1471,7 +1459,6 @@ struct TLayoutQualifier
           binding(-1),
           offset(-1),
           pushConstant(false),
-          depth(EdUnspecified),
           imageInternalFormat(EiifUnspecified),
           numViews(-1),
           yuv(false),
@@ -1712,26 +1699,6 @@ inline const char *getImageInternalFormatString(TLayoutImageInternalFormat iifq)
         default:
             UNREACHABLE();
             return "unknown internal image format";
-    }
-}
-
-inline const char *getDepthString(TLayoutDepth depth)
-{
-    switch (depth)
-    {
-        case EdUnspecified:
-            return "depth_unspecified";
-        case EdAny:
-            return "depth_any";
-        case EdGreater:
-            return "depth_greater";
-        case EdLess:
-            return "depth_less";
-        case EdUnchanged:
-            return "depth_unchanged";
-        default:
-            UNREACHABLE();
-            return "unknown depth";
     }
 }
 

@@ -43,10 +43,8 @@ function clean_dir() {
   mkdir "$dir"
 }
 
-if [ $TOOL != "cmake-smoketest" ]; then
-  # Get source for dependencies, as specified in the DEPS file
-  /usr/bin/python3 utils/git-sync-deps --treeless
-fi
+# Get source for dependencies, as specified in the DEPS file
+/usr/bin/python3 utils/git-sync-deps --treeless
 
 if [ $TOOL = "cmake" ]; then
   using cmake-3.17.2

@@ -309,7 +309,7 @@ void LivenessManager::ComputeLiveness() {
     def_use_mgr->ForEachUser(var_id, [this, &var](Instruction* user) {
       auto op = user->opcode();
       if (op == spv::Op::OpEntryPoint || op == spv::Op::OpName ||
-          op == spv::Op::OpDecorate || user->IsNonSemanticInstruction()) {
+          op == spv::Op::OpDecorate) {
         return;
       }
       MarkRefLive(user, &var);

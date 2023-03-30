@@ -480,7 +480,9 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
         E_GL_EXT_shader_explicit_arithmetic_types_int16 };
     static const int Num_Int16_Extensions = sizeof(Int16_Extensions) / sizeof(Int16_Extensions[0]);
 
-    ppToken->clear();
+    ppToken->ival = 0;
+    ppToken->i64val = 0;
+    ppToken->space = false;
     ch = getch();
     for (;;) {
         while (ch == ' ' || ch == '\t') {
