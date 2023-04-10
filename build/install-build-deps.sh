@@ -192,6 +192,7 @@ dev_list="\
   libspeechd-dev
   libsqlite3-dev
   libssl-dev
+  libsystemd-dev
   libudev-dev
   libva-dev
   libwww-perl
@@ -244,6 +245,7 @@ common_lib_list="\
   libc6
   libcairo2
   libcap2
+  libcgi-session-perl
   libcups2
   libdrm2
   libegl1

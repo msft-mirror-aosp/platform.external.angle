@@ -3,7 +3,6 @@
 # Copyright 2013 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 """Instruments classes and jar files.
 
 This script corresponds to the 'jacoco_instr' action in the Java build process.
@@ -13,16 +12,17 @@ jacococli.jar.
 
 """
 
-
 import argparse
 import json
 import os
 import shutil
 import sys
-import tempfile
 import zipfile
 
 from util import build_utils
+
+# This should be same as recipe side token. See bit.ly/3STSPcE.
+INSTRUMENT_ALL_JACOCO_OVERRIDE_TOKEN = 'INSTRUMENT_ALL_JACOCO'
 
 
 def _AddArguments(parser):
@@ -48,9 +48,9 @@ def _AddArguments(parser):
       help='File to create with the list of source directories '
       'and input path.')
   parser.add_argument(
-      '--java-sources-file',
+      '--target-sources-file',
       required=True,
-      help='File containing newline-separated .java paths')
+      help='File containing newline-separated .java and .kt paths')
   parser.add_argument(
       '--jacococli-jar', required=True, help='Path to jacococli.jar.')
   parser.add_argument(
@@ -134,7 +134,8 @@ def _GetAffectedClasses(jar_file, source_files):
     if index == -1:
       index = member.find('.class')
     for source_file in source_files:
-      if source_file.endswith(member[:index] + '.java'):
+      if source_file.endswith(
+          (member[:index] + '.java', member[:index] + '.kt')):
         affected_classes.append(member)
         is_affected = True
         break
@@ -196,8 +197,8 @@ def _RunInstrumentCommand(parser):
   args = parser.parse_args()
 
   source_files = []
-  if args.java_sources_file:
-    source_files.extend(build_utils.ReadSourcesList(args.java_sources_file))
+  if args.target_sources_file:
+    source_files.extend(build_utils.ReadSourcesList(args.target_sources_file))
 
   with build_utils.TempDir() as temp_dir:
     instrument_cmd = build_utils.JavaCmd() + [
@@ -205,22 +206,27 @@ def _RunInstrumentCommand(parser):
     ]
 
     if not args.files_to_instrument:
-      _InstrumentClassFiles(instrument_cmd, args.input_path, args.output_path,
-                            temp_dir)
+      affected_source_files = None
     else:
       affected_files = build_utils.ReadSourcesList(args.files_to_instrument)
-      source_set = set(source_files)
-      affected_source_files = [f for f in affected_files if f in source_set]
+      # Check if coverage recipe decided to instrument everything by overriding
+      # the try builder default setting(selective instrumentation). This can
+      # happen in cases like a DEPS roll of jacoco library
+      if INSTRUMENT_ALL_JACOCO_OVERRIDE_TOKEN in affected_files:
+        affected_source_files = None
+      else:
+        source_set = set(source_files)
+        affected_source_files = [f for f in affected_files if f in source_set]
 
-      # Copy input_path to output_path and return if no source file affected.
-      if not affected_source_files:
-        shutil.copyfile(args.input_path, args.output_path)
-        # Create a dummy sources_json_file.
-        _CreateSourcesJsonFile([], None, args.sources_json_file,
-                               build_utils.DIR_SOURCE_ROOT)
-        return 0
-      _InstrumentClassFiles(instrument_cmd, args.input_path, args.output_path,
-                            temp_dir, affected_source_files)
+        # Copy input_path to output_path and return if no source file affected.
+        if not affected_source_files:
+          shutil.copyfile(args.input_path, args.output_path)
+          # Create a dummy sources_json_file.
+          _CreateSourcesJsonFile([], None, args.sources_json_file,
+                                 build_utils.DIR_SOURCE_ROOT)
+          return 0
+    _InstrumentClassFiles(instrument_cmd, args.input_path, args.output_path,
+                          temp_dir, affected_source_files)
 
   source_dirs = _GetSourceDirsFromSourceFiles(source_files)
   # TODO(GYP): In GN, we are passed the list of sources, detecting source

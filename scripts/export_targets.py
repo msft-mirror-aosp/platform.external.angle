@@ -227,16 +227,13 @@ IGNORED_INCLUDES = {
     b'vulkan_ios.h',
     b'vulkan_macos.h',
     b'vulkan_metal.h',
+    b'vulkan_sci.h',
     b'vulkan_vi.h',
     b'vulkan_wayland.h',
     b'vulkan_win32.h',
     b'vulkan_xcb.h',
     b'vulkan_xlib.h',
     b'vulkan_xlib_xrandr.h',
-    b'vk_video/vulkan_video_codec_h264std.h',
-    b'vk_video/vulkan_video_codec_h264std_decode.h',
-    b'vk_video/vulkan_video_codec_h265std.h',
-    b'vk_video/vulkan_video_codec_h265std_decode.h',
     # rapidjson adds these include stubs into their documentation
     # comments. Since the script doesn't skip comments they are
     # erroneously marked as valid includes

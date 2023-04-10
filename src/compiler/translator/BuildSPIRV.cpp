@@ -349,6 +349,22 @@ spv::ExecutionMode GetTessEvalOrderingExecutionMode(TLayoutTessEvaluationType or
             return {};
     }
 }
+
+void WriteInterpolationDecoration(spv::Decoration decoration,
+                                  spirv::IdRef id,
+                                  uint32_t fieldIndex,
+                                  spirv::Blob *decorationsBlob)
+{
+    if (fieldIndex != std::numeric_limits<uint32_t>::max())
+    {
+        spirv::WriteMemberDecorate(decorationsBlob, id, spirv::LiteralInteger(fieldIndex),
+                                   decoration, {});
+    }
+    else
+    {
+        spirv::WriteDecorate(decorationsBlob, id, decoration, {});
+    }
+}
 }  // anonymous namespace
 
 void SpirvTypeSpec::inferDefaults(const TType &type, TCompiler *compiler)
@@ -1969,6 +1985,38 @@ void SPIRVBuilder::writeMemberDecorations(const SpirvType &type, spirv::IdRef ty
                                        {});
         }
 
+        // Add memory qualifier decorations to buffer members
+        if (fieldType.getMemoryQualifier().coherent)
+        {
+            spirv::WriteMemberDecorate(&mSpirvDecorations, typeId,
+                                       spirv::LiteralInteger(fieldIndex), spv::DecorationCoherent,
+                                       {});
+        }
+        if (fieldType.getMemoryQualifier().readonly)
+        {
+            spirv::WriteMemberDecorate(&mSpirvDecorations, typeId,
+                                       spirv::LiteralInteger(fieldIndex),
+                                       spv::DecorationNonWritable, {});
+        }
+        if (fieldType.getMemoryQualifier().writeonly)
+        {
+            spirv::WriteMemberDecorate(&mSpirvDecorations, typeId,
+                                       spirv::LiteralInteger(fieldIndex),
+                                       spv::DecorationNonReadable, {});
+        }
+        if (fieldType.getMemoryQualifier().restrictQualifier)
+        {
+            spirv::WriteMemberDecorate(&mSpirvDecorations, typeId,
+                                       spirv::LiteralInteger(fieldIndex), spv::DecorationRestrict,
+                                       {});
+        }
+        if (fieldType.getMemoryQualifier().volatileQualifier)
+        {
+            spirv::WriteMemberDecorate(&mSpirvDecorations, typeId,
+                                       spirv::LiteralInteger(fieldIndex), spv::DecorationVolatile,
+                                       {});
+        }
+
         // Add matrix decorations if any.
         if (fieldType.isMatrix())
         {
@@ -2006,8 +2054,6 @@ void SPIRVBuilder::writeInterpolationDecoration(TQualifier qualifier,
                                                 spirv::IdRef id,
                                                 uint32_t fieldIndex)
 {
-    spv::Decoration decoration = spv::DecorationMax;
-
     switch (qualifier)
     {
         case EvqSmooth:
@@ -2019,40 +2065,50 @@ void SPIRVBuilder::writeInterpolationDecoration(TQualifier qualifier,
         case EvqFlat:
         case EvqFlatOut:
         case EvqFlatIn:
-            decoration = spv::DecorationFlat;
-            break;
+            WriteInterpolationDecoration(spv::DecorationFlat, id, fieldIndex, &mSpirvDecorations);
+            return;
 
         case EvqNoPerspective:
         case EvqNoPerspectiveOut:
         case EvqNoPerspectiveIn:
-            decoration = spv::DecorationNoPerspective;
-            break;
+            WriteInterpolationDecoration(spv::DecorationNoPerspective, id, fieldIndex,
+                                         &mSpirvDecorations);
+            return;
 
         case EvqCentroid:
         case EvqCentroidOut:
         case EvqCentroidIn:
-            decoration = spv::DecorationCentroid;
-            break;
+            WriteInterpolationDecoration(spv::DecorationCentroid, id, fieldIndex,
+                                         &mSpirvDecorations);
+            return;
 
         case EvqSample:
         case EvqSampleOut:
         case EvqSampleIn:
-            decoration = spv::DecorationSample;
+            WriteInterpolationDecoration(spv::DecorationSample, id, fieldIndex, &mSpirvDecorations);
             addCapability(spv::CapabilitySampleRateShading);
-            break;
+            return;
+
+        case EvqNoPerspectiveCentroid:
+        case EvqNoPerspectiveCentroidOut:
+        case EvqNoPerspectiveCentroidIn:
+            WriteInterpolationDecoration(spv::DecorationNoPerspective, id, fieldIndex,
+                                         &mSpirvDecorations);
+            WriteInterpolationDecoration(spv::DecorationCentroid, id, fieldIndex,
+                                         &mSpirvDecorations);
+            return;
+
+        case EvqNoPerspectiveSample:
+        case EvqNoPerspectiveSampleOut:
+        case EvqNoPerspectiveSampleIn:
+            WriteInterpolationDecoration(spv::DecorationNoPerspective, id, fieldIndex,
+                                         &mSpirvDecorations);
+            WriteInterpolationDecoration(spv::DecorationSample, id, fieldIndex, &mSpirvDecorations);
+            addCapability(spv::CapabilitySampleRateShading);
+            return;
 
         default:
             return;
-    }
-
-    if (fieldIndex != std::numeric_limits<uint32_t>::max())
-    {
-        spirv::WriteMemberDecorate(&mSpirvDecorations, id, spirv::LiteralInteger(fieldIndex),
-                                   decoration, {});
-    }
-    else
-    {
-        spirv::WriteDecorate(&mSpirvDecorations, id, decoration, {});
     }
 }
 

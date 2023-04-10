@@ -20,6 +20,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 import zipfile
 
@@ -37,6 +38,12 @@ DIR_SOURCE_ROOT = os.path.relpath(
 JAVA_HOME = os.path.join(DIR_SOURCE_ROOT, 'third_party', 'jdk', 'current')
 JAVAC_PATH = os.path.join(JAVA_HOME, 'bin', 'javac')
 JAVAP_PATH = os.path.join(JAVA_HOME, 'bin', 'javap')
+KOTLIN_HOME = os.path.join(DIR_SOURCE_ROOT, 'third_party', 'kotlinc', 'current')
+KOTLINC_PATH = os.path.join(KOTLIN_HOME, 'bin', 'kotlinc')
+# Please avoid using this. Our JAVA_HOME is using a newer and actively patched
+# JDK.
+JAVA_11_HOME_DEPRECATED = os.path.join(DIR_SOURCE_ROOT, 'third_party', 'jdk11',
+                                       'current')
 
 try:
   string_types = basestring
@@ -44,17 +51,12 @@ except NameError:
   string_types = (str, bytes)
 
 
-def JavaCmd(verify=True, xmx='1G'):
+def JavaCmd(xmx='1G'):
   ret = [os.path.join(JAVA_HOME, 'bin', 'java')]
   # Limit heap to avoid Java not GC'ing when it should, and causing
   # bots to OOM when many java commands are runnig at the same time
   # https://crbug.com/1098333
   ret += ['-Xmx' + xmx]
-
-  # Disable bytecode verification for local builds gives a ~2% speed-up.
-  if not verify:
-    ret += ['-noverify']
-
   return ret
 
 
@@ -281,29 +283,23 @@ def CheckOutput(args,
   has_stderr = print_stderr and stderr
   if has_stdout or has_stderr:
     if has_stdout and has_stderr:
-      stream_string = 'stdout and stderr'
+      stream_name = 'stdout and stderr'
     elif has_stdout:
-      stream_string = 'stdout'
+      stream_name = 'stdout'
     else:
-      stream_string = 'stderr'
+      stream_name = 'stderr'
 
     if fail_on_output:
       MSG = """
 Command failed because it wrote to {}.
 You can often set treat_warnings_as_errors=false to not treat output as \
-failure (useful when developing locally)."""
-      raise CalledProcessError(cwd, args, MSG.format(stream_string))
-
-    MSG = """
-The above {} output was from:
-{}
+failure (useful when developing locally).
 """
-    if sys.version_info.major == 2:
-      joined_args = ' '.join(args)
-    else:
-      joined_args = shlex.join(args)
+      raise CalledProcessError(cwd, args, MSG.format(stream_name))
 
-    sys.stderr.write(MSG.format(stream_string, joined_args))
+    short_cmd = textwrap.shorten(shlex.join(args), width=200)
+    sys.stderr.write(
+        f'\nThe above {stream_name} output was from: {short_cmd}\n')
 
   return stdout
 
@@ -571,11 +567,13 @@ def MergeZips(output, input_zips, path_transform=None, compress=None):
     compress: Overrides compression setting from origin zip entries.
   """
   path_transform = path_transform or (lambda p: p)
-  added_names = set()
 
   out_zip = output
   if not isinstance(output, zipfile.ZipFile):
     out_zip = zipfile.ZipFile(output, 'w')
+
+  # Include paths in the existing zip here to avoid adding duplicate files.
+  added_names = set(out_zip.namelist())
 
   try:
     for in_file in input_zips:

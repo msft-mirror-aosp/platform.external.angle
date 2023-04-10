@@ -651,6 +651,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     bool noopDraw(PrimitiveMode mode, GLsizei count) const;
     bool noopDrawInstanced(PrimitiveMode mode, GLsizei count, GLsizei instanceCount) const;
+    bool noopMultiDraw(GLsizei drawcount) const;
 
     bool isClearBufferMaskedOut(GLenum buffer, GLint drawbuffer) const;
     bool noopClearBuffer(GLenum buffer, GLint drawbuffer) const;
@@ -696,10 +697,13 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     angle::Result prepareForClear(GLbitfield mask);
     angle::Result prepareForClearBuffer(GLenum buffer, GLint drawbuffer);
     angle::Result syncState(const State::DirtyBits &bitMask,
+                            const State::ExtendedDirtyBits &extendedBitMask,
                             const State::DirtyObjects &objectMask,
                             Command command);
     angle::Result syncDirtyBits(Command command);
-    angle::Result syncDirtyBits(const State::DirtyBits &bitMask, Command command);
+    angle::Result syncDirtyBits(const State::DirtyBits &bitMask,
+                                const State::ExtendedDirtyBits &extendedBitMask,
+                                Command command);
     angle::Result syncDirtyObjects(const State::DirtyObjects &objectMask, Command command);
     angle::Result syncStateForReadPixels();
     angle::Result syncStateForTexImage();
@@ -817,21 +821,31 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     StateCache mStateCache;
 
     State::DirtyBits mAllDirtyBits;
+    State::ExtendedDirtyBits mAllExtendedDirtyBits;
     State::DirtyBits mTexImageDirtyBits;
+    State::ExtendedDirtyBits mTexImageExtendedDirtyBits;
     State::DirtyObjects mTexImageDirtyObjects;
     State::DirtyBits mReadPixelsDirtyBits;
+    State::ExtendedDirtyBits mReadPixelsExtendedDirtyBits;
     State::DirtyObjects mReadPixelsDirtyObjects;
     State::DirtyBits mClearDirtyBits;
+    State::ExtendedDirtyBits mClearExtendedDirtyBits;
     State::DirtyObjects mClearDirtyObjects;
     State::DirtyBits mBlitDirtyBits;
+    State::ExtendedDirtyBits mBlitExtendedDirtyBits;
     State::DirtyObjects mBlitDirtyObjects;
     State::DirtyBits mComputeDirtyBits;
+    State::ExtendedDirtyBits mComputeExtendedDirtyBits;
     State::DirtyObjects mComputeDirtyObjects;
     State::DirtyBits mCopyImageDirtyBits;
+    State::ExtendedDirtyBits mCopyImageExtendedDirtyBits;
     State::DirtyObjects mCopyImageDirtyObjects;
     State::DirtyBits mReadInvalidateDirtyBits;
+    State::ExtendedDirtyBits mReadInvalidateExtendedDirtyBits;
     State::DirtyBits mDrawInvalidateDirtyBits;
+    State::ExtendedDirtyBits mDrawInvalidateExtendedDirtyBits;
     State::DirtyBits mPixelLocalStorageEXTEnableDisableDirtyBits;
+    State::ExtendedDirtyBits mPixelLocalStorageEXTEnableDisableExtendedDirtyBits;
     State::DirtyObjects mPixelLocalStorageEXTEnableDisableDirtyObjects;
 
     // Binding to container objects that use dependent state updates.

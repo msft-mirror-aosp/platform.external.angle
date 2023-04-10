@@ -8,7 +8,9 @@ libangle_common_headers = [
   "src/common/CircularBuffer.h",
   "src/common/Color.h",
   "src/common/Color.inc",
+  "src/common/CompiledShaderState.h",
   "src/common/FastVector.h",
+  "src/common/FixedQueue.h",
   "src/common/FixedVector.h",
   "src/common/MemoryBuffer.h",
   "src/common/Optional.h",
@@ -85,10 +87,8 @@ libangle_common_sources = libangle_common_headers + [
                             "src/common/utilities.cpp",
                           ]
 
-libangle_common_shader_state_sources = libangle_common_headers + [
-                                         "src/common/CompiledShaderState.cpp",
-                                         "src/common/CompiledShaderState.h",
-                                       ]
+libangle_common_shader_state_sources =
+    libangle_common_headers + [ "src/common/CompiledShaderState.cpp" ]
 
 libangle_common_cl_sources = [
   "src/common/PackedCLEnums_autogen.cpp",
@@ -149,6 +149,7 @@ libangle_image_util_headers = [
   "src/image_util/imageformats.h",
   "src/image_util/loadimage.h",
   "src/image_util/loadimage.inc",
+  "src/image_util/storeimage.h",
 ]
 
 libangle_image_util_sources = [
@@ -158,6 +159,7 @@ libangle_image_util_sources = [
   "src/image_util/loadimage_astc.cpp",
   "src/image_util/loadimage_etc.cpp",
   "src/image_util/loadimage_paletted.cpp",
+  "src/image_util/storeimage_paletted.cpp",
 ]
 if (angle_has_astc_encoder) {
   libangle_image_util_sources += [ "src/image_util/AstcDecompressor.cpp" ]

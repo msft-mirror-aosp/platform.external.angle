@@ -85,8 +85,11 @@ tool_versions =
                 "trim scope")
 
 # Shared toolchain definition. Invocations should set current_os to set the
-# build args in this definition.
-template("apple_toolchain") {
+# build args in this definition. This is titled "single_apple_toolchain"
+# because it makes exactly one toolchain. Callers will normally want to
+# invoke instead "apple_toolchain" which may make an additional toolchain
+# without sanitizers.
+template("single_apple_toolchain") {
   toolchain(target_name) {
     # When invoking this toolchain not as the default one, these args will be
     # passed to the build. They are ignored when this is the default toolchain.
@@ -102,8 +105,9 @@ template("apple_toolchain") {
       # set on those toolchains.
       host_toolchain = host_toolchain
 
-      # Respect the global setting for whether rustc can make binaries.
-      rustc_can_link = rustc_can_link
+      # Similarly for the host toolchain which can be used to make .dylibs
+      # that will successfully load into prebuilt tools.
+      host_toolchain_no_sanitizers = host_toolchain_no_sanitizers
     }
 
     # When the invoker has explicitly overridden use_goma or cc_wrapper in the
@@ -219,18 +223,8 @@ template("apple_toolchain") {
     _strippath = invoker.bin_path + "strip"
     _installnametoolpath = invoker.bin_path + "install_name_tool"
     linker_driver += " -Wcrl,strippath,${_strippath} -Wcrl,installnametoolpath,${_installnametoolpath}"
-
-    # On iOS, the final applications are assembled using lipo (to support fat
-    # builds). The correct flags are passed to the linker_driver.py script
-    # directly during the lipo call. The test is against the target_os because
-    # there is no need to create .dSYMs for targets compiled for the host.
-    if (defined(invoker.strip_with_lipo) && invoker.strip_with_lipo) {
-      _enable_dsyms = false
-      _save_unstripped_output = false
-    } else {
-      _enable_dsyms = enable_dsyms
-      _save_unstripped_output = save_unstripped_output
-    }
+    _enable_dsyms = enable_dsyms
+    _save_unstripped_output = save_unstripped_output
 
     # Make these apply to all tools below.
     lib_switch = "-l"
@@ -272,10 +266,6 @@ template("apple_toolchain") {
       rust_sysroot_relative_to_out = rebase_path(rust_sysroot, root_out_dir)
       rustc_wrapper = rebase_path("//build/rust/rustc_wrapper.py")
 
-      # Ideally, we'd add  -Clink-args=\"{{ldflags}}\" to each of the Rust
-      # tools below which may link (i.e. rust_bin, rust_cdylib, rust_macro).
-      # However, it seems -fuse-ld=lld causes difficulties.
-
       tool("rust_staticlib") {
         rust_outfile = "{{output_dir}}/{{target_output_name}}.a"
         depfile = "{{output}}.d"
@@ -300,39 +290,37 @@ template("apple_toolchain") {
         outputs = [ rust_outfile ]
       }
 
-      if (toolchain_args.rustc_can_link) {
-        tool("rust_bin") {
-          rust_outfile = "{{root_out_dir}}/{{target_output_name}}"
-          depfile = "{{output}}.d"
-          rspfile = "$rust_outfile.rsp"
-          rspfile_content = "{{rustdeps}} {{externs}}"
-          command = "$python_path \"$rustc_wrapper\" --rustc=$rustc --depfile=$depfile --rsp=$rspfile -- -Clinker=\"${_cxx}\" $rustc_common_args --emit=dep-info=$depfile,link -o $rust_outfile LDFLAGS {{ldflags}} RUSTENV {{rustenv}}"
-          description = "RUST $rust_outfile"
-          rust_sysroot = rust_sysroot_relative_to_out
-          outputs = [ rust_outfile ]
-        }
+      tool("rust_bin") {
+        rust_outfile = "{{root_out_dir}}/{{target_output_name}}"
+        depfile = "{{output}}.d"
+        rspfile = "$rust_outfile.rsp"
+        rspfile_content = "{{rustdeps}} {{externs}}"
+        command = "$python_path \"$rustc_wrapper\" --rustc=$rustc --depfile=$depfile --rsp=$rspfile -- -Clinker=\"${_cxx}\" $rustc_common_args --emit=dep-info=$depfile,link -o $rust_outfile LDFLAGS {{ldflags}} RUSTENV {{rustenv}}"
+        description = "RUST $rust_outfile"
+        rust_sysroot = rust_sysroot_relative_to_out
+        outputs = [ rust_outfile ]
+      }
 
-        tool("rust_cdylib") {
-          rust_outfile = "{{output_dir}}/lib{{target_output_name}}.dylib"
-          depfile = "{{output}}.d"
-          rspfile = "$rust_outfile.rsp"
-          rspfile_content = "{{rustdeps}} {{externs}}"
-          command = "$python_path \"$rustc_wrapper\" --rustc=$rustc --depfile=$depfile --rsp=$rspfile -- -Clinker=\"${_cxx}\" $rustc_common_args --emit=dep-info=$depfile,link -o $rust_outfile LDFLAGS {{ldflags}} RUSTENV {{rustenv}}"
-          description = "RUST $rust_outfile"
-          rust_sysroot = rust_sysroot_relative_to_out
-          outputs = [ rust_outfile ]
-        }
+      tool("rust_cdylib") {
+        rust_outfile = "{{output_dir}}/lib{{target_output_name}}.dylib"
+        depfile = "{{output}}.d"
+        rspfile = "$rust_outfile.rsp"
+        rspfile_content = "{{rustdeps}} {{externs}}"
+        command = "$python_path \"$rustc_wrapper\" --rustc=$rustc --depfile=$depfile --rsp=$rspfile -- -Clinker=\"${_cxx}\" $rustc_common_args --emit=dep-info=$depfile,link -o $rust_outfile LDFLAGS {{ldflags}} RUSTENV {{rustenv}}"
+        description = "RUST $rust_outfile"
+        rust_sysroot = rust_sysroot_relative_to_out
+        outputs = [ rust_outfile ]
+      }
 
-        tool("rust_macro") {
-          rust_outfile = "{{output_dir}}/lib{{target_output_name}}.dylib"
-          depfile = "{{output}}.d"
-          rspfile = "$rust_outfile.rsp"
-          rspfile_content = "{{rustdeps}} {{externs}}"
-          command = "$python_path \"$rustc_wrapper\" --rustc=$rustc --depfile=$depfile --rsp=$rspfile -- -Clinker=\"${_cxx}\" $rustc_common_args --emit=dep-info=$depfile,link -o $rust_outfile LDFLAGS {{ldflags}} RUSTENV {{rustenv}}"
-          description = "RUST $rust_outfile"
-          rust_sysroot = rust_sysroot_relative_to_out
-          outputs = [ rust_outfile ]
-        }
+      tool("rust_macro") {
+        rust_outfile = "{{output_dir}}/lib{{target_output_name}}.dylib"
+        depfile = "{{output}}.d"
+        rspfile = "$rust_outfile.rsp"
+        rspfile_content = "{{rustdeps}} {{externs}}"
+        command = "$python_path \"$rustc_wrapper\" --rustc=$rustc --depfile=$depfile --rsp=$rspfile -- -Clinker=\"${_cxx}\" $rustc_common_args --emit=dep-info=$depfile,link -o $rust_outfile LDFLAGS {{ldflags}} RUSTENV {{rustenv}}"
+        description = "RUST $rust_outfile"
+        rust_sysroot = rust_sysroot_relative_to_out
+        outputs = [ rust_outfile ]
       }
     }
 
@@ -696,7 +684,6 @@ template("apple_toolchain") {
             "-module-path {{target_gen_dir}}/{{module_name}}.swiftmodule " +
             "-header-path {{target_gen_dir}}/{{target_output_name}}.h " +
             "-depfile {{target_out_dir}}/{{module_name}}.d " +
-            "-depfile-filter {{target_gen_dir}}/{{module_name}}.swiftmodule " +
             "-bridge-header {{bridge_header}} $_extra_flags " +
             "{{swiftflags}} {{include_dirs}} {{module_dirs}} {{inputs}}"
       }
@@ -730,6 +717,44 @@ template("apple_toolchain") {
 
     tool("action") {
       pool = "//build/toolchain:action_pool($default_toolchain)"
+    }
+  }
+}
+
+# Makes a single Apple toolchain, or possibly two if we need a
+# sanitizer-free equivalent.
+template("apple_toolchain") {
+  single_apple_toolchain(target_name) {
+    assert(defined(invoker.toolchain_args),
+           "Toolchains must declare toolchain_args")
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "visibility",
+                             "test_only",
+                           ])
+
+    # No need to forward visibility and test_only as they apply to targets not
+    # toolchains, but presubmit checks require that we explicitly exclude them
+  }
+
+  if (using_sanitizer) {
+    # Make an additional toolchain with no sanitizers.
+    single_apple_toolchain("${target_name}_no_sanitizers") {
+      assert(defined(invoker.toolchain_args),
+             "Toolchains must declare toolchain_args")
+      forward_variables_from(invoker,
+                             "*",
+                             [
+                               "toolchain_args",
+                               "visibility",
+                               "test_only",
+                             ])
+      toolchain_args = {
+        # Populate toolchain args from the invoker.
+        forward_variables_from(invoker.toolchain_args, "*")
+        toolchain_disables_sanitizers = true
+      }
     }
   }
 }
