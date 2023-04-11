@@ -249,6 +249,7 @@
 3496 MAC INTEL OPENGL : BlitFramebufferTest.ScissoredMultisampleStencil/* = SKIP
 3496 MAC AMD OPENGL : BlitFramebufferTest.ScissoredMultisampleStencil/* = SKIP
 7191 MAC NVIDIA OPENGL : BlitFramebufferTest.ScissoredMultisampleStencil/ES3_OpenGL = SKIP
+273808966 MAC AMD OPENGL : BlitFramebufferTest.scissorDrawBlitAndDrawAgain/* = SKIP
 
 // Mac Metal
 
@@ -356,6 +357,29 @@
 
 7451 MAC METAL INTEL : PointSpritesTest.PointSizeAboveMaxIsClamped/ES2_Metal = SKIP
 
+// New failures on MacBook Pro 2019 macOS 13.2.1
+8091 MAC METAL AMD : ClearTest.ClearStencilMask/* = SKIP
+8091 MAC METAL AMD : ClearTestES3.ClearBufferivStencilMask/* = SKIP
+8091 MAC METAL AMD : ClearTestES3.RepeatedStencilClear/* = SKIP
+8091 MAC METAL AMD : DepthWriteTest.Test/* = SKIP
+8091 MAC METAL AMD : MaskedScissoredClearTest.Test/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.Coherency/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.ForgetBarrier/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.FragmentReject_viewport/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.FunctionArguments/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.Interrupt/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.LoadAfterStore/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.LoadOnly/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.LoadOps/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.MaxCombinedDrawBuffersAndPLSPlanes/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.MemorylessStorage/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.MipMapLevels/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.PLSWithSamplers/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.ProgramCache/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.R32/* = SKIP
+8091 MAC METAL AMD : PixelLocalStorageTest.RGBA8/* = SKIP
+8091 MAC METAL AMD : StateChangeTestES3.StencilReferenceAndCompareMask/* = SKIP
+
 
 // D3D
 6432 WIN D3D9 : GLSLTest.HandleExcessiveLoopBug/* = SKIP
@@ -381,6 +405,7 @@
 7294 WIN D3D11 : StateChangeTestES3.StencilWriteMask/* = SKIP
 7316 WIN D3D11 : StateChangeTestES3.StencilTestAndFunc/* = SKIP
 7329 WIN D3D11 : StateChangeTestES3.PrimitiveRestart/* = SKIP
+8100 WIN D3D11 : WebGL2GLSLTest.InitOutputParams/* = SKIP
 
 // Android
 6095 ANDROID GLES : GLSLTest_ES3.InitGlobalComplexConstant/* = SKIP
@@ -484,6 +509,7 @@
 7414 PIXEL4ORXL GLES : EGLMultiContextTest.ThreadB*BeforeThreadASync* = SKIP
 7703 PIXEL4ORXL GLES : FramebufferFetchES31.ProgramPipeline* = SKIP
 7703 PIXEL4ORXL GLES : FramebufferFetchES31.DrawNonFetchDrawFetchInStorageBuffer* = SKIP
+2046 PIXEL4ORXL GLES : WebGL2GLSLTest.InitOutputParams/* = SKIP
 
 3423 PIXEL4ORXL VULKAN : ClearTestES3.MaskedClearBufferBug/* = SKIP
 3423 PIXEL4ORXL VULKAN : DrawBuffersWebGL2Test.TwoProgramsWithDifferentOutputsAndClear/* = SKIP
@@ -762,8 +788,6 @@
 7853 IOS : FramebufferExtensionsTest.ColorBufferHalfFloat/ES2_OpenGL = SKIP
 
 // Some Metal tests fail on iOS Intel simulator
-7994 IOS METAL : CopyTextureTestES3.ES3FloatFormats/ES3_Metal = SKIP
-7994 IOS METAL : CopyTextureTestES3.CopySubTextureOffsetNonRenderableFloat/ES3_Metal = SKIP
 7994 IOS METAL : CubeMapTextureTest.SampleCoordinateTransformGrad/ES2_Metal = SKIP
 7994 IOS METAL : CubeMapTextureTest.SampleCoordinateTransformGrad/ES3_Metal = SKIP
 7994 IOS METAL : CubeMapTextureTest.SampleCoordinateTransformGrad_ES3/ES3_Metal = SKIP
@@ -810,6 +834,8 @@
 7994 IOS METAL : PixelLocalStorageTest.FragmentReject_viewport/ES3_Metal_EmulatePixelLocalStorage_DisableRasterOrderGroups = SKIP
 7994 IOS METAL : PixelLocalStorageTest.FunctionArguments/ES3_Metal_EmulatePixelLocalStorage = SKIP
 7994 IOS METAL : PixelLocalStorageTest.FunctionArguments/ES3_Metal_EmulatePixelLocalStorage_DisableRasterOrderGroups = SKIP
+7994 IOS METAL : PixelLocalStorageTest.Interrupt/ES3_Metal_EmulatePixelLocalStorage = SKIP
+7994 IOS METAL : PixelLocalStorageTest.Interrupt/ES3_Metal_EmulatePixelLocalStorage_DisableRasterOrderGroups = SKIP
 7994 IOS METAL : PixelLocalStorageTest.LoadAfterStore/ES3_Metal_EmulatePixelLocalStorage = SKIP
 7994 IOS METAL : PixelLocalStorageTest.LoadAfterStore/ES3_Metal_EmulatePixelLocalStorage_DisableRasterOrderGroups = SKIP
 7994 IOS METAL : PixelLocalStorageTest.LoadOnly/ES3_Metal_EmulatePixelLocalStorage = SKIP
@@ -1129,6 +1155,13 @@
 // gl_PointCoord origin is flipped for non-default framebuffers
 8066 WIN INTEL OPENGL : ClipControlTest.OriginPointCoord/* = SKIP
 
+// Sample coverage must not affect single sample render targets
+8102 D3D11 : SimpleOperationTest.DrawSingleSampleWithCoverage/* = SKIP
+8102 D3D11 : StateChangeTestES3.SampleCoverageFramebufferAttachmentSwitch/* = SKIP
+
+// Sample coverage is ignored when replacing a single-sample attachment with a multi-sample one
+8114 MAC INTEL OPENGL : StateChangeTestES3.SampleCoverageFramebufferAttachmentSwitch/* = SKIP
+
 // bits 24..31 from glClearValueuiv value don't work on Intel Metal.
 7794 MAC INTEL METAL : PixelLocalStorageTest.ClearValues_r32/* = SKIP
 
@@ -1144,3 +1177,7 @@
 6261 : MultithreadingTest* = TIMEOUT
 // Please do not add expectations below this line,
 // so that TIMEOUT expectations above don't override more precise SKIP expectations
+
+// SSBO Alias Overwrite
+5990 PIXEL4ORXL VULKAN : ComputeShaderTest.SSBOAliasOverWrite/* = SKIP
+266235549 D3D11 : ComputeShaderTest.SSBOAliasOverWrite/* = SKIP

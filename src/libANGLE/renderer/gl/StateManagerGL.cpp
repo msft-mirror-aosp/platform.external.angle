@@ -102,6 +102,7 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
       mPackSkipPixels(0),
       mFramebuffers(angle::FramebufferBindingSingletonMax, 0),
       mRenderbuffer(0),
+      mPlaceholderFbo(0),
       mScissorTestEnabled(false),
       mScissor(0, 0, 0, 0),
       mViewport(0, 0, 0, 0),
@@ -215,6 +216,10 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
 
 StateManagerGL::~StateManagerGL()
 {
+    if (mPlaceholderFbo != 0)
+    {
+        deleteFramebuffer(mPlaceholderFbo);
+    }
     if (mDefaultVAO != 0)
     {
         mFunctions->deleteVertexArrays(1, &mDefaultVAO);
@@ -413,7 +418,6 @@ void StateManagerGL::forceUseProgram(GLuint program)
 
 void StateManagerGL::bindVertexArray(GLuint vao, VertexArrayStateGL *vaoState)
 {
-    ASSERT(vaoState);
     if (mVAO != vao)
     {
         ASSERT(!mFeatures.syncVertexArraysToDefault.enabled);
@@ -758,6 +762,17 @@ void StateManagerGL::beginQuery(gl::QueryType type, QueryGL *queryObject, GLuint
     // Make sure this is a valid query type and there is no current active query of this type
     ASSERT(mQueries[type] == nullptr);
     ASSERT(queryId != 0);
+
+    if (mFeatures.bindFramebufferForTimerQueries.enabled &&
+        mFramebuffers[angle::FramebufferBindingDraw] == 0 &&
+        (type == gl::QueryType::TimeElapsed || type == gl::QueryType::Timestamp))
+    {
+        if (!mPlaceholderFbo)
+        {
+            mFunctions->genFramebuffers(1, &mPlaceholderFbo);
+        }
+        bindFramebuffer(GL_FRAMEBUFFER, mPlaceholderFbo);
+    }
 
     mQueries[type] = queryObject;
     mFunctions->beginQuery(ToGLenum(type), queryId);
@@ -1850,7 +1865,9 @@ void StateManagerGL::setClearStencil(GLint clearStencil)
 
 angle::Result StateManagerGL::syncState(const gl::Context *context,
                                         const gl::State::DirtyBits &glDirtyBits,
-                                        const gl::State::DirtyBits &bitMask)
+                                        const gl::State::DirtyBits &bitMask,
+                                        const gl::State::ExtendedDirtyBits &extendedDirtyBits,
+                                        const gl::State::ExtendedDirtyBits &extendedBitMask)
 {
     const gl::State &state = context->getState();
 
@@ -2238,8 +2255,6 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                 break;
             case gl::State::DIRTY_BIT_EXTENDED:
             {
-                const gl::State::ExtendedDirtyBits extendedDirtyBits =
-                    state.getAndResetExtendedDirtyBits();
                 const gl::State::ExtendedDirtyBits glAndLocalExtendedDirtyBits =
                     extendedDirtyBits | mLocalExtendedDirtyBits;
                 for (size_t extendedDirtyBit : glAndLocalExtendedDirtyBits)

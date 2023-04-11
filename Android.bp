@@ -2511,6 +2511,7 @@ cc_library_static {
         "src/image_util/loadimage_astc.cpp",
         "src/image_util/loadimage_etc.cpp",
         "src/image_util/loadimage_paletted.cpp",
+        "src/image_util/storeimage_paletted.cpp",
     ],
     static_libs: [
         "angle_common",
@@ -4085,6 +4086,7 @@ cc_defaults {
         "third_party/abseil-cpp/absl/synchronization/internal/per_thread_sem.cc",
         "third_party/abseil-cpp/absl/synchronization/internal/pthread_waiter.cc",
         "third_party/abseil-cpp/absl/synchronization/internal/sem_waiter.cc",
+        "third_party/abseil-cpp/absl/synchronization/internal/stdcpp_waiter.cc",
         "third_party/abseil-cpp/absl/synchronization/internal/waiter_base.cc",
         "third_party/abseil-cpp/absl/synchronization/internal/win32_waiter.cc",
         "third_party/abseil-cpp/absl/synchronization/mutex.cc",

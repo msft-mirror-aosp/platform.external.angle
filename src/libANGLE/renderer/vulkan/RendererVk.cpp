@@ -3617,6 +3617,9 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
         isVulkan11Device() ||
         ExtensionFound(VK_KHR_MAINTENANCE1_EXTENSION_NAME, deviceExtensionNames);
 
+    ANGLE_FEATURE_CONDITION(&mFeatures, appendAliasedMemoryDecorationsToSsbo,
+                            isARM && (isVenus || armDriverVersion >= ARMDriverVersion(38, 1, 0)));
+
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsSharedPresentableImageExtension,
         ExtensionFound(VK_KHR_SHARED_PRESENTABLE_IMAGE_EXTENSION_NAME, deviceExtensionNames));
@@ -4152,10 +4155,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // http://anglebug.com/7308
     // Flushing mutable textures causes flakes in perf tests using Windows/Intel GPU. Failures are
     // due to lost context/device.
-    // http://b/264143971
-    // The mutable texture uploading feature can sometimes result in incorrect rendering of some
-    // textures.
-    ANGLE_FEATURE_CONDITION(&mFeatures, mutableMipmapTextureUpload, false);
+    ANGLE_FEATURE_CONDITION(&mFeatures, mutableMipmapTextureUpload, !(IsWindows() && isIntel));
 
     // Use VMA for image suballocation.
     ANGLE_FEATURE_CONDITION(&mFeatures, useVmaForImageSuballocation, true);
@@ -4187,6 +4187,10 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // Avoid dynamic state for vertex input binding stride on buggy drivers.
     ANGLE_FEATURE_CONDITION(&mFeatures, forceStaticVertexStrideState,
                             mFeatures.supportsExtendedDynamicState.enabled && isARM);
+
+    // Avoid dynamic state for primitive restart on buggy drivers.
+    ANGLE_FEATURE_CONDITION(&mFeatures, forceStaticPrimitiveRestartState,
+                            mFeatures.supportsExtendedDynamicState2.enabled && isARM);
 
     // Support GL_QCOM_shading_rate extension
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsFragmentShadingRate,
@@ -4368,18 +4372,6 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     ANGLE_FEATURE_CONDITION(&mFeatures, mapUnspecifiedColorSpaceToPassThrough, isVenus);
 
     ApplyFeatureOverrides(&mFeatures, displayVk->getState());
-
-    // Disable async command queue when using Vulkan secondary command buffers temporarily to avoid
-    // threading hazards with ContextVk::mCommandPools.  Note that this is done even if the feature
-    // is enabled through an override.
-    // TODO: Investigate whether async command queue is useful with Vulkan secondary command buffers
-    // and enable the feature.  http://anglebug.com/6811
-    if (!vk::OutsideRenderPassCommandBuffer::ExecutesInline() ||
-        !vk::RenderPassCommandBuffer::ExecutesInline())
-    {
-        mFeatures.asyncCommandQueue.enabled       = false;
-        mFeatures.asyncCommandBufferReset.enabled = false;
-    }
 
     // Disable memory report feature overrides if extension is not supported.
     if ((mFeatures.logMemoryReportCallbacks.enabled || mFeatures.logMemoryReportStats.enabled) &&
