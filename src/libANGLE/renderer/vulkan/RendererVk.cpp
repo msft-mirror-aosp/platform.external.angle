@@ -228,8 +228,17 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-VkImageCreateInfo-pNext-00990",
     // http://crbug.com/1420265
     "VUID-vkCmdEndDebugUtilsLabelEXT-commandBuffer-01912",
-    // https://anglebug.com/8076
+    // http://anglebug.com/8076
     "VUID-VkGraphicsPipelineCreateInfo-None-06573",
+    // http://anglebug.com/8119
+    "VUID-VkGraphicsPipelineCreateInfo-Input-07905",
+    "UNASSIGNED-CoreValidation-Shader-VertexInputMismatch",
+    "VUID-vkCmdDraw-None-02859",
+    "VUID-vkCmdDrawIndexed-None-02859",
+    "VUID-vkCmdDrawIndexed-None-07835",
+    "VUID-vkCmdDrawIndexedIndirect-None-02859",
+    "VUID-vkCmdDrawIndirect-None-02859",
+    "VUID-VkGraphicsPipelineCreateInfo-Input-08733",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -4384,7 +4393,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
                                 (mFeatures.preferMonolithicPipelinesOverLibraries.enabled &&
                                  libraryBlobsAreReusedByMonolithicPipelines));
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, enableAsyncPipelineCacheCompression, false);
+    ANGLE_FEATURE_CONDITION(&mFeatures, enableAsyncPipelineCacheCompression, isVenus);
 
     // Sync monolithic pipelines to the blob cache occasionally on platforms that would benefit from
     // it:
@@ -4415,6 +4424,8 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // On ARM, per-sample shading is not enabled despite the presence of a Sample decoration.  As a
     // workaround, per-sample shading is inferred by ANGLE and explicitly enabled by the API.
     ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyEnablePerSampleShading, isARM);
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyCastMediumpFloatTo16Bit, isARM);
 
     // Force to create swapchain with continuous refresh on shared present. Disabled by default.
     // Only enable it on integrations without EGL_FRONT_BUFFER_AUTO_REFRESH_ANDROID passthrough.
@@ -5535,16 +5546,59 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(RendererVk *renderer,
                                                         Image *image,
                                                         VkMemoryPropertyFlags requiredFlags,
                                                         VkMemoryPropertyFlags preferredFlags,
+                                                        MemoryAllocationType memoryAllocationType,
                                                         Allocation *allocationOut,
+                                                        VkMemoryPropertyFlags *memoryFlagsOut,
                                                         uint32_t *memoryTypeIndexOut,
                                                         VkDeviceSize *sizeOut)
 {
     ASSERT(image && image->valid());
     ASSERT(allocationOut && !allocationOut->valid());
     const Allocator &allocator = renderer->getAllocator();
-    return vma::AllocateAndBindMemoryForImage(allocator.getHandle(), &image->mHandle, requiredFlags,
-                                              preferredFlags, &allocationOut->mHandle,
-                                              memoryTypeIndexOut, sizeOut);
+
+    VkResult result = vma::AllocateAndBindMemoryForImage(
+        allocator.getHandle(), &image->mHandle, requiredFlags, preferredFlags,
+        &allocationOut->mHandle, memoryTypeIndexOut, sizeOut);
+    if (result != VK_SUCCESS)
+    {
+        return result;
+    }
+
+    // We need to get the property flags of the allocated memory.
+    *memoryFlagsOut =
+        renderer->getMemoryProperties().getMemoryType(*memoryTypeIndexOut).propertyFlags;
+
+    renderer->onMemoryAlloc(memoryAllocationType, *sizeOut, *memoryTypeIndexOut,
+                            allocationOut->getHandle());
+    return VK_SUCCESS;
+}
+
+VkResult ImageMemorySuballocator::mapMemoryAndInitWithNonZeroValue(RendererVk *renderer,
+                                                                   Allocation *allocation,
+                                                                   VkDeviceSize size,
+                                                                   int value,
+                                                                   VkMemoryPropertyFlags flags)
+{
+    ASSERT(allocation && allocation->valid());
+    const Allocator &allocator = renderer->getAllocator();
+
+    void *mappedMemoryData;
+    VkResult result = vma::MapMemory(allocator.getHandle(), allocation->mHandle, &mappedMemoryData);
+    if (result != VK_SUCCESS)
+    {
+        return result;
+    }
+
+    memset(mappedMemoryData, value, static_cast<size_t>(size));
+    vma::UnmapMemory(allocator.getHandle(), allocation->mHandle);
+
+    // If the memory type is not host coherent, we perform an explicit flush.
+    if ((flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+    {
+        vma::FlushAllocation(allocator.getHandle(), allocation->mHandle, 0, VK_WHOLE_SIZE);
+    }
+
+    return VK_SUCCESS;
 }
 
 }  // namespace vk
