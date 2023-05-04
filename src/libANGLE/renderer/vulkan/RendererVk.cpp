@@ -221,6 +221,7 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-VkGraphicsPipelineCreateInfo-Vertex-07722",
     // http://anglebug.com/7861
     "VUID-vkCmdDraw-None-06887",
+    "VUID-vkCmdDraw-None-06886",
     "VUID-vkCmdDrawIndexed-None-06887",
     // http://anglebug.com/7865
     "VUID-VkDescriptorImageInfo-imageView-06711",
@@ -231,6 +232,7 @@ constexpr const char *kSkippedMessages[] = {
     // http://anglebug.com/8076
     "VUID-VkGraphicsPipelineCreateInfo-None-06573",
     // http://anglebug.com/8119
+    "VUID-VkGraphicsPipelineCreateInfo-Input-07904",
     "VUID-VkGraphicsPipelineCreateInfo-Input-07905",
     "VUID-vkCmdDraw-None-02859",
     "VUID-vkCmdDrawIndexed-None-02859",
@@ -238,6 +240,10 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndexedIndirect-None-02859",
     "VUID-vkCmdDrawIndirect-None-02859",
     "VUID-VkGraphicsPipelineCreateInfo-Input-08733",
+    // http://anglebug.com/8151
+    "VUID-vkCmdDraw-None-07844",
+    "VUID-vkCmdDraw-None-07845",
+    "VUID-vkCmdDraw-None-07848",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -3145,6 +3151,8 @@ angle::Result RendererVk::initializeDevice(DisplayVk *displayVk, uint32_t queueF
     mEnabledFeatures.features.depthClamp = mPhysicalDeviceFeatures.depthClamp;
     // Used to support EXT_polygon_offset_clamp
     mEnabledFeatures.features.depthBiasClamp = mPhysicalDeviceFeatures.depthBiasClamp;
+    // Used to support NV_polygon_mode / ANGLE_polygon_mode
+    mEnabledFeatures.features.fillModeNonSolid = mPhysicalDeviceFeatures.fillModeNonSolid;
     // Used to support EXT_clip_cull_distance
     mEnabledFeatures.features.shaderCullDistance = mPhysicalDeviceFeatures.shaderCullDistance;
     // Used to support tessellation Shader:
@@ -4397,8 +4405,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // On ARM, dynamic state for stencil write mask doesn't work correctly in the presence of
     // discard or alpha to coverage, if the static state provided when creating the pipeline has a
     // value of 0.
-    ANGLE_FEATURE_CONDITION(&mFeatures, useNonZeroStencilWriteMaskStaticState,
-                            isARM && armDriverVersion < ARMDriverVersion(40, 0, 0));
+    ANGLE_FEATURE_CONDITION(&mFeatures, useNonZeroStencilWriteMaskStaticState, isARM);
 
     // On ARM, per-sample shading is not enabled despite the presence of a Sample decoration.  As a
     // workaround, per-sample shading is inferred by ANGLE and explicitly enabled by the API.
@@ -5522,6 +5529,7 @@ void ImageMemorySuballocator::destroy(RendererVk *renderer) {}
 
 VkResult ImageMemorySuballocator::allocateAndBindMemory(RendererVk *renderer,
                                                         Image *image,
+                                                        const VkImageCreateInfo *imageCreateInfo,
                                                         VkMemoryPropertyFlags requiredFlags,
                                                         VkMemoryPropertyFlags preferredFlags,
                                                         MemoryAllocationType memoryAllocationType,
@@ -5545,6 +5553,16 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(RendererVk *renderer,
         allocateDedicatedMemory, &allocationOut->mHandle, memoryTypeIndexOut, sizeOut);
     if (result != VK_SUCCESS)
     {
+        // Record the failed memory allocation.
+        uint32_t pendingMemoryTypeIndex;
+        if (vma::FindMemoryTypeIndexForImageInfo(
+                allocator.getHandle(), imageCreateInfo, requiredFlags, preferredFlags,
+                allocateDedicatedMemory, &pendingMemoryTypeIndex) == VK_SUCCESS)
+        {
+            renderer->getMemoryAllocationTracker()->setPendingMemoryAlloc(
+                memoryAllocationType, memoryRequirements.size, pendingMemoryTypeIndex);
+        }
+
         return result;
     }
 
