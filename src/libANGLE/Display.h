@@ -349,6 +349,17 @@ class Display final : public LabeledObject,
     egl::Image *getImage(egl::ImageID imageID);
     egl::Sync *getSync(egl::SyncID syncID);
 
+    // Initialize thread-local variables used by the Display and its backing implementations.  This
+    // includes:
+    //
+    // - The unlocked tail call to be run at the end of the entry point.
+    // - Scratch space for an egl::Error used by the backends (this is not used by all backends, and
+    //   access *must* be restricted to backends that use it).
+    //
+    static void InitTLS();
+    static angle::UnlockedTailCall *GetCurrentThreadUnlockedTailCall();
+    static Error *GetCurrentThreadErrorScratchSpace();
+
   private:
     Display(EGLenum platform, EGLNativeDisplayType displayId, Device *eglDevice);
 
