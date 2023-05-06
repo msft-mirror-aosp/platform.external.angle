@@ -1408,6 +1408,10 @@ angle::Result ContextVk::initialize()
     // Allocate queueSerial index and generate queue serial for commands.
     ANGLE_TRY(allocateQueueSerialIndex());
 
+    // Initialize serials to be valid but appear submitted and finished.
+    mLastFlushedQueueSerial   = QueueSerial(mCurrentQueueSerialIndex, Serial());
+    mLastSubmittedQueueSerial = mLastFlushedQueueSerial;
+
     return angle::Result::Continue;
 }
 
@@ -1451,7 +1455,7 @@ angle::Result ContextVk::flush(const gl::Context *context)
         return mCurrentWindowSurface->onSharedPresentContextFlush(context);
     }
 
-    return flushImpl(nullptr, RenderPassClosureReason::GLFlush);
+    return flushImpl(nullptr, nullptr, RenderPassClosureReason::GLFlush);
 }
 
 angle::Result ContextVk::finish(const gl::Context *context)
@@ -1639,7 +1643,8 @@ angle::Result ContextVk::setupIndirectDraw(const gl::Context *context,
 
     // Break the render pass if the indirect buffer was previously used as the output from transform
     // feedback.
-    if (mCurrentTransformFeedbackBuffers.contains(indirectBuffer))
+    if (mCurrentTransformFeedbackQueueSerial.valid() &&
+        indirectBuffer->writtenByCommandBuffer(mCurrentTransformFeedbackQueueSerial))
     {
         ANGLE_TRY(
             flushCommandsAndEndRenderPass(RenderPassClosureReason::XfbWriteThenIndirectDrawBuffer));
@@ -2793,7 +2798,7 @@ angle::Result ContextVk::handleDirtyGraphicsTransformFeedbackBuffersEmulation(
                                              vk::PipelineStage::VertexShader, bufferHelper);
         }
 
-        populateTransformFeedbackBufferSet(bufferCount, bufferHelpers);
+        mCurrentTransformFeedbackQueueSerial = mRenderPassCommands->getQueueSerial();
     }
 
     ProgramExecutableVk *executableVk      = getExecutable();
@@ -2879,7 +2884,7 @@ angle::Result ContextVk::handleDirtyGraphicsTransformFeedbackBuffersExtension(
     mRenderPassCommands->beginTransformFeedback(bufferCount, counterBufferHandles.data(),
                                                 counterBufferOffsets.data(), rebindBuffers);
 
-    populateTransformFeedbackBufferSet(bufferCount, buffers);
+    mCurrentTransformFeedbackQueueSerial = mRenderPassCommands->getQueueSerial();
 
     return angle::Result::Continue;
 }
@@ -3446,7 +3451,9 @@ void ContextVk::addOverlayUsedBuffersCount(vk::CommandBufferHelperCommon *comman
     }
 }
 
-angle::Result ContextVk::submitCommands(const vk::Semaphore *signalSemaphore, Submit submission)
+angle::Result ContextVk::submitCommands(const vk::Semaphore *signalSemaphore,
+                                        const vk::SharedExternalFence *externalFence,
+                                        Submit submission)
 {
     if (vk::CommandBufferHelperCommon::kEnableCommandStreamDiagnostics)
     {
@@ -3465,7 +3472,7 @@ angle::Result ContextVk::submitCommands(const vk::Semaphore *signalSemaphore, Su
                                                    mLastFlushedQueueSerial));
 
     ANGLE_TRY(mRenderer->submitCommands(this, getProtectionType(), mContextPriority,
-                                        signalSemaphore, mLastFlushedQueueSerial));
+                                        signalSemaphore, externalFence, mLastFlushedQueueSerial));
 
     mLastSubmittedQueueSerial = mLastFlushedQueueSerial;
     mSubmittedResourceUse.setQueueSerial(mLastSubmittedQueueSerial);
@@ -3623,7 +3630,7 @@ angle::Result ContextVk::synchronizeCpuGpuTime()
         // vkEvent's are externally synchronized, therefore need work to be submitted before calling
         // vkGetEventStatus
         ANGLE_TRY(mRenderer->queueSubmitOneOff(this, std::move(commandBuffer), getProtectionType(),
-                                               mContextPriority, VK_NULL_HANDLE, 0, nullptr,
+                                               mContextPriority, VK_NULL_HANDLE, 0,
                                                vk::SubmitPolicy::EnsureSubmitted, &submitSerial));
 
         // Track it with the submitSerial.
@@ -5781,7 +5788,7 @@ angle::Result ContextVk::onMakeCurrent(const gl::Context *context)
 
 angle::Result ContextVk::onUnMakeCurrent(const gl::Context *context)
 {
-    ANGLE_TRY(flushImpl(nullptr, RenderPassClosureReason::ContextChange));
+    ANGLE_TRY(flushImpl(nullptr, nullptr, RenderPassClosureReason::ContextChange));
     mCurrentWindowSurface = nullptr;
 
     if (mCurrentQueueSerialIndex != kInvalidQueueSerialIndex)
@@ -5807,7 +5814,7 @@ angle::Result ContextVk::onSurfaceUnMakeCurrent(WindowSurfaceVk *surface)
     {
         // May be nullptr if only used as a readSurface.
         ASSERT(mCurrentWindowSurface == surface || mCurrentWindowSurface == nullptr);
-        ANGLE_TRY(flushImpl(nullptr, RenderPassClosureReason::SurfaceUnMakeCurrent));
+        ANGLE_TRY(flushImpl(nullptr, nullptr, RenderPassClosureReason::SurfaceUnMakeCurrent));
         mCurrentWindowSurface = nullptr;
     }
     ASSERT(mCurrentWindowSurface == nullptr);
@@ -6289,20 +6296,6 @@ angle::Result ContextVk::onBeginTransformFeedback(
     return angle::Result::Continue;
 }
 
-void ContextVk::populateTransformFeedbackBufferSet(
-    size_t bufferCount,
-    const gl::TransformFeedbackBuffersArray<vk::BufferHelper *> &buffers)
-{
-    for (size_t bufferIndex = 0; bufferIndex < bufferCount; ++bufferIndex)
-    {
-        vk::BufferHelper *buffer = buffers[bufferIndex];
-        if (!mCurrentTransformFeedbackBuffers.contains(buffer))
-        {
-            mCurrentTransformFeedbackBuffers.insert(buffer);
-        }
-    }
-}
-
 void ContextVk::onEndTransformFeedback()
 {
     if (getFeatures().supportsTransformFeedbackExtension.enabled)
@@ -6394,7 +6387,8 @@ angle::Result ContextVk::dispatchComputeIndirect(const gl::Context *context, GLi
 
     // Break the render pass if the indirect buffer was previously used as the output from transform
     // feedback.
-    if (mCurrentTransformFeedbackBuffers.contains(&buffer))
+    if (mCurrentTransformFeedbackQueueSerial.valid() &&
+        buffer.writtenByCommandBuffer(mCurrentTransformFeedbackQueueSerial))
     {
         ANGLE_TRY(flushCommandsAndEndRenderPass(
             RenderPassClosureReason::XfbWriteThenIndirectDispatchBuffer));
@@ -6575,7 +6569,7 @@ angle::Result ContextVk::releaseTextures(const gl::Context *context,
             vk::ConvertImageLayoutToGLImageLayout(image.getCurrentImageLayout());
     }
 
-    ANGLE_TRY(flushImpl(nullptr, RenderPassClosureReason::ImageUseThenReleaseToExternal));
+    ANGLE_TRY(flushImpl(nullptr, nullptr, RenderPassClosureReason::ImageUseThenReleaseToExternal));
     return mRenderer->waitForResourceUseToBeSubmittedToDevice(this, mSubmittedResourceUse);
 }
 
@@ -7030,17 +7024,18 @@ angle::Result ContextVk::updateActiveImages(CommandBufferHelperT *commandBufferH
 }
 
 angle::Result ContextVk::flushImpl(const vk::Semaphore *signalSemaphore,
+                                   const vk::SharedExternalFence *externalFence,
                                    RenderPassClosureReason renderPassClosureReason)
 {
     bool someCommandsNeedFlush =
         !mOutsideRenderPassCommands->empty() || !mRenderPassCommands->empty();
     bool someCommandAlreadyFlushedNeedsSubmit =
         mLastFlushedQueueSerial != mLastSubmittedQueueSerial;
-    bool someSemaphoreNeedsSubmit =
-        signalSemaphore != nullptr || mHasWaitSemaphoresPendingSubmission;
+    bool someOtherReasonNeedsSubmit = signalSemaphore != nullptr || externalFence != nullptr ||
+                                      mHasWaitSemaphoresPendingSubmission;
 
     if (!someCommandsNeedFlush && !someCommandAlreadyFlushedNeedsSubmit &&
-        !someSemaphoreNeedsSubmit)
+        !someOtherReasonNeedsSubmit)
     {
         // We have nothing to submit.
         return angle::Result::Continue;
@@ -7129,7 +7124,7 @@ angle::Result ContextVk::flushImpl(const vk::Semaphore *signalSemaphore,
     ASSERT(mWaitSemaphores.empty());
     ASSERT(mWaitSemaphoreStageMasks.empty());
 
-    ANGLE_TRY(submitCommands(signalSemaphore, Submit::AllCommands));
+    ANGLE_TRY(submitCommands(signalSemaphore, externalFence, Submit::AllCommands));
 
     ASSERT(mOutsideRenderPassCommands->getQueueSerial() > mLastSubmittedQueueSerial);
 
@@ -7163,7 +7158,7 @@ angle::Result ContextVk::finishImpl(RenderPassClosureReason renderPassClosureRea
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "ContextVk::finishImpl");
 
-    ANGLE_TRY(flushImpl(nullptr, renderPassClosureReason));
+    ANGLE_TRY(flushImpl(nullptr, nullptr, renderPassClosureReason));
 
     // You must have to wait for all queue indices ever used to finish. Just wait for
     // mLastSubmittedQueueSerial (which only contains current index) to finish is not enough, if it
@@ -7254,7 +7249,7 @@ angle::Result ContextVk::getTimestamp(uint64_t *timestampOut)
 
     QueueSerial submitQueueSerial;
     ANGLE_TRY(mRenderer->queueSubmitOneOff(this, std::move(commandBuffer), getProtectionType(),
-                                           mContextPriority, VK_NULL_HANDLE, 0, nullptr,
+                                           mContextPriority, VK_NULL_HANDLE, 0,
                                            vk::SubmitPolicy::AllowDeferred, &submitQueueSerial));
     // Track it with the submitSerial.
     timestampQuery.setQueueSerial(submitQueueSerial);
@@ -7421,7 +7416,7 @@ angle::Result ContextVk::flushCommandsAndEndRenderPassWithoutSubmit(RenderPassCl
     // Restart at subpass 0.
     mGraphicsPipelineDesc->resetSubpass(&mGraphicsPipelineTransition);
 
-    mCurrentTransformFeedbackBuffers.clear();
+    mCurrentTransformFeedbackQueueSerial = QueueSerial();
 
     onRenderPassFinished(reason);
 
@@ -7491,7 +7486,7 @@ angle::Result ContextVk::flushCommandsAndEndRenderPass(RenderPassClosureReason r
     if (mHasDeferredFlush)
     {
         // If we have deferred glFlush call in the middle of render pass, flush them now.
-        ANGLE_TRY(flushImpl(nullptr, RenderPassClosureReason::AlreadySpecifiedElsewhere));
+        ANGLE_TRY(flushImpl(nullptr, nullptr, RenderPassClosureReason::AlreadySpecifiedElsewhere));
     }
     return angle::Result::Continue;
 }
@@ -7549,13 +7544,11 @@ angle::Result ContextVk::onSyncObjectInit(vk::SyncHelper *syncHelper, bool isEGL
     // pass).
     if (isEGLSyncObject || !mRenderPassCommands->started())
     {
-        ANGLE_TRY(flushImpl(nullptr, RenderPassClosureReason::SyncObjectInit));
-        // If sync inserted before any command is generated, and flushImpl bails out, then no need
-        // to set queueSerial. It will always test finished/signaled.
-        if (mLastSubmittedQueueSerial.valid())
-        {
-            syncHelper->setQueueSerial(mLastSubmittedQueueSerial);
-        }
+        ANGLE_TRY(flushImpl(nullptr, nullptr, RenderPassClosureReason::SyncObjectInit));
+        // Even if no commands is generated, and flushImpl bails out, queueSerial is valid since
+        // Context initialization. It will always test finished/signaled.
+        ASSERT(mLastSubmittedQueueSerial.valid());
+        syncHelper->setQueueSerial(mLastSubmittedQueueSerial);
         return angle::Result::Continue;
     }
 
@@ -7672,7 +7665,7 @@ angle::Result ContextVk::flushAndSubmitOutsideRenderPassCommands()
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "ContextVk::flushAndSubmitOutsideRenderPassCommands");
     ANGLE_TRY(flushOutsideRenderPassCommands());
-    return submitCommands(nullptr, Submit::OutsideRenderPassCommandsOnly);
+    return submitCommands(nullptr, nullptr, Submit::OutsideRenderPassCommandsOnly);
 }
 
 angle::Result ContextVk::flushOutsideRenderPassCommands()
@@ -8088,7 +8081,7 @@ angle::Result ContextVk::endRenderPassIfComputeReadAfterTransformFeedbackWrite()
     // Similar to flushCommandBuffersIfNecessary(), but using uniform buffers currently bound and
     // used by the current (compute) program.  This is to handle read-after-write hazards where the
     // write originates from transform feedback.
-    if (mCurrentTransformFeedbackBuffers.empty())
+    if (!mCurrentTransformFeedbackQueueSerial.valid())
     {
         return angle::Result::Continue;
     }
@@ -8111,7 +8104,7 @@ angle::Result ContextVk::endRenderPassIfComputeReadAfterTransformFeedbackWrite()
         }
 
         vk::BufferHelper &buffer = vk::GetImpl(bufferBinding.get())->getBuffer();
-        if (mCurrentTransformFeedbackBuffers.contains(&buffer))
+        if (buffer.writtenByCommandBuffer(mCurrentTransformFeedbackQueueSerial))
         {
             return flushCommandsAndEndRenderPass(RenderPassClosureReason::XfbWriteThenComputeRead);
         }
