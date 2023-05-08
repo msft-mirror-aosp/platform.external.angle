@@ -3,5 +3,6 @@
 // found in the LICENSE file.
 
 fn main() {
-    println!("hello world");
+    lib::print_foo_bar();
+    println!("{} from re-exported function", lib::say_foo_directly());
 }

@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#[test]
-fn test_test() {
-    assert_eq!(1, 1);
+extern "C" void print_foo_bar();
+
+int main() {
+  print_foo_bar();
 }

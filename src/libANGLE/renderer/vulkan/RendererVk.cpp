@@ -30,6 +30,7 @@
 #include "libANGLE/renderer/vulkan/FramebufferVk.h"
 #include "libANGLE/renderer/vulkan/ProgramVk.h"
 #include "libANGLE/renderer/vulkan/ResourceVk.h"
+#include "libANGLE/renderer/vulkan/SyncVk.h"
 #include "libANGLE/renderer/vulkan/VertexArrayVk.h"
 #include "libANGLE/renderer/vulkan/vk_caps_utils.h"
 #include "libANGLE/renderer/vulkan/vk_format_utils.h"
@@ -4380,7 +4381,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
                                 (mFeatures.preferMonolithicPipelinesOverLibraries.enabled &&
                                  libraryBlobsAreReusedByMonolithicPipelines));
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, enableAsyncPipelineCacheCompression, isVenus);
+    ANGLE_FEATURE_CONDITION(&mFeatures, enableAsyncPipelineCacheCompression, true);
 
     // Sync monolithic pipelines to the blob cache occasionally on platforms that would benefit from
     // it:
@@ -4792,7 +4793,6 @@ angle::Result RendererVk::queueSubmitOneOff(vk::Context *context,
                                             egl::ContextPriority priority,
                                             VkSemaphore waitSemaphore,
                                             VkPipelineStageFlags waitSemaphoreStageMasks,
-                                            const vk::Fence *fence,
                                             vk::SubmitPolicy submitPolicy,
                                             QueueSerial *queueSerialOut)
 {
@@ -4803,20 +4803,17 @@ angle::Result RendererVk::queueSubmitOneOff(vk::Context *context,
     ANGLE_TRY(allocateScopedQueueSerialIndex(&index));
     QueueSerial submitQueueSerial(index.get(), generateQueueSerial(index.get()));
 
-    ASSERT(fence == nullptr || fence->valid());
-    const VkFence vkFence = fence ? fence->getHandle() : VK_NULL_HANDLE;
-
     if (isAsyncCommandQueueEnabled())
     {
         ANGLE_TRY(mCommandProcessor.enqueueSubmitOneOffCommands(
             context, protectionType, priority, primary.getHandle(), waitSemaphore,
-            waitSemaphoreStageMasks, vkFence, submitPolicy, submitQueueSerial));
+            waitSemaphoreStageMasks, submitPolicy, submitQueueSerial));
     }
     else
     {
         ANGLE_TRY(mCommandQueue.queueSubmitOneOff(
             context, protectionType, priority, primary.getHandle(), waitSemaphore,
-            waitSemaphoreStageMasks, vkFence, submitPolicy, submitQueueSerial));
+            waitSemaphoreStageMasks, submitPolicy, submitQueueSerial));
     }
 
     *queueSerialOut = submitQueueSerial;
@@ -4841,15 +4838,15 @@ angle::Result RendererVk::queueSubmitWaitSemaphore(vk::Context *context,
     {
         ANGLE_TRY(mCommandProcessor.enqueueSubmitOneOffCommands(
             context, vk::ProtectionType::Unprotected, priority, VK_NULL_HANDLE,
-            waitSemaphore.getHandle(), waitSemaphoreStageMasks, VK_NULL_HANDLE,
-            vk::SubmitPolicy::AllowDeferred, submitQueueSerial));
+            waitSemaphore.getHandle(), waitSemaphoreStageMasks, vk::SubmitPolicy::AllowDeferred,
+            submitQueueSerial));
     }
     else
     {
         ANGLE_TRY(mCommandQueue.queueSubmitOneOff(
             context, vk::ProtectionType::Unprotected, priority, VK_NULL_HANDLE,
-            waitSemaphore.getHandle(), waitSemaphoreStageMasks, VK_NULL_HANDLE,
-            vk::SubmitPolicy::AllowDeferred, submitQueueSerial));
+            waitSemaphore.getHandle(), waitSemaphoreStageMasks, vk::SubmitPolicy::AllowDeferred,
+            submitQueueSerial));
     }
 
     return angle::Result::Continue;
@@ -5157,21 +5154,30 @@ angle::Result RendererVk::submitCommands(vk::Context *context,
                                          vk::ProtectionType protectionType,
                                          egl::ContextPriority contextPriority,
                                          const vk::Semaphore *signalSemaphore,
+                                         const vk::SharedExternalFence *externalFence,
                                          const QueueSerial &submitQueueSerial)
 {
     ASSERT(signalSemaphore == nullptr || signalSemaphore->valid());
     const VkSemaphore signalVkSemaphore =
         signalSemaphore ? signalSemaphore->getHandle() : VK_NULL_HANDLE;
 
+    vk::SharedExternalFence externalFenceCopy;
+    if (externalFence != nullptr)
+    {
+        externalFenceCopy = *externalFence;
+    }
+
     if (isAsyncCommandQueueEnabled())
     {
-        ANGLE_TRY(mCommandProcessor.enqueueSubmitCommands(context, protectionType, contextPriority,
-                                                          signalVkSemaphore, submitQueueSerial));
+        ANGLE_TRY(mCommandProcessor.enqueueSubmitCommands(
+            context, protectionType, contextPriority, signalVkSemaphore,
+            std::move(externalFenceCopy), submitQueueSerial));
     }
     else
     {
         ANGLE_TRY(mCommandQueue.submitCommands(context, protectionType, contextPriority,
-                                               signalVkSemaphore, submitQueueSerial));
+                                               signalVkSemaphore, std::move(externalFenceCopy),
+                                               submitQueueSerial));
     }
 
     ANGLE_TRY(mCommandQueue.postSubmitCheck(context));
@@ -5208,7 +5214,7 @@ angle::Result RendererVk::submitPriorityDependency(vk::Context *context,
             signalSemaphore = &semaphore.get().get();
         }
         ANGLE_TRY(submitCommands(context, protectionType, srcContextPriority, signalSemaphore,
-                                 queueSerial));
+                                 nullptr, queueSerial));
     }
 
     // Submit only Wait Semaphore into the destination Priority (VkQueue).
