@@ -27,6 +27,32 @@ namespace vk
 // Represents an invalid native fence FD.
 constexpr int kInvalidFenceFd = EGL_NO_NATIVE_FENCE_FD_ANDROID;
 
+class ExternalFence final : angle::NonCopyable
+{
+  public:
+    ExternalFence();
+    ~ExternalFence();
+
+    VkResult init(VkDevice device, const VkFenceCreateInfo &createInfo);
+    void init(int fenceFd);
+
+    VkFence getHandle() const { return mFence.getHandle(); }
+    VkResult getStatus(VkDevice device) const;
+    VkResult wait(VkDevice device, uint64_t timeout) const;
+
+    void exportFd(VkDevice device, const VkFenceGetFdInfoKHR &fenceGetFdInfo);
+    VkResult getFenceFdStatus() const { return mFenceFdStatus; }
+    int getFenceFd() const { return mFenceFd; }
+
+  private:
+    VkDevice mDevice;
+    Fence mFence;
+    VkResult mFenceFdStatus;
+    int mFenceFd;
+};
+
+using SharedExternalFence = std::shared_ptr<ExternalFence>;
+
 // Implementation of fence types - glFenceSync, and EGLSync(EGL_SYNC_FENCE_KHR).
 // The behaviors of SyncVk and EGLFenceSyncVk as fence syncs are currently
 // identical for the Vulkan backend, and this class implements both interfaces.
@@ -45,11 +71,14 @@ class SyncHelper : public vk::Resource
                                      uint64_t timeout,
                                      VkResult *outResult);
     virtual angle::Result serverWait(ContextVk *contextVk);
-    virtual angle::Result getStatus(Context *context, ContextVk *contextVk, bool *signaled);
+    virtual angle::Result getStatus(Context *context, ContextVk *contextVk, bool *signaledOut);
     virtual angle::Result dupNativeFenceFD(Context *context, int *fdOut) const
     {
         return angle::Result::Stop;
     }
+
+  protected:
+    angle::Result getStatusFromUse(Context *context, bool *signaledOut);
 
   private:
     angle::Result submitSyncIfDeferred(ContextVk *contextVk, RenderPassClosureReason reason);
@@ -71,12 +100,11 @@ class SyncHelperNativeFence : public SyncHelper
                              uint64_t timeout,
                              VkResult *outResult) override;
     angle::Result serverWait(ContextVk *contextVk) override;
-    angle::Result getStatus(Context *context, ContextVk *contextVk, bool *signaled) override;
+    angle::Result getStatus(Context *context, ContextVk *contextVk, bool *signaledOut) override;
     angle::Result dupNativeFenceFD(Context *context, int *fdOut) const override;
 
   private:
-    vk::Fence mFenceWithFd;
-    int mNativeFenceFd;
+    SharedExternalFence mExternalFence;
 };
 
 }  // namespace vk
