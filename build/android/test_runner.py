@@ -293,7 +293,7 @@ def AddDeviceOptions(parser):
   parser.add_argument(
       '--use-local-devil-tools',
       action='store_true',
-      help='Use locally built versions of tools needed by devil_chromium.')
+      help='Use locally built versions of tools used by devil_chromium.')
   parser.add_argument('--denylist-file',
                       type=os.path.realpath,
                       help='Device denylist file.')
