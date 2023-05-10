@@ -2499,18 +2499,6 @@ TEST_P(Texture2DTest, TexStorage)
 // initialized the image with a default color.
 TEST_P(Texture2DTest, TexStorageWithPBO)
 {
-    // http://anglebug.com/4126
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsOpenGL());
-
-    // http://anglebug.com/5081
-    ANGLE_SKIP_TEST_IF(IsWindows() && IsNVIDIA() && IsOpenGL());
-
-    // http://anglebug.com/5651
-    ANGLE_SKIP_TEST_IF(IsLinux() && IsNVIDIA() && IsOpenGL());
-
-    // http://anglebug.com/5097
-    ANGLE_SKIP_TEST_IF(IsLinux() && IsOpenGL() && IsTSan());
-
     if (getClientMajorVersion() < 3)
     {
         ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_texture_storage"));
@@ -2561,8 +2549,7 @@ TEST_P(Texture2DTest, TexStorageWithPBO)
     drawQuad(mProgram, "position", 0.5f);
     glDeleteBuffers(1, &pbo);
     EXPECT_GL_NO_ERROR();
-    EXPECT_PIXEL_EQ(3 * width / 4, 3 * height / 4, 0, 0, 0, 255);
-    EXPECT_PIXEL_EQ(width / 4, height / 4, 255, 0, 0, 255);
+    EXPECT_PIXEL_RECT_EQ(0, 0, width / 2, height / 2, GLColor(255, 0, 0, 255));
 }
 
 // Test that glTexSubImage2D combined with a PBO works properly after deleting the PBO
@@ -3211,8 +3198,13 @@ TEST_P(Texture2DTestES3, TexImageWithDepthPBO)
 TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth16)
 {
     TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, false);
-    TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT16, GL_STENCIL_INDEX, false);
+}
+
+// Test sampling modes with a swizzled DEPTH_COMPONENT16 texture.
+TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth16Swizzled)
+{
+    TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT16, GL_STENCIL_INDEX, true);
 }
 
@@ -3220,8 +3212,13 @@ TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth16)
 TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth24)
 {
     TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, false);
-    TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT24, GL_STENCIL_INDEX, false);
+}
+
+// Test sampling modes with a swizzled DEPTH_COMPONENT24 texture.
+TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth24Swizzled)
+{
+    TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT24, GL_STENCIL_INDEX, true);
 }
 
@@ -3229,8 +3226,13 @@ TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth24)
 TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth32f)
 {
     TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, false);
-    TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT32F, GL_STENCIL_INDEX, false);
+}
+
+// Test depth sampling with a swizzled DEPTH_COMPONENT32F texture.
+TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth32fSwizzled)
+{
+    TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_DEPTH_COMPONENT32F, GL_STENCIL_INDEX, true);
 }
 
@@ -3238,8 +3240,13 @@ TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth32f)
 TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth24Stencil8)
 {
     TestSampleWithDepthStencilMode(GL_DEPTH24_STENCIL8, GL_DEPTH_COMPONENT, false);
-    TestSampleWithDepthStencilMode(GL_DEPTH24_STENCIL8, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_DEPTH24_STENCIL8, GL_STENCIL_INDEX, false);
+}
+
+// Test sampling modes with a swizzled DEPTH24_STENCIL8 texture.
+TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth24Stencil8Swizzled)
+{
+    TestSampleWithDepthStencilMode(GL_DEPTH24_STENCIL8, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_DEPTH24_STENCIL8, GL_STENCIL_INDEX, true);
 }
 
@@ -3247,8 +3254,13 @@ TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth24Stencil8)
 TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth32fStencil8)
 {
     TestSampleWithDepthStencilMode(GL_DEPTH32F_STENCIL8, GL_DEPTH_COMPONENT, false);
-    TestSampleWithDepthStencilMode(GL_DEPTH32F_STENCIL8, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_DEPTH32F_STENCIL8, GL_STENCIL_INDEX, false);
+}
+
+// Test sampling modes with a swizzled DEPTH32F_STENCIL8 texture.
+TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithDepth32fStencil8Swizzled)
+{
+    TestSampleWithDepthStencilMode(GL_DEPTH32F_STENCIL8, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_DEPTH32F_STENCIL8, GL_STENCIL_INDEX, true);
 }
 
@@ -3257,8 +3269,14 @@ TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithStencil8)
 {
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_stencil8"));
     TestSampleWithDepthStencilMode(GL_STENCIL_INDEX8, GL_DEPTH_COMPONENT, false);
-    TestSampleWithDepthStencilMode(GL_STENCIL_INDEX8, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_STENCIL_INDEX8, GL_STENCIL_INDEX, false);
+}
+
+// Test sampling modes with a swizzled STENCIL_INDEX8 texture.
+TEST_P(Texture2DDepthStencilTestES3, TexSampleModesWithStencil8Swizzled)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_stencil8"));
+    TestSampleWithDepthStencilMode(GL_STENCIL_INDEX8, GL_DEPTH_COMPONENT, true);
     TestSampleWithDepthStencilMode(GL_STENCIL_INDEX8, GL_STENCIL_INDEX, true);
 }
 

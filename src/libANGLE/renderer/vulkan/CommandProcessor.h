@@ -121,10 +121,17 @@ class CommandProcessorTask
 
     void initTask();
 
+    void initFlushWaitSemaphores(ProtectionType protectionType,
+                                 egl::ContextPriority priority,
+                                 std::vector<VkSemaphore> &&waitSemaphores,
+                                 std::vector<VkPipelineStageFlags> &&waitSemaphoreStageMasks);
+
     void initOutsideRenderPassProcessCommands(ProtectionType protectionType,
+                                              egl::ContextPriority priority,
                                               OutsideRenderPassCommandBufferHelper *commandBuffer);
 
     void initRenderPassProcessCommands(ProtectionType protectionType,
+                                       egl::ContextPriority priority,
                                        RenderPassCommandBufferHelper *commandBuffer,
                                        const RenderPass *renderPass);
 
@@ -132,23 +139,17 @@ class CommandProcessorTask
                      const VkPresentInfoKHR &presentInfo,
                      SwapchainStatus *swapchainStatus);
 
-    void initFlushWaitSemaphores(ProtectionType protectionType,
-                                 std::vector<VkSemaphore> &&waitSemaphores,
-                                 std::vector<VkPipelineStageFlags> &&waitSemaphoreStageMasks);
-
-    void initFlushAndQueueSubmit(const VkSemaphore semaphore,
+    void initFlushAndQueueSubmit(VkSemaphore semaphore,
                                  ProtectionType protectionType,
                                  egl::ContextPriority priority,
-                                 SecondaryCommandPools *commandPools,
-                                 SecondaryCommandBufferList &&commandBuffersToReset,
                                  const QueueSerial &submitQueueSerial);
 
     void initOneOffQueueSubmit(VkCommandBuffer commandBufferHandle,
                                ProtectionType protectionType,
                                egl::ContextPriority priority,
-                               const Semaphore *waitSemaphore,
+                               VkSemaphore waitSemaphore,
                                VkPipelineStageFlags waitSemaphoreStageMask,
-                               const Fence *fence,
+                               VkFence fence,
                                const QueueSerial &submitQueueSerial);
 
     CommandProcessorTask &operator=(CommandProcessorTask &&rhs);
@@ -165,14 +166,16 @@ class CommandProcessorTask
     {
         return mWaitSemaphoreStageMasks;
     }
-    VkSemaphore getSemaphore() { return mSemaphore; }
-    SecondaryCommandBufferList &getCommandBuffersToReset() { return mCommandBuffersToReset; }
+    VkSemaphore getSemaphore() const { return mSemaphore; }
     egl::ContextPriority getPriority() const { return mPriority; }
     ProtectionType getProtectionType() const { return mProtectionType; }
-    VkCommandBuffer getOneOffCommandBufferVk() const { return mOneOffCommandBufferVk; }
-    const Semaphore *getOneOffWaitSemaphore() { return mOneOffWaitSemaphore; }
-    VkPipelineStageFlags getOneOffWaitSemaphoreStageMask() { return mOneOffWaitSemaphoreStageMask; }
-    const Fence *getOneOffFence() { return mOneOffFence; }
+    VkCommandBuffer getOneOffCommandBuffer() const { return mOneOffCommandBuffer; }
+    VkSemaphore getOneOffWaitSemaphore() const { return mOneOffWaitSemaphore; }
+    VkPipelineStageFlags getOneOffWaitSemaphoreStageMask() const
+    {
+        return mOneOffWaitSemaphoreStageMask;
+    }
+    VkFence getOneOffFence() const { return mOneOffFence; }
     const VkPresentInfoKHR &getPresentInfo() const { return mPresentInfo; }
     SwapchainStatus *getSwapchainStatus() const { return mSwapchainStatus; }
     const RenderPass *getRenderPass() const { return mRenderPass; }
@@ -184,7 +187,6 @@ class CommandProcessorTask
     {
         return mRenderPassCommandBuffer;
     }
-    SecondaryCommandPools *getCommandPools() const { return mCommandPools; }
 
   private:
     void copyPresentInfo(const VkPresentInfoKHR &other);
@@ -202,8 +204,6 @@ class CommandProcessorTask
 
     // Flush data
     VkSemaphore mSemaphore;
-    SecondaryCommandPools *mCommandPools;
-    SecondaryCommandBufferList mCommandBuffersToReset;
 
     // Flush command data
     QueueSerial mSubmitQueueSerial;
@@ -227,10 +227,10 @@ class CommandProcessorTask
     SwapchainStatus *mSwapchainStatus;
 
     // Used by OneOffQueueSubmit
-    VkCommandBuffer mOneOffCommandBufferVk;
-    const Semaphore *mOneOffWaitSemaphore;
+    VkCommandBuffer mOneOffCommandBuffer;
+    VkSemaphore mOneOffWaitSemaphore;
     VkPipelineStageFlags mOneOffWaitSemaphoreStageMask;
-    const Fence *mOneOffFence;
+    VkFence mOneOffFence;
 
     // Flush, Present & QueueWaitIdle data
     egl::ContextPriority mPriority;
@@ -247,12 +247,9 @@ struct CommandBatch final : angle::NonCopyable
     CommandBatch &operator=(CommandBatch &&other);
 
     void destroy(VkDevice device);
-    void resetSecondaryCommandBuffers(VkDevice device);
 
     PrimaryCommandBuffer primaryCommands;
-    // commandPools is for secondary CommandBuffer allocation
-    SecondaryCommandPools *commandPools;
-    SecondaryCommandBufferList commandBuffersToReset;
+    SecondaryCommandBufferCollector secondaryCommands;
     SharedFence fence;
     QueueSerial queueSerial;
     ProtectionType protectionType;
@@ -382,18 +379,16 @@ class CommandQueue : angle::NonCopyable
     angle::Result submitCommands(Context *context,
                                  ProtectionType protectionType,
                                  egl::ContextPriority priority,
-                                 const VkSemaphore signalSemaphore,
-                                 SecondaryCommandBufferList &&commandBuffersToReset,
-                                 SecondaryCommandPools *commandPools,
+                                 VkSemaphore signalSemaphore,
                                  const QueueSerial &submitQueueSerial);
 
     angle::Result queueSubmitOneOff(Context *context,
                                     ProtectionType protectionType,
                                     egl::ContextPriority contextPriority,
                                     VkCommandBuffer commandBufferHandle,
-                                    const Semaphore *waitSemaphore,
+                                    VkSemaphore waitSemaphore,
                                     VkPipelineStageFlags waitSemaphoreStageMask,
-                                    const Fence *fence,
+                                    VkFence fence,
                                     SubmitPolicy submitPolicy,
                                     const QueueSerial &submitQueueSerial);
 
@@ -402,22 +397,37 @@ class CommandQueue : angle::NonCopyable
                       const VkPresentInfoKHR &presentInfo,
                       SwapchainStatus *swapchainStatus);
 
-    angle::Result checkCompletedCommands(Context *context, bool *anyCommandFinished)
+    angle::Result checkCompletedCommands(Context *context)
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        ANGLE_TRY(checkCompletedCommandsLocked(context));
-        *anyCommandFinished = !mFinishedCommandBatches.empty();
+        return checkCompletedCommandsLocked(context);
+    }
+
+    bool hasFinishedCommands() const { return !mFinishedCommandBatches.empty(); }
+
+    angle::Result checkAndCleanupCompletedCommands(Context *context)
+    {
+        ANGLE_TRY(checkCompletedCommands(context));
+
+        if (!mFinishedCommandBatches.empty())
+        {
+            ANGLE_TRY(retireFinishedCommandsAndCleanupGarbage(context));
+        }
+
         return angle::Result::Continue;
     }
 
     void flushWaitSemaphores(ProtectionType protectionType,
+                             egl::ContextPriority priority,
                              std::vector<VkSemaphore> &&waitSemaphores,
                              std::vector<VkPipelineStageFlags> &&waitSemaphoreStageMasks);
     angle::Result flushOutsideRPCommands(Context *context,
                                          ProtectionType protectionType,
+                                         egl::ContextPriority priority,
                                          OutsideRenderPassCommandBufferHelper **outsideRPCommands);
     angle::Result flushRenderPassCommands(Context *context,
                                           ProtectionType protectionType,
+                                          egl::ContextPriority priority,
                                           const RenderPass &renderPass,
                                           RenderPassCommandBufferHelper **renderPassCommands);
 
@@ -451,24 +461,22 @@ class CommandQueue : angle::NonCopyable
                               std::unique_lock<std::mutex> &&dequeueLock,
                               egl::ContextPriority contextPriority,
                               const VkSubmitInfo &submitInfo,
-                              const Fence *fence,
+                              VkFence fence,
                               DeviceScoped<CommandBatch> &commandBatch,
                               const QueueSerial &submitQueueSerial);
 
-    angle::Result ensurePrimaryCommandBufferValid(Context *context, ProtectionType protectionType);
+    angle::Result ensurePrimaryCommandBufferValid(Context *context,
+                                                  ProtectionType protectionType,
+                                                  egl::ContextPriority priority);
 
-    struct CommandsState
-    {
-        std::vector<VkSemaphore> waitSemaphores;
-        std::vector<VkPipelineStageFlags> waitSemaphoreStageMasks;
-        PrimaryCommandBuffer primaryCommands;
-        // Keeps a free list of reusable primary command buffers.
-        PersistentCommandPool primaryCommandPool;
-    };
+    using CommandsStateMap =
+        angle::PackedEnumMap<egl::ContextPriority,
+                             angle::PackedEnumMap<ProtectionType, CommandsState>>;
+    using PrimaryCommandPoolMap = angle::PackedEnumMap<ProtectionType, PersistentCommandPool>;
 
     angle::Result initCommandPool(Context *context, ProtectionType protectionType)
     {
-        PersistentCommandPool &commandPool = mCommandsStateMap[protectionType].primaryCommandPool;
+        PersistentCommandPool &commandPool = mPrimaryCommandPoolMap[protectionType];
         return commandPool.init(context, protectionType, mQueueMap.getIndex());
     }
 
@@ -482,7 +490,9 @@ class CommandQueue : angle::NonCopyable
     // Temporary storage for finished command batches that should be reset.
     angle::FixedQueue<CommandBatch, kMaxFinishedCommandsLimit> mFinishedCommandBatches;
 
-    angle::PackedEnumMap<ProtectionType, CommandsState> mCommandsStateMap;
+    CommandsStateMap mCommandsStateMap;
+    // Keeps a free list of reusable primary command buffers.
+    PrimaryCommandPoolMap mPrimaryCommandPoolMap;
 
     // Queue serial management.
     AtomicQueueSerialFixedArray mLastSubmittedSerials;
@@ -525,9 +535,7 @@ class CommandProcessor : public Context
     angle::Result enqueueSubmitCommands(Context *context,
                                         ProtectionType protectionType,
                                         egl::ContextPriority priority,
-                                        const VkSemaphore signalSemaphore,
-                                        SecondaryCommandBufferList &&commandBuffersToReset,
-                                        SecondaryCommandPools *commandPools,
+                                        VkSemaphore signalSemaphore,
                                         const QueueSerial &submitQueueSerial);
 
     void requestCommandsAndGarbageCleanup();
@@ -536,9 +544,9 @@ class CommandProcessor : public Context
                                               ProtectionType protectionType,
                                               egl::ContextPriority contextPriority,
                                               VkCommandBuffer commandBufferHandle,
-                                              const Semaphore *waitSemaphore,
+                                              VkSemaphore waitSemaphore,
                                               VkPipelineStageFlags waitSemaphoreStageMask,
-                                              const Fence *fence,
+                                              VkFence fence,
                                               SubmitPolicy submitPolicy,
                                               const QueueSerial &submitQueueSerial);
     void enqueuePresent(egl::ContextPriority contextPriority,
@@ -547,15 +555,18 @@ class CommandProcessor : public Context
 
     angle::Result enqueueFlushWaitSemaphores(
         ProtectionType protectionType,
+        egl::ContextPriority priority,
         std::vector<VkSemaphore> &&waitSemaphores,
         std::vector<VkPipelineStageFlags> &&waitSemaphoreStageMasks);
     angle::Result enqueueFlushOutsideRPCommands(
         Context *context,
         ProtectionType protectionType,
+        egl::ContextPriority priority,
         OutsideRenderPassCommandBufferHelper **outsideRPCommands);
     angle::Result enqueueFlushRenderPassCommands(
         Context *context,
         ProtectionType protectionType,
+        egl::ContextPriority priority,
         const RenderPass &renderPass,
         RenderPassCommandBufferHelper **renderPassCommands);
 

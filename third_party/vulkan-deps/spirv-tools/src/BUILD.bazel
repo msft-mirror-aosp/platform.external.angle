@@ -104,9 +104,10 @@ py_binary(
 
 genrule(
     name = "build_version_inc",
+    srcs = ["CHANGES"],
     outs = ["build-version.inc"],
-    cmd = "SOURCE_DATE_EPOCH=0 $(location :update_build_version) $(RULEDIR) $(location build-version.inc)",
-    cmd_bat = "set SOURCE_DATE_EPOCH=0  && $(location :update_build_version) $(RULEDIR) $(location build-version.inc)",
+    cmd = "SOURCE_DATE_EPOCH=0 $(location :update_build_version) $(location CHANGES) $(location build-version.inc)",
+    cmd_bat = "set SOURCE_DATE_EPOCH=0  && $(location :update_build_version) $(location CHANGES) $(location build-version.inc)",
     # This is explicitly tools and not exec_tools because we run it locally (on the host platform) instead of
     # (potentially remotely) on the execution platform.
     tools = [":update_build_version"],
@@ -300,6 +301,24 @@ cc_binary(
         ":spirv_tools",
         ":tools_io",
         ":tools_util",
+    ],
+)
+
+cc_binary(
+    name = "spirv-objdump",
+    srcs = [
+        "tools/objdump/objdump.cpp",
+        "tools/objdump/extract_source.cpp",
+        "tools/objdump/extract_source.h",
+    ],
+    copts = COMMON_COPTS,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":tools_io",
+        ":tools_util",
+        ":spirv_tools_internal",
+        ":spirv_tools_opt_internal",
+        "@spirv_headers//:spirv_cpp_headers",
     ],
 )
 

@@ -262,12 +262,12 @@ action("spvtools_generators_inc") {
 action("spvtools_build_version") {
   script = "utils/update_build_version.py"
 
-  repo_path = "."
+  changes_file = "CHANGES"
   inc_file = "${target_gen_dir}/build-version.inc"
 
   outputs = [ inc_file ]
   args = [
-    rebase_path(repo_path, root_build_dir),
+    rebase_path(changes_file, root_build_dir),
     rebase_path(inc_file, root_build_dir),
   ]
 }
@@ -373,6 +373,12 @@ config("spvtools_internal_config") {
   } else {
     # Make MSVC report the correct value for __cplusplus
     cflags += [ "/Zc:__cplusplus" ]
+  }
+
+  if (!is_win) {
+    cflags += [ "-std=c++17" ]
+  } else {
+    cflags += [ "/std:c++17" ]
   }
 }
 
