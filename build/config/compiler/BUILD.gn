@@ -267,6 +267,7 @@ config("compiler") {
   cflags_cc = []
   cflags_objc = []
   cflags_objcc = []
+  rustflags = []
   ldflags = []
   defines = []
   configs = []
@@ -473,6 +474,7 @@ config("compiler") {
     asmflags += [ "-fPIC" ]
     cflags += [ "-fPIC" ]
     ldflags += [ "-fPIC" ]
+    rustflags += [ "-Crelocation-model=pic" ]
 
     if (!is_clang) {
       # Use pipes for communicating between sub-processes. Faster.
@@ -870,6 +872,24 @@ config("compiler") {
     }
   }
 
+  if (clang_embed_bitcode) {
+    assert(!use_thin_lto,
+           "clang_embed_bitcode is only supported in non-ThinLTO builds")
+    cflags += [
+      "-Xclang",
+      "-fembed-bitcode=all",
+    ]
+  }
+
+  if (lld_emit_indexes_and_imports) {
+    assert(use_thin_lto,
+           "lld_emit_indexes_and_imports is only supported with ThinLTO builds")
+    ldflags += [
+      "-Wl,--save-temps=import",
+      "-Wl,--thinlto-emit-index-files",
+    ]
+  }
+
   # Pass the same C/C++ flags to the objective C/C++ compiler.
   cflags_objc += cflags_c
   cflags_objcc += cflags_cc
@@ -884,7 +904,7 @@ config("compiler") {
 
   # Rust compiler flags setup.
   # ---------------------------
-  rustflags = [
+  rustflags += [
     # Overflow checks are optional in Rust, but even if switched
     # off they do not cause undefined behavior (the overflowing
     # behavior is defined). Because containers are bounds-checked
@@ -919,6 +939,14 @@ config("compiler") {
     # directory from appearing in build outputs.
     "-Zremap-cwd-prefix=.",
   ]
+
+  if (!is_win || force_rustc_color_output) {
+    # Colorize error output. The analogous flag is passed for clang. This must
+    # be platform-gated since rustc will unconditionally output ANSI escape
+    # sequences, ignoring the platform, when stderr is not a terminal.
+    rustflags += [ "--color=always" ]
+  }
+
   if (rust_abi_target != "") {
     rustflags += [ "--target=$rust_abi_target" ]
   }
@@ -1284,7 +1312,7 @@ config("compiler_cpu_abi") {
         ldflags += [ "-m64" ]
       }
     } else if (current_cpu == "riscv64") {
-      if (is_clang) {
+      if (is_clang && !is_android) {
         cflags += [ "--target=riscv64-linux-gnu" ]
         ldflags += [ "--target=riscv64-linux-gnu" ]
       }
@@ -2565,6 +2593,7 @@ config("symbols") {
 # This config guarantees to hold symbol for stack trace which are shown to user
 # when crash happens in unittests running on buildbot.
 config("minimal_symbols") {
+  rustflags = []
   if (is_win) {
     # Functions, files, and line tables only.
     cflags = []
@@ -2592,15 +2621,18 @@ config("minimal_symbols") {
       # at least 10.11.
       # TODO(thakis): Remove this once mac_deployment_target is 10.11.
       cflags += [ "-gdwarf-4" ]
+      rustflags += [ "-Zdwarf-version=4" ]
     } else if (!use_dwarf5 && !is_nacl && current_os != "aix") {
       # On aix -gdwarf causes linker failures due to thread_local variables.
       # Recent clang versions default to DWARF5 on Linux, and Android is about
       # to switch. TODO: Adopt that in controlled way.
       cflags += [ "-gdwarf-4" ]
+      rustflags += [ "-Zdwarf-version=4" ]
     }
 
     if (use_dwarf5 && !is_nacl) {
       cflags += [ "-gdwarf-5" ]
+      rustflags += [ "-Zdwarf-version=5" ]
     }
 
     # The gcc-based nacl compilers don't support -fdebug-compilation-dir (see
@@ -2632,7 +2664,7 @@ config("minimal_symbols") {
 
     asmflags = cflags
   }
-  rustflags = [ "-Cdebuginfo=1" ]
+  rustflags += [ "-Cdebuginfo=1" ]
 }
 
 # This configuration contains function names only. That is, the compiler is
