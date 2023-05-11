@@ -1016,6 +1016,10 @@ config("compiler_cpu_abi") {
         cflags += [ "--target=aarch64-linux-gnu" ]
         ldflags += [ "--target=aarch64-linux-gnu" ]
       }
+      if (is_high_end_android) {
+        cflags += [ "-march=armv8-a+lse" ]
+        ldflags += [ "-march=armv8-a+lse" ]
+      }
     } else if (current_cpu == "mipsel" && !is_nacl) {
       ldflags += [ "-Wl,--hash-style=sysv" ]
       if (custom_toolchain == "") {
@@ -1747,14 +1751,14 @@ config("chromium_code") {
       defines += [ "_FORTIFY_SOURCE=2" ]
     }
 
-    if (is_mac) {
-      cflags_objc = [ "-Wobjc-missing-property-synthesis" ]
-      cflags_objcc = [ "-Wobjc-missing-property-synthesis" ]
+    if (is_apple) {
+      cflags_objc = [ "-Wimplicit-retain-self" ]
+      cflags_objcc = [ "-Wimplicit-retain-self" ]
     }
 
-    if (is_ios) {
-      cflags_objc = [ "-Wimplicit-retain-self" ]
-      cflags_objcc = cflags_objc
+    if (is_mac) {
+      cflags_objc += [ "-Wobjc-missing-property-synthesis" ]
+      cflags_objcc += [ "-Wobjc-missing-property-synthesis" ]
     }
   }
 

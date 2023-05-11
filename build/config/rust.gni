@@ -15,17 +15,19 @@ declare_args() {
   # Whether to allow Rust code to be part of the Chromium *build process*.
   # This can be used to create Rust test binaries, even if the flag below
   # is false.
+  # This only applies to Chromium itself, so the build_with_chromium check
+  # should not be removed.
   # TODO(crbug.com/1386212): Mac
   # TODO(crbug.com/1271215): Windows
   # TODO(crbug.com/1426472): use_clang_coverage
   # TODO(crbug.com/1427362): using_sanitizer
   # TODO(crbug.com/1427364): target_cpu != "x86"
-  # There is no specific bug for target_os == host_os since nor for
-  # !is_official_build, since this is just a matter of rolling things out
-  # slowly and carefully and there may be no actual bugs there.
-  enable_rust = is_linux && !is_official_build && !using_sanitizer &&
-                target_cpu != "x86" && !use_clang_coverage && is_clang &&
-                target_os == host_os
+  # There is no specific bug for !is_official_build or other platforms, since
+  # this is just a matter of rolling things out slowly and carefully and there
+  # may be no actual bugs there.
+  enable_rust = (is_linux || is_android) && !is_official_build &&
+                !using_sanitizer && target_cpu != "x86" &&
+                !use_clang_coverage && is_clang && build_with_chromium
 
   # As we incrementally enable Rust on mainstream builders, we want to enable
   # the toolchain (by switching 'enable_rust' to true) while still disabling
@@ -103,10 +105,7 @@ declare_args() {
   # Support for chrome://crash-rust to check crash dump collection works.
   enable_rust_crash = enable_all_rust_features
 
-  # Build the Rust bindgen tool. This requires libclang
-  enable_rust_bindgen = enable_all_rust_features
-
-  # Support for Rust mojo bindings. Needs bindgen.
+  # Support for Rust mojo bindings.
   enable_rust_mojo = enable_all_rust_features
 
   # Support for the 'gnrt' Rust tool.
@@ -191,7 +190,7 @@ if (enable_rust) {
 # (see '*_toolchain_supports_platform above') to enable experimentation with
 # other toolchains.
 rust_abi_target = ""
-if (is_linux) {
+if (is_linux || is_chromeos) {
   cpu = current_cpu
   if (cpu == "arm64") {
     cpu = "aarch64"
@@ -284,6 +283,10 @@ assert(!use_thin_lto || !enable_rust || use_chromium_rust_toolchain ||
 
 # Determine whether the local libstd can and should be built.
 local_libstd_supported = enable_local_libstd && use_chromium_rust_toolchain
+
+# Determine whether the prebuilt libstd can be used
+prebuilt_libstd_supported = !use_chromium_rust_toolchain ||
+                            (target_os == "linux" && target_cpu == "x64")
 
 # Arguments for Rust invocation.
 # This is common between gcc/clang, Mac and Windows toolchains so specify once,

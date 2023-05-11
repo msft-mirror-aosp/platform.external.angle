@@ -34,6 +34,7 @@ from util import parallel
 from util import protoresources
 from util import resource_utils
 import action_helpers  # build_utils adds //build to sys.path.
+import zip_helpers
 
 
 # Pngs that we shouldn't convert to webp. Please add rationale when updating.
@@ -168,10 +169,6 @@ def _ParseArgs(args):
                           help='Path to the cwebp binary.')
   input_opts.add_argument(
       '--webp-cache-dir', help='The directory to store webp image cache.')
-  input_opts.add_argument(
-      '--no-xml-namespaces',
-      action='store_true',
-      help='Whether to strip xml namespaces from processed xml resources.')
   input_opts.add_argument(
       '--is-bundle-module',
       action='store_true',
@@ -768,7 +765,7 @@ def _PackageApk(options, build):
   if options.shared_resources:
     link_command.append('--shared-lib')
 
-  if options.no_xml_namespaces:
+  if int(options.min_sdk_version) > 21:
     link_command.append('--no-xml-namespaces')
 
   if options.package_id:
@@ -998,7 +995,8 @@ def main(args):
                                       rjava_build_options, options.srcjar_out,
                                       custom_root_package_name,
                                       grandparent_custom_package_name)
-      build_utils.ZipDir(build.srcjar_path, build.srcjar_dir)
+      with action_helpers.atomic_output(build.srcjar_path) as f:
+        zip_helpers.zip_directory(f, build.srcjar_dir)
 
     logging.debug('Copying outputs')
     _WriteOutputs(options, build)
