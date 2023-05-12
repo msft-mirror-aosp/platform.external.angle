@@ -242,9 +242,21 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndirect-None-02859",
     "VUID-VkGraphicsPipelineCreateInfo-Input-08733",
     // http://anglebug.com/8151
+    "VUID-vkCmdDraw-None-07840",
+    "VUID-vkCmdDraw-None-07841",
+    "VUID-vkCmdDraw-None-07843",
     "VUID-vkCmdDraw-None-07844",
     "VUID-vkCmdDraw-None-07845",
+    "VUID-vkCmdDraw-None-07847",
     "VUID-vkCmdDraw-None-07848",
+    // http://anglebug.com/8159
+    "VUID-vkCmdDrawIndexed-None-07840",
+    "VUID-vkCmdDrawIndexed-None-07841",
+    "VUID-vkCmdDrawIndexed-None-07843",
+    "VUID-vkCmdDrawIndexed-None-07844",
+    "VUID-vkCmdDrawIndexed-None-07845",
+    "VUID-vkCmdDrawIndexed-None-07847",
+    "VUID-vkCmdDrawIndexed-None-07848",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -3693,6 +3705,9 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // MESA Virtio-GPU Venus driver: https://docs.mesa3d.org/drivers/venus.html
     const bool isVenus = IsVenus(mDriverProperties.driverID, mPhysicalDeviceProperties.deviceName);
 
+    const bool isGalaxyS23 =
+        IsGalaxyS23(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID);
+
     // Distinguish between the open source and proprietary Qualcomm drivers
     const bool isQualcommOpenSource =
         IsQualcommOpenSource(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
@@ -4288,12 +4303,14 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
 
     // Disabled on Intel/Mesa due to driver bug (crbug.com/1379201).  This bug is fixed since Mesa
     // 22.2.0.
-    const bool isAtLeastMesa22_2 =
-        mesaVersion.major >= 22 || (mesaVersion.major == 22 && mesaVersion.minor >= 2);
+    const bool isMesaLessThan22_2 =
+        mesaVersion.major < 22 || (mesaVersion.major == 22 && mesaVersion.minor < 2);
+
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsLogicOpDynamicState,
-        mExtendedDynamicState2Features.extendedDynamicState2LogicOp == VK_TRUE &&
-            (!(IsLinux() && isIntel) || isAtLeastMesa22_2));
+        mFeatures.supportsExtendedDynamicState2.enabled &&
+            mExtendedDynamicState2Features.extendedDynamicState2LogicOp == VK_TRUE &&
+            !(IsLinux() && isIntel && isMesaLessThan22_2) && !(IsAndroid() && isGalaxyS23));
 
     // Avoid dynamic state for vertex input binding stride on buggy drivers.
     ANGLE_FEATURE_CONDITION(&mFeatures, forceStaticVertexStrideState,
