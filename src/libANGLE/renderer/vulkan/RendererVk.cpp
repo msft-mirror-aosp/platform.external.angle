@@ -242,21 +242,9 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndirect-None-02859",
     "VUID-VkGraphicsPipelineCreateInfo-Input-08733",
     // http://anglebug.com/8151
-    "VUID-vkCmdDraw-None-07840",
-    "VUID-vkCmdDraw-None-07841",
-    "VUID-vkCmdDraw-None-07843",
     "VUID-vkCmdDraw-None-07844",
     "VUID-vkCmdDraw-None-07845",
-    "VUID-vkCmdDraw-None-07847",
     "VUID-vkCmdDraw-None-07848",
-    // http://anglebug.com/8159
-    "VUID-vkCmdDrawIndexed-None-07840",
-    "VUID-vkCmdDrawIndexed-None-07841",
-    "VUID-vkCmdDrawIndexed-None-07843",
-    "VUID-vkCmdDrawIndexed-None-07844",
-    "VUID-vkCmdDrawIndexed-None-07845",
-    "VUID-vkCmdDrawIndexed-None-07847",
-    "VUID-vkCmdDrawIndexed-None-07848",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -579,7 +567,7 @@ DebugMessageReport ShouldReportDebugMessage(RendererVk *renderer,
                                             const char *messageId,
                                             const char *message)
 {
-    if (message == nullptr)
+    if (message == nullptr || messageId == nullptr)
     {
         return DebugMessageReport::Print;
     }
@@ -5552,7 +5540,7 @@ ImageMemorySuballocator::~ImageMemorySuballocator() {}
 
 void ImageMemorySuballocator::destroy(RendererVk *renderer) {}
 
-VkResult ImageMemorySuballocator::allocateAndBindMemory(RendererVk *renderer,
+VkResult ImageMemorySuballocator::allocateAndBindMemory(Context *context,
                                                         Image *image,
                                                         const VkImageCreateInfo *imageCreateInfo,
                                                         VkMemoryPropertyFlags requiredFlags,
@@ -5565,6 +5553,7 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(RendererVk *renderer,
 {
     ASSERT(image && image->valid());
     ASSERT(allocationOut && !allocationOut->valid());
+    RendererVk *renderer       = context->getRenderer();
     const Allocator &allocator = renderer->getAllocator();
 
     VkMemoryRequirements memoryRequirements;
@@ -5594,6 +5583,16 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(RendererVk *renderer,
     // We need to get the property flags of the allocated memory.
     *memoryFlagsOut =
         renderer->getMemoryProperties().getMemoryType(*memoryTypeIndexOut).propertyFlags;
+    if ((~(*memoryFlagsOut) & preferredFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0)
+    {
+        // For images allocated here, although allocation is preferred on the device, it is not
+        // required.
+        ASSERT((requiredFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) == 0);
+        renderer->getMemoryAllocationTracker()->compareExpectedFlagsWithAllocatedFlags(
+            requiredFlags, preferredFlags, *memoryFlagsOut,
+            reinterpret_cast<void *>(allocationOut->getHandle()));
+        context->getPerfCounters().deviceMemoryImageAllocationFallbacks++;
+    }
 
     renderer->onMemoryAlloc(memoryAllocationType, *sizeOut, *memoryTypeIndexOut,
                             allocationOut->getHandle());
