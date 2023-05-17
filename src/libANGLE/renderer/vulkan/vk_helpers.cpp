@@ -5558,16 +5558,17 @@ angle::Result ImageHelper::initExternal(Context *context,
         mCreateFlags |= VK_IMAGE_CREATE_PROTECTED_BIT;
     }
 
-    VkImageCreateInfo imageInfo     = {};
-    imageInfo.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.pNext                 = imageCreateInfoPNext;
-    imageInfo.flags                 = mCreateFlags;
-    imageInfo.imageType             = mImageType;
-    imageInfo.format                = actualVkFormat;
-    imageInfo.extent                = mExtents;
-    imageInfo.mipLevels             = mLevelCount;
-    imageInfo.arrayLayers           = mLayerCount;
-    imageInfo.samples               = gl_vk::GetSamples(mSamples);
+    VkImageCreateInfo imageInfo = {};
+    imageInfo.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.pNext             = imageCreateInfoPNext;
+    imageInfo.flags             = mCreateFlags;
+    imageInfo.imageType         = mImageType;
+    imageInfo.format            = actualVkFormat;
+    imageInfo.extent            = mExtents;
+    imageInfo.mipLevels         = mLevelCount;
+    imageInfo.arrayLayers       = mLayerCount;
+    imageInfo.samples =
+        gl_vk::GetSamples(mSamples, context->getFeatures().limitSampleCountTo2.enabled);
     imageInfo.tiling                = mTilingMode;
     imageInfo.usage                 = mUsage;
     imageInfo.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
@@ -5920,10 +5921,15 @@ angle::Result ImageHelper::initMemory(Context *context,
     RendererVk *renderer = context->getRenderer();
     if (renderer->getFeatures().useVmaForImageSuballocation.enabled)
     {
+        // While it may be preferable to allocate the image on the device, it should also be
+        // possible to allocate on other memory types if the device is out of memory.
+        VkMemoryPropertyFlags requiredFlags  = flags & (~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        VkMemoryPropertyFlags preferredFlags = flags;
+
         ANGLE_VK_TRY(context, renderer->getImageMemorySuballocator().allocateAndBindMemory(
-                                  renderer, &mImage, &mVkImageCreateInfo, flags, flags,
-                                  mMemoryAllocationType, &mVmaAllocation, &flags, &mMemoryTypeIndex,
-                                  &mAllocationSize));
+                                  context, &mImage, &mVkImageCreateInfo, requiredFlags,
+                                  preferredFlags, mMemoryAllocationType, &mVmaAllocation, &flags,
+                                  &mMemoryTypeIndex, &mAllocationSize));
     }
     else
     {
@@ -6237,15 +6243,16 @@ angle::Result ImageHelper::initStaging(Context *context,
 
     mCurrentLayout = ImageLayout::Undefined;
 
-    VkImageCreateInfo imageInfo     = {};
-    imageInfo.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.flags                 = hasProtectedContent ? VK_IMAGE_CREATE_PROTECTED_BIT : 0;
-    imageInfo.imageType             = mImageType;
-    imageInfo.format                = GetVkFormatFromFormatID(actualFormatID);
-    imageInfo.extent                = mExtents;
-    imageInfo.mipLevels             = mLevelCount;
-    imageInfo.arrayLayers           = mLayerCount;
-    imageInfo.samples               = gl_vk::GetSamples(mSamples);
+    VkImageCreateInfo imageInfo = {};
+    imageInfo.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.flags             = hasProtectedContent ? VK_IMAGE_CREATE_PROTECTED_BIT : 0;
+    imageInfo.imageType         = mImageType;
+    imageInfo.format            = GetVkFormatFromFormatID(actualFormatID);
+    imageInfo.extent            = mExtents;
+    imageInfo.mipLevels         = mLevelCount;
+    imageInfo.arrayLayers       = mLayerCount;
+    imageInfo.samples =
+        gl_vk::GetSamples(mSamples, context->getFeatures().limitSampleCountTo2.enabled);
     imageInfo.tiling                = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.usage                 = usage;
     imageInfo.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
