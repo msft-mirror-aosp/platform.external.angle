@@ -1595,12 +1595,6 @@ constexpr size_t kTransitionBitShift = kTransitionByteShift + Log2(kBitsPerByte)
 #define ANGLE_GET_INDEXED_TRANSITION_BIT(Member, Index, BitWidth) \
     (((BitWidth * Index) >> kTransitionBitShift) + ANGLE_GET_TRANSITION_BIT(Member))
 
-constexpr angle::PackedEnumMap<gl::ComponentType, VkFormat> kMismatchedComponentTypeMap = {{
-    {gl::ComponentType::Float, VK_FORMAT_R32G32B32A32_SFLOAT},
-    {gl::ComponentType::Int, VK_FORMAT_R32G32B32A32_SINT},
-    {gl::ComponentType::UnsignedInt, VK_FORMAT_R32G32B32A32_UINT},
-}};
-
 constexpr char kDescriptorTypeNameMap[][30] = {"sampler",
                                                "combined image sampler",
                                                "sampled image",
@@ -2390,8 +2384,7 @@ PipelineState GetPipelineState(size_t stateIndex, bool *isRangedOut, size_t *sub
         // Shaders state
         {PipelineState::ViewportNegativeOneToOne,
          hasShaders && contextVk->getFeatures().supportsDepthClipControl.enabled},
-        {PipelineState::DepthClampEnable,
-         hasShaders && contextVk->getFeatures().depthClamping.enabled},
+        {PipelineState::DepthClampEnable, 0},
         {PipelineState::PolygonMode, hasShaders ? VK_POLYGON_MODE_FILL : 0},
         {PipelineState::CullMode, hasShaders ? VK_CULL_MODE_NONE : 0},
         {PipelineState::FrontFace, hasShaders ? VK_FRONT_FACE_COUNTER_CLOCKWISE : 0},
@@ -3006,8 +2999,7 @@ void GraphicsPipelineDesc::initDefaults(const ContextVk *contextVk, GraphicsPipe
     {
         mShaders.shaders.bits.viewportNegativeOneToOne =
             contextVk->getFeatures().supportsDepthClipControl.enabled;
-        mShaders.shaders.bits.depthClampEnable =
-            contextVk->getFeatures().depthClamping.enabled ? VK_TRUE : VK_FALSE;
+        mShaders.shaders.bits.depthClampEnable = 0;
         SetBitField(mShaders.shaders.bits.polygonMode, VK_POLYGON_MODE_FILL);
         SetBitField(mShaders.shaders.bits.cullMode, VK_CULL_MODE_NONE);
         SetBitField(mShaders.shaders.bits.frontFace, VK_FRONT_FACE_COUNTER_CLOCKWISE);
@@ -3246,6 +3238,66 @@ VkResult GraphicsPipelineDesc::initializePipeline(Context *context,
     return result;
 }
 
+angle::FormatID patchVertexAttribComponentType(angle::FormatID format,
+                                               gl::ComponentType vsInputType)
+{
+    const gl::VertexFormat &vertexFormat = gl::GetVertexFormatFromID(format);
+    // For normalized format, keep the same ?
+    EGLBoolean normalized = vertexFormat.normalized;
+    if (normalized)
+    {
+        return format;
+    }
+    gl::VertexAttribType attribType = gl::FromGLenum<gl::VertexAttribType>(vertexFormat.type);
+    if (vsInputType != gl::ComponentType::Float)
+    {
+        ASSERT(vsInputType == gl::ComponentType::Int ||
+               vsInputType == gl::ComponentType::UnsignedInt);
+        switch (attribType)
+        {
+            case gl::VertexAttribType::Float:
+            case gl::VertexAttribType::Fixed:
+            case gl::VertexAttribType::UnsignedInt:
+            case gl::VertexAttribType::Int:
+                attribType = vsInputType == gl::ComponentType::Int
+                                 ? gl::VertexAttribType::Int
+                                 : gl::VertexAttribType::UnsignedInt;
+                break;
+            case gl::VertexAttribType::HalfFloat:
+            case gl::VertexAttribType::HalfFloatOES:
+            case gl::VertexAttribType::Short:
+            case gl::VertexAttribType::UnsignedShort:
+                attribType = vsInputType == gl::ComponentType::Int
+                                 ? gl::VertexAttribType::Short
+                                 : gl::VertexAttribType::UnsignedShort;
+                break;
+            case gl::VertexAttribType::Byte:
+            case gl::VertexAttribType::UnsignedByte:
+                attribType = vsInputType == gl::ComponentType::Int
+                                 ? gl::VertexAttribType::Byte
+                                 : gl::VertexAttribType::UnsignedByte;
+                break;
+            case gl::VertexAttribType::UnsignedInt2101010:
+            case gl::VertexAttribType::Int2101010:
+                attribType = vsInputType == gl::ComponentType::Int
+                                 ? gl::VertexAttribType::Int2101010
+                                 : gl::VertexAttribType::UnsignedInt2101010;
+                break;
+            case gl::VertexAttribType::UnsignedInt1010102:
+            case gl::VertexAttribType::Int1010102:
+                attribType = vsInputType == gl::ComponentType::Int
+                                 ? gl::VertexAttribType::Int1010102
+                                 : gl::VertexAttribType::UnsignedInt1010102;
+                break;
+            default:
+                ASSERT(0);
+                break;
+        }
+    }
+    return gl::GetVertexFormatID(attribType, vertexFormat.normalized, vertexFormat.components,
+                                 !vertexFormat.pureInteger);
+}
+
 void GraphicsPipelineDesc::initializePipelineVertexInputState(
     Context *context,
     GraphicsPipelineVertexInputVulkanStructs *stateOut,
@@ -3300,16 +3352,17 @@ void GraphicsPipelineDesc::initializePipelineVertexInputState(
                context->getFeatures().forceStaticVertexStrideState.enabled ||
                bindingDesc.stride == 0);
 
-        // This forces stride to 0 when glVertexAttribPointer specifies a different type from the
-        // program's attribute type except when the type mismatch is a mismatched integer sign.
-        if (bindingDesc.stride > 0 && attribType != programAttribType)
+        if (attribType != programAttribType)
         {
+            VkFormat origVkFormat = vkFormat;
             if (attribType == gl::ComponentType::Float ||
                 programAttribType == gl::ComponentType::Float)
             {
-                // When dealing with float to int or unsigned int or vice versa, just override the
-                // format with a compatible one.
-                vkFormat = kMismatchedComponentTypeMap[programAttribType];
+                angle::FormatID patchFormatID =
+                    patchVertexAttribComponentType(formatID, programAttribType);
+                vkFormat = context->getRenderer()
+                               ->getFormat(patchFormatID)
+                               .getActualBufferVkFormat(packedAttrib.compressed);
             }
             else
             {
@@ -3327,14 +3380,13 @@ void GraphicsPipelineDesc::initializePipelineVertexInputState(
 
                 vkFormat = convertedFormat.getActualBufferVkFormat(packedAttrib.compressed);
             }
-
+            const Format &origFormat =
+                context->getRenderer()->getFormat(GetFormatIDFromVkFormat(origVkFormat));
+            const Format &patchFormat =
+                context->getRenderer()->getFormat(GetFormatIDFromVkFormat(vkFormat));
+            ASSERT(origFormat.getIntendedFormat().pixelBytes ==
+                   patchFormat.getIntendedFormat().pixelBytes);
             ASSERT(context->getRenderer()->getNativeExtensions().relaxedVertexAttributeTypeANGLE);
-
-            if (programAttribType == gl::ComponentType::Float ||
-                attribType == gl::ComponentType::Float)
-            {
-                bindingDesc.stride = 0;  // Prevent out-of-bounds accesses.
-            }
         }
 
         attribDesc.binding  = attribIndex;
@@ -3517,19 +3569,6 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
             VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT;
         *pNextPtr = &stateOut->provokingVertexState;
         pNextPtr  = &stateOut->provokingVertexState.pNext;
-    }
-
-    // When depth clamping is used, depth clipping is automatically disabled.
-    // When the 'depthClamping' feature is enabled, we'll be using depth clamping
-    // to work around a driver issue, not as an alternative to depth clipping. Therefore we need to
-    // explicitly re-enable depth clipping.
-    if (context->getFeatures().depthClamping.enabled)
-    {
-        stateOut->depthClipState.sType =
-            VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT;
-        stateOut->depthClipState.depthClipEnable = VK_TRUE;
-        *pNextPtr                                = &stateOut->depthClipState;
-        pNextPtr                                 = &stateOut->depthClipState.pNext;
     }
 
     if (context->getFeatures().supportsGeometryStreamsCapability.enabled)
@@ -4167,6 +4206,13 @@ void GraphicsPipelineDesc::updateDepthFunc(GraphicsPipelineTransitionBits *trans
                                            const gl::DepthStencilState &depthStencilState)
 {
     setDepthFunc(gl_vk::GetCompareOp(depthStencilState.depthFunc));
+    transition->set(ANGLE_GET_TRANSITION_BIT(mShaders.shaders.bits));
+}
+
+void GraphicsPipelineDesc::updateDepthClampEnabled(GraphicsPipelineTransitionBits *transition,
+                                                   bool enabled)
+{
+    setDepthClampEnabled(enabled);
     transition->set(ANGLE_GET_TRANSITION_BIT(mShaders.shaders.bits));
 }
 
