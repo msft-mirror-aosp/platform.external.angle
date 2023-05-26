@@ -29,6 +29,7 @@
 #include "compiler/translator/ValidateTypeSizeLimitations.h"
 #include "compiler/translator/ValidateVaryingLocations.h"
 #include "compiler/translator/VariablePacker.h"
+#include "compiler/translator/tree_ops/ClampFragDepth.h"
 #include "compiler/translator/tree_ops/ClampIndirectIndices.h"
 #include "compiler/translator/tree_ops/ClampPointSize.h"
 #include "compiler/translator/tree_ops/DeclareAndInitBuiltinsForInstancedMultiview.h"
@@ -53,7 +54,6 @@
 #include "compiler/translator/tree_ops/apple/AddAndTrueToLoopCondition.h"
 #include "compiler/translator/tree_ops/apple/RewriteDoWhile.h"
 #include "compiler/translator/tree_ops/apple/UnfoldShortCircuitAST.h"
-#include "compiler/translator/tree_ops/gl/ClampFragDepth.h"
 #include "compiler/translator/tree_ops/gl/RegenerateStructNames.h"
 #include "compiler/translator/tree_ops/gl/RewriteRepeatedAssignToSwizzled.h"
 #include "compiler/translator/tree_ops/gl/UseInterfaceBlockFields.h"
@@ -884,7 +884,8 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     }
 
     if (mShaderVersion >= 300 && mShaderType == GL_FRAGMENT_SHADER &&
-        !ValidateOutputs(root, getExtensionBehavior(), mResources.MaxDrawBuffers, &mDiagnostics))
+        !ValidateOutputs(root, getExtensionBehavior(), mResources.MaxDrawBuffers,
+                         hasPixelLocalStorageUniforms(), &mDiagnostics))
     {
         return false;
     }

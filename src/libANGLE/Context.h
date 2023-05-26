@@ -690,6 +690,9 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     // The implementation's ShPixelLocalStorageType must be "PixelLocalStorageEXT".
     void drawPixelLocalStorageEXTDisable(const PixelLocalStoragePlane[], const GLenum storeops[]);
 
+    // Ends the currently active pixel local storage session with GL_STORE_OP_STORE on all planes.
+    void endPixelLocalStorageWithStoreOpsStore();
+
   private:
     void initializeDefaultResources();
 
@@ -910,6 +913,8 @@ extern void SetCurrentValidContextTLS(Context *context);
 #else
 extern thread_local Context *gCurrentValidContext;
 #endif
+
+extern void SetCurrentValidContext(Context *context);
 
 }  // namespace gl
 
