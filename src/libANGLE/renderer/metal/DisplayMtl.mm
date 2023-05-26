@@ -925,17 +925,32 @@ void DisplayMtl::initializeExtensions() const
     mNativeExtensions.mapbufferOES                  = true;
     mNativeExtensions.mapBufferRangeEXT             = true;
     mNativeExtensions.textureStorageEXT             = true;
+    mNativeExtensions.clipControlEXT                = true;
     mNativeExtensions.drawBuffersEXT                = true;
     mNativeExtensions.drawBuffersIndexedEXT         = true;
     mNativeExtensions.drawBuffersIndexedOES         = true;
     mNativeExtensions.fboRenderMipmapOES            = true;
     mNativeExtensions.fragDepthEXT                  = true;
+    mNativeExtensions.conservativeDepthEXT          = true;
     mNativeExtensions.framebufferBlitANGLE          = true;
     mNativeExtensions.framebufferBlitNV             = true;
     mNativeExtensions.framebufferMultisampleANGLE   = true;
     mNativeExtensions.polygonOffsetClampEXT         = true;
+    mNativeExtensions.stencilTexturingANGLE         = true;
     mNativeExtensions.copyTextureCHROMIUM           = true;
     mNativeExtensions.copyCompressedTextureCHROMIUM = false;
+
+#if !ANGLE_PLATFORM_WATCHOS
+    if (@available(iOS 14.0, macOS 10.11, macCatalyst 14.0, tvOS 16.0, *))
+    {
+        mNativeExtensions.textureMirrorClampToEdgeEXT = true;
+    }
+#endif
+
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.11, 11.0, 13.1))
+    {
+        mNativeExtensions.depthClampEXT = true;
+    }
 
     // EXT_debug_marker is not implemented yet, but the entry points must be exposed for the
     // Metal backend to be used in Chrome (http://anglebug.com/4946)
@@ -998,6 +1013,10 @@ void DisplayMtl::initializeExtensions() const
     mNativeExtensions.textureNpotOES = true;
 
     mNativeExtensions.texture3DOES = true;
+
+    mNativeExtensions.sampleVariablesOES = true;
+
+    mNativeExtensions.shaderNoperspectiveInterpolationNV = true;
 
     mNativeExtensions.shaderTextureLodEXT = true;
 
@@ -1210,6 +1229,8 @@ void DisplayMtl::initializeFeatures()
     ANGLE_FEATURE_CONDITION((&mFeatures), hasTextureSwizzle,
                             isMetal2_2 && supportsEitherGPUFamily(3, 2) && !isSimulator);
 
+    ANGLE_FEATURE_CONDITION((&mFeatures), avoidStencilTextureSwizzle, isIntel());
+
     // http://crbug.com/1136673
     // Fence sync is flaky on Nvidia
     ANGLE_FEATURE_CONDITION((&mFeatures), hasEvents, isMetal2_1 && !isNVIDIA());
@@ -1229,13 +1250,15 @@ void DisplayMtl::initializeFeatures()
 
     ANGLE_FEATURE_CONDITION((&mFeatures), allowSeparateDepthStencilBuffers,
                             !isOSX && !isCatalyst && !isSimulator);
-    ANGLE_FEATURE_CONDITION((&mFeatures), rewriteRowMajorMatrices, true);
     ANGLE_FEATURE_CONDITION((&mFeatures), emulateTransformFeedback, true);
 
     ANGLE_FEATURE_CONDITION((&mFeatures), intelExplicitBoolCastWorkaround,
                             isIntel() && GetMacOSVersion() < OSVersion(11, 0, 0));
     ANGLE_FEATURE_CONDITION((&mFeatures), intelDisableFastMath,
                             isIntel() && GetMacOSVersion() < OSVersion(12, 0, 0));
+
+    ANGLE_FEATURE_CONDITION((&mFeatures), emulateAlphaToCoverage,
+                            isSimulator || !supportsAppleGPUFamily(1));
 
     ANGLE_FEATURE_CONDITION((&mFeatures), multisampleColorFormatShaderReadWorkaround, isAMD());
     ANGLE_FEATURE_CONDITION((&mFeatures), copyIOSurfaceToNonIOSurfaceForReadOptimization,
@@ -1254,6 +1277,13 @@ void DisplayMtl::initializeFeatures()
 
     ANGLE_FEATURE_CONDITION((&mFeatures), enableInMemoryMtlLibraryCache, true);
     ANGLE_FEATURE_CONDITION((&mFeatures), enableParallelMtlLibraryCompilation, true);
+
+    // Uploading texture data via staging buffers improves performance on all tested systems.
+    // http://anglebug.com/8092: Disabled on intel due to some texture formats uploading incorrectly
+    // with staging buffers
+    ANGLE_FEATURE_CONDITION(&mFeatures, alwaysPreferStagedTextureUploads, true);
+    ANGLE_FEATURE_CONDITION(&mFeatures, disableStagedInitializationOfPackedTextureFormats,
+                            isIntel() || isAMD());
 
     ApplyFeatureOverrides(&mFeatures, getState());
 }
