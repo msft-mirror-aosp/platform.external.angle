@@ -1606,6 +1606,18 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
     if (traceNameIs("honkai_star_rail"))
     {
         addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
+        if (isIntelWin)
+        {
+            skipTest("https://anglebug.com/8175 Consistently stuck on Intel/windows");
+        }
+    }
+
+    if (traceNameIs("gangstar_vegas"))
+    {
+        if (mParams->isSwiftshader())
+        {
+            skipTest("TODO: http://anglebug.com/8173 Missing shadows on Swiftshader");
+        }
     }
 
     // glDebugMessageControlKHR and glDebugMessageCallbackKHR crash on ARM GLES1.
