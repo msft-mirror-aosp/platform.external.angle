@@ -174,6 +174,8 @@ void DisplayMtl::terminate()
     mCapsInitialized = false;
 
     mMetalDeviceVendorId = 0;
+    mComputedAMDBronze   = false;
+    mIsAMDBronze         = false;
 }
 
 bool DisplayMtl::testDeviceLost()
@@ -902,7 +904,7 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeLimitations.squarePvrtc1 = true;
 
     // Older Metal does not support compressed formats for TEXTURE_3D target.
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.0, 13.0))
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13.0))
     {
         mNativeLimitations.noCompressedTexture3D = !supportsEitherGPUFamily(3, 1);
     }
@@ -945,7 +947,7 @@ void DisplayMtl::initializeExtensions() const
     }
 #endif
 
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.11, 11.0, 13.1))
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.11, 13.1, 11.0))
     {
         mNativeExtensions.depthClampEXT = true;
     }
@@ -1085,7 +1087,7 @@ void DisplayMtl::initializeExtensions() const
     mNativeExtensions.provokingVertexANGLE = true;
 
     // GL_EXT_blend_func_extended
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.12, 11.0, 13.1))
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.12, 13.1, 11.0))
     {
         mNativeExtensions.blendFuncExtendedEXT = true;
         mNativeCaps.maxDualSourceDrawBuffers   = 1;
@@ -1212,12 +1214,12 @@ void DisplayMtl::initializeFeatures()
 {
     bool isMetal2_1 = false;
     bool isMetal2_2 = false;
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.14, 13.0, 12.0))
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.14, 13.1, 12.0))
     {
         isMetal2_1 = true;
     }
 
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.0, 13.0))
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13.0))
     {
         isMetal2_2 = true;
     }
@@ -1291,6 +1293,16 @@ void DisplayMtl::initializeFeatures()
 
     ANGLE_FEATURE_CONDITION((&mFeatures), preemptivelyStartProvokingVertexCommandBuffer, isAMD());
 
+    ANGLE_FEATURE_CONDITION((&mFeatures), alwaysUseStagedBufferUpdates, isAMD());
+    ANGLE_FEATURE_CONDITION((&mFeatures), alwaysUseManagedStorageModeForBuffers, isAMD());
+
+    ANGLE_FEATURE_CONDITION((&mFeatures), alwaysUseSharedStorageModeForBuffers, isIntel());
+    ANGLE_FEATURE_CONDITION((&mFeatures), useShadowBuffersWhenAppropriate, isIntel());
+
+    // At least one of these must not be set.
+    ASSERT(!mFeatures.alwaysUseManagedStorageModeForBuffers.enabled ||
+           !mFeatures.alwaysUseSharedStorageModeForBuffers.enabled);
+
     ANGLE_FEATURE_CONDITION((&mFeatures), uploadDataToIosurfacesWithStagingBuffers, isAMD());
 
     // Render passes can be rendered without attachments on Apple4 , mac2 hardware.
@@ -1316,6 +1328,10 @@ void DisplayMtl::initializeFeatures()
     // http://anglebug.com/8170: NVIDIA GPUs are unsupported due to scarcity of the hardware.
     ANGLE_FEATURE_CONDITION((&mFeatures), disableMetalOnNvidia, isNVIDIA());
 
+    // The AMDMTLBronzeDriver seems to have bugs flushing vertex data to the GPU during some kinds
+    // of buffer uploads which require a flush to work around.
+    ANGLE_FEATURE_CONDITION((&mFeatures), flushAfterStreamVertexData, isAMDBronzeDriver());
+
     ApplyFeatureOverrides(&mFeatures, getState());
 }
 
@@ -1328,7 +1344,7 @@ angle::Result DisplayMtl::initializeShaderLibrary()
 #else
     const uint8_t *metalLibData = nullptr;
     size_t metalLibDataSize     = 0;
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.14, 13.0, 12.0))
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.14, 13.1, 12.0))
     {
         metalLibData     = gDefaultMetallib_2_1;
         metalLibDataSize = std::size(gDefaultMetallib_2_1);
@@ -1399,6 +1415,43 @@ bool DisplayMtl::supportsDepth24Stencil8PixelFormat() const
 bool DisplayMtl::isAMD() const
 {
     return angle::IsAMD(mMetalDeviceVendorId);
+}
+bool DisplayMtl::isAMDBronzeDriver() const
+{
+    if (!isAMD())
+    {
+        return false;
+    }
+
+    if (mComputedAMDBronze)
+    {
+        return mIsAMDBronze;
+    }
+
+    // All devices known to be covered by AMDMTlBronzeDriver.
+    //
+    // Note that we can not compare substrings because some devices
+    // (AMD Radeon Pro 560) are substrings of ones supported by a
+    // later driver (AMD Radeon Pro 5600M).
+    NSString *kMTLBronzeDeviceNames[22] = {
+        @"FirePro D300",    @"FirePro D500",    @"FirePro D700",   @"Radeon R9 M290",
+        @"Radeon R9 M290X", @"Radeon R9 M370X", @"Radeon R9 M380", @"Radeon R9 M390",
+        @"Radeon R9 M395",  @"Radeon Pro 450",  @"Radeon Pro 455", @"Radeon Pro 460",
+        @"Radeon Pro 555",  @"Radeon Pro 555X", @"Radeon Pro 560", @"Radeon Pro 560X",
+        @"Radeon Pro 570",  @"Radeon Pro 570X", @"Radeon Pro 575", @"Radeon Pro 575X",
+        @"Radeon Pro 580",  @"Radeon Pro 580X"};
+
+    for (size_t i = 0; i < ArraySize(kMTLBronzeDeviceNames); ++i)
+    {
+        if ([[mMetalDevice name] hasSuffix:kMTLBronzeDeviceNames[i]])
+        {
+            mIsAMDBronze = true;
+            break;
+        }
+    }
+
+    mComputedAMDBronze = true;
+    return mIsAMDBronze;
 }
 
 bool DisplayMtl::isIntel() const
