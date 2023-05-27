@@ -57,10 +57,15 @@ struct FeaturesVk : FeatureSetBase
         "VkDevice supports the VK_EXT_depth_clip_enable extension.", &members,
         "http://anglebug.com/3970"};
 
-    FeatureInfo depthClamping = {
-        "depthClamping", FeatureCategory::VulkanWorkarounds,
-        "The depth value is not clamped to [0,1] for floating point depth buffers.", &members,
+    FeatureInfo supportsDepthClampZeroOne = {
+        "supportsDepthClampZeroOne", FeatureCategory::VulkanFeatures,
+        "VkDevice supports the VK_EXT_depth_clamp_zero_one extension", &members,
         "http://anglebug.com/3970"};
+
+    FeatureInfo clampFragDepth = {"clampFragDepth", FeatureCategory::VulkanWorkarounds,
+                                  "gl_FragDepth is not clamped when rendering to a floating point "
+                                  "depth buffer without VK_EXT_depth_clamp_zero_one",
+                                  &members, "http://anglebug.com/3970"};
 
     FeatureInfo mutableMipmapTextureUpload = {
         "mutableMipmapTextureUpload", FeatureCategory::VulkanFeatures,
