@@ -191,6 +191,8 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 7866 WIN INTEL VULKAN : VulkanPerformanceCounterTest.PipelineCacheIsRestoredWithProgramBinary/* = SKIP
 7866 WIN INTEL VULKAN : VulkanPerformanceCounterTest.PipelineCacheIsRestoredWithProgramBinaryTwice/* = SKIP
 7866 WIN INTEL VULKAN : VulkanPerformanceCounterTest.PipelineCacheIsWarmedUpAtLinkTime/* = SKIP
+// vk_icdNegotiateLoaderICDInterfaceVersion crashes (possibly Mesa bug?)
+8179 LINUX INTEL VULKAN : RGBTextureBufferTestES31.* = SKIP
 
 // Linux AMD
 6855 LINUX AMD OPENGL : ClearTestES3.ClearMaxAttachmentsAfterDraw/* = SKIP
@@ -1048,6 +1050,13 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 7495 WIN GLES : EGLMultiContextTest.ReuseUnterminatedDisplay/* = SKIP
 7495 OpenGL : EGLContextSharingTestNoFixture.InactiveThreadDoesntPreventCleanup/* = SKIP
 7495 WIN GLES : EGLContextSharingTestNoFixture.InactiveThreadDoesntPreventCleanup/* = SKIP
+
+// GL, GLES seem to ignore mapped texture buffer updates
+8128 WIN OpenGL : RGBTextureBufferTestES31.*/* = SKIP
+8128 WIN GLES : RGBTextureBufferTestES31.*/* = SKIP
+8128 LINUX NVIDIA OpenGL : RGBTextureBufferTestES31.*/* = SKIP
+// Misbehaves on D3D11 (pixels remain black or reading from wrong offsets)
+8128 D3D11 : RGBTextureBufferTestES31.*/* = SKIP
 
 7546 LINUX VULKAN : FramebufferTest_ES3.SurfaceDimensionsChangeAndFragCoord/* = SKIP
 
