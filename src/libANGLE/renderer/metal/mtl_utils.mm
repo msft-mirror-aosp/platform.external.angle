@@ -133,7 +133,7 @@ void StartFrameCapture(id<MTLDevice> metalDevice, id<MTLCommandQueue> metalCmdQu
     }
 
 #    ifdef __MAC_10_15
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.0, 13))
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13))
     {
         auto captureDescriptor = mtl::adoptObjCObj([[MTLCaptureDescriptor alloc] init]);
         captureDescriptor.get().captureObject = metalDevice;
@@ -161,7 +161,7 @@ void StartFrameCapture(id<MTLDevice> metalDevice, id<MTLCommandQueue> metalCmdQu
     }
     else
 #    endif  // __MAC_10_15
-        if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.0, 13))
+        if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13))
         {
             auto captureDescriptor = mtl::adoptObjCObj([[MTLCaptureDescriptor alloc] init]);
             captureDescriptor.get().captureObject = metalDevice;
@@ -734,7 +734,7 @@ uint32_t GetDeviceVendorId(id<MTLDevice> metalDevice)
 {
     uint32_t vendorId = 0;
 #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
-    if (ANGLE_APPLE_AVAILABLE_XC(10.13, 13.0))
+    if (ANGLE_APPLE_AVAILABLE_XC(10.13, 13.1))
     {
         vendorId = GetDeviceVendorIdFromIOKit(metalDevice);
     }
@@ -922,6 +922,8 @@ std::string CompileShaderLibraryToFile(const std::string &source,
                                             "-sdk",
                                             "macosx",
                                             "metal",
+                                            "-std=macos-metal2.0",
+                                            "-mmacosx-version-min=10.13",
                                             "-c",
                                             metalFileName.value(),
                                             "-o",
@@ -957,6 +959,30 @@ std::string CompileShaderLibraryToFile(const std::string &source,
         FATAL() << "Ggenerating metallib file failed";
     }
     return metallibFileName.value();
+}
+
+AutoObjCPtr<id<MTLLibrary>> CreateShaderLibrary(id<MTLDevice> metalDevice,
+                                                const char *source,
+                                                size_t sourceLen,
+                                                AutoObjCPtr<NSError *> *errorOut)
+{
+    ANGLE_MTL_OBJC_SCOPE
+    {
+        auto nsSource = [[NSString alloc] initWithBytesNoCopy:const_cast<char *>(source)
+                                                       length:sourceLen
+                                                     encoding:NSUTF8StringEncoding
+                                                 freeWhenDone:NO];
+        auto options  = [[[MTLCompileOptions alloc] init] ANGLE_MTL_AUTORELEASE];
+
+        NSError *nsError = nil;
+        auto library = [metalDevice newLibraryWithSource:nsSource options:options error:&nsError];
+
+        [nsSource ANGLE_MTL_AUTORELEASE];
+
+        *errorOut = std::move(nsError);
+
+        return [library ANGLE_MTL_AUTORELEASE];
+    }
 }
 
 AutoObjCPtr<id<MTLLibrary>> CreateShaderLibraryFromBinary(id<MTLDevice> metalDevice,
@@ -1394,7 +1420,7 @@ bool SupportsAppleGPUFamily(id<MTLDevice> device, uint8_t appleFamily)
 #if (__MAC_OS_X_VERSION_MAX_ALLOWED >= 101500 || __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000) || \
     (__TV_OS_VERSION_MAX_ALLOWED >= 130000)
     // If device supports [MTLDevice supportsFamily:], then use it.
-    if (ANGLE_APPLE_AVAILABLE_XC(10.15, 13.0))
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13))
     {
         MTLGPUFamily family;
         switch (appleFamily)
@@ -1471,7 +1497,7 @@ bool SupportsMacGPUFamily(id<MTLDevice> device, uint8_t macFamily)
 #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
 #    if defined(__MAC_10_15)
     // If device supports [MTLDevice supportsFamily:], then use it.
-    if (ANGLE_APPLE_AVAILABLE_XC(10.15, 13.0))
+    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13))
     {
         MTLGPUFamily family;
 

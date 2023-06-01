@@ -46,8 +46,8 @@ class FfxEmulator(AbstractContextManager):
 
         # Set the download path parallel to Fuchsia SDK directory
         # permanently so that scripts can always find the product bundles.
-        run_ffx_command(('config', 'set', 'pbms.storage.path',
-                         os.path.join(SDK_ROOT, os.pardir, 'images')))
+        run_ffx_command(cmd=('config', 'set', 'pbms.storage.path',
+                             os.path.join(SDK_ROOT, os.pardir, 'images')))
 
     def _everlasting(self) -> bool:
         return self._node_name == 'fuchsia-everlasting-emulator'
@@ -68,6 +68,8 @@ class FfxEmulator(AbstractContextManager):
                 ('-l', os.path.join(self._logs_dir, 'emulator_log')))
         if self._with_network:
             emu_command.extend(('--net', 'tap'))
+        else:
+            emu_command.extend(('--net', 'user'))
 
         # TODO(https://crbug.com/1336776): remove when ffx has native support
         # for starting emulator on arm64 host.
@@ -108,19 +110,22 @@ class FfxEmulator(AbstractContextManager):
                 json.dump(ast.literal_eval(qemu_arm64_meta), f)
             emu_command.extend(['--engine', 'qemu'])
 
-        for _ in range(_EMU_COMMAND_RETRIES):
+        for i in range(_EMU_COMMAND_RETRIES):
 
             # If the ffx daemon fails to establish a connection with
             # the emulator after 85 seconds, that means the emulator
             # failed to be brought up and a retry is needed.
             # TODO(fxb/103540): Remove retry when start up issue is fixed.
             try:
-                run_ffx_command(emu_command,
-                                timeout=85,
-                                configs=['emu.start.timeout=90'])
+                # TODO(fxb/125872): Debug is added for examining flakiness.
+                configs = ['emu.start.timeout=90']
+                if i > 0:
+                    logging.warning(
+                        'Emulator failed to start.')
+                run_ffx_command(cmd=emu_command, timeout=100, configs=configs)
                 break
             except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
-                run_ffx_command(('emu', 'stop'))
+                run_ffx_command(cmd=('emu', 'stop'))
 
     def _shutdown_emulator(self) -> None:
         """Shutdown the emulator."""
@@ -128,7 +133,7 @@ class FfxEmulator(AbstractContextManager):
         logging.info('Stopping the emulator %s', self._node_name)
         # The emulator might have shut down unexpectedly, so this command
         # might fail.
-        run_ffx_command(('emu', 'stop', self._node_name), check=False)
+        run_ffx_command(cmd=('emu', 'stop', self._node_name), check=False)
 
     def __enter__(self) -> str:
         """Start the emulator if necessary.
