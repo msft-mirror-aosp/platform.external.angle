@@ -238,6 +238,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDraw-None-07844",
     "VUID-vkCmdDraw-None-07845",
     "VUID-vkCmdDraw-None-07848",
+    // https://anglebug.com/8128#c3
+    "VUID-VkBufferViewCreateInfo-buffer-00934",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -2041,7 +2043,8 @@ angle::Result RendererVk::initializeMemoryAllocator(DisplayVk *displayVk)
 // - VK_EXT_rasterization_order_attachment_access or
 //   VK_ARM_rasterization_order_attachment_access:     rasterizationOrderColorAttachmentAccess
 //                                                                                   (feature)
-// - VK_EXT_swapchain_maintenance1                     swapchainMaintenance1 (feature)
+// - VK_EXT_swapchain_maintenance1:                    swapchainMaintenance1 (feature)
+// - VK_EXT_legacy_dithering:                          supportsLegacyDithering (feature)
 // - VK_EXT_physical_device_drm:                       hasPrimary (property),
 //                                                     hasRender (property)
 //
@@ -2168,6 +2171,11 @@ void RendererVk::appendDeviceExtensionFeaturesNotPromoted(
     if (ExtensionFound(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mSwapchainMaintenance1Features);
+    }
+
+    if (ExtensionFound(VK_EXT_LEGACY_DITHERING_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mDitheringFeatures);
     }
 
     if (ExtensionFound(VK_EXT_PHYSICAL_DEVICE_DRM_EXTENSION_NAME, deviceExtensionNames))
@@ -2449,6 +2457,9 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
     mSwapchainMaintenance1Features.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT;
 
+    mDitheringFeatures       = {};
+    mDitheringFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_DITHERING_FEATURES_EXT;
+
     mDrmProperties       = {};
     mDrmProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT;
 
@@ -2517,6 +2528,7 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
     mPipelineProtectedAccessFeatures.pNext                  = nullptr;
     mRasterizationOrderAttachmentAccessFeatures.pNext       = nullptr;
     mSwapchainMaintenance1Features.pNext                    = nullptr;
+    mDitheringFeatures.pNext                                = nullptr;
     mDrmProperties.pNext                                    = nullptr;
 }
 
@@ -2778,6 +2790,18 @@ void RendererVk::enableDeviceExtensionsNotPromoted(
     {
         mEnabledDeviceExtensions.push_back(VK_EXT_IMAGE_2D_VIEW_OF_3D_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mImage2dViewOf3dFeatures);
+    }
+
+    if (mFeatures.supportsSwapchainMaintenance1.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mSwapchainMaintenance1Features);
+    }
+
+    if (mFeatures.supportsLegacyDithering.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_EXT_LEGACY_DITHERING_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mDitheringFeatures);
     }
 }
 
@@ -4288,6 +4312,10 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     //
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsSwapchainMaintenance1,
                             mSwapchainMaintenance1Features.swapchainMaintenance1 == VK_TRUE);
+
+    // The VK_EXT_legacy_dithering extension enables dithering support without emulation
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsLegacyDithering,
+                            mDitheringFeatures.legacyDithering == VK_TRUE);
 
     // http://anglebug.com/6872
     // On ARM hardware, framebuffer-fetch-like behavior on Vulkan is already coherent, so we can
