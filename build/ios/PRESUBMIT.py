@@ -4,6 +4,7 @@
 
 PRESUBMIT_VERSION = '2.0.0'
 
+USE_PYTHON3 = True
 
 TEST_PATTERNS = [r'.+_test.py$']
 
