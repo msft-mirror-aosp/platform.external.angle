@@ -76,7 +76,7 @@ config("panic_immediate_abort") {
   if (is_official_build) {
     rustflags = [
       "--cfg",
-      "feature=\"panic_immediate_abort\"",
+      "panic_immediate_abort",
     ]
   }
 }

@@ -37,9 +37,6 @@ class ProgramPipelineVk : public ProgramPipelineImpl
 
     void onProgramUniformUpdate(gl::ShaderType shaderType) override;
 
-    angle::Result syncState(const gl::Context *context,
-                            const gl::Program::DirtyBits &dirtyBits) override;
-
   private:
     ProgramExecutableVk mExecutable;
 };
