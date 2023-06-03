@@ -849,12 +849,7 @@ class Recycler final : angle::NonCopyable
   public:
     Recycler() = default;
 
-    void recycle(T &&garbageObject)
-    {
-        // Recycling invalid objects is pointless and potentially a bug.
-        ASSERT(garbageObject.valid());
-        mObjectFreeList.emplace_back(std::move(garbageObject));
-    }
+    void recycle(T &&garbageObject) { mObjectFreeList.emplace_back(std::move(garbageObject)); }
 
     void fetch(T *outObject)
     {
