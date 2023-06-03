@@ -5,7 +5,6 @@
 """Siso configuration for macOS."""
 
 load("@builtin//struct.star", "module")
-load("./config.star", "config")
 load("./remote_exec_wrapper.star", "remote_exec_wrapper")
 
 __filegroups = {}
