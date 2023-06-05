@@ -269,9 +269,6 @@ class ProgramExecutableVk
                    : mDefaultUniformAndXfbWriteDescriptorDescBuilder.getDescs();
     }
 
-    const gl::Program::DirtyBits &getDirtyBits() const { return mDirtyBits; }
-    void resetUniformBufferDirtyBits() { mDirtyBits.reset(); }
-
   private:
     friend class ProgramVk;
     friend class ProgramPipelineVk;
@@ -450,8 +447,6 @@ class ProgramExecutableVk
     vk::WriteDescriptorDescBuilder mTextureWriteDescriptorDescBuilder;
     vk::WriteDescriptorDescBuilder mDefaultUniformWriteDescriptorDescBuilder;
     vk::WriteDescriptorDescBuilder mDefaultUniformAndXfbWriteDescriptorDescBuilder;
-
-    gl::Program::DirtyBits mDirtyBits;
 };
 
 }  // namespace rx

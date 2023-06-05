@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 331
+#define ANGLE_SH_VERSION 329
 
 enum ShShaderSpec
 {
@@ -147,9 +147,8 @@ struct ShCompileOptions
     // calling sh::GetObjectCode().
     uint64_t objectCode : 1;
 
-    // Unused.  Kept to avoid unnecessarily changing the layout of this structure and tripping up
-    // the fuzzer's hash->bug map.
-    uint64_t unused2 : 1;
+    // Extracts attributes, uniforms, and varyings.  Can be queried by calling ShGetVariableInfo().
+    uint64_t variables : 1;
 
     // Tracks the source path for shaders.  Can be queried with getSourcePath().
     uint64_t sourcePath : 1;
@@ -426,7 +425,7 @@ struct ShCompileOptions
 
     // issuetracker.google.com/266235549 add aliased memory decoration to ssbo if the variable is
     // not declared with "restrict" memory qualifier in GLSL
-    uint64_t aliasedUnlessRestrict : 1;
+    uint64_t aliasedSSBOUnlessRestrict : 1;
 
     // Use fragment shaders to compute and set coverage mask based on the alpha value
     uint64_t emulateAlphaToCoverage : 1;
