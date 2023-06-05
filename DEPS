@@ -43,7 +43,7 @@ vars = {
   'checkout_angle_mesa': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': '069f9924f9673fb69a232fc3156d3ff6a9b78817',
+  'chromium_revision': '57b220f0ca60dfaf2ca1f5cb0b1ea31f3940e966',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
@@ -88,11 +88,11 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': 'dfd78540ae99b3f753f8e250abd5e9be240b0053',
+  'catapult_revision': '44beba1e6d819a2154b069bc1fd76878b47f33d1',
 
   # the commit queue can handle CLs rolling Fuchsia sdk
   # and whatever else without interference from each other.
-  'fuchsia_version': 'version:12.20230530.1.1',
+  'fuchsia_version': 'version:12.20230529.1.1',
 
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling luci-go
@@ -140,7 +140,7 @@ vars = {
 deps = {
 
   'build': {
-    'url': '{chromium_git}/chromium/src/build.git@d84d377912c657ed85cd3124245aaafafa5c5e39',
+    'url': '{chromium_git}/chromium/src/build.git@6cb0fb63f386821bc0dd7985bcc708c689d01038',
     'condition': 'not build_with_chromium',
   },
 
@@ -182,7 +182,7 @@ deps = {
   },
 
   'buildtools/third_party/libc++abi/trunk': {
-    'url': '{chromium_git}/external/github.com/llvm/llvm-project/libcxxabi.git@b2e8ad2755f15556a2e93b500db665c25409b95e',
+    'url': '{chromium_git}/external/github.com/llvm/llvm-project/libcxxabi.git@5c8dbff7a4911fe1e0af0bc1628891e4187a3c90',
     'condition': 'not build_with_chromium',
   },
 
@@ -203,12 +203,12 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@5a1c842201e473420d66f47c7bb5891240a3b754',
+    'url': '{chromium_git}/chromium/src/testing@5102dd571882936d2ac900f863294ec0ec209720',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/abseil-cpp': {
-    'url': '{chromium_git}/chromium/src/third_party/abseil-cpp@d27fcebaf6851323d12ac63af3c9ac3581f7c8bd',
+    'url': '{chromium_git}/chromium/src/third_party/abseil-cpp@48cb81215e425bdfbd96b91921718ef3abb638ff',
     'condition': 'not build_with_chromium',
   },
 
@@ -254,7 +254,7 @@ deps = {
       'packages': [
           {
                'package': 'chromium/third_party/android_build_tools/lint',
-               'version': 'FObSM0x4tmlkstBzjEhG3sHenn993tmoNjl5naaW28AC',
+               'version': 'pSX8QZklEn1odNNyvBBDnanIA4IBlNNFgsAYPXnk-SYC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -265,7 +265,7 @@ deps = {
       'packages': [
           {
                'package': 'chromium/third_party/android_build_tools/manifest_merger',
-               'version': 'u2r6t6i4MR-JZBn40RJTHzLBwT4y59mjHv6kkrAlLSQC',
+               'version': 'guwWgYx931yQa5Mj6M08VMupp2R1bo_2F6zOS-azX9UC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -278,12 +278,12 @@ deps = {
   },
 
   'third_party/android_ndk': {
-    'url': '{chromium_git}/android_ndk.git@310956bd122ec2b96049f8d7398de6b717f3452e',
+    'url': '{chromium_git}/android_ndk.git@8388a2be5421311dc75c5f937aae13d821a27f3d',
     'condition': 'checkout_android and not build_with_chromium',
   },
 
   'third_party/android_platform': {
-    'url': '{chromium_git}/chromium/src/third_party/android_platform@9f29aca7dd5ad56865863e5810ffb96756c241c3',
+    'url': '{chromium_git}/chromium/src/third_party/android_platform@f312145c4191affc66e7a1d46194f0d6c9dec438',
     'condition': 'checkout_android and not build_with_chromium',
   },
 
@@ -379,13 +379,8 @@ deps = {
     'condition': 'checkout_android and not build_with_chromium',
   },
 
-  'third_party/cpu_features/src': {
-    'url': Var('chromium_git') + '/external/github.com/google/cpu_features.git' + '@' + '936b9ab5515dead115606559502e3864958f7f6e',
-    'condition': 'checkout_android and not build_with_chromium',
-  },
-
   'third_party/depot_tools': {
-    'url': '{chromium_git}/chromium/tools/depot_tools.git@79f13899e6a718f6b4ab526fc5b4dcd547f90bbe',
+    'url': '{chromium_git}/chromium/tools/depot_tools.git@530d86d40b2aab70e0541ea0f296388ec09f0576',
     'condition': 'not build_with_chromium',
   },
 
@@ -593,7 +588,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
-              'version': 'vrqJqwFzpZRW6vpgpLjtMzBf_RG-HfY60YTTGJpB4mAC',
+              'version': '9dmrdF_0VI2W4VoKglVJJXLHpn8Aw00PAHSpkQL63hcC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -649,7 +644,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': '{chromium_git}/vulkan-deps@a6525fe76b4c394140c0da5862ed8d8bc93fcf87',
+    'url': '{chromium_git}/vulkan-deps@354eac3ca8c83244089f93f99294dd0dfc265459',
     'condition': 'not build_with_chromium',
   },
 
@@ -664,7 +659,7 @@ deps = {
   },
 
   'third_party/zlib': {
-    'url': '{chromium_git}/chromium/src/third_party/zlib@982b036a257e63240142358a0fce0dbfdd40d9cb',
+    'url': '{chromium_git}/chromium/src/third_party/zlib@337322d10f407b25671768f092e55f306c1a1101',
     'condition': 'not build_with_chromium',
   },
 
@@ -705,7 +700,7 @@ deps = {
   },
 
   'tools/mb': {
-    'url': '{chromium_git}/chromium/src/tools/mb@3349b8beafd36f318085993ef15f1f2adf824915',
+    'url': '{chromium_git}/chromium/src/tools/mb@fa0546ccb6a6ddb3634cabf8526f9932e059cb42',
     'condition': 'not build_with_chromium',
   },
 
@@ -720,7 +715,7 @@ deps = {
   },
 
   'tools/perf': {
-    'url': '{chromium_git}/chromium/src/tools/perf@7e90957c04c67f9d0dae241e0b8f49fe3aaef8bf',
+    'url': '{chromium_git}/chromium/src/tools/perf@2ff63e72c782a0759b17c0ed33c5e004d603af14',
     'condition': 'not build_with_chromium',
   },
 
@@ -2278,16 +2273,6 @@ deps = {
       'packages': [
         {
             'package': 'angle/traces/octopath_traveler',
-            'version': 'version:1',
-        },
-      ],
-      'dep_type': 'cipd',
-      'condition': 'checkout_angle_restricted_traces',
-  },
-  'src/tests/restricted_traces/off_the_road': {
-      'packages': [
-        {
-            'package': 'angle/traces/off_the_road',
             'version': 'version:1',
         },
       ],
