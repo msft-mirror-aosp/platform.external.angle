@@ -508,15 +508,18 @@ TEST_P(AttributeLayoutBufferIndexed, Test)
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(AttributeLayoutNonIndexed,
                                        ES3_VULKAN()
                                            .disable(Feature::SupportsExtendedDynamicState)
-                                           .disable(Feature::SupportsExtendedDynamicState2));
+                                           .disable(Feature::SupportsExtendedDynamicState2)
+                                           .disable(Feature::SupportsLogicOpDynamicState));
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(AttributeLayoutMemoryIndexed,
                                        ES3_VULKAN()
                                            .disable(Feature::SupportsExtendedDynamicState)
-                                           .disable(Feature::SupportsExtendedDynamicState2));
+                                           .disable(Feature::SupportsExtendedDynamicState2)
+                                           .disable(Feature::SupportsLogicOpDynamicState));
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(AttributeLayoutBufferIndexed,
                                        ES3_VULKAN()
                                            .disable(Feature::SupportsExtendedDynamicState)
-                                           .disable(Feature::SupportsExtendedDynamicState2));
+                                           .disable(Feature::SupportsExtendedDynamicState2)
+                                           .disable(Feature::SupportsLogicOpDynamicState));
 
 #define STRINGIFY2(X) #X
 #define STRINGIFY(X) STRINGIFY2(X)
