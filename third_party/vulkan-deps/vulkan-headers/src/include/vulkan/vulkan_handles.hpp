@@ -1514,6 +1514,9 @@ namespace VULKAN_HPP_NAMESPACE
   struct PhysicalDeviceImageProcessingFeaturesQCOM;
   struct PhysicalDeviceImageProcessingPropertiesQCOM;
 
+  //=== VK_EXT_external_memory_acquire_unmodified ===
+  struct ExternalMemoryAcquireUnmodifiedEXT;
+
   //=== VK_EXT_extended_dynamic_state3 ===
   struct PhysicalDeviceExtendedDynamicState3FeaturesEXT;
   struct PhysicalDeviceExtendedDynamicState3PropertiesEXT;
@@ -1594,6 +1597,9 @@ namespace VULKAN_HPP_NAMESPACE
 
   //=== VK_EXT_pipeline_library_group_handles ===
   struct PhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT;
+
+  //=== VK_EXT_dynamic_rendering_unused_attachments ===
+  struct PhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT;
 
   //=== VK_QCOM_multiview_per_view_render_areas ===
   struct PhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM;

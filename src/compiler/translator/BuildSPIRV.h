@@ -308,9 +308,12 @@ class SPIRVBuilder : angle::NonCopyable
     SPIRVBuilder(TCompiler *compiler,
                  const ShCompileOptions &compileOptions,
                  ShHashFunction64 hashFunction,
-                 NameMap &nameMap);
+                 NameMap &nameMap,
+                 const angle::HashMap<int, uint32_t> &uniqueToSpirvIdMap,
+                 uint32_t firstUnusedSpirvId);
 
     spirv::IdRef getNewId(const SpirvDecorations &decorations);
+    spirv::IdRef getReservedOrNewId(TSymbolUniqueId uniqueId, const SpirvDecorations &decorations);
     SpirvType getSpirvType(const TType &type, const SpirvTypeSpec &typeSpec) const;
     const SpirvTypeData &getTypeData(const TType &type, const SpirvTypeSpec &typeSpec);
     const SpirvTypeData &getTypeDataOverrideTypeSpec(const TType &type,
@@ -364,7 +367,6 @@ class SPIRVBuilder : angle::NonCopyable
     void addCapability(spv::Capability capability);
     void addExecutionMode(spv::ExecutionMode executionMode);
     void addExtension(SPIRVExtensions extension);
-    void setEntryPointId(spirv::IdRef id);
     void addEntryPointInterfaceVariableId(spirv::IdRef id);
     void writePerVertexBuiltIns(const TType &type, spirv::IdRef typeId);
     void writeInterfaceVariableDecorations(const TType &type, spirv::IdRef variableId);
@@ -402,12 +404,14 @@ class SPIRVBuilder : angle::NonCopyable
     void assembleSpirvFunctionBlocks();
 
     // Helper to declare a variable.  Function-local variables must be placed in the first block of
-    // the current function.
+    // the current function.  If the variable comes from a TSymbol, it's unique id is passed in,
+    // which is used to determine if a reserved SPIR-V id should be used for this variable.
     spirv::IdRef declareVariable(spirv::IdRef typeId,
                                  spv::StorageClass storageClass,
                                  const SpirvDecorations &decorations,
                                  spirv::IdRef *initializerId,
-                                 const char *name);
+                                 const char *name,
+                                 const TSymbolUniqueId *uniqueId);
     // Helper to declare specialization constants.
     spirv::IdRef declareSpecConst(TBasicType type, int id, const char *name);
 
@@ -432,6 +436,7 @@ class SPIRVBuilder : angle::NonCopyable
     spirv::Blob getSpirv();
 
   private:
+    void predefineCommonTypes();
     SpirvTypeData declareType(const SpirvType &type, const TSymbol *block);
 
     uint32_t calculateBaseAlignmentAndSize(const SpirvType &type, uint32_t *sizeInStorageBlockOut);
@@ -464,10 +469,12 @@ class SPIRVBuilder : angle::NonCopyable
     void writeExecutionModes(spirv::Blob *blob);
     void writeExtensions(spirv::Blob *blob);
     void writeSourceExtensions(spirv::Blob *blob);
+    void writeNonSemanticOverview(spirv::Blob *blob, spirv::IdRef id);
 
     ANGLE_MAYBE_UNUSED_PRIVATE_FIELD TCompiler *mCompiler;
     const ShCompileOptions &mCompileOptions;
     gl::ShaderType mShaderType;
+    const angle::HashMap<int, uint32_t> &mUniqueToSpirvIdMap;
 
     // Capabilities the shader is using.  Accumulated as the instructions are generated.  The Shader
     // capability is unconditionally generated, so it's not tracked.
@@ -479,10 +486,9 @@ class SPIRVBuilder : angle::NonCopyable
     // Extensions used by the shader.
     angle::PackedEnumBitSet<SPIRVExtensions> mExtensions;
 
-    // The list of interface variables and the id of main() populated as the instructions are
-    // generated.  Used for the OpEntryPoint instruction.
+    // The list of interface variables populated as the instructions are generated.  Used for the
+    // OpEntryPoint instruction.
     spirv::IdRefList mEntryPointInterfaceList;
-    spirv::IdRef mEntryPointId;
 
     // Id of imported instructions, if used.
     spirv::IdRef mExtInstImportIdStd;
@@ -550,6 +556,10 @@ class SPIRVBuilder : angle::NonCopyable
     uint32_t mNextUnusedBinding;
     uint32_t mNextUnusedInputLocation;
     uint32_t mNextUnusedOutputLocation;
+
+    // Used to provide an overview of what the SPIR-V declares so the SPIR-V translator doesn't have
+    // to discover them.
+    uint32_t mOverviewFlags;
 };
 }  // namespace sh
 

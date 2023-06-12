@@ -1003,24 +1003,14 @@ const char kDefaultUniformsNameCS[]  = "defaultUniformsCS";
 
 // Interface block and variable names containing driver uniforms
 const char kDriverUniformsBlockName[] = "ANGLEUniformBlock";
-const char kDriverUniformsVarName[]   = "ANGLEUniforms";
 
 // Interface block array name used for atomic counter emulation
 const char kAtomicCountersBlockName[] = "ANGLEAtomicCounters";
 
-const char kXfbEmulationGetOffsetsFunctionName[] = "ANGLEGetXfbOffsets";
-const char kXfbEmulationCaptureFunctionName[]    = "ANGLECaptureXfb";
-const char kXfbEmulationBufferBlockName[]        = "ANGLEXfbBuffer";
-const char kXfbEmulationBufferName[]             = "ANGLEXfb";
-const char kXfbEmulationBufferFieldName[]        = "xfbOut";
-
-const char kTransformPositionFunctionName[] = "ANGLETransformPosition";
+const char kXfbEmulationBufferBlockName[] = "ANGLEXfbBuffer";
+const char kXfbEmulationBufferName[]      = "ANGLEXfb";
 
 const char kXfbExtensionPositionOutName[] = "ANGLEXfbPosition";
-
-// EXT_shader_framebuffer_fetch / EXT_shader_framebuffer_fetch_non_coherent
-const char kInputAttachmentName[] = "ANGLEInputAttachment";
-
 }  // namespace vk
 
 const char *BlockLayoutTypeToString(BlockLayoutType type)
