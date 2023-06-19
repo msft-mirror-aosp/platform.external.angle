@@ -28,7 +28,7 @@
 #include "libANGLE/Observer.h"
 #include "libANGLE/Version.h"
 #include "platform/Feature.h"
-#include "platform/FrontendFeatures_autogen.h"
+#include "platform/autogen/FrontendFeatures_autogen.h"
 
 namespace angle
 {
@@ -157,6 +157,11 @@ class Display final : public LabeledObject,
     // Helpers to maintain active thread set to assist with freeing invalid EGL objects.
     void addActiveThread(Thread *thread);
     void threadCleanup(Thread *thread);
+
+    ContextMutexManager *getSharedContextMutexManager() const
+    {
+        return mSharedContextMutexManager.get();
+    }
 
     static Display *GetDisplayFromDevice(Device *device, const AttributeMap &attribMap);
     static Display *GetDisplayFromNativeDisplay(EGLenum platform,
@@ -427,8 +432,13 @@ class Display final : public LabeledObject,
     EGLenum mPlatform;
     angle::LoggingAnnotator mAnnotator;
 
+    std::unique_ptr<ContextMutexManager> mSharedContextMutexManager;
+
+    // mManagersMutex protects mTextureManager and mSemaphoreManager
+    ContextMutex *mManagersMutex;
     gl::TextureManager *mTextureManager;
     gl::SemaphoreManager *mSemaphoreManager;
+
     BlobCache mBlobCache;
     gl::MemoryProgramCache mMemoryProgramCache;
     gl::MemoryShaderCache mMemoryShaderCache;
