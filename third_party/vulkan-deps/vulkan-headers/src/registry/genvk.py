@@ -31,6 +31,7 @@ from generator import write
 from spirvcapgenerator import SpirvCapabilityOutputGenerator
 from hostsyncgenerator import HostSynchronizationOutputGenerator
 from formatsgenerator import FormatsOutputGenerator
+from syncgenerator import SyncOutputGenerator
 from jsgenerator import JSOutputGenerator
 from pygenerator import PyOutputGenerator
 from rubygenerator import RubyOutputGenerator
@@ -371,6 +372,25 @@ def makeGenOpts(args):
             reparentEnums     = False)
         ]
 
+    # Used to generate various synchronization chapter tables
+    genOpts['syncinc'] = [
+          SyncOutputGenerator,
+          DocGeneratorOptions(
+            conventions       = conventions,
+            filename          = 'timeMarker',
+            directory         = directory,
+            genpath           = None,
+            apiname           = defaultAPIName,
+            profile           = None,
+            versions          = featuresPat,
+            emitversions      = featuresPat,
+            defaultExtensions = None,
+            addExtensions     = addExtensionsPat,
+            removeExtensions  = removeExtensionsPat,
+            emitExtensions    = emitExtensionsPat,
+            reparentEnums     = False)
+        ]
+
     # Platform extensions, in their own header files
     # Each element of the platforms[] array defines information for
     # generating a single platform:
@@ -435,7 +455,8 @@ def makeGenOpts(args):
         [ 'vulkan_xlib_xrandr.h', [ 'VK_EXT_acquire_xlib_display' ], commonSuppressExtensions ],
         [ 'vulkan_metal.h',       [ 'VK_EXT_metal_surface',
                                     'VK_EXT_metal_objects'        ], commonSuppressExtensions ],
-        [ 'vulkan_screen.h',      [ 'VK_QNX_screen_surface'       ], commonSuppressExtensions ],
+        [ 'vulkan_screen.h',      [ 'VK_QNX_screen_surface',
+                                    'VK_QNX_external_memory_screen_buffer' ], commonSuppressExtensions ],
         [ 'vulkan_sci.h',         [ 'VK_NV_external_sci_sync',
                                     'VK_NV_external_sci_sync2',
                                     'VK_NV_external_memory_sci_buf'], commonSuppressExtensions ],
