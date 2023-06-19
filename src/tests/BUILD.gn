@@ -498,6 +498,14 @@ if (build_angle_trace_tests) {
     # limit in MSVC, so only compile them when using clang
     assert(is_clang, "angle trace tests require clang")
 
+    if (is_android && target_cpu == "arm64") {
+      # TODO: http://b/278955379
+      # Disable CFI to avoid SIGILL on armv9
+      assert(
+          arm_control_flow_integrity == "none",
+          "Set arm_control_flow_integrity = \"none\" in your GN args to disable CFI (http://crbug.com/1441148)")
+    }
+
     if (is_ios) {
       # shared libraries are hidden inside ios_framework_bundle, but we include headers from them
       check_includes = false
@@ -569,6 +577,15 @@ if (build_angle_trace_tests) {
       "restricted_traces/retrace_restricted_traces.py",
     ]
     data_deps = [ ":angle_trace_perf_tests" ]
+  }
+
+  group("angle_capture_tests") {
+    testonly = true
+    data = [
+      "capture_tests/capture_tests.py",
+      "capture_tests/expected",
+    ]
+    data_deps = [ ":angle_end2end_tests" ]
   }
 }
 
@@ -1722,6 +1739,7 @@ group("angle_tests") {
     ":angle_end2end_tests",
     ":angle_system_info_test",
     ":angle_unittests",
+    "capture_tests:angle_capture_tests_trace",
   ]
   if (build_angle_perftests) {
     deps += [ ":angle_perftests" ]
