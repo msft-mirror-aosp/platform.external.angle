@@ -1128,8 +1128,6 @@ namespace
     sh::vk::spirv::kIdTransformPositionFunction);
 [[maybe_unused]] constexpr spirv::IdRef XfbEmulationGetOffsetsFunction(
     sh::vk::spirv::kIdXfbEmulationGetOffsetsFunction);
-[[maybe_unused]] constexpr spirv::IdRef XfbEmulationCaptureFunction(
-    sh::vk::spirv::kIdXfbEmulationCaptureFunction);
 [[maybe_unused]] constexpr spirv::IdRef SampleID(sh::vk::spirv::kIdSampleID);
 
 [[maybe_unused]] constexpr spirv::IdRef InputPerVertexBlock(sh::vk::spirv::kIdInputPerVertexBlock);
@@ -1720,7 +1718,6 @@ class SpirvTransformFeedbackCodeGenerator final : angle::NonCopyable
         const SpirvInactiveVaryingRemover &inactiveVaryingRemover,
         const SpirvVaryingPrecisionFixer &varyingPrecisionFixer,
         const bool usePrecisionFixer,
-        spirv::IdRef currentFunctionId,
         spirv::Blob *blobOut);
     void addExecutionMode(spirv::IdRef entryPointId, spirv::Blob *blobOut);
     void addMemberDecorate(const ShaderInterfaceVariableInfo &info,
@@ -2177,10 +2174,9 @@ void SpirvTransformFeedbackCodeGenerator::writeTransformFeedbackEmulationOutput(
     const SpirvInactiveVaryingRemover &inactiveVaryingRemover,
     const SpirvVaryingPrecisionFixer &varyingPrecisionFixer,
     const bool usePrecisionFixer,
-    spirv::IdRef currentFunctionId,
     spirv::Blob *blobOut)
 {
-    if (!mIsEmulated || currentFunctionId != ID::XfbEmulationCaptureFunction)
+    if (!mIsEmulated)
     {
         return;
     }
@@ -3052,17 +3048,16 @@ class SpirvTransformer final : public SpirvTransformerBase
     // transformed.  If false is returned, the instruction should be copied as-is.
     TransformationState transformAccessChain(const uint32_t *instruction);
     TransformationState transformCapability(const uint32_t *instruction);
-    TransformationState transformDebugInfo(const uint32_t *instruction, spv::Op op);
-    TransformationState transformEmitVertex(const uint32_t *instruction);
     TransformationState transformEntryPoint(const uint32_t *instruction);
     TransformationState transformExtension(const uint32_t *instruction);
     TransformationState transformExtInstImport(const uint32_t *instruction);
     TransformationState transformExtInst(const uint32_t *instruction);
     TransformationState transformDecorate(const uint32_t *instruction);
     TransformationState transformMemberDecorate(const uint32_t *instruction);
+    TransformationState transformName(const uint32_t *instruction);
+    TransformationState transformMemberName(const uint32_t *instruction);
     TransformationState transformTypePointer(const uint32_t *instruction);
     TransformationState transformTypeStruct(const uint32_t *instruction);
-    TransformationState transformReturn(const uint32_t *instruction);
     TransformationState transformVariable(const uint32_t *instruction);
     TransformationState transformTypeImage(const uint32_t *instruction);
     TransformationState transformImageRead(const uint32_t *instruction);
@@ -3077,7 +3072,6 @@ class SpirvTransformer final : public SpirvTransformerBase
     SpvTransformOptions mOptions;
 
     // Traversal state:
-    bool mInsertFunctionVariables = false;
     spirv::IdRef mCurrentFunctionId;
 
     // Transformation state:
@@ -3210,13 +3204,6 @@ void SpirvTransformer::transformInstruction()
         // instructions such as Op*Access* or OpEmitVertex opcodes inside functions need to be
         // inspected.
         mIsInFunctionSection = true;
-
-        // Only write function variables for the EntryPoint function for non-compute shaders
-        if (mOptions.useSpirvVaryingPrecisionFixer)
-        {
-            mInsertFunctionVariables = mCurrentFunctionId == ID::EntryPoint &&
-                                       mOptions.shaderType != gl::ShaderType::Compute;
-        }
     }
 
     // Only look at interesting instructions.
@@ -3224,21 +3211,12 @@ void SpirvTransformer::transformInstruction()
 
     if (mIsInFunctionSection)
     {
-        // After we process an OpFunction instruction and any instructions that must come
-        // immediately after OpFunction we need to check if there are any precision mismatches that
-        // need to be handled. If so, output OpVariable for each variable that needed to change from
-        // a StorageClassOutput to a StorageClassFunction.
-        if (mOptions.useSpirvVaryingPrecisionFixer && mInsertFunctionVariables &&
-            opCode != spv::OpFunction && opCode != spv::OpFunctionParameter &&
-            opCode != spv::OpLabel && opCode != spv::OpVariable)
-        {
-            writeInputPreamble();
-            mInsertFunctionVariables = false;
-        }
-
         // Look at in-function opcodes.
         switch (opCode)
         {
+            case spv::OpExtInst:
+                transformationState = transformExtInst(instruction);
+                break;
             case spv::OpAccessChain:
             case spv::OpInBoundsAccessChain:
             case spv::OpPtrAccessChain:
@@ -3247,12 +3225,6 @@ void SpirvTransformer::transformInstruction()
                 break;
             case spv::OpImageRead:
                 transformationState = transformImageRead(instruction);
-                break;
-            case spv::OpEmitVertex:
-                transformationState = transformEmitVertex(instruction);
-                break;
-            case spv::OpReturn:
-                transformationState = transformReturn(instruction);
                 break;
             default:
                 break;
@@ -3273,12 +3245,10 @@ void SpirvTransformer::transformInstruction()
                 transformationState = transformExtInst(instruction);
                 break;
             case spv::OpName:
+                transformationState = transformName(instruction);
+                break;
             case spv::OpMemberName:
-            case spv::OpString:
-            case spv::OpLine:
-            case spv::OpNoLine:
-            case spv::OpModuleProcessed:
-                transformationState = transformDebugInfo(instruction, opCode);
+                transformationState = transformMemberName(instruction);
                 break;
             case spv::OpCapability:
                 transformationState = transformCapability(instruction);
@@ -3706,52 +3676,28 @@ TransformationState SpirvTransformer::transformCapability(const uint32_t *instru
     return TransformationState::Unchanged;
 }
 
-TransformationState SpirvTransformer::transformDebugInfo(const uint32_t *instruction, spv::Op op)
+TransformationState SpirvTransformer::transformName(const uint32_t *instruction)
 {
-    if (mOptions.removeDebugInfo)
+    spirv::IdRef id;
+    spirv::LiteralString name;
+    spirv::ParseName(instruction, &id, &name);
+
+    return mXfbCodeGenerator.transformName(id, name);
+}
+
+TransformationState SpirvTransformer::transformMemberName(const uint32_t *instruction)
+{
+    spirv::IdRef id;
+    spirv::LiteralInteger member;
+    spirv::LiteralString name;
+    spirv::ParseMemberName(instruction, &id, &member, &name);
+
+    if (mXfbCodeGenerator.transformMemberName(id, member, name) == TransformationState::Transformed)
     {
-        // Strip debug info to reduce binary size.
         return TransformationState::Transformed;
     }
 
-    // In the case of OpMemberName, unconditionally remove stripped gl_PerVertex members.
-    if (op == spv::OpMemberName)
-    {
-        spirv::IdRef id;
-        spirv::LiteralInteger member;
-        spirv::LiteralString name;
-        spirv::ParseMemberName(instruction, &id, &member, &name);
-
-        if (mXfbCodeGenerator.transformMemberName(id, member, name) ==
-            TransformationState::Transformed)
-        {
-            return TransformationState::Transformed;
-        }
-
-        return mPerVertexTrimmer.transformMemberName(id, member, name);
-    }
-
-    if (op == spv::OpName)
-    {
-        spirv::IdRef id;
-        spirv::LiteralString name;
-        spirv::ParseName(instruction, &id, &name);
-
-        return mXfbCodeGenerator.transformName(id, name);
-    }
-
-    return TransformationState::Unchanged;
-}
-
-TransformationState SpirvTransformer::transformEmitVertex(const uint32_t *instruction)
-{
-    // This is only possible in geometry shaders.
-    ASSERT(mOptions.shaderType == gl::ShaderType::Geometry);
-
-    // Write the temporary variables that hold varyings data before EmitVertex().
-    writeOutputPrologue();
-
-    return TransformationState::Unchanged;
+    return mPerVertexTrimmer.transformMemberName(id, member, name);
 }
 
 TransformationState SpirvTransformer::transformEntryPoint(const uint32_t *instruction)
@@ -3842,16 +3788,27 @@ TransformationState SpirvTransformer::transformExtInst(const uint32_t *instructi
             writePendingDeclarations();
             break;
         case sh::vk::spirv::kNonSemanticEnter:
-            // TODO: http://anglebug.com/7220
-            UNREACHABLE();
+            // If there are any precision mismatches that need to be handled, temporary global
+            // variables are created with the original precision.  Initialize those variables from
+            // the varyings at the beginning of the shader.
+            writeInputPreamble();
             break;
         case sh::vk::spirv::kNonSemanticVertexOutput:
-            // TODO: http://anglebug.com/7220
-            UNREACHABLE();
+            // Generate gl_Position transformations and transform feedback capture (through
+            // extension) before return or EmitVertex().  Additionally, if there are any precision
+            // mismatches that need to be ahendled, write the temporary variables that hold varyings
+            // data.
+            writeOutputPrologue();
             break;
         case sh::vk::spirv::kNonSemanticTransformFeedbackEmulation:
-            // TODO: http://anglebug.com/7220
-            UNREACHABLE();
+            // Transform feedback emulation is written to a designated function.  Allow its code to
+            // be generated if this is the right function.
+            if (mOptions.isTransformFeedbackStage)
+            {
+                mXfbCodeGenerator.writeTransformFeedbackEmulationOutput(
+                    mInactiveVaryingRemover, mVaryingPrecisionFixer,
+                    mOptions.useSpirvVaryingPrecisionFixer, mSpirvBlobOut);
+            }
             break;
         default:
             UNREACHABLE();
@@ -3879,37 +3836,6 @@ TransformationState SpirvTransformer::transformTypeStruct(const uint32_t *instru
 
     return mXfbCodeGenerator.transformTypeStruct(info, mOptions.shaderType, id, memberList,
                                                  mSpirvBlobOut);
-}
-
-TransformationState SpirvTransformer::transformReturn(const uint32_t *instruction)
-{
-    if (mCurrentFunctionId != ID::EntryPoint)
-    {
-        if (mOptions.isTransformFeedbackStage)
-        {
-            // Transform feedback emulation is written to a designated function.  Allow its code to
-            // be generated if this is the right function.
-            mXfbCodeGenerator.writeTransformFeedbackEmulationOutput(
-                mInactiveVaryingRemover, mVaryingPrecisionFixer,
-                mOptions.useSpirvVaryingPrecisionFixer, mCurrentFunctionId, mSpirvBlobOut);
-        }
-
-        // We only need to process the precision info when returning from the entry point function
-        return TransformationState::Unchanged;
-    }
-
-    // For geometry shaders, this operations is done before every EmitVertex() instead.
-    // Additionally, this transformation (which affects output varyings) doesn't apply to fragment
-    // shaders.
-    if (mOptions.shaderType == gl::ShaderType::Geometry ||
-        mOptions.shaderType == gl::ShaderType::Fragment)
-    {
-        return TransformationState::Unchanged;
-    }
-
-    writeOutputPrologue();
-
-    return TransformationState::Unchanged;
 }
 
 TransformationState SpirvTransformer::transformVariable(const uint32_t *instruction)
@@ -4108,9 +4034,6 @@ class SpirvVertexAttributeAliasingTransformer final : public SpirvTransformerBas
     // ids of the split vectors are consecutive, so %veci == %vec0 + i.  %veciType is taken from
     // mInputTypePointers.
     std::vector<spirv::IdRef> mExpandedMatrixFirstVectorIdById;
-    // Whether initialization of the matrix attributes should be written at the beginning of the
-    // current function.
-    bool mWriteExpandedMatrixInitialization = false;
 
     // Id of attribute types; float and veci.
     spirv::IdRef floatType(uint32_t componentCount)
@@ -4254,18 +4177,6 @@ void SpirvVertexAttributeAliasingTransformer::transformInstruction()
     {
         // SPIR-V is structured in sections.  Function declarations come last.
         mIsInFunctionSection = true;
-
-        // The matrix attribute declarations have been changed to have Private storage class, and
-        // they are initialized from the expanded (and potentially aliased) Input vectors.  This is
-        // done at the beginning of the entry point.
-
-        spirv::IdResultType id;
-        spirv::IdResult functionId;
-        spv::FunctionControlMask functionControl;
-        spirv::IdRef functionType;
-        spirv::ParseFunction(instruction, &id, &functionId, &functionControl, &functionType);
-
-        mWriteExpandedMatrixInitialization = functionId == ID::EntryPoint;
     }
 
     // Only look at interesting instructions.
@@ -4273,19 +4184,12 @@ void SpirvVertexAttributeAliasingTransformer::transformInstruction()
 
     if (mIsInFunctionSection)
     {
-        // Write expanded matrix initialization right after the entry point's OpFunction and any
-        // instruction that must come immediately after it.
-        if (mWriteExpandedMatrixInitialization && opCode != spv::OpFunction &&
-            opCode != spv::OpFunctionParameter && opCode != spv::OpLabel &&
-            opCode != spv::OpVariable)
-        {
-            writeExpandedMatrixInitialization();
-            mWriteExpandedMatrixInitialization = false;
-        }
-
         // Look at in-function opcodes.
         switch (opCode)
         {
+            case spv::OpExtInst:
+                transformationState = transformExtInst(instruction);
+                break;
             case spv::OpAccessChain:
             case spv::OpInBoundsAccessChain:
                 transformationState = transformAccessChain(instruction);
@@ -4494,8 +4398,10 @@ TransformationState SpirvVertexAttributeAliasingTransformer::transformExtInst(
             declareExpandedMatrixVectors();
             break;
         case sh::vk::spirv::kNonSemanticEnter:
-            // TODO: http://anglebug.com/7220
-            UNREACHABLE();
+            // The matrix attribute declarations have been changed to have Private storage class,
+            // and they are initialized from the expanded (and potentially aliased) Input vectors.
+            // This is done at the beginning of the entry point.
+            writeExpandedMatrixInitialization();
             break;
         case sh::vk::spirv::kNonSemanticVertexOutput:
         case sh::vk::spirv::kNonSemanticTransformFeedbackEmulation:
@@ -5112,7 +5018,7 @@ void SpvAssignTransformFeedbackLocations(gl::ShaderType shaderType,
         for (uint32_t varyingIndex = 0; varyingIndex < tfVaryings.size(); ++varyingIndex)
         {
             const gl::TransformFeedbackVarying &tfVarying = tfVaryings[varyingIndex];
-            const std::string &tfVaryingName              = tfVarying.mappedName;
+            const std::string &tfVaryingName              = tfVarying.name;
 
             if (tfVaryingName == "gl_Position")
             {
