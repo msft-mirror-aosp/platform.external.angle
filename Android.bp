@@ -2186,6 +2186,8 @@ cc_genrule {
         "src/libANGLE/renderer/metal/mtl_msl_utils.mm",
         "src/libANGLE/renderer/metal/mtl_occlusion_query_pool.h",
         "src/libANGLE/renderer/metal/mtl_occlusion_query_pool.mm",
+        "src/libANGLE/renderer/metal/mtl_pipeline_cache.h",
+        "src/libANGLE/renderer/metal/mtl_pipeline_cache.mm",
         "src/libANGLE/renderer/metal/mtl_render_utils.h",
         "src/libANGLE/renderer/metal/mtl_render_utils.mm",
         "src/libANGLE/renderer/metal/mtl_resource_spi.h",
