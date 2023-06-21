@@ -14,7 +14,7 @@
 #include "libANGLE/State.h"
 #include "libANGLE/angletypes.h"
 #include "libANGLE/renderer/gl/functionsgl_typedefs.h"
-#include "platform/FeaturesGL_autogen.h"
+#include "platform/autogen/FeaturesGL_autogen.h"
 
 #include <array>
 #include <map>
@@ -464,6 +464,7 @@ class StateManagerGL final : angle::NonCopyable
     std::vector<GLenum> mFramebuffers;
     GLuint mRenderbuffer;
     GLuint mPlaceholderFbo;
+    GLuint mPlaceholderRbo;
 
     bool mScissorTestEnabled;
     gl::Rectangle mScissor;
