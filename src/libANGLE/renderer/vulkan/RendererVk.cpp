@@ -3252,6 +3252,8 @@ angle::Result RendererVk::initializeDevice(DisplayVk *displayVk, uint32_t queueF
     mEnabledFeatures.features.independentBlend = mPhysicalDeviceFeatures.independentBlend;
     // Used to support multi_draw_indirect
     mEnabledFeatures.features.multiDrawIndirect = mPhysicalDeviceFeatures.multiDrawIndirect;
+    mEnabledFeatures.features.drawIndirectFirstInstance =
+        mPhysicalDeviceFeatures.drawIndirectFirstInstance;
     // Used to support robust buffer access, if VK_EXT_pipeline_robustness is not supported.
     if (!mFeatures.supportsPipelineRobustness.enabled)
     {
@@ -3817,6 +3819,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     constexpr uint32_t kPixel4DriverWithWorkingSpecConstSupport = 0x80201000;
 
     const bool isAMD      = IsAMD(mPhysicalDeviceProperties.vendorID);
+    const bool isApple    = IsApple(mPhysicalDeviceProperties.vendorID);
     const bool isARM      = IsARM(mPhysicalDeviceProperties.vendorID);
     const bool isIntel    = IsIntel(mPhysicalDeviceProperties.vendorID);
     const bool isNvidia   = IsNvidia(mPhysicalDeviceProperties.vendorID);
@@ -3866,7 +3869,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // deteriorating performance on the other.  ANGLE will accordingly make some decisions based on
     // the device architecture for optimal performance on both.
     const bool isImmediateModeRenderer = isNvidia || isAMD || isIntel || isSamsung || isSwiftShader;
-    const bool isTileBasedRenderer     = isARM || isPowerVR || isQualcomm || isBroadcom;
+    const bool isTileBasedRenderer     = isARM || isPowerVR || isQualcomm || isBroadcom || isApple;
 
     // Make sure all known architectures are accounted for.
     if (!isImmediateModeRenderer && !isTileBasedRenderer && !isMockICDEnabled())
@@ -4507,8 +4510,12 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
                             mPipelineProtectedAccessFeatures.pipelineProtectedAccess == VK_TRUE &&
                                 mProtectedMemoryFeatures.protectedMemory == VK_TRUE);
 
+    // VK_EXT_graphics_pipeline_library is available on NVIDIA drivers earlier
+    // than version 531, but there are transient visual glitches with rendering
+    // on those earlier versions.
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsGraphicsPipelineLibrary,
-                            mGraphicsPipelineLibraryFeatures.graphicsPipelineLibrary == VK_TRUE);
+                            mGraphicsPipelineLibraryFeatures.graphicsPipelineLibrary == VK_TRUE &&
+                                (!isNvidia || nvidiaVersion.major >= 531));
 
     // The following drivers are known to key the pipeline cache blobs with vertex input and
     // fragment output state, causing draw-time pipeline creation to miss the cache regardless of
