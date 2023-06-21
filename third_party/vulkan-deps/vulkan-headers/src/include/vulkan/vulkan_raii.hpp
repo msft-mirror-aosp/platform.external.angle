@@ -341,6 +341,12 @@ namespace VULKAN_HPP_NAMESPACE
         vkAcquireDrmDisplayEXT = PFN_vkAcquireDrmDisplayEXT( vkGetInstanceProcAddr( instance, "vkAcquireDrmDisplayEXT" ) );
         vkGetDrmDisplayEXT     = PFN_vkGetDrmDisplayEXT( vkGetInstanceProcAddr( instance, "vkGetDrmDisplayEXT" ) );
 
+#  if defined( VK_ENABLE_BETA_EXTENSIONS )
+        //=== VK_KHR_video_encode_queue ===
+        vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR = PFN_vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR(
+          vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR" ) );
+#  endif /*VK_ENABLE_BETA_EXTENSIONS*/
+
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
         //=== VK_NV_acquire_winrt_display ===
         vkAcquireWinrtDisplayNV = PFN_vkAcquireWinrtDisplayNV( vkGetInstanceProcAddr( instance, "vkAcquireWinrtDisplayNV" ) );
@@ -424,8 +430,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkCreateXlibSurfaceKHR                        vkCreateXlibSurfaceKHR                        = 0;
       PFN_vkGetPhysicalDeviceXlibPresentationSupportKHR vkGetPhysicalDeviceXlibPresentationSupportKHR = 0;
 #  else
-      PFN_dummy vkCreateXlibSurfaceKHR_placeholder                            = 0;
-      PFN_dummy vkGetPhysicalDeviceXlibPresentationSupportKHR_placeholder     = 0;
+      PFN_dummy vkCreateXlibSurfaceKHR_placeholder                                  = 0;
+      PFN_dummy vkGetPhysicalDeviceXlibPresentationSupportKHR_placeholder           = 0;
 #  endif /*VK_USE_PLATFORM_XLIB_KHR*/
 
 #  if defined( VK_USE_PLATFORM_XCB_KHR )
@@ -433,8 +439,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkCreateXcbSurfaceKHR                        vkCreateXcbSurfaceKHR                        = 0;
       PFN_vkGetPhysicalDeviceXcbPresentationSupportKHR vkGetPhysicalDeviceXcbPresentationSupportKHR = 0;
 #  else
-      PFN_dummy vkCreateXcbSurfaceKHR_placeholder                             = 0;
-      PFN_dummy vkGetPhysicalDeviceXcbPresentationSupportKHR_placeholder      = 0;
+      PFN_dummy vkCreateXcbSurfaceKHR_placeholder                                   = 0;
+      PFN_dummy vkGetPhysicalDeviceXcbPresentationSupportKHR_placeholder            = 0;
 #  endif /*VK_USE_PLATFORM_XCB_KHR*/
 
 #  if defined( VK_USE_PLATFORM_WAYLAND_KHR )
@@ -442,15 +448,15 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkCreateWaylandSurfaceKHR                        vkCreateWaylandSurfaceKHR                        = 0;
       PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR vkGetPhysicalDeviceWaylandPresentationSupportKHR = 0;
 #  else
-      PFN_dummy vkCreateWaylandSurfaceKHR_placeholder                         = 0;
-      PFN_dummy vkGetPhysicalDeviceWaylandPresentationSupportKHR_placeholder  = 0;
+      PFN_dummy vkCreateWaylandSurfaceKHR_placeholder                               = 0;
+      PFN_dummy vkGetPhysicalDeviceWaylandPresentationSupportKHR_placeholder        = 0;
 #  endif /*VK_USE_PLATFORM_WAYLAND_KHR*/
 
 #  if defined( VK_USE_PLATFORM_ANDROID_KHR )
       //=== VK_KHR_android_surface ===
       PFN_vkCreateAndroidSurfaceKHR vkCreateAndroidSurfaceKHR = 0;
 #  else
-      PFN_dummy vkCreateAndroidSurfaceKHR_placeholder                         = 0;
+      PFN_dummy vkCreateAndroidSurfaceKHR_placeholder                               = 0;
 #  endif /*VK_USE_PLATFORM_ANDROID_KHR*/
 
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
@@ -458,8 +464,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkCreateWin32SurfaceKHR                        vkCreateWin32SurfaceKHR                        = 0;
       PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32PresentationSupportKHR = 0;
 #  else
-      PFN_dummy vkCreateWin32SurfaceKHR_placeholder                           = 0;
-      PFN_dummy vkGetPhysicalDeviceWin32PresentationSupportKHR_placeholder    = 0;
+      PFN_dummy vkCreateWin32SurfaceKHR_placeholder                                 = 0;
+      PFN_dummy vkGetPhysicalDeviceWin32PresentationSupportKHR_placeholder          = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
       //=== VK_EXT_debug_report ===
@@ -475,7 +481,7 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_GGP_stream_descriptor_surface ===
       PFN_vkCreateStreamDescriptorSurfaceGGP vkCreateStreamDescriptorSurfaceGGP = 0;
 #  else
-      PFN_dummy vkCreateStreamDescriptorSurfaceGGP_placeholder                = 0;
+      PFN_dummy vkCreateStreamDescriptorSurfaceGGP_placeholder                      = 0;
 #  endif /*VK_USE_PLATFORM_GGP*/
 
       //=== VK_NV_external_memory_capabilities ===
@@ -494,7 +500,7 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_NN_vi_surface ===
       PFN_vkCreateViSurfaceNN vkCreateViSurfaceNN = 0;
 #  else
-      PFN_dummy vkCreateViSurfaceNN_placeholder                               = 0;
+      PFN_dummy vkCreateViSurfaceNN_placeholder                                     = 0;
 #  endif /*VK_USE_PLATFORM_VI_NN*/
 
       //=== VK_KHR_device_group_creation ===
@@ -514,8 +520,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkAcquireXlibDisplayEXT    vkAcquireXlibDisplayEXT    = 0;
       PFN_vkGetRandROutputDisplayEXT vkGetRandROutputDisplayEXT = 0;
 #  else
-      PFN_dummy vkAcquireXlibDisplayEXT_placeholder                           = 0;
-      PFN_dummy vkGetRandROutputDisplayEXT_placeholder                        = 0;
+      PFN_dummy vkAcquireXlibDisplayEXT_placeholder                                 = 0;
+      PFN_dummy vkGetRandROutputDisplayEXT_placeholder                              = 0;
 #  endif /*VK_USE_PLATFORM_XLIB_XRANDR_EXT*/
 
       //=== VK_EXT_display_surface_counter ===
@@ -542,14 +548,14 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_MVK_ios_surface ===
       PFN_vkCreateIOSSurfaceMVK vkCreateIOSSurfaceMVK = 0;
 #  else
-      PFN_dummy vkCreateIOSSurfaceMVK_placeholder                             = 0;
+      PFN_dummy vkCreateIOSSurfaceMVK_placeholder                                   = 0;
 #  endif /*VK_USE_PLATFORM_IOS_MVK*/
 
 #  if defined( VK_USE_PLATFORM_MACOS_MVK )
       //=== VK_MVK_macos_surface ===
       PFN_vkCreateMacOSSurfaceMVK vkCreateMacOSSurfaceMVK = 0;
 #  else
-      PFN_dummy vkCreateMacOSSurfaceMVK_placeholder                           = 0;
+      PFN_dummy vkCreateMacOSSurfaceMVK_placeholder                                 = 0;
 #  endif /*VK_USE_PLATFORM_MACOS_MVK*/
 
       //=== VK_EXT_debug_utils ===
@@ -567,14 +573,14 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_FUCHSIA_imagepipe_surface ===
       PFN_vkCreateImagePipeSurfaceFUCHSIA vkCreateImagePipeSurfaceFUCHSIA = 0;
 #  else
-      PFN_dummy vkCreateImagePipeSurfaceFUCHSIA_placeholder                   = 0;
+      PFN_dummy vkCreateImagePipeSurfaceFUCHSIA_placeholder                         = 0;
 #  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
 #  if defined( VK_USE_PLATFORM_METAL_EXT )
       //=== VK_EXT_metal_surface ===
       PFN_vkCreateMetalSurfaceEXT vkCreateMetalSurfaceEXT = 0;
 #  else
-      PFN_dummy vkCreateMetalSurfaceEXT_placeholder                           = 0;
+      PFN_dummy vkCreateMetalSurfaceEXT_placeholder                                 = 0;
 #  endif /*VK_USE_PLATFORM_METAL_EXT*/
 
       //=== VK_KHR_fragment_shading_rate ===
@@ -593,7 +599,7 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_EXT_full_screen_exclusive ===
       PFN_vkGetPhysicalDeviceSurfacePresentModes2EXT vkGetPhysicalDeviceSurfacePresentModes2EXT = 0;
 #  else
-      PFN_dummy vkGetPhysicalDeviceSurfacePresentModes2EXT_placeholder        = 0;
+      PFN_dummy vkGetPhysicalDeviceSurfacePresentModes2EXT_placeholder              = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
       //=== VK_EXT_headless_surface ===
@@ -603,13 +609,20 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkAcquireDrmDisplayEXT vkAcquireDrmDisplayEXT = 0;
       PFN_vkGetDrmDisplayEXT     vkGetDrmDisplayEXT     = 0;
 
+#  if defined( VK_ENABLE_BETA_EXTENSIONS )
+      //=== VK_KHR_video_encode_queue ===
+      PFN_vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR = 0;
+#  else
+      PFN_dummy vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR_placeholder = 0;
+#  endif /*VK_ENABLE_BETA_EXTENSIONS*/
+
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
       //=== VK_NV_acquire_winrt_display ===
       PFN_vkAcquireWinrtDisplayNV vkAcquireWinrtDisplayNV = 0;
       PFN_vkGetWinrtDisplayNV     vkGetWinrtDisplayNV     = 0;
 #  else
-      PFN_dummy vkAcquireWinrtDisplayNV_placeholder                           = 0;
-      PFN_dummy vkGetWinrtDisplayNV_placeholder                               = 0;
+      PFN_dummy vkAcquireWinrtDisplayNV_placeholder                                 = 0;
+      PFN_dummy vkGetWinrtDisplayNV_placeholder                                     = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
 #  if defined( VK_USE_PLATFORM_DIRECTFB_EXT )
@@ -617,8 +630,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkCreateDirectFBSurfaceEXT                        vkCreateDirectFBSurfaceEXT                        = 0;
       PFN_vkGetPhysicalDeviceDirectFBPresentationSupportEXT vkGetPhysicalDeviceDirectFBPresentationSupportEXT = 0;
 #  else
-      PFN_dummy vkCreateDirectFBSurfaceEXT_placeholder                        = 0;
-      PFN_dummy vkGetPhysicalDeviceDirectFBPresentationSupportEXT_placeholder = 0;
+      PFN_dummy vkCreateDirectFBSurfaceEXT_placeholder                              = 0;
+      PFN_dummy vkGetPhysicalDeviceDirectFBPresentationSupportEXT_placeholder       = 0;
 #  endif /*VK_USE_PLATFORM_DIRECTFB_EXT*/
 
 #  if defined( VK_USE_PLATFORM_SCREEN_QNX )
@@ -626,8 +639,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkCreateScreenSurfaceQNX                        vkCreateScreenSurfaceQNX                        = 0;
       PFN_vkGetPhysicalDeviceScreenPresentationSupportQNX vkGetPhysicalDeviceScreenPresentationSupportQNX = 0;
 #  else
-      PFN_dummy vkCreateScreenSurfaceQNX_placeholder                          = 0;
-      PFN_dummy vkGetPhysicalDeviceScreenPresentationSupportQNX_placeholder   = 0;
+      PFN_dummy vkCreateScreenSurfaceQNX_placeholder                                = 0;
+      PFN_dummy vkGetPhysicalDeviceScreenPresentationSupportQNX_placeholder         = 0;
 #  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
 
       //=== VK_NV_optical_flow ===
@@ -1327,6 +1340,9 @@ namespace VULKAN_HPP_NAMESPACE
         vkCreateIndirectCommandsLayoutNV   = PFN_vkCreateIndirectCommandsLayoutNV( vkGetDeviceProcAddr( device, "vkCreateIndirectCommandsLayoutNV" ) );
         vkDestroyIndirectCommandsLayoutNV  = PFN_vkDestroyIndirectCommandsLayoutNV( vkGetDeviceProcAddr( device, "vkDestroyIndirectCommandsLayoutNV" ) );
 
+        //=== VK_EXT_depth_bias_control ===
+        vkCmdSetDepthBias2EXT = PFN_vkCmdSetDepthBias2EXT( vkGetDeviceProcAddr( device, "vkCmdSetDepthBias2EXT" ) );
+
         //=== VK_EXT_private_data ===
         vkCreatePrivateDataSlotEXT = PFN_vkCreatePrivateDataSlotEXT( vkGetDeviceProcAddr( device, "vkCreatePrivateDataSlotEXT" ) );
         if ( !vkCreatePrivateDataSlot )
@@ -1343,6 +1359,8 @@ namespace VULKAN_HPP_NAMESPACE
 
 #  if defined( VK_ENABLE_BETA_EXTENSIONS )
         //=== VK_KHR_video_encode_queue ===
+        vkGetEncodedVideoSessionParametersKHR =
+          PFN_vkGetEncodedVideoSessionParametersKHR( vkGetDeviceProcAddr( device, "vkGetEncodedVideoSessionParametersKHR" ) );
         vkCmdEncodeVideoKHR = PFN_vkCmdEncodeVideoKHR( vkGetDeviceProcAddr( device, "vkCmdEncodeVideoKHR" ) );
 #  endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
@@ -1607,6 +1625,11 @@ namespace VULKAN_HPP_NAMESPACE
         //=== VK_EXT_attachment_feedback_loop_dynamic_state ===
         vkCmdSetAttachmentFeedbackLoopEnableEXT =
           PFN_vkCmdSetAttachmentFeedbackLoopEnableEXT( vkGetDeviceProcAddr( device, "vkCmdSetAttachmentFeedbackLoopEnableEXT" ) );
+
+#  if defined( VK_USE_PLATFORM_SCREEN_QNX )
+        //=== VK_QNX_external_memory_screen_buffer ===
+        vkGetScreenBufferPropertiesQNX = PFN_vkGetScreenBufferPropertiesQNX( vkGetDeviceProcAddr( device, "vkGetScreenBufferPropertiesQNX" ) );
+#  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
       }
 
     public:
@@ -1873,7 +1896,7 @@ namespace VULKAN_HPP_NAMESPACE
       //=== VK_NV_external_memory_win32 ===
       PFN_vkGetMemoryWin32HandleNV vkGetMemoryWin32HandleNV = 0;
 #  else
-      PFN_dummy vkGetMemoryWin32HandleNV_placeholder                          = 0;
+      PFN_dummy vkGetMemoryWin32HandleNV_placeholder                                = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
       //=== VK_KHR_device_group ===
@@ -1889,8 +1912,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkGetMemoryWin32HandleKHR           vkGetMemoryWin32HandleKHR           = 0;
       PFN_vkGetMemoryWin32HandlePropertiesKHR vkGetMemoryWin32HandlePropertiesKHR = 0;
 #  else
-      PFN_dummy vkGetMemoryWin32HandleKHR_placeholder                         = 0;
-      PFN_dummy vkGetMemoryWin32HandlePropertiesKHR_placeholder               = 0;
+      PFN_dummy vkGetMemoryWin32HandleKHR_placeholder                               = 0;
+      PFN_dummy vkGetMemoryWin32HandlePropertiesKHR_placeholder                     = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
       //=== VK_KHR_external_memory_fd ===
@@ -1902,8 +1925,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkImportSemaphoreWin32HandleKHR vkImportSemaphoreWin32HandleKHR = 0;
       PFN_vkGetSemaphoreWin32HandleKHR    vkGetSemaphoreWin32HandleKHR    = 0;
 #  else
-      PFN_dummy vkImportSemaphoreWin32HandleKHR_placeholder                   = 0;
-      PFN_dummy vkGetSemaphoreWin32HandleKHR_placeholder                      = 0;
+      PFN_dummy vkImportSemaphoreWin32HandleKHR_placeholder                         = 0;
+      PFN_dummy vkGetSemaphoreWin32HandleKHR_placeholder                            = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
       //=== VK_KHR_external_semaphore_fd ===
@@ -1958,8 +1981,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkImportFenceWin32HandleKHR vkImportFenceWin32HandleKHR = 0;
       PFN_vkGetFenceWin32HandleKHR    vkGetFenceWin32HandleKHR    = 0;
 #  else
-      PFN_dummy vkImportFenceWin32HandleKHR_placeholder                       = 0;
-      PFN_dummy vkGetFenceWin32HandleKHR_placeholder                          = 0;
+      PFN_dummy vkImportFenceWin32HandleKHR_placeholder                             = 0;
+      PFN_dummy vkGetFenceWin32HandleKHR_placeholder                                = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
       //=== VK_KHR_external_fence_fd ===
@@ -1985,8 +2008,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkGetAndroidHardwareBufferPropertiesANDROID vkGetAndroidHardwareBufferPropertiesANDROID = 0;
       PFN_vkGetMemoryAndroidHardwareBufferANDROID     vkGetMemoryAndroidHardwareBufferANDROID     = 0;
 #  else
-      PFN_dummy vkGetAndroidHardwareBufferPropertiesANDROID_placeholder       = 0;
-      PFN_dummy vkGetMemoryAndroidHardwareBufferANDROID_placeholder           = 0;
+      PFN_dummy vkGetAndroidHardwareBufferPropertiesANDROID_placeholder             = 0;
+      PFN_dummy vkGetMemoryAndroidHardwareBufferANDROID_placeholder                 = 0;
 #  endif /*VK_USE_PLATFORM_ANDROID_KHR*/
 
       //=== VK_EXT_sample_locations ===
@@ -2123,9 +2146,9 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkReleaseFullScreenExclusiveModeEXT     vkReleaseFullScreenExclusiveModeEXT     = 0;
       PFN_vkGetDeviceGroupSurfacePresentModes2EXT vkGetDeviceGroupSurfacePresentModes2EXT = 0;
 #  else
-      PFN_dummy vkAcquireFullScreenExclusiveModeEXT_placeholder               = 0;
-      PFN_dummy vkReleaseFullScreenExclusiveModeEXT_placeholder               = 0;
-      PFN_dummy vkGetDeviceGroupSurfacePresentModes2EXT_placeholder           = 0;
+      PFN_dummy vkAcquireFullScreenExclusiveModeEXT_placeholder                     = 0;
+      PFN_dummy vkReleaseFullScreenExclusiveModeEXT_placeholder                     = 0;
+      PFN_dummy vkGetDeviceGroupSurfacePresentModes2EXT_placeholder                 = 0;
 #  endif /*VK_USE_PLATFORM_WIN32_KHR*/
 
       //=== VK_KHR_buffer_device_address ===
@@ -2180,6 +2203,9 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkCreateIndirectCommandsLayoutNV           vkCreateIndirectCommandsLayoutNV           = 0;
       PFN_vkDestroyIndirectCommandsLayoutNV          vkDestroyIndirectCommandsLayoutNV          = 0;
 
+      //=== VK_EXT_depth_bias_control ===
+      PFN_vkCmdSetDepthBias2EXT vkCmdSetDepthBias2EXT = 0;
+
       //=== VK_EXT_private_data ===
       PFN_vkCreatePrivateDataSlotEXT  vkCreatePrivateDataSlotEXT  = 0;
       PFN_vkDestroyPrivateDataSlotEXT vkDestroyPrivateDataSlotEXT = 0;
@@ -2188,16 +2214,18 @@ namespace VULKAN_HPP_NAMESPACE
 
 #  if defined( VK_ENABLE_BETA_EXTENSIONS )
       //=== VK_KHR_video_encode_queue ===
-      PFN_vkCmdEncodeVideoKHR vkCmdEncodeVideoKHR = 0;
+      PFN_vkGetEncodedVideoSessionParametersKHR vkGetEncodedVideoSessionParametersKHR = 0;
+      PFN_vkCmdEncodeVideoKHR                   vkCmdEncodeVideoKHR                   = 0;
 #  else
-      PFN_dummy vkCmdEncodeVideoKHR_placeholder                               = 0;
+      PFN_dummy vkGetEncodedVideoSessionParametersKHR_placeholder                   = 0;
+      PFN_dummy vkCmdEncodeVideoKHR_placeholder                                     = 0;
 #  endif /*VK_ENABLE_BETA_EXTENSIONS*/
 
 #  if defined( VK_USE_PLATFORM_METAL_EXT )
       //=== VK_EXT_metal_objects ===
       PFN_vkExportMetalObjectsEXT vkExportMetalObjectsEXT = 0;
 #  else
-      PFN_dummy vkExportMetalObjectsEXT_placeholder                           = 0;
+      PFN_dummy vkExportMetalObjectsEXT_placeholder                                 = 0;
 #  endif /*VK_USE_PLATFORM_METAL_EXT*/
 
       //=== VK_KHR_synchronization2 ===
@@ -2253,8 +2281,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkGetMemoryZirconHandleFUCHSIA           vkGetMemoryZirconHandleFUCHSIA           = 0;
       PFN_vkGetMemoryZirconHandlePropertiesFUCHSIA vkGetMemoryZirconHandlePropertiesFUCHSIA = 0;
 #  else
-      PFN_dummy vkGetMemoryZirconHandleFUCHSIA_placeholder                    = 0;
-      PFN_dummy vkGetMemoryZirconHandlePropertiesFUCHSIA_placeholder          = 0;
+      PFN_dummy vkGetMemoryZirconHandleFUCHSIA_placeholder                          = 0;
+      PFN_dummy vkGetMemoryZirconHandlePropertiesFUCHSIA_placeholder                = 0;
 #  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
 #  if defined( VK_USE_PLATFORM_FUCHSIA )
@@ -2262,8 +2290,8 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkImportSemaphoreZirconHandleFUCHSIA vkImportSemaphoreZirconHandleFUCHSIA = 0;
       PFN_vkGetSemaphoreZirconHandleFUCHSIA    vkGetSemaphoreZirconHandleFUCHSIA    = 0;
 #  else
-      PFN_dummy vkImportSemaphoreZirconHandleFUCHSIA_placeholder              = 0;
-      PFN_dummy vkGetSemaphoreZirconHandleFUCHSIA_placeholder                 = 0;
+      PFN_dummy vkImportSemaphoreZirconHandleFUCHSIA_placeholder                    = 0;
+      PFN_dummy vkGetSemaphoreZirconHandleFUCHSIA_placeholder                       = 0;
 #  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
 #  if defined( VK_USE_PLATFORM_FUCHSIA )
@@ -2274,11 +2302,11 @@ namespace VULKAN_HPP_NAMESPACE
       PFN_vkDestroyBufferCollectionFUCHSIA              vkDestroyBufferCollectionFUCHSIA              = 0;
       PFN_vkGetBufferCollectionPropertiesFUCHSIA        vkGetBufferCollectionPropertiesFUCHSIA        = 0;
 #  else
-      PFN_dummy vkCreateBufferCollectionFUCHSIA_placeholder                   = 0;
-      PFN_dummy vkSetBufferCollectionImageConstraintsFUCHSIA_placeholder      = 0;
-      PFN_dummy vkSetBufferCollectionBufferConstraintsFUCHSIA_placeholder     = 0;
-      PFN_dummy vkDestroyBufferCollectionFUCHSIA_placeholder                  = 0;
-      PFN_dummy vkGetBufferCollectionPropertiesFUCHSIA_placeholder            = 0;
+      PFN_dummy vkCreateBufferCollectionFUCHSIA_placeholder                         = 0;
+      PFN_dummy vkSetBufferCollectionImageConstraintsFUCHSIA_placeholder            = 0;
+      PFN_dummy vkSetBufferCollectionBufferConstraintsFUCHSIA_placeholder           = 0;
+      PFN_dummy vkDestroyBufferCollectionFUCHSIA_placeholder                        = 0;
+      PFN_dummy vkGetBufferCollectionPropertiesFUCHSIA_placeholder                  = 0;
 #  endif /*VK_USE_PLATFORM_FUCHSIA*/
 
       //=== VK_HUAWEI_subpass_shading ===
@@ -2406,6 +2434,13 @@ namespace VULKAN_HPP_NAMESPACE
 
       //=== VK_EXT_attachment_feedback_loop_dynamic_state ===
       PFN_vkCmdSetAttachmentFeedbackLoopEnableEXT vkCmdSetAttachmentFeedbackLoopEnableEXT = 0;
+
+#  if defined( VK_USE_PLATFORM_SCREEN_QNX )
+      //=== VK_QNX_external_memory_screen_buffer ===
+      PFN_vkGetScreenBufferPropertiesQNX vkGetScreenBufferPropertiesQNX = 0;
+#  else
+      PFN_dummy vkGetScreenBufferPropertiesQNX_placeholder                          = 0;
+#  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
     };
 
     //========================================
@@ -3210,6 +3245,17 @@ namespace VULKAN_HPP_NAMESPACE
 
       VULKAN_HPP_NODISCARD VULKAN_HPP_RAII_NAMESPACE::DisplayKHR getDrmDisplayEXT( int32_t drmFd, uint32_t connectorId ) const;
 
+#  if defined( VK_ENABLE_BETA_EXTENSIONS )
+      //=== VK_KHR_video_encode_queue ===
+
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::VideoEncodeQualityLevelPropertiesKHR
+        getVideoEncodeQualityLevelPropertiesKHR( const VULKAN_HPP_NAMESPACE::PhysicalDeviceVideoEncodeQualityLevelInfoKHR & qualityLevelInfo ) const;
+
+      template <typename X, typename Y, typename... Z>
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
+        getVideoEncodeQualityLevelPropertiesKHR( const VULKAN_HPP_NAMESPACE::PhysicalDeviceVideoEncodeQualityLevelInfoKHR & qualityLevelInfo ) const;
+#  endif /*VK_ENABLE_BETA_EXTENSIONS*/
+
 #  if defined( VK_USE_PLATFORM_WIN32_KHR )
       //=== VK_NV_acquire_winrt_display ===
 
@@ -4009,6 +4055,17 @@ namespace VULKAN_HPP_NAMESPACE
                                                        uint64_t                              objectHandle,
                                                        VULKAN_HPP_NAMESPACE::PrivateDataSlot privateDataSlot ) const VULKAN_HPP_NOEXCEPT;
 
+#  if defined( VK_ENABLE_BETA_EXTENSIONS )
+      //=== VK_KHR_video_encode_queue ===
+
+      VULKAN_HPP_NODISCARD std::pair<VULKAN_HPP_NAMESPACE::VideoEncodeSessionParametersFeedbackInfoKHR, std::vector<uint8_t>>
+        getEncodedVideoSessionParametersKHR( const VULKAN_HPP_NAMESPACE::VideoEncodeSessionParametersGetInfoKHR & videoSessionParametersInfo ) const;
+
+      template <typename X, typename Y, typename... Z>
+      VULKAN_HPP_NODISCARD std::pair<VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>, std::vector<uint8_t>>
+        getEncodedVideoSessionParametersKHR( const VULKAN_HPP_NAMESPACE::VideoEncodeSessionParametersGetInfoKHR & videoSessionParametersInfo ) const;
+#  endif /*VK_ENABLE_BETA_EXTENSIONS*/
+
 #  if defined( VK_USE_PLATFORM_METAL_EXT )
       //=== VK_EXT_metal_objects ===
 
@@ -4168,6 +4225,15 @@ namespace VULKAN_HPP_NAMESPACE
 
       VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::TilePropertiesQCOM
                            getDynamicRenderingTilePropertiesQCOM( const VULKAN_HPP_NAMESPACE::RenderingInfo & renderingInfo ) const VULKAN_HPP_NOEXCEPT;
+
+#  if defined( VK_USE_PLATFORM_SCREEN_QNX )
+      //=== VK_QNX_external_memory_screen_buffer ===
+
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::ScreenBufferPropertiesQNX getScreenBufferPropertiesQNX( const struct _screen_buffer & buffer ) const;
+
+      template <typename X, typename Y, typename... Z>
+      VULKAN_HPP_NODISCARD VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...> getScreenBufferPropertiesQNX( const struct _screen_buffer & buffer ) const;
+#  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
 
     private:
       VULKAN_HPP_NAMESPACE::Device                                                       m_device    = {};
@@ -5647,6 +5713,10 @@ namespace VULKAN_HPP_NAMESPACE
       void bindPipelineShaderGroupNV( VULKAN_HPP_NAMESPACE::PipelineBindPoint pipelineBindPoint,
                                       VULKAN_HPP_NAMESPACE::Pipeline          pipeline,
                                       uint32_t                                groupIndex ) const VULKAN_HPP_NOEXCEPT;
+
+      //=== VK_EXT_depth_bias_control ===
+
+      void setDepthBias2EXT( const VULKAN_HPP_NAMESPACE::DepthBiasInfoEXT & depthBiasInfo ) const VULKAN_HPP_NOEXCEPT;
 
 #  if defined( VK_ENABLE_BETA_EXTENSIONS )
       //=== VK_KHR_video_encode_queue ===
@@ -18220,6 +18290,15 @@ namespace VULKAN_HPP_NAMESPACE
       return VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutNV( *this, createInfo, allocator );
     }
 
+    //=== VK_EXT_depth_bias_control ===
+
+    VULKAN_HPP_INLINE void CommandBuffer::setDepthBias2EXT( const VULKAN_HPP_NAMESPACE::DepthBiasInfoEXT & depthBiasInfo ) const VULKAN_HPP_NOEXCEPT
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkCmdSetDepthBias2EXT && "Function <vkCmdSetDepthBias2EXT> requires <VK_EXT_depth_bias_control>" );
+
+      getDispatcher()->vkCmdSetDepthBias2EXT( static_cast<VkCommandBuffer>( m_commandBuffer ), reinterpret_cast<const VkDepthBiasInfoEXT *>( &depthBiasInfo ) );
+    }
+
     //=== VK_EXT_acquire_drm_display ===
 
     VULKAN_HPP_INLINE void PhysicalDevice::acquireDrmDisplayEXT( int32_t drmFd, VULKAN_HPP_NAMESPACE::DisplayKHR display ) const
@@ -18284,6 +18363,120 @@ namespace VULKAN_HPP_NAMESPACE
 
 #  if defined( VK_ENABLE_BETA_EXTENSIONS )
     //=== VK_KHR_video_encode_queue ===
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::VideoEncodeQualityLevelPropertiesKHR PhysicalDevice::getVideoEncodeQualityLevelPropertiesKHR(
+      const VULKAN_HPP_NAMESPACE::PhysicalDeviceVideoEncodeQualityLevelInfoKHR & qualityLevelInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR &&
+                         "Function <vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR> requires <VK_KHR_video_encode_queue>" );
+
+      VULKAN_HPP_NAMESPACE::VideoEncodeQualityLevelPropertiesKHR qualityLevelProperties;
+      VkResult                                                   result = getDispatcher()->vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR(
+        static_cast<VkPhysicalDevice>( m_physicalDevice ),
+        reinterpret_cast<const VkPhysicalDeviceVideoEncodeQualityLevelInfoKHR *>( &qualityLevelInfo ),
+        reinterpret_cast<VkVideoEncodeQualityLevelPropertiesKHR *>( &qualityLevelProperties ) );
+      resultCheck( static_cast<VULKAN_HPP_NAMESPACE::Result>( result ),
+                   VULKAN_HPP_NAMESPACE_STRING "::PhysicalDevice::getVideoEncodeQualityLevelPropertiesKHR" );
+
+      return qualityLevelProperties;
+    }
+
+    template <typename X, typename Y, typename... Z>
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...> PhysicalDevice::getVideoEncodeQualityLevelPropertiesKHR(
+      const VULKAN_HPP_NAMESPACE::PhysicalDeviceVideoEncodeQualityLevelInfoKHR & qualityLevelInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR &&
+                         "Function <vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR> requires <VK_KHR_video_encode_queue>" );
+
+      StructureChain<X, Y, Z...>                                   structureChain;
+      VULKAN_HPP_NAMESPACE::VideoEncodeQualityLevelPropertiesKHR & qualityLevelProperties =
+        structureChain.template get<VULKAN_HPP_NAMESPACE::VideoEncodeQualityLevelPropertiesKHR>();
+      VkResult result = getDispatcher()->vkGetPhysicalDeviceVideoEncodeQualityLevelPropertiesKHR(
+        static_cast<VkPhysicalDevice>( m_physicalDevice ),
+        reinterpret_cast<const VkPhysicalDeviceVideoEncodeQualityLevelInfoKHR *>( &qualityLevelInfo ),
+        reinterpret_cast<VkVideoEncodeQualityLevelPropertiesKHR *>( &qualityLevelProperties ) );
+      resultCheck( static_cast<VULKAN_HPP_NAMESPACE::Result>( result ),
+                   VULKAN_HPP_NAMESPACE_STRING "::PhysicalDevice::getVideoEncodeQualityLevelPropertiesKHR" );
+
+      return structureChain;
+    }
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE std::pair<VULKAN_HPP_NAMESPACE::VideoEncodeSessionParametersFeedbackInfoKHR, std::vector<uint8_t>>
+      Device::getEncodedVideoSessionParametersKHR( const VULKAN_HPP_NAMESPACE::VideoEncodeSessionParametersGetInfoKHR & videoSessionParametersInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetEncodedVideoSessionParametersKHR &&
+                         "Function <vkGetEncodedVideoSessionParametersKHR> requires <VK_KHR_video_encode_queue>" );
+
+      std::pair<VULKAN_HPP_NAMESPACE::VideoEncodeSessionParametersFeedbackInfoKHR, std::vector<uint8_t>> data_;
+      VULKAN_HPP_NAMESPACE::VideoEncodeSessionParametersFeedbackInfoKHR &                                feedbackInfo = data_.first;
+      std::vector<uint8_t> &                                                                             data         = data_.second;
+      size_t                                                                                             dataSize;
+      VkResult                                                                                           result;
+      do
+      {
+        result = getDispatcher()->vkGetEncodedVideoSessionParametersKHR(
+          static_cast<VkDevice>( m_device ),
+          reinterpret_cast<const VkVideoEncodeSessionParametersGetInfoKHR *>( &videoSessionParametersInfo ),
+          reinterpret_cast<VkVideoEncodeSessionParametersFeedbackInfoKHR *>( &feedbackInfo ),
+          &dataSize,
+          nullptr );
+        if ( ( result == VK_SUCCESS ) && dataSize )
+        {
+          data.resize( dataSize );
+          result = getDispatcher()->vkGetEncodedVideoSessionParametersKHR(
+            static_cast<VkDevice>( m_device ),
+            reinterpret_cast<const VkVideoEncodeSessionParametersGetInfoKHR *>( &videoSessionParametersInfo ),
+            reinterpret_cast<VkVideoEncodeSessionParametersFeedbackInfoKHR *>( &feedbackInfo ),
+            &dataSize,
+            reinterpret_cast<void *>( data.data() ) );
+        }
+      } while ( result == VK_INCOMPLETE );
+      resultCheck( static_cast<VULKAN_HPP_NAMESPACE::Result>( result ), VULKAN_HPP_NAMESPACE_STRING "::Device::getEncodedVideoSessionParametersKHR" );
+
+      return data_;
+    }
+
+    template <typename X, typename Y, typename... Z>
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE std::pair<VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>, std::vector<uint8_t>>
+      Device::getEncodedVideoSessionParametersKHR( const VULKAN_HPP_NAMESPACE::VideoEncodeSessionParametersGetInfoKHR & videoSessionParametersInfo ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetEncodedVideoSessionParametersKHR &&
+                         "Function <vkGetEncodedVideoSessionParametersKHR> requires <VK_KHR_video_encode_queue>" );
+
+      std::pair<VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>, std::vector<uint8_t>> data_;
+      VULKAN_HPP_NAMESPACE::VideoEncodeSessionParametersFeedbackInfoKHR &               feedbackInfo =
+        data_.first.template get<VULKAN_HPP_NAMESPACE::VideoEncodeSessionParametersFeedbackInfoKHR>();
+      std::vector<uint8_t> & data = data_.second;
+      size_t                 dataSize;
+      VkResult               result;
+      do
+      {
+        result = getDispatcher()->vkGetEncodedVideoSessionParametersKHR(
+          static_cast<VkDevice>( m_device ),
+          reinterpret_cast<const VkVideoEncodeSessionParametersGetInfoKHR *>( &videoSessionParametersInfo ),
+          reinterpret_cast<VkVideoEncodeSessionParametersFeedbackInfoKHR *>( &feedbackInfo ),
+          &dataSize,
+          nullptr );
+        if ( ( result == VK_SUCCESS ) && dataSize )
+        {
+          structureChains.resize( dataSize );
+          data.resize( dataSize );
+          for ( size_t i = 0; i < dataSize; i++ )
+          {
+            data[i].pNext = structureChains[i].template get<void>().pNext;
+          }
+          result = getDispatcher()->vkGetEncodedVideoSessionParametersKHR(
+            static_cast<VkDevice>( m_device ),
+            reinterpret_cast<const VkVideoEncodeSessionParametersGetInfoKHR *>( &videoSessionParametersInfo ),
+            reinterpret_cast<VkVideoEncodeSessionParametersFeedbackInfoKHR *>( &feedbackInfo ),
+            &dataSize,
+            reinterpret_cast<void *>( data.data() ) );
+        }
+      } while ( result == VK_INCOMPLETE );
+      resultCheck( static_cast<VULKAN_HPP_NAMESPACE::Result>( result ), VULKAN_HPP_NAMESPACE_STRING "::Device::getEncodedVideoSessionParametersKHR" );
+
+      return data_;
+    }
 
     VULKAN_HPP_INLINE void CommandBuffer::encodeVideoKHR( const VULKAN_HPP_NAMESPACE::VideoEncodeInfoKHR & encodeInfo ) const VULKAN_HPP_NOEXCEPT
     {
@@ -20006,6 +20199,40 @@ namespace VULKAN_HPP_NAMESPACE
       getDispatcher()->vkCmdSetAttachmentFeedbackLoopEnableEXT( static_cast<VkCommandBuffer>( m_commandBuffer ),
                                                                 static_cast<VkImageAspectFlags>( aspectMask ) );
     }
+
+#  if defined( VK_USE_PLATFORM_SCREEN_QNX )
+    //=== VK_QNX_external_memory_screen_buffer ===
+
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::ScreenBufferPropertiesQNX
+                                           Device::getScreenBufferPropertiesQNX( const struct _screen_buffer & buffer ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetScreenBufferPropertiesQNX &&
+                         "Function <vkGetScreenBufferPropertiesQNX> requires <VK_QNX_external_memory_screen_buffer>" );
+
+      VULKAN_HPP_NAMESPACE::ScreenBufferPropertiesQNX properties;
+      VkResult                                        result = getDispatcher()->vkGetScreenBufferPropertiesQNX(
+        static_cast<VkDevice>( m_device ), &buffer, reinterpret_cast<VkScreenBufferPropertiesQNX *>( &properties ) );
+      resultCheck( static_cast<VULKAN_HPP_NAMESPACE::Result>( result ), VULKAN_HPP_NAMESPACE_STRING "::Device::getScreenBufferPropertiesQNX" );
+
+      return properties;
+    }
+
+    template <typename X, typename Y, typename... Z>
+    VULKAN_HPP_NODISCARD VULKAN_HPP_INLINE VULKAN_HPP_NAMESPACE::StructureChain<X, Y, Z...>
+                                           Device::getScreenBufferPropertiesQNX( const struct _screen_buffer & buffer ) const
+    {
+      VULKAN_HPP_ASSERT( getDispatcher()->vkGetScreenBufferPropertiesQNX &&
+                         "Function <vkGetScreenBufferPropertiesQNX> requires <VK_QNX_external_memory_screen_buffer>" );
+
+      StructureChain<X, Y, Z...>                        structureChain;
+      VULKAN_HPP_NAMESPACE::ScreenBufferPropertiesQNX & properties = structureChain.template get<VULKAN_HPP_NAMESPACE::ScreenBufferPropertiesQNX>();
+      VkResult                                          result     = getDispatcher()->vkGetScreenBufferPropertiesQNX(
+        static_cast<VkDevice>( m_device ), &buffer, reinterpret_cast<VkScreenBufferPropertiesQNX *>( &properties ) );
+      resultCheck( static_cast<VULKAN_HPP_NAMESPACE::Result>( result ), VULKAN_HPP_NAMESPACE_STRING "::Device::getScreenBufferPropertiesQNX" );
+
+      return structureChain;
+    }
+#  endif /*VK_USE_PLATFORM_SCREEN_QNX*/
 
   }  // namespace VULKAN_HPP_RAII_NAMESPACE
 }  // namespace VULKAN_HPP_NAMESPACE
