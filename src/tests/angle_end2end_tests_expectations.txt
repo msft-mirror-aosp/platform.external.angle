@@ -485,6 +485,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 5981 PIXEL4ORXL GLES : SimpleStateChangeTestES31.InvalidateThenStorageWriteThenBlend/* = SKIP
 6744 PIXEL4ORXL GLES : SimpleStateChangeTestES3.OutOfBoundsByteAttribute/* = SKIP
 5981 PIXEL4ORXL GLES : SimpleStateChangeTestES31.TransformFeedbackThenReadWithCompute/* = SKIP
+5981 PIXEL4ORXL GLES : Texture3DTestES2.DefineTexture2DArrayShouldFail/* = SKIP
 5981 PIXEL4ORXL GLES : Texture3DTestES2.CopySubImageAlpha/* = SKIP
 5981 PIXEL4ORXL GLES : Texture3DTestES2.CopySubImageLuminance/* = SKIP
 5981 PIXEL4ORXL GLES : Texture3DTestES2.CopySubImageRGBA/* = SKIP
@@ -1007,6 +1008,9 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 // Flaking due to threading usage of the queue
 7204 : VulkanImageTest.PreInitializedOnGLImport/*AsyncCommandQueue = SKIP
 8174 : VulkanImageTest.AllocateVMAImageWhenDeviceOOM/*AsyncCommandQueue = SKIP
+8174 : VulkanImageTest.AllocateVMAImageAfterFreeing2DGarbageWhenDeviceOOM/*AsyncCommandQueue = SKIP
+8174 : VulkanImageTest.AllocateVMAImageAfterFreeing2DArrayGarbageWhenDeviceOOM/*AsyncCommandQueue = SKIP
+8174 : VulkanImageTest.AllocateBufferAfterFreeing2DGarbageWhenDeviceOOM/*AsyncCommandQueue = SKIP
 
 // Causes incompatible error in GL back-end.
 7218 OPENGL : TransformFeedbackTest.DrawAfterDeletingPausedBuffer/* = SKIP
@@ -1176,6 +1180,12 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 // GL_TEXTURE_2D_ARRAY and GL_TEXTURE_3D shader images.
 8124 D3D11 : PixelLocalStorageTest.TextureLevelsAndLayers/* = SKIP
 8125 MAC METAL : PixelLocalStorageTest.TextureLevelsAndLayers/* = SKIP
+
+// Skip device OOM tests for Linux/NVIDIA.
+8236 LINUX NVIDIA : VulkanImageTest.AllocateVMAImageWhenDeviceOOM/* = SKIP
+8236 LINUX NVIDIA : VulkanImageTest.AllocateVMAImageAfterFreeing2DGarbageWhenDeviceOOM/* = SKIP
+8236 LINUX NVIDIA : VulkanImageTest.AllocateVMAImageAfterFreeing2DArrayGarbageWhenDeviceOOM/* = SKIP
+8236 LINUX NVIDIA : VulkanImageTest.AllocateBufferAfterFreeing2DGarbageWhenDeviceOOM/* = SKIP
 
 // Slow tests, should appear last in this file
 5076 : GLSLTest.VerifyMaxVertexUniformVectors* = TIMEOUT
