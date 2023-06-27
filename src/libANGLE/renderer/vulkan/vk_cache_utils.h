@@ -1530,50 +1530,31 @@ struct DescriptorDescHandles
     VkBufferView bufferView;
 };
 
-using WriteDescriptorDescs = angle::FastMap<WriteDescriptorDesc, kFastDescriptorSetDescLimit>;
-
-class WriteDescriptorDescBuilder
+class WriteDescriptorDescs
 {
   public:
     void reset()
     {
         mDescs.clear();
-        mCurrentInfoIndex = 0;
+        mDynamicDescriptorSetCount = 0;
+        mCurrentInfoIndex          = 0;
     }
 
-    uint32_t getDescriptorSetCount(uint32_t bindingIndex) const
-    {
-        ASSERT(hasWriteDescAtIndex(bindingIndex));
-        return mDescs[bindingIndex].descriptorCount;
-    }
-
-    bool empty() const { return mDescs.size() == 0; }
-
-    // Returns the info desc offset.
-    uint32_t getInfoDescIndex(uint32_t bindingIndex) const
-    {
-        return mDescs[bindingIndex].descriptorInfoIndex;
-    }
-
-    void updateShaderBuffers(gl::ShaderBitSet shaderTypes,
-                             ShaderVariableType variableType,
-                             const ShaderInterfaceVariableInfoMap &variableInfoMap,
+    void updateShaderBuffers(const ShaderInterfaceVariableInfoMap &variableInfoMap,
                              const std::vector<gl::InterfaceBlock> &blocks,
                              VkDescriptorType descriptorType);
 
     void updateAtomicCounters(const ShaderInterfaceVariableInfoMap &variableInfoMap,
                               const std::vector<gl::AtomicCounterBuffer> &atomicCounterBuffers);
 
-    void updateImages(gl::ShaderBitSet shaderTypes,
-                      const gl::ProgramExecutable &executable,
+    void updateImages(const gl::ProgramExecutable &executable,
                       const ShaderInterfaceVariableInfoMap &variableInfoMap);
 
     void updateInputAttachments(const gl::ProgramExecutable &executable,
                                 const ShaderInterfaceVariableInfoMap &variableInfoMap,
                                 FramebufferVk *framebufferVk);
 
-    void updateExecutableActiveTextures(gl::ShaderBitSet shaderTypes,
-                                        const ShaderInterfaceVariableInfoMap &variableInfoMap,
+    void updateExecutableActiveTextures(const ShaderInterfaceVariableInfoMap &variableInfoMap,
                                         const gl::ProgramExecutable &executable);
 
     void updateDefaultUniform(gl::ShaderBitSet shaderTypes,
@@ -1583,7 +1564,18 @@ class WriteDescriptorDescBuilder
     void updateTransformFeedbackWrite(const ShaderInterfaceVariableInfoMap &variableInfoMap,
                                       const gl::ProgramExecutable &executable);
 
-    const WriteDescriptorDescs &getDescs() const { return mDescs; }
+    void updateDynamicDescriptorsCount();
+
+    size_t size() const { return mDescs.size(); }
+    bool empty() const { return mDescs.size() == 0; }
+
+    const WriteDescriptorDesc &operator[](uint32_t bindingIndex) const
+    {
+        return mDescs[bindingIndex];
+    }
+
+    size_t getTotalDescriptorCount() const { return mCurrentInfoIndex; }
+    size_t getDynamicDescriptorSetCount() const { return mDynamicDescriptorSetCount; }
 
     void streamOut(std::ostream &os) const;
 
@@ -1605,8 +1597,9 @@ class WriteDescriptorDescBuilder
                          uint32_t descriptorCount);
 
     // After a preliminary minimum size, use heap memory.
-    WriteDescriptorDescs mDescs;
-    uint32_t mCurrentInfoIndex = 0;
+    angle::FastMap<WriteDescriptorDesc, kFastDescriptorSetDescLimit> mDescs;
+    size_t mDynamicDescriptorSetCount = 0;
+    uint32_t mCurrentInfoIndex        = 0;
 };
 
 class DescriptorSetDesc
@@ -1625,18 +1618,20 @@ class DescriptorSetDesc
 
     size_t hash() const;
 
-    void reset() { mDescriptorInfos.clear(); }
+    void resize(size_t count) { mDescriptorInfos.resize(count); }
 
     size_t getKeySizeBytes() const { return mDescriptorInfos.size() * sizeof(DescriptorInfoDesc); }
 
     bool operator==(const DescriptorSetDesc &other) const
     {
-        return (mDescriptorInfos == other.mDescriptorInfos);
+        return mDescriptorInfos.size() == other.mDescriptorInfos.size() &&
+               memcmp(mDescriptorInfos.data(), other.mDescriptorInfos.data(),
+                      mDescriptorInfos.size() * sizeof(DescriptorInfoDesc)) == 0;
     }
 
-    void updateInfoDesc(uint32_t infoDescIndex, const DescriptorInfoDesc &infoDesc)
+    DescriptorInfoDesc &getInfoDesc(uint32_t infoDescIndex)
     {
-        mDescriptorInfos[infoDescIndex] = infoDesc;
+        return mDescriptorInfos[infoDescIndex];
     }
 
     void updateDescriptorSet(Context *context,
@@ -1649,7 +1644,7 @@ class DescriptorSetDesc
 
   private:
     // After a preliminary minimum size, use heap memory.
-    angle::FastMap<DescriptorInfoDesc, kFastDescriptorSetDescLimit> mDescriptorInfos;
+    angle::FastVector<DescriptorInfoDesc, kFastDescriptorSetDescLimit> mDescriptorInfos;
 };
 
 class DescriptorPoolHelper;
@@ -1679,6 +1674,7 @@ class DescriptorSetDescBuilder final
 {
   public:
     DescriptorSetDescBuilder();
+    DescriptorSetDescBuilder(size_t descriptorCount);
     ~DescriptorSetDescBuilder();
 
     DescriptorSetDescBuilder(const DescriptorSetDescBuilder &other);
@@ -1686,7 +1682,12 @@ class DescriptorSetDescBuilder final
 
     const DescriptorSetDesc &getDesc() const { return mDesc; }
 
-    void reset();
+    void resize(size_t descriptorCount)
+    {
+        mDesc.resize(descriptorCount);
+        mHandles.resize(descriptorCount);
+        mDynamicOffsets.resize(descriptorCount);
+    }
 
     // Specific helpers for uniforms/xfb descriptors.
     void updateUniformBuffer(uint32_t shaderIndex,
@@ -1715,7 +1716,6 @@ class DescriptorSetDescBuilder final
     template <typename CommandBufferT>
     void updateOneShaderBuffer(ContextVk *contextVk,
                                CommandBufferT *commandBufferHelper,
-                               ShaderVariableType variableType,
                                const ShaderInterfaceVariableInfoMap &variableInfoMap,
                                const gl::BufferVector &buffers,
                                const std::vector<gl::InterfaceBlock> &blocks,
@@ -1727,7 +1727,6 @@ class DescriptorSetDescBuilder final
     template <typename CommandBufferT>
     void updateShaderBuffers(ContextVk *contextVk,
                              CommandBufferT *commandBufferHelper,
-                             ShaderVariableType variableType,
                              const ShaderInterfaceVariableInfoMap &variableInfoMap,
                              const gl::BufferVector &buffers,
                              const std::vector<gl::InterfaceBlock> &blocks,
@@ -1785,8 +1784,8 @@ class DescriptorSetDescBuilder final
                         const BufferHelper &emptyBuffer);
 
     DescriptorSetDesc mDesc;
-    angle::FastMap<DescriptorDescHandles, kFastDescriptorSetDescLimit> mHandles;
-    angle::FastMap<uint32_t, kFastDescriptorSetDescLimit> mDynamicOffsets;
+    angle::FastVector<DescriptorDescHandles, kFastDescriptorSetDescLimit> mHandles;
+    angle::FastVector<uint32_t, kFastDescriptorSetDescLimit> mDynamicOffsets;
 };
 
 // Specialized update for textures.

@@ -1610,6 +1610,15 @@ angle::Result RendererVk::enableInstanceExtensions(
             ExtensionFound(VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME,
                            instanceExtensionNames));
 
+    // On macOS, there is no native Vulkan driver, so we need to enable the
+    // portability enumeration extension to allow use of MoltenVK.
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsPortabilityEnumeration,
+        ExtensionFound(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME, instanceExtensionNames));
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, enablePortabilityEnumeration,
+                            mFeatures.supportsPortabilityEnumeration.enabled && IsApple());
+
     // Enable extensions that could be used
     if (displayVk->isUsingSwapchain())
     {
@@ -1672,6 +1681,11 @@ angle::Result RendererVk::enableInstanceExtensions(
             mEnabledInstanceExtensions.push_back(
                 VK_KHR_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME);
         }
+    }
+
+    if (mFeatures.enablePortabilityEnumeration.enabled)
+    {
+        mEnabledInstanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
     }
 
     // Verify the required extensions are in the extension names set. Fail if not.
@@ -1795,6 +1809,13 @@ angle::Result RendererVk::initialize(DisplayVk *displayVk,
 
     instanceInfo.enabledLayerCount   = static_cast<uint32_t>(enabledInstanceLayerNames.size());
     instanceInfo.ppEnabledLayerNames = enabledInstanceLayerNames.data();
+
+    // On macOS, there is no native Vulkan driver, so we need to enable the
+    // portability enumeration extension to allow use of MoltenVK.
+    if (mFeatures.enablePortabilityEnumeration.enabled)
+    {
+        instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    }
 
     // http://anglebug.com/7050 - Shader validation caching is broken on Android
     VkValidationFeaturesEXT validationFeatures       = {};
@@ -3407,11 +3428,14 @@ angle::Result RendererVk::initializeDevice(DisplayVk *displayVk, uint32_t queueF
         mDefaultUniformBufferSize, getPhysicalDeviceProperties().limits.maxUniformBufferRange);
 
     // Initialize the vulkan pipeline cache.
-    bool success = false;
     {
         std::unique_lock<std::mutex> lock(mPipelineCacheMutex);
-        ANGLE_TRY(initPipelineCache(displayVk, &mPipelineCache, &success));
-        ANGLE_TRY(getPipelineCacheSize(displayVk, &mPipelineCacheSizeAtLastSync));
+        bool loadedFromBlobCache = false;
+        ANGLE_TRY(initPipelineCache(displayVk, &mPipelineCache, &loadedFromBlobCache));
+        if (loadedFromBlobCache)
+        {
+            ANGLE_TRY(getPipelineCacheSize(displayVk, &mPipelineCacheSizeAtLastSync));
+        }
     }
 
     // Track the set of supported pipeline stages.  This is used when issuing image layout
@@ -4774,17 +4798,18 @@ angle::Result RendererVk::getPipelineCache(vk::PipelineCacheAccess *pipelineCach
     {
         // We should now recreate the pipeline cache with the blob cache pipeline data.
         vk::PipelineCache pCache;
-        bool success = false;
-        ANGLE_TRY(initPipelineCache(displayVk, &pCache, &success));
-        if (success)
+        bool loadedFromBlobCache = false;
+        ANGLE_TRY(initPipelineCache(displayVk, &pCache, &loadedFromBlobCache));
+        if (loadedFromBlobCache)
         {
             // Merge the newly created pipeline cache into the existing one.
             mPipelineCache.merge(mDevice, 1, pCache.ptr());
+
+            ANGLE_TRY(getPipelineCacheSize(displayVk, &mPipelineCacheSizeAtLastSync));
         }
+
         mPipelineCacheInitialized = true;
         pCache.destroy(mDevice);
-
-        ANGLE_TRY(getPipelineCacheSize(displayVk, &mPipelineCacheSizeAtLastSync));
     }
 
     pipelineCacheOut->init(&mPipelineCache, &mPipelineCacheMutex);
@@ -5735,6 +5760,13 @@ void RendererVk::releaseQueueSerialIndex(SerialIndex index)
     mQueueSerialIndexAllocator.release(index);
 }
 
+angle::Result RendererVk::finishOneCommandBatchAndCleanup(vk::Context *context,
+                                                          bool *anyBatchCleaned)
+{
+    return mCommandQueue.finishOneCommandBatchAndCleanup(context, getMaxFenceWaitTimeNs(),
+                                                         anyBatchCleaned);
+}
+
 // static
 const char *RendererVk::GetVulkanObjectTypeName(VkObjectType type)
 {
@@ -5769,10 +5801,57 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(Context *context,
     bool allocateDedicatedMemory =
         memoryRequirements.size >= kImageSizeThresholdForDedicatedMemoryAllocation;
 
-    // Allocate and bind memory for the image.
-    VkResult result = vma::AllocateAndBindMemoryForImage(
-        allocator.getHandle(), &image->mHandle, requiredFlags, preferredFlags,
-        allocateDedicatedMemory, &allocationOut->mHandle, memoryTypeIndexOut, sizeOut);
+    // Allocate and bind memory for the image. Try allocating on the device first. If unsuccessful,
+    // it is possible to retry allocation after cleaning the garbage.
+    VkResult result;
+    bool anyBatchCleaned             = false;
+    uint32_t batchesWaitedAndCleaned = 0;
+
+    do
+    {
+        result = vma::AllocateAndBindMemoryForImage(
+            allocator.getHandle(), &image->mHandle, requiredFlags, preferredFlags,
+            allocateDedicatedMemory, &allocationOut->mHandle, memoryTypeIndexOut, sizeOut);
+
+        if (result != VK_SUCCESS)
+        {
+            // If there is an error in command batch finish, a device OOM error will be returned.
+            if (renderer->finishOneCommandBatchAndCleanup(context, &anyBatchCleaned) ==
+                angle::Result::Stop)
+            {
+                return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+            }
+
+            if (anyBatchCleaned)
+            {
+                batchesWaitedAndCleaned++;
+            }
+        }
+    } while (result != VK_SUCCESS && anyBatchCleaned);
+
+    if (batchesWaitedAndCleaned > 0)
+    {
+        INFO() << "Initial allocation failed. Waited for " << batchesWaitedAndCleaned
+               << " commands to finish and free garbage | Allocation result: "
+               << ((result == VK_SUCCESS) ? "SUCCESS" : "FAIL");
+    }
+
+    // If there is still no space for the new allocation, the allocation may still be made outside
+    // the device, although it will result in performance penalty.
+    if (result != VK_SUCCESS)
+    {
+        requiredFlags &= (~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        result = vma::AllocateAndBindMemoryForImage(
+            allocator.getHandle(), &image->mHandle, requiredFlags, preferredFlags,
+            allocateDedicatedMemory, &allocationOut->mHandle, memoryTypeIndexOut, sizeOut);
+
+        INFO()
+            << "Allocation failed. Removed the DEVICE_LOCAL bit requirement | Allocation result: "
+            << ((result == VK_SUCCESS) ? "SUCCESS" : "FAIL");
+    }
+
+    // At the end, if all available options fail, we should return the appropriate out-of-memory
+    // error.
     if (result != VK_SUCCESS)
     {
         // Record the failed memory allocation.
