@@ -10,10 +10,10 @@ __filegroups = {}
 
 __handlers = {}
 
-def __step_config(ctx, step_config):
-    step_config["rules"].extend([
+def __step_rules():
+    return [
         {
-            "name": "mojo/mojom_bindigns_generator",
+            "name": "mojo/mojom_bindings_generator",
             "command_prefix": "python3 ../../mojo/public/tools/bindings/mojom_bindings_generator.py",
             "inputs": [
                 "mojo/public/tools/bindings/mojom_bindings_generator.py",
@@ -108,6 +108,7 @@ def __step_config(ctx, step_config):
             },
             "restat": True,
             "remote": True,
+            "timeout": "2m",
             "output_local": True,
             "platform": {
                 # mojo_bindings_generators.py will run faster on n2-highmem-8
@@ -118,7 +119,32 @@ def __step_config(ctx, step_config):
                 "gceMachineType": "n2-highmem-8",
             },
         },
-    ])
+        {
+            "name": "mojo/mojom_parser",
+            "command_prefix": "python3 ../../mojo/public/tools/mojom/mojom_parser.py",
+            "indirect_inputs": {
+                "includes": [
+                    "*.build_metadata",
+                    "*.mojom",
+                    "*.mojom-module",
+                    "*.test-mojom",
+                    "*.test-mojom-module",
+                ],
+            },
+            "exclude_input_patterns": [
+                "*.stamp",
+            ],
+            "remote": True,
+            "input_root_absolute_path": True,
+            "output_local": True,
+            "platform": {
+                "gceMachineType": "n2-highmem-8",
+            },
+        },
+    ]
+
+def __step_config(ctx, step_config):
+    step_config["rules"].extend(__step_rules())
     return step_config
 
 mojo = module(
@@ -126,4 +152,6 @@ mojo = module(
     step_config = __step_config,
     filegroups = __filegroups,
     handlers = __handlers,
+    # Export the step rules so that it can be reused in rewrapper_to_reproxy.
+    step_rules = __step_rules,
 )

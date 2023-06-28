@@ -28,10 +28,6 @@ SDK_ROOT = os.path.join(DIR_SRC_ROOT, 'third_party', 'fuchsia-sdk', 'sdk')
 SDK_TOOLS_DIR = os.path.join(SDK_ROOT, 'tools', get_host_arch())
 _FFX_TOOL = os.path.join(SDK_TOOLS_DIR, 'ffx')
 
-# This global variable is used to set the environment variable
-# |FFX_ISOLATE_DIR| when running ffx commands in E2E testing scripts.
-_FFX_ISOLATE_DIR = None
-
 
 class TargetState(enum.Enum):
     """State of a target."""
@@ -128,10 +124,10 @@ def get_target_state(target_id: Optional[str],
 
 
 def set_ffx_isolate_dir(isolate_dir: str) -> None:
-    """Overwrites |_FFX_ISOLATE_DIR|."""
+    """Overwrites the global environment so the following ffx calls will have
+    the isolate dir being carried."""
 
-    global _FFX_ISOLATE_DIR  # pylint: disable=global-statement
-    _FFX_ISOLATE_DIR = isolate_dir
+    os.environ['FFX_ISOLATE_DIR'] = isolate_dir
 
 
 def get_host_tool_path(tool):
@@ -156,7 +152,7 @@ def make_clean_directory(directory_name):
 
     if os.path.exists(directory_name):
         shutil.rmtree(directory_name)
-    os.mkdir(directory_name)
+    os.makedirs(directory_name)
 
 
 def _get_daemon_status():
@@ -177,14 +173,6 @@ def _get_daemon_status():
 
 def _is_daemon_running():
     return 'Running' in _get_daemon_status()
-
-
-def check_ssh_config_file() -> None:
-    """Checks for ssh keys and generates them if they are missing."""
-
-    script_path = os.path.join(SDK_ROOT, 'bin', 'fuchsia-common.sh')
-    check_cmd = ['bash', '-c', f'. {script_path}; check-fuchsia-ssh-config']
-    subprocess.run(check_cmd, check=True)
 
 
 def _wait_for_daemon(start=True, timeout_seconds=100):
@@ -360,11 +348,8 @@ def run_continuous_ffx_command(cmd: Iterable[str],
         for config in configs:
             ffx_cmd.extend(('--config', config))
     ffx_cmd.extend(cmd)
-    env = os.environ
-    if _FFX_ISOLATE_DIR:
-        env['FFX_ISOLATE_DIR'] = _FFX_ISOLATE_DIR
 
-    return subprocess.Popen(ffx_cmd, encoding=encoding, env=env, **kwargs)
+    return subprocess.Popen(ffx_cmd, encoding=encoding, **kwargs)
 
 
 def read_package_paths(out_dir: str, pkg_name: str) -> List[str]:
@@ -616,16 +601,16 @@ def _boot_device_ffx(target_id: Optional[str], serial_num: Optional[str],
         raise NotImplementedError(f'BootMode {mode} not supported')
 
     logging.debug('FFX reboot with command [%s]', ' '.join(cmd))
+    # TODO(crbug.com/1432405): We need to wait for the state transition or kill
+    # the process if it fails.
     if current_state == TargetState.FASTBOOT:
-        run_ffx_command(cmd=cmd,
-                        target_id=serial_num,
-                        configs=['product.reboot.use_dm=true'],
-                        check=False)
+        run_continuous_ffx_command(cmd=cmd,
+                                   target_id=serial_num,
+                                   configs=['product.reboot.use_dm=true'])
     else:
-        run_ffx_command(cmd=cmd,
-                        target_id=target_id,
-                        configs=['product.reboot.use_dm=true'],
-                        check=False)
+        run_continuous_ffx_command(cmd=cmd,
+                                   target_id=target_id,
+                                   configs=['product.reboot.use_dm=true'])
 
 
 def _boot_device_dm(target_id: Optional[str], serial_num: Optional[str],
@@ -636,6 +621,9 @@ def _boot_device_dm(target_id: Optional[str], serial_num: Optional[str],
             raise StateTransitionError('Cannot boot to Regular via DM - '
                                        'FFX already failed to do so.')
         # Boot to regular.
+        # TODO(crbug.com/1432405): After changing to run_continuous_ffx_command,
+        # this behavior becomes invalid, we need to wait for the state
+        # transition.
         _boot_device_ffx(target_id, serial_num, current_state,
                          BootMode.REGULAR)
 

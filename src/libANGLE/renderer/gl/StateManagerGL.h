@@ -14,7 +14,7 @@
 #include "libANGLE/State.h"
 #include "libANGLE/angletypes.h"
 #include "libANGLE/renderer/gl/functionsgl_typedefs.h"
-#include "platform/FeaturesGL_autogen.h"
+#include "platform/autogen/FeaturesGL_autogen.h"
 
 #include <array>
 #include <map>
@@ -284,10 +284,10 @@ class StateManagerGL final : angle::NonCopyable
     angle::Result onMakeCurrent(const gl::Context *context);
 
     angle::Result syncState(const gl::Context *context,
-                            const gl::State::DirtyBits &glDirtyBits,
-                            const gl::State::DirtyBits &bitMask,
-                            const gl::State::ExtendedDirtyBits &extendedDirtyBits,
-                            const gl::State::ExtendedDirtyBits &extendedBitMask);
+                            const gl::state::DirtyBits &glDirtyBits,
+                            const gl::state::DirtyBits &bitMask,
+                            const gl::state::ExtendedDirtyBits &extendedDirtyBits,
+                            const gl::state::ExtendedDirtyBits &extendedBitMask);
 
     ANGLE_INLINE void updateMultiviewBaseViewLayerIndexUniform(
         const gl::Program *program,
@@ -464,6 +464,7 @@ class StateManagerGL final : angle::NonCopyable
     std::vector<GLenum> mFramebuffers;
     GLuint mRenderbuffer;
     GLuint mPlaceholderFbo;
+    GLuint mPlaceholderRbo;
 
     bool mScissorTestEnabled;
     gl::Rectangle mScissor;
@@ -547,8 +548,8 @@ class StateManagerGL final : angle::NonCopyable
     bool mLogicOpEnabled;
     gl::LogicalOperation mLogicOp;
 
-    gl::State::DirtyBits mLocalDirtyBits;
-    gl::State::ExtendedDirtyBits mLocalExtendedDirtyBits;
+    gl::state::DirtyBits mLocalDirtyBits;
+    gl::state::ExtendedDirtyBits mLocalExtendedDirtyBits;
     gl::AttributesMask mLocalDirtyCurrentValues;
 };
 

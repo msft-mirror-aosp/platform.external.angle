@@ -1600,6 +1600,19 @@ void CommandBufferHelperCommon::executeBarriers(const angle::FeaturesVk &feature
     mPipelineBarrierMask.reset();
 }
 
+void CommandBufferHelperCommon::bufferReadImpl(VkAccessFlags readAccessType,
+                                               PipelineStage readStage,
+                                               BufferHelper *buffer)
+{
+    VkPipelineStageFlagBits stageBits = kPipelineStageFlagBitMap[readStage];
+    if (buffer->recordReadBarrier(readAccessType, stageBits, &mPipelineBarriers[readStage]))
+    {
+        mPipelineBarrierMask.set(readStage);
+    }
+
+    ASSERT(!usesBufferForWrite(*buffer));
+}
+
 void CommandBufferHelperCommon::imageReadImpl(ContextVk *contextVk,
                                               VkImageAspectFlags aspectFlags,
                                               ImageLayout imageLayout,
@@ -1698,18 +1711,9 @@ angle::Result OutsideRenderPassCommandBufferHelper::reset(
     return initializeCommandBuffer(context);
 }
 
-void OutsideRenderPassCommandBufferHelper::bufferRead(ContextVk *contextVk,
-                                                      VkAccessFlags readAccessType,
-                                                      PipelineStage readStage,
-                                                      BufferHelper *buffer)
+void OutsideRenderPassCommandBufferHelper::setBufferReadQueueSerial(ContextVk *contextVk,
+                                                                    BufferHelper *buffer)
 {
-    VkPipelineStageFlagBits stageBits = kPipelineStageFlagBitMap[readStage];
-    if (buffer->recordReadBarrier(readAccessType, stageBits, &mPipelineBarriers[readStage]))
-    {
-        mPipelineBarrierMask.set(readStage);
-    }
-
-    ASSERT(!buffer->writtenByCommandBuffer(mQueueSerial));
     if (contextVk->isRenderPassStartedAndUsesBuffer(*buffer))
     {
         // We should not run into situation that RP is writing to it while we are reading it here
@@ -1921,21 +1925,6 @@ angle::Result RenderPassCommandBufferHelper::reset(
     mQueueSerial = QueueSerial();
 
     return initializeCommandBuffer(context);
-}
-
-void RenderPassCommandBufferHelper::bufferRead(ContextVk *contextVk,
-                                               VkAccessFlags readAccessType,
-                                               PipelineStage readStage,
-                                               BufferHelper *buffer)
-{
-    VkPipelineStageFlagBits stageBits = kPipelineStageFlagBitMap[readStage];
-    if (buffer->recordReadBarrier(readAccessType, stageBits, &mPipelineBarriers[readStage]))
-    {
-        mPipelineBarrierMask.set(readStage);
-    }
-
-    ASSERT(!usesBufferForWrite(*buffer));
-    buffer->setQueueSerial(mQueueSerial);
 }
 
 void RenderPassCommandBufferHelper::imageRead(ContextVk *contextVk,
@@ -5950,13 +5939,10 @@ angle::Result ImageHelper::initMemory(Context *context,
     {
         // While it may be preferable to allocate the image on the device, it should also be
         // possible to allocate on other memory types if the device is out of memory.
-        VkMemoryPropertyFlags requiredFlags  = flags & (~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        VkMemoryPropertyFlags preferredFlags = flags;
-
-        ANGLE_VK_TRY(context, renderer->getImageMemorySuballocator().allocateAndBindMemory(
-                                  context, &mImage, &mVkImageCreateInfo, requiredFlags,
-                                  preferredFlags, mMemoryAllocationType, &mVmaAllocation, &flags,
-                                  &mMemoryTypeIndex, &mAllocationSize));
+        ANGLE_VK_TRY(context,
+                     renderer->getImageMemorySuballocator().allocateAndBindMemory(
+                         context, &mImage, &mVkImageCreateInfo, flags, flags, mMemoryAllocationType,
+                         &mVmaAllocation, &flags, &mMemoryTypeIndex, &mAllocationSize));
     }
     else
     {
@@ -6832,7 +6818,7 @@ void ImageHelper::clear(Context *context,
                         OutsideRenderPassCommandBuffer *commandBuffer)
 {
     const angle::Format &angleFormat = getActualFormat();
-    bool isDepthStencil              = angleFormat.depthBits > 0 || angleFormat.stencilBits > 0;
+    bool isDepthStencil              = angleFormat.hasDepthOrStencilBits();
 
     if (isDepthStencil)
     {
@@ -7341,8 +7327,8 @@ angle::Result ImageHelper::stageSubresourceUpdateImpl(ContextVk *contextVk,
         // Note: because the LoadImageFunctionInfo functions are limited to copying a single
         // component, we have to special case packed depth/stencil use and send the stencil as a
         // separate chunk.
-        if (storageFormat.depthBits > 0 && storageFormat.stencilBits > 0 &&
-            formatInfo.depthBits > 0 && formatInfo.stencilBits > 0)
+        if (storageFormat.hasDepthAndStencilBits() && formatInfo.depthBits > 0 &&
+            formatInfo.stencilBits > 0)
         {
             // Note: Stencil is always one byte
             stencilAllocationSize = glExtents.width * glExtents.height * glExtents.depth;

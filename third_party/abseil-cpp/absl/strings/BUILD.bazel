@@ -1169,6 +1169,7 @@ cc_library(
         ":strings",
         "//absl/base:config",
         "//absl/base:core_headers",
+        "//absl/container:inlined_vector",
         "//absl/functional:function_ref",
         "//absl/meta:type_traits",
         "//absl/numeric:bits",
@@ -1317,5 +1318,17 @@ cc_binary(
         ":strings",
         "//absl/base",
         "//absl/types:optional",
+    ],
+)
+
+cc_test(
+    name = "char_formatting_test",
+    srcs = [
+        "char_formatting_test.cc",
+    ],
+    deps = [
+        ":str_format",
+        ":strings",
+        "@com_google_googletest//:gtest_main",
     ],
 )

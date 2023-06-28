@@ -185,7 +185,7 @@ TEST_P(StateChangeTest, FramebufferIncompleteWithTexStorage)
 TEST_P(StateChangeTestES3, FramebufferIncompleteWithCompressedTex)
 {
     // ETC texture formats are not supported on Mac OpenGL. http://anglebug.com/3853
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsDesktopOpenGL());
+    ANGLE_SKIP_TEST_IF(IsMac() && IsDesktopOpenGL());
 
     glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
     glBindTexture(GL_TEXTURE_2D, mTextures[0]);
@@ -5368,7 +5368,7 @@ class RobustBufferAccessWebGL2ValidationStateChangeTest : public WebGL2Validatio
     RobustBufferAccessWebGL2ValidationStateChangeTest()
     {
         // SwS/OSX GL do not support robustness. Mali does not support it.
-        if (!isSwiftshader() && !IsOSX() && !IsIOS() && !IsARM())
+        if (!isSwiftshader() && !IsMac() && !IsIOS() && !IsARM())
         {
             setRobustAccess(true);
         }
@@ -6021,7 +6021,7 @@ void main()
 // Tests negative API state change cases with Transform Feedback bindings.
 TEST_P(WebGL2ValidationStateChangeTest, TransformFeedbackNegativeAPI)
 {
-    ANGLE_SKIP_TEST_IF(IsAMD() && IsOSX());
+    ANGLE_SKIP_TEST_IF(IsAMD() && IsMac());
 
     // TODO(anglebug.com/4533) This fails after the upgrade to the 26.20.100.7870 driver.
     ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
@@ -6192,7 +6192,7 @@ void main()
 // Tests that we retain the correct draw mode settings with transform feedback changes.
 TEST_P(ValidationStateChangeTest, TransformFeedbackDrawModes)
 {
-    ANGLE_SKIP_TEST_IF(IsAMD() && IsOSX());
+    ANGLE_SKIP_TEST_IF(IsAMD() && IsMac());
 
     std::vector<std::string> tfVaryings = {"gl_Position"};
     ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(program, essl3_shaders::vs::Simple(),
@@ -7281,7 +7281,7 @@ TEST_P(RobustBufferAccessWebGL2ValidationStateChangeTest, BindZeroSizeBufferThen
     ANGLE_SKIP_TEST_IF(IsAMD() && IsOpenGL());
 
     // no intent to follow up on this failure.
-    ANGLE_SKIP_TEST_IF(IsOSX());
+    ANGLE_SKIP_TEST_IF(IsMac());
 
     // Mali does not support robustness now.
     ANGLE_SKIP_TEST_IF(IsARM());
@@ -10553,30 +10553,26 @@ ANGLE_INSTANTIATE_TEST_ES2(LineLoopStateChangeTest);
 ANGLE_INSTANTIATE_TEST_ES2(StateChangeRenderTest);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(StateChangeTestES3);
-ANGLE_INSTANTIATE_TEST_ES3_AND(StateChangeTestES3,
-                               ES3_VULKAN().disable(Feature::SupportsIndexTypeUint8),
-                               ES3_VULKAN()
-                                   .disable(Feature::SupportsExtendedDynamicState)
-                                   .disable(Feature::SupportsExtendedDynamicState2)
-                                   .disable(Feature::SupportsLogicOpDynamicState),
-                               ES3_VULKAN()
-                                   .disable(Feature::SupportsExtendedDynamicState2)
-                                   .disable(Feature::SupportsLogicOpDynamicState),
-                               ES3_VULKAN().enable(Feature::ForceStaticVertexStrideState),
-                               ES3_VULKAN().enable(Feature::ForceStaticPrimitiveRestartState));
+ANGLE_INSTANTIATE_TEST_ES3_AND(
+    StateChangeTestES3,
+    ES3_VULKAN().disable(Feature::SupportsIndexTypeUint8),
+    ES3_VULKAN()
+        .disable(Feature::SupportsExtendedDynamicState)
+        .disable(Feature::SupportsExtendedDynamicState2),
+    ES3_VULKAN().disable(Feature::SupportsExtendedDynamicState2),
+    ES3_VULKAN().disable(Feature::UseVertexInputBindingStrideDynamicState),
+    ES3_VULKAN().disable(Feature::UsePrimitiveRestartEnableDynamicState));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(StateChangeTestES31);
-ANGLE_INSTANTIATE_TEST_ES31_AND(StateChangeTestES31,
-                                ES31_VULKAN().disable(Feature::SupportsIndexTypeUint8),
-                                ES31_VULKAN()
-                                    .disable(Feature::SupportsExtendedDynamicState)
-                                    .disable(Feature::SupportsExtendedDynamicState2)
-                                    .disable(Feature::SupportsLogicOpDynamicState),
-                                ES31_VULKAN()
-                                    .disable(Feature::SupportsExtendedDynamicState2)
-                                    .disable(Feature::SupportsLogicOpDynamicState),
-                                ES31_VULKAN().enable(Feature::ForceStaticVertexStrideState),
-                                ES31_VULKAN().enable(Feature::ForceStaticPrimitiveRestartState));
+ANGLE_INSTANTIATE_TEST_ES31_AND(
+    StateChangeTestES31,
+    ES31_VULKAN().disable(Feature::SupportsIndexTypeUint8),
+    ES31_VULKAN()
+        .disable(Feature::SupportsExtendedDynamicState)
+        .disable(Feature::SupportsExtendedDynamicState2),
+    ES31_VULKAN().disable(Feature::SupportsExtendedDynamicState2),
+    ES31_VULKAN().disable(Feature::UseVertexInputBindingStrideDynamicState),
+    ES31_VULKAN().disable(Feature::UsePrimitiveRestartEnableDynamicState));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(StateChangeTestWebGL2);
 ANGLE_INSTANTIATE_TEST_COMBINE_1(StateChangeTestWebGL2,

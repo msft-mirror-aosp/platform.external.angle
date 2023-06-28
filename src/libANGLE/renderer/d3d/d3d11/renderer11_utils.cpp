@@ -9,7 +9,6 @@
 
 #include "libANGLE/renderer/d3d/d3d11/renderer11_utils.h"
 
-#include <versionhelpers.h>
 #include <algorithm>
 
 #include "common/debug.h"
@@ -29,8 +28,8 @@
 #include "libANGLE/renderer/d3d/d3d11/texture_format_table.h"
 #include "libANGLE/renderer/driver_utils.h"
 #include "libANGLE/renderer/dxgi_support_table.h"
-#include "platform/FeaturesD3D_autogen.h"
 #include "platform/PlatformMethods.h"
+#include "platform/autogen/FeaturesD3D_autogen.h"
 
 namespace rx
 {
@@ -2595,7 +2594,7 @@ void InitializeFeatures(const Renderer11DeviceCaps &deviceCaps,
     // Allow translating uniform block to StructuredBuffer on Windows 10. This is targeted
     // to work around a slow fxc compile performance issue with dynamic uniform indexing.
     ANGLE_FEATURE_CONDITION(features, allowTranslateUniformBlockToStructuredBuffer,
-                            IsWin10OrGreater());
+                            IsWindows10OrLater());
 }
 
 void InitializeFrontendFeatures(const DXGI_ADAPTER_DESC &adapterDesc,

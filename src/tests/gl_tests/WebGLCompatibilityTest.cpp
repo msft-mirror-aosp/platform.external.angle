@@ -611,7 +611,7 @@ TEST_P(WebGLCompatibilityTest, EnablePixelBufferObjectExtensions)
     ANGLE_SKIP_TEST_IF(getClientMajorVersion() >= 3);
 
     // http://anglebug.com/5268
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsIntelUHD630Mobile() && IsDesktopOpenGL());
+    ANGLE_SKIP_TEST_IF(IsMac() && IsIntelUHD630Mobile() && IsDesktopOpenGL());
 
     GLBuffer buffer;
     glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer);
@@ -2755,7 +2755,7 @@ void main() {
 TEST_P(WebGLCompatibilityTest, TextureCopyingFeedbackLoops)
 {
     // TODO(anglebug.com/5360): Failing on ARM-based Apple DTKs.
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && IsDesktopOpenGL());
+    ANGLE_SKIP_TEST_IF(IsMac() && IsARM64() && IsDesktopOpenGL());
 
     GLTexture texture;
     glBindTexture(GL_TEXTURE_2D, texture.get());
@@ -2823,10 +2823,10 @@ TEST_P(WebGL2CompatibilityTest, CopyMip1ToMip0)
     ANGLE_SKIP_TEST_IF(IsD3D11());
 
     // http://anglebug.com/4805
-    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsIntel() && (IsWindows() || IsOSX()));
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsIntel() && (IsWindows() || IsMac()));
 
     // TODO(anglebug.com/5360): Failing on ARM64-based Apple DTKs.
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsARM64() && IsDesktopOpenGL());
+    ANGLE_SKIP_TEST_IF(IsMac() && IsARM64() && IsDesktopOpenGL());
 
     GLFramebuffer framebuffer;
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -2864,7 +2864,7 @@ TEST_P(WebGL2CompatibilityTest, CopyMip1ToMip0)
     ANGLE_SKIP_TEST_IF(IsOpenGL() && IsNVIDIA());
 
     // http://anglebug.com/4803
-    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsAMD() && IsOSX());
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsAMD() && IsMac());
 
     // Bind framebuffer to mip 0 and make sure the copy was done.
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
@@ -3377,7 +3377,7 @@ TEST_P(WebGLCompatibilityTest, RGB32FTextures)
 TEST_P(WebGLCompatibilityTest, RGBA32FTextures)
 {
     // http://anglebug.com/5357
-    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsMac());
 
     constexpr float data[] = {7000.0f, 100.0f, 33.0f, -1.0f};
 
@@ -3683,7 +3683,7 @@ TEST_P(WebGLCompatibilityTest, HalfFloatBlend)
 TEST_P(WebGLCompatibilityTest, R16FTextures)
 {
     // http://anglebug.com/5357
-    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsMac());
 
     constexpr float readPixelsData[] = {-5000.0f, 0.0f, 0.0f, 1.0f};
     const GLushort textureData[]     = {
@@ -3744,7 +3744,7 @@ TEST_P(WebGLCompatibilityTest, R16FTextures)
 TEST_P(WebGLCompatibilityTest, RG16FTextures)
 {
     // http://anglebug.com/5357
-    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsMac());
 
     constexpr float readPixelsData[] = {7108.0f, -10.0f, 0.0f, 1.0f};
     const GLushort textureData[]     = {
@@ -3805,7 +3805,7 @@ TEST_P(WebGLCompatibilityTest, RG16FTextures)
 TEST_P(WebGLCompatibilityTest, RGB16FTextures)
 {
     // http://anglebug.com/5357
-    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsMac());
 
     ANGLE_SKIP_TEST_IF(IsOzone() && IsIntel());
 
@@ -3868,7 +3868,7 @@ TEST_P(WebGLCompatibilityTest, RGB16FTextures)
 TEST_P(WebGLCompatibilityTest, RGBA16FTextures)
 {
     // http://anglebug.com/5357
-    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsOSX());
+    ANGLE_SKIP_TEST_IF(IsOpenGL() && IsMac());
 
     ANGLE_SKIP_TEST_IF(IsOzone() && IsIntel());
 
@@ -5973,6 +5973,25 @@ TEST_P(WebGL2CompatibilityTest, TexImageSyncWithIncompleteFramebufferBug)
     GLTexture texture;
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 8, 8, 0, GL_RED_EXT, GL_UNSIGNED_BYTE, nullptr);
+}
+
+// Test that "depth_unchanged" layout qualifier is rejected for WebGL contexts.
+TEST_P(WebGL2CompatibilityTest, FragDepthLayoutUnchanged)
+{
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_EXT_conservative_depth"));
+
+    constexpr char kFS[] = R"(#version 300 es
+#extension GL_EXT_conservative_depth: enable
+out highp vec4 color;
+layout (depth_unchanged) out highp float gl_FragDepth;
+void main() {
+    color = vec4(0.0, 0.0, 0.0, 1.0);
+    gl_FragDepth = 1.0;
+})";
+
+    GLProgram prg;
+    prg.makeRaster(essl3_shaders::vs::Simple(), kFS);
+    EXPECT_FALSE(prg.valid());
 }
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(WebGLCompatibilityTest);

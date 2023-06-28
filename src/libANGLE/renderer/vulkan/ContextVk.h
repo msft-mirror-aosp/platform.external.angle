@@ -277,10 +277,10 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     // State sync with dirty bits.
     angle::Result syncState(const gl::Context *context,
-                            const gl::State::DirtyBits &dirtyBits,
-                            const gl::State::DirtyBits &bitMask,
-                            const gl::State::ExtendedDirtyBits &extendedDirtyBits,
-                            const gl::State::ExtendedDirtyBits &extendedBitMask,
+                            const gl::state::DirtyBits &dirtyBits,
+                            const gl::state::DirtyBits &bitMask,
+                            const gl::state::ExtendedDirtyBits &extendedDirtyBits,
+                            const gl::state::ExtendedDirtyBits &extendedBitMask,
                             gl::Command command) override;
 
     // Disjoint timer queries
@@ -1331,7 +1331,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     // avoided however, as on the affected driver that would disable certain optimizations.
     void updateStencilWriteWorkaround();
 
-    angle::Result updateShaderResourcesDescriptorDesc(PipelineType pipelineType);
     void updateShaderResourcesWithSharedCacheKey(
         const vk::SharedDescriptorSetCacheKey &sharedCacheKey);
 
@@ -1472,8 +1471,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     vk::DescriptorSetDesc mActiveTexturesDesc;
 
     vk::DescriptorSetDescBuilder mShaderBuffersDescriptorDesc;
-    // The WriteDescriptorDescBuilder from ProgramExecutableVk with InputAttachment update.
-    vk::WriteDescriptorDescBuilder mShaderBufferWriteDescriptorDescBuilder;
+    // The WriteDescriptorDescs from ProgramExecutableVk with InputAttachment update.
+    vk::WriteDescriptorDescs mShaderBufferWriteDescriptorDescs;
 
     gl::ActiveTextureArray<TextureVk *> mActiveImages;
 
@@ -1587,7 +1586,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     // A mix of per-frame and per-run counters.
     angle::PerfMonitorCounterGroups mPerfMonitorCounters;
 
-    gl::State::DirtyBits mPipelineDirtyBitsMask;
+    gl::state::DirtyBits mPipelineDirtyBitsMask;
 
     egl::ContextPriority mInitialContextPriority;
     egl::ContextPriority mContextPriority;
@@ -1655,10 +1654,7 @@ ANGLE_INLINE angle::Result ContextVk::onVertexAttributeChange(size_t attribIndex
                                                               GLuint relativeOffset,
                                                               const vk::BufferHelper *vertexBuffer)
 {
-    const GLuint staticStride = getFeatures().supportsExtendedDynamicState.enabled &&
-                                        !getFeatures().forceStaticVertexStrideState.enabled
-                                    ? 0
-                                    : stride;
+    const GLuint staticStride = mRenderer->useVertexInputBindingStrideDynamicState() ? 0 : stride;
 
     invalidateCurrentGraphicsPipeline();
 

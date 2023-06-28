@@ -26,8 +26,8 @@
 #include "libANGLE/renderer/gl/FunctionsGL.h"
 #include "libANGLE/renderer/gl/QueryGL.h"
 #include "libANGLE/renderer/gl/formatutilsgl.h"
-#include "platform/FeaturesGL_autogen.h"
-#include "platform/FrontendFeatures_autogen.h"
+#include "platform/autogen/FeaturesGL_autogen.h"
+#include "platform/autogen/FrontendFeatures_autogen.h"
 
 #include <EGL/eglext.h>
 #include <algorithm>
@@ -2184,7 +2184,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
         GetSystemInfoVendorIDAndDeviceID(functions, &systemInfo, &vendor, &device);
 
     bool isAMD         = IsAMD(vendor);
-    bool isApple       = IsApple(vendor);
+    bool isApple       = IsAppleGPU(vendor);
     bool isIntel       = IsIntel(vendor);
     bool isNvidia      = IsNvidia(vendor);
     bool isQualcomm    = IsQualcomm(vendor);
@@ -2564,7 +2564,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
                             functions->hasGLESExtension("GL_EXT_shader_pixel_local_storage"));
 
     // https://crbug.com/1356053
-    ANGLE_FEATURE_CONDITION(features, bindFramebufferForTimerQueries, isMali);
+    ANGLE_FEATURE_CONDITION(features, bindCompleteFramebufferForTimerQueries, isMali);
 
     // https://crbug.com/1434317
     ANGLE_FEATURE_CONDITION(features, disableClipControl, IsMaliG72OrG76(functions));

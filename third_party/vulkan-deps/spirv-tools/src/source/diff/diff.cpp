@@ -108,10 +108,6 @@ class IdMap {
     return inst_map_.find(from_inst) != inst_map_.end();
   }
 
-  // Map any ids in src and dst that have not been mapped to new ids in dst and
-  // src respectively.
-  void MapUnmatchedIds(IdMap& other_way);
-
   // Some instructions don't have result ids.  Those are mapped by pointer.
   void MapInsts(const opt::Instruction* from_inst,
                 const opt::Instruction* to_inst) {
@@ -123,6 +119,12 @@ class IdMap {
   }
 
   uint32_t IdBound() const { return static_cast<uint32_t>(id_map_.size()); }
+
+  // Generate a fresh id in this mapping's domain.
+  uint32_t MakeFreshId() {
+    id_map_.push_back(0);
+    return static_cast<uint32_t>(id_map_.size()) - 1;
+  }
 
  private:
   // Given an id, returns the corresponding id in the other module, or 0 if not
@@ -162,8 +164,11 @@ class SrcDstIdMap {
   }
 
   // Map any ids in src and dst that have not been mapped to new ids in dst and
-  // src respectively.
-  void MapUnmatchedIds();
+  // src respectively. Use src_insn_defined and dst_insn_defined to ignore ids
+  // that are simply never defined. (Since we assume the inputs are valid
+  // SPIR-V, this implies they are also never used.)
+  void MapUnmatchedIds(std::function<bool(uint32_t)> src_insn_defined,
+                       std::function<bool(uint32_t)> dst_insn_defined);
 
   // Some instructions don't have result ids.  Those are mapped by pointer.
   void MapInsts(const opt::Instruction* src_inst,
@@ -212,6 +217,11 @@ struct IdInstructions {
   }
 
   void MapIdToInstruction(uint32_t id, const opt::Instruction* inst);
+
+  // Return true if id is mapped to any instruction, false otherwise.
+  bool IsDefined(uint32_t id) {
+    return id < inst_map_.size() && inst_map_[id] != nullptr;
+  }
 
   void MapIdsToInstruction(
       opt::IteratorRange<opt::Module::const_inst_iterator> section);
@@ -345,6 +355,59 @@ class Differ {
   void GroupIdsAndMatch(
       const IdGroup& src_ids, const IdGroup& dst_ids, T invalid_group_key,
       T (Differ::*get_group)(const IdInstructions&, uint32_t),
+      std::function<void(const IdGroup& src_group, const IdGroup& dst_group)>
+          match_group);
+
+  // Bucket `src_ids` and `dst_ids` by the key ids returned by `get_group`, and
+  // then call `match_group` on pairs of buckets whose key ids are matched with
+  // each other.
+  //
+  // For example, suppose we want to pair up groups of instructions with the
+  // same type. Naturally, the source instructions refer to their types by their
+  // ids in the source, and the destination instructions use destination type
+  // ids, so simply comparing source and destination type ids as integers, as
+  // `GroupIdsAndMatch` would do, is meaningless. But if a prior call to
+  // `MatchTypeIds` has established type matches between the two modules, then
+  // we can consult those to pair source and destination buckets whose types are
+  // equivalent.
+  //
+  // Suppose our input groups are as follows:
+  //
+  // - src_ids: { 1 -> 100, 2 -> 300, 3 -> 100, 4 -> 200 }
+  // - dst_ids: { 5 -> 10, 6 -> 20, 7 -> 10, 8 -> 300 }
+  //
+  // Here, `X -> Y` means that the instruction with SPIR-V id `X` is a member of
+  // the group, and `Y` is the id of its type. If we use
+  // `Differ::GroupIdsHelperGetTypeId` for `get_group`, then
+  // `get_group(X) == Y`.
+  //
+  // These instructions are bucketed by type as follows:
+  //
+  // - source:      [1, 3] -> 100
+  //                [4] -> 200
+  //                [2] -> 300
+  //
+  // - destination: [5, 7] -> 10
+  //                [6] -> 20
+  //                [8] -> 300
+  //
+  // Now suppose that we have previously matched up src type 100 with dst type
+  // 10, and src type 200 with dst type 20, but no other types are matched.
+  //
+  // Then `match_group` is called twice:
+  // - Once with ([1,3], [5, 7]), corresponding to 100/10
+  // - Once with ([4],[6]), corresponding to 200/20
+  //
+  // The source type 300 isn't matched with anything, so the fact that there's a
+  // destination type 300 is irrelevant, and thus 2 and 8 are never passed to
+  // `match_group`.
+  //
+  // This function isn't specific to types; it simply buckets by the ids
+  // returned from `get_group`, and consults existing matches to pair up the
+  // resulting buckets.
+  void GroupIdsAndMatchByMappedId(
+      const IdGroup& src_ids, const IdGroup& dst_ids,
+      uint32_t (Differ::*get_group)(const IdInstructions&, uint32_t),
       std::function<void(const IdGroup& src_group, const IdGroup& dst_group)>
           match_group);
 
@@ -514,34 +577,25 @@ class Differ {
   FunctionMap dst_funcs_;
 };
 
-void IdMap::MapUnmatchedIds(IdMap& other_way) {
-  const uint32_t src_id_bound = static_cast<uint32_t>(id_map_.size());
-  const uint32_t dst_id_bound = static_cast<uint32_t>(other_way.id_map_.size());
-
-  uint32_t next_src_id = src_id_bound;
-  uint32_t next_dst_id = dst_id_bound;
+void SrcDstIdMap::MapUnmatchedIds(
+    std::function<bool(uint32_t)> src_insn_defined,
+    std::function<bool(uint32_t)> dst_insn_defined) {
+  const uint32_t src_id_bound = static_cast<uint32_t>(src_to_dst_.IdBound());
+  const uint32_t dst_id_bound = static_cast<uint32_t>(dst_to_src_.IdBound());
 
   for (uint32_t src_id = 1; src_id < src_id_bound; ++src_id) {
-    if (!IsMapped(src_id)) {
-      MapIds(src_id, next_dst_id);
-
-      other_way.id_map_.push_back(0);
-      other_way.MapIds(next_dst_id++, src_id);
+    if (!src_to_dst_.IsMapped(src_id) && src_insn_defined(src_id)) {
+      uint32_t fresh_dst_id = dst_to_src_.MakeFreshId();
+      MapIds(src_id, fresh_dst_id);
     }
   }
 
   for (uint32_t dst_id = 1; dst_id < dst_id_bound; ++dst_id) {
-    if (!other_way.IsMapped(dst_id)) {
-      id_map_.push_back(0);
-      MapIds(next_src_id, dst_id);
-
-      other_way.MapIds(dst_id, next_src_id++);
+    if (!dst_to_src_.IsMapped(dst_id) && dst_insn_defined(dst_id)) {
+      uint32_t fresh_src_id = src_to_dst_.MakeFreshId();
+      MapIds(fresh_src_id, dst_id);
     }
   }
-}
-
-void SrcDstIdMap::MapUnmatchedIds() {
-  src_to_dst_.MapUnmatchedIds(dst_to_src_);
 }
 
 void IdInstructions::MapIdToInstruction(uint32_t id,
@@ -896,6 +950,37 @@ void Differ::GroupIdsAndMatch(
 
     // Let the caller match the groups as appropriate.
     match_group(src_group, dst_group);
+  }
+}
+
+void Differ::GroupIdsAndMatchByMappedId(
+    const IdGroup& src_ids, const IdGroup& dst_ids,
+    uint32_t (Differ::*get_group)(const IdInstructions&, uint32_t),
+    std::function<void(const IdGroup& src_group, const IdGroup& dst_group)>
+        match_group) {
+  // Group the ids based on a key (get_group)
+  std::map<uint32_t, IdGroup> src_groups;
+  std::map<uint32_t, IdGroup> dst_groups;
+
+  GroupIds<uint32_t>(src_ids, true, &src_groups, get_group);
+  GroupIds<uint32_t>(dst_ids, false, &dst_groups, get_group);
+
+  // Iterate over pairs of groups whose keys map to each other.
+  for (const auto& iter : src_groups) {
+    const uint32_t& src_key = iter.first;
+    const IdGroup& src_group = iter.second;
+
+    if (src_key == 0) {
+      continue;
+    }
+
+    if (id_map_.IsSrcMapped(src_key)) {
+      const uint32_t& dst_key = id_map_.MappedDstId(src_key);
+      const IdGroup& dst_group = dst_groups[dst_key];
+
+      // Let the caller match the groups as appropriate.
+      match_group(src_group, dst_group);
+    }
   }
 }
 
@@ -1583,6 +1668,8 @@ void Differ::BestEffortMatchFunctions(const IdGroup& src_func_ids,
 
     id_map_.MapIds(match_result.src_id, match_result.dst_id);
 
+    MatchFunctionParamIds(src_funcs_[match_result.src_id],
+                          dst_funcs_[match_result.dst_id]);
     MatchIdsInFunctionBodies(src_func_insts.at(match_result.src_id),
                              dst_func_insts.at(match_result.dst_id),
                              match_result.src_match, match_result.dst_match, 0);
@@ -1617,8 +1704,8 @@ void Differ::MatchFunctionParamIds(const opt::Function* src_func,
 
   // Then match the parameters by their type.  If there are multiple of them,
   // match them by their order.
-  GroupIdsAndMatch<uint32_t>(
-      src_params, dst_params, 0, &Differ::GroupIdsHelperGetTypeId,
+  GroupIdsAndMatchByMappedId(
+      src_params, dst_params, &Differ::GroupIdsHelperGetTypeId,
       [this](const IdGroup& src_group_by_type_id,
              const IdGroup& dst_group_by_type_id) {
         const size_t shared_param_count =
@@ -1626,7 +1713,8 @@ void Differ::MatchFunctionParamIds(const opt::Function* src_func,
 
         for (size_t param_index = 0; param_index < shared_param_count;
              ++param_index) {
-          id_map_.MapIds(src_group_by_type_id[0], dst_group_by_type_id[0]);
+          id_map_.MapIds(src_group_by_type_id[param_index],
+                         dst_group_by_type_id[param_index]);
         }
       });
 }
@@ -2201,7 +2289,9 @@ void Differ::MatchTypeIds() {
         case spv::Op::OpTypeVoid:
         case spv::Op::OpTypeBool:
         case spv::Op::OpTypeSampler:
-          // void, bool and sampler are unique, match them.
+        case spv::Op::OpTypeAccelerationStructureNV:
+        case spv::Op::OpTypeRayQueryKHR:
+          // the above types have no operands and are unique, match them.
           return true;
         case spv::Op::OpTypeInt:
         case spv::Op::OpTypeFloat:
@@ -2646,7 +2736,9 @@ opt::Instruction Differ::ToMappedSrcIds(const opt::Instruction& dst_inst) {
 }
 
 spv_result_t Differ::Output() {
-  id_map_.MapUnmatchedIds();
+  id_map_.MapUnmatchedIds(
+      [this](uint32_t src_id) { return src_id_to_.IsDefined(src_id); },
+      [this](uint32_t dst_id) { return dst_id_to_.IsDefined(dst_id); });
   src_id_to_.inst_map_.resize(id_map_.SrcToDstMap().IdBound(), nullptr);
   dst_id_to_.inst_map_.resize(id_map_.DstToSrcMap().IdBound(), nullptr);
 
