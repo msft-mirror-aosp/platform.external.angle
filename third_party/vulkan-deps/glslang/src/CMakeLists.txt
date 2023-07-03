@@ -30,18 +30,8 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
-# increase to 3.1 once all major distributions
-# include a version of CMake >= 3.1
-cmake_minimum_required(VERSION 2.8.12)
-if (POLICY CMP0048)
-  cmake_policy(SET CMP0048 NEW)
-endif()
-if(POLICY CMP0054)
-  cmake_policy(SET CMP0054 NEW)
-endif()
-
-project(glslang LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.14.0)
+project(glslang)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -50,6 +40,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Adhere to GNU filesystem layout conventions
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 # Needed for CMAKE_DEPENDENT_OPTION macro
 include(CMakeDependentOption)
@@ -191,7 +182,11 @@ elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" AND NOT MSVC)
         # Error if there's symbols that are not found at link time.
         # add_link_options() was added in CMake 3.13 - if using an earlier
         # version don't set this - it should be caught by presubmits anyway.
-        add_link_options("-Wl,-undefined,error")
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+            add_link_options("-Wl,-undefined,error")
+        else()
+            add_link_options("-Wl,--no-undefined")
+        endif()
     endif()
 elseif(MSVC)
     if(NOT ENABLE_RTTI)
@@ -222,16 +217,10 @@ if(ENABLE_GLSLANG_JS)
     endif()
 endif()
 
-# Request C++11
-if(${CMAKE_VERSION} VERSION_LESS 3.1)
-    # CMake versions before 3.1 do not understand CMAKE_CXX_STANDARD
-    # remove this block once CMake >=3.1 has fixated in the ecosystem
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-else()
-    set(CMAKE_CXX_STANDARD 11)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    set(CMAKE_CXX_EXTENSIONS OFF)
-endif()
+# Request C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 function(glslang_set_link_args TARGET)
     # For MinGW compiles, statically link against the GCC and C++ runtimes.
@@ -350,9 +339,9 @@ if(ENABLE_CTEST AND BUILD_TESTING)
     endif()
 
     if (CMAKE_CONFIGURATION_TYPES)
-        set(RESULTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIGURATION>/localResults)
-        set(VALIDATOR_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/$<CONFIGURATION>/glslangValidator)
-        set(REMAP_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/$<CONFIGURATION>/spirv-remap)
+        set(RESULTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/localResults)
+        set(VALIDATOR_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/$<CONFIG>/glslangValidator)
+        set(REMAP_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/$<CONFIG>/spirv-remap)
     else()
         set(RESULTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/localResults)
         set(VALIDATOR_PATH ${CMAKE_CURRENT_BINARY_DIR}/StandAlone/glslangValidator)
@@ -362,4 +351,47 @@ if(ENABLE_CTEST AND BUILD_TESTING)
     add_test(NAME glslang-testsuite
         COMMAND bash ${IGNORE_CR_FLAG} runtests ${RESULTS_PATH} ${VALIDATOR_PATH} ${REMAP_PATH}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Test/)
+endif()
+
+if(ENABLE_GLSLANG_INSTALL)
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/glslang-config.cmake.in" [=[
+        @PACKAGE_INIT@
+        @INSTALL_CONFIG_UNIX@
+        include("@PACKAGE_PATH_EXPORT_TARGETS@")
+    ]=])
+
+    set(PATH_EXPORT_TARGETS "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}/glslang-targets.cmake")
+    if(UNIX OR "${CMAKE_SYSTEM_NAME}" STREQUAL "Fuchsia")
+        set(INSTALL_CONFIG_UNIX [=[
+            include(CMakeFindDependencyMacro)
+            set(THREADS_PREFER_PTHREAD_FLAG ON)
+            find_dependency(Threads REQUIRED)
+        ]=])
+    endif()
+    configure_package_config_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/glslang-config.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/glslang-config.cmake"
+        PATH_VARS
+            PATH_EXPORT_TARGETS
+        INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+    )
+    
+    write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/glslang-config-version.cmake"
+        VERSION ${GLSLANG_VERSION}
+        COMPATIBILITY SameMajorVersion
+    )
+    
+    install(
+        EXPORT      glslang-targets
+        NAMESPACE   "glslang::"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+    )
+    
+    install(
+        FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/glslang-config.cmake"
+            "${CMAKE_CURRENT_BINARY_DIR}/glslang-config-version.cmake"
+        DESTINATION
+            "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+    )
 endif()
