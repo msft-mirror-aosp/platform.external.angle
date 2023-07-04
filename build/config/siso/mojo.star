@@ -110,14 +110,7 @@ def __step_rules():
             "remote": True,
             "timeout": "2m",
             "output_local": True,
-            "platform": {
-                # mojo_bindings_generators.py will run faster on n2-highmem-8
-                # than n2-custom-2-3840
-                # e.g.
-                #  n2-highmem-8: exec: 880.202978ms
-                #  n2-custom-2-3840: exec: 2.42808488s
-                "gceMachineType": "n2-highmem-8",
-            },
+            "platform_ref": "mojo",
         },
         {
             "name": "mojo/mojom_parser",
@@ -134,12 +127,31 @@ def __step_rules():
             "exclude_input_patterns": [
                 "*.stamp",
             ],
+            # TODO(b/288523418): missing inputs for mojom_parser?
+            "outputs_map": {
+                "./gen/mojo/public/interfaces/bindings/tests/sample_import2.mojom-module": {
+                    "inputs": [
+                        "./gen/mojo/public/interfaces/bindings/tests/test_mojom_import_wrapper.build_metadata",
+                        "./gen/mojo/public/interfaces/bindings/tests/test_mojom_import_wrapper_wrapper.build_metadata",
+                    ],
+                },
+                "./gen/mojo/public/interfaces/bindings/tests/math_calculator.mojom-module": {
+                    "inputs": [
+                        "./gen/mojo/public/interfaces/bindings/tests/test_mojom_import_wrapper.build_metadata",
+                        "./gen/mojo/public/interfaces/bindings/tests/test_mojom_import_wrapper_wrapper.build_metadata",
+                    ],
+                },
+                "./gen/mojo/public/interfaces/bindings/tests/test_associated_interfaces.mojom-module": {
+                    "inputs": [
+                        "./gen/mojo/public/interfaces/bindings/tests/test_mojom_import_wrapper.build_metadata",
+                        "./gen/mojo/public/interfaces/bindings/tests/test_mojom_import_wrapper_wrapper.build_metadata",
+                    ],
+                },
+            },
             "remote": True,
             "input_root_absolute_path": True,
             "output_local": True,
-            "platform": {
-                "gceMachineType": "n2-highmem-8",
-            },
+            "platform_ref": "mojo",
         },
     ]
 
