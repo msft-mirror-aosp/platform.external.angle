@@ -25,7 +25,7 @@ declare_args() {
       build_with_chromium &&
       # TODO(crbug.com/1386212): Mac and iOS. Note that enabling iOS, without
       # enabling Mac for host tools, is not possible.
-      !is_mac && !is_ios && !(is_official_build && is_mac) &&
+      !is_ios && !(is_official_build && is_mac) &&
       # TODO(crbug.com/1453618): Windows ARM64 is missing clang_rt libs, and
       # clang_rt.profile is needed when coverage is enabled.
       !(is_win && use_clang_coverage && target_cpu == "arm64")
@@ -90,8 +90,8 @@ declare_args() {
   enable_rust_json = enable_all_rust_features
 
   # Support for chrome://crash-rust to check crash dump collection works.
-  enable_rust_crash =
-      is_linux || is_android || is_fuchsia || enable_all_rust_features
+  enable_rust_crash = is_linux || is_android || is_fuchsia || is_chromeos ||
+                      enable_all_rust_features
 
   # Support for QR code generation - see https://crbug.com/1431991.
   enable_rust_qr = is_linux || is_android || enable_all_rust_features
