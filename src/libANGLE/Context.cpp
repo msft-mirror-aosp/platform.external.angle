@@ -6028,21 +6028,6 @@ void Context::blendFuncSeparatei(GLuint buf,
     }
 }
 
-void Context::clearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
-{
-    mState.setColorClearValue(red, green, blue, alpha);
-}
-
-void Context::clearDepthf(GLfloat depth)
-{
-    mState.setDepthClearValue(clamp01(depth));
-}
-
-void Context::clearStencil(GLint s)
-{
-    mState.setStencilClearValue(s);
-}
-
 void Context::colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
 {
     mState.setColorMask(ConvertToBool(red), ConvertToBool(green), ConvertToBool(blue),
@@ -10824,10 +10809,13 @@ void StateCache::updateValidDrawModes(Context *context)
 
     if (!programExecutable || !programExecutable->hasLinkedShaderStage(ShaderType::Geometry))
     {
+        bool adjacencyOK =
+            (context->getExtensions().geometryShaderAny() || context->getClientVersion() >= ES_3_2);
+
         // All draw modes are valid, since drawing without a program does not generate an error and
-        // and operations requiring a GS will trigger other validation errors.
+        // operations requiring a GS will trigger other validation errors.
         // `patchOK = false` due to checking above already enabling it if a TS is present.
-        setValidDrawModes(true, true, true, true, true, false);
+        setValidDrawModes(true, true, true, adjacencyOK, adjacencyOK, false);
         return;
     }
 
