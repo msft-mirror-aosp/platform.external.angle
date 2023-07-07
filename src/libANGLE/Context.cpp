@@ -6028,20 +6028,6 @@ void Context::blendFuncSeparatei(GLuint buf,
     }
 }
 
-void Context::colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
-{
-    mState.setColorMask(ConvertToBool(red), ConvertToBool(green), ConvertToBool(blue),
-                        ConvertToBool(alpha));
-    mStateCache.onColorMaskChange(this);
-}
-
-void Context::colorMaski(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
-{
-    mState.setColorMaskIndexed(ConvertToBool(r), ConvertToBool(g), ConvertToBool(b),
-                               ConvertToBool(a), index);
-    mStateCache.onColorMaskChange(this);
-}
-
 void Context::cullFace(CullFaceMode mode)
 {
     mState.setCullMode(mode);
@@ -6050,11 +6036,6 @@ void Context::cullFace(CullFaceMode mode)
 void Context::depthFunc(GLenum func)
 {
     mState.setDepthFunc(func);
-}
-
-void Context::depthMask(GLboolean flag)
-{
-    mState.setDepthMask(ConvertToBool(flag));
 }
 
 void Context::depthRangef(GLfloat zNear, GLfloat zFar)
@@ -6067,34 +6048,10 @@ void Context::clipControl(ClipOrigin originPacked, ClipDepthMode depthPacked)
     mState.setClipControl(originPacked, depthPacked);
 }
 
-void Context::disable(GLenum cap)
-{
-    mState.setEnableFeature(cap, false);
-    mStateCache.onContextCapChange(this);
-}
-
-void Context::disablei(GLenum target, GLuint index)
-{
-    mState.setEnableFeatureIndexed(target, false, index);
-    mStateCache.onContextCapChange(this);
-}
-
 void Context::disableVertexAttribArray(GLuint index)
 {
     mState.setEnableVertexAttribArray(index, false);
     mStateCache.onVertexArrayStateChange(this);
-}
-
-void Context::enable(GLenum cap)
-{
-    mState.setEnableFeature(cap, true);
-    mStateCache.onContextCapChange(this);
-}
-
-void Context::enablei(GLenum target, GLuint index)
-{
-    mState.setEnableFeatureIndexed(target, true, index);
-    mStateCache.onContextCapChange(this);
 }
 
 void Context::enableVertexAttribArray(GLuint index)
@@ -10164,6 +10121,13 @@ void Context::getRenderbufferImage(GLenum target, GLenum format, GLenum type, vo
                                                          format, type, pixels));
 }
 
+void Context::setLogicOpEnabledForGLES1(bool enabled)
+{
+    // Same implementation as ContextLocalEnable(GL_COLOR_LOGIC_OP), without the GLES1 forwarding.
+    getMutableLocalState()->setLogicOpEnabled(enabled);
+    onContextLocalCapChange();
+}
+
 void Context::logicOpANGLE(LogicalOperation opcodePacked)
 {
     mState.setLogicOp(opcodePacked);
@@ -10487,7 +10451,8 @@ StateCache::StateCache()
       mCachedBasicDrawElementsError(kInvalidPointer),
       mCachedProgramPipelineError(kInvalidPointer),
       mCachedTransformFeedbackActiveUnpaused(false),
-      mCachedCanDraw(false)
+      mCachedCanDraw(false),
+      mIsCachedBasicDrawStatesErrorValid(true)
 {
     mCachedValidDrawModes.fill(false);
 }
@@ -10602,8 +10567,9 @@ void StateCache::updateBasicDrawElementsError()
 
 intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context) const
 {
-    ASSERT(mCachedBasicDrawStatesErrorString == kInvalidPointer);
-    ASSERT(mCachedBasicDrawStatesErrorCode == GL_NO_ERROR);
+    ASSERT(mCachedBasicDrawStatesErrorString == kInvalidPointer ||
+           !mIsCachedBasicDrawStatesErrorValid);
+    ASSERT(mCachedBasicDrawStatesErrorCode == GL_NO_ERROR || !mIsCachedBasicDrawStatesErrorValid);
 
     // Only assign the error code after ValidateDrawStates has completed. ValidateDrawStates calls
     // updateBasicDrawStatesError in some cases and resets the value mid-call.
@@ -10617,6 +10583,7 @@ intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context) const
     ASSERT((mCachedBasicDrawStatesErrorString == 0) ==
            (mCachedBasicDrawStatesErrorCode == GL_NO_ERROR));
 
+    mIsCachedBasicDrawStatesErrorValid = true;
     return mCachedBasicDrawStatesErrorString;
 }
 
@@ -10689,9 +10656,9 @@ void StateCache::onDrawFramebufferChange(Context *context)
     updateBasicDrawStatesError();
 }
 
-void StateCache::onContextCapChange(Context *context)
+void StateCache::onContextLocalCapChange(Context *context)
 {
-    updateBasicDrawStatesError();
+    mIsCachedBasicDrawStatesErrorValid = false;
 }
 
 void StateCache::onStencilStateChange(Context *context)
@@ -10737,9 +10704,9 @@ void StateCache::onShaderStorageBufferStateChange(Context *context)
     updateBasicDrawStatesError();
 }
 
-void StateCache::onColorMaskChange(Context *context)
+void StateCache::onContextLocalColorMaskChange(Context *context)
 {
-    updateBasicDrawStatesError();
+    mIsCachedBasicDrawStatesErrorValid = false;
 }
 
 void StateCache::onBlendFuncIndexedChange(Context *context)
