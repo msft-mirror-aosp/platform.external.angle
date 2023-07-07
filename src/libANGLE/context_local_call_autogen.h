@@ -22,6 +22,22 @@ void ContextLocalClearColor(Context *context,
                             GLfloat alpha);
 void ContextLocalClearDepthf(Context *context, GLfloat d);
 void ContextLocalClearStencil(Context *context, GLint s);
+void ContextLocalColorMask(Context *context,
+                           GLboolean red,
+                           GLboolean green,
+                           GLboolean blue,
+                           GLboolean alpha);
+void ContextLocalDepthMask(Context *context, GLboolean flag);
+void ContextLocalDisable(Context *context, GLenum cap);
+void ContextLocalEnable(Context *context, GLenum cap);
+void ContextLocalColorMaski(Context *context,
+                            GLuint index,
+                            GLboolean r,
+                            GLboolean g,
+                            GLboolean b,
+                            GLboolean a);
+void ContextLocalDisablei(Context *context, GLenum target, GLuint index);
+void ContextLocalEnablei(Context *context, GLenum target, GLuint index);
 void ContextLocalClearColorx(Context *context,
                              GLfixed red,
                              GLfixed green,
@@ -150,6 +166,14 @@ void ContextLocalClearDepthx(Context *context, GLfixed depth);
 // GL_EXT_draw_buffers
 
 // GL_EXT_draw_buffers_indexed
+void ContextLocalColorMaski(Context *context,
+                            GLuint index,
+                            GLboolean r,
+                            GLboolean g,
+                            GLboolean b,
+                            GLboolean a);
+void ContextLocalDisablei(Context *context, GLenum target, GLuint index);
+void ContextLocalEnablei(Context *context, GLenum target, GLuint index);
 
 // GL_EXT_draw_elements_base_vertex
 
@@ -316,6 +340,14 @@ void ContextLocalClearDepthx(Context *context, GLfixed depth);
 // GL_OES_depth_texture
 
 // GL_OES_draw_buffers_indexed
+void ContextLocalColorMaski(Context *context,
+                            GLuint index,
+                            GLboolean r,
+                            GLboolean g,
+                            GLboolean b,
+                            GLboolean a);
+void ContextLocalDisablei(Context *context, GLenum target, GLuint index);
+void ContextLocalEnablei(Context *context, GLenum target, GLuint index);
 
 // GL_OES_draw_elements_base_vertex
 
