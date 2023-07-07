@@ -1908,8 +1908,10 @@ cc_genrule {
         "src/libANGLE/capture/capture_gles_3_2_autogen.h",
         "src/libANGLE/capture/capture_gles_ext_autogen.h",
         "src/libANGLE/capture/serialize.h",
-        "src/libANGLE/context_local_call.cpp",
-        "src/libANGLE/context_local_call_autogen.h",
+        "src/libANGLE/context_local_call_gl.cpp",
+        "src/libANGLE/context_local_call_gl_autogen.h",
+        "src/libANGLE/context_local_call_gles.cpp",
+        "src/libANGLE/context_local_call_gles_autogen.h",
         "src/libANGLE/entry_points_utils.cpp",
         "src/libANGLE/entry_points_utils.h",
         "src/libANGLE/es3_copy_conversion_table_autogen.cpp",
@@ -3075,6 +3077,8 @@ cc_defaults {
         "src/libANGLE/VertexArray.cpp",
         "src/libANGLE/VertexAttribute.cpp",
         "src/libANGLE/angletypes.cpp",
+        "src/libANGLE/context_local_call_gl.cpp",
+        "src/libANGLE/context_local_call_gles.cpp",
         "src/libANGLE/es3_copy_conversion_table_autogen.cpp",
         "src/libANGLE/format_map_autogen.cpp",
         "src/libANGLE/format_map_desktop.cpp",
@@ -6732,7 +6736,6 @@ cc_library_static {
 cc_defaults {
     name: "angle_libANGLE_headers",
     srcs: [
-        "src/libANGLE/context_local_call.cpp",
         "src/libANGLE/entry_points_utils.cpp",
     ],
     static_libs: [
