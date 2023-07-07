@@ -167,13 +167,12 @@ void GL_APIENTRY GL_ColorMaski(GLuint index, GLboolean r, GLboolean g, GLboolean
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateColorMaski(context, angle::EntryPoint::GLColorMaski, index, r, g, b, a));
         if (isCallValid)
         {
-            context->colorMaski(index, r, g, b, a);
+            ContextLocalColorMaski(context, index, r, g, b, a);
         }
         ANGLE_CAPTURE_GL(ColorMaski, isCallValid, context, index, r, g, b, a);
     }
@@ -344,13 +343,12 @@ void GL_APIENTRY GL_Disablei(GLenum target, GLuint index)
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateDisablei(context, angle::EntryPoint::GLDisablei, target, index));
         if (isCallValid)
         {
-            context->disablei(target, index);
+            ContextLocalDisablei(context, target, index);
         }
         ANGLE_CAPTURE_GL(Disablei, isCallValid, context, target, index);
     }
@@ -483,12 +481,11 @@ void GL_APIENTRY GL_Enablei(GLenum target, GLuint index)
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid = (context->skipValidation() ||
                             ValidateEnablei(context, angle::EntryPoint::GLEnablei, target, index));
         if (isCallValid)
         {
-            context->enablei(target, index);
+            ContextLocalEnablei(context, target, index);
         }
         ANGLE_CAPTURE_GL(Enablei, isCallValid, context, target, index);
     }
