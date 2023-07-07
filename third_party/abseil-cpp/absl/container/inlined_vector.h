@@ -52,6 +52,7 @@
 #include "absl/base/port.h"
 #include "absl/container/internal/inlined_vector.h"
 #include "absl/memory/memory.h"
+#include "absl/meta/type_traits.h"
 
 namespace absl {
 ABSL_NAMESPACE_BEGIN
@@ -76,7 +77,7 @@ class InlinedVector {
   template <typename TheA>
   using MoveIterator = inlined_vector_internal::MoveIterator<TheA>;
   template <typename TheA>
-  using IsMemcpyOk = inlined_vector_internal::IsMemcpyOk<TheA>;
+  using IsMoveAssignOk = inlined_vector_internal::IsMoveAssignOk<TheA>;
 
   template <typename TheA, typename Iterator>
   using IteratorValueAdapter =
@@ -93,6 +94,12 @@ class InlinedVector {
   template <typename Iterator>
   using DisableIfAtLeastForwardIterator = absl::enable_if_t<
       !inlined_vector_internal::IsAtLeastForwardIterator<Iterator>::value, int>;
+
+  using MemcpyPolicy = typename Storage::MemcpyPolicy;
+  using ElementwiseAssignPolicy = typename Storage::ElementwiseAssignPolicy;
+  using ElementwiseConstructPolicy =
+      typename Storage::ElementwiseConstructPolicy;
+  using MoveAssignmentPolicy = typename Storage::MoveAssignmentPolicy;
 
  public:
   using allocator_type = A;
@@ -173,14 +180,23 @@ class InlinedVector {
   // provided `allocator`.
   InlinedVector(const InlinedVector& other, const allocator_type& allocator)
       : storage_(allocator) {
+    // Fast path: if the other vector is empty, there's nothing for us to do.
     if (other.empty()) {
-      // Empty; nothing to do.
-    } else if (IsMemcpyOk<A>::value && !other.storage_.GetIsAllocated()) {
-      // Memcpy-able and do not need allocation.
-      storage_.MemcpyFrom(other.storage_);
-    } else {
-      storage_.InitFrom(other.storage_);
+      return;
     }
+
+    // Fast path: if the value type is trivially copy constructible, we know the
+    // allocator doesn't do anything fancy, and there is nothing on the heap
+    // then we know it is legal for us to simply memcpy the other vector's
+    // inlined bytes to form our copy of its elements.
+    if (absl::is_trivially_copy_constructible<value_type>::value &&
+        std::is_same<A, std::allocator<value_type>>::value &&
+        !other.storage_.GetIsAllocated()) {
+      storage_.MemcpyFrom(other.storage_);
+      return;
+    }
+
+    storage_.InitFrom(other.storage_);
   }
 
   // Creates an inlined vector by moving in the contents of `other` without
@@ -201,26 +217,38 @@ class InlinedVector {
       absl::allocator_is_nothrow<allocator_type>::value ||
       std::is_nothrow_move_constructible<value_type>::value)
       : storage_(other.storage_.GetAllocator()) {
-    if (IsMemcpyOk<A>::value) {
+    // Fast path: if the value type can be trivially relocated (i.e. moved from
+    // and destroyed), and we know the allocator doesn't do anything fancy, then
+    // it's safe for us to simply adopt the contents of the storage for `other`
+    // and remove its own reference to them. It's as if we had individually
+    // move-constructed each value and then destroyed the original.
+    if (absl::is_trivially_relocatable<value_type>::value &&
+        std::is_same<A, std::allocator<value_type>>::value) {
       storage_.MemcpyFrom(other.storage_);
-
       other.storage_.SetInlinedSize(0);
-    } else if (other.storage_.GetIsAllocated()) {
+      return;
+    }
+
+    // Fast path: if the other vector is on the heap, we can simply take over
+    // its allocation.
+    if (other.storage_.GetIsAllocated()) {
       storage_.SetAllocation({other.storage_.GetAllocatedData(),
                               other.storage_.GetAllocatedCapacity()});
       storage_.SetAllocatedSize(other.storage_.GetSize());
 
       other.storage_.SetInlinedSize(0);
-    } else {
-      IteratorValueAdapter<A, MoveIterator<A>> other_values(
-          MoveIterator<A>(other.storage_.GetInlinedData()));
-
-      inlined_vector_internal::ConstructElements<A>(
-          storage_.GetAllocator(), storage_.GetInlinedData(), other_values,
-          other.storage_.GetSize());
-
-      storage_.SetInlinedSize(other.storage_.GetSize());
+      return;
     }
+
+    // Otherwise we must move each element individually.
+    IteratorValueAdapter<A, MoveIterator<A>> other_values(
+        MoveIterator<A>(other.storage_.GetInlinedData()));
+
+    inlined_vector_internal::ConstructElements<A>(
+        storage_.GetAllocator(), storage_.GetInlinedData(), other_values,
+        other.storage_.GetSize());
+
+    storage_.SetInlinedSize(other.storage_.GetSize());
   }
 
   // Creates an inlined vector by moving in the contents of `other` with a copy
@@ -235,22 +263,34 @@ class InlinedVector {
       const allocator_type&
           allocator) noexcept(absl::allocator_is_nothrow<allocator_type>::value)
       : storage_(allocator) {
-    if (IsMemcpyOk<A>::value) {
+    // Fast path: if the value type can be trivially relocated (i.e. moved from
+    // and destroyed), and we know the allocator doesn't do anything fancy, then
+    // it's safe for us to simply adopt the contents of the storage for `other`
+    // and remove its own reference to them. It's as if we had individually
+    // move-constructed each value and then destroyed the original.
+    if (absl::is_trivially_relocatable<value_type>::value &&
+        std::is_same<A, std::allocator<value_type>>::value) {
       storage_.MemcpyFrom(other.storage_);
-
       other.storage_.SetInlinedSize(0);
-    } else if ((storage_.GetAllocator() == other.storage_.GetAllocator()) &&
-               other.storage_.GetIsAllocated()) {
+      return;
+    }
+
+    // Fast path: if the other vector is on the heap and shared the same
+    // allocator, we can simply take over its allocation.
+    if ((storage_.GetAllocator() == other.storage_.GetAllocator()) &&
+        other.storage_.GetIsAllocated()) {
       storage_.SetAllocation({other.storage_.GetAllocatedData(),
                               other.storage_.GetAllocatedCapacity()});
       storage_.SetAllocatedSize(other.storage_.GetSize());
 
       other.storage_.SetInlinedSize(0);
-    } else {
-      storage_.Initialize(IteratorValueAdapter<A, MoveIterator<A>>(
-                              MoveIterator<A>(other.data())),
-                          other.size());
+      return;
     }
+
+    // Otherwise we must move each element individually.
+    storage_.Initialize(
+        IteratorValueAdapter<A, MoveIterator<A>>(MoveIterator<A>(other.data())),
+        other.size());
   }
 
   ~InlinedVector() {}
@@ -275,8 +315,10 @@ class InlinedVector {
   size_type max_size() const noexcept {
     // One bit of the size storage is used to indicate whether the inlined
     // vector contains allocated memory. As a result, the maximum size that the
-    // inlined vector can express is half of the max for `size_type`.
-    return (std::numeric_limits<size_type>::max)() / 2;
+    // inlined vector can express is the minimum of the limit of how many
+    // objects we can allocate and std::numeric_limits<size_type>::max() / 2.
+    return (std::min)(AllocatorTraits<A>::max_size(storage_.GetAllocator()),
+                      (std::numeric_limits<size_type>::max)() / 2);
   }
 
   // `InlinedVector::capacity()`
@@ -484,18 +526,7 @@ class InlinedVector {
   // unspecified state.
   InlinedVector& operator=(InlinedVector&& other) {
     if (ABSL_PREDICT_TRUE(this != std::addressof(other))) {
-      if (IsMemcpyOk<A>::value || other.storage_.GetIsAllocated()) {
-        inlined_vector_internal::DestroyAdapter<A>::DestroyElements(
-            storage_.GetAllocator(), data(), size());
-        storage_.DeallocateIfAllocated();
-        storage_.MemcpyFrom(other.storage_);
-
-        other.storage_.SetInlinedSize(0);
-      } else {
-        storage_.Assign(IteratorValueAdapter<A, MoveIterator<A>>(
-                            MoveIterator<A>(other.storage_.GetInlinedData())),
-                        other.size());
-      }
+      MoveAssignment(MoveAssignmentPolicy{}, std::move(other));
     }
 
     return *this;
@@ -585,8 +616,20 @@ class InlinedVector {
 
     if (ABSL_PREDICT_TRUE(n != 0)) {
       value_type dealias = v;
+      // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102329#c2
+      // It appears that GCC thinks that since `pos` is a const pointer and may
+      // point to uninitialized memory at this point, a warning should be
+      // issued. But `pos` is actually only used to compute an array index to
+      // write to.
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
       return storage_.Insert(pos, CopyValueAdapter<A>(std::addressof(dealias)),
                              n);
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
     } else {
       return const_cast<iterator>(pos);
     }
@@ -612,9 +655,9 @@ class InlinedVector {
     ABSL_HARDENING_ASSERT(pos <= end());
 
     if (ABSL_PREDICT_TRUE(first != last)) {
-      return storage_.Insert(pos,
-                             IteratorValueAdapter<A, ForwardIterator>(first),
-                             std::distance(first, last));
+      return storage_.Insert(
+          pos, IteratorValueAdapter<A, ForwardIterator>(first),
+          static_cast<size_type>(std::distance(first, last)));
     } else {
       return const_cast<iterator>(pos);
     }
@@ -631,7 +674,7 @@ class InlinedVector {
     ABSL_HARDENING_ASSERT(pos >= begin());
     ABSL_HARDENING_ASSERT(pos <= end());
 
-    size_type index = std::distance(cbegin(), pos);
+    size_type index = static_cast<size_type>(std::distance(cbegin(), pos));
     for (size_type i = index; first != last; ++i, static_cast<void>(++first)) {
       insert(data() + i, *first);
     }
@@ -649,10 +692,22 @@ class InlinedVector {
     ABSL_HARDENING_ASSERT(pos <= end());
 
     value_type dealias(std::forward<Args>(args)...);
+    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=102329#c2
+    // It appears that GCC thinks that since `pos` is a const pointer and may
+    // point to uninitialized memory at this point, a warning should be
+    // issued. But `pos` is actually only used to compute an array index to
+    // write to.
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
     return storage_.Insert(pos,
                            IteratorValueAdapter<A, MoveIterator<A>>(
                                MoveIterator<A>(std::addressof(dealias))),
                            1);
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
   }
 
   // `InlinedVector::emplace_back(...)`
@@ -759,6 +814,73 @@ class InlinedVector {
   template <typename H, typename TheT, size_t TheN, typename TheA>
   friend H AbslHashValue(H h, const absl::InlinedVector<TheT, TheN, TheA>& a);
 
+  void MoveAssignment(MemcpyPolicy, InlinedVector&& other) {
+    // Assumption check: we shouldn't be told to use memcpy to implement move
+    // asignment unless we have trivially destructible elements and an allocator
+    // that does nothing fancy.
+    static_assert(absl::is_trivially_destructible<value_type>::value, "");
+    static_assert(std::is_same<A, std::allocator<value_type>>::value, "");
+
+    // Throw away our existing heap allocation, if any. There is no need to
+    // destroy the existing elements one by one because we know they are
+    // trivially destructible.
+    storage_.DeallocateIfAllocated();
+
+    // Adopt the other vector's inline elements or heap allocation.
+    storage_.MemcpyFrom(other.storage_);
+    other.storage_.SetInlinedSize(0);
+  }
+
+  // Destroy our existing elements, if any, and adopt the heap-allocated
+  // elements of the other vector.
+  //
+  // REQUIRES: other.storage_.GetIsAllocated()
+  void DestroyExistingAndAdopt(InlinedVector&& other) {
+    ABSL_HARDENING_ASSERT(other.storage_.GetIsAllocated());
+
+    inlined_vector_internal::DestroyAdapter<A>::DestroyElements(
+        storage_.GetAllocator(), data(), size());
+    storage_.DeallocateIfAllocated();
+
+    storage_.MemcpyFrom(other.storage_);
+    other.storage_.SetInlinedSize(0);
+  }
+
+  void MoveAssignment(ElementwiseAssignPolicy, InlinedVector&& other) {
+    // Fast path: if the other vector is on the heap then we don't worry about
+    // actually move-assigning each element. Instead we only throw away our own
+    // existing elements and adopt the heap allocation of the other vector.
+    if (other.storage_.GetIsAllocated()) {
+      DestroyExistingAndAdopt(std::move(other));
+      return;
+    }
+
+    storage_.Assign(IteratorValueAdapter<A, MoveIterator<A>>(
+                        MoveIterator<A>(other.storage_.GetInlinedData())),
+                    other.size());
+  }
+
+  void MoveAssignment(ElementwiseConstructPolicy, InlinedVector&& other) {
+    // Fast path: if the other vector is on the heap then we don't worry about
+    // actually move-assigning each element. Instead we only throw away our own
+    // existing elements and adopt the heap allocation of the other vector.
+    if (other.storage_.GetIsAllocated()) {
+      DestroyExistingAndAdopt(std::move(other));
+      return;
+    }
+
+    inlined_vector_internal::DestroyAdapter<A>::DestroyElements(
+        storage_.GetAllocator(), data(), size());
+    storage_.DeallocateIfAllocated();
+
+    IteratorValueAdapter<A, MoveIterator<A>> other_values(
+        MoveIterator<A>(other.storage_.GetInlinedData()));
+    inlined_vector_internal::ConstructElements<A>(
+        storage_.GetAllocator(), storage_.GetInlinedData(), other_values,
+        other.storage_.GetSize());
+    storage_.SetInlinedSize(other.storage_.GetSize());
+  }
+
   Storage storage_;
 };
 
@@ -783,7 +905,7 @@ bool operator==(const absl::InlinedVector<T, N, A>& a,
                 const absl::InlinedVector<T, N, A>& b) {
   auto a_data = a.data();
   auto b_data = b.data();
-  return absl::equal(a_data, a_data + a.size(), b_data, b_data + b.size());
+  return std::equal(a_data, a_data + a.size(), b_data, b_data + b.size());
 }
 
 // `operator!=(...)`
