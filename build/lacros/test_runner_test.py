@@ -80,10 +80,6 @@ class TestRunnerTest(unittest.TestCase):
   @mock.patch.object(os.path, 'exists', return_value=True)
   @mock.patch.object(os.path, 'isfile', return_value=True)
   @mock.patch.object(os.path, 'abspath', return_value='/a/b/filter')
-  @mock.patch.object(os.path, 'dirname', return_value='/some/dir')
-  @mock.patch.object(test_runner,
-                     '_GetAshChromeDirPath',
-                     return_value='/some/dir')
   @mock.patch.object(test_runner,
                      '_GetLatestVersionOfAshChrome',
                      return_value='793554')
@@ -101,11 +97,13 @@ class TestRunnerTest(unittest.TestCase):
       self.assertEqual(2, mock_popen.call_count)
 
       ash_chrome_args = mock_popen.call_args_list[0][0][0]
-      self.assertTrue(ash_chrome_args[0].endswith('/some/dir/test_ash_chrome'))
+      self.assertTrue(ash_chrome_args[0].endswith(
+          'build/lacros/prebuilt_ash_chrome/793554/test_ash_chrome'))
       expected_ash_chrome_args = [
           '--user-data-dir=/tmp/ash-data',
           '--enable-wayland-server',
           '--no-startup-window',
+          '--disable-input-event-activation-protection',
           '--disable-lacros-keep-alive',
           '--disable-login-lacros-opening',
           '--enable-field-trial-config',
@@ -128,8 +126,7 @@ class TestRunnerTest(unittest.TestCase):
             command,
             '--test-launcher-filter-file=/a/b/filter',
             '--lacros-mojo-socket-for-testing=/tmp/ash-data/lacros.sock',
-            '--ash-chrome-path=/some/dir/test_ash_chrome',
-            '--ash-user-data-dir=/tmp/ash-data',
+            '--ash-chrome-path=' + ash_chrome_args[0],
         ], test_args)
       else:
         self.assertListEqual(test_args[:len(command_parts)], command_parts)
