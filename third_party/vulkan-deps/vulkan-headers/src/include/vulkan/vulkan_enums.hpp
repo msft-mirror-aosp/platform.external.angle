@@ -1095,6 +1095,9 @@ namespace VULKAN_HPP_NAMESPACE
     ePhysicalDeviceShaderCoreBuiltinsPropertiesARM               = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CORE_BUILTINS_PROPERTIES_ARM,
     ePhysicalDevicePipelineLibraryGroupHandlesFeaturesEXT        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_LIBRARY_GROUP_HANDLES_FEATURES_EXT,
     ePhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT  = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
+    ePhysicalDeviceCooperativeMatrixFeaturesKHR                  = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_FEATURES_KHR,
+    eCooperativeMatrixPropertiesKHR                              = VK_STRUCTURE_TYPE_COOPERATIVE_MATRIX_PROPERTIES_KHR,
+    ePhysicalDeviceCooperativeMatrixPropertiesKHR                = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_PROPERTIES_KHR,
     ePhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM       = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PER_VIEW_RENDER_AREAS_FEATURES_QCOM,
     eMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM          = VK_STRUCTURE_TYPE_MULTIVIEW_PER_VIEW_RENDER_AREAS_RENDER_PASS_BEGIN_INFO_QCOM,
     ePhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ATTACHMENT_FEEDBACK_LOOP_DYNAMIC_STATE_FEATURES_EXT,
@@ -3752,6 +3755,7 @@ namespace VULKAN_HPP_NAMESPACE
     eMeshShaderNV                     = VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_NV,
     eTaskShaderEXT                    = VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT,
     eMeshShaderEXT                    = VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT,
+    eSubpassShaderHUAWEI              = VK_PIPELINE_STAGE_2_SUBPASS_SHADER_BIT_HUAWEI,
     eSubpassShadingHUAWEI             = VK_PIPELINE_STAGE_2_SUBPASS_SHADING_BIT_HUAWEI,
     eInvocationMaskHUAWEI             = VK_PIPELINE_STAGE_2_INVOCATION_MASK_BIT_HUAWEI,
     eAccelerationStructureCopyKHR     = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_COPY_BIT_KHR,
@@ -3783,7 +3787,7 @@ namespace VULKAN_HPP_NAMESPACE
       | PipelineStageFlagBits2::eTransformFeedbackEXT | PipelineStageFlagBits2::eConditionalRenderingEXT | PipelineStageFlagBits2::eCommandPreprocessNV |
       PipelineStageFlagBits2::eFragmentShadingRateAttachmentKHR | PipelineStageFlagBits2::eAccelerationStructureBuildKHR |
       PipelineStageFlagBits2::eRayTracingShaderKHR | PipelineStageFlagBits2::eFragmentDensityProcessEXT | PipelineStageFlagBits2::eTaskShaderEXT |
-      PipelineStageFlagBits2::eMeshShaderEXT | PipelineStageFlagBits2::eSubpassShadingHUAWEI | PipelineStageFlagBits2::eInvocationMaskHUAWEI |
+      PipelineStageFlagBits2::eMeshShaderEXT | PipelineStageFlagBits2::eSubpassShaderHUAWEI | PipelineStageFlagBits2::eInvocationMaskHUAWEI |
       PipelineStageFlagBits2::eAccelerationStructureCopyKHR | PipelineStageFlagBits2::eMicromapBuildEXT | PipelineStageFlagBits2::eClusterCullingShaderHUAWEI |
       PipelineStageFlagBits2::eOpticalFlowNV;
   };
@@ -6631,6 +6635,31 @@ namespace VULKAN_HPP_NAMESPACE
   {
     eNone    = VK_RAY_TRACING_INVOCATION_REORDER_MODE_NONE_NV,
     eReorder = VK_RAY_TRACING_INVOCATION_REORDER_MODE_REORDER_NV
+  };
+
+  //=== VK_KHR_cooperative_matrix ===
+
+  enum class ScopeKHR
+  {
+    eDevice      = VK_SCOPE_DEVICE_KHR,
+    eWorkgroup   = VK_SCOPE_WORKGROUP_KHR,
+    eSubgroup    = VK_SCOPE_SUBGROUP_KHR,
+    eQueueFamily = VK_SCOPE_QUEUE_FAMILY_KHR
+  };
+
+  enum class ComponentTypeKHR
+  {
+    eFloat16 = VK_COMPONENT_TYPE_FLOAT16_KHR,
+    eFloat32 = VK_COMPONENT_TYPE_FLOAT32_KHR,
+    eFloat64 = VK_COMPONENT_TYPE_FLOAT64_KHR,
+    eSint8   = VK_COMPONENT_TYPE_SINT8_KHR,
+    eSint16  = VK_COMPONENT_TYPE_SINT16_KHR,
+    eSint32  = VK_COMPONENT_TYPE_SINT32_KHR,
+    eSint64  = VK_COMPONENT_TYPE_SINT64_KHR,
+    eUint8   = VK_COMPONENT_TYPE_UINT8_KHR,
+    eUint16  = VK_COMPONENT_TYPE_UINT16_KHR,
+    eUint32  = VK_COMPONENT_TYPE_UINT32_KHR,
+    eUint64  = VK_COMPONENT_TYPE_UINT64_KHR
   };
 
   //=========================
