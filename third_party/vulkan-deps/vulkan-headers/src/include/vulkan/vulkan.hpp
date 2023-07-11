@@ -114,7 +114,7 @@ extern "C" __declspec( dllimport ) FARPROC __stdcall GetProcAddress( HINSTANCE h
 #  include <span>
 #endif
 
-static_assert( VK_HEADER_VERSION == 254, "Wrong VK_HEADER_VERSION!" );
+static_assert( VK_HEADER_VERSION == 256, "Wrong VK_HEADER_VERSION!" );
 
 // 32-bit vulkan is not typesafe for non-dispatchable handles, so don't allow copy constructors on this platform by default.
 // To enable this feature on 32-bit platforms please define VULKAN_HPP_TYPESAFE_CONVERSION
@@ -189,7 +189,7 @@ static_assert( VK_HEADER_VERSION == 254, "Wrong VK_HEADER_VERSION!" );
 #  else
 #    define VULKAN_HPP_CONSTEXPR_14
 #  endif
-#  if ( 201907 <= __cpp_constexpr ) && ( !defined( __GNUC__ ) || ( 110300 < GCC_VERSION ) )
+#  if ( 201907 <= __cpp_constexpr ) && ( !defined( __GNUC__ ) || ( 110400 < GCC_VERSION ) )
 #    define VULKAN_HPP_CONSTEXPR_20 constexpr
 #  else
 #    define VULKAN_HPP_CONSTEXPR_20
@@ -1049,6 +1049,17 @@ namespace VULKAN_HPP_NAMESPACE
       return std::tie( get<T0>(), get<T1>(), get<Ts>()... );
     }
 
+    // assign a complete structure to the StructureChain without modifying the chaining
+    template <typename T = typename std::tuple_element<0, std::tuple<ChainElements...>>::type, size_t Which = 0>
+    StructureChain & assign( const T & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      T &    lhs   = get<T, Which>();
+      void * pNext = lhs.pNext;
+      lhs          = rhs;
+      lhs.pNext    = pNext;
+      return *this;
+    }
+
     template <typename ClassType, size_t Which = 0>
     typename std::enable_if<std::is_same<ClassType, typename std::tuple_element<0, std::tuple<ChainElements...>>::type>::value && ( Which == 0 ), bool>::type
       isLinked() const VULKAN_HPP_NOEXCEPT
@@ -1165,7 +1176,26 @@ namespace VULKAN_HPP_NAMESPACE
       }
     }
   };
+  // interupt the VULKAN_HPP_NAMESPACE for a moment to add specializations of std::tuple_size and std::tuple_element for the StructureChain!
+}
 
+namespace std
+{
+  template <typename... Elements>
+  struct tuple_size<VULKAN_HPP_NAMESPACE::StructureChain<Elements...>>
+  {
+    static constexpr size_t value = std::tuple_size<std::tuple<Elements...>>::value;
+  };
+
+  template <std::size_t Index, typename... Elements>
+  struct tuple_element<Index, VULKAN_HPP_NAMESPACE::StructureChain<Elements...>>
+  {
+    using type = typename std::tuple_element<Index, std::tuple<Elements...>>::type;
+  };
+}  // namespace std
+
+namespace VULKAN_HPP_NAMESPACE
+{
 #  if !defined( VULKAN_HPP_NO_SMART_HANDLE )
   template <typename Type, typename Dispatch>
   class UniqueHandleTraits;
@@ -5920,6 +5950,15 @@ namespace VULKAN_HPP_NAMESPACE
       return ::vkGetDynamicRenderingTilePropertiesQCOM( device, pRenderingInfo, pProperties );
     }
 
+    //=== VK_KHR_cooperative_matrix ===
+
+    VkResult vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR( VkPhysicalDevice                   physicalDevice,
+                                                                uint32_t *                         pPropertyCount,
+                                                                VkCooperativeMatrixPropertiesKHR * pProperties ) const VULKAN_HPP_NOEXCEPT
+    {
+      return ::vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR( physicalDevice, pPropertyCount, pProperties );
+    }
+
     //=== VK_EXT_attachment_feedback_loop_dynamic_state ===
 
     void vkCmdSetAttachmentFeedbackLoopEnableEXT( VkCommandBuffer commandBuffer, VkImageAspectFlags aspectMask ) const VULKAN_HPP_NOEXCEPT
@@ -5982,7 +6021,7 @@ namespace VULKAN_HPP_NAMESPACE
       }
   extern VULKAN_HPP_STORAGE_API DispatchLoaderDynamic defaultDispatchLoaderDynamic;
 #  else
-  static inline ::VULKAN_HPP_NAMESPACE::DispatchLoaderStatic & getDispatchLoaderStatic()
+  inline ::VULKAN_HPP_NAMESPACE::DispatchLoaderStatic & getDispatchLoaderStatic()
   {
     static ::VULKAN_HPP_NAMESPACE::DispatchLoaderStatic dls;
     return dls;
@@ -6595,9 +6634,9 @@ namespace VULKAN_HPP_NAMESPACE
     IncompatibleShaderBinaryEXTError( char const * message ) : SystemError( make_error_code( Result::eErrorIncompatibleShaderBinaryEXT ), message ) {}
   };
 
-  namespace
+  namespace detail
   {
-    [[noreturn]] void throwResultException( Result result, char const * message )
+    [[noreturn]] VULKAN_HPP_INLINE void throwResultException( Result result, char const * message )
     {
       switch ( result )
       {
@@ -6643,7 +6682,7 @@ namespace VULKAN_HPP_NAMESPACE
         default: throw SystemError( make_error_code( result ), message );
       }
     }
-  }  // namespace
+  }  // namespace detail
 #endif
 
   template <typename T>
@@ -6695,7 +6734,14 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-    std::tuple<Result, UniqueHandle<Type, Dispatch>> asTuple()
+    VULKAN_HPP_DEPRECATED(
+      "asTuple() on an l-value is deprecated, as it implicitly moves the UniqueHandle out of the ResultValue. Use asTuple() on an r-value instead, requiring to explicitly move the UniqueHandle." )
+    std::tuple<Result, UniqueHandle<Type, Dispatch>> asTuple() &
+    {
+      return std::make_tuple( result, std::move( value ) );
+    }
+
+    std::tuple<Result, UniqueHandle<Type, Dispatch>> asTuple() &&
     {
       return std::make_tuple( result, std::move( value ) );
     }
@@ -6717,7 +6763,14 @@ namespace VULKAN_HPP_NAMESPACE
     {
     }
 
-    std::tuple<Result, std::vector<UniqueHandle<Type, Dispatch>>> asTuple()
+    VULKAN_HPP_DEPRECATED(
+      "asTuple() on an l-value is deprecated, as it implicitly moves the UniqueHandle out of the ResultValue. Use asTuple() on an r-value instead, requiring to explicitly move the UniqueHandle." )
+    std::tuple<Result, std::vector<UniqueHandle<Type, Dispatch>>> asTuple() &
+    {
+      return std::make_tuple( result, std::move( value ) );
+    }
+
+    std::tuple<Result, std::vector<UniqueHandle<Type, Dispatch>>> asTuple() &&
     {
       return std::make_tuple( result, std::move( value ) );
     }
@@ -6787,7 +6840,7 @@ namespace VULKAN_HPP_NAMESPACE
 #else
     if ( result != Result::eSuccess )
     {
-      throwResultException( result, message );
+      detail::throwResultException( result, message );
     }
 #endif
   }
@@ -6802,10 +6855,96 @@ namespace VULKAN_HPP_NAMESPACE
 #else
     if ( std::find( successCodes.begin(), successCodes.end(), result ) == successCodes.end() )
     {
-      throwResultException( result, message );
+      detail::throwResultException( result, message );
     }
 #endif
   }
+
+  //=========================================
+  //=== CONSTEXPR CONSTANTs AND FUNCTIONs ===
+  //=========================================
+  VULKAN_HPP_CONSTEXPR uint32_t AttachmentUnused                 = VK_ATTACHMENT_UNUSED;
+  VULKAN_HPP_CONSTEXPR uint32_t False                            = VK_FALSE;
+  VULKAN_HPP_CONSTEXPR float    LodClampNone                     = VK_LOD_CLAMP_NONE;
+  VULKAN_HPP_CONSTEXPR uint32_t LuidSize                         = VK_LUID_SIZE;
+  VULKAN_HPP_CONSTEXPR uint32_t MaxDescriptionSize               = VK_MAX_DESCRIPTION_SIZE;
+  VULKAN_HPP_CONSTEXPR uint32_t MaxDeviceGroupSize               = VK_MAX_DEVICE_GROUP_SIZE;
+  VULKAN_HPP_CONSTEXPR uint32_t MaxDriverInfoSize                = VK_MAX_DRIVER_INFO_SIZE;
+  VULKAN_HPP_CONSTEXPR uint32_t MaxDriverNameSize                = VK_MAX_DRIVER_NAME_SIZE;
+  VULKAN_HPP_CONSTEXPR uint32_t MaxExtensionNameSize             = VK_MAX_EXTENSION_NAME_SIZE;
+  VULKAN_HPP_CONSTEXPR uint32_t MaxGlobalPrioritySizeKhr         = VK_MAX_GLOBAL_PRIORITY_SIZE_KHR;
+  VULKAN_HPP_CONSTEXPR uint32_t MaxMemoryHeaps                   = VK_MAX_MEMORY_HEAPS;
+  VULKAN_HPP_CONSTEXPR uint32_t MaxMemoryTypes                   = VK_MAX_MEMORY_TYPES;
+  VULKAN_HPP_CONSTEXPR uint32_t MaxPhysicalDeviceNameSize        = VK_MAX_PHYSICAL_DEVICE_NAME_SIZE;
+  VULKAN_HPP_CONSTEXPR uint32_t MaxShaderModuleIdentifierSizeExt = VK_MAX_SHADER_MODULE_IDENTIFIER_SIZE_EXT;
+  VULKAN_HPP_CONSTEXPR uint32_t QueueFamilyExternal              = VK_QUEUE_FAMILY_EXTERNAL;
+  VULKAN_HPP_CONSTEXPR uint32_t QueueFamilyForeignExt            = VK_QUEUE_FAMILY_FOREIGN_EXT;
+  VULKAN_HPP_CONSTEXPR uint32_t QueueFamilyIgnored               = VK_QUEUE_FAMILY_IGNORED;
+  VULKAN_HPP_CONSTEXPR uint32_t Remaining3DSlicesExt             = VK_REMAINING_3D_SLICES_EXT;
+  VULKAN_HPP_CONSTEXPR uint32_t RemainingArrayLayers             = VK_REMAINING_ARRAY_LAYERS;
+  VULKAN_HPP_CONSTEXPR uint32_t RemainingMipLevels               = VK_REMAINING_MIP_LEVELS;
+  VULKAN_HPP_CONSTEXPR uint32_t ShaderUnusedKhr                  = VK_SHADER_UNUSED_KHR;
+  VULKAN_HPP_CONSTEXPR uint32_t SubpassExternal                  = VK_SUBPASS_EXTERNAL;
+  VULKAN_HPP_CONSTEXPR uint32_t True                             = VK_TRUE;
+  VULKAN_HPP_CONSTEXPR uint32_t UuidSize                         = VK_UUID_SIZE;
+  VULKAN_HPP_CONSTEXPR uint64_t WholeSize                        = VK_WHOLE_SIZE;
+  VULKAN_HPP_CONSTEXPR uint32_t HeaderVersion                    = VK_HEADER_VERSION;
+  template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+  VULKAN_HPP_CONSTEXPR uint32_t apiVersionMajor( T const version )
+  {
+    return ( ( ( uint32_t )( version ) >> 22U ) & 0x7FU );
+  }
+  template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+  VULKAN_HPP_CONSTEXPR uint32_t apiVersionMinor( T const version )
+  {
+    return ( ( ( uint32_t )( version ) >> 12U ) & 0x3FFU );
+  }
+  template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+  VULKAN_HPP_CONSTEXPR uint32_t apiVersionPatch( T const version )
+  {
+    return ( ( uint32_t )(version)&0xFFFU );
+  }
+  template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+  VULKAN_HPP_CONSTEXPR uint32_t apiVersionVariant( T const version )
+  {
+    return ( ( uint32_t )( version ) >> 29U );
+  }
+  template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+  VULKAN_HPP_CONSTEXPR uint32_t makeApiVersion( T const variant, T const major, T const minor, T const patch )
+  {
+    return ( ( ( ( uint32_t )( variant ) ) << 29U ) | ( ( ( uint32_t )( major ) ) << 22U ) | ( ( ( uint32_t )( minor ) ) << 12U ) | ( ( uint32_t )( patch ) ) );
+  }
+  template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+  VULKAN_HPP_DEPRECATED( "This define is deprecated. VK_MAKE_API_VERSION should be used instead." )
+  VULKAN_HPP_CONSTEXPR uint32_t makeVersion( T const major, T const minor, T const patch )
+  {
+    return ( ( ( ( uint32_t )( major ) ) << 22U ) | ( ( ( uint32_t )( minor ) ) << 12U ) | ( ( uint32_t )( patch ) ) );
+  }
+  template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+  VULKAN_HPP_DEPRECATED( "This define is deprecated. VK_API_VERSION_MAJOR should be used instead." )
+  VULKAN_HPP_CONSTEXPR uint32_t versionMajor( T const version )
+  {
+    return ( ( uint32_t )( version ) >> 22U );
+  }
+  template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+  VULKAN_HPP_DEPRECATED( "This define is deprecated. VK_API_VERSION_MINOR should be used instead." )
+  VULKAN_HPP_CONSTEXPR uint32_t versionMinor( T const version )
+  {
+    return ( ( ( uint32_t )( version ) >> 12U ) & 0x3FFU );
+  }
+  template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+  VULKAN_HPP_DEPRECATED( "This define is deprecated. VK_API_VERSION_PATCH should be used instead." )
+  VULKAN_HPP_CONSTEXPR uint32_t versionPatch( T const version )
+  {
+    return ( ( uint32_t )(version)&0xFFFU );
+  }
+  VULKAN_HPP_CONSTEXPR auto ApiVersion            = makeApiVersion( 0, 1, 0, 0 );
+  VULKAN_HPP_CONSTEXPR auto ApiVersion10          = makeApiVersion( 0, 1, 0, 0 );
+  VULKAN_HPP_CONSTEXPR auto ApiVersion11          = makeApiVersion( 0, 1, 1, 0 );
+  VULKAN_HPP_CONSTEXPR auto ApiVersion12          = makeApiVersion( 0, 1, 2, 0 );
+  VULKAN_HPP_CONSTEXPR auto ApiVersion13          = makeApiVersion( 0, 1, 3, 0 );
+  VULKAN_HPP_CONSTEXPR auto HeaderVersionComplete = makeApiVersion( 0, 1, 3, VK_HEADER_VERSION );
+
 }  // namespace VULKAN_HPP_NAMESPACE
 
 // clang-format off
@@ -12910,6 +13049,32 @@ namespace VULKAN_HPP_NAMESPACE
     };
   };
 
+  //=== VK_KHR_cooperative_matrix ===
+  template <>
+  struct StructExtends<PhysicalDeviceCooperativeMatrixFeaturesKHR, PhysicalDeviceFeatures2>
+  {
+    enum
+    {
+      value = true
+    };
+  };
+  template <>
+  struct StructExtends<PhysicalDeviceCooperativeMatrixFeaturesKHR, DeviceCreateInfo>
+  {
+    enum
+    {
+      value = true
+    };
+  };
+  template <>
+  struct StructExtends<PhysicalDeviceCooperativeMatrixPropertiesKHR, PhysicalDeviceProperties2>
+  {
+    enum
+    {
+      value = true
+    };
+  };
+
   //=== VK_QCOM_multiview_per_view_render_areas ===
   template <>
   struct StructExtends<PhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM, PhysicalDeviceFeatures2>
@@ -14165,6 +14330,9 @@ namespace VULKAN_HPP_NAMESPACE
     //=== VK_QCOM_tile_properties ===
     PFN_vkGetFramebufferTilePropertiesQCOM      vkGetFramebufferTilePropertiesQCOM      = 0;
     PFN_vkGetDynamicRenderingTilePropertiesQCOM vkGetDynamicRenderingTilePropertiesQCOM = 0;
+
+    //=== VK_KHR_cooperative_matrix ===
+    PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR = 0;
 
     //=== VK_EXT_attachment_feedback_loop_dynamic_state ===
     PFN_vkCmdSetAttachmentFeedbackLoopEnableEXT vkCmdSetAttachmentFeedbackLoopEnableEXT = 0;
@@ -15471,6 +15639,10 @@ namespace VULKAN_HPP_NAMESPACE
       vkGetFramebufferTilePropertiesQCOM = PFN_vkGetFramebufferTilePropertiesQCOM( vkGetInstanceProcAddr( instance, "vkGetFramebufferTilePropertiesQCOM" ) );
       vkGetDynamicRenderingTilePropertiesQCOM =
         PFN_vkGetDynamicRenderingTilePropertiesQCOM( vkGetInstanceProcAddr( instance, "vkGetDynamicRenderingTilePropertiesQCOM" ) );
+
+      //=== VK_KHR_cooperative_matrix ===
+      vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR =
+        PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR( vkGetInstanceProcAddr( instance, "vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR" ) );
 
       //=== VK_EXT_attachment_feedback_loop_dynamic_state ===
       vkCmdSetAttachmentFeedbackLoopEnableEXT =
