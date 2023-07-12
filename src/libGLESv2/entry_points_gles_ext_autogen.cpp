@@ -15,6 +15,7 @@
 #include "libANGLE/Context.h"
 #include "libANGLE/Context.inl.h"
 #include "libANGLE/capture/capture_gles_ext_autogen.h"
+#include "libANGLE/context_local_call_gles_autogen.h"
 #include "libANGLE/entry_points_utils.h"
 #include "libANGLE/validationESEXT.h"
 #include "libGLESv2/global_state.h"
@@ -1006,14 +1007,13 @@ void GL_APIENTRY GL_LogicOpANGLE(GLenum opcode)
     if (context)
     {
         LogicalOperation opcodePacked = PackParam<LogicalOperation>(opcode);
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              (ValidatePixelLocalStorageInactive(context, angle::EntryPoint::GLLogicOpANGLE) &&
               ValidateLogicOpANGLE(context, angle::EntryPoint::GLLogicOpANGLE, opcodePacked)));
         if (isCallValid)
         {
-            context->logicOpANGLE(opcodePacked);
+            ContextLocalLogicOpANGLE(context, opcodePacked);
         }
         ANGLE_CAPTURE_GL(LogicOpANGLE, isCallValid, context, opcodePacked);
     }
@@ -1445,7 +1445,6 @@ void GL_APIENTRY GL_PolygonModeANGLE(GLenum face, GLenum mode)
     if (context)
     {
         PolygonMode modePacked = PackParam<PolygonMode>(mode);
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              (ValidatePixelLocalStorageInactive(context, angle::EntryPoint::GLPolygonModeANGLE) &&
@@ -1453,7 +1452,7 @@ void GL_APIENTRY GL_PolygonModeANGLE(GLenum face, GLenum mode)
                                        modePacked)));
         if (isCallValid)
         {
-            context->polygonMode(face, modePacked);
+            ContextLocalPolygonMode(context, face, modePacked);
         }
         ANGLE_CAPTURE_GL(PolygonModeANGLE, isCallValid, context, face, modePacked);
     }
@@ -1477,14 +1476,13 @@ void GL_APIENTRY GL_ProvokingVertexANGLE(GLenum provokeMode)
     {
         ProvokingVertexConvention provokeModePacked =
             PackParam<ProvokingVertexConvention>(provokeMode);
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateProvokingVertexANGLE(context, angle::EntryPoint::GLProvokingVertexANGLE,
                                           provokeModePacked));
         if (isCallValid)
         {
-            context->provokingVertex(provokeModePacked);
+            ContextLocalProvokingVertex(context, provokeModePacked);
         }
         ANGLE_CAPTURE_GL(ProvokingVertexANGLE, isCallValid, context, provokeModePacked);
     }
@@ -4498,7 +4496,6 @@ void GL_APIENTRY GL_SampleMaskiANGLE(GLuint maskNumber, GLbitfield mask)
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              (ValidatePixelLocalStorageInactive(context, angle::EntryPoint::GLSampleMaskiANGLE) &&
@@ -4506,7 +4503,7 @@ void GL_APIENTRY GL_SampleMaskiANGLE(GLuint maskNumber, GLbitfield mask)
                                        mask)));
         if (isCallValid)
         {
-            context->sampleMaski(maskNumber, mask);
+            ContextLocalSampleMaski(context, maskNumber, mask);
         }
         ANGLE_CAPTURE_GL(SampleMaskiANGLE, isCallValid, context, maskNumber, mask);
     }
@@ -4827,7 +4824,6 @@ void GL_APIENTRY GL_CoverageModulationCHROMIUM(GLenum components)
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              (ValidatePixelLocalStorageInactive(context,
@@ -4836,7 +4832,7 @@ void GL_APIENTRY GL_CoverageModulationCHROMIUM(GLenum components)
                   context, angle::EntryPoint::GLCoverageModulationCHROMIUM, components)));
         if (isCallValid)
         {
-            context->coverageModulation(components);
+            ContextLocalCoverageModulation(context, components);
         }
         ANGLE_CAPTURE_GL(CoverageModulationCHROMIUM, isCallValid, context, components);
     }
@@ -5260,13 +5256,12 @@ void GL_APIENTRY GL_ClipControlEXT(GLenum origin, GLenum depth)
     {
         ClipOrigin originPacked   = PackParam<ClipOrigin>(origin);
         ClipDepthMode depthPacked = PackParam<ClipDepthMode>(depth);
-        SCOPED_SHARE_CONTEXT_LOCK(context);
-        bool isCallValid = (context->skipValidation() ||
+        bool isCallValid          = (context->skipValidation() ||
                             ValidateClipControlEXT(context, angle::EntryPoint::GLClipControlEXT,
-                                                   originPacked, depthPacked));
+                                                            originPacked, depthPacked));
         if (isCallValid)
         {
-            context->clipControl(originPacked, depthPacked);
+            ContextLocalClipControl(context, originPacked, depthPacked);
         }
         ANGLE_CAPTURE_GL(ClipControlEXT, isCallValid, context, originPacked, depthPacked);
     }
@@ -6002,13 +5997,12 @@ void GL_APIENTRY GL_ColorMaskiEXT(GLuint index, GLboolean r, GLboolean g, GLbool
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateColorMaskiEXT(context, angle::EntryPoint::GLColorMaskiEXT, index, r, g, b, a));
         if (isCallValid)
         {
-            context->colorMaski(index, r, g, b, a);
+            ContextLocalColorMaski(context, index, r, g, b, a);
         }
         ANGLE_CAPTURE_GL(ColorMaskiEXT, isCallValid, context, index, r, g, b, a);
     }
@@ -6027,13 +6021,12 @@ void GL_APIENTRY GL_DisableiEXT(GLenum target, GLuint index)
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateDisableiEXT(context, angle::EntryPoint::GLDisableiEXT, target, index));
         if (isCallValid)
         {
-            context->disablei(target, index);
+            ContextLocalDisablei(context, target, index);
         }
         ANGLE_CAPTURE_GL(DisableiEXT, isCallValid, context, target, index);
     }
@@ -6052,13 +6045,12 @@ void GL_APIENTRY GL_EnableiEXT(GLenum target, GLuint index)
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateEnableiEXT(context, angle::EntryPoint::GLEnableiEXT, target, index));
         if (isCallValid)
         {
-            context->enablei(target, index);
+            ContextLocalEnablei(context, target, index);
         }
         ANGLE_CAPTURE_GL(EnableiEXT, isCallValid, context, target, index);
     }
@@ -7178,14 +7170,13 @@ void GL_APIENTRY GL_PolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidatePolygonOffsetClampEXT(context, angle::EntryPoint::GLPolygonOffsetClampEXT,
                                            factor, units, clamp));
         if (isCallValid)
         {
-            context->polygonOffsetClamp(factor, units, clamp);
+            ContextLocalPolygonOffsetClamp(context, factor, units, clamp);
         }
         ANGLE_CAPTURE_GL(PolygonOffsetClampEXT, isCallValid, context, factor, units, clamp);
     }
@@ -7214,7 +7205,6 @@ void GL_APIENTRY GL_PrimitiveBoundingBoxEXT(GLfloat minX,
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              (ValidatePixelLocalStorageInactive(context,
@@ -7223,7 +7213,8 @@ void GL_APIENTRY GL_PrimitiveBoundingBoxEXT(GLfloat minX,
                                               minX, minY, minZ, minW, maxX, maxY, maxZ, maxW)));
         if (isCallValid)
         {
-            context->primitiveBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
+            ContextLocalPrimitiveBoundingBox(context, minX, minY, minZ, minW, maxX, maxY, maxZ,
+                                             maxW);
         }
         ANGLE_CAPTURE_GL(PrimitiveBoundingBoxEXT, isCallValid, context, minX, minY, minZ, minW,
                          maxX, maxY, maxZ, maxW);
@@ -10383,7 +10374,6 @@ void GL_APIENTRY GL_PolygonModeNV(GLenum face, GLenum mode)
     if (context)
     {
         PolygonMode modePacked = PackParam<PolygonMode>(mode);
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              (ValidatePixelLocalStorageInactive(context, angle::EntryPoint::GLPolygonModeNV) &&
@@ -10391,7 +10381,7 @@ void GL_APIENTRY GL_PolygonModeNV(GLenum face, GLenum mode)
                                     modePacked)));
         if (isCallValid)
         {
-            context->polygonModeNV(face, modePacked);
+            ContextLocalPolygonModeNV(context, face, modePacked);
         }
         ANGLE_CAPTURE_GL(PolygonModeNV, isCallValid, context, face, modePacked);
     }
@@ -10666,13 +10656,12 @@ void GL_APIENTRY GL_ColorMaskiOES(GLuint index, GLboolean r, GLboolean g, GLbool
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateColorMaskiOES(context, angle::EntryPoint::GLColorMaskiOES, index, r, g, b, a));
         if (isCallValid)
         {
-            context->colorMaski(index, r, g, b, a);
+            ContextLocalColorMaski(context, index, r, g, b, a);
         }
         ANGLE_CAPTURE_GL(ColorMaskiOES, isCallValid, context, index, r, g, b, a);
     }
@@ -10691,13 +10680,12 @@ void GL_APIENTRY GL_DisableiOES(GLenum target, GLuint index)
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateDisableiOES(context, angle::EntryPoint::GLDisableiOES, target, index));
         if (isCallValid)
         {
-            context->disablei(target, index);
+            ContextLocalDisablei(context, target, index);
         }
         ANGLE_CAPTURE_GL(DisableiOES, isCallValid, context, target, index);
     }
@@ -10716,13 +10704,12 @@ void GL_APIENTRY GL_EnableiOES(GLenum target, GLuint index)
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              ValidateEnableiOES(context, angle::EntryPoint::GLEnableiOES, target, index));
         if (isCallValid)
         {
-            context->enablei(target, index);
+            ContextLocalEnablei(context, target, index);
         }
         ANGLE_CAPTURE_GL(EnableiOES, isCallValid, context, target, index);
     }
@@ -11945,7 +11932,6 @@ void GL_APIENTRY GL_PrimitiveBoundingBoxOES(GLfloat minX,
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              (ValidatePixelLocalStorageInactive(context,
@@ -11954,7 +11940,8 @@ void GL_APIENTRY GL_PrimitiveBoundingBoxOES(GLfloat minX,
                                               minX, minY, minZ, minW, maxX, maxY, maxZ, maxW)));
         if (isCallValid)
         {
-            context->primitiveBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
+            ContextLocalPrimitiveBoundingBox(context, minX, minY, minZ, minW, maxX, maxY, maxZ,
+                                             maxW);
         }
         ANGLE_CAPTURE_GL(PrimitiveBoundingBoxOES, isCallValid, context, minX, minY, minZ, minW,
                          maxX, maxY, maxZ, maxW);
@@ -12012,7 +11999,6 @@ void GL_APIENTRY GL_MinSampleShadingOES(GLfloat value)
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid = (context->skipValidation() ||
                             (ValidatePixelLocalStorageInactive(
                                  context, angle::EntryPoint::GLMinSampleShadingOES) &&
@@ -12020,7 +12006,7 @@ void GL_APIENTRY GL_MinSampleShadingOES(GLfloat value)
                                  context, angle::EntryPoint::GLMinSampleShadingOES, value)));
         if (isCallValid)
         {
-            context->minSampleShading(value);
+            ContextLocalMinSampleShading(context, value);
         }
         ANGLE_CAPTURE_GL(MinSampleShadingOES, isCallValid, context, value);
     }
@@ -13089,14 +13075,13 @@ void GL_APIENTRY GL_ShadingRateQCOM(GLenum rate)
 
     if (context)
     {
-        SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
              (ValidatePixelLocalStorageInactive(context, angle::EntryPoint::GLShadingRateQCOM) &&
               ValidateShadingRateQCOM(context, angle::EntryPoint::GLShadingRateQCOM, rate)));
         if (isCallValid)
         {
-            context->shadingRateQCOM(rate);
+            ContextLocalShadingRate(context, rate);
         }
         ANGLE_CAPTURE_GL(ShadingRateQCOM, isCallValid, context, rate);
     }

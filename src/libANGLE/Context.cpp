@@ -46,6 +46,7 @@
 #include "libANGLE/VertexArray.h"
 #include "libANGLE/capture/FrameCapture.h"
 #include "libANGLE/capture/serialize.h"
+#include "libANGLE/context_local_call_gles_autogen.h"
 #include "libANGLE/formatutils.h"
 #include "libANGLE/queryconversions.h"
 #include "libANGLE/queryutils.h"
@@ -997,8 +998,8 @@ egl::Error Context::makeCurrent(egl::Display *display,
             height = drawSurface->getHeight();
         }
 
-        mState.setViewportParams(0, 0, width, height);
-        mState.setScissorParams(0, 0, width, height);
+        ContextLocalViewport(this, 0, 0, width, height);
+        ContextLocalScissor(this, 0, 0, width, height);
 
         mHasBeenCurrent = true;
     }
@@ -2976,11 +2977,6 @@ void Context::bindUniformLocation(ShaderProgramID program,
     ASSERT(programObject);
 
     programObject->bindUniformLocation(location, name);
-}
-
-void Context::coverageModulation(GLenum components)
-{
-    mState.setCoverageModulation(components);
 }
 
 GLuint Context::getProgramResourceIndex(ShaderProgramID program,
@@ -5955,11 +5951,6 @@ void Context::activeShaderProgram(ProgramPipelineID pipeline, ShaderProgramID pr
     programPipeline->activeShaderProgram(shaderProgram);
 }
 
-void Context::activeTexture(GLenum texture)
-{
-    mState.setActiveSampler(texture - GL_TEXTURE0);
-}
-
 void Context::blendBarrier()
 {
     mImplementation->blendBarrier();
@@ -6028,99 +6019,16 @@ void Context::blendFuncSeparatei(GLuint buf,
     }
 }
 
-void Context::clearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
-{
-    mState.setColorClearValue(red, green, blue, alpha);
-}
-
-void Context::clearDepthf(GLfloat depth)
-{
-    mState.setDepthClearValue(clamp01(depth));
-}
-
-void Context::clearStencil(GLint s)
-{
-    mState.setStencilClearValue(s);
-}
-
-void Context::colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
-{
-    mState.setColorMask(ConvertToBool(red), ConvertToBool(green), ConvertToBool(blue),
-                        ConvertToBool(alpha));
-    mStateCache.onColorMaskChange(this);
-}
-
-void Context::colorMaski(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
-{
-    mState.setColorMaskIndexed(ConvertToBool(r), ConvertToBool(g), ConvertToBool(b),
-                               ConvertToBool(a), index);
-    mStateCache.onColorMaskChange(this);
-}
-
-void Context::cullFace(CullFaceMode mode)
-{
-    mState.setCullMode(mode);
-}
-
-void Context::depthFunc(GLenum func)
-{
-    mState.setDepthFunc(func);
-}
-
-void Context::depthMask(GLboolean flag)
-{
-    mState.setDepthMask(ConvertToBool(flag));
-}
-
-void Context::depthRangef(GLfloat zNear, GLfloat zFar)
-{
-    mState.setDepthRange(clamp01(zNear), clamp01(zFar));
-}
-
-void Context::clipControl(ClipOrigin originPacked, ClipDepthMode depthPacked)
-{
-    mState.setClipControl(originPacked, depthPacked);
-}
-
-void Context::disable(GLenum cap)
-{
-    mState.setEnableFeature(cap, false);
-    mStateCache.onContextCapChange(this);
-}
-
-void Context::disablei(GLenum target, GLuint index)
-{
-    mState.setEnableFeatureIndexed(target, false, index);
-    mStateCache.onContextCapChange(this);
-}
-
 void Context::disableVertexAttribArray(GLuint index)
 {
     mState.setEnableVertexAttribArray(index, false);
     mStateCache.onVertexArrayStateChange(this);
 }
 
-void Context::enable(GLenum cap)
-{
-    mState.setEnableFeature(cap, true);
-    mStateCache.onContextCapChange(this);
-}
-
-void Context::enablei(GLenum target, GLuint index)
-{
-    mState.setEnableFeatureIndexed(target, true, index);
-    mStateCache.onContextCapChange(this);
-}
-
 void Context::enableVertexAttribArray(GLuint index)
 {
     mState.setEnableVertexAttribArray(index, true);
     mStateCache.onVertexArrayStateChange(this);
-}
-
-void Context::frontFace(GLenum mode)
-{
-    mState.setFrontFace(mode);
 }
 
 void Context::hint(GLenum target, GLenum mode)
@@ -6139,7 +6047,7 @@ void Context::hint(GLenum target, GLenum mode)
         case GL_POINT_SMOOTH_HINT:
         case GL_LINE_SMOOTH_HINT:
         case GL_FOG_HINT:
-            mState.gles1().setHint(target, mode);
+            getMutableGLES1State()->setHint(target, mode);
             break;
         case GL_TEXTURE_FILTERING_HINT_CHROMIUM:
             mState.setTextureFilteringHint(mode);
@@ -6148,11 +6056,6 @@ void Context::hint(GLenum target, GLenum mode)
             UNREACHABLE();
             return;
     }
-}
-
-void Context::lineWidth(GLfloat width)
-{
-    mState.setLineWidth(width);
 }
 
 void Context::pixelStorei(GLenum pname, GLint param)
@@ -6217,47 +6120,6 @@ void Context::pixelStorei(GLenum pname, GLint param)
     }
 }
 
-void Context::polygonMode(GLenum face, PolygonMode modePacked)
-{
-    ASSERT(face == GL_FRONT_AND_BACK);
-    mState.setPolygonMode(modePacked);
-}
-
-void Context::polygonModeNV(GLenum face, PolygonMode modePacked)
-{
-    polygonMode(face, modePacked);
-}
-
-void Context::polygonOffset(GLfloat factor, GLfloat units)
-{
-    mState.setPolygonOffsetParams(factor, units, 0.0f);
-}
-
-void Context::polygonOffsetClamp(GLfloat factor, GLfloat units, GLfloat clamp)
-{
-    mState.setPolygonOffsetParams(factor, units, clamp);
-}
-
-void Context::sampleCoverage(GLfloat value, GLboolean invert)
-{
-    mState.setSampleCoverageParams(clamp01(value), ConvertToBool(invert));
-}
-
-void Context::sampleMaski(GLuint maskNumber, GLbitfield mask)
-{
-    mState.setSampleMaskParams(maskNumber, mask);
-}
-
-void Context::scissor(GLint x, GLint y, GLsizei width, GLsizei height)
-{
-    mState.setScissorParams(x, y, width, height);
-}
-
-void Context::shadingRateQCOM(GLenum rate)
-{
-    mState.setShadingRate(rate);
-}
-
 void Context::stencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
 {
     GLint clampedRef = gl::clamp(ref, 0, std::numeric_limits<uint8_t>::max());
@@ -6300,61 +6162,6 @@ void Context::stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum z
     {
         mState.setStencilBackOperations(fail, zfail, zpass);
     }
-}
-
-void Context::vertexAttrib1f(GLuint index, GLfloat x)
-{
-    GLfloat vals[4] = {x, 0, 0, 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib1fv(GLuint index, const GLfloat *values)
-{
-    GLfloat vals[4] = {values[0], 0, 0, 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib2f(GLuint index, GLfloat x, GLfloat y)
-{
-    GLfloat vals[4] = {x, y, 0, 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib2fv(GLuint index, const GLfloat *values)
-{
-    GLfloat vals[4] = {values[0], values[1], 0, 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib3f(GLuint index, GLfloat x, GLfloat y, GLfloat z)
-{
-    GLfloat vals[4] = {x, y, z, 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib3fv(GLuint index, const GLfloat *values)
-{
-    GLfloat vals[4] = {values[0], values[1], values[2], 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib4f(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
-{
-    GLfloat vals[4] = {x, y, z, w};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib4fv(GLuint index, const GLfloat *values)
-{
-    mState.setVertexAttribf(index, values);
-    mStateCache.onDefaultVertexAttributeChange(this);
 }
 
 void Context::vertexAttribPointer(GLuint index,
@@ -6401,11 +6208,6 @@ void Context::vertexBindingDivisor(GLuint bindingIndex, GLuint divisor)
     mStateCache.onVertexArrayFormatChange(this);
 }
 
-void Context::viewport(GLint x, GLint y, GLsizei width, GLsizei height)
-{
-    mState.setViewportParams(x, y, width, height);
-}
-
 void Context::vertexAttribIPointer(GLuint index,
                                    GLint size,
                                    VertexAttribType type,
@@ -6415,32 +6217,6 @@ void Context::vertexAttribIPointer(GLuint index,
     mState.setVertexAttribIPointer(this, index, mState.getTargetBuffer(BufferBinding::Array), size,
                                    type, stride, pointer);
     mStateCache.onVertexArrayStateChange(this);
-}
-
-void Context::vertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w)
-{
-    GLint vals[4] = {x, y, z, w};
-    mState.setVertexAttribi(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttribI4ui(GLuint index, GLuint x, GLuint y, GLuint z, GLuint w)
-{
-    GLuint vals[4] = {x, y, z, w};
-    mState.setVertexAttribu(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttribI4iv(GLuint index, const GLint *v)
-{
-    mState.setVertexAttribi(index, v);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttribI4uiv(GLuint index, const GLuint *v)
-{
-    mState.setVertexAttribu(index, v);
-    mStateCache.onDefaultVertexAttributeChange(this);
 }
 
 void Context::getVertexAttribivImpl(GLuint index, GLenum pname, GLint *params) const
@@ -6593,18 +6369,6 @@ void Context::popDebugGroup()
 {
     mState.getDebug().popGroup();
     ANGLE_CONTEXT_TRY(mImplementation->popDebugGroup(this));
-}
-
-void Context::primitiveBoundingBox(GLfloat minX,
-                                   GLfloat minY,
-                                   GLfloat minZ,
-                                   GLfloat minW,
-                                   GLfloat maxX,
-                                   GLfloat maxY,
-                                   GLfloat maxZ,
-                                   GLfloat maxW)
-{
-    mState.setBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
 }
 
 void Context::bufferStorage(BufferBinding target,
@@ -7266,11 +7030,6 @@ void Context::multiDrawElementsInstancedBaseVertexBaseInstance(PrimitiveMode mod
     ANGLE_CONTEXT_TRY(prepareForDraw(mode));
     ANGLE_CONTEXT_TRY(mImplementation->multiDrawElementsInstancedBaseVertexBaseInstance(
         this, mode, counts, type, indices, instanceCounts, baseVertices, baseInstances, drawcount));
-}
-
-void Context::provokingVertex(ProvokingVertexConvention provokeMode)
-{
-    mState.setProvokingVertex(provokeMode);
 }
 
 GLenum Context::checkFramebufferStatus(GLenum target)
@@ -8551,11 +8310,6 @@ void Context::deleteSamplers(GLsizei count, const SamplerID *samplers)
 
         mState.mSamplerManager->deleteObject(this, sampler);
     }
-}
-
-void Context::minSampleShading(GLfloat value)
-{
-    mState.setMinSampleShading(value);
 }
 
 void Context::getInternalformativ(GLenum target,
@@ -10179,9 +9933,11 @@ void Context::getRenderbufferImage(GLenum target, GLenum format, GLenum type, vo
                                                          format, type, pixels));
 }
 
-void Context::logicOpANGLE(LogicalOperation opcodePacked)
+void Context::setLogicOpEnabledForGLES1(bool enabled)
 {
-    mState.setLogicOp(opcodePacked);
+    // Same implementation as ContextLocalEnable(GL_COLOR_LOGIC_OP), without the GLES1 forwarding.
+    getMutableLocalState()->setLogicOpEnabled(enabled);
+    onContextLocalCapChange();
 }
 
 egl::Error Context::releaseHighPowerGPU()
@@ -10216,7 +9972,7 @@ void Context::dirtyAllState()
 {
     mState.setAllDirtyBits();
     mState.setAllDirtyObjects();
-    mState.gles1().setAllDirty();
+    getMutableGLES1State()->setAllDirty();
 }
 
 void Context::finishImmutable() const
@@ -10502,7 +10258,8 @@ StateCache::StateCache()
       mCachedBasicDrawElementsError(kInvalidPointer),
       mCachedProgramPipelineError(kInvalidPointer),
       mCachedTransformFeedbackActiveUnpaused(false),
-      mCachedCanDraw(false)
+      mCachedCanDraw(false),
+      mIsCachedBasicDrawStatesErrorValid(true)
 {
     mCachedValidDrawModes.fill(false);
 }
@@ -10617,8 +10374,9 @@ void StateCache::updateBasicDrawElementsError()
 
 intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context) const
 {
-    ASSERT(mCachedBasicDrawStatesErrorString == kInvalidPointer);
-    ASSERT(mCachedBasicDrawStatesErrorCode == GL_NO_ERROR);
+    ASSERT(mCachedBasicDrawStatesErrorString == kInvalidPointer ||
+           !mIsCachedBasicDrawStatesErrorValid);
+    ASSERT(mCachedBasicDrawStatesErrorCode == GL_NO_ERROR || !mIsCachedBasicDrawStatesErrorValid);
 
     // Only assign the error code after ValidateDrawStates has completed. ValidateDrawStates calls
     // updateBasicDrawStatesError in some cases and resets the value mid-call.
@@ -10632,6 +10390,7 @@ intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context) const
     ASSERT((mCachedBasicDrawStatesErrorString == 0) ==
            (mCachedBasicDrawStatesErrorCode == GL_NO_ERROR));
 
+    mIsCachedBasicDrawStatesErrorValid = true;
     return mCachedBasicDrawStatesErrorString;
 }
 
@@ -10704,9 +10463,9 @@ void StateCache::onDrawFramebufferChange(Context *context)
     updateBasicDrawStatesError();
 }
 
-void StateCache::onContextCapChange(Context *context)
+void StateCache::onContextLocalCapChange(Context *context)
 {
-    updateBasicDrawStatesError();
+    mIsCachedBasicDrawStatesErrorValid = false;
 }
 
 void StateCache::onStencilStateChange(Context *context)
@@ -10714,9 +10473,9 @@ void StateCache::onStencilStateChange(Context *context)
     updateBasicDrawStatesError();
 }
 
-void StateCache::onDefaultVertexAttributeChange(Context *context)
+void StateCache::onContextLocalDefaultVertexAttributeChange(Context *context)
 {
-    updateBasicDrawStatesError();
+    mIsCachedBasicDrawStatesErrorValid = false;
 }
 
 void StateCache::onActiveTextureChange(Context *context)
@@ -10752,9 +10511,9 @@ void StateCache::onShaderStorageBufferStateChange(Context *context)
     updateBasicDrawStatesError();
 }
 
-void StateCache::onColorMaskChange(Context *context)
+void StateCache::onContextLocalColorMaskChange(Context *context)
 {
-    updateBasicDrawStatesError();
+    mIsCachedBasicDrawStatesErrorValid = false;
 }
 
 void StateCache::onBlendFuncIndexedChange(Context *context)
@@ -10824,10 +10583,13 @@ void StateCache::updateValidDrawModes(Context *context)
 
     if (!programExecutable || !programExecutable->hasLinkedShaderStage(ShaderType::Geometry))
     {
+        bool adjacencyOK =
+            (context->getExtensions().geometryShaderAny() || context->getClientVersion() >= ES_3_2);
+
         // All draw modes are valid, since drawing without a program does not generate an error and
-        // and operations requiring a GS will trigger other validation errors.
+        // operations requiring a GS will trigger other validation errors.
         // `patchOK = false` due to checking above already enabling it if a TS is present.
-        setValidDrawModes(true, true, true, true, true, false);
+        setValidDrawModes(true, true, true, adjacencyOK, adjacencyOK, false);
         return;
     }
 
