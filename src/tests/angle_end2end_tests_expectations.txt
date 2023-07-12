@@ -403,6 +403,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 7316 WIN D3D11 : StateChangeTestES3.StencilTestAndFunc/* = SKIP
 7329 WIN D3D11 : StateChangeTestES3.PrimitiveRestart/* = SKIP
 8100 WIN D3D11 : WebGL2GLSLTest.InitOutputParams/* = SKIP
+1456243 WIN D3D11 : WebGL2CompatibilityTest.DrawWithZeroSizedBuffer/* = SKIP
 
 // Android
 6095 ANDROID GLES : GLSLTest_ES3.InitGlobalComplexConstant/* = SKIP
@@ -508,6 +509,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 7703 PIXEL4ORXL GLES : FramebufferFetchES31.ProgramPipeline* = SKIP
 7703 PIXEL4ORXL GLES : FramebufferFetchES31.DrawNonFetchDrawFetchInStorageBuffer* = SKIP
 2046 PIXEL4ORXL GLES : WebGL2GLSLTest.InitOutputParams/* = SKIP
+8250 PIXEL4ORXL GLES : GLSLTest_ES3.ComplexConstructor/* = SKIP
 
 3423 PIXEL4ORXL VULKAN : ClearTestES3.MaskedClearBufferBug/* = SKIP
 3423 PIXEL4ORXL VULKAN : DrawBuffersWebGL2Test.TwoProgramsWithDifferentOutputsAndClear/* = SKIP
@@ -705,6 +707,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 7653 IOS : Texture3DTestES2.CopySubImageAlpha/ES2_OpenGL = SKIP
 7653 IOS : Texture3DTestES2.CopySubImageLuminance/ES2_OpenGL = SKIP
 7653 IOS : Texture3DTestES2.CopySubImageRGBA/ES2_OpenGL = SKIP
+7653 IOS : Texture3DTestES2.DefineTexture2DArrayShouldFail/ES2_OpenGL = SKIP
 7653 IOS : Texture3DTestES2.Luminance/ES2_OpenGL = SKIP
 7653 IOS : Texture3DTestES2.RGBA/ES2_OpenGL = SKIP
 7653 IOS : TransformFeedbackTest.RenderOnceChangeXfbBufferRenderAgain/ES3_OpenGL = SKIP
