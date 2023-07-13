@@ -12,11 +12,6 @@
 
 #define ANGLE_GLES_3_2_CONTEXT_API                                                                 \
     void blendBarrier();                                                                           \
-    void blendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha);                     \
-    void blendEquationi(GLuint buf, GLenum mode);                                                  \
-    void blendFuncSeparatei(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha,             \
-                            GLenum dstAlpha);                                                      \
-    void blendFunci(GLuint buf, GLenum src, GLenum dst);                                           \
     void copyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX,            \
                           GLint srcY, GLint srcZ, GLuint dstName, GLenum dstTarget,                \
                           GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ, GLsizei srcWidth,    \
@@ -55,10 +50,8 @@
                        GLsizei bufSize, GLint *params);                                            \
     void getnUniformuiv(ShaderProgramID programPacked, UniformLocation locationPacked,             \
                         GLsizei bufSize, GLuint *params);                                          \
-    GLboolean isEnabledi(GLenum target, GLuint index) const;                                       \
     void objectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar *label);         \
     void objectPtrLabel(const void *ptr, GLsizei length, const GLchar *label);                     \
-    void patchParameteri(GLenum pname, GLint value);                                               \
     void popDebugGroup();                                                                          \
     void pushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message);          \
     void readnPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,  \
