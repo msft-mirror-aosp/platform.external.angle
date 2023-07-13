@@ -7609,6 +7609,12 @@ filegroup {
         "src/android_system_settings/src/com/android/angle/common/SearchProvider.java",
     ],
 }
+prebuilt_etc {
+    name: "android.software.angle.xml",
+    src: "android/android.software.angle.xml",
+    product_specific: true,
+    sub_dir: "permissions",
+}
 java_defaults {
     name: "ANGLE_java_defaults",
     sdk_version: "system_current",
@@ -7631,6 +7637,9 @@ java_defaults {
     privileged: true,
     product_specific: true,
     owner: "google",
+    required: [
+        "android.software.angle.xml",
+    ],
 }
 android_library {
     name: "ANGLE_library",
