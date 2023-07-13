@@ -21,6 +21,7 @@
 #include "source/opcode.h"
 #include "source/spirv_constant.h"
 #include "source/spirv_target_env.h"
+#include "source/util/make_unique.h"
 #include "source/val/basic_block.h"
 #include "source/val/construct.h"
 #include "source/val/function.h"
@@ -1000,6 +1001,23 @@ bool ValidationState_t::IsUnsignedIntVectorType(uint32_t id) const {
   const Instruction* inst = FindDef(id);
   if (!inst) {
     return false;
+  }
+
+  if (inst->opcode() == spv::Op::OpTypeVector) {
+    return IsUnsignedIntScalarType(GetComponentType(id));
+  }
+
+  return false;
+}
+
+bool ValidationState_t::IsUnsignedIntScalarOrVectorType(uint32_t id) const {
+  const Instruction* inst = FindDef(id);
+  if (!inst) {
+    return false;
+  }
+
+  if (inst->opcode() == spv::Op::OpTypeInt) {
+    return inst->GetOperandAs<uint32_t>(2) == 0;
   }
 
   if (inst->opcode() == spv::Op::OpTypeVector) {
