@@ -46,7 +46,7 @@
 #include "libANGLE/VertexArray.h"
 #include "libANGLE/capture/FrameCapture.h"
 #include "libANGLE/capture/serialize.h"
-#include "libANGLE/context_local_call_gles_autogen.h"
+#include "libANGLE/context_private_call_gles_autogen.h"
 #include "libANGLE/formatutils.h"
 #include "libANGLE/queryconversions.h"
 #include "libANGLE/queryutils.h"
@@ -998,8 +998,10 @@ egl::Error Context::makeCurrent(egl::Display *display,
             height = drawSurface->getHeight();
         }
 
-        ContextLocalViewport(this, 0, 0, width, height);
-        ContextLocalScissor(this, 0, 0, width, height);
+        ContextPrivateViewport(getMutablePrivateState(), getMutablePrivateStateCache(), 0, 0, width,
+                               height);
+        ContextPrivateScissor(getMutablePrivateState(), getMutablePrivateStateCache(), 0, 0, width,
+                              height);
 
         mHasBeenCurrent = true;
     }
@@ -4118,6 +4120,9 @@ void Context::initCaps()
 
     // Apply/Verify implementation limits
     ANGLE_LIMIT_CAP(caps->maxDrawBuffers, IMPLEMENTATION_MAX_DRAW_BUFFERS);
+    ANGLE_LIMIT_CAP(caps->maxFramebufferWidth, IMPLEMENTATION_MAX_FRAMEBUFFER_SIZE);
+    ANGLE_LIMIT_CAP(caps->maxFramebufferHeight, IMPLEMENTATION_MAX_FRAMEBUFFER_SIZE);
+    ANGLE_LIMIT_CAP(caps->maxRenderbufferSize, IMPLEMENTATION_MAX_RENDERBUFFER_SIZE);
     ANGLE_LIMIT_CAP(caps->maxColorAttachments, IMPLEMENTATION_MAX_DRAW_BUFFERS);
     ANGLE_LIMIT_CAP(caps->maxVertexAttributes, MAX_VERTEX_ATTRIBS);
     ANGLE_LIMIT_CAP(caps->maxVertexAttribStride,
@@ -5956,69 +5961,6 @@ void Context::blendBarrier()
     mImplementation->blendBarrier();
 }
 
-void Context::blendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
-{
-    mState.setBlendColor(red, green, blue, alpha);
-}
-
-void Context::blendEquation(GLenum mode)
-{
-    mState.setBlendEquation(mode, mode);
-
-    mStateCache.onBlendEquationChange(this);
-}
-
-void Context::blendEquationi(GLuint buf, GLenum mode)
-{
-    mState.setBlendEquationIndexed(mode, mode, buf);
-
-    mStateCache.onBlendEquationChange(this);
-}
-
-void Context::blendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
-{
-    mState.setBlendEquation(modeRGB, modeAlpha);
-}
-
-void Context::blendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
-{
-    mState.setBlendEquationIndexed(modeRGB, modeAlpha, buf);
-}
-
-void Context::blendFunc(GLenum sfactor, GLenum dfactor)
-{
-    mState.setBlendFactors(sfactor, dfactor, sfactor, dfactor);
-}
-
-void Context::blendFunci(GLuint buf, GLenum src, GLenum dst)
-{
-    mState.setBlendFactorsIndexed(src, dst, src, dst, buf);
-
-    if (mState.noSimultaneousConstantColorAndAlphaBlendFunc())
-    {
-        mStateCache.onBlendFuncIndexedChange(this);
-    }
-}
-
-void Context::blendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
-{
-    mState.setBlendFactors(srcRGB, dstRGB, srcAlpha, dstAlpha);
-}
-
-void Context::blendFuncSeparatei(GLuint buf,
-                                 GLenum srcRGB,
-                                 GLenum dstRGB,
-                                 GLenum srcAlpha,
-                                 GLenum dstAlpha)
-{
-    mState.setBlendFactorsIndexed(srcRGB, dstRGB, srcAlpha, dstAlpha, buf);
-
-    if (mState.noSimultaneousConstantColorAndAlphaBlendFunc())
-    {
-        mStateCache.onBlendFuncIndexedChange(this);
-    }
-}
-
 void Context::disableVertexAttribArray(GLuint index)
 {
     mState.setEnableVertexAttribArray(index, false);
@@ -6029,139 +5971,6 @@ void Context::enableVertexAttribArray(GLuint index)
 {
     mState.setEnableVertexAttribArray(index, true);
     mStateCache.onVertexArrayStateChange(this);
-}
-
-void Context::hint(GLenum target, GLenum mode)
-{
-    switch (target)
-    {
-        case GL_GENERATE_MIPMAP_HINT:
-            mState.setGenerateMipmapHint(mode);
-            break;
-
-        case GL_FRAGMENT_SHADER_DERIVATIVE_HINT_OES:
-            mState.setFragmentShaderDerivativeHint(mode);
-            break;
-
-        case GL_PERSPECTIVE_CORRECTION_HINT:
-        case GL_POINT_SMOOTH_HINT:
-        case GL_LINE_SMOOTH_HINT:
-        case GL_FOG_HINT:
-            getMutableGLES1State()->setHint(target, mode);
-            break;
-        case GL_TEXTURE_FILTERING_HINT_CHROMIUM:
-            mState.setTextureFilteringHint(mode);
-            break;
-        default:
-            UNREACHABLE();
-            return;
-    }
-}
-
-void Context::pixelStorei(GLenum pname, GLint param)
-{
-    switch (pname)
-    {
-        case GL_UNPACK_ALIGNMENT:
-            mState.setUnpackAlignment(param);
-            break;
-
-        case GL_PACK_ALIGNMENT:
-            mState.setPackAlignment(param);
-            break;
-
-        case GL_PACK_REVERSE_ROW_ORDER_ANGLE:
-            mState.setPackReverseRowOrder(param != 0);
-            break;
-
-        case GL_UNPACK_ROW_LENGTH:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().unpackSubimageEXT);
-            mState.setUnpackRowLength(param);
-            break;
-
-        case GL_UNPACK_IMAGE_HEIGHT:
-            ASSERT(getClientMajorVersion() >= 3);
-            mState.setUnpackImageHeight(param);
-            break;
-
-        case GL_UNPACK_SKIP_IMAGES:
-            ASSERT(getClientMajorVersion() >= 3);
-            mState.setUnpackSkipImages(param);
-            break;
-
-        case GL_UNPACK_SKIP_ROWS:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().unpackSubimageEXT);
-            mState.setUnpackSkipRows(param);
-            break;
-
-        case GL_UNPACK_SKIP_PIXELS:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().unpackSubimageEXT);
-            mState.setUnpackSkipPixels(param);
-            break;
-
-        case GL_PACK_ROW_LENGTH:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().packSubimageNV);
-            mState.setPackRowLength(param);
-            break;
-
-        case GL_PACK_SKIP_ROWS:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().packSubimageNV);
-            mState.setPackSkipRows(param);
-            break;
-
-        case GL_PACK_SKIP_PIXELS:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().packSubimageNV);
-            mState.setPackSkipPixels(param);
-            break;
-
-        default:
-            UNREACHABLE();
-            return;
-    }
-}
-
-void Context::stencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
-{
-    GLint clampedRef = gl::clamp(ref, 0, std::numeric_limits<uint8_t>::max());
-    if (face == GL_FRONT || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilParams(func, clampedRef, mask);
-    }
-
-    if (face == GL_BACK || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilBackParams(func, clampedRef, mask);
-    }
-
-    mStateCache.onStencilStateChange(this);
-}
-
-void Context::stencilMaskSeparate(GLenum face, GLuint mask)
-{
-    if (face == GL_FRONT || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilWritemask(mask);
-    }
-
-    if (face == GL_BACK || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilBackWritemask(mask);
-    }
-
-    mStateCache.onStencilStateChange(this);
-}
-
-void Context::stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass)
-{
-    if (face == GL_FRONT || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilOperations(fail, zfail, zpass);
-    }
-
-    if (face == GL_BACK || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilBackOperations(fail, zfail, zpass);
-    }
 }
 
 void Context::vertexAttribPointer(GLuint index,
@@ -7012,6 +6821,16 @@ void Context::multiDrawArraysInstancedBaseInstance(PrimitiveMode mode,
         this, mode, firsts, counts, instanceCounts, baseInstances, drawcount));
 }
 
+void Context::multiDrawElementsBaseVertex(PrimitiveMode mode,
+                                          const GLsizei *count,
+                                          DrawElementsType type,
+                                          const void *const *indices,
+                                          GLsizei drawcount,
+                                          const GLint *basevertex)
+{
+    UNIMPLEMENTED();
+}
+
 void Context::multiDrawElementsInstancedBaseVertexBaseInstance(PrimitiveMode mode,
                                                                const GLsizei *counts,
                                                                DrawElementsType type,
@@ -7464,16 +7283,6 @@ GLboolean Context::isBuffer(BufferID buffer) const
     return ConvertToGLBoolean(getBuffer(buffer));
 }
 
-GLboolean Context::isEnabled(GLenum cap) const
-{
-    return mState.getEnableFeature(cap);
-}
-
-GLboolean Context::isEnabledi(GLenum target, GLuint index) const
-{
-    return mState.getEnableFeatureIndexed(target, index);
-}
-
 GLboolean Context::isFramebuffer(FramebufferID framebuffer) const
 {
     if (framebuffer.value == 0)
@@ -7586,33 +7395,6 @@ void Context::shaderSource(ShaderProgramID shader,
     Shader *shaderObject = getShader(shader);
     ASSERT(shaderObject);
     shaderObject->setSource(this, count, string, length);
-}
-
-void Context::stencilFunc(GLenum func, GLint ref, GLuint mask)
-{
-    stencilFuncSeparate(GL_FRONT_AND_BACK, func, ref, mask);
-}
-
-void Context::stencilMask(GLuint mask)
-{
-    stencilMaskSeparate(GL_FRONT_AND_BACK, mask);
-}
-
-void Context::stencilOp(GLenum fail, GLenum zfail, GLenum zpass)
-{
-    stencilOpSeparate(GL_FRONT_AND_BACK, fail, zfail, zpass);
-}
-
-void Context::patchParameteri(GLenum pname, GLint value)
-{
-    switch (pname)
-    {
-        case GL_PATCH_VERTICES:
-            mState.setPatchVertices(value);
-            break;
-        default:
-            break;
-    }
 }
 
 Program *Context::getActiveLinkedProgram() const
@@ -9935,9 +9717,9 @@ void Context::getRenderbufferImage(GLenum target, GLenum format, GLenum type, vo
 
 void Context::setLogicOpEnabledForGLES1(bool enabled)
 {
-    // Same implementation as ContextLocalEnable(GL_COLOR_LOGIC_OP), without the GLES1 forwarding.
-    getMutableLocalState()->setLogicOpEnabled(enabled);
-    onContextLocalCapChange();
+    // Same implementation as ContextPrivateEnable(GL_COLOR_LOGIC_OP), without the GLES1 forwarding.
+    getMutablePrivateState()->setLogicOpEnabled(enabled);
+    getMutablePrivateStateCache()->onCapChange();
 }
 
 egl::Error Context::releaseHighPowerGPU()
@@ -10258,8 +10040,7 @@ StateCache::StateCache()
       mCachedBasicDrawElementsError(kInvalidPointer),
       mCachedProgramPipelineError(kInvalidPointer),
       mCachedTransformFeedbackActiveUnpaused(false),
-      mCachedCanDraw(false),
-      mIsCachedBasicDrawStatesErrorValid(true)
+      mCachedCanDraw(false)
 {
     mCachedValidDrawModes.fill(false);
 }
@@ -10372,11 +10153,13 @@ void StateCache::updateBasicDrawElementsError()
     mCachedBasicDrawElementsError = kInvalidPointer;
 }
 
-intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context) const
+intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context,
+                                                 const PrivateStateCache *privateStateCache) const
 {
     ASSERT(mCachedBasicDrawStatesErrorString == kInvalidPointer ||
-           !mIsCachedBasicDrawStatesErrorValid);
-    ASSERT(mCachedBasicDrawStatesErrorCode == GL_NO_ERROR || !mIsCachedBasicDrawStatesErrorValid);
+           !privateStateCache->isCachedBasicDrawStatesErrorValid());
+    ASSERT(mCachedBasicDrawStatesErrorCode == GL_NO_ERROR ||
+           !privateStateCache->isCachedBasicDrawStatesErrorValid());
 
     // Only assign the error code after ValidateDrawStates has completed. ValidateDrawStates calls
     // updateBasicDrawStatesError in some cases and resets the value mid-call.
@@ -10390,7 +10173,7 @@ intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context) const
     ASSERT((mCachedBasicDrawStatesErrorString == 0) ==
            (mCachedBasicDrawStatesErrorCode == GL_NO_ERROR));
 
-    mIsCachedBasicDrawStatesErrorValid = true;
+    privateStateCache->setCachedBasicDrawStatesErrorValid();
     return mCachedBasicDrawStatesErrorString;
 }
 
@@ -10463,21 +10246,6 @@ void StateCache::onDrawFramebufferChange(Context *context)
     updateBasicDrawStatesError();
 }
 
-void StateCache::onContextLocalCapChange(Context *context)
-{
-    mIsCachedBasicDrawStatesErrorValid = false;
-}
-
-void StateCache::onStencilStateChange(Context *context)
-{
-    updateBasicDrawStatesError();
-}
-
-void StateCache::onContextLocalDefaultVertexAttributeChange(Context *context)
-{
-    mIsCachedBasicDrawStatesErrorValid = false;
-}
-
 void StateCache::onActiveTextureChange(Context *context)
 {
     updateBasicDrawStatesError();
@@ -10507,21 +10275,6 @@ void StateCache::onAtomicCounterBufferStateChange(Context *context)
 }
 
 void StateCache::onShaderStorageBufferStateChange(Context *context)
-{
-    updateBasicDrawStatesError();
-}
-
-void StateCache::onContextLocalColorMaskChange(Context *context)
-{
-    mIsCachedBasicDrawStatesErrorValid = false;
-}
-
-void StateCache::onBlendFuncIndexedChange(Context *context)
-{
-    updateBasicDrawStatesError();
-}
-
-void StateCache::onBlendEquationChange(Context *context)
 {
     updateBasicDrawStatesError();
 }
@@ -10729,4 +10482,16 @@ void StateCache::updateCanDraw(Context *context)
         (context->isGLES1() || (context->getState().getProgramExecutable() &&
                                 context->getState().getProgramExecutable()->hasVertexShader()));
 }
+
+bool StateCache::isCurrentContext(const Context *context,
+                                  const PrivateStateCache *privateStateCache) const
+{
+    // Ensure that the state cache is not queried by any context other than the one that owns it.
+    return &context->getStateCache() == this &&
+           &context->getPrivateStateCache() == privateStateCache;
+}
+
+PrivateStateCache::PrivateStateCache() : mIsCachedBasicDrawStatesErrorValid(true) {}
+
+PrivateStateCache::~PrivateStateCache() = default;
 }  // namespace gl

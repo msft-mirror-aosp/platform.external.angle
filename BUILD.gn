@@ -716,8 +716,7 @@ template("translator_lib") {
         _needs_glsl_and_vulkan_base = true
         _uses_spirv = true
 
-        # This translator is needed by metal backend also.
-        sources += angle_translator_lib_vulkan_sources
+        sources += angle_translator_lib_spirv_sources
       }
 
       if (angle_enable_vulkan || use_fuzzing_engine) {
@@ -725,7 +724,7 @@ template("translator_lib") {
       }
 
       if (angle_enable_metal) {
-        sources += angle_translator_lib_metal_sources
+        sources += angle_translator_lib_msl_sources
         defines += [ "ANGLE_ENABLE_METAL" ]
       }
     }
@@ -1029,6 +1028,7 @@ angle_source_set("libANGLE_no_vulkan") {
   defines = []
   if (angle_enable_gl_desktop_frontend) {
     defines += [ "ANGLE_ENABLE_GL_DESKTOP_FRONTEND" ]
+    sources += libangle_gl_sources
   }
 
   include_dirs = []

@@ -116,6 +116,34 @@ enum class VertexAttribTypeCase
     ValidSize3or4  = 3,
 };
 
+// Part of StateCache (see below) that is private to the context and is inaccessible to other
+// contexts.
+class PrivateStateCache final : angle::NonCopyable
+{
+  public:
+    PrivateStateCache();
+    ~PrivateStateCache();
+
+    void onCapChange() { mIsCachedBasicDrawStatesErrorValid = false; }
+    void onColorMaskChange() { mIsCachedBasicDrawStatesErrorValid = false; }
+    void onDefaultVertexAttributeChange() { mIsCachedBasicDrawStatesErrorValid = false; }
+    void onBlendFuncIndexedChange() { mIsCachedBasicDrawStatesErrorValid = false; }
+    void onBlendEquationChange() { mIsCachedBasicDrawStatesErrorValid = false; }
+    void onStencilStateChange() { mIsCachedBasicDrawStatesErrorValid = false; }
+
+    bool isCachedBasicDrawStatesErrorValid() const { return mIsCachedBasicDrawStatesErrorValid; }
+    void setCachedBasicDrawStatesErrorValid() const { mIsCachedBasicDrawStatesErrorValid = true; }
+
+  private:
+    // StateCache::mCachedBasicDrawStatesError* may be invalidated through numerous calls (see the
+    // comment on getBasicDrawStatesErrorString), some of which may originate from other contexts
+    // (through the observer interface).  However, ContextPrivate* helpers may also need to
+    // invalidate the draw states, but they are called without holding the share group lock.  The
+    // following tracks whether StateCache::mCachedBasicDrawStatesError* values are valid and is
+    // accessed only by the context itself.
+    mutable bool mIsCachedBasicDrawStatesErrorValid;
+};
+
 // Helper class for managing cache variables and state changes.
 class StateCache final : angle::NonCopyable
 {
@@ -155,25 +183,31 @@ class StateCache final : angle::NonCopyable
     // 4. onVertexArrayStateChange.
     // 5. onVertexArrayBufferStateChange.
     // 6. onDrawFramebufferChange.
-    // 7. onContextLocalCapChange.
-    // 8. onStencilStateChange.
-    // 9. onContextLocalDefaultVertexAttributeChange.
-    // 10. onActiveTextureChange.
-    // 11. onQueryChange.
-    // 12. onActiveTransformFeedbackChange.
-    // 13. onUniformBufferStateChange.
-    // 14. onContextLocalColorMaskChange.
-    // 15. onBufferBindingChange.
-    // 16. onBlendFuncIndexedChange.
-    intptr_t getBasicDrawStatesErrorString(const Context *context) const
+    // 7. onActiveTextureChange.
+    // 8. onQueryChange.
+    // 9. onActiveTransformFeedbackChange.
+    // 10. onUniformBufferStateChange.
+    // 11. onBufferBindingChange.
+    //
+    // Additionally, the following in PrivateStateCache can lead to updateBasicDrawStatesError:
+    // 1. onCapChange.
+    // 2. onStencilStateChange.
+    // 3. onDefaultVertexAttributeChange.
+    // 4. onColorMaskChange.
+    // 5. onBlendFuncIndexedChange.
+    // 6. onBlendEquationChange.
+    intptr_t getBasicDrawStatesErrorString(const Context *context,
+                                           const PrivateStateCache *privateStateCache) const
     {
-        if (mIsCachedBasicDrawStatesErrorValid &&
+        // This is only ever called with the context that owns this state cache
+        ASSERT(isCurrentContext(context, privateStateCache));
+        if (privateStateCache->isCachedBasicDrawStatesErrorValid() &&
             mCachedBasicDrawStatesErrorString != kInvalidPointer)
         {
             return mCachedBasicDrawStatesErrorString;
         }
 
-        return getBasicDrawStatesErrorImpl(context);
+        return getBasicDrawStatesErrorImpl(context, privateStateCache);
     }
 
     // The GL error enum to use when generating errors due to failed draw states. Only valid if
@@ -275,7 +309,6 @@ class StateCache final : angle::NonCopyable
     void onVertexArrayBufferStateChange(Context *context);
     void onGLES1ClientStateChange(Context *context);
     void onDrawFramebufferChange(Context *context);
-    void onStencilStateChange(Context *context);
     void onActiveTextureChange(Context *context);
     void onQueryChange(Context *context);
     void onActiveTransformFeedbackChange(Context *context);
@@ -283,17 +316,10 @@ class StateCache final : angle::NonCopyable
     void onAtomicCounterBufferStateChange(Context *context);
     void onShaderStorageBufferStateChange(Context *context);
     void onBufferBindingChange(Context *context);
-    void onBlendFuncIndexedChange(Context *context);
-    void onBlendEquationChange(Context *context);
-    // The following state change notifications are only called from context-local state change
-    // functions.  They only affect the draw validation cache which is also context-local (i.e. not
-    // accessed by other contexts in the share group).  Note that context-local state change
-    // functions are called without holding the share group lock.
-    void onContextLocalCapChange(Context *context);
-    void onContextLocalColorMaskChange(Context *context);
-    void onContextLocalDefaultVertexAttributeChange(Context *context);
 
   private:
+    bool isCurrentContext(const Context *context, const PrivateStateCache *privateStateCache) const;
+
     // Cache update functions.
     void updateActiveAttribsMask(Context *context);
     void updateVertexElementLimits(Context *context);
@@ -317,7 +343,8 @@ class StateCache final : angle::NonCopyable
                            bool triAdjOK,
                            bool patchOK);
 
-    intptr_t getBasicDrawStatesErrorImpl(const Context *context) const;
+    intptr_t getBasicDrawStatesErrorImpl(const Context *context,
+                                         const PrivateStateCache *privateStateCache) const;
     intptr_t getProgramPipelineErrorImpl(const Context *context) const;
     intptr_t getBasicDrawElementsErrorImpl(const Context *context) const;
 
@@ -362,14 +389,6 @@ class StateCache final : angle::NonCopyable
         mCachedIntegerVertexAttribTypesValidation;
 
     bool mCachedCanDraw;
-
-    // mCachedBasicDrawStatesError* may be invalidated through numerous calls (see the comment on
-    // getBasicDrawStatesErrorString), some of which may originate from other contexts (through the
-    // observer interface).  However, ContextLocal* helpers may also need to invalidate the draw
-    // states, but they are called without holding the share group lock.  The following tracks
-    // whether mCachedBasicDrawStatesError* values are valid and is accessed only by the context
-    // itself.
-    mutable bool mIsCachedBasicDrawStatesErrorValid;
 };
 
 using VertexArrayMap       = ResourceMap<VertexArray, VertexArrayID>;
@@ -572,14 +591,8 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     bool isGLES1() const;
 
     // To be used **only** directly by the entry points.
-    LocalState *getMutableLocalState() { return mState.getMutableLocalState(); }
+    PrivateState *getMutablePrivateState() { return mState.getMutablePrivateState(); }
     GLES1State *getMutableGLES1State() { return mState.getMutableGLES1State(); }
-    void onContextLocalCapChange() { mStateCache.onContextLocalCapChange(this); }
-    void onContextLocalColorMaskChange() { mStateCache.onContextLocalColorMaskChange(this); }
-    void onContextLocalDefaultVertexAttributeChange()
-    {
-        mStateCache.onContextLocalDefaultVertexAttributeChange(this);
-    }
 
     bool skipValidation() const
     {
@@ -644,6 +657,9 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     const StateCache &getStateCache() const { return mStateCache; }
     StateCache &getStateCache() { return mStateCache; }
+
+    const PrivateStateCache &getPrivateStateCache() const { return mPrivateStateCache; }
+    PrivateStateCache *getMutablePrivateStateCache() { return &mPrivateStateCache; }
 
     void onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message) override;
 
@@ -715,9 +731,9 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     // This function acts as glEnable(GL_COLOR_LOGIC_OP), but it's called from the GLES1 emulation
     // code to implement logicOp using the non-GLES1 functionality (i.e. GL_ANGLE_logic_op).  The
-    // ContextLocalEnable() entry point implementation cannot be used (as ContextLocal* functions
-    // are typically used by other frontend-emulated features) because it forwards this back to
-    // GLES1.
+    // ContextPrivateEnable() entry point implementation cannot be used (as ContextPrivate*
+    // functions are typically used by other frontend-emulated features) because it forwards this
+    // back to GLES1.
     void setLogicOpEnabledForGLES1(bool enabled);
 
     // Needed by capture serialization logic that works with a "const" Context pointer.
@@ -871,6 +887,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     state::DirtyObjects mDrawDirtyObjects;
 
     StateCache mStateCache;
+    PrivateStateCache mPrivateStateCache;
 
     state::DirtyObjects mTexImageDirtyObjects;
     state::DirtyObjects mReadPixelsDirtyObjects;

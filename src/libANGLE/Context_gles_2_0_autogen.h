@@ -17,12 +17,6 @@
     void bindFramebuffer(GLenum target, FramebufferID framebufferPacked);                          \
     void bindRenderbuffer(GLenum target, RenderbufferID renderbufferPacked);                       \
     void bindTexture(TextureType targetPacked, TextureID texturePacked);                           \
-    void blendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);                      \
-    void blendEquation(GLenum mode);                                                               \
-    void blendEquationSeparate(GLenum modeRGB, GLenum modeAlpha);                                  \
-    void blendFunc(GLenum sfactor, GLenum dfactor);                                                \
-    void blendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha,              \
-                           GLenum dfactorAlpha);                                                   \
     void bufferData(BufferBinding targetPacked, GLsizeiptr size, const void *data,                 \
                     BufferUsage usagePacked);                                                      \
     void bufferSubData(BufferBinding targetPacked, GLintptr offset, GLsizeiptr size,               \
@@ -101,16 +95,13 @@
     void getVertexAttribPointerv(GLuint index, GLenum pname, void **pointer);                      \
     void getVertexAttribfv(GLuint index, GLenum pname, GLfloat *params);                           \
     void getVertexAttribiv(GLuint index, GLenum pname, GLint *params);                             \
-    void hint(GLenum target, GLenum mode);                                                         \
     GLboolean isBuffer(BufferID bufferPacked) const;                                               \
-    GLboolean isEnabled(GLenum cap) const;                                                         \
     GLboolean isFramebuffer(FramebufferID framebufferPacked) const;                                \
     GLboolean isProgram(ShaderProgramID programPacked) const;                                      \
     GLboolean isRenderbuffer(RenderbufferID renderbufferPacked) const;                             \
     GLboolean isShader(ShaderProgramID shaderPacked) const;                                        \
     GLboolean isTexture(TextureID texturePacked) const;                                            \
     void linkProgram(ShaderProgramID programPacked);                                               \
-    void pixelStorei(GLenum pname, GLint param);                                                   \
     void readPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type,   \
                     void *pixels);                                                                 \
     void releaseShaderCompiler();                                                                  \
@@ -119,12 +110,6 @@
                       const void *binary, GLsizei length);                                         \
     void shaderSource(ShaderProgramID shaderPacked, GLsizei count, const GLchar *const *string,    \
                       const GLint *length);                                                        \
-    void stencilFunc(GLenum func, GLint ref, GLuint mask);                                         \
-    void stencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask);                    \
-    void stencilMask(GLuint mask);                                                                 \
-    void stencilMaskSeparate(GLenum face, GLuint mask);                                            \
-    void stencilOp(GLenum fail, GLenum zfail, GLenum zpass);                                       \
-    void stencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass);               \
     void texImage2D(TextureTarget targetPacked, GLint level, GLint internalformat, GLsizei width,  \
                     GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels); \
     void texParameterf(TextureType targetPacked, GLenum pname, GLfloat param);                     \
