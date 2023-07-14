@@ -89,10 +89,12 @@ struct VertexAttribute;
 class ErrorSet : angle::NonCopyable
 {
   public:
-    explicit ErrorSet(Context *context);
+    explicit ErrorSet(Debug *debug,
+                      const angle::FrontendFeatures &frontendFeatures,
+                      const egl::AttributeMap &attribs);
     ~ErrorSet();
 
-    bool empty() const;
+    bool empty() const { return mHasAnyErrors.load(std::memory_order_relaxed) == 0; }
     GLenum popError();
 
     void handleError(GLenum errorCode,
@@ -102,10 +104,50 @@ class ErrorSet : angle::NonCopyable
                      unsigned int line);
 
     void validationError(angle::EntryPoint entryPoint, GLenum errorCode, const char *message);
+    ANGLE_FORMAT_PRINTF(4, 5)
+    void validationErrorF(angle::EntryPoint entryPoint, GLenum errorCode, const char *format, ...);
+
+    bool skipValidation() const
+    {
+        // Ensure we don't skip validation when context becomes lost, since implementations
+        // generally assume a non-lost context, non-null objects, etc.
+        ASSERT(!isContextLost() || !mSkipValidation);
+        return mSkipValidation.load(std::memory_order_relaxed) != 0;
+    }
+    void forceValidation() { mSkipValidation = 0; }
+
+    void markContextLost(GraphicsResetStatus status);
+    bool isContextLost() const { return mContextLost.load(std::memory_order_relaxed) != 0; }
+    GLenum getGraphicsResetStatus(rx::ContextImpl *contextImpl);
+    GLenum getResetStrategy() const { return mResetStrategy; }
 
   private:
-    Context *mContext;
+    void setContextLost();
+    void pushError(GLenum errorCode);
+
+    // Non-atomic members of this class are protected by a mutex.  This is to allow errors to be
+    // safely set by entry points that don't hold a lock.  Note that other contexts may end up
+    // triggering an error on this context (through making failable calls on other contexts in the
+    // share group).
+    //
+    // Note also that the functionality used through the Debug class is thread-safe.
+    std::mutex mMutex;
+
+    // Error handling and reporting
+    Debug *mDebug;
     std::set<GLenum> mErrors;
+
+    const GLenum mResetStrategy;
+    const bool mLoseContextOnOutOfMemory;
+
+    // Context-loss handling
+    bool mContextLostForced;
+    GraphicsResetStatus mResetStatus;
+
+    // The following are atomic and lockless as they are very frequently accessed.
+    std::atomic_int mSkipValidation;
+    std::atomic_int mContextLost;
+    std::atomic_int mHasAnyErrors;
 };
 
 enum class VertexAttribTypeCase
@@ -512,19 +554,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
                      const char *function,
                      unsigned int line);
 
-    void validationError(angle::EntryPoint entryPoint, GLenum errorCode, const char *message) const;
-    ANGLE_FORMAT_PRINTF(4, 5)
-    void validationErrorF(angle::EntryPoint entryPoint,
-                          GLenum errorCode,
-                          const char *format,
-                          ...) const;
-
-    void markContextLost(GraphicsResetStatus status);
-
-    bool isContextLost() const { return mContextLost.load(std::memory_order_relaxed) != 0; }
-    void setContextLost();
-
-    GLenum getGraphicsResetStrategy() const { return mResetStrategy; }
     bool isResetNotificationEnabled() const;
 
     bool isRobustnessEnabled() const;
@@ -594,13 +623,11 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     PrivateState *getMutablePrivateState() { return mState.getMutablePrivateState(); }
     GLES1State *getMutableGLES1State() { return mState.getMutableGLES1State(); }
 
-    bool skipValidation() const
-    {
-        // Ensure we don't skip validation when context becomes lost, since implementations
-        // generally assume a non-lost context, non-null objects, etc.
-        ASSERT(!isContextLost() || !mSkipValidation);
-        return mSkipValidation.load(std::memory_order_relaxed) != 0;
-    }
+    bool skipValidation() const { return mErrors.skipValidation(); }
+    void markContextLost(GraphicsResetStatus status) { mErrors.markContextLost(status); }
+    bool isContextLost() const { return mErrors.isContextLost(); }
+
+    ErrorSet *getMutableErrorSetForValidation() const { return &mErrors; }
 
     // Specific methods needed for validation.
     bool getQueryParameterInfo(GLenum pname, GLenum *type, unsigned int *numParams) const;
@@ -820,12 +847,11 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     State mState;
     bool mShared;
-    std::atomic_int mSkipValidation;
     bool mDisplayTextureShareGroup;
     bool mDisplaySemaphoreShareGroup;
 
     // Recorded errors
-    ErrorSet mErrors;
+    mutable ErrorSet mErrors;
 
     // Stores for each buffer binding type whether is it allowed to be used in this context.
     angle::PackedEnumBitSet<BufferBinding> mValidBufferBindings;
@@ -870,11 +896,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     // Current/lost context flags
     bool mHasBeenCurrent;
-    // Set with setContextLost so that we also set mSkipValidation=false:
-    std::atomic_int mContextLost;
-    GraphicsResetStatus mResetStatus;
-    bool mContextLostForced;
-    GLenum mResetStrategy;
     const bool mSurfacelessSupported;
     egl::Surface *mCurrentDrawSurface;
     egl::Surface *mCurrentReadSurface;
