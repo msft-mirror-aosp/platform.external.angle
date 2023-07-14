@@ -175,13 +175,14 @@ class LocalMachineJunitTestRun(test_run.TestRun):
       results.append(test_run_results)
       return
 
-    num_workers = ChooseNumOfWorkers(len(test_list), self._test_instance.shards)
+    num_workers = ChooseNumOfWorkers(len(grouped_tests),
+                                     self._test_instance.shards)
     if shard_filter:
       logging.warning('Running test shards: %s using %s concurrent process(es)',
                       ', '.join(str(x) for x in shard_list), num_workers)
     else:
       logging.warning(
-          'Running tests with %d shard(s)  using %s concurrent process(es).',
+          'Running tests with %d shard(s) using %s concurrent process(es).',
           len(grouped_tests), num_workers)
 
     with tempfile_ext.NamedTemporaryDirectory() as temp_dir:
@@ -296,8 +297,8 @@ def GroupTestsForShard(test_list):
     test_list: A list of the test names.
 
   Return:
-    Returns a tuple containing the number of unique sdks and a list of
-    test lists.
+    Returns a list of lists. Each list contains tests that should be run
+    as a job together.
   """
   tests_by_sdk = defaultdict(set)
   for test in test_list:
