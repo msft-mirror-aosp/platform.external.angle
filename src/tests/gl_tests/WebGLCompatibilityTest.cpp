@@ -4443,6 +4443,24 @@ TEST_P(WebGL2CompatibilityTest, ClearBufferDefaultFramebuffer)
     EXPECT_GL_ERROR(GL_INVALID_OPERATION);
 }
 
+// Test that clearing a non-existent drawbuffer of the default
+// framebuffer does not cause an assertion in WebGL validation
+TEST_P(WebGL2CompatibilityTest, ClearBuffer1OnDefaultFramebufferNoAssert)
+{
+    constexpr float clearFloat[]   = {0.0f, 0.0f, 0.0f, 0.0f};
+    constexpr int32_t clearInt[]   = {0, 0, 0, 0};
+    constexpr uint32_t clearUint[] = {0, 0, 0, 0};
+
+    glClearBufferfv(GL_COLOR, 1, clearFloat);
+    EXPECT_GL_NO_ERROR();
+
+    glClearBufferiv(GL_COLOR, 1, clearInt);
+    EXPECT_GL_NO_ERROR();
+
+    glClearBufferuiv(GL_COLOR, 1, clearUint);
+    EXPECT_GL_NO_ERROR();
+}
+
 // Verify that errors are generate when trying to blit from an image to itself
 TEST_P(WebGL2CompatibilityTest, BlitFramebufferSameImage)
 {
@@ -5992,6 +6010,26 @@ void main() {
     GLProgram prg;
     prg.makeRaster(essl3_shaders::vs::Simple(), kFS);
     EXPECT_FALSE(prg.valid());
+}
+
+// Test for a mishandling of instanced vertex attributes with zero-sized buffers bound on Apple
+// OpenGL drivers.
+TEST_P(WebGL2CompatibilityTest, DrawWithZeroSizedBuffer)
+{
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), essl3_shaders::fs::Red());
+    glUseProgram(program);
+
+    GLBuffer buffer;
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+
+    GLint posLocation = glGetAttribLocation(program, essl3_shaders::PositionAttrib());
+    glEnableVertexAttribArray(posLocation);
+
+    glVertexAttribDivisor(posLocation, 1);
+    glVertexAttribPointer(posLocation, 1, GL_UNSIGNED_BYTE, GL_FALSE, 9,
+                          reinterpret_cast<void *>(0x41424344));
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(WebGLCompatibilityTest);
