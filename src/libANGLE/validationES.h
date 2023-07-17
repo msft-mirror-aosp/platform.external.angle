@@ -775,12 +775,34 @@ bool ValidateWebGLFramebufferAttachmentClearType(const Context *context,
                                                  const GLenum *validComponentTypes,
                                                  size_t validComponentTypeCount);
 
+ANGLE_INLINE bool ValidateColorMasksForSharedExponentColorBuffers(const BlendStateExt &blendState,
+                                                                  const Framebuffer *framebuffer)
+{
+    // Get a mask of draw buffers that have color writemasks
+    // incompatible with shared exponent color buffers.
+    // The compatible writemasks are RGBA, RGB0, 000A, 0000.
+    const BlendStateExt::ColorMaskStorage::Type rgbEnabledBits =
+        blendState.expandColorMaskValue(true, true, true, false);
+    const BlendStateExt::ColorMaskStorage::Type colorMaskNoAlphaBits =
+        blendState.getColorMaskBits() & rgbEnabledBits;
+    const DrawBufferMask incompatibleDiffMask =
+        BlendStateExt::ColorMaskStorage::GetDiffMask(colorMaskNoAlphaBits, 0) &
+        BlendStateExt::ColorMaskStorage::GetDiffMask(colorMaskNoAlphaBits, rgbEnabledBits);
+
+    const DrawBufferMask sharedExponentBufferMask =
+        framebuffer->getActiveSharedExponentColorAttachmentDrawBufferMask();
+    return (sharedExponentBufferMask & incompatibleDiffMask).none();
+}
+
 bool ValidateRobustCompressedTexImageBase(const Context *context,
                                           angle::EntryPoint entryPoint,
                                           GLsizei imageSize,
                                           GLsizei dataSize);
 
-bool ValidateVertexAttribIndex(const Context *context, angle::EntryPoint entryPoint, GLuint index);
+bool ValidateVertexAttribIndex(const PrivateState &state,
+                               ErrorSet *errors,
+                               angle::EntryPoint entryPoint,
+                               GLuint index);
 
 bool ValidateGetActiveUniformBlockivBase(const Context *context,
                                          angle::EntryPoint entryPoint,
@@ -817,7 +839,10 @@ bool ValidateFramebufferNotMultisampled(const Context *context,
                                         const Framebuffer *framebuffer,
                                         bool checkReadBufferResourceSamples);
 
-bool ValidateMultitextureUnit(const Context *context, angle::EntryPoint entryPoint, GLenum texture);
+bool ValidateMultitextureUnit(const PrivateState &state,
+                              ErrorSet *errors,
+                              angle::EntryPoint entryPoint,
+                              GLenum texture);
 
 bool ValidateTransformFeedbackPrimitiveMode(const Context *context,
                                             angle::EntryPoint entryPoint,
@@ -918,7 +943,8 @@ bool ValidateGetMultisamplefvBase(const Context *context,
                                   GLenum pname,
                                   GLuint index,
                                   const GLfloat *val);
-bool ValidateSampleMaskiBase(const Context *context,
+bool ValidateSampleMaskiBase(const PrivateState &state,
+                             ErrorSet *errors,
                              angle::EntryPoint entryPoint,
                              GLuint maskNumber,
                              GLbitfield mask);
@@ -1244,20 +1270,22 @@ ANGLE_INLINE bool ValidateBindVertexArrayBase(const Context *context,
     return true;
 }
 
-ANGLE_INLINE bool ValidateVertexAttribIndex(const Context *context,
+ANGLE_INLINE bool ValidateVertexAttribIndex(const PrivateState &state,
+                                            ErrorSet *errors,
                                             angle::EntryPoint entryPoint,
                                             GLuint index)
 {
-    if (index >= static_cast<GLuint>(context->getCaps().maxVertexAttributes))
+    if (index >= static_cast<GLuint>(state.getCaps().maxVertexAttributes))
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, err::kIndexExceedsMaxVertexAttribute);
+        errors->validationError(entryPoint, GL_INVALID_VALUE, err::kIndexExceedsMaxVertexAttribute);
         return false;
     }
 
     return true;
 }
 
-bool ValidateLogicOpCommon(const Context *context,
+bool ValidateLogicOpCommon(const PrivateState &state,
+                           ErrorSet *errors,
                            angle::EntryPoint entryPoint,
                            LogicalOperation opcodePacked);
 }  // namespace gl
