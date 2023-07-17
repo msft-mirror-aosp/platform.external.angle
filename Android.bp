@@ -6,24 +6,6 @@
 // found in the LICENSE file.
 //
 
-bootstrap_go_package {
-    name: "soong-angle-codegen",
-    pkgPath: "android/soong/external/angle",
-    deps: [
-        "blueprint",
-        "blueprint-pathtools",
-        "soong",
-        "soong-android",
-        "soong-cc",
-        "soong-genrule",
-    ],
-    srcs: [
-        "scripts/angle_android_codegen.go",
-    ],
-    pluginFor: [
-        "soong_build",
-    ],
-}
 cc_defaults {
     name: "angle_common_library_cflags",
     cflags: [
@@ -82,9 +64,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-angle_android_codegen {
-    name: "libEGL_angle_android_codegen",
-}
 cc_library_shared {
     name: "libEGL_angle",
     srcs: [
@@ -114,7 +93,6 @@ cc_library_shared {
         "angle_common_library_cflags",
         "angle_includes",
         "angle_libEGL_egl_loader",
-        "libEGL_angle_android_codegen",
     ],
     generated_headers: [
         "angle_commit_id",
