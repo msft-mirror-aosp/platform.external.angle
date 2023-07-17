@@ -463,17 +463,6 @@ EnumSet<TestEnum> createSetUnorderedInsertion(
 }
 }  // namespace
 
-TEST(CapabilitySet, ForEachOrderIsEnumOrder) {
-  auto orderedValues = enumerateValuesFromToWithStep(0, 500, /* step= */ 1);
-  auto set = createSetUnorderedInsertion(orderedValues);
-
-  size_t index = 0;
-  set.ForEach([&orderedValues, &index](auto value) {
-    EXPECT_THAT(value, Eq(orderedValues[index]));
-    index++;
-  });
-}
-
 TEST(CapabilitySet, RangeBasedLoopOrderIsEnumOrder) {
   auto orderedValues = enumerateValuesFromToWithStep(0, 2, /* step= */ 1);
   auto set = createSetUnorderedInsertion(orderedValues);
@@ -627,6 +616,61 @@ TEST(CapabilitySet, IteratorBeginToEndPrefixStep) {
   for (auto it = set.cbegin(); it != set.cend(); ++it, index++) {
     ASSERT_EQ(*it, orderedValues[index]);
   }
+}
+
+TEST(CapabilitySet, IteratorBeginOnEmpty) {
+  CapabilitySet set;
+
+  auto begin = set.begin();
+  auto end = set.end();
+  ASSERT_EQ(begin, end);
+}
+
+TEST(CapabilitySet, IteratorBeginOnSingleNonZeroValue) {
+  CapabilitySet set;
+  set.insert(spv::Capability::Shader);
+
+  auto begin = set.begin();
+  auto end = set.end();
+
+  ASSERT_NE(begin, end);
+  ASSERT_EQ(*begin, spv::Capability::Shader);
+}
+
+TEST(CapabilitySet, IteratorForLoopNonZeroValue) {
+  CapabilitySet set;
+  set.insert(spv::Capability::Shader);
+  set.insert(spv::Capability::Tessellation);
+
+  auto begin = set.begin();
+  auto end = set.end();
+
+  ASSERT_NE(begin, end);
+  ASSERT_EQ(*begin, spv::Capability::Shader);
+
+  begin++;
+  ASSERT_NE(begin, end);
+  ASSERT_EQ(*begin, spv::Capability::Tessellation);
+
+  begin++;
+  ASSERT_EQ(begin, end);
+}
+
+TEST(CapabilitySet, IteratorPastEnd) {
+  CapabilitySet set;
+  set.insert(spv::Capability::Shader);
+
+  auto begin = set.begin();
+  auto end = set.end();
+
+  ASSERT_NE(begin, end);
+  ASSERT_EQ(*begin, spv::Capability::Shader);
+
+  begin++;
+  ASSERT_EQ(begin, end);
+
+  begin++;
+  ASSERT_EQ(begin, end);
 }
 
 TEST(CapabilitySet, CompatibleWithSTLFind) {
