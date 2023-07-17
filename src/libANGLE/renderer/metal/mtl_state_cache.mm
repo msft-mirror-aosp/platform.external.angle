@@ -212,6 +212,16 @@ void ToObjC(const RenderPassStencilAttachmentDesc &desc,
     ANGLE_OBJC_CP_PROPERTY(objCDesc, desc, clearStencil);
 }
 
+MTLColorWriteMask AdjustColorWriteMaskForSharedExponent(MTLColorWriteMask mask)
+{
+    // For RGB9_E5 color buffers, ANGLE frontend validation ignores alpha writemask value.
+    // Metal validation is more strict and allows only all-enabled or all-disabled.
+    ASSERT((mask == MTLColorWriteMaskAll) ||
+           (mask == (MTLColorWriteMaskAll ^ MTLColorWriteMaskAlpha)) ||
+           (mask == MTLColorWriteMaskAlpha) || (mask == MTLColorWriteMaskNone));
+    return (mask & MTLColorWriteMaskBlue) ? MTLColorWriteMaskAll : MTLColorWriteMaskNone;
+}
+
 }  // namespace
 
 // StencilDesc implementation
@@ -546,6 +556,11 @@ void RenderPipelineColorAttachmentDesc::reset(MTLPixelFormat format, MTLColorWri
 {
     this->pixelFormat = format;
 
+    if (format == MTLPixelFormatRGB9E5Float)
+    {
+        _writeMask = AdjustColorWriteMaskForSharedExponent(_writeMask);
+    }
+
     BlendDesc::reset(_writeMask);
 }
 
@@ -554,11 +569,11 @@ void RenderPipelineColorAttachmentDesc::reset(MTLPixelFormat format, const Blend
     this->pixelFormat = format;
 
     BlendDesc::operator=(blendDesc);
-}
 
-void RenderPipelineColorAttachmentDesc::update(const BlendDesc &blendDesc)
-{
-    BlendDesc::operator=(blendDesc);
+    if (format == MTLPixelFormatRGB9E5Float)
+    {
+        writeMask = AdjustColorWriteMaskForSharedExponent(writeMask);
+    }
 }
 
 // RenderPipelineOutputDesc implementation
@@ -873,7 +888,7 @@ ProvokingVertexComputePipelineDesc::ProvokingVertexComputePipelineDesc(
     memcpy(this, &src, sizeof(*this));
 }
 ProvokingVertexComputePipelineDesc::ProvokingVertexComputePipelineDesc(
-    const ProvokingVertexComputePipelineDesc &&src)
+    ProvokingVertexComputePipelineDesc &&src)
 {
     memcpy(this, &src, sizeof(*this));
 }
@@ -897,135 +912,6 @@ size_t ProvokingVertexComputePipelineDesc::hash() const
 {
     return angle::ComputeGenericHash(*this);
 }
-
-ProvokingVertexComputePipelineCache::ProvokingVertexComputePipelineCache() : mComputeShader(nullptr)
-{}
-
-ProvokingVertexComputePipelineCache::ProvokingVertexComputePipelineCache(
-    ProvokingVertexCacheSpecializeShaderFactory *specializedShaderFactory)
-    : mComputeShader(nullptr), mSpecializedShaderFactory(specializedShaderFactory)
-{}
-
-void ProvokingVertexComputePipelineCache::setComputeShader(ContextMtl *context,
-                                                           id<MTLFunction> shader)
-{
-    mComputeShader.retainAssign(shader);
-    if (!shader)
-    {
-        clearPipelineStates();
-        return;
-    }
-
-    recreatePipelineStates(context);
-}
-
-void ProvokingVertexComputePipelineCache::clearPipelineStates()
-{
-    mComputePipelineStates.clear();
-}
-
-void ProvokingVertexComputePipelineCache::clear()
-{
-    clearPipelineStates();
-}
-
-AutoObjCPtr<id<MTLComputePipelineState>>
-ProvokingVertexComputePipelineCache::getComputePipelineState(
-    ContextMtl *context,
-    const ProvokingVertexComputePipelineDesc &desc)
-{
-    auto &table = mComputePipelineStates;
-    auto ite    = table.find(desc);
-    if (ite == table.end())
-    {
-        return insertComputePipelineState(context, desc);
-    }
-
-    return ite->second;
-}
-
-AutoObjCPtr<id<MTLComputePipelineState>>
-ProvokingVertexComputePipelineCache::insertComputePipelineState(
-    ContextMtl *context,
-    const ProvokingVertexComputePipelineDesc &desc)
-{
-    AutoObjCPtr<id<MTLComputePipelineState>> newState = createComputePipelineState(context, desc);
-
-    auto re = mComputePipelineStates.insert(std::make_pair(desc, newState));
-    if (!re.second)
-    {
-        return nil;
-    }
-
-    return re.first->second;
-}
-
-void ProvokingVertexComputePipelineCache::recreatePipelineStates(ContextMtl *context)
-{
-
-    for (auto &ite : mComputePipelineStates)
-    {
-        if (ite.second == nil)
-        {
-            continue;
-        }
-
-        ite.second = createComputePipelineState(context, ite.first);
-    }
-}
-
-AutoObjCPtr<id<MTLComputePipelineState>>
-ProvokingVertexComputePipelineCache::createComputePipelineState(
-    ContextMtl *context,
-    const ProvokingVertexComputePipelineDesc &originalDesc)
-{
-    ANGLE_MTL_OBJC_SCOPE
-    {
-        // Disable coverage if the render pipeline's sample count is only 1.
-        ProvokingVertexComputePipelineDesc desc = originalDesc;
-
-        id<MTLFunction> computeFunction = nil;
-        // Special case for transform feedback shader, we've already created it! See
-        // getTransformFeedbackRenderPipeline
-        if (mSpecializedShaderFactory &&
-            mSpecializedShaderFactory->hasSpecializedShader(gl::ShaderType::Compute, desc))
-        {
-            if (IsError(mSpecializedShaderFactory->getSpecializedShader(
-                    context, gl::ShaderType::Compute, desc, &computeFunction)))
-            {
-                return nil;
-            }
-        }
-        else
-        {
-            // Non-specialized version
-            computeFunction = mComputeShader;
-        }
-
-        if (!computeFunction)
-        {
-            ANGLE_MTL_HANDLE_ERROR(context, "Render pipeline without vertex shader is invalid.",
-                                   GL_INVALID_OPERATION);
-            return nil;
-        }
-
-        const mtl::ContextDevice &metalDevice = context->getMetalDevice();
-
-        // Convert to Objective-C desc:
-        NSError *err  = nil;
-        auto newState = metalDevice.newComputePipelineStateWithFunction(computeFunction, &err);
-        if (err)
-        {
-            ANGLE_MTL_HANDLE_ERROR(context, mtl::FormatMetalErrorMessage(err).c_str(),
-                                   GL_INVALID_OPERATION);
-            return nil;
-        }
-
-        return newState;
-    }
-}
-
-ProvokingVertexComputePipelineCache::~ProvokingVertexComputePipelineCache() {}
 
 // StateCache implementation
 StateCache::StateCache(const angle::FeaturesMtl &features) : mFeatures(features) {}
