@@ -610,6 +610,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     void setShared() { mShared = true; }
 
     const State &getState() const { return mState; }
+    const PrivateState &getPrivateState() const { return mState.privateState(); }
     GLint getClientMajorVersion() const { return mState.getClientMajorVersion(); }
     GLint getClientMinorVersion() const { return mState.getClientMinorVersion(); }
     const Version &getClientVersion() const { return mState.getClientVersion(); }
@@ -669,6 +670,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     bool isWebGL() const { return mState.isWebGL(); }
     bool isWebGL1() const { return mState.isWebGL1(); }
+    const char *getRendererString() const { return mRendererString; }
 
     bool isValidBufferBinding(BufferBinding binding) const { return mValidBufferBindings[binding]; }
 
