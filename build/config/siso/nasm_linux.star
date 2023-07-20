@@ -15,17 +15,14 @@ __handlers = {
 }
 
 def __step_config(ctx, step_config):
-    remote_run = config.get(ctx, "remote_nasm") or config.get(ctx, "remote_all")
+    # TODO(b/285787155): fix remote failure to enable it with `remote_all`.
+    remote_run = config.get(ctx, "remote_nasm")
     rules = []
     for toolchain in ["", "clang_x64"]:
         nasm_path = path.join(toolchain, "nasm")
         rules.append({
             "name": path.join("nasm", toolchain),
             "command_prefix": "python3 ../../build/gn_run_binary.py " + nasm_path,
-            "inputs": [
-                "build/gn_run_binary.py",
-                "./" + nasm_path,
-            ],
             "indirect_inputs": {
                 "includes": ["*.asm"],
             },

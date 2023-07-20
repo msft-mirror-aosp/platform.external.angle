@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import itertools
 import json
 import logging
 import multiprocessing
@@ -14,6 +15,8 @@ import tempfile
 import threading
 import time
 import zipfile
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 from six.moves import range  # pylint: disable=redefined-builtin
 from devil.utils import cmd_helper
@@ -24,20 +27,9 @@ from pylib.base import test_run
 from pylib.constants import host_paths
 from pylib.results import json_results
 
-
-# These Test classes are used for running tests and are excluded in the test
-# runner. See:
-# https://android.googlesource.com/platform/frameworks/testing/+/android-support-test/runner/src/main/java/android/support/test/internal/runner/TestRequestBuilder.java
-# base/test/android/javatests/src/org/chromium/base/test/BaseChromiumAndroidJUnitRunner.java # pylint: disable=line-too-long
-_EXCLUDED_CLASSES_PREFIXES = ('android', 'junit', 'org/bouncycastle/util',
-                              'org/hamcrest', 'org/junit', 'org/mockito')
-
-# Suites we shouldn't shard, usually because they don't contain enough test
-# cases.
-_EXCLUDED_SUITES = {
-    'password_check_junit_tests',
-    'touch_to_fill_junit_tests',
-}
+# Chosen after timing test runs of chrome_junit_tests with 7,16,32,
+# and 64 workers in threadpool and different classes_per_job.
+_MAX_TESTS_PER_JOB = 150
 
 _FAILURE_TYPES = (
     base_test_result.ResultType.FAIL,
@@ -45,11 +37,16 @@ _FAILURE_TYPES = (
     base_test_result.ResultType.TIMEOUT,
 )
 
-# Running the largest test suite with a single shard takes about 22 minutes.
-_SHARD_TIMEOUT = 30 * 60
+# Test suites are broken up into batches or "jobs" of about 150 tests.
+# Each job should take no longer than 30 seconds.
+_JOB_TIMEOUT = 30
 
 # RegExp to detect logcat lines, e.g., 'I/AssetManager: not found'.
 _LOGCAT_RE = re.compile(r'(:?\d+\| )?[A-Z]/[\w\d_-]+:')
+
+# Regex that matches a test name, and optionally matches the sdk version e.g.:
+# org.chromium.default_browser_promo.PromoUtilsTest#testNoPromo[28]'
+_TEST_SDK_VERSION = re.compile(r'(.*\.\w+)#\w+(?:\[(\d+)\])?')
 
 
 class LocalMachineJunitTestRun(test_run.TestRun):
@@ -145,7 +142,11 @@ class LocalMachineJunitTestRun(test_run.TestRun):
       if jvm_args:
         cmd += ['--jvm-args', '"%s"' % ' '.join(jvm_args)]
       AddPropertiesJar([cmd], temp_dir, self._test_instance.resource_apk)
-      lines = subprocess.check_output(cmd, encoding='utf8').splitlines()
+      try:
+        lines = subprocess.check_output(cmd, encoding='utf8').splitlines()
+      except subprocess.CalledProcessError:
+        # Will get an error later on from testrunner from having no tests.
+        return []
 
     PREFIX = '#TEST# '
     prefix_len = len(PREFIX)
@@ -154,20 +155,12 @@ class LocalMachineJunitTestRun(test_run.TestRun):
 
   # override
   def RunTests(self, results, raw_logs_fh=None):
-    # This avoids searching through the classparth jars for tests classes,
-    # which takes about 1-2 seconds.
-    if (self._test_instance.shards == 1
-        # TODO(crbug.com/1383650): remove this
-        or self._test_instance.has_literal_filters or
-        self._test_instance.suite in _EXCLUDED_SUITES):
-      test_classes = []
-      shards = 1
-    else:
-      test_classes = _GetTestClasses(self._wrapper_path)
-      shards = ChooseNumOfShards(test_classes, self._test_instance.shards)
+    # TODO(1384204): This step can take up to 3.5 seconds to execute when there
+    # are a lot of tests.
+    test_list = self.GetTestsForListing()
+    grouped_tests = GroupTestsForShard(test_list)
 
-    grouped_tests = GroupTestsForShard(shards, test_classes)
-    shard_list = list(range(shards))
+    shard_list = list(range(len(grouped_tests)))
     shard_filter = self._test_instance.shard_filter
     if shard_filter:
       shard_list = [x for x in shard_list if x in shard_filter]
@@ -182,11 +175,14 @@ class LocalMachineJunitTestRun(test_run.TestRun):
       results.append(test_run_results)
       return
 
+    num_workers = ChooseNumOfWorkers(len(test_list), self._test_instance.shards)
     if shard_filter:
-      logging.warning('Running test shards: %s',
-                      ', '.join(str(x) for x in shard_list))
+      logging.warning('Running test shards: %s using %s concurrent process(es)',
+                      ', '.join(str(x) for x in shard_list), num_workers)
     else:
-      logging.warning('Running tests on %d shard(s).', shards)
+      logging.warning(
+          'Running tests with %d shard(s)  using %s concurrent process(es).',
+          len(grouped_tests), num_workers)
 
     with tempfile_ext.NamedTemporaryDirectory() as temp_dir:
       cmd_list = [[self._wrapper_path] for _ in shard_list]
@@ -197,7 +193,7 @@ class LocalMachineJunitTestRun(test_run.TestRun):
           g for i, g in enumerate(grouped_tests) if i in shard_list
       ]
       jar_args_list = self._CreateJarArgsList(json_result_file_paths,
-                                              active_groups, shards)
+                                              active_groups, num_workers)
       if jar_args_list:
         for cmd, jar_args in zip(cmd_list, jar_args_list):
           cmd += ['--jar-args', '"%s"' % ' '.join(jar_args)]
@@ -211,7 +207,8 @@ class LocalMachineJunitTestRun(test_run.TestRun):
 
       show_logcat = logging.getLogger().isEnabledFor(logging.INFO)
       num_omitted_lines = 0
-      for line in _RunCommandsAndSerializeOutput(cmd_list, shard_list):
+      for line in _RunCommandsAndSerializeOutput(cmd_list, num_workers,
+                                                 shard_list):
         if raw_logs_fh:
           raw_logs_fh.write(line)
         if show_logcat or not _LOGCAT_RE.match(line):
@@ -243,7 +240,7 @@ class LocalMachineJunitTestRun(test_run.TestRun):
                                             base_test_result.ResultType.UNKNOWN)
         ]
 
-      if shards > 1 and failed_shards:
+      if num_workers > 1 and failed_shards:
         for i in failed_shards:
           filt = ':'.join(grouped_tests[i])
           print(f'Test filter for failed shard {i}: --test-filter "{filt}"')
@@ -251,8 +248,7 @@ class LocalMachineJunitTestRun(test_run.TestRun):
         print(
             f'{len(failed_shards)} shards had failing tests. To re-run only '
             f'these shards, use the above filter flags, or use: '
-            f'--shards {shards} --shard-filter',
-            ','.join(str(x) for x in failed_shards))
+            f'--shard-filter', ','.join(str(x) for x in failed_shards))
 
       test_run_results = base_test_result.TestRunResults()
       test_run_results.AddResults(results_list)
@@ -282,43 +278,58 @@ def AddPropertiesJar(cmd_list, temp_dir, resource_apk):
     cmd.extend(['--classpath', properties_jar_path])
 
 
-def ChooseNumOfShards(test_classes, shards=None):
-  if shards is None:
-    # Local tests of explicit --shard values show that max speed is achieved
-    # at cpu_count() / 2.
-    # Using -XX:TieredStopAtLevel=1 is required for this result. The flag
-    # reduces CPU time by two-thirds, making sharding more effective.
-    shards = max(1, multiprocessing.cpu_count() // 2)
 
-    # It can actually take longer to run if you shard too much, especially on
-    # smaller suites. Locally media_base_junit_tests takes 4.3 sec with 1 shard,
-    # and 6 sec with 2 or more shards.
-    min_classes_per_shard = 8
-  else:
-    min_classes_per_shard = 1
+def ChooseNumOfWorkers(num_jobs, num_workers=None):
+  if num_workers is None:
+    num_workers = max(1, multiprocessing.cpu_count() // 2)
 
-  shards = max(1, min(shards, len(test_classes) // min_classes_per_shard))
-  return shards
+  return min(num_workers, num_jobs)
 
 
-def GroupTestsForShard(num_of_shards, test_classes):
-  """Groups tests that will be ran on each shard.
+def GroupTestsForShard(test_list):
+  """Groups tests that will be run on each shard.
+
+  Groups tests from the same SDK version. For a specific
+  SDK version, groups tests from the same class together.
 
   Args:
-    num_of_shards: number of shards to split tests between.
-    test_classes: A list of test_class files in the jar.
+    test_list: A list of the test names.
 
   Return:
-    Returns a list test lists.
+    Returns a tuple containing the number of unique sdks and a list of
+    test lists.
   """
-  ret = [[] for _ in range(num_of_shards)]
+  tests_by_sdk = defaultdict(set)
+  for test in test_list:
+    class_name, sdk_ver = _TEST_SDK_VERSION.match(test).groups()
+    tests_by_sdk[sdk_ver].add((class_name, test))
 
-  # Round robin test distribiution to reduce chance that a sequential group of
-  # classes all have an unusually high number of tests.
-  for count, test_cls in enumerate(test_classes):
-    test_cls = test_cls.replace('.class', '*')
-    test_cls = test_cls.replace('/', '.')
-    ret[count % num_of_shards].append(test_cls)
+  ret = []
+  for tests_for_sdk in tests_by_sdk.values():
+    tests_for_sdk = sorted(tests_for_sdk)
+    test_count = 0
+    # TODO(1458958): Group by classes instead of test names and
+    # add --sdk-version as filter option. This will reduce filter verbiage.
+    curr_tests = []
+
+    for _, tests_from_class_tuple in itertools.groupby(tests_for_sdk,
+                                                       lambda x: x[0]):
+      temp_tests = [
+          test.replace('#', '.') for _, test in tests_from_class_tuple
+      ]
+      test_count += len(temp_tests)
+      curr_tests += temp_tests
+      if test_count >= _MAX_TESTS_PER_JOB:
+        ret.append(curr_tests)
+        test_count = 0
+        curr_tests = []
+
+    ret.append(curr_tests)
+
+  # Add an empty shard so that the test runner can throw a error from not
+  # having any tests.
+  if not ret:
+    ret.append([])
 
   return ret
 
@@ -335,87 +346,74 @@ def _DumpJavaStacks(pid):
   return result.stdout
 
 
-def _RunCommandsAndSerializeOutput(cmd_list, shard_list):
+def _RunCommandsAndSerializeOutput(cmd_list, num_workers, shard_list):
   """Runs multiple commands in parallel and yields serialized output lines.
+
+  Args:
+    cmd_list: List of command lists to run.
+    num_workers: The number of concurrent processes to run jobs in the
+        shard_list.
+    shard_list: Shard index of each command list.
 
   Raises:
     TimeoutError: If timeout is exceeded.
+
+  Yields:
+    Command output.
   """
   num_shards = len(shard_list)
   assert num_shards > 0
-  procs = []
-  temp_files = []
-  first_shard = shard_list[0]
-  for i, cmd in zip(shard_list, cmd_list):
-    # Shard 0 yields results immediately, the rest write to files.
-    if i == first_shard:
-      temp_files.append(None)  # Placeholder.
-      procs.append(
-          cmd_helper.Popen(
-              cmd,
-              stdout=subprocess.PIPE,
-              stderr=subprocess.STDOUT,
-          ))
-    else:
-      temp_file = tempfile.TemporaryFile(mode='w+t', encoding='utf-8')
-      temp_files.append(temp_file)
-      procs.append(cmd_helper.Popen(
-          cmd,
-          stdout=temp_file,
-          stderr=temp_file,
-      ))
-
-  deadline = time.time() + (_SHARD_TIMEOUT / (num_shards // 2 + 1))
+  temp_files = [None]  # First shard is streamed directly to stdout.
+  for _ in range(num_shards - 1):
+    temp_files.append(tempfile.TemporaryFile(mode='w+t', encoding='utf-8'))
 
   yield '\n'
-  yield f'Shard {first_shard} output:\n'
-
-  # The following will be run from a thread to pump Shard 0 results, allowing
-  # live output while allowing timeout.
-  def pump_stream_to_queue(f, q):
-    for line in f:
-      q.put(line)
-    q.put(None)
-
-  shard_0_q = queue.Queue()
-  shard_0_pump = threading.Thread(target=pump_stream_to_queue,
-                                  args=(procs[0].stdout, shard_0_q))
-  shard_0_pump.start()
+  yield f'Shard {shard_list[0]} output:\n'
 
   timeout_dumps = {}
 
-  # Print the first process until timeout or completion.
-  while shard_0_pump.is_alive():
-    try:
-      line = shard_0_q.get(timeout=deadline - time.time())
-      if line is None:
-        break
-      yield f'{first_shard:2}| {line}'
-    except queue.Empty:
-      if time.time() > deadline:
-        break
+  def run_proc(cmd, idx):
+    if idx == 0:
+      s_out = subprocess.PIPE
+      s_err = subprocess.STDOUT
+    else:
+      s_out = temp_files[idx]
+      s_err = temp_files[idx]
 
-  # Wait for remaining processes to finish.
-  for i, proc in enumerate(procs):
+    proc = cmd_helper.Popen(cmd, stdout=s_out, stderr=s_err)
+    # Need to return process so that output can be displayed on stdout
+    # in real time.
+    if idx == 0:
+      return proc
+
     try:
-      proc.wait(timeout=deadline - time.time())
+      proc.wait(timeout=(time.time() + _JOB_TIMEOUT))
     except subprocess.TimeoutExpired:
-      timeout_dumps[i] = _DumpJavaStacks(proc.pid)
+      timeout_dumps[idx] = _DumpJavaStacks(proc.pid)
       proc.kill()
 
-  # Output any remaining output from a timed-out first shard.
-  shard_0_pump.join()
-  while not shard_0_q.empty():
-    yield shard_0_q.get()
+    # Not needed, but keeps pylint happy.
+    return None
 
-  for i, shard in enumerate(shard_list[1:]):
-    f = temp_files[i + 1]
-    yield '\n'
-    yield f'Shard {shard} output:\n'
-    f.seek(0)
-    for line in f.readlines():
-      yield f'{shard:2}| {line}'
-    f.close()
+  with ThreadPoolExecutor(max_workers=num_workers) as pool:
+    futures = []
+    for i, cmd in enumerate(cmd_list):
+      futures.append(pool.submit(run_proc, cmd=cmd, idx=i))
+
+    yield from _StreamFirstShardOutput(shard_list[0], futures[0].result(),
+                                       time.time() + _JOB_TIMEOUT)
+
+    for i, shard in enumerate(shard_list[1:]):
+      # Shouldn't cause timeout as run_proc terminates the process with
+      # a proc.wait().
+      futures[i + 1].result()
+      f = temp_files[i + 1]
+      yield '\n'
+      yield f'Shard {shard} output:\n'
+      f.seek(0)
+      for line in f.readlines():
+        yield f'{shard:2}| {line}'
+      f.close()
 
   # Output stacks
   if timeout_dumps:
@@ -432,43 +430,32 @@ def _RunCommandsAndSerializeOutput(cmd_list, shard_list):
     raise cmd_helper.TimeoutError('Junit shards timed out.')
 
 
-def _GetTestClasses(file_path):
-  test_jar_paths = subprocess.check_output([file_path,
-                                            '--print-classpath']).decode()
-  test_jar_paths = test_jar_paths.split(':')
+def _StreamFirstShardOutput(shard, shard_proc, deadline):
+  # The following will be run from a thread to pump Shard 0 results, allowing
+  # live output while allowing timeout.
+  shard_queue = queue.Queue()
 
-  test_classes = []
-  for test_jar_path in test_jar_paths:
-    # Avoid searching through jars that are for the test runner.
-    # TODO(crbug.com/1144077): Use robolectric buildconfig file arg.
-    if 'third_party/robolectric/' in test_jar_path:
-      continue
+  def pump_stream_to_queue():
+    for line in shard_proc.stdout:
+      shard_queue.put(line)
+    shard_queue.put(None)
 
-    test_classes += _GetTestClassesFromJar(test_jar_path)
+  shard_0_pump = threading.Thread(target=pump_stream_to_queue)
+  shard_0_pump.start()
+  # Print the first process until timeout or completion.
+  while shard_0_pump.is_alive():
+    try:
+      line = shard_queue.get(timeout=deadline - time.time())
+      if line is None:
+        break
+      yield f'{shard:2}| {line}'
+    except queue.Empty:
+      if time.time() > deadline:
+        break
 
-  logging.info('Found %d test classes in class_path jars.', len(test_classes))
-  return test_classes
-
-
-def _GetTestClassesFromJar(test_jar_path):
-  """Returns a list of test classes from a jar.
-
-  Test files end in Test, this is enforced:
-  //tools/android/errorprone_plugin/src/org/chromium/tools/errorprone
-  /plugin/TestClassNameCheck.java
-
-  Args:
-    test_jar_path: Path to the jar.
-
-  Return:
-    Returns a list of test classes that were in the jar.
-  """
-  class_list = []
-  with zipfile.ZipFile(test_jar_path, 'r') as zip_f:
-    for test_class in zip_f.namelist():
-      if test_class.startswith(_EXCLUDED_CLASSES_PREFIXES):
-        continue
-      if test_class.endswith('Test.class') and '$' not in test_class:
-        class_list.append(test_class)
-
-  return class_list
+  # Output any remaining output from a timed-out first shard.
+  shard_0_pump.join()
+  while not shard_queue.empty():
+    line = shard_queue.get()
+    if line:
+      yield f'{shard:2}| {line}'

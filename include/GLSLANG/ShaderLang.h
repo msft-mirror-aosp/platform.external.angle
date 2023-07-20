@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 335
+#define ANGLE_SH_VERSION 337
 
 enum ShShaderSpec
 {
@@ -147,9 +147,8 @@ struct ShCompileOptions
     // calling sh::GetObjectCode().
     uint64_t objectCode : 1;
 
-    // Unused.  Kept to avoid unnecessarily changing the layout of this structure and tripping up
-    // the fuzzer's hash->bug map.
-    uint64_t unused2 : 1;
+    // Whether debug info should be output in the shader.
+    uint64_t outputDebugInfo : 1;
 
     // Tracks the source path for shaders.  Can be queried with getSourcePath().
     uint64_t sourcePath : 1;
@@ -1027,6 +1026,8 @@ enum ReservedIds
 
     // Pre-rotation and Z-correction support
     kIdTransformPositionFunction,
+    kIdInputPerVertexBlockArray,
+    kIdOutputPerVertexBlockArray,
     kIdOutputPerVertexVar,
 
     // Transform feedback support
@@ -1069,17 +1070,6 @@ enum ReservedIds
 };
 }  // namespace spirv
 
-// Interface block name containing the aggregate default uniforms
-extern const char kDefaultUniformsNameVS[];
-extern const char kDefaultUniformsNameTCS[];
-extern const char kDefaultUniformsNameTES[];
-extern const char kDefaultUniformsNameGS[];
-extern const char kDefaultUniformsNameFS[];
-extern const char kDefaultUniformsNameCS[];
-
-// Interface block and variable names containing driver uniforms
-extern const char kDriverUniformsBlockName[];
-
 // Packing information for driver uniform's misc field:
 // - 1 bit for whether surface rotation results in swapped axes
 // - 5 bits for advanced blend equation
@@ -1099,16 +1089,6 @@ constexpr uint32_t kDriverUniformsMiscTransformDepthOffset        = 20;
 constexpr uint32_t kDriverUniformsMiscTransformDepthMask          = 0x1;
 constexpr uint32_t kDriverUniformsMiscAlphaToCoverageOffset       = 21;
 constexpr uint32_t kDriverUniformsMiscAlphaToCoverageMask         = 0x1;
-
-// Interface block array name used for atomic counter emulation
-extern const char kAtomicCountersBlockName[];
-
-// Transform feedback emulation support
-extern const char kXfbEmulationBufferBlockName[];
-extern const char kXfbEmulationBufferName[];
-
-// Transform feedback extension support
-extern const char kXfbExtensionPositionOutName[];
 }  // namespace vk
 
 namespace mtl

@@ -12,6 +12,14 @@
 
 {
   'basic_suites': {
+    'angle_capture_isolated_scripts': {
+      'angle_capture_tests': {
+        'args': [
+          '--log=debug',
+        ],
+      },
+    },
+
     'angle_deqp_egl_d3d11_gtests': {
       'angle_deqp_egl_d3d11_tests': {
         'args': [
@@ -1171,6 +1179,7 @@
     ],
 
     'common_isolated_scripts': [
+      'angle_capture_isolated_scripts',
       'angle_perf_smoke_isolated_scripts',
       'angle_restricted_trace_gold_isolated_scripts',
       'angle_restricted_trace_gold_interpreted_isolated_scripts',
@@ -1228,10 +1237,11 @@
       'angle_unit_gtests',
     ],
 
-    'mac_nvidia_gtests': [
-      'angle_end2end_with_retry_gtests',
-      'angle_unit_gtests',
-    ],
+    # Temporarily disabled for upgrade crbug.com/1456549
+    # 'mac_nvidia_gtests': [
+    #   'angle_end2end_with_retry_gtests',
+    #   'angle_unit_gtests',
+    # ],
 
     'swangle_gtests': [
       'swangle_deqp_egl_tests',

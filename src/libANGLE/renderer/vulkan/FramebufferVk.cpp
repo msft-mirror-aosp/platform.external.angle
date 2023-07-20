@@ -835,6 +835,15 @@ angle::Result FramebufferVk::readPixels(const gl::Context *context,
                                         gl::Buffer *packBuffer,
                                         void *pixels)
 {
+    // Note that GL_RGBX8_ANGLE is the only format where the upload format is 3-channel RGB, while
+    // the download format is 4-channel RGBX.  As such, the internal format corresponding to
+    // format+type expects 3-byte input/output.  The format is fixed here for readPixels to output
+    // 4 bytes per pixel.
+    if (format == GL_RGBX8_ANGLE)
+    {
+        format = GL_RGBA8;
+    }
+
     // Clip read area to framebuffer.
     const gl::Extents &fbSize = getState().getReadPixelsAttachment(format)->getSize();
     const gl::Rectangle fbRect(0, 0, fbSize.width, fbSize.height);
@@ -905,9 +914,9 @@ RenderTargetVk *FramebufferVk::getDepthStencilRenderTarget() const
     return mRenderTargetCache.getDepthStencil();
 }
 
-RenderTargetVk *FramebufferVk::getColorDrawRenderTarget(size_t colorIndex) const
+RenderTargetVk *FramebufferVk::getColorDrawRenderTarget(size_t colorIndexGL) const
 {
-    RenderTargetVk *renderTarget = mRenderTargetCache.getColorDraw(mState, colorIndex);
+    RenderTargetVk *renderTarget = mRenderTargetCache.getColorDraw(mState, colorIndexGL);
     ASSERT(renderTarget && renderTarget->getImageForRenderPass().valid());
     return renderTarget;
 }
@@ -1271,7 +1280,8 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
             areChannelsBlitCompatible =
                 areChannelsBlitCompatible &&
                 AreSrcAndDstColorChannelsBlitCompatible(readRenderTarget, drawRenderTarget);
-            areFormatsIdentical = AreSrcAndDstFormatsIdentical(readRenderTarget, drawRenderTarget);
+            areFormatsIdentical = areFormatsIdentical &&
+                                  AreSrcAndDstFormatsIdentical(readRenderTarget, drawRenderTarget);
         }
 
         // Now that all flipping is done, adjust the offsets for resolve and prerotation

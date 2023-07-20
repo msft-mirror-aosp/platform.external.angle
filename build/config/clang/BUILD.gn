@@ -83,6 +83,19 @@ config("find_bad_constructs") {
         "-plugin-arg-find-bad-constructs",
         "-Xclang",
         "raw-ptr-exclude-path=ui/views/controls/native/native_view_host_mac_unittest.mm",
+
+        # TODO(mikt): Remove this once crbug.com/1449812 is resolved.
+        "-Xclang",
+        "-plugin-arg-find-bad-constructs",
+        "-Xclang",
+        "raw-ptr-exclude-path=um/winnt.h",
+
+        # TODO(crbug.com/1459145): Remove this once we exclude this
+        # in our clang plugin.
+        "-Xclang",
+        "-plugin-arg-find-bad-constructs",
+        "-Xclang",
+        "raw-ptr-exclude-path=chromeos/assistant/internal/",
       ]
     }
   }
@@ -166,6 +179,8 @@ template("clang_lib") {
           _suffix = "-arm-android"
         } else if (current_cpu == "arm64") {
           _suffix = "-aarch64-android"
+        } else if (current_cpu == "riscv64") {
+          _suffix = "-riscv64-android"
         } else {
           assert(false)  # Unhandled cpu type
         }
@@ -192,13 +207,16 @@ clang_lib("compiler_builtins") {
   } else if (is_ios) {
     if (target_environment == "simulator") {
       libname = "iossim"
+    } else if (target_environment == "catalyst") {
+      libname = "osx"
     } else {
       libname = "ios"
     }
   } else if (is_win && current_cpu == "arm64") {
-    # Do nothing
-    # Except we get the wrong builtins then!
-    # TODO(https://crbug.com/1453618)
+    # TODO(https://crbug.com/1453618): The Clang toolchain package is missing
+    # the arm64 libraries. Don't define libname which makes this target do
+    # nothing. Things will build but C++ will end up using the Rust
+    # compiler-builtins intrinsics on Win ARM64 until this is fixed.
   } else {
     libname = "builtins"
   }
@@ -215,12 +233,23 @@ clang_lib("compiler_profile") {
   } else if (is_ios) {
     if (target_environment == "simulator") {
       libname = "profile_iossim"
+    } else if (target_environment == "catalyst") {
+      # We don't enable clang coverage on iOS device builds, and the library is
+      # not part of the Clang package tarball as a result.
+      #
+      # Don't define libname which makes this target do nothing.
     } else {
       # We don't enable clang coverage on iOS device builds, and the library is
       # not part of the Clang package tarball as a result.
       #
       # Don't define libname which makes this target do nothing.
     }
+  } else if (is_win && current_cpu == "arm64") {
+    # TODO(https://crbug.com/1453618): The Clang toolchain package is missing
+    # the arm64 libraries. Don't define libname which makes this target do
+    # nothing. This will cause Rust-only targets to fail to link if Rust and
+    # clang coverage are both enabled on Win ARM64 (as lld-link depends on a C++
+    # compiled object file being present to point it to the profile symbols).
   } else {
     libname = "profile"
   }

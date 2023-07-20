@@ -18,7 +18,7 @@
 #include "libANGLE/renderer/ProgramImpl.h"
 #include "libANGLE/renderer/d3d/DynamicHLSL.h"
 #include "libANGLE/renderer/d3d/RendererD3D.h"
-#include "platform/FeaturesD3D_autogen.h"
+#include "platform/autogen/FeaturesD3D_autogen.h"
 
 namespace rx
 {
@@ -158,7 +158,7 @@ class ProgramD3DMetadata final : angle::NonCopyable
     bool usesPointSize() const;
     bool usesInsertedPointCoordValue() const;
     bool usesViewScale() const;
-    bool hasANGLEMultiviewEnabled() const;
+    bool hasMultiviewEnabled() const;
     bool usesVertexID() const;
     bool usesViewID() const;
     bool canSelectViewInVertexShader() const;
@@ -556,7 +556,7 @@ class ProgramD3D : public ProgramImpl
 
     FragDepthUsage mFragDepthUsage;
     bool mUsesSampleMask;
-    bool mHasANGLEMultiviewEnabled;
+    bool mHasMultiviewEnabled;
     bool mUsesVertexID;
     bool mUsesViewID;
     std::vector<PixelShaderOutputVariable> mPixelShaderKey;

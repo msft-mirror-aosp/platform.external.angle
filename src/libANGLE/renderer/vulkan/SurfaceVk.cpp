@@ -145,9 +145,9 @@ angle::Result InitImageHelper(DisplayVk *displayVk,
                               vk::ImageHelper *imageHelper)
 {
     const angle::Format &textureFormat = vkFormat.getActualRenderableImageFormat();
-    bool isDepthOrStencilFormat = textureFormat.depthBits > 0 || textureFormat.stencilBits > 0;
-    VkImageUsageFlags usage     = isDepthOrStencilFormat ? kSurfaceVkDepthStencilImageUsageFlags
-                                                         : kSurfaceVkColorImageUsageFlags;
+    bool isDepthOrStencilFormat        = textureFormat.hasDepthOrStencilBits();
+    VkImageUsageFlags usage = isDepthOrStencilFormat ? kSurfaceVkDepthStencilImageUsageFlags
+                                                     : kSurfaceVkColorImageUsageFlags;
 
     RendererVk *rendererVk = displayVk->getRenderer();
     // If shaders may be fetching from this, we need this image to be an input
@@ -1545,6 +1545,26 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context,
     swapchainInfo.presentMode = vk::ConvertPresentModeToVkPresentMode(mDesiredSwapchainPresentMode);
     swapchainInfo.clipped     = VK_TRUE;
     swapchainInfo.oldSwapchain = lastSwapchain;
+
+#if defined(ANGLE_PLATFORM_WINDOWS)
+    // On some AMD drivers we need to explicitly enable the extension and set
+    // it to "disallowed" mode in order to avoid seeing impossible-to-handle
+    // extension-specific error codes from swapchain functions.
+    VkSurfaceFullScreenExclusiveInfoEXT fullscreen = {};
+    fullscreen.sType               = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT;
+    fullscreen.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT;
+
+    VkSurfaceFullScreenExclusiveWin32InfoEXT fullscreenWin32 = {};
+    fullscreenWin32.sType    = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT;
+    fullscreenWin32.hmonitor = MonitorFromWindow((HWND)mNativeWindowType, MONITOR_DEFAULTTONEAREST);
+
+    if (renderer->getFeatures().supportsFullScreenExclusive.enabled &&
+        renderer->getFeatures().forceDisableFullScreenExclusive.enabled)
+    {
+        vk::AddToPNextChain(&swapchainInfo, &fullscreen);
+        vk::AddToPNextChain(&swapchainInfo, &fullscreenWin32);
+    }
+#endif
 
     if (context->getFeatures().supportsSwapchainMaintenance1.enabled)
     {
