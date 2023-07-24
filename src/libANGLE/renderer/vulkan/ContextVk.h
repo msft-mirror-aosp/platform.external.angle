@@ -799,13 +799,15 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     bool isEligibleForMutableTextureFlush() const
     {
         return getFeatures().mutableMipmapTextureUpload.enabled && !hasDisplayTextureShareGroup() &&
-               mShareGroupVk->getContextCount() == 1;
+               mShareGroupVk->getContexts().size() == 1;
     }
 
     vk::RenderPassUsageFlags getDepthStencilAttachmentFlags() const
     {
         return mDepthStencilAttachmentFlags;
     }
+
+    bool isDitherEnabled() { return mState.isDitherEnabled(); }
 
   private:
     // Dirty bits.

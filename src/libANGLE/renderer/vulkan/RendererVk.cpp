@@ -4075,7 +4075,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
         &mFeatures, supportsExternalFenceFd,
         ExtensionFound(VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME, deviceExtensionNames));
 
-#if defined(ANGLE_PLATFORM_ANDROID)
+#if defined(ANGLE_PLATFORM_ANDROID) || defined(ANGLE_PLATFORM_LINUX)
     if (mFeatures.supportsExternalFenceCapabilities.enabled &&
         mFeatures.supportsExternalSemaphoreCapabilities.enabled)
     {
@@ -4112,7 +4112,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
                                 (mFeatures.supportsExternalFenceFd.enabled &&
                                  mFeatures.supportsExternalSemaphoreFd.enabled));
     }
-#endif  // defined(ANGLE_PLATFORM_ANDROID)
+#endif  // defined(ANGLE_PLATFORM_ANDROID) || defined(ANGLE_PLATFORM_LINUX)
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsShaderStencilExport,
@@ -4436,6 +4436,13 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsLegacyDithering,
                             mDitheringFeatures.legacyDithering == VK_TRUE);
 
+    // Applications on Android have come to rely on hardware dithering, and visually regress without
+    // it.  On desktop GPUs, OpenGL's dithering is a no-op.  The following setting mimics that
+    // behavior.  Dithering is also currently not enabled on SwiftShader, but can be as needed
+    // (which would require Chromium and Capture/Replay test expectations updates).
+    ANGLE_FEATURE_CONDITION(&mFeatures, emulateDithering,
+                            IsAndroid() && !mFeatures.supportsLegacyDithering.enabled);
+
     // http://anglebug.com/6872
     // On ARM hardware, framebuffer-fetch-like behavior on Vulkan is already coherent, so we can
     // expose the coherent version of the GL extension despite unofficial Vulkan support.
@@ -4463,12 +4470,6 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // http://anglebug.com/6878
     // Android needs swapbuffers to update image and present to display.
     ANGLE_FEATURE_CONDITION(&mFeatures, swapbuffersOnFlushOrFinishWithSingleBuffer, IsAndroid());
-
-    // Applications on Android have come to rely on hardware dithering, and visually regress without
-    // it.  On desktop GPUs, OpenGL's dithering is a no-op.  The following setting mimics that
-    // behavior.  Dithering is also currently not enabled on SwiftShader, but can be as needed
-    // (which would require Chromium and Capture/Replay test expectations updates).
-    ANGLE_FEATURE_CONDITION(&mFeatures, emulateDithering, IsAndroid());
 
     // Workaround a Qualcomm imprecision with dithering
     ANGLE_FEATURE_CONDITION(&mFeatures, roundOutputAfterDithering, isQualcomm);
