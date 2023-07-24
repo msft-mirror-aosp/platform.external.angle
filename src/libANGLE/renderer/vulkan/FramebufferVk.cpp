@@ -813,15 +813,6 @@ angle::Result FramebufferVk::readPixels(const gl::Context *context,
                                         gl::Buffer *packBuffer,
                                         void *pixels)
 {
-    // Note that GL_RGBX8_ANGLE is the only format where the upload format is 3-channel RGB, while
-    // the download format is 4-channel RGBX.  As such, the internal format corresponding to
-    // format+type expects 3-byte input/output.  The format is fixed here for readPixels to output
-    // 4 bytes per pixel.
-    if (format == GL_RGBX8_ANGLE)
-    {
-        format = GL_RGBA8;
-    }
-
     // Clip read area to framebuffer.
     const gl::Extents &fbSize = getState().getReadPixelsAttachment(format)->getSize();
     const gl::Rectangle fbRect(0, 0, fbSize.width, fbSize.height);
@@ -2216,6 +2207,8 @@ void FramebufferVk::updateRenderPassDesc(ContextVk *contextVk)
 
     mCurrentFramebufferDesc.updateUnresolveMask({});
     mRenderPassDesc.setWriteControlMode(mCurrentFramebufferDesc.getWriteControlMode());
+
+    updateLegacyDither(contextVk);
 }
 
 angle::Result FramebufferVk::getAttachmentsAndRenderTargets(
@@ -3256,5 +3249,17 @@ void FramebufferVk::switchToFramebufferFetchMode(ContextVk *contextVk, bool hasF
         ASSERT(hasFramebufferFetch);
         releaseCurrentFramebuffer(contextVk);
     }
+}
+
+bool FramebufferVk::updateLegacyDither(ContextVk *contextVk)
+{
+    if (contextVk->getFeatures().supportsLegacyDithering.enabled &&
+        mRenderPassDesc.isLegacyDitherEnabled() != contextVk->isDitherEnabled())
+    {
+        mRenderPassDesc.setLegacyDither(contextVk->isDitherEnabled());
+        return true;
+    }
+
+    return false;
 }
 }  // namespace rx
