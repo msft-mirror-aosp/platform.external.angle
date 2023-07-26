@@ -9645,6 +9645,18 @@ void Context::onGPUSwitch()
     initRendererString();
 }
 
+egl::Error Context::acquireExternalContext()
+{
+    mImplementation->acquireExternalContext(this);
+    return egl::NoError();
+}
+
+egl::Error Context::releaseExternalContext()
+{
+    mImplementation->releaseExternalContext(this);
+    return egl::NoError();
+}
+
 std::mutex &Context::getProgramCacheMutex() const
 {
     return mDisplay->getProgramCacheMutex();
