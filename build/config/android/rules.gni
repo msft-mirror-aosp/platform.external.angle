@@ -35,6 +35,8 @@ if (use_cfi_diag || is_ubsan || is_ubsan_security || is_ubsan_vptr) {
 _BUNDLETOOL_JAR_PATH =
     "//third_party/android_build_tools/bundletool/bundletool.jar"
 
+_JAVAP_PATH = "//third_party/jdk/current/bin/javap"
+
 # Creates a dist directory for a native executable.
 #
 # Running a native executable on a device requires all the shared library
@@ -163,7 +165,7 @@ if (enable_java_templates) {
 
         # The sources aren't compiled so don't check their dependencies.
         check_includes = false
-        script = "//base/android/jni_generator/jni_generator.py"
+        script = "//base/android/jni_generator/jni_zero.py"
         forward_variables_from(invoker,
                                [
                                  "deps",
@@ -183,11 +185,16 @@ if (enable_java_templates) {
 
         inputs = []
         outputs = []
-        args = [
-          "--ptr_type=long",
-          "--output_dir",
+        args = []
+        if (defined(invoker.classes)) {
+          args += [ "from-jar" ]
+        } else {
+          args += [ "from-source" ]
+        }
+        args += [
+          "--output-dir",
           rebase_path(_jni_output_dir, root_build_dir),
-          "--includes",
+          "--extra-include",
           rebase_path(_jni_generator_include, _jni_output_dir),
         ]
 
@@ -200,17 +207,22 @@ if (enable_java_templates) {
             } else {
               _jar_file = android_sdk_jar
             }
-            inputs += [ _jar_file ]
+            inputs += [
+              _jar_file,
+              _JAVAP_PATH,
+            ]
             args += [
-              "--jar_file",
+              "--jar-file",
               rebase_path(_jar_file, root_build_dir),
+              "--javap",
+              rebase_path(_JAVAP_PATH, root_build_dir),
             ]
           }
           _input_args = invoker.classes
           _input_names = invoker.classes
           if (defined(invoker.unchecked_exceptions) &&
               invoker.unchecked_exceptions) {
-            args += [ "--unchecked_exceptions" ]
+            args += [ "--unchecked-exceptions" ]
           }
         } else {
           assert(defined(invoker.sources))
@@ -224,19 +236,19 @@ if (enable_java_templates) {
           _input_args = rebase_path(invoker.sources, root_build_dir)
           _input_names = invoker.sources
           if (use_hashed_jni_names) {
-            args += [ "--use_proxy_hash" ]
+            args += [ "--use-proxy-hash" ]
           }
 
           if (defined(invoker.enable_jni_multiplexing) &&
               invoker.enable_jni_multiplexing) {
-            args += [ "--enable_jni_multiplexing" ]
+            args += [ "--enable-jni-multiplexing" ]
           }
           if (defined(invoker.namespace)) {
-            args += [ "-n ${invoker.namespace}" ]
+            args += [ "--namespace=${invoker.namespace}" ]
           }
         }
         if (defined(invoker.split_name)) {
-          args += [ "--split_name=${invoker.split_name}" ]
+          args += [ "--split-name=${invoker.split_name}" ]
         }
 
         foreach(_name, _input_names) {
@@ -245,13 +257,13 @@ if (enable_java_templates) {
 
           # Avoid passing GN lists because not all webrtc embedders use //build.
           args += [
-            "--output_name",
+            "--output-name",
             _name,
           ]
         }
 
         foreach(_input, _input_args) {
-          args += [ "--input_file=$_input" ]
+          args += [ "--input-file=$_input" ]
         }
 
         if (enable_profiling) {
@@ -2927,6 +2939,25 @@ if (enable_java_templates && is_android) {
       }
     }
 
+    # Old name for variable, mark as not_needed while it is being renamed
+    # downstream. Remove after all references to baseline_profile_path have been
+    # changed.
+    not_needed(invoker, [ "baseline_profile_path" ])
+
+    _enable_art_profile_optimizations =
+        defined(invoker.art_profile_path) && _proguard_enabled
+
+    if (_enable_art_profile_optimizations) {
+      _include_baseline_profile = enable_baseline_profiles
+      _enable_startup_profile = enable_startup_profiles
+      if (_include_baseline_profile) {
+        _obfuscated_art_profile =
+            "$target_out_dir/${target_name}.obfuscated.hrf"
+      }
+    } else {
+      not_needed(invoker, [ "art_profile_path" ])
+    }
+
     if (_is_bundle_module || _omit_dex) {
       # Dex generation for app bundle modules take place in the
       # android_app_bundle template.
@@ -2961,6 +2992,14 @@ if (enable_java_templates && is_android) {
           deps += [ ":$_compile_resources_target" ]
           proguard_mapping_path = _proguard_mapping_path
           has_apk_under_test = defined(invoker.apk_under_test)
+
+          if (_enable_art_profile_optimizations) {
+            input_art_profile = invoker.art_profile_path
+            if (_include_baseline_profile) {
+              output_art_profile = _obfuscated_art_profile
+            }
+            enable_startup_profile = _enable_startup_profile
+          }
 
           # Must not be set via write_build_config, because that will cause it
           # to be picked up by test apks that use apk_under_test.
@@ -3002,10 +3041,7 @@ if (enable_java_templates && is_android) {
 
       _final_dex_target_dep = ":$_final_dex_target_name"
 
-      _use_baseline_profile =
-          _proguard_enabled && defined(invoker.baseline_profile_path) &&
-          enable_baseline_profiles
-      if (_use_baseline_profile) {
+      if (_enable_art_profile_optimizations && _include_baseline_profile) {
         _binary_profile_target = "${_template_name}__binary_baseline_profile"
         _binary_baseline_profile_path =
             "$target_out_dir/$_template_name.baseline.prof"
@@ -3016,19 +3052,14 @@ if (enable_java_templates && is_android) {
           binary_baseline_profile_path = _binary_baseline_profile_path
           binary_baseline_profile_metadata_path =
               _binary_baseline_profile_metadata_path
-          proguard_mapping_path = _proguard_mapping_path
           build_config = _build_config
-          input_profile_path = invoker.baseline_profile_path
+          input_profile_path = _obfuscated_art_profile
           deps = [
             ":$_build_config_target",
             _final_dex_target_dep,
           ]
         }
       }
-    }
-
-    if (!defined(_use_baseline_profile) || !_use_baseline_profile) {
-      not_needed(invoker, [ "baseline_profile_path" ])
     }
 
     _all_native_libs_deps = _native_libs_deps + _secondary_abi_native_libs_deps
@@ -3140,7 +3171,8 @@ if (enable_java_templates && is_android) {
           if (defined(_final_dex_path)) {
             dex_path = _final_dex_path
             deps += [ _final_dex_target_dep ]
-            if (_use_baseline_profile) {
+            if (_enable_art_profile_optimizations &&
+                _include_baseline_profile) {
               # extra_assets is a list of ["{src_path}:{dst_path}"]
               extra_assets = [
                 rebase_path(_binary_baseline_profile_path, root_build_dir) +
@@ -3380,6 +3412,7 @@ if (enable_java_templates && is_android) {
             "annotation_processor_deps",
             "apk_under_test",
             "app_as_shared_lib",
+            "art_profile_path",
             "assert_no_deps",
             "baseline_profile_path",
             "build_config_include_product_version_resource",
@@ -4842,6 +4875,25 @@ if (enable_java_templates && is_android) {
       }
     }
 
+    # Old name for variable, mark as not_needed while it is being renamed
+    # downstream. Remove after all references to baseline_profile_path have been
+    # changed.
+    not_needed(invoker, [ "baseline_profile_path" ])
+
+    _enable_art_profile_optimizations =
+        defined(invoker.art_profile_path) && _proguard_enabled
+
+    if (_enable_art_profile_optimizations) {
+      _include_baseline_profile = enable_baseline_profiles
+      _enable_startup_profile = enable_startup_profiles
+      if (_include_baseline_profile) {
+        _obfuscated_art_profile =
+            "$target_out_dir/${target_name}.obfuscated.hrf"
+      }
+    } else {
+      not_needed(invoker, [ "art_profile_path" ])
+    }
+
     if (_proguard_enabled) {
       if (_add_view_trace_events) {
         _trace_event_rewriter_target =
@@ -4852,6 +4904,7 @@ if (enable_java_templates && is_android) {
         action_with_pydeps(_rewritten_jar_target_name) {
           script = "//build/android/gyp/trace_event_bytecode_rewriter.py"
           inputs = [
+            java_path_for_inputs,
             _rewriter_path,
             _build_config,
           ]
@@ -4897,6 +4950,13 @@ if (enable_java_templates && is_android) {
         proguard_enabled = true
         proguard_mapping_path = _proguard_mapping_path
         build_config = _build_config
+        if (_enable_art_profile_optimizations) {
+          input_art_profile = invoker.art_profile_path
+          if (_include_baseline_profile) {
+            output_art_profile = _obfuscated_art_profile
+          }
+          enable_startup_profile = _enable_startup_profile
+        }
 
         deps = _module_java_targets + [ ":$_build_config_target" ]
         if (_add_view_trace_events) {
@@ -4948,10 +5008,7 @@ if (enable_java_templates && is_android) {
       }
       _dex_target_for_module = ":$_dex_target"
 
-      _use_baseline_profile =
-          _proguard_enabled && defined(invoker.baseline_profile_path) &&
-          enable_baseline_profiles
-      if (_use_baseline_profile) {
+      if (_enable_art_profile_optimizations && _include_baseline_profile) {
         _binary_profile_target =
             "${_module_target_name}__binary_baseline_profile"
         _binary_baseline_profile_path = "$target_out_dir/$_module_target_name/$_module_target_name.baseline.prof"
@@ -4962,16 +5019,13 @@ if (enable_java_templates && is_android) {
           binary_baseline_profile_path = _binary_baseline_profile_path
           binary_baseline_profile_metadata_path =
               _binary_baseline_profile_metadata_path
-          proguard_mapping_path = _proguard_mapping_path
           build_config = _module_build_config
-          input_profile_path = invoker.baseline_profile_path
+          input_profile_path = _obfuscated_art_profile
           deps = [
             _dex_target_for_module,
             _module_build_config_target,
           ]
         }
-      } else {
-        not_needed(invoker, [ "baseline_profile_path" ])
       }
 
       # Generate one module .zip file per bundle module.
@@ -5026,7 +5080,7 @@ if (enable_java_templates && is_android) {
           deps += [ ":$_secondary_abi_native_libraries_config_target" ]
         }
 
-        if (_use_baseline_profile) {
+        if (_enable_art_profile_optimizations && _include_baseline_profile) {
           # extra_assets is a list of ["{src_path}:{dst_path}"]
           extra_assets = [
             rebase_path(_binary_baseline_profile_path, root_build_dir) +
@@ -5107,8 +5161,10 @@ if (enable_java_templates && is_android) {
     _bundle_target_name = "${_target_name}__bundle"
     action_with_pydeps(_bundle_target_name) {
       script = "//build/android/gyp/create_app_bundle.py"
-      inputs = _all_module_zip_paths + _all_module_build_configs +
-               [ _BUNDLETOOL_JAR_PATH ]
+      inputs = _all_module_zip_paths + _all_module_build_configs + [
+                 _BUNDLETOOL_JAR_PATH,
+                 java_path_for_inputs,
+               ]
       outputs = [ _bundle_path ]
       deps = _all_create_module_targets + [ ":$_build_config_target" ]
       args = [
@@ -5339,6 +5395,7 @@ if (enable_java_templates && is_android) {
     action_with_pydeps("${_target_name}_apks") {
       script = "//build/android/gyp/create_app_bundle_apks.py"
       inputs = [
+        java_path_for_inputs,
         _bundle_path,
         _BUNDLETOOL_JAR_PATH,
       ]
@@ -5400,7 +5457,10 @@ if (enable_java_templates && is_android) {
       _name = get_path_info(invoker.bundle_path, "name")
       _output_path = "$_dir/$_name.minimal.apks"
       outputs = [ _output_path ]
-      inputs = [ invoker.bundle_path ]
+      inputs = [
+        invoker.bundle_path,
+        java_path_for_inputs,
+      ]
       args = [
         "--bundle",
         rebase_path(invoker.bundle_path, root_build_dir),

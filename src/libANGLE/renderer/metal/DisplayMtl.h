@@ -13,6 +13,7 @@
 #include "common/PackedEnums.h"
 #include "libANGLE/angletypes.h"
 #include "libANGLE/renderer/DisplayImpl.h"
+#include "libANGLE/renderer/ShareGroupImpl.h"
 #include "libANGLE/renderer/metal/mtl_command_buffer.h"
 #include "libANGLE/renderer/metal/mtl_context_device.h"
 #include "libANGLE/renderer/metal/mtl_format_utils.h"
@@ -30,7 +31,10 @@ class Surface;
 namespace rx
 {
 class ShareGroupMtl : public ShareGroupImpl
-{};
+{
+  public:
+    ShareGroupMtl(const egl::ShareGroupState &state) : ShareGroupImpl(state) {}
+};
 
 class ContextMtl;
 
@@ -88,7 +92,7 @@ class DisplayMtl : public DisplayImpl
     StreamProducerImpl *createStreamProducerD3DTexture(egl::Stream::ConsumerType consumerType,
                                                        const egl::AttributeMap &attribs) override;
 
-    ShareGroupImpl *createShareGroup() override;
+    ShareGroupImpl *createShareGroup(const egl::ShareGroupState &state) override;
 
     ExternalImageSiblingImpl *createExternalImageSibling(const gl::Context *context,
                                                          EGLenum target,
@@ -132,6 +136,8 @@ class DisplayMtl : public DisplayImpl
     bool supportsEitherGPUFamily(uint8_t iOSFamily, uint8_t macFamily) const;
     bool supportsAppleGPUFamily(uint8_t iOSFamily) const;
     bool supportsMacGPUFamily(uint8_t macFamily) const;
+    bool supportsMetal2_1() const;
+    bool supportsMetal2_2() const;
     bool supportsDepth24Stencil8PixelFormat() const;
     bool supports32BitFloatFiltering() const;
     bool isAMD() const;

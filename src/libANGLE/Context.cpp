@@ -9645,6 +9645,18 @@ void Context::onGPUSwitch()
     initRendererString();
 }
 
+egl::Error Context::acquireExternalContext()
+{
+    mImplementation->acquireExternalContext(this);
+    return egl::NoError();
+}
+
+egl::Error Context::releaseExternalContext()
+{
+    mImplementation->releaseExternalContext(this);
+    return egl::NoError();
+}
+
 std::mutex &Context::getProgramCacheMutex() const
 {
     return mDisplay->getProgramCacheMutex();
@@ -9952,6 +9964,17 @@ void ErrorSet::validationErrorF(angle::EntryPoint entryPoint,
     }
 }
 
+std::unique_lock<std::mutex> ErrorSet::getLockIfNotAlready()
+{
+    // Avoid mutex recursion and return the lock only if it is not already locked.  This can happen
+    // if device loss is generated while it is being queried.
+    if (mMutex.try_lock())
+    {
+        return std::unique_lock<std::mutex>(mMutex, std::adopt_lock);
+    }
+    return std::unique_lock<std::mutex>();
+}
+
 void ErrorSet::pushError(GLenum errorCode)
 {
     ASSERT(errorCode != GL_NO_ERROR);
@@ -9979,7 +10002,9 @@ GLenum ErrorSet::popError()
 // NOTE: this function should not assume that this context is current!
 void ErrorSet::markContextLost(GraphicsResetStatus status)
 {
-    std::lock_guard<std::mutex> lock(mMutex);
+    // This function may be called indirectly through ErrorSet::getGraphicsResetStatus() from the
+    // backend, in which case mMutex is already held.
+    std::unique_lock<std::mutex> lock = getLockIfNotAlready();
 
     ASSERT(status != GraphicsResetStatus::NoError);
     if (mResetStrategy == GL_LOSE_CONTEXT_ON_RESET_EXT)
