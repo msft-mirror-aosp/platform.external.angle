@@ -251,11 +251,17 @@ if (is_android || is_chromeos) {
     # resources.arsc.
     enable_unused_resource_stripping = true
 
-    # Controls whether |baseline_profile_path| is respected. Useful to disable
-    # baseline profiles.
+    # Controls whether specifying |art_profile_path| automatically adds a binary
+    # baseline profile to the APK/AAB.
     # Currently disabled while bundletool does not support baseline profiles in
     # non-base splits.
     enable_baseline_profiles = false
+
+    # Controls whether specifying |art_profile_path| automatically applies it as
+    # a startup profile to the APK/AAB.
+    # Currently disabled while R8 causes checkdiscard errors due to
+    # methods/classes not being inlined correctly.
+    enable_startup_profiles = false
 
     # The target to use as the system WebView implementation.
     if (android_64bit_target_cpu && skip_secondary_abi_for_cq) {
@@ -362,6 +368,10 @@ if (is_android || is_chromeos) {
       "$android_ndk_root/prebuilt/$android_prebuilt_arch/gdbserver/gdbserver"
 
   android_sdk_tools_bundle_aapt2 = "${android_sdk_tools_bundle_aapt2_dir}/aapt2"
+
+  # Actions that use java should add this as an input so that they are rebuilt
+  # when the JDK changes.
+  java_path_for_inputs = "//third_party/jdk/current/bin/java.orig"
 
   # Toolchain used to create native libraries for robolectric_binary() targets.
   robolectric_toolchain = "//build/toolchain/android:robolectric_$host_cpu"

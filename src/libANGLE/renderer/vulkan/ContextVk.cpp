@@ -17,6 +17,7 @@
 #include "libANGLE/Display.h"
 #include "libANGLE/Program.h"
 #include "libANGLE/Semaphore.h"
+#include "libANGLE/ShareGroup.h"
 #include "libANGLE/Surface.h"
 #include "libANGLE/angletypes.h"
 #include "libANGLE/renderer/renderer_utils.h"
@@ -1214,9 +1215,6 @@ ContextVk::~ContextVk()
 
 void ContextVk::onDestroy(const gl::Context *context)
 {
-    // Remove context from the share group
-    mShareGroupVk->removeContext(this);
-
     // This will not destroy any resources. It will release them to be collected after finish.
     mIncompleteTextures.onDestroy(context);
 
@@ -1433,15 +1431,12 @@ angle::Result ContextVk::initialize()
     // mutable textures should be flushed.
     if (isEligibleForMutableTextureFlush())
     {
-        ASSERT(mShareGroupVk->getContextCount() == 1);
+        ASSERT(mShareGroupVk->getContexts().size() == 1);
         for (auto context : mShareGroupVk->getContexts())
         {
-            ANGLE_TRY(context->flushOutsideRenderPassCommands());
+            ANGLE_TRY(vk::GetImpl(context.second)->flushOutsideRenderPassCommands());
         }
     }
-
-    // Add context into the share group
-    mShareGroupVk->addContext(this);
 
     // Allocate queueSerial index and generate queue serial for commands.
     ANGLE_TRY(allocateQueueSerialIndex());
@@ -5099,6 +5094,18 @@ void ContextVk::updateAdvancedBlendEquations(const gl::ProgramExecutable *execut
 
 void ContextVk::updateDither()
 {
+    if (getFeatures().supportsLegacyDithering.enabled)
+    {
+        FramebufferVk *framebufferVk = vk::GetImpl(mState.getDrawFramebuffer());
+        if (framebufferVk->updateLegacyDither(this))
+        {
+            // Can't reactivate: same framebuffer but the render pass desc has changed.
+            mAllowRenderPassToReactivate = false;
+
+            onRenderPassFinished(RenderPassClosureReason::LegacyDithering);
+        }
+    }
+
     if (!getFeatures().emulateDithering.enabled)
     {
         return;

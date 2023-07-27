@@ -4075,7 +4075,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
         &mFeatures, supportsExternalFenceFd,
         ExtensionFound(VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME, deviceExtensionNames));
 
-#if defined(ANGLE_PLATFORM_ANDROID)
+#if defined(ANGLE_PLATFORM_ANDROID) || defined(ANGLE_PLATFORM_LINUX)
     if (mFeatures.supportsExternalFenceCapabilities.enabled &&
         mFeatures.supportsExternalSemaphoreCapabilities.enabled)
     {
@@ -4112,7 +4112,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
                                 (mFeatures.supportsExternalFenceFd.enabled &&
                                  mFeatures.supportsExternalSemaphoreFd.enabled));
     }
-#endif  // defined(ANGLE_PLATFORM_ANDROID)
+#endif  // defined(ANGLE_PLATFORM_ANDROID) || defined(ANGLE_PLATFORM_LINUX)
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsShaderStencilExport,
@@ -4433,8 +4433,17 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
                             mSwapchainMaintenance1Features.swapchainMaintenance1 == VK_TRUE);
 
     // The VK_EXT_legacy_dithering extension enables dithering support without emulation
+    // Disable the usage of VK_EXT_legacy_dithering on ARM until the driver bug
+    // http://issuetracker.google.com/293136916, http://issuetracker.google.com/292282210 are fixed.
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsLegacyDithering,
-                            mDitheringFeatures.legacyDithering == VK_TRUE);
+                            mDitheringFeatures.legacyDithering == VK_TRUE && !isARM);
+
+    // Applications on Android have come to rely on hardware dithering, and visually regress without
+    // it.  On desktop GPUs, OpenGL's dithering is a no-op.  The following setting mimics that
+    // behavior.  Dithering is also currently not enabled on SwiftShader, but can be as needed
+    // (which would require Chromium and Capture/Replay test expectations updates).
+    ANGLE_FEATURE_CONDITION(&mFeatures, emulateDithering,
+                            IsAndroid() && !mFeatures.supportsLegacyDithering.enabled);
 
     // http://anglebug.com/6872
     // On ARM hardware, framebuffer-fetch-like behavior on Vulkan is already coherent, so we can
@@ -4463,12 +4472,6 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // http://anglebug.com/6878
     // Android needs swapbuffers to update image and present to display.
     ANGLE_FEATURE_CONDITION(&mFeatures, swapbuffersOnFlushOrFinishWithSingleBuffer, IsAndroid());
-
-    // Applications on Android have come to rely on hardware dithering, and visually regress without
-    // it.  On desktop GPUs, OpenGL's dithering is a no-op.  The following setting mimics that
-    // behavior.  Dithering is also currently not enabled on SwiftShader, but can be as needed
-    // (which would require Chromium and Capture/Replay test expectations updates).
-    ANGLE_FEATURE_CONDITION(&mFeatures, emulateDithering, IsAndroid());
 
     // Workaround a Qualcomm imprecision with dithering
     ANGLE_FEATURE_CONDITION(&mFeatures, roundOutputAfterDithering, isQualcomm);
@@ -4614,7 +4617,12 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
 
     // On SwiftShader, no data is retrieved from the pipeline cache, so there is no reason to
     // serialize it or put it in the blob cache.
-    ANGLE_FEATURE_CONDITION(&mFeatures, hasEffectivePipelineCacheSerialization, !isSwiftShader);
+    // For Windows Nvidia Vulkan driver older than 520, Vulkan pipeline cache will only generate one
+    // single huge cache for one process shared by all graphics piplines in the same process, which
+    // can be huge.
+    const bool nvVersionLessThan520 = isNvidia && (nvidiaVersion.major < 520u);
+    ANGLE_FEATURE_CONDITION(&mFeatures, hasEffectivePipelineCacheSerialization,
+                            !isSwiftShader && !nvVersionLessThan520);
 
     // When the driver sets graphicsPipelineLibraryFastLinking, it means that monolithic pipelines
     // are just a bundle of the libraries, and that there is no benefit in creating monolithic
