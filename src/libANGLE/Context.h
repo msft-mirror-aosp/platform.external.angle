@@ -124,6 +124,7 @@ class ErrorSet : angle::NonCopyable
   private:
     void setContextLost();
     void pushError(GLenum errorCode);
+    std::unique_lock<std::mutex> getLockIfNotAlready();
 
     // Non-atomic members of this class are protected by a mutex.  This is to allow errors to be
     // safely set by entry points that don't hold a lock.  Note that other contexts may end up
@@ -715,6 +716,10 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     egl::Error releaseHighPowerGPU();
     egl::Error reacquireHighPowerGPU();
     void onGPUSwitch();
+
+    // EGL_ANGLE_external_context_and_surface implementation.
+    egl::Error acquireExternalContext();
+    egl::Error releaseExternalContext();
 
     bool noopDraw(PrimitiveMode mode, GLsizei count) const;
     bool noopDrawInstanced(PrimitiveMode mode, GLsizei count, GLsizei instanceCount) const;

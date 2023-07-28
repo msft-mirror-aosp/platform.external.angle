@@ -1828,13 +1828,17 @@ void ContextMtl::flushCommandBufferIfNeeded()
 {
     if (mRenderPassesSinceFlush >= mtl::kMaxRenderPassesPerCommandBuffer)
     {
-        // WaitUntilScheduled here is intended to help the CPU-GPU pipeline and
-        // helps to keep the number of inflight render passes in the system to a
-        // minimum.
+#if defined(ANGLE_PLATFORM_MACOS)
+        // Ensure that we don't accumulate too many unflushed render passes. Don't wait until they
+        // are submitted, other components handle backpressure so don't create uneccessary CPU/GPU
+        // synchronization.
+        flushCommandBuffer(mtl::NoWait);
+#else
+        // WaitUntilScheduled is used on iOS to avoid regressing untested devices.
         flushCommandBuffer(mtl::WaitUntilScheduled);
+#endif
     }
-
-    if (mCmdBuffer.needsFlushForDrawCallLimits())
+    else if (mCmdBuffer.needsFlushForDrawCallLimits())
     {
         flushCommandBuffer(mtl::NoWait);
     }
@@ -1907,22 +1911,16 @@ mtl::RenderCommandEncoder *ContextMtl::getRenderPassCommandEncoder(const mtl::Re
     const mtl::ContextDevice &metalDevice = getMetalDevice();
     if (mtl::DeviceHasMaximumRenderTargetSize(metalDevice))
     {
-        ANGLE_MTL_OBJC_SCOPE
+        NSUInteger maxSize = mtl::GetMaxRenderTargetSizeForDeviceInBytes(metalDevice);
+        NSUInteger renderTargetSize =
+            ComputeTotalSizeUsedForMTLRenderPassDescriptor(desc, this, metalDevice);
+        if (renderTargetSize > maxSize)
         {
-            MTLRenderPassDescriptor *objCDesc = [MTLRenderPassDescriptor renderPassDescriptor];
-            desc.convertToMetalDesc(objCDesc, getNativeCaps().maxColorAttachments);
-            NSUInteger maxSize = mtl::GetMaxRenderTargetSizeForDeviceInBytes(metalDevice);
-            NSUInteger renderTargetSize =
-                ComputeTotalSizeUsedForMTLRenderPassDescriptor(objCDesc, this, metalDevice);
-            if (renderTargetSize > maxSize)
-            {
-                std::stringstream errorStream;
-                errorStream << "This set of render targets requires " << renderTargetSize
-                            << " bytes of pixel storage. This device supports " << maxSize
-                            << " bytes.";
-                ANGLE_MTL_HANDLE_ERROR(this, errorStream.str().c_str(), GL_INVALID_OPERATION);
-                return nil;
-            }
+            std::stringstream errorStream;
+            errorStream << "This set of render targets requires " << renderTargetSize
+                        << " bytes of pixel storage. This device supports " << maxSize << " bytes.";
+            ANGLE_MTL_HANDLE_ERROR(this, errorStream.str().c_str(), GL_INVALID_OPERATION);
+            return nullptr;
         }
     }
     return &mRenderEncoder.restart(desc, getNativeCaps().maxColorAttachments);
