@@ -615,17 +615,34 @@ void InitializeDefaultSubpassSelfDependencies(vk::Context *context,
                                               uint32_t subpassIndex,
                                               std::vector<VkSubpassDependency> *subpassDependencies)
 {
+    RendererVk *renderer = context->getRenderer();
+    const bool hasRasterizationOrderAttachmentAccess =
+        renderer->getFeatures().supportsRasterizationOrderAttachmentAccess.enabled;
+    const bool hasBlendOperationAdvanced =
+        renderer->getFeatures().supportsBlendOperationAdvanced.enabled;
+
+    if (hasRasterizationOrderAttachmentAccess && !hasBlendOperationAdvanced)
+    {
+        // No need to specify a subpass dependency if VK_EXT_rasterization_order_attachment_access
+        // is enabled, as that extension makes this subpass dependency implicit.
+        return;
+    }
+
     subpassDependencies->emplace_back();
     VkSubpassDependency *dependency = &subpassDependencies->back();
 
-    dependency->srcSubpass   = subpassIndex;
-    dependency->dstSubpass   = subpassIndex;
-    dependency->srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency->dstStageMask =
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency->srcSubpass    = subpassIndex;
+    dependency->dstSubpass    = subpassIndex;
+    dependency->srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency->dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency->srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependency->dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
-    if (context->getRenderer()->getFeatures().supportsBlendOperationAdvanced.enabled)
+    dependency->dstAccessMask = 0;
+    if (!hasRasterizationOrderAttachmentAccess)
+    {
+        dependency->dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependency->dstAccessMask |= VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+    }
+    if (renderer->getFeatures().supportsBlendOperationAdvanced.enabled)
     {
         dependency->dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT;
     }
@@ -791,13 +808,23 @@ angle::Result CreateRenderPass2(Context *context,
                               multiviewInfo.pViewMasks[subpass], &subpassDescriptions[subpass]);
     }
 
-    VkMultisampledRenderToSingleSampledInfoGoogleX renderToTextureInfo = {};
-    renderToTextureInfo.sType =
-        VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_GOOGLEX;
-    renderToTextureInfo.multisampledRenderToSingleSampledEnable = true;
-    renderToTextureInfo.rasterizationSamples = gl_vk::GetSamples(renderToTextureSamples);
-    renderToTextureInfo.depthResolveMode     = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
-    renderToTextureInfo.stencilResolveMode   = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
+    VkSubpassDescriptionDepthStencilResolve msrtssResolve = {};
+    msrtssResolve.sType              = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
+    msrtssResolve.depthResolveMode   = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
+    msrtssResolve.stencilResolveMode = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
+
+    VkMultisampledRenderToSingleSampledInfoEXT msrtss = {};
+    msrtss.sType = VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT;
+    msrtss.pNext = &msrtssResolve;
+    msrtss.multisampledRenderToSingleSampledEnable = true;
+    msrtss.rasterizationSamples                    = gl_vk::GetSamples(renderToTextureSamples);
+
+    VkMultisampledRenderToSingleSampledInfoGOOGLEX msrtssGOOGLEX = {};
+    msrtssGOOGLEX.sType = VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_GOOGLEX;
+    msrtssGOOGLEX.multisampledRenderToSingleSampledEnable = true;
+    msrtssGOOGLEX.rasterizationSamples                    = msrtss.rasterizationSamples;
+    msrtssGOOGLEX.depthResolveMode                        = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
+    msrtssGOOGLEX.stencilResolveMode                      = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
 
     // Append the depth/stencil resolve attachment to the pNext chain of last subpass, if any.
     if (depthStencilResolve.pDepthStencilResolveAttachment != nullptr)
@@ -810,10 +837,18 @@ angle::Result CreateRenderPass2(Context *context,
         RendererVk *renderer = context->getRenderer();
 
         ASSERT(isRenderToTextureThroughExtension);
-        ASSERT(renderer->getFeatures().supportsMultisampledRenderToSingleSampled.enabled);
+        ASSERT(renderer->getFeatures().supportsMultisampledRenderToSingleSampled.enabled ||
+               renderer->getFeatures().supportsMultisampledRenderToSingleSampledGOOGLEX.enabled);
         ASSERT(subpassDescriptions.size() == 1);
 
-        subpassDescriptions.back().pNext = &renderToTextureInfo;
+        if (renderer->getFeatures().supportsMultisampledRenderToSingleSampled.enabled)
+        {
+            subpassDescriptions.back().pNext = &msrtss;
+        }
+        else
+        {
+            subpassDescriptions.back().pNext = &msrtssGOOGLEX;
+        }
     }
 
     // Convert subpass dependencies to VkSubpassDependency2.
@@ -1017,7 +1052,8 @@ angle::Result InitializeRenderPassFromDesc(ContextVk *contextVk,
     const bool needInputAttachments = desc.hasFramebufferFetch();
     const bool isRenderToTextureThroughExtension =
         desc.isRenderToTexture() &&
-        contextVk->getFeatures().supportsMultisampledRenderToSingleSampled.enabled;
+        (contextVk->getFeatures().supportsMultisampledRenderToSingleSampled.enabled ||
+         contextVk->getFeatures().supportsMultisampledRenderToSingleSampledGOOGLEX.enabled);
     const bool isRenderToTextureThroughEmulation =
         desc.isRenderToTexture() && !isRenderToTextureThroughExtension;
 
@@ -1237,6 +1273,17 @@ angle::Result InitializeRenderPassFromDesc(ContextVk *contextVk,
                                                                       : nullptr);
     applicationSubpass->preserveAttachmentCount = 0;
     applicationSubpass->pPreserveAttachments    = nullptr;
+
+    // Specify rasterization order for color on the subpass.  This is required when the
+    // corresponding flag is set on the pipeline.
+    if (contextVk->getFeatures().supportsRasterizationOrderAttachmentAccess.enabled)
+    {
+        for (VkSubpassDescription &subpass : subpassDesc)
+        {
+            subpass.flags |=
+                VK_SUBPASS_DESCRIPTION_RASTERIZATION_ORDER_ATTACHMENT_COLOR_ACCESS_BIT_EXT;
+        }
+    }
 
     // If depth/stencil is to be resolved, add a VkSubpassDescriptionDepthStencilResolve to the
     // pNext chain of the subpass description.  Note that we need a VkSubpassDescription2KHR to have
@@ -2259,7 +2306,7 @@ void OutputAllPipelineState(ContextVk *contextVk,
         {PipelineState::AlphaToCoverageEnable, 0},
         {PipelineState::AlphaToOneEnable, 0},
         {PipelineState::LogicOpEnable, 0},
-        {PipelineState::LogicOp, VK_LOGIC_OP_CLEAR},
+        {PipelineState::LogicOp, VK_LOGIC_OP_COPY},
         {PipelineState::RasterizerDiscardEnable, 0},
         {PipelineState::ColorWriteMask, 0},
         {PipelineState::BlendEnableMask, 0},
@@ -2641,7 +2688,7 @@ void GraphicsPipelineDesc::initDefaults(const ContextVk *contextVk)
     mInputAssemblyAndRasterizationStateInfo.bits.alphaToCoverageEnable = 0;
     mInputAssemblyAndRasterizationStateInfo.bits.alphaToOneEnable      = 0;
     mInputAssemblyAndRasterizationStateInfo.bits.logicOpEnable         = 0;
-    SetBitField(mInputAssemblyAndRasterizationStateInfo.bits.logicOp, VK_LOGIC_OP_CLEAR);
+    SetBitField(mInputAssemblyAndRasterizationStateInfo.bits.logicOp, VK_LOGIC_OP_COPY);
 
     mInputAssemblyAndRasterizationStateInfo.sampleMask = std::numeric_limits<uint16_t>::max();
 
@@ -3059,6 +3106,14 @@ angle::Result GraphicsPipelineDesc::initializePipeline(
             static_cast<uint32_t>(mRenderPassDesc.getColorUnresolveAttachmentMask().count());
     }
 
+    // Specify rasterization order for color when available.  This allows implementation of coherent
+    // framebuffer fetch / advanced blend.
+    if (contextVk->getFeatures().supportsRasterizationOrderAttachmentAccess.enabled)
+    {
+        blendState.flags |=
+            VK_PIPELINE_COLOR_BLEND_STATE_CREATE_RASTERIZATION_ORDER_ATTACHMENT_ACCESS_BIT_EXT;
+    }
+
     const gl::DrawBufferMask blendEnableMask(inputAndRaster.misc.blendEnableMask);
 
     // Zero-init all states.
@@ -3109,7 +3164,7 @@ angle::Result GraphicsPipelineDesc::initializePipeline(
     }
 
     // Dynamic state
-    angle::FixedVector<VkDynamicState, 21> dynamicStateList;
+    angle::FixedVector<VkDynamicState, 22> dynamicStateList;
     dynamicStateList.push_back(VK_DYNAMIC_STATE_VIEWPORT);
     dynamicStateList.push_back(VK_DYNAMIC_STATE_SCISSOR);
     dynamicStateList.push_back(VK_DYNAMIC_STATE_LINE_WIDTH);
@@ -3138,6 +3193,10 @@ angle::Result GraphicsPipelineDesc::initializePipeline(
         dynamicStateList.push_back(VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE);
         dynamicStateList.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE);
         dynamicStateList.push_back(VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE);
+    }
+    if (contextVk->getFeatures().supportsLogicOpDynamicState.enabled)
+    {
+        dynamicStateList.push_back(VK_DYNAMIC_STATE_LOGIC_OP_EXT);
     }
     if (contextVk->getFeatures().supportsFragmentShadingRate.enabled)
     {
@@ -3183,23 +3242,40 @@ angle::Result GraphicsPipelineDesc::initializePipeline(
     createInfo.basePipelineHandle  = VK_NULL_HANDLE;
     createInfo.basePipelineIndex   = 0;
 
+    VkPipelineRobustnessCreateInfoEXT robustness = {};
+    robustness.sType = VK_STRUCTURE_TYPE_PIPELINE_ROBUSTNESS_CREATE_INFO_EXT;
+
+    // Enable robustness on the pipeline if needed.  Note that the global robustBufferAccess feature
+    // must be disabled by default.
+    if (contextVk->getFeatures().supportsPipelineRobustness.enabled &&
+        contextVk->getShareGroup()->hasAnyContextWithRobustness())
+    {
+        robustness.storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT;
+        robustness.uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT;
+        robustness.vertexInputs   = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT;
+        robustness.images         = VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DEVICE_DEFAULT_EXT;
+
+        AddToPNextChain(&createInfo, &robustness);
+    }
+
     VkPipelineCreationFeedback feedback = {};
     gl::ShaderMap<VkPipelineCreationFeedback> perStageFeedback;
 
     VkPipelineCreationFeedbackCreateInfo feedbackInfo = {};
     feedbackInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO;
-    feedbackInfo.pPipelineCreationFeedback = &feedback;
-    // Provide some storage for per-stage data, even though it's not used.  This first works around
-    // a VVL bug that doesn't allow `pipelineStageCreationFeedbackCount=0` despite the spec (See
-    // https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/4161).  Even with fixed VVL,
-    // several drivers crash when this storage is missing too.
-    feedbackInfo.pipelineStageCreationFeedbackCount = createInfo.stageCount;
-    feedbackInfo.pPipelineStageCreationFeedbacks    = perStageFeedback.data();
 
     const bool supportsFeedback = contextVk->getFeatures().supportsPipelineCreationFeedback.enabled;
     if (supportsFeedback)
     {
-        createInfo.pNext = &feedbackInfo;
+        feedbackInfo.pPipelineCreationFeedback = &feedback;
+        // Provide some storage for per-stage data, even though it's not used.  This first works
+        // around a VVL bug that doesn't allow `pipelineStageCreationFeedbackCount=0` despite the
+        // spec (See https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/4161).  Even
+        // with fixed VVL, several drivers crash when this storage is missing too.
+        feedbackInfo.pipelineStageCreationFeedbackCount = createInfo.stageCount;
+        feedbackInfo.pPipelineStageCreationFeedbacks    = perStageFeedback.data();
+
+        AddToPNextChain(&createInfo, &feedbackInfo);
     }
 
     ANGLE_TRY(pipelineCache->createGraphicsPipeline(contextVk, createInfo, pipelineOut));
@@ -3518,6 +3594,20 @@ void GraphicsPipelineDesc::updateColorWriteMasks(
         transition->set(ANGLE_GET_INDEXED_TRANSITION_BIT(mColorBlendStateInfo, colorWriteMaskBits,
                                                          colorIndexGL, 4));
     }
+}
+
+void GraphicsPipelineDesc::updateLogicOpEnabled(GraphicsPipelineTransitionBits *transition,
+                                                bool enable)
+{
+    mInputAssemblyAndRasterizationStateInfo.bits.logicOpEnable = enable;
+    transition->set(ANGLE_GET_TRANSITION_BIT(mInputAssemblyAndRasterizationStateInfo, bits));
+}
+
+void GraphicsPipelineDesc::updateLogicOp(GraphicsPipelineTransitionBits *transition,
+                                         VkLogicOp logicOp)
+{
+    SetBitField(mInputAssemblyAndRasterizationStateInfo.bits.logicOp, logicOp);
+    transition->set(ANGLE_GET_TRANSITION_BIT(mInputAssemblyAndRasterizationStateInfo, bits));
 }
 
 void GraphicsPipelineDesc::setDepthTestEnabled(bool enabled)

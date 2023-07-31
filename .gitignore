@@ -57,6 +57,7 @@
 /third_party/llvm-build
 /third_party/markupsafe
 /third_party/nasm
+/third_party/ninja
 /third_party/OpenCL-Docs/src
 /third_party/OpenCL-ICD-Loader/src
 /third_party/OpenGL-Registry/src
@@ -65,6 +66,7 @@
 /third_party/Python-Markdown
 /third_party/qemu-linux-x64
 /third_party/qemu-mac-x64
+/third_party/r8/d8
 /third_party/r8/lib
 /third_party/rapidjson/src
 /third_party/requests/src

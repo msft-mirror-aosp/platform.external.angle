@@ -64,8 +64,7 @@ struct TracePerfParams final : public RenderTestParams
         return strstr.str();
     }
 
-    TraceInfo traceInfo       = {};
-    std::string tracePerfName = "";
+    TraceInfo traceInfo = {};
 };
 
 std::ostream &operator<<(std::ostream &os, const TracePerfParams &params)
@@ -722,7 +721,7 @@ bool FindRootTraceTestDataPath(char *testDataDirOut, size_t maxDataDirLen)
 }
 
 TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
-    : ANGLERenderTest("TracePerf_" + params->tracePerfName, *params.get(), "ms"),
+    : ANGLERenderTest("TracePerf", *params.get(), "ms"),
       mParams(std::move(params)),
       mStartFrame(0),
       mEndFrame(0)
@@ -1289,6 +1288,45 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         addExtensionPrerequisite("GL_ANDROID_extension_pack_es31a");
     }
 
+    if (traceNameIs("botworld_adventure"))
+    {
+        addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
+    }
+
+    if (traceNameIs("eve_echoes"))
+    {
+        if (IsQualcomm() && mParams->isVulkan())
+        {
+            skipTest("TODO: http://anglebug.com/7690 Test crashes in LLVM on Qualcomm (Pixel 4)");
+        }
+    }
+
+    if (traceNameIs("life_is_strange"))
+    {
+        if (IsWindows() && IsNVIDIA() && mParams->isVulkan() && !mParams->isSwiftshader())
+        {
+            skipTest("http://anglebug.com/7723 Renders incorrectly on Nvidia Windows");
+        }
+
+        addExtensionPrerequisite("GL_EXT_texture_buffer");
+        addExtensionPrerequisite("GL_EXT_texture_cube_map_array");
+    }
+
+    if (traceNameIs("survivor_io"))
+    {
+        if (IsWindows() && IsNVIDIA() && mParams->isVulkan() && !mParams->isSwiftshader())
+        {
+            skipTest("http://anglebug.com/7733 Renders incorrectly on Nvidia Windows");
+        }
+
+        if (IsWindows() && IsIntel() && mParams->driver != GLESDriverType::AngleEGL)
+        {
+            skipTest(
+                "http://anglebug.com/7737 Programs fail to link on Intel Windows native driver, "
+                "citing MAX_UNIFORM_LOCATIONS exceeded");
+        }
+    }
+
     // glDebugMessageControlKHR and glDebugMessageCallbackKHR crash on ARM GLES1.
     if (IsARM() && mParams->traceInfo.contextClientMajorVersion == 1)
     {
@@ -1319,8 +1357,8 @@ void TracePerfTest::initializeBenchmark()
     std::string traceName = traceNameStr.str();
     mTraceLibrary.reset(new TraceLibrary(traceName.c_str()));
 
-    trace_angle::LoadEGL(TraceLoadProc);
-    trace_angle::LoadGLES(TraceLoadProc);
+    LoadTraceEGL(TraceLoadProc);
+    LoadTraceGLES(TraceLoadProc);
 
     if (!mTraceLibrary->valid())
     {
@@ -2163,15 +2201,13 @@ void RegisterTraceTests()
             overrideParams.eglParameters.enable(Feature::ForceInitShaderVariables);
         }
 
-        std::string paramName = testing::PrintToString(params);
-        std::stringstream testNameStr;
-        testNameStr << "Run/" << paramName;
-        std::string testName         = testNameStr.str();
-        overrideParams.tracePerfName = testName;
-
         auto factory = [overrideParams]() {
             return new TracePerfTest(std::make_unique<TracePerfParams>(overrideParams));
         };
+        std::string paramName = testing::PrintToString(params);
+        std::stringstream testNameStr;
+        testNameStr << "Run/" << paramName;
+        std::string testName = testNameStr.str();
         testing::RegisterTest("TracePerfTest", testName.c_str(), nullptr, paramName.c_str(),
                               __FILE__, __LINE__, factory);
     }

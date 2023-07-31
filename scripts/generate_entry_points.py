@@ -35,10 +35,9 @@ NO_EVENT_MARKER_EXCEPTIONS_LIST = sorted([
 # marked as such in the registry.  However, that is not correct for GLES where this entry point
 # comes from GL_EXT_multisampled_render_to_texture which is never promoted to core GLES.
 ALIASING_EXCEPTIONS = [
-    'glRenderbufferStorageMultisampleEXT',
-    'renderbufferStorageMultisampleEXT',
-    'drawArraysInstancedBaseInstanceANGLE',
-    'drawElementsInstancedBaseVertexBaseInstanceANGLE',
+    'glRenderbufferStorageMultisampleEXT', 'renderbufferStorageMultisampleEXT',
+    'drawArraysInstancedBaseInstanceANGLE', 'drawElementsInstancedBaseVertexBaseInstanceANGLE',
+    'glLogicOpANGLE', 'logicOpANGLE'
 ]
 
 # These are the entry points which potentially are used first by an application
@@ -951,9 +950,9 @@ namespace
 bool gLoaded = false;
 void *gEntryPointsLib = nullptr;
 
-angle::GenericProc KHRONOS_APIENTRY GlobalLoad(const char *symbol)
+GenericProc KHRONOS_APIENTRY GlobalLoad(const char *symbol)
 {
-    return reinterpret_cast<angle::GenericProc>(angle::GetLibrarySymbol(gEntryPointsLib, symbol));
+    return reinterpret_cast<GenericProc>(angle::GetLibrarySymbol(gEntryPointsLib, symbol));
 }
 
 void EnsureEGLLoaded()
@@ -967,7 +966,7 @@ void EnsureEGLLoaded()
     gEntryPointsLib = OpenSystemLibraryAndGetError(ANGLE_GLESV2_LIBRARY_NAME, angle::SearchType::ModuleDir, &errorOut);
     if (gEntryPointsLib)
     {
-        angle::LoadEGL_EGL(GlobalLoad);
+        LoadLibEGL_EGL(GlobalLoad);
         gLoaded = true;
     }
     else
@@ -3255,8 +3254,9 @@ def main():
     for lib in ["libGLESv2" + suffix for suffix in ["", "_no_capture", "_with_capture"]]:
         write_windows_def_file(everything, lib, lib, "libGLESv2", libgles_ep_exports)
 
-    write_windows_def_file(everything, "opengl32", "opengl32", "libGLESv2",
+    write_windows_def_file(everything, "opengl32_with_wgl", "opengl32", "libGLESv2",
                            libgl_ep_exports + sorted(wgl_commands))
+    write_windows_def_file(everything, "opengl32", "opengl32", "libGLESv2", libgl_ep_exports)
     write_windows_def_file("egl.xml and egl_angle_ext.xml", "libEGL", "libEGL", "libEGL",
                            libegl_windows_def_exports)
 

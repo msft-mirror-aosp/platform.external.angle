@@ -1,4 +1,4 @@
-# Copyright 2022 The Chromium Authors. All rights reserved.
+# Copyright 2022 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -23,10 +23,11 @@ enable_cast_receiver = true
 enable_dav1d_decoder = false
 
 # //chrome makes many assumptions that Extensions are enabled.
-# TODO(crbug.com/1352700): Fix theses assumptions or avoid building it.
+# TODO(crbug.com/1363742): Fix theses assumptions or avoid building it.
 # enable_extensions = false
 
 enable_hidpi = false
+enable_libaom = false
 enable_library_cdms = false
 enable_logging_override = true
 enable_pdf = false

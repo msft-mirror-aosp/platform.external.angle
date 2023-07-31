@@ -329,6 +329,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     const gl::TextureCapsMap &getNativeTextureCaps() const override;
     const gl::Extensions &getNativeExtensions() const override;
     const gl::Limitations &getNativeLimitations() const override;
+    ShPixelLocalStorageType getNativePixelLocalStorageType() const override;
 
     // Shader creation
     CompilerImpl *createCompiler() override;
@@ -624,7 +625,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                      const vk::PackedAttachmentCount colorAttachmentCount,
                                      const vk::PackedAttachmentIndex depthStencilAttachmentIndex,
                                      const vk::PackedClearValuesArray &clearValues,
-                                     vk::RenderPassCommandBuffer **commandBufferOut);
+                                     vk::RenderPassCommandBuffer **commandBufferOut,
+                                     vk::RenderPassSerial *renderPassSerialOut);
 
     // Only returns true if we have a started RP and we've run setupDraw.
     bool hasStartedRenderPass() const
@@ -633,10 +635,10 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         return mRenderPassCommandBuffer && mRenderPassCommands->started();
     }
 
-    bool hasStartedRenderPassWithFramebuffer(vk::Framebuffer *framebuffer)
+    bool hasStartedRenderPassWithSerial(const vk::RenderPassSerial renderPassSerial) const
     {
         return hasStartedRenderPass() &&
-               mRenderPassCommands->getFramebufferHandle() == framebuffer->getHandle();
+               mRenderPassCommands->getRenderPassSerial() == renderPassSerial;
     }
 
     bool hasStartedRenderPassWithCommands() const
@@ -651,7 +653,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     }
 
     // TODO(https://anglebug.com/4968): Support multiple open render passes.
-    void restoreFinishedRenderPass(vk::Framebuffer *framebuffer);
+    void restoreFinishedRenderPass(const vk::RenderPassSerial renderPassSerial);
 
     uint32_t getCurrentSubpassIndex() const;
     uint32_t getCurrentViewCount() const;
@@ -838,6 +840,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         // - In VK_EXT_extended_dynamic_state2
         DIRTY_BIT_DYNAMIC_RASTERIZER_DISCARD_ENABLE,
         DIRTY_BIT_DYNAMIC_DEPTH_BIAS_ENABLE,
+        DIRTY_BIT_DYNAMIC_LOGIC_OP,
         DIRTY_BIT_DYNAMIC_PRIMITIVE_RESTART_ENABLE,
         // - In VK_KHR_fragment_shading_rate
         DIRTY_BIT_DYNAMIC_FRAGMENT_SHADING_RATE,
@@ -925,6 +928,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     static_assert(DIRTY_BIT_DYNAMIC_RASTERIZER_DISCARD_ENABLE > DIRTY_BIT_RENDER_PASS,
                   "Render pass using dirty bit must be handled after the render pass dirty bit");
     static_assert(DIRTY_BIT_DYNAMIC_DEPTH_BIAS_ENABLE > DIRTY_BIT_RENDER_PASS,
+                  "Render pass using dirty bit must be handled after the render pass dirty bit");
+    static_assert(DIRTY_BIT_DYNAMIC_LOGIC_OP > DIRTY_BIT_RENDER_PASS,
                   "Render pass using dirty bit must be handled after the render pass dirty bit");
     static_assert(DIRTY_BIT_DYNAMIC_PRIMITIVE_RESTART_ENABLE > DIRTY_BIT_RENDER_PASS,
                   "Render pass using dirty bit must be handled after the render pass dirty bit");
@@ -1141,6 +1146,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         DirtyBits dirtyBitMask);
     angle::Result handleDirtyGraphicsDynamicDepthBiasEnable(DirtyBits::Iterator *dirtyBitsIterator,
                                                             DirtyBits dirtyBitMask);
+    angle::Result handleDirtyGraphicsDynamicLogicOp(DirtyBits::Iterator *dirtyBitsIterator,
+                                                    DirtyBits dirtyBitMask);
     angle::Result handleDirtyGraphicsDynamicPrimitiveRestartEnable(
         DirtyBits::Iterator *dirtyBitsIterator,
         DirtyBits dirtyBitMask);
@@ -1520,6 +1527,10 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     // A graph built from pipeline descs and their transitions.
     std::ostringstream mPipelineCacheGraph;
+
+    // The latest serial used for a started render pass.
+    vk::RenderPassSerial mCurrentRenderPassSerial;
+    RenderPassSerialFactory mRenderPassSerialFactory;
 };
 
 ANGLE_INLINE angle::Result ContextVk::endRenderPassIfTransformFeedbackBuffer(

@@ -20,7 +20,7 @@
           android:versionName="100"
           package="com.android.angle">
 
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+    <!-- <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" /> -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 

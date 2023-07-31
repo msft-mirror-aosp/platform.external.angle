@@ -8,6 +8,7 @@ import json
 import importlib
 import io
 import logging
+import os
 import signal
 import subprocess
 import sys
@@ -155,7 +156,9 @@ def RunTestSuite(test_suite,
             test_suite, cmd_args, log_output=show_test_stdout)
         return result, output.decode(), json_results
 
-    runner_cmd = [ExecutablePathInCurrentDir(test_suite)] + cmd_args + (runner_args or [])
+    cmd = ExecutablePathInCurrentDir(test_suite) if os.path.exists(
+        os.path.basename(test_suite)) else test_suite
+    runner_cmd = [cmd] + cmd_args + (runner_args or [])
 
     logging.debug(' '.join(runner_cmd))
     with contextlib.ExitStack() as stack:
@@ -169,7 +172,10 @@ def RunTestSuite(test_suite,
             runner_cmd += ['--isolated-script-test-output=%s' % results_path]
 
         if use_xvfb:
-            exit_code = xvfb.run_executable(runner_cmd, env, stdoutfile=stdout_path)
+            xvfb_whd = '3120x3120x24'  # Max screen dimensions from traces, as per:
+            # % egrep 'Width|Height' src/tests/restricted_traces/*/*.json | awk '{print $3 $2}' | sort -n
+            exit_code = xvfb.run_executable(
+                runner_cmd, env, stdoutfile=stdout_path, xvfb_whd=xvfb_whd)
         else:
             exit_code = run_command_with_output(
                 runner_cmd, env=env, stdoutfile=stdout_path, log=show_test_stdout)
