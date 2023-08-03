@@ -470,6 +470,11 @@ bool GetIsExternal(const egl::AttributeMap &attribs)
     return (attribs.get(EGL_EXTERNAL_CONTEXT_ANGLE, EGL_FALSE) == EGL_TRUE);
 }
 
+bool GetSaveAndRestoreState(const egl::AttributeMap &attribs)
+{
+    return (attribs.get(EGL_EXTERNAL_CONTEXT_SAVE_STATE_ANGLE, EGL_FALSE) == EGL_TRUE);
+}
+
 void GetPerfMonitorString(const std::string &name,
                           GLsizei bufSize,
                           GLsizei *length,
@@ -650,6 +655,7 @@ Context::Context(egl::Display *display,
       mRefCount(0),
       mOverlay(mImplementation.get()),
       mIsExternal(GetIsExternal(attribs)),
+      mSaveAndRestoreState(GetSaveAndRestoreState(attribs)),
       mIsDestroyed(false)
 {
     ASSERT(mState.mSharedContextMutex != nullptr || mState.mSingleContextMutex != nullptr);
@@ -9647,9 +9653,16 @@ void Context::onGPUSwitch()
     initRendererString();
 }
 
-egl::Error Context::acquireExternalContext()
+egl::Error Context::acquireExternalContext(egl::Surface *drawAndReadSurface)
 {
     mImplementation->acquireExternalContext(this);
+
+    if (drawAndReadSurface != mCurrentDrawSurface || drawAndReadSurface != mCurrentReadSurface)
+    {
+        ANGLE_TRY(unsetDefaultFramebuffer());
+        ANGLE_TRY(setDefaultFramebuffer(drawAndReadSurface, drawAndReadSurface));
+    }
+
     return egl::NoError();
 }
 
