@@ -377,10 +377,11 @@ EGLAPI EGLBoolean EGLAPIENTRY eglPrepareSwapBuffersANGLE(EGLDisplay dpy, EGLSurf
 #define EGL_ANGLE_external_context_and_surface 1
 #define EGL_EXTERNAL_CONTEXT_ANGLE 0x348E
 #define EGL_EXTERNAL_SURFACE_ANGLE 0x348F
-typedef void (EGLAPIENTRYP PFNEGLACQUIREEXTERNALCONTEXTANGLEPROC) (EGLDisplay dpy);
+#define EGL_EXTERNAL_CONTEXT_SAVE_STATE_ANGLE 0x3490
+typedef void (EGLAPIENTRYP PFNEGLACQUIREEXTERNALCONTEXTANGLEPROC) (EGLDisplay dpy, EGLSurface readAndDraw);
 typedef void (EGLAPIENTRYP PFNEGLRELEASEEXTERNALCONTEXTANGLEPROC) (EGLDisplay dpy);
 #ifdef EGL_EGLEXT_PROTOTYPES
-EGLAPI void EGLAPIENTRY eglAcquireExternalContextANGLE(EGLDisplay dpy);
+EGLAPI void EGLAPIENTRY eglAcquireExternalContextANGLE(EGLDisplay dpy, EGLSurface drawAndRead);
 EGLAPI void EGLAPIENTRY eglReleaseExternalContextANGLE(EGLDisplay dpy);
 #endif
 #endif /* EGL_ANGLE_external_context_and_surface */
