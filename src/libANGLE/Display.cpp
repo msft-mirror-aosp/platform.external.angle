@@ -1219,7 +1219,7 @@ Error Display::terminate(Thread *thread, TerminateReason terminateReason)
     ContextMap contextsStillCurrent = {};
     for (auto context : mState.contextMap)
     {
-        if (context.second->getRefCount() > 0)
+        if (context.second->isReferenced())
         {
             if (terminateReason == TerminateReason::NoActiveThreads)
             {
@@ -1314,6 +1314,11 @@ Error Display::prepareForCall()
 
 Error Display::releaseThread()
 {
+    // Need to check if initialized, because makeCurrent() may terminate the Display.
+    if (!mInitialized)
+    {
+        return NoError();
+    }
     ANGLE_TRY(mImplementation->releaseThread());
     return destroyInvalidEglObjects();
 }
@@ -1699,7 +1704,7 @@ Error Display::makeCurrent(Thread *thread,
         thread->setCurrent(nullptr);
 
         auto error = previousContext->unMakeCurrent(this);
-        if (previousContext->getRefCount() == 0 && previousContext->isDestroyed())
+        if (!previousContext->isReferenced() && previousContext->isDestroyed())
         {
             // The previous Context may have been created with a different Display.
             Display *previousDisplay = previousContext->getDisplay();
@@ -1740,6 +1745,14 @@ Error Display::makeCurrent(Thread *thread,
         {
             zeroFilledBuffer.tick();
         }
+    }
+
+    // If eglTerminate() has previously been called and Context was changed, perform InternalCleanup
+    // to invalidate any non-current Contexts, and possibly fully terminate the Display and release
+    // all of its resources.
+    if (mTerminatedByApi && contextChanged)
+    {
+        return terminate(thread, TerminateReason::InternalCleanup);
     }
 
     return NoError();
@@ -1821,7 +1834,7 @@ Error Display::releaseContext(gl::Context *context, Thread *thread)
 
 Error Display::releaseContextImpl(gl::Context *context, ContextMap *contexts)
 {
-    ASSERT(context->getRefCount() == 0);
+    ASSERT(!context->isReferenced());
 
     // Use scoped_ptr to make sure the context is always freed.
     std::unique_ptr<gl::Context> unique_context(context);
@@ -1871,7 +1884,7 @@ Error Display::destroyContext(Thread *thread, gl::Context *context)
 
     // If the context is still current on at least 1 thread, just return since it'll be released
     // once no threads have it current anymore.
-    if (context->getRefCount() > 0)
+    if (context->isReferenced())
     {
         return NoError();
     }
@@ -1902,21 +1915,6 @@ Error Display::destroyContext(Thread *thread, gl::Context *context)
         ANGLE_TRY(makeCurrent(thread, currentContext, nullptr, nullptr, context));
         ANGLE_TRY(
             makeCurrent(thread, context, currentDrawSurface, currentReadSurface, currentContext));
-    }
-
-    // If eglTerminate() has previously been called and this is the last Context the Display owns,
-    // we can now fully terminate the display and release all of its resources.
-    if (mTerminatedByApi)
-    {
-        for (auto ctx : mState.contextMap)
-        {
-            if (ctx.second->getRefCount() > 0)
-            {
-                return NoError();
-            }
-        }
-
-        return terminate(thread, TerminateReason::InternalCleanup);
     }
 
     return NoError();
