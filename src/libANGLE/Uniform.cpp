@@ -5,6 +5,7 @@
 //
 
 #include "libANGLE/Uniform.h"
+#include "common/BinaryStream.h"
 #include "libANGLE/ProgramLinkedResources.h"
 
 #include <cstring>
@@ -44,28 +45,22 @@ void ActiveVariable::unionReferencesWith(const ActiveVariable &other)
 }
 
 LinkedUniform::LinkedUniform()
-    : type(GL_NONE),
-      precision(0),
-      staticUse(false),
-      active(false),
-      isStruct(false),
-      location(-1),
-      binding(-1),
-      imageUnitFormat(GL_NONE),
-      offset(-1),
-      rasterOrdered(false),
-      readonly(false),
-      writeonly(false),
-      isFragmentInOut(false),
-      texelFetchStaticUse(false),
-      id(0),
-      flattenedOffsetInParentArrays(-1),
-      typeInfo(nullptr),
-      bufferIndex(-1),
-      blockInfo(sh::kDefaultBlockMemberInfo),
-      outerArraySizeProduct(1),
-      outerArrayOffset(0)
-{}
+{
+    mFixedSizeData.type                          = GL_NONE;
+    mFixedSizeData.precision                     = 0;
+    mFixedSizeData.flagBitsAsUInt                = 0;
+    mFixedSizeData.location                      = -1;
+    mFixedSizeData.binding                       = -1;
+    mFixedSizeData.imageUnitFormat               = GL_NONE;
+    mFixedSizeData.offset                        = -1;
+    mFixedSizeData.id                            = 0;
+    mFixedSizeData.flattenedOffsetInParentArrays = -1;
+    typeInfo                                     = nullptr;
+    mFixedSizeData.bufferIndex                   = -1;
+    mFixedSizeData.blockInfo                     = sh::kDefaultBlockMemberInfo;
+    mFixedSizeData.outerArraySizeProduct         = 1;
+    mFixedSizeData.outerArrayOffset              = 0;
+}
 
 LinkedUniform::LinkedUniform(GLenum typeIn,
                              GLenum precisionIn,
@@ -76,32 +71,27 @@ LinkedUniform::LinkedUniform(GLenum typeIn,
                              const int locationIn,
                              const int bufferIndexIn,
                              const sh::BlockMemberInfo &blockInfoIn)
-    : type(typeIn),
-      precision(precisionIn),
-      name(nameIn),
-      arraySizes(arraySizesIn),
-      location(locationIn),
-      binding(bindingIn),
-      offset(offsetIn),
-      typeInfo(&GetUniformTypeInfo(typeIn)),
-      bufferIndex(bufferIndexIn),
-      blockInfo(blockInfoIn)
 {
-    staticUse                     = false;
-    active                        = false;
-    isStruct                      = false;
-    rasterOrdered                 = false;
-    readonly                      = false;
-    writeonly                     = false;
-    isFragmentInOut               = false;
-    texelFetchStaticUse           = false;
-    id                            = 0;
-    flattenedOffsetInParentArrays = -1;
-    outerArraySizeProduct         = 1;
-    outerArrayOffset              = 0;
-    imageUnitFormat               = GL_NONE;
+    mFixedSizeData.type                          = typeIn;
+    mFixedSizeData.precision                     = precisionIn;
+    mFixedSizeData.location                      = locationIn;
+    mFixedSizeData.binding                       = bindingIn;
+    mFixedSizeData.offset                        = offsetIn;
+    mFixedSizeData.bufferIndex                   = bufferIndexIn;
+    mFixedSizeData.blockInfo                     = blockInfoIn;
+    mFixedSizeData.flagBitsAsUInt                = 0;
+    mFixedSizeData.id                            = 0;
+    mFixedSizeData.flattenedOffsetInParentArrays = -1;
+    mFixedSizeData.outerArraySizeProduct         = 1;
+    mFixedSizeData.outerArrayOffset              = 0;
+    mFixedSizeData.imageUnitFormat               = GL_NONE;
+
+    name       = nameIn;
+    typeInfo   = &GetUniformTypeInfo(typeIn);
+    arraySizes = arraySizesIn;
+
     ASSERT(!isArrayOfArrays());
-    ASSERT(!isArray() || !isStruct);
+    ASSERT(!isArray() || !isStruct());
 }
 
 LinkedUniform::LinkedUniform(const LinkedUniform &other)
@@ -111,65 +101,74 @@ LinkedUniform::LinkedUniform(const LinkedUniform &other)
 
 LinkedUniform::LinkedUniform(const UsedUniform &usedUniform)
 {
-    type                          = usedUniform.type;
-    precision                     = usedUniform.precision;
-    name                          = usedUniform.name;
-    mappedName                    = usedUniform.mappedName;
-    arraySizes                    = usedUniform.arraySizes;
-    staticUse                     = usedUniform.staticUse;
-    active                        = usedUniform.active;
-    isStruct                      = usedUniform.isStruct();
-    flattenedOffsetInParentArrays = usedUniform.getFlattenedOffsetInParentArrays();
-    location                      = usedUniform.location;
-    binding                       = usedUniform.binding;
-    imageUnitFormat               = usedUniform.imageUnitFormat;
-    offset                        = usedUniform.offset;
-    rasterOrdered                 = usedUniform.rasterOrdered;
-    readonly                      = usedUniform.readonly;
-    writeonly                     = usedUniform.writeonly;
-    isFragmentInOut               = usedUniform.isFragmentInOut;
-    texelFetchStaticUse           = usedUniform.texelFetchStaticUse;
-    id                            = usedUniform.id;
-    activeVariable                = usedUniform.activeVariable;
-    typeInfo                      = usedUniform.typeInfo;
-    bufferIndex                   = usedUniform.bufferIndex;
-    blockInfo                     = usedUniform.blockInfo;
-    outerArraySizeProduct         = ArraySizeProduct(usedUniform.outerArraySizes);
-    outerArrayOffset              = usedUniform.outerArrayOffset;
+    mFixedSizeData.type      = usedUniform.type;
+    mFixedSizeData.precision = usedUniform.precision;
+
+    mFixedSizeData.flagBits.staticUse           = usedUniform.staticUse;
+    mFixedSizeData.flagBits.active              = usedUniform.active;
+    mFixedSizeData.flagBits.isStruct            = usedUniform.isStruct();
+    mFixedSizeData.flagBits.rasterOrdered       = usedUniform.rasterOrdered;
+    mFixedSizeData.flagBits.readonly            = usedUniform.readonly;
+    mFixedSizeData.flagBits.writeonly           = usedUniform.writeonly;
+    mFixedSizeData.flagBits.isFragmentInOut     = usedUniform.isFragmentInOut;
+    mFixedSizeData.flagBits.texelFetchStaticUse = usedUniform.texelFetchStaticUse;
+
+    mFixedSizeData.flattenedOffsetInParentArrays = usedUniform.getFlattenedOffsetInParentArrays();
+    mFixedSizeData.location                      = usedUniform.location;
+    mFixedSizeData.binding                       = usedUniform.binding;
+    mFixedSizeData.imageUnitFormat               = usedUniform.imageUnitFormat;
+    mFixedSizeData.offset                        = usedUniform.offset;
+    mFixedSizeData.id                            = usedUniform.id;
+    mFixedSizeData.bufferIndex                   = usedUniform.bufferIndex;
+    mFixedSizeData.blockInfo                     = usedUniform.blockInfo;
+    mFixedSizeData.outerArraySizeProduct         = ArraySizeProduct(usedUniform.outerArraySizes);
+    mFixedSizeData.outerArrayOffset              = usedUniform.outerArrayOffset;
+    mFixedSizeData.activeVariable                = usedUniform.activeVariable;
+
+    name       = usedUniform.name;
+    mappedName = usedUniform.mappedName;
+    arraySizes = usedUniform.arraySizes;
+    typeInfo   = usedUniform.typeInfo;
 }
 
 LinkedUniform &LinkedUniform::operator=(const LinkedUniform &other)
 {
-    type                          = other.type;
-    precision                     = other.precision;
-    name                          = other.name;
-    mappedName                    = other.mappedName;
-    arraySizes                    = other.arraySizes;
-    staticUse                     = other.staticUse;
-    active                        = other.active;
-    isStruct                      = other.isStruct;
-    flattenedOffsetInParentArrays = other.flattenedOffsetInParentArrays;
-    location                      = other.location;
-    binding                       = other.binding;
-    imageUnitFormat               = other.imageUnitFormat;
-    offset                        = other.offset;
-    rasterOrdered                 = other.rasterOrdered;
-    readonly                      = other.readonly;
-    writeonly                     = other.writeonly;
-    isFragmentInOut               = other.isFragmentInOut;
-    texelFetchStaticUse           = other.texelFetchStaticUse;
-    id                            = other.id;
-    activeVariable                = other.activeVariable;
-    typeInfo                      = other.typeInfo;
-    bufferIndex                   = other.bufferIndex;
-    blockInfo                     = other.blockInfo;
-    outerArraySizeProduct         = other.outerArraySizeProduct;
-    outerArrayOffset              = other.outerArrayOffset;
+    mFixedSizeData = other.mFixedSizeData;
+
+    name       = other.name;
+    mappedName = other.mappedName;
+    arraySizes = other.arraySizes;
+    typeInfo   = other.typeInfo;
 
     return *this;
 }
 
 LinkedUniform::~LinkedUniform() {}
+
+void LinkedUniform::save(BinaryOutputStream *stream) const
+{
+    // mFixedSizeData is a simple structure with fundamental data types, we can just do bulk save
+    // for performance.
+    stream->writeBytes(reinterpret_cast<const unsigned char *>(&mFixedSizeData),
+                       sizeof(mFixedSizeData));
+
+    stream->writeString(name);
+    stream->writeString(mappedName);
+    stream->writeIntVector(arraySizes);
+}
+
+void LinkedUniform::load(BinaryInputStream *stream)
+{
+    // mFixedSizeData is a simple structure with fundamental data types, we can just do bulk load
+    // for performance.
+    stream->readBytes(reinterpret_cast<unsigned char *>(&mFixedSizeData), sizeof(mFixedSizeData));
+
+    stream->readString(&name);
+    stream->readString(&mappedName);
+    stream->readIntVector<unsigned int>(&arraySizes);
+
+    typeInfo = &GetUniformTypeInfo(getType());
+}
 
 BufferVariable::BufferVariable()
     : bufferIndex(-1), blockInfo(sh::kDefaultBlockMemberInfo), topLevelArraySize(-1)
