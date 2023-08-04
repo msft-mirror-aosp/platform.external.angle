@@ -1,3 +1,10 @@
+# ~~~
+# Copyright 2022-2023 The Khronos Group Inc.
+# Copyright 2022-2023 Valve Corporation
+# Copyright 2022-2023 LunarG, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+# ~~~
 cmake_minimum_required(VERSION 3.14.2)
 
 project(TEST_VULKAN_HEADERS_ADD_SUBDIRECTORY_SUPPORT LANGUAGES C)
@@ -8,12 +15,9 @@ if (NOT TARGET Vulkan::Headers)
     message(FATAL_ERROR "Vulkan::Headers target not defined")
 endif()
 
-# By default installation for a subproject should be disabled.
-# This makes it easier to consume for most projects.
-# Consuming the vulkan-headers via add_subdirectory and installing
-# them is the more niche use case.
-if (VULKAN_HEADERS_INSTALL)
-    message(FATAL_ERROR "VULKAN_HEADERS_INSTALL should be OFF!")
+# Consuming vulkan-headers via add_subdirectory should NOT add installation code to the parent CMake project.
+if (DEFINED CMAKE_INSTALL_INCLUDEDIR)
+    message(FATAL_ERROR "CMAKE_INSTALL_INCLUDEDIR was defined!")
 endif()
 
 add_library(foobar STATIC)

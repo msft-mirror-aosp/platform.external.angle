@@ -328,7 +328,7 @@ std::unordered_map<const char*, int, str_hash, str_eq>* KeywordMap = nullptr;
 std::unordered_set<const char*, str_hash, str_eq>* ReservedSet = nullptr;
 #endif
 
-};
+}
 
 namespace glslang {
 
@@ -769,6 +769,8 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["fcoopmatNV"] =              FCOOPMATNV;
     (*KeywordMap)["icoopmatNV"] =              ICOOPMATNV;
     (*KeywordMap)["ucoopmatNV"] =              UCOOPMATNV;
+
+    (*KeywordMap)["coopmat"] =                 COOPMAT;
 
     (*KeywordMap)["hitObjectNV"] =             HITOBJECTNV;
     (*KeywordMap)["hitObjectAttributeNV"] =    HITOBJECTATTRNV;
@@ -1778,6 +1780,13 @@ int TScanContext::tokenizeIdentifier()
         afterType = true;
         if (parseContext.symbolTable.atBuiltInLevel() ||
             parseContext.extensionTurnedOn(E_GL_NV_integer_cooperative_matrix))
+            return keyword;
+        return identifierOrType();
+
+    case COOPMAT:
+        afterType = true;
+        if (parseContext.symbolTable.atBuiltInLevel() ||
+            parseContext.extensionTurnedOn(E_GL_KHR_cooperative_matrix))
             return keyword;
         return identifierOrType();
 

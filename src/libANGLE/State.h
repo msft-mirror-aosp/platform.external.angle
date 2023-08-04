@@ -211,25 +211,25 @@ using DirtyObjects = angle::BitSet<DIRTY_OBJECT_MAX>;
 
 }  // namespace state
 
-// This class represents the portion of the GL context's state that is purely local to the context.
-// Manipulating this state does not affect the other contexts in any way, nor do operations in other
-// contexts affect this.
+// This class represents the portion of the GL context's state that is purely private to the
+// context. Manipulating this state does not affect the other contexts in any way, nor do operations
+// in other contexts affect this.
 //
 // Note that "currently bound X" states do not belong here because unbinding most objects could lead
 // to object destruction which in turn may trigger a notification to an observer that may affect
 // another context.
-class LocalState : angle::NonCopyable
+class PrivateState : angle::NonCopyable
 {
   public:
-    LocalState(const EGLenum clientType,
-               const Version &clientVersion,
-               EGLint profileMask,
-               bool debug,
-               bool bindGeneratesResourceCHROMIUM,
-               bool clientArraysEnabled,
-               bool robustResourceInit,
-               bool programBinaryCacheEnabled);
-    ~LocalState();
+    PrivateState(const EGLenum clientType,
+                 const Version &clientVersion,
+                 EGLint profileMask,
+                 bool debug,
+                 bool bindGeneratesResourceCHROMIUM,
+                 bool clientArraysEnabled,
+                 bool robustResourceInit,
+                 bool programBinaryCacheEnabled);
+    ~PrivateState();
 
     void initialize(Context *context);
     void initializeForCapture(const Context *context);
@@ -239,6 +239,12 @@ class LocalState : angle::NonCopyable
     EGLenum getClientType() const { return mClientType; }
     EGLint getProfileMask() const { return mProfileMask; }
     const Version &getClientVersion() const { return mClientVersion; }
+    GLint getClientMajorVersion() const { return mClientVersion.major; }
+    GLint getClientMinorVersion() const { return mClientVersion.minor; }
+
+    bool isWebGL() const { return getExtensions().webglCompatibilityANGLE; }
+    bool isWebGL1() const { return isWebGL() && getClientVersion().major == 2; }
+    bool isGLES1() const { return getClientVersion() < ES_2_0; }
 
     const Caps &getCaps() const { return mCaps; }
     const TextureCapsMap &getTextureCaps() const { return mTextureCaps; }
@@ -458,10 +464,6 @@ class LocalState : angle::NonCopyable
     void setFramebufferSRGB(bool sRGB);
     bool getFramebufferSRGB() const { return mFramebufferSRGB; }
 
-    // GL_KHR_parallel_shader_compile
-    void setMaxShaderCompilerThreads(GLuint count);
-    GLuint getMaxShaderCompilerThreads() const { return mMaxShaderCompilerThreads; }
-
     // GL_EXT_tessellation_shader
     void setPatchVertices(GLuint value);
     GLuint getPatchVertices() const { return mPatchVertices; }
@@ -571,7 +573,7 @@ class LocalState : angle::NonCopyable
     void getIntegeri_v(GLenum target, GLuint index, GLint *data) const;
     void getBooleani_v(GLenum target, GLuint index, GLboolean *data) const;
 
-    GLES1State &gles1() { return mGLES1State; }
+    GLES1State *getMutableGLES1State() { return &mGLES1State; }
     const GLES1State &gles1() const { return mGLES1State; }
 
     const state::DirtyBits &getDirtyBits() const { return mDirtyBits; }
@@ -598,9 +600,9 @@ class LocalState : angle::NonCopyable
     bool hasConstantColor(GLenum sourceRGB, GLenum destRGB) const;
     bool hasConstantAlpha(GLenum sourceRGB, GLenum destRGB) const;
 
-    EGLenum mClientType;
-    EGLint mProfileMask;
-    Version mClientVersion;
+    const EGLenum mClientType;
+    const EGLint mProfileMask;
+    const Version mClientVersion;
 
     // Caps to use for validation
     Caps mCaps;
@@ -677,9 +679,6 @@ class LocalState : angle::NonCopyable
     // GL_ANGLE_logic_op
     bool mLogicOpEnabled;
     LogicalOperation mLogicOp;
-
-    // GL_KHR_parallel_shader_compile
-    GLuint mMaxShaderCompilerThreads;
 
     // GL_APPLE_clip_distance / GL_EXT_clip_cull_distance / GL_ANGLE_clip_cull_distance
     ClipDistanceEnableBits mClipDistancesEnabled;
@@ -762,32 +761,30 @@ class State : angle::NonCopyable
 
     // Getters
     ContextID getContextID() const { return mID; }
-    EGLenum getClientType() const { return mLocalState.getClientType(); }
-    EGLint getProfileMask() const { return mLocalState.getProfileMask(); }
+    EGLenum getClientType() const { return mPrivateState.getClientType(); }
+    EGLint getProfileMask() const { return mPrivateState.getProfileMask(); }
     EGLenum getContextPriority() const { return mContextPriority; }
     bool hasRobustAccess() const { return mHasRobustAccess; }
     bool hasProtectedContent() const { return mHasProtectedContent; }
     bool isDebugContext() const { return mIsDebugContext; }
-    GLint getClientMajorVersion() const { return getClientVersion().major; }
-    GLint getClientMinorVersion() const { return getClientVersion().minor; }
-    const Version &getClientVersion() const { return mLocalState.getClientVersion(); }
+    GLint getClientMajorVersion() const { return mPrivateState.getClientMajorVersion(); }
+    GLint getClientMinorVersion() const { return mPrivateState.getClientMinorVersion(); }
+    const Version &getClientVersion() const { return mPrivateState.getClientVersion(); }
     egl::ShareGroup *getShareGroup() const { return mShareGroup; }
 
-    bool isWebGL() const { return getExtensions().webglCompatibilityANGLE; }
+    bool isWebGL() const { return mPrivateState.isWebGL(); }
+    bool isWebGL1() const { return mPrivateState.isWebGL1(); }
+    bool isGLES1() const { return mPrivateState.isGLES1(); }
 
-    bool isWebGL1() const { return (isWebGL() && getClientVersion().major == 2); }
+    const Caps &getCaps() const { return mPrivateState.getCaps(); }
+    const TextureCapsMap &getTextureCaps() const { return mPrivateState.getTextureCaps(); }
+    const Extensions &getExtensions() const { return mPrivateState.getExtensions(); }
+    const Limitations &getLimitations() const { return mPrivateState.getLimitations(); }
 
-    bool isGLES1() const { return getClientVersion() < ES_2_0; }
-
-    const Caps &getCaps() const { return mLocalState.getCaps(); }
-    const TextureCapsMap &getTextureCaps() const { return mLocalState.getTextureCaps(); }
-    const Extensions &getExtensions() const { return mLocalState.getExtensions(); }
-    const Limitations &getLimitations() const { return mLocalState.getLimitations(); }
-
-    Caps *getMutableCaps() { return mLocalState.getMutableCaps(); }
-    TextureCapsMap *getMutableTextureCaps() { return mLocalState.getMutableTextureCaps(); }
-    Extensions *getMutableExtensions() { return mLocalState.getMutableExtensions(); }
-    Limitations *getMutableLimitations() { return mLocalState.getMutableLimitations(); }
+    Caps *getMutableCaps() { return mPrivateState.getMutableCaps(); }
+    TextureCapsMap *getMutableTextureCaps() { return mPrivateState.getMutableTextureCaps(); }
+    Extensions *getMutableExtensions() { return mPrivateState.getMutableExtensions(); }
+    Limitations *getMutableLimitations() { return mPrivateState.getMutableLimitations(); }
 
     const TextureCaps &getTextureCap(GLenum internalFormat) const
     {
@@ -1041,7 +1038,7 @@ class State : angle::NonCopyable
 
     // State query functions
     void getBooleanv(GLenum pname, GLboolean *params) const;
-    void getFloatv(GLenum pname, GLfloat *params) const { mLocalState.getFloatv(pname, params); }
+    void getFloatv(GLenum pname, GLfloat *params) const { mPrivateState.getFloatv(pname, params); }
     angle::Result getIntegerv(const Context *context, GLenum pname, GLint *params) const;
     void getPointerv(const Context *context, GLenum pname, void **params) const;
     void getIntegeri_v(const Context *context, GLenum target, GLuint index, GLint *data) const;
@@ -1058,43 +1055,46 @@ class State : angle::NonCopyable
     // Sets the dirty bit for the program pipeline executable.
     angle::Result onProgramPipelineExecutableChange(const Context *context);
 
-    const state::DirtyBits getDirtyBits() const { return mDirtyBits | mLocalState.getDirtyBits(); }
+    const state::DirtyBits getDirtyBits() const
+    {
+        return mDirtyBits | mPrivateState.getDirtyBits();
+    }
     void clearDirtyBits()
     {
         mDirtyBits.reset();
-        mLocalState.clearDirtyBits();
+        mPrivateState.clearDirtyBits();
     }
     void clearDirtyBits(const state::DirtyBits &bitset)
     {
         mDirtyBits &= ~bitset;
-        mLocalState.clearDirtyBits(bitset);
+        mPrivateState.clearDirtyBits(bitset);
     }
     void setAllDirtyBits()
     {
         mDirtyBits.set();
         mExtendedDirtyBits.set();
-        mLocalState.setAllDirtyBits();
+        mPrivateState.setAllDirtyBits();
     }
 
     const state::ExtendedDirtyBits getExtendedDirtyBits() const
     {
-        return mExtendedDirtyBits | mLocalState.getExtendedDirtyBits();
+        return mExtendedDirtyBits | mPrivateState.getExtendedDirtyBits();
     }
     void clearExtendedDirtyBits()
     {
         mExtendedDirtyBits.reset();
-        mLocalState.clearExtendedDirtyBits();
+        mPrivateState.clearExtendedDirtyBits();
     }
     void clearExtendedDirtyBits(const state::ExtendedDirtyBits &bitset)
     {
         mExtendedDirtyBits &= ~bitset;
-        mLocalState.clearExtendedDirtyBits(bitset);
+        mPrivateState.clearExtendedDirtyBits(bitset);
     }
 
     void clearDirtyObjects()
     {
         mDirtyObjects.reset();
-        mLocalState.clearDirtyObjects();
+        mPrivateState.clearDirtyObjects();
     }
     void setAllDirtyObjects() { mDirtyObjects.set(); }
     angle::Result syncDirtyObjects(const Context *context,
@@ -1235,362 +1235,184 @@ class State : angle::NonCopyable
 
     bool hasDisplayTextureShareGroup() const { return mDisplayTextureShareGroup; }
 
-    // Convenience functions that forward to context-local state.
-    const RasterizerState &getRasterizerState() const { return mLocalState.getRasterizerState(); }
-    const BlendState &getBlendState() const { return mLocalState.getBlendState(); }
-    const BlendStateExt &getBlendStateExt() const { return mLocalState.getBlendStateExt(); }
+    // GL_KHR_parallel_shader_compile
+    void setMaxShaderCompilerThreads(GLuint count);
+    GLuint getMaxShaderCompilerThreads() const { return mMaxShaderCompilerThreads; }
+
+    // Convenience functions that forward to context-private state.
+    const RasterizerState &getRasterizerState() const { return mPrivateState.getRasterizerState(); }
+    const BlendState &getBlendState() const { return mPrivateState.getBlendState(); }
+    const BlendStateExt &getBlendStateExt() const { return mPrivateState.getBlendStateExt(); }
     const DepthStencilState &getDepthStencilState() const
     {
-        return mLocalState.getDepthStencilState();
+        return mPrivateState.getDepthStencilState();
     }
-    const ColorF &getColorClearValue() const { return mLocalState.getColorClearValue(); }
-    float getDepthClearValue() const { return mLocalState.getDepthClearValue(); }
-    int getStencilClearValue() const { return mLocalState.getStencilClearValue(); }
-    void setColorMask(bool red, bool green, bool blue, bool alpha)
-    {
-        mLocalState.setColorMask(red, green, blue, alpha);
-    }
-    void setColorMaskIndexed(bool red, bool green, bool blue, bool alpha, GLuint index)
-    {
-        mLocalState.setColorMaskIndexed(red, green, blue, alpha, index);
-    }
-    void setDepthMask(bool mask) { mLocalState.setDepthMask(mask); }
-    bool isRasterizerDiscardEnabled() const { return mLocalState.isRasterizerDiscardEnabled(); }
-    void setRasterizerDiscard(bool enabled) { mLocalState.setRasterizerDiscard(enabled); }
-    bool isPrimitiveRestartEnabled() const { return mLocalState.isPrimitiveRestartEnabled(); }
-    void setPrimitiveRestart(bool enabled) { mLocalState.setPrimitiveRestart(enabled); }
-    bool isCullFaceEnabled() const { return mLocalState.isCullFaceEnabled(); }
-    void setCullFace(bool enabled) { mLocalState.setCullFace(enabled); }
-    void setCullMode(CullFaceMode mode) { mLocalState.setCullMode(mode); }
-    void setFrontFace(GLenum front) { mLocalState.setFrontFace(front); }
-    bool isDepthClampEnabled() const { return mLocalState.isDepthClampEnabled(); }
-    void setDepthClamp(bool enabled) { mLocalState.setDepthClamp(enabled); }
-    bool isDepthTestEnabled() const { return mLocalState.isDepthTestEnabled(); }
-    bool isDepthWriteEnabled() const { return mLocalState.isDepthWriteEnabled(); }
-    void setDepthTest(bool enabled) { mLocalState.setDepthTest(enabled); }
-    void setDepthFunc(GLenum depthFunc) { mLocalState.setDepthFunc(depthFunc); }
-    void setDepthRange(float zNear, float zFar) { mLocalState.setDepthRange(zNear, zFar); }
-    float getNearPlane() const { return mLocalState.getNearPlane(); }
-    float getFarPlane() const { return mLocalState.getFarPlane(); }
-    void setClipControl(ClipOrigin origin, ClipDepthMode depth)
-    {
-        mLocalState.setClipControl(origin, depth);
-    }
-    ClipOrigin getClipOrigin() const { return mLocalState.getClipOrigin(); }
-    ClipDepthMode getClipDepthMode() const { return mLocalState.getClipDepthMode(); }
-    bool isClipDepthModeZeroToOne() const { return mLocalState.isClipDepthModeZeroToOne(); }
-    bool isBlendEnabled() const { return mLocalState.isBlendEnabled(); }
+    const ColorF &getColorClearValue() const { return mPrivateState.getColorClearValue(); }
+    float getDepthClearValue() const { return mPrivateState.getDepthClearValue(); }
+    int getStencilClearValue() const { return mPrivateState.getStencilClearValue(); }
+    bool isRasterizerDiscardEnabled() const { return mPrivateState.isRasterizerDiscardEnabled(); }
+    bool isPrimitiveRestartEnabled() const { return mPrivateState.isPrimitiveRestartEnabled(); }
+    bool isCullFaceEnabled() const { return mPrivateState.isCullFaceEnabled(); }
+    bool isDepthClampEnabled() const { return mPrivateState.isDepthClampEnabled(); }
+    bool isDepthTestEnabled() const { return mPrivateState.isDepthTestEnabled(); }
+    bool isDepthWriteEnabled() const { return mPrivateState.isDepthWriteEnabled(); }
+    float getNearPlane() const { return mPrivateState.getNearPlane(); }
+    float getFarPlane() const { return mPrivateState.getFarPlane(); }
+    ClipOrigin getClipOrigin() const { return mPrivateState.getClipOrigin(); }
+    ClipDepthMode getClipDepthMode() const { return mPrivateState.getClipDepthMode(); }
+    bool isClipDepthModeZeroToOne() const { return mPrivateState.isClipDepthModeZeroToOne(); }
+    bool isBlendEnabled() const { return mPrivateState.isBlendEnabled(); }
     bool isBlendEnabledIndexed(GLuint index) const
     {
-        return mLocalState.isBlendEnabledIndexed(index);
+        return mPrivateState.isBlendEnabledIndexed(index);
     }
     DrawBufferMask getBlendEnabledDrawBufferMask() const
     {
-        return mLocalState.getBlendEnabledDrawBufferMask();
+        return mPrivateState.getBlendEnabledDrawBufferMask();
     }
-    void setBlend(bool enabled) { mLocalState.setBlend(enabled); }
-    void setBlendIndexed(bool enabled, GLuint index)
-    {
-        mLocalState.setBlendIndexed(enabled, index);
-    }
-    void setBlendFactors(GLenum sourceRGB, GLenum destRGB, GLenum sourceAlpha, GLenum destAlpha)
-    {
-        mLocalState.setBlendFactors(sourceRGB, destRGB, sourceAlpha, destAlpha);
-    }
-    void setBlendFactorsIndexed(GLenum sourceRGB,
-                                GLenum destRGB,
-                                GLenum sourceAlpha,
-                                GLenum destAlpha,
-                                GLuint index)
-    {
-        mLocalState.setBlendFactorsIndexed(sourceRGB, destRGB, sourceAlpha, destAlpha, index);
-    }
-    void setBlendColor(float red, float green, float blue, float alpha)
-    {
-        mLocalState.setBlendColor(red, green, blue, alpha);
-    }
-    void setBlendEquation(GLenum rgbEquation, GLenum alphaEquation)
-    {
-        mLocalState.setBlendEquation(rgbEquation, alphaEquation);
-    }
-    void setBlendEquationIndexed(GLenum rgbEquation, GLenum alphaEquation, GLuint index)
-    {
-        mLocalState.setBlendEquationIndexed(rgbEquation, alphaEquation, index);
-    }
-    const ColorF &getBlendColor() const { return mLocalState.getBlendColor(); }
-    bool isStencilTestEnabled() const { return mLocalState.isStencilTestEnabled(); }
-    bool isStencilWriteEnabled() const { return mLocalState.isStencilWriteEnabled(); }
-    void setStencilTest(bool enabled) { mLocalState.setStencilTest(enabled); }
-    void setStencilParams(GLenum stencilFunc, GLint stencilRef, GLuint stencilMask)
-    {
-        mLocalState.setStencilParams(stencilFunc, stencilRef, stencilMask);
-    }
-    void setStencilBackParams(GLenum stencilBackFunc, GLint stencilBackRef, GLuint stencilBackMask)
-    {
-        mLocalState.setStencilBackParams(stencilBackFunc, stencilBackRef, stencilBackMask);
-    }
-    void setStencilWritemask(GLuint stencilWritemask)
-    {
-        mLocalState.setStencilWritemask(stencilWritemask);
-    }
-    void setStencilBackWritemask(GLuint stencilBackWritemask)
-    {
-        mLocalState.setStencilBackWritemask(stencilBackWritemask);
-    }
-    void setStencilOperations(GLenum stencilFail,
-                              GLenum stencilPassDepthFail,
-                              GLenum stencilPassDepthPass)
-    {
-        mLocalState.setStencilOperations(stencilFail, stencilPassDepthFail, stencilPassDepthPass);
-    }
-    void setStencilBackOperations(GLenum stencilBackFail,
-                                  GLenum stencilBackPassDepthFail,
-                                  GLenum stencilBackPassDepthPass)
-    {
-        mLocalState.setStencilBackOperations(stencilBackFail, stencilBackPassDepthFail,
-                                             stencilBackPassDepthPass);
-    }
-    GLint getStencilRef() const { return mLocalState.getStencilRef(); }
-    GLint getStencilBackRef() const { return mLocalState.getStencilBackRef(); }
-    PolygonMode getPolygonMode() const { return mLocalState.getPolygonMode(); }
-    void setPolygonMode(PolygonMode mode) { mLocalState.setPolygonMode(mode); }
-    bool isPolygonOffsetPointEnabled() const { return mLocalState.isPolygonOffsetPointEnabled(); }
-    bool isPolygonOffsetLineEnabled() const { return mLocalState.isPolygonOffsetLineEnabled(); }
-    bool isPolygonOffsetFillEnabled() const { return mLocalState.isPolygonOffsetFillEnabled(); }
-    bool isPolygonOffsetEnabled() const { return mLocalState.isPolygonOffsetEnabled(); }
-    void setPolygonOffsetPoint(bool enabled) { mLocalState.setPolygonOffsetPoint(enabled); }
-    void setPolygonOffsetLine(bool enabled) { mLocalState.setPolygonOffsetLine(enabled); }
-    void setPolygonOffsetFill(bool enabled) { mLocalState.setPolygonOffsetFill(enabled); }
-    void setPolygonOffsetParams(GLfloat factor, GLfloat units, GLfloat clamp)
-    {
-        mLocalState.setPolygonOffsetParams(factor, units, clamp);
-    }
+    const ColorF &getBlendColor() const { return mPrivateState.getBlendColor(); }
+    bool isStencilTestEnabled() const { return mPrivateState.isStencilTestEnabled(); }
+    bool isStencilWriteEnabled() const { return mPrivateState.isStencilWriteEnabled(); }
+    GLint getStencilRef() const { return mPrivateState.getStencilRef(); }
+    GLint getStencilBackRef() const { return mPrivateState.getStencilBackRef(); }
+    PolygonMode getPolygonMode() const { return mPrivateState.getPolygonMode(); }
+    bool isPolygonOffsetPointEnabled() const { return mPrivateState.isPolygonOffsetPointEnabled(); }
+    bool isPolygonOffsetLineEnabled() const { return mPrivateState.isPolygonOffsetLineEnabled(); }
+    bool isPolygonOffsetFillEnabled() const { return mPrivateState.isPolygonOffsetFillEnabled(); }
+    bool isPolygonOffsetEnabled() const { return mPrivateState.isPolygonOffsetEnabled(); }
     bool isSampleAlphaToCoverageEnabled() const
     {
-        return mLocalState.isSampleAlphaToCoverageEnabled();
+        return mPrivateState.isSampleAlphaToCoverageEnabled();
     }
-    void setSampleAlphaToCoverage(bool enabled) { mLocalState.setSampleAlphaToCoverage(enabled); }
-    bool isSampleCoverageEnabled() const { return mLocalState.isSampleCoverageEnabled(); }
-    void setSampleCoverage(bool enabled) { mLocalState.setSampleCoverage(enabled); }
-    void setSampleCoverageParams(GLclampf value, bool invert)
-    {
-        mLocalState.setSampleCoverageParams(value, invert);
-    }
-    GLclampf getSampleCoverageValue() const { return mLocalState.getSampleCoverageValue(); }
-    bool getSampleCoverageInvert() const { return mLocalState.getSampleCoverageInvert(); }
-    bool isSampleMaskEnabled() const { return mLocalState.isSampleMaskEnabled(); }
-    void setSampleMaskEnabled(bool enabled) { mLocalState.setSampleMaskEnabled(enabled); }
-    void setSampleMaskParams(GLuint maskNumber, GLbitfield mask)
-    {
-        mLocalState.setSampleMaskParams(maskNumber, mask);
-    }
+    bool isSampleCoverageEnabled() const { return mPrivateState.isSampleCoverageEnabled(); }
+    GLclampf getSampleCoverageValue() const { return mPrivateState.getSampleCoverageValue(); }
+    bool getSampleCoverageInvert() const { return mPrivateState.getSampleCoverageInvert(); }
+    bool isSampleMaskEnabled() const { return mPrivateState.isSampleMaskEnabled(); }
     GLbitfield getSampleMaskWord(GLuint maskNumber) const
     {
-        return mLocalState.getSampleMaskWord(maskNumber);
+        return mPrivateState.getSampleMaskWord(maskNumber);
     }
     SampleMaskArray<GLbitfield> getSampleMaskValues() const
     {
-        return mLocalState.getSampleMaskValues();
+        return mPrivateState.getSampleMaskValues();
     }
-    GLuint getMaxSampleMaskWords() const { return mLocalState.getMaxSampleMaskWords(); }
-    void setSampleAlphaToOne(bool enabled) { mLocalState.setSampleAlphaToOne(enabled); }
-    bool isSampleAlphaToOneEnabled() const { return mLocalState.isSampleAlphaToOneEnabled(); }
-    void setMultisampling(bool enabled) { mLocalState.setMultisampling(enabled); }
-    bool isMultisamplingEnabled() const { return mLocalState.isMultisamplingEnabled(); }
-    void setSampleShading(bool enabled) { mLocalState.setSampleShading(enabled); }
-    bool isSampleShadingEnabled() const { return mLocalState.isSampleShadingEnabled(); }
-    void setMinSampleShading(float value) { mLocalState.setMinSampleShading(value); }
-    float getMinSampleShading() const { return mLocalState.getMinSampleShading(); }
-    bool isScissorTestEnabled() const { return mLocalState.isScissorTestEnabled(); }
-    void setScissorTest(bool enabled) { mLocalState.setScissorTest(enabled); }
-    void setScissorParams(GLint x, GLint y, GLsizei width, GLsizei height)
-    {
-        mLocalState.setScissorParams(x, y, width, height);
-    }
-    const Rectangle &getScissor() const { return mLocalState.getScissor(); }
-    bool isDitherEnabled() const { return mLocalState.isDitherEnabled(); }
-    void setDither(bool enabled) { mLocalState.setDither(enabled); }
+    GLuint getMaxSampleMaskWords() const { return mPrivateState.getMaxSampleMaskWords(); }
+    bool isSampleAlphaToOneEnabled() const { return mPrivateState.isSampleAlphaToOneEnabled(); }
+    bool isMultisamplingEnabled() const { return mPrivateState.isMultisamplingEnabled(); }
+    bool isSampleShadingEnabled() const { return mPrivateState.isSampleShadingEnabled(); }
+    float getMinSampleShading() const { return mPrivateState.getMinSampleShading(); }
+    bool isScissorTestEnabled() const { return mPrivateState.isScissorTestEnabled(); }
+    const Rectangle &getScissor() const { return mPrivateState.getScissor(); }
+    bool isDitherEnabled() const { return mPrivateState.isDitherEnabled(); }
     bool isBindGeneratesResourceEnabled() const
     {
-        return mLocalState.isBindGeneratesResourceEnabled();
+        return mPrivateState.isBindGeneratesResourceEnabled();
     }
-    bool areClientArraysEnabled() const { return mLocalState.areClientArraysEnabled(); }
-    bool isRobustResourceInitEnabled() const { return mLocalState.isRobustResourceInitEnabled(); }
-    bool isProgramBinaryCacheEnabled() const { return mLocalState.isProgramBinaryCacheEnabled(); }
-    void setViewportParams(GLint x, GLint y, GLsizei width, GLsizei height)
-    {
-        mLocalState.setViewportParams(x, y, width, height);
-    }
-    const Rectangle &getViewport() const { return mLocalState.getViewport(); }
-    void setShadingRate(GLenum rate) { mLocalState.setShadingRate(rate); }
-    ShadingRate getShadingRate() const { return mLocalState.getShadingRate(); }
-    void setPackAlignment(GLint alignment) { mLocalState.setPackAlignment(alignment); }
-    GLint getPackAlignment() const { return mLocalState.getPackAlignment(); }
-    void setPackReverseRowOrder(bool reverseRowOrder)
-    {
-        mLocalState.setPackReverseRowOrder(reverseRowOrder);
-    }
-    bool getPackReverseRowOrder() const { return mLocalState.getPackReverseRowOrder(); }
-    void setPackRowLength(GLint rowLength) { mLocalState.setPackRowLength(rowLength); }
-    GLint getPackRowLength() const { return mLocalState.getPackRowLength(); }
-    void setPackSkipRows(GLint skipRows) { mLocalState.setPackSkipRows(skipRows); }
-    GLint getPackSkipRows() const { return mLocalState.getPackSkipRows(); }
-    void setPackSkipPixels(GLint skipPixels) { mLocalState.setPackSkipPixels(skipPixels); }
-    GLint getPackSkipPixels() const { return mLocalState.getPackSkipPixels(); }
-    const PixelPackState &getPackState() const { return mLocalState.getPackState(); }
-    PixelPackState &getPackState() { return mLocalState.getPackState(); }
-    void setUnpackAlignment(GLint alignment) { mLocalState.setUnpackAlignment(alignment); }
-    GLint getUnpackAlignment() const { return mLocalState.getUnpackAlignment(); }
-    void setUnpackRowLength(GLint rowLength) { mLocalState.setUnpackRowLength(rowLength); }
-    GLint getUnpackRowLength() const { return mLocalState.getUnpackRowLength(); }
-    void setUnpackImageHeight(GLint imageHeight) { mLocalState.setUnpackImageHeight(imageHeight); }
-    GLint getUnpackImageHeight() const { return mLocalState.getUnpackImageHeight(); }
-    void setUnpackSkipImages(GLint skipImages) { mLocalState.setUnpackSkipImages(skipImages); }
-    GLint getUnpackSkipImages() const { return mLocalState.getUnpackSkipImages(); }
-    void setUnpackSkipRows(GLint skipRows) { mLocalState.setUnpackSkipRows(skipRows); }
-    GLint getUnpackSkipRows() const { return mLocalState.getUnpackSkipRows(); }
-    void setUnpackSkipPixels(GLint skipPixels) { mLocalState.setUnpackSkipPixels(skipPixels); }
-    GLint getUnpackSkipPixels() const { return mLocalState.getUnpackSkipPixels(); }
-    const PixelUnpackState &getUnpackState() const { return mLocalState.getUnpackState(); }
-    PixelUnpackState &getUnpackState() { return mLocalState.getUnpackState(); }
-    void setCoverageModulation(GLenum components) { mLocalState.setCoverageModulation(components); }
-    GLenum getCoverageModulation() const { return mLocalState.getCoverageModulation(); }
-    void setFramebufferSRGB(bool sRGB) { mLocalState.setFramebufferSRGB(sRGB); }
-    bool getFramebufferSRGB() const { return mLocalState.getFramebufferSRGB(); }
-    void setMaxShaderCompilerThreads(GLuint count)
-    {
-        mLocalState.setMaxShaderCompilerThreads(count);
-    }
-    GLuint getMaxShaderCompilerThreads() const { return mLocalState.getMaxShaderCompilerThreads(); }
-    void setPatchVertices(GLuint value) { mLocalState.setPatchVertices(value); }
-    GLuint getPatchVertices() const { return mLocalState.getPatchVertices(); }
+    bool areClientArraysEnabled() const { return mPrivateState.areClientArraysEnabled(); }
+    bool isRobustResourceInitEnabled() const { return mPrivateState.isRobustResourceInitEnabled(); }
+    bool isProgramBinaryCacheEnabled() const { return mPrivateState.isProgramBinaryCacheEnabled(); }
+    const Rectangle &getViewport() const { return mPrivateState.getViewport(); }
+    ShadingRate getShadingRate() const { return mPrivateState.getShadingRate(); }
+    GLint getPackAlignment() const { return mPrivateState.getPackAlignment(); }
+    bool getPackReverseRowOrder() const { return mPrivateState.getPackReverseRowOrder(); }
+    GLint getPackRowLength() const { return mPrivateState.getPackRowLength(); }
+    GLint getPackSkipRows() const { return mPrivateState.getPackSkipRows(); }
+    GLint getPackSkipPixels() const { return mPrivateState.getPackSkipPixels(); }
+    const PixelPackState &getPackState() const { return mPrivateState.getPackState(); }
+    PixelPackState &getPackState() { return mPrivateState.getPackState(); }
+    GLint getUnpackAlignment() const { return mPrivateState.getUnpackAlignment(); }
+    GLint getUnpackRowLength() const { return mPrivateState.getUnpackRowLength(); }
+    GLint getUnpackImageHeight() const { return mPrivateState.getUnpackImageHeight(); }
+    GLint getUnpackSkipImages() const { return mPrivateState.getUnpackSkipImages(); }
+    GLint getUnpackSkipRows() const { return mPrivateState.getUnpackSkipRows(); }
+    GLint getUnpackSkipPixels() const { return mPrivateState.getUnpackSkipPixels(); }
+    const PixelUnpackState &getUnpackState() const { return mPrivateState.getUnpackState(); }
+    PixelUnpackState &getUnpackState() { return mPrivateState.getUnpackState(); }
+    GLenum getCoverageModulation() const { return mPrivateState.getCoverageModulation(); }
+    bool getFramebufferSRGB() const { return mPrivateState.getFramebufferSRGB(); }
+    GLuint getPatchVertices() const { return mPrivateState.getPatchVertices(); }
     void setPixelLocalStorageActivePlanes(GLsizei n)
     {
-        mLocalState.setPixelLocalStorageActivePlanes(n);
+        mPrivateState.setPixelLocalStorageActivePlanes(n);
     }
     GLsizei getPixelLocalStorageActivePlanes() const
     {
-        return mLocalState.getPixelLocalStorageActivePlanes();
+        return mPrivateState.getPixelLocalStorageActivePlanes();
     }
-    void setLineWidth(GLfloat width) { mLocalState.setLineWidth(width); }
-    float getLineWidth() const { return mLocalState.getLineWidth(); }
-    void setActiveSampler(unsigned int active) { mLocalState.setActiveSampler(active); }
-    unsigned int getActiveSampler() const { return mLocalState.getActiveSampler(); }
-    void setGenerateMipmapHint(GLenum hint) { mLocalState.setGenerateMipmapHint(hint); }
-    GLenum getGenerateMipmapHint() const { return mLocalState.getGenerateMipmapHint(); }
-    void setTextureFilteringHint(GLenum hint) { mLocalState.setTextureFilteringHint(hint); }
-    GLenum getTextureFilteringHint() const { return mLocalState.getTextureFilteringHint(); }
+    float getLineWidth() const { return mPrivateState.getLineWidth(); }
+    unsigned int getActiveSampler() const { return mPrivateState.getActiveSampler(); }
+    GLenum getGenerateMipmapHint() const { return mPrivateState.getGenerateMipmapHint(); }
+    GLenum getTextureFilteringHint() const { return mPrivateState.getTextureFilteringHint(); }
     GLenum getFragmentShaderDerivativeHint() const
     {
-        return mLocalState.getFragmentShaderDerivativeHint();
-    }
-    void setFragmentShaderDerivativeHint(GLenum hint)
-    {
-        mLocalState.setFragmentShaderDerivativeHint(hint);
+        return mPrivateState.getFragmentShaderDerivativeHint();
     }
     ProvokingVertexConvention getProvokingVertex() const
     {
-        return mLocalState.getProvokingVertex();
+        return mPrivateState.getProvokingVertex();
     }
-    void setProvokingVertex(ProvokingVertexConvention val) { mLocalState.setProvokingVertex(val); }
     const VertexAttribCurrentValueData &getVertexAttribCurrentValue(size_t attribNum) const
     {
-        return mLocalState.getVertexAttribCurrentValue(attribNum);
+        return mPrivateState.getVertexAttribCurrentValue(attribNum);
     }
     const std::vector<VertexAttribCurrentValueData> &getVertexAttribCurrentValues() const
     {
-        return mLocalState.getVertexAttribCurrentValues();
+        return mPrivateState.getVertexAttribCurrentValues();
     }
     AttributesMask getAndResetDirtyCurrentValues() const
     {
-        return mLocalState.getAndResetDirtyCurrentValues();
+        return mPrivateState.getAndResetDirtyCurrentValues();
     }
     ComponentTypeMask getCurrentValuesTypeMask() const
     {
-        return mLocalState.getCurrentValuesTypeMask();
+        return mPrivateState.getCurrentValuesTypeMask();
     }
     const ClipDistanceEnableBits &getEnabledClipDistances() const
     {
-        return mLocalState.getEnabledClipDistances();
-    }
-    void setClipDistanceEnable(int idx, bool enable)
-    {
-        mLocalState.setClipDistanceEnable(idx, enable);
+        return mPrivateState.getEnabledClipDistances();
     }
     bool noSimultaneousConstantColorAndAlphaBlendFunc() const
     {
-        return mLocalState.noSimultaneousConstantColorAndAlphaBlendFunc();
+        return mPrivateState.noSimultaneousConstantColorAndAlphaBlendFunc();
     }
-    GLfloat getBoundingBoxMinX() const { return mLocalState.getBoundingBoxMinX(); }
-    GLfloat getBoundingBoxMinY() const { return mLocalState.getBoundingBoxMinY(); }
-    GLfloat getBoundingBoxMinZ() const { return mLocalState.getBoundingBoxMinZ(); }
-    GLfloat getBoundingBoxMinW() const { return mLocalState.getBoundingBoxMinW(); }
-    GLfloat getBoundingBoxMaxX() const { return mLocalState.getBoundingBoxMaxX(); }
-    GLfloat getBoundingBoxMaxY() const { return mLocalState.getBoundingBoxMaxY(); }
-    GLfloat getBoundingBoxMaxZ() const { return mLocalState.getBoundingBoxMaxZ(); }
-    GLfloat getBoundingBoxMaxW() const { return mLocalState.getBoundingBoxMaxW(); }
-    void setBoundingBox(GLfloat minX,
-                        GLfloat minY,
-                        GLfloat minZ,
-                        GLfloat minW,
-                        GLfloat maxX,
-                        GLfloat maxY,
-                        GLfloat maxZ,
-                        GLfloat maxW)
-    {
-        mLocalState.setBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
-    }
-    bool isTextureRectangleEnabled() const { return mLocalState.isTextureRectangleEnabled(); }
+    GLfloat getBoundingBoxMinX() const { return mPrivateState.getBoundingBoxMinX(); }
+    GLfloat getBoundingBoxMinY() const { return mPrivateState.getBoundingBoxMinY(); }
+    GLfloat getBoundingBoxMinZ() const { return mPrivateState.getBoundingBoxMinZ(); }
+    GLfloat getBoundingBoxMinW() const { return mPrivateState.getBoundingBoxMinW(); }
+    GLfloat getBoundingBoxMaxX() const { return mPrivateState.getBoundingBoxMaxX(); }
+    GLfloat getBoundingBoxMaxY() const { return mPrivateState.getBoundingBoxMaxY(); }
+    GLfloat getBoundingBoxMaxZ() const { return mPrivateState.getBoundingBoxMaxZ(); }
+    GLfloat getBoundingBoxMaxW() const { return mPrivateState.getBoundingBoxMaxW(); }
+    bool isTextureRectangleEnabled() const { return mPrivateState.isTextureRectangleEnabled(); }
     DrawBufferMask getBlendFuncConstantAlphaDrawBuffers() const
     {
-        return mLocalState.getBlendFuncConstantAlphaDrawBuffers();
+        return mPrivateState.getBlendFuncConstantAlphaDrawBuffers();
     }
     DrawBufferMask getBlendFuncConstantColorDrawBuffers() const
     {
-        return mLocalState.getBlendFuncConstantColorDrawBuffers();
+        return mPrivateState.getBlendFuncConstantColorDrawBuffers();
     }
-    void setLogicOpEnabled(bool enabled) { mLocalState.setLogicOpEnabled(enabled); }
-    bool isLogicOpEnabled() const { return mLocalState.isLogicOpEnabled(); }
-    void setLogicOp(LogicalOperation opcode) { mLocalState.setLogicOp(opcode); }
-    LogicalOperation getLogicOp() const { return mLocalState.getLogicOp(); }
-    void setVertexAttribf(GLuint index, const GLfloat values[4])
-    {
-        mLocalState.setVertexAttribf(index, values);
-    }
-    void setVertexAttribu(GLuint index, const GLuint values[4])
-    {
-        mLocalState.setVertexAttribu(index, values);
-    }
-    void setVertexAttribi(GLuint index, const GLint values[4])
-    {
-        mLocalState.setVertexAttribi(index, values);
-    }
-    const Debug &getDebug() const { return mLocalState.getDebug(); }
-    Debug &getDebug() { return mLocalState.getDebug(); }
-    void setEnableFeature(GLenum feature, bool enabled)
-    {
-        mLocalState.setEnableFeature(feature, enabled);
-    }
-    void setEnableFeatureIndexed(GLenum feature, bool enabled, GLuint index)
-    {
-        mLocalState.setEnableFeatureIndexed(feature, enabled, index);
-    }
-    bool getEnableFeature(GLenum feature) const { return mLocalState.getEnableFeature(feature); }
+    bool isLogicOpEnabled() const { return mPrivateState.isLogicOpEnabled(); }
+    LogicalOperation getLogicOp() const { return mPrivateState.getLogicOp(); }
+    const Debug &getDebug() const { return mPrivateState.getDebug(); }
+    Debug &getDebug() { return mPrivateState.getDebug(); }
+    bool getEnableFeature(GLenum feature) const { return mPrivateState.getEnableFeature(feature); }
     bool getEnableFeatureIndexed(GLenum feature, GLuint index) const
     {
-        return mLocalState.getEnableFeatureIndexed(feature, index);
+        return mPrivateState.getEnableFeatureIndexed(feature, index);
     }
-    GLES1State &gles1() { return mLocalState.gles1(); }
-    const GLES1State &gles1() const { return mLocalState.gles1(); }
+    const PrivateState &privateState() const { return mPrivateState; }
+    const GLES1State &gles1() const { return mPrivateState.gles1(); }
+
+    // Used by the capture/replay tool to create state.
+    PrivateState *getMutablePrivateStateForCapture() { return &mPrivateState; }
 
   private:
     friend class Context;
 
-    // Used only by the entry points to set local state without holding the share group lock.
-    //
-    // TODO: Add getMutableGLES1() and remove context lock from GLES1 setters similarly.
-    // http://anglebug.com/8224
-    LocalState *getMutableLocalState() { return &mLocalState; }
+    // Used only by the entry points to set private state without holding the share group lock.
+    PrivateState *getMutablePrivateState() { return &mPrivateState; }
+    GLES1State *getMutableGLES1State() { return mPrivateState.getMutableGLES1State(); }
 
     void unsetActiveTextures(const ActiveTextureMask &textureMask);
     void setActiveTextureDirty(size_t textureIndex, Texture *texture);
@@ -1744,6 +1566,9 @@ class State : angle::NonCopyable
 
     bool mDisplayTextureShareGroup;
 
+    // GL_KHR_parallel_shader_compile
+    GLuint mMaxShaderCompilerThreads;
+
     // The Overlay object, used by the backend to render the overlay.
     const OverlayType *mOverlay;
 
@@ -1755,16 +1580,16 @@ class State : angle::NonCopyable
     ActiveTextureMask mDirtySamplers;
     ImageUnitMask mDirtyImages;
 
-    LocalState mLocalState;
+    PrivateState mPrivateState;
 };
 
 ANGLE_INLINE angle::Result State::syncDirtyObjects(const Context *context,
                                                    const state::DirtyObjects &bitset,
                                                    Command command)
 {
-    // Accumulate any dirty objects that might have been set due to context-local state changes.
-    mDirtyObjects |= mLocalState.getDirtyObjects();
-    mLocalState.clearDirtyObjects();
+    // Accumulate any dirty objects that might have been set due to context-private state changes.
+    mDirtyObjects |= mPrivateState.getDirtyObjects();
+    mPrivateState.clearDirtyObjects();
 
     const state::DirtyObjects &dirtyObjects = mDirtyObjects & bitset;
 

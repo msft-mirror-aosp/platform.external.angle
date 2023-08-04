@@ -46,6 +46,7 @@
 #include "libANGLE/VertexArray.h"
 #include "libANGLE/capture/FrameCapture.h"
 #include "libANGLE/capture/serialize.h"
+#include "libANGLE/context_private_call_gles_autogen.h"
 #include "libANGLE/formatutils.h"
 #include "libANGLE/queryconversions.h"
 #include "libANGLE/queryutils.h"
@@ -628,20 +629,15 @@ Context::Context(egl::Display *display,
              GetRobustAccess(attribs),
              GetProtectedContent(attribs)),
       mShared(shareContext != nullptr || shareTextures != nullptr || shareSemaphores != nullptr),
-      mSkipValidation(GetNoError(attribs)),
       mDisplayTextureShareGroup(shareTextures != nullptr),
       mDisplaySemaphoreShareGroup(shareSemaphores != nullptr),
-      mErrors(this),
+      mErrors(&mState.getDebug(), display->getFrontendFeatures(), attribs),
       mImplementation(display->getImplementation()
                           ->createContext(mState, &mErrors, config, shareContext, attribs)),
       mLabel(nullptr),
       mCompiler(),
       mConfig(config),
       mHasBeenCurrent(false),
-      mContextLost(false),
-      mResetStatus(GraphicsResetStatus::NoError),
-      mContextLostForced(false),
-      mResetStrategy(GetResetStrategy(attribs)),
       mSurfacelessSupported(displayExtensions.surfacelessContext),
       mCurrentDrawSurface(static_cast<egl::Surface *>(EGL_NO_SURFACE)),
       mCurrentReadSurface(static_cast<egl::Surface *>(EGL_NO_SURFACE)),
@@ -858,6 +854,9 @@ egl::Error Context::onDestroy(const egl::Display *display)
 {
     if (!mHasBeenCurrent)
     {
+        // Shared objects and ShareGroup must be released regardless.
+        releaseSharedObjects();
+        mState.mShareGroup->release(display);
         // The context is never current, so default resources are not allocated.
         return egl::NoError();
     }
@@ -931,6 +930,20 @@ egl::Error Context::onDestroy(const egl::Display *display)
 
     mState.reset(this);
 
+    releaseSharedObjects();
+
+    mImplementation->onDestroy(this);
+
+    // Backend requires implementation to be destroyed first to close down all the objects
+    mState.mShareGroup->release(display);
+
+    mOverlay.destroy(this);
+
+    return egl::NoError();
+}
+
+void Context::releaseSharedObjects()
+{
     mState.mBufferManager->release(this);
     // mProgramPipelineManager must be before mShaderProgramManager to give each
     // PPO the chance to release any references they have to the Programs that
@@ -945,11 +958,6 @@ egl::Error Context::onDestroy(const egl::Display *display)
     mState.mMemoryObjectManager->release(this);
     mState.mSemaphoreManager->release(this);
 
-    mImplementation->onDestroy(this);
-
-    // Backend requires implementation to be destroyed first to close down all the objects
-    mState.mShareGroup->release(display);
-
     if (mState.mSharedContextMutex != nullptr)
     {
         mState.mSharedContextMutex->release();
@@ -958,10 +966,6 @@ egl::Error Context::onDestroy(const egl::Display *display)
     {
         mState.mSingleContextMutex->release();
     }
-
-    mOverlay.destroy(this);
-
-    return egl::NoError();
 }
 
 Context::~Context() {}
@@ -997,8 +1001,10 @@ egl::Error Context::makeCurrent(egl::Display *display,
             height = drawSurface->getHeight();
         }
 
-        mState.setViewportParams(0, 0, width, height);
-        mState.setScissorParams(0, 0, width, height);
+        ContextPrivateViewport(getMutablePrivateState(), getMutablePrivateStateCache(), 0, 0, width,
+                               height);
+        ContextPrivateScissor(getMutablePrivateState(), getMutablePrivateStateCache(), 0, 0, width,
+                              height);
 
         mHasBeenCurrent = true;
     }
@@ -1975,7 +1981,7 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
                       mState.getCaps().compressedTextureFormats.end(), params);
             break;
         case GL_RESET_NOTIFICATION_STRATEGY_EXT:
-            *params = mResetStrategy;
+            *params = mErrors.getResetStrategy();
             break;
         case GL_NUM_SHADER_BINARY_FORMATS:
             *params = static_cast<GLint>(mState.getCaps().shaderBinaryFormats.size());
@@ -2978,11 +2984,6 @@ void Context::bindUniformLocation(ShaderProgramID program,
     programObject->bindUniformLocation(location, name);
 }
 
-void Context::coverageModulation(GLenum components)
-{
-    mState.setCoverageModulation(components);
-}
-
 GLuint Context::getProgramResourceIndex(ShaderProgramID program,
                                         GLenum programInterface,
                                         const GLchar *name)
@@ -3052,35 +3053,6 @@ void Context::handleError(GLenum errorCode,
     mErrors.handleError(errorCode, message, file, function, line);
 }
 
-void Context::validationError(angle::EntryPoint entryPoint,
-                              GLenum errorCode,
-                              const char *message) const
-{
-    const_cast<Context *>(this)->mErrors.validationError(entryPoint, errorCode, message);
-}
-
-void Context::validationErrorF(angle::EntryPoint entryPoint,
-                               GLenum errorCode,
-                               const char *format,
-                               ...) const
-{
-    va_list vargs;
-    va_start(vargs, format);
-    constexpr size_t kMessageSize = 256;
-    char message[kMessageSize];
-    int r = vsnprintf(message, kMessageSize, format, vargs);
-    va_end(vargs);
-
-    if (r > 0)
-    {
-        validationError(entryPoint, errorCode, message);
-    }
-    else
-    {
-        validationError(entryPoint, errorCode, format);
-    }
-}
-
 // Get one of the recorded errors and clear its flag, if any.
 // [OpenGL ES 2.0.24] section 2.5 page 13.
 GLenum Context::getError()
@@ -3095,74 +3067,14 @@ GLenum Context::getError()
     }
 }
 
-// NOTE: this function should not assume that this context is current!
-void Context::markContextLost(GraphicsResetStatus status)
-{
-    ASSERT(status != GraphicsResetStatus::NoError);
-    if (mResetStrategy == GL_LOSE_CONTEXT_ON_RESET_EXT)
-    {
-        mResetStatus       = status;
-        mContextLostForced = true;
-    }
-    setContextLost();
-}
-
-void Context::setContextLost()
-{
-    mContextLost = true;
-
-    // Stop skipping validation, since many implementation entrypoint assume they can't
-    // be called when lost, or with null object arguments, etc.
-    mSkipValidation = false;
-
-    // Make sure we update TLS.
-    SetCurrentValidContext(nullptr);
-}
-
 GLenum Context::getGraphicsResetStatus()
 {
-    // Even if the application doesn't want to know about resets, we want to know
-    // as it will allow us to skip all the calls.
-    if (mResetStrategy == GL_NO_RESET_NOTIFICATION_EXT)
-    {
-        if (!isContextLost() && mImplementation->getResetStatus() != GraphicsResetStatus::NoError)
-        {
-            setContextLost();
-        }
-
-        // EXT_robustness, section 2.6: If the reset notification behavior is
-        // NO_RESET_NOTIFICATION_EXT, then the implementation will never deliver notification of
-        // reset events, and GetGraphicsResetStatusEXT will always return NO_ERROR.
-        return GL_NO_ERROR;
-    }
-
-    // The GL_EXT_robustness spec says that if a reset is encountered, a reset
-    // status should be returned at least once, and GL_NO_ERROR should be returned
-    // once the device has finished resetting.
-    if (!isContextLost())
-    {
-        ASSERT(mResetStatus == GraphicsResetStatus::NoError);
-        mResetStatus = mImplementation->getResetStatus();
-
-        if (mResetStatus != GraphicsResetStatus::NoError)
-        {
-            setContextLost();
-        }
-    }
-    else if (!mContextLostForced && mResetStatus != GraphicsResetStatus::NoError)
-    {
-        // If markContextLost was used to mark the context lost then
-        // assume that is not recoverable, and continue to report the
-        // lost reset status for the lifetime of this context.
-        mResetStatus = mImplementation->getResetStatus();
-    }
-
-    return ToGLenum(mResetStatus);
+    return mErrors.getGraphicsResetStatus(mImplementation.get());
 }
 
 bool Context::isResetNotificationEnabled() const
 {
-    return (mResetStrategy == GL_LOSE_CONTEXT_ON_RESET_EXT);
+    return mErrors.getResetStrategy() == GL_LOSE_CONTEXT_ON_RESET_EXT;
 }
 
 bool Context::isRobustnessEnabled() const
@@ -3945,7 +3857,7 @@ Extensions Context::generateSupportedExtensions() const
     supportedExtensions.multiDrawANGLE                = true;
 
     // Enable the no error extension if the context was created with the flag.
-    supportedExtensions.noErrorKHR = mSkipValidation;
+    supportedExtensions.noErrorKHR = skipValidation();
 
     // Enable surfaceless to advertise we'll have the correct behavior when there is no default FBO
     supportedExtensions.surfacelessContextOES = mSurfacelessSupported;
@@ -3957,7 +3869,7 @@ Extensions Context::generateSupportedExtensions() const
     supportedExtensions.debugLabelEXT = true;
 
     // Explicitly enable GL_ANGLE_robust_client_memory if the context supports validation.
-    supportedExtensions.robustClientMemoryANGLE = !mSkipValidation;
+    supportedExtensions.robustClientMemoryANGLE = !skipValidation();
 
     // Determine robust resource init availability from EGL.
     supportedExtensions.robustResourceInitializationANGLE = mState.isRobustResourceInitEnabled();
@@ -4122,6 +4034,9 @@ void Context::initCaps()
 
     // Apply/Verify implementation limits
     ANGLE_LIMIT_CAP(caps->maxDrawBuffers, IMPLEMENTATION_MAX_DRAW_BUFFERS);
+    ANGLE_LIMIT_CAP(caps->maxFramebufferWidth, IMPLEMENTATION_MAX_FRAMEBUFFER_SIZE);
+    ANGLE_LIMIT_CAP(caps->maxFramebufferHeight, IMPLEMENTATION_MAX_FRAMEBUFFER_SIZE);
+    ANGLE_LIMIT_CAP(caps->maxRenderbufferSize, IMPLEMENTATION_MAX_RENDERBUFFER_SIZE);
     ANGLE_LIMIT_CAP(caps->maxColorAttachments, IMPLEMENTATION_MAX_DRAW_BUFFERS);
     ANGLE_LIMIT_CAP(caps->maxVertexAttributes, MAX_VERTEX_ATTRIBS);
     ANGLE_LIMIT_CAP(caps->maxVertexAttribStride,
@@ -4347,9 +4262,9 @@ void Context::initCaps()
         // prevents writing invalid calls to the capture.
         INFO() << "Enabling validation to prevent invalid calls from being captured. This "
                   "effectively disables GL_KHR_no_error and enables GL_ANGLE_robust_client_memory.";
-        mSkipValidation                     = false;
-        extensions->noErrorKHR              = mSkipValidation;
-        extensions->robustClientMemoryANGLE = !mSkipValidation;
+        mErrors.forceValidation();
+        extensions->noErrorKHR              = skipValidation();
+        extensions->robustClientMemoryANGLE = !skipValidation();
 
         INFO() << "Disabling GL_OES_depth32 during capture, which is not widely supported on "
                   "mobile";
@@ -5955,128 +5870,9 @@ void Context::activeShaderProgram(ProgramPipelineID pipeline, ShaderProgramID pr
     programPipeline->activeShaderProgram(shaderProgram);
 }
 
-void Context::activeTexture(GLenum texture)
-{
-    mState.setActiveSampler(texture - GL_TEXTURE0);
-}
-
 void Context::blendBarrier()
 {
     mImplementation->blendBarrier();
-}
-
-void Context::blendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
-{
-    mState.setBlendColor(red, green, blue, alpha);
-}
-
-void Context::blendEquation(GLenum mode)
-{
-    mState.setBlendEquation(mode, mode);
-
-    mStateCache.onBlendEquationChange(this);
-}
-
-void Context::blendEquationi(GLuint buf, GLenum mode)
-{
-    mState.setBlendEquationIndexed(mode, mode, buf);
-
-    mStateCache.onBlendEquationChange(this);
-}
-
-void Context::blendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
-{
-    mState.setBlendEquation(modeRGB, modeAlpha);
-}
-
-void Context::blendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
-{
-    mState.setBlendEquationIndexed(modeRGB, modeAlpha, buf);
-}
-
-void Context::blendFunc(GLenum sfactor, GLenum dfactor)
-{
-    mState.setBlendFactors(sfactor, dfactor, sfactor, dfactor);
-}
-
-void Context::blendFunci(GLuint buf, GLenum src, GLenum dst)
-{
-    mState.setBlendFactorsIndexed(src, dst, src, dst, buf);
-
-    if (mState.noSimultaneousConstantColorAndAlphaBlendFunc())
-    {
-        mStateCache.onBlendFuncIndexedChange(this);
-    }
-}
-
-void Context::blendFuncSeparate(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
-{
-    mState.setBlendFactors(srcRGB, dstRGB, srcAlpha, dstAlpha);
-}
-
-void Context::blendFuncSeparatei(GLuint buf,
-                                 GLenum srcRGB,
-                                 GLenum dstRGB,
-                                 GLenum srcAlpha,
-                                 GLenum dstAlpha)
-{
-    mState.setBlendFactorsIndexed(srcRGB, dstRGB, srcAlpha, dstAlpha, buf);
-
-    if (mState.noSimultaneousConstantColorAndAlphaBlendFunc())
-    {
-        mStateCache.onBlendFuncIndexedChange(this);
-    }
-}
-
-void Context::colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
-{
-    mState.setColorMask(ConvertToBool(red), ConvertToBool(green), ConvertToBool(blue),
-                        ConvertToBool(alpha));
-    mStateCache.onColorMaskChange(this);
-}
-
-void Context::colorMaski(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
-{
-    mState.setColorMaskIndexed(ConvertToBool(r), ConvertToBool(g), ConvertToBool(b),
-                               ConvertToBool(a), index);
-    mStateCache.onColorMaskChange(this);
-}
-
-void Context::cullFace(CullFaceMode mode)
-{
-    mState.setCullMode(mode);
-}
-
-void Context::depthFunc(GLenum func)
-{
-    mState.setDepthFunc(func);
-}
-
-void Context::depthMask(GLboolean flag)
-{
-    mState.setDepthMask(ConvertToBool(flag));
-}
-
-void Context::depthRangef(GLfloat zNear, GLfloat zFar)
-{
-    mState.setDepthRange(clamp01(zNear), clamp01(zFar));
-}
-
-void Context::clipControl(ClipOrigin originPacked, ClipDepthMode depthPacked)
-{
-    mState.setClipControl(originPacked, depthPacked);
-}
-
-void Context::disable(GLenum cap)
-{
-    mState.setEnableFeature(cap, false);
-    mStateCache.onContextCapChange(this);
-}
-
-void Context::disablei(GLenum target, GLuint index)
-{
-    mState.setEnableFeatureIndexed(target, false, index);
-    mStateCache.onContextCapChange(this);
 }
 
 void Context::disableVertexAttribArray(GLuint index)
@@ -6085,261 +5881,10 @@ void Context::disableVertexAttribArray(GLuint index)
     mStateCache.onVertexArrayStateChange(this);
 }
 
-void Context::enable(GLenum cap)
-{
-    mState.setEnableFeature(cap, true);
-    mStateCache.onContextCapChange(this);
-}
-
-void Context::enablei(GLenum target, GLuint index)
-{
-    mState.setEnableFeatureIndexed(target, true, index);
-    mStateCache.onContextCapChange(this);
-}
-
 void Context::enableVertexAttribArray(GLuint index)
 {
     mState.setEnableVertexAttribArray(index, true);
     mStateCache.onVertexArrayStateChange(this);
-}
-
-void Context::frontFace(GLenum mode)
-{
-    mState.setFrontFace(mode);
-}
-
-void Context::hint(GLenum target, GLenum mode)
-{
-    switch (target)
-    {
-        case GL_GENERATE_MIPMAP_HINT:
-            mState.setGenerateMipmapHint(mode);
-            break;
-
-        case GL_FRAGMENT_SHADER_DERIVATIVE_HINT_OES:
-            mState.setFragmentShaderDerivativeHint(mode);
-            break;
-
-        case GL_PERSPECTIVE_CORRECTION_HINT:
-        case GL_POINT_SMOOTH_HINT:
-        case GL_LINE_SMOOTH_HINT:
-        case GL_FOG_HINT:
-            mState.gles1().setHint(target, mode);
-            break;
-        case GL_TEXTURE_FILTERING_HINT_CHROMIUM:
-            mState.setTextureFilteringHint(mode);
-            break;
-        default:
-            UNREACHABLE();
-            return;
-    }
-}
-
-void Context::lineWidth(GLfloat width)
-{
-    mState.setLineWidth(width);
-}
-
-void Context::pixelStorei(GLenum pname, GLint param)
-{
-    switch (pname)
-    {
-        case GL_UNPACK_ALIGNMENT:
-            mState.setUnpackAlignment(param);
-            break;
-
-        case GL_PACK_ALIGNMENT:
-            mState.setPackAlignment(param);
-            break;
-
-        case GL_PACK_REVERSE_ROW_ORDER_ANGLE:
-            mState.setPackReverseRowOrder(param != 0);
-            break;
-
-        case GL_UNPACK_ROW_LENGTH:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().unpackSubimageEXT);
-            mState.setUnpackRowLength(param);
-            break;
-
-        case GL_UNPACK_IMAGE_HEIGHT:
-            ASSERT(getClientMajorVersion() >= 3);
-            mState.setUnpackImageHeight(param);
-            break;
-
-        case GL_UNPACK_SKIP_IMAGES:
-            ASSERT(getClientMajorVersion() >= 3);
-            mState.setUnpackSkipImages(param);
-            break;
-
-        case GL_UNPACK_SKIP_ROWS:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().unpackSubimageEXT);
-            mState.setUnpackSkipRows(param);
-            break;
-
-        case GL_UNPACK_SKIP_PIXELS:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().unpackSubimageEXT);
-            mState.setUnpackSkipPixels(param);
-            break;
-
-        case GL_PACK_ROW_LENGTH:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().packSubimageNV);
-            mState.setPackRowLength(param);
-            break;
-
-        case GL_PACK_SKIP_ROWS:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().packSubimageNV);
-            mState.setPackSkipRows(param);
-            break;
-
-        case GL_PACK_SKIP_PIXELS:
-            ASSERT((getClientMajorVersion() >= 3) || getExtensions().packSubimageNV);
-            mState.setPackSkipPixels(param);
-            break;
-
-        default:
-            UNREACHABLE();
-            return;
-    }
-}
-
-void Context::polygonMode(GLenum face, PolygonMode modePacked)
-{
-    ASSERT(face == GL_FRONT_AND_BACK);
-    mState.setPolygonMode(modePacked);
-}
-
-void Context::polygonModeNV(GLenum face, PolygonMode modePacked)
-{
-    polygonMode(face, modePacked);
-}
-
-void Context::polygonOffset(GLfloat factor, GLfloat units)
-{
-    mState.setPolygonOffsetParams(factor, units, 0.0f);
-}
-
-void Context::polygonOffsetClamp(GLfloat factor, GLfloat units, GLfloat clamp)
-{
-    mState.setPolygonOffsetParams(factor, units, clamp);
-}
-
-void Context::sampleCoverage(GLfloat value, GLboolean invert)
-{
-    mState.setSampleCoverageParams(clamp01(value), ConvertToBool(invert));
-}
-
-void Context::sampleMaski(GLuint maskNumber, GLbitfield mask)
-{
-    mState.setSampleMaskParams(maskNumber, mask);
-}
-
-void Context::scissor(GLint x, GLint y, GLsizei width, GLsizei height)
-{
-    mState.setScissorParams(x, y, width, height);
-}
-
-void Context::shadingRateQCOM(GLenum rate)
-{
-    mState.setShadingRate(rate);
-}
-
-void Context::stencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
-{
-    GLint clampedRef = gl::clamp(ref, 0, std::numeric_limits<uint8_t>::max());
-    if (face == GL_FRONT || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilParams(func, clampedRef, mask);
-    }
-
-    if (face == GL_BACK || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilBackParams(func, clampedRef, mask);
-    }
-
-    mStateCache.onStencilStateChange(this);
-}
-
-void Context::stencilMaskSeparate(GLenum face, GLuint mask)
-{
-    if (face == GL_FRONT || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilWritemask(mask);
-    }
-
-    if (face == GL_BACK || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilBackWritemask(mask);
-    }
-
-    mStateCache.onStencilStateChange(this);
-}
-
-void Context::stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass)
-{
-    if (face == GL_FRONT || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilOperations(fail, zfail, zpass);
-    }
-
-    if (face == GL_BACK || face == GL_FRONT_AND_BACK)
-    {
-        mState.setStencilBackOperations(fail, zfail, zpass);
-    }
-}
-
-void Context::vertexAttrib1f(GLuint index, GLfloat x)
-{
-    GLfloat vals[4] = {x, 0, 0, 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib1fv(GLuint index, const GLfloat *values)
-{
-    GLfloat vals[4] = {values[0], 0, 0, 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib2f(GLuint index, GLfloat x, GLfloat y)
-{
-    GLfloat vals[4] = {x, y, 0, 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib2fv(GLuint index, const GLfloat *values)
-{
-    GLfloat vals[4] = {values[0], values[1], 0, 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib3f(GLuint index, GLfloat x, GLfloat y, GLfloat z)
-{
-    GLfloat vals[4] = {x, y, z, 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib3fv(GLuint index, const GLfloat *values)
-{
-    GLfloat vals[4] = {values[0], values[1], values[2], 1};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib4f(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w)
-{
-    GLfloat vals[4] = {x, y, z, w};
-    mState.setVertexAttribf(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttrib4fv(GLuint index, const GLfloat *values)
-{
-    mState.setVertexAttribf(index, values);
-    mStateCache.onDefaultVertexAttributeChange(this);
 }
 
 void Context::vertexAttribPointer(GLuint index,
@@ -6386,11 +5931,6 @@ void Context::vertexBindingDivisor(GLuint bindingIndex, GLuint divisor)
     mStateCache.onVertexArrayFormatChange(this);
 }
 
-void Context::viewport(GLint x, GLint y, GLsizei width, GLsizei height)
-{
-    mState.setViewportParams(x, y, width, height);
-}
-
 void Context::vertexAttribIPointer(GLuint index,
                                    GLint size,
                                    VertexAttribType type,
@@ -6400,32 +5940,6 @@ void Context::vertexAttribIPointer(GLuint index,
     mState.setVertexAttribIPointer(this, index, mState.getTargetBuffer(BufferBinding::Array), size,
                                    type, stride, pointer);
     mStateCache.onVertexArrayStateChange(this);
-}
-
-void Context::vertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w)
-{
-    GLint vals[4] = {x, y, z, w};
-    mState.setVertexAttribi(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttribI4ui(GLuint index, GLuint x, GLuint y, GLuint z, GLuint w)
-{
-    GLuint vals[4] = {x, y, z, w};
-    mState.setVertexAttribu(index, vals);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttribI4iv(GLuint index, const GLint *v)
-{
-    mState.setVertexAttribi(index, v);
-    mStateCache.onDefaultVertexAttributeChange(this);
-}
-
-void Context::vertexAttribI4uiv(GLuint index, const GLuint *v)
-{
-    mState.setVertexAttribu(index, v);
-    mStateCache.onDefaultVertexAttributeChange(this);
 }
 
 void Context::getVertexAttribivImpl(GLuint index, GLenum pname, GLint *params) const
@@ -6578,18 +6092,6 @@ void Context::popDebugGroup()
 {
     mState.getDebug().popGroup();
     ANGLE_CONTEXT_TRY(mImplementation->popDebugGroup(this));
-}
-
-void Context::primitiveBoundingBox(GLfloat minX,
-                                   GLfloat minY,
-                                   GLfloat minZ,
-                                   GLfloat minW,
-                                   GLfloat maxX,
-                                   GLfloat maxY,
-                                   GLfloat maxZ,
-                                   GLfloat maxW)
-{
-    mState.setBoundingBox(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
 }
 
 void Context::bufferStorage(BufferBinding target,
@@ -7233,6 +6735,16 @@ void Context::multiDrawArraysInstancedBaseInstance(PrimitiveMode mode,
         this, mode, firsts, counts, instanceCounts, baseInstances, drawcount));
 }
 
+void Context::multiDrawElementsBaseVertex(PrimitiveMode mode,
+                                          const GLsizei *count,
+                                          DrawElementsType type,
+                                          const void *const *indices,
+                                          GLsizei drawcount,
+                                          const GLint *basevertex)
+{
+    UNIMPLEMENTED();
+}
+
 void Context::multiDrawElementsInstancedBaseVertexBaseInstance(PrimitiveMode mode,
                                                                const GLsizei *counts,
                                                                DrawElementsType type,
@@ -7251,11 +6763,6 @@ void Context::multiDrawElementsInstancedBaseVertexBaseInstance(PrimitiveMode mod
     ANGLE_CONTEXT_TRY(prepareForDraw(mode));
     ANGLE_CONTEXT_TRY(mImplementation->multiDrawElementsInstancedBaseVertexBaseInstance(
         this, mode, counts, type, indices, instanceCounts, baseVertices, baseInstances, drawcount));
-}
-
-void Context::provokingVertex(ProvokingVertexConvention provokeMode)
-{
-    mState.setProvokingVertex(provokeMode);
 }
 
 GLenum Context::checkFramebufferStatus(GLenum target)
@@ -7486,7 +6993,7 @@ void Context::getProgramivRobust(ShaderProgramID program,
 void Context::getProgramPipelineiv(ProgramPipelineID pipeline, GLenum pname, GLint *params)
 {
     ProgramPipeline *programPipeline = nullptr;
-    if (!mContextLost)
+    if (!isContextLost())
     {
         programPipeline = getProgramPipeline(pipeline);
     }
@@ -7690,16 +7197,6 @@ GLboolean Context::isBuffer(BufferID buffer) const
     return ConvertToGLBoolean(getBuffer(buffer));
 }
 
-GLboolean Context::isEnabled(GLenum cap) const
-{
-    return mState.getEnableFeature(cap);
-}
-
-GLboolean Context::isEnabledi(GLenum target, GLuint index) const
-{
-    return mState.getEnableFeatureIndexed(target, index);
-}
-
 GLboolean Context::isFramebuffer(FramebufferID framebuffer) const
 {
     if (framebuffer.value == 0)
@@ -7812,33 +7309,6 @@ void Context::shaderSource(ShaderProgramID shader,
     Shader *shaderObject = getShader(shader);
     ASSERT(shaderObject);
     shaderObject->setSource(this, count, string, length);
-}
-
-void Context::stencilFunc(GLenum func, GLint ref, GLuint mask)
-{
-    stencilFuncSeparate(GL_FRONT_AND_BACK, func, ref, mask);
-}
-
-void Context::stencilMask(GLuint mask)
-{
-    stencilMaskSeparate(GL_FRONT_AND_BACK, mask);
-}
-
-void Context::stencilOp(GLenum fail, GLenum zfail, GLenum zpass)
-{
-    stencilOpSeparate(GL_FRONT_AND_BACK, fail, zfail, zpass);
-}
-
-void Context::patchParameteri(GLenum pname, GLint value)
-{
-    switch (pname)
-    {
-        case GL_PATCH_VERTICES:
-            mState.setPatchVertices(value);
-            break;
-        default:
-            break;
-    }
 }
 
 Program *Context::getActiveLinkedProgram() const
@@ -8536,11 +8006,6 @@ void Context::deleteSamplers(GLsizei count, const SamplerID *samplers)
 
         mState.mSamplerManager->deleteObject(this, sampler);
     }
-}
-
-void Context::minSampleShading(GLfloat value)
-{
-    mState.setMinSampleShading(value);
 }
 
 void Context::getInternalformativ(GLenum target,
@@ -10164,9 +9629,11 @@ void Context::getRenderbufferImage(GLenum target, GLenum format, GLenum type, vo
                                                          format, type, pixels));
 }
 
-void Context::logicOpANGLE(LogicalOperation opcodePacked)
+void Context::setLogicOpEnabledForGLES1(bool enabled)
 {
-    mState.setLogicOp(opcodePacked);
+    // Same implementation as ContextPrivateEnable(GL_COLOR_LOGIC_OP), without the GLES1 forwarding.
+    getMutablePrivateState()->setLogicOpEnabled(enabled);
+    getMutablePrivateStateCache()->onCapChange();
 }
 
 egl::Error Context::releaseHighPowerGPU()
@@ -10186,6 +9653,25 @@ void Context::onGPUSwitch()
     initRendererString();
 }
 
+egl::Error Context::acquireExternalContext(egl::Surface *drawAndReadSurface)
+{
+    mImplementation->acquireExternalContext(this);
+
+    if (drawAndReadSurface != mCurrentDrawSurface || drawAndReadSurface != mCurrentReadSurface)
+    {
+        ANGLE_TRY(unsetDefaultFramebuffer());
+        ANGLE_TRY(setDefaultFramebuffer(drawAndReadSurface, drawAndReadSurface));
+    }
+
+    return egl::NoError();
+}
+
+egl::Error Context::releaseExternalContext()
+{
+    mImplementation->releaseExternalContext(this);
+    return egl::NoError();
+}
+
 std::mutex &Context::getProgramCacheMutex() const
 {
     return mDisplay->getProgramCacheMutex();
@@ -10201,7 +9687,7 @@ void Context::dirtyAllState()
 {
     mState.setAllDirtyBits();
     mState.setAllDirtyObjects();
-    mState.gles1().setAllDirty();
+    getMutableGLES1State()->setAllDirty();
 }
 
 void Context::finishImmutable() const
@@ -10422,7 +9908,18 @@ void Context::drawPixelLocalStorageEXTDisable(const PixelLocalStoragePlane plane
 }
 
 // ErrorSet implementation.
-ErrorSet::ErrorSet(Context *context) : mContext(context) {}
+ErrorSet::ErrorSet(Debug *debug,
+                   const angle::FrontendFeatures &frontendFeatures,
+                   const egl::AttributeMap &attribs)
+    : mDebug(debug),
+      mResetStrategy(GetResetStrategy(attribs)),
+      mLoseContextOnOutOfMemory(frontendFeatures.loseContextOnOutOfMemory.enabled),
+      mContextLostForced(false),
+      mResetStatus(GraphicsResetStatus::NoError),
+      mSkipValidation(GetNoError(attribs)),
+      mContextLost(0),
+      mHasAnyErrors(0)
+{}
 
 ErrorSet::~ErrorSet() = default;
 
@@ -10432,11 +9929,10 @@ void ErrorSet::handleError(GLenum errorCode,
                            const char *function,
                            unsigned int line)
 {
-    if (errorCode == GL_OUT_OF_MEMORY &&
-        mContext->getGraphicsResetStrategy() == GL_LOSE_CONTEXT_ON_RESET_EXT &&
-        mContext->getDisplay()->getFrontendFeatures().loseContextOnOutOfMemory.enabled)
+    if (errorCode == GL_OUT_OF_MEMORY && mResetStrategy == GL_LOSE_CONTEXT_ON_RESET_EXT &&
+        mLoseContextOnOutOfMemory)
     {
-        mContext->markContextLost(GraphicsResetStatus::UnknownContextReset);
+        markContextLost(GraphicsResetStatus::UnknownContextReset);
     }
 
     std::stringstream errorStream;
@@ -10446,35 +9942,150 @@ void ErrorSet::handleError(GLenum errorCode,
     std::string formattedMessage = errorStream.str();
 
     // Process the error, but log it with WARN severity so it shows up in logs.
-    ASSERT(errorCode != GL_NO_ERROR);
-    mErrors.insert(errorCode);
+    mDebug->insertMessage(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, errorCode,
+                          GL_DEBUG_SEVERITY_HIGH, std::move(formattedMessage), gl::LOG_WARN,
+                          angle::EntryPoint::Invalid);
 
-    mContext->getState().getDebug().insertMessage(
-        GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, errorCode, GL_DEBUG_SEVERITY_HIGH,
-        std::move(formattedMessage), gl::LOG_WARN, angle::EntryPoint::Invalid);
+    pushError(errorCode);
 }
 
 void ErrorSet::validationError(angle::EntryPoint entryPoint, GLenum errorCode, const char *message)
 {
-    ASSERT(errorCode != GL_NO_ERROR);
-    mErrors.insert(errorCode);
+    mDebug->insertMessage(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, errorCode,
+                          GL_DEBUG_SEVERITY_HIGH, message, gl::LOG_INFO, entryPoint);
 
-    mContext->getState().getDebug().insertMessage(GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR,
-                                                  errorCode, GL_DEBUG_SEVERITY_HIGH, message,
-                                                  gl::LOG_INFO, entryPoint);
+    pushError(errorCode);
 }
 
-bool ErrorSet::empty() const
+void ErrorSet::validationErrorF(angle::EntryPoint entryPoint,
+                                GLenum errorCode,
+                                const char *format,
+                                ...)
 {
-    return mErrors.empty();
+    va_list vargs;
+    va_start(vargs, format);
+    constexpr size_t kMessageSize = 256;
+    char message[kMessageSize];
+    int r = vsnprintf(message, kMessageSize, format, vargs);
+    va_end(vargs);
+
+    if (r > 0)
+    {
+        validationError(entryPoint, errorCode, message);
+    }
+    else
+    {
+        validationError(entryPoint, errorCode, format);
+    }
+}
+
+std::unique_lock<std::mutex> ErrorSet::getLockIfNotAlready()
+{
+    // Avoid mutex recursion and return the lock only if it is not already locked.  This can happen
+    // if device loss is generated while it is being queried.
+    if (mMutex.try_lock())
+    {
+        return std::unique_lock<std::mutex>(mMutex, std::adopt_lock);
+    }
+    return std::unique_lock<std::mutex>();
+}
+
+void ErrorSet::pushError(GLenum errorCode)
+{
+    ASSERT(errorCode != GL_NO_ERROR);
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        mErrors.insert(errorCode);
+        mHasAnyErrors = 1;
+    }
 }
 
 GLenum ErrorSet::popError()
 {
+    std::lock_guard<std::mutex> lock(mMutex);
+
     ASSERT(!empty());
     GLenum error = *mErrors.begin();
     mErrors.erase(mErrors.begin());
+    if (mErrors.empty())
+    {
+        mHasAnyErrors = 0;
+    }
     return error;
+}
+
+// NOTE: this function should not assume that this context is current!
+void ErrorSet::markContextLost(GraphicsResetStatus status)
+{
+    // This function may be called indirectly through ErrorSet::getGraphicsResetStatus() from the
+    // backend, in which case mMutex is already held.
+    std::unique_lock<std::mutex> lock = getLockIfNotAlready();
+
+    ASSERT(status != GraphicsResetStatus::NoError);
+    if (mResetStrategy == GL_LOSE_CONTEXT_ON_RESET_EXT)
+    {
+        mResetStatus       = status;
+        mContextLostForced = true;
+    }
+    setContextLost();
+}
+
+void ErrorSet::setContextLost()
+{
+    // Always called with the mutex held.
+    ASSERT(mMutex.try_lock() == false);
+
+    mContextLost = 1;
+
+    // Stop skipping validation, since many implementation entrypoint assume they can't
+    // be called when lost, or with null object arguments, etc.
+    mSkipValidation = 0;
+
+    // Make sure we update TLS.
+    SetCurrentValidContext(nullptr);
+}
+
+GLenum ErrorSet::getGraphicsResetStatus(rx::ContextImpl *contextImpl)
+{
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    // Even if the application doesn't want to know about resets, we want to know
+    // as it will allow us to skip all the calls.
+    if (mResetStrategy == GL_NO_RESET_NOTIFICATION_EXT)
+    {
+        if (!isContextLost() && contextImpl->getResetStatus() != GraphicsResetStatus::NoError)
+        {
+            setContextLost();
+        }
+
+        // EXT_robustness, section 2.6: If the reset notification behavior is
+        // NO_RESET_NOTIFICATION_EXT, then the implementation will never deliver notification of
+        // reset events, and GetGraphicsResetStatusEXT will always return NO_ERROR.
+        return GL_NO_ERROR;
+    }
+
+    // The GL_EXT_robustness spec says that if a reset is encountered, a reset
+    // status should be returned at least once, and GL_NO_ERROR should be returned
+    // once the device has finished resetting.
+    if (!isContextLost())
+    {
+        ASSERT(mResetStatus == GraphicsResetStatus::NoError);
+        mResetStatus = contextImpl->getResetStatus();
+
+        if (mResetStatus != GraphicsResetStatus::NoError)
+        {
+            setContextLost();
+        }
+    }
+    else if (!mContextLostForced && mResetStatus != GraphicsResetStatus::NoError)
+    {
+        // If markContextLost was used to mark the context lost then
+        // assume that is not recoverable, and continue to report the
+        // lost reset status for the lifetime of this context.
+        mResetStatus = contextImpl->getResetStatus();
+    }
+
+    return ToGLenum(mResetStatus);
 }
 
 // StateCache implementation.
@@ -10600,10 +10211,13 @@ void StateCache::updateBasicDrawElementsError()
     mCachedBasicDrawElementsError = kInvalidPointer;
 }
 
-intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context) const
+intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context,
+                                                 const PrivateStateCache *privateStateCache) const
 {
-    ASSERT(mCachedBasicDrawStatesErrorString == kInvalidPointer);
-    ASSERT(mCachedBasicDrawStatesErrorCode == GL_NO_ERROR);
+    ASSERT(mCachedBasicDrawStatesErrorString == kInvalidPointer ||
+           !privateStateCache->isCachedBasicDrawStatesErrorValid());
+    ASSERT(mCachedBasicDrawStatesErrorCode == GL_NO_ERROR ||
+           !privateStateCache->isCachedBasicDrawStatesErrorValid());
 
     // Only assign the error code after ValidateDrawStates has completed. ValidateDrawStates calls
     // updateBasicDrawStatesError in some cases and resets the value mid-call.
@@ -10617,6 +10231,7 @@ intptr_t StateCache::getBasicDrawStatesErrorImpl(const Context *context) const
     ASSERT((mCachedBasicDrawStatesErrorString == 0) ==
            (mCachedBasicDrawStatesErrorCode == GL_NO_ERROR));
 
+    privateStateCache->setCachedBasicDrawStatesErrorValid();
     return mCachedBasicDrawStatesErrorString;
 }
 
@@ -10689,21 +10304,6 @@ void StateCache::onDrawFramebufferChange(Context *context)
     updateBasicDrawStatesError();
 }
 
-void StateCache::onContextCapChange(Context *context)
-{
-    updateBasicDrawStatesError();
-}
-
-void StateCache::onStencilStateChange(Context *context)
-{
-    updateBasicDrawStatesError();
-}
-
-void StateCache::onDefaultVertexAttributeChange(Context *context)
-{
-    updateBasicDrawStatesError();
-}
-
 void StateCache::onActiveTextureChange(Context *context)
 {
     updateBasicDrawStatesError();
@@ -10733,21 +10333,6 @@ void StateCache::onAtomicCounterBufferStateChange(Context *context)
 }
 
 void StateCache::onShaderStorageBufferStateChange(Context *context)
-{
-    updateBasicDrawStatesError();
-}
-
-void StateCache::onColorMaskChange(Context *context)
-{
-    updateBasicDrawStatesError();
-}
-
-void StateCache::onBlendFuncIndexedChange(Context *context)
-{
-    updateBasicDrawStatesError();
-}
-
-void StateCache::onBlendEquationChange(Context *context)
 {
     updateBasicDrawStatesError();
 }
@@ -10955,4 +10540,16 @@ void StateCache::updateCanDraw(Context *context)
         (context->isGLES1() || (context->getState().getProgramExecutable() &&
                                 context->getState().getProgramExecutable()->hasVertexShader()));
 }
+
+bool StateCache::isCurrentContext(const Context *context,
+                                  const PrivateStateCache *privateStateCache) const
+{
+    // Ensure that the state cache is not queried by any context other than the one that owns it.
+    return &context->getStateCache() == this &&
+           &context->getPrivateStateCache() == privateStateCache;
+}
+
+PrivateStateCache::PrivateStateCache() : mIsCachedBasicDrawStatesErrorValid(true) {}
+
+PrivateStateCache::~PrivateStateCache() = default;
 }  // namespace gl

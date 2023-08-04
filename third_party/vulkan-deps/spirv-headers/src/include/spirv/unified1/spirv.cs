@@ -66,6 +66,8 @@ namespace Spv
             CPP_for_OpenCL = 6,
             SYCL = 7,
             HERO_C = 8,
+            NZSL = 9,
+            WGSL = 10,
         }
 
         public enum ExecutionModel
@@ -585,6 +587,7 @@ namespace Spv
             SingleElementVectorINTEL = 6085,
             VectorComputeCallableFunctionINTEL = 6087,
             MediaBlockIOINTEL = 6140,
+            FPMaxErrorDecorationINTEL = 6170,
             LatencyControlLabelINTEL = 6172,
             LatencyControlConstraintINTEL = 6173,
             ConduitKernelArgumentINTEL = 6175,
@@ -1171,6 +1174,7 @@ namespace Spv
             BFloat16ConversionINTEL = 6115,
             SplitBarrierINTEL = 6141,
             FPGAKernelAttributesv2INTEL = 6161,
+            FPMaxErrorINTEL = 6169,
             FPGALatencyControlINTEL = 6171,
             FPGAArgumentInterfacesINTEL = 6174,
             GroupUniformArithmeticKHR = 6400,
