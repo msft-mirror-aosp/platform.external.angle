@@ -921,7 +921,7 @@ void ProgramExecutableVk::addImageDescriptorSetDesc(const gl::ProgramExecutable 
         // 2D arrays are split into multiple 1D arrays when generating LinkedUniforms. Since they
         // are flattened into one array, ignore the nonzero elements and expand the array to the
         // total array size.
-        if (imageUniform.activeShaders().none() || imageUniform.outerArrayOffset > 0)
+        if (imageUniform.activeShaders().none() || imageUniform.getOuterArrayOffset() > 0)
         {
             ASSERT(gl::SamplerNameContainsNonZeroArrayElement(imageUniform.name));
             continue;
@@ -932,10 +932,7 @@ void ProgramExecutableVk::addImageDescriptorSetDesc(const gl::ProgramExecutable 
         // The front-end always binds array image units sequentially.
         const gl::ImageBinding &imageBinding = imageBindings[imageIndex];
         uint32_t arraySize = static_cast<uint32_t>(imageBinding.boundImageUnits.size());
-        for (unsigned int outerArraySize : imageUniform.outerArraySizes)
-        {
-            arraySize *= outerArraySize;
-        }
+        arraySize *= imageUniform.getOuterArraySizeProduct();
 
         const gl::ShaderType firstShaderType = imageUniform.getFirstActiveShaderType();
         const ShaderInterfaceVariableInfo &info =
@@ -971,7 +968,7 @@ void ProgramExecutableVk::addInputAttachmentDescriptorSetDesc(
     const ShaderInterfaceVariableInfo &baseInfo = mVariableInfoMap.getVariableById(
         gl::ShaderType::Fragment, baseInputAttachment.getId(gl::ShaderType::Fragment));
 
-    uint32_t baseBinding = baseInfo.binding - baseInputAttachment.location;
+    uint32_t baseBinding = baseInfo.binding - baseInputAttachment.getLocation();
 
     for (uint32_t colorIndex = 0; colorIndex < gl::IMPLEMENTATION_MAX_DRAW_BUFFERS; ++colorIndex)
     {
@@ -998,7 +995,7 @@ angle::Result ProgramExecutableVk::addTextureDescriptorSetDesc(
         // 2D arrays are split into multiple 1D arrays when generating LinkedUniforms. Since they
         // are flattened into one array, ignore the nonzero elements and expand the array to the
         // total array size.
-        if (samplerUniform.activeShaders().none() || samplerUniform.outerArrayOffset > 0)
+        if (samplerUniform.activeShaders().none() || samplerUniform.getOuterArrayOffset() > 0)
         {
             ASSERT(gl::SamplerNameContainsNonZeroArrayElement(samplerUniform.name));
             continue;
@@ -1009,10 +1006,7 @@ angle::Result ProgramExecutableVk::addTextureDescriptorSetDesc(
         // The front-end always binds array sampler units sequentially.
         const gl::SamplerBinding &samplerBinding = samplerBindings[textureIndex];
         uint32_t arraySize = static_cast<uint32_t>(samplerBinding.boundTextureUnits.size());
-        for (unsigned int outerArraySize : samplerUniform.outerArraySizes)
-        {
-            arraySize *= outerArraySize;
-        }
+        arraySize *= samplerUniform.getOuterArraySizeProduct();
 
         const gl::ShaderType firstShaderType    = samplerUniform.getFirstActiveShaderType();
         const ShaderInterfaceVariableInfo &info = mVariableInfoMap.getVariableById(
