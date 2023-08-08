@@ -425,7 +425,7 @@ void LoadActiveVariable(BinaryInputStream *stream, ActiveVariable *var)
 
 void WriteShaderVariableBuffer(BinaryOutputStream *stream, const ShaderVariableBuffer &var)
 {
-    WriteActiveVariable(stream, var);
+    WriteActiveVariable(stream, var.activeVariable);
 
     stream->writeInt(var.binding);
     stream->writeInt(var.dataSize);
@@ -439,7 +439,7 @@ void WriteShaderVariableBuffer(BinaryOutputStream *stream, const ShaderVariableB
 
 void LoadShaderVariableBuffer(BinaryInputStream *stream, ShaderVariableBuffer *var)
 {
-    LoadActiveVariable(stream, var);
+    LoadActiveVariable(stream, &var->activeVariable);
 
     var->binding  = stream->readInt<int>();
     var->dataSize = stream->readInt<unsigned int>();
@@ -454,7 +454,7 @@ void LoadShaderVariableBuffer(BinaryInputStream *stream, ShaderVariableBuffer *v
 void WriteBufferVariable(BinaryOutputStream *stream, const BufferVariable &var)
 {
     WriteShaderVar(stream, var);
-    WriteActiveVariable(stream, var);
+    WriteActiveVariable(stream, var.activeVariable);
 
     stream->writeInt(var.bufferIndex);
     WriteBlockMemberInfo(stream, var.blockInfo);
@@ -464,7 +464,7 @@ void WriteBufferVariable(BinaryOutputStream *stream, const BufferVariable &var)
 void LoadBufferVariable(BinaryInputStream *stream, BufferVariable *var)
 {
     LoadShaderVar(stream, var);
-    LoadActiveVariable(stream, var);
+    LoadActiveVariable(stream, &(var->activeVariable));
 
     var->bufferIndex = stream->readInt<int>();
     LoadBlockMemberInfo(stream, &var->blockInfo);
@@ -678,7 +678,8 @@ int ProgramBindings::getBindingByName(const std::string &name) const
     return (iter != mBindings.end()) ? iter->second : -1;
 }
 
-int ProgramBindings::getBinding(const sh::ShaderVariable &variable) const
+template <typename T>
+int ProgramBindings::getBinding(const T &variable) const
 {
     return getBindingByName(variable.name);
 }
@@ -744,7 +745,8 @@ int ProgramAliasedBindings::getBindingByLocation(GLuint location) const
     return -1;
 }
 
-int ProgramAliasedBindings::getBinding(const sh::ShaderVariable &variable) const
+template <typename T>
+int ProgramAliasedBindings::getBinding(const T &variable) const
 {
     const std::string &name = variable.name;
 
@@ -780,6 +782,10 @@ int ProgramAliasedBindings::getBinding(const sh::ShaderVariable &variable) const
 
     return getBindingByName(name);
 }
+template int ProgramAliasedBindings::getBinding<gl::UsedUniform>(
+    const gl::UsedUniform &variable) const;
+template int ProgramAliasedBindings::getBinding<sh::ShaderVariable>(
+    const sh::ShaderVariable &variable) const;
 
 ProgramAliasedBindings::const_iterator ProgramAliasedBindings::begin() const
 {
@@ -2099,7 +2105,7 @@ void Program::getActiveUniform(GLuint index,
         }
 
         *size = clampCast<GLint>(uniform.getBasicTypeElementCount());
-        *type = uniform.type;
+        *type = uniform.getType();
     }
     else
     {
@@ -2458,14 +2464,15 @@ void Program::getUniformfv(const Context *context, UniformLocation location, GLf
         return;
     }
 
-    const GLenum nativeType = gl::VariableComponentType(uniform.type);
+    const GLenum nativeType = gl::VariableComponentType(uniform.getType());
     if (nativeType == GL_FLOAT)
     {
         mProgram->getUniformfv(context, location.value, v);
     }
     else
     {
-        getUniformInternal(context, v, location, nativeType, VariableComponentCount(uniform.type));
+        getUniformInternal(context, v, location, nativeType,
+                           VariableComponentCount(uniform.getType()));
     }
 }
 
@@ -2486,14 +2493,15 @@ void Program::getUniformiv(const Context *context, UniformLocation location, GLi
         return;
     }
 
-    const GLenum nativeType = gl::VariableComponentType(uniform.type);
+    const GLenum nativeType = gl::VariableComponentType(uniform.getType());
     if (nativeType == GL_INT || nativeType == GL_BOOL)
     {
         mProgram->getUniformiv(context, location.value, v);
     }
     else
     {
-        getUniformInternal(context, v, location, nativeType, VariableComponentCount(uniform.type));
+        getUniformInternal(context, v, location, nativeType,
+                           VariableComponentCount(uniform.getType()));
     }
 }
 
@@ -2514,14 +2522,15 @@ void Program::getUniformuiv(const Context *context, UniformLocation location, GL
         return;
     }
 
-    const GLenum nativeType = VariableComponentType(uniform.type);
+    const GLenum nativeType = VariableComponentType(uniform.getType());
     if (nativeType == GL_UNSIGNED_INT)
     {
         mProgram->getUniformuiv(context, location.value, v);
     }
     else
     {
-        getUniformInternal(context, v, location, nativeType, VariableComponentCount(uniform.type));
+        getUniformInternal(context, v, location, nativeType,
+                           VariableComponentCount(uniform.getType()));
     }
 }
 
@@ -3269,7 +3278,7 @@ void Program::setUniformValuesFromBindingQualifiers()
     for (unsigned int samplerIndex : mState.mExecutable->getSamplerUniformRange())
     {
         const auto &samplerUniform = mState.mExecutable->getUniforms()[samplerIndex];
-        if (samplerUniform.binding != -1)
+        if (samplerUniform.getBinding() != -1)
         {
             UniformLocation location = getUniformLocation(samplerUniform.name);
             ASSERT(location.value != -1);
@@ -3277,7 +3286,7 @@ void Program::setUniformValuesFromBindingQualifiers()
             for (unsigned int elementIndex = 0;
                  elementIndex < samplerUniform.getBasicTypeElementCount(); ++elementIndex)
             {
-                boundTextureUnits.push_back(samplerUniform.binding + elementIndex);
+                boundTextureUnits.push_back(samplerUniform.getBinding() + elementIndex);
             }
 
             // Here we pass nullptr to avoid a large chain of calls that need a non-const Context.
