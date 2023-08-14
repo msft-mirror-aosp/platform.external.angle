@@ -178,7 +178,7 @@ def __step_config(ctx, step_config):
                 "command_prefix": "python3 ../../build/util/action_remote.py ../../buildtools/reclient/rewrapper --custom_processor=mojom_parser",
                 "handler": "rewrite_action_remote_py",
             })
-            new_rules.append(rule)
+            new_rules.insert(0, rule)
             continue
 
         # Replace nacl-clang/clang++ rules without command_prefix, because they will incorrectly match rewrapper.
