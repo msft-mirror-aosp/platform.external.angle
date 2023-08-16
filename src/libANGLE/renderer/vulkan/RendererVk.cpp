@@ -3824,6 +3824,12 @@ uint32_t RendererVk::getDeviceVersion()
 
 bool RendererVk::canSupportFragmentShadingRate(const vk::ExtensionNameList &deviceExtensionNames)
 {
+    // VK_KHR_create_renderpass2 is required for VK_KHR_fragment_shading_rate
+    if (!mFeatures.supportsRenderpass2.enabled)
+    {
+        return false;
+    }
+
     // Device needs to support VK_KHR_fragment_shading_rate and specifically
     // pipeline fragment shading rate.
     if (mFragmentShadingRateFeatures.pipelineFragmentShadingRate != VK_TRUE)
@@ -3911,9 +3917,10 @@ bool RendererVk::canPreferDeviceLocalMemoryHostVisible(VkPhysicalDeviceType devi
 void RendererVk::initFeatures(DisplayVk *displayVk,
                               const vk::ExtensionNameList &deviceExtensionNames)
 {
+    ApplyFeatureOverrides(&mFeatures, displayVk->getState());
+
     if (displayVk->getState().featuresAllDisabled)
     {
-        ApplyFeatureOverrides(&mFeatures, displayVk->getState());
         return;
     }
 
@@ -4187,9 +4194,6 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsDepthClipControl,
                             mDepthClipControlFeatures.depthClipControl == VK_TRUE);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsPrimitivesGeneratedQuery,
-                            mPrimitivesGeneratedQueryFeatures.primitivesGeneratedQuery == VK_TRUE);
-
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsPrimitiveTopologyListRestart,
         mPrimitiveTopologyListRestartFeatures.primitiveTopologyListRestart == VK_TRUE);
@@ -4202,7 +4206,17 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
                             mTransformFeedbackFeatures.transformFeedback == VK_TRUE);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsGeometryStreamsCapability,
-                            mTransformFeedbackFeatures.geometryStreams == VK_TRUE);
+                            mFeatures.supportsTransformFeedbackExtension.enabled &&
+                                mTransformFeedbackFeatures.geometryStreams == VK_TRUE);
+
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsPrimitivesGeneratedQuery,
+        mFeatures.supportsTransformFeedbackExtension.enabled &&
+            mPrimitivesGeneratedQueryFeatures.primitivesGeneratedQuery == VK_TRUE);
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, emulateTransformFeedback,
+                            (!mFeatures.supportsTransformFeedbackExtension.enabled &&
+                             mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics == VK_TRUE));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsIndexTypeUint8,
                             mIndexTypeUint8Features.indexTypeUint8 == VK_TRUE);
@@ -4237,10 +4251,6 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
                                 mImage2dViewOf3dFeatures.sampler2DViewOf3D == VK_TRUE);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsMultiview, mMultiviewFeatures.multiview == VK_TRUE);
-
-    ANGLE_FEATURE_CONDITION(&mFeatures, emulateTransformFeedback,
-                            (!mFeatures.supportsTransformFeedbackExtension.enabled &&
-                             mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics == VK_TRUE));
 
     // TODO: http://anglebug.com/5927 - drop dependency on customBorderColorWithoutFormat.
     ANGLE_FEATURE_CONDITION(
@@ -4394,11 +4404,14 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     const bool supportsIndependentDepthStencilResolve =
         mFeatures.supportsDepthStencilResolve.enabled &&
         mDepthStencilResolveProperties.independentResolveNone == VK_TRUE;
+    ANGLE_FEATURE_CONDITION(&mFeatures, allowMultisampledRenderToTextureEmulation,
+                            isTileBasedRenderer || isSamsung);
     ANGLE_FEATURE_CONDITION(
         &mFeatures, enableMultisampledRenderToTexture,
         mFeatures.supportsMultisampledRenderToSingleSampled.enabled ||
             mFeatures.supportsMultisampledRenderToSingleSampledGOOGLEX.enabled ||
-            (supportsIndependentDepthStencilResolve && (isTileBasedRenderer || isSamsung)));
+            (supportsIndependentDepthStencilResolve &&
+             mFeatures.allowMultisampledRenderToTextureEmulation.enabled));
 
     // Currently we enable cube map arrays based on the imageCubeArray Vk feature.
     // TODO: Check device caps for full cube map array support. http://anglebug.com/5143
@@ -4833,8 +4846,6 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsTimelineSemaphore,
                             mTimelineSemaphoreFeatures.timelineSemaphore == VK_TRUE);
 
-    ApplyFeatureOverrides(&mFeatures, displayVk->getState());
-
     // Disable memory report feature overrides if extension is not supported.
     if ((mFeatures.logMemoryReportCallbacks.enabled || mFeatures.logMemoryReportStats.enabled) &&
         !mMemoryReportFeatures.deviceMemoryReport)
@@ -4844,12 +4855,12 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
         if (getFeatures().logMemoryReportStats.enabled)
         {
             WARN() << "\tlogMemoryReportStats";
-            ANGLE_FEATURE_CONDITION(&mFeatures, logMemoryReportStats, false);
+            mFeatures.logMemoryReportStats.applyOverride(false);
         }
         if (getFeatures().logMemoryReportCallbacks.enabled)
         {
             WARN() << "\tlogMemoryReportCallbacks";
-            ANGLE_FEATURE_CONDITION(&mFeatures, logMemoryReportCallbacks, false);
+            mFeatures.logMemoryReportCallbacks.applyOverride(false);
         }
     }
 }
