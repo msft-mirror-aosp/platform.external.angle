@@ -5982,10 +5982,12 @@ angle::Result ImageHelper::initMemory(Context *context,
     {
         // While it may be preferable to allocate the image on the device, it should also be
         // possible to allocate on other memory types if the device is out of memory.
-        ANGLE_VK_TRY(context,
-                     renderer->getImageMemorySuballocator().allocateAndBindMemory(
-                         context, &mImage, &mVkImageCreateInfo, flags, flags, mMemoryAllocationType,
-                         &mVmaAllocation, &flags, &mMemoryTypeIndex, &mAllocationSize));
+        VkMemoryPropertyFlags requiredFlags  = flags & (~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        VkMemoryPropertyFlags preferredFlags = flags;
+        ANGLE_VK_TRY(context, renderer->getImageMemorySuballocator().allocateAndBindMemory(
+                                  context, &mImage, &mVkImageCreateInfo, requiredFlags,
+                                  preferredFlags, mMemoryAllocationType, &mVmaAllocation, &flags,
+                                  &mMemoryTypeIndex, &mAllocationSize));
     }
     else
     {
@@ -10799,7 +10801,7 @@ void ShaderProgramHelper::setShader(gl::ShaderType shaderType, RefCounted<Shader
 }
 
 void ShaderProgramHelper::createMonolithicPipelineCreationTask(
-    ContextVk *contextVk,
+    vk::Context *context,
     PipelineCacheAccess *pipelineCache,
     const GraphicsPipelineDesc &desc,
     const PipelineLayout &pipelineLayout,
@@ -10807,14 +10809,14 @@ void ShaderProgramHelper::createMonolithicPipelineCreationTask(
     PipelineHelper *pipeline) const
 {
     std::shared_ptr<CreateMonolithicPipelineTask> monolithicPipelineCreationTask =
-        std::make_shared<CreateMonolithicPipelineTask>(contextVk->getRenderer(), *pipelineCache,
+        std::make_shared<CreateMonolithicPipelineTask>(context->getRenderer(), *pipelineCache,
                                                        pipelineLayout, mShaders, specConsts, desc);
 
     pipeline->setMonolithicPipelineCreationTask(std::move(monolithicPipelineCreationTask));
 }
 
 angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
-    ContextVk *contextVk,
+    vk::Context *context,
     ComputePipelineCache *computePipelines,
     PipelineCacheAccess *pipelineCache,
     const PipelineLayout &pipelineLayout,
@@ -10854,7 +10856,7 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
     // must be disabled by default.
     if (pipelineFlags[ComputePipelineFlag::Robust])
     {
-        ASSERT(contextVk->getFeatures().supportsPipelineRobustness.enabled);
+        ASSERT(context->getFeatures().supportsPipelineRobustness.enabled);
 
         robustness.storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT;
         robustness.uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT;
@@ -10867,10 +10869,10 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
     // Restrict pipeline to protected or unprotected command buffers if possible.
     if (pipelineFlags[ComputePipelineFlag::Protected])
     {
-        ASSERT(contextVk->getFeatures().supportsPipelineProtectedAccess.enabled);
+        ASSERT(context->getFeatures().supportsPipelineProtectedAccess.enabled);
         createInfo.flags |= VK_PIPELINE_CREATE_PROTECTED_ACCESS_ONLY_BIT_EXT;
     }
-    else if (contextVk->getFeatures().supportsPipelineProtectedAccess.enabled)
+    else if (context->getFeatures().supportsPipelineProtectedAccess.enabled)
     {
         createInfo.flags |= VK_PIPELINE_CREATE_NO_PROTECTED_ACCESS_BIT_EXT;
     }
@@ -10886,14 +10888,14 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
     feedbackInfo.pPipelineStageCreationFeedbacks    = &perStageFeedback;
 
     const bool supportsFeedback =
-        contextVk->getRenderer()->getFeatures().supportsPipelineCreationFeedback.enabled;
+        context->getRenderer()->getFeatures().supportsPipelineCreationFeedback.enabled;
     if (supportsFeedback)
     {
         AddToPNextChain(&createInfo, &feedbackInfo);
     }
 
     vk::Pipeline pipeline;
-    ANGLE_VK_TRY(contextVk, pipelineCache->createComputePipeline(contextVk, createInfo, &pipeline));
+    ANGLE_VK_TRY(context, pipelineCache->createComputePipeline(context, createInfo, &pipeline));
 
     vk::CacheLookUpFeedback lookUpFeedback = CacheLookUpFeedback::None;
 
@@ -10904,7 +10906,7 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
             0;
 
         lookUpFeedback = cacheHit ? CacheLookUpFeedback::Hit : CacheLookUpFeedback::Miss;
-        ApplyPipelineCreationFeedback(contextVk, feedback);
+        ApplyPipelineCreationFeedback(context, feedback);
     }
 
     computePipeline->setComputePipeline(std::move(pipeline), lookUpFeedback);
