@@ -1367,7 +1367,8 @@ angle::Result ContextVk::initialize()
     initIndexTypeMap();
 
     mGraphicsPipelineDesc.reset(new vk::GraphicsPipelineDesc());
-    mGraphicsPipelineDesc->initDefaults(this, vk::GraphicsPipelineSubset::Complete);
+    mGraphicsPipelineDesc->initDefaults(this, vk::GraphicsPipelineSubset::Complete,
+                                        pipelineRobustness(), pipelineProtectedAccess());
 
     // Initialize current value/default attribute buffers.
     for (vk::DynamicBuffer &buffer : mStreamedVertexBuffers)
@@ -2456,7 +2457,8 @@ angle::Result ContextVk::handleDirtyComputePipelineDesc()
         ProgramExecutableVk *executableVk         = getExecutable();
         ASSERT(executableVk);
         ANGLE_TRY(executableVk->getOrCreateComputePipeline(
-            this, &pipelineCache, PipelineSource::Draw, glExecutable, &mCurrentComputePipeline));
+            this, &pipelineCache, PipelineSource::Draw, glExecutable, pipelineRobustness(),
+            pipelineProtectedAccess(), &mCurrentComputePipeline));
     }
 
     ASSERT(mComputeDirtyBits.test(DIRTY_BIT_PIPELINE_BINDING));
@@ -7790,6 +7792,12 @@ angle::Result ContextVk::flushOutsideRenderPassCommands()
     ANGLE_TRY(mRenderer->flushOutsideRPCommands(this, getProtectionType(), mContextPriority,
                                                 &mOutsideRenderPassCommands));
 
+    // Make sure appropriate dirty bits are set, in case another thread makes a submission before
+    // the next dispatch call.
+    mComputeDirtyBits |= mNewComputeCommandBufferDirtyBits;
+    mHasAnyCommandsPendingSubmission = true;
+    mPerfCounters.flushedOutsideRenderPassCommandBuffers++;
+
     if (mRenderPassCommands->started() && mOutsideRenderPassSerialFactory.empty())
     {
         ANGLE_VK_PERF_WARNING(
@@ -7801,19 +7809,14 @@ angle::Result ContextVk::flushOutsideRenderPassCommands()
         return flushCommandsAndEndRenderPass(
             RenderPassClosureReason::OutOfReservedQueueSerialForOutsideCommands);
     }
+    else
+    {
+        // Since queueSerial is used to decide if a resource is being used or not, we have to
+        // generate a new queueSerial for outsideCommandBuffer since we just flushed
+        // outsideRenderPassCommands.
+        generateOutsideRenderPassCommandsQueueSerial();
+    }
 
-    // Since queueSerial is used to decide if a resource is being used or not, we have to
-    // generate a new queueSerial for outsideCommandBuffer since we just flushed
-    // outsideRenderPassCommands.
-    generateOutsideRenderPassCommandsQueueSerial();
-
-    // Make sure appropriate dirty bits are set, in case another thread makes a submission before
-    // the next dispatch call.
-    mComputeDirtyBits |= mNewComputeCommandBufferDirtyBits;
-
-    mHasAnyCommandsPendingSubmission = true;
-
-    mPerfCounters.flushedOutsideRenderPassCommandBuffers++;
     return angle::Result::Continue;
 }
 
@@ -8492,11 +8495,11 @@ vk::ComputePipelineFlags ContextVk::getComputePipelineFlags() const
 {
     vk::ComputePipelineFlags pipelineFlags = {};
 
-    if (shouldUsePipelineRobustness())
+    if (pipelineRobustness() == vk::PipelineRobustness::Robust)
     {
         pipelineFlags.set(vk::ComputePipelineFlag::Robust);
     }
-    if (shouldRestrictPipelineToProtectedAccess())
+    if (pipelineProtectedAccess() == vk::PipelineProtectedAccess::Protected)
     {
         pipelineFlags.set(vk::ComputePipelineFlag::Protected);
     }
