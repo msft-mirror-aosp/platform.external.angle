@@ -234,16 +234,13 @@ changes are quite infrequent. For windows you can get binaries from
 The command to rebuild is:
 
 ```bash
-m4 -P MachineIndependent/glslang.m4 > MachineIndependent/glslang.y
 bison --defines=MachineIndependent/glslang_tab.cpp.h
       -t MachineIndependent/glslang.y
       -o MachineIndependent/glslang_tab.cpp
 ```
 
-The above commands are also available in the bash script in `updateGrammar`,
+The above command is also available in the bash script in `updateGrammar`,
 when executed from the glslang subdirectory of the glslang repository.
-With no arguments it builds the full grammar, and with a "web" argument,
-the web grammar subset (see more about the web subset in the next section).
 
 ### Building to WASM for the Web and Node
 ### Building a standalone JS/WASM library for the Web and Node
@@ -253,15 +250,9 @@ Use the steps in [Build Steps](#build-steps), with the following notes/exception
   Bash-like environments:
   + [Instructions located here](https://emscripten.org/docs/getting_started/downloads.html#sdk-download-and-install)
 * Wrap cmake call: `emcmake cmake`
-* Set `-DBUILD_TESTING=OFF -DENABLE_OPT=OFF -DINSTALL_GTEST=OFF`.
+* Set `-DBUILD_TESTING=OFF -DENABLE_OPT=OFF`.
 * Set `-DENABLE_HLSL=OFF` if HLSL is not needed.
 * For a standalone JS/WASM library, turn on `-DENABLE_GLSLANG_JS=ON`.
-* For building a minimum-size web subset of core glslang:
-  + turn on `-DENABLE_GLSLANG_WEBMIN=ON` (disables HLSL)
-  + execute `updateGrammar web` from the glslang subdirectory
-    (or if using your own scripts, `m4` needs a `-DGLSLANG_WEB` argument)
-  + optionally, for GLSL compilation error messages, turn on
-    `-DENABLE_GLSLANG_WEBMIN_DEVEL=ON`
 * To get a fully minimized build, make sure to use `brotli` to compress the .js
   and .wasm files
 
@@ -269,7 +260,7 @@ Example:
 
 ```sh
 emcmake cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_GLSLANG_JS=ON \
-    -DENABLE_HLSL=OFF -DBUILD_TESTING=OFF -DENABLE_OPT=OFF -DINSTALL_GTEST=OFF ..
+    -DENABLE_HLSL=OFF -DBUILD_TESTING=OFF -DENABLE_OPT=OFF ..
 ```
 
 ## Building glslang - Using vcpkg
