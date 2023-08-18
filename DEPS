@@ -43,7 +43,7 @@ vars = {
   'checkout_angle_mesa': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': '9931a5544b750c91a79df69cdaac7b8563ee69e2',
+  'chromium_revision': '6edc18195fd860fb8fbac8a0b51b852b74b00056',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
@@ -88,7 +88,7 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': '6479b92b37c73f470beca119a811513c00ac5cb3',
+  'catapult_revision': '8bcfe7164c308311d5dad7433e752fa89677421f',
 
   # the commit queue can handle CLs rolling Fuchsia sdk
   # and whatever else without interference from each other.
@@ -140,12 +140,12 @@ vars = {
 deps = {
 
   'build': {
-    'url': '{chromium_git}/chromium/src/build.git@542e6f274c6694b6829380600bf5d695e83efb01',
+    'url': '{chromium_git}/chromium/src/build.git@4439c8aa49c90b8e6df919f925a8a30f2c4e148e',
     'condition': 'not build_with_chromium',
   },
 
   'buildtools': {
-    'url': '{chromium_git}/chromium/src/buildtools.git@a5ad15786678fa08f9e2eac76b3e78cf22dccb25',
+    'url': '{chromium_git}/chromium/src/buildtools.git@c4a369c9b6eb16d5231a9f28c24743361841858e',
     'condition': 'not build_with_chromium',
   },
 
@@ -188,17 +188,17 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@855bdfca0142e4b94bff676a8036ae43ccd5a36b',
+    'url': '{chromium_git}/chromium/src/testing@5b14522559eb1a0037903fb432ba9d2cf0bafa55',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/abseil-cpp': {
-    'url': '{chromium_git}/chromium/src/third_party/abseil-cpp@1ed18a06326435571f8821e2868516261b19cd60',
+    'url': '{chromium_git}/chromium/src/third_party/abseil-cpp@4ef9b33175828ea46d091e7e5ec28259d39a8ba5',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/android_build_tools': {
-    'url': '{chromium_git}/chromium/src/third_party/android_build_tools@0b15eb31a5524733083b6c701e11daa70b8d2a4a',
+    'url': '{chromium_git}/chromium/src/third_party/android_build_tools@23d868f674efd510a246c60bc95d85a8bd920abd',
     'condition': 'checkout_android and not build_with_chromium',
   },
 
@@ -315,7 +315,7 @@ deps = {
           },
           {
               'package': 'chromium/third_party/android_sdk/public/cmdline-tools',
-              'version': 'EWnL2r7oV5GtE9Ef7GyohyFam42wtMtEKYU4dCb3U1YC',
+              'version': 'Sy00LuyBIUJdRGYKwg0zjWH8eAIUvgnnNiPkI8etaZYC',
           },
       ],
       'condition': 'checkout_android_native_support and not build_with_chromium',
@@ -572,7 +572,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
-              'version': '8aJvD7uHZ0Ek4sQy5vAbHUXWujgCHOVsAsJ137sXslkC',
+              'version': '_xu0hxSo_cEnMJPA-S-noLhx1IRAhNKER0h_icp-hSYC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -628,7 +628,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': '{chromium_git}/vulkan-deps@c3ff3250b9e71109b3ea06053819b9853ef5beae',
+    'url': '{chromium_git}/vulkan-deps@cffce1cd0b9e7fdf2d1fb27023edbdc107b5ab1b',
     'condition': 'not build_with_chromium',
   },
 
@@ -648,12 +648,12 @@ deps = {
   },
 
   'tools/android': {
-    'url': '{chromium_git}/chromium/src/tools/android@159cd0f22c867d113cfa9c5e5e3aa8fde00dbee7',
+    'url': '{chromium_git}/chromium/src/tools/android@83b9ac28218b0a84eab3413e4bd729b98eaa7908',
     'condition': 'checkout_android and not build_with_chromium',
   },
 
   'tools/clang': {
-    'url': '{chromium_git}/chromium/src/tools/clang.git@ad91d8af7de9afb65921599e75b27a61e7943f65',
+    'url': '{chromium_git}/chromium/src/tools/clang.git@74786020a98af81c5f59415ef52ae93b3c0a6fc0',
     'condition': 'not build_with_chromium',
   },
 
@@ -694,12 +694,12 @@ deps = {
   },
 
   'tools/memory': {
-    'url': '{chromium_git}/chromium/src/tools/memory@2a4c4ba1f4a94231b01280a0c63d3fe4404cc9c2',
+    'url': '{chromium_git}/chromium/src/tools/memory@68be214291389b563441d7d4e028333deb168463',
     'condition': 'not build_with_chromium',
   },
 
   'tools/perf': {
-    'url': '{chromium_git}/chromium/src/tools/perf@b59055f93276cef32d74d96db2df9caf3d2f1091',
+    'url': '{chromium_git}/chromium/src/tools/perf@ffa3bdd3bac03019aeb7a48a439de6d074b15430',
     'condition': 'not build_with_chromium',
   },
 
@@ -1017,7 +1017,7 @@ deps = {
       'packages': [
         {
             'package': 'angle/traces/blade_and_soul_revolution',
-            'version': 'version:1',
+            'version': 'version:2',
         },
       ],
       'dep_type': 'cipd',
