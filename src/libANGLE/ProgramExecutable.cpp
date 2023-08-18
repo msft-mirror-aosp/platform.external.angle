@@ -194,6 +194,35 @@ void AppendActiveBlocks(ShaderType shaderType,
     }
 }
 
+void SaveProgramInputs(BinaryOutputStream *stream, const std::vector<ProgramInput> &programInputs)
+{
+    stream->writeInt(programInputs.size());
+    for (const ProgramInput &attrib : programInputs)
+    {
+        stream->writeString(attrib.name);
+        stream->writeString(attrib.mappedName);
+        stream->writeBytes(reinterpret_cast<const unsigned char *>(&attrib.basicDataTypeStruct),
+                           sizeof(attrib.basicDataTypeStruct));
+    }
+}
+void LoadProgramInputs(BinaryInputStream *stream, std::vector<ProgramInput> *programInputs)
+{
+    size_t attribCount = stream->readInt<size_t>();
+    ASSERT(programInputs->empty());
+    if (attribCount > 0)
+    {
+        programInputs->resize(attribCount);
+        for (size_t attribIndex = 0; attribIndex < attribCount; ++attribIndex)
+        {
+            ProgramInput &attrib = (*programInputs)[attribIndex];
+            stream->readString(&attrib.name);
+            stream->readString(&attrib.mappedName);
+            stream->readBytes(reinterpret_cast<unsigned char *>(&attrib.basicDataTypeStruct),
+                              sizeof(attrib.basicDataTypeStruct));
+        }
+    }
+}
+
 void SaveUniforms(BinaryOutputStream *stream,
                   const std::vector<LinkedUniform> &uniforms,
                   const std::vector<std::string> &uniformNames,
@@ -417,16 +446,7 @@ void ProgramExecutable::load(bool isSeparable, gl::BinaryInputStream *stream)
     mTessGenVertexOrder        = stream->readInt<GLenum>();
     mTessGenPointMode          = stream->readInt<GLenum>();
 
-    size_t attribCount = stream->readInt<size_t>();
-    ASSERT(mProgramInputs.empty());
-    mProgramInputs.resize(attribCount);
-    for (size_t attribIndex = 0; attribIndex < attribCount; ++attribIndex)
-    {
-        sh::ShaderVariable &attrib = mProgramInputs[attribIndex];
-        LoadShaderVar(stream, &attrib);
-        attrib.location = stream->readInt<int>();
-    }
-
+    LoadProgramInputs(stream, &mProgramInputs);
     LoadUniforms(stream, &mUniforms, &mUniformNames, &mUniformMappedNames);
 
     size_t uniformBlockCount = stream->readInt<size_t>();
@@ -633,13 +653,7 @@ void ProgramExecutable::save(bool isSeparable, gl::BinaryOutputStream *stream) c
     stream->writeInt(mTessGenVertexOrder);
     stream->writeInt(mTessGenPointMode);
 
-    stream->writeInt(getProgramInputs().size());
-    for (const sh::ShaderVariable &attrib : getProgramInputs())
-    {
-        WriteShaderVar(stream, attrib);
-        stream->writeInt(attrib.location);
-    }
-
+    SaveProgramInputs(stream, mProgramInputs);
     SaveUniforms(stream, mUniforms, mUniformNames, mUniformMappedNames);
 
     stream->writeInt(getUniformBlocks().size());
@@ -1658,9 +1672,9 @@ void ProgramExecutable::linkSamplerAndImageBindings(GLuint *combinedImageUniform
         {
             // The arrays of arrays are flattened to arrays, it needs to record the array offset for
             // the correct binding image unit.
-            mImageBindings.emplace_back(ImageBinding(
-                imageUniform.getBinding() + imageUniform.parentArrayIndex() * arraySize,
-                imageUniform.getBasicTypeElementCount(), textureType));
+            mImageBindings.emplace_back(
+                ImageBinding(imageUniform.getBinding() + imageUniform.parentArrayIndex * arraySize,
+                             imageUniform.getBasicTypeElementCount(), textureType));
         }
 
         *combinedImageUniforms += imageUniform.activeShaderCount() * arraySize;
@@ -1697,13 +1711,14 @@ bool ProgramExecutable::linkAtomicCounterBuffers(const Context *context, InfoLog
     {
         auto &uniform = mUniforms[index];
 
-        uniform.blockInfo.offset           = uniform.getOffset();
-        uniform.blockInfo.arrayStride      = uniform.isArray() ? 4 : 0;
-        uniform.blockInfo.matrixStride     = 0;
-        uniform.blockInfo.isRowMajorMatrix = false;
+        uniform.blockOffset                    = uniform.getOffset();
+        uniform.blockArrayStride               = uniform.isArray() ? 4 : 0;
+        uniform.blockMatrixStride              = 0;
+        uniform.flagBits.blockIsRowMajorMatrix = false;
+        uniform.flagBits.isBlock               = true;
 
         bool found = false;
-        for (unsigned int bufferIndex = 0; bufferIndex < getActiveAtomicCounterBufferCount();
+        for (uint16_t bufferIndex = 0; bufferIndex < getActiveAtomicCounterBufferCount();
              ++bufferIndex)
         {
             auto &buffer = mAtomicCounterBuffers[bufferIndex];
@@ -1712,7 +1727,7 @@ bool ProgramExecutable::linkAtomicCounterBuffers(const Context *context, InfoLog
                 buffer.memberIndexes.push_back(index);
                 uniform.bufferIndex = bufferIndex;
                 found               = true;
-                buffer.unionReferencesWith(uniform.activeVariable);
+                buffer.unionReferencesWith(uniform);
                 break;
             }
         }
@@ -1721,9 +1736,9 @@ bool ProgramExecutable::linkAtomicCounterBuffers(const Context *context, InfoLog
             AtomicCounterBuffer atomicCounterBuffer;
             atomicCounterBuffer.binding = uniform.getBinding();
             atomicCounterBuffer.memberIndexes.push_back(index);
-            atomicCounterBuffer.unionReferencesWith(uniform.activeVariable);
+            atomicCounterBuffer.unionReferencesWith(uniform);
             mAtomicCounterBuffers.push_back(atomicCounterBuffer);
-            uniform.bufferIndex = static_cast<int>(getActiveAtomicCounterBufferCount() - 1);
+            uniform.bufferIndex = static_cast<uint16_t>(getActiveAtomicCounterBufferCount() - 1);
         }
     }
 
