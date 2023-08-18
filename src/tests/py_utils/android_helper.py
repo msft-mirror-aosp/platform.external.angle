@@ -14,6 +14,7 @@ import posixpath
 import random
 import re
 import subprocess
+import sys
 import tarfile
 import tempfile
 import threading
@@ -185,19 +186,41 @@ def _RemoveDeviceFile(device_path):
     _AdbShell('rm -f ' + device_path + ' || true')  # ignore errors
 
 
-def _AddRestrictedTracesJson():
-    def add(tar, fn):
-        assert (fn.startswith('../../'))
-        tar.add(fn, arcname=fn.replace('../../', ''))
-
+def _MakeTar(path, patterns):
     with _TempLocalFile() as tempfile_path:
         with tarfile.open(tempfile_path, 'w', format=tarfile.GNU_FORMAT) as tar:
-            for f in glob.glob('../../src/tests/restricted_traces/*/*.json', recursive=True):
-                add(tar, f)
-            add(tar, '../../src/tests/restricted_traces/restricted_traces.json')
-        _AdbRun(['push', tempfile_path, '/sdcard/chromium_tests_root/t.tar'])
+            for p in patterns:
+                for f in glob.glob(p, recursive=True):
+                    tar.add(f, arcname=f.replace('../../', ''))
+        _AdbRun(['push', tempfile_path, path])
 
+
+def _AddRestrictedTracesJson():
+    _MakeTar('/sdcard/chromium_tests_root/t.tar', [
+        '../../src/tests/restricted_traces/*/*.json',
+        '../../src/tests/restricted_traces/restricted_traces.json'
+    ])
     _AdbShell('r=/sdcard/chromium_tests_root; tar -xf $r/t.tar -C $r/ && rm $r/t.tar')
+
+
+def _AddDeqpFiles(suite_name):
+    patterns = [
+        '../../third_party/VK-GL-CTS/src/external/openglcts/data/mustpass/*/*/main/*.txt',
+        '../../src/tests/deqp_support/*.txt'
+    ]
+    if '_gles2_' in suite_name:
+        patterns.append('gen/vk_gl_cts_data/data/gles2/**')
+    if '_gles3_' in suite_name:
+        patterns.append('gen/vk_gl_cts_data/data/gles3/**')
+        patterns.append('gen/vk_gl_cts_data/data/gl_cts/data/gles3/**')
+    if '_gles31_' in suite_name:
+        patterns.append('gen/vk_gl_cts_data/data/gles31/**')
+        patterns.append('gen/vk_gl_cts_data/data/gl_cts/data/gles31/**')
+    if '_gles32_' in suite_name:
+        patterns.append('gen/vk_gl_cts_data/data/gl_cts/data/gles32/**')
+
+    _MakeTar('/sdcard/chromium_tests_root/deqp.tar', patterns)
+    _AdbShell('r=/sdcard/chromium_tests_root; tar -xf $r/deqp.tar -C $r/ && rm $r/deqp.tar')
 
 
 def _GetDeviceApkPath():
@@ -274,6 +297,9 @@ def _PrepareTestSuite(suite_name):
     if suite_name == ANGLE_TRACE_TEST_SUITE:
         _AddRestrictedTracesJson()
 
+    if '_deqp_' in suite_name:
+        _AddDeqpFiles(suite_name)
+
     if suite_name == 'angle_end2end_tests':
         _AdbRun([
             'push', '../../src/tests/angle_end2end_tests_expectations.txt',
@@ -308,6 +334,11 @@ def PrepareRestrictedTraces(traces):
 
     def _PushLibToAppDir(lib_name):
         local_path = lib_name
+        if not os.path.exists(local_path):
+            print('Error: missing library: ' + local_path)
+            print('Is angle_restricted_traces set in gn args?')  # b/294861737
+            sys.exit(1)
+
         device_path = '/data/user/0/com.android.angle.test/angle_traces/' + lib_name
         if _HashesMatch(local_path, device_path):
             return
@@ -318,8 +349,6 @@ def PrepareRestrictedTraces(traces):
             _AdbRun(['push', local_path, tmp_path])
             _AdbShell('run-as ' + TEST_PACKAGE_NAME + ' cp ' + tmp_path + ' ./angle_traces/')
             _AdbShell('rm ' + tmp_path)
-        except Exception as e:
-            logging.error('An error occurred in _PushToAppDir: %s' % e)
         finally:
             _RemoveDeviceFile(tmp_path)
 
@@ -334,12 +363,12 @@ def PrepareRestrictedTraces(traces):
         path_from_root = 'src/tests/restricted_traces/' + trace + '/' + trace + '.angledata.gz'
         _Push('../../' + path_from_root, path_from_root)
 
-        tracegz = 'gen/tracegz_' + trace + '.gz'
-        _Push(tracegz, tracegz)
-
         if _Global.traces_outside_of_apk:
             lib_name = 'libangle_restricted_traces_' + trace + _Global.lib_extension
             _PushLibToAppDir(lib_name)
+
+        tracegz = 'gen/tracegz_' + trace + '.gz'
+        _Push(tracegz, tracegz)
 
     # Push one additional file when running outside the APK
     if _Global.traces_outside_of_apk:
