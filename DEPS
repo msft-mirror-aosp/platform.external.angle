@@ -7,6 +7,8 @@ use_relative_paths = True
 
 gclient_gn_args_file = 'build/config/gclient_args.gni'
 
+git_dependencies = "SYNC"
+
 gclient_gn_args = [
   'checkout_angle_internal',
   'checkout_angle_mesa',
@@ -43,7 +45,7 @@ vars = {
   'checkout_angle_mesa': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': '6edc18195fd860fb8fbac8a0b51b852b74b00056',
+  'chromium_revision': '19b3acaded0d5ed735142b83edd414ae18d063c8',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
@@ -88,7 +90,7 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': '8bcfe7164c308311d5dad7433e752fa89677421f',
+  'catapult_revision': '2c0142037db492e8d65a8ba89665553a0cc1a184',
 
   # the commit queue can handle CLs rolling Fuchsia sdk
   # and whatever else without interference from each other.
@@ -135,12 +137,31 @@ vars = {
   # ninja CIPD package version.
   # https://chrome-infra-packages.appspot.com/p/infra/3pp/tools/ninja
   'ninja_version': 'version:2@1.11.1.chromium.6',
+
+  # Fetch configuration files required for the 'use_remoteexec' gn arg
+  'download_remoteexec_cfg': False,
+  # RBE instance to use for running remote builds
+  'rbe_instance': Str('projects/rbe-chrome-untrusted/instances/default_instance'),
+  # RBE project to download rewrapper config files for. Only needed if
+  # different from the project used in 'rbe_instance'
+  'rewrapper_cfg_project': Str(''),
+  # reclient CIPD package
+  'reclient_package': 'infra/rbe/client/',
+  # reclient CIPD package version
+  'reclient_version': 're_client_version:0.112.0.ffc95d4-gomaip',
+
+  # siso CIPD package version.
+  'siso_version': 'git_revision:c349fcb5f693249d938e2d4ce4c4b4d037dceb5b',
+
+  # 'magic' text to tell depot_tools that git submodules should be accepted but
+  # but parity with DEPS file is expected.
+  'SUBMODULE_MIGRATION': 'True'
 }
 
 deps = {
 
   'build': {
-    'url': '{chromium_git}/chromium/src/build.git@4439c8aa49c90b8e6df919f925a8a30f2c4e148e',
+    'url': '{chromium_git}/chromium/src/build.git@e9f9f56b0dee9032936d23c81c8246ae0ffe36bd',
     'condition': 'not build_with_chromium',
   },
 
@@ -176,6 +197,17 @@ deps = {
     'condition': 'not build_with_chromium and host_os == "mac"',
   },
 
+  'buildtools/reclient': {
+    'packages': [
+      {
+        'package': Var('reclient_package') + '${{platform}}',
+        'version': Var('reclient_version'),
+      }
+    ],
+    'dep_type': 'cipd',
+    'condition': 'not build_with_chromium',
+  },
+
   'buildtools/win': {
     'packages': [
       {
@@ -188,7 +220,7 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@5b14522559eb1a0037903fb432ba9d2cf0bafa55',
+    'url': '{chromium_git}/chromium/src/testing@fa612350fe9965b408ac18eac637caebebe8dae4',
     'condition': 'not build_with_chromium',
   },
 
@@ -371,7 +403,7 @@ deps = {
   },
 
   'third_party/depot_tools': {
-    'url': '{chromium_git}/chromium/tools/depot_tools.git@07289ce9416e01b0682696a698282cb22ce6d486',
+    'url': '{chromium_git}/chromium/tools/depot_tools.git@978f43dd52c498224e72f806fbf47b25edf249d5',
     'condition': 'not build_with_chromium',
   },
 
@@ -490,7 +522,7 @@ deps = {
   },
 
   'third_party/libc++abi/src': {
-    'url': '{chromium_git}/external/github.com/llvm/llvm-project/libcxxabi.git@4c1ff086981105180c3832904f56e2b51c36aa02',
+    'url': '{chromium_git}/external/github.com/llvm/llvm-project/libcxxabi.git@6a8358a1423aa37f33d87b300b634c067b2741c1',
     'condition': 'not build_with_chromium',
   },
 
@@ -572,7 +604,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
-              'version': '_xu0hxSo_cEnMJPA-S-noLhx1IRAhNKER0h_icp-hSYC',
+              'version': 'tDdXJHu3mdHCZRM7rVC6e0OajNZJy8FGLqu9ItFtnUwC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -602,6 +634,17 @@ deps = {
     'condition': 'checkout_android and not build_with_chromium',
   },
 
+  'third_party/siso': {
+    'packages': [
+      {
+        'package': 'infra/build/siso/${{platform}}',
+        'version': Var('siso_version'),
+      }
+    ],
+    'dep_type': 'cipd',
+    'condition': 'not build_with_chromium',
+  },
+
   'third_party/six': {
     'url': '{chromium_git}/chromium/src/third_party/six@32c68ae5c1fa363e3e86d56a59d230c445f018ac',
     'condition': 'checkout_android and not build_with_chromium',
@@ -628,7 +671,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': '{chromium_git}/vulkan-deps@cffce1cd0b9e7fdf2d1fb27023edbdc107b5ab1b',
+    'url': '{chromium_git}/vulkan-deps@14d9936ef38c6dd261e846e00a2f3a9ba5553588',
     'condition': 'not build_with_chromium',
   },
 
@@ -648,7 +691,7 @@ deps = {
   },
 
   'tools/android': {
-    'url': '{chromium_git}/chromium/src/tools/android@83b9ac28218b0a84eab3413e4bd729b98eaa7908',
+    'url': '{chromium_git}/chromium/src/tools/android@c6b57c49ce9edd30b43bd702f79e06f8ba05d355',
     'condition': 'checkout_android and not build_with_chromium',
   },
 
@@ -684,7 +727,7 @@ deps = {
   },
 
   'tools/mb': {
-    'url': '{chromium_git}/chromium/src/tools/mb@988a4dec391910b574b803ce6a789919cea7b45e',
+    'url': '{chromium_git}/chromium/src/tools/mb@3748929a3d74a62be1aa0635a5fd8178fd44ee92',
     'condition': 'not build_with_chromium',
   },
 
@@ -5208,7 +5251,35 @@ hooks = [
     'pattern': '.',
     'condition': 'checkout_angle_mesa',
     'action': [ 'python3', 'third_party/mesa/mesa_build.py', 'runhook', ],
-  }
+  },
+
+  # Configure remote exec cfg files
+  {
+    'name': 'configure_reclient_cfgs',
+    'pattern': '.',
+    'condition': 'download_remoteexec_cfg and not build_with_chromium',
+    'action': ['python3',
+               'buildtools/reclient_cfgs/configure_reclient_cfgs.py',
+               '--rbe_instance',
+               Var('rbe_instance'),
+               '--reproxy_cfg_template',
+               'reproxy.cfg.template',
+               '--rewrapper_cfg_project',
+               Var('rewrapper_cfg_project'),
+               '--quiet',
+               ],
+  },
+  # Configure Siso for developer builds.
+  {
+    'name': 'configure_siso',
+    'pattern': '.',
+    'condition': 'not build_with_chromium',
+    'action': ['python3',
+               'build/config/siso/configure_siso.py',
+               '--rbe_instance',
+               Var('rbe_instance'),
+               ],
+  },
 ]
 
 recursedeps = [
