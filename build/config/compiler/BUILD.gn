@@ -986,10 +986,8 @@ config("compiler") {
   if (rust_abi_target != "") {
     rustflags += [ "--target=$rust_abi_target" ]
   }
-  if (!use_thin_lto && !(is_win && current_cpu == "arm64")) {
+  if (!use_thin_lto) {
     # Don't include bitcode if it won't be used.
-    # TODO(crbug.com/1471310): Always include it on win/arm64 to work around
-    # mysterious link failure.
     rustflags += [ "-Cembed-bitcode=no" ]
   }
   if (is_official_build) {
@@ -1888,7 +1886,14 @@ config("chromium_code") {
       # Non-chromium code is not guaranteed to compile cleanly with
       # _FORTIFY_SOURCE. Also, fortified build may fail when optimizations are
       # disabled, so only do that for Release build.
-      defines += [ "_FORTIFY_SOURCE=2" ]
+      fortify_level = "2"
+
+      # ChromeOS supports a high-quality _FORTIFY_SOURCE=3 implementation
+      # with a few custom glibc patches. Use that if it's available.
+      if (is_chromeos_ash) {
+        fortify_level = "3"
+      }
+      defines += [ "_FORTIFY_SOURCE=" + fortify_level ]
     }
 
     if (is_apple) {

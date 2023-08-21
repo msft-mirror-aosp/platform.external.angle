@@ -4922,6 +4922,41 @@
       "version" : "None"
     },
     {
+      "opname" : "OpFinalizeNodePayloadsAMDX",
+      "class"  : "Reserved",
+      "opcode" : 5075,
+      "operands" : [
+        { "kind" : "IdRef", "name": "'Payload Array'" }
+      ],
+      "capabilities" : [ "ShaderEnqueueAMDX" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpFinishWritingNodePayloadAMDX",
+      "class"  : "Reserved",
+      "opcode" : 5078,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdRef", "name": "'Payload'" }
+      ],
+      "capabilities" : [ "ShaderEnqueueAMDX" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpInitializeNodePayloadsAMDX",
+      "class"  : "Reserved",
+      "opcode" : 5090,
+      "operands" : [
+        { "kind" : "IdRef", "name": "'Payload Array'" },
+        { "kind" : "IdScope", "name": "'Visibility'" },
+        { "kind" : "IdRef", "name": "'Payload Count'" },
+        { "kind" : "IdRef", "name": "'Node Index'" }
+      ],
+      "capabilities" : [ "ShaderEnqueueAMDX" ],
+      "version" : "None"
+    },
+    {
       "opname" : "OpHitObjectRecordHitMotionNV",
       "class"  : "Reserved",
       "opcode" : 5249,
@@ -10709,6 +10744,52 @@
           "version" : "None"
         },
         {
+          "enumerant" : "CoalescingAMDX",
+          "value" : 5069,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "MaxNodeRecursionAMDX",
+          "value" : 5071,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "parameters" : [
+            { "kind" : "IdRef", "name" : "'Number of recursions'" }
+          ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "StaticNumWorkgroupsAMDX",
+          "value" : 5072,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "parameters" : [
+            { "kind" : "IdRef", "name" : "'x size'" },
+            { "kind" : "IdRef", "name" : "'y size'" },
+            { "kind" : "IdRef", "name" : "'z size'" }
+          ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "ShaderIndexAMDX",
+          "value" : 5073,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "parameters" : [
+            { "kind" : "IdRef", "name" : "'Shader Index'" }
+          ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "MaxNumWorkgroupsAMDX",
+          "value" : 5077,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "parameters" : [
+            { "kind" : "IdRef", "name" : "'x size'" },
+            { "kind" : "IdRef", "name" : "'y size'" },
+            { "kind" : "IdRef", "name" : "'z size'" }
+          ],
+          "version" : "None"
+        },
+        {
           "enumerant": "StencilRefUnchangedFrontAMD",
           "value": 5079,
           "capabilities": [ "StencilExportEXT" ],
@@ -11048,6 +11129,18 @@
           "enumerant" : "TileImageEXT",
           "value" : 4172,
           "capabilities" : [ "TileImageColorReadAccessEXT" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "NodePayloadAMDX",
+          "value" : 5068,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "NodeOutputPayloadAMDX",
+          "value" : 5076,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
           "version" : "None"
         },
         {
@@ -11890,6 +11983,32 @@
     },
     {
       "category" : "ValueEnum",
+      "kind" : "HostAccessQualifier",
+      "enumerants" : [
+        {
+          "enumerant" : "NoneINTEL",
+          "value" : 0,
+          "capabilities" : [ "GlobalVariableHostAccessINTEL" ]
+        },
+        {
+          "enumerant" : "ReadINTEL",
+          "value" : 1,
+          "capabilities" : [ "GlobalVariableHostAccessINTEL" ]
+        },
+        {
+          "enumerant" : "WriteINTEL",
+          "value" : 2,
+          "capabilities" : [ "GlobalVariableHostAccessINTEL" ]
+        },
+        {
+          "enumerant" : "ReadWriteINTEL",
+          "value" : 3,
+          "capabilities" : [ "GlobalVariableHostAccessINTEL" ]
+        }
+      ]
+    },
+    {
+      "category" : "ValueEnum",
       "kind" : "FunctionParameterAttribute",
       "enumerants" : [
         {
@@ -12273,6 +12392,39 @@
           "enumerant" : "ExplicitInterpAMD",
           "value" : 4999,
           "extensions" : [ "SPV_AMD_shader_explicit_vertex_parameter" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "NodeSharesPayloadLimitsWithAMDX",
+          "value" : 5019,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "parameters" : [
+            { "kind" : "IdRef", "name" : "'Payload Array'" }
+          ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "NodeMaxPayloadsAMDX",
+          "value" : 5020,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "parameters" : [
+            { "kind" : "IdRef", "name" : "'Max number of payloads'" }
+          ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "TrackFinishWritingAMDX",
+          "value" : 5078,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "PayloadNodeNameAMDX",
+          "value" : 5091,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "parameters" : [
+            { "kind" : "LiteralString", "name" : "'Node Name'" }
+          ],
           "version" : "None"
         },
         {
@@ -12801,6 +12953,34 @@
           "version" : "None"
         },
         {
+          "enumerant" : "InitModeINTEL",
+          "value" : 6147,
+          "parameters": [
+            { "kind" : "InitializationModeQualifier", "name" : "'Trigger'" }
+          ],
+          "capabilities" : [ "GlobalVariableFPGADecorationsINTEL" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "ImplementInRegisterMapINTEL",
+          "value" : 6148,
+          "parameters": [
+            { "kind" : "LiteralInteger", "name" : "Value" }
+          ],
+          "capabilities" : [ "GlobalVariableFPGADecorationsINTEL" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "HostAccessINTEL",
+          "value" : 6168,
+          "parameters": [
+            { "kind" : "HostAccessQualifier", "name" : "'Access'" },
+            { "kind" : "LiteralString", "name" : "'Name'" }
+          ],
+          "capabilities" : [ "GlobalVariableHostAccessINTEL" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "FPMaxErrorDecorationINTEL",
           "value" : 6170,
           "parameters" : [
@@ -13292,6 +13472,18 @@
           "value" : 5014,
           "capabilities" : [ "StencilExportEXT" ],
           "extensions" : [ "SPV_EXT_shader_stencil_export" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "CoalescedInputCountAMDX",
+          "value" : 5021,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "ShaderIndexAMDX",
+          "value" : 5073,
+          "capabilities" : [ "ShaderEnqueueAMDX" ],
           "version" : "None"
         },
         {
@@ -14485,6 +14677,13 @@
           "version" : "None"
         },
         {
+          "enumerant" : "ShaderEnqueueAMDX",
+          "value" : 5067,
+          "capabilities" : [ "Shader" ],
+          "extensions" : [ "SPV_AMDX_shader_enqueue" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "SampleMaskOverrideCoverageNV",
           "value" : 5249,
           "capabilities" : [ "SampleRateShading" ],
@@ -15274,10 +15473,22 @@
           "version" : "None"
         },
         {
+          "enumerant" : "GlobalVariableFPGADecorationsINTEL",
+          "value" : 6146,
+          "extensions": [ "SPV_INTEL_global_variable_fpga_decorations" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "FPGAKernelAttributesv2INTEL",
           "value" : 6161,
           "capabilities" : [ "FPGAKernelAttributesINTEL" ],
           "extensions" : [ "SPV_INTEL_kernel_attributes" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "GlobalVariableHostAccessINTEL",
+          "value" : 6167,
+          "extensions": [ "SPV_INTEL_global_variable_host_access" ],
           "version" : "None"
         },
         {
@@ -15388,39 +15599,33 @@
       "kind" : "CooperativeMatrixOperands",
       "enumerants" : [
         {
-          "enumerant" : "None",
+          "enumerant" : "NoneKHR",
           "value" : "0x0000",
-          "capabilities" : [ "CooperativeMatrixKHR" ],
           "version" : "None"
         },
         {
-          "enumerant" : "MatrixASignedComponents",
+          "enumerant" : "MatrixASignedComponentsKHR",
           "value" : "0x0001",
-          "capabilities" : [ "CooperativeMatrixKHR" ],
           "version" : "None"
         },
         {
-          "enumerant" : "MatrixBSignedComponents",
+          "enumerant" : "MatrixBSignedComponentsKHR",
           "value" : "0x0002",
-          "capabilities" : [ "CooperativeMatrixKHR" ],
           "version" : "None"
         },
         {
-          "enumerant" : "MatrixCSignedComponents",
+          "enumerant" : "MatrixCSignedComponentsKHR",
           "value" : "0x0004",
-          "capabilities" : [ "CooperativeMatrixKHR" ],
           "version" : "None"
         },
         {
-          "enumerant" : "MatrixResultSignedComponents",
+          "enumerant" : "MatrixResultSignedComponentsKHR",
           "value" : "0x0008",
-          "capabilities" : [ "CooperativeMatrixKHR" ],
           "version" : "None"
         },
         {
-          "enumerant" : "SaturatingAccumulation",
+          "enumerant" : "SaturatingAccumulationKHR",
           "value" : "0x0010",
-          "capabilities" : [ "CooperativeMatrixKHR" ],
           "version" : "None"
         }
       ]
@@ -15432,13 +15637,11 @@
         {
           "enumerant" : "RowMajorKHR",
           "value" : 0,
-          "capabilities" : [ "CooperativeMatrixKHR" ],
           "version" : "None"
         },
         {
           "enumerant" : "ColumnMajorKHR",
           "value" : 1,
-          "capabilities" : [ "CooperativeMatrixKHR" ],
           "version" : "None"
         }
       ]
@@ -15450,19 +15653,34 @@
         {
           "enumerant" : "MatrixAKHR",
           "value" : 0,
-          "capabilities" : [ "CooperativeMatrixKHR" ],
           "version" : "None"
         },
         {
           "enumerant" : "MatrixBKHR",
           "value" : 1,
-          "capabilities" : [ "CooperativeMatrixKHR" ],
           "version" : "None"
         },
         {
           "enumerant" : "MatrixAccumulatorKHR",
           "value" : 2,
-          "capabilities" : [ "CooperativeMatrixKHR" ],
+          "version" : "None"
+        }
+      ]
+    },
+    {
+      "category" : "ValueEnum",
+      "kind" : "InitializationModeQualifier",
+      "enumerants" : [
+        {
+          "enumerant" : "InitOnDeviceReprogramINTEL",
+          "value" : 0,
+          "capabilities" : [ "GlobalVariableFPGADecorationsINTEL" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "InitOnDeviceResetINTEL",
+          "value" : 1,
+          "capabilities" : [ "GlobalVariableFPGADecorationsINTEL" ],
           "version" : "None"
         }
       ]

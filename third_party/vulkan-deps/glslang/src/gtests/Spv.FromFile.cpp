@@ -660,6 +660,7 @@ INSTANTIATE_TEST_SUITE_P(
 
         // SPV_EXT_mesh_shader
         "spv.ext.meshShaderBuiltins.mesh",
+        "spv.ext.meshShaderBuiltinsShadingRate.mesh",
         "spv.ext.meshShaderRedeclBuiltins.mesh",
         "spv.ext.meshShaderTaskMem.mesh",
         "spv.ext.meshShaderUserDefined.mesh",
@@ -756,6 +757,7 @@ INSTANTIATE_TEST_SUITE_P(
         "vulkan.vert",
         "vulkan.comp",
         "samplerlessTextureFunctions.frag",
+        "spv.intrinsicsFakeEnable.vert",
         "spv.specConstArrayCheck.vert",
     })),
     FileNameAsCustomTestSuffix

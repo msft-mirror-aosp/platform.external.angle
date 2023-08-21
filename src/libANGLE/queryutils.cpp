@@ -719,19 +719,20 @@ GLint GetCommonVariableProperty(const T &var, GLenum prop)
 
 GLint GetInputResourceProperty(const Program *program, GLuint index, GLenum prop)
 {
-    const sh::ShaderVariable &variable = program->getInputResource(index);
+    const ProgramInput &variable = program->getInputResource(index);
 
     switch (prop)
     {
         case GL_TYPE:
+            return clampCast<GLint>(variable.getType());
         case GL_ARRAY_SIZE:
-            return GetCommonVariableProperty(variable, prop);
+            return clampCast<GLint>(variable.getBasicTypeElementCount());
 
         case GL_NAME_LENGTH:
             return clampCast<GLint>(program->getInputResourceName(index).size() + 1u);
 
         case GL_LOCATION:
-            return variable.isBuiltIn() ? GL_INVALID_INDEX : variable.location;
+            return variable.isBuiltIn() ? GL_INVALID_INDEX : variable.getLocation();
 
         // The query is targeted at the set of active input variables used by the first shader stage
         // of program. If program contains multiple shader stages then input variables from any
@@ -751,7 +752,7 @@ GLint GetInputResourceProperty(const Program *program, GLuint index, GLenum prop
             return program->getState().getFirstAttachedShaderStageType() ==
                    ShaderType::TessEvaluation;
         case GL_IS_PER_PATCH_EXT:
-            return variable.isPatch;
+            return variable.isPatch();
 
         default:
             UNREACHABLE();
@@ -1925,16 +1926,16 @@ GLint GetUniformResourceProperty(const Program *program, GLuint index, const GLe
             return (uniform.isAtomicCounter() ? -1 : uniform.getBufferIndex());
 
         case GL_OFFSET:
-            return uniform.getBlockInfo().offset;
+            return uniform.flagBits.isBlock ? uniform.blockOffset : -1;
 
         case GL_ARRAY_STRIDE:
-            return uniform.getBlockInfo().arrayStride;
+            return uniform.flagBits.isBlock ? uniform.blockArrayStride : -1;
 
         case GL_MATRIX_STRIDE:
-            return uniform.getBlockInfo().matrixStride;
+            return uniform.flagBits.isBlock ? uniform.blockMatrixStride : -1;
 
         case GL_IS_ROW_MAJOR:
-            return static_cast<GLint>(uniform.getBlockInfo().isRowMajorMatrix);
+            return uniform.flagBits.blockIsRowMajorMatrix ? 1 : 0;
 
         case GL_REFERENCED_BY_VERTEX_SHADER:
             return uniform.isActive(ShaderType::Vertex);
