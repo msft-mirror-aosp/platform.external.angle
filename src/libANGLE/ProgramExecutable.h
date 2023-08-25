@@ -24,25 +24,37 @@ namespace gl
 // This small structure encapsulates binding sampler uniforms to active GL textures.
 struct SamplerBinding
 {
-    SamplerBinding();
+    SamplerBinding() = default;
     SamplerBinding(TextureType textureTypeIn,
                    GLenum samplerTypeIn,
                    SamplerFormat formatIn,
-                   size_t elementCount);
-    SamplerBinding(const SamplerBinding &other);
-    ~SamplerBinding();
+                   uint16_t startIndex,
+                   uint16_t elementCount)
+        : textureType(textureTypeIn),
+          samplerType(samplerTypeIn),
+          format(formatIn),
+          textureUnitsStartIndex(startIndex),
+          textureUnitsCount(elementCount)
+    {}
+    ~SamplerBinding() = default;
+
+    GLuint getTextureUnit(const std::vector<GLuint> &boundTextureUnits,
+                          unsigned int arrayIndex) const
+    {
+        return boundTextureUnits[textureUnitsStartIndex + arrayIndex];
+    }
 
     // Necessary for retrieving active textures from the GL state.
     TextureType textureType;
-
     GLenum samplerType;
-
     SamplerFormat format;
-
-    // List of all textures bound to this sampler, of type textureType.
-    // Cropped by the amount of unused elements reported by the driver.
-    std::vector<GLuint> boundTextureUnits;
+    // [textureUnitsStartIndex, textureUnitsStartIndex+textureUnitsCount) Points to the subset in
+    // mSamplerBoundTextureUnits that stores the texture unit bound to this sampler. Cropped by the
+    // amount of unused elements reported by the driver.
+    uint16_t textureUnitsStartIndex;
+    uint16_t textureUnitsCount;
 };
+static_assert(std::is_trivially_copyable<SamplerBinding>(), "must be memcpy-able");
 
 struct ImageBinding
 {
@@ -98,7 +110,7 @@ struct ProgramInput
     std::string mappedName;
 
     // The struct bellow must only contain data of basic type so that entire struct can memcpy-able.
-    struct
+    struct PODStruct
     {
         uint16_t type;  // GLenum
         uint16_t arraySizeProduct;
@@ -123,6 +135,7 @@ struct ProgramInput
 
         uint32_t id;
     } basicDataTypeStruct;
+    static_assert(std::is_trivially_copyable<PODStruct>(), "must be memcpy-able");
 };
 ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
 
@@ -304,6 +317,10 @@ class ProgramExecutable final : public angle::Subject
         return mPODStruct.activeUniformBlockBindings;
     }
     const std::vector<SamplerBinding> &getSamplerBindings() const { return mSamplerBindings; }
+    const std::vector<GLuint> &getSamplerBoundTextureUnits() const
+    {
+        return mSamplerBoundTextureUnits;
+    }
     const std::vector<ImageBinding> &getImageBindings() const { return mImageBindings; }
     std::vector<ImageBinding> *getImageBindings() { return &mImageBindings; }
     const RangeUI &getDefaultUniformRange() const { return mPODStruct.defaultUniformRange; }
@@ -387,7 +404,7 @@ class ProgramExecutable final : public angle::Subject
         return samplerIndex + mPODStruct.samplerUniformRange.low();
     }
 
-    void saveLinkedStateInfo(const Context *context, const ProgramState &state);
+    void saveLinkedStateInfo(const ProgramState &state);
     const std::vector<sh::ShaderVariable> &getLinkedOutputVaryings(ShaderType shaderType) const
     {
         return mLinkedOutputVaryings[shaderType];
@@ -450,7 +467,7 @@ class ProgramExecutable final : public angle::Subject
         return mPODStruct.activeOutputVariablesMask;
     }
 
-    bool linkUniforms(const Context *context,
+    bool linkUniforms(const Caps &caps,
                       const ShaderMap<std::vector<sh::ShaderVariable>> &shaderUniforms,
                       InfoLog &infoLog,
                       const ProgramAliasedBindings &uniformLocationBindings,
@@ -475,9 +492,13 @@ class ProgramExecutable final : public angle::Subject
 
     // Scans the sampler bindings for type conflicts with sampler 'textureUnitIndex'.
     void setSamplerUniformTextureTypeAndFormat(size_t textureUnitIndex,
-                                               std::vector<SamplerBinding> &samplerBindings);
+                                               const std::vector<SamplerBinding> &samplerBindings,
+                                               const std::vector<GLuint> &boundTextureUnits);
 
-    bool linkMergedVaryings(const Context *context,
+    bool linkMergedVaryings(const Caps &caps,
+                            const Limitations &limitations,
+                            const Version &clientVersion,
+                            bool webglCompatibility,
                             const ProgramMergedVaryings &mergedVaryings,
                             const std::vector<std::string> &transformFeedbackVaryingNames,
                             const LinkingVariables &linkingVariables,
@@ -485,7 +506,8 @@ class ProgramExecutable final : public angle::Subject
                             ProgramVaryingPacking *varyingPacking);
 
     bool linkValidateTransformFeedback(
-        const Context *context,
+        const Caps &caps,
+        const Version &clientVersion,
         const ProgramMergedVaryings &varyings,
         ShaderType stage,
         const std::vector<std::string> &transformFeedbackVaryingNames);
@@ -500,7 +522,6 @@ class ProgramExecutable final : public angle::Subject
     bool validateSamplersImpl(InfoLog *infoLog, const Caps &caps) const;
 
     bool linkValidateOutputVariables(const Caps &caps,
-                                     const Extensions &extensions,
                                      const Version &version,
                                      GLuint combinedImageUniformsCount,
                                      GLuint combinedShaderStorageBlocksCount,
@@ -510,16 +531,13 @@ class ProgramExecutable final : public angle::Subject
                                      const ProgramAliasedBindings &fragmentOutputIndices);
 
     void linkSamplerAndImageBindings(GLuint *combinedImageUniformsCount);
-    bool linkAtomicCounterBuffers(const Context *context, InfoLog &infoLog);
+    bool linkAtomicCounterBuffers(const Caps &caps, InfoLog &infoLog);
 
     InfoLog mInfoLog;
 
     // This struct must only contains basic data types so that entire struct can be memcpy.
     struct PODStruct
     {
-        PODStruct();
-        PODStruct(const PODStruct &other);
-
         ShaderBitSet linkedShaderStages;
         angle::BitSet<MAX_VERTEX_ATTRIBS> activeAttribLocationsMask;
         unsigned int maxActiveAttribLocation;
@@ -564,11 +582,8 @@ class ProgramExecutable final : public angle::Subject
         UniformBlockBindingMask activeUniformBlockBindings;
 
         ShaderMap<int> linkedShaderVersions;
-        static_assert(std::is_trivially_copyable<ShaderMap<int>>(),
-                      "ShaderMap<int> should be trivial copyable so that we can memcpy");
     } mPODStruct;
-    static_assert(std::is_standard_layout<PODStruct>(),
-                  "PODStruct must be a standard layout struct so that we can memcpy");
+    static_assert(std::is_trivially_copyable<PODStruct>(), "must be memcpy-able");
 
     // Cached mask of active samplers and sampler types.
     ActiveTextureMask mActiveSamplersMask;
@@ -616,6 +631,9 @@ class ProgramExecutable final : public angle::Subject
 
     // An array of the samplers that are used by the program
     std::vector<SamplerBinding> mSamplerBindings;
+    // List of all textures bound to all samplers. Each SamplerBinding will point to a subset in
+    // this vector.
+    std::vector<GLuint> mSamplerBoundTextureUnits;
 
     // An array of the images that are used by the program
     std::vector<ImageBinding> mImageBindings;

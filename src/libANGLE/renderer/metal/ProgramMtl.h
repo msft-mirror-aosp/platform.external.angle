@@ -18,6 +18,7 @@
 #include "common/Optional.h"
 #include "common/utilities.h"
 #include "libANGLE/renderer/ProgramImpl.h"
+#include "libANGLE/renderer/metal/ShaderMtl.h"
 #include "libANGLE/renderer/metal/mtl_buffer_pool.h"
 #include "libANGLE/renderer/metal/mtl_command_buffer.h"
 #include "libANGLE/renderer/metal/mtl_common.h"
@@ -127,10 +128,11 @@ class ProgramMtl : public ProgramImpl
     void setBinaryRetrievableHint(bool retrievable) override;
     void setSeparable(bool separable) override;
 
+    void prepareForLink(const gl::ShaderMap<ShaderImpl *> &shaders) override;
     std::unique_ptr<LinkEvent> link(const gl::Context *context,
                                     const gl::ProgramLinkedResources &resources,
                                     gl::InfoLog &infoLog,
-                                    const gl::ProgramMergedVaryings &mergedVaryings) override;
+                                    gl::ProgramMergedVaryings &&mergedVaryings) override;
     GLboolean validate(const gl::Caps &caps, gl::InfoLog *infoLog) override;
 
     void setUniform1fv(GLint location, GLsizei count, const GLfloat *v) override;
@@ -217,16 +219,15 @@ class ProgramMtl : public ProgramImpl
     template <typename T>
     void setUniformImpl(GLint location, GLsizei count, const T *v, GLenum entryPointType);
 
-    angle::Result initDefaultUniformBlocks(const gl::Context *glContext);
-    angle::Result resizeDefaultUniformBlocksMemory(const gl::Context *glContext,
+    angle::Result initDefaultUniformBlocks(mtl::Context *context);
+    angle::Result resizeDefaultUniformBlocksMemory(mtl::Context *context,
                                                    const gl::ShaderMap<size_t> &requiredBufferSize);
 
     void saveInterfaceBlockInfo(gl::BinaryOutputStream *stream);
-    angle::Result loadInterfaceBlockInfo(const gl::Context *glContext,
-                                         gl::BinaryInputStream *stream);
+    angle::Result loadInterfaceBlockInfo(gl::BinaryInputStream *stream);
 
     void saveDefaultUniformBlocksInfo(gl::BinaryOutputStream *stream);
-    angle::Result loadDefaultUniformBlocksInfo(const gl::Context *glContext,
+    angle::Result loadDefaultUniformBlocksInfo(mtl::Context *context,
                                                gl::BinaryInputStream *stream);
 
     angle::Result commitUniforms(ContextMtl *context, mtl::RenderCommandEncoder *cmdEncoder);
@@ -247,7 +248,7 @@ class ProgramMtl : public ProgramImpl
                                                     const std::vector<gl::InterfaceBlock> &blocks,
                                                     gl::ShaderType shaderType);
 
-    void initUniformBlocksRemapper(gl::Shader *shader, const gl::Context *glContext);
+    void initUniformBlocksRemapper(const gl::SharedCompiledShaderState &shader);
 
     angle::Result encodeUniformBuffersInfoArgumentBuffer(
         ContextMtl *context,
@@ -263,9 +264,9 @@ class ProgramMtl : public ProgramImpl
     void saveShaderInternalInfo(gl::BinaryOutputStream *stream);
     void loadShaderInternalInfo(gl::BinaryInputStream *stream);
 
-    void linkUpdateHasFlatAttributes(const gl::Context *context);
+    void linkUpdateHasFlatAttributes();
 
-    void linkResources(const gl::Context *context, const gl::ProgramLinkedResources &resources);
+    void linkResources(const gl::ProgramLinkedResources &resources);
     std::unique_ptr<LinkEvent> compileMslShaderLibs(const gl::Context *context,
                                                     gl::InfoLog &infoLog);
 
@@ -288,6 +289,8 @@ class ProgramMtl : public ProgramImpl
     bool mProgramHasFlatAttributes;
     gl::ShaderBitSet mDefaultUniformBlocksDirty;
     gl::ShaderBitSet mSamplerBindingsDirty;
+
+    gl::ShaderMap<SharedCompiledShaderStateMtl> mAttachedShaders;
 
     gl::ShaderMap<DefaultUniformBlock> mDefaultUniformBlocks;
     std::unordered_map<std::string, UBOConversionInfo> mUniformBlockConversions;
