@@ -61,10 +61,6 @@ const bool ARBCompatibility = true;
 
 const bool ForwardCompatibility = false;
 
-// change this back to false if depending on textual spellings of texturing calls when consuming the AST
-// Using PureOperatorBuiltins=false is deprecated.
-bool PureOperatorBuiltins = true;
-
 namespace {
 
 //
@@ -4135,6 +4131,18 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
 
     }
 
+    // QCOM_image_processing
+    if ((profile == EEsProfile && version >= 310) ||
+         (profile != EEsProfile && version >= 140)) {
+        commonBuiltins.append(
+           "vec4 textureWeightedQCOM(sampler2D, vec2, sampler2DArray);"
+           "vec4 textureWeightedQCOM(sampler2D, vec2, sampler1DArray);"
+           "vec4 textureBoxFilterQCOM(sampler2D, vec2, vec2);"
+           "vec4 textureBlockMatchSADQCOM(sampler2D, uvec2, sampler2D, uvec2, uvec2);"
+           "vec4 textureBlockMatchSSDQCOM(sampler2D, uvec2, sampler2D, uvec2, uvec2);"
+           "\n");
+    }
+
     //============================================================================
     //
     // Prototypes for built-in functions seen by vertex shaders only.
@@ -4624,7 +4632,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "uvec4 fragmentFetchAMD(usubpassInputMS, uint);"
 
             "\n");
-        }
+    }
 
     // Builtins for GL_NV_ray_tracing/GL_NV_ray_tracing_motion_blur/GL_EXT_ray_tracing/GL_EXT_ray_query/
     // GL_NV_shader_invocation_reorder/GL_KHR_ray_tracing_position_Fetch
@@ -8095,7 +8103,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             BuiltInVariable("gl_ViewIndex", EbvViewIndex, symbolTable);
         }
 
-	if (profile != EEsProfile) {
+        if (profile != EEsProfile) {
             BuiltInVariable("gl_SubGroupInvocationARB", EbvSubGroupInvocation, symbolTable);
             BuiltInVariable("gl_SubGroupEqMaskARB",     EbvSubGroupEqMask,     symbolTable);
             BuiltInVariable("gl_SubGroupGeMaskARB",     EbvSubGroupGeMask,     symbolTable);
@@ -8725,6 +8733,14 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
         symbolTable.setFunctionExtensions("stencilAttachmentReadEXT", 1, &E_GL_EXT_shader_tile_image);
         symbolTable.setFunctionExtensions("depthAttachmentReadEXT", 1, &E_GL_EXT_shader_tile_image);
         symbolTable.setFunctionExtensions("colorAttachmentReadEXT", 1, &E_GL_EXT_shader_tile_image);
+
+        if ((profile == EEsProfile && version >= 310) ||
+            (profile != EEsProfile && version >= 140)) {
+            symbolTable.setFunctionExtensions("textureWeightedQCOM",      1, &E_GL_QCOM_image_processing);
+            symbolTable.setFunctionExtensions("textureBoxFilterQCOM",     1, &E_GL_QCOM_image_processing);
+            symbolTable.setFunctionExtensions("textureBlockMatchSADQCOM", 1, &E_GL_QCOM_image_processing);
+            symbolTable.setFunctionExtensions("textureBlockMatchSSDQCOM", 1, &E_GL_QCOM_image_processing);
+        }
         break;
 
     case EShLangCompute:
@@ -9890,6 +9906,14 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.relateToOperator("shadow2DEXT",              EOpTexture);
             symbolTable.relateToOperator("shadow2DProjEXT",          EOpTextureProj);
         }
+
+        if ((profile == EEsProfile && version >= 310) ||
+            (profile != EEsProfile && version >= 140)) {
+            symbolTable.relateToOperator("textureWeightedQCOM",      EOpImageSampleWeightedQCOM);
+            symbolTable.relateToOperator("textureBoxFilterQCOM",     EOpImageBoxFilterQCOM);
+            symbolTable.relateToOperator("textureBlockMatchSADQCOM", EOpImageBlockMatchSADQCOM);
+            symbolTable.relateToOperator("textureBlockMatchSSDQCOM", EOpImageBlockMatchSSDQCOM);
+        }
     }
 
     switch(language) {
@@ -10030,7 +10054,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
         if (profile != EEsProfile && version >= 460) {
             symbolTable.relateToOperator("reportIntersectionNV", EOpReportIntersection);
             symbolTable.relateToOperator("reportIntersectionEXT", EOpReportIntersection);
-	}
+        }
         break;
     case EShLangAnyHit:
         if (profile != EEsProfile && version >= 460) {
