@@ -29,6 +29,67 @@
 
 namespace rx
 {
+namespace
+{
+
+// Returns mapped name of a transform feedback varying. The original name may contain array
+// brackets with an index inside, which will get copied to the mapped name. The varying must be
+// known to be declared in the shader.
+std::string GetTransformFeedbackVaryingMappedName(const gl::SharedCompiledShaderState &shaderState,
+                                                  const std::string &tfVaryingName)
+{
+    ASSERT(shaderState->shaderType != gl::ShaderType::Fragment &&
+           shaderState->shaderType != gl::ShaderType::Compute);
+    const auto &varyings = shaderState->outputVaryings;
+    auto bracketPos      = tfVaryingName.find("[");
+    if (bracketPos != std::string::npos)
+    {
+        auto tfVaryingBaseName = tfVaryingName.substr(0, bracketPos);
+        for (const auto &varying : varyings)
+        {
+            if (varying.name == tfVaryingBaseName)
+            {
+                std::string mappedNameWithArrayIndex =
+                    varying.mappedName + tfVaryingName.substr(bracketPos);
+                return mappedNameWithArrayIndex;
+            }
+        }
+    }
+    else
+    {
+        for (const auto &varying : varyings)
+        {
+            if (varying.name == tfVaryingName)
+            {
+                return varying.mappedName;
+            }
+            else if (varying.isStruct())
+            {
+                GLuint fieldIndex = 0;
+                const auto *field = varying.findField(tfVaryingName, &fieldIndex);
+                if (field == nullptr)
+                {
+                    continue;
+                }
+                ASSERT(field != nullptr && !field->isStruct() &&
+                       (!field->isArray() || varying.isShaderIOBlock));
+                std::string mappedName;
+                // If it's an I/O block without an instance name, don't include the block name.
+                if (!varying.isShaderIOBlock || !varying.name.empty())
+                {
+                    mappedName = varying.isShaderIOBlock ? varying.mappedStructOrBlockName
+                                                         : varying.mappedName;
+                    mappedName += '.';
+                }
+                return mappedName + field->mappedName;
+            }
+        }
+    }
+    UNREACHABLE();
+    return std::string();
+}
+
+}  // anonymous namespace
 
 ProgramGL::ProgramGL(const gl::ProgramState &data,
                      const FunctionsGL *functions,
@@ -43,8 +104,7 @@ ProgramGL::ProgramGL(const gl::ProgramState &data,
       mClipDistanceEnabledUniformLocation(-1),
       mMultiviewBaseViewLayerIndexUniformLocation(-1),
       mProgramID(0),
-      mRenderer(renderer),
-      mLinkedInParallel(false)
+      mRenderer(renderer)
 {
     ASSERT(mFunctions);
     ASSERT(mStateManager);
@@ -132,29 +192,7 @@ void ProgramGL::setSeparable(bool separable)
     mFunctions->programParameteri(mProgramID, GL_PROGRAM_SEPARABLE, separable ? GL_TRUE : GL_FALSE);
 }
 
-using LinkImplFunctor = std::function<bool(std::string &)>;
-class ProgramGL::LinkTask final : public angle::Closure
-{
-  public:
-    LinkTask(LinkImplFunctor &&functor) : mLinkImplFunctor(functor), mFallbackToMainContext(false)
-    {}
-
-    void operator()() override
-    {
-        ANGLE_TRACE_EVENT0("gpu.angle", "ProgramGL::LinkTask::run");
-        mFallbackToMainContext = mLinkImplFunctor(mInfoLog);
-    }
-
-    bool fallbackToMainContext() { return mFallbackToMainContext; }
-    const std::string &getInfoLog() { return mInfoLog; }
-
-  private:
-    LinkImplFunctor mLinkImplFunctor;
-    bool mFallbackToMainContext;
-    std::string mInfoLog;
-};
-
-using PostLinkImplFunctor = std::function<angle::Result(bool, const std::string &)>;
+using PostLinkImplFunctor = std::function<angle::Result()>;
 
 // The event for a parallelized linking using the native driver extension.
 class ProgramGL::LinkEventNativeParallel final : public LinkEvent
@@ -174,7 +212,7 @@ class ProgramGL::LinkEventNativeParallel final : public LinkEvent
         mFunctions->getProgramiv(mProgramID, GL_LINK_STATUS, &linkStatus);
         if (linkStatus == GL_TRUE)
         {
-            return mPostLinkImplFunctor(false, std::string());
+            return mPostLinkImplFunctor();
         }
         return angle::Result::Incomplete;
     }
@@ -192,50 +230,32 @@ class ProgramGL::LinkEventNativeParallel final : public LinkEvent
     GLuint mProgramID;
 };
 
-// The event for a parallelized linking using the worker thread pool.
-class ProgramGL::LinkEventGL final : public LinkEvent
+void ProgramGL::prepareForLink(const gl::ShaderMap<ShaderImpl *> &shaders)
 {
-  public:
-    LinkEventGL(std::shared_ptr<angle::WorkerThreadPool> workerPool,
-                std::shared_ptr<ProgramGL::LinkTask> linkTask,
-                PostLinkImplFunctor &&functor)
-        : mLinkTask(linkTask),
-          mWaitableEvent(
-              std::shared_ptr<angle::WaitableEvent>(workerPool->postWorkerTask(mLinkTask))),
-          mPostLinkImplFunctor(functor)
-    {}
-
-    angle::Result wait(const gl::Context *context) override
+    for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
-        ANGLE_TRACE_EVENT0("gpu.angle", "ProgramGL::LinkEventGL::wait");
+        mAttachedShaders[shaderType] = 0;
 
-        mWaitableEvent->wait();
-        return mPostLinkImplFunctor(mLinkTask->fallbackToMainContext(), mLinkTask->getInfoLog());
+        if (shaders[shaderType] != nullptr)
+        {
+            const ShaderGL *shaderGL     = GetAs<ShaderGL>(shaders[shaderType]);
+            mAttachedShaders[shaderType] = shaderGL->getShaderID();
+        }
     }
-
-    bool isLinking() override { return !mWaitableEvent->isReady(); }
-
-  private:
-    std::shared_ptr<ProgramGL::LinkTask> mLinkTask;
-    std::shared_ptr<angle::WaitableEvent> mWaitableEvent;
-    PostLinkImplFunctor mPostLinkImplFunctor;
-};
+}
 
 std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
                                            const gl::ProgramLinkedResources &resources,
                                            gl::InfoLog &infoLog,
-                                           const gl::ProgramMergedVaryings & /*mergedVaryings*/)
+                                           gl::ProgramMergedVaryings && /*mergedVaryings*/)
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "ProgramGL::link");
 
     preLink();
 
-    if (mState.getAttachedShader(gl::ShaderType::Compute))
+    if (mAttachedShaders[gl::ShaderType::Compute] != 0)
     {
-        const ShaderGL *computeShaderGL =
-            GetImplAs<ShaderGL>(mState.getAttachedShader(gl::ShaderType::Compute));
-
-        mFunctions->attachShader(mProgramID, computeShaderGL->getShaderID());
+        mFunctions->attachShader(mProgramID, mAttachedShaders[gl::ShaderType::Compute]);
     }
     else
     {
@@ -247,9 +267,8 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
                 mState.getExecutable().hasLinkedShaderStage(gl::ShaderType::Geometry)
                     ? gl::ShaderType::Geometry
                     : gl::ShaderType::Vertex;
-            std::string tfVaryingMappedName =
-                mState.getAttachedShader(tfShaderType)
-                    ->getTransformFeedbackVaryingMappedName(context, tfVarying);
+            std::string tfVaryingMappedName = GetTransformFeedbackVaryingMappedName(
+                mState.getAttachedShader(tfShaderType), tfVarying);
             transformFeedbackVaryingMappedNames.push_back(tfVaryingMappedName);
         }
 
@@ -281,11 +300,9 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
 
         for (const gl::ShaderType shaderType : gl::kAllGraphicsShaderTypes)
         {
-            const ShaderGL *shaderGL =
-                rx::SafeGetImplAs<ShaderGL, gl::Shader>(mState.getAttachedShader(shaderType));
-            if (shaderGL)
+            if (mAttachedShaders[shaderType] != 0)
             {
-                mFunctions->attachShader(mProgramID, shaderGL->getShaderID());
+                mFunctions->attachShader(mProgramID, mAttachedShaders[shaderType]);
             }
         }
 
@@ -306,12 +323,12 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
         // Otherwise shader-assigned locations will work.
         if (context->getExtensions().blendFuncExtendedEXT)
         {
-            gl::Shader *fragmentShader = mState.getAttachedShader(gl::ShaderType::Fragment);
-            if (fragmentShader && fragmentShader->getShaderVersion(context) == 100 &&
+            const gl::SharedCompiledShaderState &fragmentShader =
+                mState.getAttachedShader(gl::ShaderType::Fragment);
+            if (fragmentShader && fragmentShader->shaderVersion == 100 &&
                 mFunctions->standard == STANDARD_GL_DESKTOP)
             {
-                const auto &shaderOutputs = mState.getAttachedShader(gl::ShaderType::Fragment)
-                                                ->getActiveOutputVariables(context);
+                const auto &shaderOutputs = fragmentShader->activeOutputVariables;
                 for (const auto &output : shaderOutputs)
                 {
                     // TODO(http://anglebug.com/1085) This could be cleaner if the transformed names
@@ -352,7 +369,7 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
                     }
                 }
             }
-            else if (fragmentShader && fragmentShader->getShaderVersion(context) >= 300)
+            else if (fragmentShader && fragmentShader->shaderVersion >= 300)
             {
                 // ESSL 3.00 and up.
                 const auto &outputLocations          = mState.getOutputLocations();
@@ -407,51 +424,19 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
         }
     }
     auto workerPool = context->getShaderCompileThreadPool();
-    auto linkTask   = std::make_shared<LinkTask>([this](std::string &infoLog) {
-        std::string workerInfoLog;
-        ScopedWorkerContextGL worker(mRenderer.get(), &workerInfoLog);
-        if (!worker())
+
+    auto postLinkImplTask = [this, &infoLog, &resources]() {
+        if (mAttachedShaders[gl::ShaderType::Compute] != 0)
         {
-#if !defined(NDEBUG)
-            infoLog += "bindWorkerContext failed.\n" + workerInfoLog;
-#endif
-            // Fallback to the main context.
-            return true;
-        }
-
-        mFunctions->linkProgram(mProgramID);
-
-        // Make sure the driver actually does the link job.
-        GLint linkStatus = GL_FALSE;
-        mFunctions->getProgramiv(mProgramID, GL_LINK_STATUS, &linkStatus);
-
-        return false;
-    });
-
-    auto postLinkImplTask = [this, &infoLog, &resources](bool fallbackToMainContext,
-                                                         const std::string &workerInfoLog) {
-        infoLog << workerInfoLog;
-        if (fallbackToMainContext)
-        {
-            mFunctions->linkProgram(mProgramID);
-        }
-
-        if (mState.getAttachedShader(gl::ShaderType::Compute))
-        {
-            const ShaderGL *computeShaderGL =
-                GetImplAs<ShaderGL>(mState.getAttachedShader(gl::ShaderType::Compute));
-
-            mFunctions->detachShader(mProgramID, computeShaderGL->getShaderID());
+            mFunctions->detachShader(mProgramID, mAttachedShaders[gl::ShaderType::Compute]);
         }
         else
         {
             for (const gl::ShaderType shaderType : gl::kAllGraphicsShaderTypes)
             {
-                const ShaderGL *shaderGL =
-                    rx::SafeGetImplAs<ShaderGL>(mState.getAttachedShader(shaderType));
-                if (shaderGL)
+                if (mAttachedShaders[shaderType] != 0)
                 {
-                    mFunctions->detachShader(mProgramID, shaderGL->getShaderID());
+                    mFunctions->detachShader(mProgramID, mAttachedShaders[shaderType]);
                 }
             }
         }
@@ -472,21 +457,14 @@ std::unique_ptr<LinkEvent> ProgramGL::link(const gl::Context *context,
         return angle::Result::Continue;
     };
 
+    mFunctions->linkProgram(mProgramID);
     if (mRenderer->hasNativeParallelCompile())
     {
-        mFunctions->linkProgram(mProgramID);
-
         return std::make_unique<LinkEventNativeParallel>(postLinkImplTask, mFunctions, mProgramID);
-    }
-    else if (workerPool->isAsync() &&
-             (!mFeatures.dontRelinkProgramsInParallel.enabled || !mLinkedInParallel))
-    {
-        mLinkedInParallel = true;
-        return std::make_unique<LinkEventGL>(workerPool, linkTask, postLinkImplTask);
     }
     else
     {
-        return std::make_unique<LinkEventDone>(postLinkImplTask(true, std::string()));
+        return std::make_unique<LinkEventDone>(postLinkImplTask());
     }
 }
 
@@ -1099,10 +1077,11 @@ void ProgramGL::markUnusedUniformLocations(std::vector<gl::VariableLocation> *un
             {
                 GLuint samplerIndex = mState.getSamplerIndexFromUniformIndex(locationRef.index);
                 gl::SamplerBinding &samplerBinding = (*samplerBindings)[samplerIndex];
-                if (locationRef.arrayIndex < samplerBinding.boundTextureUnits.size())
+                if (locationRef.arrayIndex <
+                    static_cast<unsigned int>(samplerBinding.textureUnitsCount))
                 {
                     // Crop unused sampler bindings in the sampler array.
-                    samplerBinding.boundTextureUnits.resize(locationRef.arrayIndex);
+                    SetBitField(samplerBinding.textureUnitsCount, locationRef.arrayIndex);
                 }
             }
             else if (mState.isImageUniformIndex(locationRef.index))

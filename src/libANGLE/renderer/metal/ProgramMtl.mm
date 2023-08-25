@@ -227,7 +227,6 @@ size_t GetAlignmentOfUniformGroup(sh::BlockLayoutMap *blockLayoutMap)
 }
 
 void InitDefaultUniformBlock(const std::vector<sh::Uniform> &uniforms,
-                             gl::Shader *shader,
                              sh::BlockLayoutMap *blockLayoutMapOut,
                              size_t *blockSizeOut)
 {
@@ -382,7 +381,7 @@ constexpr size_t PipelineParametersToFragmentShaderVariantIndex(bool multisample
     return index;
 }
 
-bool DisableFastMathForShaderCompilation(ContextMtl *context)
+bool DisableFastMathForShaderCompilation(mtl::Context *context)
 {
     return context->getDisplay()->getFeatures().intelDisableFastMath.enabled;
 }
@@ -430,10 +429,10 @@ angle::Result CreateMslShaderLib(ContextMtl *context,
 }  // namespace
 
 // TODO(angleproject:7979) Upgrade ANGLE Uniform buffer remapper to compute shaders
-void ProgramMtl::initUniformBlocksRemapper(gl::Shader *shader, const gl::Context *glContext)
+void ProgramMtl::initUniformBlocksRemapper(const gl::SharedCompiledShaderState &shader)
 {
     std::unordered_map<std::string, UBOConversionInfo> conversionMap;
-    const std::vector<sh::InterfaceBlock> ibs = shader->getUniformBlocks(glContext);
+    const std::vector<sh::InterfaceBlock> ibs = shader->uniformBlocks;
     for (size_t i = 0; i < ibs.size(); ++i)
     {
 
@@ -622,8 +621,8 @@ std::unique_ptr<rx::LinkEvent> ProgramMtl::load(const gl::Context *context,
 
     loadTranslatedShaders(stream);
     loadShaderInternalInfo(stream);
-    ANGLE_PARALLEL_LINK_TRY(loadDefaultUniformBlocksInfo(context, stream));
-    ANGLE_PARALLEL_LINK_TRY(loadInterfaceBlockInfo(context, stream));
+    ANGLE_PARALLEL_LINK_TRY(loadDefaultUniformBlocksInfo(contextMtl, stream));
+    ANGLE_PARALLEL_LINK_TRY(loadInterfaceBlockInfo(stream));
 
     return compileMslShaderLibs(context, infoLog);
 }
@@ -643,33 +642,47 @@ void ProgramMtl::setSeparable(bool separable)
     UNIMPLEMENTED();
 }
 
+void ProgramMtl::prepareForLink(const gl::ShaderMap<ShaderImpl *> &shaders)
+{
+    for (gl::ShaderType shaderType : gl::AllShaderTypes())
+    {
+        mAttachedShaders[shaderType].reset();
+
+        if (shaders[shaderType] != nullptr)
+        {
+            const ShaderMtl *shaderMtl   = GetAs<ShaderMtl>(shaders[shaderType]);
+            mAttachedShaders[shaderType] = shaderMtl->getCompiledState();
+        }
+    }
+}
+
 std::unique_ptr<LinkEvent> ProgramMtl::link(const gl::Context *context,
                                             const gl::ProgramLinkedResources &resources,
                                             gl::InfoLog &infoLog,
-                                            const gl::ProgramMergedVaryings &mergedVaryings)
+                                            gl::ProgramMergedVaryings &&mergedVaryings)
 {
     ContextMtl *contextMtl = mtl::GetImpl(context);
 
     // Link resources before calling GetShaderSource to make sure they are ready for the set/binding
     // assignment done in that function.
-    linkResources(context, resources);
+    linkResources(resources);
 
     reset(contextMtl);
-    ANGLE_PARALLEL_LINK_TRY(initDefaultUniformBlocks(context));
-    linkUpdateHasFlatAttributes(context);
+    ANGLE_PARALLEL_LINK_TRY(initDefaultUniformBlocks(contextMtl));
+    linkUpdateHasFlatAttributes();
 
     gl::ShaderMap<std::string> shaderSources;
-    mtl::MSLGetShaderSource(context, mState, resources, &shaderSources);
+    mtl::MSLGetShaderSource(mState, resources, &shaderSources);
 
     ANGLE_PARALLEL_LINK_TRY(mtl::MTLGetMSL(
-        context, mState, contextMtl->getCaps(), shaderSources, &mMslShaderTranslateInfo,
-        mState.getExecutable().getTransformFeedbackBufferCount()));
+        contextMtl, mState, contextMtl->getCaps(), shaderSources, mAttachedShaders,
+        &mMslShaderTranslateInfo, mState.getExecutable().getTransformFeedbackBufferCount()));
     mMslXfbOnlyVertexShaderInfo = mMslShaderTranslateInfo[gl::ShaderType::Vertex];
 
     return compileMslShaderLibs(context, infoLog);
 }
 
-void ProgramMtl::linkUpdateHasFlatAttributes(const gl::Context *context)
+void ProgramMtl::linkUpdateHasFlatAttributes()
 {
     mProgramHasFlatAttributes = false;
 
@@ -683,8 +696,7 @@ void ProgramMtl::linkUpdateHasFlatAttributes(const gl::Context *context)
         }
     }
 
-    const auto &flatVaryings =
-        mState.getAttachedShader(gl::ShaderType::Vertex)->getOutputVaryings(context);
+    const auto &flatVaryings = mState.getAttachedShader(gl::ShaderType::Vertex)->outputVaryings;
     for (auto &attribute : flatVaryings)
     {
         if (attribute.interpolation == sh::INTERPOLATION_FLAT)
@@ -824,16 +836,15 @@ mtl::BufferPool *ProgramMtl::getBufferPool(ContextMtl *context)
     }
     return mAuxBufferPool;
 }
-void ProgramMtl::linkResources(const gl::Context *context,
-                               const gl::ProgramLinkedResources &resources)
+void ProgramMtl::linkResources(const gl::ProgramLinkedResources &resources)
 {
     Std140BlockLayoutEncoderFactory std140EncoderFactory;
     gl::ProgramLinkedResourcesLinker linker(&std140EncoderFactory);
 
-    linker.linkResources(context, mState, resources);
+    linker.linkResources(mState, resources);
 }
 
-angle::Result ProgramMtl::initDefaultUniformBlocks(const gl::Context *glContext)
+angle::Result ProgramMtl::initDefaultUniformBlocks(mtl::Context *context)
 {
     // Process vertex and fragment uniforms into std140 packing.
     gl::ShaderMap<sh::BlockLayoutMap> layoutMap;
@@ -842,14 +853,14 @@ angle::Result ProgramMtl::initDefaultUniformBlocks(const gl::Context *glContext)
 
     for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
     {
-        gl::Shader *shader = mState.getAttachedShader(shaderType);
+        const gl::SharedCompiledShaderState &shader = mState.getAttachedShader(shaderType);
         if (shader)
         {
-            const std::vector<sh::Uniform> &uniforms = shader->getUniforms(glContext);
-            InitDefaultUniformBlock(uniforms, shader, &layoutMap[shaderType],
+            const std::vector<sh::Uniform> &uniforms = shader->uniforms;
+            InitDefaultUniformBlock(uniforms, &layoutMap[shaderType],
                                     &requiredBufferSize[shaderType]);
             // Set up block conversion buffer
-            initUniformBlocksRemapper(shader, glContext);
+            initUniformBlocksRemapper(shader);
         }
     }
 
@@ -896,15 +907,13 @@ angle::Result ProgramMtl::initDefaultUniformBlocks(const gl::Context *glContext)
         }
     }
 
-    return resizeDefaultUniformBlocksMemory(glContext, requiredBufferSize);
+    return resizeDefaultUniformBlocksMemory(context, requiredBufferSize);
 }
 
 angle::Result ProgramMtl::resizeDefaultUniformBlocksMemory(
-    const gl::Context *glContext,
+    mtl::Context *context,
     const gl::ShaderMap<size_t> &requiredBufferSize)
 {
-    ContextMtl *contextMtl = mtl::GetImpl(glContext);
-
     for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
     {
         if (requiredBufferSize[shaderType] > 0)
@@ -914,7 +923,7 @@ angle::Result ProgramMtl::resizeDefaultUniformBlocksMemory(
             if (!mDefaultUniformBlocks[shaderType].uniformData.resize(
                     requiredBufferSize[shaderType]))
             {
-                ANGLE_MTL_CHECK(contextMtl, false, GL_OUT_OF_MEMORY);
+                ANGLE_MTL_CHECK(context, false, GL_OUT_OF_MEMORY);
             }
 
             // Initialize uniform buffer memory to zero by default.
@@ -1079,8 +1088,7 @@ void ProgramMtl::saveInterfaceBlockInfo(gl::BinaryOutputStream *stream)
     }
 }
 
-angle::Result ProgramMtl::loadInterfaceBlockInfo(const gl::Context *glContext,
-                                                 gl::BinaryInputStream *stream)
+angle::Result ProgramMtl::loadInterfaceBlockInfo(gl::BinaryInputStream *stream)
 {
     mUniformBlockConversions.clear();
     // First, load the number of Ib's to process
@@ -1135,7 +1143,7 @@ void ProgramMtl::saveDefaultUniformBlocksInfo(gl::BinaryOutputStream *stream)
     }
 }
 
-angle::Result ProgramMtl::loadDefaultUniformBlocksInfo(const gl::Context *glContext,
+angle::Result ProgramMtl::loadDefaultUniformBlocksInfo(mtl::Context *context,
                                                        gl::BinaryInputStream *stream)
 {
     gl::ShaderMap<size_t> requiredBufferSize;
@@ -1158,7 +1166,7 @@ angle::Result ProgramMtl::loadDefaultUniformBlocksInfo(const gl::Context *glCont
         requiredBufferSize[shaderType] = stream->readInt<size_t>();
     }
 
-    return resizeDefaultUniformBlocksMemory(glContext, requiredBufferSize);
+    return resizeDefaultUniformBlocksMemory(context, requiredBufferSize);
 }
 
 void ProgramMtl::saveShaderInternalInfo(gl::BinaryOutputStream *stream)
@@ -1717,17 +1725,19 @@ angle::Result ProgramMtl::updateTextures(const gl::Context *glContext,
 
             gl::TextureType textureType = samplerBinding.textureType;
 
-            for (uint32_t arrayElement = 0; arrayElement < samplerBinding.boundTextureUnits.size();
+            for (uint32_t arrayElement = 0; arrayElement < samplerBinding.textureUnitsCount;
                  ++arrayElement)
             {
-                GLuint textureUnit   = samplerBinding.boundTextureUnits[arrayElement];
+                GLuint textureUnit = samplerBinding.getTextureUnit(
+                    mState.getSamplerBoundTextureUnits(), arrayElement);
                 gl::Texture *texture = completeTextures[textureUnit];
                 gl::Sampler *sampler = contextMtl->getState().getSampler(textureUnit);
                 uint32_t textureSlot = mslBinding.textureBinding + arrayElement;
                 uint32_t samplerSlot = mslBinding.samplerBinding + arrayElement;
                 if (!texture)
                 {
-                    ANGLE_TRY(contextMtl->getIncompleteTexture(glContext, textureType, &texture));
+                    ANGLE_TRY(contextMtl->getIncompleteTexture(glContext, textureType,
+                                                               samplerBinding.format, &texture));
                 }
                 const gl::SamplerState *samplerState =
                     sampler ? &sampler->getSamplerState() : &texture->getSamplerState();
