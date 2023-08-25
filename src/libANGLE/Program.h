@@ -15,6 +15,7 @@
 
 #include <array>
 #include <map>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <string>
@@ -222,8 +223,11 @@ class ProgramState final : angle::NonCopyable
 
     const std::string &getLabel();
 
-    Shader *getAttachedShader(ShaderType shaderType) const;
-    const gl::ShaderMap<Shader *> &getAttachedShaders() const { return mAttachedShaders; }
+    SharedCompiledShaderState getAttachedShader(ShaderType shaderType) const;
+    const ShaderMap<SharedCompiledShaderState> &getAttachedShaders() const
+    {
+        return mAttachedShaders;
+    }
     const std::vector<std::string> &getTransformFeedbackVaryingNames() const
     {
         return mTransformFeedbackVaryingNames;
@@ -283,6 +287,10 @@ class ProgramState final : angle::NonCopyable
     {
         return mExecutable->getSamplerBindings();
     }
+    const std::vector<GLuint> &getSamplerBoundTextureUnits() const
+    {
+        return mExecutable->getSamplerBoundTextureUnits();
+    }
     const std::vector<ImageBinding> &getImageBindings() const
     {
         return getExecutable().getImageBindings();
@@ -325,7 +333,7 @@ class ProgramState final : angle::NonCopyable
     int getNumViews() const { return mNumViews; }
     bool usesMultiview() const { return mNumViews != -1; }
 
-    bool hasAttachedShader() const;
+    bool hasAnyAttachedShader() const;
 
     ShaderType getFirstAttachedShaderStageType() const;
     ShaderType getLastAttachedShaderStageType() const;
@@ -374,8 +382,8 @@ class ProgramState final : angle::NonCopyable
     friend class Program;
 
     void updateActiveSamplers();
-    void updateProgramInterfaceInputs(const Context *context);
-    void updateProgramInterfaceOutputs(const Context *context);
+    void updateProgramInterfaceInputs();
+    void updateProgramInterfaceOutputs();
 
     // Scans the sampler bindings for type conflicts with sampler 'textureUnitIndex'.
     void setSamplerUniformTextureTypeAndFormat(size_t textureUnitIndex);
@@ -384,7 +392,7 @@ class ProgramState final : angle::NonCopyable
 
     sh::WorkGroupSize mComputeShaderLocalSize;
 
-    ShaderMap<Shader *> mAttachedShaders;
+    ShaderMap<SharedCompiledShaderState> mAttachedShaders;
 
     uint32_t mLocationsUsedForXfbExtension;
     std::vector<std::string> mTransformFeedbackVaryingNames;
@@ -452,7 +460,7 @@ class Program final : public LabeledObject, public angle::Subject
         return mProgram;
     }
 
-    void attachShader(Shader *shader);
+    void attachShader(const Context *context, Shader *shader);
     void detachShader(const Context *context, Shader *shader);
     int getAttachedShadersCount() const;
 
@@ -818,10 +826,15 @@ class Program final : public LabeledObject, public angle::Subject
     angle::Result linkImpl(const Context *context);
 
     bool linkValidateShaders(const Context *context, InfoLog &infoLog);
-    bool linkAttributes(const Context *context, InfoLog &infoLog);
-    bool linkVaryings(const Context *context, InfoLog &infoLog) const;
+    void linkShaders();
+    bool linkAttributes(const Caps &caps,
+                        const Limitations &limitations,
+                        bool webglCompatibility,
+                        InfoLog &infoLog);
+    bool linkVaryings(InfoLog &infoLog) const;
 
-    bool linkUniforms(const Context *context,
+    bool linkUniforms(const Caps &caps,
+                      const Version &clientVersion,
                       std::vector<UnusedUniform> *unusedUniformsOutOrNull,
                       GLuint *combinedImageUniformsOut,
                       InfoLog &infoLog);
@@ -889,7 +902,7 @@ class Program final : public LabeledObject, public angle::Subject
                                  GLboolean transpose,
                                  const UniformT *v);
 
-    void dumpProgramInfo() const;
+    void dumpProgramInfo(const Context *context) const;
 
     rx::UniqueSerial mSerial;
     ProgramState mState;
@@ -911,6 +924,12 @@ class Program final : public LabeledObject, public angle::Subject
 
     ShaderProgramManager *mResourceManager;
     const ShaderProgramID mHandle;
+
+    // ProgramState::mAttachedShaders holds a reference to shaders' compiled state, which is all the
+    // program and the backends require after link.  The actual shaders linked to the program are
+    // stored here to support shader attach/detach and link without providing access to them in the
+    // backends.
+    ShaderMap<Shader *> mAttachedShaders;
 
     DirtyBits mDirtyBits;
 

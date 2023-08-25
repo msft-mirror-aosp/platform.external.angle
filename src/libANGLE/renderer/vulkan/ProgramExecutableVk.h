@@ -30,10 +30,11 @@ class ShaderInfo final : angle::NonCopyable
     ShaderInfo();
     ~ShaderInfo();
 
-    angle::Result initShaders(ContextVk *contextVk,
+    angle::Result initShaders(vk::Context *context,
                               const gl::ShaderBitSet &linkedShaderStages,
                               const gl::ShaderMap<const angle::spirv::Blob *> &spirvBlobs,
-                              const ShaderInterfaceVariableInfoMap &variableInfoMap);
+                              const ShaderInterfaceVariableInfoMap &variableInfoMap,
+                              bool isGLES1);
     void initShaderFromProgram(gl::ShaderType shaderType, const ShaderInfo &programShaderInfo);
     void clear();
 
@@ -166,9 +167,16 @@ class ProgramExecutableVk
                                              vk::PipelineHelper **pipelineOut);
 
     const vk::PipelineLayout &getPipelineLayout() const { return mPipelineLayout.get(); }
-    angle::Result createPipelineLayout(ContextVk *contextVk,
+    void resetLayout(ContextVk *contextVk);
+    angle::Result createPipelineLayout(vk::Context *context,
                                        const gl::ProgramExecutable &glExecutable,
+                                       PipelineLayoutCache *pipelineLayoutCache,
+                                       DescriptorSetLayoutCache *descriptorSetLayoutCache,
                                        gl::ActiveTextureArray<TextureVk *> *activeTextures);
+    angle::Result initializeDescriptorPools(
+        vk::Context *context,
+        DescriptorSetLayoutCache *descriptorSetLayoutCache,
+        vk::DescriptorSetArray<vk::MetaDescriptorPool> *metaDescriptorPools);
 
     angle::Result updateTexturesDescriptorSet(vk::Context *context,
                                               const gl::ProgramExecutable &executable,
@@ -277,6 +285,29 @@ class ProgramExecutableVk
     const gl::Program::DirtyBits &getDirtyBits() const { return mDirtyBits; }
     void resetUniformBufferDirtyBits() { mDirtyBits.reset(); }
 
+    // The following functions are for internal use of programs, including from a threaded link job:
+    angle::Result resizeUniformBlockMemory(vk::Context *context,
+                                           const gl::ProgramExecutable &glExecutable,
+                                           const gl::ShaderMap<size_t> &requiredBufferSize);
+    void resolvePrecisionMismatch(const gl::ProgramMergedVaryings &mergedVaryings);
+    angle::Result initShaders(vk::Context *context,
+                              const gl::ShaderBitSet &linkedShaderStages,
+                              const gl::ShaderMap<const angle::spirv::Blob *> &spirvBlobs,
+                              bool isGLES1)
+    {
+        return mOriginalShaderInfo.initShaders(context, linkedShaderStages, spirvBlobs,
+                                               mVariableInfoMap, isGLES1);
+    }
+    void assignAllSpvLocations(vk::Context *context,
+                               const gl::ProgramState &programState,
+                               const gl::ProgramLinkedResources &resources,
+                               SpvProgramInterfaceInfo *programInterfaceInfo)
+    {
+        SpvSourceOptions options = SpvCreateSourceOptions(context->getFeatures());
+        SpvAssignAllLocations(options, programState, resources, programInterfaceInfo,
+                              &mVariableInfoMap);
+    }
+
   private:
     friend class ProgramVk;
     friend class ProgramPipelineVk;
@@ -293,12 +324,10 @@ class ProgramExecutableVk
     void addInputAttachmentDescriptorSetDesc(const gl::ProgramExecutable &executable,
                                              vk::DescriptorSetLayoutDesc *descOut);
     angle::Result addTextureDescriptorSetDesc(
-        ContextVk *contextVk,
+        vk::Context *context,
         const gl::ProgramExecutable &executable,
         const gl::ActiveTextureArray<TextureVk *> *activeTextures,
         vk::DescriptorSetLayoutDesc *descOut);
-
-    void resolvePrecisionMismatch(const gl::ProgramMergedVaryings &mergedVaryings);
 
     size_t calcUniformUpdateRequiredSpace(vk::Context *context,
                                           const gl::ProgramExecutable &glExecutable,
@@ -368,10 +397,6 @@ class ProgramExecutableVk
                                              const vk::GraphicsPipelineDesc **descPtrOut,
                                              vk::PipelineHelper **pipelineOut);
 
-    angle::Result resizeUniformBlockMemory(ContextVk *contextVk,
-                                           const gl::ProgramExecutable &glExecutable,
-                                           const gl::ShaderMap<size_t> &requiredBufferSize);
-
     angle::Result getOrAllocateDescriptorSet(vk::Context *context,
                                              UpdateDescriptorSetsBuilder *updateBuilder,
                                              vk::CommandBufferHelperCommon *commandBufferHelper,
@@ -387,8 +412,7 @@ class ProgramExecutableVk
                                           const std::vector<uint8_t> &pipelineData);
     angle::Result ensurePipelineCacheInitialized(vk::Context *context);
 
-    void resetLayout(ContextVk *contextVk);
-    void initializeWriteDescriptorDesc(ContextVk *contextVk,
+    void initializeWriteDescriptorDesc(vk::Context *context,
                                        const gl::ProgramExecutable &glExecutable);
 
     // Descriptor sets and pools for shader resources for this program.
@@ -402,7 +426,7 @@ class ProgramExecutableVk
     // deleted while this program is in use.
     uint32_t mImmutableSamplersMaxDescriptorCount;
     ImmutableSamplerIndexMap mImmutableSamplerIndexMap;
-    vk::BindingPointer<vk::PipelineLayout> mPipelineLayout;
+    vk::AtomicBindingPointer<vk::PipelineLayout> mPipelineLayout;
     vk::DescriptorSetLayoutPointerArray mDescriptorSetLayouts;
 
     // A set of dynamic offsets used with vkCmdBindDescriptorSets for the default uniform buffers.
@@ -453,6 +477,10 @@ class ProgramExecutableVk
     vk::WriteDescriptorDescs mTextureWriteDescriptorDescs;
     vk::WriteDescriptorDescs mDefaultUniformWriteDescriptorDescs;
     vk::WriteDescriptorDescs mDefaultUniformAndXfbWriteDescriptorDescs;
+
+    vk::DescriptorSetLayoutDesc mShaderResourceSetDesc;
+    vk::DescriptorSetLayoutDesc mTextureSetDesc;
+    vk::DescriptorSetLayoutDesc mDefaultUniformAndXfbSetDesc;
 
     gl::Program::DirtyBits mDirtyBits;
 };
