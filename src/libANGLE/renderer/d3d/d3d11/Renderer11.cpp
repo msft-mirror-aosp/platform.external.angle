@@ -12,6 +12,7 @@
 #include <sstream>
 
 #include "anglebase/no_destructor.h"
+#include "common/debug.h"
 #include "common/tls.h"
 #include "common/utilities.h"
 #include "libANGLE/Buffer.h"
@@ -1831,8 +1832,8 @@ angle::Result Renderer11::drawWithGeometryShaderAndTransformFeedback(Context11 *
 
     // Retrieve the geometry shader.
     rx::ShaderExecutableD3D *geometryExe = nullptr;
-    ANGLE_TRY(programD3D->getGeometryExecutableForPrimitiveType(context11, glState, mode,
-                                                                &geometryExe, nullptr));
+    ANGLE_TRY(programD3D->getGeometryExecutableForPrimitiveType(
+        context11, glState.getCaps(), glState.getProvokingVertex(), mode, &geometryExe, nullptr));
 
     mStateManager.setGeometryShader(&GetAs<ShaderExecutable11>(geometryExe)->getGeometryShader());
 
@@ -1874,7 +1875,7 @@ angle::Result Renderer11::drawArrays(const gl::Context *context,
     {
         ANGLE_TRY(markTransformFeedbackUsage(context));
 
-        if (programD3D->usesGeometryShader(glState, mode))
+        if (programD3D->usesGeometryShader(glState.getProvokingVertex(), mode))
         {
             return drawWithGeometryShaderAndTransformFeedback(
                 GetImplAs<Context11>(context), mode, adjustedInstanceCount, clampedVertexCount);
@@ -2379,6 +2380,7 @@ std::string Renderer11::getRendererDescription() const
     std::ostringstream rendererString;
 
     rendererString << mDescription;
+    rendererString << " (" << gl::FmtHex(mAdapterDescription.DeviceId) << ")";
     rendererString << " Direct3D11";
     if (mD3d12Module)
         rendererString << "on12";

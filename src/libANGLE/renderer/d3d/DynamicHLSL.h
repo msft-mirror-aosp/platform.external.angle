@@ -165,15 +165,15 @@ class DynamicHLSL : angle::NonCopyable
         size_t baseUAVRegister) const;
     std::string generateShaderForImage2DBindSignature(
         ProgramD3D &programD3D,
-        const gl::ProgramState &programData,
         gl::ShaderType shaderType,
+        const SharedCompiledShaderStateD3D &shaderData,
         const std::string &shaderHLSL,
         std::vector<sh::ShaderVariable> &image2DUniforms,
         const gl::ImageUnitTextureTypeMap &image2DBindLayout,
         unsigned int baseUAVRegister) const;
-    void generateShaderLinkHLSL(const gl::Context *context,
-                                const gl::Caps &caps,
-                                const gl::ProgramState &programData,
+    void generateShaderLinkHLSL(const gl::Caps &caps,
+                                const gl::ShaderMap<gl::SharedCompiledShaderState> &shaderData,
+                                const gl::ShaderMap<SharedCompiledShaderStateD3D> &shaderDataD3D,
                                 const ProgramD3DMetadata &programMetadata,
                                 const gl::VaryingPacking &varyingPacking,
                                 const BuiltinVaryingsD3D &builtinsD3D,
@@ -186,14 +186,14 @@ class DynamicHLSL : angle::NonCopyable
 
     std::string generateGeometryShaderHLSL(const gl::Caps &caps,
                                            gl::PrimitiveMode primitiveType,
-                                           const gl::ProgramState &programData,
                                            const bool useViewScale,
                                            const bool hasMultiviewEnabled,
                                            const bool selectViewInVS,
                                            const bool pointSpriteEmulation,
                                            const std::string &preambleString) const;
 
-    void getPixelShaderOutputKey(const gl::State &data,
+    void getPixelShaderOutputKey(const gl::Caps &caps,
+                                 const gl::Version &clientVersion,
                                  const gl::ProgramState &programData,
                                  const ProgramD3DMetadata &metadata,
                                  std::vector<PixelShaderOutputVariable> *outPixelShaderKey);

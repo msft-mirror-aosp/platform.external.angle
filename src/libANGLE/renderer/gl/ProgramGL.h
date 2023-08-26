@@ -43,10 +43,11 @@ class ProgramGL : public ProgramImpl
     void setBinaryRetrievableHint(bool retrievable) override;
     void setSeparable(bool separable) override;
 
+    void prepareForLink(const gl::ShaderMap<ShaderImpl *> &shaders) override;
     std::unique_ptr<LinkEvent> link(const gl::Context *contextImpl,
                                     const gl::ProgramLinkedResources &resources,
                                     gl::InfoLog &infoLog,
-                                    const gl::ProgramMergedVaryings &mergedVaryings) override;
+                                    gl::ProgramMergedVaryings &&mergedVaryings) override;
     GLboolean validate(const gl::Caps &caps, gl::InfoLog *infoLog) override;
 
     void setUniform1fv(GLint location, GLsizei count, const GLfloat *v) override;
@@ -150,6 +151,8 @@ class ProgramGL : public ProgramImpl
     const angle::FeaturesGL &mFeatures;
     StateManagerGL *mStateManager;
 
+    gl::ShaderMap<GLuint> mAttachedShaders;
+
     std::vector<GLint> mUniformRealLocationMap;
     std::vector<GLuint> mUniformBlockRealLocationMap;
 
@@ -162,8 +165,6 @@ class ProgramGL : public ProgramImpl
     GLuint mProgramID;
 
     std::shared_ptr<RendererGL> mRenderer;
-
-    bool mLinkedInParallel;
 };
 
 }  // namespace rx
