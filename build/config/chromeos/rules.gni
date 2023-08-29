@@ -304,7 +304,8 @@ template("generate_runner_script") {
                          ])
 
   if (!defined(skip_generating_board_args)) {
-    skip_generating_board_args = false
+    # --board should be assigned by the autotest wrapper on skylab builders
+    skip_generating_board_args = is_skylab
   }
 
   if (skip_generating_board_args) {
@@ -441,7 +442,7 @@ template("generate_runner_script") {
       executable_args += [ "--strip-chrome" ]
     }
 
-    if (!skip_generating_board_args || is_skylab) {
+    if (!skip_generating_board_args) {
       executable_args += [
         "--board",
         cros_board,
