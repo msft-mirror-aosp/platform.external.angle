@@ -12,6 +12,8 @@
 #include "libANGLE/Context.h"
 #include "libANGLE/Program.h"
 #include "libANGLE/Shader.h"
+#include "libANGLE/renderer/GLImplFactory.h"
+#include "libANGLE/renderer/ProgramExecutableImpl.h"
 
 namespace gl
 {
@@ -226,7 +228,8 @@ void LoadProgramInputs(BinaryInputStream *stream, std::vector<ProgramInput> *pro
 void SaveUniforms(BinaryOutputStream *stream,
                   const std::vector<LinkedUniform> &uniforms,
                   const std::vector<std::string> &uniformNames,
-                  const std::vector<std::string> &uniformMappedNames)
+                  const std::vector<std::string> &uniformMappedNames,
+                  const std::vector<VariableLocation> &uniformLocations)
 {
     stream->writeInt(uniforms.size());
     if (uniforms.size() > 0)
@@ -244,11 +247,20 @@ void SaveUniforms(BinaryOutputStream *stream,
             stream->writeString(name);
         }
     }
+
+    stream->writeInt(uniformLocations.size());
+    for (const auto &variable : uniformLocations)
+    {
+        stream->writeInt(variable.arrayIndex);
+        stream->writeIntOrNegOne(variable.index);
+        stream->writeBool(variable.ignored);
+    }
 }
 void LoadUniforms(BinaryInputStream *stream,
                   std::vector<LinkedUniform> *uniforms,
                   std::vector<std::string> *uniformNames,
-                  std::vector<std::string> *uniformMappedNames)
+                  std::vector<std::string> *uniformMappedNames,
+                  std::vector<VariableLocation> *uniformLocations)
 {
     ASSERT(uniforms->empty());
     size_t uniformCount = stream->readInt<size_t>();
@@ -269,6 +281,18 @@ void LoadUniforms(BinaryInputStream *stream,
         {
             stream->readString(&(*uniformMappedNames)[uniformIndex]);
         }
+    }
+
+    const size_t uniformIndexCount = stream->readInt<size_t>();
+    ASSERT(uniformLocations->empty());
+    for (size_t uniformIndexIndex = 0; uniformIndexIndex < uniformIndexCount; ++uniformIndexIndex)
+    {
+        VariableLocation variable;
+        stream->readInt(&variable.arrayIndex);
+        stream->readInt(&variable.index);
+        stream->readBool(&variable.ignored);
+
+        uniformLocations->push_back(variable);
     }
 }
 
@@ -298,59 +322,114 @@ void LoadSamplerBindings(BinaryInputStream *stream,
     size_t boundTextureUnitsCount = stream->readInt<size_t>();
     samplerBoundTextureUnits->resize(boundTextureUnitsCount, 0);
 }
+
+void WriteBufferVariable(BinaryOutputStream *stream, const BufferVariable &var)
+{
+    WriteShaderVar(stream, var);
+    WriteActiveVariable(stream, var.activeVariable);
+
+    stream->writeInt(var.bufferIndex);
+    WriteBlockMemberInfo(stream, var.blockInfo);
+    stream->writeInt(var.topLevelArraySize);
+}
+
+void LoadBufferVariable(BinaryInputStream *stream, BufferVariable *var)
+{
+    LoadShaderVar(stream, var);
+    LoadActiveVariable(stream, &(var->activeVariable));
+
+    var->bufferIndex = stream->readInt<int>();
+    LoadBlockMemberInfo(stream, &var->blockInfo);
+    var->topLevelArraySize = stream->readInt<int>();
+}
+
+void WriteShaderVariableBuffer(BinaryOutputStream *stream, const ShaderVariableBuffer &var)
+{
+    WriteActiveVariable(stream, var.activeVariable);
+
+    stream->writeInt(var.binding);
+    stream->writeInt(var.dataSize);
+
+    stream->writeInt(var.memberIndexes.size());
+    if (!var.memberIndexes.empty())
+    {
+        stream->writeBytes(reinterpret_cast<const unsigned char *>(var.memberIndexes.data()),
+                           sizeof(*var.memberIndexes.data()) * var.memberIndexes.size());
+    }
+}
+
+void LoadShaderVariableBuffer(BinaryInputStream *stream, ShaderVariableBuffer *var)
+{
+    LoadActiveVariable(stream, &var->activeVariable);
+
+    var->binding  = stream->readInt<int>();
+    var->dataSize = stream->readInt<unsigned int>();
+
+    ASSERT(var->memberIndexes.empty());
+    size_t numMembers = stream->readInt<size_t>();
+    if (numMembers > 0)
+    {
+        var->memberIndexes.resize(numMembers);
+        stream->readBytes(reinterpret_cast<unsigned char *>(var->memberIndexes.data()),
+                          sizeof(*var->memberIndexes.data()) * var->memberIndexes.size());
+    }
+}
+
+void WriteInterfaceBlock(BinaryOutputStream *stream, const InterfaceBlock &block)
+{
+    stream->writeString(block.name);
+    stream->writeString(block.mappedName);
+    stream->writeBool(block.isArray);
+    stream->writeInt(block.arrayElement);
+
+    WriteShaderVariableBuffer(stream, block);
+}
+
+void LoadInterfaceBlock(BinaryInputStream *stream, InterfaceBlock *block)
+{
+    block->name         = stream->readString();
+    block->mappedName   = stream->readString();
+    block->isArray      = stream->readBool();
+    block->arrayElement = stream->readInt<unsigned int>();
+
+    LoadShaderVariableBuffer(stream, block);
+}
 }  // anonymous namespace
 
-ProgramExecutable::ProgramExecutable() : mActiveSamplerRefCounts{}
+ProgramExecutable::ProgramExecutable(rx::GLImplFactory *factory, InfoLog *infoLog)
+    : mImplementation(factory->createProgramExecutable(this)),
+      mInfoLog(infoLog),
+      mActiveSamplerRefCounts{}
 {
     memset(&mPODStruct, 0, sizeof(mPODStruct));
     mPODStruct.geometryShaderInputPrimitiveType  = PrimitiveMode::Triangles;
     mPODStruct.geometryShaderOutputPrimitiveType = PrimitiveMode::TriangleStrip;
     mPODStruct.geometryShaderInvocations         = 1;
     mPODStruct.transformFeedbackBufferMode       = GL_INTERLEAVED_ATTRIBS;
+    mPODStruct.computeShaderLocalSize.fill(1);
 
-    reset(true);
+    reset();
 }
 
-ProgramExecutable::ProgramExecutable(const ProgramExecutable &other)
-    : mPODStruct(other.mPODStruct),
-      mActiveSamplersMask(other.mActiveSamplersMask),
-      mActiveSamplerRefCounts(other.mActiveSamplerRefCounts),
-      mActiveSamplerTypes(other.mActiveSamplerTypes),
-      mActiveSamplerYUV(other.mActiveSamplerYUV),
-      mActiveSamplerFormats(other.mActiveSamplerFormats),
-      mActiveSamplerShaderBits(other.mActiveSamplerShaderBits),
-      mActiveImagesMask(other.mActiveImagesMask),
-      mActiveImageShaderBits(other.mActiveImageShaderBits),
-      mOutputVariables(other.mOutputVariables),
-      mOutputLocations(other.mOutputLocations),
-      mSecondaryOutputLocations(other.mSecondaryOutputLocations),
-      mProgramInputs(other.mProgramInputs),
-      mLinkedTransformFeedbackVaryings(other.mLinkedTransformFeedbackVaryings),
-      mTransformFeedbackStrides(other.mTransformFeedbackStrides),
-      mUniforms(other.mUniforms),
-      mUniformNames(other.mUniformNames),
-      mUniformMappedNames(other.mUniformMappedNames),
-      mUniformBlocks(other.mUniformBlocks),
-      mAtomicCounterBuffers(other.mAtomicCounterBuffers),
-      mShaderStorageBlocks(other.mShaderStorageBlocks)
+ProgramExecutable::~ProgramExecutable()
 {
-    reset(true);
+    ASSERT(mImplementation == nullptr);
 }
 
-ProgramExecutable::~ProgramExecutable() = default;
-
-void ProgramExecutable::reset(bool clearInfoLog)
+void ProgramExecutable::destroy(const Context *context)
 {
-    if (clearInfoLog)
-    {
-        resetInfoLog();
-    }
+    mImplementation->destroy(context);
+    SafeDelete(mImplementation);
+}
 
+void ProgramExecutable::reset()
+{
     mPODStruct.activeAttribLocationsMask.reset();
     mPODStruct.attributesTypeMask.reset();
     mPODStruct.attributesMask.reset();
     mPODStruct.maxActiveAttribLocation = 0;
     mPODStruct.activeOutputVariablesMask.reset();
+    mPODStruct.activeSecondaryOutputVariablesMask.reset();
 
     mPODStruct.defaultUniformRange       = RangeUI(0, 0);
     mPODStruct.samplerUniformRange       = RangeUI(0, 0);
@@ -370,12 +449,22 @@ void ProgramExecutable::reset(bool clearInfoLog)
     mPODStruct.geometryShaderInvocations         = 1;
     mPODStruct.geometryShaderMaxVertices         = 0;
 
+    mPODStruct.numViews = -1;
+
+    mPODStruct.drawIDLocation = -1;
+
+    mPODStruct.baseVertexLocation   = -1;
+    mPODStruct.baseInstanceLocation = -1;
+
     mPODStruct.tessControlShaderVertices = 0;
     mPODStruct.tessGenMode               = GL_NONE;
     mPODStruct.tessGenSpacing            = GL_NONE;
     mPODStruct.tessGenVertexOrder        = GL_NONE;
     mPODStruct.tessGenPointMode          = GL_NONE;
     mPODStruct.drawBufferTypeMask.reset();
+    mPODStruct.computeShaderLocalSize.fill(1);
+
+    mPODStruct.specConstUsageBits.reset();
 
     mActiveSamplersMask.reset();
     mActiveSamplerRefCounts = {};
@@ -392,8 +481,10 @@ void ProgramExecutable::reset(bool clearInfoLog)
     mUniformNames.clear();
     mUniformMappedNames.clear();
     mUniformBlocks.clear();
+    mUniformLocations.clear();
     mShaderStorageBlocks.clear();
     mAtomicCounterBuffers.clear();
+    mBufferVariables.clear();
     mOutputVariables.clear();
     mOutputLocations.clear();
     mSecondaryOutputLocations.clear();
@@ -414,7 +505,7 @@ void ProgramExecutable::load(bool isSeparable, gl::BinaryInputStream *stream)
     stream->readBytes(reinterpret_cast<unsigned char *>(&mPODStruct), sizeof(mPODStruct));
 
     LoadProgramInputs(stream, &mProgramInputs);
-    LoadUniforms(stream, &mUniforms, &mUniformNames, &mUniformMappedNames);
+    LoadUniforms(stream, &mUniforms, &mUniformNames, &mUniformMappedNames, &mUniformLocations);
 
     size_t uniformBlockCount = stream->readInt<size_t>();
     ASSERT(getUniformBlocks().empty());
@@ -444,6 +535,14 @@ void ProgramExecutable::load(bool isSeparable, gl::BinaryInputStream *stream)
     {
         AtomicCounterBuffer &atomicCounterBuffer = mAtomicCounterBuffers[bufferIndex];
         LoadShaderVariableBuffer(stream, &atomicCounterBuffer);
+    }
+
+    size_t bufferVariableCount = stream->readInt<size_t>();
+    ASSERT(getBufferVariables().empty());
+    mBufferVariables.resize(bufferVariableCount);
+    for (size_t bufferVarIndex = 0; bufferVarIndex < bufferVariableCount; ++bufferVarIndex)
+    {
+        LoadBufferVariable(stream, &mBufferVariables[bufferVarIndex]);
     }
 
     size_t transformFeedbackVaryingCount = stream->readInt<size_t>();
@@ -553,7 +652,7 @@ void ProgramExecutable::save(bool isSeparable, gl::BinaryOutputStream *stream) c
     stream->writeBytes(reinterpret_cast<const unsigned char *>(&mPODStruct), sizeof(mPODStruct));
 
     SaveProgramInputs(stream, mProgramInputs);
-    SaveUniforms(stream, mUniforms, mUniformNames, mUniformMappedNames);
+    SaveUniforms(stream, mUniforms, mUniformNames, mUniformMappedNames, mUniformLocations);
 
     stream->writeInt(getUniformBlocks().size());
     for (const InterfaceBlock &uniformBlock : getUniformBlocks())
@@ -571,6 +670,12 @@ void ProgramExecutable::save(bool isSeparable, gl::BinaryOutputStream *stream) c
     for (const AtomicCounterBuffer &atomicCounterBuffer : getAtomicCounterBuffers())
     {
         WriteShaderVariableBuffer(stream, atomicCounterBuffer);
+    }
+
+    stream->writeInt(getBufferVariables().size());
+    for (const BufferVariable &bufferVariable : getBufferVariables())
+    {
+        WriteBufferVariable(stream, bufferVariable);
     }
 
     stream->writeInt(getLinkedTransformFeedbackVaryings().size());
@@ -650,19 +755,9 @@ void ProgramExecutable::save(bool isSeparable, gl::BinaryOutputStream *stream) c
     }
 }
 
-int ProgramExecutable::getInfoLogLength() const
-{
-    return static_cast<int>(mInfoLog.getLength());
-}
-
-void ProgramExecutable::getInfoLog(GLsizei bufSize, GLsizei *length, char *infoLog) const
-{
-    return mInfoLog.getLog(bufSize, length, infoLog);
-}
-
 std::string ProgramExecutable::getInfoLogString() const
 {
-    return mInfoLog.str();
+    return mInfoLog->str();
 }
 
 void ProgramExecutable::setActive(size_t textureUnit,
@@ -866,7 +961,7 @@ bool ProgramExecutable::linkMergedVaryings(
         }
     }
 
-    if (!varyingPacking->collectAndPackUserVaryings(mInfoLog, caps, packMode, activeShadersMask,
+    if (!varyingPacking->collectAndPackUserVaryings(*mInfoLog, caps, packMode, activeShadersMask,
                                                     mergedVaryings, transformFeedbackVaryingNames,
                                                     isSeparable))
     {
@@ -892,15 +987,15 @@ bool ProgramExecutable::linkValidateTransformFeedback(
     {
         if (clientVersion < Version(3, 1) && tfVaryingName.find('[') != std::string::npos)
         {
-            mInfoLog << "Capture of array elements is undefined and not supported.";
+            *mInfoLog << "Capture of array elements is undefined and not supported.";
             return false;
         }
         if (clientVersion >= Version(3, 1))
         {
             if (IncludeSameArrayElement(uniqueNames, tfVaryingName))
             {
-                mInfoLog << "Two transform feedback varyings include the same array element ("
-                         << tfVaryingName << ").";
+                *mInfoLog << "Two transform feedback varyings include the same array element ("
+                          << tfVaryingName << ").";
                 return false;
             }
         }
@@ -908,8 +1003,8 @@ bool ProgramExecutable::linkValidateTransformFeedback(
         {
             if (uniqueNames.count(tfVaryingName) > 0)
             {
-                mInfoLog << "Two transform feedback varyings specify the same output variable ("
-                         << tfVaryingName << ").";
+                *mInfoLog << "Two transform feedback varyings specify the same output variable ("
+                          << tfVaryingName << ").";
                 return false;
             }
         }
@@ -922,8 +1017,8 @@ bool ProgramExecutable::linkValidateTransformFeedback(
     if (transformFeedbackVaryingNames.size() > 0 &&
         !gl::ShaderTypeSupportsTransformFeedback(getLinkedTransformFeedbackStage()))
     {
-        mInfoLog << "Linked transform feedback stage " << getLinkedTransformFeedbackStage()
-                 << " does not support transform feedback varying.";
+        *mInfoLog << "Linked transform feedback stage " << getLinkedTransformFeedbackStage()
+                  << " does not support transform feedback varying.";
         return false;
     }
 
@@ -937,15 +1032,15 @@ bool ProgramExecutable::linkValidateTransformFeedback(
         const sh::ShaderVariable *var = FindOutputVaryingOrField(varyings, stage, baseName);
         if (var == nullptr)
         {
-            mInfoLog << "Transform feedback varying " << tfVaryingName
-                     << " does not exist in the vertex shader.";
+            *mInfoLog << "Transform feedback varying " << tfVaryingName
+                      << " does not exist in the vertex shader.";
             return false;
         }
 
         // Validate the matching variable.
         if (var->isStruct())
         {
-            mInfoLog << "Struct cannot be captured directly (" << baseName << ").";
+            *mInfoLog << "Struct cannot be captured directly (" << baseName << ").";
             return false;
         }
 
@@ -956,7 +1051,7 @@ bool ProgramExecutable::linkValidateTransformFeedback(
         {
             if (clientVersion < Version(3, 1))
             {
-                mInfoLog << "Capture of arrays is undefined and not supported.";
+                *mInfoLog << "Capture of arrays is undefined and not supported.";
                 return false;
             }
 
@@ -965,7 +1060,7 @@ bool ProgramExecutable::linkValidateTransformFeedback(
 
             if (!subscripts.empty() && subscripts[0] >= var->getOutermostArraySize())
             {
-                mInfoLog << "Cannot capture outbound array element '" << tfVaryingName << "'.";
+                *mInfoLog << "Cannot capture outbound array element '" << tfVaryingName << "'.";
                 return false;
             }
             elementCount = (subscripts.empty() ? var->getOutermostArraySize() : 1);
@@ -974,8 +1069,8 @@ bool ProgramExecutable::linkValidateTransformFeedback(
         {
             if (!subscripts.empty())
             {
-                mInfoLog << "Varying '" << baseName
-                         << "' is not an array to be captured by element.";
+                *mInfoLog << "Varying '" << baseName
+                          << "' is not an array to be captured by element.";
                 return false;
             }
             elementCount = 1;
@@ -986,9 +1081,9 @@ bool ProgramExecutable::linkValidateTransformFeedback(
         if (mPODStruct.transformFeedbackBufferMode == GL_SEPARATE_ATTRIBS &&
             componentCount > static_cast<GLuint>(caps.maxTransformFeedbackSeparateComponents))
         {
-            mInfoLog << "Transform feedback varying " << tfVaryingName << " components ("
-                     << componentCount << ") exceed the maximum separate components ("
-                     << caps.maxTransformFeedbackSeparateComponents << ").";
+            *mInfoLog << "Transform feedback varying " << tfVaryingName << " components ("
+                      << componentCount << ") exceed the maximum separate components ("
+                      << caps.maxTransformFeedbackSeparateComponents << ").";
             return false;
         }
 
@@ -996,9 +1091,9 @@ bool ProgramExecutable::linkValidateTransformFeedback(
         if (mPODStruct.transformFeedbackBufferMode == GL_INTERLEAVED_ATTRIBS &&
             totalComponents > static_cast<GLuint>(caps.maxTransformFeedbackInterleavedComponents))
         {
-            mInfoLog << "Transform feedback varying total components (" << totalComponents
-                     << ") exceed the maximum interleaved components ("
-                     << caps.maxTransformFeedbackInterleavedComponents << ").";
+            *mInfoLog << "Transform feedback varying total components (" << totalComponents
+                      << ") exceed the maximum interleaved components ("
+                      << caps.maxTransformFeedbackInterleavedComponents << ").";
             return false;
         }
     }
@@ -1078,7 +1173,7 @@ void ProgramExecutable::updateTransformFeedbackStrides()
     }
 }
 
-bool ProgramExecutable::validateSamplersImpl(InfoLog *infoLog, const Caps &caps) const
+bool ProgramExecutable::validateSamplersImpl(const Caps &caps) const
 {
     // if any two active samplers in a program are of different types, but refer to the same
     // texture image unit, and this is the current program, then ValidateProgram will fail, and
@@ -1087,26 +1182,12 @@ bool ProgramExecutable::validateSamplersImpl(InfoLog *infoLog, const Caps &caps)
     {
         if (mActiveSamplerTypes[textureUnit] == TextureType::InvalidEnum)
         {
-            if (infoLog)
-            {
-                (*infoLog) << "Samplers of conflicting types refer to the same texture "
-                              "image unit ("
-                           << textureUnit << ").";
-            }
-
             mCachedValidateSamplersResult = false;
             return false;
         }
 
         if (mActiveSamplerFormats[textureUnit] == SamplerFormat::InvalidEnum)
         {
-            if (infoLog)
-            {
-                (*infoLog) << "Samplers of conflicting formats refer to the same texture "
-                              "image unit ("
-                           << textureUnit << ").";
-            }
-
             mCachedValidateSamplersResult = false;
             return false;
         }
@@ -1127,6 +1208,7 @@ bool ProgramExecutable::linkValidateOutputVariables(
     const ProgramAliasedBindings &fragmentOutputIndices)
 {
     ASSERT(mPODStruct.activeOutputVariablesMask.none());
+    ASSERT(mPODStruct.activeSecondaryOutputVariablesMask.none());
     ASSERT(mPODStruct.drawBufferTypeMask.none());
     ASSERT(!mPODStruct.hasYUVOutput);
 
@@ -1197,8 +1279,8 @@ bool ProgramExecutable::linkValidateOutputVariables(
             }
             if (outputLocations[location].used())
             {
-                mInfoLog << "Location of variable " << outputVariable.name
-                         << " conflicts with another variable.";
+                *mInfoLog << "Location of variable " << outputVariable.name
+                          << " conflicts with another variable.";
                 return false;
             }
             outputLocations[location] = locationInfo;
@@ -1238,8 +1320,8 @@ bool ProgramExecutable::linkValidateOutputVariables(
         if (FindUsedOutputLocation(outputLocations, baseLocation, elementCount, reservedLocations,
                                    outputVariableIndex))
         {
-            mInfoLog << "Location of variable " << outputVariable.name
-                     << " conflicts with another variable.";
+            *mInfoLog << "Location of variable " << outputVariable.name
+                      << " conflicts with another variable.";
             return false;
         }
         AssignOutputLocations(outputLocations, baseLocation, elementCount, reservedLocations,
@@ -1306,8 +1388,8 @@ bool ProgramExecutable::linkValidateOutputVariables(
             // "if the explicit binding assignments do not leave enough space for the linker to
             // automatically assign a location for a varying out array, which requires multiple
             // contiguous locations."
-            mInfoLog << "Could not fit output variable into available locations: "
-                     << outputVariable.name;
+            *mInfoLog << "Could not fit output variable into available locations: "
+                      << outputVariable.name;
             return false;
         }
     }
@@ -1328,7 +1410,7 @@ bool ProgramExecutable::linkValidateOutputVariables(
                 mPODStruct.activeOutputVariablesMask.count() >
             static_cast<GLuint>(caps.maxCombinedShaderOutputResources))
         {
-            mInfoLog
+            *mInfoLog
                 << "The sum of the number of active image uniforms, active shader storage blocks "
                    "and active fragment shader outputs exceeds "
                    "MAX_COMBINED_SHADER_OUTPUT_RESOURCES ("
@@ -1345,7 +1427,9 @@ bool ProgramExecutable::gatherOutputTypes()
     for (const sh::ShaderVariable &outputVariable : mOutputVariables)
     {
         if (outputVariable.isBuiltIn() && outputVariable.name != "gl_FragColor" &&
-            outputVariable.name != "gl_FragData")
+            outputVariable.name != "gl_FragData" &&
+            outputVariable.name != "gl_SecondaryFragColorEXT" &&
+            outputVariable.name != "gl_SecondaryFragDataEXT")
         {
             continue;
         }
@@ -1353,6 +1437,10 @@ bool ProgramExecutable::gatherOutputTypes()
         unsigned int baseLocation =
             (outputVariable.location == -1 ? 0u
                                            : static_cast<unsigned int>(outputVariable.location));
+
+        const bool secondary =
+            outputVariable.index == 1 || (outputVariable.name == "gl_SecondaryFragColorEXT" ||
+                                          outputVariable.name == "gl_SecondaryFragDataEXT");
 
         const ComponentType componentType =
             GLenumToComponentType(VariableComponentType(outputVariable.type));
@@ -1364,7 +1452,15 @@ bool ProgramExecutable::gatherOutputTypes()
         {
             const unsigned int location = baseLocation + elementIndex;
             ASSERT(location < mPODStruct.activeOutputVariablesMask.size());
-            mPODStruct.activeOutputVariablesMask.set(location);
+            ASSERT(location < mPODStruct.activeSecondaryOutputVariablesMask.size());
+            if (secondary)
+            {
+                mPODStruct.activeSecondaryOutputVariablesMask.set(location);
+            }
+            else
+            {
+                mPODStruct.activeOutputVariablesMask.set(location);
+            }
             const ComponentType storedComponentType =
                 gl::GetComponentTypeMask(mPODStruct.drawBufferTypeMask, location);
             if (storedComponentType == ComponentType::InvalidEnum)
@@ -1373,8 +1469,8 @@ bool ProgramExecutable::gatherOutputTypes()
             }
             else if (storedComponentType != componentType)
             {
-                mInfoLog << "Inconsistent component types for fragment outputs at location "
-                         << location;
+                *mInfoLog << "Inconsistent component types for fragment outputs at location "
+                          << location;
                 return false;
             }
         }
@@ -1392,24 +1488,22 @@ bool ProgramExecutable::gatherOutputTypes()
 bool ProgramExecutable::linkUniforms(
     const Caps &caps,
     const ShaderMap<std::vector<sh::ShaderVariable>> &shaderUniforms,
-    InfoLog &infoLog,
     const ProgramAliasedBindings &uniformLocationBindings,
     GLuint *combinedImageUniformsCountOut,
-    std::vector<UnusedUniform> *unusedUniformsOutOrNull,
-    std::vector<VariableLocation> *uniformLocationsOutOrNull)
+    std::vector<UnusedUniform> *unusedUniformsOutOrNull)
 {
     UniformLinker linker(mPODStruct.linkedShaderStages, shaderUniforms);
-    if (!linker.link(caps, infoLog, uniformLocationBindings))
+    if (!linker.link(caps, *mInfoLog, uniformLocationBindings))
     {
         return false;
     }
 
     linker.getResults(&mUniforms, &mUniformNames, &mUniformMappedNames, unusedUniformsOutOrNull,
-                      uniformLocationsOutOrNull);
+                      &mUniformLocations);
 
     linkSamplerAndImageBindings(combinedImageUniformsCountOut);
 
-    if (!linkAtomicCounterBuffers(caps, infoLog))
+    if (!linkAtomicCounterBuffers(caps))
     {
         return false;
     }
@@ -1516,7 +1610,7 @@ void ProgramExecutable::linkSamplerAndImageBindings(GLuint *combinedImageUniform
     mPODStruct.defaultUniformRange = RangeUI(0, low);
 }
 
-bool ProgramExecutable::linkAtomicCounterBuffers(const Caps &caps, InfoLog &infoLog)
+bool ProgramExecutable::linkAtomicCounterBuffers(const Caps &caps)
 {
     for (unsigned int index : mPODStruct.atomicCounterUniformRange)
     {
@@ -1570,15 +1664,15 @@ bool ProgramExecutable::linkAtomicCounterBuffers(const Caps &caps, InfoLog &info
     }
     if (combinedShaderACBCount > caps.maxCombinedAtomicCounterBuffers)
     {
-        infoLog << " combined AtomicCounterBuffers count exceeds limit";
+        *mInfoLog << " combined AtomicCounterBuffers count exceeds limit";
         return false;
     }
     for (gl::ShaderType stage : gl::AllShaderTypes())
     {
         if (perShaderACBCount[stage] > caps.maxShaderAtomicCounterBuffers[stage])
         {
-            infoLog << GetShaderTypeString(stage)
-                    << " shader AtomicCounterBuffers count exceeds limit";
+            *mInfoLog << GetShaderTypeString(stage)
+                      << " shader AtomicCounterBuffers count exceeds limit";
             return false;
         }
     }
@@ -1596,6 +1690,9 @@ void ProgramExecutable::copyShaderBuffersFromProgram(const ProgramState &program
     AppendActiveBlocks(shaderType, programState.getUniformBlocks(), mUniformBlocks);
     AppendActiveBlocks(shaderType, programState.getShaderStorageBlocks(), mShaderStorageBlocks);
     AppendActiveBlocks(shaderType, programState.getAtomicCounterBuffers(), mAtomicCounterBuffers);
+
+    // Buffer variable info is queried through the program, and program pipelines don't access it.
+    ASSERT(mBufferVariables.empty());
 }
 
 void ProgramExecutable::clearSamplerBindings()
@@ -1663,5 +1760,21 @@ void ProgramExecutable::copyUniformsFromProgramMap(const ShaderMap<Program *> &p
     mPODStruct.fragmentInoutRange =
         AddUniforms(programs, mPODStruct.linkedShaderStages, &mUniforms, &mUniformNames,
                     &mUniformMappedNames, getInoutRange);
+
+    // Note: uniforms are set through the program, and the program pipeline never needs it.
+    ASSERT(mUniformLocations.empty());
+}
+
+GLuint ProgramExecutable::getAttributeLocation(const std::string &name) const
+{
+    for (const ProgramInput &attribute : mProgramInputs)
+    {
+        if (attribute.name == name)
+        {
+            return attribute.getLocation();
+        }
+    }
+
+    return static_cast<GLuint>(-1);
 }
 }  // namespace gl
