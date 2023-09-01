@@ -30,17 +30,15 @@ class ProgramVk : public ProgramImpl
     void destroy(const gl::Context *context) override;
 
     std::unique_ptr<LinkEvent> load(const gl::Context *context,
-                                    gl::BinaryInputStream *stream,
-                                    gl::InfoLog &infoLog) override;
+                                    gl::BinaryInputStream *stream) override;
     void save(const gl::Context *context, gl::BinaryOutputStream *stream) override;
     void setBinaryRetrievableHint(bool retrievable) override;
     void setSeparable(bool separable) override;
 
     std::unique_ptr<LinkEvent> link(const gl::Context *context,
                                     const gl::ProgramLinkedResources &resources,
-                                    gl::InfoLog &infoLog,
                                     gl::ProgramMergedVaryings &&mergedVaryings) override;
-    GLboolean validate(const gl::Caps &caps, gl::InfoLog *infoLog) override;
+    GLboolean validate(const gl::Caps &caps) override;
 
     angle::Result syncState(const gl::Context *context,
                             const gl::Program::DirtyBits &dirtyBits) override;
@@ -98,24 +96,11 @@ class ProgramVk : public ProgramImpl
     void getUniformiv(const gl::Context *context, GLint location, GLint *params) const override;
     void getUniformuiv(const gl::Context *context, GLint location, GLuint *params) const override;
 
-    bool areShaderUniformsDirty(gl::ShaderType shaderType) const
+    const ProgramExecutableVk *getExecutable() const
     {
-        return mExecutable.mDefaultUniformBlocksDirty[shaderType];
+        return vk::GetImpl(&mState.getExecutable());
     }
-    void setShaderUniformDirtyBit(gl::ShaderType shaderType)
-    {
-        if (!mExecutable.mDefaultUniformBlocks[shaderType]->uniformData.empty())
-        {
-            mExecutable.mDefaultUniformBlocksDirty.set(shaderType);
-        }
-    }
-    void clearShaderUniformDirtyBit(gl::ShaderType shaderType)
-    {
-        mExecutable.mDefaultUniformBlocksDirty.reset(shaderType);
-    }
-
-    const ProgramExecutableVk &getExecutable() const { return mExecutable; }
-    ProgramExecutableVk &getExecutable() { return mExecutable; }
+    ProgramExecutableVk *getExecutable() { return vk::GetImpl(&mState.getExecutable()); }
 
   private:
     template <int cols, int rows>
@@ -134,8 +119,6 @@ class ProgramVk : public ProgramImpl
 
     angle::Result createGraphicsPipelineWithDefaultState(const gl::Context *context,
                                                          vk::PipelineCacheAccess *pipelineCache);
-
-    ProgramExecutableVk mExecutable;
 };
 
 }  // namespace rx

@@ -10,28 +10,31 @@ vars = {
   'chromium_git': 'https://chromium.googlesource.com',
 
   # Current revision of glslang, the Khronos SPIRV compiler.
-  'glslang_revision': 'adfcaba7ae7bac77037e68d7fb755efff3bae74c',
+  'glslang_revision': 'a1f8cd429fed66ae107b5809ae6e727640b421a5',
 
   # Current revision of spirv-cross, the Khronos SPIRV cross compiler.
-  'spirv_cross_revision': '7ba6f5ce901def51ec5e275272742e38e858666e',
+  'spirv_cross_revision': '54997fb4bc3adeb47b9b9f7bb67f1c25eaca2204',
 
   # Current revision fo the SPIRV-Headers Vulkan support library.
   'spirv_headers_revision': 'd790ced752b5bfc06b6988baadef6eb2d16bdf96',
 
   # Current revision of SPIRV-Tools for Vulkan.
-  'spirv_tools_revision': '1b3c4cb6855f7db1636985e1652ebbf91f81cd50',
+  'spirv_tools_revision': '9b923f7cc3dde6e1a4886b577677e52c3093ffcc',
 
   # Current revision of Khronos Vulkan-Headers.
-  'vulkan_headers_revision': '9085224a1b45f78deadf94f800b0ec092d1c3568',
+  'vulkan_headers_revision': 'a0c76b4ef76e219483755ff61dce6b67ff79f24b',
 
   # Current revision of Khronos Vulkan-Loader.
   'vulkan_loader_revision': 'd34bfafff23602e857064bea6d99a35eb63f37f2',
 
   # Current revision of Khronos Vulkan-Tools.
-  'vulkan_tools_revision': '6087a5844480e1f9cce9c645c2123f07314ce574',
+  'vulkan_tools_revision': '389110e4600669d82bca042859fddf898387c0d2',
+
+  # Current revision of Khronos Vulkan-Utility-Libraries.
+  'vulkan_utility_libraries_revision': 'dd26ae7065a9ed60c8ab517ed79bf7935394aec7',
 
   # Current revision of Khronos Vulkan-ValidationLayers.
-  'vulkan_validation_revision': '8366ffa97232deda5166bbc15760dbde465a97c0',
+  'vulkan_validation_revision': '8dbf1df09fa33b192fb5a2867e33229393bdf0fa',
 }
 
 deps = {
@@ -61,6 +64,10 @@ deps = {
 
   'vulkan-tools/src': {
     'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Tools@{vulkan_tools_revision}',
+  },
+
+  'vulkan-utility-libraries/src': {
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Utility-Libraries@{vulkan_utility_libraries_revision}',
   },
 
   'vulkan-validation-layers/src': {

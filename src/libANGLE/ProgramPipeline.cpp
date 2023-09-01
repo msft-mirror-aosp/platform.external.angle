@@ -26,11 +26,11 @@ enum SubjectIndexes : angle::SubjectIndex
     kExecutableSubjectIndex = 0
 };
 
-ProgramPipelineState::ProgramPipelineState()
+ProgramPipelineState::ProgramPipelineState(rx::GLImplFactory *factory)
     : mLabel(),
       mActiveShaderProgram(nullptr),
       mValid(false),
-      mExecutable(new ProgramExecutable()),
+      mExecutable(new ProgramExecutable(factory, &mInfoLog)),
       mIsLinked(false)
 {
     for (const ShaderType shaderType : gl::AllShaderTypes())
@@ -39,10 +39,7 @@ ProgramPipelineState::ProgramPipelineState()
     }
 }
 
-ProgramPipelineState::~ProgramPipelineState()
-{
-    SafeDelete(mExecutable);
-}
+ProgramPipelineState::~ProgramPipelineState() {}
 
 const std::string &ProgramPipelineState::getLabel() const
 {
@@ -127,7 +124,7 @@ void ProgramPipelineState::updateExecutableTextures()
     }
 }
 
-rx::SpecConstUsageBits ProgramPipelineState::getSpecConstUsageBits() const
+void ProgramPipelineState::updateExecutableSpecConstUsageBits()
 {
     rx::SpecConstUsageBits specConstUsageBits;
     for (const ShaderType shaderType : mExecutable->getLinkedShaderStages())
@@ -136,12 +133,13 @@ rx::SpecConstUsageBits ProgramPipelineState::getSpecConstUsageBits() const
         ASSERT(program);
         specConstUsageBits |= program->getState().getSpecConstUsageBits();
     }
-    return specConstUsageBits;
+    mExecutable->mPODStruct.specConstUsageBits = specConstUsageBits;
 }
 
 ProgramPipeline::ProgramPipeline(rx::GLImplFactory *factory, ProgramPipelineID handle)
     : RefCountObject(factory->generateSerial(), handle),
       mProgramPipelineImpl(factory->createProgramPipeline(mState)),
+      mState(factory),
       mExecutableObserverBinding(this, kExecutableSubjectIndex)
 {
     ASSERT(mProgramPipelineImpl);
@@ -150,7 +148,7 @@ ProgramPipeline::ProgramPipeline(rx::GLImplFactory *factory, ProgramPipelineID h
     {
         mProgramObserverBindings.emplace_back(this, static_cast<angle::SubjectIndex>(shaderType));
     }
-    mExecutableObserverBinding.bind(mState.mExecutable);
+    mExecutableObserverBinding.bind(mState.mExecutable.get());
 }
 
 ProgramPipeline::~ProgramPipeline()
@@ -170,6 +168,7 @@ void ProgramPipeline::onDestroy(const Context *context)
     }
 
     getImplementation()->destroy(context);
+    mState.mExecutable->destroy(context);
 }
 
 angle::Result ProgramPipeline::setLabel(const Context *context, const std::string &label)
@@ -279,6 +278,13 @@ void ProgramPipeline::updateExecutableAttributes()
         vertexExecutable.mPODStruct.attributesTypeMask;
     mState.mExecutable->mPODStruct.attributesMask = vertexExecutable.mPODStruct.attributesMask;
     mState.mExecutable->mProgramInputs            = vertexExecutable.mProgramInputs;
+
+    mState.mExecutable->mPODStruct.numViews       = vertexExecutable.mPODStruct.numViews;
+    mState.mExecutable->mPODStruct.drawIDLocation = vertexExecutable.mPODStruct.drawIDLocation;
+    mState.mExecutable->mPODStruct.baseVertexLocation =
+        vertexExecutable.mPODStruct.baseVertexLocation;
+    mState.mExecutable->mPODStruct.baseInstanceLocation =
+        vertexExecutable.mPODStruct.baseInstanceLocation;
 }
 
 void ProgramPipeline::updateTransformFeedbackMembers()
@@ -460,6 +466,7 @@ void ProgramPipeline::updateExecutable()
 
     // All Shader ProgramExecutable properties
     mState.updateExecutableTextures();
+    mState.updateExecutableSpecConstUsageBits();
     updateLinkedVaryings();
 }
 
@@ -474,12 +481,10 @@ angle::Result ProgramPipeline::link(const Context *context)
     ProgramVaryingPacking varyingPacking;
     LinkingVariables linkingVariables;
 
-    mState.mExecutable->reset(true);
+    mState.mExecutable->reset();
+    mState.mInfoLog.reset();
 
     linkingVariables.initForProgramPipeline(mState);
-
-    InfoLog &infoLog = mState.mExecutable->getInfoLog();
-    infoLog.reset();
 
     const Caps &caps               = context->getCaps();
     const Limitations &limitations = context->getLimitations();
@@ -488,12 +493,12 @@ angle::Result ProgramPipeline::link(const Context *context)
 
     if (mState.mExecutable->hasLinkedShaderStage(gl::ShaderType::Vertex))
     {
-        if (!linkVaryings(infoLog))
+        if (!linkVaryings())
         {
             return angle::Result::Stop;
         }
 
-        if (!LinkValidateProgramGlobalNames(infoLog, getExecutable(), linkingVariables))
+        if (!LinkValidateProgramGlobalNames(mState.mInfoLog, getExecutable(), linkingVariables))
         {
             return angle::Result::Stop;
         }
@@ -586,7 +591,17 @@ angle::Result ProgramPipeline::link(const Context *context)
     return angle::Result::Continue;
 }
 
-bool ProgramPipeline::linkVaryings(InfoLog &infoLog) const
+int ProgramPipeline::getInfoLogLength() const
+{
+    return static_cast<int>(mState.mInfoLog.getLength());
+}
+
+void ProgramPipeline::getInfoLog(GLsizei bufSize, GLsizei *length, char *infoLog) const
+{
+    return mState.mInfoLog.getLog(bufSize, length, infoLog);
+}
+
+bool ProgramPipeline::linkVaryings()
 {
     ShaderType previousShaderType = ShaderType::InvalidEnum;
     for (ShaderType shaderType : kAllGraphicsShaderTypes)
@@ -608,7 +623,7 @@ bool ProgramPipeline::linkVaryings(InfoLog &infoLog) const
                     previousExecutable.getLinkedOutputVaryings(previousShaderType),
                     executable.getLinkedInputVaryings(shaderType), previousShaderType, shaderType,
                     previousExecutable.getLinkedShaderVersion(previousShaderType),
-                    executable.getLinkedShaderVersion(shaderType), true, infoLog))
+                    executable.getLinkedShaderVersion(shaderType), true, mState.mInfoLog))
             {
                 return false;
             }
@@ -632,15 +647,14 @@ bool ProgramPipeline::linkVaryings(InfoLog &infoLog) const
         vertexExecutable.getLinkedOutputVaryings(ShaderType::Vertex),
         fragmentExecutable.getLinkedInputVaryings(ShaderType::Fragment), ShaderType::Vertex,
         ShaderType::Fragment, vertexExecutable.getLinkedShaderVersion(ShaderType::Vertex),
-        fragmentExecutable.getLinkedShaderVersion(ShaderType::Fragment), infoLog);
+        fragmentExecutable.getLinkedShaderVersion(ShaderType::Fragment), mState.mInfoLog);
 }
 
 void ProgramPipeline::validate(const gl::Context *context)
 {
     const Caps &caps = context->getCaps();
     mState.mValid    = true;
-    InfoLog &infoLog = mState.mExecutable->getInfoLog();
-    infoLog.reset();
+    mState.mInfoLog.reset();
 
     for (const ShaderType shaderType : mState.mExecutable->getLinkedShaderStages())
     {
@@ -653,14 +667,14 @@ void ProgramPipeline::validate(const gl::Context *context)
             if (shaderInfoString.length())
             {
                 mState.mValid = false;
-                infoLog << shaderInfoString << "\n";
+                mState.mInfoLog << shaderInfoString << "\n";
                 return;
             }
             if (!shaderProgram->isSeparable())
             {
                 mState.mValid = false;
-                infoLog << GetShaderTypeString(shaderType) << " is not marked separable."
-                        << "\n";
+                mState.mInfoLog << GetShaderTypeString(shaderType) << " is not marked separable."
+                                << "\n";
                 return;
             }
         }
@@ -671,11 +685,11 @@ void ProgramPipeline::validate(const gl::Context *context)
     {
         mState.mValid            = false;
         const char *errorMessage = reinterpret_cast<const char *>(programPipelineError);
-        infoLog << errorMessage << "\n";
+        mState.mInfoLog << errorMessage << "\n";
         return;
     }
 
-    if (!linkVaryings(infoLog))
+    if (!linkVaryings())
     {
         mState.mValid = false;
 
@@ -687,7 +701,7 @@ void ProgramPipeline::validate(const gl::Context *context)
             std::string shaderInfoString = shaderProgram->getExecutable().getInfoLogString();
             if (shaderInfoString.length())
             {
-                infoLog << shaderInfoString << "\n";
+                mState.mInfoLog << shaderInfoString << "\n";
             }
         }
     }
