@@ -308,6 +308,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     CompilerImpl *createCompiler() override;
     ShaderImpl *createShader(const gl::ShaderState &state) override;
     ProgramImpl *createProgram(const gl::ProgramState &state) override;
+    ProgramExecutableImpl *createProgramExecutable(
+        const gl::ProgramExecutable *executable) override;
 
     // Framebuffer creation
     FramebufferImpl *createFramebuffer(const gl::FramebufferState &state) override;
@@ -671,8 +673,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     VkIndexType getVkIndexType(gl::DrawElementsType glIndexType) const;
     size_t getVkIndexTypeSize(gl::DrawElementsType glIndexType) const;
     bool shouldConvertUint8VkIndexType(gl::DrawElementsType glIndexType) const;
-
-    ProgramExecutableVk *getExecutable() const;
 
     bool isRobustResourceInitEnabled() const;
 
