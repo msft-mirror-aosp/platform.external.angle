@@ -18,6 +18,12 @@
 #include "libANGLE/VaryingPacking.h"
 #include "libANGLE/angletypes.h"
 
+namespace rx
+{
+class GLImplFactory;
+class ProgramExecutableImpl;
+}  // namespace rx
+
 namespace gl
 {
 
@@ -195,20 +201,19 @@ class ProgramPipelineState;
 class ProgramExecutable final : public angle::Subject
 {
   public:
-    ProgramExecutable();
-    ProgramExecutable(const ProgramExecutable &other);
+    ProgramExecutable(rx::GLImplFactory *factory, InfoLog *infoLog);
     ~ProgramExecutable() override;
 
-    void reset(bool clearInfoLog);
+    void destroy(const Context *context);
+
+    ANGLE_INLINE rx::ProgramExecutableImpl *getImplementation() const { return mImplementation; }
 
     void save(bool isSeparable, gl::BinaryOutputStream *stream) const;
     void load(bool isSeparable, gl::BinaryInputStream *stream);
 
-    int getInfoLogLength() const;
-    InfoLog &getInfoLog() { return mInfoLog; }
-    void getInfoLog(GLsizei bufSize, GLsizei *length, char *infoLog) const;
+    InfoLog &getInfoLog() const { return *mInfoLog; }
     std::string getInfoLogString() const;
-    void resetInfoLog() { mInfoLog.reset(); }
+    void resetInfoLog() const { mInfoLog->reset(); }
 
     void resetLinkedShaderStages() { mPODStruct.linkedShaderStages.reset(); }
     const ShaderBitSet getLinkedShaderStages() const { return mPODStruct.linkedShaderStages; }
@@ -315,6 +320,7 @@ class ProgramExecutable final : public angle::Subject
     const std::vector<std::string> &getUniformNames() const { return mUniformNames; }
     const std::vector<std::string> &getUniformMappedNames() const { return mUniformMappedNames; }
     const std::vector<InterfaceBlock> &getUniformBlocks() const { return mUniformBlocks; }
+    const std::vector<VariableLocation> &getUniformLocations() const { return mUniformLocations; }
     const UniformBlockBindingMask &getActiveUniformBlockBindings() const
     {
         return mPODStruct.activeUniformBlockBindings;
@@ -346,6 +352,10 @@ class ProgramExecutable final : public angle::Subject
         return mLinkedTransformFeedbackVaryings;
     }
     GLint getTransformFeedbackBufferMode() const { return mPODStruct.transformFeedbackBufferMode; }
+    const sh::WorkGroupSize &getComputeShaderLocalSize() const
+    {
+        return mPODStruct.computeShaderLocalSize;
+    }
     GLuint getUniformBlockBinding(GLuint uniformBlockIndex) const
     {
         ASSERT(uniformBlockIndex < mUniformBlocks.size());
@@ -368,6 +378,7 @@ class ProgramExecutable final : public angle::Subject
     {
         return mShaderStorageBlocks;
     }
+    const std::vector<BufferVariable> &getBufferVariables() const { return mBufferVariables; }
     const LinkedUniform &getUniformByIndex(GLuint index) const
     {
         ASSERT(index < static_cast<size_t>(mUniforms.size()));
@@ -450,18 +461,28 @@ class ProgramExecutable final : public angle::Subject
 
     GLenum getTessGenMode() const { return mPODStruct.tessGenMode; }
 
+    int getNumViews() const { return mPODStruct.numViews; }
+    bool usesMultiview() const { return mPODStruct.numViews != -1; }
+
+    rx::SpecConstUsageBits getSpecConstUsageBits() const { return mPODStruct.specConstUsageBits; }
+
+    int getDrawIDLocation() const { return mPODStruct.drawIDLocation; }
+
+    int getBaseVertexLocation() const { return mPODStruct.baseVertexLocation; }
+    int getBaseInstanceLocation() const { return mPODStruct.baseInstanceLocation; }
+
     void resetCachedValidateSamplersResult() { mCachedValidateSamplersResult.reset(); }
-    bool validateSamplers(InfoLog *infoLog, const Caps &caps) const
+    bool validateSamplers(const Caps &caps) const
     {
         // Use the cache if:
         // - we aren't using an info log (which gives the full error).
         // - The sample mapping hasn't changed and we've already validated.
-        if (infoLog == nullptr && mCachedValidateSamplersResult.valid())
+        if (mCachedValidateSamplersResult.valid())
         {
             return mCachedValidateSamplersResult.value();
         }
 
-        return validateSamplersImpl(infoLog, caps);
+        return validateSamplersImpl(caps);
     }
 
     ComponentTypeMask getFragmentOutputsTypeMask() const { return mPODStruct.drawBufferTypeMask; }
@@ -469,14 +490,16 @@ class ProgramExecutable final : public angle::Subject
     {
         return mPODStruct.activeOutputVariablesMask;
     }
+    DrawBufferMask getActiveSecondaryOutputVariablesMask() const
+    {
+        return mPODStruct.activeSecondaryOutputVariablesMask;
+    }
 
     bool linkUniforms(const Caps &caps,
                       const ShaderMap<std::vector<sh::ShaderVariable>> &shaderUniforms,
-                      InfoLog &infoLog,
                       const ProgramAliasedBindings &uniformLocationBindings,
                       GLuint *combinedImageUniformsCount,
-                      std::vector<UnusedUniform> *unusedUniforms,
-                      std::vector<VariableLocation> *uniformLocationsOutOrNull);
+                      std::vector<UnusedUniform> *unusedUniforms);
 
     void copyInputsFromProgram(const ProgramState &programState);
     void copyShaderBuffersFromProgram(const ProgramState &programState, ShaderType shaderType);
@@ -486,10 +509,15 @@ class ProgramExecutable final : public angle::Subject
     void copyOutputsFromProgram(const ProgramState &programState);
     void copyUniformsFromProgramMap(const ShaderMap<Program *> &programs);
 
+    GLuint getAttributeLocation(const std::string &name) const;
+
   private:
     friend class Program;
     friend class ProgramPipeline;
     friend class ProgramState;
+    friend class ProgramPipelineState;
+
+    void reset();
 
     void updateActiveImages(const ProgramExecutable &executable);
 
@@ -522,7 +550,7 @@ class ProgramExecutable final : public angle::Subject
 
     void updateTransformFeedbackStrides();
 
-    bool validateSamplersImpl(InfoLog *infoLog, const Caps &caps) const;
+    bool validateSamplersImpl(const Caps &caps) const;
 
     bool linkValidateOutputVariables(const Caps &caps,
                                      const Version &version,
@@ -536,9 +564,13 @@ class ProgramExecutable final : public angle::Subject
     bool gatherOutputTypes();
 
     void linkSamplerAndImageBindings(GLuint *combinedImageUniformsCount);
-    bool linkAtomicCounterBuffers(const Caps &caps, InfoLog &infoLog);
+    bool linkAtomicCounterBuffers(const Caps &caps);
 
-    InfoLog mInfoLog;
+    rx::ProgramExecutableImpl *mImplementation;
+
+    // A reference to the owning object's (Program or ProgramPipeline) info log.  It's kept here for
+    // convenience as numerous functions reference it.
+    InfoLog *mInfoLog;
 
     // This struct must only contains basic data types so that entire struct can be memcpy.
     struct PODStruct
@@ -551,6 +583,7 @@ class ProgramExecutable final : public angle::Subject
         // removed.
         AttributesMask attributesMask;
         DrawBufferMask activeOutputVariablesMask;
+        DrawBufferMask activeSecondaryOutputVariablesMask;
         ComponentTypeMask drawBufferTypeMask;
 
         RangeUI defaultUniformRange;
@@ -574,6 +607,16 @@ class ProgramExecutable final : public angle::Subject
         int geometryShaderInvocations;
         int geometryShaderMaxVertices;
 
+        // GL_OVR_multiview / GL_OVR_multiview2
+        int numViews;
+
+        // GL_ANGLE_multi_draw
+        int drawIDLocation;
+
+        // GL_ANGLE_base_vertex_base_instance_shader_builtin
+        int baseVertexLocation;
+        int baseInstanceLocation;
+
         // GL_EXT_tessellation_shader
         int tessControlShaderVertices;
         GLenum tessGenMode;
@@ -587,6 +630,10 @@ class ProgramExecutable final : public angle::Subject
         UniformBlockBindingMask activeUniformBlockBindings;
 
         ShaderMap<int> linkedShaderVersions;
+
+        sh::WorkGroupSize computeShaderLocalSize;
+
+        rx::SpecConstUsageBits specConstUsageBits;
     } mPODStruct;
     static_assert(std::is_trivially_copyable<PODStruct>(), "must be memcpy-able");
 
@@ -630,9 +677,11 @@ class ProgramExecutable final : public angle::Subject
     // Only used by GL and D3D backend
     std::vector<std::string> mUniformMappedNames;
     std::vector<InterfaceBlock> mUniformBlocks;
+    std::vector<VariableLocation> mUniformLocations;
 
     std::vector<AtomicCounterBuffer> mAtomicCounterBuffers;
     std::vector<InterfaceBlock> mShaderStorageBlocks;
+    std::vector<BufferVariable> mBufferVariables;
 
     // An array of the samplers that are used by the program
     std::vector<SamplerBinding> mSamplerBindings;
