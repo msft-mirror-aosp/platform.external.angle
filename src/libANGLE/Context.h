@@ -558,6 +558,9 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     const Limitations &getLimitations() const { return mState.getLimitations(); }
     bool isGLES1() const;
 
+    // To be used **only** directly by the entry points.
+    LocalState *getMutableLocalState() { return mState.getMutableLocalState(); }
+
     bool skipValidation() const
     {
         // Ensure we don't skip validation when context becomes lost, since implementations
@@ -721,13 +724,13 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     angle::Result prepareForDraw(PrimitiveMode mode);
     angle::Result prepareForClear(GLbitfield mask);
     angle::Result prepareForClearBuffer(GLenum buffer, GLint drawbuffer);
-    angle::Result syncState(const state::DirtyBits &bitMask,
-                            const state::ExtendedDirtyBits &extendedBitMask,
+    angle::Result syncState(const state::DirtyBits bitMask,
+                            const state::ExtendedDirtyBits extendedBitMask,
                             const state::DirtyObjects &objectMask,
                             Command command);
     angle::Result syncAllDirtyBits(Command command);
-    angle::Result syncDirtyBits(const state::DirtyBits &bitMask,
-                                const state::ExtendedDirtyBits &extendedBitMask,
+    angle::Result syncDirtyBits(const state::DirtyBits bitMask,
+                                const state::ExtendedDirtyBits extendedBitMask,
                                 Command command);
     angle::Result syncDirtyObjects(const state::DirtyObjects &objectMask, Command command);
     angle::Result syncStateForReadPixels();
@@ -845,32 +848,13 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     StateCache mStateCache;
 
-    state::DirtyBits mAllDirtyBits;
-    state::ExtendedDirtyBits mAllExtendedDirtyBits;
-    state::DirtyBits mTexImageDirtyBits;
-    state::ExtendedDirtyBits mTexImageExtendedDirtyBits;
     state::DirtyObjects mTexImageDirtyObjects;
-    state::DirtyBits mReadPixelsDirtyBits;
-    state::ExtendedDirtyBits mReadPixelsExtendedDirtyBits;
     state::DirtyObjects mReadPixelsDirtyObjects;
-    state::DirtyBits mClearDirtyBits;
-    state::ExtendedDirtyBits mClearExtendedDirtyBits;
     state::DirtyObjects mClearDirtyObjects;
-    state::DirtyBits mBlitDirtyBits;
-    state::ExtendedDirtyBits mBlitExtendedDirtyBits;
     state::DirtyObjects mBlitDirtyObjects;
-    state::DirtyBits mComputeDirtyBits;
-    state::ExtendedDirtyBits mComputeExtendedDirtyBits;
     state::DirtyObjects mComputeDirtyObjects;
     state::DirtyBits mCopyImageDirtyBits;
-    state::ExtendedDirtyBits mCopyImageExtendedDirtyBits;
     state::DirtyObjects mCopyImageDirtyObjects;
-    state::DirtyBits mReadInvalidateDirtyBits;
-    state::ExtendedDirtyBits mReadInvalidateExtendedDirtyBits;
-    state::DirtyBits mDrawInvalidateDirtyBits;
-    state::ExtendedDirtyBits mDrawInvalidateExtendedDirtyBits;
-    state::DirtyBits mPixelLocalStorageEXTEnableDisableDirtyBits;
-    state::ExtendedDirtyBits mPixelLocalStorageEXTEnableDisableExtendedDirtyBits;
     state::DirtyObjects mPixelLocalStorageEXTEnableDisableDirtyObjects;
 
     // Binding to container objects that use dependent state updates.
