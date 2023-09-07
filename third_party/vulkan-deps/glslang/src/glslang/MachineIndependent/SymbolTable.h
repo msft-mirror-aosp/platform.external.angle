@@ -487,6 +487,12 @@ public:
             return (*it).second;
     }
 
+    template <typename ProcSymFn> void processAllSymbols(ProcSymFn procSym) const
+    {
+        for (auto itr : level)
+            procSym(itr.second);
+    }
+
     void findFunctionNameList(const TString& name, TVector<const TFunction*>& list)
     {
         size_t parenAt = name.find_first_of('(');
@@ -571,6 +577,7 @@ public:
 
     void relateToOperator(const char* name, TOperator op);
     void setFunctionExtensions(const char* name, int num, const char* const extensions[]);
+    void setSingleFunctionExtensions(const char* name, int num, const char* const extensions[]);
     void dump(TInfoSink& infoSink, bool complete = false) const;
     TSymbolTableLevel* clone() const;
     void readOnly();
@@ -795,6 +802,15 @@ public:
         return symbol;
     }
 
+    template <typename ProcSymFn> void processAllSymbols(ProcSymFn procSym)
+    {
+        int level = currentLevel();
+        do {
+            table[level]->processAllSymbols(procSym);
+            --level;
+        } while (level >= 0);
+    }
+
     void retargetSymbol(const TString& from, const TString& to) {
         int level = currentLevel();
         table[level]->retargetSymbol(from, to);
@@ -870,6 +886,12 @@ public:
     {
         for (unsigned int level = 0; level < table.size(); ++level)
             table[level]->setFunctionExtensions(name, num, extensions);
+    }
+
+    void setSingleFunctionExtensions(const char* name, int num, const char* const extensions[])
+    {
+        for (unsigned int level = 0; level < table.size(); ++level)
+            table[level]->setSingleFunctionExtensions(name, num, extensions);
     }
 
     void setVariableExtensions(const char* name, int numExts, const char* const extensions[])

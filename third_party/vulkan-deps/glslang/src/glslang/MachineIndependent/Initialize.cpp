@@ -51,8 +51,10 @@
 //                                                including identifying what extensions are needed if a version does not allow a symbol
 //
 
-#include "../Include/intermediate.h"
 #include "Initialize.h"
+#include "../Include/intermediate.h"
+#include "ScanContext.h"
+#include "preprocessor/PpContext.h"
 
 namespace glslang {
 
@@ -320,6 +322,32 @@ const CustomFunction CustomFunctions[] = {
     { EOpTextureProjGradOffset, "textureProjGradOffset", nullptr },
 
     { EOpNull }
+};
+
+// Creates a parser that is separate from the main parsing context and meant for temporary use
+struct TempParser {
+    TempParser(const TString& str, EShLanguage language, int version, EProfile profile, SpvVersion spvVersion)
+        : interm(language), parseContext(table, interm, false, version, profile, spvVersion, language, sink, true,
+                                         EShMsgDefault, &dummyEntryPoint),
+          inputStr(str.data()), stringSize(str.size())
+    {
+        table.push();
+        parseContext.setScanContext(&scanContext);
+        parseContext.setPpContext(&context);
+        parseContext.parseShaderStrings(context, input, false);
+    }
+
+    TSymbolTable table;
+    TIntermediate interm;
+    TInfoSink sink;
+    TString dummyEntryPoint;
+    TParseContext parseContext;
+    TShader::ForbidIncluder includer;
+    TPpContext context{parseContext, "", includer};
+    TScanContext scanContext{parseContext};
+    const char* inputStr;
+    size_t stringSize;
+    TInputScanner input{1, &inputStr, &stringSize};
 };
 
 // For the given table of functions, add all the indicated prototypes for each
@@ -4820,6 +4848,34 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "\n");
     }
 
+    // GL_EXT_texture_shadow_lod overloads
+    if (profile == EEsProfile) { // ES
+        if (version >= 300) {
+            textureShadowLodFunctions += "float texture(sampler2DArrayShadow, vec4, float);"
+                                         "float textureOffset(sampler2DArrayShadow, vec4, ivec2, float);"
+                                         "float textureLod(sampler2DArrayShadow, vec4, float);"
+                                         "float textureLodOffset(sampler2DArrayShadow, vec4, float, ivec2);"
+                                         "\n";
+        }
+        if (version >= 320) {
+            textureShadowLodFunctions += "float texture(samplerCubeArrayShadow, vec4, float, float);"
+                                         "float textureLod(samplerCubeShadow, vec4, float);"
+                                         "float textureLod(samplerCubeArrayShadow, vec4, float, float);"
+                                         "\n";
+        }
+    } else if (version >= 130) { // Desktop
+        textureShadowLodFunctions += "float texture(sampler2DArrayShadow, vec4, float);"
+                                     "float texture(samplerCubeArrayShadow, vec4, float, float);"
+                                     "float textureOffset(sampler2DArrayShadow, vec4, ivec2);"
+                                     "float textureOffset(sampler2DArrayShadow, vec4, ivec2, float);"
+                                     "float textureLod(sampler2DArrayShadow, vec4, float);"
+                                     "float textureLod(samplerCubeShadow, vec4, float);"
+                                     "float textureLod(samplerCubeArrayShadow, vec4, float, float);"
+                                     "float textureLodOffset(sampler2DArrayShadow, vec4, float, ivec2);"
+                                     "\n";
+    }
+    commonBuiltins.append(textureShadowLodFunctions);
+
     //============================================================================
     //
     // Standard Uniforms
@@ -8740,6 +8796,13 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("textureBoxFilterQCOM",     1, &E_GL_QCOM_image_processing);
             symbolTable.setFunctionExtensions("textureBlockMatchSADQCOM", 1, &E_GL_QCOM_image_processing);
             symbolTable.setFunctionExtensions("textureBlockMatchSSDQCOM", 1, &E_GL_QCOM_image_processing);
+        }
+
+        {
+            TempParser parser(textureShadowLodFunctions, language, version, profile, spvVersion);
+            parser.table.processAllSymbols([&symbolTable](TSymbol* sym) {
+                symbolTable.setSingleFunctionExtensions(sym->getMangledName().data(), 1, &E_GL_EXT_texture_shadow_lod);
+            });
         }
         break;
 
