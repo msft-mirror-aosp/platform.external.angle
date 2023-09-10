@@ -19,6 +19,15 @@ namespace gl
 {
 namespace
 {
+ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
+// A placeholder struct just to ensure sh::BlockMemberInfo is tightly packed since vulkan backend
+// uses it and memcpy the entire vector which requires it tightly packed to make msan happy.
+struct BlockMemberInfoPaddingTest
+{
+    sh::BlockMemberInfo blockMemberInfo;
+};
+ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
+
 bool IncludeSameArrayElement(const std::set<std::string> &nameSet, const std::string &name)
 {
     std::vector<unsigned int> subscripts;
@@ -240,7 +249,14 @@ void SaveUniforms(BinaryOutputStream *stream,
     {
         stream->writeString(name);
     }
-    stream->writeVector(uniformLocations);
+
+    stream->writeInt(uniformLocations.size());
+    for (const auto &variable : uniformLocations)
+    {
+        stream->writeInt(variable.arrayIndex);
+        stream->writeIntOrNegOne(variable.index);
+        stream->writeBool(variable.ignored);
+    }
 }
 void LoadUniforms(BinaryInputStream *stream,
                   std::vector<LinkedUniform> *uniforms,
@@ -248,6 +264,7 @@ void LoadUniforms(BinaryInputStream *stream,
                   std::vector<std::string> *uniformMappedNames,
                   std::vector<VariableLocation> *uniformLocations)
 {
+    ASSERT(uniforms->empty());
     stream->readVector(uniforms);
     if (!uniforms->empty())
     {
@@ -262,7 +279,18 @@ void LoadUniforms(BinaryInputStream *stream,
             stream->readString(&(*uniformMappedNames)[uniformIndex]);
         }
     }
-    stream->readVector(uniformLocations);
+
+    const size_t uniformIndexCount = stream->readInt<size_t>();
+    ASSERT(uniformLocations->empty());
+    for (size_t uniformIndexIndex = 0; uniformIndexIndex < uniformIndexCount; ++uniformIndexIndex)
+    {
+        VariableLocation variable;
+        stream->readInt(&variable.arrayIndex);
+        stream->readInt(&variable.index);
+        stream->readBool(&variable.ignored);
+
+        uniformLocations->push_back(variable);
+    }
 }
 
 void SaveSamplerBindings(BinaryOutputStream *stream,
@@ -276,7 +304,9 @@ void LoadSamplerBindings(BinaryInputStream *stream,
                          std::vector<SamplerBinding> *samplerBindings,
                          std::vector<GLuint> *samplerBoundTextureUnits)
 {
+    ASSERT(samplerBindings->empty());
     stream->readVector(samplerBindings);
+
     ASSERT(samplerBoundTextureUnits->empty());
     size_t boundTextureUnitsCount = stream->readInt<size_t>();
     samplerBoundTextureUnits->resize(boundTextureUnitsCount, 0);
