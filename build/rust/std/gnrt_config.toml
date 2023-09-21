@@ -33,13 +33,14 @@ build_file_template = "BUILD.gn.hbs"
 
 extra_kv = { include_coverage = true }
 
-[crate.compiler_builtins.extra_kv]
+[crate.compiler_builtins]
 # Dependencies of profiler_builtins must have instrumentation disabled
-#
 # The build script conditionally generates a file; it's simplest to just paste
-# raw GN into the output.
-include_coverage = false
-raw_gn = 'if (current_cpu == "arm64") { build_script_outputs = ["outlined_atomics.rs"] }'
+# raw GN into the output. (crbug.com/1470653)
+extra_kv = { include_coverage = false, raw_gn = 'if (current_cpu == "arm64") { build_script_outputs = ["outlined_atomics.rs"] }' }
+
+# compiler_builtins depends on libm on windows crbug.com/1472681
+extra_src_roots = ['../libm']
 
 [crate.core]
 # Dependencies of profiler_builtins must have instrumentation disabled

@@ -82,6 +82,8 @@ class ImageMemorySuballocator : angle::NonCopyable
                                    const VkImageCreateInfo *imageCreateInfo,
                                    VkMemoryPropertyFlags requiredFlags,
                                    VkMemoryPropertyFlags preferredFlags,
+                                   const VkMemoryRequirements *memoryRequirements,
+                                   const bool allocateDedicatedMemory,
                                    MemoryAllocationType memoryAllocationType,
                                    Allocation *allocationOut,
                                    VkMemoryPropertyFlags *memoryFlagsOut,
@@ -94,6 +96,9 @@ class ImageMemorySuballocator : angle::NonCopyable
                                               VkDeviceSize size,
                                               int value,
                                               VkMemoryPropertyFlags flags);
+
+    // Determines if dedicated memory is required for the allocation.
+    bool needsDedicatedMemory(VkDeviceSize size) const;
 };
 }  // namespace vk
 
@@ -574,11 +579,11 @@ class RendererVk : angle::NonCopyable
         return mSupportedVulkanShaderStageMask;
     }
 
-    angle::Result getFormatDescriptorCountForVkFormat(ContextVk *contextVk,
+    angle::Result getFormatDescriptorCountForVkFormat(vk::Context *context,
                                                       VkFormat format,
                                                       uint32_t *descriptorCountOut);
 
-    angle::Result getFormatDescriptorCountForExternalFormat(ContextVk *contextVk,
+    angle::Result getFormatDescriptorCountForExternalFormat(vk::Context *context,
                                                             uint64_t format,
                                                             uint32_t *descriptorCountOut);
 
@@ -924,6 +929,8 @@ class RendererVk : angle::NonCopyable
     VkPhysicalDeviceLegacyDitheringFeaturesEXT mDitheringFeatures;
     VkPhysicalDeviceDrmPropertiesEXT mDrmProperties;
     VkPhysicalDeviceTimelineSemaphoreFeaturesKHR mTimelineSemaphoreFeatures;
+    VkPhysicalDeviceHostImageCopyFeaturesEXT mHostImageCopyFeatures;
+    VkPhysicalDeviceHostImageCopyPropertiesEXT mHostImageCopyProperties;
 
     angle::PackedEnumBitSet<gl::ShadingRate, uint8_t> mSupportedFragmentShadingRates;
     std::vector<VkQueueFamilyProperties> mQueueFamilyProperties;

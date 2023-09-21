@@ -77,7 +77,6 @@ constexpr char kCompressionVarName[]    = "ANGLE_CAPTURE_COMPRESSION";
 constexpr char kSerializeStateVarName[] = "ANGLE_CAPTURE_SERIALIZE_STATE";
 constexpr char kValidationVarName[]     = "ANGLE_CAPTURE_VALIDATION";
 constexpr char kValidationExprVarName[] = "ANGLE_CAPTURE_VALIDATION_EXPR";
-constexpr char kTrimEnabledVarName[]    = "ANGLE_CAPTURE_TRIM_ENABLED";
 constexpr char kSourceExtVarName[]      = "ANGLE_CAPTURE_SOURCE_EXT";
 constexpr char kSourceSizeVarName[]     = "ANGLE_CAPTURE_SOURCE_SIZE";
 constexpr char kForceShadowVarName[]    = "ANGLE_CAPTURE_FORCE_SHADOW";
@@ -102,7 +101,6 @@ constexpr char kAndroidCaptureLabel[]   = "debug.angle.capture.label";
 constexpr char kAndroidCompression[]    = "debug.angle.capture.compression";
 constexpr char kAndroidValidation[]     = "debug.angle.capture.validation";
 constexpr char kAndroidValidationExpr[] = "debug.angle.capture.validation_expr";
-constexpr char kAndroidTrimEnabled[]    = "debug.angle.capture.trim_enabled";
 constexpr char kAndroidSourceExt[]      = "debug.angle.capture.source_ext";
 constexpr char kAndroidSourceSize[]     = "debug.angle.capture.source_size";
 constexpr char kAndroidForceShadow[]    = "debug.angle.capture.force_shadow";
@@ -261,6 +259,7 @@ enum class ReplayFunc
 {
     Replay,
     Setup,
+    SetupInactive,
     Reset,
 };
 
@@ -352,6 +351,50 @@ std::ostream &operator<<(std::ostream &os, const FmtSetupFunction &fmt)
     return os;
 }
 
+struct FmtSetupInactiveFunction
+{
+    FmtSetupInactiveFunction(uint32_t partIdIn, gl::ContextID contextIdIn, FuncUsage usageIn)
+        : partId(partIdIn), contextId(contextIdIn), usage(usageIn)
+    {}
+
+    uint32_t partId;
+    gl::ContextID contextId;
+    FuncUsage usage;
+};
+
+std::ostream &operator<<(std::ostream &os, const FmtSetupInactiveFunction &fmt)
+{
+    if ((fmt.usage == FuncUsage::Call) && (fmt.partId == kNoPartId))
+    {
+        os << "if (gReplayResourceMode == angle::ReplayResourceMode::All)\n    {\n        ";
+    }
+    os << "SetupReplayContext";
+
+    if (fmt.contextId == kSharedContextId)
+    {
+        os << "Shared";
+    }
+    else
+    {
+        os << fmt.contextId;
+    }
+
+    os << "Inactive";
+
+    if (fmt.partId != kNoPartId)
+    {
+        os << "Part" << fmt.partId;
+    }
+
+    os << fmt.usage;
+
+    if ((fmt.usage == FuncUsage::Call) && (fmt.partId == kNoPartId))
+    {
+        os << ";\n    }";
+    }
+    return os;
+}
+
 struct FmtResetFunction
 {
     FmtResetFunction(uint32_t partIdIn, gl::ContextID contextIdIn, FuncUsage usageIn)
@@ -415,6 +458,10 @@ std::ostream &operator<<(std::ostream &os, const FmtFunction &fmt)
 
         case ReplayFunc::Setup:
             os << FmtSetupFunction(fmt.partId, fmt.contextId, fmt.usage);
+            break;
+
+        case ReplayFunc::SetupInactive:
+            os << FmtSetupInactiveFunction(fmt.partId, fmt.contextId, fmt.usage);
             break;
 
         case ReplayFunc::Reset:
@@ -1657,25 +1704,25 @@ void WriteCppReplayFunctionWithParts(const gl::ContextID contextID,
 
     for (const CallCapture &call : calls)
     {
-        if (!call.isActive)
+        // Process active calls for Setup and inactive calls for SetupInactive
+        if ((call.isActive && replayFunc != ReplayFunc::SetupInactive) ||
+            (!call.isActive && replayFunc == ReplayFunc::SetupInactive))
         {
-            // Don't write setup calls for inactive resources
-            continue;
-        }
+            out << "    ";
+            WriteCppReplayForCall(call, replayWriter, out, header, binaryData,
+                                  maxResourceIDBufferSize);
+            out << ";\n";
 
-        out << "    ";
-        WriteCppReplayForCall(call, replayWriter, out, header, binaryData, maxResourceIDBufferSize);
-        out << ";\n";
-
-        if (partCount > 0 && ++callCount % kFunctionSizeLimit == 0)
-        {
-            out << "}\n";
-            out << "\n";
-            out << "void "
-                << FmtFunction(replayFunc, contextID, FuncUsage::Definition, frameIndex,
-                               ++partCount)
-                << "\n";
-            out << "{\n";
+            if (partCount > 0 && ++callCount % kFunctionSizeLimit == 0)
+            {
+                out << "}\n";
+                out << "\n";
+                out << "void "
+                    << FmtFunction(replayFunc, contextID, FuncUsage::Definition, frameIndex,
+                                   ++partCount)
+                    << "\n";
+                out << "{\n";
+            }
         }
     }
     out << "}\n";
@@ -1766,6 +1813,7 @@ void WriteShareGroupCppSetupReplay(ReplayWriter &replayWriter,
                                    size_t *maxResourceIDBufferSize)
 {
     {
+
         std::stringstream include;
 
         include << "#include \"angle_trace_gl.h\"\n";
@@ -1791,6 +1839,18 @@ void WriteShareGroupCppSetupReplay(ReplayWriter &replayWriter,
                                         bodyStream, maxResourceIDBufferSize);
 
         replayWriter.addPrivateFunction(proto, headerStream, bodyStream);
+
+        protoStream.str("");
+        headerStream.str("");
+        bodyStream.str("");
+        protoStream << "void "
+                    << FmtSetupInactiveFunction(kNoPartId, kSharedContextId, FuncUsage::Prototype);
+        proto = protoStream.str();
+
+        WriteCppReplayFunctionWithParts(kSharedContextId, ReplayFunc::SetupInactive, replayWriter,
+                                        frameIndex, binaryData, setupCalls, headerStream,
+                                        bodyStream, maxResourceIDBufferSize);
+        replayWriter.addPrivateFunction(proto, headerStream, bodyStream);
     }
 
     {
@@ -1805,7 +1865,7 @@ void WriteShareGroupCppSetupReplay(ReplayWriter &replayWriter,
     replayWriter.saveSetupFile();
 }
 
-ProgramSources GetAttachedProgramSources(const gl::Program *program)
+ProgramSources GetAttachedProgramSources(const gl::Context *context, const gl::Program *program)
 {
     ProgramSources sources;
     for (gl::ShaderType shaderType : gl::AllShaderTypes())
@@ -3399,7 +3459,7 @@ void GenerateLinkedProgram(const gl::Context *context,
             varyingsStrings.push_back(varyingString.data());
         }
 
-        GLenum xfbMode = program->getState().getTransformFeedbackBufferMode();
+        GLenum xfbMode = program->getTransformFeedbackBufferMode();
         Capture(setupCalls, CaptureTransformFeedbackVaryings(replayState, true, id,
                                                              static_cast<GLint>(xfbVaryings.size()),
                                                              varyingsStrings.data(), xfbMode));
@@ -3407,7 +3467,7 @@ void GenerateLinkedProgram(const gl::Context *context,
 
     // Force the attributes to be bound the same way as in the existing program.
     // This can affect attributes that are optimized out in some implementations.
-    for (const sh::ShaderVariable &attrib : program->getState().getProgramInputs())
+    for (const gl::ProgramInput &attrib : program->getState().getProgramInputs())
     {
         if (gl::IsBuiltInName(attrib.name))
         {
@@ -3418,9 +3478,9 @@ void GenerateLinkedProgram(const gl::Context *context,
         // Separable programs may not have a VS, meaning it may not have attributes.
         if (program->getExecutable().hasLinkedShaderStage(gl::ShaderType::Vertex))
         {
-            ASSERT(attrib.location != -1);
+            ASSERT(attrib.getLocation() != -1);
             Capture(setupCalls, CaptureBindAttribLocation(replayState, true, id,
-                                                          static_cast<GLuint>(attrib.location),
+                                                          static_cast<GLuint>(attrib.getLocation()),
                                                           attrib.name.c_str()));
         }
     }
@@ -3883,6 +3943,8 @@ void CaptureShareGroupMidExecutionSetup(
             continue;
         }
 
+        size_t textureSetupStart = setupCalls->size();
+
         // Track this as a starting resource that may need to be restored.
         TrackedResource &trackedTextures =
             resourceTracker->getTrackedResource(context->id(), ResourceIDType::Texture);
@@ -4213,6 +4275,13 @@ void CaptureShareGroupMidExecutionSetup(
                 }
             }
         }
+
+        size_t textureSetupEnd = setupCalls->size();
+
+        // Mark the range of calls used to setup this texture
+        frameCaptureShared->markResourceSetupCallsInactive(
+            setupCalls, ResourceIDType::Texture, id.value,
+            gl::Range<size_t>(textureSetupStart, textureSetupEnd));
     }
 
     // Capture Renderbuffers.
@@ -4404,12 +4473,10 @@ void CaptureShareGroupMidExecutionSetup(
             }
         }
 
-        size_t shaderSetupEnd = setupCalls->size();
-
         // Mark the range of calls used to setup this shader
         frameCaptureShared->markResourceSetupCallsInactive(
             setupCalls, ResourceIDType::ShaderProgram, id.value,
-            gl::Range<size_t>(shaderSetupStart, shaderSetupEnd));
+            gl::Range<size_t>(shaderSetupStart, setupCalls->size()));
 
         resourceTracker->getTrackedResource(context->id(), ResourceIDType::ShaderProgram)
             .getStartingResources()
@@ -4698,6 +4765,13 @@ void CaptureMidExecutionSetup(const gl::Context *context,
                 replayState.setSamplerTexture(context, textureType,
                                               apiBindings[bindingIndex].get());
             }
+
+            // Set this texture as active so it will be generated in Setup
+            if (apiTextureID.value)
+            {
+                MarkResourceIDActive(ResourceIDType::Texture, apiTextureID.value,
+                                     shareGroupSetupCalls, resourceIDToSetupCalls);
+            }
         }
     }
 
@@ -4887,7 +4961,7 @@ void CaptureMidExecutionSetup(const gl::Context *context,
         // or compute stages.
         for (gl::ShaderType shaderType : gl::AllShaderTypes())
         {
-            gl::Program *program = pipeline->getShaderProgram(shaderType);
+            const gl::Program *program = pipeline->getShaderProgram(shaderType);
             if (!program)
             {
                 continue;
@@ -5622,19 +5696,6 @@ bool SkipCall(EntryPoint entryPoint)
     return false;
 }
 
-template <typename ParamValueType>
-struct ParamValueTrait
-{
-    static_assert(sizeof(ParamValueType) == 0, "invalid ParamValueType");
-};
-
-template <>
-struct ParamValueTrait<gl::FramebufferID>
-{
-    static constexpr const char *name = "framebufferPacked";
-    static const ParamType typeID     = ParamType::TFramebufferID;
-};
-
 std::string GetBaseName(const std::string &nameWithPath)
 {
     std::vector<std::string> result = angle::SplitString(
@@ -5642,27 +5703,6 @@ std::string GetBaseName(const std::string &nameWithPath)
     ASSERT(!result.empty());
     return result.back();
 }
-
-template <>
-struct ParamValueTrait<gl::BufferID>
-{
-    static constexpr const char *name = "bufferPacked";
-    static const ParamType typeID     = ParamType::TBufferID;
-};
-
-template <>
-struct ParamValueTrait<gl::RenderbufferID>
-{
-    static constexpr const char *name = "renderbufferPacked";
-    static const ParamType typeID     = ParamType::TRenderbufferID;
-};
-
-template <>
-struct ParamValueTrait<gl::TextureID>
-{
-    static constexpr const char *name = "texturePacked";
-    static const ParamType typeID     = ParamType::TTextureID;
-};
 }  // namespace
 
 FrameCapture::FrameCapture()  = default;
@@ -5701,23 +5741,6 @@ FrameCaptureShared::FrameCaptureShared()
         mEnabled = false;
     }
 
-    std::string pathFromEnv =
-        GetEnvironmentVarOrUnCachedAndroidProperty(kOutDirectoryVarName, kAndroidOutDir);
-    if (pathFromEnv.empty())
-    {
-        mOutDirectory = GetDefaultOutDirectory();
-    }
-    else
-    {
-        mOutDirectory = pathFromEnv;
-    }
-
-    // Ensure the capture path ends with a slash.
-    if (mOutDirectory.back() != '\\' && mOutDirectory.back() != '/')
-    {
-        mOutDirectory += '/';
-    }
-
     std::string startFromEnv =
         GetEnvironmentVarOrUnCachedAndroidProperty(kFrameStartVarName, kAndroidFrameStart);
     if (!startFromEnv.empty())
@@ -5751,6 +5774,11 @@ FrameCaptureShared::FrameCaptureShared()
 
     std::string labelFromEnv =
         GetEnvironmentVarOrUnCachedAndroidProperty(kCaptureLabelVarName, kAndroidCaptureLabel);
+    // --angle-per-test-capture-label sets the env var, not properties
+    if (labelFromEnv.empty())
+    {
+        labelFromEnv = GetEnvironmentVar(kCaptureLabelVarName);
+    }
     if (!labelFromEnv.empty())
     {
         // Optional label to provide unique file names and namespaces
@@ -5782,13 +5810,6 @@ FrameCaptureShared::FrameCaptureShared()
     if (!mValidationExpression.empty())
     {
         INFO() << "Validation expression is " << kValidationExprVarName;
-    }
-
-    std::string trimEnabledFromEnv =
-        GetEnvironmentVarOrUnCachedAndroidProperty(kTrimEnabledVarName, kAndroidTrimEnabled);
-    if (trimEnabledFromEnv == "0")
-    {
-        mTrimEnabled = false;
     }
 
     // TODO: Remove. http://anglebug.com/7753
@@ -5839,10 +5860,37 @@ FrameCaptureShared::FrameCaptureShared()
 
     if (mCaptureEndFrame < mCaptureStartFrame)
     {
+        // If we're still in a situation where start frame is after end frame,
+        // capture cannot happen. Consider this a disabled state.
+        // Note: We won't get here if trigger is in use, as it sets them equal but huge.
         mEnabled = false;
     }
 
     mReplayWriter.setCaptureLabel(mCaptureLabel);
+
+    // Special case the output directory
+    if (mEnabled)
+    {
+        // Only perform output directory checks if enabled
+        // - This can avoid some expensive process name and filesystem checks
+        // - We want to emit errors if the directory doesn't exist
+        std::string pathFromEnv =
+            GetEnvironmentVarOrUnCachedAndroidProperty(kOutDirectoryVarName, kAndroidOutDir);
+        if (pathFromEnv.empty())
+        {
+            mOutDirectory = GetDefaultOutDirectory();
+        }
+        else
+        {
+            mOutDirectory = pathFromEnv;
+        }
+
+        // Ensure the capture path ends with a slash.
+        if (mOutDirectory.back() != '\\' && mOutDirectory.back() != '/')
+        {
+            mOutDirectory += '/';
+        }
+    }
 }
 
 FrameCaptureShared::~FrameCaptureShared() = default;
@@ -7357,7 +7405,7 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
             gl::ShaderProgramID shaderID =
                 call.params.getParam("shaderPacked", ParamType::TShaderProgramID, 0)
                     .value.ShaderProgramIDVal;
-            const gl::Shader *shader = context->getShader(shaderID);
+            const gl::Shader *shader = context->getShaderNoResolveCompile(shaderID);
             // Shaders compiled for ProgramBinary will not have a shader created
             if (shader)
             {
@@ -7374,9 +7422,9 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
                     .value.ShaderProgramIDVal;
             const gl::Program *program = context->getProgramResolveLink(programID);
             // Programs linked in support of ProgramBinary will not have attached shaders
-            if (program->getState().hasAttachedShader())
+            if (program->getState().hasAnyAttachedShader())
             {
-                setProgramSources(programID, GetAttachedProgramSources(program));
+                setProgramSources(programID, GetAttachedProgramSources(context, program));
             }
             break;
         }
@@ -7699,7 +7747,7 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
     updateReadBufferSize(call.params.getReadBufferSize());
 
     std::vector<gl::ShaderProgramID> shaderProgramIDs;
-    if (FindShaderProgramIDsInCall(call, shaderProgramIDs))
+    if (FindResourceIDsInCall<gl::ShaderProgramID>(call, shaderProgramIDs))
     {
         for (gl::ShaderProgramID shaderProgramID : shaderProgramIDs)
         {
@@ -7710,6 +7758,20 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
                 // Track that this call referenced a ShaderProgram, setting it active for Setup
                 MarkResourceIDActive(ResourceIDType::ShaderProgram, shaderProgramID.value,
                                      shareGroupSetupCalls, resourceIDToSetupCalls);
+            }
+        }
+    }
+
+    std::vector<gl::TextureID> textureIDs;
+    if (FindResourceIDsInCall<gl::TextureID>(call, textureIDs))
+    {
+        for (gl::TextureID textureID : textureIDs)
+        {
+            if (isCaptureActive())
+            {
+                // Track that this call referenced a Texture, setting it active for Setup
+                MarkResourceIDActive(ResourceIDType::Texture, textureID.value, shareGroupSetupCalls,
+                                     resourceIDToSetupCalls);
             }
         }
     }
@@ -8820,7 +8882,6 @@ void FrameCaptureShared::writeJSON(const gl::Context *context)
     json.addBool("IsBindGeneratesResourcesEnabled", glState.isBindGeneratesResourceEnabled());
     json.addBool("IsWebGLCompatibilityEnabled", glState.isWebGL());
     json.addBool("IsRobustResourceInitEnabled", glState.isRobustResourceInitEnabled());
-    json.addBool("IsTrimmingEnabled", mTrimEnabled);
     json.endGroup();
 
     {
@@ -8998,6 +9059,9 @@ void FrameCaptureShared::writeMainContextCppReplay(const gl::Context *context,
             {
                 out << "    " << FmtSetupFunction(kNoPartId, kSharedContextId, FuncUsage::Call)
                     << ";\n";
+                out << "    "
+                    << FmtSetupInactiveFunction(kNoPartId, kSharedContextId, FuncUsage::Call)
+                    << "\n";
                 // Make sure that the current context is mapped correctly
                 out << "    SetCurrentContextID(" << context->id() << ");\n";
             }
@@ -9285,11 +9349,6 @@ void FrameCaptureShared::markResourceSetupCallsInactive(std::vector<CallCapture>
                                                         GLuint id,
                                                         gl::Range<size_t> range)
 {
-    if (!mTrimEnabled)
-    {
-        return;
-    }
-
     ASSERT(mResourceIDToSetupCalls[type].find(id) == mResourceIDToSetupCalls[type].end());
 
     // Mark all of the calls that were used to initialize this resource as INACTIVE
@@ -9679,7 +9738,6 @@ void ReplayWriter::writeReplaySource(const std::string &filename)
     SaveFileHelper saveCpp(filename);
 
     saveCpp << mSourcePrologue << "\n";
-
     for (const std::string &header : mReplayHeaders)
     {
         saveCpp << header << "\n";

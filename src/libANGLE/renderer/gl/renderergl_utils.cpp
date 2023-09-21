@@ -12,6 +12,7 @@
 #include <array>
 #include <limits>
 
+#include "common/android_util.h"
 #include "common/mathutil.h"
 #include "common/platform.h"
 #include "common/string_utils.h"
@@ -21,6 +22,7 @@
 #include "libANGLE/Context.h"
 #include "libANGLE/formatutils.h"
 #include "libANGLE/queryconversions.h"
+#include "libANGLE/renderer/driver_utils.h"
 #include "libANGLE/renderer/gl/ContextGL.h"
 #include "libANGLE/renderer/gl/FenceNVGL.h"
 #include "libANGLE/renderer/gl/FunctionsGL.h"
@@ -49,11 +51,6 @@ const char *GetString(const FunctionsGL *functions, GLenum name)
 bool IsMesa(const FunctionsGL *functions, std::array<int, 3> *version)
 {
     ASSERT(version);
-
-    if (functions->standard != STANDARD_GL_DESKTOP)
-    {
-        return false;
-    }
 
     std::string nativeVersionString(GetString(functions, GL_VERSION));
     size_t pos = nativeVersionString.find("Mesa");
@@ -161,22 +158,7 @@ bool IsMaliValhall(const FunctionsGL *functions)
            number == 510 || number == 610 || number == 710 || number == 615 || number == 715;
 }
 
-int GetAndroidSdkLevel()
-{
-    if (!IsAndroid())
-    {
-        return 0;
-    }
-
-    angle::SystemInfo info;
-    if (!angle::GetSystemInfo(&info))
-    {
-        return 0;
-    }
-    return info.androidSdkLevel;
-}
-
-bool IsAndroidEmulator(const FunctionsGL *functions)
+[[maybe_unused]] bool IsAndroidEmulator(const FunctionsGL *functions)
 {
     constexpr char androidEmulator[] = "Android Emulator";
     const char *nativeGLRenderer     = GetString(functions, GL_RENDERER);
@@ -1566,11 +1548,12 @@ void GenerateCaps(const FunctionsGL *functions,
     // This functionality is supported on macOS but the extension
     // strings are not listed there for historical reasons.
     extensions->textureMirrorClampToEdgeEXT =
-        IsMac() || functions->isAtLeastGL(gl::Version(4, 4)) ||
-        functions->hasGLExtension("GL_ARB_texture_mirror_clamp_to_edge") ||
-        functions->hasGLExtension("GL_EXT_texture_mirror_clamp") ||
-        functions->hasGLExtension("GL_ATI_texture_mirror_once") ||
-        functions->hasGLESExtension("GL_EXT_texture_mirror_clamp_to_edge");
+        !features.disableTextureMirrorClampToEdge.enabled &&
+        (IsMac() || functions->isAtLeastGL(gl::Version(4, 4)) ||
+         functions->hasGLExtension("GL_ARB_texture_mirror_clamp_to_edge") ||
+         functions->hasGLExtension("GL_EXT_texture_mirror_clamp") ||
+         functions->hasGLExtension("GL_ATI_texture_mirror_once") ||
+         functions->hasGLESExtension("GL_EXT_texture_mirror_clamp_to_edge"));
 
     extensions->multiDrawIndirectEXT = true;
     extensions->instancedArraysANGLE = functions->isAtLeastGL(gl::Version(3, 1)) ||
@@ -2020,6 +2003,11 @@ void GenerateCaps(const FunctionsGL *functions,
                                      functions->hasGLESExtension("GL_EXT_clip_control");
     }
 
+    if (features.disableRenderSnorm.enabled)
+    {
+        extensions->renderSnormEXT = false;
+    }
+
     constexpr uint32_t kRequiredClipDistances                = 8;
     constexpr uint32_t kRequiredCullDistances                = 8;
     constexpr uint32_t kRequiredCombinedClipAndCullDistances = 8;
@@ -2109,7 +2097,9 @@ void GenerateCaps(const FunctionsGL *functions,
                                        functions->hasGLExtension("GL_MESA_framebuffer_flip_y");
 
     // GL_KHR_parallel_shader_compile
-    extensions->parallelShaderCompileKHR = true;
+    extensions->parallelShaderCompileKHR = !features.disableNativeParallelCompile.enabled &&
+                                           (functions->maxShaderCompilerThreadsKHR != nullptr ||
+                                            functions->maxShaderCompilerThreadsARB != nullptr);
 
     // GL_ANGLE_logic_op
     extensions->logicOpANGLE = functions->isAtLeastGL(gl::Version(2, 0));
@@ -2326,18 +2316,6 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
 
     ANGLE_FEATURE_CONDITION(features, queryCounterBitsGeneratesErrors, IsNexus5X(vendor, device));
 
-    ANGLE_FEATURE_CONDITION(features, dontRelinkProgramsInParallel,
-                            IsAndroid() || (IsWindows() && isIntel));
-
-    // TODO(jie.a.chen@intel.com): Clean up the bugs.
-    // anglebug.com/3031
-    // crbug.com/922936
-    // crbug.com/1184692
-    // crbug.com/1202928
-    ANGLE_FEATURE_CONDITION(features, disableWorkerContexts,
-                            (IsWindows() && (isIntel || isAMD)) || (IsLinux() && isNvidia) ||
-                                IsIOS() || IsAndroid() || IsAndroidEmulator(functions));
-
     bool limitMaxTextureSize = isIntel && IsLinux() && GetLinuxOSVersion() < OSVersion(5, 0, 0);
     ANGLE_FEATURE_CONDITION(features, limitWebglMaxTextureSizeTo4096,
                             IsAndroid() || limitMaxTextureSize);
@@ -2416,7 +2394,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     ANGLE_FEATURE_CONDITION(
         features, disableTimestampQueries,
         (IsLinux() && isVMWare) || (IsAndroid() && isNvidia) ||
-            (IsAndroid() && GetAndroidSdkLevel() < 27 && IsAdreno5xxOrOlder(functions)) ||
+            (IsAndroid() && GetAndroidSDKVersion() < 27 && IsAdreno5xxOrOlder(functions)) ||
             (!isMesa && IsMaliT8xxOrOlder(functions)) || (!isMesa && IsMaliG31OrOlder(functions)));
 
     ANGLE_FEATURE_CONDITION(features, decodeEncodeSRGBForGenerateMipmap, IsApple());
@@ -2517,26 +2495,29 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // http://crbug.com/490379
     // http://crbug.com/767913
     bool isAdreno4xxOnAndroidLessThan51 =
-        IsAndroid() && IsAdreno4xx(functions) && GetAndroidSdkLevel() < 22;
+        IsAndroid() && IsAdreno4xx(functions) && GetAndroidSDKVersion() < 22;
 
     // http://crbug.com/612474
     bool isAdreno4xxOnAndroid70 =
-        IsAndroid() && IsAdreno4xx(functions) && GetAndroidSdkLevel() == 24;
+        IsAndroid() && IsAdreno4xx(functions) && GetAndroidSDKVersion() == 24;
     bool isAdreno5xxOnAndroidLessThan70 =
-        IsAndroid() && IsAdreno5xx(functions) && GetAndroidSdkLevel() < 24;
+        IsAndroid() && IsAdreno5xx(functions) && GetAndroidSDKVersion() < 24;
 
     // http://crbug.com/663811
     bool isAdreno5xxOnAndroid71 =
-        IsAndroid() && IsAdreno5xx(functions) && GetAndroidSdkLevel() == 25;
+        IsAndroid() && IsAdreno5xx(functions) && GetAndroidSDKVersion() == 25;
 
     // http://crbug.com/594016
     bool isLinuxVivante = IsLinux() && IsVivante(device);
+
+    // http://anglebug.com/8304
+    bool isWindowsNVIDIA = IsWindows() && IsNvidia(vendor);
 
     // Temporarily disable on all of Android. http://crbug.com/1417485
     ANGLE_FEATURE_CONDITION(features, disableMultisampledRenderToTexture,
                             isAdreno4xxOnAndroidLessThan51 || isAdreno4xxOnAndroid70 ||
                                 isAdreno5xxOnAndroidLessThan70 || isAdreno5xxOnAndroid71 ||
-                                isLinuxVivante || IsAndroid());
+                                isLinuxVivante || IsAndroid() || isWindowsNVIDIA);
 
     // http://crbug.com/1181068
     ANGLE_FEATURE_CONDITION(features, uploadTextureDataInChunks, IsApple());
@@ -2559,6 +2540,9 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
 
     // https://anglebug.com/7880
     ANGLE_FEATURE_CONDITION(features, emulateClipDistanceState, isQualcomm);
+
+    // https://anglebug.com/8308
+    ANGLE_FEATURE_CONDITION(features, explicitFragmentLocations, isQualcomm);
 
     // Desktop GLSL-only fragment synchronization extensions. These are injected internally by the
     // compiler to make pixel local storage coherent.
@@ -2591,6 +2575,15 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
 
     // https://crbug.com/1434317
     ANGLE_FEATURE_CONDITION(features, disableClipControl, IsMaliG72OrG76OrG51(functions));
+
+    // https://anglebug.com/8315
+    ANGLE_FEATURE_CONDITION(features, disableRenderSnorm,
+                            isMesa && (mesaVersion < (std::array<int, 3>{21, 3, 0}) ||
+                                       functions->standard == STANDARD_GL_ES));
+
+    // https://anglebug.com/8319
+    ANGLE_FEATURE_CONDITION(features, disableTextureMirrorClampToEdge,
+                            functions->standard == STANDARD_GL_ES && isMesa);
 
     // http://anglebug.com/8172
     ANGLE_FEATURE_CONDITION(features, disableBaseInstanceVertex, IsMaliValhall(functions));

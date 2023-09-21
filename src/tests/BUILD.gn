@@ -96,6 +96,9 @@ config("angle_common_test_utils_config") {
   if (angle_enable_gl_desktop_backend) {
     defines += [ "ANGLE_ENABLE_GL_DESKTOP_BACKEND" ]
   }
+  if (angle_enable_swiftshader) {
+    defines += [ "ANGLE_ENABLE_SWIFTSHADER" ]
+  }
 }
 
 template("angle_common_test_utils") {
@@ -583,6 +586,9 @@ if (build_angle_trace_tests) {
       "capture_tests/capture_tests.py",
       "capture_tests/expected",
     ]
+    if (is_android) {
+      data += [ "$angle_root/src/tests/angle_android_test_runner.py" ]
+    }
     data_deps = [ ":angle_end2end_tests" ]
   }
 }

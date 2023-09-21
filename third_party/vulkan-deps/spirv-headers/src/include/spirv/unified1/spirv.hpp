@@ -171,6 +171,11 @@ enum ExecutionMode {
     ExecutionModeRoundingModeRTZ = 4463,
     ExecutionModeEarlyAndLateFragmentTestsAMD = 5017,
     ExecutionModeStencilRefReplacingEXT = 5027,
+    ExecutionModeCoalescingAMDX = 5069,
+    ExecutionModeMaxNodeRecursionAMDX = 5071,
+    ExecutionModeStaticNumWorkgroupsAMDX = 5072,
+    ExecutionModeShaderIndexAMDX = 5073,
+    ExecutionModeMaxNumWorkgroupsAMDX = 5077,
     ExecutionModeStencilRefUnchangedFrontAMD = 5079,
     ExecutionModeStencilRefGreaterFrontAMD = 5080,
     ExecutionModeStencilRefLessFrontAMD = 5081,
@@ -222,6 +227,8 @@ enum StorageClass {
     StorageClassImage = 11,
     StorageClassStorageBuffer = 12,
     StorageClassTileImageEXT = 4172,
+    StorageClassNodePayloadAMDX = 5068,
+    StorageClassNodeOutputPayloadAMDX = 5076,
     StorageClassCallableDataKHR = 5328,
     StorageClassCallableDataNV = 5328,
     StorageClassIncomingCallableDataKHR = 5329,
@@ -522,6 +529,10 @@ enum Decoration {
     DecorationWeightTextureQCOM = 4487,
     DecorationBlockMatchTextureQCOM = 4488,
     DecorationExplicitInterpAMD = 4999,
+    DecorationNodeSharesPayloadLimitsWithAMDX = 5019,
+    DecorationNodeMaxPayloadsAMDX = 5020,
+    DecorationTrackFinishWritingAMDX = 5078,
+    DecorationPayloadNodeNameAMDX = 5091,
     DecorationOverrideCoverageNV = 5248,
     DecorationPassthroughNV = 5250,
     DecorationViewportRelativeNV = 5252,
@@ -589,6 +600,9 @@ enum Decoration {
     DecorationSingleElementVectorINTEL = 6085,
     DecorationVectorComputeCallableFunctionINTEL = 6087,
     DecorationMediaBlockIOINTEL = 6140,
+    DecorationInitModeINTEL = 6147,
+    DecorationImplementInRegisterMapINTEL = 6148,
+    DecorationHostAccessINTEL = 6168,
     DecorationFPMaxErrorDecorationINTEL = 6170,
     DecorationLatencyControlLabelINTEL = 6172,
     DecorationLatencyControlConstraintINTEL = 6173,
@@ -676,6 +690,8 @@ enum BuiltIn {
     BuiltInBaryCoordSmoothSampleAMD = 4997,
     BuiltInBaryCoordPullModelAMD = 4998,
     BuiltInFragStencilRefEXT = 5014,
+    BuiltInCoalescedInputCountAMDX = 5021,
+    BuiltInShaderIndexAMDX = 5073,
     BuiltInViewportMaskNV = 5253,
     BuiltInSecondaryPositionNV = 5257,
     BuiltInSecondaryViewportMaskNV = 5258,
@@ -1044,6 +1060,7 @@ enum Capability {
     CapabilityImageReadWriteLodAMD = 5015,
     CapabilityInt64ImageEXT = 5016,
     CapabilityShaderClockKHR = 5055,
+    CapabilityShaderEnqueueAMDX = 5067,
     CapabilitySampleMaskOverrideCoverageNV = 5249,
     CapabilityGeometryShaderPassthroughNV = 5251,
     CapabilityShaderViewportIndexLayerEXT = 5254,
@@ -1169,7 +1186,9 @@ enum Capability {
     CapabilityDebugInfoModuleINTEL = 6114,
     CapabilityBFloat16ConversionINTEL = 6115,
     CapabilitySplitBarrierINTEL = 6141,
+    CapabilityGlobalVariableFPGADecorationsINTEL = 6146,
     CapabilityFPGAKernelAttributesv2INTEL = 6161,
+    CapabilityGlobalVariableHostAccessINTEL = 6167,
     CapabilityFPMaxErrorINTEL = 6169,
     CapabilityFPGALatencyControlINTEL = 6171,
     CapabilityFPGAArgumentInterfacesINTEL = 6174,
@@ -1281,21 +1300,21 @@ enum PackedVectorFormat {
 };
 
 enum CooperativeMatrixOperandsShift {
-    CooperativeMatrixOperandsMatrixASignedComponentsShift = 0,
-    CooperativeMatrixOperandsMatrixBSignedComponentsShift = 1,
-    CooperativeMatrixOperandsMatrixCSignedComponentsShift = 2,
-    CooperativeMatrixOperandsMatrixResultSignedComponentsShift = 3,
-    CooperativeMatrixOperandsSaturatingAccumulationShift = 4,
+    CooperativeMatrixOperandsMatrixASignedComponentsKHRShift = 0,
+    CooperativeMatrixOperandsMatrixBSignedComponentsKHRShift = 1,
+    CooperativeMatrixOperandsMatrixCSignedComponentsKHRShift = 2,
+    CooperativeMatrixOperandsMatrixResultSignedComponentsKHRShift = 3,
+    CooperativeMatrixOperandsSaturatingAccumulationKHRShift = 4,
     CooperativeMatrixOperandsMax = 0x7fffffff,
 };
 
 enum CooperativeMatrixOperandsMask {
     CooperativeMatrixOperandsMaskNone = 0,
-    CooperativeMatrixOperandsMatrixASignedComponentsMask = 0x00000001,
-    CooperativeMatrixOperandsMatrixBSignedComponentsMask = 0x00000002,
-    CooperativeMatrixOperandsMatrixCSignedComponentsMask = 0x00000004,
-    CooperativeMatrixOperandsMatrixResultSignedComponentsMask = 0x00000008,
-    CooperativeMatrixOperandsSaturatingAccumulationMask = 0x00000010,
+    CooperativeMatrixOperandsMatrixASignedComponentsKHRMask = 0x00000001,
+    CooperativeMatrixOperandsMatrixBSignedComponentsKHRMask = 0x00000002,
+    CooperativeMatrixOperandsMatrixCSignedComponentsKHRMask = 0x00000004,
+    CooperativeMatrixOperandsMatrixResultSignedComponentsKHRMask = 0x00000008,
+    CooperativeMatrixOperandsSaturatingAccumulationKHRMask = 0x00000010,
 };
 
 enum CooperativeMatrixLayout {
@@ -1309,6 +1328,20 @@ enum CooperativeMatrixUse {
     CooperativeMatrixUseMatrixBKHR = 1,
     CooperativeMatrixUseMatrixAccumulatorKHR = 2,
     CooperativeMatrixUseMax = 0x7fffffff,
+};
+
+enum InitializationModeQualifier {
+    InitializationModeQualifierInitOnDeviceReprogramINTEL = 0,
+    InitializationModeQualifierInitOnDeviceResetINTEL = 1,
+    InitializationModeQualifierMax = 0x7fffffff,
+};
+
+enum HostAccessQualifier {
+    HostAccessQualifierNoneINTEL = 0,
+    HostAccessQualifierReadINTEL = 1,
+    HostAccessQualifierWriteINTEL = 2,
+    HostAccessQualifierReadWriteINTEL = 3,
+    HostAccessQualifierMax = 0x7fffffff,
 };
 
 enum Op {
@@ -1711,6 +1744,9 @@ enum Op {
     OpFragmentMaskFetchAMD = 5011,
     OpFragmentFetchAMD = 5012,
     OpReadClockKHR = 5056,
+    OpFinalizeNodePayloadsAMDX = 5075,
+    OpFinishWritingNodePayloadAMDX = 5078,
+    OpInitializeNodePayloadsAMDX = 5090,
     OpHitObjectRecordHitMotionNV = 5249,
     OpHitObjectRecordHitWithIndexMotionNV = 5250,
     OpHitObjectRecordMissMotionNV = 5251,
@@ -2434,6 +2470,9 @@ inline void HasResultAndType(Op opcode, bool *hasResult, bool *hasResultType) {
     case OpFragmentMaskFetchAMD: *hasResult = true; *hasResultType = true; break;
     case OpFragmentFetchAMD: *hasResult = true; *hasResultType = true; break;
     case OpReadClockKHR: *hasResult = true; *hasResultType = true; break;
+    case OpFinalizeNodePayloadsAMDX: *hasResult = false; *hasResultType = false; break;
+    case OpFinishWritingNodePayloadAMDX: *hasResult = true; *hasResultType = true; break;
+    case OpInitializeNodePayloadsAMDX: *hasResult = false; *hasResultType = false; break;
     case OpHitObjectRecordHitMotionNV: *hasResult = false; *hasResultType = false; break;
     case OpHitObjectRecordHitWithIndexMotionNV: *hasResult = false; *hasResultType = false; break;
     case OpHitObjectRecordMissMotionNV: *hasResult = false; *hasResultType = false; break;

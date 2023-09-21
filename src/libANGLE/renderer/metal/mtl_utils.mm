@@ -17,11 +17,13 @@
 #include "common/string_utils.h"
 #include "common/system_utils.h"
 #include "gpu_info_util/SystemInfo_internal.h"
+#include "libANGLE/histogram_macros.h"
 #include "libANGLE/renderer/metal/ContextMtl.h"
 #include "libANGLE/renderer/metal/DisplayMtl.h"
 #include "libANGLE/renderer/metal/RenderTargetMtl.h"
 #include "libANGLE/renderer/metal/mtl_render_utils.h"
 #include "libANGLE/renderer/metal/process.h"
+#include "platform/PlatformMethods.h"
 
 // Compiler can turn on programmatical frame capture in release build by defining
 // ANGLE_METAL_FRAME_CAPTURE flag.
@@ -350,7 +352,8 @@ static angle::Result InitializeCompressedTextureContents(const gl::Context *cont
 
 bool PreferStagedTextureUploads(const gl::Context *context,
                                 const TextureRef &texture,
-                                const Format &textureObjFormat)
+                                const Format &textureObjFormat,
+                                StagingPurpose purpose)
 {
     // The simulator MUST upload all textures as staged.
     if (TARGET_OS_SIMULATOR)
@@ -367,9 +370,16 @@ bool PreferStagedTextureUploads(const gl::Context *context,
         return false;
     }
 
+    // If the intended internal format is luminance, we can still
+    // initialize the texture using the GPU. However, if we're
+    // uploading data to it, we avoid using a staging buffer, due to
+    // the (current) need to re-pack the data from L8 -> RGBA8 and LA8
+    // -> RGBA8. This could be better optimized by emulating L8
+    // textures with R8 and LA8 with RG8, and using swizzlig for the
+    // resulting textures.
     if (intendedInternalFormat.isLUMA())
     {
-        return false;
+        return (purpose == StagingPurpose::Initialization);
     }
 
     if (features.disableStagedInitializationOfPackedTextureFormats.enabled)
@@ -401,13 +411,22 @@ angle::Result InitializeTextureContents(const gl::Context *context,
 
     const gl::InternalFormat &intendedInternalFormat = textureObjFormat.intendedInternalFormat();
 
-    bool preferGPUInitialization = PreferStagedTextureUploads(context, texture, textureObjFormat);
+    bool preferGPUInitialization = PreferStagedTextureUploads(context, texture, textureObjFormat,
+                                                              StagingPurpose::Initialization);
 
     // This function is called in many places to initialize the content of a texture.
     // So it's better we do the initial check here instead of let the callers do it themselves:
     if (!textureObjFormat.valid())
     {
         return angle::Result::Continue;
+    }
+
+    if ((textureObjFormat.hasDepthOrStencilBits() && !textureObjFormat.getCaps().depthRenderable) ||
+        !textureObjFormat.getCaps().colorRenderable)
+    {
+        // Texture is not appropriately color- or depth-renderable, so do not attempt
+        // to use GPU initialization (clears for initialization).
+        preferGPUInitialization = false;
     }
 
     gl::Extents size = texture->size(index);
@@ -900,6 +919,9 @@ AutoObjCPtr<id<MTLLibrary>> CreateShaderLibrary(
             options.preprocessorMacros = macroDict;
         }
 
+        auto *platform   = ANGLEPlatformCurrent();
+        double startTime = platform->currentTime(platform);
+
         auto library = metalDevice.newLibraryWithSource(nsSource, options, &nsError);
         if (angle::GetEnvironmentVar(kANGLEPrintMSLEnv)[0] == '1')
         {
@@ -907,6 +929,10 @@ AutoObjCPtr<id<MTLLibrary>> CreateShaderLibrary(
         }
         [nsSource ANGLE_MTL_AUTORELEASE];
         *errorOut = std::move(nsError);
+
+        double endTime = platform->currentTime(platform);
+        int us         = static_cast<int>((endTime - startTime) * 1000'000.0);
+        ANGLE_HISTOGRAM_COUNTS("GPU.ANGLE.MetalShaderCompilationTimeUs", us);
 
         return library;
     }
@@ -1001,8 +1027,15 @@ AutoObjCPtr<id<MTLLibrary>> CreateShaderLibrary(id<MTLDevice> metalDevice,
                                                  freeWhenDone:NO];
         auto options  = [[[MTLCompileOptions alloc] init] ANGLE_MTL_AUTORELEASE];
 
+        auto *platform   = ANGLEPlatformCurrent();
+        double startTime = platform->currentTime(platform);
+
         NSError *nsError = nil;
         auto library = [metalDevice newLibraryWithSource:nsSource options:options error:&nsError];
+
+        double endTime = platform->currentTime(platform);
+        ERR() << "CreateShaderLibrary newLibraryWithSource duration: "
+              << (endTime - startTime) * 1000.0 << "ms";
 
         [nsSource ANGLE_MTL_AUTORELEASE];
 

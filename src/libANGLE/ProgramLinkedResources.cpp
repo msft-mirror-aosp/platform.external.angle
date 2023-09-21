@@ -818,9 +818,9 @@ const char *GetInterfaceBlockTypeString(sh::BlockType blockType)
 {
     switch (blockType)
     {
-        case sh::BlockType::BLOCK_UNIFORM:
+        case sh::BlockType::kBlockUniform:
             return "uniform block";
-        case sh::BlockType::BLOCK_BUFFER:
+        case sh::BlockType::kBlockBuffer:
             return "shader storage block";
         default:
             UNREACHABLE();
@@ -835,10 +835,10 @@ std::string GetInterfaceBlockLimitName(ShaderType shaderType, sh::BlockType bloc
 
     switch (blockType)
     {
-        case sh::BlockType::BLOCK_UNIFORM:
+        case sh::BlockType::kBlockUniform:
             stream << "UNIFORM_BUFFERS";
             break;
-        case sh::BlockType::BLOCK_BUFFER:
+        case sh::BlockType::kBlockBuffer:
             stream << "SHADER_STORAGE_BLOCKS";
             break;
         default:
@@ -1607,42 +1607,41 @@ void AtomicCounterBufferLinker::link(const std::map<int, unsigned int> &sizeMap)
     }
 }
 
-ProgramLinkedResources::ProgramLinkedResources() = default;
+LinkingVariables::LinkingVariables()  = default;
+LinkingVariables::~LinkingVariables() = default;
 
-ProgramLinkedResources::~ProgramLinkedResources() = default;
-
-LinkingVariables::LinkingVariables(const Context *context, const ProgramState &state)
+void LinkingVariables::initForProgram(const ProgramState &state)
 {
     for (ShaderType shaderType : kAllGraphicsShaderTypes)
     {
-        Shader *shader = state.getAttachedShader(shaderType);
+        const SharedCompiledShaderState &shader = state.getAttachedShader(shaderType);
         if (shader)
         {
-            outputVaryings[shaderType] = shader->getOutputVaryings(context);
-            inputVaryings[shaderType]  = shader->getInputVaryings(context);
-            uniforms[shaderType]       = shader->getUniforms(context);
-            uniformBlocks[shaderType]  = shader->getUniformBlocks(context);
+            outputVaryings[shaderType] = shader->outputVaryings;
+            inputVaryings[shaderType]  = shader->inputVaryings;
+            uniforms[shaderType]       = shader->uniforms;
+            uniformBlocks[shaderType]  = shader->uniformBlocks;
             isShaderStageUsedBitset.set(shaderType);
         }
     }
 }
 
-LinkingVariables::LinkingVariables(const ProgramPipelineState &state)
+void LinkingVariables::initForProgramPipeline(const ProgramPipelineState &state)
 {
     for (ShaderType shaderType : state.getExecutable().getLinkedShaderStages())
     {
-        const Program *program = state.getShaderProgram(shaderType);
-        ASSERT(program);
-        outputVaryings[shaderType] = program->getExecutable().getLinkedOutputVaryings(shaderType);
-        inputVaryings[shaderType]  = program->getExecutable().getLinkedInputVaryings(shaderType);
-        uniforms[shaderType] = program->getState().getExecutable().getLinkedUniforms(shaderType);
-        uniformBlocks[shaderType] =
-            program->getState().getExecutable().getLinkedUniformBlocks(shaderType);
+        const SharedProgramExecutable &executable = state.getShaderProgramExecutable(shaderType);
+        ASSERT(executable);
+        outputVaryings[shaderType] = executable->getLinkedOutputVaryings(shaderType);
+        inputVaryings[shaderType]  = executable->getLinkedInputVaryings(shaderType);
+        uniforms[shaderType]       = executable->getLinkedUniforms(shaderType);
+        uniformBlocks[shaderType]  = executable->getLinkedUniformBlocks(shaderType);
         isShaderStageUsedBitset.set(shaderType);
     }
 }
 
-LinkingVariables::~LinkingVariables() = default;
+ProgramLinkedResources::ProgramLinkedResources()  = default;
+ProgramLinkedResources::~ProgramLinkedResources() = default;
 
 void ProgramLinkedResources::init(std::vector<InterfaceBlock> *uniformBlocksOut,
                                   std::vector<LinkedUniform> *uniformsOut,
@@ -1659,18 +1658,17 @@ void ProgramLinkedResources::init(std::vector<InterfaceBlock> *uniformBlocksOut,
     atomicCounterBufferLinker.init(atomicCounterBuffersOut);
 }
 
-void ProgramLinkedResourcesLinker::linkResources(const Context *context,
-                                                 const ProgramState &programState,
+void ProgramLinkedResourcesLinker::linkResources(const ProgramState &programState,
                                                  const ProgramLinkedResources &resources) const
 {
     // Gather uniform interface block info.
     InterfaceBlockInfo uniformBlockInfo(mCustomEncoderFactory);
     for (const ShaderType shaderType : AllShaderTypes())
     {
-        Shader *shader = programState.getAttachedShader(shaderType);
+        const SharedCompiledShaderState &shader = programState.getAttachedShader(shaderType);
         if (shader)
         {
-            uniformBlockInfo.getShaderBlockInfo(shader->getUniformBlocks(context));
+            uniformBlockInfo.getShaderBlockInfo(shader->uniformBlocks);
         }
     }
 
@@ -1692,10 +1690,10 @@ void ProgramLinkedResourcesLinker::linkResources(const Context *context,
     InterfaceBlockInfo shaderStorageBlockInfo(mCustomEncoderFactory);
     for (const ShaderType shaderType : AllShaderTypes())
     {
-        Shader *shader = programState.getAttachedShader(shaderType);
+        const SharedCompiledShaderState &shader = programState.getAttachedShader(shaderType);
         if (shader)
         {
-            shaderStorageBlockInfo.getShaderBlockInfo(shader->getShaderStorageBlocks(context));
+            shaderStorageBlockInfo.getShaderBlockInfo(shader->shaderStorageBlocks);
         }
     }
     auto getShaderStorageBlockSize = [&shaderStorageBlockInfo](const std::string &name,
@@ -2388,17 +2386,15 @@ bool ValidateInterfaceBlocksMatch(
     return true;
 }
 
-bool LinkValidateProgramInterfaceBlocks(const Context *context,
+bool LinkValidateProgramInterfaceBlocks(const Caps &caps,
+                                        const Version &clientVersion,
+                                        bool webglCompatibility,
                                         ShaderBitSet activeProgramStages,
                                         const ProgramLinkedResources &resources,
                                         InfoLog &infoLog,
                                         GLuint *combinedShaderStorageBlocksCountOut)
 {
     ASSERT(combinedShaderStorageBlocksCountOut);
-
-    const Caps &caps              = context->getCaps();
-    const bool webglCompatibility = context->isWebGL();
-    const Version &version        = context->getClientVersion();
 
     GLuint combinedUniformBlocksCount                                         = 0u;
     GLuint numShadersHasUniformBlocks                                         = 0u;
@@ -2413,7 +2409,7 @@ bool LinkValidateProgramInterfaceBlocks(const Context *context,
         {
             if (!ValidateInterfaceBlocksCount(
                     static_cast<GLuint>(caps.maxShaderUniformBlocks[shaderType]), uniformBlocks,
-                    shaderType, sh::BlockType::BLOCK_UNIFORM, &combinedUniformBlocksCount, infoLog))
+                    shaderType, sh::BlockType::kBlockUniform, &combinedUniformBlocksCount, infoLog))
             {
                 return false;
             }
@@ -2437,7 +2433,7 @@ bool LinkValidateProgramInterfaceBlocks(const Context *context,
         return false;
     }
 
-    if (version >= Version(3, 1))
+    if (clientVersion >= Version(3, 1))
     {
         *combinedShaderStorageBlocksCountOut                                      = 0u;
         GLuint numShadersHasShaderStorageBlocks                                   = 0u;
@@ -2450,7 +2446,7 @@ bool LinkValidateProgramInterfaceBlocks(const Context *context,
             {
                 if (!ValidateInterfaceBlocksCount(
                         static_cast<GLuint>(caps.maxShaderStorageBlocks[shaderType]),
-                        shaderStorageBlocks, shaderType, sh::BlockType::BLOCK_BUFFER,
+                        shaderStorageBlocks, shaderType, sh::BlockType::kBlockBuffer,
                         combinedShaderStorageBlocksCountOut, infoLog))
                 {
                     return false;

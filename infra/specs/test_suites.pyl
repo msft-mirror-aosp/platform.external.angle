@@ -1170,20 +1170,6 @@
       },
     },
 
-    'swangle_end2end_slow_flaky_tests': {
-      'angle_end2end_tests': {
-        'args': [
-          '--gtest_filter=*Vulkan_SwiftShader*',
-          # Flaky retries enabled on ASAN/TSAN. http://anglebug.com/7772
-          '--flaky-retries=2',
-        ],
-        'use_isolated_scripts_api': True,
-        'swarming': {
-          'shards': 6,
-        },
-      },
-    },
-
     'swangle_end2end_slow_tests': {
       'angle_end2end_tests': {
         'args': [
@@ -1202,6 +1188,20 @@
           '--gtest_filter=*Vulkan_SwiftShader*',
         ],
         'use_isolated_scripts_api': True,
+      },
+    },
+
+    'swangle_end2end_very_slow_flaky_tests': {
+      'angle_end2end_tests': {
+        'args': [
+          '--gtest_filter=*Vulkan_SwiftShader*',
+          # Flaky retries enabled on ASAN/TSAN. http://anglebug.com/7772
+          '--flaky-retries=2',
+        ],
+        'use_isolated_scripts_api': True,
+        'swarming': {
+          'shards': 10,
+        },
       },
     },
 
@@ -1273,7 +1273,7 @@
       'angle_unit_gtests',
     ],
 
-    'common_isolated_scripts': [
+    'isolated_scripts_group_common': [
       'angle_capture_isolated_scripts',
       'angle_perf_smoke_isolated_scripts',
       'angle_restricted_trace_gold_isolated_scripts',
@@ -1282,10 +1282,15 @@
       'angle_trace_perf_vulkan_smoke_isolated_scripts',
     ],
 
-    'common_perf_isolated_scripts': [
+    'isolated_scripts_group_perf': [
       'angle_perf_isolated_scripts',
       'angle_trace_perf_native_isolated_scripts',
       'angle_trace_perf_vulkan_isolated_scripts',
+    ],
+
+    'isolated_scripts_group_pixel6': [
+      'angle_capture_isolated_scripts',
+      'angle_restricted_trace_gold_isolated_scripts',
     ],
 
     'linux_intel_gtests': [
@@ -1360,7 +1365,7 @@
     ],
 
     'swangle_non_deqp_slow_flaky_gtests': [
-      'swangle_end2end_slow_flaky_tests',
+      'swangle_end2end_very_slow_flaky_tests',
       'swangle_white_box_tests',
     ],
 
@@ -1374,7 +1379,7 @@
       'swangle_deqp_khr_noctx_gles2_tests',
       'swangle_deqp_khr_noctx_gles32_tests',
       'swangle_deqp_khr_single_gles32_tests',
-      'swangle_end2end_tests',
+      'swangle_end2end_slow_tests',
       'swangle_white_box_tests',
     ],
 

@@ -33,8 +33,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef GLSLANG_WEB
-
 //
 // GL_EXT_spirv_intrinsics
 //
@@ -47,11 +45,11 @@ namespace glslang {
 
 bool TSpirvTypeParameter::operator==(const TSpirvTypeParameter& rhs) const
 {
-    if (constant != nullptr)
-        return constant->getConstArray() == rhs.constant->getConstArray();
+    if (getAsConstant() != nullptr)
+        return getAsConstant()->getConstArray() == rhs.getAsConstant()->getConstArray();
 
-    assert(type != nullptr);
-    return *type == *rhs.type;
+    assert(getAsType() != nullptr);
+    return *getAsType() == *rhs.getAsType();
 }
 
 //
@@ -360,5 +358,3 @@ TSpirvInstruction* TParseContext::mergeSpirvInstruction(const TSourceLoc& loc, T
 }
 
 } // end namespace glslang
-
-#endif // GLSLANG_WEB

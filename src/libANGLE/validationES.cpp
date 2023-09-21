@@ -482,15 +482,19 @@ bool ValidateTextureMaxAnisotropyValue(const Context *context,
 
 bool ValidateFragmentShaderColorBufferMaskMatch(const Context *context)
 {
-    const auto &glState            = context->getState();
-    const Program *program         = context->getActiveLinkedProgram();
-    const Framebuffer *framebuffer = glState.getDrawFramebuffer();
+    const auto &glState                 = context->getState();
+    const ProgramExecutable *executable = context->getState().getLinkedProgramExecutable(context);
+    const Framebuffer *framebuffer      = glState.getDrawFramebuffer();
 
-    auto drawBufferMask =
-        framebuffer->getDrawBufferMask() & glState.getBlendStateExt().compareColorMask(0);
-    auto fragmentOutputMask = program->getExecutable().getActiveOutputVariablesMask();
+    const auto &blendStateExt = glState.getBlendStateExt();
+    auto drawBufferMask = framebuffer->getDrawBufferMask() & blendStateExt.compareColorMask(0);
+    auto dualSourceBlendingMask = drawBufferMask & blendStateExt.getEnabledMask() &
+                                  blendStateExt.getUsesExtendedBlendFactorMask();
+    auto fragmentOutputMask          = executable->getActiveOutputVariablesMask();
+    auto fragmentSecondaryOutputMask = executable->getActiveSecondaryOutputVariablesMask();
 
-    return drawBufferMask == (drawBufferMask & fragmentOutputMask);
+    return drawBufferMask == (drawBufferMask & fragmentOutputMask) &&
+           dualSourceBlendingMask == (dualSourceBlendingMask & fragmentSecondaryOutputMask);
 }
 
 bool ValidateFragmentShaderColorBufferTypeMatch(const Context *context)
@@ -506,11 +510,11 @@ bool ValidateFragmentShaderColorBufferTypeMatch(const Context *context)
 
 bool ValidateVertexShaderAttributeTypeMatch(const Context *context)
 {
-    const auto &glState    = context->getState();
-    const Program *program = context->getActiveLinkedProgram();
-    const VertexArray *vao = context->getState().getVertexArray();
+    const auto &glState                 = context->getState();
+    const ProgramExecutable *executable = context->getState().getLinkedProgramExecutable(context);
+    const VertexArray *vao              = context->getState().getVertexArray();
 
-    if (!program)
+    if (executable == nullptr)
     {
         return false;
     }
@@ -523,9 +527,8 @@ bool ValidateVertexShaderAttributeTypeMatch(const Context *context)
     vaoAttribTypeBits = (vaoAttribEnabledMask & vaoAttribTypeBits);
     vaoAttribTypeBits |= (~vaoAttribEnabledMask & stateCurrentValuesTypeBits);
 
-    const ProgramExecutable &executable = program->getExecutable();
-    return ValidateComponentTypeMasks(executable.getAttributesTypeMask().to_ulong(),
-                                      vaoAttribTypeBits, executable.getAttributesMask().to_ulong(),
+    return ValidateComponentTypeMasks(executable->getAttributesTypeMask().to_ulong(),
+                                      vaoAttribTypeBits, executable->getAttributesMask().to_ulong(),
                                       0xFFFF);
 }
 
@@ -580,12 +583,12 @@ unsigned int GetSamplerParameterCount(GLenum pname)
     return pname == GL_TEXTURE_BORDER_COLOR ? 4 : 1;
 }
 
-const char *ValidateProgramDrawAdvancedBlendState(const Context *context, Program *program)
+const char *ValidateProgramDrawAdvancedBlendState(const Context *context,
+                                                  const ProgramExecutable &executable)
 {
-    const State &state = context->getState();
-    const BlendEquationBitSet &supportedBlendEquations =
-        program->getExecutable().getAdvancedBlendEquations();
-    const DrawBufferMask &enabledDrawBufferMask = state.getBlendStateExt().getEnabledMask();
+    const State &state                                 = context->getState();
+    const BlendEquationBitSet &supportedBlendEquations = executable.getAdvancedBlendEquations();
+    const DrawBufferMask &enabledDrawBufferMask        = state.getBlendStateExt().getEnabledMask();
 
     for (size_t blendEnabledBufferIndex : enabledDrawBufferMask)
     {
@@ -609,12 +612,12 @@ const char *ValidateProgramDrawAdvancedBlendState(const Context *context, Progra
 
 ANGLE_INLINE const char *ValidateProgramDrawStates(const Context *context,
                                                    const Extensions &extensions,
-                                                   Program *program)
+                                                   const ProgramExecutable &executable)
 {
     const State &state = context->getState();
     if (extensions.multiviewOVR || extensions.multiview2OVR)
     {
-        const int programNumViews     = program->usesMultiview() ? program->getNumViews() : 1;
+        const int programNumViews     = executable.usesMultiview() ? executable.getNumViews() : 1;
         Framebuffer *framebuffer      = state.getDrawFramebuffer();
         const int framebufferNumViews = framebuffer->getNumViews();
 
@@ -637,10 +640,10 @@ ANGLE_INLINE const char *ValidateProgramDrawStates(const Context *context,
 
     // Uniform buffer validation
     for (unsigned int uniformBlockIndex = 0;
-         uniformBlockIndex < program->getActiveUniformBlockCount(); uniformBlockIndex++)
+         uniformBlockIndex < executable.getActiveUniformBlockCount(); uniformBlockIndex++)
     {
-        const InterfaceBlock &uniformBlock = program->getUniformBlockByIndex(uniformBlockIndex);
-        GLuint blockBinding                = program->getUniformBlockBinding(uniformBlockIndex);
+        const InterfaceBlock &uniformBlock = executable.getUniformBlockByIndex(uniformBlockIndex);
+        GLuint blockBinding                = executable.getUniformBlockBinding(uniformBlockIndex);
         const OffsetBindingPointer<Buffer> &uniformBuffer =
             state.getIndexedUniformBuffer(blockBinding);
 
@@ -669,7 +672,7 @@ ANGLE_INLINE const char *ValidateProgramDrawStates(const Context *context,
 
     if (extensions.blendEquationAdvancedKHR)
     {
-        errorString = ValidateProgramDrawAdvancedBlendState(context, program);
+        errorString = ValidateProgramDrawAdvancedBlendState(context, executable);
     }
 
     return errorString;
@@ -1409,7 +1412,7 @@ Program *GetValidProgramNoResolve(const Context *context,
 
     if (!validProgram)
     {
-        if (context->getShader(id))
+        if (context->getShaderNoResolveCompile(id))
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExpectedProgramName);
         }
@@ -1436,7 +1439,7 @@ Shader *GetValidShader(const Context *context, angle::EntryPoint entryPoint, Sha
 {
     // See ValidProgram for spec details.
 
-    Shader *validShader = context->getShader(id);
+    Shader *validShader = context->getShaderNoResolveCompile(id);
 
     if (!validShader)
     {
@@ -4028,10 +4031,11 @@ const char *ValidateProgramPipelineDrawStates(const Context *context,
 {
     for (const ShaderType shaderType : gl::AllShaderTypes())
     {
-        Program *program = programPipeline->getShaderProgram(shaderType);
-        if (program)
+        const SharedProgramExecutable &executable =
+            programPipeline->getShaderProgramExecutable(shaderType);
+        if (executable)
         {
-            const char *errorMsg = ValidateProgramDrawStates(context, extensions, program);
+            const char *errorMsg = ValidateProgramDrawStates(context, extensions, *executable);
             if (errorMsg)
             {
                 return errorMsg;
@@ -4057,10 +4061,10 @@ const char *ValidateProgramPipelineAttachedPrograms(ProgramPipeline *programPipe
     }
     for (const ShaderType shaderType : gl::AllShaderTypes())
     {
-        Program *shaderProgram = programPipeline->getShaderProgram(shaderType);
+        const Program *shaderProgram = programPipeline->getShaderProgram(shaderType);
         if (shaderProgram)
         {
-            ProgramExecutable &executable = shaderProgram->getExecutable();
+            const ProgramExecutable &executable = shaderProgram->getExecutable();
             for (const ShaderType programShaderType : executable.getLinkedShaderStages())
             {
                 if (shaderProgram != programPipeline->getShaderProgram(programShaderType))
@@ -4237,6 +4241,19 @@ const char *ValidateDrawStates(const Context *context, GLenum *outErrorCode)
         }
     }
 
+    // Dual-source blending functions limit the number of supported draw buffers.
+    if (blendStateExt.getUsesExtendedBlendFactorMask().any())
+    {
+        // Imply the strictest spec interpretation to pass on all OpenGL drivers:
+        // dual-source blending is considered active if the blend state contains
+        // any SRC1 factor no matter what.
+        const DrawBufferMask bufferMask = framebuffer->getDrawBufferMask();
+        if (bufferMask.any() && bufferMask.last() >= context->getCaps().maxDualSourceDrawBuffers)
+        {
+            return kDualSourceBlendingDrawBuffersLimit;
+        }
+    }
+
     if (context->getStateCache().hasAnyEnabledClientAttrib())
     {
         if (extensions.webglCompatibilityANGLE || !state.areClientArraysEnabled())
@@ -4267,7 +4284,7 @@ const char *ValidateDrawStates(const Context *context, GLenum *outErrorCode)
 
         if (program)
         {
-            const char *errorMsg = ValidateProgramDrawStates(context, extensions, program);
+            const char *errorMsg = ValidateProgramDrawStates(context, extensions, *executable);
             if (errorMsg)
             {
                 return errorMsg;
@@ -4299,7 +4316,7 @@ const char *ValidateDrawStates(const Context *context, GLenum *outErrorCode)
 
         if (executable)
         {
-            if (!executable->validateSamplers(nullptr, context->getCaps()))
+            if (!executable->validateSamplers(context->getCaps()))
             {
                 return kTextureTypeConflict;
             }
@@ -7896,6 +7913,26 @@ bool ValidateTexParameterBase(const Context *context,
             {
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
+            }
+            break;
+
+        case GL_TEXTURE_TILING_EXT:
+            if (!context->getExtensions().memoryObjectEXT)
+            {
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidMemoryObjectParameter);
+                return false;
+            }
+            switch (ConvertToGLenum(params[0]))
+            {
+                case GL_OPTIMAL_TILING_EXT:
+                case GL_LINEAR_TILING_EXT:
+                    break;
+
+                default:
+                    ANGLE_VALIDATION_ERROR(
+                        GL_INVALID_OPERATION,
+                        "Texture Tilling Mode must be OPTIMAL_TILING_EXT or LINEAR_TILING_EXT");
+                    return false;
             }
             break;
 

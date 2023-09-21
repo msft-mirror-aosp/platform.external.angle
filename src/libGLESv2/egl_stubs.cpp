@@ -104,7 +104,28 @@ EGLint ClientWaitSync(Thread *thread,
         thread, syncObject->clientWait(display, currentContext, flags, timeout, &syncStatus),
         "eglClientWaitSync", GetSyncIfValid(display, syncID), EGL_FALSE);
 
-    thread->setSuccess();
+    // When performing CPU wait through UnlockedTailCall we need to handle any error conditions
+    if (egl::Display::GetCurrentThreadUnlockedTailCall()->any())
+    {
+        auto handleErrorStatus = [thread, display, syncID](void *result) {
+            EGLint *eglResult = static_cast<EGLint *>(result);
+            ASSERT(eglResult);
+            if (*eglResult == EGL_FALSE)
+            {
+                thread->setError(egl::Error(EGL_BAD_ALLOC), "eglClientWaitSync",
+                                 GetSyncIfValid(display, syncID));
+            }
+            else
+            {
+                thread->setSuccess();
+            }
+        };
+        egl::Display::GetCurrentThreadUnlockedTailCall()->add(handleErrorStatus);
+    }
+    else
+    {
+        thread->setSuccess();
+    }
     return syncStatus;
 }
 
@@ -411,6 +432,7 @@ EGLDisplay GetPlatformDisplay(Thread *thread,
         case EGL_PLATFORM_ANGLE_ANGLE:
         case EGL_PLATFORM_GBM_KHR:
         case EGL_PLATFORM_WAYLAND_EXT:
+        case EGL_PLATFORM_SURFACELESS_MESA:
         {
             return Display::GetDisplayFromNativeDisplay(
                 platform, gl::bitCast<EGLNativeDisplayType>(native_display), attribMap);

@@ -51,7 +51,7 @@ constexpr bool kExposeNonConformantExtensionsAndVersions = false;
 #if defined(ANGLE_ENABLE_CRC_FOR_PIPELINE_CACHE)
 constexpr bool kEnableCRCForPipelineCache = true;
 #else
-constexpr bool kEnableCRCForPipelineCache                = false;
+constexpr bool kEnableCRCForPipelineCache = false;
 #endif
 }  // anonymous namespace
 
@@ -257,7 +257,7 @@ constexpr const char *kSkippedMessages[] = {
     // https://anglebug.com/8203
     "VUID-VkVertexInputBindingDivisorDescriptionEXT-divisor-01870",
     // https://anglebug.com/8237
-    "VUID-VkGraphicsPipelineCreateInfo-topology-08890",
+    "VUID-VkGraphicsPipelineCreateInfo-topology-08773",
     // https://anglebug.com/8242
     "VUID-vkCmdDraw-None-08608",
     "VUID-vkCmdDrawIndexed-None-08608",
@@ -265,6 +265,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndexed-None-08753",
     "VUID-vkCmdDraw-None-09003",
     "VUID-vkCmdDrawIndexed-None-09003",
+    // https://anglebug.com/8334
+    "VUID-VkDescriptorImageInfo-imageView-07796",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -332,45 +334,29 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
     // being accessed. http://anglebug.com/6725
     {
         "SYNC-HAZARD-READ-AFTER-WRITE",
-        "vkCmdDrawIndexed: Hazard READ_AFTER_WRITE for vertex",
+        "Hazard READ_AFTER_WRITE for vertex",
         "usage: SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
     },
     {
         "SYNC-HAZARD-READ-AFTER-WRITE",
-        "vkCmdDrawIndexedIndirect: Hazard READ_AFTER_WRITE for vertex",
-        "usage: SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
-    },
-    {
-        "SYNC-HAZARD-READ-AFTER-WRITE",
-        "vkCmdDrawIndirect: Hazard READ_AFTER_WRITE for vertex",
-        "usage: SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
-    },
-    {
-        "SYNC-HAZARD-READ-AFTER-WRITE",
-        "vkCmdDrawIndexedIndirect: Hazard READ_AFTER_WRITE for index",
+        "Hazard READ_AFTER_WRITE for index",
         "usage: SYNC_INDEX_INPUT_INDEX_READ",
     },
     {
         "SYNC-HAZARD-WRITE-AFTER-READ",
-        "vkCmdDraw: Hazard WRITE_AFTER_READ for",
+        "Hazard WRITE_AFTER_READ for",
         "Access info (usage: SYNC_VERTEX_SHADER_SHADER_STORAGE_WRITE, prior_usage: "
         "SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
     },
     {
         "SYNC-HAZARD-WRITE-AFTER-READ",
-        "vkCmdCopyImageToBuffer: Hazard WRITE_AFTER_READ for dstBuffer VkBuffer",
+        "Hazard WRITE_AFTER_READ for dstBuffer VkBuffer",
         "Access info (usage: SYNC_COPY_TRANSFER_WRITE, prior_usage: "
         "SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
     },
     {
         "SYNC-HAZARD-WRITE-AFTER-READ",
-        "vkCmdCopyBuffer: Hazard WRITE_AFTER_READ for dstBuffer VkBuffer",
-        "Access info (usage: SYNC_COPY_TRANSFER_WRITE, prior_usage: "
-        "SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
-    },
-    {
-        "SYNC-HAZARD-WRITE-AFTER-READ",
-        "vkCmdDispatch: Hazard WRITE_AFTER_READ for VkBuffer",
+        "Hazard WRITE_AFTER_READ for VkBuffer",
         "Access info (usage: SYNC_COMPUTE_SHADER_SHADER_STORAGE_WRITE, prior_usage: "
         "SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
     },
@@ -386,12 +372,12 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
     // http://anglebug.com/8054 (VkNonDispatchableHandle on x86 bots)
     {
         "SYNC-HAZARD-READ-AFTER-WRITE",
-        "vkCmdDraw: Hazard READ_AFTER_WRITE for VkBuffer",
+        "Hazard READ_AFTER_WRITE for VkBuffer",
         "usage: SYNC_VERTEX_SHADER_SHADER_STORAGE_READ",
     },
     {
         "SYNC-HAZARD-READ-AFTER-WRITE",
-        "vkCmdDraw: Hazard READ_AFTER_WRITE for VkNonDispatchableHandle",
+        "Hazard READ_AFTER_WRITE for VkNonDispatchableHandle",
         "usage: SYNC_VERTEX_SHADER_SHADER_STORAGE_READ",
     },
     // From: TraceTest.manhattan_31 with SwiftShader. These failures appears related to
@@ -463,7 +449,7 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
      "imageLayout: VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL",
      "usage: SYNC_FRAGMENT_SHADER_SHADER_"},
     // From: TraceTest.diablo_immortal http://anglebug.com/7837
-    {"SYNC-HAZARD-WRITE-AFTER-WRITE", "vkCmdDrawIndexed: Hazard WRITE_AFTER_WRITE for VkImageView ",
+    {"SYNC-HAZARD-WRITE-AFTER-WRITE", "Hazard WRITE_AFTER_WRITE for VkImageView ",
      "Subpass #0, and pColorAttachments #0. Access info (usage: "
      "SYNC_COLOR_ATTACHMENT_OUTPUT_COLOR_ATTACHMENT_WRITE, prior_usage: "
      "SYNC_IMAGE_LAYOUT_TRANSITION, write_barriers: 0, command: vkCmdEndRenderPass"},
@@ -876,7 +862,7 @@ gl::Version LimitVersionTo(const gl::Version &current, const gl::Version &lower)
 
 // Exclude memory type indices that include the host-visible bit from VMA image suballocation.
 uint32_t GetMemoryTypeBitsExcludingHostVisible(RendererVk *renderer,
-                                               VkMemoryPropertyFlags requiredFlags,
+                                               VkMemoryPropertyFlags propertyFlags,
                                                uint32_t availableMemoryTypeBits)
 {
     const vk::MemoryProperties &memoryProperties = renderer->getMemoryProperties();
@@ -887,9 +873,9 @@ uint32_t GetMemoryTypeBitsExcludingHostVisible(RendererVk *renderer,
     // are removed.
     for (size_t memoryIndex : angle::BitSet<32>(availableMemoryTypeBits))
     {
-        VkMemoryPropertyFlags propertyFlags =
+        VkMemoryPropertyFlags memoryFlags =
             memoryProperties.getMemoryType(static_cast<uint32_t>(memoryIndex)).propertyFlags;
-        if ((propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
+        if ((memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0)
         {
             memoryTypeBitsOut &= ~(angle::Bit<uint32_t>(memoryIndex));
             continue;
@@ -897,7 +883,7 @@ uint32_t GetMemoryTypeBitsExcludingHostVisible(RendererVk *renderer,
 
         // If the protected bit is not required, all memory type indices with this bit should be
         // ignored.
-        if ((propertyFlags & ~requiredFlags & VK_MEMORY_PROPERTY_PROTECTED_BIT) != 0)
+        if ((memoryFlags & ~propertyFlags & VK_MEMORY_PROPERTY_PROTECTED_BIT) != 0)
         {
             memoryTypeBitsOut &= ~(angle::Bit<uint32_t>(memoryIndex));
         }
@@ -2161,6 +2147,10 @@ angle::Result RendererVk::initializeMemoryAllocator(DisplayVk *displayVk)
 // - VK_EXT_legacy_dithering:                          supportsLegacyDithering (feature)
 // - VK_EXT_physical_device_drm:                       hasPrimary (property),
 //                                                     hasRender (property)
+// - VK_EXT_host_image_copy:                           hostImageCopy (feature),
+//                                                     pCopySrcLayouts (property),
+//                                                     pCopyDstLayouts (property),
+//                                                     identicalMemoryTypeRequirements (property)
 //
 void RendererVk::appendDeviceExtensionFeaturesNotPromoted(
     const vk::ExtensionNameList &deviceExtensionNames,
@@ -2295,6 +2285,12 @@ void RendererVk::appendDeviceExtensionFeaturesNotPromoted(
     if (ExtensionFound(VK_EXT_PHYSICAL_DEVICE_DRM_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceProperties, &mDrmProperties);
+    }
+
+    if (ExtensionFound(VK_EXT_HOST_IMAGE_COPY_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mHostImageCopyFeatures);
+        vk::AddToPNextChain(deviceProperties, &mHostImageCopyProperties);
     }
 }
 
@@ -2587,6 +2583,13 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
     mTimelineSemaphoreFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR;
 
+    mHostImageCopyFeatures       = {};
+    mHostImageCopyFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_FEATURES_EXT;
+
+    mHostImageCopyProperties = {};
+    mHostImageCopyProperties.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_PROPERTIES_EXT;
+
     if (!vkGetPhysicalDeviceProperties2KHR || !vkGetPhysicalDeviceFeatures2KHR)
     {
         return;
@@ -2655,6 +2658,8 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
     mDitheringFeatures.pNext                                = nullptr;
     mDrmProperties.pNext                                    = nullptr;
     mTimelineSemaphoreFeatures.pNext                        = nullptr;
+    mHostImageCopyFeatures.pNext                            = nullptr;
+    mHostImageCopyProperties.pNext                          = nullptr;
 }
 
 // See comment above appendDeviceExtensionFeaturesNotPromoted.  Additional extensions are enabled
@@ -2928,6 +2933,23 @@ void RendererVk::enableDeviceExtensionsNotPromoted(
     {
         mEnabledDeviceExtensions.push_back(VK_EXT_LEGACY_DITHERING_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mDitheringFeatures);
+    }
+
+    if (mFeatures.supportsFormatFeatureFlags2.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME);
+    }
+
+    if (mFeatures.supportsHostImageCopy.enabled)
+    {
+        // VK_EXT_host_image_copy requires VK_KHR_copy_commands2 and VK_KHR_format_feature_flags2.
+        // VK_KHR_format_feature_flags2 is enabled separately.
+        ASSERT(ExtensionFound(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME, deviceExtensionNames));
+        ASSERT(ExtensionFound(VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME, deviceExtensionNames));
+        mEnabledDeviceExtensions.push_back(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME);
+
+        mEnabledDeviceExtensions.push_back(VK_EXT_HOST_IMAGE_COPY_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mHostImageCopyFeatures);
     }
 
 #if defined(ANGLE_PLATFORM_WINDOWS)
@@ -4032,6 +4054,11 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsHostQueryReset,
                             mHostQueryResetFeatures.hostQueryReset == VK_TRUE);
+    // Avoid any inefficiency that may be caused by host image copy by default.  To be experimented
+    // with to see on which hardware VkHostImageCopyDevicePerformanceQueryEXT::optimalDeviceAccess
+    // is really performing as well as
+    // VkHostImageCopyDevicePerformanceQueryEXT::identicalMemoryLayout.
+    ANGLE_FEATURE_CONDITION(&mFeatures, allowHostImageCopyDespiteNonIdenticalLayout, false);
 
     // VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL and
     // VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL are introduced by
@@ -4201,6 +4228,10 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsBlendOperationAdvanced,
         ExtensionFound(VK_EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME, deviceExtensionNames));
+
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsFormatFeatureFlags2,
+        ExtensionFound(VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME, deviceExtensionNames));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsTransformFeedbackExtension,
                             mTransformFeedbackFeatures.transformFeedback == VK_TRUE);
@@ -4770,6 +4801,13 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsTimestampSurfaceAttribute,
                             IsAndroid() && ExtensionFound(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME,
                                                           deviceExtensionNames));
+
+    // Only enable VK_EXT_host_image_copy on hardware where identicalMemoryTypeRequirements is set.
+    // That lets ANGLE avoid having to fallback to non-host-copyable image allocations if the
+    // host-copyable one fails due to out-of-that-specific-kind-of-memory.
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsHostImageCopy,
+                            mHostImageCopyFeatures.hostImageCopy == VK_TRUE &&
+                                mHostImageCopyProperties.identicalMemoryTypeRequirements);
 
     // 1) host vk driver does not natively support ETC format.
     // 2) host vk driver supports BC format.
@@ -5773,7 +5811,7 @@ void RendererVk::logCacheStats() const
     }
 }
 
-angle::Result RendererVk::getFormatDescriptorCountForVkFormat(ContextVk *contextVk,
+angle::Result RendererVk::getFormatDescriptorCountForVkFormat(vk::Context *context,
                                                               VkFormat format,
                                                               uint32_t *descriptorCountOut)
 {
@@ -5799,8 +5837,8 @@ angle::Result RendererVk::getFormatDescriptorCountForVkFormat(ContextVk *context
         imageFormatProperties2.pNext                 = &ycbcrImageFormatProperties;
         imageFormatProperties2.imageFormatProperties = imageFormatProperties;
 
-        ANGLE_VK_TRY(contextVk, vkGetPhysicalDeviceImageFormatProperties2(
-                                    mPhysicalDevice, &imageFormatInfo, &imageFormatProperties2));
+        ANGLE_VK_TRY(context, vkGetPhysicalDeviceImageFormatProperties2(
+                                  mPhysicalDevice, &imageFormatInfo, &imageFormatProperties2));
 
         mVkFormatDescriptorCountMap[format] =
             ycbcrImageFormatProperties.combinedImageSamplerDescriptorCount;
@@ -5811,14 +5849,14 @@ angle::Result RendererVk::getFormatDescriptorCountForVkFormat(ContextVk *context
     return angle::Result::Continue;
 }
 
-angle::Result RendererVk::getFormatDescriptorCountForExternalFormat(ContextVk *contextVk,
+angle::Result RendererVk::getFormatDescriptorCountForExternalFormat(vk::Context *context,
                                                                     uint64_t format,
                                                                     uint32_t *descriptorCountOut)
 {
     ASSERT(descriptorCountOut);
 
     // TODO: need to query for external formats as well once spec is fixed. http://anglebug.com/6141
-    ANGLE_VK_CHECK(contextVk, getFeatures().useMultipleDescriptorsForExternalFormats.enabled,
+    ANGLE_VK_CHECK(context, getFeatures().useMultipleDescriptorsForExternalFormats.enabled,
                    VK_ERROR_INCOMPATIBLE_DRIVER);
 
     // Vulkan spec has a gap in that there is no mechanism available to query the immutable
@@ -5890,119 +5928,52 @@ ImageMemorySuballocator::~ImageMemorySuballocator() {}
 
 void ImageMemorySuballocator::destroy(RendererVk *renderer) {}
 
-VkResult ImageMemorySuballocator::allocateAndBindMemory(Context *context,
-                                                        Image *image,
-                                                        const VkImageCreateInfo *imageCreateInfo,
-                                                        VkMemoryPropertyFlags requiredFlags,
-                                                        VkMemoryPropertyFlags preferredFlags,
-                                                        MemoryAllocationType memoryAllocationType,
-                                                        Allocation *allocationOut,
-                                                        VkMemoryPropertyFlags *memoryFlagsOut,
-                                                        uint32_t *memoryTypeIndexOut,
-                                                        VkDeviceSize *sizeOut)
+VkResult ImageMemorySuballocator::allocateAndBindMemory(
+    Context *context,
+    Image *image,
+    const VkImageCreateInfo *imageCreateInfo,
+    VkMemoryPropertyFlags requiredFlags,
+    VkMemoryPropertyFlags preferredFlags,
+    const VkMemoryRequirements *memoryRequirements,
+    const bool allocateDedicatedMemory,
+    MemoryAllocationType memoryAllocationType,
+    Allocation *allocationOut,
+    VkMemoryPropertyFlags *memoryFlagsOut,
+    uint32_t *memoryTypeIndexOut,
+    VkDeviceSize *sizeOut)
 {
     ASSERT(image && image->valid());
     ASSERT(allocationOut && !allocationOut->valid());
     RendererVk *renderer       = context->getRenderer();
     const Allocator &allocator = renderer->getAllocator();
 
-    VkMemoryRequirements memoryRequirements;
-    image->getMemoryRequirements(renderer->getDevice(), &memoryRequirements);
-    bool allocateDedicatedMemory =
-        memoryRequirements.size >= kImageSizeThresholdForDedicatedMemoryAllocation;
+    // Avoid device-local and host-visible combinations if possible. Here, "preferredFlags" is
+    // expected to be the same as "requiredFlags" except in the device-local bit.
+    ASSERT((preferredFlags & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) ==
+           (requiredFlags & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
-    // Avoid device-local and host-visible combinations if possible.
-    uint32_t memoryTypeBits = memoryRequirements.memoryTypeBits;
-    if ((requiredFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0)
+    uint32_t memoryTypeBits = memoryRequirements->memoryTypeBits;
+    if ((requiredFlags & preferredFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0)
     {
-        memoryTypeBits = GetMemoryTypeBitsExcludingHostVisible(renderer, requiredFlags,
-                                                               memoryRequirements.memoryTypeBits);
+        memoryTypeBits = GetMemoryTypeBitsExcludingHostVisible(renderer, preferredFlags,
+                                                               memoryRequirements->memoryTypeBits);
     }
 
-    // Allocate and bind memory for the image. Try allocating on the device first. If unsuccessful,
-    // it is possible to retry allocation after cleaning the garbage.
-    VkResult result;
-    bool anyBatchCleaned             = false;
-    uint32_t batchesWaitedAndCleaned = 0;
+    // Allocate and bind memory for the image. Try allocating on the device first.
+    VkResult result = vma::AllocateAndBindMemoryForImage(
+        allocator.getHandle(), &image->mHandle, requiredFlags, preferredFlags, memoryTypeBits,
+        allocateDedicatedMemory, &allocationOut->mHandle, memoryTypeIndexOut, sizeOut);
 
-    do
+    // We need to get the property flags of the allocated memory if successful.
+    if (result == VK_SUCCESS)
     {
-        result = vma::AllocateAndBindMemoryForImage(
-            allocator.getHandle(), &image->mHandle, requiredFlags, preferredFlags, memoryTypeBits,
-            allocateDedicatedMemory, &allocationOut->mHandle, memoryTypeIndexOut, sizeOut);
+        *memoryFlagsOut =
+            renderer->getMemoryProperties().getMemoryType(*memoryTypeIndexOut).propertyFlags;
 
-        if (result != VK_SUCCESS)
-        {
-            // If there is an error in command batch finish, a device OOM error will be returned.
-            if (renderer->finishOneCommandBatchAndCleanup(context, &anyBatchCleaned) ==
-                angle::Result::Stop)
-            {
-                return VK_ERROR_OUT_OF_DEVICE_MEMORY;
-            }
-
-            if (anyBatchCleaned)
-            {
-                batchesWaitedAndCleaned++;
-            }
-        }
-    } while (result != VK_SUCCESS && anyBatchCleaned);
-
-    if (batchesWaitedAndCleaned > 0)
-    {
-        INFO() << "Initial allocation failed. Waited for " << batchesWaitedAndCleaned
-               << " commands to finish and free garbage | Allocation result: "
-               << ((result == VK_SUCCESS) ? "SUCCESS" : "FAIL");
+        renderer->onMemoryAlloc(memoryAllocationType, *sizeOut, *memoryTypeIndexOut,
+                                allocationOut->getHandle());
     }
-
-    // If there is still no space for the new allocation, the allocation may still be made outside
-    // the device from all other memory types, although it will result in performance penalty.
-    if (result != VK_SUCCESS)
-    {
-        requiredFlags &= (~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        memoryTypeBits = memoryRequirements.memoryTypeBits;
-        result         = vma::AllocateAndBindMemoryForImage(
-            allocator.getHandle(), &image->mHandle, requiredFlags, preferredFlags, memoryTypeBits,
-            allocateDedicatedMemory, &allocationOut->mHandle, memoryTypeIndexOut, sizeOut);
-
-        INFO()
-            << "Allocation failed. Removed the DEVICE_LOCAL bit requirement | Allocation result: "
-            << ((result == VK_SUCCESS) ? "SUCCESS" : "FAIL");
-    }
-
-    // At the end, if all available options fail, we should return the appropriate out-of-memory
-    // error.
-    if (result != VK_SUCCESS)
-    {
-        // Record the failed memory allocation.
-        uint32_t pendingMemoryTypeIndex;
-        if (vma::FindMemoryTypeIndexForImageInfo(
-                allocator.getHandle(), imageCreateInfo, requiredFlags, preferredFlags,
-                allocateDedicatedMemory, &pendingMemoryTypeIndex) == VK_SUCCESS)
-        {
-            renderer->getMemoryAllocationTracker()->setPendingMemoryAlloc(
-                memoryAllocationType, memoryRequirements.size, pendingMemoryTypeIndex);
-        }
-
-        return result;
-    }
-
-    // We need to get the property flags of the allocated memory.
-    *memoryFlagsOut =
-        renderer->getMemoryProperties().getMemoryType(*memoryTypeIndexOut).propertyFlags;
-    if ((~(*memoryFlagsOut) & preferredFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0)
-    {
-        // For images allocated here, although allocation is preferred on the device, it is not
-        // required.
-        ASSERT((requiredFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) == 0);
-        renderer->getMemoryAllocationTracker()->compareExpectedFlagsWithAllocatedFlags(
-            requiredFlags, preferredFlags, *memoryFlagsOut,
-            reinterpret_cast<void *>(allocationOut->getHandle()));
-        context->getPerfCounters().deviceMemoryImageAllocationFallbacks++;
-    }
-
-    renderer->onMemoryAlloc(memoryAllocationType, *sizeOut, *memoryTypeIndexOut,
-                            allocationOut->getHandle());
-    return VK_SUCCESS;
+    return result;
 }
 
 VkResult ImageMemorySuballocator::mapMemoryAndInitWithNonZeroValue(RendererVk *renderer,
@@ -6031,6 +6002,11 @@ VkResult ImageMemorySuballocator::mapMemoryAndInitWithNonZeroValue(RendererVk *r
     }
 
     return VK_SUCCESS;
+}
+
+bool ImageMemorySuballocator::needsDedicatedMemory(VkDeviceSize size) const
+{
+    return size >= kImageSizeThresholdForDedicatedMemoryAllocation;
 }
 
 }  // namespace vk

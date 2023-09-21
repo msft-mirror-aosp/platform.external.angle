@@ -168,6 +168,11 @@ namespace Spv
             RoundingModeRTZ = 4463,
             EarlyAndLateFragmentTestsAMD = 5017,
             StencilRefReplacingEXT = 5027,
+            CoalescingAMDX = 5069,
+            MaxNodeRecursionAMDX = 5071,
+            StaticNumWorkgroupsAMDX = 5072,
+            ShaderIndexAMDX = 5073,
+            MaxNumWorkgroupsAMDX = 5077,
             StencilRefUnchangedFrontAMD = 5079,
             StencilRefGreaterFrontAMD = 5080,
             StencilRefLessFrontAMD = 5081,
@@ -219,6 +224,8 @@ namespace Spv
             Image = 11,
             StorageBuffer = 12,
             TileImageEXT = 4172,
+            NodePayloadAMDX = 5068,
+            NodeOutputPayloadAMDX = 5076,
             CallableDataKHR = 5328,
             CallableDataNV = 5328,
             IncomingCallableDataKHR = 5329,
@@ -521,6 +528,10 @@ namespace Spv
             WeightTextureQCOM = 4487,
             BlockMatchTextureQCOM = 4488,
             ExplicitInterpAMD = 4999,
+            NodeSharesPayloadLimitsWithAMDX = 5019,
+            NodeMaxPayloadsAMDX = 5020,
+            TrackFinishWritingAMDX = 5078,
+            PayloadNodeNameAMDX = 5091,
             OverrideCoverageNV = 5248,
             PassthroughNV = 5250,
             ViewportRelativeNV = 5252,
@@ -588,6 +599,9 @@ namespace Spv
             SingleElementVectorINTEL = 6085,
             VectorComputeCallableFunctionINTEL = 6087,
             MediaBlockIOINTEL = 6140,
+            InitModeINTEL = 6147,
+            ImplementInRegisterMapINTEL = 6148,
+            HostAccessINTEL = 6168,
             FPMaxErrorDecorationINTEL = 6170,
             LatencyControlLabelINTEL = 6172,
             LatencyControlConstraintINTEL = 6173,
@@ -675,6 +689,8 @@ namespace Spv
             BaryCoordSmoothSampleAMD = 4997,
             BaryCoordPullModelAMD = 4998,
             FragStencilRefEXT = 5014,
+            CoalescedInputCountAMDX = 5021,
+            ShaderIndexAMDX = 5073,
             ViewportMaskNV = 5253,
             SecondaryPositionNV = 5257,
             SecondaryViewportMaskNV = 5258,
@@ -1049,6 +1065,7 @@ namespace Spv
             ImageReadWriteLodAMD = 5015,
             Int64ImageEXT = 5016,
             ShaderClockKHR = 5055,
+            ShaderEnqueueAMDX = 5067,
             SampleMaskOverrideCoverageNV = 5249,
             GeometryShaderPassthroughNV = 5251,
             ShaderViewportIndexLayerEXT = 5254,
@@ -1174,7 +1191,9 @@ namespace Spv
             DebugInfoModuleINTEL = 6114,
             BFloat16ConversionINTEL = 6115,
             SplitBarrierINTEL = 6141,
+            GlobalVariableFPGADecorationsINTEL = 6146,
             FPGAKernelAttributesv2INTEL = 6161,
+            GlobalVariableHostAccessINTEL = 6167,
             FPMaxErrorINTEL = 6169,
             FPGALatencyControlINTEL = 6171,
             FPGAArgumentInterfacesINTEL = 6174,
@@ -1288,21 +1307,21 @@ namespace Spv
 
         [AllowDuplicates, CRepr] public enum CooperativeMatrixOperandsShift
         {
-            MatrixASignedComponents = 0,
-            MatrixBSignedComponents = 1,
-            MatrixCSignedComponents = 2,
-            MatrixResultSignedComponents = 3,
-            SaturatingAccumulation = 4,
+            MatrixASignedComponentsKHR = 0,
+            MatrixBSignedComponentsKHR = 1,
+            MatrixCSignedComponentsKHR = 2,
+            MatrixResultSignedComponentsKHR = 3,
+            SaturatingAccumulationKHR = 4,
         }
 
         [AllowDuplicates, CRepr] public enum CooperativeMatrixOperandsMask
         {
             MaskNone = 0,
-            MatrixASignedComponents = 0x00000001,
-            MatrixBSignedComponents = 0x00000002,
-            MatrixCSignedComponents = 0x00000004,
-            MatrixResultSignedComponents = 0x00000008,
-            SaturatingAccumulation = 0x00000010,
+            MatrixASignedComponentsKHR = 0x00000001,
+            MatrixBSignedComponentsKHR = 0x00000002,
+            MatrixCSignedComponentsKHR = 0x00000004,
+            MatrixResultSignedComponentsKHR = 0x00000008,
+            SaturatingAccumulationKHR = 0x00000010,
         }
 
         [AllowDuplicates, CRepr] public enum CooperativeMatrixLayout
@@ -1316,6 +1335,20 @@ namespace Spv
             MatrixAKHR = 0,
             MatrixBKHR = 1,
             MatrixAccumulatorKHR = 2,
+        }
+
+        [AllowDuplicates, CRepr] public enum InitializationModeQualifier
+        {
+            InitOnDeviceReprogramINTEL = 0,
+            InitOnDeviceResetINTEL = 1,
+        }
+
+        [AllowDuplicates, CRepr] public enum HostAccessQualifier
+        {
+            NoneINTEL = 0,
+            ReadINTEL = 1,
+            WriteINTEL = 2,
+            ReadWriteINTEL = 3,
         }
 
         [AllowDuplicates, CRepr] public enum Op
@@ -1719,6 +1752,9 @@ namespace Spv
             OpFragmentMaskFetchAMD = 5011,
             OpFragmentFetchAMD = 5012,
             OpReadClockKHR = 5056,
+            OpFinalizeNodePayloadsAMDX = 5075,
+            OpFinishWritingNodePayloadAMDX = 5078,
+            OpInitializeNodePayloadsAMDX = 5090,
             OpHitObjectRecordHitMotionNV = 5249,
             OpHitObjectRecordHitWithIndexMotionNV = 5250,
             OpHitObjectRecordMissMotionNV = 5251,
