@@ -626,13 +626,6 @@ struct FeaturesVk : FeatureSetBase
         &members, "http://anglebug.com/5535"
     };
 
-    FeatureInfo supportsNegativeViewport = {
-        "supportsNegativeViewport",
-        FeatureCategory::VulkanFeatures,
-        "The driver supports inverting the viewport with a negative height.",
-        &members,
-    };
-
     FeatureInfo forceFragmentShaderPrecisionHighpToMediump = {
         "forceFragmentShaderPrecisionHighpToMediump",
         FeatureCategory::VulkanWorkarounds,
@@ -1284,6 +1277,13 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanFeatures,
         "Expose the GL_KHR_parallel_shader_compile extension",
         &members, "http://anglebug.com/8297"
+    };
+
+    FeatureInfo preferHostCachedForNonStaticBufferUsage = {
+        "preferHostCachedForNonStaticBufferUsage",
+        FeatureCategory::VulkanFeatures,
+        "prefer host cached memory for non static buffer usage",
+        &members, "https://issuetracker.google.com/288119108"
     };
 
 };
