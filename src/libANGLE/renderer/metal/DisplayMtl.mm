@@ -153,12 +153,6 @@ angle::Result DisplayMtl::initializeImpl(egl::Display *display)
             return angle::Result::Stop;
         }
 
-        if (mFeatures.disableMetalOnAmdFirePro.enabled && isAMDFireProDevice())
-        {
-            ANGLE_MTL_LOG("Could not initialize: Metal is not supported on AMD FirePro devices.");
-            return angle::Result::Stop;
-        }
-
         mCmdQueue.set([[mMetalDevice newCommandQueue] ANGLE_MTL_AUTORELEASE]);
 
         ANGLE_TRY(mFormatTable.initialize(this));
@@ -514,6 +508,15 @@ void DisplayMtl::generateExtensions(egl::DisplayExtensions *outExtensions) const
 void DisplayMtl::generateCaps(egl::Caps *outCaps) const
 {
     outCaps->textureNPOT = true;
+}
+
+void DisplayMtl::initializeFrontendFeatures(angle::FrontendFeatures *features) const
+{
+    // The link job in this backend references gl::Context and ContextMtl, and thread-safety is not
+    // guaranteed.  The link subtasks are safe however, they are still parallelized.
+    //
+    // Once the link jobs are made thread-safe and using mtl::Context, this feature can be removed.
+    ANGLE_FEATURE_CONDITION(features, linkJobIsThreadSafe, false);
 }
 
 void DisplayMtl::populateFeatureList(angle::FeatureList *features)
@@ -1347,9 +1350,9 @@ void DisplayMtl::initializeFeatures()
     // anglebug.com/8258 Builtin shaders currently require MSL 2.1
     ANGLE_FEATURE_CONDITION((&mFeatures), requireMsl21, true);
 
-    // http://anglebug.com/8317: AMD GPUs are unsupported by the Metal backend on older FirePro
-    // devices due to crashes.
-    ANGLE_FEATURE_CONDITION((&mFeatures), disableMetalOnAmdFirePro, true);
+    // http://anglebug.com/8311: Rescope global variables which are only used in one function to be
+    // function local. Disabled on AMD FirePro devices: http://anglebug.com/8317
+    ANGLE_FEATURE_CONDITION((&mFeatures), rescopeGlobalVariables, !isAMDFireProDevice());
 }
 
 angle::Result DisplayMtl::initializeShaderLibrary()

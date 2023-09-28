@@ -1007,6 +1007,13 @@ PFN_vkCmdSetFragmentShadingRateKHR vkCmdSetFragmentShadingRateKHR               
 // VK_GOOGLE_display_timing
 PFN_vkGetPastPresentationTimingGOOGLE vkGetPastPresentationTimingGOOGLE = nullptr;
 
+// VK_EXT_host_image_copy
+PFN_vkCopyImageToImageEXT vkCopyImageToImageEXT                     = nullptr;
+PFN_vkCopyImageToMemoryEXT vkCopyImageToMemoryEXT                   = nullptr;
+PFN_vkCopyMemoryToImageEXT vkCopyMemoryToImageEXT                   = nullptr;
+PFN_vkGetImageSubresourceLayout2EXT vkGetImageSubresourceLayout2EXT = nullptr;
+PFN_vkTransitionImageLayoutEXT vkTransitionImageLayoutEXT           = nullptr;
+
 void InitDebugUtilsEXTFunctions(VkInstance instance)
 {
     GET_INSTANCE_FUNC(vkCreateDebugUtilsMessengerEXT);
@@ -1017,13 +1024,6 @@ void InitDebugUtilsEXTFunctions(VkInstance instance)
     GET_INSTANCE_FUNC(vkSetDebugUtilsObjectNameEXT);
 }
 
-void InitGetPhysicalDeviceProperties2KHRFunctions(VkInstance instance)
-{
-    GET_INSTANCE_FUNC(vkGetPhysicalDeviceProperties2KHR);
-    GET_INSTANCE_FUNC(vkGetPhysicalDeviceFeatures2KHR);
-    GET_INSTANCE_FUNC(vkGetPhysicalDeviceMemoryProperties2KHR);
-}
-
 void InitTransformFeedbackEXTFunctions(VkDevice device)
 {
     GET_DEVICE_FUNC(vkCmdBindTransformFeedbackBuffersEXT);
@@ -1032,13 +1032,6 @@ void InitTransformFeedbackEXTFunctions(VkDevice device)
     GET_DEVICE_FUNC(vkCmdBeginQueryIndexedEXT);
     GET_DEVICE_FUNC(vkCmdEndQueryIndexedEXT);
     GET_DEVICE_FUNC(vkCmdDrawIndirectByteCountEXT);
-}
-
-// VK_KHR_sampler_ycbcr_conversion
-void InitSamplerYcbcrKHRFunctions(VkDevice device)
-{
-    GET_DEVICE_FUNC(vkCreateSamplerYcbcrConversionKHR);
-    GET_DEVICE_FUNC(vkDestroySamplerYcbcrConversionKHR);
 }
 
 // VK_KHR_create_renderpass2
@@ -1079,37 +1072,11 @@ void InitHostQueryResetFunctions(VkDevice device)
     GET_DEVICE_FUNC(vkResetQueryPoolEXT);
 }
 
-// VK_KHR_get_memory_requirements2
-void InitGetMemoryRequirements2KHRFunctions(VkDevice device)
-{
-    GET_DEVICE_FUNC(vkGetBufferMemoryRequirements2KHR);
-    GET_DEVICE_FUNC(vkGetImageMemoryRequirements2KHR);
-}
-
-// VK_KHR_bind_memory2
-void InitBindMemory2KHRFunctions(VkDevice device)
-{
-    GET_DEVICE_FUNC(vkBindBufferMemory2KHR);
-    GET_DEVICE_FUNC(vkBindImageMemory2KHR);
-}
-
-// VK_KHR_external_fence_capabilities
-void InitExternalFenceCapabilitiesFunctions(VkInstance instance)
-{
-    GET_INSTANCE_FUNC(vkGetPhysicalDeviceExternalFencePropertiesKHR);
-}
-
 // VK_KHR_external_fence_fd
 void InitExternalFenceFdFunctions(VkInstance instance)
 {
     GET_INSTANCE_FUNC(vkGetFenceFdKHR);
     GET_INSTANCE_FUNC(vkImportFenceFdKHR);
-}
-
-// VK_KHR_external_semaphore_capabilities
-void InitExternalSemaphoreCapabilitiesFunctions(VkInstance instance)
-{
-    GET_INSTANCE_FUNC(vkGetPhysicalDeviceExternalSemaphorePropertiesKHR);
 }
 
 // VK_KHR_shared_presentable_image
@@ -1160,6 +1127,16 @@ void InitFragmentShadingRateKHRDeviceFunction(VkDevice device)
 void InitGetPastPresentationTimingGoogleFunction(VkDevice device)
 {
     GET_DEVICE_FUNC(vkGetPastPresentationTimingGOOGLE);
+}
+
+// VK_EXT_host_image_copy
+void InitHostImageCopyFunctions(VkDevice device)
+{
+    GET_DEVICE_FUNC(vkCopyImageToImageEXT);
+    GET_DEVICE_FUNC(vkCopyImageToMemoryEXT);
+    GET_DEVICE_FUNC(vkCopyMemoryToImageEXT);
+    GET_DEVICE_FUNC(vkGetImageSubresourceLayout2EXT);
+    GET_DEVICE_FUNC(vkTransitionImageLayoutEXT);
 }
 
 #    undef GET_INSTANCE_FUNC
