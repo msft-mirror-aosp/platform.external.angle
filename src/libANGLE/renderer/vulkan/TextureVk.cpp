@@ -765,13 +765,14 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
     ContextVk *contextVk = vk::GetImpl(context);
 
     // When possible flush out updates immediately.
-    bool shouldFlush = false;
+    vk::ApplyImageUpdate applyUpdate = vk::ApplyImageUpdate::Defer;
     if (!mOwnsImage || mState.getImmutableFormat() ||
         (!shouldUpdateBeStaged(gl::LevelIndex(index.getLevelIndex()),
                                vkFormat.getActualImageFormatID(getRequiredImageAccess()))))
     {
-        shouldFlush = true;
+        applyUpdate = vk::ApplyImageUpdate::ImmediatelyIfPossible;
     }
+    bool updateAppliedImmediately = false;
 
     if (unpackBuffer)
     {
@@ -833,7 +834,8 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
                 contextVk, getNativeImageIndex(index),
                 gl::Extents(area.width, area.height, area.depth),
                 gl::Offset(area.x, area.y, area.z), formatInfo, unpack, type, source, vkFormat,
-                getRequiredImageAccess(), inputRowPitch, inputDepthPitch, inputSkipBytes));
+                getRequiredImageAccess(), inputRowPitch, inputDepthPitch, inputSkipBytes,
+                applyUpdate, &updateAppliedImmediately));
 
             ANGLE_TRY(unpackBufferVk->unmapImpl(contextVk));
         }
@@ -843,24 +845,27 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
         ANGLE_TRY(mImage->stageSubresourceUpdate(
             contextVk, getNativeImageIndex(index), gl::Extents(area.width, area.height, area.depth),
             gl::Offset(area.x, area.y, area.z), formatInfo, unpack, type, pixels, vkFormat,
-            getRequiredImageAccess()));
+            getRequiredImageAccess(), applyUpdate, &updateAppliedImmediately));
     }
 
     // If we used context's staging buffer, flush out the updates
-    if (shouldFlush)
+    if (!updateAppliedImmediately)
     {
-        ANGLE_TRY(ensureImageInitialized(contextVk, ImageMipLevels::EnabledLevels));
-
-        // If forceSubmitImmutableTextureUpdates is enabled, submit the staged updates as well
-        if (contextVk->getFeatures().forceSubmitImmutableTextureUpdates.enabled)
+        if (applyUpdate == vk::ApplyImageUpdate::ImmediatelyIfPossible)
         {
-            ANGLE_TRY(contextVk->submitStagedTextureUpdates());
+            ANGLE_TRY(ensureImageInitialized(contextVk, ImageMipLevels::EnabledLevels));
+
+            // If forceSubmitImmutableTextureUpdates is enabled, submit the staged updates as well
+            if (contextVk->getFeatures().forceSubmitImmutableTextureUpdates.enabled)
+            {
+                ANGLE_TRY(contextVk->submitStagedTextureUpdates());
+            }
         }
-    }
-    else if (contextVk->isEligibleForMutableTextureFlush() && !mState.getImmutableFormat())
-    {
-        // Check if we should flush any mutable textures from before.
-        ANGLE_TRY(contextVk->getShareGroup()->onMutableTextureUpload(contextVk, this));
+        else if (contextVk->isEligibleForMutableTextureFlush() && !mState.getImmutableFormat())
+        {
+            // Check if we should flush any mutable textures from before.
+            ANGLE_TRY(contextVk->getShareGroup()->onMutableTextureUpload(contextVk, this));
+        }
     }
 
     return angle::Result::Continue;
@@ -1575,6 +1580,10 @@ angle::Result TextureVk::setStorageMultisample(const gl::Context *context,
     }
     else if (mImage)
     {
+        if (!contextVk->hasDisplayTextureShareGroup())
+        {
+            contextVk->getShareGroup()->onTextureRelease(this);
+        }
         mImage->releaseStagedUpdates(contextVk->getRenderer());
     }
 
@@ -3043,8 +3052,8 @@ angle::Result TextureVk::convertBufferToRGBA(ContextVk *contextVk, size_t &conve
     vk::BufferHelper *conversionBufferHelper = conversion->data.get();
     if (!conversionBufferHelper->valid())
     {
-        ANGLE_TRY(conversionBufferHelper->allocateForVertexConversion(
-            contextVk, conversionBufferSize, vk::MemoryHostVisibility::NonVisible));
+        ANGLE_TRY(contextVk->initBufferForVertexConversion(
+            conversionBufferHelper, conversionBufferSize, vk::MemoryHostVisibility::NonVisible));
     }
 
     if (conversion->dirty)

@@ -795,7 +795,7 @@ void UpdateBuffersWithSharedCacheKey(const gl::BufferVector &buffers,
 {
     for (const T &block : blocks)
     {
-        const gl::OffsetBindingPointer<gl::Buffer> &bufferBinding = buffers[block.binding];
+        const gl::OffsetBindingPointer<gl::Buffer> &bufferBinding = buffers[block.pod.binding];
         if (bufferBinding.get() != nullptr)
         {
             // For simplicity, we do not check if uniform is active or duplicate. The worst case is
@@ -883,6 +883,7 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, RendererVk 
       mIsInFramebufferFetchMode(false),
       mAllowRenderPassToReactivate(true),
       mTotalBufferToImageCopySize(0),
+      mEstimatedPendingImageGarbageSize(0),
       mHasWaitSemaphoresPendingSubmission(false),
       mGpuClockSync{std::numeric_limits<double>::max(), std::numeric_limits<double>::max()},
       mGpuEventTimestampOrigin(0),
@@ -1229,6 +1230,12 @@ void ContextVk::onDestroy(const gl::Context *context)
 
     // Flush and complete current outstanding work before destruction.
     (void)finishImpl(RenderPassClosureReason::ContextDestruction);
+
+    // The finish call could also generate device loss.
+    if (mRenderer->isDeviceLost())
+    {
+        mRenderer->handleDeviceLost();
+    }
 
     // Everything must be finished
     ASSERT(mRenderer->hasResourceUseFinished(mSubmittedResourceUse));
@@ -1865,7 +1872,7 @@ bool ContextVk::renderPassUsesStorageResources() const
     const std::vector<gl::InterfaceBlock> &blocks = executable->getShaderStorageBlocks();
     for (uint32_t bufferIndex = 0; bufferIndex < blocks.size(); ++bufferIndex)
     {
-        uint32_t binding = blocks[bufferIndex].binding;
+        uint32_t binding = blocks[bufferIndex].pod.binding;
         const gl::OffsetBindingPointer<gl::Buffer> &bufferBinding =
             mState.getIndexedShaderStorageBuffer(binding);
 
@@ -1886,7 +1893,7 @@ bool ContextVk::renderPassUsesStorageResources() const
         executable->getAtomicCounterBuffers();
     for (uint32_t bufferIndex = 0; bufferIndex < atomicCounterBuffers.size(); ++bufferIndex)
     {
-        uint32_t binding = atomicCounterBuffers[bufferIndex].binding;
+        uint32_t binding = atomicCounterBuffers[bufferIndex].pod.binding;
         const gl::OffsetBindingPointer<gl::Buffer> &bufferBinding =
             mState.getIndexedAtomicCounterBuffer(binding);
 
@@ -3544,7 +3551,8 @@ angle::Result ContextVk::submitCommands(const vk::Semaphore *signalSemaphore,
         ANGLE_TRY(checkCompletedGpuEvents());
     }
 
-    mTotalBufferToImageCopySize = 0;
+    mTotalBufferToImageCopySize       = 0;
+    mEstimatedPendingImageGarbageSize = 0;
 
     return angle::Result::Continue;
 }
@@ -3562,6 +3570,21 @@ angle::Result ContextVk::onCopyUpdate(VkDeviceSize size, bool *commandBufferWasF
         *commandBufferWasFlushedOut = true;
     }
     return angle::Result::Continue;
+}
+
+void ContextVk::addToPendingImageGarbage(vk::ResourceUse use, VkDeviceSize size)
+{
+    if (!mRenderer->hasResourceUseFinished(use))
+    {
+        mEstimatedPendingImageGarbageSize += size;
+    }
+}
+
+bool ContextVk::hasExcessPendingGarbage() const
+{
+    VkDeviceSize trackedPendingGarbage =
+        mRenderer->getPendingSuballocationGarbageSize() + mEstimatedPendingImageGarbageSize;
+    return trackedPendingGarbage >= mRenderer->getPendingGarbageSizeLimit();
 }
 
 angle::Result ContextVk::synchronizeCpuGpuTime()
@@ -4854,8 +4877,7 @@ void ContextVk::updateViewport(FramebufferVk *framebufferVk,
     RotateRectangle(getRotationDrawFramebuffer(), false, fbDimensions.width, fbDimensions.height,
                     correctedRect, &rotatedRect);
 
-    const bool invertViewport =
-        isViewportFlipEnabledForDrawFBO() && getFeatures().supportsNegativeViewport.enabled;
+    const bool invertViewport = isViewportFlipEnabledForDrawFBO();
 
     gl_vk::GetViewport(
         rotatedRect, nearPlane, farPlane, invertViewport,
@@ -5100,6 +5122,14 @@ void ContextVk::updateDither()
             mAllowRenderPassToReactivate = false;
 
             onRenderPassFinished(RenderPassClosureReason::LegacyDithering);
+        }
+
+        // update GraphicsPipelineDesc renderpass legacy dithering bit
+        if (isDitherEnabled() != mGraphicsPipelineDesc->isLegacyDitherEnabled())
+        {
+            mGraphicsPipelineDesc->updateRenderPassDesc(&mGraphicsPipelineTransition,
+                                                        framebufferVk->getRenderPassDesc());
+            invalidateCurrentGraphicsPipeline();
         }
     }
 
@@ -6793,8 +6823,7 @@ angle::Result ContextVk::handleDirtyGraphicsDriverUniforms(DirtyBits::Iterator *
             break;
     }
 
-    const bool invertViewport =
-        isViewportFlipEnabledForDrawFBO() && getFeatures().supportsNegativeViewport.enabled;
+    const bool invertViewport = isViewportFlipEnabledForDrawFBO();
 
     // Create the extended driver uniform, and populate the extended data fields if necessary.
     GraphicsDriverUniformsExtended driverUniformsExt = {};
@@ -7119,6 +7148,92 @@ angle::Result ContextVk::initImageAllocation(vk::ImageHelper *imageHelper,
     }
 
     return angle::Result::Continue;
+}
+
+angle::Result ContextVk::releaseBufferAllocation(vk::BufferHelper *bufferHelper)
+{
+    bufferHelper->releaseBufferAndDescriptorSetCache(mRenderer);
+
+    if (ANGLE_UNLIKELY(hasExcessPendingGarbage()))
+    {
+        ANGLE_TRY(flushImpl(nullptr, nullptr, RenderPassClosureReason::ExcessivePendingGarbage));
+    }
+    return angle::Result::Continue;
+}
+
+angle::Result ContextVk::initBufferForBufferCopy(vk::BufferHelper *bufferHelper,
+                                                 size_t size,
+                                                 vk::MemoryCoherency coherency)
+{
+    uint32_t memoryTypeIndex = mRenderer->getStagingBufferMemoryTypeIndex(coherency);
+    size_t alignment         = mRenderer->getStagingBufferAlignment();
+    return initBufferAllocation(bufferHelper, memoryTypeIndex, size, alignment,
+                                BufferUsageType::Dynamic);
+}
+
+angle::Result ContextVk::initBufferForImageCopy(vk::BufferHelper *bufferHelper,
+                                                size_t size,
+                                                vk::MemoryCoherency coherency,
+                                                angle::FormatID formatId,
+                                                VkDeviceSize *offset,
+                                                uint8_t **dataPtr)
+{
+    // When a buffer is used in copyImage, the offset must be multiple of pixel bytes. This may
+    // result in non-power of two alignment. VMA's virtual allocator can not handle non-power of two
+    // alignment. We have to adjust offset manually.
+    uint32_t memoryTypeIndex  = mRenderer->getStagingBufferMemoryTypeIndex(coherency);
+    size_t imageCopyAlignment = vk::GetImageCopyBufferAlignment(formatId);
+
+    // Add extra padding for potential offset alignment
+    size_t allocationSize   = size + imageCopyAlignment;
+    allocationSize          = roundUp(allocationSize, imageCopyAlignment);
+    size_t stagingAlignment = static_cast<size_t>(mRenderer->getStagingBufferAlignment());
+
+    ANGLE_TRY(initBufferAllocation(bufferHelper, memoryTypeIndex, allocationSize, stagingAlignment,
+                                   BufferUsageType::Static));
+
+    *offset  = roundUp(bufferHelper->getOffset(), static_cast<VkDeviceSize>(imageCopyAlignment));
+    *dataPtr = bufferHelper->getMappedMemory() + (*offset) - bufferHelper->getOffset();
+
+    return angle::Result::Continue;
+}
+
+angle::Result ContextVk::initBufferForVertexConversion(vk::BufferHelper *bufferHelper,
+                                                       size_t size,
+                                                       vk::MemoryHostVisibility hostVisibility)
+{
+    if (bufferHelper->valid())
+    {
+        // If size is big enough and it is idle, then just reuse the existing buffer.
+        if (size <= bufferHelper->getSize() &&
+            (hostVisibility == vk::MemoryHostVisibility::Visible) == bufferHelper->isHostVisible())
+        {
+            if (mRenderer->hasResourceUseFinished(bufferHelper->getResourceUse()))
+            {
+                bufferHelper->initializeBarrierTracker(this);
+                return angle::Result::Continue;
+            }
+            else if (hostVisibility == vk::MemoryHostVisibility::NonVisible)
+            {
+                // For device local buffer, we can reuse the buffer even if it is still GPU busy.
+                // The memory barrier should take care of this.
+                return angle::Result::Continue;
+            }
+        }
+
+        bufferHelper->release(mRenderer);
+    }
+
+    uint32_t memoryTypeIndex = mRenderer->getVertexConversionBufferMemoryTypeIndex(hostVisibility);
+    size_t alignment         = static_cast<size_t>(mRenderer->getVertexConversionBufferAlignment());
+
+    // The size is retrieved and used in descriptor set. The descriptor set wants aligned size,
+    // otherwise there are test failures. Note that underline VMA allocation always allocate aligned
+    // size anyway.
+    size_t sizeToAllocate = roundUp(size, alignment);
+
+    return initBufferAllocation(bufferHelper, memoryTypeIndex, sizeToAllocate, alignment,
+                                BufferUsageType::Static);
 }
 
 angle::Result ContextVk::updateActiveTextures(const gl::Context *context, gl::Command command)
@@ -7763,10 +7878,14 @@ angle::Result ContextVk::flushCommandsAndEndRenderPass(RenderPassClosureReason r
 
     ANGLE_TRY(flushCommandsAndEndRenderPassWithoutSubmit(reason));
 
-    if (mHasDeferredFlush)
+    if (mHasDeferredFlush || hasExcessPendingGarbage())
     {
-        // If we have deferred glFlush call in the middle of render pass, flush them now.
-        ANGLE_TRY(flushImpl(nullptr, nullptr, RenderPassClosureReason::AlreadySpecifiedElsewhere));
+        // If we have deferred glFlush call in the middle of render pass, or if there is too much
+        // pending garbage, perform a flush now.
+        RenderPassClosureReason flushImplReason =
+            (hasExcessPendingGarbage()) ? RenderPassClosureReason::ExcessivePendingGarbage
+                                        : RenderPassClosureReason::AlreadySpecifiedElsewhere;
+        ANGLE_TRY(flushImpl(nullptr, nullptr, flushImplReason));
     }
     return angle::Result::Continue;
 }
@@ -8434,7 +8553,7 @@ angle::Result ContextVk::endRenderPassIfComputeReadAfterTransformFeedbackWrite()
     {
         const gl::InterfaceBlock &block = blocks[bufferIndex];
         const gl::OffsetBindingPointer<gl::Buffer> &bufferBinding =
-            mState.getIndexedUniformBuffer(block.binding);
+            mState.getIndexedUniformBuffer(block.pod.binding);
 
         if (bufferBinding.get() == nullptr)
         {
