@@ -1243,6 +1243,8 @@ TIntermAggregate* TParseContext::handleFunctionDefinition(const TSourceLoc& loc,
             error(loc, "function cannot take any parameter(s)", function.getName().c_str(), "");
         if (function.getType().getBasicType() != EbtVoid)
             error(loc, "", function.getType().getBasicTypeString().c_str(), "entry point cannot return a value");
+        if (function.getLinkType() != ELinkNone)
+            error(loc, "main function cannot be exported", "", "");
     }
 
     //
@@ -1279,6 +1281,7 @@ TIntermAggregate* TParseContext::handleFunctionDefinition(const TSourceLoc& loc,
         } else
             paramNodes = intermediate.growAggregate(paramNodes, intermediate.addSymbol(*param.type, loc), loc);
     }
+    paramNodes->setLinkType(function.getLinkType());
     intermediate.setAggregateOperator(paramNodes, EOpParameters, TType(EbtVoid), loc);
     loopNestingLevel = 0;
     statementNestingLevel = 0;
@@ -2514,11 +2517,18 @@ void TParseContext::builtInOpCheck(const TSourceLoc& loc, const TFunction& fnCan
         }
 
         const TIntermTyped* base = TIntermediate::findLValueBase(arg0, true , true);
-        const TType* refType = (base->getType().isReference()) ? base->getType().getReferentType() : nullptr;
-        const TQualifier& qualifier = (refType != nullptr) ? refType->getQualifier() : base->getType().getQualifier();
-        if (qualifier.storage != EvqShared && qualifier.storage != EvqBuffer && qualifier.storage != EvqtaskPayloadSharedEXT)
-            error(loc,"Atomic memory function can only be used for shader storage block member or shared variable.",
-            fnCandidate.getName().c_str(), "");
+        const char* errMsg = "Only l-values corresponding to shader block storage or shared variables can be used with "
+                             "atomic memory functions.";
+        if (base) {
+            const TType* refType = (base->getType().isReference()) ? base->getType().getReferentType() : nullptr;
+            const TQualifier& qualifier =
+                (refType != nullptr) ? refType->getQualifier() : base->getType().getQualifier();
+            if (qualifier.storage != EvqShared && qualifier.storage != EvqBuffer &&
+                qualifier.storage != EvqtaskPayloadSharedEXT)
+                error(loc, errMsg, fnCandidate.getName().c_str(), "");
+        } else {
+            error(loc, errMsg, fnCandidate.getName().c_str(), "");
+        }
 
         break;
     }

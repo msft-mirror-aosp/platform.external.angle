@@ -63,7 +63,7 @@ using StagingBufferOffsetArray = std::array<VkDeviceSize, 2>;
 // currently active VkBuffer we keep it until it is no longer in use. We then mark it available
 // for future allocations in a free list.
 class BufferHelper;
-using BufferHelperPointerVector = std::vector<std::unique_ptr<BufferHelper>>;
+using BufferHelperQueue = std::deque<std::unique_ptr<BufferHelper>>;
 
 class DynamicBuffer : angle::NonCopyable
 {
@@ -135,8 +135,8 @@ class DynamicBuffer : angle::NonCopyable
     size_t mAlignment;
     VkMemoryPropertyFlags mMemoryPropertyFlags;
 
-    BufferHelperPointerVector mInFlightBuffers;
-    BufferHelperPointerVector mBufferFreeList;
+    BufferHelperQueue mInFlightBuffers;
+    BufferHelperQueue mBufferFreeList;
 };
 
 // Class DescriptorSetHelper. This is a wrapper of VkDescriptorSet with GPU resource use tracking.
@@ -759,23 +759,6 @@ class BufferHelper : public ReadWriteResource
                                size_t alignment,
                                BufferUsageType usageType);
 
-    // Helper functions to initialize a buffer for a specific usage
-    // Suballocate a buffer with alignment good for shader storage or copyBuffer .
-    angle::Result allocateForVertexConversion(ContextVk *contextVk,
-                                              size_t size,
-                                              MemoryHostVisibility hostVisibility);
-    // Suballocate a host visible buffer with alignment good for copyBuffer .
-    angle::Result allocateForCopyBuffer(ContextVk *contextVk,
-                                        size_t size,
-                                        MemoryCoherency coherency);
-    // Suballocate a host visible buffer with alignment good for copyImage .
-    angle::Result allocateForCopyImage(ContextVk *contextVk,
-                                       size_t size,
-                                       MemoryCoherency coherency,
-                                       angle::FormatID formatId,
-                                       VkDeviceSize *offset,
-                                       uint8_t **dataPtr);
-
     void destroy(RendererVk *renderer);
     void release(RendererVk *renderer);
     void releaseBufferAndDescriptorSetCache(RendererVk *renderer);
@@ -867,9 +850,15 @@ class BufferHelper : public ReadWriteResource
                                           VkBufferUsageFlags usage,
                                           VkDeviceSize size);
 
-  private:
+    // Buffer's user size and allocation size may be different due to alignment requirement. In
+    // normal usage we just use the actual allocation size and it is good enough. But when
+    // robustResourceInit is enabled, mBufferWithUserSize is created to match the exact user
+    // size. Thus when user size changes, we must clear and recreate this mBufferWithUserSize.
+    void onBufferUserSizeChange(RendererVk *renderer);
+
     void initializeBarrierTracker(Context *context);
 
+  private:
     // Only called by DynamicBuffer.
     friend class DynamicBuffer;
     void setSuballocationOffsetAndSize(VkDeviceSize offset, VkDeviceSize size)
@@ -883,7 +872,7 @@ class BufferHelper : public ReadWriteResource
     // when robust resource init is enabled, we may want to create a dedicated VkBuffer for the
     // suballocation so that vulkan driver will ensure no access beyond this sub-range. In that
     // case, this VkBuffer will be created lazily as needed.
-    Buffer mBufferForVertexArray;
+    Buffer mBufferWithUserSize;
 
     // For memory barriers.
     uint32_t mCurrentQueueFamilyIndex;
@@ -1785,6 +1774,8 @@ enum class ImageLayout
     ExternalShadersWrite,
     TransferSrc,
     TransferDst,
+    // Used when the image is transitioned on the host for use by host image copy
+    HostCopy,
     VertexShaderReadOnly,
     VertexShaderWrite,
     // PreFragment == Vertex, Tessellation and Geometry stages
@@ -1829,6 +1820,12 @@ enum class UpdateSource
     Buffer,
     // The source of the copy is an image.
     Image,
+};
+
+enum class ApplyImageUpdate
+{
+    ImmediatelyIfPossible,
+    Defer,
 };
 
 constexpr VkImageAspectFlagBits IMAGE_ASPECT_DEPTH_STENCIL =
@@ -2191,7 +2188,9 @@ class ImageHelper final : public Resource, public angle::Subject
                                              ImageAccess access,
                                              const GLuint inputRowPitch,
                                              const GLuint inputDepthPitch,
-                                             const GLuint inputSkipBytes);
+                                             const GLuint inputSkipBytes,
+                                             ApplyImageUpdate applyUpdate,
+                                             bool *updateAppliedImmediatelyOut);
 
     angle::Result stageSubresourceUpdate(ContextVk *contextVk,
                                          const gl::ImageIndex &index,
@@ -2202,7 +2201,9 @@ class ImageHelper final : public Resource, public angle::Subject
                                          GLenum type,
                                          const uint8_t *pixels,
                                          const Format &vkFormat,
-                                         ImageAccess access);
+                                         ImageAccess access,
+                                         ApplyImageUpdate applyUpdate,
+                                         bool *updateAppliedImmediatelyOut);
 
     angle::Result stageSubresourceUpdateAndGetData(ContextVk *contextVk,
                                                    size_t allocationSize,
@@ -2673,6 +2674,15 @@ class ImageHelper final : public Resource, public angle::Subject
                                         LevelIndex mipLevel,
                                         uint32_t baseArrayLayer,
                                         uint32_t layerCount);
+
+    angle::Result updateSubresourceOnHost(ContextVk *contextVk,
+                                          const gl::ImageIndex &index,
+                                          const gl::Extents &glExtents,
+                                          const gl::Offset &offset,
+                                          const uint8_t *source,
+                                          const GLuint rowPitch,
+                                          const GLuint depthPitch,
+                                          bool *copiedOut);
 
     std::vector<SubresourceUpdate> *getLevelUpdates(gl::LevelIndex level);
     const std::vector<SubresourceUpdate> *getLevelUpdates(gl::LevelIndex level) const;
