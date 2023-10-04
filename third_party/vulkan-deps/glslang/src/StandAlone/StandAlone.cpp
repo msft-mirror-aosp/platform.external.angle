@@ -73,40 +73,41 @@ extern "C" {
 }
 
 // Command-line options
-enum TOptions {
-    EOptionNone                 = 0,
-    EOptionIntermediate         = (1 <<  0),
-    EOptionSuppressInfolog      = (1 <<  1),
-    EOptionMemoryLeakMode       = (1 <<  2),
-    EOptionRelaxedErrors        = (1 <<  3),
-    EOptionGiveWarnings         = (1 <<  4),
-    EOptionLinkProgram          = (1 <<  5),
-    EOptionMultiThreaded        = (1 <<  6),
-    EOptionDumpConfig           = (1 <<  7),
-    EOptionDumpReflection       = (1 <<  8),
-    EOptionSuppressWarnings     = (1 <<  9),
-    EOptionDumpVersions         = (1 << 10),
-    EOptionSpv                  = (1 << 11),
-    EOptionHumanReadableSpv     = (1 << 12),
-    EOptionVulkanRules          = (1 << 13),
-    EOptionDefaultDesktop       = (1 << 14),
-    EOptionOutputPreprocessed   = (1 << 15),
-    EOptionOutputHexadecimal    = (1 << 16),
-    EOptionReadHlsl             = (1 << 17),
-    EOptionCascadingErrors      = (1 << 18),
-    EOptionAutoMapBindings      = (1 << 19),
-    EOptionFlattenUniformArrays = (1 << 20),
-    EOptionNoStorageFormat      = (1 << 21),
-    EOptionKeepUncalled         = (1 << 22),
-    EOptionHlslOffsets          = (1 << 23),
-    EOptionHlslIoMapping        = (1 << 24),
-    EOptionAutoMapLocations     = (1 << 25),
-    EOptionDebug                = (1 << 26),
-    EOptionStdin                = (1 << 27),
-    EOptionOptimizeDisable      = (1 << 28),
-    EOptionOptimizeSize         = (1 << 29),
-    EOptionInvertY              = (1 << 30),
-    EOptionDumpBareVersion      = (1 << 31),
+enum TOptions : uint64_t {
+    EOptionNone = 0,
+    EOptionIntermediate = (1ull << 0),
+    EOptionSuppressInfolog = (1ull << 1),
+    EOptionMemoryLeakMode = (1ull << 2),
+    EOptionRelaxedErrors = (1ull << 3),
+    EOptionGiveWarnings = (1ull << 4),
+    EOptionLinkProgram = (1ull << 5),
+    EOptionMultiThreaded = (1ull << 6),
+    EOptionDumpConfig = (1ull << 7),
+    EOptionDumpReflection = (1ull << 8),
+    EOptionSuppressWarnings = (1ull << 9),
+    EOptionDumpVersions = (1ull << 10),
+    EOptionSpv = (1ull << 11),
+    EOptionHumanReadableSpv = (1ull << 12),
+    EOptionVulkanRules = (1ull << 13),
+    EOptionDefaultDesktop = (1ull << 14),
+    EOptionOutputPreprocessed = (1ull << 15),
+    EOptionOutputHexadecimal = (1ull << 16),
+    EOptionReadHlsl = (1ull << 17),
+    EOptionCascadingErrors = (1ull << 18),
+    EOptionAutoMapBindings = (1ull << 19),
+    EOptionFlattenUniformArrays = (1ull << 20),
+    EOptionNoStorageFormat = (1ull << 21),
+    EOptionKeepUncalled = (1ull << 22),
+    EOptionHlslOffsets = (1ull << 23),
+    EOptionHlslIoMapping = (1ull << 24),
+    EOptionAutoMapLocations = (1ull << 25),
+    EOptionDebug = (1ull << 26),
+    EOptionStdin = (1ull << 27),
+    EOptionOptimizeDisable = (1ull << 28),
+    EOptionOptimizeSize = (1ull << 29),
+    EOptionInvertY = (1ull << 30),
+    EOptionDumpBareVersion = (1ull << 31),
+    EOptionCompileOnly = (1ull << 32),
 };
 bool targetHlslFunctionality1 = false;
 bool SpvToolsDisassembler = false;
@@ -158,17 +159,15 @@ void ProcessConfigFile()
 {
     if (ConfigFile.size() == 0)
         *GetResources() = *GetDefaultResources();
-#ifndef GLSLANG_WEB
     else {
         char* configString = ReadFileData(ConfigFile.c_str());
         DecodeResourceLimits(GetResources(),  configString);
         FreeFileData(configString);
     }
-#endif
 }
 
 int ReflectOptions = EShReflectionDefault;
-int Options = 0;
+std::underlying_type_t<TOptions> Options = EOptionNone;
 const char* ExecutableName = nullptr;
 const char* binaryFileName = nullptr;
 const char* depencyFileName = nullptr;
@@ -891,6 +890,8 @@ void ProcessArguments(std::vector<std::unique_ptr<glslang::TWorkItem>>& workItem
                         bumpArg();
                     } else if (lowerword == "version") {
                         Options |= EOptionDumpVersions;
+                    } else if (lowerword == "no-link") {
+                        Options |= EOptionCompileOnly;
                     } else if (lowerword == "help") {
                         usage();
                         break;
@@ -1312,6 +1313,7 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
     //
 
     glslang::TProgram& program = *new glslang::TProgram;
+    const bool compileOnly = (Options & EOptionCompileOnly) != 0;
     for (auto it = compUnits.cbegin(); it != compUnits.cend(); ++it) {
         const auto &compUnit = *it;
         for (int i = 0; i < compUnit.count; i++) {
@@ -1328,6 +1330,9 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
             shader->setSourceEntryPoint(sourceEntryPointName);
         }
 
+        if (compileOnly)
+            shader->setCompileOnly();
+
         shader->setOverrideVersion(GlslVersion);
 
         std::string intrinsicString = getIntrinsic(compUnit.text, compUnit.count);
@@ -1342,7 +1347,6 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
         shader->setPreamble(PreambleString.c_str());
         shader->addProcesses(Processes);
 
-#ifndef GLSLANG_WEB
         // Set IO mapper binding shift values
         for (int r = 0; r < glslang::EResCount; ++r) {
             const glslang::TResourceType res = glslang::TResourceType(r);
@@ -1374,7 +1378,6 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
         }
 
         shader->setUniformLocationBase(uniformBase);
-#endif
 
         if (VulkanRulesRelaxed) {
             for (auto& storageOverride : blockStorageOverrides) {
@@ -1434,7 +1437,6 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
 
         const int defaultVersion = Options & EOptionDefaultDesktop ? 110 : 100;
 
-#ifndef GLSLANG_WEB
         if (Options & EOptionOutputPreprocessed) {
             std::string str;
             if (shader->preprocess(GetResources(), defaultVersion, ENoProfile, false, false, messages, &str, includer)) {
@@ -1446,12 +1448,12 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
             StderrIfNonEmpty(shader->getInfoDebugLog());
             continue;
         }
-#endif
 
         if (! shader->parse(GetResources(), defaultVersion, false, messages, includer))
             CompileFailed = true;
 
-        program.addShader(shader);
+        if (!compileOnly)
+            program.addShader(shader);
 
         if (! (Options & EOptionSuppressInfolog) &&
             ! (Options & EOptionMemoryLeakMode)) {
@@ -1466,32 +1468,29 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
     // Program-level processing...
     //
 
-    // Link
-    if (! (Options & EOptionOutputPreprocessed) && ! program.link(messages))
-        LinkFailed = true;
-
-#ifndef GLSLANG_WEB
-    // Map IO
-    if (Options & EOptionSpv) {
-        if (!program.mapIO())
+    if (!compileOnly) {
+        // Link
+        if (!(Options & EOptionOutputPreprocessed) && !program.link(messages))
             LinkFailed = true;
-    }
-#endif
 
-    // Report
-    if (! (Options & EOptionSuppressInfolog) &&
-        ! (Options & EOptionMemoryLeakMode)) {
-        PutsIfNonEmpty(program.getInfoLog());
-        PutsIfNonEmpty(program.getInfoDebugLog());
-    }
+        // Map IO
+        if (Options & EOptionSpv) {
+            if (!program.mapIO())
+                LinkFailed = true;
+        }
 
-#ifndef GLSLANG_WEB
-    // Reflect
-    if (Options & EOptionDumpReflection) {
-        program.buildReflection(ReflectOptions);
-        program.dumpReflection();
+        // Report
+        if (!(Options & EOptionSuppressInfolog) && !(Options & EOptionMemoryLeakMode)) {
+            PutsIfNonEmpty(program.getInfoLog());
+            PutsIfNonEmpty(program.getInfoDebugLog());
+        }
+
+        // Reflect
+        if (Options & EOptionDumpReflection) {
+            program.buildReflection(ReflectOptions);
+            program.dumpReflection();
+        }
     }
-#endif
 
     std::vector<std::string> outputFiles;
 
@@ -1500,45 +1499,57 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits)
         if (CompileFailed || LinkFailed)
             printf("SPIR-V is not generated for failed compile or link\n");
         else {
-            for (int stage = 0; stage < EShLangCount; ++stage) {
-                if (program.getIntermediate((EShLanguage)stage)) {
-                    std::vector<unsigned int> spirv;
-                    spv::SpvBuildLogger logger;
-                    glslang::SpvOptions spvOptions;
-                    if (Options & EOptionDebug) {
-                        spvOptions.generateDebugInfo = true;
-                        if (emitNonSemanticShaderDebugInfo) {
-                            spvOptions.emitNonSemanticShaderDebugInfo = true;
-                            if (emitNonSemanticShaderDebugSource) {
-                                spvOptions.emitNonSemanticShaderDebugSource = true;
-                            }
-                        }
-                    } else if (stripDebugInfo)
-                        spvOptions.stripDebugInfo = true;
-                    spvOptions.disableOptimizer = (Options & EOptionOptimizeDisable) != 0;
-                    spvOptions.optimizeSize = (Options & EOptionOptimizeSize) != 0;
-                    spvOptions.disassemble = SpvToolsDisassembler;
-                    spvOptions.validate = SpvToolsValidate;
-                    glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv, &logger, &spvOptions);
-
-                    // Dump the spv to a file or stdout, etc., but only if not doing
-                    // memory/perf testing, as it's not internal to programmatic use.
-                    if (! (Options & EOptionMemoryLeakMode)) {
-                        printf("%s", logger.getAllMessages().c_str());
-                        if (Options & EOptionOutputHexadecimal) {
-                            if (!glslang::OutputSpvHex(spirv, GetBinaryName((EShLanguage)stage), variableName))
-                              exit(EFailUsage);
-                        } else {
-                            if (!glslang::OutputSpvBin(spirv, GetBinaryName((EShLanguage)stage)))
-                              exit(EFailUsage);
-                        }
-
-                        outputFiles.push_back(GetBinaryName((EShLanguage)stage));
-#ifndef GLSLANG_WEB
-                        if (!SpvToolsDisassembler && (Options & EOptionHumanReadableSpv))
-                            spv::Disassemble(std::cout, spirv);
-#endif
+            std::vector<glslang::TIntermediate*> intermediates;
+            if (!compileOnly) {
+                for (int stage = 0; stage < EShLangCount; ++stage) {
+                    if (auto* i = program.getIntermediate((EShLanguage)stage)) {
+                        intermediates.emplace_back(i);
                     }
+                }
+            } else {
+                for (const auto* shader : shaders) {
+                    if (auto* i = shader->getIntermediate()) {
+                        intermediates.emplace_back(i);
+                    }
+                }
+            }
+            for (auto* intermediate : intermediates) {
+                std::vector<unsigned int> spirv;
+                spv::SpvBuildLogger logger;
+                glslang::SpvOptions spvOptions;
+                if (Options & EOptionDebug) {
+                    spvOptions.generateDebugInfo = true;
+                    if (emitNonSemanticShaderDebugInfo) {
+                        spvOptions.emitNonSemanticShaderDebugInfo = true;
+                        if (emitNonSemanticShaderDebugSource) {
+                            spvOptions.emitNonSemanticShaderDebugSource = true;
+                        }
+                    }
+                } else if (stripDebugInfo)
+                    spvOptions.stripDebugInfo = true;
+                spvOptions.disableOptimizer = (Options & EOptionOptimizeDisable) != 0;
+                spvOptions.optimizeSize = (Options & EOptionOptimizeSize) != 0;
+                spvOptions.disassemble = SpvToolsDisassembler;
+                spvOptions.validate = SpvToolsValidate;
+                spvOptions.compileOnly = compileOnly;
+                glslang::GlslangToSpv(*intermediate, spirv, &logger, &spvOptions);
+
+                // Dump the spv to a file or stdout, etc., but only if not doing
+                // memory/perf testing, as it's not internal to programmatic use.
+                if (!(Options & EOptionMemoryLeakMode)) {
+                    printf("%s", logger.getAllMessages().c_str());
+                    const auto filename = GetBinaryName(intermediate->getStage());
+                    if (Options & EOptionOutputHexadecimal) {
+                        if (!glslang::OutputSpvHex(spirv, filename, variableName))
+                            exit(EFailUsage);
+                    } else {
+                        if (!glslang::OutputSpvBin(spirv, filename))
+                            exit(EFailUsage);
+                    }
+
+                    outputFiles.push_back(filename);
+                    if (!SpvToolsDisassembler && (Options & EOptionHumanReadableSpv))
+                        spv::Disassemble(std::cout, spirv);
                 }
             }
         }
@@ -1632,13 +1643,11 @@ int singleMain()
         workList.add(item.get());
     });
 
-#ifndef GLSLANG_WEB
     if (Options & EOptionDumpConfig) {
         printf("%s", GetDefaultTBuiltInResourceString().c_str());
         if (workList.empty())
             return ESuccess;
     }
-#endif
 
     if (Options & EOptionDumpBareVersion) {
         printf("%d:%d.%d.%d%s\n", glslang::GetSpirvGeneratorVersion(), GLSLANG_VERSION_MAJOR, GLSLANG_VERSION_MINOR,
@@ -1884,7 +1893,7 @@ void CompileFile(const char* fileName, ShHandle compiler)
 //
 void usage()
 {
-    printf("Usage: glslangValidator [option]... [file]...\n"
+    printf("Usage: glslang [option]... [file]...\n"
            "\n"
            "'file' can end in .<stage> for auto-stage classification, where <stage> is:\n"
            "    .conf   to provide a config file that replaces the default configuration\n"
@@ -2090,7 +2099,9 @@ void usage()
            "  --vn <name>                       creates a C header file that contains a\n"
            "                                    uint32_t array named <name>\n"
            "                                    initialized with the shader binary code\n"
-           );
+           "  --no-link                         Only compile shader; do not link (GLSL-only)\n"
+           "                                    NOTE: this option will set the export linkage\n"
+           "                                          attribute on all functions\n");
 
     exit(EFailUsage);
 }

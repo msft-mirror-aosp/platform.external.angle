@@ -164,7 +164,10 @@ namespace VULKAN_HPP_NAMESPACE
 #endif /*VK_USE_PLATFORM_ANDROID_KHR*/
 "VK_EXT_sampler_filter_minmax", 
 "VK_KHR_storage_buffer_storage_class", 
-"VK_AMD_gpu_shader_int16", 
+"VK_AMD_gpu_shader_int16",
+#if defined( VK_ENABLE_BETA_EXTENSIONS )
+"VK_AMDX_shader_enqueue",
+#endif /*VK_ENABLE_BETA_EXTENSIONS*/
 "VK_AMD_mixed_attachment_samples", 
 "VK_AMD_shader_fragment_mask", 
 "VK_EXT_inline_uniform_block", 
@@ -269,6 +272,7 @@ namespace VULKAN_HPP_NAMESPACE
 "VK_EXT_extended_dynamic_state", 
 "VK_KHR_deferred_host_operations", 
 "VK_KHR_pipeline_executable_properties", 
+"VK_EXT_host_image_copy", 
 "VK_KHR_map_memory2", 
 "VK_EXT_shader_atomic_float2", 
 "VK_EXT_swapchain_maintenance1", 
@@ -339,6 +343,7 @@ namespace VULKAN_HPP_NAMESPACE
 "VK_HUAWEI_invocation_mask", 
 "VK_NV_external_memory_rdma", 
 "VK_EXT_pipeline_properties", 
+"VK_EXT_frame_boundary", 
 "VK_EXT_multisampled_render_to_single_sampled", 
 "VK_EXT_extended_dynamic_state2", 
 "VK_EXT_color_write_enable", 
@@ -366,6 +371,7 @@ namespace VULKAN_HPP_NAMESPACE
 "VK_QCOM_fragment_density_map_offset", 
 "VK_NV_copy_memory_indirect", 
 "VK_NV_memory_decompression", 
+"VK_NV_device_generated_commands_compute", 
 "VK_NV_linear_color_attachment", 
 "VK_EXT_image_compression_control_swapchain", 
 "VK_QCOM_image_processing", 
@@ -377,6 +383,7 @@ namespace VULKAN_HPP_NAMESPACE
 "VK_NV_optical_flow", 
 "VK_EXT_legacy_dithering", 
 "VK_EXT_pipeline_protected_access", 
+"VK_KHR_maintenance5", 
 "VK_KHR_ray_tracing_position_fetch", 
 "VK_EXT_shader_object", 
 "VK_QCOM_tile_properties", 
@@ -389,11 +396,16 @@ namespace VULKAN_HPP_NAMESPACE
 "VK_EXT_dynamic_rendering_unused_attachments", 
 "VK_KHR_cooperative_matrix", 
 "VK_QCOM_multiview_per_view_render_areas", 
+"VK_QCOM_image_processing2", 
+"VK_QCOM_filter_cubic_weights", 
+"VK_QCOM_ycbcr_degamma", 
+"VK_QCOM_filter_cubic_clamp", 
 "VK_EXT_attachment_feedback_loop_dynamic_state",
 #if defined( VK_USE_PLATFORM_SCREEN_QNX )
-"VK_QNX_external_memory_screen_buffer"
+"VK_QNX_external_memory_screen_buffer",
 #endif /*VK_USE_PLATFORM_SCREEN_QNX*/
- };
+"VK_MSFT_layered_driver", 
+"VK_NV_descriptor_pool_overallocation" };
     return deviceExtensions;
   }
 
@@ -577,7 +589,10 @@ namespace VULKAN_HPP_NAMESPACE
 #if defined( VK_USE_PLATFORM_ANDROID_KHR )
 { "VK_ANDROID_external_memory_android_hardware_buffer", { { "VK_VERSION_1_0", {  { "VK_KHR_sampler_ycbcr_conversion", "VK_KHR_external_memory", "VK_EXT_queue_family_foreign", "VK_KHR_dedicated_allocation",  } } } } },
 #endif /*VK_USE_PLATFORM_ANDROID_KHR*/
-{ "VK_EXT_sampler_filter_minmax", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } } } }, 
+{ "VK_EXT_sampler_filter_minmax", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } } } },
+#if defined( VK_ENABLE_BETA_EXTENSIONS )
+{ "VK_AMDX_shader_enqueue", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2", "VK_KHR_synchronization2", "VK_KHR_pipeline_library", "VK_KHR_spirv_1_4",  } } } } },
+#endif /*VK_ENABLE_BETA_EXTENSIONS*/
 { "VK_EXT_inline_uniform_block", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2", "VK_KHR_maintenance1",  } } } } }, 
 { "VK_EXT_sample_locations", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } }, { "VK_VERSION_1_1", {  {  } } } } }, 
 { "VK_EXT_blend_operation_advanced", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } }, { "VK_VERSION_1_1", {  {  } } } } }, 
@@ -663,6 +678,7 @@ namespace VULKAN_HPP_NAMESPACE
 { "VK_EXT_index_type_uint8", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } }, { "VK_VERSION_1_1", {  {  } } } } }, 
 { "VK_EXT_extended_dynamic_state", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } }, { "VK_VERSION_1_1", {  {  } } } } }, 
 { "VK_KHR_pipeline_executable_properties", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } } } }, 
+{ "VK_EXT_host_image_copy", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2", "VK_KHR_copy_commands2", "VK_KHR_format_feature_flags2",  } } } } }, 
 { "VK_EXT_shader_atomic_float2", { { "VK_VERSION_1_0", {  { "VK_EXT_shader_atomic_float",  } } } } }, 
 { "VK_EXT_surface_maintenance1", { { "VK_VERSION_1_0", {  { "VK_KHR_surface", "VK_KHR_get_surface_capabilities2",  } } } } }, 
 { "VK_EXT_swapchain_maintenance1", { { "VK_VERSION_1_0", {  { "VK_KHR_swapchain", "VK_EXT_surface_maintenance1", "VK_KHR_get_physical_device_properties2",  } } } } }, 
@@ -758,6 +774,7 @@ namespace VULKAN_HPP_NAMESPACE
 { "VK_QCOM_fragment_density_map_offset", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2", "VK_EXT_fragment_density_map",  } } } } }, 
 { "VK_NV_copy_memory_indirect", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2", "VK_KHR_buffer_device_address",  } } } } }, 
 { "VK_NV_memory_decompression", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2", "VK_KHR_buffer_device_address",  } } } } }, 
+{ "VK_NV_device_generated_commands_compute", { { "VK_VERSION_1_0", {  { "VK_NV_device_generated_commands",  } } } } }, 
 { "VK_NV_linear_color_attachment", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } } } }, 
 { "VK_GOOGLE_surfaceless_query", { { "VK_VERSION_1_0", {  { "VK_KHR_surface",  } } } } }, 
 { "VK_EXT_image_compression_control_swapchain", { { "VK_VERSION_1_0", {  { "VK_EXT_image_compression_control",  } } } } }, 
@@ -770,6 +787,7 @@ namespace VULKAN_HPP_NAMESPACE
 { "VK_NV_optical_flow", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2", "VK_KHR_format_feature_flags2", "VK_KHR_synchronization2",  } } } } }, 
 { "VK_EXT_legacy_dithering", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } } } }, 
 { "VK_EXT_pipeline_protected_access", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } } } }, 
+{ "VK_KHR_maintenance5", { { "VK_VERSION_1_1", {  { "VK_KHR_dynamic_rendering",  } } } } }, 
 { "VK_KHR_ray_tracing_position_fetch", { { "VK_VERSION_1_0", {  { "VK_KHR_acceleration_structure",  } } } } }, 
 { "VK_EXT_shader_object", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2", "VK_KHR_dynamic_rendering",  } } }, { "VK_VERSION_1_1", {  { "VK_KHR_dynamic_rendering",  } } }, { "VK_VERSION_1_3", {  {  } } } } }, 
 { "VK_QCOM_tile_properties", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } } } }, 
@@ -781,11 +799,15 @@ namespace VULKAN_HPP_NAMESPACE
 { "VK_EXT_pipeline_library_group_handles", { { "VK_VERSION_1_0", {  { "VK_KHR_ray_tracing_pipeline", "VK_KHR_pipeline_library",  } } } } }, 
 { "VK_EXT_dynamic_rendering_unused_attachments", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2", "VK_KHR_dynamic_rendering",  } } }, { "VK_VERSION_1_1", {  { "VK_KHR_dynamic_rendering",  } } }, { "VK_VERSION_1_3", {  {  } } } } }, 
 { "VK_KHR_cooperative_matrix", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } } } }, 
+{ "VK_QCOM_image_processing2", { { "VK_VERSION_1_0", {  { "VK_QCOM_image_processing",  } } } } }, 
+{ "VK_QCOM_filter_cubic_weights", { { "VK_VERSION_1_0", {  { "VK_EXT_filter_cubic",  } } } } }, 
+{ "VK_QCOM_filter_cubic_clamp", { { "VK_VERSION_1_0", {  { "VK_EXT_filter_cubic", "VK_EXT_sampler_filter_minmax",  } } }, { "VK_VERSION_1_2", {  { "VK_EXT_filter_cubic",  } } } } }, 
 { "VK_EXT_attachment_feedback_loop_dynamic_state", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2", "VK_EXT_attachment_feedback_loop_layout",  } } } } },
 #if defined( VK_USE_PLATFORM_SCREEN_QNX )
-{ "VK_QNX_external_memory_screen_buffer", { { "VK_VERSION_1_0", {  { "VK_KHR_sampler_ycbcr_conversion", "VK_KHR_external_memory", "VK_KHR_dedicated_allocation",  } } }, { "VK_VERSION_1_1", {  { "VK_EXT_queue_family_foreign",  } } } } }
+{ "VK_QNX_external_memory_screen_buffer", { { "VK_VERSION_1_0", {  { "VK_KHR_sampler_ycbcr_conversion", "VK_KHR_external_memory", "VK_KHR_dedicated_allocation",  } } }, { "VK_VERSION_1_1", {  { "VK_EXT_queue_family_foreign",  } } } } },
 #endif /*VK_USE_PLATFORM_SCREEN_QNX*/
- };
+{ "VK_MSFT_layered_driver", { { "VK_VERSION_1_0", {  { "VK_KHR_get_physical_device_properties2",  } } } } }, 
+{ "VK_NV_descriptor_pool_overallocation", { { "VK_VERSION_1_1", {  {  } } } } } };
     auto depIt = dependencies.find( extension );
     return ( depIt != dependencies.end() ) ? depIt->second : noDependencies;
   }
@@ -1382,7 +1404,11 @@ namespace VULKAN_HPP_NAMESPACE
            || ( extension == "VK_ANDROID_external_memory_android_hardware_buffer" )
 #endif /*VK_USE_PLATFORM_ANDROID_KHR*/
            || ( extension == "VK_EXT_sampler_filter_minmax" ) || ( extension == "VK_KHR_storage_buffer_storage_class" ) ||
-           ( extension == "VK_AMD_gpu_shader_int16" ) || ( extension == "VK_AMD_mixed_attachment_samples" ) || ( extension == "VK_AMD_shader_fragment_mask" ) ||
+           ( extension == "VK_AMD_gpu_shader_int16" )
+#if defined( VK_ENABLE_BETA_EXTENSIONS )
+           || ( extension == "VK_AMDX_shader_enqueue" )
+#endif /*VK_ENABLE_BETA_EXTENSIONS*/
+           || ( extension == "VK_AMD_mixed_attachment_samples" ) || ( extension == "VK_AMD_shader_fragment_mask" ) ||
            ( extension == "VK_EXT_inline_uniform_block" ) || ( extension == "VK_EXT_shader_stencil_export" ) || ( extension == "VK_EXT_sample_locations" ) ||
            ( extension == "VK_KHR_relaxed_block_layout" ) || ( extension == "VK_KHR_get_memory_requirements2" ) ||
            ( extension == "VK_KHR_image_format_list" ) || ( extension == "VK_EXT_blend_operation_advanced" ) ||
@@ -1432,7 +1458,7 @@ namespace VULKAN_HPP_NAMESPACE
            || ( extension == "VK_KHR_buffer_device_address" ) || ( extension == "VK_EXT_line_rasterization" ) ||
            ( extension == "VK_EXT_shader_atomic_float" ) || ( extension == "VK_EXT_host_query_reset" ) || ( extension == "VK_EXT_index_type_uint8" ) ||
            ( extension == "VK_EXT_extended_dynamic_state" ) || ( extension == "VK_KHR_deferred_host_operations" ) ||
-           ( extension == "VK_KHR_pipeline_executable_properties" ) || ( extension == "VK_KHR_map_memory2" ) ||
+           ( extension == "VK_KHR_pipeline_executable_properties" ) || ( extension == "VK_EXT_host_image_copy" ) || ( extension == "VK_KHR_map_memory2" ) ||
            ( extension == "VK_EXT_shader_atomic_float2" ) || ( extension == "VK_EXT_swapchain_maintenance1" ) ||
            ( extension == "VK_EXT_shader_demote_to_helper_invocation" ) || ( extension == "VK_NV_device_generated_commands" ) ||
            ( extension == "VK_NV_inherited_viewport_scissor" ) || ( extension == "VK_KHR_shader_integer_dot_product" ) ||
@@ -1470,11 +1496,12 @@ namespace VULKAN_HPP_NAMESPACE
            ( extension == "VK_FUCHSIA_buffer_collection" )
 #endif /*VK_USE_PLATFORM_FUCHSIA*/
            || ( extension == "VK_HUAWEI_subpass_shading" ) || ( extension == "VK_HUAWEI_invocation_mask" ) || ( extension == "VK_NV_external_memory_rdma" ) ||
-           ( extension == "VK_EXT_pipeline_properties" ) || ( extension == "VK_EXT_multisampled_render_to_single_sampled" ) ||
-           ( extension == "VK_EXT_extended_dynamic_state2" ) || ( extension == "VK_EXT_color_write_enable" ) ||
-           ( extension == "VK_EXT_primitives_generated_query" ) || ( extension == "VK_KHR_ray_tracing_maintenance1" ) ||
-           ( extension == "VK_EXT_global_priority_query" ) || ( extension == "VK_EXT_image_view_min_lod" ) || ( extension == "VK_EXT_multi_draw" ) ||
-           ( extension == "VK_EXT_image_2d_view_of_3d" ) || ( extension == "VK_EXT_shader_tile_image" ) || ( extension == "VK_EXT_opacity_micromap" )
+           ( extension == "VK_EXT_pipeline_properties" ) || ( extension == "VK_EXT_frame_boundary" ) ||
+           ( extension == "VK_EXT_multisampled_render_to_single_sampled" ) || ( extension == "VK_EXT_extended_dynamic_state2" ) ||
+           ( extension == "VK_EXT_color_write_enable" ) || ( extension == "VK_EXT_primitives_generated_query" ) ||
+           ( extension == "VK_KHR_ray_tracing_maintenance1" ) || ( extension == "VK_EXT_global_priority_query" ) ||
+           ( extension == "VK_EXT_image_view_min_lod" ) || ( extension == "VK_EXT_multi_draw" ) || ( extension == "VK_EXT_image_2d_view_of_3d" ) ||
+           ( extension == "VK_EXT_shader_tile_image" ) || ( extension == "VK_EXT_opacity_micromap" )
 #if defined( VK_ENABLE_BETA_EXTENSIONS )
            || ( extension == "VK_NV_displacement_micromap" )
 #endif /*VK_ENABLE_BETA_EXTENSIONS*/
@@ -1483,22 +1510,25 @@ namespace VULKAN_HPP_NAMESPACE
            ( extension == "VK_ARM_shader_core_properties" ) || ( extension == "VK_EXT_image_sliced_view_of_3d" ) ||
            ( extension == "VK_VALVE_descriptor_set_host_mapping" ) || ( extension == "VK_EXT_depth_clamp_zero_one" ) ||
            ( extension == "VK_EXT_non_seamless_cube_map" ) || ( extension == "VK_QCOM_fragment_density_map_offset" ) ||
-           ( extension == "VK_NV_copy_memory_indirect" ) || ( extension == "VK_NV_memory_decompression" ) || ( extension == "VK_NV_linear_color_attachment" ) ||
+           ( extension == "VK_NV_copy_memory_indirect" ) || ( extension == "VK_NV_memory_decompression" ) ||
+           ( extension == "VK_NV_device_generated_commands_compute" ) || ( extension == "VK_NV_linear_color_attachment" ) ||
            ( extension == "VK_EXT_image_compression_control_swapchain" ) || ( extension == "VK_QCOM_image_processing" ) ||
            ( extension == "VK_EXT_external_memory_acquire_unmodified" ) || ( extension == "VK_EXT_extended_dynamic_state3" ) ||
            ( extension == "VK_EXT_subpass_merge_feedback" ) || ( extension == "VK_EXT_shader_module_identifier" ) ||
            ( extension == "VK_EXT_rasterization_order_attachment_access" ) || ( extension == "VK_NV_optical_flow" ) ||
-           ( extension == "VK_EXT_legacy_dithering" ) || ( extension == "VK_EXT_pipeline_protected_access" ) ||
+           ( extension == "VK_EXT_legacy_dithering" ) || ( extension == "VK_EXT_pipeline_protected_access" ) || ( extension == "VK_KHR_maintenance5" ) ||
            ( extension == "VK_KHR_ray_tracing_position_fetch" ) || ( extension == "VK_EXT_shader_object" ) || ( extension == "VK_QCOM_tile_properties" ) ||
            ( extension == "VK_SEC_amigo_profiling" ) || ( extension == "VK_QCOM_multiview_per_view_viewports" ) ||
            ( extension == "VK_NV_ray_tracing_invocation_reorder" ) || ( extension == "VK_EXT_mutable_descriptor_type" ) ||
            ( extension == "VK_ARM_shader_core_builtins" ) || ( extension == "VK_EXT_pipeline_library_group_handles" ) ||
            ( extension == "VK_EXT_dynamic_rendering_unused_attachments" ) || ( extension == "VK_KHR_cooperative_matrix" ) ||
-           ( extension == "VK_QCOM_multiview_per_view_render_areas" ) || ( extension == "VK_EXT_attachment_feedback_loop_dynamic_state" )
+           ( extension == "VK_QCOM_multiview_per_view_render_areas" ) || ( extension == "VK_QCOM_image_processing2" ) ||
+           ( extension == "VK_QCOM_filter_cubic_weights" ) || ( extension == "VK_QCOM_ycbcr_degamma" ) || ( extension == "VK_QCOM_filter_cubic_clamp" ) ||
+           ( extension == "VK_EXT_attachment_feedback_loop_dynamic_state" )
 #if defined( VK_USE_PLATFORM_SCREEN_QNX )
            || ( extension == "VK_QNX_external_memory_screen_buffer" )
 #endif /*VK_USE_PLATFORM_SCREEN_QNX*/
-      ;
+           || ( extension == "VK_MSFT_layered_driver" ) || ( extension == "VK_NV_descriptor_pool_overallocation" );
   }
 
   VULKAN_HPP_INLINE VULKAN_HPP_CONSTEXPR_20 bool isInstanceExtension( std::string const & extension )

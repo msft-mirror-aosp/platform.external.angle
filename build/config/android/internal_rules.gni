@@ -821,6 +821,12 @@ template("test_runner_script") {
       ]
     }
 
+    if (use_jacoco_coverage) {
+      # Keep in sync with recipe constant for recipe to find coverage data
+      # files from local java tests: https://bit.ly/3Zul6do
+      _jacoco_coverage_dir_name = "java_coverage"
+    }
+
     _device_test = true
     if (_test_type == "gtest") {
       assert(defined(invoker.test_suite))
@@ -898,7 +904,8 @@ template("test_runner_script") {
         # Set a default coverage output directory (can be overridden by user
         # passing the same flag).
         _rebased_coverage_dir =
-            rebase_path("$root_out_dir/coverage", root_build_dir)
+            rebase_path("$root_out_dir/$_jacoco_coverage_dir_name",
+                        root_build_dir)
         executable_args += [
           "--coverage-dir",
           "@WrappedPath(${_rebased_coverage_dir})",
@@ -932,7 +939,8 @@ template("test_runner_script") {
         # Set a default coverage output directory (can be overridden by user
         # passing the same flag).
         _rebased_coverage_dir =
-            rebase_path("$root_out_dir/coverage", root_build_dir)
+            rebase_path("$root_out_dir/$_jacoco_coverage_dir_name",
+                        root_build_dir)
         executable_args += [
           "--coverage-dir",
           "@WrappedPath(${_rebased_coverage_dir})",
@@ -1075,6 +1083,7 @@ if (enable_java_templates) {
       script = "//build/android/gyp/lint.py"
       depfile = "$target_gen_dir/$target_name.d"
       inputs = [
+        java_path_for_inputs,
         _lint_jar_path,
         _custom_lint_jar_path,
         _backported_methods,
@@ -1192,6 +1201,7 @@ if (enable_java_templates) {
     _deps = invoker.deps
 
     _inputs = [
+      java_path_for_inputs,
       invoker.build_config,
       _r8_path,
     ]
@@ -1288,6 +1298,21 @@ if (enable_java_templates) {
       _outputs = [ invoker.output_path ]
     }
     _outputs += [ _mapping_path ]
+
+    if (defined(invoker.input_art_profile)) {
+      _inputs += [ invoker.input_art_profile ]
+      _args += [ "--input-art-profile=" +
+                 rebase_path(invoker.input_art_profile, root_build_dir) ]
+      if (defined(invoker.output_art_profile)) {
+        _outputs += [ invoker.output_art_profile ]
+        _args += [ "--output-art-profile=" +
+                   rebase_path(invoker.output_art_profile, root_build_dir) ]
+      }
+      if (defined(invoker.enable_startup_profile) &&
+          invoker.enable_startup_profile) {
+        _args += [ "--apply-startup-profile" ]
+      }
+    }
 
     if (defined(invoker.enable_proguard_checks) &&
         !invoker.enable_proguard_checks) {
@@ -1460,13 +1485,13 @@ if (enable_java_templates) {
     if (defined(invoker.min_sdk_version)) {
       _min_sdk_version = invoker.min_sdk_version
     }
+    assert(
+        _min_sdk_version >= min_supported_sdk_version,
+        get_label_info(":$target_name", "label_no_toolchain") + " has an unsupported min_sdk_version of $_min_sdk_version (min is $min_supported_sdk_version)")
 
     _proguard_enabled =
         defined(invoker.proguard_enabled) && invoker.proguard_enabled
     _is_dex_merging = defined(invoker.input_dex_filearg)
-    _enable_multidex =
-        !defined(invoker.enable_multidex) || invoker.enable_multidex
-    _enable_main_dex_list = _enable_multidex && _min_sdk_version < 21
     _enable_desugar = !defined(invoker.enable_desugar) || invoker.enable_desugar
     _desugar_needs_classpath = _enable_desugar
 
@@ -1497,10 +1522,6 @@ if (enable_java_templates) {
              "Proguard is required to support the custom assertion handler.")
     }
 
-    if (_enable_main_dex_list) {
-      _main_dex_rules = "//build/android/main_dex_classes.flags"
-    }
-
     if (_desugar_needs_classpath || _proguard_enabled) {
       _rebased_build_config = rebase_path(invoker.build_config, root_build_dir)
     }
@@ -1512,6 +1533,9 @@ if (enable_java_templates) {
         forward_variables_from(invoker,
                                TESTONLY_AND_VISIBILITY + [
                                      "add_view_trace_events",
+                                     "input_art_profile",
+                                     "output_art_profile",
+                                     "enable_startup_profile",
                                      "build_config",
                                      "custom_assertion_handler",
                                      "data",
@@ -1563,22 +1587,6 @@ if (enable_java_templates) {
           args += [ "--apply-mapping=$_rebased_apply_mapping_path" ]
         }
 
-        if (_enable_main_dex_list) {
-          if (defined(invoker.extra_main_dex_proguard_config)) {
-            args += [
-              "--main-dex-rules-path",
-              rebase_path(invoker.extra_main_dex_proguard_config,
-                          root_build_dir),
-            ]
-            inputs += [ invoker.extra_main_dex_proguard_config ]
-          }
-          args += [
-            "--main-dex-rules-path",
-            rebase_path(_main_dex_rules, root_build_dir),
-          ]
-          inputs += [ _main_dex_rules ]
-        }
-
         if (defined(invoker.output)) {
           output_path = invoker.output
         } else if (!defined(proguard_mapping_path)) {
@@ -1611,6 +1619,7 @@ if (enable_java_templates) {
         depfile = "$target_gen_dir/$target_name.d"
         outputs = [ invoker.output ]
         inputs = [
+          java_path_for_inputs,
           _d8_path,
           _custom_d8_path,
         ]
@@ -1631,7 +1640,7 @@ if (enable_java_templates) {
           "--depfile",
           rebase_path(depfile, root_build_dir),
           "--output",
-          rebase_path(outputs[0], root_build_dir),
+          rebase_path(invoker.output, root_build_dir),
           "--min-api=$_min_sdk_version",
           "--r8-jar-path",
           rebase_path(_d8_path, root_build_dir),
@@ -1652,25 +1661,6 @@ if (enable_java_templates) {
             "--incremental-dir",
             rebase_path("$target_out_dir/$target_name", root_build_dir),
           ]
-        }
-
-        if (_enable_multidex) {
-          args += [ "--multi-dex" ]
-          if (_enable_main_dex_list) {
-            if (defined(invoker.extra_main_dex_proguard_config)) {
-              args += [
-                "--main-dex-rules-path",
-                rebase_path(invoker.extra_main_dex_proguard_config,
-                            root_build_dir),
-              ]
-              inputs += [ invoker.extra_main_dex_proguard_config ]
-            }
-            args += [
-              "--main-dex-rules-path",
-              rebase_path(_main_dex_rules, root_build_dir),
-            ]
-            inputs += [ _main_dex_rules ]
-          }
         }
         if (_is_library) {
           args += [ "--library" ]
@@ -1766,6 +1756,7 @@ if (enable_java_templates) {
 
       script = "//build/android/gyp/jacoco_instr.py"
       inputs = invoker.source_files + [
+                 java_path_for_inputs,
                  _jacococli_jar,
                  invoker.input_jar_path,
                ]
@@ -1877,24 +1868,22 @@ if (enable_java_templates) {
 
   template("bytecode_processor") {
     action_with_pydeps(target_name) {
-      forward_variables_from(invoker, TESTONLY_AND_VISIBILITY + [ "data_deps" ])
-      _bytecode_checker_script = "$root_build_dir/bin/helper/bytecode_processor"
+      forward_variables_from(invoker,
+                             TESTONLY_AND_VISIBILITY + [
+                                   "data_deps",
+                                   "deps",
+                                 ])
       script = "//build/android/gyp/bytecode_processor.py"
       inputs = [
+        java_path_for_inputs,
         invoker.build_config,
         invoker.input_jar,
-        _bytecode_checker_script,
       ]
       outputs = [ "$target_out_dir/$target_name.bytecode.stamp" ]
-      deps =
-          invoker.deps +
-          [ "//build/android/bytecode:bytecode_processor($default_toolchain)" ]
       _rebased_build_config = rebase_path(invoker.build_config, root_build_dir)
       args = [
         "--target-name",
         get_label_info(":${target_name}", "label_no_toolchain"),
-        "--script",
-        rebase_path(_bytecode_checker_script, root_build_dir),
         "--gn-target=${invoker.target_label}",
         "--input-jar",
         rebase_path(invoker.input_jar, root_build_dir),
@@ -1906,33 +1895,32 @@ if (enable_java_templates) {
         "--full-classpath-jars=@FileArg($_rebased_build_config:deps_info:javac_full_classpath)",
         "--full-classpath-gn-targets=@FileArg($_rebased_build_config:deps_info:javac_full_classpath_targets)",
       ]
+      if (auto_add_missing_java_deps) {
+        args += [ "--auto-add-deps" ]
+      }
       if (android_static_analysis == "build_server") {
         args += [ "--use-build-server" ]
       }
       if (invoker.include_android_sdk) {
         args += [ "--sdk-classpath-jars=@FileArg($_rebased_build_config:android:sdk_jars)" ]
       }
-      if (invoker.is_prebuilt) {
-        args += [ "--is-prebuilt" ]
-      }
       if (treat_warnings_as_errors) {
         args += [ "--warnings-as-errors" ]
-      }
-      if (defined(invoker.missing_classes_allowlist)) {
-        args += [
-          "--missing-classes-allowlist=${invoker.missing_classes_allowlist}",
-        ]
       }
     }
   }
 
   template("merge_manifests") {
     action_with_pydeps(target_name) {
+      assert(
+          invoker.min_sdk_version >= min_supported_sdk_version,
+          get_label_info(":$target_name", "label_no_toolchain") + " has an unsupported min_sdk_version of ${invoker.min_sdk_version} (min is $min_supported_sdk_version)")
       forward_variables_from(invoker, TESTONLY_AND_VISIBILITY + [ "deps" ])
       script = "//build/android/gyp/merge_manifest.py"
       depfile = "$target_gen_dir/$target_name.d"
 
       inputs = [
+        java_path_for_inputs,
         invoker.build_config,
         invoker.input_manifest,
         _manifest_merger_jar_path,
@@ -2145,8 +2133,6 @@ if (enable_java_templates) {
   #   proguard_file: (optional)
   #       Path to proguard configuration file for this apk target.
   #
-  #   proguard_file_main_dex: (optional)
-  #
   template("compile_resources") {
     forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
 
@@ -2305,14 +2291,6 @@ if (enable_java_templates) {
       _args += [
         "--proguard-file",
         rebase_path(invoker.proguard_file, root_build_dir),
-      ]
-    }
-
-    if (defined(invoker.proguard_file_main_dex)) {
-      _outputs += [ invoker.proguard_file_main_dex ]
-      _args += [
-        "--proguard-file-main-dex",
-        rebase_path(invoker.proguard_file_main_dex, root_build_dir),
       ]
     }
 
@@ -2536,7 +2514,10 @@ if (enable_java_templates) {
       script = "//build/android/gyp/unused_resources.py"
       depfile = "$target_gen_dir/${target_name}.d"
       _unused_resources_script = "$root_build_dir/bin/helper/unused_resources"
-      inputs = [ _unused_resources_script ]
+      inputs = [
+        _unused_resources_script,
+        java_path_for_inputs,
+      ]
       outputs = [
         invoker.output_config,
         invoker.output_r_txt,
@@ -2652,11 +2633,11 @@ if (enable_java_templates) {
         invoker.binary_baseline_profile_path,
         invoker.binary_baseline_profile_metadata_path,
       ]
-      _profgen_path = "$android_sdk_root/cmdline-tools/latest/bin/profgen"
+      _profgen_path =
+          "$public_android_sdk_root/cmdline-tools/latest/bin/profgen"
       _rebased_build_config = rebase_path(invoker.build_config, root_build_dir)
       inputs = [
         invoker.build_config,
-        invoker.proguard_mapping_path,
         invoker.input_profile_path,
         _profgen_path,
       ]
@@ -2669,13 +2650,18 @@ if (enable_java_templates) {
         rebase_path(invoker.binary_baseline_profile_metadata_path,
                     root_build_dir),
         "--dex=@FileArg($_rebased_build_config:final_dex:path)",
-        "--proguard-mapping",
-        rebase_path(invoker.proguard_mapping_path, root_build_dir),
         "--input-profile-path",
         rebase_path(invoker.input_profile_path, root_build_dir),
         "--depfile",
         rebase_path(depfile, root_build_dir),
       ]
+      if (defined(invoker.proguard_mapping_path)) {
+        args += [
+          "--proguard-mapping",
+          rebase_path(invoker.proguard_mapping_path, root_build_dir),
+        ]
+        inputs += [ invoker.proguard_mapping_path ]
+      }
     }
   }
 
@@ -3010,7 +2996,10 @@ if (enable_java_templates) {
       if (!invoker.enable_errorprone && !invoker.use_turbine) {
         outputs += [ invoker.output_jar_path + ".info" ]
       }
-      inputs = invoker.source_files + _java_srcjars + [ _build_config ]
+      inputs = invoker.source_files + _java_srcjars + [
+                 _build_config,
+                 java_path_for_inputs,
+               ]
       if (invoker.source_files != []) {
         inputs += [ invoker.target_sources_file ]
       }
@@ -3082,13 +3071,6 @@ if (enable_java_templates) {
           "--generated-jar-path",
           rebase_path(invoker.generated_jar_path, root_build_dir),
         ]
-      }
-
-      if (use_java_goma) {
-        args += [ "--gomacc-path=$goma_dir/gomacc" ]
-
-        # Override the default action_pool when goma is enabled.
-        pool = "//build/config/android:goma_javac_pool"
       }
 
       # Flag enable_kythe_annotations requires
@@ -3218,13 +3200,6 @@ if (enable_java_templates) {
       }
 
       args += [ "--classpath=@FileArg($_rebased_build_config:deps_info:javac_full_interface_classpath)" ]
-
-      if (use_java_goma) {
-        args += [ "--gomacc-path=$goma_dir/gomacc" ]
-
-        # Override the default action_pool when goma is enabled.
-        pool = "//build/config/android:goma_javac_pool"
-      }
 
       if (_chromium_code) {
         args += [ "--chromium-code" ]
@@ -3810,11 +3785,13 @@ if (enable_java_templates) {
       if (_kt_files != []) {
         _kt_allowlist = [
           "android/java/src/org/chromium/chrome/browser/tabmodel/AsyncTabParamsManagerImpl.kt",
+          "java/androidx/core/os/BuildCompat.kt",
           "webengine_shell_apk/src/org/chromium/webengine/shell/*.kt",
         ]
-        assert(filter_exclude(_kt_files, _kt_allowlist) == [],
-               "Only a files in the allowlist can be included for now. Feel " +
-                   "free to remove this assert when experimenting locally.")
+        _found_kt = filter_exclude(_kt_files, _kt_allowlist)
+        assert(
+            _found_kt == [],
+            "Only a files in the allowlist can be included for now. Feel " + "free to remove this assert when experimenting locally. Found: $_found_kt")
         _compile_kt_target_name = "${_main_target_name}__compile_kt"
         _kotlinc_jar_path = "$target_out_dir/$_output_name.kotlinc.jar"
         _kotlin_interface_jar_path =
@@ -3841,10 +3818,10 @@ if (enable_java_templates) {
         if (_enable_errorprone) {
           # Rely on the header jar to provide all .class files so that it is
           # safe to omit generated files entirely for errorprone.
-          _filtered_java_files =
-              filter_exclude(_java_files, [ "$root_gen_dir*" ])
+          _filtered_source_files =
+              filter_exclude(_source_files, [ "$root_gen_dir*" ])
         }
-        if (_enable_errorprone && _filtered_java_files == []) {
+        if (_enable_errorprone && _filtered_source_files == []) {
           # Filtering out generated files resulted in no files left.
           group(target_name) {
             not_needed(invoker, "*")
@@ -3871,7 +3848,7 @@ if (enable_java_templates) {
             build_config = _build_config
 
             if (_enable_errorprone) {
-              source_files = _filtered_java_files
+              source_files = _filtered_source_files
             } else {
               source_files = _source_files
               srcjar_deps = _srcjar_deps
@@ -3964,6 +3941,7 @@ if (enable_java_templates) {
       action_with_pydeps(_rewritten_jar_target_name) {
         script = "//build/android/gyp/bytecode_rewriter.py"
         inputs = [
+          java_path_for_inputs,
           _rewriter_path,
           _build_config,
           _unprocessed_jar_path,
@@ -4010,7 +3988,8 @@ if (enable_java_templates) {
     if (_build_host_jar || _build_device_jar) {
       _enable_bytecode_checks =
           (!defined(invoker.enable_bytecode_checks) ||
-           invoker.enable_bytecode_checks) && android_static_analysis != "off"
+           invoker.enable_bytecode_checks) && !_is_prebuilt &&
+          android_static_analysis != "off"
       if (_enable_bytecode_checks) {
         _validate_target_name = "${target_name}__validate"
         bytecode_processor(_validate_target_name) {
@@ -4027,7 +4006,6 @@ if (enable_java_templates) {
               get_label_info(":${invoker.target_name}", "label_no_toolchain")
           input_jar = _unprocessed_jar_path
           build_config = _build_config
-          is_prebuilt = _is_prebuilt
         }
       } else {
         not_needed(invoker, [ "missing_classes_allowlist" ])
@@ -4118,7 +4096,6 @@ if (enable_java_templates) {
             deps += _header_classpath_deps + _unprocessed_jar_deps
           }
 
-          enable_multidex = false
           is_library = true
 
           # proguard_configs listed on java_library targets need to be marked
@@ -4155,13 +4132,18 @@ if (enable_java_templates) {
         }
         deps = [ ":$_build_config_target_name" ]
         if (_is_robolectric) {
-          # For robolectric tests, we also add the normal sdk jar to the
-          # classpath since whenever we start using a new Android SDK,
-          # robolectric doesn't support it, and they often take a few months to
-          # support it. This causes issues when mocking classes that reference
-          # new SDK classes, so providing our normal SDK will allow these
-          # classes to resolve. For an example, see crbug.com/1350963.
-          extra_classpath_jars = [ android_sdk_jar ]
+          # For robolectric tests, we add the sdk stub jars so that classes
+          # that reference Android types can be loaded without throwing
+          # NoClassDefFoundErrors. The Robolectric sandbox makes these types
+          # available in non-stub form, but not until test classes are loaded
+          # into it. Before being loaded into the sandbox, they must be loaded
+          # outside of it in order to read their annotations (which configure
+          # the sandbox), and to enumerate test methods.
+          extra_classpath_jars = [
+            android_sdk_jar,
+            "$android_sdk/optional/android.test.base.jar",
+            "$android_sdk/optional/android.test.runner.jar",
+          ]
         }
       }
     }

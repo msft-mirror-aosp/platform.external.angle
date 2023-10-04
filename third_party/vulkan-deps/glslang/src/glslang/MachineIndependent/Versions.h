@@ -174,6 +174,7 @@ const char* const E_GL_KHR_shader_subgroup_shuffle_relative = "GL_KHR_shader_sub
 const char* const E_GL_KHR_shader_subgroup_clustered        = "GL_KHR_shader_subgroup_clustered";
 const char* const E_GL_KHR_shader_subgroup_quad             = "GL_KHR_shader_subgroup_quad";
 const char* const E_GL_KHR_memory_scope_semantics           = "GL_KHR_memory_scope_semantics";
+const char* const E_GL_KHR_cooperative_matrix               = "GL_KHR_cooperative_matrix";
 
 const char* const E_GL_EXT_shader_atomic_int64              = "GL_EXT_shader_atomic_int64";
 
@@ -280,6 +281,8 @@ const char* const E_GL_NV_shader_sm_builtins                    = "GL_NV_shader_
 const char* const E_GL_NV_integer_cooperative_matrix            = "GL_NV_integer_cooperative_matrix";
 const char* const E_GL_NV_shader_invocation_reorder             = "GL_NV_shader_invocation_reorder";
 
+const char* const E_GL_QCOM_image_processing                    = "GL_QCOM_image_processing";
+
 // AEP
 const char* const E_GL_ANDROID_extension_pack_es31a             = "GL_ANDROID_extension_pack_es31a";
 const char* const E_GL_KHR_blend_equation_advanced              = "GL_KHR_blend_equation_advanced";
@@ -329,6 +332,8 @@ const char* const E_GL_EXT_shader_atomic_float = "GL_EXT_shader_atomic_float";
 const char* const E_GL_EXT_shader_atomic_float2 = "GL_EXT_shader_atomic_float2";
 
 const char* const E_GL_EXT_shader_tile_image = "GL_EXT_shader_tile_image";
+
+const char* const E_GL_EXT_texture_shadow_lod = "GL_EXT_texture_shadow_lod";
 
 // Arrays of extensions for the above AEP duplications
 

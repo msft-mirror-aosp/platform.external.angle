@@ -766,11 +766,9 @@ Optimizer::PassToken CreateCombineAccessChainsPass();
 // potentially de-optimizing the instrument code, for example, inlining
 // the debug record output function throughout the module.
 //
-// The instrumentation will read and write buffers in debug
-// descriptor set |desc_set|. It will write |shader_id| in each output record
+// The instrumentation will write |shader_id| in each output record
 // to identify the shader module which generated the record.
-Optimizer::PassToken CreateInstBindlessCheckPass(uint32_t desc_set,
-                                                 uint32_t shader_id);
+Optimizer::PassToken CreateInstBindlessCheckPass(uint32_t shader_id);
 
 // Create a pass to instrument physical buffer address checking
 // This pass instruments all physical buffer address references to check that
@@ -791,8 +789,7 @@ Optimizer::PassToken CreateInstBindlessCheckPass(uint32_t desc_set,
 // The instrumentation will read and write buffers in debug
 // descriptor set |desc_set|. It will write |shader_id| in each output record
 // to identify the shader module which generated the record.
-Optimizer::PassToken CreateInstBuffAddrCheckPass(uint32_t desc_set,
-                                                 uint32_t shader_id);
+Optimizer::PassToken CreateInstBuffAddrCheckPass(uint32_t shader_id);
 
 // Create a pass to instrument OpDebugPrintf instructions.
 // This pass replaces all OpDebugPrintf instructions with instructions to write
@@ -981,6 +978,22 @@ Optimizer::PassToken CreateRemoveDontInlinePass();
 // object, currently the pass would remove accesschain pointer argument passed
 // to the function
 Optimizer::PassToken CreateFixFuncCallArgumentsPass();
+
+// Creates a trim-capabilities pass.
+// This pass removes unused capabilities for a given module, and if possible,
+// associated extensions.
+// See `trim_capabilities.h` for the list of supported capabilities.
+//
+// If the module contains unsupported capabilities, this pass will ignore them.
+// This should be fine in most cases, but could yield to incorrect results if
+// the unknown capability interacts with one of the trimmed capabilities.
+Optimizer::PassToken CreateTrimCapabilitiesPass();
+
+// Creates a switch-descriptorset pass.
+// This pass changes any DescriptorSet decorations with the value |ds_from| to
+// use the new value |ds_to|.
+Optimizer::PassToken CreateSwitchDescriptorSetPass(uint32_t ds_from,
+                                                   uint32_t ds_to);
 }  // namespace spvtools
 
 #endif  // INCLUDE_SPIRV_TOOLS_OPTIMIZER_HPP_

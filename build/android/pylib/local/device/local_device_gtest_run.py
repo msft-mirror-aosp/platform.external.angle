@@ -15,8 +15,6 @@ import subprocess
 import shutil
 import time
 
-from six.moves import range  # pylint: disable=redefined-builtin
-from devil import base_error
 from devil.android import crash_handler
 from devil.android import device_errors
 from devil.android import device_temp_file
@@ -32,6 +30,7 @@ from pylib.local import local_test_server_spawner
 from pylib.local.device import local_device_environment
 from pylib.local.device import local_device_test_run
 from pylib.symbols import stack_symbolizer
+from pylib.utils import code_coverage_utils
 from pylib.utils import google_storage_helper
 from pylib.utils import logdog_helper
 from py_trace_event import trace_event
@@ -69,15 +68,6 @@ _SUITE_REQUIRES_TEST_SERVER_SPAWNER = [
   'components_browsertests', 'content_unittests', 'content_browsertests',
   'net_unittests', 'services_unittests', 'unit_tests'
 ]
-
-# These are use for code coverage.
-_LLVM_PROFDATA_PATH = os.path.join(constants.DIR_SOURCE_ROOT, 'third_party',
-                                   'llvm-build', 'Release+Asserts', 'bin',
-                                   'llvm-profdata')
-# Name of the file extension for profraw data files.
-_PROFRAW_FILE_EXTENSION = 'profraw'
-# Name of the file where profraw data files are merged.
-_MERGE_PROFDATA_FILE_NAME = 'coverage_merged.' + _PROFRAW_FILE_EXTENSION
 
 # No-op context manager. If we used Python 3, we could change this to
 # contextlib.ExitStack()
@@ -141,92 +131,6 @@ def _GetDeviceTimeoutMultiplier():
   return 1
 
 
-def _MergeCoverageFiles(coverage_dir, profdata_dir):
-  """Merge coverage data files.
-
-  Each instrumentation activity generates a separate profraw data file. This
-  merges all profraw files in profdata_dir into a single file in
-  coverage_dir. This happens after each test, rather than waiting until after
-  all tests are ran to reduce the memory footprint used by all the profraw
-  files.
-
-  Args:
-    coverage_dir: The path to the coverage directory.
-    profdata_dir: The directory where the profraw data file(s) are located.
-
-  Return:
-    None
-  """
-  # profdata_dir may not exist if pulling coverage files failed.
-  if not os.path.exists(profdata_dir):
-    logging.debug('Profraw directory does not exist.')
-    return
-
-  merge_file = os.path.join(coverage_dir, _MERGE_PROFDATA_FILE_NAME)
-  profraw_files = [
-      os.path.join(profdata_dir, f) for f in os.listdir(profdata_dir)
-      if f.endswith(_PROFRAW_FILE_EXTENSION)
-  ]
-
-  try:
-    logging.debug('Merging target profraw files into merged profraw file.')
-    subprocess_cmd = [
-        _LLVM_PROFDATA_PATH,
-        'merge',
-        '-o',
-        merge_file,
-        '-sparse=true',
-    ]
-    # Grow the merge file by merging it with itself and the new files.
-    if os.path.exists(merge_file):
-      subprocess_cmd.append(merge_file)
-    subprocess_cmd.extend(profraw_files)
-    output = subprocess.check_output(subprocess_cmd)
-    logging.debug('Merge output: %s', output)
-  except subprocess.CalledProcessError:
-    # Don't raise error as that will kill the test run. When code coverage
-    # generates a report, that will raise the error in the report generation.
-    logging.error(
-        'Failed to merge target profdata files to create merged profraw file.')
-
-  # Free up memory space on bot as all data is in the merge file.
-  for f in profraw_files:
-    os.remove(f)
-
-
-def _PullCoverageFiles(device, device_coverage_dir, output_dir):
-  """Pulls coverage files on device to host directory.
-
-  Args:
-    device: The working device.
-    device_coverage_dir: The directory to store coverage data on device.
-    output_dir: The output directory on host.
-  """
-  try:
-    if not os.path.exists(output_dir):
-      os.makedirs(output_dir)
-    device.PullFile(device_coverage_dir, output_dir)
-    if not os.listdir(os.path.join(output_dir, 'profraw')):
-      logging.warning('No coverage data was generated for this run')
-  except (OSError, base_error.BaseError) as e:
-    logging.warning('Failed to handle coverage data after tests: %s', e)
-  finally:
-    device.RemovePath(device_coverage_dir, force=True, recursive=True)
-
-
-def _GetDeviceCoverageDir(device):
-  """Gets the directory to generate coverage data on device.
-
-  Args:
-    device: The working device.
-
-  Returns:
-    The directory path on the device.
-  """
-  return posixpath.join(device.GetExternalStoragePath(), 'chrome', 'test',
-                        'coverage', 'profraw')
-
-
 def _GetLLVMProfilePath(device_coverage_dir, suite, coverage_index):
   """Gets 'LLVM_PROFILE_FILE' environment variable path.
 
@@ -248,7 +152,7 @@ def _GetLLVMProfilePath(device_coverage_dir, suite, coverage_index):
 
 
 class _ApkDelegate:
-  def __init__(self, test_instance, tool):
+  def __init__(self, test_instance, env):
     self._activity = test_instance.activity
     self._apk_helper = test_instance.apk_helper
     self._test_apk_incremental_install_json = (
@@ -260,7 +164,7 @@ class _ApkDelegate:
     self._component = '%s/%s' % (self._package, self._runner)
     self._extras = test_instance.extras
     self._wait_for_java_debugger = test_instance.wait_for_java_debugger
-    self._tool = tool
+    self._env = env
     self._coverage_dir = test_instance.coverage_dir
     self._coverage_index = 0
     self._use_existing_test_data = test_instance.use_existing_test_data
@@ -291,7 +195,9 @@ class _ApkDelegate:
     device_api = device.build_version_sdk
 
     if self._coverage_dir and device_api >= version_codes.LOLLIPOP:
-      device_coverage_dir = _GetDeviceCoverageDir(device)
+      # TODO(b/293175593): Use device.ResolveSpecialPath for multi-user
+      device_coverage_dir = (
+          code_coverage_utils.GetDeviceClangCoverageDir(device))
       extras[_EXTRA_COVERAGE_DEVICE_FILE] = _GetLLVMProfilePath(
           device_coverage_dir, self._suite, self._coverage_index)
       self._coverage_index += 1
@@ -327,7 +233,10 @@ class _ApkDelegate:
     # since we will not have yet applied legacy storage permission workarounds
     # on R+.
     stdout_file = device_temp_file.DeviceTempFile(
-        device.adb, dir=device.GetAppWritablePath(), suffix='.gtest_out')
+        device.adb,
+        dir=device.GetAppWritablePath(),
+        suffix='.gtest_out',
+        device_utils=device)
     extras[_EXTRA_STDOUT_FILE] = stdout_file.name
 
     if self._wait_for_java_debugger:
@@ -355,13 +264,16 @@ class _ApkDelegate:
         if self._coverage_dir and device_api >= version_codes.LOLLIPOP:
           if not os.path.isdir(self._coverage_dir):
             os.makedirs(self._coverage_dir)
-        # TODO(crbug.com/1179004) Use _MergeCoverageFiles when llvm-profdata
-        # not found is fixed.
-          _PullCoverageFiles(
-              device, device_coverage_dir,
-              os.path.join(self._coverage_dir, str(self._coverage_index)))
+          code_coverage_utils.PullAndMaybeMergeClangCoverageFiles(
+              device, device_coverage_dir, self._coverage_dir,
+              str(self._coverage_index))
 
-      return device.ReadFile(stdout_file.name).splitlines()
+      stdout_file_path = stdout_file.name
+      if self._env.force_main_user:
+        stdout_file_path = device.ResolveSpecialPath(stdout_file_path)
+      stdout_file_content = device.ReadFile(stdout_file_path,
+                                            as_root=self._env.force_main_user)
+      return stdout_file_content.splitlines()
 
   def PullAppFiles(self, device, files, directory):
     device_dir = device.GetApplicationDataDirectory(self._package)
@@ -380,7 +292,7 @@ class _ApkDelegate:
 
 class _ExeDelegate:
 
-  def __init__(self, tr, test_instance, tool):
+  def __init__(self, tr, test_instance, env):
     self._host_dist_dir = test_instance.exe_dist_dir
     self._exe_file_name = os.path.basename(
         test_instance.exe_dist_dir)[:-len('__dist')]
@@ -388,7 +300,7 @@ class _ExeDelegate:
         constants.TEST_EXECUTABLE_DIR,
         os.path.basename(test_instance.exe_dist_dir))
     self._test_run = tr
-    self._tool = tool
+    self._env = env
     self._suite = test_instance.suite
     self._coverage_dir = test_instance.coverage_dir
     self._coverage_index = 0
@@ -402,7 +314,8 @@ class _ExeDelegate:
     # TODO(jbudorick): Look into merging this with normal data deps pushing if
     # executables become supported on nonlocal environments.
     device.PushChangedFiles([(self._host_dist_dir, self._device_dist_dir)],
-                            delete_device_stale=True)
+                            delete_device_stale=True,
+                            as_root=self._env.force_main_user)
 
   def ResultsDirectory(self, device):
     # pylint: disable=no-self-use
@@ -429,12 +342,13 @@ class _ExeDelegate:
     }
 
     if self._coverage_dir:
-      device_coverage_dir = _GetDeviceCoverageDir(device)
+      device_coverage_dir = (
+          code_coverage_utils.GetDeviceClangCoverageDir(device))
       env['LLVM_PROFILE_FILE'] = _GetLLVMProfilePath(
           device_coverage_dir, self._suite, self._coverage_index)
       self._coverage_index += 1
 
-    if self._tool != 'asan':
+    if self._env.tool != 'asan':
       env['UBSAN_OPTIONS'] = constants.UBSAN_OPTIONS
 
     try:
@@ -451,9 +365,10 @@ class _ExeDelegate:
         cmd, cwd=cwd, env=env, check_return=False, large_output=True, **kwargs)
 
     if self._coverage_dir:
-      _PullCoverageFiles(
-          device, device_coverage_dir,
-          os.path.join(self._coverage_dir, str(self._coverage_index)))
+      # TODO(b/293175593): Use device.ResolveSpecialPath for multi-user
+      code_coverage_utils.PullAndMaybeMergeClangCoverageFiles(
+          device, device_coverage_dir, self._coverage_dir,
+          str(self._coverage_index))
 
     return output
 
@@ -480,9 +395,9 @@ class LocalDeviceGtestRun(local_device_test_run.LocalDeviceTestRun):
       ]
 
     if self._test_instance.apk:
-      self._delegate = _ApkDelegate(self._test_instance, env.tool)
+      self._delegate = _ApkDelegate(self._test_instance, self._env)
     elif self._test_instance.exe_dist_dir:
-      self._delegate = _ExeDelegate(self, self._test_instance, self._env.tool)
+      self._delegate = _ExeDelegate(self, self._test_instance, self._env)
     if self._test_instance.isolated_script_test_perf_output:
       self._test_perf_output_filenames = _GenerateSequentialFileNames(
           self._test_instance.isolated_script_test_perf_output)
@@ -510,20 +425,29 @@ class LocalDeviceGtestRun(local_device_test_run.LocalDeviceTestRun):
           return
         # Push data dependencies.
         device_root = self._delegate.GetTestDataRoot(dev)
+        if self._env.force_main_user:
+          device_root = dev.ResolveSpecialPath(device_root)
         host_device_tuples_substituted = [
             (h, local_device_test_run.SubstituteDeviceRoot(d, device_root))
             for h, d in host_device_tuples]
-        local_device_environment.place_nomedia_on_device(dev, device_root)
+        dev.PlaceNomediaFile(device_root)
         dev.PushChangedFiles(
             host_device_tuples_substituted,
             delete_device_stale=True,
+            as_root=self._env.force_main_user,
             # Some gtest suites, e.g. unit_tests, have data dependencies that
             # can take longer than the default timeout to push. See
             # crbug.com/791632 for context.
             timeout=600 * math.ceil(_GetDeviceTimeoutMultiplier() / 10))
         if not host_device_tuples:
-          dev.RemovePath(device_root, force=True, recursive=True, rename=True)
-          dev.RunShellCommand(['mkdir', '-p', device_root], check_return=True)
+          dev.RemovePath(device_root,
+                         force=True,
+                         recursive=True,
+                         rename=True,
+                         as_root=self._env.force_main_user)
+          dev.RunShellCommand(['mkdir', '-p', device_root],
+                              check_return=True,
+                              as_root=self._env.force_main_user)
 
       def init_tool_and_start_servers(dev):
         tool = self.GetTool(dev)
@@ -811,18 +735,25 @@ class LocalDeviceGtestRun(local_device_test_run.LocalDeviceTestRun):
     with device_temp_file.DeviceTempFile(
         adb=device.adb,
         dir=self._delegate.ResultsDirectory(device),
-        suffix=suffix) as device_tmp_results_file:
+        suffix=suffix,
+        device_utils=device) as device_tmp_results_file:
       with contextlib_ext.Optional(
           device_temp_file.NamedDeviceTemporaryDirectory(
-              adb=device.adb, dir='/sdcard/'),
+              adb=device.adb,
+              dir=device.GetExternalStoragePath(),
+              device_utils=device),
           self._test_instance.gs_test_artifacts_bucket) as test_artifacts_dir:
-        with (contextlib_ext.Optional(
+        with contextlib_ext.Optional(
             device_temp_file.DeviceTempFile(
-                adb=device.adb, dir=self._delegate.ResultsDirectory(device)),
-            test_perf_output_filename)) as isolated_script_test_perf_output:
+                adb=device.adb,
+                dir=self._delegate.ResultsDirectory(device),
+                device_utils=device),
+            test_perf_output_filename) as isolated_script_test_perf_output:
           with contextlib_ext.Optional(
-              device_temp_file.NamedDeviceTemporaryDirectory(adb=device.adb,
-                                                             dir='/sdcard/'),
+              device_temp_file.NamedDeviceTemporaryDirectory(
+                  adb=device.adb,
+                  dir=device.GetExternalStoragePath(),
+                  device_utils=device),
               self._test_instance.render_test_output_dir
           ) as render_test_output_dir:
 

@@ -11,11 +11,15 @@ declare_args() {
   # See //build/android/incremental_install/README.md for more details.
   incremental_install = false
 }
+
 declare_args() {
   # Java debug on Android. Having this on enables multidexing, and turning it
   # off will enable proguard.
   is_java_debug = is_debug || incremental_install
 }
+
+# Toolchain used to create native libraries for robolectric_binary() targets.
+robolectric_toolchain = "//build/toolchain/android:robolectric_$host_cpu"
 
 # NOTE: Because Chrome OS builds may depend on targets built with the Android
 # toolchain, this GNI file may be read and processed from within Chrome OS
@@ -25,6 +29,7 @@ if (is_android || is_chromeos) {
   import("//build/config/chromecast_build.gni")
   import("//build/config/clang/clang.gni")
   import("//build/config/dcheck_always_on.gni")
+  import("//build/toolchain/siso.gni")
   import("//build_overrides/build.gni")
   import("abi.gni")
 
@@ -55,6 +60,11 @@ if (is_android || is_chromeos) {
     enable_chrome_android_internal =
         build_with_chromium && checkout_src_internal && target_os == "android"
 
+    # Experimental new flag for the build system to automatically attempt to
+    # fix missing java deps. This should always be false on bots so they do not
+    # succeed when there are build errors. Devs can override this in args.gn.
+    auto_add_missing_java_deps = false
+
     # The default to use for android:minSdkVersion for targets that do
     # not explicitly set it.
     default_min_sdk_version = 24
@@ -77,6 +87,13 @@ if (is_android || is_chromeos) {
     }
   }
 
+  # Our build system no longer supports legacy multidex.
+  min_supported_sdk_version = 21
+
+  assert(
+      default_min_sdk_version >= min_supported_sdk_version,
+      "default_min_sdk_version ($default_min_sdk_version) must be >= min_supported_sdk_version ($min_supported_sdk_version)")
+
   # Avoid typos when setting android_static_analysis in args.gn.
   assert(android_static_analysis == "on" || android_static_analysis == "off" ||
          android_static_analysis == "build_server")
@@ -96,7 +113,11 @@ if (is_android || is_chromeos) {
   }
 
   if (!defined(default_android_ndk_root)) {
-    default_android_ndk_root = "//third_party/android_toolchain"
+    default_android_ndk_root = "//third_party/android_toolchain/ndk"
+    if (current_cpu == "riscv64") {
+      # Today (2023-08-30) only the canary Android NDK supports RISC-V64.
+      default_android_ndk_root = "//third_party/android_toolchain_canary/ndk"
+    }
     default_android_ndk_version = "r25c"
     default_android_ndk_major_version = 25
   } else {
@@ -183,6 +204,10 @@ if (is_android || is_chromeos) {
       # Android did not support 64 bit before API 21.
       android64_ndk_api_level = 21
     }
+    if (current_cpu == "riscv64" && default_min_sdk_version < 35) {
+      # Android did not support RISC-V64 before API 35.
+      android64_ndk_api_level = 35
+    }
 
     android_sdk_root = default_android_sdk_root
     android_sdk_version = default_android_sdk_version
@@ -251,11 +276,17 @@ if (is_android || is_chromeos) {
     # resources.arsc.
     enable_unused_resource_stripping = true
 
-    # Controls whether |baseline_profile_path| is respected. Useful to disable
-    # baseline profiles.
+    # Controls whether specifying |art_profile_path| automatically adds a binary
+    # baseline profile to the APK/AAB.
     # Currently disabled while bundletool does not support baseline profiles in
     # non-base splits.
     enable_baseline_profiles = false
+
+    # Controls whether specifying |art_profile_path| automatically applies it as
+    # a startup profile to the APK/AAB.
+    # Currently disabled while R8 causes checkdiscard errors due to
+    # methods/classes not being inlined correctly.
+    enable_startup_profiles = false
 
     # The target to use as the system WebView implementation.
     if (android_64bit_target_cpu && skip_secondary_abi_for_cq) {
@@ -363,6 +394,7 @@ if (is_android || is_chromeos) {
 
   android_sdk_tools_bundle_aapt2 = "${android_sdk_tools_bundle_aapt2_dir}/aapt2"
 
-  # Toolchain used to create native libraries for robolectric_binary() targets.
-  robolectric_toolchain = "//build/toolchain/android:robolectric_$host_cpu"
+  # Actions that use java should add this as an input so that they are rebuilt
+  # when the JDK changes.
+  java_path_for_inputs = "//third_party/jdk/current/bin/java.chromium"
 }

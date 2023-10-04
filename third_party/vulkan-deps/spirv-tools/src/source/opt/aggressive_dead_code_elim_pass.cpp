@@ -438,6 +438,9 @@ std::vector<uint32_t> AggressiveDCEPass::GetLoadedVariablesFromFunctionCall(
     const Instruction* inst) {
   assert(inst->opcode() == spv::Op::OpFunctionCall);
   std::vector<uint32_t> live_variables;
+  // NOTE: we should only be checking function call parameters here, not the
+  // function itself, however, `IsPtr` will trivially return false for
+  // OpFunction
   inst->ForEachInId([this, &live_variables](const uint32_t* operand_id) {
     if (!IsPtr(*operand_id)) return;
     uint32_t var_id = GetVariableId(*operand_id);
@@ -985,6 +988,7 @@ void AggressiveDCEPass::InitExtensions() {
       "SPV_KHR_ray_query",
       "SPV_EXT_fragment_invocation_density",
       "SPV_EXT_physical_storage_buffer",
+      "SPV_KHR_physical_storage_buffer",
       "SPV_KHR_terminate_invocation",
       "SPV_KHR_shader_clock",
       "SPV_KHR_vulkan_memory_model",
@@ -995,6 +999,8 @@ void AggressiveDCEPass::InitExtensions() {
       "SPV_KHR_uniform_group_instructions",
       "SPV_KHR_fragment_shader_barycentric",
       "SPV_NV_bindless_texture",
+      "SPV_EXT_shader_atomic_float_add",
+      "SPV_EXT_fragment_shader_interlock",
   });
 }
 

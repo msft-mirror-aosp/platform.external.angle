@@ -1,26 +1,39 @@
 # -*- bazel-starlark -*-
-# Copyright 2023 The Chromium Authors. All rights reserved.
+# Copyright 2023 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """Siso configuration for Windows."""
 
 load("@builtin//struct.star", "module")
+load("./clang_windows.star", "clang")
 load("./config.star", "config")
-load("./remote_exec_wrapper.star", "remote_exec_wrapper")
-load("./rewrapper_to_reproxy.star", "rewrapper_to_reproxy")
+load("./reproxy.star", "reproxy")
 
 __filegroups = {}
+__filegroups.update(clang.filegroups)
 __handlers = {}
-__handlers.update(rewrapper_to_reproxy.handlers)
+__handlers.update(clang.handlers)
+
+def __disable_remote_b289968566(ctx, step_config):
+    rule = {
+        # TODO(b/289968566): they often faile with exit=137 (OOM?).
+        # We should migrate default machine type to n2-standard-2.
+        "name": "b289968566/exit-137",
+        "action_outs": [
+            ".\\obj\\chrome\\test\\unit_tests\\chrome_browsing_data_remover_delegate_unittest.obj",
+            ".\\obj\\content\\browser\\browser\\browser_interface_binders.obj",
+        ],
+        "remote": False,
+    }
+    if reproxy.enabled(ctx):
+        rule["handler"] = "strip_rewrapper"
+    step_config["rules"].insert(0, rule)
+    return step_config
 
 def __step_config(ctx, step_config):
     config.check(ctx)
-
-    # rewrapper_to_reproxy takes precedence over remote exec wrapper handler if enabled.
-    if rewrapper_to_reproxy.enabled(ctx):
-        step_config = rewrapper_to_reproxy.step_config(ctx, step_config)
-    elif remote_exec_wrapper.enabled(ctx):
-        step_config = remote_exec_wrapper.step_config(ctx, step_config)
+    step_config = __disable_remote_b289968566(ctx, step_config)
+    step_config = clang.step_config(ctx, step_config)
     return step_config
 
 chromium = module(

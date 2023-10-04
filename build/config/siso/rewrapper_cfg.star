@@ -10,7 +10,7 @@ def __parse(ctx, cfg_file):
     if not cfg_file:
         fail("cfg file expected but none found")
     if not ctx.fs.exists(cfg_file):
-        fail("cmd specifies rewrapper cfg %s but not found, is download_remoteexec_cfg set in gclient custom_vars?" % cfg_file)
+        fail("looked for rewrapper cfg %s but not found, is download_remoteexec_cfg set in gclient custom_vars?" % cfg_file)
 
     reproxy_config = {}
     for line in str(ctx.fs.read(cfg_file)).splitlines():
@@ -22,7 +22,13 @@ def __parse(ctx, cfg_file):
             reproxy_config["download_outputs"] = line.removeprefix("download_outputs=").lower() == "true"
 
         if line.startswith("exec_strategy="):
-            reproxy_config["exec_strategy"] = line.removeprefix("exec_strategy=")
+            exec_strategy = line.removeprefix("exec_strategy=")
+
+            # TODO: b/299611869 - Racing performance has not yet been validated with Siso,
+            # Once performance has been validated either remove this comment or enable racing
+            if exec_strategy == "racing":
+                exec_strategy = "remote_local_fallback"
+            reproxy_config["exec_strategy"] = exec_strategy
 
         if line.startswith("exec_timeout="):
             reproxy_config["exec_timeout"] = line.removeprefix("exec_timeout=")
