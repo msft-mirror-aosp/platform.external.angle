@@ -537,8 +537,8 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.atomicAdd.bufferReference.comp",
         "spv.fragmentShaderBarycentric3.frag",
         "spv.fragmentShaderBarycentric4.frag",
-        "spv.ext.texture_shadow_lod.frag",
-        "spv.ext.texture_shadow_lod.error.frag",
+        "spv.ext.textureShadowLod.frag",
+        "spv.ext.textureShadowLod.error.frag",
         "spv.floatFetch.frag",
         "spv.atomicRvalue.error.vert",
     })),
@@ -708,6 +708,15 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.nv.hitobject-allops.rgen",
         "spv.nv.hitobject-allops.rchit",
         "spv.nv.hitobject-allops.rmiss",
+
+
+        // SPV_NV_displacment_micromap
+
+        "spv.nv.dmm-allops.rgen",
+        "spv.nv.dmm-allops.rchit",
+        "spv.nv.dmm-allops.rahit",
+        "spv.nv.dmm-allops.mesh",
+        "spv.nv.dmm-allops.comp",
     })),
     FileNameAsCustomTestSuffix
 );
