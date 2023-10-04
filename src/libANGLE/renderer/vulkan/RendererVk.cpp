@@ -256,7 +256,7 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDraw-None-07845",
     "VUID-vkCmdDraw-None-07848",
     // https://anglebug.com/8128#c3
-    "VUID-VkBufferViewCreateInfo-buffer-00934",
+    "VUID-VkBufferViewCreateInfo-buffer-08779",
     // https://anglebug.com/8203
     "VUID-VkVertexInputBindingDivisorDescriptionEXT-divisor-01870",
     // https://anglebug.com/8237
@@ -278,7 +278,7 @@ constexpr const char *kSkippedMessages[] = {
 // not present.
 constexpr const char *kNoListRestartSkippedMessages[] = {
     // http://anglebug.com/3832
-    "VUID-VkPipelineInputAssemblyStateCreateInfo-topology-00428",
+    "VUID-VkPipelineInputAssemblyStateCreateInfo-topology-06252",
 };
 
 // Some syncval errors are resolved in the presence of the NONE load or store render pass ops.  For
@@ -1956,8 +1956,6 @@ angle::Result RendererVk::initialize(DisplayVk *displayVk,
     {
         ANGLE_TRY(initializeDevice(displayVk, firstGraphicsQueueFamily));
     }
-
-    WARN() << "ANGLE VMA version: " << ANGLE_VMA_VERSION;
 
     ANGLE_TRY(initializeMemoryAllocator(displayVk));
 
