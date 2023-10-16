@@ -417,16 +417,19 @@ def makeGenOpts(args):
         'VK_EXT_video_encode_h264',
         'VK_EXT_video_encode_h265',
         'VK_NV_displacement_micromap',
+        'VK_AMDX_shader_enqueue',
     ]
 
     betaSuppressExtensions = [
         'VK_KHR_video_queue',
         'VK_EXT_opacity_micromap',
+        'VK_KHR_pipeline_library',
     ]
 
     platforms = [
         [ 'vulkan_android.h',     [ 'VK_KHR_android_surface',
-                                    'VK_ANDROID_external_memory_android_hardware_buffer'
+                                    'VK_ANDROID_external_memory_android_hardware_buffer',
+                                    'VK_ANDROID_external_format_resolve'
                                                                   ], commonSuppressExtensions +
                                                                      [ 'VK_KHR_format_feature_flags2',
                                                                      ] ],

@@ -13,39 +13,6 @@
 namespace gl
 {
 
-ActiveVariable::ActiveVariable()
-{
-    std::fill(mIds.begin(), mIds.end(), 0);
-}
-
-ActiveVariable::~ActiveVariable() {}
-
-ActiveVariable::ActiveVariable(const ActiveVariable &rhs)            = default;
-ActiveVariable &ActiveVariable::operator=(const ActiveVariable &rhs) = default;
-
-void ActiveVariable::setActive(ShaderType shaderType, bool used, uint32_t id)
-{
-    ASSERT(shaderType != ShaderType::InvalidEnum);
-    mActiveUseBits.set(shaderType, used);
-    mIds[shaderType] = id;
-}
-
-void ActiveVariable::unionReferencesWith(const ActiveVariable &other)
-{
-    mActiveUseBits |= other.mActiveUseBits;
-    for (const ShaderType shaderType : AllShaderTypes())
-    {
-        ASSERT(mIds[shaderType] == 0 || other.mIds[shaderType] == 0 ||
-               mIds[shaderType] == other.mIds[shaderType]);
-        if (mIds[shaderType] == 0)
-        {
-            mIds[shaderType] = other.mIds[shaderType];
-        }
-    }
-}
-
-LinkedUniform::LinkedUniform() {}
-
 LinkedUniform::LinkedUniform(GLenum typeIn,
                              GLenum precisionIn,
                              const std::vector<unsigned int> &arraySizesIn,
@@ -55,29 +22,27 @@ LinkedUniform::LinkedUniform(GLenum typeIn,
                              const int bufferIndexIn,
                              const sh::BlockMemberInfo &blockInfoIn)
 {
-    // Note: Ensure every data member is initialized.
-    type                          = typeIn;
-    precision                     = precisionIn;
-    imageUnitFormat               = GL_NONE;
-    location                      = locationIn;
-    binding                       = bindingIn;
-    offset                        = offsetIn;
-    bufferIndex                   = bufferIndexIn;
-    blockInfo                     = blockInfoIn;
-    id                            = 0;
-    flattenedOffsetInParentArrays = -1;
-    outerArraySizeProduct         = 1;
-    outerArrayOffset              = 0;
-    arraySize                     = arraySizesIn.empty() ? 1 : arraySizesIn[0];
-
-    flagBitsAsUInt   = 0;
-    flagBits.isArray = !arraySizesIn.empty();
+    // arrays are always flattened, which means at most 1D array
     ASSERT(arraySizesIn.size() <= 1);
-}
 
-LinkedUniform::LinkedUniform(const LinkedUniform &other)
-{
-    memcpy(this, &other, sizeof(LinkedUniform));
+    memset(this, 0, sizeof(*this));
+    SetBitField(pod.type, typeIn);
+    SetBitField(pod.precision, precisionIn);
+    pod.location = locationIn;
+    SetBitField(pod.binding, bindingIn);
+    SetBitField(pod.offset, offsetIn);
+    SetBitField(pod.bufferIndex, bufferIndexIn);
+    pod.outerArraySizeProduct = 1;
+    SetBitField(pod.arraySize, arraySizesIn.empty() ? 1u : arraySizesIn[0]);
+    SetBitField(pod.flagBits.isArray, !arraySizesIn.empty());
+    if (!(blockInfoIn == sh::kDefaultBlockMemberInfo))
+    {
+        pod.flagBits.isBlock               = 1;
+        pod.flagBits.blockIsRowMajorMatrix = blockInfoIn.isRowMajorMatrix;
+        SetBitField(pod.blockOffset, blockInfoIn.offset);
+        SetBitField(pod.blockArrayStride, blockInfoIn.arrayStride);
+        SetBitField(pod.blockMatrixStride, blockInfoIn.matrixStride);
+    }
 }
 
 LinkedUniform::LinkedUniform(const UsedUniform &usedUniform)
@@ -85,91 +50,112 @@ LinkedUniform::LinkedUniform(const UsedUniform &usedUniform)
     ASSERT(!usedUniform.isArrayOfArrays());
     ASSERT(!usedUniform.isStruct());
     ASSERT(usedUniform.active);
+    ASSERT(usedUniform.blockInfo == sh::kDefaultBlockMemberInfo);
 
     // Note: Ensure every data member is initialized.
-    type                          = usedUniform.type;
-    precision                     = usedUniform.precision;
-    imageUnitFormat               = usedUniform.imageUnitFormat;
-    location                      = usedUniform.location;
-    binding                       = usedUniform.binding;
-    offset                        = usedUniform.offset;
-    bufferIndex                   = usedUniform.bufferIndex;
-    blockInfo                     = usedUniform.blockInfo;
-    id                            = usedUniform.id;
-    flattenedOffsetInParentArrays = usedUniform.getFlattenedOffsetInParentArrays();
-    outerArraySizeProduct         = ArraySizeProduct(usedUniform.outerArraySizes);
-    outerArrayOffset              = usedUniform.outerArrayOffset;
-    arraySize                     = usedUniform.isArray() ? usedUniform.getArraySizeProduct() : 1u;
+    pod.flagBitsAsUByte = 0;
+    SetBitField(pod.type, usedUniform.type);
+    SetBitField(pod.precision, usedUniform.precision);
+    SetBitField(pod.imageUnitFormat, usedUniform.imageUnitFormat);
+    pod.location          = usedUniform.location;
+    pod.blockOffset       = 0;
+    pod.blockArrayStride  = 0;
+    pod.blockMatrixStride = 0;
+    SetBitField(pod.binding, usedUniform.binding);
+    SetBitField(pod.offset, usedUniform.offset);
 
-    activeVariable = usedUniform.activeVariable;
+    SetBitField(pod.bufferIndex, usedUniform.bufferIndex);
+    SetBitField(pod.parentArrayIndex, usedUniform.parentArrayIndex());
+    SetBitField(pod.outerArraySizeProduct, ArraySizeProduct(usedUniform.outerArraySizes));
+    SetBitField(pod.outerArrayOffset, usedUniform.outerArrayOffset);
+    SetBitField(pod.arraySize, usedUniform.isArray() ? usedUniform.getArraySizeProduct() : 1u);
+    SetBitField(pod.flagBits.isArray, usedUniform.isArray());
 
-    flagBitsAsUInt               = 0;
-    flagBits.isFragmentInOut     = usedUniform.isFragmentInOut;
-    flagBits.texelFetchStaticUse = usedUniform.texelFetchStaticUse;
-    flagBits.isArray             = usedUniform.isArray();
+    pod.id            = usedUniform.id;
+    pod.activeUseBits = usedUniform.activeVariable.activeShaders();
+    pod.ids           = usedUniform.activeVariable.getIds();
+
+    SetBitField(pod.flagBits.isFragmentInOut, usedUniform.isFragmentInOut);
+    SetBitField(pod.flagBits.texelFetchStaticUse, usedUniform.texelFetchStaticUse);
+    ASSERT(!usedUniform.isArray() || pod.arraySize == usedUniform.getArraySizeProduct());
 }
-
-LinkedUniform::~LinkedUniform() {}
 
 BufferVariable::BufferVariable()
-    : bufferIndex(-1), blockInfo(sh::kDefaultBlockMemberInfo), topLevelArraySize(-1)
-{}
-
-BufferVariable::BufferVariable(GLenum typeIn,
-                               GLenum precisionIn,
-                               const std::string &nameIn,
-                               const std::vector<unsigned int> &arraySizesIn,
-                               const int bufferIndexIn,
-                               const sh::BlockMemberInfo &blockInfoIn)
-    : bufferIndex(bufferIndexIn), blockInfo(blockInfoIn), topLevelArraySize(-1)
 {
-    type       = typeIn;
-    precision  = precisionIn;
-    name       = nameIn;
-    arraySizes = arraySizesIn;
+    memset(&pod, 0, sizeof(pod));
+    pod.bufferIndex       = -1;
+    pod.blockInfo         = sh::kDefaultBlockMemberInfo;
+    pod.topLevelArraySize = -1;
 }
 
-BufferVariable::~BufferVariable() {}
-
-ShaderVariableBuffer::ShaderVariableBuffer() : binding(0), dataSize(0) {}
-
-ShaderVariableBuffer::ShaderVariableBuffer(const ShaderVariableBuffer &other) = default;
-
-ShaderVariableBuffer::~ShaderVariableBuffer() {}
-
-int ShaderVariableBuffer::numActiveVariables() const
+BufferVariable::BufferVariable(GLenum type,
+                               GLenum precision,
+                               const std::string &name,
+                               const std::vector<unsigned int> &arraySizes,
+                               const int bufferIndex,
+                               int topLevelArraySize,
+                               const sh::BlockMemberInfo &blockInfo)
+    : name(name)
 {
-    return static_cast<int>(memberIndexes.size());
+    memset(&pod, 0, sizeof(pod));
+    SetBitField(pod.type, type);
+    SetBitField(pod.precision, precision);
+    SetBitField(pod.bufferIndex, bufferIndex);
+    pod.blockInfo = blockInfo;
+    SetBitField(pod.topLevelArraySize, topLevelArraySize);
+    pod.isArray = !arraySizes.empty();
+    SetBitField(pod.basicTypeElementCount, arraySizes.empty() ? 1u : arraySizes.back());
 }
 
-InterfaceBlock::InterfaceBlock() : isArray(false), isReadOnly(false), arrayElement(0) {}
+ShaderVariableBuffer::ShaderVariableBuffer()
+{
+    memset(&pod, 0, sizeof(pod));
+}
 
-InterfaceBlock::InterfaceBlock(const std::string &nameIn,
-                               const std::string &mappedNameIn,
-                               bool isArrayIn,
-                               bool isReadOnlyIn,
+void ShaderVariableBuffer::unionReferencesWith(const LinkedUniform &other)
+{
+    pod.activeUseBits |= other.pod.activeUseBits;
+    for (const ShaderType shaderType : AllShaderTypes())
+    {
+        ASSERT(pod.ids[shaderType] == 0 || other.getId(shaderType) == 0 ||
+               pod.ids[shaderType] == other.getId(shaderType));
+        if (pod.ids[shaderType] == 0)
+        {
+            pod.ids[shaderType] = other.getId(shaderType);
+        }
+    }
+}
+
+InterfaceBlock::InterfaceBlock()
+{
+    memset(&pod, 0, sizeof(pod));
+}
+
+InterfaceBlock::InterfaceBlock(const std::string &name,
+                               const std::string &mappedName,
+                               bool isArray,
+                               bool isReadOnly,
                                unsigned int arrayElementIn,
                                unsigned int firstFieldArraySizeIn,
-                               int bindingIn)
-    : name(nameIn),
-      mappedName(mappedNameIn),
-      isArray(isArrayIn),
-      isReadOnly(isReadOnlyIn),
-      arrayElement(arrayElementIn),
-      firstFieldArraySize(firstFieldArraySizeIn)
+                               int binding)
+    : name(name), mappedName(mappedName)
 {
-    binding = bindingIn;
-}
+    memset(&pod, 0, sizeof(pod));
 
-InterfaceBlock::InterfaceBlock(const InterfaceBlock &other) = default;
+    SetBitField(pod.isArray, isArray);
+    SetBitField(pod.isReadOnly, isReadOnly);
+    SetBitField(pod.binding, binding);
+    pod.arrayElement        = arrayElementIn;
+    pod.firstFieldArraySize = firstFieldArraySizeIn;
+}
 
 std::string InterfaceBlock::nameWithArrayIndex() const
 {
     std::stringstream fullNameStr;
     fullNameStr << name;
-    if (isArray)
+    if (pod.isArray)
     {
-        fullNameStr << "[" << arrayElement << "]";
+        fullNameStr << "[" << pod.arrayElement << "]";
     }
 
     return fullNameStr.str();
@@ -179,9 +165,9 @@ std::string InterfaceBlock::mappedNameWithArrayIndex() const
 {
     std::stringstream fullNameStr;
     fullNameStr << mappedName;
-    if (isArray)
+    if (pod.isArray)
     {
-        fullNameStr << "[" << arrayElement << "]";
+        fullNameStr << "[" << pod.arrayElement << "]";
     }
 
     return fullNameStr.str();

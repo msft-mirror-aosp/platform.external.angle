@@ -684,6 +684,8 @@ class FrameCaptureShared final : angle::NonCopyable
     void *maybeGetShadowMemoryPointer(gl::Buffer *buffer, GLsizeiptr length, GLbitfield access);
     void determineMemoryProtectionSupport(gl::Context *context);
 
+    std::mutex &getFrameCaptureMutex() { return mFrameCaptureMutex; }
+
   private:
     void writeJSON(const gl::Context *context);
     void writeCppReplayIndexFiles(const gl::Context *context, bool writeResetContextCall);
@@ -759,9 +761,9 @@ class FrameCaptureShared final : angle::NonCopyable
     BufferDataMap mBufferDataMap;
     bool mValidateSerializedState = false;
     std::string mValidationExpression;
-    bool mTrimEnabled = true;
     PackedEnumMap<ResourceIDType, uint32_t> mMaxAccessedResourceIDs;
     CoherentBufferTracker mCoherentBufferTracker;
+    std::mutex mFrameCaptureMutex;
 
     ResourceTracker mResourceTracker;
     ReplayWriter mReplayWriter;
@@ -797,6 +799,12 @@ void CaptureGLCallToFrameCapture(CaptureFuncT captureFunc,
                                  ArgsT... captureParams)
 {
     FrameCaptureShared *frameCaptureShared = context->getShareGroup()->getFrameCaptureShared();
+
+    // EGL calls are protected by the global context mutex but only a subset of GL calls
+    // are so protected. Ensure FrameCaptureShared access thread safety by using a
+    // frame-capture only mutex.
+    std::lock_guard<std::mutex> lock(frameCaptureShared->getFrameCaptureMutex());
+
     if (!frameCaptureShared->isCapturing())
     {
         return;
@@ -817,7 +825,7 @@ void CaptureEGLCallToFrameCapture(CaptureFuncT captureFunc,
     {
         return;
     }
-    std::lock_guard<egl::ContextMutex> lock(*context->getContextMutex());
+    std::lock_guard<egl::ContextMutex> lock(context->getContextMutex());
 
     angle::FrameCaptureShared *frameCaptureShared =
         context->getShareGroup()->getFrameCaptureShared();

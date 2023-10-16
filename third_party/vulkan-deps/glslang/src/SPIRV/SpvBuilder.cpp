@@ -46,10 +46,7 @@
 #include <algorithm>
 
 #include "SpvBuilder.h"
-
-#ifndef GLSLANG_WEB
 #include "hex_float.h"
-#endif
 
 #ifndef _WIN32
     #include <cstdio>
@@ -283,11 +280,6 @@ Id Builder::makePointerFromForwardPointer(StorageClass storageClass, Id forwardP
 
 Id Builder::makeIntegerType(int width, bool hasSign)
 {
-#ifdef GLSLANG_WEB
-    assert(width == 32);
-    width = 32;
-#endif
-
     // try to find it
     Instruction* type;
     for (int t = 0; t < (int)groupedTypes[OpTypeInt].size(); ++t) {
@@ -329,11 +321,6 @@ Id Builder::makeIntegerType(int width, bool hasSign)
 
 Id Builder::makeFloatType(int width)
 {
-#ifdef GLSLANG_WEB
-    assert(width == 32);
-    width = 32;
-#endif
-
     // try to find it
     Instruction* type;
     for (int t = 0; t < (int)groupedTypes[OpTypeFloat].size(); ++t) {
@@ -733,7 +720,6 @@ Id Builder::makeImageType(Id sampledType, Dim dim, bool depth, bool arrayed, boo
     constantsTypesGlobals.push_back(std::unique_ptr<Instruction>(type));
     module.mapInstruction(type);
 
-#ifndef GLSLANG_WEB
     // deal with capabilities
     switch (dim) {
     case DimBuffer:
@@ -779,7 +765,6 @@ Id Builder::makeImageType(Id sampledType, Dim dim, bool depth, bool arrayed, boo
                 addCapability(CapabilityImageMSArray);
         }
     }
-#endif
 
     if (emitNonSemanticShaderDebugInfo)
     {
@@ -874,11 +859,19 @@ Id Builder::makeBoolDebugType(int const size)
 
 Id Builder::makeIntegerDebugType(int const width, bool const hasSign)
 {
+    const char* typeName = nullptr;
+    switch (width) {
+        case 8:  typeName = hasSign ? "int8_t" : "uint8_t"; break;
+        case 16: typeName = hasSign ? "int16_t" : "uint16_t"; break;
+        case 64: typeName = hasSign ? "int64_t" : "uint64_t"; break;
+        default: typeName = hasSign ? "int" : "uint";
+    }
+    auto nameId = getStringId(typeName);
     // try to find it
     Instruction* type;
     for (int t = 0; t < (int)groupedDebugTypes[NonSemanticShaderDebugInfo100DebugTypeBasic].size(); ++t) {
         type = groupedDebugTypes[NonSemanticShaderDebugInfo100DebugTypeBasic][t];
-        if (type->getIdOperand(0) == (hasSign ? getStringId("int") : getStringId("uint")) &&
+        if (type->getIdOperand(0) == nameId &&
             type->getIdOperand(1) == static_cast<unsigned int>(width) &&
             type->getIdOperand(2) == (hasSign ? NonSemanticShaderDebugInfo100Signed : NonSemanticShaderDebugInfo100Unsigned))
             return type->getResultId();
@@ -888,11 +881,7 @@ Id Builder::makeIntegerDebugType(int const width, bool const hasSign)
     type = new Instruction(getUniqueId(), makeVoidType(), OpExtInst);
     type->addIdOperand(nonSemanticShaderDebugInfo);
     type->addImmediateOperand(NonSemanticShaderDebugInfo100DebugTypeBasic);
-    if(hasSign == true) {
-        type->addIdOperand(getStringId("int")); // name id
-    } else {
-        type->addIdOperand(getStringId("uint")); // name id
-    }
+    type->addIdOperand(nameId); // name id
     type->addIdOperand(makeUintConstant(width)); // size id
     if(hasSign == true) {
         type->addIdOperand(makeUintConstant(NonSemanticShaderDebugInfo100Signed)); // encoding id
@@ -910,11 +899,18 @@ Id Builder::makeIntegerDebugType(int const width, bool const hasSign)
 
 Id Builder::makeFloatDebugType(int const width)
 {
+    const char* typeName = nullptr;
+    switch (width) {
+        case 16: typeName = "float16_t"; break;
+        case 64: typeName = "double"; break;
+        default: typeName = "float"; break;
+    }
+    auto nameId = getStringId(typeName);
     // try to find it
     Instruction* type;
     for (int t = 0; t < (int)groupedDebugTypes[NonSemanticShaderDebugInfo100DebugTypeBasic].size(); ++t) {
         type = groupedDebugTypes[NonSemanticShaderDebugInfo100DebugTypeBasic][t];
-        if (type->getIdOperand(0) == getStringId("float") &&
+        if (type->getIdOperand(0) == nameId &&
             type->getIdOperand(1) == static_cast<unsigned int>(width) &&
             type->getIdOperand(2) == NonSemanticShaderDebugInfo100Float)
             return type->getResultId();
@@ -924,7 +920,7 @@ Id Builder::makeFloatDebugType(int const width)
     type = new Instruction(getUniqueId(), makeVoidType(), OpExtInst);
     type->addIdOperand(nonSemanticShaderDebugInfo);
     type->addImmediateOperand(NonSemanticShaderDebugInfo100DebugTypeBasic);
-    type->addIdOperand(getStringId("float")); // name id
+    type->addIdOperand(nameId); // name id
     type->addIdOperand(makeUintConstant(width)); // size id
     type->addIdOperand(makeUintConstant(NonSemanticShaderDebugInfo100Float)); // encoding id
     type->addIdOperand(makeUintConstant(NonSemanticShaderDebugInfo100None)); // flags id
@@ -1196,7 +1192,6 @@ Id Builder::makeDebugDeclare(Id const debugLocalVariable, Id const localVariable
     return inst->getResultId();
 }
 
-#ifndef GLSLANG_WEB
 Id Builder::makeAccelerationStructureType()
 {
     Instruction *type;
@@ -1241,7 +1236,6 @@ Id Builder::makeHitObjectNVType()
 
     return type->getResultId();
 }
-#endif
 
 Id Builder::getDerefTypeId(Id resultId) const
 {
@@ -1643,10 +1637,6 @@ Id Builder::makeFloatConstant(float f, bool specConstant)
 
 Id Builder::makeDoubleConstant(double d, bool specConstant)
 {
-#ifdef GLSLANG_WEB
-    assert(0);
-    return NoResult;
-#else
     Op opcode = specConstant ? OpSpecConstant : OpConstant;
     Id typeId = makeFloatType(64);
     union { double db; unsigned long long ull; } u;
@@ -1671,15 +1661,10 @@ Id Builder::makeDoubleConstant(double d, bool specConstant)
     module.mapInstruction(c);
 
     return c->getResultId();
-#endif
 }
 
 Id Builder::makeFloat16Constant(float f16, bool specConstant)
 {
-#ifdef GLSLANG_WEB
-    assert(0);
-    return NoResult;
-#else
     Op opcode = specConstant ? OpSpecConstant : OpConstant;
     Id typeId = makeFloatType(16);
 
@@ -1704,17 +1689,11 @@ Id Builder::makeFloat16Constant(float f16, bool specConstant)
     module.mapInstruction(c);
 
     return c->getResultId();
-#endif
 }
 
 Id Builder::makeFpConstant(Id type, double d, bool specConstant)
 {
-#ifdef GLSLANG_WEB
-    const int width = 32;
-    assert(width == getScalarTypeWidth(type));
-#else
     const int width = getScalarTypeWidth(type);
-#endif
 
     assert(isFloatType(type));
 
@@ -1856,6 +1835,10 @@ Instruction* Builder::addEntryPoint(ExecutionModel model, Function* function, co
 // Currently relying on the fact that all 'value' of interest are small non-negative values.
 void Builder::addExecutionMode(Function* entryPoint, ExecutionMode mode, int value1, int value2, int value3)
 {
+    // entryPoint can be null if we are in compile-only mode
+    if (!entryPoint)
+        return;
+
     Instruction* instr = new Instruction(OpExecutionMode);
     instr->addIdOperand(entryPoint->getId());
     instr->addImmediateOperand(mode);
@@ -1871,6 +1854,10 @@ void Builder::addExecutionMode(Function* entryPoint, ExecutionMode mode, int val
 
 void Builder::addExecutionMode(Function* entryPoint, ExecutionMode mode, const std::vector<unsigned>& literals)
 {
+    // entryPoint can be null if we are in compile-only mode
+    if (!entryPoint)
+        return;
+
     Instruction* instr = new Instruction(OpExecutionMode);
     instr->addIdOperand(entryPoint->getId());
     instr->addImmediateOperand(mode);
@@ -1882,6 +1869,10 @@ void Builder::addExecutionMode(Function* entryPoint, ExecutionMode mode, const s
 
 void Builder::addExecutionModeId(Function* entryPoint, ExecutionMode mode, const std::vector<Id>& operandIds)
 {
+    // entryPoint can be null if we are in compile-only mode
+    if (!entryPoint)
+        return;
+
     Instruction* instr = new Instruction(OpExecutionModeId);
     instr->addIdOperand(entryPoint->getId());
     instr->addImmediateOperand(mode);
@@ -1961,6 +1952,16 @@ void Builder::addDecoration(Id id, Decoration decoration, const std::vector<cons
     dec->addImmediateOperand(decoration);
     for (auto string : strings)
         dec->addStringOperand(string);
+
+    decorations.push_back(std::unique_ptr<Instruction>(dec));
+}
+
+void Builder::addLinkageDecoration(Id id, const char* name, spv::LinkageType linkType) {
+    Instruction* dec = new Instruction(OpDecorate);
+    dec->addIdOperand(id);
+    dec->addImmediateOperand(spv::DecorationLinkageAttributes);
+    dec->addStringOperand(name);
+    dec->addImmediateOperand(linkType);
 
     decorations.push_back(std::unique_ptr<Instruction>(dec));
 }
@@ -2069,7 +2070,7 @@ Function* Builder::makeEntryPoint(const char* entryPoint)
         emitNonSemanticShaderDebugInfo = false;
     }
 
-    entryPointFunction = makeFunctionEntry(NoPrecision, returnType, entryPoint, paramsTypes, paramNames, decorations, &entry);
+    entryPointFunction = makeFunctionEntry(NoPrecision, returnType, entryPoint, LinkageTypeMax, paramsTypes, paramNames, decorations, &entry);
 
     emitNonSemanticShaderDebugInfo = restoreNonSemanticShaderDebugInfo;
 
@@ -2077,7 +2078,7 @@ Function* Builder::makeEntryPoint(const char* entryPoint)
 }
 
 // Comments in header
-Function* Builder::makeFunctionEntry(Decoration precision, Id returnType, const char* name,
+Function* Builder::makeFunctionEntry(Decoration precision, Id returnType, const char* name, LinkageType linkType,
                                      const std::vector<Id>& paramTypes, const std::vector<char const*>& paramNames,
                                      const std::vector<std::vector<Decoration>>& decorations, Block **entry)
 {
@@ -2085,7 +2086,7 @@ Function* Builder::makeFunctionEntry(Decoration precision, Id returnType, const 
     Id typeId = makeFunctionType(returnType, paramTypes);
     Id firstParamId = paramTypes.size() == 0 ? 0 : getUniqueIds((int)paramTypes.size());
     Id funcId = getUniqueId();
-    Function* function = new Function(funcId, returnType, typeId, firstParamId, module);
+    Function* function = new Function(funcId, returnType, typeId, firstParamId, linkType, name, module);
 
     // Set up the precisions
     setPrecision(function->getId(), precision);
@@ -2254,6 +2255,12 @@ void Builder::enterFunction(Function const* function)
         defInst->addIdOperand(debugId[funcId]);
         defInst->addIdOperand(funcId);
         buildPoint->addInstruction(std::unique_ptr<Instruction>(defInst));
+    }
+
+    if (auto linkType = function->getLinkType(); linkType != LinkageTypeMax) {
+        Id funcId = function->getFuncId();
+        addCapability(CapabilityLinkage);
+        addLinkageDecoration(funcId, function->getExportName(), linkType);
     }
 }
 
@@ -2846,12 +2853,10 @@ Id Builder::createTextureCall(Decoration precision, Id resultType, bool sparse, 
     if (parameters.component != NoResult)
         texArgs.push_back(parameters.component);
 
-#ifndef GLSLANG_WEB
     if (parameters.granularity != NoResult)
         texArgs.push_back(parameters.granularity);
     if (parameters.coarse != NoResult)
         texArgs.push_back(parameters.coarse);
-#endif
 
     //
     // Set up the optional arguments
@@ -2892,7 +2897,6 @@ Id Builder::createTextureCall(Decoration precision, Id resultType, bool sparse, 
         mask = (ImageOperandsMask)(mask | ImageOperandsConstOffsetsMask);
         texArgs.push_back(parameters.offsets);
     }
-#ifndef GLSLANG_WEB
     if (parameters.sample) {
         mask = (ImageOperandsMask)(mask | ImageOperandsSampleMask);
         texArgs.push_back(parameters.sample);
@@ -2910,7 +2914,6 @@ Id Builder::createTextureCall(Decoration precision, Id resultType, bool sparse, 
     if (parameters.volatil) {
         mask = mask | ImageOperandsVolatileTexelKHRMask;
     }
-#endif
     mask = mask | signExtensionMask;
     // insert the operand for the mask, if any bits were set.
     if (mask != ImageOperandsMaskNone)
@@ -2925,7 +2928,6 @@ Id Builder::createTextureCall(Decoration precision, Id resultType, bool sparse, 
             opCode = OpImageSparseFetch;
         else
             opCode = OpImageFetch;
-#ifndef GLSLANG_WEB
     } else if (parameters.granularity && parameters.coarse) {
         opCode = OpImageSampleFootprintNV;
     } else if (gather) {
@@ -2939,7 +2941,6 @@ Id Builder::createTextureCall(Decoration precision, Id resultType, bool sparse, 
                 opCode = OpImageSparseGather;
             else
                 opCode = OpImageGather;
-#endif
     } else if (explicitLod) {
         if (parameters.Dref) {
             if (proj)
@@ -3302,12 +3303,7 @@ Id Builder::createMatrixConstructor(Decoration precision, const std::vector<Id>&
     int numRows = getTypeNumRows(resultTypeId);
 
     Instruction* instr = module.getInstruction(componentTypeId);
-#ifdef GLSLANG_WEB
-    const unsigned bitCount = 32;
-    assert(bitCount == instr->getImmediateOperand(0));
-#else
     const unsigned bitCount = instr->getImmediateOperand(0);
-#endif
 
     // Optimize matrix constructed from a bigger matrix
     if (isMatrix(sources[0]) && getNumColumns(sources[0]) >= numCols && getNumRows(sources[0]) >= numRows) {

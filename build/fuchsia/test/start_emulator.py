@@ -46,6 +46,12 @@ def register_emulator_args(parser: argparse.ArgumentParser,
     femu_args.add_argument('--everlasting',
                            action='store_true',
                            help='If the emulator should be long-living.')
+    femu_args.add_argument(
+        '--device-spec',
+        help='Configure the virtual device to use. They are usually defined in '
+        'the product-bundle/virtual_devices/manifest.json. If this flag is not '
+        'provided or is an empty string, ffx emu will decide the recommended '
+        'spec.')
 
 
 def create_emulator_from_args(
@@ -63,12 +69,20 @@ def main():
     parser = argparse.ArgumentParser()
     register_emulator_args(parser, True)
     register_log_args(parser)
+    parser.add_argument('--target-id-only',
+                        action='store_true',
+                        help='Write only the target emulator id to the ' \
+                             'stdout. It is usually useful in the unattended ' \
+                             'environment.')
     args = parser.parse_args()
     with create_emulator_from_args(args) as target_id:
-        logging.info(
-            'Emulator successfully started. You can now run Chrome '
-            'Fuchsia tests with --target-id=%s to target this emulator.',
-            target_id)
+        if args.target_id_only:
+            print(target_id, flush=True)
+        else:
+            logging.info(
+                'Emulator successfully started. You can now run Chrome '
+                'Fuchsia tests with --target-id=%s to target this emulator.',
+                target_id)
         wait_for_sigterm('shutting down the emulator.')
 
 

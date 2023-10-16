@@ -23,9 +23,8 @@ enum class ImageMipLevels
 {
     EnabledLevels                 = 0,
     FullMipChainForGenerateMipmap = 1,
-    FullMipChain                  = 2,
 
-    InvalidEnum = 3,
+    InvalidEnum = 2,
 };
 
 enum class TextureUpdateResult
@@ -237,6 +236,7 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
 
     angle::Result getBufferViewAndRecordUse(vk::Context *context,
                                             const vk::Format *imageUniformFormat,
+                                            const gl::SamplerBinding *samplerBinding,
                                             bool isImage,
                                             const vk::BufferView **viewOut);
 
@@ -356,7 +356,6 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
     void setImageHelper(ContextVk *contextVk,
                         vk::ImageHelper *imageHelper,
                         gl::TextureType imageType,
-                        const vk::Format &format,
                         uint32_t imageLevelOffset,
                         uint32_t imageLayerOffset,
                         bool selfOwned,
@@ -563,13 +562,6 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
         GLenum srgbDecode) const;
 
     void updateCachedImageViewSerials();
-
-    bool formatSupportsMultisampledRenderToSingleSampled(RendererVk *renderer,
-                                                         VkFormat format,
-                                                         VkImageType imageType,
-                                                         VkImageTiling tilingMode,
-                                                         VkImageUsageFlags usageFlags,
-                                                         VkImageCreateFlags createFlags);
 
     angle::Result updateTextureLabel(ContextVk *contextVk);
 

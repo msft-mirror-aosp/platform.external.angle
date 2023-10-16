@@ -5,6 +5,7 @@
 """Siso configuration for parsing rewrapper cfg file."""
 
 load("@builtin//struct.star", "module")
+load("./config.star", "config")
 
 def __parse(ctx, cfg_file):
     if not cfg_file:
@@ -22,7 +23,12 @@ def __parse(ctx, cfg_file):
             reproxy_config["download_outputs"] = line.removeprefix("download_outputs=").lower() == "true"
 
         if line.startswith("exec_strategy="):
-            reproxy_config["exec_strategy"] = line.removeprefix("exec_strategy=")
+            exec_strategy = line.removeprefix("exec_strategy=")
+
+            # Disable racing on builders since bots don't have many CPU cores.
+            if exec_strategy == "racing" and config.get(ctx, "builder"):
+                exec_strategy = "remote_local_fallback"
+            reproxy_config["exec_strategy"] = exec_strategy
 
         if line.startswith("exec_timeout="):
             reproxy_config["exec_timeout"] = line.removeprefix("exec_timeout=")
