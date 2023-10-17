@@ -2807,7 +2807,10 @@ if (enable_java_templates && is_android) {
               (!defined(testonly) || !testonly) &&
               # Injected JaCoCo code causes -checkdiscards to fail.
               !use_jacoco_coverage) {
-            proguard_configs = [ "//build/android/dcheck_is_off.flags" ]
+            proguard_configs = [
+              "//build/android/dcheck_is_off.flags",
+              "//third_party/jni_zero/checkdiscard_proguard.flags",
+            ]
           }
         } else {
           if (_min_sdk_version >= default_min_sdk_version) {
@@ -3652,7 +3655,10 @@ if (enable_java_templates && is_android) {
         # optimizations that we ship with, but not have them break tests. The
         # apk under test will still have the same resources, assets, and
         # manifest, all of which are the ones used in the tests.
-        proguard_configs = [ "//testing/android/proguard_for_test.flags" ]
+        proguard_configs = [
+          "//testing/android/proguard_for_test.flags",
+          "//third_party/jni_zero/proguard_for_test.flags",
+        ]
         if (defined(invoker.proguard_configs)) {
           proguard_configs += invoker.proguard_configs
         }
@@ -4737,7 +4743,10 @@ if (enable_java_templates && is_android) {
             (!defined(testonly) || !testonly) &&
             # Injected JaCoCo code causes -checkdiscards to fail.
             !use_jacoco_coverage) {
-          proguard_configs = [ "//build/android/dcheck_is_off.flags" ]
+          proguard_configs = [
+            "//build/android/dcheck_is_off.flags",
+            "//third_party/jni_zero/checkdiscard_proguard.flags",
+          ]
         }
       }
     }

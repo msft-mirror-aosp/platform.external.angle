@@ -18,6 +18,7 @@ enum class Feature
 {
     AddAndTrueToLoopCondition,
     AddMockTextureNoRenderTarget,
+    AdjustClearColorPrecision,
     AdjustSrcDstRegionForBlitFramebuffer,
     AllocateNonZeroMemory,
     AllowAstcFormats,
@@ -274,6 +275,7 @@ enum class Feature
     SupportsExtendedDynamicState2,
     SupportsExternalFenceCapabilities,
     SupportsExternalFenceFd,
+    SupportsExternalFormatResolve,
     SupportsExternalMemoryDmaBufAndModifiers,
     SupportsExternalMemoryFd,
     SupportsExternalMemoryFuchsia,

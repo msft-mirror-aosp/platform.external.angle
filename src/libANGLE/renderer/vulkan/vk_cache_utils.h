@@ -147,6 +147,8 @@ class alignas(4) RenderPassDesc final
     void updateDepthStencilAccess(ResourceAccess access);
     // Indicate that a color attachment should have a corresponding resolve attachment.
     void packColorResolveAttachment(size_t colorIndexGL);
+    // Indicate that a YUV texture is attached to the resolve attachment.
+    void packYUVResolveAttachment(size_t colorIndexGL);
     // Remove the resolve attachment.  Used when optimizing blit through resolve attachment to
     // temporarily pack a resolve attachment and then remove it.
     void removeColorResolveAttachment(size_t colorIndexGL);
@@ -1538,10 +1540,9 @@ struct DescriptorInfoDesc
     uint32_t imageViewSerialOrOffset;
     uint32_t imageLayoutOrRange;  // Packed VkImageLayout
     uint32_t imageSubresourceRange;
-    uint32_t binding;  // TODO(anglebug.com/7974): Could be made implicit?
 };
 
-static_assert(sizeof(DescriptorInfoDesc) == 20, "Size mismatch");
+static_assert(sizeof(DescriptorInfoDesc) == 16, "Size mismatch");
 
 // Generic description of a descriptor set. Used as a key when indexing descriptor set caches. The
 // key storage is an angle:FixedVector. Beyond a certain fixed size we'll end up using heap memory

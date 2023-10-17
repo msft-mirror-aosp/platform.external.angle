@@ -18,6 +18,7 @@ namespace
 constexpr PackedEnumMap<Feature, const char *> kFeatureNames = {{
     {Feature::AddAndTrueToLoopCondition, "addAndTrueToLoopCondition"},
     {Feature::AddMockTextureNoRenderTarget, "addMockTextureNoRenderTarget"},
+    {Feature::AdjustClearColorPrecision, "adjustClearColorPrecision"},
     {Feature::AdjustSrcDstRegionForBlitFramebuffer, "adjustSrcDstRegionForBlitFramebuffer"},
     {Feature::AllocateNonZeroMemory, "allocateNonZeroMemory"},
     {Feature::AllowAstcFormats, "allowAstcFormats"},
@@ -274,6 +275,7 @@ constexpr PackedEnumMap<Feature, const char *> kFeatureNames = {{
     {Feature::SupportsExtendedDynamicState2, "supportsExtendedDynamicState2"},
     {Feature::SupportsExternalFenceCapabilities, "supportsExternalFenceCapabilities"},
     {Feature::SupportsExternalFenceFd, "supportsExternalFenceFd"},
+    {Feature::SupportsExternalFormatResolve, "supportsExternalFormatResolve"},
     {Feature::SupportsExternalMemoryDmaBufAndModifiers, "supportsExternalMemoryDmaBufAndModifiers"},
     {Feature::SupportsExternalMemoryFd, "supportsExternalMemoryFd"},
     {Feature::SupportsExternalMemoryFuchsia, "supportsExternalMemoryFuchsia"},
