@@ -2678,9 +2678,15 @@ angle::Result RenderPassCommandBufferHelper::flushToPrimary(Context *context,
     VkRenderPassAttachmentBeginInfoKHR rpAttachmentBeginInfo = {};
     if (mFramebuffer.isImageless())
     {
+        // If nullColorAttachmentWithExternalFormatResolve is true, there will be no color
+        // attachment even though mRenderPassDesc indicates so.
+        ASSERT((mRenderPassDesc.hasYUVResolveAttachment() &&
+                context->getRenderer()->nullColorAttachmentWithExternalFormatResolve()) ||
+               mFramebuffer.getImageViews().size() ==
+                   static_cast<uint32_t>(mRenderPassDesc.attachmentCount()));
         rpAttachmentBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR;
         rpAttachmentBeginInfo.attachmentCount =
-            static_cast<uint32_t>(mRenderPassDesc.attachmentCount());
+            static_cast<uint32_t>(mFramebuffer.getImageViews().size());
         rpAttachmentBeginInfo.pAttachments = mFramebuffer.getImageViews().data();
 
         AddToPNextChain(&beginInfo, &rpAttachmentBeginInfo);
@@ -5570,11 +5576,16 @@ angle::Result ImageHelper::initExternal(Context *context,
 
     if (actualFormat.isYUV)
     {
-        // The Vulkan spec states: If sampler is used and the VkFormat of the image is a
-        // multi-planar format, the image must have been created with
+        // The Vulkan spec states: If the pNext chain includes a VkExternalFormatANDROID structure
+        // whose externalFormat member is not 0, flags must not include
         // VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT
-        mCreateFlags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
-
+        if (!IsYUVExternalFormat(actualFormatID))
+        {
+            // The Vulkan spec states: If sampler is used and the VkFormat of the image is a
+            // multi-planar format, the image must have been created with
+            // VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT
+            mCreateFlags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+        }
         // The Vulkan spec states: The potential format features of the sampler YCBCR conversion
         // must support VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT or
         // VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT
@@ -10269,6 +10280,13 @@ VkImageAspectFlags ImageHelper::SubresourceUpdate::getDestAspectFlags() const
         ASSERT(updateSource == UpdateSource::Image);
         return data.image.copyRegion.dstSubresource.aspectMask;
     }
+}
+
+size_t ImageHelper::getLevelUpdateCount(gl::LevelIndex level) const
+{
+    return static_cast<size_t>(level.get()) < mSubresourceUpdates.size()
+               ? mSubresourceUpdates[level.get()].size()
+               : 0;
 }
 
 std::vector<ImageHelper::SubresourceUpdate> *ImageHelper::getLevelUpdates(gl::LevelIndex level)
