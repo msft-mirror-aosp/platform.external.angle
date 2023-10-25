@@ -846,6 +846,9 @@ config("compiler") {
   if (compiler_timing) {
     if (is_clang && !is_nacl) {
       cflags += [ "-ftime-trace" ]
+      if (use_lld && is_mac) {
+        ldflags += [ "-Wl,--time-trace" ]
+      }
     } else if (is_win) {
       cflags += [
         # "Documented" here:
@@ -1149,6 +1152,17 @@ config("compiler_cpu_abi") {
         "-m64",
         "-msse3",
       ]
+
+      # Minimum SIMD support for devices running lacros.
+      # See https://crbug.com/1475858
+      if (is_chromeos_lacros) {
+        cflags += [
+          "-mssse3",
+          "-msse4",
+          "-msse4.1",
+          "-msse4.2",
+        ]
+      }
       ldflags += [ "-m64" ]
     } else if (current_cpu == "x86") {
       cflags += [ "-m32" ]
@@ -1857,14 +1871,22 @@ config("default_warnings") {
 
           # TODO(crbug.com/1412713) Evaluate and possibly enable.
           "-Wno-deprecated-this-capture",
+
+          # TODO(https://crbug.com/1491833): Fix and re-enable.
+          "-Wno-invalid-offsetof",
+
+          # TODO(crbug.com/1494809): Evaluate and possibly enable.
+          "-Wno-vla-extension",
         ]
 
         if (llvm_force_head_revision) {
           # TODO(https://crbug.com/1490607): Fix and re-enable.
-          cflags += [ "-Wno-thread-safety-reference" ]
+          cflags += [ "-Wno-thread-safety-reference-return" ]
+        }
 
-          # TODO(https://crbug.com/1491833): Fix and re-enable.
-          cflags += [ "-Wno-invalid-offsetof" ]
+        if (llvm_force_head_revision && is_win) {
+          # TODO(crbug.com/1495100): Evaluate and possibly enable.
+          cflags += [ "-Wno-delayed-template-parsing-in-cxx20" ]
         }
 
         if (enable_precompiled_headers && !is_win) {
