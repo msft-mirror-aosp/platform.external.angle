@@ -574,19 +574,21 @@ class AvdConfig:
           logging.info('The version for package %r on the device is %r',
                        package_name, package_version)
 
-      # Always disable the network to prevent built-in system apps from
-      # updating themselves, which could take over package manager and
-      # cause shell command timeout.
-      # Use svc as this also works on the images with build type "user", and
-      # does not require a reboot or broadcast compared to setting the
-      # airplane_mode_on in "settings/global".
-      logging.info('Disabling the network.')
-      instance.device.RunShellCommand(['svc', 'wifi', 'disable'],
-                                      as_root=True,
-                                      check_return=True)
-      instance.device.RunShellCommand(['svc', 'data', 'disable'],
-                                      as_root=True,
-                                      check_return=True)
+      # Skip Marshmallow as svc commands fail on this version.
+      if instance.device.build_version_sdk != 23:
+        # Always disable the network to prevent built-in system apps from
+        # updating themselves, which could take over package manager and
+        # cause shell command timeout.
+        # Use svc as this also works on the images with build type "user", and
+        # does not require a reboot or broadcast compared to setting the
+        # airplane_mode_on in "settings/global".
+        logging.info('Disabling the network.')
+        instance.device.RunShellCommand(['svc', 'wifi', 'disable'],
+                                        as_root=True,
+                                        check_return=True)
+        instance.device.RunShellCommand(['svc', 'data', 'disable'],
+                                        as_root=True,
+                                        check_return=True)
 
       if snapshot:
         instance.SaveSnapshot()
@@ -1191,12 +1193,6 @@ def _EnsureSystemSettings(device):
     logging.warning('Cannot sync the device date on "user" build')
     return
 
-  # Marshmallow AVD config has the network so won't have the date issue.
-  # Also the intent does not work well on M. So skip the date sync for M.
-  if device.build_version_sdk == version_codes.MARSHMALLOW:
-    logging.info('Skip sync the deivce date on Marshmallow')
-    return
-
   logging.info('Sync the device date.')
   timezone = device.RunShellCommand(['date', '+"%Z"'],
                                     single_line=True,
@@ -1213,10 +1209,6 @@ def _EnsureSystemSettings(device):
   strgmtime = time.strftime(set_date_format, time.gmtime())
   set_date_command.append(strgmtime)
   device.RunShellCommand(set_date_command, check_return=True, as_root=True)
-  device.RunShellCommand(
-      ['am', 'broadcast', '-a', 'android.intent.action.TIME_SET'],
-      check_return=True,
-      as_root=True)
 
 
 def _EnableNetwork(device):
