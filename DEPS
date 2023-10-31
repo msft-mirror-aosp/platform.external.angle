@@ -45,7 +45,7 @@ vars = {
   'checkout_angle_mesa': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': 'cea2902c9c11eb8ba85885c76b172bed33bd9e41',
+  'chromium_revision': '58d756134d9b5220b74ef2d28d018c5c9c07c061',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
@@ -90,7 +90,7 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': '9d8a076f9920f4f03bca5e8d454fa6f164e81295',
+  'catapult_revision': '47efdb4b1428e549c58a6d6c2fa79c4a8ceaf9b4',
 
   # the commit queue can handle CLs rolling Fuchsia sdk
   # and whatever else without interference from each other.
@@ -148,10 +148,10 @@ vars = {
   # reclient CIPD package
   'reclient_package': 'infra/rbe/client/',
   # reclient CIPD package version
-  'reclient_version': 're_client_version:0.117.1.21520c6-gomaip',
+  'reclient_version': 're_client_version:0.118.1.ae3c3be-gomaip',
 
   # siso CIPD package version.
-  'siso_version': 'git_revision:c689f99bb4b9908073bd2f3fbd68f289d9e45a75',
+  'siso_version': 'git_revision:6af7e19f74a94ee61f1ddabc0d23b8e3c0d02e98',
 
   # 'magic' text to tell depot_tools that git submodules should be accepted but
   # but parity with DEPS file is expected.
@@ -161,12 +161,12 @@ vars = {
 deps = {
 
   'build': {
-    'url': Var('chromium_git') + '/chromium/src/build.git@6a5969b1cd1dbf32d95821f7ba7f9e4452823e74',
+    'url': Var('chromium_git') + '/chromium/src/build.git@a21fc6065131d0442e8a54c3ca2638e393b69438',
     'condition': 'not build_with_chromium',
   },
 
   'buildtools': {
-    'url': Var('chromium_git') + '/chromium/src/buildtools.git@75a40ee29d53279403c27f43db4850128a1179ee',
+    'url': Var('chromium_git') + '/chromium/src/buildtools.git@6f834e2039daedfc68a2749c217922b26d5e8497',
     'condition': 'not build_with_chromium',
   },
 
@@ -220,12 +220,12 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@f10cb8b6143d31f396e39127445c3179dde6e209',
+    'url': '{chromium_git}/chromium/src/testing@94cf08b9e1ef4a93211a016f9b2c0911fdb43531',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/abseil-cpp': {
-    'url': Var('chromium_git') + '/chromium/src/third_party/abseil-cpp@a391ecbab75b40ea07d5c50d251a401d350df17b',
+    'url': Var('chromium_git') + '/chromium/src/third_party/abseil-cpp@16ed8d7d56105c49a0bbc04a428bf00dc7fadaf6',
     'condition': 'not build_with_chromium',
   },
 
@@ -271,7 +271,7 @@ deps = {
       'packages': [
           {
                'package': 'chromium/third_party/android_build_tools/lint',
-               'version': 'B5rMbDYcnLV5PkN2pDyWvPScXUdkhHvmiGa7UUkTTTkC',
+               'version': 'KNl-Nl1apUB5k0bMGpYmM6F9_AsDD47Ka_b5BI0InvQC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -282,7 +282,7 @@ deps = {
       'packages': [
           {
                'package': 'chromium/third_party/android_build_tools/manifest_merger',
-               'version': 'KmtRhZoOS6xQcRRnch2SSZWcioCEl8amdDO1hI5FvBoC',
+               'version': 'V90mMwKNdDvQaZ-2eMjmdkHQdGrDn3w4DxA-fGMA8y0C',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -290,7 +290,7 @@ deps = {
   },
 
   'third_party/android_deps': {
-    'url': Var('chromium_git') + '/chromium/src/third_party/android_deps@7a747fea27d0236da9db6fbad5247f271ed52344',
+    'url': Var('chromium_git') + '/chromium/src/third_party/android_deps@b7c04d1b086f46714b26610ee10350ae49aa9663',
     'condition': 'checkout_android and not build_with_chromium',
   },
 
@@ -403,7 +403,7 @@ deps = {
   },
 
   'third_party/depot_tools': {
-    'url': Var('chromium_git') + '/chromium/tools/depot_tools.git@43582381dd7858241f104a675b912e62d9773ddf',
+    'url': Var('chromium_git') + '/chromium/tools/depot_tools.git@9f3b33a275e7a5b19d8ce4aba7960d2a38858681',
     'condition': 'not build_with_chromium',
   },
 
@@ -460,7 +460,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/kotlin_stdlib',
-              'version': 'QwS-YZL_N4g1SjI1Ngely1WPNxLh-kfYpFZhKaEXGawC',
+              'version': 'ZwEhbBOU3zJ8iFzea34zthR0d1a1LlfSPjfsblxKbSgC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -517,17 +517,17 @@ deps = {
    },
 
   'third_party/libc++/src': {
-    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libcxx.git@58c1757391c030f2876c11102f9cd58c18ffac4a',
+    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libcxx.git@a429c26ae25c26a569ff12390d5f9be70c5e286b',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/libc++abi/src': {
-    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libcxxabi.git@5acf60c8b985bffe197e2ffc2169850dec89348e',
+    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libcxxabi.git@2ca9f38714b1465b9f55b5fbd0da5e4342811e2b',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/libunwind/src': {
-    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libunwind.git@11d9f3e05511a24c9ecbabbc64fc5b15923aeb40',
+    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libunwind.git@7686b5d38c69d14932abfb1c1a66ba56c78791ad',
     'condition': 'not build_with_chromium',
   },
 
@@ -604,7 +604,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
-              'version': 'EJBvY8okEtL8rBTKcVoAbusYIpZD8wRuqoo-LWfKz_EC',
+              'version': 'jj098_uPn3EKB7YisD1VAQXkZWNtSa6Qxz3vpMQkPR4C',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -651,7 +651,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@d9ec9befba05a8dfca09c1e88f3f7be0e4b153c6',
+    'url': Var('swiftshader_git') + '/SwiftShader@5c95af798ba41e5c8bb09891ee7398e7bfe2b1fb',
     'condition': 'not build_with_chromium',
   },
 
@@ -691,12 +691,12 @@ deps = {
   },
 
   'tools/android': {
-    'url': Var('chromium_git') + '/chromium/src/tools/android@70a44835ed4bcecea8b7b9661d09bbc61fd3dd86',
+    'url': Var('chromium_git') + '/chromium/src/tools/android@3518522a2f939e6028fd5639834c0257be88d2d1',
     'condition': 'checkout_android and not build_with_chromium',
   },
 
   'tools/clang': {
-    'url': Var('chromium_git') + '/chromium/src/tools/clang.git@86aed39db276fb876a2b98c93cc6ff8940377903',
+    'url': Var('chromium_git') + '/chromium/src/tools/clang.git@d76d091db249cfc4460217aa101fbc19fccf6bf0',
     'condition': 'not build_with_chromium',
   },
 
@@ -727,7 +727,7 @@ deps = {
   },
 
   'tools/mb': {
-    'url': Var('chromium_git') + '/chromium/src/tools/mb@809cf55c675cb52f79d67ec500f23d34b199b4b9',
+    'url': Var('chromium_git') + '/chromium/src/tools/mb@b3e514fd0b964da68f1ed9b9581e58eb640d5efa',
     'condition': 'not build_with_chromium',
   },
 
@@ -742,7 +742,7 @@ deps = {
   },
 
   'tools/perf': {
-    'url': Var('chromium_git') + '/chromium/src/tools/perf@ad5af24436f15d597cd69aa3b778c23cfa079dc3',
+    'url': Var('chromium_git') + '/chromium/src/tools/perf@f8ba498d2fe7dfa39857b46ed868fff7dc53e6cd',
     'condition': 'not build_with_chromium',
   },
 
@@ -2876,6 +2876,16 @@ deps = {
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_traces',
   },
+  'src/tests/restricted_traces/streets_of_rage_4': {
+      'packages': [
+        {
+            'package': 'angle/traces/streets_of_rage_4',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
   'src/tests/restricted_traces/stumble_guys': {
       'packages': [
         {
@@ -4002,7 +4012,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/android_deps/libs/com_google_errorprone_error_prone_annotations',
-              'version': 'version:2@2.18.0.cr1',
+              'version': 'version:2@2.23.0.cr1',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -4893,17 +4903,6 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/android_deps/libs/org_robolectric_shadows_framework',
-              'version': 'version:2@4.10.3.cr1',
-          },
-      ],
-      'condition': 'checkout_android and not build_with_chromium',
-      'dep_type': 'cipd',
-  },
-
-  'third_party/android_deps/libs/org_robolectric_shadows_playservices': {
-      'packages': [
-          {
-              'package': 'chromium/third_party/android_deps/libs/org_robolectric_shadows_playservices',
               'version': 'version:2@4.10.3.cr1',
           },
       ],
