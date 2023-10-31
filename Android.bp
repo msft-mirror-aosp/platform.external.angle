@@ -9,7 +9,7 @@
 cc_defaults {
     name: "angle_common_library_cflags",
     cflags: [
-        "-Os",
+        "-O2",
         "-Wno-unknown-warning-option",
         "-fno-unwind-tables",
     ],

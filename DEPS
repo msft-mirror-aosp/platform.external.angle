@@ -148,7 +148,7 @@ vars = {
   # reclient CIPD package
   'reclient_package': 'infra/rbe/client/',
   # reclient CIPD package version
-  'reclient_version': 're_client_version:0.117.1.21520c6-gomaip',
+  'reclient_version': 're_client_version:0.118.1.ae3c3be-gomaip',
 
   # siso CIPD package version.
   'siso_version': 'git_revision:6af7e19f74a94ee61f1ddabc0d23b8e3c0d02e98',
@@ -651,7 +651,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@d9ec9befba05a8dfca09c1e88f3f7be0e4b153c6',
+    'url': Var('swiftshader_git') + '/SwiftShader@5c95af798ba41e5c8bb09891ee7398e7bfe2b1fb',
     'condition': 'not build_with_chromium',
   },
 
@@ -2870,6 +2870,16 @@ deps = {
       'packages': [
         {
             'package': 'angle/traces/street_fighter_iv_ce',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
+  'src/tests/restricted_traces/streets_of_rage_4': {
+      'packages': [
+        {
+            'package': 'angle/traces/streets_of_rage_4',
             'version': 'version:1',
         },
       ],
