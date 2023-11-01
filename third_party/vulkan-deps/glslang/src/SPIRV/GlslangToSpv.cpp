@@ -3715,13 +3715,13 @@ bool TGlslangToSpvTraverser::visitAggregate(glslang::TVisit visit, glslang::TInt
 
         // Determine Cooperative Matrix Operands bits from the signedness of the types.
         if (isTypeSignedInt(glslangOperands[0]->getAsTyped()->getBasicType()))
-            matrixOperands |= spv::CooperativeMatrixOperandsMatrixASignedComponentsMask;
+            matrixOperands |= spv::CooperativeMatrixOperandsMatrixASignedComponentsKHRMask;
         if (isTypeSignedInt(glslangOperands[1]->getAsTyped()->getBasicType()))
-            matrixOperands |= spv::CooperativeMatrixOperandsMatrixBSignedComponentsMask;
+            matrixOperands |= spv::CooperativeMatrixOperandsMatrixBSignedComponentsKHRMask;
         if (isTypeSignedInt(glslangOperands[2]->getAsTyped()->getBasicType()))
-            matrixOperands |= spv::CooperativeMatrixOperandsMatrixCSignedComponentsMask;
+            matrixOperands |= spv::CooperativeMatrixOperandsMatrixCSignedComponentsKHRMask;
         if (isTypeSignedInt(node->getBasicType()))
-            matrixOperands |= spv::CooperativeMatrixOperandsMatrixResultSignedComponentsMask;
+            matrixOperands |= spv::CooperativeMatrixOperandsMatrixResultSignedComponentsKHRMask;
 
         std::vector<spv::IdImmediate> idImmOps;
         idImmOps.push_back(spv::IdImmediate(true, operands[0]));
@@ -5403,9 +5403,17 @@ void TGlslangToSpvTraverser::makeFunctions(const glslang::TIntermSequence& glslF
 
     for (int f = 0; f < (int)glslFunctions.size(); ++f) {
         glslang::TIntermAggregate* glslFunction = glslFunctions[f]->getAsAggregate();
-        if (! glslFunction || glslFunction->getOp() != glslang::EOpFunction || isShaderEntryPoint(glslFunction))
+        if (! glslFunction || glslFunction->getOp() != glslang::EOpFunction)
             continue;
-
+        if (isShaderEntryPoint(glslFunction)) {
+            if (glslangIntermediate->getSource() != glslang::EShSourceHlsl) {
+                builder.setupDebugFunctionEntry(shaderEntry, glslangIntermediate->getEntryPointMangledName().c_str(),
+                                                glslFunction->getLoc().line,
+                                                std::vector<spv::Id>(), // main function has no param
+                                                std::vector<char const*>());
+            }
+            continue;
+        }
         // We're on a user function.  Set up the basic interface for the function now,
         // so that it's available to call.  Translating the body will happen later.
         //
@@ -5455,6 +5463,8 @@ void TGlslangToSpvTraverser::makeFunctions(const glslang::TIntermSequence& glslF
             TranslatePrecisionDecoration(glslFunction->getType()), convertGlslangToSpvType(glslFunction->getType()),
             glslFunction->getName().c_str(), convertGlslangLinkageToSpv(glslFunction->getLinkType()), paramTypes,
             paramNames, paramDecorations, &functionBlock);
+        builder.setupDebugFunctionEntry(function, glslFunction->getName().c_str(), glslFunction->getLoc().line,
+                                        paramTypes, paramNames);
         if (implicitThis)
             function->setImplicitThis();
 
