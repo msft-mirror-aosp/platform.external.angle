@@ -6,6 +6,40 @@
 // found in the LICENSE file.
 //
 
+soong_config_module_type {
+    name: "angle_config_cc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "angle",
+    bool_variables: [
+        "angle_on_system",
+    ],
+    properties: [
+        "target.android.relative_install_path",
+        "vendor",
+    ],
+}
+soong_config_bool_variable {
+    name: "angle_on_system",
+}
+angle_config_cc_defaults {
+    name: "angle_vendor_cc_defaults",
+    vendor: true,
+    target: {
+        android: {
+            relative_install_path: "egl",
+        },
+    },
+    soong_config_variables: {
+        angle_on_system: {
+            vendor: false,
+            target: {
+                android: {
+                    relative_install_path: "",
+                },
+            },
+        },
+    },
+}
 cc_defaults {
     name: "angle_common_library_cflags",
     cflags: [
@@ -98,6 +132,7 @@ cc_library_shared {
         "angle_common_library_cflags",
         "angle_includes",
         "angle_libEGL_egl_loader",
+        "angle_vendor_cc_defaults",
     ],
     generated_headers: [
         "angle_commit_id",
@@ -178,12 +213,6 @@ cc_library_shared {
     ],
     sdk_version: "28",
     stl: "libc++_static",
-    vendor: true,
-    target: {
-        android: {
-            relative_install_path: "egl",
-        },
-    },
 }
 cc_library_shared {
     name: "libGLESv1_CM_angle",
@@ -211,6 +240,7 @@ cc_library_shared {
     defaults: [
         "angle_common_library_cflags",
         "angle_includes",
+        "angle_vendor_cc_defaults",
     ],
     generated_headers: [
         "angle_commit_id",
@@ -278,12 +308,6 @@ cc_library_shared {
     ],
     sdk_version: "28",
     stl: "libc++_static",
-    vendor: true,
-    target: {
-        android: {
-            relative_install_path: "egl",
-        },
-    },
 }
 cc_defaults {
     name: "third_party_vulkan_memory_allocator_vulkan_memory_allocator",
@@ -8077,6 +8101,7 @@ cc_library_shared {
         "angle_common_library_cflags",
         "angle_includes",
         "angle_libANGLE",
+        "angle_vendor_cc_defaults",
     ],
     generated_headers: [
         "angle_commit_id",
@@ -8163,12 +8188,6 @@ cc_library_shared {
     ],
     sdk_version: "28",
     stl: "libc++_static",
-    vendor: true,
-    target: {
-        android: {
-            relative_install_path: "egl",
-        },
-    },
 }
 package {
     default_applicable_licenses: [
