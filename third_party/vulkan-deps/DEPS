@@ -10,7 +10,7 @@ vars = {
   'chromium_git': 'https://chromium.googlesource.com',
 
   # Current revision of glslang, the Khronos SPIRV compiler.
-  'glslang_revision': '302a663a38b89e4d8c3ac8edf754ca4f2d78538c',
+  'glslang_revision': '65f59c81e79b2399f59c5258c3e24d3d1fc575ad',
 
   # Current revision of spirv-cross, the Khronos SPIRV cross compiler.
   'spirv_cross_revision': '4818f7e7ef7b7078a3a7a5a52c4a338e0dda22f4',
@@ -25,7 +25,7 @@ vars = {
   'vulkan_headers_revision': 'aff5071d4ee6215c60a91d8d983cad91bb25fb57',
 
   # Current revision of Khronos Vulkan-Loader.
-  'vulkan_loader_revision': '9f257b620d2fc5f0f7dba115fc135c5cc8eaccc6',
+  'vulkan_loader_revision': '70837963f82bd886828bf667a6ce3837dd3c70f1',
 
   # Current revision of Khronos Vulkan-Tools.
   'vulkan_tools_revision': '20b2ff19588be983ae75f3f1e243b2fd2380872d',
@@ -34,7 +34,7 @@ vars = {
   'vulkan_utility_libraries_revision': '5b3147a535e28a48ae760efacdf97b296d9e8c73',
 
   # Current revision of Khronos Vulkan-ValidationLayers.
-  'vulkan_validation_revision': 'e0e27e5486a43a2dd0f16a3361bf15aa71441cc6',
+  'vulkan_validation_revision': '639f125c41e1028693d5c7945ec8e83fa400086e',
 }
 
 deps = {
