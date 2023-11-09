@@ -16,7 +16,7 @@ vars = {
   'spirv_cross_revision': '4818f7e7ef7b7078a3a7a5a52c4a338e0dda22f4',
 
   # Current revision fo the SPIRV-Headers Vulkan support library.
-  'spirv_headers_revision': '88bc5e321c2839707df8b1ab534e243e00744177',
+  'spirv_headers_revision': '38f39dae5baaa24431b24ac659054ebe972fa1e6',
 
   # Current revision of SPIRV-Tools for Vulkan.
   'spirv_tools_revision': '9e7a1f2ddd65514f6edc8303bd909fa735054bcc',
@@ -34,7 +34,7 @@ vars = {
   'vulkan_utility_libraries_revision': '5b3147a535e28a48ae760efacdf97b296d9e8c73',
 
   # Current revision of Khronos Vulkan-ValidationLayers.
-  'vulkan_validation_revision': 'ca58d5500b830a50020e025528826501fae478ed',
+  'vulkan_validation_revision': 'daec145d41014198f84861bd99032f68e646a6f0',
 }
 
 deps = {
