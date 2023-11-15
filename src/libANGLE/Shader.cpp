@@ -91,6 +91,13 @@ class CompileTask final : public angle::Closure
 
     angle::Result getResult()
     {
+        // Note: this function is called from WaitCompileJobUnlocked(), and must therefore be
+        // thread-safe if the linkJobIsThreadSafe feature is enabled.  Without linkJobIsThreadSafe,
+        // the call will end up done in the main thread, which is the case for the GL backend (which
+        // happens to be the only backend that actually does anything in getResult).
+        //
+        // Consequently, this function must not _write_ to anything, e.g. by trying to cache the
+        // result of |mTranslateTask->getResult()|.
         ANGLE_TRY(mResult);
         ANGLE_TRY(mTranslateTask->getResult(mInfoLog));
 
@@ -110,9 +117,8 @@ class CompileTask final : public angle::Closure
     size_t mMaxComputeWorkGroupInvocations;
     size_t mMaxComputeSharedMemory;
 
-    // Access to the compile information which are unchanged for the duration of compilation (for
-    // example shader source which cannot be changed until compilation is finished) or are kept
-    // alive (for example the compiler instance in CompilingState)
+    // Access to the compile information.  Note that the compiler instance is kept alive until
+    // resolveCompile.
     ShHandle mCompilerHandle;
     ShShaderOutput mOutputType;
     ShCompileOptions mOptions;
@@ -334,10 +340,21 @@ std::string GetShaderDumpFileName(size_t shaderHash)
     return name.str();
 }
 
-struct Shader::CompilingState
+struct CompileJob
 {
+    virtual ~CompileJob() = default;
+    virtual bool wait() { return compileEvent->wait() == angle::Result::Continue; }
+
     std::unique_ptr<CompileEvent> compileEvent;
     ShCompilerInstance shCompilerInstance;
+};
+
+struct CompileJobDone final : public CompileJob
+{
+    CompileJobDone(bool compiledIn) : compiled(compiledIn) {}
+    bool wait() override { return compiled; }
+
+    bool compiled;
 };
 
 ShaderState::ShaderState(ShaderType shaderType)
@@ -595,7 +612,7 @@ void Shader::getTranslatedSourceWithDebugInfo(const Context *context,
     GetSourceImpl(debugInfo, bufSize, length, buffer);
 }
 
-void Shader::compile(const Context *context)
+void Shader::compile(const Context *context, angle::JobResultExpectancy resultExpectancy)
 {
     resolveCompile(context);
 
@@ -681,18 +698,16 @@ void Shader::compile(const Context *context)
     // The GL backend relies on the driver's internal parallel compilation, and thus does not use a
     // thread to compile.  A front-end feature selects whether the single-threaded pool must be
     // used.
-    std::shared_ptr<angle::WorkerThreadPool> compileWorkerPool =
+    const angle::JobThreadSafety threadSafety =
         context->getFrontendFeatures().compileJobIsThreadSafe.enabled
-            ? context->getShaderCompileThreadPool()
-            : context->getSingleThreadPool();
-
-    // TODO: add the possibility to perform this in an unlocked tail call.  http://anglebug.com/8297
+            ? angle::JobThreadSafety::Safe
+            : angle::JobThreadSafety::Unsafe;
     std::shared_ptr<angle::WaitableEvent> compileEvent =
-        compileWorkerPool->postWorkerTask(compileTask);
+        context->postCompileLinkTask(compileTask, threadSafety, resultExpectancy);
 
-    mCompilingState                     = std::make_unique<CompilingState>();
-    mCompilingState->shCompilerInstance = std::move(compilerInstance);
-    mCompilingState->compileEvent       = std::make_unique<CompileEvent>(compileTask, compileEvent);
+    mCompileJob                     = std::make_shared<CompileJob>();
+    mCompileJob->shCompilerInstance = std::move(compilerInstance);
+    mCompileJob->compileEvent       = std::make_unique<CompileEvent>(compileTask, compileEvent);
 }
 
 void Shader::resolveCompile(const Context *context)
@@ -702,15 +717,12 @@ void Shader::resolveCompile(const Context *context)
         return;
     }
 
-    ASSERT(mCompilingState.get());
+    ASSERT(mCompileJob.get());
     mState.mCompileStatus = CompileStatus::IS_RESOLVING;
 
-    angle::Result result = mCompilingState->compileEvent->wait();
-    mInfoLog             = std::move(mCompilingState->compileEvent->getInfoLog());
-
-    bool success          = result == angle::Result::Continue;
+    const bool success    = WaitCompileJobUnlocked(mCompileJob);
+    mInfoLog              = std::move(mCompileJob->compileEvent->getInfoLog());
     mState.mCompileStatus = success ? CompileStatus::COMPILED : CompileStatus::NOT_COMPILED;
-    mState.mCompiledState->successfullyCompiled = success;
 
     if (success)
     {
@@ -726,9 +738,8 @@ void Shader::resolveCompile(const Context *context)
         }
     }
 
-    mBoundCompiler->putInstance(std::move(mCompilingState->shCompilerInstance));
-    mCompilingState->compileEvent.reset();
-    mCompilingState.reset();
+    mBoundCompiler->putInstance(std::move(mCompileJob->shCompilerInstance));
+    mCompileJob.reset();
 }
 
 void Shader::addRef()
@@ -769,7 +780,27 @@ bool Shader::isCompiled(const Context *context)
 
 bool Shader::isCompleted()
 {
-    return !mState.compilePending() || !mCompilingState->compileEvent->isCompiling();
+    return !mState.compilePending() || !mCompileJob->compileEvent->isCompiling();
+}
+
+SharedCompileJob Shader::getCompileJob(SharedCompiledShaderState *compiledStateOut)
+{
+    // mState.mCompiledState is the same as the one in the current compile job, because this call is
+    // made during link which expects to pick up the currently compiled (or pending compilation)
+    // state.
+    *compiledStateOut = mState.mCompiledState;
+
+    if (mCompileJob)
+    {
+        ASSERT(mState.compilePending());
+        return mCompileJob;
+    }
+
+    ASSERT(!mState.compilePending());
+    ASSERT(mState.mCompileStatus == CompileStatus::COMPILED ||
+           mState.mCompileStatus == CompileStatus::NOT_COMPILED);
+
+    return std::make_shared<CompileJobDone>(mState.mCompileStatus == CompileStatus::COMPILED);
 }
 
 angle::Result Shader::serialize(const Context *context, angle::MemoryBuffer *binaryOut) const
@@ -874,8 +905,7 @@ angle::Result Shader::loadBinaryImpl(const Context *context,
 
     // Only successfully-compiled shaders are serialized. If deserialization is successful, we can
     // assume the CompileStatus.
-    mState.mCompileStatus                       = CompileStatus::COMPILED;
-    mState.mCompiledState->successfullyCompiled = true;
+    mState.mCompileStatus = CompileStatus::COMPILED;
 
     return angle::Result::Continue;
 }
@@ -910,4 +940,11 @@ void Shader::setShaderKey(const Context *context,
     angle::base::SHA1HashBytes(shaderKey.data(), shaderKey.size(), mShaderHash.data());
 }
 
+bool WaitCompileJobUnlocked(const SharedCompileJob &compileJob)
+{
+    // Simply wait for the job and return whether it succeeded.  Do nothing more as this can be
+    // called from multiple threads.  Caching of the shader results and compiler clean up will be
+    // done in resolveCompile() when the main thread happens to call it.
+    return compileJob->wait();
+}
 }  // namespace gl
