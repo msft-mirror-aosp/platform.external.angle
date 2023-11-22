@@ -495,6 +495,21 @@ constexpr angle::PackedEnumMap<ImageLayout, ImageMemoryBarrierData> kImageMemory
         },
     },
     {
+        ImageLayout::TransferSrcDst,
+        ImageMemoryBarrierData{
+            "TransferSrcDst",
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            // Transition to: all reads and writes must happen after barrier.
+            VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
+            // Transition from: all writes must finish before barrier.
+            VK_ACCESS_TRANSFER_WRITE_BIT,
+            ResourceAccess::ReadWrite,
+            PipelineStage::Transfer,
+        },
+    },
+    {
         ImageLayout::HostCopy,
         ImageMemoryBarrierData{
             "HostCopy",
@@ -1017,6 +1032,16 @@ bool IsAnyLayout(VkImageLayout needle, const VkImageLayout *haystack, uint32_t h
 {
     const VkImageLayout *haystackEnd = haystack + haystackCount;
     return std::find(haystack, haystackEnd, needle) != haystackEnd;
+}
+
+gl::TexLevelMask AggregateSkipLevels(const gl::CubeFaceArray<gl::TexLevelMask> &skipLevels)
+{
+    gl::TexLevelMask skipLevelsAllFaces = skipLevels[0];
+    for (size_t face = 1; face < gl::kCubeFaceCount; ++face)
+    {
+        skipLevelsAllFaces |= skipLevels[face];
+    }
+    return skipLevelsAllFaces;
 }
 }  // anonymous namespace
 
@@ -2884,8 +2909,7 @@ void RenderPassCommandBufferHelper::addCommandDiagnostics(ContextVk *contextVk)
     {
         if (subpass > 0)
         {
-            out << "Next Subpass"
-                << "\\l";
+            out << "Next Subpass" << "\\l";
         }
         out << mCommandBuffers[subpass].dumpCommands("\\l");
     }
@@ -3605,8 +3629,7 @@ void BufferPool::addStats(std::ostringstream *out) const
         VkDeviceSize unusedBytes = statInfo.unusedBytes;
 #else
         ASSERT(statInfo.basicInfo.blockCount == 1);
-        INFO() << "[" << i << "]={"
-               << " allocationCount:" << statInfo.basicInfo.allocationCount
+        INFO() << "[" << i << "]={" << " allocationCount:" << statInfo.basicInfo.allocationCount
                << " blockBytes:" << statInfo.basicInfo.blockBytes
                << " allocationBytes:" << statInfo.basicInfo.allocationBytes
                << " unusedRangeCount:" << statInfo.unusedRangeCount
@@ -7041,17 +7064,20 @@ angle::Result ImageHelper::CopyImageSubData(const gl::Context *context,
     if (CanCopyWithTransferForCopyImage(contextVk->getRenderer(), srcImage, srcTilingMode, dstImage,
                                         destTilingMode))
     {
-        bool isSrc3D = srcImage->getType() == VK_IMAGE_TYPE_3D;
-        bool isDst3D = dstImage->getType() == VK_IMAGE_TYPE_3D;
+        bool isSrc3D                         = srcImage->getType() == VK_IMAGE_TYPE_3D;
+        bool isDst3D                         = dstImage->getType() == VK_IMAGE_TYPE_3D;
+        const VkImageAspectFlags aspectFlags = srcImage->getAspectFlags();
+
+        ASSERT(srcImage->getAspectFlags() == dstImage->getAspectFlags());
 
         VkImageCopy region = {};
 
-        region.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.srcSubresource.aspectMask     = aspectFlags;
         region.srcSubresource.mipLevel       = srcImage->toVkLevel(srcLevelGL).get();
         region.srcSubresource.baseArrayLayer = isSrc3D ? 0 : srcZ;
         region.srcSubresource.layerCount     = isSrc3D ? 1 : srcDepth;
 
-        region.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.dstSubresource.aspectMask     = aspectFlags;
         region.dstSubresource.mipLevel       = dstImage->toVkLevel(dstLevelGL).get();
         region.dstSubresource.baseArrayLayer = isDst3D ? 0 : dstZ;
         region.dstSubresource.layerCount     = isDst3D ? 1 : srcDepth;
@@ -7067,17 +7093,26 @@ angle::Result ImageHelper::CopyImageSubData(const gl::Context *context,
         region.extent.depth  = (isSrc3D || isDst3D) ? srcDepth : 1;
 
         CommandBufferAccess access;
-        access.onImageTransferRead(VK_IMAGE_ASPECT_COLOR_BIT, srcImage);
-        access.onImageTransferWrite(dstLevelGL, 1, region.dstSubresource.baseArrayLayer,
-                                    region.dstSubresource.layerCount, VK_IMAGE_ASPECT_COLOR_BIT,
-                                    dstImage);
+        if (srcImage == dstImage)
+        {
+            access.onImageSelfCopy(dstLevelGL, 1, region.dstSubresource.baseArrayLayer,
+                                   region.dstSubresource.layerCount, aspectFlags, srcImage);
+        }
+        else
+        {
+            access.onImageTransferRead(aspectFlags, srcImage);
+            access.onImageTransferWrite(dstLevelGL, 1, region.dstSubresource.baseArrayLayer,
+                                        region.dstSubresource.layerCount, aspectFlags, dstImage);
+        }
 
         OutsideRenderPassCommandBuffer *commandBuffer;
         ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
 
         ASSERT(srcImage->valid() && dstImage->valid());
-        ASSERT(srcImage->getCurrentLayout(contextVk) == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-        ASSERT(dstImage->getCurrentLayout(contextVk) == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        ASSERT(srcImage->getCurrentLayout(contextVk) == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL ||
+               srcImage->getCurrentLayout(contextVk) == VK_IMAGE_LAYOUT_GENERAL);
+        ASSERT(dstImage->getCurrentLayout(contextVk) == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ||
+               dstImage->getCurrentLayout(contextVk) == VK_IMAGE_LAYOUT_GENERAL);
 
         commandBuffer->copyImage(srcImage->getImage(), srcImage->getCurrentLayout(contextVk),
                                  dstImage->getImage(), dstImage->getCurrentLayout(contextVk), 1,
@@ -7396,7 +7431,7 @@ angle::Result ImageHelper::stageSubresourceUpdateImpl(ContextVk *contextVk,
     else
     {
         ASSERT(storageFormat.pixelBytes != 0);
-        const bool stencilOnly = formatInfo.internalFormat == GL_STENCIL_INDEX8;
+        const bool stencilOnly = formatInfo.sizedInternalFormat == GL_STENCIL_INDEX8;
 
         if (!stencilOnly && storageFormat.id == angle::FormatID::D24_UNORM_S8_UINT)
         {
@@ -8535,14 +8570,19 @@ bool ImageHelper::verifyEmulatedClearsAreBeforeOtherUpdates(
     return true;
 }
 
-void ImageHelper::stageSelfAsSubresourceUpdates(ContextVk *contextVk,
-                                                uint32_t levelCount,
-                                                gl::TexLevelMask skipLevelsMask)
+void ImageHelper::stageSelfAsSubresourceUpdates(
+    ContextVk *contextVk,
+    uint32_t levelCount,
+    gl::TextureType textureType,
+    const gl::CubeFaceArray<gl::TexLevelMask> &skipLevels)
 
 {
     // Nothing to do if every level must be skipped
-    gl::TexLevelMask levelsMask(angle::BitMask<uint32_t>(levelCount) << mFirstAllocatedLevel.get());
-    if ((~skipLevelsMask & levelsMask).none())
+    const gl::TexLevelMask levelsMask(angle::BitMask<uint32_t>(levelCount)
+                                      << mFirstAllocatedLevel.get());
+    const gl::TexLevelMask skipLevelsAllFaces = AggregateSkipLevels(skipLevels);
+
+    if ((~skipLevelsAllFaces & levelsMask).none())
     {
         return;
     }
@@ -8594,16 +8634,29 @@ void ImageHelper::stageSelfAsSubresourceUpdates(ContextVk *contextVk,
     for (LevelIndex levelVk(0); levelVk < LevelIndex(levelCount); ++levelVk)
     {
         gl::LevelIndex levelGL = toGLLevel(levelVk);
-        if (skipLevelsMask.test(levelGL.get()))
+        if (!skipLevelsAllFaces.test(levelGL.get()))
         {
-            continue;
+            const gl::ImageIndex index =
+                gl::ImageIndex::Make2DArrayRange(levelGL.get(), 0, mLayerCount);
+
+            stageSubresourceUpdateFromImage(prevImage.get(), index, levelVk, gl::kOffsetZero,
+                                            getLevelExtents(levelVk), mImageType);
         }
+        else if (textureType == gl::TextureType::CubeMap)
+        {
+            for (uint32_t face = 0; face < gl::kCubeFaceCount; ++face)
+            {
+                if (!skipLevels[face][levelGL.get()])
+                {
+                    const gl::ImageIndex index =
+                        gl::ImageIndex::Make2DArrayRange(levelGL.get(), face, 1);
 
-        const gl::ImageIndex index =
-            gl::ImageIndex::Make2DArrayRange(levelGL.get(), 0, mLayerCount);
-
-        stageSubresourceUpdateFromImage(prevImage.get(), index, levelVk, gl::kOffsetZero,
-                                        getLevelExtents(levelVk), mImageType);
+                    stageSubresourceUpdateFromImage(prevImage.get(), index, levelVk,
+                                                    gl::kOffsetZero, getLevelExtents(levelVk),
+                                                    mImageType);
+                }
+            }
+        }
     }
 
     ASSERT(levelCount > 0);
@@ -8684,7 +8737,7 @@ angle::Result ImageHelper::flushStagedUpdates(ContextVk *contextVk,
                                               gl::LevelIndex levelGLEnd,
                                               uint32_t layerStart,
                                               uint32_t layerEnd,
-                                              gl::TexLevelMask skipLevelsMask)
+                                              const gl::CubeFaceArray<gl::TexLevelMask> &skipLevels)
 {
     RendererVk *renderer = contextVk->getRenderer();
 
@@ -8693,7 +8746,8 @@ angle::Result ImageHelper::flushStagedUpdates(ContextVk *contextVk,
         return angle::Result::Continue;
     }
 
-    removeSupersededUpdates(contextVk, skipLevelsMask);
+    const gl::TexLevelMask skipLevelsAllFaces = AggregateSkipLevels(skipLevels);
+    removeSupersededUpdates(contextVk, skipLevelsAllFaces);
 
     // If a clear is requested and we know it was previously cleared with the same value, we drop
     // the clear.
@@ -8792,7 +8846,7 @@ angle::Result ImageHelper::flushStagedUpdates(ContextVk *contextVk,
             // them. This can happen when recreating an image that has been partially incompatibly
             // redefined, in which case only updates to the levels that haven't been redefined
             // should be flushed.
-            if (areUpdateLayersOutsideRange || skipLevelsMask.test(updateMipLevelGL.get()))
+            if (areUpdateLayersOutsideRange || skipLevelsAllFaces.test(updateMipLevelGL.get()))
             {
                 updatesToKeep.emplace_back(std::move(update));
                 continue;
@@ -9275,7 +9329,8 @@ void ImageHelper::pruneSupersededUpdatesForLevel(ContextVk *contextVk,
     mTotalStagedBufferUpdateSize -= supersededUpdateSize;
 }
 
-void ImageHelper::removeSupersededUpdates(ContextVk *contextVk, gl::TexLevelMask skipLevelsMask)
+void ImageHelper::removeSupersededUpdates(ContextVk *contextVk,
+                                          const gl::TexLevelMask skipLevelsAllFaces)
 {
     ASSERT(validateSubresourceUpdateRefCountsConsistent());
 
@@ -9284,7 +9339,7 @@ void ImageHelper::removeSupersededUpdates(ContextVk *contextVk, gl::TexLevelMask
         gl::LevelIndex levelGL                       = toGLLevel(levelVk);
         std::vector<SubresourceUpdate> *levelUpdates = getLevelUpdates(levelGL);
         if (levelUpdates == nullptr || levelUpdates->size() == 0 ||
-            skipLevelsMask.test(levelGL.get()))
+            skipLevelsAllFaces.test(levelGL.get()))
         {
             // There are no valid updates to process, continue.
             continue;
