@@ -18,7 +18,6 @@
 #include "common/platform.h"
 #include "common/system_utils.h"
 #include "common/vulkan/libvulkan_loader.h"
-#include "common/vulkan/vk_google_filtering_precision.h"
 #include "common/vulkan/vulkan_icd.h"
 #include "gpu_info_util/SystemInfo.h"
 #include "libANGLE/Context.h"
@@ -265,12 +264,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndexed-None-09003",
     // https://anglebug.com/8334
     "VUID-VkDescriptorImageInfo-imageView-07796",
-    // https://anglebug.com/8349
-    "VUID-VkSamplerCreateInfo-pNext-pNext",
     // https://issuetracker.google.com/303441816
     "VUID-VkRenderPassBeginInfo-renderPass-00904",
-    // http://b/223456677 VK_ANDROID_external_format_resolve: remove once ARM/ VVL are fixed.
-    "VUID-VkImageViewCreateInfo-usage-08931", "VUID-VkImageCreateInfo-pNext-02397",
     // http://anglebug.com/8401
     "Undefined-Value-ShaderOutputNotConsumed"};
 
@@ -4071,10 +4066,6 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsExternalMemoryFuchsia,
         ExtensionFound(VK_FUCHSIA_EXTERNAL_MEMORY_EXTENSION_NAME, deviceExtensionNames));
-
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, supportsFilteringPrecision,
-        ExtensionFound(VK_GOOGLE_SAMPLER_FILTERING_PRECISION_EXTENSION_NAME, deviceExtensionNames));
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsExternalSemaphoreFd,
