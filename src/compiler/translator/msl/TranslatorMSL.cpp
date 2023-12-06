@@ -20,6 +20,7 @@
 #include "compiler/translator/msl/UtilsMSL.h"
 #include "compiler/translator/tree_ops/InitializeVariables.h"
 #include "compiler/translator/tree_ops/MonomorphizeUnsupportedFunctions.h"
+#include "compiler/translator/tree_ops/PreTransformTextureCubeGradDerivatives.h"
 #include "compiler/translator/tree_ops/RemoveAtomicCounterBuiltins.h"
 #include "compiler/translator/tree_ops/RemoveInactiveInterfaceVariables.h"
 #include "compiler/translator/tree_ops/RewriteArrayOfArrayOfOpaqueUniforms.h"
@@ -1037,6 +1038,19 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
         }
     }
 
+    if (getShaderVersion() >= 300 ||
+        IsExtensionEnabled(getExtensionBehavior(), TExtension::EXT_shader_texture_lod))
+    {
+        if (compileOptions.preTransformTextureCubeGradDerivatives)
+        {
+            if (!PreTransformTextureCubeGradDerivatives(this, root, &symbolTable,
+                                                        getShaderVersion()))
+            {
+                return false;
+            }
+        }
+    }
+
     if (getShaderType() == GL_COMPUTE_SHADER)
     {
         driverUniforms->addComputeDriverUniformsToShader(root, &getSymbolTable());
@@ -1262,8 +1276,6 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
             }
         }
 
-        ASSERT(!usesSampleMask || isSampleMaskAllowed());
-
         if (usesPointCoord)
         {
             TIntermTyped *flipNegXY =
@@ -1397,16 +1409,13 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
     }
     else if (getShaderType() == GL_FRAGMENT_SHADER)
     {
-        if (isSampleMaskAllowed())
+        mValidateASTOptions.validateVariableReferences = false;
+        if (!AddSampleMaskDeclaration(*this, *root, symbolTable, driverUniforms,
+                                      compileOptions.emulateAlphaToCoverage ||
+                                          compileOptions.metal.generateShareableShaders,
+                                      usesSampleMask))
         {
-            mValidateASTOptions.validateVariableReferences = false;
-            if (!AddSampleMaskDeclaration(*this, *root, symbolTable, driverUniforms,
-                                          compileOptions.emulateAlphaToCoverage ||
-                                              compileOptions.metal.generateShareableShaders,
-                                          usesSampleMask))
-            {
-                return false;
-            }
+            return false;
         }
     }
 

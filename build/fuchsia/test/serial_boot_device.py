@@ -8,6 +8,7 @@ Note, this file will be executed in docker instance without vpython3, so we use
 python3 instead.
 """
 
+import json
 import logging
 import os
 import shutil
@@ -135,8 +136,9 @@ def is_in_fuchsia(node_id: str) -> bool:
     has a workable network or ssh connection.
     This function asserts the existence of serialio and waits at most ~60
     seconds."""
-    if not _serialio_send_and_wait(node_id, ['echo', 'yes-i-am-healthy'],
-                                   'yes-i-am-healthy'):
+    if not _serialio_send_and_wait(
+            node_id, ['echo', 'yes-i-am-healthy', '|', 'sha1sum'],
+            '89d517b7db104aada669a83bc3c3a906e00671f7'):
         logging.error(
             'Device %s did not respond echo, '
             'it may not be running fuchsia', node_id)
@@ -199,8 +201,17 @@ def main(action: str) -> int:
     serial_num = os.getenv('FUCHSIA_FASTBOOT_SERNUM')
     assert node_id is not None
     assert serial_num is not None
-    if action == 'check-health':
+    if action == 'health-check':
         if is_in_fuchsia(node_id) or is_in_fastboot(serial_num):
+            # Print out the json result without using logging to avoid any
+            # potential formatting issue.
+            print(
+                json.dumps([{
+                    'nodename': node_id,
+                    'state': 'healthy',
+                    'status_message': '',
+                    'dms_state': ''
+                }]))
             return 0
         logging.error('Cannot find node id %s or fastboot serial number %s',
                       node_id, serial_num)
