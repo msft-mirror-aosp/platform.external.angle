@@ -1318,10 +1318,14 @@ class _Command:
   def _FindSupportedDevices(self, devices):
     """Returns supported devices and reasons for each not supported one."""
     app_abis = self.apk_helper.GetAbis()
+    calling_script_name = os.path.basename(sys.argv[0])
+    is_webview = 'webview' in calling_script_name
     requires_32_bit = self.apk_helper.Get32BitAbiOverride() == '0xffffffff'
-    logging.debug('App supports (requires 32bit: %r): %r', requires_32_bit,
-                  app_abis)
-    if requires_32_bit:
+    logging.debug('App supports (requires 32bit: %r, is webview: %r): %r',
+                  requires_32_bit, is_webview, app_abis)
+    # Webview 32_64 targets can work even on 64-bit only devices since only the
+    # webview library in the target needs the correct bitness.
+    if requires_32_bit and not is_webview:
       app_abis = [abi for abi in app_abis if '64' not in abi]
       logging.debug('App supports (filtered): %r', app_abis)
     if not app_abis:
@@ -1360,7 +1364,8 @@ class _Command:
         not_supported_reasons[device.serial] = (
             f"none of the app's ABIs ({','.join(app_abis)}) match this "
             f"device's ABIs ({','.join(device_abis)}), you may need to set "
-            f'target_cpu="{target_cpu}" in your args.gn or use one of the _64'
+            f'target_cpu="{target_cpu}" in your args.gn. If you already set '
+            'the target_cpu arg, you may need to use one of the _64 or _64_32 '
             f'targets, see {native_lib_link} for more details.')
     return fully_supported, not_supported_reasons
 
