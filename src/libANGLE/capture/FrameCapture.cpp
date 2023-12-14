@@ -1642,13 +1642,16 @@ void MaybeResetContextState(ReplayWriter &replayWriter,
             stateResetHelper.setDefaultResetCalls(context, entryPoint);
         }
 
-        // Emit the calls
-        for (const auto &call : resetCalls->at(entryPoint))
+        // Emit the calls, if we added any
+        if (resetCalls->find(entryPoint) != resetCalls->end())
         {
-            out << "    ";
-            WriteCppReplayForCall(call, replayWriter, out, header, binaryData,
-                                  maxResourceIDBufferSize);
-            out << ";\n";
+            for (const auto &call : resetCalls->at(entryPoint))
+            {
+                out << "    ";
+                WriteCppReplayForCall(call, replayWriter, out, header, binaryData,
+                                      maxResourceIDBufferSize);
+                out << ";\n";
+            }
         }
     }
 
@@ -5747,8 +5750,10 @@ bool SkipCall(EntryPoint entryPoint)
         case EntryPoint::EGLGetConfigs:
         case EntryPoint::EGLGetSyncAttrib:
         case EntryPoint::EGLGetSyncAttribKHR:
+        case EntryPoint::EGLQueryContext:
         case EntryPoint::EGLQuerySurface:
             // Skip these calls because:
+            // - We don't use the return values.
             // - Some EGL types and pointer parameters aren't yet implemented in EGL capture.
             return true;
 
