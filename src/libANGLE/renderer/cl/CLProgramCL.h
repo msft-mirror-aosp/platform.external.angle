@@ -23,8 +23,6 @@ class CLProgramCL : public CLProgramImpl
 
     cl_program getNative() const;
 
-    std::string getSource(cl_int &errorCode) const override;
-
     angle::Result build(const cl::DevicePtrs &devices,
                         const char *options,
                         cl::Program *notify) override;
@@ -46,9 +44,9 @@ class CLProgramCL : public CLProgramImpl
                                void *value,
                                size_t *valueSizeRet) const override;
 
-    CLKernelImpl::Ptr createKernel(const cl::Kernel &kernel,
-                                   const char *name,
-                                   cl_int &errorCode) override;
+    angle::Result createKernel(const cl::Kernel &kernel,
+                               const char *name,
+                               CLKernelImpl::Ptr *kernelOut) override;
 
     angle::Result createKernels(cl_uint numKernels,
                                 CLKernelImpl::CreateFuncs &createFuncs,
