@@ -29,27 +29,6 @@ CLProgramCL::~CLProgramCL()
     }
 }
 
-std::string CLProgramCL::getSource(cl_int &errorCode) const
-{
-    size_t size = 0u;
-    errorCode =
-        mNative->getDispatch().clGetProgramInfo(mNative, CL_PROGRAM_SOURCE, 0u, nullptr, &size);
-    if (errorCode == CL_SUCCESS)
-    {
-        if (size != 0u)
-        {
-            std::vector<char> valString(size, '\0');
-            errorCode = mNative->getDispatch().clGetProgramInfo(mNative, CL_PROGRAM_SOURCE, size,
-                                                                valString.data(), nullptr);
-            if (errorCode == CL_SUCCESS)
-            {
-                return std::string(valString.data(), valString.size() - 1u);
-            }
-        }
-    }
-    return std::string{};
-}
-
 angle::Result CLProgramCL::build(const cl::DevicePtrs &devices,
                                  const char *options,
                                  cl::Program *notify)
@@ -121,13 +100,18 @@ angle::Result CLProgramCL::getBuildInfo(const cl::Device &device,
     return angle::Result::Continue;
 }
 
-CLKernelImpl::Ptr CLProgramCL::createKernel(const cl::Kernel &kernel,
-                                            const char *name,
-                                            cl_int &errorCode)
+angle::Result CLProgramCL::createKernel(const cl::Kernel &kernel,
+                                        const char *name,
+                                        CLKernelImpl::Ptr *kernelOut)
 {
+    cl_int errorCode = CL_SUCCESS;
+
     const cl_kernel nativeKernel = mNative->getDispatch().clCreateKernel(mNative, name, &errorCode);
-    return CLKernelImpl::Ptr(nativeKernel != nullptr ? new CLKernelCL(kernel, nativeKernel)
-                                                     : nullptr);
+    ANGLE_CL_TRY(errorCode);
+
+    *kernelOut =
+        CLKernelImpl::Ptr(nativeKernel != nullptr ? new CLKernelCL(kernel, nativeKernel) : nullptr);
+    return angle::Result::Continue;
 }
 
 angle::Result CLProgramCL::createKernels(cl_uint numKernels,
