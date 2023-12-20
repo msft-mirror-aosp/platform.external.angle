@@ -1300,18 +1300,18 @@ struct FeaturesVk : FeatureSetBase
         &members, "https://issuetracker.google.com/288119108"
     };
 
+    FeatureInfo requireCachedBitForStagingBuffer = {
+        "requireCachedBitForStagingBuffer",
+        FeatureCategory::VulkanWorkarounds,
+        "use cached bit as required bit instead of preferred bit for staging buffers",
+        &members, "https://issuetracker.google.com/315836169"
+    };
+
     FeatureInfo supportsExternalFormatResolve = {
         "supportsExternalFormatResolve",
         FeatureCategory::VulkanFeatures,
         "VkDevice supports the VK_ANDROID_external_format_resolve extension",
         &members,
-    };
-
-    FeatureInfo forceAHBLayerCountToOne = {
-        "forceAHBLayerCountToOne",
-        FeatureCategory::VulkanWorkarounds,
-        "Force AHB's layerCount to 1",
-        &members, "http://b/239181279"
     };
 
     FeatureInfo disableSeparateShaderObjects = {
