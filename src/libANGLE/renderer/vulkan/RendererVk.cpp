@@ -211,7 +211,8 @@ constexpr const char *kSkippedMessages[] = {
     // http://anglebug.com/8401
     "Undefined-Value-ShaderOutputNotConsumed",
     // http://anglebug.com/5304
-    "VUID-vkCmdDraw-magFilter-04553", "VUID-vkCmdDrawIndexed-magFilter-04553",
+    "VUID-vkCmdDraw-magFilter-04553",
+    "VUID-vkCmdDrawIndexed-magFilter-04553",
     // http://anglebug.com/5912
     "VUID-VkImageViewCreateInfo-pNext-01585",
     // http://anglebug.com/6514
@@ -228,23 +229,31 @@ constexpr const char *kSkippedMessages[] = {
     // http://anglebug.com/7325
     "VUID-vkCmdBindVertexBuffers2-pStrides-06209",
     // http://anglebug.com/7729
-    "VUID-vkDestroySemaphore-semaphore-01137", "VUID-vkDestroySemaphore-semaphore-05149",
+    "VUID-vkDestroySemaphore-semaphore-01137",
+    "VUID-vkDestroySemaphore-semaphore-05149",
     // https://issuetracker.google.com/303219657
     "VUID-VkGraphicsPipelineCreateInfo-pStages-00738",
     // http://anglebug.com/7861
-    "VUID-vkCmdDraw-None-06887", "VUID-vkCmdDraw-None-06886", "VUID-vkCmdDrawIndexed-None-06887",
+    "VUID-vkCmdDraw-None-06887",
+    "VUID-vkCmdDraw-None-06886",
+    "VUID-vkCmdDrawIndexed-None-06887",
     // http://anglebug.com/8394
-    "VUID-vkCmdDraw-None-09000", "VUID-vkCmdDrawIndexed-None-09002",
+    "VUID-vkCmdDraw-None-09000",
+    "VUID-vkCmdDrawIndexed-None-09002",
     // http://anglebug.com/7865
-    "VUID-VkDescriptorImageInfo-imageView-06711", "VUID-VkDescriptorImageInfo-descriptorType-06713",
+    "VUID-VkDescriptorImageInfo-imageView-06711",
+    "VUID-VkDescriptorImageInfo-descriptorType-06713",
     // http://crbug.com/1412096
     "VUID-VkImageCreateInfo-pNext-00990",
     // http://anglebug.com/8119
     "VUID-VkGraphicsPipelineCreateInfo-Input-07904",
-    "VUID-VkGraphicsPipelineCreateInfo-Input-07905", "VUID-vkCmdDrawIndexed-None-07835",
+    "VUID-VkGraphicsPipelineCreateInfo-Input-07905",
+    "VUID-vkCmdDrawIndexed-None-07835",
     "VUID-VkGraphicsPipelineCreateInfo-Input-08733",
     // http://anglebug.com/8151
-    "VUID-vkCmdDraw-None-07844", "VUID-vkCmdDraw-None-07845", "VUID-vkCmdDraw-None-07848",
+    "VUID-vkCmdDraw-None-07844",
+    "VUID-vkCmdDraw-None-07845",
+    "VUID-vkCmdDraw-None-07848",
     // https://anglebug.com/8128#c3
     "VUID-VkBufferViewCreateInfo-format-08779",
     // https://anglebug.com/8203
@@ -256,16 +265,24 @@ constexpr const char *kSkippedMessages[] = {
     // https://anglebug.com/7291
     "VUID-vkCmdBlitImage-srcImage-00240",
     // https://anglebug.com/8242
-    "VUID-vkCmdDraw-None-08608", "VUID-vkCmdDrawIndexed-None-08608", "VUID-vkCmdDraw-None-09000",
-    "VUID-vkCmdDrawIndexed-None-09000", "VUID-vkCmdDraw-None-09002",
-    "VUID-vkCmdDrawIndexed-None-09002", "VUID-vkCmdDraw-None-09003",
+    "VUID-vkCmdDraw-None-08608",
+    "VUID-vkCmdDrawIndexed-None-08608",
+    "VUID-vkCmdDraw-None-09000",
+    "VUID-vkCmdDrawIndexed-None-09000",
+    "VUID-vkCmdDraw-None-09002",
+    "VUID-vkCmdDrawIndexed-None-09002",
+    "VUID-vkCmdDraw-None-09003",
     "VUID-vkCmdDrawIndexed-None-09003",
     // https://anglebug.com/8334
     "VUID-VkDescriptorImageInfo-imageView-07796",
     // https://issuetracker.google.com/303441816
     "VUID-VkRenderPassBeginInfo-renderPass-00904",
     // http://anglebug.com/8401
-    "Undefined-Value-ShaderOutputNotConsumed"};
+    "Undefined-Value-ShaderOutputNotConsumed",
+    // http://anglebug.com/8466
+    "VUID-VkMemoryAllocateInfo-allocationSize-01742",
+    "VUID-VkMemoryDedicatedAllocateInfo-image-01878",
+};
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
 // not present.
@@ -461,6 +478,13 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
      "store with storeOp VK_ATTACHMENT_STORE_OP_STORE. Access info (usage: "
      "SYNC_LATE_FRAGMENT_TESTS_DEPTH_STENCIL_ATTACHMENT_WRITE, prior_usage: "
      "SYNC_FRAGMENT_SHADER_SHADER_"},
+    // b/316013423
+    {"SYNC-HAZARD-READ-AFTER-WRITE", "type = VK_OBJECT_TYPE_QUEUE",
+     "vkQueueSubmit():  Hazard READ_AFTER_WRITE for entry 0"},
+    {"SYNC-HAZARD-WRITE-AFTER-READ", "type = VK_OBJECT_TYPE_QUEUE",
+     "vkQueueSubmit():  Hazard WRITE_AFTER_READ for entry 0"},
+    {"SYNC-HAZARD-WRITE-AFTER-WRITE", "type = VK_OBJECT_TYPE_QUEUE",
+     "vkQueueSubmit():  Hazard WRITE_AFTER_WRITE for entry 0"},
 };
 
 // Messages that shouldn't be generated if storeOp=NONE is supported, otherwise they are expected.
@@ -1589,18 +1613,20 @@ angle::Result RendererVk::enableInstanceExtensions(
     // Set ANGLE features that depend on instance extensions
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsSurfaceCapabilities2Extension,
-        ExtensionFound(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME, instanceExtensionNames));
+        ExtensionFound(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME, instanceExtensionNames) &&
+            displayVk->isUsingSwapchain());
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsSurfaceProtectedCapabilitiesExtension,
                             ExtensionFound(VK_KHR_SURFACE_PROTECTED_CAPABILITIES_EXTENSION_NAME,
-                                           instanceExtensionNames));
+                                           instanceExtensionNames) &&
+                                displayVk->isUsingSwapchain());
 
     // TODO: Validation layer has a bug when vkGetPhysicalDeviceSurfaceFormats2KHR is called
     // on Mock ICD with surface handle set as VK_NULL_HANDLE. http://anglebug.com/7631
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsSurfacelessQueryExtension,
         ExtensionFound(VK_GOOGLE_SURFACELESS_QUERY_EXTENSION_NAME, instanceExtensionNames) &&
-            !isMockICDEnabled());
+            displayVk->isUsingSwapchain() && !isMockICDEnabled());
 
     // VK_KHR_external_fence_capabilities and VK_KHR_extenral_semaphore_capabilities are promoted to
     // core in Vulkan 1.1
@@ -1623,6 +1649,11 @@ angle::Result RendererVk::enableInstanceExtensions(
         if (ExtensionFound(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME, instanceExtensionNames))
         {
             mEnabledInstanceExtensions.push_back(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
+        }
+
+        if (ExtensionFound(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME, instanceExtensionNames))
+        {
+            mEnabledInstanceExtensions.push_back(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME);
         }
     }
 
@@ -1652,11 +1683,6 @@ angle::Result RendererVk::enableInstanceExtensions(
     if (mFeatures.supportsSurfacelessQueryExtension.enabled)
     {
         mEnabledInstanceExtensions.push_back(VK_GOOGLE_SURFACELESS_QUERY_EXTENSION_NAME);
-    }
-
-    if (ExtensionFound(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME, instanceExtensionNames))
-    {
-        mEnabledInstanceExtensions.push_back(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME);
     }
 
     if (mFeatures.enablePortabilityEnumeration.enabled)
@@ -4461,7 +4487,8 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // - Amortizing the cost of memory allocation for swapchain creation over multiple frames
     //
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsSwapchainMaintenance1,
-                            mSwapchainMaintenance1Features.swapchainMaintenance1 == VK_TRUE);
+                            mSwapchainMaintenance1Features.swapchainMaintenance1 == VK_TRUE &&
+                                displayVk->isUsingSwapchain());
 
     // The VK_EXT_legacy_dithering extension enables dithering support without emulation
     // Disable the usage of VK_EXT_legacy_dithering on ARM until the driver bug
