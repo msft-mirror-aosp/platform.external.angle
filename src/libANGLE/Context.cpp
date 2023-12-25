@@ -6141,6 +6141,7 @@ void Context::bindBufferRange(BufferBinding target,
     if (target == BufferBinding::Uniform)
     {
         mUniformBufferObserverBindings[index].bind(object);
+        mState.onUniformBufferStateChange(index);
         mStateCache.onUniformBufferStateChange(this);
     }
     else if (target == BufferBinding::AtomicCounter)
@@ -9382,6 +9383,12 @@ void Context::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMess
                     ANGLE_CONTEXT_TRY(mState.installProgramPipelineExecutable(this));
                     mStateCache.onProgramExecutableChange(this);
                     break;
+                case angle::SubjectMessage::ProgramUniformBlockBindingUpdated:
+                    // A heavier hammer than necessary, but ensures the UBOs are reprocessed after
+                    // the binding change.  Applications should not call glUniformBlockBinding other
+                    // than right after link.
+                    mState.mDirtyBits.set(state::DIRTY_BIT_PROGRAM_EXECUTABLE);
+                    break;
                 default:
                     UNREACHABLE();
                     break;
@@ -10213,6 +10220,11 @@ void StateCache::onVertexArrayBufferStateChange(Context *context)
 }
 
 void StateCache::onGLES1ClientStateChange(Context *context)
+{
+    updateActiveAttribsMask(context);
+}
+
+void StateCache::onGLES1TextureStateChange(Context *context)
 {
     updateActiveAttribsMask(context);
 }
