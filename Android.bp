@@ -18,11 +18,9 @@ soong_config_module_type {
         "vendor",
     ],
 }
-
 soong_config_bool_variable {
     name: "angle_on_system",
 }
-
 angle_config_cc_defaults {
     name: "angle_vendor_cc_defaults",
     vendor: true,
@@ -42,7 +40,6 @@ angle_config_cc_defaults {
         },
     },
 }
-
 cc_defaults {
     name: "angle_common_library_cflags",
     cpp_std: "gnu++17",
@@ -52,7 +49,6 @@ cc_defaults {
         "-fno-unwind-tables",
     ],
 }
-
 cc_defaults {
     name: "angle_libEGL_egl_loader",
     srcs: [
@@ -108,7 +104,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_library_shared {
     name: "libEGL_angle",
     srcs: [
@@ -220,7 +215,6 @@ cc_library_shared {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_library_shared {
     name: "libGLESv1_CM_angle",
     srcs: [
@@ -316,7 +310,6 @@ cc_library_shared {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_vulkan_memory_allocator_vulkan_memory_allocator",
     srcs: [
@@ -374,7 +367,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_libANGLE_renderer_vulkan_angle_vk_mem_alloc_wrapper",
     srcs: [
@@ -445,7 +437,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_common_vulkan_angle_libvulkan",
     defaults: [
@@ -454,7 +445,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_common_vulkan_vulkan",
     static_libs: [
@@ -521,7 +511,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_common_vulkan_angle_vulkan_entry_points",
     defaults: [
@@ -531,7 +520,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_common_spirv_angle_spirv_parser",
     srcs: [
@@ -597,7 +585,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_libANGLE_renderer_vulkan_angle_vulkan_backend",
     srcs: [
@@ -748,7 +735,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-trinary-minmax",
     srcs: [
@@ -763,7 +749,6 @@ cc_genrule {
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-trinary-minmax.grammar.json) --vendor-insts-output $(location spv-amd-shader-trinary-minmax.insts.inc) --vendor-operand-kind-prefix ...nil...",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-explicit-vertex-parameter",
     srcs: [
@@ -778,7 +763,6 @@ cc_genrule {
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-explicit-vertex-parameter.grammar.json) --vendor-insts-output $(location spv-amd-shader-explicit-vertex-parameter.insts.inc) --vendor-operand-kind-prefix ...nil...",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_vendor_tables_spv-amd-shader-ballot",
     srcs: [
@@ -793,7 +777,6 @@ cc_genrule {
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-ballot.grammar.json) --vendor-insts-output $(location spv-amd-shader-ballot.insts.inc) --vendor-operand-kind-prefix ...nil...",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_vendor_tables_spv-amd-gcn-shader",
     srcs: [
@@ -808,7 +791,6 @@ cc_genrule {
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-gcn-shader.grammar.json) --vendor-insts-output $(location spv-amd-gcn-shader.insts.inc) --vendor-operand-kind-prefix ...nil...",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_vendor_tables_opencl.debuginfo.100",
     srcs: [
@@ -823,7 +805,6 @@ cc_genrule {
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --vendor-insts-output $(location opencl.debuginfo.100.insts.inc) --vendor-operand-kind-prefix CLDEBUG100_",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_vendor_tables_nonsemantic.shader.debuginfo.100",
     srcs: [
@@ -838,7 +819,6 @@ cc_genrule {
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json) --vendor-insts-output $(location nonsemantic.shader.debuginfo.100.insts.inc) --vendor-operand-kind-prefix SHDEBUG100_",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_vendor_tables_nonsemantic.clspvreflection",
     srcs: [
@@ -853,7 +833,6 @@ cc_genrule {
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.clspvreflection.grammar.json) --vendor-insts-output $(location nonsemantic.clspvreflection.insts.inc) --vendor-operand-kind-prefix ...nil...",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_vendor_tables_debuginfo",
     srcs: [
@@ -868,7 +847,6 @@ cc_genrule {
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --vendor-insts-output $(location debuginfo.insts.inc) --vendor-operand-kind-prefix ...nil...",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_opencl_tables_opencl1-0",
     srcs: [
@@ -886,7 +864,6 @@ cc_genrule {
     cmd: "$(location) --spirv-core-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-opencl-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/1.0/extinst.opencl.std.100.grammar.json) --opencl-insts-output $(location opencl.std.insts.inc)",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_language_header_vkdebuginfo100",
     srcs: [
@@ -901,7 +878,6 @@ cc_genrule {
     cmd: "$(location) --extinst-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json) --extinst-output-path $(location NonSemanticShaderDebugInfo100.h)",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_language_header_debuginfo",
     srcs: [
@@ -916,7 +892,6 @@ cc_genrule {
     cmd: "$(location) --extinst-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-output-path $(location DebugInfo.h)",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_language_header_cldebuginfo100",
     srcs: [
@@ -931,7 +906,6 @@ cc_genrule {
     cmd: "$(location) --extinst-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-output-path $(location OpenCLDebugInfo100.h)",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_glsl_tables_glsl1-0",
     srcs: [
@@ -949,7 +923,6 @@ cc_genrule {
     cmd: "$(location) --spirv-core-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-glsl-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/1.0/extinst.glsl.std.450.grammar.json) --glsl-insts-output $(location glsl.std.450.insts.inc) --output-language c++",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_generators_inc",
     srcs: [
@@ -964,7 +937,6 @@ cc_genrule {
     cmd: "$(location) --xml $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/spir-v.xml) --generator $(location generators.inc)",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_core_tables_unified1",
     srcs: [
@@ -982,7 +954,6 @@ cc_genrule {
     cmd: "$(location) --spirv-core-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json) --core-insts-output $(location core.insts-unified1.inc) --extinst-debuginfo-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --operand-kinds-output $(location operand.kinds-unified1.inc) --output-language c++",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_core_enums_unified1",
     srcs: [
@@ -1000,7 +971,6 @@ cc_genrule {
     cmd: "$(location) --spirv-core-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/vulkan-deps/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extension-enum-output $(location extension_enum.inc) --enum-string-mapping-output $(location enum_string_mapping.inc) --output-language c++",
     sdk_version: "28",
 }
-
 cc_library_static {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools",
     srcs: [
@@ -1094,7 +1064,6 @@ cc_library_static {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_library_static {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_val",
     srcs: [
@@ -1208,7 +1177,6 @@ cc_library_static {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_common_spirv_angle_spirv_builder",
     srcs: [
@@ -1274,7 +1242,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_vulkan_deps_spirv_tools_src_spvtools_headers",
     defaults: [
@@ -1314,7 +1281,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_vulkan_deps_spirv_headers_src_spv_headers",
     defaults: [
@@ -1354,7 +1320,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_common_spirv_angle_spirv_headers",
     static_libs: [
@@ -1413,7 +1378,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_common_spirv_angle_spirv_base",
     srcs: [
@@ -1480,7 +1444,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_library_static {
     name: "angle_preprocessor",
     srcs: [
@@ -1554,7 +1517,6 @@ cc_library_static {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_library_static {
     name: "angle_translator",
     srcs: [
@@ -1763,7 +1725,6 @@ cc_library_static {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_genrule {
     name: "angle_program_version_id",
     srcs: [
@@ -2883,7 +2844,6 @@ cc_genrule {
     cmd: "echo $(in) > $(genDir)/gn_response_file && $(location) $(location ANGLEShaderProgramVersion.h) $(genDir)/gn_response_file",
     sdk_version: "28",
 }
-
 cc_genrule {
     name: "angle_commit_id",
     out: [
@@ -2895,7 +2855,6 @@ cc_genrule {
     cmd: "$(location) gen $(location angle_commit.h)",
     sdk_version: "28",
 }
-
 cc_defaults {
     name: "angle_version",
     defaults: [
@@ -2947,7 +2906,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_version_info",
     srcs: [
@@ -3004,7 +2962,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_image_util_headers",
     static_libs: [
@@ -3063,7 +3020,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_library_static {
     name: "angle_image_util",
     srcs: [
@@ -3133,7 +3089,6 @@ cc_library_static {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_vulkan_deps_vulkan_headers_src_vulkan_headers",
     defaults: [
@@ -3175,7 +3130,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_third_party_volk_volk",
     srcs: [
@@ -3222,7 +3176,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_common_vulkan_angle_vulkan_headers",
     defaults: [
@@ -3275,7 +3228,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_common_vulkan_angle_vulkan_icd",
     srcs: [
@@ -3345,7 +3297,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "src_common_vulkan_angle_libvulkan_loader",
     srcs: [
@@ -3407,7 +3358,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_library_static {
     name: "angle_gpu_info_util",
     srcs: [
@@ -3483,7 +3433,6 @@ cc_library_static {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_compression",
     static_libs: [
@@ -3497,7 +3446,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_library_static {
     name: "angle_common_shader_state",
     srcs: [
@@ -3560,7 +3508,6 @@ cc_library_static {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_libANGLE_no_vulkan",
     srcs: [
@@ -3754,7 +3701,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_translator_headers",
     defaults: [
@@ -3802,7 +3748,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_xxhash",
     srcs: [
@@ -3853,7 +3798,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_flat_hash_set",
     defaults: [
@@ -3901,7 +3845,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_profiling_sample_recorder",
     defaults: [
@@ -3947,7 +3890,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_hashtablez_sampler",
     srcs: [
@@ -4004,7 +3946,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_hashtable_debug_hooks",
     defaults: [
@@ -4047,7 +3988,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_common_policy_traits",
     defaults: [
@@ -4090,7 +4030,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_hash_policy_traits",
     defaults: [
@@ -4134,7 +4073,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_common",
     defaults: [
@@ -4178,7 +4116,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_raw_hash_set",
     srcs: [
@@ -4240,7 +4177,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_raw_hash_map",
     defaults: [
@@ -4287,7 +4223,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_cordz_update_scope",
     defaults: [
@@ -4334,7 +4269,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_cordz_update_tracker",
     defaults: [
@@ -4377,7 +4311,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_cordz_statistics",
     defaults: [
@@ -4421,7 +4354,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_time_internal_cctz_time_zone",
     srcs: [
@@ -4476,7 +4408,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_time_internal_cctz_civil_time",
     srcs: [
@@ -4522,7 +4453,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_time_time",
     srcs: [
@@ -4581,7 +4511,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_synchronization_kernel_timeout_internal",
     srcs: [
@@ -4631,7 +4560,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_synchronization_graphcycles_internal",
     srcs: [
@@ -4682,7 +4610,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_debugging_symbolize",
     srcs: [
@@ -4737,7 +4664,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_malloc_internal",
     srcs: [
@@ -4788,7 +4714,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_synchronization_synchronization",
     srcs: [
@@ -4857,7 +4782,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_cordz_handle",
     srcs: [
@@ -4906,7 +4830,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_debugging_debugging_internal",
     srcs: [
@@ -4958,7 +4881,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_debugging_stacktrace",
     srcs: [
@@ -5008,7 +4930,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_cordz_info",
     srcs: [
@@ -5067,7 +4988,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_profiling_exponential_biased",
     srcs: [
@@ -5114,7 +5034,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_cordz_functions",
     srcs: [
@@ -5163,7 +5082,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_debugging_demangle_internal",
     srcs: [
@@ -5211,7 +5129,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_layout",
     defaults: [
@@ -5260,7 +5177,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_cord_internal",
     srcs: [
@@ -5326,7 +5242,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_crc_crc_cord_state",
     srcs: [
@@ -5375,7 +5290,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_internal",
     srcs: [
@@ -5427,7 +5341,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_charset",
     defaults: [
@@ -5471,7 +5384,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_strings",
     srcs: [
@@ -5543,7 +5455,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_numeric_representation",
     defaults: [
@@ -5586,7 +5497,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_str_format_internal",
     srcs: [
@@ -5650,7 +5560,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_str_format",
     defaults: [
@@ -5698,7 +5607,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_crc_non_temporal_arm_intrinsics",
     defaults: [
@@ -5741,7 +5649,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_crc_non_temporal_memcpy",
     defaults: [
@@ -5786,7 +5693,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_crc_crc_internal",
     srcs: [
@@ -5840,7 +5746,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_crc_cpu_detect",
     srcs: [
@@ -5887,7 +5792,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_crc_crc32c",
     srcs: [
@@ -5944,7 +5848,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_types_span",
     defaults: [
@@ -5991,7 +5894,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_inlined_vector_internal",
     defaults: [
@@ -6039,7 +5941,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_inlined_vector",
     defaults: [
@@ -6087,7 +5988,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_cord",
     srcs: [
@@ -6157,7 +6057,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_types_bad_variant_access",
     srcs: [
@@ -6204,7 +6103,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_types_variant",
     defaults: [
@@ -6252,7 +6150,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_types_bad_optional_access",
     srcs: [
@@ -6299,7 +6196,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_types_optional",
     defaults: [
@@ -6349,7 +6245,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_strings_string_view",
     srcs: [
@@ -6399,7 +6294,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_numeric_bits",
     defaults: [
@@ -6443,7 +6337,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_numeric_int128",
     srcs: [
@@ -6491,7 +6384,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_prefetch",
     defaults: [
@@ -6535,7 +6427,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_hash_low_level_hash",
     srcs: [
@@ -6584,7 +6475,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_hash_city",
     srcs: [
@@ -6632,7 +6522,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_functional_any_invocable",
     defaults: [
@@ -6679,7 +6568,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_functional_function_ref",
     defaults: [
@@ -6725,7 +6613,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_compressed_tuple",
     defaults: [
@@ -6768,7 +6655,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_throw_delegate",
     srcs: [
@@ -6815,7 +6701,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_fixed_array",
     defaults: [
@@ -6864,7 +6749,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_spinlock_wait",
     srcs: [
@@ -6912,7 +6796,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_errno_saver",
     defaults: [
@@ -6955,7 +6838,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_raw_logging_internal",
     srcs: [
@@ -7005,7 +6887,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_log_severity",
     srcs: [
@@ -7052,7 +6933,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_dynamic_annotations",
     defaults: [
@@ -7096,7 +6976,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_cycleclock_internal",
     defaults: [
@@ -7140,7 +7019,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_atomic_hook",
     defaults: [
@@ -7184,7 +7062,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_base",
     srcs: [
@@ -7244,7 +7121,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_endian",
     defaults: [
@@ -7290,7 +7166,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_hash_hash",
     srcs: [
@@ -7349,7 +7224,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_hash_function_defaults",
     defaults: [
@@ -7396,7 +7270,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_base_internal",
     defaults: [
@@ -7440,7 +7313,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_utility_utility",
     defaults: [
@@ -7485,7 +7357,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_memory_memory",
     defaults: [
@@ -7529,7 +7400,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_container_memory",
     defaults: [
@@ -7575,7 +7445,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_meta_type_traits",
     defaults: [
@@ -7619,7 +7488,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_nullability",
     defaults: [
@@ -7663,7 +7531,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_core_headers",
     defaults: [
@@ -7706,7 +7573,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_base_config",
     defaults: [
@@ -7748,7 +7614,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_algorithm_algorithm",
     defaults: [
@@ -7791,7 +7656,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_algorithm_container",
     defaults: [
@@ -7837,7 +7701,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "third_party_abseil_cpp_absl_container_flat_hash_map",
     defaults: [
@@ -7885,7 +7748,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_abseil",
     defaults: [
@@ -7896,7 +7758,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_library_static {
     name: "angle_common",
     srcs: [
@@ -7984,7 +7845,6 @@ cc_library_static {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_libANGLE_headers",
     srcs: [
@@ -8048,7 +7908,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_frame_capture_mock",
     srcs: [
@@ -8114,7 +7973,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_libANGLE",
     static_libs: [
@@ -8219,7 +8077,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_defaults {
     name: "angle_includes",
     defaults: [
@@ -8266,7 +8123,6 @@ cc_defaults {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 cc_library_shared {
     name: "libGLESv2_angle",
     srcs: [
@@ -8395,7 +8251,6 @@ cc_library_shared {
     sdk_version: "28",
     stl: "libc++_static",
 }
-
 package {
     default_applicable_licenses: [
         "external_angle_license",
@@ -8462,7 +8317,6 @@ license {
         "util/windows/third_party/StackWalker/LICENSE",
     ],
 }
-
 filegroup {
     name: "ANGLE_srcs",
     srcs: [
@@ -8474,14 +8328,12 @@ filegroup {
         "src/android_system_settings/src/com/android/angle/common/SearchProvider.java",
     ],
 }
-
 prebuilt_etc {
     name: "android.software.angle.xml",
     src: "android/android.software.angle.xml",
     product_specific: true,
     sub_dir: "permissions",
 }
-
 java_defaults {
     name: "ANGLE_java_defaults",
     sdk_version: "system_current",
@@ -8508,7 +8360,6 @@ java_defaults {
         "android.software.angle.xml",
     ],
 }
-
 android_library {
     name: "ANGLE_library",
     sdk_version: "system_current",
@@ -8528,7 +8379,6 @@ android_library {
         "androidx.preference_preference",
     ],
 }
-
 android_app {
     name: "ANGLE",
     defaults: [
@@ -8546,11 +8396,7 @@ android_app {
     asset_dirs: [
         "src/android_system_settings/assets",
     ],
-    lint: {
-        baseline_filename: "lint-baseline.xml",
-    },
 }
-
 java_defaults {
     name: "ANGLE_java_settings_defaults",
     sdk_version: "system_current",
@@ -8572,7 +8418,6 @@ java_defaults {
         "android.software.angle.xml",
     ],
 }
-
 android_app {
     name: "ANGLE_settings",
     defaults: [
@@ -8590,7 +8435,4 @@ android_app {
     asset_dirs: [
         "src/android_system_settings/assets",
     ],
-    lint: {
-        baseline_filename: "lint-baseline.xml",
-    },
 }
