@@ -662,7 +662,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@41ee13a742dba7b74257e725a19ed715b3b6357f',
+    'url': Var('chromium_git') + '/vulkan-deps@5803e963cb95513640eead01ac25a849e3fc312b',
     'condition': 'not build_with_chromium',
   },
 
@@ -972,6 +972,16 @@ deps = {
         {
             'package': 'angle/traces/asphalt_9',
             'version': 'version:5',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
+  'src/tests/restricted_traces/asphalt_9_2024': {
+      'packages': [
+        {
+            'package': 'angle/traces/asphalt_9_2024',
+            'version': 'version:1',
         },
       ],
       'dep_type': 'cipd',
