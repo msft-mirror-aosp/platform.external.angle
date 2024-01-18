@@ -6158,6 +6158,11 @@ void Context::bindBufferRange(BufferBinding target,
     {
         mStateCache.onBufferBindingChange(this);
     }
+
+    if (object)
+    {
+        object->onBind(this, target);
+    }
 }
 
 void Context::bindFramebuffer(GLenum target, FramebufferID framebuffer)
@@ -8547,8 +8552,9 @@ void Context::texStorageMem2D(TextureType target,
                               MemoryObjectID memory,
                               GLuint64 offset)
 {
-    texStorageMemFlags2D(target, levels, internalFormat, width, height, memory, offset, 0,
-                         std::numeric_limits<uint32_t>::max(), nullptr);
+    texStorageMemFlags2D(target, levels, internalFormat, width, height, memory, offset,
+                         std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max(),
+                         nullptr);
 }
 
 void Context::texStorageMem2DMultisample(TextureType target,
