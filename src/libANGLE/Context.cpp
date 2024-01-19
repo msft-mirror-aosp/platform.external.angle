@@ -6158,6 +6158,11 @@ void Context::bindBufferRange(BufferBinding target,
     {
         mStateCache.onBufferBindingChange(this);
     }
+
+    if (object)
+    {
+        object->onBind(this, target);
+    }
 }
 
 void Context::bindFramebuffer(GLenum target, FramebufferID framebuffer)
@@ -8547,8 +8552,9 @@ void Context::texStorageMem2D(TextureType target,
                               MemoryObjectID memory,
                               GLuint64 offset)
 {
-    texStorageMemFlags2D(target, levels, internalFormat, width, height, memory, offset, 0,
-                         std::numeric_limits<uint32_t>::max(), nullptr);
+    texStorageMemFlags2D(target, levels, internalFormat, width, height, memory, offset,
+                         std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max(),
+                         nullptr);
 }
 
 void Context::texStorageMem2DMultisample(TextureType target,
@@ -9824,6 +9830,39 @@ void Context::drawPixelLocalStorageEXTDisable(const PixelLocalStoragePlane plane
                                 kPixelLocalStorageEXTEnableDisableExtendedDirtyBits,
                                 mPixelLocalStorageEXTEnableDisableDirtyObjects, Command::Draw));
     ANGLE_CONTEXT_TRY(mImplementation->drawPixelLocalStorageEXTDisable(this, planes, storeops));
+}
+
+void Context::framebufferFoveationConfig(GLuint framebuffer,
+                                         GLuint numLayers,
+                                         GLuint focalPointsPerLayer,
+                                         GLuint requestedFeatures,
+                                         GLuint *providedFeatures)
+{
+    return;
+}
+
+void Context::framebufferFoveationParameters(GLuint framebuffer,
+                                             GLuint layer,
+                                             GLuint focalPoint,
+                                             GLfloat focalX,
+                                             GLfloat focalY,
+                                             GLfloat gainX,
+                                             GLfloat gainY,
+                                             GLfloat foveaArea)
+{
+    return;
+}
+
+void Context::textureFoveationParameters(GLuint texture,
+                                         GLuint layer,
+                                         GLuint focalPoint,
+                                         GLfloat focalX,
+                                         GLfloat focalY,
+                                         GLfloat gainX,
+                                         GLfloat gainY,
+                                         GLfloat foveaArea)
+{
+    return;
 }
 
 // ErrorSet implementation.

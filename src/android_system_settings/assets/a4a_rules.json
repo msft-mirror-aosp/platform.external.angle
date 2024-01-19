@@ -12,7 +12,14 @@
       {
           "description": "Applications in this list will not use ANGLE",
           "choice": "native",
-          "apps": []
+          "apps": [
+              {
+                  "packageName": "com.snapchat.android"
+              },
+              {
+                  "packageName": "com.vidku.app.flipgrid"
+              }
+          ]
       }
    ]
 }
