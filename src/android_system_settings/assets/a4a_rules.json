@@ -18,6 +18,12 @@
               },
               {
                   "packageName": "com.vidku.app.flipgrid"
+              },
+              {
+                  "packageName": "com.linecorp.b612.android"
+              },
+              {
+                  "packageName": "com.campmobile.snow"
               }
           ]
       }
