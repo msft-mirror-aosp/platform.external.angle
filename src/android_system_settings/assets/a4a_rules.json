@@ -24,6 +24,9 @@
               },
               {
                   "packageName": "com.campmobile.snow"
+              },
+              {
+                  "packageName": "com.google.android.apps.tachyon"
               }
           ]
       }
