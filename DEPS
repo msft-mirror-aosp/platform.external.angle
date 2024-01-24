@@ -642,7 +642,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@f4819d2276b777e8d6dfb32b34c1130e7945f9b8',
+    'url': Var('swiftshader_git') + '/SwiftShader@328e794f0c8bddc81c834ccc89c9652902f643cb',
     'condition': 'not build_with_chromium',
   },
 
@@ -662,7 +662,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@41ee13a742dba7b74257e725a19ed715b3b6357f',
+    'url': Var('chromium_git') + '/vulkan-deps@9b8079729ca328e11a5b469ff2c9f35329a9b1f3',
     'condition': 'not build_with_chromium',
   },
 
@@ -972,6 +972,16 @@ deps = {
         {
             'package': 'angle/traces/asphalt_9',
             'version': 'version:5',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
+  'src/tests/restricted_traces/asphalt_9_2024': {
+      'packages': [
+        {
+            'package': 'angle/traces/asphalt_9_2024',
+            'version': 'version:1',
         },
       ],
       'dep_type': 'cipd',
