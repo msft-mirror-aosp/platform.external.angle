@@ -317,13 +317,13 @@ void LoadBufferVariable(BinaryInputStream *stream, BufferVariable *var)
     stream->readStruct(&var->pod);
 }
 
-void WriteShaderVariableBuffer(BinaryOutputStream *stream, const ShaderVariableBuffer &var)
+void WriteAtomicCounterBuffer(BinaryOutputStream *stream, const AtomicCounterBuffer &var)
 {
     stream->writeVector(var.memberIndexes);
     stream->writeStruct(var.pod);
 }
 
-void LoadShaderVariableBuffer(BinaryInputStream *stream, ShaderVariableBuffer *var)
+void LoadAtomicCounterBuffer(BinaryInputStream *stream, AtomicCounterBuffer *var)
 {
     stream->readVector(&var->memberIndexes);
     stream->readStruct(&var->pod);
@@ -766,7 +766,8 @@ void ProgramExecutable::reset()
     mPod.samplerUniformRange       = RangeUI(0, 0);
     mPod.imageUniformRange         = RangeUI(0, 0);
     mPod.atomicCounterUniformRange = RangeUI(0, 0);
-    mPod.fragmentInoutRange        = RangeUI(0, 0);
+
+    mPod.fragmentInoutIndices.reset();
 
     mPod.hasClipDistance         = false;
     mPod.hasDiscard              = false;
@@ -865,7 +866,7 @@ void ProgramExecutable::load(gl::BinaryInputStream *stream)
     for (size_t bufferIndex = 0; bufferIndex < atomicCounterBufferCount; ++bufferIndex)
     {
         AtomicCounterBuffer &atomicCounterBuffer = mAtomicCounterBuffers[bufferIndex];
-        LoadShaderVariableBuffer(stream, &atomicCounterBuffer);
+        LoadAtomicCounterBuffer(stream, &atomicCounterBuffer);
     }
 
     size_t bufferVariableCount = stream->readInt<size_t>();
@@ -980,7 +981,7 @@ void ProgramExecutable::save(gl::BinaryOutputStream *stream) const
     stream->writeInt(mAtomicCounterBuffers.size());
     for (const AtomicCounterBuffer &atomicCounterBuffer : getAtomicCounterBuffers())
     {
-        WriteShaderVariableBuffer(stream, atomicCounterBuffer);
+        WriteAtomicCounterBuffer(stream, atomicCounterBuffer);
     }
 
     stream->writeInt(getBufferVariables().size());
@@ -1829,17 +1830,7 @@ void ProgramExecutable::linkSamplerAndImageBindings(GLuint *combinedImageUniform
 
     // Note that uniform block uniforms are not yet appended to this list.
     ASSERT(mUniforms.empty() || highIter->isAtomicCounter() || highIter->isImage() ||
-           highIter->isSampler() || highIter->isInDefaultBlock() || highIter->isFragmentInOut());
-
-    for (; lowIter != mUniforms.rend() && lowIter->isFragmentInOut(); ++lowIter)
-    {
-        --low;
-    }
-
-    mPod.fragmentInoutRange = RangeUI(low, high);
-
-    highIter = lowIter;
-    high     = low;
+           highIter->isSampler() || highIter->isInDefaultBlock());
 
     for (; lowIter != mUniforms.rend() && lowIter->isAtomicCounter(); ++lowIter)
     {
@@ -2071,13 +2062,6 @@ void ProgramExecutable::copyUniformsFromProgramMap(
     mPod.atomicCounterUniformRange =
         AddUniforms(executables, mPod.linkedShaderStages, &mUniforms, &mUniformNames,
                     &mUniformMappedNames, getAtomicRange);
-
-    // Merge fragment in/out uniforms.
-    auto getInoutRange = [](const ProgramExecutable &state) {
-        return state.getFragmentInoutRange();
-    };
-    mPod.fragmentInoutRange = AddUniforms(executables, mPod.linkedShaderStages, &mUniforms,
-                                          &mUniformNames, &mUniformMappedNames, getInoutRange);
 
     // Note: uniforms are set through the program, and the program pipeline never needs it.
     ASSERT(mUniformLocations.empty());
