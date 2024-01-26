@@ -433,29 +433,29 @@ static const char *GetOperatorString(TOperator op,
         case TOperator::EOpDegrees:
             return "ANGLE_degrees";
         case TOperator::EOpAtan:
-            return "ANGLE_atan";
+            return argType1 == nullptr ? "metal::atan" : "metal::atan2";
         case TOperator::EOpMod:
             return "ANGLE_mod";  // differs from metal::mod
         case TOperator::EOpRefract:
-            return "ANGLE_refract";
+            return argType0->isVector() ? "metal::refract" : "ANGLE_refract_scalar";
         case TOperator::EOpDistance:
-            return "ANGLE_distance";
+            return argType0->isVector() ? "metal::distance" : "ANGLE_distance_scalar";
         case TOperator::EOpLength:
-            return "ANGLE_length";
+            return argType0->isVector() ? "metal::length" : "metal::abs";
         case TOperator::EOpDot:
-            return "ANGLE_dot";
+            return argType0->isVector() ? "metal::dot" : "*";
         case TOperator::EOpNormalize:
-            return "ANGLE_normalize";
+            return argType0->isVector() ? "metal::fast::normalize" : "metal::sign";
         case TOperator::EOpFaceforward:
-            return "ANGLE_faceforward";
+            return argType0->isVector() ? "metal::faceforward" : "ANGLE_faceforward_scalar";
         case TOperator::EOpReflect:
-            return "ANGLE_reflect";
+            return argType0->isVector() ? "metal::reflect" : "ANGLE_reflect_scalar";
         case TOperator::EOpMatrixCompMult:
             return "ANGLE_componentWiseMultiply";
         case TOperator::EOpOuterProduct:
             return "ANGLE_outerProduct";
         case TOperator::EOpSign:
-            return "ANGLE_sign";
+            return argType0->getBasicType() == EbtFloat ? "metal::sign" : "ANGLE_sign_int";
 
         case TOperator::EOpAbs:
             return "metal::abs";
@@ -1753,6 +1753,18 @@ bool GenMetalTraverser::visitBinary(Visit, TIntermBinary *binaryNode)
             TType leftType = leftNode.getType();
             groupedTraverse(leftNode);
             mOut << "[";
+            const TConstantUnion *constIndex = rightNode.getConstantValue();
+            // TODO(anglebug.com/8491): Convert type and bound checks to
+            // assertions after AST validation is enabled for MSL translation.
+            if (!leftType.isUnsizedArray() && constIndex != nullptr &&
+                constIndex->getType() == EbtInt && constIndex->getIConst() >= 0 &&
+                constIndex->getIConst() < static_cast<int>(leftType.isArray()
+                                                               ? leftType.getOutermostArraySize()
+                                                               : leftType.getNominalSize()))
+            {
+                emitSingleConstant(constIndex);
+            }
+            else
             {
                 mOut << "ANGLE_int_clamp(";
                 groupedTraverse(rightNode);
