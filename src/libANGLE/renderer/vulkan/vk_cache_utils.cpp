@@ -27,7 +27,11 @@
 
 namespace rx
 {
+#if defined(ANGLE_DUMP_PIPELINE_CACHE_GRAPH)
+constexpr bool kDumpPipelineCacheGraph = true;
+#else
 constexpr bool kDumpPipelineCacheGraph = false;
+#endif  // ANGLE_DUMP_PIPELINE_CACHE_GRAPH
 
 namespace vk
 {
@@ -2345,6 +2349,11 @@ angle::Result InitializePipelineFromLibraries(Context *context,
     }
 
     return angle::Result::Continue;
+}
+
+bool ShouldDumpPipelineCacheGraph(ContextVk *contextVk)
+{
+    return kDumpPipelineCacheGraph && contextVk->isPipelineCacheGraphDumpEnabled();
 }
 }  // anonymous namespace
 
@@ -5216,20 +5225,18 @@ void WriteDescriptorDescs::updateInputAttachments(
     const ShaderInterfaceVariableInfoMap &variableInfoMap,
     FramebufferVk *framebufferVk)
 {
-    const std::vector<gl::LinkedUniform> &uniforms = executable.getUniforms();
-
     if (!executable.usesFramebufferFetch())
     {
         return;
     }
 
-    const uint32_t baseUniformIndex              = executable.getFragmentInoutRange().low();
-    const gl::LinkedUniform &baseInputAttachment = uniforms.at(baseUniformIndex);
+    const uint32_t firstInputAttachment =
+        static_cast<uint32_t>(executable.getFragmentInoutIndices().first());
 
     const ShaderInterfaceVariableInfo &baseInfo = variableInfoMap.getVariableById(
-        gl::ShaderType::Fragment, baseInputAttachment.getId(gl::ShaderType::Fragment));
+        gl::ShaderType::Fragment, sh::vk::spirv::kIdInputAttachment0 + firstInputAttachment);
 
-    uint32_t baseBinding = baseInfo.binding - baseInputAttachment.getLocation();
+    const uint32_t baseBinding = baseInfo.binding - firstInputAttachment;
 
     for (size_t colorIndex : framebufferVk->getState().getColorAttachmentsMask())
     {
@@ -6106,20 +6113,18 @@ angle::Result DescriptorSetDescBuilder::updateInputAttachments(
     FramebufferVk *framebufferVk,
     const WriteDescriptorDescs &writeDescriptorDescs)
 {
-    const std::vector<gl::LinkedUniform> &uniforms = executable.getUniforms();
-
     if (!executable.usesFramebufferFetch())
     {
         return angle::Result::Continue;
     }
 
-    const uint32_t baseUniformIndex              = executable.getFragmentInoutRange().low();
-    const gl::LinkedUniform &baseInputAttachment = uniforms.at(baseUniformIndex);
+    const uint32_t firstInputAttachment =
+        static_cast<uint32_t>(executable.getFragmentInoutIndices().first());
 
     const ShaderInterfaceVariableInfo &baseInfo = variableInfoMap.getVariableById(
-        gl::ShaderType::Fragment, baseInputAttachment.getId(gl::ShaderType::Fragment));
+        gl::ShaderType::Fragment, sh::vk::spirv::kIdInputAttachment0 + firstInputAttachment);
 
-    uint32_t baseBinding = baseInfo.binding - baseInputAttachment.getLocation();
+    const uint32_t baseBinding = baseInfo.binding - firstInputAttachment;
 
     for (size_t colorIndex : framebufferVk->getState().getColorAttachmentsMask())
     {
@@ -6893,7 +6898,7 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
 template <typename Hash>
 void GraphicsPipelineCache<Hash>::destroy(ContextVk *contextVk)
 {
-    if (kDumpPipelineCacheGraph && !mPayload.empty())
+    if (vk::ShouldDumpPipelineCacheGraph(contextVk) && !mPayload.empty())
     {
         vk::DumpPipelineCacheGraph<Hash>(contextVk, mPayload);
     }
@@ -6914,7 +6919,7 @@ void GraphicsPipelineCache<Hash>::destroy(ContextVk *contextVk)
 template <typename Hash>
 void GraphicsPipelineCache<Hash>::release(ContextVk *contextVk)
 {
-    if (kDumpPipelineCacheGraph && !mPayload.empty())
+    if (vk::ShouldDumpPipelineCacheGraph(contextVk) && !mPayload.empty())
     {
         vk::DumpPipelineCacheGraph<Hash>(contextVk, mPayload);
     }
