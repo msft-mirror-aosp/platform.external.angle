@@ -7853,13 +7853,6 @@ void Context::uniformBlockBinding(ShaderProgramID program,
 {
     Program *programObject = getProgramResolveLink(program);
     programObject->bindUniformBlock(uniformBlockIndex, uniformBlockBinding);
-
-    // Note: If the Program is shared between Contexts we would be better using Observer/Subject.
-    if (programObject->isInUse())
-    {
-        mState.setObjectDirty(GL_PROGRAM);
-        mStateCache.onUniformBufferStateChange(this);
-    }
 }
 
 GLsync Context::fenceSync(GLenum condition, GLbitfield flags)
@@ -9373,6 +9366,12 @@ void Context::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMess
                     mStateCache.onProgramExecutableChange(this);
                     break;
                 }
+                case angle::SubjectMessage::ProgramUniformBlockBindingUpdated:
+                {
+                    mState.mDirtyBits.set(state::DIRTY_BIT_UNIFORM_BUFFER_BINDINGS);
+                    mStateCache.onUniformBufferStateChange(this);
+                    break;
+                }
                 default:
                     // Ignore all the other notifications
                     break;
@@ -9832,7 +9831,7 @@ void Context::drawPixelLocalStorageEXTDisable(const PixelLocalStoragePlane plane
     ANGLE_CONTEXT_TRY(mImplementation->drawPixelLocalStorageEXTDisable(this, planes, storeops));
 }
 
-void Context::framebufferFoveationConfig(GLuint framebuffer,
+void Context::framebufferFoveationConfig(FramebufferID framebufferPacked,
                                          GLuint numLayers,
                                          GLuint focalPointsPerLayer,
                                          GLuint requestedFeatures,
@@ -9841,7 +9840,7 @@ void Context::framebufferFoveationConfig(GLuint framebuffer,
     return;
 }
 
-void Context::framebufferFoveationParameters(GLuint framebuffer,
+void Context::framebufferFoveationParameters(FramebufferID framebufferPacked,
                                              GLuint layer,
                                              GLuint focalPoint,
                                              GLfloat focalX,
@@ -9853,7 +9852,7 @@ void Context::framebufferFoveationParameters(GLuint framebuffer,
     return;
 }
 
-void Context::textureFoveationParameters(GLuint texture,
+void Context::textureFoveationParameters(TextureID texturePacked,
                                          GLuint layer,
                                          GLuint focalPoint,
                                          GLfloat focalX,
@@ -10480,9 +10479,11 @@ void StateCache::updateActiveShaderStorageBufferIndices(Context *context)
     const ProgramExecutable *executable = context->getState().getProgramExecutable();
     if (executable)
     {
-        for (const InterfaceBlock &block : executable->getShaderStorageBlocks())
+        const std::vector<InterfaceBlock> &blocks = executable->getShaderStorageBlocks();
+        for (size_t blockIndex = 0; blockIndex < blocks.size(); ++blockIndex)
         {
-            mCachedActiveShaderStorageBufferIndices.set(block.pod.binding);
+            const GLuint binding = executable->getShaderStorageBlockBinding(blockIndex);
+            mCachedActiveShaderStorageBufferIndices.set(binding);
         }
     }
 }
