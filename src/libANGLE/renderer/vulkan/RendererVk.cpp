@@ -742,15 +742,21 @@ DebugUtilsMessenger(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 {
     RendererVk *rendererVk = static_cast<RendererVk *>(userData);
 
+    // VUID-VkDebugUtilsMessengerCallbackDataEXT-pMessage-parameter
+    // pMessage must be a null-terminated UTF-8 string
+    ASSERT(callbackData->pMessage != nullptr);
+
     // See if it's an issue we are aware of and don't want to be spammed about.
-    if (ShouldReportDebugMessage(rendererVk, callbackData->pMessageIdName,
+    // Always report the debug message if message ID is missing
+    if (callbackData->pMessageIdName != nullptr &&
+        ShouldReportDebugMessage(rendererVk, callbackData->pMessageIdName,
                                  callbackData->pMessage) == DebugMessageReport::Ignore)
     {
         return VK_FALSE;
     }
 
     std::ostringstream log;
-    if (callbackData->pMessageIdName)
+    if (callbackData->pMessageIdName != nullptr)
     {
         log << "[ " << callbackData->pMessageIdName << " ] ";
     }
@@ -4039,6 +4045,10 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     //   < 421 otherwise
     ANGLE_FEATURE_CONDITION(&mFeatures, clampPointSize,
                             isNvidia && nvidiaVersion.major < uint32_t(IsWindows() ? 430 : 421));
+
+    // Affecting Nvidia drivers 535 through 551.
+    ANGLE_FEATURE_CONDITION(&mFeatures, avoidOpSelectWithMismatchingRelaxedPrecision,
+                            isNvidia && (nvidiaVersion.major >= 535 && nvidiaVersion.major <= 551));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsDepthClipEnable,
                             mDepthClipEnableFeatures.depthClipEnable == VK_TRUE);
