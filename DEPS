@@ -46,7 +46,7 @@ vars = {
   'checkout_angle_mesa': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': '0fdef08dd9c7e2ddce0c5112c55a7252e4bb9fae',
+  'chromium_revision': 'd3635c12e43a2c568e5a224af15099219ba72f43',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
@@ -91,7 +91,7 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': 'f448d5bf8e578518f3e655a454669e059cb81d14',
+  'catapult_revision': '719cd9d9170b4898010708dce8dc44514efa4279',
 
   # the commit queue can handle CLs rolling Fuchsia sdk
   # and whatever else without interference from each other.
@@ -150,7 +150,7 @@ vars = {
 deps = {
 
   'build': {
-    'url': Var('chromium_git') + '/chromium/src/build.git@ddaf87b1f30343ded5c3d076b2d2fd3cc73a30b6',
+    'url': Var('chromium_git') + '/chromium/src/build.git@7a16bc81a9b3d541c602101dea2960f0deff7b98',
     'condition': 'not build_with_chromium',
   },
 
@@ -209,7 +209,7 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@897c7702b39cda87f7c96d95df01218f7a1100c6',
+    'url': '{chromium_git}/chromium/src/testing@46ea5627a52ede40df1c0d769dfad291768e6972',
     'condition': 'not build_with_chromium',
   },
 
@@ -260,7 +260,7 @@ deps = {
       'packages': [
           {
                'package': 'chromium/third_party/android_build_tools/lint',
-               'version': 'X7sJxpJN0p6qi1dgpI9-UFA2YDe2O2A1kF0QZjBJpmYC',
+               'version': 'KBVVjzxe9TcHEv-JSKko21bFKEolQZXJDvUREjbrrlkC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -391,7 +391,7 @@ deps = {
   },
 
   'third_party/depot_tools': {
-    'url': Var('chromium_git') + '/chromium/tools/depot_tools.git@68c511349d6ee2a50e3b7e3ce96b8a06034d304e',
+    'url': Var('chromium_git') + '/chromium/tools/depot_tools.git@10bd39fd47865eb6c9af749e4d30e8ec5d06451f',
     'condition': 'not build_with_chromium',
   },
 
@@ -572,6 +572,11 @@ deps = {
     'condition': 'not build_with_chromium',
   },
 
+  'third_party/perfetto': {
+    'url': Var('android_git') + '/platform/external/perfetto.git@d06bef7807a8b90de9bce77132e188f68459a714',
+    'condition': 'not build_with_chromium and checkout_angle_restricted_traces',
+  },
+
   'third_party/proguard': {
       'packages': [
           {
@@ -597,7 +602,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
-              'version': 'C9JntVaHiVuPur-3AdTgT9LdF-92xV5S53GPX-ahZsMC',
+              'version': '-2s3swpHJcZRAGeWCKjYARXN0pneLMhyYGBkbbAqz6gC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -664,7 +669,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@97f44eb2b9dfaa952de88ac71aa74d3583eb7e81',
+    'url': Var('chromium_git') + '/vulkan-deps@3834da2004ecf8b57f365ee161853bce5a0915a0',
     'condition': 'not build_with_chromium',
   },
 
@@ -679,7 +684,7 @@ deps = {
   },
 
   'third_party/zlib': {
-    'url': Var('chromium_git') + '/chromium/src/third_party/zlib@63c0cec0344e6ba70f22bd690187088299baaa94',
+    'url': Var('chromium_git') + '/chromium/src/third_party/zlib@646b7f569718921d7d4b5b8e22572ff6c76f2596',
     'condition': 'not build_with_chromium',
   },
 
@@ -735,7 +740,7 @@ deps = {
   },
 
   'tools/perf': {
-    'url': Var('chromium_git') + '/chromium/src/tools/perf@13de3f85f1476b6bbe0e9b6d6365f8005058b321',
+    'url': Var('chromium_git') + '/chromium/src/tools/perf@a9f8e2f88580c34f4645c6228b02051136a857fd',
     'condition': 'not build_with_chromium',
   },
 
@@ -2413,6 +2418,16 @@ deps = {
       'packages': [
         {
             'package': 'angle/traces/piano_kids',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_traces',
+  },
+  'src/tests/restricted_traces/plague_inc': {
+      'packages': [
+        {
+            'package': 'angle/traces/plague_inc',
             'version': 'version:1',
         },
       ],
