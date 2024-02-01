@@ -3722,7 +3722,7 @@ void GenerateLinkedProgram(const gl::Context *context,
          uniformBlockIndex < static_cast<uint32_t>(executable.getUniformBlocks().size());
          uniformBlockIndex++)
     {
-        GLuint blockBinding = executable.getUniformBlockBinding(uniformBlockIndex);
+        GLuint blockBinding = executable.getUniformBlocks()[uniformBlockIndex].pod.inShaderBinding;
         CallCapture updateCallCapture =
             CaptureUniformBlockBinding(replayState, true, id, {uniformBlockIndex}, blockBinding);
         CaptureCustomUniformBlockBinding(updateCallCapture, *setupCalls);
@@ -8308,6 +8308,12 @@ void FrameCaptureShared::captureClientArraySnapshot(const gl::Context *context,
                                                     size_t vertexCount,
                                                     size_t instanceCount)
 {
+    if (vertexCount == 0)
+    {
+        // Nothing to capture
+        return;
+    }
+
     const gl::VertexArray *vao = context->getState().getVertexArray();
 
     // Capture client array data.
