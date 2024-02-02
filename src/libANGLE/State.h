@@ -481,8 +481,6 @@ class PrivateState : angle::NonCopyable
     // Hint setters
     void setGenerateMipmapHint(GLenum hint);
     GLenum getGenerateMipmapHint() const { return mGenerateMipmapHint; }
-    void setTextureFilteringHint(GLenum hint);
-    GLenum getTextureFilteringHint() const { return mTextureFilteringHint; }
     GLenum getFragmentShaderDerivativeHint() const { return mFragmentShaderDerivativeHint; }
     void setFragmentShaderDerivativeHint(GLenum hint);
 
@@ -639,7 +637,6 @@ class PrivateState : angle::NonCopyable
     GLfloat mLineWidth;
 
     GLenum mGenerateMipmapHint;
-    GLenum mTextureFilteringHint;
     GLenum mFragmentShaderDerivativeHint;
 
     Rectangle mViewport;
@@ -1347,7 +1344,6 @@ class State : angle::NonCopyable
     float getLineWidth() const { return mPrivateState.getLineWidth(); }
     unsigned int getActiveSampler() const { return mPrivateState.getActiveSampler(); }
     GLenum getGenerateMipmapHint() const { return mPrivateState.getGenerateMipmapHint(); }
-    GLenum getTextureFilteringHint() const { return mPrivateState.getTextureFilteringHint(); }
     GLenum getFragmentShaderDerivativeHint() const
     {
         return mPrivateState.getFragmentShaderDerivativeHint();
@@ -1405,6 +1401,12 @@ class State : angle::NonCopyable
     bool getEnableFeatureIndexed(GLenum feature, GLuint index) const
     {
         return mPrivateState.getEnableFeatureIndexed(feature, index);
+    }
+    ProgramUniformBlockMask getAndResetDirtyUniformBlocks() const
+    {
+        ProgramUniformBlockMask dirtyBits = mDirtyUniformBlocks;
+        mDirtyUniformBlocks.reset();
+        return dirtyBits;
     }
     const PrivateState &privateState() const { return mPrivateState; }
     const GLES1State &gles1() const { return mPrivateState.gles1(); }
@@ -1586,6 +1588,10 @@ class State : angle::NonCopyable
     ActiveTextureMask mDirtyTextures;
     ActiveTextureMask mDirtySamplers;
     ImageUnitMask mDirtyImages;
+    // Tracks uniform blocks that need reprocessing, for example because their mapped bindings have
+    // changed, or buffers in their mapped bindings have changed.  This is in State because every
+    // context needs to react to such changes.
+    mutable ProgramUniformBlockMask mDirtyUniformBlocks;
 
     PrivateState mPrivateState;
 };

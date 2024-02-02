@@ -3461,9 +3461,6 @@ TEST_P(Texture2DTestES3, TexImageWithDepthStencilPBO)
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_NV_pixel_buffer_object"));
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_texture_storage"));
 
-    // http://anglebug.com/5313
-    ANGLE_SKIP_TEST_IF(IsVulkan() && IsAndroid());
-
     // http://anglebug.com/5315
     ANGLE_SKIP_TEST_IF(IsOpenGL() && IsMac());
 
@@ -4715,9 +4712,6 @@ TEST_P(Texture2DBaseMaxTestES3, ExtendMipChainAfterRedefine)
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
-
-    // http://anglebug.com/4704
-    ANGLE_SKIP_TEST_IF(IsVulkan());
 
     EXPECT_PIXEL_COLOR_EQ(0, 0, kMipColors[0]);
 }
@@ -7082,7 +7076,7 @@ TEST_P(Texture2DTest, CopyAfterCompressed)
 // ES 3.0.4 table 3.24
 TEST_P(Texture2DUnsignedIntegerAlpha1TestES3, TextureRGB8UIImplicitAlpha1)
 {
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac());
+    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac() && IsOpenGL());
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mTexture2D);
@@ -7100,7 +7094,7 @@ TEST_P(Texture2DUnsignedIntegerAlpha1TestES3, TextureRGB8UIImplicitAlpha1)
 // ES 3.0.4 table 3.24
 TEST_P(Texture2DIntegerAlpha1TestES3, TextureRGB8IImplicitAlpha1)
 {
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac());
+    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac() && IsOpenGL());
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mTexture2D);
@@ -7119,7 +7113,7 @@ TEST_P(Texture2DIntegerAlpha1TestES3, TextureRGB8IImplicitAlpha1)
 // ES 3.0.4 table 3.24
 TEST_P(Texture2DUnsignedIntegerAlpha1TestES3, TextureRGB16UIImplicitAlpha1)
 {
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac());
+    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac() && IsOpenGL());
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mTexture2D);
@@ -7137,7 +7131,7 @@ TEST_P(Texture2DUnsignedIntegerAlpha1TestES3, TextureRGB16UIImplicitAlpha1)
 // ES 3.0.4 table 3.24
 TEST_P(Texture2DIntegerAlpha1TestES3, TextureRGB16IImplicitAlpha1)
 {
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac());
+    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac() && IsOpenGL());
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mTexture2D);
@@ -7155,7 +7149,7 @@ TEST_P(Texture2DIntegerAlpha1TestES3, TextureRGB16IImplicitAlpha1)
 // ES 3.0.4 table 3.24
 TEST_P(Texture2DUnsignedIntegerAlpha1TestES3, TextureRGB32UIImplicitAlpha1)
 {
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac());
+    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac() && IsOpenGL());
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mTexture2D);
@@ -7173,7 +7167,7 @@ TEST_P(Texture2DUnsignedIntegerAlpha1TestES3, TextureRGB32UIImplicitAlpha1)
 // ES 3.0.4 table 3.24
 TEST_P(Texture2DIntegerAlpha1TestES3, TextureRGB32IImplicitAlpha1)
 {
-    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac());
+    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac() && IsOpenGL());
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, mTexture2D);

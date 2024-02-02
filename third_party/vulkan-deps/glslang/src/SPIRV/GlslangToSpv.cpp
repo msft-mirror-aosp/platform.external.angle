@@ -1635,6 +1635,10 @@ TGlslangToSpvTraverser::TGlslangToSpvTraverser(unsigned int spvVersion,
         builder.addExtension(spv::E_SPV_KHR_subgroup_uniform_control_flow);
         builder.addExecutionMode(shaderEntry, spv::ExecutionModeSubgroupUniformControlFlowKHR);
     }
+    if (glslangIntermediate->getMaximallyReconverges()) {
+        builder.addExtension(spv::E_SPV_KHR_maximal_reconvergence);
+        builder.addExecutionMode(shaderEntry, spv::ExecutionModeMaximallyReconvergesKHR);
+    }
 
     unsigned int mode;
     switch (glslangIntermediate->getStage()) {
@@ -4407,7 +4411,7 @@ spv::Id TGlslangToSpvTraverser::convertGlslangToSpvType(const glslang::TType& ty
         if (explicitLayout != glslang::ElpNone)
             spvType = builder.makeUintType(32);
         else
-            spvType = builder.makeBoolType(false);
+            spvType = builder.makeBoolType();
         break;
     case glslang::EbtInt:
         spvType = builder.makeIntType(32);
@@ -5495,7 +5499,7 @@ void TGlslangToSpvTraverser::makeFunctions(const glslang::TIntermSequence& glslF
         spv::Function* function = builder.makeFunctionEntry(
             TranslatePrecisionDecoration(glslFunction->getType()), convertGlslangToSpvType(glslFunction->getType()),
             glslFunction->getName().c_str(), convertGlslangLinkageToSpv(glslFunction->getLinkType()), paramTypes,
-            paramNames, paramDecorations, &functionBlock);
+            paramDecorations, &functionBlock);
         builder.setupDebugFunctionEntry(function, glslFunction->getName().c_str(), glslFunction->getLoc().line,
                                         paramTypes, paramNames);
         if (implicitThis)

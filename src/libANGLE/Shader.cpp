@@ -288,6 +288,13 @@ angle::Result CompileTask::postTranslate()
 
     return angle::Result::Continue;
 }
+
+template <typename T>
+void AppendHashValue(angle::base::SecureHashAlgorithm &hasher, T value)
+{
+    static_assert(std::is_fundamental<T>::value || std::is_enum<T>::value);
+    hasher.Update(&value, sizeof(T));
+}
 }  // anonymous namespace
 
 const char *GetShaderTypeString(ShaderType type)
@@ -653,26 +660,36 @@ void Shader::compile(const Context *context, angle::JobResultExpectancy resultEx
     options.validateAST = true;
 #endif
 
-    mBoundCompiler.set(context, context->getCompiler());
+    // Find a shader in Blob Cache
+    Compiler *compiler = context->getCompiler();
+    setShaderKey(context, options, compiler->getShaderOutputType(),
+                 compiler->getBuiltInResources());
+    ASSERT(!mShaderHash.empty());
+    MemoryShaderCache *shaderCache = context->getMemoryShaderCache();
+    if (shaderCache != nullptr)
+    {
+        egl::CacheGetResult result = shaderCache->getShader(context, this, mShaderHash);
+        switch (result)
+        {
+            case egl::CacheGetResult::GetSuccess:
+                return;
+            case egl::CacheGetResult::Rejected:
+                // Reset the state
+                mState.mCompiledState =
+                    std::make_shared<CompiledShaderState>(mState.getShaderType());
+                break;
+            case egl::CacheGetResult::NotFound:
+            default:
+                break;
+        }
+    }
 
+    mBoundCompiler.set(context, compiler);
     ASSERT(mBoundCompiler.get());
+
     ShCompilerInstance compilerInstance = mBoundCompiler->getInstance(mState.getShaderType());
     ShHandle compilerHandle             = compilerInstance.getHandle();
     ASSERT(compilerHandle);
-
-    // Find a shader in Blob Cache
-    setShaderKey(context, options, compilerInstance.getShaderOutputType(),
-                 compilerInstance.getBuiltInResources());
-    ASSERT(!mShaderHash.empty());
-    MemoryShaderCache *shaderCache = context->getMemoryShaderCache();
-    if (shaderCache)
-    {
-        if (shaderCache->getShader(context, this, options, compilerInstance, mShaderHash))
-        {
-            compilerInstance.destroy();
-            return;
-        }
-    }
 
     // Cache load failed, fall through normal compiling.
     mState.mCompileStatus = CompileStatus::COMPILE_REQUESTED;
@@ -916,28 +933,28 @@ void Shader::setShaderKey(const Context *context,
                           const ShBuiltInResources &resources)
 {
     // Compute shader key.
-    BinaryOutputStream hashStream;
+    angle::base::SecureHashAlgorithm hasher;
+    hasher.Init();
 
     // Start with the shader type and source.
-    hashStream.writeEnum(mState.getShaderType());
-    hashStream.writeString(mState.getSource());
+    AppendHashValue(hasher, mState.getShaderType());
+    hasher.Update(mState.getSource().c_str(), mState.getSource().length());
 
     // Include the shader program version hash.
-    hashStream.writeString(angle::GetANGLEShaderProgramVersion());
+    hasher.Update(angle::GetANGLEShaderProgramVersion(),
+                  angle::GetANGLEShaderProgramVersionHashSize());
 
-    hashStream.writeEnum(Compiler::SelectShaderSpec(context->getState()));
-    hashStream.writeEnum(outputType);
-    hashStream.writeBytes(reinterpret_cast<const uint8_t *>(&compileOptions),
-                          sizeof(compileOptions));
+    AppendHashValue(hasher, Compiler::SelectShaderSpec(context->getState()));
+    AppendHashValue(hasher, outputType);
+    hasher.Update(reinterpret_cast<const uint8_t *>(&compileOptions), sizeof(compileOptions));
 
     // Include the ShBuiltInResources, which represent the extensions and constants used by the
     // shader.
-    hashStream.writeBytes(reinterpret_cast<const uint8_t *>(&resources), sizeof(resources));
+    hasher.Update(reinterpret_cast<const uint8_t *>(&resources), sizeof(resources));
 
     // Call the secure SHA hashing function.
-    const std::vector<uint8_t> &shaderKey = hashStream.getData();
-    mShaderHash                           = {0};
-    angle::base::SHA1HashBytes(shaderKey.data(), shaderKey.size(), mShaderHash.data());
+    hasher.Final();
+    memcpy(mShaderHash.data(), hasher.Digest(), angle::base::kSHA1Length);
 }
 
 bool WaitCompileJobUnlocked(const SharedCompileJob &compileJob)

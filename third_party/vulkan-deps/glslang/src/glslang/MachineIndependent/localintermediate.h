@@ -345,6 +345,7 @@ public:
         needToLegalize(false),
         binaryDoubleOutput(false),
         subgroupUniformControlFlow(false),
+        maximallyReconverges(false),
         usePhysicalStorageBuffer(false),
         spirvRequirement(nullptr),
         spirvExecutionMode(nullptr),
@@ -528,6 +529,8 @@ public:
     TOperator mapTypeToConstructorOp(const TType&) const;
     TIntermAggregate* growAggregate(TIntermNode* left, TIntermNode* right);
     TIntermAggregate* growAggregate(TIntermNode* left, TIntermNode* right, const TSourceLoc&);
+    TIntermAggregate* mergeAggregate(TIntermNode* left, TIntermNode* right);
+    TIntermAggregate* mergeAggregate(TIntermNode* left, TIntermNode* right, const TSourceLoc&);
     TIntermAggregate* makeAggregate(TIntermNode* node);
     TIntermAggregate* makeAggregate(TIntermNode* node, const TSourceLoc&);
     TIntermAggregate* makeAggregate(const TSourceLoc&);
@@ -961,6 +964,9 @@ public:
     void setSubgroupUniformControlFlow() { subgroupUniformControlFlow = true; }
     bool getSubgroupUniformControlFlow() const { return subgroupUniformControlFlow; }
 
+    void setMaximallyReconverges() { maximallyReconverges = true; }
+    bool getMaximallyReconverges() const { return maximallyReconverges; }
+
     // GL_EXT_spirv_intrinsics
     void insertSpirvRequirement(const TSpirvRequirement* spirvReq);
     bool hasSpirvRequirement() const { return spirvRequirement != nullptr; }
@@ -1224,6 +1230,7 @@ protected:
     bool needToLegalize;
     bool binaryDoubleOutput;
     bool subgroupUniformControlFlow;
+    bool maximallyReconverges;
     bool usePhysicalStorageBuffer;
 
     TSpirvRequirement* spirvRequirement;

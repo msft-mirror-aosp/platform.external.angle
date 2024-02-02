@@ -456,9 +456,9 @@ Optional<gl::Version> DisplayMtl::getMaxSupportedDesktopVersion() const
     return Optional<gl::Version>::Invalid();
 }
 
-EGLSyncImpl *DisplayMtl::createSync(const egl::AttributeMap &attribs)
+EGLSyncImpl *DisplayMtl::createSync()
 {
-    return new EGLSyncMtl(attribs);
+    return new EGLSyncMtl();
 }
 
 egl::Error DisplayMtl::makeCurrent(egl::Display *display,
@@ -1155,7 +1155,7 @@ void DisplayMtl::initializeExtensions() const
                 !mFeatures.disableRWTextureTier2Support.enabled &&
                 readWriteTextureTier == MTLReadWriteTextureTier2;
 
-            if (isAMD())
+            if (rasterOrderGroupsSupported && isAMD())
             {
                 // anglebug.com/7792 -- [[raster_order_group()]] does not work for read_write
                 // textures on AMD when the render pass doesn't have a color attachment on slot 0.
@@ -1304,6 +1304,8 @@ void DisplayMtl::initializeFeatures()
     ANGLE_FEATURE_CONDITION((&mFeatures), emulateAlphaToCoverage,
                             isSimulator || !supportsAppleGPUFamily(1));
 
+    ANGLE_FEATURE_CONDITION((&mFeatures), writeHelperSampleMask, supportsAppleGPUFamily(1));
+
     ANGLE_FEATURE_CONDITION((&mFeatures), multisampleColorFormatShaderReadWorkaround, isAMD());
     ANGLE_FEATURE_CONDITION((&mFeatures), copyIOSurfaceToNonIOSurfaceForReadOptimization,
                             isIntel() || isAMD());
@@ -1359,12 +1361,21 @@ void DisplayMtl::initializeFeatures()
     // function local. Disabled on AMD FirePro devices: http://anglebug.com/8317
     ANGLE_FEATURE_CONDITION((&mFeatures), rescopeGlobalVariables, !isAMDFireProDevice());
 
+    // Apple-specific pre-transform for explicit cubemap derivatives
+    ANGLE_FEATURE_CONDITION((&mFeatures), preTransformTextureCubeGradDerivatives,
+                            supportsAppleGPUFamily(1));
+
     // On tile-based GPUs, always resolving MSAA render buffers to single-sampled
     // is preferred. Because it would save bandwidth by avoiding the cost of storing the MSAA
     // textures to memory. Traditional desktop GPUs almost always store MSAA textures to memory
     // anyway, so this feature would have no benefit besides adding additional resolve step and
     // memory overhead of the hidden single-sampled textures.
     ANGLE_FEATURE_CONDITION((&mFeatures), alwaysResolveMultisampleRenderBuffers, isARM);
+
+    // Metal compiler optimizations may remove infinite loops causing crashes later in shader
+    // execution. http://crbug.com/1513738
+    // Temporarily disabled to confirm failures on Mac11. http://crbug.com/1522730
+    ANGLE_FEATURE_CONDITION((&mFeatures), injectAsmStatementIntoLoopBodies, false);
 }
 
 angle::Result DisplayMtl::initializeShaderLibrary()

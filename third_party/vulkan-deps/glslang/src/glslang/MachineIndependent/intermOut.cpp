@@ -1208,12 +1208,12 @@ bool TOutputTraverser::visitSelection(TVisit /* visit */, TIntermSelection* node
 //   - shows all digits, no premature rounding
 static void OutputDouble(TInfoSink& out, double value, TOutputTraverser::EExtraOutput extra)
 {
-    if (IsInfinity(value)) {
+    if (std::isinf(value)) {
         if (value < 0)
             out.debug << "-1.#INF";
         else
             out.debug << "+1.#INF";
-    } else if (IsNan(value))
+    } else if (std::isnan(value))
         out.debug << "1.#IND";
     else {
         const int maxSize = 340;
@@ -1511,6 +1511,9 @@ void TIntermediate::output(TInfoSink& infoSink, bool tree)
 
     if (getSubgroupUniformControlFlow())
         infoSink.debug << "subgroup_uniform_control_flow\n";
+
+    if (getMaximallyReconverges())
+        infoSink.debug << "maximally_reconverges\n";
 
     switch (language) {
     case EShLangVertex:

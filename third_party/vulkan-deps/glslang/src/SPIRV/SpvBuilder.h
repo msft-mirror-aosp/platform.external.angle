@@ -185,7 +185,7 @@ public:
 
     // For creating new types (will return old type if the requested one was already made).
     Id makeVoidType();
-    Id makeBoolType(bool const compilerGenerated = true);
+    Id makeBoolType();
     Id makePointer(StorageClass, Id pointee);
     Id makeForwardPointer(StorageClass);
     Id makePointerFromForwardPointer(StorageClass, Id forwardPointerType, Id pointee);
@@ -226,6 +226,7 @@ public:
     Id makeMemberDebugType(Id const memberType, DebugTypeLoc const& debugTypeLoc);
     Id makeCompositeDebugType(std::vector<Id> const& memberTypes, char const*const name,
         NonSemanticShaderDebugInfo100DebugCompositeType const tag, bool const isOpaqueType = false);
+    Id makePointerDebugType(StorageClass storageClass, Id const baseType);
     Id makeDebugSource(const Id fileName);
     Id makeDebugCompilationUnit();
     Id createDebugGlobalVariable(Id const type, char const*const name, Id const variable);
@@ -420,10 +421,9 @@ public:
     // Make a shader-style function, and create its entry block if entry is non-zero.
     // Return the function, pass back the entry.
     // The returned pointer is only valid for the lifetime of this builder.
-    Function* makeFunctionEntry(Decoration precision, Id returnType, const char* name,
-        LinkageType linkType, const std::vector<Id>& paramTypes,
-        const std::vector<char const*>& paramNames,
-        const std::vector<std::vector<Decoration>>& precisions, Block **entry = nullptr);
+    Function* makeFunctionEntry(Decoration precision, Id returnType, const char* name, LinkageType linkType,
+                                const std::vector<Id>& paramTypes,
+                                const std::vector<std::vector<Decoration>>& precisions, Block** entry = nullptr);
 
     // Create a return. An 'implicit' return is one not appearing in the source
     // code.  In the case of an implicit return, no post-return block is inserted.

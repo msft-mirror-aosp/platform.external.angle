@@ -1024,9 +1024,6 @@ void GetShaderVariableBufferResourceProperty(const ShaderVariableT &buffer,
 {
     switch (pname)
     {
-        case GL_BUFFER_BINDING:
-            params[(*outputPosition)++] = buffer.pod.binding;
-            break;
         case GL_BUFFER_DATA_SIZE:
             params[(*outputPosition)++] = clampCast<GLint>(buffer.pod.dataSize);
             break;
@@ -1090,6 +1087,13 @@ void GetUniformBlockResourceProperty(const Program *program,
 
 {
     ASSERT(*outputPosition < bufSize);
+
+    if (pname == GL_BUFFER_BINDING)
+    {
+        params[(*outputPosition)++] = program->getExecutable().getUniformBlockBinding(blockIndex);
+        return;
+    }
+
     const auto &block = program->getExecutable().getUniformBlockByIndex(blockIndex);
     GetInterfaceBlockResourceProperty(block, pname, params, bufSize, outputPosition);
 }
@@ -1103,6 +1107,14 @@ void GetShaderStorageBlockResourceProperty(const Program *program,
 
 {
     ASSERT(*outputPosition < bufSize);
+
+    if (pname == GL_BUFFER_BINDING)
+    {
+        params[(*outputPosition)++] =
+            program->getExecutable().getShaderStorageBlockBinding(blockIndex);
+        return;
+    }
+
     const auto &block = program->getExecutable().getShaderStorageBlockByIndex(blockIndex);
     GetInterfaceBlockResourceProperty(block, pname, params, bufSize, outputPosition);
 }
@@ -1116,6 +1128,13 @@ void GetAtomicCounterBufferResourceProperty(const Program *program,
 
 {
     ASSERT(*outputPosition < bufSize);
+
+    if (pname == GL_BUFFER_BINDING)
+    {
+        params[(*outputPosition)++] = program->getExecutable().getAtomicCounterBufferBinding(index);
+        return;
+    }
+
     const auto &buffer = program->getExecutable().getAtomicCounterBuffers()[index];
     GetShaderVariableBufferResourceProperty(buffer, pname, params, bufSize, outputPosition);
 }
@@ -1318,7 +1337,7 @@ void QueryBufferPointerv(const Buffer *buffer, GLenum pname, void **params)
     }
 }
 
-void QueryProgramiv(Context *context, const Program *program, GLenum pname, GLint *params)
+void QueryProgramiv(Context *context, Program *program, GLenum pname, GLint *params)
 {
     ASSERT(program != nullptr || pname == GL_COMPLETION_STATUS_KHR);
 
@@ -1904,7 +1923,7 @@ void SetFramebufferParameteri(const Context *context,
     }
 }
 
-void SetProgramParameteri(Program *program, GLenum pname, GLint value)
+void SetProgramParameteri(const Context *context, Program *program, GLenum pname, GLint value)
 {
     ASSERT(program);
 
@@ -1914,7 +1933,7 @@ void SetProgramParameteri(Program *program, GLenum pname, GLint value)
             program->setBinaryRetrievableHint(ConvertToBool(value));
             break;
         case GL_PROGRAM_SEPARABLE:
-            program->setSeparable(ConvertToBool(value));
+            program->setSeparable(context, ConvertToBool(value));
             break;
         default:
             UNREACHABLE();
@@ -3179,7 +3198,6 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_PACK_ALIGNMENT:
         case GL_UNPACK_ALIGNMENT:
         case GL_GENERATE_MIPMAP_HINT:
-        case GL_TEXTURE_FILTERING_HINT_CHROMIUM:
         case GL_RED_BITS:
         case GL_GREEN_BITS:
         case GL_BLUE_BITS:
@@ -3324,6 +3342,12 @@ bool GetQueryParameterInfo(const State &glState,
         }
         case GL_COLOR_LOGIC_OP:
         {
+            if (clientMajorVersion == 1)
+            {
+                // Handle logicOp in GLES1 through GLES1 state management.
+                break;
+            }
+
             if (!extensions.logicOpANGLE)
             {
                 return false;
@@ -3832,7 +3856,38 @@ bool GetQueryParameterInfo(const State &glState,
                 *type      = GL_FLOAT;
                 *numParams = 16;
                 return true;
+            case GL_ALPHA_TEST:
+            case GL_CLIP_PLANE0:
+            case GL_CLIP_PLANE1:
+            case GL_CLIP_PLANE2:
+            case GL_CLIP_PLANE3:
+            case GL_CLIP_PLANE4:
+            case GL_CLIP_PLANE5:
+            case GL_COLOR_ARRAY:
+            case GL_COLOR_LOGIC_OP:
+            case GL_COLOR_MATERIAL:
+            case GL_FOG:
             case GL_LIGHT_MODEL_TWO_SIDE:
+            case GL_LIGHT0:
+            case GL_LIGHT1:
+            case GL_LIGHT2:
+            case GL_LIGHT3:
+            case GL_LIGHT4:
+            case GL_LIGHT5:
+            case GL_LIGHT6:
+            case GL_LIGHT7:
+            case GL_LIGHTING:
+            case GL_LINE_SMOOTH:
+            case GL_NORMAL_ARRAY:
+            case GL_NORMALIZE:
+            case GL_POINT_SIZE_ARRAY_OES:
+            case GL_POINT_SMOOTH:
+            case GL_POINT_SPRITE_OES:
+            case GL_RESCALE_NORMAL:
+            case GL_TEXTURE_2D:
+            case GL_TEXTURE_CUBE_MAP:
+            case GL_TEXTURE_COORD_ARRAY:
+            case GL_VERTEX_ARRAY:
                 *type      = GL_BOOL;
                 *numParams = 1;
                 return true;
