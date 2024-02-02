@@ -14,12 +14,6 @@
           "choice": "native",
           "apps": [
               {
-                  "packageName": "com.snapchat.android"
-              },
-              {
-                  "packageName": "com.vidku.app.flipgrid"
-              },
-              {
                   "packageName": "com.linecorp.b612.android"
               },
               {
