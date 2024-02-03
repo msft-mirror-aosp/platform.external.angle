@@ -52,7 +52,7 @@ vars = {
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': 'fe0d0f90469f0547e7c751e50744ab179674fdb4',
+  'vk_gl_cts_revision': '1aeae2d1d57edae4c11ae59263c88f3754e50d65',
 
   # Current revision of googletest.
   # Note: this dep cannot be auto-rolled b/c of nesting.
@@ -570,6 +570,11 @@ deps = {
   'third_party/OpenGL-Registry/src': {
     'url': Var('chromium_git') + '/external/github.com/KhronosGroup/OpenGL-Registry@5bae8738b23d06968e7c3a41308568120943ae77',
     'condition': 'not build_with_chromium',
+  },
+
+  'third_party/perfetto': {
+    'url': Var('android_git') + '/platform/external/perfetto.git@d06bef7807a8b90de9bce77132e188f68459a714',
+    'condition': 'not build_with_chromium and checkout_angle_restricted_traces',
   },
 
   'third_party/proguard': {
