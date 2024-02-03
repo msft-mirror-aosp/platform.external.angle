@@ -3271,6 +3271,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_base_base",
         "third_party_abseil_cpp_absl_base_config",
         "third_party_abseil_cpp_absl_base_core_headers",
+        "third_party_abseil_cpp_absl_base_no_destructor",
         "third_party_abseil_cpp_absl_base_raw_logging_internal",
         "third_party_abseil_cpp_absl_debugging_stacktrace",
         "third_party_abseil_cpp_absl_memory_memory",
@@ -3799,8 +3800,8 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
-        "third_party_abseil_cpp_absl_base_base",
         "third_party_abseil_cpp_absl_base_config",
+        "third_party_abseil_cpp_absl_base_no_destructor",
         "third_party_abseil_cpp_absl_base_raw_logging_internal",
         "third_party_abseil_cpp_absl_synchronization_synchronization",
     ],
