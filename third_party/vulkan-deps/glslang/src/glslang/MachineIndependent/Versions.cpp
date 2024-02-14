@@ -1,7 +1,7 @@
 //
 // Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
 // Copyright (C) 2012-2013 LunarG, Inc.
-// Copyright (C) 2017 ARM Limited.
+// Copyright (C) 2017, 2022-2024 Arm Limited.
 // Copyright (C) 2015-2020 Google, Inc.
 // Modifications Copyright (C) 2020 Advanced Micro Devices, Inc. All rights reserved.
 //
@@ -235,6 +235,7 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_KHR_shader_subgroup_ballot]           = EBhDisable;
     extensionBehavior[E_GL_KHR_shader_subgroup_shuffle]          = EBhDisable;
     extensionBehavior[E_GL_KHR_shader_subgroup_shuffle_relative] = EBhDisable;
+    extensionBehavior[E_GL_KHR_shader_subgroup_rotate]           = EBhDisable;
     extensionBehavior[E_GL_KHR_shader_subgroup_clustered]        = EBhDisable;
     extensionBehavior[E_GL_KHR_shader_subgroup_quad]             = EBhDisable;
     extensionBehavior[E_GL_KHR_memory_scope_semantics]           = EBhDisable;
@@ -357,6 +358,7 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_EXT_spirv_intrinsics]            = EBhDisable;
     extensionBehavior[E_GL_EXT_mesh_shader]                 = EBhDisable;
     extensionBehavior[E_GL_EXT_opacity_micromap]            = EBhDisable;
+    extensionBehavior[E_GL_EXT_shader_quad_control]         = EBhDisable;
     extensionBehavior[E_GL_EXT_ray_tracing_position_fetch]  = EBhDisable;
     extensionBehavior[E_GL_EXT_shader_tile_image]           = EBhDisable;
     extensionBehavior[E_GL_EXT_texture_shadow_lod]          = EBhDisable;
@@ -584,6 +586,7 @@ void TParseVersions::getPreamble(std::string& preamble)
             "#define GL_EXT_shader_atomic_float2 1\n"
 
             "#define GL_EXT_fragment_shader_barycentric 1\n"
+            "#define GL_EXT_shader_quad_control 1\n"
             "#define GL_EXT_texture_array 1\n"
             ;
 
