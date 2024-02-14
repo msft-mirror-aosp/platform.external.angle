@@ -58,7 +58,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r26b_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-18-init-17730-gf670112a-2\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-18-init-17730-gf670112a-4\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
