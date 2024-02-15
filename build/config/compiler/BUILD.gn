@@ -380,12 +380,7 @@ config("compiler") {
           cflags += [ "-fstack-protector" ]
         }
       } else if ((is_posix && !is_chromeos && !is_nacl) || is_fuchsia) {
-        # TODO(phajdan.jr): Use -fstack-protector-strong when our gcc supports it.
-        # See also https://crbug.com/533294
-        # The x86 toolchain currently has problems with stack-protector.
-        if (is_android && current_cpu == "x86") {
-          cflags += [ "-fno-stack-protector" ]
-        } else if (current_os != "aix") {
+        if (current_os != "aix") {
           # Not available on aix.
           cflags += [ "-fstack-protector" ]
         }
@@ -1035,6 +1030,11 @@ config("compiler") {
   if (!use_thin_lto || !toolchain_supports_rust_thin_lto) {
     # Don't include bitcode if it won't be used.
     rustflags += [ "-Cembed-bitcode=no" ]
+
+    # Disable "automatic" ThinLTO between codegen units. The weak symbol
+    # resolution across units can have surprising effects on linking, see
+    # crbug.com/324126269 and github.com/rust-lang/rust/issues/120842.
+    rustflags += [ "-Clto=no" ]
   }
   if (is_official_build) {
     rustflags += [ "-Ccodegen-units=1" ]
@@ -1850,6 +1850,9 @@ config("default_warnings") {
         cflags_cc += [
           # TODO(https://crbug.com/1474434): fix and reenable
           "-Wno-missing-field-initializers",
+
+          # TODO(https://crbug.com/324953188): fix and reenable
+          "-Wno-extra-qualification",
         ]
       }
 
@@ -1894,6 +1897,7 @@ config("default_warnings") {
       cflags += [
         "-Wno-error=unknown-warning-option",
         "-Wno-error=unused-command-line-argument",
+        "-Wno-error=unknown-pragmas",
       ]
     }
   }
