@@ -503,6 +503,7 @@ ANGLE_TRACE_LOADER_EXPORT PFNGLMULTIDRAWARRAYSINSTANCEDANGLEPROC t_glMultiDrawAr
 ANGLE_TRACE_LOADER_EXPORT PFNGLMULTIDRAWELEMENTSANGLEPROC t_glMultiDrawElementsANGLE;
 ANGLE_TRACE_LOADER_EXPORT PFNGLMULTIDRAWELEMENTSINSTANCEDANGLEPROC
     t_glMultiDrawElementsInstancedANGLE;
+ANGLE_TRACE_LOADER_EXPORT PFNGLPOLYGONMODEANGLEPROC t_glPolygonModeANGLE;
 ANGLE_TRACE_LOADER_EXPORT PFNGLPROVOKINGVERTEXANGLEPROC t_glProvokingVertexANGLE;
 ANGLE_TRACE_LOADER_EXPORT PFNGLDISABLEEXTENSIONANGLEPROC t_glDisableExtensionANGLE;
 ANGLE_TRACE_LOADER_EXPORT PFNGLREQUESTEXTENSIONANGLEPROC t_glRequestExtensionANGLE;
@@ -812,6 +813,7 @@ ANGLE_TRACE_LOADER_EXPORT PFNGLISFENCENVPROC t_glIsFenceNV;
 ANGLE_TRACE_LOADER_EXPORT PFNGLSETFENCENVPROC t_glSetFenceNV;
 ANGLE_TRACE_LOADER_EXPORT PFNGLTESTFENCENVPROC t_glTestFenceNV;
 ANGLE_TRACE_LOADER_EXPORT PFNGLBLITFRAMEBUFFERNVPROC t_glBlitFramebufferNV;
+ANGLE_TRACE_LOADER_EXPORT PFNGLPOLYGONMODENVPROC t_glPolygonModeNV;
 ANGLE_TRACE_LOADER_EXPORT PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC
     t_glEGLImageTargetRenderbufferStorageOES;
 ANGLE_TRACE_LOADER_EXPORT PFNGLEGLIMAGETARGETTEXTURE2DOESPROC t_glEGLImageTargetTexture2DOES;
@@ -860,7 +862,13 @@ ANGLE_TRACE_LOADER_EXPORT PFNGLGENVERTEXARRAYSOESPROC t_glGenVertexArraysOES;
 ANGLE_TRACE_LOADER_EXPORT PFNGLISVERTEXARRAYOESPROC t_glIsVertexArrayOES;
 ANGLE_TRACE_LOADER_EXPORT PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC
     t_glFramebufferTextureMultiviewOVR;
+ANGLE_TRACE_LOADER_EXPORT PFNGLFRAMEBUFFERFOVEATIONCONFIGQCOMPROC
+    t_glFramebufferFoveationConfigQCOM;
+ANGLE_TRACE_LOADER_EXPORT PFNGLFRAMEBUFFERFOVEATIONPARAMETERSQCOMPROC
+    t_glFramebufferFoveationParametersQCOM;
 ANGLE_TRACE_LOADER_EXPORT PFNGLSHADINGRATEQCOMPROC t_glShadingRateQCOM;
+ANGLE_TRACE_LOADER_EXPORT PFNGLTEXTUREFOVEATIONPARAMETERSQCOMPROC
+    t_glTextureFoveationParametersQCOM;
 ANGLE_TRACE_LOADER_EXPORT PFNGLDRAWTEXFOESPROC t_glDrawTexfOES;
 ANGLE_TRACE_LOADER_EXPORT PFNGLDRAWTEXFVOESPROC t_glDrawTexfvOES;
 ANGLE_TRACE_LOADER_EXPORT PFNGLDRAWTEXIOESPROC t_glDrawTexiOES;
@@ -1617,6 +1625,8 @@ void LoadTraceGLES(LoadProc loadProc)
     t_glMultiDrawElementsInstancedANGLE =
         reinterpret_cast<PFNGLMULTIDRAWELEMENTSINSTANCEDANGLEPROC>(
             loadProc("glMultiDrawElementsInstancedANGLE"));
+    t_glPolygonModeANGLE =
+        reinterpret_cast<PFNGLPOLYGONMODEANGLEPROC>(loadProc("glPolygonModeANGLE"));
     t_glProvokingVertexANGLE =
         reinterpret_cast<PFNGLPROVOKINGVERTEXANGLEPROC>(loadProc("glProvokingVertexANGLE"));
     t_glDisableExtensionANGLE =
@@ -2147,6 +2157,7 @@ void LoadTraceGLES(LoadProc loadProc)
     t_glTestFenceNV    = reinterpret_cast<PFNGLTESTFENCENVPROC>(loadProc("glTestFenceNV"));
     t_glBlitFramebufferNV =
         reinterpret_cast<PFNGLBLITFRAMEBUFFERNVPROC>(loadProc("glBlitFramebufferNV"));
+    t_glPolygonModeNV = reinterpret_cast<PFNGLPOLYGONMODENVPROC>(loadProc("glPolygonModeNV"));
     t_glEGLImageTargetRenderbufferStorageOES =
         reinterpret_cast<PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC>(
             loadProc("glEGLImageTargetRenderbufferStorageOES"));
@@ -2228,15 +2239,22 @@ void LoadTraceGLES(LoadProc loadProc)
         reinterpret_cast<PFNGLISVERTEXARRAYOESPROC>(loadProc("glIsVertexArrayOES"));
     t_glFramebufferTextureMultiviewOVR = reinterpret_cast<PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC>(
         loadProc("glFramebufferTextureMultiviewOVR"));
+    t_glFramebufferFoveationConfigQCOM = reinterpret_cast<PFNGLFRAMEBUFFERFOVEATIONCONFIGQCOMPROC>(
+        loadProc("glFramebufferFoveationConfigQCOM"));
+    t_glFramebufferFoveationParametersQCOM =
+        reinterpret_cast<PFNGLFRAMEBUFFERFOVEATIONPARAMETERSQCOMPROC>(
+            loadProc("glFramebufferFoveationParametersQCOM"));
     t_glShadingRateQCOM = reinterpret_cast<PFNGLSHADINGRATEQCOMPROC>(loadProc("glShadingRateQCOM"));
-    t_glDrawTexfOES     = reinterpret_cast<PFNGLDRAWTEXFOESPROC>(loadProc("glDrawTexfOES"));
-    t_glDrawTexfvOES    = reinterpret_cast<PFNGLDRAWTEXFVOESPROC>(loadProc("glDrawTexfvOES"));
-    t_glDrawTexiOES     = reinterpret_cast<PFNGLDRAWTEXIOESPROC>(loadProc("glDrawTexiOES"));
-    t_glDrawTexivOES    = reinterpret_cast<PFNGLDRAWTEXIVOESPROC>(loadProc("glDrawTexivOES"));
-    t_glDrawTexsOES     = reinterpret_cast<PFNGLDRAWTEXSOESPROC>(loadProc("glDrawTexsOES"));
-    t_glDrawTexsvOES    = reinterpret_cast<PFNGLDRAWTEXSVOESPROC>(loadProc("glDrawTexsvOES"));
-    t_glDrawTexxOES     = reinterpret_cast<PFNGLDRAWTEXXOESPROC>(loadProc("glDrawTexxOES"));
-    t_glDrawTexxvOES    = reinterpret_cast<PFNGLDRAWTEXXVOESPROC>(loadProc("glDrawTexxvOES"));
+    t_glTextureFoveationParametersQCOM = reinterpret_cast<PFNGLTEXTUREFOVEATIONPARAMETERSQCOMPROC>(
+        loadProc("glTextureFoveationParametersQCOM"));
+    t_glDrawTexfOES  = reinterpret_cast<PFNGLDRAWTEXFOESPROC>(loadProc("glDrawTexfOES"));
+    t_glDrawTexfvOES = reinterpret_cast<PFNGLDRAWTEXFVOESPROC>(loadProc("glDrawTexfvOES"));
+    t_glDrawTexiOES  = reinterpret_cast<PFNGLDRAWTEXIOESPROC>(loadProc("glDrawTexiOES"));
+    t_glDrawTexivOES = reinterpret_cast<PFNGLDRAWTEXIVOESPROC>(loadProc("glDrawTexivOES"));
+    t_glDrawTexsOES  = reinterpret_cast<PFNGLDRAWTEXSOESPROC>(loadProc("glDrawTexsOES"));
+    t_glDrawTexsvOES = reinterpret_cast<PFNGLDRAWTEXSVOESPROC>(loadProc("glDrawTexsvOES"));
+    t_glDrawTexxOES  = reinterpret_cast<PFNGLDRAWTEXXOESPROC>(loadProc("glDrawTexxOES"));
+    t_glDrawTexxvOES = reinterpret_cast<PFNGLDRAWTEXXVOESPROC>(loadProc("glDrawTexxvOES"));
     t_glBindFramebufferOES =
         reinterpret_cast<PFNGLBINDFRAMEBUFFEROESPROC>(loadProc("glBindFramebufferOES"));
     t_glBindRenderbufferOES =

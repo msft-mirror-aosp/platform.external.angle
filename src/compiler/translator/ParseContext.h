@@ -75,6 +75,7 @@ class TParseContext : angle::NonCopyable
         mFragmentPrecisionHighOnESSL1 = fragmentPrecisionHigh;
     }
 
+    bool usesDerivatives() const { return mUsesDerivatives; }
     bool isEarlyFragmentTestsSpecified() const { return mEarlyFragmentTestsSpecified; }
     bool hasDiscard() const { return mHasDiscard; }
     bool isSampleQualifierSpecified() const { return mSampleQualifierSpecified; }
@@ -354,10 +355,10 @@ class TParseContext : angle::NonCopyable
                                             const TSourceLoc &loc,
                                             const TVector<unsigned int> *arraySizes);
 
-    void checkDoesNotHaveDuplicateFieldName(const TFieldList::const_iterator begin,
-                                            const TFieldList::const_iterator end,
-                                            const ImmutableString &name,
-                                            const TSourceLoc &location);
+    void checkDoesNotHaveDuplicateFieldNames(const TFieldList *fields, const TSourceLoc &location);
+    void checkDoesNotHaveTooManyFields(const ImmutableString &name,
+                                       const TFieldList *fields,
+                                       const TSourceLoc &location);
     TFieldList *addStructFieldList(TFieldList *fields, const TSourceLoc &location);
     TFieldList *combineStructFieldLists(TFieldList *processedFields,
                                         const TFieldList *newlyAddedFields,
@@ -702,7 +703,15 @@ class TParseContext : angle::NonCopyable
         // To ensure identical behavior across all backends, we disallow assignment to these values
         // if pixel local storage uniforms have been declared.
         AssignFragDepth,
-        AssignSampleMask
+        AssignSampleMask,
+
+        // EXT_blend_func_extended may restrict the number of draw buffers with a nonzero output
+        // index, which can invalidate a PLS implementation.
+        FragDataIndexNonzero,
+
+        // KHR_blend_equation_advanced is incompatible with multiple draw buffers, which is a
+        // required feature for many PLS implementations.
+        EnableAdvancedBlendEquation,
     };
 
     // Generates an error if any pixel local storage uniforms have been declared (more specifically,
@@ -741,6 +750,7 @@ class TParseContext : angle::NonCopyable
                                                            // enabled and gl_PointSize is redefined.
     bool mPositionOrPointSizeUsedForSeparateShaderObject;  // true if gl_Position or gl_PointSize
                                                            // has been referenced.
+    bool mUsesDerivatives;  // true if screen-space derivatives are used implicitly or explicitly
     TLayoutMatrixPacking mDefaultUniformMatrixPacking;
     TLayoutBlockStorage mDefaultUniformBlockStorage;
     TLayoutMatrixPacking mDefaultBufferMatrixPacking;

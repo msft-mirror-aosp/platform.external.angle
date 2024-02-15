@@ -16,10 +16,8 @@
 #include "libANGLE/renderer/d3d/d3d9/RenderTarget9.h"
 #include "libANGLE/renderer/d3d/d3d9/formatutils9.h"
 #include "libANGLE/renderer/driver_utils.h"
-#include "platform/FeaturesD3D_autogen.h"
 #include "platform/PlatformMethods.h"
-
-#include "third_party/systeminfo/SystemInfo.h"
+#include "platform/autogen/FeaturesD3D_autogen.h"
 
 namespace rx
 {
@@ -691,7 +689,7 @@ void GenerateCaps(IDirect3D9 *d3d9,
             !(deviceCaps.TextureCaps & D3DPTEXTURECAPS_POW2) &&
             !(deviceCaps.TextureCaps & D3DPTEXTURECAPS_CUBEMAP_POW2) &&
             !(deviceCaps.TextureCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL) &&
-            !(!isWindowsVistaOrGreater() && IsAMD(adapterId.VendorId));
+            !(!IsWindowsVistaOrLater() && IsAMD(adapterId.VendorId));
 
         // Disable depth texture support on AMD cards (See ANGLE issue 839)
         if (IsAMD(adapterId.VendorId))
@@ -772,11 +770,6 @@ void GenerateCaps(IDirect3D9 *d3d9,
     // state.
     limitations->noSeparateStencilRefsAndMasks = true;
 
-    // D3D9 shader models have limited support for looping, so the Appendix A
-    // index/loop limitations are necessary. Workarounds that are needed to
-    // support dynamic indexing of vectors on HLSL also don't work on D3D9.
-    limitations->shadersRequireIndexedLoopValidation = true;
-
     // D3D9 cannot support constant color and alpha blend funcs together
     limitations->noSimultaneousConstantColorAndAlphaBlendFunc = true;
 
@@ -844,8 +837,19 @@ void InitializeFeatures(angle::FeaturesD3D *features, DWORD vendorID)
     ANGLE_FEATURE_CONDITION(features, allowClearForRobustResourceInit, true);
 
     ANGLE_FEATURE_CONDITION(features, borderColorSrgb, IsNvidia(vendorID));
+
+    // D3D9 shader models have limited support for looping, so the Appendix A
+    // index/loop limitations are necessary. Workarounds that are needed to
+    // support dynamic indexing of vectors on HLSL also don't work on D3D9.
+    ANGLE_FEATURE_CONDITION(features, supportsNonConstantLoopIndexing, false);
 }
 
+void InitializeFrontendFeatures(angle::FrontendFeatures *features, DWORD vendorID)
+{
+    // The D3D backend's handling of compile and link is thread-safe
+    ANGLE_FEATURE_CONDITION(features, compileJobIsThreadSafe, true);
+    ANGLE_FEATURE_CONDITION(features, linkJobIsThreadSafe, true);
+}
 }  // namespace d3d9
 
 }  // namespace rx

@@ -103,10 +103,10 @@ void GetModifiers(const egl::AttributeMap &attribs,
     }
 }
 
-angle::Result GetFormatModifierProperties(DisplayVk *displayVk,
-                                          VkFormat vkFormat,
-                                          uint64_t drmModifier,
-                                          VkDrmFormatModifierPropertiesEXT *modifierPropertiesOut)
+bool GetFormatModifierProperties(DisplayVk *displayVk,
+                                 VkFormat vkFormat,
+                                 uint64_t drmModifier,
+                                 VkDrmFormatModifierPropertiesEXT *modifierPropertiesOut)
 {
     RendererVk *renderer = displayVk->getRenderer();
 
@@ -142,12 +142,14 @@ angle::Result GetFormatModifierProperties(DisplayVk *displayVk,
     }
 
     // Return the properties if found.
-    ANGLE_VK_CHECK(displayVk, propertiesIndex < formatModifierPropertiesList.drmFormatModifierCount,
-                   VK_ERROR_FORMAT_NOT_SUPPORTED);
+    if (propertiesIndex >= formatModifierPropertiesList.drmFormatModifierCount)
+    {
+        return false;
+    }
 
     *modifierPropertiesOut =
         formatModifierPropertiesList.pDrmFormatModifierProperties[propertiesIndex];
-    return angle::Result::Continue;
+    return true;
 }
 
 VkImageUsageFlags GetUsageFlags(RendererVk *renderer,
@@ -156,7 +158,7 @@ VkImageUsageFlags GetUsageFlags(RendererVk *renderer,
                                 bool *texturableOut,
                                 bool *renderableOut)
 {
-    const bool isDepthStencilFormat = format.depthBits > 0 || format.stencilBits > 0;
+    const bool isDepthStencilFormat = format.hasDepthOrStencilBits();
 
     // Check what format features are exposed for this modifier.
     constexpr uint32_t kTextureableRequiredBits =
@@ -344,7 +346,7 @@ DmaBufImageSiblingVkLinux::~DmaBufImageSiblingVkLinux() {}
 egl::Error DmaBufImageSiblingVkLinux::initialize(const egl::Display *display)
 {
     DisplayVk *displayVk = vk::GetImpl(display);
-    return angle::ToEGL(initImpl(displayVk), displayVk, EGL_BAD_PARAMETER);
+    return angle::ToEGL(initImpl(displayVk), EGL_BAD_PARAMETER);
 }
 
 VkImageUsageFlags FindSupportedUsageFlagsForFormat(
@@ -419,8 +421,12 @@ angle::Result DmaBufImageSiblingVkLinux::initWithFormat(DisplayVk *displayVk,
 
     // First, check the possible features for the format and determine usage and create flags.
     VkDrmFormatModifierPropertiesEXT modifierProperties = {};
-    ANGLE_TRY(
-        GetFormatModifierProperties(displayVk, vulkanFormat, plane0Modifier, &modifierProperties));
+    if (!GetFormatModifierProperties(displayVk, vulkanFormat, plane0Modifier, &modifierProperties))
+    {
+        // Format is incompatible
+        *initResultOut = InitResult::Failed;
+        return angle::Result::Continue;
+    }
 
     VkImageUsageFlags usageFlags =
         GetUsageFlags(renderer, format, modifierProperties, &mTextureable, &mRenderable);
@@ -507,18 +513,7 @@ angle::Result DmaBufImageSiblingVkLinux::initWithFormat(DisplayVk *displayVk,
 
     constexpr bool kIsRobustInitEnabled = false;
 
-    ANGLE_TRY(mImage->initExternal(
-        displayVk, gl::TextureType::_2D, vkExtents, intendedFormatID, actualImageFormatID, 1,
-        usageFlags, createFlags, vk::ImageLayout::ExternalPreInitialized, imageCreateInfoPNext,
-        gl::LevelIndex(0), 1, 1, kIsRobustInitEnabled, hasProtectedContent()));
-
-    VkMemoryRequirements externalMemoryRequirements;
-    mImage->getImage().getMemoryRequirements(renderer->getDevice(), &externalMemoryRequirements);
-
-    const VkMemoryPropertyFlags flags =
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
-        (hasProtectedContent() ? VK_MEMORY_PROPERTY_PROTECTED_BIT : 0);
-
+    vk::YcbcrConversionDesc conversionDesc{};
     if (mYUV)
     {
         const VkChromaLocation xChromaOffset =
@@ -537,9 +532,31 @@ angle::Result DmaBufImageSiblingVkLinux::initWithFormat(DisplayVk *displayVk,
         ANGLE_VK_CHECK(displayVk, renderer->getFeatures().supportsYUVSamplerConversion.enabled,
                        VK_ERROR_FEATURE_NOT_PRESENT);
 
-        mImage->updateYcbcrConversionDesc(renderer, 0, model, range, xChromaOffset, yChromaOffset,
-                                          VK_FILTER_NEAREST, components, intendedFormatID);
+        const vk::YcbcrLinearFilterSupport linearFilterSupported =
+            renderer->hasImageFormatFeatureBits(
+                actualImageFormatID,
+                VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT)
+                ? vk::YcbcrLinearFilterSupport::Supported
+                : vk::YcbcrLinearFilterSupport::Unsupported;
+
+        // Build an appropriate conversion desc. This is not an android-style external format,
+        // but requires Ycbcr sampler conversion.
+        conversionDesc.update(renderer, 0, model, range, xChromaOffset, yChromaOffset,
+                              VK_FILTER_NEAREST, components, intendedFormatID,
+                              linearFilterSupported);
     }
+
+    ANGLE_TRY(mImage->initExternal(
+        displayVk, gl::TextureType::_2D, vkExtents, intendedFormatID, actualImageFormatID, 1,
+        usageFlags, createFlags, vk::ImageLayout::ExternalPreInitialized, imageCreateInfoPNext,
+        gl::LevelIndex(0), 1, 1, kIsRobustInitEnabled, hasProtectedContent(), conversionDesc));
+
+    VkMemoryRequirements externalMemoryRequirements;
+    mImage->getImage().getMemoryRequirements(renderer->getDevice(), &externalMemoryRequirements);
+
+    const VkMemoryPropertyFlags flags =
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+        (hasProtectedContent() ? VK_MEMORY_PROPERTY_PROTECTED_BIT : 0);
 
     AllocateInfo allocateInfo;
     uint32_t allocateInfoCount;

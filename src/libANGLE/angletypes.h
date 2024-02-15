@@ -22,6 +22,7 @@
 #include <stdint.h>
 
 #include <bitset>
+#include <functional>
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -233,6 +234,10 @@ struct RasterizerState final
     CullFaceMode cullMode;
     GLenum frontFace;
 
+    PolygonMode polygonMode;
+
+    bool polygonOffsetPoint;
+    bool polygonOffsetLine;
     bool polygonOffsetFill;
     GLfloat polygonOffsetFactor;
     GLfloat polygonOffsetUnits;
@@ -247,6 +252,15 @@ struct RasterizerState final
     bool rasterizerDiscard;
 
     bool dither;
+
+    bool isPolygonOffsetEnabled() const
+    {
+        static_assert(static_cast<int>(PolygonMode::Point) == 0, "PolygonMode::Point");
+        static_assert(static_cast<int>(PolygonMode::Line) == 1, "PolygonMode::Line");
+        static_assert(static_cast<int>(PolygonMode::Fill) == 2, "PolygonMode::Fill");
+        return (1 << static_cast<int>(polygonMode)) &
+               ((polygonOffsetPoint << 0) | (polygonOffsetLine << 1) | (polygonOffsetFill << 2));
+    }
 };
 
 bool operator==(const RasterizerState &a, const RasterizerState &b);
@@ -493,11 +507,18 @@ struct PixelPackState : PixelStoreStateBase
     bool reverseRowOrder = false;
 };
 
+// Used in VertexArray.
+using VertexArrayBufferBindingMask = angle::BitSet<MAX_VERTEX_ATTRIB_BINDINGS>;
+
 // Used in Program and VertexArray.
 using AttributesMask = angle::BitSet<MAX_VERTEX_ATTRIBS>;
 
 // Used in Program
-using UniformBlockBindingMask = angle::BitSet<IMPLEMENTATION_MAX_COMBINED_SHADER_UNIFORM_BUFFERS>;
+using ProgramUniformBlockMask = angle::BitSet<IMPLEMENTATION_MAX_COMBINED_SHADER_UNIFORM_BUFFERS>;
+template <typename T>
+using ProgramUniformBlockArray = std::array<T, IMPLEMENTATION_MAX_COMBINED_SHADER_UNIFORM_BUFFERS>;
+template <typename T>
+using UniformBufferBindingArray = std::array<T, IMPLEMENTATION_MAX_UNIFORM_BUFFER_BINDINGS>;
 
 // Used in Framebuffer / Program
 using DrawBufferMask = angle::BitSet8<IMPLEMENTATION_MAX_DRAW_BUFFERS>;
@@ -700,8 +721,16 @@ class BlendStateExt final
     void setEquationsIndexed(const size_t index,
                              const size_t otherIndex,
                              const BlendStateExt &other);
-    GLenum getEquationColorIndexed(size_t index) const;
-    GLenum getEquationAlphaIndexed(size_t index) const;
+    BlendEquationType getEquationColorIndexed(size_t index) const
+    {
+        ASSERT(index < mDrawBufferCount);
+        return EquationStorage::GetValueIndexed(index, mEquationColor);
+    }
+    BlendEquationType getEquationAlphaIndexed(size_t index) const
+    {
+        ASSERT(index < mDrawBufferCount);
+        return EquationStorage::GetValueIndexed(index, mEquationAlpha);
+    }
     DrawBufferMask compareEquations(const EquationStorage::Type color,
                                     const EquationStorage::Type alpha) const;
     DrawBufferMask compareEquations(const BlendStateExt &other) const
@@ -712,6 +741,7 @@ class BlendStateExt final
     ///////// Blend Factors /////////
 
     FactorStorage::Type expandFactorValue(const GLenum func) const;
+    FactorStorage::Type expandFactorValue(const gl::BlendFactorType func) const;
     FactorStorage::Type expandSrcColorIndexed(const size_t index) const;
     FactorStorage::Type expandDstColorIndexed(const size_t index) const;
     FactorStorage::Type expandSrcAlphaIndexed(const size_t index) const;
@@ -721,15 +751,36 @@ class BlendStateExt final
                     const GLenum srcAlpha,
                     const GLenum dstAlpha);
     void setFactorsIndexed(const size_t index,
+                           const gl::BlendFactorType srcColorFactor,
+                           const gl::BlendFactorType dstColorFactor,
+                           const gl::BlendFactorType srcAlphaFactor,
+                           const gl::BlendFactorType dstAlphaFactor);
+    void setFactorsIndexed(const size_t index,
                            const GLenum srcColor,
                            const GLenum dstColor,
                            const GLenum srcAlpha,
                            const GLenum dstAlpha);
     void setFactorsIndexed(const size_t index, const size_t otherIndex, const BlendStateExt &other);
-    GLenum getSrcColorIndexed(size_t index) const;
-    GLenum getDstColorIndexed(size_t index) const;
-    GLenum getSrcAlphaIndexed(size_t index) const;
-    GLenum getDstAlphaIndexed(size_t index) const;
+    BlendFactorType getSrcColorIndexed(size_t index) const
+    {
+        ASSERT(index < mDrawBufferCount);
+        return FactorStorage::GetValueIndexed(index, mSrcColor);
+    }
+    BlendFactorType getDstColorIndexed(size_t index) const
+    {
+        ASSERT(index < mDrawBufferCount);
+        return FactorStorage::GetValueIndexed(index, mDstColor);
+    }
+    BlendFactorType getSrcAlphaIndexed(size_t index) const
+    {
+        ASSERT(index < mDrawBufferCount);
+        return FactorStorage::GetValueIndexed(index, mSrcAlpha);
+    }
+    BlendFactorType getDstAlphaIndexed(size_t index) const
+    {
+        ASSERT(index < mDrawBufferCount);
+        return FactorStorage::GetValueIndexed(index, mDstAlpha);
+    }
     DrawBufferMask compareFactors(const FactorStorage::Type srcColor,
                                   const FactorStorage::Type dstColor,
                                   const FactorStorage::Type srcAlpha,
@@ -756,6 +807,11 @@ class BlendStateExt final
     constexpr DrawBufferMask getUsesAdvancedBlendEquationMask() const
     {
         return mUsesAdvancedBlendEquationMask;
+    }
+
+    constexpr DrawBufferMask getUsesExtendedBlendFactorMask() const
+    {
+        return mUsesExtendedBlendFactorMask;
     }
 
     constexpr uint8_t getDrawBufferCount() const { return mDrawBufferCount; }
@@ -802,17 +858,20 @@ class BlendStateExt final
     // Cache of whether the blend equation for each index is from KHR_blend_equation_advanced.
     DrawBufferMask mUsesAdvancedBlendEquationMask;
 
+    // Cache of whether the blend factor for each index is from EXT_blend_func_extended.
+    DrawBufferMask mUsesExtendedBlendFactorMask;
+
     uint8_t mDrawBufferCount;
 
-    ANGLE_MAYBE_UNUSED_PRIVATE_FIELD uint32_t kUnused = 0;
+    ANGLE_MAYBE_UNUSED_PRIVATE_FIELD uint8_t kUnused[3] = {};
 };
 
 static_assert(sizeof(BlendStateExt) == sizeof(uint64_t) +
                                            (sizeof(BlendStateExt::FactorStorage::Type) * 4 +
                                             sizeof(BlendStateExt::EquationStorage::Type) * 2 +
                                             sizeof(BlendStateExt::ColorMaskStorage::Type) * 2 +
-                                            sizeof(DrawBufferMask) * 3 + sizeof(uint8_t)) +
-                                           sizeof(uint32_t),
+                                            sizeof(DrawBufferMask) * 4 + sizeof(uint8_t)) +
+                                           sizeof(uint8_t) * 3,
               "The BlendStateExt class must not contain gaps.");
 
 // Used in StateCache
@@ -923,6 +982,9 @@ using RenderToTextureImageMap = angle::PackedEnumMap<RenderToTextureImageIndex, 
 constexpr size_t kCubeFaceCount = 6;
 
 template <typename T>
+using CubeFaceArray = std::array<T, kCubeFaceCount>;
+
+template <typename T>
 using TextureTypeMap = angle::PackedEnumMap<TextureType, T>;
 using TextureMap     = TextureTypeMap<BindingPointer<Texture>>;
 
@@ -955,16 +1017,6 @@ using ActiveTextureArray = std::array<T, IMPLEMENTATION_MAX_ACTIVE_TEXTURES>;
 
 using ActiveTextureTypeArray = ActiveTextureArray<TextureType>;
 
-template <typename T>
-using UniformBuffersArray = std::array<T, IMPLEMENTATION_MAX_UNIFORM_BUFFER_BINDINGS>;
-template <typename T>
-using StorageBuffersArray = std::array<T, IMPLEMENTATION_MAX_SHADER_STORAGE_BUFFER_BINDINGS>;
-template <typename T>
-using AtomicCounterBuffersArray = std::array<T, IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS>;
-using AtomicCounterBufferMask   = angle::BitSet<IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS>;
-template <typename T>
-using ImagesArray = std::array<T, IMPLEMENTATION_MAX_IMAGE_UNITS>;
-
 using ImageUnitMask = angle::BitSet<IMPLEMENTATION_MAX_IMAGE_UNITS>;
 
 using SupportedSampleSet = std::set<GLuint>;
@@ -972,6 +1024,8 @@ using SupportedSampleSet = std::set<GLuint>;
 template <typename T>
 using TransformFeedbackBuffersArray =
     std::array<T, gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_BUFFERS>;
+
+using ClipDistanceEnableBits = angle::BitSet32<IMPLEMENTATION_MAX_CLIP_DISTANCES>;
 
 template <typename T>
 using QueryTypeMap = angle::PackedEnumMap<QueryType, T>;
@@ -1122,6 +1176,68 @@ inline DestT *SafeGetImplAs(SrcT *src)
 
 namespace angle
 {
+// Under certain circumstances, such as for increased parallelism, the backend may defer an
+// operation to be done at the end of a call after the locks have been unlocked.  The entry point
+// function passes an |UnlockedTailCall| through the frontend to the backend.  If it is set, the
+// entry point would execute it at the end of the call.
+//
+// Since the function is called without any locks, care must be taken to minimize the amount of work
+// in such calls and ensure thread safety (for example by using fine grained locks inside the call
+// itself).
+//
+// Some entry points pass a void pointer argument to UnlockedTailCall::run method intended to
+// contain the return value filled by the backend, the rest of the entry points pass in a
+// nullptr.  Regardless, Display::terminate runs pending tail calls passing in a nullptr, so
+// the tail calls that return a value in the argument still have to guard against a nullptr
+// parameter.
+class UnlockedTailCall final : angle::NonCopyable
+{
+  public:
+    using CallType = std::function<void(void *)>;
+
+    UnlockedTailCall();
+    ~UnlockedTailCall();
+
+    void add(CallType &&call);
+    ANGLE_INLINE void run(void *resultOut)
+    {
+        if (!mCalls.empty())
+        {
+            runImpl(resultOut);
+        }
+    }
+
+    bool any() const { return !mCalls.empty(); }
+
+  private:
+    void runImpl(void *resultOut);
+
+    // Typically, there is only one tail call.  It is possible to end up with 2 tail calls currently
+    // with unMakeCurrent destroying both the read and draw surfaces, each adding a tail call in the
+    // Vulkan backend.
+    //
+    // The max count can be increased as necessary.  An assertion would fire inside FixedVector if
+    // the max count is surpassed.
+    static constexpr size_t kMaxCallCount = 2;
+    angle::FixedVector<CallType, kMaxCallCount> mCalls;
+};
+
+enum class JobThreadSafety
+{
+    Safe,
+    Unsafe,
+};
+
+enum class JobResultExpectancy
+{
+    // Whether the compile or link job's results are immediately needed.  This is the case for GLES1
+    // programs for example, or shader compilation in glCreateShaderProgramv.
+    Immediate,
+    // Whether the compile or link job's results are needed after the end of the current entry point
+    // call.  In this case, the job may be done in an unlocked tail call.
+    Future,
+};
+
 // Zero-based for better array indexing
 enum FramebufferBinding
 {
@@ -1190,6 +1306,92 @@ using UniqueObjectPointer = std::unique_ptr<ObjT, DestroyThenDelete<ObjT, Contex
 namespace gl
 {
 class State;
+
+// Focal Point information for foveated rendering
+struct FocalPoint
+{
+    float focalX;
+    float focalY;
+    float gainX;
+    float gainY;
+    float foveaArea;
+
+    constexpr FocalPoint() : focalX(0), focalY(0), gainX(0), gainY(0), foveaArea(0) {}
+
+    FocalPoint(float fX, float fY, float gX, float gY, float fArea)
+        : focalX(fX), focalY(fY), gainX(gX), gainY(gY), foveaArea(fArea)
+    {}
+    FocalPoint(const FocalPoint &other)            = default;
+    FocalPoint &operator=(const FocalPoint &other) = default;
+
+    bool operator==(const FocalPoint &other) const
+    {
+        return focalX == other.focalX && focalY == other.focalY && gainX == other.gainX &&
+               gainY == other.gainY && foveaArea == other.foveaArea;
+    }
+    bool operator!=(const FocalPoint &other) const { return !(*this == other); }
+};
+
+constexpr FocalPoint kInvalidFocalPoint = FocalPoint();
+
+class FoveationState
+{
+  public:
+    FoveationState()
+    {
+        mConfigured          = false;
+        mFoveatedFeatureBits = 0;
+        mMinPixelDensity     = 0.0f;
+        mFocalPoints.fill(kInvalidFocalPoint);
+    }
+    FoveationState &operator=(const FoveationState &other) = default;
+
+    void configure() { mConfigured = true; }
+    bool isConfigured() const { return mConfigured; }
+    bool isFoveated() const
+    {
+        // Consider foveated if ANY focal point is valid
+        return std::any_of(
+            mFocalPoints.begin(), mFocalPoints.end(),
+            [](const FocalPoint &focalPoint) { return (focalPoint != kInvalidFocalPoint); });
+    }
+    bool operator==(const FoveationState &other) const
+    {
+        return mConfigured == other.mConfigured &&
+               mFoveatedFeatureBits == other.mFoveatedFeatureBits &&
+               mMinPixelDensity == other.mMinPixelDensity && mFocalPoints == other.mFocalPoints;
+    }
+    void setFoveatedFeatureBits(const GLuint features) { mFoveatedFeatureBits = features; }
+    GLuint getFoveatedFeatureBits() const { return mFoveatedFeatureBits; }
+    void setMinPixelDensity(const GLfloat density) { mMinPixelDensity = density; }
+    GLfloat getMinPixelDensity() const { return mMinPixelDensity; }
+    GLuint getMaxNumFocalPoints() const { return gl::IMPLEMENTATION_MAX_FOCAL_POINTS; }
+    void setFocalPoint(uint32_t layer, uint32_t focalPointIndex, const FocalPoint &focalPoint)
+    {
+        mFocalPoints[getIndex(layer, focalPointIndex)] = focalPoint;
+    }
+    const FocalPoint &getFocalPoint(uint32_t layer, uint32_t focalPointIndex) const
+    {
+        return mFocalPoints[getIndex(layer, focalPointIndex)];
+    }
+    GLuint getSupportedFoveationFeatures() const { return GL_FOVEATION_ENABLE_BIT_QCOM; }
+
+  private:
+    size_t getIndex(uint32_t layer, uint32_t focalPointIndex) const
+    {
+        ASSERT(layer < IMPLEMENTATION_MAX_NUM_LAYERS &&
+               focalPointIndex < IMPLEMENTATION_MAX_FOCAL_POINTS);
+        return (layer * IMPLEMENTATION_MAX_FOCAL_POINTS) + focalPointIndex;
+    }
+    bool mConfigured;
+    GLuint mFoveatedFeatureBits;
+    GLfloat mMinPixelDensity;
+
+    static constexpr size_t kMaxFocalPoints =
+        IMPLEMENTATION_MAX_NUM_LAYERS * IMPLEMENTATION_MAX_FOCAL_POINTS;
+    std::array<FocalPoint, kMaxFocalPoints> mFocalPoints;
+};
+
 }  // namespace gl
 
 #endif  // LIBANGLE_ANGLETYPES_H_

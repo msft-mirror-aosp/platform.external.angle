@@ -19,6 +19,7 @@
 #include "libANGLE/FramebufferAttachment.h"
 #include "libANGLE/PixelLocalStorage.h"
 #include "libANGLE/Renderbuffer.h"
+#include "libANGLE/ShareGroup.h"
 #include "libANGLE/Surface.h"
 #include "libANGLE/Texture.h"
 #include "libANGLE/angletypes.h"
@@ -796,7 +797,8 @@ Framebuffer::Framebuffer(const Context *context, rx::GLImplFactory *factory)
       mCachedStatus(FramebufferStatus::Incomplete(GL_FRAMEBUFFER_UNDEFINED_OES,
                                                   err::kFramebufferIncompleteSurfaceless)),
       mDirtyDepthAttachmentBinding(this, DIRTY_BIT_DEPTH_ATTACHMENT),
-      mDirtyStencilAttachmentBinding(this, DIRTY_BIT_STENCIL_ATTACHMENT)
+      mDirtyStencilAttachmentBinding(this, DIRTY_BIT_STENCIL_ATTACHMENT),
+      mAttachmentChangedAfterEnablingFoveation(false)
 {
     mDirtyColorAttachmentBindings.emplace_back(this, DIRTY_BIT_COLOR_ATTACHMENT_0);
     SetComponentTypeMask(getDrawbufferWriteType(0), 0, &mState.mDrawBufferTypeMask);
@@ -807,7 +809,8 @@ Framebuffer::Framebuffer(const Context *context, rx::GLImplFactory *factory, Fra
       mImpl(factory->createFramebuffer(mState)),
       mCachedStatus(),
       mDirtyDepthAttachmentBinding(this, DIRTY_BIT_DEPTH_ATTACHMENT),
-      mDirtyStencilAttachmentBinding(this, DIRTY_BIT_STENCIL_ATTACHMENT)
+      mDirtyStencilAttachmentBinding(this, DIRTY_BIT_STENCIL_ATTACHMENT),
+      mAttachmentChangedAfterEnablingFoveation(false)
 {
     ASSERT(mImpl != nullptr);
     ASSERT(mState.mColorAttachments.size() ==
@@ -996,17 +999,17 @@ const std::string &Framebuffer::getLabel() const
     return mState.mLabel;
 }
 
-bool Framebuffer::detachTexture(const Context *context, TextureID textureId)
+bool Framebuffer::detachTexture(Context *context, TextureID textureId)
 {
     return detachResourceById(context, GL_TEXTURE, textureId.value);
 }
 
-bool Framebuffer::detachRenderbuffer(const Context *context, RenderbufferID renderbufferId)
+bool Framebuffer::detachRenderbuffer(Context *context, RenderbufferID renderbufferId)
 {
     return detachResourceById(context, GL_RENDERBUFFER, renderbufferId.value);
 }
 
-bool Framebuffer::detachResourceById(const Context *context, GLenum resourceType, GLuint resourceId)
+bool Framebuffer::detachResourceById(Context *context, GLenum resourceType, GLuint resourceId)
 {
     bool found = false;
 
@@ -1047,13 +1050,23 @@ bool Framebuffer::detachResourceById(const Context *context, GLenum resourceType
     return found;
 }
 
-bool Framebuffer::detachMatchingAttachment(const Context *context,
+bool Framebuffer::detachMatchingAttachment(Context *context,
                                            FramebufferAttachment *attachment,
                                            GLenum matchType,
                                            GLuint matchId)
 {
     if (attachment->isAttached() && attachment->type() == matchType && attachment->id() == matchId)
     {
+        const State &contextState = context->getState();
+        if (contextState.getPixelLocalStorageActivePlanes() != 0 &&
+            this == contextState.getDrawFramebuffer())
+        {
+            // If a (renderbuffer, texture) object is deleted while its image is attached to the
+            // currently bound draw framebuffer object, and pixel local storage is active, then it
+            // is as if EndPixelLocalStorageANGLE() had been called with
+            // <n>=PIXEL_LOCAL_STORAGE_ACTIVE_PLANES_ANGLE and <storeops> of STORE_OP_STORE_ANGLE.
+            context->endPixelLocalStorageWithStoreOpsStore();
+        }
         // We go through resetAttachment to make sure that all the required bookkeeping will be done
         // such as updating enabled draw buffer state.
         resetAttachment(context, attachment->getBinding());
@@ -1284,14 +1297,27 @@ const FramebufferStatus &Framebuffer::checkStatusImpl(const Context *context) co
         // We can skip syncState on several back-ends.
         if (mImpl->shouldSyncStateBeforeCheckStatus())
         {
-            // This binding is not totally correct. It is ok because the parameter isn't used in
-            // the GL back-end and the GL back-end is the only user of syncStateBeforeCheckStatus.
-            angle::Result err = syncState(context, GL_FRAMEBUFFER, Command::Other);
-            if (err != angle::Result::Continue)
             {
-                mCachedStatus =
-                    FramebufferStatus::Incomplete(0, err::kFramebufferIncompleteInternalError);
-                return mCachedStatus.value();
+                angle::Result err = syncAllDrawAttachmentState(context, Command::Other);
+                if (err != angle::Result::Continue)
+                {
+                    mCachedStatus =
+                        FramebufferStatus::Incomplete(0, err::kFramebufferIncompleteInternalError);
+                    return mCachedStatus.value();
+                }
+            }
+
+            {
+                // This binding is not totally correct. It is ok because the parameter isn't used in
+                // the GL back-end and the GL back-end is the only user of
+                // syncStateBeforeCheckStatus.
+                angle::Result err = syncState(context, GL_FRAMEBUFFER, Command::Other);
+                if (err != angle::Result::Continue)
+                {
+                    mCachedStatus =
+                        FramebufferStatus::Incomplete(0, err::kFramebufferIncompleteInternalError);
+                    return mCachedStatus.value();
+                }
             }
         }
 
@@ -1313,6 +1339,7 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
     Optional<bool> fixedSampleLocations;
     bool hasRenderbuffer = false;
     Optional<int> renderToTextureSamples;
+    uint32_t foveatedRenderingAttachmentCount = 0;
 
     const FramebufferAttachment *firstAttachment = getFirstNonNullAttachment();
 
@@ -1407,6 +1434,10 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
                             err::kFramebufferIncompleteMismatchedLayeredTexturetypes);
                     }
                 }
+            }
+            if (colorAttachment.hasFoveatedRendering())
+            {
+                foveatedRenderingAttachmentCount++;
             }
         }
     }
@@ -1528,6 +1559,28 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
         return FramebufferStatus::Incomplete(
             GL_FRAMEBUFFER_UNSUPPORTED,
             err::kFramebufferIncompleteDepthAndStencilBuffersNotTheSame);
+    }
+
+    // [QCOM_texture_foveated] - Additions to Chapter 9.4 (Framebuffer Completeness) -
+    // - More than one color attachment is foveated.
+    //   { FRAMEBUFFER_INCOMPLETE_FOVEATION_QCOM }
+    // - Depth or stencil attachments are foveated textures.
+    //   { FRAMEBUFFER_INCOMPLETE_FOVEATION_QCOM }
+    // - The framebuffer has been configured for foveation via QCOM_framebuffer_foveated
+    //   and any color attachment is a foveated texture.
+    //   { FRAMEBUFFER_INCOMPLETE_FOVEATION_QCOM }
+    const bool multipleAttachmentsAreFoveated = foveatedRenderingAttachmentCount > 1;
+    const bool depthAttachmentIsFoveated =
+        depthAttachment.isAttached() && depthAttachment.hasFoveatedRendering();
+    const bool stencilAttachmentIsFoveated =
+        stencilAttachment.isAttached() && stencilAttachment.hasFoveatedRendering();
+    const bool framebufferAndAttachmentsAreFoveated =
+        isFoveationEnabled() && foveatedRenderingAttachmentCount > 0;
+    if (multipleAttachmentsAreFoveated || depthAttachmentIsFoveated ||
+        stencilAttachmentIsFoveated || framebufferAndAttachmentsAreFoveated)
+    {
+        return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_FOVEATION_QCOM,
+                                             err::kFramebufferIncompleteFoveatedRendering);
     }
 
     // Special additional validation for WebGL 1 DEPTH/STENCIL/DEPTH_STENCIL.
@@ -2088,11 +2141,12 @@ void Framebuffer::setAttachmentImpl(const Context *context,
             if (!resource)
             {
                 mFloat32ColorAttachmentBits.reset(colorIndex);
+                mSharedExponentColorAttachmentBits.reset(colorIndex);
                 mState.mColorAttachmentsMask.reset(colorIndex);
             }
             else
             {
-                updateFloat32ColorAttachmentBits(
+                updateFloat32AndSharedExponentColorAttachmentBits(
                     colorIndex, resource->getAttachmentFormat(binding, textureIndex).info);
                 mState.mColorAttachmentsMask.set(colorIndex);
             }
@@ -2124,6 +2178,7 @@ void Framebuffer::updateAttachment(const Context *context,
     mDirtyBits.set(dirtyBit);
     mState.mResourceNeedsInit.set(dirtyBit, attachment->initState() == InitState::MayNeedInit);
     onDirtyBinding->bind(resource);
+    mAttachmentChangedAfterEnablingFoveation = isFoveationEnabled();
 
     invalidateCompletenessCache();
 }
@@ -2196,8 +2251,17 @@ void Framebuffer::onSubjectStateChange(angle::SubjectIndex index, angle::Subject
             return;
         }
 
+        // This can be triggered when a subject's foveated rendering state is changed
+        if (message == angle::SubjectMessage::FoveatedRenderingStateChanged)
+        {
+            mDirtyBits.set(DIRTY_BIT_FOVEATION);
+            onStateChange(angle::SubjectMessage::DirtyBitsFlagged);
+            return;
+        }
+
         // This can be triggered by the GL back-end TextureGL class.
-        ASSERT(message == angle::SubjectMessage::DirtyBitsFlagged);
+        ASSERT(message == angle::SubjectMessage::DirtyBitsFlagged ||
+               message == angle::SubjectMessage::TextureIDDeleted);
         return;
     }
 
@@ -2211,13 +2275,13 @@ void Framebuffer::onSubjectStateChange(angle::SubjectIndex index, angle::Subject
     // Mark the appropriate init flag.
     mState.mResourceNeedsInit.set(index, attachment->initState() == InitState::MayNeedInit);
 
-    // Update mFloat32ColorAttachmentBits Cache
+    // Update mFloat32ColorAttachmentBits and mSharedExponentColorAttachmentBits cache
     if (index < DIRTY_BIT_COLOR_ATTACHMENT_MAX)
     {
         ASSERT(index != DIRTY_BIT_DEPTH_ATTACHMENT);
         ASSERT(index != DIRTY_BIT_STENCIL_ATTACHMENT);
-        updateFloat32ColorAttachmentBits(index - DIRTY_BIT_COLOR_ATTACHMENT_0,
-                                         attachment->getFormat().info);
+        updateFloat32AndSharedExponentColorAttachmentBits(index - DIRTY_BIT_COLOR_ATTACHMENT_0,
+                                                          attachment->getFormat().info);
     }
 }
 
@@ -2625,6 +2689,87 @@ Extents Framebuffer::getExtents() const
     return mState.getExtents();
 }
 
+bool Framebuffer::isFoveationEnabled() const
+{
+    return (mState.mFoveationState.getFoveatedFeatureBits() & GL_FOVEATION_ENABLE_BIT_QCOM);
+}
+
+GLuint Framebuffer::getFoveatedFeatureBits() const
+{
+    return mState.mFoveationState.getFoveatedFeatureBits();
+}
+
+void Framebuffer::setFoveatedFeatureBits(const GLuint features)
+{
+    mState.mFoveationState.setFoveatedFeatureBits(features);
+}
+
+bool Framebuffer::isFoveationConfigured() const
+{
+    return mState.mFoveationState.isConfigured();
+}
+
+void Framebuffer::configureFoveation()
+{
+    mState.mFoveationState.configure();
+}
+
+void Framebuffer::setFocalPoint(uint32_t layer,
+                                uint32_t focalPointIndex,
+                                float focalX,
+                                float focalY,
+                                float gainX,
+                                float gainY,
+                                float foveaArea)
+{
+    gl::FocalPoint newFocalPoint(focalX, focalY, gainX, gainY, foveaArea);
+    if (mState.mFoveationState.getFocalPoint(layer, focalPointIndex) == newFocalPoint)
+    {
+        // Nothing to do, early out.
+        return;
+    }
+
+    mState.mFoveationState.setFocalPoint(layer, focalPointIndex, newFocalPoint);
+    mState.mFoveationState.setFoveatedFeatureBits(GL_FOVEATION_ENABLE_BIT_QCOM);
+    mDirtyBits.set(DIRTY_BIT_FOVEATION);
+    onStateChange(angle::SubjectMessage::DirtyBitsFlagged);
+}
+
+const FocalPoint &Framebuffer::getFocalPoint(uint32_t layer, uint32_t focalPoint) const
+{
+    return mState.mFoveationState.getFocalPoint(layer, focalPoint);
+}
+
+bool Framebuffer::canSupportFoveatedRendering() const
+{
+    // Can't foveate a framebuffer without an attachemnt.
+    if (mState.mColorAttachmentsMask.count() == 0)
+    {
+        return false;
+    }
+
+    for (size_t colorIndex : mState.mEnabledDrawBuffers)
+    {
+        const gl::FramebufferAttachment *attachment = mState.getColorAttachment(colorIndex);
+        ASSERT(attachment);
+        ASSERT(attachment->type() != GL_NONE);
+
+        // Only non-external texture attachments are supported for foveated rendering.
+        // TODO (anglebug.com/8484): Add support for renderbuffer attachments
+        if (attachment->type() != GL_TEXTURE || attachment->isExternalTexture())
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+GLuint Framebuffer::getSupportedFoveationFeatures() const
+{
+    return mState.mFoveationState.getSupportedFoveationFeatures();
+}
+
 angle::Result Framebuffer::ensureBufferInitialized(const Context *context,
                                                    GLenum bufferType,
                                                    GLint bufferIndex)
@@ -2724,5 +2869,41 @@ PixelLocalStorage &Framebuffer::getPixelLocalStorage(const Context *context)
 std::unique_ptr<PixelLocalStorage> Framebuffer::detachPixelLocalStorage()
 {
     return std::move(mPixelLocalStorage);
+}
+
+angle::Result Framebuffer::syncAllDrawAttachmentState(const Context *context, Command command) const
+{
+    for (size_t drawbufferIdx = 0; drawbufferIdx < mState.getDrawBufferCount(); ++drawbufferIdx)
+    {
+        ANGLE_TRY(syncAttachmentState(context, command, mState.getDrawBuffer(drawbufferIdx)));
+    }
+
+    ANGLE_TRY(syncAttachmentState(context, command, mState.getDepthAttachment()));
+    ANGLE_TRY(syncAttachmentState(context, command, mState.getStencilAttachment()));
+
+    return angle::Result::Continue;
+}
+
+angle::Result Framebuffer::syncAttachmentState(const Context *context,
+                                               Command command,
+                                               const FramebufferAttachment *attachment) const
+{
+    if (!attachment)
+    {
+        return angle::Result::Continue;
+    }
+
+    // Only texture attachments can sync state. Renderbuffer and Surface attachments are always
+    // synchronized.
+    if (attachment->type() == GL_TEXTURE)
+    {
+        Texture *texture = attachment->getTexture();
+        if (texture->hasAnyDirtyBitExcludingBoundAsAttachmentBit())
+        {
+            ANGLE_TRY(texture->syncState(context, command));
+        }
+    }
+
+    return angle::Result::Continue;
 }
 }  // namespace gl

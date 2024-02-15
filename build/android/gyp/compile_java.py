@@ -14,7 +14,6 @@ import shutil
 import sys
 import time
 import zipfile
-import pathlib
 
 import javac_output_processor
 from util import build_utils
@@ -217,24 +216,14 @@ ERRORPRONE_WARNINGS_TO_ENABLE = [
 def ProcessJavacOutput(output, target_name):
   # These warnings cannot be suppressed even for third party code. Deprecation
   # warnings especially do not help since we must support older android version.
-  deprecated_re = re.compile(
-      r'(Note: .* uses? or overrides? a deprecated API.)$')
+  deprecated_re = re.compile(r'Note: .* uses? or overrides? a deprecated API')
   unchecked_re = re.compile(
       r'(Note: .* uses? unchecked or unsafe operations.)$')
   recompile_re = re.compile(r'(Note: Recompile with -Xlint:.* for details.)$')
 
-  activity_re = re.compile(r'^(?P<prefix>\s*location: )class Activity$')
-
   def ApplyFilters(line):
     return not (deprecated_re.match(line) or unchecked_re.match(line)
                 or recompile_re.match(line))
-
-  def Elaborate(line):
-    if activity_re.match(line):
-      prefix = ' ' * activity_re.match(line).end('prefix')
-      return '{}\n{}Expecting a FragmentActivity? See {}'.format(
-          line, prefix, 'docs/ui/android/bytecode_rewriting.md')
-    return line
 
   output = build_utils.FilterReflectiveAccessJavaWarnings(output)
 
@@ -250,7 +239,6 @@ def ProcessJavacOutput(output, target_name):
     output = re.sub(r'\d+ warnings\n', '', output)
 
   lines = (l for l in output.split('\n') if ApplyFilters(l))
-  lines = (Elaborate(l) for l in lines)
 
   output_processor = javac_output_processor.JavacOutputProcessor(target_name)
   lines = output_processor.Process(lines)
@@ -461,15 +449,23 @@ def _OnStaleMd5(changes, options, javac_cmd, javac_args, java_files, kt_files):
 
   # Compiles with Error Prone take twice as long to run as pure javac. Thus GN
   # rules run both in parallel, with Error Prone only used for checks.
-  _RunCompiler(changes,
-               options,
-               javac_cmd + javac_args,
-               java_files,
-               options.jar_path,
-               kt_files=kt_files,
-               jar_info_path=jar_info_path,
-               intermediates_out_dir=intermediates_out_dir,
-               enable_partial_javac=True)
+  try:
+    _RunCompiler(changes,
+                 options,
+                 javac_cmd + javac_args,
+                 java_files,
+                 options.jar_path,
+                 kt_files=kt_files,
+                 jar_info_path=jar_info_path,
+                 intermediates_out_dir=intermediates_out_dir,
+                 enable_partial_javac=True)
+  except build_utils.CalledProcessError as e:
+    # Do not output stacktrace as it takes up space on gerrit UI, forcing
+    # you to click though to find the actual compilation error. It's never
+    # interesting to see the Python stacktrace for a Java compilation error.
+    sys.stderr.write(e.output)
+    sys.exit(1)
+
   logging.info('Completed all steps in _OnStaleMd5')
 
 
@@ -751,10 +747,9 @@ def main(argv):
 
   javac_args = [
       '-g',
-      # We currently target JDK 11 everywhere, since Mockito is broken by JDK17.
-      # See crbug.com/1409661 for more details.
+      # Jacoco does not currently support a higher value.
       '--release',
-      '11',
+      '17',
       # Chromium only allows UTF8 source files.  Being explicit avoids
       # javac pulling a default encoding from the user's environment.
       '-encoding',
@@ -766,6 +761,9 @@ def main(argv):
       # protobuf-generated files fail this check (javadoc has @deprecated,
       # but method missing @Deprecated annotation).
       '-Xlint:-dep-ann',
+      # Do not warn about finalize() methods. Android still intends to support
+      # them.
+      '-Xlint:-removal',
   ]
 
   if options.enable_errorprone:
@@ -829,7 +827,8 @@ def main(argv):
 
   depfile_deps = classpath_inputs
   # Files that are already inputs in GN should go in input_paths.
-  input_paths = depfile_deps + options.java_srcjars + java_files + kt_files
+  input_paths = ([build_utils.JAVAC_PATH] + depfile_deps +
+                 options.java_srcjars + java_files + kt_files)
   if options.header_jar:
     input_paths.append(options.header_jar)
   input_paths += [x[0] for x in options.additional_jar_files]

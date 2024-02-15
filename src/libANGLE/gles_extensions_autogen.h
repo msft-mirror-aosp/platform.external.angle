@@ -60,6 +60,7 @@ struct Extensions
     bool framebufferBlitAny() const { return (framebufferBlitANGLE || framebufferBlitNV); }
     bool geometryShaderAny() const { return (geometryShaderEXT || geometryShaderOES); }
     bool instancedArraysAny() const { return (instancedArraysANGLE || instancedArraysEXT); }
+    bool polygonModeAny() const { return (polygonModeANGLE || polygonModeNV); }
     bool primitiveBoundingBoxAny() const
     {
         return (primitiveBoundingBoxEXT || primitiveBoundingBoxOES);
@@ -262,6 +263,9 @@ struct Extensions
     // GL_MESA_framebuffer_flip_y
     bool framebufferFlipYMESA = false;
 
+    // GL_QCOM_framebuffer_foveated
+    bool framebufferFoveatedQCOM = false;
+
     // GL_EXT_geometry_shader
     bool geometryShaderEXT = false;
 
@@ -333,6 +337,9 @@ struct Extensions
 
     // GL_NV_pixel_buffer_object
     bool pixelBufferObjectNV = false;
+
+    // GL_NV_polygon_mode
+    bool polygonModeNV = false;
 
     // GL_EXT_polygon_offset_clamp
     bool polygonOffsetClampEXT = false;
@@ -466,6 +473,12 @@ struct Extensions
     // GL_OES_texture_compression_astc
     bool textureCompressionAstcOES = false;
 
+    // GL_EXT_texture_compression_astc_decode_mode
+    bool textureCompressionAstcDecodeModeEXT = false;
+
+    // GL_EXT_texture_compression_astc_decode_mode_rgb9e5
+    bool textureCompressionAstcDecodeModeRgb9e5EXT = false;
+
     // GL_KHR_texture_compression_astc_hdr
     bool textureCompressionAstcHdrKHR = false;
 
@@ -519,6 +532,9 @@ struct Extensions
 
     // GL_EXT_texture_format_sRGB_override
     bool textureFormatSRGBOverrideEXT = false;
+
+    // GL_QCOM_texture_foveated
+    bool textureFoveatedQCOM = false;
 
     // GL_OES_texture_half_float
     bool textureHalfFloatOES = false;
@@ -661,6 +677,9 @@ struct Extensions
     // GL_ANGLE_multiview_multisample
     bool multiviewMultisampleANGLE = false;
 
+    // GL_ANGLE_polygon_mode
+    bool polygonModeANGLE = false;
+
     // GL_ANGLE_program_binary
     bool programBinaryANGLE = false;
 
@@ -675,6 +694,9 @@ struct Extensions
 
     // GL_ANGLE_relaxed_vertex_attribute_type
     bool relaxedVertexAttributeTypeANGLE = false;
+
+    // GL_ANGLE_renderability_validation
+    bool renderabilityValidationANGLE = false;
 
     // GL_ANGLE_request_extension
     bool requestExtensionANGLE = false;
@@ -717,9 +739,6 @@ struct Extensions
 
     // GL_ANGLE_texture_external_update
     bool textureExternalUpdateANGLE = false;
-
-    // GL_CHROMIUM_texture_filtering_hint
-    bool textureFilteringHintCHROMIUM = false;
 
     // GL_ANGLE_texture_multisample
     bool textureMultisampleANGLE = false;

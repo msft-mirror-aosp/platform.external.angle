@@ -1,34 +1,64 @@
 # -*- bazel-starlark -*-
-# Copyright 2023 The Chromium Authors. All rights reserved.
+# Copyright 2023 The Chromium Authors
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 """Siso configuration for linux."""
 
 load("@builtin//struct.star", "module")
+load("./android.star", "android")
 load("./clang_linux.star", "clang")
+load("./config.star", "config")
+load("./cros.star", "cros")
+load("./devtools_frontend.star", "devtools_frontend")
 load("./nacl_linux.star", "nacl")
-load("./remote_exec_wrapper.star", "remote_exec_wrapper")
+load("./nasm_linux.star", "nasm")
+load("./proto_linux.star", "proto")
+load("./reproxy.star", "reproxy")
+load("./rust_linux.star", "rust")
+load("./typescript_unix.star", "typescript")
 
-__filegroups = {}
-__filegroups.update(clang.filegroups)
-__filegroups.update(nacl.filegroups)
+def __filegroups(ctx):
+    fg = {}
+    fg.update(android.filegroups(ctx))
+    fg.update(clang.filegroups(ctx))
+    fg.update(cros.filegroups(ctx))
+    fg.update(devtools_frontend.filegroups(ctx))
+    fg.update(nacl.filegroups(ctx))
+    fg.update(nasm.filegroups(ctx))
+    fg.update(proto.filegroups(ctx))
+    fg.update(rust.filegroups(ctx))
+    fg.update(typescript.filegroups(ctx))
+    return fg
 
 __handlers = {}
+__handlers.update(android.handlers)
 __handlers.update(clang.handlers)
+__handlers.update(cros.handlers)
+__handlers.update(devtools_frontend.handlers)
 __handlers.update(nacl.handlers)
+__handlers.update(nasm.handlers)
+__handlers.update(proto.handlers)
+__handlers.update(rust.handlers)
+__handlers.update(typescript.handlers)
 
 def __step_config(ctx, step_config):
-    step_config["platforms"] = {
-        "default": {
-            "OSFamily": "Linux",
-            "container-image": "docker://gcr.io/chops-private-images-prod/rbe/siso-chromium/linux@sha256:d4fcda628ebcdb3dd79b166619c56da08d5d7bd43d1a7b1f69734904cc7a1bb2",
-        },
-    }
-    if remote_exec_wrapper.enabled(ctx):
-        step_config = remote_exec_wrapper.step_config(ctx, step_config)
-    else:
-        step_config = clang.step_config(ctx, step_config)
-        step_config = nacl.step_config(ctx, step_config)
+    config.check(ctx)
+
+    if android.enabled(ctx):
+        step_config = android.step_config(ctx, step_config)
+
+    # nacl step config should be added before clang step config for link step
+    # rules.
+    step_config = nacl.step_config(ctx, step_config)
+
+    step_config = clang.step_config(ctx, step_config)
+    step_config = cros.step_config(ctx, step_config)
+    step_config = devtools_frontend.step_config(ctx, step_config)
+    step_config = nasm.step_config(ctx, step_config)
+    step_config = proto.step_config(ctx, step_config)
+    step_config = rust.step_config(ctx, step_config)
+    step_config = typescript.step_config(ctx, step_config)
+
     return step_config
 
 chromium = module(

@@ -167,6 +167,61 @@ constexpr bool IsValidWithPixelLocalStorage(TLayoutImageInternalFormat internalF
             return false;
     }
 }
+
+bool UsesDerivatives(TIntermAggregate *functionCall)
+{
+    const TOperator op = functionCall->getOp();
+    if (BuiltInGroup::IsDerivativesFS(op))
+    {
+        return true;
+    }
+    switch (op)
+    {
+        // TextureFirstVersions with implicit LOD
+        case EOpTexture2D:
+        case EOpTexture2DProj:
+        case EOpTextureCube:
+        case EOpTexture1D:
+        case EOpTexture1DProj:
+        case EOpTexture3D:
+        case EOpTexture3DProj:
+        case EOpShadow1D:
+        case EOpShadow1DProj:
+        case EOpShadow2D:
+        case EOpShadow2DProj:
+        case EOpShadow2DEXT:
+        case EOpShadow2DProjEXT:
+        // TextureFirstVersionsBias
+        case EOpTexture2DBias:
+        case EOpTexture2DProjBias:
+        case EOpTextureCubeBias:
+        case EOpTexture3DBias:
+        case EOpTexture3DProjBias:
+        case EOpTexture1DBias:
+        case EOpTexture1DProjBias:
+        case EOpShadow1DBias:
+        case EOpShadow1DProjBias:
+        case EOpShadow2DBias:
+        case EOpShadow2DProjBias:
+        // TextureNoBias
+        case EOpTexture:
+        case EOpTextureProj:
+        // TextureBias
+        case EOpTextureBias:
+        case EOpTextureProjBias:
+        // TextureQueryLod
+        case EOpTextureQueryLod:
+        // TextureOffsetNoBias
+        case EOpTextureOffset:
+        case EOpTextureProjOffset:
+        // TextureOffsetBias
+        case EOpTextureOffsetBias:
+        case EOpTextureProjOffsetBias:
+            return true;
+        default:
+            return false;
+    }
+}
 }  // namespace
 
 // This tracks each binding point's current default offset for inheritance of subsequent
@@ -230,6 +285,7 @@ TParseContext::TParseContext(TSymbolTable &symt,
       mPositionRedeclaredForSeparateShaderObject(false),
       mPointSizeRedeclaredForSeparateShaderObject(false),
       mPositionOrPointSizeUsedForSeparateShaderObject(false),
+      mUsesDerivatives(false),
       mDefaultUniformMatrixPacking(EmpColumnMajor),
       mDefaultUniformBlockStorage(sh::IsWebGLBasedSpec(spec) ? EbsStd140 : EbsShared),
       mDefaultBufferMatrixPacking(EmpColumnMajor),
@@ -433,6 +489,14 @@ void TParseContext::errorIfPLSDeclared(const TSourceLoc &loc, PLSIllegalOperatio
         case PLSIllegalOperations::AssignSampleMask:
             error(loc, "value not assignable when pixel local storage is declared",
                   "gl_SampleMask");
+            break;
+        case PLSIllegalOperations::FragDataIndexNonzero:
+            error(loc, "illegal nonzero index qualifier when pixel local storage is declared",
+                  "layout");
+            break;
+        case PLSIllegalOperations::EnableAdvancedBlendEquation:
+            error(loc, "illegal advanced blend equation when pixel local storage is declared",
+                  "layout");
             break;
     }
 }
@@ -952,6 +1016,13 @@ bool TParseContext::checkConstructorArguments(const TSourceLoc &line,
             if (argTyped->getBasicType() == EbtStruct)
             {
                 error(line, "a struct cannot be used as a constructor argument for this type",
+                      "constructor");
+                return false;
+            }
+            if (argTyped->getBasicType() == EbtInterfaceBlock)
+            {
+                error(line,
+                      "an interface block cannot be used as a constructor argument for this type",
                       "constructor");
                 return false;
             }
@@ -4188,6 +4259,7 @@ void TParseContext::parseGlobalLayoutQualifier(const TTypeQualifierBuilder &type
             return;
         }
 
+        errorIfPLSDeclared(typeQualifier.line, PLSIllegalOperations::EnableAdvancedBlendEquation);
         mAdvancedBlendEquations |= layoutQualifier.advancedBlendEquations;
     }
     else if (typeQualifier.qualifier == EvqTessControlOut)
@@ -4636,6 +4708,11 @@ bool TParseContext::checkUnsizedArrayConstructorArgumentDimensionality(
     {
         const TIntermTyped *element = arg->getAsTyped();
         ASSERT(element);
+        if (element->getType().isUnsizedArray())
+        {
+            error(line, "constructing from an unsized array", "constructor");
+            return false;
+        }
         size_t dimensionalityFromElement = element->getType().getNumArraySizes() + 1u;
         if (dimensionalityFromElement > type.getNumArraySizes())
         {
@@ -4717,6 +4794,11 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
     const TVector<unsigned int> *arraySizes,
     const TSourceLoc &arraySizesLine)
 {
+    checkDoesNotHaveTooManyFields(blockName, fieldList, nameLine);
+
+    // Ensure there are no duplicate field names
+    checkDoesNotHaveDuplicateFieldNames(fieldList, nameLine);
+
     const bool isGLPerVertex = blockName == "gl_PerVertex";
     // gl_PerVertex is allowed to be redefined and therefore not reserved
     if (!isGLPerVertex)
@@ -5254,14 +5336,25 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
                     break;
             }
         }
-        else if (baseExpression->getQualifier() == EvqFragmentOut)
+        else if (baseExpression->getQualifier() == EvqFragmentOut ||
+                 baseExpression->getQualifier() == EvqFragmentInOut)
         {
             error(location,
                   "array indexes for fragment outputs must be constant integral expressions", "[");
         }
+        else if (baseExpression->getQualifier() == EvqLastFragData)
+        {
+            error(location,
+                  "array indexes for gl_LastFragData must be constant integral expressions", "[");
+        }
         else if (mShaderSpec == SH_WEBGL2_SPEC && baseExpression->getQualifier() == EvqFragData)
         {
             error(location, "array index for gl_FragData must be constant zero", "[");
+        }
+        else if (mShaderSpec == SH_WEBGL2_SPEC &&
+                 baseExpression->getQualifier() == EvqSecondaryFragDataEXT)
+        {
+            error(location, "array index for gl_SecondaryFragDataEXT must be constant zero", "[");
         }
         else if (baseExpression->isArray())
         {
@@ -5831,7 +5924,7 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
         {
             qualifier.depth = EdLess;
         }
-        else if (qualifierType == "depth_unchanged")
+        else if (qualifierType == "depth_unchanged" && !sh::IsWebGLBasedSpec(mShaderSpec))
         {
             qualifier.depth = EdUnchanged;
         }
@@ -6064,6 +6157,10 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
              checkCanUseExtension(qualifierTypeLine, TExtension::EXT_blend_func_extended))
     {
         parseIndexLayoutQualifier(intValue, intValueLine, intValueString, &qualifier.index);
+        if (intValue != 0)
+        {
+            errorIfPLSDeclared(qualifierTypeLine, PLSIllegalOperations::FragDataIndexNonzero);
+        }
     }
     else if (qualifierType == "vertices" && mShaderType == GL_TESS_CONTROL_SHADER_EXT &&
              (mShaderVersion >= 320 ||
@@ -6250,28 +6347,40 @@ TDeclarator *TParseContext::parseStructArrayDeclarator(const ImmutableString &id
     return new TDeclarator(identifier, arraySizes, loc);
 }
 
-void TParseContext::checkDoesNotHaveDuplicateFieldName(const TFieldList::const_iterator begin,
-                                                       const TFieldList::const_iterator end,
-                                                       const ImmutableString &name,
-                                                       const TSourceLoc &location)
+void TParseContext::checkDoesNotHaveDuplicateFieldNames(const TFieldList *fields,
+                                                        const TSourceLoc &location)
 {
-    for (auto fieldIter = begin; fieldIter != end; ++fieldIter)
+    TUnorderedMap<ImmutableString, uint32_t, ImmutableString::FowlerNollVoHash<sizeof(size_t)>>
+        fieldNames;
+    for (TField *field : *fields)
     {
-        if ((*fieldIter)->name() == name)
+        // Note: operator[] adds this name to the map if it doesn't already exist, and initializes
+        // its value to 0.
+        uint32_t count = ++fieldNames[field->name()];
+        if (count != 1)
         {
-            error(location, "duplicate field name in structure", name);
+            error(location, "Duplicate field name in structure", field->name());
         }
+    }
+}
+
+void TParseContext::checkDoesNotHaveTooManyFields(const ImmutableString &name,
+                                                  const TFieldList *fields,
+                                                  const TSourceLoc &location)
+{
+    // Check that there are not too many fields.  SPIR-V has a limit of 16383 fields, and it would
+    // be reasonable to apply that limit to all outputs.  For example, it was observed that 32768
+    // fields cause the Nvidia GL driver to fail compilation, so such a limit is not too specific to
+    // SPIR-V.
+    constexpr size_t kMaxFieldCount = 16383;
+    if (fields->size() > kMaxFieldCount)
+    {
+        error(location, "Too many fields in the struct (limit is 16383)", name);
     }
 }
 
 TFieldList *TParseContext::addStructFieldList(TFieldList *fields, const TSourceLoc &location)
 {
-    for (TFieldList::const_iterator fieldIter = fields->begin(); fieldIter != fields->end();
-         ++fieldIter)
-    {
-        checkDoesNotHaveDuplicateFieldName(fields->begin(), fieldIter, (*fieldIter)->name(),
-                                           location);
-    }
     return fields;
 }
 
@@ -6279,12 +6388,8 @@ TFieldList *TParseContext::combineStructFieldLists(TFieldList *processedFields,
                                                    const TFieldList *newlyAddedFields,
                                                    const TSourceLoc &location)
 {
-    for (TField *field : *newlyAddedFields)
-    {
-        checkDoesNotHaveDuplicateFieldName(processedFields->begin(), processedFields->end(),
-                                           field->name(), location);
-        processedFields->push_back(field);
-    }
+    processedFields->insert(processedFields->end(), newlyAddedFields->begin(),
+                            newlyAddedFields->end());
     return processedFields;
 }
 
@@ -6377,7 +6482,12 @@ TTypeSpecifierNonArray TParseContext::addStructure(const TSourceLoc &structLine,
         }
     }
 
-    // ensure we do not specify any storage qualifiers on the struct members
+    checkDoesNotHaveTooManyFields(structName, fieldList, structLine);
+
+    // Ensure there are no duplicate field names
+    checkDoesNotHaveDuplicateFieldNames(fieldList, structLine);
+
+    // Ensure we do not specify any storage qualifiers on the struct members
     for (unsigned int typeListIndex = 0; typeListIndex < fieldList->size(); typeListIndex++)
     {
         TField &field              = *(*fieldList)[typeListIndex];
@@ -6396,6 +6506,25 @@ TTypeSpecifierNonArray TParseContext::addStructure(const TSourceLoc &structLine,
         {
             error(field.line(), "invalid qualifier on struct member", "invariant");
         }
+
+        const TLayoutQualifier layoutQualifier = field.type()->getLayoutQualifier();
+        if (!layoutQualifier.isEmpty())
+        {
+            error(field.line(), "invalid layout qualifier on struct member", "layout");
+        }
+
+        const TMemoryQualifier memoryQualifier = field.type()->getMemoryQualifier();
+        if (!memoryQualifier.isEmpty())
+        {
+            error(field.line(), "invalid memory qualifier on struct member",
+                  memoryQualifier.getAnyQualifierString());
+        }
+
+        if (field.type()->isPrecise())
+        {
+            error(field.line(), "invalid precise qualifier on struct member", "precise");
+        }
+
         // ESSL 3.10 section 4.1.8 -- atomic_uint or images are not allowed as structure member.
         // ANGLE_shader_pixel_local_storage also disallows PLS as struct members.
         if (IsImage(field.type()->getBasicType()) ||
@@ -7621,6 +7750,11 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCall(TFunctionLookup *fnCa
             TIntermAggregate *callNode =
                 TIntermAggregate::CreateBuiltInFunctionCall(*fnCandidate, &fnCall->arguments());
             callNode->setLine(loc);
+
+            if (UsesDerivatives(callNode))
+            {
+                mUsesDerivatives = true;
+            }
 
             checkAtomicMemoryBuiltinFunctions(callNode);
             checkTextureOffset(callNode);

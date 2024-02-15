@@ -1100,6 +1100,149 @@ TEST_P(BufferDataTestES3, NoBufferInitDataCopyBug)
     ASSERT_GL_NO_ERROR();
 }
 
+// This a shortened version of dEQP functional.buffer.copy.basic.array_copy_read. It provoked
+// a bug in copyBufferSubData. The bug appeared to be that conversion buffers were not marked
+// as dirty and therefore after copyBufferSubData the next draw call using the buffer that
+// just had data copied to it was not re-converted. It's not clear to me how this ever worked
+// or why changes to bufferSubData from
+// https://chromium-review.googlesource.com/c/angle/angle/+/3842641 made this issue appear and
+// why it wasn't already broken.
+TEST_P(BufferDataTestES3, CopyBufferSubDataDraw)
+{
+    const char simpleVertex[]   = R"(attribute vec2 position;
+attribute vec4 color;
+varying vec4 vColor;
+void main()
+{
+    gl_Position = vec4(position, 0, 1);
+    vColor = color;
+}
+)";
+    const char simpleFragment[] = R"(precision mediump float;
+varying vec4 vColor;
+void main()
+{
+    gl_FragColor = vColor;
+}
+)";
+
+    ANGLE_GL_PROGRAM(program, simpleVertex, simpleFragment);
+    glUseProgram(program);
+
+    GLint colorLoc = glGetAttribLocation(program, "color");
+    ASSERT_NE(-1, colorLoc);
+    GLint posLoc = glGetAttribLocation(program, "position");
+    ASSERT_NE(-1, posLoc);
+
+    glClearColor(0, 0, 0, 0);
+
+    GLBuffer srcBuffer;  // green
+    GLBuffer dstBuffer;  // red
+
+    constexpr size_t numElements = 399;
+    std::vector<GLColorRGB> reds(numElements, GLColorRGB::red);
+    std::vector<GLColorRGB> greens(numElements, GLColorRGB::green);
+    constexpr size_t sizeOfElem  = sizeof(decltype(greens)::value_type);
+    constexpr size_t sizeInBytes = numElements * sizeOfElem;
+
+    glBindBuffer(GL_ARRAY_BUFFER, srcBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeInBytes, greens.data(), GL_STREAM_DRAW);
+
+    glBindBuffer(GL_COPY_READ_BUFFER, dstBuffer);
+    glBufferData(GL_COPY_READ_BUFFER, sizeInBytes, reds.data(), GL_STREAM_DRAW);
+    ASSERT_GL_NO_ERROR();
+
+    constexpr size_t numQuads = numElements / 4;
+
+    // Generate quads that fill clip space to use all the vertex colors
+    std::vector<float> positions(numQuads * 4 * 2);
+    for (size_t quad = 0; quad < numQuads; ++quad)
+    {
+        size_t offset = quad * 4 * 2;
+        float x0      = float(quad + 0) / numQuads * 2.0f - 1.0f;
+        float x1      = float(quad + 1) / numQuads * 2.0f - 1.0f;
+
+        /*
+           2--3
+           |  |
+           0--1
+        */
+        positions[offset + 0] = x0;
+        positions[offset + 1] = -1;
+        positions[offset + 2] = x1;
+        positions[offset + 3] = -1;
+        positions[offset + 4] = x0;
+        positions[offset + 5] = 1;
+        positions[offset + 6] = x1;
+        positions[offset + 7] = 1;
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 0, positions.data());
+    ASSERT_GL_NO_ERROR();
+
+    glBindBuffer(GL_ARRAY_BUFFER, srcBuffer);
+    glEnableVertexAttribArray(colorLoc);
+    glVertexAttribPointer(colorLoc, 3, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+    ASSERT_GL_NO_ERROR();
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    std::vector<GLushort> indices(numQuads * 6);
+    for (size_t quad = 0; quad < numQuads; ++quad)
+    {
+        size_t ndx          = quad * 4;
+        size_t offset       = quad * 6;
+        indices[offset + 0] = ndx;
+        indices[offset + 1] = ndx + 1;
+        indices[offset + 2] = ndx + 2;
+        indices[offset + 3] = ndx + 2;
+        indices[offset + 4] = ndx + 1;
+        indices[offset + 5] = ndx + 3;
+    }
+    GLBuffer indexBuffer;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(decltype(indices)::value_type),
+                 indices.data(), GL_STATIC_DRAW);
+
+    // Draw with srcBuffer (green)
+    glDrawElements(GL_TRIANGLES, numQuads * 6, GL_UNSIGNED_SHORT, 0);
+    EXPECT_PIXEL_RECT_EQ(0, 0, 16, 16, GLColor::green);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw with dstBuffer (red)
+    glBindBuffer(GL_ARRAY_BUFFER, dstBuffer);
+    glEnableVertexAttribArray(colorLoc);
+    glVertexAttribPointer(colorLoc, 3, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+    glDrawElements(GL_TRIANGLES, numQuads * 6, GL_UNSIGNED_SHORT, 0);
+    EXPECT_PIXEL_RECT_EQ(0, 0, 16, 16, GLColor::red);
+    ASSERT_GL_NO_ERROR();
+
+    // Copy src to dst. Yes, we're using GL_COPY_READ_BUFFER as dest because that's what the dEQP
+    // test was testing.
+    glBindBuffer(GL_ARRAY_BUFFER, srcBuffer);
+    glBindBuffer(GL_COPY_READ_BUFFER, dstBuffer);
+    glCopyBufferSubData(GL_ARRAY_BUFFER, GL_COPY_READ_BUFFER, 0, 0, sizeInBytes);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw with srcBuffer. It should still be green.
+    glBindBuffer(GL_ARRAY_BUFFER, srcBuffer);
+    glEnableVertexAttribArray(colorLoc);
+    glVertexAttribPointer(colorLoc, 3, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+    glDrawElements(GL_TRIANGLES, numQuads * 6, GL_UNSIGNED_SHORT, 0);
+    EXPECT_PIXEL_RECT_EQ(0, 0, 16, 16, GLColor::green);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw with dstBuffer. It should now be green too.
+    glBindBuffer(GL_ARRAY_BUFFER, dstBuffer);
+    glEnableVertexAttribArray(colorLoc);
+    glVertexAttribPointer(colorLoc, 3, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+    glDrawElements(GL_TRIANGLES, numQuads * 6, GL_UNSIGNED_SHORT, 0);
+    EXPECT_PIXEL_RECT_EQ(0, 0, 16, 16, GLColor::green);
+
+    ASSERT_GL_NO_ERROR();
+}
+
 // Ensures that calling glBufferData on a mapped buffer results in an unmapped buffer
 TEST_P(BufferDataTestES3, BufferDataUnmap)
 {
@@ -1381,9 +1524,78 @@ TEST_P(BufferStorageTestES3, BufferDataStorageBuffer)
     glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * data.size(), data.data(), GL_STATIC_DRAW);
     ASSERT_GL_NO_ERROR();
 
-    // Verify that calling glBufferStorageEXT again produces an error.
+    // Verify that calling glBufferStorageEXT produces no error
     glBufferStorageEXT(GL_ARRAY_BUFFER, sizeof(GLfloat) * data.size(), data.data(), 0);
     ASSERT_GL_NO_ERROR();
+}
+
+// Verify that consecutive BufferStorage calls don't clobber data
+// This is a regression test for an AllocateNonZeroMemory bug, where the offset
+// of the suballocation wasn't being used properly
+TEST_P(BufferStorageTestES3, BufferStorageClobber)
+{
+    ANGLE_SKIP_TEST_IF(getClientMajorVersion() < 3 ||
+                       !IsGLExtensionEnabled("GL_EXT_buffer_storage"));
+
+    constexpr size_t largeSizes[] = {101, 103, 107, 109, 113, 127, 131, 137, 139};
+    constexpr size_t smallSizes[] = {7, 11, 13, 17, 19, 23, 29, 31, 37, 41};
+    constexpr size_t readBackSize = 16;
+
+    for (size_t largeSize : largeSizes)
+    {
+        std::vector<GLubyte> data0(largeSize * 1024, 0x1E);
+
+        // Check for a test author error, we can't read back more than the size of data0.
+        ASSERT(readBackSize <= data0.size());
+
+        // Do a large write first, ensure this is a device-local buffer only (no storage flags)
+        GLBuffer buffer0;
+        glBindBuffer(GL_ARRAY_BUFFER, buffer0);
+        glBufferStorageEXT(GL_ARRAY_BUFFER, sizeof(GLubyte) * data0.size(), data0.data(), 0);
+        ASSERT_GL_NO_ERROR();
+
+        // Do a bunch of smaller writes next, creating/deleting buffers as
+        // we go (we just want to try to fuzz it so we might write to the
+        // same suballocation as the above)
+        for (size_t smallSize : smallSizes)
+        {
+            std::vector<GLubyte> data1(smallSize, 0x4A);
+            GLBuffer buffer1;
+            glBindBuffer(GL_ARRAY_BUFFER, buffer1);
+            glBufferStorageEXT(GL_ARRAY_BUFFER, sizeof(GLubyte) * data1.size(), data1.data(), 0);
+            ASSERT_GL_NO_ERROR();
+
+            // Force the buffer write (and other buffer creation setup work) to
+            // flush
+            glFinish();
+        }
+
+        // Create a staging area to read back the buffer
+        GLBuffer mappable;
+        glBindBuffer(GL_ARRAY_BUFFER, mappable);
+        glBufferStorageEXT(GL_ARRAY_BUFFER, sizeof(GLubyte) * readBackSize, nullptr,
+                           GL_MAP_READ_BIT);
+        ASSERT_GL_NO_ERROR();
+
+        glBindBuffer(GL_COPY_READ_BUFFER, buffer0);
+        glBindBuffer(GL_COPY_WRITE_BUFFER, mappable);
+        glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0,
+                            sizeof(GLubyte) * readBackSize);
+        ASSERT_GL_NO_ERROR();
+        glBindBuffer(GL_COPY_READ_BUFFER, 0);
+        glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+
+        GLubyte *mapped = reinterpret_cast<GLubyte *>(
+            glMapBufferRange(GL_ARRAY_BUFFER, 0, sizeof(GLubyte) * readBackSize, GL_MAP_READ_BIT));
+        ASSERT_NE(mapped, nullptr);
+        ASSERT_GL_NO_ERROR();
+        for (size_t i = 0; i < readBackSize; i++)
+        {
+            EXPECT_EQ(mapped[i], data0[i])
+                << "Expected " << static_cast<int>(data0[i]) << " at index " << i << ", got "
+                << static_cast<int>(mapped[i]);
+        }
+    }
 }
 
 // Verify that we can perform subdata updates to a buffer marked with GL_DYNAMIC_STORAGE_BIT_EXT
@@ -2137,7 +2349,8 @@ ANGLE_INSTANTIATE_TEST_ES3_AND(BufferDataTestES3,
                                ES3_METAL().enable(Feature::ForceBufferGPUStorage));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(BufferStorageTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(BufferStorageTestES3);
+ANGLE_INSTANTIATE_TEST_ES3_AND(BufferStorageTestES3,
+                               ES3_VULKAN().enable(Feature::AllocateNonZeroMemory));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(IndexedBufferCopyTest);
 ANGLE_INSTANTIATE_TEST_ES3(IndexedBufferCopyTest);

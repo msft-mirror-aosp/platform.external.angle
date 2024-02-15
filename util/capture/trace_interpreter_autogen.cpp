@@ -19,6 +19,13 @@ CallCapture ParseCallCapture(const Token &nameToken,
                              const Token *paramTokens,
                              const TraceStringMap &strings)
 {
+    if (strcmp(nameToken, "eglAcquireExternalContextANGLE") == 0)
+    {
+        ParamBuffer params =
+            ParseParameters<std::remove_pointer<PFNEGLACQUIREEXTERNALCONTEXTANGLEPROC>::type>(
+                paramTokens, strings);
+        return CallCapture(EntryPoint::EGLAcquireExternalContextANGLE, std::move(params));
+    }
     if (strcmp(nameToken, "eglBindAPI") == 0)
     {
         ParamBuffer params =
@@ -576,6 +583,13 @@ CallCapture ParseCallCapture(const Token &nameToken,
             ParseParameters<std::remove_pointer<PFNEGLRELEASEDEVICEANGLEPROC>::type>(paramTokens,
                                                                                      strings);
         return CallCapture(EntryPoint::EGLReleaseDeviceANGLE, std::move(params));
+    }
+    if (strcmp(nameToken, "eglReleaseExternalContextANGLE") == 0)
+    {
+        ParamBuffer params =
+            ParseParameters<std::remove_pointer<PFNEGLRELEASEEXTERNALCONTEXTANGLEPROC>::type>(
+                paramTokens, strings);
+        return CallCapture(EntryPoint::EGLReleaseExternalContextANGLE, std::move(params));
     }
     if (strcmp(nameToken, "eglReleaseHighPowerGPUANGLE") == 0)
     {
@@ -2161,6 +2175,20 @@ CallCapture ParseCallCapture(const Token &nameToken,
             ParseParameters<std::remove_pointer<PFNGLFRAMEBUFFERFETCHBARRIEREXTPROC>::type>(
                 paramTokens, strings);
         return CallCapture(EntryPoint::GLFramebufferFetchBarrierEXT, std::move(params));
+    }
+    if (strcmp(nameToken, "glFramebufferFoveationConfigQCOM") == 0)
+    {
+        ParamBuffer params =
+            ParseParameters<std::remove_pointer<PFNGLFRAMEBUFFERFOVEATIONCONFIGQCOMPROC>::type>(
+                paramTokens, strings);
+        return CallCapture(EntryPoint::GLFramebufferFoveationConfigQCOM, std::move(params));
+    }
+    if (strcmp(nameToken, "glFramebufferFoveationParametersQCOM") == 0)
+    {
+        ParamBuffer params =
+            ParseParameters<std::remove_pointer<PFNGLFRAMEBUFFERFOVEATIONPARAMETERSQCOMPROC>::type>(
+                paramTokens, strings);
+        return CallCapture(EntryPoint::GLFramebufferFoveationParametersQCOM, std::move(params));
     }
     if (strcmp(nameToken, "glFramebufferMemorylessPixelLocalStorageANGLE") == 0)
     {
@@ -4336,6 +4364,18 @@ CallCapture ParseCallCapture(const Token &nameToken,
             ParseParameters<std::remove_pointer<PFNGLPOINTSIZEXPROC>::type>(paramTokens, strings);
         return CallCapture(EntryPoint::GLPointSizex, std::move(params));
     }
+    if (strcmp(nameToken, "glPolygonModeANGLE") == 0)
+    {
+        ParamBuffer params = ParseParameters<std::remove_pointer<PFNGLPOLYGONMODEANGLEPROC>::type>(
+            paramTokens, strings);
+        return CallCapture(EntryPoint::GLPolygonModeANGLE, std::move(params));
+    }
+    if (strcmp(nameToken, "glPolygonModeNV") == 0)
+    {
+        ParamBuffer params = ParseParameters<std::remove_pointer<PFNGLPOLYGONMODENVPROC>::type>(
+            paramTokens, strings);
+        return CallCapture(EntryPoint::GLPolygonModeNV, std::move(params));
+    }
     if (strcmp(nameToken, "glPolygonOffset") == 0)
     {
         ParamBuffer params = ParseParameters<std::remove_pointer<PFNGLPOLYGONOFFSETPROC>::type>(
@@ -5659,6 +5699,13 @@ CallCapture ParseCallCapture(const Token &nameToken,
             ParseParameters<std::remove_pointer<PFNGLTEXSUBIMAGE3DROBUSTANGLEPROC>::type>(
                 paramTokens, strings);
         return CallCapture(EntryPoint::GLTexSubImage3DRobustANGLE, std::move(params));
+    }
+    if (strcmp(nameToken, "glTextureFoveationParametersQCOM") == 0)
+    {
+        ParamBuffer params =
+            ParseParameters<std::remove_pointer<PFNGLTEXTUREFOVEATIONPARAMETERSQCOMPROC>::type>(
+                paramTokens, strings);
+        return CallCapture(EntryPoint::GLTextureFoveationParametersQCOM, std::move(params));
     }
     if (strcmp(nameToken, "glTransformFeedbackVaryings") == 0)
     {

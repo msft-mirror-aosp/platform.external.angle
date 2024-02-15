@@ -12,7 +12,6 @@ import collections
 import tempfile
 import unittest
 
-from six.moves import range  # pylint: disable=redefined-builtin
 from pylib.base import base_test_result
 from pylib.instrumentation import instrumentation_test_instance
 
@@ -131,7 +130,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
         },
         'class': 'org.chromium.test.SampleTest',
         'method': 'testMethod1',
-        'is_junit4': True,
       },
       {
         'annotations': {
@@ -140,7 +138,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
         },
         'class': 'org.chromium.test.SampleTest',
         'method': 'testMethod2',
-        'is_junit4': True,
       },
       {
         'annotations': {
@@ -149,7 +146,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
         },
         'class': 'org.chromium.test.SampleTest2',
         'method': 'testMethod1',
-        'is_junit4': True,
       },
     ]
 
@@ -185,7 +181,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
           'SmallTest': None,
         },
         'class': 'org.chromium.test.SampleTest',
-        'is_junit4': True,
         'method': 'testMethod1',
       },
     ]
@@ -249,7 +244,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                 'SmallTest': None,
             },
             'class': 'org.chromium.test.SampleTest',
-            'is_junit4': True,
             'method': 'testMethod1',
         },
     ]
@@ -316,7 +310,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                 'SmallTest': None,
             },
             'class': 'org.chromium.test.SampleTest',
-            'is_junit4': True,
             'method': 'testMethod1',
         },
     ]
@@ -358,7 +351,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
           'SmallTest': None,
         },
         'class': 'org.chromium.test.SampleTest',
-        'is_junit4': True,
         'method': 'testMethod1',
       },
     ]
@@ -408,7 +400,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
         },
         'class': 'org.chromium.test.SampleTest',
         'method': 'testMethod1',
-        'is_junit4': True,
       },
       {
         'annotations': {
@@ -417,7 +408,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
         },
         'class': 'org.chromium.test.SampleTest',
         'method': 'testMethod1__sandboxed_mode',
-        'is_junit4': True,
       },
     ]
 
@@ -465,7 +455,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
           'SmallTest': None,
         },
         'class': 'org.chromium.test.SampleTest2',
-        'is_junit4': True,
         'method': 'testMethod1',
       },
     ]
@@ -514,7 +503,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
           'MediumTest': None,
         },
         'class': 'org.chromium.test.SampleTest',
-        'is_junit4': True,
         'method': 'testMethod2',
       },
       {
@@ -523,7 +511,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
           'SmallTest': None,
         },
         'class': 'org.chromium.test.SampleTest2',
-        'is_junit4': True,
         'method': 'testMethod1',
       },
     ]
@@ -572,7 +559,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
           'SmallTest': None,
         },
         'class': 'org.chromium.test.SampleTest',
-        'is_junit4': True,
         'method': 'testMethod1',
       },
       {
@@ -581,7 +567,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
           'SmallTest': None,
         },
         'class': 'org.chromium.test.SampleTest2',
-        'is_junit4': True,
         'method': 'testMethod1',
       },
     ]
@@ -632,7 +617,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                 'MediumTest': None,
             },
             'class': 'org.chromium.test.SampleTest',
-            'is_junit4': True,
             'method': 'testMethod2',
         },
     ]
@@ -725,7 +709,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                 'FlakyTest': None,
             },
             'class': 'org.chromium.test.SampleTest',
-            'is_junit4': True,
             'method': 'testMethod2',
         },
     ]
@@ -786,7 +769,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                 'TestValue': '1',
             },
             'class': 'org.chromium.test.SampleTest',
-            'is_junit4': True,
             'method': 'testMethod1',
         },
     ]
@@ -835,7 +817,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
           'SmallTest': None,
         },
         'class': 'org.chromium.test.SampleTest2',
-        'is_junit4': True,
         'method': 'testMethod1',
       },
     ]
@@ -855,7 +836,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                  'timeout': '0'},
                  'UiThreadTest': {}},
       'class': 'org.chromium.TestA',
-      'is_junit4': True,
       'method': 'testSimple'}
     unqualified_class_test = {
       'class': test['class'].split('.')[-1],
@@ -877,13 +857,12 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                  'UiThreadTest': {}},
       'class': 'org.chromium.TestA',
       'flags': ['enable_features=abc'],
-      'is_junit4': True,
       'method': 'testSimple'}
     self.assertEqual(
         instrumentation_test_instance.GetUniqueTestName(test, sep='.'),
         'org.chromium.TestA.testSimple_with_enable_features=abc')
 
-  def testGetTestNameWithoutParameterPostfix(self):
+  def testGetTestNameWithoutParameterSuffix(self):
     test = {
       'annotations': {
         'RunWith': {'value': 'class J4Runner'},
@@ -892,17 +871,16 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                  'UiThreadTest': {}},
       'class': 'org.chromium.TestA__sandbox_mode',
       'flags': 'enable_features=abc',
-      'is_junit4': True,
       'method': 'testSimple'}
     unqualified_class_test = {
       'class': test['class'].split('.')[-1],
       'method': test['method']
     }
     self.assertEqual(
-        instrumentation_test_instance.GetTestNameWithoutParameterPostfix(
+        instrumentation_test_instance.GetTestNameWithoutParameterSuffix(
             test, sep='.'), 'org.chromium.TestA')
     self.assertEqual(
-        instrumentation_test_instance.GetTestNameWithoutParameterPostfix(
+        instrumentation_test_instance.GetTestNameWithoutParameterSuffix(
             unqualified_class_test, sep='.'), 'TestA')
 
   def testGetTests_multipleAnnotationValuesRequested(self):
@@ -948,7 +926,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                 'MediumTest': None,
             },
             'class': 'org.chromium.test.SampleTest',
-            'is_junit4': True,
             'method': 'testMethod2',
         },
         {
@@ -959,7 +936,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                 'SmallTest': None,
             },
             'class': 'org.chromium.test.SampleTest2',
-            'is_junit4': True,
             'method': 'testMethod1',
         },
     ]
@@ -1134,26 +1110,22 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
             'annotations': {},
             'class': 'org.chromium.test.SampleTest',
             'flags': ['--enable-features=abc', '--enable-features=def'],
-            'is_junit4': True,
             'method': 'testMethod1'
         },
         {
             'annotations': {},
             'class': 'org.chromium.test.SampleTest',
             'flags': ['--enable-features=ghi', '--enable-features=jkl'],
-            'is_junit4': True,
             'method': 'testMethod2'
         },
         {
             'annotations': {},
             'class': 'org.chromium.test.SampleTest',
-            'is_junit4': True,
             'method': 'testMethod3'
         },
         {
             'annotations': {},
             'class': 'org.chromium.test.SampleTest',
-            'is_junit4': True,
             'method': 'testMethod4'
         },
     ]
@@ -1240,26 +1212,22 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
             'class': 'org.chromium.test.SampleTest',
             'flags':
             ['--enable-features=abc', '--force-fieldtrials=trial/group'],
-            'is_junit4': True,
             'method': 'testMethod1'
         },
         {
             'annotations': {},
             'class': 'org.chromium.test.SampleTest',
             'flags': ['--enable-features=def'],
-            'is_junit4': True,
             'method': 'testMethod2'
         },
         {
             'annotations': {},
             'class': 'org.chromium.test.SampleTest',
-            'is_junit4': True,
             'method': 'testMethod3'
         },
         {
             'annotations': {},
             'class': 'org.chromium.test.SampleTest',
-            'is_junit4': True,
             'method': 'testMethod4'
         },
         {
@@ -1270,8 +1238,6 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
                 '--enable-features=abc2',
                 '--force-fieldtrials=trial/group2',
             ],
-            'is_junit4':
-            True,
             'method':
             'testMethod1'
         },
@@ -1329,14 +1295,12 @@ class InstrumentationTestInstanceTest(unittest.TestCase):
             'annotations': {},
             'class': 'org.chromium.test.SampleTest',
             'flags': ['--a1', '--a2'],
-            'is_junit4': True,
             'method': 'testMethod2'
         },
         {
             'annotations': {},
             'class': 'org.chromium.test.SampleTest',
             'flags': ['--b1', '--b2'],
-            'is_junit4': True,
             'method': 'testMethod3'
         },
     ]

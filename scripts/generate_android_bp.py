@@ -20,10 +20,6 @@ ROOT_TARGETS = [
     "//:libEGL",
 ]
 
-CODEGEN_TARGETS = [
-    "//:libEGL",
-]
-
 MIN_SDK_VERSION = '28'
 TARGET_SDK_VERSION = '33'
 STL = 'libc++_static'
@@ -116,6 +112,7 @@ def write_blueprint(output, target_type, values):
 // See: http://go/android-license-faq"""
         output.append(comment)
 
+    output.append('')
     output.append('%s {' % target_type)
     for (key, value) in values.items():
         write_blueprint_key_value(output, key, value)
@@ -209,8 +206,8 @@ third_party_target_allowlist = [
 
 include_blocklist = [
     '//buildtools/third_party/libc++/',
+    '//third_party/libc++/src/',
     '//out/Android/gen/third_party/vulkan-deps/glslang/src/include/',
-    '//third_party/android_ndk/sources/android/cpufeatures/',
     '//third_party/zlib/',
     '//third_party/zlib/google/',
 ]
@@ -226,10 +223,6 @@ def gn_deps_to_blueprint_deps(abi, target, build_info):
     header_libs = []
     if 'deps' not in target_info:
         return static_libs, defaults
-
-    if target in CODEGEN_TARGETS:
-        target_name = gn_target_to_blueprint_target(target, target_info)
-        defaults.append(target_name + '_android_codegen')
 
     for dep in target_info['deps']:
         if dep not in target_blockist and (not dep.startswith('//third_party') or any(
@@ -261,8 +254,8 @@ def gn_deps_to_blueprint_deps(abi, target, build_info):
             generated_headers += child_generated_headers
         elif dep == '//third_party/zlib/google:compression_utils_portable':
             # Replace zlib by Android's zlib, compression_utils_portable is the root dependency
-            static_libs.extend(
-                ['zlib_google_compression_utils_portable', 'libz_static', 'cpufeatures'])
+            shared_libs.append('libz')
+            static_libs.extend(['zlib_google_compression_utils_portable', 'cpufeatures'])
 
     return static_libs, shared_libs, defaults, generated_headers, header_libs
 
@@ -384,8 +377,7 @@ def library_target_to_blueprint(target, build_info):
         bp['sdk_version'] = MIN_SDK_VERSION
         bp['stl'] = STL
         if target in ROOT_TARGETS:
-            bp['vendor'] = True
-            bp['target'] = {'android': {'relative_install_path': 'egl'}}
+            bp['defaults'].append('angle_vendor_cc_defaults')
         bps_for_abis[abi] = bp
 
     common_bp = merge_bps(bps_for_abis)
@@ -558,6 +550,52 @@ def get_gn_target_dependencies(abi, target, build_info):
     return result
 
 
+def get_angle_on_system_flag_config():
+    blueprint_results = []
+
+    blueprint_results.append(('soong_config_module_type', {
+        'name': 'angle_config_cc_defaults',
+        'module_type': 'cc_defaults',
+        'config_namespace': 'angle',
+        'bool_variables': ['angle_on_system',],
+        'properties': [
+            'target.android.relative_install_path',
+            'vendor',
+        ],
+    }))
+
+    blueprint_results.append(('soong_config_bool_variable', {
+        'name': 'angle_on_system',
+    }))
+
+    blueprint_results.append((
+        'angle_config_cc_defaults',
+        {
+            'name': 'angle_vendor_cc_defaults',
+            'vendor': True,
+            'target': {
+                'android': {
+                    'relative_install_path': 'egl',
+                },
+            },
+            'soong_config_variables': {
+                'angle_on_system': {
+                    'vendor': False,
+                    # Android EGL loader can not load from /system/egl/${LIB}
+                    # path and hence don't set the relative path so that ANGLE
+                    # libraries get built into /system/${LIB}
+                    'target': {
+                        'android': {
+                            'relative_install_path': '',
+                        },
+                    },
+                },
+            },
+        }))
+
+    return blueprint_results
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Generate Android blueprints from gn descriptions.')
@@ -568,6 +606,7 @@ def main():
             help=gn_abi(abi) +
             ' gn desc file in json format. Generated with \'gn desc <out_dir> --format=json "*"\'.',
             required=True)
+    parser.add_argument('--output', help='output file (e.g. Android.bp)')
     args = vars(parser.parse_args())
 
     infos = {}
@@ -583,39 +622,43 @@ def main():
 
     blueprint_targets = []
 
-    blueprint_targets.append(('bootstrap_go_package', {
-        'name': 'soong-angle-codegen',
-        'pkgPath': 'android/soong/external/angle',
-        'deps': [
-            'blueprint', 'blueprint-pathtools', 'soong', 'soong-android', 'soong-cc',
-            'soong-genrule'
-        ],
-        'srcs': ['scripts/angle_android_codegen.go'],
-        'pluginFor': ['soong_build'],
-    }))
+    blueprint_targets.extend(get_angle_on_system_flag_config())
 
     blueprint_targets.append((
         'cc_defaults',
         {
             'name':
                 'angle_common_library_cflags',
+            'cpp_std':
+                'gnu++17',  # TODO(b/175635923): std::popcount missing from external/libcxx
             'cflags': [
                 # Chrome and Android use different versions of Clang which support differnt warning options.
                 # Ignore errors about unrecognized warning flags.
                 '-Wno-unknown-warning-option',
-                '-Os',
+                '-O2',
                 # Override AOSP build flags to match ANGLE's CQ testing and reduce binary size
                 '-fno-unwind-tables',
             ],
         }))
 
+    generated_targets = []
     for target in reversed(targets_to_write.keys()):
-        blueprint_type, bp = gn_target_to_blueprint(target, build_info)
-        if target in CODEGEN_TARGETS:
-            blueprint_targets.append(('angle_android_codegen', {
-                'name': bp['name'] + '_android_codegen',
-            }))
-        blueprint_targets.append((blueprint_type, bp))
+        generated_targets.append(gn_target_to_blueprint(target, build_info))
+
+    # Move cflags that are repeated in each target to cc_defaults
+    all_cflags = [set(bp['cflags']) for _, bp in generated_targets if 'cflags' in bp]
+    all_target_cflags = set.intersection(*all_cflags)
+
+    for _, bp in generated_targets:
+        if 'cflags' in bp:
+            bp['cflags'] = list(set(bp['cflags']) - all_target_cflags)
+            bp['defaults'].append('angle_common_auto_cflags')
+
+    blueprint_targets.append(('cc_defaults', {
+        'name': 'angle_common_auto_cflags',
+        'cflags': list(all_target_cflags),
+    }))
+    blueprint_targets.extend(generated_targets)
 
     # Add license build rules
     blueprint_targets.append(('package', {
@@ -659,7 +702,7 @@ def main():
             'third_party/vulkan-deps/spirv-tools/src/LICENSE',
             'third_party/vulkan-deps/spirv-tools/src/utils/vscode/src/lsp/LICENSE',
             'third_party/vulkan-deps/vulkan-headers/LICENSE.txt',
-            'third_party/vulkan-deps/vulkan-headers/src/LICENSE.txt',
+            'third_party/vulkan-deps/vulkan-headers/src/LICENSE.md',
             'third_party/vulkan_memory_allocator/LICENSE.txt',
             'tools/flex-bison/third_party/m4sugar/LICENSE',
             'tools/flex-bison/third_party/skeletons/LICENSE',
@@ -667,7 +710,7 @@ def main():
         ],
     }))
 
-    # Add APKs with all of the root libraries
+    # Add APKs with all of the root libraries and permissions xml
     blueprint_targets.append((
         'filegroup',
         {
@@ -678,12 +721,21 @@ def main():
             # However, the internal branch currently uses these files with patches in that branch.
             'srcs': [
                 'src/android_system_settings/src/com/android/angle/MainActivity.java',
+                'src/android_system_settings/src/com/android/angle/common/AngleRuleHelper.java',
                 'src/android_system_settings/src/com/android/angle/common/GlobalSettings.java',
                 'src/android_system_settings/src/com/android/angle/common/MainFragment.java',
                 'src/android_system_settings/src/com/android/angle/common/Receiver.java',
                 'src/android_system_settings/src/com/android/angle/common/SearchProvider.java',
             ],
         }))
+
+    blueprint_targets.append(('prebuilt_etc', {
+        'name': 'android.software.angle.xml',
+        'src': 'android/android.software.angle.xml',
+        'product_specific': True,
+        'sub_dir': 'permissions',
+    }))
+
     blueprint_targets.append((
         'java_defaults',
         {
@@ -706,6 +758,7 @@ def main():
             'privileged': True,
             'product_specific': True,
             'owner': 'google',
+            'required': ['android.software.angle.xml'],
         }))
 
     blueprint_targets.append(('android_library', {
@@ -733,6 +786,39 @@ def main():
         'asset_dirs': ['src/android_system_settings/assets',],
     }))
 
+    blueprint_targets.append((
+        'java_defaults',
+        {
+            'name': 'ANGLE_java_settings_defaults',
+            'sdk_version': 'system_current',
+            'target_sdk_version': TARGET_SDK_VERSION,
+            'min_sdk_version': MIN_SDK_VERSION,
+            'compile_multilib': 'both',
+            'use_embedded_native_libs': True,
+            'aaptflags': [
+                '-0 .json',  # Don't compress *.json files
+                "--extra-packages com.android.angle.common",
+            ],
+            'srcs': [':ANGLE_srcs'],
+            'privileged': True,
+            'product_specific': True,
+            'owner': 'google',
+            'required': ['android.software.angle.xml'],
+        }))
+
+    blueprint_targets.append(('android_app', {
+        'name': 'ANGLE_settings',
+        'defaults': ['ANGLE_java_settings_defaults'],
+        'manifest': 'src/android_system_settings/src/com/android/angle/AndroidManifest.xml',
+        'static_libs': ['ANGLE_library'],
+        'optimize': {
+            'enabled': True,
+            'shrink': True,
+            'proguard_compatibility': False,
+        },
+        'asset_dirs': ['src/android_system_settings/assets',],
+    }))
+
     output = [
         """// GENERATED FILE - DO NOT EDIT.
 // Generated by %s
@@ -740,13 +826,13 @@ def main():
 // Copyright 2020 The ANGLE Project Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
-//
-""" % sys.argv[0]
+//""" % sys.argv[0]
     ]
     for (blueprint_type, blueprint_data) in blueprint_targets:
         write_blueprint(output, blueprint_type, blueprint_data)
 
-    print('\n'.join(output))
+    with open(args['output'], 'w') as f:
+        f.write('\n'.join(output) + '\n')
 
 
 if __name__ == '__main__':

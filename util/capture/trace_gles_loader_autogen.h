@@ -500,6 +500,7 @@
 #define glMultiDrawArraysInstancedANGLE t_glMultiDrawArraysInstancedANGLE
 #define glMultiDrawElementsANGLE t_glMultiDrawElementsANGLE
 #define glMultiDrawElementsInstancedANGLE t_glMultiDrawElementsInstancedANGLE
+#define glPolygonModeANGLE t_glPolygonModeANGLE
 #define glProvokingVertexANGLE t_glProvokingVertexANGLE
 #define glDisableExtensionANGLE t_glDisableExtensionANGLE
 #define glRequestExtensionANGLE t_glRequestExtensionANGLE
@@ -767,6 +768,7 @@
 #define glSetFenceNV t_glSetFenceNV
 #define glTestFenceNV t_glTestFenceNV
 #define glBlitFramebufferNV t_glBlitFramebufferNV
+#define glPolygonModeNV t_glPolygonModeNV
 #define glEGLImageTargetRenderbufferStorageOES t_glEGLImageTargetRenderbufferStorageOES
 #define glEGLImageTargetTexture2DOES t_glEGLImageTargetTexture2DOES
 #define glCopyImageSubDataOES t_glCopyImageSubDataOES
@@ -811,7 +813,10 @@
 #define glGenVertexArraysOES t_glGenVertexArraysOES
 #define glIsVertexArrayOES t_glIsVertexArrayOES
 #define glFramebufferTextureMultiviewOVR t_glFramebufferTextureMultiviewOVR
+#define glFramebufferFoveationConfigQCOM t_glFramebufferFoveationConfigQCOM
+#define glFramebufferFoveationParametersQCOM t_glFramebufferFoveationParametersQCOM
 #define glShadingRateQCOM t_glShadingRateQCOM
+#define glTextureFoveationParametersQCOM t_glTextureFoveationParametersQCOM
 #define glDrawTexfOES t_glDrawTexfOES
 #define glDrawTexfvOES t_glDrawTexfvOES
 #define glDrawTexiOES t_glDrawTexiOES
@@ -1356,6 +1361,7 @@ ANGLE_TRACE_LOADER_EXPORT extern PFNGLMULTIDRAWARRAYSINSTANCEDANGLEPROC
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLMULTIDRAWELEMENTSANGLEPROC t_glMultiDrawElementsANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLMULTIDRAWELEMENTSINSTANCEDANGLEPROC
     t_glMultiDrawElementsInstancedANGLE;
+ANGLE_TRACE_LOADER_EXPORT extern PFNGLPOLYGONMODEANGLEPROC t_glPolygonModeANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLPROVOKINGVERTEXANGLEPROC t_glProvokingVertexANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLDISABLEEXTENSIONANGLEPROC t_glDisableExtensionANGLE;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLREQUESTEXTENSIONANGLEPROC t_glRequestExtensionANGLE;
@@ -1700,6 +1706,7 @@ ANGLE_TRACE_LOADER_EXPORT extern PFNGLISFENCENVPROC t_glIsFenceNV;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLSETFENCENVPROC t_glSetFenceNV;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLTESTFENCENVPROC t_glTestFenceNV;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLBLITFRAMEBUFFERNVPROC t_glBlitFramebufferNV;
+ANGLE_TRACE_LOADER_EXPORT extern PFNGLPOLYGONMODENVPROC t_glPolygonModeNV;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC
     t_glEGLImageTargetRenderbufferStorageOES;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLEGLIMAGETARGETTEXTURE2DOESPROC t_glEGLImageTargetTexture2DOES;
@@ -1748,7 +1755,13 @@ ANGLE_TRACE_LOADER_EXPORT extern PFNGLGENVERTEXARRAYSOESPROC t_glGenVertexArrays
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLISVERTEXARRAYOESPROC t_glIsVertexArrayOES;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC
     t_glFramebufferTextureMultiviewOVR;
+ANGLE_TRACE_LOADER_EXPORT extern PFNGLFRAMEBUFFERFOVEATIONCONFIGQCOMPROC
+    t_glFramebufferFoveationConfigQCOM;
+ANGLE_TRACE_LOADER_EXPORT extern PFNGLFRAMEBUFFERFOVEATIONPARAMETERSQCOMPROC
+    t_glFramebufferFoveationParametersQCOM;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLSHADINGRATEQCOMPROC t_glShadingRateQCOM;
+ANGLE_TRACE_LOADER_EXPORT extern PFNGLTEXTUREFOVEATIONPARAMETERSQCOMPROC
+    t_glTextureFoveationParametersQCOM;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLDRAWTEXFOESPROC t_glDrawTexfOES;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLDRAWTEXFVOESPROC t_glDrawTexfvOES;
 ANGLE_TRACE_LOADER_EXPORT extern PFNGLDRAWTEXIOESPROC t_glDrawTexiOES;
@@ -1796,7 +1809,7 @@ typedef GenericProc(KHRONOS_APIENTRY *LoadProc)(const char *);
 ANGLE_TRACE_LOADER_EXPORT void LoadTraceGLES(LoadProc loadProc);
 
 #if defined(__cplusplus)
-}  // extern "C"
+}       // extern "C"
 #endif  // defined(__cplusplus)
 
 #endif  // ANGLE_TRACES_UTIL_GLES_LOADER_AUTOGEN_H_
