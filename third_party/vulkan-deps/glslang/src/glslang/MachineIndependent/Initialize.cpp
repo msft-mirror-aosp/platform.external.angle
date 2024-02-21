@@ -1465,6 +1465,20 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "\n");
     }
 
+    // NV_shader_atomic_fp16_vector
+    if (profile != EEsProfile && version >= 430) {
+        commonBuiltins.append(
+            "f16vec2 atomicAdd(coherent volatile inout f16vec2, f16vec2);"
+            "f16vec4 atomicAdd(coherent volatile inout f16vec4, f16vec4);"
+            "f16vec2 atomicMin(coherent volatile inout f16vec2, f16vec2);"
+            "f16vec4 atomicMin(coherent volatile inout f16vec4, f16vec4);"
+            "f16vec2 atomicMax(coherent volatile inout f16vec2, f16vec2);"
+            "f16vec4 atomicMax(coherent volatile inout f16vec4, f16vec4);"
+            "f16vec2 atomicExchange(coherent volatile inout f16vec2, f16vec2);"
+            "f16vec4 atomicExchange(coherent volatile inout f16vec4, f16vec4);"
+            "\n");
+    }
+
     if ((profile == EEsProfile && version >= 300) ||
         (profile != EEsProfile && version >= 150)) { // GL_ARB_shader_bit_encoding
         commonBuiltins.append(
@@ -6678,6 +6692,34 @@ void TBuiltIns::addImageFunctions(TSampler sampler, const TString& typeName, int
                 commonBuiltins.append(imageParams);
                 commonBuiltins.append(", float);\n");
             }
+
+            // GL_NV_shader_atomic_fp16_vector
+            if (profile != EEsProfile && version >= 430) {
+                const int numFp16Builtins = 4;
+                const char* atomicFp16Func[numFp16Builtins] = {
+                    " imageAtomicAdd(volatile coherent ",
+                    " imageAtomicMin(volatile coherent ",
+                    " imageAtomicMax(volatile coherent ",
+                    " imageAtomicExchange(volatile coherent "
+                };
+                const int numFp16DataTypes = 2;
+                const char* atomicFp16DataTypes[numFp16DataTypes] = {
+                    "f16vec2",
+                    "f16vec4"
+                };
+                // Loop twice to add prototypes with/without scope/semantics
+                for (int j = 0; j < numFp16DataTypes; ++j) {
+                    for (int i = 0; i < numFp16Builtins; ++i) {
+                        commonBuiltins.append(atomicFp16DataTypes[j]);
+                        commonBuiltins.append(atomicFp16Func[i]);
+                        commonBuiltins.append(imageParams);
+                        commonBuiltins.append(", ");
+                        commonBuiltins.append(atomicFp16DataTypes[j]);
+                        commonBuiltins.append(");\n");
+                    }
+                }
+            }
+
             if (profile != EEsProfile && version >= 450) {
                 commonBuiltins.append("float imageAtomicAdd(volatile coherent ");
                 commonBuiltins.append(imageParams);
@@ -8084,7 +8126,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("texture2DArrayLod", 1, &E_GL_EXT_texture_array);
             symbolTable.setFunctionExtensions("shadow1DArrayLod", 1, &E_GL_EXT_texture_array);
         }
-        // Fall through
+        [[fallthrough]];
 
     case EShLangTessControl:
         if (profile == EEsProfile && version >= 310) {
@@ -8099,7 +8141,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
                 BuiltInVariable("gl_BoundingBox", EbvBoundingBox, symbolTable);
             }
         }
-        // Fall through
+        [[fallthrough]];
 
     case EShLangTessEvaluation:
     case EShLangGeometry:
@@ -10189,7 +10231,8 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
         if (profile != EEsProfile && version >= 460) {
             symbolTable.relateToOperator("fetchMicroTriangleVertexPositionNV", EOpFetchMicroTriangleVertexPositionNV);
             symbolTable.relateToOperator("fetchMicroTriangleVertexBarycentricNV", EOpFetchMicroTriangleVertexBarycentricNV);
-        } // fallthrough
+        }
+        [[fallthrough]];
     case EShLangClosestHit:
     case EShLangMiss:
         if (profile != EEsProfile && version >= 460) {
