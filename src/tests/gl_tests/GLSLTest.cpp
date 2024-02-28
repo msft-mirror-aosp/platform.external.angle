@@ -15621,6 +15621,30 @@ void main()
     runTest(kFS);
 }
 
+// Test prune-able loop with side effect in statements.
+TEST_P(GLSLTestLoops, SideEffectsInPrunableFor)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 color;
+
+void main()
+{
+    int a = 4;
+    float b = 0.;
+    for (int c = a++; (b += float(c) / 8.) < 0.; b += 0.3)
+    {
+        if (2 == 0);
+    }
+    int c = a - 4;
+
+    // Expect c to be 1 and b to be 0.5
+    color = c == 1 && abs(b - 0.5) < 0.001 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    runTest(kFS);
+}
+
 // Test that precision is retained for constants (which are constant folded).  Adapted from a WebGL
 // test.
 TEST_P(GLSLTest, ConstantFoldedConstantsRetainPrecision)
@@ -18703,6 +18727,133 @@ void main (void)
     EXPECT_EQ(std::string(name.data()), "u_color");
     EXPECT_EQ(size, 1);
     EXPECT_EQ(type, static_cast<GLenum>(GL_FLOAT_VEC4));
+}
+
+// Tests struct in function return type.
+TEST_P(GLSLTest, StructInFunctionDefinition)
+{
+    const char kFragmentShader[] = R"(precision mediump float;
+struct Foo
+{
+    float v;
+};
+
+Foo foo()
+{
+    Foo f;
+    f.v = 0.5;
+    return f;
+}
+
+void main()
+{
+    gl_FragColor = vec4(1, 0, 0, 1);
+    Foo f = foo();
+    if (f.v == 0.5)
+    {
+        gl_FragColor = vec4(0, 1, 0, 1);
+    }
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFragmentShader);
+    glUseProgram(program);
+
+    drawQuad(program.get(), essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+// Tests struct definition in function return type.
+TEST_P(GLSLTest, StructDefinitionInFunctionDefinition)
+{
+    const char kFragmentShader[] = R"(precision mediump float;
+struct Foo { float v; } foo()
+{
+    Foo f;
+    f.v = 0.5;
+    return f;
+}
+
+void main()
+{
+    gl_FragColor = vec4(1, 0, 0, 1);
+    Foo f = foo();
+    if (f.v == 0.5)
+    {
+        gl_FragColor = vec4(0, 1, 0, 1);
+    }
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFragmentShader);
+    glUseProgram(program);
+
+    drawQuad(program.get(), essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+// Test struct definition in forward declaration of function return type.
+TEST_P(GLSLTest, StructDefinitionInFunctionPrototype)
+{
+    const char kFragmentShader[] = R"(precision mediump float;
+struct Foo { float v; } foo();
+
+void main()
+{
+    gl_FragColor = vec4(1, 0, 0, 1);
+    Foo f = foo();
+    if (f.v == 0.5)
+    {
+        gl_FragColor = vec4(0, 1, 0, 1);
+    }
+}
+
+Foo foo()
+{
+    Foo f;
+    f.v = 0.5;
+    return f;
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFragmentShader);
+    glUseProgram(program);
+
+    drawQuad(program.get(), essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+// Test that struct declarations are introduced into the correct scope.
+TEST_P(GLSLTest, StructDefinitionInFunctionPrototypeScope)
+{
+    const char kFragmentShader[] = R"(precision mediump float;
+
+struct Foo { float v; } foo()
+{
+    Foo f;
+    f.v = 0.5;
+    return f;
+}
+
+struct Bar { Foo f; } bar()
+{
+    Bar b;
+    b.f = foo();
+    return b;
+}
+
+void main()
+{
+    gl_FragColor = vec4(1, 0, 0, 1);
+    Bar b = bar();
+    if (b.f.v == 0.5)
+    {
+        gl_FragColor = vec4(0, 1, 0, 1);
+    }
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFragmentShader);
+    glUseProgram(program);
+
+    drawQuad(program.get(), essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
 }
 
 }  // anonymous namespace

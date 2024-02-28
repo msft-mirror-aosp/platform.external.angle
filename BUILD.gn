@@ -10,6 +10,10 @@ if (angle_enable_vulkan) {
 if (angle_use_wayland) {
   import("//build_overrides/wayland.gni")
 }
+if (angle_enable_wgpu) {
+  import("//build_overrides/dawn.gni")
+  import("//build_overrides/tint.gni")
+}
 if (angle_has_build) {
   import("//build/config/linux/pkg_config.gni")
   import("//build/config/sanitizers/sanitizers.gni")
@@ -106,10 +110,11 @@ if (angle_build_all) {
       "$angle_root/src/tests:angle_tests",
     ]
     if (angle_enable_cl) {
-      deps += [
-        "$angle_clspv_dir:clspv",
-        "$angle_root/src/libOpenCL:angle_cl",
-      ]
+      deps += [ "$angle_root/src/libOpenCL:angle_cl" ]
+    }
+    if (angle_enable_cl && angle_enable_vulkan) {
+      # OpenCL through Vulkan in ANGLE requires clspv for online compiler
+      deps += [ "$angle_clspv_dir:clspv" ]
     }
     if (angle_build_mesa) {
       deps += [ "$angle_root/third_party/mesa" ]
@@ -1352,23 +1357,17 @@ config("shared_library_public_config") {
   }
 }
 
-if (is_android && is_component_build) {
-  _cr_suffix = ".cr"
-} else {
-  _cr_suffix = ""
-}
-
 if (angle_expose_wgl_entry_points) {
-  _angle_glesv2_library_name = "opengl32${angle_libs_suffix}${_cr_suffix}"
+  _angle_glesv2_library_name = "opengl32${angle_libs_suffix}"
 } else {
-  _angle_glesv2_library_name = "libGLESv2${angle_libs_suffix}${_cr_suffix}"
+  _angle_glesv2_library_name = "libGLESv2${angle_libs_suffix}"
 }
 _angle_glesv2_vulkan_secondaries_library_name =
-    "libGLESv2_vulkan_secondaries${angle_libs_suffix}${_cr_suffix}"
+    "libGLESv2_vulkan_secondaries${angle_libs_suffix}"
 
 config("library_name_config") {
-  _egllib = "libEGL${angle_libs_suffix}${_cr_suffix}"
-  _vk2egllib = "libEGL_vulkan_secondaries${angle_libs_suffix}${_cr_suffix}"
+  _egllib = "libEGL${angle_libs_suffix}"
+  _vk2egllib = "libEGL_vulkan_secondaries${angle_libs_suffix}"
   defines = [
     "ANGLE_EGL_LIBRARY_NAME=\"${_egllib}\"",
     "ANGLE_GLESV2_LIBRARY_NAME=\"${_angle_glesv2_library_name}\"",
@@ -1731,19 +1730,11 @@ if (is_android && symbol_level != 0) {
   action_foreach("compressed_symbols") {
     sources = []
     foreach(_library, angle_libraries) {
-      if (is_component_build) {
-        sources += [ "$root_out_dir/${_library}${angle_libs_suffix}.cr.so" ]
-      } else {
-        sources += [ "$root_out_dir/${_library}${angle_libs_suffix}.so" ]
-      }
+      sources += [ "$root_out_dir/$_library$angle_libs_suffix$shlib_extension" ]
     }
     if (angle_enable_vulkan_validation_layers) {
       foreach(_layer, vulkan_validation_layers) {
-        if (is_component_build) {
-          sources += [ "$root_out_dir/lib${_layer}.cr.so" ]
-        } else {
-          sources += [ "$root_out_dir/lib${_layer}.so" ]
-        }
+        sources += [ "$root_out_dir/lib$_layer$shlib_extension" ]
       }
     }
 

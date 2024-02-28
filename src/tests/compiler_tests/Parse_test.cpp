@@ -86,3 +86,31 @@ int B[int[][](A)];)";
     EXPECT_TRUE(foundErrorInIntermediateTree());
     EXPECT_TRUE(foundInIntermediateTree("constructing from an unsized array"));
 }
+
+TEST_F(ParseTest, UniformBlockNameReferenceNoCrash)
+{
+    const char kShader[] = R"(#version 300 es
+precision mediump float;
+out float o;
+uniform a { float r; } UBOA;
+void main() {
+    o = float(UBOA);
+})";
+    EXPECT_FALSE(compile(kShader));
+    EXPECT_TRUE(foundErrorInIntermediateTree());
+    EXPECT_TRUE(foundInIntermediateTree(
+        "interface block cannot be used as a constructor argument for this type"));
+}
+
+TEST_F(ParseTest, Precise320NoCrash)
+{
+    const char kShader[] = R"(#version 320 es
+precision mediump float;
+void main(){
+    float t;
+    precise t;
+})";
+    EXPECT_FALSE(compile(kShader));
+    EXPECT_TRUE(foundErrorInIntermediateTree());
+    EXPECT_TRUE(foundInIntermediateTree("unsupported shader version"));
+}

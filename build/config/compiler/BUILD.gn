@@ -380,12 +380,7 @@ config("compiler") {
           cflags += [ "-fstack-protector" ]
         }
       } else if ((is_posix && !is_chromeos && !is_nacl) || is_fuchsia) {
-        # TODO(phajdan.jr): Use -fstack-protector-strong when our gcc supports it.
-        # See also https://crbug.com/533294
-        # The x86 toolchain currently has problems with stack-protector.
-        if (is_android && current_cpu == "x86") {
-          cflags += [ "-fno-stack-protector" ]
-        } else if (current_os != "aix") {
+        if (current_os != "aix") {
           # Not available on aix.
           cflags += [ "-fstack-protector" ]
         }
@@ -494,9 +489,6 @@ config("compiler") {
     # linker_driver.py script runs dsymutil itself, which is set to be the
     # linker for Rust targets as well.
     rustflags += [ "-Csplit-debuginfo=unpacked" ]
-
-    # TODO(crbug.com/1519899): Figure out how to remove this.
-    cflags += [ "-fno-define-target-os-macros" ]
   }
 
   # Linux/Android/Fuchsia common flags setup.
@@ -1038,6 +1030,11 @@ config("compiler") {
   if (!use_thin_lto || !toolchain_supports_rust_thin_lto) {
     # Don't include bitcode if it won't be used.
     rustflags += [ "-Cembed-bitcode=no" ]
+
+    # Disable "automatic" ThinLTO between codegen units. The weak symbol
+    # resolution across units can have surprising effects on linking, see
+    # crbug.com/324126269 and github.com/rust-lang/rust/issues/120842.
+    rustflags += [ "-Clto=no" ]
   }
   if (is_official_build) {
     rustflags += [ "-Ccodegen-units=1" ]
@@ -1726,6 +1723,9 @@ config("treat_warnings_as_errors") {
   # Note we apply the actual lint flags in config("compiler"). All warnings
   # are suppressed in third-party crates.
   rustflags = [ "-Dwarnings" ]
+
+  # TODO(https://crbug.com/326247202): Fix unused imports and remove this flag.
+  rustflags += [ "-Aunused-imports" ]
 }
 
 # default_warnings ------------------------------------------------------------
@@ -1853,6 +1853,9 @@ config("default_warnings") {
         cflags_cc += [
           # TODO(https://crbug.com/1474434): fix and reenable
           "-Wno-missing-field-initializers",
+
+          # TODO(https://crbug.com/324953188): fix and reenable
+          "-Wno-extra-qualification",
         ]
       }
 
@@ -1897,6 +1900,7 @@ config("default_warnings") {
       cflags += [
         "-Wno-error=unknown-warning-option",
         "-Wno-error=unused-command-line-argument",
+        "-Wno-error=unknown-pragmas",
       ]
     }
   }
@@ -2419,32 +2423,22 @@ config("optimize") {
       # to optimize for performance like `/O2` for clang.
       rustflags = []
     }
-  } else if (optimize_for_size) {
+  } else if (optimize_for_size || is_chromeos) {
     # Favor size over speed.
-    if (is_clang) {
-      cflags = [ "-Oz" ] + common_optimize_on_cflags
+    # -Os in clang is more of a size-conscious -O2 than "size at any cost" (AKA -Oz).
 
-      if (use_ml_inliner && is_a_target_toolchain) {
-        cflags += [
-          "-mllvm",
-          "-enable-ml-inliner=release",
-        ]
-      }
-    } else {
+    if (is_fuchsia) {
+      cflags = [ "-Oz" ] + common_optimize_on_cflags
+    } else { 
       cflags = [ "-Os" ] + common_optimize_on_cflags
     }
 
-    # Like with `-Oz` on Clang, `-Copt-level=z` will also turn off loop
-    # vectorization.
-    rustflags = [ "-Copt-level=z" ]
-  } else if (is_chromeos) {
-    # TODO(gbiv): This is partially favoring size over speed. CrOS exclusively
-    # uses clang, and -Os in clang is more of a size-conscious -O2 than "size at
-    # any cost" (AKA -Oz). It'd be nice to:
-    # - Make `optimize_for_size` apply to all platforms where we're optimizing
-    #   for size by default (so, also Windows)
-    # - Investigate -Oz here, maybe just for ARM?
-    cflags = [ "-Os" ] + common_optimize_on_cflags
+    if (is_clang && use_ml_inliner && is_a_target_toolchain && !is_chromeos) {
+      cflags += [
+        "-mllvm",
+        "-enable-ml-inliner=release",
+      ]
+    }
 
     # Similar to clang, we optimize with `-Copt-level=s` to keep loop
     # vectorization while otherwise optimizing for size.
