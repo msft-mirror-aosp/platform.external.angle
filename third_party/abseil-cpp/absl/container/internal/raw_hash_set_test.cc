@@ -307,6 +307,25 @@ TEST(Group, MaskFull) {
   }
 }
 
+TEST(Group, MaskNonFull) {
+  if (Group::kWidth == 16) {
+    ctrl_t group[] = {
+        ctrl_t::kEmpty, CtrlT(1),          ctrl_t::kDeleted,  CtrlT(3),
+        ctrl_t::kEmpty, CtrlT(5),          ctrl_t::kSentinel, CtrlT(7),
+        CtrlT(7),       CtrlT(5),          ctrl_t::kDeleted,  CtrlT(1),
+        CtrlT(1),       ctrl_t::kSentinel, ctrl_t::kEmpty,    CtrlT(1)};
+    EXPECT_THAT(Group{group}.MaskNonFull(),
+                ElementsAre(0, 2, 4, 6, 10, 13, 14));
+  } else if (Group::kWidth == 8) {
+    ctrl_t group[] = {ctrl_t::kEmpty,    CtrlT(1), ctrl_t::kEmpty,
+                      ctrl_t::kDeleted,  CtrlT(2), ctrl_t::kSentinel,
+                      ctrl_t::kSentinel, CtrlT(1)};
+    EXPECT_THAT(Group{group}.MaskNonFull(), ElementsAre(0, 2, 3, 5, 6));
+  } else {
+    FAIL() << "No test coverage for Group::kWidth==" << Group::kWidth;
+  }
+}
+
 TEST(Group, MaskEmptyOrDeleted) {
   if (Group::kWidth == 16) {
     ctrl_t group[] = {ctrl_t::kEmpty,   CtrlT(1), ctrl_t::kEmpty,    CtrlT(3),
@@ -1765,6 +1784,40 @@ TEST(Table, CopyConstruct) {
   }
 }
 
+TEST(Table, CopyDifferentSizes) {
+  IntTable t;
+
+  for (int i = 0; i < 100; ++i) {
+    t.emplace(i);
+    IntTable c = t;
+    for (int j = 0; j <= i; ++j) {
+      ASSERT_TRUE(c.find(j) != c.end()) << "i=" << i << " j=" << j;
+    }
+    // Testing find miss to verify that table is not full.
+    ASSERT_TRUE(c.find(-1) == c.end());
+  }
+}
+
+TEST(Table, CopyDifferentCapacities) {
+  for (int cap = 1; cap < 100; cap = cap * 2 + 1) {
+    IntTable t;
+    t.reserve(static_cast<size_t>(cap));
+    for (int i = 0; i <= cap; ++i) {
+      t.emplace(i);
+      if (i != cap && i % 5 != 0) {
+        continue;
+      }
+      IntTable c = t;
+      for (int j = 0; j <= i; ++j) {
+        ASSERT_TRUE(c.find(j) != c.end())
+            << "cap=" << cap << " i=" << i << " j=" << j;
+      }
+      // Testing find miss to verify that table is not full.
+      ASSERT_TRUE(c.find(-1) == c.end());
+    }
+  }
+}
+
 TEST(Table, CopyConstructWithAlloc) {
   StringTable t;
   t.emplace("a", "b");
@@ -2747,7 +2800,9 @@ TEST(Table, CountedHash) {
 
 TEST(Table, IterateOverFullSlotsEmpty) {
   IntTable t;
-  auto fail_if_any = [](int64_t* i) { FAIL() << "expected no slots " << i; };
+  auto fail_if_any = [](const ctrl_t*, int64_t* i) {
+    FAIL() << "expected no slots " << i;
+  };
   container_internal::IterateOverFullSlots(
       RawHashSetTestOnlyAccess::GetCommon(t),
       RawHashSetTestOnlyAccess::GetSlots(t), fail_if_any);
@@ -2771,7 +2826,13 @@ TEST(Table, IterateOverFullSlotsFull) {
     container_internal::IterateOverFullSlots(
         RawHashSetTestOnlyAccess::GetCommon(t),
         RawHashSetTestOnlyAccess::GetSlots(t),
-        [&slots](int64_t* i) { slots.push_back(*i); });
+        [&t, &slots](const ctrl_t* ctrl, int64_t* i) {
+          ptrdiff_t ctrl_offset =
+              ctrl - RawHashSetTestOnlyAccess::GetCommon(t).control();
+          ptrdiff_t slot_offset = i - RawHashSetTestOnlyAccess::GetSlots(t);
+          ASSERT_EQ(ctrl_offset, slot_offset);
+          slots.push_back(*i);
+        });
     EXPECT_THAT(slots, testing::UnorderedElementsAreArray(expected_slots));
   }
 }

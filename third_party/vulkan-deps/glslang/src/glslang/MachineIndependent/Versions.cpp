@@ -269,6 +269,7 @@ void TParseVersions::initializeExtensionBehavior()
     // #line and #include
     extensionBehavior[E_GL_GOOGLE_cpp_style_line_directive]          = EBhDisable;
     extensionBehavior[E_GL_GOOGLE_include_directive]                 = EBhDisable;
+    extensionBehavior[E_GL_ARB_shading_language_include]             = EBhDisable;
 
     extensionBehavior[E_GL_AMD_shader_ballot]                        = EBhDisable;
     extensionBehavior[E_GL_AMD_shader_trinary_minmax]                = EBhDisable;
@@ -305,6 +306,7 @@ void TParseVersions::initializeExtensionBehavior()
     extensionBehavior[E_GL_NV_integer_cooperative_matrix]            = EBhDisable;
     extensionBehavior[E_GL_NV_shader_invocation_reorder]             = EBhDisable;
     extensionBehavior[E_GL_NV_displacement_micromap]                 = EBhDisable;
+    extensionBehavior[E_GL_NV_shader_atomic_fp16_vector]             = EBhDisable;
 
     // ARM
     extensionBehavior[E_GL_ARM_shader_core_builtins]                 = EBhDisable;
@@ -765,7 +767,7 @@ void TParseVersions::profileRequires(const TSourceLoc& loc, int profileMask, int
             switch (getExtensionBehavior(extensions[i])) {
             case EBhWarn:
                 infoSink.info.message(EPrefixWarning, ("extension " + TString(extensions[i]) + " is being used for " + featureDesc).c_str(), loc);
-                // fall through
+                [[fallthrough]];
             case EBhRequire:
             case EBhEnable:
                 okay = true;
@@ -981,6 +983,8 @@ void TParseVersions::updateExtensionBehavior(int line, const char* extension, co
     else if (strcmp(extension, "GL_OES_tessellation_shader") == 0)
         updateExtensionBehavior(line, "GL_OES_shader_io_blocks", behaviorString);
     else if (strcmp(extension, "GL_GOOGLE_include_directive") == 0)
+        updateExtensionBehavior(line, "GL_GOOGLE_cpp_style_line_directive", behaviorString);
+    else if (strcmp(extension, "GL_ARB_shading_language_include") == 0)
         updateExtensionBehavior(line, "GL_GOOGLE_cpp_style_line_directive", behaviorString);
     // subgroup_* to subgroup_basic
     else if (strcmp(extension, "GL_KHR_shader_subgroup_vote") == 0)

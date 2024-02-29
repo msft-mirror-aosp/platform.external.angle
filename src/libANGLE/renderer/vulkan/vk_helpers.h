@@ -749,6 +749,8 @@ enum class MemoryHostVisibility
     Visible
 };
 
+class BufferPool;
+
 class BufferHelper : public ReadWriteResource
 {
   public:
@@ -758,18 +760,19 @@ class BufferHelper : public ReadWriteResource
     BufferHelper(BufferHelper &&other);
     BufferHelper &operator=(BufferHelper &&other);
 
-    angle::Result init(vk::Context *context,
+    angle::Result init(Context *context,
                        const VkBufferCreateInfo &createInfo,
                        VkMemoryPropertyFlags memoryPropertyFlags);
-    angle::Result initExternal(ContextVk *contextVk,
+    angle::Result initExternal(Context *context,
                                VkMemoryPropertyFlags memoryProperties,
                                const VkBufferCreateInfo &requestedCreateInfo,
                                GLeglClientBufferEXT clientBuffer);
-    VkResult initSuballocation(ContextVk *contextVk,
+    VkResult initSuballocation(Context *context,
                                uint32_t memoryTypeIndex,
                                size_t size,
                                size_t alignment,
-                               BufferUsageType usageType);
+                               BufferUsageType usageType,
+                               BufferPool *pool);
 
     void destroy(RendererVk *renderer);
     void release(RendererVk *renderer);
@@ -803,14 +806,8 @@ class BufferHelper : public ReadWriteResource
     bool isCached() const { return mSuballocation.isCached(); }
     bool isMapped() const { return mSuballocation.isMapped(); }
 
-    // Also implicitly sets up the correct barriers.
-    angle::Result copyFromBuffer(ContextVk *contextVk,
-                                 BufferHelper *srcBuffer,
-                                 uint32_t regionCount,
-                                 const VkBufferCopy *copyRegions);
-
     angle::Result map(Context *context, uint8_t **ptrOut);
-    angle::Result mapWithOffset(ContextVk *contextVk, uint8_t **ptrOut, size_t offset);
+    angle::Result mapWithOffset(Context *context, uint8_t **ptrOut, size_t offset);
     void unmap(RendererVk *renderer) {}
     // After a sequence of writes, call flush to ensure the data is visible to the device.
     angle::Result flush(RendererVk *renderer);
@@ -822,14 +819,12 @@ class BufferHelper : public ReadWriteResource
     void changeQueue(uint32_t newQueueFamilyIndex, OutsideRenderPassCommandBuffer *commandBuffer);
 
     // Performs an ownership transfer from an external instance or API.
-    void acquireFromExternal(ContextVk *contextVk,
-                             uint32_t externalQueueFamilyIndex,
+    void acquireFromExternal(uint32_t externalQueueFamilyIndex,
                              uint32_t rendererQueueFamilyIndex,
                              OutsideRenderPassCommandBuffer *commandBuffer);
 
     // Performs an ownership transfer to an external instance or API.
-    void releaseToExternal(ContextVk *contextVk,
-                           uint32_t rendererQueueFamilyIndex,
+    void releaseToExternal(uint32_t rendererQueueFamilyIndex,
                            uint32_t externalQueueFamilyIndex,
                            OutsideRenderPassCommandBuffer *commandBuffer);
 
@@ -2701,6 +2696,26 @@ class ImageHelper final : public Resource, public angle::Subject
                                           const GLuint rowPitch,
                                           const GLuint depthPitch,
                                           bool *copiedOut);
+
+    // ClearEmulatedChannels updates are expected in the beginning of the level update list. They
+    // can be processed first and removed. By doing so, if this is the only update for the image,
+    // an unnecessary layout transition can be avoided.
+    angle::Result flushStagedClearEmulatedChannelsUpdates(ContextVk *contextVk,
+                                                          gl::LevelIndex levelGLStart,
+                                                          gl::LevelIndex levelGLLimit,
+                                                          bool *otherUpdatesToFlushOut);
+
+    // Flushes staged updates to a range of levels and layers from start to end. The updates do not
+    // include ClearEmulatedChannelsOnly, which are processed in a separate function.
+    angle::Result flushStagedUpdatesImpl(ContextVk *contextVk,
+                                         gl::LevelIndex levelGLStart,
+                                         gl::LevelIndex levelGLEnd,
+                                         uint32_t layerStart,
+                                         uint32_t layerEnd,
+                                         const gl::TexLevelMask &skipLevelsAllFaces);
+
+    // Limit the input level to the number of levels in subresource update list.
+    void clipLevelToUpdateListUpperLimit(gl::LevelIndex *level) const;
 
     std::vector<SubresourceUpdate> *getLevelUpdates(gl::LevelIndex level);
     const std::vector<SubresourceUpdate> *getLevelUpdates(gl::LevelIndex level) const;

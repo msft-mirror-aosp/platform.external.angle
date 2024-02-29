@@ -5051,6 +5051,70 @@
       "version" : "None"
     },
     {
+      "opname" : "OpImageBlockMatchWindowSSDQCOM",
+      "class"  : "Image",
+      "opcode" : 4500,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdRef", "name" : "'Target Sampled Image'" },
+        { "kind" : "IdRef", "name" : "'Target Coordinates'" },
+        { "kind" : "IdRef", "name" : "'Reference Sampled Image'" },
+        { "kind" : "IdRef", "name" : "'Reference Coordinates'" },
+        { "kind" : "IdRef", "name" : "'Block Size'" }
+      ],
+      "capabilities" : [ "TextureBlockMatch2QCOM" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpImageBlockMatchWindowSADQCOM",
+      "class"  : "Image",
+      "opcode" : 4501,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdRef", "name" : "'Target Sampled Image'" },
+        { "kind" : "IdRef", "name" : "'Target Coordinates'" },
+        { "kind" : "IdRef", "name" : "'Reference Sampled Image'" },
+        { "kind" : "IdRef", "name" : "'Reference Coordinates'" },
+        { "kind" : "IdRef", "name" : "'Block Size'" }
+      ],
+      "capabilities" : [ "TextureBlockMatch2QCOM" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpImageBlockMatchGatherSSDQCOM",
+      "class"  : "Image",
+      "opcode" : 4502,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdRef", "name" : "'Target Sampled Image'" },
+        { "kind" : "IdRef", "name" : "'Target Coordinates'" },
+        { "kind" : "IdRef", "name" : "'Reference Sampled Image'" },
+        { "kind" : "IdRef", "name" : "'Reference Coordinates'" },
+        { "kind" : "IdRef", "name" : "'Block Size'" }
+      ],
+      "capabilities" : [ "TextureBlockMatch2QCOM" ],
+      "version" : "None"
+    },
+    {
+      "opname" : "OpImageBlockMatchGatherSADQCOM",
+      "class"  : "Image",
+      "opcode" : 4503,
+      "operands" : [
+        { "kind" : "IdResultType" },
+        { "kind" : "IdResult" },
+        { "kind" : "IdRef", "name" : "'Target Sampled Image'" },
+        { "kind" : "IdRef", "name" : "'Target Coordinates'" },
+        { "kind" : "IdRef", "name" : "'Reference Sampled Image'" },
+        { "kind" : "IdRef", "name" : "'Reference Coordinates'" },
+        { "kind" : "IdRef", "name" : "'Block Size'" }
+      ],
+      "capabilities" : [ "TextureBlockMatch2QCOM" ],
+      "version" : "None"
+    },
+    {
       "opname" : "OpGroupIAddNonUniformAMD",
       "class"  : "Group",
       "opcode" : 5000,
@@ -6576,7 +6640,7 @@
         { "kind" : "IdMemorySemantics", "name" : "'Semantics'" },
         { "kind" : "IdRef",             "name" : "'Value'" }
       ],
-      "capabilities" : [ "AtomicFloat16MinMaxEXT", "AtomicFloat32MinMaxEXT", "AtomicFloat64MinMaxEXT" ],
+      "capabilities" : [ "AtomicFloat16MinMaxEXT", "AtomicFloat32MinMaxEXT", "AtomicFloat64MinMaxEXT", "AtomicFloat16VectorNV" ],
       "version" : "None"
     },
     {
@@ -6591,7 +6655,7 @@
         { "kind" : "IdMemorySemantics", "name" : "'Semantics'" },
         { "kind" : "IdRef",             "name" : "'Value'" }
       ],
-      "capabilities" : [ "AtomicFloat16MinMaxEXT", "AtomicFloat32MinMaxEXT", "AtomicFloat64MinMaxEXT" ],
+      "capabilities" : [ "AtomicFloat16MinMaxEXT", "AtomicFloat32MinMaxEXT", "AtomicFloat64MinMaxEXT", "AtomicFloat16VectorNV" ],
       "version" : "None"
     },
     {
@@ -9563,7 +9627,7 @@
         { "kind" : "IdMemorySemantics", "name" : "'Semantics'" },
         { "kind" : "IdRef",             "name" : "'Value'" }
       ],
-      "capabilities" : [ "AtomicFloat16AddEXT", "AtomicFloat32AddEXT", "AtomicFloat64AddEXT" ],
+      "capabilities" : [ "AtomicFloat16AddEXT", "AtomicFloat32AddEXT", "AtomicFloat64AddEXT", "AtomicFloat16VectorNV" ],
       "extensions" : [ "SPV_EXT_shader_atomic_float_add" ],
       "version" : "None"
     },
@@ -13057,6 +13121,12 @@
           "version" : "None"
         },
         {
+          "enumerant" : "BlockMatchSamplerQCOM",
+          "value" : 4499,
+          "extensions" : [ "SPV_QCOM_image_processing2" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "ExplicitInterpAMD",
           "value" : 4999,
           "extensions" : [ "SPV_AMD_shader_explicit_vertex_parameter" ],
@@ -15485,6 +15555,12 @@
           "version" : "None"
         },
         {
+          "enumerant" : "TextureBlockMatch2QCOM",
+          "value" : 4498,
+          "extensions" : [ "SPV_QCOM_image_processing2" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "Float16ImageAMD",
           "value" : 5008,
           "capabilities" : [ "Shader" ],
@@ -15965,6 +16041,12 @@
           "value" : 5391,
           "capabilities" : [ "Shader" ],
           "extensions" : [ "SPV_KHR_ray_tracing_position_fetch" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "AtomicFloat16VectorNV",
+          "value" : 5404,
+          "extensions" : [ "SPV_NV_shader_atomic_fp16_vector" ],
           "version" : "None"
         },
         {

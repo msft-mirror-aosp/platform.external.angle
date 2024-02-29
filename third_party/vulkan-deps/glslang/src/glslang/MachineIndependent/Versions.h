@@ -241,6 +241,7 @@ const int Num_OVR_multiview_EXTs = sizeof(OVR_multiview_EXTs) / sizeof(OVR_multi
 // #line and #include
 const char* const E_GL_GOOGLE_cpp_style_line_directive          = "GL_GOOGLE_cpp_style_line_directive";
 const char* const E_GL_GOOGLE_include_directive                 = "GL_GOOGLE_include_directive";
+const char* const E_GL_ARB_shading_language_include             = "GL_ARB_shading_language_include";
 
 const char* const E_GL_AMD_shader_ballot                        = "GL_AMD_shader_ballot";
 const char* const E_GL_AMD_shader_trinary_minmax                = "GL_AMD_shader_trinary_minmax";
@@ -278,6 +279,7 @@ const char* const E_GL_NV_integer_cooperative_matrix            = "GL_NV_integer
 const char* const E_GL_NV_shader_invocation_reorder             = "GL_NV_shader_invocation_reorder";
 const char* const E_GL_EXT_ray_tracing_position_fetch           = "GL_EXT_ray_tracing_position_fetch";
 const char* const E_GL_NV_displacement_micromap                 = "GL_NV_displacement_micromap";
+const char* const E_GL_NV_shader_atomic_fp16_vector             = "GL_NV_shader_atomic_fp16_vector";
 
 // ARM
 const char* const E_GL_ARM_shader_core_builtins                 = "GL_ARM_shader_core_builtins";

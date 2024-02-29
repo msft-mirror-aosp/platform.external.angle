@@ -293,6 +293,9 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdEndDebugUtilsLabelEXT-commandBuffer-01912",
     // https://anglebug.com/8522
     "VUID-VkPipelineVertexInputStateCreateInfo-pNext-pNext",
+    // https://issuetracker.google.com/319228278
+    "VUID-vkCmdDrawIndexed-format-07753",
+    "VUID-vkCmdDraw-format-07753",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -3690,7 +3693,7 @@ std::string RendererVk::getVersionString(bool includeFullVersion) const
         else if (mPhysicalDeviceProperties.vendorID == VENDOR_ID_INTEL && IsWindows())
         {
             strstr << ANGLE_VK_VERSION_MAJOR_WIN_INTEL(driverVersion) << ".";
-            strstr << ANGLE_VK_VERSION_MAJOR_WIN_INTEL(driverVersion) << ".";
+            strstr << ANGLE_VK_VERSION_MINOR_WIN_INTEL(driverVersion);
         }
         // All other drivers use the Vulkan standard
         else
