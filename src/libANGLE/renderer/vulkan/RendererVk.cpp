@@ -137,22 +137,6 @@ bool IsQualcommOpenSource(uint32_t vendorId, uint32_t driverId, const char *devi
     return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr;
 }
 
-bool IsPixel()
-{
-    if (!IsAndroid())
-    {
-        return false;
-    }
-
-    angle::SystemInfo info;
-    if (!angle::GetSystemInfo(&info))
-    {
-        return false;
-    }
-
-    return strstr(info.machineModelName.c_str(), "Pixel") != nullptr;
-}
-
 angle::vk::ICD ChooseICDFromAttribs(const egl::AttributeMap &attribs)
 {
 #if !defined(ANGLE_PLATFORM_ANDROID)
@@ -1333,28 +1317,41 @@ constexpr char kEnableDebugMarkersPropertyName[] = "debug.angle.markers";
 
 ANGLE_INLINE gl::ShadingRate GetShadingRateFromVkExtent(const VkExtent2D &extent)
 {
-    if (extent.width == 1 && extent.height == 2)
+    if (extent.width == 1)
     {
-        return gl::ShadingRate::_1x2;
+        if (extent.height == 1)
+        {
+            return gl::ShadingRate::_1x1;
+        }
+        else if (extent.height == 2)
+        {
+            return gl::ShadingRate::_1x2;
+        }
     }
-    else if (extent.width == 2 && extent.height == 1)
+    else if (extent.width == 2)
     {
-        return gl::ShadingRate::_2x1;
+        if (extent.height == 1)
+        {
+            return gl::ShadingRate::_2x1;
+        }
+        else if (extent.height == 2)
+        {
+            return gl::ShadingRate::_2x2;
+        }
     }
-    else if (extent.width == 2 && extent.height == 2)
+    else if (extent.width == 4)
     {
-        return gl::ShadingRate::_2x2;
-    }
-    else if (extent.width == 4 && extent.height == 2)
-    {
-        return gl::ShadingRate::_4x2;
-    }
-    else if (extent.width == 4 && extent.height == 4)
-    {
-        return gl::ShadingRate::_4x4;
+        if (extent.height == 2)
+        {
+            return gl::ShadingRate::_4x2;
+        }
+        else if (extent.height == 4)
+        {
+            return gl::ShadingRate::_4x4;
+        }
     }
 
-    return gl::ShadingRate::_1x1;
+    return gl::ShadingRate::Undefined;
 }
 }  // namespace
 
@@ -2258,6 +2255,7 @@ void RendererVk::appendDeviceExtensionFeaturesNotPromoted(
     if (ExtensionFound(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mFragmentShadingRateFeatures);
+        vk::AddToPNextChain(deviceProperties, &mFragmentShadingRateProperties);
     }
 
     if (ExtensionFound(VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME, deviceExtensionNames))
@@ -2590,6 +2588,10 @@ void RendererVk::queryDeviceExtensionFeatures(const vk::ExtensionNameList &devic
     mFragmentShadingRateFeatures = {};
     mFragmentShadingRateFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
+
+    mFragmentShadingRateProperties = {};
+    mFragmentShadingRateProperties.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_PROPERTIES_KHR;
 
     mFragmentShaderInterlockFeatures = {};
     mFragmentShaderInterlockFeatures.sType =
@@ -3835,21 +3837,8 @@ uint32_t RendererVk::getDeviceVersion()
     return mDeviceVersion == 0 ? mInstanceVersion : mDeviceVersion;
 }
 
-bool RendererVk::canSupportFragmentShadingRate(const vk::ExtensionNameList &deviceExtensionNames)
+void RendererVk::queryAndCacheFragmentShadingRates()
 {
-    // VK_KHR_create_renderpass2 is required for VK_KHR_fragment_shading_rate
-    if (!mFeatures.supportsRenderpass2.enabled)
-    {
-        return false;
-    }
-
-    // Device needs to support VK_KHR_fragment_shading_rate and specifically
-    // pipeline fragment shading rate.
-    if (mFragmentShadingRateFeatures.pipelineFragmentShadingRate != VK_TRUE)
-    {
-        return false;
-    }
-
     // Init required functions
 #if !defined(ANGLE_SHARED_LIBVULKAN)
     InitFragmentShadingRateKHRInstanceFunction(mInstance);
@@ -3874,14 +3863,35 @@ bool RendererVk::canSupportFragmentShadingRate(const vk::ExtensionNameList &devi
 
     // Cache supported fragment shading rates
     mSupportedFragmentShadingRates.reset();
+    mSupportedFragmentShadingRateSampleCounts.fill(0u);
     for (const VkPhysicalDeviceFragmentShadingRateKHR &shadingRate : shadingRates)
     {
         if (shadingRate.sampleCounts == 0)
         {
             continue;
         }
-        mSupportedFragmentShadingRates.set(GetShadingRateFromVkExtent(shadingRate.fragmentSize));
+        const gl::ShadingRate rate = GetShadingRateFromVkExtent(shadingRate.fragmentSize);
+        mSupportedFragmentShadingRates.set(rate);
+        mSupportedFragmentShadingRateSampleCounts[rate] = shadingRate.sampleCounts;
     }
+}
+
+bool RendererVk::canSupportFragmentShadingRate() const
+{
+    // VK_KHR_create_renderpass2 is required for VK_KHR_fragment_shading_rate
+    if (!mFeatures.supportsRenderpass2.enabled)
+    {
+        return false;
+    }
+
+    // Device needs to support VK_KHR_fragment_shading_rate and specifically
+    // pipeline fragment shading rate.
+    if (mFragmentShadingRateFeatures.pipelineFragmentShadingRate != VK_TRUE)
+    {
+        return false;
+    }
+
+    ASSERT(mSupportedFragmentShadingRates.any());
 
     // To implement GL_QCOM_shading_rate extension the Vulkan ICD needs to support at least the
     // following shading rates -
@@ -3893,6 +3903,38 @@ bool RendererVk::canSupportFragmentShadingRate(const vk::ExtensionNameList &devi
            mSupportedFragmentShadingRates.test(gl::ShadingRate::_1x2) &&
            mSupportedFragmentShadingRates.test(gl::ShadingRate::_2x1) &&
            mSupportedFragmentShadingRates.test(gl::ShadingRate::_2x2);
+}
+
+bool RendererVk::canSupportFoveatedRendering() const
+{
+    // Device needs to support attachment fragment shading rate.
+    if (mFragmentShadingRateFeatures.attachmentFragmentShadingRate != VK_TRUE)
+    {
+        return false;
+    }
+
+    ASSERT(mSupportedFragmentShadingRates.any());
+    ASSERT(!mSupportedFragmentShadingRateSampleCounts.empty());
+
+    // To implement QCOM foveated rendering extensions the Vulkan ICD needs to support all sample
+    // count bits listed in VkPhysicalDeviceLimits::framebufferColorSampleCounts for these shading
+    // rates -
+    //     {1, 1}
+    //     {1, 2}
+    //     {2, 1}
+    //     {2, 2}
+    VkSampleCountFlags framebufferSampleCounts =
+        getPhysicalDeviceProperties().limits.framebufferColorSampleCounts &
+        vk_gl::kSupportedSampleCounts;
+
+    return (mSupportedFragmentShadingRateSampleCounts[gl::ShadingRate::_1x1] &
+            framebufferSampleCounts) == framebufferSampleCounts &&
+           (mSupportedFragmentShadingRateSampleCounts[gl::ShadingRate::_1x2] &
+            framebufferSampleCounts) == framebufferSampleCounts &&
+           (mSupportedFragmentShadingRateSampleCounts[gl::ShadingRate::_2x1] &
+            framebufferSampleCounts) == framebufferSampleCounts &&
+           (mSupportedFragmentShadingRateSampleCounts[gl::ShadingRate::_2x2] &
+            framebufferSampleCounts) == framebufferSampleCounts;
 }
 
 bool RendererVk::canPreferDeviceLocalMemoryHostVisible(VkPhysicalDeviceType deviceType)
@@ -3976,9 +4018,6 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // Distinguish between the mesa and proprietary drivers
     const bool isRADV = IsRADV(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
                                mPhysicalDeviceProperties.deviceName);
-
-    // Identify Google Pixel brand Android devices
-    const bool isPixel = IsPixel();
 
     angle::VersionInfo nvidiaVersion;
     if (isNvidia)
@@ -4591,27 +4630,14 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     // can root cause it.
     ANGLE_FEATURE_CONDITION(&mFeatures, requireCachedBitForStagingBuffer, !isARM);
 
-    bool dynamicStateWorks = true;
-    if (isARM)
-    {
-        // Multiple dynamic state issues on ARM have been fixed.
-        // http://issuetracker.google.com/285124778
-        // http://issuetracker.google.com/285196249
-        // http://issuetracker.google.com/286224923
-        // http://issuetracker.google.com/287318431
-
-        // Use it on drivers/devices known to work.
-        if (isPixel)
-        {
-            // Pixel devices are working after r44
-            dynamicStateWorks = armDriverVersion >= ARMDriverVersion(44, 0, 0);
-        }
-        else
-        {
-            // Others should work after r44p1
-            dynamicStateWorks = armDriverVersion >= ARMDriverVersion(44, 1, 0);
-        }
-    }
+    // Multiple dynamic state issues on ARM have been fixed.
+    // http://issuetracker.google.com/285124778
+    // http://issuetracker.google.com/285196249
+    // http://issuetracker.google.com/286224923
+    // http://issuetracker.google.com/287318431
+    //
+    // On Pixel devices, the issues have been fixed since r44, but on others since r44p1.
+    const bool isArm44OrLess = isARM && armDriverVersion < ARMDriverVersion(44, 1, 0);
 
     // Intel driver has issues with VK_EXT_vertex_input_dynamic_state
     // http://anglebug.com/7162#c8
@@ -4621,7 +4647,7 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsExtendedDynamicState,
-        mExtendedDynamicStateFeatures.extendedDynamicState == VK_TRUE && dynamicStateWorks);
+        mExtendedDynamicStateFeatures.extendedDynamicState == VK_TRUE && !isArm44OrLess);
 
     // VK_EXT_vertex_input_dynamic_state enables dynamic state for the full vertex input state. As
     // such, when available use supportsVertexInputDynamicState instead of
@@ -4629,15 +4655,15 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
     ANGLE_FEATURE_CONDITION(&mFeatures, useVertexInputBindingStrideDynamicState,
                             mFeatures.supportsExtendedDynamicState.enabled &&
                                 !mFeatures.supportsVertexInputDynamicState.enabled &&
-                                dynamicStateWorks);
+                                !isArm44OrLess);
     ANGLE_FEATURE_CONDITION(&mFeatures, useCullModeDynamicState,
-                            mFeatures.supportsExtendedDynamicState.enabled && dynamicStateWorks);
+                            mFeatures.supportsExtendedDynamicState.enabled && !isArm44OrLess);
     ANGLE_FEATURE_CONDITION(&mFeatures, useDepthCompareOpDynamicState,
                             mFeatures.supportsExtendedDynamicState.enabled);
     ANGLE_FEATURE_CONDITION(&mFeatures, useDepthTestEnableDynamicState,
                             mFeatures.supportsExtendedDynamicState.enabled);
     ANGLE_FEATURE_CONDITION(&mFeatures, useDepthWriteEnableDynamicState,
-                            mFeatures.supportsExtendedDynamicState.enabled && dynamicStateWorks);
+                            mFeatures.supportsExtendedDynamicState.enabled && !isArm44OrLess);
     ANGLE_FEATURE_CONDITION(&mFeatures, useFrontFaceDynamicState,
                             mFeatures.supportsExtendedDynamicState.enabled);
     ANGLE_FEATURE_CONDITION(&mFeatures, useStencilOpDynamicState,
@@ -4647,10 +4673,10 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsExtendedDynamicState2,
-        mExtendedDynamicState2Features.extendedDynamicState2 == VK_TRUE && dynamicStateWorks);
+        mExtendedDynamicState2Features.extendedDynamicState2 == VK_TRUE && !isArm44OrLess);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, usePrimitiveRestartEnableDynamicState,
-                            mFeatures.supportsExtendedDynamicState2.enabled && dynamicStateWorks);
+                            mFeatures.supportsExtendedDynamicState2.enabled && !isArm44OrLess);
     ANGLE_FEATURE_CONDITION(&mFeatures, useRasterizerDiscardEnableDynamicState,
                             mFeatures.supportsExtendedDynamicState2.enabled);
     ANGLE_FEATURE_CONDITION(&mFeatures, useDepthBiasEnableDynamicState,
@@ -4667,20 +4693,32 @@ void RendererVk::initFeatures(DisplayVk *displayVk,
             mExtendedDynamicState2Features.extendedDynamicState2LogicOp == VK_TRUE &&
             !(IsLinux() && isIntel && isMesaLessThan22_2) && !(IsAndroid() && isGalaxyS23));
 
-    // Support GL_QCOM_shading_rate extension
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsFragmentShadingRate,
-                            canSupportFragmentShadingRate(deviceExtensionNames));
-
-    // We can use the interlock to support GL_ANGLE_shader_pixel_local_storage_coherent.
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, supportsFragmentShaderPixelInterlock,
-        mFragmentShaderInterlockFeatures.fragmentShaderPixelInterlock == VK_TRUE);
-
     // Samsung Vulkan driver crashes in vkCmdClearAttachments() when imageless Framebuffer
     // is used to begin Secondary Command Buffer before the corresponding vkCmdBeginRenderPass().
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImagelessFramebuffer,
                             mImagelessFramebufferFeatures.imagelessFramebuffer == VK_TRUE &&
                                 (vk::RenderPassCommandBuffer::ExecutesInline() || !isSamsung));
+
+    if (ExtensionFound(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME, deviceExtensionNames))
+    {
+        queryAndCacheFragmentShadingRates();
+    }
+
+    // Support GL_QCOM_shading_rate extension
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsFragmentShadingRate,
+                            canSupportFragmentShadingRate());
+
+    // Support QCOM foveated rendering extensions.
+    // Gated on imageless framebuffer to reduce code complexity
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsFoveatedRendering,
+                            mFeatures.supportsImagelessFramebuffer.enabled &&
+                                mFeatures.supportsFragmentShadingRate.enabled &&
+                                canSupportFoveatedRendering());
+
+    // We can use the interlock to support GL_ANGLE_shader_pixel_local_storage_coherent.
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsFragmentShaderPixelInterlock,
+        mFragmentShaderInterlockFeatures.fragmentShaderPixelInterlock == VK_TRUE);
 
     // The VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT behavior is used by
     // ANGLE, which requires the robustBufferAccess feature to be available.
