@@ -27655,7 +27655,11 @@ namespace VULKAN_HPP_NAMESPACE
       : vendorFaultCode( vendorFaultCode_ ), vendorFaultData( vendorFaultData_ )
     {
       VULKAN_HPP_ASSERT( description_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( description, description_.data(), std::min<size_t>( description_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( description, VK_MAX_DESCRIPTION_SIZE, description_.data(), description_.size() );
+#    else
+      strncpy( description, description_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, description_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -27679,7 +27683,11 @@ namespace VULKAN_HPP_NAMESPACE
     DeviceFaultVendorInfoEXT & setDescription( std::string const & description_ ) VULKAN_HPP_NOEXCEPT
     {
       VULKAN_HPP_ASSERT( description_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( description, description_.data(), std::min<size_t>( description_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( description, VK_MAX_DESCRIPTION_SIZE, description_.data(), description_.size() );
+#    else
+      strncpy( description, description_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, description_.size() ) );
+#    endif
       return *this;
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
@@ -35660,7 +35668,11 @@ namespace VULKAN_HPP_NAMESPACE
     ExtensionProperties( std::string const & extensionName_, uint32_t specVersion_ = {} ) : specVersion( specVersion_ )
     {
       VULKAN_HPP_ASSERT( extensionName_.size() < VK_MAX_EXTENSION_NAME_SIZE );
-      strncpy( extensionName, extensionName_.data(), std::min<size_t>( extensionName_.size(), VK_MAX_EXTENSION_NAME_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( extensionName, VK_MAX_EXTENSION_NAME_SIZE, extensionName_.data(), extensionName_.size() );
+#    else
+      strncpy( extensionName, extensionName_.data(), std::min<size_t>( VK_MAX_EXTENSION_NAME_SIZE, extensionName_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -49675,9 +49687,18 @@ namespace VULKAN_HPP_NAMESPACE
       : specVersion( specVersion_ ), implementationVersion( implementationVersion_ )
     {
       VULKAN_HPP_ASSERT( layerName_.size() < VK_MAX_EXTENSION_NAME_SIZE );
-      strncpy( layerName, layerName_.data(), std::min<size_t>( layerName_.size(), VK_MAX_EXTENSION_NAME_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( layerName, VK_MAX_EXTENSION_NAME_SIZE, layerName_.data(), layerName_.size() );
+#    else
+      strncpy( layerName, layerName_.data(), std::min<size_t>( VK_MAX_EXTENSION_NAME_SIZE, layerName_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( description_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( description, description_.data(), std::min<size_t>( description_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( description, VK_MAX_DESCRIPTION_SIZE, description_.data(), description_.size() );
+#    else
+      strncpy( description, description_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, description_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -55149,11 +55170,25 @@ namespace VULKAN_HPP_NAMESPACE
       : pNext( pNext_ ), flags( flags_ )
     {
       VULKAN_HPP_ASSERT( name_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( name, name_.data(), std::min<size_t>( name_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( name, VK_MAX_DESCRIPTION_SIZE, name_.data(), name_.size() );
+#    else
+      strncpy( name, name_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, name_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( category_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( category, category_.data(), std::min<size_t>( category_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( category, VK_MAX_DESCRIPTION_SIZE, category_.data(), category_.size() );
+#    else
+      strncpy( category, category_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, category_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( description_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( description, description_.data(), std::min<size_t>( description_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( description, VK_MAX_DESCRIPTION_SIZE, description_.data(), description_.size() );
+#    else
+      strncpy( description, description_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, description_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -62636,9 +62671,18 @@ namespace VULKAN_HPP_NAMESPACE
       : pNext( pNext_ ), driverID( driverID_ ), conformanceVersion( conformanceVersion_ )
     {
       VULKAN_HPP_ASSERT( driverName_.size() < VK_MAX_DRIVER_NAME_SIZE );
-      strncpy( driverName, driverName_.data(), std::min<size_t>( driverName_.size(), VK_MAX_DRIVER_NAME_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( driverName, VK_MAX_DRIVER_NAME_SIZE, driverName_.data(), driverName_.size() );
+#    else
+      strncpy( driverName, driverName_.data(), std::min<size_t>( VK_MAX_DRIVER_NAME_SIZE, driverName_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( driverInfo_.size() < VK_MAX_DRIVER_INFO_SIZE );
-      strncpy( driverInfo, driverInfo_.data(), std::min<size_t>( driverInfo_.size(), VK_MAX_DRIVER_INFO_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( driverInfo, VK_MAX_DRIVER_INFO_SIZE, driverInfo_.data(), driverInfo_.size() );
+#    else
+      strncpy( driverInfo, driverInfo_.data(), std::min<size_t>( VK_MAX_DRIVER_INFO_SIZE, driverInfo_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -77468,7 +77512,11 @@ namespace VULKAN_HPP_NAMESPACE
       , sparseProperties( sparseProperties_ )
     {
       VULKAN_HPP_ASSERT( deviceName_.size() < VK_MAX_PHYSICAL_DEVICE_NAME_SIZE );
-      strncpy( deviceName, deviceName_.data(), std::min<size_t>( deviceName_.size(), VK_MAX_PHYSICAL_DEVICE_NAME_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( deviceName, VK_MAX_PHYSICAL_DEVICE_NAME_SIZE, deviceName_.data(), deviceName_.size() );
+#    else
+      strncpy( deviceName, deviceName_.data(), std::min<size_t>( VK_MAX_PHYSICAL_DEVICE_NAME_SIZE, deviceName_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -77512,7 +77560,7 @@ namespace VULKAN_HPP_NAMESPACE
 #endif
 
 #if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    std::strong_ordering operator<=>( PhysicalDeviceProperties const & rhs ) const VULKAN_HPP_NOEXCEPT
+    std::partial_ordering operator<=>( PhysicalDeviceProperties const & rhs ) const VULKAN_HPP_NOEXCEPT
     {
       if ( auto cmp = apiVersion <=> rhs.apiVersion; cmp != 0 )
         return cmp;
@@ -77525,7 +77573,7 @@ namespace VULKAN_HPP_NAMESPACE
       if ( auto cmp = deviceType <=> rhs.deviceType; cmp != 0 )
         return cmp;
       if ( auto cmp = strcmp( deviceName, rhs.deviceName ); cmp != 0 )
-        return ( cmp < 0 ) ? std::strong_ordering::less : std::strong_ordering::greater;
+        return ( cmp < 0 ) ? std::partial_ordering::less : std::partial_ordering::greater;
       if ( auto cmp = pipelineCacheUUID <=> rhs.pipelineCacheUUID; cmp != 0 )
         return cmp;
       if ( auto cmp = limits <=> rhs.limits; cmp != 0 )
@@ -77533,7 +77581,7 @@ namespace VULKAN_HPP_NAMESPACE
       if ( auto cmp = sparseProperties <=> rhs.sparseProperties; cmp != 0 )
         return cmp;
 
-      return std::strong_ordering::equivalent;
+      return std::partial_ordering::equivalent;
     }
 #endif
 
@@ -78333,6 +78381,104 @@ namespace VULKAN_HPP_NAMESPACE
   };
 
   using PhysicalDeviceRasterizationOrderAttachmentAccessFeaturesARM = PhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT;
+
+  struct PhysicalDeviceRawAccessChainsFeaturesNV
+  {
+    using NativeType = VkPhysicalDeviceRawAccessChainsFeaturesNV;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceRawAccessChainsFeaturesNV;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceRawAccessChainsFeaturesNV( VULKAN_HPP_NAMESPACE::Bool32 shaderRawAccessChains_ = {},
+                                                                  void *                       pNext_                 = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext( pNext_ )
+      , shaderRawAccessChains( shaderRawAccessChains_ )
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceRawAccessChainsFeaturesNV( PhysicalDeviceRawAccessChainsFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceRawAccessChainsFeaturesNV( VkPhysicalDeviceRawAccessChainsFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceRawAccessChainsFeaturesNV( *reinterpret_cast<PhysicalDeviceRawAccessChainsFeaturesNV const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceRawAccessChainsFeaturesNV & operator=( PhysicalDeviceRawAccessChainsFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDeviceRawAccessChainsFeaturesNV & operator=( VkPhysicalDeviceRawAccessChainsFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceRawAccessChainsFeaturesNV const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceRawAccessChainsFeaturesNV & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceRawAccessChainsFeaturesNV &
+      setShaderRawAccessChains( VULKAN_HPP_NAMESPACE::Bool32 shaderRawAccessChains_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderRawAccessChains = shaderRawAccessChains_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPhysicalDeviceRawAccessChainsFeaturesNV const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceRawAccessChainsFeaturesNV *>( this );
+    }
+
+    operator VkPhysicalDeviceRawAccessChainsFeaturesNV &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceRawAccessChainsFeaturesNV *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, shaderRawAccessChains );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceRawAccessChainsFeaturesNV const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceRawAccessChainsFeaturesNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( shaderRawAccessChains == rhs.shaderRawAccessChains );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceRawAccessChainsFeaturesNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType                 = StructureType::ePhysicalDeviceRawAccessChainsFeaturesNV;
+    void *                              pNext                 = {};
+    VULKAN_HPP_NAMESPACE::Bool32        shaderRawAccessChains = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceRawAccessChainsFeaturesNV>
+  {
+    using Type = PhysicalDeviceRawAccessChainsFeaturesNV;
+  };
 
   struct PhysicalDeviceRayQueryFeaturesKHR
   {
@@ -86740,13 +86886,32 @@ namespace VULKAN_HPP_NAMESPACE
       : pNext( pNext_ ), purposes( purposes_ )
     {
       VULKAN_HPP_ASSERT( name_.size() < VK_MAX_EXTENSION_NAME_SIZE );
-      strncpy( name, name_.data(), std::min<size_t>( name_.size(), VK_MAX_EXTENSION_NAME_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( name, VK_MAX_EXTENSION_NAME_SIZE, name_.data(), name_.size() );
+#    else
+      strncpy( name, name_.data(), std::min<size_t>( VK_MAX_EXTENSION_NAME_SIZE, name_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( version_.size() < VK_MAX_EXTENSION_NAME_SIZE );
-      strncpy( version, version_.data(), std::min<size_t>( version_.size(), VK_MAX_EXTENSION_NAME_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( version, VK_MAX_EXTENSION_NAME_SIZE, version_.data(), version_.size() );
+#    else
+      strncpy( version, version_.data(), std::min<size_t>( VK_MAX_EXTENSION_NAME_SIZE, version_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( description_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( description, description_.data(), std::min<size_t>( description_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( description, VK_MAX_DESCRIPTION_SIZE, description_.data(), description_.size() );
+#    else
+      strncpy( description, description_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, description_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( layer_.size() < VK_MAX_EXTENSION_NAME_SIZE );
-      strncpy( layer, layer_.data(), std::min<size_t>( layer_.size(), VK_MAX_EXTENSION_NAME_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( layer, VK_MAX_EXTENSION_NAME_SIZE, layer_.data(), layer_.size() );
+#    else
+      strncpy( layer, layer_.data(), std::min<size_t>( VK_MAX_EXTENSION_NAME_SIZE, layer_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -89424,9 +89589,18 @@ namespace VULKAN_HPP_NAMESPACE
       , framebufferIntegerColorSampleCounts( framebufferIntegerColorSampleCounts_ )
     {
       VULKAN_HPP_ASSERT( driverName_.size() < VK_MAX_DRIVER_NAME_SIZE );
-      strncpy( driverName, driverName_.data(), std::min<size_t>( driverName_.size(), VK_MAX_DRIVER_NAME_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( driverName, VK_MAX_DRIVER_NAME_SIZE, driverName_.data(), driverName_.size() );
+#    else
+      strncpy( driverName, driverName_.data(), std::min<size_t>( VK_MAX_DRIVER_NAME_SIZE, driverName_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( driverInfo_.size() < VK_MAX_DRIVER_INFO_SIZE );
-      strncpy( driverInfo, driverInfo_.data(), std::min<size_t>( driverInfo_.size(), VK_MAX_DRIVER_INFO_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( driverInfo, VK_MAX_DRIVER_INFO_SIZE, driverInfo_.data(), driverInfo_.size() );
+#    else
+      strncpy( driverInfo, driverInfo_.data(), std::min<size_t>( VK_MAX_DRIVER_INFO_SIZE, driverInfo_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -92731,9 +92905,18 @@ namespace VULKAN_HPP_NAMESPACE
       : pNext( pNext_ ), isText( isText_ ), dataSize( data_.size() * sizeof( T ) ), pData( data_.data() )
     {
       VULKAN_HPP_ASSERT( name_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( name, name_.data(), std::min<size_t>( name_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( name, VK_MAX_DESCRIPTION_SIZE, name_.data(), name_.size() );
+#    else
+      strncpy( name, name_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, name_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( description_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( description, description_.data(), std::min<size_t>( description_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( description, VK_MAX_DESCRIPTION_SIZE, description_.data(), description_.size() );
+#    else
+      strncpy( description, description_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, description_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -92860,9 +93043,18 @@ namespace VULKAN_HPP_NAMESPACE
       : pNext( pNext_ ), stages( stages_ ), subgroupSize( subgroupSize_ )
     {
       VULKAN_HPP_ASSERT( name_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( name, name_.data(), std::min<size_t>( name_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( name, VK_MAX_DESCRIPTION_SIZE, name_.data(), name_.size() );
+#    else
+      strncpy( name, name_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, name_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( description_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( description, description_.data(), std::min<size_t>( description_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( description, VK_MAX_DESCRIPTION_SIZE, description_.data(), description_.size() );
+#    else
+      strncpy( description, description_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, description_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -93050,9 +93242,18 @@ namespace VULKAN_HPP_NAMESPACE
       : pNext( pNext_ ), format( format_ ), value( value_ )
     {
       VULKAN_HPP_ASSERT( name_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( name, name_.data(), std::min<size_t>( name_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( name, VK_MAX_DESCRIPTION_SIZE, name_.data(), name_.size() );
+#    else
+      strncpy( name, name_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, name_.size() ) );
+#    endif
+
       VULKAN_HPP_ASSERT( description_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( description, description_.data(), std::min<size_t>( description_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( description, VK_MAX_DESCRIPTION_SIZE, description_.data(), description_.size() );
+#    else
+      strncpy( description, description_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, description_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 
@@ -104104,7 +104305,11 @@ namespace VULKAN_HPP_NAMESPACE
       : subpassMergeStatus( subpassMergeStatus_ ), postMergeIndex( postMergeIndex_ )
     {
       VULKAN_HPP_ASSERT( description_.size() < VK_MAX_DESCRIPTION_SIZE );
-      strncpy( description, description_.data(), std::min<size_t>( description_.size(), VK_MAX_DESCRIPTION_SIZE ) );
+#    if defined( WIN32 )
+      strncpy_s( description, VK_MAX_DESCRIPTION_SIZE, description_.data(), description_.size() );
+#    else
+      strncpy( description, description_.data(), std::min<size_t>( VK_MAX_DESCRIPTION_SIZE, description_.size() ) );
+#    endif
     }
 #  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
 

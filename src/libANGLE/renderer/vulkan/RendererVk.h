@@ -22,7 +22,6 @@
 #include "common/angleutils.h"
 #include "common/vulkan/vk_headers.h"
 #include "common/vulkan/vulkan_icd.h"
-#include "libANGLE/BlobCache.h"
 #include "libANGLE/Caps.h"
 #include "libANGLE/renderer/vulkan/CommandProcessor.h"
 #include "libANGLE/renderer/vulkan/DebugAnnotatorVk.h"
@@ -41,15 +40,8 @@ class Library;
 struct FrontendFeatures;
 }  // namespace angle
 
-namespace egl
-{
-class Display;
-class BlobCache;
-}  // namespace egl
-
 namespace rx
 {
-class DisplayVk;
 class FramebufferVk;
 
 namespace vk
@@ -144,16 +136,36 @@ class OneOffCommandPool : angle::NonCopyable
     std::deque<PendingOneOffCommands> mPendingCommands;
 };
 
+enum class UseValidationLayers
+{
+    Yes,
+    YesIfAvailable,
+    No,
+};
+
+enum class UseVulkanSwapchain
+{
+    Yes,
+    No,
+};
+
 class RendererVk : angle::NonCopyable
 {
   public:
     RendererVk();
     ~RendererVk();
 
-    angle::Result initialize(DisplayVk *displayVk,
-                             egl::Display *display,
+    angle::Result initialize(vk::Context *context,
+                             vk::GlobalOps *globalOps,
+                             angle::vk::ICD desiredICD,
+                             uint32_t preferredVendorId,
+                             uint32_t preferredDeviceId,
+                             UseValidationLayers useValidationLayers,
                              const char *wsiExtension,
-                             const char *wsiLayer);
+                             const char *wsiLayer,
+                             angle::NativeWindowSystem nativeWindowSystem,
+                             const angle::FeatureOverrides &featureOverrides);
+
     // Reload volk vk* function ptrs if needed for an already initialized RendererVk
     void reloadVolkIfNeeded() const;
     void onDestroy(vk::Context *context);
@@ -200,7 +212,7 @@ class RendererVk : angle::NonCopyable
     const vk::Allocator &getAllocator() const { return mAllocator; }
     vk::ImageMemorySuballocator &getImageMemorySuballocator() { return mImageMemorySuballocator; }
 
-    angle::Result checkQueueForSurfacePresent(DisplayVk *displayVk,
+    angle::Result checkQueueForSurfacePresent(vk::Context *context,
                                               VkSurfaceKHR surface,
                                               bool *supportedOut);
 
@@ -226,8 +238,10 @@ class RendererVk : angle::NonCopyable
 
     const vk::Format &getFormat(angle::FormatID formatID) const { return mFormatTable[formatID]; }
 
-    angle::Result getPipelineCacheSize(DisplayVk *displayVk, size_t *pipelineCacheSizeOut);
-    angle::Result syncPipelineCacheVk(DisplayVk *displayVk, const gl::Context *context);
+    angle::Result getPipelineCacheSize(vk::Context *context, size_t *pipelineCacheSizeOut);
+    angle::Result syncPipelineCacheVk(vk::Context *context,
+                                      vk::GlobalOps *globalOps,
+                                      const gl::Context *contextGL);
 
     const angle::FeaturesVk &getFeatures() const { return mFeatures; }
     uint32_t getMaxVertexAttribDivisor() const { return mMaxVertexAttribDivisor; }
@@ -325,8 +339,9 @@ class RendererVk : angle::NonCopyable
         mSuballocationGarbageList.add(this, std::move(garbage));
     }
 
-    angle::Result getPipelineCache(vk::PipelineCacheAccess *pipelineCacheOut);
-    angle::Result mergeIntoPipelineCache(const vk::PipelineCache &pipelineCache);
+    angle::Result getPipelineCache(vk::Context *context, vk::PipelineCacheAccess *pipelineCacheOut);
+    angle::Result mergeIntoPipelineCache(vk::Context *context,
+                                         const vk::PipelineCache &pipelineCache);
 
     void onNewValidationMessage(const std::string &message);
     std::string getAndClearLastValidationMessage(uint32_t *countSinceLastClear);
@@ -393,7 +408,7 @@ class RendererVk : angle::NonCopyable
     }
     void resetCommandQueuePerFrameCounters() { mCommandQueue.resetPerFramePerfCounters(); }
 
-    egl::Display *getDisplay() const { return mDisplay; }
+    vk::GlobalOps *getGlobalOps() const { return mGlobalOps; }
 
     bool enableDebugUtils() const { return mEnableDebugUtils; }
     bool angleDebuggerMode() const { return mAngleDebuggerMode; }
@@ -408,7 +423,7 @@ class RendererVk : angle::NonCopyable
 
     vk::ResourceSerialFactory &getResourceSerialFactory() { return mResourceSerialFactory; }
 
-    void setGlobalDebugAnnotator();
+    void setGlobalDebugAnnotator(bool *installedAnnotatorOut);
 
     void outputVmaStatString();
 
@@ -717,8 +732,12 @@ class RendererVk : angle::NonCopyable
     vk::ExternalFormatTable mExternalFormatTable;
 
   private:
-    angle::Result setupDevice(DisplayVk *displayVk);
-    angle::Result createDeviceAndQueue(DisplayVk *displayVk, uint32_t queueFamilyIndex);
+    angle::Result setupDevice(vk::Context *context,
+                              const angle::FeatureOverrides &featureOverrides,
+                              const char *wsiLayer,
+                              UseVulkanSwapchain useVulkanSwapchain,
+                              angle::NativeWindowSystem nativeWindowSystem);
+    angle::Result createDeviceAndQueue(vk::Context *context, uint32_t queueFamilyIndex);
     void ensureCapsInitialized() const;
     void initializeValidationMessageSuppressions();
 
@@ -739,11 +758,15 @@ class RendererVk : angle::NonCopyable
         VkPhysicalDeviceFeatures2KHR *deviceFeatures,
         VkPhysicalDeviceProperties2 *deviceProperties);
 
-    angle::Result enableInstanceExtensions(DisplayVk *displayVk,
+    angle::Result enableInstanceExtensions(vk::Context *context,
                                            const VulkanLayerVector &enabledInstanceLayerNames,
                                            const char *wsiExtension,
+                                           UseVulkanSwapchain useVulkanSwapchain,
                                            bool canLoadDebugUtils);
-    angle::Result enableDeviceExtensions(DisplayVk *displayVk);
+    angle::Result enableDeviceExtensions(vk::Context *context,
+                                         const angle::FeatureOverrides &featureOverrides,
+                                         UseVulkanSwapchain useVulkanSwapchain,
+                                         angle::NativeWindowSystem nativeWindowSystem);
 
     void enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &deviceExtensionNames);
     void enableDeviceExtensionsPromotedTo11(const vk::ExtensionNameList &deviceExtensionNames);
@@ -756,9 +779,12 @@ class RendererVk : angle::NonCopyable
     void initializeInstanceExtensionEntryPointsFromCore() const;
     void initializeDeviceExtensionEntryPointsFromCore() const;
 
-    void initFeatures(DisplayVk *display, const vk::ExtensionNameList &extensions);
-    void appBasedFeatureOverrides(DisplayVk *display, const vk::ExtensionNameList &extensions);
-    angle::Result initPipelineCache(DisplayVk *display,
+    void initFeatures(const vk::ExtensionNameList &extensions,
+                      const angle::FeatureOverrides &featureOverrides,
+                      UseVulkanSwapchain useVulkanSwapchain,
+                      angle::NativeWindowSystem nativeWindowSystem);
+    void appBasedFeatureOverrides(const vk::ExtensionNameList &extensions);
+    angle::Result initPipelineCache(vk::Context *context,
                                     vk::PipelineCache *pipelineCache,
                                     bool *success);
 
@@ -771,7 +797,7 @@ class RendererVk : angle::NonCopyable
                               const VkFormatFeatureFlags featureBits) const;
 
     // Initialize VMA allocator and buffer suballocator related data.
-    angle::Result initializeMemoryAllocator(DisplayVk *displayVk);
+    angle::Result initializeMemoryAllocator(vk::Context *context);
 
     // Query and cache supported fragment shading rates
     void queryAndCacheFragmentShadingRates();
@@ -793,7 +819,7 @@ class RendererVk : angle::NonCopyable
                                        RecyclerT *recycler,
                                        CommandBufferHelperT **commandBufferHelperOut);
 
-    egl::Display *mDisplay;
+    vk::GlobalOps *mGlobalOps;
 
     void *mLibVulkanLibrary;
 
@@ -1026,7 +1052,7 @@ class RendererVk : angle::NonCopyable
 
     // Memory tracker for allocations and deallocations.
     MemoryAllocationTracker mMemoryAllocationTracker;
-};
+};  // namespace rx
 
 ANGLE_INLINE Serial RendererVk::generateQueueSerial(SerialIndex index)
 {
