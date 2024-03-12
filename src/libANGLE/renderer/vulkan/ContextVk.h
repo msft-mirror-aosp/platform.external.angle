@@ -14,6 +14,7 @@
 
 #include "common/PackedEnums.h"
 #include "common/vulkan/vk_headers.h"
+#include "image_util/loadimage.h"
 #include "libANGLE/renderer/ContextImpl.h"
 #include "libANGLE/renderer/renderer_utils.h"
 #include "libANGLE/renderer/vulkan/DisplayVk.h"
@@ -72,7 +73,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     ContextVk(const gl::State &state, gl::ErrorSet *errorSet, RendererVk *renderer);
     ~ContextVk() override;
 
-    angle::Result initialize() override;
+    angle::Result initialize(const angle::ImageLoadContext &imageLoadContext) override;
 
     void onDestroy(const gl::Context *context) override;
 
@@ -557,6 +558,12 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                                     resolveImage, imageSiblingSerial);
     }
 
+    void onFragmentShadingRateRead(vk::ImageHelper *image)
+    {
+        ASSERT(mRenderPassCommands->started());
+        mRenderPassCommands->fragmentShadingRateImageRead(image);
+    }
+
     void finalizeImageLayout(const vk::ImageHelper *image, UniqueSerial imageSiblingSerial)
     {
         if (mRenderPassCommands->started())
@@ -749,6 +756,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     angle::Result switchToFramebufferFetchMode(bool hasFramebufferFetch);
     bool isInFramebufferFetchMode() const { return mIsInFramebufferFetchMode; }
 
+    void updateFoveatedRendering();
+
     const angle::PerfMonitorCounterGroups &getPerfMonitorCounters() override;
 
     void resetPerFramePerfCounters();
@@ -781,7 +790,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     vk::ComputePipelineFlags getComputePipelineFlags() const;
 
-    angle::ImageLoadContext getImageLoadContext() const;
+    const angle::ImageLoadContext &getImageLoadContext() const { return mImageLoadContext; }
 
     bool hasUnsubmittedUse(const vk::ResourceUse &use) const;
     bool hasUnsubmittedUse(const vk::Resource &resource) const
@@ -1398,6 +1407,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     void generateRenderPassCommandsQueueSerial(QueueSerial *queueSerialOut);
 
     angle::Result ensureInterfacePipelineCache();
+
+    angle::ImageLoadContext mImageLoadContext;
 
     std::array<GraphicsDirtyBitHandler, DIRTY_BIT_MAX> mGraphicsDirtyBitHandlers;
     std::array<ComputeDirtyBitHandler, DIRTY_BIT_MAX> mComputeDirtyBitHandlers;
