@@ -79489,6 +79489,104 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = PhysicalDeviceRayTracingPropertiesNV;
   };
 
+  struct PhysicalDeviceRayTracingValidationFeaturesNV
+  {
+    using NativeType = VkPhysicalDeviceRayTracingValidationFeaturesNV;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceRayTracingValidationFeaturesNV;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceRayTracingValidationFeaturesNV( VULKAN_HPP_NAMESPACE::Bool32 rayTracingValidation_ = {},
+                                                                       void *                       pNext_                = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext( pNext_ )
+      , rayTracingValidation( rayTracingValidation_ )
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceRayTracingValidationFeaturesNV( PhysicalDeviceRayTracingValidationFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceRayTracingValidationFeaturesNV( VkPhysicalDeviceRayTracingValidationFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceRayTracingValidationFeaturesNV( *reinterpret_cast<PhysicalDeviceRayTracingValidationFeaturesNV const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceRayTracingValidationFeaturesNV & operator=( PhysicalDeviceRayTracingValidationFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDeviceRayTracingValidationFeaturesNV & operator=( VkPhysicalDeviceRayTracingValidationFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceRayTracingValidationFeaturesNV const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceRayTracingValidationFeaturesNV & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceRayTracingValidationFeaturesNV &
+      setRayTracingValidation( VULKAN_HPP_NAMESPACE::Bool32 rayTracingValidation_ ) VULKAN_HPP_NOEXCEPT
+    {
+      rayTracingValidation = rayTracingValidation_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPhysicalDeviceRayTracingValidationFeaturesNV const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceRayTracingValidationFeaturesNV *>( this );
+    }
+
+    operator VkPhysicalDeviceRayTracingValidationFeaturesNV &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceRayTracingValidationFeaturesNV *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, rayTracingValidation );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceRayTracingValidationFeaturesNV const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceRayTracingValidationFeaturesNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( rayTracingValidation == rhs.rayTracingValidation );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceRayTracingValidationFeaturesNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType                = StructureType::ePhysicalDeviceRayTracingValidationFeaturesNV;
+    void *                              pNext                = {};
+    VULKAN_HPP_NAMESPACE::Bool32        rayTracingValidation = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceRayTracingValidationFeaturesNV>
+  {
+    using Type = PhysicalDeviceRayTracingValidationFeaturesNV;
+  };
+
   struct PhysicalDeviceRelaxedLineRasterizationFeaturesIMG
   {
     using NativeType = VkPhysicalDeviceRelaxedLineRasterizationFeaturesIMG;
