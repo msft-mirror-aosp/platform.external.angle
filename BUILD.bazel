@@ -1,0 +1,13 @@
+
+# This only exports the headers.
+cc_library(
+    name = "angle-headers",
+    hdrs = glob([
+        "include/**/*.h",
+        "include/**/*.hpp",
+    ]),
+    includes = ["include"],
+    visibility = ["//visibility:public"],
+    deps = [
+    ],
+)
