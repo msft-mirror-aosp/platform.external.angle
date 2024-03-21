@@ -49,7 +49,7 @@ vars = {
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': '87353392d2d29dd9af34738123a7b87abfea2d48',
+  'vk_gl_cts_revision': 'ec9827528085fcffca353c8d941ec20e3de7aaea',
 
   # Current revision of googletest.
   # Note: this dep cannot be auto-rolled b/c of nesting.
@@ -820,6 +820,11 @@ deps = {
     'condition': 'not build_with_chromium',
   },
 
+  'third_party/OpenCL-CTS/src': {
+    'url': Var('chromium_git') + '/external/github.com/KhronosGroup/OpenCL-CTS@e0a31a03fc8f816d59fd8b3051ac6a61d3fa50c6',
+    'condition': 'not build_with_chromium',
+  },
+
   'third_party/OpenCL-Docs/src': {
     'url': Var('chromium_git') + '/external/github.com/KhronosGroup/OpenCL-Docs@774114e8761920b976d538d47fad8178d05984ec',
     'condition': 'not build_with_chromium',
@@ -932,7 +937,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@91aab7b7e25ff7a5878d6486fc9721c7e4b0c085',
+    'url': Var('chromium_git') + '/vulkan-deps@ba66ec69216da9131d8e382f6e8c64380d4856f3',
     'condition': 'not build_with_chromium',
   },
 
@@ -5650,6 +5655,7 @@ recursedeps = [
   'third_party/googletest',
   'third_party/jsoncpp',
   'third_party/vulkan-deps',
+  'third_party/dawn',
 ]
 
 skip_child_includes = [

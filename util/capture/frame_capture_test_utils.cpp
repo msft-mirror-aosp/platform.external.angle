@@ -91,6 +91,13 @@ bool UncompressData(const std::vector<uint8_t> &compressedData,
     {
         std::cerr << "Failure to decompressed binary data: " << zResult
                   << " msg=" << (stream.msg ? stream.msg : "nil") << "\n";
+        fprintf(stderr,
+                "next_in %p (input %p) avail_in %d total_in %lu next_out %p (output %p) avail_out "
+                "%d total_out %ld adler %lX crc %lX crc_simd %lX\n",
+                stream.next_in, compressedData.data(), stream.avail_in, stream.total_in,
+                stream.next_out, uncompressedData->data(), stream.avail_out, stream.total_out,
+                stream.adler, crc32(0, uncompressedData->data(), uncompressedSize),
+                crc32(0, uncompressedData->data(), 16 * (uncompressedSize / 16)));
         return false;
     }
 

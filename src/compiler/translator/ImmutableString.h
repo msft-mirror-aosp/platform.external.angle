@@ -47,7 +47,10 @@ class ImmutableString
     char operator[](size_t index) const { return data()[index]; }
 
     constexpr bool empty() const { return mLength == 0; }
-    bool beginsWith(const char *prefix) const { return angle::BeginsWith(data(), prefix); }
+    constexpr bool beginsWith(const char *prefix) const
+    {
+        return beginsWith(ImmutableString(prefix));
+    }
     constexpr bool beginsWith(const ImmutableString &prefix) const
     {
         return mLength >= prefix.length() && memcmp(data(), prefix.data(), prefix.length()) == 0;
@@ -91,26 +94,6 @@ class ImmutableString
         return (memcmp(data(), b.data(), mLength) < 0);
     }
 
-    template <size_t hashBytes>
-    struct FowlerNollVoHash
-    {
-        static const size_t kFnvOffsetBasis;
-        static const size_t kFnvPrime;
-
-        constexpr size_t operator()(const ImmutableString &a) const
-        {
-            const char *data = a.data();
-            size_t hash      = kFnvOffsetBasis;
-            while ((*data) != '\0')
-            {
-                hash = hash ^ (*data);
-                hash = hash * kFnvPrime;
-                ++data;
-            }
-            return hash;
-        }
-    };
-
     // Perfect hash functions
     uint32_t mangledNameHash() const;
     uint32_t unmangledNameHash() const;
@@ -121,8 +104,36 @@ class ImmutableString
 };
 
 constexpr ImmutableString kEmptyImmutableString("");
+
 }  // namespace sh
 
 std::ostream &operator<<(std::ostream &os, const sh::ImmutableString &str);
+
+namespace std
+{
+
+template <>
+struct hash<sh::ImmutableString>
+{
+    size_t operator()(const sh::ImmutableString &str) const
+    {
+        constexpr size_t kFnvPrime =
+            sizeof(size_t) == 4 ? 16777619u : static_cast<size_t>(1099511628211ull);
+        constexpr size_t kFnvOffsetBasis =
+            sizeof(size_t) == 4 ? 0x811c9dc5u : static_cast<size_t>(0xcbf29ce484222325ull);
+        // FowlerNollVoHash.
+        const char *data = str.data();
+        size_t hash      = kFnvOffsetBasis;
+        while ((*data) != '\0')
+        {
+            hash = hash ^ (*data);
+            hash = hash * kFnvPrime;
+            ++data;
+        }
+        return hash;
+    }
+};
+
+}  // namespace std
 
 #endif  // COMPILER_TRANSLATOR_IMMUTABLESTRING_H_
