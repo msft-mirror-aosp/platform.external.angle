@@ -1,9 +1,9 @@
 {
   "version info": {
     "schema version": 2,
-    "api version": "1.3.280",
-    "comment": "from git branch: github-main commit: 69ba4fefbafa045d0fd1b07060b768b3b1c115cc",
-    "date": "2024-03-08 12:38:58Z"
+    "api version": "1.3.281",
+    "comment": "from git branch: github-main commit: d6029cc2b7499faf2e7857420ec4996fc5cb0a50",
+    "date": "2024-03-22 07:59:34Z"
   },
   "validation": {
     "vkGetInstanceProcAddr": {
@@ -871,12 +871,12 @@
         },
         {
           "vuid": "VUID-VkDeviceCreateInfo-pNext-09396",
-          "text": "If the <code>pNext</code> chain includes a <a href=\"#VkDeviceQueueShaderCoreControlCreateInfoARM\">VkDeviceQueueShaderCoreControlCreateInfoARM</a> structure, then it <strong class=\"purple\">must</strong> not be included in the <code>pNext</code> chain of any of the <a href=\"#VkDeviceQueueCreateInfo\">VkDeviceQueueCreateInfo</a> structures in <code>pQueueCreateInfos</code>.",
+          "text": "If the <code>pNext</code> chain includes a <a href=\"#VkDeviceQueueShaderCoreControlCreateInfoARM\">VkDeviceQueueShaderCoreControlCreateInfoARM</a> structure, then it <strong class=\"purple\">must</strong> not be included in the <code>pNext</code> chain of any of the <a href=\"#VkDeviceQueueCreateInfo\">VkDeviceQueueCreateInfo</a> structures in <code>pQueueCreateInfos</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkDeviceCreateInfo-pNext-09397",
-          "text": "If the <code>pNext</code> chain includes a <a href=\"#VkDeviceQueueShaderCoreControlCreateInfoARM\">VkDeviceQueueShaderCoreControlCreateInfoARM</a> structure then <a href=\"#VkPhysicalDeviceSchedulingControlsPropertiesARM\">VkPhysicalDeviceSchedulingControlsPropertiesARM</a>::<code>schedulingControlsFlags</code> <strong class=\"purple\">must</strong> contain <code>VK_PHYSICAL_DEVICE_SCHEDULING_CONTROLS_SHADER_CORE_COUNT_ARM</code>.",
+          "text": "If the <code>pNext</code> chain includes a <a href=\"#VkDeviceQueueShaderCoreControlCreateInfoARM\">VkDeviceQueueShaderCoreControlCreateInfoARM</a> structure then <a href=\"#VkPhysicalDeviceSchedulingControlsPropertiesARM\">VkPhysicalDeviceSchedulingControlsPropertiesARM</a>::<code>schedulingControlsFlags</code> <strong class=\"purple\">must</strong> contain <code>VK_PHYSICAL_DEVICE_SCHEDULING_CONTROLS_SHADER_CORE_COUNT_ARM</code>",
           "page": "vkspec"
         },
         {
@@ -1088,7 +1088,7 @@
         },
         {
           "vuid": "VUID-VkDeviceQueueCreateInfo-pNext-09398",
-          "text": "If the <code>pNext</code> chain includes a <a href=\"#VkDeviceQueueShaderCoreControlCreateInfoARM\">VkDeviceQueueShaderCoreControlCreateInfoARM</a> structure then <a href=\"#VkPhysicalDeviceSchedulingControlsPropertiesARM\">VkPhysicalDeviceSchedulingControlsPropertiesARM</a>::<code>schedulingControlsFlags</code> <strong class=\"purple\">must</strong> contain <code>VK_PHYSICAL_DEVICE_SCHEDULING_CONTROLS_SHADER_CORE_COUNT_ARM</code>.",
+          "text": "If the <code>pNext</code> chain includes a <a href=\"#VkDeviceQueueShaderCoreControlCreateInfoARM\">VkDeviceQueueShaderCoreControlCreateInfoARM</a> structure then <a href=\"#VkPhysicalDeviceSchedulingControlsPropertiesARM\">VkPhysicalDeviceSchedulingControlsPropertiesARM</a>::<code>schedulingControlsFlags</code> <strong class=\"purple\">must</strong> contain <code>VK_PHYSICAL_DEVICE_SCHEDULING_CONTROLS_SHADER_CORE_COUNT_ARM</code>",
           "page": "vkspec"
         },
         {
@@ -1141,7 +1141,7 @@
       "core": [
         {
           "vuid": "VUID-VkDeviceQueueShaderCoreControlCreateInfoARM-shaderCoreCount-09399",
-          "text": "<code>shaderCoreCount</code> <strong class=\"purple\">must</strong> be greater than 0 and less than or equal to the total number of shader cores as reported via <a href=\"#VkPhysicalDeviceShaderCoreBuiltinsPropertiesARM\">VkPhysicalDeviceShaderCoreBuiltinsPropertiesARM</a>::<code>shaderCoreCount</code>.",
+          "text": "<code>shaderCoreCount</code> <strong class=\"purple\">must</strong> be greater than 0 and less than or equal to the total number of shader cores as reported via <a href=\"#VkPhysicalDeviceShaderCoreBuiltinsPropertiesARM\">VkPhysicalDeviceShaderCoreBuiltinsPropertiesARM</a>::<code>shaderCoreCount</code>",
           "page": "vkspec"
         },
         {
@@ -5405,7 +5405,7 @@
         },
         {
           "vuid": "VUID-vkCmdPipelineBarrier2-None-09586",
-          "text": "If the <a href=\"#features-dynamicRenderingLocalRead\"><code>dynamicRenderingLocalRead</code></a> feature is not enabled, and <code>vkCmdPipelineBarrier2</code> is called within a render pass instance started with <a href=\"#vkCmdBeginRendering\">vkCmdBeginRendering</a>, memory barriers specified by this command <strong class=\"purple\">must</strong> only include <code>VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT</code>, <code>VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT</code>, <code>VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT</code>, or <code>VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT</code> in their access masks.",
+          "text": "If the <a href=\"#features-dynamicRenderingLocalRead\"><code>dynamicRenderingLocalRead</code></a> feature is not enabled, and <code>vkCmdPipelineBarrier2</code> is called within a render pass instance started with <a href=\"#vkCmdBeginRendering\">vkCmdBeginRendering</a>, memory barriers specified by this command <strong class=\"purple\">must</strong> only include <code>VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT</code>, <code>VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT</code>, <code>VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT</code>, or <code>VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT</code> in their access masks",
           "page": "vkspec"
         },
         {
@@ -5669,7 +5669,7 @@
         },
         {
           "vuid": "VUID-vkCmdPipelineBarrier-None-09586",
-          "text": "If the <a href=\"#features-dynamicRenderingLocalRead\"><code>dynamicRenderingLocalRead</code></a> feature is not enabled, and <code>vkCmdPipelineBarrier</code> is called within a render pass instance started with <a href=\"#vkCmdBeginRendering\">vkCmdBeginRendering</a>, memory barriers specified by this command <strong class=\"purple\">must</strong> only include <code>VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT</code>, <code>VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT</code>, <code>VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT</code>, or <code>VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT</code> in their access masks.",
+          "text": "If the <a href=\"#features-dynamicRenderingLocalRead\"><code>dynamicRenderingLocalRead</code></a> feature is not enabled, and <code>vkCmdPipelineBarrier</code> is called within a render pass instance started with <a href=\"#vkCmdBeginRendering\">vkCmdBeginRendering</a>, memory barriers specified by this command <strong class=\"purple\">must</strong> only include <code>VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT</code>, <code>VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT</code>, <code>VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT</code>, or <code>VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT</code> in their access masks",
           "page": "vkspec"
         },
         {
@@ -8315,7 +8315,7 @@
       "core": [
         {
           "vuid": "VUID-VkExternalMemoryAcquireUnmodifiedEXT-acquireUnmodifiedMemory-08922",
-          "text": "If <code>acquireUnmodifiedMemory</code> is <code>VK_TRUE</code>, and the memory barrier&#8217;s <code>srcQueueFamilyIndex</code> is a special queue family reserved for external memory ownership transfers (as described in <a href=\"#synchronization-queue-transfers\">Queue Family Ownership Transfer</a>), then each range of <a href=\"#VkDeviceMemory\">VkDeviceMemory</a> bound to the resource <strong class=\"purple\">must</strong> have remained unmodified during all time since the resource&#8217;s most recent release of ownership to the queue family.",
+          "text": "If <code>acquireUnmodifiedMemory</code> is <code>VK_TRUE</code>, and the memory barrier&#8217;s <code>srcQueueFamilyIndex</code> is a special queue family reserved for external memory ownership transfers (as described in <a href=\"#synchronization-queue-transfers\">Queue Family Ownership Transfer</a>), then each range of <a href=\"#VkDeviceMemory\">VkDeviceMemory</a> bound to the resource <strong class=\"purple\">must</strong> have remained unmodified during all time since the resource&#8217;s most recent release of ownership to the queue family",
           "page": "vkspec"
         },
         {
@@ -8804,12 +8804,12 @@
         },
         {
           "vuid": "VUID-VkRenderingInfo-perViewRenderAreaCount-07857",
-          "text": "If the <code>perViewRenderAreaCount</code> member of a <a href=\"#VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM\">VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM</a> structure included in the <code>pNext</code> chain is not <code>0</code>, then the <a href=\"#features-multiview-per-view-render-areas\"><code>multiviewPerViewRenderAreas</code></a> feature <strong class=\"purple\">must</strong> be enabled.",
+          "text": "If the <code>perViewRenderAreaCount</code> member of a <a href=\"#VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM\">VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM</a> structure included in the <code>pNext</code> chain is not <code>0</code>, then the <a href=\"#features-multiview-per-view-render-areas\"><code>multiviewPerViewRenderAreas</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkRenderingInfo-perViewRenderAreaCount-07858",
-          "text": "If the <code>perViewRenderAreaCount</code> member of a <a href=\"#VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM\">VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM</a> structure included in the <code>pNext</code> chain is not <code>0</code>, then <code>renderArea</code> <strong class=\"purple\">must</strong> specify a render area that includes the union of all per view render areas.",
+          "text": "If the <code>perViewRenderAreaCount</code> member of a <a href=\"#VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM\">VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM</a> structure included in the <code>pNext</code> chain is not <code>0</code>, then <code>renderArea</code> <strong class=\"purple\">must</strong> specify a render area that includes the union of all per view render areas",
           "page": "vkspec"
         },
         {
@@ -12457,12 +12457,12 @@
         },
         {
           "vuid": "VUID-VkRenderPassBeginInfo-perViewRenderAreaCount-07859",
-          "text": "If the <code>perViewRenderAreaCount</code> member of a <a href=\"#VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM\">VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM</a> structure included in the <code>pNext</code> chain is not <code>0</code>, then the <a href=\"#features-multiview-per-view-render-areas\"><code>multiviewPerViewRenderAreas</code></a> feature <strong class=\"purple\">must</strong> be enabled.",
+          "text": "If the <code>perViewRenderAreaCount</code> member of a <a href=\"#VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM\">VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM</a> structure included in the <code>pNext</code> chain is not <code>0</code>, then the <a href=\"#features-multiview-per-view-render-areas\"><code>multiviewPerViewRenderAreas</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkRenderPassBeginInfo-perViewRenderAreaCount-07860",
-          "text": "If the <code>perViewRenderAreaCount</code> member of a <a href=\"#VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM\">VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM</a> structure included in the <code>pNext</code> chain is not <code>0</code>, then <code>renderArea</code> <strong class=\"purple\">must</strong> specify a render area that includes the union of all per view render areas.",
+          "text": "If the <code>perViewRenderAreaCount</code> member of a <a href=\"#VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM\">VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM</a> structure included in the <code>pNext</code> chain is not <code>0</code>, then <code>renderArea</code> <strong class=\"purple\">must</strong> specify a render area that includes the union of all per view render areas",
           "page": "vkspec"
         },
         {
@@ -12714,12 +12714,12 @@
         },
         {
           "vuid": "VUID-VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM-pNext-07865",
-          "text": "If this structure is in the <code>pNext</code> chain of <a href=\"#VkRenderPassBeginInfo\">VkRenderPassBeginInfo</a> and if the render pass object included an element in <a href=\"#VkRenderPassMultiviewCreateInfo\">VkRenderPassMultiviewCreateInfo</a>::<code>pViewMasks</code> that set bit <code>n</code>, then <code>perViewRenderAreaCount</code> <strong class=\"purple\">must</strong> be at least equal to <code>n+1</code>.",
+          "text": "If this structure is in the <code>pNext</code> chain of <a href=\"#VkRenderPassBeginInfo\">VkRenderPassBeginInfo</a> and if the render pass object included an element in <a href=\"#VkRenderPassMultiviewCreateInfo\">VkRenderPassMultiviewCreateInfo</a>::<code>pViewMasks</code> that set bit <code>n</code>, then <code>perViewRenderAreaCount</code> <strong class=\"purple\">must</strong> be at least equal to <code>n+1</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkMultiviewPerViewRenderAreasRenderPassBeginInfoQCOM-pNext-07866",
-          "text": "If this structure is in the <code>pNext</code> chain of <a href=\"#VkRenderingInfo\">VkRenderingInfo</a> and if <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>::<code>viewMask</code> set bit <code>n</code>, then <code>perViewRenderAreaCount</code> <strong class=\"purple\">must</strong> be at least equal to <code>n+1</code>.",
+          "text": "If this structure is in the <code>pNext</code> chain of <a href=\"#VkRenderingInfo\">VkRenderingInfo</a> and if <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>::<code>viewMask</code> set bit <code>n</code>, then <code>perViewRenderAreaCount</code> <strong class=\"purple\">must</strong> be at least equal to <code>n+1</code>",
           "page": "vkspec"
         },
         {
@@ -14255,7 +14255,7 @@
       "core": [
         {
           "vuid": "VUID-VkCudaModuleCreateInfoNV-dataSize-09413",
-          "text": "<code>dataSize</code> <strong class=\"purple\">must</strong> be the total size in bytes of the PTX files or binary cache passed to <code>pData</code>.",
+          "text": "<code>dataSize</code> <strong class=\"purple\">must</strong> be the total size in bytes of the PTX files or binary cache passed to <code>pData</code>",
           "page": "vkspec"
         },
         {
@@ -14767,7 +14767,7 @@
         },
         {
           "vuid": "VUID-VkPipelineShaderStageCreateInfo-module-08987",
-          "text": "If <code>module</code> uses the <code>OpTypeCooperativeMatrixKHR</code> instruction with a <code>Scope</code> equal to <code>Subgroup</code>, then the local workgroup size in the X dimension of the pipeline <strong class=\"purple\">must</strong> be a multiple of <a href=\"#limits-subgroup-size\"><code>subgroupSize</code></a>.",
+          "text": "If <code>module</code> uses the <code>OpTypeCooperativeMatrixKHR</code> instruction with a <code>Scope</code> equal to <code>Subgroup</code>, then the local workgroup size in the X dimension of the pipeline <strong class=\"purple\">must</strong> be a multiple of <a href=\"#limits-subgroup-size\"><code>subgroupSize</code></a>",
           "page": "vkspec"
         },
         {
@@ -15358,7 +15358,7 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-renderPass-07609",
-          "text": "If <code>renderPass</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, and the pipeline is being created with <a href=\"#pipelines-graphics-subsets-fragment-output\">fragment output interface state</a>, and the <code>pColorBlendState</code> pointer is not <code>NULL</code>, and the subpass uses color attachments, the <code>attachmentCount</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be equal to the <code>colorAttachmentCount</code> used to create <code>subpass</code>",
+          "text": "If <code>renderPass</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, the pipeline is being created with <a href=\"#pipelines-graphics-subsets-fragment-output\">fragment output interface state</a>, the <code>pColorBlendState</code> pointer is not <code>NULL</code>, the <code>attachmentCount</code> member of <code>pColorBlendState</code> is not ignored, and the subpass uses color attachments, the <code>attachmentCount</code> member of <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be equal to the <code>colorAttachmentCount</code> used to create <code>subpass</code>",
           "page": "vkspec"
         },
         {
@@ -20781,7 +20781,7 @@
         },
         {
           "vuid": "VUID-VkMemoryMapPlacedInfoEXT-pPlacedAddress-09578",
-          "text": "The address range specified by <code>pPlacedAddress</code> and <code>VkMemoryMapInfoKHR</code>::<code>size</code> <strong class=\"purple\">must</strong> not overlap any existing Vulkan memory object mapping.",
+          "text": "The address range specified by <code>pPlacedAddress</code> and <code>VkMemoryMapInfoKHR</code>::<code>size</code> <strong class=\"purple\">must</strong> not overlap any existing Vulkan memory object mapping",
           "page": "vkspec"
         },
         {
@@ -26823,7 +26823,7 @@
         },
         {
           "vuid": "VUID-VkSamplerYcbcrConversionCreateInfo-pNext-09209",
-          "text": "If the <code>pNext</code> chain includes a <a href=\"#VkSamplerYcbcrConversionYcbcrDegammaCreateInfoQCOM\">VkSamplerYcbcrConversionYcbcrDegammaCreateInfoQCOM</a> structure, <code>format</code> <strong class=\"purple\">must</strong> be a format with 8-bit R, G, and B components.",
+          "text": "If the <code>pNext</code> chain includes a <a href=\"#VkSamplerYcbcrConversionYcbcrDegammaCreateInfoQCOM\">VkSamplerYcbcrConversionYcbcrDegammaCreateInfoQCOM</a> structure, <code>format</code> <strong class=\"purple\">must</strong> be a format with 8-bit R, G, and B components",
           "page": "vkspec"
         },
         {
@@ -26963,7 +26963,7 @@
       "core": [
         {
           "vuid": "VUID-VkSamplerBlockMatchWindowCreateInfoQCOM-WindowExtent-09210",
-          "text": "<code>WindowExtent</code> <strong class=\"purple\">must</strong> not be larger than <a href=\"#VkPhysicalDeviceImageProcessing2PropertiesQCOM\">VkPhysicalDeviceImageProcessing2PropertiesQCOM</a>::<code>maxBlockMatchWindow</code>.",
+          "text": "<code>WindowExtent</code> <strong class=\"purple\">must</strong> not be larger than <a href=\"#VkPhysicalDeviceImageProcessing2PropertiesQCOM\">VkPhysicalDeviceImageProcessing2PropertiesQCOM</a>::<code>maxBlockMatchWindow</code>",
           "page": "vkspec"
         },
         {
@@ -34441,7 +34441,7 @@
         },
         {
           "vuid": "VUID-vkGetQueryPoolResults-stride-08993",
-          "text": "If <code>VK_QUERY_RESULT_WITH_AVAILABILITY_BIT</code> is set, <code>stride</code>     <strong class=\"purple\">must</strong> be large enough to contain the unsigned integer representing     availability or status     in addition to the query result.",
+          "text": "If <code>VK_QUERY_RESULT_WITH_AVAILABILITY_BIT</code> is set, <code>stride</code>     <strong class=\"purple\">must</strong> be large enough to contain the unsigned integer representing     availability or status     in addition to the query result",
           "page": "vkspec"
         },
         {
@@ -41621,7 +41621,7 @@
         },
         {
           "vuid": "VUID-vkCmdDraw-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -41666,17 +41666,17 @@
         },
         {
           "vuid": "VUID-vkCmdDraw-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDraw-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDraw-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -43455,7 +43455,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -43500,17 +43500,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -45304,7 +45304,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -45349,17 +45349,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -46813,8 +46813,8 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdDrawMultiEXT-stride-04936",
-          "text": "<code>stride</code> <strong class=\"purple\">must</strong> be a multiple of 4",
+          "vuid": "VUID-vkCmdDrawMultiEXT-drawCount-09628",
+          "text": "If <code>drawCount</code> is greater than <code>1</code>, <code>stride</code> <strong class=\"purple\">must</strong> be a multiple of <code>4</code> and <strong class=\"purple\">must</strong> be greater than or equal to <code>sizeof</code>(<code>VkMultiDrawInfoEXT</code>)",
           "page": "vkspec"
         },
         {
@@ -47158,7 +47158,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -47203,17 +47203,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -48682,8 +48682,8 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdDrawMultiIndexedEXT-stride-04941",
-          "text": "<code>stride</code> <strong class=\"purple\">must</strong> be a multiple of 4",
+          "vuid": "VUID-vkCmdDrawMultiIndexedEXT-drawCount-09629",
+          "text": "If <code>drawCount</code> is greater than <code>1</code>, <code>stride</code> <strong class=\"purple\">must</strong> be a multiple of <code>4</code> and <strong class=\"purple\">must</strong> be greater than or equal to <code>sizeof</code>(<code>VkMultiDrawIndexedInfoEXT</code>)",
           "page": "vkspec"
         },
         {
@@ -49032,7 +49032,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -49077,17 +49077,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -50920,7 +50920,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -50965,17 +50965,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -52814,7 +52814,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -52859,17 +52859,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -54717,7 +54717,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -54762,17 +54762,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -56621,7 +56621,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -56666,17 +56666,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -58612,7 +58612,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -58657,17 +58657,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -60366,7 +60366,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -60411,17 +60411,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -62179,7 +62179,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -62224,17 +62224,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -64013,7 +64013,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -64058,17 +64058,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -65802,7 +65802,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -65847,17 +65847,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -67650,7 +67650,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -67695,17 +67695,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -69484,7 +69484,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -69529,17 +69529,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -70909,7 +70909,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-ClusterCullingHUAWEI-07823",
-          "text": "The current pipeline bound to <code>VK_PIPELINE_BIND_POINT_GRAPHICS</code> <strong class=\"purple\">must</strong> contain a shader stage using the <code>ClusterCullingHUAWEI</code> <code>Execution</code> <code>Model</code>.",
+          "text": "The current pipeline bound to <code>VK_PIPELINE_BIND_POINT_GRAPHICS</code> <strong class=\"purple\">must</strong> contain a shader stage using the <code>ClusterCullingHUAWEI</code> <code>Execution</code> <code>Model</code>",
           "page": "vkspec"
         },
         {
@@ -71253,7 +71253,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -71298,17 +71298,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -73424,6 +73424,11 @@
         {
           "vuid": "VUID-vkCmdBeginTransformFeedbackEXT-pCounterBuffers-02372",
           "text": "For each buffer handle in the <code>pCounterBuffers</code> array that is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> it <strong class=\"purple\">must</strong> have been created with a <code>usage</code> value containing <code>VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdBeginTransformFeedbackEXT-firstCounterBuffer-09630",
+          "text": "The sum of <code>firstCounterBuffer</code> and <code>counterBufferCount</code> <strong class=\"purple\">must</strong> be less than or equal to the number of transform feedback buffers currently bound by <a href=\"#vkCmdBindTransformFeedbackBuffersEXT\">vkCmdBindTransformFeedbackBuffersEXT</a>",
           "page": "vkspec"
         },
         {
@@ -77820,7 +77825,7 @@
         },
         {
           "vuid": "VUID-vkCmdDispatch-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -78209,7 +78214,7 @@
         },
         {
           "vuid": "VUID-vkCmdDispatchIndirect-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -78622,7 +78627,7 @@
         },
         {
           "vuid": "VUID-vkCmdDispatchBase-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -79031,7 +79036,7 @@
         },
         {
           "vuid": "VUID-vkCmdSubpassShadingHUAWEI-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -79129,12 +79134,12 @@
         },
         {
           "vuid": "VUID-VkCudaLaunchInfoNV-paramCount-09409",
-          "text": "<code>paramCount</code> <strong class=\"purple\">must</strong> be the total amount of parameters listed in the <code>pParams</code> table.",
+          "text": "<code>paramCount</code> <strong class=\"purple\">must</strong> be the total amount of parameters listed in the <code>pParams</code> table",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCudaLaunchInfoNV-pParams-09410",
-          "text": "<code>pParams</code> <strong class=\"purple\">must</strong> be a pointer to a table of <code>paramCount</code> parameters, corresponding to the arguments of <code>function</code>.",
+          "text": "<code>pParams</code> <strong class=\"purple\">must</strong> be a pointer to a table of <code>paramCount</code> parameters, corresponding to the arguments of <code>function</code>",
           "page": "vkspec"
         },
         {
@@ -80029,7 +80034,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -80074,17 +80079,17 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-pDepthInputAttachmentIndex-09595",
-          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>.",
+          "text": "Input attachment views accessed in a dynamic render pass with a <code>InputAttachmentIndex</code> referenced by <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>, or no <code>InputAttachmentIndex</code> if <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> or <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are <code>NULL</code>, <strong class=\"purple\">must</strong> be created with a <a href=\"#VkImageView\">VkImageView</a> that is compatible with the corresponding color, depth, or stencil attachment in <a href=\"#VkRenderingInfo\">VkRenderingInfo</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-pDepthInputAttachmentIndex-09596",
-          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>.",
+          "text": "Input attachment views accessed in a dynamic render pass via a shader object <strong class=\"purple\">must</strong> have an <code>InputAttachmentIndex</code> if both <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pDepthInputAttachmentIndex</code> and <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>:<code>pStencilInputAttachmentIndex</code> are non-<code>NULL</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-InputAttachmentIndex-09597",
-          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>.",
+          "text": "If an input attachment view accessed in a dynamic render pass via a shader object has an <code>InputAttachmentIndex</code>, the <code>InputAttachmentIndex</code> <strong class=\"purple\">must</strong> match an index in <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a>",
           "page": "vkspec"
         },
         {
@@ -82042,7 +82047,7 @@
         },
         {
           "vuid": "VUID-VkSparseMemoryBind-resourceOffset-09491",
-          "text": "If the resource being bound is a <code>VkBuffer</code>, <code>resourceOffset</code> and <code>memoryOffset</code> <strong class=\"purple\">must</strong> be an integer multiple of the <code>alignment</code> of the <a href=\"#VkMemoryRequirements\">VkMemoryRequirements</a> structure returned from a call to <a href=\"#vkGetBufferMemoryRequirements\">vkGetBufferMemoryRequirements</a> with the buffer resource",
+          "text": "If the resource being bound is a <code>VkBuffer</code>, <code>resourceOffset</code>, <code>memoryOffset</code> and <code>size</code> <strong class=\"purple\">must</strong> be an integer multiple of the <code>alignment</code> of the <a href=\"#VkMemoryRequirements\">VkMemoryRequirements</a> structure returned from a call to <a href=\"#vkGetBufferMemoryRequirements\">vkGetBufferMemoryRequirements</a> with the buffer resource",
           "page": "vkspec"
         },
         {
@@ -84112,7 +84117,7 @@
       "core": [
         {
           "vuid": "VUID-VkSurfacePresentModeEXT-presentMode-07780",
-          "text": "<code>presentMode</code> <strong class=\"purple\">must</strong> be a value reported by <a href=\"#vkGetPhysicalDeviceSurfacePresentModesKHR\">vkGetPhysicalDeviceSurfacePresentModesKHR</a> for the specified surface.",
+          "text": "<code>presentMode</code> <strong class=\"purple\">must</strong> be a value reported by <a href=\"#vkGetPhysicalDeviceSurfacePresentModesKHR\">vkGetPhysicalDeviceSurfacePresentModesKHR</a> for the specified surface",
           "page": "vkspec"
         },
         {
@@ -90009,7 +90014,7 @@
         },
         {
           "vuid": "VUID-vkCmdTraceRaysNV-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -90518,7 +90523,7 @@
         },
         {
           "vuid": "VUID-vkCmdTraceRaysKHR-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -91170,7 +91175,7 @@
         },
         {
           "vuid": "VUID-vkCmdTraceRaysIndirectKHR-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -91758,7 +91763,7 @@
         },
         {
           "vuid": "VUID-vkCmdTraceRaysIndirect2KHR-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -96791,7 +96796,7 @@
         },
         {
           "vuid": "VUID-vkCmdDispatchGraphAMDX-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -97225,7 +97230,7 @@
         },
         {
           "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -97679,7 +97684,7 @@
         },
         {
           "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-OpImageBlockMatchWindow-09216",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> or <code>OpImageBlockMatchGather*QCOM</code> instruction is used to read from an <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s format <strong class=\"purple\">must</strong> be a single-component format",
           "page": "vkspec"
         },
         {
@@ -102988,12 +102993,12 @@
         },
         {
           "vuid": "VUID-StandaloneSpirv-None-08724",
-          "text": "The <code>TileImageEXT</code> <code>Storage</code> <code>Class</code> <strong class=\"purple\">must</strong> only be used for declaring tile image variables.",
+          "text": "The <code>TileImageEXT</code> <code>Storage</code> <code>Class</code> <strong class=\"purple\">must</strong> only be used for declaring tile image variables",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-StandaloneSpirv-Pointer-08973",
-          "text": "The <code>Storage</code> <code>Class</code> of the <code>Pointer</code> operand to <code>OpCooperativeMatrixLoadKHR</code> or <code>OpCooperativeMatrixStoreKHR</code> <strong class=\"purple\">must</strong> be limited to <code>Workgroup</code>, <code>StorageBuffer</code>, or <code>PhysicalStorageBuffer</code>.",
+          "text": "The <code>Storage</code> <code>Class</code> of the <code>Pointer</code> operand to <code>OpCooperativeMatrixLoadKHR</code> or <code>OpCooperativeMatrixStoreKHR</code> <strong class=\"purple\">must</strong> be limited to <code>Workgroup</code>, <code>StorageBuffer</code>, or <code>PhysicalStorageBuffer</code>",
           "page": "vkspec"
         }
       ]
@@ -103307,62 +103312,62 @@
         },
         {
           "vuid": "VUID-RuntimeSpirv-OpTypeCooperativeMatrixKHR-08974",
-          "text": "For <code>OpTypeCooperativeMatrixKHR</code>, the component type, scope, number of rows, and number of columns <strong class=\"purple\">must</strong> match one of the matrices in any of the supported <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>.",
+          "text": "For <code>OpTypeCooperativeMatrixKHR</code>, the component type, scope, number of rows, and number of columns <strong class=\"purple\">must</strong> match one of the matrices in any of the supported <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-MSize-08975",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>A</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>KSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>AType</code>.",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>A</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>KSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>AType</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddKHR-08976",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>A</code> is a signed integer type, the <code>MatrixASignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present.",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>A</code> is a signed integer type, the <code>MatrixASignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-KSize-08977",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>B</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>KSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>BType</code>.",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>B</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>KSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>BType</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddKHR-08978",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>B</code> is a signed integer type, the <code>MatrixBSignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present.",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>B</code> is a signed integer type, the <code>MatrixBSignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-MSize-08979",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>C</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>CType</code>.",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>C</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>CType</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddKHR-08980",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>C</code> is a signed integer type, the <code>MatrixCSignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present.",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>C</code> is a signed integer type, the <code>MatrixCSignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-MSize-08981",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>Result</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>ResultType</code>.",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>Result</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>ResultType</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddKHR-08982",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>Result</code> is a signed integer type, the <code>MatrixResultSignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present.",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>Result</code> is a signed integer type, the <code>MatrixResultSignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-saturatingAccumulation-08983",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the <code>SaturatingAccumulation</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present if and only if <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>saturatingAccumulation</code> is <code>VK_TRUE</code>.",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the <code>SaturatingAccumulation</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present if and only if <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>saturatingAccumulation</code> is <code>VK_TRUE</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-scope-08984",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>A</code>, <code>B</code>, <code>C</code>, and <code>Result</code> <strong class=\"purple\">must</strong> all have a scope of <code>scope</code>.",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>A</code>, <code>B</code>, <code>C</code>, and <code>Result</code> <strong class=\"purple\">must</strong> all have a scope of <code>scope</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-cooperativeMatrixSupportedStages-08985",
-          "text": "<code>OpTypeCooperativeMatrixKHR</code> and <code>OpCooperativeMatrix*</code> instructions <strong class=\"purple\">must</strong> not be used in shader stages not included in <a href=\"#VkPhysicalDeviceCooperativeMatrixPropertiesKHR\">VkPhysicalDeviceCooperativeMatrixPropertiesKHR</a>::<code>cooperativeMatrixSupportedStages</code>.",
+          "text": "<code>OpTypeCooperativeMatrixKHR</code> and <code>OpCooperativeMatrix*</code> instructions <strong class=\"purple\">must</strong> not be used in shader stages not included in <a href=\"#VkPhysicalDeviceCooperativeMatrixPropertiesKHR\">VkPhysicalDeviceCooperativeMatrixPropertiesKHR</a>::<code>cooperativeMatrixSupportedStages</code>",
           "page": "vkspec"
         },
         {
@@ -103512,7 +103517,7 @@
         },
         {
           "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixLoadKHR-08986",
-          "text": "For <code>OpCooperativeMatrixLoadKHR</code> and <code>OpCooperativeMatrixStoreKHR</code> instructions, the <code>Pointer</code> and <code>Stride</code> operands <strong class=\"purple\">must</strong> be aligned to at least the lesser of 16 bytes or the natural alignment of a row or column (depending on <code>ColumnMajor</code>) of the matrix (where the natural alignment is the number of columns/rows multiplied by the component size).",
+          "text": "For <code>OpCooperativeMatrixLoadKHR</code> and <code>OpCooperativeMatrixStoreKHR</code> instructions, the <code>Pointer</code> and <code>Stride</code> operands <strong class=\"purple\">must</strong> be aligned to at least the lesser of 16 bytes or the natural alignment of a row or column (depending on <code>ColumnMajor</code>) of the matrix (where the natural alignment is the number of columns/rows multiplied by the component size)",
           "page": "vkspec"
         },
         {
@@ -103622,7 +103627,7 @@
         },
         {
           "vuid": "VUID-RuntimeSpirv-Offset-06347",
-          "text": "The second element of the <code>Offset</code> operand of <code>InterpolateAtOffset</code> <strong class=\"purple\">must</strong> be less than or equal to<br> <span class=\"eq\">frag<sub>height</sub> × (<a href=\"#limits-maxInterpolationOffset\"><code>maxInterpolationOffset</code></a> +  ULP ) - ULP</span><br> where <span class=\"eq\">frag<sub>height</sub></span> is the height of the current fragment in pixels and <span class=\"eq\">ULP = 1 / 2^<a href=\"#limits-subPixelInterpolationOffsetBits\"><code>subPixelInterpolationOffsetBits</code></a>^</span>.",
+          "text": "The second element of the <code>Offset</code> operand of <code>InterpolateAtOffset</code> <strong class=\"purple\">must</strong> be less than or equal to<br> <span class=\"eq\">frag<sub>height</sub> × (<a href=\"#limits-maxInterpolationOffset\"><code>maxInterpolationOffset</code></a> +  ULP ) - ULP</span><br> where <span class=\"eq\">frag<sub>height</sub></span> is the height of the current fragment in pixels and <span class=\"eq\">ULP = 1 / 2^<a href=\"#limits-subPixelInterpolationOffsetBits\"><code>subPixelInterpolationOffsetBits</code></a>^</span>",
           "page": "vkspec"
         },
         {
@@ -104142,17 +104147,17 @@
         },
         {
           "vuid": "VUID-RuntimeSpirv-pNext-09226",
-          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> operation is used, then <code>target</code> <code>sampled</code> <code>image</code> <strong class=\"purple\">must</strong> have been created using asampler object that included <a href=\"#VkSamplerBlockMatchWindowCreateInfoQCOM\">VkSamplerBlockMatchWindowCreateInfoQCOM</a> in the <code>pNext</code> chain.",
+          "text": "If a <code>OpImageBlockMatchWindow*QCOM</code> operation is used, then <code>target</code> <code>sampled</code> <code>image</code> <strong class=\"purple\">must</strong> have been created using asampler object that included <a href=\"#VkSamplerBlockMatchWindowCreateInfoQCOM\">VkSamplerBlockMatchWindowCreateInfoQCOM</a> in the <code>pNext</code> chain",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-MaximallyReconvergesKHR-09565",
-          "text": "The execution mode <code>MaximallyReconvergesKHR</code> <strong class=\"purple\">must</strong> not be applied to an entry point unless the entry point does not execute any <a href=\"#ray-tracing-repack\"><em>invocation repack instructions</em></a>.",
+          "text": "The execution mode <code>MaximallyReconvergesKHR</code> <strong class=\"purple\">must</strong> not be applied to an entry point unless the entry point does not execute any <a href=\"#ray-tracing-repack\"><em>invocation repack instructions</em></a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-shaderSubgroupRotateClustered-09566",
-          "text": "If <a href=\"#features-shaderSubgroupRotateClustered\"><code>shaderSubgroupRotateClustered</code></a> is <code>VK_FALSE</code>, then the <code>ClusterSize</code> operand to <code>OpGroupNonUniformRotateKHR</code> <strong class=\"purple\">must</strong> not be used.",
+          "text": "If <a href=\"#features-shaderSubgroupRotateClustered\"><code>shaderSubgroupRotateClustered</code></a> is <code>VK_FALSE</code>, then the <code>ClusterSize</code> operand to <code>OpGroupNonUniformRotateKHR</code> <strong class=\"purple\">must</strong> not be used",
           "page": "vkspec"
         }
       ]

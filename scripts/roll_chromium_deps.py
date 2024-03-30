@@ -30,7 +30,9 @@ def FindSrcDirPath():
     return os.path.dirname(os.path.abspath(os.path.join(__file__, '..')))
 
 ANGLE_CHROMIUM_DEPS = [
-    'build',
+    # Pin build because abseil-cpp is pinned, so its DEF files can't be kept in sync with build.
+    # https://skbug.com/330350366
+    # 'build',
     'buildtools',
     'buildtools/linux64',
     'buildtools/mac',
@@ -66,7 +68,9 @@ ANGLE_CHROMIUM_DEPS = [
     'third_party/jdk/extras',
     'third_party/jinja2',
     'third_party/kotlin_stdlib',
-    'third_party/libc++/src',
+    # Pin libc++ because abseil-cpp is pinned, so its DEF files can't be kept in sync with libc++.
+    # https://skbug.com/330350366
+    # 'third_party/libc++/src',
     'third_party/libc++abi/src',
     'third_party/libjpeg_turbo',
     'third_party/libunwind/src',
