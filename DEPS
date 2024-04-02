@@ -141,7 +141,7 @@ vars = {
 
    # Make Dawn skip its standalone dependencies
   'dawn_standalone': False,
-  'dawn_revision': '1a9f890473e2844d35bb0e541ac45f582df880ce',
+  'dawn_revision': '66f38fda85fedaed39d8db03d8e07a267675c720',
 
   # All of the restricted traces (large).
   'checkout_angle_restricted_traces': 'checkout_angle_internal',
@@ -938,7 +938,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@778a83fe011e597e36efc288b593b39930b63f73',
+    'url': Var('chromium_git') + '/vulkan-deps@3b1638b6e598209f0807202a2552f7f7cc9b6fef',
     'condition': 'not build_with_chromium',
   },
 
