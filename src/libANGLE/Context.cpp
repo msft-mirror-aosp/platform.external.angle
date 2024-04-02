@@ -4242,6 +4242,11 @@ void Context::initCaps()
                             maxShaderStorageBufferBindings);
         }
 
+        // Pixel 7 MAX_TEXTURE_SIZE is 16K
+        constexpr GLint max2DTextureSize = 16383;
+        INFO() << "Limiting GL_MAX_TEXTURE_SIZE to " << max2DTextureSize;
+        ANGLE_LIMIT_CAP(caps->max2DTextureSize, max2DTextureSize);
+
         // Pixel 4 only supports GL_MAX_SAMPLES of 4
         constexpr GLint maxSamples = 4;
         INFO() << "Limiting GL_MAX_SAMPLES to " << maxSamples;
@@ -6329,6 +6334,7 @@ void Context::framebufferTexture2DMultisample(GLenum target,
         ImageIndex index    = ImageIndex::MakeFromTarget(textarget, level, 1);
         framebuffer->setAttachmentMultisample(this, GL_TEXTURE, attachment, index, textureObj,
                                               samples);
+        textureObj->onBindToMSRTTFramebuffer();
     }
     else
     {
@@ -9256,9 +9262,9 @@ std::shared_ptr<angle::WorkerThreadPool> Context::getShaderCompileThreadPool() c
     return mDisplay->getSingleThreadPool();
 }
 
-std::shared_ptr<angle::WorkerThreadPool> Context::getPostLinkTaskThreadPool() const
+std::shared_ptr<angle::WorkerThreadPool> Context::getLinkSubTaskThreadPool() const
 {
-    return getFrontendFeatures().alwaysRunPostLinkJobsThreaded.enabled
+    return getFrontendFeatures().alwaysRunLinkSubJobsThreaded.enabled
                ? getWorkerThreadPool()
                : getShaderCompileThreadPool();
 }

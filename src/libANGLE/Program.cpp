@@ -82,9 +82,9 @@ class LinkEvent : angle::NonCopyable
     virtual angle::Result wait(const gl::Context *context) = 0;
     // Peeks whether the linking is still ongoing.
     virtual bool isLinking() = 0;
-    // See MainLinkLoadTask::retrieveOptionalPostLinkTasks
-    virtual void retrieveOptionalPostLinkTasks(
-        std::vector<std::shared_ptr<rx::PostLinkTask>> *postLinkTasksOut,
+    // See MainLinkLoadTask::retrievePostLinkTasks
+    virtual void retrievePostLinkTasks(
+        std::vector<std::shared_ptr<rx::LinkSubTask>> *postLinkTasksOut,
         std::vector<std::shared_ptr<angle::WaitableEvent>> *postLinkTaskEventsOut)
     {}
 };
@@ -525,15 +525,15 @@ ShaderType ProgramState::getAttachedTransformFeedbackStage() const
 class Program::MainLinkLoadTask : public angle::Closure
 {
   public:
-    MainLinkLoadTask(const std::shared_ptr<angle::WorkerThreadPool> &postLinkTaskWorkerPool,
+    MainLinkLoadTask(const std::shared_ptr<angle::WorkerThreadPool> &subTaskWorkerPool,
                      ProgramState *state,
                      std::shared_ptr<rx::LinkTask> &&linkTask)
-        : mPostLinkTaskWorkerPool(postLinkTaskWorkerPool),
+        : mSubTaskWorkerPool(subTaskWorkerPool),
           mState(*state),
           mLinkTask(std::move(linkTask)),
-          mArePostLinkTasksOptional(false)
+          mCanSubTasksRunPostLink(false)
     {
-        ASSERT(postLinkTaskWorkerPool.get());
+        ASSERT(subTaskWorkerPool.get());
     }
     ~MainLinkLoadTask() override = default;
 
@@ -544,10 +544,10 @@ class Program::MainLinkLoadTask : public angle::Closure
         ANGLE_TRY(mResult);
         ANGLE_TRY(mLinkTask->getResult(context, infoLog));
 
-        // Don't wait for optional post-link tasks
-        if (!mArePostLinkTasksOptional)
+        // Don't wait for subtasks that can run post-link
+        if (!mCanSubTasksRunPostLink)
         {
-            for (const std::shared_ptr<rx::PostLinkTask> &task : mPostLinkTasks)
+            for (const std::shared_ptr<rx::LinkSubTask> &task : mSubTasks)
             {
                 ANGLE_TRY(task->getResult(context, infoLog));
             }
@@ -556,73 +556,70 @@ class Program::MainLinkLoadTask : public angle::Closure
         return angle::Result::Continue;
     }
 
-    void waitPostLinkTasks()
+    void waitSubTasks()
     {
-        if (!mArePostLinkTasksOptional)
+        if (!mCanSubTasksRunPostLink)
         {
-            angle::WaitableEvent::WaitMany(&mPostLinkTaskWaitableEvents);
+            angle::WaitableEvent::WaitMany(&mSubTaskWaitableEvents);
         }
     }
 
-    bool arePostLinkTasksLinking()
+    bool areSubTasksLinking()
     {
         if (mLinkTask->isLinkingInternally())
         {
             return true;
         }
-        return !mArePostLinkTasksOptional &&
-               !angle::WaitableEvent::AllReady(&mPostLinkTaskWaitableEvents);
+        return !mCanSubTasksRunPostLink && !angle::WaitableEvent::AllReady(&mSubTaskWaitableEvents);
     }
 
-    void retrieveOptionalPostLinkTasks(
-        std::vector<std::shared_ptr<rx::PostLinkTask>> *postLinkTasksOut,
+    void retrievePostLinkTasks(
+        std::vector<std::shared_ptr<rx::LinkSubTask>> *postLinkTasksOut,
         std::vector<std::shared_ptr<angle::WaitableEvent>> *postLinkTaskEventsOut)
     {
         ASSERT(postLinkTasksOut->empty());
         ASSERT(postLinkTaskEventsOut->empty());
 
-        if (mArePostLinkTasksOptional)
+        if (mCanSubTasksRunPostLink)
         {
-            *postLinkTasksOut      = std::move(mPostLinkTasks);
-            *postLinkTaskEventsOut = std::move(mPostLinkTaskWaitableEvents);
+            *postLinkTasksOut      = std::move(mSubTasks);
+            *postLinkTaskEventsOut = std::move(mSubTaskWaitableEvents);
         }
     }
 
   protected:
-    void schedulePostLinkTasks(std::vector<std::shared_ptr<rx::PostLinkTask>> &&postLinkTasks)
+    void scheduleSubTasks(std::vector<std::shared_ptr<rx::LinkSubTask>> &&subTasks)
     {
-        mPostLinkTasks = std::move(postLinkTasks);
+        mSubTasks = std::move(subTasks);
 
-        mPostLinkTaskWaitableEvents.reserve(mPostLinkTasks.size());
-        for (const std::shared_ptr<rx::PostLinkTask> &task : mPostLinkTasks)
+        mSubTaskWaitableEvents.reserve(mSubTasks.size());
+        for (const std::shared_ptr<rx::LinkSubTask> &subTask : mSubTasks)
         {
-            mPostLinkTaskWaitableEvents.push_back(mPostLinkTaskWorkerPool->postWorkerTask(task));
+            mSubTaskWaitableEvents.push_back(mSubTaskWorkerPool->postWorkerTask(subTask));
         }
     }
 
-    std::shared_ptr<angle::WorkerThreadPool> mPostLinkTaskWorkerPool;
+    std::shared_ptr<angle::WorkerThreadPool> mSubTaskWorkerPool;
     ProgramState &mState;
     std::shared_ptr<rx::LinkTask> mLinkTask;
 
-    // post-link task wait events
-    std::vector<std::shared_ptr<rx::PostLinkTask>> mPostLinkTasks;
-    std::vector<std::shared_ptr<angle::WaitableEvent>> mPostLinkTaskWaitableEvents;
-    // If optional, the post-link tasks are not waited on in |resolveLink|, but instead they are
-    // free to run until first usage of the program (or relink).  This is used by the backends
-    // (currently only Vulkan) to run post-link optimization tasks which don't affect the link
-    // results.
-    bool mArePostLinkTasksOptional;
+    // Subtask wait events
+    std::vector<std::shared_ptr<rx::LinkSubTask>> mSubTasks;
+    std::vector<std::shared_ptr<angle::WaitableEvent>> mSubTaskWaitableEvents;
+    // If true, the subtasks are not waited on in |resolveLink|, but instead they are free to
+    // run until first usage of the program (or relink).  This is used by the backends (currently
+    // only Vulkan) to run post-link optimization tasks which don't affect the link results.
+    bool mCanSubTasksRunPostLink;
 
     // The result of the front-end portion of the link.  The backend's result is retrieved via
-    // mLinkTask->getResult().  The post-link task results are retrieved via mPostLinkTasks
-    // similarly.
+    // mLinkTask->getResult().  The subtask results are retrieved via mSubTasks similarly.
     angle::Result mResult;
 };
 
 class Program::MainLinkTask final : public Program::MainLinkLoadTask
 {
   public:
-    MainLinkTask(const std::shared_ptr<angle::WorkerThreadPool> &postLinkTaskWorkerPool,
+    MainLinkTask(const std::shared_ptr<angle::WorkerThreadPool> &subTaskWorkerPool,
                  const Caps &caps,
                  const Limitations &limitations,
                  const Version &clientVersion,
@@ -632,7 +629,7 @@ class Program::MainLinkTask final : public Program::MainLinkLoadTask
                  LinkingVariables *linkingVariables,
                  ProgramLinkedResources *resources,
                  std::shared_ptr<rx::LinkTask> &&linkTask)
-        : MainLinkLoadTask(postLinkTaskWorkerPool, state, std::move(linkTask)),
+        : MainLinkLoadTask(subTaskWorkerPool, state, std::move(linkTask)),
           mCaps(caps),
           mLimitations(limitations),
           mClientVersion(clientVersion),
@@ -661,11 +658,11 @@ class Program::MainLinkTask final : public Program::MainLinkLoadTask
 class Program::MainLoadTask final : public Program::MainLinkLoadTask
 {
   public:
-    MainLoadTask(const std::shared_ptr<angle::WorkerThreadPool> &postLinkTaskWorkerPool,
+    MainLoadTask(const std::shared_ptr<angle::WorkerThreadPool> &subTaskWorkerPool,
                  Program *program,
                  ProgramState *state,
                  std::shared_ptr<rx::LinkTask> &&loadTask)
-        : MainLinkLoadTask(postLinkTaskWorkerPool, state, std::move(loadTask))
+        : MainLinkLoadTask(subTaskWorkerPool, state, std::move(loadTask))
     {}
     ~MainLoadTask() override = default;
 
@@ -689,20 +686,20 @@ class Program::MainLinkLoadEvent final : public LinkEvent
         ANGLE_TRACE_EVENT0("gpu.angle", "Program::MainLinkLoadEvent::wait");
 
         mWaitableEvent->wait();
-        mLinkTask->waitPostLinkTasks();
+        mLinkTask->waitSubTasks();
 
         return mLinkTask->getResult(context);
     }
     bool isLinking() override
     {
-        return !mWaitableEvent->isReady() || mLinkTask->arePostLinkTasksLinking();
+        return !mWaitableEvent->isReady() || mLinkTask->areSubTasksLinking();
     }
 
-    void retrieveOptionalPostLinkTasks(
-        std::vector<std::shared_ptr<rx::PostLinkTask>> *postLinkTasksOut,
+    void retrievePostLinkTasks(
+        std::vector<std::shared_ptr<rx::LinkSubTask>> *postLinkTasksOut,
         std::vector<std::shared_ptr<angle::WaitableEvent>> *postLinkTaskEventsOut) override
     {
-        mLinkTask->retrieveOptionalPostLinkTasks(postLinkTasksOut, postLinkTaskEventsOut);
+        mLinkTask->retrievePostLinkTasks(postLinkTasksOut, postLinkTaskEventsOut);
     }
 
   private:
@@ -718,28 +715,28 @@ angle::Result Program::MainLinkTask::linkImpl()
     ANGLE_TRY(mProgram->linkJobImpl(mCaps, mLimitations, mClientVersion, mIsWebGL,
                                     mLinkingVariables, mResources, &mergedVaryings));
 
-    // Next, do the backend portion of the link.  If there are any post-link tasks to be scheduled,
-    // they are collected now.
-    std::vector<std::shared_ptr<rx::PostLinkTask>> postLinkTasks =
-        mLinkTask->link(*mResources, mergedVaryings, &mArePostLinkTasksOptional);
+    // Next, do the backend portion of the link.  If there are any subtasks to be scheduled, they
+    // are collected now.
+    std::vector<std::shared_ptr<rx::LinkSubTask>> subTasks =
+        mLinkTask->link(*mResources, mergedVaryings, &mCanSubTasksRunPostLink);
 
     // Must be after backend's link to avoid misleading the linker about input/output variables.
     mState.updateProgramInterfaceInputs();
     mState.updateProgramInterfaceOutputs();
 
-    // Schedule the post-link tasks
-    schedulePostLinkTasks(std::move(postLinkTasks));
+    // Schedule the subtasks
+    scheduleSubTasks(std::move(subTasks));
 
     return angle::Result::Continue;
 }
 
 angle::Result Program::MainLoadTask::loadImpl()
 {
-    std::vector<std::shared_ptr<rx::PostLinkTask>> postLinkTasks =
-        mLinkTask->load(&mArePostLinkTasksOptional);
+    std::vector<std::shared_ptr<rx::LinkSubTask>> subTasks =
+        mLinkTask->load(&mCanSubTasksRunPostLink);
 
-    // Schedule the post-link tasks
-    schedulePostLinkTasks(std::move(postLinkTasks));
+    // Schedule the subtasks
+    scheduleSubTasks(std::move(subTasks));
 
     return angle::Result::Continue;
 }
@@ -765,14 +762,14 @@ Program::Program(rx::GLImplFactory *factory, ShaderProgramManager *manager, Shad
 Program::~Program()
 {
     ASSERT(!mProgram);
-    ASSERT(mOptionalLinkTasks.empty());
-    ASSERT(mOptionalLinkTaskWaitableEvents.empty());
+    ASSERT(mPostLinkTasks.empty());
+    ASSERT(mPostLinkTaskWaitableEvents.empty());
 }
 
 void Program::onDestroy(const Context *context)
 {
     resolveLink(context);
-    waitForOptionalLinkTasks(context);
+    waitForPostLinkTasks(context);
 
     for (ShaderType shaderType : AllShaderTypes())
     {
@@ -820,7 +817,6 @@ const std::string &Program::getLabel() const
 void Program::attachShader(const Context *context, Shader *shader)
 {
     resolveLink(context);
-    onLinkInputChange(context);
 
     ShaderType shaderType = shader->getType();
     ASSERT(shaderType != ShaderType::InvalidEnum);
@@ -832,7 +828,6 @@ void Program::attachShader(const Context *context, Shader *shader)
 void Program::detachShader(const Context *context, Shader *shader)
 {
     resolveLink(context);
-    onLinkInputChange(context);
 
     ShaderType shaderType = shader->getType();
     ASSERT(shaderType != ShaderType::InvalidEnum);
@@ -866,8 +861,6 @@ Shader *Program::getAttachedShader(ShaderType shaderType) const
 
 void Program::bindAttributeLocation(const Context *context, GLuint index, const char *name)
 {
-    onLinkInputChange(context);
-
     ASSERT(!mLinkingState);
     mState.mAttributeBindings.bindLocation(index, name);
 }
@@ -876,24 +869,18 @@ void Program::bindUniformLocation(const Context *context,
                                   UniformLocation location,
                                   const char *name)
 {
-    onLinkInputChange(context);
-
     ASSERT(!mLinkingState);
     mState.mUniformLocationBindings.bindLocation(location.value, name);
 }
 
 void Program::bindFragmentOutputLocation(const Context *context, GLuint index, const char *name)
 {
-    onLinkInputChange(context);
-
     ASSERT(!mLinkingState);
     mState.mFragmentOutputLocations.bindLocation(index, name);
 }
 
 void Program::bindFragmentOutputIndex(const Context *context, GLuint index, const char *name)
 {
-    onLinkInputChange(context);
-
     ASSERT(!mLinkingState);
     mState.mFragmentOutputIndexes.bindLocation(index, name);
 }
@@ -901,7 +888,7 @@ void Program::bindFragmentOutputIndex(const Context *context, GLuint index, cons
 void Program::makeNewExecutable(const Context *context)
 {
     ASSERT(!mLinkingState);
-    waitForOptionalLinkTasks(context);
+    waitForPostLinkTasks(context);
 
     // Unlink the program, but do not clear the validation-related caching yet, since we can still
     // use the previously linked program if linking the shaders fails.
@@ -982,7 +969,9 @@ angle::Result Program::link(const Context *context, angle::JobResultExpectancy r
     setupExecutableForLink(context);
 
     mProgramHash              = {0};
-    MemoryProgramCache *cache = context->getMemoryProgramCache();
+    MemoryProgramCache *cache = (context->getFrontendFeatures().disableProgramCaching.enabled)
+                                    ? nullptr
+                                    : context->getMemoryProgramCache();
 
     // TODO: http://anglebug.com/4530: Enable program caching for separable programs
     if (cache && !isSeparable())
@@ -1031,10 +1020,10 @@ angle::Result Program::link(const Context *context, angle::JobResultExpectancy r
 
     // Prepare the main link job
     std::shared_ptr<MainLinkLoadTask> mainLinkTask(new MainLinkTask(
-        context->getPostLinkTaskThreadPool(), caps, limitations, clientVersion, isWebGL, this,
+        context->getLinkSubTaskThreadPool(), caps, limitations, clientVersion, isWebGL, this,
         &mState, &linkingState->linkingVariables, &linkingState->resources, std::move(linkTask)));
 
-    // While the post-link tasks are currently always thread-safe, the main task is not safe on all
+    // While the subtasks are currently always thread-safe, the main task is not safe on all
     // backends.  A front-end feature selects whether the single-threaded pool must be used.
     const angle::JobThreadSafety threadSafety =
         context->getFrontendFeatures().linkJobIsThreadSafe.enabled ? angle::JobThreadSafety::Safe
@@ -1217,8 +1206,7 @@ void Program::resolveLinkImpl(const Context *context)
 
     angle::Result result = mLinkingState->linkEvent->wait(context);
 
-    mLinkingState->linkEvent->retrieveOptionalPostLinkTasks(&mOptionalLinkTasks,
-                                                            &mOptionalLinkTaskWaitableEvents);
+    mLinkingState->linkEvent->retrievePostLinkTasks(&mPostLinkTasks, &mPostLinkTaskWaitableEvents);
 
     mLinked                                    = result == angle::Result::Continue;
     std::unique_ptr<LinkingState> linkingState = std::move(mLinkingState);
@@ -1260,47 +1248,46 @@ void Program::resolveLinkImpl(const Context *context)
     // Cache the program if:
     //
     // - Not loading from binary, in which case the program is already in the cache.
-    // - There are no pending post-link tasks.  If there are any, waitForOptionalLinkTasks will
-    //   do this instead.
-    //   * Note that serialize() calls waitForOptionalLinkTasks, so caching the binary here
-    //     effectively forces a wait for the post-link tasks.
+    // - There are no pending subtasks.  If there are any, waitForPostLinkTasks will do this
+    //   instead.
+    //   * Note that serialize() calls waitForPostLinkTasks, so caching the binary here
+    //     effectively forces a wait for the subtasks.
     //
-    if (!linkingState->linkingFromBinary && mOptionalLinkTasks.empty())
+    if (!linkingState->linkingFromBinary && mPostLinkTasks.empty())
     {
         cacheProgramBinary(context);
     }
 }
 
-void Program::waitForOptionalLinkTasks(const Context *context)
+void Program::waitForPostLinkTasks(const Context *context)
 {
-    if (mOptionalLinkTasks.empty())
+    if (mPostLinkTasks.empty())
     {
         return;
     }
 
-    // Wait for all optional tasks to finish
-    angle::WaitableEvent::WaitMany(&mOptionalLinkTaskWaitableEvents);
+    // Wait for all post-link tasks to finish
+    angle::WaitableEvent::WaitMany(&mPostLinkTaskWaitableEvents);
 
     // Get results and clean up
-    for (const std::shared_ptr<rx::PostLinkTask> &task : mOptionalLinkTasks)
+    for (const std::shared_ptr<rx::LinkSubTask> &task : mPostLinkTasks)
     {
-        // As these tasks are optional, their results are ignored.  Failure is harmless, but more
-        // importantly the error (effectively due to a link event) may not be allowed through the
-        // entry point that results in this call.
+        // As these tasks can be run post-link, their results are ignored.  Failure is harmless, but
+        // more importantly the error (effectively due to a link event) may not be allowed through
+        // the entry point that results in this call.
         InfoLog infoLog;
         angle::Result result = task->getResult(context, infoLog);
         if (result != angle::Result::Continue)
         {
-            WARN() << "Optional link task unexpectedly failed";
+            WARN() << "Post-link task unexpectedly failed";
             WARN() << "Performance may degrade, or device may soon be lost";
         }
     }
 
-    mOptionalLinkTasks.clear();
-    mOptionalLinkTaskWaitableEvents.clear();
+    mPostLinkTasks.clear();
+    mPostLinkTaskWaitableEvents.clear();
 
-    // Now that the post-link tasks are done, cache the binary (this was deferred in
-    // resolveLinkImpl).
+    // Now that the subtasks are done, cache the binary (this was deferred in resolveLinkImpl).
     cacheProgramBinary(context);
 }
 
@@ -1445,7 +1432,7 @@ angle::Result Program::loadBinary(const Context *context,
     if (loadTask)
     {
         std::shared_ptr<MainLinkLoadTask> mainLoadTask(new MainLoadTask(
-            context->getPostLinkTaskThreadPool(), this, &mState, std::move(loadTask)));
+            context->getLinkSubTaskThreadPool(), this, &mState, std::move(loadTask)));
 
         std::shared_ptr<angle::WaitableEvent> mainLoadEvent =
             context->getShaderCompileThreadPool()->postWorkerTask(mainLoadTask);
@@ -1559,7 +1546,6 @@ void Program::getInfoLog(GLsizei bufSize, GLsizei *length, char *infoLog) const
 void Program::setSeparable(const Context *context, bool separable)
 {
     ASSERT(!mLinkingState);
-    onLinkInputChange(context);
 
     if (isSeparable() != separable)
     {
@@ -1649,7 +1635,6 @@ void Program::setTransformFeedbackVaryings(const Context *context,
                                            GLenum bufferMode)
 {
     ASSERT(!mLinkingState);
-    onLinkInputChange(context);
 
     mState.mTransformFeedbackVaryingNames.resize(count);
     for (GLsizei i = 0; i < count; i++)
@@ -2136,7 +2121,7 @@ angle::Result Program::syncState(const Context *context)
     ASSERT(!mLinkingState);
     // Wait for the link tasks.  This is because these optimization passes are not currently
     // thread-safe with draw's usage of the executable.
-    waitForOptionalLinkTasks(context);
+    waitForPostLinkTasks(context);
     return angle::Result::Continue;
 }
 
@@ -2210,9 +2195,9 @@ angle::Result Program::serialize(const Context *context, angle::MemoryBuffer *bi
         }
     }
 
-    // Need to wait for optional tasks because they may be writing to caches that |serialize| would
+    // Need to wait for post-link tasks because they may be writing to caches that |serialize| would
     // read from.  In the Vulkan backend, that would be the VkPipelineCache contents.
-    waitForOptionalLinkTasks(context);
+    waitForPostLinkTasks(context);
 
     mProgram->save(context, &stream);
 
@@ -2348,11 +2333,17 @@ void Program::postResolveLink(const Context *context)
 
 void Program::cacheProgramBinary(const gl::Context *context)
 {
+    if (context->getFrontendFeatures().disableProgramCaching.enabled)
+    {
+        // Program caching is disabled, nothing to do.
+        return;
+    }
+
     // Save to the program cache.
     std::lock_guard<std::mutex> cacheLock(context->getProgramCacheMutex());
     MemoryProgramCache *cache = context->getMemoryProgramCache();
     // TODO: http://anglebug.com/4530: Enable program caching for separable programs
-    if (cache && !isSeparable() && !context->getFrontendFeatures().disableProgramCaching.enabled &&
+    if (cache && !isSeparable() &&
         (mState.mExecutable->mLinkedTransformFeedbackVaryings.empty() ||
          !context->getFrontendFeatures().disableProgramCachingForTransformFeedback.enabled))
     {

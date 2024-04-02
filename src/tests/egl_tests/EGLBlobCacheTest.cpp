@@ -148,6 +148,9 @@ class EGLBlobCacheTest : public ANGLETest<>
 // Makes sure the extension exists and works
 TEST_P(EGLBlobCacheTest, Functional)
 {
+    ANGLE_SKIP_TEST_IF(!getEGLWindow()->isFeatureEnabled(Feature::CacheCompiledShader));
+    ANGLE_SKIP_TEST_IF(getEGLWindow()->isFeatureEnabled(Feature::DisableProgramCaching));
+
     EGLDisplay display = getEGLWindow()->getDisplay();
 
     EXPECT_TRUE(mHasBlobCache);
@@ -189,8 +192,8 @@ void main()
 })";
 
     // Compile a shader so it puts something in the cache.  Note that with Vulkan, some optional
-    // post-link tasks may run beyond link, and so the caching is delayed until the program is used.
-    // A small draw call is used to wait on these post-link tasks.
+    // link subtasks may run beyond link, and so the caching is delayed until the program is used.
+    // A small draw call is used to wait on these subtasks.
     if (programBinaryAvailable())
     {
         glEnable(GL_SCISSOR_TEST);
@@ -231,6 +234,9 @@ void main()
 // Tests error conditions of the APIs.
 TEST_P(EGLBlobCacheTest, NegativeAPI)
 {
+    ANGLE_SKIP_TEST_IF(!getEGLWindow()->isFeatureEnabled(Feature::CacheCompiledShader));
+    ANGLE_SKIP_TEST_IF(getEGLWindow()->isFeatureEnabled(Feature::DisableProgramCaching));
+
     EXPECT_TRUE(mHasBlobCache);
 
     // Test bad display
@@ -277,6 +283,9 @@ TEST_P(EGLBlobCacheTest, NegativeAPI)
 // http://anglebug.com/4535
 TEST_P(EGLBlobCacheTest, FragmentOutputLocationKey)
 {
+    ANGLE_SKIP_TEST_IF(!getEGLWindow()->isFeatureEnabled(Feature::CacheCompiledShader));
+    ANGLE_SKIP_TEST_IF(getEGLWindow()->isFeatureEnabled(Feature::DisableProgramCaching));
+
     ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_EXT_blend_func_extended") ||
                        getClientMajorVersion() < 3);
 
@@ -337,6 +346,9 @@ void main() {
 // properly.
 TEST_P(EGLBlobCacheTest, ShaderCacheFunctional)
 {
+    ANGLE_SKIP_TEST_IF(!getEGLWindow()->isFeatureEnabled(Feature::CacheCompiledShader));
+    ANGLE_SKIP_TEST_IF(getEGLWindow()->isFeatureEnabled(Feature::DisableProgramCaching));
+
     ANGLE_SKIP_TEST_IF(!IsVulkan());
 
     EGLDisplay display = getEGLWindow()->getDisplay();
@@ -395,6 +407,9 @@ void main()
 // the cache. We then perform a draw call and test the result to ensure nothing was corrupted.
 TEST_P(EGLBlobCacheTest, ThreadSafety)
 {
+    ANGLE_SKIP_TEST_IF(!getEGLWindow()->isFeatureEnabled(Feature::CacheCompiledShader));
+    ANGLE_SKIP_TEST_IF(getEGLWindow()->isFeatureEnabled(Feature::DisableProgramCaching));
+
     ANGLE_SKIP_TEST_IF(!IsVulkan());
 
     EGLDisplay display = getEGLWindow()->getDisplay();
@@ -445,6 +460,9 @@ TEST_P(EGLBlobCacheTest, ThreadSafety)
 // Makes sure ANGLE recovers from corrupted cache.
 TEST_P(EGLBlobCacheTest, CacheCorruption)
 {
+    ANGLE_SKIP_TEST_IF(!getEGLWindow()->isFeatureEnabled(Feature::CacheCompiledShader));
+    ANGLE_SKIP_TEST_IF(getEGLWindow()->isFeatureEnabled(Feature::DisableProgramCaching));
+
     EGLDisplay display = getEGLWindow()->getDisplay();
 
     EXPECT_TRUE(mHasBlobCache);
