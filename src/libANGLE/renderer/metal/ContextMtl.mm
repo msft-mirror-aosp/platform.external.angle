@@ -372,7 +372,7 @@ angle::Result ContextMtl::drawTriFanArrays(const gl::Context *context,
 {
     if (count <= 3 && baseInstance == 0)
     {
-        return drawArraysInstanced(context, gl::PrimitiveMode::Triangles, first, count, instances);
+        return drawArraysImpl(context, gl::PrimitiveMode::Triangles, first, count, instances, 0);
     }
     if (getDisplay()->getFeatures().hasBaseVertexInstancedDraw.enabled)
     {
@@ -579,17 +579,8 @@ angle::Result ContextMtl::drawTriFanElements(const gl::Context *context,
 
         return angle::Result::Continue;
     }  // if (count > 3)
-    if (baseVertex == 0 && baseInstance == 0)
-    {
-        return drawElementsInstanced(context, gl::PrimitiveMode::Triangles, count, type, indices,
-                                     instances);
-    }
-    else
-    {
-        return drawElementsInstancedBaseVertexBaseInstance(context, gl::PrimitiveMode::Triangles,
-                                                           count, type, indices, instances,
-                                                           baseVertex, baseInstance);
-    }
+    return drawElementsImpl(context, gl::PrimitiveMode::Triangles, count, type, indices, instances,
+                            baseVertex, baseInstance);
 }
 
 angle::Result ContextMtl::drawLineLoopElementsNonInstancedNoPrimitiveRestart(
@@ -658,17 +649,8 @@ angle::Result ContextMtl::drawLineLoopElements(const gl::Context *context,
 
         return angle::Result::Continue;
     }  // if (count >= 2)
-    if (baseVertex == 0 && baseInstance == 0)
-    {
-        return drawElementsInstanced(context, gl::PrimitiveMode::Lines, count, type, indices,
-                                     instances);
-    }
-    else
-    {
-        return drawElementsInstancedBaseVertexBaseInstance(context, gl::PrimitiveMode::Lines, count,
-                                                           type, indices, instances, baseVertex,
-                                                           baseInstance);
-    }
+    return drawElementsImpl(context, gl::PrimitiveMode::Lines, count, type, indices, instances,
+                            baseVertex, baseInstance);
 }
 
 angle::Result ContextMtl::drawArraysProvokingVertexImpl(const gl::Context *context,
@@ -2942,59 +2924,4 @@ angle::Result ContextMtl::checkIfPipelineChanged(const gl::Context *context,
     return angle::Result::Continue;
 }
 
-angle::Result ContextMtl::copy2DTextureSlice0Level0ToWorkTexture(const mtl::TextureRef &srcTexture)
-{
-    if (!mWorkTexture || !mWorkTexture->sameTypeAndDimemsionsAs(srcTexture))
-    {
-        auto formatId = mtl::Format::MetalToAngleFormatID(srcTexture->pixelFormat());
-        auto format   = getPixelFormat(formatId);
-
-        ANGLE_TRY(mtl::Texture::Make2DTexture(this, format, srcTexture->widthAt0(),
-                                              srcTexture->heightAt0(), srcTexture->mipmapLevels(),
-                                              false, true, &mWorkTexture));
-    }
-    auto *blitEncoder = getBlitCommandEncoder();
-    blitEncoder->copyTexture(srcTexture,
-                             0,                          // srcStartSlice
-                             mtl::MipmapNativeLevel(0),  // MipmapNativeLevel
-                             mWorkTexture,               // dst
-                             0,                          // dstStartSlice
-                             mtl::MipmapNativeLevel(0),  // dstStartLevel
-                             1,                          // sliceCount,
-                             1);                         // levelCount
-
-    return angle::Result::Continue;
-}
-
-angle::Result ContextMtl::copyTextureSliceLevelToWorkBuffer(
-    const gl::Context *context,
-    const mtl::TextureRef &srcTexture,
-    const mtl::MipmapNativeLevel &mipNativeLevel,
-    uint32_t layerIndex)
-{
-    auto formatId                    = mtl::Format::MetalToAngleFormatID(srcTexture->pixelFormat());
-    const mtl::Format &metalFormat   = getPixelFormat(formatId);
-    const angle::Format &angleFormat = metalFormat.actualAngleFormat();
-
-    uint32_t width       = srcTexture->width(mipNativeLevel);
-    uint32_t height      = srcTexture->height(mipNativeLevel);
-    uint32_t sizeInBytes = width * height * angleFormat.pixelBytes;
-
-    // Expand the buffer if it is not big enough.
-    if (!mWorkBuffer || mWorkBuffer->size() < sizeInBytes)
-    {
-        ANGLE_TRY(mtl::Buffer::MakeBufferWithStorageMode(
-            this, mtl::Buffer::getStorageModeForSharedBuffer(this), sizeInBytes, nullptr,
-            &mWorkBuffer));
-    }
-
-    gl::Rectangle region(0, 0, width, height);
-    uint32_t bytesPerRow = angleFormat.pixelBytes * width;
-    uint32_t destOffset  = 0;
-    ANGLE_TRY(mtl::ReadTexturePerSliceBytesToBuffer(context, srcTexture, bytesPerRow, region,
-                                                    mipNativeLevel, layerIndex, destOffset,
-                                                    mWorkBuffer));
-
-    return angle::Result::Continue;
-}
 }  // namespace rx
