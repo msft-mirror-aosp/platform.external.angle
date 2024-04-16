@@ -280,6 +280,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndexed-format-07753",
     "VUID-vkCmdDraw-format-07753",
     "Undefined-Value-ShaderFragmentOutputMismatch",
+    // https://anglebug.com/8668
+    "VUID-VkSwapchainCreateInfoKHR-pNext-07781",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -478,13 +480,6 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
      "store with storeOp VK_ATTACHMENT_STORE_OP_STORE. Access info (usage: "
      "SYNC_LATE_FRAGMENT_TESTS_DEPTH_STENCIL_ATTACHMENT_WRITE, prior_usage: "
      "SYNC_FRAGMENT_SHADER_SHADER_"},
-    // b/316013423
-    {"SYNC-HAZARD-READ-AFTER-WRITE", "type = VK_OBJECT_TYPE_QUEUE",
-     "vkQueueSubmit():  Hazard READ_AFTER_WRITE for entry 0"},
-    {"SYNC-HAZARD-WRITE-AFTER-READ", "type = VK_OBJECT_TYPE_QUEUE",
-     "vkQueueSubmit():  Hazard WRITE_AFTER_READ for entry 0"},
-    {"SYNC-HAZARD-WRITE-AFTER-WRITE", "type = VK_OBJECT_TYPE_QUEUE",
-     "vkQueueSubmit():  Hazard WRITE_AFTER_WRITE for entry 0"},
 };
 
 // Messages that shouldn't be generated if storeOp=NONE is supported, otherwise they are expected.
@@ -1907,17 +1902,30 @@ angle::Result Renderer::initialize(vk::Context *context,
         instanceInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
     }
 
+    // Fine grain control of validation layer features
+    const char *name                     = "VK_LAYER_KHRONOS_validation";
+    const VkBool32 setting_validate_core = VK_TRUE;
+    const VkBool32 setting_validate_sync = IsAndroid() ? VK_FALSE : VK_TRUE;
+    const VkBool32 setting_thread_safety = VK_TRUE;
     // http://anglebug.com/7050 - Shader validation caching is broken on Android
-    VkValidationFeaturesEXT validationFeatures       = {};
-    VkValidationFeatureDisableEXT disabledFeatures[] = {
-        VK_VALIDATION_FEATURE_DISABLE_SHADER_VALIDATION_CACHE_EXT};
-    if (mEnableValidationLayers && IsAndroid())
+    const VkBool32 setting_check_shaders = IsAndroid() ? VK_FALSE : VK_TRUE;
+    // http://b/316013423 Disable QueueSubmit Synchronization Validation. Lots of failures and some
+    // test timeout due to https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/7285
+    const VkBool32 setting_sync_queue_submit = VK_FALSE;
+    const VkLayerSettingEXT layerSettings[]  = {
+        {name, "validate_core", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_validate_core},
+        {name, "validate_sync", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_validate_sync},
+        {name, "thread_safety", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_thread_safety},
+        {name, "check_shaders", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &setting_check_shaders},
+        {name, "sync_queue_submit", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1,
+          &setting_sync_queue_submit},
+    };
+    VkLayerSettingsCreateInfoEXT layerSettingsCreateInfo = {
+        VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT, nullptr,
+        static_cast<uint32_t>(std::size(layerSettings)), layerSettings};
+    if (mEnableValidationLayers)
     {
-        validationFeatures.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
-        validationFeatures.disabledValidationFeatureCount = 1;
-        validationFeatures.pDisabledValidationFeatures    = disabledFeatures;
-
-        vk::AddToPNextChain(&instanceInfo, &validationFeatures);
+        vk::AddToPNextChain(&instanceInfo, &layerSettingsCreateInfo);
     }
 
     {
