@@ -1,9 +1,9 @@
 {
   "version info": {
     "schema version": 2,
-    "api version": "1.3.281",
-    "comment": "from git branch: github-main commit: d6029cc2b7499faf2e7857420ec4996fc5cb0a50",
-    "date": "2024-03-22 07:59:34Z"
+    "api version": "1.3.282",
+    "comment": "from git branch: github-main commit: 315493e7b2ed31e3d33f124f95a4b1c0cdbfaf84",
+    "date": "2024-04-13 13:53:11Z"
   },
   "validation": {
     "vkGetInstanceProcAddr": {
@@ -5690,6 +5690,16 @@
         {
           "vuid": "VUID-vkCmdPipelineBarrier-dstStageMask-06462",
           "text": "Any pipeline stage included in <code>dstStageMask</code> <strong class=\"purple\">must</strong> be supported by the capabilities of the queue family specified by the <code>queueFamilyIndex</code> member of the <a href=\"#VkCommandPoolCreateInfo\">VkCommandPoolCreateInfo</a> structure that was used to create the <code>VkCommandPool</code> that <code>commandBuffer</code> was allocated from, as specified in the <a href=\"#synchronization-pipeline-stages-supported\">table of supported pipeline stages</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdPipelineBarrier-srcStageMask-09633",
+          "text": "If either <code>srcStageMask</code> or <code>dstStageMask</code> includes <code>VK_PIPELINE_STAGE_HOST_BIT</code>, for any element of <code>pImageMemoryBarriers</code>, <code>srcQueueFamilyIndex</code> and <code>dstQueueFamilyIndex</code> <strong class=\"purple\">must</strong> be equal",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdPipelineBarrier-srcStageMask-09634",
+          "text": "If either <code>srcStageMask</code> or <code>dstStageMask</code> includes <code>VK_PIPELINE_STAGE_HOST_BIT</code>, for any element of <code>pBufferMemoryBarriers</code>, <code>srcQueueFamilyIndex</code> and <code>dstQueueFamilyIndex</code> <strong class=\"purple\">must</strong> be equal",
           "page": "vkspec"
         },
         {
@@ -13167,6 +13177,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCreateShadersEXT-pCreateInfos-09632",
+          "text": "If <code>pCreateInfos</code> contains a <code>VK_SHADER_STAGE_MESH_BIT_EXT</code> with <code>codeType</code> of <code>VK_SHADER_CODE_TYPE_SPIRV_EXT</code> and <code>VK_SHADER_CREATE_NO_TASK_SHADER_BIT_EXT</code> is not set, then the mesh shader&#8217;s entry point <strong class=\"purple\">must</strong> not declare a variable with a <code>DrawIndex</code> <code>BuiltIn</code> decoration",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCreateShadersEXT-device-parameter",
           "text": "<code>device</code> <strong class=\"purple\">must</strong> be a valid <a href=\"#VkDevice\">VkDevice</a> handle",
           "page": "vkspec"
@@ -15232,6 +15247,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-VkGraphicsPipelineCreateInfo-pStages-09631",
+          "text": "If the pipeline requires <a href=\"#pipelines-graphics-subsets-pre-rasterization\">pre-rasterization shader state</a> and <code>pStages</code> contains both <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> and <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>, then the mesh shader&#8217;s entry point <strong class=\"purple\">must</strong> not declare a variable with a <code>DrawIndex</code> <code>BuiltIn</code> decoration",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-TaskNV-07063",
           "text": "The shader stages for <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code> <strong class=\"purple\">must</strong> use either the <code>TaskNV</code> and <code>MeshNV</code> <code>Execution</code> <code>Model</code> or the <code>TaskEXT</code> and <code>MeshEXT</code> <code>Execution</code> <code>Model</code>, but <strong class=\"purple\">must</strong> not use both",
           "page": "vkspec"
@@ -16358,12 +16378,12 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-flags-06637",
-          "text": "If <a href=\"#VkGraphicsPipelineLibraryCreateInfoEXT\">VkGraphicsPipelineLibraryCreateInfoEXT</a>::<code>flags</code> includes <code>VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT</code>, <code>pMultisampleState-&gt;sampleShadingEnable</code> is <code>VK_TRUE</code>, and an element of <a href=\"#VkPipelineLibraryCreateInfoKHR\">VkPipelineLibraryCreateInfoKHR</a>::<code>pLibraries</code> was created with <code>VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT</code>, the <code>pMultisampleState</code> used to create that library <strong class=\"purple\">must</strong> be <em>identically defined</em> <code>pMultisampleState</code>",
+          "text": "If <a href=\"#VkGraphicsPipelineLibraryCreateInfoEXT\">VkGraphicsPipelineLibraryCreateInfoEXT</a>::<code>flags</code> includes <code>VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT</code>, <code>pMultisampleState-&gt;sampleShadingEnable</code> is <code>VK_TRUE</code>, and an element of <a href=\"#VkPipelineLibraryCreateInfoKHR\">VkPipelineLibraryCreateInfoKHR</a>::<code>pLibraries</code> was created with <code>VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT</code>, <code>pMultisampleState</code> <strong class=\"purple\">must</strong> be <em>identically defined</em> to that used to create the library",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-pLibraries-09567",
-          "text": "If one element of <a href=\"#VkPipelineLibraryCreateInfoKHR\">VkPipelineLibraryCreateInfoKHR</a>::<code>pLibraries</code> was created with <code>VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT</code> and a value of <code>pMultisampleState-&gt;sampleShadingEnable</code> equal <code>VK_TRUE</code>, and if <a href=\"#VkGraphicsPipelineLibraryCreateInfoEXT\">VkGraphicsPipelineLibraryCreateInfoEXT</a>::<code>flags</code> includes <code>VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT</code>, <code>pMultisampleState</code> <strong class=\"purple\">must</strong> be <em>identically defined</em> to that used to create the library",
+          "text": "If one element of <a href=\"#VkPipelineLibraryCreateInfoKHR\">VkPipelineLibraryCreateInfoKHR</a>::<code>pLibraries</code> was created with <code>VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT</code> and a value of <code>pMultisampleState-&gt;sampleShadingEnable</code> equal <code>VK_TRUE</code>, and if <a href=\"#VkGraphicsPipelineLibraryCreateInfoEXT\">VkGraphicsPipelineLibraryCreateInfoEXT</a>::<code>flags</code> includes <code>VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT</code>, <code>pMultisampleState</code> <strong class=\"purple\">must</strong> be <em>identically defined</em> to that used to create the library",
           "page": "vkspec"
         },
         {
@@ -23504,7 +23524,7 @@
         },
         {
           "vuid": "VUID-VkImageViewSlicedCreateInfoEXT-sliceCount-07868",
-          "text": "If <code>sliceCount</code> is not <code>VK_REMAINING_3D_SLICES_EXT</code>, it <strong class=\"purple\">must</strong> be be non-zero and <span class=\"eq\"><code>sliceOffset</code> +  <code>sliceCount</code></span> <strong class=\"purple\">must</strong> be less than or equal to the effective view depth as specified in <a href=\"#resources-image-mip-level-sizing\">Image Mip Level Sizing</a>",
+          "text": "If <code>sliceCount</code> is not <code>VK_REMAINING_3D_SLICES_EXT</code>, it <strong class=\"purple\">must</strong> be non-zero and <span class=\"eq\"><code>sliceOffset</code> +  <code>sliceCount</code></span> <strong class=\"purple\">must</strong> be less than or equal to the effective view depth as specified in <a href=\"#resources-image-mip-level-sizing\">Image Mip Level Sizing</a>",
           "page": "vkspec"
         },
         {
@@ -26982,7 +27002,7 @@
       "core": [
         {
           "vuid": "VUID-vkCreateDescriptorSetLayout-support-09582",
-          "text": "If the descriptor layout does not meet the limits reported through the <a href=\"#limits\">physical device limits</a>, then <a href=\"#vkGetDescriptorSetLayoutSupport\">vkGetDescriptorSetLayoutSupport</a> must return <a href=\"#VkDescriptorSetLayoutSupport\">VkDescriptorSetLayoutSupport</a> with <code>support</code> equal to <code>VK_TRUE</code> for <code>pCreateInfo</code>",
+          "text": "If the descriptor layout exceeds the limits reported through the <a href=\"#limits\">physical device limits</a>, then <a href=\"#vkGetDescriptorSetLayoutSupport\">vkGetDescriptorSetLayoutSupport</a> <strong class=\"purple\">must</strong> have returned <a href=\"#VkDescriptorSetLayoutSupport\">VkDescriptorSetLayoutSupport</a> with <code>support</code> equal to <code>VK_TRUE</code> for <code>pCreateInfo</code>",
           "page": "vkspec"
         },
         {
@@ -41330,6 +41350,16 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDraw-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDraw-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDraw-None-06479",
           "text": "If a <a href=\"#VkImageView\">VkImageView</a> is sampled with <a href=\"#textures-depth-compare-operation\">depth comparison</a>, the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT</code>",
           "page": "vkspec"
@@ -43031,7 +43061,7 @@
         },
         {
           "vuid": "VUID-vkCmdDraw-None-02721",
-          "text": "For a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
+          "text": "If <a href=\"#features-robustBufferAccess\"><code>robustBufferAccess</code></a> is not enabled, and that pipeline was created without enabling <code>VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT</code> for <code>vertexInputs</code>, then for a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
           "page": "vkspec"
         },
         {
@@ -43092,6 +43122,11 @@
         {
           "vuid": "VUID-vkCmdDraw-None-04879",
           "text": "If     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> have been called in the     current command buffer prior to this drawing command",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDraw-None-09637",
+          "text": "If     the <a href=\"#features-primitiveTopologyListRestart\"><code>primitiveTopologyListRestart</code></a> feature is not enabled,     the topology is <code>VK_PRIMITIVE_TOPOLOGY_POINT_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY</code>, or     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY</code>,     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> be set to <code>VK_FALSE</code>",
           "page": "vkspec"
         },
         {
@@ -43161,6 +43196,16 @@
         {
           "vuid": "VUID-vkCmdDrawIndexed-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexed-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexed-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -44865,7 +44910,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-None-02721",
-          "text": "For a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
+          "text": "If <a href=\"#features-robustBufferAccess\"><code>robustBufferAccess</code></a> is not enabled, and that pipeline was created without enabling <code>VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT</code> for <code>vertexInputs</code>, then for a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
           "page": "vkspec"
         },
         {
@@ -44926,6 +44971,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndexed-None-04879",
           "text": "If     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> have been called in the     current command buffer prior to this drawing command",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexed-None-09637",
+          "text": "If     the <a href=\"#features-primitiveTopologyListRestart\"><code>primitiveTopologyListRestart</code></a> feature is not enabled,     the topology is <code>VK_PRIMITIVE_TOPOLOGY_POINT_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY</code>, or     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY</code>,     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> be set to <code>VK_FALSE</code>",
           "page": "vkspec"
         },
         {
@@ -45010,6 +45060,16 @@
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMultiEXT-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMultiEXT-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -46714,7 +46774,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-None-02721",
-          "text": "For a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
+          "text": "If <a href=\"#features-robustBufferAccess\"><code>robustBufferAccess</code></a> is not enabled, and that pipeline was created without enabling <code>VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT</code> for <code>vertexInputs</code>, then for a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
           "page": "vkspec"
         },
         {
@@ -46775,6 +46835,11 @@
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-None-04879",
           "text": "If     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> have been called in the     current command buffer prior to this drawing command",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMultiEXT-None-09637",
+          "text": "If     the <a href=\"#features-primitiveTopologyListRestart\"><code>primitiveTopologyListRestart</code></a> feature is not enabled,     the topology is <code>VK_PRIMITIVE_TOPOLOGY_POINT_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY</code>, or     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY</code>,     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> be set to <code>VK_FALSE</code>",
           "page": "vkspec"
         },
         {
@@ -46864,6 +46929,16 @@
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMultiIndexedEXT-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMultiIndexedEXT-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -48568,7 +48643,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-02721",
-          "text": "For a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
+          "text": "If <a href=\"#features-robustBufferAccess\"><code>robustBufferAccess</code></a> is not enabled, and that pipeline was created without enabling <code>VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT</code> for <code>vertexInputs</code>, then for a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
           "page": "vkspec"
         },
         {
@@ -48629,6 +48704,11 @@
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-04879",
           "text": "If     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> have been called in the     current command buffer prior to this drawing command",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-09637",
+          "text": "If     the <a href=\"#features-primitiveTopologyListRestart\"><code>primitiveTopologyListRestart</code></a> feature is not enabled,     the topology is <code>VK_PRIMITIVE_TOPOLOGY_POINT_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY</code>, or     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY</code>,     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> be set to <code>VK_FALSE</code>",
           "page": "vkspec"
         },
         {
@@ -48738,6 +48818,16 @@
         {
           "vuid": "VUID-vkCmdDrawIndirect-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirect-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirect-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -50427,7 +50517,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-None-02721",
-          "text": "For a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
+          "text": "If <a href=\"#features-robustBufferAccess\"><code>robustBufferAccess</code></a> is not enabled, and that pipeline was created without enabling <code>VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT</code> for <code>vertexInputs</code>, then for a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
           "page": "vkspec"
         },
         {
@@ -50488,6 +50578,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndirect-None-04879",
           "text": "If     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> have been called in the     current command buffer prior to this drawing command",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirect-None-09637",
+          "text": "If     the <a href=\"#features-primitiveTopologyListRestart\"><code>primitiveTopologyListRestart</code></a> feature is not enabled,     the topology is <code>VK_PRIMITIVE_TOPOLOGY_POINT_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY</code>, or     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY</code>,     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> be set to <code>VK_FALSE</code>",
           "page": "vkspec"
         },
         {
@@ -50626,6 +50721,16 @@
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirectCount-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirectCount-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -52315,7 +52420,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-None-02721",
-          "text": "For a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
+          "text": "If <a href=\"#features-robustBufferAccess\"><code>robustBufferAccess</code></a> is not enabled, and that pipeline was created without enabling <code>VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT</code> for <code>vertexInputs</code>, then for a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
           "page": "vkspec"
         },
         {
@@ -52376,6 +52481,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-None-04879",
           "text": "If     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> have been called in the     current command buffer prior to this drawing command",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirectCount-None-09637",
+          "text": "If     the <a href=\"#features-primitiveTopologyListRestart\"><code>primitiveTopologyListRestart</code></a> feature is not enabled,     the topology is <code>VK_PRIMITIVE_TOPOLOGY_POINT_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY</code>, or     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY</code>,     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> be set to <code>VK_FALSE</code>",
           "page": "vkspec"
         },
         {
@@ -52520,6 +52630,16 @@
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexedIndirect-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexedIndirect-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -54209,7 +54329,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-None-02721",
-          "text": "For a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
+          "text": "If <a href=\"#features-robustBufferAccess\"><code>robustBufferAccess</code></a> is not enabled, and that pipeline was created without enabling <code>VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT</code> for <code>vertexInputs</code>, then for a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
           "page": "vkspec"
         },
         {
@@ -54270,6 +54390,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-None-04879",
           "text": "If     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> have been called in the     current command buffer prior to this drawing command",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexedIndirect-None-09637",
+          "text": "If     the <a href=\"#features-primitiveTopologyListRestart\"><code>primitiveTopologyListRestart</code></a> feature is not enabled,     the topology is <code>VK_PRIMITIVE_TOPOLOGY_POINT_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY</code>, or     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY</code>,     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> be set to <code>VK_FALSE</code>",
           "page": "vkspec"
         },
         {
@@ -54423,6 +54548,16 @@
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexedIndirectCount-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexedIndirectCount-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -56112,7 +56247,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-02721",
-          "text": "For a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
+          "text": "If <a href=\"#features-robustBufferAccess\"><code>robustBufferAccess</code></a> is not enabled, and that pipeline was created without enabling <code>VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT</code> for <code>vertexInputs</code>, then for a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
           "page": "vkspec"
         },
         {
@@ -56173,6 +56308,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-04879",
           "text": "If     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> have been called in the     current command buffer prior to this drawing command",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-09637",
+          "text": "If     the <a href=\"#features-primitiveTopologyListRestart\"><code>primitiveTopologyListRestart</code></a> feature is not enabled,     the topology is <code>VK_PRIMITIVE_TOPOLOGY_POINT_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY</code>, or     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY</code>,     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> be set to <code>VK_FALSE</code>",
           "page": "vkspec"
         },
         {
@@ -56327,6 +56467,16 @@
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -58016,7 +58166,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-02721",
-          "text": "For a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
+          "text": "If <a href=\"#features-robustBufferAccess\"><code>robustBufferAccess</code></a> is not enabled, and that pipeline was created without enabling <code>VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT</code> for <code>vertexInputs</code>, then for a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
           "page": "vkspec"
         },
         {
@@ -58077,6 +58227,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-04879",
           "text": "If     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> have been called in the     current command buffer prior to this drawing command",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-09637",
+          "text": "If     the <a href=\"#features-primitiveTopologyListRestart\"><code>primitiveTopologyListRestart</code></a> feature is not enabled,     the topology is <code>VK_PRIMITIVE_TOPOLOGY_POINT_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY</code>, or     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY</code>,     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> be set to <code>VK_FALSE</code>",
           "page": "vkspec"
         },
         {
@@ -58318,6 +58473,16 @@
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksNV-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksNV-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -60072,6 +60237,16 @@
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -61885,6 +62060,16 @@
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -63722,6 +63907,16 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksEXT-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksEXT-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-None-06479",
           "text": "If a <a href=\"#VkImageView\">VkImageView</a> is sampled with <a href=\"#textures-depth-compare-operation\">depth comparison</a>, the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT</code>",
           "page": "vkspec"
@@ -65508,6 +65703,16 @@
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -67359,6 +67564,16 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-None-06479",
           "text": "If a <a href=\"#VkImageView\">VkImageView</a> is sampled with <a href=\"#textures-depth-compare-operation\">depth comparison</a>, the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT</code>",
           "page": "vkspec"
@@ -69193,6 +69408,16 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDrawClusterHUAWEI-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawClusterHUAWEI-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-None-06479",
           "text": "If a <a href=\"#VkImageView\">VkImageView</a> is sampled with <a href=\"#textures-depth-compare-operation\">depth comparison</a>, the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT</code>",
           "page": "vkspec"
@@ -70959,6 +71184,16 @@
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -77534,6 +77769,16 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDispatch-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatch-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDispatch-None-06479",
           "text": "If a <a href=\"#VkImageView\">VkImageView</a> is sampled with <a href=\"#textures-depth-compare-operation\">depth comparison</a>, the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT</code>",
           "page": "vkspec"
@@ -77920,6 +78165,16 @@
         {
           "vuid": "VUID-vkCmdDispatchIndirect-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchIndirect-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchIndirect-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -78336,6 +78591,16 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDispatchBase-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchBase-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDispatchBase-None-06479",
           "text": "If a <a href=\"#VkImageView\">VkImageView</a> is sampled with <a href=\"#textures-depth-compare-operation\">depth comparison</a>, the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT</code>",
           "page": "vkspec"
@@ -78742,6 +79007,16 @@
         {
           "vuid": "VUID-vkCmdSubpassShadingHUAWEI-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdSubpassShadingHUAWEI-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdSubpassShadingHUAWEI-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -79740,6 +80015,16 @@
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -81429,7 +81714,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-02721",
-          "text": "For a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
+          "text": "If <a href=\"#features-robustBufferAccess\"><code>robustBufferAccess</code></a> is not enabled, and that pipeline was created without enabling <code>VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT</code> for <code>vertexInputs</code>, then for a given vertex buffer binding, any attribute data fetched <strong class=\"purple\">must</strong> be entirely contained within the corresponding vertex buffer binding, as described in <a href=\"#fxvertex-input\">Vertex Input Description</a>",
           "page": "vkspec"
         },
         {
@@ -81490,6 +81775,11 @@
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-04879",
           "text": "If     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> have been called in the     current command buffer prior to this drawing command",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-09637",
+          "text": "If     the <a href=\"#features-primitiveTopologyListRestart\"><code>primitiveTopologyListRestart</code></a> feature is not enabled,     the topology is <code>VK_PRIMITIVE_TOPOLOGY_POINT_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST</code>,     <code>VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY</code>, or     <code>VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY</code>,     there is a shader object bound to the <code>VK_SHADER_STAGE_VERTEX_BIT</code>     stage or     the bound graphics pipeline state was created with the     <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code> dynamic state enabled     then <a href=\"#vkCmdSetPrimitiveRestartEnable\">vkCmdSetPrimitiveRestartEnable</a> <strong class=\"purple\">must</strong> be set to <code>VK_FALSE</code>",
           "page": "vkspec"
         },
         {
@@ -87848,11 +88138,6 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-VkCopyAccelerationStructureInfoKHR-dst-07792",
-          "text": "<code>dst</code> <strong class=\"purple\">must</strong> be bound completely and contiguously to a single <code>VkDeviceMemory</code> object via <a href=\"#vkBindAccelerationStructureMemoryNV\">vkBindAccelerationStructureMemoryNV</a>",
-          "page": "vkspec"
-        },
-        {
           "vuid": "VUID-VkCopyAccelerationStructureInfoKHR-sType-sType",
           "text": "<code>sType</code> <strong class=\"purple\">must</strong> be <code>VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR</code>",
           "page": "vkspec"
@@ -89723,6 +90008,16 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdTraceRaysNV-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdTraceRaysNV-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdTraceRaysNV-None-06479",
           "text": "If a <a href=\"#VkImageView\">VkImageView</a> is sampled with <a href=\"#textures-depth-compare-operation\">depth comparison</a>, the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT</code>",
           "page": "vkspec"
@@ -90229,6 +90524,16 @@
         {
           "vuid": "VUID-vkCmdTraceRaysKHR-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdTraceRaysKHR-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdTraceRaysKHR-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -90884,6 +91189,16 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdTraceRaysIndirectKHR-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdTraceRaysIndirectKHR-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdTraceRaysIndirectKHR-None-06479",
           "text": "If a <a href=\"#VkImageView\">VkImageView</a> is sampled with <a href=\"#textures-depth-compare-operation\">depth comparison</a>, the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT</code>",
           "page": "vkspec"
@@ -91469,6 +91784,16 @@
         {
           "vuid": "VUID-vkCmdTraceRaysIndirect2KHR-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdTraceRaysIndirect2KHR-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdTraceRaysIndirect2KHR-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -96505,6 +96830,16 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDispatchGraphAMDX-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphAMDX-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDispatchGraphAMDX-None-06479",
           "text": "If a <a href=\"#VkImageView\">VkImageView</a> is sampled with <a href=\"#textures-depth-compare-operation\">depth comparison</a>, the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT</code>",
           "page": "vkspec"
@@ -96936,6 +97271,16 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -97390,6 +97735,16 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-mipmapMode-09599",
           "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>mipmapMode</code> equal to <code>VK_SAMPLER_MIPMAP_MODE_LINEAR</code> and <code>reductionMode</code> equal to either <code>VK_SAMPLER_REDUCTION_MODE_MIN</code> or <code>VK_SAMPLER_REDUCTION_MODE_MAX</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format features</a> <strong class=\"purple\">must</strong> contain <code>VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-unnormalizedCoordinates-09635",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>levelCount</code> and <code>layerCount</code> <strong class=\"purple\">must</strong> be 1",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-unnormalizedCoordinates-09636",
+          "text": "If a <a href=\"#VkSampler\">VkSampler</a> created with <code>unnormalizedCoordinates</code> equal to <code>VK_TRUE</code> is used to sample a <a href=\"#VkImageView\">VkImageView</a> as a result of this command, then the image view&#8217;s <code>viewType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_VIEW_TYPE_1D</code> or <code>VK_IMAGE_VIEW_TYPE_2D</code>",
           "page": "vkspec"
         },
         {
@@ -102517,13 +102872,18 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-StandaloneSpirv-OpTypeImage-09638",
+          "text": "An <code>OpTypeImage</code> <strong class=\"purple\">must</strong> not have a &#8220;Dim&#8221; operand of <code>Rect</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-StandaloneSpirv-OpTypeImage-06214",
           "text": "An <code>OpTypeImage</code> with a &#8220;Dim&#8221; operand of <code>SubpassData</code> <strong class=\"purple\">must</strong> have an &#8220;Arrayed&#8221; operand of 0 (non-arrayed) and a &#8220;Sampled&#8221; operand of 2 (storage image)",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-StandaloneSpirv-SubpassData-04660",
-          "text": "The <span class=\"eq\">(u,v)</span> coordinates used for a <code>SubpassData</code> <strong class=\"purple\">must</strong> be the &lt;id&gt; of a constant vector <span class=\"eq\">(0,0)</span>, or if a layer coordinate is used, <strong class=\"purple\">must</strong> be a vector that was formed with constant 0 for the <span class=\"eq\">u</span> and <span class=\"eq\">v</span> components",
+          "text": "The <span class=\"eq\">(u,v)</span> coordinates used for a <code>SubpassData</code> <strong class=\"purple\">must</strong> be the &lt;id&gt; of a constant vector <span class=\"eq\">(0,0)</span>.",
           "page": "vkspec"
         },
         {
