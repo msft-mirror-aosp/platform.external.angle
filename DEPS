@@ -49,7 +49,7 @@ vars = {
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': 'b529676d05230c7f1c8eb5572d787352da2cbace',
+  'vk_gl_cts_revision': '669273b1098a0e3db085d10a626b6c7e293f9064',
 
   # Current revision of googletest.
   # Note: this dep cannot be auto-rolled b/c of nesting.
@@ -938,7 +938,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@8dc5cb57074c42295aa647ea407e1adb85f6ec93',
+    'url': Var('chromium_git') + '/vulkan-deps@bb53ad5f34d9a44e19cd13b3b77ca0ffa74b352c',
     'condition': 'not build_with_chromium',
   },
 
