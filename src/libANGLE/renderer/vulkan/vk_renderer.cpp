@@ -236,10 +236,6 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndexed-None-07835",
     "VUID-VkGraphicsPipelineCreateInfo-Input-08733",
     "VUID-vkCmdDraw-Input-08734",
-    // http://anglebug.com/8151
-    "VUID-vkCmdDraw-None-07844",
-    "VUID-vkCmdDraw-None-07845",
-    "VUID-vkCmdDraw-None-07848",
     // https://anglebug.com/8128#c3
     "VUID-VkBufferViewCreateInfo-format-08779",
     // https://anglebug.com/8203
@@ -4678,7 +4674,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // For some reason, if we use cached staging buffer for read pixels, a lot of tests fail on ARM,
     // even though we do have invlaid() call there. Temporary keep the old behavior for ARM until we
     // can root cause it.
-    ANGLE_FEATURE_CONDITION(&mFeatures, requireCachedBitForStagingBuffer, !isARM);
+    ANGLE_FEATURE_CONDITION(&mFeatures, requireCachedBitForStagingBuffer, !isARM && !isPowerVR);
 
     // Multiple dynamic state issues on ARM have been fixed.
     // http://issuetracker.google.com/285124778
