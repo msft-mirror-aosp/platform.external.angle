@@ -585,7 +585,6 @@ void ProgramInfo::release(ContextVk *contextVk)
 
 ProgramExecutableVk::ProgramExecutableVk(const gl::ProgramExecutable *executable)
     : ProgramExecutableImpl(executable),
-      mNumDefaultUniformDescriptors(0),
       mImmutableSamplersMaxDescriptorCount(1),
       mUniformBufferDescriptorType(VK_DESCRIPTOR_TYPE_MAX_ENUM),
       mDynamicUniformDescriptorOffsets{},
@@ -620,7 +619,6 @@ void ProgramExecutableVk::resetLayout(ContextVk *contextVk)
     mImmutableSamplerIndexMap.clear();
 
     mDescriptorSets.fill(VK_NULL_HANDLE);
-    mNumDefaultUniformDescriptors = 0;
 
     for (vk::RefCountedDescriptorPoolBinding &binding : mDescriptorPoolBindings)
     {
@@ -1612,7 +1610,7 @@ angle::Result ProgramExecutableVk::getOrCreateComputePipeline(
     ASSERT(shaderProgram);
     return shaderProgram->getOrCreateComputePipeline(context, &mComputePipelines, pipelineCache,
                                                      getPipelineLayout(), pipelineFlags, source,
-                                                     pipelineOut);
+                                                     pipelineOut, nullptr, nullptr);
 }
 
 angle::Result ProgramExecutableVk::createPipelineLayout(
@@ -1627,8 +1625,8 @@ angle::Result ProgramExecutableVk::createPipelineLayout(
     // don't already exist in the cache.
 
     // Default uniforms and transform feedback:
-    mDefaultUniformAndXfbSetDesc  = {};
-    mNumDefaultUniformDescriptors = 0;
+    mDefaultUniformAndXfbSetDesc          = {};
+    uint32_t numDefaultUniformDescriptors = 0;
     for (gl::ShaderType shaderType : linkedShaderStages)
     {
         const ShaderInterfaceVariableInfo &info =
@@ -1638,7 +1636,7 @@ angle::Result ProgramExecutableVk::createPipelineLayout(
 
         mDefaultUniformAndXfbSetDesc.update(info.binding, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
                                             1, gl_vk::kShaderStageMap[shaderType], nullptr);
-        mNumDefaultUniformDescriptors++;
+        numDefaultUniformDescriptors++;
     }
 
     gl::ShaderType linkedTransformFeedbackStage = mExecutable->getLinkedTransformFeedbackStage();
@@ -1682,7 +1680,7 @@ angle::Result ProgramExecutableVk::createPipelineLayout(
     // Decide if we should use dynamic or fixed descriptor types.
     VkPhysicalDeviceLimits limits = context->getRenderer()->getPhysicalDeviceProperties().limits;
     uint32_t totalDynamicUniformBufferCount =
-        numActiveUniformBufferDescriptors + mNumDefaultUniformDescriptors;
+        numActiveUniformBufferDescriptors + numDefaultUniformDescriptors;
     if (totalDynamicUniformBufferCount <= limits.maxDescriptorSetUniformBuffersDynamic)
     {
         mUniformBufferDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -2148,7 +2146,7 @@ void ProgramExecutableVk::setUniformImpl(GLint location,
 
     ASSERT(!linkedUniform.isSampler());
 
-    if (linkedUniform.pod.type == entryPointType)
+    if (linkedUniform.getType() == entryPointType)
     {
         for (const gl::ShaderType shaderType : mExecutable->getLinkedShaderStages())
         {
@@ -2182,7 +2180,7 @@ void ProgramExecutableVk::setUniformImpl(GLint location,
 
             const GLint componentCount = linkedUniform.getElementComponents();
 
-            ASSERT(linkedUniform.pod.type == gl::VariableBoolVectorType(entryPointType));
+            ASSERT(linkedUniform.getType() == gl::VariableBoolVectorType(entryPointType));
 
             GLint initialArrayOffset =
                 locationInfo.arrayIndex * layoutInfo.arrayStride + layoutInfo.offset;
@@ -2218,8 +2216,8 @@ void ProgramExecutableVk::getUniformImpl(GLint location, T *v, GLenum entryPoint
     const DefaultUniformBlockVk &uniformBlock = *mDefaultUniformBlocks[shaderType];
     const sh::BlockMemberInfo &layoutInfo     = uniformBlock.uniformLayout[location];
 
-    ASSERT(gl::GetUniformTypeInfo(linkedUniform.pod.type).componentType == entryPointType ||
-           gl::GetUniformTypeInfo(linkedUniform.pod.type).componentType ==
+    ASSERT(linkedUniform.getUniformTypeInfo().componentType == entryPointType ||
+           linkedUniform.getUniformTypeInfo().componentType ==
                gl::VariableBoolVectorType(entryPointType));
 
     if (gl::IsMatrixType(linkedUniform.getType()))

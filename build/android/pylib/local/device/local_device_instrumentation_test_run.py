@@ -91,8 +91,7 @@ LOGCAT_FILTERS = ['*:e', 'chromium:v', 'cr_*:v', 'DEBUG:I',
                   'StrictMode:D', '%s:I' % _TAG]
 
 EXTRA_CLANG_COVERAGE_DEVICE_FILE = (
-    'org.chromium.base.test.BaseChromiumAndroidJUnitRunner.'
-    'ClangCoverageDeviceFile')
+    'BaseChromiumAndroidJUnitRunner.ClangCoverageDeviceFile')
 
 EXTRA_SCREENSHOT_FILE = (
     'org.chromium.base.test.ScreenshotOnFailureStatement.ScreenshotFile')
@@ -100,13 +99,12 @@ EXTRA_SCREENSHOT_FILE = (
 EXTRA_UI_CAPTURE_DIR = (
     'org.chromium.base.test.util.Screenshooter.ScreenshotDir')
 
-EXTRA_TRACE_FILE = ('org.chromium.base.test.BaseJUnit4ClassRunner.TraceFile')
+EXTRA_TRACE_FILE = 'BaseChromiumAndroidJUnitRunner.TraceFile'
 
 _EXTRA_RUN_DISABLED_TEST = (
     'org.chromium.base.test.util.DisableIfSkipCheck.RunDisabledTest')
 
-_EXTRA_TEST_IS_UNIT = (
-    'org.chromium.base.test.BaseChromiumAndroidJUnitRunner.IsUnitTest')
+_EXTRA_TEST_IS_UNIT = 'BaseChromiumAndroidJUnitRunner.IsUnitTest'
 
 _EXTRA_PACKAGE_UNDER_TEST = ('org.chromium.chrome.test.pagecontroller.rules.'
                              'ChromeUiApplicationTestRule.PackageUnderTest')
@@ -248,6 +246,11 @@ def _ParseTestListOutputFromChromiumListener(output):
       continue
     else:
       logging.warning('Unexpected code=%s output: %r', code, bundle)
+
+  # GetResult() cannot be called before IterStatus().
+  code, result = parser.GetResult()
+  if code != instrumentation_parser.RESULT_CODE_OK:
+    raise Exception('Test listing failed: %s' % result.get('stream', result))
   return [{
       'class': class_name,
       'methods': methods,
@@ -282,6 +285,10 @@ def _ParseTestListOutputFromAndroidxListener(output):
       continue
     else:
       logging.warning('Unexpected code=%s output: %r', code, bundle)
+  # GetResult() cannot be called before IterStatus().
+  code, result = parser.GetResult()
+  if code != instrumentation_parser.RESULT_CODE_OK:
+    raise Exception('Test listing failed: %s' % result.get('stream', result))
   return [{
       'class': class_name,
       'methods': methods,

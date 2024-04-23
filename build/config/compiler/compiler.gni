@@ -95,9 +95,6 @@ declare_args() {
                   (is_android && target_os != "chromeos") ||
                   (is_chromeos && is_chromeos_device)))
 
-  # If true, use Goma for ThinLTO code generation where applicable.
-  use_goma_thin_lto = false
-
   # Whether we're using a sample profile collected on an architecture different
   # than the one we're compiling for.
   #
@@ -233,7 +230,7 @@ can_unwind_with_cfi_table = is_android && !is_component_build &&
                             !enable_frame_pointers && current_cpu == "arm"
 
 # Whether or not cfi table should be enabled on arm.
-# TODO(crbug.com/1090409): Replace can_unwind_with_cfi_table with this once
+# TODO(crbug.com/40133751): Replace can_unwind_with_cfi_table with this once
 # sampling profiler is enabled on android.
 enable_arm_cfi_table = is_android && !is_component_build && current_cpu == "arm"
 
@@ -336,7 +333,7 @@ if (forbid_non_component_debug_builds) {
       "Can't do non-component debug builds at symbol_level=2 without use_debug_fission=true")
 }
 
-# TODO(crbug.com/1341436) For Windows, to assemble lzma_sdk's assembly files,
+# TODO(crbug.com/40230692) For Windows, to assemble lzma_sdk's assembly files,
 # ml64.exe needs to be utilized as llvm-ml cannot yet assemble it. Once llvm-ml
 # is able to assemble lzma_sdk assembly files, remove this.
 # LzmaDecOpt.asm only works on x64 and not x86.
