@@ -306,6 +306,9 @@ TParseContext::TParseContext(TSymbolTable &symt,
       mDirectiveHandler(ext, *mDiagnostics, mShaderVersion, mShaderType),
       mPreprocessor(mDiagnostics, &mDirectiveHandler, angle::pp::PreprocessorSettings(spec)),
       mScanner(nullptr),
+      mMaxExpressionComplexity(static_cast<size_t>(options.limitExpressionComplexity
+                                                       ? resources.MaxExpressionComplexity
+                                                       : std::numeric_limits<size_t>::max())),
       mMinProgramTexelOffset(resources.MinProgramTexelOffset),
       mMaxProgramTexelOffset(resources.MaxProgramTexelOffset),
       mMinProgramTextureGatherOffset(resources.MinProgramTextureGatherOffset),
@@ -1254,6 +1257,17 @@ unsigned int TParseContext::checkIsValidArraySize(const TSourceLoc &line, TInter
     }
 
     return size;
+}
+
+bool TParseContext::checkIsValidArrayDimension(const TSourceLoc &line,
+                                               TVector<unsigned int> *arraySizes)
+{
+    if (arraySizes->size() > mMaxExpressionComplexity)
+    {
+        error(line, "array has too many dimensions", "");
+        return false;
+    }
+    return true;
 }
 
 // See if this qualifier can be an array.
@@ -6736,6 +6750,11 @@ bool TParseContext::binaryOpCommonCheck(TOperator op,
                                         TIntermTyped *right,
                                         const TSourceLoc &loc)
 {
+    if (left->getBasicType() == EbtVoid || right->getBasicType() == EbtVoid)
+    {
+        error(loc, "operation with void operands", GetOperatorString(op));
+        return false;
+    }
     // Check opaque types are not allowed to be operands in expressions other than array indexing
     // and structure member selection.
     if (IsOpaqueType(left->getBasicType()) || IsOpaqueType(right->getBasicType()))

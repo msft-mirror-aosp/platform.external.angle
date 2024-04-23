@@ -598,6 +598,10 @@ TIntermTyped* TParseContext::handleBracketDereference(const TSourceLoc& loc, TIn
                 indexValue >= resources.maxCullDistances) {
                 error(loc, "gl_CullDistance", "[", "array index out of range '%d'", indexValue);
             }
+            else if (base->getQualifier().builtIn == EbvSampleMask &&
+                indexValue >= (resources.maxSamples + 31) / 32) {
+                error(loc, "gl_SampleMask", "[", "array index out of range '%d'", indexValue);
+            }
             // For 2D per-view builtin arrays, update the inner dimension size in parent type
             if (base->getQualifier().isPerView() && base->getQualifier().builtIn != EbvNone) {
                 TIntermBinary* binaryNode = base->getAsBinaryNode();
@@ -7637,6 +7641,7 @@ struct AccessChainTraverser : public TIntermTraverser {
     {}
 
     TString path = "";
+    TStorageQualifier topLevelStorageQualifier = TStorageQualifier::EvqLast;
 
     bool visitBinary(TVisit, TIntermBinary* binary) override {
         if (binary->getOp() == EOpIndexDirectStruct)
@@ -7667,6 +7672,8 @@ struct AccessChainTraverser : public TIntermTraverser {
     }
 
     void visitSymbol(TIntermSymbol* symbol) override {
+        if (symbol->getType().isOpaque())
+            topLevelStorageQualifier = symbol->getQualifier().storage;
         if (!IsAnonymous(symbol->getName()))
             path.append(symbol->getName());
     }
@@ -7676,6 +7683,15 @@ TIntermNode* TParseContext::vkRelaxedRemapFunctionArgument(const TSourceLoc& loc
 {
     AccessChainTraverser accessChainTraverser{};
     intermTyped->traverse(&accessChainTraverser);
+
+    if (accessChainTraverser.topLevelStorageQualifier == TStorageQualifier::EvqUniform)
+    {
+        TParameter param = { 0, new TType, {} };
+        param.type->shallowCopy(intermTyped->getType());
+
+        function->addParameter(param);
+        return intermTyped;
+    }
 
     TParameter param = { NewPoolTString(accessChainTraverser.path.c_str()), new TType, {} };
     param.type->shallowCopy(intermTyped->getType());

@@ -61,7 +61,10 @@ def __step_config(ctx, step_config):
             if k.startswith("label:action"):
                 continue
             largePlatform[k] = v
-        largePlatform["label:action_large"] = "1"
+
+        # no "action_large" Windows worker pool
+        if reproxy_config["platform"]["OSFamily"] != "Windows":
+            largePlatform["label:action_large"] = "1"
         step_config["platforms"].update({
             "clang-cl": reproxy_config["platform"],
             "clang-cl_large": largePlatform,
@@ -75,6 +78,7 @@ def __step_config(ctx, step_config):
         remote = False
         win_toolchain_dir = __win_toolchain_dir(ctx)
         if win_toolchain_dir:
+            remote = True
             if reproxy_config["platform"]["OSFamily"] == "Windows":
                 step_config["input_deps"].update({
                     win_toolchain_dir + ":headers": [
@@ -234,7 +238,7 @@ def __step_config(ctx, step_config):
                         path.join(win_toolchain_dir, "Windows Kits/10/Include/10.0.22621.0/um/D3Dcommon.h"),
                     ],
                 })
-                remote = True
+        remote_wrapper = reproxy_config.get("remote_wrapper")
         step_config["rules"].extend([
             {
                 "name": "clang-cl/cxx",
@@ -246,7 +250,7 @@ def __step_config(ctx, step_config):
                 "exclude_input_patterns": ["*.stamp"],
                 "platform_ref": "clang-cl",
                 "remote": remote,
-                "remote_wrapper": reproxy_config["remote_wrapper"],
+                "remote_wrapper": remote_wrapper,
                 "timeout": "2m",
             },
             {
@@ -259,7 +263,7 @@ def __step_config(ctx, step_config):
                 "exclude_input_patterns": ["*.stamp"],
                 "platform_ref": "clang-cl",
                 "remote": remote,
-                "remote_wrapper": reproxy_config["remote_wrapper"],
+                "remote_wrapper": remote_wrapper,
                 "timeout": "2m",
             },
             {
@@ -273,7 +277,7 @@ def __step_config(ctx, step_config):
                 "handler": "clang_compile_coverage",
                 "platform_ref": "clang-cl",
                 "remote": remote,
-                "remote_wrapper": reproxy_config["remote_wrapper"],
+                "remote_wrapper": remote_wrapper,
                 "timeout": "2m",
             },
             {
@@ -287,7 +291,7 @@ def __step_config(ctx, step_config):
                 "handler": "clang_compile_coverage",
                 "platform_ref": "clang-cl",
                 "remote": remote,
-                "remote_wrapper": reproxy_config["remote_wrapper"],
+                "remote_wrapper": remote_wrapper,
                 "timeout": "2m",
             },
         ])

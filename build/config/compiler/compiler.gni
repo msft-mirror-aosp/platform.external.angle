@@ -95,9 +95,6 @@ declare_args() {
                   (is_android && target_os != "chromeos") ||
                   (is_chromeos && is_chromeos_device)))
 
-  # If true, use Goma for ThinLTO code generation where applicable.
-  use_goma_thin_lto = false
-
   # Whether we're using a sample profile collected on an architecture different
   # than the one we're compiling for.
   #
@@ -233,7 +230,7 @@ can_unwind_with_cfi_table = is_android && !is_component_build &&
                             !enable_frame_pointers && current_cpu == "arm"
 
 # Whether or not cfi table should be enabled on arm.
-# TODO(crbug.com/1090409): Replace can_unwind_with_cfi_table with this once
+# TODO(crbug.com/40133751): Replace can_unwind_with_cfi_table with this once
 # sampling profiler is enabled on android.
 enable_arm_cfi_table = is_android && !is_component_build && current_cpu == "arm"
 

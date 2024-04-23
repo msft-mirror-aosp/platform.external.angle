@@ -398,10 +398,10 @@ void TranslateMemoryDecoration(const glslang::TQualifier& qualifier, std::vector
     bool useVulkanMemoryModel)
 {
     if (!useVulkanMemoryModel) {
-        if (qualifier.isCoherent())
-            memory.push_back(spv::DecorationCoherent);
         if (qualifier.isVolatile()) {
             memory.push_back(spv::DecorationVolatile);
+            memory.push_back(spv::DecorationCoherent);
+        } else if (qualifier.isCoherent()) {
             memory.push_back(spv::DecorationCoherent);
         }
     }
@@ -2007,8 +2007,9 @@ void TGlslangToSpvTraverser::finishSpv(bool compileOnly)
         }
 
         // finish off the entry-point SPV instruction by adding the Input/Output <id>
-        for (auto it = iOSet.cbegin(); it != iOSet.cend(); ++it)
-            entryPoint->addIdOperand(*it);
+        entryPoint->reserveOperands(iOSet.size());
+        for (auto id : iOSet)
+            entryPoint->addIdOperand(id);
     }
 
     // Add capabilities, extensions, remove unneeded decorations, etc.,
@@ -5376,17 +5377,34 @@ void TGlslangToSpvTraverser::updateMemberOffset(const glslang::TType& structType
     int memberAlignment = glslangIntermediate->getMemberAlignment(memberType, memberSize, dummyStride, explicitLayout,
         matrixLayout == glslang::ElmRowMajor);
 
+    bool isVectorLike = memberType.isVector();
+    if (memberType.isMatrix()) {
+        if (matrixLayout == glslang::ElmRowMajor)
+            isVectorLike = memberType.getMatrixRows() == 1;
+        else
+            isVectorLike = memberType.getMatrixCols() == 1;
+    }
+
     // Adjust alignment for HLSL rules
     // TODO: make this consistent in early phases of code:
     //       adjusting this late means inconsistencies with earlier code, which for reflection is an issue
     // Until reflection is brought in sync with these adjustments, don't apply to $Global,
     // which is the most likely to rely on reflection, and least likely to rely implicit layouts
     if (glslangIntermediate->usingHlslOffsets() &&
-        ! memberType.isArray() && memberType.isVector() && structType.getTypeName().compare("$Global") != 0) {
-        int dummySize;
-        int componentAlignment = glslangIntermediate->getBaseAlignmentScalar(memberType, dummySize);
-        if (componentAlignment <= 4)
+        ! memberType.isStruct() && structType.getTypeName().compare("$Global") != 0) {
+        int componentSize;
+        int componentAlignment = glslangIntermediate->getBaseAlignmentScalar(memberType, componentSize);
+        if (! memberType.isArray() && isVectorLike && componentAlignment <= 4)
             memberAlignment = componentAlignment;
+
+        // Don't add unnecessary padding after this member
+        if (memberType.isMatrix()) {
+            if (matrixLayout == glslang::ElmRowMajor)
+                memberSize -= componentSize * (4 - memberType.getMatrixCols());
+            else
+                memberSize -= componentSize * (4 - memberType.getMatrixRows());
+        } else if (memberType.isArray())
+            memberSize -= componentSize * (4 - memberType.getVectorSize());
     }
 
     // Bump up to member alignment
@@ -5394,7 +5412,7 @@ void TGlslangToSpvTraverser::updateMemberOffset(const glslang::TType& structType
 
     // Bump up to vec4 if there is a bad straddle
     if (explicitLayout != glslang::ElpScalar && glslangIntermediate->improperStraddle(memberType, memberSize,
-        currentOffset))
+        currentOffset, isVectorLike))
         glslang::RoundToPow2(currentOffset, 16);
 
     nextOffset = currentOffset + memberSize;
@@ -5479,8 +5497,10 @@ void TGlslangToSpvTraverser::makeFunctions(const glslang::TIntermSequence& glslF
             // memory and use RestrictPointer/AliasedPointer.
             if (originalParam(type.getQualifier().storage, type, false) ||
                 !writableParam(type.getQualifier().storage)) {
-                decorations.push_back(type.getQualifier().isRestrict() ? spv::DecorationRestrict :
-                                                                         spv::DecorationAliased);
+                // TranslateMemoryDecoration added Restrict decoration already.
+                if (!type.getQualifier().isRestrict()) {
+                    decorations.push_back(spv::DecorationAliased);
+                }
             } else {
                 decorations.push_back(type.getQualifier().isRestrict() ? spv::DecorationRestrictPointerEXT :
                                                                          spv::DecorationAliasedPointerEXT);
