@@ -123,8 +123,10 @@ struct TRange {
 // within the same location range, component range, and index value.  Locations don't alias unless
 // all other dimensions of their range overlap.
 struct TIoRange {
-    TIoRange(TRange location, TRange component, TBasicType basicType, int index)
-        : location(location), component(component), basicType(basicType), index(index) { }
+    TIoRange(TRange location, TRange component, TBasicType basicType, int index, bool centroid, bool smooth, bool flat)
+        : location(location), component(component), basicType(basicType), index(index), centroid(centroid), smooth(smooth), flat(flat)
+    {
+    }
     bool overlap(const TIoRange& rhs) const
     {
         return location.overlap(rhs.location) && component.overlap(rhs.component) && index == rhs.index;
@@ -133,6 +135,9 @@ struct TIoRange {
     TRange component;
     TBasicType basicType;
     int index;
+    bool centroid;
+    bool smooth;
+    bool flat;
 };
 
 // An offset range is a 2-D rectangle; the set of (binding, offset) pairs all lying
@@ -1251,7 +1256,7 @@ protected:
 
     std::unordered_set<int> usedConstantId; // specialization constant ids used
     std::vector<TOffsetRange> usedAtomics;  // sets of bindings used by atomic counters
-    std::vector<TIoRange> usedIo[4];        // sets of used locations, one for each of in, out, uniform, and buffers
+    std::vector<TIoRange> usedIo[5];        // sets of used locations, one for each of in, out, uniform, and buffers
     std::vector<TRange> usedIoRT[4];        // sets of used location, one for rayPayload/rayPayloadIN,
                                             // one for callableData/callableDataIn, one for hitObjectAttributeNV and
                                             // one for shaderrecordhitobjectNV
