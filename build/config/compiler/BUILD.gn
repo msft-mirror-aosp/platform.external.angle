@@ -764,7 +764,9 @@ config("compiler") {
         # FIXME(inglorion): maybe tune these?
         # TODO(b/271459198): Revert limit on amd64 to 30 when fixed.
         import_instr_limit = 20
-      } else if (is_android && optimize_for_size) {
+      } else if (is_android && (optimize_for_size || use_order_profiling)) {
+        # Reduce inlining for the orderfile instrumented build to mitigate
+        # crbug.com/330761384.
         # TODO(crbug.com/40219076): Investigate if we can get the > 6% perf win
         # of import_instr_limit 30 with a binary size hit smaller than ~2 MiB.
         import_instr_limit = 5
@@ -779,6 +781,21 @@ config("compiler") {
       # We only use one version of LLVM within a build so there's no need to
       # upgrade debug info, which can be expensive since it runs the verifier.
       ldflags += [ "-Wl,-mllvm,-disable-auto-upgrade-debug-info" ]
+    }
+
+    # TODO(crbug.com/335365324): Enable on other platforms.
+    if (is_android && !optimize_for_size) {
+      # Ideally the compiler would handle this automatically with PGO (see
+      # comments at https://crrev.com/c/5440500).
+      #
+      # Android binary size impact (as of April 2024): The arm64 native code
+      # size increases by ~627KB (or 0.34%: the arm64 native code size in
+      # M124 is 178MB).
+      cflags += [
+        "-mllvm",
+        "-inlinehint-threshold=360",
+      ]
+      ldflags += [ "-Wl,-mllvm,-inlinehint-threshold=360" ]
     }
 
     # TODO(crbug.com/40182783): investigate why this isn't effective on
