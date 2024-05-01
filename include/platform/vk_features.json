@@ -1488,6 +1488,80 @@
                 "Enable non-semantic info inside shader module via VK_KHR_shader_non_semantic_info extension"
             ],
             "issue": "http://anglebug.com/8549"
+        },
+        {
+            "name": "combine_all_shaders_in_pipeline_library",
+            "category": "Features",
+            "description": [
+                "For Vulkan ICDs that support VK_EXT_graphics_pipeline_library the shaders subset of the pipeline",
+                "can either be combined into a single pipeline or can be decoupled into separate pipelines. This feature",
+                "is enabled when the former is the case."
+            ],
+            "issue": "http://anglebug.com/8601"
+        },
+        {
+            "name": "supports_8_bit_storage_buffer",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the VK_KHR_8bit_storage extension and has the storageBuffer8BitAccess feature"
+            ],
+            "issue": "http://anglebug.com/8676"
+        },
+        {
+            "name": "supports_8_bit_uniform_and_storage_buffer",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the VK_KHR_8bit_storage extension and has the uniformAndStorageBuffer8BitAccess feature"
+            ],
+            "issue": "http://anglebug.com/8676"
+        },
+        {
+            "name": "supports_8_bit_push_constant",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the VK_KHR_8bit_storage extension and has the storagePushConstant8 feature"
+            ],
+            "issue": "http://anglebug.com/8676"
+        },
+        {
+            "name": "supports_16_bit_storage_buffer",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the VK_KHR_16bit_storage extension and has the storageBuffer16BitAccess feature"
+            ],
+            "issue": "http://anglebug.com/8676"
+        },
+        {
+            "name": "supports_16_bit_uniform_and_storage_buffer",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the VK_KHR_16bit_storage extension and has the uniformAndStorageBuffer16BitAccess feature"
+            ],
+            "issue": "http://anglebug.com/8676"
+        },
+        {
+            "name": "supports_16_bit_push_constant",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the VK_KHR_16bit_storage extension and has the storagePushConstant16 feature"
+            ],
+            "issue": "http://anglebug.com/8676"
+        },
+        {
+            "name": "supports_16_bit_input_output",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the VK_KHR_16bit_storage extension and has the storageInputOutput16 feature"
+            ],
+            "issue": "http://anglebug.com/8676"
+        },
+        {
+            "name": "use_vkEvent_for_image_barrier",
+            "category": "Features",
+            "description": [
+                "Uses VkEvent instead of VkCmdPipelineBarrier for image barriers"
+            ],
+            "issue": "https://issuetracker.google.com/336844257"
         }
     ]
 }

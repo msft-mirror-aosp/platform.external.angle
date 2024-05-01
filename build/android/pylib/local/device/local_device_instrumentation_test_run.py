@@ -887,7 +887,7 @@ class LocalDeviceInstrumentationTestRun(
       ])
     all_tests.extend(other_tests)
     # Sort all tests by hash.
-    # TODO(crbug.com/1257820): Add sorting logic back to _PartitionTests.
+    # TODO(crbug.com/40200835): Add sorting logic back to _PartitionTests.
     return self._SortTests(all_tests)
 
   #override
@@ -1738,8 +1738,12 @@ class LocalDeviceInstrumentationTestRun(
 
           processed_template_output = _GenerateRenderTestHtml(
               render_name, given_link, closest_link, diff_link)
+          # We include the timestamp in the HTML results filename so that
+          # multiple tries from the same run do not clobber each other.
+          timestamp = time.strftime('%Y%m%dT%H%M%S-UTC', time.gmtime())
+          html_results_name = f'{render_name}_{timestamp}.html'
           with self._env.output_manager.ArchivedTempfile(
-              '%s.html' % render_name, 'gold_local_diffs',
+              html_results_name, 'gold_local_diffs',
               output_manager.Datatype.HTML) as html_results:
             html_results.write(processed_template_output)
           _SetLinkOnResults(results, full_test_name, render_name,
