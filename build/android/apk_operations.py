@@ -1333,7 +1333,7 @@ class _Command:
       logging.debug('App supports (filtered): %r', app_abis)
     if not app_abis:
       # The app does not have any native libs, so all devices can support it.
-      return devices, None
+      return devices, {}
     fully_supported = []
     not_supported_reasons = {}
     for device in devices:
