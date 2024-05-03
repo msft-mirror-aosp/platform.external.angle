@@ -1519,7 +1519,6 @@ cc_genrule {
         "src/common/RingBufferAllocator.h",
         "src/common/SimpleMutex.cpp",
         "src/common/SimpleMutex.h",
-        "src/common/Spinlock.h",
         "src/common/SynchronizedValue.h",
         "src/common/WorkerThread.cpp",
         "src/common/WorkerThread.h",
