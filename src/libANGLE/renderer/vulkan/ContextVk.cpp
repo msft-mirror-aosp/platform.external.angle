@@ -1165,7 +1165,12 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, vk::Rendere
     }
     if (mRenderer->useDepthTestEnableDynamicState())
     {
-        mPipelineDirtyBitsMask.reset(gl::state::DIRTY_BIT_DEPTH_TEST_ENABLED);
+        // Depth test affects depth write state too in GraphicsPipelineDesc, so the pipeline needs
+        // to stay dirty if depth test changes while depth write state is static.
+        if (mRenderer->useDepthWriteEnableDynamicState())
+        {
+            mPipelineDirtyBitsMask.reset(gl::state::DIRTY_BIT_DEPTH_TEST_ENABLED);
+        }
     }
     if (mRenderer->useDepthWriteEnableDynamicState())
     {
@@ -6619,6 +6624,8 @@ angle::Result ContextVk::dispatchCompute(const gl::Context *context,
     ANGLE_TRY(setupDispatch(context));
 
     mOutsideRenderPassCommands->getCommandBuffer().dispatch(numGroupsX, numGroupsY, numGroupsZ);
+    // Track completion of compute.
+    mOutsideRenderPassCommands->flushSetEvents(this);
 
     return angle::Result::Continue;
 }
@@ -6645,6 +6652,9 @@ angle::Result ContextVk::dispatchComputeIndirect(const gl::Context *context, GLi
 
     mOutsideRenderPassCommands->getCommandBuffer().dispatchIndirect(buffer.getBuffer(),
                                                                     buffer.getOffset() + indirect);
+
+    // Track completion of compute.
+    mOutsideRenderPassCommands->flushSetEvents(this);
 
     return angle::Result::Continue;
 }

@@ -58,7 +58,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r26b_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-19-init-8943-gd8503a38-3\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-19-init-9433-g76ea5feb-1\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -536,6 +536,7 @@ cc_defaults {
         "src/libANGLE/renderer/vulkan/vk_helpers.cpp",
         "src/libANGLE/renderer/vulkan/vk_internal_shaders_autogen.cpp",
         "src/libANGLE/renderer/vulkan/vk_mandatory_format_support_table_autogen.cpp",
+        "src/libANGLE/renderer/vulkan/vk_ref_counted_event.cpp",
         "src/libANGLE/renderer/vulkan/vk_renderer.cpp",
         "src/libANGLE/renderer/vulkan/vk_resource.cpp",
         "src/libANGLE/renderer/vulkan/vk_utils.cpp",
@@ -2537,6 +2538,8 @@ cc_genrule {
         "src/libANGLE/renderer/vulkan/vk_internal_shaders_autogen.cpp",
         "src/libANGLE/renderer/vulkan/vk_internal_shaders_autogen.h",
         "src/libANGLE/renderer/vulkan/vk_mandatory_format_support_table_autogen.cpp",
+        "src/libANGLE/renderer/vulkan/vk_ref_counted_event.cpp",
+        "src/libANGLE/renderer/vulkan/vk_ref_counted_event.h",
         "src/libANGLE/renderer/vulkan/vk_renderer.cpp",
         "src/libANGLE/renderer/vulkan/vk_renderer.h",
         "src/libANGLE/renderer/vulkan/vk_resource.cpp",
@@ -3275,7 +3278,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_algorithm_container",
         "third_party_abseil_cpp_absl_base_core_headers",
         "third_party_abseil_cpp_absl_container_container_memory",
-        "third_party_abseil_cpp_absl_container_hash_function_defaults",
+        "third_party_abseil_cpp_absl_container_hash_container_defaults",
         "third_party_abseil_cpp_absl_container_raw_hash_set",
         "third_party_abseil_cpp_absl_memory_memory",
     ],
@@ -5518,6 +5521,31 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "third_party_abseil_cpp_absl_container_hash_container_defaults",
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "third_party_abseil_cpp_absl_base_config",
+        "third_party_abseil_cpp_absl_container_hash_function_defaults",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-gcc-compat",
+        "-Wno-misleading-indentation",
+        "-Wno-unreachable-code-break",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "28",
+    stl: "libc++_static",
+}
+
+cc_defaults {
     name: "third_party_abseil_cpp_absl_base_base_internal",
     defaults: [
         "angle_common_auto_cflags",
@@ -5776,7 +5804,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_algorithm_container",
         "third_party_abseil_cpp_absl_base_core_headers",
         "third_party_abseil_cpp_absl_container_container_memory",
-        "third_party_abseil_cpp_absl_container_hash_function_defaults",
+        "third_party_abseil_cpp_absl_container_hash_container_defaults",
         "third_party_abseil_cpp_absl_container_raw_hash_map",
         "third_party_abseil_cpp_absl_memory_memory",
     ],
