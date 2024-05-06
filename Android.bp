@@ -81,6 +81,8 @@ cc_defaults {
         "-Wno-unneeded-internal-declaration",
         "-Wno-unused-parameter",
         "-Wno-vla-extension",
+        "-fvisibility-inlines-hidden",
+        "-fvisibility=hidden",
     ],
 }
 
