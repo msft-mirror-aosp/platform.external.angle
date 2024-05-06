@@ -102,9 +102,11 @@
       'linux-exp-intel': {
         'os_type': 'linux',
         'mixins': [
-          'linux_intel_uhd_630_stable',
+          'linux_intel_uhd_630_experimental',
         ],
         'test_suites': {
+          'gtest_tests': 'linux_intel_gtests',
+          'isolated_scripts': 'isolated_scripts_group_common',
         },
       },
       'linux-exp-swiftshader': {
@@ -247,7 +249,6 @@
           'mac_mini_intel_gpu_experimental',
         ],
         'test_suites': {
-          'gtest_tests': 'mac_amd_and_intel_gtests',
         },
       },
       'mac-exp-nvidia': {
