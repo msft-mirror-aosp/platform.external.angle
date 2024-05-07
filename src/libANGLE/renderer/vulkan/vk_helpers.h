@@ -14,6 +14,7 @@
 #include "libANGLE/renderer/vulkan/Suballocation.h"
 #include "libANGLE/renderer/vulkan/vk_cache_utils.h"
 #include "libANGLE/renderer/vulkan/vk_format_utils.h"
+#include "libANGLE/renderer/vulkan/vk_ref_counted_event.h"
 
 #include <functional>
 
@@ -166,6 +167,14 @@ ImageLayout GetImageLayoutFromGLImageLayout(Context *context, GLenum layout);
 GLenum ConvertImageLayoutToGLImageLayout(ImageLayout imageLayout);
 
 VkImageLayout ConvertImageLayoutToVkImageLayout(Context *context, ImageLayout imageLayout);
+
+struct ImageLayoutEventMaps
+{
+    // The list of RefCountedEvents that have been tracked. The mask is used to accelerate the
+    // loop of map
+    angle::PackedEnumMap<ImageLayout, RefCountedEvent> map;
+    angle::PackedEnumBitSet<ImageLayout, uint64_t> mask;
+};
 
 // A dynamic buffer is conceptually an infinitely long buffer. Each time you write to the buffer,
 // you will always write to a previously unused portion. After a series of writes, you must flush
@@ -762,7 +771,7 @@ class PipelineBarrier : angle::NonCopyable
           mMemoryBarrierDstAccess(0),
           mImageMemoryBarriers()
     {}
-    ~PipelineBarrier() = default;
+    ~PipelineBarrier() { ASSERT(mImageMemoryBarriers.empty()); }
 
     bool isEmpty() const { return mImageMemoryBarriers.empty() && mMemoryBarrierDstAccess == 0; }
 
@@ -841,7 +850,37 @@ class PipelineBarrier : angle::NonCopyable
     VkAccessFlags mMemoryBarrierDstAccess;
     std::vector<VkImageMemoryBarrier> mImageMemoryBarriers;
 };
-using PipelineBarrierArray = angle::PackedEnumMap<PipelineStage, PipelineBarrier>;
+
+class PipelineBarrierArray final
+{
+  public:
+    void mergeMemoryBarrier(PipelineStage stageIndex,
+                            VkPipelineStageFlags srcStageMask,
+                            VkPipelineStageFlags dstStageMask,
+                            VkAccessFlags srcAccess,
+                            VkAccessFlags dstAccess)
+    {
+        mBarriers[stageIndex].mergeMemoryBarrier(srcStageMask, dstStageMask, srcAccess, dstAccess);
+        mBarrierMask.set(stageIndex);
+    }
+
+    void mergeImageBarrier(PipelineStage stageIndex,
+                           VkPipelineStageFlags srcStageMask,
+                           VkPipelineStageFlags dstStageMask,
+                           const VkImageMemoryBarrier &imageMemoryBarrier)
+    {
+        mBarriers[stageIndex].mergeImageBarrier(srcStageMask, dstStageMask, imageMemoryBarrier);
+        mBarrierMask.set(stageIndex);
+    }
+
+    void execute(Renderer *renderer, PrimaryCommandBuffer *primary);
+
+    void addDiagnosticsString(std::ostringstream &out) const;
+
+  private:
+    angle::PackedEnumMap<PipelineStage, PipelineBarrier> mBarriers;
+    PipelineStagesMask mBarrierMask;
+};
 
 enum class MemoryCoherency : uint8_t
 {
@@ -946,13 +985,16 @@ class BufferHelper : public ReadWriteResource
     // Returns true if the image is owned by an external API or instance.
     bool isReleasedToExternal() const;
 
-    bool recordReadBarrier(VkAccessFlags readAccessType,
+    void recordReadBarrier(VkAccessFlags readAccessType,
                            VkPipelineStageFlags readStage,
-                           PipelineBarrier *barrier);
+                           PipelineStage stageIndex,
+                           PipelineBarrierArray *barriers);
 
-    bool recordWriteBarrier(VkAccessFlags writeAccessType,
+    void recordWriteBarrier(VkAccessFlags writeAccessType,
                             VkPipelineStageFlags writeStage,
-                            PipelineBarrier *barrier);
+                            PipelineStage stageIndex,
+                            PipelineBarrierArray *barriers);
+
     void fillWithColor(const angle::Color<uint8_t> &color,
                        const gl::InternalFormat &internalFormat);
 
@@ -1091,6 +1133,7 @@ class PackedClearValuesArray final
 };
 
 class ImageHelper;
+using ImageHelperPtr = ImageHelper *;
 
 // Reference to a render pass attachment (color or depth/stencil) alongside render-pass-related
 // tracking such as when the attachment is last written to or invalidated.  This is used to
@@ -1268,7 +1311,7 @@ class CommandBufferHelperCommon : angle::NonCopyable
         return buffer.writtenByCommandBuffer(mQueueSerial);
     }
 
-    void executeBarriers(const angle::FeaturesVk &features, CommandsState *commandsState);
+    void executeBarriers(Renderer *renderer, CommandsState *commandsState);
 
     // The markOpen and markClosed functions are to aid in proper use of the *CommandBufferHelper.
     // saw invalid use due to threading issues that can be easily caught by marking when it's safe
@@ -1290,6 +1333,23 @@ class CommandBufferHelperCommon : angle::NonCopyable
         writeResource->setWriteQueueSerial(mQueueSerial);
     }
 
+    // Update image with this command buffer's queueSerial. If VkEvent is enabled, image's current
+    // event is also updated with this command's event.
+    void retainImage(Context *context, ImageHelper *image);
+
+    // Returns true if event already existed in this command buffer.
+    bool hasSetEventPendingFlush(const RefCountedEvent &event) const
+    {
+        ASSERT(event.valid());
+        return mRefCountedEvents.map[event.getImageLayout()] == event;
+    }
+
+    // Issue VkCmdSetEvent call for events in this command buffer.
+    template <typename CommandBufferT>
+    void flushSetEventsImpl(Context *context, CommandBufferT *commandBuffer);
+
+    RefCountedEventGarbageObjects *getRefCountedEventGarbage() { return &mRefCountedEventGarbage; }
+
     const QueueSerial &getQueueSerial() const { return mQueueSerial; }
 
     void setAcquireNextImageSemaphore(VkSemaphore semaphore)
@@ -1308,7 +1368,7 @@ class CommandBufferHelperCommon : angle::NonCopyable
 
     void initializeImpl();
 
-    void resetImpl();
+    void resetImpl(Context *context);
 
     template <class DerivedT>
     angle::Result attachCommandPoolImpl(Context *context, SecondaryCommandPool *commandPool);
@@ -1341,6 +1401,7 @@ class CommandBufferHelperCommon : angle::NonCopyable
     void imageReadImpl(Context *context,
                        VkImageAspectFlags aspectFlags,
                        ImageLayout imageLayout,
+                       BarrierType barrierType,
                        ImageHelper *image);
     void imageWriteImpl(Context *context,
                         gl::LevelIndex level,
@@ -1348,12 +1409,14 @@ class CommandBufferHelperCommon : angle::NonCopyable
                         uint32_t layerCount,
                         VkImageAspectFlags aspectFlags,
                         ImageLayout imageLayout,
+                        BarrierType barrierType,
                         ImageHelper *image);
 
     void updateImageLayoutAndBarrier(Context *context,
                                      ImageHelper *image,
                                      VkImageAspectFlags aspectFlags,
-                                     ImageLayout imageLayout);
+                                     ImageLayout imageLayout,
+                                     BarrierType barrierType);
 
     void addCommandDiagnosticsCommon(std::ostringstream *out);
 
@@ -1362,7 +1425,7 @@ class CommandBufferHelperCommon : angle::NonCopyable
 
     // Barriers to be executed before the command buffer.
     PipelineBarrierArray mPipelineBarriers;
-    PipelineStagesMask mPipelineBarrierMask;
+    EventBarrierArray mEventBarriers;
 
     // The command pool *CommandBufferHelper::mCommandBuffer is allocated from.  Only used with
     // Vulkan secondary command buffers (as opposed to ANGLE's SecondaryCommandBuffer).
@@ -1382,6 +1445,11 @@ class CommandBufferHelperCommon : angle::NonCopyable
 
     // Only used for swapChain images
     Semaphore mAcquireNextImageSemaphore;
+
+    // The list of RefCountedEvents that have be tracked
+    ImageLayoutEventMaps mRefCountedEvents;
+    // The list of RefCountedEvents that should be garbage collected when it gets reset.
+    RefCountedEventGarbageObjects mRefCountedEventGarbage;
 };
 
 class SecondaryCommandBufferCollector;
@@ -1448,6 +1516,14 @@ class OutsideRenderPassCommandBufferHelper final : public CommandBufferHelperCom
                     VkImageAspectFlags aspectFlags,
                     ImageLayout imageLayout,
                     ImageHelper *image);
+
+    // Call SetEvent and have image's current event pointing to it.
+    void trackImageWithEvent(Context *context, ImageHelper *image);
+    void trackImagesWithEvent(Context *context, ImageHelper *srcImage, ImageHelper *dstImage);
+    void trackImagesWithEvent(Context *context, const ImageHelperPtr *images, size_t count);
+
+    // Issues VkCmdSetEvent calls.
+    void flushSetEvents(Context *context) { flushSetEventsImpl(context, &mCommandBuffer); }
 
     angle::Result flushToPrimary(Context *context, CommandsState *commandsState);
 
@@ -1833,6 +1909,8 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     void finalizeDepthStencilImageLayoutAndLoadStore(Context *context);
     void finalizeFragmentShadingRateImageLayout(Context *context);
 
+    void trackImagesWithEvent(Context *context, const ImageHelperPtr *images, size_t count);
+
     // When using Vulkan secondary command buffers, each subpass must be recorded in a separate
     // command buffer.  Currently ANGLE produces render passes with at most 2 subpasses.
     static constexpr size_t kMaxSubpassCount = 2;
@@ -2135,6 +2213,7 @@ class ImageHelper final : public Resource, public angle::Subject
     void finalizeImageLayoutInShareContexts(Renderer *renderer,
                                             ContextVk *contextVk,
                                             UniqueSerial imageSiblingSerial);
+
     void releaseStagedUpdates(Renderer *renderer);
 
     bool valid() const { return mImage.valid(); }
@@ -2435,8 +2514,11 @@ class ImageHelper final : public Resource, public angle::Subject
                                   PrimaryCommandBuffer *commandBuffer,
                                   VkSemaphore *acquireNextImageSemaphoreOut)
     {
-        barrierImpl(context, getAspectFlags(), newLayout, mCurrentQueueFamilyIndex, commandBuffer,
-                    acquireNextImageSemaphoreOut);
+        // Since we are doing an out of order one off submission, there shouldn't be any pending
+        // setEvent.
+        ASSERT(!mCurrentEvent.valid());
+        barrierImpl(context, getAspectFlags(), newLayout, mCurrentQueueFamilyIndex, nullptr,
+                    commandBuffer, acquireNextImageSemaphoreOut);
     }
 
     // This function can be used to prevent issuing redundant layout transition commands.
@@ -2469,11 +2551,14 @@ class ImageHelper final : public Resource, public angle::Subject
                               OutsideRenderPassCommandBuffer *commandBuffer);
 
     // Returns true if barrier has been generated
-    bool updateLayoutAndBarrier(Context *context,
+    void updateLayoutAndBarrier(Context *context,
                                 VkImageAspectFlags aspectMask,
                                 ImageLayout newLayout,
+                                BarrierType barrierType,
                                 const QueueSerial &queueSerial,
-                                PipelineBarrier *barrier,
+                                PipelineBarrierArray *pipelineBarriers,
+                                EventBarrierArray *eventBarriers,
+                                RefCountedEventGarbageObjects *garbageCollector,
                                 VkSemaphore *semaphoreOut);
 
     // Performs an ownership transfer from an external instance or API.
@@ -2653,6 +2738,9 @@ class ImageHelper final : public Resource, public angle::Subject
 
     size_t getLevelUpdateCount(gl::LevelIndex level) const;
 
+    // Create event if needed and record the event in ImageHelper::mCurrentEvent.
+    void setCurrentRefCountedEvent(Context *context, ImageLayoutEventMaps &layoutEventMaps);
+
   private:
     ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
     struct ClearUpdate
@@ -2766,6 +2854,7 @@ class ImageHelper final : public Resource, public angle::Subject
                      VkImageAspectFlags aspectMask,
                      ImageLayout newLayout,
                      uint32_t newQueueFamilyIndex,
+                     RefCountedEventGarbageObjects *garbageObjects,
                      CommandBufferT *commandBuffer,
                      VkSemaphore *acquireNextImageSemaphoreOut);
 
@@ -2996,6 +3085,11 @@ class ImageHelper final : public Resource, public angle::Subject
     RenderPassUsageFlags mRenderPassUsageFlags;
     // The QueueSerial that associated with the last barrier.
     QueueSerial mBarrierQueueSerial;
+
+    // The current refCounted event. When barrier or layout change is needed, we should wait for
+    // this event.
+    RefCountedEvent mCurrentEvent;
+    RefCountedEvent mLastNonShaderReadOnlyEvent;
 
     // Whether ANGLE currently has ownership of this resource or it's released to external.
     bool mIsReleasedToExternal;
