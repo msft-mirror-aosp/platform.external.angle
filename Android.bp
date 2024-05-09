@@ -49,6 +49,7 @@ cc_defaults {
     cflags: [
         "-O2",
         "-Wno-unknown-warning-option",
+        "-fno-stack-protector",
         "-fno-unwind-tables",
     ],
 }
