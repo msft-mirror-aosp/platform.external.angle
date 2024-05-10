@@ -11,8 +11,8 @@
 #include "libANGLE/Context.h"
 #include "libANGLE/renderer/vulkan/BufferVk.h"
 #include "libANGLE/renderer/vulkan/ContextVk.h"
-#include "libANGLE/renderer/vulkan/RendererVk.h"
 #include "libANGLE/renderer/vulkan/TextureVk.h"
+#include "libANGLE/renderer/vulkan/vk_renderer.h"
 
 namespace rx
 {
@@ -87,8 +87,8 @@ angle::Result SemaphoreVk::wait(gl::Context *context,
             ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
 
             // Queue ownership transfer.
-            bufferHelper.acquireFromExternal(contextVk, VK_QUEUE_FAMILY_EXTERNAL,
-                                             rendererQueueFamilyIndex, commandBuffer);
+            bufferHelper.acquireFromExternal(VK_QUEUE_FAMILY_EXTERNAL, rendererQueueFamilyIndex,
+                                             commandBuffer);
         }
     }
 
@@ -127,8 +127,8 @@ angle::Result SemaphoreVk::signal(gl::Context *context,
                                   const gl::BufferBarrierVector &bufferBarriers,
                                   const gl::TextureBarrierVector &textureBarriers)
 {
-    ContextVk *contextVk = vk::GetImpl(context);
-    RendererVk *renderer = contextVk->getRenderer();
+    ContextVk *contextVk   = vk::GetImpl(context);
+    vk::Renderer *renderer = contextVk->getRenderer();
 
     uint32_t rendererQueueFamilyIndex = renderer->getQueueFamilyIndex();
 
@@ -147,8 +147,8 @@ angle::Result SemaphoreVk::signal(gl::Context *context,
             ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
 
             // Queue ownership transfer.
-            bufferHelper.releaseToExternal(contextVk, rendererQueueFamilyIndex,
-                                           VK_QUEUE_FAMILY_EXTERNAL, commandBuffer);
+            bufferHelper.releaseToExternal(rendererQueueFamilyIndex, VK_QUEUE_FAMILY_EXTERNAL,
+                                           commandBuffer);
         }
     }
 
@@ -191,7 +191,8 @@ angle::Result SemaphoreVk::signal(gl::Context *context,
         ANGLE_TRY(contextVk->syncExternalMemory());
     }
 
-    ANGLE_TRY(contextVk->flushImpl(&mSemaphore, RenderPassClosureReason::ExternalSemaphoreSignal));
+    ANGLE_TRY(contextVk->flushImpl(&mSemaphore, nullptr,
+                                   RenderPassClosureReason::ExternalSemaphoreSignal));
 
     // The external has asked for the semaphore to be signaled.  It will wait on this semaphore and
     // so we must ensure that the above flush (resulting in vkQueueSubmit) has actually been
@@ -203,13 +204,13 @@ angle::Result SemaphoreVk::signal(gl::Context *context,
     // > - A binary semaphore must be signaled, or have an associated semaphore signal operation
     // >   that is pending execution.
     //
-    return renderer->waitForQueueSerialToBeSubmitted(contextVk,
-                                                     contextVk->getLastSubmittedQueueSerial());
+    return renderer->waitForQueueSerialToBeSubmittedToDevice(
+        contextVk, contextVk->getLastSubmittedQueueSerial());
 }
 
 angle::Result SemaphoreVk::importOpaqueFd(ContextVk *contextVk, GLint fd)
 {
-    RendererVk *renderer = contextVk->getRenderer();
+    vk::Renderer *renderer = contextVk->getRenderer();
 
     if (!mSemaphore.valid())
     {
@@ -232,7 +233,7 @@ angle::Result SemaphoreVk::importOpaqueFd(ContextVk *contextVk, GLint fd)
 
 angle::Result SemaphoreVk::importZirconEvent(ContextVk *contextVk, GLuint handle)
 {
-    RendererVk *renderer = contextVk->getRenderer();
+    vk::Renderer *renderer = contextVk->getRenderer();
 
     if (!mSemaphore.valid())
     {

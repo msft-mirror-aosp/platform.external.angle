@@ -15,7 +15,6 @@
 #include "tests/perf_tests/ANGLEPerfTestArgs.h"
 #include "tests/perf_tests/DrawCallPerfParams.h"
 #include "util/capture/frame_capture_test_utils.h"
-#include "util/capture/trace_interpreter.h"
 #include "util/capture/traces_export.h"
 #include "util/egl_loader_autogen.h"
 #include "util/png_utils.h"
@@ -147,6 +146,7 @@ class TracePerfTest : public ANGLERenderTest
     EGLint onEglClientWaitSync(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTimeKHR timeout);
     EGLint onEglClientWaitSyncKHR(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTimeKHR timeout);
     EGLint onEglGetError();
+    EGLDisplay onEglGetCurrentDisplay();
 
     void onReplayFramebufferChange(GLenum target, GLuint framebuffer);
     void onReplayInvalidateFramebuffer(GLenum target,
@@ -232,8 +232,8 @@ class TracePerfTest : public ANGLERenderTest
     uint32_t mOffscreenFrameCount                                       = 0;
     uint32_t mTotalFrameCount                                           = 0;
     bool mScreenshotSaved                                               = false;
-    uint32_t mScreenshotFrame                                           = gScreenshotFrame;
-    std::unique_ptr<TraceReplayInterface> mTraceReplay;
+    int32_t mScreenshotFrame                                            = gScreenshotFrame;
+    std::unique_ptr<TraceLibrary> mTraceReplay;
 };
 
 TracePerfTest *gCurrentTracePerfTest = nullptr;
@@ -327,6 +327,11 @@ EGLint KHRONOS_APIENTRY EglClientWaitSyncKHR(EGLDisplay dpy,
 EGLint KHRONOS_APIENTRY EglGetError()
 {
     return gCurrentTracePerfTest->onEglGetError();
+}
+
+EGLDisplay KHRONOS_APIENTRY EglGetCurrentDisplay()
+{
+    return gCurrentTracePerfTest->onEglGetCurrentDisplay();
 }
 
 void KHRONOS_APIENTRY BindFramebufferProc(GLenum target, GLuint framebuffer)
@@ -669,6 +674,10 @@ angle::GenericProc KHRONOS_APIENTRY TraceLoadProc(const char *procName)
     {
         return reinterpret_cast<angle::GenericProc>(EglGetError);
     }
+    if (strcmp(procName, "eglGetCurrentDisplay") == 0)
+    {
+        return reinterpret_cast<angle::GenericProc>(EglGetCurrentDisplay);
+    }
 
     // GLES
     if (strcmp(procName, "glBindFramebuffer") == 0)
@@ -893,6 +902,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         {
             WARN() << "Ignoring keyframe, user requested frame " << mScreenshotFrame
                    << " for screenshot";
+            if (mScreenshotFrame == kAllFrames)
+            {
+                WARN() << "Capturing screenshots of all frames since requested frame was "
+                       << kAllFrames;
+            }
         }
     }
 
@@ -1143,7 +1157,8 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
     }
 
     if (traceNameIs("hill_climb_racing") || traceNameIs("dead_trigger_2") ||
-        traceNameIs("disney_mirrorverse") || traceNameIs("cut_the_rope"))
+        traceNameIs("disney_mirrorverse") || traceNameIs("cut_the_rope") ||
+        traceNameIs("geometry_dash"))
     {
         if (IsAndroid() && (IsPixel4() || IsPixel4XL()) && !mParams->isANGLE())
         {
@@ -1188,6 +1203,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         if (isIntelWinANGLE)
         {
             skipTest("TODO: http://anglebug.com/5943 GL_INVALID_ENUM on Windows/Intel");
+        }
+
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
         }
     }
 
@@ -1286,6 +1306,10 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
                 "TODO: http://anglebug.com/6443 Vulkan Test failure on Pixel4XL due to vulkan "
                 "validation error VUID-vkDestroyBuffer-buffer-00922");
         }
+        if (isIntelWinNative)
+        {
+            skipTest("https://anglebug.com/8440 Flaky on native Win Intel");
+        }
     }
 
     if (traceNameIs("pokemon_unite"))
@@ -1315,6 +1339,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         if (isNVIDIAWinANGLE || isNVIDIALinuxANGLE)
         {
             skipTest("http://anglebug.com/6658 Crashing in Vulkan backend");
+        }
+
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
         }
     }
 
@@ -1411,6 +1440,16 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         addExtensionPrerequisite("GL_EXT_texture_cube_map_array");
     }
 
+    if (traceNameIs("pokemon_masters_ex"))
+    {
+        if (isIntelLinux)
+        {
+            skipTest(
+                "https://issuetracker.google.com/u/2/issues/326199738#comment3 Renders incorrectly "
+                "on Intel Linux");
+        }
+    }
+
     if (traceNameIs("aztec_ruins_high"))
     {
         addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
@@ -1502,6 +1541,10 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
 
     if (traceNameIs("minetest"))
     {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
+        }
         addExtensionPrerequisite("GL_EXT_texture_format_BGRA8888");
         addIntegerPrerequisite(GL_MAX_TEXTURE_UNITS, 4);
     }
@@ -1533,9 +1576,9 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
 
     if (traceNameIs("pubg_mobile_launch"))
     {
-        if (isIntelWinNative)
+        if (isIntelWinNative || isIntelWinANGLE)
         {
-            skipTest("http://anglebug.com/7929 Too slow on Win Intel native");
+            skipTest("http://anglebug.com/7929 Too slow on Win Intel native and Vulkan");
         }
     }
 
@@ -1579,6 +1622,153 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         }
     }
 
+    if (traceNameIs("arknights"))
+    {
+        // Intel doesn't support external images.
+        addExtensionPrerequisite("GL_OES_EGL_image_external");
+    }
+
+    if (traceNameIs("street_fighter_duel"))
+    {
+        if (isNVIDIAWinANGLE)
+        {
+            skipTest("https://anglebug.com/8074 NVIDIA Windows flaky diffs");
+        }
+    }
+
+    if (traceNameIs("honkai_star_rail"))
+    {
+        addExtensionPrerequisite("GL_KHR_texture_compression_astc_ldr");
+        if (isIntelWin)
+        {
+            skipTest("https://anglebug.com/8175 Consistently stuck on Intel/windows");
+        }
+    }
+
+    if (traceNameIs("gangstar_vegas"))
+    {
+        if (mParams->isSwiftshader())
+        {
+            skipTest("TODO: http://anglebug.com/8173 Missing shadows on Swiftshader");
+        }
+    }
+
+    if (traceNameIs("respawnables"))
+    {
+        if (!mParams->isANGLE() && (IsWindows() || IsLinux()))
+        {
+            skipTest("TODO: https://anglebug.com/8191 Undefined behavior on native");
+        }
+    }
+
+    if (traceNameIs("street_fighter_iv_ce"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
+        }
+
+        if (mParams->isSwiftshader())
+        {
+            skipTest("https://anglebug.com/8243 Too slow on Swiftshader (large keyframe)");
+        }
+    }
+
+    if (traceNameIs("monster_hunter_stories"))
+    {
+        if (isIntelWinANGLE)
+        {
+            skipTest("http://anglebug.com/7557 Flaky context lost on Win Intel Vulkan");
+        }
+    }
+
+    if (traceNameIs("injustice_2"))
+    {
+        if (isNVIDIAWinANGLE)
+        {
+            skipTest("https://anglebug.com/8316 NVIDIA Windows flaky diffs");
+        }
+    }
+
+    if (traceNameIs("toca_life_world"))
+    {
+        addExtensionPrerequisite("GL_OES_EGL_image_external");
+    }
+
+    if (traceNameIs("poppy_playtime"))
+    {
+        addExtensionPrerequisite("GL_OES_EGL_image_external");
+        addIntegerPrerequisite(GL_MAX_TEXTURE_SIZE, 16383);
+    }
+
+    if (traceNameIs("dr_driving"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
+        }
+    }
+
+    if (traceNameIs("plague_inc"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
+        }
+    }
+
+    if (traceNameIs("sonic_the_hedgehog"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
+        }
+    }
+
+    if (traceNameIs("wayward_souls"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
+        }
+    }
+
+    if (traceNameIs("wordscapes"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
+        }
+    }
+
+    if (traceNameIs("zenonia_4"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
+        }
+    }
+
+    if (traceNameIs("zombie_smasher"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/8682 fails on newer OS/driver");
+        }
+    }
+
+    if (IsGalaxyS22())
+    {
+        if (traceNameIs("cod_mobile") || traceNameIs("dota_underlords") ||
+            traceNameIs("marvel_snap") || traceNameIs("nier_reincarnation") ||
+            traceNameIs("pokemon_unite") || traceNameIs("slingshot_test1") ||
+            traceNameIs("slingshot_test2") || traceNameIs("supertuxkart") ||
+            traceNameIs("the_witcher_monster_slayer") || traceNameIs("warcraft_rumble"))
+        {
+            skipTest("https://issuetracker.google.com/267953710 Trace needs triage on Galaxy S22");
+        }
+    }
+
     // glDebugMessageControlKHR and glDebugMessageCallbackKHR crash on ARM GLES1.
     if (IsARM() && mParams->traceInfo.contextClientMajorVersion == 1)
     {
@@ -1593,11 +1783,6 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
     if (gTraceTestValidation)
     {
         mStepsToRun = frameCount();
-    }
-
-    if (gWarmupSteps == kAllFrames)
-    {
-        mWarmupSteps = frameCount();
     }
 
     if (gRunToKeyFrame)
@@ -1623,6 +1808,20 @@ void TracePerfTest::startTest()
     ASSERT(mCurrentFrame == mStartFrame);
 }
 
+std::string FindTraceGzPath(const std::string &traceName)
+{
+    std::stringstream pathStream;
+
+    char genDir[kMaxPath] = {};
+    if (!angle::FindTestDataPath("gen", genDir, kMaxPath))
+    {
+        return "";
+    }
+    pathStream << genDir << angle::GetPathSeparator() << "tracegz_" << traceName << ".gz";
+
+    return pathStream.str();
+}
+
 void TracePerfTest::initializeBenchmark()
 {
     const TraceInfo &traceInfo = mParams->traceInfo;
@@ -1636,14 +1835,24 @@ void TracePerfTest::initializeBenchmark()
 
     if (gTraceInterpreter)
     {
-        mTraceReplay.reset(new TraceInterpreter(traceInfo, testDataDir, gVerboseLogging));
+        mTraceReplay.reset(new TraceLibrary("angle_trace_interpreter", traceInfo));
+        if (strcmp(gTraceInterpreter, "gz") == 0)
+        {
+            std::string traceGzPath = FindTraceGzPath(traceInfo.name);
+            if (traceGzPath.empty())
+            {
+                failTest("Could not find trace gz.");
+                return;
+            }
+            mTraceReplay->setTraceGzPath(traceGzPath);
+        }
     }
     else
     {
         std::stringstream traceNameStr;
         traceNameStr << "angle_restricted_traces_" << traceInfo.name;
         std::string traceName = traceNameStr.str();
-        mTraceReplay.reset(new TraceLibrary(traceName.c_str()));
+        mTraceReplay.reset(new TraceLibrary(traceNameStr.str(), traceInfo));
     }
 
     LoadTraceEGL(TraceLoadProc);
@@ -1657,9 +1866,13 @@ void TracePerfTest::initializeBenchmark()
 
     mStartFrame = traceInfo.frameStart;
     mEndFrame   = traceInfo.frameEnd;
-    mTraceReplay->setBinaryDataDecompressCallback(DecompressBinaryData, DeleteBinaryData);
     mTraceReplay->setValidateSerializedStateCallback(ValidateSerializedState);
     mTraceReplay->setBinaryDataDir(testDataDir);
+    mTraceReplay->setReplayResourceMode(gIncludeInactiveResources);
+    if (gScreenshotDir)
+    {
+        mTraceReplay->setDebugOutputDir(gScreenshotDir);
+    }
 
     if (gMinimizeGPUWork)
     {
@@ -2070,6 +2283,11 @@ EGLint TracePerfTest::onEglGetError()
     return getGLWindow()->getEGLError();
 }
 
+EGLDisplay TracePerfTest::onEglGetCurrentDisplay()
+{
+    return getGLWindow()->getCurrentDisplay();
+}
+
 // Triggered when the replay calls glBindFramebuffer.
 void TracePerfTest::onReplayFramebufferChange(GLenum target, GLuint framebuffer)
 {
@@ -2347,23 +2565,26 @@ void TracePerfTest::swap()
 {
     // Capture a screenshot if enabled.
     if (gScreenshotDir != nullptr && gSaveScreenshots && !mScreenshotSaved &&
-        mScreenshotFrame == mCurrentIteration)
+        (static_cast<uint32_t>(mScreenshotFrame) == mCurrentIteration ||
+         mScreenshotFrame == kAllFrames))
     {
         std::stringstream screenshotNameStr;
         screenshotNameStr << gScreenshotDir << GetPathSeparator() << "angle" << mBackend << "_"
                           << mStory;
 
         // Add a marker to the name for any screenshot that isn't start frame
-        if (mStartFrame != mScreenshotFrame)
+        if (mStartFrame != static_cast<uint32_t>(mScreenshotFrame))
         {
-            screenshotNameStr << "_frame" << mScreenshotFrame;
+            screenshotNameStr << "_frame" << mCurrentIteration;
         }
 
         screenshotNameStr << ".png";
 
         std::string screenshotName = screenshotNameStr.str();
         saveScreenshot(screenshotName);
-        mScreenshotSaved = true;
+
+        // Only set this value if we're capturing a single frame
+        mScreenshotSaved = mScreenshotFrame != kAllFrames;
     }
 
     getGLWindow()->swap();

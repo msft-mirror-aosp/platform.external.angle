@@ -34,6 +34,7 @@ namespace vk
 {
 class Context;
 class RenderPassDesc;
+class SecondaryCommandPool;
 
 class VulkanSecondaryCommandBuffer : public priv::CommandBuffer
 {
@@ -41,7 +42,7 @@ class VulkanSecondaryCommandBuffer : public priv::CommandBuffer
     VulkanSecondaryCommandBuffer() = default;
 
     static angle::Result InitializeCommandPool(Context *context,
-                                               CommandPool *pool,
+                                               SecondaryCommandPool *pool,
                                                uint32_t queueFamilyIndex,
                                                ProtectionType protectionType);
     static angle::Result InitializeRenderPassInheritanceInfo(
@@ -50,18 +51,19 @@ class VulkanSecondaryCommandBuffer : public priv::CommandBuffer
         const RenderPassDesc &renderPassDesc,
         VkCommandBufferInheritanceInfo *inheritanceInfoOut);
 
-    angle::Result initialize(vk::Context *context,
-                             vk::CommandPool *pool,
+    angle::Result initialize(Context *context,
+                             SecondaryCommandPool *pool,
                              bool isRenderPassCommandBuffer,
                              SecondaryCommandMemoryAllocator *allocator);
+
+    void destroy();
 
     void attachAllocator(SecondaryCommandMemoryAllocator *source) {}
 
     void detachAllocator(SecondaryCommandMemoryAllocator *destination) {}
 
-    angle::Result begin(vk::Context *context,
-                        const VkCommandBufferInheritanceInfo &inheritanceInfo);
-    angle::Result end(vk::Context *context);
+    angle::Result begin(Context *context, const VkCommandBufferInheritanceInfo &inheritanceInfo);
+    angle::Result end(Context *context);
     VkResult reset();
 
     void executeCommands(PrimaryCommandBuffer *primary) { primary->executeCommands(1, this); }
@@ -169,9 +171,14 @@ class VulkanSecondaryCommandBuffer : public priv::CommandBuffer
                       VkPipelineStageFlags dstStageMask,
                       const VkImageMemoryBarrier &imageMemoryBarrier);
 
+    void imageWaitEvent(const VkEvent &event,
+                        VkPipelineStageFlags srcStageMask,
+                        VkPipelineStageFlags dstStageMask,
+                        const VkImageMemoryBarrier &imageMemoryBarrier);
+
     void memoryBarrier(VkPipelineStageFlags srcStageMask,
                        VkPipelineStageFlags dstStageMask,
-                       const VkMemoryBarrier *memoryBarrier);
+                       const VkMemoryBarrier &memoryBarrier);
 
     void nextSubpass(VkSubpassContents subpassContents);
 
@@ -192,6 +199,10 @@ class VulkanSecondaryCommandBuffer : public priv::CommandBuffer
                        const void *data);
 
     void setEvent(VkEvent event, VkPipelineStageFlags stageMask);
+    void setVertexInput(uint32_t vertexBindingDescriptionCount,
+                        const VkVertexInputBindingDescription2EXT *vertexBindingDescriptions,
+                        uint32_t vertexAttributeDescriptionCount,
+                        const VkVertexInputAttributeDescription2EXT *vertexAttributeDescriptions);
     void resetEvent(VkEvent event, VkPipelineStageFlags stageMask);
     void resetQueryPool(const QueryPool &queryPool, uint32_t firstQuery, uint32_t queryCount);
     void resolveImage(const Image &srcImage,
@@ -232,9 +243,14 @@ class VulkanSecondaryCommandBuffer : public priv::CommandBuffer
 
     void open() const {}
     void close() const {}
-    bool empty() const { return !mAnyCommand; }
+    bool empty() const
+    {
+        ASSERT(valid());
+        return !mAnyCommand;
+    }
     uint32_t getRenderPassWriteCommandCount() const
     {
+        ASSERT(valid());
         return mCommandTracker.getRenderPassWriteCommandCount();
     }
     std::string dumpCommands(const char *separator) const { return ""; }
@@ -242,6 +258,7 @@ class VulkanSecondaryCommandBuffer : public priv::CommandBuffer
   private:
     void onRecordCommand() { mAnyCommand = true; }
 
+    SecondaryCommandPool *mCommandPool = nullptr;
     CommandBufferCommandTracker mCommandTracker;
     bool mAnyCommand = false;
 };
@@ -511,7 +528,7 @@ ANGLE_INLINE void VulkanSecondaryCommandBuffer::pipelineBarrier(
 
 ANGLE_INLINE void VulkanSecondaryCommandBuffer::memoryBarrier(VkPipelineStageFlags srcStageMask,
                                                               VkPipelineStageFlags dstStageMask,
-                                                              const VkMemoryBarrier *memoryBarrier)
+                                                              const VkMemoryBarrier &memoryBarrier)
 {
     onRecordCommand();
     CommandBuffer::memoryBarrier(srcStageMask, dstStageMask, memoryBarrier);
@@ -536,6 +553,17 @@ ANGLE_INLINE void VulkanSecondaryCommandBuffer::imageBarrier(
     CommandBuffer::imageBarrier(srcStageMask, dstStageMask, imageMemoryBarrier);
 }
 
+ANGLE_INLINE void VulkanSecondaryCommandBuffer::imageWaitEvent(
+    const VkEvent &event,
+    VkPipelineStageFlags srcStageMask,
+    VkPipelineStageFlags dstStageMask,
+    const VkImageMemoryBarrier &imageMemoryBarrier)
+{
+    onRecordCommand();
+    CommandBuffer::waitEvents(1, &event, srcStageMask, dstStageMask, 0, nullptr, 0, nullptr, 1,
+                              &imageMemoryBarrier);
+}
+
 ANGLE_INLINE void VulkanSecondaryCommandBuffer::nextSubpass(VkSubpassContents subpassContents)
 {
     onRecordCommand();
@@ -557,6 +585,17 @@ ANGLE_INLINE void VulkanSecondaryCommandBuffer::setEvent(VkEvent event,
 {
     onRecordCommand();
     CommandBuffer::setEvent(event, stageMask);
+}
+
+ANGLE_INLINE void VulkanSecondaryCommandBuffer::setVertexInput(
+    uint32_t vertexBindingDescriptionCount,
+    const VkVertexInputBindingDescription2EXT *vertexBindingDescriptions,
+    uint32_t vertexAttributeDescriptionCount,
+    const VkVertexInputAttributeDescription2EXT *vertexAttributeDescriptions)
+{
+    onRecordCommand();
+    CommandBuffer::setVertexInput(vertexBindingDescriptionCount, vertexBindingDescriptions,
+                                  vertexAttributeDescriptionCount, vertexAttributeDescriptions);
 }
 
 ANGLE_INLINE void VulkanSecondaryCommandBuffer::resetEvent(VkEvent event,

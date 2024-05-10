@@ -21,7 +21,7 @@ script_executable = "python3"
 # matching these patterns (see "gn help label_pattern" for format) will have
 # their includes checked for proper dependencies when you run either
 # "gn check" or "gn gen --check".
-check_targets = [ "*" ]
+# check_targets = [ "*" ]
 
 # These are the list of GN files that run exec_script. This allowlist exists
 # to force additional review for new uses of exec_script, which is strongly
@@ -37,12 +37,15 @@ exec_script_whitelist = angle_dotfile_settings.exec_script_whitelist +
                         ]
 
 default_args = {
-  clang_use_chrome_plugins = true
+  clang_use_chrome_plugins = false
   build_angle_deqp_tests = true
   use_sysroot = true
 
   # Saves on importing extra dependencies and ANGLE doesn't use JS.
   enable_js_protobuf = false
+
+  # Saves on importing extra dependencies and ANGLE doesn't use Rust.
+  enable_rust = false
 
   # Disable location tags in isolates.
   tests_have_location_tags = false
@@ -51,3 +54,5 @@ default_args = {
   android32_ndk_api_level = 29
   android64_ndk_api_level = 29
 }
+
+no_check_targets = [ "third_party/dawn/*" ]

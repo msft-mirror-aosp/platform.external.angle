@@ -362,7 +362,7 @@ TEST_P(ClearTest, EmptyScissor)
     // These configs have bug that fails this test.
     // These configs are unmaintained so skipping.
     ANGLE_SKIP_TEST_IF(IsIntel() && IsD3D9());
-    ANGLE_SKIP_TEST_IF(IsOSX());
+    ANGLE_SKIP_TEST_IF(IsIntel() && IsMac() && IsOpenGL());
     glClearColor(0.25f, 0.5f, 0.5f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     glEnable(GL_SCISSOR_TEST);
@@ -481,7 +481,7 @@ TEST_P(ClearTest, ChangeFramebufferAttachmentFromRGBAtoRGB)
     ANGLE_SKIP_TEST_IF(IsAndroid() && IsAdreno() && IsOpenGLES());
 
     // http://anglebug.com/5165
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsDesktopOpenGL() && IsIntel());
+    ANGLE_SKIP_TEST_IF(IsMac() && IsDesktopOpenGL() && IsIntel());
 
     ANGLE_GL_PROGRAM(program, angle::essl1_shaders::vs::Simple(),
                      angle::essl1_shaders::fs::UniformColor());
@@ -2064,7 +2064,7 @@ TEST_P(ClearTest, DrawThenInceptionScissorClears)
 TEST_P(ClearTestES3, ClearDisabledNonZeroAttachmentNoAssert)
 {
     // http://anglebug.com/4612
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsDesktopOpenGL());
+    ANGLE_SKIP_TEST_IF(IsMac() && IsDesktopOpenGL());
 
     GLFramebuffer fb;
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
@@ -2096,7 +2096,7 @@ TEST_P(ClearTestES3, ClearDisabledNonZeroAttachmentNoAssert)
 TEST_P(ClearTestES3, ClearMaxAttachments)
 {
     // http://anglebug.com/4612
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsDesktopOpenGL());
+    ANGLE_SKIP_TEST_IF(IsMac() && IsDesktopOpenGL());
     // http://anglebug.com/5397
     ANGLE_SKIP_TEST_IF(IsAMD() && IsD3D11());
 
@@ -2185,7 +2185,7 @@ TEST_P(ClearTestES3, ClearMaxAttachments)
 TEST_P(ClearTestES3, ClearMaxAttachmentsAfterDraw)
 {
     // http://anglebug.com/4612
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsDesktopOpenGL());
+    ANGLE_SKIP_TEST_IF(IsMac() && IsDesktopOpenGL());
 
     constexpr GLsizei kSize = 16;
 
@@ -2367,7 +2367,7 @@ TEST_P(ClearTestES3, ClearThenMixedMaskedClear)
 TEST_P(ClearTestES3, ClearStencilAfterDraw)
 {
     // http://anglebug.com/4612
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsDesktopOpenGL());
+    ANGLE_SKIP_TEST_IF(IsMac() && IsDesktopOpenGL());
 
     constexpr GLsizei kSize = 16;
 
@@ -2472,7 +2472,7 @@ TEST_P(ClearTestES3, ClearStencilAfterDraw)
 TEST_P(ClearTestES3, MixedRenderPassClearMixedUsedUnusedAttachments)
 {
     // http://anglebug.com/4612
-    ANGLE_SKIP_TEST_IF(IsOSX() && IsDesktopOpenGL());
+    ANGLE_SKIP_TEST_IF(IsMac() && IsDesktopOpenGL());
 
     constexpr GLsizei kSize = 16;
 
@@ -3357,7 +3357,7 @@ void main()
 TEST_P(ClearTestES3, RepeatedDepthClearWithBlitAfterClearAndDrawInBetween)
 {
     glClearDepthf(0.25f);
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     // Make sure clear is flushed.
     GLRenderbuffer depth;
@@ -3402,12 +3402,82 @@ TEST_P(ClearTestES3, RepeatedDepthClearWithBlitAfterClearAndDrawInBetween)
     ASSERT_GL_NO_ERROR();
 }
 
+// Test that gaps in framebuffer attachments do not cause race
+// conditions when a clear op is followed by a draw call.
+TEST_P(ClearTestES3, DrawAfterClearWithGaps)
+{
+    constexpr char kVS[] = R"(#version 300 es
+  precision highp float;
+  void main() {
+      vec2 offset = vec2((gl_VertexID & 1) == 0 ? -1.0 : 1.0, (gl_VertexID & 2) == 0 ? -1.0 : 1.0);
+      gl_Position = vec4(offset * 0.125 - 0.5, 0.0, 1.0);
+  })";
+
+    constexpr char kFS[] = R"(#version 300 es
+  precision mediump float;
+  layout(location=0) out vec4 color0;
+  layout(location=2) out vec4 color2;
+  void main() {
+    color0 = vec4(1, 0, 1, 1);
+    color2 = vec4(1, 1, 0, 1);
+  })";
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+    glUseProgram(program);
+
+    constexpr int kSize = 1024;
+
+    GLRenderbuffer rb0;
+    glBindRenderbuffer(GL_RENDERBUFFER, rb0);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, kSize, kSize);
+
+    GLRenderbuffer rb2;
+    glBindRenderbuffer(GL_RENDERBUFFER, rb2);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, kSize, kSize);
+
+    GLFramebuffer fb;
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_RENDERBUFFER, rb2);
+
+    GLenum bufs[3] = {GL_COLOR_ATTACHMENT0, GL_NONE, GL_COLOR_ATTACHMENT2};
+    glDrawBuffers(3, bufs);
+    glReadBuffer(GL_COLOR_ATTACHMENT2);
+
+    glClearColor(0, 1, 0, 1);
+    glViewport(0, 0, kSize, kSize);
+
+    // Draw immediately after clear
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    std::vector<GLColor> pixels(kSize * kSize, GLColor::transparentBlack);
+    glReadPixels(0, 0, kSize, kSize, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    ASSERT_GL_NO_ERROR();
+
+    for (int y = 0; y < kSize; ++y)
+    {
+        for (int x = 0; x < kSize; ++x)
+        {
+            const GLColor color = pixels[y * kSize + x];
+            if (x > 192 && x < 319 && y > 192 && y < 319)
+            {
+                EXPECT_EQ(color, GLColor::yellow) << "at " << x << ", " << y;
+            }
+            else if (x < 191 || x > 320 || y < 191 || y > 320)
+            {
+                EXPECT_EQ(color, GLColor::green) << "at " << x << ", " << y;
+            }
+        }
+    }
+}
+
 // Test that reclearing stencil to the same value works if stencil is blit after clear, and stencil
 // is modified in between with a draw call.
 TEST_P(ClearTestES3, RepeatedStencilClearWithBlitAfterClearAndDrawInBetween)
 {
     glClearStencil(0xE4);
-    glClear(GL_STENCIL_BUFFER_BIT);
+    glClear(GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Make sure clear is flushed.
     GLRenderbuffer stencil;
@@ -3453,23 +3523,22 @@ TEST_P(ClearTestES3, RepeatedStencilClearWithBlitAfterClearAndDrawInBetween)
     ASSERT_GL_NO_ERROR();
 }
 
-#ifdef Bool
-// X11 craziness.
-#    undef Bool
-#endif
-
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(
     ClearTest,
-    ES3_VULKAN().enable(Feature::PreferDrawClearOverVkCmdClearAttachments));
+    ES3_VULKAN().enable(Feature::ForceFallbackFormat),
+    ES3_VULKAN().enable(Feature::PreferDrawClearOverVkCmdClearAttachments),
+    ES2_WEBGPU());
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ClearTestES3);
 ANGLE_INSTANTIATE_TEST_ES3_AND(
     ClearTestES3,
+    ES3_VULKAN().enable(Feature::ForceFallbackFormat),
     ES3_VULKAN().enable(Feature::PreferDrawClearOverVkCmdClearAttachments));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ClearTestES31);
 ANGLE_INSTANTIATE_TEST_ES31_AND(
     ClearTestES31,
+    ES31_VULKAN().enable(Feature::ForceFallbackFormat),
     ES31_VULKAN().enable(Feature::PreferDrawClearOverVkCmdClearAttachments));
 
 ANGLE_INSTANTIATE_TEST_COMBINE_4(MaskedScissoredClearTest,
@@ -3482,11 +3551,8 @@ ANGLE_INSTANTIATE_TEST_COMBINE_4(MaskedScissoredClearTest,
                                  ANGLE_ALL_TEST_PLATFORMS_ES3,
                                  ES3_VULKAN()
                                      .disable(Feature::SupportsExtendedDynamicState)
-                                     .disable(Feature::SupportsExtendedDynamicState2)
-                                     .disable(Feature::SupportsLogicOpDynamicState),
-                                 ES3_VULKAN()
-                                     .disable(Feature::SupportsExtendedDynamicState2)
-                                     .disable(Feature::SupportsLogicOpDynamicState));
+                                     .disable(Feature::SupportsExtendedDynamicState2),
+                                 ES3_VULKAN().disable(Feature::SupportsExtendedDynamicState2));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(VulkanClearTest);
 ANGLE_INSTANTIATE_TEST_COMBINE_4(VulkanClearTest,

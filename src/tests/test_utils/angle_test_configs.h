@@ -43,6 +43,7 @@ struct PlatformParameters
     bool isVulkan() const;
     bool isANGLE() const;
     bool isMetal() const;
+    bool isWebGPU() const;
     bool isDesktopOpenGLFrontend() const;
 
     void initDefaultParameters();
@@ -133,6 +134,8 @@ EGLPlatformParameters VULKAN();
 EGLPlatformParameters VULKAN_NULL();
 EGLPlatformParameters VULKAN_SWIFTSHADER();
 
+EGLPlatformParameters WEBGPU();
+
 }  // namespace egl_platform
 
 // ANGLE tests platforms
@@ -218,12 +221,16 @@ PlatformParameters ES3_WGL();
 PlatformParameters ES1_EGL();
 PlatformParameters ES2_EGL();
 PlatformParameters ES3_EGL();
+PlatformParameters ES31_EGL();
+PlatformParameters ES32_EGL();
 
 PlatformParameters ES1_ANGLE_Vulkan_Secondaries();
 PlatformParameters ES2_ANGLE_Vulkan_Secondaries();
 PlatformParameters ES3_ANGLE_Vulkan_Secondaries();
 PlatformParameters ES31_ANGLE_Vulkan_Secondaries();
 PlatformParameters ES32_ANGLE_Vulkan_Secondaries();
+
+PlatformParameters ES2_WEBGPU();
 
 PlatformParameters ES1_Zink();
 PlatformParameters ES2_Zink();

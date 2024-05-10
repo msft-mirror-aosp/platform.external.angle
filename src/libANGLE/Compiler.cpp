@@ -37,7 +37,7 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state, egl::Disp
            state.getClientMajorVersion() == 3 || state.getClientMajorVersion() == 4);
 
     {
-        std::lock_guard<std::mutex> lock(display->getDisplayGlobalMutex());
+        std::lock_guard<angle::SimpleMutex> lock(display->getDisplayGlobalMutex());
         if (gActiveCompilers == 0)
         {
             sh::Initialize();
@@ -148,6 +148,9 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state, egl::Disp
     mResources.EXT_blend_func_extended  = extensions.blendFuncExtendedEXT;
     mResources.MaxDualSourceDrawBuffers = caps.maxDualSourceDrawBuffers;
 
+    // EXT_conservative_depth
+    mResources.EXT_conservative_depth = extensions.conservativeDepthEXT;
+
     // APPLE_clip_distance / EXT_clip_cull_distance / ANGLE_clip_cull_distance
     mResources.MaxClipDistances                = caps.maxClipDistances;
     mResources.MaxCullDistances                = caps.maxCullDistances;
@@ -209,6 +212,7 @@ Compiler::Compiler(rx::GLImplFactory *implFactory, const State &state, egl::Disp
     mResources.MaxShaderStorageBufferBindings = caps.maxShaderStorageBufferBindings;
 
     // Needed by point size clamping workaround
+    mResources.MinPointSize = caps.minAliasedPointSize;
     mResources.MaxPointSize = caps.maxAliasedPointSize;
 
     if (state.getClientMajorVersion() == 2 && !extensions.drawBuffersEXT)
@@ -273,7 +277,7 @@ Compiler::~Compiler() = default;
 
 void Compiler::onDestroy(const Context *context)
 {
-    std::lock_guard<std::mutex> lock(context->getDisplay()->getDisplayGlobalMutex());
+    std::lock_guard<angle::SimpleMutex> lock(context->getDisplay()->getDisplayGlobalMutex());
     for (auto &pool : mPools)
     {
         for (ShCompilerInstance &instance : pool)

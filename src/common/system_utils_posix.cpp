@@ -197,7 +197,7 @@ void *OpenSystemLibraryWithExtensionAndGetError(const char *libraryName,
     std::string directory;
     if (searchType == SearchType::ModuleDir)
     {
-#if ANGLE_PLATFORM_IOS
+#if ANGLE_PLATFORM_IOS_FAMILY
         // On iOS, shared libraries must be loaded from within the app bundle.
         directory = GetExecutableDirectory() + "/Frameworks/";
 #elif ANGLE_PLATFORM_FUCHSIA
@@ -283,6 +283,39 @@ std::string GetRootDirectory()
     return "/";
 }
 
+bool CreateDirectories(const std::string &path)
+{
+    // First sanitize path so we can use "/" as universal path separator
+    std::string sanitizedPath(path);
+    MakeForwardSlashThePathSeparator(sanitizedPath);
+
+    size_t pos = 0;
+    do
+    {
+        pos = sanitizedPath.find("/", pos);
+        std::string checkPath(sanitizedPath.substr(0, pos));
+        if (!checkPath.empty() && !IsDirectory(checkPath.c_str()))
+        {
+            if (mkdir(checkPath.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == -1)
+            {
+                return false;
+            }
+        }
+        if (pos == std::string::npos)
+        {
+            break;
+        }
+        ++pos;
+    } while (true);
+    return true;
+}
+
+void MakeForwardSlashThePathSeparator(std::string &path)
+{
+    // Nothing to do here for *nix side
+    return;
+}
+
 Optional<std::string> GetTempDirectory()
 {
     const char *tmp = getenv("TMPDIR");
@@ -302,17 +335,20 @@ Optional<std::string> GetTempDirectory()
 
 Optional<std::string> CreateTemporaryFileInDirectory(const std::string &directory)
 {
-    std::string tempFileTemplate = directory + "/.angle.XXXXXX";
+    return CreateTemporaryFileInDirectoryWithExtension(directory, std::string());
+}
 
-    char tempFile[1000];
-    strcpy(tempFile, tempFileTemplate.c_str());
+Optional<std::string> CreateTemporaryFileInDirectoryWithExtension(const std::string &directory,
+                                                                  const std::string &extension)
+{
+    std::string tempFileTemplate = directory + "/.angle.XXXXXX" + extension;
 
-    int fd = mkstemp(tempFile);
+    int fd = mkstemps(&tempFileTemplate[0], static_cast<int>(extension.size()));
     close(fd);
 
     if (fd != -1)
     {
-        return std::string(tempFile);
+        return tempFileTemplate;
     }
 
     return Optional<std::string>::Invalid();

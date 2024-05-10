@@ -98,9 +98,9 @@ ABSL_NAMESPACE_BEGIN
 // `AnyInvocable` also properly respects `const` qualifiers, reference
 // qualifiers, and the `noexcept` specification (only in C++ 17 and beyond) as
 // part of the user-specified function type (e.g.
-// `AnyInvocable<void()&& const noexcept>`). These qualifiers will be applied to
-// the `AnyInvocable` object's `operator()`, and the underlying invocable must
-// be compatible with those qualifiers.
+// `AnyInvocable<void() const && noexcept>`). These qualifiers will be applied
+// to the `AnyInvocable` object's `operator()`, and the underlying invocable
+// must be compatible with those qualifiers.
 //
 // Comparison of const and non-const function types:
 //
@@ -266,9 +266,17 @@ class AnyInvocable : private internal_any_invocable::Impl<Sig> {
   // Exchanges the targets of `*this` and `other`.
   void swap(AnyInvocable& other) noexcept { std::swap(*this, other); }
 
-  // abl::AnyInvocable::operator bool()
+  // absl::AnyInvocable::operator bool()
   //
   // Returns `true` if `*this` is not empty.
+  //
+  // WARNING: An `AnyInvocable` that wraps an empty `std::function` is not
+  // itself empty. This behavior is consistent with the standard equivalent
+  // `std::move_only_function`.
+  //
+  // In other words:
+  //   std::function<void()> f;  // empty
+  //   absl::AnyInvocable<void()> a = std::move(f);  // not empty
   explicit operator bool() const noexcept { return this->HasValue(); }
 
   // Invokes the target object of `*this`. `*this` must not be empty.

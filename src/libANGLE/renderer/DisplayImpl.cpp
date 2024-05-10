@@ -45,7 +45,7 @@ DisplayImpl::DisplayImpl(const egl::DisplayState &state)
 
 DisplayImpl::~DisplayImpl()
 {
-    ASSERT(mState.surfaceSet.empty());
+    ASSERT(mState.surfaceMap.empty());
 }
 
 egl::Error DisplayImpl::prepareForCall()
@@ -126,19 +126,9 @@ DeviceImpl *DisplayImpl::createDevice()
     return new MockDevice();
 }
 
-bool DisplayImpl::isX11() const
+angle::NativeWindowSystem DisplayImpl::getWindowSystem() const
 {
-    return false;
-}
-
-bool DisplayImpl::isWayland() const
-{
-    return false;
-}
-
-bool DisplayImpl::isGBM() const
-{
-    return false;
+    return angle::NativeWindowSystem::Other;
 }
 
 bool DisplayImpl::supportsDmaBufFormat(EGLint format) const

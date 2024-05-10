@@ -481,6 +481,8 @@ EXPORTS
     glMultiDrawArraysInstancedBaseInstanceANGLE
     glMultiDrawElementsInstancedBaseVertexBaseInstanceANGLE
 
+    ; GL_ANGLE_client_arrays
+
     ; GL_ANGLE_clip_cull_distance
 
     ; GL_ANGLE_copy_texture_3d
@@ -500,6 +502,8 @@ EXPORTS
     glGetRenderbufferImageANGLE
     glGetTexImageANGLE
 
+    ; GL_ANGLE_get_serialized_context_string
+
     ; GL_ANGLE_get_tex_level_parameter
     glGetTexLevelParameterfvANGLE
     glGetTexLevelParameterivANGLE
@@ -512,6 +516,8 @@ EXPORTS
     ; GL_ANGLE_logic_op
     glLogicOpANGLE
 
+    ; GL_ANGLE_lossy_etc_decode
+
     ; GL_ANGLE_memory_object_flags
     glTexStorageMemFlags2DANGLE
     glTexStorageMemFlags2DMultisampleANGLE
@@ -521,6 +527,8 @@ EXPORTS
     ; GL_ANGLE_memory_object_fuchsia
     glImportMemoryZirconHandleANGLE
 
+    ; GL_ANGLE_memory_size
+
     ; GL_ANGLE_multi_draw
     glMultiDrawArraysANGLE
     glMultiDrawArraysInstancedANGLE
@@ -529,14 +537,25 @@ EXPORTS
 
     ; GL_ANGLE_pack_reverse_row_order
 
+    ; GL_ANGLE_polygon_mode
+    glPolygonModeANGLE
+
     ; GL_ANGLE_program_binary
+
+    ; GL_ANGLE_program_binary_readiness_query
+
+    ; GL_ANGLE_program_cache_control
 
     ; GL_ANGLE_provoking_vertex
     glProvokingVertexANGLE
 
+    ; GL_ANGLE_renderability_validation
+
     ; GL_ANGLE_request_extension
     glDisableExtensionANGLE
     glRequestExtensionANGLE
+
+    ; GL_ANGLE_rgbx_internal_format
 
     ; GL_ANGLE_robust_client_memory
     glCompressedTexImage2DRobustANGLE
@@ -604,10 +623,14 @@ EXPORTS
     glTexSubImage2DRobustANGLE
     glTexSubImage3DRobustANGLE
 
+    ; GL_ANGLE_robust_fragment_shader_output
+
     ; GL_ANGLE_robust_resource_initialization
 
     ; GL_ANGLE_semaphore_fuchsia
     glImportSemaphoreZirconHandleANGLE
+
+    ; GL_ANGLE_shader_binary
 
     ; GL_ANGLE_shader_pixel_local_storage
     glBeginPixelLocalStorageANGLE
@@ -616,10 +639,16 @@ EXPORTS
     glFramebufferPixelLocalClearValuefvANGLE
     glFramebufferPixelLocalClearValueivANGLE
     glFramebufferPixelLocalClearValueuivANGLE
+    glFramebufferPixelLocalStorageInterruptANGLE
+    glFramebufferPixelLocalStorageRestoreANGLE
     glFramebufferTexturePixelLocalStorageANGLE
     glGetFramebufferPixelLocalStorageParameterfvANGLE
+    glGetFramebufferPixelLocalStorageParameterfvRobustANGLE
     glGetFramebufferPixelLocalStorageParameterivANGLE
+    glGetFramebufferPixelLocalStorageParameterivRobustANGLE
     glPixelLocalStorageBarrierANGLE
+
+    ; GL_ANGLE_stencil_texturing
 
     ; GL_ANGLE_texture_compression_dxt3
 
@@ -642,6 +671,8 @@ EXPORTS
     ; GL_ANGLE_vulkan_image
     glAcquireTexturesANGLE
     glReleaseTexturesANGLE
+
+    ; GL_ANGLE_yuv_internal_format
 
     ; GL_APPLE_clip_distance
 
@@ -698,6 +729,8 @@ EXPORTS
 
     ; GL_EXT_color_buffer_half_float
 
+    ; GL_EXT_conservative_depth
+
     ; GL_EXT_copy_image
     glCopyImageSubDataEXT
 
@@ -709,6 +742,8 @@ EXPORTS
     glInsertEventMarkerEXT
     glPopGroupMarkerEXT
     glPushGroupMarkerEXT
+
+    ; GL_EXT_depth_clamp
 
     ; GL_EXT_discard_framebuffer
     glDiscardFramebufferEXT
@@ -806,6 +841,8 @@ EXPORTS
     ; GL_EXT_pvrtc_sRGB
 
     ; GL_EXT_read_format_bgra
+
+    ; GL_EXT_render_snorm
 
     ; GL_EXT_robustness
     glGetGraphicsResetStatusEXT
@@ -905,6 +942,8 @@ EXPORTS
     glTexBufferEXT
     glTexBufferRangeEXT
 
+    ; GL_EXT_texture_compression_astc_decode_mode
+
     ; GL_EXT_texture_compression_bptc
 
     ; GL_EXT_texture_compression_dxt1
@@ -918,6 +957,8 @@ EXPORTS
     ; GL_EXT_texture_cube_map_array
 
     ; GL_EXT_texture_filter_anisotropic
+
+    ; GL_EXT_texture_filter_minmax
 
     ; GL_EXT_texture_format_BGRA8888
 
@@ -994,6 +1035,9 @@ EXPORTS
     glBlitFramebufferNV
 
     ; GL_NV_pixel_buffer_object
+
+    ; GL_NV_polygon_mode
+    glPolygonModeNV
 
     ; GL_NV_read_depth
 
@@ -1187,8 +1231,17 @@ EXPORTS
 
     ; GL_OVR_multiview2
 
+    ; GL_QCOM_framebuffer_foveated
+    glFramebufferFoveationConfigQCOM
+    glFramebufferFoveationParametersQCOM
+
+    ; GL_QCOM_render_shared_exponent
+
     ; GL_QCOM_shading_rate
     glShadingRateQCOM
+
+    ; GL_QCOM_texture_foveated
+    glTextureFoveationParametersQCOM
 
     ; EGL 1.0
     EGL_ChooseConfig
@@ -1269,6 +1322,10 @@ EXPORTS
     ; EGL_ANGLE_device_creation
     EGL_CreateDeviceANGLE
     EGL_ReleaseDeviceANGLE
+
+    ; EGL_ANGLE_external_context_and_surface
+    EGL_AcquireExternalContextANGLE
+    EGL_ReleaseExternalContextANGLE
 
     ; EGL_ANGLE_feature_control
     EGL_QueryDisplayAttribANGLE

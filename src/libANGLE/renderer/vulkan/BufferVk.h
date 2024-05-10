@@ -17,12 +17,10 @@
 
 namespace rx
 {
-class RendererVk;
-
 // Conversion buffers hold translated index and vertex data.
 struct ConversionBuffer
 {
-    ConversionBuffer(RendererVk *renderer,
+    ConversionBuffer(vk::Renderer *renderer,
                      VkBufferUsageFlags usageFlags,
                      size_t initialSize,
                      size_t alignment,
@@ -44,7 +42,17 @@ enum class BufferUpdateType
     ContentsUpdate,
 };
 
-VkBufferUsageFlags GetDefaultBufferUsageFlags(RendererVk *renderer);
+struct BufferDataSource
+{
+    // Buffer data can come from two sources:
+    // glBufferData and glBufferSubData upload through a CPU pointer
+    const void *data = nullptr;
+    // glCopyBufferSubData copies data from another buffer
+    vk::BufferHelper *buffer  = nullptr;
+    VkDeviceSize bufferOffset = 0;
+};
+
+VkBufferUsageFlags GetDefaultBufferUsageFlags(vk::Renderer *renderer);
 
 class BufferVk : public BufferImpl
 {
@@ -109,8 +117,10 @@ class BufferVk : public BufferImpl
         return mBuffer;
     }
 
+    vk::BufferSerial getBufferSerial() { return mBuffer.getBufferSerial(); }
+
     bool isBufferValid() const { return mBuffer.valid(); }
-    bool isCurrentlyInUse(RendererVk *renderer) const;
+    bool isCurrentlyInUse(vk::Renderer *renderer) const;
 
     angle::Result mapImpl(ContextVk *contextVk, GLbitfield access, void **mapPtr);
     angle::Result mapRangeImpl(ContextVk *contextVk,
@@ -125,7 +135,7 @@ class BufferVk : public BufferImpl
                                     GLbitfield access,
                                     void **mapPtr);
 
-    ConversionBuffer *getVertexConversionBuffer(RendererVk *renderer,
+    ConversionBuffer *getVertexConversionBuffer(vk::Renderer *renderer,
                                                 angle::FormatID formatID,
                                                 GLuint stride,
                                                 size_t offset,
@@ -133,15 +143,16 @@ class BufferVk : public BufferImpl
 
   private:
     angle::Result updateBuffer(ContextVk *contextVk,
-                               const uint8_t *data,
+                               size_t bufferSize,
+                               const BufferDataSource &dataSource,
                                size_t size,
                                size_t offset);
     angle::Result directUpdate(ContextVk *contextVk,
-                               const uint8_t *data,
+                               const BufferDataSource &dataSource,
                                size_t size,
                                size_t offset);
     angle::Result stagedUpdate(ContextVk *contextVk,
-                               const uint8_t *data,
+                               const BufferDataSource &dataSource,
                                size_t size,
                                size_t offset);
     angle::Result allocStagingBuffer(ContextVk *contextVk,
@@ -150,36 +161,49 @@ class BufferVk : public BufferImpl
                                      uint8_t **mapPtr);
     angle::Result flushStagingBuffer(ContextVk *contextVk, VkDeviceSize offset, VkDeviceSize size);
     angle::Result acquireAndUpdate(ContextVk *contextVk,
-                                   const uint8_t *data,
+                                   size_t bufferSize,
+                                   const BufferDataSource &dataSource,
                                    size_t updateSize,
-                                   size_t offset,
+                                   size_t updateOffset,
                                    BufferUpdateType updateType);
     angle::Result setDataWithMemoryType(const gl::Context *context,
                                         gl::BufferBinding target,
                                         const void *data,
                                         size_t size,
                                         VkMemoryPropertyFlags memoryPropertyFlags,
-                                        bool persistentMapRequired,
                                         gl::BufferUsage usage);
     angle::Result handleDeviceLocalBufferMap(ContextVk *contextVk,
                                              VkDeviceSize offset,
                                              VkDeviceSize size,
                                              uint8_t **mapPtr);
     angle::Result setDataImpl(ContextVk *contextVk,
-                              const uint8_t *data,
-                              size_t size,
-                              size_t offset,
+                              size_t bufferSize,
+                              const BufferDataSource &dataSource,
+                              size_t updateSize,
+                              size_t updateOffset,
                               BufferUpdateType updateType);
-    void release(ContextVk *context);
+    angle::Result release(ContextVk *context);
     void dataUpdated();
 
-    angle::Result acquireBufferHelper(ContextVk *contextVk, size_t sizeInBytes);
+    angle::Result acquireBufferHelper(ContextVk *contextVk,
+                                      size_t sizeInBytes,
+                                      BufferUsageType usageType);
 
     bool isExternalBuffer() const { return mClientBuffer != nullptr; }
+    BufferUpdateType calculateBufferUpdateTypeOnFullUpdate(
+        vk::Renderer *renderer,
+        size_t size,
+        VkMemoryPropertyFlags memoryPropertyFlags,
+        BufferUsageType usageType,
+        const void *data) const;
+    bool shouldRedefineStorage(vk::Renderer *renderer,
+                               BufferUsageType usageType,
+                               VkMemoryPropertyFlags memoryPropertyFlags,
+                               size_t size) const;
 
     struct VertexConversionBuffer : public ConversionBuffer
     {
-        VertexConversionBuffer(RendererVk *renderer,
+        VertexConversionBuffer(vk::Renderer *renderer,
                                angle::FormatID formatIDIn,
                                GLuint strideIn,
                                size_t offsetIn,
@@ -221,6 +245,8 @@ class BufferVk : public BufferImpl
     // Otherwise it is mapped from ANGLE internal and will not be consistent with mState access
     // bits, so we have to keep record of it.
     bool mIsMappedForWrite;
+    // True if usage is dynamic. May affect how we allocate memory.
+    BufferUsageType mUsageType;
     // Similar as mIsMappedForWrite, this maybe different from mState's getMapOffset/getMapLength if
     // mapped from angle internal.
     VkDeviceSize mMappedOffset;

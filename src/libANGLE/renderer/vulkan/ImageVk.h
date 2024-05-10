@@ -24,7 +24,7 @@ class ExternalImageSiblingVk : public ExternalImageSiblingImpl
 
     virtual vk::ImageHelper *getImage() const = 0;
 
-    virtual void release(RendererVk *renderer) = 0;
+    virtual void release(vk::Renderer *renderer) = 0;
 };
 
 class ImageVk : public ImageImpl
@@ -45,9 +45,12 @@ class ImageVk : public ImageImpl
     gl::LevelIndex getImageLevel() const;
     uint32_t getImageLayer() const;
 
+    UniqueSerial generateSiblingSerial() { return mImageSiblingSerialFactory.generate(); }
+
   private:
     bool mOwnsImage;
     vk::ImageHelper *mImage;
+    UniqueSerialFactory mImageSiblingSerialFactory;
 
     const gl::Context *mContext;
 };

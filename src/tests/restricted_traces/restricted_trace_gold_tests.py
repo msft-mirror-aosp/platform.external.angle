@@ -346,9 +346,6 @@ def _get_gtest_filter_for_batch(args, batch):
 def _run_tests(args, tests, extra_flags, env, screenshot_dir, results, test_results):
     keys = get_skia_gold_keys(args, env)
 
-    if angle_test_util.IsAndroid() and args.test_suite == DEFAULT_TEST_SUITE:
-        android_helper.RunSmokeTest()
-
     with temporary_dir('angle_skia_gold_') as skia_gold_temp_dir:
         gold_properties = angle_skia_gold_properties.ANGLESkiaGoldProperties(args)
         gold_session_manager = angle_skia_gold_session_manager.ANGLESkiaGoldSessionManager(
@@ -384,9 +381,16 @@ def _run_tests(args, tests, extra_flags, env, screenshot_dir, results, test_resu
                 ] + extra_flags
                 if args.swiftshader:
                     cmd_args += ['--use-angle=swiftshader']
+
+                logging.info('Running batch with args: %s' % cmd_args)
                 result, _, json_results = angle_test_util.RunTestSuite(
                     args.test_suite, cmd_args, env, use_xvfb=args.xvfb)
-                batch_result = PASS if result == 0 else FAIL
+                if result == 0:
+                    batch_result = PASS
+                else:
+                    batch_result = FAIL
+                    logging.error('Batch FAIL! json_results: %s' %
+                                  json.dumps(json_results, indent=2))
 
                 next_batch = []
                 for trace in batch:

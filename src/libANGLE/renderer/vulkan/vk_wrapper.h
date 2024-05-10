@@ -61,6 +61,7 @@ enum class HandleType
 {
     Invalid,
     CommandBuffer,
+    RefCountedEvent,
     ANGLE_HANDLE_TYPES_X(ANGLE_COMMA_SEP_FUNC) EnumCount
 };
 
@@ -302,11 +303,16 @@ class CommandBuffer : public WrappedObject<CommandBuffer, VkCommandBuffer>
                       VkPipelineStageFlags dstStageMask,
                       const VkImageMemoryBarrier &imageMemoryBarrier);
 
+    void imageWaitEvent(const VkEvent &event,
+                        VkPipelineStageFlags srcStageMask,
+                        VkPipelineStageFlags dstStageMask,
+                        const VkImageMemoryBarrier &imageMemoryBarrier);
+
     void nextSubpass(VkSubpassContents subpassContents);
 
     void memoryBarrier(VkPipelineStageFlags srcStageMask,
                        VkPipelineStageFlags dstStageMask,
-                       const VkMemoryBarrier *memoryBarrier);
+                       const VkMemoryBarrier &memoryBarrier);
 
     void pipelineBarrier(VkPipelineStageFlags srcStageMask,
                          VkPipelineStageFlags dstStageMask,
@@ -351,6 +357,10 @@ class CommandBuffer : public WrappedObject<CommandBuffer, VkCommandBuffer>
     void setStencilReference(uint32_t frontReference, uint32_t backReference);
     void setStencilTestEnable(VkBool32 stencilTestEnable);
     void setStencilWriteMask(uint32_t writeFrontMask, uint32_t writeBackMask);
+    void setVertexInput(uint32_t vertexBindingDescriptionCount,
+                        const VkVertexInputBindingDescription2EXT *vertexBindingDescriptions,
+                        uint32_t vertexAttributeDescriptionCount,
+                        const VkVertexInputAttributeDescription2EXT *vertexAttributeDescriptions);
     void setViewport(uint32_t firstViewport, uint32_t viewportCount, const VkViewport *viewports);
     VkResult reset();
     void resetEvent(VkEvent event, VkPipelineStageFlags stageMask);
@@ -761,21 +771,18 @@ ANGLE_INLINE void CommandBuffer::blitImage(const Image &srcImage,
 
 ANGLE_INLINE VkResult CommandBuffer::begin(const VkCommandBufferBeginInfo &info)
 {
-    ANGLE_TRACE_EVENT0("gpu.angle", "CommandBuffer::begin");
     ASSERT(valid());
     return vkBeginCommandBuffer(mHandle, &info);
 }
 
 ANGLE_INLINE VkResult CommandBuffer::end()
 {
-    ANGLE_TRACE_EVENT0("gpu.angle", "CommandBuffer::end");
     ASSERT(valid());
     return vkEndCommandBuffer(mHandle);
 }
 
 ANGLE_INLINE VkResult CommandBuffer::reset()
 {
-    ANGLE_TRACE_EVENT0("gpu.angle", "CommandBuffer::reset");
     ASSERT(valid());
     return vkResetCommandBuffer(mHandle, 0);
 }
@@ -788,10 +795,10 @@ ANGLE_INLINE void CommandBuffer::nextSubpass(VkSubpassContents subpassContents)
 
 ANGLE_INLINE void CommandBuffer::memoryBarrier(VkPipelineStageFlags srcStageMask,
                                                VkPipelineStageFlags dstStageMask,
-                                               const VkMemoryBarrier *memoryBarrier)
+                                               const VkMemoryBarrier &memoryBarrier)
 {
     ASSERT(valid());
-    vkCmdPipelineBarrier(mHandle, srcStageMask, dstStageMask, 0, 1, memoryBarrier, 0, nullptr, 0,
+    vkCmdPipelineBarrier(mHandle, srcStageMask, dstStageMask, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 }
 
@@ -818,6 +825,16 @@ ANGLE_INLINE void CommandBuffer::imageBarrier(VkPipelineStageFlags srcStageMask,
     ASSERT(valid());
     vkCmdPipelineBarrier(mHandle, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1,
                          &imageMemoryBarrier);
+}
+
+ANGLE_INLINE void CommandBuffer::imageWaitEvent(const VkEvent &event,
+                                                VkPipelineStageFlags srcStageMask,
+                                                VkPipelineStageFlags dstStageMask,
+                                                const VkImageMemoryBarrier &imageMemoryBarrier)
+{
+    ASSERT(valid());
+    vkCmdWaitEvents(mHandle, 1, &event, srcStageMask, dstStageMask, 0, nullptr, 0, nullptr, 1,
+                    &imageMemoryBarrier);
 }
 
 ANGLE_INLINE void CommandBuffer::destroy(VkDevice device)
@@ -1118,6 +1135,17 @@ ANGLE_INLINE void CommandBuffer::setStencilWriteMask(uint32_t writeFrontMask,
     vkCmdSetStencilWriteMask(mHandle, VK_STENCIL_FACE_BACK_BIT, writeBackMask);
 }
 
+ANGLE_INLINE void CommandBuffer::setVertexInput(
+    uint32_t vertexBindingDescriptionCount,
+    const VkVertexInputBindingDescription2EXT *VertexBindingDescriptions,
+    uint32_t vertexAttributeDescriptionCount,
+    const VkVertexInputAttributeDescription2EXT *VertexAttributeDescriptions)
+{
+    ASSERT(valid());
+    vkCmdSetVertexInputEXT(mHandle, vertexBindingDescriptionCount, VertexBindingDescriptions,
+                           vertexAttributeDescriptionCount, VertexAttributeDescriptions);
+}
+
 ANGLE_INLINE void CommandBuffer::setViewport(uint32_t firstViewport,
                                              uint32_t viewportCount,
                                              const VkViewport *viewports)
@@ -1388,7 +1416,7 @@ ANGLE_INLINE VkResult Image::bindMemory(VkDevice device, const vk::DeviceMemory 
 ANGLE_INLINE VkResult Image::bindMemory2(VkDevice device, const VkBindImageMemoryInfoKHR &bindInfo)
 {
     ASSERT(valid());
-    return vkBindImageMemory2KHR(device, 1, &bindInfo);
+    return vkBindImageMemory2(device, 1, &bindInfo);
 }
 
 ANGLE_INLINE void Image::getSubresourceLayout(VkDevice device,
@@ -1491,7 +1519,6 @@ ANGLE_INLINE VkResult DeviceMemory::map(VkDevice device,
                                         VkMemoryMapFlags flags,
                                         uint8_t **mapPointer) const
 {
-    ANGLE_TRACE_EVENT0("gpu.angle", "DeviceMemory::map");
     ASSERT(valid());
     return vkMapMemory(device, mHandle, offset, size, flags, reinterpret_cast<void **>(mapPointer));
 }
@@ -1865,7 +1892,7 @@ ANGLE_INLINE void SamplerYcbcrConversion::destroy(VkDevice device)
 {
     if (valid())
     {
-        vkDestroySamplerYcbcrConversionKHR(device, mHandle, nullptr);
+        vkDestroySamplerYcbcrConversion(device, mHandle, nullptr);
         mHandle = VK_NULL_HANDLE;
     }
 }
@@ -1874,7 +1901,7 @@ ANGLE_INLINE VkResult
 SamplerYcbcrConversion::init(VkDevice device, const VkSamplerYcbcrConversionCreateInfo &createInfo)
 {
     ASSERT(!valid());
-    return vkCreateSamplerYcbcrConversionKHR(device, &createInfo, nullptr, &mHandle);
+    return vkCreateSamplerYcbcrConversion(device, &createInfo, nullptr, &mHandle);
 }
 
 // Event implementation.

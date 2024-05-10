@@ -10,19 +10,12 @@
 
 #include "libANGLE/renderer/driver_utils.h"
 
+#include "common/android_util.h"
 #include "common/platform.h"
 #include "common/system_utils.h"
 
-#if defined(ANGLE_PLATFORM_ANDROID)
-#    include <sys/system_properties.h>
-#endif
-
 #if defined(ANGLE_PLATFORM_LINUX)
 #    include <sys/utsname.h>
-#endif
-
-#if defined(ANGLE_PLATFORM_WINDOWS)
-#    include <versionhelpers.h>
 #endif
 
 namespace rx
@@ -149,22 +142,37 @@ const uint16_t IntelGen12[] = {
 
 IntelDriverVersion::IntelDriverVersion(uint32_t buildNumber) : mBuildNumber(buildNumber) {}
 
-bool IntelDriverVersion::operator==(const IntelDriverVersion &version)
+IntelDriverVersion::IntelDriverVersion(uint32_t majorVersion, uint32_t minorVersion)
+{
+    // The following format is only used in Windows/Intel drivers.
+    // < Major (18 bits) | Minor (14 bits) >
+#if !defined(ANGLE_PLATFORM_WINDOWS)
+    mBuildNumber = 0;
+#else
+    constexpr uint32_t kMajorVersionMask = angle::BitMask<uint32_t>(18);
+    constexpr uint32_t kMinorVersionMask = angle::BitMask<uint32_t>(14);
+    ASSERT(majorVersion <= kMajorVersionMask && minorVersion <= kMinorVersionMask);
+
+    mBuildNumber = (majorVersion << 14) | minorVersion;
+#endif
+}
+
+bool IntelDriverVersion::operator==(const IntelDriverVersion &version) const
 {
     return mBuildNumber == version.mBuildNumber;
 }
 
-bool IntelDriverVersion::operator!=(const IntelDriverVersion &version)
+bool IntelDriverVersion::operator!=(const IntelDriverVersion &version) const
 {
     return !(*this == version);
 }
 
-bool IntelDriverVersion::operator<(const IntelDriverVersion &version)
+bool IntelDriverVersion::operator<(const IntelDriverVersion &version) const
 {
     return mBuildNumber < version.mBuildNumber;
 }
 
-bool IntelDriverVersion::operator>=(const IntelDriverVersion &version)
+bool IntelDriverVersion::operator>=(const IntelDriverVersion &version) const
 {
     return !(*this < version);
 }
@@ -240,7 +248,7 @@ bool Is12thGenIntel(uint32_t DeviceId)
            std::end(IntelGen12);
 }
 
-const char *GetVendorString(uint32_t vendorId)
+std::string GetVendorString(uint32_t vendorId)
 {
     switch (vendorId)
     {
@@ -278,37 +286,23 @@ const char *GetVendorString(uint32_t vendorId)
             return "Test";
         case 0:
             return "NULL";
-        default:
-            // TODO(jmadill): More vendor IDs.
-            UNIMPLEMENTED();
-            return "Unknown";
     }
+
+    std::stringstream s;
+    s << gl::FmtHex(vendorId);
+    return s.str();
 }
 
-MajorMinorPatchVersion::MajorMinorPatchVersion() {}
-MajorMinorPatchVersion::MajorMinorPatchVersion(int major, int minor, int patch)
-    : majorVersion(major), minorVersion(minor), patchVersion(patch)
-{}
-
-bool operator==(const MajorMinorPatchVersion &a, const MajorMinorPatchVersion &b)
+IntelDriverVersion ParseIntelWindowsDriverVersion(uint32_t driverVersion)
 {
-    return std::tie(a.majorVersion, a.minorVersion, a.patchVersion) ==
-           std::tie(b.majorVersion, b.minorVersion, b.patchVersion);
-}
-bool operator!=(const MajorMinorPatchVersion &a, const MajorMinorPatchVersion &b)
-{
-    return std::tie(a.majorVersion, a.minorVersion, a.patchVersion) !=
-           std::tie(b.majorVersion, b.minorVersion, b.patchVersion);
-}
-bool operator<(const MajorMinorPatchVersion &a, const MajorMinorPatchVersion &b)
-{
-    return std::tie(a.majorVersion, a.minorVersion, a.patchVersion) <
-           std::tie(b.majorVersion, b.minorVersion, b.patchVersion);
-}
-bool operator>=(const MajorMinorPatchVersion &a, const MajorMinorPatchVersion &b)
-{
-    return std::tie(a.majorVersion, a.minorVersion, a.patchVersion) >=
-           std::tie(b.majorVersion, b.minorVersion, b.patchVersion);
+#if !defined(ANGLE_PLATFORM_WINDOWS)
+    return IntelDriverVersion(0);
+#else
+    // Windows Intel driver versions are built in the following format:
+    // < Major (18 bits) | Minor (14 bits) >
+    constexpr uint32_t kMinorVersionMask = angle::BitMask<uint32_t>(14);
+    return IntelDriverVersion(driverVersion >> 18, driverVersion & kMinorVersionMask);
+#endif
 }
 
 ARMDriverVersion ParseARMDriverVersion(uint32_t driverVersion)
@@ -323,17 +317,14 @@ ARMDriverVersion ParseARMDriverVersion(uint32_t driverVersion)
 
 int GetAndroidSDKVersion()
 {
-#if defined(ANGLE_PLATFORM_ANDROID)
-    char apiVersion[PROP_VALUE_MAX];
-    int length = __system_property_get("ro.build.version.sdk", apiVersion);
-    if (length == 0)
+    std::string androidSdkLevel;
+    if (!angle::android::GetSystemProperty(angle::android::kSDKSystemPropertyName,
+                                           &androidSdkLevel))
     {
         return 0;
     }
-    return atoi(apiVersion);
-#else
-    return 0;
-#endif
+
+    return std::atoi(androidSdkLevel.c_str());
 }
 #if !defined(ANGLE_PLATFORM_MACOS)
 OSVersion GetMacOSVersion()
@@ -343,7 +334,7 @@ OSVersion GetMacOSVersion()
 }
 #endif
 
-#if !defined(ANGLE_PLATFORM_IOS)
+#if !ANGLE_PLATFORM_IOS_FAMILY
 OSVersion GetiOSVersion()
 {
     // Return a default version
@@ -424,17 +415,6 @@ bool IsWayland()
         checked = true;
     }
     return isWayland;
-}
-
-bool IsWin10OrGreater()
-{
-#if defined(ANGLE_ENABLE_WINDOWS_UWP)
-    return true;
-#elif defined(ANGLE_PLATFORM_WINDOWS)
-    return IsWindows10OrGreater();
-#else
-    return false;
-#endif
 }
 
 }  // namespace rx

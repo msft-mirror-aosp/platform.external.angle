@@ -19,6 +19,10 @@
 #include "common/platform.h"
 #include "common/tls.h"
 
+#if defined(ANGLE_WITH_ASAN)
+#    include <sanitizer/asan_interface.h>
+#endif
+
 namespace angle
 {
 // If we are using guard blocks, we must track each individual allocation.  If we aren't using guard
@@ -298,16 +302,25 @@ void PoolAllocator::pop()
 
     while (mInUseList != page)
     {
+        // Grab the pageCount before calling the destructor.  While the destructor doesn't actually
+        // touch this variable, it's confusing MSAN.
+        const size_t pageCount = mInUseList->pageCount;
+        PageHeader *nextInUse  = mInUseList->nextPage;
+
         // invoke destructor to free allocation list
         mInUseList->~PageHeader();
 
-        PageHeader *nextInUse = mInUseList->nextPage;
-        if (mInUseList->pageCount > 1)
+        if (pageCount > 1)
         {
             delete[] reinterpret_cast<char *>(mInUseList);
         }
         else
         {
+#    if defined(ANGLE_WITH_ASAN)
+            // Clear any container annotations left over from when the memory
+            // was last used. (crbug.com/1419798)
+            __asan_unpoison_memory_region(mInUseList, mPageSize);
+#    endif
             mInUseList->nextPage = mFreeList;
             mFreeList            = mInUseList;
         }

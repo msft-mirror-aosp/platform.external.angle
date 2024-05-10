@@ -72,11 +72,23 @@ enum Token
     kConfigVulkan,
     kConfigSwiftShader,
     kConfigMetal,
+    kConfigWgpu,
     // Android devices
     kConfigNexus5X,
     kConfigPixel2,
     kConfigPixel4,
     kConfigPixel6,
+    kConfigPixel7,
+    kConfigFlipN2,
+    kConfigMaliG710,
+    kConfigGalaxyA23,
+    kConfigGalaxyA34,
+    kConfigGalaxyA54,
+    kConfigGalaxyS22,
+    kConfigGalaxyS23,
+    kConfigGalaxyQualcomm,
+    kConfigFindX6,
+    kConfigPineapple,
     // GPU devices
     kConfigNVIDIAQuadroP400,
     kConfigNVIDIAGTX1660,
@@ -180,10 +192,22 @@ constexpr TokenInfo kTokenData[kNumberOfTokens] = {
     {"vulkan", GPUTestConfig::kConditionVulkan},
     {"swiftshader", GPUTestConfig::kConditionSwiftShader},
     {"metal", GPUTestConfig::kConditionMetal},
+    {"wgpu", GPUTestConfig::kConditionWgpu},
     {"nexus5x", GPUTestConfig::kConditionNexus5X},
     {"pixel2orxl", GPUTestConfig::kConditionPixel2OrXL},
     {"pixel4orxl", GPUTestConfig::kConditionPixel4OrXL},
     {"pixel6", GPUTestConfig::kConditionPixel6},
+    {"pixel7", GPUTestConfig::kConditionPixel7},
+    {"flipn2", GPUTestConfig::kConditionFlipN2},
+    {"malig710", GPUTestConfig::kConditionMaliG710},
+    {"galaxya23", GPUTestConfig::kConditionGalaxyA23},
+    {"galaxya34", GPUTestConfig::kConditionGalaxyA34},
+    {"galaxya54", GPUTestConfig::kConditionGalaxyA54},
+    {"galaxys22", GPUTestConfig::kConditionGalaxyS22},
+    {"galaxys23", GPUTestConfig::kConditionGalaxyS23},
+    {"galaxyqualcomm", GPUTestConfig::kConditionGalaxyQualcomm},
+    {"findx6", GPUTestConfig::kConditionFindX6},
+    {"pineapple", GPUTestConfig::kConditionPineapple},
     {"quadrop400", GPUTestConfig::kConditionNVIDIAQuadroP400},
     {"gtx1660", GPUTestConfig::kConditionNVIDIAGTX1660},
     {"prerotation", GPUTestConfig::kConditionPreRotation},
@@ -500,10 +524,22 @@ bool GPUTestExpectationsParser::parseLine(const GPUTestConfig *config,
             case kConfigVulkan:
             case kConfigSwiftShader:
             case kConfigMetal:
+            case kConfigWgpu:
             case kConfigNexus5X:
             case kConfigPixel2:
             case kConfigPixel4:
             case kConfigPixel6:
+            case kConfigPixel7:
+            case kConfigFlipN2:
+            case kConfigMaliG710:
+            case kConfigGalaxyA23:
+            case kConfigGalaxyA34:
+            case kConfigGalaxyA54:
+            case kConfigGalaxyS22:
+            case kConfigGalaxyS23:
+            case kConfigGalaxyQualcomm:
+            case kConfigFindX6:
+            case kConfigPineapple:
             case kConfigNVIDIAQuadroP400:
             case kConfigNVIDIAGTX1660:
             case kConfigPreRotation:

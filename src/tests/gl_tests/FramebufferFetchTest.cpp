@@ -89,6 +89,20 @@ void main (void)
     o_color += u_color;
 })";
 
+// Coherent version of a 1.0 GLSL fragment shader that writes to 4 attachments with constant indices
+static constexpr char k100Coherent4AttachmentFS[] = R"(#version 100
+#extension GL_EXT_shader_framebuffer_fetch : require
+#extension GL_EXT_draw_buffers : require
+uniform highp vec4 u_color;
+
+void main (void)
+{
+    gl_FragData[0] = gl_LastFragData[0] + u_color;
+    gl_FragData[1] = gl_LastFragData[1] + u_color;
+    gl_FragData[2] = gl_LastFragData[2] + u_color;
+    gl_FragData[3] = gl_LastFragData[3] + u_color;
+})";
+
 // Coherent version of a 3.1 GLSL fragment shader that writes to 4 attachments
 static constexpr char k310Coherent4AttachmentFS[] = R"(#version 310 es
 #extension GL_EXT_shader_framebuffer_fetch : require
@@ -157,6 +171,117 @@ void main (void)
     o_color3 += u_color;
 })";
 
+// Coherent version of a 3.1 GLSL fragment shader that writes to 4 attachments, fetching from
+// different indices (version 3)
+static constexpr char k310CoherentDifferent4AttachmentFS3[] = R"(#version 310 es
+#extension GL_EXT_shader_framebuffer_fetch : require
+layout(location = 0) out highp vec4 o_color0;
+layout(location = 1) inout highp vec4 o_color1;
+layout(location = 2) inout highp vec4 o_color2;
+layout(location = 3) out highp vec4 o_color3;
+uniform highp vec4 u_color;
+
+void main (void)
+{
+    o_color0 = u_color;
+    o_color1 += u_color;
+    o_color2 += u_color;
+    o_color3 = u_color;
+})";
+
+// Coherent version of a 3.1 GLSL fragment shader that writes to 4 attachments, fetching from
+// different indices (version 4)
+static constexpr char k310CoherentDifferent4AttachmentFS4[] = R"(#version 310 es
+#extension GL_EXT_shader_framebuffer_fetch : require
+layout(location = 0) out highp vec4 o_color0;
+layout(location = 1) out highp vec4 o_color1;
+layout(location = 2) inout highp vec4 o_color2;
+layout(location = 3) inout highp vec4 o_color3;
+uniform highp vec4 u_color;
+
+void main (void)
+{
+    o_color0 = u_color;
+    o_color1 = u_color;
+    o_color2 += u_color;
+    o_color3 += u_color;
+})";
+
+// Coherent version of a 1.0 GLSL fragment shader with complex interactions
+static constexpr char k100CoherentComplexFS[] = R"(#version 100
+#extension GL_EXT_shader_framebuffer_fetch : require
+#extension GL_EXT_draw_buffers : require
+precision highp float;
+uniform vec4 u_color;
+
+vec4 addColor(vec4 lastFragData, vec4 color)
+{
+    return lastFragData + color;
+}
+
+void addLastFragData(inout vec4 outVar, vec4 lastFragData)
+{
+    outVar += lastFragData;
+}
+
+void main (void)
+{
+    // Leave gl_LastFragData[0] unused, as well as gl_LastFragData[2]
+    gl_FragData[0] = u_color;
+    gl_FragData[1] = addColor(gl_LastFragData[1], u_color);
+    gl_FragData[2] = u_color;
+    gl_FragData[3] = addColor(gl_LastFragData[3], u_color);
+
+    // Make sure gl_LastFragData is not clobbered by a write to gl_FragData.
+    gl_FragData[1] -= gl_LastFragData[1];
+    gl_FragData[3] -= gl_LastFragData[3];
+    // Test passing to inout variables.
+    addLastFragData(gl_FragData[1], gl_LastFragData[1]);
+    addLastFragData(gl_FragData[3], gl_LastFragData[3]);
+})";
+
+// Coherent version of a 3.1 GLSL fragment shader with complex interactions
+static constexpr char k310CoherentComplexFS[] = R"(#version 310 es
+#extension GL_EXT_shader_framebuffer_fetch : require
+precision highp float;
+layout(location = 0) inout highp vec4 o_color0;
+layout(location = 1) inout highp vec4 o_color1;
+layout(location = 2) inout highp vec4 o_color2[2];
+uniform vec4 u_color;
+
+vec4 addColor(vec4 lastValue, vec4 color)
+{
+    return lastValue + color;
+}
+
+vec4 getColor2_1()
+{
+    return o_color2[1];
+}
+
+void addUniform(inout vec4 outVar)
+{
+    outVar += u_color;
+}
+
+void main (void)
+{
+    // o_color0 and o_color2[0] don't use the input value.
+    o_color0 = u_color;
+    o_color2[0] = u_color;
+
+    addUniform(o_color1);
+    addUniform(o_color2[1]);
+
+    // Make sure reading back from the output variables returns the latest value and not the
+    // original input value.
+    vec4 temp1 = o_color1;
+    vec4 temp3 = getColor2_1();
+
+    o_color1 = temp1;
+    o_color2[1] = temp3;
+})";
+
 // Shared Non-Coherent Fragment Shaders for the tests below
 //
 // Non-coherent version of a 1.0 GLSL fragment shader that uses gl_LastFragData
@@ -196,6 +321,22 @@ void main (void)
     uint index = uint(gl_FragCoord.y) * 16u + uint(gl_FragCoord.x);
     data[index] = o_color;
     o_color += u_color;
+})";
+
+// Non-coherent version of a 1.0 GLSL fragment shader that writes to 4 attachments with constant
+// indices
+static constexpr char k100NonCoherent4AttachmentFS[] = R"(#version 100
+#extension GL_EXT_shader_framebuffer_fetch_non_coherent : require
+#extension GL_EXT_draw_buffers : require
+layout(noncoherent) mediump vec4 gl_LastFragData[gl_MaxDrawBuffers];
+uniform highp vec4 u_color;
+
+void main (void)
+{
+    gl_FragData[0] = gl_LastFragData[0] + u_color;
+    gl_FragData[1] = gl_LastFragData[1] + u_color;
+    gl_FragData[2] = gl_LastFragData[2] + u_color;
+    gl_FragData[3] = gl_LastFragData[3] + u_color;
 })";
 
 // Non-coherent version of a 3.1 GLSL fragment shader that writes to 4 attachments
@@ -266,6 +407,118 @@ void main (void)
     o_color3 += u_color;
 })";
 
+// Non-coherent version of a 3.1 GLSL fragment shader that writes to 4 attachments, fetching from
+// different indices (version 3)
+static constexpr char k310NonCoherentDifferent4AttachmentFS3[] = R"(#version 310 es
+#extension GL_EXT_shader_framebuffer_fetch_non_coherent : require
+layout(location = 0) out highp vec4 o_color0;
+layout(noncoherent, location = 1) inout highp vec4 o_color1;
+layout(noncoherent, location = 2) inout highp vec4 o_color2;
+layout(location = 3) out highp vec4 o_color3;
+uniform highp vec4 u_color;
+
+void main (void)
+{
+    o_color0 = u_color;
+    o_color1 += u_color;
+    o_color2 += u_color;
+    o_color3 = u_color;
+})";
+
+// Non-coherent version of a 3.1 GLSL fragment shader that writes to 4 attachments, fetching from
+// different indices (version 4)
+static constexpr char k310NonCoherentDifferent4AttachmentFS4[] = R"(#version 310 es
+#extension GL_EXT_shader_framebuffer_fetch_non_coherent : require
+layout(location = 0) out highp vec4 o_color0;
+layout(location = 1) out highp vec4 o_color1;
+layout(noncoherent, location = 2) inout highp vec4 o_color2;
+layout(noncoherent, location = 3) inout highp vec4 o_color3;
+uniform highp vec4 u_color;
+
+void main (void)
+{
+    o_color0 = u_color;
+    o_color1 = u_color;
+    o_color2 += u_color;
+    o_color3 += u_color;
+})";
+
+// Non-coherent version of a 1.0 GLSL fragment shader with complex interactions
+static constexpr char k100NonCoherentComplexFS[] = R"(#version 100
+#extension GL_EXT_shader_framebuffer_fetch_non_coherent : require
+#extension GL_EXT_draw_buffers : require
+precision highp float;
+layout(noncoherent) mediump vec4 gl_LastFragData[gl_MaxDrawBuffers];
+uniform vec4 u_color;
+
+vec4 addColor(vec4 lastFragData, vec4 color)
+{
+    return lastFragData + color;
+}
+
+void addLastFragData(inout vec4 outVar, vec4 lastFragData)
+{
+    outVar += lastFragData;
+}
+
+void main (void)
+{
+    // Leave gl_LastFragData[0] unused, as well as gl_LastFragData[2]
+    gl_FragData[0] = u_color;
+    gl_FragData[1] = addColor(gl_LastFragData[1], u_color);
+    gl_FragData[2] = u_color;
+    gl_FragData[3] = addColor(gl_LastFragData[3], u_color);
+
+    // Make sure gl_LastFragData is not clobbered by a write to gl_FragData.
+    gl_FragData[1] -= gl_LastFragData[1];
+    gl_FragData[3] -= gl_LastFragData[3];
+    // Test passing to inout variables.
+    addLastFragData(gl_FragData[1], gl_LastFragData[1]);
+    addLastFragData(gl_FragData[3], gl_LastFragData[3]);
+})";
+
+// Non-coherent version of a 3.1 GLSL fragment shader with complex interactions
+static constexpr char k310NonCoherentComplexFS[] = R"(#version 310 es
+#extension GL_EXT_shader_framebuffer_fetch_non_coherent : require
+precision highp float;
+layout(location = 0) out highp vec4 o_color0;
+layout(noncoherent, location = 1) inout highp vec4 o_color1;
+layout(noncoherent, location = 2) inout highp vec4 o_color2[2];
+uniform vec4 u_color;
+
+vec4 addColor(vec4 lastValue, vec4 color)
+{
+    return lastValue + color;
+}
+
+vec4 getColor2_1()
+{
+    return o_color2[1];
+}
+
+void addUniform(inout vec4 outVar)
+{
+    outVar += u_color;
+}
+
+void main (void)
+{
+    // o_color0 and o_color2[0] don't use the input value.
+    o_color0 = u_color;
+    o_color2[0] = u_color;
+
+    addUniform(o_color1);
+    addUniform(o_color2[1]);
+
+    // Make sure reading back from the output variables returns the latest value and not the
+    // original input value.
+    vec4 temp1 = o_color1;
+    vec4 temp3 = getColor2_1();
+
+    o_color1 = temp1;
+    o_color2[1] = temp3;
+})";
+
 // Shared Coherent Fragment Shaders for the tests below
 //
 // Coherent version of a 1.0 GLSL fragment shader that uses gl_LastFragColorARM
@@ -307,6 +560,122 @@ void main (void)
     o_color = u_color + gl_LastFragColorARM;
 })";
 
+// Variants that use both EXT and ARM simultaneously.  At least one app has been observed to do
+// this.
+static constexpr char k100BothFS[] = R"(#version 100
+#extension GL_EXT_shader_framebuffer_fetch : require
+#extension GL_ARM_shader_framebuffer_fetch : require
+uniform highp vec4 u_color;
+
+void main (void)
+{
+    gl_FragColor = u_color + (gl_LastFragColorARM + gl_LastFragData[0]) / 2.;
+})";
+
+static constexpr char k310Both1AttachmentFS[] = R"(#version 310 es
+#extension GL_EXT_shader_framebuffer_fetch : require
+#extension GL_ARM_shader_framebuffer_fetch : require
+inout highp vec4 o_color;
+
+uniform highp vec4 u_color;
+void main (void)
+{
+    o_color = u_color + (o_color + gl_LastFragColorARM) / 2.;
+})";
+
+static constexpr char k100Both4AttachmentFS[] = R"(#version 100
+#extension GL_EXT_shader_framebuffer_fetch : require
+#extension GL_ARM_shader_framebuffer_fetch : require
+#extension GL_EXT_draw_buffers : require
+uniform highp vec4 u_color;
+
+void main (void)
+{
+    gl_FragData[0] = (gl_LastFragData[0] + gl_LastFragColorARM) / 2. + u_color;
+    gl_FragData[1] = gl_LastFragData[1] + u_color;
+    gl_FragData[2] = gl_LastFragData[2] + u_color;
+    gl_FragData[3] = gl_LastFragData[3] + u_color;
+})";
+
+static constexpr char k100BothComplexFS[] = R"(#version 100
+#extension GL_EXT_shader_framebuffer_fetch : require
+#extension GL_ARM_shader_framebuffer_fetch : require
+#extension GL_EXT_draw_buffers : require
+precision highp float;
+uniform vec4 u_color;
+
+vec4 addColor(vec4 lastFragData, vec4 color)
+{
+    return lastFragData + color;
+}
+
+void addLastFragData(inout vec4 outVar, vec4 lastFragData)
+{
+    outVar += lastFragData;
+}
+
+void main (void)
+{
+    // Leave gl_LastFragData[1] unused, as well as gl_LastFragData[3]
+    gl_FragData[0] = addColor((gl_LastFragData[0] + gl_LastFragColorARM) / 2., u_color);
+    gl_FragData[1] = u_color;
+    gl_FragData[2] = addColor(gl_LastFragData[2], u_color);
+    gl_FragData[3] = u_color;
+
+    // Make sure gl_LastFragData is not clobbered by a write to gl_FragData.
+    gl_FragData[0] -= gl_LastFragColorARM;
+    gl_FragData[2] -= gl_LastFragData[2];
+    // Test passing to inout variables.
+    addLastFragData(gl_FragData[0], gl_LastFragData[0]);
+    addLastFragData(gl_FragData[2], gl_LastFragData[2]);
+})";
+
+static constexpr char k310BothComplexFS[] = R"(#version 310 es
+#extension GL_EXT_shader_framebuffer_fetch : require
+#extension GL_ARM_shader_framebuffer_fetch : require
+precision highp float;
+layout(location = 0) inout highp vec4 o_color0;
+layout(location = 1) inout highp vec4 o_color1;
+layout(location = 2) inout highp vec4 o_color2[2];
+uniform vec4 u_color;
+
+vec4 addColor(vec4 lastValue, vec4 color)
+{
+    return lastValue + color;
+}
+
+vec4 getColor2_0()
+{
+    return o_color2[0];
+}
+
+void addUniform(inout vec4 outVar)
+{
+    outVar += u_color;
+}
+
+void main (void)
+{
+    // o_color1 and o_color2[1] don't use the input value.
+    o_color1 = u_color;
+    o_color2[1] = u_color;
+
+    o_color0 = gl_LastFragColorARM + u_color;
+    addUniform(o_color2[0]);
+
+    // Make sure reading back from the output variables returns the latest value and not the
+    // original input value.
+    vec4 temp0 = o_color0;
+    vec4 temp2 = getColor2_0();
+
+    o_color0 = temp0;
+    o_color2[0] = temp2;
+
+    // Make sure gl_LastFragColorARM is not clobberred by the write to o_color0
+    if (gl_LastFragColorARM == o_color0)
+        o_color0 = vec4(0);
+})";
+
 class FramebufferFetchES31 : public ANGLETest<>
 {
   protected:
@@ -326,6 +695,7 @@ class FramebufferFetchES31 : public ANGLETest<>
 
         mCoherentExtension = false;
         mARMExtension      = false;
+        mBothExtensions    = false;
     }
 
     enum WhichExtension
@@ -333,11 +703,13 @@ class FramebufferFetchES31 : public ANGLETest<>
         COHERENT,
         NON_COHERENT,
         ARM,
+        BOTH,
     };
     void setWhichExtension(WhichExtension whichExtension)
     {
-        mCoherentExtension = (whichExtension == COHERENT || whichExtension == ARM) ? true : false;
-        mARMExtension      = (whichExtension == ARM) ? true : false;
+        mCoherentExtension = whichExtension != NON_COHERENT;
+        mARMExtension      = whichExtension == ARM;
+        mBothExtensions    = whichExtension == BOTH;
     }
 
     enum WhichFragmentShader
@@ -346,14 +718,40 @@ class FramebufferFetchES31 : public ANGLETest<>
         GLSL310_NO_FETCH_1ATTACHMENT,
         GLSL310_1ATTACHMENT,
         GLSL310_1ATTACHMENT_WITH_STORAGE_BUFFER,
+        GLSL100_4ATTACHMENT,
+        GLSL100_COMPLEX,
         GLSL310_4ATTACHMENT,
         GLSL310_4ATTACHMENT_ARRAY,
         GLSL310_4ATTACHMENT_DIFFERENT1,
         GLSL310_4ATTACHMENT_DIFFERENT2,
+        GLSL310_4ATTACHMENT_DIFFERENT3,
+        GLSL310_4ATTACHMENT_DIFFERENT4,
+        GLSL310_COMPLEX,
     };
     const char *getFragmentShader(WhichFragmentShader whichFragmentShader)
     {
-        if (mARMExtension)
+        if (mBothExtensions)
+        {
+            switch (whichFragmentShader)
+            {
+                case GLSL100:
+                    return k100BothFS;
+                case GLSL310_NO_FETCH_1ATTACHMENT:
+                    return k310NoFetch1AttachmentFS;
+                case GLSL310_1ATTACHMENT:
+                    return k310Both1AttachmentFS;
+                case GLSL100_4ATTACHMENT:
+                    return k100Both4AttachmentFS;
+                case GLSL100_COMPLEX:
+                    return k100BothComplexFS;
+                case GLSL310_COMPLEX:
+                    return k310BothComplexFS;
+                default:
+                    UNREACHABLE();
+                    return nullptr;
+            }
+        }
+        else if (mARMExtension)
         {
             // gl_LastFragColorARM cannot support multiple attachments
             switch (whichFragmentShader)
@@ -383,6 +781,8 @@ class FramebufferFetchES31 : public ANGLETest<>
                     return k310Coherent1AttachmentFS;
                 case GLSL310_1ATTACHMENT_WITH_STORAGE_BUFFER:
                     return k310CoherentStorageBuffer;
+                case GLSL100_4ATTACHMENT:
+                    return k100Coherent4AttachmentFS;
                 case GLSL310_4ATTACHMENT:
                     return k310Coherent4AttachmentFS;
                 case GLSL310_4ATTACHMENT_ARRAY:
@@ -391,6 +791,14 @@ class FramebufferFetchES31 : public ANGLETest<>
                     return k310CoherentDifferent4AttachmentFS1;
                 case GLSL310_4ATTACHMENT_DIFFERENT2:
                     return k310CoherentDifferent4AttachmentFS2;
+                case GLSL310_4ATTACHMENT_DIFFERENT3:
+                    return k310CoherentDifferent4AttachmentFS3;
+                case GLSL310_4ATTACHMENT_DIFFERENT4:
+                    return k310CoherentDifferent4AttachmentFS4;
+                case GLSL100_COMPLEX:
+                    return k100CoherentComplexFS;
+                case GLSL310_COMPLEX:
+                    return k310CoherentComplexFS;
                 default:
                     UNREACHABLE();
                     return nullptr;
@@ -408,6 +816,8 @@ class FramebufferFetchES31 : public ANGLETest<>
                     return k310NonCoherent1AttachmentFS;
                 case GLSL310_1ATTACHMENT_WITH_STORAGE_BUFFER:
                     return k310NonCoherentStorageBuffer;
+                case GLSL100_4ATTACHMENT:
+                    return k100NonCoherent4AttachmentFS;
                 case GLSL310_4ATTACHMENT:
                     return k310NonCoherent4AttachmentFS;
                 case GLSL310_4ATTACHMENT_ARRAY:
@@ -416,6 +826,14 @@ class FramebufferFetchES31 : public ANGLETest<>
                     return k310NonCoherentDifferent4AttachmentFS1;
                 case GLSL310_4ATTACHMENT_DIFFERENT2:
                     return k310NonCoherentDifferent4AttachmentFS2;
+                case GLSL310_4ATTACHMENT_DIFFERENT3:
+                    return k310NonCoherentDifferent4AttachmentFS3;
+                case GLSL310_4ATTACHMENT_DIFFERENT4:
+                    return k310NonCoherentDifferent4AttachmentFS4;
+                case GLSL100_COMPLEX:
+                    return k100NonCoherentComplexFS;
+                case GLSL310_COMPLEX:
+                    return k310NonCoherentComplexFS;
                 default:
                     UNREACHABLE();
                     return nullptr;
@@ -486,14 +904,14 @@ class FramebufferFetchES31 : public ANGLETest<>
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void MultipleRenderTargetTest(GLProgram &program)
+    void MultipleRenderTargetTest(GLProgram &program, WhichFragmentShader whichFragmentShader)
     {
         GLFramebuffer framebuffer;
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-        std::vector<GLColor> color0(kViewportWidth * kViewportHeight, GLColor::black);
+        std::vector<GLColor> color0(kViewportWidth * kViewportHeight, GLColor::cyan);
         std::vector<GLColor> color1(kViewportWidth * kViewportHeight, GLColor::green);
         std::vector<GLColor> color2(kViewportWidth * kViewportHeight, GLColor::blue);
-        std::vector<GLColor> color3(kViewportWidth * kViewportHeight, GLColor::cyan);
+        std::vector<GLColor> color3(kViewportWidth * kViewportHeight, GLColor::black);
         GLTexture colorBufferTex[kMaxColorBuffer];
         GLenum colorAttachments[kMaxColorBuffer] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
                                                     GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
@@ -528,14 +946,40 @@ class FramebufferFetchES31 : public ANGLETest<>
 
         ASSERT_GL_NO_ERROR();
 
+        // All fragment shaders add the input color with the uniform.  Except the COMPLEX shaders
+        // which initialize attachments 0 and 2, or 1 and 3 with the uniform only (and don't use
+        // input attachments for these indices).
+        GLColor expect0 = GLColor::white;
+        GLColor expect1 = GLColor::yellow;
+        GLColor expect2 = GLColor::magenta;
+        GLColor expect3 = GLColor::red;
+        switch (whichFragmentShader)
+        {
+            case GLSL100_COMPLEX:
+            case GLSL310_COMPLEX:
+                if (mBothExtensions)
+                {
+                    expect1 = GLColor::red;
+                    expect3 = GLColor::red;
+                }
+                else
+                {
+                    expect0 = GLColor::red;
+                    expect2 = GLColor::red;
+                }
+                break;
+            default:
+                break;
+        }
+
         glReadBuffer(colorAttachments[0]);
-        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, GLColor::red);
+        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, expect0);
         glReadBuffer(colorAttachments[1]);
-        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, GLColor::yellow);
+        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, expect1);
         glReadBuffer(colorAttachments[2]);
-        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, GLColor::magenta);
+        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, expect2);
         glReadBuffer(colorAttachments[3]);
-        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, GLColor::white);
+        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, expect3);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -1015,24 +1459,15 @@ class FramebufferFetchES31 : public ANGLETest<>
         GLTexture colorBufferTex1[kMaxColorBuffer];
         GLenum colorAttachments[kMaxColorBuffer] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
                                                     GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
-        glBindTexture(GL_TEXTURE_2D, colorBufferTex1[0]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kViewportWidth, kViewportHeight, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, color1.data());
-        glBindTexture(GL_TEXTURE_2D, colorBufferTex1[1]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kViewportWidth, kViewportHeight, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, color1.data());
-        glBindTexture(GL_TEXTURE_2D, colorBufferTex1[2]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kViewportWidth, kViewportHeight, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, color1.data());
-        glBindTexture(GL_TEXTURE_2D, colorBufferTex1[3]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kViewportWidth, kViewportHeight, 0, GL_RGBA,
-                     GL_UNSIGNED_BYTE, color1.data());
-        glBindTexture(GL_TEXTURE_2D, 0);
         for (unsigned int i = 0; i < kMaxColorBuffer; i++)
         {
+            glBindTexture(GL_TEXTURE_2D, colorBufferTex1[i]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kViewportWidth, kViewportHeight, 0, GL_RGBA,
+                         GL_UNSIGNED_BYTE, color1.data());
             glFramebufferTexture2D(GL_FRAMEBUFFER, colorAttachments[i], GL_TEXTURE_2D,
                                    colorBufferTex1[i], 0);
         }
+        glBindTexture(GL_TEXTURE_2D, 0);
         glDrawBuffers(kMaxColorBuffer, &colorAttachments[0]);
         ASSERT_GL_NO_ERROR();
 
@@ -1077,6 +1512,69 @@ class FramebufferFetchES31 : public ANGLETest<>
         EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, GLColor::red);
         glReadBuffer(colorAttachments[3]);
         EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, GLColor::yellow);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void DrawFetchWithDifferentIndicesInSameRenderPassTest(GLProgram &programFetch1,
+                                                           GLProgram &programFetch2)
+    {
+        GLFramebuffer framebufferMRT1;
+        glBindFramebuffer(GL_FRAMEBUFFER, framebufferMRT1);
+        std::vector<GLColor> color1(kViewportWidth * kViewportHeight, GLColor::green);
+        GLTexture colorBufferTex1[kMaxColorBuffer];
+        GLenum colorAttachments[kMaxColorBuffer] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+                                                    GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+        for (unsigned int i = 0; i < kMaxColorBuffer; i++)
+        {
+            glBindTexture(GL_TEXTURE_2D, colorBufferTex1[i]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kViewportWidth, kViewportHeight, 0, GL_RGBA,
+                         GL_UNSIGNED_BYTE, color1.data());
+            glFramebufferTexture2D(GL_FRAMEBUFFER, colorAttachments[i], GL_TEXTURE_2D,
+                                   colorBufferTex1[i], 0);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDrawBuffers(kMaxColorBuffer, &colorAttachments[0]);
+        ASSERT_GL_NO_ERROR();
+
+        glUseProgram(programFetch1);
+        ASSERT_GL_NO_ERROR();
+
+        GLint colorLocation     = glGetUniformLocation(programFetch1, "u_color");
+        const float colorRed[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+        glUniform4fv(colorLocation, 1, colorRed);
+
+        GLint positionLocation = glGetAttribLocation(programFetch1, "a_position");
+        // Render potentially with a glFramebufferFetchBarrierEXT() depending on the [non-]coherent
+        // extension being used
+        //
+        // Attachments are red, yellow, yellow, red
+        render(positionLocation, !mCoherentExtension);
+        ASSERT_GL_NO_ERROR();
+
+        glUseProgram(programFetch2);
+        ASSERT_GL_NO_ERROR();
+
+        GLint colorLocation1     = glGetUniformLocation(programFetch2, "u_color");
+        const float colorBlue[4] = {0.0f, 0.0f, 1.0f, 1.0f};
+        glUniform4fv(colorLocation1, 1, colorBlue);
+
+        GLint positionLocation1 = glGetAttribLocation(programFetch2, "a_position");
+        // Render potentially with a glFramebufferFetchBarrierEXT() depending on the [non-]coherent
+        // extension being used
+        //
+        // Attachments are blue, blue, white, magenta
+        render(positionLocation1, !mCoherentExtension);
+        ASSERT_GL_NO_ERROR();
+
+        glReadBuffer(colorAttachments[0]);
+        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, GLColor::blue);
+        glReadBuffer(colorAttachments[1]);
+        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, GLColor::blue);
+        glReadBuffer(colorAttachments[2]);
+        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, GLColor::white);
+        glReadBuffer(colorAttachments[3]);
+        EXPECT_PIXEL_COLOR_EQ(kViewportWidth / 2, kViewportHeight / 2, GLColor::magenta);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -1293,6 +1791,7 @@ class FramebufferFetchES31 : public ANGLETest<>
 
     bool mCoherentExtension;
     bool mARMExtension;
+    bool mBothExtensions;
 };
 
 // Test coherent extension with inout qualifier
@@ -1351,6 +1850,51 @@ TEST_P(FramebufferFetchES31, BasicLastFragData_NonCoherent)
     BasicTest(program);
 }
 
+// Testing coherent extension with multiple render target, using gl_FragData with constant indices
+TEST_P(FramebufferFetchES31, MultipleRenderTarget_Coherent_FragData)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    setWhichExtension(COHERENT);
+
+    GLProgram program;
+    program.makeRaster(k100VS, getFragmentShader(GLSL100_4ATTACHMENT));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    MultipleRenderTargetTest(program, GLSL100_4ATTACHMENT);
+}
+
+// Testing coherent extension with multiple render target, using gl_FragData with complex
+// expressions
+TEST_P(FramebufferFetchES31, MultipleRenderTarget_Coherent_FragData_Complex)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    setWhichExtension(COHERENT);
+
+    GLProgram program;
+    program.makeRaster(k100VS, getFragmentShader(GLSL100_COMPLEX));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    MultipleRenderTargetTest(program, GLSL100_COMPLEX);
+}
+
+// Testing coherent extension with multiple render target, using inouts with complex expressions
+TEST_P(FramebufferFetchES31, MultipleRenderTarget_Coherent_Complex)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    setWhichExtension(COHERENT);
+
+    GLProgram program;
+    program.makeRaster(k310VS, getFragmentShader(GLSL310_COMPLEX));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    MultipleRenderTargetTest(program, GLSL310_COMPLEX);
+}
+
 // Testing coherent extension with multiple render target
 TEST_P(FramebufferFetchES31, MultipleRenderTarget_Coherent)
 {
@@ -1362,7 +1906,53 @@ TEST_P(FramebufferFetchES31, MultipleRenderTarget_Coherent)
     glUseProgram(program);
     ASSERT_GL_NO_ERROR();
 
-    MultipleRenderTargetTest(program);
+    MultipleRenderTargetTest(program, GLSL310_4ATTACHMENT);
+}
+
+// Testing non-coherent extension with multiple render target, using gl_FragData with constant
+// indices
+TEST_P(FramebufferFetchES31, MultipleRenderTarget_NonCoherent_FragData)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch_non_coherent"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    setWhichExtension(NON_COHERENT);
+
+    GLProgram program;
+    program.makeRaster(k100VS, getFragmentShader(GLSL100_4ATTACHMENT));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    MultipleRenderTargetTest(program, GLSL100_4ATTACHMENT);
+}
+
+// Testing non-coherent extension with multiple render target, using gl_FragData with complex
+// expressions
+TEST_P(FramebufferFetchES31, MultipleRenderTarget_NonCoherent_FragData_Complex)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch_non_coherent"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    setWhichExtension(NON_COHERENT);
+
+    GLProgram program;
+    program.makeRaster(k100VS, getFragmentShader(GLSL100_COMPLEX));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    MultipleRenderTargetTest(program, GLSL100_COMPLEX);
+}
+
+// Testing non-coherent extension with multiple render target, using inouts with complex expressions
+TEST_P(FramebufferFetchES31, MultipleRenderTarget_NonCoherent_Complex)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch_non_coherent"));
+    setWhichExtension(NON_COHERENT);
+
+    GLProgram program;
+    program.makeRaster(k310VS, getFragmentShader(GLSL310_COMPLEX));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    MultipleRenderTargetTest(program, GLSL310_COMPLEX);
 }
 
 // Testing non-coherent extension with multiple render target
@@ -1376,7 +1966,7 @@ TEST_P(FramebufferFetchES31, MultipleRenderTarget_NonCoherent)
     glUseProgram(program);
     ASSERT_GL_NO_ERROR();
 
-    MultipleRenderTargetTest(program);
+    MultipleRenderTargetTest(program, GLSL310_4ATTACHMENT);
 }
 
 // Testing non-coherent extension with multiple render target using inout array
@@ -1390,7 +1980,7 @@ TEST_P(FramebufferFetchES31, MultipleRenderTargetWithInoutArray_NonCoherent)
     glUseProgram(program);
     ASSERT_GL_NO_ERROR();
 
-    MultipleRenderTargetTest(program);
+    MultipleRenderTargetTest(program, GLSL310_4ATTACHMENT);
 }
 
 // Testing coherent extension with multiple render target using inout array
@@ -1404,7 +1994,7 @@ TEST_P(FramebufferFetchES31, MultipleRenderTargetWithInoutArray_Coherent)
     glUseProgram(program);
     ASSERT_GL_NO_ERROR();
 
-    MultipleRenderTargetTest(program);
+    MultipleRenderTargetTest(program, GLSL310_4ATTACHMENT);
 }
 
 // Test coherent extension with multiple draw
@@ -1632,6 +2222,36 @@ TEST_P(FramebufferFetchES31, DrawNonFetchDrawFetchWithDifferentPrograms_NonCoher
     DrawNonFetchDrawFetchWithDifferentProgramsTest(programNonFetch, programFetch1, programFetch2);
 }
 
+// Testing coherent extension with two fetch programs using different attachments.  The different
+// sets of attachments start at different non-zero indices.
+TEST_P(FramebufferFetchES31, DrawFetchWithDifferentIndicesInSameRenderPass_Coherent)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    setWhichExtension(COHERENT);
+
+    GLProgram programFetch1, programFetch2;
+    programFetch1.makeRaster(k310VS, getFragmentShader(GLSL310_4ATTACHMENT_DIFFERENT3));
+    programFetch2.makeRaster(k310VS, getFragmentShader(GLSL310_4ATTACHMENT_DIFFERENT4));
+    ASSERT_GL_NO_ERROR();
+
+    DrawFetchWithDifferentIndicesInSameRenderPassTest(programFetch1, programFetch2);
+}
+
+// Testing non-coherent extension with two fetch programs using different attachments.  The
+// different sets of attachments start at different non-zero indices.
+TEST_P(FramebufferFetchES31, DrawFetchWithDifferentIndicesInSameRenderPass_NonCoherent)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch_non_coherent"));
+    setWhichExtension(NON_COHERENT);
+
+    GLProgram programFetch1, programFetch2;
+    programFetch1.makeRaster(k310VS, getFragmentShader(GLSL310_4ATTACHMENT_DIFFERENT3));
+    programFetch2.makeRaster(k310VS, getFragmentShader(GLSL310_4ATTACHMENT_DIFFERENT4));
+    ASSERT_GL_NO_ERROR();
+
+    DrawFetchWithDifferentIndicesInSameRenderPassTest(programFetch1, programFetch2);
+}
+
 // Testing coherent extension with the order of draw fetch, blit and draw fetch
 TEST_P(FramebufferFetchES31, DrawFetchBlitDrawFetch_Coherent)
 {
@@ -1680,8 +2300,8 @@ TEST_P(FramebufferFetchES31, ProgramPipeline_NonCoherent)
                         getFragmentShader(GLSL310_1ATTACHMENT));
 }
 
-// TODO: http://anglebug.com/5792
-TEST_P(FramebufferFetchES31, DISABLED_UniformUsageCombinations)
+// Test combination of inout and samplers.
+TEST_P(FramebufferFetchES31, UniformUsageCombinations)
 {
     ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch_non_coherent"));
 
@@ -1822,6 +2442,8 @@ void main()
 
     ASSERT_GL_NO_ERROR();
 
+    // Because no texture is bound, the shader samples black, increments the counter for every pixel
+    // and sets all attachments to black.
     for (unsigned int i = 0; i < kMaxColorBuffer; i++)
     {
         glReadBuffer(colorAttachments[i]);
@@ -1831,7 +2453,7 @@ void main()
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, atomicBuffer);
     userCounters = static_cast<GLuint *>(
         glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), GL_MAP_READ_BIT));
-    EXPECT_EQ(*userCounters, kViewportWidth * kViewportHeight * 2);
+    EXPECT_EQ(*userCounters, kViewportWidth * kViewportHeight * 4);
     glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
     glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 
@@ -2796,6 +3418,118 @@ TEST_P(FramebufferFetchES31, BasicTokenUsage_ARM)
     ASSERT_EQ(isFragmentShaderFramebufferFetchMrtFloat, 0.0);
 
     ASSERT_GL_NO_ERROR();
+}
+
+// Test using both extensions simultaneously with gl_LastFragData and gl_LastFragColorARM
+TEST_P(FramebufferFetchES31, BasicLastFragData_Both)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ARM_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    setWhichExtension(BOTH);
+
+    GLProgram program;
+    program.makeRaster(k100VS, getFragmentShader(GLSL100));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    BasicTest(program);
+}
+
+// Test using both extentions simultaneously with multiple draw
+TEST_P(FramebufferFetchES31, MultipleDraw_Both)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ARM_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    setWhichExtension(BOTH);
+
+    GLProgram program;
+    program.makeRaster(k310VS, getFragmentShader(GLSL310_1ATTACHMENT));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    MultipleDrawTest(program);
+}
+
+// Testing using both extentions simultaneously with the order of non-fetch program and fetch
+// program
+TEST_P(FramebufferFetchES31, DrawNonFetchDrawFetch_Both)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ARM_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    setWhichExtension(BOTH);
+
+    GLProgram programNonFetch, programFetch;
+    programNonFetch.makeRaster(k310VS, getFragmentShader(GLSL310_NO_FETCH_1ATTACHMENT));
+    programFetch.makeRaster(k310VS, getFragmentShader(GLSL310_1ATTACHMENT));
+    ASSERT_GL_NO_ERROR();
+
+    DrawNonFetchDrawFetchTest(programNonFetch, programFetch);
+}
+
+// Testing using both extentions simultaneously with the order of fetch program and non-fetch
+// program
+TEST_P(FramebufferFetchES31, DrawFetchDrawNonFetch_Both)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ARM_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    setWhichExtension(BOTH);
+
+    GLProgram programNonFetch, programFetch;
+    programNonFetch.makeRaster(k310VS, getFragmentShader(GLSL310_NO_FETCH_1ATTACHMENT));
+    programFetch.makeRaster(k310VS, getFragmentShader(GLSL310_1ATTACHMENT));
+    ASSERT_GL_NO_ERROR();
+
+    DrawFetchDrawNonFetchTest(programNonFetch, programFetch);
+}
+
+// Testing using both extentions simultaneously with multiple render target, using gl_FragData with
+// constant indices
+TEST_P(FramebufferFetchES31, MultipleRenderTarget_Both_FragData)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ARM_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    setWhichExtension(BOTH);
+
+    GLProgram program;
+    program.makeRaster(k100VS, getFragmentShader(GLSL100_4ATTACHMENT));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    MultipleRenderTargetTest(program, GLSL100_4ATTACHMENT);
+}
+
+// Testing using both extentions simultaneously with multiple render target, using gl_FragData with
+// complex expressions
+TEST_P(FramebufferFetchES31, MultipleRenderTarget_Both_FragData_Complex)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ARM_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    setWhichExtension(BOTH);
+
+    GLProgram program;
+    program.makeRaster(k100VS, getFragmentShader(GLSL100_COMPLEX));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    MultipleRenderTargetTest(program, GLSL100_COMPLEX);
+}
+
+// Testing using both extentions simultaneously with multiple render target, using inouts with
+// complex expressions
+TEST_P(FramebufferFetchES31, MultipleRenderTarget_Both_Complex)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ARM_shader_framebuffer_fetch"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+    setWhichExtension(BOTH);
+
+    GLProgram program;
+    program.makeRaster(k310VS, getFragmentShader(GLSL310_COMPLEX));
+    glUseProgram(program);
+    ASSERT_GL_NO_ERROR();
+
+    MultipleRenderTargetTest(program, GLSL310_COMPLEX);
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(FramebufferFetchES31);
