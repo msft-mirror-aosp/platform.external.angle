@@ -16,10 +16,13 @@
 #include "libANGLE/renderer/wgpu/ContextWgpu.h"
 #include "libANGLE/renderer/wgpu/wgpu_utils.h"
 
+namespace rx
+{
+
 namespace
 {
-bool RenderPassColorAttachmentEqual(const wgpu::RenderPassColorAttachment &attachment1,
-                                    const wgpu::RenderPassColorAttachment &attachment2)
+bool CompareColorRenderPassAttachments(const wgpu::RenderPassColorAttachment &attachment1,
+                                       const wgpu::RenderPassColorAttachment &attachment2)
 {
 
     if (attachment1.nextInChain != nullptr || attachment2.nextInChain != nullptr)
@@ -37,7 +40,27 @@ bool RenderPassColorAttachmentEqual(const wgpu::RenderPassColorAttachment &attac
            attachment1.clearValue.a == attachment2.clearValue.a;
 }
 
-bool RenderPassDepthStencilAttachmentEqual(
+bool CompareColorRenderPassAttachmentVectors(
+    const std::vector<wgpu::RenderPassColorAttachment> &attachments1,
+    const std::vector<wgpu::RenderPassColorAttachment> &attachments2)
+{
+    if (attachments1.size() != attachments2.size())
+    {
+        return false;
+    }
+
+    for (uint32_t i = 0; i < attachments1.size(); ++i)
+    {
+        if (!CompareColorRenderPassAttachments(attachments1[i], attachments2[i]))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool CompareDepthStencilRenderPassAttachments(
     const wgpu::RenderPassDepthStencilAttachment &attachment1,
     const wgpu::RenderPassDepthStencilAttachment &attachment2)
 {
@@ -50,39 +73,7 @@ bool RenderPassDepthStencilAttachmentEqual(
            attachment1.stencilClearValue == attachment2.stencilClearValue &&
            attachment1.stencilReadOnly == attachment2.stencilReadOnly;
 }
-// TODO(anglebug.com/8582): this should eventually ignore load and store operations so we
-// can avoid starting a new render pass in more situations.
-bool RenderPassDescEqual(const wgpu::RenderPassDescriptor &desc1,
-                         const wgpu::RenderPassDescriptor &desc2)
-{
-
-    if (desc1.nextInChain != nullptr || desc2.nextInChain != nullptr)
-    {
-        return false;
-    }
-
-    if (desc1.colorAttachmentCount != desc2.colorAttachmentCount)
-    {
-        return false;
-    }
-
-    for (uint32_t i = 0; i < desc1.colorAttachmentCount; ++i)
-    {
-        if (!RenderPassColorAttachmentEqual(desc1.colorAttachments[i], desc2.colorAttachments[i]))
-        {
-            return false;
-        }
-    }
-
-    // TODO(anglebug.com/8582): for now ignore `occlusionQuerySet` and `timestampWrites`.
-
-    return RenderPassDepthStencilAttachmentEqual(*desc1.depthStencilAttachment,
-                                                 *desc2.depthStencilAttachment);
-}
 }  // namespace
-
-namespace rx
-{
 
 FramebufferWgpu::FramebufferWgpu(const gl::FramebufferState &state) : FramebufferImpl(state) {}
 
@@ -121,6 +112,7 @@ angle::Result FramebufferWgpu::clear(const gl::Context *context, GLbitfield mask
     ContextWgpu *contextWgpu   = GetImplAs<ContextWgpu>(context);
     gl::ColorF colorClearValue = context->getState().getColorClearValue();
 
+    std::vector<wgpu::RenderPassColorAttachment> colorAttachments;
     for (size_t enabledDrawBuffer : mState.getEnabledDrawBuffers())
     {
         wgpu::RenderPassColorAttachment colorAttachment;
@@ -133,20 +125,20 @@ angle::Result FramebufferWgpu::clear(const gl::Context *context, GLbitfield mask
         colorAttachment.clearValue.g = colorClearValue.green;
         colorAttachment.clearValue.b = colorClearValue.blue;
         colorAttachment.clearValue.a = colorClearValue.alpha;
-        // TODO(liza): reset mCurrentColorAttachments in syncState.
-        mCurrentColorAttachments.push_back(colorAttachment);
+        colorAttachments.push_back(colorAttachment);
     }
-
-    wgpu::RenderPassDescriptor newRenderPassDesc;
-    newRenderPassDesc.colorAttachmentCount = mCurrentColorAttachments.size();
-    newRenderPassDesc.colorAttachments     = mCurrentColorAttachments.data();
 
     // Attempt to end a render pass if one has already been started.
-    if (!RenderPassDescEqual(mCurrentRenderPassDesc, newRenderPassDesc))
+    ANGLE_UNUSED_VARIABLE(CompareDepthStencilRenderPassAttachments);
+    if (!CompareColorRenderPassAttachmentVectors(mCurrentColorAttachments, colorAttachments))
     {
         ANGLE_TRY(contextWgpu->endRenderPass(webgpu::RenderPassClosureReason::NewRenderPass));
-        mCurrentRenderPassDesc = newRenderPassDesc;
+
+        mCurrentColorAttachments                    = std::move(colorAttachments);
+        mCurrentRenderPassDesc.colorAttachmentCount = mCurrentColorAttachments.size();
+        mCurrentRenderPassDesc.colorAttachments     = mCurrentColorAttachments.data();
     }
+
     // TODO(anglebug.com/8582): optimize this implementation.
     ANGLE_TRY(contextWgpu->startRenderPass(mCurrentRenderPassDesc));
     ANGLE_TRY(contextWgpu->endRenderPass(webgpu::RenderPassClosureReason::NewRenderPass));
@@ -209,38 +201,25 @@ angle::Result FramebufferWgpu::readPixels(const gl::Context *context,
     // Clip read area to framebuffer.
     const gl::Extents fbSize = getState().getReadPixelsAttachment(format)->getSize();
     const gl::Rectangle fbRect(0, 0, fbSize.width, fbSize.height);
-    gl::Rectangle area;
-    if (!ClipRectangle(origArea, fbRect, &area))
+    gl::Rectangle clippedArea;
+    if (!ClipRectangle(origArea, fbRect, &clippedArea))
     {
         // nothing to read
         return angle::Result::Continue;
     }
 
-    // Compute size of unclipped rows and initial skip
-    const gl::InternalFormat &glFormat = gl::GetInternalFormatInfo(format, type);
-
     ContextWgpu *contextWgpu = GetImplAs<ContextWgpu>(context);
+    GLuint outputSkipBytes   = 0;
+    PackPixelsParams params;
+    const angle::Format &angleFormat = GetFormatFromFormatType(format, type);
+    ANGLE_TRY(webgpu::ImageHelper::getReadPixelsParams(contextWgpu, pack, packBuffer, format, type,
+                                                       origArea, clippedArea, &params,
+                                                       &outputSkipBytes));
 
-    GLuint rowBytes = 0;
-    ANGLE_CHECK_GL_MATH(contextWgpu, glFormat.computeRowPitch(type, origArea.width, pack.alignment,
-                                                              pack.rowLength, &rowBytes));
-
-    GLuint skipBytes = 0;
-    ANGLE_CHECK_GL_MATH(contextWgpu,
-                        glFormat.computeSkipBytes(type, rowBytes, 0, pack, false, &skipBytes));
-    pixels += skipBytes;
-
-    // Skip OOB region up to first in bounds pixel
-    int leftClip = area.x - origArea.x;
-    int topClip  = area.y - origArea.y;
-    pixels += leftClip * glFormat.pixelBytes + topClip * rowBytes;
-
-    // Write the in-bounds readpixels data with non-zero values
-    for (GLint y = area.y; y < area.y + area.height; ++y)
-    {
-        memset(pixels, 42, glFormat.pixelBytes * area.width);
-        pixels += rowBytes;
-    }
+    RenderTargetWgpu *renderTarget = getReadPixelsRenderTarget(angleFormat);
+    ANGLE_TRY(
+        renderTarget->getImage()->readPixels(contextWgpu, params.area, params, angleFormat,
+                                             static_cast<uint8_t *>(pixels) + outputSkipBytes));
 
     return angle::Result::Continue;
 }
@@ -320,6 +299,15 @@ angle::Result FramebufferWgpu::getSamplePosition(const gl::Context *context,
                                                  GLfloat *xy) const
 {
     return angle::Result::Continue;
+}
+
+RenderTargetWgpu *FramebufferWgpu::getReadPixelsRenderTarget(const angle::Format &format) const
+{
+    if (format.hasDepthOrStencilBits())
+    {
+        return mRenderTargetCache.getDepthStencil();
+    }
+    return mRenderTargetCache.getColorRead(mState);
 }
 
 }  // namespace rx
