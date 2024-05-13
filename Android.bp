@@ -4069,6 +4069,7 @@ cc_defaults {
     name: "third_party_abseil_cpp_absl_debugging_demangle_internal",
     srcs: [
         "third_party/abseil-cpp/absl/debugging/internal/demangle.cc",
+        "third_party/abseil-cpp/absl/debugging/internal/demangle_rust.cc",
     ],
     defaults: [
         "angle_common_auto_cflags",
