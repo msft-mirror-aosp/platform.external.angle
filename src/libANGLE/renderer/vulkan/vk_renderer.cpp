@@ -284,8 +284,6 @@ constexpr const char *kSkippedMessages[] = {
     // https://issuetracker.google.com/336847261
     "VUID-VkImageCreateInfo-pNext-02397",
     "VUID-vkCmdDraw-None-06550",
-    // https://anglebug.com/8680
-    "VUID-VkSwapchainCreateInfoKHR-presentMode-02839",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -1496,7 +1494,8 @@ Renderer::~Renderer() {}
 
 bool Renderer::hasSharedGarbage()
 {
-    return !mSharedGarbageList.empty() || !mSuballocationGarbageList.empty();
+    return !mSharedGarbageList.empty() || !mSuballocationGarbageList.empty() ||
+           !mRefCountedEventGarbageList.empty();
 }
 
 void Renderer::onDestroy(vk::Context *context)
@@ -1695,7 +1694,12 @@ angle::Result Renderer::enableInstanceExtensions(vk::Context *context,
             mEnabledInstanceExtensions.push_back(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
         }
 
-        if (ExtensionFound(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME, instanceExtensionNames))
+        ANGLE_FEATURE_CONDITION(
+            &mFeatures, supportsSurfaceMaintenance1,
+            !isMockICDEnabled() && ExtensionFound(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME,
+                                                  instanceExtensionNames));
+
+        if (mFeatures.supportsSurfaceMaintenance1.enabled)
         {
             mEnabledInstanceExtensions.push_back(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME);
         }
@@ -5502,6 +5506,8 @@ void Renderer::cleanupGarbage()
     // Note: do this after clean up mSuballocationGarbageList so that we will have more chances to
     // find orphaned blocks being empty.
     mOrphanedBufferBlockList.pruneEmptyBufferBlocks(this);
+    // Clean up event garbages
+    mRefCountedEventGarbageList.cleanupSubmittedGarbage(this);
 }
 
 void Renderer::cleanupPendingSubmissionGarbage()
@@ -5509,6 +5515,7 @@ void Renderer::cleanupPendingSubmissionGarbage()
     // Check if pending garbage is still pending. If not, move them to the garbage list.
     mSharedGarbageList.cleanupUnsubmittedGarbage(this);
     mSuballocationGarbageList.cleanupUnsubmittedGarbage(this);
+    mRefCountedEventGarbageList.cleanupUnsubmittedGarbage(this);
 }
 
 void Renderer::onNewValidationMessage(const std::string &message)

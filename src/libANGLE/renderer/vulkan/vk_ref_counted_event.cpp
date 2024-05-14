@@ -15,18 +15,7 @@ namespace rx
 {
 namespace vk
 {
-
-void ReleaseRefcountedEvent(VkDevice device, RefCountedEventAndLayoutHandle atomicRefCountedEvent)
-{
-    const bool isLastReference = atomicRefCountedEvent->getAndReleaseRef() == 1;
-    if (isLastReference)
-    {
-        atomicRefCountedEvent->get().event.destroy(device);
-        SafeDelete(atomicRefCountedEvent);
-    }
-}
-
-void RefCountedEvent::init(Context *context, ImageLayout layout)
+bool RefCountedEvent::init(Context *context, ImageLayout layout)
 {
     ASSERT(mHandle == nullptr);
     ASSERT(layout != ImageLayout::Undefined);
@@ -38,31 +27,50 @@ void RefCountedEvent::init(Context *context, ImageLayout layout)
     createInfo.flags = context->getFeatures().supportsSynchronization2.enabled
                            ? VK_EVENT_CREATE_DEVICE_ONLY_BIT_KHR
                            : 0;
-    mHandle->get().event.init(context->getDevice(), createInfo);
+    VkResult result  = mHandle->get().event.init(context->getDevice(), createInfo);
+    if (result != VK_SUCCESS)
+    {
+        WARN() << "event.init failed. Clean up garbage and retry again";
+        // Proactively clean up garbage and retry
+        context->getRenderer()->cleanupGarbage();
+        result = mHandle->get().event.init(context->getDevice(), createInfo);
+        if (result != VK_SUCCESS)
+        {
+            // Drivers usually can allocate huge amount of VkEvents, and we should never use that
+            // many VkEvents under normal situation. If we failed to allocate, there is a high
+            // chance that we may have a leak somewhere. This macro should help us catch such
+            // potential bugs in the bots if that happens.
+            UNREACHABLE();
+            // If still fail to create, we just return. An invalid event will trigger
+            // pipelineBarrier code path
+            return false;
+        }
+    }
     mHandle->addRef();
     mHandle->get().imageLayout = layout;
+    return true;
 }
 
-// RefCountedEventGarbageObjects implementation
-void RefCountedEventGarbageObjects::add(RefCountedEvent *event)
+// RefCountedEventsGarbage implementation.
+bool RefCountedEventsGarbage::destroyIfComplete(Renderer *renderer)
 {
-    mGarbageObjects.emplace_back(GetGarbage(event));
-}
-
-void RefCountedEventGarbageObjects::add(std::vector<RefCountedEvent> *events)
-{
-    while (!events->empty())
+    if (renderer->hasResourceUseFinished(mLifetime))
     {
-        mGarbageObjects.emplace_back(GetGarbage(&events->back()));
-        events->pop_back();
+        for (RefCountedEvent &event : mRefCountedEvents)
+        {
+            ASSERT(event.valid());
+            event.release(renderer->getDevice());
+            ASSERT(!event.valid());
+        }
+        mRefCountedEvents.clear();
+        return true;
     }
+    return false;
 }
 
-void RefCountedEventGarbageObjects::add(const RefCountedEvent &event)
+bool RefCountedEventsGarbage::hasResourceUseSubmitted(Renderer *renderer) const
 {
-    RefCountedEvent localEventCopy = event;
-    mGarbageObjects.emplace_back(GetGarbage(&localEventCopy));
-    ASSERT(!localEventCopy.valid());
+    return renderer->hasResourceUseSubmitted(mLifetime);
 }
 
 // EventBarrier implementation.
