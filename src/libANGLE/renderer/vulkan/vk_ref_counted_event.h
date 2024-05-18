@@ -145,7 +145,7 @@ class RefCountedEvent final
 
     RefCounted<EventAndLayout> *mHandle;
 };
-using RefCountedEventCollector = std::vector<RefCountedEvent>;
+using RefCountedEventCollector = std::deque<RefCountedEvent>;
 
 // This class tracks a vector of RefcountedEvent garbage. For performance reason, instead of
 // individually tracking each VkEvent garbage, we collect all events that are accessed in the
@@ -193,12 +193,8 @@ class RefCountedEventsGarbage final
     // Move the vector of events to the garbage list
     void add(RefCountedEventCollector &&events)
     {
-        mRefCountedEvents.reserve(mRefCountedEvents.size() + events.size());
-        for (RefCountedEvent &event : events)
-        {
-            mRefCountedEvents.emplace_back(std::move(event));
-        }
-        events.clear();
+        mRefCountedEvents.insert(mRefCountedEvents.end(), events.begin(), events.end());
+        ASSERT(events.empty());
     }
 
     // Make a copy of event (which adds another refcount to the VkEvent) and add the copied event to
@@ -238,11 +234,11 @@ class RefCountedEventRecycler final
         // Take lock once and then use event's releaseImpl function to directly recycle into the
         // underlying recycling storage.
         std::lock_guard<angle::SimpleMutex> lock(mMutex);
-        for (RefCountedEvent &event : eventCollector)
+        while (!eventCollector.empty())
         {
-            event.releaseImpl(renderer, &mFreeStack);
+            eventCollector.back().releaseImpl(renderer, &mFreeStack);
+            eventCollector.pop_back();
         }
-        eventCollector.clear();
     }
 
     bool fetch(RefCountedEvent *outObject)
@@ -312,7 +308,12 @@ class EventBarrier : angle::NonCopyable
 {
   public:
     EventBarrier()
-        : mSrcStageMask(0), mDstStageMask(0), mMemoryBarrierSrcAccess(0), mMemoryBarrierDstAccess(0)
+        : mSrcStageMask(0),
+          mDstStageMask(0),
+          mMemoryBarrierSrcAccess(0),
+          mMemoryBarrierDstAccess(0),
+          mImageMemoryBarrierCount(0),
+          mEvent(VK_NULL_HANDLE)
     {}
 
     EventBarrier(VkPipelineStageFlags srcStageMask,
@@ -323,9 +324,11 @@ class EventBarrier : angle::NonCopyable
         : mSrcStageMask(srcStageMask),
           mDstStageMask(dstStageMask),
           mMemoryBarrierSrcAccess(srcAccess),
-          mMemoryBarrierDstAccess(dstAccess)
+          mMemoryBarrierDstAccess(dstAccess),
+          mImageMemoryBarrierCount(0),
+          mEvent(event)
     {
-        mEvents.push_back(event);
+        ASSERT(mEvent != VK_NULL_HANDLE);
     }
 
     EventBarrier(VkPipelineStageFlags srcStageMask,
@@ -335,40 +338,37 @@ class EventBarrier : angle::NonCopyable
         : mSrcStageMask(srcStageMask),
           mDstStageMask(dstStageMask),
           mMemoryBarrierSrcAccess(0),
-          mMemoryBarrierDstAccess(0)
+          mMemoryBarrierDstAccess(0),
+          mImageMemoryBarrierCount(1),
+          mEvent(event),
+          mImageMemoryBarrier(imageMemoryBarrier)
     {
-        ASSERT(event != VK_NULL_HANDLE);
-        ASSERT(imageMemoryBarrier.pNext == nullptr);
-        mEvents.push_back(event);
-        mImageMemoryBarriers.push_back(imageMemoryBarrier);
+        ASSERT(mEvent != VK_NULL_HANDLE);
+        ASSERT(mImageMemoryBarrier.image != VK_NULL_HANDLE);
+        ASSERT(mImageMemoryBarrier.pNext == nullptr);
     }
 
     EventBarrier(EventBarrier &&other)
     {
-        mSrcStageMask           = other.mSrcStageMask;
-        mDstStageMask           = other.mDstStageMask;
-        mMemoryBarrierSrcAccess = other.mMemoryBarrierSrcAccess;
-        mMemoryBarrierDstAccess = other.mMemoryBarrierDstAccess;
-        std::swap(mEvents, other.mEvents);
-        std::swap(mImageMemoryBarriers, other.mImageMemoryBarriers);
-        other.mSrcStageMask           = 0;
-        other.mDstStageMask           = 0;
-        other.mMemoryBarrierSrcAccess = 0;
-        other.mMemoryBarrierDstAccess = 0;
+        mSrcStageMask            = other.mSrcStageMask;
+        mDstStageMask            = other.mDstStageMask;
+        mMemoryBarrierSrcAccess  = other.mMemoryBarrierSrcAccess;
+        mMemoryBarrierDstAccess  = other.mMemoryBarrierDstAccess;
+        mImageMemoryBarrierCount = other.mImageMemoryBarrierCount;
+        std::swap(mEvent, other.mEvent);
+        std::swap(mImageMemoryBarrier, other.mImageMemoryBarrier);
+        other.mSrcStageMask            = 0;
+        other.mDstStageMask            = 0;
+        other.mMemoryBarrierSrcAccess  = 0;
+        other.mMemoryBarrierDstAccess  = 0;
+        other.mImageMemoryBarrierCount = 0;
     }
 
-    ~EventBarrier()
-    {
-        ASSERT(mImageMemoryBarriers.empty());
-        ASSERT(mEvents.empty());
-    }
+    ~EventBarrier() {}
 
-    bool isEmpty() const
-    {
-        return mEvents.empty() && mImageMemoryBarriers.empty() && mMemoryBarrierDstAccess == 0;
-    }
+    bool isEmpty() const { return mEvent == VK_NULL_HANDLE; }
 
-    bool hasEvent(const VkEvent &event) const;
+    bool hasEvent(const VkEvent &event) const { return mEvent == event; }
 
     void addAdditionalStageAccess(VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccess)
     {
@@ -378,12 +378,6 @@ class EventBarrier : angle::NonCopyable
 
     void execute(PrimaryCommandBuffer *primary);
 
-    void reset()
-    {
-        mEvents.clear();
-        mImageMemoryBarriers.clear();
-    }
-
     void addDiagnosticsString(std::ostringstream &out) const;
 
   private:
@@ -392,8 +386,9 @@ class EventBarrier : angle::NonCopyable
     VkPipelineStageFlags mDstStageMask;
     VkAccessFlags mMemoryBarrierSrcAccess;
     VkAccessFlags mMemoryBarrierDstAccess;
-    std::vector<VkEvent> mEvents;
-    std::vector<VkImageMemoryBarrier> mImageMemoryBarriers;
+    uint32_t mImageMemoryBarrierCount;
+    VkEvent mEvent;
+    VkImageMemoryBarrier mImageMemoryBarrier;
 };
 
 class EventBarrierArray final
@@ -413,7 +408,7 @@ class EventBarrierArray final
                        VkPipelineStageFlags dstStageMask,
                        const VkImageMemoryBarrier &imageMemoryBarrier);
 
-    void reset() { mBarriers.clear(); }
+    void reset() { ASSERT(mBarriers.empty()); }
 
     void addDiagnosticsString(std::ostringstream &out) const;
 
