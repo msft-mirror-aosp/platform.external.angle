@@ -10,6 +10,7 @@
 #define LIBANGLE_RENDERER_VULKAN_VK_HELPERS_H_
 
 #include "common/MemoryBuffer.h"
+#include "common/SimpleMutex.h"
 #include "libANGLE/renderer/vulkan/MemoryTracking.h"
 #include "libANGLE/renderer/vulkan/Suballocation.h"
 #include "libANGLE/renderer/vulkan/vk_cache_utils.h"
@@ -174,6 +175,8 @@ struct ImageLayoutEventMaps
     // loop of map
     angle::PackedEnumMap<ImageLayout, RefCountedEvent> map;
     angle::PackedEnumBitSet<ImageLayout, uint64_t> mask;
+    // Only used by RenderPassCommandBufferHelper
+    angle::PackedEnumMap<ImageLayout, VkEvent> vkEvents;
 };
 
 // A dynamic buffer is conceptually an infinitely long buffer. Each time you write to the buffer,
@@ -987,13 +990,14 @@ class BufferHelper : public ReadWriteResource
 
     void recordReadBarrier(VkAccessFlags readAccessType,
                            VkPipelineStageFlags readStage,
-                           PipelineBarrierArray *barriers,
-                           PipelineStage stageIndex);
+                           PipelineStage stageIndex,
+                           PipelineBarrierArray *barriers);
 
     void recordWriteBarrier(VkAccessFlags writeAccessType,
                             VkPipelineStageFlags writeStage,
-                            PipelineBarrierArray *barriers,
-                            PipelineStage stageIndex);
+                            PipelineStage stageIndex,
+                            PipelineBarrierArray *barriers);
+
     void fillWithColor(const angle::Color<uint8_t> &color,
                        const gl::InternalFormat &internalFormat);
 
@@ -1336,6 +1340,13 @@ class CommandBufferHelperCommon : angle::NonCopyable
     // event is also updated with this command's event.
     void retainImage(Context *context, ImageHelper *image);
 
+    // Returns true if event already existed in this command buffer.
+    bool hasSetEventPendingFlush(const RefCountedEvent &event) const
+    {
+        ASSERT(event.valid());
+        return mRefCountedEvents.map[event.getImageLayout()] == event;
+    }
+
     // Issue VkCmdSetEvent call for events in this command buffer.
     template <typename CommandBufferT>
     void flushSetEventsImpl(Context *context, CommandBufferT *commandBuffer);
@@ -1391,6 +1402,7 @@ class CommandBufferHelperCommon : angle::NonCopyable
     void imageReadImpl(Context *context,
                        VkImageAspectFlags aspectFlags,
                        ImageLayout imageLayout,
+                       BarrierType barrierType,
                        ImageHelper *image);
     void imageWriteImpl(Context *context,
                         gl::LevelIndex level,
@@ -1398,12 +1410,14 @@ class CommandBufferHelperCommon : angle::NonCopyable
                         uint32_t layerCount,
                         VkImageAspectFlags aspectFlags,
                         ImageLayout imageLayout,
+                        BarrierType barrierType,
                         ImageHelper *image);
 
     void updateImageLayoutAndBarrier(Context *context,
                                      ImageHelper *image,
                                      VkImageAspectFlags aspectFlags,
-                                     ImageLayout imageLayout);
+                                     ImageLayout imageLayout,
+                                     BarrierType barrierType);
 
     void addCommandDiagnosticsCommon(std::ostringstream *out);
 
@@ -1412,6 +1426,7 @@ class CommandBufferHelperCommon : angle::NonCopyable
 
     // Barriers to be executed before the command buffer.
     PipelineBarrierArray mPipelineBarriers;
+    EventBarrierArray mEventBarriers;
 
     // The command pool *CommandBufferHelper::mCommandBuffer is allocated from.  Only used with
     // Vulkan secondary command buffers (as opposed to ANGLE's SecondaryCommandBuffer).
@@ -1435,7 +1450,7 @@ class CommandBufferHelperCommon : angle::NonCopyable
     // The list of RefCountedEvents that have be tracked
     ImageLayoutEventMaps mRefCountedEvents;
     // The list of RefCountedEvents that should be garbage collected when it gets reset.
-    RefCountedEventGarbageObjects mRefCountedEventGarbage;
+    RefCountedEventCollector mRefCountedEventCollector;
 };
 
 class SecondaryCommandBufferCollector;
@@ -1508,8 +1523,13 @@ class OutsideRenderPassCommandBufferHelper final : public CommandBufferHelperCom
     void trackImagesWithEvent(Context *context, ImageHelper *srcImage, ImageHelper *dstImage);
     void trackImagesWithEvent(Context *context, const ImageHelperPtr *images, size_t count);
 
-    // Issues VkCmdSetEvent calls.
+    // Issues SetEvent calls to the command buffer.
     void flushSetEvents(Context *context) { flushSetEventsImpl(context, &mCommandBuffer); }
+    // Clean up event garbage. Note that ImageHelper object may still holding reference count to it,
+    // so the event itself will not gets destroyed until the last refCount goes away.
+    void collectRefCountedEventsGarbage(RefCountedEventsGarbageRecycler *garbageRecycler);
+
+    RefCountedEventCollector *getRefCountedEventCollector() { return &mRefCountedEventCollector; }
 
     angle::Result flushToPrimary(Context *context, CommandsState *commandsState);
 
@@ -1859,6 +1879,8 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     void updateDepthStencilReadOnlyMode(RenderPassUsageFlags dsUsageFlags,
                                         VkImageAspectFlags dsAspectFlags);
 
+    void collectRefCountedEventsGarbage(RefCountedEventsGarbageRecycler *garbageRecycler);
+
   private:
     uint32_t getSubpassCommandBufferCount() const { return mCurrentSubpassCommandBufferIndex + 1; }
 
@@ -1896,6 +1918,7 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     void finalizeFragmentShadingRateImageLayout(Context *context);
 
     void trackImagesWithEvent(Context *context, const ImageHelperPtr *images, size_t count);
+    void executeSetEvents(Context *context, PrimaryCommandBuffer *primary);
 
     // When using Vulkan secondary command buffers, each subpass must be recorded in a separate
     // command buffer.  Currently ANGLE produces render passes with at most 2 subpasses.
@@ -1965,7 +1988,7 @@ class CommandBufferRecycler
     void recycleCommandBufferHelper(CommandBufferHelperT **commandBuffer);
 
   private:
-    std::mutex mMutex;
+    angle::SimpleMutex mMutex;
     std::vector<CommandBufferHelperT *> mCommandBufferHelperFreeList;
 };
 
@@ -2199,6 +2222,7 @@ class ImageHelper final : public Resource, public angle::Subject
     void finalizeImageLayoutInShareContexts(Renderer *renderer,
                                             ContextVk *contextVk,
                                             UniqueSerial imageSiblingSerial);
+
     void releaseStagedUpdates(Renderer *renderer);
 
     bool valid() const { return mImage.valid(); }
@@ -2499,8 +2523,11 @@ class ImageHelper final : public Resource, public angle::Subject
                                   PrimaryCommandBuffer *commandBuffer,
                                   VkSemaphore *acquireNextImageSemaphoreOut)
     {
-        barrierImpl(context, getAspectFlags(), newLayout, mCurrentQueueFamilyIndex, commandBuffer,
-                    acquireNextImageSemaphoreOut);
+        // Since we are doing an out of order one off submission, there shouldn't be any pending
+        // setEvent.
+        ASSERT(!mCurrentEvent.valid());
+        barrierImpl(context, getAspectFlags(), newLayout, mCurrentQueueFamilyIndex, nullptr,
+                    commandBuffer, acquireNextImageSemaphoreOut);
     }
 
     // This function can be used to prevent issuing redundant layout transition commands.
@@ -2536,8 +2563,11 @@ class ImageHelper final : public Resource, public angle::Subject
     void updateLayoutAndBarrier(Context *context,
                                 VkImageAspectFlags aspectMask,
                                 ImageLayout newLayout,
+                                BarrierType barrierType,
                                 const QueueSerial &queueSerial,
                                 PipelineBarrierArray *pipelineBarriers,
+                                EventBarrierArray *eventBarriers,
+                                RefCountedEventCollector *eventCollector,
                                 VkSemaphore *semaphoreOut);
 
     // Performs an ownership transfer from an external instance or API.
@@ -2833,6 +2863,7 @@ class ImageHelper final : public Resource, public angle::Subject
                      VkImageAspectFlags aspectMask,
                      ImageLayout newLayout,
                      uint32_t newQueueFamilyIndex,
+                     RefCountedEventCollector *eventCollector,
                      CommandBufferT *commandBuffer,
                      VkSemaphore *acquireNextImageSemaphoreOut);
 
@@ -3067,6 +3098,7 @@ class ImageHelper final : public Resource, public angle::Subject
     // The current refCounted event. When barrier or layout change is needed, we should wait for
     // this event.
     RefCountedEvent mCurrentEvent;
+    RefCountedEvent mLastNonShaderReadOnlyEvent;
 
     // Whether ANGLE currently has ownership of this resource or it's released to external.
     bool mIsReleasedToExternal;

@@ -18,6 +18,7 @@
 #include "common/FixedVector.h"
 #include "common/Optional.h"
 #include "common/PackedEnums.h"
+#include "common/SimpleMutex.h"
 #include "common/WorkerThread.h"
 #include "common/backtrace_utils.h"
 #include "common/debug.h"
@@ -211,7 +212,7 @@ class QueueSerialIndexAllocator final
     }
     SerialIndex allocate()
     {
-        std::lock_guard<std::mutex> lock(mMutex);
+        std::lock_guard<angle::SimpleMutex> lock(mMutex);
         if (mFreeIndexBitSetArray.none())
         {
             ERR() << "Run out of queue serial index. All " << kMaxQueueSerialIndexCount
@@ -227,7 +228,7 @@ class QueueSerialIndexAllocator final
 
     void release(SerialIndex index)
     {
-        std::lock_guard<std::mutex> lock(mMutex);
+        std::lock_guard<angle::SimpleMutex> lock(mMutex);
         ASSERT(index <= mLargestIndexEverAllocated);
         ASSERT(!mFreeIndexBitSetArray.test(index));
         mFreeIndexBitSetArray.set(index);
@@ -245,7 +246,7 @@ class QueueSerialIndexAllocator final
   private:
     angle::BitSetArray<kMaxQueueSerialIndexCount> mFreeIndexBitSetArray;
     std::atomic<size_t> mLargestIndexEverAllocated;
-    std::mutex mMutex;
+    angle::SimpleMutex mMutex;
 };
 
 class [[nodiscard]] ScopedQueueSerialIndex final : angle::NonCopyable
@@ -277,6 +278,7 @@ class [[nodiscard]] ScopedQueueSerialIndex final : angle::NonCopyable
     QueueSerialIndexAllocator *mIndexAllocator;
 };
 
+class RefCountedEventsGarbageRecycler;
 // Abstracts error handling. Implemented by ContextVk for GL, DisplayVk for EGL, worker threads,
 // CLContextVk etc.
 class Context : angle::NonCopyable
@@ -295,9 +297,15 @@ class Context : angle::NonCopyable
 
     const angle::VulkanPerfCounters &getPerfCounters() const { return mPerfCounters; }
     angle::VulkanPerfCounters &getPerfCounters() { return mPerfCounters; }
+    RefCountedEventsGarbageRecycler *getRefCountedEventsGarbageRecycler()
+    {
+        return mShareGroupRefCountedEventsGarbageRecycler;
+    }
 
   protected:
     Renderer *const mRenderer;
+    // Stash the ShareGroupVk's RefCountedEventRecycler here ImageHelper to conveniently access
+    RefCountedEventsGarbageRecycler *mShareGroupRefCountedEventsGarbageRecycler;
     angle::VulkanPerfCounters mPerfCounters;
 };
 
@@ -663,6 +671,12 @@ class RefCounted : angle::NonCopyable
         mRefCount--;
     }
 
+    uint32_t getAndReleaseRef()
+    {
+        ASSERT(isReferenced());
+        return mRefCount--;
+    }
+
     bool isReferenced() const { return mRefCount != 0; }
 
     T &get() { return mObject; }
@@ -701,9 +715,7 @@ class AtomicRefCounted : angle::NonCopyable
     unsigned int getAndReleaseRef()
     {
         ASSERT(isReferenced());
-        // This is used by RefCountedEvent which will decrement in clean up thread, so
-        // memory_order_acq_rel is needed.
-        return mRefCount.fetch_sub(1, std::memory_order_acq_rel);
+        return mRefCount.fetch_sub(1, std::memory_order_relaxed);
     }
 
     bool isReferenced() const { return mRefCount.load(std::memory_order_relaxed) != 0; }
@@ -906,7 +918,7 @@ class Recycler final : angle::NonCopyable
     bool empty() const { return mObjectFreeList.empty(); }
 
   private:
-    std::vector<T> mObjectFreeList;
+    std::deque<T> mObjectFreeList;
 };
 
 ANGLE_ENABLE_STRUCT_PADDING_WARNINGS

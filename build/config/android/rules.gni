@@ -716,7 +716,7 @@ if (!is_robolectric && enable_java_templates) {
   #     ]
   #   }
   template("android_resources") {
-    forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
+    forward_variables_from(invoker, [ "testonly" ])
 
     _base_path = "$target_gen_dir/$target_name"
     if (defined(invoker.v14_skip)) {
@@ -1937,6 +1937,10 @@ if (!is_robolectric && enable_java_templates) {
 
       if (defined(testonly) && testonly) {
         defines += [ "_IS_FOR_TEST" ]
+      }
+
+      if (is_cronet_build) {
+        defines += [ "_IS_CRONET_BUILD" ]
       }
 
       if (defined(invoker.write_clang_profiling_data) &&

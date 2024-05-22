@@ -370,7 +370,9 @@ VkImageAspectFlags GetFormatAspectFlags(const angle::Format &format)
 }
 
 // Context implementation.
-Context::Context(Renderer *renderer) : mRenderer(renderer), mPerfCounters{} {}
+Context::Context(Renderer *renderer)
+    : mRenderer(renderer), mShareGroupRefCountedEventsGarbageRecycler(nullptr), mPerfCounters{}
+{}
 
 Context::~Context() {}
 
@@ -714,9 +716,6 @@ void GarbageObject::destroy(Renderer *renderer)
             break;
         case HandleType::PipelineLayout:
             vkDestroyPipelineLayout(device, (VkPipelineLayout)mHandle, nullptr);
-            break;
-        case HandleType::RefCountedEvent:
-            ReleaseRefcountedEvent(device, (RefCountedEventAndLayoutHandle)mHandle);
             break;
         case HandleType::RenderPass:
             vkDestroyRenderPass(device, (VkRenderPass)mHandle, nullptr);

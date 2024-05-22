@@ -116,7 +116,14 @@ bool Resource::hasPendingWorks(Context *context) const
     return context->cmdQueue().resourceHasPendingWorks(this);
 }
 
-void Resource::setUsedByCommandBufferWithQueueSerial(uint64_t serial, bool writing)
+bool Resource::hasPendingRenderWorks(Context *context) const
+{
+    return context->cmdQueue().resourceHasPendingRenderWorks(this);
+}
+
+void Resource::setUsedByCommandBufferWithQueueSerial(uint64_t serial,
+                                                     bool writing,
+                                                     bool isRenderCommand)
 {
     if (writing)
     {
@@ -125,6 +132,18 @@ void Resource::setUsedByCommandBufferWithQueueSerial(uint64_t serial, bool writi
     }
 
     mUsageRef->cmdBufferQueueSerial = std::max(mUsageRef->cmdBufferQueueSerial, serial);
+
+    if (isRenderCommand)
+    {
+        if (writing)
+        {
+            mUsageRef->lastWritingRenderEncoderSerial = mUsageRef->cmdBufferQueueSerial;
+        }
+        else
+        {
+            mUsageRef->lastReadingRenderEncoderSerial = mUsageRef->cmdBufferQueueSerial;
+        }
+    }
 }
 
 // Texture implemenetation
@@ -252,8 +271,7 @@ angle::Result Texture::Make3DTexture(ContextMtl *context,
     ANGLE_MTL_OBJC_SCOPE
     {
         // Use texture2DDescriptorWithPixelFormat to calculate full range mipmap range:
-        uint32_t maxDimen = std::max(width, height);
-        maxDimen          = std::max(maxDimen, depth);
+        const uint32_t maxDimen = std::max({width, height, depth});
         MTLTextureDescriptor *desc =
             [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format.metalFormat
                                                                width:maxDimen
