@@ -2245,8 +2245,6 @@ cc_genrule {
         "src/libANGLE/renderer/d3d/CompilerD3D.cpp",
         "src/libANGLE/renderer/d3d/CompilerD3D.h",
         "src/libANGLE/renderer/d3d/ContextD3D.h",
-        "src/libANGLE/renderer/d3d/DeviceD3D.cpp",
-        "src/libANGLE/renderer/d3d/DeviceD3D.h",
         "src/libANGLE/renderer/d3d/DisplayD3D.cpp",
         "src/libANGLE/renderer/d3d/DisplayD3D.h",
         "src/libANGLE/renderer/d3d/DynamicHLSL.cpp",
