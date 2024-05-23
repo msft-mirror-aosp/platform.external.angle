@@ -341,6 +341,10 @@ class DeviceQueueMap final
     {
         return mQueueAndIndices[priority].devicePriority;
     }
+    DeviceQueueIndex getDeviceQueueIndex(egl::ContextPriority priority) const
+    {
+        return DeviceQueueIndex(mQueueFamilyIndex, mQueueAndIndices[priority].index);
+    }
     const VkQueue &getQueue(egl::ContextPriority priority) const
     {
         return mQueueAndIndices[priority].queue;
@@ -382,7 +386,11 @@ class CommandQueue : angle::NonCopyable
     {
         return mQueueMap.getDevicePriority(priority);
     }
-    uint32_t getDeviceQueueIndex() const { return mQueueMap.getQueueFamilyIndex(); }
+
+    DeviceQueueIndex getDeviceQueueIndex(egl::ContextPriority priority) const
+    {
+        return mQueueMap.getDeviceQueueIndex(priority);
+    }
 
     VkQueue getQueue(egl::ContextPriority priority) const { return mQueueMap.getQueue(priority); }
 
