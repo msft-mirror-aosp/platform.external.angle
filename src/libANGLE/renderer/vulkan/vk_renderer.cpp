@@ -284,8 +284,6 @@ constexpr const char *kSkippedMessages[] = {
     // https://issuetracker.google.com/336847261
     "VUID-VkImageCreateInfo-pNext-02397",
     "VUID-vkCmdDraw-None-06550",
-    // https://anglebug.com/8680
-    "VUID-VkSwapchainCreateInfoKHR-presentMode-02839",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -1514,6 +1512,8 @@ void Renderer::onDestroy(vk::Context *context)
     ASSERT(!hasSharedGarbage());
     ASSERT(mOrphanedBufferBlockList.empty());
 
+    mRefCountedEventRecycler.destroy(mDevice);
+
     for (OneOffCommandPool &oneOffCommandPool : mOneOffCommandPoolMap)
     {
         oneOffCommandPool.destroy(mDevice);
@@ -1695,7 +1695,12 @@ angle::Result Renderer::enableInstanceExtensions(vk::Context *context,
             mEnabledInstanceExtensions.push_back(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
         }
 
-        if (ExtensionFound(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME, instanceExtensionNames))
+        ANGLE_FEATURE_CONDITION(
+            &mFeatures, supportsSurfaceMaintenance1,
+            !isMockICDEnabled() && ExtensionFound(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME,
+                                                  instanceExtensionNames));
+
+        if (mFeatures.supportsSurfaceMaintenance1.enabled)
         {
             mEnabledInstanceExtensions.push_back(VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME);
         }
@@ -4042,9 +4047,6 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         return;
     }
 
-    constexpr uint32_t kPixel2DriverWithRelaxedPrecision        = 0x801EA000;
-    constexpr uint32_t kPixel4DriverWithWorkingSpecConstSupport = 0x80201000;
-
     const bool isAMD      = IsAMD(mPhysicalDeviceProperties.vendorID);
     const bool isApple    = IsAppleGPU(mPhysicalDeviceProperties.vendorID);
     const bool isARM      = IsARM(mPhysicalDeviceProperties.vendorID);
@@ -4076,7 +4078,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         isARM && getPhysicalDeviceProperties().limits.maxDrawIndirectCount <= 1;
     // Parse the ARM driver version to be readable/comparable
     const ARMDriverVersion armDriverVersion =
-        ParseARMDriverVersion(mPhysicalDeviceProperties.driverVersion);
+        ParseARMVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
+
+    // Parse the Qualcomm driver version.
+    const QualcommDriverVersion qualcommDriverVersion =
+        ParseQualcommVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
 
     // Parse the Intel driver version. (Currently it only supports the Windows driver.)
     const IntelDriverVersion intelDriverVersion =
@@ -4431,10 +4437,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, enablePreRotateSurfaces, IsAndroid());
 
     // http://anglebug.com/3078
+    // Precision qualifiers are disabled for Pixel 2 before the driver included relaxed precision.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, enablePrecisionQualifiers,
         !(IsPixel2(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) &&
-          (mPhysicalDeviceProperties.driverVersion < kPixel2DriverWithRelaxedPrecision)) &&
+          (qualcommDriverVersion < QualcommDriverVersion(512, 490, 0))) &&
             !IsPixel4(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID));
 
     // http://anglebug.com/7488
@@ -4464,7 +4471,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Prefer driver uniforms over specialization constants in the following:
     //
-    // - Older Qualcomm drivers where specialization constants severly degrade the performance of
+    // - Older Qualcomm drivers where specialization constants severely degrade the performance of
     //   pipeline creation.  http://issuetracker.google.com/173636783
     // - ARM hardware
     // - Imagination hardware
@@ -4472,8 +4479,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //
     ANGLE_FEATURE_CONDITION(
         &mFeatures, preferDriverUniformOverSpecConst,
-        (isQualcommProprietary &&
-         mPhysicalDeviceProperties.driverVersion < kPixel4DriverWithWorkingSpecConstSupport) ||
+        (isQualcommProprietary && qualcommDriverVersion < QualcommDriverVersion(512, 513, 0)) ||
             isARM || isPowerVR || isSwiftShader);
 
     // The compute shader used to generate mipmaps needs -
@@ -4556,8 +4562,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // vkCmdClearAttachments races with draw calls on Qualcomm hardware as observed on Pixel2 and
     // Pixel4.  https://issuetracker.google.com/issues/166809097
-    ANGLE_FEATURE_CONDITION(&mFeatures, preferDrawClearOverVkCmdClearAttachments,
-                            isQualcommProprietary);
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, preferDrawClearOverVkCmdClearAttachments,
+        isQualcommProprietary && qualcommDriverVersion < QualcommDriverVersion(512, 762, 12));
 
     // r32f image emulation is done unconditionally so VK_FORMAT_FEATURE_STORAGE_*_ATOMIC_BIT is not
     // required.
@@ -4646,10 +4653,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Important games are not checking supported extensions properly, and are confusing the
     // GL_EXT_shader_framebuffer_fetch_non_coherent as the GL_EXT_shader_framebuffer_fetch
-    // extension.  Therefore, don't enable the extension on Arm and Qualcomm by default.
+    // extension.  Therefore, don't enable the extension on Android by default.
     // https://issuetracker.google.com/issues/186643966
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsShaderFramebufferFetchNonCoherent,
-                            (IsAndroid() && !(isARM || isQualcomm)) || isSwiftShader);
+    // https://issuetracker.google.com/issues/340665604
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsShaderFramebufferFetchNonCoherent, isSwiftShader);
 
     // On tile-based renderers, breaking the render pass is costly.  Changing into and out of
     // framebuffer fetch causes the render pass to break so that the layout of the color attachments
@@ -4672,15 +4679,18 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // usable.  Additionally, the following platforms don't support INPUT_ATTACHMENT usage for the
     // swapchain, so they are excluded:
     //
-    // - Intel
+    // - Intel on windows
+    // - Intel on Linux before mesa 22.0
     //
     // The above platforms are not excluded if behind MESA Virtio-GPU Venus driver since WSI is
     // implemented with external memory there.
     //
     // Without VK_GOOGLE_surfaceless_query, there is no way to automatically deduce this support.
+    const bool isMesaAtLeast22_0_0 = mesaVersion.major >= 22;
     ANGLE_FEATURE_CONDITION(
         &mFeatures, emulateAdvancedBlendEquations,
-        !mFeatures.supportsBlendOperationAdvanced.enabled && (isVenus || !isIntel));
+        !mFeatures.supportsBlendOperationAdvanced.enabled &&
+            (isVenus || !isIntel || (isIntel && IsLinux() && isMesaAtLeast22_0_0)));
 
     // http://anglebug.com/6933
     // Android expects VkPresentRegionsKHR rectangles with a bottom-left origin, while spec

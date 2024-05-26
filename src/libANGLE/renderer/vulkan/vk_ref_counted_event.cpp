@@ -15,69 +15,189 @@ namespace rx
 {
 namespace vk
 {
-
-void ReleaseRefcountedEvent(VkDevice device, RefCountedEventAndLayoutHandle atomicRefCountedEvent)
-{
-    const bool isLastReference = atomicRefCountedEvent->getAndReleaseRef() == 1;
-    if (isLastReference)
-    {
-        atomicRefCountedEvent->get().event.destroy(device);
-        SafeDelete(atomicRefCountedEvent);
-    }
-}
-
-void RefCountedEvent::init(Context *context, ImageLayout layout)
+bool RefCountedEvent::init(Context *context, ImageLayout layout)
 {
     ASSERT(mHandle == nullptr);
     ASSERT(layout != ImageLayout::Undefined);
 
-    mHandle                      = new AtomicRefCounted<EventAndLayout>;
-    VkEventCreateInfo createInfo = {};
-    createInfo.sType             = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
-    // Use device only for performance reasons.
-    createInfo.flags = context->getFeatures().supportsSynchronization2.enabled
-                           ? VK_EVENT_CREATE_DEVICE_ONLY_BIT_KHR
-                           : 0;
-    mHandle->get().event.init(context->getDevice(), createInfo);
+    // First try with recycler. We must issue VkCmdResetEvent before VkCmdSetEvent
+    if (context->getRefCountedEventsGarbageRecycler()->fetch(this) ||
+        context->getRenderer()->getRefCountedEventRecycler()->fetch(this))
+    {
+        mHandle->get().needsReset = true;
+    }
+    else
+    {
+        // If failed to fetch from recycler, then create a new event.
+        mHandle                      = new RefCounted<EventAndLayout>;
+        VkEventCreateInfo createInfo = {};
+        createInfo.sType             = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
+        // Use device only for performance reasons.
+        createInfo.flags = context->getFeatures().supportsSynchronization2.enabled
+                               ? VK_EVENT_CREATE_DEVICE_ONLY_BIT_KHR
+                               : 0;
+        VkResult result  = mHandle->get().event.init(context->getDevice(), createInfo);
+        if (result != VK_SUCCESS)
+        {
+            WARN() << "event.init failed. Clean up garbage and retry again";
+            // Proactively clean up garbage and retry
+            context->getRefCountedEventsGarbageRecycler()->cleanup(context->getRenderer());
+            result = mHandle->get().event.init(context->getDevice(), createInfo);
+            if (result != VK_SUCCESS)
+            {
+                // Drivers usually can allocate huge amount of VkEvents, and we should never use
+                // that many VkEvents under normal situation. If we failed to allocate, there is a
+                // high chance that we may have a leak somewhere. This macro should help us catch
+                // such potential bugs in the bots if that happens.
+                UNREACHABLE();
+                // If still fail to create, we just return. An invalid event will trigger
+                // pipelineBarrier code path
+                return false;
+            }
+        }
+        mHandle->get().needsReset = false;
+    }
+
     mHandle->addRef();
     mHandle->get().imageLayout = layout;
+    return true;
 }
 
-// RefCountedEventGarbageObjects implementation
-void RefCountedEventGarbageObjects::add(RefCountedEvent *event)
+void RefCountedEvent::release(Context *context)
 {
-    mGarbageObjects.emplace_back(GetGarbage(event));
-}
-
-void RefCountedEventGarbageObjects::add(std::vector<RefCountedEvent> *events)
-{
-    while (!events->empty())
+    if (mHandle != nullptr)
     {
-        mGarbageObjects.emplace_back(GetGarbage(&events->back()));
-        events->pop_back();
+        releaseImpl(context->getRenderer(), context->getRefCountedEventsGarbageRecycler());
     }
 }
 
-void RefCountedEventGarbageObjects::add(const RefCountedEvent &event)
+void RefCountedEvent::release(Renderer *renderer)
 {
-    RefCountedEvent localEventCopy = event;
-    mGarbageObjects.emplace_back(GetGarbage(&localEventCopy));
-    ASSERT(!localEventCopy.valid());
+    if (mHandle != nullptr)
+    {
+        releaseImpl(renderer, renderer->getRefCountedEventRecycler());
+    }
 }
 
-// EventBarrier implementation.
-bool EventBarrier::hasEvent(const VkEvent &event) const
+template <typename RecyclerT>
+void RefCountedEvent::releaseImpl(Renderer *renderer, RecyclerT *recycler)
 {
-    for (const VkEvent &existingEvent : mEvents)
+    ASSERT(mHandle != nullptr);
+    // This should never called from async submission thread since the refcount is not atomic. It is
+    // expected only called under context share lock.
+    ASSERT(std::this_thread::get_id() != renderer->getCommandProcessorThreadId());
+
+    const bool isLastReference = mHandle->getAndReleaseRef() == 1;
+    if (isLastReference)
     {
-        if (existingEvent == event)
+        // When async submission is enabled, recycler will be null when release call comes from
+        // CommandProcessor. But in that case it will not be the last reference since garbage
+        // collector should have one reference count and will never release that reference count
+        // until GPU finished.
+        ASSERT(recycler != nullptr);
+        // TODO: Disable recycler and immediately destroy the event for now until I figure out
+        // SYNC-vkCmdSetEvent-missingbarrier-reset.
+        destroy(renderer->getDevice());
+        ASSERT(mHandle == nullptr);
+    }
+    else
+    {
+        mHandle = nullptr;
+    }
+}
+
+void RefCountedEvent::destroy(VkDevice device)
+{
+    ASSERT(mHandle != nullptr);
+    ASSERT(!mHandle->isReferenced());
+    mHandle->get().event.destroy(device);
+    SafeDelete(mHandle);
+}
+
+// RefCountedEventsGarbage implementation.
+bool RefCountedEventsGarbage::releaseIfComplete(Renderer *renderer,
+                                                RefCountedEventsGarbageRecycler *recycler)
+{
+    if (!renderer->hasQueueSerialFinished(mQueueSerial))
+    {
+        return false;
+    }
+
+    while (!mRefCountedEvents.empty())
+    {
+        ASSERT(mRefCountedEvents.back().valid());
+        mRefCountedEvents.back().releaseImpl(renderer, recycler);
+        ASSERT(!mRefCountedEvents.back().valid());
+        mRefCountedEvents.pop_back();
+    }
+    return true;
+}
+
+void RefCountedEventsGarbage::destroy(Renderer *renderer)
+{
+    ASSERT(renderer->hasQueueSerialFinished(mQueueSerial));
+    while (!mRefCountedEvents.empty())
+    {
+        ASSERT(mRefCountedEvents.back().valid());
+        mRefCountedEvents.back().release(renderer);
+        mRefCountedEvents.pop_back();
+    }
+}
+
+// RefCountedEventsGarbageRecycler implementation.
+RefCountedEventsGarbageRecycler::~RefCountedEventsGarbageRecycler()
+{
+    ASSERT(mFreeStack.empty());
+    ASSERT(mGarbageQueue.empty());
+}
+
+void RefCountedEventsGarbageRecycler::destroy(Renderer *renderer)
+{
+    while (!mGarbageQueue.empty())
+    {
+        mGarbageQueue.front().destroy(renderer);
+        mGarbageQueue.pop();
+    }
+
+    mFreeStack.destroy(renderer->getDevice());
+}
+
+void RefCountedEventsGarbageRecycler::cleanup(Renderer *renderer)
+{
+    // Destroy free stack first. The garbage clean up process will add more events to the free
+    // stack. If everything is stable between each frame, grabage should release enough events to
+    // recycler for next frame's needs.
+    mFreeStack.destroy(renderer->getDevice());
+
+    while (!mGarbageQueue.empty())
+    {
+        size_t count  = mGarbageQueue.front().size();
+        bool released = mGarbageQueue.front().releaseIfComplete(renderer, this);
+        if (released)
         {
-            return true;
+            mGarbageCount -= count;
+            mGarbageQueue.pop();
         }
+        else
+        {
+            break;
+        }
+    }
+}
+
+bool RefCountedEventsGarbageRecycler::fetch(RefCountedEvent *outObject)
+{
+    if (!mFreeStack.empty())
+    {
+        mFreeStack.fetch(outObject);
+        ASSERT(outObject->valid());
+        ASSERT(!outObject->mHandle->isReferenced());
+        return true;
     }
     return false;
 }
 
+// EventBarrier implementation.
 void EventBarrier::addDiagnosticsString(std::ostringstream &out) const
 {
     if (mMemoryBarrierSrcAccess != 0 || mMemoryBarrierDstAccess != 0)
@@ -93,50 +213,47 @@ void EventBarrier::execute(PrimaryCommandBuffer *primary)
     {
         return;
     }
+    ASSERT(mEvent != VK_NULL_HANDLE);
+    ASSERT(mImageMemoryBarrierCount == 0 ||
+           (mImageMemoryBarrierCount == 1 && mImageMemoryBarrier.image != VK_NULL_HANDLE));
 
     // Issue vkCmdWaitEvents call
     VkMemoryBarrier memoryBarrier = {};
-    uint32_t memoryBarrierCount   = 0;
-    if (mMemoryBarrierDstAccess != 0)
-    {
-        memoryBarrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-        memoryBarrier.srcAccessMask = mMemoryBarrierSrcAccess;
-        memoryBarrier.dstAccessMask = mMemoryBarrierDstAccess;
-        memoryBarrierCount++;
-    }
+    memoryBarrier.sType           = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    memoryBarrier.srcAccessMask   = mMemoryBarrierSrcAccess;
+    memoryBarrier.dstAccessMask   = mMemoryBarrierDstAccess;
 
-    primary->waitEvents(static_cast<uint32_t>(mEvents.size()), mEvents.data(), mSrcStageMask,
-                        mDstStageMask, memoryBarrierCount, &memoryBarrier, 0, nullptr,
-                        static_cast<uint32_t>(mImageMemoryBarriers.size()),
-                        mImageMemoryBarriers.data());
-
-    reset();
+    primary->waitEvents(1, &mEvent, mSrcStageMask, mDstStageMask, 1, &memoryBarrier, 0, nullptr,
+                        mImageMemoryBarrierCount,
+                        mImageMemoryBarrierCount == 0 ? nullptr : &mImageMemoryBarrier);
 }
 
 // EventBarrierArray implementation.
-void EventBarrierArray::addMemoryEvent(Context *context,
-                                       const RefCountedEvent &waitEvent,
-                                       VkPipelineStageFlags dstStageMask,
-                                       VkAccessFlags dstAccess)
+void EventBarrierArray::addAdditionalStageAccess(const RefCountedEvent &waitEvent,
+                                                 VkPipelineStageFlags dstStageMask,
+                                                 VkAccessFlags dstAccess)
 {
-    ASSERT(waitEvent.valid());
-
     for (EventBarrier &barrier : mBarriers)
     {
-        // If the event is already in the waiting list, just add the new stageMask to the
-        // dstStageMask. Otherwise we will end up with two waitEvent calls that wait for the same
-        // VkEvent but for different dstStage and confuses VVL.
         if (barrier.hasEvent(waitEvent.getEvent().getHandle()))
         {
             barrier.addAdditionalStageAccess(dstStageMask, dstAccess);
             return;
         }
     }
+    UNREACHABLE();
+}
 
+void EventBarrierArray::addMemoryEvent(Context *context,
+                                       const RefCountedEvent &waitEvent,
+                                       VkPipelineStageFlags dstStageMask,
+                                       VkAccessFlags dstAccess)
+{
+    ASSERT(waitEvent.valid());
     VkAccessFlags accessMask;
     VkPipelineStageFlags stageFlags = GetRefCountedEventStageMask(context, waitEvent, &accessMask);
-    // Since this is used with WAW without layout change, dstStageMask should be the same as event's
-    // stageMask. Otherwise you should get into addImageEvent.
+    // This should come down as WAW without layout change, dstStageMask should be the same as
+    // event's stageMask. Otherwise you should get into addImageEvent.
     ASSERT(stageFlags == dstStageMask && accessMask == dstAccess);
     mBarriers.emplace_back(stageFlags, dstStageMask, accessMask, dstAccess,
                            waitEvent.getEvent().getHandle());
@@ -149,30 +266,18 @@ void EventBarrierArray::addImageEvent(Context *context,
 {
     ASSERT(waitEvent.valid());
     VkPipelineStageFlags srcStageFlags = GetRefCountedEventStageMask(context, waitEvent);
-
-    mBarriers.emplace_back();
-    EventBarrier &barrier = mBarriers.back();
-    // VkCmdWaitEvent must uses the same stageMask as VkCmdSetEvent due to
-    // VUID-vkCmdWaitEvents-srcStageMask-01158 requirements.
-    barrier.mSrcStageMask = srcStageFlags;
-    // If there is an event, we use the waitEvent to do layout change.
-    barrier.mEvents.emplace_back(waitEvent.getEvent().getHandle());
-    barrier.mDstStageMask = dstStageMask;
-    barrier.mImageMemoryBarriers.emplace_back(imageMemoryBarrier);
+    mBarriers.emplace_back(srcStageFlags, dstStageMask, waitEvent.getEvent().getHandle(),
+                           imageMemoryBarrier);
 }
 
 void EventBarrierArray::execute(Renderer *renderer, PrimaryCommandBuffer *primary)
 {
-    if (mBarriers.empty())
+    while (!mBarriers.empty())
     {
-        return;
+        mBarriers.back().execute(primary);
+        mBarriers.pop_back();
     }
-
-    for (EventBarrier &barrier : mBarriers)
-    {
-        barrier.execute(primary);
-    }
-    mBarriers.clear();
+    reset();
 }
 
 void EventBarrierArray::addDiagnosticsString(std::ostringstream &out) const
