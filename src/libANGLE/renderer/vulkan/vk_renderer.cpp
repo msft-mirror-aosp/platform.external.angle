@@ -2114,8 +2114,8 @@ angle::Result Renderer::initializeMemoryAllocator(vk::Context *context)
 
     // Cached coherent staging buffer.  Note coherent is preferred but not required, which means we
     // may get non-coherent memory type.
-    requiredFlags  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-    preferredFlags = VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    requiredFlags  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+    preferredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     ANGLE_VK_TRY(context,
                  mAllocator.findMemoryTypeIndexForBufferInfo(
                      createInfo, requiredFlags, preferredFlags, persistentlyMapped,
@@ -4733,9 +4733,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //
     // - Nvidia drivers - Crashes when creating pipelines, not using any SPIR-V 1.4 features.  Known
     //                    good since at least version 525.  http://anglebug.com/343249127
+    // - Qualcomm drivers - Crashes when creating pipelines in the presence of OpCopyLogical with
+    //                      some types.  http://anglebug.com/343218484
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsSPIRV14,
                             ExtensionFound(VK_KHR_SPIRV_1_4_EXTENSION_NAME, deviceExtensionNames) &&
-                                !(isNvidia && nvidiaVersion.major < 525));
+                                !(isNvidia && nvidiaVersion.major < 525) && !isQualcommProprietary);
 
     // Retain debug info in SPIR-V blob.
     ANGLE_FEATURE_CONDITION(&mFeatures, retainSPIRVDebugInfo, getEnableValidationLayers());
