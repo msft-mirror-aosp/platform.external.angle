@@ -1741,10 +1741,6 @@ void CommandBufferHelperCommon::flushSetEventsImpl(Context *context, CommandBuff
         const ImageMemoryBarrierData &layoutData =
             kImageMemoryBarrierData[refCountedEvent.getImageLayout()];
         VkPipelineStageFlags stageMask = GetImageLayoutDstStageMask(context, layoutData);
-        if (refCountedEvent.needsReset())
-        {
-            commandBuffer->resetEvent(refCountedEvent.getEvent().getHandle(), stageMask);
-        }
         commandBuffer->setEvent(refCountedEvent.getEvent().getHandle(), stageMask);
         // We no longer need event, so garbage collect it.
         mRefCountedEventCollector.emplace_back(std::move(refCountedEvent));
@@ -1916,6 +1912,10 @@ angle::Result OutsideRenderPassCommandBufferHelper::flushToPrimary(Context *cont
 
     // Call VkCmdSetEvent to track the completion of this renderPass.
     flushSetEventsImpl(context, &commandsState->primaryCommands);
+
+    // Proactively reset all released events before ending command buffer.
+    context->getRenderer()->getRefCountedEventRecycler()->resetEvents(
+        context, mQueueSerial, &commandsState->primaryCommands);
 
     // Restart the command buffer.
     return reset(context, &commandsState->secondaryCommands);
@@ -10201,6 +10201,8 @@ angle::Result ImageHelper::copyImageDataToBuffer(ContextVk *contextVk,
     ANGLE_TRY(contextVk->initBufferForImageCopy(dstBuffer, bufferSize,
                                                 MemoryCoherency::CachedPreferCoherent,
                                                 imageFormat.id, &dstOffset, outDataPtr));
+    ANGLE_TRY(dstBuffer->flush(contextVk->getRenderer()));
+
     VkBuffer bufferHandle = dstBuffer->getBuffer().getHandle();
 
     LevelIndex sourceLevelVk = toVkLevel(sourceLevelGL);
@@ -10880,6 +10882,7 @@ angle::Result ImageHelper::readPixelsImpl(ContextVk *contextVk,
     ANGLE_TRY(contextVk->initBufferForImageCopy(stagingBuffer, allocationSize,
                                                 MemoryCoherency::CachedPreferCoherent,
                                                 readFormat->id, &stagingOffset, &readPixelBuffer));
+    ANGLE_TRY(stagingBuffer->flush(renderer));
     VkBuffer bufferHandle = stagingBuffer->getBuffer().getHandle();
 
     VkBufferImageCopy region = {};
