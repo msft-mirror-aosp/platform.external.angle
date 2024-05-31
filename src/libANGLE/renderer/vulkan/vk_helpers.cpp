@@ -1741,10 +1741,6 @@ void CommandBufferHelperCommon::flushSetEventsImpl(Context *context, CommandBuff
         const ImageMemoryBarrierData &layoutData =
             kImageMemoryBarrierData[refCountedEvent.getImageLayout()];
         VkPipelineStageFlags stageMask = GetImageLayoutDstStageMask(context, layoutData);
-        if (refCountedEvent.needsReset())
-        {
-            commandBuffer->resetEvent(refCountedEvent.getEvent().getHandle(), stageMask);
-        }
         commandBuffer->setEvent(refCountedEvent.getEvent().getHandle(), stageMask);
         // We no longer need event, so garbage collect it.
         mRefCountedEventCollector.emplace_back(std::move(refCountedEvent));
@@ -1916,6 +1912,10 @@ angle::Result OutsideRenderPassCommandBufferHelper::flushToPrimary(Context *cont
 
     // Call VkCmdSetEvent to track the completion of this renderPass.
     flushSetEventsImpl(context, &commandsState->primaryCommands);
+
+    // Proactively reset all released events before ending command buffer.
+    context->getRenderer()->getRefCountedEventRecycler()->resetEvents(
+        context, mQueueSerial, &commandsState->primaryCommands);
 
     // Restart the command buffer.
     return reset(context, &commandsState->secondaryCommands);
@@ -5526,9 +5526,9 @@ angle::Result BufferHelper::invalidate(Renderer *renderer)
     return invalidate(renderer, 0, getSize());
 }
 
-void BufferHelper::changeQueue(uint32_t srcQueueFamilyIndex,
-                               uint32_t dstQueueFamilyIndex,
-                               OutsideRenderPassCommandBuffer *commandBuffer)
+void BufferHelper::changeQueueFamily(uint32_t srcQueueFamilyIndex,
+                                     uint32_t dstQueueFamilyIndex,
+                                     OutsideRenderPassCommandBuffer *commandBuffer)
 {
     VkBufferMemoryBarrier bufferMemoryBarrier = {};
     bufferMemoryBarrier.sType                 = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -5544,23 +5544,26 @@ void BufferHelper::changeQueue(uint32_t srcQueueFamilyIndex,
                                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, &bufferMemoryBarrier);
 }
 
-void BufferHelper::acquireFromExternal(uint32_t externalQueueFamilyIndex,
+void BufferHelper::acquireFromExternal(DeviceQueueIndex externalQueueFamilyIndex,
                                        DeviceQueueIndex newDeviceQueueIndex,
                                        OutsideRenderPassCommandBuffer *commandBuffer)
 {
-    changeQueue(externalQueueFamilyIndex, newDeviceQueueIndex.familyIndex(), commandBuffer);
+    changeQueueFamily(externalQueueFamilyIndex.familyIndex(), newDeviceQueueIndex.familyIndex(),
+                      commandBuffer);
     mCurrentDeviceQueueIndex = newDeviceQueueIndex;
     mIsReleasedToExternal    = false;
 }
 
-void BufferHelper::releaseToExternal(DeviceQueueIndex rendererDeviceQueueIndex,
-                                     uint32_t externalQueueFamilyIndex,
+void BufferHelper::releaseToExternal(DeviceQueueIndex externalQueueIndex,
                                      OutsideRenderPassCommandBuffer *commandBuffer)
 {
-    ASSERT(mCurrentDeviceQueueIndex == rendererDeviceQueueIndex);
-    changeQueue(rendererDeviceQueueIndex.familyIndex(), externalQueueFamilyIndex, commandBuffer);
-    mCurrentDeviceQueueIndex = kInvalidDeviceQueueIndex;
-    mIsReleasedToExternal    = true;
+    if (mCurrentDeviceQueueIndex.familyIndex() != externalQueueIndex.familyIndex())
+    {
+        changeQueueFamily(mCurrentDeviceQueueIndex.familyIndex(), externalQueueIndex.familyIndex(),
+                          commandBuffer);
+        mCurrentDeviceQueueIndex = kInvalidDeviceQueueIndex;
+    }
+    mIsReleasedToExternal = true;
 }
 
 bool BufferHelper::isReleasedToExternal() const
@@ -7046,7 +7049,7 @@ void ImageHelper::changeLayoutAndQueue(Context *context,
 }
 
 void ImageHelper::acquireFromExternal(Context *context,
-                                      uint32_t externalQueueFamilyIndex,
+                                      DeviceQueueIndex externalQueueIndex,
                                       DeviceQueueIndex newDeviceQueueIndex,
                                       ImageLayout currentLayout,
                                       OutsideRenderPassCommandBuffer *commandBuffer)
@@ -7055,10 +7058,10 @@ void ImageHelper::acquireFromExternal(Context *context,
     // queue. If this is not the case, it's an application bug, so ASSERT might
     // eventually need to change to a warning.
     ASSERT(mCurrentLayout == ImageLayout::ExternalPreInitialized ||
-           mCurrentDeviceQueueIndex.familyIndex() == externalQueueFamilyIndex);
+           mCurrentDeviceQueueIndex.familyIndex() == externalQueueIndex.familyIndex());
 
     mCurrentLayout           = currentLayout;
-    mCurrentDeviceQueueIndex = DeviceQueueIndex(externalQueueFamilyIndex);
+    mCurrentDeviceQueueIndex = externalQueueIndex;
     mIsReleasedToExternal    = false;
 
     // Only change the layout and queue if the layout is anything by Undefined.  If it is undefined,
@@ -7082,8 +7085,7 @@ void ImageHelper::acquireFromExternal(Context *context,
 }
 
 void ImageHelper::releaseToExternal(Context *context,
-                                    DeviceQueueIndex rendererDeviceQueueIndex,
-                                    uint32_t externalQueueFamilyIndex,
+                                    DeviceQueueIndex externalQueueIndex,
                                     ImageLayout desiredLayout,
                                     OutsideRenderPassCommandBuffer *commandBuffer)
 {
@@ -7091,10 +7093,10 @@ void ImageHelper::releaseToExternal(Context *context,
 
     // A layout change is unnecessary if the image that was previously acquired was never used by
     // GL!
-    if (mCurrentDeviceQueueIndex.familyIndex() != externalQueueFamilyIndex ||
+    if (mCurrentDeviceQueueIndex.familyIndex() != externalQueueIndex.familyIndex() ||
         mCurrentLayout != desiredLayout)
     {
-        changeLayoutAndQueue(context, getAspectFlags(), desiredLayout, externalQueueFamilyIndex,
+        changeLayoutAndQueue(context, getAspectFlags(), desiredLayout, externalQueueIndex,
                              commandBuffer);
     }
 
@@ -10199,6 +10201,8 @@ angle::Result ImageHelper::copyImageDataToBuffer(ContextVk *contextVk,
     ANGLE_TRY(contextVk->initBufferForImageCopy(dstBuffer, bufferSize,
                                                 MemoryCoherency::CachedPreferCoherent,
                                                 imageFormat.id, &dstOffset, outDataPtr));
+    ANGLE_TRY(dstBuffer->flush(contextVk->getRenderer()));
+
     VkBuffer bufferHandle = dstBuffer->getBuffer().getHandle();
 
     LevelIndex sourceLevelVk = toVkLevel(sourceLevelGL);
@@ -10878,6 +10882,7 @@ angle::Result ImageHelper::readPixelsImpl(ContextVk *contextVk,
     ANGLE_TRY(contextVk->initBufferForImageCopy(stagingBuffer, allocationSize,
                                                 MemoryCoherency::CachedPreferCoherent,
                                                 readFormat->id, &stagingOffset, &readPixelBuffer));
+    ANGLE_TRY(stagingBuffer->flush(renderer));
     VkBuffer bufferHandle = stagingBuffer->getBuffer().getHandle();
 
     VkBufferImageCopy region = {};
