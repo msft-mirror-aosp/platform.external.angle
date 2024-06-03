@@ -65,6 +65,7 @@ struct Extensions
     {
         return (primitiveBoundingBoxEXT || primitiveBoundingBoxOES);
     }
+    bool robustnessAny() const { return (robustnessEXT || robustnessKHR); }
     bool shaderFramebufferFetchAny() const
     {
         return (shaderFramebufferFetchARM || shaderFramebufferFetchEXT);
@@ -383,6 +384,9 @@ struct Extensions
     // GL_EXT_robustness
     bool robustnessEXT = false;
 
+    // GL_KHR_robustness
+    bool robustnessKHR = false;
+
     // GL_NV_robustness_video_memory_purge
     bool robustnessVideoMemoryPurgeNV = false;
 
@@ -682,6 +686,9 @@ struct Extensions
 
     // GL_ANGLE_program_binary
     bool programBinaryANGLE = false;
+
+    // GL_ANGLE_program_binary_readiness_query
+    bool programBinaryReadinessQueryANGLE = false;
 
     // GL_ANGLE_program_cache_control
     bool programCacheControlANGLE = false;

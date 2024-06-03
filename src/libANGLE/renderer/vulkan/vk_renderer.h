@@ -18,6 +18,7 @@
 #include <thread>
 
 #include "common/PackedEnums.h"
+#include "common/SimpleMutex.h"
 #include "common/WorkerThread.h"
 #include "common/angleutils.h"
 #include "common/vulkan/vk_headers.h"
@@ -125,7 +126,7 @@ class OneOffCommandPool : angle::NonCopyable
 
   private:
     vk::ProtectionType mProtectionType;
-    std::mutex mMutex;
+    angle::SimpleMutex mMutex;
     vk::CommandPool mCommandPool;
     struct PendingOneOffCommands
     {
@@ -227,6 +228,15 @@ class Renderer : angle::NonCopyable
     {
         return mQueueFamilyProperties[mCurrentQueueFamilyIndex];
     }
+    const DeviceQueueIndex getDeviceQueueIndex(egl::ContextPriority priority) const
+    {
+        return mCommandQueue.getDeviceQueueIndex(priority);
+    }
+    const DeviceQueueIndex getDefaultDeviceQueueIndex() const
+    {
+        // By default it will always use medium priority
+        return mCommandQueue.getDeviceQueueIndex(egl::ContextPriority::Medium);
+    }
 
     const vk::MemoryProperties &getMemoryProperties() const { return mMemoryProperties; }
 
@@ -276,7 +286,6 @@ class Renderer : angle::NonCopyable
     {
         return mCommandQueue.getDriverPriority(priority);
     }
-    ANGLE_INLINE uint32_t getDeviceQueueIndex() { return mCommandQueue.getDeviceQueueIndex(); }
 
     VkQueue getQueue(egl::ContextPriority priority) { return mCommandQueue.getQueue(priority); }
 
@@ -462,6 +471,7 @@ class Renderer : angle::NonCopyable
                                           vk::ProtectionType protectionType,
                                           egl::ContextPriority priority,
                                           const vk::RenderPass &renderPass,
+                                          VkFramebuffer framebufferOverride,
                                           vk::RenderPassCommandBufferHelper **renderPassCommands);
     angle::Result flushOutsideRPCommands(
         vk::Context *context,
@@ -502,7 +512,7 @@ class Renderer : angle::NonCopyable
     // Accumulate cache stats for a specific cache
     void accumulateCacheStats(VulkanCacheType cache, const CacheStats &stats)
     {
-        std::unique_lock<std::mutex> localLock(mCacheStatsMutex);
+        std::unique_lock<angle::SimpleMutex> localLock(mCacheStatsMutex);
         mVulkanCacheStats[cache].accumulate(stats);
     }
     // Log cache stats for all caches
@@ -728,7 +738,19 @@ class Renderer : angle::NonCopyable
         return false;
 #endif
     }
-    vk::ExternalFormatTable mExternalFormatTable;
+
+    vk::ExternalFormatTable *getExternalFormatTable() { return &mExternalFormatTable; }
+
+    std::ostringstream &getPipelineCacheGraphStream() { return mPipelineCacheGraph; }
+    bool isPipelineCacheGraphDumpEnabled() const { return mDumpPipelineCacheGraph; }
+    const char *getPipelineCacheGraphDumpPath() const
+    {
+        return mPipelineCacheGraphDumpPath.c_str();
+    }
+
+    vk::RefCountedEventRecycler *getRefCountedEventRecycler() { return &mRefCountedEventRecycler; }
+
+    std::thread::id getCommandProcessorThreadId() const { return mCommandProcessor.getThreadId(); }
 
   private:
     angle::Result setupDevice(vk::Context *context,
@@ -887,7 +909,6 @@ class Renderer : angle::NonCopyable
     VkPhysicalDeviceProtectedMemoryFeatures mProtectedMemoryFeatures;
     VkPhysicalDeviceHostQueryResetFeaturesEXT mHostQueryResetFeatures;
     VkPhysicalDeviceDepthClampZeroOneFeaturesEXT mDepthClampZeroOneFeatures;
-    VkPhysicalDeviceDepthClipEnableFeaturesEXT mDepthClipEnableFeatures;
     VkPhysicalDeviceDepthClipControlFeaturesEXT mDepthClipControlFeatures;
     VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT mPrimitivesGeneratedQueryFeatures;
     VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT mPrimitiveTopologyListRestartFeatures;
@@ -917,6 +938,9 @@ class Renderer : angle::NonCopyable
     VkPhysicalDeviceExternalFormatResolveFeaturesANDROID mExternalFormatResolveFeatures;
     VkPhysicalDeviceExternalFormatResolvePropertiesANDROID mExternalFormatResolveProperties;
 #endif
+    VkPhysicalDevice8BitStorageFeatures m8BitStorageFeatures;
+    VkPhysicalDevice16BitStorageFeatures m16BitStorageFeatures;
+    VkPhysicalDeviceSynchronization2Features mSynchronization2Features;
 
     angle::PackedEnumBitSet<gl::ShadingRate, uint8_t> mSupportedFragmentShadingRates;
     angle::PackedEnumMap<gl::ShadingRate, VkSampleCountFlags>
@@ -937,6 +961,8 @@ class Renderer : angle::NonCopyable
     vk::SharedGarbageList<vk::BufferSuballocationGarbage> mSuballocationGarbageList;
     // Holds orphaned BufferBlocks when ShareGroup gets destroyed
     vk::BufferBlockGarbageList mOrphanedBufferBlockList;
+    // Holds RefCountedEvent that are free and ready to reuse
+    vk::RefCountedEventRecycler mRefCountedEventRecycler;
 
     VkDeviceSize mPendingGarbageSizeLimit;
 
@@ -968,7 +994,7 @@ class Renderer : angle::NonCopyable
     //    requires external synchronization when mPipelineCache is the dstCache of
     //    vkMergePipelineCaches. Lock the mutex if mergeProgramPipelineCachesToGlobalCache is
     //    enabled
-    std::mutex mPipelineCacheMutex;
+    angle::SimpleMutex mPipelineCacheMutex;
     vk::PipelineCache mPipelineCache;
     uint32_t mPipelineCacheVkUpdateTimeout;
     size_t mPipelineCacheSizeAtLastSync;
@@ -1012,7 +1038,7 @@ class Renderer : angle::NonCopyable
     SamplerYcbcrConversionCache mYuvConversionCache;
     angle::HashMap<VkFormat, uint32_t> mVkFormatDescriptorCountMap;
     vk::ActiveHandleCounter mActiveHandleCounts;
-    std::mutex mActiveHandleCountsMutex;
+    angle::SimpleMutex mActiveHandleCountsMutex;
 
     // Tracks resource serials.
     vk::ResourceSerialFactory mResourceSerialFactory;
@@ -1030,7 +1056,7 @@ class Renderer : angle::NonCopyable
 
     // Stats about all Vulkan object caches
     VulkanCacheStats mVulkanCacheStats;
-    mutable std::mutex mCacheStatsMutex;
+    mutable angle::SimpleMutex mCacheStatsMutex;
 
     // A mask to filter out Vulkan pipeline stages that are not supported, applied in situations
     // where multiple stages are prespecified (for example with image layout transitions):
@@ -1055,6 +1081,14 @@ class Renderer : angle::NonCopyable
 
     // Memory tracker for allocations and deallocations.
     MemoryAllocationTracker mMemoryAllocationTracker;
+
+    vk::ExternalFormatTable mExternalFormatTable;
+
+    // A graph built from pipeline descs and their transitions.  This is not thread-safe, but it's
+    // only a debug feature that's disabled by default.
+    std::ostringstream mPipelineCacheGraph;
+    bool mDumpPipelineCacheGraph;
+    std::string mPipelineCacheGraphDumpPath;
 };
 
 ANGLE_INLINE Serial Renderer::generateQueueSerial(SerialIndex index)

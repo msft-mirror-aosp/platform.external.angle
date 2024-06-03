@@ -65,6 +65,7 @@ set(ABSL_INTERNAL_DLL_FILES
   "cleanup/internal/cleanup.h"
   "container/btree_map.h"
   "container/btree_set.h"
+  "container/hash_container_defaults.h"
   "container/fixed_array.h"
   "container/flat_hash_map.h"
   "container/flat_hash_set.h"
@@ -122,6 +123,8 @@ set(ABSL_INTERNAL_DLL_FILES
   "debugging/internal/address_is_readable.h"
   "debugging/internal/demangle.cc"
   "debugging/internal/demangle.h"
+  "debugging/internal/demangle_rust.cc"
+  "debugging/internal/demangle_rust.h"
   "debugging/internal/elf_mem_image.cc"
   "debugging/internal/elf_mem_image.h"
   "debugging/internal/examine_stack.cc"
@@ -504,6 +507,7 @@ set(ABSL_INTERNAL_DLL_TARGETS
   "log_internal_check_op"
   "log_internal_conditions"
   "log_internal_config"
+  "log_internal_fnmatch"
   "log_internal_format"
   "log_internal_globals"
   "log_internal_log_impl"
@@ -583,6 +587,7 @@ set(ABSL_INTERNAL_DLL_TARGETS
   "strerror"
   "strings"
   "strings_internal"
+  "string_view"
   "symbolize"
   "synchronization"
   "thread_pool"
@@ -593,6 +598,7 @@ set(ABSL_INTERNAL_DLL_TARGETS
   "type_traits"
   "utility"
   "variant"
+  "vlog_config_internal"
 )
 
 set(ABSL_INTERNAL_TEST_DLL_FILES
@@ -607,6 +613,9 @@ set(ABSL_INTERNAL_TEST_DLL_FILES
   "random/internal/mock_overload_set.h"
   "random/mocking_bit_gen.h"
   "random/mock_distributions.h"
+  "status/status_matchers.h"
+  "status/internal/status_matchers.cc"
+  "status/internal/status_matchers.h"
   "strings/cordz_test_helpers.h"
   "strings/cord_test_helpers.h"
 )
@@ -619,6 +628,7 @@ set(ABSL_INTERNAL_TEST_DLL_TARGETS
   "random_internal_distribution_test_util"
   "random_internal_mock_overload_set"
   "scoped_mock_log"
+  "status_matchers"
 )
 
 include(CheckCXXSourceCompiles)
@@ -667,12 +677,7 @@ function(absl_internal_dll_contains)
 
   STRING(REGEX REPLACE "^absl::" "" _target ${ABSL_INTERNAL_DLL_TARGET})
 
-  list(FIND
-    ABSL_INTERNAL_DLL_TARGETS
-    "${_target}"
-    _index)
-
-  if (${_index} GREATER -1)
+  if (_target IN_LIST ABSL_INTERNAL_DLL_TARGETS)
     set(${ABSL_INTERNAL_DLL_OUTPUT} 1 PARENT_SCOPE)
   else()
     set(${ABSL_INTERNAL_DLL_OUTPUT} 0 PARENT_SCOPE)
@@ -689,12 +694,7 @@ function(absl_internal_test_dll_contains)
 
   STRING(REGEX REPLACE "^absl::" "" _target ${ABSL_INTERNAL_TEST_DLL_TARGET})
 
-  list(FIND
-    ABSL_INTERNAL_TEST_DLL_TARGETS
-    "${_target}"
-    _index)
-
-  if (${_index} GREATER -1)
+  if (_target IN_LIST ABSL_INTERNAL_TEST_DLL_TARGETS)
     set(${ABSL_INTERNAL_TEST_DLL_OUTPUT} 1 PARENT_SCOPE)
   else()
     set(${ABSL_INTERNAL_TEST_DLL_OUTPUT} 0 PARENT_SCOPE)

@@ -82,10 +82,37 @@ class ShareGroupVk : public ShareGroupImpl
 
     void onTextureRelease(TextureVk *textureVk);
 
+    VertexInputGraphicsPipelineCache *getVertexInputGraphicsPipelineCache()
+    {
+        return &mVertexInputGraphicsPipelineCache;
+    }
+    FragmentOutputGraphicsPipelineCache *getFragmentOutputGraphicsPipelineCache()
+    {
+        return &mFragmentOutputGraphicsPipelineCache;
+    }
+
     angle::Result scheduleMonolithicPipelineCreationTask(
         ContextVk *contextVk,
         vk::WaitableMonolithicPipelineCreationTask *taskOut);
     void waitForCurrentMonolithicPipelineCreationTask();
+
+    vk::RefCountedEventsGarbageRecycler *getRefCountedEventsGarbageRecycler()
+    {
+        return &mRefCountedEventsGarbageRecycler;
+    }
+    void cleanupRefCountedEventGarbage(vk::Renderer *renderer)
+    {
+        mRefCountedEventsGarbageRecycler.cleanup(renderer);
+    }
+    void cleanupExcessiveRefCountedEventGarbage(vk::Renderer *renderer)
+    {
+        // TODO: b/336844257 needs tune.
+        constexpr size_t kExcessiveGarbageCountThreshold = 256;
+        if (mRefCountedEventsGarbageRecycler.getGarbageCount() > kExcessiveGarbageCountThreshold)
+        {
+            mRefCountedEventsGarbageRecycler.cleanup(renderer);
+        }
+    }
 
   private:
     angle::Result updateContextsPriority(ContextVk *contextVk, egl::ContextPriority newPriority);
@@ -117,6 +144,13 @@ class ShareGroupVk : public ShareGroupImpl
     // The system time when last pruneEmptyBuffer gets called.
     double mLastPruneTime;
 
+    // Used when VK_EXT_graphics_pipeline_library is available, the vertex input and fragment output
+    // partial pipelines are created in the following caches.  These caches are in the share group
+    // because linked pipelines using these pipeline libraries are referenced from
+    // ProgramExecutableVk, and as such must stay alive as long as the program may be alive.
+    VertexInputGraphicsPipelineCache mVertexInputGraphicsPipelineCache;
+    FragmentOutputGraphicsPipelineCache mFragmentOutputGraphicsPipelineCache;
+
     // The system time when the last monolithic pipeline creation job was launched.  This is
     // rate-limited to avoid hogging all cores and interfering with the application threads.  A
     // single pipeline creation job is currently supported.
@@ -125,6 +159,9 @@ class ShareGroupVk : public ShareGroupImpl
 
     // Texture update manager used to flush uploaded mutable textures.
     TextureUpload mTextureUpload;
+
+    // Holds RefCountedEvent that are free and ready to reuse
+    vk::RefCountedEventsGarbageRecycler mRefCountedEventsGarbageRecycler;
 };
 }  // namespace rx
 

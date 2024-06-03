@@ -381,7 +381,11 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                   gl::TextureBarrierVector *textureBarriers) override;
 
     // Sets effective Context Priority. Changed by ShareGroupVk.
-    void setPriority(egl::ContextPriority newPriority) { mContextPriority = newPriority; }
+    void setPriority(egl::ContextPriority newPriority)
+    {
+        mContextPriority  = newPriority;
+        mDeviceQueueIndex = mRenderer->getDeviceQueueIndex(mContextPriority);
+    }
 
     VkDevice getDevice() const;
     // Effective Context Priority
@@ -437,8 +441,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         UpdateDepthFeedbackLoopReason depthReason,
         UpdateDepthFeedbackLoopReason stencilReason);
 
-    angle::Result optimizeRenderPassForPresent(VkFramebuffer framebufferHandle,
-                                               vk::ImageViewHelper *colorImageView,
+    angle::Result optimizeRenderPassForPresent(vk::ImageViewHelper *colorImageView,
                                                vk::ImageHelper *colorImage,
                                                vk::ImageHelper *colorImageMS,
                                                vk::PresentMode presentMode,
@@ -589,6 +592,28 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         return angle::Result::Continue;
     }
 
+    void trackImageWithOutsideRenderPassEvent(vk::ImageHelper *image)
+    {
+        if (mRenderer->getFeatures().useVkEventForImageBarrier.enabled)
+        {
+            mOutsideRenderPassCommands->trackImageWithEvent(this, image);
+        }
+    }
+    void trackImagesWithOutsideRenderPassEvent(vk::ImageHelper *srcImage, vk::ImageHelper *dstImage)
+    {
+        if (mRenderer->getFeatures().useVkEventForImageBarrier.enabled)
+        {
+            mOutsideRenderPassCommands->trackImagesWithEvent(this, srcImage, dstImage);
+        }
+    }
+    void trackImagesWithOutsideRenderPassEvent(const vk::ImageHelperPtr *images, size_t count)
+    {
+        if (mRenderer->getFeatures().useVkEventForImageBarrier.enabled)
+        {
+            mOutsideRenderPassCommands->trackImagesWithEvent(this, images, count);
+        }
+    }
+
     angle::Result submitStagedTextureUpdates()
     {
         // Staged updates are recorded in outside RP cammand buffer, submit them.
@@ -602,7 +627,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         return flushOutsideRenderPassCommands();
     }
 
-    angle::Result beginNewRenderPass(vk::MaybeImagelessFramebuffer &framebuffer,
+    angle::Result beginNewRenderPass(vk::RenderPassFramebuffer &&framebuffer,
                                      const gl::Rectangle &renderArea,
                                      const vk::RenderPassDesc &renderPassDesc,
                                      const vk::AttachmentOpsArray &renderPassAttachmentOps,
@@ -629,6 +654,15 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     {
         return mRenderPassCommands->started() &&
                mRenderPassCommands->getQueueSerial() == queueSerial;
+    }
+    bool hasStartedRenderPassWithSwapchainFramebuffer(const vk::Framebuffer &framebuffer) const
+    {
+        // WindowSurfaceVk caches its own framebuffers and guarantees that render passes are not
+        // kept open between frames (including when a swapchain is recreated and framebuffer handles
+        // change).  It is therefore safe to verify an open render pass by the framebuffer handle
+        return mRenderPassCommands->started() &&
+               mRenderPassCommands->getFramebuffer().getFramebuffer().getHandle() ==
+                   framebuffer.getHandle();
     }
 
     bool isRenderPassStartedAndUsesBuffer(const vk::BufferHelper &buffer) const
@@ -755,8 +789,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     angle::Result switchToFramebufferFetchMode(bool hasFramebufferFetch);
     bool isInFramebufferFetchMode() const { return mIsInFramebufferFetchMode; }
 
-    void updateFoveatedRendering();
-
     const angle::PerfMonitorCounterGroups &getPerfMonitorCounters() override;
 
     void resetPerFramePerfCounters();
@@ -766,8 +798,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     {
         mVulkanCacheStats[cache].accumulate(stats);
     }
-
-    std::ostringstream &getPipelineCacheGraphStream() { return mPipelineCacheGraph; }
 
     // Whether VK_EXT_pipeline_robustness should be used to enable robust buffer access in the
     // pipeline.
@@ -809,12 +839,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     {
         return getFeatures().mutableMipmapTextureUpload.enabled && !hasDisplayTextureShareGroup() &&
                mShareGroupVk->getContexts().size() == 1;
-    }
-
-    bool isPipelineCacheGraphDumpEnabled() const { return mDumpPipelineCacheGraph; }
-    const char *getPipelineCacheGraphDumpPath() const
-    {
-        return mPipelineCacheGraphDumpPath.c_str();
     }
 
     vk::RenderPassUsageFlags getDepthStencilAttachmentFlags() const
@@ -1272,7 +1296,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     angle::Result handleDirtyComputeUniforms(DirtyBits::Iterator *dirtyBitsIterator);
 
     // Common parts of the common dirty bit handlers.
-    angle::Result handleDirtyUniformsImpl(vk::CommandBufferHelperCommon *commandBufferHelper);
+    angle::Result handleDirtyUniformsImpl(DirtyBits::Iterator *dirtyBitsIterator,
+                                          vk::CommandBufferHelperCommon *commandBufferHelper);
     angle::Result handleDirtyMemoryBarrierImpl(DirtyBits::Iterator *dirtyBitsIterator,
                                                DirtyBits dirtyBitMask);
     template <typename CommandBufferT>
@@ -1447,11 +1472,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     vk::GraphicsPipelineTransitionBits mGraphicsPipelineTransition;
     vk::GraphicsPipelineTransitionBits mGraphicsPipelineLibraryTransition;
 
-    // Used when VK_EXT_graphics_pipeline_library is available, the vertex input and fragment output
-    // partial pipelines are created in the following caches.
-    VertexInputGraphicsPipelineCache mVertexInputGraphicsPipelineCache;
-    FragmentOutputGraphicsPipelineCache mFragmentOutputGraphicsPipelineCache;
-
     // A pipeline cache specifically used for vertex input and fragment output pipelines, when there
     // is no blob reuse between libraries and monolithic pipelines.  In that case, there's no point
     // in making monolithic pipelines be stored in the same cache as these partial pipelines.
@@ -1496,14 +1516,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                                                   DIRTY_BIT_DESCRIPTOR_SETS};
     static constexpr DirtyBits kXfbBuffersAndDescSetDirtyBits{DIRTY_BIT_TRANSFORM_FEEDBACK_BUFFERS,
                                                               DIRTY_BIT_DESCRIPTOR_SETS};
-    static constexpr DirtyBits kDepthDynamicStateDirtyBits =
-        DirtyBits{DIRTY_BIT_DYNAMIC_DEPTH_BIAS, DIRTY_BIT_DYNAMIC_DEPTH_TEST_ENABLE,
-                  DIRTY_BIT_DYNAMIC_DEPTH_WRITE_ENABLE, DIRTY_BIT_DYNAMIC_DEPTH_COMPARE_OP,
-                  DIRTY_BIT_DYNAMIC_DEPTH_BIAS_ENABLE};
-    static constexpr DirtyBits kStencilDynamicStateDirtyBits =
-        DirtyBits{DIRTY_BIT_DYNAMIC_STENCIL_COMPARE_MASK, DIRTY_BIT_DYNAMIC_STENCIL_WRITE_MASK,
-                  DIRTY_BIT_DYNAMIC_STENCIL_REFERENCE, DIRTY_BIT_DYNAMIC_STENCIL_TEST_ENABLE,
-                  DIRTY_BIT_DYNAMIC_STENCIL_OP};
 
     // The offset we had the last time we bound the index buffer.
     const GLvoid *mLastIndexBufferOffset;
@@ -1692,11 +1704,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     VkRect2D mScissor;
 
     VulkanCacheStats mVulkanCacheStats;
-
-    // A graph built from pipeline descs and their transitions.
-    std::ostringstream mPipelineCacheGraph;
-    bool mDumpPipelineCacheGraph;
-    std::string mPipelineCacheGraphDumpPath;
 
     RangedSerialFactory mOutsideRenderPassSerialFactory;
 };

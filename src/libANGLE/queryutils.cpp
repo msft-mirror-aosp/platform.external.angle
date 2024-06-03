@@ -1399,6 +1399,9 @@ void QueryProgramiv(Context *context, Program *program, GLenum pname, GLint *par
         case GL_ACTIVE_UNIFORM_MAX_LENGTH:
             *params = program->getExecutable().getActiveUniformMaxLength();
             return;
+        case GL_PROGRAM_BINARY_READY_ANGLE:
+            *params = program->isBinaryReady(context);
+            return;
         case GL_PROGRAM_BINARY_LENGTH_OES:
             *params = context->getCaps().programBinaryFormats.empty()
                           ? 0
@@ -3385,6 +3388,7 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_POLYGON_OFFSET_UNITS:
         case GL_SAMPLE_COVERAGE_VALUE:
         case GL_DEPTH_CLEAR_VALUE:
+        case GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY:
         case GL_LINE_WIDTH:
         {
             *type      = GL_FLOAT;
@@ -3400,6 +3404,7 @@ bool GetQueryParameterInfo(const State &glState,
             *numParams = 1;
             return true;
         case GL_ALIASED_LINE_WIDTH_RANGE:
+        case GL_MULTISAMPLE_LINE_WIDTH_RANGE:
         case GL_ALIASED_POINT_SIZE_RANGE:
         case GL_DEPTH_RANGE:
         {
@@ -4628,7 +4633,7 @@ egl::Error QuerySurfaceAttrib(const Display *display,
 
 egl::Error QuerySurfaceAttrib64KHR(const Display *display,
                                    const gl::Context *context,
-                                   const Surface *surface,
+                                   Surface *surface,
                                    EGLint attribute,
                                    EGLAttribKHR *value)
 {
@@ -4662,8 +4667,12 @@ egl::Error QuerySurfaceAttrib64KHR(const Display *display,
             *value = surface->getBitmapPointer();
             break;
         default:
-            UNREACHABLE();
-            break;
+        {
+            EGLint intValue = 0;
+            ANGLE_TRY(QuerySurfaceAttrib(display, context, surface, attribute, &intValue));
+            *value = static_cast<EGLAttribKHR>(intValue);
+        }
+        break;
     }
     return NoError();
 }

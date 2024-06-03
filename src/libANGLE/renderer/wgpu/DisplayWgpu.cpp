@@ -199,7 +199,7 @@ rx::ContextImpl *DisplayWgpu::createContext(const gl::State &state,
                                             const gl::Context *shareContext,
                                             const egl::AttributeMap &attribs)
 {
-    return new ContextWgpu(state, errorSet);
+    return new ContextWgpu(state, errorSet, this);
 }
 
 StreamProducerImpl *DisplayWgpu::createStreamProducerD3DTexture(
@@ -213,6 +213,11 @@ StreamProducerImpl *DisplayWgpu::createStreamProducerD3DTexture(
 ShareGroupImpl *DisplayWgpu::createShareGroup(const egl::ShareGroupState &state)
 {
     return new ShareGroupWgpu(state);
+}
+
+wgpu::Instance DisplayWgpu::getInstance() const
+{
+    return mInstance->Get();
 }
 
 void DisplayWgpu::generateExtensions(egl::DisplayExtensions *outExtensions) const
@@ -280,6 +285,11 @@ egl::Error DisplayWgpu::createWgpuDevice()
 
     WGPUDeviceDescriptor deviceDesc = {};
     mDevice = wgpu::Device::Acquire(preferredAdapter->CreateDevice(&deviceDesc));
+    mDevice.SetUncapturedErrorCallback(
+        [](WGPUErrorType type, const char *message, void *userdata) {
+            ERR() << "Error: " << type << " - message: " << message;
+        },
+        nullptr);
     return egl::NoError();
 }
 

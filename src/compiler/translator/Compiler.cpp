@@ -756,6 +756,14 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     // Desktop GLSL shaders don't have precision, so don't expect them to be specified.
     mValidateASTOptions.validatePrecision = !IsDesktopGLSpec(mShaderSpec);
 
+    // Disallow expressions deemed too complex.
+    // This needs to be checked before other functions that will traverse the AST
+    // to prevent potential stack overflow crashes.
+    if (compileOptions.limitExpressionComplexity && !limitExpressionComplexity(root))
+    {
+        return false;
+    }
+
     if (!validateAST(root))
     {
         return false;
@@ -777,12 +785,6 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
             mDiagnostics.globalError("internal compiler error translating pixel local storage");
             return false;
         }
-    }
-
-    // Disallow expressions deemed too complex.
-    if (compileOptions.limitExpressionComplexity && !limitExpressionComplexity(root))
-    {
-        return false;
     }
 
     if (shouldRunLoopAndIndexingValidation(compileOptions) &&
@@ -873,7 +875,7 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         return false;
     }
 
-    if (!SeparateStructFromFunctionDeclarations(this, root, &getSymbolTable()))
+    if (!SeparateStructFromFunctionDeclarations(*this, *root))
     {
         return false;
     }
@@ -1058,6 +1060,11 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     }
 
     if (!RemoveArrayLengthMethod(this, root))
+    {
+        return false;
+    }
+    // Fold the expressions again, because |RemoveArrayLengthMethod| can introduce new constants.
+    if (!FoldExpressions(this, root, &mDiagnostics))
     {
         return false;
     }
@@ -1391,6 +1398,7 @@ void TCompiler::setResourceString()
         << ":EXT_draw_buffers:" << mResources.EXT_draw_buffers
         << ":FragmentPrecisionHigh:" << mResources.FragmentPrecisionHigh
         << ":MaxExpressionComplexity:" << mResources.MaxExpressionComplexity
+        << ":MaxStatementDepth:" << mResources.MaxStatementDepth
         << ":MaxCallStackDepth:" << mResources.MaxCallStackDepth
         << ":MaxFunctionParameters:" << mResources.MaxFunctionParameters
         << ":EXT_blend_func_extended:" << mResources.EXT_blend_func_extended

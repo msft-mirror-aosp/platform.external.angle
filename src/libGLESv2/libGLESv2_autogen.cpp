@@ -3117,6 +3117,8 @@ void GL_APIENTRY glPolygonModeANGLE(GLenum face, GLenum mode)
 
 // GL_ANGLE_program_binary
 
+// GL_ANGLE_program_binary_readiness_query
+
 // GL_ANGLE_program_cache_control
 
 // GL_ANGLE_provoking_vertex
@@ -5221,6 +5223,45 @@ void GL_APIENTRY glMaxShaderCompilerThreadsKHR(GLuint count)
 }
 
 // GL_KHR_robust_buffer_access_behavior
+
+// GL_KHR_robustness
+GLenum GL_APIENTRY glGetGraphicsResetStatusKHR()
+{
+    return GL_GetGraphicsResetStatusKHR();
+}
+
+void GL_APIENTRY glGetnUniformfvKHR(GLuint program,
+                                    GLint location,
+                                    GLsizei bufSize,
+                                    GLfloat *params)
+{
+    return GL_GetnUniformfvKHR(program, location, bufSize, params);
+}
+
+void GL_APIENTRY glGetnUniformivKHR(GLuint program, GLint location, GLsizei bufSize, GLint *params)
+{
+    return GL_GetnUniformivKHR(program, location, bufSize, params);
+}
+
+void GL_APIENTRY glGetnUniformuivKHR(GLuint program,
+                                     GLint location,
+                                     GLsizei bufSize,
+                                     GLuint *params)
+{
+    return GL_GetnUniformuivKHR(program, location, bufSize, params);
+}
+
+void GL_APIENTRY glReadnPixelsKHR(GLint x,
+                                  GLint y,
+                                  GLsizei width,
+                                  GLsizei height,
+                                  GLenum format,
+                                  GLenum type,
+                                  GLsizei bufSize,
+                                  void *data)
+{
+    return GL_ReadnPixelsKHR(x, y, width, height, format, type, bufSize, data);
+}
 
 // GL_KHR_texture_compression_astc_hdr
 

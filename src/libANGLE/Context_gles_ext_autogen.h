@@ -250,6 +250,7 @@
     /* GL_KHR_parallel_shader_compile */                                                           \
     void maxShaderCompilerThreads(GLuint count);                                                   \
     /* GL_KHR_robust_buffer_access_behavior */                                                     \
+    /* GL_KHR_robustness */                                                                        \
     /* GL_KHR_texture_compression_astc_hdr */                                                      \
     /* GL_KHR_texture_compression_astc_ldr */                                                      \
     /* GL_KHR_texture_compression_astc_sliced_3d */                                                \
@@ -432,6 +433,7 @@
     /* GL_ANGLE_multiview_multisample */                                                           \
     /* GL_ANGLE_polygon_mode */                                                                    \
     /* GL_ANGLE_program_binary */                                                                  \
+    /* GL_ANGLE_program_binary_readiness_query */                                                  \
     /* GL_ANGLE_program_cache_control */                                                           \
     /* GL_ANGLE_provoking_vertex */                                                                \
     /* GL_ANGLE_read_only_depth_stencil_feedback_loops */                                          \

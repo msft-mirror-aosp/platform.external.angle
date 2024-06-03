@@ -18,6 +18,7 @@
 #include "angle_gl.h"
 #include "common/MemoryBuffer.h"
 #include "common/PackedEnums.h"
+#include "common/SimpleMutex.h"
 #include "common/angleutils.h"
 #include "libANGLE/Caps.h"
 #include "libANGLE/Constants.h"
@@ -654,7 +655,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     MemoryProgramCache *getMemoryProgramCache() const { return mMemoryProgramCache; }
     MemoryShaderCache *getMemoryShaderCache() const { return mMemoryShaderCache; }
 
-    std::mutex &getProgramCacheMutex() const;
+    angle::SimpleMutex &getProgramCacheMutex() const;
 
     bool hasBeenCurrent() const { return mHasBeenCurrent; }
     egl::Display *getDisplay() const { return mDisplay; }
@@ -746,7 +747,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     // GL_KHR_parallel_shader_compile
     std::shared_ptr<angle::WorkerThreadPool> getShaderCompileThreadPool() const;
-    std::shared_ptr<angle::WorkerThreadPool> getPostLinkTaskThreadPool() const;
+    std::shared_ptr<angle::WorkerThreadPool> getLinkSubTaskThreadPool() const;
     std::shared_ptr<angle::WaitableEvent> postCompileLinkTask(
         const std::shared_ptr<angle::Closure> &task,
         angle::JobThreadSafety safety,

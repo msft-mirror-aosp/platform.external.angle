@@ -9,18 +9,19 @@
 
 namespace rx
 {
-std::vector<std::shared_ptr<PostLinkTask>> LinkTask::link(
-    const gl::ProgramLinkedResources &resources,
-    const gl::ProgramMergedVaryings &mergedVaryings,
-    bool *arePostLinkTasksOptionalOut)
+void LinkTask::link(const gl::ProgramLinkedResources &resources,
+                    const gl::ProgramMergedVaryings &mergedVaryings,
+                    std::vector<std::shared_ptr<LinkSubTask>> *linkSubTasksOut,
+                    std::vector<std::shared_ptr<LinkSubTask>> *postLinkSubTasksOut)
 {
     UNREACHABLE();
-    return {};
+    return;
 }
-std::vector<std::shared_ptr<PostLinkTask>> LinkTask::load(bool *arePostLinkTasksOptionalOut)
+void LinkTask::load(std::vector<std::shared_ptr<LinkSubTask>> *linkSubTasksOut,
+                    std::vector<std::shared_ptr<LinkSubTask>> *postLinkSubTasksOut)
 {
     UNREACHABLE();
-    return {};
+    return;
 }
 bool LinkTask::isLinkingInternally()
 {

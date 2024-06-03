@@ -140,6 +140,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_OES_rgb8_rgba8"] = enableableExtension(&Extensions::rgb8Rgba8OES);
         map["GL_KHR_robust_buffer_access_behavior"] = esOnlyExtension(&Extensions::robustBufferAccessBehaviorKHR);
         map["GL_EXT_robustness"] = esOnlyExtension(&Extensions::robustnessEXT);
+        map["GL_KHR_robustness"] = esOnlyExtension(&Extensions::robustnessKHR);
         map["GL_NV_robustness_video_memory_purge"] = esOnlyExtension(&Extensions::robustnessVideoMemoryPurgeNV);
         map["GL_OES_sample_shading"] = enableableExtension(&Extensions::sampleShadingOES);
         map["GL_OES_sample_variables"] = enableableExtension(&Extensions::sampleVariablesOES);
@@ -242,6 +243,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_ANGLE_multiview_multisample"] = enableableExtension(&Extensions::multiviewMultisampleANGLE);
         map["GL_ANGLE_polygon_mode"] = enableableExtension(&Extensions::polygonModeANGLE);
         map["GL_ANGLE_program_binary"] = esOnlyExtension(&Extensions::programBinaryANGLE);
+        map["GL_ANGLE_program_binary_readiness_query"] = esOnlyExtension(&Extensions::programBinaryReadinessQueryANGLE);
         map["GL_ANGLE_program_cache_control"] = esOnlyExtension(&Extensions::programCacheControlANGLE);
         map["GL_ANGLE_provoking_vertex"] = enableableExtension(&Extensions::provokingVertexANGLE);
         map["GL_ANGLE_read_only_depth_stencil_feedback_loops"] = enableableExtension(&Extensions::readOnlyDepthStencilFeedbackLoopsANGLE);

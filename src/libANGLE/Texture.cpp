@@ -130,6 +130,7 @@ TextureState::TextureState(TextureType type)
       mIsInternalIncompleteTexture(false),
       mHasBeenBoundAsImage(false),
       mHasBeenBoundAsAttachment(false),
+      mHasBeenBoundToMSRTTFramebuffer(false),
       mImmutableFormat(false),
       mImmutableLevels(0),
       mUsage(GL_NONE),
@@ -184,8 +185,8 @@ GLuint TextureState::getMipmapMaxLevel() const
     GLuint expectedMipLevels       = 0;
     if (mType == TextureType::_3D)
     {
-        const int maxDim  = std::max(std::max(baseImageDesc.size.width, baseImageDesc.size.height),
-                                     baseImageDesc.size.depth);
+        const int maxDim = std::max(
+            {baseImageDesc.size.width, baseImageDesc.size.height, baseImageDesc.size.depth});
         expectedMipLevels = static_cast<GLuint>(log2(maxDim));
     }
     else
@@ -593,7 +594,7 @@ GLuint TextureState::getEnabledLevelCount() const
 {
     GLuint levelCount      = 0;
     const GLuint baseLevel = getEffectiveBaseLevel();
-    const GLuint maxLevel  = std::min(getEffectiveMaxLevel(), getMipmapMaxLevel());
+    const GLuint maxLevel  = getMipmapMaxLevel();
 
     // The mip chain will have either one or more sequential levels, or max levels,
     // but not a sparse one.
@@ -2548,6 +2549,15 @@ void Texture::onBufferContentsChange()
     mState.mInitState = InitState::MayNeedInit;
     signalDirtyState(DIRTY_BIT_IMPLEMENTATION);
     onStateChange(angle::SubjectMessage::ContentsChanged);
+}
+
+void Texture::onBindToMSRTTFramebuffer()
+{
+    if (!mState.mHasBeenBoundToMSRTTFramebuffer)
+    {
+        mDirtyBits.set(DIRTY_BIT_BOUND_TO_MSRTT_FRAMEBUFFER);
+        mState.mHasBeenBoundToMSRTTFramebuffer = true;
+    }
 }
 
 GLenum Texture::getImplementationColorReadFormat(const Context *context) const
