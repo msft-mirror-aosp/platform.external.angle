@@ -9,6 +9,7 @@
 
 #include "libANGLE/renderer/renderer_utils.h"
 
+#include "common/base/anglebase/numerics/checked_math.h"
 #include "common/string_utils.h"
 #include "common/system_utils.h"
 #include "common/utilities.h"
@@ -64,7 +65,28 @@ bool FeatureNameMatch(const std::string &a, const std::string &b)
 }
 }  // anonymous namespace
 
+// FeatureInfo implementation
+static const char *kFeatureOverrideTrue  = "true (override)";
+static const char *kFeatureOverrideFalse = "false (override)";
+
+void FeatureInfo::applyOverride(bool state)
+{
+    enabled     = state;
+    hasOverride = true;
+    condition   = state ? kFeatureOverrideTrue : kFeatureOverrideFalse;
+}
+
 // FeatureSetBase implementation
+void FeatureSetBase::reset()
+{
+    for (auto iter : members)
+    {
+        FeatureInfo *feature = iter.second;
+        feature->enabled     = false;
+        feature->hasOverride = false;
+    }
+}
+
 void FeatureSetBase::overrideFeatures(const std::vector<std::string> &featureNames, bool enabled)
 {
     for (const std::string &name : featureNames)
@@ -80,7 +102,7 @@ void FeatureSetBase::overrideFeatures(const std::vector<std::string> &featureNam
                 continue;
             }
 
-            feature->enabled = enabled;
+            feature->applyOverride(enabled);
 
             // If name has a wildcard, try to match it with all features.  Otherwise, bail on first
             // match, as names are unique.
@@ -510,6 +532,32 @@ void PackPixels(const PackPixelsParams &params,
     }
 }
 
+angle::Result GetPackPixelsParams(const gl::InternalFormat &sizedFormatInfo,
+                                  GLuint outputPitch,
+                                  const gl::PixelPackState &packState,
+                                  gl::Buffer *packBuffer,
+                                  const gl::Rectangle &area,
+                                  const gl::Rectangle &clippedArea,
+                                  rx::PackPixelsParams *paramsOut,
+                                  GLuint *skipBytesOut)
+{
+    angle::CheckedNumeric<GLuint> checkedSkipBytes = *skipBytesOut;
+    checkedSkipBytes += (clippedArea.x - area.x) * sizedFormatInfo.pixelBytes +
+                        (clippedArea.y - area.y) * outputPitch;
+    if (!checkedSkipBytes.AssignIfValid(skipBytesOut))
+    {
+        return angle::Result::Stop;
+    }
+
+    angle::FormatID angleFormatID =
+        angle::Format::InternalFormatToID(sizedFormatInfo.sizedInternalFormat);
+    const angle::Format &angleFormat = angle::Format::Get(angleFormatID);
+
+    *paramsOut = rx::PackPixelsParams(clippedArea, angleFormat, outputPitch,
+                                      packState.reverseRowOrder, packBuffer, 0);
+    return angle::Result::Continue;
+}
+
 bool FastCopyFunctionMap::has(angle::FormatID formatID) const
 {
     return (get(formatID) != nullptr);
@@ -646,7 +694,7 @@ void CopyImageCHROMIUM(const uint8_t *sourceData,
 }
 
 // IncompleteTextureSet implementation.
-IncompleteTextureSet::IncompleteTextureSet() : mIncompleteTextureBufferAttachment(nullptr) {}
+IncompleteTextureSet::IncompleteTextureSet() {}
 
 IncompleteTextureSet::~IncompleteTextureSet() {}
 
@@ -663,11 +711,6 @@ void IncompleteTextureSet::onDestroy(const gl::Context *context)
                 incompleteTexture.set(context, nullptr);
             }
         }
-    }
-    if (mIncompleteTextureBufferAttachment != nullptr)
-    {
-        mIncompleteTextureBufferAttachment->onDestroy(context);
-        mIncompleteTextureBufferAttachment = nullptr;
     }
 }
 
@@ -713,6 +756,7 @@ angle::Result IncompleteTextureSet::getIncompleteTexture(
     gl::Texture *tex =
         new gl::Texture(implFactory, {std::numeric_limits<GLuint>::max()}, createType);
     angle::UniqueObjectPointer<gl::Texture, gl::Context> t(tex, context);
+    gl::Buffer *incompleteTextureBufferAttachment = nullptr;
 
     // This is a bit of a kludge but is necessary to consume the error.
     gl::Context *mutableContext = const_cast<gl::Context *>(context);
@@ -720,9 +764,9 @@ angle::Result IncompleteTextureSet::getIncompleteTexture(
     if (createType == gl::TextureType::Buffer)
     {
         constexpr uint32_t kBufferInitData = 0;
-        mIncompleteTextureBufferAttachment =
+        incompleteTextureBufferAttachment =
             new gl::Buffer(implFactory, {std::numeric_limits<GLuint>::max()});
-        ANGLE_TRY(mIncompleteTextureBufferAttachment->bufferData(
+        ANGLE_TRY(incompleteTextureBufferAttachment->bufferData(
             mutableContext, gl::BufferBinding::Texture, &kBufferInitData, sizeof(kBufferInitData),
             gl::BufferUsage::StaticDraw));
     }
@@ -737,6 +781,7 @@ angle::Result IncompleteTextureSet::getIncompleteTexture(
         ANGLE_TRY(t->setStorage(mutableContext, createType, 1,
                                 incompleteTextureParam.sizedInternalFormat, colorSize));
     }
+    t->markInternalIncompleteTexture();
 
     if (type == gl::TextureType::CubeMap)
     {
@@ -771,7 +816,8 @@ angle::Result IncompleteTextureSet::getIncompleteTexture(
     }
     else if (type == gl::TextureType::Buffer)
     {
-        ANGLE_TRY(t->setBuffer(context, mIncompleteTextureBufferAttachment,
+        ASSERT(incompleteTextureBufferAttachment != nullptr);
+        ANGLE_TRY(t->setBuffer(context, incompleteTextureBufferAttachment,
                                incompleteTextureParam.sizedInternalFormat));
     }
     else
@@ -1096,10 +1142,11 @@ void LogFeatureStatus(const angle::FeatureSetBase &features,
     }
 }
 
-void ApplyFeatureOverrides(angle::FeatureSetBase *features, const egl::DisplayState &state)
+void ApplyFeatureOverrides(angle::FeatureSetBase *features,
+                           const angle::FeatureOverrides &overrides)
 {
-    features->overrideFeatures(state.featureOverridesEnabled, true);
-    features->overrideFeatures(state.featureOverridesDisabled, false);
+    features->overrideFeatures(overrides.enabled, true);
+    features->overrideFeatures(overrides.disabled, false);
 
     // Override with environment as well.
     constexpr char kAngleFeatureOverridesEnabledEnvName[]  = "ANGLE_FEATURE_OVERRIDES_ENABLED";
@@ -1163,20 +1210,25 @@ void GetSamplePosition(GLsizei sampleCount, size_t index, GLfloat *xy)
 #define DRAW_CALL(drawType, instanced, bvbi) DRAW_##drawType##instanced##bvbi
 
 #define MULTI_DRAW_BLOCK(drawType, instanced, bvbi, hasDrawID, hasBaseVertex, hasBaseInstance) \
-    for (GLsizei drawID = 0; drawID < drawcount; ++drawID)                                     \
+    do                                                                                         \
     {                                                                                          \
-        if (ANGLE_NOOP_DRAW(instanced))                                                        \
+        for (GLsizei drawID = 0; drawID < drawcount; ++drawID)                                 \
         {                                                                                      \
-            ANGLE_TRY(contextImpl->handleNoopDrawEvent());                                     \
-            continue;                                                                          \
+            if (ANGLE_NOOP_DRAW(instanced))                                                    \
+            {                                                                                  \
+                ANGLE_TRY(contextImpl->handleNoopDrawEvent());                                 \
+                continue;                                                                      \
+            }                                                                                  \
+            ANGLE_SET_DRAW_ID_UNIFORM(hasDrawID)(drawID);                                      \
+            ANGLE_SET_BASE_VERTEX_UNIFORM(hasBaseVertex)(baseVertices[drawID]);                \
+            ANGLE_SET_BASE_INSTANCE_UNIFORM(hasBaseInstance)(baseInstances[drawID]);           \
+            ANGLE_TRY(DRAW_CALL(drawType, instanced, bvbi));                                   \
+            ANGLE_MARK_TRANSFORM_FEEDBACK_USAGE(instanced);                                    \
+            gl::MarkShaderStorageUsage(context);                                               \
         }                                                                                      \
-        ANGLE_SET_DRAW_ID_UNIFORM(hasDrawID)(drawID);                                          \
-        ANGLE_SET_BASE_VERTEX_UNIFORM(hasBaseVertex)(baseVertices[drawID]);                    \
-        ANGLE_SET_BASE_INSTANCE_UNIFORM(hasBaseInstance)(baseInstances[drawID]);               \
-        ANGLE_TRY(DRAW_CALL(drawType, instanced, bvbi));                                       \
-        ANGLE_MARK_TRANSFORM_FEEDBACK_USAGE(instanced);                                        \
-        gl::MarkShaderStorageUsage(context);                                                   \
-    }
+        /* reset the uniform to zero for non-multi-draw uses of the program */                 \
+        ANGLE_SET_DRAW_ID_UNIFORM(hasDrawID)(0);                                               \
+    } while (0)
 
 angle::Result MultiDrawArraysGeneral(ContextImpl *contextImpl,
                                      const gl::Context *context,
@@ -1185,15 +1237,15 @@ angle::Result MultiDrawArraysGeneral(ContextImpl *contextImpl,
                                      const GLsizei *counts,
                                      GLsizei drawcount)
 {
-    gl::Program *programObject = context->getState().getLinkedProgram(context);
-    const bool hasDrawID       = programObject && programObject->hasDrawIDUniform();
+    gl::ProgramExecutable *executable = context->getState().getLinkedProgramExecutable(context);
+    const bool hasDrawID              = executable->hasDrawIDUniform();
     if (hasDrawID)
     {
-        MULTI_DRAW_BLOCK(ARRAYS, _, _, 1, 0, 0)
+        MULTI_DRAW_BLOCK(ARRAYS, _, _, 1, 0, 0);
     }
     else
     {
-        MULTI_DRAW_BLOCK(ARRAYS, _, _, 0, 0, 0)
+        MULTI_DRAW_BLOCK(ARRAYS, _, _, 0, 0, 0);
     }
 
     return angle::Result::Continue;
@@ -1233,15 +1285,15 @@ angle::Result MultiDrawArraysInstancedGeneral(ContextImpl *contextImpl,
                                               const GLsizei *instanceCounts,
                                               GLsizei drawcount)
 {
-    gl::Program *programObject = context->getState().getLinkedProgram(context);
-    const bool hasDrawID       = programObject && programObject->hasDrawIDUniform();
+    gl::ProgramExecutable *executable = context->getState().getLinkedProgramExecutable(context);
+    const bool hasDrawID              = executable->hasDrawIDUniform();
     if (hasDrawID)
     {
-        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _, 1, 0, 0)
+        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _, 1, 0, 0);
     }
     else
     {
-        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _, 0, 0, 0)
+        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _, 0, 0, 0);
     }
 
     return angle::Result::Continue;
@@ -1255,15 +1307,15 @@ angle::Result MultiDrawElementsGeneral(ContextImpl *contextImpl,
                                        const GLvoid *const *indices,
                                        GLsizei drawcount)
 {
-    gl::Program *programObject = context->getState().getLinkedProgram(context);
-    const bool hasDrawID       = programObject && programObject->hasDrawIDUniform();
+    gl::ProgramExecutable *executable = context->getState().getLinkedProgramExecutable(context);
+    const bool hasDrawID              = executable->hasDrawIDUniform();
     if (hasDrawID)
     {
-        MULTI_DRAW_BLOCK(ELEMENTS, _, _, 1, 0, 0)
+        MULTI_DRAW_BLOCK(ELEMENTS, _, _, 1, 0, 0);
     }
     else
     {
-        MULTI_DRAW_BLOCK(ELEMENTS, _, _, 0, 0, 0)
+        MULTI_DRAW_BLOCK(ELEMENTS, _, _, 0, 0, 0);
     }
 
     return angle::Result::Continue;
@@ -1306,15 +1358,15 @@ angle::Result MultiDrawElementsInstancedGeneral(ContextImpl *contextImpl,
                                                 const GLsizei *instanceCounts,
                                                 GLsizei drawcount)
 {
-    gl::Program *programObject = context->getState().getLinkedProgram(context);
-    const bool hasDrawID       = programObject && programObject->hasDrawIDUniform();
+    gl::ProgramExecutable *executable = context->getState().getLinkedProgramExecutable(context);
+    const bool hasDrawID              = executable->hasDrawIDUniform();
     if (hasDrawID)
     {
-        MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _, 1, 0, 0)
+        MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _, 1, 0, 0);
     }
     else
     {
-        MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _, 0, 0, 0)
+        MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _, 0, 0, 0);
     }
 
     return angle::Result::Continue;
@@ -1329,26 +1381,26 @@ angle::Result MultiDrawArraysInstancedBaseInstanceGeneral(ContextImpl *contextIm
                                                           const GLuint *baseInstances,
                                                           GLsizei drawcount)
 {
-    gl::Program *programObject = context->getState().getLinkedProgram(context);
-    const bool hasDrawID       = programObject && programObject->hasDrawIDUniform();
-    const bool hasBaseInstance = programObject && programObject->hasBaseInstanceUniform();
-    ResetBaseVertexBaseInstance resetUniforms(programObject, false, hasBaseInstance);
+    gl::ProgramExecutable *executable = context->getState().getLinkedProgramExecutable(context);
+    const bool hasDrawID              = executable->hasDrawIDUniform();
+    const bool hasBaseInstance        = executable->hasBaseInstanceUniform();
+    ResetBaseVertexBaseInstance resetUniforms(executable, false, hasBaseInstance);
 
     if (hasDrawID && hasBaseInstance)
     {
-        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _BASE_INSTANCE, 1, 0, 1)
+        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _BASE_INSTANCE, 1, 0, 1);
     }
     else if (hasDrawID)
     {
-        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _BASE_INSTANCE, 1, 0, 0)
+        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _BASE_INSTANCE, 1, 0, 0);
     }
     else if (hasBaseInstance)
     {
-        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _BASE_INSTANCE, 0, 0, 1)
+        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _BASE_INSTANCE, 0, 0, 1);
     }
     else
     {
-        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _BASE_INSTANCE, 0, 0, 0)
+        MULTI_DRAW_BLOCK(ARRAYS, _INSTANCED, _BASE_INSTANCE, 0, 0, 0);
     }
 
     return angle::Result::Continue;
@@ -1365,11 +1417,11 @@ angle::Result MultiDrawElementsInstancedBaseVertexBaseInstanceGeneral(ContextImp
                                                                       const GLuint *baseInstances,
                                                                       GLsizei drawcount)
 {
-    gl::Program *programObject = context->getState().getLinkedProgram(context);
-    const bool hasDrawID       = programObject && programObject->hasDrawIDUniform();
-    const bool hasBaseVertex   = programObject && programObject->hasBaseVertexUniform();
-    const bool hasBaseInstance = programObject && programObject->hasBaseInstanceUniform();
-    ResetBaseVertexBaseInstance resetUniforms(programObject, hasBaseVertex, hasBaseInstance);
+    gl::ProgramExecutable *executable = context->getState().getLinkedProgramExecutable(context);
+    const bool hasDrawID              = executable->hasDrawIDUniform();
+    const bool hasBaseVertex          = executable->hasBaseVertexUniform();
+    const bool hasBaseInstance        = executable->hasBaseInstanceUniform();
+    ResetBaseVertexBaseInstance resetUniforms(executable, hasBaseVertex, hasBaseInstance);
 
     if (hasDrawID)
     {
@@ -1377,22 +1429,22 @@ angle::Result MultiDrawElementsInstancedBaseVertexBaseInstanceGeneral(ContextImp
         {
             if (hasBaseInstance)
             {
-                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 1, 1, 1)
+                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 1, 1, 1);
             }
             else
             {
-                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 1, 1, 0)
+                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 1, 1, 0);
             }
         }
         else
         {
             if (hasBaseInstance)
             {
-                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 1, 0, 1)
+                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 1, 0, 1);
             }
             else
             {
-                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 1, 0, 0)
+                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 1, 0, 0);
             }
         }
     }
@@ -1402,22 +1454,22 @@ angle::Result MultiDrawElementsInstancedBaseVertexBaseInstanceGeneral(ContextImp
         {
             if (hasBaseInstance)
             {
-                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 0, 1, 1)
+                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 0, 1, 1);
             }
             else
             {
-                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 0, 1, 0)
+                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 0, 1, 0);
             }
         }
         else
         {
             if (hasBaseInstance)
             {
-                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 0, 0, 1)
+                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 0, 0, 1);
             }
             else
             {
-                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 0, 0, 0)
+                MULTI_DRAW_BLOCK(ELEMENTS, _INSTANCED, _BASE_VERTEX_BASE_INSTANCE, 0, 0, 0);
             }
         }
     }
@@ -1425,27 +1477,27 @@ angle::Result MultiDrawElementsInstancedBaseVertexBaseInstanceGeneral(ContextImp
     return angle::Result::Continue;
 }
 
-ResetBaseVertexBaseInstance::ResetBaseVertexBaseInstance(gl::Program *programObject,
+ResetBaseVertexBaseInstance::ResetBaseVertexBaseInstance(gl::ProgramExecutable *executable,
                                                          bool resetBaseVertex,
                                                          bool resetBaseInstance)
-    : mProgramObject(programObject),
+    : mExecutable(executable),
       mResetBaseVertex(resetBaseVertex),
       mResetBaseInstance(resetBaseInstance)
 {}
 
 ResetBaseVertexBaseInstance::~ResetBaseVertexBaseInstance()
 {
-    if (mProgramObject)
+    if (mExecutable)
     {
         // Reset emulated uniforms to zero to avoid affecting other draw calls
         if (mResetBaseVertex)
         {
-            mProgramObject->setBaseVertexUniform(0);
+            mExecutable->setBaseVertexUniform(0);
         }
 
         if (mResetBaseInstance)
         {
-            mProgramObject->setBaseInstanceUniform(0);
+            mExecutable->setBaseInstanceUniform(0);
         }
     }
 }
@@ -1709,6 +1761,7 @@ const gl::ColorGeneric AdjustBorderColor(const angle::ColorGeneric &borderColorG
 
     return adjustedBorderColor;
 }
+
 template const gl::ColorGeneric AdjustBorderColor<true>(
     const angle::ColorGeneric &borderColorGeneric,
     const angle::Format &format,
@@ -1718,4 +1771,114 @@ template const gl::ColorGeneric AdjustBorderColor<false>(
     const angle::Format &format,
     bool stencilMode);
 
+bool TextureHasAnyRedefinedLevels(const gl::CubeFaceArray<gl::TexLevelMask> &redefinedLevels)
+{
+    for (gl::TexLevelMask faceRedefinedLevels : redefinedLevels)
+    {
+        if (faceRedefinedLevels.any())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool IsTextureLevelRedefined(const gl::CubeFaceArray<gl::TexLevelMask> &redefinedLevels,
+                             gl::TextureType textureType,
+                             gl::LevelIndex level)
+{
+    gl::TexLevelMask redefined = redefinedLevels[0];
+
+    if (textureType == gl::TextureType::CubeMap)
+    {
+        for (size_t face = 1; face < gl::kCubeFaceCount; ++face)
+        {
+            redefined |= redefinedLevels[face];
+        }
+    }
+
+    return redefined.test(level.get());
+}
+
+bool TextureRedefineLevel(const TextureLevelAllocation levelAllocation,
+                          const TextureLevelDefinition levelDefinition,
+                          bool immutableFormat,
+                          uint32_t levelCount,
+                          const uint32_t layerIndex,
+                          const gl::ImageIndex &index,
+                          gl::LevelIndex imageFirstAllocatedLevel,
+                          gl::CubeFaceArray<gl::TexLevelMask> *redefinedLevels)
+{
+    // If the level that's being redefined is outside the level range of the allocated
+    // image, the application is free to use any size or format.  Any data uploaded to it
+    // will live in staging area until the texture base/max level is adjusted to include
+    // this level, at which point the image will be recreated.
+    //
+    // Otherwise, if the level that's being redefined has a different format or size,
+    // only release the image if it's single-mip, and keep the uploaded data staged.
+    // Otherwise the image is mip-incomplete anyway and will be eventually recreated when
+    // needed.  Only exception to this latter is if all the levels of the texture are
+    // redefined such that the image becomes mip-complete in the end.
+    // redefinedLevels is used during syncState to support this use-case.
+    //
+    // Note that if the image has multiple mips, there could be a copy from one mip
+    // happening to the other, which means the image cannot be released.
+    //
+    // In summary:
+    //
+    // - If the image has a single level, and that level is being redefined, release the
+    //   image.
+    // - Otherwise keep the image intact (another mip may be the source of a copy), and
+    //   make sure any updates to this level are staged.
+    gl::LevelIndex levelIndexGL(index.getLevelIndex());
+    const bool isCompatibleRedefinition =
+        levelAllocation == TextureLevelAllocation::WithinAllocatedImage &&
+        levelDefinition == TextureLevelDefinition::Compatible;
+    const bool isCubeMap = index.getType() == gl::TextureType::CubeMap;
+
+    // Mark the level as incompatibly redefined if that's the case.  Note that if the level
+    // was previously incompatibly defined, then later redefined to be compatible, the
+    // corresponding bit should clear.
+    if (levelAllocation == TextureLevelAllocation::WithinAllocatedImage)
+    {
+        // Immutable texture should never have levels redefined.
+        ASSERT(isCompatibleRedefinition || !immutableFormat);
+
+        const uint32_t redefinedFace = isCubeMap ? layerIndex : 0;
+        (*redefinedLevels)[redefinedFace].set(levelIndexGL.get(), !isCompatibleRedefinition);
+    }
+
+    const bool isUpdateToSingleLevelImage =
+        levelCount == 1 && imageFirstAllocatedLevel == levelIndexGL;
+
+    // If incompatible, and redefining the single-level image, the caller will release the texture
+    // so it can be recreated immediately.  This is needed so that the texture can be reallocated
+    // with the correct format/size.
+    //
+    // This is not done for cubemaps because every face may be separately redefined.  Note
+    // that this is not possible for texture arrays in general.
+    bool shouldReleaseImage = !isCompatibleRedefinition && isUpdateToSingleLevelImage && !isCubeMap;
+    return shouldReleaseImage;
+}
+
+void TextureRedefineGenerateMipmapLevels(gl::LevelIndex baseLevel,
+                                         gl::LevelIndex maxLevel,
+                                         gl::LevelIndex firstGeneratedLevel,
+                                         gl::CubeFaceArray<gl::TexLevelMask> *redefinedLevels)
+{
+    static_assert(gl::IMPLEMENTATION_MAX_TEXTURE_LEVELS < 32,
+                  "levels mask assumes 32-bits is enough");
+    // Generate bitmask for (baseLevel, maxLevel]. `+1` because bitMask takes `the number of bits`
+    // but levels start counting from 0
+    gl::TexLevelMask levelsMask(angle::BitMask<uint32_t>(maxLevel.get() + 1));
+    levelsMask &= static_cast<uint32_t>(~angle::BitMask<uint32_t>(firstGeneratedLevel.get()));
+    // Remove (baseLevel, maxLevel] from redefinedLevels. These levels are no longer incompatibly
+    // defined if they previously were.  The corresponding bits in redefinedLevels should be
+    // cleared.
+    for (size_t face = 0; face < gl::kCubeFaceCount; ++face)
+    {
+        (*redefinedLevels)[face] &= ~levelsMask;
+    }
+}
 }  // namespace rx

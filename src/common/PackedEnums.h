@@ -784,12 +784,6 @@ typename std::enable_if<IsResourceIDType<T>::value, bool>::type operator<(const 
 template <typename ResourceIDType>
 GLuint GetIDValue(ResourceIDType id);
 
-template <>
-inline GLuint GetIDValue(GLuint id)
-{
-    return id;
-}
-
 template <typename ResourceIDType>
 inline GLuint GetIDValue(ResourceIDType id)
 {
@@ -857,6 +851,14 @@ typename std::enable_if<IsResourceIDType<T>::value && !std::is_same<T, gl::Conte
 operator==(const T &lhs, const T &rhs)
 {
     return lhs.value == rhs.value;
+}
+
+template <typename T>
+typename std::enable_if<IsResourceIDType<T>::value && !std::is_same<T, gl::ContextID>::value,
+                        bool>::type
+operator<(const T &lhs, const T &rhs)
+{
+    return lhs.value < rhs.value;
 }
 }  // namespace egl
 

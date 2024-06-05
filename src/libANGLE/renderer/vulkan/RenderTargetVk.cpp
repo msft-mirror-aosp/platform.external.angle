@@ -10,10 +10,10 @@
 #include "libANGLE/renderer/vulkan/RenderTargetVk.h"
 
 #include "libANGLE/renderer/vulkan/ContextVk.h"
-#include "libANGLE/renderer/vulkan/ResourceVk.h"
 #include "libANGLE/renderer/vulkan/TextureVk.h"
 #include "libANGLE/renderer/vulkan/vk_format_utils.h"
 #include "libANGLE/renderer/vulkan/vk_helpers.h"
+#include "libANGLE/renderer/vulkan/vk_resource.h"
 
 namespace rx
 {
@@ -83,9 +83,10 @@ vk::ImageOrBufferViewSubresourceSerial RenderTargetVk::getSubresourceSerialImpl(
     ASSERT(mLayerIndex < std::numeric_limits<uint16_t>::max());
     ASSERT(mLevelIndexGL.get() < std::numeric_limits<uint16_t>::max());
 
-    vk::ImageOrBufferViewSubresourceSerial imageViewSerial = imageViews->getSubresourceSerial(
-        mLevelIndexGL, 1, mLayerIndex, vk::GetLayerMode(*mImage, mLayerCount),
-        vk::SrgbDecodeMode::SkipDecode, gl::SrgbOverride::Default);
+    vk::LayerMode layerMode = vk::GetLayerMode(*mImage, mLayerCount);
+    vk::ImageOrBufferViewSubresourceSerial imageViewSerial =
+        imageViews->getSubresourceSerial(mLevelIndexGL, 1, mLayerIndex, layerMode,
+                                         vk::SrgbDecodeMode::SkipDecode, gl::SrgbOverride::Default);
     return imageViewSerial;
 }
 
@@ -132,6 +133,17 @@ void RenderTargetVk::onDepthStencilDraw(ContextVk *contextVk, uint32_t framebuff
 
     contextVk->onDepthStencilDraw(mLevelIndexGL, mLayerIndex, framebufferLayerCount, mImage,
                                   mResolveImage, mImageSiblingSerial);
+}
+
+void RenderTargetVk::onDepthStencilResolve(ContextVk *contextVk, uint32_t framebufferLayerCount)
+{
+    ASSERT(mImage->getActualFormat().hasDepthOrStencilBits());
+    ASSERT(framebufferLayerCount <= mLayerCount);
+    ASSERT(mResolveImage == nullptr);
+
+    contextVk->onImageRenderPassWrite(mLevelIndexGL, mLayerIndex, framebufferLayerCount,
+                                      mImage->getAspectFlags(),
+                                      vk::ImageLayout::DepthStencilResolve, mImage);
 }
 
 vk::ImageHelper &RenderTargetVk::getImageForRenderPass()

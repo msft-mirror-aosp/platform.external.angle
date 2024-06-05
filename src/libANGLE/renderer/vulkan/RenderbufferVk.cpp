@@ -13,8 +13,8 @@
 #include "libANGLE/Image.h"
 #include "libANGLE/renderer/vulkan/ContextVk.h"
 #include "libANGLE/renderer/vulkan/ImageVk.h"
-#include "libANGLE/renderer/vulkan/RendererVk.h"
 #include "libANGLE/renderer/vulkan/TextureVk.h"
+#include "libANGLE/renderer/vulkan/vk_renderer.h"
 
 namespace rx
 {
@@ -46,7 +46,7 @@ angle::Result RenderbufferVk::setStorageImpl(const gl::Context *context,
                                              gl::MultisamplingMode mode)
 {
     ContextVk *contextVk            = vk::GetImpl(context);
-    RendererVk *renderer            = contextVk->getRenderer();
+    vk::Renderer *renderer          = contextVk->getRenderer();
     const vk::Format &format        = renderer->getFormat(internalformat);
     angle::FormatID textureFormatID = format.getActualRenderableImageFormatID();
 
@@ -116,19 +116,24 @@ angle::Result RenderbufferVk::setStorageImpl(const gl::Context *context,
         createFlags |= VK_IMAGE_CREATE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_BIT_EXT;
     }
 
+    if (contextVk->getFeatures().limitSampleCountTo2.enabled)
+    {
+        samples = std::min(samples, 2);
+    }
+
     const uint32_t imageSamples = isRenderToTexture ? 1 : samples;
 
     bool robustInit = contextVk->isRobustResourceInitEnabled();
 
     VkExtent3D extents = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1u};
-    ANGLE_TRY(mImage->initExternal(contextVk, gl::TextureType::_2D, extents,
-                                   format.getIntendedFormatID(), textureFormatID, imageSamples,
-                                   usage, createFlags, vk::ImageLayout::Undefined, nullptr,
-                                   gl::LevelIndex(0), 1, 1, robustInit, false));
+    ANGLE_TRY(mImage->initExternal(
+        contextVk, gl::TextureType::_2D, extents, format.getIntendedFormatID(), textureFormatID,
+        imageSamples, usage, createFlags, vk::ImageLayout::Undefined, nullptr, gl::LevelIndex(0), 1,
+        1, robustInit, false, vk::YcbcrConversionDesc{}));
 
     VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    ANGLE_TRY(mImage->initMemory(contextVk, false, renderer->getMemoryProperties(), flags,
-                                 vk::MemoryAllocationType::RenderBufferStorageImage));
+    ANGLE_TRY(contextVk->initImageAllocation(mImage, false, renderer->getMemoryProperties(), flags,
+                                             vk::MemoryAllocationType::RenderBufferStorageImage));
 
     // If multisampled render to texture, an implicit multisampled image is created which is used as
     // the color or depth/stencil attachment.  At the end of the render pass, this image is
@@ -178,8 +183,8 @@ angle::Result RenderbufferVk::setStorageMultisample(const gl::Context *context,
 angle::Result RenderbufferVk::setStorageEGLImageTarget(const gl::Context *context,
                                                        egl::Image *image)
 {
-    ContextVk *contextVk = vk::GetImpl(context);
-    RendererVk *renderer = contextVk->getRenderer();
+    ContextVk *contextVk   = vk::GetImpl(context);
+    vk::Renderer *renderer = contextVk->getRenderer();
 
     ANGLE_TRY(contextVk->getShareGroup()->lockDefaultContextsPriority(contextVk));
 
@@ -198,15 +203,14 @@ angle::Result RenderbufferVk::setStorageEGLImageTarget(const gl::Context *contex
     VkImageAspectFlags aspect = vk::GetFormatAspectFlags(textureFormat);
 
     // Transfer the image to this queue if needed
-    uint32_t rendererQueueFamilyIndex = contextVk->getRenderer()->getQueueFamilyIndex();
-    if (mImage->isQueueChangeNeccesary(rendererQueueFamilyIndex))
+    if (mImage->isQueueFamilyChangeNeccesary(contextVk->getDeviceQueueIndex()))
     {
         vk::OutsideRenderPassCommandBuffer *commandBuffer;
         vk::CommandBufferAccess access;
         access.onExternalAcquireRelease(mImage);
         ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
         mImage->changeLayoutAndQueue(contextVk, aspect, vk::ImageLayout::ColorWrite,
-                                     rendererQueueFamilyIndex, commandBuffer);
+                                     contextVk->getDeviceQueueIndex(), commandBuffer);
 
         ANGLE_TRY(contextVk->onEGLImageQueueChange());
     }
@@ -308,7 +312,7 @@ void RenderbufferVk::releaseAndDeleteImage(ContextVk *contextVk)
 
 void RenderbufferVk::releaseImage(ContextVk *contextVk)
 {
-    RendererVk *renderer = contextVk->getRenderer();
+    vk::Renderer *renderer = contextVk->getRenderer();
     if (mImage == nullptr)
     {
         ASSERT(mImageViews.isImageViewGarbageEmpty() &&

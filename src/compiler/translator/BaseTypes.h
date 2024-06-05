@@ -1540,6 +1540,33 @@ struct TMemoryQualifier
 
     constexpr static TMemoryQualifier Create() { return TMemoryQualifier(0); }
 
+    // Used for GLSL generation, debugging and error messages.
+    inline const char *getAnyQualifierString() const
+    {
+        if (readonly)
+        {
+            return "readonly";
+        }
+        if (writeonly)
+        {
+            return "writeonly";
+        }
+        if (coherent)
+        {
+            return "coherent";
+        }
+        if (restrictQualifier)
+        {
+            return "restrict";
+        }
+        if (volatileQualifier)
+        {
+            return "volatile";
+        }
+        ASSERT(isEmpty());
+        return "";
+    }
+
     // GLSL ES 3.10 Revision 4, 4.9 Memory Access Qualifiers
     // An image can be qualified as both readonly and writeonly. It still can be can be used with
     // imageSize().
@@ -1649,6 +1676,9 @@ inline const char *getQualifierString(TQualifier q)
     case EvqLocalInvocationIndex:      return "LocalInvocationIndex";
     case EvqReadOnly:                  return "readonly";
     case EvqWriteOnly:                 return "writeonly";
+    case EvqCoherent:                  return "coherent";
+    case EvqRestrict:                  return "restrict";
+    case EvqVolatile:                  return "volatile";
     case EvqGeometryIn:                return "in";
     case EvqGeometryOut:               return "out";
     case EvqPerVertexIn:               return "gl_in";

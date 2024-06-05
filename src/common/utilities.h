@@ -205,7 +205,13 @@ inline constexpr UniformTypeInfo::UniformTypeInfo(GLenum type,
       isImageType(isImageType)
 {}
 
+struct UniformTypeIndex
+{
+    uint16_t value;
+};
 const UniformTypeInfo &GetUniformTypeInfo(GLenum uniformType);
+UniformTypeIndex GetUniformTypeIndex(GLenum uniformType);
+const UniformTypeInfo &GetUniformTypeInfoFromIndex(UniformTypeIndex index);
 
 const char *GetGenericErrorMessage(GLenum error);
 
@@ -304,17 +310,33 @@ EGLClientBuffer GLObjectHandleToEGLClientBuffer(GLuint handle);
 
 namespace angle
 {
+
+template <typename T>
+constexpr size_t ConstStrLen(T s)
+{
+    if (s == nullptr)
+    {
+        return 0;
+    }
+    return std::char_traits<char>::length(s);
+}
+
 bool IsDrawEntryPoint(EntryPoint entryPoint);
 bool IsDispatchEntryPoint(EntryPoint entryPoint);
 bool IsClearEntryPoint(EntryPoint entryPoint);
 bool IsQueryEntryPoint(EntryPoint entryPoint);
+
+template <typename T>
+void FillWithNullptr(T *array)
+{
+    // std::array::fill(nullptr) yields unoptimized, unrolled loop over array items
+    memset(array->data(), 0, array->size() * sizeof(*array->data()));
+    // sanity check for non-0 nullptr
+    ASSERT(array->data()[0] == nullptr);
+}
 }  // namespace angle
 
 void writeFile(const char *path, const void *data, size_t size);
-
-#if defined(ANGLE_PLATFORM_WINDOWS)
-void ScheduleYield();
-#endif
 
 // Get the underlying type. Useful for indexing into arrays with enum values by avoiding the clutter
 // of the extraneous static_cast<>() calls.

@@ -139,6 +139,8 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
     EGLint getVerticalResolution() const;
     EGLenum getMultisampleResolve() const;
     bool hasProtectedContent() const override;
+    bool hasFoveatedRendering() const override { return false; }
+    const gl::FoveationState *getFoveationState() const override { return nullptr; }
 
     // For lock surface buffer
     EGLint getBitmapPitch() const;
@@ -227,6 +229,7 @@ class Surface : public LabeledObject, public gl::FramebufferAttachmentObject
         ASSERT(mRefCount > 0);
         mRefCount--;
     }
+    bool isReferenced() const { return mRefCount > 0; }
 
   protected:
     Surface(EGLint surfaceType,

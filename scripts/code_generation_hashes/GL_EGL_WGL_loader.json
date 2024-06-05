@@ -1,16 +1,16 @@
 {
   "scripts/egl_angle_ext.xml":
-    "bee532d3939bddbb2bb823645e2a5ab9",
+    "bdd2dcfaa4b6d82e12b6004f1435946d",
   "scripts/generate_loader.py":
     "93c78a8d11323fa311fed5118fbcf083",
   "scripts/gl_angle_ext.xml":
-    "796894fd74d141b88000669104a663ea",
+    "197e07a917d5bba6dfa2840fb1b58e7e",
   "scripts/registry_xml.py":
-    "8dc1bcf2e8324094c19c41613897b212",
+    "dfa52e150ddc1c5a5945a5dead0ebb93",
   "src/libEGL/egl_loader_autogen.cpp":
-    "8a743c210f7dbe7e306849203dff7889",
+    "9ed54b9c0801cbe9b81746e79baa09bd",
   "src/libEGL/egl_loader_autogen.h":
-    "68bf81ecadd3c41b5be477bdcaaaf694",
+    "75923a6e28b2305e454e12a52db8c071",
   "third_party/EGL-Registry/src/api/egl.xml":
     "2056d54ea07156f1988ca1366bdee21a",
   "third_party/OpenCL-Docs/src/xml/cl.xml":
@@ -22,23 +22,23 @@
   "third_party/OpenGL-Registry/src/xml/wgl.xml":
     "eae784bf4d1b983a42af5671b140b7c4",
   "util/capture/trace_egl_loader_autogen.cpp":
-    "33ced581dcda5af6c9125e05be7bf56c",
+    "6376899e5fd7881a1538042d8c279dad",
   "util/capture/trace_egl_loader_autogen.h":
-    "b16a510534ee9ee49152fca12b97bd9a",
+    "73215d434682b07aefbeba782ff32fe4",
   "util/capture/trace_gles_loader_autogen.cpp":
-    "84d1e3209568b054d535ef606cd7f1b1",
+    "203ebfea6445957f5eaa8a3ace18a519",
   "util/capture/trace_gles_loader_autogen.h":
-    "1ab2170486f56c8a0b989b23d9ff95ab",
+    "9ce6011b1d1ed78249ea3b093f134b34",
   "util/egl_loader_autogen.cpp":
-    "f98a6cfc104fc468efc90ae3789ddba5",
+    "f79641342b64356e121cff5659c41c55",
   "util/egl_loader_autogen.h":
-    "84247f7f49720e169703fbeffc267023",
+    "6a9a0a41347d85c566418d772cbb9d66",
   "util/gles_loader_autogen.cpp":
-    "92c84905065185a17350f45f14701b44",
+    "c8cb22895e4af12db6fccb4f3e5fb919",
   "util/gles_loader_autogen.h":
-    "7950f1ae7c39337c843d4f4a1237a4eb",
+    "128917d7aee25bee7456f3c619a72758",
   "util/windows/wgl_loader_autogen.cpp":
     "373b062587eab8a163121255f54597dc",
   "util/windows/wgl_loader_autogen.h":
-    "0551e9c28a8d3902bcd5d6e5b1ed3c6f"
+    "788190d21890b3ded845acb5ccbfb7ad"
 }

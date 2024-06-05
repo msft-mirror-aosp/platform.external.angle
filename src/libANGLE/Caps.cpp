@@ -1168,6 +1168,19 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.shaderStorageBufferOffsetAlignment = 256;
     }
 
+    if (clientVersion >= Version(3, 2))
+    {
+        // Table 21.40
+        caps.lineWidthGranularity    = 1.0;
+        caps.minMultisampleLineWidth = 1.0;
+        caps.maxMultisampleLineWidth = 1.0;
+    }
+
+    if (extensions.blendFuncExtendedEXT)
+    {
+        caps.maxDualSourceDrawBuffers = 1;
+    }
+
     if (extensions.textureRectangleANGLE)
     {
         caps.maxRectangleTextureSize = 64;
@@ -1279,6 +1292,9 @@ std::vector<std::string> DisplayExtensions::getStrings() const
     InsertExtensionString("EGL_EXT_gl_colorspace_display_p3_linear",             glColorspaceDisplayP3Linear,        &extensionStrings);
     InsertExtensionString("EGL_EXT_gl_colorspace_display_p3_passthrough",        glColorspaceDisplayP3Passthrough,   &extensionStrings);
     InsertExtensionString("EGL_ANGLE_colorspace_attribute_passthrough",          eglColorspaceAttributePassthroughANGLE,  &extensionStrings);
+    InsertExtensionString("EGL_EXT_gl_colorspace_bt2020_linear",                 glColorspaceBt2020Linear,           &extensionStrings);
+    InsertExtensionString("EGL_EXT_gl_colorspace_bt2020_pq",                     glColorspaceBt2020Pq,               &extensionStrings);
+    InsertExtensionString("EGL_EXT_gl_colorspace_bt2020_hlg",                    glColorspaceBt2020Hlg,              &extensionStrings);
     InsertExtensionString("EGL_KHR_gl_texture_2D_image",                         glTexture2DImage,                   &extensionStrings);
     InsertExtensionString("EGL_KHR_gl_texture_cubemap_image",                    glTextureCubemapImage,              &extensionStrings);
     InsertExtensionString("EGL_KHR_gl_texture_3D_image",                         glTexture3DImage,                   &extensionStrings);
@@ -1300,8 +1316,8 @@ std::vector<std::string> DisplayExtensions::getStrings() const
     InsertExtensionString("EGL_ANGLE_display_texture_share_group",               displayTextureShareGroup,           &extensionStrings);
     InsertExtensionString("EGL_ANGLE_display_semaphore_share_group",             displaySemaphoreShareGroup,         &extensionStrings);
     InsertExtensionString("EGL_ANGLE_create_context_client_arrays",              createContextClientArrays,          &extensionStrings);
-    InsertExtensionString("EGL_ANGLE_program_cache_control",                     programCacheControlANGLE,                &extensionStrings);
-    InsertExtensionString("EGL_ANGLE_robust_resource_initialization",            robustResourceInitializationANGLE,       &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_program_cache_control",                     programCacheControlANGLE,           &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_robust_resource_initialization",            robustResourceInitializationANGLE,  &extensionStrings);
     InsertExtensionString("EGL_ANGLE_iosurface_client_buffer",                   iosurfaceClientBuffer,              &extensionStrings);
     InsertExtensionString("EGL_ANGLE_metal_texture_client_buffer",               mtlTextureClientBuffer,             &extensionStrings);
     InsertExtensionString("EGL_ANGLE_create_context_extensions_enabled",         createContextExtensionsEnabled,     &extensionStrings);
@@ -1338,6 +1354,7 @@ std::vector<std::string> DisplayExtensions::getStrings() const
     InsertExtensionString("EGL_ANGLE_metal_create_context_ownership_identity",   metalCreateContextOwnershipIdentityANGLE, &extensionStrings);
     InsertExtensionString("EGL_KHR_partial_update",                              partialUpdateKHR,                   &extensionStrings);
     InsertExtensionString("EGL_ANGLE_metal_shared_event_sync",                   mtlSyncSharedEventANGLE,            &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_global_fence_sync",                         globalFenceSyncANGLE,               &extensionStrings);
     // clang-format on
 
     return extensionStrings;
@@ -1352,6 +1369,8 @@ std::vector<std::string> DeviceExtensions::getStrings() const
     // clang-format off
     //                   | Extension name                                 | Supported flag                | Output vector   |
     InsertExtensionString("EGL_ANGLE_device_d3d",                          deviceD3D,                      &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_device_d3d9",                         deviceD3D9,                     &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_device_d3d11",                        deviceD3D11,                    &extensionStrings);
     InsertExtensionString("EGL_ANGLE_device_cgl",                          deviceCGL,                      &extensionStrings);
     InsertExtensionString("EGL_ANGLE_device_eagl",                         deviceEAGL,                     &extensionStrings);
     InsertExtensionString("EGL_ANGLE_device_metal",                        deviceMetal,                    &extensionStrings);
@@ -1379,6 +1398,7 @@ std::vector<std::string> ClientExtensions::getStrings() const
     InsertExtensionString("EGL_EXT_platform_device",                          platformDevice,                     &extensionStrings);
     InsertExtensionString("EGL_KHR_platform_gbm",                             platformGbmKHR,                     &extensionStrings);
     InsertExtensionString("EGL_EXT_platform_wayland",                         platformWaylandEXT,                 &extensionStrings);
+    InsertExtensionString("EGL_MESA_platform_surfaceless",                    platformSurfacelessMESA,            &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle",                         platformANGLE,                      &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_d3d",                     platformANGLED3D,                   &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_d3d11on12",               platformANGLED3D11ON12,             &extensionStrings);
@@ -1386,6 +1406,7 @@ std::vector<std::string> ClientExtensions::getStrings() const
     InsertExtensionString("EGL_ANGLE_platform_angle_device_type_swiftshader", platformANGLEDeviceTypeSwiftShader, &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_opengl",                  platformANGLEOpenGL,                &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_null",                    platformANGLENULL,                  &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_platform_angle_webgpu",                  platformANGLEWebgpu,                &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_vulkan",                  platformANGLEVulkan,                &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_metal",                   platformANGLEMetal,                 &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_device_context_volatile_eagl",  platformANGLEDeviceContextVolatileEagl, &extensionStrings);
@@ -1399,6 +1420,7 @@ std::vector<std::string> ClientExtensions::getStrings() const
     InsertExtensionString("EGL_KHR_debug",                                    debug,                              &extensionStrings);
     InsertExtensionString("EGL_ANGLE_feature_control",                        featureControlANGLE,                &extensionStrings);
     InsertExtensionString("EGL_ANGLE_display_power_preference",               displayPowerPreferenceANGLE,        &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_no_error",                               noErrorANGLE,                       &extensionStrings);
     // clang-format on
 
     return extensionStrings;

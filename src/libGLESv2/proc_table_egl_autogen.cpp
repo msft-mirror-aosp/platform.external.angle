@@ -45,6 +45,7 @@ namespace egl
 const ProcEntry g_procTable[] = {
     {"ANGLEGetDisplayPlatform", P(ANGLEGetDisplayPlatform)},
     {"ANGLEResetDisplayPlatform", P(ANGLEResetDisplayPlatform)},
+    {"eglAcquireExternalContextANGLE", P(EGL_AcquireExternalContextANGLE)},
     {"eglBindAPI", P(EGL_BindAPI)},
     {"eglBindTexImage", P(EGL_BindTexImage)},
     {"eglChooseConfig", P(EGL_ChooseConfig)},
@@ -130,11 +131,13 @@ const ProcEntry g_procTable[] = {
     {"eglQuerySurfacePointerANGLE", P(EGL_QuerySurfacePointerANGLE)},
     {"eglReacquireHighPowerGPUANGLE", P(EGL_ReacquireHighPowerGPUANGLE)},
     {"eglReleaseDeviceANGLE", P(EGL_ReleaseDeviceANGLE)},
+    {"eglReleaseExternalContextANGLE", P(EGL_ReleaseExternalContextANGLE)},
     {"eglReleaseHighPowerGPUANGLE", P(EGL_ReleaseHighPowerGPUANGLE)},
     {"eglReleaseTexImage", P(EGL_ReleaseTexImage)},
     {"eglReleaseThread", P(EGL_ReleaseThread)},
     {"eglSetBlobCacheFuncsANDROID", P(EGL_SetBlobCacheFuncsANDROID)},
     {"eglSetDamageRegionKHR", P(EGL_SetDamageRegionKHR)},
+    {"eglSetValidationEnabledANGLE", P(EGL_SetValidationEnabledANGLE)},
     {"eglSignalSyncKHR", P(EGL_SignalSyncKHR)},
     {"eglStreamAttribKHR", P(EGL_StreamAttribKHR)},
     {"eglStreamConsumerAcquireKHR", P(EGL_StreamConsumerAcquireKHR)},
@@ -510,6 +513,8 @@ const ProcEntry g_procTable[] = {
     {"glFogx", P(GL_Fogx)},
     {"glFogxv", P(GL_Fogxv)},
     {"glFramebufferFetchBarrierEXT", P(GL_FramebufferFetchBarrierEXT)},
+    {"glFramebufferFoveationConfigQCOM", P(GL_FramebufferFoveationConfigQCOM)},
+    {"glFramebufferFoveationParametersQCOM", P(GL_FramebufferFoveationParametersQCOM)},
     {"glFramebufferMemorylessPixelLocalStorageANGLE", P(GL_FramebufferMemorylessPixelLocalStorageANGLE)},
     {"glFramebufferParameteri", P(GL_FramebufferParameteri)},
     {"glFramebufferParameteriMESA", P(GL_FramebufferParameteriMESA)},
@@ -614,6 +619,7 @@ const ProcEntry g_procTable[] = {
     {"glGetFramebufferPixelLocalStorageParameterivRobustANGLE", P(GL_GetFramebufferPixelLocalStorageParameterivRobustANGLE)},
     {"glGetGraphicsResetStatus", P(GL_GetGraphicsResetStatus)},
     {"glGetGraphicsResetStatusEXT", P(GL_GetGraphicsResetStatusEXT)},
+    {"glGetGraphicsResetStatusKHR", P(GL_GetGraphicsResetStatusKHR)},
     {"glGetInteger64i_v", P(GL_GetInteger64i_v)},
     {"glGetInteger64i_vRobustANGLE", P(GL_GetInteger64i_vRobustANGLE)},
     {"glGetInteger64v", P(GL_GetInteger64v)},
@@ -817,11 +823,14 @@ const ProcEntry g_procTable[] = {
     DESKTOP_ONLY("glGetnUniformdv", GL_GetnUniformdv)
     {"glGetnUniformfv", P(GL_GetnUniformfv)},
     {"glGetnUniformfvEXT", P(GL_GetnUniformfvEXT)},
+    {"glGetnUniformfvKHR", P(GL_GetnUniformfvKHR)},
     {"glGetnUniformfvRobustANGLE", P(GL_GetnUniformfvRobustANGLE)},
     {"glGetnUniformiv", P(GL_GetnUniformiv)},
     {"glGetnUniformivEXT", P(GL_GetnUniformivEXT)},
+    {"glGetnUniformivKHR", P(GL_GetnUniformivKHR)},
     {"glGetnUniformivRobustANGLE", P(GL_GetnUniformivRobustANGLE)},
     {"glGetnUniformuiv", P(GL_GetnUniformuiv)},
+    {"glGetnUniformuivKHR", P(GL_GetnUniformuivKHR)},
     {"glGetnUniformuivRobustANGLE", P(GL_GetnUniformuivRobustANGLE)},
     {"glHint", P(GL_Hint)},
     {"glImportMemoryFdEXT", P(GL_ImportMemoryFdEXT)},
@@ -1055,6 +1064,8 @@ const ProcEntry g_procTable[] = {
     {"glPointSizePointerOES", P(GL_PointSizePointerOES)},
     {"glPointSizex", P(GL_PointSizex)},
     DESKTOP_ONLY("glPolygonMode", GL_PolygonMode)
+    {"glPolygonModeANGLE", P(GL_PolygonModeANGLE)},
+    {"glPolygonModeNV", P(GL_PolygonModeNV)},
     {"glPolygonOffset", P(GL_PolygonOffset)},
     DESKTOP_ONLY("glPolygonOffsetClamp", GL_PolygonOffsetClamp)
     {"glPolygonOffsetClampEXT", P(GL_PolygonOffsetClampEXT)},
@@ -1200,6 +1211,7 @@ const ProcEntry g_procTable[] = {
     {"glReadPixelsRobustANGLE", P(GL_ReadPixelsRobustANGLE)},
     {"glReadnPixels", P(GL_ReadnPixels)},
     {"glReadnPixelsEXT", P(GL_ReadnPixelsEXT)},
+    {"glReadnPixelsKHR", P(GL_ReadnPixelsKHR)},
     {"glReadnPixelsRobustANGLE", P(GL_ReadnPixelsRobustANGLE)},
     DESKTOP_ONLY("glRectd", GL_Rectd)
     DESKTOP_ONLY("glRectdv", GL_Rectdv)
@@ -1401,6 +1413,7 @@ const ProcEntry g_procTable[] = {
     DESKTOP_ONLY("glTextureBarrier", GL_TextureBarrier)
     DESKTOP_ONLY("glTextureBuffer", GL_TextureBuffer)
     DESKTOP_ONLY("glTextureBufferRange", GL_TextureBufferRange)
+    {"glTextureFoveationParametersQCOM", P(GL_TextureFoveationParametersQCOM)},
     DESKTOP_ONLY("glTextureParameterIiv", GL_TextureParameterIiv)
     DESKTOP_ONLY("glTextureParameterIuiv", GL_TextureParameterIuiv)
     DESKTOP_ONLY("glTextureParameterf", GL_TextureParameterf)

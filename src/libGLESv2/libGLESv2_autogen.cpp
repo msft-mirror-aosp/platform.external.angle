@@ -2814,7 +2814,7 @@ void GL_APIENTRY glDrawArraysInstancedBaseInstanceANGLE(GLenum mode,
 void GL_APIENTRY glDrawElementsInstancedBaseVertexBaseInstanceANGLE(GLenum mode,
                                                                     GLsizei count,
                                                                     GLenum type,
-                                                                    const GLvoid *indices,
+                                                                    const void *indices,
                                                                     GLsizei instanceCount,
                                                                     GLint baseVertex,
                                                                     GLuint baseInstance)
@@ -2838,7 +2838,7 @@ void GL_APIENTRY
 glMultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(GLenum mode,
                                                         const GLsizei *counts,
                                                         GLenum type,
-                                                        const GLvoid *const *indices,
+                                                        const void *const *indices,
                                                         const GLsizei *instanceCounts,
                                                         const GLint *baseVertices,
                                                         const GLuint *baseInstances,
@@ -2847,6 +2847,8 @@ glMultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(GLenum mode,
     return GL_MultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(
         mode, counts, type, indices, instanceCounts, baseVertices, baseInstances, drawcount);
 }
+
+// GL_ANGLE_client_arrays
 
 // GL_ANGLE_clip_cull_distance
 
@@ -2938,6 +2940,8 @@ void GL_APIENTRY glGetRenderbufferImageANGLE(GLenum target,
     return GL_GetRenderbufferImageANGLE(target, format, type, pixels);
 }
 
+// GL_ANGLE_get_serialized_context_string
+
 // GL_ANGLE_get_tex_level_parameter
 void GL_APIENTRY glGetTexLevelParameterivANGLE(GLenum target,
                                                GLint level,
@@ -2983,6 +2987,8 @@ void GL_APIENTRY glLogicOpANGLE(GLenum opcode)
 {
     return GL_LogicOpANGLE(opcode);
 }
+
+// GL_ANGLE_lossy_etc_decode
 
 // GL_ANGLE_memory_object_flags
 void GL_APIENTRY glTexStorageMemFlags2DANGLE(GLenum target,
@@ -3061,6 +3067,8 @@ void GL_APIENTRY glImportMemoryZirconHandleANGLE(GLuint memory,
     return GL_ImportMemoryZirconHandleANGLE(memory, size, handleType, handle);
 }
 
+// GL_ANGLE_memory_size
+
 // GL_ANGLE_multi_draw
 void GL_APIENTRY glMultiDrawArraysANGLE(GLenum mode,
                                         const GLint *firsts,
@@ -3082,7 +3090,7 @@ void GL_APIENTRY glMultiDrawArraysInstancedANGLE(GLenum mode,
 void GL_APIENTRY glMultiDrawElementsANGLE(GLenum mode,
                                           const GLsizei *counts,
                                           GLenum type,
-                                          const GLvoid *const *indices,
+                                          const void *const *indices,
                                           GLsizei drawcount)
 {
     return GL_MultiDrawElementsANGLE(mode, counts, type, indices, drawcount);
@@ -3091,7 +3099,7 @@ void GL_APIENTRY glMultiDrawElementsANGLE(GLenum mode,
 void GL_APIENTRY glMultiDrawElementsInstancedANGLE(GLenum mode,
                                                    const GLsizei *counts,
                                                    GLenum type,
-                                                   const GLvoid *const *indices,
+                                                   const void *const *indices,
                                                    const GLsizei *instanceCounts,
                                                    GLsizei drawcount)
 {
@@ -3101,13 +3109,25 @@ void GL_APIENTRY glMultiDrawElementsInstancedANGLE(GLenum mode,
 
 // GL_ANGLE_pack_reverse_row_order
 
+// GL_ANGLE_polygon_mode
+void GL_APIENTRY glPolygonModeANGLE(GLenum face, GLenum mode)
+{
+    return GL_PolygonModeANGLE(face, mode);
+}
+
 // GL_ANGLE_program_binary
+
+// GL_ANGLE_program_binary_readiness_query
+
+// GL_ANGLE_program_cache_control
 
 // GL_ANGLE_provoking_vertex
 void GL_APIENTRY glProvokingVertexANGLE(GLenum provokeMode)
 {
     return GL_ProvokingVertexANGLE(provokeMode);
 }
+
+// GL_ANGLE_renderability_validation
 
 // GL_ANGLE_request_extension
 void GL_APIENTRY glRequestExtensionANGLE(const GLchar *name)
@@ -3119,6 +3139,8 @@ void GL_APIENTRY glDisableExtensionANGLE(const GLchar *name)
 {
     return GL_DisableExtensionANGLE(name);
 }
+
+// GL_ANGLE_rgbx_internal_format
 
 // GL_ANGLE_robust_client_memory
 void GL_APIENTRY glGetBooleanvRobustANGLE(GLenum pname,
@@ -3358,7 +3380,7 @@ void GL_APIENTRY glCompressedTexImage2DRobustANGLE(GLenum target,
                                                    GLint border,
                                                    GLsizei imageSize,
                                                    GLsizei dataSize,
-                                                   const GLvoid *data)
+                                                   const void *data)
 {
     return GL_CompressedTexImage2DRobustANGLE(target, level, internalformat, width, height, border,
                                               imageSize, dataSize, data);
@@ -3373,7 +3395,7 @@ void GL_APIENTRY glCompressedTexSubImage2DRobustANGLE(GLenum target,
                                                       GLenum format,
                                                       GLsizei imageSize,
                                                       GLsizei dataSize,
-                                                      const GLvoid *data)
+                                                      const void *data)
 {
     return GL_CompressedTexSubImage2DRobustANGLE(target, level, xoffset, yoffset, width, height,
                                                  format, imageSize, dataSize, data);
@@ -3388,7 +3410,7 @@ void GL_APIENTRY glCompressedTexImage3DRobustANGLE(GLenum target,
                                                    GLint border,
                                                    GLsizei imageSize,
                                                    GLsizei dataSize,
-                                                   const GLvoid *data)
+                                                   const void *data)
 {
     return GL_CompressedTexImage3DRobustANGLE(target, level, internalformat, width, height, depth,
                                               border, imageSize, dataSize, data);
@@ -3405,7 +3427,7 @@ void GL_APIENTRY glCompressedTexSubImage3DRobustANGLE(GLenum target,
                                                       GLenum format,
                                                       GLsizei imageSize,
                                                       GLsizei dataSize,
-                                                      const GLvoid *data)
+                                                      const void *data)
 {
     return GL_CompressedTexSubImage3DRobustANGLE(target, level, xoffset, yoffset, zoffset, width,
                                                  height, depth, format, imageSize, dataSize, data);
@@ -3760,6 +3782,8 @@ void GL_APIENTRY glGetQueryObjectui64vRobustANGLE(GLuint id,
     return GL_GetQueryObjectui64vRobustANGLE(id, pname, bufSize, length, params);
 }
 
+// GL_ANGLE_robust_fragment_shader_output
+
 // GL_ANGLE_robust_resource_initialization
 
 // GL_ANGLE_semaphore_fuchsia
@@ -3769,6 +3793,8 @@ void GL_APIENTRY glImportSemaphoreZirconHandleANGLE(GLuint semaphore,
 {
     return GL_ImportSemaphoreZirconHandleANGLE(semaphore, handleType, handle);
 }
+
+// GL_ANGLE_shader_binary
 
 // GL_ANGLE_shader_pixel_local_storage
 void GL_APIENTRY glFramebufferMemorylessPixelLocalStorageANGLE(GLint plane, GLenum internalformat)
@@ -3928,6 +3954,8 @@ void GL_APIENTRY glReleaseTexturesANGLE(GLuint numTextures, const GLuint *textur
 {
     return GL_ReleaseTexturesANGLE(numTextures, textures, layouts);
 }
+
+// GL_ANGLE_yuv_internal_format
 
 // GL_APPLE_clip_distance
 
@@ -5026,6 +5054,8 @@ void GL_APIENTRY glTexBufferRangeEXT(GLenum target,
     return GL_TexBufferRangeEXT(target, internalformat, buffer, offset, size);
 }
 
+// GL_EXT_texture_compression_astc_decode_mode
+
 // GL_EXT_texture_compression_bptc
 
 // GL_EXT_texture_compression_dxt1
@@ -5194,6 +5224,45 @@ void GL_APIENTRY glMaxShaderCompilerThreadsKHR(GLuint count)
 
 // GL_KHR_robust_buffer_access_behavior
 
+// GL_KHR_robustness
+GLenum GL_APIENTRY glGetGraphicsResetStatusKHR()
+{
+    return GL_GetGraphicsResetStatusKHR();
+}
+
+void GL_APIENTRY glGetnUniformfvKHR(GLuint program,
+                                    GLint location,
+                                    GLsizei bufSize,
+                                    GLfloat *params)
+{
+    return GL_GetnUniformfvKHR(program, location, bufSize, params);
+}
+
+void GL_APIENTRY glGetnUniformivKHR(GLuint program, GLint location, GLsizei bufSize, GLint *params)
+{
+    return GL_GetnUniformivKHR(program, location, bufSize, params);
+}
+
+void GL_APIENTRY glGetnUniformuivKHR(GLuint program,
+                                     GLint location,
+                                     GLsizei bufSize,
+                                     GLuint *params)
+{
+    return GL_GetnUniformuivKHR(program, location, bufSize, params);
+}
+
+void GL_APIENTRY glReadnPixelsKHR(GLint x,
+                                  GLint y,
+                                  GLsizei width,
+                                  GLsizei height,
+                                  GLenum format,
+                                  GLenum type,
+                                  GLsizei bufSize,
+                                  void *data)
+{
+    return GL_ReadnPixelsKHR(x, y, width, height, format, type, bufSize, data);
+}
+
 // GL_KHR_texture_compression_astc_hdr
 
 // GL_KHR_texture_compression_astc_ldr
@@ -5264,6 +5333,12 @@ void GL_APIENTRY glBlitFramebufferNV(GLint srcX0,
 }
 
 // GL_NV_pixel_buffer_object
+
+// GL_NV_polygon_mode
+void GL_APIENTRY glPolygonModeNV(GLenum face, GLenum mode)
+{
+    return GL_PolygonModeNV(face, mode);
+}
 
 // GL_NV_read_depth
 
@@ -5901,12 +5976,50 @@ void GL_APIENTRY glFramebufferTextureMultiviewOVR(GLenum target,
 
 // GL_OVR_multiview2
 
+// GL_QCOM_framebuffer_foveated
+void GL_APIENTRY glFramebufferFoveationConfigQCOM(GLuint framebuffer,
+                                                  GLuint numLayers,
+                                                  GLuint focalPointsPerLayer,
+                                                  GLuint requestedFeatures,
+                                                  GLuint *providedFeatures)
+{
+    return GL_FramebufferFoveationConfigQCOM(framebuffer, numLayers, focalPointsPerLayer,
+                                             requestedFeatures, providedFeatures);
+}
+
+void GL_APIENTRY glFramebufferFoveationParametersQCOM(GLuint framebuffer,
+                                                      GLuint layer,
+                                                      GLuint focalPoint,
+                                                      GLfloat focalX,
+                                                      GLfloat focalY,
+                                                      GLfloat gainX,
+                                                      GLfloat gainY,
+                                                      GLfloat foveaArea)
+{
+    return GL_FramebufferFoveationParametersQCOM(framebuffer, layer, focalPoint, focalX, focalY,
+                                                 gainX, gainY, foveaArea);
+}
+
 // GL_QCOM_render_shared_exponent
 
 // GL_QCOM_shading_rate
 void GL_APIENTRY glShadingRateQCOM(GLenum rate)
 {
     return GL_ShadingRateQCOM(rate);
+}
+
+// GL_QCOM_texture_foveated
+void GL_APIENTRY glTextureFoveationParametersQCOM(GLuint texture,
+                                                  GLuint layer,
+                                                  GLuint focalPoint,
+                                                  GLfloat focalX,
+                                                  GLfloat focalY,
+                                                  GLfloat gainX,
+                                                  GLfloat gainY,
+                                                  GLfloat foveaArea)
+{
+    return GL_TextureFoveationParametersQCOM(texture, layer, focalPoint, focalX, focalY, gainX,
+                                             gainY, foveaArea);
 }
 
 #if defined(ANGLE_ENABLE_GL_DESKTOP_FRONTEND)
@@ -9782,4 +9895,4 @@ void GL_APIENTRY glSpecializeShader(GLuint shader,
 }
 
 #endif  // defined(ANGLE_ENABLE_GL_DESKTOP_FRONTEND)
-}  // extern "C"
+}       // extern "C"

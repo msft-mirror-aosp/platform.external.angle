@@ -75,16 +75,25 @@ class TParseContext : angle::NonCopyable
         mFragmentPrecisionHighOnESSL1 = fragmentPrecisionHigh;
     }
 
+    bool usesDerivatives() const { return mUsesDerivatives; }
     bool isEarlyFragmentTestsSpecified() const { return mEarlyFragmentTestsSpecified; }
     bool hasDiscard() const { return mHasDiscard; }
     bool isSampleQualifierSpecified() const { return mSampleQualifierSpecified; }
 
     void setLoopNestingLevel(int loopNestintLevel) { mLoopNestingLevel = loopNestintLevel; }
 
-    void incrLoopNestingLevel() { ++mLoopNestingLevel; }
+    void incrLoopNestingLevel(const TSourceLoc &line)
+    {
+        ++mLoopNestingLevel;
+        checkNestingLevel(line);
+    }
     void decrLoopNestingLevel() { --mLoopNestingLevel; }
 
-    void incrSwitchNestingLevel() { ++mSwitchNestingLevel; }
+    void incrSwitchNestingLevel(const TSourceLoc &line)
+    {
+        ++mSwitchNestingLevel;
+        checkNestingLevel(line);
+    }
     void decrSwitchNestingLevel() { --mSwitchNestingLevel; }
 
     bool isComputeShaderLocalSizeDeclared() const { return mComputeShaderLocalSizeDeclared; }
@@ -141,6 +150,7 @@ class TParseContext : angle::NonCopyable
 
     // Returns a sanitized array size to use (the size is at least 1).
     unsigned int checkIsValidArraySize(const TSourceLoc &line, TIntermTyped *expr);
+    bool checkIsValidArrayDimension(const TSourceLoc &line, TVector<unsigned int> *arraySizes);
     bool checkIsValidQualifierForArray(const TSourceLoc &line, const TPublicType &elementQualifier);
     bool checkArrayElementIsNotArray(const TSourceLoc &line, const TPublicType &elementType);
     bool checkArrayOfArraysInOut(const TSourceLoc &line,
@@ -354,10 +364,10 @@ class TParseContext : angle::NonCopyable
                                             const TSourceLoc &loc,
                                             const TVector<unsigned int> *arraySizes);
 
-    void checkDoesNotHaveDuplicateFieldName(const TFieldList::const_iterator begin,
-                                            const TFieldList::const_iterator end,
-                                            const ImmutableString &name,
-                                            const TSourceLoc &location);
+    void checkDoesNotHaveDuplicateFieldNames(const TFieldList *fields, const TSourceLoc &location);
+    void checkDoesNotHaveTooManyFields(const ImmutableString &name,
+                                       const TFieldList *fields,
+                                       const TSourceLoc &location);
     TFieldList *addStructFieldList(TFieldList *fields, const TSourceLoc &location);
     TFieldList *combineStructFieldLists(TFieldList *processedFields,
                                         const TFieldList *newlyAddedFields,
@@ -519,6 +529,9 @@ class TParseContext : angle::NonCopyable
 
     ShShaderOutput getOutputType() const { return mOutputType; }
 
+    size_t getMaxExpressionComplexity() const { return mMaxExpressionComplexity; }
+    size_t getMaxStatementDepth() const { return mMaxStatementDepth; }
+
     // TODO(jmadill): make this private
     TSymbolTable &symbolTable;  // symbol table that goes with the language currently being parsed
 
@@ -540,13 +553,15 @@ class TParseContext : angle::NonCopyable
     int checkIndexLessThan(bool outOfRangeIndexIsError,
                            const TSourceLoc &location,
                            int index,
-                           int arraySize,
+                           unsigned int arraySize,
                            const char *reason);
 
     bool declareVariable(const TSourceLoc &line,
                          const ImmutableString &identifier,
                          const TType *type,
                          TVariable **variable);
+
+    void checkNestingLevel(const TSourceLoc &line);
 
     void checkCanBeDeclaredWithoutInitializer(const TSourceLoc &line,
                                               const ImmutableString &identifier,
@@ -651,6 +666,7 @@ class TParseContext : angle::NonCopyable
 
     TIntermTyped *addMethod(TFunctionLookup *fnCall, const TSourceLoc &loc);
     TIntermTyped *addConstructor(TFunctionLookup *fnCall, const TSourceLoc &line);
+    TIntermTyped *addNonConstructorFunctionCallImpl(TFunctionLookup *fnCall, const TSourceLoc &loc);
     TIntermTyped *addNonConstructorFunctionCall(TFunctionLookup *fnCall, const TSourceLoc &loc);
 
     // Return either the original expression or the folded version of the expression in case the
@@ -702,7 +718,15 @@ class TParseContext : angle::NonCopyable
         // To ensure identical behavior across all backends, we disallow assignment to these values
         // if pixel local storage uniforms have been declared.
         AssignFragDepth,
-        AssignSampleMask
+        AssignSampleMask,
+
+        // EXT_blend_func_extended may restrict the number of draw buffers with a nonzero output
+        // index, which can invalidate a PLS implementation.
+        FragDataIndexNonzero,
+
+        // KHR_blend_equation_advanced is incompatible with multiple draw buffers, which is a
+        // required feature for many PLS implementations.
+        EnableAdvancedBlendEquation,
     };
 
     // Generates an error if any pixel local storage uniforms have been declared (more specifically,
@@ -741,6 +765,7 @@ class TParseContext : angle::NonCopyable
                                                            // enabled and gl_PointSize is redefined.
     bool mPositionOrPointSizeUsedForSeparateShaderObject;  // true if gl_Position or gl_PointSize
                                                            // has been referenced.
+    bool mUsesDerivatives;  // true if screen-space derivatives are used implicitly or explicitly
     TLayoutMatrixPacking mDefaultUniformMatrixPacking;
     TLayoutBlockStorage mDefaultUniformBlockStorage;
     TLayoutMatrixPacking mDefaultBufferMatrixPacking;
@@ -750,6 +775,8 @@ class TParseContext : angle::NonCopyable
     TDirectiveHandler mDirectiveHandler;
     angle::pp::Preprocessor mPreprocessor;
     void *mScanner;
+    const size_t mMaxExpressionComplexity;
+    const size_t mMaxStatementDepth;
     int mMinProgramTexelOffset;
     int mMaxProgramTexelOffset;
 

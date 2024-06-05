@@ -36,6 +36,7 @@ enum class ImplicitTypeConversion
 };
 
 class TIntermBlock;
+class TIntermDeclaration;
 class TSymbolTable;
 class TIntermTyped;
 
@@ -81,8 +82,9 @@ bool IsFragmentOutput(TQualifier qualifier);
 bool IsOutputESSL(ShShaderOutput output);
 bool IsOutputGLSL(ShShaderOutput output);
 bool IsOutputHLSL(ShShaderOutput output);
-bool IsOutputVulkan(ShShaderOutput output);
-bool IsOutputMetalDirect(ShShaderOutput output);
+bool IsOutputSPIRV(ShShaderOutput output);
+bool IsOutputMSL(ShShaderOutput output);
+bool IsOutputWGSL(ShShaderOutput output);
 
 bool IsInShaderStorageBlock(TIntermTyped *node);
 
@@ -102,6 +104,18 @@ bool IsPrecisionApplicableToType(TBasicType type);
 bool IsRedeclarableBuiltIn(const ImmutableString &name);
 
 size_t FindFieldIndex(const TFieldList &fieldList, const char *fieldName);
+
+// A convenience view of a TIntermDeclaration node's children.
+struct Declaration
+{
+    TIntermSymbol &symbol;
+    TIntermTyped *initExpr;  // Non-null iff declaration is initialized.
+};
+
+// Returns a `Declaration` view of the given node, for declarator `index` of
+// the declarations in `declNode`.
+Declaration ViewDeclaration(TIntermDeclaration &declNode, uint32_t index = 0);
+
 }  // namespace sh
 
 #endif  // COMPILER_TRANSLATOR_UTIL_H_

@@ -166,7 +166,9 @@ class FramebufferMtl : public FramebufferImpl
                                                   const bool forceDepthStencilMultisampleLoad);
 
     // Fill RenderPassDesc with relevant attachment's info from GL front end.
-    angle::Result prepareRenderPass(const gl::Context *context, mtl::RenderPassDesc *descOut);
+    angle::Result prepareRenderPass(const gl::Context *context,
+                                    mtl::RenderPassDesc *descOut,
+                                    gl::Command command);
 
     // Check if a render pass specified by the given RenderPassDesc has started or not, if not this
     // method will start the render pass and return its render encoder.
@@ -179,23 +181,6 @@ class FramebufferMtl : public FramebufferImpl
     angle::Result updateCachedRenderTarget(const gl::Context *context,
                                            const gl::FramebufferAttachment *attachment,
                                            RenderTargetMtl **cachedRenderTarget);
-
-    // This function either returns the render target's texture itself if the texture is readable
-    // or create a copy of that texture that is readable if not. This function is typically used
-    // for packed depth stencil where reading stencil requires a stencil view. However if a texture
-    // has both render target, pixel format view & shader readable usage flags, there will be
-    // some glitches happen in Metal framework.
-    // So the solution is creating a depth stencil texture without pixel format view flag but has
-    // render target flag, then during blitting process, this texture is copied to another
-    // intermidiate texture having pixel format view flag, but not render target flag.
-    angle::Result getReadableViewForRenderTarget(const gl::Context *context,
-                                                 const RenderTargetMtl &rtt,
-                                                 const gl::Rectangle &readArea,
-                                                 mtl::TextureRef *readableDepthView,
-                                                 mtl::TextureRef *readableStencilView,
-                                                 uint32_t *readableViewLevel,
-                                                 uint32_t *readableViewLayer,
-                                                 gl::Rectangle *readableViewArea);
 
     angle::Result readPixelsToPBO(const gl::Context *context,
                                   const gl::Rectangle &area,

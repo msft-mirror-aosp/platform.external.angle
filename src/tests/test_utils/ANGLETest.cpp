@@ -79,7 +79,11 @@ void TestPlatform_logWarning(PlatformMethods *platform, const char *warningMessa
     }
     else
     {
+#if !defined(ANGLE_TRACE_ENABLED) && !defined(ANGLE_ENABLE_ASSERTS)
+        // LoggingAnnotator::logMessage() already logs via gl::Trace() under these defines:
+        // https://crsrc.org/c/third_party/angle/src/common/debug.cpp;drc=d7d69375c25df2dc3980e6a4edc5d032ec940efc;l=62
         std::cerr << "Warning: " << warningMessage << std::endl;
+#endif
     }
 }
 
@@ -204,6 +208,8 @@ GPUTestConfig::API GetTestConfigAPIFromRenderer(angle::GLESDriverType driverType
             }
         case EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE:
             return GPUTestConfig::kAPIMetal;
+        case EGL_PLATFORM_ANGLE_TYPE_WEBGPU_ANGLE:
+            return GPUTestConfig::kAPIWgpu;
         default:
             std::cerr << "Unknown Renderer enum: 0x" << std::hex << renderer << "\n";
             return GPUTestConfig::kAPIUnknown;
@@ -396,7 +402,7 @@ void SetupEnvironmentVarsForCaptureReplay()
     std::string testName = std::string{testInfo->name()};
     std::replace(testName.begin(), testName.end(), '/', '_');
     SetEnvironmentVar("ANGLE_CAPTURE_LABEL",
-                      (std::string{testInfo->test_case_name()} + "_" + testName).c_str());
+                      (std::string{testInfo->test_suite_name()} + "_" + testName).c_str());
 }
 }  // anonymous namespace
 
@@ -632,7 +638,7 @@ void ANGLETestBase::ANGLETestSetUp()
     GPUTestConfig testConfig = GPUTestConfig(api, 0);
 
     std::stringstream fullTestNameStr;
-    fullTestNameStr << testInfo->test_case_name() << "." << testInfo->name();
+    fullTestNameStr << testInfo->test_suite_name() << "." << testInfo->name();
     std::string fullTestName = fullTestNameStr.str();
 
     TestSuite *testSuite = TestSuite::GetInstance();
@@ -656,7 +662,7 @@ void ANGLETestBase::ANGLETestSetUp()
         return;
     }
 
-    if (mLastLoadedDriver.valid() && mCurrentParams->driver != mLastLoadedDriver.value())
+    if (!mLastLoadedDriver.valid() || mCurrentParams->driver != mLastLoadedDriver.value())
     {
         LoadEntryPointsWithUtilLoader(mCurrentParams->driver);
         mLastLoadedDriver = mCurrentParams->driver;
@@ -791,7 +797,7 @@ void ANGLETestBase::ANGLETestTearDown()
     if (IsWindows())
     {
         const testing::TestInfo *info = testing::UnitTest::GetInstance()->current_test_info();
-        WriteDebugMessage("Exiting %s.%s\n", info->test_case_name(), info->name());
+        WriteDebugMessage("Exiting %s.%s\n", info->test_suite_name(), info->name());
     }
 
     if (mCurrentParams->noFixture || !mFixture->osWindow->valid())
@@ -1333,8 +1339,7 @@ void ANGLETestBase::checkD3D11SDKLayersMessages()
                         reinterpret_cast<D3D11_MESSAGE *>(malloc(messageLength));
                     infoQueue->GetMessage(i, pMessage, &messageLength);
 
-                    std::cout << "Message " << i << ":"
-                              << " " << pMessage->pDescription << "\n";
+                    std::cout << "Message " << i << ":" << " " << pMessage->pDescription << "\n";
                     free(pMessage);
                 }
             }

@@ -60,8 +60,10 @@ angle_requestable_extensions = [
     "GL_ANGLE_memory_size",
     "GL_ANGLE_multi_draw",
     "GL_ANGLE_multiview_multisample",
+    "GL_ANGLE_polygon_mode",
     "GL_ANGLE_provoking_vertex",
     "GL_ANGLE_read_only_depth_stencil_feedback_loops",
+    "GL_ANGLE_renderability_validation",
     "GL_ANGLE_robust_fragment_shader_output",
     "GL_ANGLE_semaphore_fuchsia",
     "GL_ANGLE_shader_pixel_local_storage",
@@ -77,7 +79,6 @@ angle_requestable_extensions = [
     "GL_CHROMIUM_color_buffer_float_rgba",
     "GL_CHROMIUM_lose_context",
     "GL_CHROMIUM_sync_query",
-    "GL_CHROMIUM_texture_filtering_hint",
 ]
 
 gles_requestable_extensions = [
@@ -138,6 +139,8 @@ gles_requestable_extensions = [
     "GL_EXT_tessellation_shader",
     "GL_EXT_texture_border_clamp",
     "GL_EXT_texture_buffer",
+    "GL_EXT_texture_compression_astc_decode_mode",
+    "GL_EXT_texture_compression_astc_decode_mode_rgb9e5",
     "GL_EXT_texture_compression_bptc",
     "GL_EXT_texture_compression_dxt1",
     "GL_EXT_texture_compression_rgtc",
@@ -168,6 +171,7 @@ gles_requestable_extensions = [
     "GL_NV_framebuffer_blit",
     "GL_NV_pack_subimage",
     "GL_NV_pixel_buffer_object",
+    "GL_NV_polygon_mode",
     "GL_NV_read_depth",
     "GL_NV_read_depth_stencil",
     "GL_NV_read_stencil",
@@ -220,8 +224,10 @@ gles_requestable_extensions = [
     "GL_OES_vertex_type_10_10_10_2",
     "GL_OVR_multiview",
     "GL_OVR_multiview2",
+    "GL_QCOM_framebuffer_foveated",
     "GL_QCOM_render_shared_exponent",
     "GL_QCOM_shading_rate",
+    "GL_QCOM_texture_foveated",
     "GL_WEBGL_video_texture",
 ]
 
@@ -229,6 +235,7 @@ angle_es_only_extensions = [
     "GL_ANGLE_client_arrays",
     "GL_ANGLE_get_serialized_context_string",
     "GL_ANGLE_program_binary",
+    "GL_ANGLE_program_binary_readiness_query",
     "GL_ANGLE_program_cache_control",
     "GL_ANGLE_relaxed_vertex_attribute_type",
     "GL_ANGLE_request_extension",
@@ -262,6 +269,7 @@ gles_es_only_extensions = [
     "GL_KHR_debug",
     "GL_KHR_no_error",
     "GL_KHR_robust_buffer_access_behavior",
+    "GL_KHR_robustness",
     "GL_NV_fence",
     "GL_NV_robustness_video_memory_purge",
     "GL_OES_depth24",
@@ -315,12 +323,16 @@ supported_egl_extensions = [
     "EGL_ANGLE_d3d_share_handle_client_buffer",
     "EGL_ANGLE_device_creation",
     "EGL_ANGLE_device_d3d",
+    "EGL_ANGLE_device_d3d11",
+    "EGL_ANGLE_device_d3d9",
     "EGL_ANGLE_display_semaphore_share_group",
     "EGL_ANGLE_display_texture_share_group",
+    "EGL_ANGLE_external_context_and_surface",
     "EGL_ANGLE_feature_control",
     "EGL_ANGLE_ggp_stream_descriptor",
     "EGL_ANGLE_metal_create_context_ownership_identity",
     "EGL_ANGLE_metal_shared_event_sync",
+    "EGL_ANGLE_no_error",
     "EGL_ANGLE_power_preference",
     "EGL_ANGLE_prepare_swap_buffers",
     "EGL_ANGLE_program_cache_control",
@@ -335,6 +347,9 @@ supported_egl_extensions = [
     "EGL_CHROMIUM_sync_control",
     "EGL_EXT_create_context_robustness",
     "EGL_EXT_device_query",
+    "EGL_EXT_gl_colorspace_bt2020_hlg",
+    "EGL_EXT_gl_colorspace_bt2020_linear",
+    "EGL_EXT_gl_colorspace_bt2020_pq",
     "EGL_EXT_gl_colorspace_display_p3",
     "EGL_EXT_gl_colorspace_display_p3_linear",
     "EGL_EXT_gl_colorspace_display_p3_passthrough",
@@ -390,7 +405,7 @@ supported_cl_extensions = [
 ]
 
 # Strip these suffixes from Context entry point names. NV is excluded (for now).
-strip_suffixes = ["AMD", "ANDROID", "ANGLE", "CHROMIUM", "EXT", "KHR", "OES", "OVR"]
+strip_suffixes = ["AMD", "ANDROID", "ANGLE", "CHROMIUM", "EXT", "KHR", "OES", "OVR", "QCOM"]
 check_sorted('strip_suffixes', strip_suffixes)
 
 # The EGL_ANGLE_explicit_context extension is generated differently from other extensions.

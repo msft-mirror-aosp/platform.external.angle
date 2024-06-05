@@ -1113,7 +1113,7 @@ TEST_P(EGLPreRotationBlitFramebufferTest, BlitStencilWithFlip)
     ANGLE_SKIP_TEST_IF(IsLinux() && isSwiftshader());
 
     // We need to fix blit with pre-rotation. http://anglebug.com/5044
-    ANGLE_SKIP_TEST_IF(IsAndroid() || IsWindows());
+    ANGLE_SKIP_TEST_IF(IsPixel4() || IsPixel4XL() || IsWindows());
 
     // To aid in debugging, we want this window visible
     setWindowVisible(mOSWindow, true);
@@ -2519,11 +2519,6 @@ TEST_P(EGLPreRotationInterpolateAtOffsetTest, InterpolateAtOffsetWithCustomFBO)
 }
 
 }  // anonymous namespace
-
-#ifdef Bool
-// X11 ridiculousness.
-#    undef Bool
-#endif
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EGLPreRotationInterpolateAtOffsetTest);
 ANGLE_INSTANTIATE_TEST_COMBINE_1(EGLPreRotationInterpolateAtOffsetTest,

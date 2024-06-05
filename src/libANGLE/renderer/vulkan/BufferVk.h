@@ -17,12 +17,10 @@
 
 namespace rx
 {
-class RendererVk;
-
 // Conversion buffers hold translated index and vertex data.
 struct ConversionBuffer
 {
-    ConversionBuffer(RendererVk *renderer,
+    ConversionBuffer(vk::Renderer *renderer,
                      VkBufferUsageFlags usageFlags,
                      size_t initialSize,
                      size_t alignment,
@@ -54,7 +52,7 @@ struct BufferDataSource
     VkDeviceSize bufferOffset = 0;
 };
 
-VkBufferUsageFlags GetDefaultBufferUsageFlags(RendererVk *renderer);
+VkBufferUsageFlags GetDefaultBufferUsageFlags(vk::Renderer *renderer);
 
 class BufferVk : public BufferImpl
 {
@@ -119,8 +117,10 @@ class BufferVk : public BufferImpl
         return mBuffer;
     }
 
+    vk::BufferSerial getBufferSerial() { return mBuffer.getBufferSerial(); }
+
     bool isBufferValid() const { return mBuffer.valid(); }
-    bool isCurrentlyInUse(RendererVk *renderer) const;
+    bool isCurrentlyInUse(vk::Renderer *renderer) const;
 
     angle::Result mapImpl(ContextVk *contextVk, GLbitfield access, void **mapPtr);
     angle::Result mapRangeImpl(ContextVk *contextVk,
@@ -135,7 +135,7 @@ class BufferVk : public BufferImpl
                                     GLbitfield access,
                                     void **mapPtr);
 
-    ConversionBuffer *getVertexConversionBuffer(RendererVk *renderer,
+    ConversionBuffer *getVertexConversionBuffer(vk::Renderer *renderer,
                                                 angle::FormatID formatID,
                                                 GLuint stride,
                                                 size_t offset,
@@ -182,7 +182,7 @@ class BufferVk : public BufferImpl
                               size_t updateSize,
                               size_t updateOffset,
                               BufferUpdateType updateType);
-    void release(ContextVk *context);
+    angle::Result release(ContextVk *context);
     void dataUpdated();
 
     angle::Result acquireBufferHelper(ContextVk *contextVk,
@@ -191,19 +191,19 @@ class BufferVk : public BufferImpl
 
     bool isExternalBuffer() const { return mClientBuffer != nullptr; }
     BufferUpdateType calculateBufferUpdateTypeOnFullUpdate(
-        RendererVk *renderer,
+        vk::Renderer *renderer,
         size_t size,
         VkMemoryPropertyFlags memoryPropertyFlags,
         BufferUsageType usageType,
         const void *data) const;
-    bool shouldRedefineStorage(RendererVk *renderer,
+    bool shouldRedefineStorage(vk::Renderer *renderer,
                                BufferUsageType usageType,
                                VkMemoryPropertyFlags memoryPropertyFlags,
                                size_t size) const;
 
     struct VertexConversionBuffer : public ConversionBuffer
     {
-        VertexConversionBuffer(RendererVk *renderer,
+        VertexConversionBuffer(vk::Renderer *renderer,
                                angle::FormatID formatIDIn,
                                GLuint strideIn,
                                size_t offsetIn,
