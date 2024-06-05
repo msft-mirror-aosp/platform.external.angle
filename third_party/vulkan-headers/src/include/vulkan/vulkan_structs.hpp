@@ -84808,6 +84808,106 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = PhysicalDeviceShaderQuadControlFeaturesKHR;
   };
 
+  struct PhysicalDeviceShaderReplicatedCompositesFeaturesEXT
+  {
+    using NativeType = VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceShaderReplicatedCompositesFeaturesEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceShaderReplicatedCompositesFeaturesEXT( VULKAN_HPP_NAMESPACE::Bool32 shaderReplicatedComposites_ = {},
+                                                                              void *                       pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , shaderReplicatedComposites{ shaderReplicatedComposites_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR
+      PhysicalDeviceShaderReplicatedCompositesFeaturesEXT( PhysicalDeviceShaderReplicatedCompositesFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceShaderReplicatedCompositesFeaturesEXT( VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceShaderReplicatedCompositesFeaturesEXT( *reinterpret_cast<PhysicalDeviceShaderReplicatedCompositesFeaturesEXT const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceShaderReplicatedCompositesFeaturesEXT &
+      operator=( PhysicalDeviceShaderReplicatedCompositesFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDeviceShaderReplicatedCompositesFeaturesEXT & operator=( VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceShaderReplicatedCompositesFeaturesEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceShaderReplicatedCompositesFeaturesEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceShaderReplicatedCompositesFeaturesEXT &
+      setShaderReplicatedComposites( VULKAN_HPP_NAMESPACE::Bool32 shaderReplicatedComposites_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderReplicatedComposites = shaderReplicatedComposites_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT *>( this );
+    }
+
+    operator VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, shaderReplicatedComposites );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceShaderReplicatedCompositesFeaturesEXT const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceShaderReplicatedCompositesFeaturesEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( shaderReplicatedComposites == rhs.shaderReplicatedComposites );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceShaderReplicatedCompositesFeaturesEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType                      = StructureType::ePhysicalDeviceShaderReplicatedCompositesFeaturesEXT;
+    void *                              pNext                      = {};
+    VULKAN_HPP_NAMESPACE::Bool32        shaderReplicatedComposites = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceShaderReplicatedCompositesFeaturesEXT>
+  {
+    using Type = PhysicalDeviceShaderReplicatedCompositesFeaturesEXT;
+  };
+
   struct PhysicalDeviceShaderSMBuiltinsFeaturesNV
   {
     using NativeType = VkPhysicalDeviceShaderSMBuiltinsFeaturesNV;
@@ -112345,21 +112445,6 @@ namespace VULKAN_HPP_NAMESPACE
       return *this;
     }
 
-#  if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 SurfaceCapabilitiesFullScreenExclusiveEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
-    {
-      pNext = pNext_;
-      return *this;
-    }
-
-    VULKAN_HPP_CONSTEXPR_14 SurfaceCapabilitiesFullScreenExclusiveEXT &
-      setFullScreenExclusiveSupported( VULKAN_HPP_NAMESPACE::Bool32 fullScreenExclusiveSupported_ ) VULKAN_HPP_NOEXCEPT
-    {
-      fullScreenExclusiveSupported = fullScreenExclusiveSupported_;
-      return *this;
-    }
-#  endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
-
     operator VkSurfaceCapabilitiesFullScreenExclusiveEXT const &() const VULKAN_HPP_NOEXCEPT
     {
       return *reinterpret_cast<const VkSurfaceCapabilitiesFullScreenExclusiveEXT *>( this );
@@ -112443,21 +112528,6 @@ namespace VULKAN_HPP_NAMESPACE
       *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::SurfaceCapabilitiesPresentBarrierNV const *>( &rhs );
       return *this;
     }
-
-#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 SurfaceCapabilitiesPresentBarrierNV & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
-    {
-      pNext = pNext_;
-      return *this;
-    }
-
-    VULKAN_HPP_CONSTEXPR_14 SurfaceCapabilitiesPresentBarrierNV &
-      setPresentBarrierSupported( VULKAN_HPP_NAMESPACE::Bool32 presentBarrierSupported_ ) VULKAN_HPP_NOEXCEPT
-    {
-      presentBarrierSupported = presentBarrierSupported_;
-      return *this;
-    }
-#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
 
     operator VkSurfaceCapabilitiesPresentBarrierNV const &() const VULKAN_HPP_NOEXCEPT
     {
@@ -113120,49 +113190,6 @@ namespace VULKAN_HPP_NAMESPACE
       return *this;
     }
 
-#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 SurfacePresentScalingCapabilitiesEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
-    {
-      pNext = pNext_;
-      return *this;
-    }
-
-    VULKAN_HPP_CONSTEXPR_14 SurfacePresentScalingCapabilitiesEXT &
-      setSupportedPresentScaling( VULKAN_HPP_NAMESPACE::PresentScalingFlagsEXT supportedPresentScaling_ ) VULKAN_HPP_NOEXCEPT
-    {
-      supportedPresentScaling = supportedPresentScaling_;
-      return *this;
-    }
-
-    VULKAN_HPP_CONSTEXPR_14 SurfacePresentScalingCapabilitiesEXT &
-      setSupportedPresentGravityX( VULKAN_HPP_NAMESPACE::PresentGravityFlagsEXT supportedPresentGravityX_ ) VULKAN_HPP_NOEXCEPT
-    {
-      supportedPresentGravityX = supportedPresentGravityX_;
-      return *this;
-    }
-
-    VULKAN_HPP_CONSTEXPR_14 SurfacePresentScalingCapabilitiesEXT &
-      setSupportedPresentGravityY( VULKAN_HPP_NAMESPACE::PresentGravityFlagsEXT supportedPresentGravityY_ ) VULKAN_HPP_NOEXCEPT
-    {
-      supportedPresentGravityY = supportedPresentGravityY_;
-      return *this;
-    }
-
-    VULKAN_HPP_CONSTEXPR_14 SurfacePresentScalingCapabilitiesEXT &
-      setMinScaledImageExtent( VULKAN_HPP_NAMESPACE::Extent2D const & minScaledImageExtent_ ) VULKAN_HPP_NOEXCEPT
-    {
-      minScaledImageExtent = minScaledImageExtent_;
-      return *this;
-    }
-
-    VULKAN_HPP_CONSTEXPR_14 SurfacePresentScalingCapabilitiesEXT &
-      setMaxScaledImageExtent( VULKAN_HPP_NAMESPACE::Extent2D const & maxScaledImageExtent_ ) VULKAN_HPP_NOEXCEPT
-    {
-      maxScaledImageExtent = maxScaledImageExtent_;
-      return *this;
-    }
-#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
-
     operator VkSurfacePresentScalingCapabilitiesEXT const &() const VULKAN_HPP_NOEXCEPT
     {
       return *reinterpret_cast<const VkSurfacePresentScalingCapabilitiesEXT *>( this );
@@ -113257,20 +113284,6 @@ namespace VULKAN_HPP_NAMESPACE
       *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::SurfaceProtectedCapabilitiesKHR const *>( &rhs );
       return *this;
     }
-
-#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 SurfaceProtectedCapabilitiesKHR & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
-    {
-      pNext = pNext_;
-      return *this;
-    }
-
-    VULKAN_HPP_CONSTEXPR_14 SurfaceProtectedCapabilitiesKHR & setSupportsProtected( VULKAN_HPP_NAMESPACE::Bool32 supportsProtected_ ) VULKAN_HPP_NOEXCEPT
-    {
-      supportsProtected = supportsProtected_;
-      return *this;
-    }
-#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
 
     operator VkSurfaceProtectedCapabilitiesKHR const &() const VULKAN_HPP_NOEXCEPT
     {
