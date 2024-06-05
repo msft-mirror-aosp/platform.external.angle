@@ -23,7 +23,7 @@ struct FeaturesVk : FeatureSetBase
     FeatureInfo appendAliasedMemoryDecorations = {
         "appendAliasedMemoryDecorations",
         FeatureCategory::VulkanWorkarounds,
-        "Append aliased memory decoration to ssbo and image in SpirV if they are not declared with restrict memory qualifier in GLSL",
+        "Append aliased memory decoration to ssbo and image in SPIR-V if they are not declared with restrict memory qualifier in GLSL",
         &members, "b/266235549"
     };
 
@@ -388,7 +388,7 @@ struct FeaturesVk : FeatureSetBase
     FeatureInfo varyingsRequireMatchingPrecisionInSpirv = {
         "varyingsRequireMatchingPrecisionInSpirv",
         FeatureCategory::VulkanWorkarounds,
-        "Add additional SPIRV instructions to make sure precision "
+        "Add additional SPIR-V instructions to make sure precision "
         "between shader stages match with each other",
         &members, "http://anglebug.com/7488"
     };
@@ -803,6 +803,13 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanAppWorkarounds,
         "Force submit updates to immutable textures",
         &members, "http://anglebug.com/6929"
+    };
+
+    FeatureInfo supportsSPIRV14 = {
+        "supportsSPIRV14",
+        FeatureCategory::VulkanFeatures,
+        "VkDevice supports VK_KHR_spirv_1_4 extension",
+        &members, "http://anglebug.com/342316794"
     };
 
     FeatureInfo retainSPIRVDebugInfo = {
@@ -1371,15 +1378,6 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanFeatures,
         "Enable non-semantic info inside shader module via VK_KHR_shader_non_semantic_info extension",
         &members, "http://anglebug.com/8549"
-    };
-
-    FeatureInfo combineAllShadersInPipelineLibrary = {
-        "combineAllShadersInPipelineLibrary",
-        FeatureCategory::VulkanFeatures,
-        "For Vulkan ICDs that support VK_EXT_graphics_pipeline_library the shaders subset of the pipeline"
-        "can either be combined into a single pipeline or can be decoupled into separate pipelines. This feature"
-        "is enabled when the former is the case.",
-        &members, "http://anglebug.com/8601"
     };
 
     FeatureInfo supports8BitStorageBuffer = {
