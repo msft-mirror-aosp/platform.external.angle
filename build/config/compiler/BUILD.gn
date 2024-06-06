@@ -1906,6 +1906,11 @@ config("default_warnings") {
           # TODO(crbug.com/41486292): Fix and re-enable.
           "-Wno-c++11-narrowing-const-reference",
         ]
+
+        if (llvm_force_head_revision) {
+          # TODO(crbug.com/344680447): Fix and re-enable.
+          cflags += [ "-Wno-missing-template-arg-list-after-template-kw" ]
+        }
       }
     }
 
