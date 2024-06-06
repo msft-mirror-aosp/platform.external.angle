@@ -623,7 +623,12 @@ inline h2_t H2(size_t hash) { return hash & 0x7F; }
 
 // Helpers for checking the state of a control byte.
 inline bool IsEmpty(ctrl_t c) { return c == ctrl_t::kEmpty; }
-inline bool IsFull(ctrl_t c) { return c >= static_cast<ctrl_t>(0); }
+inline bool IsFull(ctrl_t c) {
+  // Cast `c` to the underlying type instead of casting `0` to `ctrl_t` as `0`
+  // is not a value in the enum. Both ways are equivalent, but this way makes
+  // linters happier.
+  return static_cast<std::underlying_type_t<ctrl_t>>(c) >= 0;
+}
 inline bool IsDeleted(ctrl_t c) { return c == ctrl_t::kDeleted; }
 inline bool IsEmptyOrDeleted(ctrl_t c) { return c < ctrl_t::kSentinel; }
 
@@ -3100,7 +3105,7 @@ class raw_hash_set {
   // this method returns void to reduce algorithmic complexity to O(1).  The
   // iterator is invalidated, so any increment should be done before calling
   // erase.  In order to erase while iterating across a map, use the following
-  // idiom (which also works for standard containers):
+  // idiom (which also works for some standard containers):
   //
   // for (auto it = m.begin(), end = m.end(); it != end;) {
   //   // `erase()` will invalidate `it`, so advance `it` first.

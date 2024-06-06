@@ -767,18 +767,26 @@ class AtomicRefCounted : angle::NonCopyable
         mRefCount.fetch_add(1, std::memory_order_relaxed);
     }
 
+    // Warning: method does not perform any synchronization, therefore can not be used along with
+    // following `!isReferenced()` call to check if object is not longer accessed by other threads.
+    // Use `getAndReleaseRef()` instead, when synchronization is required.
     void releaseRef()
     {
         ASSERT(isReferenced());
         mRefCount.fetch_sub(1, std::memory_order_relaxed);
     }
 
+    // Performs acquire-release memory synchronization. When result is "1", the object is
+    // guaranteed to be no longer in use by other threads, and may be safely destroyed or updated.
+    // Warning: do not mix this method and the unsynchronized `releaseRef()` call.
     unsigned int getAndReleaseRef()
     {
         ASSERT(isReferenced());
-        return mRefCount.fetch_sub(1, std::memory_order_relaxed);
+        return mRefCount.fetch_sub(1, std::memory_order_acq_rel);
     }
 
+    // Warning: method does not perform any synchronization.  See `releaseRef()` for details.
+    // Method may be only used after external synchronization.
     bool isReferenced() const { return mRefCount.load(std::memory_order_relaxed) != 0; }
 
     T &get() { return mObject; }
@@ -947,17 +955,33 @@ class Shared final : angle::NonCopyable
     RefCounted<T> *mRefCounted;
 };
 
-template <typename T>
+template <typename T, typename StorageT = std::deque<T>>
 class Recycler final : angle::NonCopyable
 {
   public:
     Recycler() = default;
+    Recycler(StorageT &&storage) { mObjectFreeList = std::move(storage); }
 
     void recycle(T &&garbageObject)
     {
         // Recycling invalid objects is pointless and potentially a bug.
         ASSERT(garbageObject.valid());
         mObjectFreeList.emplace_back(std::move(garbageObject));
+    }
+
+    void recycle(StorageT &&garbageObjects)
+    {
+        // Recycling invalid objects is pointless and potentially a bug.
+        ASSERT(!garbageObjects.empty());
+        mObjectFreeList.insert(mObjectFreeList.end(), garbageObjects.begin(), garbageObjects.end());
+        ASSERT(garbageObjects.empty());
+    }
+
+    void refill(StorageT &&garbageObjects)
+    {
+        ASSERT(!garbageObjects.empty());
+        ASSERT(mObjectFreeList.empty());
+        mObjectFreeList.swap(garbageObjects);
     }
 
     void fetch(T *outObject)
@@ -969,17 +993,18 @@ class Recycler final : angle::NonCopyable
 
     void destroy(VkDevice device)
     {
-        for (T &object : mObjectFreeList)
+        while (!mObjectFreeList.empty())
         {
+            T &object = mObjectFreeList.back();
             object.destroy(device);
+            mObjectFreeList.pop_back();
         }
-        mObjectFreeList.clear();
     }
 
     bool empty() const { return mObjectFreeList.empty(); }
 
   private:
-    std::deque<T> mObjectFreeList;
+    StorageT mObjectFreeList;
 };
 
 ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
