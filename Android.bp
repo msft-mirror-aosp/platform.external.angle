@@ -1586,6 +1586,7 @@ cc_genrule {
         "src/common/tls.cpp",
         "src/common/tls.h",
         "src/common/uniform_type_info_autogen.cpp",
+        "src/common/uniform_type_info_autogen.h",
         "src/common/utilities.cpp",
         "src/common/utilities.h",
         "src/common/vector_utils.h",
