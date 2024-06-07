@@ -149,12 +149,6 @@ bool IsXclipse()
     return strstr(modelName.c_str(), "SM-S901B") != nullptr;
 }
 
-bool ShouldUseEventForImageBarrier()
-{
-    // Disabled for now while performance is under investigation
-    return false;
-}
-
 bool StrLess(const char *a, const char *b)
 {
     return strcmp(a, b) < 0;
@@ -1901,8 +1895,7 @@ angle::Result Renderer::initialize(vk::Context *context,
     // SyncVal is very slow (https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/7285)
     // for VkEvent which causes a few tests fail on the bots. Disable syncVal if VkEvent is enabled
     // for now.
-    const VkBool32 setting_validate_sync =
-        IsAndroid() || ShouldUseEventForImageBarrier() ? VK_FALSE : VK_TRUE;
+    const VkBool32 setting_validate_sync = IsAndroid() ? VK_FALSE : VK_TRUE;
     const VkBool32 setting_thread_safety = VK_TRUE;
     // http://anglebug.com/7050 - Shader validation caching is broken on Android
     const VkBool32 setting_check_shaders = IsAndroid() ? VK_FALSE : VK_TRUE;
@@ -3488,10 +3481,10 @@ angle::Result Renderer::setupDevice(vk::Context *context,
         mFeatures.supportsPipelineStatisticsQuery.enabled;
     // Used to support geometry shaders:
     mEnabledFeatures.features.geometryShader = mPhysicalDeviceFeatures.geometryShader;
-    // Used to support EXT_gpu_shader5:
+    // Used to support EXT/OES_gpu_shader5:
     mEnabledFeatures.features.shaderImageGatherExtended =
         mPhysicalDeviceFeatures.shaderImageGatherExtended;
-    // Used to support EXT_gpu_shader5:
+    // Used to support EXT/OES_gpu_shader5:
     mEnabledFeatures.features.shaderUniformBufferArrayDynamicIndexing =
         mPhysicalDeviceFeatures.shaderUniformBufferArrayDynamicIndexing;
     mEnabledFeatures.features.shaderSampledImageArrayDynamicIndexing =
@@ -3636,6 +3629,8 @@ angle::Result Renderer::createDeviceAndQueue(vk::Context *context, uint32_t queu
         mSupportedVulkanShaderStageMask |= VK_SHADER_STAGE_GEOMETRY_BIT;
     }
     mSupportedVulkanPipelineStageMask = ~unsupportedStages;
+    InitializeEventAndPipelineStagesMap(&mEventStageAndPipelineStageFlagsMap,
+                                        mSupportedVulkanPipelineStageMask);
 
     ANGLE_TRY(initializeMemoryAllocator(context));
 
@@ -5097,9 +5092,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsExternalFormatResolve, false);
 #endif
 
-    // initialize() is disabling syncval if event is used, which comes before feature flag is set.
-    // Use ShouldUseEventForImageBarrier to enable/disable event for certain config if needed.
-    ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForImageBarrier, ShouldUseEventForImageBarrier());
+    ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForImageBarrier, false);
 
     // Disable memory report feature overrides if extension is not supported.
     if ((mFeatures.logMemoryReportCallbacks.enabled || mFeatures.logMemoryReportStats.enabled) &&
