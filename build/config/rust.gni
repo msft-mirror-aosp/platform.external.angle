@@ -108,7 +108,7 @@ declare_args() {
   enable_rust_base_conversions = enable_rust
 
   # The base::JSONReader implementation. Requires base conversions.
-  enable_rust_json = enable_rust && enable_all_rust_features
+  enable_rust_json = enable_rust
 
   # Support for chrome://crash-rust to check crash dump collection works.
   enable_rust_crash = enable_rust
@@ -118,9 +118,6 @@ declare_args() {
 
   # Rust gtest interop.
   enable_rust_gtest_interop = enable_rust
-
-  # Enable experimental Fontations Rust font stack.
-  use_typeface_fontations = enable_rust
 }
 
 # Use the Rust toolchain built in-tree. When false, we use the prebuilt Rust

@@ -1567,7 +1567,7 @@ angle::Result ContextVk::setupDraw(const gl::Context *context,
     }
 
     ProgramExecutableVk *executableVk = vk::GetImpl(mState.getProgramExecutable());
-    if (executableVk->hasDirtyUniforms())
+    if (executableVk->updateAndCheckDirtyUniforms())
     {
         mGraphicsDirtyBits.set(DIRTY_BIT_UNIFORMS);
     }
@@ -1818,7 +1818,7 @@ angle::Result ContextVk::setupDispatch(const gl::Context *context)
     ANGLE_TRY(flushOutsideRenderPassCommands());
 
     ProgramExecutableVk *executableVk = vk::GetImpl(mState.getProgramExecutable());
-    if (executableVk->hasDirtyUniforms())
+    if (executableVk->updateAndCheckDirtyUniforms())
     {
         mComputeDirtyBits.set(DIRTY_BIT_UNIFORMS);
     }
@@ -2081,7 +2081,7 @@ angle::Result ContextVk::createGraphicsPipeline()
     ASSERT(executableVk);
 
     // Wait for any warmup task if necessary
-    executableVk->waitForPostLinkTasksIfNecessary(this, mGraphicsPipelineDesc.get());
+    executableVk->waitForGraphicsPostLinkTasks(this, *mGraphicsPipelineDesc);
 
     vk::PipelineCacheAccess pipelineCache;
     ANGLE_TRY(mRenderer->getPipelineCache(this, &pipelineCache));
@@ -2482,7 +2482,7 @@ angle::Result ContextVk::handleDirtyComputePipelineDesc(DirtyBits::Iterator *dir
         ProgramExecutableVk *executableVk = vk::GetImpl(mState.getProgramExecutable());
         ASSERT(executableVk);
 
-        executableVk->waitForPostLinkTasksIfNecessary(this, nullptr);
+        executableVk->waitForComputePostLinkTasks(this);
         ANGLE_TRY(executableVk->getOrCreateComputePipeline(
             this, &pipelineCache, PipelineSource::Draw, pipelineRobustness(),
             pipelineProtectedAccess(), &mCurrentComputePipeline));
