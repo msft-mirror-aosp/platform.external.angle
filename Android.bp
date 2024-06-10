@@ -59,7 +59,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r26b_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-19-init-10646-g084e2b53-6\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-19-init-10646-g084e2b53-7\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -1586,6 +1586,7 @@ cc_genrule {
         "src/common/tls.cpp",
         "src/common/tls.h",
         "src/common/uniform_type_info_autogen.cpp",
+        "src/common/uniform_type_info_autogen.h",
         "src/common/utilities.cpp",
         "src/common/utilities.h",
         "src/common/vector_utils.h",
