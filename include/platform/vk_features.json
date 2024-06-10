@@ -1473,6 +1473,15 @@
             "issue": "http://anglebug.com/8658"
         },
         {
+            "name": "limit_max_storage_buffer_size",
+            "category": "Workarounds",
+            "description": [
+                "On some drivers, a storage buffer max size limit is exposed that is incompatible with ",
+                "older hardware"
+            ],
+            "issue": "http://anglebug.com/345244067"
+        },
+        {
             "name": "cl_dump_vk_spirv",
             "category": "Features",
             "description": [
@@ -1504,16 +1513,6 @@
                 "Enable non-semantic info inside shader module via VK_KHR_shader_non_semantic_info extension"
             ],
             "issue": "http://anglebug.com/8549"
-        },
-        {
-            "name": "combine_all_shaders_in_pipeline_library",
-            "category": "Features",
-            "description": [
-                "For Vulkan ICDs that support VK_EXT_graphics_pipeline_library the shaders subset of the pipeline",
-                "can either be combined into a single pipeline or can be decoupled into separate pipelines. This feature",
-                "is enabled when the former is the case."
-            ],
-            "issue": "http://anglebug.com/8601"
         },
         {
             "name": "supports_8_bit_storage_buffer",

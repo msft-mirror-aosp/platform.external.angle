@@ -1350,6 +1350,14 @@ struct FeaturesVk : FeatureSetBase
         &members, "http://anglebug.com/8658"
     };
 
+    FeatureInfo limitMaxStorageBufferSize = {
+        "limitMaxStorageBufferSize",
+        FeatureCategory::VulkanWorkarounds,
+        "On some drivers, a storage buffer max size limit is exposed that is incompatible with "
+        "older hardware",
+        &members, "http://anglebug.com/345244067"
+    };
+
     FeatureInfo clDumpVkSpirv = {
         "clDumpVkSpirv",
         FeatureCategory::VulkanFeatures,
@@ -1378,15 +1386,6 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanFeatures,
         "Enable non-semantic info inside shader module via VK_KHR_shader_non_semantic_info extension",
         &members, "http://anglebug.com/8549"
-    };
-
-    FeatureInfo combineAllShadersInPipelineLibrary = {
-        "combineAllShadersInPipelineLibrary",
-        FeatureCategory::VulkanFeatures,
-        "For Vulkan ICDs that support VK_EXT_graphics_pipeline_library the shaders subset of the pipeline"
-        "can either be combined into a single pipeline or can be decoupled into separate pipelines. This feature"
-        "is enabled when the former is the case.",
-        &members, "http://anglebug.com/8601"
     };
 
     FeatureInfo supports8BitStorageBuffer = {
