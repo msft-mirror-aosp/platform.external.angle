@@ -5326,8 +5326,9 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
 
     // ES3.2 or ES3.1's EXT_gpu_shader5 allow dynamically uniform expressions to be used as indices
     // of opaque types (samplers and atomic counters) as well as UBOs, but not SSBOs and images.
-    bool allowUniformIndices =
-        mShaderVersion >= 320 || isExtensionEnabled(TExtension::EXT_gpu_shader5);
+    bool allowUniformIndices = mShaderVersion >= 320 ||
+                               isExtensionEnabled(TExtension::EXT_gpu_shader5) ||
+                               isExtensionEnabled(TExtension::OES_gpu_shader5);
 
     // ANGLE should be able to fold any constant expressions resulting in an integer - but to be
     // safe we don't treat "EvqConst" that's evaluated according to the spec as being sufficient
@@ -7443,8 +7444,9 @@ void TParseContext::checkTextureOffset(TIntermAggregate *functionCall)
 
         // ES3.2 or ES3.1's EXT_gpu_shader5 allow non-const offsets to be passed to
         // textureGatherOffset.
-        bool textureGatherOffsetMustBeConst =
-            mShaderVersion <= 310 && !isExtensionEnabled(TExtension::EXT_gpu_shader5);
+        bool textureGatherOffsetMustBeConst = mShaderVersion <= 310 &&
+                                              !isExtensionEnabled(TExtension::EXT_gpu_shader5) &&
+                                              !isExtensionEnabled(TExtension::OES_gpu_shader5);
 
         bool isOffsetConst =
             offset->getAsTyped()->getQualifier() == EvqConst && offsetConstantUnion != nullptr;
@@ -7859,13 +7861,20 @@ TIntermTyped *TParseContext::addTernarySelection(TIntermTyped *cond,
 
     // ESSL 1.00.17 sections 5.2 and 5.7:
     // Ternary operator is not among the operators allowed for structures/arrays.
-    // ESSL 3.00.6 section 5.7:
-    // Ternary operator support is optional for arrays. No certainty that it works across all
-    // devices with struct either, so we err on the side of caution here. TODO (oetuaho@nvidia.com):
-    // Would be nice to make the spec and implementation agree completely here.
-    if (trueExpression->isArray() || trueExpression->getBasicType() == EbtStruct)
+    // ESSL 3.00 and ESSL 3.10 section 5.7:
+    // Ternary operator supports structs, but array support is optional for arrays.
+    // ESSL 3.20 section 5.7:
+    // Ternary operator supports structs and arrays unconditionally.
+    // In WebGL2 section 5.26, ternary is banned for both arrays and structs.
+    if ((mShaderVersion < 300 || mShaderSpec == SH_WEBGL2_SPEC) && trueExpression->isArray())
     {
-        error(loc, "ternary operator is not allowed for structures or arrays", "?:");
+        error(loc, "ternary operator is not allowed for arrays in ESSL 1.0 and webgl", "?:");
+        return falseExpression;
+    }
+    if ((mShaderVersion < 300 || mShaderSpec == SH_WEBGL2_SPEC) &&
+        trueExpression->getBasicType() == EbtStruct)
+    {
+        error(loc, "ternary operator is not allowed for structures in ESSL 1.0 and webgl", "?:");
         return falseExpression;
     }
     if (trueExpression->getBasicType() == EbtInterfaceBlock)
