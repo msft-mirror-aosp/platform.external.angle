@@ -826,17 +826,11 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
 {
     ContextVk *contextVk = vk::GetImpl(context);
 
-    bool mustFlush = updateMustBeFlushed(gl::LevelIndex(index.getLevelIndex()),
-                                         vkFormat.getActualImageFormatID(getRequiredImageAccess()));
-    bool mustStage = updateMustBeStaged(gl::LevelIndex(index.getLevelIndex()),
-                                        vkFormat.getActualImageFormatID(getRequiredImageAccess()));
-
-    vk::ApplyImageUpdate applyUpdate;
-    if (mustStage)
-    {
-        applyUpdate = vk::ApplyImageUpdate::Defer;
-    }
-    else
+    // When possible flush out updates immediately.
+    vk::ApplyImageUpdate applyUpdate = vk::ApplyImageUpdate::Defer;
+    if (!mOwnsImage || mState.getImmutableFormat() ||
+        shouldUpdateBeFlushed(gl::LevelIndex(index.getLevelIndex()),
+                              vkFormat.getActualImageFormatID(getRequiredImageAccess())))
     {
         // Cannot defer to unlocked tail call if:
         //
@@ -848,7 +842,6 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
         const bool canDeferToUnlockedTailCall =
             mState.getGenerateMipmapHint() != GL_TRUE && !mState.isInternalIncompleteTexture();
 
-        // When possible flush out updates immediately.
         applyUpdate = canDeferToUnlockedTailCall
                           ? vk::ApplyImageUpdate::ImmediatelyInUnlockedTailCall
                           : vk::ApplyImageUpdate::Immediately;
@@ -931,31 +924,24 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
             getRequiredImageAccess(), applyUpdate, &updateAppliedImmediately));
     }
 
-    if (updateAppliedImmediately)
+    // If we used context's staging buffer, flush out the updates
+    if (!updateAppliedImmediately)
     {
-        // Return if stageSubresourceUpdate already applied the update
-        return angle::Result::Continue;
-    }
-
-    // If texture has all levels being specified, then do the flush immediately. This tries to avoid
-    // issue flush as each level is being provided which may end up flushing out the staged clear
-    // that otherwise might able to be removed. It also helps tracking all updates with just one
-    // VkEvent instead of one for each level.
-    if (mustFlush ||
-        (!mustStage && mImage->valid() && mImage->hasBufferSourcedStagedUpdatesInAllLevels()))
-    {
-        ANGLE_TRY(ensureImageInitialized(contextVk, ImageMipLevels::EnabledLevels));
-
-        // If forceSubmitImmutableTextureUpdates is enabled, submit the staged updates as well
-        if (contextVk->getFeatures().forceSubmitImmutableTextureUpdates.enabled)
+        if (applyUpdate != vk::ApplyImageUpdate::Defer)
         {
-            ANGLE_TRY(contextVk->submitStagedTextureUpdates());
+            ANGLE_TRY(ensureImageInitialized(contextVk, ImageMipLevels::EnabledLevels));
+
+            // If forceSubmitImmutableTextureUpdates is enabled, submit the staged updates as well
+            if (contextVk->getFeatures().forceSubmitImmutableTextureUpdates.enabled)
+            {
+                ANGLE_TRY(contextVk->submitStagedTextureUpdates());
+            }
         }
-    }
-    else if (contextVk->isEligibleForMutableTextureFlush() && !mState.getImmutableFormat())
-    {
-        // Check if we should flush any mutable textures from before.
-        ANGLE_TRY(contextVk->getShareGroup()->onMutableTextureUpload(contextVk, this));
+        else if (contextVk->isEligibleForMutableTextureFlush() && !mState.getImmutableFormat())
+        {
+            // Check if we should flush any mutable textures from before.
+            ANGLE_TRY(contextVk->getShareGroup()->onMutableTextureUpload(contextVk, this));
+        }
     }
 
     return angle::Result::Continue;
@@ -1441,7 +1427,7 @@ angle::Result TextureVk::copySubImageImplWithTransfer(ContextVk *contextVk,
             extents.depth = 1;
         }
 
-        vk::ImageHelper::Copy(contextVk, srcImage, mImage, srcOffset, dstOffsetModified, extents,
+        vk::ImageHelper::Copy(renderer, srcImage, mImage, srcOffset, dstOffsetModified, extents,
                               srcSubresource, destSubresource, commandBuffer);
 
         contextVk->trackImagesWithOutsideRenderPassEvent(srcImage, mImage);
@@ -1476,7 +1462,7 @@ angle::Result TextureVk::copySubImageImplWithTransfer(ContextVk *contextVk,
             extents.depth = 1;
         }
 
-        vk::ImageHelper::Copy(contextVk, srcImage, &stagingImage->get(), srcOffset, gl::kOffsetZero,
+        vk::ImageHelper::Copy(renderer, srcImage, &stagingImage->get(), srcOffset, gl::kOffsetZero,
                               extents, srcSubresource, destSubresource, commandBuffer);
 
         contextVk->trackImagesWithOutsideRenderPassEvent(srcImage, &stagingImage->get());
@@ -2168,7 +2154,8 @@ angle::Result TextureVk::copyBufferDataToImage(ContextVk *contextVk,
     ANGLE_TRY(contextVk->getOutsideRenderPassCommandBuffer(access, &commandBuffer));
 
     commandBuffer->copyBufferToImage(srcBuffer->getBuffer().getHandle(), mImage->getImage(),
-                                     mImage->getCurrentLayout(contextVk), 1, &region);
+                                     mImage->getCurrentLayout(contextVk->getRenderer()), 1,
+                                     &region);
 
     contextVk->trackImageWithOutsideRenderPassEvent(mImage);
 
@@ -2479,9 +2466,9 @@ angle::Result TextureVk::copyAndStageImageData(ContextVk *contextVk,
         copyRegion.dstSubresource.mipLevel = levelVk.get();
         gl_vk::GetExtent(levelExtents, &copyRegion.extent);
 
-        commandBuffer->copyImage(srcImage->getImage(), srcImage->getCurrentLayout(contextVk),
+        commandBuffer->copyImage(srcImage->getImage(), srcImage->getCurrentLayout(renderer),
                                  stagingImage->get().getImage(),
-                                 stagingImage->get().getCurrentLayout(contextVk), 1, &copyRegion);
+                                 stagingImage->get().getCurrentLayout(renderer), 1, &copyRegion);
     }
 
     contextVk->trackImagesWithOutsideRenderPassEvent(srcImage, &stagingImage->get());
