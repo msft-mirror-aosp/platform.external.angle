@@ -1,9 +1,9 @@
 {
   "version info": {
     "schema version": 2,
-    "api version": "1.3.286",
-    "comment": "from git branch: github-main commit: ed4ba0242beb89a1795d6084709fa9e713559c94",
-    "date": "2024-05-31 09:50:40Z"
+    "api version": "1.3.287",
+    "comment": "from git branch: github-main commit: ae3e824136b336fe99025eaf0cd55d073c6e6a0a",
+    "date": "2024-06-07 11:38:24Z"
   },
   "validation": {
     "vkGetInstanceProcAddr": {
@@ -2719,8 +2719,13 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdExecuteCommands-contents-06018",
-          "text": "If <code>vkCmdExecuteCommands</code> is being called within a render pass     instance begun with <a href=\"#vkCmdBeginRenderPass\">vkCmdBeginRenderPass</a>, its <code>contents</code>     parameter <strong class=\"purple\">must</strong> have been set to     <code>VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS</code> , or <code>VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_EXT</code>",
+          "vuid": "VUID-vkCmdExecuteCommands-contents-09680",
+          "text": "If <code>vkCmdExecuteCommands</code> is being called within a render pass instance begun with <a href=\"#vkCmdBeginRenderPass\">vkCmdBeginRenderPass</a>, and <a href=\"#vkCmdNextSubpass\">vkCmdNextSubpass</a> has not been called in the current render pass instance, the <code>contents</code> parameter of <a href=\"#vkCmdBeginRenderPass\">vkCmdBeginRenderPass</a> <strong class=\"purple\">must</strong> have been set to <code>VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdExecuteCommands-None-09681",
+          "text": "If <code>vkCmdExecuteCommands</code> is being called within a render pass     instance begun with <a href=\"#vkCmdBeginRenderPass\">vkCmdBeginRenderPass</a>, and     <a href=\"#vkCmdNextSubpass\">vkCmdNextSubpass</a> has been called in the current render pass     instance, parameter of the last call to <a href=\"#vkCmdNextSubpass\">vkCmdNextSubpass</a> <strong class=\"purple\">must</strong>     have been set to <code>VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS</code> , or <code>VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -13342,7 +13347,7 @@
         },
         {
           "vuid": "VUID-VkShaderCreateInfoEXT-flags-08417",
-          "text": "If <code>flags</code> includes <code>VK_SHADER_CREATE_REQUIRE_FULL_SUBGROUPS_BIT_EXT</code> but not <code>VK_SHADER_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT</code> and no <a href=\"#VkShaderRequiredSubgroupSizeCreateInfoEXT\">VkShaderRequiredSubgroupSizeCreateInfoEXT</a> structure is included in the <code>pNext</code> chain, the local workgroup size in the X dimension of the shader <strong class=\"purple\">must</strong> be a multiple of <a href=\"#limits-subgroup-size\"><code>subgroupSize</code></a>",
+          "text": "If <code>flags</code> includes <code>VK_SHADER_CREATE_REQUIRE_FULL_SUBGROUPS_BIT_EXT</code> but not <code>VK_SHADER_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT</code> and no <a href=\"#VkShaderRequiredSubgroupSizeCreateInfoEXT\">VkShaderRequiredSubgroupSizeCreateInfoEXT</a> structure is included in the <code>pNext</code> chain, the local workgroup size in the X dimension of the shader <strong class=\"purple\">must</strong> be a multiple of <a href=\"#limits-subgroupSize\"><code>subgroupSize</code></a>",
           "page": "vkspec"
         },
         {
@@ -13532,7 +13537,7 @@
         },
         {
           "vuid": "VUID-VkShaderCreateInfoEXT-pNext-pNext",
-          "text": "<code>pNext</code> <strong class=\"purple\">must</strong> be <code>NULL</code> or a pointer to a valid instance of <a href=\"#VkPipelineShaderStageRequiredSubgroupSizeCreateInfo\">VkPipelineShaderStageRequiredSubgroupSizeCreateInfo</a>",
+          "text": "Each <code>pNext</code> member of any structure (including this one) in the <code>pNext</code> chain <strong class=\"purple\">must</strong> be either <code>NULL</code> or a pointer to a valid instance of <a href=\"#VkPipelineShaderStageRequiredSubgroupSizeCreateInfo\">VkPipelineShaderStageRequiredSubgroupSizeCreateInfo</a> or <a href=\"#VkValidationFeaturesEXT\">VkValidationFeaturesEXT</a>",
           "page": "vkspec"
         },
         {
@@ -13803,7 +13808,7 @@
       "core": [
         {
           "vuid": "VUID-vkCreateShaderModule-pCreateInfo-06904",
-          "text": "If <code>pCreateInfo</code> is not <code>NULL</code>, <code>pCreateInfo-&gt;pNext</code> <strong class=\"purple\">must</strong> be <code>NULL</code> or a pointer to a <a href=\"#VkShaderModuleValidationCacheCreateInfoEXT\">VkShaderModuleValidationCacheCreateInfoEXT</a> structure",
+          "text": "If <code>pCreateInfo</code> is not <code>NULL</code>, <code>pCreateInfo-&gt;pNext</code> <strong class=\"purple\">must</strong> be <code>NULL</code> or a pointer to a valid instance of<div class=\"ulist\">\n<ul>\n<li>\n<p><a href=\"#VkShaderModuleValidationCacheCreateInfoEXT\">VkShaderModuleValidationCacheCreateInfoEXT</a></p>\n</li>\n<li>\n<p><a href=\"#VkValidationFeaturesEXT\">VkValidationFeaturesEXT</a></p>\n</li>\n</ul>\n</div>",
           "page": "vkspec"
         },
         {
@@ -14817,12 +14822,12 @@
         },
         {
           "vuid": "VUID-VkPipelineShaderStageCreateInfo-flags-02759",
-          "text": "If <code>flags</code> has the <code>VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT</code> flag set and <code>flags</code> does not have the <code>VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT</code> flag set and no <a href=\"#VkPipelineShaderStageRequiredSubgroupSizeCreateInfo\">VkPipelineShaderStageRequiredSubgroupSizeCreateInfo</a> structure is included in the <code>pNext</code> chain, the local workgroup size in the X dimension of the pipeline <strong class=\"purple\">must</strong> be a multiple of <a href=\"#limits-subgroup-size\"><code>subgroupSize</code></a>",
+          "text": "If <code>flags</code> has the <code>VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT</code> flag set and <code>flags</code> does not have the <code>VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT</code> flag set and no <a href=\"#VkPipelineShaderStageRequiredSubgroupSizeCreateInfo\">VkPipelineShaderStageRequiredSubgroupSizeCreateInfo</a> structure is included in the <code>pNext</code> chain, the local workgroup size in the X dimension of the pipeline <strong class=\"purple\">must</strong> be a multiple of <a href=\"#limits-subgroupSize\"><code>subgroupSize</code></a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkPipelineShaderStageCreateInfo-module-08987",
-          "text": "If <code>module</code> uses the <code>OpTypeCooperativeMatrixKHR</code> instruction with a <code>Scope</code> equal to <code>Subgroup</code>, then the local workgroup size in the X dimension of the pipeline <strong class=\"purple\">must</strong> be a multiple of <a href=\"#limits-subgroup-size\"><code>subgroupSize</code></a>",
+          "text": "If <code>module</code> uses the <code>OpTypeCooperativeMatrixKHR</code> instruction with a <code>Scope</code> equal to <code>Subgroup</code>, then the local workgroup size in the X dimension of the pipeline <strong class=\"purple\">must</strong> be a multiple of <a href=\"#limits-subgroupSize\"><code>subgroupSize</code></a>",
           "page": "vkspec"
         },
         {
@@ -15443,7 +15448,7 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-rasterizerDiscardEnable-09024",
-          "text": "If the pipeline requires <a href=\"#pipelines-graphics-subsets-pre-rasterization\">pre-rasterization shader state</a>, and the <code>VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE</code> dynamic state is enabled or the <code>rasterizerDiscardEnable</code> member of <code>pRasterizationState</code> is <code>VK_FALSE</code>, and either the <code><a href=\"#VK_EXT_extended_dynamic_state3\">VK_EXT_extended_dynamic_state3</a></code> extension is not enabled, or either the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> or <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic states are not set, <code>pViewportState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineViewportStateCreateInfo\">VkPipelineViewportStateCreateInfo</a> structure",
+          "text": "If the pipeline requires <a href=\"#pipelines-graphics-subsets-pre-rasterization\">pre-rasterization shader state</a>, and the <code>VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE</code> dynamic state is enabled or the <code>rasterizerDiscardEnable</code> member of <code>pRasterizationState</code> is <code>VK_FALSE</code>, and <a href=\"#pipelines-pViewportState-null\">related dynamic state is not set</a>, <code>pViewportState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineViewportStateCreateInfo\">VkPipelineViewportStateCreateInfo</a> structure",
           "page": "vkspec"
         },
         {
@@ -15468,7 +15473,7 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-renderPass-09028",
-          "text": "If <code>renderPass</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, the pipeline is being created with <a href=\"#pipelines-graphics-subsets-fragment-shader\">fragment shader state</a>, and <code>subpass</code> uses a depth/stencil attachment, and the <code><a href=\"#VK_EXT_extended_dynamic_state3\">VK_EXT_extended_dynamic_state3</a></code> extension is not enabled or, any of the <code>VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE</code>, <code>VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE</code>, <code>VK_DYNAMIC_STATE_DEPTH_COMPARE_OP</code>, <code>VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE</code>, <code>VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE</code>, <code>VK_DYNAMIC_STATE_STENCIL_OP</code>, or <code>VK_DYNAMIC_STATE_DEPTH_BOUNDS</code> dynamic states are not set, <code>pDepthStencilState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineDepthStencilStateCreateInfo\">VkPipelineDepthStencilStateCreateInfo</a> structure",
+          "text": "If <code>renderPass</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, the pipeline is being created with <a href=\"#pipelines-graphics-subsets-fragment-shader\">fragment shader state</a>, and <code>subpass</code> uses a depth/stencil attachment, and <a href=\"#pipelines-pDepthStencilState-null\">related dynamic state is not set</a>, <code>pDepthStencilState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineDepthStencilStateCreateInfo\">VkPipelineDepthStencilStateCreateInfo</a> structure",
           "page": "vkspec"
         },
         {
@@ -15478,7 +15483,7 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-renderPass-09030",
-          "text": "If <code>renderPass</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, the pipeline is being created with <a href=\"#pipelines-graphics-subsets-fragment-output\">fragment output interface state</a>, and <code>subpass</code> uses color attachments, and <code><a href=\"#VK_EXT_extended_dynamic_state3\">VK_EXT_extended_dynamic_state3</a></code> extension is not enabled, or any of the <code>VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT</code>, <code>VK_DYNAMIC_STATE_LOGIC_OP_EXT</code>, <code>VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT</code>, <code>VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT</code>, <code>VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT</code>, or <code>VK_DYNAMIC_STATE_BLEND_CONSTANTS</code> dynamic states are not set, <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineColorBlendStateCreateInfo\">VkPipelineColorBlendStateCreateInfo</a> structure",
+          "text": "If <code>renderPass</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, the pipeline is being created with <a href=\"#pipelines-graphics-subsets-fragment-output\">fragment output interface state</a>, and <code>subpass</code> uses color attachments, and <a href=\"#pipelines-pColorBlendState-null\">related dynamic state is not set</a>, <code>pColorBlendState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineColorBlendStateCreateInfo\">VkPipelineColorBlendStateCreateInfo</a> structure",
           "page": "vkspec"
         },
         {
@@ -15653,7 +15658,7 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-dynamicPrimitiveTopologyUnrestricted-09031",
-          "text": "If the pipeline requires <a href=\"#pipelines-graphics-subsets-vertex-input\">vertex input state</a>, and the <code><a href=\"#VK_EXT_extended_dynamic_state3\">VK_EXT_extended_dynamic_state3</a></code> extension is not enabled, or either <code>VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE</code>, or <code>VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY</code> dynamic states are not set, or <a href=\"#limits-dynamicPrimitiveTopologyUnrestricted\"><code>dynamicPrimitiveTopologyUnrestricted</code></a> is <code>VK_FALSE</code>, <code>pInputAssemblyState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineInputAssemblyStateCreateInfo\">VkPipelineInputAssemblyStateCreateInfo</a> structure",
+          "text": "If the pipeline requires <a href=\"#pipelines-graphics-subsets-vertex-input\">vertex input state</a>, and <a href=\"#pipelines-pInputAssemblyState-null\">related dynamic state is not set</a>, <code>pInputAssemblyState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineInputAssemblyStateCreateInfo\">VkPipelineInputAssemblyStateCreateInfo</a> structure",
           "page": "vkspec"
         },
         {
@@ -16218,12 +16223,12 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-pRasterizationState-06601",
-          "text": "If the pipeline requires <a href=\"#pipelines-graphics-subsets-pre-rasterization\">pre-rasterization shader state</a>, and the <code><a href=\"#VK_EXT_extended_dynamic_state3\">VK_EXT_extended_dynamic_state3</a></code> extension is not enabled or any of the <code>VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT</code>, <code>VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE</code>, or <code>VK_DYNAMIC_STATE_POLYGON_MODE_EXT</code>, or <code>VK_DYNAMIC_STATE_CULL_MODE</code>, or <code>VK_DYNAMIC_STATE_FRONT_FACE</code>, or <code>VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE</code>, or <code>VK_DYNAMIC_STATE_DEPTH_BIAS</code>, or <code>VK_DYNAMIC_STATE_LINE_WIDTH</code> dynamic states is not set, <code>pRasterizationState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineMultisampleStateCreateInfo\">VkPipelineMultisampleStateCreateInfo</a> structure",
+          "text": "If the pipeline requires <a href=\"#pipelines-graphics-subsets-pre-rasterization\">pre-rasterization shader state</a>, and <a href=\"#pipelines-pRasterizationState-null\">related dynamic state is not set</a>, <code>pRasterizationState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineRasterizationStateCreateInfo\">VkPipelineRasterizationStateCreateInfo</a> structure",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-pRasterizationState-09039",
-          "text": "If <a href=\"#VkGraphicsPipelineLibraryCreateInfoEXT\">VkGraphicsPipelineLibraryCreateInfoEXT</a>::<code>flags</code> includes <code>VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT</code>, and the <code><a href=\"#VK_EXT_extended_dynamic_state3\">VK_EXT_extended_dynamic_state3</a></code> extension is not enabled, or any of the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code>, <code>VK_DYNAMIC_STATE_SAMPLE_MASK_EXT</code>, or <code>VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT</code> dynamic states are not set, or <a href=\"#features-alphaToOne\">alphaToOne</a> is enabled on the device and <code>VK_DYNAMIC_STATE_ALPHA_TO_ONE_ENABLE_EXT</code> is not set, then <code>pMultisampleState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineMultisampleStateCreateInfo\">VkPipelineMultisampleStateCreateInfo</a> structure",
+          "text": "If <a href=\"#VkGraphicsPipelineLibraryCreateInfoEXT\">VkGraphicsPipelineLibraryCreateInfoEXT</a>::<code>flags</code> includes <code>VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT</code>, and <a href=\"#pipelines-pMultisampleState-null\">related dynamic state is not set</a>, then <code>pMultisampleState</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkPipelineMultisampleStateCreateInfo\">VkPipelineMultisampleStateCreateInfo</a> structure",
           "page": "vkspec"
         },
         {
@@ -31364,8 +31369,8 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdSetRenderingInputAttachmentIndicesKHR-pLocationInfo-parameter",
-          "text": "<code>pLocationInfo</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a> structure",
+          "vuid": "VUID-vkCmdSetRenderingInputAttachmentIndicesKHR-pInputAttachmentIndexInfo-parameter",
+          "text": "<code>pInputAttachmentIndexInfo</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkRenderingInputAttachmentIndexInfoKHR\">VkRenderingInputAttachmentIndexInfoKHR</a> structure",
           "page": "vkspec"
         },
         {
@@ -35495,6 +35500,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdClearColorImage-image-09678",
+          "text": "If <code>image</code>&#8217;s format has components other than R and G, it <strong class=\"purple\">must</strong> not have a 64-bit component width",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdClearColorImage-commandBuffer-parameter",
           "text": "<code>commandBuffer</code> <strong class=\"purple\">must</strong> be a valid <a href=\"#VkCommandBuffer\">VkCommandBuffer</a> handle",
           "page": "vkspec"
@@ -35755,6 +35765,11 @@
         {
           "vuid": "VUID-vkCmdClearAttachments-aspectMask-09298",
           "text": "If the subpass this is recorded in performs an external format resolve, the <code>aspectMask</code> member of any element of <code>pAttachments</code> <strong class=\"purple\">must</strong> not include <code>VK_IMAGE_ASPECT_PLANE<em>_i_</em>BIT</code> for any index <em>i</em>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdClearAttachments-None-09679",
+          "text": "If the attachment format has components other than R and G, it <strong class=\"purple\">must</strong> not have a 64-bit component width",
           "page": "vkspec"
         },
         {
@@ -103706,7 +103721,7 @@
         },
         {
           "vuid": "VUID-RuntimeSpirv-OpTypeImage-09644",
-          "text": "Any variable created with a &#8220;Type&#8221; of <code>OpTypeImage</code> that has a &#8220;Dim&#8221; operand of <code>SubpassData</code> and <code>Arrayed</code>=1 <strong class=\"purple\">must</strong> be decorated with <code>InputAttachmentIndex</code>",
+          "text": "Any variable declared as an <code>OpTypeArray</code> where the <code>Element</code> <code>Type</code> is an <code>OpTypeImage</code> with a &#8220;Dim&#8221; operand of <code>SubpassData</code> <strong class=\"purple\">must</strong> be decorated with <code>InputAttachmentIndex</code>",
           "page": "vkspec"
         },
         {
@@ -104616,7 +104631,7 @@
         },
         {
           "vuid": "VUID-RuntimeSpirv-SubgroupUniformControlFlowKHR-06379",
-          "text": "The <code>Execution</code> <code>Mode</code> <code>SubgroupUniformControlFlowKHR</code> <strong class=\"purple\">must</strong> not be applied to an entry point unless <a href=\"#features-shaderSubgroupUniformControlFlow\"><code>shaderSubgroupUniformControlFlow</code></a> is enabled and the corresponding shader stage bit is set in subgroup <a href=\"#limits-subgroup-supportedStages\"><code>supportedStages</code></a> and the entry point does not execute any <a href=\"#ray-tracing-repack\"><em>invocation repack instructions</em></a>",
+          "text": "The <code>Execution</code> <code>Mode</code> <code>SubgroupUniformControlFlowKHR</code> <strong class=\"purple\">must</strong> not be applied to an entry point unless <a href=\"#features-shaderSubgroupUniformControlFlow\"><code>shaderSubgroupUniformControlFlow</code></a> is enabled, the corresponding shader stage bit is set in <a href=\"#limits-subgroupSupportedStages\"><code>subgroupSupportedStages</code></a>, and the entry point does not execute any <a href=\"#ray-tracing-repack\"><em>invocation repack instructions</em></a>",
           "page": "vkspec"
         },
         {
