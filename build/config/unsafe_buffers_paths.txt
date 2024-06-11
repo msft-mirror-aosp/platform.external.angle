@@ -66,8 +66,6 @@
 -codelabs/
 -components/
 +components/discardable_memory
--content/
-+content/browser/renderer_host
 -courgette/
 -crypto/
 -data/
@@ -105,6 +103,7 @@
 -third_party/
 -tools/
 -ui/
++ui/views/
 -url/
 -v8/
 -webkit/
