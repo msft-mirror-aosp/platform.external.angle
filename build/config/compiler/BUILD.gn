@@ -524,6 +524,13 @@ config("compiler") {
     # but for now it looks like our build might rely on it
     # (https://crbug.com/829795).
     cflags += [ "-fmerge-all-constants" ]
+
+    # TODO(crbug.com/345541122): investigate the fuchsia binary size increase.
+    if (is_win) {
+      cflags += [ "/Zc:sizedDealloc-" ]
+    } else {
+      cflags += [ "-fno-sized-deallocation" ]
+    }
   }
 
   if (use_lld) {
@@ -646,6 +653,12 @@ config("compiler") {
       cflags_cc += [ "/std:c++17" ]
     } else {
       cflags_cc += [ "/std:c++20" ]
+    }
+    if (!is_clang) {
+      # Required for the __cplusplus macro definition to match the C++ version
+      # on MSVC. clang-cl defines it by default and doesn't need this flag.
+      # See: https://learn.microsoft.com/en-us/cpp/build/reference/zc-cplusplus
+      cflags_cc += [ "/Zc:__cplusplus" ]
     }
   } else if (!is_nacl) {
     # TODO(mcgrathr) - the NaCl GCC toolchain doesn't support either
@@ -1066,6 +1079,16 @@ config("compiler") {
   # performance penalty but are considered a bare minimum for security.
   if (use_safe_libstdcxx) {
     defines += [ "_GLIBCXX_ASSERTIONS=1" ]
+  }
+
+  # 64-bit Android sometimes defines __ARM_NEON but not __ARM_NEON__.
+  # 32-bit Android builds and macOS, however, define __ARM_NEON__,
+  # and code typically checks for this.
+  #
+  # Reduce confusion by making the __ARM_NEON__ #define always available,
+  # as NEON is a mandatory part of ARMv8 anyway.
+  if (current_cpu == "arm64") {
+    defines += [ "__ARM_NEON__=1" ]
   }
 }
 
@@ -1900,6 +1923,11 @@ config("default_warnings") {
           # TODO(crbug.com/41486292): Fix and re-enable.
           "-Wno-c++11-narrowing-const-reference",
         ]
+
+        if (llvm_force_head_revision) {
+          # TODO(crbug.com/344680447): Fix and re-enable.
+          cflags_cc += [ "-Wno-missing-template-arg-list-after-template-kw" ]
+        }
       }
     }
 

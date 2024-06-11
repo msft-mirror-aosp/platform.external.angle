@@ -56,7 +56,7 @@ extern "C" __declspec( dllimport ) FARPROC __stdcall GetProcAddress( HINSTANCE h
 #  include <span>
 #endif
 
-static_assert( VK_HEADER_VERSION == 285, "Wrong VK_HEADER_VERSION!" );
+static_assert( VK_HEADER_VERSION == 287, "Wrong VK_HEADER_VERSION!" );
 
 // <tuple> includes <sys/sysmacros.h> through some other header
 // this results in major(x) being resolved to gnu_dev_major(x)
@@ -146,66 +146,72 @@ namespace VULKAN_HPP_NAMESPACE
     }
 #endif
 
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    template <typename B = T, typename std::enable_if<std::is_same<B, char>::value, int>::type = 0>
-    std::strong_ordering operator<=>( ArrayWrapper1D<char, N> const & rhs ) const VULKAN_HPP_NOEXCEPT
-    {
-      return *static_cast<std::array<char, N> const *>( this ) <=> *static_cast<std::array<char, N> const *>( &rhs );
-    }
-#else
-    template <typename B = T, typename std::enable_if<std::is_same<B, char>::value, int>::type = 0>
-    bool operator<( ArrayWrapper1D<char, N> const & rhs ) const VULKAN_HPP_NOEXCEPT
-    {
-      return *static_cast<std::array<char, N> const *>( this ) < *static_cast<std::array<char, N> const *>( &rhs );
-    }
-
-    template <typename B = T, typename std::enable_if<std::is_same<B, char>::value, int>::type = 0>
-    bool operator<=( ArrayWrapper1D<char, N> const & rhs ) const VULKAN_HPP_NOEXCEPT
-    {
-      return *static_cast<std::array<char, N> const *>( this ) <= *static_cast<std::array<char, N> const *>( &rhs );
-    }
-
-    template <typename B = T, typename std::enable_if<std::is_same<B, char>::value, int>::type = 0>
-    bool operator>( ArrayWrapper1D<char, N> const & rhs ) const VULKAN_HPP_NOEXCEPT
-    {
-      return *static_cast<std::array<char, N> const *>( this ) > *static_cast<std::array<char, N> const *>( &rhs );
-    }
-
-    template <typename B = T, typename std::enable_if<std::is_same<B, char>::value, int>::type = 0>
-    bool operator>=( ArrayWrapper1D<char, N> const & rhs ) const VULKAN_HPP_NOEXCEPT
-    {
-      return *static_cast<std::array<char, N> const *>( this ) >= *static_cast<std::array<char, N> const *>( &rhs );
-    }
-#endif
-
-    template <typename B = T, typename std::enable_if<std::is_same<B, char>::value, int>::type = 0>
-    bool operator==( ArrayWrapper1D<char, N> const & rhs ) const VULKAN_HPP_NOEXCEPT
-    {
-      return *static_cast<std::array<char, N> const *>( this ) == *static_cast<std::array<char, N> const *>( &rhs );
-    }
-
-    template <typename B = T, typename std::enable_if<std::is_same<B, char>::value, int>::type = 0>
-    bool operator!=( ArrayWrapper1D<char, N> const & rhs ) const VULKAN_HPP_NOEXCEPT
-    {
-      return *static_cast<std::array<char, N> const *>( this ) != *static_cast<std::array<char, N> const *>( &rhs );
-    }
-
   private:
     VULKAN_HPP_CONSTEXPR_14 void copy( char const * data, size_t len ) VULKAN_HPP_NOEXCEPT
     {
-      size_t n = std::min( N, len );
+      size_t n = std::min( N - 1, len );
       for ( size_t i = 0; i < n; ++i )
       {
         ( *this )[i] = data[i];
       }
-      for ( size_t i = n; i < N; ++i )
-      {
-        ( *this )[i] = 0;
-      }
+      ( *this )[n] = 0;
     }
   };
 
-  // specialization of relational operators between std::string and arrays of chars
+// relational operators between ArrayWrapper1D of chars with potentially different sizes
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+  template <size_t N, size_t M>
+  std::strong_ordering operator<=>( ArrayWrapper1D<char, N> const & lhs, ArrayWrapper1D<char, M> const & rhs ) VULKAN_HPP_NOEXCEPT
+  {
+    int result = strcmp( lhs.data(), rhs.data() );
+    return ( result < 0 ) ? std::strong_ordering::less : ( ( result > 0 ) ? std::strong_ordering::greater : std::strong_ordering::equal );
+  }
+#else
+  template <size_t N, size_t M>
+  bool operator<( ArrayWrapper1D<char, N> const & lhs, ArrayWrapper1D<char, M> const & rhs ) VULKAN_HPP_NOEXCEPT
+  {
+    return strcmp( lhs.data(), rhs.data() ) < 0;
+  }
+
+  template <size_t N, size_t M>
+  bool operator<=( ArrayWrapper1D<char, N> const & lhs, ArrayWrapper1D<char, M> const & rhs ) VULKAN_HPP_NOEXCEPT
+  {
+    return strcmp( lhs.data(), rhs.data() ) <= 0;
+  }
+
+  template <size_t N, size_t M>
+  bool operator>( ArrayWrapper1D<char, N> const & lhs, ArrayWrapper1D<char, M> const & rhs ) VULKAN_HPP_NOEXCEPT
+  {
+    return strcmp( lhs.data(), rhs.data() ) > 0;
+  }
+
+  template <size_t N, size_t M>
+  bool operator>=( ArrayWrapper1D<char, N> const & lhs, ArrayWrapper1D<char, M> const & rhs ) VULKAN_HPP_NOEXCEPT
+  {
+    return strcmp( lhs.data(), rhs.data() ) >= 0;
+  }
+#endif
+
+  template <size_t N, size_t M>
+  bool operator==( ArrayWrapper1D<char, N> const & lhs, ArrayWrapper1D<char, M> const & rhs ) VULKAN_HPP_NOEXCEPT
+  {
+    return strcmp( lhs.data(), rhs.data() ) == 0;
+  }
+
+  template <size_t N, size_t M>
+  bool operator!=( ArrayWrapper1D<char, N> const & lhs, ArrayWrapper1D<char, M> const & rhs ) VULKAN_HPP_NOEXCEPT
+  {
+    return strcmp( lhs.data(), rhs.data() ) != 0;
+  }
+
+// specialization of relational operators between std::string and arrays of chars
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+  template <size_t N>
+  std::strong_ordering operator<=>( std::string const & lhs, ArrayWrapper1D<char, N> const & rhs ) VULKAN_HPP_NOEXCEPT
+  {
+    return lhs <=> rhs.data();
+  }
+#else
   template <size_t N>
   bool operator<( std::string const & lhs, ArrayWrapper1D<char, N> const & rhs ) VULKAN_HPP_NOEXCEPT
   {
@@ -229,6 +235,7 @@ namespace VULKAN_HPP_NAMESPACE
   {
     return lhs >= rhs.data();
   }
+#endif
 
   template <size_t N>
   bool operator==( std::string const & lhs, ArrayWrapper1D<char, N> const & rhs ) VULKAN_HPP_NOEXCEPT
@@ -4395,9 +4402,9 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     void vkCmdSetRenderingInputAttachmentIndicesKHR( VkCommandBuffer                                commandBuffer,
-                                                     const VkRenderingInputAttachmentIndexInfoKHR * pLocationInfo ) const VULKAN_HPP_NOEXCEPT
+                                                     const VkRenderingInputAttachmentIndexInfoKHR * pInputAttachmentIndexInfo ) const VULKAN_HPP_NOEXCEPT
     {
-      return ::vkCmdSetRenderingInputAttachmentIndicesKHR( commandBuffer, pLocationInfo );
+      return ::vkCmdSetRenderingInputAttachmentIndicesKHR( commandBuffer, pInputAttachmentIndexInfo );
     }
 
     //=== VK_EXT_buffer_device_address ===
@@ -8684,6 +8691,10 @@ namespace VULKAN_HPP_NAMESPACE
   VULKAN_HPP_CONSTEXPR_INLINE auto NVShaderAtomicFloat16VectorExtensionName = VK_NV_SHADER_ATOMIC_FLOAT16_VECTOR_EXTENSION_NAME;
   VULKAN_HPP_CONSTEXPR_INLINE auto NVShaderAtomicFloat16VectorSpecVersion   = VK_NV_SHADER_ATOMIC_FLOAT16_VECTOR_SPEC_VERSION;
 
+  //=== VK_EXT_shader_replicated_composites ===
+  VULKAN_HPP_CONSTEXPR_INLINE auto EXTShaderReplicatedCompositesExtensionName = VK_EXT_SHADER_REPLICATED_COMPOSITES_EXTENSION_NAME;
+  VULKAN_HPP_CONSTEXPR_INLINE auto EXTShaderReplicatedCompositesSpecVersion   = VK_EXT_SHADER_REPLICATED_COMPOSITES_SPEC_VERSION;
+
   //=== VK_NV_ray_tracing_validation ===
   VULKAN_HPP_CONSTEXPR_INLINE auto NVRayTracingValidationExtensionName = VK_NV_RAY_TRACING_VALIDATION_EXTENSION_NAME;
   VULKAN_HPP_CONSTEXPR_INLINE auto NVRayTracingValidationSpecVersion   = VK_NV_RAY_TRACING_VALIDATION_SPEC_VERSION;
@@ -12550,6 +12561,24 @@ namespace VULKAN_HPP_NAMESPACE
   //=== VK_EXT_validation_features ===
   template <>
   struct StructExtends<ValidationFeaturesEXT, InstanceCreateInfo>
+  {
+    enum
+    {
+      value = true
+    };
+  };
+
+  template <>
+  struct StructExtends<ValidationFeaturesEXT, ShaderModuleCreateInfo>
+  {
+    enum
+    {
+      value = true
+    };
+  };
+
+  template <>
+  struct StructExtends<ValidationFeaturesEXT, ShaderCreateInfoEXT>
   {
     enum
     {
@@ -16682,6 +16711,25 @@ namespace VULKAN_HPP_NAMESPACE
 
   template <>
   struct StructExtends<PhysicalDeviceShaderAtomicFloat16VectorFeaturesNV, DeviceCreateInfo>
+  {
+    enum
+    {
+      value = true
+    };
+  };
+
+  //=== VK_EXT_shader_replicated_composites ===
+  template <>
+  struct StructExtends<PhysicalDeviceShaderReplicatedCompositesFeaturesEXT, PhysicalDeviceFeatures2>
+  {
+    enum
+    {
+      value = true
+    };
+  };
+
+  template <>
+  struct StructExtends<PhysicalDeviceShaderReplicatedCompositesFeaturesEXT, DeviceCreateInfo>
   {
     enum
     {
