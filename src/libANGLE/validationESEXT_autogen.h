@@ -2486,6 +2486,8 @@ bool ValidateProgramBinaryOES(const Context *context,
                               const void *binary,
                               GLint length);
 
+// GL_OES_gpu_shader5
+
 // GL_OES_mapbuffer
 bool ValidateGetBufferPointervOES(const Context *context,
                                   angle::EntryPoint entryPoint,
@@ -2568,6 +2570,13 @@ bool ValidateMinSampleShadingOES(const PrivateState &state,
 // GL_OES_standard_derivatives
 
 // GL_OES_surfaceless_context
+
+// GL_OES_tessellation_shader
+bool ValidatePatchParameteriOES(const PrivateState &state,
+                                ErrorSet *errors,
+                                angle::EntryPoint entryPoint,
+                                GLenum pname,
+                                GLint value);
 
 // GL_OES_texture_3D
 bool ValidateCompressedTexImage3DOES(const Context *context,

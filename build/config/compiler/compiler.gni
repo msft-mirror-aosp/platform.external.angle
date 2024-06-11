@@ -253,6 +253,21 @@ if (strip_absolute_paths_from_debug_symbols_default) {
   }
 }
 
+# When absolute_paths in debug symbols, we need to use input root
+# absolute path to execute remotely in RBE.
+clang_need_input_root_absolute_path = !strip_absolute_paths_from_debug_symbols
+
+if (clang_need_input_root_absolute_path) {
+  if (use_remoteexec) {
+    assert(
+        use_siso,
+        "need 'use_siso=true' for clang_need_input_root_absolute_path https://crbug.com/344607450")
+  }
+  compiler_logs = [ "clang_need_input_root_absolute_path=true" ]
+} else {
+  compiler_logs = [ "clang_need_input_root_absolute_path=false" ]
+}
+
 # If it wasn't manually set, set to an appropriate default.
 assert(symbol_level >= -1 && symbol_level <= 2, "Invalid symbol_level")
 if (symbol_level == -1) {

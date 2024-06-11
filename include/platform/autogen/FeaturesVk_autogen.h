@@ -1350,6 +1350,14 @@ struct FeaturesVk : FeatureSetBase
         &members, "http://anglebug.com/8658"
     };
 
+    FeatureInfo limitMaxStorageBufferSize = {
+        "limitMaxStorageBufferSize",
+        FeatureCategory::VulkanWorkarounds,
+        "On some drivers, a storage buffer max size limit is exposed that is incompatible with "
+        "older hardware",
+        &members, "http://anglebug.com/345244067"
+    };
+
     FeatureInfo clDumpVkSpirv = {
         "clDumpVkSpirv",
         FeatureCategory::VulkanFeatures,
@@ -1441,6 +1449,27 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanFeatures,
         "VkDevice supports VK_KHR_synchronization2 extension",
         &members, "https://issuetracker.google.com/336844257"
+    };
+
+    FeatureInfo supportsDynamicRendering = {
+        "supportsDynamicRendering",
+        FeatureCategory::VulkanFeatures,
+        "VkDevice supports VK_KHR_dynamic_rendering extension",
+        &members, "http://anglebug.com/42267038"
+    };
+
+    FeatureInfo supportsDynamicRenderingLocalRead = {
+        "supportsDynamicRenderingLocalRead",
+        FeatureCategory::VulkanFeatures,
+        "VkDevice supports VK_KHR_dynamic_rendering_local_read extension",
+        &members, "http://anglebug.com/42267038"
+    };
+
+    FeatureInfo preferDynamicRendering = {
+        "preferDynamicRendering",
+        FeatureCategory::VulkanFeatures,
+        "Whether dynamic rendering should be used instead of render pass objects",
+        &members, "http://anglebug.com/42267038"
     };
 
 };

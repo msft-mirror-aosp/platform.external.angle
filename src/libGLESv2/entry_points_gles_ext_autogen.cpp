@@ -1485,12 +1485,9 @@ void GL_APIENTRY GL_PolygonModeANGLE(GLenum face, GLenum mode)
         PolygonMode modePacked = PackParam<PolygonMode>(mode);
         bool isCallValid =
             (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
-                                                context->getMutableErrorSetForValidation(),
-                                                angle::EntryPoint::GLPolygonModeANGLE) &&
-              ValidatePolygonModeANGLE(context->getPrivateState(),
-                                       context->getMutableErrorSetForValidation(),
-                                       angle::EntryPoint::GLPolygonModeANGLE, face, modePacked)));
+             ValidatePolygonModeANGLE(context->getPrivateState(),
+                                      context->getMutableErrorSetForValidation(),
+                                      angle::EntryPoint::GLPolygonModeANGLE, face, modePacked));
         if (isCallValid)
         {
             ContextPrivatePolygonMode(context->getMutablePrivateState(),
@@ -10822,12 +10819,9 @@ void GL_APIENTRY GL_PolygonModeNV(GLenum face, GLenum mode)
         PolygonMode modePacked = PackParam<PolygonMode>(mode);
         bool isCallValid =
             (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
-                                                context->getMutableErrorSetForValidation(),
-                                                angle::EntryPoint::GLPolygonModeNV) &&
-              ValidatePolygonModeNV(context->getPrivateState(),
-                                    context->getMutableErrorSetForValidation(),
-                                    angle::EntryPoint::GLPolygonModeNV, face, modePacked)));
+             ValidatePolygonModeNV(context->getPrivateState(),
+                                   context->getMutableErrorSetForValidation(),
+                                   angle::EntryPoint::GLPolygonModeNV, face, modePacked));
         if (isCallValid)
         {
             ContextPrivatePolygonModeNV(context->getMutablePrivateState(),
@@ -12118,6 +12112,8 @@ void GL_APIENTRY GL_ProgramBinaryOES(GLuint program,
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
 }
 
+// GL_OES_gpu_shader5
+
 // GL_OES_mapbuffer
 void GL_APIENTRY GL_GetBufferPointervOES(GLenum target, GLenum pname, void **params)
 {
@@ -12482,6 +12478,37 @@ void GL_APIENTRY GL_MinSampleShadingOES(GLfloat value)
 // GL_OES_standard_derivatives
 
 // GL_OES_surfaceless_context
+
+// GL_OES_tessellation_shader
+void GL_APIENTRY GL_PatchParameteriOES(GLenum pname, GLint value)
+{
+    Context *context = GetValidGlobalContext();
+    EVENT(context, GLPatchParameteriOES, "context = %d, pname = %s, value = %d", CID(context),
+          GLenumToString(GLESEnum::PatchParameterName, pname), value);
+
+    if (context)
+    {
+        bool isCallValid =
+            (context->skipValidation() ||
+             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
+                                                context->getMutableErrorSetForValidation(),
+                                                angle::EntryPoint::GLPatchParameteriOES) &&
+              ValidatePatchParameteriOES(context->getPrivateState(),
+                                         context->getMutableErrorSetForValidation(),
+                                         angle::EntryPoint::GLPatchParameteriOES, pname, value)));
+        if (isCallValid)
+        {
+            ContextPrivatePatchParameteri(context->getMutablePrivateState(),
+                                          context->getMutablePrivateStateCache(), pname, value);
+        }
+        ANGLE_CAPTURE_GL(PatchParameteriOES, isCallValid, context, pname, value);
+    }
+    else
+    {
+        GenerateContextLostErrorOnCurrentGlobalContext();
+    }
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
+}
 
 // GL_OES_texture_3D
 void GL_APIENTRY GL_CompressedTexImage3DOES(GLenum target,
