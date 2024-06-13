@@ -1505,8 +1505,7 @@ angle::Result ContextVk::flush(const gl::Context *context)
     const bool frontBufferRenderingEnabled =
         isSingleBufferedWindow || drawFramebufferVk->hasFrontBufferUsage();
 
-    if (mRenderer->getFeatures().deferFlushUntilEndRenderPass.enabled && hasActiveRenderPass() &&
-        !frontBufferRenderingEnabled)
+    if (hasActiveRenderPass() && !frontBufferRenderingEnabled)
     {
         mHasDeferredFlush = true;
         return angle::Result::Continue;
@@ -5444,6 +5443,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                 mGraphicsPipelineDesc->updateBlendEnabled(
                     &mGraphicsPipelineTransition, glState.getBlendStateExt().getEnabledMask());
                 updateDither();
+                updateAdvancedBlendEquations(programExecutable);
                 break;
             case gl::state::DIRTY_BIT_BLEND_COLOR:
                 mGraphicsDirtyBits.set(DIRTY_BIT_DYNAMIC_BLEND_CONSTANTS);
@@ -6988,7 +6988,7 @@ angle::Result ContextVk::handleDirtyGraphicsDriverUniforms(DirtyBits::Iterator *
     const uint32_t numSamples  = drawFramebufferVk->getSamples();
 
     uint32_t advancedBlendEquation = 0;
-    if (getFeatures().emulateAdvancedBlendEquations.enabled)
+    if (getFeatures().emulateAdvancedBlendEquations.enabled && mState.isBlendEnabled())
     {
         // Pass the advanced blend equation to shader as-is.  If the equation is not one of the
         // advanced ones, 0 is expected.
@@ -8129,7 +8129,7 @@ angle::Result ContextVk::onSyncObjectInit(vk::SyncHelper *syncHelper, SyncFenceS
     // cause a submission in this context if another context wants to wait on the fence while the
     // original context never issued a submission naturally.  Note that this also takes care of
     // contexts that think they issued a submission (through glFlush) but that the submission got
-    // deferred (due to the deferFlushUntilEndRenderPass feature).
+    // deferred.
     mHasDeferredFlush = true;
 
     return angle::Result::Continue;
