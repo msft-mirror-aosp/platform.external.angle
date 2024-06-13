@@ -511,13 +511,6 @@ struct FeaturesVk : FeatureSetBase
         &members, "http://anglebug.com/4937"
     };
 
-    FeatureInfo deferFlushUntilEndRenderPass = {
-        "deferFlushUntilEndRenderPass",
-        FeatureCategory::VulkanWorkarounds,
-        "Allow glFlush to be deferred until renderpass ends",
-        &members, "https://issuetracker.google.com/issues/166475273"
-    };
-
     FeatureInfo waitIdleBeforeSwapchainRecreation = {
         "waitIdleBeforeSwapchainRecreation",
         FeatureCategory::VulkanWorkarounds,
@@ -1449,6 +1442,27 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanFeatures,
         "VkDevice supports VK_KHR_synchronization2 extension",
         &members, "https://issuetracker.google.com/336844257"
+    };
+
+    FeatureInfo supportsDynamicRendering = {
+        "supportsDynamicRendering",
+        FeatureCategory::VulkanFeatures,
+        "VkDevice supports VK_KHR_dynamic_rendering extension",
+        &members, "http://anglebug.com/42267038"
+    };
+
+    FeatureInfo supportsDynamicRenderingLocalRead = {
+        "supportsDynamicRenderingLocalRead",
+        FeatureCategory::VulkanFeatures,
+        "VkDevice supports VK_KHR_dynamic_rendering_local_read extension",
+        &members, "http://anglebug.com/42267038"
+    };
+
+    FeatureInfo preferDynamicRendering = {
+        "preferDynamicRendering",
+        FeatureCategory::VulkanFeatures,
+        "Whether dynamic rendering should be used instead of render pass objects",
+        &members, "http://anglebug.com/42267038"
     };
 
 };

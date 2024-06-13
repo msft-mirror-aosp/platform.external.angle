@@ -272,6 +272,8 @@ constexpr const char *kSkippedMessages[] = {
     // https://issuetracker.google.com/336847261
     "VUID-VkImageCreateInfo-pNext-02397",
     "VUID-vkCmdDraw-None-06550",
+    // https://anglebug.com/345304850
+    "WARNING-Shader-OutputNotConsumed",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -2224,6 +2226,7 @@ angle::Result Renderer::initializeMemoryAllocator(vk::Context *context)
 //                                                     identicalMemoryTypeRequirements (property)
 // - VK_ANDROID_external_format_resolve:               externalFormatResolve (feature)
 // - VK_EXT_vertex_input_dynamic_state:                vertexInputDynamicState (feature)
+// - VK_KHR_dynamic_rendering_local_read:              dynamicRenderingLocalRead (feature)
 //
 void Renderer::appendDeviceExtensionFeaturesNotPromoted(
     const vk::ExtensionNameList &deviceExtensionNames,
@@ -2387,6 +2390,11 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
         vk::AddToPNextChain(deviceProperties, &mExternalFormatResolveProperties);
     }
 #endif
+
+    if (ExtensionFound(VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mDynamicRenderingLocalReadFeatures);
+    }
 }
 
 // The following features and properties used by ANGLE have been promoted to Vulkan 1.1:
@@ -2497,10 +2505,11 @@ void Renderer::appendDeviceExtensionFeaturesPromotedTo12(
 
 // The following features and properties used by ANGLE have been promoted to Vulkan 1.3:
 //
-// - VK_EXT_pipeline_creation_cache_control: pipelineCreationCacheControl (feature)
 // - VK_EXT_extended_dynamic_state:          extendedDynamicState (feature)
 // - VK_EXT_extended_dynamic_state2:         extendedDynamicState2 (feature),
 //                                           extendedDynamicState2LogicOp (feature)
+// - VK_KHR_synchronization2:                synchronization2 (feature)
+// - VK_KHR_dynamic_rendering:               dynamicRendering (feature)
 //
 // Note that VK_EXT_extended_dynamic_state2 is partially promoted to Vulkan 1.3.  If ANGLE creates a
 // Vulkan 1.3 device, it would still need to enable this extension separately for
@@ -2524,6 +2533,11 @@ void Renderer::appendDeviceExtensionFeaturesPromotedTo13(
     if (ExtensionFound(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mSynchronization2Features);
+    }
+
+    if (ExtensionFound(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mDynamicRenderingFeatures);
     }
 }
 
@@ -2649,6 +2663,14 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mVertexInputDynamicStateFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_INPUT_DYNAMIC_STATE_FEATURES_EXT;
 
+    mDynamicRenderingFeatures = {};
+    mDynamicRenderingFeatures.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+
+    mDynamicRenderingLocalReadFeatures = {};
+    mDynamicRenderingLocalReadFeatures.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
+
     mFragmentShadingRateFeatures = {};
     mFragmentShadingRateFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
@@ -2769,6 +2791,8 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mGraphicsPipelineLibraryFeatures.pNext                  = nullptr;
     mGraphicsPipelineLibraryProperties.pNext                = nullptr;
     mVertexInputDynamicStateFeatures.pNext                  = nullptr;
+    mDynamicRenderingFeatures.pNext                         = nullptr;
+    mDynamicRenderingLocalReadFeatures.pNext                = nullptr;
     mFragmentShadingRateFeatures.pNext                      = nullptr;
     mFragmentShaderInterlockFeatures.pNext                  = nullptr;
     mImagelessFramebufferFeatures.pNext                     = nullptr;
@@ -3085,6 +3109,18 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
         vk::AddToPNextChain(&mEnabledFeatures, &mVertexInputDynamicStateFeatures);
     }
 
+    if (getFeatures().supportsDynamicRendering.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mDynamicRenderingFeatures);
+    }
+
+    if (getFeatures().supportsDynamicRenderingLocalRead.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mDynamicRenderingLocalReadFeatures);
+    }
+
 #if defined(ANGLE_PLATFORM_WINDOWS)
     // We only need the VK_EXT_full_screen_exclusive extension if we are opting
     // out of it via VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT (i.e. working
@@ -3392,6 +3428,10 @@ void Renderer::initDeviceExtensionEntryPoints()
     {
         InitVertexInputDynamicStateEXTFunctions(mDevice);
     }
+    if (mFeatures.supportsDynamicRenderingLocalRead.enabled)
+    {
+        InitDynamicRenderingLocalReadFunctions(mDevice);
+    }
     // Extensions promoted to Vulkan 1.2
     {
         if (mFeatures.supportsHostQueryReset.enabled)
@@ -3412,6 +3452,10 @@ void Renderer::initDeviceExtensionEntryPoints()
         if (mFeatures.supportsExtendedDynamicState2.enabled)
         {
             InitExtendedDynamicState2EXTFunctions(mDevice);
+        }
+        if (mFeatures.supportsDynamicRendering.enabled)
+        {
+            InitDynamicRenderingFunctions(mDevice);
         }
     }
 #endif  // !defined(ANGLE_SHARED_LIBVULKAN)
@@ -3941,7 +3985,7 @@ gl::Version Renderer::getMaxConformantESVersion() const
 {
     const gl::Version maxSupportedESVersion = getMaxSupportedESVersion();
     const bool hasGeometryAndTessSupport =
-        getNativeExtensions().geometryShaderAny() && getNativeExtensions().tessellationShaderEXT;
+        getNativeExtensions().geometryShaderAny() && getNativeExtensions().tessellationShaderAny();
 
     if (!hasGeometryAndTessSupport || !mFeatures.exposeNonConformantExtensionsAndVersions.enabled)
     {
@@ -4603,10 +4647,6 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsPipelineStatisticsQuery,
                             mPhysicalDeviceFeatures.pipelineStatisticsQuery == VK_TRUE);
 
-    // Defer glFLush call causes manhattan 3.0 perf regression. Let Qualcomm driver opt out from
-    // this optimization.
-    ANGLE_FEATURE_CONDITION(&mFeatures, deferFlushUntilEndRenderPass, !isQualcommProprietary);
-
     // Android mistakenly destroys the old swapchain when creating a new one.
     ANGLE_FEATURE_CONDITION(&mFeatures, waitIdleBeforeSwapchainRecreation, IsAndroid() && isARM);
 
@@ -5112,6 +5152,15 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 #endif
 
     ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForImageBarrier, false);
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsDynamicRendering,
+                            mDynamicRenderingFeatures.dynamicRendering == VK_TRUE);
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsDynamicRenderingLocalRead,
+        mDynamicRenderingLocalReadFeatures.dynamicRenderingLocalRead == VK_TRUE);
+
+    // Dynamic rendering usage is not yet implemented.
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferDynamicRendering, false);
 
     // Disable memory report feature overrides if extension is not supported.
     if ((mFeatures.logMemoryReportCallbacks.enabled || mFeatures.logMemoryReportStats.enabled) &&
