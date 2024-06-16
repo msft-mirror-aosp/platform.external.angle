@@ -541,6 +541,7 @@ class GLSLTest_ES31 : public GLSLTest
 {
   protected:
     void testArrayOfArrayOfSamplerDynamicIndex(const APIExtensionVersion usedExtension);
+    void testTessellationTextureBufferAccess(const APIExtensionVersion usedExtension);
 };
 
 // Tests the "init output variables" ANGLE shader translator option.
@@ -7361,64 +7362,91 @@ TEST_P(GLSLTest_ES31, VaryingIOBlockDeclaredAsInAndOut)
     ASSERT_GL_NO_ERROR();
 }
 
-// Test that texture buffers can be accessed in a tessellation stage
-// Triggers a bug in the Vulkan backend: http://anglebug.com/7135
-TEST_P(GLSLTest_ES31, TessellationTextureBufferAccess)
+void GLSLTest_ES31::testTessellationTextureBufferAccess(const APIExtensionVersion usedExtension)
 {
-    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_tessellation_shader"));
-    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_texture_buffer"));
+    ASSERT(usedExtension == APIExtensionVersion::EXT || usedExtension == APIExtensionVersion::OES);
 
+    // Vertex shader
     constexpr char kVS[] = R"(#version 310 es
-    precision highp float;
-    in vec4 inputAttribute;
+precision highp float;
+in vec4 inputAttribute;
 
-    void main()
+void main()
+{
+gl_Position = inputAttribute;
+})";
+
+    // Tessellation shaders
+    constexpr char kGLSLVersion[] = R"(#version 310 es
+)";
+    constexpr char kTessEXT[]     = R"(#extension GL_EXT_tessellation_shader : require
+)";
+    constexpr char kTessOES[]     = R"(#extension GL_OES_tessellation_shader : require
+)";
+    constexpr char kTexBufEXT[]   = R"(#extension GL_EXT_texture_buffer : require
+)";
+    constexpr char kTexBufOES[]   = R"(#extension GL_OES_texture_buffer : require
+)";
+
+    std::string tcs;
+    std::string tes;
+
+    tcs.append(kGLSLVersion);
+    tes.append(kGLSLVersion);
+
+    if (usedExtension == APIExtensionVersion::EXT)
     {
-        gl_Position = inputAttribute;
-    })";
-
-    constexpr char kTCS[] = R"(#version 310 es
-    #extension GL_EXT_tessellation_shader : require
-    precision mediump float;
-    layout(vertices = 2) out;
-
-    void main()
+        tcs.append(kTessEXT);
+        tes.append(kTessEXT);
+        tes.append(kTexBufEXT);
+    }
+    else
     {
-        gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
-        gl_TessLevelInner[0] = 1.0;
-        gl_TessLevelInner[1] = 1.0;
-        gl_TessLevelOuter[0] = 1.0;
-        gl_TessLevelOuter[1] = 1.0;
-        gl_TessLevelOuter[2] = 1.0;
-        gl_TessLevelOuter[3] = 1.0;
-    })";
+        tcs.append(kTessOES);
+        tes.append(kTessOES);
+        tes.append(kTexBufOES);
+    }
 
-    constexpr char kTES[] = R"(#version 310 es
-    #extension GL_EXT_tessellation_shader : require
-    #extension GL_OES_texture_buffer : require
-    precision mediump float;
-    layout (isolines, point_mode) in;
+    constexpr char kTCSBody[] = R"(precision mediump float;
+layout(vertices = 2) out;
 
-    uniform highp samplerBuffer tex;
+void main()
+{
+gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+gl_TessLevelInner[0] = 1.0;
+gl_TessLevelInner[1] = 1.0;
+gl_TessLevelOuter[0] = 1.0;
+gl_TessLevelOuter[1] = 1.0;
+gl_TessLevelOuter[2] = 1.0;
+gl_TessLevelOuter[3] = 1.0;
+})";
+    tcs.append(kTCSBody);
 
-    out vec4 tex_color;
+    constexpr char kTESBody[] = R"(precision mediump float;
+layout (isolines, point_mode) in;
 
-    void main()
-    {
-        tex_color = texelFetch(tex, 0);
-        gl_Position = gl_in[0].gl_Position;
-    })";
+uniform highp samplerBuffer tex;
 
+out vec4 tex_color;
+
+void main()
+{
+tex_color = texelFetch(tex, 0);
+gl_Position = gl_in[0].gl_Position;
+})";
+    tes.append(kTESBody);
+
+    // Fragment shader
     constexpr char kFS[] = R"(#version 310 es
-    precision mediump float;
-    layout(location = 0) out mediump vec4 color;
+precision mediump float;
+layout(location = 0) out mediump vec4 color;
 
-    in vec4 tex_color;
+in vec4 tex_color;
 
-    void main()
-    {
-        color = tex_color;
-    })";
+void main()
+{
+color = tex_color;
+})";
 
     constexpr GLint kBufferSize = 32;
     GLubyte texData[]           = {0u, 255u, 0u, 255u};
@@ -7435,9 +7463,25 @@ TEST_P(GLSLTest_ES31, TessellationTextureBufferAccess)
     glClearColor(1.0, 0, 0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    ANGLE_GL_PROGRAM_WITH_TESS(program, kVS, kTCS, kTES, kFS);
+    ANGLE_GL_PROGRAM_WITH_TESS(program, kVS, tcs.c_str(), tes.c_str(), kFS);
     drawPatches(program, "inputAttribute", 0.5f, 1.0f, GL_FALSE);
     ASSERT_GL_NO_ERROR();
+}
+
+// Test that texture buffers can be accessed in a tessellation stage (using EXT)
+TEST_P(GLSLTest_ES31, TessellationTextureBufferAccessEXT)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_tessellation_shader"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_texture_buffer"));
+    testTessellationTextureBufferAccess(APIExtensionVersion::EXT);
+}
+
+// Test that texture buffers can be accessed in a tessellation stage (using OES)
+TEST_P(GLSLTest_ES31, TessellationTextureBufferAccessOES)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_tessellation_shader"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_OES_texture_buffer"));
+    testTessellationTextureBufferAccess(APIExtensionVersion::OES);
 }
 
 // Test that a varying struct that's not declared in the fragment shader links successfully.
@@ -9047,6 +9091,42 @@ void main()
 
     ANGLE_GL_PROGRAM(program, kVS, kFS);
     drawQuad(program, "inputAttribute", 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+// Test that multi variables struct should not crash in separated struct expressions.
+TEST_P(GLSLTest_ES3, VaryingStructWithInlineDefinition2)
+{
+    constexpr char kVS[] = R"(#version 300 es
+in vec4 inputAttribute;
+flat out struct A
+{
+    int a;
+} z1, z2;
+void main()
+{
+    z1.a = 1;
+    z2.a = 2;
+    gl_Position = inputAttribute;
+})";
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+flat in struct A
+{
+    int a;
+} z1, z2;
+void main()
+{
+    bool success = (z1.a == 1 && z2.a == 2);
+    my_FragColor = vec4(1, 0, 0, 1);
+    if (success)
+    {
+        my_FragColor = vec4(0, 1, 0, 1);
+    }
+})";
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+    drawQuad(program.get(), "inputAttribute", 0.5f);
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
 }
 
@@ -19609,6 +19689,7 @@ void main()
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(
     GLSLTest,
+    ES3_OPENGL().enable(Feature::ForceInitShaderVariables),
     ES3_OPENGL().enable(Feature::ScalarizeVecAndMatConstructorArgs),
     ES3_OPENGLES().enable(Feature::ScalarizeVecAndMatConstructorArgs),
     ES3_VULKAN().enable(Feature::AvoidOpSelectWithMismatchingRelaxedPrecision),
@@ -19620,6 +19701,7 @@ ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(GLSLTestNoValidation);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLTest_ES3);
 ANGLE_INSTANTIATE_TEST_ES3_AND(
     GLSLTest_ES3,
+    ES3_OPENGL().enable(Feature::ForceInitShaderVariables),
     ES3_OPENGL().enable(Feature::ScalarizeVecAndMatConstructorArgs),
     ES3_OPENGLES().enable(Feature::ScalarizeVecAndMatConstructorArgs),
     ES3_VULKAN().enable(Feature::AvoidOpSelectWithMismatchingRelaxedPrecision),
