@@ -826,11 +826,17 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
 {
     ContextVk *contextVk = vk::GetImpl(context);
 
-    // When possible flush out updates immediately.
-    vk::ApplyImageUpdate applyUpdate = vk::ApplyImageUpdate::Defer;
-    if (!mOwnsImage || mState.getImmutableFormat() ||
-        shouldUpdateBeFlushed(gl::LevelIndex(index.getLevelIndex()),
-                              vkFormat.getActualImageFormatID(getRequiredImageAccess())))
+    bool mustFlush = updateMustBeFlushed(gl::LevelIndex(index.getLevelIndex()),
+                                         vkFormat.getActualImageFormatID(getRequiredImageAccess()));
+    bool mustStage = updateMustBeStaged(gl::LevelIndex(index.getLevelIndex()),
+                                        vkFormat.getActualImageFormatID(getRequiredImageAccess()));
+
+    vk::ApplyImageUpdate applyUpdate;
+    if (mustStage)
+    {
+        applyUpdate = vk::ApplyImageUpdate::Defer;
+    }
+    else
     {
         // Cannot defer to unlocked tail call if:
         //
@@ -842,6 +848,7 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
         const bool canDeferToUnlockedTailCall =
             mState.getGenerateMipmapHint() != GL_TRUE && !mState.isInternalIncompleteTexture();
 
+        // When possible flush out updates immediately.
         applyUpdate = canDeferToUnlockedTailCall
                           ? vk::ApplyImageUpdate::ImmediatelyInUnlockedTailCall
                           : vk::ApplyImageUpdate::Immediately;
@@ -924,24 +931,31 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
             getRequiredImageAccess(), applyUpdate, &updateAppliedImmediately));
     }
 
-    // If we used context's staging buffer, flush out the updates
-    if (!updateAppliedImmediately)
+    if (updateAppliedImmediately)
     {
-        if (applyUpdate != vk::ApplyImageUpdate::Defer)
-        {
-            ANGLE_TRY(ensureImageInitialized(contextVk, ImageMipLevels::EnabledLevels));
+        // Return if stageSubresourceUpdate already applied the update
+        return angle::Result::Continue;
+    }
 
-            // If forceSubmitImmutableTextureUpdates is enabled, submit the staged updates as well
-            if (contextVk->getFeatures().forceSubmitImmutableTextureUpdates.enabled)
-            {
-                ANGLE_TRY(contextVk->submitStagedTextureUpdates());
-            }
-        }
-        else if (contextVk->isEligibleForMutableTextureFlush() && !mState.getImmutableFormat())
+    // If texture has all levels being specified, then do the flush immediately. This tries to avoid
+    // issue flush as each level is being provided which may end up flushing out the staged clear
+    // that otherwise might able to be removed. It also helps tracking all updates with just one
+    // VkEvent instead of one for each level.
+    if (mustFlush ||
+        (!mustStage && mImage->valid() && mImage->hasBufferSourcedStagedUpdatesInAllLevels()))
+    {
+        ANGLE_TRY(ensureImageInitialized(contextVk, ImageMipLevels::EnabledLevels));
+
+        // If forceSubmitImmutableTextureUpdates is enabled, submit the staged updates as well
+        if (contextVk->getFeatures().forceSubmitImmutableTextureUpdates.enabled)
         {
-            // Check if we should flush any mutable textures from before.
-            ANGLE_TRY(contextVk->getShareGroup()->onMutableTextureUpload(contextVk, this));
+            ANGLE_TRY(contextVk->submitStagedTextureUpdates());
         }
+    }
+    else if (contextVk->isEligibleForMutableTextureFlush() && !mState.getImmutableFormat())
+    {
+        // Check if we should flush any mutable textures from before.
+        ANGLE_TRY(contextVk->getShareGroup()->onMutableTextureUpload(contextVk, this));
     }
 
     return angle::Result::Continue;
@@ -2685,7 +2699,8 @@ angle::Result TextureVk::getAttachmentRenderTarget(const gl::Context *context,
                                                    GLsizei samples,
                                                    FramebufferAttachmentRenderTarget **rtOut)
 {
-    ASSERT(imageIndex.getLevelIndex() >= 0);
+    GLint requestedLevel = imageIndex.getLevelIndex();
+    ASSERT(requestedLevel >= 0);
 
     ContextVk *contextVk = vk::GetImpl(context);
 
@@ -2705,8 +2720,7 @@ angle::Result TextureVk::getAttachmentRenderTarget(const gl::Context *context,
     ANGLE_TRY(performImageQueueTransferIfNecessary(contextVk));
 
     const bool hasRenderToTextureEXT =
-        contextVk->getFeatures().supportsMultisampledRenderToSingleSampled.enabled ||
-        contextVk->getFeatures().supportsMultisampledRenderToSingleSampledGOOGLEX.enabled;
+        contextVk->getFeatures().supportsMultisampledRenderToSingleSampled.enabled;
 
     // If samples > 1 here, we have a singlesampled texture that's being multisampled rendered to.
     // In this case, create a multisampled image that is otherwise identical to the single sampled
@@ -2716,22 +2730,40 @@ angle::Result TextureVk::getAttachmentRenderTarget(const gl::Context *context,
         hasRenderToTextureEXT
             ? gl::RenderToTextureImageIndex::Default
             : static_cast<gl::RenderToTextureImageIndex>(PackSampleCount(samples));
-    if (samples > 1 && !mMultisampledImages[renderToTextureIndex].valid() && !hasRenderToTextureEXT)
+
+    if (samples > 1 && !hasRenderToTextureEXT)
     {
+        // Initialize mMultisampledImages and mMultisampledImageViews if necessary
+        if (mMultisampledImages == nullptr)
+        {
+            mMultisampledImages     = std::make_unique<MultiSampleImages>();
+            mMultisampledImageViews = std::make_unique<MultiSampleImageViews>();
+        }
+
         ASSERT(mState.getBaseLevelDesc().samples <= 1);
-        vk::ImageHelper *multisampledImage = &mMultisampledImages[renderToTextureIndex];
 
-        // Ensure the view serial is valid.
-        vk::Renderer *renderer = contextVk->getRenderer();
-        mMultisampledImageViews[renderToTextureIndex].init(renderer);
+        vk::ImageHelper &multisampledImage =
+            mMultisampledImages->at(renderToTextureIndex)[requestedLevel];
+        if (!multisampledImage.valid())
+        {
+            // Ensure the view serial is valid.
+            vk::Renderer *renderer = contextVk->getRenderer();
+            mMultisampledImageViews->at(renderToTextureIndex)[requestedLevel].init(renderer);
 
-        // The MSAA image always comes from the single sampled one, so disable robust init.
-        bool useRobustInit = false;
+            // The MSAA image always comes from the single sampled one, so disable robust init.
+            bool useRobustInit = false;
 
-        // Create the implicit multisampled image.
-        ANGLE_TRY(multisampledImage->initImplicitMultisampledRenderToTexture(
-            contextVk, mState.hasProtectedContent(), renderer->getMemoryProperties(),
-            mState.getType(), samples, *mImage, useRobustInit));
+            // Calculate extents for multisample image
+            VkExtent3D extents = {};
+            gl_vk::GetExtent(
+                mImage->getLevelExtents(mImage->toVkLevel(gl::LevelIndex(requestedLevel))),
+                &extents);
+
+            // Create the implicit multisampled image.
+            ANGLE_TRY(multisampledImage.initImplicitMultisampledRenderToTexture(
+                contextVk, mState.hasProtectedContent(), renderer->getMemoryProperties(),
+                mState.getType(), samples, *mImage, extents, useRobustInit));
+        }
     }
 
     GLuint layerIndex = 0, layerCount = 0, imageLayerCount = 0;
@@ -2740,15 +2772,14 @@ angle::Result TextureVk::getAttachmentRenderTarget(const gl::Context *context,
 
     if (layerCount == 1)
     {
-        initSingleLayerRenderTargets(contextVk, imageLayerCount,
-                                     gl::LevelIndex(imageIndex.getLevelIndex()),
+        initSingleLayerRenderTargets(contextVk, imageLayerCount, gl::LevelIndex(requestedLevel),
                                      renderToTextureIndex);
 
         std::vector<RenderTargetVector> &levelRenderTargets =
             mSingleLayerRenderTargets[renderToTextureIndex];
-        ASSERT(imageIndex.getLevelIndex() < static_cast<int32_t>(levelRenderTargets.size()));
+        ASSERT(requestedLevel < static_cast<int32_t>(levelRenderTargets.size()));
 
-        RenderTargetVector &layerRenderTargets = levelRenderTargets[imageIndex.getLevelIndex()];
+        RenderTargetVector &layerRenderTargets = levelRenderTargets[requestedLevel];
         ASSERT(imageIndex.getLayerIndex() < static_cast<int32_t>(layerRenderTargets.size()));
 
         *rtOut = &layerRenderTargets[layerIndex];
@@ -2838,15 +2869,16 @@ void TextureVk::initSingleLayerRenderTargets(ContextVk *contextVk,
                                              gl::LevelIndex levelIndex,
                                              gl::RenderToTextureImageIndex renderToTextureIndex)
 {
+    GLint requestedLevel = levelIndex.get();
     std::vector<RenderTargetVector> &allLevelsRenderTargets =
         mSingleLayerRenderTargets[renderToTextureIndex];
 
-    if (allLevelsRenderTargets.size() <= static_cast<uint32_t>(levelIndex.get()))
+    if (allLevelsRenderTargets.size() <= static_cast<uint32_t>(requestedLevel))
     {
-        allLevelsRenderTargets.resize(levelIndex.get() + 1);
+        allLevelsRenderTargets.resize(requestedLevel + 1);
     }
 
-    RenderTargetVector &renderTargets = allLevelsRenderTargets[levelIndex.get()];
+    RenderTargetVector &renderTargets = allLevelsRenderTargets[requestedLevel];
 
     // Lazy init. Check if already initialized.
     if (!renderTargets.empty())
@@ -2871,13 +2903,13 @@ void TextureVk::initSingleLayerRenderTargets(ContextVk *contextVk,
     // resolve into the texture's image automatically.
     if (isMultisampledRenderToTexture)
     {
-        ASSERT(mMultisampledImages[renderToTextureIndex].valid());
+        ASSERT(mMultisampledImages->at(renderToTextureIndex)[requestedLevel].valid());
         ASSERT(!mImage->isYuvResolve());
 
         resolveImage      = drawImage;
         resolveImageViews = drawImageViews;
-        drawImage         = &mMultisampledImages[renderToTextureIndex];
-        drawImageViews    = &mMultisampledImageViews[renderToTextureIndex];
+        drawImage         = &mMultisampledImages->at(renderToTextureIndex)[requestedLevel];
+        drawImageViews    = &mMultisampledImageViews->at(renderToTextureIndex)[requestedLevel];
 
         // If the texture is depth/stencil, GL_EXT_multisampled_render_to_texture2 explicitly
         // indicates that there is no need for the image to be resolved.  In that case, mark the
@@ -3753,12 +3785,19 @@ void TextureVk::releaseImage(ContextVk *contextVk)
         }
     }
 
-    for (vk::ImageHelper &image : mMultisampledImages)
+    if (mMultisampledImages)
     {
-        if (image.valid())
+        for (gl::TexLevelArray<vk::ImageHelper> &images : *mMultisampledImages)
         {
-            image.releaseImageFromShareContexts(renderer, contextVk, mImageSiblingSerial);
+            for (vk::ImageHelper &image : images)
+            {
+                if (image.valid())
+                {
+                    image.releaseImageFromShareContexts(renderer, contextVk, mImageSiblingSerial);
+                }
+            }
         }
+        mMultisampledImages.reset();
     }
 
     onStateChange(angle::SubjectMessage::SubjectChanged);
@@ -3773,16 +3812,35 @@ void TextureVk::releaseImageViews(ContextVk *contextVk)
 
     if (mImage == nullptr)
     {
-        for (vk::ImageViewHelper &imageViewHelper : mMultisampledImageViews)
+        if (mMultisampledImageViews)
         {
-            ASSERT(imageViewHelper.isImageViewGarbageEmpty());
+            for (gl::TexLevelArray<vk::ImageViewHelper> &imageViewHelpers :
+                 *mMultisampledImageViews)
+            {
+                for (vk::ImageViewHelper &imageViewHelper : imageViewHelpers)
+                {
+                    ASSERT(imageViewHelper.isImageViewGarbageEmpty());
+                }
+            }
+            mMultisampledImageViews.reset();
         }
+        ASSERT(mSingleLayerRenderTargets.empty());
+        ASSERT(mMultiLayerRenderTargets.empty());
         return;
     }
 
-    for (vk::ImageViewHelper &imageViewHelper : mMultisampledImageViews)
+    mImageView.release(renderer, mImage->getResourceUse());
+
+    if (mMultisampledImageViews)
     {
-        imageViewHelper.release(renderer, mImage->getResourceUse());
+        for (gl::TexLevelArray<vk::ImageViewHelper> &imageViewHelpers : *mMultisampledImageViews)
+        {
+            for (vk::ImageViewHelper &imageViewHelper : imageViewHelpers)
+            {
+                imageViewHelper.release(renderer, mImage->getResourceUse());
+            }
+        }
+        mMultisampledImageViews.reset();
     }
 
     for (auto &renderTargets : mSingleLayerRenderTargets)
