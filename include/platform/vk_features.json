@@ -264,14 +264,6 @@
             "issue": "http://anglebug.com/7551"
         },
         {
-            "name": "supports_multisampled_render_to_single_sampled_GOOGLEX",
-            "category": "Features",
-            "description": [
-                "VkDevice supports the VK_GOOGLEX_multisampled_render_to_single_sampled extension"
-            ],
-            "issue": "http://anglebug.com/4836"
-        },
-        {
             "name": "supports_multisampled_render_to_single_sampled",
             "category": "Features",
             "description": [
@@ -545,14 +537,6 @@
                 "Expose EXT_multisampled_render_to_texture"
             ],
             "issue": "http://anglebug.com/4937"
-        },
-        {
-            "name": "defer_flush_until_end_render_pass",
-            "category": "Workarounds",
-            "description": [
-                "Allow glFlush to be deferred until renderpass ends"
-            ],
-            "issue": "https://issuetracker.google.com/issues/166475273"
         },
         {
             "name": "wait_idle_before_swapchain_recreation",
