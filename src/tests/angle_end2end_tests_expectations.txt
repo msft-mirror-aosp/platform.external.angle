@@ -544,7 +544,11 @@ b/308668391 PIXEL4ORXL VULKAN : ImageTest.SourceYUVAHBTargetExternalRGBSampleNoD
 343011429 PIXEL4ORXL VULKAN : GLSLTest_ES31_InitShaderVariables.InitIOBlockWithComplexTypes/*_ForceInitShaderVariables* = SKIP
 343011429 PIXEL4ORXL VULKAN : GLSLTest_ES31_InitShaderVariables.InitIOBlockWithStruct/*_ForceInitShaderVariables* = SKIP
 
+42267047 PIXEL4ORXL VULKAN : GLSLTest_ES3.VaryingStructWithInlineDefinition2/*_ForceInitShaderVariables* = SKIP
+
 343218490 PIXEL4ORXL : GLSLTest_ES31.TernaryOnStructsInDifferentBlockStorages/* = SKIP
+
+b/346650202 PIXEL4ORXL : GeometryShaderTest.CreateAndAttachGeometryShaderOES/* = SKIP
 
 8310 PIXEL4ORXL VULKAN : VulkanExternalImageTest.PreInitializedOnGLImportLinear*/* = SKIP
 8310 LINUX SWIFTSHADER : VulkanExternalImageTest.PreInitializedOnGLImportLinear*/* = SKIP
@@ -1111,9 +1115,6 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 // GL program cache failure with shader images.
 7797 WIN OPENGL : PixelLocalStorageTest.ProgramCache/* = SKIP
 
-// GL_TEXTURE_2D_ARRAY and GL_TEXTURE_3D shader images.
-8124 D3D11 : PixelLocalStorageTest.TextureLevelsAndLayers/* = SKIP
-
 // Failures as a result of Mac 13 -> Mac 14 upgrade.
 8628 MAC AMD METAL : GLSLTest_ES3.LiteralInfinityOutput/* = SKIP
 8628 MAC AMD METAL : GLSLTest_ES3.LiteralNegativeInfinityOutput/* = SKIP
@@ -1437,6 +1438,12 @@ b/292285899 PIXEL4ORXL GLES : EGLSurfaceTest.DestroyAndRecreateWhileCurrent/* = 
 8683 LINUX INTEL OPENGL : WEBGLVideoTextureTest.VerifySamplerVideoWEBGL/* = SKIP
 8683 LINUX INTEL OPENGL : WEBGLVideoTextureTest.VerifySamplerVideoWEBGLAsParameter/* = SKIP
 8683 LINUX INTEL OPENGL : WEBGLVideoTextureTest.VerifyStateManagerKnowsBindingVideoImage/* = SKIP
+
+// MSRTT D3D11 failures
+4836 D3D11 : MultisampledRenderToTextureES3Test.MultipleLevelsMultisampleMRTDraw2DColor/* = SKIP
+
+// EGL_experimental_present_path_angle D3D11 failure
+347060511 D3D11 : EGLPresentPathD3D11.ClientBufferPresentPathFast/* = SKIP
 
 // Slow tests, should appear last in this file
 5076 : GLSLTest.VerifyMaxVertexUniformVectors* = TIMEOUT
