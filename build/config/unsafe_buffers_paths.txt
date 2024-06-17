@@ -65,7 +65,9 @@
 -clank/
 -codelabs/
 -components/
++components/autofill
 +components/discardable_memory
++components/plus_addresses
 -courgette/
 -crypto/
 -data/
