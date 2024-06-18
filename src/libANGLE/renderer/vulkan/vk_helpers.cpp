@@ -6833,6 +6833,7 @@ angle::Result ImageHelper::initImplicitMultisampledRenderToTexture(
     gl::TextureType textureType,
     GLint samples,
     const ImageHelper &resolveImage,
+    const VkExtent3D &multisampleImageExtents,
     bool isRobustResourceInitEnabled)
 {
     ASSERT(!valid());
@@ -6865,13 +6866,15 @@ angle::Result ImageHelper::initImplicitMultisampledRenderToTexture(
     const VkImageCreateFlags kMultisampledCreateFlags =
         hasProtectedContent ? VK_IMAGE_CREATE_PROTECTED_BIT : 0;
 
-    ANGLE_TRY(initExternal(context, textureType, resolveImage.getExtents(),
+    // Multisampled images have only 1 level
+    constexpr uint32_t kLevelCount = 1;
+
+    ANGLE_TRY(initExternal(context, textureType, multisampleImageExtents,
                            resolveImage.getIntendedFormatID(), resolveImage.getActualFormatID(),
                            samples, kMultisampledUsageFlags, kMultisampledCreateFlags,
                            ImageLayout::Undefined, nullptr, resolveImage.getFirstAllocatedLevel(),
-                           resolveImage.getLevelCount(), resolveImage.getLayerCount(),
-                           isRobustResourceInitEnabled, hasProtectedContent,
-                           YcbcrConversionDesc{}));
+                           kLevelCount, resolveImage.getLayerCount(), isRobustResourceInitEnabled,
+                           hasProtectedContent, YcbcrConversionDesc{}));
 
     // Remove the emulated format clear from the multisampled image if any.  There is one already
     // staged on the resolve image if needed.
@@ -9436,8 +9439,6 @@ angle::Result ImageHelper::flushSingleSubresourceStagedUpdates(ContextVk *contex
         return angle::Result::Continue;
     }
 
-    LevelIndex levelVk = toVkLevel(levelGL);
-
     // Handle deferred clears. Search the updates list for a matching clear index.
     if (deferredClears)
     {
@@ -9449,22 +9450,18 @@ angle::Result ImageHelper::flushSingleSubresourceStagedUpdates(ContextVk *contex
 
             if (update.intersectsLayerRange(layer, layerCount))
             {
-                // On any data update, exit out. We'll need to do a full upload.
-                const bool isClear              = IsClearOfAllChannels(update.updateSource);
-                const uint32_t updateLayerCount = isClear ? update.data.clear.layerCount : 0;
-                const uint32_t imageLayerCount =
-                    mImageType == VK_IMAGE_TYPE_3D ? getLevelExtents(levelVk).depth : mLayerCount;
-
-                if (!isClear || (updateLayerCount != layerCount &&
-                                 !(update.data.clear.layerCount == VK_REMAINING_ARRAY_LAYERS &&
-                                   imageLayerCount == layerCount)))
+                // On any data update or the clear does not match exact layer range, we'll need to
+                // do a full upload.
+                const bool isClear = IsClearOfAllChannels(update.updateSource);
+                if (isClear && update.matchesLayerRange(layer, layerCount))
+                {
+                    foundClear = updateIndex;
+                }
+                else
                 {
                     foundClear.reset();
                     break;
                 }
-
-                // Otherwise track the latest clear update index.
-                foundClear = updateIndex;
             }
         }
 

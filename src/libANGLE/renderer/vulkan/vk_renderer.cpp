@@ -293,11 +293,6 @@ constexpr const char *kSkippedMessagesWithVulkanSecondaryCommandBuffer[] = {
 // those, ANGLE makes no further attempt to resolve them and expects vendor support for the
 // extensions instead.  The list of skipped messages is split based on this support.
 constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
-    // http://anglebug.com/344031874
-    {"SYNC-HAZARD-WRITE-AFTER-READ",
-     "Access info (usage: SYNC_COMPUTE_SHADER_SHADER_STORAGE_WRITE, prior_usage: "
-     "SYNC_COMPUTE_SHADER_UNIFORM_READ, read_barriers: VkPipelineStageFlags2(0), command: "
-     "vkCmdDispatch"},
     // http://anglebug.com/6416
     // http://anglebug.com/6421
     {
@@ -2195,8 +2190,7 @@ angle::Result Renderer::initializeMemoryAllocator(vk::Context *context)
 //                                                     geometryStreams (feature)
 // - VK_EXT_index_type_uint8:                          indexTypeUint8 (feature)
 // - VK_EXT_device_memory_report:                      deviceMemoryReport (feature)
-// - VK_EXT_multisampled_render_to_single_sampled or
-//   VK_GOOGLEX_multisampled_render_to_single_sampled: multisampledRenderToSingleSampled (feature)
+// - VK_EXT_multisampled_render_to_single_sampled:     multisampledRenderToSingleSampled (feature)
 // - VK_EXT_image_2d_view_of_3d:                       image2DViewOf3D (feature)
 //                                                     sampler2DViewOf3D (feature)
 // - VK_EXT_custom_border_color:                       customBorderColors (feature)
@@ -2268,11 +2262,6 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
                        deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mMultisampledRenderToSingleSampledFeatures);
-    }
-    else if (ExtensionFound(VK_GOOGLEX_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_EXTENSION_NAME,
-                            deviceExtensionNames))
-    {
-        vk::AddToPNextChain(deviceFeatures, &mMultisampledRenderToSingleSampledFeaturesGOOGLEX);
     }
 
     if (ExtensionFound(VK_EXT_IMAGE_2D_VIEW_OF_3D_EXTENSION_NAME, deviceExtensionNames))
@@ -2600,10 +2589,6 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mMultisampledRenderToSingleSampledFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_FEATURES_EXT;
 
-    mMultisampledRenderToSingleSampledFeaturesGOOGLEX = {};
-    mMultisampledRenderToSingleSampledFeaturesGOOGLEX.sType =
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_FEATURES_GOOGLEX;
-
     mImage2dViewOf3dFeatures = {};
     mImage2dViewOf3dFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_2D_VIEW_OF_3D_FEATURES_EXT;
@@ -2759,55 +2744,54 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     vkGetPhysicalDeviceProperties2(mPhysicalDevice, &deviceProperties);
 
     // Clean up pNext chains
-    mPhysicalDevice11Properties.pNext                       = nullptr;
-    mPhysicalDevice11Features.pNext                         = nullptr;
-    mLineRasterizationFeatures.pNext                        = nullptr;
-    mMemoryReportFeatures.pNext                             = nullptr;
-    mProvokingVertexFeatures.pNext                          = nullptr;
-    mVertexAttributeDivisorFeatures.pNext                   = nullptr;
-    mVertexAttributeDivisorProperties.pNext                 = nullptr;
-    mTransformFeedbackFeatures.pNext                        = nullptr;
-    mIndexTypeUint8Features.pNext                           = nullptr;
-    mSubgroupProperties.pNext                               = nullptr;
-    mSubgroupExtendedTypesFeatures.pNext                    = nullptr;
-    mCustomBorderColorFeatures.pNext                        = nullptr;
-    mShaderFloat16Int8Features.pNext                        = nullptr;
-    mDepthStencilResolveProperties.pNext                    = nullptr;
-    mMultisampledRenderToSingleSampledFeatures.pNext        = nullptr;
-    mMultisampledRenderToSingleSampledFeaturesGOOGLEX.pNext = nullptr;
-    mImage2dViewOf3dFeatures.pNext                          = nullptr;
-    mMultiviewFeatures.pNext                                = nullptr;
-    mMultiviewProperties.pNext                              = nullptr;
-    mDriverProperties.pNext                                 = nullptr;
-    mSamplerYcbcrConversionFeatures.pNext                   = nullptr;
-    mProtectedMemoryFeatures.pNext                          = nullptr;
-    mHostQueryResetFeatures.pNext                           = nullptr;
-    mDepthClampZeroOneFeatures.pNext                        = nullptr;
-    mDepthClipControlFeatures.pNext                         = nullptr;
-    mPrimitivesGeneratedQueryFeatures.pNext                 = nullptr;
-    mPrimitiveTopologyListRestartFeatures.pNext             = nullptr;
-    mExtendedDynamicStateFeatures.pNext                     = nullptr;
-    mExtendedDynamicState2Features.pNext                    = nullptr;
-    mGraphicsPipelineLibraryFeatures.pNext                  = nullptr;
-    mGraphicsPipelineLibraryProperties.pNext                = nullptr;
-    mVertexInputDynamicStateFeatures.pNext                  = nullptr;
-    mDynamicRenderingFeatures.pNext                         = nullptr;
-    mDynamicRenderingLocalReadFeatures.pNext                = nullptr;
-    mFragmentShadingRateFeatures.pNext                      = nullptr;
-    mFragmentShaderInterlockFeatures.pNext                  = nullptr;
-    mImagelessFramebufferFeatures.pNext                     = nullptr;
-    mPipelineRobustnessFeatures.pNext                       = nullptr;
-    mPipelineProtectedAccessFeatures.pNext                  = nullptr;
-    mRasterizationOrderAttachmentAccessFeatures.pNext       = nullptr;
-    mSwapchainMaintenance1Features.pNext                    = nullptr;
-    mDitheringFeatures.pNext                                = nullptr;
-    mDrmProperties.pNext                                    = nullptr;
-    mTimelineSemaphoreFeatures.pNext                        = nullptr;
-    mHostImageCopyFeatures.pNext                            = nullptr;
-    mHostImageCopyProperties.pNext                          = nullptr;
-    m8BitStorageFeatures.pNext                              = nullptr;
-    m16BitStorageFeatures.pNext                             = nullptr;
-    mSynchronization2Features.pNext                         = nullptr;
+    mPhysicalDevice11Properties.pNext                 = nullptr;
+    mPhysicalDevice11Features.pNext                   = nullptr;
+    mLineRasterizationFeatures.pNext                  = nullptr;
+    mMemoryReportFeatures.pNext                       = nullptr;
+    mProvokingVertexFeatures.pNext                    = nullptr;
+    mVertexAttributeDivisorFeatures.pNext             = nullptr;
+    mVertexAttributeDivisorProperties.pNext           = nullptr;
+    mTransformFeedbackFeatures.pNext                  = nullptr;
+    mIndexTypeUint8Features.pNext                     = nullptr;
+    mSubgroupProperties.pNext                         = nullptr;
+    mSubgroupExtendedTypesFeatures.pNext              = nullptr;
+    mCustomBorderColorFeatures.pNext                  = nullptr;
+    mShaderFloat16Int8Features.pNext                  = nullptr;
+    mDepthStencilResolveProperties.pNext              = nullptr;
+    mMultisampledRenderToSingleSampledFeatures.pNext  = nullptr;
+    mImage2dViewOf3dFeatures.pNext                    = nullptr;
+    mMultiviewFeatures.pNext                          = nullptr;
+    mMultiviewProperties.pNext                        = nullptr;
+    mDriverProperties.pNext                           = nullptr;
+    mSamplerYcbcrConversionFeatures.pNext             = nullptr;
+    mProtectedMemoryFeatures.pNext                    = nullptr;
+    mHostQueryResetFeatures.pNext                     = nullptr;
+    mDepthClampZeroOneFeatures.pNext                  = nullptr;
+    mDepthClipControlFeatures.pNext                   = nullptr;
+    mPrimitivesGeneratedQueryFeatures.pNext           = nullptr;
+    mPrimitiveTopologyListRestartFeatures.pNext       = nullptr;
+    mExtendedDynamicStateFeatures.pNext               = nullptr;
+    mExtendedDynamicState2Features.pNext              = nullptr;
+    mGraphicsPipelineLibraryFeatures.pNext            = nullptr;
+    mGraphicsPipelineLibraryProperties.pNext          = nullptr;
+    mVertexInputDynamicStateFeatures.pNext            = nullptr;
+    mDynamicRenderingFeatures.pNext                   = nullptr;
+    mDynamicRenderingLocalReadFeatures.pNext          = nullptr;
+    mFragmentShadingRateFeatures.pNext                = nullptr;
+    mFragmentShaderInterlockFeatures.pNext            = nullptr;
+    mImagelessFramebufferFeatures.pNext               = nullptr;
+    mPipelineRobustnessFeatures.pNext                 = nullptr;
+    mPipelineProtectedAccessFeatures.pNext            = nullptr;
+    mRasterizationOrderAttachmentAccessFeatures.pNext = nullptr;
+    mSwapchainMaintenance1Features.pNext              = nullptr;
+    mDitheringFeatures.pNext                          = nullptr;
+    mDrmProperties.pNext                              = nullptr;
+    mTimelineSemaphoreFeatures.pNext                  = nullptr;
+    mHostImageCopyFeatures.pNext                      = nullptr;
+    mHostImageCopyProperties.pNext                    = nullptr;
+    m8BitStorageFeatures.pNext                        = nullptr;
+    m16BitStorageFeatures.pNext                       = nullptr;
+    mSynchronization2Features.pNext                   = nullptr;
 #if defined(ANGLE_PLATFORM_ANDROID)
     mExternalFormatResolveFeatures.pNext   = nullptr;
     mExternalFormatResolveProperties.pNext = nullptr;
@@ -2971,14 +2955,6 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
         mEnabledDeviceExtensions.push_back(
             VK_EXT_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mMultisampledRenderToSingleSampledFeatures);
-    }
-
-    if (mFeatures.supportsMultisampledRenderToSingleSampledGOOGLEX.enabled)
-    {
-        ASSERT(!mFeatures.supportsMultisampledRenderToSingleSampled.enabled);
-        mEnabledDeviceExtensions.push_back(
-            VK_GOOGLEX_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_EXTENSION_NAME);
-        vk::AddToPNextChain(&mEnabledFeatures, &mMultisampledRenderToSingleSampledFeaturesGOOGLEX);
     }
 
     if (mFeatures.logMemoryReportCallbacks.enabled || mFeatures.logMemoryReportStats.enabled)
@@ -4383,9 +4359,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     }
 #endif  // defined(ANGLE_PLATFORM_ANDROID) || defined(ANGLE_PLATFORM_LINUX)
 
+    // Disabled on SwiftShader due to http://crbug.com/40942995
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsShaderStencilExport,
-        ExtensionFound(VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME, deviceExtensionNames));
+        ExtensionFound(VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME, deviceExtensionNames) &&
+            !isSwiftShader);
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsRenderPassLoadStoreOpNone,
@@ -4451,14 +4429,6 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         &mFeatures, supportsMultisampledRenderToSingleSampled,
         mFeatures.supportsRenderpass2.enabled && mFeatures.supportsDepthStencilResolve.enabled &&
             mMultisampledRenderToSingleSampledFeatures.multisampledRenderToSingleSampled ==
-                VK_TRUE);
-
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, supportsMultisampledRenderToSingleSampledGOOGLEX,
-        !mFeatures.supportsMultisampledRenderToSingleSampled.enabled &&
-            mFeatures.supportsRenderpass2.enabled &&
-            mFeatures.supportsDepthStencilResolve.enabled &&
-            mMultisampledRenderToSingleSampledFeaturesGOOGLEX.multisampledRenderToSingleSampled ==
                 VK_TRUE);
 
     // Preferring the MSRTSS flag is for texture initialization. If the MSRTSS is not used at first,
@@ -4632,12 +4602,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //
     ANGLE_FEATURE_CONDITION(&mFeatures, allowMultisampledRenderToTextureEmulation,
                             (isTileBasedRenderer && !isARM) || isSamsung);
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, enableMultisampledRenderToTexture,
-        mFeatures.supportsMultisampledRenderToSingleSampled.enabled ||
-            mFeatures.supportsMultisampledRenderToSingleSampledGOOGLEX.enabled ||
-            (mFeatures.supportsDepthStencilResolve.enabled &&
-             mFeatures.allowMultisampledRenderToTextureEmulation.enabled));
+    ANGLE_FEATURE_CONDITION(&mFeatures, enableMultisampledRenderToTexture,
+                            mFeatures.supportsMultisampledRenderToSingleSampled.enabled ||
+                                (mFeatures.supportsDepthStencilResolve.enabled &&
+                                 mFeatures.allowMultisampledRenderToTextureEmulation.enabled));
 
     // Currently we enable cube map arrays based on the imageCubeArray Vk feature.
     // TODO: Check device caps for full cube map array support. http://anglebug.com/5143
