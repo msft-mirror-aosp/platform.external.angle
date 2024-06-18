@@ -45,7 +45,6 @@ angle_config_cc_defaults {
 
 cc_defaults {
     name: "angle_common_library_cflags",
-    cpp_std: "gnu++17",
     cflags: [
         "-O2",
         "-Wno-unknown-warning-option",
@@ -59,7 +58,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r26b_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-19-init-10646-g084e2b53-6\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-19-init-10646-g084e2b53-57\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -119,6 +118,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_library_shared {
@@ -211,6 +217,13 @@ cc_library_shared {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_library_shared {
@@ -285,6 +298,13 @@ cc_library_shared {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -322,6 +342,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -371,6 +398,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -427,6 +461,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -483,6 +524,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -614,6 +662,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_genrule {
@@ -955,6 +1010,13 @@ cc_library_static {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_library_static {
@@ -1049,6 +1111,13 @@ cc_library_static {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -1095,6 +1164,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -1114,6 +1190,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -1133,6 +1216,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -1172,6 +1262,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -1219,6 +1316,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_library_static {
@@ -1272,6 +1376,13 @@ cc_library_static {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_library_static {
@@ -1464,6 +1575,13 @@ cc_library_static {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_genrule {
@@ -1586,6 +1704,7 @@ cc_genrule {
         "src/common/tls.cpp",
         "src/common/tls.h",
         "src/common/uniform_type_info_autogen.cpp",
+        "src/common/uniform_type_info_autogen.h",
         "src/common/utilities.cpp",
         "src/common/utilities.h",
         "src/common/vector_utils.h",
@@ -2631,6 +2750,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -2666,6 +2792,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -2705,6 +2838,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_library_static {
@@ -2755,6 +2895,13 @@ cc_library_static {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -2776,6 +2923,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -2802,6 +2956,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -2833,6 +2994,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -2883,6 +3051,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -2925,6 +3100,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_library_static {
@@ -2981,6 +3163,13 @@ cc_library_static {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3040,6 +3229,13 @@ cc_library_static {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3214,6 +3410,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3240,6 +3443,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3269,6 +3479,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3298,6 +3515,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3325,6 +3549,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3364,6 +3595,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3388,6 +3626,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3412,6 +3657,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3437,6 +3689,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3480,6 +3739,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3508,6 +3774,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3536,6 +3809,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3560,6 +3840,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3585,6 +3872,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3621,6 +3915,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3648,6 +3949,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3688,6 +3996,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3719,6 +4034,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3751,6 +4073,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3787,6 +4116,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3819,6 +4155,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3869,6 +4212,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3899,6 +4249,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3932,6 +4289,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -3963,6 +4327,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4003,6 +4374,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4031,6 +4409,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4061,6 +4446,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4091,6 +4483,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4121,6 +4520,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4168,6 +4574,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4193,6 +4606,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4223,6 +4643,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4256,6 +4683,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4281,6 +4715,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4334,6 +4775,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4358,6 +4806,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4403,6 +4858,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4432,6 +4894,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4456,6 +4925,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4482,6 +4958,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4517,6 +5000,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4545,6 +5035,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4583,6 +5080,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4611,6 +5115,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4641,6 +5152,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4670,6 +5188,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4721,6 +5246,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4749,6 +5281,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4778,6 +5317,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4809,6 +5355,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4835,6 +5388,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4860,6 +5420,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4890,6 +5457,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4915,6 +5489,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4945,6 +5526,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -4974,6 +5562,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5002,6 +5597,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5029,6 +5631,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5053,6 +5662,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5081,6 +5697,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5111,6 +5734,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5140,6 +5770,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5165,6 +5802,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5190,6 +5834,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5231,6 +5882,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5258,6 +5916,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5298,6 +5963,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5326,6 +5998,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5350,6 +6029,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5375,6 +6061,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5406,6 +6099,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5434,6 +6134,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5465,6 +6172,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5490,6 +6204,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5520,6 +6241,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5545,6 +6273,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5570,6 +6305,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5596,6 +6338,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5621,6 +6370,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5648,6 +6404,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5673,6 +6436,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5698,6 +6468,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5722,6 +6499,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5745,6 +6529,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5769,6 +6560,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5796,6 +6594,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5825,6 +6630,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5905,6 +6717,13 @@ cc_library_static {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5949,6 +6768,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -5995,6 +6821,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -6080,6 +6913,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -6105,6 +6945,13 @@ cc_defaults {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_library_shared {
@@ -6214,6 +7061,13 @@ cc_library_shared {
     ],
     sdk_version: "28",
     stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 package {

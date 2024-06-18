@@ -10,6 +10,7 @@ load("@builtin//struct.star", "module")
 load("./clang_all.star", "clang_all")
 load("./clang_code_coverage_wrapper.star", "clang_code_coverage_wrapper")
 load("./config.star", "config")
+load("./gn_logs.star", "gn_logs")
 load("./rewrapper_cfg.star", "rewrapper_cfg")
 
 def __filegroups(ctx):
@@ -56,6 +57,17 @@ def __filegroups(ctx):
         "type": "glob",
         "includes": sdk_includes,
     }
+
+    # https://chromium-review.googlesource.com/c/chromium/src/+/5568662
+    fg[ctx.fs.canonpath("./sdk/xcode_links/MacOSX14.5.sdk") + ":headers"] = {
+        "type": "glob",
+        "includes": sdk_includes,
+    }
+    fg[ctx.fs.canonpath("./sdk/xcode_links/iPhoneSimulator17.5.sdk") + ":headers"] = {
+        "type": "glob",
+        "includes": sdk_includes,
+    }
+
     fg[ctx.fs.canonpath("./sdk/xcode_links/iPhoneSimulator.platform/Developer/Library/Frameworks") + ":headers"] = {
         "type": "glob",
         "includes": sdk_includes,
@@ -87,14 +99,12 @@ def __step_config(ctx, step_config):
         })
         step_config["input_deps"].update(clang_all.input_deps)
 
-        # TODO: https://issues.chromium.org/40120210 - remove this
-        # once we can use relative path in hmap.
-        need_input_root_absolute_path_for_objc = False
-        gn_args = gn.args(ctx)
-        if gn_args.get("target_os") == "\"ios\"":
-            # objc/objcxx uses hmap, which contains absolute path
-            # see also b/256536089
-            need_input_root_absolute_path_for_objc = True
+        gn_logs_data = gn_logs.read(ctx)
+        input_root_absolute_path = gn_logs_data.get("clang_need_input_root_absolute_path") == "true"
+        input_root_absolute_path_for_objc = gn_logs_data.get("clang_need_input_root_absolute_path_for_objc") == "true"
+
+        canonicalize_dir = not input_root_absolute_path
+        canonicalize_dir_for_objc = not input_root_absolute_path_for_objc
 
         step_config["rules"].extend([
             {
@@ -107,6 +117,8 @@ def __step_config(ctx, step_config):
                 "exclude_input_patterns": ["*.stamp"],
                 "platform_ref": "clang",
                 "remote": True,
+                "input_root_absolute_path": input_root_absolute_path,
+                "canonicalize_dir": canonicalize_dir,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
             },
@@ -120,6 +132,8 @@ def __step_config(ctx, step_config):
                 "exclude_input_patterns": ["*.stamp"],
                 "platform_ref": "clang",
                 "remote": True,
+                "input_root_absolute_path": input_root_absolute_path,
+                "canonicalize_dir": canonicalize_dir,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
             },
@@ -135,7 +149,8 @@ def __step_config(ctx, step_config):
                 "remote": True,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
-                "input_root_absolute_path": need_input_root_absolute_path_for_objc,
+                "input_root_absolute_path": input_root_absolute_path_for_objc,
+                "canonicalize_dir": canonicalize_dir_for_objc,
             },
             {
                 "name": "clang/objc",
@@ -149,7 +164,8 @@ def __step_config(ctx, step_config):
                 "remote": True,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
-                "input_root_absolute_path": need_input_root_absolute_path_for_objc,
+                "input_root_absolute_path": input_root_absolute_path_for_objc,
+                "canonicalize_dir": canonicalize_dir_for_objc,
             },
             {
                 "name": "clang-coverage/cxx",
@@ -162,6 +178,8 @@ def __step_config(ctx, step_config):
                 "handler": "clang_compile_coverage",
                 "platform_ref": "clang",
                 "remote": True,
+                "input_root_absolute_path": input_root_absolute_path,
+                "canonicalize_dir": canonicalize_dir,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
             },
@@ -176,6 +194,8 @@ def __step_config(ctx, step_config):
                 "handler": "clang_compile_coverage",
                 "platform_ref": "clang",
                 "remote": True,
+                "input_root_absolute_path": input_root_absolute_path,
+                "canonicalize_dir": canonicalize_dir,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
             },
@@ -192,7 +212,8 @@ def __step_config(ctx, step_config):
                 "remote": True,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
-                "input_root_absolute_path": need_input_root_absolute_path_for_objc,
+                "input_root_absolute_path": input_root_absolute_path_for_objc,
+                "canonicalize_dir": canonicalize_dir_for_objc,
             },
             {
                 "name": "clang-coverage/objc",
@@ -207,7 +228,8 @@ def __step_config(ctx, step_config):
                 "remote": True,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
-                "input_root_absolute_path": need_input_root_absolute_path_for_objc,
+                "input_root_absolute_path": input_root_absolute_path_for_objc,
+                "canonicalize_dir": canonicalize_dir_for_objc,
             },
         ])
     return step_config
