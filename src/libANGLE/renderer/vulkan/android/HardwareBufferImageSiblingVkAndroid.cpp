@@ -353,6 +353,10 @@ angle::Result HardwareBufferImageSiblingVkAndroid::initImpl(DisplayVk *displayVk
                       ? static_cast<uint32_t>(log2(std::max(mSize.width, mSize.height))) + 1
                       : 1;
 
+    // No support for rendering to external YUV AHB with multiple miplevels
+    ANGLE_VK_CHECK(displayVk, (!externalRenderTargetSupported || mLevelCount == 1),
+                   VK_ERROR_INITIALIZATION_FAILED);
+
     // Setup layer count
     const uint32_t layerCount = mSize.depth;
     vkExtents.depth           = 1;
@@ -460,7 +464,7 @@ angle::Result HardwareBufferImageSiblingVkAndroid::initImpl(DisplayVk *displayVk
     {
         constexpr uint32_t kColorRenderableRequiredBits = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
         constexpr uint32_t kDepthStencilRenderableRequiredBits =
-            VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
         mRenderable =
             renderer->hasImageFormatFeatureBits(vkFormat->getActualRenderableImageFormatID(),
                                                 kColorRenderableRequiredBits) ||

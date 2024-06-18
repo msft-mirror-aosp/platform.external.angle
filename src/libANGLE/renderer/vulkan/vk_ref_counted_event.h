@@ -36,17 +36,58 @@ enum class BarrierType
     Event,
 };
 
+constexpr VkPipelineStageFlags kPreFragmentStageFlags =
+    VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT |
+    VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+
+constexpr VkPipelineStageFlags kAllShadersPipelineStageFlags =
+    kPreFragmentStageFlags | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+constexpr VkPipelineStageFlags kAllDepthStencilPipelineStageFlags =
+    VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+
+// Enum for predefined VkPipelineStageFlags set that VkEvent will be using. Because VkEvent has
+// strict rules that waitEvent and setEvent must have matching VkPipelineStageFlags, it is desirable
+// to keep VkEvent per VkPipelineStageFlags combination. This enum table enumerates all possible
+// pipeline stage combinations that VkEvent used with. The enum maps to VkPipelineStageFlags via
+// Renderer::getPipelineStageMask call.
+enum class EventStage : uint32_t
+{
+    Transfer                                          = 0,
+    VertexShader                                      = 1,
+    FragmentShader                                    = 2,
+    ComputeShader                                     = 3,
+    AllShaders                                        = 4,
+    PreFragmentShaders                                = 5,
+    FragmentShadingRate                               = 6,
+    ColorAttachmentOutput                             = 7,
+    ColorAttachmentOutputAndFragmentShader            = 8,
+    ColorAttachmentOutputAndFragmentShaderAndTransfer = 9,
+    ColorAttachmentOutputAndAllShaders                = 10,
+    AllFragmentTest                                   = 11,
+    AllFragmentTestAndFragmentShader                  = 12,
+    AllFragmentTestAndAllShaders                      = 13,
+    TransferAndComputeShader                          = 14,
+    InvalidEnum                                       = 15,
+    EnumCount                                         = InvalidEnum,
+};
+
+// Initialize EventStage to VkPipelineStageFlags mapping table.
+void InitializeEventAndPipelineStagesMap(
+    angle::PackedEnumMap<EventStage, VkPipelineStageFlags> *mapping,
+    VkPipelineStageFlags supportedVulkanPipelineStageMask);
+
 // VkCmdWaitEvents requires srcStageMask must be the bitwise OR of the stageMask parameter used in
 // previous calls to vkCmdSetEvent (See VUID-vkCmdWaitEvents-srcStageMask-01158). This mean we must
 // keep the record of what stageMask each event has been used in VkCmdSetEvent call so that we can
 // retrieve that information when we need to wait for the event. Instead of keeping just stageMask
 // here, we keep the ImageLayout for now which gives us more information for debugging.
-struct EventAndLayout
+struct EventAndStage
 {
     bool valid() const { return event.valid(); }
     Event event;
-    ImageLayout imageLayout;
-    bool needsReset;
+    EventStage eventStage;
 };
 
 // The VkCmdSetEvent is called after VkCmdEndRenderPass and all images that used at the given
@@ -98,7 +139,7 @@ class RefCountedEvent final
 
     // Create VkEvent and associated it with given layout. Returns true if success and false if
     // failed.
-    bool init(Context *context, ImageLayout layout);
+    bool init(Context *context, EventStage eventStage);
 
     // Release one reference count to the underline Event object and destroy or recycle the handle
     // to renderer's recycler if this is the very last reference.
@@ -114,6 +155,9 @@ class RefCountedEvent final
 
     bool valid() const { return mHandle != nullptr; }
 
+    // Only intended for assertion in recycler
+    bool validAndNoReference() const { return mHandle != nullptr && !mHandle->isReferenced(); }
+
     // Returns the underlying Event object
     const Event &getEvent() const
     {
@@ -121,31 +165,32 @@ class RefCountedEvent final
         return mHandle->get().event;
     }
 
-    // Returns the ImageLayout associated with the event.
-    ImageLayout getImageLayout() const
+    EventStage getEventStage() const
     {
-        ASSERT(valid());
-        return mHandle->get().imageLayout;
-    }
-
-    bool needsReset() const
-    {
-        ASSERT(valid());
-        return mHandle->get().needsReset;
+        ASSERT(mHandle != nullptr);
+        return mHandle->get().eventStage;
     }
 
   private:
     // Release one reference count to the underline Event object and destroy or recycle the handle
     // to the provided recycler if this is the very last reference.
-    friend class RefCountedEventRecycler;
     friend class RefCountedEventsGarbage;
-    friend class RefCountedEventsGarbageRecycler;
     template <typename RecyclerT>
     void releaseImpl(Renderer *renderer, RecyclerT *recycler);
 
-    RefCounted<EventAndLayout> *mHandle;
+    RefCounted<EventAndStage> *mHandle;
 };
 using RefCountedEventCollector = std::deque<RefCountedEvent>;
+
+// Tracks a list of RefCountedEvents per EventStage.
+struct EventMaps
+{
+    angle::PackedEnumMap<EventStage, RefCountedEvent> map;
+    // The mask is used to accelerate the loop of map
+    angle::PackedEnumBitSet<EventStage, uint64_t> mask;
+    // Only used by RenderPassCommandBufferHelper
+    angle::PackedEnumMap<EventStage, VkEvent> vkEvents;
+};
 
 // This class tracks a vector of RefcountedEvent garbage. For performance reason, instead of
 // individually tracking each VkEvent garbage, we collect all events that are accessed in the
@@ -157,35 +202,24 @@ using RefCountedEventCollector = std::deque<RefCountedEvent>;
 class RefCountedEventsGarbage final
 {
   public:
-    RefCountedEventsGarbage()  = default;
-    ~RefCountedEventsGarbage() = default;
+    RefCountedEventsGarbage() = default;
+    ~RefCountedEventsGarbage() { ASSERT(mRefCountedEvents.empty()); }
 
     RefCountedEventsGarbage(const QueueSerial &queueSerial,
                             RefCountedEventCollector &&refCountedEvents)
         : mQueueSerial(queueSerial), mRefCountedEvents(std::move(refCountedEvents))
     {
-        ASSERT(refCountedEvents.empty());
         ASSERT(!mRefCountedEvents.empty());
-    }
-
-    RefCountedEventsGarbage(RefCountedEventsGarbage &&other)
-        : mQueueSerial(other.mQueueSerial), mRefCountedEvents(std::move(other.mRefCountedEvents))
-    {}
-
-    RefCountedEventsGarbage &operator=(RefCountedEventsGarbage &&other)
-    {
-        ASSERT(mRefCountedEvents.empty());
-        mQueueSerial      = other.mQueueSerial;
-        mRefCountedEvents = std::move(other.mRefCountedEvents);
-        return *this;
     }
 
     void destroy(Renderer *renderer);
 
-    // Check the queue serial and release the events to context if GPU finished. Note that release
-    // to context may end up recycle the object instead of destroy. Returns true if it is GPU
-    // finished.
+    // Check the queue serial and release the events to recycler if GPU finished.
     bool releaseIfComplete(Renderer *renderer, RefCountedEventsGarbageRecycler *recycler);
+
+    // Check the queue serial and move all events to releasedBucket if GPU finished. This is only
+    // used by RefCountedEventRecycler.
+    bool moveIfComplete(Renderer *renderer, std::deque<RefCountedEventCollector> *releasedBucket);
 
     // Move event to the garbage list
     void add(RefCountedEvent &&event) { mRefCountedEvents.emplace_back(std::move(event)); }
@@ -212,57 +246,84 @@ class RefCountedEventsGarbage final
     size_t size() const { return mRefCountedEvents.size(); }
 
   private:
-    friend class RefCountedEventsGarbageRecycler;
     QueueSerial mQueueSerial;
     RefCountedEventCollector mRefCountedEvents;
 };
+
+// Two levels of RefCountedEvents recycle system: For the performance reason, we have two levels of
+// events recycler system. The first level is per ShareGroupVk, which owns RefCountedEventRecycler.
+// RefCountedEvent garbage is added to it without any lock. Once GPU complete, the refCount is
+// decremented. When the last refCount goes away, it goes into mEventsToReset. Note that since
+// ShareGoupVk access is already protected by context share lock at the API level, so no lock is
+// taken and reference counting is not atomic. At RefCountedEventsGarbageRecycler::cleanup time, the
+// entire mEventsToReset is added into renderer's list. The renderer owns RefCountedEventRecycler
+// list, and all access to it is protected with simple mutex lock. When any context calls
+// OutsideRenderPassCommandBufferHelper::flushToPrimary, mEventsToReset is retrieved from renderer
+// and the reset commands is added to the command buffer. The events are then moved to the
+// renderer's garbage list. They are checked and along with renderer's garbage cleanup and if
+// completed, they get moved to renderer's mEventsToReuse list. When a RefCountedEvent is needed, we
+// always dip into ShareGroupVk's mEventsToReuse list. If its empty, it then dip into renderer's
+// mEventsToReuse and grab a collector of events and try to reuse. That way the traffic into
+// renderer is minimized as most of calls will be contained in SHareGroupVk.
 
 // Thread safe event recycler, protected by its own lock.
 class RefCountedEventRecycler final
 {
   public:
+    RefCountedEventRecycler() {}
+    ~RefCountedEventRecycler()
+    {
+        ASSERT(mEventsToReset.empty());
+        ASSERT(mResettingQueue.empty());
+        ASSERT(mEventsToReuse.empty());
+    }
+
+    void destroy(VkDevice device);
+
+    // Add single event to the toReset list
     void recycle(RefCountedEvent &&garbageObject)
     {
-        ASSERT(garbageObject.valid());
-        ASSERT(!garbageObject.mHandle->isReferenced());
+        ASSERT(garbageObject.validAndNoReference());
         std::lock_guard<angle::SimpleMutex> lock(mMutex);
-        mFreeStack.recycle(std::move(garbageObject));
-    }
-
-    void releaseOrRecycle(Renderer *renderer, RefCountedEventCollector &&eventCollector)
-    {
-        // Take lock once and then use event's releaseImpl function to directly recycle into the
-        // underlying recycling storage.
-        std::lock_guard<angle::SimpleMutex> lock(mMutex);
-        while (!eventCollector.empty())
+        if (mEventsToReset.empty())
         {
-            eventCollector.back().releaseImpl(renderer, &mFreeStack);
-            eventCollector.pop_back();
+            mEventsToReset.emplace_back();
         }
+        mEventsToReset.back().emplace_back(std::move(garbageObject));
     }
 
-    bool fetch(RefCountedEvent *outObject)
+    // Add a list of events to the toReset list
+    void recycle(RefCountedEventCollector &&garbageObjects)
     {
-        std::lock_guard<angle::SimpleMutex> lock(mMutex);
-        if (mFreeStack.empty())
+        ASSERT(!garbageObjects.empty());
+        for (const RefCountedEvent &event : garbageObjects)
         {
-            return false;
+            ASSERT(event.validAndNoReference());
         }
-        mFreeStack.fetch(outObject);
-        ASSERT(outObject->valid());
-        ASSERT(!outObject->mHandle->isReferenced());
-        return true;
+        std::lock_guard<angle::SimpleMutex> lock(mMutex);
+        mEventsToReset.emplace_back(std::move(garbageObjects));
     }
 
-    void destroy(VkDevice device)
-    {
-        std::lock_guard<angle::SimpleMutex> lock(mMutex);
-        mFreeStack.destroy(device);
-    }
+    // Reset all events in the toReset list and move them to the toReuse list
+    void resetEvents(Context *context,
+                     const QueueSerial queueSerial,
+                     PrimaryCommandBuffer *commandbuffer);
+
+    // Clean up the resetting event list and move completed events to the toReuse list.
+    void cleanupResettingEvents(Renderer *renderer);
+
+    // Fetch a list of events that are ready to be reused. Returns true if eventsToReuseOut is
+    // returned.
+    bool fetchEventsToReuse(RefCountedEventCollector *eventsToReuseOut);
 
   private:
     angle::SimpleMutex mMutex;
-    Recycler<RefCountedEvent> mFreeStack;
+    // RefCountedEvent list that has been released, needs to be reset.
+    std::deque<RefCountedEventCollector> mEventsToReset;
+    // RefCountedEvent list that is currently resetting.
+    std::queue<RefCountedEventsGarbage> mResettingQueue;
+    // RefCountedEvent list that already has been reset. Ready to be reused.
+    std::deque<RefCountedEventCollector> mEventsToReuse;
 };
 
 // Not thread safe event garbage collection and recycler. Caller must ensure the thread safety. It
@@ -288,18 +349,18 @@ class RefCountedEventsGarbageRecycler final
 
     void recycle(RefCountedEvent &&garbageObject)
     {
-        ASSERT(garbageObject.valid());
-        ASSERT(!garbageObject.mHandle->isReferenced());
-        mFreeStack.recycle(std::move(garbageObject));
+        ASSERT(garbageObject.validAndNoReference());
+        mEventsToReset.emplace_back(std::move(garbageObject));
     }
 
-    bool fetch(RefCountedEvent *outObject);
+    bool fetch(Renderer *renderer, RefCountedEvent *outObject);
 
     size_t getGarbageCount() const { return mGarbageCount; }
 
   private:
-    Recycler<RefCountedEvent> mFreeStack;
+    RefCountedEventCollector mEventsToReset;
     std::queue<RefCountedEventsGarbage> mGarbageQueue;
+    Recycler<RefCountedEvent> mEventsToReuse;
     size_t mGarbageCount;
 };
 
@@ -403,12 +464,12 @@ class EventBarrierArray final
                                   VkPipelineStageFlags dstStageMask,
                                   VkAccessFlags dstAccess);
 
-    void addMemoryEvent(Context *context,
+    void addMemoryEvent(Renderer *renderer,
                         const RefCountedEvent &waitEvent,
                         VkPipelineStageFlags dstStageMask,
                         VkAccessFlags dstAccess);
 
-    void addImageEvent(Context *context,
+    void addImageEvent(Renderer *renderer,
                        const RefCountedEvent &waitEvent,
                        VkPipelineStageFlags dstStageMask,
                        const VkImageMemoryBarrier &imageMemoryBarrier);
@@ -420,11 +481,6 @@ class EventBarrierArray final
   private:
     std::deque<EventBarrier> mBarriers;
 };
-
-VkPipelineStageFlags GetRefCountedEventStageMask(Context *context, const RefCountedEvent &event);
-VkPipelineStageFlags GetRefCountedEventStageMask(Context *context,
-                                                 const RefCountedEvent &event,
-                                                 VkAccessFlags *accessMask);
 }  // namespace vk
 }  // namespace rx
 #endif  // LIBANGLE_RENDERER_VULKAN_REFCOUNTED_EVENT_H_

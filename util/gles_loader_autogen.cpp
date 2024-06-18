@@ -775,6 +775,11 @@ ANGLE_UTIL_EXPORT PFNGLOBJECTPTRLABELKHRPROC l_glObjectPtrLabelKHR;
 ANGLE_UTIL_EXPORT PFNGLPOPDEBUGGROUPKHRPROC l_glPopDebugGroupKHR;
 ANGLE_UTIL_EXPORT PFNGLPUSHDEBUGGROUPKHRPROC l_glPushDebugGroupKHR;
 ANGLE_UTIL_EXPORT PFNGLMAXSHADERCOMPILERTHREADSKHRPROC l_glMaxShaderCompilerThreadsKHR;
+ANGLE_UTIL_EXPORT PFNGLGETGRAPHICSRESETSTATUSKHRPROC l_glGetGraphicsResetStatusKHR;
+ANGLE_UTIL_EXPORT PFNGLGETNUNIFORMFVKHRPROC l_glGetnUniformfvKHR;
+ANGLE_UTIL_EXPORT PFNGLGETNUNIFORMIVKHRPROC l_glGetnUniformivKHR;
+ANGLE_UTIL_EXPORT PFNGLGETNUNIFORMUIVKHRPROC l_glGetnUniformuivKHR;
+ANGLE_UTIL_EXPORT PFNGLREADNPIXELSKHRPROC l_glReadnPixelsKHR;
 ANGLE_UTIL_EXPORT PFNGLFRAMEBUFFERPARAMETERIMESAPROC l_glFramebufferParameteriMESA;
 ANGLE_UTIL_EXPORT PFNGLGETFRAMEBUFFERPARAMETERIVMESAPROC l_glGetFramebufferParameterivMESA;
 ANGLE_UTIL_EXPORT PFNGLDELETEFENCESNVPROC l_glDeleteFencesNV;
@@ -810,6 +815,7 @@ ANGLE_UTIL_EXPORT PFNGLMAPBUFFEROESPROC l_glMapBufferOES;
 ANGLE_UTIL_EXPORT PFNGLUNMAPBUFFEROESPROC l_glUnmapBufferOES;
 ANGLE_UTIL_EXPORT PFNGLPRIMITIVEBOUNDINGBOXOESPROC l_glPrimitiveBoundingBoxOES;
 ANGLE_UTIL_EXPORT PFNGLMINSAMPLESHADINGOESPROC l_glMinSampleShadingOES;
+ANGLE_UTIL_EXPORT PFNGLPATCHPARAMETERIOESPROC l_glPatchParameteriOES;
 ANGLE_UTIL_EXPORT PFNGLCOMPRESSEDTEXIMAGE3DOESPROC l_glCompressedTexImage3DOES;
 ANGLE_UTIL_EXPORT PFNGLCOMPRESSEDTEXSUBIMAGE3DOESPROC l_glCompressedTexSubImage3DOES;
 ANGLE_UTIL_EXPORT PFNGLCOPYTEXSUBIMAGE3DOESPROC l_glCopyTexSubImage3DOES;
@@ -837,6 +843,8 @@ ANGLE_UTIL_EXPORT PFNGLFRAMEBUFFERFOVEATIONPARAMETERSQCOMPROC
     l_glFramebufferFoveationParametersQCOM;
 ANGLE_UTIL_EXPORT PFNGLSHADINGRATEQCOMPROC l_glShadingRateQCOM;
 ANGLE_UTIL_EXPORT PFNGLTEXTUREFOVEATIONPARAMETERSQCOMPROC l_glTextureFoveationParametersQCOM;
+ANGLE_UTIL_EXPORT PFNGLENDTILINGQCOMPROC l_glEndTilingQCOM;
+ANGLE_UTIL_EXPORT PFNGLSTARTTILINGQCOMPROC l_glStartTilingQCOM;
 ANGLE_UTIL_EXPORT PFNGLDRAWTEXFOESPROC l_glDrawTexfOES;
 ANGLE_UTIL_EXPORT PFNGLDRAWTEXFVOESPROC l_glDrawTexfvOES;
 ANGLE_UTIL_EXPORT PFNGLDRAWTEXIOESPROC l_glDrawTexiOES;
@@ -2111,6 +2119,15 @@ void LoadUtilGLES(LoadProc loadProc)
         reinterpret_cast<PFNGLPUSHDEBUGGROUPKHRPROC>(loadProc("glPushDebugGroupKHR"));
     l_glMaxShaderCompilerThreadsKHR = reinterpret_cast<PFNGLMAXSHADERCOMPILERTHREADSKHRPROC>(
         loadProc("glMaxShaderCompilerThreadsKHR"));
+    l_glGetGraphicsResetStatusKHR = reinterpret_cast<PFNGLGETGRAPHICSRESETSTATUSKHRPROC>(
+        loadProc("glGetGraphicsResetStatusKHR"));
+    l_glGetnUniformfvKHR =
+        reinterpret_cast<PFNGLGETNUNIFORMFVKHRPROC>(loadProc("glGetnUniformfvKHR"));
+    l_glGetnUniformivKHR =
+        reinterpret_cast<PFNGLGETNUNIFORMIVKHRPROC>(loadProc("glGetnUniformivKHR"));
+    l_glGetnUniformuivKHR =
+        reinterpret_cast<PFNGLGETNUNIFORMUIVKHRPROC>(loadProc("glGetnUniformuivKHR"));
+    l_glReadnPixelsKHR = reinterpret_cast<PFNGLREADNPIXELSKHRPROC>(loadProc("glReadnPixelsKHR"));
     l_glFramebufferParameteriMESA = reinterpret_cast<PFNGLFRAMEBUFFERPARAMETERIMESAPROC>(
         loadProc("glFramebufferParameteriMESA"));
     l_glGetFramebufferParameterivMESA = reinterpret_cast<PFNGLGETFRAMEBUFFERPARAMETERIVMESAPROC>(
@@ -2164,6 +2181,8 @@ void LoadUtilGLES(LoadProc loadProc)
         reinterpret_cast<PFNGLPRIMITIVEBOUNDINGBOXOESPROC>(loadProc("glPrimitiveBoundingBoxOES"));
     l_glMinSampleShadingOES =
         reinterpret_cast<PFNGLMINSAMPLESHADINGOESPROC>(loadProc("glMinSampleShadingOES"));
+    l_glPatchParameteriOES =
+        reinterpret_cast<PFNGLPATCHPARAMETERIOESPROC>(loadProc("glPatchParameteriOES"));
     l_glCompressedTexImage3DOES =
         reinterpret_cast<PFNGLCOMPRESSEDTEXIMAGE3DOESPROC>(loadProc("glCompressedTexImage3DOES"));
     l_glCompressedTexSubImage3DOES = reinterpret_cast<PFNGLCOMPRESSEDTEXSUBIMAGE3DOESPROC>(
@@ -2214,14 +2233,16 @@ void LoadUtilGLES(LoadProc loadProc)
     l_glShadingRateQCOM = reinterpret_cast<PFNGLSHADINGRATEQCOMPROC>(loadProc("glShadingRateQCOM"));
     l_glTextureFoveationParametersQCOM = reinterpret_cast<PFNGLTEXTUREFOVEATIONPARAMETERSQCOMPROC>(
         loadProc("glTextureFoveationParametersQCOM"));
-    l_glDrawTexfOES  = reinterpret_cast<PFNGLDRAWTEXFOESPROC>(loadProc("glDrawTexfOES"));
-    l_glDrawTexfvOES = reinterpret_cast<PFNGLDRAWTEXFVOESPROC>(loadProc("glDrawTexfvOES"));
-    l_glDrawTexiOES  = reinterpret_cast<PFNGLDRAWTEXIOESPROC>(loadProc("glDrawTexiOES"));
-    l_glDrawTexivOES = reinterpret_cast<PFNGLDRAWTEXIVOESPROC>(loadProc("glDrawTexivOES"));
-    l_glDrawTexsOES  = reinterpret_cast<PFNGLDRAWTEXSOESPROC>(loadProc("glDrawTexsOES"));
-    l_glDrawTexsvOES = reinterpret_cast<PFNGLDRAWTEXSVOESPROC>(loadProc("glDrawTexsvOES"));
-    l_glDrawTexxOES  = reinterpret_cast<PFNGLDRAWTEXXOESPROC>(loadProc("glDrawTexxOES"));
-    l_glDrawTexxvOES = reinterpret_cast<PFNGLDRAWTEXXVOESPROC>(loadProc("glDrawTexxvOES"));
+    l_glEndTilingQCOM   = reinterpret_cast<PFNGLENDTILINGQCOMPROC>(loadProc("glEndTilingQCOM"));
+    l_glStartTilingQCOM = reinterpret_cast<PFNGLSTARTTILINGQCOMPROC>(loadProc("glStartTilingQCOM"));
+    l_glDrawTexfOES     = reinterpret_cast<PFNGLDRAWTEXFOESPROC>(loadProc("glDrawTexfOES"));
+    l_glDrawTexfvOES    = reinterpret_cast<PFNGLDRAWTEXFVOESPROC>(loadProc("glDrawTexfvOES"));
+    l_glDrawTexiOES     = reinterpret_cast<PFNGLDRAWTEXIOESPROC>(loadProc("glDrawTexiOES"));
+    l_glDrawTexivOES    = reinterpret_cast<PFNGLDRAWTEXIVOESPROC>(loadProc("glDrawTexivOES"));
+    l_glDrawTexsOES     = reinterpret_cast<PFNGLDRAWTEXSOESPROC>(loadProc("glDrawTexsOES"));
+    l_glDrawTexsvOES    = reinterpret_cast<PFNGLDRAWTEXSVOESPROC>(loadProc("glDrawTexsvOES"));
+    l_glDrawTexxOES     = reinterpret_cast<PFNGLDRAWTEXXOESPROC>(loadProc("glDrawTexxOES"));
+    l_glDrawTexxvOES    = reinterpret_cast<PFNGLDRAWTEXXVOESPROC>(loadProc("glDrawTexxvOES"));
     l_glBindFramebufferOES =
         reinterpret_cast<PFNGLBINDFRAMEBUFFEROESPROC>(loadProc("glBindFramebufferOES"));
     l_glBindRenderbufferOES =

@@ -199,6 +199,7 @@ gles_requestable_extensions = [
     "GL_OES_fbo_render_mipmap",
     "GL_OES_geometry_shader",
     "GL_OES_get_program_binary",
+    "GL_OES_gpu_shader5",
     "GL_OES_mapbuffer",
     "GL_OES_rgb8_rgba8",
     "GL_OES_sample_shading",
@@ -207,6 +208,7 @@ gles_requestable_extensions = [
     "GL_OES_shader_io_blocks",
     "GL_OES_shader_multisample_interpolation",
     "GL_OES_standard_derivatives",
+    "GL_OES_tessellation_shader",
     "GL_OES_texture_3D",
     "GL_OES_texture_border_clamp",
     "GL_OES_texture_buffer",
@@ -228,6 +230,7 @@ gles_requestable_extensions = [
     "GL_QCOM_render_shared_exponent",
     "GL_QCOM_shading_rate",
     "GL_QCOM_texture_foveated",
+    "GL_QCOM_tiled_rendering",
     "GL_WEBGL_video_texture",
 ]
 
@@ -269,6 +272,7 @@ gles_es_only_extensions = [
     "GL_KHR_debug",
     "GL_KHR_no_error",
     "GL_KHR_robust_buffer_access_behavior",
+    "GL_KHR_robustness",
     "GL_NV_fence",
     "GL_NV_robustness_video_memory_purge",
     "GL_OES_depth24",
