@@ -84808,6 +84808,108 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = PhysicalDeviceShaderQuadControlFeaturesKHR;
   };
 
+  struct PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR
+  {
+    using NativeType = VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR( VULKAN_HPP_NAMESPACE::Bool32 shaderRelaxedExtendedInstruction_ = {},
+                                                                                    void *                       pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , shaderRelaxedExtendedInstruction{ shaderRelaxedExtendedInstruction_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR( PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR const & rhs )
+      VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR( VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR(
+          *reinterpret_cast<PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR &
+      operator=( PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR &
+      operator=( VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR &
+      setShaderRelaxedExtendedInstruction( VULKAN_HPP_NAMESPACE::Bool32 shaderRelaxedExtendedInstruction_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderRelaxedExtendedInstruction = shaderRelaxedExtendedInstruction_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR *>( this );
+    }
+
+    operator VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, shaderRelaxedExtendedInstruction );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( shaderRelaxedExtendedInstruction == rhs.shaderRelaxedExtendedInstruction );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType                            = StructureType::ePhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR;
+    void *                              pNext                            = {};
+    VULKAN_HPP_NAMESPACE::Bool32        shaderRelaxedExtendedInstruction = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR>
+  {
+    using Type = PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR;
+  };
+
   struct PhysicalDeviceShaderReplicatedCompositesFeaturesEXT
   {
     using NativeType = VkPhysicalDeviceShaderReplicatedCompositesFeaturesEXT;
