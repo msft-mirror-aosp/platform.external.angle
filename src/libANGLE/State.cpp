@@ -384,6 +384,8 @@ PrivateState::PrivateState(const EGLenum clientType,
       mShadingRatePreserveAspectRatio(false),
       mShadingRate(ShadingRate::Undefined),
       mFetchPerSample(false),
+      mIsPerfMonitorActive(false),
+      mTiledRendering(false),
       mBindGeneratesResource(bindGeneratesResourceCHROMIUM),
       mClientArraysEnabled(clientArraysEnabled),
       mRobustResourceInit(robustResourceInit),
@@ -455,6 +457,10 @@ void PrivateState::initialize(Context *context)
     mSampleAlphaToOne = false;
 
     mCoverageModulation = GL_NONE;
+
+    // This coherent blending is enabled by default, but can be enabled or disabled by calling
+    // glEnable() or glDisable() with the symbolic constant GL_BLEND_ADVANCED_COHERENT_KHR.
+    mBlendAdvancedCoherent = context->getExtensions().blendEquationAdvancedCoherentKHR;
 
     mPrimitiveRestart = false;
 
@@ -956,6 +962,15 @@ void PrivateState::setSampleAlphaToOne(bool enabled)
     }
 }
 
+void PrivateState::setBlendAdvancedCoherent(bool enabled)
+{
+    if (mBlendAdvancedCoherent != enabled)
+    {
+        mBlendAdvancedCoherent = enabled;
+        mDirtyBits.set(state::EXTENDED_DIRTY_BIT_BLEND_ADVANCED_COHERENT);
+    }
+}
+
 void PrivateState::setMultisampling(bool enabled)
 {
     if (mMultiSampling != enabled)
@@ -1269,6 +1284,9 @@ void PrivateState::setEnableFeature(GLenum feature, bool enabled)
         case GL_SAMPLE_ALPHA_TO_ONE_EXT:
             setSampleAlphaToOne(enabled);
             return;
+        case GL_BLEND_ADVANCED_COHERENT_KHR:
+            setBlendAdvancedCoherent(enabled);
+            return;
         case GL_CULL_FACE:
             setCullFace(enabled);
             return;
@@ -1450,6 +1468,8 @@ bool PrivateState::getEnableFeature(GLenum feature) const
             return isMultisamplingEnabled();
         case GL_SAMPLE_ALPHA_TO_ONE_EXT:
             return isSampleAlphaToOneEnabled();
+        case GL_BLEND_ADVANCED_COHERENT_KHR:
+            return isBlendAdvancedCoherentEnabled();
         case GL_CULL_FACE:
             return isCullFaceEnabled();
         case GL_POLYGON_OFFSET_POINT_NV:
@@ -2098,6 +2118,10 @@ void PrivateState::getIntegerv(GLenum pname, GLint *params) const
         // GL_ARM_shader_framebuffer_fetch
         case GL_FRAGMENT_SHADER_FRAMEBUFFER_FETCH_MRT_ARM:
             *params = mCaps.fragmentShaderFramebufferFetchMRT ? 1 : 0;
+            break;
+
+        case GL_BLEND_ADVANCED_COHERENT_KHR:
+            *params = mBlendAdvancedCoherent ? 1 : 0;
             break;
 
         default:
