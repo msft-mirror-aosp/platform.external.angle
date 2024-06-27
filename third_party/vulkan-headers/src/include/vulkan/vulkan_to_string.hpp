@@ -4552,6 +4552,7 @@ namespace VULKAN_HPP_NAMESPACE
       case StructureType::eBindDescriptorBufferEmbeddedSamplersInfoEXT: return "BindDescriptorBufferEmbeddedSamplersInfoEXT";
       case StructureType::ePhysicalDeviceDescriptorPoolOverallocationFeaturesNV: return "PhysicalDeviceDescriptorPoolOverallocationFeaturesNV";
       case StructureType::ePhysicalDeviceRawAccessChainsFeaturesNV: return "PhysicalDeviceRawAccessChainsFeaturesNV";
+      case StructureType::ePhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR: return "PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR";
       case StructureType::ePhysicalDeviceShaderAtomicFloat16VectorFeaturesNV: return "PhysicalDeviceShaderAtomicFloat16VectorFeaturesNV";
       case StructureType::ePhysicalDeviceShaderReplicatedCompositesFeaturesEXT: return "PhysicalDeviceShaderReplicatedCompositesFeaturesEXT";
       case StructureType::ePhysicalDeviceRayTracingValidationFeaturesNV: return "PhysicalDeviceRayTracingValidationFeaturesNV";
@@ -6507,7 +6508,7 @@ namespace VULKAN_HPP_NAMESPACE
       case DriverId::eMesaDozen: return "MesaDozen";
       case DriverId::eMesaNvk: return "MesaNvk";
       case DriverId::eImaginationOpenSourceMESA: return "ImaginationOpenSourceMESA";
-      case DriverId::eMesaAgxv: return "MesaAgxv";
+      case DriverId::eMesaHoneykrisp: return "MesaHoneykrisp";
       case DriverId::eReserved27: return "Reserved27";
       default: return "invalid ( " + VULKAN_HPP_NAMESPACE::toHexString( static_cast<uint32_t>( value ) ) + " )";
     }

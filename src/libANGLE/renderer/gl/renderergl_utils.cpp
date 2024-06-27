@@ -2040,7 +2040,9 @@ void GenerateCaps(const FunctionsGL *functions,
     extensions->gpuShader5EXT = functions->isAtLeastGL(gl::Version(4, 0)) ||
                                 functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                 functions->hasGLExtension("GL_ARB_gpu_shader5") ||
-                                functions->hasGLESExtension("GL_EXT_gpu_shader5");
+                                functions->hasGLESExtension("GL_EXT_gpu_shader5") ||
+                                functions->hasGLESExtension("GL_OES_gpu_shader5");
+    extensions->gpuShader5OES     = extensions->gpuShader5EXT;
     extensions->shaderIoBlocksOES = functions->isAtLeastGL(gl::Version(3, 2)) ||
                                     functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                     functions->hasGLESExtension("GL_OES_shader_io_blocks") ||
@@ -2251,15 +2253,14 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     bool isGetSystemInfoSuccess =
         GetSystemInfoVendorIDAndDeviceID(functions, &systemInfo, &vendor, &device);
 
-    bool isAMD         = IsAMD(vendor);
-    bool isApple       = IsAppleGPU(vendor);
-    bool isIntel       = IsIntel(vendor);
-    bool isNvidia      = IsNvidia(vendor);
-    bool isQualcomm    = IsQualcomm(vendor);
-    bool isVMWare      = IsVMWare(vendor);
-    bool hasAMD        = systemInfo.hasAMDGPU();
-    bool isImagination = IsPowerVR(vendor);
-    bool isMali        = IsARM(vendor);
+    bool isAMD      = IsAMD(vendor);
+    bool isApple    = IsAppleGPU(vendor);
+    bool isIntel    = IsIntel(vendor);
+    bool isNvidia   = IsNvidia(vendor);
+    bool isQualcomm = IsQualcomm(vendor);
+    bool isVMWare   = IsVMWare(vendor);
+    bool hasAMD     = systemInfo.hasAMDGPU();
+    bool isMali     = IsARM(vendor);
 
     std::array<int, 3> mesaVersion = {0, 0, 0};
     bool isMesa                    = IsMesa(functions, &mesaVersion);
@@ -2603,7 +2604,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
                             isNvidia && (IsWindows() || IsLinux()));
 
     // https://anglebug.com/7405
-    ANGLE_FEATURE_CONDITION(features, disableTextureClampToBorder, isImagination);
+    ANGLE_FEATURE_CONDITION(features, disableTextureClampToBorder, false);
 
     // https://anglebug.com/7527
     ANGLE_FEATURE_CONDITION(features, passHighpToPackUnormSnormBuiltins, isQualcomm);
