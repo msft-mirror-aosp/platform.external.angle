@@ -1677,6 +1677,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_ProgramBinaryOES(GLuint program,
                                                   const void *binary,
                                                   GLint length);
 
+// GL_OES_gpu_shader5
+
 // GL_OES_mapbuffer
 ANGLE_EXPORT void GL_APIENTRY GL_GetBufferPointervOES(GLenum target, GLenum pname, void **params);
 ANGLE_EXPORT void *GL_APIENTRY GL_MapBufferOES(GLenum target, GLenum access);
@@ -1732,6 +1734,9 @@ ANGLE_EXPORT void GL_APIENTRY GL_MinSampleShadingOES(GLfloat value);
 // GL_OES_standard_derivatives
 
 // GL_OES_surfaceless_context
+
+// GL_OES_tessellation_shader
+ANGLE_EXPORT void GL_APIENTRY GL_PatchParameteriOES(GLenum pname, GLint value);
 
 // GL_OES_texture_3D
 ANGLE_EXPORT void GL_APIENTRY GL_CompressedTexImage3DOES(GLenum target,
@@ -1908,6 +1913,11 @@ ANGLE_EXPORT void GL_APIENTRY GL_TextureFoveationParametersQCOM(GLuint texture,
                                                                 GLfloat gainX,
                                                                 GLfloat gainY,
                                                                 GLfloat foveaArea);
+
+// GL_QCOM_tiled_rendering
+ANGLE_EXPORT void GL_APIENTRY GL_EndTilingQCOM(GLbitfield preserveMask);
+ANGLE_EXPORT void GL_APIENTRY
+GL_StartTilingQCOM(GLuint x, GLuint y, GLuint width, GLuint height, GLbitfield preserveMask);
 }  // extern "C"
 
 #endif  // LIBGLESV2_ENTRY_POINTS_GLES_EXT_AUTOGEN_H_
