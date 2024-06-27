@@ -2485,6 +2485,8 @@ angle::CallCapture CaptureProgramBinaryOES(const State &glState,
                                            const void *binary,
                                            GLint length);
 
+// GL_OES_gpu_shader5
+
 // GL_OES_mapbuffer
 angle::CallCapture CaptureGetBufferPointervOES(const State &glState,
                                                bool isCallValid,
@@ -2567,6 +2569,12 @@ angle::CallCapture CaptureMinSampleShadingOES(const State &glState,
 // GL_OES_standard_derivatives
 
 // GL_OES_surfaceless_context
+
+// GL_OES_tessellation_shader
+angle::CallCapture CapturePatchParameteriOES(const State &glState,
+                                             bool isCallValid,
+                                             GLenum pname,
+                                             GLint value);
 
 // GL_OES_texture_3D
 angle::CallCapture CaptureCompressedTexImage3DOES(const State &glState,
@@ -2836,6 +2844,18 @@ angle::CallCapture CaptureTextureFoveationParametersQCOM(const State &glState,
                                                          GLfloat gainX,
                                                          GLfloat gainY,
                                                          GLfloat foveaArea);
+
+// GL_QCOM_tiled_rendering
+angle::CallCapture CaptureEndTilingQCOM(const State &glState,
+                                        bool isCallValid,
+                                        GLbitfield preserveMask);
+angle::CallCapture CaptureStartTilingQCOM(const State &glState,
+                                          bool isCallValid,
+                                          GLuint x,
+                                          GLuint y,
+                                          GLuint width,
+                                          GLuint height,
+                                          GLbitfield preserveMask);
 
 // Parameter Captures
 
