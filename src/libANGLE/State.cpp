@@ -95,7 +95,7 @@ T *AllocateOrGetSharedResourceManager(const State *shareContextState,
     }
 }
 
-// TODO(https://anglebug.com/3889): Remove this helper function after blink and chromium part
+// TODO(https://anglebug.com/42262534): Remove this helper function after blink and chromium part
 // refactory done.
 bool IsTextureCompatibleWithSampler(TextureType texture, TextureType sampler)
 {
@@ -465,7 +465,8 @@ void PrivateState::initialize(Context *context)
     mNoUnclampedBlendColor = context->getLimitations().noUnclampedBlendColor;
 
     // GLES1 emulation: Initialize state for GLES1 if version applies
-    // TODO(http://anglebug.com/3745): When on desktop client only do this in compatibility profile
+    // TODO(http://anglebug.com/42262402): When on desktop client only do this in compatibility
+    // profile
     if (context->getClientVersion() < Version(2, 0) || mClientType == EGL_OPENGL_API)
     {
         mGLES1State.initialize(context, this);
@@ -1714,7 +1715,7 @@ void PrivateState::getBooleanv(GLenum pname, GLboolean *params) const
             *params = mIsSampleShadingEnabled;
             break;
         case GL_PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED:
-            *params = isPrimitiveRestartEnabled() && getExtensions().tessellationShaderEXT;
+            *params = isPrimitiveRestartEnabled() && getExtensions().tessellationShaderAny();
             break;
         case GL_ROBUST_FRAGMENT_SHADER_OUTPUT_ANGLE:
             *params = mExtensions.robustFragmentShaderOutputANGLE ? GL_TRUE : GL_FALSE;
@@ -3525,7 +3526,7 @@ void State::getBooleani_v(GLenum target, GLuint index, GLboolean *data) const
     }
 }
 
-// TODO(http://anglebug.com/3889): Remove this helper function after blink and chromium part
+// TODO(http://anglebug.com/42262534): Remove this helper function after blink and chromium part
 // refactor done.
 Texture *State::getTextureForActiveSampler(TextureType type, size_t index)
 {
