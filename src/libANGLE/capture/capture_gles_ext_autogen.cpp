@@ -11162,6 +11162,19 @@ CallCapture CaptureMinSampleShadingOES(const State &glState, bool isCallValid, G
     return CallCapture(angle::EntryPoint::GLMinSampleShadingOES, std::move(paramBuffer));
 }
 
+CallCapture CapturePatchParameteriOES(const State &glState,
+                                      bool isCallValid,
+                                      GLenum pname,
+                                      GLint value)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addEnumParam("pname", GLESEnum::PatchParameterName, ParamType::TGLenum, pname);
+    paramBuffer.addValueParam("value", ParamType::TGLint, value);
+
+    return CallCapture(angle::EntryPoint::GLPatchParameteriOES, std::move(paramBuffer));
+}
+
 CallCapture CaptureCompressedTexImage3DOES(const State &glState,
                                            bool isCallValid,
                                            TextureTarget targetPacked,
@@ -12110,6 +12123,36 @@ CallCapture CaptureTextureFoveationParametersQCOM(const State &glState,
     paramBuffer.addValueParam("foveaArea", ParamType::TGLfloat, foveaArea);
 
     return CallCapture(angle::EntryPoint::GLTextureFoveationParametersQCOM, std::move(paramBuffer));
+}
+
+CallCapture CaptureEndTilingQCOM(const State &glState, bool isCallValid, GLbitfield preserveMask)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addEnumParam("preserveMask", GLESEnum::BufferBitQCOM, ParamType::TGLbitfield,
+                             preserveMask);
+
+    return CallCapture(angle::EntryPoint::GLEndTilingQCOM, std::move(paramBuffer));
+}
+
+CallCapture CaptureStartTilingQCOM(const State &glState,
+                                   bool isCallValid,
+                                   GLuint x,
+                                   GLuint y,
+                                   GLuint width,
+                                   GLuint height,
+                                   GLbitfield preserveMask)
+{
+    ParamBuffer paramBuffer;
+
+    paramBuffer.addValueParam("x", ParamType::TGLuint, x);
+    paramBuffer.addValueParam("y", ParamType::TGLuint, y);
+    paramBuffer.addValueParam("width", ParamType::TGLuint, width);
+    paramBuffer.addValueParam("height", ParamType::TGLuint, height);
+    paramBuffer.addEnumParam("preserveMask", GLESEnum::BufferBitQCOM, ParamType::TGLbitfield,
+                             preserveMask);
+
+    return CallCapture(angle::EntryPoint::GLStartTilingQCOM, std::move(paramBuffer));
 }
 
 }  // namespace gl

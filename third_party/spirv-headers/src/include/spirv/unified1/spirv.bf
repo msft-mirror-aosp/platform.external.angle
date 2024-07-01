@@ -1050,6 +1050,7 @@ namespace Spv
             TileImageColorReadAccessEXT = 4166,
             TileImageDepthReadAccessEXT = 4167,
             TileImageStencilReadAccessEXT = 4168,
+            CooperativeMatrixLayoutsARM = 4201,
             FragmentShadingRateKHR = 4422,
             SubgroupBallotKHR = 4423,
             DrawParameters = 4427,
@@ -1366,6 +1367,8 @@ namespace Spv
         {
             RowMajorKHR = 0,
             ColumnMajorKHR = 1,
+            RowBlockedInterleavedARM = 4202,
+            ColumnBlockedInterleavedARM = 4203,
         }
 
         [AllowDuplicates, CRepr] public enum CooperativeMatrixUse
@@ -1781,7 +1784,7 @@ namespace Spv
             OpSubgroupAllEqualKHR = 4430,
             OpGroupNonUniformRotateKHR = 4431,
             OpSubgroupReadInvocationKHR = 4432,
-            OpExtInstWithForwardRefs = 4433,
+            OpExtInstWithForwardRefsKHR = 4433,
             OpTraceRayKHR = 4445,
             OpExecuteCallableKHR = 4446,
             OpConvertUToAccelerationStructureKHR = 4447,

@@ -2107,6 +2107,12 @@ CallCapture ParseCallCapture(const Token &nameToken,
             ParseParameters<std::remove_pointer<PFNGLENDQUERYEXTPROC>::type>(paramTokens, strings);
         return CallCapture(EntryPoint::GLEndQueryEXT, std::move(params));
     }
+    if (strcmp(nameToken, "glEndTilingQCOM") == 0)
+    {
+        ParamBuffer params = ParseParameters<std::remove_pointer<PFNGLENDTILINGQCOMPROC>::type>(
+            paramTokens, strings);
+        return CallCapture(EntryPoint::GLEndTilingQCOM, std::move(params));
+    }
     if (strcmp(nameToken, "glEndTransformFeedback") == 0)
     {
         ParamBuffer params =
@@ -4333,6 +4339,13 @@ CallCapture ParseCallCapture(const Token &nameToken,
                                                                                     strings);
         return CallCapture(EntryPoint::GLPatchParameteriEXT, std::move(params));
     }
+    if (strcmp(nameToken, "glPatchParameteriOES") == 0)
+    {
+        ParamBuffer params =
+            ParseParameters<std::remove_pointer<PFNGLPATCHPARAMETERIOESPROC>::type>(paramTokens,
+                                                                                    strings);
+        return CallCapture(EntryPoint::GLPatchParameteriOES, std::move(params));
+    }
     if (strcmp(nameToken, "glPauseTransformFeedback") == 0)
     {
         ParamBuffer params =
@@ -5290,6 +5303,12 @@ CallCapture ParseCallCapture(const Token &nameToken,
             ParseParameters<std::remove_pointer<PFNGLSIGNALSEMAPHOREEXTPROC>::type>(paramTokens,
                                                                                     strings);
         return CallCapture(EntryPoint::GLSignalSemaphoreEXT, std::move(params));
+    }
+    if (strcmp(nameToken, "glStartTilingQCOM") == 0)
+    {
+        ParamBuffer params = ParseParameters<std::remove_pointer<PFNGLSTARTTILINGQCOMPROC>::type>(
+            paramTokens, strings);
+        return CallCapture(EntryPoint::GLStartTilingQCOM, std::move(params));
     }
     if (strcmp(nameToken, "glStencilFunc") == 0)
     {
