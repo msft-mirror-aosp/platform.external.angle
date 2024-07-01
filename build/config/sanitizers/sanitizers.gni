@@ -84,6 +84,9 @@ declare_args() {
   # Compile for fuzzing with AFL.
   use_afl = false
 
+  # Compile for fuzzing with Fuzzilli.
+  use_fuzzilli = false
+
   # Compile for fuzzing with an external engine (e.g., Grammarinator).
   use_external_fuzzing_engine = false
 
@@ -152,10 +155,22 @@ declare_args() {
   # TODO(crbug.com/40286621): enable on component builds
   enable_fuzztest_fuzz =
       !(use_libfuzzer || use_afl || use_centipede ||
-        use_external_fuzzing_engine) &&
+        use_external_fuzzing_engine || use_fuzzilli) &&
       (is_asan || is_hwasan || is_lsan || is_tsan || is_msan || is_ubsan ||
        is_ubsan_vptr || is_ubsan_security) && !is_component_build && is_linux &&
       build_with_chromium
+
+  # Whether FUZZ_TESTs should be registered as gtests in Chromium's mainstream
+  # test suites. This will cause the to run for 1 second in normal testing
+  # environments such as CI. Within Chromium, we want to do this only on
+  # platforms where we have ClusterFuzz support (Windows, Mac, Linux) because
+  # we want ClusterFuzz to find the majority of problems rather than CI.
+  # This gn arg is typically respected by general-purpose test suite
+  # initialization code; targets created specifically for fuzztests alone
+  # would not normally be disabled by a setting of 'false' here.
+  register_fuzztests_in_test_suites =
+      is_linux || is_mac || is_win || use_libfuzzer || use_afl ||
+      use_centipede || use_external_fuzzing_engine
 }
 
 assert(!is_hwasan || (target_os == "android" && target_cpu == "arm64"),
@@ -210,15 +225,16 @@ use_prebuilt_instrumented_libraries = is_msan
 # Whether we are doing a fuzzer build. Normally this should be checked instead
 # of checking "use_libfuzzer || use_afl" because often developers forget to
 # check for "use_afl", and "use_centipede" is new.
-use_fuzzing_engine =
-    use_libfuzzer || use_afl || use_centipede || use_external_fuzzing_engine
+use_fuzzing_engine = use_libfuzzer || use_afl || use_centipede ||
+                     use_external_fuzzing_engine || use_fuzzilli
 
 # Whether the current fuzzing engine supports libprotobuf_mutator.
 use_fuzzing_engine_with_lpm = use_libfuzzer || use_centipede
 
 # Whether the fuzzing engine supports fuzzers which supply their own
 # "main" function.
-fuzzing_engine_supports_custom_main = use_libfuzzer || use_centipede
+fuzzing_engine_supports_custom_main =
+    use_libfuzzer || use_centipede || use_fuzzilli
 
 # Args that are in turn dependent on other args must be in a separate
 # declare_args block. User overrides are only applied at the end of a
