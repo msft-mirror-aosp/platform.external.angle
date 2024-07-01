@@ -105,6 +105,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_OES_geometry_shader"] = enableableExtension(&Extensions::geometryShaderOES);
         map["GL_OES_get_program_binary"] = enableableExtension(&Extensions::getProgramBinaryOES);
         map["GL_EXT_gpu_shader5"] = enableableExtension(&Extensions::gpuShader5EXT);
+        map["GL_OES_gpu_shader5"] = enableableExtension(&Extensions::gpuShader5OES);
         map["GL_ANGLE_instanced_arrays"] = enableableExtension(&Extensions::instancedArraysANGLE);
         map["GL_EXT_instanced_arrays"] = enableableExtension(&Extensions::instancedArraysEXT);
         map["GL_OES_mapbuffer"] = enableableExtension(&Extensions::mapbufferOES);
@@ -165,6 +166,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_OES_surfaceless_context"] = esOnlyExtension(&Extensions::surfacelessContextOES);
         map["GL_ARB_sync"] = enableableExtension(&Extensions::syncARB);
         map["GL_EXT_tessellation_shader"] = enableableExtension(&Extensions::tessellationShaderEXT);
+        map["GL_OES_tessellation_shader"] = enableableExtension(&Extensions::tessellationShaderOES);
         map["GL_OES_texture_3D"] = enableableExtension(&Extensions::texture3DOES);
         map["GL_EXT_texture_border_clamp"] = enableableExtension(&Extensions::textureBorderClampEXT);
         map["GL_OES_texture_border_clamp"] = enableableExtension(&Extensions::textureBorderClampOES);
@@ -206,6 +208,7 @@ const ExtensionInfoMap &GetExtensionInfoMap()
         map["GL_OES_texture_storage_multisample_2d_array"] = enableableExtension(&Extensions::textureStorageMultisample2dArrayOES);
         map["GL_EXT_texture_type_2_10_10_10_REV"] = enableableExtension(&Extensions::textureType2101010REVEXT);
         map["GL_ANGLE_texture_usage"] = enableableExtension(&Extensions::textureUsageANGLE);
+        map["GL_QCOM_tiled_rendering"] = enableableExtension(&Extensions::tiledRenderingQCOM);
         map["GL_ANGLE_translated_shader_source"] = esOnlyExtension(&Extensions::translatedShaderSourceANGLE);
         map["GL_EXT_unpack_subimage"] = enableableExtension(&Extensions::unpackSubimageEXT);
         map["GL_OES_vertex_array_object"] = enableableExtension(&Extensions::vertexArrayObjectOES);
