@@ -2387,7 +2387,7 @@ void RenderPassCommandBufferHelper::finalizeColorImageLayout(
         mImageOptimizeForPresent->setCurrentImageLayout(ImageLayout::Present);
         // TODO(syoussefi):  We currently don't store the layout of the resolve attachments, so once
         // multisampled backbuffers are optimized to use resolve attachments, this information needs
-        // to be stored somewhere.  http://anglebug.com/7150
+        // to be stored somewhere.  http://anglebug.com/42265625
         SetBitField(mAttachmentOps[packedAttachmentIndex].finalLayout,
                     mImageOptimizeForPresent->getCurrentImageLayout());
         mImageOptimizeForPresent = nullptr;
@@ -6833,6 +6833,7 @@ angle::Result ImageHelper::initImplicitMultisampledRenderToTexture(
     gl::TextureType textureType,
     GLint samples,
     const ImageHelper &resolveImage,
+    const VkExtent3D &multisampleImageExtents,
     bool isRobustResourceInitEnabled)
 {
     ASSERT(!valid());
@@ -6865,13 +6866,15 @@ angle::Result ImageHelper::initImplicitMultisampledRenderToTexture(
     const VkImageCreateFlags kMultisampledCreateFlags =
         hasProtectedContent ? VK_IMAGE_CREATE_PROTECTED_BIT : 0;
 
-    ANGLE_TRY(initExternal(context, textureType, resolveImage.getExtents(),
+    // Multisampled images have only 1 level
+    constexpr uint32_t kLevelCount = 1;
+
+    ANGLE_TRY(initExternal(context, textureType, multisampleImageExtents,
                            resolveImage.getIntendedFormatID(), resolveImage.getActualFormatID(),
                            samples, kMultisampledUsageFlags, kMultisampledCreateFlags,
                            ImageLayout::Undefined, nullptr, resolveImage.getFirstAllocatedLevel(),
-                           resolveImage.getLevelCount(), resolveImage.getLayerCount(),
-                           isRobustResourceInitEnabled, hasProtectedContent,
-                           YcbcrConversionDesc{}));
+                           kLevelCount, resolveImage.getLayerCount(), isRobustResourceInitEnabled,
+                           hasProtectedContent, YcbcrConversionDesc{}));
 
     // Remove the emulated format clear from the multisampled image if any.  There is one already
     // staged on the resolve image if needed.
@@ -8045,7 +8048,7 @@ void ImageHelper::removeSingleSubresourceStagedUpdates(ContextVk *contextVk,
     for (size_t index = 0; index < levelUpdates->size();)
     {
         auto update = levelUpdates->begin() + index;
-        if (update->isUpdateToLayers(layerIndex, layerCount))
+        if (update->matchesLayerRange(layerIndex, layerCount))
         {
             // Update total staging buffer size
             mTotalStagedBufferUpdateSize -= update->updateSource == UpdateSource::Buffer
@@ -8079,7 +8082,7 @@ void ImageHelper::removeSingleStagedClearAfterInvalidate(gl::LevelIndex levelInd
     {
         auto update = levelUpdates->begin() + index;
         if (update->updateSource == UpdateSource::ClearAfterInvalidate &&
-            update->isUpdateToLayers(layerIndex, layerCount))
+            update->matchesLayerRange(layerIndex, layerCount))
         {
             // It's a clear, so doesn't need to be released.
             levelUpdates->erase(update);
@@ -8447,7 +8450,7 @@ angle::Result ImageHelper::updateSubresourceOnHost(Context *context,
     //
     // TODO: if there are any pending updates, see if they can be pruned given the incoming update.
     // This would most likely be the case where a clear is automatically staged for robustness or
-    // other reasons, which would now be superseded by the data upload.  http://anglebug.com/8341
+    // other reasons, which would now be superseded by the data upload. http://anglebug.com/42266771
     const gl::LevelIndex updateLevelGL(index.getLevelIndex());
     const uint32_t layerIndex = index.hasLayer() ? index.getLayerIndex() : 0;
     const uint32_t layerCount = index.getLayerCount();
@@ -9436,8 +9439,6 @@ angle::Result ImageHelper::flushSingleSubresourceStagedUpdates(ContextVk *contex
         return angle::Result::Continue;
     }
 
-    LevelIndex levelVk = toVkLevel(levelGL);
-
     // Handle deferred clears. Search the updates list for a matching clear index.
     if (deferredClears)
     {
@@ -9447,24 +9448,20 @@ angle::Result ImageHelper::flushSingleSubresourceStagedUpdates(ContextVk *contex
         {
             SubresourceUpdate &update = (*levelUpdates)[updateIndex];
 
-            if (update.isUpdateToLayers(layer, layerCount))
+            if (update.intersectsLayerRange(layer, layerCount))
             {
-                // On any data update, exit out. We'll need to do a full upload.
-                const bool isClear              = IsClearOfAllChannels(update.updateSource);
-                const uint32_t updateLayerCount = isClear ? update.data.clear.layerCount : 0;
-                const uint32_t imageLayerCount =
-                    mImageType == VK_IMAGE_TYPE_3D ? getLevelExtents(levelVk).depth : mLayerCount;
-
-                if (!isClear || (updateLayerCount != layerCount &&
-                                 !(update.data.clear.layerCount == VK_REMAINING_ARRAY_LAYERS &&
-                                   imageLayerCount == layerCount)))
+                // On any data update or the clear does not match exact layer range, we'll need to
+                // do a full upload.
+                const bool isClear = IsClearOfAllChannels(update.updateSource);
+                if (isClear && update.matchesLayerRange(layer, layerCount))
+                {
+                    foundClear = updateIndex;
+                }
+                else
                 {
                     foundClear.reset();
                     break;
                 }
-
-                // Otherwise track the latest clear update index.
-                foundClear = updateIndex;
             }
         }
 
@@ -9590,11 +9587,31 @@ angle::Result ImageHelper::flushStagedUpdatesImpl(ContextVk *contextVk,
     for (gl::LevelIndex updateMipLevelGL = levelGLStart; updateMipLevelGL < levelGLEnd;
          ++updateMipLevelGL)
     {
+        // If updates to this level are specifically asked to be skipped, skip
+        // them. This can happen when recreating an image that has been partially incompatibly
+        // redefined, in which case only updates to the levels that haven't been redefined
+        // should be flushed.
+        if (skipLevelsAllFaces.test(updateMipLevelGL.get()))
+        {
+            continue;
+        }
+
         // It is expected that the checked mip levels in this loop do not surpass the size of
         // mSubresourceUpdates.
         std::vector<SubresourceUpdate> *levelUpdates = getLevelUpdates(updateMipLevelGL);
         std::vector<SubresourceUpdate> updatesToKeep;
         ASSERT(levelUpdates != nullptr);
+
+        // Because updates may have overlapping layer ranges, we must first figure out the actual
+        // layer ranges that will be flushed. The updatesToKeep list must compare against this
+        // adjusted layer range. Otherwise you may end up keeping the update even though it is
+        // overlapped with the update that gets flushed, and then content gets overwritten when
+        // updatesToKeep gets flushed out.
+        uint32_t adjustedLayerStart = layerStart, adjustedLayerEnd = layerEnd;
+        if (levelUpdates->size() > 1)
+        {
+            adjustLayerRange(*levelUpdates, &adjustedLayerStart, &adjustedLayerEnd);
+        }
 
         for (SubresourceUpdate &update : *levelUpdates)
         {
@@ -9610,19 +9627,15 @@ angle::Result ImageHelper::flushStagedUpdatesImpl(ContextVk *contextVk,
 
             // If the update layers don't intersect the requested layers, skip the update.
             const bool areUpdateLayersOutsideRange =
-                updateBaseLayer + updateLayerCount <= layerStart || updateBaseLayer >= layerEnd;
-
-            const LevelIndex updateMipLevelVk = toVkLevel(updateMipLevelGL);
-
-            // Additionally, if updates to this level are specifically asked to be skipped, skip
-            // them. This can happen when recreating an image that has been partially incompatibly
-            // redefined, in which case only updates to the levels that haven't been redefined
-            // should be flushed.
-            if (areUpdateLayersOutsideRange || skipLevelsAllFaces.test(updateMipLevelGL.get()))
+                updateBaseLayer + updateLayerCount <= adjustedLayerStart ||
+                updateBaseLayer >= adjustedLayerEnd;
+            if (areUpdateLayersOutsideRange)
             {
                 updatesToKeep.emplace_back(std::move(update));
                 continue;
             }
+
+            const LevelIndex updateMipLevelVk = toVkLevel(updateMipLevelGL);
 
             // It seems we haven't fully support glCopyImageSubData
             // when compressed format emulated by uncompressed format.
@@ -9643,7 +9656,7 @@ angle::Result ImageHelper::flushStagedUpdatesImpl(ContextVk *contextVk,
                 {
                     if (!transCoding && !isDataFormatMatchForCopy(update.data.buffer.formatID))
                     {
-                        // TODO: http://anglebug.com/6368, we should handle this in higher level
+                        // TODO: http://anglebug.com/42264884, we should handle this in higher level
                         // code. If we have incompatible updates, skip but keep it.
                         updatesToKeep.emplace_back(std::move(update));
                         continue;
@@ -9948,6 +9961,29 @@ bool ImageHelper::removeStagedClearUpdatesAndReturnColor(gl::LevelIndex levelGL,
     return result;
 }
 
+void ImageHelper::adjustLayerRange(const std::vector<SubresourceUpdate> &levelUpdates,
+                                   uint32_t *layerStart,
+                                   uint32_t *layerEnd)
+{
+    for (const SubresourceUpdate &update : levelUpdates)
+    {
+        uint32_t updateBaseLayer, updateLayerCount;
+        update.getDestSubresource(mLayerCount, &updateBaseLayer, &updateLayerCount);
+        uint32_t updateLayerEnd = updateBaseLayer + updateLayerCount;
+
+        // In some cases, the update has the bigger layer range than the request. If the update
+        // layers intersect the requested layers, then expand the layer range to the maximum from
+        // the update and from the request.
+        const bool areUpdateLayersWithinRange =
+            updateBaseLayer < *layerEnd && updateLayerEnd > *layerStart;
+        if (areUpdateLayersWithinRange)
+        {
+            *layerStart = std::min(*layerStart, updateBaseLayer);
+            *layerEnd   = std::max(*layerEnd, updateLayerEnd);
+        }
+    }
+}
+
 gl::LevelIndex ImageHelper::getLastAllocatedLevel() const
 {
     return mFirstAllocatedLevel + mLevelCount - 1;
@@ -9999,6 +10035,33 @@ bool ImageHelper::hasStagedImageUpdatesWithMismatchedFormat(gl::LevelIndex level
         }
     }
     return false;
+}
+
+bool ImageHelper::hasBufferSourcedStagedUpdatesInAllLevels() const
+{
+    for (gl::LevelIndex level = mFirstAllocatedLevel; level <= getLastAllocatedLevel(); ++level)
+    {
+        const std::vector<SubresourceUpdate> *levelUpdates = getLevelUpdates(level);
+        if (levelUpdates == nullptr || levelUpdates->empty())
+        {
+            return false;
+        }
+
+        bool hasUpdateSourceWithBuffer = false;
+        for (const SubresourceUpdate &update : *levelUpdates)
+        {
+            if (update.updateSource == UpdateSource::Buffer)
+            {
+                hasUpdateSourceWithBuffer = true;
+                break;
+            }
+        }
+        if (!hasUpdateSourceWithBuffer)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool ImageHelper::validateSubresourceUpdateBufferRefConsistent(
@@ -10489,7 +10552,7 @@ angle::Result ImageHelper::readPixelsForCompressedGetImage(ContextVk *contextVk,
 
     const angle::Format *readFormat = &getActualFormat();
 
-    // TODO(anglebug.com/6177): Implement encoding for emuluated compression formats
+    // TODO(anglebug.com/42264702): Implement encoding for emuluated compression formats
     ANGLE_VK_CHECK(contextVk, readFormat->isBlock, VK_ERROR_FORMAT_NOT_SUPPORTED);
 
     if (mExtents.depth > 1 || layerCount > 1)
@@ -11163,14 +11226,24 @@ void ImageHelper::SubresourceUpdate::release(Renderer *renderer)
     }
 }
 
-bool ImageHelper::SubresourceUpdate::isUpdateToLayers(uint32_t layerIndex,
-                                                      uint32_t layerCount) const
+bool ImageHelper::SubresourceUpdate::matchesLayerRange(uint32_t layerIndex,
+                                                       uint32_t layerCount) const
 {
     uint32_t updateBaseLayer, updateLayerCount;
     getDestSubresource(gl::ImageIndex::kEntireLevel, &updateBaseLayer, &updateLayerCount);
 
     return updateBaseLayer == layerIndex &&
            (updateLayerCount == layerCount || updateLayerCount == VK_REMAINING_ARRAY_LAYERS);
+}
+
+bool ImageHelper::SubresourceUpdate::intersectsLayerRange(uint32_t layerIndex,
+                                                          uint32_t layerCount) const
+{
+    uint32_t updateBaseLayer, updateLayerCount;
+    getDestSubresource(gl::ImageIndex::kEntireLevel, &updateBaseLayer, &updateLayerCount);
+    uint32_t updateLayerEnd = updateBaseLayer + updateLayerCount;
+
+    return updateBaseLayer < (layerIndex + layerCount) && updateLayerEnd > layerIndex;
 }
 
 void ImageHelper::SubresourceUpdate::getDestSubresource(uint32_t imageLayerCount,
@@ -11353,6 +11426,23 @@ LayerMode GetLayerMode(const vk::ImageHelper &image, uint32_t layerCount)
 
     ASSERT(allLayers || (layerCount > 0 && layerCount <= gl::IMPLEMENTATION_MAX_TEXTURE_LEVELS));
     return allLayers ? LayerMode::All : static_cast<LayerMode>(layerCount);
+}
+
+ComputePipelineOptions GetComputePipelineOptions(vk::PipelineRobustness robustness,
+                                                 vk::PipelineProtectedAccess protectedAccess)
+{
+    vk::ComputePipelineOptions pipelineOptions = {};
+
+    if (robustness == vk::PipelineRobustness::Robust)
+    {
+        pipelineOptions.robustness = 1;
+    }
+    if (protectedAccess == vk::PipelineProtectedAccess::Protected)
+    {
+        pipelineOptions.protectedAccess = 1;
+    }
+
+    return pipelineOptions;
 }
 
 // ImageViewHelper implementation.
@@ -12133,13 +12223,13 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
     ComputePipelineCache *computePipelines,
     PipelineCacheAccess *pipelineCache,
     const PipelineLayout &pipelineLayout,
-    ComputePipelineFlags pipelineFlags,
+    ComputePipelineOptions pipelineOptions,
     PipelineSource source,
     PipelineHelper **pipelineOut,
     const char *shaderName,
     VkSpecializationInfo *specializationInfo) const
 {
-    PipelineHelper *computePipeline = &(*computePipelines)[pipelineFlags.bits()];
+    PipelineHelper *computePipeline = &(*computePipelines)[pipelineOptions.permutationIndex];
 
     if (computePipeline->valid())
     {
@@ -12169,7 +12259,7 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
 
     // Enable robustness on the pipeline if needed.  Note that the global robustBufferAccess feature
     // must be disabled by default.
-    if (pipelineFlags[ComputePipelineFlag::Robust])
+    if (pipelineOptions.robustness != 0)
     {
         ASSERT(context->getFeatures().supportsPipelineRobustness.enabled);
 
@@ -12182,7 +12272,7 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
     }
 
     // Restrict pipeline to protected or unprotected command buffers if possible.
-    if (pipelineFlags[ComputePipelineFlag::Protected])
+    if (pipelineOptions.protectedAccess != 0)
     {
         ASSERT(context->getFeatures().supportsPipelineProtectedAccess.enabled);
         createInfo.flags |= VK_PIPELINE_CREATE_PROTECTED_ACCESS_ONLY_BIT_EXT;

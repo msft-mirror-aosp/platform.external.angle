@@ -2481,13 +2481,13 @@ bool ValidateBeginPixelLocalStorageANGLE(const Context *context,
     // INVALID_OPERATION is generated if a single texture image is bound to more than one pixel
     // local storage plane.
     //
-    //   TODO(anglebug.com/7279): Block feedback loops
+    //   TODO(anglebug.com/40096838): Block feedback loops
     //
 
     // INVALID_OPERATION is generated if a single texture image is simultaneously bound to a pixel
     // local storage plane and attached to the draw framebuffer.
     //
-    //   TODO(anglebug.com/7279): Block feedback loops
+    //   TODO(anglebug.com/40096838): Block feedback loops
     //
 
     return true;
@@ -2680,30 +2680,26 @@ bool ValidatePatchParameteriEXT(const PrivateState &state,
 {
     if (!state.getExtensions().tessellationShaderEXT)
     {
-        errors->validationError(entryPoint, GL_INVALID_OPERATION,
-                                kTessellationShaderExtensionNotEnabled);
+        errors->validationError(entryPoint, GL_INVALID_OPERATION, kTessellationShaderEXTNotEnabled);
         return false;
     }
 
-    if (pname != GL_PATCH_VERTICES)
+    return ValidatePatchParameteriBase(state, errors, entryPoint, pname, value);
+}
+
+bool ValidatePatchParameteriOES(const PrivateState &state,
+                                ErrorSet *errors,
+                                angle::EntryPoint entryPoint,
+                                GLenum pname,
+                                GLint value)
+{
+    if (!state.getExtensions().tessellationShaderOES)
     {
-        errors->validationError(entryPoint, GL_INVALID_ENUM, kInvalidPname);
+        errors->validationError(entryPoint, GL_INVALID_OPERATION, kTessellationShaderOESNotEnabled);
         return false;
     }
 
-    if (value <= 0)
-    {
-        errors->validationError(entryPoint, GL_INVALID_VALUE, kInvalidValueNonPositive);
-        return false;
-    }
-
-    if (value > state.getCaps().maxPatchVertices)
-    {
-        errors->validationError(entryPoint, GL_INVALID_VALUE, kInvalidValueExceedsMaxPatchSize);
-        return false;
-    }
-
-    return true;
+    return ValidatePatchParameteriBase(state, errors, entryPoint, pname, value);
 }
 
 bool ValidateTexStorageMemFlags2DANGLE(const Context *context,
@@ -4435,4 +4431,37 @@ bool ValidateTextureFoveationParametersQCOM(const Context *context,
 
     return true;
 }
+
+bool ValidateEndTilingQCOM(const Context *context,
+                           angle::EntryPoint entryPoint,
+                           GLbitfield preserveMask)
+{
+    if (!context->getExtensions().tiledRenderingQCOM)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
+        return false;
+    }
+
+    UNIMPLEMENTED();
+    return false;
+}
+
+bool ValidateStartTilingQCOM(const Context *context,
+                             angle::EntryPoint entryPoint,
+                             GLuint x,
+                             GLuint y,
+                             GLuint width,
+                             GLuint height,
+                             GLbitfield preserveMask)
+{
+    if (!context->getExtensions().tiledRenderingQCOM)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExtensionNotEnabled);
+        return false;
+    }
+
+    UNIMPLEMENTED();
+    return false;
+}
+
 }  // namespace gl

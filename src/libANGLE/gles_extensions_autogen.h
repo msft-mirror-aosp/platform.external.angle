@@ -72,6 +72,7 @@ struct Extensions
         return (shaderFramebufferFetchARM || shaderFramebufferFetchEXT);
     }
     bool shaderIoBlocksAny() const { return (shaderIoBlocksEXT || shaderIoBlocksOES); }
+    bool tessellationShaderAny() const { return (tessellationShaderEXT || tessellationShaderOES); }
     bool textureBorderClampAny() const { return (textureBorderClampEXT || textureBorderClampOES); }
     bool textureBufferAny() const { return (textureBufferEXT || textureBufferOES); }
     bool textureCubeMapArrayAny() const
@@ -463,6 +464,9 @@ struct Extensions
     // GL_EXT_tessellation_shader
     bool tessellationShaderEXT = false;
 
+    // GL_OES_tessellation_shader
+    bool tessellationShaderOES = false;
+
     // GL_OES_texture_3D
     bool texture3DOES = false;
 
@@ -585,6 +589,9 @@ struct Extensions
 
     // GL_ANGLE_texture_usage
     bool textureUsageANGLE = false;
+
+    // GL_QCOM_tiled_rendering
+    bool tiledRenderingQCOM = false;
 
     // GL_ANGLE_translated_shader_source
     bool translatedShaderSourceANGLE = false;

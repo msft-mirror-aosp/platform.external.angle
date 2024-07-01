@@ -12479,6 +12479,37 @@ void GL_APIENTRY GL_MinSampleShadingOES(GLfloat value)
 
 // GL_OES_surfaceless_context
 
+// GL_OES_tessellation_shader
+void GL_APIENTRY GL_PatchParameteriOES(GLenum pname, GLint value)
+{
+    Context *context = GetValidGlobalContext();
+    EVENT(context, GLPatchParameteriOES, "context = %d, pname = %s, value = %d", CID(context),
+          GLenumToString(GLESEnum::PatchParameterName, pname), value);
+
+    if (context)
+    {
+        bool isCallValid =
+            (context->skipValidation() ||
+             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
+                                                context->getMutableErrorSetForValidation(),
+                                                angle::EntryPoint::GLPatchParameteriOES) &&
+              ValidatePatchParameteriOES(context->getPrivateState(),
+                                         context->getMutableErrorSetForValidation(),
+                                         angle::EntryPoint::GLPatchParameteriOES, pname, value)));
+        if (isCallValid)
+        {
+            ContextPrivatePatchParameteri(context->getMutablePrivateState(),
+                                          context->getMutablePrivateStateCache(), pname, value);
+        }
+        ANGLE_CAPTURE_GL(PatchParameteriOES, isCallValid, context, pname, value);
+    }
+    else
+    {
+        GenerateContextLostErrorOnCurrentGlobalContext();
+    }
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
+}
+
 // GL_OES_texture_3D
 void GL_APIENTRY GL_CompressedTexImage3DOES(GLenum target,
                                             GLint level,
@@ -13675,6 +13706,66 @@ void GL_APIENTRY GL_TextureFoveationParametersQCOM(GLuint texture,
         }
         ANGLE_CAPTURE_GL(TextureFoveationParametersQCOM, isCallValid, context, texturePacked, layer,
                          focalPoint, focalX, focalY, gainX, gainY, foveaArea);
+    }
+    else
+    {
+        GenerateContextLostErrorOnCurrentGlobalContext();
+    }
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
+}
+
+// GL_QCOM_tiled_rendering
+void GL_APIENTRY GL_EndTilingQCOM(GLbitfield preserveMask)
+{
+    Context *context = GetValidGlobalContext();
+    EVENT(context, GLEndTilingQCOM, "context = %d, preserveMask = %s", CID(context),
+          GLbitfieldToString(GLESEnum::BufferBitQCOM, preserveMask).c_str());
+
+    if (context)
+    {
+        SCOPED_SHARE_CONTEXT_LOCK(context);
+        bool isCallValid =
+            (context->skipValidation() ||
+             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
+                                                context->getMutableErrorSetForValidation(),
+                                                angle::EntryPoint::GLEndTilingQCOM) &&
+              ValidateEndTilingQCOM(context, angle::EntryPoint::GLEndTilingQCOM, preserveMask)));
+        if (isCallValid)
+        {
+            context->endTiling(preserveMask);
+        }
+        ANGLE_CAPTURE_GL(EndTilingQCOM, isCallValid, context, preserveMask);
+    }
+    else
+    {
+        GenerateContextLostErrorOnCurrentGlobalContext();
+    }
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
+}
+
+void GL_APIENTRY
+GL_StartTilingQCOM(GLuint x, GLuint y, GLuint width, GLuint height, GLbitfield preserveMask)
+{
+    Context *context = GetValidGlobalContext();
+    EVENT(context, GLStartTilingQCOM,
+          "context = %d, x = %u, y = %u, width = %u, height = %u, preserveMask = %s", CID(context),
+          x, y, width, height, GLbitfieldToString(GLESEnum::BufferBitQCOM, preserveMask).c_str());
+
+    if (context)
+    {
+        SCOPED_SHARE_CONTEXT_LOCK(context);
+        bool isCallValid =
+            (context->skipValidation() ||
+             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
+                                                context->getMutableErrorSetForValidation(),
+                                                angle::EntryPoint::GLStartTilingQCOM) &&
+              ValidateStartTilingQCOM(context, angle::EntryPoint::GLStartTilingQCOM, x, y, width,
+                                      height, preserveMask)));
+        if (isCallValid)
+        {
+            context->startTiling(x, y, width, height, preserveMask);
+        }
+        ANGLE_CAPTURE_GL(StartTilingQCOM, isCallValid, context, x, y, width, height, preserveMask);
     }
     else
     {

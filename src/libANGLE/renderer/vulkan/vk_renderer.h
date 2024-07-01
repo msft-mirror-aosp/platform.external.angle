@@ -915,8 +915,6 @@ class Renderer : angle::NonCopyable
     VkDeviceDeviceMemoryReportCreateInfoEXT mMemoryReportCallback;
     VkPhysicalDeviceShaderFloat16Int8FeaturesKHR mShaderFloat16Int8Features;
     VkPhysicalDeviceDepthStencilResolvePropertiesKHR mDepthStencilResolveProperties;
-    VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesGOOGLEX
-        mMultisampledRenderToSingleSampledFeaturesGOOGLEX;
     VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT
         mMultisampledRenderToSingleSampledFeatures;
     VkPhysicalDeviceImage2DViewOf3DFeaturesEXT mImage2dViewOf3dFeatures;
@@ -937,6 +935,8 @@ class Renderer : angle::NonCopyable
     VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT mGraphicsPipelineLibraryFeatures;
     VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT mGraphicsPipelineLibraryProperties;
     VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT mVertexInputDynamicStateFeatures;
+    VkPhysicalDeviceDynamicRenderingFeaturesKHR mDynamicRenderingFeatures;
+    VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR mDynamicRenderingLocalReadFeatures;
     VkPhysicalDeviceFragmentShadingRateFeaturesKHR mFragmentShadingRateFeatures;
     VkPhysicalDeviceFragmentShadingRatePropertiesKHR mFragmentShadingRateProperties;
     VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT mFragmentShaderInterlockFeatures;
@@ -945,6 +945,7 @@ class Renderer : angle::NonCopyable
     VkPhysicalDevicePipelineProtectedAccessFeaturesEXT mPipelineProtectedAccessFeatures;
     VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT
         mRasterizationOrderAttachmentAccessFeatures;
+    VkPhysicalDeviceMaintenance5FeaturesKHR mMaintenance5Features;
     VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT mSwapchainMaintenance1Features;
     VkPhysicalDeviceLegacyDitheringFeaturesEXT mDitheringFeatures;
     VkPhysicalDeviceDrmPropertiesEXT mDrmProperties;

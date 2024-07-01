@@ -208,6 +208,7 @@ gles_requestable_extensions = [
     "GL_OES_shader_io_blocks",
     "GL_OES_shader_multisample_interpolation",
     "GL_OES_standard_derivatives",
+    "GL_OES_tessellation_shader",
     "GL_OES_texture_3D",
     "GL_OES_texture_border_clamp",
     "GL_OES_texture_buffer",
@@ -229,6 +230,7 @@ gles_requestable_extensions = [
     "GL_QCOM_render_shared_exponent",
     "GL_QCOM_shading_rate",
     "GL_QCOM_texture_foveated",
+    "GL_QCOM_tiled_rendering",
     "GL_WEBGL_video_texture",
 ]
 

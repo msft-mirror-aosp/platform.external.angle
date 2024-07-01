@@ -2197,6 +2197,7 @@ class ImageHelper final : public Resource, public angle::Subject
                                                           gl::TextureType textureType,
                                                           GLint samples,
                                                           const ImageHelper &resolveImage,
+                                                          const VkExtent3D &multisampleImageExtents,
                                                           bool isRobustResourceInitEnabled);
 
     // Helper for initExternal and users to automatically derive the appropriate VkImageCreateInfo
@@ -2522,6 +2523,7 @@ class ImageHelper final : public Resource, public angle::Subject
                                         uint32_t layer,
                                         uint32_t layerCount) const;
     bool hasStagedUpdatesInAllocatedLevels() const;
+    bool hasBufferSourcedStagedUpdatesInAllLevels() const;
 
     bool removeStagedClearUpdatesAndReturnColor(gl::LevelIndex levelGL,
                                                 const VkClearColorValue **color);
@@ -2832,7 +2834,12 @@ class ImageHelper final : public Resource, public angle::Subject
 
         void release(Renderer *renderer);
 
-        bool isUpdateToLayers(uint32_t layerIndex, uint32_t layerCount) const;
+        // Returns true if the update's layer range exact matches [layerIndex,
+        // layerIndex+layerCount) range
+        bool matchesLayerRange(uint32_t layerIndex, uint32_t layerCount) const;
+        // Returns true if the update is to any layer within range of [layerIndex,
+        // layerIndex+layerCount)
+        bool intersectsLayerRange(uint32_t layerIndex, uint32_t layerCount) const;
         void getDestSubresource(uint32_t imageLayerCount,
                                 uint32_t *baseLayerOut,
                                 uint32_t *layerCountOut) const;
@@ -3085,6 +3092,10 @@ class ImageHelper final : public Resource, public angle::Subject
         gl::Extents ext = getLevelExtents2D(level);
         return ext.width * ext.height > kThreadholdForComputeTransCoding;
     }
+
+    void adjustLayerRange(const std::vector<SubresourceUpdate> &levelUpdates,
+                          uint32_t *layerStart,
+                          uint32_t *layerEnd);
 
     // Vulkan objects.
     Image mImage;
@@ -3541,22 +3552,27 @@ class BufferViewHelper final : public Resource
 };
 
 // Context state that can affect a compute pipeline
-enum class ComputePipelineFlag : uint8_t
+union ComputePipelineOptions final
 {
-    // Whether VK_EXT_pipeline_robustness should be used to make the pipeline robust.  Note that
-    // programs are allowed to be shared between robust and non-robust contexts, so different
-    // pipelines can be created for the same compute program.
-    Robust,
-    // Whether VK_EXT_pipeline_protected_access should be used to make the pipeline protected-only.
-    // Similar to robustness, EGL allows protected and unprotected to be in the same share group.
-    Protected,
-
-    InvalidEnum,
-    EnumCount = InvalidEnum,
+    struct
+    {
+        // Whether VK_EXT_pipeline_robustness should be used to make the pipeline robust.  Note that
+        // programs are allowed to be shared between robust and non-robust contexts, so different
+        // pipelines can be created for the same compute program.
+        uint8_t robustness : 1;
+        // Whether VK_EXT_pipeline_protected_access should be used to make the pipeline
+        // protected-only. Similar to robustness, EGL allows protected and unprotected to be in the
+        // same share group.
+        uint8_t protectedAccess : 1;
+        uint8_t reserved : 6;  // must initialize to zero
+    };
+    uint8_t permutationIndex;
+    static constexpr uint32_t kPermutationCount = 0x1 << 2;
 };
-
-using ComputePipelineFlags = angle::PackedEnumBitSet<ComputePipelineFlag, uint8_t>;
-using ComputePipelineCache = std::array<PipelineHelper, 1u << ComputePipelineFlags::size()>;
+static_assert(sizeof(ComputePipelineOptions) == 1, "Size check failed");
+ComputePipelineOptions GetComputePipelineOptions(vk::PipelineRobustness robustness,
+                                                 vk::PipelineProtectedAccess protectedAccess);
+using ComputePipelineCache = std::array<PipelineHelper, ComputePipelineOptions::kPermutationCount>;
 
 class ShaderProgramHelper : angle::NonCopyable
 {
@@ -3601,7 +3617,7 @@ class ShaderProgramHelper : angle::NonCopyable
                                              ComputePipelineCache *computePipelines,
                                              PipelineCacheAccess *pipelineCache,
                                              const PipelineLayout &pipelineLayout,
-                                             ComputePipelineFlags pipelineFlags,
+                                             ComputePipelineOptions pipelineOptions,
                                              PipelineSource source,
                                              PipelineHelper **pipelineOut,
                                              const char *shaderName,

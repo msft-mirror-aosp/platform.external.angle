@@ -5723,6 +5723,12 @@ void GL_APIENTRY glMinSampleShadingOES(GLfloat value)
 
 // GL_OES_surfaceless_context
 
+// GL_OES_tessellation_shader
+void GL_APIENTRY glPatchParameteriOES(GLenum pname, GLint value)
+{
+    return GL_PatchParameteriOES(pname, value);
+}
+
 // GL_OES_texture_3D
 void GL_APIENTRY glCompressedTexImage3DOES(GLenum target,
                                            GLint level,
@@ -6022,6 +6028,18 @@ void GL_APIENTRY glTextureFoveationParametersQCOM(GLuint texture,
 {
     return GL_TextureFoveationParametersQCOM(texture, layer, focalPoint, focalX, focalY, gainX,
                                              gainY, foveaArea);
+}
+
+// GL_QCOM_tiled_rendering
+void GL_APIENTRY glEndTilingQCOM(GLbitfield preserveMask)
+{
+    return GL_EndTilingQCOM(preserveMask);
+}
+
+void GL_APIENTRY
+glStartTilingQCOM(GLuint x, GLuint y, GLuint width, GLuint height, GLbitfield preserveMask)
+{
+    return GL_StartTilingQCOM(x, y, width, height, preserveMask);
 }
 
 #if defined(ANGLE_ENABLE_GL_DESKTOP_FRONTEND)

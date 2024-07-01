@@ -1173,6 +1173,9 @@ EXPORTS
 
     ; GL_OES_surfaceless_context
 
+    ; GL_OES_tessellation_shader
+    glPatchParameteriOES
+
     ; GL_OES_texture_3D
     glCompressedTexImage3DOES
     glCompressedTexSubImage3DOES
@@ -1251,6 +1254,10 @@ EXPORTS
 
     ; GL_QCOM_texture_foveated
     glTextureFoveationParametersQCOM
+
+    ; GL_QCOM_tiled_rendering
+    glEndTilingQCOM
+    glStartTilingQCOM
 
     ; GL 1.0
     glAccum
