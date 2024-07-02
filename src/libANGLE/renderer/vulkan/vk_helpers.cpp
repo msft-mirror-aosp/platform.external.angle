@@ -2387,7 +2387,7 @@ void RenderPassCommandBufferHelper::finalizeColorImageLayout(
         mImageOptimizeForPresent->setCurrentImageLayout(ImageLayout::Present);
         // TODO(syoussefi):  We currently don't store the layout of the resolve attachments, so once
         // multisampled backbuffers are optimized to use resolve attachments, this information needs
-        // to be stored somewhere.  http://anglebug.com/7150
+        // to be stored somewhere.  http://anglebug.com/42265625
         SetBitField(mAttachmentOps[packedAttachmentIndex].finalLayout,
                     mImageOptimizeForPresent->getCurrentImageLayout());
         mImageOptimizeForPresent = nullptr;
@@ -2661,6 +2661,24 @@ void RenderPassCommandBufferHelper::finalizeDepthStencilLoadStore(Context *conte
     if (isStencilInvalidated)
     {
         dsOps.isStencilInvalidated = true;
+    }
+
+    // If any aspect is missing, set the corresponding ops to don't care.
+    const uint32_t depthStencilIndexGL =
+        static_cast<uint32_t>(mRenderPassDesc.depthStencilAttachmentIndex());
+    const angle::FormatID attachmentFormatID = mRenderPassDesc[depthStencilIndexGL];
+    ASSERT(attachmentFormatID != angle::FormatID::NONE);
+    const angle::Format &angleFormat = angle::Format::Get(attachmentFormatID);
+
+    if (angleFormat.depthBits == 0)
+    {
+        depthLoadOp  = RenderPassLoadOp::DontCare;
+        depthStoreOp = RenderPassStoreOp::DontCare;
+    }
+    if (angleFormat.stencilBits == 0)
+    {
+        stencilLoadOp  = RenderPassLoadOp::DontCare;
+        stencilStoreOp = RenderPassStoreOp::DontCare;
     }
 
     // If the image is being written to, mark its contents defined.
@@ -8450,7 +8468,7 @@ angle::Result ImageHelper::updateSubresourceOnHost(Context *context,
     //
     // TODO: if there are any pending updates, see if they can be pruned given the incoming update.
     // This would most likely be the case where a clear is automatically staged for robustness or
-    // other reasons, which would now be superseded by the data upload.  http://anglebug.com/8341
+    // other reasons, which would now be superseded by the data upload. http://anglebug.com/42266771
     const gl::LevelIndex updateLevelGL(index.getLevelIndex());
     const uint32_t layerIndex = index.hasLayer() ? index.getLayerIndex() : 0;
     const uint32_t layerCount = index.getLayerCount();
@@ -9656,7 +9674,7 @@ angle::Result ImageHelper::flushStagedUpdatesImpl(ContextVk *contextVk,
                 {
                     if (!transCoding && !isDataFormatMatchForCopy(update.data.buffer.formatID))
                     {
-                        // TODO: http://anglebug.com/6368, we should handle this in higher level
+                        // TODO: http://anglebug.com/42264884, we should handle this in higher level
                         // code. If we have incompatible updates, skip but keep it.
                         updatesToKeep.emplace_back(std::move(update));
                         continue;
@@ -10552,7 +10570,7 @@ angle::Result ImageHelper::readPixelsForCompressedGetImage(ContextVk *contextVk,
 
     const angle::Format *readFormat = &getActualFormat();
 
-    // TODO(anglebug.com/6177): Implement encoding for emuluated compression formats
+    // TODO(anglebug.com/42264702): Implement encoding for emuluated compression formats
     ANGLE_VK_CHECK(contextVk, readFormat->isBlock, VK_ERROR_FORMAT_NOT_SUPPORTED);
 
     if (mExtents.depth > 1 || layerCount > 1)
@@ -11428,6 +11446,23 @@ LayerMode GetLayerMode(const vk::ImageHelper &image, uint32_t layerCount)
     return allLayers ? LayerMode::All : static_cast<LayerMode>(layerCount);
 }
 
+ComputePipelineOptions GetComputePipelineOptions(vk::PipelineRobustness robustness,
+                                                 vk::PipelineProtectedAccess protectedAccess)
+{
+    vk::ComputePipelineOptions pipelineOptions = {};
+
+    if (robustness == vk::PipelineRobustness::Robust)
+    {
+        pipelineOptions.robustness = 1;
+    }
+    if (protectedAccess == vk::PipelineProtectedAccess::Protected)
+    {
+        pipelineOptions.protectedAccess = 1;
+    }
+
+    return pipelineOptions;
+}
+
 // ImageViewHelper implementation.
 ImageViewHelper::ImageViewHelper() : mCurrentBaseMaxLevelHash(0), mLinearColorspace(true) {}
 
@@ -12206,13 +12241,13 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
     ComputePipelineCache *computePipelines,
     PipelineCacheAccess *pipelineCache,
     const PipelineLayout &pipelineLayout,
-    ComputePipelineFlags pipelineFlags,
+    ComputePipelineOptions pipelineOptions,
     PipelineSource source,
     PipelineHelper **pipelineOut,
     const char *shaderName,
     VkSpecializationInfo *specializationInfo) const
 {
-    PipelineHelper *computePipeline = &(*computePipelines)[pipelineFlags.bits()];
+    PipelineHelper *computePipeline = &(*computePipelines)[pipelineOptions.permutationIndex];
 
     if (computePipeline->valid())
     {
@@ -12242,7 +12277,7 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
 
     // Enable robustness on the pipeline if needed.  Note that the global robustBufferAccess feature
     // must be disabled by default.
-    if (pipelineFlags[ComputePipelineFlag::Robust])
+    if (pipelineOptions.robustness != 0)
     {
         ASSERT(context->getFeatures().supportsPipelineRobustness.enabled);
 
@@ -12255,7 +12290,7 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
     }
 
     // Restrict pipeline to protected or unprotected command buffers if possible.
-    if (pipelineFlags[ComputePipelineFlag::Protected])
+    if (pipelineOptions.protectedAccess != 0)
     {
         ASSERT(context->getFeatures().supportsPipelineProtectedAccess.enabled);
         createInfo.flags |= VK_PIPELINE_CREATE_PROTECTED_ACCESS_ONLY_BIT_EXT;
