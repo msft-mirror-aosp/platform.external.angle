@@ -848,6 +848,21 @@ ANGLE_EXPORT void GL_APIENTRY GL_BufferStorageEXT(GLenum target,
                                                   const void *data,
                                                   GLbitfield flags);
 
+// GL_EXT_clear_texture
+ANGLE_EXPORT void GL_APIENTRY
+GL_ClearTexImageEXT(GLuint texture, GLint level, GLenum format, GLenum type, const void *data);
+ANGLE_EXPORT void GL_APIENTRY GL_ClearTexSubImageEXT(GLuint texture,
+                                                     GLint level,
+                                                     GLint xoffset,
+                                                     GLint yoffset,
+                                                     GLint zoffset,
+                                                     GLsizei width,
+                                                     GLsizei height,
+                                                     GLsizei depth,
+                                                     GLenum format,
+                                                     GLenum type,
+                                                     const void *data);
+
 // GL_EXT_clip_control
 ANGLE_EXPORT void GL_APIENTRY GL_ClipControlEXT(GLenum origin, GLenum depth);
 
@@ -1411,6 +1426,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_TexStorage3DEXT(GLenum target,
 
 // GL_KHR_blend_equation_advanced
 ANGLE_EXPORT void GL_APIENTRY GL_BlendBarrierKHR();
+
+// GL_KHR_blend_equation_advanced_coherent
 
 // GL_KHR_debug
 ANGLE_EXPORT void GL_APIENTRY GL_DebugMessageCallbackKHR(GLDEBUGPROCKHR callback,
