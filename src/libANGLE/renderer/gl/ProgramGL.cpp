@@ -420,55 +420,58 @@ angle::Result ProgramGL::linkJobImpl(const gl::Extensions &extensions)
             else if (fragmentShader && fragmentShader->shaderVersion >= 300)
             {
                 // ESSL 3.00 and up.
-                auto assignOutputLocations = [this](const std::vector<gl::VariableLocation>
-                                                        &locations) {
-                    const gl::ProgramExecutable &executable = mState.getExecutable();
-                    for (size_t outputLocationIndex = 0u; outputLocationIndex < locations.size();
-                         ++outputLocationIndex)
-                    {
-                        const gl::VariableLocation &outputLocation = locations[outputLocationIndex];
-                        if (outputLocation.arrayIndex != 0 || !outputLocation.used() ||
-                            outputLocation.ignored)
+                auto assignOutputLocations =
+                    [this](const std::vector<gl::VariableLocation> &locations) {
+                        const gl::ProgramExecutable &executable = mState.getExecutable();
+                        for (size_t outputLocationIndex = 0u;
+                             outputLocationIndex < locations.size(); ++outputLocationIndex)
                         {
-                            continue;
-                        }
-
-                        const gl::ProgramOutput &outputVar =
-                            executable.getOutputVariables()[outputLocation.index];
-                        if (outputVar.pod.hasShaderAssignedLocation)
-                        {
-                            continue;
-                        }
-
-                        // We only need to assign the location and index via the API if the variable
-                        // doesn't have a shader-assigned location.
-                        ASSERT(outputVar.pod.index != -1);
-
-                        // Skip assignment due to Qualcomm driver issues.
-                        if (mFeatures.avoidBindFragDataLocation.enabled)
-                        {
-                            // Warn the user that they had attempted an explicit API assignment that
-                            // cannot be honored
-                            if (outputVar.pod.hasApiAssignedLocation)
+                            const gl::VariableLocation &outputLocation =
+                                locations[outputLocationIndex];
+                            if (outputLocation.arrayIndex != 0 || !outputLocation.used() ||
+                                outputLocation.ignored)
                             {
-                                executable.getInfoLog()
-                                    << "Unable to assign fragment data location for output "
-                                       "variable "
-                                    << outputVar.mappedName
-                                    << " due to driver issues. See http://anglebug.com/42267082";
+                                continue;
                             }
 
-                            continue;
-                        }
+                            const gl::ProgramOutput &outputVar =
+                                executable.getOutputVariables()[outputLocation.index];
+                            if (outputVar.pod.hasShaderAssignedLocation)
+                            {
+                                continue;
+                            }
 
-                        mFunctions->bindFragDataLocationIndexed(
-                            mProgramID, static_cast<int>(outputLocationIndex), outputVar.pod.index,
-                            outputVar.mappedName.c_str());
-                    }
-                };
+                            // We only need to assign the location and index via the API if the
+                            // variable doesn't have a shader-assigned location.
+                            ASSERT(outputVar.pod.index != -1);
+
+                            // Avoid calling glBindFragDataLocationIndexed unless the application
+                            // did it explicitly to avoid Qualcomm driver bugs with multiple render
+                            // targets.
+                            if (mFeatures.avoidBindFragDataLocation.enabled &&
+                                !outputVar.pod.hasApiAssignedLocation)
+                            {
+                                continue;
+                            }
+
+                            mFunctions->bindFragDataLocationIndexed(
+                                mProgramID, static_cast<int>(outputLocationIndex),
+                                outputVar.pod.index, outputVar.mappedName.c_str());
+                        }
+                    };
+
+                ANGLE_GL_CLEAR_ERRORS(mFunctions);
 
                 assignOutputLocations(executable.getOutputLocations());
                 assignOutputLocations(executable.getSecondaryOutputLocations());
+
+                GLenum error = mFunctions->getError();
+                if (error != GL_NO_ERROR)
+                {
+                    executable.getInfoLog()
+                        << "Failed to bind frag data locations. See http://anglebug.com/42267082";
+                    return angle::Result::Stop;
+                }
             }
         }
     }

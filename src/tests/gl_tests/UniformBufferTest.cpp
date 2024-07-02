@@ -3762,6 +3762,9 @@ class UniformBufferMemoryTest : public UniformBufferTest
 // supposedly to issue flush if needed.
 TEST_P(UniformBufferMemoryTest, BufferDataInLoopManyTimes)
 {
+    GLPerfMonitor monitor;
+    glBeginPerfMonitorAMD(monitor);
+
     // Run this test for Vulkan only.
     ANGLE_SKIP_TEST_IF(!IsVulkan());
     uint64_t expectedSubmitCalls = getPerfCounters().commandQueueSubmitCallsTotal + 1;
@@ -3801,6 +3804,8 @@ TEST_P(UniformBufferMemoryTest, BufferDataInLoopManyTimes)
             break;
         }
     }
+    glEndPerfMonitorAMD(monitor);
+
     EXPECT_EQ(getPerfCounters().commandQueueSubmitCallsTotal, expectedSubmitCalls);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_NEAR(0, 0, 128, 191, 64, 255, 1);
@@ -3830,7 +3835,7 @@ TEST_P(WebGL2UniformBufferTest, LargeArrayOfStructs)
     constexpr char kVertexShader[] = R"(
         struct InstancingData
         {
-            mat4 transformation;
+            vec4 transformation;
         };
 
         layout(std140) uniform InstanceBlock
@@ -3840,7 +3845,7 @@ TEST_P(WebGL2UniformBufferTest, LargeArrayOfStructs)
 
         void main()
         {
-            gl_Position = vec4(1.0) * instances[gl_InstanceID].transformation;
+            gl_Position = vec4(1.0) * instances[gl_InstanceID].transformation[0];
         })";
 
     constexpr char kFragmentShader[] = R"(#version 300 es
@@ -3855,12 +3860,9 @@ TEST_P(WebGL2UniformBufferTest, LargeArrayOfStructs)
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUniformBlockSize);
 
     std::string vs = "#version 300 es\n#define MAX_INSTANCE_COUNT " +
-                     std::to_string(std::min(800, maxUniformBlockSize / 64)) + kVertexShader;
+                     std::to_string(maxUniformBlockSize / 16) + kVertexShader;
 
     ANGLE_GL_PROGRAM(program, vs.c_str(), kFragmentShader);
-    // Add a draw call for the sake of the Vulkan backend that currently really builds shaders at
-    // draw time.
-    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UniformBufferTest);
