@@ -45,6 +45,7 @@ angle_config_cc_defaults {
 
 cc_defaults {
     name: "angle_common_library_cflags",
+    cpp_std: "gnu++17",
     cflags: [
         "-O2",
         "-Wno-unknown-warning-option",
@@ -58,7 +59,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r26b_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-19-init-10646-g084e2b53-57\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-19-init-14561-gecea8371-1\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -66,7 +67,6 @@ cc_defaults {
         "-D_GNU_SOURCE",
         "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE",
         "-D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__",
-        "-Wno-bitfield-constant-conversion",
         "-Wno-builtin-macro-redefined",
         "-Wno-c++11-narrowing-const-reference",
         "-Wno-cast-function-type",
@@ -75,6 +75,7 @@ cc_defaults {
         "-Wno-ignored-pragma-optimize",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
+        "-Wno-missing-template-arg-list-after-template-kw",
         "-Wno-psabi",
         "-Wno-thread-safety-reference-return",
         "-Wno-trigraphs",
@@ -4460,6 +4461,7 @@ cc_defaults {
     srcs: [
         "third_party/abseil-cpp/absl/debugging/internal/demangle.cc",
         "third_party/abseil-cpp/absl/debugging/internal/demangle_rust.cc",
+        "third_party/abseil-cpp/absl/debugging/internal/utf8_for_code_point.cc",
     ],
     defaults: [
         "angle_common_auto_cflags",
@@ -4467,6 +4469,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_base_base",
         "third_party_abseil_cpp_absl_base_config",
         "third_party_abseil_cpp_absl_base_core_headers",
+        "third_party_abseil_cpp_absl_numeric_bits",
     ],
     local_include_dirs: [
         "",
@@ -6450,6 +6453,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "third_party_abseil_cpp_absl_base_config",
         "third_party_abseil_cpp_absl_base_core_headers",
         "third_party_abseil_cpp_absl_meta_type_traits",
     ],

@@ -107,7 +107,7 @@ angle::Result FramebufferWgpu::clear(const gl::Context *context, GLbitfield mask
     bool clearColor   = IsMaskFlagSet(mask, static_cast<GLbitfield>(GL_COLOR_BUFFER_BIT));
     bool clearDepth   = IsMaskFlagSet(mask, static_cast<GLbitfield>(GL_DEPTH_BUFFER_BIT));
     bool clearStencil = IsMaskFlagSet(mask, static_cast<GLbitfield>(GL_STENCIL_BUFFER_BIT));
-    // TODO(anglebug.com/8582): support clearing depth and stencil buffers.
+    // TODO(anglebug.com/42267012): support clearing depth and stencil buffers.
     ASSERT(!clearDepth && !clearStencil && clearColor);
 
     ContextWgpu *contextWgpu             = GetImplAs<ContextWgpu>(context);
@@ -123,7 +123,7 @@ angle::Result FramebufferWgpu::clear(const gl::Context *context, GLbitfield mask
     {
         colorAttachments.push_back(webgpu::CreateNewClearColorAttachment(
             clearValue, wgpu::kDepthSliceUndefined,
-            mRenderTargetCache.getColorDraw(mState, enabledDrawBuffer)->getTexture()));
+            mRenderTargetCache.getColorDraw(mState, enabledDrawBuffer)->getTextureView()));
     }
 
     // Attempt to end a render pass if one has already been started.
@@ -450,7 +450,7 @@ angle::Result FramebufferWgpu::flushDeferredClears(ContextWgpu *contextWgpu)
         }
         mCurrentColorAttachments.push_back(webgpu::CreateNewClearColorAttachment(
             mDeferredClears[colorIndexGL].clearColor, mDeferredClears[colorIndexGL].depthSlice,
-            mRenderTargetCache.getColorDraw(mState, colorIndexGL)->getTexture()));
+            mRenderTargetCache.getColorDraw(mState, colorIndexGL)->getTextureView()));
     }
     mCurrentRenderPassDesc.colorAttachmentCount = mCurrentColorAttachments.size();
     mCurrentRenderPassDesc.colorAttachments     = mCurrentColorAttachments.data();
