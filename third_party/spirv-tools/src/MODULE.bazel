@@ -12,3 +12,8 @@ local_path_override(
     path = "external/re2",
 )
 
+bazel_dep(name = "effcee", dev_dependency = True)
+local_path_override(
+    module_name = "effcee",
+    path = "external/effcee",
+)
