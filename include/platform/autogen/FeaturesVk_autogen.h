@@ -259,13 +259,6 @@ struct FeaturesVk : FeatureSetBase
         &members, "http://anglebug.com/7551"
     };
 
-    FeatureInfo supportsMultisampledRenderToSingleSampledGOOGLEX = {
-        "supportsMultisampledRenderToSingleSampledGOOGLEX",
-        FeatureCategory::VulkanFeatures,
-        "VkDevice supports the VK_GOOGLEX_multisampled_render_to_single_sampled extension",
-        &members, "http://anglebug.com/4836"
-    };
-
     FeatureInfo supportsMultisampledRenderToSingleSampled = {
         "supportsMultisampledRenderToSingleSampled",
         FeatureCategory::VulkanFeatures,
@@ -509,13 +502,6 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanWorkarounds,
         "Expose EXT_multisampled_render_to_texture",
         &members, "http://anglebug.com/4937"
-    };
-
-    FeatureInfo deferFlushUntilEndRenderPass = {
-        "deferFlushUntilEndRenderPass",
-        FeatureCategory::VulkanWorkarounds,
-        "Allow glFlush to be deferred until renderpass ends",
-        &members, "https://issuetracker.google.com/issues/166475273"
     };
 
     FeatureInfo waitIdleBeforeSwapchainRecreation = {
@@ -1449,6 +1435,27 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanFeatures,
         "VkDevice supports VK_KHR_synchronization2 extension",
         &members, "https://issuetracker.google.com/336844257"
+    };
+
+    FeatureInfo supportsDynamicRendering = {
+        "supportsDynamicRendering",
+        FeatureCategory::VulkanFeatures,
+        "VkDevice supports VK_KHR_dynamic_rendering extension",
+        &members, "http://anglebug.com/42267038"
+    };
+
+    FeatureInfo supportsDynamicRenderingLocalRead = {
+        "supportsDynamicRenderingLocalRead",
+        FeatureCategory::VulkanFeatures,
+        "VkDevice supports VK_KHR_dynamic_rendering_local_read extension",
+        &members, "http://anglebug.com/42267038"
+    };
+
+    FeatureInfo preferDynamicRendering = {
+        "preferDynamicRendering",
+        FeatureCategory::VulkanFeatures,
+        "Whether dynamic rendering should be used instead of render pass objects",
+        &members, "http://anglebug.com/42267038"
     };
 
 };
