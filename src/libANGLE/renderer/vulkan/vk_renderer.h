@@ -136,7 +136,7 @@ class OneOffCommandPool : angle::NonCopyable
     std::deque<PendingOneOffCommands> mPendingCommands;
 };
 
-enum class UseValidationLayers
+enum class UseDebugLayers
 {
     Yes,
     YesIfAvailable,
@@ -160,7 +160,7 @@ class Renderer : angle::NonCopyable
                              angle::vk::ICD desiredICD,
                              uint32_t preferredVendorId,
                              uint32_t preferredDeviceId,
-                             UseValidationLayers useValidationLayers,
+                             UseDebugLayers useDebugLayers,
                              const char *wsiExtension,
                              const char *wsiLayer,
                              angle::NativeWindowSystem nativeWindowSystem,
@@ -915,8 +915,6 @@ class Renderer : angle::NonCopyable
     VkDeviceDeviceMemoryReportCreateInfoEXT mMemoryReportCallback;
     VkPhysicalDeviceShaderFloat16Int8FeaturesKHR mShaderFloat16Int8Features;
     VkPhysicalDeviceDepthStencilResolvePropertiesKHR mDepthStencilResolveProperties;
-    VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesGOOGLEX
-        mMultisampledRenderToSingleSampledFeaturesGOOGLEX;
     VkPhysicalDeviceMultisampledRenderToSingleSampledFeaturesEXT
         mMultisampledRenderToSingleSampledFeatures;
     VkPhysicalDeviceImage2DViewOf3DFeaturesEXT mImage2dViewOf3dFeatures;
@@ -929,6 +927,7 @@ class Renderer : angle::NonCopyable
     VkPhysicalDeviceHostQueryResetFeaturesEXT mHostQueryResetFeatures;
     VkPhysicalDeviceDepthClampZeroOneFeaturesEXT mDepthClampZeroOneFeatures;
     VkPhysicalDeviceDepthClipControlFeaturesEXT mDepthClipControlFeatures;
+    VkPhysicalDeviceBlendOperationAdvancedFeaturesEXT mBlendOperationAdvancedFeatures;
     VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT mPrimitivesGeneratedQueryFeatures;
     VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT mPrimitiveTopologyListRestartFeatures;
     VkPhysicalDeviceSamplerYcbcrConversionFeatures mSamplerYcbcrConversionFeatures;
@@ -947,6 +946,7 @@ class Renderer : angle::NonCopyable
     VkPhysicalDevicePipelineProtectedAccessFeaturesEXT mPipelineProtectedAccessFeatures;
     VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT
         mRasterizationOrderAttachmentAccessFeatures;
+    VkPhysicalDeviceMaintenance5FeaturesKHR mMaintenance5Features;
     VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT mSwapchainMaintenance1Features;
     VkPhysicalDeviceLegacyDitheringFeaturesEXT mDitheringFeatures;
     VkPhysicalDeviceDrmPropertiesEXT mDrmProperties;
