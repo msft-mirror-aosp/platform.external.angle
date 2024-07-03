@@ -3500,6 +3500,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_container_hash_container_defaults",
         "third_party_abseil_cpp_absl_container_raw_hash_set",
         "third_party_abseil_cpp_absl_memory_memory",
+        "third_party_abseil_cpp_absl_meta_type_traits",
     ],
     local_include_dirs: [
         "",
@@ -6617,7 +6618,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_container_container_memory",
         "third_party_abseil_cpp_absl_container_hash_container_defaults",
         "third_party_abseil_cpp_absl_container_raw_hash_map",
-        "third_party_abseil_cpp_absl_memory_memory",
+        "third_party_abseil_cpp_absl_meta_type_traits",
     ],
     local_include_dirs: [
         "",

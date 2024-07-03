@@ -71,6 +71,7 @@
 +components/autofill
 +components/discardable_memory
 +components/guest_view/
++components/performance_manager
 +components/plus_addresses
 -courgette/
 -crypto/
@@ -104,6 +105,7 @@
 -rlz/
 -sandbox/
 -services/
++services/webnn/
 -signing_keys/
 -skia/
 -sql/
