@@ -61,8 +61,13 @@
 -cc/
 -chrome/
 +chrome/browser/apps/guest_view/
++chrome/browser/autofill/
 +chrome/browser/extensions/api/web_view/
 +chrome/browser/guest_view/
++chrome/browser/navigation_predictor/
++chrome/browser/preloading/
++chrome/browser/ui/autofill/
++chrome/browser/ui/views/autofill/
 -chromecast/
 -chromeos/
 -clank/
@@ -115,7 +120,7 @@
 -tools/
 -ui/
 +ui/views/
--url/
+-url/third_party
 -v8/
 -webkit/
 
