@@ -17,7 +17,9 @@ namespace sh
 namespace
 {
 constexpr const ImmutableString kHashedNamePrefix("webgl_");
+#ifdef __APPLE__
 constexpr const ImmutableString kStructNamePrefix("s_");
+#endif  // __APPLE__
 
 ImmutableString HashName(const ImmutableString &name, ShHashFunction64 hashFunction)
 {
