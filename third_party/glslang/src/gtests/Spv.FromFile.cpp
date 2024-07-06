@@ -551,6 +551,7 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.floatFetch.frag",
         "spv.atomicRvalue.error.vert",
         "spv.sampledImageBlock.frag",
+        "spv.multiple.var.same.const.frag",
     })),
     FileNameAsCustomTestSuffix
 );
@@ -953,6 +954,7 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.debuginfo.scalar_types.glsl.frag",
         "spv.debuginfo.rt_types.glsl.rgen",
         "spv.debuginfo.include.glsl.frag",
+        "spv.debuginfo.multiline.glsl.frag",
     })),
     FileNameAsCustomTestSuffix
 );

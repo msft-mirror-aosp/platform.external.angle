@@ -130,6 +130,12 @@ int getMaliGNumber(const FunctionsGL *functions)
     return number;
 }
 
+bool IsAdreno3xx(const FunctionsGL *functions)
+{
+    int number = getAdrenoNumber(functions);
+    return number != 0 && number >= 300 && number < 400;
+}
+
 bool IsAdreno42xOr3xx(const FunctionsGL *functions)
 {
     int number = getAdrenoNumber(functions);
@@ -198,22 +204,6 @@ bool IsPowerVrRogue(const FunctionsGL *functions)
     const char *nativeGLRenderer  = GetString(functions, GL_RENDERER);
     return angle::BeginsWith(nativeGLRenderer, powerVRRogue);
 }
-
-void ClearErrors(const FunctionsGL *functions,
-                 const char *file,
-                 const char *function,
-                 unsigned int line)
-{
-    GLenum error = functions->getError();
-    while (error != GL_NO_ERROR)
-    {
-        INFO() << "Preexisting GL error " << gl::FmtHex(error) << " as of " << file << ", "
-               << function << ":" << line << ". ";
-        error = functions->getError();
-    }
-}
-
-#define ANGLE_GL_CLEAR_ERRORS() ClearErrors(functions, __FILE__, __FUNCTION__, __LINE__)
 
 }  // namespace
 
@@ -447,7 +437,7 @@ static bool CheckSizedInternalFormatTextureRenderability(const FunctionsGL *func
 
     if (!supported)
     {
-        ANGLE_GL_CLEAR_ERRORS();
+        ANGLE_GL_CLEAR_ERRORS(functions);
     }
 
     ASSERT(functions->getError() == GL_NO_ERROR);
@@ -499,7 +489,7 @@ static bool CheckInternalFormatRenderbufferRenderability(const FunctionsGL *func
 
     if (!supported)
     {
-        ANGLE_GL_CLEAR_ERRORS();
+        ANGLE_GL_CLEAR_ERRORS(functions);
     }
 
     ASSERT(functions->getError() == GL_NO_ERROR);
@@ -581,7 +571,7 @@ static gl::TextureCaps GenerateTextureFormatCaps(const FunctionsGL *functions,
             queryInternalFormat = GL_RGBA8;
         }
 
-        ANGLE_GL_CLEAR_ERRORS();
+        ANGLE_GL_CLEAR_ERRORS(functions);
         GLint numSamples = 0;
         functions->getInternalformativ(GL_RENDERBUFFER, queryInternalFormat, GL_NUM_SAMPLE_COUNTS,
                                        1, &numSamples);
@@ -1065,6 +1055,10 @@ void GenerateCaps(const FunctionsGL *functions,
             QuerySingleGLInt64(functions, GL_MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS);
         caps->maxCombinedShaderUniformComponents[gl::ShaderType::Fragment] =
             QuerySingleGLInt64(functions, GL_MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS);
+
+        // Clamp the maxUniformBlockSize to 64KB (majority of devices support up to this size
+        // currently), some drivers expose an excessively large value.
+        caps->maxUniformBlockSize = std::min<GLint64>(0x10000, caps->maxUniformBlockSize);
     }
     else
     {
@@ -1257,6 +1251,9 @@ void GenerateCaps(const FunctionsGL *functions,
     else
     {
         LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
+        // Set maxVertexAttribBindings anyway, a number of places assume this value is at least as
+        // much as maxVertexAttributes.
+        caps->maxVertexAttribBindings = caps->maxVertexAttributes;
     }
 
     if (functions->isAtLeastGL(gl::Version(4, 3)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
@@ -1530,7 +1527,7 @@ void GenerateCaps(const FunctionsGL *functions,
     else if (functions->hasGLESExtension("GL_NV_polygon_mode"))
     {
         // Some drivers expose the extension string without supporting its caps.
-        ANGLE_GL_CLEAR_ERRORS();
+        ANGLE_GL_CLEAR_ERRORS(functions);
         functions->isEnabled(GL_POLYGON_OFFSET_LINE_NV);
         if (functions->getError() != GL_NO_ERROR)
         {
@@ -1837,21 +1834,16 @@ void GenerateCaps(const FunctionsGL *functions,
     }
 #endif
 
-    extensions->sRGBWriteControlEXT = functions->isAtLeastGL(gl::Version(3, 0)) ||
-                                      functions->hasGLExtension("GL_EXT_framebuffer_sRGB") ||
-                                      functions->hasGLExtension("GL_ARB_framebuffer_sRGB") ||
-                                      functions->hasGLESExtension("GL_EXT_sRGB_write_control");
+    extensions->sRGBWriteControlEXT = !features.srgbBlendingBroken.enabled &&
+                                      (functions->isAtLeastGL(gl::Version(3, 0)) ||
+                                       functions->hasGLExtension("GL_EXT_framebuffer_sRGB") ||
+                                       functions->hasGLExtension("GL_ARB_framebuffer_sRGB") ||
+                                       functions->hasGLESExtension("GL_EXT_sRGB_write_control"));
 
-#if defined(ANGLE_PLATFORM_ANDROID)
-    // SRGB blending does not appear to work correctly on the Nexus 5. Writing to an SRGB
-    // framebuffer with GL_FRAMEBUFFER_SRGB enabled and then reading back returns the same value.
-    // Disabling GL_FRAMEBUFFER_SRGB will then convert in the wrong direction.
-    extensions->sRGBWriteControlEXT = false;
-
-    // BGRA formats do not appear to be accepted by the Nexus 5X driver despite the extension being
-    // exposed.
-    extensions->textureFormatBGRA8888EXT = false;
-#endif
+    if (features.bgraTexImageFormatsBroken.enabled)
+    {
+        extensions->textureFormatBGRA8888EXT = false;
+    }
 
     // EXT_discard_framebuffer can be implemented as long as glDiscardFramebufferEXT or
     // glInvalidateFramebuffer is available
@@ -2160,6 +2152,26 @@ void GenerateCaps(const FunctionsGL *functions,
 
     // GL_ANGLE_logic_op
     extensions->logicOpANGLE = functions->isAtLeastGL(gl::Version(2, 0));
+
+    // GL_EXT_clear_texture
+    extensions->clearTextureEXT = functions->isAtLeastGL(gl::Version(4, 4)) ||
+                                  functions->hasGLESExtension("GL_EXT_clear_texture") ||
+                                  functions->hasGLExtension("GL_ARB_clear_texture");
+
+    // GL_QCOM_tiled_rendering
+    extensions->tiledRenderingQCOM = !features.disableTiledRendering.enabled &&
+                                     functions->hasGLESExtension("GL_QCOM_tiled_rendering");
+
+    extensions->blendEquationAdvancedKHR =
+        functions->hasGLExtension("GL_NV_blend_equation_advanced") ||
+        functions->hasGLExtension("GL_KHR_blend_equation_advanced") ||
+        functions->isAtLeastGLES(gl::Version(3, 2)) ||
+        functions->hasGLESExtension("GL_KHR_blend_equation_advanced");
+    extensions->blendEquationAdvancedCoherentKHR =
+        functions->hasGLExtension("GL_NV_blend_equation_advanced_coherent") ||
+        functions->hasGLExtension("GL_KHR_blend_equation_advanced_coherent") ||
+        functions->isAtLeastGLES(gl::Version(3, 2)) ||
+        functions->hasGLESExtension("GL_KHR_blend_equation_advanced_coherent");
 
     // PVRTC1 textures must be squares on Apple platforms.
     if (IsApple())
@@ -2681,6 +2693,26 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // https://crbug.com/40279678
     ANGLE_FEATURE_CONDITION(features, useIntermediateTextureForGenerateMipmap,
                             IsPixel7OrPixel8(functions));
+
+    // SRGB blending does not appear to work correctly on the Nexus 5 + other QC devices. Writing to
+    // an SRGB framebuffer with GL_FRAMEBUFFER_SRGB enabled and then reading back returns the same
+    // value. Disabling GL_FRAMEBUFFER_SRGB will then convert in the wrong direction.
+    ANGLE_FEATURE_CONDITION(features, srgbBlendingBroken, IsQualcomm(vendor));
+
+    // BGRA formats do not appear to be accepted by the qualcomm driver despite the extension being
+    // exposed.
+    ANGLE_FEATURE_CONDITION(features, bgraTexImageFormatsBroken, IsQualcomm(vendor));
+
+    // https://github.com/flutter/flutter/issues/47164
+    // https://github.com/flutter/flutter/issues/47804
+    // Some devices expose the QCOM tiled memory extension string but don't actually provide the
+    // start and end tiling functions.
+    bool missingTilingEntryPoints = functions->hasGLESExtension("GL_QCOM_tiled_rendering") &&
+                                    (!functions->startTilingQCOM || !functions->endTilingQCOM);
+
+    // http://skbug.com/9491: Nexus5 produces rendering artifacts when we use QCOM_tiled_rendering.
+    ANGLE_FEATURE_CONDITION(features, disableTiledRendering,
+                            missingTilingEntryPoints || IsAdreno3xx(functions));
 }
 
 void InitializeFrontendFeatures(const FunctionsGL *functions, angle::FrontendFeatures *features)
@@ -2974,6 +3006,20 @@ ClearMultiviewGL *GetMultiviewClearer(const gl::Context *context)
 const angle::FeaturesGL &GetFeaturesGL(const gl::Context *context)
 {
     return GetImplAs<ContextGL>(context)->getFeaturesGL();
+}
+
+void ClearErrors(const FunctionsGL *functions,
+                 const char *file,
+                 const char *function,
+                 unsigned int line)
+{
+    GLenum error = functions->getError();
+    while (error != GL_NO_ERROR)
+    {
+        INFO() << "Preexisting GL error " << gl::FmtHex(error) << " as of " << file << ", "
+               << function << ":" << line << ". ";
+        error = functions->getError();
+    }
 }
 
 void ClearErrors(const gl::Context *context,

@@ -89,6 +89,9 @@ struct Extensions
     // GL_KHR_blend_equation_advanced
     bool blendEquationAdvancedKHR = false;
 
+    // GL_KHR_blend_equation_advanced_coherent
+    bool blendEquationAdvancedCoherentKHR = false;
+
     // GL_EXT_blend_func_extended
     bool blendFuncExtendedEXT = false;
 
@@ -97,6 +100,9 @@ struct Extensions
 
     // GL_EXT_buffer_storage
     bool bufferStorageEXT = false;
+
+    // GL_EXT_clear_texture
+    bool clearTextureEXT = false;
 
     // GL_EXT_clip_control
     bool clipControlEXT = false;
