@@ -58,6 +58,12 @@ constexpr bool kEnableCRCForPipelineCache = true;
 #else
 constexpr bool kEnableCRCForPipelineCache = false;
 #endif
+
+#if defined(ANGLE_ENABLE_VULKAN_API_DUMP_LAYER)
+constexpr bool kEnableVulkanAPIDumpLayer = true;
+#else
+constexpr bool kEnableVulkanAPIDumpLayer = false;
+#endif
 }  // anonymous namespace
 
 namespace rx
@@ -1356,6 +1362,28 @@ void DumpPipelineCacheGraph(Renderer *renderer, const std::ostringstream &graph)
     out << "}\n";
     out.close();
 }
+
+bool CanSupportMSRTSSForRGBA8(Renderer *renderer)
+{
+    // The support is checked for a basic 2D texture.
+    constexpr VkImageUsageFlags kImageUsageFlags =
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+        VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    VkImageCreateFlags imageCreateFlags =
+        GetMinimalImageCreateFlags(renderer, gl::TextureType::_2D, kImageUsageFlags) |
+        VK_IMAGE_CREATE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_BIT_EXT;
+
+    bool supportsMSRTTUsageRGBA8 = vk::ImageHelper::FormatSupportsUsage(
+        renderer, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+        kImageUsageFlags, imageCreateFlags, nullptr,
+        vk::ImageHelper::FormatSupportCheck::RequireMultisampling);
+    bool supportsMSRTTUsageRGBA8SRGB = vk::ImageHelper::FormatSupportsUsage(
+        renderer, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+        kImageUsageFlags, imageCreateFlags, nullptr,
+        vk::ImageHelper::FormatSupportCheck::RequireMultisampling);
+
+    return supportsMSRTTUsageRGBA8 && supportsMSRTTUsageRGBA8SRGB;
+}
 }  // namespace
 
 // OneOffCommandPool implementation.
@@ -1756,7 +1784,7 @@ angle::Result Renderer::initialize(vk::Context *context,
                                    angle::vk::ICD desiredICD,
                                    uint32_t preferredVendorId,
                                    uint32_t preferredDeviceId,
-                                   UseValidationLayers useValidationLayers,
+                                   UseDebugLayers useDebugLayers,
                                    const char *wsiExtension,
                                    const char *wsiLayer,
                                    angle::NativeWindowSystem nativeWindowSystem,
@@ -1788,9 +1816,19 @@ angle::Result Renderer::initialize(vk::Context *context,
 
     mGlobalOps = globalOps;
 
-    angle::vk::ScopedVkLoaderEnvironment scopedEnvironment(
-        useValidationLayers != UseValidationLayers::No, desiredICD);
-    mEnableValidationLayers = scopedEnvironment.canEnableValidationLayers();
+    // While the validation layer is loaded by default whenever present, apidump layer
+    // activation is controlled by an environment variable/android property allowing
+    // the two layers to be controlled independently.
+    bool enableApiDumpLayer =
+        kEnableVulkanAPIDumpLayer && angle::GetEnvironmentVarOrAndroidProperty(
+                                         "ANGLE_ENABLE_VULKAN_API_DUMP_LAYER",
+                                         "debug.angle.enable_vulkan_api_dump_layer") == "1";
+
+    bool loadLayers = (useDebugLayers != UseDebugLayers::No) || enableApiDumpLayer;
+    angle::vk::ScopedVkLoaderEnvironment scopedEnvironment(loadLayers, desiredICD);
+    bool debugLayersLoaded  = scopedEnvironment.canEnableDebugLayers();
+    mEnableValidationLayers = debugLayersLoaded;
+    enableApiDumpLayer      = enableApiDumpLayer && debugLayersLoaded;
     mEnabledICD             = scopedEnvironment.getEnabledICD();
 
     // Gather global layer properties.
@@ -1811,12 +1849,15 @@ angle::Result Renderer::initialize(vk::Context *context,
     }
 
     VulkanLayerVector enabledInstanceLayerNames;
-#if defined(ANGLE_ENABLE_VULKAN_API_DUMP_LAYER)
-    enabledInstanceLayerNames.push_back("VK_LAYER_LUNARG_api_dump");
-#endif
+
+    if (enableApiDumpLayer)
+    {
+        enabledInstanceLayerNames.push_back("VK_LAYER_LUNARG_api_dump");
+    }
+
     if (mEnableValidationLayers)
     {
-        const bool layersRequested = useValidationLayers == UseValidationLayers::Yes;
+        const bool layersRequested = useDebugLayers == UseDebugLayers::Yes;
         mEnableValidationLayers = GetAvailableValidationLayers(instanceLayerProps, layersRequested,
                                                                &enabledInstanceLayerNames);
     }
@@ -2387,6 +2428,11 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
     {
         vk::AddToPNextChain(deviceFeatures, &mDynamicRenderingLocalReadFeatures);
     }
+
+    if (ExtensionFound(VK_EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mBlendOperationAdvancedFeatures);
+    }
 }
 
 // The following features and properties used by ANGLE have been promoted to Vulkan 1.1:
@@ -2726,6 +2772,10 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mSynchronization2Features       = {};
     mSynchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
 
+    mBlendOperationAdvancedFeatures = {};
+    mBlendOperationAdvancedFeatures.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BLEND_OPERATION_ADVANCED_FEATURES_EXT;
+
 #if defined(ANGLE_PLATFORM_ANDROID)
     mExternalFormatResolveFeatures = {};
     mExternalFormatResolveFeatures.sType =
@@ -2805,6 +2855,7 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     m8BitStorageFeatures.pNext                        = nullptr;
     m16BitStorageFeatures.pNext                       = nullptr;
     mSynchronization2Features.pNext                   = nullptr;
+    mBlendOperationAdvancedFeatures.pNext             = nullptr;
 #if defined(ANGLE_PLATFORM_ANDROID)
     mExternalFormatResolveFeatures.pNext   = nullptr;
     mExternalFormatResolveProperties.pNext = nullptr;
@@ -3003,6 +3054,7 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
     if (mFeatures.supportsBlendOperationAdvanced.enabled)
     {
         mEnabledDeviceExtensions.push_back(VK_EXT_BLEND_OPERATION_ADVANCED_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mBlendOperationAdvancedFeatures);
     }
 
     if (mFeatures.supportsGraphicsPipelineLibrary.enabled)
@@ -4444,16 +4496,19 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, disableDepthStencilResolveThroughAttachment,
                             isNvidia || isQualcommProprietary);
 
+    // MSRTSS is disabled if the driver does not support it for RGBA8 and RGBA8_SRGB.
+    // This is used to filter out known drivers where support for sRGB formats are missing.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsMultisampledRenderToSingleSampled,
-        mFeatures.supportsRenderpass2.enabled && mFeatures.supportsDepthStencilResolve.enabled &&
-            mMultisampledRenderToSingleSampledFeatures.multisampledRenderToSingleSampled ==
-                VK_TRUE);
+        mMultisampledRenderToSingleSampledFeatures.multisampledRenderToSingleSampled == VK_TRUE &&
+            mFeatures.supportsRenderpass2.enabled &&
+            mFeatures.supportsDepthStencilResolve.enabled && CanSupportMSRTSSForRGBA8(this));
 
     // Preferring the MSRTSS flag is for texture initialization. If the MSRTSS is not used at first,
     // it will be used (if available) when recreating the image if it is bound to an MSRTT
     // framebuffer.
-    ANGLE_FEATURE_CONDITION(&mFeatures, preferMSRTSSFlagByDefault, isARM);
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferMSRTSSFlagByDefault,
+                            mFeatures.supportsMultisampledRenderToSingleSampled.enabled && isARM);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImage2dViewOf3d,
                             mImage2dViewOf3dFeatures.image2DViewOf3D == VK_TRUE);
@@ -4764,6 +4819,13 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         &mFeatures, emulateAdvancedBlendEquations,
         !mFeatures.supportsBlendOperationAdvanced.enabled &&
             (IsAndroid() || !isIntel || (isIntel && IsLinux() && isMesaAtLeast22_0_0)));
+
+    // GL_KHR_blend_equation_advanced_coherent ensures that the blending operations are performed in
+    // API primitive order.
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsBlendOperationAdvancedCoherent,
+        mFeatures.supportsBlendOperationAdvanced.enabled &&
+            mBlendOperationAdvancedFeatures.advancedBlendCoherentOperations == VK_TRUE);
 
     // http://anglebug.com/42265410
     // Android expects VkPresentRegionsKHR rectangles with a bottom-left origin, while spec
