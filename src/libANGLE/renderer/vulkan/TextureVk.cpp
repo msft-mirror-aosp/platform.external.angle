@@ -572,7 +572,7 @@ angle::Result TextureVk::setCompressedImage(const gl::Context *context,
     if (unpackBuffer &&
         this->isCompressedFormatEmulated(context, index.getTarget(), index.getLevelIndex()))
     {
-        // TODO (anglebug.com/7464): Can't populate from a buffer using emulated format
+        // TODO (anglebug.com/42265933): Can't populate from a buffer using emulated format
         UNIMPLEMENTED();
         return angle::Result::Stop;
     }
@@ -601,7 +601,7 @@ angle::Result TextureVk::setCompressedSubImage(const gl::Context *context,
     if (unpackBuffer &&
         this->isCompressedFormatEmulated(context, index.getTarget(), index.getLevelIndex()))
     {
-        // TODO (anglebug.com/7464): Can't populate from a buffer using emulated format
+        // TODO (anglebug.com/42265933): Can't populate from a buffer using emulated format
         UNIMPLEMENTED();
         return angle::Result::Stop;
     }
@@ -642,7 +642,7 @@ bool TextureVk::isFastUnpackPossible(const vk::Format &vkFormat,
 {
     // Conditions to determine if fast unpacking is possible
     // 1. Image must be well defined to unpack directly to it
-    //    TODO(http://anglebug.com/4222) Create and stage a temp image instead
+    //    TODO(http://anglebug.com/42262852) Create and stage a temp image instead
     // 2. Can't perform a fast copy for depth/stencil, except from non-emulated depth or stencil
     //    to emulated depth/stencil.  GL requires depth and stencil data to be packed, while Vulkan
     //    requires them to be separate.
@@ -1409,7 +1409,7 @@ angle::Result TextureVk::copySubImageImplWithTransfer(ContextVk *contextVk,
     }
 
     // Perform self-copies through a staging buffer.
-    // TODO: optimize to copy directly if possible.  http://anglebug.com/4719
+    // TODO: optimize to copy directly if possible.  http://anglebug.com/42263319
     bool isSelfCopy = mImage == srcImage;
 
     // If destination is valid, copy the source directly into it.
@@ -1577,7 +1577,7 @@ angle::Result TextureVk::copySubImageImplWithDraw(ContextVk *contextVk,
     bool isDest3D = gl_vk::GetImageType(mState.getType()) == VK_IMAGE_TYPE_3D;
 
     // Perform self-copies through a staging buffer.
-    // TODO: optimize to copy directly if possible.  http://anglebug.com/4719
+    // TODO: optimize to copy directly if possible.  http://anglebug.com/42263319
     bool isSelfCopy = mImage == srcImage;
     params.srcColorEncoding =
         gl::GetSizedInternalFormatInfo(srcImage->getIntendedFormat().glInternalFormat)
@@ -1824,7 +1824,7 @@ angle::Result TextureVk::setEGLImageTarget(const gl::Context *context,
     ANGLE_TRY(contextVk->getShareGroup()->lockDefaultContextsPriority(contextVk));
 
     // TODO: Textures other than EGLImage targets can have immutable samplers.
-    // http://anglebug.com/5773
+    // http://anglebug.com/42264309
     handleImmutableSamplerTransition(mImage, imageVk ? imageVk->getImage() : nullptr);
 
     releaseAndDeleteImageAndViews(contextVk);
@@ -3650,20 +3650,37 @@ angle::Result TextureVk::initImage(ContextVk *contextVk,
     {
         VkImageCreateFlags createFlagsMultisampled =
             mImageCreateFlags | VK_IMAGE_CREATE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_BIT_EXT;
+        bool isActualFormatSRGB             = angle::Format::Get(actualImageFormatID).isSRGB;
         const VkFormat additionalViewFormat = rx::vk::GetVkFormatFromFormatID(
-            angle::Format::Get(actualImageFormatID).isSRGB ? ConvertToLinear(actualImageFormatID)
-                                                           : ConvertToSRGB(actualImageFormatID));
+            isActualFormatSRGB ? ConvertToLinear(actualImageFormatID)
+                               : ConvertToSRGB(actualImageFormatID));
+        const bool isAdditionalFormatValid = additionalViewFormat != VK_FORMAT_UNDEFINED;
 
-        // Note: If we ever fail the following check, we should use the emulation path for this
-        // texture instead of ignoring MSRTT.
-        if (vk::ImageHelper::FormatSupportsUsage(
-                renderer, actualImageFormat, imageType, imageTiling, mImageUsageFlags,
-                createFlagsMultisampled, nullptr,
-                vk::ImageHelper::FormatSupportCheck::RequireMultisampling) &&
+        // If the texture has already been bound to an MSRTT framebuffer, lack of support should
+        // result in failure.
+        bool supportsMSRTTUsageActualFormat = vk::ImageHelper::FormatSupportsUsage(
+            renderer, actualImageFormat, imageType, imageTiling, mImageUsageFlags,
+            createFlagsMultisampled, nullptr,
+            vk::ImageHelper::FormatSupportCheck::RequireMultisampling);
+        bool supportsMSRTTUsageAdditionalFormat =
+            !isAdditionalFormatValid ||
             vk::ImageHelper::FormatSupportsUsage(
                 renderer, additionalViewFormat, imageType, imageTiling, mImageUsageFlags,
                 createFlagsMultisampled, nullptr,
-                vk::ImageHelper::FormatSupportCheck::RequireMultisampling))
+                vk::ImageHelper::FormatSupportCheck::RequireMultisampling);
+
+        bool supportsMSRTTUsage =
+            supportsMSRTTUsageActualFormat && supportsMSRTTUsageAdditionalFormat;
+        if (ANGLE_UNLIKELY(mState.hasBeenBoundToMSRTTFramebuffer() && !supportsMSRTTUsage))
+        {
+            ERR() << "Texture bound to EXT_multisampled_render_to_texture framebuffer, "
+                  << "but this device does not support this format.";
+            ANGLE_VK_TRY(contextVk, VK_ERROR_FORMAT_NOT_SUPPORTED);
+        }
+
+        // Note: If we ever fail the following check, we should use the emulation path for this
+        // texture instead of ignoring MSRTT.
+        if (supportsMSRTTUsage)
         {
             // If supported by format add the MSRTSS flag because any texture might end up as an
             // MSRTT attachment.
@@ -3996,7 +4013,7 @@ angle::Result TextureVk::getTexImage(const gl::Context *context,
 {
     if (packBuffer && this->isCompressedFormatEmulated(context, target, level))
     {
-        // TODO (anglebug.com/7464): Can't populate from a buffer using emulated format
+        // TODO (anglebug.com/42265933): Can't populate from a buffer using emulated format
         UNIMPLEMENTED();
         return angle::Result::Stop;
     }
@@ -4007,7 +4024,7 @@ angle::Result TextureVk::getTexImage(const gl::Context *context,
     GLint baseLevel = static_cast<int>(mState.getBaseLevel());
     if (level < baseLevel || level >= baseLevel + static_cast<int>(mState.getEnabledLevelCount()))
     {
-        // TODO(http://anglebug.com/6336): Handle inconsistent textures.
+        // TODO(http://anglebug.com/42264855): Handle inconsistent textures.
         WARN() << "GetTexImage for inconsistent texture levels is not implemented.";
         UNIMPLEMENTED();
         return angle::Result::Continue;
@@ -4050,7 +4067,7 @@ angle::Result TextureVk::getCompressedTexImage(const gl::Context *context,
     GLint baseLevel = static_cast<int>(mState.getBaseLevel());
     if (level < baseLevel || level >= baseLevel + static_cast<int>(mState.getEnabledLevelCount()))
     {
-        // TODO(http://anglebug.com/6336): Handle inconsistent textures.
+        // TODO(http://anglebug.com/42264855): Handle inconsistent textures.
         WARN() << "GetCompressedTexImage for inconsistent texture levels is not implemented.";
         UNIMPLEMENTED();
         return angle::Result::Continue;
