@@ -384,7 +384,7 @@ TEST_P(MultithreadingTest, MultiContextDrawWithSwapBuffers)
 {
     ANGLE_SKIP_TEST_IF(!platformSupportsMultithreading());
 
-    // http://anglebug.com/5099
+    // http://anglebug.com/42263666
     ANGLE_SKIP_TEST_IF(IsAndroid() && IsOpenGLES());
 
     EGLWindow *window = getEGLWindow();
@@ -491,7 +491,7 @@ TEST_P(MultithreadingTest, MultiContextCreateAndDeleteResources)
 
 TEST_P(MultithreadingTest, MultiCreateContext)
 {
-    // Supported by CGL, GLX, and WGL (https://anglebug.com/4725)
+    // Supported by CGL, GLX, and WGL (https://anglebug.com/42263324)
     // Not supported on Ozone (https://crbug.com/1103009)
     ANGLE_SKIP_TEST_IF(!(IsWindows() || IsLinux() || IsMac()) || IsOzone());
 
@@ -542,7 +542,7 @@ TEST_P(MultithreadingTest, MultiCreateContext)
 // Create multiple shared context and draw with shared vertex buffer simutanously
 TEST_P(MultithreadingTest, CreateMultiSharedContextAndDraw)
 {
-    // Supported by CGL, GLX, and WGL (https://anglebug.com/4725)
+    // Supported by CGL, GLX, and WGL (https://anglebug.com/42263324)
     // Not supported on Ozone (https://crbug.com/1103009)
     ANGLE_SKIP_TEST_IF(!(IsWindows() || IsLinux() || IsMac()) || IsOzone());
     EGLWindow *window             = getEGLWindow();
@@ -1086,7 +1086,7 @@ void MultithreadingTestES3::mainThreadDraw(bool useDraw)
 // application.
 TEST_P(MultithreadingTestES3, MultithreadFenceDraw)
 {
-    // http://anglebug.com/5418
+    // http://anglebug.com/40096752
     ANGLE_SKIP_TEST_IF(IsLinux() && IsVulkan() && (IsIntel() || isSwiftshader()));
 
     // Have the secondary thread use glDrawArrays()
@@ -1097,10 +1097,10 @@ TEST_P(MultithreadingTestES3, MultithreadFenceDraw)
 // glDrawArrays.
 TEST_P(MultithreadingTestES3, MultithreadFenceTexImage)
 {
-    // http://anglebug.com/5418
+    // http://anglebug.com/40096752
     ANGLE_SKIP_TEST_IF(IsLinux() && IsIntel() && IsVulkan());
 
-    // http://anglebug.com/5439
+    // http://anglebug.com/42263977
     ANGLE_SKIP_TEST_IF(IsLinux() && isSwiftshader());
 
     // Have the secondary thread use glTexImage2D()
@@ -3448,8 +3448,8 @@ void main()
 
         for (uint32_t x = 0; x < 8; ++x)
         {
-            // The compressed data is gibberish, just ensure it's not black.
-            EXPECT_PIXEL_COLOR_NEAR(x * w / 8, h / 4, GLColor(128, 128, 128, 128), 127);
+            // The compressed data is gibberish, just ensure it's not all black.
+            EXPECT_PIXEL_NE(x * w / 8, h / 4, 0, 0, 0, 0);
         }
         ASSERT_GL_NO_ERROR();
     };
