@@ -60,6 +60,8 @@ class SamplerHelper;
 enum class ImageLayout;
 class PipelineCacheAccess;
 class RenderPassCommandBufferHelper;
+class PackedClearValuesArray;
+class AttachmentOpsArray;
 
 using RefCountedDescriptorSetLayout    = AtomicRefCounted<DescriptorSetLayout>;
 using RefCountedPipelineLayout         = AtomicRefCounted<PipelineLayout>;
@@ -237,6 +239,39 @@ class alignas(4) RenderPassDesc final
         return static_cast<angle::FormatID>(mAttachmentFormats[index]);
     }
 
+    // Start a render pass with a render pass object.
+    void beginRenderPass(Context *context,
+                         PrimaryCommandBuffer *primary,
+                         const RenderPass &renderPass,
+                         VkFramebuffer framebuffer,
+                         const gl::Rectangle &renderArea,
+                         VkSubpassContents subpassContents,
+                         PackedClearValuesArray &clearValues,
+                         const VkRenderPassAttachmentBeginInfo *attachmentBeginInfo) const;
+
+    // Start a render pass with dynamic rendering.
+    void beginRendering(Context *context,
+                        PrimaryCommandBuffer *primary,
+                        const gl::Rectangle &renderArea,
+                        VkSubpassContents subpassContents,
+                        const FramebufferAttachmentsVector<VkImageView> &attachmentViews,
+                        const AttachmentOpsArray &ops,
+                        PackedClearValuesArray &clearValues,
+                        uint32_t layerCount) const;
+
+    void populateRenderingInheritanceInfo(
+        Renderer *renderer,
+        VkCommandBufferInheritanceRenderingInfo *infoOut,
+        gl::DrawBuffersArray<VkFormat> *colorFormatStorageOut) const;
+
+    // Calculate perf counters for a dynamic rendering render pass instance.  For render pass
+    // objects, the perf counters are updated when creating the render pass, where access to
+    // ContextVk is available.
+    void updatePerfCounters(Context *context,
+                            const FramebufferAttachmentsVector<VkImageView> &attachmentViews,
+                            const AttachmentOpsArray &ops,
+                            angle::VulkanPerfCounters *countersOut);
+
   private:
     uint8_t mSamples;
     uint8_t mColorAttachmentRange;
@@ -347,7 +382,7 @@ struct PackedAttachmentOpsDesc final
     // so that the resolve attachment's storeOp can be set to DONT_CARE if the attachment is
     // invalidated, and if possible removed from the list of resolve attachments altogether.  Note
     // that the latter may not be possible if the render pass has multiple subpasses due to Vulkan
-    // render pass compatibility rules.
+    // render pass compatibility rules (not an issue with dynamic rendering).
     uint16_t isInvalidated : 1;
     uint16_t isStencilInvalidated : 1;
     uint16_t padding1 : 6;
@@ -753,7 +788,7 @@ class GraphicsPipelineDesc final
     VkResult initializePipeline(Context *context,
                                 PipelineCacheAccess *pipelineCache,
                                 GraphicsPipelineSubset subset,
-                                const RenderPass &compatibleRenderPass,
+                                const RenderPass *compatibleRenderPass,
                                 const PipelineLayout &pipelineLayout,
                                 const ShaderModuleMap &shaders,
                                 const SpecializationConstants &specConsts,
@@ -985,7 +1020,7 @@ class GraphicsPipelineDesc final
 constexpr size_t kGraphicsPipelineDescSize = sizeof(GraphicsPipelineDesc);
 static_assert(kGraphicsPipelineDescSize == kGraphicsPipelineDescSumOfSizes, "Size mismatch");
 
-// Values are based on data recorded here -> https://anglebug.com/8677#c4
+// Values are based on data recorded here -> https://anglebug.com/42267114#comment5
 constexpr size_t kDefaultDescriptorSetLayoutBindingsCount = 8;
 constexpr size_t kDefaultImmutableSamplerBindingsCount    = 1;
 using DescriptorSetLayoutBindingVector =
@@ -1005,11 +1040,11 @@ class DescriptorSetLayoutDesc final
     size_t hash() const;
     bool operator==(const DescriptorSetLayoutDesc &other) const;
 
-    void update(uint32_t bindingIndex,
-                VkDescriptorType descriptorType,
-                uint32_t count,
-                VkShaderStageFlags stages,
-                const Sampler *immutableSampler);
+    void addBinding(uint32_t bindingIndex,
+                    VkDescriptorType descriptorType,
+                    uint32_t count,
+                    VkShaderStageFlags stages,
+                    const Sampler *immutableSampler);
 
     void unpackBindings(DescriptorSetLayoutBindingVector *bindings) const;
 
@@ -1021,15 +1056,16 @@ class DescriptorSetLayoutDesc final
     // TODO: https://issuetracker.google.com/issues/159156775: Have immutable sampler use serial
     union PackedDescriptorSetBinding
     {
+        static constexpr uint8_t kInvalidType = 255;
+
         struct
         {
-            uint8_t type;                  // Stores a packed VkDescriptorType descriptorType.
-            uint8_t stages;                // Stores a packed VkShaderStageFlags.
-            uint16_t count;                // Stores a packed uint32_t descriptorCount
-            uint16_t bindingIndex;         // Stores the binding index
-            uint16_t hasImmutableSampler;  // Whether this binding has an immutable sampler
+            uint8_t type;                      // Stores a packed VkDescriptorType descriptorType.
+            uint8_t stages;                    // Stores a packed VkShaderStageFlags.
+            uint16_t count : 15;               // Stores a packed uint32_t descriptorCount
+            uint16_t hasImmutableSampler : 1;  // Whether this binding has an immutable sampler
         };
-        uint64_t value;
+        uint32_t value;
 
         bool operator==(const PackedDescriptorSetBinding &other) const
         {
@@ -1037,12 +1073,16 @@ class DescriptorSetLayoutDesc final
         }
     };
 
-    // 1x 64bit
-    static_assert(sizeof(PackedDescriptorSetBinding) == 8, "Unexpected size");
+    // 1x 32bit
+    static_assert(sizeof(PackedDescriptorSetBinding) == 4, "Unexpected size");
 
+    angle::FastVector<VkSampler, kDefaultImmutableSamplerBindingsCount> mImmutableSamplers;
     angle::FastVector<PackedDescriptorSetBinding, kDefaultDescriptorSetLayoutBindingsCount>
         mDescriptorSetLayoutBindings;
-    angle::FastVector<VkSampler, kDefaultImmutableSamplerBindingsCount> mImmutableSamplers;
+
+#if !defined(ANGLE_IS_64_BIT_CPU)
+    ANGLE_MAYBE_UNUSED_PRIVATE_FIELD uint32_t mPadding = 0;
+#endif
 };
 
 // The following are for caching descriptor set layouts. Limited to max three descriptor set
@@ -1348,6 +1388,8 @@ class CreateMonolithicPipelineTask : public Context, public angle::Closure
     // render pass cache may have been cleared since the task was created (e.g. to accomodate
     // framebuffer fetch).  Such render pass cache clears ensure there are no active tasks, so it's
     // safe to hold on to this pointer for the brief period between task post and completion.
+    //
+    // Not applicable to dynamic rendering.
     const RenderPassDesc &getRenderPassDesc() const { return mDesc.getRenderPassDesc(); }
     void setCompatibleRenderPass(const RenderPass *compatibleRenderPass);
 
@@ -1487,7 +1529,7 @@ class PipelineHelper final : public Resource
     // If pipeline libraries are used and monolithic pipelines are created in parallel, this is the
     // temporary library created (previously in |mPipeline|) that is now replaced by the monolithic
     // one.  It is not immediately garbage collected when replaced, because there is currently a bug
-    // with that.  http://anglebug.com/7862
+    // with that.  http://anglebug.com/42266335
     Pipeline mLinkedPipelineToRelease;
 
     // An async task to create a monolithic pipeline.  Only used if the pipeline was originally
@@ -1975,6 +2017,8 @@ class FramebufferDesc
     // Note: this is an exclusive index. If there is one index it will be "1".
     // Maximum value is 18
     uint16_t mMaxIndex : 5;
+
+    // Whether the render pass has input attachments or not.  This is unused with dynamic rendering.
     uint16_t mHasFramebufferFetch : 1;
     static_assert(gl::IMPLEMENTATION_MAX_FRAMEBUFFER_LAYERS < (1 << 9) - 1,
                   "Not enough bits for mLayerCount");
@@ -2515,7 +2559,7 @@ class GraphicsPipelineCache final : public HasCacheStats<VulkanCacheType::Graphi
 
     angle::Result createPipeline(vk::Context *context,
                                  vk::PipelineCacheAccess *pipelineCache,
-                                 const vk::RenderPass &compatibleRenderPass,
+                                 const vk::RenderPass *compatibleRenderPass,
                                  const vk::PipelineLayout &pipelineLayout,
                                  const vk::ShaderModuleMap &shaders,
                                  const vk::SpecializationConstants &specConsts,

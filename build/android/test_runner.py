@@ -56,7 +56,8 @@ from pylib.utils import test_filter
 
 from py_utils import contextlib_ext
 
-from lib.results import result_sink  # pylint: disable=import-error
+from lib.proto import exception_recorder
+from lib.results import result_sink
 
 _DEVIL_STATIC_CONFIG_FILE = os.path.abspath(os.path.join(
     host_paths.DIR_SOURCE_ROOT, 'build', 'android', 'devil_config.json'))
@@ -600,6 +601,11 @@ def AddInstrumentationTestOptions(parser):
       default=[],
       action='append',
       help="Specifies command line arguments to add to WebView's flag file")
+  parser.add_argument(
+      '--webview-process-mode',
+      choices=['single', 'multiple'],
+      help='Run WebView instrumentation tests only in the specified process '
+      'mode. If not set, both single and multiple process modes will execute.')
   parser.add_argument(
       '--run-setup-command',
       default=[],
@@ -1153,6 +1159,20 @@ def RunTestsInPlatformMode(args, result_sink_client=None):
   save_detailed_results = (args.local_output or not local_utils.IsOnSwarming()
                            ) and not args.isolated_script_test_output
 
+  @contextlib.contextmanager
+  def exceptions_uploader():
+    try:
+      yield
+    finally:
+      if result_sink_client and exception_recorder.size():
+        logging.info('Uploading exception records to RDB.')
+        prop = {
+            exception_recorder.EXCEPTION_OCCURRENCES_KEY:
+            exception_recorder.to_dict(),
+        }
+        result_sink_client.UpdateInvocationExtendedProperties(prop)
+        exception_recorder.clear()
+
   ### Set up test objects.
 
   out_manager = output_manager_factory.CreateOutputManager(args)
@@ -1182,7 +1202,8 @@ def RunTestsInPlatformMode(args, result_sink_client=None):
     # |raw_logs_fh| is only used by Robolectric tests.
     raw_logs_fh = io.StringIO() if save_detailed_results else None
 
-    with json_writer(), logcats_uploader, env, test_instance, test_run:
+    with json_writer(), exceptions_uploader(), logcats_uploader, \
+         env, test_instance, test_run:
 
       repetitions = (range(args.repeat +
                            1) if args.repeat >= 0 else itertools.count())

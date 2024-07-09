@@ -39,16 +39,6 @@ inline std::map<std::string, std::string> GetDefaultSubstitutionDictionary()
     return {};
 }
 
-bool DisableFastMathForShaderCompilation(mtl::Context *context)
-{
-    return context->getDisplay()->getFeatures().intelDisableFastMath.enabled;
-}
-
-bool UsesInvariance(const mtl::TranslatedShaderInfo *translatedMslInfo)
-{
-    return translatedMslInfo->hasInvariant;
-}
-
 class Std140BlockLayoutEncoderFactory : public gl::CustomBlockLayoutEncoderFactory
 {
   public:
@@ -84,7 +74,7 @@ class CompileMslTask final : public LinkSubTask
 
   private:
     // TODO: remove this, inherit from mtl::Context and ensure thread-safety.
-    // http://anglebug.com/8297
+    // http://anglebug.com/41488637
     ContextMtl *mContext;
     gl::InfoLog mInfoLog;
     mtl::TranslatedShaderInfo *mTranslatedMslInfo;
@@ -120,7 +110,7 @@ class ProgramMtl::LinkTaskMtl final : public LinkTask
 
   private:
     // TODO: remove this, inherit from mtl::Context and ensure thread-safety.
-    // http://anglebug.com/8297
+    // http://anglebug.com/41488637
     const gl::Context *mContext;
     ProgramMtl *mProgram;
     angle::Result mResult = angle::Result::Continue;
@@ -191,7 +181,7 @@ angle::Result ProgramMtl::load(const gl::Context *context,
 
     ANGLE_TRY(getExecutable()->load(contextMtl, stream));
 
-    // TODO: parallelize the above too.  http://anglebug.com/8297
+    // TODO: parallelize the above too.  http://anglebug.com/41488637
     std::vector<std::shared_ptr<LinkSubTask>> subTasks;
 
     ANGLE_TRY(compileMslShaderLibs(context, &subTasks));
@@ -251,7 +241,7 @@ angle::Result ProgramMtl::linkJobImpl(const gl::Context *context,
     gl::ShaderMap<std::string> shaderSources;
     mtl::MSLGetShaderSource(mState, resources, &shaderSources);
 
-    ANGLE_TRY(mtl::MTLGetMSL(contextMtl, mState.getExecutable(), contextMtl->getCaps(),
+    ANGLE_TRY(mtl::MTLGetMSL(contextMtl->getDisplay()->getFeatures(), mState.getExecutable(),
                              shaderSources, mAttachedShaders,
                              &executableMtl->mMslShaderTranslateInfo));
     executableMtl->mMslXfbOnlyVertexShaderInfo =
@@ -278,8 +268,10 @@ angle::Result ProgramMtl::compileMslShaderLibs(
         mtl::TranslatedShaderInfo *translateInfo =
             &executableMtl->mMslShaderTranslateInfo[shaderType];
         std::map<std::string, std::string> macros = GetDefaultSubstitutionDictionary();
-        bool disableFastMath                      = DisableFastMathForShaderCompilation(contextMtl);
-        bool usesInvariance                       = UsesInvariance(translateInfo);
+        const bool disableFastMath =
+            contextMtl->getDisplay()->getFeatures().intelDisableFastMath.enabled ||
+            translateInfo->hasIsnanOrIsinf;
+        const bool usesInvariance = translateInfo->hasInvariant;
 
         // Check if the shader is already in the cache and use it instead of spawning a new thread
         translateInfo->metalLibrary = libraryCache.get(translateInfo->metalShaderSource, macros,
