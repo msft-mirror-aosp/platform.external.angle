@@ -107,22 +107,6 @@ constexpr angle::PackedEnumMap<ImageLayout, ImageMemoryBarrierData> kImageMemory
         },
     },
     {
-        ImageLayout::ColorWriteAndInput,
-        ImageMemoryBarrierData{
-            "ColorWriteAndInput",
-            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            // Transition to: all reads and writes must happen after barrier.
-            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            // Transition from: all writes must finish before barrier.
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            ResourceAccess::ReadWrite,
-            PipelineStage::ColorAttachmentOutput,
-            EventStage::ColorAttachmentOutput,
-        },
-    },
-    {
         ImageLayout::MSRTTEmulationColorUnresolveAndResolve,
         ImageMemoryBarrierData{
             "MSRTTEmulationColorUnresolveAndResolve",
@@ -1749,16 +1733,6 @@ void CommandBufferHelperCommon::updateImageLayoutAndBarrier(Context *context,
     }
 }
 
-void CommandBufferHelperCommon::retainImage(Context *context, ImageHelper *image)
-{
-    image->setQueueSerial(mQueueSerial);
-
-    if (context->getRenderer()->getFeatures().useVkEventForImageBarrier.enabled)
-    {
-        image->setCurrentRefCountedEvent(context, mRefCountedEvents);
-    }
-}
-
 template <typename CommandBufferT>
 void CommandBufferHelperCommon::flushSetEventsImpl(Context *context, CommandBufferT *commandBuffer)
 {
@@ -1867,7 +1841,11 @@ void OutsideRenderPassCommandBufferHelper::imageRead(ContextVk *contextVk,
         // Usually an image can only used by a RenderPassCommands or OutsideRenderPassCommands
         // because the layout will be different, except with image sampled from compute shader. In
         // this case, the renderPassCommands' read will override the outsideRenderPassCommands'
-        retainImage(contextVk, image);
+        retainImage(image);
+        if (contextVk->getRenderer()->getFeatures().useVkEventForImageBarrier.enabled)
+        {
+            image->setCurrentRefCountedEvent(contextVk, mRefCountedEvents);
+        }
     }
 }
 
@@ -1881,7 +1859,18 @@ void OutsideRenderPassCommandBufferHelper::imageWrite(ContextVk *contextVk,
 {
     imageWriteImpl(contextVk, level, layerStart, layerCount, aspectFlags, imageLayout,
                    BarrierType::Event, image);
-    retainImage(contextVk, image);
+    retainImage(image);
+    if (contextVk->getRenderer()->getFeatures().useVkEventForImageBarrier.enabled)
+    {
+        image->setCurrentRefCountedEvent(contextVk, mRefCountedEvents);
+    }
+}
+
+void OutsideRenderPassCommandBufferHelper::retainImage(ImageHelper *image)
+{
+    // We want explicit control on when VkEvent is used for outsideRPCommands to minimize the
+    // overhead, so do not setEvent here.
+    image->setQueueSerial(mQueueSerial);
 }
 
 void OutsideRenderPassCommandBufferHelper::trackImageWithEvent(Context *context, ImageHelper *image)
@@ -1998,6 +1987,7 @@ void RenderPassFramebuffer::reset()
     mInitialFramebuffer.release();
     mImageViews.clear();
     mIsImageless = false;
+    mIsDefault   = false;
 }
 
 void RenderPassFramebuffer::addResolveAttachment(size_t viewIndex, VkImageView view)
@@ -2086,7 +2076,6 @@ RenderPassCommandBufferHelper::RenderPassCommandBufferHelper()
       mPreviousSubpassesCmdCount(0),
       mDepthStencilAttachmentIndex(kAttachmentIndexInvalid),
       mColorAttachmentsCount(0),
-      mSource(RenderPassSource::FramebufferObject),
       mImageOptimizeForPresent(nullptr)
 {}
 
@@ -2136,7 +2125,6 @@ angle::Result RenderPassCommandBufferHelper::reset(
     mPreviousSubpassesCmdCount         = 0;
     mColorAttachmentsCount             = PackedAttachmentCount(0);
     mDepthStencilAttachmentIndex       = kAttachmentIndexInvalid;
-    mSource                            = RenderPassSource::FramebufferObject;
     mImageOptimizeForPresent           = nullptr;
 
     ASSERT(CheckSubpassCommandBufferCount(getSubpassCommandBufferCount()));
@@ -2192,14 +2180,14 @@ void RenderPassCommandBufferHelper::colorImagesDraw(gl::LevelIndex level,
 {
     ASSERT(packedAttachmentIndex < mColorAttachmentsCount);
 
-    image->setQueueSerial(mQueueSerial);
+    image->onRenderPassAttach(mQueueSerial);
 
     mColorAttachments[packedAttachmentIndex].init(image, imageSiblingSerial, level, layerStart,
                                                   layerCount, VK_IMAGE_ASPECT_COLOR_BIT);
 
     if (resolveImage)
     {
-        resolveImage->setQueueSerial(mQueueSerial);
+        resolveImage->onRenderPassAttach(mQueueSerial);
         mColorResolveAttachments[packedAttachmentIndex].init(resolveImage, imageSiblingSerial,
                                                              level, layerStart, layerCount,
                                                              VK_IMAGE_ASPECT_COLOR_BIT);
@@ -2219,7 +2207,7 @@ void RenderPassCommandBufferHelper::depthStencilImagesDraw(gl::LevelIndex level,
     // Because depthStencil buffer's read/write property can change while we build renderpass, we
     // defer the image layout changes until endRenderPass time or when images going away so that we
     // only insert layout change barrier once.
-    image->setQueueSerial(mQueueSerial);
+    image->onRenderPassAttach(mQueueSerial);
 
     mDepthAttachment.init(image, imageSiblingSerial, level, layerStart, layerCount,
                           VK_IMAGE_ASPECT_DEPTH_BIT);
@@ -2231,7 +2219,7 @@ void RenderPassCommandBufferHelper::depthStencilImagesDraw(gl::LevelIndex level,
         // Note that the resolve depth/stencil image has the same level/layer index as the
         // depth/stencil image as currently it can only ever come from
         // multisampled-render-to-texture renderbuffers.
-        resolveImage->setQueueSerial(mQueueSerial);
+        resolveImage->onRenderPassAttach(mQueueSerial);
 
         mDepthResolveAttachment.init(resolveImage, imageSiblingSerial, level, layerStart,
                                      layerCount, VK_IMAGE_ASPECT_DEPTH_BIT);
@@ -2245,7 +2233,7 @@ void RenderPassCommandBufferHelper::fragmentShadingRateImageRead(ImageHelper *im
     ASSERT(image && image->valid());
     ASSERT(!usesImage(*image));
 
-    image->setQueueSerial(mQueueSerial);
+    image->onRenderPassAttach(mQueueSerial);
 
     // Initialize RenderPassAttachment for fragment shading rate attachment.
     mFragmentShadingRateAtachment.init(image, {}, gl::LevelIndex(0), 0, 1,
@@ -2253,6 +2241,16 @@ void RenderPassCommandBufferHelper::fragmentShadingRateImageRead(ImageHelper *im
 
     image->resetRenderPassUsageFlags();
     image->setRenderPassUsageFlag(RenderPassUsage::FragmentShadingRateReadOnlyAttachment);
+}
+
+void RenderPassCommandBufferHelper::retainImage(Context *context, ImageHelper *image)
+{
+    image->setQueueSerial(mQueueSerial);
+
+    if (context->getRenderer()->getFeatures().useVkEventForImageBarrier.enabled)
+    {
+        image->setCurrentRefCountedEvent(context, mRefCountedEvents);
+    }
 }
 
 void RenderPassCommandBufferHelper::onColorAccess(PackedAttachmentIndex packedAttachmentIndex,
@@ -2368,14 +2366,6 @@ void RenderPassCommandBufferHelper::finalizeColorImageLayout(
             isResolveImage && mRenderPassDesc.getColorUnresolveAttachmentMask().any();
         imageLayout = hasUnresolve ? ImageLayout::MSRTTEmulationColorUnresolveAndResolve
                                    : ImageLayout::ColorWrite;
-        if (context->getFeatures().preferDynamicRendering.enabled &&
-            mRenderPassDesc.hasFramebufferFetch())
-        {
-            // Note MSRTT emulation is not implemented with dynamic rendering.
-            ASSERT(imageLayout == ImageLayout::ColorWrite);
-            imageLayout = ImageLayout::ColorWriteAndInput;
-        }
-
         updateImageLayoutAndBarrier(context, image, VK_IMAGE_ASPECT_COLOR_BIT, imageLayout,
                                     BarrierType::Event);
     }
@@ -2387,12 +2377,8 @@ void RenderPassCommandBufferHelper::finalizeColorImageLayout(
 
     if (mImageOptimizeForPresent == image)
     {
-        ASSERT(mSource == RenderPassSource::DefaultFramebuffer);
-
+        ASSERT(isDefault());
         ASSERT(context->getFeatures().supportsPresentation.enabled);
-        // Dynamic rendering does not have implicit layout transitions at render pass boundaries.
-        ASSERT(!context->getFeatures().preferDynamicRendering.enabled);
-
         ASSERT(packedAttachmentIndex == kAttachmentIndexZero);
         // Use finalLayout instead of extra barrier for layout change to present
         mImageOptimizeForPresent->setCurrentImageLayout(ImageLayout::Present);
@@ -2777,18 +2763,9 @@ void RenderPassCommandBufferHelper::collectRefCountedEventsGarbage(
     }
 }
 
-void RenderPassCommandBufferHelper::updatePerfCountersForDynamicRenderingInstance(
-    Context *context,
-    angle::VulkanPerfCounters *countersOut)
-{
-    mRenderPassDesc.updatePerfCounters(context, mFramebuffer.getUnpackedImageViews(),
-                                       mAttachmentOps, countersOut);
-}
-
 angle::Result RenderPassCommandBufferHelper::beginRenderPass(
     ContextVk *contextVk,
     RenderPassFramebuffer &&framebuffer,
-    RenderPassSource source,
     const gl::Rectangle &renderArea,
     const RenderPassDesc &renderPassDesc,
     const AttachmentOpsArray &renderPassAttachmentOps,
@@ -2808,7 +2785,6 @@ angle::Result RenderPassCommandBufferHelper::beginRenderPass(
     mRenderArea                  = renderArea;
     mClearValues                 = clearValues;
     mQueueSerial                 = queueSerial;
-    mSource                      = source;
     *commandBufferOut            = &getCommandBuffer();
 
     mRenderPassStarted = true;
@@ -2819,13 +2795,9 @@ angle::Result RenderPassCommandBufferHelper::beginRenderPass(
 
 angle::Result RenderPassCommandBufferHelper::beginRenderPassCommandBuffer(ContextVk *contextVk)
 {
-    VkCommandBufferInheritanceInfo inheritanceInfo;
-    VkCommandBufferInheritanceRenderingInfo renderingInfo;
-    gl::DrawBuffersArray<VkFormat> colorFormatStorage;
-
+    VkCommandBufferInheritanceInfo inheritanceInfo = {};
     ANGLE_TRY(RenderPassCommandBuffer::InitializeRenderPassInheritanceInfo(
-        contextVk, mFramebuffer.getFramebuffer(), mRenderPassDesc, &inheritanceInfo, &renderingInfo,
-        &colorFormatStorage));
+        contextVk, mFramebuffer.getFramebuffer(), mRenderPassDesc, &inheritanceInfo));
     inheritanceInfo.subpass = mCurrentSubpassCommandBufferIndex;
 
     return getCommandBuffer().begin(contextVk, inheritanceInfo);
@@ -2880,8 +2852,6 @@ angle::Result RenderPassCommandBufferHelper::endRenderPassCommandBuffer(ContextV
 angle::Result RenderPassCommandBufferHelper::nextSubpass(ContextVk *contextVk,
                                                          RenderPassCommandBuffer **commandBufferOut)
 {
-    ASSERT(!contextVk->getFeatures().preferDynamicRendering.enabled);
-
     if (ExecutesInline())
     {
         // When using ANGLE secondary command buffers, the commands are inline and are executed on
@@ -2979,7 +2949,7 @@ void RenderPassCommandBufferHelper::invalidateRenderPassStencilAttachment(
 
 angle::Result RenderPassCommandBufferHelper::flushToPrimary(Context *context,
                                                             CommandsState *commandsState,
-                                                            const RenderPass *renderPass,
+                                                            const RenderPass &renderPass,
                                                             VkFramebuffer framebufferOverride)
 {
     // |framebufferOverride| must only be provided if the initial framebuffer the render pass was
@@ -2997,59 +2967,47 @@ angle::Result RenderPassCommandBufferHelper::flushToPrimary(Context *context,
     // Commands that are added to primary before beginRenderPass command
     executeBarriers(context->getRenderer(), commandsState);
 
+    VkRenderPassBeginInfo beginInfo = {};
+    beginInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    beginInfo.renderPass            = renderPass.getHandle();
+    beginInfo.framebuffer =
+        framebufferOverride ? framebufferOverride : mFramebuffer.getFramebuffer().getHandle();
+    beginInfo.renderArea.offset.x      = static_cast<uint32_t>(mRenderArea.x);
+    beginInfo.renderArea.offset.y      = static_cast<uint32_t>(mRenderArea.y);
+    beginInfo.renderArea.extent.width  = static_cast<uint32_t>(mRenderArea.width);
+    beginInfo.renderArea.extent.height = static_cast<uint32_t>(mRenderArea.height);
+    beginInfo.clearValueCount = static_cast<uint32_t>(mRenderPassDesc.clearableAttachmentCount());
+    beginInfo.pClearValues    = mClearValues.data();
+
+    // With imageless framebuffers, the attachments should be also added to beginInfo.
+    VkRenderPassAttachmentBeginInfo attachmentBeginInfo = {};
+    if (mFramebuffer.isImageless())
+    {
+        mFramebuffer.packResolveViewsForRenderPassBegin(&attachmentBeginInfo);
+        AddToPNextChain(&beginInfo, &attachmentBeginInfo);
+
+        // If nullColorAttachmentWithExternalFormatResolve is true, there will be no color
+        // attachment even though mRenderPassDesc indicates so.
+        ASSERT((mRenderPassDesc.hasYUVResolveAttachment() &&
+                context->getRenderer()->nullColorAttachmentWithExternalFormatResolve()) ||
+               attachmentBeginInfo.attachmentCount == mRenderPassDesc.attachmentCount());
+    }
+
+    // Run commands inside the RenderPass.
     constexpr VkSubpassContents kSubpassContents =
         ExecutesInline() ? VK_SUBPASS_CONTENTS_INLINE
                          : VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS;
 
-    if (renderPass == nullptr)
-    {
-        mRenderPassDesc.beginRendering(context, &primary, mRenderArea, kSubpassContents,
-                                       mFramebuffer.getUnpackedImageViews(), mAttachmentOps,
-                                       mClearValues, mFramebuffer.getLayers());
-    }
-    else
-    {
-        ASSERT(renderPass->valid());
-
-        // With imageless framebuffers, the attachments should be also added to beginInfo.
-        VkRenderPassAttachmentBeginInfo attachmentBeginInfo = {};
-        if (mFramebuffer.isImageless())
-        {
-            mFramebuffer.packResolveViewsForRenderPassBegin(&attachmentBeginInfo);
-
-            // If nullColorAttachmentWithExternalFormatResolve is true, there will be no color
-            // attachment even though mRenderPassDesc indicates so.
-            ASSERT((mRenderPassDesc.hasYUVResolveAttachment() &&
-                    context->getRenderer()->nullColorAttachmentWithExternalFormatResolve()) ||
-                   attachmentBeginInfo.attachmentCount == mRenderPassDesc.attachmentCount());
-        }
-
-        mRenderPassDesc.beginRenderPass(
-            context, &primary, *renderPass,
-            framebufferOverride ? framebufferOverride : mFramebuffer.getFramebuffer().getHandle(),
-            mRenderArea, kSubpassContents, mClearValues,
-            mFramebuffer.isImageless() ? &attachmentBeginInfo : nullptr);
-    }
-
-    // Run commands inside the RenderPass.
+    primary.beginRenderPass(beginInfo, kSubpassContents);
     for (uint32_t subpass = 0; subpass < getSubpassCommandBufferCount(); ++subpass)
     {
         if (subpass > 0)
         {
-            ASSERT(!context->getFeatures().preferDynamicRendering.enabled);
             primary.nextSubpass(kSubpassContents);
         }
         mCommandBuffers[subpass].executeCommands(&primary);
     }
-
-    if (renderPass == nullptr)
-    {
-        primary.endRendering();
-    }
-    else
-    {
-        primary.endRenderPass();
-    }
+    primary.endRenderPass();
 
     // Now issue VkCmdSetEvents to primary command buffer
     executeSetEvents(context, &primary);
@@ -7216,7 +7174,6 @@ void ImageHelper::barrierImpl(Context *context,
     // mCurrentEvent must be invalid if useVkEventForImageBarrieris disabled.
     ASSERT(context->getRenderer()->getFeatures().useVkEventForImageBarrier.enabled ||
            !mCurrentEvent.valid());
-    ASSERT(acquireNextImageSemaphoreOut != nullptr || !mAcquireNextImageSemaphore.valid());
 
     // Release the ANI semaphore to caller to add to the command submission.
     *acquireNextImageSemaphoreOut = mAcquireNextImageSemaphore.release();
@@ -8716,6 +8673,11 @@ angle::Result ImageHelper::CalculateBufferInfo(ContextVk *contextVk,
                                                inputSkipBytes));
 
     return angle::Result::Continue;
+}
+
+void ImageHelper::onRenderPassAttach(const QueueSerial &queueSerial)
+{
+    setQueueSerial(queueSerial);
 }
 
 void ImageHelper::onWrite(gl::LevelIndex levelStart,
