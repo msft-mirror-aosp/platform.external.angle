@@ -1,9 +1,9 @@
 {
   "version info": {
     "schema version": 2,
-    "api version": "1.3.289",
-    "comment": "from git branch: github-main commit: 7bb606eb87cde1d34f65f36f4d4c6f2c78f072c8",
-    "date": "2024-06-28 09:33:59Z"
+    "api version": "1.3.290",
+    "comment": "from git branch: github-main commit: 043260d06e96c8586492be41cc109945e92a69ff",
+    "date": "2024-07-12 06:39:16Z"
   },
   "validation": {
     "vkGetInstanceProcAddr": {
@@ -11007,7 +11007,7 @@
         },
         {
           "vuid": "VUID-VkSubpassDescription2-pInputAttachments-02897",
-          "text": "All attachments in <code>pInputAttachments</code> that are not <code>VK_ATTACHMENT_UNUSED</code> and any of the following is true:<div class=\"ulist\">\n<ul>\n<li>\n<p>the <a href=\"#features-externalFormatResolve\"><code>externalFormatResolve</code></a>\nfeature is not enabled</p>\n</li>\n<li>\n<p>the <a href=\"#limits-nullColorAttachmentWithExternalFormatResolve\"><code>nullColorAttachmentWithExternalFormatResolve</code></a> property is\n<code>VK_FALSE</code></p>\n</li>\n<li>\n<p>does not have a non-zero value of\n<a href=\"#VkExternalFormatANDROID\">VkExternalFormatANDROID</a>::<code>externalFormat</code></p>\n</li>\n</ul>\n</div>\n<div class=\"paragraph\">\n<p><strong class=\"purple\">must</strong> have image formats whose <a href=\"#potential-format-features\">potential format\n    features</a> contain at least <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT</code>\n    or <code>VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT</code></p>\n</div>",
+          "text": "All attachments in <code>pInputAttachments</code> that are not <code>VK_ATTACHMENT_UNUSED</code> and any of the following is true:<div class=\"ulist\">\n<ul>\n<li>\n<p>the <a href=\"#features-externalFormatResolve\"><code>externalFormatResolve</code></a>\nfeature is not enabled</p>\n</li>\n<li>\n<p>the <a href=\"#limits-nullColorAttachmentWithExternalFormatResolve\"><code>nullColorAttachmentWithExternalFormatResolve</code></a> property is\n<code>VK_FALSE</code></p>\n</li>\n<li>\n<p>does not have a non-zero value of\n<a href=\"#VkExternalFormatANDROID\">VkExternalFormatANDROID</a>::<code>externalFormat</code></p>\n</li>\n</ul>\n</div>\n<div class=\"paragraph\">\n<p><strong class=\"purple\">must</strong> have image formats whose <a href=\"#potential-format-features\">potential format\nfeatures</a> contain at least <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT</code> or\n<code>VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT</code></p>\n</div>",
           "page": "vkspec"
         },
         {
@@ -11807,11 +11807,6 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-VkFramebufferCreateInfo-renderPass-08921",
-          "text": "If <code>renderPass</code> was specified with non-zero view masks, each element of <code>pAttachments</code> that is used as a <a href=\"#primsrast-fragment-shading-rate-attachment\">fragment shading rate attachment</a> <strong class=\"purple\">must</strong> have a <code>layerCount</code> equal to <code>1</code> or greater than the index of the most significant bit set in any of those view masks",
-          "page": "vkspec"
-        },
-        {
           "vuid": "VUID-VkFramebufferCreateInfo-flags-04539",
           "text": "If <a href=\"#features-maintenance7\"><code>maintenance7</code></a> is not enabled or the <a href=\"#limits-robustFragmentShadingRateAttachmentAccess\"><code>robustFragmentShadingRateAttachmentAccess</code></a> limit is <code>VK_FALSE</code> or the <code>imageView</code> member of a <a href=\"#VkRenderingFragmentShadingRateAttachmentInfoKHR\">VkRenderingFragmentShadingRateAttachmentInfoKHR</a> structure was created with <a href=\"#VkImageSubresourceRange\">VkImageSubresourceRange</a>::<code>baseMipLevel</code> greater than 0, <code>flags</code> does not include <code>VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT</code>, an element of <code>pAttachments</code> that is used as a <a href=\"#primsrast-fragment-shading-rate-attachment\">fragment shading rate attachment</a> <strong class=\"purple\">must</strong> have a width at least as large as <span class=\"eq\">⌈<code>width</code> / <code>texelWidth</code>⌉</span>, where <code>texelWidth</code> is the largest value of <code>shadingRateAttachmentTexelSize.width</code> in a <a href=\"#VkFragmentShadingRateAttachmentInfoKHR\">VkFragmentShadingRateAttachmentInfoKHR</a> which references that attachment",
           "page": "vkspec"
@@ -11923,7 +11918,7 @@
         },
         {
           "vuid": "VUID-VkFramebufferCreateInfo-flags-04587",
-          "text": "If <code>flags</code> includes <code>VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT</code> and <code>renderPass</code> was specified with non-zero view masks, each element of <code>pAttachments</code> that is used as a <a href=\"#primsrast-fragment-shading-rate-attachment\">fragment shading rate attachment</a> by <code>renderPass</code> <strong class=\"purple\">must</strong> have a <code>layerCount</code> that is either <code>1</code>, or greater than the index of the most significant bit set in any of those view masks",
+          "text": "If <code>flags</code> includes <code>VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT</code> and <code>renderPass</code> was specified with non-zero view masks, the <code>layerCount</code> member of any element of the <code>pAttachmentImageInfos</code> member of a <a href=\"#VkFramebufferAttachmentsCreateInfo\">VkFramebufferAttachmentsCreateInfo</a> structure in the <code>pNext</code> chain that is used as a <a href=\"#primsrast-fragment-shading-rate-attachment\">fragment shading rate attachment</a> <strong class=\"purple\">must</strong> be either <code>1</code>, or greater than the index of the most significant bit set in any of those view masks",
           "page": "vkspec"
         },
         {
@@ -14857,7 +14852,7 @@
         },
         {
           "vuid": "VUID-VkPipelineShaderStageCreateInfo-stage-06844",
-          "text": "If a shader module identifier is specified for this <code>stage</code>, a <a href=\"#VkShaderModuleCreateInfo\">VkShaderModuleCreateInfo</a> structure <strong class=\"purple\">must</strong> not be present in the <code>pNext</code> chain",
+          "text": "If a shader module identifier is specified for this <code>stage</code>, the <code>pNext</code> chain <strong class=\"purple\">must</strong> not include a <a href=\"#VkShaderModuleCreateInfo\">VkShaderModuleCreateInfo</a> structure",
           "page": "vkspec"
         },
         {
@@ -18949,7 +18944,7 @@
       "core": [
         {
           "vuid": "VUID-vkAllocateMemory-pAllocateInfo-01713",
-          "text": "<code>pAllocateInfo-&gt;allocationSize</code> <strong class=\"purple\">must</strong> be less than or equal to <a href=\"#VkPhysicalDeviceMemoryProperties\">VkPhysicalDeviceMemoryProperties</a>::<code>memoryHeaps</code>[<code>memindex</code>].<code>size</code> where <code>memindex</code> = <a href=\"#VkPhysicalDeviceMemoryProperties\">VkPhysicalDeviceMemoryProperties</a>::<code>memoryTypes</code>[<code>pAllocateInfo-&gt;memoryTypeIndex</code>].<code>heapIndex</code> as returned by <a href=\"#vkGetPhysicalDeviceMemoryProperties\">vkGetPhysicalDeviceMemoryProperties</a> for the <a href=\"#VkPhysicalDevice\">VkPhysicalDevice</a> that <code>device</code> was created from",
+          "text": "<code>pAllocateInfo-&gt;allocationSize</code> <strong class=\"purple\">must</strong> be less than or equal to <a href=\"#VkPhysicalDeviceMemoryProperties\">VkPhysicalDeviceMemoryProperties</a>::<code>memoryHeaps</code>[memindex].<code>size</code> where <code>memindex</code> = <a href=\"#VkPhysicalDeviceMemoryProperties\">VkPhysicalDeviceMemoryProperties</a>::<code>memoryTypes</code>[<code>pAllocateInfo-&gt;memoryTypeIndex</code>].<code>heapIndex</code> as returned by <a href=\"#vkGetPhysicalDeviceMemoryProperties\">vkGetPhysicalDeviceMemoryProperties</a> for the <a href=\"#VkPhysicalDevice\">VkPhysicalDevice</a> that <code>device</code> was created from",
           "page": "vkspec"
         },
         {
@@ -23255,7 +23250,7 @@
         },
         {
           "vuid": "VUID-VkImageViewCreateInfo-usage-08932",
-          "text": "If <code>usage</code> contains <code>VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT</code>, and any of the following is true:<div class=\"ulist\">\n<ul>\n<li>\n<p>the <a href=\"#features-externalFormatResolve\"><code>externalFormatResolve</code></a>\nfeature is not enabled</p>\n</li>\n<li>\n<p>the <a href=\"#limits-nullColorAttachmentWithExternalFormatResolve\"><code>nullColorAttachmentWithExternalFormatResolve</code></a> property is\n<code>VK_FALSE</code></p>\n</li>\n<li>\n<p><code>image</code> was created with an\n<a href=\"#VkExternalFormatANDROID\">VkExternalFormatANDROID</a>::<code>externalFormat</code> value of 0</p>\n</li>\n</ul>\n</div>\n<div class=\"paragraph\">\n<p>then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format\n    features</a> <strong class=\"purple\">must</strong> contain at least one of\n    <code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT</code> or\n    <code>VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT</code>\n    or <code>VK_FORMAT_FEATURE_2_LINEAR_COLOR_ATTACHMENT_BIT_NV</code></p>\n</div>",
+          "text": "If <code>usage</code> contains <code>VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT</code>, and any of the following is true:<div class=\"ulist\">\n<ul>\n<li>\n<p>the <a href=\"#features-externalFormatResolve\"><code>externalFormatResolve</code></a>\nfeature is not enabled</p>\n</li>\n<li>\n<p>the <a href=\"#limits-nullColorAttachmentWithExternalFormatResolve\"><code>nullColorAttachmentWithExternalFormatResolve</code></a> property is\n<code>VK_FALSE</code></p>\n</li>\n<li>\n<p><code>image</code> was created with an\n<a href=\"#VkExternalFormatANDROID\">VkExternalFormatANDROID</a>::<code>externalFormat</code> value of 0</p>\n</li>\n</ul>\n</div>\n<div class=\"paragraph\">\n<p>then the image view&#8217;s <a href=\"#resources-image-view-format-features\">format\nfeatures</a> <strong class=\"purple\">must</strong> contain at least one of\n<code>VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT</code> or\n<code>VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT</code>\n    or <code>VK_FORMAT_FEATURE_2_LINEAR_COLOR_ATTACHMENT_BIT_NV</code></p>\n</div>",
           "page": "vkspec"
         },
         {
@@ -27235,7 +27230,7 @@
         },
         {
           "vuid": "VUID-VkDescriptorSetLayoutCreateInfo-pBindings-07303",
-          "text": "If any element <code>pBindings</code>[i] has a <code>descriptorType</code> of <code>VK_DESCRIPTOR_TYPE_MUTABLE_EXT</code>, then a <a href=\"#VkMutableDescriptorTypeCreateInfoEXT\">VkMutableDescriptorTypeCreateInfoEXT</a> <strong class=\"purple\">must</strong> be present in the <code>pNext</code> chain, and <code>mutableDescriptorTypeListCount</code> <strong class=\"purple\">must</strong> be greater than i",
+          "text": "If any element <code>pBindings</code>[i] has a <code>descriptorType</code> of <code>VK_DESCRIPTOR_TYPE_MUTABLE_EXT</code>, then the <code>pNext</code> chain <strong class=\"purple\">must</strong> include a <a href=\"#VkMutableDescriptorTypeCreateInfoEXT\">VkMutableDescriptorTypeCreateInfoEXT</a> structure, and <code>mutableDescriptorTypeListCount</code> <strong class=\"purple\">must</strong> be greater than i",
           "page": "vkspec"
         },
         {
@@ -37483,12 +37478,22 @@
         },
         {
           "vuid": "VUID-vkCmdCopyBufferToImage-dstImage-07274",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyBufferToImage-imageOffset-10051",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, and <code>imageOffset.x</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdCopyBufferToImage-dstImage-07275",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyBufferToImage-imageOffset-10052",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, and <code>imageOffset.y</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
@@ -37498,12 +37503,42 @@
         },
         {
           "vuid": "VUID-vkCmdCopyBufferToImage-dstImage-00207",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyBufferToImage-imageOffset-10053",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyBufferToImage-imageOffset-10054",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyBufferToImage-imageOffset-10055",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.height</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdCopyBufferToImage-dstImage-00208",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, and the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyBufferToImage-imageOffset-10056",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the sum of <code>imageOffset.y</code> and <code>extent.width</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyBufferToImage-imageOffset-10057",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyBufferToImage-imageOffset-10058",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
@@ -37737,12 +37772,22 @@
         },
         {
           "vuid": "VUID-vkCmdCopyImageToBuffer-srcImage-07274",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyImageToBuffer-imageOffset-10051",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, and <code>imageOffset.x</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdCopyImageToBuffer-srcImage-07275",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyImageToBuffer-imageOffset-10052",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, and <code>imageOffset.y</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
@@ -37752,12 +37797,42 @@
         },
         {
           "vuid": "VUID-vkCmdCopyImageToBuffer-srcImage-00207",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyImageToBuffer-imageOffset-10053",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyImageToBuffer-imageOffset-10054",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyImageToBuffer-imageOffset-10055",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.height</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdCopyImageToBuffer-srcImage-00208",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, and the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyImageToBuffer-imageOffset-10056",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the sum of <code>imageOffset.y</code> and <code>extent.width</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyImageToBuffer-imageOffset-10057",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdCopyImageToBuffer-imageOffset-10058",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
@@ -38084,12 +38159,22 @@
         },
         {
           "vuid": "VUID-VkCopyBufferToImageInfo2-dstImage-07274",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyBufferToImageInfo2-imageOffset-10051",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, and <code>imageOffset.x</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyBufferToImageInfo2-dstImage-07275",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyBufferToImageInfo2-imageOffset-10052",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, and <code>imageOffset.y</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
@@ -38099,12 +38184,42 @@
         },
         {
           "vuid": "VUID-VkCopyBufferToImageInfo2-dstImage-00207",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyBufferToImageInfo2-imageOffset-10053",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyBufferToImageInfo2-imageOffset-10054",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyBufferToImageInfo2-imageOffset-10055",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.height</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyBufferToImageInfo2-dstImage-00208",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, and the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyBufferToImageInfo2-imageOffset-10056",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the sum of <code>imageOffset.y</code> and <code>extent.width</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyBufferToImageInfo2-imageOffset-10057",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyBufferToImageInfo2-imageOffset-10058",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
@@ -38377,12 +38492,22 @@
         },
         {
           "vuid": "VUID-VkCopyImageToBufferInfo2-srcImage-07274",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToBufferInfo2-imageOffset-10051",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, and <code>imageOffset.x</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyImageToBufferInfo2-srcImage-07275",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToBufferInfo2-imageOffset-10052",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, and <code>imageOffset.y</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
@@ -38392,12 +38517,42 @@
         },
         {
           "vuid": "VUID-VkCopyImageToBufferInfo2-srcImage-00207",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToBufferInfo2-imageOffset-10053",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToBufferInfo2-imageOffset-10054",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToBufferInfo2-imageOffset-10055",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.height</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyImageToBufferInfo2-srcImage-00208",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, and the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToBufferInfo2-imageOffset-10056",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the sum of <code>imageOffset.y</code> and <code>extent.width</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToBufferInfo2-imageOffset-10057",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToBufferInfo2-imageOffset-10058",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
@@ -38678,12 +38833,22 @@
         },
         {
           "vuid": "VUID-VkCopyMemoryToImageInfoEXT-dstImage-07274",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyMemoryToImageInfoEXT-imageOffset-10051",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, and <code>imageOffset.x</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyMemoryToImageInfoEXT-dstImage-07275",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyMemoryToImageInfoEXT-imageOffset-10052",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, and <code>imageOffset.y</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
@@ -38693,12 +38858,42 @@
         },
         {
           "vuid": "VUID-VkCopyMemoryToImageInfoEXT-dstImage-00207",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyMemoryToImageInfoEXT-imageOffset-10053",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyMemoryToImageInfoEXT-imageOffset-10054",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyMemoryToImageInfoEXT-imageOffset-10055",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.height</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyMemoryToImageInfoEXT-dstImage-00208",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, and the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyMemoryToImageInfoEXT-imageOffset-10056",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the sum of <code>imageOffset.y</code> and <code>extent.width</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyMemoryToImageInfoEXT-imageOffset-10057",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyMemoryToImageInfoEXT-imageOffset-10058",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
@@ -38960,12 +39155,22 @@
         },
         {
           "vuid": "VUID-VkCopyImageToMemoryInfoEXT-srcImage-07274",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToMemoryInfoEXT-imageOffset-10051",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, and <code>imageOffset.x</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyImageToMemoryInfoEXT-srcImage-07275",
-          "text": "For each element of <code>pRegions</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToMemoryInfoEXT-imageOffset-10052",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, and <code>imageOffset.y</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>imageOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
@@ -38975,12 +39180,42 @@
         },
         {
           "vuid": "VUID-VkCopyImageToMemoryInfoEXT-srcImage-00207",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToMemoryInfoEXT-imageOffset-10053",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToMemoryInfoEXT-imageOffset-10054",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.x</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToMemoryInfoEXT-imageOffset-10055",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the sum of <code>imageOffset.x</code> and <code>extent.height</code> does not equal the width of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyImageToMemoryInfoEXT-srcImage-00208",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, and the sum of <code>imageOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToMemoryInfoEXT-imageOffset-10056",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the sum of <code>imageOffset.y</code> and <code>extent.width</code> does not equal the height of the subresource specified by <code>imageSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToMemoryInfoEXT-imageOffset-10057",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToMemoryInfoEXT-imageOffset-10058",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the difference of <code>imageOffset.y</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
@@ -39242,12 +39477,22 @@
         },
         {
           "vuid": "VUID-VkCopyImageToImageInfoEXT-srcImage-07274",
-          "text": "For each element of <code>pRegions</code>, <code>srcOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, <code>srcOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-srcOffset-10051",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, and <code>srcOffset.x</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>srcOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyImageToImageInfoEXT-srcImage-07275",
-          "text": "For each element of <code>pRegions</code>, <code>srcOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, <code>srcOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-srcOffset-10052",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, and <code>srcOffset.y</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>srcOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
@@ -39257,12 +39502,42 @@
         },
         {
           "vuid": "VUID-VkCopyImageToImageInfoEXT-srcImage-00207",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>srcOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, the sum of <code>srcOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-srcOffset-10053",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the difference of <code>srcOffset.x</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-srcOffset-10054",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>srcOffset.x</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-srcOffset-10055",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the sum of <code>srcOffset.x</code> and <code>extent.height</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyImageToImageInfoEXT-srcImage-00208",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>srcOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, and the sum of <code>srcOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-srcOffset-10056",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the sum of <code>srcOffset.y</code> and <code>extent.width</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-srcOffset-10057",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>srcOffset.y</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-srcOffset-10058",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the difference of <code>srcOffset.y</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>srcImage</code>",
           "page": "vkspec"
         },
         {
@@ -39367,12 +39642,22 @@
         },
         {
           "vuid": "VUID-VkCopyImageToImageInfoEXT-dstImage-07274",
-          "text": "For each element of <code>pRegions</code>, <code>dstOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, <code>dstOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-dstOffset-10051",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, and <code>dstOffset.x</code> does not equal the width of the subresource specified by <code>dstSubresource</code>, <code>dstOffset.x</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyImageToImageInfoEXT-dstImage-07275",
-          "text": "For each element of <code>pRegions</code>, <code>dstOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, <code>dstOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-dstOffset-10052",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code> or <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, and <code>dstOffset.y</code> does not equal the height of the subresource specified by <code>dstSubresource</code>, <code>dstOffset.y</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
@@ -39382,12 +39667,42 @@
         },
         {
           "vuid": "VUID-VkCopyImageToImageInfoEXT-dstImage-00207",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>dstOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>srcSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, the sum of <code>dstOffset.x</code> and <code>extent.width</code> does not equal the width of the subresource specified by <code>dstSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-dstOffset-10053",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the difference of <code>dstOffset.x</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-dstOffset-10054",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>dstOffset.x</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-dstOffset-10055",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the sum of <code>dstOffset.x</code> and <code>extent.height</code> does not equal the width of the subresource specified by <code>dstSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent width</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkCopyImageToImageInfoEXT-dstImage-00208",
-          "text": "For each element of <code>pRegions</code>, if the sum of <code>dstOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>srcSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR</code>, and the sum of <code>dstOffset.y</code> and <code>extent.height</code> does not equal the height of the subresource specified by <code>dstSubresource</code>, <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-dstOffset-10056",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR</code>, the sum of <code>dstOffset.y</code> and <code>extent.width</code> does not equal the height of the subresource specified by <code>dstSubresource</code>, <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-dstOffset-10057",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR</code>, the difference of <code>dstOffset.y</code> and <code>extent.height</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkCopyImageToImageInfoEXT-dstOffset-10058",
+          "text": "For each element of <code>pRegions</code>, if <a href=\"#VkCopyCommandTransformInfoQCOM\">VkCopyCommandTransformInfoQCOM</a>::<code>transform</code> is equal to <code>VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR</code>, the difference of <code>dstOffset.y</code> and <code>extent.width</code> <strong class=\"purple\">must</strong> be a multiple of the <a href=\"#formats-compatibility-classes\">texel block extent height</a> of the <a href=\"#VkFormat\">VkFormat</a> of <code>dstImage</code>",
           "page": "vkspec"
         },
         {
@@ -90371,7 +90686,7 @@
         },
         {
           "vuid": "VUID-vkCmdDecodeVideoKHR-pDecodeInfo-07141",
-          "text": "If <code>pDecodeInfo-&gt;pSetupReferenceSlot</code> is not <code>NULL</code> and none of the following is true:<div class=\"ulist\">\n<ul>\n<li>\n<p><a href=\"#VkVideoDecodeCapabilitiesKHR\">VkVideoDecodeCapabilitiesKHR</a>::<code>flags</code> includes\n<code>VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_DISTINCT_BIT_KHR</code>, as\nreturned by <a href=\"#vkGetPhysicalDeviceVideoCapabilitiesKHR\">vkGetPhysicalDeviceVideoCapabilitiesKHR</a> for the video\nprofile the bound video session was created with</p>\n</li>\n<li>\n<p>the bound video session was created with the video codec operation\n<code>VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR</code> and\n<a href=\"#VkVideoDecodeAV1ProfileInfoKHR\">VkVideoDecodeAV1ProfileInfoKHR</a>::<code>filmGrainSupport</code> set to\n<code>VK_TRUE</code>, and <a href=\"#decode-av1-film-grain\">film grain</a> is enabled for\nthe decoded picture</p>\n</li>\n</ul>\n</div>\n<div class=\"paragraph\">\n<p>then the video picture resources specified by\n    <code>pDecodeInfo-&gt;dstPictureResource</code> and\n    <code>pDecodeInfo-&gt;pSetupReferenceSlot-&gt;pPictureResource</code> <strong class=\"purple\">must</strong>\n    <a href=\"#video-picture-resource-matching\">match</a></p>\n</div>",
+          "text": "If <code>pDecodeInfo-&gt;pSetupReferenceSlot</code> is not <code>NULL</code> and none of the following is true:<div class=\"ulist\">\n<ul>\n<li>\n<p><a href=\"#VkVideoDecodeCapabilitiesKHR\">VkVideoDecodeCapabilitiesKHR</a>::<code>flags</code> includes\n<code>VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_DISTINCT_BIT_KHR</code>, as\nreturned by <a href=\"#vkGetPhysicalDeviceVideoCapabilitiesKHR\">vkGetPhysicalDeviceVideoCapabilitiesKHR</a> for the video\nprofile the bound video session was created with</p>\n</li>\n<li>\n<p>the bound video session was created with the video codec operation\n<code>VK_VIDEO_CODEC_OPERATION_DECODE_AV1_BIT_KHR</code> and\n<a href=\"#VkVideoDecodeAV1ProfileInfoKHR\">VkVideoDecodeAV1ProfileInfoKHR</a>::<code>filmGrainSupport</code> set to\n<code>VK_TRUE</code>, and <a href=\"#decode-av1-film-grain\">film grain</a> is enabled for\nthe decoded picture</p>\n</li>\n</ul>\n</div>\n<div class=\"paragraph\">\n<p>then the video picture resources specified by\n<code>pDecodeInfo-&gt;dstPictureResource</code> and\n<code>pDecodeInfo-&gt;pSetupReferenceSlot-&gt;pPictureResource</code> <strong class=\"purple\">must</strong>\n<a href=\"#video-picture-resource-matching\">match</a></p>\n</div>",
           "page": "vkspec"
         },
         {
@@ -100129,28 +100444,8 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddNV-06317",
-          "text": "For <code>OpCooperativeMatrixMulAddNV</code>, the type of <code>A</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>KSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>AType</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddNV-06318",
-          "text": "For <code>OpCooperativeMatrixMulAddNV</code>, the type of <code>B</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>KSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>BType</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddNV-06319",
-          "text": "For <code>OpCooperativeMatrixMulAddNV</code>, the type of <code>C</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>CType</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddNV-06320",
-          "text": "For <code>OpCooperativeMatrixMulAddNV</code>, the type of <code>Result</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>DType</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddNV-06321",
-          "text": "For <code>OpCooperativeMatrixMulAddNV</code>, the type of <code>A</code>, <code>B</code>, <code>C</code>, and <code>Result</code> <strong class=\"purple\">must</strong> all have a scope of <code>scope</code>",
+          "vuid": "VUID-RuntimeSpirv-OpTypeCooperativeMatrixMulAddNV-10059",
+          "text": "For <code>OpTypeCooperativeMatrixMulAddNV</code>, the operands <strong class=\"purple\">must</strong> match a supported <a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>, such that:<div class=\"ulist\">\n<ul>\n<li>\n<p>The type of <code>A</code> <strong class=\"purple\">must</strong> have <code>Rows</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>MSize</code>, <code>Columns</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>KSize</code>, and\n<code>ComponentType</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>AType</code>.</p>\n</li>\n<li>\n<p>The type of <code>B</code> <strong class=\"purple\">must</strong> have <code>Rows</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>KSize</code>, <code>Columns</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>NSize</code>, and\n<code>ComponentType</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>BType</code>.</p>\n</li>\n<li>\n<p>The type of <code>C</code> <strong class=\"purple\">must</strong> have <code>Rows</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>MSize</code>, <code>Columns</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>NSize</code>, and\n<code>ComponentType</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>CType</code>.</p>\n</li>\n<li>\n<p>The type of <code>Result</code> <strong class=\"purple\">must</strong> have <code>Rows</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>MSize</code>, <code>Columns</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>NSize</code>, and\n<code>ComponentType</code> match\n<a href=\"#VkCooperativeMatrixPropertiesNV\">VkCooperativeMatrixPropertiesNV</a>::<code>DType</code>.</p>\n</li>\n<li>\n<p>The scope of all cooperative matrix operands <strong class=\"purple\">must</strong> be\n<a href=\"#VkScopeNV\">VkScopeNV</a>::<code>VK_SCOPE_SUBGROUP_NV</code>.</p>\n</li>\n<li>\n<p>If <code>ComponentType</code> of <code>A</code>, <code>B</code>, <code>C</code>, or <code>Result</code> is a\nsigned integral type, the <code>Signedness</code> operand of the <code>OpTypeInt</code>\nmust be 1.</p>\n</li>\n<li>\n<p>If <code>ComponentType</code> of <code>A</code>, <code>B</code>, <code>C</code>, or <code>Result</code> is an\nunsigned integral type, the <code>Signedness</code> operand of the\n<code>OpTypeInt</code> must be 0.</p>\n</li>\n</ul>\n</div>",
           "page": "vkspec"
         },
         {
@@ -100160,57 +100455,12 @@
         },
         {
           "vuid": "VUID-RuntimeSpirv-OpTypeCooperativeMatrixKHR-08974",
-          "text": "For <code>OpTypeCooperativeMatrixKHR</code>, the component type, scope, number of rows, and number of columns <strong class=\"purple\">must</strong> match one of the matrices in any of the supported <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>",
+          "text": "For <code>OpTypeCooperativeMatrixKHR</code>, the component type, scope, number of rows, and number of columns <strong class=\"purple\">must</strong> match one of the matrices in any of the supported <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>.",
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-RuntimeSpirv-MSize-08975",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>A</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>KSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>AType</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddKHR-08976",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>A</code> is a signed integer type, the <code>MatrixASignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-KSize-08977",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>B</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>KSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>BType</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddKHR-08978",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>B</code> is a signed integer type, the <code>MatrixBSignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-MSize-08979",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>C</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>CType</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddKHR-08980",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>C</code> is a signed integer type, the <code>MatrixCSignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-MSize-08981",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>Result</code> <strong class=\"purple\">must</strong> have <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code> rows and <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code> columns and have a component type that matches <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>ResultType</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddKHR-08982",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, when the component type of <code>Result</code> is a signed integer type, the <code>MatrixResultSignedComponents</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-saturatingAccumulation-08983",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the <code>SaturatingAccumulation</code> cooperative matrix operand <strong class=\"purple\">must</strong> be present if and only if <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>saturatingAccumulation</code> is <code>VK_TRUE</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-RuntimeSpirv-scope-08984",
-          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the type of <code>A</code>, <code>B</code>, <code>C</code>, and <code>Result</code> <strong class=\"purple\">must</strong> all have a scope of <code>scope</code>",
+          "vuid": "VUID-RuntimeSpirv-OpCooperativeMatrixMulAddKHR-10060",
+          "text": "For <code>OpCooperativeMatrixMulAddKHR</code>, the operands <strong class=\"purple\">must</strong> match a supported <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>, such that:<div class=\"ulist\">\n<ul>\n<li>\n<p>The type of <code>A</code> <strong class=\"purple\">must</strong> have <code>Rows</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code>, <code>Columns</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>KSize</code>, <code>Use</code> be\n<code>MatrixAKHR</code>, and <code>ComponentType</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>AType</code>.</p>\n</li>\n<li>\n<p>The type of <code>B</code> <strong class=\"purple\">must</strong> have <code>Rows</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>KSize</code>, <code>Columns</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code>, <code>Use</code> be\n<code>MatrixBKHR</code>, and <code>ComponentType</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>BType</code>.</p>\n</li>\n<li>\n<p>The type of <code>C</code> <strong class=\"purple\">must</strong> have <code>Rows</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code>, <code>Columns</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code>, <code>Use</code> be\n<code>MatrixAccumulatorKHR</code>, and <code>ComponentType</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>CType</code>.</p>\n</li>\n<li>\n<p>The type of <code>Result</code> <strong class=\"purple\">must</strong> have <code>Rows</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>MSize</code>, <code>Columns</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>NSize</code>, <code>Use</code> be\n<code>MatrixAccumulatorKHR</code>, and <code>ComponentType</code> match\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>ResultType</code>.</p>\n</li>\n<li>\n<p>If and only if <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>AType</code> is a\nsigned integer type, <code>MatrixASignedComponents</code> <strong class=\"purple\">must</strong> be used.</p>\n</li>\n<li>\n<p>If and only if <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>BType</code> is a\nsigned integer type, <code>MatrixBSignedComponents</code> <strong class=\"purple\">must</strong> be used.</p>\n</li>\n<li>\n<p>If and only if <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>CType</code> is a\nsigned integer type, <code>MatrixCSignedComponents</code> <strong class=\"purple\">must</strong> be used.</p>\n</li>\n<li>\n<p>If and only if <a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>ResultType</code>\nis a signed integer type, <code>MatrixResultSignedComponents</code> <strong class=\"purple\">must</strong> be\nused.</p>\n</li>\n<li>\n<p>If and only if\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>saturatingAccumulation</code> is\n<code>VK_TRUE</code>, <code>SaturatingAccumulationKHR</code> <strong class=\"purple\">must</strong> be used.</p>\n</li>\n<li>\n<p>If and only if\n<a href=\"#VkCooperativeMatrixPropertiesKHR\">VkCooperativeMatrixPropertiesKHR</a>::<code>saturatingAccumulation</code> is\n<code>VK_FALSE</code>, <code>SaturatingAccumulationKHR</code> <strong class=\"purple\">must</strong> not be used.</p>\n</li>\n<li>\n<p>The scope of all cooperative matrix operands <strong class=\"purple\">must</strong> be\n<a href=\"#VkScopeKHR\">VkScopeKHR</a>::<code>VK_SCOPE_SUBGROUP_KHR</code>.</p>\n</li>\n</ul>\n</div>",
           "page": "vkspec"
         },
         {

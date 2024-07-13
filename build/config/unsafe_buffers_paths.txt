@@ -78,6 +78,7 @@
 +components/compose/
 +components/discardable_memory/
 +components/guest_view/
++components/password_manager/
 +components/performance_manager/
 +components/plus_addresses/
 +components/prefs/
@@ -87,10 +88,6 @@
 -dbus/
 -device/
 -docs/
--extensions/
-+extensions/browser/api/guest_view/
-+extensions/browser/guest_view/
-+extensions/renderer/guest_view/
 -fuchsia_web/
 -gin/
 -google_apis/
@@ -120,18 +117,12 @@
 -storage/
 -testing/
 -third_party/
-+third_party/blink/renderer/core/css/
-+third_party/blink/renderer/core/dom/
-+third_party/blink/renderer/core/layout/
-+third_party/blink/renderer/core/svg/
-+third_party/blink/renderer/modules/
-+third_party/blink/renderer/platform/
++third_party/blink/
 -tools/
 -ui/
 +ui/views/
 -url/third_party
 -v8/
--webkit/
 
 # TODO(crbug.com/41497066#comment22) The Win SDK headers don't get categorized
 # as system headers when building with DEPOT_TOOLS_WIN_TOOLCHAIN=0 ?
