@@ -867,7 +867,7 @@ void InsertCommonTypes(angle::spirv::Blob *blobOut)
     spirv::WriteTypeFunction(blobOut, spirv::IdRef(kIdMainType), spirv::IdRef(kIdVoid), {});
 
     // Float types
-    spirv::WriteTypeFloat(blobOut, spirv::IdRef(kIdFloatType), spirv::LiteralInteger(32));
+    spirv::WriteTypeFloat(blobOut, spirv::IdRef(kIdFloatType), spirv::LiteralInteger(32), nullptr);
     InsertDerivativeTypes(spirv::IdRef(kIdFloatType), spirv::IdRef(kIdFloat4Type),
                           spirv::IdRef(kIdFloat4OutType), spirv::IdRef(kIdFloatSubpassImageType),
                           spirv::IdRef(kIdFloatSubpassInputType), blobOut);
@@ -1443,8 +1443,8 @@ angle::Result UtilsVk::ensureResourcesInitialized(ContextVk *contextVk,
     uint32_t currentBinding = 0;
     for (size_t i = 0; i < setSizesCount; ++i)
     {
-        descriptorSetDesc.update(currentBinding, setSizes[i].type, setSizes[i].descriptorCount,
-                                 descStages, nullptr);
+        descriptorSetDesc.addBinding(currentBinding, setSizes[i].type, setSizes[i].descriptorCount,
+                                     descStages, nullptr);
         ++currentBinding;
     }
 
@@ -1620,8 +1620,8 @@ angle::Result UtilsVk::ensureImageCopyResourcesInitializedWithSampler(
         contextVk->getRenderer()->getSamplerCache().getSampler(contextVk, samplerDesc, &sampler));
 
     vk::DescriptorSetLayoutDesc descriptorSetDesc;
-    descriptorSetDesc.update(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                             VK_SHADER_STAGE_FRAGMENT_BIT, &sampler.get().get());
+    descriptorSetDesc.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                                 VK_SHADER_STAGE_FRAGMENT_BIT, &sampler.get().get());
 
     ANGLE_TRY(contextVk->getDescriptorSetLayoutCache().getDescriptorSetLayout(
         contextVk, descriptorSetDesc,
@@ -2403,7 +2403,8 @@ angle::Result UtilsVk::startRenderPass(ContextVk *contextVk,
     vk::RenderPassFramebuffer renderPassFramebuffer;
     renderPassFramebuffer.setFramebuffer(std::move(framebufferHandle), {imageView->getHandle()},
                                          framebufferInfo.width, framebufferInfo.height,
-                                         framebufferInfo.layers, vk::ImagelessFramebuffer::No);
+                                         framebufferInfo.layers, vk::ImagelessFramebuffer::No,
+                                         vk::RenderPassSource::InternalUtils);
 
     vk::AttachmentOpsArray renderPassAttachmentOps;
     vk::PackedClearValuesArray clearValues;
@@ -4461,8 +4462,11 @@ angle::Result UtilsVk::drawOverlay(ContextVk *contextVk,
     // Overlay is always drawn as the last render pass before present.  Automatically move the
     // layout to PresentSrc.
     contextVk->onColorDraw(gl::LevelIndex(0), 0, 1, dst, nullptr, {}, vk::PackedAttachmentIndex(0));
-    contextVk->getStartedRenderPassCommands().setImageOptimizeForPresent(dst);
-    contextVk->finalizeImageLayout(dst, {});
+    if (contextVk->getFeatures().supportsPresentation.enabled)
+    {
+        contextVk->getStartedRenderPassCommands().setImageOptimizeForPresent(dst);
+        contextVk->finalizeImageLayout(dst, {});
+    }
 
     // Close the render pass for this temporary framebuffer.
     return contextVk->flushCommandsAndEndRenderPass(
