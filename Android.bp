@@ -72,7 +72,6 @@ cc_defaults {
         "-Wno-cast-function-type",
         "-Wno-deprecated-builtins",
         "-Wno-deprecated-this-capture",
-        "-Wno-ignored-pragma-optimize",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
         "-Wno-missing-template-arg-list-after-template-kw",
@@ -4458,11 +4457,148 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "third_party_abseil_cpp_absl_debugging_utf8_for_code_point",
+    srcs: [
+        "third_party/abseil-cpp/absl/debugging/internal/utf8_for_code_point.cc",
+    ],
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "third_party_abseil_cpp_absl_base_config",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-gcc-compat",
+        "-Wno-misleading-indentation",
+        "-Wno-unreachable-code-break",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "28",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
+    name: "third_party_abseil_cpp_absl_debugging_bounded_utf8_length_sequence",
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "third_party_abseil_cpp_absl_base_config",
+        "third_party_abseil_cpp_absl_numeric_bits",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-gcc-compat",
+        "-Wno-misleading-indentation",
+        "-Wno-unreachable-code-break",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "28",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
+    name: "third_party_abseil_cpp_absl_debugging_decode_rust_punycode",
+    srcs: [
+        "third_party/abseil-cpp/absl/debugging/internal/decode_rust_punycode.cc",
+    ],
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "third_party_abseil_cpp_absl_base_config",
+        "third_party_abseil_cpp_absl_base_nullability",
+        "third_party_abseil_cpp_absl_debugging_bounded_utf8_length_sequence",
+        "third_party_abseil_cpp_absl_debugging_utf8_for_code_point",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-gcc-compat",
+        "-Wno-misleading-indentation",
+        "-Wno-unreachable-code-break",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "28",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
+    name: "third_party_abseil_cpp_absl_debugging_demangle_rust",
+    srcs: [
+        "third_party/abseil-cpp/absl/debugging/internal/demangle_rust.cc",
+    ],
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "third_party_abseil_cpp_absl_base_config",
+        "third_party_abseil_cpp_absl_base_core_headers",
+        "third_party_abseil_cpp_absl_debugging_decode_rust_punycode",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-gcc-compat",
+        "-Wno-misleading-indentation",
+        "-Wno-unreachable-code-break",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "28",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
     name: "third_party_abseil_cpp_absl_debugging_demangle_internal",
     srcs: [
         "third_party/abseil-cpp/absl/debugging/internal/demangle.cc",
-        "third_party/abseil-cpp/absl/debugging/internal/demangle_rust.cc",
-        "third_party/abseil-cpp/absl/debugging/internal/utf8_for_code_point.cc",
     ],
     defaults: [
         "angle_common_auto_cflags",
@@ -4470,6 +4606,8 @@ cc_defaults {
         "third_party_abseil_cpp_absl_base_base",
         "third_party_abseil_cpp_absl_base_config",
         "third_party_abseil_cpp_absl_base_core_headers",
+        "third_party_abseil_cpp_absl_base_nullability",
+        "third_party_abseil_cpp_absl_debugging_demangle_rust",
         "third_party_abseil_cpp_absl_numeric_bits",
     ],
     local_include_dirs: [
@@ -5232,6 +5370,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_strings_internal",
         "third_party_abseil_cpp_absl_strings_string_view",
         "third_party_abseil_cpp_absl_strings_strings",
+        "third_party_abseil_cpp_absl_types_compare",
         "third_party_abseil_cpp_absl_types_optional",
         "third_party_abseil_cpp_absl_types_span",
     ],
@@ -6580,6 +6719,7 @@ cc_defaults {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "third_party_abseil_cpp_absl_algorithm_algorithm",
+        "third_party_abseil_cpp_absl_base_config",
         "third_party_abseil_cpp_absl_base_core_headers",
         "third_party_abseil_cpp_absl_base_nullability",
         "third_party_abseil_cpp_absl_meta_type_traits",
