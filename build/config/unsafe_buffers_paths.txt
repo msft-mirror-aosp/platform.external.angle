@@ -65,6 +65,7 @@
 +chrome/browser/extensions/api/web_view/
 +chrome/browser/guest_view/
 +chrome/browser/navigation_predictor/
++chrome/browser/performance_manager/
 +chrome/browser/preloading/
 +chrome/browser/ui/autofill/
 +chrome/browser/ui/views/autofill/
@@ -73,21 +74,20 @@
 -clank/
 -codelabs/
 -components/
-+components/autofill
-+components/discardable_memory
++components/autofill/
++components/compose/
++components/discardable_memory/
 +components/guest_view/
-+components/performance_manager
-+components/plus_addresses
++components/password_manager/
++components/performance_manager/
++components/plus_addresses/
++components/prefs/
 -courgette/
 -crypto/
 -data/
 -dbus/
 -device/
 -docs/
--extensions/
-+extensions/browser/api/guest_view/
-+extensions/browser/guest_view/
-+extensions/renderer/guest_view/
 -fuchsia_web/
 -gin/
 -google_apis/
@@ -117,12 +117,12 @@
 -storage/
 -testing/
 -third_party/
++third_party/blink/
 -tools/
 -ui/
 +ui/views/
 -url/third_party
 -v8/
--webkit/
 
 # TODO(crbug.com/41497066#comment22) The Win SDK headers don't get categorized
 # as system headers when building with DEPOT_TOOLS_WIN_TOOLCHAIN=0 ?
