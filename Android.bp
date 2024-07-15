@@ -1686,6 +1686,7 @@ cc_genrule {
         "src/common/frame_capture_utils_autogen.h",
         "src/common/gl_enum_utils.h",
         "src/common/gl_enum_utils_autogen.h",
+        "src/common/hash_containers.h",
         "src/common/hash_utils.h",
         "src/common/log_utils.h",
         "src/common/mathutil.cpp",
