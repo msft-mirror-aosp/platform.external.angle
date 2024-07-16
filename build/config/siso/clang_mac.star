@@ -34,39 +34,25 @@ def __filegroups(ctx):
         },
     }
 
-    # precompute subtree for sysroot/frameworks for siso scandeps,
-    # which is not complex enough to handle C preprocessor tricks
-    # and need system include dirs when using deps log of -MMD.
-    # need to add new entries when new version is used.
-    # TODO: b/323091468 - get sysroot, ios_sdk_path from gn
-    fg[ctx.fs.canonpath("./sdk/xcode_links/MacOSX14.2.sdk") + ":headers"] = {
-        "type": "glob",
-        "includes": sdk_includes,
-    }
-    fg[ctx.fs.canonpath("./sdk/xcode_links/iPhoneSimulator17.2.sdk") + ":headers"] = {
-        "type": "glob",
-        "includes": sdk_includes,
-    }
-
-    # https://b.corp.google.com/issues/332652041#comment2
-    fg[ctx.fs.canonpath("./sdk/xcode_links/MacOSX14.4.sdk") + ":headers"] = {
-        "type": "glob",
-        "includes": sdk_includes,
-    }
-    fg[ctx.fs.canonpath("./sdk/xcode_links/iPhoneSimulator17.4.sdk") + ":headers"] = {
-        "type": "glob",
-        "includes": sdk_includes,
-    }
-
-    # https://chromium-review.googlesource.com/c/chromium/src/+/5568662
-    fg[ctx.fs.canonpath("./sdk/xcode_links/MacOSX14.5.sdk") + ":headers"] = {
-        "type": "glob",
-        "includes": sdk_includes,
-    }
-    fg[ctx.fs.canonpath("./sdk/xcode_links/iPhoneSimulator17.5.sdk") + ":headers"] = {
-        "type": "glob",
-        "includes": sdk_includes,
-    }
+    if gn.args(ctx).get("use_remoteexec") == "true":
+        # precompute subtree for sysroot/frameworks for siso scandeps,
+        # which is not complex enough to handle C preprocessor tricks
+        # and need system include dirs when using deps log of -MMD.
+        # need to add new entries when new version is used.
+        #
+        # if use_remoteexec is not true, these dirs are not under exec root
+        # and failed to create filegroup for such dirs. crbug.com/352216756
+        gn_logs_data = gn_logs.read(ctx)
+        if gn_logs_data.get("mac_sdk_path"):
+            fg[ctx.fs.canonpath("./" + gn_logs_data.get("mac_sdk_path")) + ":headers"] = {
+                "type": "glob",
+                "includes": sdk_includes,
+            }
+        if gn_logs_data.get("ios_sdk_path"):
+            fg[ctx.fs.canonpath("./" + gn_logs_data.get("ios_sdk_path")) + ":headers"] = {
+                "type": "glob",
+                "includes": sdk_includes,
+            }
 
     fg[ctx.fs.canonpath("./sdk/xcode_links/iPhoneSimulator.platform/Developer/Library/Frameworks") + ":headers"] = {
         "type": "glob",
@@ -99,17 +85,12 @@ def __step_config(ctx, step_config):
         })
         step_config["input_deps"].update(clang_all.input_deps)
 
-        # TODO: https://issues.chromium.org/40120210 - remove this
-        # once we can use relative path in hmap.
-        need_input_root_absolute_path_for_objc = False
-        gn_args = gn.args(ctx)
-        if gn_args.get("target_os") == "\"ios\"":
-            # objc/objcxx uses hmap, which contains absolute path
-            # see also b/256536089
-            need_input_root_absolute_path_for_objc = True
+        gn_logs_data = gn_logs.read(ctx)
+        input_root_absolute_path = gn_logs_data.get("clang_need_input_root_absolute_path") == "true"
+        input_root_absolute_path_for_objc = gn_logs_data.get("clang_need_input_root_absolute_path_for_objc") == "true"
 
-        input_root_absolute_path = gn_logs.read(ctx).get("clang_need_input_root_absolute_path") == "true"
         canonicalize_dir = not input_root_absolute_path
+        canonicalize_dir_for_objc = not input_root_absolute_path_for_objc
 
         step_config["rules"].extend([
             {
@@ -154,8 +135,8 @@ def __step_config(ctx, step_config):
                 "remote": True,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
-                "input_root_absolute_path": need_input_root_absolute_path_for_objc,
-                "canonicalize_dir": (not need_input_root_absolute_path_for_objc),
+                "input_root_absolute_path": input_root_absolute_path_for_objc,
+                "canonicalize_dir": canonicalize_dir_for_objc,
             },
             {
                 "name": "clang/objc",
@@ -169,8 +150,8 @@ def __step_config(ctx, step_config):
                 "remote": True,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
-                "input_root_absolute_path": need_input_root_absolute_path_for_objc,
-                "canonicalize_dir": (not need_input_root_absolute_path_for_objc),
+                "input_root_absolute_path": input_root_absolute_path_for_objc,
+                "canonicalize_dir": canonicalize_dir_for_objc,
             },
             {
                 "name": "clang-coverage/cxx",
@@ -217,8 +198,8 @@ def __step_config(ctx, step_config):
                 "remote": True,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
-                "input_root_absolute_path": need_input_root_absolute_path_for_objc,
-                "canonicalize_dir": (not need_input_root_absolute_path_for_objc),
+                "input_root_absolute_path": input_root_absolute_path_for_objc,
+                "canonicalize_dir": canonicalize_dir_for_objc,
             },
             {
                 "name": "clang-coverage/objc",
@@ -233,8 +214,8 @@ def __step_config(ctx, step_config):
                 "remote": True,
                 "remote_wrapper": reproxy_config["remote_wrapper"],
                 "timeout": "2m",
-                "input_root_absolute_path": need_input_root_absolute_path_for_objc,
-                "canonicalize_dir": (not need_input_root_absolute_path_for_objc),
+                "input_root_absolute_path": input_root_absolute_path_for_objc,
+                "canonicalize_dir": canonicalize_dir_for_objc,
             },
         ])
     return step_config

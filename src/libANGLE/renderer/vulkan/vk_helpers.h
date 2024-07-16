@@ -779,6 +779,8 @@ struct ImageMemoryBarrierData
     // barrier.
     PipelineStage barrierIndex;
     EventStage eventStage;
+    // The pipeline stage flags group that used for heuristic.
+    PipelineStageGroup pipelineStageGroup;
 };
 // Initialize ImageLayout to ImageMemoryBarrierData mapping table.
 void InitializeImageLayoutAndMemoryBarrierDataMap(
@@ -1362,10 +1364,6 @@ class CommandBufferHelperCommon : angle::NonCopyable
         writeResource->setWriteQueueSerial(mQueueSerial);
     }
 
-    // Update image with this command buffer's queueSerial. If VkEvent is enabled, image's current
-    // event is also updated with this command's event.
-    void retainImage(Context *context, ImageHelper *image);
-
     // Returns true if event already existed in this command buffer.
     bool hasSetEventPendingFlush(const RefCountedEvent &event) const
     {
@@ -1544,10 +1542,11 @@ class OutsideRenderPassCommandBufferHelper final : public CommandBufferHelperCom
                     ImageLayout imageLayout,
                     ImageHelper *image);
 
+    // Update image with this command buffer's queueSerial.
+    void retainImage(ImageHelper *image);
+
     // Call SetEvent and have image's current event pointing to it.
     void trackImageWithEvent(Context *context, ImageHelper *image);
-    void trackImagesWithEvent(Context *context, ImageHelper *srcImage, ImageHelper *dstImage);
-    void trackImagesWithEvent(Context *context, const ImageHelperPtr *images, size_t count);
 
     // Issues SetEvent calls to the command buffer.
     void flushSetEvents(Context *context) { flushSetEventsImpl(context, &mCommandBuffer); }
@@ -1591,6 +1590,13 @@ enum class ImagelessFramebuffer
     Yes,
 };
 
+enum class RenderPassSource
+{
+    DefaultFramebuffer,
+    FramebufferObject,
+    InternalUtils,
+};
+
 class RenderPassFramebuffer : angle::NonCopyable
 {
   public:
@@ -1605,6 +1611,7 @@ class RenderPassFramebuffer : angle::NonCopyable
         mHeight      = other.mHeight;
         mLayers      = other.mLayers;
         mIsImageless = other.mIsImageless;
+        mIsDefault   = other.mIsDefault;
         return *this;
     }
 
@@ -1615,7 +1622,8 @@ class RenderPassFramebuffer : angle::NonCopyable
                         uint32_t width,
                         uint32_t height,
                         uint32_t layers,
-                        ImagelessFramebuffer imagelessFramebuffer)
+                        ImagelessFramebuffer imagelessFramebuffer,
+                        RenderPassSource source)
     {
         ASSERT(initialFramebuffer.valid());
         mInitialFramebuffer = std::move(initialFramebuffer);
@@ -1624,9 +1632,11 @@ class RenderPassFramebuffer : angle::NonCopyable
         mHeight             = height;
         mLayers             = layers;
         mIsImageless        = imagelessFramebuffer == ImagelessFramebuffer::Yes;
+        mIsDefault          = source == RenderPassSource::DefaultFramebuffer;
     }
 
-    bool isImageless() { return mIsImageless; }
+    bool isImageless() const { return mIsImageless; }
+    bool isDefault() const { return mIsDefault; }
     const Framebuffer &getFramebuffer() const { return mInitialFramebuffer; }
     bool needsNewFramebufferWithResolveAttachments() const { return !mInitialFramebuffer.valid(); }
 
@@ -1700,7 +1710,11 @@ class RenderPassFramebuffer : angle::NonCopyable
     uint32_t mHeight = 0;
     uint32_t mLayers = 0;
 
+    // Whether this is an imageless framebuffer.  Currently, window surface and UtilsVk framebuffers
+    // aren't imageless, unless imageless framebuffers aren't supported altogether.
     bool mIsImageless = false;
+    // Whether this is the default framebuffer (i.e. corresponding to the window surface).
+    bool mIsDefault = false;
 };
 
 class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
@@ -1779,6 +1793,10 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
                                 ImageHelper *resolveImage,
                                 UniqueSerial imageSiblingSerial);
     void fragmentShadingRateImageRead(ImageHelper *image);
+
+    // Update image with this command buffer's queueSerial. If VkEvent is enabled, image's current
+    // event is also updated with this command's event.
+    void retainImage(Context *context, ImageHelper *image);
 
     bool usesImage(const ImageHelper &image) const;
     bool startedAndUsesImageWithBarrier(const ImageHelper &image) const;
@@ -1907,6 +1925,8 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
 
     void collectRefCountedEventsGarbage(RefCountedEventsGarbageRecycler *garbageRecycler);
 
+    bool isDefault() const { return mFramebuffer.isDefault(); }
+
   private:
     uint32_t getSubpassCommandBufferCount() const { return mCurrentSubpassCommandBufferIndex + 1; }
 
@@ -1943,7 +1963,6 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     void finalizeDepthStencilImageLayoutAndLoadStore(Context *context);
     void finalizeFragmentShadingRateImageLayout(Context *context);
 
-    void trackImagesWithEvent(Context *context, const ImageHelperPtr *images, size_t count);
     void executeSetEvents(Context *context, PrimaryCommandBuffer *primary);
 
     // When using Vulkan secondary command buffers, each subpass must be recorded in a separate
@@ -2197,6 +2216,7 @@ class ImageHelper final : public Resource, public angle::Subject
                                                           gl::TextureType textureType,
                                                           GLint samples,
                                                           const ImageHelper &resolveImage,
+                                                          const VkExtent3D &multisampleImageExtents,
                                                           bool isRobustResourceInitEnabled);
 
     // Helper for initExternal and users to automatically derive the appropriate VkImageCreateInfo
@@ -2522,6 +2542,7 @@ class ImageHelper final : public Resource, public angle::Subject
                                         uint32_t layer,
                                         uint32_t layerCount) const;
     bool hasStagedUpdatesInAllocatedLevels() const;
+    bool hasBufferSourcedStagedUpdatesInAllLevels() const;
 
     bool removeStagedClearUpdatesAndReturnColor(gl::LevelIndex levelGL,
                                                 const VkClearColorValue **color);
@@ -2697,6 +2718,8 @@ class ImageHelper final : public Resource, public angle::Subject
                                       GLuint *inputDepthPitch,
                                       GLuint *inputSkipBytes);
 
+    void onRenderPassAttach(const QueueSerial &queueSerial);
+
     // Mark a given subresource as written to.  The subresource is identified by [levelStart,
     // levelStart + levelCount) and [layerStart, layerStart + layerCount).
     void onWrite(gl::LevelIndex levelStart,
@@ -2775,6 +2798,8 @@ class ImageHelper final : public Resource, public angle::Subject
     // Create event if needed and record the event in ImageHelper::mCurrentEvent.
     void setCurrentRefCountedEvent(Context *context, EventMaps &eventMaps);
 
+    void updatePipelineStageAccessHistory();
+
   private:
     ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
     struct ClearUpdate
@@ -2832,7 +2857,12 @@ class ImageHelper final : public Resource, public angle::Subject
 
         void release(Renderer *renderer);
 
-        bool isUpdateToLayers(uint32_t layerIndex, uint32_t layerCount) const;
+        // Returns true if the update's layer range exact matches [layerIndex,
+        // layerIndex+layerCount) range
+        bool matchesLayerRange(uint32_t layerIndex, uint32_t layerCount) const;
+        // Returns true if the update is to any layer within range of [layerIndex,
+        // layerIndex+layerCount)
+        bool intersectsLayerRange(uint32_t layerIndex, uint32_t layerCount) const;
         void getDestSubresource(uint32_t imageLayerCount,
                                 uint32_t *baseLayerOut,
                                 uint32_t *layerCountOut) const;
@@ -3128,6 +3158,15 @@ class ImageHelper final : public Resource, public angle::Subject
     // this event.
     RefCountedEvent mCurrentEvent;
     RefCountedEvent mLastNonShaderReadOnlyEvent;
+    // Track history of pipeline stages being used. Each bit represents the fragment or
+    // attachment usage, i.e, a bit is set if the layout indicates a fragment or colorAttachment
+    // pipeline stages, and bit is 0 if used by other stages like vertex shader or compute or
+    // transfer. Every use of image update the usage history by shifting the bitfields left and new
+    // bit that represents the new pipeline usage is added to the right most bit. This way we track
+    // if there is any non-fragment pipeline usage during the past usages (i.e., the window of
+    // usage history is number of bits in mPipelineStageAccessHeuristic). This information provides
+    // heuristic for making decisions if a VkEvent should be used to track the operation.
+    PipelineStageAccessHeuristic mPipelineStageAccessHeuristic;
 
     // Whether ANGLE currently has ownership of this resource or it's released to external.
     bool mIsReleasedToExternal;
@@ -3545,22 +3584,27 @@ class BufferViewHelper final : public Resource
 };
 
 // Context state that can affect a compute pipeline
-enum class ComputePipelineFlag : uint8_t
+union ComputePipelineOptions final
 {
-    // Whether VK_EXT_pipeline_robustness should be used to make the pipeline robust.  Note that
-    // programs are allowed to be shared between robust and non-robust contexts, so different
-    // pipelines can be created for the same compute program.
-    Robust,
-    // Whether VK_EXT_pipeline_protected_access should be used to make the pipeline protected-only.
-    // Similar to robustness, EGL allows protected and unprotected to be in the same share group.
-    Protected,
-
-    InvalidEnum,
-    EnumCount = InvalidEnum,
+    struct
+    {
+        // Whether VK_EXT_pipeline_robustness should be used to make the pipeline robust.  Note that
+        // programs are allowed to be shared between robust and non-robust contexts, so different
+        // pipelines can be created for the same compute program.
+        uint8_t robustness : 1;
+        // Whether VK_EXT_pipeline_protected_access should be used to make the pipeline
+        // protected-only. Similar to robustness, EGL allows protected and unprotected to be in the
+        // same share group.
+        uint8_t protectedAccess : 1;
+        uint8_t reserved : 6;  // must initialize to zero
+    };
+    uint8_t permutationIndex;
+    static constexpr uint32_t kPermutationCount = 0x1 << 2;
 };
-
-using ComputePipelineFlags = angle::PackedEnumBitSet<ComputePipelineFlag, uint8_t>;
-using ComputePipelineCache = std::array<PipelineHelper, 1u << ComputePipelineFlags::size()>;
+static_assert(sizeof(ComputePipelineOptions) == 1, "Size check failed");
+ComputePipelineOptions GetComputePipelineOptions(vk::PipelineRobustness robustness,
+                                                 vk::PipelineProtectedAccess protectedAccess);
+using ComputePipelineCache = std::array<PipelineHelper, ComputePipelineOptions::kPermutationCount>;
 
 class ShaderProgramHelper : angle::NonCopyable
 {
@@ -3605,7 +3649,7 @@ class ShaderProgramHelper : angle::NonCopyable
                                              ComputePipelineCache *computePipelines,
                                              PipelineCacheAccess *pipelineCache,
                                              const PipelineLayout &pipelineLayout,
-                                             ComputePipelineFlags pipelineFlags,
+                                             ComputePipelineOptions pipelineOptions,
                                              PipelineSource source,
                                              PipelineHelper **pipelineOut,
                                              const char *shaderName,

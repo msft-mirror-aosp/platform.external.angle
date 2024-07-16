@@ -143,7 +143,7 @@ struct Limitations
     bool noVertexAttributeAliasing = false;
 
     // Renderer doesn't support GL_TEXTURE_COMPARE_MODE=GL_NONE on a shadow sampler.
-    // TODO(http://anglebug.com/5231): add validation code to front-end.
+    // TODO(http://anglebug.com/42263785): add validation code to front-end.
     bool noShadowSamplerCompareModeNone = false;
 
     // PVRTC1 textures must be squares.
@@ -345,6 +345,8 @@ struct Caps
 
     GLint maxTessEvaluationInputComponents  = 0;
     GLint maxTessEvaluationOutputComponents = 0;
+
+    bool primitiveRestartForPatchesSupported = false;
 
     GLuint subPixelBits = 4;
 
@@ -764,6 +766,9 @@ struct ClientExtensions
 
     // EGL_ANGLE_platform_angle_d3d11on12
     bool platformANGLED3D11ON12 = false;
+
+    // EGL_ANGLE_platform_angle_d3d_luid
+    bool platformANGLED3DLUID = false;
 
     // EGL_ANGLE_platform_angle_opengl
     bool platformANGLEOpenGL = false;
