@@ -2642,7 +2642,7 @@ bool ValidateCreateContext(const ValidationContext *val,
                 val->setError(EGL_BAD_CONFIG);
                 return false;
             }
-            // TODO(http://anglebug.com/7533): validate desktop OpenGL versions and profile mask
+            // TODO(http://anglebug.com/42266001): validate desktop OpenGL versions and profile mask
             break;
 
         default:
@@ -5771,7 +5771,8 @@ bool ValidateQueryContext(const ValidationContext *val,
     {
         case EGL_CONFIG_ID:
         case EGL_CONTEXT_CLIENT_TYPE:
-        case EGL_CONTEXT_CLIENT_VERSION:
+        case EGL_CONTEXT_MAJOR_VERSION:
+        case EGL_CONTEXT_MINOR_VERSION:
         case EGL_RENDER_BUFFER:
             break;
 

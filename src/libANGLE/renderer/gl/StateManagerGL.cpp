@@ -51,7 +51,7 @@ static void ValidateStateHelper(const FunctionsGL *functions,
     {
         WARN() << localName << " (" << localValue << ") != " << driverName << " (" << queryValue
                << ")";
-        // Re-add ASSERT: http://anglebug.com/3900
+        // Re-add ASSERT: http://anglebug.com/42262547
         // ASSERT(false);
     }
 }
@@ -116,6 +116,7 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
       mClipDepthMode(gl::ClipDepthMode::NegativeOneToOne),
       mBlendColor(0, 0, 0, 0),
       mBlendStateExt(rendererCaps.maxDrawBuffers),
+      mBlendAdvancedCoherent(extensions.blendEquationAdvancedCoherentKHR),
       mIndependentBlendStates(extensions.drawBuffersIndexedAny()),
       mSampleAlphaToCoverageEnabled(false),
       mSampleCoverageEnabled(false),
@@ -1345,6 +1346,26 @@ void StateManagerGL::setBlendColor(const gl::ColorF &blendColor)
     }
 }
 
+void StateManagerGL::setBlendAdvancedCoherent(bool enabled)
+{
+    if (mBlendAdvancedCoherent != enabled)
+    {
+        mBlendAdvancedCoherent = enabled;
+
+        if (mBlendAdvancedCoherent)
+        {
+            mFunctions->enable(GL_BLEND_ADVANCED_COHERENT_KHR);
+        }
+        else
+        {
+            mFunctions->disable(GL_BLEND_ADVANCED_COHERENT_KHR);
+        }
+
+        mLocalDirtyBits.set(gl::state::DIRTY_BIT_EXTENDED);
+        mLocalExtendedDirtyBits.set(gl::state::EXTENDED_DIRTY_BIT_BLEND_ADVANCED_COHERENT);
+    }
+}
+
 void StateManagerGL::setBlendFuncs(const gl::BlendStateExt &blendStateExt)
 {
     if (mBlendStateExt.getSrcColorBits() == blendStateExt.getSrcColorBits() &&
@@ -1488,20 +1509,40 @@ void StateManagerGL::setBlendEquations(const gl::BlendStateExt &blendStateExt)
             }
             if (found)
             {
-                mFunctions->blendEquationSeparate(
-                    ToGLenum(gl::BlendStateExt::EquationStorage::GetValueIndexed(
-                        0, commonEquationColor)),
-                    ToGLenum(gl::BlendStateExt::EquationStorage::GetValueIndexed(
-                        0, commonEquationAlpha)));
+                if (commonEquationColor == commonEquationAlpha)
+                {
+                    mFunctions->blendEquation(
+                        ToGLenum(gl::BlendStateExt::EquationStorage::GetValueIndexed(
+                            0, commonEquationColor)));
+                }
+                else
+                {
+                    mFunctions->blendEquationSeparate(
+                        ToGLenum(gl::BlendStateExt::EquationStorage::GetValueIndexed(
+                            0, commonEquationColor)),
+                        ToGLenum(gl::BlendStateExt::EquationStorage::GetValueIndexed(
+                            0, commonEquationAlpha)));
+                }
             }
         }
 
         for (size_t drawBufferIndex : diffMask)
         {
-            mFunctions->blendEquationSeparatei(
-                static_cast<GLuint>(drawBufferIndex),
-                ToGLenum(blendStateExt.getEquationColorIndexed(drawBufferIndex)),
-                ToGLenum(blendStateExt.getEquationAlphaIndexed(drawBufferIndex)));
+            gl::BlendEquationType equationColor =
+                blendStateExt.getEquationColorIndexed(drawBufferIndex);
+            gl::BlendEquationType equationAlpha =
+                blendStateExt.getEquationAlphaIndexed(drawBufferIndex);
+            if (equationColor == equationAlpha)
+            {
+                mFunctions->blendEquationi(static_cast<GLuint>(drawBufferIndex),
+                                           ToGLenum(equationColor));
+            }
+            else
+            {
+                mFunctions->blendEquationSeparatei(static_cast<GLuint>(drawBufferIndex),
+                                                   ToGLenum(equationColor),
+                                                   ToGLenum(equationAlpha));
+            }
         }
     }
     mBlendStateExt.setEquationColorBits(blendStateExt.getEquationColorBits());
@@ -2469,6 +2510,9 @@ angle::Result StateManagerGL::syncState(const gl::Context *context,
                         case gl::state::EXTENDED_DIRTY_BIT_SHADING_RATE:
                             // Unimplemented extensions.
                             break;
+                        case gl::state::EXTENDED_DIRTY_BIT_BLEND_ADVANCED_COHERENT:
+                            setBlendAdvancedCoherent(state.isBlendAdvancedCoherentEnabled());
+                            break;
                         default:
                             UNREACHABLE();
                             break;
@@ -3342,6 +3386,17 @@ void StateManagerGL::syncBlendFromNativeContext(const gl::Extensions &extensions
         mBlendStateExt.setEquations(state->blendEquationRgb, state->blendEquationAlpha);
         mLocalDirtyBits.set(gl::state::DIRTY_BIT_BLEND_EQUATIONS);
     }
+
+    if (extensions.blendEquationAdvancedCoherentKHR)
+    {
+        get(GL_BLEND_ADVANCED_COHERENT_KHR, &state->enableBlendEquationAdvancedCoherent);
+        if (mBlendAdvancedCoherent != state->enableBlendEquationAdvancedCoherent)
+        {
+            setBlendAdvancedCoherent(state->enableBlendEquationAdvancedCoherent);
+            mLocalDirtyBits.set(gl::state::DIRTY_BIT_EXTENDED);
+            mLocalExtendedDirtyBits.set(gl::state::EXTENDED_DIRTY_BIT_BLEND_ADVANCED_COHERENT);
+        }
+    }
 }
 
 void StateManagerGL::restoreBlendNativeContext(const gl::Extensions &extensions,
@@ -3360,6 +3415,13 @@ void StateManagerGL::restoreBlendNativeContext(const gl::Extensions &extensions,
     mFunctions->blendEquationSeparate(state->blendEquationRgb, state->blendEquationAlpha);
     mBlendStateExt.setEquations(state->blendEquationRgb, state->blendEquationAlpha);
     mLocalDirtyBits.set(gl::state::DIRTY_BIT_BLEND_EQUATIONS);
+
+    if (extensions.blendEquationAdvancedCoherentKHR)
+    {
+        setBlendAdvancedCoherent(state->enableBlendEquationAdvancedCoherent);
+        mLocalDirtyBits.set(gl::state::DIRTY_BIT_EXTENDED);
+        mLocalExtendedDirtyBits.set(gl::state::EXTENDED_DIRTY_BIT_BLEND_ADVANCED_COHERENT);
+    }
 }
 
 void StateManagerGL::syncFramebufferFromNativeContext(const gl::Extensions &extensions,

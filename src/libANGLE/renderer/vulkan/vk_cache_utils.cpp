@@ -270,9 +270,11 @@ struct AttachmentInfo
     bool isUnused;
 };
 
-void UnpackColorResolveAttachmentDesc(VkAttachmentDescription2 *desc,
+void UnpackColorResolveAttachmentDesc(Renderer *renderer,
+                                      VkAttachmentDescription2 *desc,
                                       angle::FormatID formatID,
-                                      const AttachmentInfo &info)
+                                      const AttachmentInfo &info,
+                                      ImageLayout finalLayout)
 {
     *desc        = {};
     desc->sType  = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
@@ -297,7 +299,7 @@ void UnpackColorResolveAttachmentDesc(VkAttachmentDescription2 *desc,
     desc->stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     desc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     desc->initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    desc->finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    desc->finalLayout    = ConvertImageLayoutToVkImageLayout(renderer, finalLayout);
 }
 
 void UnpackDepthStencilResolveAttachmentDesc(vk::Context *context,
@@ -754,8 +756,11 @@ void InitializeDefaultSubpassSelfDependencies(
         renderer->getFeatures().supportsRasterizationOrderAttachmentAccess.enabled;
     const bool hasBlendOperationAdvanced =
         renderer->getFeatures().supportsBlendOperationAdvanced.enabled;
+    const bool hasCoherentBlendOperationAdvanced =
+        renderer->getFeatures().supportsBlendOperationAdvancedCoherent.enabled;
 
-    if (hasRasterizationOrderAttachmentAccess && !hasBlendOperationAdvanced)
+    if (hasRasterizationOrderAttachmentAccess &&
+        (!hasBlendOperationAdvanced || hasCoherentBlendOperationAdvanced))
     {
         // No need to specify a subpass dependency if VK_EXT_rasterization_order_attachment_access
         // is enabled, as that extension makes this subpass dependency implicit.
@@ -777,7 +782,7 @@ void InitializeDefaultSubpassSelfDependencies(
         dependency->dstStageMask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         dependency->dstAccessMask |= VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
     }
-    if (renderer->getFeatures().supportsBlendOperationAdvanced.enabled)
+    if (hasBlendOperationAdvanced && !hasCoherentBlendOperationAdvanced)
     {
         dependency->dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT;
     }
@@ -792,13 +797,11 @@ void InitializeMSRTSS(Context *context,
                       uint8_t renderToTextureSamples,
                       VkSubpassDescription2 *subpass,
                       VkSubpassDescriptionDepthStencilResolve *msrtssResolve,
-                      VkMultisampledRenderToSingleSampledInfoEXT *msrtss,
-                      VkMultisampledRenderToSingleSampledInfoGOOGLEX *msrtssGOOGLEX)
+                      VkMultisampledRenderToSingleSampledInfoEXT *msrtss)
 {
     Renderer *renderer = context->getRenderer();
 
-    ASSERT(renderer->getFeatures().supportsMultisampledRenderToSingleSampled.enabled ||
-           renderer->getFeatures().supportsMultisampledRenderToSingleSampledGOOGLEX.enabled);
+    ASSERT(renderer->getFeatures().supportsMultisampledRenderToSingleSampled.enabled);
 
     *msrtssResolve                    = {};
     msrtssResolve->sType              = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
@@ -812,22 +815,8 @@ void InitializeMSRTSS(Context *context,
     msrtss->rasterizationSamples                    = gl_vk::GetSamples(
         renderToTextureSamples, context->getFeatures().limitSampleCountTo2.enabled);
 
-    *msrtssGOOGLEX       = {};
-    msrtssGOOGLEX->sType = VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_GOOGLEX;
-    msrtssGOOGLEX->multisampledRenderToSingleSampledEnable = true;
-    msrtssGOOGLEX->rasterizationSamples                    = msrtss->rasterizationSamples;
-    msrtssGOOGLEX->depthResolveMode                        = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
-    msrtssGOOGLEX->stencilResolveMode                      = VK_RESOLVE_MODE_SAMPLE_ZERO_BIT;
-
-    if (renderer->getFeatures().supportsMultisampledRenderToSingleSampled.enabled)
-    {
-        // msrtss->pNext is not null so can't use AddToPNextChain
-        AppendToPNextChain(subpass, msrtss);
-    }
-    else
-    {
-        AddToPNextChain(subpass, msrtssGOOGLEX);
-    }
+    // msrtss->pNext is not null so can't use AddToPNextChain
+    AppendToPNextChain(subpass, msrtss);
 }
 
 void SetRenderPassViewMask(Context *context,
@@ -2558,6 +2547,23 @@ void RenderPassDesc::removeDepthStencilUnresolveAttachment()
     mUnresolveStencil = false;
 }
 
+PackedAttachmentIndex RenderPassDesc::getPackedColorAttachmentIndex(size_t colorIndexGL)
+{
+    ASSERT(colorIndexGL < colorAttachmentRange());
+    ASSERT(isColorAttachmentEnabled(colorIndexGL));
+
+    vk::PackedAttachmentIndex colorIndexVk(0);
+    for (uint32_t index = 0; index < colorIndexGL; ++index)
+    {
+        if (isColorAttachmentEnabled(index))
+        {
+            ++colorIndexVk;
+        }
+    }
+
+    return colorIndexVk;
+}
+
 RenderPassDesc &RenderPassDesc::operator=(const RenderPassDesc &other)
 {
     memcpy(this, &other, sizeof(RenderPassDesc));
@@ -4228,6 +4234,7 @@ void AttachmentOpsArray::setLayouts(PackedAttachmentIndex index,
     PackedAttachmentOpsDesc &ops = mOps[index.get()];
     SetBitField(ops.initialLayout, initialLayout);
     SetBitField(ops.finalLayout, finalLayout);
+    SetBitField(ops.finalResolveLayout, finalLayout);
 }
 
 void AttachmentOpsArray::setOps(PackedAttachmentIndex index,
@@ -4274,7 +4281,7 @@ bool operator==(const AttachmentOpsArray &lhs, const AttachmentOpsArray &rhs)
 
 // DescriptorSetLayoutDesc implementation.
 DescriptorSetLayoutDesc::DescriptorSetLayoutDesc()
-    : mDescriptorSetLayoutBindings{}, mImmutableSamplers{}
+    : mImmutableSamplers{}, mDescriptorSetLayoutBindings{}
 {}
 
 DescriptorSetLayoutDesc::~DescriptorSetLayoutDesc() = default;
@@ -4314,44 +4321,61 @@ bool DescriptorSetLayoutDesc::operator==(const DescriptorSetLayoutDesc &other) c
            mImmutableSamplers == other.mImmutableSamplers;
 }
 
-void DescriptorSetLayoutDesc::update(uint32_t bindingIndex,
-                                     VkDescriptorType descriptorType,
-                                     uint32_t count,
-                                     VkShaderStageFlags stages,
-                                     const Sampler *immutableSampler)
+void DescriptorSetLayoutDesc::addBinding(uint32_t bindingIndex,
+                                         VkDescriptorType descriptorType,
+                                         uint32_t count,
+                                         VkShaderStageFlags stages,
+                                         const Sampler *immutableSampler)
 {
+    ASSERT(static_cast<uint8_t>(descriptorType) != PackedDescriptorSetBinding::kInvalidType);
     ASSERT(static_cast<size_t>(descriptorType) < std::numeric_limits<uint8_t>::max());
     ASSERT(count < std::numeric_limits<uint16_t>::max());
     ASSERT(bindingIndex < std::numeric_limits<uint16_t>::max());
 
-    PackedDescriptorSetBinding packedBinding = {};
+    if (bindingIndex >= mDescriptorSetLayoutBindings.size())
+    {
+        PackedDescriptorSetBinding invalid = {};
+        invalid.type                       = PackedDescriptorSetBinding::kInvalidType;
+        mDescriptorSetLayoutBindings.resize(bindingIndex + 1, invalid);
+    }
+
+    PackedDescriptorSetBinding &packedBinding = mDescriptorSetLayoutBindings[bindingIndex];
+    ASSERT(packedBinding.type == PackedDescriptorSetBinding::kInvalidType);
     SetBitField(packedBinding.type, descriptorType);
     SetBitField(packedBinding.count, count);
     SetBitField(packedBinding.stages, stages);
-    SetBitField(packedBinding.bindingIndex, bindingIndex);
     SetBitField(packedBinding.hasImmutableSampler, 0);
 
     if (immutableSampler)
     {
+        if (bindingIndex >= mImmutableSamplers.size())
+        {
+            mImmutableSamplers.resize(bindingIndex + 1);
+        }
+
         ASSERT(count == 1);
         SetBitField(packedBinding.hasImmutableSampler, 1);
-        mImmutableSamplers.push_back(immutableSampler->getHandle());
+        mImmutableSamplers[bindingIndex] = immutableSampler->getHandle();
     }
-
-    mDescriptorSetLayoutBindings.push_back(std::move(packedBinding));
 }
 
 void DescriptorSetLayoutDesc::unpackBindings(DescriptorSetLayoutBindingVector *bindings) const
 {
-    size_t immutableSamplersIndex = 0;
-
     // Unpack all valid descriptor set layout bindings
-    for (const PackedDescriptorSetBinding &packedBinding : mDescriptorSetLayoutBindings)
+    for (size_t bindingIndex = 0; bindingIndex < mDescriptorSetLayoutBindings.size();
+         ++bindingIndex)
     {
+        const PackedDescriptorSetBinding &packedBinding =
+            mDescriptorSetLayoutBindings[bindingIndex];
+        if (packedBinding.type == PackedDescriptorSetBinding::kInvalidType)
+        {
+            continue;
+        }
+
         ASSERT(packedBinding.count != 0);
 
         VkDescriptorSetLayoutBinding binding = {};
-        binding.binding                      = static_cast<uint32_t>(packedBinding.bindingIndex);
+        binding.binding                      = static_cast<uint32_t>(bindingIndex);
         binding.descriptorCount              = packedBinding.count;
         binding.descriptorType               = static_cast<VkDescriptorType>(packedBinding.type);
         binding.stageFlags = static_cast<VkShaderStageFlags>(packedBinding.stages);
@@ -4359,7 +4383,7 @@ void DescriptorSetLayoutDesc::unpackBindings(DescriptorSetLayoutBindingVector *b
         if (packedBinding.hasImmutableSampler)
         {
             ASSERT(packedBinding.count == 1);
-            binding.pImmutableSamplers = &mImmutableSamplers[immutableSamplersIndex++];
+            binding.pImmutableSamplers = &mImmutableSamplers[bindingIndex];
         }
 
         bindings->push_back(binding);
@@ -6727,8 +6751,7 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
     const bool needInputAttachments = desc.hasFramebufferFetch();
     const bool isRenderToTextureThroughExtension =
         desc.isRenderToTexture() &&
-        (renderer->getFeatures().supportsMultisampledRenderToSingleSampled.enabled ||
-         renderer->getFeatures().supportsMultisampledRenderToSingleSampledGOOGLEX.enabled);
+        renderer->getFeatures().supportsMultisampledRenderToSingleSampled.enabled;
     const bool isRenderToTextureThroughEmulation =
         desc.isRenderToTexture() && !isRenderToTextureThroughExtension;
 
@@ -6762,6 +6785,8 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
     VkExternalFormatANDROID externalFormat = {VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID, nullptr,
                                               0};
 #endif
+
+    gl::DrawBuffersArray<vk::ImageLayout> colorResolveImageLayout = {};
 
     // Pack color attachments
     vk::PackedAttachmentIndex attachmentCount(0);
@@ -6808,6 +6833,8 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
 
         vk::UnpackAttachmentDesc(renderer, &attachmentDescs[attachmentCount.get()],
                                  attachmentFormatID, attachmentSamples, ops[attachmentCount]);
+        colorResolveImageLayout[colorIndexGL] =
+            static_cast<vk::ImageLayout>(ops[attachmentCount].finalResolveLayout);
 
         // If this renderpass uses EXT_srgb_write_control, we need to override the format to its
         // linear counterpart. Formats that cannot be reinterpreted are exempt from this
@@ -6928,8 +6955,9 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
         else
         {
             vk::UnpackColorResolveAttachmentDesc(
-                &attachmentDescs[attachmentCount.get()], attachmentFormatID,
-                {desc.hasColorUnresolveAttachment(colorIndexGL), isInvalidated, false});
+                renderer, &attachmentDescs[attachmentCount.get()], attachmentFormatID,
+                {desc.hasColorUnresolveAttachment(colorIndexGL), isInvalidated, false},
+                colorResolveImageLayout[colorIndexGL]);
         }
 
 #if defined(ANGLE_PLATFORM_ANDROID)
@@ -7059,10 +7087,9 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
 
     // If depth/stencil is to be resolved, add a VkSubpassDescriptionDepthStencilResolve to the
     // pNext chain of the subpass description.
-    VkSubpassDescriptionDepthStencilResolve depthStencilResolve  = {};
-    VkSubpassDescriptionDepthStencilResolve msrtssResolve        = {};
-    VkMultisampledRenderToSingleSampledInfoEXT msrtss            = {};
-    VkMultisampledRenderToSingleSampledInfoGOOGLEX msrtssGOOGLEX = {};
+    VkSubpassDescriptionDepthStencilResolve depthStencilResolve = {};
+    VkSubpassDescriptionDepthStencilResolve msrtssResolve       = {};
+    VkMultisampledRenderToSingleSampledInfoEXT msrtss           = {};
     if (desc.hasDepthStencilResolveAttachment())
     {
         ASSERT(!isRenderToTextureThroughExtension);
@@ -7112,7 +7139,7 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
     {
         ASSERT(subpassDesc.size() == 1);
         vk::InitializeMSRTSS(context, renderToTextureSamples, &subpassDesc.back(), &msrtssResolve,
-                             &msrtss, &msrtssGOOGLEX);
+                             &msrtss);
     }
 
     VkFragmentShadingRateAttachmentInfoKHR fragmentShadingRateAttachmentInfo = {};

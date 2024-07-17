@@ -1386,20 +1386,13 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
 
         if (canBlitWithCommand && areChannelsBlitCompatible && !reinterpretsColorspace)
         {
-            // Stash all images that involved with blit so that we can track them all at once.
-            angle::FixedVector<vk::ImageHelper *, 1 + gl::IMPLEMENTATION_MAX_DRAW_BUFFERS>
-                accessedImages;
-            accessedImages.push_back(&readRenderTarget->getImageForCopy());
             for (size_t colorIndexGL : mState.getEnabledDrawBuffers())
             {
                 RenderTargetVk *drawRenderTarget = mRenderTargetCache.getColors()[colorIndexGL];
                 ANGLE_TRY(blitWithCommand(contextVk, sourceArea, destArea, readRenderTarget,
                                           drawRenderTarget, filter, true, false, false, flipX,
                                           flipY));
-                accessedImages.push_back(&drawRenderTarget->getImageForWrite());
             }
-            contextVk->trackImagesWithOutsideRenderPassEvent(accessedImages.data(),
-                                                             accessedImages.size());
         }
         // If we're not flipping or rotating, use Vulkan's builtin resolve.
         else if (isColorResolve && !flipX && !flipY && areChannelsBlitCompatible &&
@@ -1507,8 +1500,6 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
             ANGLE_TRY(blitWithCommand(contextVk, sourceArea, destArea, readRenderTarget,
                                       drawRenderTarget, filter, false, blitDepthBuffer,
                                       blitStencilBuffer, flipX, flipY));
-            contextVk->trackImagesWithOutsideRenderPassEvent(&readRenderTarget->getImageForCopy(),
-                                                             &drawRenderTarget->getImageForWrite());
         }
         else
         {
@@ -1853,8 +1844,6 @@ angle::Result FramebufferVk::generateFragmentShadingRateWithCPU(
                                   mFragmentShadingRateImage.getImage(),
                                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
 
-    contextVk->trackImageWithOutsideRenderPassEvent(&mFragmentShadingRateImage);
-
     return angle::Result::Continue;
 }
 
@@ -1940,8 +1929,8 @@ angle::Result FramebufferVk::resolveColorWithSubpass(ContextVk *contextVk,
         contextVk->getStartedRenderPassCommands();
     ASSERT(!renderPassCommands.getRenderPassDesc().hasColorResolveAttachment(readColorIndexGL));
 
-    renderPassCommands.addColorResolveAttachment(readColorIndexGL, resolveImageView->getHandle());
-    drawRenderTarget->onColorResolve(contextVk, mCurrentFramebufferDesc.getLayerCount());
+    drawRenderTarget->onColorResolve(contextVk, mCurrentFramebufferDesc.getLayerCount(),
+                                     readColorIndexGL, *resolveImageView);
 
     // The render pass is already closed because of the change in the draw buffer.  Just don't let
     // it reactivate now that it has a resolve attachment.
@@ -1963,8 +1952,8 @@ angle::Result FramebufferVk::resolveDepthStencilWithSubpass(
         contextVk->getStartedRenderPassCommands();
     ASSERT(!renderPassCommands.getRenderPassDesc().hasDepthStencilResolveAttachment());
 
-    renderPassCommands.addDepthStencilResolveAttachment(resolveImageView->getHandle(), aspects);
-    drawRenderTarget->onDepthStencilResolve(contextVk, mCurrentFramebufferDesc.getLayerCount());
+    drawRenderTarget->onDepthStencilResolve(contextVk, mCurrentFramebufferDesc.getLayerCount(),
+                                            aspects, *resolveImageView);
 
     // The render pass is already closed because of the change in the draw buffer.  Just don't let
     // it reactivate now that it has a resolve attachment.
@@ -2011,8 +2000,6 @@ angle::Result FramebufferVk::resolveColorWithCommand(ContextVk *contextVk,
     resolveRegion.extent.depth                  = 1;
 
     angle::VulkanPerfCounters &perfCounters = contextVk->getPerfCounters();
-    angle::FixedVector<vk::ImageHelperPtr, 1 + gl::IMPLEMENTATION_MAX_DRAW_BUFFERS> accessedImages;
-    accessedImages.push_back(srcImage);
     for (size_t colorIndexGL : mState.getEnabledDrawBuffers())
     {
         RenderTargetVk *drawRenderTarget = mRenderTargetCache.getColors()[colorIndexGL];
@@ -2025,9 +2012,7 @@ angle::Result FramebufferVk::resolveColorWithCommand(ContextVk *contextVk,
         srcImage->resolve(&dstImage, resolveRegion, commandBuffer);
 
         perfCounters.resolveImageCommands++;
-        accessedImages.push_back(&dstImage);
     }
-    contextVk->trackImagesWithOutsideRenderPassEvent(accessedImages.data(), accessedImages.size());
 
     return angle::Result::Continue;
 }
@@ -2864,7 +2849,7 @@ angle::Result FramebufferVk::createNewFramebuffer(
                                      ? &info.renderTarget->getResolveImageForRenderPass()
                                      : &info.renderTarget->getImageForRenderPass();
 
-        const gl::LevelIndex level = info.renderTarget->getLevelIndex();
+        const gl::LevelIndex level = info.renderTarget->getLevelIndexForImage(*image);
         const uint32_t layerCount  = info.renderTarget->getLayerCount();
         const gl::Extents extents  = image->getLevelExtents2D(image->toVkLevel(level));
 
@@ -2956,10 +2941,13 @@ angle::Result FramebufferVk::getFramebuffer(ContextVk *contextVk,
         contextVk->getFeatures().supportsImagelessFramebuffer.enabled && mBackbuffer == nullptr
             ? vk::ImagelessFramebuffer::Yes
             : vk::ImagelessFramebuffer::No;
+    const vk::RenderPassSource source = mBackbuffer == nullptr
+                                            ? vk::RenderPassSource::FramebufferObject
+                                            : vk::RenderPassSource::DefaultFramebuffer;
 
     framebufferOut->setFramebuffer(std::move(framebufferHandle), std::move(unpackedAttachments),
                                    framebufferWidth, framebufferHeight, framebufferLayers,
-                                   imagelessFramebuffer);
+                                   imagelessFramebuffer, source);
 
     return angle::Result::Continue;
 }
@@ -3044,7 +3032,7 @@ angle::Result FramebufferVk::clearWithDraw(
         // TODO: implement clear of layered framebuffers.  UtilsVk::clearFramebuffer should add a
         // geometry shader that is instanced layerCount times (or loops layerCount times), each time
         // selecting a different layer.
-        // http://anglebug.com/5453
+        // http://anglebug.com/42263992
         ASSERT(mCurrentFramebufferDesc.isMultiview() || colorRenderTarget->getLayerCount() == 1);
 
         ANGLE_TRY(contextVk->getUtils().clearFramebuffer(contextVk, this, params));

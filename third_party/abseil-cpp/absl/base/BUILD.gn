@@ -40,6 +40,7 @@ absl_source_set("nullability") {
   sources = [ "internal/nullability_impl.h" ]
   public = [ "nullability.h" ]
   deps = [
+    ":config",
     ":core_headers",
     "//third_party/abseil-cpp/absl/meta:type_traits",
   ]
@@ -188,6 +189,16 @@ absl_source_set("base") {
     "//third_party/abseil-cpp/absl/meta:type_traits",
   ]
 }
+
+# This should be an executable() more than a test.
+# It cannot be enabled because it defines its own main() function.
+# absl_test("c_header_test") {
+#   sources = ["c_header_test.c"]
+#   deps = [
+#     ":config",
+#     ":core_headers",
+#   ]
+# }
 
 absl_source_set("throw_delegate") {
   sources = [ "internal/throw_delegate.cc" ]
