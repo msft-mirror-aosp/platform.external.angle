@@ -91,9 +91,7 @@ constexpr uint32_t kPipelineCacheVersion = 2;
 
 // Update the pipeline cache every this many swaps.
 constexpr uint32_t kPipelineCacheVkUpdatePeriod = 60;
-// The minimum version of Vulkan that ANGLE requires.  If an instance or device below this version
-// is encountered, initialization will fail.
-constexpr uint32_t kMinimumVulkanAPIVersion = VK_API_VERSION_1_1;
+
 // Per the Vulkan specification, ANGLE must indicate the highest version of Vulkan functionality
 // that it uses.  The Vulkan validation layers will issue messages for any core functionality that
 // requires a higher version.
@@ -1864,7 +1862,7 @@ angle::Result Renderer::initialize(vk::Context *context,
         }
     }
 
-    if (mInstanceVersion < kMinimumVulkanAPIVersion)
+    if (mInstanceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
         WARN() << "ANGLE Requires a minimum Vulkan instance version of 1.1";
         ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
@@ -1991,7 +1989,7 @@ angle::Result Renderer::initialize(vk::Context *context,
     // the highest it's allowed to use.
     mDeviceVersion = std::min(mPhysicalDeviceProperties.apiVersion, highestApiVersion);
 
-    if (mDeviceVersion < kMinimumVulkanAPIVersion)
+    if (mDeviceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
         WARN() << "ANGLE Requires a minimum Vulkan device version of 1.1";
         ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
@@ -4610,6 +4608,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         (isQualcommProprietary && qualcommDriverVersion < QualcommDriverVersion(512, 513, 0)) ||
             isARM || isPowerVR || isSwiftShader);
 
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferCachedNoncoherentForDynamicStreamBufferUsage,
+                            IsMeteorLake(mPhysicalDeviceProperties.deviceID));
+
     // The compute shader used to generate mipmaps needs -
     // 1. subgroup quad operations in compute shader stage.
     // 2. subgroup operations that can use extended types.
@@ -5190,7 +5191,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsExternalFormatResolve, false);
 #endif
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForImageBarrier, false);
+    // VkEvent has much bigger overhead. Until we know that it helps desktop GPUs, we restrict it to
+    // TBRs. Also enabled for SwiftShader so that we get more test coverage in bots.
+    ANGLE_FEATURE_CONDITION(&mFeatures, useVkEventForImageBarrier,
+                            isTileBasedRenderer || isSwiftShader);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsMaintenance5,
                             mMaintenance5Features.maintenance5 == VK_TRUE);
