@@ -5443,6 +5443,230 @@ namespace VULKAN_HPP_NAMESPACE
   };
 #endif /*VK_USE_PLATFORM_ANDROID_KHR*/
 
+  struct AntiLagPresentationInfoAMD
+  {
+    using NativeType = VkAntiLagPresentationInfoAMD;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eAntiLagPresentationInfoAMD;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR AntiLagPresentationInfoAMD( VULKAN_HPP_NAMESPACE::AntiLagStageAMD stage_      = VULKAN_HPP_NAMESPACE::AntiLagStageAMD::eInput,
+                                                     uint64_t                              frameIndex_ = {},
+                                                     void *                                pNext_      = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , stage{ stage_ }
+      , frameIndex{ frameIndex_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR AntiLagPresentationInfoAMD( AntiLagPresentationInfoAMD const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    AntiLagPresentationInfoAMD( VkAntiLagPresentationInfoAMD const & rhs ) VULKAN_HPP_NOEXCEPT
+      : AntiLagPresentationInfoAMD( *reinterpret_cast<AntiLagPresentationInfoAMD const *>( &rhs ) )
+    {
+    }
+
+    AntiLagPresentationInfoAMD & operator=( AntiLagPresentationInfoAMD const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    AntiLagPresentationInfoAMD & operator=( VkAntiLagPresentationInfoAMD const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::AntiLagPresentationInfoAMD const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 AntiLagPresentationInfoAMD & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 AntiLagPresentationInfoAMD & setStage( VULKAN_HPP_NAMESPACE::AntiLagStageAMD stage_ ) VULKAN_HPP_NOEXCEPT
+    {
+      stage = stage_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 AntiLagPresentationInfoAMD & setFrameIndex( uint64_t frameIndex_ ) VULKAN_HPP_NOEXCEPT
+    {
+      frameIndex = frameIndex_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkAntiLagPresentationInfoAMD const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkAntiLagPresentationInfoAMD *>( this );
+    }
+
+    operator VkAntiLagPresentationInfoAMD &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkAntiLagPresentationInfoAMD *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::AntiLagStageAMD const &, uint64_t const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, stage, frameIndex );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( AntiLagPresentationInfoAMD const & ) const = default;
+#else
+    bool operator==( AntiLagPresentationInfoAMD const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( stage == rhs.stage ) && ( frameIndex == rhs.frameIndex );
+#  endif
+    }
+
+    bool operator!=( AntiLagPresentationInfoAMD const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType   sType      = StructureType::eAntiLagPresentationInfoAMD;
+    void *                                pNext      = {};
+    VULKAN_HPP_NAMESPACE::AntiLagStageAMD stage      = VULKAN_HPP_NAMESPACE::AntiLagStageAMD::eInput;
+    uint64_t                              frameIndex = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eAntiLagPresentationInfoAMD>
+  {
+    using Type = AntiLagPresentationInfoAMD;
+  };
+
+  struct AntiLagDataAMD
+  {
+    using NativeType = VkAntiLagDataAMD;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eAntiLagDataAMD;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR AntiLagDataAMD( VULKAN_HPP_NAMESPACE::AntiLagModeAMD                     mode_ = VULKAN_HPP_NAMESPACE::AntiLagModeAMD::eDriverControl,
+                                         uint32_t                                                 maxFPS_            = {},
+                                         const VULKAN_HPP_NAMESPACE::AntiLagPresentationInfoAMD * pPresentationInfo_ = {},
+                                         const void *                                             pNext_             = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , mode{ mode_ }
+      , maxFPS{ maxFPS_ }
+      , pPresentationInfo{ pPresentationInfo_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR AntiLagDataAMD( AntiLagDataAMD const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    AntiLagDataAMD( VkAntiLagDataAMD const & rhs ) VULKAN_HPP_NOEXCEPT : AntiLagDataAMD( *reinterpret_cast<AntiLagDataAMD const *>( &rhs ) ) {}
+
+    AntiLagDataAMD & operator=( AntiLagDataAMD const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    AntiLagDataAMD & operator=( VkAntiLagDataAMD const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::AntiLagDataAMD const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 AntiLagDataAMD & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 AntiLagDataAMD & setMode( VULKAN_HPP_NAMESPACE::AntiLagModeAMD mode_ ) VULKAN_HPP_NOEXCEPT
+    {
+      mode = mode_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 AntiLagDataAMD & setMaxFPS( uint32_t maxFPS_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxFPS = maxFPS_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 AntiLagDataAMD &
+      setPPresentationInfo( const VULKAN_HPP_NAMESPACE::AntiLagPresentationInfoAMD * pPresentationInfo_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pPresentationInfo = pPresentationInfo_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkAntiLagDataAMD const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkAntiLagDataAMD *>( this );
+    }
+
+    operator VkAntiLagDataAMD &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkAntiLagDataAMD *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
+               const void * const &,
+               VULKAN_HPP_NAMESPACE::AntiLagModeAMD const &,
+               uint32_t const &,
+               const VULKAN_HPP_NAMESPACE::AntiLagPresentationInfoAMD * const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, mode, maxFPS, pPresentationInfo );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( AntiLagDataAMD const & ) const = default;
+#else
+    bool operator==( AntiLagDataAMD const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( mode == rhs.mode ) && ( maxFPS == rhs.maxFPS ) &&
+             ( pPresentationInfo == rhs.pPresentationInfo );
+#  endif
+    }
+
+    bool operator!=( AntiLagDataAMD const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType                      sType             = StructureType::eAntiLagDataAMD;
+    const void *                                             pNext             = {};
+    VULKAN_HPP_NAMESPACE::AntiLagModeAMD                     mode              = VULKAN_HPP_NAMESPACE::AntiLagModeAMD::eDriverControl;
+    uint32_t                                                 maxFPS            = {};
+    const VULKAN_HPP_NAMESPACE::AntiLagPresentationInfoAMD * pPresentationInfo = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eAntiLagDataAMD>
+  {
+    using Type = AntiLagDataAMD;
+  };
+
   struct ApplicationInfo
   {
     using NativeType = VkApplicationInfo;
@@ -57052,6 +57276,102 @@ namespace VULKAN_HPP_NAMESPACE
   struct CppType<StructureType, StructureType::ePhysicalDeviceAmigoProfilingFeaturesSEC>
   {
     using Type = PhysicalDeviceAmigoProfilingFeaturesSEC;
+  };
+
+  struct PhysicalDeviceAntiLagFeaturesAMD
+  {
+    using NativeType = VkPhysicalDeviceAntiLagFeaturesAMD;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceAntiLagFeaturesAMD;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceAntiLagFeaturesAMD( VULKAN_HPP_NAMESPACE::Bool32 antiLag_ = {}, void * pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , antiLag{ antiLag_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceAntiLagFeaturesAMD( PhysicalDeviceAntiLagFeaturesAMD const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceAntiLagFeaturesAMD( VkPhysicalDeviceAntiLagFeaturesAMD const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceAntiLagFeaturesAMD( *reinterpret_cast<PhysicalDeviceAntiLagFeaturesAMD const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceAntiLagFeaturesAMD & operator=( PhysicalDeviceAntiLagFeaturesAMD const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDeviceAntiLagFeaturesAMD & operator=( VkPhysicalDeviceAntiLagFeaturesAMD const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceAntiLagFeaturesAMD const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceAntiLagFeaturesAMD & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceAntiLagFeaturesAMD & setAntiLag( VULKAN_HPP_NAMESPACE::Bool32 antiLag_ ) VULKAN_HPP_NOEXCEPT
+    {
+      antiLag = antiLag_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPhysicalDeviceAntiLagFeaturesAMD const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceAntiLagFeaturesAMD *>( this );
+    }
+
+    operator VkPhysicalDeviceAntiLagFeaturesAMD &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceAntiLagFeaturesAMD *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, antiLag );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceAntiLagFeaturesAMD const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceAntiLagFeaturesAMD const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( antiLag == rhs.antiLag );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceAntiLagFeaturesAMD const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType   = StructureType::ePhysicalDeviceAntiLagFeaturesAMD;
+    void *                              pNext   = {};
+    VULKAN_HPP_NAMESPACE::Bool32        antiLag = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceAntiLagFeaturesAMD>
+  {
+    using Type = PhysicalDeviceAntiLagFeaturesAMD;
   };
 
   struct PhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT
