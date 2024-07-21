@@ -633,9 +633,11 @@ struct AttachmentInfo
     bool isUnused;
 };
 
-void UnpackColorResolveAttachmentDesc(VkAttachmentDescription2 *desc,
+void UnpackColorResolveAttachmentDesc(Renderer *renderer,
+                                      VkAttachmentDescription2 *desc,
                                       angle::FormatID formatID,
-                                      const AttachmentInfo &info)
+                                      const AttachmentInfo &info,
+                                      ImageLayout finalLayout)
 {
     *desc        = {};
     desc->sType  = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
@@ -660,7 +662,7 @@ void UnpackColorResolveAttachmentDesc(VkAttachmentDescription2 *desc,
     desc->stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     desc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     desc->initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    desc->finalLayout    = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    desc->finalLayout    = ConvertImageLayoutToVkImageLayout(renderer, finalLayout);
 }
 
 void UnpackDepthStencilResolveAttachmentDesc(vk::Context *context,
@@ -2906,6 +2908,23 @@ void RenderPassDesc::removeDepthStencilUnresolveAttachment()
     mUnresolveStencil = false;
 }
 
+PackedAttachmentIndex RenderPassDesc::getPackedColorAttachmentIndex(size_t colorIndexGL)
+{
+    ASSERT(colorIndexGL < colorAttachmentRange());
+    ASSERT(isColorAttachmentEnabled(colorIndexGL));
+
+    vk::PackedAttachmentIndex colorIndexVk(0);
+    for (uint32_t index = 0; index < colorIndexGL; ++index)
+    {
+        if (isColorAttachmentEnabled(index))
+        {
+            ++colorIndexVk;
+        }
+    }
+
+    return colorIndexVk;
+}
+
 RenderPassDesc &RenderPassDesc::operator=(const RenderPassDesc &other)
 {
     memcpy(this, &other, sizeof(RenderPassDesc));
@@ -3384,7 +3403,7 @@ void GraphicsPipelineDesc::initDefaults(const Context *context,
 VkResult GraphicsPipelineDesc::initializePipeline(Context *context,
                                                   PipelineCacheAccess *pipelineCache,
                                                   GraphicsPipelineSubset subset,
-                                                  const RenderPass *compatibleRenderPass,
+                                                  const RenderPass &compatibleRenderPass,
                                                   const PipelineLayout &pipelineLayout,
                                                   const ShaderModuleMap &shaders,
                                                   const SpecializationConstants &specConsts,
@@ -3398,15 +3417,13 @@ VkResult GraphicsPipelineDesc::initializePipeline(Context *context,
     GraphicsPipelineDynamicStateList dynamicStateList;
 
     // With dynamic rendering, there are no render pass objects.
-    ASSERT(!context->getFeatures().preferDynamicRendering.enabled ||
-           compatibleRenderPass == nullptr);
+    ASSERT(!compatibleRenderPass.valid() || !context->getFeatures().preferDynamicRendering.enabled);
 
     VkGraphicsPipelineCreateInfo createInfo = {};
     createInfo.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     createInfo.flags                        = 0;
-    createInfo.renderPass =
-        compatibleRenderPass != nullptr ? compatibleRenderPass->getHandle() : VK_NULL_HANDLE;
-    createInfo.subpass = mSharedNonVertexInput.multisample.bits.subpass;
+    createInfo.renderPass                   = compatibleRenderPass.getHandle();
+    createInfo.subpass                      = mSharedNonVertexInput.multisample.bits.subpass;
 
     const bool hasVertexInput             = GraphicsPipelineHasVertexInput(subset);
     const bool hasShaders                 = GraphicsPipelineHasShaders(subset);
@@ -3542,19 +3559,14 @@ VkResult GraphicsPipelineDesc::initializePipeline(Context *context,
     VkRenderingAttachmentLocationInfoKHR attachmentLocations;
     VkRenderingInputAttachmentIndexInfoKHR inputLocations;
     VkPipelineCreateFlags2CreateInfoKHR createFlags2;
-    if (hasShadersOrFragmentOutput)
+    if (hasShadersOrFragmentOutput && context->getFeatures().preferDynamicRendering.enabled)
     {
-        if (compatibleRenderPass == nullptr)
-        {
-            ASSERT(context->getFeatures().preferDynamicRendering.enabled);
-
-            DeriveRenderingInfo(context->getRenderer(), getRenderPassDesc(),
-                                DynamicRenderingInfoSubset::Pipeline, {},
-                                VK_SUBPASS_CONTENTS_INLINE, {}, {}, {}, 0, &renderingInfo);
-            AttachPipelineRenderingInfo(context, getRenderPassDesc(), renderingInfo, subset,
-                                        &pipelineRenderingInfo, &attachmentLocations,
-                                        &inputLocations, &createFlags2, &createInfo);
-        }
+        DeriveRenderingInfo(context->getRenderer(), getRenderPassDesc(),
+                            DynamicRenderingInfoSubset::Pipeline, {}, VK_SUBPASS_CONTENTS_INLINE,
+                            {}, {}, {}, 0, &renderingInfo);
+        AttachPipelineRenderingInfo(context, getRenderPassDesc(), renderingInfo, subset,
+                                    &pipelineRenderingInfo, &attachmentLocations, &inputLocations,
+                                    &createFlags2, &createInfo);
     }
 
     VkResult result = pipelineCache->createGraphicsPipeline(context, createInfo, pipelineOut);
@@ -4803,6 +4815,7 @@ void AttachmentOpsArray::setLayouts(PackedAttachmentIndex index,
     PackedAttachmentOpsDesc &ops = mOps[index.get()];
     SetBitField(ops.initialLayout, initialLayout);
     SetBitField(ops.finalLayout, finalLayout);
+    SetBitField(ops.finalResolveLayout, finalLayout);
 }
 
 void AttachmentOpsArray::setOps(PackedAttachmentIndex index,
@@ -5031,9 +5044,13 @@ void CreateMonolithicPipelineTask::setCompatibleRenderPass(const RenderPass *com
 
 void CreateMonolithicPipelineTask::operator()()
 {
+    const RenderPass unusedRenderPass;
+    const RenderPass *compatibleRenderPass =
+        mCompatibleRenderPass ? mCompatibleRenderPass : &unusedRenderPass;
+
     ANGLE_TRACE_EVENT0("gpu.angle", "CreateMonolithicPipelineTask");
     mResult = mDesc.initializePipeline(this, &mPipelineCache, vk::GraphicsPipelineSubset::Complete,
-                                       mCompatibleRenderPass, mPipelineLayout, mShaders,
+                                       *compatibleRenderPass, mPipelineLayout, mShaders,
                                        mSpecConsts, &mPipeline, &mFeedback);
 
     if (mRenderer->getFeatures().slowDownMonolithicPipelineCreationForTesting.enabled)
@@ -7364,6 +7381,8 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
                                               0};
 #endif
 
+    gl::DrawBuffersArray<vk::ImageLayout> colorResolveImageLayout = {};
+
     // Pack color attachments
     vk::PackedAttachmentIndex attachmentCount(0);
     for (uint32_t colorIndexGL = 0; colorIndexGL < desc.colorAttachmentRange(); ++colorIndexGL)
@@ -7390,12 +7409,10 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
         // linear counterpart. Formats that cannot be reinterpreted are exempt from this
         // requirement.
         angle::FormatID linearFormat = rx::ConvertToLinear(attachmentFormatID);
-        if (linearFormat != angle::FormatID::NONE)
+        if (linearFormat != angle::FormatID::NONE &&
+            desc.getSRGBWriteControlMode() == gl::SrgbWriteControlMode::Linear)
         {
-            if (desc.getSRGBWriteControlMode() == gl::SrgbWriteControlMode::Linear)
-            {
-                attachmentFormatID = linearFormat;
-            }
+            attachmentFormatID = linearFormat;
         }
 
         bool isYUVExternalFormat = vk::IsYUVExternalFormat(attachmentFormatID);
@@ -7421,6 +7438,8 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
 
         vk::UnpackAttachmentDesc(renderer, &attachmentDescs[attachmentCount.get()],
                                  attachmentFormatID, attachmentSamples, ops[attachmentCount]);
+        colorResolveImageLayout[colorIndexGL] =
+            static_cast<vk::ImageLayout>(ops[attachmentCount].finalResolveLayout);
 
         if (isYUVExternalFormat)
         {
@@ -7529,8 +7548,9 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
         else
         {
             vk::UnpackColorResolveAttachmentDesc(
-                &attachmentDescs[attachmentCount.get()], attachmentFormatID,
-                {desc.hasColorUnresolveAttachment(colorIndexGL), isInvalidated, false});
+                renderer, &attachmentDescs[attachmentCount.get()], attachmentFormatID,
+                {desc.hasColorUnresolveAttachment(colorIndexGL), isInvalidated, false},
+                colorResolveImageLayout[colorIndexGL]);
         }
 
 #if defined(ANGLE_PLATFORM_ANDROID)
@@ -7827,7 +7847,7 @@ template <typename Hash>
 angle::Result GraphicsPipelineCache<Hash>::createPipeline(
     vk::Context *context,
     vk::PipelineCacheAccess *pipelineCache,
-    const vk::RenderPass *compatibleRenderPass,
+    const vk::RenderPass &compatibleRenderPass,
     const vk::PipelineLayout &pipelineLayout,
     const vk::ShaderModuleMap &shaders,
     const vk::SpecializationConstants &specConsts,
@@ -7963,7 +7983,7 @@ template void GraphicsPipelineCache<GraphicsPipelineDescCompleteHash>::release(
 template angle::Result GraphicsPipelineCache<GraphicsPipelineDescCompleteHash>::createPipeline(
     vk::Context *context,
     vk::PipelineCacheAccess *pipelineCache,
-    const vk::RenderPass *compatibleRenderPass,
+    const vk::RenderPass &compatibleRenderPass,
     const vk::PipelineLayout &pipelineLayout,
     const vk::ShaderModuleMap &shaders,
     const vk::SpecializationConstants &specConsts,
@@ -7993,7 +8013,7 @@ template void GraphicsPipelineCache<GraphicsPipelineDescVertexInputHash>::releas
 template angle::Result GraphicsPipelineCache<GraphicsPipelineDescVertexInputHash>::createPipeline(
     vk::Context *context,
     vk::PipelineCacheAccess *pipelineCache,
-    const vk::RenderPass *compatibleRenderPass,
+    const vk::RenderPass &compatibleRenderPass,
     const vk::PipelineLayout &pipelineLayout,
     const vk::ShaderModuleMap &shaders,
     const vk::SpecializationConstants &specConsts,
@@ -8011,7 +8031,7 @@ template void GraphicsPipelineCache<GraphicsPipelineDescShadersHash>::release(vk
 template angle::Result GraphicsPipelineCache<GraphicsPipelineDescShadersHash>::createPipeline(
     vk::Context *context,
     vk::PipelineCacheAccess *pipelineCache,
-    const vk::RenderPass *compatibleRenderPass,
+    const vk::RenderPass &compatibleRenderPass,
     const vk::PipelineLayout &pipelineLayout,
     const vk::ShaderModuleMap &shaders,
     const vk::SpecializationConstants &specConsts,
@@ -8032,7 +8052,7 @@ template angle::Result
 GraphicsPipelineCache<GraphicsPipelineDescFragmentOutputHash>::createPipeline(
     vk::Context *context,
     vk::PipelineCacheAccess *pipelineCache,
-    const vk::RenderPass *compatibleRenderPass,
+    const vk::RenderPass &compatibleRenderPass,
     const vk::PipelineLayout &pipelineLayout,
     const vk::ShaderModuleMap &shaders,
     const vk::SpecializationConstants &specConsts,

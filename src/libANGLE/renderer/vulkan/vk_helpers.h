@@ -781,6 +781,8 @@ struct ImageMemoryBarrierData
     // barrier.
     PipelineStage barrierIndex;
     EventStage eventStage;
+    // The pipeline stage flags group that used for heuristic.
+    PipelineStageGroup pipelineStageGroup;
 };
 // Initialize ImageLayout to ImageMemoryBarrierData mapping table.
 void InitializeImageLayoutAndMemoryBarrierDataMap(
@@ -1364,10 +1366,6 @@ class CommandBufferHelperCommon : angle::NonCopyable
         writeResource->setWriteQueueSerial(mQueueSerial);
     }
 
-    // Update image with this command buffer's queueSerial. If VkEvent is enabled, image's current
-    // event is also updated with this command's event.
-    void retainImage(Context *context, ImageHelper *image);
-
     // Returns true if event already existed in this command buffer.
     bool hasSetEventPendingFlush(const RefCountedEvent &event) const
     {
@@ -1543,6 +1541,9 @@ class OutsideRenderPassCommandBufferHelper final : public CommandBufferHelperCom
                     ImageLayout imageLayout,
                     ImageHelper *image);
 
+    // Update image with this command buffer's queueSerial.
+    void retainImage(ImageHelper *image);
+
     // Call SetEvent and have image's current event pointing to it.
     void trackImageWithEvent(Context *context, ImageHelper *image);
 
@@ -1588,6 +1589,13 @@ enum class ImagelessFramebuffer
     Yes,
 };
 
+enum class RenderPassSource
+{
+    DefaultFramebuffer,
+    FramebufferObject,
+    InternalUtils,
+};
+
 class RenderPassFramebuffer : angle::NonCopyable
 {
   public:
@@ -1602,6 +1610,7 @@ class RenderPassFramebuffer : angle::NonCopyable
         mHeight      = other.mHeight;
         mLayers      = other.mLayers;
         mIsImageless = other.mIsImageless;
+        mIsDefault   = other.mIsDefault;
         return *this;
     }
 
@@ -1613,7 +1622,8 @@ class RenderPassFramebuffer : angle::NonCopyable
                         uint32_t width,
                         uint32_t height,
                         uint32_t layers,
-                        ImagelessFramebuffer imagelessFramebuffer)
+                        ImagelessFramebuffer imagelessFramebuffer,
+                        RenderPassSource source)
     {
         // Framebuffers are mutually exclusive with dynamic rendering.
         ASSERT(initialFramebuffer.valid() != context->getFeatures().preferDynamicRendering.enabled);
@@ -1623,9 +1633,11 @@ class RenderPassFramebuffer : angle::NonCopyable
         mHeight             = height;
         mLayers             = layers;
         mIsImageless        = imagelessFramebuffer == ImagelessFramebuffer::Yes;
+        mIsDefault          = source == RenderPassSource::DefaultFramebuffer;
     }
 
-    bool isImageless() { return mIsImageless; }
+    bool isImageless() const { return mIsImageless; }
+    bool isDefault() const { return mIsDefault; }
     const Framebuffer &getFramebuffer() const { return mInitialFramebuffer; }
     bool needsNewFramebufferWithResolveAttachments() const { return !mInitialFramebuffer.valid(); }
     uint32_t getLayers() const { return mLayers; }
@@ -1706,13 +1718,11 @@ class RenderPassFramebuffer : angle::NonCopyable
     uint32_t mHeight = 0;
     uint32_t mLayers = 0;
 
+    // Whether this is an imageless framebuffer.  Currently, window surface and UtilsVk framebuffers
+    // aren't imageless, unless imageless framebuffers aren't supported altogether.
     bool mIsImageless = false;
-};
-
-enum class RenderPassSource
-{
-    DefaultFramebuffer,
-    FramebufferObject,
+    // Whether this is the default framebuffer (i.e. corresponding to the window surface).
+    bool mIsDefault = false;
 };
 
 class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
@@ -1792,12 +1802,16 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
                                 UniqueSerial imageSiblingSerial);
     void fragmentShadingRateImageRead(ImageHelper *image);
 
+    // Update image with this command buffer's queueSerial. If VkEvent is enabled, image's current
+    // event is also updated with this command's event.
+    void retainImage(Context *context, ImageHelper *image);
+
     bool usesImage(const ImageHelper &image) const;
     bool startedAndUsesImageWithBarrier(const ImageHelper &image) const;
 
     angle::Result flushToPrimary(Context *context,
                                  CommandsState *commandsState,
-                                 const RenderPass *renderPass,
+                                 const RenderPass &renderPass,
                                  VkFramebuffer framebufferOverride);
 
     bool started() const { return mRenderPassStarted; }
@@ -1809,7 +1823,6 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
 
     angle::Result beginRenderPass(ContextVk *contextVk,
                                   RenderPassFramebuffer &&framebuffer,
-                                  RenderPassSource source,
                                   const gl::Rectangle &renderArea,
                                   const RenderPassDesc &renderPassDesc,
                                   const AttachmentOpsArray &renderPassAttachmentOps,
@@ -1877,8 +1890,20 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     bool hasAnyDepthAccess() { return mDepthAttachment.hasAnyAccess(); }
     bool hasAnyStencilAccess() { return mStencilAttachment.hasAnyAccess(); }
 
-    void addColorResolveAttachment(size_t colorIndexGL, VkImageView view);
-    void addDepthStencilResolveAttachment(VkImageView view, VkImageAspectFlags aspects);
+    void addColorResolveAttachment(size_t colorIndexGL,
+                                   ImageHelper *image,
+                                   VkImageView view,
+                                   gl::LevelIndex level,
+                                   uint32_t layerStart,
+                                   uint32_t layerCount,
+                                   UniqueSerial imageSiblingSerial);
+    void addDepthStencilResolveAttachment(ImageHelper *image,
+                                          VkImageView view,
+                                          VkImageAspectFlags aspects,
+                                          gl::LevelIndex level,
+                                          uint32_t layerStart,
+                                          uint32_t layerCount,
+                                          UniqueSerial imageSiblingSerial);
 
     bool hasDepthWriteOrClear() const
     {
@@ -1923,7 +1948,7 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     void updatePerfCountersForDynamicRenderingInstance(Context *context,
                                                        angle::VulkanPerfCounters *countersOut);
 
-    RenderPassSource getSource() const { return mSource; }
+    bool isDefault() const { return mFramebuffer.isDefault(); }
 
   private:
     uint32_t getSubpassCommandBufferCount() const { return mCurrentSubpassCommandBufferIndex + 1; }
@@ -2007,8 +2032,8 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
 
     // This is last renderpass before present and this is the image will be presented. We can use
     // final layout of the renderpass to transition it to the presentable layout
-    RenderPassSource mSource;
     ImageHelper *mImageOptimizeForPresent;
+    ImageLayout mImageOptimizeForPresentOriginalLayout;
 
     friend class CommandBufferHelperCommon;
 };
@@ -2569,9 +2594,11 @@ class ImageHelper final : public Resource, public angle::Subject
                                   PrimaryCommandBuffer *commandBuffer,
                                   VkSemaphore *acquireNextImageSemaphoreOut)
     {
-        // Since we are doing an out of order one off submission, there shouldn't be any pending
-        // setEvent.
-        ASSERT(!mCurrentEvent.valid());
+        if (mCurrentEvent.valid())
+        {
+            mCurrentEvent.release(context->getRenderer());
+        }
+
         barrierImpl(context, getAspectFlags(), newLayout, mCurrentDeviceQueueIndex, nullptr,
                     commandBuffer, acquireNextImageSemaphoreOut);
     }
@@ -2717,6 +2744,8 @@ class ImageHelper final : public Resource, public angle::Subject
                                       GLuint *inputDepthPitch,
                                       GLuint *inputSkipBytes);
 
+    void onRenderPassAttach(const QueueSerial &queueSerial);
+
     // Mark a given subresource as written to.  The subresource is identified by [levelStart,
     // levelStart + levelCount) and [layerStart, layerStart + layerCount).
     void onWrite(gl::LevelIndex levelStart,
@@ -2794,6 +2823,8 @@ class ImageHelper final : public Resource, public angle::Subject
 
     // Create event if needed and record the event in ImageHelper::mCurrentEvent.
     void setCurrentRefCountedEvent(Context *context, EventMaps &eventMaps);
+
+    void updatePipelineStageAccessHistory();
 
   private:
     ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
@@ -3153,6 +3184,15 @@ class ImageHelper final : public Resource, public angle::Subject
     // this event.
     RefCountedEvent mCurrentEvent;
     RefCountedEvent mLastNonShaderReadOnlyEvent;
+    // Track history of pipeline stages being used. Each bit represents the fragment or
+    // attachment usage, i.e, a bit is set if the layout indicates a fragment or colorAttachment
+    // pipeline stages, and bit is 0 if used by other stages like vertex shader or compute or
+    // transfer. Every use of image update the usage history by shifting the bitfields left and new
+    // bit that represents the new pipeline usage is added to the right most bit. This way we track
+    // if there is any non-fragment pipeline usage during the past usages (i.e., the window of
+    // usage history is number of bits in mPipelineStageAccessHeuristic). This information provides
+    // heuristic for making decisions if a VkEvent should be used to track the operation.
+    PipelineStageAccessHeuristic mPipelineStageAccessHeuristic;
 
     // Whether ANGLE currently has ownership of this resource or it's released to external.
     bool mIsReleasedToExternal;
@@ -3611,7 +3651,7 @@ class ShaderProgramHelper : angle::NonCopyable
         vk::Context *context,
         GraphicsPipelineCache<PipelineHash> *graphicsPipelines,
         PipelineCacheAccess *pipelineCache,
-        const RenderPass *compatibleRenderPass,
+        const RenderPass &compatibleRenderPass,
         const PipelineLayout &pipelineLayout,
         PipelineSource source,
         const GraphicsPipelineDesc &pipelineDesc,

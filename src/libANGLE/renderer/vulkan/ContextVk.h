@@ -506,8 +506,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         return angle::Result::Continue;
     }
 
-    RenderPassCache &getRenderPassCache() { return mRenderPassCache; }
-
     bool emulateSeamfulCubeMapSampling() const { return mEmulateSeamfulCubeMapSampling; }
 
     const gl::Debug &getDebug() const { return mState.getDebug(); }
@@ -548,6 +546,18 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         mRenderPassCommands->colorImagesDraw(level, layerStart, layerCount, image, resolveImage,
                                              imageSiblingSerial, packedAttachmentIndex);
     }
+    void onColorResolve(gl::LevelIndex level,
+                        uint32_t layerStart,
+                        uint32_t layerCount,
+                        vk::ImageHelper *image,
+                        VkImageView view,
+                        UniqueSerial imageSiblingSerial,
+                        size_t colorIndexGL)
+    {
+        ASSERT(mRenderPassCommands->started());
+        mRenderPassCommands->addColorResolveAttachment(colorIndexGL, image, view, level, layerStart,
+                                                       layerCount, imageSiblingSerial);
+    }
     void onDepthStencilDraw(gl::LevelIndex level,
                             uint32_t layerStart,
                             uint32_t layerCount,
@@ -558,6 +568,18 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         ASSERT(mRenderPassCommands->started());
         mRenderPassCommands->depthStencilImagesDraw(level, layerStart, layerCount, image,
                                                     resolveImage, imageSiblingSerial);
+    }
+    void onDepthStencilResolve(gl::LevelIndex level,
+                               uint32_t layerStart,
+                               uint32_t layerCount,
+                               VkImageAspectFlags aspects,
+                               vk::ImageHelper *image,
+                               VkImageView view,
+                               UniqueSerial imageSiblingSerial)
+    {
+        ASSERT(mRenderPassCommands->started());
+        mRenderPassCommands->addDepthStencilResolveAttachment(
+            image, view, aspects, level, layerStart, layerCount, imageSiblingSerial);
     }
 
     void onFragmentShadingRateRead(vk::ImageHelper *image)
@@ -646,8 +668,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         // kept open between frames (including when a swapchain is recreated and framebuffer handles
         // change).  It is therefore safe to verify an open render pass just by checking if it
         // originated from the default framebuffer.
-        return mRenderPassCommands->started() &&
-               mRenderPassCommands->getSource() == vk::RenderPassSource::DefaultFramebuffer;
+        return mRenderPassCommands->started() && mRenderPassCommands->isDefault();
     }
 
     bool isRenderPassStartedAndUsesBuffer(const vk::BufferHelper &buffer) const
@@ -1576,6 +1597,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     vk::GarbageObjects mCurrentGarbage;
 
     RenderPassCache mRenderPassCache;
+    // Used with dynamic rendering as it doesn't use render passes.
+    vk::RenderPass mNullRenderPass;
 
     vk::OutsideRenderPassCommandBufferHelper *mOutsideRenderPassCommands;
     vk::RenderPassCommandBufferHelper *mRenderPassCommands;

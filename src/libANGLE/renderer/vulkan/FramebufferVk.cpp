@@ -1929,8 +1929,8 @@ angle::Result FramebufferVk::resolveColorWithSubpass(ContextVk *contextVk,
         contextVk->getStartedRenderPassCommands();
     ASSERT(!renderPassCommands.getRenderPassDesc().hasColorResolveAttachment(readColorIndexGL));
 
-    renderPassCommands.addColorResolveAttachment(readColorIndexGL, resolveImageView->getHandle());
-    drawRenderTarget->onColorResolve(contextVk, mCurrentFramebufferDesc.getLayerCount());
+    drawRenderTarget->onColorResolve(contextVk, mCurrentFramebufferDesc.getLayerCount(),
+                                     readColorIndexGL, *resolveImageView);
 
     // The render pass is already closed because of the change in the draw buffer.  Just don't let
     // it reactivate now that it has a resolve attachment.
@@ -1952,8 +1952,8 @@ angle::Result FramebufferVk::resolveDepthStencilWithSubpass(
         contextVk->getStartedRenderPassCommands();
     ASSERT(!renderPassCommands.getRenderPassDesc().hasDepthStencilResolveAttachment());
 
-    renderPassCommands.addDepthStencilResolveAttachment(resolveImageView->getHandle(), aspects);
-    drawRenderTarget->onDepthStencilResolve(contextVk, mCurrentFramebufferDesc.getLayerCount());
+    drawRenderTarget->onDepthStencilResolve(contextVk, mCurrentFramebufferDesc.getLayerCount(),
+                                            aspects, *resolveImageView);
 
     // The render pass is already closed because of the change in the draw buffer.  Just don't let
     // it reactivate now that it has a resolve attachment.
@@ -2933,11 +2933,11 @@ angle::Result FramebufferVk::getFramebuffer(ContextVk *contextVk,
             ANGLE_TRY(contextVk->getCompatibleRenderPass(mRenderPassDesc, &compatibleRenderPass));
 
             // If there is a backbuffer, query the framebuffer from WindowSurfaceVk instead.
-            ANGLE_TRY(mBackbuffer->getCurrentFramebuffer(contextVk,
-                                                         mRenderPassDesc.hasFramebufferFetch()
-                                                             ? FramebufferFetchMode::Enabled
-                                                             : FramebufferFetchMode::Disabled,
-                                                         compatibleRenderPass, &framebufferHandle));
+            ANGLE_TRY(mBackbuffer->getCurrentFramebuffer(
+                contextVk,
+                mRenderPassDesc.hasFramebufferFetch() ? FramebufferFetchMode::Enabled
+                                                      : FramebufferFetchMode::Disabled,
+                *compatibleRenderPass, &framebufferHandle));
         }
     }
 
@@ -2954,10 +2954,13 @@ angle::Result FramebufferVk::getFramebuffer(ContextVk *contextVk,
                  mBackbuffer == nullptr)
             ? vk::ImagelessFramebuffer::Yes
             : vk::ImagelessFramebuffer::No;
+    const vk::RenderPassSource source = mBackbuffer == nullptr
+                                            ? vk::RenderPassSource::FramebufferObject
+                                            : vk::RenderPassSource::DefaultFramebuffer;
 
-    framebufferOut->setFramebuffer(contextVk, std::move(framebufferHandle),
-                                   std::move(unpackedAttachments), framebufferWidth,
-                                   framebufferHeight, framebufferLayers, imagelessFramebuffer);
+    framebufferOut->setFramebuffer(
+        contextVk, std::move(framebufferHandle), std::move(unpackedAttachments), framebufferWidth,
+        framebufferHeight, framebufferLayers, imagelessFramebuffer, source);
 
     return angle::Result::Continue;
 }

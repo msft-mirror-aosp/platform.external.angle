@@ -1901,11 +1901,8 @@ angle::Result UtilsVk::setupGraphicsProgramWithLayout(
 
     // Pull in a compatible RenderPass.
     const vk::RenderPass *compatibleRenderPass = nullptr;
-    if (!contextVk->getFeatures().preferDynamicRendering.enabled)
-    {
-        ANGLE_TRY(contextVk->getRenderPassCache().getCompatibleRenderPass(
-            contextVk, pipelineDesc->getRenderPassDesc(), &compatibleRenderPass));
-    }
+    ANGLE_TRY(contextVk->getCompatibleRenderPass(pipelineDesc->getRenderPassDesc(),
+                                                 &compatibleRenderPass));
 
     const vk::GraphicsPipelineDesc *descPtr;
     vk::PipelineHelper *helper;
@@ -1913,7 +1910,7 @@ angle::Result UtilsVk::setupGraphicsProgramWithLayout(
     if (!programAndPipelines->pipelines.getPipeline(*pipelineDesc, &descPtr, &helper))
     {
         ANGLE_TRY(programAndPipelines->program.createGraphicsPipeline(
-            contextVk, &programAndPipelines->pipelines, &pipelineCache, compatibleRenderPass,
+            contextVk, &programAndPipelines->pipelines, &pipelineCache, *compatibleRenderPass,
             pipelineLayout, PipelineSource::Utils, *pipelineDesc, {}, &descPtr, &helper));
     }
 
@@ -2415,9 +2412,9 @@ angle::Result UtilsVk::startRenderPass(ContextVk *contextVk,
         framebufferHandle.setHandle(framebuffer.getHandle());
     }
 
-    renderPassFramebuffer.setFramebuffer(contextVk, std::move(framebufferHandle),
-                                         {imageView->getHandle()}, framebufferWidth,
-                                         framebufferHeight, framebufferLayers, imageless);
+    renderPassFramebuffer.setFramebuffer(
+        contextVk, std::move(framebufferHandle), {imageView->getHandle()}, framebufferWidth,
+        framebufferHeight, framebufferLayers, imageless, vk::RenderPassSource::InternalUtils);
 
     vk::AttachmentOpsArray renderPassAttachmentOps;
     vk::PackedClearValuesArray clearValues;

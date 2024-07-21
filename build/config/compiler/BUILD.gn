@@ -1559,7 +1559,13 @@ config("compiler_deterministic") {
       # -ffile-compilation-dir is an alias for both -fdebug-compilation-dir=
       # and -fcoverage-compilation-dir=.
       cflags += [ "-ffile-compilation-dir=." ]
-      swiftflags += [ "-file-compilation-dir=." ]
+
+      # Convert absolute paths to relative paths. Expands to, for example:
+      #   -file-prefix-map /path/to/chromium/src=../..
+      swiftflags += [
+        "-file-prefix-map",
+        rebase_path("//.", "") + "=" + rebase_path("//.", root_build_dir),
+      ]
     }
     if (!is_win) {
       # We don't use clang -cc1as on Windows (yet? https://crbug.com/762167)
@@ -1654,6 +1660,34 @@ config("compiler_arm") {
     # arm is normally the default mode for clang, but on chromeos a wrapper
     # is used to pass -mthumb, and therefor change the default.
     cflags = [ "-marm" ]
+  }
+}
+
+config("libcxx_module") {
+  if (use_libcxx_modules) {
+    modulemap = rebase_path("//third_party/libc++/src/include/module.modulemap",
+                            root_build_dir)
+    cflags_cc = [
+      "-fmodules",
+      "-fmodule-map-file=" + modulemap,
+      "-fno-implicit-module-maps",
+      "-fbuiltin-module-map",
+      "-fmodules-cache-path=" +
+          rebase_path("$libcxx_module_prefix/module_cache", root_build_dir),
+
+      "-Xclang",
+      "-fmodules-local-submodule-visibility",  # required for builtins
+
+      # TODO(crbug.com/1456385): Figure out if this can be removed.
+      "-Wno-modules-ambiguous-internal-linkage",
+
+      # TODO(crbug.com/40440396): Clean up.
+      "-Wno-modules-import-nested-redundant",
+
+      # Needed to allow using builtin modules when the headers are
+      # unnecessarily using extern "C".
+      "-Wno-module-import-in-extern-c",
+    ]
   }
 }
 
@@ -1892,10 +1926,6 @@ config("default_warnings") {
       cflags += [
         # TODO(crbug.com/330524456): -Wcast-function-type is under -Wextra now.
         "-Wno-cast-function-type",
-
-        # Ignore warnings about MSVC optimization pragmas.
-        # TODO(thakis): Only for no_chromium_code? http://crbug.com/912662
-        "-Wno-ignored-pragma-optimize",
 
         # TODO(crbug.com/40231599) Evaluate and possibly enable.
         "-Wno-deprecated-builtins",

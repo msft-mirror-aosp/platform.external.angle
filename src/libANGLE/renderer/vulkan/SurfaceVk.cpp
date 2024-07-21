@@ -2184,11 +2184,11 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
                                                           &imageResolved));
     }
 
-    // End the render pass before issuing the layout change to ImageLayout::Present below.  The
-    // layouts are determined at the end of the render pass, and until they are finalized the image
-    // is not aware of what layout it will be.
-    ANGLE_TRY(contextVk->flushCommandsAndEndRenderPassWithoutSubmit(
-        RenderPassClosureReason::EGLSwapBuffers));
+    // Because the color attachment defers layout changes until endRenderPass time, we must call
+    // finalize the layout transition in the renderpass before we insert layout change to
+    // ImageLayout::Present bellow.
+    contextVk->finalizeImageLayout(image.image.get(), {});
+    contextVk->finalizeImageLayout(&mColorImageMS, {});
 
     vk::OutsideRenderPassCommandBufferHelper *commandBufferHelper;
     ANGLE_TRY(contextVk->getOutsideRenderPassCommandBufferHelper({}, &commandBufferHelper));
@@ -2231,7 +2231,7 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
     }
 
     ANGLE_TRY(contextVk->flushImpl(shouldDrawOverlay ? nullptr : &presentSemaphore, nullptr,
-                                   RenderPassClosureReason::AlreadySpecifiedElsewhere));
+                                   RenderPassClosureReason::EGLSwapBuffers));
 
     if (shouldDrawOverlay)
     {
@@ -2996,7 +2996,7 @@ EGLint WindowSurfaceVk::getSwapBehavior() const
 
 angle::Result WindowSurfaceVk::getCurrentFramebuffer(ContextVk *contextVk,
                                                      FramebufferFetchMode fetchMode,
-                                                     const vk::RenderPass *compatibleRenderPass,
+                                                     const vk::RenderPass &compatibleRenderPass,
                                                      vk::Framebuffer *framebufferOut)
 {
     ASSERT(!contextVk->getFeatures().preferDynamicRendering.enabled);
@@ -3046,7 +3046,7 @@ angle::Result WindowSurfaceVk::getCurrentFramebuffer(ContextVk *contextVk,
     VkFramebufferCreateInfo framebufferInfo = {};
     framebufferInfo.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.flags                   = 0;
-    framebufferInfo.renderPass              = compatibleRenderPass->getHandle();
+    framebufferInfo.renderPass              = compatibleRenderPass.getHandle();
     framebufferInfo.attachmentCount         = attachmentCount;
     framebufferInfo.pAttachments            = imageViews.data();
     framebufferInfo.width                   = static_cast<uint32_t>(rotatedExtents.width);

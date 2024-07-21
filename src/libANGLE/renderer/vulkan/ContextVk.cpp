@@ -742,16 +742,16 @@ angle::Result CreateGraphicsPipelineSubset(ContextVk *contextVk,
     const vk::GraphicsPipelineDesc *descPtr = nullptr;
     if (!cache->getPipeline(desc, &descPtr, pipelineOut))
     {
-        const vk::RenderPass *compatibleRenderPass = nullptr;
-        if (renderPass == GraphicsPipelineSubsetRenderPass::Required &&
-            !contextVk->getFeatures().preferDynamicRendering.enabled)
+        const vk::RenderPass unusedRenderPass;
+        const vk::RenderPass *compatibleRenderPass = &unusedRenderPass;
+        if (renderPass == GraphicsPipelineSubsetRenderPass::Required)
         {
             // Pull in a compatible RenderPass if used by this subset.
             ANGLE_TRY(contextVk->getCompatibleRenderPass(desc.getRenderPassDesc(),
                                                          &compatibleRenderPass));
         }
 
-        ANGLE_TRY(cache->createPipeline(contextVk, pipelineCache, compatibleRenderPass,
+        ANGLE_TRY(cache->createPipeline(contextVk, pipelineCache, *compatibleRenderPass,
                                         unusedPipelineLayout, unusedShaders, unusedSpecConsts,
                                         PipelineSource::Draw, desc, &descPtr, pipelineOut));
     }
@@ -4554,8 +4554,7 @@ angle::Result ContextVk::optimizeRenderPassForPresent(vk::ImageViewHelper *color
     }
 
     // Use finalLayout instead of extra barrier for layout change to present
-    if (colorImage != nullptr && getFeatures().supportsPresentation.enabled &&
-        !getFeatures().preferDynamicRendering.enabled)
+    if (colorImage != nullptr && getFeatures().supportsPresentation.enabled)
     {
         mRenderPassCommands->setImageOptimizeForPresent(colorImage);
     }
@@ -4580,7 +4579,8 @@ angle::Result ContextVk::optimizeRenderPassForPresent(vk::ImageViewHelper *color
                                                              0, gl::SrgbWriteControlMode::Default,
                                                              &resolveImageView));
 
-        mRenderPassCommands->addColorResolveAttachment(0, resolveImageView->getHandle());
+        mRenderPassCommands->addColorResolveAttachment(0, colorImage, resolveImageView->getHandle(),
+                                                       gl::LevelIndex(0), 0, 1, {});
         onImageRenderPassWrite(gl::LevelIndex(0), 0, 1, VK_IMAGE_ASPECT_COLOR_BIT,
                                vk::ImageLayout::ColorWrite, colorImage);
 
@@ -7747,6 +7747,7 @@ angle::Result ContextVk::getCompatibleRenderPass(const vk::RenderPassDesc &desc,
 {
     if (getFeatures().preferDynamicRendering.enabled)
     {
+        *renderPassOut = &mNullRenderPass;
         return angle::Result::Continue;
     }
 
@@ -7758,7 +7759,15 @@ angle::Result ContextVk::getRenderPassWithOps(const vk::RenderPassDesc &desc,
                                               const vk::AttachmentOpsArray &ops,
                                               const vk::RenderPass **renderPassOut)
 {
-    ASSERT(!getFeatures().preferDynamicRendering.enabled);
+    if (getFeatures().preferDynamicRendering.enabled)
+    {
+        if (mState.isPerfMonitorActive())
+        {
+            mRenderPassCommands->updatePerfCountersForDynamicRenderingInstance(this,
+                                                                               &mPerfCounters);
+        }
+        return angle::Result::Continue;
+    }
 
     // Note: Each context has it's own RenderPassCache so no locking needed.
     return mRenderPassCache.getRenderPassWithOps(this, desc, ops, renderPassOut);
@@ -7893,15 +7902,11 @@ angle::Result ContextVk::beginNewRenderPass(
     QueueSerial renderPassQueueSerial;
     generateRenderPassCommandsQueueSerial(&renderPassQueueSerial);
 
-    const vk::RenderPassSource renderPassSource = mState.getDrawFramebuffer()->isDefault()
-                                                      ? vk::RenderPassSource::DefaultFramebuffer
-                                                      : vk::RenderPassSource::FramebufferObject;
-
     mPerfCounters.renderPasses++;
     ANGLE_TRY(mRenderPassCommands->beginRenderPass(
-        this, std::move(framebuffer), renderPassSource, renderArea, renderPassDesc,
-        renderPassAttachmentOps, colorAttachmentCount, depthStencilAttachmentIndex, clearValues,
-        renderPassQueueSerial, commandBufferOut));
+        this, std::move(framebuffer), renderArea, renderPassDesc, renderPassAttachmentOps,
+        colorAttachmentCount, depthStencilAttachmentIndex, clearValues, renderPassQueueSerial,
+        commandBufferOut));
 
     // By default all render pass should allow to be reactivated.
     mAllowRenderPassToReactivate = true;
@@ -8008,37 +8013,28 @@ angle::Result ContextVk::flushCommandsAndEndRenderPassWithoutSubmit(RenderPassCl
                                                    mRenderPassCommands->getQueueSerial()));
     mLastFlushedQueueSerial = mRenderPassCommands->getQueueSerial();
 
-    const vk::RenderPass *renderPass  = nullptr;
+    const vk::RenderPass unusedRenderPass;
+    const vk::RenderPass *renderPass  = &unusedRenderPass;
     VkFramebuffer framebufferOverride = VK_NULL_HANDLE;
 
-    if (getFeatures().preferDynamicRendering.enabled)
-    {
-        if (mState.isPerfMonitorActive())
-        {
-            mRenderPassCommands->updatePerfCountersForDynamicRenderingInstance(this,
-                                                                               &mPerfCounters);
-        }
-    }
-    else
-    {
-        ANGLE_TRY(getRenderPassWithOps(mRenderPassCommands->getRenderPassDesc(),
-                                       mRenderPassCommands->getAttachmentOps(), &renderPass));
+    ANGLE_TRY(getRenderPassWithOps(mRenderPassCommands->getRenderPassDesc(),
+                                   mRenderPassCommands->getAttachmentOps(), &renderPass));
 
-        // If a new framebuffer is used to accommodate resolve attachments that have been added
-        // after the fact, create a temp one now and add it to garbage list.
-        if (mRenderPassCommands->getFramebuffer().needsNewFramebufferWithResolveAttachments())
-        {
-            vk::Framebuffer tempFramebuffer;
-            ANGLE_TRY(mRenderPassCommands->getFramebuffer().packResolveViewsAndCreateFramebuffer(
-                this, *renderPass, &tempFramebuffer));
+    // If a new framebuffer is used to accommodate resolve attachments that have been added
+    // after the fact, create a temp one now and add it to garbage list.
+    if (!getFeatures().preferDynamicRendering.enabled &&
+        mRenderPassCommands->getFramebuffer().needsNewFramebufferWithResolveAttachments())
+    {
+        vk::Framebuffer tempFramebuffer;
+        ANGLE_TRY(mRenderPassCommands->getFramebuffer().packResolveViewsAndCreateFramebuffer(
+            this, *renderPass, &tempFramebuffer));
 
-            framebufferOverride = tempFramebuffer.getHandle();
-            addGarbage(&tempFramebuffer);
-        }
+        framebufferOverride = tempFramebuffer.getHandle();
+        addGarbage(&tempFramebuffer);
     }
 
     ANGLE_TRY(mRenderer->flushRenderPassCommands(this, getProtectionType(), mContextPriority,
-                                                 renderPass, framebufferOverride,
+                                                 *renderPass, framebufferOverride,
                                                  &mRenderPassCommands));
 
     // We just flushed outSideRenderPassCommands above, and any future use of
@@ -8622,11 +8618,12 @@ angle::Result ContextVk::onResourceAccess(const vk::CommandBufferAccess &access)
 
     for (const vk::CommandBufferImageAccess &imageAccess : access.getReadImages())
     {
-        ASSERT(!isRenderPassStartedAndUsesImage(*imageAccess.image));
+        vk::ImageHelper *image = imageAccess.image;
+        ASSERT(!isRenderPassStartedAndUsesImage(*image));
 
         imageAccess.image->recordReadBarrier(this, imageAccess.aspectFlags, imageAccess.imageLayout,
                                              mOutsideRenderPassCommands);
-        mOutsideRenderPassCommands->retainResource(imageAccess.image);
+        mOutsideRenderPassCommands->retainImage(image);
     }
 
     for (const vk::CommandBufferImageSubresourceAccess &imageReadAccess :
@@ -8639,7 +8636,7 @@ angle::Result ContextVk::onResourceAccess(const vk::CommandBufferAccess &access)
             this, imageReadAccess.access.aspectFlags, imageReadAccess.access.imageLayout,
             imageReadAccess.levelStart, imageReadAccess.levelCount, imageReadAccess.layerStart,
             imageReadAccess.layerCount, mOutsideRenderPassCommands);
-        mOutsideRenderPassCommands->retainResource(image);
+        mOutsideRenderPassCommands->retainImage(image);
     }
 
     for (const vk::CommandBufferImageSubresourceAccess &imageWrite : access.getWriteImages())
@@ -8651,7 +8648,7 @@ angle::Result ContextVk::onResourceAccess(const vk::CommandBufferAccess &access)
                                   imageWrite.access.imageLayout, imageWrite.levelStart,
                                   imageWrite.levelCount, imageWrite.layerStart,
                                   imageWrite.layerCount, mOutsideRenderPassCommands);
-        mOutsideRenderPassCommands->retainResource(image);
+        mOutsideRenderPassCommands->retainImage(image);
         image->onWrite(imageWrite.levelStart, imageWrite.levelCount, imageWrite.layerStart,
                        imageWrite.layerCount, imageWrite.access.aspectFlags);
     }
@@ -8922,14 +8919,12 @@ angle::Result ContextVk::switchToFramebufferFetchMode(bool hasFramebufferFetch)
         getDrawFramebuffer()->switchToFramebufferFetchMode(this, mIsInFramebufferFetchMode);
     }
 
-    if (!getFeatures().preferDynamicRendering.enabled)
+    // Clear the render pass cache; all render passes will be incompatible from now on with the
+    // old ones.
+    if (!getFeatures().preferDynamicRendering.enabled &&
+        getFeatures().permanentlySwitchToFramebufferFetchMode.enabled)
     {
-        // Clear the render pass cache; all render passes will be incompatible from now on with the
-        // old ones.
-        if (getFeatures().permanentlySwitchToFramebufferFetchMode.enabled)
-        {
-            mRenderPassCache.clear(this);
-        }
+        mRenderPassCache.clear(this);
     }
 
     mRenderer->onFramebufferFetchUsed();
