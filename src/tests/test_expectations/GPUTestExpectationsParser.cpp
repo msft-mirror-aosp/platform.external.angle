@@ -84,9 +84,11 @@ enum Token
     kConfigGalaxyA23,
     kConfigGalaxyA34,
     kConfigGalaxyA54,
+    kConfigGalaxyS22,
     kConfigGalaxyS23,
     kConfigGalaxyQualcomm,
     kConfigFindX6,
+    kConfigPineapple,
     // GPU devices
     kConfigNVIDIAQuadroP400,
     kConfigNVIDIAGTX1660,
@@ -174,7 +176,8 @@ constexpr TokenInfo kTokenData[kNumberOfTokens] = {
     {"mac", GPUTestConfig::kConditionMac},
     {"ios", GPUTestConfig::kConditionIOS},
     {"linux", GPUTestConfig::kConditionLinux},
-    {"chromeos", GPUTestConfig::kConditionNone},  // https://anglebug.com/3363 CrOS not supported
+    {"chromeos",
+     GPUTestConfig::kConditionNone},  // https://anglebug.com/42262032 CrOS not supported
     {"android", GPUTestConfig::kConditionAndroid},
     {"nvidia", GPUTestConfig::kConditionNVIDIA},
     {"amd", GPUTestConfig::kConditionAMD},
@@ -201,9 +204,11 @@ constexpr TokenInfo kTokenData[kNumberOfTokens] = {
     {"galaxya23", GPUTestConfig::kConditionGalaxyA23},
     {"galaxya34", GPUTestConfig::kConditionGalaxyA34},
     {"galaxya54", GPUTestConfig::kConditionGalaxyA54},
+    {"galaxys22", GPUTestConfig::kConditionGalaxyS22},
     {"galaxys23", GPUTestConfig::kConditionGalaxyS23},
     {"galaxyqualcomm", GPUTestConfig::kConditionGalaxyQualcomm},
     {"findx6", GPUTestConfig::kConditionFindX6},
+    {"pineapple", GPUTestConfig::kConditionPineapple},
     {"quadrop400", GPUTestConfig::kConditionNVIDIAQuadroP400},
     {"gtx1660", GPUTestConfig::kConditionNVIDIAGTX1660},
     {"prerotation", GPUTestConfig::kConditionPreRotation},
@@ -531,9 +536,11 @@ bool GPUTestExpectationsParser::parseLine(const GPUTestConfig *config,
             case kConfigGalaxyA23:
             case kConfigGalaxyA34:
             case kConfigGalaxyA54:
+            case kConfigGalaxyS22:
             case kConfigGalaxyS23:
             case kConfigGalaxyQualcomm:
             case kConfigFindX6:
+            case kConfigPineapple:
             case kConfigNVIDIAQuadroP400:
             case kConfigNVIDIAGTX1660:
             case kConfigPreRotation:

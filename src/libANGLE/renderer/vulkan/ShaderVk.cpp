@@ -41,6 +41,11 @@ std::shared_ptr<ShaderTranslateTask> ShaderVk::compile(const gl::Context *contex
         }
     }
 
+    if (contextVk->getFeatures().supportsSPIRV14.enabled)
+    {
+        options->emitSPIRV14 = true;
+    }
+
     if (contextVk->getFeatures().retainSPIRVDebugInfo.enabled)
     {
         options->outputDebugInfo = true;
@@ -63,11 +68,6 @@ std::shared_ptr<ShaderTranslateTask> ShaderVk::compile(const gl::Context *contex
     if (contextVk->getFeatures().emulateAdvancedBlendEquations.enabled)
     {
         options->addAdvancedBlendEquationsEmulation = true;
-    }
-
-    if (contextVk->emulateSeamfulCubeMapSampling())
-    {
-        options->emulateSeamfulCubeMapSampling = true;
     }
 
     if (!contextVk->getFeatures().enablePrecisionQualifiers.enabled)
@@ -132,6 +132,12 @@ std::shared_ptr<ShaderTranslateTask> ShaderVk::compile(const gl::Context *contex
     }
 
     // The Vulkan backend needs no post-processing of the translated shader.
+    return std::shared_ptr<ShaderTranslateTask>(new ShaderTranslateTask);
+}
+
+std::shared_ptr<ShaderTranslateTask> ShaderVk::load(const gl::Context *context,
+                                                    gl::BinaryInputStream *stream)
+{
     return std::shared_ptr<ShaderTranslateTask>(new ShaderTranslateTask);
 }
 

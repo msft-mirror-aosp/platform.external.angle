@@ -79,7 +79,11 @@ void TestPlatform_logWarning(PlatformMethods *platform, const char *warningMessa
     }
     else
     {
+#if !defined(ANGLE_TRACE_ENABLED) && !defined(ANGLE_ENABLE_ASSERTS)
+        // LoggingAnnotator::logMessage() already logs via gl::Trace() under these defines:
+        // https://crsrc.org/c/third_party/angle/src/common/debug.cpp;drc=d7d69375c25df2dc3980e6a4edc5d032ec940efc;l=62
         std::cerr << "Warning: " << warningMessage << std::endl;
+#endif
     }
 }
 
@@ -161,8 +165,16 @@ const char *GetColorName(GLColorRGB color)
 // Always re-use displays when using --bot-mode in the test runner.
 bool gReuseDisplays = false;
 
-bool ShouldAlwaysForceNewDisplay()
+bool ShouldAlwaysForceNewDisplay(const PlatformParameters &params)
 {
+    // When running WebGPU tests on linux always force a new display. The underlying vulkan swap
+    // chain appears to fail to get a new image after swapping when rapidly creating new swap chains
+    // for an existing window.
+    if (params.isWebGPU() && IsLinux())
+    {
+        return true;
+    }
+
     if (gReuseDisplays)
         return false;
 
@@ -465,7 +477,7 @@ ANGLETestBase::ANGLETestBase(const PlatformParameters &params)
       m2DTexturedQuadProgram(0),
       m3DTexturedQuadProgram(0),
       mDeferContextInit(false),
-      mAlwaysForceNewDisplay(ShouldAlwaysForceNewDisplay()),
+      mAlwaysForceNewDisplay(ShouldAlwaysForceNewDisplay(params)),
       mForceNewDisplay(mAlwaysForceNewDisplay),
       mSetUpCalled(false),
       mTearDownCalled(false),

@@ -12,7 +12,17 @@
       {
           "description": "Applications in this list will not use ANGLE",
           "choice": "native",
-          "apps": []
+          "apps": [
+              {
+                  "packageName": "com.linecorp.b612.android"
+              },
+              {
+                  "packageName": "com.campmobile.snow"
+              },
+              {
+                  "packageName": "com.google.android.apps.tachyon"
+              }
+          ]
       }
    ]
 }
