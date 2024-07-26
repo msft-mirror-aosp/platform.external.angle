@@ -32,7 +32,7 @@ declare_args() {
   # `mac_deployment_target` to increase the system requirement without changing
   # how Chromium is compiled. This must be greater than or equal to the
   # `mac_deployment_target` version.
-  mac_min_system_version = "10.15"
+  mac_min_system_version = "11.0"
 
   # Path to a specific version of the Mac SDK, not including a slash at the end.
   # If empty, the path to the lowest version greater than or equal to
@@ -141,3 +141,6 @@ if (use_system_xcode) {
   # TODO(thakis): Do this at the uses of this variable instead.
   mac_bin_path = rebase_path(mac_bin_path, root_build_dir)
 }
+
+_sdk_root = rebase_path(mac_sdk_path, root_build_dir)
+mac_sdk_logs = [ "mac_sdk_path=${_sdk_root}" ]

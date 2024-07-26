@@ -235,7 +235,6 @@ class ProgramExecutableVk : public ProgramExecutableImpl
     angle::Result updateTexturesDescriptorSet(vk::Context *context,
                                               const gl::ActiveTextureArray<TextureVk *> &textures,
                                               const gl::SamplerBindingVector &samplers,
-                                              bool emulateSeamfulCubeMapSampling,
                                               PipelineType pipelineType,
                                               UpdateDescriptorSetsBuilder *updateBuilder,
                                               vk::CommandBufferHelperCommon *commandBufferHelper,
@@ -335,17 +334,15 @@ class ProgramExecutableVk : public ProgramExecutableImpl
 
     angle::Result warmUpPipelineCache(vk::Renderer *renderer,
                                       vk::PipelineRobustness pipelineRobustness,
-                                      vk::PipelineProtectedAccess pipelineProtectedAccess,
-                                      vk::GraphicsPipelineSubset subset)
+                                      vk::PipelineProtectedAccess pipelineProtectedAccess)
     {
         return getPipelineCacheWarmUpTasks(renderer, pipelineRobustness, pipelineProtectedAccess,
-                                           subset, nullptr);
+                                           nullptr);
     }
     angle::Result getPipelineCacheWarmUpTasks(
         vk::Renderer *renderer,
         vk::PipelineRobustness pipelineRobustness,
         vk::PipelineProtectedAccess pipelineProtectedAccess,
-        vk::GraphicsPipelineSubset subset,
         std::vector<std::shared_ptr<LinkSubTask>> *postLinkSubTasksOut);
 
     void waitForPostLinkTasks(const gl::Context *context) override
@@ -445,7 +442,6 @@ class ProgramExecutableVk : public ProgramExecutableImpl
             ANGLE_TRY(programInfo->initProgram(context, shaderType, isLastPreFragmentStage,
                                                isTransformFeedbackProgram, mOriginalShaderInfo,
                                                optionBits, variableInfoMap));
-            mValidPermutations.set(optionBits.permutationIndex);
         }
         ASSERT(programInfo->valid(shaderType));
 
@@ -461,6 +457,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
         ProgramInfo *programInfo,
         const ShaderInterfaceVariableInfoMap &variableInfoMap)
     {
+        mValidGraphicsPermutations.set(optionBits.permutationIndex);
         return initProgram(context, shaderType, isLastPreFragmentStage, isTransformFeedbackProgram,
                            optionBits, programInfo, variableInfoMap);
     }
@@ -468,8 +465,10 @@ class ProgramExecutableVk : public ProgramExecutableImpl
     ANGLE_INLINE angle::Result initComputeProgram(
         vk::Context *context,
         ProgramInfo *programInfo,
-        const ShaderInterfaceVariableInfoMap &variableInfoMap)
+        const ShaderInterfaceVariableInfoMap &variableInfoMap,
+        const vk::ComputePipelineOptions &pipelineOptions)
     {
+        mValidComputePermutations.set(pipelineOptions.permutationIndex);
         ProgramTransformOptions optionBits = {};
         return initProgram(context, gl::ShaderType::Compute, false, false, optionBits, programInfo,
                            variableInfoMap);
@@ -558,7 +557,11 @@ class ProgramExecutableVk : public ProgramExecutableImpl
 
     static_assert((ProgramTransformOptions::kPermutationCount == 16),
                   "ProgramTransformOptions::kPermutationCount must be 16.");
-    angle::BitSet16<ProgramTransformOptions::kPermutationCount> mValidPermutations;
+    angle::BitSet16<ProgramTransformOptions::kPermutationCount> mValidGraphicsPermutations;
+
+    static_assert((vk::ComputePipelineOptions::kPermutationCount == 4),
+                  "ComputePipelineOptions::kPermutationCount must be 4.");
+    angle::BitSet8<vk::ComputePipelineOptions::kPermutationCount> mValidComputePermutations;
 
     // We store all permutations of surface rotation and transformed SPIR-V programs here. We may
     // need some LRU algorithm to free least used programs to reduce the number of programs.

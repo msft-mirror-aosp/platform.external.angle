@@ -67,7 +67,7 @@ namespace angle
 namespace
 {
 
-// TODO: Consolidate to C output and remove option. http://anglebug.com/7753
+// TODO: Consolidate to C output and remove option. http://anglebug.com/42266223
 
 constexpr char kEnabledVarName[]        = "ANGLE_CAPTURE_ENABLED";
 constexpr char kOutDirectoryVarName[]   = "ANGLE_CAPTURE_OUT_DIR";
@@ -812,6 +812,19 @@ void WriteBinaryParamReplay(ReplayWriter &replayWriter,
     }
 }
 
+void WriteComment(std::ostream &out, const CallCapture &call)
+{
+    // Read the string parameter
+    const ParamCapture &stringParam =
+        call.params.getParam("comment", ParamType::TGLcharConstPointer, 0);
+    const std::vector<uint8_t> &data = stringParam.data[0];
+    ASSERT(data.size() > 0 && data.back() == '\0');
+    std::string str(data.begin(), data.end() - 1);
+
+    // Write the string prefixed with single line comment
+    out << "// " << str;
+}
+
 void WriteCppReplayForCall(const CallCapture &call,
                            ReplayWriter &replayWriter,
                            std::ostream &out,
@@ -819,6 +832,13 @@ void WriteCppReplayForCall(const CallCapture &call,
                            std::vector<uint8_t> *binaryData,
                            size_t *maxResourceIDBufferSize)
 {
+    if (call.customFunctionName == "Comment")
+    {
+        // Just write it directly to the file and move on
+        WriteComment(out, call);
+        return;
+    }
+
     std::ostringstream callOut;
 
     callOut << call.name() << "(";
@@ -945,6 +965,16 @@ void WriteCppReplayForCall(const CallCapture &call,
     out << callOut.str();
 }
 
+void AddComment(std::vector<CallCapture> *outCalls, const std::string &comment)
+{
+
+    ParamBuffer commentParamBuffer;
+    ParamCapture commentParam("comment", ParamType::TGLcharConstPointer);
+    CaptureString(comment.c_str(), &commentParam);
+    commentParamBuffer.addParam(std::move(commentParam));
+    outCalls->emplace_back("Comment", std::move(commentParamBuffer));
+}
+
 size_t MaxClientArraySize(const gl::AttribArray<size_t> &clientArraySizes)
 {
     size_t found = 0;
@@ -969,6 +999,43 @@ std::string GetBinaryDataFilePath(bool compression, const std::string &captureLa
     }
     return fnameStream.str();
 }
+
+struct SaveFileHelper
+{
+  public:
+    // We always use ios::binary to avoid inconsistent line endings when captured on Linux vs Win.
+    SaveFileHelper(const std::string &filePathIn)
+        : mOfs(filePathIn, std::ios::binary | std::ios::out), mFilePath(filePathIn)
+    {
+        if (!mOfs.is_open())
+        {
+            FATAL() << "Could not open " << filePathIn;
+        }
+    }
+    ~SaveFileHelper() { printf("Saved '%s'.\n", mFilePath.c_str()); }
+
+    template <typename T>
+    SaveFileHelper &operator<<(const T &value)
+    {
+        mOfs << value;
+        if (mOfs.bad())
+        {
+            FATAL() << "Error writing to " << mFilePath;
+        }
+        return *this;
+    }
+
+    void write(const uint8_t *data, size_t size)
+    {
+        mOfs.write(reinterpret_cast<const char *>(data), size);
+    }
+
+  private:
+    void checkError();
+
+    std::ofstream mOfs;
+    std::string mFilePath;
+};
 
 void SaveBinaryData(bool compression,
                     const std::string &outDir,
@@ -1069,8 +1136,9 @@ void DeleteResourcesInReset(std::stringstream &out,
     }
 }
 
-// TODO (http://anglebug.com/4599): Reset more state on frame loop
-void MaybeResetResources(gl::ContextID contextID,
+// TODO (http://anglebug.com/42263204): Reset more state on frame loop
+void MaybeResetResources(egl::Display *display,
+                         gl::ContextID contextID,
                          ResourceIDType resourceIDType,
                          ReplayWriter &replayWriter,
                          std::stringstream &out,
@@ -1175,17 +1243,6 @@ void MaybeResetResources(gl::ContextID contextID,
                     }
                 }
             }
-
-            // Restore buffer bindings as seen during MEC
-            std::vector<CallCapture> &bufferBindingCalls = resourceTracker->getBufferBindingCalls();
-            for (CallCapture &call : bufferBindingCalls)
-            {
-                out << "    ";
-                WriteCppReplayForCall(call, replayWriter, out, header, binaryData,
-                                      maxResourceIDBufferSize);
-                out << ";\n";
-            }
-
             break;
         }
         case ResourceIDType::Framebuffer:
@@ -1372,6 +1429,25 @@ void MaybeResetResources(gl::ContextID contextID,
 
             // If any of our starting textures were modified during the run, restore their contents
             ResourceSet &texturesToRestore = trackedTextures.getResourcesToRestore();
+
+            // Do some setup if we have any textures to restore
+            if (texturesToRestore.size() != 0)
+            {
+                // We need to unbind PIXEL_UNPACK_BUFFER before restoring textures
+                // The correct binding will be restored in context state reset
+                gl::Context *context = display->getContext(contextID);
+                if (context->getState().getTargetBuffer(gl::BufferBinding::PixelUnpack))
+                {
+                    out << "    // Clearing PIXEL_UNPACK_BUFFER binding for texture restore\n";
+                    out << "    ";
+                    WriteCppReplayForCall(CaptureBindBuffer(context->getState(), true,
+                                                            gl::BufferBinding::PixelUnpack, {0}),
+                                          replayWriter, out, header, binaryData,
+                                          maxResourceIDBufferSize);
+                    out << ";\n";
+                }
+            }
+
             for (GLuint id : texturesToRestore)
             {
                 // Emit their restore calls
@@ -1503,7 +1579,7 @@ void MaybeResetResources(gl::ContextID contextID,
             break;
         }
         default:
-            // TODO (http://anglebug.com/4599): Reset more resource types
+            // TODO (http://anglebug.com/42263204): Reset more resource types
             break;
     }
 
@@ -1699,6 +1775,41 @@ void MaybeResetContextState(ReplayWriter &replayWriter,
                 out << ";\n";
             }
         }
+    }
+
+    // Reset buffer bindings that weren't bound at the beginning
+    for (const gl::BufferBinding &dirtyBufferBinding : stateResetHelper.getDirtyBufferBindings())
+    {
+        // Check to see if dirty binding was part of starting set
+        bool dirtyStartingBinding = false;
+        for (const BufferBindingPair &startingBufferBinding :
+             stateResetHelper.getStartingBufferBindings())
+        {
+            gl::BufferBinding startingBinding = startingBufferBinding.first;
+            if (startingBinding == dirtyBufferBinding)
+            {
+                dirtyStartingBinding = true;
+            }
+        }
+
+        // If the dirty binding was not part of starting bindings, clear it
+        if (!dirtyStartingBinding)
+        {
+            out << "    ";
+            WriteCppReplayForCall(
+                CaptureBindBuffer(context->getState(), true, dirtyBufferBinding, {0}), replayWriter,
+                out, header, binaryData, maxResourceIDBufferSize);
+            out << ";\n";
+        }
+    }
+
+    // Restore starting buffer bindings to initial state
+    std::vector<CallCapture> &bufferBindingCalls = resourceTracker->getBufferBindingCalls();
+    for (CallCapture &call : bufferBindingCalls)
+    {
+        out << "    ";
+        WriteCppReplayForCall(call, replayWriter, out, header, binaryData, maxResourceIDBufferSize);
+        out << ";\n";
     }
 
     // Restore texture bindings to initial state
@@ -3829,7 +3940,7 @@ void GenerateLinkedProgram(const gl::Context *context,
     }
 }
 
-// TODO(http://anglebug.com/4599): Improve reset/restore call generation
+// TODO(http://anglebug.com/42263204): Improve reset/restore call generation
 // There are multiple ways to track reset calls for individual resources. For now, we are tracking
 // separate lists of instructions that mirror the calls created during mid-execution setup. Other
 // methods could involve passing the original CallCaptures to this function, or tracking the
@@ -3961,6 +4072,7 @@ void CaptureBufferBindingResetCalls(const gl::State &replayState,
                                     gl::BufferBinding binding,
                                     gl::BufferID id)
 {
+    // Track the calls to reset it
     std::vector<CallCapture> &bufferBindingCalls = resourceTracker->getBufferBindingCalls();
     Capture(&bufferBindingCalls, CaptureBindBuffer(replayState, true, binding, id));
 }
@@ -4300,6 +4412,52 @@ void CaptureShareGroupMidExecutionSetup(
         ResourceCalls &textureRestoreCalls = trackedTextures.getResourceRestoreCalls();
         CallVector texSetupCalls({setupCalls, &textureRestoreCalls[id.value]});
 
+        // For each texture, set the correct active texture and binding
+        // There is similar code in CaptureMidExecutionSetup for per-context setup
+        const gl::TextureBindingMap &currentBoundTextures = apiState.getBoundTexturesForCapture();
+        const gl::TextureBindingVector &currentBindings = currentBoundTextures[texture->getType()];
+        const gl::TextureBindingVector &replayBindings =
+            replayState.getBoundTexturesForCapture()[texture->getType()];
+        ASSERT(currentBindings.size() == replayBindings.size());
+
+        // Look up the replay binding
+        size_t replayActiveTexture = replayState.getActiveSampler();
+        // If there ends up being no binding, just use the replay binding
+        // TODO: We may want to start using index 0 for everything, mark it dirty, and restore it
+        size_t currentActiveTexture = replayActiveTexture;
+
+        // Iterate through current bindings and find the correct index for this texture ID
+        for (size_t bindingIndex = 0; bindingIndex < currentBindings.size(); ++bindingIndex)
+        {
+            gl::TextureID currentTextureID = currentBindings[bindingIndex].id();
+            gl::TextureID replayTextureID  = replayBindings[bindingIndex].id();
+
+            // Only check the texture we care about
+            if (currentTextureID == texture->id())
+            {
+                // If the binding doesn't match, track it
+                if (currentTextureID != replayTextureID)
+                {
+                    currentActiveTexture = bindingIndex;
+                }
+
+                break;
+            }
+        }
+
+        // Set the correct active texture before performing any state changes, including binding
+        if (currentActiveTexture != replayActiveTexture)
+        {
+            for (std::vector<CallCapture> *calls : texSetupCalls)
+            {
+                Capture(calls, CaptureActiveTexture(
+                                   replayState, true,
+                                   GL_TEXTURE0 + static_cast<GLenum>(currentActiveTexture)));
+            }
+            replayState.getMutablePrivateStateForCapture()->setActiveSampler(
+                static_cast<unsigned int>(currentActiveTexture));
+        }
+
         for (std::vector<CallCapture> *calls : texSetupCalls)
         {
             Capture(calls, CaptureBindTexture(replayState, true, texture->getType(), id));
@@ -4307,7 +4465,7 @@ void CaptureShareGroupMidExecutionSetup(
         replayState.setSamplerTexture(context, texture->getType(), texture);
 
         // Capture sampler parameter states.
-        // TODO(jmadill): More sampler / texture states. http://anglebug.com/3662
+        // TODO(jmadill): More sampler / texture states. http://anglebug.com/42262323
         gl::SamplerState defaultSamplerState =
             gl::SamplerState::CreateDefaultForTarget(texture->getType());
         const gl::SamplerState &textureSamplerState = texture->getSamplerState();
@@ -4641,7 +4799,7 @@ void CaptureShareGroupMidExecutionSetup(
             }
         }
 
-        // TODO: Capture renderbuffer contents. http://anglebug.com/3662
+        // TODO: Capture renderbuffer contents. http://anglebug.com/42262323
     }
 
     // Capture Shaders and Programs.
@@ -4782,7 +4940,7 @@ void CaptureShareGroupMidExecutionSetup(
 
         // This does not handle some more tricky situations like attaching and then deleting a
         // shader.
-        // TODO(jmadill): Handle trickier program uses. http://anglebug.com/3662
+        // TODO(jmadill): Handle trickier program uses. http://anglebug.com/42262323
         if (shader->isCompiled(context))
         {
             const std::string &capturedSource =
@@ -5054,19 +5212,22 @@ void CaptureMidExecutionSetup(const gl::Context *context,
         // Filter out redundant buffer binding commands. Note that the code in the previous section
         // only binds to ARRAY_BUFFER. Therefore we only check the array binding against the binding
         // we set earlier.
-        bool isArray                  = binding == gl::BufferBinding::Array;
         const gl::Buffer *arrayBuffer = replayState.getArrayBuffer();
-        if ((isArray && arrayBuffer && arrayBuffer->id() != bufferID) ||
-            (!isArray && bufferID.value != 0))
+        bool isArray                  = binding == gl::BufferBinding::Array;
+        bool isArrayBufferChanging    = isArray && arrayBuffer && arrayBuffer->id() != bufferID;
+        if (isArrayBufferChanging || (!isArray && bufferID.value != 0))
         {
             cap(CaptureBindBuffer(replayState, true, binding, bufferID));
             replayState.setBufferBinding(context, binding, boundBuffers[binding].get());
         }
 
         // Restore all buffer bindings for Reset
-        if (bufferID.value != 0)
+        if (bufferID.value != 0 || isArrayBufferChanging)
         {
             CaptureBufferBindingResetCalls(replayState, resourceTracker, binding, bufferID);
+
+            // Track this as a starting binding
+            resetHelper.setStartingBufferBinding(binding, bufferID);
         }
     }
 
@@ -5338,7 +5499,7 @@ void CaptureMidExecutionSetup(const gl::Context *context,
     }
 
     // For now we assume the installed program executable is the same as the current program.
-    // TODO(jmadill): Handle installed program executable. http://anglebug.com/3662
+    // TODO(jmadill): Handle installed program executable. http://anglebug.com/42262323
     if (!context->isGLES1())
     {
         // If we have a program bound in the API, or if there is no program bound to the API at
@@ -5897,7 +6058,7 @@ void CaptureMidExecutionSetup(const gl::Context *context,
     }
 
     // Clear state. Missing ES 3.x features.
-    // TODO(http://anglebug.com/3662): Complete state capture.
+    // TODO(http://anglebug.com/42262323): Complete state capture.
     const gl::ColorF &currentClearColor = apiState.getColorClearValue();
     if (currentClearColor != gl::ColorF())
     {
@@ -6166,7 +6327,7 @@ FrameCaptureShared::FrameCaptureShared()
         INFO() << "Validation expression is " << kValidationExprVarName;
     }
 
-    // TODO: Remove. http://anglebug.com/7753
+    // TODO: Remove. http://anglebug.com/42266223
     std::string sourceExtFromEnv =
         GetEnvironmentVarOrUnCachedAndroidProperty(kSourceExtVarName, kAndroidSourceExt);
     if (!sourceExtFromEnv.empty())
@@ -6617,7 +6778,7 @@ HashMap<std::shared_ptr<CoherentBuffer>, size_t> CoherentBufferTracker::getBuffe
         // callback. We need to add this tag manually to the untagged pointer in order to determine
         // the corresponding page.
         // See: https://source.android.com/docs/security/test/tagged-pointers
-        // TODO(http://anglebug.com/7402): Determine when heap pointer tagging is not enabled.
+        // TODO(http://anglebug.com/42265874): Determine when heap pointer tagging is not enabled.
         constexpr unsigned long long POINTER_TAG = 0xb400000000000000;
         unsigned long long taggedAddress         = address | POINTER_TAG;
         page                                     = static_cast<size_t>(taggedAddress / mPageSize);
@@ -7639,6 +7800,25 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
 
         case EntryPoint::GLBindBuffer:
             maybeGenResourceOnBind<gl::BufferID>(context, call);
+            if (isCaptureActive())
+            {
+                gl::BufferBinding binding =
+                    call.params.getParam("targetPacked", ParamType::TBufferBinding, 0)
+                        .value.BufferBindingVal;
+
+                context->getFrameCapture()->getStateResetHelper().setBufferBindingDirty(binding);
+            }
+            break;
+
+        case EntryPoint::GLBindBufferBase:
+        case EntryPoint::GLBindBufferRange:
+        case EntryPoint::GLBindBuffersBase:
+        case EntryPoint::GLBindBuffersRange:
+            if (isCaptureActive())
+            {
+                WARN() << "Indexed buffer binding changed during capture, Reset doesn't handle it "
+                          "yet.";
+            }
             break;
 
         case EntryPoint::GLDeleteProgramPipelines:
@@ -8398,6 +8578,12 @@ void FrameCaptureShared::captureCall(gl::Context *context, CallCapture &&inCall,
             }
             INFO() << msg.str();
         }
+
+        std::stringstream skipCall;
+        skipCall << "Skipping invalid call to " << GetEntryPointName(inCall.entryPoint)
+                 << " with error: "
+                 << gl::GLenumToString(gl::GLESEnum::ErrorCode, context->getErrorForCapture());
+        AddComment(&mFrameCalls, skipCall.str());
     }
 }
 
@@ -8724,7 +8910,7 @@ void FrameCaptureShared::checkForCaptureTrigger()
     }
 
     // If the value has changed, use the original value as the frame count
-    // TODO (anglebug.com/4949): Improve capture at unknown frame time. It is good to
+    // TODO (anglebug.com/42263521): Improve capture at unknown frame time. It is good to
     // avoid polling if the feature is not enabled, but not entirely intuitive to set
     // a value to zero when you want to trigger it.
     uint32_t captureTrigger = atoi(captureTriggerStr.c_str());
@@ -9545,7 +9731,7 @@ void FrameCaptureShared::writeMainContextCppReplay(const gl::Context *context,
                     // MEC started
                     if (mActiveContexts.find(shareContext.first) != mActiveContexts.end())
                     {
-                        // TODO(http://anglebug.com/5878): Support capture/replay of
+                        // TODO(http://anglebug.com/42264418): Support capture/replay of
                         // eglCreateContext() so this block can be moved into SetupReplayContextXX()
                         // by injecting them into the beginning of the setup call stream.
                         out << "    CreateContext(" << shareContext.first << ");\n";
@@ -9589,10 +9775,10 @@ void FrameCaptureShared::writeMainContextCppReplay(const gl::Context *context,
         std::set<gl::ContextID> contextIDs;
         mResourceTracker.getContextIDs(contextIDs);
 
-        // TODO(http://anglebug.com/5878): Look at moving this into the shared context file since
-        // it's resetting shared objects.
+        // TODO(http://anglebug.com/42264418): Look at moving this into the shared context file
+        // since it's resetting shared objects.
 
-        // TODO(http://anglebug.com/4599): Support function parts when writing Reset functions
+        // TODO(http://anglebug.com/42263204): Support function parts when writing Reset functions
 
         // Track whether anything was written during Reset
         bool anyResourceReset = false;
@@ -9618,9 +9804,9 @@ void FrameCaptureShared::writeMainContextCppReplay(const gl::Context *context,
                     continue;
                 }
                 // Use current context for shared reset
-                MaybeResetResources(context->id(), resourceType, mReplayWriter, bodyStream,
-                                    headerStream, &mResourceTracker, &mBinaryData, anyResourceReset,
-                                    &mResourceIDBufferSize);
+                MaybeResetResources(context->getDisplay(), context->id(), resourceType,
+                                    mReplayWriter, bodyStream, headerStream, &mResourceTracker,
+                                    &mBinaryData, anyResourceReset, &mResourceIDBufferSize);
             }
 
             // Reset opaque type objects that don't have IDs, so are not ResourceIDTypes.
@@ -9662,9 +9848,9 @@ void FrameCaptureShared::writeMainContextCppReplay(const gl::Context *context,
                     {
                         continue;
                     }
-                    MaybeResetResources(contextID, resourceType, mReplayWriter, resetStream,
-                                        headerStream, &mResourceTracker, &mBinaryData,
-                                        anyResourceReset, &mResourceIDBufferSize);
+                    MaybeResetResources(context->getDisplay(), contextID, resourceType,
+                                        mReplayWriter, resetStream, headerStream, &mResourceTracker,
+                                        &mBinaryData, anyResourceReset, &mResourceIDBufferSize);
                 }
 
                 // Only call eglMakeCurrent if anything was actually reset in the function and the

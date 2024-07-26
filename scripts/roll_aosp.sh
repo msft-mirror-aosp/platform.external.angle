@@ -136,7 +136,7 @@ for dep in "${third_party_deps[@]}" "${delete_only_deps[@]}"; do
     rm -rf "$dep"
 done
 
-# Remove cruft from any previous bad rolls (https://anglebug.com/8352)
+# Remove cruft from any previous bad rolls (https://anglebug.com/42266781)
 extra_third_party_removal_patterns=(
    "*/_gclient_*"
 )
@@ -160,11 +160,12 @@ rm -rf ${GN_OUTPUT_DIRECTORY}
 # Delete all unsupported 3rd party dependencies. Do this after generate_Android_bp_file, so
 # it has access to all of the necessary BUILD.gn files.
 unsupported_third_party_deps=(
-   "third_party/jdk"
-   "third_party/llvm-build"
    "third_party/android_build_tools"
    "third_party/android_sdk"
    "third_party/android_toolchain"
+   "third_party/jdk"
+   "third_party/llvm-build"
+   "third_party/rust-toolchain"
    "third_party/zlib"  # Replaced by Android's zlib
 )
 for unsupported_third_party_dep in "${unsupported_third_party_deps[@]}"; do
