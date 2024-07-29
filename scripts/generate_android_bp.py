@@ -193,7 +193,6 @@ def gn_sources_to_blueprint_sources(sources):
 
 target_blockist = [
     '//build/config:shared_library_deps',
-    '//third_party/vulkan-validation-layers/src:vulkan_clean_old_validation_layer_objects',
     '//third_party/zlib:zlib',
     '//third_party/zlib/google:compression_utils_portable',
 ]
@@ -277,7 +276,7 @@ def gn_libs_to_blueprint_shared_libraries(target_info):
     result = []
     if 'libs' in target_info:
         for lib in target_info['libs']:
-            if lib not in lib_blockist:
+            if lib not in lib_blockist and not lib.startswith('//'):
                 android_lib = lib if '@' in lib else 'lib' + lib
                 result.append(android_lib)
     return result

@@ -58,7 +58,7 @@ cc_defaults {
     name: "angle_common_auto_cflags",
     cflags: [
         "-DANDROID",
-        "-DANDROID_NDK_VERSION_ROLL=r26b_1",
+        "-DANDROID_NDK_VERSION_ROLL=r27_1",
         "-DCR_CLANG_REVISION=\"llvmorg-19-init-14561-gecea8371-3000\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
@@ -70,7 +70,6 @@ cc_defaults {
         "-Wno-builtin-macro-redefined",
         "-Wno-c++11-narrowing-const-reference",
         "-Wno-cast-function-type",
-        "-Wno-deprecated-builtins",
         "-Wno-deprecated-this-capture",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
