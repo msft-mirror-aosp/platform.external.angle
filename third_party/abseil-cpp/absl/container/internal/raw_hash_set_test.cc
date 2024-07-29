@@ -3121,6 +3121,106 @@ TYPED_TEST(SooTest, EraseIfPartial) {
   }
 }
 
+TYPED_TEST(SooTest, ForEach) {
+  TypeParam t;
+  std::vector<int64_t> expected;
+  for (int size = 0; size < 100; ++size) {
+    SCOPED_TRACE(size);
+    {
+      SCOPED_TRACE("mutable iteration");
+      std::vector<int64_t> actual;
+      auto f = [&](auto& x) { actual.push_back(static_cast<int64_t>(x)); };
+      absl::container_internal::ForEach(f, &t);
+      ASSERT_THAT(actual, testing::UnorderedElementsAreArray(expected));
+    }
+    {
+      SCOPED_TRACE("const iteration");
+      std::vector<int64_t> actual;
+      auto f = [&](auto& x) {
+        static_assert(
+            std::is_const<std::remove_reference_t<decltype(x)>>::value,
+            "no mutable values should be passed to const ForEach");
+        actual.push_back(static_cast<int64_t>(x));
+      };
+      const auto& ct = t;
+      absl::container_internal::ForEach(f, &ct);
+      ASSERT_THAT(actual, testing::UnorderedElementsAreArray(expected));
+    }
+    t.insert(size);
+    expected.push_back(size);
+  }
+}
+
+TEST(Table, ForEachMutate) {
+  StringTable t;
+  using ValueType = StringTable::value_type;
+  std::vector<ValueType> expected;
+  for (int size = 0; size < 100; ++size) {
+    SCOPED_TRACE(size);
+    std::vector<ValueType> actual;
+    auto f = [&](ValueType& x) {
+      actual.push_back(x);
+      x.second += "a";
+    };
+    absl::container_internal::ForEach(f, &t);
+    ASSERT_THAT(actual, testing::UnorderedElementsAreArray(expected));
+    for (ValueType& v : expected) {
+      v.second += "a";
+    }
+    ASSERT_THAT(t, testing::UnorderedElementsAreArray(expected));
+    t.emplace(std::to_string(size), std::to_string(size));
+    expected.emplace_back(std::to_string(size), std::to_string(size));
+  }
+}
+
+TYPED_TEST(SooTest, EraseIfReentryDeath) {
+  if (!IsAssertEnabled()) GTEST_SKIP() << "Assertions not enabled.";
+
+  auto erase_if_with_removal_reentrance = [](size_t reserve_size) {
+    TypeParam t;
+    t.reserve(reserve_size);
+    int64_t first_value = -1;
+    t.insert(1024);
+    t.insert(5078);
+    auto pred = [&](const auto& x) {
+      if (first_value == -1) {
+        first_value = static_cast<int64_t>(x);
+        return false;
+      }
+      // We erase on second call to `pred` to reduce the chance that assertion
+      // will happen in IterateOverFullSlots.
+      t.erase(first_value);
+      return true;
+    };
+    absl::container_internal::EraseIf(pred, &t);
+  };
+  // Removal will likely happen in a different group.
+  EXPECT_DEATH_IF_SUPPORTED(erase_if_with_removal_reentrance(1024 * 16),
+                            "hash table was modified unexpectedly");
+  // Removal will happen in the same group.
+  EXPECT_DEATH_IF_SUPPORTED(
+      erase_if_with_removal_reentrance(CapacityToGrowth(Group::kWidth - 1)),
+      "hash table was modified unexpectedly");
+}
+
+// This test is useful to test soo branch.
+TYPED_TEST(SooTest, EraseIfReentrySingleElementDeath) {
+  if (!IsAssertEnabled()) GTEST_SKIP() << "Assertions not enabled.";
+
+  auto erase_if_with_removal_reentrance = []() {
+    TypeParam t;
+    t.insert(1024);
+    auto pred = [&](const auto& x) {
+      // We erase ourselves in order to confuse the erase_if.
+      t.erase(static_cast<int64_t>(x));
+      return false;
+    };
+    absl::container_internal::EraseIf(pred, &t);
+  };
+  EXPECT_DEATH_IF_SUPPORTED(erase_if_with_removal_reentrance(),
+                            "hash table was modified unexpectedly");
+}
+
 TEST(Table, EraseBeginEndResetsReservedGrowth) {
   bool frozen = false;
   BadHashFreezableIntTable t{FreezableAlloc<int64_t>(&frozen)};
@@ -3282,12 +3382,12 @@ TEST(Table, IterateOverFullSlotsEmpty) {
   auto fail_if_any = [](const ctrl_t*, auto* i) {
     FAIL() << "expected no slots " << **i;
   };
-  container_internal::IterateOverFullSlots</*kAllowRemoveReentrance=*/false>(
+  container_internal::IterateOverFullSlots(
       RawHashSetTestOnlyAccess::GetCommon(t),
       RawHashSetTestOnlyAccess::GetSlots(t), fail_if_any);
   for (size_t i = 0; i < 256; ++i) {
     t.reserve(i);
-    container_internal::IterateOverFullSlots</*kAllowRemoveReentrance=*/false>(
+    container_internal::IterateOverFullSlots(
         RawHashSetTestOnlyAccess::GetCommon(t),
         RawHashSetTestOnlyAccess::GetSlots(t), fail_if_any);
   }
@@ -3302,7 +3402,7 @@ TEST(Table, IterateOverFullSlotsFull) {
     expected_slots.push_back(idx);
 
     std::vector<int64_t> slots;
-    container_internal::IterateOverFullSlots</*kAllowRemoveReentrance=*/false>(
+    container_internal::IterateOverFullSlots(
         RawHashSetTestOnlyAccess::GetCommon(t),
         RawHashSetTestOnlyAccess::GetSlots(t),
         [&t, &slots](const ctrl_t* ctrl, auto* i) {
@@ -3316,39 +3416,73 @@ TEST(Table, IterateOverFullSlotsFull) {
   }
 }
 
-TEST(Table, IterateOverFullSlotsAllowReentrance) {
-  std::vector<int64_t> expected_values;
-  for (int64_t idx = 0; idx < 128; ++idx) {
-    NonSooIntTable t;
-    for (int val = 0; val <= idx; ++val) {
-      t.insert(val);
-    }
+TEST(Table, IterateOverFullSlotsDeathOnRemoval) {
+  if (!IsAssertEnabled()) GTEST_SKIP() << "Assertions not enabled.";
 
-    // We are inserting only even values.
-    // Only one element across 2*k and 2*k+1 should be visited.
-    if (idx % 2 == 0) {
-      expected_values.push_back(idx);
-    }
+  auto iterate_with_reentrant_removal = [](int64_t size,
+                                           int64_t reserve_size = -1) {
+    if (reserve_size == -1) reserve_size = size;
+    for (int64_t idx = 0; idx < size; ++idx) {
+      NonSooIntTable t;
+      t.reserve(static_cast<size_t>(reserve_size));
+      for (int val = 0; val <= idx; ++val) {
+        t.insert(val);
+      }
 
-    std::vector<int64_t> actual_values;
-    container_internal::IterateOverFullSlots</*kAllowRemoveReentrance=*/true>(
-        RawHashSetTestOnlyAccess::GetCommon(t),
-        RawHashSetTestOnlyAccess::GetSlots(t),
-        [&t, &actual_values](const ctrl_t* ctrl, auto* i) {
-          int64_t value = **i;
-          // Erase the other element from 2*k and 2*k+1 pair.
-          t.erase(value ^ 1);
-          ptrdiff_t ctrl_offset =
-              ctrl - RawHashSetTestOnlyAccess::GetCommon(t).control();
-          ptrdiff_t slot_offset = i - RawHashSetTestOnlyAccess::GetSlots(t);
-          ASSERT_EQ(ctrl_offset, slot_offset);
-          // Add an even value from the pair.
-          // Only one element for each 2*k and 2*k+1 pair should be inserted.
-          actual_values.push_back(value - value % 2);
-        });
-    EXPECT_THAT(actual_values,
-                testing::UnorderedElementsAreArray(expected_values));
-  }
+      container_internal::IterateOverFullSlots(
+          RawHashSetTestOnlyAccess::GetCommon(t),
+          RawHashSetTestOnlyAccess::GetSlots(t),
+          [&t](const ctrl_t*, auto* i) {
+            int64_t value = **i;
+            // Erase the other element from 2*k and 2*k+1 pair.
+            t.erase(value ^ 1);
+          });
+    }
+  };
+
+  EXPECT_DEATH_IF_SUPPORTED(iterate_with_reentrant_removal(128),
+                            "hash table was modified unexpectedly");
+  // Removal will likely happen in a different group.
+  EXPECT_DEATH_IF_SUPPORTED(iterate_with_reentrant_removal(14, 1024 * 16),
+                            "hash table was modified unexpectedly");
+  // Removal will happen in the same group.
+  EXPECT_DEATH_IF_SUPPORTED(iterate_with_reentrant_removal(static_cast<int64_t>(
+                                CapacityToGrowth(Group::kWidth - 1))),
+                            "hash table was modified unexpectedly");
+}
+
+TEST(Table, IterateOverFullSlotsDeathOnInsert) {
+  if (!IsAssertEnabled()) GTEST_SKIP() << "Assertions not enabled.";
+
+  auto iterate_with_reentrant_insert = [](int64_t reserve_size,
+                                          int64_t size_divisor = 2) {
+    int64_t size = reserve_size / size_divisor;
+    for (int64_t idx = 1; idx <= size; ++idx) {
+      NonSooIntTable t;
+      t.reserve(static_cast<size_t>(reserve_size));
+      for (int val = 1; val <= idx; ++val) {
+        t.insert(val);
+      }
+
+      container_internal::IterateOverFullSlots(
+          RawHashSetTestOnlyAccess::GetCommon(t),
+          RawHashSetTestOnlyAccess::GetSlots(t),
+          [&t](const ctrl_t*, auto* i) {
+            int64_t value = **i;
+            t.insert(-value);
+          });
+    }
+  };
+
+  EXPECT_DEATH_IF_SUPPORTED(iterate_with_reentrant_insert(128),
+                            "hash table was modified unexpectedly");
+  // Insert will likely happen in a different group.
+  EXPECT_DEATH_IF_SUPPORTED(iterate_with_reentrant_insert(1024 * 16, 1024 * 2),
+                            "hash table was modified unexpectedly");
+  // Insert will happen in the same group.
+  EXPECT_DEATH_IF_SUPPORTED(iterate_with_reentrant_insert(static_cast<int64_t>(
+                                CapacityToGrowth(Group::kWidth - 1))),
+                            "hash table was modified unexpectedly");
 }
 
 template <typename T>

@@ -94,8 +94,6 @@
 
 # ES3 Flaky
 42265129 : MultithreadingTest.MultiContextCreateAndDeleteResources/* = SKIP_FOR_CAPTURE
-42265129 WIN : MultithreadingTestES3.MultithreadFenceDraw/* = SKIP_FOR_CAPTURE
-42265129 WIN : MultithreadingTestES3.MultithreadFenceTexImage/* = SKIP_FOR_CAPTURE
 42265129 : MultithreadingTest.MultiContextDrawWithSwapBuffers/* = SKIP_FOR_CAPTURE
 
 # Uses multiple contexts, don't want to run
@@ -187,6 +185,15 @@
 42266040 : ImageTestES3.SourceCubeTargetExternalESSL3/* = SKIP_FOR_CAPTURE
 42266040 : ImageTestES3.SourceCubeTargetExternalESSL3_Colorspace/* = SKIP_FOR_CAPTURE
 42266040 : ImageTestES3.SourceRenderbufferTargetTextureExternalESSL3_Colorspace/* = SKIP_FOR_CAPTURE
+
+353538491 : ImageTest.TargetTexture2DDeletedWhileInUse/* = SKIP_FOR_CAPTURE
+353538491 : ImageTest.TargetTexture2DDeletedWhileInUse2/* = SKIP_FOR_CAPTURE
+353538491 : ImageTest.TargetRenderbufferDeletedWhileInUse/* = SKIP_FOR_CAPTURE
+353538491 : ImageTest.TargetRenderbufferDeletedWhileInUse2/* = SKIP_FOR_CAPTURE
+353538491 : ImageTestES31.TargetTexture2DDeletedWhileInUseAsResolve/* = SKIP_FOR_CAPTURE
+353538491 : ImageTestES31.TargetTexture2DDeletedWhileInUseAsResolve2/* = SKIP_FOR_CAPTURE
+353538491 : ImageTestES31.TargetRenderbufferDeletedWhileInUseAsResolve/* = SKIP_FOR_CAPTURE
+353538491 : ImageTestES31.TargetRenderbufferDeletedWhileInUseAsResolve2/* = SKIP_FOR_CAPTURE
 
 42266048 : FramebufferTest_ES3.BlitWithDifferentPreRotations/* = SKIP_FOR_CAPTURE
 

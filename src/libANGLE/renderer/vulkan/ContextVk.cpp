@@ -58,6 +58,9 @@ static constexpr VkDeviceSize kMaxBufferToImageCopySize = 64 * 1024 * 1024;
 // RenderPassCommands.
 static constexpr size_t kMaxReservedOutsideRenderPassQueueSerials = 15;
 
+// Dumping the command stream is disabled by default.
+static constexpr bool kEnableCommandStreamDiagnostics = false;
+
 // For shader uniforms such as gl_DepthRange and the viewport size.
 struct GraphicsDriverUniforms
 {
@@ -640,8 +643,6 @@ constexpr angle::PackedEnumMap<RenderPassClosureReason, const char *> kRenderPas
     {RenderPassClosureReason::XfbPause, "Render pass closed due to transform feedback pause"},
     {RenderPassClosureReason::FramebufferFetchEmulation,
      "Render pass closed due to framebuffer fetch emulation"},
-    {RenderPassClosureReason::ColorBufferInvalidate,
-     "Render pass closed due to glInvalidateFramebuffer() on a color buffer"},
     {RenderPassClosureReason::GenerateMipmapOnCPU,
      "Render pass closed due to fallback to CPU when generating mipmaps"},
     {RenderPassClosureReason::CopyTextureOnCPU,
@@ -880,7 +881,6 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, vk::Rendere
       mFlipViewportForDrawFramebuffer(false),
       mFlipViewportForReadFramebuffer(false),
       mIsAnyHostVisibleBufferWritten(false),
-      mEmulateSeamfulCubeMapSampling(false),
       mCurrentQueueSerialIndex(kInvalidQueueSerialIndex),
       mOutsideRenderPassCommands(nullptr),
       mRenderPassCommands(nullptr),
@@ -1406,8 +1406,6 @@ angle::Result ContextVk::initialize(const angle::ImageLoadContext &imageLoadCont
         platform->getTraceCategoryEnabledFlag(platform, "gpu.angle.gpu");
     mGpuEventsEnabled = gpuEventsEnabled && *gpuEventsEnabled;
 #endif
-
-    mEmulateSeamfulCubeMapSampling = shouldEmulateSeamfulCubeMapSampling();
 
     // Assign initial command buffers from queue
     ANGLE_TRY(vk::OutsideRenderPassCommandBuffer::InitializeCommandPool(
@@ -2549,8 +2547,8 @@ ANGLE_INLINE angle::Result ContextVk::handleDirtyTexturesImpl(
                                      mState.getSamplers(), &mActiveTexturesDesc);
 
         ANGLE_TRY(executableVk->updateTexturesDescriptorSet(
-            this, mActiveTextures, mState.getSamplers(), mEmulateSeamfulCubeMapSampling,
-            pipelineType, mShareGroupVk->getUpdateDescriptorSetsBuilder(), commandBufferHelper,
+            this, mActiveTextures, mState.getSamplers(), pipelineType,
+            mShareGroupVk->getUpdateDescriptorSetsBuilder(), commandBufferHelper,
             mActiveTexturesDesc));
     }
 
@@ -3641,7 +3639,7 @@ angle::Result ContextVk::submitCommands(const vk::Semaphore *signalSemaphore,
                                         const vk::SharedExternalFence *externalFence,
                                         Submit submission)
 {
-    if (vk::CommandBufferHelperCommon::kEnableCommandStreamDiagnostics)
+    if (kEnableCommandStreamDiagnostics)
     {
         dumpCommandStreamDiagnostics();
     }
@@ -4553,7 +4551,7 @@ angle::Result ContextVk::optimizeRenderPassForPresent(vk::ImageViewHelper *color
     }
 
     // Use finalLayout instead of extra barrier for layout change to present
-    if (colorImage != nullptr)
+    if (colorImage != nullptr && getFeatures().supportsPresentation.enabled)
     {
         mRenderPassCommands->setImageOptimizeForPresent(colorImage);
     }
@@ -4578,7 +4576,8 @@ angle::Result ContextVk::optimizeRenderPassForPresent(vk::ImageViewHelper *color
                                                              0, gl::SrgbWriteControlMode::Default,
                                                              &resolveImageView));
 
-        mRenderPassCommands->addColorResolveAttachment(0, resolveImageView->getHandle());
+        mRenderPassCommands->addColorResolveAttachment(0, colorImage, resolveImageView->getHandle(),
+                                                       gl::LevelIndex(0), 0, 1, {});
         onImageRenderPassWrite(gl::LevelIndex(0), 0, 1, VK_IMAGE_ASPECT_COLOR_BIT,
                                vk::ImageLayout::ColorWrite, colorImage);
 
@@ -7743,6 +7742,12 @@ void ContextVk::addWaitSemaphore(VkSemaphore semaphore, VkPipelineStageFlags sta
 angle::Result ContextVk::getCompatibleRenderPass(const vk::RenderPassDesc &desc,
                                                  const vk::RenderPass **renderPassOut)
 {
+    if (getFeatures().preferDynamicRendering.enabled)
+    {
+        *renderPassOut = &mNullRenderPass;
+        return angle::Result::Continue;
+    }
+
     // Note: Each context has it's own RenderPassCache so no locking needed.
     return mRenderPassCache.getCompatibleRenderPass(this, desc, renderPassOut);
 }
@@ -7751,6 +7756,16 @@ angle::Result ContextVk::getRenderPassWithOps(const vk::RenderPassDesc &desc,
                                               const vk::AttachmentOpsArray &ops,
                                               const vk::RenderPass **renderPassOut)
 {
+    if (getFeatures().preferDynamicRendering.enabled)
+    {
+        if (mState.isPerfMonitorActive())
+        {
+            mRenderPassCommands->updatePerfCountersForDynamicRenderingInstance(this,
+                                                                               &mPerfCounters);
+        }
+        return angle::Result::Continue;
+    }
+
     // Note: Each context has it's own RenderPassCache so no locking needed.
     return mRenderPassCache.getRenderPassWithOps(this, desc, ops, renderPassOut);
 }
@@ -7833,17 +7848,6 @@ void ContextVk::invalidateDefaultAttributes(const gl::AttributesMask &dirtyMask)
         mGraphicsDirtyBits.set(DIRTY_BIT_DEFAULT_ATTRIBS);
         mGraphicsDirtyBits.set(DIRTY_BIT_VERTEX_BUFFERS);
     }
-}
-
-bool ContextVk::shouldEmulateSeamfulCubeMapSampling() const
-{
-    // Only allow seamful cube map sampling in non-webgl ES2.
-    if (mState.getClientMajorVersion() != 2 || mState.isWebGL())
-    {
-        return false;
-    }
-
-    return true;
 }
 
 angle::Result ContextVk::onBufferReleaseToExternal(const vk::BufferHelper &buffer)
@@ -7979,14 +7983,10 @@ angle::Result ContextVk::flushCommandsAndEndRenderPassWithoutSubmit(RenderPassCl
 
     ANGLE_TRY(mRenderPassCommands->endRenderPass(this));
 
-    if (vk::CommandBufferHelperCommon::kEnableCommandStreamDiagnostics)
+    if (kEnableCommandStreamDiagnostics)
     {
         addCommandBufferDiagnostics(mRenderPassCommands->getCommandDiagnostics());
     }
-
-    const vk::RenderPass *renderPass = nullptr;
-    ANGLE_TRY(getRenderPassWithOps(mRenderPassCommands->getRenderPassDesc(),
-                                   mRenderPassCommands->getAttachmentOps(), &renderPass));
 
     flushDescriptorSetUpdates();
     // Collect RefCountedEvent garbage before submitting to renderer
@@ -7999,10 +7999,17 @@ angle::Result ContextVk::flushCommandsAndEndRenderPassWithoutSubmit(RenderPassCl
                                                    mRenderPassCommands->getQueueSerial()));
     mLastFlushedQueueSerial = mRenderPassCommands->getQueueSerial();
 
-    // If a new framebuffer is used to accommodate resolve attachments that have been added after
-    // the fact, create a temp one now and add it to garbage list.
+    const vk::RenderPass unusedRenderPass;
+    const vk::RenderPass *renderPass  = &unusedRenderPass;
     VkFramebuffer framebufferOverride = VK_NULL_HANDLE;
-    if (mRenderPassCommands->getFramebuffer().needsNewFramebufferWithResolveAttachments())
+
+    ANGLE_TRY(getRenderPassWithOps(mRenderPassCommands->getRenderPassDesc(),
+                                   mRenderPassCommands->getAttachmentOps(), &renderPass));
+
+    // If a new framebuffer is used to accommodate resolve attachments that have been added
+    // after the fact, create a temp one now and add it to garbage list.
+    if (!getFeatures().preferDynamicRendering.enabled &&
+        mRenderPassCommands->getFramebuffer().needsNewFramebufferWithResolveAttachments())
     {
         vk::Framebuffer tempFramebuffer;
         ANGLE_TRY(mRenderPassCommands->getFramebuffer().packResolveViewsAndCreateFramebuffer(
@@ -8266,7 +8273,7 @@ angle::Result ContextVk::flushOutsideRenderPassCommands()
 
     addOverlayUsedBuffersCount(mOutsideRenderPassCommands);
 
-    if (vk::CommandBufferHelperCommon::kEnableCommandStreamDiagnostics)
+    if (kEnableCommandStreamDiagnostics)
     {
         addCommandBufferDiagnostics(mOutsideRenderPassCommands->getCommandDiagnostics());
     }
@@ -8597,11 +8604,12 @@ angle::Result ContextVk::onResourceAccess(const vk::CommandBufferAccess &access)
 
     for (const vk::CommandBufferImageAccess &imageAccess : access.getReadImages())
     {
-        ASSERT(!isRenderPassStartedAndUsesImage(*imageAccess.image));
+        vk::ImageHelper *image = imageAccess.image;
+        ASSERT(!isRenderPassStartedAndUsesImage(*image));
 
         imageAccess.image->recordReadBarrier(this, imageAccess.aspectFlags, imageAccess.imageLayout,
                                              mOutsideRenderPassCommands);
-        mOutsideRenderPassCommands->retainResource(imageAccess.image);
+        mOutsideRenderPassCommands->retainImage(image);
     }
 
     for (const vk::CommandBufferImageSubresourceAccess &imageReadAccess :
@@ -8614,7 +8622,7 @@ angle::Result ContextVk::onResourceAccess(const vk::CommandBufferAccess &access)
             this, imageReadAccess.access.aspectFlags, imageReadAccess.access.imageLayout,
             imageReadAccess.levelStart, imageReadAccess.levelCount, imageReadAccess.layerStart,
             imageReadAccess.layerCount, mOutsideRenderPassCommands);
-        mOutsideRenderPassCommands->retainResource(image);
+        mOutsideRenderPassCommands->retainImage(image);
     }
 
     for (const vk::CommandBufferImageSubresourceAccess &imageWrite : access.getWriteImages())
@@ -8626,7 +8634,7 @@ angle::Result ContextVk::onResourceAccess(const vk::CommandBufferAccess &access)
                                   imageWrite.access.imageLayout, imageWrite.levelStart,
                                   imageWrite.levelCount, imageWrite.layerStart,
                                   imageWrite.layerCount, mOutsideRenderPassCommands);
-        mOutsideRenderPassCommands->retainResource(image);
+        mOutsideRenderPassCommands->retainImage(image);
         image->onWrite(imageWrite.levelStart, imageWrite.levelCount, imageWrite.layerStart,
                        imageWrite.layerCount, imageWrite.access.aspectFlags);
     }
@@ -8897,9 +8905,10 @@ angle::Result ContextVk::switchToFramebufferFetchMode(bool hasFramebufferFetch)
         getDrawFramebuffer()->switchToFramebufferFetchMode(this, mIsInFramebufferFetchMode);
     }
 
-    // Clear the render pass cache; all render passes will be incompatible from now on with the old
-    // ones.
-    if (getFeatures().permanentlySwitchToFramebufferFetchMode.enabled)
+    // Clear the render pass cache; all render passes will be incompatible from now on with the
+    // old ones.
+    if (!getFeatures().preferDynamicRendering.enabled &&
+        getFeatures().permanentlySwitchToFramebufferFetchMode.enabled)
     {
         mRenderPassCache.clear(this);
     }
