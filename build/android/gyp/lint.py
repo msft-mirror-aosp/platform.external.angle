@@ -31,6 +31,7 @@ _DISABLED_ALWAYS = [
     "LintBaselineFixed",  # We dont care if baseline.xml has unused entries.
     "MissingInflatedId",  # False positives https://crbug.com/1394222
     "MissingApplicationIcon",  # False positive for non-production targets.
+    "MissingVersion",  # We set versions via aapt2, which runs after lint.
     "NetworkSecurityConfig",  # Breaks on library certificates b/269783280.
     "ObsoleteLintCustomCheck",  # We have no control over custom lint checks.
     "OldTargetApi",  # We sometimes need targetSdkVersion to not be latest.
@@ -326,8 +327,14 @@ def _RunLint(custom_lint_jar_path,
   cmd += ['--project', project_xml_path]
 
   # This filter is necessary for JDK11.
-  stderr_filter = build_utils.FilterReflectiveAccessJavaWarnings
   stdout_filter = lambda x: build_utils.FilterLines(x, 'No issues found')
+
+  def stderr_filter(output):
+    output = build_utils.FilterReflectiveAccessJavaWarnings(output)
+    # Presumably a side-effect of our manual manifest merging, but does not
+    # seem to actually break anything:
+    # "Manifest merger failed with multiple errors, see logs"
+    return build_utils.FilterLines(output, 'Manifest merger failed')
 
   start = time.time()
   logging.debug('Lint command %s', ' '.join(cmd))
@@ -467,17 +474,6 @@ def main():
   build_utils.InitLogging('LINT_DEBUG')
   args = _ParseArgs(sys.argv[1:])
 
-  # TODO(wnwen): Consider removing lint cache now that there are only two lint
-  #              invocations.
-  # Avoid parallelizing cache creation since lint runs without the cache defeat
-  # the purpose of creating the cache in the first place.
-  if (not args.create_cache and not args.skip_build_server
-      and server_utils.MaybeRunCommand(name=args.target_name,
-                                       argv=sys.argv,
-                                       stamp_file=args.stamp,
-                                       force=args.use_build_server)):
-    return
-
   sources = []
   for sources_file in args.sources:
     sources.extend(build_utils.ReadSourcesList(sources_file))
@@ -491,6 +487,21 @@ def main():
                                args.manifest_path,
                            ])
   depfile_deps = [p for p in possible_depfile_deps if p]
+
+  if args.depfile:
+    action_helpers.write_depfile(args.depfile, args.stamp, depfile_deps)
+
+  # TODO(wnwen): Consider removing lint cache now that there are only two lint
+  #              invocations.
+  # Avoid parallelizing cache creation since lint runs without the cache defeat
+  # the purpose of creating the cache in the first place. Forward the command
+  # after the depfile has been written as siso requires it.
+  if (not args.create_cache and not args.skip_build_server
+      and server_utils.MaybeRunCommand(name=args.target_name,
+                                       argv=sys.argv,
+                                       stamp_file=args.stamp,
+                                       force=args.use_build_server)):
+    return
 
   _RunLint(args.custom_lint_jar_path,
            args.lint_jar_path,
@@ -513,9 +524,6 @@ def main():
            warnings_as_errors=args.warnings_as_errors)
   logging.info('Creating stamp file')
   build_utils.Touch(args.stamp)
-
-  if args.depfile:
-    action_helpers.write_depfile(args.depfile, args.stamp, depfile_deps)
 
 
 if __name__ == '__main__':

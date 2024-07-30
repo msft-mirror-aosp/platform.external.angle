@@ -245,7 +245,7 @@ IGNORED_INCLUDES = {
     # erroneously marked as valid includes
     b'rapidjson/...',
     # Validation layers support building with robin hood hashing, but we are not enabling that
-    # See http://anglebug.com/5791
+    # See http://anglebug.com/42264327
     b'robin_hood.h',
     # Validation layers optionally use mimalloc
     b'mimalloc-new-delete.h',
@@ -262,6 +262,8 @@ IGNORED_INCLUDES = {
     b'my_custom_min.h',
     # https://bugs.chromium.org/p/gn/issues/detail?id=311
     b'spirv/unified1/spirv.hpp11',
+    # Behind #if defined(QAT_COMPRESSION_ENABLED) in third_party/zlib/deflate.c
+    b'contrib/qat/deflate_qat.h',
 }
 
 IGNORED_INCLUDE_PREFIXES = {

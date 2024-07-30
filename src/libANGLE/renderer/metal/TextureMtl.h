@@ -32,6 +32,9 @@ struct ImageDefinitionMtl
 class TextureMtl : public TextureImpl
 {
   public:
+    using TextureViewVector           = std::vector<mtl::TextureRef>;
+    using LayerLevelTextureViewVector = std::vector<TextureViewVector>;
+
     TextureMtl(const gl::TextureState &state);
     // Texture  view
     TextureMtl(const TextureMtl &mtl, GLenum format);
@@ -162,7 +165,7 @@ class TextureMtl : public TextureImpl
     // of images through glTexImage*/glCopyTex* calls. During draw calls, the caller must make sure
     // the actual texture is created by calling this method to transfer the stored images data
     // to the actual texture.
-    angle::Result ensureTextureCreated(const gl::Context *context);
+    angle::Result ensureNativeStorageCreated(const gl::Context *context);
 
     angle::Result bindToShader(const gl::Context *context,
                                mtl::RenderCommandEncoder *cmdEncoder,
@@ -182,9 +185,8 @@ class TextureMtl : public TextureImpl
     const mtl::Format &getFormat() const { return mFormat; }
 
   private:
-    void releaseTexture(bool releaseImages);
-    void releaseTexture(bool releaseImages, bool releaseTextureObjectsOnly);
-    angle::Result createNativeTexture(const gl::Context *context,
+    void deallocateNativeStorage(bool keepImages, bool keepSamplerStateAndFormat = false);
+    angle::Result createNativeStorage(const gl::Context *context,
                                       gl::TextureType type,
                                       GLuint mips,
                                       const gl::Extents &size);
@@ -354,8 +356,10 @@ class TextureMtl : public TextureImpl
     std::map<int, gl::TexLevelArray<RenderTargetMtl>> mPerLayerRenderTargets;
     std::map<int, gl::TexLevelArray<mtl::TextureRef>> mImplicitMSTextures;
 
-    // Views for glBindImageTexture.
-    std::map<MTLPixelFormat, gl::TexLevelArray<mtl::TextureRef>> mShaderImageViews;
+    // Lazily populated 2D views for shader storage images.
+    // May have different formats than the original texture.
+    // Indexed by format, then layer, then level.
+    std::map<MTLPixelFormat, LayerLevelTextureViewVector> mShaderImageViews;
 
     // Mipmap views are indexed from (base GL level -> max GL level):
     mtl::NativeTexLevelArray mLevelViewsWithinBaseMax;

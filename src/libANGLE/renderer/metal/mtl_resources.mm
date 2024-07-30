@@ -80,7 +80,7 @@ MTLResourceOptions resourceOptionsForStorageMode(MTLStorageMode storageMode)
             return MTLResourceStorageModeMemoryless;
 #if TARGET_OS_SIMULATOR
         default:
-            // TODO(http://anglebug.com/8012): Remove me once hacked SDKs are fixed.
+            // TODO(http://anglebug.com/42266474): Remove me once hacked SDKs are fixed.
             UNREACHABLE();
             return MTLResourceStorageModeShared;
 #endif
@@ -749,14 +749,15 @@ TextureRef Texture::createViewWithDifferentFormat(MTLPixelFormat format)
     return TextureRef(new Texture(this, format));
 }
 
-TextureRef Texture::createShaderImageView(const MipmapNativeLevel &level,
-                                          int layer,
-                                          MTLPixelFormat format)
+TextureRef Texture::createShaderImageView2D(const MipmapNativeLevel &level,
+                                            int layer,
+                                            MTLPixelFormat format)
 {
     ASSERT(isShaderReadable());
     ASSERT(isShaderWritable());
     ASSERT(format == pixelFormat() || supportFormatView());
-    return TextureRef(new Texture(this, format, textureType(), NSMakeRange(level.get(), 1),
+    ASSERT(textureType() != MTLTextureType3D);
+    return TextureRef(new Texture(this, format, MTLTextureType2D, NSMakeRange(level.get(), 1),
                                   NSMakeRange(layer, 1)));
 }
 

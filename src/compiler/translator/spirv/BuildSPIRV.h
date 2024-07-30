@@ -12,6 +12,7 @@
 #include "common/FixedVector.h"
 #include "common/PackedEnums.h"
 #include "common/bitset_utils.h"
+#include "common/hash_containers.h"
 #include "common/hash_utils.h"
 #include "common/spirv/spirv_instruction_builder_autogen.h"
 #include "compiler/translator/Compiler.h"
@@ -527,7 +528,7 @@ class SPIRVBuilder : angle::NonCopyable
     std::vector<spirv::IdRef> mNullConstants;
 
     // List of type pointers that are already defined.
-    // TODO: if all users call getTypeData(), move to SpirvTypeData.  http://anglebug.com/4889
+    // TODO: if all users call getTypeData(), move to SpirvTypeData.  http://anglebug.com/40096715
     angle::HashMap<SpirvIdAndStorageClass, spirv::IdRef, SpirvIdAndStorageClassHash>
         mTypePointerIdMap;
 

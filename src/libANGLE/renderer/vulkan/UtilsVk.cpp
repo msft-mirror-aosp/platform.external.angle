@@ -867,7 +867,7 @@ void InsertCommonTypes(angle::spirv::Blob *blobOut)
     spirv::WriteTypeFunction(blobOut, spirv::IdRef(kIdMainType), spirv::IdRef(kIdVoid), {});
 
     // Float types
-    spirv::WriteTypeFloat(blobOut, spirv::IdRef(kIdFloatType), spirv::LiteralInteger(32));
+    spirv::WriteTypeFloat(blobOut, spirv::IdRef(kIdFloatType), spirv::LiteralInteger(32), nullptr);
     InsertDerivativeTypes(spirv::IdRef(kIdFloatType), spirv::IdRef(kIdFloat4Type),
                           spirv::IdRef(kIdFloat4OutType), spirv::IdRef(kIdFloatSubpassImageType),
                           spirv::IdRef(kIdFloatSubpassInputType), blobOut);
@@ -1443,8 +1443,8 @@ angle::Result UtilsVk::ensureResourcesInitialized(ContextVk *contextVk,
     uint32_t currentBinding = 0;
     for (size_t i = 0; i < setSizesCount; ++i)
     {
-        descriptorSetDesc.update(currentBinding, setSizes[i].type, setSizes[i].descriptorCount,
-                                 descStages, nullptr);
+        descriptorSetDesc.addBinding(currentBinding, setSizes[i].type, setSizes[i].descriptorCount,
+                                     descStages, nullptr);
         ++currentBinding;
     }
 
@@ -1620,8 +1620,8 @@ angle::Result UtilsVk::ensureImageCopyResourcesInitializedWithSampler(
         contextVk->getRenderer()->getSamplerCache().getSampler(contextVk, samplerDesc, &sampler));
 
     vk::DescriptorSetLayoutDesc descriptorSetDesc;
-    descriptorSetDesc.update(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                             VK_SHADER_STAGE_FRAGMENT_BIT, &sampler.get().get());
+    descriptorSetDesc.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                                 VK_SHADER_STAGE_FRAGMENT_BIT, &sampler.get().get());
 
     ANGLE_TRY(contextVk->getDescriptorSetLayoutCache().getDescriptorSetLayout(
         contextVk, descriptorSetDesc,
@@ -1845,7 +1845,9 @@ angle::Result UtilsVk::setupComputeProgram(
     ANGLE_TRY(renderer->getPipelineCache(contextVk, &pipelineCache));
     ANGLE_TRY(programAndPipelines->program.getOrCreateComputePipeline(
         contextVk, &programAndPipelines->pipelines, &pipelineCache, pipelineLayout.get(),
-        contextVk->getComputePipelineFlags(), PipelineSource::Utils, &pipeline, nullptr, nullptr));
+        vk::GetComputePipelineOptions(contextVk->pipelineRobustness(),
+                                      contextVk->pipelineProtectedAccess()),
+        PipelineSource::Utils, &pipeline, nullptr, nullptr));
     commandBufferHelper->retainResource(pipeline);
 
     vk::OutsideRenderPassCommandBuffer *commandBuffer = &commandBufferHelper->getCommandBuffer();
@@ -1899,8 +1901,8 @@ angle::Result UtilsVk::setupGraphicsProgramWithLayout(
 
     // Pull in a compatible RenderPass.
     const vk::RenderPass *compatibleRenderPass = nullptr;
-    ANGLE_TRY(contextVk->getRenderPassCache().getCompatibleRenderPass(
-        contextVk, pipelineDesc->getRenderPassDesc(), &compatibleRenderPass));
+    ANGLE_TRY(contextVk->getCompatibleRenderPass(pipelineDesc->getRenderPassDesc(),
+                                                 &compatibleRenderPass));
 
     const vk::GraphicsPipelineDesc *descPtr;
     vk::PipelineHelper *helper;
@@ -2377,31 +2379,42 @@ angle::Result UtilsVk::startRenderPass(ContextVk *contextVk,
                                        const gl::Rectangle &renderArea,
                                        vk::RenderPassCommandBuffer **commandBufferOut)
 {
-    const vk::RenderPass *compatibleRenderPass = nullptr;
-    ANGLE_TRY(contextVk->getCompatibleRenderPass(renderPassDesc, &compatibleRenderPass));
-
-    VkFramebufferCreateInfo framebufferInfo = {};
-
-    // Minimize the framebuffer coverage to only cover up to the render area.
-    framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.flags           = 0;
-    framebufferInfo.renderPass      = compatibleRenderPass->getHandle();
-    framebufferInfo.attachmentCount = 1;
-    framebufferInfo.pAttachments    = imageView->ptr();
-    framebufferInfo.width           = renderArea.x + renderArea.width;
-    framebufferInfo.height          = renderArea.y + renderArea.height;
-    framebufferInfo.layers          = 1;
-
     vk::Framebuffer framebuffer;
-    ANGLE_VK_TRY(contextVk, framebuffer.init(contextVk->getDevice(), framebufferInfo));
-
     vk::Framebuffer framebufferHandle;
-    framebufferHandle.setHandle(framebuffer.getHandle());
-
     vk::RenderPassFramebuffer renderPassFramebuffer;
-    renderPassFramebuffer.setFramebuffer(std::move(framebufferHandle), {imageView->getHandle()},
-                                         framebufferInfo.width, framebufferInfo.height,
-                                         framebufferInfo.layers, vk::ImagelessFramebuffer::No);
+
+    const uint32_t framebufferWidth    = renderArea.x + renderArea.width;
+    const uint32_t framebufferHeight   = renderArea.y + renderArea.height;
+    const uint32_t framebufferLayers   = 1;
+    vk::ImagelessFramebuffer imageless = vk::ImagelessFramebuffer::Yes;
+
+    if (!contextVk->getFeatures().preferDynamicRendering.enabled)
+    {
+        imageless = vk::ImagelessFramebuffer::No;
+
+        const vk::RenderPass *compatibleRenderPass = nullptr;
+        ANGLE_TRY(contextVk->getCompatibleRenderPass(renderPassDesc, &compatibleRenderPass));
+
+        VkFramebufferCreateInfo framebufferInfo = {};
+
+        // Minimize the framebuffer coverage to only cover up to the render area.
+        framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.flags           = 0;
+        framebufferInfo.renderPass      = compatibleRenderPass->getHandle();
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments    = imageView->ptr();
+        framebufferInfo.width           = framebufferWidth;
+        framebufferInfo.height          = framebufferHeight;
+        framebufferInfo.layers          = framebufferLayers;
+
+        ANGLE_VK_TRY(contextVk, framebuffer.init(contextVk->getDevice(), framebufferInfo));
+
+        framebufferHandle.setHandle(framebuffer.getHandle());
+    }
+
+    renderPassFramebuffer.setFramebuffer(
+        contextVk, std::move(framebufferHandle), {imageView->getHandle()}, framebufferWidth,
+        framebufferHeight, framebufferLayers, imageless, vk::RenderPassSource::InternalUtils);
 
     vk::AttachmentOpsArray renderPassAttachmentOps;
     vk::PackedClearValuesArray clearValues;
@@ -2596,7 +2609,7 @@ angle::Result UtilsVk::clearImage(ContextVk *contextVk,
     // cannot be taken if AHARDWAREBUFFER_USAGE_GPU_FRAMEBUFFER hasn't been specified, even if the
     // format is renderable.
     //
-    // http://anglebug.com/6151
+    // http://anglebug.com/42264676
     if (!vk::FormatHasNecessaryFeature(renderer, dstActualFormat.id, dst->getTilingMode(),
                                        VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT))
     {
@@ -4459,8 +4472,12 @@ angle::Result UtilsVk::drawOverlay(ContextVk *contextVk,
     // Overlay is always drawn as the last render pass before present.  Automatically move the
     // layout to PresentSrc.
     contextVk->onColorDraw(gl::LevelIndex(0), 0, 1, dst, nullptr, {}, vk::PackedAttachmentIndex(0));
-    contextVk->getStartedRenderPassCommands().setImageOptimizeForPresent(dst);
-    contextVk->finalizeImageLayout(dst, {});
+    if (contextVk->getFeatures().supportsPresentation.enabled &&
+        !contextVk->getFeatures().preferDynamicRendering.enabled)
+    {
+        contextVk->getStartedRenderPassCommands().setImageOptimizeForPresent(dst);
+        contextVk->finalizeImageLayout(dst, {});
+    }
 
     // Close the render pass for this temporary framebuffer.
     return contextVk->flushCommandsAndEndRenderPass(

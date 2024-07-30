@@ -25,7 +25,6 @@
 #include "compiler/translator/tree_ops/RemoveInactiveInterfaceVariables.h"
 #include "compiler/translator/tree_ops/RewriteArrayOfArrayOfOpaqueUniforms.h"
 #include "compiler/translator/tree_ops/RewriteAtomicCounters.h"
-#include "compiler/translator/tree_ops/RewriteCubeMapSamplersAs2DArray.h"
 #include "compiler/translator/tree_ops/RewriteDfdy.h"
 #include "compiler/translator/tree_ops/RewriteStructSamplers.h"
 #include "compiler/translator/tree_ops/SeparateStructFromUniformDeclarations.h"
@@ -1006,9 +1005,8 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
     UnsupportedFunctionArgsBitSet args{UnsupportedFunctionArgs::StructContainingSamplers,
                                        UnsupportedFunctionArgs::ArrayOfArrayOfSamplerOrImage,
                                        UnsupportedFunctionArgs::AtomicCounter,
-                                       UnsupportedFunctionArgs::SamplerCubeEmulation,
                                        UnsupportedFunctionArgs::Image};
-    if (!MonomorphizeUnsupportedFunctions(this, root, &getSymbolTable(), compileOptions, args))
+    if (!MonomorphizeUnsupportedFunctions(this, root, &getSymbolTable(), args))
     {
         return false;
     }
@@ -1039,15 +1037,6 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
     if (!RewriteArrayOfArrayOfOpaqueUniforms(this, root, &getSymbolTable()))
     {
         return false;
-    }
-
-    if (compileOptions.emulateSeamfulCubeMapSampling)
-    {
-        if (!RewriteCubeMapSamplersAs2DArray(this, root, &symbolTable,
-                                             getShaderType() == GL_FRAGMENT_SHADER))
-        {
-            return false;
-        }
     }
 
     if (getShaderVersion() >= 300 ||
@@ -1524,7 +1513,7 @@ bool TranslatorMSL::translate(TIntermBlock *root,
     }
 
     // TODO: refactor the code in TranslatorMSL to not issue raw function calls.
-    // http://anglebug.com/6059#c2
+    // http://anglebug.com/42264589#comment3
     mValidateASTOptions.validateNoRawFunctionCalls = false;
     // A validation error is generated in this backend due to bool uniforms.
     mValidateASTOptions.validatePrecision = false;

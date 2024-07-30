@@ -216,15 +216,8 @@ angle::Result LinkTaskVk::linkImpl(const gl::ProgramLinkedResources &resources,
     // - Individual GLES1 tests are long, and this adds a considerable overhead to those tests
     if (!mState.isSeparable() && !mIsGLES1 && getFeatures().warmUpPipelineCacheAtLink.enabled)
     {
-        // Only build the shaders subset of the pipeline if VK_EXT_graphics_pipeline_library is
-        // supported.
-        const vk::GraphicsPipelineSubset subset =
-            getFeatures().supportsGraphicsPipelineLibrary.enabled
-                ? vk::GraphicsPipelineSubset::Shaders
-                : vk::GraphicsPipelineSubset::Complete;
-
         ANGLE_TRY(executableVk->getPipelineCacheWarmUpTasks(
-            mRenderer, mPipelineRobustness, mPipelineProtectedAccess, subset, postLinkSubTasksOut));
+            mRenderer, mPipelineRobustness, mPipelineProtectedAccess, postLinkSubTasksOut));
     }
 
     return angle::Result::Continue;
@@ -364,7 +357,7 @@ angle::Result ProgramVk::load(const gl::Context *context,
 {
     ContextVk *contextVk = vk::GetImpl(context);
 
-    // TODO: parallelize program load.  http://anglebug.com/8297
+    // TODO: parallelize program load.  http://anglebug.com/41488637
     *loadTaskOut = {};
 
     return getExecutable()->load(contextVk, mState.isSeparable(), stream, resultOut);

@@ -584,7 +584,7 @@ class Program::MainLinkLoadTask : public angle::Closure
                          &mState.mExecutable->mPostLinkSubTaskWaitableEvents);
 
         // No further use for worker pool.  Release it earlier than the destructor (to avoid
-        // situations such as http://anglebug.com/8661)
+        // situations such as http://anglebug.com/42267099)
         mSubTaskWorkerPool.reset();
     }
 
@@ -963,7 +963,7 @@ angle::Result Program::link(const Context *context, angle::JobResultExpectancy r
                                     ? nullptr
                                     : context->getMemoryProgramCache();
 
-    // TODO: http://anglebug.com/4530: Enable program caching for separable programs
+    // TODO: http://anglebug.com/42263141: Enable program caching for separable programs
     if (cache && !isSeparable())
     {
         std::lock_guard<angle::SimpleMutex> cacheLock(context->getProgramCacheMutex());
@@ -1242,6 +1242,16 @@ void Program::resolveLinkImpl(const Context *context)
     // According to GLES 3.0/3.1 spec for LinkProgram and UseProgram,
     // Only successfully linked program can replace the executables.
     ASSERT(mLinked);
+
+    // In case of a successful link, it is no longer required for the attached shaders to hold on to
+    // the memory they have used. Therefore, the shader compilations are resolved to save memory.
+    for (Shader *shader : mAttachedShaders)
+    {
+        if (shader != nullptr)
+        {
+            shader->resolveCompile(context);
+        }
+    }
 
     // Mark implementation-specific unreferenced uniforms as ignored.
     std::vector<ImageBinding> *imageBindings = getExecutable().getImageBindings();
@@ -1908,7 +1918,7 @@ bool Program::linkVaryings()
         previousShaderType = currentShader->shaderType;
     }
 
-    // TODO: http://anglebug.com/3571 and http://anglebug.com/3572
+    // TODO: http://anglebug.com/42262233 and http://anglebug.com/42262234
     // Need to move logic of validating builtin varyings inside the for-loop above.
     // This is because the built-in symbols `gl_ClipDistance` and `gl_CullDistance`
     // can be redeclared in Geometry or Tessellation shaders as well.
@@ -2352,7 +2362,7 @@ void Program::cacheProgramBinaryIfNotAlready(const Context *context)
     // Save to the program cache.
     std::lock_guard<angle::SimpleMutex> cacheLock(context->getProgramCacheMutex());
     MemoryProgramCache *cache = context->getMemoryProgramCache();
-    // TODO: http://anglebug.com/4530: Enable program caching for separable programs
+    // TODO: http://anglebug.com/42263141: Enable program caching for separable programs
     if (cache && !isSeparable() &&
         (mState.mExecutable->mLinkedTransformFeedbackVaryings.empty() ||
          !context->getFrontendFeatures().disableProgramCachingForTransformFeedback.enabled))
