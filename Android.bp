@@ -58,7 +58,7 @@ cc_defaults {
     name: "angle_common_auto_cflags",
     cflags: [
         "-DANDROID",
-        "-DANDROID_NDK_VERSION_ROLL=r26b_1",
+        "-DANDROID_NDK_VERSION_ROLL=r27_1",
         "-DCR_CLANG_REVISION=\"llvmorg-19-init-14561-gecea8371-3000\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
@@ -70,7 +70,6 @@ cc_defaults {
         "-Wno-builtin-macro-redefined",
         "-Wno-c++11-narrowing-const-reference",
         "-Wno-cast-function-type",
-        "-Wno-deprecated-builtins",
         "-Wno-deprecated-this-capture",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
@@ -159,7 +158,6 @@ cc_library_shared {
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -255,7 +253,6 @@ cc_library_shared {
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -622,7 +619,6 @@ cc_defaults {
         "third_party_spirv_headers_src_spv_headers",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
     ],
     local_include_dirs: [
@@ -1527,7 +1523,6 @@ cc_library_static {
         "third_party_spirv_tools_src_spvtools_headers",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -2708,18 +2703,6 @@ cc_genrule {
     sdk_version: "28",
 }
 
-cc_genrule {
-    name: "angle_commit_id",
-    out: [
-        "angle_commit.h",
-    ],
-    tool_files: [
-        "src/commit_id.py",
-    ],
-    cmd: "$(location) gen $(location angle_commit.h)",
-    sdk_version: "28",
-}
-
 cc_defaults {
     name: "angle_version",
     defaults: [
@@ -2727,7 +2710,6 @@ cc_defaults {
         "angle_common_library_cflags",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
     ],
     local_include_dirs: [
@@ -2769,7 +2751,6 @@ cc_defaults {
         "angle_version",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
     ],
     local_include_dirs: [
@@ -3359,7 +3340,6 @@ cc_defaults {
         "angle_version_info",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -6999,7 +6979,6 @@ cc_defaults {
         "src_libANGLE_renderer_vulkan_angle_vulkan_backend",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -7140,7 +7119,6 @@ cc_library_shared {
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
