@@ -818,6 +818,9 @@ void OutputSPIRVTraverser::accessChainPushLiteral(NodeData *data,
     // Add the literal integer in the chain of indices.  Since this is an id list, fake it as an id.
     data->idList.emplace_back(index);
     data->accessChain.preSwizzleTypeId = typeId;
+
+    // Literal index of a swizzle must be already folded in the AST.
+    ASSERT(data->accessChain.swizzles.empty());
 }
 
 void OutputSPIRVTraverser::accessChainPushSwizzle(NodeData *data,
@@ -6550,7 +6553,9 @@ spirv::Blob OutputSPIRVTraverser::getSpirv()
     spvtools::SpirvTools spirvTools(mCompileOptions.emitSPIRV14 ? SPV_ENV_VULKAN_1_1_SPIRV_1_4
                                                                 : SPV_ENV_VULKAN_1_1);
     std::string readableSpirv;
-    spirvTools.Disassemble(result, &readableSpirv, 0);
+    spirvTools.Disassemble(result, &readableSpirv,
+                           SPV_BINARY_TO_TEXT_OPTION_COMMENT | SPV_BINARY_TO_TEXT_OPTION_INDENT |
+                               SPV_BINARY_TO_TEXT_OPTION_NESTED_INDENT);
     fprintf(stderr, "%s\n", readableSpirv.c_str());
 #endif  // ANGLE_DEBUG_SPIRV_GENERATION
 
