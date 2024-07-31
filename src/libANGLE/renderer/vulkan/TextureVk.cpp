@@ -1443,8 +1443,6 @@ angle::Result TextureVk::copySubImageImplWithTransfer(ContextVk *contextVk,
 
         vk::ImageHelper::Copy(renderer, srcImage, mImage, srcOffset, dstOffsetModified, extents,
                               srcSubresource, destSubresource, commandBuffer);
-
-        contextVk->trackImagesWithOutsideRenderPassEvent(srcImage, mImage);
     }
     else
     {
@@ -1478,8 +1476,6 @@ angle::Result TextureVk::copySubImageImplWithTransfer(ContextVk *contextVk,
 
         vk::ImageHelper::Copy(renderer, srcImage, &stagingImage->get(), srcOffset, gl::kOffsetZero,
                               extents, srcSubresource, destSubresource, commandBuffer);
-
-        contextVk->trackImagesWithOutsideRenderPassEvent(srcImage, &stagingImage->get());
 
         // Stage the copy for when the image storage is actually created.
         VkImageType imageType = gl_vk::GetImageType(mState.getType());
@@ -2171,8 +2167,6 @@ angle::Result TextureVk::copyBufferDataToImage(ContextVk *contextVk,
                                      mImage->getCurrentLayout(contextVk->getRenderer()), 1,
                                      &region);
 
-    contextVk->trackImageWithOutsideRenderPassEvent(mImage);
-
     return angle::Result::Continue;
 }
 
@@ -2484,8 +2478,6 @@ angle::Result TextureVk::copyAndStageImageData(ContextVk *contextVk,
                                  stagingImage->get().getImage(),
                                  stagingImage->get().getCurrentLayout(renderer), 1, &copyRegion);
     }
-
-    contextVk->trackImagesWithOutsideRenderPassEvent(srcImage, &stagingImage->get());
 
     // Stage the staging image in the destination
     dstImage->stageSubresourceUpdatesFromAllImageLevels(stagingImage.release(),
@@ -3437,27 +3429,6 @@ const vk::ImageView &TextureVk::getReadImageView(vk::Context *context,
 
     ASSERT(imageViews.getLinearReadImageView().valid());
     return imageViews.getLinearReadImageView();
-}
-
-const vk::ImageView &TextureVk::getFetchImageView(vk::Context *context,
-                                                  GLenum srgbDecode,
-                                                  bool texelFetchStaticUse) const
-{
-    ASSERT(mImage->valid());
-
-    const vk::ImageViewHelper &imageViews = getImageViews();
-
-    // We don't currently support fetch for depth/stencil cube map textures.
-    ASSERT(!imageViews.hasStencilReadImageView() || !imageViews.hasFetchImageView());
-
-    if (shouldDecodeSRGB(context, srgbDecode, texelFetchStaticUse))
-    {
-        return (imageViews.hasFetchImageView() ? imageViews.getSRGBFetchImageView()
-                                               : imageViews.getSRGBReadImageView());
-    }
-
-    return (imageViews.hasFetchImageView() ? imageViews.getLinearFetchImageView()
-                                           : imageViews.getLinearReadImageView());
 }
 
 const vk::ImageView &TextureVk::getCopyImageView() const
