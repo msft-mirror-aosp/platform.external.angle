@@ -975,7 +975,7 @@ def RunTestsCommand(args, result_sink_client=None):
   command = args.command
 
   ProcessCommonOptions(args)
-  logging.info('command: %s', ' '.join(sys.argv))
+  logging.info('command: %s', shlex.join(sys.argv))
   if args.enable_platform_mode or command in _DEFAULT_PLATFORM_MODE_TESTS:
     return RunTestsInPlatformMode(args, result_sink_client)
 
@@ -1174,22 +1174,21 @@ def RunTestsInPlatformMode(args, result_sink_client=None):
                      try_count, try_count_max)
         try:
           record_dict = exception_recorder.to_dict()
+          exception_recorder.clear()
           result_sink_client.UpdateInvocationExtendedProperties(
               {exception_recorder.EXCEPTION_OCCURRENCES_KEY: record_dict})
+          break
         except Exception as e:  # pylint: disable=W0703
           logging.error("Got error %s when uploading exception records:\n%r", e,
                         record_dict)
           if try_count < try_count_max:
-            # Upload can fail due to record size being too big. Clear existing
-            # records in this case, and report just the upload failure.
-            exception_recorder.clear()
+            # Upload can fail due to record size being too big. In this case,
+            # report just the upload failure.
             exception_recorder.register(e)
           else:
             # Swallow the exception if the upload fails again and hit the max
             # try so that it won't fail the test task (and it shouldn't).
-            logging.error("Skip uploading exception records.")
-        finally:
-          exception_recorder.clear()
+            logging.error("Hit max retry. Skip uploading exception records.")
 
     try:
       yield

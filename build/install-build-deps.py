@@ -162,7 +162,7 @@ def check_distro(options):
         "\tUbuntu 20.04 LTS (focal with EoS April 2025)",
         "\tUbuntu 22.04 LTS (jammy with EoS June 2027)",
         "\tUbuntu 24.04 LTS (noble with EoS June 2029)",
-        "\tDebian 10 (buster) or later",
+        "\tDebian 11 (bullseye) or later",
         sep="\n",
         file=sys.stderr,
     )
@@ -237,6 +237,7 @@ def dev_list():
       "libssl-dev",
       "libsystemd-dev",
       "libudev-dev",
+      "libudev1",
       "libva-dev",
       "libwww-perl",
       "libxshmfence-dev",
@@ -250,7 +251,7 @@ def dev_list():
       "p7zip",
       "patch",
       "perl",
-      "pkg-config",
+      "pkgconf",
       "rpm",
       "ruby",
       "subversion",
@@ -277,11 +278,6 @@ def dev_list():
     packages.append("libjpeg-dev")
   else:
     packages.append("libjpeg62-dev")
-
-  if package_exists("libudev1"):
-    packages.append("libudev1")
-  else:
-    packages.append("libudev0")
 
   if package_exists("libbrlapi0.8"):
     packages.append("libbrlapi0.8")
@@ -402,8 +398,7 @@ def lib_list():
   elif package_exists("libffi6"):
     packages.append("libffi6")
 
-  # Workaround for dependency On Ubuntu 24.04 LTS (noble)
-  if distro_codename() == "noble":
+  if package_exists("libpng16-16t64"):
     packages.append("libpng16-16t64")
   elif package_exists("libpng16-16"):
     packages.append("libpng16-16")
@@ -426,12 +421,14 @@ def lib_list():
   if package_exists("libinput10"):
     packages.append("libinput10")
 
-  # Work around for dependency On Ubuntu 24.04 LTS (noble)
-  if distro_codename() == "noble":
+  if package_exists("libncurses6"):
     packages.append("libncurses6")
-    packages.append("libasound2t64")
   else:
     packages.append("libncurses5")
+
+  if package_exists("libasound2t64"):
+    packages.append("libasound2t64")
+  else:
     packages.append("libasound2")
 
   return packages
@@ -487,8 +484,7 @@ def lib32_list(options):
     pattern = re.compile(r"g\+\+-[0-9.]+-multilib")
     packages += re.findall(pattern, lines)
 
-  # Work around for 32-bit dependency On Ubuntu 24.04 LTS (noble)
-  if distro_codename() == "noble":
+  if package_exists("libncurses6:i386"):
     packages.append("libncurses6:i386")
   else:
     packages.append("libncurses5:i386")
@@ -668,6 +664,7 @@ def nacl_list(options):
       "libtinfo-dev",
       "libtinfo-dev:i386",
       "libtool",
+      "libudev1:i386",
       "libuuid1:i386",
       "libxcomposite1:i386",
       "libxcursor1:i386",
@@ -702,20 +699,25 @@ def nacl_list(options):
   if package_exists("libtinfo5"):
     packages.append("libtinfo5")
 
-  if package_exists("libudev1"):
-    packages.append("libudev1:i386")
-  else:
-    packages.append("libudev0:i386")
-
-  # Work around for nacl dependency On Ubuntu 24.04 LTS (noble)
-  if distro_codename() == "noble":
+  if package_exists("libncurses6:i386"):
     packages.append("libncurses6:i386")
-    packages.append("lib32ncurses-dev")
   else:
     packages.append("libncurses5:i386")
+
+  if package_exists("lib32ncurses-dev"):
+    packages.append("lib32ncurses-dev")
+  else:
     packages.append("lib32ncurses5-dev")
 
   return packages
+
+
+# Packages suffixed with t64 are "transition packages" and should be preferred.
+def maybe_append_t64(package):
+  name = package.split(":")
+  name[0] += "t64"
+  renamed = ":".join(name)
+  return renamed if package_exists(renamed) else package
 
 
 # Debian is in the process of transitioning to automatic debug packages, which
@@ -723,6 +725,7 @@ def nacl_list(options):
 # Untransitioned packages have the -dbg suffix.  And on some systems, neither
 # will be available, so exclude the ones that are missing.
 def dbg_package_name(package):
+  package = maybe_append_t64(package)
   if package_exists(package + "-dbgsym"):
     return [package + "-dbgsym"]
   if package_exists(package + "-dbg"):
@@ -761,10 +764,11 @@ def package_list(options):
   packages = (dev_list() + lib_list() + dbg_list(options) +
               lib32_list(options) + arm_list(options) + nacl_list(options) +
               backwards_compatible_list(options))
+  packages = [maybe_append_t64(package) for package in set(packages)]
 
   # Sort all the :i386 packages to the front, to avoid confusing dpkg-query
   # (https://crbug.com/446172).
-  return sorted(set(packages), key=lambda x: (not x.endswith(":i386"), x))
+  return sorted(packages, key=lambda x: (not x.endswith(":i386"), x))
 
 
 def missing_packages(packages):
