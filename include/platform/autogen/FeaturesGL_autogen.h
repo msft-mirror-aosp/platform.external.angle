@@ -746,6 +746,37 @@ struct FeaturesGL : FeatureSetBase
         &members, "https://anglebug.com/8646"
     };
 
+    FeatureInfo srgbBlendingBroken = {
+        "srgbBlendingBroken",
+        FeatureCategory::OpenGLWorkarounds,
+        "SRGB blending does not appear to work correctly on the some Qualcomm devices. "
+        "Writing to an SRGB framebuffer with GL_FRAMEBUFFER_SRGB enabled and "
+        "then reading back returns the same value. Disabling GL_FRAMEBUFFER_SRGB "
+        "will then convert in the wrong direction.",
+        &members, "https://crbug.com/40488750"
+    };
+
+    FeatureInfo bgraTexImageFormatsBroken = {
+        "bgraTexImageFormatsBroken",
+        FeatureCategory::OpenGLWorkarounds,
+        "BGRA formats do not appear to be accepted by some qualcomm despite the extension being exposed.",
+        &members, "https://anglebug.com/40096376"
+    };
+
+    FeatureInfo disableTiledRendering = {
+        "disableTiledRendering",
+        FeatureCategory::OpenGLWorkarounds,
+        "Disable QCOM_tiled_rendering on devices with rendering artifacts or which improperly expose the extension.",
+        &members, "http://skbug.com/9491 https://github.com/flutter/flutter/issues/47164 https://github.com/flutter/flutter/issues/47804"
+    };
+
+    FeatureInfo disableBlendEquationAdvanced = {
+        "disableBlendEquationAdvanced",
+        FeatureCategory::OpenGLWorkarounds,
+        "Disable GL_KHR_blend_equation_advanced due to various driver issues.",
+        &members, "https://anglebug.com/42267098"
+    };
+
 };
 
 inline FeaturesGL::FeaturesGL()  = default;

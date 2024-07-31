@@ -506,6 +506,14 @@
             "issue": "http://anglebug.com/42262249"
         },
         {
+            "name": "supports_blend_operation_advanced_coherent",
+            "category": "Features",
+            "description": [
+                "VkDevice supports VK_EXT_blend_operation_advanced_coherent extension."
+            ],
+            "issue": "http://anglebug.com/42262258"
+        },
+        {
             "name": "force_max_uniform_buffer_size_16KB",
             "category": "Workarounds",
             "description": [
@@ -1601,6 +1609,14 @@
                 "Whether dynamic rendering should be used instead of render pass objects"
             ],
             "issue": "http://anglebug.com/42267038"
+        },
+        {
+            "name": "prefer_cached_noncoherent_for_dynamic_stream_buffer_usage",
+            "category": "Features",
+            "description": [
+                "Prefer host cached + non-coherent memory for buffers with dynamic/stream usage."
+            ],
+            "issue": "https://issuetracker.google.com/347601787"
         }
     ]
 }
