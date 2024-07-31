@@ -2162,6 +2162,19 @@ void GenerateCaps(const FunctionsGL *functions,
     extensions->tiledRenderingQCOM = !features.disableTiledRendering.enabled &&
                                      functions->hasGLESExtension("GL_QCOM_tiled_rendering");
 
+    extensions->blendEquationAdvancedKHR =
+        !features.disableBlendEquationAdvanced.enabled &&
+        (functions->hasGLExtension("GL_NV_blend_equation_advanced") ||
+         functions->hasGLExtension("GL_KHR_blend_equation_advanced") ||
+         functions->isAtLeastGLES(gl::Version(3, 2)) ||
+         functions->hasGLESExtension("GL_KHR_blend_equation_advanced"));
+    extensions->blendEquationAdvancedCoherentKHR =
+        !features.disableBlendEquationAdvanced.enabled &&
+        (functions->hasGLExtension("GL_NV_blend_equation_advanced_coherent") ||
+         functions->hasGLExtension("GL_KHR_blend_equation_advanced_coherent") ||
+         functions->isAtLeastGLES(gl::Version(3, 2)) ||
+         functions->hasGLESExtension("GL_KHR_blend_equation_advanced_coherent"));
+
     // PVRTC1 textures must be squares on Apple platforms.
     if (IsApple())
     {
@@ -2702,6 +2715,12 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // http://skbug.com/9491: Nexus5 produces rendering artifacts when we use QCOM_tiled_rendering.
     ANGLE_FEATURE_CONDITION(features, disableTiledRendering,
                             missingTilingEntryPoints || IsAdreno3xx(functions));
+
+    // Intel desktop GL drivers fail many Skia blend tests.
+    // Block on older Qualcomm and ARM, following Skia's blocklists.
+    ANGLE_FEATURE_CONDITION(
+        features, disableBlendEquationAdvanced,
+        (isIntel && IsWindows()) || IsAdreno4xx(functions) || IsAdreno5xx(functions) || isMali);
 }
 
 void InitializeFrontendFeatures(const FunctionsGL *functions, angle::FrontendFeatures *features)
@@ -2727,6 +2746,8 @@ void InitializeFrontendFeatures(const FunctionsGL *functions, angle::FrontendFea
     // ANGLE supports delaying post-compile and post-link operations until that is done.
     ANGLE_FEATURE_CONDITION(features, compileJobIsThreadSafe, false);
     ANGLE_FEATURE_CONDITION(features, linkJobIsThreadSafe, false);
+
+    ANGLE_FEATURE_CONDITION(features, cacheCompiledShader, true);
 }
 
 void ReInitializeFeaturesAtGPUSwitch(const FunctionsGL *functions, angle::FeaturesGL *features)
