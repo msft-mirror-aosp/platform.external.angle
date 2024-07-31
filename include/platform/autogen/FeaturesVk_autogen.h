@@ -475,6 +475,13 @@ struct FeaturesVk : FeatureSetBase
         &members, "http://anglebug.com/42262249"
     };
 
+    FeatureInfo supportsBlendOperationAdvancedCoherent = {
+        "supportsBlendOperationAdvancedCoherent",
+        FeatureCategory::VulkanFeatures,
+        "VkDevice supports VK_EXT_blend_operation_advanced_coherent extension.",
+        &members, "http://anglebug.com/42262258"
+    };
+
     FeatureInfo forceMaxUniformBufferSize16KB = {
         "forceMaxUniformBufferSize16KB",
         FeatureCategory::VulkanWorkarounds,
@@ -1463,6 +1470,13 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanFeatures,
         "Whether dynamic rendering should be used instead of render pass objects",
         &members, "http://anglebug.com/42267038"
+    };
+
+    FeatureInfo preferCachedNoncoherentForDynamicStreamBufferUsage = {
+        "preferCachedNoncoherentForDynamicStreamBufferUsage",
+        FeatureCategory::VulkanFeatures,
+        "Prefer host cached + non-coherent memory for buffers with dynamic/stream usage.",
+        &members, "https://issuetracker.google.com/347601787"
     };
 
 };

@@ -83,7 +83,7 @@ ShaderImpl *ContextGL::createShader(const gl::ShaderState &data)
     const FunctionsGL *functions = getFunctions();
     GLuint shader                = functions->createShader(ToGLenum(data.getShaderType()));
 
-    return new ShaderGL(data, shader, mRenderer->getMultiviewImplementationType(), mRenderer);
+    return new ShaderGL(data, shader);
 }
 
 ProgramImpl *ContextGL::createProgram(const gl::ProgramState &data)
@@ -994,6 +994,23 @@ void ContextGL::framebufferFetchBarrier()
     mRenderer->framebufferFetchBarrier();
 }
 
+angle::Result ContextGL::startTiling(const gl::Context *context,
+                                     const gl::Rectangle &area,
+                                     GLbitfield preserveMask)
+{
+    const FunctionsGL *functions = getFunctions();
+    ANGLE_GL_TRY(context,
+                 functions->startTilingQCOM(area.x, area.y, area.width, area.height, preserveMask));
+    return angle::Result::Continue;
+}
+
+angle::Result ContextGL::endTiling(const gl::Context *context, GLbitfield preserveMask)
+{
+    const FunctionsGL *functions = getFunctions();
+    ANGLE_GL_TRY(context, functions->endTilingQCOM(preserveMask));
+    return angle::Result::Continue;
+}
+
 void ContextGL::setMaxShaderCompilerThreads(GLuint count)
 {
     mRenderer->setMaxShaderCompilerThreads(count);
@@ -1023,6 +1040,16 @@ void ContextGL::flushIfNecessaryBeforeDeleteTextures()
 void ContextGL::markWorkSubmitted()
 {
     mRenderer->markWorkSubmitted();
+}
+
+MultiviewImplementationTypeGL ContextGL::getMultiviewImplementationType() const
+{
+    return mRenderer->getMultiviewImplementationType();
+}
+
+bool ContextGL::hasNativeParallelCompile()
+{
+    return mRenderer->hasNativeParallelCompile();
 }
 
 void ContextGL::resetDrawStateForPixelLocalStorageEXT(const gl::Context *context)

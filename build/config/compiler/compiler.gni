@@ -27,6 +27,7 @@ if (is_apple) {
 
 if (is_ios) {
   import("//build/config/ios/config.gni")
+  import("//build/config/ios/ios_sdk.gni")
 }
 
 declare_args() {
@@ -34,7 +35,10 @@ declare_args() {
   # In late bring-up on macOS (see docs/mac_lld.md).
   # Tentatively used on iOS.
   # The default linker everywhere else.
-  use_lld = is_clang && current_os != "zos"
+  # TODO(crbug.com/346575276): Re-enable on iOS after next clang roll to fix
+  # an issue when building with Xcode 16.
+  use_lld =
+      is_clang && current_os != "zos" && (!is_ios || xcode_version_int < 1600)
 
   # If true, optimize for size.
   # Default to favoring speed over size for platforms not listed below.
@@ -84,11 +88,12 @@ declare_args() {
   # Disabled in iOS cronet builds since build step cronet_static_complete
   # wants to build a .a file consumable by external clients, and they won't
   # have the same LLVM revisions as us, making bitcode useless to them.
-  use_thin_lto = is_cfi || (is_clang && is_official_build &&
-                            (is_linux || is_win || is_mac ||
-                             (is_ios && use_lld && !is_cronet_build) ||
-                             (is_android && target_os != "chromeos") ||
-                             (is_chromeos && is_chromeos_device)))
+  use_thin_lto =
+      is_cfi || (is_clang && is_official_build && chrome_pgo_phase != 1 &&
+                 (is_linux || is_win || is_mac ||
+                  (is_ios && use_lld && !is_cronet_build) ||
+                  (is_android && target_os != "chromeos") ||
+                  (is_chromeos && is_chromeos_device)))
 
   # Whether we're using a sample profile collected on an architecture different
   # than the one we're compiling for.
