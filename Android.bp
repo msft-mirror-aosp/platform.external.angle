@@ -43,6 +43,36 @@ angle_config_cc_defaults {
     },
 }
 
+soong_config_module_type {
+    name: "angle_dma_buf_config_cc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "angle",
+    bool_variables: [
+        "angle_android_dma_buf",
+    ],
+    properties: [
+        "defaults",
+    ],
+}
+
+soong_config_bool_variable {
+    name: "angle_android_dma_buf",
+}
+
+// Note: this is a no-op for most builds, only applies to products that
+// explicitly enable the angle_android_dma_buf config flag. See
+// b/353262025 for details of the products that use it.
+angle_dma_buf_config_cc_defaults {
+    name: "angle_dma_buf_cc_defaults",
+    soong_config_variables: {
+        angle_android_dma_buf: {
+            defaults: [
+                "src_libANGLE_renderer_vulkan_angle_android_vulkan_dma_buf",
+            ],
+        },
+    },
+}
+
 cc_defaults {
     name: "angle_common_library_cflags",
     cpp_std: "gnu++17",
@@ -58,7 +88,7 @@ cc_defaults {
     name: "angle_common_auto_cflags",
     cflags: [
         "-DANDROID",
-        "-DANDROID_NDK_VERSION_ROLL=r26b_1",
+        "-DANDROID_NDK_VERSION_ROLL=r27_1",
         "-DCR_CLANG_REVISION=\"llvmorg-19-init-14561-gecea8371-3000\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
@@ -70,7 +100,6 @@ cc_defaults {
         "-Wno-builtin-macro-redefined",
         "-Wno-c++11-narrowing-const-reference",
         "-Wno-cast-function-type",
-        "-Wno-deprecated-builtins",
         "-Wno-deprecated-this-capture",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
@@ -84,6 +113,139 @@ cc_defaults {
         "-fvisibility-inlines-hidden",
         "-fvisibility=hidden",
     ],
+}
+
+cc_defaults {
+    name: "src_common_linux_angle_dma_buf",
+    srcs: [
+        "src/common/linux/dma_buf_utils.cpp",
+    ],
+    static_libs: [
+        "angle_common",
+    ],
+    shared_libs: [
+        "liblog",
+        "libnativewindow",
+    ],
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "third_party_vulkan_headers_src_vulkan_headers",
+    ],
+    local_include_dirs: [
+        "include/",
+        "src/",
+        "src/common/base/",
+        "src/common/third_party/xxhash/",
+        "third_party/abseil-cpp/",
+        "third_party/vulkan-headers/src/include/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-DANGLE_ENABLE_CONTEXT_MUTEX=1",
+        "-DANGLE_ENABLE_CONTEXT_MUTEX_RECURSION=1",
+        "-DANGLE_ENABLE_GLOBAL_MUTEX_LOAD_TIME_ALLOCATE=1",
+        "-DANGLE_ENABLE_GLOBAL_MUTEX_RECURSION=1",
+        "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
+        "-DANGLE_ENABLE_VULKAN",
+        "-DANGLE_USE_ABSEIL",
+        "-DANGLE_USE_ANDROID_TLS_SLOT=1",
+        "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-D_FORTIFY_SOURCE=2",
+        "-D__STDC_CONSTANT_MACROS",
+        "-D__STDC_FORMAT_MACROS",
+        "-Wno-gcc-compat",
+        "-Wno-redundant-parens",
+        "-Wno-unreachable-code-break",
+    ],
+    sdk_version: "28",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
+    name: "src_libANGLE_renderer_vulkan_angle_android_vulkan_dma_buf",
+    srcs: [
+        "src/libANGLE/renderer/vulkan/linux/DeviceVkLinux.cpp",
+        "src/libANGLE/renderer/vulkan/linux/DisplayVkLinux.cpp",
+        "src/libANGLE/renderer/vulkan/linux/DisplayVkOffscreen.cpp",
+        "src/libANGLE/renderer/vulkan/linux/DmaBufImageSiblingVkLinux.cpp",
+        "src/libANGLE/renderer/vulkan/linux/display/DisplayVkSimple.cpp",
+        "src/libANGLE/renderer/vulkan/linux/display/WindowSurfaceVkSimple.cpp",
+        "src/libANGLE/renderer/vulkan/linux/headless/DisplayVkHeadless.cpp",
+        "src/libANGLE/renderer/vulkan/linux/headless/WindowSurfaceVkHeadless.cpp",
+    ],
+    static_libs: [
+        "angle_common",
+        "angle_gpu_info_util",
+        "angle_image_util",
+        "cpufeatures",
+        "zlib_google_compression_utils_portable",
+    ],
+    shared_libs: [
+        "liblog",
+        "libnativewindow",
+    ],
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "src_common_linux_angle_dma_buf",
+        "src_libANGLE_renderer_vulkan_angle_vulkan_backend",
+    ],
+    generated_headers: [
+        "angle_program_version_id",
+    ],
+    local_include_dirs: [
+        "include/",
+        "src/",
+        "src/common/base/",
+        "src/common/third_party/xxhash/",
+        "src/third_party/volk/",
+        "third_party/abseil-cpp/",
+        "third_party/vulkan-headers/src/include/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-DANGLE_ANDROID_DMA_BUF",
+        "-DANGLE_ENABLE_CONTEXT_MUTEX=1",
+        "-DANGLE_ENABLE_CONTEXT_MUTEX_RECURSION=1",
+        "-DANGLE_ENABLE_CRC_FOR_PIPELINE_CACHE",
+        "-DANGLE_ENABLE_GLOBAL_MUTEX_LOAD_TIME_ALLOCATE=1",
+        "-DANGLE_ENABLE_GLOBAL_MUTEX_RECURSION=1",
+        "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
+        "-DANGLE_ENABLE_VULKAN",
+        "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
+        "-DANGLE_SHARED_LIBVULKAN=1",
+        "-DANGLE_USE_ABSEIL",
+        "-DANGLE_USE_ANDROID_TLS_SLOT=1",
+        "-DANGLE_USE_CUSTOM_VULKAN_OUTSIDE_RENDER_PASS_CMD_BUFFERS=1",
+        "-DANGLE_USE_CUSTOM_VULKAN_RENDER_PASS_CMD_BUFFERS=1",
+        "-DANGLE_USE_VULKAN_DISPLAY",
+        "-DANGLE_VULKAN_DISPLAY_MODE_OFFSCREEN",
+        "-DLIBANGLE_IMPLEMENTATION",
+        "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-D_FORTIFY_SOURCE=2",
+        "-D__STDC_CONSTANT_MACROS",
+        "-D__STDC_FORMAT_MACROS",
+        "-Wno-gcc-compat",
+        "-Wno-redundant-parens",
+        "-Wno-unreachable-code-break",
+    ],
+    sdk_version: "28",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -154,12 +316,12 @@ cc_library_shared {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_dma_buf_cc_defaults",
         "angle_includes",
         "angle_libEGL_egl_loader",
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -251,11 +413,11 @@ cc_library_shared {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_dma_buf_cc_defaults",
         "angle_includes",
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -622,7 +784,6 @@ cc_defaults {
         "third_party_spirv_headers_src_spv_headers",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
     ],
     local_include_dirs: [
@@ -1456,6 +1617,7 @@ cc_library_static {
         "src/compiler/translator/tree_ops/MonomorphizeUnsupportedFunctions.cpp",
         "src/compiler/translator/tree_ops/PreTransformTextureCubeGradDerivatives.cpp",
         "src/compiler/translator/tree_ops/PruneEmptyCases.cpp",
+        "src/compiler/translator/tree_ops/PruneInfiniteLoops.cpp",
         "src/compiler/translator/tree_ops/PruneNoOps.cpp",
         "src/compiler/translator/tree_ops/RecordConstantPrecision.cpp",
         "src/compiler/translator/tree_ops/RemoveArrayLengthMethod.cpp",
@@ -1527,7 +1689,6 @@ cc_library_static {
         "third_party_spirv_tools_src_spvtools_headers",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -1954,6 +2115,8 @@ cc_genrule {
         "src/compiler/translator/tree_ops/PreTransformTextureCubeGradDerivatives.h",
         "src/compiler/translator/tree_ops/PruneEmptyCases.cpp",
         "src/compiler/translator/tree_ops/PruneEmptyCases.h",
+        "src/compiler/translator/tree_ops/PruneInfiniteLoops.cpp",
+        "src/compiler/translator/tree_ops/PruneInfiniteLoops.h",
         "src/compiler/translator/tree_ops/PruneNoOps.cpp",
         "src/compiler/translator/tree_ops/PruneNoOps.h",
         "src/compiler/translator/tree_ops/RecordConstantPrecision.cpp",
@@ -2708,18 +2871,6 @@ cc_genrule {
     sdk_version: "28",
 }
 
-cc_genrule {
-    name: "angle_commit_id",
-    out: [
-        "angle_commit.h",
-    ],
-    tool_files: [
-        "src/commit_id.py",
-    ],
-    cmd: "$(location) gen $(location angle_commit.h)",
-    sdk_version: "28",
-}
-
 cc_defaults {
     name: "angle_version",
     defaults: [
@@ -2727,7 +2878,6 @@ cc_defaults {
         "angle_common_library_cflags",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
     ],
     local_include_dirs: [
@@ -2769,7 +2919,6 @@ cc_defaults {
         "angle_version",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
     ],
     local_include_dirs: [
@@ -3359,7 +3508,6 @@ cc_defaults {
         "angle_version_info",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -6999,7 +7147,6 @@ cc_defaults {
         "src_libANGLE_renderer_vulkan_angle_vulkan_backend",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -7135,12 +7282,12 @@ cc_library_shared {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_dma_buf_cc_defaults",
         "angle_includes",
         "angle_libANGLE",
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
