@@ -157,6 +157,15 @@ bool IsWgpuError(wgpu::WaitStatus waitStatus);
 bool IsWgpuError(WGPUBufferMapAsyncStatus mapBufferStatus);
 
 bool IsStripPrimitiveTopology(wgpu::PrimitiveTopology topology);
+
+// Required alignments for buffer sizes and mapping
+constexpr size_t kBufferSizeAlignment      = 4;
+constexpr size_t kBufferMapSizeAlignment   = kBufferSizeAlignment;
+constexpr size_t kBufferMapOffsetAlignment = 8;
+
+// Required alignments for texture row uploads
+constexpr size_t kTextureRowSizeAlignment = 256;
+
 }  // namespace webgpu
 
 namespace wgpu_gl
