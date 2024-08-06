@@ -74,29 +74,210 @@ gl::DrawBufferMask ClearValuesArray::getColorMask() const
     return gl::DrawBufferMask(mEnabled.bits() & kUnpackedColorBuffersMask);
 }
 
-void EnsureCapsInitialized(const wgpu::Device &device, gl::Caps *nativeCaps)
+void GenerateCaps(const wgpu::Device &device,
+                  gl::Caps *glCaps,
+                  gl::TextureCapsMap *glTextureCapsMap,
+                  gl::Extensions *glExtensions,
+                  gl::Limitations *glLimitations,
+                  egl::Caps *eglCaps,
+                  egl::DisplayExtensions *eglExtensions,
+                  gl::Version *maxSupportedESVersion)
 {
-    wgpu::SupportedLimits limitsWgpu = {};
-    device.GetLimits(&limitsWgpu);
+    wgpu::Limits limitsWgpu;
+    {
+        wgpu::SupportedLimits supportedLimits;
+        device.GetLimits(&supportedLimits);
+        limitsWgpu = supportedLimits.limits;
+    }
 
-    nativeCaps->maxElementIndex       = std::numeric_limits<GLuint>::max() - 1;
-    nativeCaps->max3DTextureSize      = rx::LimitToInt(limitsWgpu.limits.maxTextureDimension3D);
-    nativeCaps->max2DTextureSize      = rx::LimitToInt(limitsWgpu.limits.maxTextureDimension2D);
-    nativeCaps->maxArrayTextureLayers = rx::LimitToInt(limitsWgpu.limits.maxTextureArrayLayers);
-    nativeCaps->maxCubeMapTextureSize = rx::LimitToInt(limitsWgpu.limits.maxTextureDimension2D);
-    nativeCaps->maxRenderbufferSize   = rx::LimitToInt(limitsWgpu.limits.maxTextureDimension2D);
+    // OpenGL ES extensions
+    glExtensions->debugMarkerEXT              = true;
+    glExtensions->textureUsageANGLE           = true;
+    glExtensions->translatedShaderSourceANGLE = true;
+    glExtensions->vertexArrayObjectOES        = true;
 
-    nativeCaps->maxDrawBuffers       = rx::LimitToInt(limitsWgpu.limits.maxColorAttachments);
-    nativeCaps->maxFramebufferWidth  = rx::LimitToInt(limitsWgpu.limits.maxTextureDimension2D);
-    nativeCaps->maxFramebufferHeight = rx::LimitToInt(limitsWgpu.limits.maxTextureDimension2D);
-    nativeCaps->maxColorAttachments  = rx::LimitToInt(limitsWgpu.limits.maxColorAttachments);
+    glExtensions->textureStorageEXT = true;
+    glExtensions->rgb8Rgba8OES      = true;
 
-    nativeCaps->maxVertexAttribStride =
-        rx::LimitToInt(limitsWgpu.limits.maxVertexBufferArrayStride);
+    // OpenGL ES caps
+    glCaps->maxElementIndex       = std::numeric_limits<GLuint>::max() - 1;
+    glCaps->max3DTextureSize      = rx::LimitToInt(limitsWgpu.maxTextureDimension3D);
+    glCaps->max2DTextureSize      = rx::LimitToInt(limitsWgpu.maxTextureDimension2D);
+    glCaps->maxArrayTextureLayers = rx::LimitToInt(limitsWgpu.maxTextureArrayLayers);
+    glCaps->maxLODBias            = 0.0f;
+    glCaps->maxCubeMapTextureSize = rx::LimitToInt(limitsWgpu.maxTextureDimension2D);
+    glCaps->maxRenderbufferSize   = rx::LimitToInt(limitsWgpu.maxTextureDimension2D);
+    glCaps->minAliasedPointSize   = 1.0f;
+    glCaps->maxAliasedPointSize   = 1.0f;
+    glCaps->minAliasedLineWidth   = 1.0f;
+    glCaps->maxAliasedLineWidth   = 1.0f;
 
-    nativeCaps->maxVertexAttributes = rx::LimitToInt(limitsWgpu.limits.maxVertexAttributes);
+    // "descriptor.sampleCount must be either 1 or 4."
+    constexpr uint32_t kMaxSampleCount = 4;
 
-    nativeCaps->maxTextureBufferSize = rx::LimitToInt(limitsWgpu.limits.maxBufferSize);
+    glCaps->maxDrawBuffers         = rx::LimitToInt(limitsWgpu.maxColorAttachments);
+    glCaps->maxFramebufferWidth    = rx::LimitToInt(limitsWgpu.maxTextureDimension2D);
+    glCaps->maxFramebufferHeight   = rx::LimitToInt(limitsWgpu.maxTextureDimension2D);
+    glCaps->maxFramebufferSamples  = kMaxSampleCount;
+    glCaps->maxColorAttachments    = rx::LimitToInt(limitsWgpu.maxColorAttachments);
+    glCaps->maxViewportWidth       = rx::LimitToInt(limitsWgpu.maxTextureDimension2D);
+    glCaps->maxViewportHeight      = glCaps->maxViewportWidth;
+    glCaps->maxSampleMaskWords     = 1;
+    glCaps->maxColorTextureSamples = kMaxSampleCount;
+    glCaps->maxDepthTextureSamples = kMaxSampleCount;
+    glCaps->maxIntegerSamples      = kMaxSampleCount;
+    glCaps->maxServerWaitTimeout   = 0;
+
+    glCaps->maxVertexAttribRelativeOffset = (1u << kAttributeOffsetMaxBits) - 1;
+    glCaps->maxVertexAttribBindings =
+        rx::LimitToInt(std::min(limitsWgpu.maxVertexBuffers, limitsWgpu.maxVertexAttributes));
+    glCaps->maxVertexAttribStride = rx::LimitToInt(limitsWgpu.maxVertexBufferArrayStride);
+    glCaps->maxElementsIndices    = std::numeric_limits<GLint>::max();
+    glCaps->maxElementsVertices   = std::numeric_limits<GLint>::max();
+    glCaps->vertexHighpFloat.setIEEEFloat();
+    glCaps->vertexMediumpFloat.setIEEEHalfFloat();
+    glCaps->vertexLowpFloat.setIEEEHalfFloat();
+    glCaps->fragmentHighpFloat.setIEEEFloat();
+    glCaps->fragmentMediumpFloat.setIEEEHalfFloat();
+    glCaps->fragmentLowpFloat.setIEEEHalfFloat();
+    glCaps->vertexHighpInt.setTwosComplementInt(32);
+    glCaps->vertexMediumpInt.setTwosComplementInt(16);
+    glCaps->vertexLowpInt.setTwosComplementInt(16);
+    glCaps->fragmentHighpInt.setTwosComplementInt(32);
+    glCaps->fragmentMediumpInt.setTwosComplementInt(16);
+    glCaps->fragmentLowpInt.setTwosComplementInt(16);
+
+    // Clamp the maxUniformBlockSize to 64KB (majority of devices support up to this size
+    // currently), on AMD the maxUniformBufferRange is near uint32_t max.
+    GLuint maxUniformBlockSize = static_cast<GLuint>(
+        std::min(static_cast<uint64_t>(0x10000), limitsWgpu.maxUniformBufferBindingSize));
+
+    const GLuint maxUniformVectors    = maxUniformBlockSize / (sizeof(GLfloat) * 4);
+    const GLuint maxUniformComponents = maxUniformVectors * 4;
+
+    const int32_t maxPerStageUniformBuffers = rx::LimitToInt(
+        limitsWgpu.maxUniformBuffersPerShaderStage - kReservedPerStageDefaultUniformSlotCount);
+
+    // There is no additional limit to the combined number of components.  We can have up to a
+    // maximum number of uniform buffers, each having the maximum number of components.  Note that
+    // this limit includes both components in and out of uniform buffers.
+    //
+    // This value is limited to INT_MAX to avoid overflow when queried from glGetIntegerv().
+    const uint64_t maxCombinedUniformComponents =
+        std::min<uint64_t>(static_cast<uint64_t>(maxPerStageUniformBuffers +
+                                                 kReservedPerStageDefaultUniformSlotCount) *
+                               maxUniformComponents,
+                           std::numeric_limits<GLint>::max());
+
+    for (gl::ShaderType shaderType : gl::AllShaderTypes())
+    {
+        glCaps->maxShaderUniformBlocks[shaderType] = maxPerStageUniformBuffers;
+        glCaps->maxShaderTextureImageUnits[shaderType] =
+            rx::LimitToInt(limitsWgpu.maxSamplersPerShaderStage);
+        glCaps->maxShaderStorageBlocks[shaderType]             = 0;
+        glCaps->maxShaderUniformComponents[shaderType]         = 0;
+        glCaps->maxShaderAtomicCounterBuffers[shaderType]      = 0;
+        glCaps->maxShaderAtomicCounters[shaderType]            = 0;
+        glCaps->maxShaderImageUniforms[shaderType]             = 0;
+        glCaps->maxCombinedShaderUniformComponents[shaderType] = maxCombinedUniformComponents;
+    }
+
+    const GLint maxVarryingComponents = rx::LimitToInt(limitsWgpu.maxInterStageShaderComponents);
+
+    glCaps->maxVertexAttributes = rx::LimitToInt(
+        limitsWgpu.maxVertexBuffers);  // WebGPU has maxVertexBuffers and maxVertexAttributes but
+                                       // since each vertex attribute can use a unique buffer, we
+                                       // are limited by the total number of vertex buffers
+    glCaps->maxVertexUniformVectors =
+        maxUniformVectors;  // Uniforms are implemented using a uniform buffer, so the max number of
+                            // uniforms we can support is the max buffer range divided by the size
+                            // of a single uniform (4X float).
+    glCaps->maxVertexOutputComponents = maxVarryingComponents;
+
+    glCaps->maxFragmentUniformVectors     = maxUniformVectors;
+    glCaps->maxFragmentInputComponents    = maxVarryingComponents;
+    glCaps->minProgramTextureGatherOffset = 0;
+    glCaps->maxProgramTextureGatherOffset = 0;
+    glCaps->minProgramTexelOffset         = -8;
+    glCaps->maxProgramTexelOffset         = 7;
+
+    glCaps->maxComputeWorkGroupCount       = {0, 0, 0};
+    glCaps->maxComputeWorkGroupSize        = {0, 0, 0};
+    glCaps->maxComputeWorkGroupInvocations = 0;
+    glCaps->maxComputeSharedMemorySize     = 0;
+
+    // Only 2 stages (vertex+fragment) are supported.
+    constexpr uint32_t kShaderStageCount = 2;
+
+    glCaps->maxUniformBufferBindings = maxPerStageUniformBuffers * kShaderStageCount;
+    glCaps->maxUniformBlockSize      = rx::LimitToInt(limitsWgpu.maxBufferSize);
+    glCaps->uniformBufferOffsetAlignment =
+        rx::LimitToInt(limitsWgpu.minUniformBufferOffsetAlignment);
+    glCaps->maxCombinedUniformBlocks = glCaps->maxUniformBufferBindings;
+    glCaps->maxVaryingComponents     = maxVarryingComponents;
+    glCaps->maxVaryingVectors        = rx::LimitToInt(limitsWgpu.maxInterStageShaderVariables);
+    glCaps->maxCombinedTextureImageUnits =
+        rx::LimitToInt(limitsWgpu.maxSamplersPerShaderStage * kShaderStageCount);
+    glCaps->maxCombinedShaderOutputResources = 0;
+
+    glCaps->maxUniformLocations                = maxUniformVectors;
+    glCaps->maxAtomicCounterBufferBindings     = 0;
+    glCaps->maxAtomicCounterBufferSize         = 0;
+    glCaps->maxCombinedAtomicCounterBuffers    = 0;
+    glCaps->maxCombinedAtomicCounters          = 0;
+    glCaps->maxImageUnits                      = 0;
+    glCaps->maxCombinedImageUniforms           = 0;
+    glCaps->maxShaderStorageBufferBindings     = 0;
+    glCaps->maxShaderStorageBlockSize          = 0;
+    glCaps->maxCombinedShaderStorageBlocks     = 0;
+    glCaps->shaderStorageBufferOffsetAlignment = 0;
+
+    glCaps->maxTransformFeedbackInterleavedComponents = 0;
+    glCaps->maxTransformFeedbackSeparateAttributes    = 0;
+    glCaps->maxTransformFeedbackSeparateComponents    = 0;
+
+    glCaps->lineWidthGranularity    = 0.0f;
+    glCaps->minMultisampleLineWidth = 0.0f;
+    glCaps->maxMultisampleLineWidth = 0.0f;
+
+    glCaps->maxTextureBufferSize         = 0;
+    glCaps->textureBufferOffsetAlignment = 0;
+
+    glCaps->maxSamples = kMaxSampleCount;
+
+    // Max version
+    *maxSupportedESVersion = gl::Version(3, 2);
+
+    // OpenGL ES texture caps
+    InitMinimumTextureCapsMap(*maxSupportedESVersion, *glExtensions, glTextureCapsMap);
+
+    // EGL caps
+    eglCaps->textureNPOT = true;
+
+    // EGL extensions
+    eglExtensions->createContextRobustness            = true;
+    eglExtensions->postSubBuffer                      = true;
+    eglExtensions->createContext                      = true;
+    eglExtensions->image                              = true;
+    eglExtensions->imageBase                          = true;
+    eglExtensions->glTexture2DImage                   = true;
+    eglExtensions->glTextureCubemapImage              = true;
+    eglExtensions->glTexture3DImage                   = true;
+    eglExtensions->glRenderbufferImage                = true;
+    eglExtensions->getAllProcAddresses                = true;
+    eglExtensions->noConfigContext                    = true;
+    eglExtensions->directComposition                  = true;
+    eglExtensions->createContextNoError               = true;
+    eglExtensions->createContextWebGLCompatibility    = true;
+    eglExtensions->createContextBindGeneratesResource = true;
+    eglExtensions->swapBuffersWithDamage              = true;
+    eglExtensions->pixelFormatFloat                   = true;
+    eglExtensions->surfacelessContext                 = true;
+    eglExtensions->displayTextureShareGroup           = true;
+    eglExtensions->displaySemaphoreShareGroup         = true;
+    eglExtensions->createContextClientArrays          = true;
+    eglExtensions->programCacheControlANGLE           = true;
+    eglExtensions->robustResourceInitializationANGLE  = true;
 }
 
 bool IsStripPrimitiveTopology(wgpu::PrimitiveTopology topology)
