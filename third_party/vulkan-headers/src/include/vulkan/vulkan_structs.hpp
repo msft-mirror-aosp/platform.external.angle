@@ -23635,7 +23635,7 @@ namespace VULKAN_HPP_NAMESPACE
 #if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
     VULKAN_HPP_CONSTEXPR DescriptorBufferBindingInfoEXT( VULKAN_HPP_NAMESPACE::DeviceAddress    address_ = {},
                                                          VULKAN_HPP_NAMESPACE::BufferUsageFlags usage_   = {},
-                                                         void *                                 pNext_   = nullptr ) VULKAN_HPP_NOEXCEPT
+                                                         const void *                           pNext_   = nullptr ) VULKAN_HPP_NOEXCEPT
       : pNext{ pNext_ }
       , address{ address_ }
       , usage{ usage_ }
@@ -23659,7 +23659,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
 #if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 DescriptorBufferBindingInfoEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 DescriptorBufferBindingInfoEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
     {
       pNext = pNext_;
       return *this;
@@ -23693,7 +23693,7 @@ namespace VULKAN_HPP_NAMESPACE
     auto
 #  else
     std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
-               void * const &,
+               const void * const &,
                VULKAN_HPP_NAMESPACE::DeviceAddress const &,
                VULKAN_HPP_NAMESPACE::BufferUsageFlags const &>
 #  endif
@@ -23723,7 +23723,7 @@ namespace VULKAN_HPP_NAMESPACE
 
   public:
     VULKAN_HPP_NAMESPACE::StructureType    sType   = StructureType::eDescriptorBufferBindingInfoEXT;
-    void *                                 pNext   = {};
+    const void *                           pNext   = {};
     VULKAN_HPP_NAMESPACE::DeviceAddress    address = {};
     VULKAN_HPP_NAMESPACE::BufferUsageFlags usage   = {};
   };
@@ -23743,7 +23743,7 @@ namespace VULKAN_HPP_NAMESPACE
 
 #if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
     VULKAN_HPP_CONSTEXPR DescriptorBufferBindingPushDescriptorBufferHandleEXT( VULKAN_HPP_NAMESPACE::Buffer buffer_ = {},
-                                                                               void *                       pNext_  = nullptr ) VULKAN_HPP_NOEXCEPT
+                                                                               const void *                 pNext_  = nullptr ) VULKAN_HPP_NOEXCEPT
       : pNext{ pNext_ }
       , buffer{ buffer_ }
     {
@@ -23768,7 +23768,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
 #if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 DescriptorBufferBindingPushDescriptorBufferHandleEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 DescriptorBufferBindingPushDescriptorBufferHandleEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
     {
       pNext = pNext_;
       return *this;
@@ -23795,7 +23795,7 @@ namespace VULKAN_HPP_NAMESPACE
 #  if 14 <= VULKAN_HPP_CPP_VERSION
     auto
 #  else
-    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Buffer const &>
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, const void * const &, VULKAN_HPP_NAMESPACE::Buffer const &>
 #  endif
       reflect() const VULKAN_HPP_NOEXCEPT
     {
@@ -23823,7 +23823,7 @@ namespace VULKAN_HPP_NAMESPACE
 
   public:
     VULKAN_HPP_NAMESPACE::StructureType sType  = StructureType::eDescriptorBufferBindingPushDescriptorBufferHandleEXT;
-    void *                              pNext  = {};
+    const void *                        pNext  = {};
     VULKAN_HPP_NAMESPACE::Buffer        buffer = {};
   };
 

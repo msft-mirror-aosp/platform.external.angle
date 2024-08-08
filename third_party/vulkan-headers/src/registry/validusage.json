@@ -1,9 +1,9 @@
 {
   "version info": {
     "schema version": 2,
-    "api version": "1.3.291",
-    "comment": "from git branch: github-main commit: 4b01c384d9fc4ffff9bb7dc18a1b76d57c6d7d4f",
-    "date": "2024-07-19 09:18:33Z"
+    "api version": "1.3.292",
+    "comment": "from git branch: github-main commit: e090b1020fb9636b752e73adfc82a3c595fb6615",
+    "date": "2024-07-27 11:50:51Z"
   },
   "validation": {
     "vkGetInstanceProcAddr": {
@@ -5052,7 +5052,7 @@
         },
         {
           "vuid": "VUID-vkCmdWaitEvents2-srcStageMask-03842",
-          "text": "The <code>srcStageMask</code> member of any element of the <code>pMemoryBarriers</code>, <code>pBufferMemoryBarriers</code>, or <code>pImageMemoryBarriers</code> members of <code>pDependencyInfos</code> <strong class=\"purple\">must</strong> either include only pipeline stages valid for the queue family that was used to create the command pool that <code>commandBuffer</code> was allocated from",
+          "text": "The <code>srcStageMask</code> member of any element of the <code>pMemoryBarriers</code>, <code>pBufferMemoryBarriers</code>, or <code>pImageMemoryBarriers</code> members of <code>pDependencyInfos</code> <strong class=\"purple\">must</strong> only include pipeline stages valid for the queue family that was used to create the command pool that <code>commandBuffer</code> was allocated from",
           "page": "vkspec"
         },
         {
@@ -13541,6 +13541,21 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-VkShaderCreateInfoEXT-pPushConstantRanges-10063",
+          "text": "Any two elements of <code>pPushConstantRanges</code> <strong class=\"purple\">must</strong> not include the same stage in <code>stageFlags</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkShaderCreateInfoEXT-codeType-10064",
+          "text": "If <code>codeType</code> is <code>VK_SHADER_CODE_TYPE_SPIRV_EXT</code>, and if a push constant block is declared in a shader, then an element of <code>pPushConstantRanges</code>::<code>stageFlags</code> <strong class=\"purple\">must</strong> match pname::stage",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkShaderCreateInfoEXT-codeType-10065",
+          "text": "If <code>codeType</code> is <code>VK_SHADER_CODE_TYPE_SPIRV_EXT</code>, and if a push constant block is declared in a shader, the block must be contained inside the element of <code>pPushConstantRanges</code> that matches the stage",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-VkShaderCreateInfoEXT-sType-sType",
           "text": "<code>sType</code> <strong class=\"purple\">must</strong> be <code>VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT</code>",
           "page": "vkspec"
@@ -14553,7 +14568,12 @@
         },
         {
           "vuid": "VUID-VkComputePipelineCreateInfo-layout-07987",
-          "text": "If a push constant block is declared in a shader, a push constant range in <code>layout</code> <strong class=\"purple\">must</strong> match both the shader stage and range",
+          "text": "If a push constant block is declared in a shader, a push constant range in <code>layout</code> <strong class=\"purple\">must</strong> match the shader stage",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkComputePipelineCreateInfo-layout-10069",
+          "text": "If a push constant block is declared in a shader, the block must be contained inside the push constant range in <code>layout</code> that matches the stage",
           "page": "vkspec"
         },
         {
@@ -15278,7 +15298,12 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-layout-07987",
-          "text": "If a push constant block is declared in a shader, a push constant range in <code>layout</code> <strong class=\"purple\">must</strong> match both the shader stage and range",
+          "text": "If a push constant block is declared in a shader, a push constant range in <code>layout</code> <strong class=\"purple\">must</strong> match the shader stage",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkGraphicsPipelineCreateInfo-layout-10069",
+          "text": "If a push constant block is declared in a shader, the block must be contained inside the push constant range in <code>layout</code> that matches the stage",
           "page": "vkspec"
         },
         {
@@ -17269,7 +17294,12 @@
         },
         {
           "vuid": "VUID-VkRayTracingPipelineCreateInfoNV-layout-07987",
-          "text": "If a push constant block is declared in a shader, a push constant range in <code>layout</code> <strong class=\"purple\">must</strong> match both the shader stage and range",
+          "text": "If a push constant block is declared in a shader, a push constant range in <code>layout</code> <strong class=\"purple\">must</strong> match the shader stage",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkRayTracingPipelineCreateInfoNV-layout-10069",
+          "text": "If a push constant block is declared in a shader, the block must be contained inside the push constant range in <code>layout</code> that matches the stage",
           "page": "vkspec"
         },
         {
@@ -17458,7 +17488,12 @@
         },
         {
           "vuid": "VUID-VkRayTracingPipelineCreateInfoKHR-layout-07987",
-          "text": "If a push constant block is declared in a shader, a push constant range in <code>layout</code> <strong class=\"purple\">must</strong> match both the shader stage and range",
+          "text": "If a push constant block is declared in a shader, a push constant range in <code>layout</code> <strong class=\"purple\">must</strong> match the shader stage",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkRayTracingPipelineCreateInfoKHR-layout-10069",
+          "text": "If a push constant block is declared in a shader, the block must be contained inside the push constant range in <code>layout</code> that matches the stage",
           "page": "vkspec"
         },
         {
@@ -41988,6 +42023,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDraw-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDraw-maintenance4-08602",
           "text": "If the <a href=\"#features-maintenance4\"><code>maintenance4</code></a> feature is not enabled, then for each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> and <a href=\"#VkPushConstantRange\">VkPushConstantRange</a> arrays used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
           "page": "vkspec"
@@ -43619,6 +43659,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndexed-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexed-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -45268,6 +45313,11 @@
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMultiEXT-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -46922,6 +46972,11 @@
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -48596,6 +48651,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndirect-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirect-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -50284,6 +50344,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirectCount-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -51978,6 +52043,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndexedIndirect-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -53684,6 +53754,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-maintenance4-08602",
           "text": "If the <a href=\"#features-maintenance4\"><code>maintenance4</code></a> feature is not enabled, then for each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> and <a href=\"#VkPushConstantRange\">VkPushConstantRange</a> arrays used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
           "page": "vkspec"
@@ -55385,6 +55460,11 @@
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -57179,6 +57259,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksNV-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-maintenance4-08602",
           "text": "If the <a href=\"#features-maintenance4\"><code>maintenance4</code></a> feature is not enabled, then for each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> and <a href=\"#VkPushConstantRange\">VkPushConstantRange</a> arrays used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
           "page": "vkspec"
@@ -58730,6 +58815,11 @@
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -60343,6 +60433,11 @@
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -61980,6 +62075,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksEXT-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-maintenance4-08602",
           "text": "If the <a href=\"#features-maintenance4\"><code>maintenance4</code></a> feature is not enabled, then for each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> and <a href=\"#VkPushConstantRange\">VkPushConstantRange</a> arrays used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
           "page": "vkspec"
@@ -63566,6 +63666,11 @@
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -65217,6 +65322,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-maintenance4-08602",
           "text": "If the <a href=\"#features-maintenance4\"><code>maintenance4</code></a> feature is not enabled, then for each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> and <a href=\"#VkPushConstantRange\">VkPushConstantRange</a> arrays used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
           "page": "vkspec"
@@ -66851,6 +66961,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDrawClusterHUAWEI-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-maintenance4-08602",
           "text": "If the <a href=\"#features-maintenance4\"><code>maintenance4</code></a> feature is not enabled, then for each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> and <a href=\"#VkPushConstantRange\">VkPushConstantRange</a> arrays used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
           "page": "vkspec"
@@ -68417,6 +68532,11 @@
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -74797,6 +74917,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDispatch-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDispatch-maintenance4-08602",
           "text": "If the <a href=\"#features-maintenance4\"><code>maintenance4</code></a> feature is not enabled, then for each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> and <a href=\"#VkPushConstantRange\">VkPushConstantRange</a> arrays used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
           "page": "vkspec"
@@ -75193,6 +75318,11 @@
         {
           "vuid": "VUID-vkCmdDispatchIndirect-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchIndirect-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -75619,6 +75749,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdDispatchBase-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdDispatchBase-maintenance4-08602",
           "text": "If the <a href=\"#features-maintenance4\"><code>maintenance4</code></a> feature is not enabled, then for each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> and <a href=\"#VkPushConstantRange\">VkPushConstantRange</a> arrays used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
           "page": "vkspec"
@@ -76035,6 +76170,11 @@
         {
           "vuid": "VUID-vkCmdSubpassShadingHUAWEI-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdSubpassShadingHUAWEI-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -77043,6 +77183,11 @@
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -82215,17 +82360,22 @@
         },
         {
           "vuid": "VUID-vkAcquireNextImageKHR-semaphore-01286",
-          "text": "If <code>semaphore</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> it <strong class=\"purple\">must</strong> be unsignaled",
+          "text": "If <code>semaphore</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, it <strong class=\"purple\">must</strong> be unsignaled",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkAcquireNextImageKHR-semaphore-01779",
-          "text": "If <code>semaphore</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> it <strong class=\"purple\">must</strong> not have any uncompleted signal or wait operations pending",
+          "text": "If <code>semaphore</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, it <strong class=\"purple\">must</strong> not have any uncompleted signal or wait operations pending",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkAcquireNextImageKHR-fence-01287",
-          "text": "If <code>fence</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> it <strong class=\"purple\">must</strong> be unsignaled and <strong class=\"purple\">must</strong> not be associated with any other queue command that has not yet completed execution on that queue",
+          "text": "If <code>fence</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, <code>fence</code> <strong class=\"purple\">must</strong> be unsignaled",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkAcquireNextImageKHR-fence-10066",
+          "text": "If <code>fence</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, <code>fence</code> <strong class=\"purple\">must</strong> not be associated with any other queue command that has not yet completed execution on that queue",
           "page": "vkspec"
         },
         {
@@ -82318,17 +82468,22 @@
         },
         {
           "vuid": "VUID-VkAcquireNextImageInfoKHR-semaphore-01288",
-          "text": "If <code>semaphore</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> it <strong class=\"purple\">must</strong> be unsignaled",
+          "text": "If <code>semaphore</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, it <strong class=\"purple\">must</strong> be unsignaled",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkAcquireNextImageInfoKHR-semaphore-01781",
-          "text": "If <code>semaphore</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> it <strong class=\"purple\">must</strong> not have any uncompleted signal or wait operations pending",
+          "text": "If <code>semaphore</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, it <strong class=\"purple\">must</strong> not have any uncompleted signal or wait operations pending",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkAcquireNextImageInfoKHR-fence-01289",
-          "text": "If <code>fence</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a> it <strong class=\"purple\">must</strong> be unsignaled and <strong class=\"purple\">must</strong> not be associated with any other queue command that has not yet completed execution on that queue",
+          "text": "If <code>fence</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, <code>fence</code> <strong class=\"purple\">must</strong> be unsignaled",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkAcquireNextImageInfoKHR-fence-10067",
+          "text": "If <code>fence</code> is not <a href=\"#VK_NULL_HANDLE\">VK_NULL_HANDLE</a>, <code>fence</code> <strong class=\"purple\">must</strong> not be associated with any other queue command that has not yet completed execution on that queue",
           "page": "vkspec"
         },
         {
@@ -87064,6 +87219,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdTraceRaysNV-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdTraceRaysNV-maintenance4-08602",
           "text": "If the <a href=\"#features-maintenance4\"><code>maintenance4</code></a> feature is not enabled, then for each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> and <a href=\"#VkPushConstantRange\">VkPushConstantRange</a> arrays used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
           "page": "vkspec"
@@ -87580,6 +87740,11 @@
         {
           "vuid": "VUID-vkCmdTraceRaysKHR-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdTraceRaysKHR-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -88231,6 +88396,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdTraceRaysIndirectKHR-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdTraceRaysIndirectKHR-maintenance4-08602",
           "text": "If the <a href=\"#features-maintenance4\"><code>maintenance4</code></a> feature is not enabled, then for each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> and <a href=\"#VkPushConstantRange\">VkPushConstantRange</a> arrays used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
           "page": "vkspec"
@@ -88826,6 +88996,11 @@
         {
           "vuid": "VUID-vkCmdTraceRaysIndirect2KHR-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdTraceRaysIndirect2KHR-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -93449,7 +93624,12 @@
         },
         {
           "vuid": "VUID-VkExecutionGraphPipelineCreateInfoAMDX-layout-07987",
-          "text": "If a push constant block is declared in a shader, a push constant range in <code>layout</code> <strong class=\"purple\">must</strong> match both the shader stage and range",
+          "text": "If a push constant block is declared in a shader, a push constant range in <code>layout</code> <strong class=\"purple\">must</strong> match the shader stage",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkExecutionGraphPipelineCreateInfoAMDX-layout-10069",
+          "text": "If a push constant block is declared in a shader, the block must be contained inside the push constant range in <code>layout</code> that matches the stage",
           "page": "vkspec"
         },
         {
@@ -93869,6 +94049,11 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphAMDX-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphAMDX-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -94313,6 +94498,11 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
@@ -94777,6 +94967,11 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-None-08601",
           "text": "For each push constant that is statically used by <a href=\"#shaders-binding\">a bound shader</a>, a push constant value <strong class=\"purple\">must</strong> have been set for the same pipeline bind point, with a <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> that is compatible for push constants, with the <a href=\"#VkPipelineLayout\">VkPipelineLayout</a> used to create the current <a href=\"#VkPipeline\">VkPipeline</a> or the <a href=\"#VkDescriptorSetLayout\">VkDescriptorSetLayout</a> array used to create the current <a href=\"#VkShaderEXT\">VkShaderEXT</a> , as described in <a href=\"#descriptorsets-compatibility\">Pipeline Layout Compatibility</a>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-None-10068",
+          "text": "For each array of resources that is used by <a href=\"#shaders-binding\">a bound shader</a>, the indices used to access members of the array <strong class=\"purple\">must</strong> be less than the descriptor count for the identified binding in the descriptor sets used by this command",
           "page": "vkspec"
         },
         {
