@@ -590,6 +590,9 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
             globalSizeRange->offset, globalSizeRange->size, ndrange.globalWorkSize.data());
     }
 
+    // Retain kernel object until we finish executing it later
+    mKernelCaptures.push_back(cl::KernelPtr{&kernelVk.getFrontendObject()});
+
     // Process each kernel argument/resource
     for (const auto &arg : kernelVk.getArgs())
     {
@@ -772,6 +775,14 @@ angle::Result CLCommandQueueVk::createEvent(CLEventImpl::CreateFunc *createFunc)
             // Save a reference to this event
             mAssociatedEvents.push_back(cl::EventPtr{&eventVk->getFrontendObject()});
 
+            if (mCommandQueue.getProperties().isSet(CL_QUEUE_PROFILING_ENABLE))
+            {
+                if (IsError(mCommandQueue.getImpl<CLCommandQueueVk>().flush()))
+                {
+                    ANGLE_CL_SET_ERROR(CL_OUT_OF_RESOURCES);
+                }
+            }
+
             return CLEventImpl::Ptr(eventVk);
         };
     }
@@ -842,6 +853,7 @@ angle::Result CLCommandQueueVk::finishInternal()
     mMemoryCaptures.clear();
     mAssociatedEvents.clear();
     mDependencyTracker.clear();
+    mKernelCaptures.clear();
 
     return angle::Result::Continue;
 }
