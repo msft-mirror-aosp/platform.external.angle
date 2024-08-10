@@ -144,7 +144,14 @@ class ClearValuesArray final
     gl::AttachmentsMask mEnabled;
 };
 
-void EnsureCapsInitialized(const wgpu::Device &device, gl::Caps *nativeCaps);
+void GenerateCaps(const wgpu::Device &device,
+                  gl::Caps *glCaps,
+                  gl::TextureCapsMap *glTextureCapsMap,
+                  gl::Extensions *glExtensions,
+                  gl::Limitations *glLimitations,
+                  egl::Caps *eglCaps,
+                  egl::DisplayExtensions *eglExtensions,
+                  gl::Version *maxSupportedESVersion);
 
 DisplayWgpu *GetDisplay(const gl::Context *context);
 wgpu::Device GetDevice(const gl::Context *context);
@@ -186,7 +193,13 @@ wgpu::IndexFormat GetIndexFormat(gl::DrawElementsType drawElementsTYpe);
 wgpu::FrontFace GetFrontFace(GLenum frontFace);
 wgpu::CullMode GetCullMode(gl::CullFaceMode mode, bool cullFaceEnabled);
 wgpu::ColorWriteMask GetColorWriteMask(bool r, bool g, bool b, bool a);
+
+wgpu::CompareFunction getCompareFunc(const GLenum glCompareFunc);
+wgpu::StencilOperation getStencilOp(const GLenum glStencilOp);
 }  // namespace gl_wgpu
+
+// Number of reserved binding slots to implement the default uniform block
+constexpr uint32_t kReservedPerStageDefaultUniformSlotCount = 0;
 
 }  // namespace rx
 
