@@ -89,7 +89,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r27_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-19-init-14561-gecea8371-3000\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-20-init-1009-g7088a5ed-3\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -100,6 +100,7 @@ cc_defaults {
         "-Wno-builtin-macro-redefined",
         "-Wno-c++11-narrowing-const-reference",
         "-Wno-cast-function-type",
+        "-Wno-dangling-assignment-gsl",
         "-Wno-deprecated-this-capture",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
@@ -4273,6 +4274,41 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "third_party_abseil_cpp_absl_base_tracing_internal",
+    srcs: [
+        "third_party/abseil-cpp/absl/base/internal/tracing.cc",
+    ],
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "third_party_abseil_cpp_absl_base_config",
+        "third_party_abseil_cpp_absl_base_core_headers",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-gcc-compat",
+        "-Wno-misleading-indentation",
+        "-Wno-unreachable-code-break",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "28",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
     name: "third_party_abseil_cpp_absl_base_malloc_internal",
     srcs: [
         "third_party/abseil-cpp/absl/base/internal/low_level_alloc.cc",
@@ -4338,6 +4374,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_base_dynamic_annotations",
         "third_party_abseil_cpp_absl_base_malloc_internal",
         "third_party_abseil_cpp_absl_base_raw_logging_internal",
+        "third_party_abseil_cpp_absl_base_tracing_internal",
         "third_party_abseil_cpp_absl_debugging_stacktrace",
         "third_party_abseil_cpp_absl_debugging_symbolize",
         "third_party_abseil_cpp_absl_synchronization_graphcycles_internal",
