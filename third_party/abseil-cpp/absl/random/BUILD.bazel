@@ -221,6 +221,8 @@ cc_test(
     deps = [
         ":distributions",
         ":random",
+        "//absl/meta:type_traits",
+        "//absl/numeric:int128",
         "//absl/random/internal:distribution_test_util",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
@@ -472,6 +474,7 @@ cc_test(
 cc_test(
     name = "mock_distributions_test",
     size = "small",
+    timeout = "moderate",
     srcs = ["mock_distributions_test.cc"],
     copts = ABSL_TEST_COPTS,
     linkopts = ABSL_DEFAULT_LINKOPTS,

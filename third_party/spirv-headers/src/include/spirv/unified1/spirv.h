@@ -1049,6 +1049,7 @@ typedef enum SpvCapability_ {
     SpvCapabilityTileImageColorReadAccessEXT = 4166,
     SpvCapabilityTileImageDepthReadAccessEXT = 4167,
     SpvCapabilityTileImageStencilReadAccessEXT = 4168,
+    SpvCapabilityCooperativeMatrixLayoutsARM = 4201,
     SpvCapabilityFragmentShadingRateKHR = 4422,
     SpvCapabilitySubgroupBallotKHR = 4423,
     SpvCapabilityDrawParameters = 4427,
@@ -1078,6 +1079,7 @@ typedef enum SpvCapability_ {
     SpvCapabilityRoundingModeRTZ = 4468,
     SpvCapabilityRayQueryProvisionalKHR = 4471,
     SpvCapabilityRayQueryKHR = 4472,
+    SpvCapabilityUntypedPointersKHR = 4473,
     SpvCapabilityRayTraversalPrimitiveCullingKHR = 4478,
     SpvCapabilityRayTracingKHR = 4479,
     SpvCapabilityTextureSampleWeightedQCOM = 4484,
@@ -1212,6 +1214,7 @@ typedef enum SpvCapability_ {
     SpvCapabilityDotProductKHR = 6019,
     SpvCapabilityRayCullMaskKHR = 6020,
     SpvCapabilityCooperativeMatrixKHR = 6022,
+    SpvCapabilityReplicatedCompositesEXT = 6024,
     SpvCapabilityBitInstructions = 6025,
     SpvCapabilityGroupNonUniformRotateKHR = 6026,
     SpvCapabilityFloatControls2 = 6029,
@@ -1361,6 +1364,8 @@ typedef enum SpvCooperativeMatrixOperandsMask_ {
 typedef enum SpvCooperativeMatrixLayout_ {
     SpvCooperativeMatrixLayoutRowMajorKHR = 0,
     SpvCooperativeMatrixLayoutColumnMajorKHR = 1,
+    SpvCooperativeMatrixLayoutRowBlockedInterleavedARM = 4202,
+    SpvCooperativeMatrixLayoutColumnBlockedInterleavedARM = 4203,
     SpvCooperativeMatrixLayoutMax = 0x7fffffff,
 } SpvCooperativeMatrixLayout;
 
@@ -1418,6 +1423,10 @@ typedef enum SpvRawAccessChainOperandsMask_ {
     SpvRawAccessChainOperandsRobustnessPerComponentNVMask = 0x00000001,
     SpvRawAccessChainOperandsRobustnessPerElementNVMask = 0x00000002,
 } SpvRawAccessChainOperandsMask;
+
+typedef enum SpvFPEncoding_ {
+    SpvFPEncodingMax = 0x7fffffff,
+} SpvFPEncoding;
 
 typedef enum SpvOp_ {
     SpvOpNop = 0,
@@ -1768,13 +1777,22 @@ typedef enum SpvOp_ {
     SpvOpDepthAttachmentReadEXT = 4161,
     SpvOpStencilAttachmentReadEXT = 4162,
     SpvOpTerminateInvocation = 4416,
+    SpvOpTypeUntypedPointerKHR = 4417,
+    SpvOpUntypedVariableKHR = 4418,
+    SpvOpUntypedAccessChainKHR = 4419,
+    SpvOpUntypedInBoundsAccessChainKHR = 4420,
     SpvOpSubgroupBallotKHR = 4421,
     SpvOpSubgroupFirstInvocationKHR = 4422,
+    SpvOpUntypedPtrAccessChainKHR = 4423,
+    SpvOpUntypedInBoundsPtrAccessChainKHR = 4424,
+    SpvOpUntypedArrayLengthKHR = 4425,
+    SpvOpUntypedPrefetchKHR = 4426,
     SpvOpSubgroupAllKHR = 4428,
     SpvOpSubgroupAnyKHR = 4429,
     SpvOpSubgroupAllEqualKHR = 4430,
     SpvOpGroupNonUniformRotateKHR = 4431,
     SpvOpSubgroupReadInvocationKHR = 4432,
+    SpvOpExtInstWithForwardRefsKHR = 4433,
     SpvOpTraceRayKHR = 4445,
     SpvOpExecuteCallableKHR = 4446,
     SpvOpConvertUToAccelerationStructureKHR = 4447,
@@ -1797,6 +1815,9 @@ typedef enum SpvOp_ {
     SpvOpCooperativeMatrixStoreKHR = 4458,
     SpvOpCooperativeMatrixMulAddKHR = 4459,
     SpvOpCooperativeMatrixLengthKHR = 4460,
+    SpvOpConstantCompositeReplicateEXT = 4461,
+    SpvOpSpecConstantCompositeReplicateEXT = 4462,
+    SpvOpCompositeConstructReplicateEXT = 4463,
     SpvOpTypeRayQueryKHR = 4472,
     SpvOpRayQueryInitializeKHR = 4473,
     SpvOpRayQueryTerminateKHR = 4474,
@@ -2512,13 +2533,22 @@ inline void SpvHasResultAndType(SpvOp opcode, bool *hasResult, bool *hasResultTy
     case SpvOpDepthAttachmentReadEXT: *hasResult = true; *hasResultType = true; break;
     case SpvOpStencilAttachmentReadEXT: *hasResult = true; *hasResultType = true; break;
     case SpvOpTerminateInvocation: *hasResult = false; *hasResultType = false; break;
+    case SpvOpTypeUntypedPointerKHR: *hasResult = true; *hasResultType = false; break;
+    case SpvOpUntypedVariableKHR: *hasResult = true; *hasResultType = true; break;
+    case SpvOpUntypedAccessChainKHR: *hasResult = true; *hasResultType = true; break;
+    case SpvOpUntypedInBoundsAccessChainKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpSubgroupBallotKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpSubgroupFirstInvocationKHR: *hasResult = true; *hasResultType = true; break;
+    case SpvOpUntypedPtrAccessChainKHR: *hasResult = true; *hasResultType = true; break;
+    case SpvOpUntypedInBoundsPtrAccessChainKHR: *hasResult = true; *hasResultType = true; break;
+    case SpvOpUntypedArrayLengthKHR: *hasResult = true; *hasResultType = true; break;
+    case SpvOpUntypedPrefetchKHR: *hasResult = false; *hasResultType = false; break;
     case SpvOpSubgroupAllKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpSubgroupAnyKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpSubgroupAllEqualKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpGroupNonUniformRotateKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpSubgroupReadInvocationKHR: *hasResult = true; *hasResultType = true; break;
+    case SpvOpExtInstWithForwardRefsKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpTraceRayKHR: *hasResult = false; *hasResultType = false; break;
     case SpvOpExecuteCallableKHR: *hasResult = false; *hasResultType = false; break;
     case SpvOpConvertUToAccelerationStructureKHR: *hasResult = true; *hasResultType = true; break;
@@ -2535,6 +2565,9 @@ inline void SpvHasResultAndType(SpvOp opcode, bool *hasResult, bool *hasResultTy
     case SpvOpCooperativeMatrixStoreKHR: *hasResult = false; *hasResultType = false; break;
     case SpvOpCooperativeMatrixMulAddKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpCooperativeMatrixLengthKHR: *hasResult = true; *hasResultType = true; break;
+    case SpvOpConstantCompositeReplicateEXT: *hasResult = true; *hasResultType = true; break;
+    case SpvOpSpecConstantCompositeReplicateEXT: *hasResult = true; *hasResultType = true; break;
+    case SpvOpCompositeConstructReplicateEXT: *hasResult = true; *hasResultType = true; break;
     case SpvOpTypeRayQueryKHR: *hasResult = true; *hasResultType = false; break;
     case SpvOpRayQueryInitializeKHR: *hasResult = false; *hasResultType = false; break;
     case SpvOpRayQueryTerminateKHR: *hasResult = false; *hasResultType = false; break;
@@ -2606,14 +2639,14 @@ inline void SpvHasResultAndType(SpvOp opcode, bool *hasResult, bool *hasResultTy
     case SpvOpWritePackedPrimitiveIndices4x8NV: *hasResult = false; *hasResultType = false; break;
     case SpvOpFetchMicroTriangleVertexPositionNV: *hasResult = true; *hasResultType = true; break;
     case SpvOpFetchMicroTriangleVertexBarycentricNV: *hasResult = true; *hasResultType = true; break;
-    case SpvOpReportIntersectionNV: *hasResult = true; *hasResultType = true; break;
+    case SpvOpReportIntersectionKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpIgnoreIntersectionNV: *hasResult = false; *hasResultType = false; break;
     case SpvOpTerminateRayNV: *hasResult = false; *hasResultType = false; break;
     case SpvOpTraceNV: *hasResult = false; *hasResultType = false; break;
     case SpvOpTraceMotionNV: *hasResult = false; *hasResultType = false; break;
     case SpvOpTraceRayMotionNV: *hasResult = false; *hasResultType = false; break;
     case SpvOpRayQueryGetIntersectionTriangleVertexPositionsKHR: *hasResult = true; *hasResultType = true; break;
-    case SpvOpTypeAccelerationStructureNV: *hasResult = true; *hasResultType = false; break;
+    case SpvOpTypeAccelerationStructureKHR: *hasResult = true; *hasResultType = false; break;
     case SpvOpExecuteCallableNV: *hasResult = false; *hasResultType = false; break;
     case SpvOpTypeCooperativeMatrixNV: *hasResult = true; *hasResultType = false; break;
     case SpvOpCooperativeMatrixLoadNV: *hasResult = true; *hasResultType = true; break;
@@ -3634,6 +3667,7 @@ inline const char* SpvCapabilityToString(SpvCapability value) {
     case SpvCapabilityTileImageColorReadAccessEXT: return "TileImageColorReadAccessEXT";
     case SpvCapabilityTileImageDepthReadAccessEXT: return "TileImageDepthReadAccessEXT";
     case SpvCapabilityTileImageStencilReadAccessEXT: return "TileImageStencilReadAccessEXT";
+    case SpvCapabilityCooperativeMatrixLayoutsARM: return "CooperativeMatrixLayoutsARM";
     case SpvCapabilityFragmentShadingRateKHR: return "FragmentShadingRateKHR";
     case SpvCapabilitySubgroupBallotKHR: return "SubgroupBallotKHR";
     case SpvCapabilityDrawParameters: return "DrawParameters";
@@ -3661,6 +3695,7 @@ inline const char* SpvCapabilityToString(SpvCapability value) {
     case SpvCapabilityRoundingModeRTZ: return "RoundingModeRTZ";
     case SpvCapabilityRayQueryProvisionalKHR: return "RayQueryProvisionalKHR";
     case SpvCapabilityRayQueryKHR: return "RayQueryKHR";
+    case SpvCapabilityUntypedPointersKHR: return "UntypedPointersKHR";
     case SpvCapabilityRayTraversalPrimitiveCullingKHR: return "RayTraversalPrimitiveCullingKHR";
     case SpvCapabilityRayTracingKHR: return "RayTracingKHR";
     case SpvCapabilityTextureSampleWeightedQCOM: return "TextureSampleWeightedQCOM";
@@ -3772,6 +3807,7 @@ inline const char* SpvCapabilityToString(SpvCapability value) {
     case SpvCapabilityDotProduct: return "DotProduct";
     case SpvCapabilityRayCullMaskKHR: return "RayCullMaskKHR";
     case SpvCapabilityCooperativeMatrixKHR: return "CooperativeMatrixKHR";
+    case SpvCapabilityReplicatedCompositesEXT: return "ReplicatedCompositesEXT";
     case SpvCapabilityBitInstructions: return "BitInstructions";
     case SpvCapabilityGroupNonUniformRotateKHR: return "GroupNonUniformRotateKHR";
     case SpvCapabilityFloatControls2: return "FloatControls2";
@@ -3874,6 +3910,8 @@ inline const char* SpvCooperativeMatrixLayoutToString(SpvCooperativeMatrixLayout
     switch (value) {
     case SpvCooperativeMatrixLayoutRowMajorKHR: return "RowMajorKHR";
     case SpvCooperativeMatrixLayoutColumnMajorKHR: return "ColumnMajorKHR";
+    case SpvCooperativeMatrixLayoutRowBlockedInterleavedARM: return "RowBlockedInterleavedARM";
+    case SpvCooperativeMatrixLayoutColumnBlockedInterleavedARM: return "ColumnBlockedInterleavedARM";
     default: return "Unknown";
     }
 }
@@ -3929,6 +3967,12 @@ inline const char* SpvStoreCacheControlToString(SpvStoreCacheControl value) {
 inline const char* SpvNamedMaximumNumberOfRegistersToString(SpvNamedMaximumNumberOfRegisters value) {
     switch (value) {
     case SpvNamedMaximumNumberOfRegistersAutoINTEL: return "AutoINTEL";
+    default: return "Unknown";
+    }
+}
+
+inline const char* SpvFPEncodingToString(SpvFPEncoding value) {
+    switch (value) {
     default: return "Unknown";
     }
 }
@@ -4283,13 +4327,22 @@ inline const char* SpvOpToString(SpvOp value) {
     case SpvOpDepthAttachmentReadEXT: return "OpDepthAttachmentReadEXT";
     case SpvOpStencilAttachmentReadEXT: return "OpStencilAttachmentReadEXT";
     case SpvOpTerminateInvocation: return "OpTerminateInvocation";
+    case SpvOpTypeUntypedPointerKHR: return "OpTypeUntypedPointerKHR";
+    case SpvOpUntypedVariableKHR: return "OpUntypedVariableKHR";
+    case SpvOpUntypedAccessChainKHR: return "OpUntypedAccessChainKHR";
+    case SpvOpUntypedInBoundsAccessChainKHR: return "OpUntypedInBoundsAccessChainKHR";
     case SpvOpSubgroupBallotKHR: return "OpSubgroupBallotKHR";
     case SpvOpSubgroupFirstInvocationKHR: return "OpSubgroupFirstInvocationKHR";
+    case SpvOpUntypedPtrAccessChainKHR: return "OpUntypedPtrAccessChainKHR";
+    case SpvOpUntypedInBoundsPtrAccessChainKHR: return "OpUntypedInBoundsPtrAccessChainKHR";
+    case SpvOpUntypedArrayLengthKHR: return "OpUntypedArrayLengthKHR";
+    case SpvOpUntypedPrefetchKHR: return "OpUntypedPrefetchKHR";
     case SpvOpSubgroupAllKHR: return "OpSubgroupAllKHR";
     case SpvOpSubgroupAnyKHR: return "OpSubgroupAnyKHR";
     case SpvOpSubgroupAllEqualKHR: return "OpSubgroupAllEqualKHR";
     case SpvOpGroupNonUniformRotateKHR: return "OpGroupNonUniformRotateKHR";
     case SpvOpSubgroupReadInvocationKHR: return "OpSubgroupReadInvocationKHR";
+    case SpvOpExtInstWithForwardRefsKHR: return "OpExtInstWithForwardRefsKHR";
     case SpvOpTraceRayKHR: return "OpTraceRayKHR";
     case SpvOpExecuteCallableKHR: return "OpExecuteCallableKHR";
     case SpvOpConvertUToAccelerationStructureKHR: return "OpConvertUToAccelerationStructureKHR";
@@ -4306,6 +4359,9 @@ inline const char* SpvOpToString(SpvOp value) {
     case SpvOpCooperativeMatrixStoreKHR: return "OpCooperativeMatrixStoreKHR";
     case SpvOpCooperativeMatrixMulAddKHR: return "OpCooperativeMatrixMulAddKHR";
     case SpvOpCooperativeMatrixLengthKHR: return "OpCooperativeMatrixLengthKHR";
+    case SpvOpConstantCompositeReplicateEXT: return "OpConstantCompositeReplicateEXT";
+    case SpvOpSpecConstantCompositeReplicateEXT: return "OpSpecConstantCompositeReplicateEXT";
+    case SpvOpCompositeConstructReplicateEXT: return "OpCompositeConstructReplicateEXT";
     case SpvOpTypeRayQueryKHR: return "OpTypeRayQueryKHR";
     case SpvOpRayQueryInitializeKHR: return "OpRayQueryInitializeKHR";
     case SpvOpRayQueryTerminateKHR: return "OpRayQueryTerminateKHR";

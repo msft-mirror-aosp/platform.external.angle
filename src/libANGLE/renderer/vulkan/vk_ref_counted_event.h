@@ -36,16 +36,113 @@ enum class BarrierType
     Event,
 };
 
+constexpr VkPipelineStageFlags kPreFragmentStageFlags =
+    VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT |
+    VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+
+constexpr VkPipelineStageFlags kAllShadersPipelineStageFlags =
+    kPreFragmentStageFlags | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+constexpr VkPipelineStageFlags kAllDepthStencilPipelineStageFlags =
+    VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+
+constexpr VkPipelineStageFlags kFragmentAndAttachmentPipelineStageFlags =
+    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+    VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+// We group VK_PIPELINE_STAGE_*_BITs into different groups. The expectation is that execution within
+// Fragment/PreFragment/Compute will not overlap. This information is used to optimize the usage of
+// VkEvent where we try to not use it when we know that it will not provide benefits over
+// pipelineBarriers.
+enum class PipelineStageGroup : uint8_t
+{
+    Other,
+    PreFragmentOnly,
+    FragmentOnly,
+    ComputeOnly,
+
+    InvalidEnum,
+    EnumCount = InvalidEnum,
+};
+
+class PipelineStageAccessHeuristic final
+{
+  public:
+    constexpr PipelineStageAccessHeuristic() = default;
+    constexpr PipelineStageAccessHeuristic(PipelineStageGroup pipelineStageGroup)
+    {
+        for (size_t i = 0; i < kHeuristicWindowSize; i++)
+        {
+            mHeuristicBits <<= kPipelineStageGroupBitShift;
+            mHeuristicBits |= ToUnderlying(pipelineStageGroup);
+        }
+    }
+    void onAccess(PipelineStageGroup pipelineStageGroup)
+    {
+        mHeuristicBits <<= kPipelineStageGroupBitShift;
+        mHeuristicBits |= ToUnderlying(pipelineStageGroup);
+    }
+    constexpr bool operator==(const PipelineStageAccessHeuristic &other) const
+    {
+        return mHeuristicBits == other.mHeuristicBits;
+    }
+
+  private:
+    static constexpr size_t kPipelineStageGroupBitShift = 2;
+    static_assert(ToUnderlying(PipelineStageGroup::EnumCount) <=
+                  (1 << kPipelineStageGroupBitShift));
+    static constexpr size_t kHeuristicWindowSize = 8;
+    angle::BitSet16<kHeuristicWindowSize * kPipelineStageGroupBitShift> mHeuristicBits;
+};
+static constexpr PipelineStageAccessHeuristic kPipelineStageAccessFragmentOnly =
+    PipelineStageAccessHeuristic(PipelineStageGroup::FragmentOnly);
+static constexpr PipelineStageAccessHeuristic kPipelineStageAccessComputeOnly =
+    PipelineStageAccessHeuristic(PipelineStageGroup::ComputeOnly);
+static constexpr PipelineStageAccessHeuristic kPipelineStageAccessPreFragmentOnly =
+    PipelineStageAccessHeuristic(PipelineStageGroup::PreFragmentOnly);
+
+// Enum for predefined VkPipelineStageFlags set that VkEvent will be using. Because VkEvent has
+// strict rules that waitEvent and setEvent must have matching VkPipelineStageFlags, it is desirable
+// to keep VkEvent per VkPipelineStageFlags combination. This enum table enumerates all possible
+// pipeline stage combinations that VkEvent used with. The enum maps to VkPipelineStageFlags via
+// Renderer::getPipelineStageMask call.
+enum class EventStage : uint32_t
+{
+    Transfer                                          = 0,
+    VertexShader                                      = 1,
+    FragmentShader                                    = 2,
+    ComputeShader                                     = 3,
+    AllShaders                                        = 4,
+    PreFragmentShaders                                = 5,
+    FragmentShadingRate                               = 6,
+    ColorAttachmentOutput                             = 7,
+    ColorAttachmentOutputAndFragmentShader            = 8,
+    ColorAttachmentOutputAndFragmentShaderAndTransfer = 9,
+    ColorAttachmentOutputAndAllShaders                = 10,
+    AllFragmentTest                                   = 11,
+    AllFragmentTestAndFragmentShader                  = 12,
+    AllFragmentTestAndAllShaders                      = 13,
+    TransferAndComputeShader                          = 14,
+    InvalidEnum                                       = 15,
+    EnumCount                                         = InvalidEnum,
+};
+
+// Initialize EventStage to VkPipelineStageFlags mapping table.
+void InitializeEventAndPipelineStagesMap(
+    angle::PackedEnumMap<EventStage, VkPipelineStageFlags> *mapping,
+    VkPipelineStageFlags supportedVulkanPipelineStageMask);
+
 // VkCmdWaitEvents requires srcStageMask must be the bitwise OR of the stageMask parameter used in
 // previous calls to vkCmdSetEvent (See VUID-vkCmdWaitEvents-srcStageMask-01158). This mean we must
 // keep the record of what stageMask each event has been used in VkCmdSetEvent call so that we can
 // retrieve that information when we need to wait for the event. Instead of keeping just stageMask
 // here, we keep the ImageLayout for now which gives us more information for debugging.
-struct EventAndLayout
+struct EventAndStage
 {
     bool valid() const { return event.valid(); }
     Event event;
-    ImageLayout imageLayout;
+    EventStage eventStage;
 };
 
 // The VkCmdSetEvent is called after VkCmdEndRenderPass and all images that used at the given
@@ -97,7 +194,7 @@ class RefCountedEvent final
 
     // Create VkEvent and associated it with given layout. Returns true if success and false if
     // failed.
-    bool init(Context *context, ImageLayout layout);
+    bool init(Context *context, EventStage eventStage);
 
     // Release one reference count to the underline Event object and destroy or recycle the handle
     // to renderer's recycler if this is the very last reference.
@@ -123,11 +220,10 @@ class RefCountedEvent final
         return mHandle->get().event;
     }
 
-    // Returns the ImageLayout associated with the event.
-    ImageLayout getImageLayout() const
+    EventStage getEventStage() const
     {
-        ASSERT(valid());
-        return mHandle->get().imageLayout;
+        ASSERT(mHandle != nullptr);
+        return mHandle->get().eventStage;
     }
 
   private:
@@ -137,9 +233,19 @@ class RefCountedEvent final
     template <typename RecyclerT>
     void releaseImpl(Renderer *renderer, RecyclerT *recycler);
 
-    RefCounted<EventAndLayout> *mHandle;
+    RefCounted<EventAndStage> *mHandle;
 };
 using RefCountedEventCollector = std::deque<RefCountedEvent>;
+
+// Tracks a list of RefCountedEvents per EventStage.
+struct EventMaps
+{
+    angle::PackedEnumMap<EventStage, RefCountedEvent> map;
+    // The mask is used to accelerate the loop of map
+    angle::PackedEnumBitSet<EventStage, uint64_t> mask;
+    // Only used by RenderPassCommandBufferHelper
+    angle::PackedEnumMap<EventStage, VkEvent> vkEvents;
+};
 
 // This class tracks a vector of RefcountedEvent garbage. For performance reason, instead of
 // individually tracking each VkEvent garbage, we collect all events that are accessed in the
@@ -169,26 +275,6 @@ class RefCountedEventsGarbage final
     // Check the queue serial and move all events to releasedBucket if GPU finished. This is only
     // used by RefCountedEventRecycler.
     bool moveIfComplete(Renderer *renderer, std::deque<RefCountedEventCollector> *releasedBucket);
-
-    // Move event to the garbage list
-    void add(RefCountedEvent &&event) { mRefCountedEvents.emplace_back(std::move(event)); }
-
-    // Move the vector of events to the garbage list
-    void add(RefCountedEventCollector &&events)
-    {
-        mRefCountedEvents.insert(mRefCountedEvents.end(), events.begin(), events.end());
-        ASSERT(events.empty());
-    }
-
-    // Make a copy of event (which adds another refcount to the VkEvent) and add the copied event to
-    // the garbages
-    void add(const RefCountedEvent &event)
-    {
-        RefCountedEvent localEventCopy = event;
-        mRefCountedEvents.emplace_back(std::move(localEventCopy));
-        ASSERT(!localEventCopy.valid());
-        ASSERT(event.valid());
-    }
 
     bool empty() const { return mRefCountedEvents.empty(); }
 
@@ -413,12 +499,12 @@ class EventBarrierArray final
                                   VkPipelineStageFlags dstStageMask,
                                   VkAccessFlags dstAccess);
 
-    void addMemoryEvent(Context *context,
+    void addMemoryEvent(Renderer *renderer,
                         const RefCountedEvent &waitEvent,
                         VkPipelineStageFlags dstStageMask,
                         VkAccessFlags dstAccess);
 
-    void addImageEvent(Context *context,
+    void addImageEvent(Renderer *renderer,
                        const RefCountedEvent &waitEvent,
                        VkPipelineStageFlags dstStageMask,
                        const VkImageMemoryBarrier &imageMemoryBarrier);
@@ -430,11 +516,6 @@ class EventBarrierArray final
   private:
     std::deque<EventBarrier> mBarriers;
 };
-
-VkPipelineStageFlags GetRefCountedEventStageMask(Context *context, const RefCountedEvent &event);
-VkPipelineStageFlags GetRefCountedEventStageMask(Context *context,
-                                                 const RefCountedEvent &event,
-                                                 VkAccessFlags *accessMask);
 }  // namespace vk
 }  // namespace rx
 #endif  // LIBANGLE_RENDERER_VULKAN_REFCOUNTED_EVENT_H_

@@ -219,6 +219,8 @@ angle::Result CLContextVk::linkProgram(const cl::Program &program,
         }
     }
 
+    programImpl->setBuildStatus(linkDeviceList, CL_BUILD_IN_PROGRESS);
+
     // Perform link
     if (notify)
     {
@@ -265,7 +267,7 @@ angle::Result CLContextVk::waitForEvents(const cl::EventPtrs &events)
         {
             // TODO rework this to instead (flush w/ ResourceUse serial wait) once we move away from
             // spawning a submit-thread/Task for flush routine
-            // https://anglebug.com/8669
+            // https://anglebug.com/42267107
             ANGLE_TRY(event->getCommandQueue()->finish());
         }
     }

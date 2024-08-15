@@ -112,12 +112,12 @@ absl_cc_library(
   DEPS
     absl::config
     absl::core_headers
+    absl::fast_type_id
     absl::flat_hash_map
     absl::raw_logging_internal
     absl::random_internal_mock_helpers
-    absl::random_internal_mock_overload_set
-    absl::random_internal_mock_validators
     absl::random_random
+    absl::type_traits
     absl::utility
     GTest::gmock
     GTest::gtest
@@ -288,6 +288,8 @@ absl_cc_test(
   DEPS
     absl::random_distributions
     absl::random_random
+    absl::type_traits
+    absl::int128
     absl::random_internal_distribution_test_util
     GTest::gmock
     GTest::gtest_main

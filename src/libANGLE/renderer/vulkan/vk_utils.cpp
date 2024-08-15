@@ -1006,6 +1006,14 @@ PFN_vkCmdSetRasterizerDiscardEnableEXT vkCmdSetRasterizerDiscardEnableEXT = null
 // VK_EXT_vertex_input_dynamic_state
 PFN_vkCmdSetVertexInputEXT vkCmdSetVertexInputEXT = nullptr;
 
+// VK_KHR_dynamic_rendering
+PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR = nullptr;
+PFN_vkCmdEndRenderingKHR vkCmdEndRenderingKHR     = nullptr;
+
+// VK_KHR_dynamic_rendering_local_read
+PFN_vkCmdSetRenderingAttachmentLocationsKHR vkCmdSetRenderingAttachmentLocationsKHR       = nullptr;
+PFN_vkCmdSetRenderingInputAttachmentIndicesKHR vkCmdSetRenderingInputAttachmentIndicesKHR = nullptr;
+
 // VK_KHR_fragment_shading_rate
 PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR vkGetPhysicalDeviceFragmentShadingRatesKHR = nullptr;
 PFN_vkCmdSetFragmentShadingRateKHR vkCmdSetFragmentShadingRateKHR                         = nullptr;
@@ -1124,6 +1132,20 @@ void InitVertexInputDynamicStateEXTFunctions(VkDevice device)
     GET_DEVICE_FUNC(vkCmdSetVertexInputEXT);
 }
 
+// VK_KHR_dynamic_rendering
+void InitDynamicRenderingFunctions(VkDevice device)
+{
+    GET_DEVICE_FUNC(vkCmdBeginRenderingKHR);
+    GET_DEVICE_FUNC(vkCmdEndRenderingKHR);
+}
+
+// VK_KHR_dynamic_rendering_local_read
+void InitDynamicRenderingLocalReadFunctions(VkDevice device)
+{
+    GET_DEVICE_FUNC(vkCmdSetRenderingAttachmentLocationsKHR);
+    GET_DEVICE_FUNC(vkCmdSetRenderingInputAttachmentIndicesKHR);
+}
+
 // VK_KHR_fragment_shading_rate
 void InitFragmentShadingRateKHRInstanceFunction(VkInstance instance)
 {
@@ -1208,21 +1230,6 @@ GLenum CalculateGenerateMipmapFilter(ContextVk *contextVk, angle::FormatID forma
     const bool hintFastest = contextVk->getState().getGenerateMipmapHint() == GL_FASTEST;
 
     return formatSupportsLinearFiltering && !hintFastest ? GL_LINEAR : GL_NEAREST;
-}
-
-// Return the log of samples.  Assumes |sampleCount| is a power of 2.  The result can be used to
-// index an array based on sample count.  See for example TextureVk::PerSampleCountArray.
-size_t PackSampleCount(GLint sampleCount)
-{
-    if (sampleCount == 0)
-    {
-        sampleCount = 1;
-    }
-
-    // We currently only support up to 16xMSAA.
-    ASSERT(sampleCount <= VK_SAMPLE_COUNT_16_BIT);
-    ASSERT(gl::isPow2(sampleCount));
-    return gl::ScanForward(static_cast<uint32_t>(sampleCount));
 }
 
 namespace gl_vk
