@@ -731,6 +731,31 @@ GLenum OverrideSwizzleValue(const gl::Context *context,
     return swizzle;
 }
 
+mtl::TextureRef &GetLayerLevelTextureView(
+    TextureMtl::LayerLevelTextureViewVector *layerLevelTextureViews,
+    uint32_t layer,
+    uint32_t level,
+    uint32_t layerCount,
+    uint32_t levelCount)
+{
+    // Lazily allocate the full layer and level count to not trigger any std::vector reallocations.
+    if (layerLevelTextureViews->empty())
+    {
+        layerLevelTextureViews->resize(layerCount);
+    }
+    ASSERT(layerLevelTextureViews->size() > layer);
+
+    TextureMtl::TextureViewVector &levelTextureViews = (*layerLevelTextureViews)[layer];
+
+    if (levelTextureViews.empty())
+    {
+        levelTextureViews.resize(levelCount);
+    }
+    ASSERT(levelTextureViews.size() > level);
+
+    return levelTextureViews[level];
+}
+
 }  // namespace
 
 // TextureMtl::NativeTextureWrapper implementation.
@@ -852,9 +877,9 @@ class TextureMtl::NativeTextureWrapperWithViewSupport : public NativeTextureWrap
         return mNativeTexture->createMipView(getNativeLevel(glLevel));
     }
     // Create a view for a shader image binding.
-    mtl::TextureRef createShaderImageView(GLuint glLevel, int layer, MTLPixelFormat format)
+    mtl::TextureRef createShaderImageView2D(GLuint glLevel, int layer, MTLPixelFormat format)
     {
-        return mNativeTexture->createShaderImageView(getNativeLevel(glLevel), layer, format);
+        return mNativeTexture->createShaderImageView2D(getNativeLevel(glLevel), layer, format);
     }
 
     // Create a swizzled view
@@ -875,26 +900,21 @@ TextureMtl::~TextureMtl() = default;
 
 void TextureMtl::onDestroy(const gl::Context *context)
 {
-    releaseTexture(true);
+    deallocateNativeStorage(/*keepImages=*/false);
     mBoundSurface = nullptr;
 }
 
-void TextureMtl::releaseTexture(bool releaseImages)
-{
-    releaseTexture(releaseImages, false);
-}
-
-void TextureMtl::releaseTexture(bool releaseImages, bool releaseTextureObjectsOnly)
+void TextureMtl::deallocateNativeStorage(bool keepImages, bool keepSamplerStateAndFormat)
 {
 
-    if (releaseImages)
+    if (!keepImages)
     {
         mTexImageDefs.clear();
         mShaderImageViews.clear();
     }
     else if (mNativeTextureStorage)
     {
-        // Release native texture but keep its old per face per mipmap level image views.
+        // Release native texture but keep its image definitions.
         retainImageDefinitions();
     }
 
@@ -904,11 +924,19 @@ void TextureMtl::releaseTexture(bool releaseImages, bool releaseTextureObjectsOn
 
     // Clear render target cache for each texture's image. We don't erase them because they
     // might still be referenced by a framebuffer.
-    for (auto &sliceRenderTargets : mPerLayerRenderTargets)
+    for (auto &samplesMapRenderTargets : mRenderTargets)
     {
-        for (RenderTargetMtl &mipRenderTarget : sliceRenderTargets.second)
+        for (RenderTargetMtl &perSampleCountRenderTarget : samplesMapRenderTargets.second)
         {
-            mipRenderTarget.reset();
+            perSampleCountRenderTarget.reset();
+        }
+    }
+
+    for (auto &samplesMapMSTextures : mImplicitMSTextures)
+    {
+        for (mtl::TextureRef &perSampleCountMSTexture : samplesMapMSTextures.second)
+        {
+            perSampleCountMSTexture.reset();
         }
     }
 
@@ -917,14 +945,14 @@ void TextureMtl::releaseTexture(bool releaseImages, bool releaseTextureObjectsOn
         view.reset();
     }
 
-    if (!releaseTextureObjectsOnly)
+    if (!keepSamplerStateAndFormat)
     {
         mMetalSamplerState = nil;
         mFormat            = mtl::Format();
     }
 }
 
-angle::Result TextureMtl::ensureTextureCreated(const gl::Context *context)
+angle::Result TextureMtl::ensureNativeStorageCreated(const gl::Context *context)
 {
     if (mNativeTextureStorage)
     {
@@ -944,7 +972,7 @@ angle::Result TextureMtl::ensureTextureCreated(const gl::Context *context)
         angle::Format::InternalFormatToID(desc.format.info->sizedInternalFormat);
     mFormat = contextMtl->getPixelFormat(angleFormatId);
 
-    ANGLE_TRY(createNativeTexture(context, mState.getType(), mips, desc.size));
+    ANGLE_TRY(createNativeStorage(context, mState.getType(), mips, desc.size));
 
     // Transfer data from defined images to actual texture object
     int numCubeFaces = static_cast<int>(mNativeTextureStorage->cubeFaces());
@@ -981,7 +1009,7 @@ angle::Result TextureMtl::ensureTextureCreated(const gl::Context *context)
     return angle::Result::Continue;
 }
 
-angle::Result TextureMtl::createNativeTexture(const gl::Context *context,
+angle::Result TextureMtl::createNativeStorage(const gl::Context *context,
                                               gl::TextureType type,
                                               GLuint mips,
                                               const gl::Extents &size)
@@ -1134,11 +1162,38 @@ angle::Result TextureMtl::onBaseMaxLevelsChanged(const gl::Context *context)
         return angle::Result::Continue;
     }
 
+    if (mState.getEffectiveBaseLevel() == mNativeTextureStorage->getBaseGLLevel() &&
+        mState.getMipmapMaxLevel() == mNativeTextureStorage->getMaxSupportedGLLevel())
+    {
+        ASSERT(mState.getBaseLevelDesc().size == mNativeTextureStorage->sizeAt0());
+        // If level range remain the same, don't recreate the texture storage.
+        // This might feel unnecessary at first since the front-end might prevent redundant base/max
+        // level change already. However, there are cases that cause native storage to be created
+        // before base/max level dirty bit is passed to Metal backend and lead to unwanted problems.
+        // Example:
+        // 1. texture with a non-default base/max level state is set.
+        // 2. The texture is used first as a framebuffer attachment. This operation does not fully
+        //    sync the texture state and therefore does not unset base/max level dirty bits.
+        // 3. The same texture is then used for sampling; this operation fully syncs the texture
+        //    state. Base/max level dirty bits may lead to recreating the texture storage thus
+        //    invalidating native render target references created in step 2.
+        // 4. If the framebuffer created in step 2 is used again, its native render target
+        //    references will not be updated to point to the new storage because everything is in
+        //    sync from the frontend point of view.
+        // 5. Note: if the new range is different, it is expected that native render target
+        //    references will be updated during draw framebuffer sync.
+        return angle::Result::Continue;
+    }
+
     ContextMtl *contextMtl = mtl::GetImpl(context);
 
-    // Release native texture but keep old image definitions so that it can be recreated from old
-    // image definitions with different base level
-    releaseTexture(false, true);
+    // We need to recreate a new native texture storage with number of levels = max level - base
+    // level + 1. This can be achieved by simply deleting the old storage. The storage will be
+    // lazily recreated later via ensureNativeStorageCreated().
+    // Note: We release the native texture storage but keep old image definitions. So that when the
+    // storage is recreated, its levels can be recreated with data from the old image definitions
+    // respectively.
+    deallocateNativeStorage(/*keepImages=*/true, /*keepSamplerStateAndFormat=*/true);
 
     // Tell context to rebind textures
     contextMtl->invalidateCurrentTextures();
@@ -1278,13 +1333,22 @@ ImageDefinitionMtl &TextureMtl::getImageDefinition(const gl::ImageIndex &imageIn
 
     return imageDef;
 }
-RenderTargetMtl &TextureMtl::getRenderTarget(const gl::ImageIndex &imageIndex)
+angle::Result TextureMtl::getRenderTarget(ContextMtl *context,
+                                          const gl::ImageIndex &imageIndex,
+                                          GLsizei implicitSamples,
+                                          RenderTargetMtl **renderTargetOut)
 {
     ASSERT(imageIndex.getType() == gl::TextureType::_2D ||
            imageIndex.getType() == gl::TextureType::Rectangle ||
            imageIndex.getType() == gl::TextureType::_2DMultisample || imageIndex.hasLayer());
+
+    const gl::RenderToTextureImageIndex renderToTextureIndex =
+        implicitSamples <= 1
+            ? gl::RenderToTextureImageIndex::Default
+            : static_cast<gl::RenderToTextureImageIndex>(PackSampleCount(implicitSamples));
+
     GLuint layer         = GetImageLayerIndexFrom(imageIndex);
-    RenderTargetMtl &rtt = mPerLayerRenderTargets[layer][imageIndex.getLevelIndex()];
+    RenderTargetMtl &rtt = mRenderTargets[imageIndex][renderToTextureIndex];
     if (!rtt.getTexture())
     {
         // Lazy initialization of render target:
@@ -1302,7 +1366,24 @@ RenderTargetMtl &TextureMtl::getRenderTarget(const gl::ImageIndex &imageIndex)
             }
         }
     }
-    return rtt;
+
+    if (implicitSamples > 1 && !rtt.getImplicitMSTexture())
+    {
+        // This format must supports implicit resolve
+        ANGLE_MTL_CHECK(context, mFormat.getCaps().resolve, GL_INVALID_VALUE);
+        mtl::TextureRef &msTexture = mImplicitMSTextures[imageIndex][renderToTextureIndex];
+        if (!msTexture)
+        {
+            const gl::ImageDesc &desc = mState.getImageDesc(imageIndex);
+            ANGLE_TRY(mtl::Texture::MakeMemoryLess2DMSTexture(
+                context, mFormat, desc.size.width, desc.size.height, implicitSamples, &msTexture));
+        }
+        rtt.setImplicitMSTexture(msTexture);
+    }
+
+    *renderTargetOut = &rtt;
+
+    return angle::Result::Continue;
 }
 
 angle::Result TextureMtl::setImage(const gl::Context *context,
@@ -1523,7 +1604,7 @@ angle::Result TextureMtl::setEGLImageTarget(const gl::Context *context,
                                             gl::TextureType type,
                                             egl::Image *image)
 {
-    releaseTexture(true);
+    deallocateNativeStorage(/*keepImages=*/false);
 
     ContextMtl *contextMtl = mtl::GetImpl(context);
 
@@ -1562,7 +1643,7 @@ angle::Result TextureMtl::setImageExternal(const gl::Context *context,
 
 angle::Result TextureMtl::generateMipmap(const gl::Context *context)
 {
-    ANGLE_TRY(ensureTextureCreated(context));
+    ANGLE_TRY(ensureNativeStorageCreated(context));
 
     ContextMtl *contextMtl = mtl::GetImpl(context);
     if (!mViewFromBaseToMaxLevel)
@@ -1580,7 +1661,7 @@ angle::Result TextureMtl::generateMipmap(const gl::Context *context)
 
     if (!avoidGPUPath && caps.writable && mState.getType() == gl::TextureType::_3D)
     {
-        // http://anglebug.com/4921.
+        // http://anglebug.com/42263496.
         // Use compute for 3D mipmap generation.
         ANGLE_TRY(ensureLevelViewsWithinBaseMaxCreated());
         ANGLE_TRY(contextMtl->getDisplay()->getUtils().generateMipmapCS(
@@ -1706,7 +1787,7 @@ angle::Result TextureMtl::setBaseLevel(const gl::Context *context, GLuint baseLe
 
 angle::Result TextureMtl::bindTexImage(const gl::Context *context, egl::Surface *surface)
 {
-    releaseTexture(true);
+    deallocateNativeStorage(/*keepImages=*/false);
 
     mBoundSurface         = surface;
     auto pBuffer          = GetImplAs<OffscreenSurfaceMtl>(surface);
@@ -1727,7 +1808,7 @@ angle::Result TextureMtl::bindTexImage(const gl::Context *context, egl::Surface 
 
 angle::Result TextureMtl::releaseTexImage(const gl::Context *context)
 {
-    releaseTexture(true);
+    deallocateNativeStorage(/*keepImages=*/false);
     mBoundSurface = nullptr;
     return angle::Result::Continue;
 }
@@ -1738,12 +1819,15 @@ angle::Result TextureMtl::getAttachmentRenderTarget(const gl::Context *context,
                                                     GLsizei samples,
                                                     FramebufferAttachmentRenderTarget **rtOut)
 {
-    ANGLE_TRY(ensureTextureCreated(context));
+    ANGLE_TRY(ensureNativeStorageCreated(context));
 
     ContextMtl *contextMtl = mtl::GetImpl(context);
     ANGLE_MTL_TRY(contextMtl, mNativeTextureStorage);
 
-    *rtOut = &getRenderTarget(imageIndex);
+    RenderTargetMtl *rtt;
+    ANGLE_TRY(getRenderTarget(contextMtl, imageIndex, samples, &rtt));
+
+    *rtOut = rtt;
 
     return angle::Result::Continue;
 }
@@ -1796,7 +1880,7 @@ angle::Result TextureMtl::syncState(const gl::Context *context,
         }
     }
 
-    ANGLE_TRY(ensureTextureCreated(context));
+    ANGLE_TRY(ensureNativeStorageCreated(context));
     ANGLE_TRY(ensureSamplerStateCreated(context));
 
     return angle::Result::Continue;
@@ -1903,27 +1987,23 @@ angle::Result TextureMtl::bindToShaderImage(const gl::Context *context,
                                             int layer,
                                             GLenum format)
 {
-    ASSERT(mViewFromBaseToMaxLevel);
-    ASSERT(0 <= level && static_cast<uint32_t>(level) < mViewFromBaseToMaxLevel->mipmapLevels());
-
-    if (layer != 0)
-    {
-        UNIMPLEMENTED();
-        return angle::Result::Stop;
-    }
+    ASSERT(mNativeTextureStorage);
+    ASSERT(mState.getImmutableFormat());
+    ASSERT(0 <= level && static_cast<uint32_t>(level) < mState.getImmutableLevels());
+    ASSERT(0 <= layer && static_cast<uint32_t>(layer) < mSlices);
 
     ContextMtl *contextMtl        = mtl::GetImpl(context);
     angle::FormatID angleFormatId = angle::Format::InternalFormatToID(format);
     mtl::Format imageAccessFormat = contextMtl->getPixelFormat(angleFormatId);
-    gl::TexLevelArray<mtl::TextureRef> &levelsForFormat =
+    LayerLevelTextureViewVector &textureViewVector =
         mShaderImageViews[imageAccessFormat.metalFormat];
-    GLuint imageMipLevel = mViewFromBaseToMaxLevel->getGLLevel(mtl::kZeroNativeMipLevel + level);
-    mtl::TextureRef &textureRef = levelsForFormat[imageMipLevel];
+    mtl::TextureRef &textureRef = GetLayerLevelTextureView(&textureViewVector, layer, level,
+                                                           mSlices, mState.getImmutableLevels());
 
     if (textureRef == nullptr)
     {
-        textureRef = mNativeTextureStorage->createShaderImageView(imageMipLevel, layer,
-                                                                  imageAccessFormat.metalFormat);
+        textureRef = mNativeTextureStorage->createShaderImageView2D(level, layer,
+                                                                    imageAccessFormat.metalFormat);
     }
 
     cmdEncoder->setRWTexture(shaderType, textureRef, textureSlotIndex);
@@ -1947,7 +2027,7 @@ angle::Result TextureMtl::redefineImage(const gl::Context *context,
         if (mFormat != mtlFormat || size != mNativeTextureStorage->size(glLevel))
         {
             // Keep other images
-            releaseTexture(/*releaseImages=*/false);
+            deallocateNativeStorage(/*keepImages=*/true);
         }
     }
 
@@ -2017,7 +2097,7 @@ angle::Result TextureMtl::setStorageImpl(const gl::Context *context,
                                          const gl::Extents &size)
 {
     // Don't need to hold old images data.
-    releaseTexture(true);
+    deallocateNativeStorage(/*keepImages=*/false);
 
     ContextMtl *contextMtl = mtl::GetImpl(context);
 
@@ -2026,7 +2106,7 @@ angle::Result TextureMtl::setStorageImpl(const gl::Context *context,
 
     mFormat = mtlFormat;
 
-    ANGLE_TRY(createNativeTexture(context, type, mState.getImmutableLevels(), size));
+    ANGLE_TRY(createNativeStorage(context, type, mState.getImmutableLevels(), size));
     ANGLE_TRY(createViewFromBaseToMaxLevel());
 
     return angle::Result::Continue;
@@ -2568,12 +2648,13 @@ angle::Result TextureMtl::copySubImageWithDraw(const gl::Context *context,
     ContextMtl *contextMtl = mtl::GetImpl(context);
     DisplayMtl *displayMtl = contextMtl->getDisplay();
 
-    const RenderTargetMtl &imageRtt = getRenderTarget(index);
+    RenderTargetMtl *imageRtt;
+    ANGLE_TRY(getRenderTarget(contextMtl, index, /*implicitSamples=*/0, &imageRtt));
 
-    mtl::RenderCommandEncoder *cmdEncoder = contextMtl->getRenderTargetCommandEncoder(imageRtt);
+    mtl::RenderCommandEncoder *cmdEncoder = contextMtl->getRenderTargetCommandEncoder(*imageRtt);
     mtl::ColorBlitParams blitParams;
 
-    blitParams.dstTextureSize = imageRtt.getTexture()->size(imageRtt.getLevelIndex());
+    blitParams.dstTextureSize = imageRtt->getTexture()->size(imageRtt->getLevelIndex());
     blitParams.dstRect        = gl::Rectangle(modifiedDestOffset.x, modifiedDestOffset.y,
                                               clippedSourceArea.width, clippedSourceArea.height);
     blitParams.dstScissorRect = blitParams.dstRect;

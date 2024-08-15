@@ -2311,14 +2311,14 @@ void TParseContext::checkPixelLocalStorageBindingIsValid(const TSourceLoc &locat
     if (type.isArray())
     {
         // PLS is not allowed in arrays.
-        // TODO(anglebug.com/7279): Consider allowing this once more backends are implemented.
+        // TODO(anglebug.com/40096838): Consider allowing this once more backends are implemented.
         error(location, "pixel local storage handles cannot be aggregated in arrays", "array");
     }
     else if (layoutQualifier.binding < 0)
     {
         error(location, "pixel local storage requires a binding index", "layout qualifier");
     }
-    // TODO(anglebug.com/7279):
+    // TODO(anglebug.com/40096838):
     // else if (binding >= GL_MAX_LOCAL_STORAGE_PLANES_ANGLE)
     // {
     // }
@@ -3135,7 +3135,8 @@ void TParseContext::checkInputOutputTypeIsValidES3(const TQualifier qualifier,
     bool extendedShaderTypes = mShaderVersion >= 320 ||
                                isExtensionEnabled(TExtension::EXT_geometry_shader) ||
                                isExtensionEnabled(TExtension::OES_geometry_shader) ||
-                               isExtensionEnabled(TExtension::EXT_tessellation_shader);
+                               isExtensionEnabled(TExtension::EXT_tessellation_shader) ||
+                               isExtensionEnabled(TExtension::OES_tessellation_shader);
     if (typeContainsIntegers && qualifier != EvqFlatIn && qualifier != EvqFlatOut &&
         (!extendedShaderTypes || mShaderType == GL_FRAGMENT_SHADER))
     {
@@ -4856,7 +4857,8 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
     }
     else if (typeQualifier.qualifier == EvqPatchOut)
     {
-        if ((!isExtensionEnabled(TExtension::EXT_tessellation_shader) && mShaderVersion < 320) ||
+        if ((!isExtensionEnabled(TExtension::EXT_tessellation_shader) &&
+             !isExtensionEnabled(TExtension::OES_tessellation_shader) && mShaderVersion < 320) ||
             mShaderType != GL_TESS_CONTROL_SHADER)
         {
             error(typeQualifier.line,
@@ -4866,7 +4868,8 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
     }
     else if (typeQualifier.qualifier == EvqPatchIn)
     {
-        if ((!isExtensionEnabled(TExtension::EXT_tessellation_shader) && mShaderVersion < 320) ||
+        if ((!isExtensionEnabled(TExtension::EXT_tessellation_shader) &&
+             !isExtensionEnabled(TExtension::OES_tessellation_shader) && mShaderVersion < 320) ||
             mShaderType != GL_TESS_EVALUATION_SHADER)
         {
             error(typeQualifier.line,
@@ -5821,7 +5824,10 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
     }
     else if (mShaderType == GL_TESS_EVALUATION_SHADER_EXT &&
              (mShaderVersion >= 320 ||
-              (checkCanUseExtension(qualifierTypeLine, TExtension::EXT_tessellation_shader) &&
+              (checkCanUseOneOfExtensions(
+                   qualifierTypeLine,
+                   std::array<TExtension, 2u>{{TExtension::EXT_tessellation_shader,
+                                               TExtension::OES_tessellation_shader}}) &&
                checkLayoutQualifierSupported(qualifierTypeLine, qualifierType, 310))))
     {
         if (qualifierType == "triangles")
@@ -6195,7 +6201,10 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
     }
     else if (qualifierType == "vertices" && mShaderType == GL_TESS_CONTROL_SHADER_EXT &&
              (mShaderVersion >= 320 ||
-              checkCanUseExtension(qualifierTypeLine, TExtension::EXT_tessellation_shader)))
+              checkCanUseOneOfExtensions(
+                  qualifierTypeLine,
+                  std::array<TExtension, 2u>{
+                      {TExtension::EXT_tessellation_shader, TExtension::OES_tessellation_shader}})))
     {
         parseVertices(intValue, intValueLine, intValueString, &qualifier.vertices);
     }
@@ -6498,7 +6507,27 @@ TTypeSpecifierNonArray TParseContext::addStructure(const TSourceLoc &structLine,
     {
         structSymbolType = SymbolType::Empty;
     }
-    TStructure *structure = new TStructure(&symbolTable, structName, fieldList, structSymbolType);
+
+    // To simplify pulling samplers out of structs, reorder the struct fields to put the samplers at
+    // the end.
+    TFieldList *reorderedFields = new TFieldList;
+    for (TField *field : *fieldList)
+    {
+        if (!IsSampler(field->type()->getBasicType()))
+        {
+            reorderedFields->push_back(field);
+        }
+    }
+    for (TField *field : *fieldList)
+    {
+        if (IsSampler(field->type()->getBasicType()))
+        {
+            reorderedFields->push_back(field);
+        }
+    }
+
+    TStructure *structure =
+        new TStructure(&symbolTable, structName, reorderedFields, structSymbolType);
 
     // Store a bool in the struct if we're at global scope, to allow us to
     // skip the local struct scoping workaround in HLSL.

@@ -41,6 +41,7 @@
 #include "compiler/translator/tree_ops/InitializeVariables.h"
 #include "compiler/translator/tree_ops/MonomorphizeUnsupportedFunctions.h"
 #include "compiler/translator/tree_ops/PruneEmptyCases.h"
+#include "compiler/translator/tree_ops/PruneInfiniteLoops.h"
 #include "compiler/translator/tree_ops/PruneNoOps.h"
 #include "compiler/translator/tree_ops/RemoveArrayLengthMethod.h"
 #include "compiler/translator/tree_ops/RemoveDynamicIndexing.h"
@@ -246,7 +247,7 @@ class [[nodiscard]] TScopedPoolAllocator
     ~TScopedPoolAllocator()
     {
         SetGlobalPoolAllocator(nullptr);
-        mAllocator->pop();
+        mAllocator->pop(angle::PoolAllocator::ReleaseStrategy::All);
     }
 
   private:
@@ -561,8 +562,10 @@ bool TCompiler::checkShaderVersion(TParseContext *parseContext)
             }
             else if (mShaderVersion == 310)
             {
-                if (!parseContext->checkCanUseExtension(sh::TSourceLoc(),
-                                                        TExtension::EXT_tessellation_shader))
+                if (!parseContext->checkCanUseOneOfExtensions(
+                        sh::TSourceLoc(),
+                        std::array<TExtension, 2u>{{TExtension::EXT_tessellation_shader,
+                                                    TExtension::OES_tessellation_shader}}))
                 {
                     return false;
                 }
@@ -771,7 +774,7 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
 
     // For now, rewrite pixel local storage before collecting variables or any operations on images.
     //
-    // TODO(anglebug.com/7279):
+    // TODO(anglebug.com/40096838):
     //   Should this actually run after collecting variables?
     //   Do we need more introspection?
     //   Do we want to hide rewritten shader image uniforms from glGetActiveUniform?
@@ -917,10 +920,10 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         return false;
     }
 
-    // anglebug.com/7484: The ESSL spec has a bug with images as function arguments. The recommended
-    // workaround is to inline functions that accept image arguments.
+    // anglebug.com/42265954: The ESSL spec has a bug with images as function arguments. The
+    // recommended workaround is to inline functions that accept image arguments.
     if (mShaderVersion >= 310 && !MonomorphizeUnsupportedFunctions(
-                                     this, root, &mSymbolTable, compileOptions,
+                                     this, root, &mSymbolTable,
                                      UnsupportedFunctionArgsBitSet{UnsupportedFunctionArgs::Image}))
     {
         return false;
@@ -1041,6 +1044,24 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
     if (!SeparateDeclarations(*this, *root))
     {
         return false;
+    }
+
+    if (IsWebGLBasedSpec(mShaderSpec))
+    {
+        // Remove infinite loops, they are not supposed to exist in shaders.
+        bool anyInfiniteLoops = false;
+        if (!PruneInfiniteLoops(this, root, &mSymbolTable, &anyInfiniteLoops))
+        {
+            return false;
+        }
+
+        // If requested, reject shaders with infinite loops.  If not requested, the same loops are
+        // removed from the shader as a fallback.
+        if (anyInfiniteLoops && mCompileOptions.rejectWebglShadersWithUndefinedBehavior)
+        {
+            mDiagnostics.globalError("Infinite loop detected in the shader");
+            return false;
+        }
     }
 
     if (compileOptions.rescopeGlobalVariables)
@@ -1437,6 +1458,7 @@ void TCompiler::setResourceString()
         << ":OES_shader_multisample_interpolation:" << mResources.OES_shader_multisample_interpolation
         << ":OES_shader_image_atomic:" << mResources.OES_shader_image_atomic
         << ":EXT_tessellation_shader:" << mResources.EXT_tessellation_shader
+        << ":OES_tessellation_shader:" << mResources.OES_tessellation_shader
         << ":OES_texture_buffer:" << mResources.OES_texture_buffer
         << ":EXT_texture_buffer:" << mResources.EXT_texture_buffer
         << ":OES_sample_variables:" << mResources.OES_sample_variables

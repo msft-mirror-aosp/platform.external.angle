@@ -263,7 +263,9 @@ const ProcEntry g_procTable[] = {
     DESKTOP_ONLY("glClearNamedFramebufferuiv", GL_ClearNamedFramebufferuiv)
     {"glClearStencil", P(GL_ClearStencil)},
     DESKTOP_ONLY("glClearTexImage", GL_ClearTexImage)
+    {"glClearTexImageEXT", P(GL_ClearTexImageEXT)},
     DESKTOP_ONLY("glClearTexSubImage", GL_ClearTexSubImage)
+    {"glClearTexSubImageEXT", P(GL_ClearTexSubImageEXT)},
     {"glClientActiveTexture", P(GL_ClientActiveTexture)},
     {"glClientWaitSync", P(GL_ClientWaitSync)},
     DESKTOP_ONLY("glClipControl", GL_ClipControl)
@@ -480,6 +482,7 @@ const ProcEntry g_procTable[] = {
     {"glEndQuery", P(GL_EndQuery)},
     {"glEndQueryEXT", P(GL_EndQueryEXT)},
     DESKTOP_ONLY("glEndQueryIndexed", GL_EndQueryIndexed)
+    {"glEndTilingQCOM", P(GL_EndTilingQCOM)},
     {"glEndTransformFeedback", P(GL_EndTransformFeedback)},
     DESKTOP_ONLY("glEvalCoord1d", GL_EvalCoord1d)
     DESKTOP_ONLY("glEvalCoord1dv", GL_EvalCoord1dv)
@@ -1044,6 +1047,7 @@ const ProcEntry g_procTable[] = {
     DESKTOP_ONLY("glPatchParameterfv", GL_PatchParameterfv)
     {"glPatchParameteri", P(GL_PatchParameteri)},
     {"glPatchParameteriEXT", P(GL_PatchParameteriEXT)},
+    {"glPatchParameteriOES", P(GL_PatchParameteriOES)},
     {"glPauseTransformFeedback", P(GL_PauseTransformFeedback)},
     {"glPixelLocalStorageBarrierANGLE", P(GL_PixelLocalStorageBarrierANGLE)},
     DESKTOP_ONLY("glPixelMapfv", GL_PixelMapfv)
@@ -1289,6 +1293,7 @@ const ProcEntry g_procTable[] = {
     {"glShadingRateQCOM", P(GL_ShadingRateQCOM)},
     {"glSignalSemaphoreEXT", P(GL_SignalSemaphoreEXT)},
     DESKTOP_ONLY("glSpecializeShader", GL_SpecializeShader)
+    {"glStartTilingQCOM", P(GL_StartTilingQCOM)},
     {"glStencilFunc", P(GL_StencilFunc)},
     {"glStencilFuncSeparate", P(GL_StencilFuncSeparate)},
     {"glStencilMask", P(GL_StencilMask)},

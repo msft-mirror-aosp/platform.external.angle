@@ -794,7 +794,7 @@ void SPIRVBuilder::predefineCommonTypes()
     type.type = EbtFloat;
     id        = spirv::IdRef(kIdFloat);
     mTypeMap.insert({type, {id}});
-    spirv::WriteTypeFloat(&mSpirvTypeAndConstantDecls, id, spirv::LiteralInteger(32));
+    spirv::WriteTypeFloat(&mSpirvTypeAndConstantDecls, id, spirv::LiteralInteger(32), nullptr);
 
     // vecN ids equal vec2 id + (vec size - 2)
     static_assert(kIdVec3 == kIdVec2 + 1);
@@ -1064,7 +1064,7 @@ SpirvTypeData SPIRVBuilder::declareType(const SpirvType &type, const TSymbol *bl
         switch (type.type)
         {
             case EbtDouble:
-                // TODO: support desktop GLSL.  http://anglebug.com/6197
+                // TODO: support desktop GLSL.  http://anglebug.com/42264721
                 UNIMPLEMENTED();
                 break;
             case EbtBool:

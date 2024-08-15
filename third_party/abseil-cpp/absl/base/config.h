@@ -926,7 +926,7 @@ static_assert(ABSL_INTERNAL_INLINE_NAMESPACE_STR[0] != 'h' ||
 // https://llvm.org/docs/CompileCudaWithLLVM.html#detecting-clang-vs-nvcc-from-code
 #ifdef ABSL_INTERNAL_HAVE_ARM_NEON
 #error ABSL_INTERNAL_HAVE_ARM_NEON cannot be directly set
-#elif defined(__ARM_NEON) && !defined(__CUDA_ARCH__)
+#elif defined(__ARM_NEON) && !(defined(__NVCC__) && defined(__CUDACC__))
 #define ABSL_INTERNAL_HAVE_ARM_NEON 1
 #endif
 
@@ -939,6 +939,27 @@ static_assert(ABSL_INTERNAL_INLINE_NAMESPACE_STR[0] != 'h' ||
 #define ABSL_HAVE_CONSTANT_EVALUATED 1
 #elif ABSL_HAVE_BUILTIN(__builtin_is_constant_evaluated)
 #define ABSL_HAVE_CONSTANT_EVALUATED 1
+#endif
+
+// ABSL_INTERNAL_CONSTEXPR_SINCE_CXXYY is used to conditionally define constexpr
+// for different C++ versions.
+//
+// These macros are an implementation detail and will be unconditionally removed
+// once the minimum supported C++ version catches up to a given version.
+//
+// For this reason, this symbol is considered INTERNAL and code outside of
+// Abseil must not use it.
+#if defined(ABSL_INTERNAL_CPLUSPLUS_LANG) && \
+    ABSL_INTERNAL_CPLUSPLUS_LANG >= 201703L
+#define ABSL_INTERNAL_CONSTEXPR_SINCE_CXX17 constexpr
+#else
+#define ABSL_INTERNAL_CONSTEXPR_SINCE_CXX17
+#endif
+#if defined(ABSL_INTERNAL_CPLUSPLUS_LANG) && \
+    ABSL_INTERNAL_CPLUSPLUS_LANG >= 202002L
+#define ABSL_INTERNAL_CONSTEXPR_SINCE_CXX20 constexpr
+#else
+#define ABSL_INTERNAL_CONSTEXPR_SINCE_CXX20
 #endif
 
 // ABSL_INTERNAL_EMSCRIPTEN_VERSION combines Emscripten's three version macros

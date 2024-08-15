@@ -818,6 +818,9 @@ void OutputSPIRVTraverser::accessChainPushLiteral(NodeData *data,
     // Add the literal integer in the chain of indices.  Since this is an id list, fake it as an id.
     data->idList.emplace_back(index);
     data->accessChain.preSwizzleTypeId = typeId;
+
+    // Literal index of a swizzle must be already folded in the AST.
+    ASSERT(data->accessChain.swizzles.empty());
 }
 
 void OutputSPIRVTraverser::accessChainPushSwizzle(NodeData *data,
@@ -2266,7 +2269,7 @@ bool IsShortCircuitNeeded(TIntermOperator *node)
     // TODO: experiment with the performance of OpLogicalAnd/Or vs short-circuit based on the
     // complexity of the right hand side expression.  We could potentially only allow
     // OpLogicalAnd/Or if the right hand side is a constant or an access chain and have more complex
-    // expressions be placed inside an if block.  http://anglebug.com/4889
+    // expressions be placed inside an if block.  http://anglebug.com/40096715
     return node->getChildNode(1)->getAsTyped()->hasSideEffects();
 }
 
@@ -2782,12 +2785,12 @@ spirv::IdRef OutputSPIRVTraverser::visitOperator(TIntermOperator *node, spirv::I
             extendScalarToVector = false;
             break;
         case EOpPackDouble2x32:
-            // TODO: support desktop GLSL.  http://anglebug.com/6197
+            // TODO: support desktop GLSL.  http://anglebug.com/42264721
             UNIMPLEMENTED();
             break;
 
         case EOpUnpackDouble2x32:
-            // TODO: support desktop GLSL.  http://anglebug.com/6197
+            // TODO: support desktop GLSL.  http://anglebug.com/42264721
             UNIMPLEMENTED();
             extendScalarToVector = false;
             break;
@@ -2830,7 +2833,7 @@ spirv::IdRef OutputSPIRVTraverser::visitOperator(TIntermOperator *node, spirv::I
             break;
 
         case EOpFtransform:
-            // TODO: support desktop GLSL.  http://anglebug.com/6197
+            // TODO: support desktop GLSL.  http://anglebug.com/42264721
             UNIMPLEMENTED();
             break;
 
@@ -2933,14 +2936,14 @@ spirv::IdRef OutputSPIRVTraverser::visitOperator(TIntermOperator *node, spirv::I
         case EOpNoise2:
         case EOpNoise3:
         case EOpNoise4:
-            // TODO: support desktop GLSL.  http://anglebug.com/6197
+            // TODO: support desktop GLSL.  http://anglebug.com/42264721
             UNIMPLEMENTED();
             break;
 
         case EOpAnyInvocation:
         case EOpAllInvocations:
         case EOpAllInvocationsEqual:
-            // TODO: support desktop GLSL.  http://anglebug.com/6197
+            // TODO: support desktop GLSL.  http://anglebug.com/42264721
             break;
 
         default:
@@ -4139,7 +4142,7 @@ spirv::IdRef OutputSPIRVTraverser::createImageTextureBuiltIn(TIntermOperator *no
     // OpImageSample*Dref* instructions produce a scalar.  EXT_shadow_samplers in ESSL introduces
     // similar functions but which return a scalar.
     //
-    // TODO: For desktop GLSL, the result must be turned into a vec4.  http://anglebug.com/6197.
+    // TODO: For desktop GLSL, the result must be turned into a vec4.  http://anglebug.com/42264721.
 
     return result;
 }
@@ -4317,7 +4320,7 @@ spirv::IdRef OutputSPIRVTraverser::castBasicType(spirv::IdRef value,
             break;
 
         default:
-            // TODO: support desktop GLSL.  http://anglebug.com/6197
+            // TODO: support desktop GLSL.  http://anglebug.com/42264721
             UNIMPLEMENTED();
     }
 
@@ -5428,6 +5431,17 @@ bool OutputSPIRVTraverser::visitSwitch(Visit visit, TIntermSwitch *node)
 
     if (visit == PreVisit)
     {
+        // Artificially add `if (true)` around switches as a driver bug workaround
+        if (mCompileOptions.wrapSwitchInIfTrue)
+        {
+            const spirv::IdRef conditionValue = mBuilder.getBoolConstant(true);
+            mBuilder.startConditional(2, false, false);
+            const SpirvConditional *conditional = mBuilder.getCurrentConditional();
+            const spirv::IdRef trueBlock        = conditional->blockIds[0];
+            const spirv::IdRef mergeBlock       = conditional->blockIds[1];
+            mBuilder.writeBranchConditional(conditionValue, trueBlock, mergeBlock, mergeBlock);
+        }
+
         // Don't add an entry to the stack.  The condition will create one, which we won't pop.
         return true;
     }
@@ -5529,6 +5543,12 @@ bool OutputSPIRVTraverser::visitSwitch(Visit visit, TIntermSwitch *node)
     // Terminate the last block if not already and end the conditional.
     mBuilder.writeSwitchCaseBlockEnd();
     mBuilder.endConditional();
+
+    if (mCompileOptions.wrapSwitchInIfTrue)
+    {
+        mBuilder.writeBranchConditionalBlockEnd();
+        mBuilder.endConditional();
+    }
 
     return true;
 }
@@ -5904,7 +5924,7 @@ bool OutputSPIRVTraverser::visitAggregate(Visit visit, TIntermAggregate *node)
 
         case EOpEmitStreamVertex:
         case EOpEndStreamPrimitive:
-            // TODO: support desktop GLSL.  http://anglebug.com/6197
+            // TODO: support desktop GLSL.  http://anglebug.com/42264721
             UNIMPLEMENTED();
             break;
 
@@ -6550,7 +6570,9 @@ spirv::Blob OutputSPIRVTraverser::getSpirv()
     spvtools::SpirvTools spirvTools(mCompileOptions.emitSPIRV14 ? SPV_ENV_VULKAN_1_1_SPIRV_1_4
                                                                 : SPV_ENV_VULKAN_1_1);
     std::string readableSpirv;
-    spirvTools.Disassemble(result, &readableSpirv, 0);
+    spirvTools.Disassemble(result, &readableSpirv,
+                           SPV_BINARY_TO_TEXT_OPTION_COMMENT | SPV_BINARY_TO_TEXT_OPTION_INDENT |
+                               SPV_BINARY_TO_TEXT_OPTION_NESTED_INDENT);
     fprintf(stderr, "%s\n", readableSpirv.c_str());
 #endif  // ANGLE_DEBUG_SPIRV_GENERATION
 

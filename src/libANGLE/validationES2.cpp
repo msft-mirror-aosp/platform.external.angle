@@ -687,6 +687,10 @@ bool ValidCap(const PrivateState &state, ErrorSet *errors, GLenum cap, bool quer
         case GL_FRAGMENT_SHADER_FRAMEBUFFER_FETCH_MRT_ARM:
             return queryOnly && state.getExtensions().shaderFramebufferFetchARM;
 
+        case GL_BLEND_ADVANCED_COHERENT_KHR:
+            return state.getClientVersion() >= Version(2, 0) &&
+                   state.getExtensions().blendEquationAdvancedCoherentKHR;
+
         default:
             break;
     }
@@ -3528,7 +3532,7 @@ bool ValidateCreateShader(const Context *context, angle::EntryPoint entryPoint, 
             break;
 
         case ShaderType::TessControl:
-            if (!context->getExtensions().tessellationShaderEXT &&
+            if (!context->getExtensions().tessellationShaderAny() &&
                 context->getClientVersion() < ES_3_2)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidShaderType);
@@ -3537,7 +3541,7 @@ bool ValidateCreateShader(const Context *context, angle::EntryPoint entryPoint, 
             break;
 
         case ShaderType::TessEvaluation:
-            if (!context->getExtensions().tessellationShaderEXT &&
+            if (!context->getExtensions().tessellationShaderAny() &&
                 context->getClientVersion() < ES_3_2)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidShaderType);

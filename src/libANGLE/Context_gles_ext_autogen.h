@@ -104,6 +104,12 @@
     /* GL_EXT_buffer_storage */                                                                    \
     void bufferStorage(BufferBinding targetPacked, GLsizeiptr size, const void *data,              \
                        GLbitfield flags);                                                          \
+    /* GL_EXT_clear_texture */                                                                     \
+    void clearTexImage(TextureID texturePacked, GLint level, GLenum format, GLenum type,           \
+                       const void *data);                                                          \
+    void clearTexSubImage(TextureID texturePacked, GLint level, GLint xoffset, GLint yoffset,      \
+                          GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,             \
+                          GLenum format, GLenum type, const void *data);                           \
     /* GL_EXT_clip_control */                                                                      \
     /* GL_EXT_clip_cull_distance */                                                                \
     /* GL_EXT_color_buffer_float */                                                                \
@@ -245,6 +251,7 @@
     /* GL_IMG_texture_compression_pvrtc */                                                         \
     /* GL_IMG_texture_compression_pvrtc2 */                                                        \
     /* GL_KHR_blend_equation_advanced */                                                           \
+    /* GL_KHR_blend_equation_advanced_coherent */                                                  \
     /* GL_KHR_debug */                                                                             \
     /* GL_KHR_no_error */                                                                          \
     /* GL_KHR_parallel_shader_compile */                                                           \
@@ -320,6 +327,7 @@
     /* GL_OES_shader_multisample_interpolation */                                                  \
     /* GL_OES_standard_derivatives */                                                              \
     /* GL_OES_surfaceless_context */                                                               \
+    /* GL_OES_tessellation_shader */                                                               \
     /* GL_OES_texture_3D */                                                                        \
     void framebufferTexture3D(GLenum target, GLenum attachment, TextureTarget textargetPacked,     \
                               TextureID texturePacked, GLint level, GLint zoffset);                \
@@ -354,6 +362,9 @@
     void textureFoveationParameters(TextureID texturePacked, GLuint layer, GLuint focalPoint,      \
                                     GLfloat focalX, GLfloat focalY, GLfloat gainX, GLfloat gainY,  \
                                     GLfloat foveaArea);                                            \
+    /* GL_QCOM_tiled_rendering */                                                                  \
+    void endTiling(GLbitfield preserveMask);                                                       \
+    void startTiling(GLuint x, GLuint y, GLuint width, GLuint height, GLbitfield preserveMask);    \
     /* GL_WEBGL_video_texture */                                                                   \
                                                                                                    \
     /* ANGLE Extensions */                                                                         \

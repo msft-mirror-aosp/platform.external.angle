@@ -3300,6 +3300,16 @@ bool GetQueryParameterInfo(const State &glState,
             *numParams = 1;
             return true;
         }
+        case GL_BLEND_ADVANCED_COHERENT_KHR:
+        {
+            if (clientMajorVersion < 2 || !extensions.blendEquationAdvancedCoherentKHR)
+            {
+                return false;
+            }
+            *type      = GL_INT;
+            *numParams = 1;
+            return true;
+        }
         case GL_MAX_VIEWPORT_DIMS:
         {
             *type      = GL_INT;
@@ -4177,7 +4187,7 @@ bool GetQueryParameterInfo(const State &glState,
         }
     }
 
-    if (extensions.tessellationShaderEXT)
+    if (extensions.tessellationShaderAny())
     {
         switch (pname)
         {
@@ -4476,8 +4486,12 @@ void QueryContextAttrib(const gl::Context *context, EGLint attribute, EGLint *va
         case EGL_CONTEXT_CLIENT_TYPE:
             *value = context->getClientType();
             break;
-        case EGL_CONTEXT_CLIENT_VERSION:
+        case EGL_CONTEXT_MAJOR_VERSION:
+            static_assert(EGL_CONTEXT_MAJOR_VERSION == EGL_CONTEXT_CLIENT_VERSION);
             *value = context->getClientMajorVersion();
+            break;
+        case EGL_CONTEXT_MINOR_VERSION:
+            *value = context->getClientMinorVersion();
             break;
         case EGL_RENDER_BUFFER:
             *value = context->getRenderBuffer();
