@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 356
+#define ANGLE_SH_VERSION 358
 
 enum ShShaderSpec
 {
@@ -348,7 +348,8 @@ struct ShCompileOptions
     // Rewrite gl_BaseVertex and gl_BaseInstance as uniform int
     uint64_t emulateGLBaseVertexBaseInstance : 1;
 
-    uint64_t unused : 1;
+    // Workaround for a driver bug with nested switches.
+    uint64_t wrapSwitchInIfTrue : 1;
 
     // This flag controls how to translate WEBGL_video_texture sampling function.
     uint64_t takeVideoTextureAsExternalOES : 1;
@@ -447,6 +448,12 @@ struct ShCompileOptions
 
     // Whether SPIR-V 1.4 can be emitted.  If not set, SPIR-V 1.3 is emitted.
     uint64_t emitSPIRV14 : 1;
+
+    // Reject shaders with obvious undefined behavior:
+    //
+    // - Shader contains easy-to-detect infinite loops
+    //
+    uint64_t rejectWebglShadersWithUndefinedBehavior : 1;
 
     ShCompileOptionsMetal metal;
     ShPixelLocalStorageOptions pls;
