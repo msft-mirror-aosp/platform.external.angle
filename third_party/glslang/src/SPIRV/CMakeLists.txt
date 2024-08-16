@@ -76,9 +76,11 @@ set(PUBLIC_HEADERS
     disassemble.h
     Logger.h
     spirv.hpp
-    SPVRemapper.h)
+    SPVRemapper.h
+    SpvTools.h)
 
 add_library(SPIRV ${LIB_TYPE} ${SOURCES} ${HEADERS})
+add_library(glslang::SPIRV ALIAS SPIRV)
 set_target_properties(SPIRV PROPERTIES
     FOLDER glslang
     POSITION_INDEPENDENT_CODE ON
@@ -92,6 +94,7 @@ glslang_add_build_info_dependency(SPIRV)
 
 if (ENABLE_SPVREMAPPER)
     add_library(SPVRemapper ${LIB_TYPE} ${SPVREMAP_SOURCES} ${SPVREMAP_HEADERS})
+    add_library(glslang::SPVRemapper ALIAS SPVRemapper)
     set_target_properties(SPVRemapper PROPERTIES
         FOLDER glslang
         POSITION_INDEPENDENT_CODE ON

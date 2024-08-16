@@ -270,6 +270,7 @@ enum EShMessages : unsigned {
     EShMsgBuiltinSymbolTable   = (1 << 14), // print the builtin symbol table
     EShMsgEnhanced             = (1 << 15), // enhanced message readability
     EShMsgAbsolutePath         = (1 << 16), // Output Absolute path for messages
+    EShMsgDisplayErrorColumn   = (1 << 17), // Display error message column aswell as line
     LAST_ELEMENT_MARKER(EShMsgCount),
 };
 
@@ -508,6 +509,9 @@ public:
     GLSLANG_EXPORT void setGlobalUniformBinding(unsigned int binding);
     GLSLANG_EXPORT void setAtomicCounterBlockSet(unsigned int set);
     GLSLANG_EXPORT void setAtomicCounterBlockBinding(unsigned int binding);
+
+    GLSLANG_EXPORT void addSourceText(const char* text, size_t len);
+    GLSLANG_EXPORT void setSourceFile(const char* file);
 
     // For setting up the environment (cleared to nothingness in the constructor).
     // These must be called so that parsing is done for the right source language and

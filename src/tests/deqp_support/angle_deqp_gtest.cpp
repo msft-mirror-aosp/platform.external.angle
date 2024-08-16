@@ -153,6 +153,7 @@ constexpr APIInfo kEGLDisplayAPIs[] = {
     {"angle-null", GPUTestConfig::kAPIUnknown},
     {"angle-swiftshader", GPUTestConfig::kAPISwiftShader},
     {"angle-vulkan", GPUTestConfig::kAPIVulkan},
+    {"angle-webgpu", GPUTestConfig::kAPIWgpu},
     {"win32", GPUTestConfig::kAPIUnknown},
     {"x11", GPUTestConfig::kAPIUnknown},
 };
@@ -690,7 +691,7 @@ void dEQPTest::SetUpTestSuite()
         argv.push_back("--deqp-log-images=disable");
     }
 
-    // Flushing during multi-process execution punishes HDDs. http://anglebug.com/5157
+    // Flushing during multi-process execution punishes HDDs. http://anglebug.com/42263718
     if (testSuite->getBatchId() != -1)
     {
         argv.push_back("--deqp-log-flush=disable");

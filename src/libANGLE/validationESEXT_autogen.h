@@ -1144,6 +1144,28 @@ bool ValidateBufferStorageEXT(const Context *context,
                               const void *data,
                               GLbitfield flags);
 
+// GL_EXT_clear_texture
+bool ValidateClearTexImageEXT(const Context *context,
+                              angle::EntryPoint entryPoint,
+                              TextureID texturePacked,
+                              GLint level,
+                              GLenum format,
+                              GLenum type,
+                              const void *data);
+bool ValidateClearTexSubImageEXT(const Context *context,
+                                 angle::EntryPoint entryPoint,
+                                 TextureID texturePacked,
+                                 GLint level,
+                                 GLint xoffset,
+                                 GLint yoffset,
+                                 GLint zoffset,
+                                 GLsizei width,
+                                 GLsizei height,
+                                 GLsizei depth,
+                                 GLenum format,
+                                 GLenum type,
+                                 const void *data);
+
 // GL_EXT_clip_control
 bool ValidateClipControlEXT(const PrivateState &state,
                             ErrorSet *errors,
@@ -2046,6 +2068,8 @@ bool ValidateTexStorage3DEXT(const Context *context,
 // GL_KHR_blend_equation_advanced
 bool ValidateBlendBarrierKHR(const Context *context, angle::EntryPoint entryPoint);
 
+// GL_KHR_blend_equation_advanced_coherent
+
 // GL_KHR_debug
 bool ValidateDebugMessageCallbackKHR(const Context *context,
                                      angle::EntryPoint entryPoint,
@@ -2571,6 +2595,13 @@ bool ValidateMinSampleShadingOES(const PrivateState &state,
 
 // GL_OES_surfaceless_context
 
+// GL_OES_tessellation_shader
+bool ValidatePatchParameteriOES(const PrivateState &state,
+                                ErrorSet *errors,
+                                angle::EntryPoint entryPoint,
+                                GLenum pname,
+                                GLint value);
+
 // GL_OES_texture_3D
 bool ValidateCompressedTexImage3DOES(const Context *context,
                                      angle::EntryPoint entryPoint,
@@ -2841,6 +2872,18 @@ bool ValidateTextureFoveationParametersQCOM(const Context *context,
                                             GLfloat gainX,
                                             GLfloat gainY,
                                             GLfloat foveaArea);
+
+// GL_QCOM_tiled_rendering
+bool ValidateEndTilingQCOM(const Context *context,
+                           angle::EntryPoint entryPoint,
+                           GLbitfield preserveMask);
+bool ValidateStartTilingQCOM(const Context *context,
+                             angle::EntryPoint entryPoint,
+                             GLuint x,
+                             GLuint y,
+                             GLuint width,
+                             GLuint height,
+                             GLbitfield preserveMask);
 }  // namespace gl
 
 #endif  // LIBANGLE_VALIDATION_ESEXT_AUTOGEN_H_
