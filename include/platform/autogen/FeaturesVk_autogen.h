@@ -938,6 +938,13 @@ struct FeaturesVk : FeatureSetBase
         &members, "http://anglebug.com/42266906"
     };
 
+    FeatureInfo generateFragmentShadingRateAttchementWithCpu = {
+        "generateFragmentShadingRateAttchementWithCpu",
+        FeatureCategory::VulkanFeatures,
+        "Generate the fragment shading rates on the CPU instead of a compute shader",
+        &members, "http://anglebug.com/42266906"
+    };
+
     FeatureInfo supportsFragmentShaderPixelInterlock = {
         "supportsFragmentShaderPixelInterlock",
         FeatureCategory::VulkanFeatures,
@@ -1341,6 +1348,14 @@ struct FeaturesVk : FeatureSetBase
         "On some drivers, the OpSelect SPIR-V instruction with arguments with mismatching "
         "RelaxedPrecision decoration causes a crash",
         &members, "http://anglebug.com/41493495"
+    };
+
+    FeatureInfo wrapSwitchInIfTrue = {
+        "wrapSwitchInIfTrue",
+        FeatureCategory::VulkanWorkarounds,
+        "On some drivers, nested switch statements are mishandled which can be worked around "
+        "by wrapping them in if(true)",
+        &members, "http://crbug.com/350528343"
     };
 
     FeatureInfo disableDepthStencilResolveThroughAttachment = {
