@@ -78,7 +78,7 @@ class FramebufferWgpu : public FramebufferImpl
                                     size_t index,
                                     GLfloat *xy) const override;
 
-    RenderTargetWgpu *getReadPixelsRenderTarget(const angle::Format &format) const;
+    RenderTargetWgpu *getReadPixelsRenderTarget() const;
 
     void addNewColorAttachments(std::vector<wgpu::RenderPassColorAttachment> newColorAttachments);
 
@@ -91,6 +91,8 @@ class FramebufferWgpu : public FramebufferImpl
                                               bool deferClears);
 
     angle::Result flushDeferredClears(ContextWgpu *contextWgpu);
+
+    angle::Result startNewRenderPass(ContextWgpu *contextWgpu);
 
     const gl::DrawBuffersArray<wgpu::TextureFormat> &getCurrentColorAttachmentFormats() const
     {

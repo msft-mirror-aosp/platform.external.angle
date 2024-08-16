@@ -94,6 +94,12 @@ using LevelIndex = gl::LevelIndexWrapper<uint32_t>;
 enum class RenderPassClosureReason
 {
     NewRenderPass,
+    FramebufferBindingChange,
+    FramebufferInternalChange,
+    GLFlush,
+    GLFinish,
+    EGLSwapBuffers,
+    GLReadPixels,
 
     InvalidEnum,
     EnumCount = InvalidEnum,
@@ -138,7 +144,14 @@ class ClearValuesArray final
     gl::AttachmentsMask mEnabled;
 };
 
-void EnsureCapsInitialized(const wgpu::Device &device, gl::Caps *nativeCaps);
+void GenerateCaps(const wgpu::Device &device,
+                  gl::Caps *glCaps,
+                  gl::TextureCapsMap *glTextureCapsMap,
+                  gl::Extensions *glExtensions,
+                  gl::Limitations *glLimitations,
+                  egl::Caps *eglCaps,
+                  egl::DisplayExtensions *eglExtensions,
+                  gl::Version *maxSupportedESVersion);
 
 DisplayWgpu *GetDisplay(const gl::Context *context);
 wgpu::Device GetDevice(const gl::Context *context);
@@ -151,6 +164,15 @@ bool IsWgpuError(wgpu::WaitStatus waitStatus);
 bool IsWgpuError(WGPUBufferMapAsyncStatus mapBufferStatus);
 
 bool IsStripPrimitiveTopology(wgpu::PrimitiveTopology topology);
+
+// Required alignments for buffer sizes and mapping
+constexpr size_t kBufferSizeAlignment      = 4;
+constexpr size_t kBufferMapSizeAlignment   = kBufferSizeAlignment;
+constexpr size_t kBufferMapOffsetAlignment = 8;
+
+// Required alignments for texture row uploads
+constexpr size_t kTextureRowSizeAlignment = 256;
+
 }  // namespace webgpu
 
 namespace wgpu_gl
@@ -170,8 +192,50 @@ wgpu::PrimitiveTopology GetPrimitiveTopology(gl::PrimitiveMode mode);
 wgpu::IndexFormat GetIndexFormat(gl::DrawElementsType drawElementsTYpe);
 wgpu::FrontFace GetFrontFace(GLenum frontFace);
 wgpu::CullMode GetCullMode(gl::CullFaceMode mode, bool cullFaceEnabled);
+wgpu::ColorWriteMask GetColorWriteMask(bool r, bool g, bool b, bool a);
+
+wgpu::CompareFunction getCompareFunc(const GLenum glCompareFunc);
+wgpu::StencilOperation getStencilOp(const GLenum glStencilOp);
 }  // namespace gl_wgpu
 
+// Number of reserved binding slots to implement the default uniform block
+constexpr uint32_t kReservedPerStageDefaultUniformSlotCount = 0;
+
 }  // namespace rx
+
+#define ANGLE_WGPU_WRAPPER_OBJECTS_X(PROC) PROC(RenderPipeline)
+
+// Add a hash function for all wgpu cpp wrappers that hashes the underlying C object pointer.
+#define ANGLE_WGPU_WRAPPER_OBJECT_HASH(OBJ)               \
+    namespace std                                         \
+    {                                                     \
+    template <>                                           \
+    struct hash<wgpu::OBJ>                                \
+    {                                                     \
+        size_t operator()(const wgpu::OBJ &wrapper) const \
+        {                                                 \
+            std::hash<decltype(wrapper.Get())> cTypeHash; \
+            return cTypeHash(wrapper.Get());              \
+        }                                                 \
+    };                                                    \
+    }
+
+ANGLE_WGPU_WRAPPER_OBJECTS_X(ANGLE_WGPU_WRAPPER_OBJECT_HASH)
+#undef ANGLE_WGPU_WRAPPER_OBJECT_HASH
+
+// Add a hash function for all wgpu cpp wrappers that compares the underlying C object pointer.
+#define ANGLE_WGPU_WRAPPER_OBJECT_EQUALITY(OBJ)        \
+    namespace wgpu                                     \
+    {                                                  \
+    inline bool operator==(const OBJ &a, const OBJ &b) \
+    {                                                  \
+        return a.Get() == b.Get();                     \
+    }                                                  \
+    }
+
+ANGLE_WGPU_WRAPPER_OBJECTS_X(ANGLE_WGPU_WRAPPER_OBJECT_EQUALITY)
+#undef ANGLE_WGPU_WRAPPER_OBJECT_EQUALITY
+
+#undef ANGLE_WGPU_WRAPPER_OBJECTS_X
 
 #endif  // LIBANGLE_RENDERER_WGPU_WGPU_UTILS_H_

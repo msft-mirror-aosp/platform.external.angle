@@ -101,6 +101,8 @@ enum class ImageLayout
 
     // Color (Write):
     ColorWrite,
+    // Used only with dynamic rendering, because it needs a different VkImageLayout
+    ColorWriteAndInput,
     MSRTTEmulationColorUnresolveAndResolve,
 
     // Depth (Write), Stencil (Write)
@@ -1054,6 +1056,9 @@ class BufferHelper : public ReadWriteResource
 
     void initializeBarrierTracker(Context *context);
 
+    // Returns the current VkAccessFlags bits
+    VkAccessFlags getCurrentWriteAccess() const { return mCurrentWriteAccess; }
+
   private:
     // Only called by DynamicBuffer.
     friend class DynamicBuffer;
@@ -1327,10 +1332,21 @@ constexpr uint32_t kInfiniteCmdCount = 0xFFFFFFFF;
 class CommandBufferHelperCommon : angle::NonCopyable
 {
   public:
-    void bufferWrite(ContextVk *contextVk,
-                     VkAccessFlags writeAccessType,
-                     PipelineStage writeStage,
-                     BufferHelper *buffer);
+    void bufferWrite(VkAccessFlags writeAccessType, PipelineStage writeStage, BufferHelper *buffer);
+
+    void bufferRead(VkAccessFlags readAccessType, PipelineStage readStage, BufferHelper *buffer)
+    {
+        bufferReadImpl(readAccessType, readStage, buffer);
+        setBufferReadQueueSerial(buffer);
+    }
+
+    void bufferRead(VkAccessFlags readAccessType,
+                    const gl::ShaderBitSet &readShaderStages,
+                    BufferHelper *buffer)
+    {
+        bufferReadImpl(readAccessType, readShaderStages, buffer);
+        setBufferReadQueueSerial(buffer);
+    }
 
     bool usesBuffer(const BufferHelper &buffer) const
     {
@@ -1340,6 +1356,13 @@ class CommandBufferHelperCommon : angle::NonCopyable
     bool usesBufferForWrite(const BufferHelper &buffer) const
     {
         return buffer.writtenByCommandBuffer(mQueueSerial);
+    }
+
+    bool getAndResetHasHostVisibleBufferWrite()
+    {
+        bool hostBufferWrite           = mIsAnyHostVisibleBufferWritten;
+        mIsAnyHostVisibleBufferWritten = false;
+        return hostBufferWrite;
     }
 
     void executeBarriers(Renderer *renderer, CommandsState *commandsState);
@@ -1364,6 +1387,10 @@ class CommandBufferHelperCommon : angle::NonCopyable
         writeResource->setWriteQueueSerial(mQueueSerial);
     }
 
+    // Update image with this command buffer's queueSerial. If VkEvent is enabled, image's current
+    // event is also updated with this command's event.
+    void retainImageWithEvent(Context *context, ImageHelper *image);
+
     // Returns true if event already existed in this command buffer.
     bool hasSetEventPendingFlush(const RefCountedEvent &event) const
     {
@@ -1383,9 +1410,6 @@ class CommandBufferHelperCommon : angle::NonCopyable
         ASSERT(!mAcquireNextImageSemaphore.valid());
         mAcquireNextImageSemaphore.setHandle(semaphore);
     }
-
-    // Dumping the command stream is disabled by default.
-    static constexpr bool kEnableCommandStreamDiagnostics = false;
 
   protected:
     CommandBufferHelperCommon();
@@ -1445,6 +1469,8 @@ class CommandBufferHelperCommon : angle::NonCopyable
 
     void addCommandDiagnosticsCommon(std::ostringstream *out);
 
+    void setBufferReadQueueSerial(BufferHelper *buffer);
+
     // Allocator used by this class.
     SecondaryCommandBlockAllocator mCommandAllocator;
 
@@ -1475,6 +1501,9 @@ class CommandBufferHelperCommon : angle::NonCopyable
     EventMaps mRefCountedEvents;
     // The list of RefCountedEvents that should be garbage collected when it gets reset.
     RefCountedEventCollector mRefCountedEventCollector;
+
+    // Check for any buffer write commands recorded for host-visible buffers
+    bool mIsAnyHostVisibleBufferWritten = false;
 };
 
 class SecondaryCommandBufferCollector;
@@ -1511,24 +1540,6 @@ class OutsideRenderPassCommandBufferHelper final : public CommandBufferHelperCom
     void markOpen() { mCommandBuffer.open(); }
     void markClosed() { mCommandBuffer.close(); }
 #endif
-
-    void bufferRead(ContextVk *contextVk,
-                    VkAccessFlags readAccessType,
-                    PipelineStage readStage,
-                    BufferHelper *buffer)
-    {
-        bufferReadImpl(readAccessType, readStage, buffer);
-        setBufferReadQueueSerial(contextVk, buffer);
-    }
-
-    void bufferRead(ContextVk *contextVk,
-                    VkAccessFlags readAccessType,
-                    const gl::ShaderBitSet &readShaderStages,
-                    BufferHelper *buffer)
-    {
-        bufferReadImpl(readAccessType, readShaderStages, buffer);
-        setBufferReadQueueSerial(contextVk, buffer);
-    }
 
     void imageRead(ContextVk *contextVk,
                    VkImageAspectFlags aspectFlags,
@@ -1576,7 +1587,6 @@ class OutsideRenderPassCommandBufferHelper final : public CommandBufferHelperCom
   private:
     angle::Result initializeCommandBuffer(Context *context);
     angle::Result endCommandBuffer(Context *context);
-    void setBufferReadQueueSerial(ContextVk *contextVk, BufferHelper *buffer);
 
     OutsideRenderPassCommandBuffer mCommandBuffer;
     bool mIsCommandBufferEnded = false;
@@ -1617,7 +1627,8 @@ class RenderPassFramebuffer : angle::NonCopyable
 
     void reset();
 
-    void setFramebuffer(Framebuffer &&initialFramebuffer,
+    void setFramebuffer(Context *context,
+                        Framebuffer &&initialFramebuffer,
                         FramebufferAttachmentsVector<VkImageView> &&imageViews,
                         uint32_t width,
                         uint32_t height,
@@ -1625,7 +1636,8 @@ class RenderPassFramebuffer : angle::NonCopyable
                         ImagelessFramebuffer imagelessFramebuffer,
                         RenderPassSource source)
     {
-        ASSERT(initialFramebuffer.valid());
+        // Framebuffers are mutually exclusive with dynamic rendering.
+        ASSERT(initialFramebuffer.valid() != context->getFeatures().preferDynamicRendering.enabled);
         mInitialFramebuffer = std::move(initialFramebuffer);
         mImageViews         = std::move(imageViews);
         mWidth              = width;
@@ -1639,6 +1651,7 @@ class RenderPassFramebuffer : angle::NonCopyable
     bool isDefault() const { return mIsDefault; }
     const Framebuffer &getFramebuffer() const { return mInitialFramebuffer; }
     bool needsNewFramebufferWithResolveAttachments() const { return !mInitialFramebuffer.valid(); }
+    uint32_t getLayers() const { return mLayers; }
 
     // Helpers to determine if a resolve attachment already exists
     bool hasColorResolveAttachment(size_t colorIndexGL)
@@ -1671,6 +1684,12 @@ class RenderPassFramebuffer : angle::NonCopyable
 
     // Prepare for rendering using the initial imageless framebuffer.
     void packResolveViewsForRenderPassBegin(VkRenderPassAttachmentBeginInfo *beginInfoOut);
+
+    // For use with dynamic rendering.
+    const FramebufferAttachmentsVector<VkImageView> &getUnpackedImageViews() const
+    {
+        return mImageViews;
+    }
 
     // Packs views in a contiguous list.
     //
@@ -1762,23 +1781,6 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
                     ImageLayout imageLayout,
                     ImageHelper *image);
 
-    void bufferRead(ContextVk *contextVk,
-                    VkAccessFlags readAccessType,
-                    PipelineStage readStage,
-                    BufferHelper *buffer)
-    {
-        bufferReadImpl(readAccessType, readStage, buffer);
-        buffer->setQueueSerial(mQueueSerial);
-    }
-    void bufferRead(ContextVk *contextVk,
-                    VkAccessFlags readAccessType,
-                    const gl::ShaderBitSet &readShaderStages,
-                    BufferHelper *buffer)
-    {
-        bufferReadImpl(readAccessType, readShaderStages, buffer);
-        buffer->setQueueSerial(mQueueSerial);
-    }
-
     void colorImagesDraw(gl::LevelIndex level,
                          uint32_t layerStart,
                          uint32_t layerCount,
@@ -1793,10 +1795,6 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
                                 ImageHelper *resolveImage,
                                 UniqueSerial imageSiblingSerial);
     void fragmentShadingRateImageRead(ImageHelper *image);
-
-    // Update image with this command buffer's queueSerial. If VkEvent is enabled, image's current
-    // event is also updated with this command's event.
-    void retainImage(Context *context, ImageHelper *image);
 
     bool usesImage(const ImageHelper &image) const;
     bool startedAndUsesImageWithBarrier(const ImageHelper &image) const;
@@ -1937,6 +1935,9 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
 
     void collectRefCountedEventsGarbage(RefCountedEventsGarbageRecycler *garbageRecycler);
 
+    void updatePerfCountersForDynamicRenderingInstance(Context *context,
+                                                       angle::VulkanPerfCounters *countersOut);
+
     bool isDefault() const { return mFramebuffer.isDefault(); }
 
   private:
@@ -2022,6 +2023,7 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     // This is last renderpass before present and this is the image will be presented. We can use
     // final layout of the renderpass to transition it to the presentable layout
     ImageHelper *mImageOptimizeForPresent;
+    ImageLayout mImageOptimizeForPresentOriginalLayout;
 
     friend class CommandBufferHelperCommon;
 };
@@ -2582,9 +2584,11 @@ class ImageHelper final : public Resource, public angle::Subject
                                   PrimaryCommandBuffer *commandBuffer,
                                   VkSemaphore *acquireNextImageSemaphoreOut)
     {
-        // Since we are doing an out of order one off submission, there shouldn't be any pending
-        // setEvent.
-        ASSERT(!mCurrentEvent.valid());
+        if (mCurrentEvent.valid())
+        {
+            mCurrentEvent.release(context->getRenderer());
+        }
+
         barrierImpl(context, getAspectFlags(), newLayout, mCurrentDeviceQueueIndex, nullptr,
                     commandBuffer, acquireNextImageSemaphoreOut);
     }
@@ -3099,9 +3103,11 @@ class ImageHelper final : public Resource, public angle::Subject
                                       void *pixels);
 
     bool canCopyWithTransformForReadPixels(const PackPixelsParams &packPixelsParams,
+                                           const VkExtent3D &srcExtent,
                                            const angle::Format *readFormat,
                                            ptrdiff_t pixelsOffset);
     bool canCopyWithComputeForReadPixels(const PackPixelsParams &packPixelsParams,
+                                         const VkExtent3D &srcExtent,
                                          const angle::Format *readFormat,
                                          ptrdiff_t pixelsOffset);
 
@@ -3286,14 +3292,6 @@ class ImageViewHelper final : angle::NonCopyable
     {
         return getValidReadViewImpl(mPerLevelRangeSRGBReadImageViews);
     }
-    const ImageView &getLinearFetchImageView() const
-    {
-        return getValidReadViewImpl(mPerLevelRangeLinearFetchImageViews);
-    }
-    const ImageView &getSRGBFetchImageView() const
-    {
-        return getValidReadViewImpl(mPerLevelRangeSRGBFetchImageViews);
-    }
     const ImageView &getLinearCopyImageView() const
     {
         return getValidReadViewImpl(mPerLevelRangeLinearCopyImageViews);
@@ -3311,12 +3309,6 @@ class ImageViewHelper final : angle::NonCopyable
     {
         return mLinearColorspace ? getReadViewImpl(mPerLevelRangeLinearReadImageViews)
                                  : getReadViewImpl(mPerLevelRangeSRGBReadImageViews);
-    }
-
-    const ImageView &getFetchImageView() const
-    {
-        return mLinearColorspace ? getReadViewImpl(mPerLevelRangeLinearFetchImageViews)
-                                 : getReadViewImpl(mPerLevelRangeSRGBFetchImageViews);
     }
 
     const ImageView &getCopyImageView() const
@@ -3346,21 +3338,6 @@ class ImageViewHelper final : angle::NonCopyable
         return mCurrentBaseMaxLevelHash < mPerLevelRangeStencilReadImageViews.size()
                    ? mPerLevelRangeStencilReadImageViews[mCurrentBaseMaxLevelHash].valid()
                    : false;
-    }
-
-    bool hasFetchImageView() const
-    {
-        if ((mLinearColorspace &&
-             mCurrentBaseMaxLevelHash < mPerLevelRangeLinearFetchImageViews.size()) ||
-            (!mLinearColorspace &&
-             mCurrentBaseMaxLevelHash < mPerLevelRangeSRGBFetchImageViews.size()))
-        {
-            return getFetchImageView().valid();
-        }
-        else
-        {
-            return false;
-        }
     }
 
     bool hasCopyImageView() const
@@ -3451,11 +3428,6 @@ class ImageViewHelper final : angle::NonCopyable
         return mLinearColorspace ? getReadViewImpl(mPerLevelRangeLinearReadImageViews)
                                  : getReadViewImpl(mPerLevelRangeSRGBReadImageViews);
     }
-    ImageView &getFetchImageView()
-    {
-        return mLinearColorspace ? getReadViewImpl(mPerLevelRangeLinearFetchImageViews)
-                                 : getReadViewImpl(mPerLevelRangeSRGBFetchImageViews);
-    }
     ImageView &getCopyImageView()
     {
         return mLinearColorspace ? getReadViewImpl(mPerLevelRangeLinearCopyImageViews)
@@ -3521,8 +3493,6 @@ class ImageViewHelper final : angle::NonCopyable
     // Read views (one per [base, max] level range)
     ImageViewVector mPerLevelRangeLinearReadImageViews;
     ImageViewVector mPerLevelRangeSRGBReadImageViews;
-    ImageViewVector mPerLevelRangeLinearFetchImageViews;
-    ImageViewVector mPerLevelRangeSRGBFetchImageViews;
     ImageViewVector mPerLevelRangeLinearCopyImageViews;
     ImageViewVector mPerLevelRangeSRGBCopyImageViews;
     ImageViewVector mPerLevelRangeStencilReadImageViews;
