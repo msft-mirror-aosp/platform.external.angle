@@ -1824,6 +1824,8 @@ void ContextMtl::endRenderEncoding(mtl::RenderCommandEncoder *encoder)
         mBlitEncoder.endEncoding();
     }
 
+    mOcclusionQueryPool.prepareRenderPassVisibilityPoolBuffer(this);
+
     encoder->endEncoding();
 
     // Resolve visibility results
@@ -2721,7 +2723,8 @@ angle::Result ContextMtl::handleDirtyRenderPass(const gl::Context *context)
     if (!IsTransformFeedbackOnly(mState))
     {
         // Start new render command encoder
-        ANGLE_MTL_TRY(this, mDrawFramebuffer->ensureRenderPassStarted(context));
+        mtl::RenderCommandEncoder *encoder;
+        ANGLE_TRY(mDrawFramebuffer->ensureRenderPassStarted(context, &encoder));
     }
     else
     {
@@ -2756,8 +2759,8 @@ angle::Result ContextMtl::handleDirtyActiveTextures(const gl::Context *context)
     const gl::State &glState                = mState;
     const gl::ProgramExecutable *executable = glState.getProgramExecutable();
 
-    constexpr auto ensureTextureCreated = [](const gl::Context *context,
-                                             gl::Texture *texture) -> angle::Result {
+    constexpr auto ensureTextureStorageCreated = [](const gl::Context *context,
+                                                    gl::Texture *texture) -> angle::Result {
         if (texture == nullptr)
         {
             return angle::Result::Continue;
@@ -2765,8 +2768,8 @@ angle::Result ContextMtl::handleDirtyActiveTextures(const gl::Context *context)
 
         TextureMtl *textureMtl = mtl::GetImpl(texture);
 
-        // Make sure texture's images update will be transferred to GPU.
-        ANGLE_TRY(textureMtl->ensureTextureCreated(context));
+        // Make sure texture's image definitions will be transferred to GPU.
+        ANGLE_TRY(textureMtl->ensureNativeStorageCreated(context));
 
         // The binding of this texture will be done by ProgramMtl.
         return angle::Result::Continue;
@@ -2777,12 +2780,13 @@ angle::Result ContextMtl::handleDirtyActiveTextures(const gl::Context *context)
 
     for (size_t textureUnit : activeTextures)
     {
-        ANGLE_TRY(ensureTextureCreated(context, textures[textureUnit]));
+        ANGLE_TRY(ensureTextureStorageCreated(context, textures[textureUnit]));
     }
 
     for (size_t imageUnit : executable->getActiveImagesMask())
     {
-        ANGLE_TRY(ensureTextureCreated(context, glState.getImageUnit(imageUnit).texture.get()));
+        ANGLE_TRY(
+            ensureTextureStorageCreated(context, glState.getImageUnit(imageUnit).texture.get()));
     }
 
     return angle::Result::Continue;

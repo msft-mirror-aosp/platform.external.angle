@@ -22,9 +22,8 @@ from pylib.utils import dexdump
 from pylib.utils import gold_utils
 from pylib.utils import test_filter
 
-
-with host_paths.SysPath(host_paths.BUILD_COMMON_PATH):
-  import unittest_util # pylint: disable=import-error
+with host_paths.SysPath(host_paths.BUILD_UTIL_PATH):
+  from lib.common import unittest_util
 
 # Ref: http://developer.android.com/reference/android/app/Activity.html
 _ACTIVITY_RESULT_CANCELED = 0
@@ -62,6 +61,16 @@ _BUNDLE_STACK_ID = 'stack'
 
 # The ID of the bundle value Chrome uses to report the test duration.
 _BUNDLE_DURATION_ID = 'duration_ms'
+
+# The following error messages are too general to be useful in failure
+# clustering. The runner doesn't report failure reason when such failure
+# reason is parsed from test logs.
+_BANNED_FAILURE_REASONS = [
+    # Default error message from org.chromium.base.test.util.CallbackHelper
+    # when timeout at expecting call back.
+    'java.util.concurrent.TimeoutException: waitForCallback timed out!',
+]
+
 
 class MissingSizeAnnotationError(test_exception.TestException):
   def __init__(self, class_name):
@@ -195,7 +204,9 @@ def _MaybeSetLog(bundle, current_result, symbolizer, device_abi):
     else:
       current_result.SetLog(stack)
 
-    current_result.SetFailureReason(_ParseExceptionMessage(stack))
+    parsed_failure_reason = _ParseExceptionMessage(stack)
+    if parsed_failure_reason not in _BANNED_FAILURE_REASONS:
+      current_result.SetFailureReason(parsed_failure_reason)
 
 
 def _ParseExceptionMessage(stack):
@@ -541,6 +552,7 @@ class InstrumentationTestInstance(test_instance.TestInstance):
     self._junit4_runner_class = None
     self._uses_base_instrumentation = None
     self._has_chromium_test_listener = None
+    self._use_native_coverage_listener = None
     self._test_support_apk = None
     self._initializeApkAttributes(args, error_func)
 
@@ -682,6 +694,8 @@ class InstrumentationTestInstance(test_instance.TestInstance):
     test_apk_metadata = dict(self._test_apk.GetAllMetadata())
     self._has_chromium_test_listener = bool(
         test_apk_metadata.get('org.chromium.hasTestRunListener'))
+    self._use_native_coverage_listener = bool(
+        test_apk_metadata.get('org.chromium.useNativeCoverageListener'))
     if self._junit4_runner_class:
       if self._test_apk_incremental_install_json:
         for name, value in test_apk_metadata.items():
@@ -918,6 +932,10 @@ class InstrumentationTestInstance(test_instance.TestInstance):
   @property
   def uses_base_instrumentation(self):
     return self._uses_base_instrumentation
+
+  @property
+  def use_native_coverage_listener(self):
+    return self._use_native_coverage_listener
 
   @property
   def package_info(self):

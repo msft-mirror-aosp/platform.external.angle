@@ -150,6 +150,16 @@ def _dict2list(d):
   return d
 
 
+def _UpdateExtrasListener(extras, new_listener):
+  existing_listeners = extras.get('listener')
+  if existing_listeners:
+    # Comma is used to specify multiple listeners. See AndroidJUnitRunner.java
+    # in androidx code.
+    extras['listener'] = ','.join([existing_listeners, new_listener])
+  else:
+    extras['listener'] = new_listener
+
+
 class _TestListPickleException(Exception):
   pass
 
@@ -542,6 +552,14 @@ class LocalDeviceInstrumentationTestRun(
         self._ToggleAppLinks(dev, 'STATE_APPROVED')
 
       @trace_event.traced
+      def disable_system_modals(dev):
+        # Disable "Swipe down to exit fullscreen" modal.
+        # Disable notification permission dialog in Android T+.
+        cmd = ('settings put secure immersive_mode_confirmations confirmed && '
+               'settings put secure notification_permission_enabled 0')
+        dev.RunShellCommand(cmd, shell=True, check_return=True)
+
+      @trace_event.traced
       def set_vega_permissions(dev):
         # Normally, installation of VrCore automatically grants storage
         # permissions. However, since VrCore is part of the system image on
@@ -617,8 +635,8 @@ class LocalDeviceInstrumentationTestRun(
 
       install_steps += [push_test_data, create_flag_changer]
       post_install_steps += [
-          set_debug_app, approve_app_links, set_vega_permissions,
-          DismissCrashDialogs
+          set_debug_app, approve_app_links, disable_system_modals,
+          set_vega_permissions, DismissCrashDialogs
       ]
 
       def bind_crash_handler(step, dev):
@@ -961,6 +979,10 @@ class LocalDeviceInstrumentationTestRun(
                                 (coverage_basename, '%2m_%p%c'))
       extras[EXTRA_CLANG_COVERAGE_DEVICE_FILE] = posixpath.join(
           device_clang_profile_dir, clang_profile_filename)
+      if self._test_instance.use_native_coverage_listener:
+        _UpdateExtrasListener(
+            extras,
+            'org.chromium.base.test.NativeCoverageInstrumentationRunListener')
 
     if self._test_instance.enable_breakpad_dump:
       # Use external storage directory so that the breakpad dump can be accessed
@@ -1405,8 +1427,8 @@ class LocalDeviceInstrumentationTestRun(
         # adds the listener). This is needed to enable the the listener when
         # using AndroidJUnitRunner directly.
         if self._test_instance.has_chromium_test_listener:
-          extras['listener'] = (
-              'org.chromium.testing.TestListInstrumentationRunListener')
+          _UpdateExtrasListener(
+              extras, 'org.chromium.testing.TestListInstrumentationRunListener')
         elif not run_disabled:
           extras['notAnnotation'] = 'androidx.test.filters.FlakyTest'
 

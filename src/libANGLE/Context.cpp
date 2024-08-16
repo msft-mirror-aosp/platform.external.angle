@@ -161,6 +161,10 @@ constexpr state::ExtendedDirtyBits kPixelLocalStorageEXTEnableDisableExtendedDir
 constexpr state::DirtyObjects kPixelLocalStorageEXTEnableDisableDirtyObjects{
     state::DIRTY_OBJECT_DRAW_FRAMEBUFFER};
 
+constexpr state::DirtyBits kTilingDirtyBits{state::DIRTY_BIT_DRAW_FRAMEBUFFER_BINDING};
+constexpr state::ExtendedDirtyBits kTilingExtendedDirtyBits{};
+constexpr state::DirtyObjects kTilingDirtyObjects{state::DIRTY_OBJECT_DRAW_FRAMEBUFFER};
+
 egl::ShareGroup *AllocateOrGetShareGroup(egl::Display *display, const gl::Context *shareContext)
 {
     if (shareContext)
@@ -596,7 +600,8 @@ Context::Context(egl::Display *display,
              memoryProgramCache != nullptr,
              GetContextPriority(attribs),
              GetRobustAccess(attribs),
-             GetProtectedContent(attribs)),
+             GetProtectedContent(attribs),
+             GetIsExternal(attribs)),
       mShared(shareContext != nullptr || shareTextures != nullptr || shareSemaphores != nullptr),
       mDisplayTextureShareGroup(shareTextures != nullptr),
       mDisplaySemaphoreShareGroup(shareSemaphores != nullptr),
@@ -624,7 +629,6 @@ Context::Context(egl::Display *display,
       mFrameCapture(new angle::FrameCapture),
       mRefCount(0),
       mOverlay(mImplementation.get()),
-      mIsExternal(GetIsExternal(attribs)),
       mIsDestroyed(false)
 {
     for (angle::SubjectIndex uboIndex = kUniformBuffer0SubjectIndex;
@@ -1468,6 +1472,7 @@ void Context::bindReadFramebuffer(FramebufferID framebufferHandle)
 
 void Context::bindDrawFramebuffer(FramebufferID framebufferHandle)
 {
+    endTilingImplicit();
     Framebuffer *framebuffer = mState.mFramebufferManager->checkFramebufferAllocation(
         mImplementation.get(), this, framebufferHandle);
     mState.setDrawFramebufferBinding(framebuffer);
@@ -3827,6 +3832,28 @@ Extensions Context::generateSupportedExtensions() const
     supportedExtensions.requestExtensionANGLE            = true;
     supportedExtensions.multiDrawANGLE                   = true;
     supportedExtensions.programBinaryReadinessQueryANGLE = true;
+
+    const Limitations &limitations                  = getLimitations();
+    const angle::FrontendFeatures &frontendFeatures = mDisplay->getFrontendFeatures();
+
+    if (limitations.multidrawEmulated &&
+        !frontendFeatures.alwaysEnableEmulatedMultidrawExtensions.enabled && !mWebGLContext)
+    {
+        supportedExtensions.multiDrawANGLE       = false;
+        supportedExtensions.multiDrawIndirectEXT = false;
+    }
+
+    if (limitations.baseInstanceBaseVertexEmulated &&
+        !frontendFeatures.alwaysEnableEmulatedMultidrawExtensions.enabled && !mWebGLContext)
+    {
+        supportedExtensions.baseVertexBaseInstanceANGLE = false;
+    }
+
+    if (limitations.baseInstanceEmulated &&
+        !frontendFeatures.alwaysEnableEmulatedMultidrawExtensions.enabled && !mWebGLContext)
+    {
+        supportedExtensions.baseInstanceEXT = false;
+    }
 
     // Enable the no error extension if the context was created with the flag.
     supportedExtensions.noErrorKHR = skipValidation();
@@ -7259,7 +7286,8 @@ void Context::shaderBinary(GLsizei n,
 {
     Shader *shaderObject = getShaderNoResolveCompile(*shaders);
     ASSERT(shaderObject != nullptr);
-    ANGLE_CONTEXT_TRY(shaderObject->loadShaderBinary(this, binary, length));
+    ANGLE_CONTEXT_TRY(
+        shaderObject->loadShaderBinary(this, binary, length, angle::JobResultExpectancy::Future));
 }
 
 void Context::bindFragDataLocationIndexed(ShaderProgramID program,
@@ -9350,6 +9378,16 @@ void Context::onUniformBlockBindingUpdated(GLuint uniformBlockIndex)
     mStateCache.onUniformBufferStateChange(this);
 }
 
+void Context::endTilingImplicit()
+{
+    if (getMutablePrivateState()->isTiledRendering())
+    {
+        ANGLE_PERF_WARNING(getState().getDebug(), GL_DEBUG_SEVERITY_LOW,
+                           "Implicitly ending tiled rendering due to framebuffer state change");
+        getMutablePrivateState()->setTiledRendering(false);
+    }
+}
+
 void Context::onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message)
 {
     switch (index)
@@ -9674,11 +9712,17 @@ void Context::finishImmutable() const
     ANGLE_CONTEXT_TRY(mImplementation->finish(this));
 }
 
-void Context::beginPerfMonitor(GLuint monitor) {}
+void Context::beginPerfMonitor(GLuint monitor)
+{
+    getMutablePrivateState()->setPerfMonitorActive(true);
+}
 
 void Context::deletePerfMonitors(GLsizei n, GLuint *monitors) {}
 
-void Context::endPerfMonitor(GLuint monitor) {}
+void Context::endPerfMonitor(GLuint monitor)
+{
+    getMutablePrivateState()->setPerfMonitorActive(false);
+}
 
 void Context::genPerfMonitors(GLsizei n, GLuint *monitors)
 {
@@ -9939,12 +9983,62 @@ void Context::textureFoveationParameters(TextureID texturePacked,
 
 void Context::endTiling(GLbitfield preserveMask)
 {
-    UNIMPLEMENTED();
+    ANGLE_CONTEXT_TRY(mImplementation->endTiling(this, preserveMask));
+    getMutablePrivateState()->setTiledRendering(false);
 }
 
 void Context::startTiling(GLuint x, GLuint y, GLuint width, GLuint height, GLbitfield preserveMask)
 {
-    UNIMPLEMENTED();
+    ANGLE_CONTEXT_TRY(syncDirtyObjects(kTilingDirtyObjects, Command::Other));
+    ANGLE_CONTEXT_TRY(syncDirtyBits(kTilingDirtyBits, kTilingExtendedDirtyBits, Command::Other));
+    ANGLE_CONTEXT_TRY(
+        mImplementation->startTiling(this, Rectangle(x, y, width, height), preserveMask));
+    getMutablePrivateState()->setTiledRendering(true);
+}
+
+void Context::clearTexImage(TextureID texturePacked,
+                            GLint level,
+                            GLenum format,
+                            GLenum type,
+                            const void *data)
+{
+    Texture *texture = getTexture(texturePacked);
+
+    // Sync the texture's state directly. EXT_clear_texture does not require that the texture is
+    // bound.
+    if (texture->hasAnyDirtyBit())
+    {
+        ANGLE_CONTEXT_TRY(texture->syncState(this, Command::Other));
+    }
+
+    ANGLE_CONTEXT_TRY(
+        texture->clearImage(this, level, format, type, static_cast<const uint8_t *>(data)));
+}
+
+void Context::clearTexSubImage(TextureID texturePacked,
+                               GLint level,
+                               GLint xoffset,
+                               GLint yoffset,
+                               GLint zoffset,
+                               GLsizei width,
+                               GLsizei height,
+                               GLsizei depth,
+                               GLenum format,
+                               GLenum type,
+                               const void *data)
+{
+    Texture *texture = getTexture(texturePacked);
+
+    // Sync the texture's state directly. EXT_clear_texture does not require that the texture is
+    // bound.
+    if (texture->hasAnyDirtyBit())
+    {
+        ANGLE_CONTEXT_TRY(texture->syncState(this, Command::Other));
+    }
+
+    Box area(xoffset, yoffset, zoffset, width, height, depth);
+    ANGLE_CONTEXT_TRY(texture->clearSubImage(this, level, area, format, type,
+                                             static_cast<const uint8_t *>(data)));
 }
 
 // ErrorSet implementation.
