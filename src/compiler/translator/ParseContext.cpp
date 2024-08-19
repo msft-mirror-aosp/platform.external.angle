@@ -2311,14 +2311,14 @@ void TParseContext::checkPixelLocalStorageBindingIsValid(const TSourceLoc &locat
     if (type.isArray())
     {
         // PLS is not allowed in arrays.
-        // TODO(anglebug.com/7279): Consider allowing this once more backends are implemented.
+        // TODO(anglebug.com/40096838): Consider allowing this once more backends are implemented.
         error(location, "pixel local storage handles cannot be aggregated in arrays", "array");
     }
     else if (layoutQualifier.binding < 0)
     {
         error(location, "pixel local storage requires a binding index", "layout qualifier");
     }
-    // TODO(anglebug.com/7279):
+    // TODO(anglebug.com/40096838):
     // else if (binding >= GL_MAX_LOCAL_STORAGE_PLANES_ANGLE)
     // {
     // }
@@ -6507,7 +6507,27 @@ TTypeSpecifierNonArray TParseContext::addStructure(const TSourceLoc &structLine,
     {
         structSymbolType = SymbolType::Empty;
     }
-    TStructure *structure = new TStructure(&symbolTable, structName, fieldList, structSymbolType);
+
+    // To simplify pulling samplers out of structs, reorder the struct fields to put the samplers at
+    // the end.
+    TFieldList *reorderedFields = new TFieldList;
+    for (TField *field : *fieldList)
+    {
+        if (!IsSampler(field->type()->getBasicType()))
+        {
+            reorderedFields->push_back(field);
+        }
+    }
+    for (TField *field : *fieldList)
+    {
+        if (IsSampler(field->type()->getBasicType()))
+        {
+            reorderedFields->push_back(field);
+        }
+    }
+
+    TStructure *structure =
+        new TStructure(&symbolTable, structName, reorderedFields, structSymbolType);
 
     // Store a bool in the struct if we're at global scope, to allow us to
     // skip the local struct scoping workaround in HLSL.

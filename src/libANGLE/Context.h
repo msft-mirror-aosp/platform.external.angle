@@ -122,6 +122,7 @@ class ErrorSet : angle::NonCopyable
     bool isContextLost() const { return mContextLost.load(std::memory_order_relaxed) != 0; }
     GLenum getGraphicsResetStatus(rx::ContextImpl *contextImpl);
     GLenum getResetStrategy() const { return mResetStrategy; }
+    GLenum getErrorForCapture() const;
 
   private:
     void setContextLost();
@@ -582,7 +583,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     bool isVertexArrayGenerated(VertexArrayID vertexArray) const;
     bool isTransformFeedbackGenerated(TransformFeedbackID transformFeedback) const;
 
-    bool isExternal() const { return mIsExternal; }
+    bool isExternal() const { return mState.isExternal(); }
 
     void getBooleanvImpl(GLenum pname, GLboolean *params) const;
     void getFloatvImpl(GLenum pname, GLfloat *params) const;
@@ -781,6 +782,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     {
         return mTransformFeedbackMap;
     }
+    GLenum getErrorForCapture() const { return mErrors.getErrorForCapture(); }
 
     void onPreSwap();
 
@@ -908,6 +910,8 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
 
     void onUniformBlockBindingUpdated(GLuint uniformBlockIndex);
 
+    void endTilingImplicit();
+
     State mState;
     bool mShared;
     bool mDisplayTextureShareGroup;
@@ -1008,8 +1012,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     mutable size_t mRefCount;
 
     OverlayType mOverlay;
-
-    const bool mIsExternal;
 
     bool mIsDestroyed;
 
