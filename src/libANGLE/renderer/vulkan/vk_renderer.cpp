@@ -269,6 +269,11 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDraw-None-06550",
     // https://anglebug.com/345304850
     "WARNING-Shader-OutputNotConsumed",
+    // https://crbug.com/359904720
+    "VUID-vkCmdDraw-Input-07939",
+    "VUID-vkCmdDrawIndexed-Input-07939",
+    "VUID-vkCmdDrawIndexedIndirect-Input-07939",
+    "VUID-vkCmdDrawIndirect-Input-07939",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -1435,6 +1440,7 @@ angle::Result OneOffCommandPool::getCommandBuffer(vk::Context *context,
             {
                 createInfo.flags |= VK_COMMAND_POOL_CREATE_PROTECTED_BIT;
             }
+            createInfo.queueFamilyIndex = context->getRenderer()->getQueueFamilyIndex();
             ANGLE_VK_TRY(context, mCommandPool.init(context->getDevice(), createInfo));
         }
 
@@ -3610,6 +3616,13 @@ angle::Result Renderer::setupDevice(vk::Context *context,
     mEnabledFeatures.features.logicOp = mPhysicalDeviceFeatures.logicOp;
     // Used to support EXT_multisample_compatibility
     mEnabledFeatures.features.alphaToOne = mPhysicalDeviceFeatures.alphaToOne;
+    // Used to support 16bit-integers in shader code
+    mEnabledFeatures.features.shaderInt16 = mPhysicalDeviceFeatures.shaderInt16;
+    // Used to support 64bit-integers in shader code
+    mEnabledFeatures.features.shaderInt64 = mPhysicalDeviceFeatures.shaderInt64;
+    // Used to support 64bit-floats in shader code
+    mEnabledFeatures.features.shaderFloat64 =
+        mFeatures.supportsShaderFloat64.enabled && mPhysicalDeviceFeatures.shaderFloat64;
 
     if (!vk::OutsideRenderPassCommandBuffer::ExecutesInline() ||
         !vk::RenderPassCommandBuffer::ExecutesInline())
@@ -4636,6 +4649,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsShaderFloat16,
                             mShaderFloat16Int8Features.shaderFloat16 == VK_TRUE);
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsShaderInt8,
+                            mShaderFloat16Int8Features.shaderInt8 == VK_TRUE);
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsShaderFloat64,
+                            mPhysicalDeviceFeatures.shaderFloat64 == VK_TRUE);
 
     // Prefer driver uniforms over specialization constants in the following:
     //
