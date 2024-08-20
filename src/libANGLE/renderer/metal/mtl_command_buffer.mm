@@ -12,6 +12,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <random>
 #include <type_traits>
 #include "mtl_command_buffer.h"
 #if ANGLE_MTL_SIMULATE_DISCARD_FRAMEBUFFER
@@ -379,19 +380,7 @@ inline void UseResourceCmd(id<MTLRenderCommandEncoder> encoder, IntermediateComm
     id<MTLResource> resource = stream->fetch<id<MTLResource>>();
     MTLResourceUsage usage   = stream->fetch<MTLResourceUsage>();
     mtl::RenderStages stages = stream->fetch<mtl::RenderStages>();
-    ANGLE_UNUSED_VARIABLE(stages);
-#if defined(__IPHONE_13_0) || defined(__MAC_10_15)
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13.0))
-    {
-        [encoder useResource:resource usage:usage stages:stages];
-    }
-    else
-#endif
-    {
-        ANGLE_APPLE_ALLOW_DEPRECATED_BEGIN
-        [encoder useResource:resource usage:usage];
-        ANGLE_APPLE_ALLOW_DEPRECATED_END
-    }
+    [encoder useResource:resource usage:usage stages:stages];
     [resource ANGLE_MTL_RELEASE];
 }
 
@@ -469,6 +458,30 @@ inline void CheckPrimitiveType(MTLPrimitiveType primitiveType)
     {
         // Should have been caught by validation higher up.
         FATAL() << "invalid primitive type was uncaught by validation";
+    }
+}
+
+template <typename ObjCAttachmentDescriptor>
+void RandomizeClearValue(ObjCAttachmentDescriptor *objCRenderPassAttachment)
+{
+    std::random_device rd;
+    if constexpr (std::is_same_v<ObjCAttachmentDescriptor, MTLRenderPassColorAttachmentDescriptor>)
+    {
+        std::uniform_real_distribution<float> dist(0.f, 1.f);
+        objCRenderPassAttachment.clearColor =
+            MTLClearColorMake(dist(rd), dist(rd), dist(rd), dist(rd));
+    }
+    else if constexpr (std::is_same_v<ObjCAttachmentDescriptor,
+                                      MTLRenderPassDepthAttachmentDescriptor>)
+    {
+        std::uniform_real_distribution<float> dist(0.f, 1.f);
+        objCRenderPassAttachment.clearDepth = dist(rd);
+    }
+    else if constexpr (std::is_same_v<ObjCAttachmentDescriptor,
+                                      MTLRenderPassStencilAttachmentDescriptor>)
+    {
+        std::uniform_int_distribution<uint32_t> dist(0, 255);
+        objCRenderPassAttachment.clearStencil = dist(rd);
     }
 }
 
@@ -1319,8 +1332,11 @@ void RenderCommandEncoderStates::reset()
 
 // RenderCommandEncoder implemtation
 RenderCommandEncoder::RenderCommandEncoder(CommandBuffer *cmdBuffer,
-                                           const OcclusionQueryPool &queryPool)
-    : CommandEncoder(cmdBuffer, RENDER), mOcclusionQueryPool(queryPool)
+                                           const OcclusionQueryPool &queryPool,
+                                           bool emulateDontCareLoadOpWithRandomClear)
+    : CommandEncoder(cmdBuffer, RENDER),
+      mOcclusionQueryPool(queryPool),
+      mEmulateDontCareLoadOpWithRandomClear(emulateDontCareLoadOpWithRandomClear)
 {
     ANGLE_MTL_OBJC_SCOPE
     {
@@ -1428,6 +1444,15 @@ bool RenderCommandEncoder::finalizeLoadStoreAction(
             objCRenderPassAttachment.loadAction = MTLLoadActionClear;
             objCRenderPassAttachment.clearColor = MTLClearColorMake(0, 0, 0, kEmulatedAlphaValue);
         }
+    }
+
+    if (ANGLE_UNLIKELY(mEmulateDontCareLoadOpWithRandomClear &&
+                       objCRenderPassAttachment.loadAction == MTLLoadActionDontCare))
+    {
+        // Emulate DontCare loadAction with Clear. This is useful for testing undefined values
+        // caused by DontCare loadAction on non-tiled GPUs.
+        objCRenderPassAttachment.loadAction = MTLLoadActionClear;
+        RandomizeClearValue(objCRenderPassAttachment);
     }
 
     if (objCRenderPassAttachment.storeAction == MTLStoreActionUnknown)
