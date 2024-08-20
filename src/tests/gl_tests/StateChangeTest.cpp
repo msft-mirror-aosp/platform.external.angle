@@ -3078,6 +3078,9 @@ void main()
     glDispatchCompute(1, 1, 1);
     EXPECT_GL_NO_ERROR();
 
+    // Needs explicit barrier between compute shader write to FBO access.
+    glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+
     // Create the framebuffer that will be invalidated
     GLFramebuffer drawFBO;
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFBO);
@@ -3102,6 +3105,7 @@ void main()
     glDispatchCompute(1, 1, 1);
     EXPECT_GL_NO_ERROR();
 
+    // Needs explicit barrier between compute shader write to FBO access.
     glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 
     // Blend into the framebuffer, then verify that the framebuffer should have had cyan.
@@ -3145,6 +3149,9 @@ void main()
     glDispatchCompute(1, 1, 1);
     EXPECT_GL_NO_ERROR();
 
+    // Needs explicit barrier between compute shader write to FBO access.
+    glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
+
     // Create the framebuffer that will be invalidated
     GLFramebuffer drawFBO;
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFBO);
@@ -3169,6 +3176,7 @@ void main()
     glDispatchCompute(1, 1, 1);
     EXPECT_GL_NO_ERROR();
 
+    // Needs explicit barrier between compute shader write to FBO access.
     glMemoryBarrier(GL_FRAMEBUFFER_BARRIER_BIT);
 
     // Blend into the framebuffer, then verify that the framebuffer should have had cyan.
@@ -11145,6 +11153,81 @@ void main()
     // Verify results
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::yellow);
     ASSERT_GL_NO_ERROR();
+}
+
+// Tests that viewport changes within a render pass are correct. WebGPU sets a default viewport,
+// cover the omission of setViewport in the backend.
+TEST_P(StateChangeTest, ViewportChangeWithinRenderPass)
+{
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), essl1_shaders::fs::UniformColor());
+    glUseProgram(program);
+    GLint colorLoc = glGetUniformLocation(program, essl1_shaders::ColorUniform());
+
+    glViewport(0, 0, 10, 10);
+    glUniform4f(colorLoc, 1.0f, 0.0f, 0.0f, 1.0f);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+
+    glViewport(0, 0, getWindowWidth(), getWindowHeight());  // "default" size
+    glUniform4f(colorLoc, 0.0f, 1.0f, 0.0f, 1.0f);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+
+    // Verify that the first draw is covered by the second "full" draw
+    EXPECT_PIXEL_COLOR_EQ(5, 5, GLColor::green);
+    EXPECT_PIXEL_COLOR_EQ(12, 12, GLColor::green);
+
+    // Go the other way, start with a full size viewport and change it to 10x10 for the second draw
+    glViewport(0, 0, getWindowWidth(), getWindowHeight());  // "default" size
+    glUniform4f(colorLoc, 0.0f, 0.0f, 1.0f, 1.0f);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+
+    glViewport(0, 0, 10, 10);
+    glUniform4f(colorLoc, 1.0f, 0.0f, 0.0f, 1.0f);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+
+    // Verify that the first draw is covered by the second "full" draw
+    EXPECT_PIXEL_COLOR_EQ(5, 5, GLColor::red);
+    EXPECT_PIXEL_COLOR_EQ(12, 12, GLColor::blue);
+}
+
+// Tests that scissor changes within a render pass are correct. WebGPU sets a default scissor, cover
+// the omission of setScissorRect in the backend.
+TEST_P(StateChangeTest, ScissortChangeWithinRenderPass)
+{
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glEnable(GL_SCISSOR_TEST);
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), essl1_shaders::fs::UniformColor());
+    glUseProgram(program);
+    GLint colorLoc = glGetUniformLocation(program, essl1_shaders::ColorUniform());
+
+    glScissor(0, 0, 10, 10);
+    glUniform4f(colorLoc, 1.0f, 0.0f, 0.0f, 1.0f);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+
+    glScissor(0, 0, getWindowWidth(), getWindowHeight());  // "default" size
+    glUniform4f(colorLoc, 0.0f, 1.0f, 0.0f, 1.0f);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+
+    // Verify that the first draw is covered by the second "full" draw
+    EXPECT_PIXEL_COLOR_EQ(5, 5, GLColor::green);
+    EXPECT_PIXEL_COLOR_EQ(12, 12, GLColor::green);
+
+    // Go the other way, start with a full size scissor and change it to 10x10 for the second draw
+    glScissor(0, 0, getWindowWidth(), getWindowHeight());  // "default" size
+    glUniform4f(colorLoc, 0.0f, 0.0f, 1.0f, 1.0f);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+
+    glScissor(0, 0, 10, 10);
+    glUniform4f(colorLoc, 1.0f, 0.0f, 0.0f, 1.0f);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+
+    // Verify that the first draw is covered by the second "full" draw
+    EXPECT_PIXEL_COLOR_EQ(5, 5, GLColor::red);
+    EXPECT_PIXEL_COLOR_EQ(12, 12, GLColor::blue);
 }
 
 }  // anonymous namespace

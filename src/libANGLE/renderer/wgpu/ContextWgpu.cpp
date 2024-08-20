@@ -58,65 +58,10 @@ constexpr angle::PackedEnumMap<webgpu::RenderPassClosureReason, const char *>
 ContextWgpu::ContextWgpu(const gl::State &state, gl::ErrorSet *errorSet, DisplayWgpu *display)
     : ContextImpl(state, errorSet), mDisplay(display)
 {
-    mExtensions                               = gl::Extensions();
-    mExtensions.blendEquationAdvancedKHR      = true;
-    mExtensions.blendFuncExtendedEXT          = true;
-    mExtensions.copyCompressedTextureCHROMIUM = true;
-    mExtensions.copyTextureCHROMIUM           = true;
-    mExtensions.debugMarkerEXT                = true;
-    mExtensions.drawBuffersIndexedOES         = true;
-    mExtensions.fenceNV                       = true;
-    mExtensions.framebufferBlitANGLE          = true;
-    mExtensions.framebufferBlitNV             = true;
-    mExtensions.instancedArraysANGLE          = true;
-    mExtensions.instancedArraysEXT            = true;
-    mExtensions.mapBufferRangeEXT             = true;
-    mExtensions.mapbufferOES                  = true;
-    mExtensions.pixelBufferObjectNV           = true;
-    mExtensions.shaderPixelLocalStorageANGLE  = state.getClientVersion() >= gl::Version(3, 0);
-    mExtensions.shaderPixelLocalStorageCoherentANGLE = mExtensions.shaderPixelLocalStorageANGLE;
-    mExtensions.textureRectangleANGLE                = true;
-    mExtensions.textureUsageANGLE                    = true;
-    mExtensions.translatedShaderSourceANGLE          = true;
-    mExtensions.vertexArrayObjectOES                 = true;
-
-    mExtensions.textureStorageEXT               = true;
-    mExtensions.rgb8Rgba8OES                    = true;
-    mExtensions.textureCompressionDxt1EXT       = true;
-    mExtensions.textureCompressionDxt3ANGLE     = true;
-    mExtensions.textureCompressionDxt5ANGLE     = true;
-    mExtensions.textureCompressionS3tcSrgbEXT   = true;
-    mExtensions.textureCompressionAstcHdrKHR    = true;
-    mExtensions.textureCompressionAstcLdrKHR    = true;
-    mExtensions.textureCompressionAstcOES       = true;
-    mExtensions.compressedETC1RGB8TextureOES    = true;
-    mExtensions.compressedETC1RGB8SubTextureEXT = true;
-    mExtensions.lossyEtcDecodeANGLE             = true;
-    mExtensions.geometryShaderEXT               = true;
-    mExtensions.geometryShaderOES               = true;
-    mExtensions.multiDrawIndirectEXT            = true;
-
-    mExtensions.EGLImageOES                 = true;
-    mExtensions.EGLImageExternalOES         = true;
-    mExtensions.EGLImageExternalEssl3OES    = true;
-    mExtensions.EGLImageArrayEXT            = true;
-    mExtensions.EGLStreamConsumerExternalNV = true;
-
-    const gl::Version maxClientVersion(3, 1);
-    mCaps = GenerateMinimumCaps(maxClientVersion, mExtensions);
-
-    InitMinimumTextureCapsMap(maxClientVersion, mExtensions, &mTextureCaps);
-
-    webgpu::EnsureCapsInitialized(mDisplay->getDevice(), &mCaps);
-
-    if (mExtensions.shaderPixelLocalStorageANGLE)
-    {
-        mPLSOptions.type             = ShPixelLocalStorageType::FramebufferFetch;
-        mPLSOptions.fragmentSyncType = ShFragmentSynchronizationType::Automatic;
-    }
-
     mNewRenderPassDirtyBits = DirtyBits{
         DIRTY_BIT_RENDER_PIPELINE_BINDING,  // The pipeline needs to be bound for each renderpass
+        DIRTY_BIT_VIEWPORT,
+        DIRTY_BIT_SCISSOR,
     };
 }
 
@@ -579,12 +524,16 @@ angle::Result ContextWgpu::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_READ_FRAMEBUFFER_BINDING:
                 break;
             case gl::state::DIRTY_BIT_SCISSOR_TEST_ENABLED:
+                mDirtyBits.set(DIRTY_BIT_SCISSOR);
                 break;
             case gl::state::DIRTY_BIT_SCISSOR:
+                mDirtyBits.set(DIRTY_BIT_SCISSOR);
                 break;
             case gl::state::DIRTY_BIT_VIEWPORT:
+                mDirtyBits.set(DIRTY_BIT_VIEWPORT);
                 break;
             case gl::state::DIRTY_BIT_DEPTH_RANGE:
+                mDirtyBits.set(DIRTY_BIT_VIEWPORT);
                 break;
             case gl::state::DIRTY_BIT_BLEND_ENABLED:
                 break;
@@ -619,20 +568,64 @@ angle::Result ContextWgpu::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_DEPTH_TEST_ENABLED:
                 break;
             case gl::state::DIRTY_BIT_DEPTH_FUNC:
+                if (mRenderPipelineDesc.setDepthFunc(
+                        gl_wgpu::getCompareFunc(glState.getDepthStencilState().depthFunc)))
+                {
+                    invalidateCurrentRenderPipeline();
+                }
                 break;
             case gl::state::DIRTY_BIT_DEPTH_MASK:
                 break;
             case gl::state::DIRTY_BIT_STENCIL_TEST_ENABLED:
                 break;
             case gl::state::DIRTY_BIT_STENCIL_FUNCS_FRONT:
+                if (mRenderPipelineDesc.setStencilFrontFunc(
+                        gl_wgpu::getCompareFunc(glState.getDepthStencilState().stencilFunc)))
+                {
+                    invalidateCurrentRenderPipeline();
+                }
                 break;
             case gl::state::DIRTY_BIT_STENCIL_FUNCS_BACK:
+                if (mRenderPipelineDesc.setStencilBackFunc(
+                        gl_wgpu::getCompareFunc(glState.getDepthStencilState().stencilBackFunc)))
+                {
+                    invalidateCurrentRenderPipeline();
+                }
                 break;
             case gl::state::DIRTY_BIT_STENCIL_OPS_FRONT:
+            {
+                wgpu::StencilOperation failOp =
+                    gl_wgpu::getStencilOp(glState.getDepthStencilState().stencilFail);
+                wgpu::StencilOperation depthFailOp =
+                    gl_wgpu::getStencilOp(glState.getDepthStencilState().stencilPassDepthFail);
+                wgpu::StencilOperation passOp =
+                    gl_wgpu::getStencilOp(glState.getDepthStencilState().stencilPassDepthPass);
+                if (mRenderPipelineDesc.setStencilFrontOps(failOp, depthFailOp, passOp))
+                {
+                    invalidateCurrentRenderPipeline();
+                }
+            }
                 break;
             case gl::state::DIRTY_BIT_STENCIL_OPS_BACK:
+            {
+                wgpu::StencilOperation failOp =
+                    gl_wgpu::getStencilOp(glState.getDepthStencilState().stencilBackFail);
+                wgpu::StencilOperation depthFailOp =
+                    gl_wgpu::getStencilOp(glState.getDepthStencilState().stencilBackPassDepthFail);
+                wgpu::StencilOperation passOp =
+                    gl_wgpu::getStencilOp(glState.getDepthStencilState().stencilBackPassDepthPass);
+                if (mRenderPipelineDesc.setStencilBackOps(failOp, depthFailOp, passOp))
+                {
+                    invalidateCurrentRenderPipeline();
+                }
+            }
                 break;
             case gl::state::DIRTY_BIT_STENCIL_WRITEMASK_FRONT:
+                if (mRenderPipelineDesc.setStencilWriteMask(
+                        glState.getDepthStencilState().stencilWritemask))
+                {
+                    invalidateCurrentRenderPipeline();
+                }
                 break;
             case gl::state::DIRTY_BIT_STENCIL_WRITEMASK_BACK:
                 break;
@@ -780,27 +773,27 @@ angle::Result ContextWgpu::onMakeCurrent(const gl::Context *context)
 
 gl::Caps ContextWgpu::getNativeCaps() const
 {
-    return mCaps;
+    return mDisplay->getGLCaps();
 }
 
 const gl::TextureCapsMap &ContextWgpu::getNativeTextureCaps() const
 {
-    return mTextureCaps;
+    return mDisplay->getGLTextureCaps();
 }
 
 const gl::Extensions &ContextWgpu::getNativeExtensions() const
 {
-    return mExtensions;
+    return mDisplay->getGLExtensions();
 }
 
 const gl::Limitations &ContextWgpu::getNativeLimitations() const
 {
-    return mLimitations;
+    return mDisplay->getGLLimitations();
 }
 
 const ShPixelLocalStorageOptions &ContextWgpu::getNativePixelLocalStorageOptions() const
 {
-    return mPLSOptions;
+    return mDisplay->getPLSOptions();
 }
 
 CompilerImpl *ContextWgpu::createCompiler()
@@ -947,7 +940,7 @@ angle::Result ContextWgpu::endRenderPass(webgpu::RenderPassClosureReason closure
     if (mCurrentRenderPass)
     {
         const char *reasonText = kRenderPassClosureReason[closureReason];
-        INFO() << reasonText;
+        ASSERT(reasonText);
 
         if (mCommandBuffer.hasCommands())
         {
@@ -1009,6 +1002,14 @@ angle::Result ContextWgpu::setupDraw(const gl::Context *context,
                     ANGLE_TRY(handleDirtyRenderPipelineBinding(&dirtyBitIter));
                     break;
 
+                case DIRTY_BIT_VIEWPORT:
+                    ANGLE_TRY(handleDirtyViewport(&dirtyBitIter));
+                    break;
+
+                case DIRTY_BIT_SCISSOR:
+                    ANGLE_TRY(handleDirtyScissor(&dirtyBitIter));
+                    break;
+
                 default:
                     UNREACHABLE();
                     break;
@@ -1041,6 +1042,77 @@ angle::Result ContextWgpu::handleDirtyRenderPipelineBinding(DirtyBits::Iterator 
 {
     ASSERT(mCurrentGraphicsPipeline);
     mCommandBuffer.setPipeline(mCurrentGraphicsPipeline);
+    return angle::Result::Continue;
+}
+
+angle::Result ContextWgpu::handleDirtyViewport(DirtyBits::Iterator *dirtyBitsIterator)
+{
+    const gl::Framebuffer *framebuffer = mState.getDrawFramebuffer();
+    const gl::Extents &framebufferSize = framebuffer->getExtents();
+    const gl::Rectangle framebufferRect(0, 0, framebufferSize.width, framebufferSize.height);
+
+    gl::Rectangle clampedViewport;
+    if (!ClipRectangle(mState.getViewport(), framebufferRect, &clampedViewport))
+    {
+        clampedViewport = gl::Rectangle(0, 0, 1, 1);
+    }
+
+    float depthMin = mState.getNearPlane();
+    float depthMax = mState.getFarPlane();
+
+    // This clamping should be done by the front end. WebGPU requires values in this range.
+    ASSERT(depthMin >= 0 && depthMin <= 1);
+    ASSERT(depthMin >= 0 && depthMin <= 1);
+
+    // WebGPU requires that the maxDepth is at least minDepth. WebGL requires the same but core GL
+    // ES does not.
+    if (depthMin > depthMax)
+    {
+        UNIMPLEMENTED();
+    }
+
+    bool isDefaultViewport = (clampedViewport == framebufferRect) && depthMin == 0 && depthMax == 1;
+    if (isDefaultViewport && !mCommandBuffer.hasSetViewportCommand())
+    {
+        // Each render pass has a default viewport set equal to the size of the render targets. We
+        // can skip setting the viewport.
+        return angle::Result::Continue;
+    }
+
+    ASSERT(mCurrentGraphicsPipeline);
+    mCommandBuffer.setViewport(clampedViewport.x, clampedViewport.y, clampedViewport.width,
+                               clampedViewport.height, depthMin, depthMax);
+    return angle::Result::Continue;
+}
+
+angle::Result ContextWgpu::handleDirtyScissor(DirtyBits::Iterator *dirtyBitsIterator)
+{
+    const gl::Framebuffer *framebuffer = mState.getDrawFramebuffer();
+    const gl::Extents &framebufferSize = framebuffer->getExtents();
+    const gl::Rectangle framebufferRect(0, 0, framebufferSize.width, framebufferSize.height);
+
+    gl::Rectangle clampedScissor = framebufferRect;
+
+    // When the GL scissor test is disabled, set the scissor to the entire size of the framebuffer
+    if (mState.isScissorTestEnabled())
+    {
+        if (!ClipRectangle(mState.getScissor(), framebufferRect, &clampedScissor))
+        {
+            clampedScissor = gl::Rectangle(0, 0, 0, 0);
+        }
+    }
+
+    bool isDefaultScissor = clampedScissor == framebufferRect;
+    if (isDefaultScissor && !mCommandBuffer.hasSetScissorCommand())
+    {
+        // Each render pass has a default scissor set equal to the size of the render targets. We
+        // can skip setting the scissor.
+        return angle::Result::Continue;
+    }
+
+    ASSERT(mCurrentGraphicsPipeline);
+    mCommandBuffer.setScissorRect(clampedScissor.x, clampedScissor.y, clampedScissor.width,
+                                  clampedScissor.height);
     return angle::Result::Continue;
 }
 

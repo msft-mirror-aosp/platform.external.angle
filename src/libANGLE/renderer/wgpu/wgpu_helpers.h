@@ -78,11 +78,15 @@ class ImageHelper
                             wgpu::Device &device,
                             gl::LevelIndex firstAllocatedLevel,
                             wgpu::TextureDescriptor textureDescriptor);
-    angle::Result initExternal(wgpu::Texture externalTexture);
+    angle::Result initExternal(angle::FormatID intendedFormatID,
+                               angle::FormatID actualFormatID,
+                               wgpu::Texture externalTexture);
 
-    angle::Result flushStagedUpdates(ContextWgpu *contextWgpu,
-                                     ClearValuesArray *deferredClears = nullptr,
-                                     uint32_t deferredClearIndex      = 0);
+    angle::Result flushStagedUpdates(ContextWgpu *contextWgpu);
+    angle::Result flushSingleLevelUpdates(ContextWgpu *contextWgpu,
+                                          gl::LevelIndex levelGL,
+                                          ClearValuesArray *deferredClears = nullptr,
+                                          uint32_t deferredClearIndex      = 0);
 
     wgpu::TextureDescriptor createTextureDescriptor(wgpu::TextureUsage usage,
                                                     wgpu::TextureDimension dimension,
@@ -122,7 +126,6 @@ class ImageHelper
     angle::Result readPixels(rx::ContextWgpu *contextWgpu,
                              const gl::Rectangle &area,
                              const rx::PackPixelsParams &packPixelsParams,
-                             const angle::Format &aspectFormat,
                              void *pixels);
 
     angle::Result createTextureView(gl::LevelIndex targetLevel,
@@ -143,6 +146,9 @@ class ImageHelper
     bool isInitialized() { return mInitialized; }
 
   private:
+    void appendSubresourceUpdate(gl::LevelIndex level, SubresourceUpdate &&update);
+    std::vector<SubresourceUpdate> *getLevelUpdates(gl::LevelIndex level);
+
     wgpu::Texture mTexture;
     wgpu::TextureDescriptor mTextureDescriptor = {};
     bool mInitialized                          = false;
@@ -151,7 +157,7 @@ class ImageHelper
     angle::FormatID mIntendedFormatID;
     angle::FormatID mActualFormatID;
 
-    std::vector<SubresourceUpdate> mSubresourceQueue;
+    std::vector<std::vector<SubresourceUpdate>> mSubresourceQueue;
 };
 struct BufferMapState
 {
@@ -195,10 +201,12 @@ class BufferHelper : public angle::NonCopyable
     bool canMapForWrite() const;
 
     wgpu::Buffer &getBuffer();
-    uint64_t size() const;
+    uint64_t requestedSize() const;
+    uint64_t actualSize() const;
 
   private:
     wgpu::Buffer mBuffer;
+    size_t mRequestedSize = 0;
 
     std::optional<BufferMapState> mMappedState;
 };

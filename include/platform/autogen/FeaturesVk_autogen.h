@@ -424,6 +424,21 @@ struct FeaturesVk : FeatureSetBase
         &members, "http://anglebug.com/42263158"
     };
 
+    FeatureInfo supportsShaderInt8 = {
+        "supportsShaderInt8",
+        FeatureCategory::VulkanFeatures,
+        "VkDevice supports the VK_KHR_shader_float16_int8 extension "
+        "and has the shaderInt8 feature",
+        &members,
+    };
+
+    FeatureInfo supportsShaderFloat64 = {
+        "supportsShaderFloat64",
+        FeatureCategory::VulkanFeatures,
+        "VkDevice supports the shaderFloat64 bit of VkPhysicalDeviceFeatures",
+        &members,
+    };
+
     FeatureInfo allowGenerateMipmapWithCompute = {
         "allowGenerateMipmapWithCompute",
         FeatureCategory::VulkanFeatures,
@@ -938,6 +953,13 @@ struct FeaturesVk : FeatureSetBase
         &members, "http://anglebug.com/42266906"
     };
 
+    FeatureInfo generateFragmentShadingRateAttchementWithCpu = {
+        "generateFragmentShadingRateAttchementWithCpu",
+        FeatureCategory::VulkanFeatures,
+        "Generate the fragment shading rates on the CPU instead of a compute shader",
+        &members, "http://anglebug.com/42266906"
+    };
+
     FeatureInfo supportsFragmentShaderPixelInterlock = {
         "supportsFragmentShaderPixelInterlock",
         FeatureCategory::VulkanFeatures,
@@ -1341,6 +1363,14 @@ struct FeaturesVk : FeatureSetBase
         "On some drivers, the OpSelect SPIR-V instruction with arguments with mismatching "
         "RelaxedPrecision decoration causes a crash",
         &members, "http://anglebug.com/41493495"
+    };
+
+    FeatureInfo wrapSwitchInIfTrue = {
+        "wrapSwitchInIfTrue",
+        FeatureCategory::VulkanWorkarounds,
+        "On some drivers, nested switch statements are mishandled which can be worked around "
+        "by wrapping them in if(true)",
+        &members, "http://crbug.com/350528343"
     };
 
     FeatureInfo disableDepthStencilResolveThroughAttachment = {

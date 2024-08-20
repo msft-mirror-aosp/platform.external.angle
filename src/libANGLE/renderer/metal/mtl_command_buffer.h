@@ -96,7 +96,7 @@ class CommandQueue final : public WrappedObject<id<MTLCommandQueue>>, angle::Non
     AutoObjCPtr<id<MTLCommandBuffer>> makeMetalCommandBuffer(uint64_t *queueSerialOut);
     void onCommandBufferCommitted(id<MTLCommandBuffer> buf, uint64_t serial);
 
-    uint64_t getNextRenderEncoderSerial();
+    uint64_t getNextRenderPassEncoderSerial();
 
     uint64_t allocateTimeElapsedEntry();
     bool deleteTimeElapsedEntry(uint64_t id);
@@ -403,7 +403,9 @@ struct RenderCommandEncoderStates
 class RenderCommandEncoder final : public CommandEncoder
 {
   public:
-    RenderCommandEncoder(CommandBuffer *cmdBuffer, const OcclusionQueryPool &queryPool);
+    RenderCommandEncoder(CommandBuffer *cmdBuffer,
+                         const OcclusionQueryPool &queryPool,
+                         bool emulateDontCareLoadOpWithRandomClear);
     ~RenderCommandEncoder() override;
 
     // override CommandEncoder
@@ -597,7 +599,9 @@ class RenderCommandEncoder final : public CommandEncoder
     void initAttachmentWriteDependencyAndScissorRect(const RenderPassAttachmentDesc &attachment);
     void initWriteDependency(const TextureRef &texture);
 
-    bool finalizeLoadStoreAction(MTLRenderPassAttachmentDescriptor *objCRenderPassAttachment);
+    template <typename ObjCAttachmentDescriptor>
+    bool finalizeLoadStoreAction(const RenderPassAttachmentDesc &cppRenderPassAttachment,
+                                 ObjCAttachmentDescriptor *objCRenderPassAttachment);
 
     void encodeMetalEncoder();
     void simulateDiscardFramebuffer();
@@ -630,7 +634,9 @@ class RenderCommandEncoder final : public CommandEncoder
     RenderCommandEncoderStates mStateCache = {};
 
     bool mPipelineStateSet = false;
-    const uint64_t mSerial = 0;
+    uint64_t mSerial       = 0;
+
+    const bool mEmulateDontCareLoadOpWithRandomClear;
 };
 
 class BlitCommandEncoder final : public CommandEncoder

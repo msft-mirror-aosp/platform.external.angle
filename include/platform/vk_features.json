@@ -448,6 +448,21 @@
             "issue": "http://anglebug.com/42263158"
         },
         {
+            "name": "supports_shader_int8",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the VK_KHR_shader_float16_int8 extension ",
+                "and has the shaderInt8 feature"
+            ]
+        },
+        {
+            "name": "supports_shader_float64",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the shaderFloat64 bit of VkPhysicalDeviceFeatures"
+            ]
+        },
+        {
             "name": "allow_GenerateMipmap_with_compute",
             "category": "Features",
             "description": [
@@ -1016,6 +1031,14 @@
             "issue": "http://anglebug.com/42266906"
         },
         {
+            "name": "generate_fragment_shading_rate_attchement_with_cpu",
+            "category": "Features",
+            "description": [
+                "Generate the fragment shading rates on the CPU instead of a compute shader"
+            ],
+            "issue": "http://anglebug.com/42266906"
+        },
+        {
             "name": "supports_fragment_shader_pixel_interlock",
             "category": "Features",
             "description": [
@@ -1463,6 +1486,15 @@
                 "RelaxedPrecision decoration causes a crash"
             ],
             "issue": "http://anglebug.com/41493495"
+        },
+        {
+            "name": "wrap_switch_in_if_true",
+            "category": "Workarounds",
+            "description": [
+                "On some drivers, nested switch statements are mishandled which can be worked around ",
+                "by wrapping them in if(true)"
+            ],
+            "issue": "http://crbug.com/350528343"
         },
         {
             "name": "disable_depth_stencil_resolve_through_attachment",

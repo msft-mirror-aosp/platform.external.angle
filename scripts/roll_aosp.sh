@@ -100,6 +100,21 @@ function generate_Android_bp_file() {
         --output=Android.bp
 }
 
+function generate_angle_commit_file() {
+    # Output chromium ANGLE git hash during ANGLE to Android roll into
+    # {AndroidANGLERoot}/angle_commit.h.
+    # In Android repos, we stop generating the angle_commit.h at compile time,
+    # because in Android repos, access to .git is not guaranteed, running
+    # commit_id.py at compile time will generate "unknown hash" for ANGLE_COMMIT_HASH.
+    # Instead, we generate angle_commit.h during ANGLE to Android roll time.
+    # Before roll_aosp.sh is called during the roll, ANGLE_UPSTREAM_HASH environment
+    # variable is set to {rolling_to} git hash, and that can be used by below
+    # script commit_id.py as the ANGLE_COMMIT_HASH written to the angle_commit.h.
+    # See b/348044346.
+    python3 src/commit_id.py \
+        gen \
+        angle_commit.h
+}
 
 if [[ "$1" == "--genAndroidBp" ]];then
     generate_Android_bp_file "$2"
@@ -153,6 +168,10 @@ gclient sync --reset --force --delete_unversioned_trees
 rm -rf ${GN_OUTPUT_DIRECTORY}
 
 generate_Android_bp_file
+git add Android.bp
+
+generate_angle_commit_file
+git add angle_commit.h
 
 # Delete outdir to cleanup after gn.
 rm -rf ${GN_OUTPUT_DIRECTORY}
@@ -171,8 +190,6 @@ unsupported_third_party_deps=(
 for unsupported_third_party_dep in "${unsupported_third_party_deps[@]}"; do
    rm -rf "$unsupported_third_party_dep"
 done
-
-git add Android.bp
 
 # Delete the .git files in each dep so that it can be added to this repo. Some deps like jsoncpp
 # have multiple layers of deps so delete everything before adding them.
