@@ -8,6 +8,9 @@
 #ifndef VULKAN_STRUCTS_HPP
 #define VULKAN_STRUCTS_HPP
 
+// include-what-you-use: make sure, vulkan.hpp is used by code-completers
+// IWYU pragma: private; include "vulkan.hpp"
+
 #include <cstring>  // strcmp
 
 namespace VULKAN_HPP_NAMESPACE
@@ -58659,6 +58662,105 @@ namespace VULKAN_HPP_NAMESPACE
   struct CppType<StructureType, StructureType::ePhysicalDeviceColorWriteEnableFeaturesEXT>
   {
     using Type = PhysicalDeviceColorWriteEnableFeaturesEXT;
+  };
+
+  struct PhysicalDeviceCommandBufferInheritanceFeaturesNV
+  {
+    using NativeType = VkPhysicalDeviceCommandBufferInheritanceFeaturesNV;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceCommandBufferInheritanceFeaturesNV;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceCommandBufferInheritanceFeaturesNV( VULKAN_HPP_NAMESPACE::Bool32 commandBufferInheritance_ = {},
+                                                                           void *                       pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , commandBufferInheritance{ commandBufferInheritance_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR
+      PhysicalDeviceCommandBufferInheritanceFeaturesNV( PhysicalDeviceCommandBufferInheritanceFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceCommandBufferInheritanceFeaturesNV( VkPhysicalDeviceCommandBufferInheritanceFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceCommandBufferInheritanceFeaturesNV( *reinterpret_cast<PhysicalDeviceCommandBufferInheritanceFeaturesNV const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceCommandBufferInheritanceFeaturesNV & operator=( PhysicalDeviceCommandBufferInheritanceFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDeviceCommandBufferInheritanceFeaturesNV & operator=( VkPhysicalDeviceCommandBufferInheritanceFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceCommandBufferInheritanceFeaturesNV const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceCommandBufferInheritanceFeaturesNV & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceCommandBufferInheritanceFeaturesNV &
+      setCommandBufferInheritance( VULKAN_HPP_NAMESPACE::Bool32 commandBufferInheritance_ ) VULKAN_HPP_NOEXCEPT
+    {
+      commandBufferInheritance = commandBufferInheritance_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPhysicalDeviceCommandBufferInheritanceFeaturesNV const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceCommandBufferInheritanceFeaturesNV *>( this );
+    }
+
+    operator VkPhysicalDeviceCommandBufferInheritanceFeaturesNV &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceCommandBufferInheritanceFeaturesNV *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, commandBufferInheritance );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceCommandBufferInheritanceFeaturesNV const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceCommandBufferInheritanceFeaturesNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( commandBufferInheritance == rhs.commandBufferInheritance );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceCommandBufferInheritanceFeaturesNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType                    = StructureType::ePhysicalDeviceCommandBufferInheritanceFeaturesNV;
+    void *                              pNext                    = {};
+    VULKAN_HPP_NAMESPACE::Bool32        commandBufferInheritance = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceCommandBufferInheritanceFeaturesNV>
+  {
+    using Type = PhysicalDeviceCommandBufferInheritanceFeaturesNV;
   };
 
   struct PhysicalDeviceComputeShaderDerivativesFeaturesNV

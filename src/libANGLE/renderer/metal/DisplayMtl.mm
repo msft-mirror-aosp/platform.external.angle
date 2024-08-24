@@ -172,9 +172,7 @@ void DisplayMtl::terminate()
     mCmdQueue.reset();
     mDefaultShaders = nil;
     mMetalDevice    = nil;
-#if ANGLE_MTL_EVENT_AVAILABLE
     mSharedEventListener = nil;
-#endif
     mCapsInitialized = false;
 
     mMetalDeviceVendorId = 0;
@@ -953,13 +951,7 @@ void DisplayMtl::initializeExtensions() const
     mNativeExtensions.stencilTexturingANGLE         = true;
     mNativeExtensions.copyTextureCHROMIUM           = true;
     mNativeExtensions.copyCompressedTextureCHROMIUM = false;
-
-#if !ANGLE_PLATFORM_WATCHOS
-    if (@available(iOS 14.0, macOS 10.11, macCatalyst 14.0, tvOS 16.0, *))
-    {
-        mNativeExtensions.textureMirrorClampToEdgeEXT = true;
-    }
-#endif
+    mNativeExtensions.textureMirrorClampToEdgeEXT   = true;
 
     if (ANGLE_APPLE_AVAILABLE_XCI(10.11, 13.1, 11.0))
     {
@@ -983,8 +975,11 @@ void DisplayMtl::initializeExtensions() const
     // regular 2D textures with Metal, and causes other problems such as
     // breaking the SPIR-V Metal compiler.
 
-    // Disabled due to corrupted WebGL rendering. http://crbug.com/358957665
-    mNativeExtensions.multisampledRenderToTextureEXT = false;
+    mNativeExtensions.multisampledRenderToTextureEXT =
+        (supportsAppleGPUFamily(1) ||
+         mFeatures.enableMultisampledRenderToTextureOnNonTilers.enabled) &&
+        mFeatures.hasShaderStencilOutput.enabled && mFeatures.hasDepthAutoResolve.enabled &&
+        mFeatures.hasStencilAutoResolve.enabled;
 
     // Enable EXT_blend_minmax
     mNativeExtensions.blendMinmaxEXT = true;
@@ -1526,7 +1521,6 @@ bool DisplayMtl::isSimulator() const
     return TARGET_OS_SIMULATOR;
 }
 
-#if ANGLE_MTL_EVENT_AVAILABLE
 mtl::AutoObjCObj<MTLSharedEventListener> DisplayMtl::getOrCreateSharedEventListener()
 {
     if (!mSharedEventListener)
@@ -1539,6 +1533,5 @@ mtl::AutoObjCObj<MTLSharedEventListener> DisplayMtl::getOrCreateSharedEventListe
     }
     return mSharedEventListener;
 }
-#endif
 
 }  // namespace rx

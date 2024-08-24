@@ -2001,7 +2001,7 @@ mtl::RenderCommandEncoder *ContextMtl::getTextureRenderCommandEncoder(
     rpDesc.colorAttachments[0].level        = index.getNativeLevel();
     rpDesc.colorAttachments[0].sliceOrDepth = index.hasLayer() ? index.getLayerIndex() : 0;
     rpDesc.numColorAttachments              = 1;
-    rpDesc.sampleCount                      = textureTarget->samples();
+    rpDesc.rasterSampleCount                = textureTarget->samples();
 
     return getRenderPassCommandEncoder(rpDesc);
 }
@@ -2016,7 +2016,7 @@ mtl::RenderCommandEncoder *ContextMtl::getRenderTargetCommandEncoderWithClear(
     mtl::RenderPassDesc rpDesc;
     renderTarget.toRenderPassAttachmentDesc(&rpDesc.colorAttachments[0]);
     rpDesc.numColorAttachments = 1;
-    rpDesc.sampleCount         = renderTarget.getRenderSamples();
+    rpDesc.rasterSampleCount   = renderTarget.getRenderSamples();
 
     if (clearColor.valid())
     {
@@ -2402,7 +2402,6 @@ void ContextMtl::onTransformFeedbackInactive(const gl::Context *context, Transfo
     endEncoding(true);
 }
 
-#if ANGLE_MTL_EVENT_AVAILABLE
 uint64_t ContextMtl::queueEventSignal(id<MTLEvent> event, uint64_t value)
 {
     ensureCommandBufferReady();
@@ -2422,7 +2421,6 @@ void ContextMtl::serverWaitEvent(id<MTLEvent> event, uint64_t value)
 
     mCmdBuffer.serverWaitEvent(event, value);
 }
-#endif
 
 void ContextMtl::updateProgramExecutable(const gl::Context *context)
 {
@@ -2941,7 +2939,7 @@ angle::Result ContextMtl::checkIfPipelineChanged(const gl::Context *context,
                                                  bool *isPipelineDescChanged)
 {
     ASSERT(mRenderEncoder.valid());
-    mtl::PrimitiveTopologyClass topologyClass = mtl::GetPrimitiveTopologyClass(primitiveMode);
+    MTLPrimitiveTopologyClass topologyClass = mtl::GetPrimitiveTopologyClass(primitiveMode);
 
     bool rppChange = mDirtyBits.test(DIRTY_BIT_RENDER_PIPELINE) ||
                      topologyClass != mRenderPipelineDesc.inputPrimitiveTopology;
@@ -2977,7 +2975,7 @@ angle::Result ContextMtl::checkIfPipelineChanged(const gl::Context *context,
         mRenderPipelineDesc.inputPrimitiveTopology = topologyClass;
         mRenderPipelineDesc.alphaToCoverageEnabled =
             mState.isSampleAlphaToCoverageEnabled() &&
-            mRenderPipelineDesc.outputDescriptor.sampleCount > 1 &&
+            mRenderPipelineDesc.outputDescriptor.rasterSampleCount > 1 &&
             !getDisplay()->getFeatures().emulateAlphaToCoverage.enabled;
 
         mRenderPipelineDesc.outputDescriptor.updateEnabledDrawBuffers(
