@@ -31,7 +31,7 @@
 #if defined(NDEBUG) && !defined(ANGLE_METAL_FRAME_CAPTURE)
 #    define ANGLE_METAL_FRAME_CAPTURE_ENABLED 0
 #else
-#    define ANGLE_METAL_FRAME_CAPTURE_ENABLED ANGLE_WITH_MODERN_METAL_API
+#    define ANGLE_METAL_FRAME_CAPTURE_ENABLED 1
 #endif
 
 namespace rx
@@ -683,7 +683,7 @@ angle::Result InitializeDepthStencilTextureContentsGPU(const gl::Context *contex
         rtMTL.toRenderPassAttachmentDesc(&rpDesc.stencilAttachment);
         rpDesc.stencilAttachment.loadAction = MTLLoadActionClear;
     }
-    rpDesc.sampleCount = texture->samples();
+    rpDesc.rasterSampleCount = texture->samples();
 
     // End current render pass
     contextMtl->endEncoding(true);
@@ -1195,10 +1195,8 @@ MTLSamplerAddressMode GetSamplerAddressMode(GLenum wrap)
     {
         case GL_CLAMP_TO_EDGE:
             return MTLSamplerAddressModeClampToEdge;
-#if !ANGLE_PLATFORM_WATCHOS
         case GL_MIRROR_CLAMP_TO_EDGE_EXT:
             return MTLSamplerAddressModeMirrorClampToEdge;
-#endif
         case GL_REPEAT:
             return MTLSamplerAddressModeRepeat;
         case GL_MIRRORED_REPEAT:
@@ -1343,19 +1341,12 @@ MTLWinding GetFrontfaceWinding(GLenum frontFaceMode, bool invert)
     }
 }
 
-#if ANGLE_MTL_PRIMITIVE_TOPOLOGY_CLASS_AVAILABLE
-PrimitiveTopologyClass GetPrimitiveTopologyClass(gl::PrimitiveMode mode)
+MTLPrimitiveTopologyClass GetPrimitiveTopologyClass(gl::PrimitiveMode mode)
 {
     // NOTE(hqle): Support layered renderring in future.
     // In non-layered rendering mode, unspecified is enough.
     return MTLPrimitiveTopologyClassUnspecified;
 }
-#else  // ANGLE_MTL_PRIMITIVE_TOPOLOGY_CLASS_AVAILABLE
-PrimitiveTopologyClass GetPrimitiveTopologyClass(gl::PrimitiveMode mode)
-{
-    return kPrimitiveTopologyClassTriangle;
-}
-#endif
 
 MTLPrimitiveType GetPrimitiveType(gl::PrimitiveMode mode)
 {
@@ -1394,7 +1385,6 @@ MTLIndexType GetIndexType(gl::DrawElementsType type)
     }
 }
 
-#if ANGLE_MTL_SWIZZLE_AVAILABLE
 MTLTextureSwizzle GetTextureSwizzle(GLenum swizzle)
 {
     switch (swizzle)
@@ -1416,7 +1406,6 @@ MTLTextureSwizzle GetTextureSwizzle(GLenum swizzle)
             return MTLTextureSwizzleZero;
     }
 }
-#endif
 
 MTLColorWriteMask GetEmulatedColorWriteMask(const mtl::Format &mtlFormat, bool *isEmulatedOut)
 {
@@ -1548,155 +1537,60 @@ bool DeviceHasMaximumRenderTargetSize(id<MTLDevice> device)
 
 bool SupportsAppleGPUFamily(id<MTLDevice> device, uint8_t appleFamily)
 {
-    // If device supports [MTLDevice supportsFamily:], then use it.
-#if (TARGET_OS_OSX && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101500) ||  \
-    (TARGET_OS_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED >= 130000) || \
-    (TARGET_OS_TV && __TV_OS_VERSION_MAX_ALLOWED >= 130000) || TARGET_OS_WATCH || TARGET_OS_VISION
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13))
-    {
-        MTLGPUFamily family;
-        switch (appleFamily)
-        {
-            case 1:
-                family = MTLGPUFamilyApple1;
-                break;
-            case 2:
-                family = MTLGPUFamilyApple2;
-                break;
-            case 3:
-                family = MTLGPUFamilyApple3;
-                break;
-            case 4:
-                family = MTLGPUFamilyApple4;
-                break;
-            case 5:
-                family = MTLGPUFamilyApple5;
-                break;
-#    if !TARGET_OS_OSX || __MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
-            case 6:
-                family = MTLGPUFamilyApple6;
-                break;
-#        if (TARGET_OS_IOS && __IPHONE_OS_VERSION_MAX_ALLOWED >= 140000) || \
-            (TARGET_OS_TV && __TV_OS_VERSION_MAX_ALLOWED >= 140000) ||      \
-            (!TARGET_OS_IOS && !TARGET_OS_TV)
-            case 7:
-                family = MTLGPUFamilyApple7;
-                break;
-#        endif
-#    endif
-            default:
-                return false;
-        }
-        return [device supportsFamily:family];
-    }
-#endif
-
-    // If device doesn't support [MTLDevice supportsFamily:], then use
-    // [MTLDevice supportsFeatureSet:]. Only compiled for deployment targets
-    // that need support for older devices.
-#if TARGET_OS_IOS && __IPHONE_OS_VERSION_MIN_REQUIRED < 130000
+    MTLGPUFamily family;
     switch (appleFamily)
     {
         case 1:
-            return [device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily1_v1];
+            family = MTLGPUFamilyApple1;
+            break;
         case 2:
-            return [device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1];
+            family = MTLGPUFamilyApple2;
+            break;
         case 3:
-            return [device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1];
+            family = MTLGPUFamilyApple3;
+            break;
         case 4:
-            return [device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily4_v1];
-#    if __IPHONE_OS_VERSION_MAX_ALLOWED >= 120000
+            family = MTLGPUFamilyApple4;
+            break;
         case 5:
-            return [device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily5_v1];
-#    endif
-        default:
+            family = MTLGPUFamilyApple5;
             break;
-    }
-#elif TARGET_OS_TV && __TV_OS_VERSION_MIN_REQUIRED < 130000
-    switch (appleFamily)
-    {
-        case 1:
-        case 2:
-            return [device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily1_v1];
-#    if __TV_OS_VERSION_MAX_ALLOWED >= 120000
-        case 3:
-            return [device supportsFeatureSet:MTLFeatureSet_tvOS_GPUFamily2_v1];
-#    endif
-        default:
+        case 6:
+            family = MTLGPUFamilyApple6;
             break;
+        case 7:
+            family = MTLGPUFamilyApple7;
+            break;
+        default:
+            return false;
     }
-#endif
-    return false;
+    return [device supportsFamily:family];
 }
 
 bool SupportsMacGPUFamily(id<MTLDevice> device, uint8_t macFamily)
 {
 #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
-#    if defined(__MAC_10_15)
-    // If device supports [MTLDevice supportsFamily:], then use it.
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13))
-    {
-        MTLGPUFamily family;
-
-        switch (macFamily)
-        {
-#        if TARGET_OS_MACCATALYST
-            ANGLE_APPLE_ALLOW_DEPRECATED_BEGIN
-            case 1:
-                family = MTLGPUFamilyMacCatalyst1;
-                break;
-            case 2:
-                family = MTLGPUFamilyMacCatalyst2;
-                break;
-                ANGLE_APPLE_ALLOW_DEPRECATED_END
-#        else   // TARGET_OS_MACCATALYST
-            ANGLE_APPLE_ALLOW_DEPRECATED_BEGIN
-            case 1:
-                family = MTLGPUFamilyMac1;
-                break;
-                ANGLE_APPLE_ALLOW_DEPRECATED_END
-            case 2:
-                family = MTLGPUFamilyMac2;
-                break;
-#        endif  // TARGET_OS_MACCATALYST
-            default:
-                return false;
-        }
-
-        return [device supportsFamily:family];
-    }  // Metal 2.2
-#    endif
-
-    // If device doesn't support [MTLDevice supportsFamily:], then use
-    // [MTLDevice supportsFeatureSet:].
-#    if TARGET_OS_MACCATALYST
-    UNREACHABLE();
-    return false;
-#    else
-
-    ANGLE_APPLE_ALLOW_DEPRECATED_BEGIN
-    MTLFeatureSet featureSet;
     switch (macFamily)
     {
         case 1:
-            featureSet = MTLFeatureSet_macOS_GPUFamily1_v1;
-            break;
-#        if defined(__MAC_10_14)
+#    if TARGET_OS_MACCATALYST && __IPHONE_OS_VERSION_MIN_REQUIRED < 160000
+            return [device supportsFamily:MTLGPUFamilyMacCatalyst1];
+#    elif TARGET_OS_OSX && __MAC_OS_X_VERSION_MIN_REQUIRED < 130000
+            return [device supportsFamily:MTLGPUFamilyMac1];
+#    else
+            return [device supportsFamily:MTLGPUFamilyMac2];
+#    endif
         case 2:
-            featureSet = MTLFeatureSet_macOS_GPUFamily2_v1;
-            break;
-#        endif
+#    if TARGET_OS_MACCATALYST && __IPHONE_OS_VERSION_MIN_REQUIRED < 160000
+            return [device supportsFamily:MTLGPUFamilyMacCatalyst2];
+#    else
+            return [device supportsFamily:MTLGPUFamilyMac2];
+#    endif
         default:
-            return false;
+            break;
     }
-    return [device supportsFeatureSet:featureSet];
-    ANGLE_APPLE_ALLOW_DEPRECATED_END
-#    endif  // TARGET_OS_MACCATALYST
-#else       // #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
-
-    return false;
-
 #endif
+    return false;
 }
 
 static NSUInteger getNextLocationForFormat(const FormatCaps &caps,
@@ -1764,9 +1658,7 @@ NSUInteger ComputeTotalSizeUsedForMTLRenderPipelineDescriptor(
     const mtl::ContextDevice &device)
 {
     NSUInteger currentRenderTargetSize = 0;
-    ANGLE_APPLE_ALLOW_DEPRECATED_BEGIN
-    bool isMsaa = descriptor.sampleCount > 1;
-    ANGLE_APPLE_ALLOW_DEPRECATED_END
+    bool isMsaa                        = descriptor.rasterSampleCount > 1;
     for (NSUInteger i = 0; i < GetMaxNumberOfRenderTargetsForDevice(device); i++)
     {
         MTLRenderPipelineColorAttachmentDescriptor *color = descriptor.colorAttachments[i];
