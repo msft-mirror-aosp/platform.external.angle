@@ -188,51 +188,34 @@ void StartFrameCapture(id<MTLDevice> metalDevice, id<MTLCommandQueue> metalCmdQu
         return;
     }
 
-#    ifdef __MAC_10_15
-    if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13))
+    auto captureDescriptor                = mtl::adoptObjCObj([[MTLCaptureDescriptor alloc] init]);
+    captureDescriptor.get().captureObject = metalDevice;
+    const std::string filePath            = GetMetalCaptureFile();
+    NSString *frameCapturePath            = nil;
+    if (filePath != "")
     {
-        auto captureDescriptor = mtl::adoptObjCObj([[MTLCaptureDescriptor alloc] init]);
-        captureDescriptor.get().captureObject = metalDevice;
-        const std::string filePath            = GetMetalCaptureFile();
-        NSString *frameCapturePath            = nil;
-        if (filePath != "")
-        {
-            frameCapturePath =
-                [NSString stringWithFormat:@"%s%zu.gputrace", filePath.c_str(), gFrameCaptured - 1];
-            captureDescriptor.get().destination = MTLCaptureDestinationGPUTraceDocument;
-            captureDescriptor.get().outputURL   = [NSURL fileURLWithPath:frameCapturePath
-                                                           isDirectory:false];
-        }
-        else
-        {
-            // This will pause execution only if application is being debugged inside Xcode
-            captureDescriptor.get().destination = MTLCaptureDestinationDeveloperTools;
-        }
-
-        NSError *error;
-        if ([captureManager startCaptureWithDescriptor:captureDescriptor.get() error:&error])
-        {
-            ASSERT(!gFrameCapturePath);
-            gFrameCapturePath = frameCapturePath;
-        }
-        else
-        {
-            NSLog(@"Failed to start capture, error %@", error);
-        }
+        frameCapturePath =
+            [NSString stringWithFormat:@"%s%zu.gputrace", filePath.c_str(), gFrameCaptured - 1];
+        captureDescriptor.get().destination = MTLCaptureDestinationGPUTraceDocument;
+        captureDescriptor.get().outputURL   = [NSURL fileURLWithPath:frameCapturePath
+                                                       isDirectory:false];
     }
     else
-#    endif  // __MAC_10_15
-        if (ANGLE_APPLE_AVAILABLE_XCI(10.15, 13.1, 13))
-        {
-            auto captureDescriptor = mtl::adoptObjCObj([[MTLCaptureDescriptor alloc] init]);
-            captureDescriptor.get().captureObject = metalDevice;
+    {
+        // This will pause execution only if application is being debugged inside Xcode
+        captureDescriptor.get().destination = MTLCaptureDestinationDeveloperTools;
+    }
 
-            NSError *error;
-            if (![captureManager startCaptureWithDescriptor:captureDescriptor.get() error:&error])
-            {
-                NSLog(@"Failed to start capture, error %@", error);
-            }
-        }
+    NSError *error;
+    if ([captureManager startCaptureWithDescriptor:captureDescriptor.get() error:&error])
+    {
+        ASSERT(!gFrameCapturePath);
+        gFrameCapturePath = frameCapturePath;
+    }
+    else
+    {
+        NSLog(@"Failed to start capture, error %@", error);
+    }
 #endif  // ANGLE_METAL_FRAME_CAPTURE_ENABLED
 }
 
@@ -824,10 +807,7 @@ uint32_t GetDeviceVendorId(id<MTLDevice> metalDevice)
 {
     uint32_t vendorId = 0;
 #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
-    if (ANGLE_APPLE_AVAILABLE_XC(10.13, 13.1))
-    {
-        vendorId = GetDeviceVendorIdFromIOKit(metalDevice);
-    }
+    vendorId = GetDeviceVendorIdFromIOKit(metalDevice);
 #endif
     if (!vendorId)
     {
@@ -853,24 +833,15 @@ static MTLLanguageVersion GetUserSetOrHighestMSLVersion(const MTLLanguageVersion
             case 1:
                 switch (minor)
                 {
-#if (defined(__IPHONE_9_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_9_0) &&   \
-    (!defined(__IPHONE_16_0) || __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_16_0) && \
-    (TARGET_OS_IOS || TARGET_OS_TV) && !TARGET_OS_MACCATALYST
                     case 0:
-                        return MTLLanguageVersion1_0;
+#if !defined(NDEBUG)
+                        NSLog(@"MSL 1.0 is deprecated, using MSL 1.1 instead\n");
 #endif
-#if (defined(__MAC_10_11) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_11) ||    \
-    (defined(__IPHONE_9_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_9_0) || \
-    (defined(__TVOS_9_0) && __TV_OS_VERSION_MIN_REQUIRED >= __TVOS_9_0)
+                        return MTLLanguageVersion1_1;
                     case 1:
                         return MTLLanguageVersion1_1;
-#endif
-#if (defined(__MAC_10_12) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_12) ||      \
-    (defined(__IPHONE_10_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0) || \
-    (defined(__TVOS_10_0) && __TV_OS_VERSION_MIN_REQUIRED >= __TVOS_10_0)
                     case 2:
                         return MTLLanguageVersion1_2;
-#endif
                     default:
                         assert(0 && "Unsupported MSL Minor Language Version.");
                 }
@@ -878,30 +849,26 @@ static MTLLanguageVersion GetUserSetOrHighestMSLVersion(const MTLLanguageVersion
             case 2:
                 switch (minor)
                 {
-#if (defined(__MAC_10_13) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_13) ||      \
-    (defined(__IPHONE_11_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_11_0) || \
-    (defined(__TVOS_11_0) && __TV_OS_VERSION_MIN_REQUIRED >= __TVOS_11_0)
                     case 0:
                         return MTLLanguageVersion2_0;
-#endif
-#if (defined(__MAC_10_14) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_14) ||      \
-    (defined(__IPHONE_12_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_12_0) || \
-    (defined(__TVOS_12_0) && __TV_OS_VERSION_MIN_REQUIRED >= __TVOS_12_0)
                     case 1:
                         return MTLLanguageVersion2_1;
-#endif
-#if (defined(__MAC_10_15) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_10_15) ||      \
-    (defined(__IPHONE_13_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_13_0) || \
-    (defined(__TVOS_13_0) && __TV_OS_VERSION_MIN_REQUIRED >= __TVOS_13_0)
                     case 2:
                         return MTLLanguageVersion2_2;
-#endif
-#if (defined(__MAC_11_0) && __MAC_OS_X_VERSION_MIN_REQUIRED >= __MAC_11_0) ||        \
-    (defined(__IPHONE_14_0) && __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_14_0) || \
-    (defined(__TVOS_14_0) && __TV_OS_VERSION_MIN_REQUIRED >= __TVOS_14_0)
                     case 3:
-                        return MTLLanguageVersion2_3;
-#endif
+                        if (@available(macOS 11.0, *))
+                        {
+                            return MTLLanguageVersion2_3;
+                        }
+                        assert(0 && "MSL 2.3 requires macOS 11.");
+                        break;
+                    case 4:
+                        if (@available(macOS 12.0, *))
+                        {
+                            return MTLLanguageVersion2_4;
+                        }
+                        assert(0 && "MSL 2.4 requires macOS 12.");
+                        break;
                     default:
                         assert(0 && "Unsupported MSL Minor Language Version.");
                 }
