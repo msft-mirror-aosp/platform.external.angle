@@ -58861,17 +58861,17 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = PhysicalDeviceCommandBufferInheritanceFeaturesNV;
   };
 
-  struct PhysicalDeviceComputeShaderDerivativesFeaturesNV
+  struct PhysicalDeviceComputeShaderDerivativesFeaturesKHR
   {
-    using NativeType = VkPhysicalDeviceComputeShaderDerivativesFeaturesNV;
+    using NativeType = VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR;
 
     static const bool                                  allowDuplicate = false;
-    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceComputeShaderDerivativesFeaturesNV;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceComputeShaderDerivativesFeaturesKHR;
 
 #if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
-    VULKAN_HPP_CONSTEXPR PhysicalDeviceComputeShaderDerivativesFeaturesNV( VULKAN_HPP_NAMESPACE::Bool32 computeDerivativeGroupQuads_  = {},
-                                                                           VULKAN_HPP_NAMESPACE::Bool32 computeDerivativeGroupLinear_ = {},
-                                                                           void *                       pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceComputeShaderDerivativesFeaturesKHR( VULKAN_HPP_NAMESPACE::Bool32 computeDerivativeGroupQuads_  = {},
+                                                                            VULKAN_HPP_NAMESPACE::Bool32 computeDerivativeGroupLinear_ = {},
+                                                                            void *                       pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
       : pNext{ pNext_ }
       , computeDerivativeGroupQuads{ computeDerivativeGroupQuads_ }
       , computeDerivativeGroupLinear{ computeDerivativeGroupLinear_ }
@@ -58879,37 +58879,38 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
     VULKAN_HPP_CONSTEXPR
-      PhysicalDeviceComputeShaderDerivativesFeaturesNV( PhysicalDeviceComputeShaderDerivativesFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+      PhysicalDeviceComputeShaderDerivativesFeaturesKHR( PhysicalDeviceComputeShaderDerivativesFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
 
-    PhysicalDeviceComputeShaderDerivativesFeaturesNV( VkPhysicalDeviceComputeShaderDerivativesFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT
-      : PhysicalDeviceComputeShaderDerivativesFeaturesNV( *reinterpret_cast<PhysicalDeviceComputeShaderDerivativesFeaturesNV const *>( &rhs ) )
+    PhysicalDeviceComputeShaderDerivativesFeaturesKHR( VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceComputeShaderDerivativesFeaturesKHR( *reinterpret_cast<PhysicalDeviceComputeShaderDerivativesFeaturesKHR const *>( &rhs ) )
     {
     }
 
-    PhysicalDeviceComputeShaderDerivativesFeaturesNV & operator=( PhysicalDeviceComputeShaderDerivativesFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+    PhysicalDeviceComputeShaderDerivativesFeaturesKHR &
+      operator=( PhysicalDeviceComputeShaderDerivativesFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
 #endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
 
-    PhysicalDeviceComputeShaderDerivativesFeaturesNV & operator=( VkPhysicalDeviceComputeShaderDerivativesFeaturesNV const & rhs ) VULKAN_HPP_NOEXCEPT
+    PhysicalDeviceComputeShaderDerivativesFeaturesKHR & operator=( VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR const & rhs ) VULKAN_HPP_NOEXCEPT
     {
-      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceComputeShaderDerivativesFeaturesNV const *>( &rhs );
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceComputeShaderDerivativesFeaturesKHR const *>( &rhs );
       return *this;
     }
 
 #if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceComputeShaderDerivativesFeaturesNV & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceComputeShaderDerivativesFeaturesKHR & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
     {
       pNext = pNext_;
       return *this;
     }
 
-    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceComputeShaderDerivativesFeaturesNV &
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceComputeShaderDerivativesFeaturesKHR &
       setComputeDerivativeGroupQuads( VULKAN_HPP_NAMESPACE::Bool32 computeDerivativeGroupQuads_ ) VULKAN_HPP_NOEXCEPT
     {
       computeDerivativeGroupQuads = computeDerivativeGroupQuads_;
       return *this;
     }
 
-    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceComputeShaderDerivativesFeaturesNV &
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceComputeShaderDerivativesFeaturesKHR &
       setComputeDerivativeGroupLinear( VULKAN_HPP_NAMESPACE::Bool32 computeDerivativeGroupLinear_ ) VULKAN_HPP_NOEXCEPT
     {
       computeDerivativeGroupLinear = computeDerivativeGroupLinear_;
@@ -58917,14 +58918,14 @@ namespace VULKAN_HPP_NAMESPACE
     }
 #endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
 
-    operator VkPhysicalDeviceComputeShaderDerivativesFeaturesNV const &() const VULKAN_HPP_NOEXCEPT
+    operator VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR const &() const VULKAN_HPP_NOEXCEPT
     {
-      return *reinterpret_cast<const VkPhysicalDeviceComputeShaderDerivativesFeaturesNV *>( this );
+      return *reinterpret_cast<const VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR *>( this );
     }
 
-    operator VkPhysicalDeviceComputeShaderDerivativesFeaturesNV &() VULKAN_HPP_NOEXCEPT
+    operator VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR &() VULKAN_HPP_NOEXCEPT
     {
-      return *reinterpret_cast<VkPhysicalDeviceComputeShaderDerivativesFeaturesNV *>( this );
+      return *reinterpret_cast<VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR *>( this );
     }
 
 #if defined( VULKAN_HPP_USE_REFLECT )
@@ -58940,9 +58941,9 @@ namespace VULKAN_HPP_NAMESPACE
 #endif
 
 #if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( PhysicalDeviceComputeShaderDerivativesFeaturesNV const & ) const = default;
+    auto operator<=>( PhysicalDeviceComputeShaderDerivativesFeaturesKHR const & ) const = default;
 #else
-    bool operator==( PhysicalDeviceComputeShaderDerivativesFeaturesNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    bool operator==( PhysicalDeviceComputeShaderDerivativesFeaturesKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
     {
 #  if defined( VULKAN_HPP_USE_REFLECT )
       return this->reflect() == rhs.reflect();
@@ -58952,23 +58953,110 @@ namespace VULKAN_HPP_NAMESPACE
 #  endif
     }
 
-    bool operator!=( PhysicalDeviceComputeShaderDerivativesFeaturesNV const & rhs ) const VULKAN_HPP_NOEXCEPT
+    bool operator!=( PhysicalDeviceComputeShaderDerivativesFeaturesKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
     {
       return !operator==( rhs );
     }
 #endif
 
   public:
-    VULKAN_HPP_NAMESPACE::StructureType sType                        = StructureType::ePhysicalDeviceComputeShaderDerivativesFeaturesNV;
+    VULKAN_HPP_NAMESPACE::StructureType sType                        = StructureType::ePhysicalDeviceComputeShaderDerivativesFeaturesKHR;
     void *                              pNext                        = {};
     VULKAN_HPP_NAMESPACE::Bool32        computeDerivativeGroupQuads  = {};
     VULKAN_HPP_NAMESPACE::Bool32        computeDerivativeGroupLinear = {};
   };
 
   template <>
-  struct CppType<StructureType, StructureType::ePhysicalDeviceComputeShaderDerivativesFeaturesNV>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceComputeShaderDerivativesFeaturesKHR>
   {
-    using Type = PhysicalDeviceComputeShaderDerivativesFeaturesNV;
+    using Type = PhysicalDeviceComputeShaderDerivativesFeaturesKHR;
+  };
+
+  using PhysicalDeviceComputeShaderDerivativesFeaturesNV = PhysicalDeviceComputeShaderDerivativesFeaturesKHR;
+
+  struct PhysicalDeviceComputeShaderDerivativesPropertiesKHR
+  {
+    using NativeType = VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceComputeShaderDerivativesPropertiesKHR;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceComputeShaderDerivativesPropertiesKHR( VULKAN_HPP_NAMESPACE::Bool32 meshAndTaskShaderDerivatives_ = {},
+                                                                              void *                       pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , meshAndTaskShaderDerivatives{ meshAndTaskShaderDerivatives_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR
+      PhysicalDeviceComputeShaderDerivativesPropertiesKHR( PhysicalDeviceComputeShaderDerivativesPropertiesKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceComputeShaderDerivativesPropertiesKHR( VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceComputeShaderDerivativesPropertiesKHR( *reinterpret_cast<PhysicalDeviceComputeShaderDerivativesPropertiesKHR const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceComputeShaderDerivativesPropertiesKHR &
+      operator=( PhysicalDeviceComputeShaderDerivativesPropertiesKHR const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDeviceComputeShaderDerivativesPropertiesKHR & operator=( VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceComputeShaderDerivativesPropertiesKHR const *>( &rhs );
+      return *this;
+    }
+
+    operator VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR *>( this );
+    }
+
+    operator VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceComputeShaderDerivativesPropertiesKHR *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, meshAndTaskShaderDerivatives );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceComputeShaderDerivativesPropertiesKHR const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceComputeShaderDerivativesPropertiesKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( meshAndTaskShaderDerivatives == rhs.meshAndTaskShaderDerivatives );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceComputeShaderDerivativesPropertiesKHR const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType                        = StructureType::ePhysicalDeviceComputeShaderDerivativesPropertiesKHR;
+    void *                              pNext                        = {};
+    VULKAN_HPP_NAMESPACE::Bool32        meshAndTaskShaderDerivatives = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceComputeShaderDerivativesPropertiesKHR>
+  {
+    using Type = PhysicalDeviceComputeShaderDerivativesPropertiesKHR;
   };
 
   struct PhysicalDeviceConditionalRenderingFeaturesEXT

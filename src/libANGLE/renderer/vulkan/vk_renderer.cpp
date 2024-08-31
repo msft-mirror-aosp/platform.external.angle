@@ -275,10 +275,6 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndexed-Input-07939",
     "VUID-vkCmdDrawIndexedIndirect-Input-07939",
     "VUID-vkCmdDrawIndirect-Input-07939",
-    // https://anglebug.com/361600662
-    "VUID-RuntimeSpirv-OpEntryPoint-08743",
-    "VUID-RuntimeSpirv-OpEntryPoint-07754",
-    "VUID-RuntimeSpirv-maintenance4-06817",
     // https://anglebug.com/362545033
     // VVL bug: https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/8458
     "VUID-vkCmdDraw-None-02721",
@@ -4825,10 +4821,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // tests to fail.
     ANGLE_FEATURE_CONDITION(&mFeatures, forceFragmentShaderPrecisionHighpToMediump, false);
 
-    // Testing shows that on ARM GPU, doing implicit flush at framebuffer boundary improves
-    // performance. Most app traces shows frame time reduced and manhattan 3.1 offscreen score
-    // improves 7%.
-    ANGLE_FEATURE_CONDITION(&mFeatures, preferSubmitAtFBOBoundary, isARM || isSwiftShader);
+    // Testing shows that on ARM and Qualcomm GPU, doing implicit flush at framebuffer boundary
+    // improves performance. Most app traces shows frame time reduced and manhattan 3.1 offscreen
+    // score improves 7%.
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferSubmitAtFBOBoundary,
+                            isTileBasedRenderer || isSwiftShader);
 
     // In order to support immutable samplers tied to external formats, we need to overallocate
     // descriptor counts for such immutable samplers
