@@ -55,9 +55,6 @@
 -ash/quick_pair/fast_pair_handshake/
 -base/allocator
 -base/third_party
--build/
--build_overrides/
--buildtools/
 -chrome/browser/ash/chromebox_for_meetings/
 -chrome/browser/ash/policy/
 -chrome/browser/component_updater/
@@ -74,7 +71,6 @@
 -chrome/common/profiler/
 -chrome/credential_provider/
 -chrome/elevation_service/
--chrome/installer/mac/third_party/xz
 -chrome/services/cups_proxy/
 -chrome/services/ipp_parser/public/cpp/
 -chrome/services/sharing/nearby/decoder/
@@ -113,13 +109,9 @@
 -components/url_pattern_index/
 -components/webrtc_logging/
 -components/zucchini/
--courgette/
--crypto/
--data/
 -fuchsia_web/
--gin/
 -google_apis/
--gpu/
+-gpu/ipc/service/
 -ios/
 -ios_internal/
 -media/
@@ -128,13 +120,6 @@
 -printing/
 -remoting/host/
 -remoting/client/input/
--sandbox/linux/seccomp-bpf-helpers/
--sandbox/win/fuzzer/
--services/accessibility
--services/data_decoder
--services/shape_detection
--services/tracing/public/cpp/perfetto/
--sql/
 -testing/iossim/
 -third_party/
 +third_party/blink/
@@ -156,3 +141,9 @@
 # TODO(crbug.com/41497066#comment22) The Win SDK headers don't get categorized
 # as system headers when building with DEPOT_TOOLS_WIN_TOOLCHAIN=0 ?
 -Program Files (x86)/Windows Kits/
+
+# Please be cautious before removing this opt-out, because it won't show up on
+# the Mega-CQ, nor Sheriffs' dashboards. See https://crbug.com/361760067
+# Removing this directory may fail on the bot CI bot:
+# https://luci-milo.appspot.com/ui/p/chrome/builders/official/win-arm64-clang
+-chrome/installer/
