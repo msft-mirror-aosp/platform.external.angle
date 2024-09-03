@@ -357,6 +357,7 @@ spv = {
         'UnormInt101010_2' : 16,
         'UnsignedIntRaw10EXT' : 19,
         'UnsignedIntRaw12EXT' : 20,
+        'UnormInt2_101010EXT' : 21,
     },
 
     'ImageOperandsShift' : {
@@ -1191,6 +1192,7 @@ spv = {
         'FPGAArgumentInterfacesINTEL' : 6174,
         'GlobalVariableHostAccessINTEL' : 6187,
         'GlobalVariableFPGADecorationsINTEL' : 6189,
+        'SubgroupBufferPrefetchINTEL' : 6220,
         'GroupUniformArithmeticKHR' : 6400,
         'MaskedGatherScatterINTEL' : 6427,
         'CacheControlsINTEL' : 6441,
@@ -1723,6 +1725,7 @@ spv = {
         'OpUntypedPtrAccessChainKHR' : 4423,
         'OpUntypedInBoundsPtrAccessChainKHR' : 4424,
         'OpUntypedArrayLengthKHR' : 4425,
+        'OpUntypedPrefetchKHR' : 4426,
         'OpSubgroupAllKHR' : 4428,
         'OpSubgroupAnyKHR' : 4429,
         'OpSubgroupAllEqualKHR' : 4430,
@@ -2100,6 +2103,7 @@ spv = {
         'OpConvertBF16ToFINTEL' : 6117,
         'OpControlBarrierArriveINTEL' : 6142,
         'OpControlBarrierWaitINTEL' : 6143,
+        'OpSubgroupBlockPrefetchINTEL' : 6221,
         'OpGroupIMulKHR' : 6401,
         'OpGroupFMulKHR' : 6402,
         'OpGroupBitwiseAndKHR' : 6403,

@@ -4372,7 +4372,14 @@ spv::Id TGlslangToSpvTraverser::createSpvVariable(const glslang::TIntermSymbol* 
         initializer = builder.makeNullConstant(spvType);
     }
 
-    return builder.createVariable(spv::NoPrecision, storageClass, spvType, name, initializer, false);
+    spv::Id var = builder.createVariable(spv::NoPrecision, storageClass, spvType, name, initializer, false);
+    std::vector<spv::Decoration> topLevelDecorations;
+    glslang::TQualifier typeQualifier = node->getType().getQualifier();
+    TranslateMemoryDecoration(typeQualifier, topLevelDecorations, glslangIntermediate->usingVulkanMemoryModel());
+    for (auto deco : topLevelDecorations) {
+        builder.addDecoration(var, deco);
+    }
+    return var;
 }
 
 // Return type Id of the sampled type.
@@ -5404,13 +5411,16 @@ void TGlslangToSpvTraverser::updateMemberOffset(const glslang::TType& structType
             memberAlignment = componentAlignment;
 
         // Don't add unnecessary padding after this member
-        if (memberType.isMatrix()) {
-            if (matrixLayout == glslang::ElmRowMajor)
-                memberSize -= componentSize * (4 - memberType.getMatrixCols());
-            else
-                memberSize -= componentSize * (4 - memberType.getMatrixRows());
-        } else if (memberType.isArray())
-            memberSize -= componentSize * (4 - memberType.getVectorSize());
+        // (undo std140 bumping size to a mutliple of vec4)
+        if (explicitLayout == glslang::ElpStd140) {
+            if (memberType.isMatrix()) {
+                if (matrixLayout == glslang::ElmRowMajor)
+                    memberSize -= componentSize * (4 - memberType.getMatrixCols());
+                else
+                    memberSize -= componentSize * (4 - memberType.getMatrixRows());
+            } else if (memberType.isArray())
+                memberSize -= componentSize * (4 - memberType.getVectorSize());
+        }
     }
 
     // Bump up to member alignment

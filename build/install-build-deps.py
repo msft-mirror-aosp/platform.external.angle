@@ -237,6 +237,7 @@ def dev_list():
       "libssl-dev",
       "libsystemd-dev",
       "libudev-dev",
+      "libudev1",
       "libva-dev",
       "libwww-perl",
       "libxshmfence-dev",
@@ -277,11 +278,6 @@ def dev_list():
     packages.append("libjpeg-dev")
   else:
     packages.append("libjpeg62-dev")
-
-  if package_exists("libudev1"):
-    packages.append("libudev1")
-  else:
-    packages.append("libudev0")
 
   if package_exists("libbrlapi0.8"):
     packages.append("libbrlapi0.8")
@@ -402,8 +398,7 @@ def lib_list():
   elif package_exists("libffi6"):
     packages.append("libffi6")
 
-  # Workaround for dependency On Ubuntu 24.04 LTS (noble)
-  if distro_codename() == "noble":
+  if package_exists("libpng16-16t64"):
     packages.append("libpng16-16t64")
   elif package_exists("libpng16-16"):
     packages.append("libpng16-16")
@@ -426,12 +421,14 @@ def lib_list():
   if package_exists("libinput10"):
     packages.append("libinput10")
 
-  # Work around for dependency On Ubuntu 24.04 LTS (noble)
-  if distro_codename() == "noble":
+  if package_exists("libncurses6"):
     packages.append("libncurses6")
-    packages.append("libasound2t64")
   else:
     packages.append("libncurses5")
+
+  if package_exists("libasound2t64"):
+    packages.append("libasound2t64")
+  else:
     packages.append("libasound2")
 
   return packages
@@ -487,8 +484,7 @@ def lib32_list(options):
     pattern = re.compile(r"g\+\+-[0-9.]+-multilib")
     packages += re.findall(pattern, lines)
 
-  # Work around for 32-bit dependency On Ubuntu 24.04 LTS (noble)
-  if distro_codename() == "noble":
+  if package_exists("libncurses6:i386"):
     packages.append("libncurses6:i386")
   else:
     packages.append("libncurses5:i386")
@@ -650,11 +646,10 @@ def nacl_list(options):
     print("Skipping NaCl, NaCl toolchain, NaCl ports dependencies.",
           file=sys.stderr)
     return []
-  print("Including NaCl, NaCl toolchain, NaCl ports dependencies.",
-        file=sys.stderr)
 
   packages = [
       "g++-mingw-w64-i686",
+      "lib32ncurses5-dev",
       "lib32z1-dev",
       "libasound2:i386",
       "libcap2:i386",
@@ -662,12 +657,14 @@ def nacl_list(options):
       "libfontconfig1:i386",
       "libglib2.0-0:i386",
       "libgpm2:i386",
+      "libncurses5:i386",
       "libnss3:i386",
       "libpango-1.0-0:i386",
       "libssl-dev:i386",
       "libtinfo-dev",
       "libtinfo-dev:i386",
       "libtool",
+      "libudev1:i386",
       "libuuid1:i386",
       "libxcomposite1:i386",
       "libxcursor1:i386",
@@ -685,35 +682,20 @@ def nacl_list(options):
       "cmake",
       "gawk",
       "intltool",
+      "libtinfo5",
       "xutils-dev",
       "xsltproc",
   ]
 
-  # Some package names have changed over time
-  if package_exists("libssl-dev"):
-    packages.append("libssl-dev:i386")
-  elif package_exists("libssl1.1"):
-    packages.append("libssl1.1:i386")
-  elif package_exists("libssl1.0.2"):
-    packages.append("libssl1.0.2:i386")
-  else:
-    packages.append("libssl1.0.0:i386")
+  for package in packages:
+    if not package_exists(package):
+      print("Skipping NaCl, NaCl toolchain, NaCl ports dependencies because %s "
+            "is not available" % package,
+            file=sys.stderr)
+      return []
 
-  if package_exists("libtinfo5"):
-    packages.append("libtinfo5")
-
-  if package_exists("libudev1"):
-    packages.append("libudev1:i386")
-  else:
-    packages.append("libudev0:i386")
-
-  # Work around for nacl dependency On Ubuntu 24.04 LTS (noble)
-  if distro_codename() == "noble":
-    packages.append("libncurses6:i386")
-    packages.append("lib32ncurses-dev")
-  else:
-    packages.append("libncurses5:i386")
-    packages.append("lib32ncurses5-dev")
+  print("Including NaCl, NaCl toolchain, NaCl ports dependencies.",
+        file=sys.stderr)
 
   return packages
 
@@ -858,7 +840,7 @@ def install_packages(options):
     packages = find_missing_packages(options)
     if packages:
       quiet = ["-qq", "--assume-yes"] if options.no_prompt else []
-      subprocess.check_call(["sudo", "apt-get", "install"] + quiet + packages)
+      subprocess.check_output(["sudo", "apt-get", "install"] + quiet + packages)
       print(file=sys.stderr)
     else:
       print("No missing packages, and the packages are up to date.",

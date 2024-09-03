@@ -532,6 +532,8 @@ void DeriveRenderingInfo(Renderer *renderer,
                 VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
             infoOut->fragmentShadingRateInfo.shadingRateAttachmentTexelSize =
                 renderer->getMaxFragmentShadingRateAttachmentTexelSize();
+
+            AddToPNextChain(&infoOut->renderingInfo, &infoOut->fragmentShadingRateInfo);
         }
     }
 }
@@ -2707,6 +2709,7 @@ angle::Result InitializePipelineFromLibraries(Context *context,
                                               const vk::PipelineHelper &vertexInputPipeline,
                                               const vk::PipelineHelper &shadersPipeline,
                                               const vk::PipelineHelper &fragmentOutputPipeline,
+                                              const vk::GraphicsPipelineDesc &desc,
                                               Pipeline *pipelineOut,
                                               CacheLookUpFeedback *feedbackOut)
 {
@@ -2714,6 +2717,11 @@ angle::Result InitializePipelineFromLibraries(Context *context,
     VkGraphicsPipelineCreateInfo createInfo = {};
     createInfo.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     createInfo.layout                       = pipelineLayout.getHandle();
+
+    if (context->getFeatures().preferDynamicRendering.enabled && desc.getRenderPassFoveation())
+    {
+        createInfo.flags |= VK_PIPELINE_CREATE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+    }
 
     const std::array<VkPipeline, 3> pipelines = {
         vertexInputPipeline.getPipeline().getHandle(),
@@ -6443,7 +6451,6 @@ void DescriptorSetDescBuilder::setEmptyBuffer(uint32_t infoDescIndex,
 
 template <typename CommandBufferT>
 void DescriptorSetDescBuilder::updateOneShaderBuffer(
-    ContextVk *contextVk,
     CommandBufferT *commandBufferHelper,
     const ShaderInterfaceVariableInfoMap &variableInfoMap,
     const gl::BufferVector &buffers,
@@ -6452,7 +6459,8 @@ void DescriptorSetDescBuilder::updateOneShaderBuffer(
     VkDescriptorType descriptorType,
     VkDeviceSize maxBoundBufferRange,
     const BufferHelper &emptyBuffer,
-    const WriteDescriptorDescs &writeDescriptorDescs)
+    const WriteDescriptorDescs &writeDescriptorDescs,
+    const GLbitfield memoryBarrierBits)
 {
     if (block.activeShaders().none())
     {
@@ -6490,8 +6498,8 @@ void DescriptorSetDescBuilder::updateOneShaderBuffer(
                                  descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
     if (isUniformBuffer)
     {
-        commandBufferHelper->bufferRead(contextVk, VK_ACCESS_UNIFORM_READ_BIT,
-                                        block.activeShaders(), &bufferHelper);
+        commandBufferHelper->bufferRead(VK_ACCESS_UNIFORM_READ_BIT, block.activeShaders(),
+                                        &bufferHelper);
     }
     else
     {
@@ -6503,8 +6511,22 @@ void DescriptorSetDescBuilder::updateOneShaderBuffer(
             // marked read-only.  This also helps BufferVk make better decisions during
             // buffer data uploads and copies by knowing that the buffers are not actually
             // being written to.
-            commandBufferHelper->bufferRead(contextVk, VK_ACCESS_SHADER_READ_BIT,
-                                            block.activeShaders(), &bufferHelper);
+            commandBufferHelper->bufferRead(VK_ACCESS_SHADER_READ_BIT, block.activeShaders(),
+                                            &bufferHelper);
+        }
+        else if ((bufferHelper.getCurrentWriteAccess() & VK_ACCESS_SHADER_WRITE_BIT) != 0 &&
+                 (memoryBarrierBits & kBufferMemoryBarrierBits) == 0)
+        {
+            // Buffer is already in shader write access, and this is not from memoryBarrier call,
+            // then skip the WAW barrier since GL spec says driver is not required to insert barrier
+            // here. We still need to maintain object life time tracking here.
+            // Based on discussion here https://gitlab.khronos.org/opengl/API/-/issues/144, the
+            // above check of VK_ACCESS_SHADER_WRITE_BIT bit can be removed and instead rely on app
+            // issue glMemoryBarrier. But almost all usage I am seeing does not issue
+            // glMemoryBarrier before SSBO write. They only issue glMemoryBarrier after the SSBO
+            // write. This is to ensure we do not break the existing usage even if we think they are
+            // out of spec.
+            commandBufferHelper->retainResourceForWrite(&bufferHelper);
         }
         else
         {
@@ -6513,8 +6535,7 @@ void DescriptorSetDescBuilder::updateOneShaderBuffer(
             for (const gl::ShaderType shaderType : block.activeShaders())
             {
                 const vk::PipelineStage pipelineStage = vk::GetPipelineStage(shaderType);
-                commandBufferHelper->bufferWrite(contextVk, accessFlags, pipelineStage,
-                                                 &bufferHelper);
+                commandBufferHelper->bufferWrite(accessFlags, pipelineStage, &bufferHelper);
             }
         }
     }
@@ -6540,7 +6561,6 @@ void DescriptorSetDescBuilder::updateOneShaderBuffer(
 
 template <typename CommandBufferT>
 void DescriptorSetDescBuilder::updateShaderBuffers(
-    ContextVk *contextVk,
     CommandBufferT *commandBufferHelper,
     const gl::ProgramExecutable &executable,
     const ShaderInterfaceVariableInfoMap &variableInfoMap,
@@ -6549,7 +6569,8 @@ void DescriptorSetDescBuilder::updateShaderBuffers(
     VkDescriptorType descriptorType,
     VkDeviceSize maxBoundBufferRange,
     const BufferHelper &emptyBuffer,
-    const WriteDescriptorDescs &writeDescriptorDescs)
+    const WriteDescriptorDescs &writeDescriptorDescs,
+    const GLbitfield memoryBarrierBits)
 {
     const bool isUniformBuffer = descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
                                  descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -6560,15 +6581,14 @@ void DescriptorSetDescBuilder::updateShaderBuffers(
         const GLuint binding = isUniformBuffer
                                    ? executable.getUniformBlockBinding(blockIndex)
                                    : executable.getShaderStorageBlockBinding(blockIndex);
-        updateOneShaderBuffer(contextVk, commandBufferHelper, variableInfoMap, buffers,
-                              blocks[blockIndex], binding, descriptorType, maxBoundBufferRange,
-                              emptyBuffer, writeDescriptorDescs);
+        updateOneShaderBuffer(commandBufferHelper, variableInfoMap, buffers, blocks[blockIndex],
+                              binding, descriptorType, maxBoundBufferRange, emptyBuffer,
+                              writeDescriptorDescs, memoryBarrierBits);
     }
 }
 
 template <typename CommandBufferT>
 void DescriptorSetDescBuilder::updateAtomicCounters(
-    ContextVk *contextVk,
     CommandBufferT *commandBufferHelper,
     const gl::ProgramExecutable &executable,
     const ShaderInterfaceVariableInfoMap &variableInfoMap,
@@ -6619,8 +6639,7 @@ void DescriptorSetDescBuilder::updateAtomicCounters(
         for (const gl::ShaderType shaderType : atomicCounterBuffer.activeShaders())
         {
             const vk::PipelineStage pipelineStage = vk::GetPipelineStage(shaderType);
-            commandBufferHelper->bufferWrite(contextVk,
-                                             VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+            commandBufferHelper->bufferWrite(VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                              pipelineStage, &bufferHelper);
         }
 
@@ -6645,7 +6664,6 @@ void DescriptorSetDescBuilder::updateAtomicCounters(
 
 // Explicit instantiation
 template void DescriptorSetDescBuilder::updateOneShaderBuffer<vk::RenderPassCommandBufferHelper>(
-    ContextVk *contextVk,
     RenderPassCommandBufferHelper *commandBufferHelper,
     const ShaderInterfaceVariableInfoMap &variableInfoMap,
     const gl::BufferVector &buffers,
@@ -6654,10 +6672,10 @@ template void DescriptorSetDescBuilder::updateOneShaderBuffer<vk::RenderPassComm
     VkDescriptorType descriptorType,
     VkDeviceSize maxBoundBufferRange,
     const BufferHelper &emptyBuffer,
-    const WriteDescriptorDescs &writeDescriptorDescs);
+    const WriteDescriptorDescs &writeDescriptorDescs,
+    const GLbitfield memoryBarrierBits);
 
 template void DescriptorSetDescBuilder::updateOneShaderBuffer<OutsideRenderPassCommandBufferHelper>(
-    ContextVk *contextVk,
     OutsideRenderPassCommandBufferHelper *commandBufferHelper,
     const ShaderInterfaceVariableInfoMap &variableInfoMap,
     const gl::BufferVector &buffers,
@@ -6666,10 +6684,10 @@ template void DescriptorSetDescBuilder::updateOneShaderBuffer<OutsideRenderPassC
     VkDescriptorType descriptorType,
     VkDeviceSize maxBoundBufferRange,
     const BufferHelper &emptyBuffer,
-    const WriteDescriptorDescs &writeDescriptorDescs);
+    const WriteDescriptorDescs &writeDescriptorDescs,
+    const GLbitfield memoryBarrierBits);
 
 template void DescriptorSetDescBuilder::updateShaderBuffers<OutsideRenderPassCommandBufferHelper>(
-    ContextVk *contextVk,
     OutsideRenderPassCommandBufferHelper *commandBufferHelper,
     const gl::ProgramExecutable &executable,
     const ShaderInterfaceVariableInfoMap &variableInfoMap,
@@ -6678,10 +6696,10 @@ template void DescriptorSetDescBuilder::updateShaderBuffers<OutsideRenderPassCom
     VkDescriptorType descriptorType,
     VkDeviceSize maxBoundBufferRange,
     const BufferHelper &emptyBuffer,
-    const WriteDescriptorDescs &writeDescriptorDescs);
+    const WriteDescriptorDescs &writeDescriptorDescs,
+    const GLbitfield memoryBarrierBits);
 
 template void DescriptorSetDescBuilder::updateShaderBuffers<RenderPassCommandBufferHelper>(
-    ContextVk *contextVk,
     RenderPassCommandBufferHelper *commandBufferHelper,
     const gl::ProgramExecutable &executable,
     const ShaderInterfaceVariableInfoMap &variableInfoMap,
@@ -6690,10 +6708,10 @@ template void DescriptorSetDescBuilder::updateShaderBuffers<RenderPassCommandBuf
     VkDescriptorType descriptorType,
     VkDeviceSize maxBoundBufferRange,
     const BufferHelper &emptyBuffer,
-    const WriteDescriptorDescs &writeDescriptorDescs);
+    const WriteDescriptorDescs &writeDescriptorDescs,
+    const GLbitfield memoryBarrierBits);
 
 template void DescriptorSetDescBuilder::updateAtomicCounters<OutsideRenderPassCommandBufferHelper>(
-    ContextVk *contextVk,
     OutsideRenderPassCommandBufferHelper *commandBufferHelper,
     const gl::ProgramExecutable &executable,
     const ShaderInterfaceVariableInfoMap &variableInfoMap,
@@ -6704,7 +6722,6 @@ template void DescriptorSetDescBuilder::updateAtomicCounters<OutsideRenderPassCo
     const WriteDescriptorDescs &writeDescriptorDescs);
 
 template void DescriptorSetDescBuilder::updateAtomicCounters<RenderPassCommandBufferHelper>(
-    ContextVk *contextVk,
     RenderPassCommandBufferHelper *commandBufferHelper,
     const gl::ProgramExecutable &executable,
     const ShaderInterfaceVariableInfoMap &variableInfoMap,
@@ -7885,7 +7902,7 @@ angle::Result GraphicsPipelineCache<Hash>::linkLibraries(
 
     ANGLE_TRY(vk::InitializePipelineFromLibraries(
         context, pipelineCache, pipelineLayout, *vertexInputPipeline, *shadersPipeline,
-        *fragmentOutputPipeline, &newPipeline, &feedback));
+        *fragmentOutputPipeline, desc, &newPipeline, &feedback));
 
     addToCache(PipelineSource::DrawLinked, desc, std::move(newPipeline), feedback, descPtrOut,
                pipelineOut);
