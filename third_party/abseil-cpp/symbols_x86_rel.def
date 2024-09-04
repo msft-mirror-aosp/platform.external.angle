@@ -1,7 +1,6 @@
 EXPORTS
     ?$TSS0@?1??CrcAndCopy@CrcMemcpy@crc_internal@absl@@SA?AVcrc32c_t@4@PIAXPIBXIV54@_N@Z@4HA
     ??$?0$$V$0A@@?$NoDestructor@V?$SampleRecorder@UHashtablezInfo@container_internal@absl@@@profiling_internal@absl@@@absl@@QAE@XZ
-    ??$?0V?$allocator@D@__Cr@std@@@AlphaNum@absl@@QAE@ABV?$basic_string@DU?$char_traits@D@__Cr@std@@V?$allocator@D@23@@__Cr@std@@@Z
     ??$?0V?$basic_string@DU?$char_traits@D@__Cr@std@@V?$allocator@D@23@@__Cr@std@@$0A@@Cord@absl@@QAE@$$QAV?$basic_string@DU?$char_traits@D@__Cr@std@@V?$allocator@D@23@@__Cr@std@@@Z
     ??$?6C$0A@@LogMessage@log_internal@absl@@QAEAAV012@ABC@Z
     ??$?6D$0A@@LogMessage@log_internal@absl@@QAEAAV012@ABD@Z
@@ -377,6 +376,7 @@ EXPORTS
     ?AddressIsReadable@debugging_internal@absl@@YA_NPBX@Z
     ?AdvanceAndReadBytes@ChunkIterator@Cord@absl@@AAE?AV23@I@Z
     ?AdvanceBytesBtree@ChunkIterator@Cord@absl@@AAEXI@Z
+    ?Alloc@LowLevelAlloc@base_internal@absl@@SAPAXI@Z
     ?AllocWithArena@LowLevelAlloc@base_internal@absl@@SAPAXIPAUArena@123@@Z
     ?AlreadyExistsError@absl@@YA?AVStatus@1@V?$basic_string_view@DU?$char_traits@D@__Cr@std@@@__Cr@std@@@Z
     ?AlwaysTrue@Condition@absl@@CA_NPBV12@@Z
@@ -675,6 +675,7 @@ EXPORTS
     ?FormatTime@absl@@YA?AV?$basic_string@DU?$char_traits@D@__Cr@std@@V?$allocator@D@23@@__Cr@std@@VTime@1@VTimeZone@1@@Z
     ?FormatUntyped@str_format_internal@absl@@YA_NVFormatRawSinkImpl@12@VUntypedFormatSpecImpl@12@V?$Span@$$CBVFormatArgImpl@str_format_internal@absl@@@2@@Z
     ?FprintF@str_format_internal@absl@@YAHPAU_iobuf@@VUntypedFormatSpecImpl@12@V?$Span@$$CBVFormatArgImpl@str_format_internal@absl@@@2@@Z
+    ?Free@LowLevelAlloc@base_internal@absl@@SAXPAX@Z
     ?Frequency@UnscaledCycleClock@base_internal@absl@@CANXZ
     ?FromChrono@absl@@YA?AVTime@1@ABV?$time_point@Vsystem_clock@chrono@__Cr@std@@V?$duration@_JV?$ratio@$00$0PECEA@@__Cr@std@@@234@@chrono@__Cr@std@@@Z
     ?FromTM@absl@@YA?AVTime@1@ABUtm@@VTimeZone@1@@Z
@@ -1369,5 +1370,18 @@ EXPORTS
     ?words@?$BigUnsigned@$03@strings_internal@absl@@QBEPBIXZ
     ?words@?$BigUnsigned@$0FE@@strings_internal@absl@@QBEPBIXZ
     ?xsputn@Streambuf@OStringStream@strings_internal@absl@@MAEHPBDH@Z
+    AbslContainerInternalSampleEverything
+    AbslInternalMutexYield
+    AbslInternalOnFatalLogMessage
+    AbslInternalPerThreadSemInit
+    AbslInternalPerThreadSemPoke
+    AbslInternalPerThreadSemPost
+    AbslInternalPerThreadSemWait
+    AbslInternalReportFatalUsageError
+    AbslInternalSleepFor
     AbslInternalSpinLockDelay
     AbslInternalSpinLockWake
+    AbslInternalTraceContinue
+    AbslInternalTraceObserved
+    AbslInternalTraceSignal
+    AbslInternalTraceWait

@@ -1547,6 +1547,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
             skipTest("http://anglebug.com/42266193 Renders incorrectly on Nvidia Windows");
         }
 
+        if (isNVIDIALinuxANGLE)
+        {
+            skipTest("https://anglebug.com/362728695 Renders incorrectly on Linux/NVIDIA");
+        }
+
         addExtensionPrerequisite("GL_EXT_texture_buffer");
         addExtensionPrerequisite("GL_EXT_texture_cube_map_array");
     }
@@ -1792,6 +1797,28 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
             skipTest(
                 "https://issuetracker.google.com/42267261 Causing thermal failures on Pixel 6 with "
                 "Android 13");
+        }
+    }
+
+    if (traceNameIs("grand_mountain_adventure"))
+    {
+        addIntegerPrerequisite(GL_MAX_TEXTURE_SIZE, 11016);
+    }
+
+    if (traceNameIs("passmark_simple"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/42267118 fails on newer OS/driver");
+        }
+        addExtensionPrerequisite("GL_OES_framebuffer_object");
+    }
+
+    if (traceNameIs("passmark_complex"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("b/362801312 eglCreateContext fails on Mesa 23.2.1");
         }
     }
 
@@ -2643,6 +2670,8 @@ void TracePerfTest::saveScreenshot(const std::string &screenshotName)
     {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+
+    glFinish();
 
     glReadPixels(0, 0, mTestParams.windowWidth, mTestParams.windowHeight, GL_RGBA, GL_UNSIGNED_BYTE,
                  pixelData.data());
