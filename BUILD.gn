@@ -1151,7 +1151,7 @@ angle_source_set("libANGLE_no_vulkan") {
   }
 
   # Enable extra Chromium style warnings for libANGLE.
-  if (is_clang && angle_has_build) {
+  if (is_clang && angle_has_build && !is_nacl) {
     suppressed_configs -= [ "//build/config/clang:find_bad_constructs" ]
   }
 
@@ -1753,7 +1753,8 @@ if (angle_enable_cgl) {
   }
 }
 
-if (is_android && symbol_level != 0) {
+if (is_android && symbol_level != 0 &&
+    (angle_standalone || build_with_chromium)) {
   action_foreach("compressed_symbols") {
     sources = []
     foreach(_library, angle_libraries) {
