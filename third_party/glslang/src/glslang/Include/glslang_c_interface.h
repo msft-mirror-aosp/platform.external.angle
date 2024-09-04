@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 #include "glslang_c_shader_types.h"
+#include "visibility.h"
 
 typedef struct glslang_shader_s glslang_shader_t;
 typedef struct glslang_program_s glslang_program_t;
@@ -237,26 +238,11 @@ typedef struct glslang_spv_options_s {
     bool emit_nonsemantic_shader_debug_info;
     bool emit_nonsemantic_shader_debug_source;
     bool compile_only;
+    bool optimize_allow_expanded_id_bound;
 } glslang_spv_options_t;
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifdef GLSLANG_IS_SHARED_LIBRARY
-    #ifdef _WIN32
-        #ifdef GLSLANG_EXPORTING
-            #define GLSLANG_EXPORT __declspec(dllexport)
-        #else
-            #define GLSLANG_EXPORT __declspec(dllimport)
-        #endif
-    #elif __GNUC__ >= 4
-        #define GLSLANG_EXPORT __attribute__((visibility("default")))
-    #endif
-#endif // GLSLANG_IS_SHARED_LIBRARY
-
-#ifndef GLSLANG_EXPORT
-#define GLSLANG_EXPORT
 #endif
 
 GLSLANG_EXPORT void glslang_get_version(glslang_version_t* version);

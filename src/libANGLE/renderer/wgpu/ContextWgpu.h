@@ -293,6 +293,8 @@ class ContextWgpu : public ContextImpl
         DIRTY_BIT_RENDER_PASS,
 
         DIRTY_BIT_RENDER_PIPELINE_BINDING,
+        DIRTY_BIT_VIEWPORT,
+        DIRTY_BIT_SCISSOR,
 
         DIRTY_BIT_MAX,
     };
@@ -332,14 +334,10 @@ class ContextWgpu : public ContextImpl
 
     angle::Result handleDirtyRenderPipelineDesc(DirtyBits::Iterator *dirtyBitsIterator);
     angle::Result handleDirtyRenderPipelineBinding(DirtyBits::Iterator *dirtyBitsIterator);
+    angle::Result handleDirtyViewport(DirtyBits::Iterator *dirtyBitsIterator);
+    angle::Result handleDirtyScissor(DirtyBits::Iterator *dirtyBitsIterator);
 
     angle::Result handleDirtyRenderPass(DirtyBits::Iterator *dirtyBitsIterator);
-
-    gl::Caps mCaps;
-    gl::TextureCapsMap mTextureCaps;
-    gl::Extensions mExtensions;
-    gl::Limitations mLimitations;
-    ShPixelLocalStorageOptions mPLSOptions;
 
     angle::ImageLoadContext mImageLoadContext;
 
