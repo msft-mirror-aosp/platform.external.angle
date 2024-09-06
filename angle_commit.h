@@ -1,4 +1,4 @@
-#define ANGLE_COMMIT_HASH "20e0b83ac456eaa1d070b4cab2dba24d29c3fff5"
+#define ANGLE_COMMIT_HASH "61c26fd6930a3cfa4444d5cf6e25c830cf6ac86c"
 #define ANGLE_COMMIT_HASH_SIZE 12
 #define ANGLE_COMMIT_DATE "unknown date"
 #define ANGLE_COMMIT_POSITION 0
