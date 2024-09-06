@@ -89,7 +89,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r27_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-20-init-1009-g7088a5ed-10\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-20-init-3847-g69c43468-1\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -3863,6 +3863,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_container_common",
         "third_party_abseil_cpp_absl_container_compressed_tuple",
         "third_party_abseil_cpp_absl_container_container_memory",
+        "third_party_abseil_cpp_absl_container_hash_function_defaults",
         "third_party_abseil_cpp_absl_container_hash_policy_traits",
         "third_party_abseil_cpp_absl_container_hashtable_debug_hooks",
         "third_party_abseil_cpp_absl_container_hashtablez_sampler",

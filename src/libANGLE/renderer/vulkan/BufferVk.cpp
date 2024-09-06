@@ -281,37 +281,32 @@ ConversionBuffer::ConversionBuffer(vk::Renderer *renderer,
                                    size_t initialSize,
                                    size_t alignment,
                                    bool hostVisible)
-    : dirty(true)
+    : mEntireBufferDirty(true)
 {
-    data = std::make_unique<vk::BufferHelper>();
+    mData = std::make_unique<vk::BufferHelper>();
+    mDirtyRange.invalidate();
 }
 
 ConversionBuffer::~ConversionBuffer()
 {
-    ASSERT(!data || !data->valid());
+    ASSERT(!mData || !mData->valid());
 }
 
 ConversionBuffer::ConversionBuffer(ConversionBuffer &&other) = default;
 
-// BufferVk::VertexConversionBuffer implementation.
-BufferVk::VertexConversionBuffer::VertexConversionBuffer(vk::Renderer *renderer,
-                                                         angle::FormatID formatIDIn,
-                                                         GLuint strideIn,
-                                                         size_t offsetIn,
-                                                         bool hostVisible)
+// VertexConversionBuffer implementation.
+VertexConversionBuffer::VertexConversionBuffer(vk::Renderer *renderer, const CacheKey &cacheKey)
     : ConversionBuffer(renderer,
                        vk::kVertexBufferUsageFlags,
                        kConvertedArrayBufferInitialSize,
                        vk::kVertexBufferAlignment,
-                       hostVisible),
-      formatID(formatIDIn),
-      stride(strideIn),
-      offset(offsetIn)
+                       cacheKey.hostVisible),
+      mCacheKey(cacheKey)
 {}
 
-BufferVk::VertexConversionBuffer::VertexConversionBuffer(VertexConversionBuffer &&other) = default;
+VertexConversionBuffer::VertexConversionBuffer(VertexConversionBuffer &&other) = default;
 
-BufferVk::VertexConversionBuffer::~VertexConversionBuffer() = default;
+VertexConversionBuffer::~VertexConversionBuffer() = default;
 
 // BufferVk implementation.
 BufferVk::BufferVk(const gl::BufferState &state)
@@ -322,10 +317,10 @@ BufferVk::BufferVk(const gl::BufferState &state)
       mIsStagingBufferMapped(false),
       mHasValidData(false),
       mIsMappedForWrite(false),
-      mUsageType(BufferUsageType::Static),
-      mMappedOffset(0),
-      mMappedLength(0)
-{}
+      mUsageType(BufferUsageType::Static)
+{
+    mMappedRange.invalidate();
+}
 
 BufferVk::~BufferVk() {}
 
@@ -334,6 +329,15 @@ void BufferVk::destroy(const gl::Context *context)
     ContextVk *contextVk = vk::GetImpl(context);
 
     (void)release(contextVk);
+}
+
+void BufferVk::releaseConversionBuffers(vk::Renderer *renderer)
+{
+    for (ConversionBuffer &buffer : mVertexConversionBuffers)
+    {
+        buffer.release(renderer);
+    }
+    mVertexConversionBuffers.clear();
 }
 
 angle::Result BufferVk::release(ContextVk *contextVk)
@@ -348,11 +352,7 @@ angle::Result BufferVk::release(ContextVk *contextVk)
         mStagingBuffer.release(renderer);
     }
 
-    for (ConversionBuffer &buffer : mVertexConversionBuffers)
-    {
-        buffer.data->release(renderer);
-    }
-    mVertexConversionBuffers.clear();
+    releaseConversionBuffers(renderer);
 
     return angle::Result::Continue;
 }
@@ -460,6 +460,14 @@ angle::Result BufferVk::setDataWithMemoryType(const gl::Context *context,
     {
         // Nothing to do.
         return angle::Result::Continue;
+    }
+
+    if (!mVertexConversionBuffers.empty())
+    {
+        for (ConversionBuffer &buffer : mVertexConversionBuffers)
+        {
+            buffer.clearDirty();
+        }
     }
 
     const BufferUsageType usageType = GetBufferUsageType(usage);
@@ -697,8 +705,7 @@ angle::Result BufferVk::mapRangeImpl(ContextVk *contextVk,
     // Record map call parameters in case this call is from angle internal (the access/offset/length
     // will be inconsistent from mState).
     mIsMappedForWrite = (access & GL_MAP_WRITE_BIT) != 0;
-    mMappedOffset     = offset;
-    mMappedLength     = length;
+    mMappedRange      = RangeDeviceSize(offset, offset + length);
 
     uint8_t **mapPtrBytes = reinterpret_cast<uint8_t **>(mapPtr);
     bool hostVisible      = mBuffer.isHostVisible();
@@ -808,7 +815,7 @@ angle::Result BufferVk::unmapImpl(ContextVk *contextVk)
         // The buffer is device local or optimization of small range map.
         if (mIsMappedForWrite)
         {
-            ANGLE_TRY(flushStagingBuffer(contextVk, mMappedOffset, mMappedLength));
+            ANGLE_TRY(flushStagingBuffer(contextVk, mMappedRange.low(), mMappedRange.length()));
         }
 
         mIsStagingBufferMapped = false;
@@ -826,13 +833,12 @@ angle::Result BufferVk::unmapImpl(ContextVk *contextVk)
 
     if (mIsMappedForWrite)
     {
-        dataUpdated();
+        dataRangeUpdated(mMappedRange);
     }
 
     // Reset the mapping parameters
     mIsMappedForWrite = false;
-    mMappedOffset     = 0;
-    mMappedLength     = 0;
+    mMappedRange.invalidate();
 
     return angle::Result::Continue;
 }
@@ -1166,35 +1172,43 @@ angle::Result BufferVk::setDataImpl(ContextVk *contextVk,
     }
 
     // Update conversions
-    dataUpdated();
+    dataRangeUpdated(RangeDeviceSize(updateOffset, updateOffset + updateSize));
 
     return angle::Result::Continue;
 }
 
-ConversionBuffer *BufferVk::getVertexConversionBuffer(vk::Renderer *renderer,
-                                                      angle::FormatID formatID,
-                                                      GLuint stride,
-                                                      size_t offset,
-                                                      bool hostVisible)
+VertexConversionBuffer *BufferVk::getVertexConversionBuffer(
+    vk::Renderer *renderer,
+    const VertexConversionBuffer::CacheKey &cacheKey)
 {
     for (VertexConversionBuffer &buffer : mVertexConversionBuffers)
     {
-        if (buffer.formatID == formatID && buffer.stride == stride && buffer.offset == offset)
+        if (buffer.match(cacheKey))
         {
-            ASSERT(buffer.data && buffer.data->valid());
+            ASSERT(buffer.valid());
             return &buffer;
         }
     }
 
-    mVertexConversionBuffers.emplace_back(renderer, formatID, stride, offset, hostVisible);
+    mVertexConversionBuffers.emplace_back(renderer, cacheKey);
     return &mVertexConversionBuffers.back();
+}
+
+void BufferVk::dataRangeUpdated(const RangeDeviceSize &range)
+{
+    for (VertexConversionBuffer &buffer : mVertexConversionBuffers)
+    {
+        buffer.addDirtyBufferRange(range);
+    }
+    // Now we have valid data
+    mHasValidData = true;
 }
 
 void BufferVk::dataUpdated()
 {
     for (VertexConversionBuffer &buffer : mVertexConversionBuffers)
     {
-        buffer.dirty = true;
+        buffer.setEntireBufferDirty();
     }
     // Now we have valid data
     mHasValidData = true;
