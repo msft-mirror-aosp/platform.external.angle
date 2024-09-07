@@ -29,7 +29,6 @@ std::string ClspvGetCompilerOptions(const CLDeviceVk *device)
 
     // Other internal Clspv compiler flags that are needed/required
     options += " --long-vector";
-    options += " --global-offset";
 
     // 8 bit storage buffer support
     if (!rendererVk->getFeatures().supports8BitStorageBuffer.enabled)
