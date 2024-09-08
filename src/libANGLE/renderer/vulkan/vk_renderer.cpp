@@ -1982,7 +1982,8 @@ angle::Result Renderer::initialize(vk::Context *context,
         volkLoadInstance(mInstance);
 #endif  // defined(ANGLE_SHARED_LIBVULKAN)
 
-        initInstanceExtensionEntryPoints();
+        // For promoted extensions, initialize their entry points from the core version.
+        initializeInstanceExtensionEntryPointsFromCore();
     }
 
     if (mEnableDebugUtils)
@@ -2180,22 +2181,38 @@ angle::Result Renderer::initializeMemoryAllocator(vk::Context *context)
     // may get non-coherent memory type.
     requiredFlags  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
     preferredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    ANGLE_VK_TRY(context,
-                 mAllocator.findMemoryTypeIndexForBufferInfo(
-                     createInfo, requiredFlags, preferredFlags, persistentlyMapped,
-                     &mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedPreferCoherent]));
-    ASSERT(mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedPreferCoherent] !=
-           kInvalidMemoryTypeIndex);
+    VkResult result = mAllocator.findMemoryTypeIndexForBufferInfo(
+        createInfo, requiredFlags, preferredFlags, persistentlyMapped,
+        &mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedPreferCoherent]);
+    if (result == VK_SUCCESS)
+    {
+        ASSERT(mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedPreferCoherent] !=
+               kInvalidMemoryTypeIndex);
+    }
+    else
+    {
+        // Android studio may not expose host cached memory pool. Fall back to host uncached.
+        mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedPreferCoherent] =
+            mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::UnCachedCoherent];
+    }
 
     // Cached Non-coherent staging buffer
     requiredFlags  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
     preferredFlags = 0;
-    ANGLE_VK_TRY(context,
-                 mAllocator.findMemoryTypeIndexForBufferInfo(
-                     createInfo, requiredFlags, preferredFlags, persistentlyMapped,
-                     &mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedNonCoherent]));
-    ASSERT(mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedNonCoherent] !=
-           kInvalidMemoryTypeIndex);
+    result         = mAllocator.findMemoryTypeIndexForBufferInfo(
+        createInfo, requiredFlags, preferredFlags, persistentlyMapped,
+        &mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedNonCoherent]);
+    if (result == VK_SUCCESS)
+    {
+        ASSERT(mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedNonCoherent] !=
+               kInvalidMemoryTypeIndex);
+    }
+    else
+    {
+        // Android studio may not expose host cached memory pool. Fall back to host uncached.
+        mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedNonCoherent] =
+            mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::UnCachedCoherent];
+    }
 
     // Alignment
     mStagingBufferAlignment =
@@ -3489,33 +3506,6 @@ angle::Result Renderer::enableDeviceExtensions(vk::Context *context,
     return angle::Result::Continue;
 }
 
-void Renderer::initInstanceExtensionEntryPoints()
-{
-#if !defined(ANGLE_SHARED_LIBVULKAN)
-    // Instance entry points
-    if (mFeatures.supportsExternalSemaphoreFd.enabled ||
-        mFeatures.supportsExternalSemaphoreFuchsia.enabled)
-    {
-        InitExternalSemaphoreFdFunctions(mInstance);
-    }
-
-    if (mFeatures.supportsExternalFenceFd.enabled)
-    {
-        InitExternalFenceFdFunctions(mInstance);
-    }
-
-#    if defined(ANGLE_PLATFORM_ANDROID)
-    if (mFeatures.supportsAndroidHardwareBuffer.enabled)
-    {
-        InitExternalMemoryHardwareBufferANDROIDFunctions(mInstance);
-    }
-#    endif
-#endif
-
-    // For promoted extensions, initialize their entry points from the core version.
-    initializeInstanceExtensionEntryPointsFromCore();
-}
-
 void Renderer::initDeviceExtensionEntryPoints()
 {
 #if !defined(ANGLE_SHARED_LIBVULKAN)
@@ -3551,6 +3541,23 @@ void Renderer::initDeviceExtensionEntryPoints()
     {
         InitDynamicRenderingLocalReadFunctions(mDevice);
     }
+    if (mFeatures.supportsExternalSemaphoreFd.enabled ||
+        mFeatures.supportsExternalSemaphoreFuchsia.enabled)
+    {
+        InitExternalSemaphoreFdFunctions(mDevice);
+    }
+
+    if (mFeatures.supportsExternalFenceFd.enabled)
+    {
+        InitExternalFenceFdFunctions(mDevice);
+    }
+
+#    if defined(ANGLE_PLATFORM_ANDROID)
+    if (mFeatures.supportsAndroidHardwareBuffer.enabled)
+    {
+        InitExternalMemoryHardwareBufferANDROIDFunctions(mDevice);
+    }
+#    endif
     // Extensions promoted to Vulkan 1.2
     {
         if (mFeatures.supportsHostQueryReset.enabled)
