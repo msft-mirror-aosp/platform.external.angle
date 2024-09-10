@@ -1416,7 +1416,7 @@ void GenerateCaps(const FunctionsGL *functions,
     }
 
     if (!nativegl::SupportsVertexArrayObjects(functions) ||
-        features.syncVertexArraysToDefault.enabled)
+        features.syncAllVertexArraysToDefault.enabled)
     {
         // ES 3.1 vertex bindings are not emulated on the default vertex array
         LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
@@ -2163,15 +2163,17 @@ void GenerateCaps(const FunctionsGL *functions,
                                      functions->hasGLESExtension("GL_QCOM_tiled_rendering");
 
     extensions->blendEquationAdvancedKHR =
-        functions->hasGLExtension("GL_NV_blend_equation_advanced") ||
-        functions->hasGLExtension("GL_KHR_blend_equation_advanced") ||
-        functions->isAtLeastGLES(gl::Version(3, 2)) ||
-        functions->hasGLESExtension("GL_KHR_blend_equation_advanced");
+        !features.disableBlendEquationAdvanced.enabled &&
+        (functions->hasGLExtension("GL_NV_blend_equation_advanced") ||
+         functions->hasGLExtension("GL_KHR_blend_equation_advanced") ||
+         functions->isAtLeastGLES(gl::Version(3, 2)) ||
+         functions->hasGLESExtension("GL_KHR_blend_equation_advanced"));
     extensions->blendEquationAdvancedCoherentKHR =
-        functions->hasGLExtension("GL_NV_blend_equation_advanced_coherent") ||
-        functions->hasGLExtension("GL_KHR_blend_equation_advanced_coherent") ||
-        functions->isAtLeastGLES(gl::Version(3, 2)) ||
-        functions->hasGLESExtension("GL_KHR_blend_equation_advanced_coherent");
+        !features.disableBlendEquationAdvanced.enabled &&
+        (functions->hasGLExtension("GL_NV_blend_equation_advanced_coherent") ||
+         functions->hasGLExtension("GL_KHR_blend_equation_advanced_coherent") ||
+         functions->isAtLeastGLES(gl::Version(3, 2)) ||
+         functions->hasGLESExtension("GL_KHR_blend_equation_advanced_coherent"));
 
     // PVRTC1 textures must be squares on Apple platforms.
     if (IsApple())
@@ -2556,8 +2558,12 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // now.
     ANGLE_FEATURE_CONDITION(features, shiftInstancedArrayDataWithOffset,
                             IsApple() && IsIntel(vendor) && !IsHaswell(device));
-    ANGLE_FEATURE_CONDITION(features, syncVertexArraysToDefault,
+    ANGLE_FEATURE_CONDITION(features, syncAllVertexArraysToDefault,
                             !nativegl::SupportsVertexArrayObjects(functions));
+
+    // NVIDIA OpenGL ES emulated profile cannot handle client arrays
+    ANGLE_FEATURE_CONDITION(features, syncDefaultVertexArraysToDefault,
+                            nativegl::CanUseDefaultVertexArrayObject(functions) && !isNvidia);
 
     // http://crbug.com/1181193
     // On desktop Linux/AMD when using the amdgpu drivers, the precise kernel and DRM version are
@@ -2713,6 +2719,12 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // http://skbug.com/9491: Nexus5 produces rendering artifacts when we use QCOM_tiled_rendering.
     ANGLE_FEATURE_CONDITION(features, disableTiledRendering,
                             missingTilingEntryPoints || IsAdreno3xx(functions));
+
+    // Intel desktop GL drivers fail many Skia blend tests.
+    // Block on older Qualcomm and ARM, following Skia's blocklists.
+    ANGLE_FEATURE_CONDITION(
+        features, disableBlendEquationAdvanced,
+        (isIntel && IsWindows()) || IsAdreno4xx(functions) || IsAdreno5xx(functions) || isMali);
 }
 
 void InitializeFrontendFeatures(const FunctionsGL *functions, angle::FrontendFeatures *features)
@@ -2774,6 +2786,12 @@ bool SupportsVertexArrayObjects(const FunctionsGL *functions)
 bool CanUseDefaultVertexArrayObject(const FunctionsGL *functions)
 {
     return (functions->profile & GL_CONTEXT_CORE_PROFILE_BIT) == 0;
+}
+
+bool CanUseClientSideArrays(const FunctionsGL *functions, GLuint vao)
+{
+    // Can use client arrays on GLES or GL compatability profile only on the default VAO
+    return CanUseDefaultVertexArrayObject(functions) && vao == 0;
 }
 
 bool SupportsCompute(const FunctionsGL *functions)

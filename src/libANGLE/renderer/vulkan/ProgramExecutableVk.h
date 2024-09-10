@@ -235,7 +235,6 @@ class ProgramExecutableVk : public ProgramExecutableImpl
     angle::Result updateTexturesDescriptorSet(vk::Context *context,
                                               const gl::ActiveTextureArray<TextureVk *> &textures,
                                               const gl::SamplerBindingVector &samplers,
-                                              bool emulateSeamfulCubeMapSampling,
                                               PipelineType pipelineType,
                                               UpdateDescriptorSetsBuilder *updateBuilder,
                                               vk::CommandBufferHelperCommon *commandBufferHelper,
@@ -335,17 +334,15 @@ class ProgramExecutableVk : public ProgramExecutableImpl
 
     angle::Result warmUpPipelineCache(vk::Renderer *renderer,
                                       vk::PipelineRobustness pipelineRobustness,
-                                      vk::PipelineProtectedAccess pipelineProtectedAccess,
-                                      vk::GraphicsPipelineSubset subset)
+                                      vk::PipelineProtectedAccess pipelineProtectedAccess)
     {
         return getPipelineCacheWarmUpTasks(renderer, pipelineRobustness, pipelineProtectedAccess,
-                                           subset, nullptr);
+                                           nullptr);
     }
     angle::Result getPipelineCacheWarmUpTasks(
         vk::Renderer *renderer,
         vk::PipelineRobustness pipelineRobustness,
         vk::PipelineProtectedAccess pipelineProtectedAccess,
-        vk::GraphicsPipelineSubset subset,
         std::vector<std::shared_ptr<LinkSubTask>> *postLinkSubTasksOut);
 
     void waitForPostLinkTasks(const gl::Context *context) override
@@ -487,7 +484,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
                                                         vk::PipelineCacheAccess *pipelineCache,
                                                         PipelineSource source,
                                                         const vk::GraphicsPipelineDesc &desc,
-                                                        const vk::RenderPass *compatibleRenderPass,
+                                                        const vk::RenderPass &compatibleRenderPass,
                                                         const vk::GraphicsPipelineDesc **descPtrOut,
                                                         vk::PipelineHelper **pipelineOut);
     angle::Result createGraphicsPipelineImpl(vk::Context *context,
@@ -496,7 +493,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
                                              vk::PipelineCacheAccess *pipelineCache,
                                              PipelineSource source,
                                              const vk::GraphicsPipelineDesc &desc,
-                                             const vk::RenderPass *compatibleRenderPass,
+                                             const vk::RenderPass &compatibleRenderPass,
                                              const vk::GraphicsPipelineDesc **descPtrOut,
                                              vk::PipelineHelper **pipelineOut);
     angle::Result prepareForWarmUpPipelineCache(
@@ -517,7 +514,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
                                               vk::GraphicsPipelineSubset subset,
                                               const bool isSurfaceRotated,
                                               const vk::GraphicsPipelineDesc &graphicsPipelineDesc,
-                                              const vk::RenderPass *renderPass,
+                                              const vk::RenderPass &renderPass,
                                               vk::PipelineHelper *placeholderPipelineHelper);
     void waitForPostLinkTasksImpl(ContextVk *contextVk);
 

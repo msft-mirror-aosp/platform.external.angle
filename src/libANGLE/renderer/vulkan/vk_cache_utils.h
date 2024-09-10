@@ -134,6 +134,8 @@ template <typename T>
 using FramebufferNonResolveAttachmentArray = std::array<T, kMaxFramebufferNonResolveAttachments>;
 using FramebufferNonResolveAttachmentMask  = angle::BitSet16<kMaxFramebufferNonResolveAttachments>;
 
+class PackedAttachmentIndex;
+
 class alignas(4) RenderPassDesc final
 {
   public:
@@ -168,6 +170,8 @@ class alignas(4) RenderPassDesc final
     void packDepthUnresolveAttachment();
     void packStencilUnresolveAttachment();
     void removeDepthStencilUnresolveAttachment();
+
+    PackedAttachmentIndex getPackedColorAttachmentIndex(size_t colorIndexGL);
 
     void setWriteControlMode(gl::SrgbWriteControlMode mode);
 
@@ -391,12 +395,11 @@ struct PackedAttachmentOpsDesc final
     // placed at the beginning of that enum.
     uint16_t initialLayout : 5;
     uint16_t finalLayout : 5;
-    uint16_t padding2 : 6;
+    uint16_t finalResolveLayout : 5;
+    uint16_t padding2 : 1;
 };
 
 static_assert(sizeof(PackedAttachmentOpsDesc) == 4, "Size check failed");
-
-class PackedAttachmentIndex;
 
 class AttachmentOpsArray final
 {
@@ -788,7 +791,7 @@ class GraphicsPipelineDesc final
     VkResult initializePipeline(Context *context,
                                 PipelineCacheAccess *pipelineCache,
                                 GraphicsPipelineSubset subset,
-                                const RenderPass *compatibleRenderPass,
+                                const RenderPass &compatibleRenderPass,
                                 const PipelineLayout &pipelineLayout,
                                 const ShaderModuleMap &shaders,
                                 const SpecializationConstants &specConsts,
@@ -1856,8 +1859,7 @@ class DescriptorSetDescBuilder final
 
     // Specific helpers for shader resource descriptors.
     template <typename CommandBufferT>
-    void updateOneShaderBuffer(ContextVk *contextVk,
-                               CommandBufferT *commandBufferHelper,
+    void updateOneShaderBuffer(CommandBufferT *commandBufferHelper,
                                const ShaderInterfaceVariableInfoMap &variableInfoMap,
                                const gl::BufferVector &buffers,
                                const gl::InterfaceBlock &block,
@@ -1865,10 +1867,10 @@ class DescriptorSetDescBuilder final
                                VkDescriptorType descriptorType,
                                VkDeviceSize maxBoundBufferRange,
                                const BufferHelper &emptyBuffer,
-                               const WriteDescriptorDescs &writeDescriptorDescs);
+                               const WriteDescriptorDescs &writeDescriptorDescs,
+                               const GLbitfield memoryBarrierBits);
     template <typename CommandBufferT>
-    void updateShaderBuffers(ContextVk *contextVk,
-                             CommandBufferT *commandBufferHelper,
+    void updateShaderBuffers(CommandBufferT *commandBufferHelper,
                              const gl::ProgramExecutable &executable,
                              const ShaderInterfaceVariableInfoMap &variableInfoMap,
                              const gl::BufferVector &buffers,
@@ -1876,10 +1878,10 @@ class DescriptorSetDescBuilder final
                              VkDescriptorType descriptorType,
                              VkDeviceSize maxBoundBufferRange,
                              const BufferHelper &emptyBuffer,
-                             const WriteDescriptorDescs &writeDescriptorDescs);
+                             const WriteDescriptorDescs &writeDescriptorDescs,
+                             const GLbitfield memoryBarrierBits);
     template <typename CommandBufferT>
-    void updateAtomicCounters(ContextVk *contextVk,
-                              CommandBufferT *commandBufferHelper,
+    void updateAtomicCounters(CommandBufferT *commandBufferHelper,
                               const gl::ProgramExecutable &executable,
                               const ShaderInterfaceVariableInfoMap &variableInfoMap,
                               const gl::BufferVector &buffers,
@@ -1910,7 +1912,6 @@ class DescriptorSetDescBuilder final
                                            const gl::ProgramExecutable &executable,
                                            const gl::ActiveTextureArray<TextureVk *> &textures,
                                            const gl::SamplerBindingVector &samplers,
-                                           bool emulateSeamfulCubeMapSampling,
                                            PipelineType pipelineType,
                                            const SharedDescriptorSetCacheKey &sharedCacheKey);
 
@@ -2018,7 +2019,7 @@ class FramebufferDesc
     // Maximum value is 18
     uint16_t mMaxIndex : 5;
 
-    // Whether the render pass has input attachments or not.  This is unused with dynamic rendering.
+    // Whether the render pass has input attachments or not.
     uint16_t mHasFramebufferFetch : 1;
     static_assert(gl::IMPLEMENTATION_MAX_FRAMEBUFFER_LAYERS < (1 << 9) - 1,
                   "Not enough bits for mLayerCount");
@@ -2559,7 +2560,7 @@ class GraphicsPipelineCache final : public HasCacheStats<VulkanCacheType::Graphi
 
     angle::Result createPipeline(vk::Context *context,
                                  vk::PipelineCacheAccess *pipelineCache,
-                                 const vk::RenderPass *compatibleRenderPass,
+                                 const vk::RenderPass &compatibleRenderPass,
                                  const vk::PipelineLayout &pipelineLayout,
                                  const vk::ShaderModuleMap &shaders,
                                  const vk::SpecializationConstants &specConsts,

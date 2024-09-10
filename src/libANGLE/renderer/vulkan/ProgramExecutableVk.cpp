@@ -399,6 +399,14 @@ void SetUniformMatrixfv(const gl::ProgramExecutable *executable,
         defaultUniformBlocksDirty->set(shaderType);
     }
 }
+
+vk::GraphicsPipelineSubset GetWarmUpSubset(const angle::FeaturesVk &features)
+{
+    // Only build the shaders subset of the pipeline if VK_EXT_graphics_pipeline_library is
+    // supported.
+    return features.supportsGraphicsPipelineLibrary.enabled ? vk::GraphicsPipelineSubset::Shaders
+                                                            : vk::GraphicsPipelineSubset::Complete;
+}
 }  // namespace
 
 class ProgramExecutableVk::WarmUpTaskCommon : public vk::Context, public LinkSubTask
@@ -534,12 +542,9 @@ class ProgramExecutableVk::WarmUpGraphicsTask : public WarmUpTaskCommon
 
     void operator()() override
     {
-        const vk::RenderPass *compatibleRenderPass =
-            mCompatibleRenderPass->get().valid() ? &mCompatibleRenderPass->get() : nullptr;
-
         angle::Result result = mExecutableVk->warmUpGraphicsPipelineCache(
             this, mPipelineRobustness, mPipelineProtectedAccess, mPipelineSubset, mIsSurfaceRotated,
-            mGraphicsPipelineDesc, compatibleRenderPass, mWarmUpPipelineHelper);
+            mGraphicsPipelineDesc, mCompatibleRenderPass->get(), mWarmUpPipelineHelper);
         ASSERT((result == angle::Result::Continue) == (mErrorCode == VK_SUCCESS));
 
         // Release reference to shared renderpass. If this is the last reference -
@@ -938,10 +943,11 @@ angle::Result ProgramExecutableVk::getPipelineCacheWarmUpTasks(
     vk::Renderer *renderer,
     vk::PipelineRobustness pipelineRobustness,
     vk::PipelineProtectedAccess pipelineProtectedAccess,
-    vk::GraphicsPipelineSubset subset,
     std::vector<std::shared_ptr<LinkSubTask>> *postLinkSubTasksOut)
 {
     ASSERT(!postLinkSubTasksOut || postLinkSubTasksOut->empty());
+
+    const vk::GraphicsPipelineSubset subset = GetWarmUpSubset(renderer->getFeatures());
 
     bool isCompute                                        = false;
     angle::FixedVector<bool, 2> surfaceRotationVariations = {false};
@@ -1124,7 +1130,7 @@ angle::Result ProgramExecutableVk::warmUpGraphicsPipelineCache(
     vk::GraphicsPipelineSubset subset,
     const bool isSurfaceRotated,
     const vk::GraphicsPipelineDesc &graphicsPipelineDesc,
-    const vk::RenderPass *renderPass,
+    const vk::RenderPass &renderPass,
     vk::PipelineHelper *placeholderPipelineHelper)
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "ProgramExecutableVk::warmUpGraphicsPipelineCache");
@@ -1192,10 +1198,7 @@ void ProgramExecutableVk::waitForGraphicsPostLinkTasks(
         return;
     }
 
-    const vk::GraphicsPipelineSubset subset =
-        contextVk->getFeatures().supportsGraphicsPipelineLibrary.enabled
-            ? vk::GraphicsPipelineSubset::Shaders
-            : vk::GraphicsPipelineSubset::Complete;
+    const vk::GraphicsPipelineSubset subset = GetWarmUpSubset(contextVk->getFeatures());
 
     if (!mWarmUpGraphicsPipelineDesc.keyEqual(currentGraphicsPipelineDesc, subset))
     {
@@ -1541,7 +1544,7 @@ angle::Result ProgramExecutableVk::initProgramThenCreateGraphicsPipeline(
     vk::PipelineCacheAccess *pipelineCache,
     PipelineSource source,
     const vk::GraphicsPipelineDesc &desc,
-    const vk::RenderPass *compatibleRenderPass,
+    const vk::RenderPass &compatibleRenderPass,
     const vk::GraphicsPipelineDesc **descPtrOut,
     vk::PipelineHelper **pipelineOut)
 {
@@ -1558,7 +1561,7 @@ angle::Result ProgramExecutableVk::createGraphicsPipelineImpl(
     vk::PipelineCacheAccess *pipelineCache,
     PipelineSource source,
     const vk::GraphicsPipelineDesc &desc,
-    const vk::RenderPass *compatibleRenderPass,
+    const vk::RenderPass &compatibleRenderPass,
     const vk::GraphicsPipelineDesc **descPtrOut,
     vk::PipelineHelper **pipelineOut)
 {
@@ -1657,15 +1660,11 @@ angle::Result ProgramExecutableVk::createGraphicsPipeline(
 
     // Pull in a compatible RenderPass.
     const vk::RenderPass *compatibleRenderPass = nullptr;
-    if (!contextVk->getFeatures().preferDynamicRendering.enabled)
-    {
-        ANGLE_TRY(contextVk->getRenderPassCache().getCompatibleRenderPass(
-            contextVk, desc.getRenderPassDesc(), &compatibleRenderPass));
-    }
+    ANGLE_TRY(contextVk->getCompatibleRenderPass(desc.getRenderPassDesc(), &compatibleRenderPass));
 
-    ANGLE_TRY(initProgramThenCreateGraphicsPipeline(contextVk, transformOptions, pipelineSubset,
-                                                    pipelineCache, source, desc,
-                                                    compatibleRenderPass, descPtrOut, pipelineOut));
+    ANGLE_TRY(initProgramThenCreateGraphicsPipeline(
+        contextVk, transformOptions, pipelineSubset, pipelineCache, source, desc,
+        *compatibleRenderPass, descPtrOut, pipelineOut));
 
     if (useProgramPipelineCache &&
         contextVk->getFeatures().mergeProgramPipelineCachesToGlobalCache.enabled)
@@ -1985,7 +1984,6 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
     vk::Context *context,
     const gl::ActiveTextureArray<TextureVk *> &textures,
     const gl::SamplerBindingVector &samplers,
-    bool emulateSeamfulCubeMapSampling,
     PipelineType pipelineType,
     UpdateDescriptorSetsBuilder *updateBuilder,
     vk::CommandBufferHelperCommon *commandBufferHelper,
@@ -2006,7 +2004,7 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
         // Cache miss. A new cache entry has been created.
         ANGLE_TRY(fullDesc.updateFullActiveTextures(
             context, mVariableInfoMap, mTextureWriteDescriptorDescs, *mExecutable, textures,
-            samplers, emulateSeamfulCubeMapSampling, pipelineType, newSharedCacheKey));
+            samplers, pipelineType, newSharedCacheKey));
         fullDesc.updateDescriptorSet(context->getRenderer(), mTextureWriteDescriptorDescs,
                                      updateBuilder, mDescriptorSets[DescriptorSetIndex::Texture]);
     }

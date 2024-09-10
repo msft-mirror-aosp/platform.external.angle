@@ -36,6 +36,7 @@ namespace vk
 class SyncHelper;
 }  // namespace vk
 
+class ConversionBuffer;
 class ProgramExecutableVk;
 class WindowSurfaceVk;
 class OffscreenSurfaceVk;
@@ -65,6 +66,15 @@ enum class UpdateDepthFeedbackLoopReason
     Draw,
     Clear,
 };
+
+static constexpr GLbitfield kBufferMemoryBarrierBits =
+    GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT | GL_UNIFORM_BARRIER_BIT |
+    GL_COMMAND_BARRIER_BIT | GL_PIXEL_BUFFER_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT |
+    GL_TRANSFORM_FEEDBACK_BARRIER_BIT | GL_ATOMIC_COUNTER_BARRIER_BIT |
+    GL_SHADER_STORAGE_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT_EXT;
+static constexpr GLbitfield kImageMemoryBarrierBits =
+    GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+    GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT;
 
 class ContextVk : public ContextImpl, public vk::Context, public MultisampleTextureInitializer
 {
@@ -506,10 +516,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         return angle::Result::Continue;
     }
 
-    RenderPassCache &getRenderPassCache() { return mRenderPassCache; }
-
-    bool emulateSeamfulCubeMapSampling() const { return mEmulateSeamfulCubeMapSampling; }
-
     const gl::Debug &getDebug() const { return mState.getDebug(); }
     const gl::OverlayType *getOverlay() const { return mState.getOverlay(); }
 
@@ -548,6 +554,18 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         mRenderPassCommands->colorImagesDraw(level, layerStart, layerCount, image, resolveImage,
                                              imageSiblingSerial, packedAttachmentIndex);
     }
+    void onColorResolve(gl::LevelIndex level,
+                        uint32_t layerStart,
+                        uint32_t layerCount,
+                        vk::ImageHelper *image,
+                        VkImageView view,
+                        UniqueSerial imageSiblingSerial,
+                        size_t colorIndexGL)
+    {
+        ASSERT(mRenderPassCommands->started());
+        mRenderPassCommands->addColorResolveAttachment(colorIndexGL, image, view, level, layerStart,
+                                                       layerCount, imageSiblingSerial);
+    }
     void onDepthStencilDraw(gl::LevelIndex level,
                             uint32_t layerStart,
                             uint32_t layerCount,
@@ -558,6 +576,18 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         ASSERT(mRenderPassCommands->started());
         mRenderPassCommands->depthStencilImagesDraw(level, layerStart, layerCount, image,
                                                     resolveImage, imageSiblingSerial);
+    }
+    void onDepthStencilResolve(gl::LevelIndex level,
+                               uint32_t layerStart,
+                               uint32_t layerCount,
+                               VkImageAspectFlags aspects,
+                               vk::ImageHelper *image,
+                               VkImageView view,
+                               UniqueSerial imageSiblingSerial)
+    {
+        ASSERT(mRenderPassCommands->started());
+        mRenderPassCommands->addDepthStencilResolveAttachment(
+            image, view, aspects, level, layerStart, layerCount, imageSiblingSerial);
     }
 
     void onFragmentShadingRateRead(vk::ImageHelper *image)
@@ -646,8 +676,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         // kept open between frames (including when a swapchain is recreated and framebuffer handles
         // change).  It is therefore safe to verify an open render pass just by checking if it
         // originated from the default framebuffer.
-        return mRenderPassCommands->started() &&
-               mRenderPassCommands->getSource() == vk::RenderPassSource::DefaultFramebuffer;
+        return mRenderPassCommands->started() && mRenderPassCommands->isDefault();
     }
 
     bool isRenderPassStartedAndUsesBuffer(const vk::BufferHelper &buffer) const
@@ -859,7 +888,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                          VkDeviceSize *offset,
                                          uint8_t **dataPtr);
     // Suballocate a buffer with alignment good for shader storage or copyBuffer.
-    angle::Result initBufferForVertexConversion(vk::BufferHelper *bufferHelper,
+    angle::Result initBufferForVertexConversion(ConversionBuffer *conversionBuffer,
                                                 size_t size,
                                                 vk::MemoryHostVisibility hostVisibility);
 
@@ -1519,6 +1548,9 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     VkClearValue mClearDepthStencilValue;
     gl::BlendStateExt::ColorMaskStorage::Type mClearColorMasks;
 
+    // The unprocessed bits passed in from the previous glMemoryBarrier call
+    GLbitfield mDeferredMemoryBarriers;
+
     IncompleteTextureSet mIncompleteTextures;
 
     // If the current surface bound to this context wants to have all rendering flipped vertically.
@@ -1530,9 +1562,6 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     // If any host-visible buffer is written by the GPU since last submission, a barrier is inserted
     // at the end of the command buffer to make that write available to the host.
     bool mIsAnyHostVisibleBufferWritten;
-
-    // Whether this context should do seamful cube map sampling emulation.
-    bool mEmulateSeamfulCubeMapSampling;
 
     // This info is used in the descriptor update step.
     gl::ActiveTextureArray<TextureVk *> mActiveTextures;
@@ -1576,6 +1605,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     vk::GarbageObjects mCurrentGarbage;
 
     RenderPassCache mRenderPassCache;
+    // Used with dynamic rendering as it doesn't use render passes.
+    vk::RenderPass mNullRenderPass;
 
     vk::OutsideRenderPassCommandBufferHelper *mOutsideRenderPassCommands;
     vk::RenderPassCommandBufferHelper *mRenderPassCommands;

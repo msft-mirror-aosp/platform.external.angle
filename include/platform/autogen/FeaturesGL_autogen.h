@@ -527,11 +527,18 @@ struct FeaturesGL : FeatureSetBase
         &members, "http://crbug.com/1144207"
     };
 
-    FeatureInfo syncVertexArraysToDefault = {
-        "syncVertexArraysToDefault",
+    FeatureInfo syncAllVertexArraysToDefault = {
+        "syncAllVertexArraysToDefault",
         FeatureCategory::OpenGLWorkarounds,
         "Only use the default VAO because of missing support or driver bugs",
         &members, "http://anglebug.com/40096758"
+    };
+
+    FeatureInfo syncDefaultVertexArraysToDefault = {
+        "syncDefaultVertexArraysToDefault",
+        FeatureCategory::OpenGLWorkarounds,
+        "Sync all frontend vertex array objects to the driver default vertex array",
+        &members, "http://anglebug.com/355034686"
     };
 
     FeatureInfo sanitizeAMDGPURendererString = {
@@ -768,6 +775,13 @@ struct FeaturesGL : FeatureSetBase
         FeatureCategory::OpenGLWorkarounds,
         "Disable QCOM_tiled_rendering on devices with rendering artifacts or which improperly expose the extension.",
         &members, "http://skbug.com/9491 https://github.com/flutter/flutter/issues/47164 https://github.com/flutter/flutter/issues/47804"
+    };
+
+    FeatureInfo disableBlendEquationAdvanced = {
+        "disableBlendEquationAdvanced",
+        FeatureCategory::OpenGLWorkarounds,
+        "Disable GL_KHR_blend_equation_advanced due to various driver issues.",
+        &members, "https://anglebug.com/42267098"
     };
 
 };
