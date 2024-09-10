@@ -381,6 +381,7 @@ typedef enum SpvImageChannelDataType_ {
     SpvImageChannelDataTypeUnormInt101010_2 = 16,
     SpvImageChannelDataTypeUnsignedIntRaw10EXT = 19,
     SpvImageChannelDataTypeUnsignedIntRaw12EXT = 20,
+    SpvImageChannelDataTypeUnormInt2_101010EXT = 21,
     SpvImageChannelDataTypeMax = 0x7fffffff,
 } SpvImageChannelDataType;
 
@@ -1233,6 +1234,7 @@ typedef enum SpvCapability_ {
     SpvCapabilityFPGAArgumentInterfacesINTEL = 6174,
     SpvCapabilityGlobalVariableHostAccessINTEL = 6187,
     SpvCapabilityGlobalVariableFPGADecorationsINTEL = 6189,
+    SpvCapabilitySubgroupBufferPrefetchINTEL = 6220,
     SpvCapabilityGroupUniformArithmeticKHR = 6400,
     SpvCapabilityMaskedGatherScatterINTEL = 6427,
     SpvCapabilityCacheControlsINTEL = 6441,
@@ -1786,6 +1788,7 @@ typedef enum SpvOp_ {
     SpvOpUntypedPtrAccessChainKHR = 4423,
     SpvOpUntypedInBoundsPtrAccessChainKHR = 4424,
     SpvOpUntypedArrayLengthKHR = 4425,
+    SpvOpUntypedPrefetchKHR = 4426,
     SpvOpSubgroupAllKHR = 4428,
     SpvOpSubgroupAnyKHR = 4429,
     SpvOpSubgroupAllEqualKHR = 4430,
@@ -2163,6 +2166,7 @@ typedef enum SpvOp_ {
     SpvOpConvertBF16ToFINTEL = 6117,
     SpvOpControlBarrierArriveINTEL = 6142,
     SpvOpControlBarrierWaitINTEL = 6143,
+    SpvOpSubgroupBlockPrefetchINTEL = 6221,
     SpvOpGroupIMulKHR = 6401,
     SpvOpGroupFMulKHR = 6402,
     SpvOpGroupBitwiseAndKHR = 6403,
@@ -2541,6 +2545,7 @@ inline void SpvHasResultAndType(SpvOp opcode, bool *hasResult, bool *hasResultTy
     case SpvOpUntypedPtrAccessChainKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpUntypedInBoundsPtrAccessChainKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpUntypedArrayLengthKHR: *hasResult = true; *hasResultType = true; break;
+    case SpvOpUntypedPrefetchKHR: *hasResult = false; *hasResultType = false; break;
     case SpvOpSubgroupAllKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpSubgroupAnyKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpSubgroupAllEqualKHR: *hasResult = true; *hasResultType = true; break;
@@ -2907,6 +2912,7 @@ inline void SpvHasResultAndType(SpvOp opcode, bool *hasResult, bool *hasResultTy
     case SpvOpConvertBF16ToFINTEL: *hasResult = true; *hasResultType = true; break;
     case SpvOpControlBarrierArriveINTEL: *hasResult = false; *hasResultType = false; break;
     case SpvOpControlBarrierWaitINTEL: *hasResult = false; *hasResultType = false; break;
+    case SpvOpSubgroupBlockPrefetchINTEL: *hasResult = false; *hasResultType = false; break;
     case SpvOpGroupIMulKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpGroupFMulKHR: *hasResult = true; *hasResultType = true; break;
     case SpvOpGroupBitwiseAndKHR: *hasResult = true; *hasResultType = true; break;
@@ -3241,6 +3247,7 @@ inline const char* SpvImageChannelDataTypeToString(SpvImageChannelDataType value
     case SpvImageChannelDataTypeUnormInt101010_2: return "UnormInt101010_2";
     case SpvImageChannelDataTypeUnsignedIntRaw10EXT: return "UnsignedIntRaw10EXT";
     case SpvImageChannelDataTypeUnsignedIntRaw12EXT: return "UnsignedIntRaw12EXT";
+    case SpvImageChannelDataTypeUnormInt2_101010EXT: return "UnormInt2_101010EXT";
     default: return "Unknown";
     }
 }
@@ -3824,6 +3831,7 @@ inline const char* SpvCapabilityToString(SpvCapability value) {
     case SpvCapabilityFPGAArgumentInterfacesINTEL: return "FPGAArgumentInterfacesINTEL";
     case SpvCapabilityGlobalVariableHostAccessINTEL: return "GlobalVariableHostAccessINTEL";
     case SpvCapabilityGlobalVariableFPGADecorationsINTEL: return "GlobalVariableFPGADecorationsINTEL";
+    case SpvCapabilitySubgroupBufferPrefetchINTEL: return "SubgroupBufferPrefetchINTEL";
     case SpvCapabilityGroupUniformArithmeticKHR: return "GroupUniformArithmeticKHR";
     case SpvCapabilityMaskedGatherScatterINTEL: return "MaskedGatherScatterINTEL";
     case SpvCapabilityCacheControlsINTEL: return "CacheControlsINTEL";
@@ -4334,6 +4342,7 @@ inline const char* SpvOpToString(SpvOp value) {
     case SpvOpUntypedPtrAccessChainKHR: return "OpUntypedPtrAccessChainKHR";
     case SpvOpUntypedInBoundsPtrAccessChainKHR: return "OpUntypedInBoundsPtrAccessChainKHR";
     case SpvOpUntypedArrayLengthKHR: return "OpUntypedArrayLengthKHR";
+    case SpvOpUntypedPrefetchKHR: return "OpUntypedPrefetchKHR";
     case SpvOpSubgroupAllKHR: return "OpSubgroupAllKHR";
     case SpvOpSubgroupAnyKHR: return "OpSubgroupAnyKHR";
     case SpvOpSubgroupAllEqualKHR: return "OpSubgroupAllEqualKHR";
@@ -4700,6 +4709,7 @@ inline const char* SpvOpToString(SpvOp value) {
     case SpvOpConvertBF16ToFINTEL: return "OpConvertBF16ToFINTEL";
     case SpvOpControlBarrierArriveINTEL: return "OpControlBarrierArriveINTEL";
     case SpvOpControlBarrierWaitINTEL: return "OpControlBarrierWaitINTEL";
+    case SpvOpSubgroupBlockPrefetchINTEL: return "OpSubgroupBlockPrefetchINTEL";
     case SpvOpGroupIMulKHR: return "OpGroupIMulKHR";
     case SpvOpGroupFMulKHR: return "OpGroupFMulKHR";
     case SpvOpGroupBitwiseAndKHR: return "OpGroupBitwiseAndKHR";
