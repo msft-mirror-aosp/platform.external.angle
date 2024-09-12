@@ -132,6 +132,8 @@ template <typename T>
 using FramebufferNonResolveAttachmentArray = std::array<T, kMaxFramebufferNonResolveAttachments>;
 using FramebufferNonResolveAttachmentMask  = angle::BitSet16<kMaxFramebufferNonResolveAttachments>;
 
+class PackedAttachmentIndex;
+
 class alignas(4) RenderPassDesc final
 {
   public:
@@ -166,6 +168,8 @@ class alignas(4) RenderPassDesc final
     void packDepthUnresolveAttachment();
     void packStencilUnresolveAttachment();
     void removeDepthStencilUnresolveAttachment();
+
+    PackedAttachmentIndex getPackedColorAttachmentIndex(size_t colorIndexGL);
 
     void setWriteControlMode(gl::SrgbWriteControlMode mode);
 
@@ -356,12 +360,11 @@ struct PackedAttachmentOpsDesc final
     // placed at the beginning of that enum.
     uint16_t initialLayout : 5;
     uint16_t finalLayout : 5;
-    uint16_t padding2 : 6;
+    uint16_t finalResolveLayout : 5;
+    uint16_t padding2 : 1;
 };
 
 static_assert(sizeof(PackedAttachmentOpsDesc) == 4, "Size check failed");
-
-class PackedAttachmentIndex;
 
 class AttachmentOpsArray final
 {
@@ -985,7 +988,7 @@ class GraphicsPipelineDesc final
 constexpr size_t kGraphicsPipelineDescSize = sizeof(GraphicsPipelineDesc);
 static_assert(kGraphicsPipelineDescSize == kGraphicsPipelineDescSumOfSizes, "Size mismatch");
 
-// Values are based on data recorded here -> https://anglebug.com/8677#c4
+// Values are based on data recorded here -> https://anglebug.com/42267114#comment5
 constexpr size_t kDefaultDescriptorSetLayoutBindingsCount = 8;
 constexpr size_t kDefaultImmutableSamplerBindingsCount    = 1;
 using DescriptorSetLayoutBindingVector =
@@ -1005,11 +1008,11 @@ class DescriptorSetLayoutDesc final
     size_t hash() const;
     bool operator==(const DescriptorSetLayoutDesc &other) const;
 
-    void update(uint32_t bindingIndex,
-                VkDescriptorType descriptorType,
-                uint32_t count,
-                VkShaderStageFlags stages,
-                const Sampler *immutableSampler);
+    void addBinding(uint32_t bindingIndex,
+                    VkDescriptorType descriptorType,
+                    uint32_t count,
+                    VkShaderStageFlags stages,
+                    const Sampler *immutableSampler);
 
     void unpackBindings(DescriptorSetLayoutBindingVector *bindings) const;
 
@@ -1021,15 +1024,16 @@ class DescriptorSetLayoutDesc final
     // TODO: https://issuetracker.google.com/issues/159156775: Have immutable sampler use serial
     union PackedDescriptorSetBinding
     {
+        static constexpr uint8_t kInvalidType = 255;
+
         struct
         {
-            uint8_t type;                  // Stores a packed VkDescriptorType descriptorType.
-            uint8_t stages;                // Stores a packed VkShaderStageFlags.
-            uint16_t count;                // Stores a packed uint32_t descriptorCount
-            uint16_t bindingIndex;         // Stores the binding index
-            uint16_t hasImmutableSampler;  // Whether this binding has an immutable sampler
+            uint8_t type;                      // Stores a packed VkDescriptorType descriptorType.
+            uint8_t stages;                    // Stores a packed VkShaderStageFlags.
+            uint16_t count : 15;               // Stores a packed uint32_t descriptorCount
+            uint16_t hasImmutableSampler : 1;  // Whether this binding has an immutable sampler
         };
-        uint64_t value;
+        uint32_t value;
 
         bool operator==(const PackedDescriptorSetBinding &other) const
         {
@@ -1037,12 +1041,16 @@ class DescriptorSetLayoutDesc final
         }
     };
 
-    // 1x 64bit
-    static_assert(sizeof(PackedDescriptorSetBinding) == 8, "Unexpected size");
+    // 1x 32bit
+    static_assert(sizeof(PackedDescriptorSetBinding) == 4, "Unexpected size");
 
+    angle::FastVector<VkSampler, kDefaultImmutableSamplerBindingsCount> mImmutableSamplers;
     angle::FastVector<PackedDescriptorSetBinding, kDefaultDescriptorSetLayoutBindingsCount>
         mDescriptorSetLayoutBindings;
-    angle::FastVector<VkSampler, kDefaultImmutableSamplerBindingsCount> mImmutableSamplers;
+
+#if !defined(ANGLE_IS_64_BIT_CPU)
+    ANGLE_MAYBE_UNUSED_PRIVATE_FIELD uint32_t mPadding = 0;
+#endif
 };
 
 // The following are for caching descriptor set layouts. Limited to max three descriptor set
@@ -1487,7 +1495,7 @@ class PipelineHelper final : public Resource
     // If pipeline libraries are used and monolithic pipelines are created in parallel, this is the
     // temporary library created (previously in |mPipeline|) that is now replaced by the monolithic
     // one.  It is not immediately garbage collected when replaced, because there is currently a bug
-    // with that.  http://anglebug.com/7862
+    // with that.  http://anglebug.com/42266335
     Pipeline mLinkedPipelineToRelease;
 
     // An async task to create a monolithic pipeline.  Only used if the pipeline was originally

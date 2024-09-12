@@ -282,8 +282,9 @@ static bool DetermineBGRAReadFormatSupport(const TextureCapsMap &textureCaps)
 {
     constexpr GLenum requiredFormats[] = {
         GL_BGRA8_EXT,
-        // TODO(http://anglebug.com/4302): GL_EXT_read_format_bgra specifies 2 more types, which are
-        // currently ignored. The equivalent formats would be: GL_BGRA4_ANGLEX, GL_BGR5_A1_ANGLEX
+        // TODO(http://anglebug.com/42262931): GL_EXT_read_format_bgra specifies 2 more types, which
+        // are currently ignored. The equivalent formats would be: GL_BGRA4_ANGLEX,
+        // GL_BGR5_A1_ANGLEX
     };
 
     return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, false);
@@ -651,7 +652,7 @@ static bool DetermineDepthTextureANGLESupport(const TextureCapsMap &textureCaps)
     constexpr GLenum requiredFormats[] = {
         GL_DEPTH_COMPONENT16,
 #if !ANGLE_PLATFORM_IOS_FAMILY
-        // anglebug.com/6082
+        // anglebug.com/42264611
         // TODO(dino): Temporarily Removing the need for GL_DEPTH_COMPONENT32_OES
         // because it is not supported on iOS.
         // TODO(dino): I think this needs to be a runtime check when running an iOS app on Mac.
@@ -669,7 +670,7 @@ static bool DetermineDepthTextureOESSupport(const TextureCapsMap &textureCaps)
     constexpr GLenum requiredFormats[] = {
         GL_DEPTH_COMPONENT16,
 #if !ANGLE_PLATFORM_IOS_FAMILY
-        // anglebug.com/6082
+        // anglebug.com/42264611
         // TODO(dino): Temporarily Removing the need for GL_DEPTH_COMPONENT32_OES
         // because it is not supported on iOS.
         // TODO(dino): I think this needs to be a runtime check when running an iOS app on Mac.
@@ -1402,6 +1403,7 @@ std::vector<std::string> ClientExtensions::getStrings() const
     InsertExtensionString("EGL_ANGLE_platform_angle",                         platformANGLE,                      &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_d3d",                     platformANGLED3D,                   &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_d3d11on12",               platformANGLED3D11ON12,             &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_platform_angle_d3d_luid",                platformANGLED3DLUID,               &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_device_type_egl_angle",   platformANGLEDeviceTypeEGLANGLE,    &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_device_type_swiftshader", platformANGLEDeviceTypeSwiftShader, &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_opengl",                  platformANGLEOpenGL,                &extensionStrings);
