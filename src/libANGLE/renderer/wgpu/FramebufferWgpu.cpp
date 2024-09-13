@@ -110,8 +110,15 @@ angle::Result FramebufferWgpu::clear(const gl::Context *context, GLbitfield mask
     bool clearColor   = IsMaskFlagSet(mask, static_cast<GLbitfield>(GL_COLOR_BUFFER_BIT));
     bool clearDepth   = IsMaskFlagSet(mask, static_cast<GLbitfield>(GL_DEPTH_BUFFER_BIT));
     bool clearStencil = IsMaskFlagSet(mask, static_cast<GLbitfield>(GL_STENCIL_BUFFER_BIT));
+
     // TODO(anglebug.com/42267012): support clearing depth and stencil buffers.
-    ASSERT(!clearDepth && !clearStencil && clearColor);
+    if (clearDepth || clearStencil)
+    {
+        UNIMPLEMENTED();
+        return angle::Result::Continue;
+    }
+
+    ASSERT(clearColor);
 
     ContextWgpu *contextWgpu             = GetImplAs<ContextWgpu>(context);
     gl::ColorF colorClearValue           = context->getState().getColorClearValue();
@@ -180,7 +187,6 @@ angle::Result FramebufferWgpu::clear(const gl::Context *context, GLbitfield mask
 
     ANGLE_TRY(contextWgpu->startRenderPass(mCurrentRenderPassDesc));
     ANGLE_TRY(contextWgpu->endRenderPass(webgpu::RenderPassClosureReason::NewRenderPass));
-    ANGLE_TRY(contextWgpu->flush());
     return angle::Result::Continue;
 }
 
@@ -250,17 +256,17 @@ angle::Result FramebufferWgpu::readPixels(const gl::Context *context,
 
     ANGLE_TRY(flushDeferredClears(contextWgpu));
 
+    ANGLE_TRY(contextWgpu->flush(webgpu::RenderPassClosureReason::GLReadPixels));
+
     GLuint outputSkipBytes = 0;
     PackPixelsParams params;
-    const angle::Format &angleFormat = GetFormatFromFormatType(format, type);
     ANGLE_TRY(webgpu::ImageHelper::getReadPixelsParams(contextWgpu, pack, packBuffer, format, type,
                                                        origArea, clippedArea, &params,
                                                        &outputSkipBytes));
 
-    RenderTargetWgpu *renderTarget = getReadPixelsRenderTarget(angleFormat);
-    ANGLE_TRY(
-        renderTarget->getImage()->readPixels(contextWgpu, params.area, params, angleFormat,
-                                             static_cast<uint8_t *>(pixels) + outputSkipBytes));
+    webgpu::ImageHelper *sourceImageHelper = getReadPixelsRenderTarget()->getImage();
+    ANGLE_TRY(sourceImageHelper->readPixels(contextWgpu, params.area, params,
+                                            static_cast<uint8_t *>(pixels) + outputSkipBytes));
 
     return angle::Result::Continue;
 }
@@ -379,6 +385,10 @@ angle::Result FramebufferWgpu::syncState(const gl::Context *context,
     }
 
     ANGLE_TRY(flushColorAttachmentUpdates(context, dirtyColorAttachments, deferColorClears));
+
+    // Notify the ContextWgpu to update the pipeline desc or restart the renderpass
+    ANGLE_TRY(contextWgpu->onFramebufferChange(this, command));
+
     return angle::Result::Continue;
 }
 
@@ -389,12 +399,8 @@ angle::Result FramebufferWgpu::getSamplePosition(const gl::Context *context,
     return angle::Result::Continue;
 }
 
-RenderTargetWgpu *FramebufferWgpu::getReadPixelsRenderTarget(const angle::Format &format) const
+RenderTargetWgpu *FramebufferWgpu::getReadPixelsRenderTarget() const
 {
-    if (format.hasDepthOrStencilBits())
-    {
-        return mRenderTargetCache.getDepthStencil();
-    }
     return mRenderTargetCache.getColorRead(mState);
 }
 
@@ -418,12 +424,12 @@ angle::Result FramebufferWgpu::flushOneColorAttachmentUpdate(const gl::Context *
     {
         if (deferClears)
         {
-            ANGLE_TRY(drawRenderTarget->getImage()->flushStagedUpdates(
-                contextWgpu, &mDeferredClears, colorIndexGL));
+            ANGLE_TRY(
+                drawRenderTarget->flushStagedUpdates(contextWgpu, &mDeferredClears, colorIndexGL));
         }
         else
         {
-            ANGLE_TRY(drawRenderTarget->getImage()->flushStagedUpdates(contextWgpu));
+            ANGLE_TRY(drawRenderTarget->flushStagedUpdates(contextWgpu));
         }
     }
 
@@ -432,7 +438,7 @@ angle::Result FramebufferWgpu::flushOneColorAttachmentUpdate(const gl::Context *
         readRenderTarget = mRenderTargetCache.getColorRead(mState);
         if (readRenderTarget && readRenderTarget != drawRenderTarget)
         {
-            ANGLE_TRY(readRenderTarget->getImage()->flushStagedUpdates(contextWgpu));
+            ANGLE_TRY(readRenderTarget->flushStagedUpdates(contextWgpu));
         }
     }
 
@@ -455,7 +461,6 @@ angle::Result FramebufferWgpu::flushColorAttachmentUpdates(const gl::Context *co
         ContextWgpu *contextWgpu = GetImplAs<ContextWgpu>(context);
         // Flush out a render pass if there is an active one.
         ANGLE_TRY(contextWgpu->endRenderPass(webgpu::RenderPassClosureReason::NewRenderPass));
-        ANGLE_TRY(contextWgpu->flush());
 
         mCurrentColorAttachments = mNewColorAttachments;
         mNewColorAttachments.clear();
@@ -488,8 +493,31 @@ angle::Result FramebufferWgpu::flushDeferredClears(ContextWgpu *contextWgpu)
     mCurrentRenderPassDesc.colorAttachments     = mCurrentColorAttachments.data();
     ANGLE_TRY(contextWgpu->startRenderPass(mCurrentRenderPassDesc));
     ANGLE_TRY(contextWgpu->endRenderPass(webgpu::RenderPassClosureReason::NewRenderPass));
-    ANGLE_TRY(contextWgpu->flush());
 
     return angle::Result::Continue;
 }
+
+angle::Result FramebufferWgpu::startNewRenderPass(ContextWgpu *contextWgpu)
+{
+    ANGLE_TRY(contextWgpu->endRenderPass(webgpu::RenderPassClosureReason::NewRenderPass));
+
+    mCurrentColorAttachments.clear();
+    for (size_t colorIndexGL : mState.getColorAttachmentsMask())
+    {
+        wgpu::RenderPassColorAttachment colorAttachment;
+        colorAttachment.view =
+            mRenderTargetCache.getColorDraw(mState, colorIndexGL)->getTextureView();
+        colorAttachment.depthSlice = wgpu::kDepthSliceUndefined;
+        colorAttachment.loadOp     = wgpu::LoadOp::Load;
+        colorAttachment.storeOp    = wgpu::StoreOp::Store;
+
+        mCurrentColorAttachments.push_back(colorAttachment);
+    }
+    mCurrentRenderPassDesc.colorAttachmentCount = mCurrentColorAttachments.size();
+    mCurrentRenderPassDesc.colorAttachments     = mCurrentColorAttachments.data();
+    ANGLE_TRY(contextWgpu->startRenderPass(mCurrentRenderPassDesc));
+
+    return angle::Result::Continue;
+}
+
 }  // namespace rx

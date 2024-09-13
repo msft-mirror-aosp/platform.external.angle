@@ -70,11 +70,6 @@ std::shared_ptr<ShaderTranslateTask> ShaderVk::compile(const gl::Context *contex
         options->addAdvancedBlendEquationsEmulation = true;
     }
 
-    if (contextVk->emulateSeamfulCubeMapSampling())
-    {
-        options->emulateSeamfulCubeMapSampling = true;
-    }
-
     if (!contextVk->getFeatures().enablePrecisionQualifiers.enabled)
     {
         options->ignorePrecisionQualifiers = true;
@@ -134,6 +129,11 @@ std::shared_ptr<ShaderTranslateTask> ShaderVk::compile(const gl::Context *contex
     if (contextVk->getFeatures().avoidOpSelectWithMismatchingRelaxedPrecision.enabled)
     {
         options->avoidOpSelectWithMismatchingRelaxedPrecision = true;
+    }
+
+    if (contextVk->getFeatures().wrapSwitchInIfTrue.enabled)
+    {
+        options->wrapSwitchInIfTrue = true;
     }
 
     // The Vulkan backend needs no post-processing of the translated shader.

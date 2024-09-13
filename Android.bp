@@ -43,6 +43,36 @@ angle_config_cc_defaults {
     },
 }
 
+soong_config_module_type {
+    name: "angle_dma_buf_config_cc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "angle",
+    bool_variables: [
+        "angle_android_dma_buf",
+    ],
+    properties: [
+        "defaults",
+    ],
+}
+
+soong_config_bool_variable {
+    name: "angle_android_dma_buf",
+}
+
+// Note: this is a no-op for most builds, only applies to products that
+// explicitly enable the angle_android_dma_buf config flag. See
+// b/353262025 for details of the products that use it.
+angle_dma_buf_config_cc_defaults {
+    name: "angle_dma_buf_cc_defaults",
+    soong_config_variables: {
+        angle_android_dma_buf: {
+            defaults: [
+                "src_libANGLE_renderer_vulkan_angle_android_vulkan_dma_buf",
+            ],
+        },
+    },
+}
+
 cc_defaults {
     name: "angle_common_library_cflags",
     cpp_std: "gnu++17",
@@ -58,8 +88,8 @@ cc_defaults {
     name: "angle_common_auto_cflags",
     cflags: [
         "-DANDROID",
-        "-DANDROID_NDK_VERSION_ROLL=r26b_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-19-init-14561-gecea8371-2\"",
+        "-DANDROID_NDK_VERSION_ROLL=r27_1",
+        "-DCR_CLANG_REVISION=\"llvmorg-20-init-3847-g69c43468-17\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -70,7 +100,7 @@ cc_defaults {
         "-Wno-builtin-macro-redefined",
         "-Wno-c++11-narrowing-const-reference",
         "-Wno-cast-function-type",
-        "-Wno-deprecated-builtins",
+        "-Wno-dangling-assignment-gsl",
         "-Wno-deprecated-this-capture",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
@@ -84,6 +114,139 @@ cc_defaults {
         "-fvisibility-inlines-hidden",
         "-fvisibility=hidden",
     ],
+}
+
+cc_defaults {
+    name: "src_common_linux_angle_dma_buf",
+    srcs: [
+        "src/common/linux/dma_buf_utils.cpp",
+    ],
+    static_libs: [
+        "angle_common",
+    ],
+    shared_libs: [
+        "liblog",
+        "libnativewindow",
+    ],
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "third_party_vulkan_headers_src_vulkan_headers",
+    ],
+    local_include_dirs: [
+        "include/",
+        "src/",
+        "src/common/base/",
+        "src/common/third_party/xxhash/",
+        "third_party/abseil-cpp/",
+        "third_party/vulkan-headers/src/include/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-DANGLE_ENABLE_CONTEXT_MUTEX=1",
+        "-DANGLE_ENABLE_CONTEXT_MUTEX_RECURSION=1",
+        "-DANGLE_ENABLE_GLOBAL_MUTEX_LOAD_TIME_ALLOCATE=1",
+        "-DANGLE_ENABLE_GLOBAL_MUTEX_RECURSION=1",
+        "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
+        "-DANGLE_ENABLE_VULKAN",
+        "-DANGLE_USE_ABSEIL",
+        "-DANGLE_USE_ANDROID_TLS_SLOT=1",
+        "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-D_FORTIFY_SOURCE=2",
+        "-D__STDC_CONSTANT_MACROS",
+        "-D__STDC_FORMAT_MACROS",
+        "-Wno-gcc-compat",
+        "-Wno-redundant-parens",
+        "-Wno-unreachable-code-break",
+    ],
+    sdk_version: "current",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
+    name: "src_libANGLE_renderer_vulkan_angle_android_vulkan_dma_buf",
+    srcs: [
+        "src/libANGLE/renderer/vulkan/linux/DeviceVkLinux.cpp",
+        "src/libANGLE/renderer/vulkan/linux/DisplayVkLinux.cpp",
+        "src/libANGLE/renderer/vulkan/linux/DisplayVkOffscreen.cpp",
+        "src/libANGLE/renderer/vulkan/linux/DmaBufImageSiblingVkLinux.cpp",
+        "src/libANGLE/renderer/vulkan/linux/display/DisplayVkSimple.cpp",
+        "src/libANGLE/renderer/vulkan/linux/display/WindowSurfaceVkSimple.cpp",
+        "src/libANGLE/renderer/vulkan/linux/headless/DisplayVkHeadless.cpp",
+        "src/libANGLE/renderer/vulkan/linux/headless/WindowSurfaceVkHeadless.cpp",
+    ],
+    static_libs: [
+        "angle_common",
+        "angle_gpu_info_util",
+        "angle_image_util",
+        "cpufeatures",
+        "zlib_google_compression_utils_portable",
+    ],
+    shared_libs: [
+        "liblog",
+        "libnativewindow",
+    ],
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "src_common_linux_angle_dma_buf",
+        "src_libANGLE_renderer_vulkan_angle_vulkan_backend",
+    ],
+    generated_headers: [
+        "angle_program_version_id",
+    ],
+    local_include_dirs: [
+        "include/",
+        "src/",
+        "src/common/base/",
+        "src/common/third_party/xxhash/",
+        "src/third_party/volk/",
+        "third_party/abseil-cpp/",
+        "third_party/vulkan-headers/src/include/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-DANGLE_ANDROID_DMA_BUF",
+        "-DANGLE_ENABLE_CONTEXT_MUTEX=1",
+        "-DANGLE_ENABLE_CONTEXT_MUTEX_RECURSION=1",
+        "-DANGLE_ENABLE_CRC_FOR_PIPELINE_CACHE",
+        "-DANGLE_ENABLE_GLOBAL_MUTEX_LOAD_TIME_ALLOCATE=1",
+        "-DANGLE_ENABLE_GLOBAL_MUTEX_RECURSION=1",
+        "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
+        "-DANGLE_ENABLE_VULKAN",
+        "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
+        "-DANGLE_SHARED_LIBVULKAN=1",
+        "-DANGLE_USE_ABSEIL",
+        "-DANGLE_USE_ANDROID_TLS_SLOT=1",
+        "-DANGLE_USE_CUSTOM_VULKAN_OUTSIDE_RENDER_PASS_CMD_BUFFERS=1",
+        "-DANGLE_USE_CUSTOM_VULKAN_RENDER_PASS_CMD_BUFFERS=1",
+        "-DANGLE_USE_VULKAN_DISPLAY",
+        "-DANGLE_VULKAN_DISPLAY_MODE_OFFSCREEN",
+        "-DLIBANGLE_IMPLEMENTATION",
+        "-DVK_USE_PLATFORM_ANDROID_KHR",
+        "-D_FORTIFY_SOURCE=2",
+        "-D__STDC_CONSTANT_MACROS",
+        "-D__STDC_FORMAT_MACROS",
+        "-Wno-gcc-compat",
+        "-Wno-redundant-parens",
+        "-Wno-unreachable-code-break",
+    ],
+    sdk_version: "current",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
 }
 
 cc_defaults {
@@ -116,7 +279,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -154,12 +317,12 @@ cc_library_shared {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_dma_buf_cc_defaults",
         "angle_includes",
         "angle_libEGL_egl_loader",
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -215,7 +378,7 @@ cc_library_shared {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -251,11 +414,11 @@ cc_library_shared {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_dma_buf_cc_defaults",
         "angle_includes",
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -296,7 +459,7 @@ cc_library_shared {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -340,7 +503,7 @@ cc_defaults {
         "-Wno-unused-private-field",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -396,7 +559,7 @@ cc_defaults {
         "-Wno-unused-private-field",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -412,7 +575,7 @@ cc_defaults {
     defaults: [
         "angle_common_library_cflags",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
 }
 
@@ -459,7 +622,7 @@ cc_defaults {
         "-Wno-redundant-parens",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -476,7 +639,7 @@ cc_defaults {
         "angle_common_library_cflags",
         "src_common_vulkan_angle_vulkan_headers",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
 }
 
@@ -522,7 +685,7 @@ cc_defaults {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -622,7 +785,6 @@ cc_defaults {
         "third_party_spirv_headers_src_spv_headers",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
     ],
     local_include_dirs: [
@@ -660,7 +822,7 @@ cc_defaults {
         "-Wno-redundant-parens",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -683,7 +845,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-trinary-minmax.grammar.json) --vendor-insts-output $(location spv-amd-shader-trinary-minmax.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -698,7 +860,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-explicit-vertex-parameter.grammar.json) --vendor-insts-output $(location spv-amd-shader-explicit-vertex-parameter.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -713,7 +875,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-ballot.grammar.json) --vendor-insts-output $(location spv-amd-shader-ballot.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -728,7 +890,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-gcn-shader.grammar.json) --vendor-insts-output $(location spv-amd-gcn-shader.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -743,7 +905,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --vendor-insts-output $(location opencl.debuginfo.100.insts.inc) --vendor-operand-kind-prefix CLDEBUG100_",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -758,7 +920,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.vkspreflection.grammar.json) --vendor-insts-output $(location nonsemantic.vkspreflection.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -773,7 +935,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json) --vendor-insts-output $(location nonsemantic.shader.debuginfo.100.insts.inc) --vendor-operand-kind-prefix SHDEBUG100_",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -788,7 +950,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.clspvreflection.grammar.json) --vendor-insts-output $(location nonsemantic.clspvreflection.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -803,7 +965,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --vendor-insts-output $(location debuginfo.insts.inc) --vendor-operand-kind-prefix ...nil...",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -821,7 +983,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-opencl-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/extinst.opencl.std.100.grammar.json) --opencl-insts-output $(location opencl.std.insts.inc)",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -836,7 +998,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_language_headers.py",
     ],
     cmd: "$(location) --extinst-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json) --extinst-output-path $(location NonSemanticShaderDebugInfo100.h)",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -851,7 +1013,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_language_headers.py",
     ],
     cmd: "$(location) --extinst-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-output-path $(location DebugInfo.h)",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -866,7 +1028,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_language_headers.py",
     ],
     cmd: "$(location) --extinst-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-output-path $(location OpenCLDebugInfo100.h)",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -884,7 +1046,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-glsl-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/extinst.glsl.std.450.grammar.json) --glsl-insts-output $(location glsl.std.450.insts.inc) --output-language c++",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -899,7 +1061,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_registry_tables.py",
     ],
     cmd: "$(location) --xml $(location third_party/spirv-headers/src/include/spirv/spir-v.xml) --generator $(location generators.inc)",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -917,7 +1079,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json) --core-insts-output $(location core.insts-unified1.inc) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --operand-kinds-output $(location operand.kinds-unified1.inc) --output-language c++",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -935,7 +1097,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extension-enum-output $(location extension_enum.inc) --enum-string-mapping-output $(location enum_string_mapping.inc) --output-language c++",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_library_static {
@@ -1008,7 +1170,7 @@ cc_library_static {
         "-Wno-unreachable-code-break",
         "-Wno-unreachable-code-return",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1109,7 +1271,7 @@ cc_library_static {
         "-Wno-unreachable-code-break",
         "-Wno-unreachable-code-return",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1162,7 +1324,7 @@ cc_defaults {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1188,7 +1350,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1214,7 +1376,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1260,7 +1422,7 @@ cc_defaults {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1314,7 +1476,7 @@ cc_defaults {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1374,7 +1536,7 @@ cc_library_static {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1456,6 +1618,7 @@ cc_library_static {
         "src/compiler/translator/tree_ops/MonomorphizeUnsupportedFunctions.cpp",
         "src/compiler/translator/tree_ops/PreTransformTextureCubeGradDerivatives.cpp",
         "src/compiler/translator/tree_ops/PruneEmptyCases.cpp",
+        "src/compiler/translator/tree_ops/PruneInfiniteLoops.cpp",
         "src/compiler/translator/tree_ops/PruneNoOps.cpp",
         "src/compiler/translator/tree_ops/RecordConstantPrecision.cpp",
         "src/compiler/translator/tree_ops/RemoveArrayLengthMethod.cpp",
@@ -1467,7 +1630,6 @@ cc_library_static {
         "src/compiler/translator/tree_ops/RescopeGlobalVariables.cpp",
         "src/compiler/translator/tree_ops/RewriteArrayOfArrayOfOpaqueUniforms.cpp",
         "src/compiler/translator/tree_ops/RewriteAtomicCounters.cpp",
-        "src/compiler/translator/tree_ops/RewriteCubeMapSamplersAs2DArray.cpp",
         "src/compiler/translator/tree_ops/RewriteDfdy.cpp",
         "src/compiler/translator/tree_ops/RewritePixelLocalStorage.cpp",
         "src/compiler/translator/tree_ops/RewriteStructSamplers.cpp",
@@ -1528,7 +1690,6 @@ cc_library_static {
         "third_party_spirv_tools_src_spvtools_headers",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -1573,7 +1734,7 @@ cc_library_static {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1955,6 +2116,8 @@ cc_genrule {
         "src/compiler/translator/tree_ops/PreTransformTextureCubeGradDerivatives.h",
         "src/compiler/translator/tree_ops/PruneEmptyCases.cpp",
         "src/compiler/translator/tree_ops/PruneEmptyCases.h",
+        "src/compiler/translator/tree_ops/PruneInfiniteLoops.cpp",
+        "src/compiler/translator/tree_ops/PruneInfiniteLoops.h",
         "src/compiler/translator/tree_ops/PruneNoOps.cpp",
         "src/compiler/translator/tree_ops/PruneNoOps.h",
         "src/compiler/translator/tree_ops/RecordConstantPrecision.cpp",
@@ -1977,8 +2140,6 @@ cc_genrule {
         "src/compiler/translator/tree_ops/RewriteArrayOfArrayOfOpaqueUniforms.h",
         "src/compiler/translator/tree_ops/RewriteAtomicCounters.cpp",
         "src/compiler/translator/tree_ops/RewriteAtomicCounters.h",
-        "src/compiler/translator/tree_ops/RewriteCubeMapSamplersAs2DArray.cpp",
-        "src/compiler/translator/tree_ops/RewriteCubeMapSamplersAs2DArray.h",
         "src/compiler/translator/tree_ops/RewriteDfdy.cpp",
         "src/compiler/translator/tree_ops/RewriteDfdy.h",
         "src/compiler/translator/tree_ops/RewritePixelLocalStorage.cpp",
@@ -2138,7 +2299,12 @@ cc_genrule {
         "src/compiler/translator/tree_util/Visit.h",
         "src/compiler/translator/util.cpp",
         "src/compiler/translator/util.h",
+        "src/compiler/translator/wgsl/RewritePipelineVariables.cpp",
+        "src/compiler/translator/wgsl/RewritePipelineVariables.h",
         "src/compiler/translator/wgsl/TranslatorWGSL.cpp",
+        "src/compiler/translator/wgsl/TranslatorWGSL.h",
+        "src/compiler/translator/wgsl/WriteTypeName.cpp",
+        "src/compiler/translator/wgsl/WriteTypeName.h",
         "src/libANGLE/AttributeMap.cpp",
         "src/libANGLE/AttributeMap.h",
         "src/libANGLE/BlobCache.cpp",
@@ -2708,19 +2874,7 @@ cc_genrule {
         "src/program_serialize_data_version.py",
     ],
     cmd: "echo $(in) > $(genDir)/gn_response_file && $(location) $(location ANGLEShaderProgramVersion.h) $(genDir)/gn_response_file",
-    sdk_version: "28",
-}
-
-cc_genrule {
-    name: "angle_commit_id",
-    out: [
-        "angle_commit.h",
-    ],
-    tool_files: [
-        "src/commit_id.py",
-    ],
-    cmd: "$(location) gen $(location angle_commit.h)",
-    sdk_version: "28",
+    sdk_version: "current",
 }
 
 cc_defaults {
@@ -2730,7 +2884,6 @@ cc_defaults {
         "angle_common_library_cflags",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
     ],
     local_include_dirs: [
@@ -2749,7 +2902,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2772,7 +2925,6 @@ cc_defaults {
         "angle_version",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
     ],
     local_include_dirs: [
@@ -2791,7 +2943,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2837,7 +2989,7 @@ cc_defaults {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2894,7 +3046,7 @@ cc_library_static {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2922,7 +3074,7 @@ cc_defaults {
         "-D__STDC_FORMAT_MACROS",
         "-Wno-redundant-parens",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2955,7 +3107,7 @@ cc_defaults {
         "-D__STDC_FORMAT_MACROS",
         "-Wno-redundant-parens",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2993,7 +3145,7 @@ cc_defaults {
         "-D__STDC_FORMAT_MACROS",
         "-Wno-redundant-parens",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3050,7 +3202,7 @@ cc_defaults {
         "-Wno-redundant-parens",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3099,7 +3251,7 @@ cc_defaults {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3162,7 +3314,7 @@ cc_library_static {
         "-Wno-redundant-parens",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3185,7 +3337,7 @@ cc_defaults {
     defaults: [
         "angle_common_library_cflags",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
 }
 
@@ -3228,7 +3380,7 @@ cc_library_static {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3362,7 +3514,6 @@ cc_defaults {
         "angle_version_info",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -3409,7 +3560,7 @@ cc_defaults {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3442,7 +3593,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3478,7 +3629,7 @@ cc_defaults {
         "-D__STDC_FORMAT_MACROS",
         "-Wno-implicit-fallthrough",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3515,7 +3666,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3549,7 +3700,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3595,7 +3746,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3626,7 +3777,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3657,7 +3808,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3689,7 +3840,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3717,6 +3868,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_container_common",
         "third_party_abseil_cpp_absl_container_compressed_tuple",
         "third_party_abseil_cpp_absl_container_container_memory",
+        "third_party_abseil_cpp_absl_container_hash_function_defaults",
         "third_party_abseil_cpp_absl_container_hash_policy_traits",
         "third_party_abseil_cpp_absl_container_hashtable_debug_hooks",
         "third_party_abseil_cpp_absl_container_hashtablez_sampler",
@@ -3739,7 +3891,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3774,7 +3926,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3809,7 +3961,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3840,7 +3992,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3872,7 +4024,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3915,7 +4067,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3949,7 +4101,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3996,7 +4148,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4034,7 +4186,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4073,7 +4225,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4116,7 +4268,42 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
+    stl: "libc++_static",
+    arch: {
+        arm64: {
+            cflags: [
+                "-D__ARM_NEON__=1",
+            ],
+        },
+    },
+}
+
+cc_defaults {
+    name: "third_party_abseil_cpp_absl_base_tracing_internal",
+    srcs: [
+        "third_party/abseil-cpp/absl/base/internal/tracing.cc",
+    ],
+    defaults: [
+        "angle_common_auto_cflags",
+        "angle_common_library_cflags",
+        "third_party_abseil_cpp_absl_base_config",
+        "third_party_abseil_cpp_absl_base_core_headers",
+    ],
+    local_include_dirs: [
+        "",
+        "third_party/abseil-cpp/",
+    ],
+    cflags: [
+        "-DABSL_ALLOCATOR_NOTHROW=1",
+        "-Wno-c++11-narrowing",
+        "-Wno-gcc-compat",
+        "-Wno-misleading-indentation",
+        "-Wno-unreachable-code-break",
+        "-Wno-unused-but-set-variable",
+        "-Wno-unused-variable",
+    ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4155,7 +4342,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4193,6 +4380,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_base_dynamic_annotations",
         "third_party_abseil_cpp_absl_base_malloc_internal",
         "third_party_abseil_cpp_absl_base_raw_logging_internal",
+        "third_party_abseil_cpp_absl_base_tracing_internal",
         "third_party_abseil_cpp_absl_debugging_stacktrace",
         "third_party_abseil_cpp_absl_debugging_symbolize",
         "third_party_abseil_cpp_absl_synchronization_graphcycles_internal",
@@ -4212,7 +4400,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4249,7 +4437,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4289,7 +4477,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4327,7 +4515,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4374,7 +4562,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4409,7 +4597,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4446,7 +4634,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4480,7 +4668,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4512,7 +4700,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4549,7 +4737,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4585,7 +4773,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4624,7 +4812,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4661,7 +4849,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4715,7 +4903,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4747,7 +4935,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4784,7 +4972,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4824,7 +5012,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4856,7 +5044,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4916,7 +5104,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4947,7 +5135,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4999,7 +5187,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5035,7 +5223,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5066,7 +5254,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5099,7 +5287,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5141,7 +5329,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5176,7 +5364,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5221,7 +5409,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5256,7 +5444,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5293,7 +5481,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5329,7 +5517,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5388,7 +5576,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5423,7 +5611,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5459,7 +5647,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5497,7 +5685,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5530,7 +5718,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5562,7 +5750,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5599,7 +5787,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5631,7 +5819,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5668,7 +5856,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5704,7 +5892,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5739,7 +5927,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5773,7 +5961,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5804,7 +5992,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5839,7 +6027,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5876,7 +6064,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5912,7 +6100,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5944,7 +6132,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5976,7 +6164,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6024,7 +6212,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6058,7 +6246,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6105,7 +6293,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6140,7 +6328,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6171,7 +6359,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6203,7 +6391,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6241,7 +6429,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6276,7 +6464,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6314,7 +6502,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6346,7 +6534,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6383,7 +6571,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6415,7 +6603,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6447,7 +6635,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6480,7 +6668,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6512,7 +6700,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6546,7 +6734,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6578,7 +6766,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6611,7 +6799,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6642,7 +6830,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6672,7 +6860,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6703,7 +6891,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6738,7 +6926,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6774,7 +6962,7 @@ cc_defaults {
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6792,7 +6980,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_container_flat_hash_map",
         "third_party_abseil_cpp_absl_container_flat_hash_set",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
 }
 
@@ -6861,7 +7049,7 @@ cc_library_static {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6912,7 +7100,7 @@ cc_defaults {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6965,7 +7153,7 @@ cc_defaults {
         "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7002,7 +7190,6 @@ cc_defaults {
         "src_libANGLE_renderer_vulkan_angle_vulkan_backend",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -7057,7 +7244,7 @@ cc_defaults {
         "-Wno-redundant-parens",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7089,7 +7276,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7138,12 +7325,12 @@ cc_library_shared {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_dma_buf_cc_defaults",
         "angle_includes",
         "angle_libANGLE",
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
-        "angle_commit_id",
         "angle_program_version_id",
         "third_party_spirv_tools_src_spvtools_core_enums_unified1",
         "third_party_spirv_tools_src_spvtools_core_tables_unified1",
@@ -7205,7 +7392,7 @@ cc_library_shared {
         "-Wno-redundant-parens",
         "-Wno-unreachable-code-break",
     ],
-    sdk_version: "28",
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {

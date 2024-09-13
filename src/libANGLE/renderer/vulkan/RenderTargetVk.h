@@ -72,9 +72,15 @@ class RenderTargetVk final : public FramebufferAttachmentRenderTarget
     void onColorDraw(ContextVk *contextVk,
                      uint32_t framebufferLayerCount,
                      vk::PackedAttachmentIndex index);
-    void onColorResolve(ContextVk *contextVk, uint32_t framebufferLayerCount);
+    void onColorResolve(ContextVk *contextVk,
+                        uint32_t framebufferLayerCount,
+                        size_t readColorIndexGL,
+                        const vk::ImageView &view);
     void onDepthStencilDraw(ContextVk *contextVk, uint32_t framebufferLayerCount);
-    void onDepthStencilResolve(ContextVk *contextVk, uint32_t framebufferLayerCount);
+    void onDepthStencilResolve(ContextVk *contextVk,
+                               uint32_t framebufferLayerCount,
+                               VkImageAspectFlags aspects,
+                               const vk::ImageView &view);
 
     vk::ImageHelper &getImageForRenderPass();
     const vk::ImageHelper &getImageForRenderPass() const;
@@ -150,10 +156,26 @@ class RenderTargetVk final : public FramebufferAttachmentRenderTarget
         ASSERT(!mFramebufferCacheManager.containsKey(sharedFramebufferCacheKey));
         mFramebufferCacheManager.addKey(sharedFramebufferCacheKey);
     }
-    void release(ContextVk *contextVk) { mFramebufferCacheManager.releaseKeys(contextVk); }
-    void destroy(vk::Renderer *renderer) { mFramebufferCacheManager.destroyKeys(renderer); }
+    void releaseFramebuffers(ContextVk *contextVk)
+    {
+        mFramebufferCacheManager.releaseKeys(contextVk);
+    }
+    // Releases framebuffers and resets Image and ImageView pointers, while keeping other
+    // members intact, in order to allow |updateSwapchainImage| call later.
+    void releaseImageAndViews(ContextVk *contextVk)
+    {
+        releaseFramebuffers(contextVk);
+        invalidateImageAndViews();
+    }
+    // Releases framebuffers and resets all members to the initial state.
+    void destroy(vk::Renderer *renderer)
+    {
+        mFramebufferCacheManager.destroyKeys(renderer);
+        reset();
+    }
 
   private:
+    void invalidateImageAndViews();
     void reset();
 
     angle::Result getImageViewImpl(vk::Context *context,

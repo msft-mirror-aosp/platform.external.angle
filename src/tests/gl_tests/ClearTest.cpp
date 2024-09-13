@@ -3442,20 +3442,20 @@ TEST_P(ClearTestES3, RepeatedDepthClearWithBlitAfterClearAndDrawInBetween)
 TEST_P(ClearTestES3, DrawAfterClearWithGaps)
 {
     constexpr char kVS[] = R"(#version 300 es
-  precision highp float;
-  void main() {
-      vec2 offset = vec2((gl_VertexID & 1) == 0 ? -1.0 : 1.0, (gl_VertexID & 2) == 0 ? -1.0 : 1.0);
-      gl_Position = vec4(offset * 0.125 - 0.5, 0.0, 1.0);
-  })";
+precision highp float;
+void main() {
+    vec2 offset = vec2((gl_VertexID & 1) == 0 ? -1.0 : 1.0, (gl_VertexID & 2) == 0 ? -1.0 : 1.0);
+    gl_Position = vec4(offset * 0.125 - 0.5, 0.0, 1.0);
+})";
 
     constexpr char kFS[] = R"(#version 300 es
-  precision mediump float;
-  layout(location=0) out vec4 color0;
-  layout(location=2) out vec4 color2;
-  void main() {
-    color0 = vec4(1, 0, 1, 1);
-    color2 = vec4(1, 1, 0, 1);
-  })";
+precision mediump float;
+layout(location=0) out vec4 color0;
+layout(location=2) out vec4 color2;
+void main() {
+  color0 = vec4(1, 0, 1, 1);
+  color2 = vec4(1, 1, 0, 1);
+})";
 
     ANGLE_GL_PROGRAM(program, kVS, kFS);
     glUseProgram(program);
@@ -3505,6 +3505,84 @@ TEST_P(ClearTestES3, DrawAfterClearWithGaps)
             }
         }
     }
+}
+
+// Test that mid render pass clears work with gaps in locations.
+TEST_P(ClearTestES3, MidRenderPassClearWithGaps)
+{
+    constexpr char kVS[] = R"(#version 300 es
+precision highp float;
+void main() {
+    // gl_VertexID    x    y
+    //      0        -1   -1
+    //      1         1   -1
+    //      2        -1    1
+    //      3         1    1
+    int bit0 = gl_VertexID & 1;
+    int bit1 = gl_VertexID >> 1;
+    gl_Position = vec4(bit0 * 2 - 1, bit1 * 2 - 1, gl_VertexID % 2 == 0 ? -1 : 1, 1);
+})";
+
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+layout(location=0) out vec4 color0;
+layout(location=2) out vec4 color2;
+uniform vec4 color0in;
+uniform vec4 color1in;
+void main() {
+  color0 = color0in;
+  color2 = color1in;
+})";
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+    glUseProgram(program);
+
+    const GLint color0InLoc = glGetUniformLocation(program, "color0in");
+    const GLint color1InLoc = glGetUniformLocation(program, "color1in");
+    ASSERT_NE(color0InLoc, -1);
+    ASSERT_NE(color1InLoc, -1);
+
+    constexpr int kSize = 23;
+
+    GLRenderbuffer rb0;
+    glBindRenderbuffer(GL_RENDERBUFFER, rb0);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, kSize, kSize);
+
+    GLRenderbuffer rb2;
+    glBindRenderbuffer(GL_RENDERBUFFER, rb2);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, kSize, kSize);
+
+    GLFramebuffer fb;
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_RENDERBUFFER, rb2);
+
+    GLenum bufs[3] = {GL_COLOR_ATTACHMENT0, GL_NONE, GL_COLOR_ATTACHMENT2};
+    glDrawBuffers(3, bufs);
+
+    glViewport(0, 0, kSize, kSize);
+
+    // Start with a draw call
+    glUniform4f(color0InLoc, 0.1, 0.2, 0.3, 0.4);
+    glUniform4f(color1InLoc, 0.05, 0.15, 0.25, 0.35);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    // Clear in the middle of the render pass
+    glClearColor(1, 0, 0, 0.6);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Draw with blend, and verify results
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+    glUniform4f(color0InLoc, 0, 1, 0, 0.5);
+    glUniform4f(color1InLoc, 0, 0, 1, 0.5);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    EXPECT_PIXEL_RECT_EQ(0, 0, kSize, kSize, GLColor::yellow);
+
+    glReadBuffer(GL_COLOR_ATTACHMENT2);
+    EXPECT_PIXEL_RECT_EQ(0, 0, kSize, kSize, GLColor::magenta);
 }
 
 // Test that reclearing stencil to the same value works if stencil is blit after clear, and stencil
@@ -3845,6 +3923,38 @@ TEST_P(ClearTextureEXTTest, Validation)
     glClearTexSubImageEXT(texCube, 0, 0, 0, 0, 16, 16, 3, GL_RGBA, GL_UNSIGNED_BYTE,
                           &GLColor::green);
     EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+}
+
+// Covers a driver bug that leaks color mask state into clear texture ops.
+TEST_P(ClearTextureEXTTest, ClearTextureAfterMaskedClearBug)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_clear_texture"));
+
+    // Perform a masked clear
+    {
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_TRUE);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    }
+
+    // Create a new texture with data, clear it, and sample
+    {
+        constexpr uint32_t kSize = 16;
+        std::vector<unsigned char> pixelData(kSize * kSize * 4, 255);
+
+        GLTexture tex;
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kSize, kSize, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     pixelData.data());
+        glClearTexImageEXT(tex, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+        ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Texture2D(), essl1_shaders::fs::Texture2D());
+        drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+        EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::transparentBlack);
+    }
 }
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(

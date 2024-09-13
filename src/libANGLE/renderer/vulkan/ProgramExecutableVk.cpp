@@ -399,6 +399,14 @@ void SetUniformMatrixfv(const gl::ProgramExecutable *executable,
         defaultUniformBlocksDirty->set(shaderType);
     }
 }
+
+vk::GraphicsPipelineSubset GetWarmUpSubset(const angle::FeaturesVk &features)
+{
+    // Only build the shaders subset of the pipeline if VK_EXT_graphics_pipeline_library is
+    // supported.
+    return features.supportsGraphicsPipelineLibrary.enabled ? vk::GraphicsPipelineSubset::Shaders
+                                                            : vk::GraphicsPipelineSubset::Complete;
+}
 }  // namespace
 
 class ProgramExecutableVk::WarmUpTaskCommon : public vk::Context, public LinkSubTask
@@ -542,6 +550,9 @@ class ProgramExecutableVk::WarmUpGraphicsTask : public WarmUpTaskCommon
         // Release reference to shared renderpass. If this is the last reference -
         // 1. merge ProgramExecutableVk's pipeline cache into the Renderer's cache
         // 2. cleanup temporary renderpass
+        //
+        // Note: with dynamic rendering, |mCompatibleRenderPass| holds a VK_NULL_HANDLE, and it's
+        // just used as a ref count for this purpose.
         const bool isLastWarmUpTask = mCompatibleRenderPass->getAndReleaseRef() == 1;
         if (isLastWarmUpTask)
         {
@@ -932,10 +943,11 @@ angle::Result ProgramExecutableVk::getPipelineCacheWarmUpTasks(
     vk::Renderer *renderer,
     vk::PipelineRobustness pipelineRobustness,
     vk::PipelineProtectedAccess pipelineProtectedAccess,
-    vk::GraphicsPipelineSubset subset,
     std::vector<std::shared_ptr<LinkSubTask>> *postLinkSubTasksOut)
 {
     ASSERT(!postLinkSubTasksOut || postLinkSubTasksOut->empty());
+
+    const vk::GraphicsPipelineSubset subset = GetWarmUpSubset(renderer->getFeatures());
 
     bool isCompute                                        = false;
     angle::FixedVector<bool, 2> surfaceRotationVariations = {false};
@@ -1049,8 +1061,11 @@ angle::Result ProgramExecutableVk::prepareForWarmUpPipelineCache(
     vk::AttachmentOpsArray ops;
     RenderPassCache::InitializeOpsForCompatibleRenderPass(
         mWarmUpGraphicsPipelineDesc.getRenderPassDesc(), &ops);
-    ANGLE_TRY(RenderPassCache::MakeRenderPass(
-        context, mWarmUpGraphicsPipelineDesc.getRenderPassDesc(), ops, renderPassOut, nullptr));
+    if (!context->getFeatures().preferDynamicRendering.enabled)
+    {
+        ANGLE_TRY(RenderPassCache::MakeRenderPass(
+            context, mWarmUpGraphicsPipelineDesc.getRenderPassDesc(), ops, renderPassOut, nullptr));
+    }
 
     *graphicsPipelineDescOut = &mWarmUpGraphicsPipelineDesc;
 
@@ -1183,10 +1198,7 @@ void ProgramExecutableVk::waitForGraphicsPostLinkTasks(
         return;
     }
 
-    const vk::GraphicsPipelineSubset subset =
-        contextVk->getFeatures().supportsGraphicsPipelineLibrary.enabled
-            ? vk::GraphicsPipelineSubset::Shaders
-            : vk::GraphicsPipelineSubset::Complete;
+    const vk::GraphicsPipelineSubset subset = GetWarmUpSubset(contextVk->getFeatures());
 
     if (!mWarmUpGraphicsPipelineDesc.keyEqual(currentGraphicsPipelineDesc, subset))
     {
@@ -1648,8 +1660,7 @@ angle::Result ProgramExecutableVk::createGraphicsPipeline(
 
     // Pull in a compatible RenderPass.
     const vk::RenderPass *compatibleRenderPass = nullptr;
-    ANGLE_TRY(contextVk->getRenderPassCache().getCompatibleRenderPass(
-        contextVk, desc.getRenderPassDesc(), &compatibleRenderPass));
+    ANGLE_TRY(contextVk->getCompatibleRenderPass(desc.getRenderPassDesc(), &compatibleRenderPass));
 
     ANGLE_TRY(initProgramThenCreateGraphicsPipeline(
         contextVk, transformOptions, pipelineSubset, pipelineCache, source, desc,
@@ -1973,7 +1984,6 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
     vk::Context *context,
     const gl::ActiveTextureArray<TextureVk *> &textures,
     const gl::SamplerBindingVector &samplers,
-    bool emulateSeamfulCubeMapSampling,
     PipelineType pipelineType,
     UpdateDescriptorSetsBuilder *updateBuilder,
     vk::CommandBufferHelperCommon *commandBufferHelper,
@@ -1994,7 +2004,7 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
         // Cache miss. A new cache entry has been created.
         ANGLE_TRY(fullDesc.updateFullActiveTextures(
             context, mVariableInfoMap, mTextureWriteDescriptorDescs, *mExecutable, textures,
-            samplers, emulateSeamfulCubeMapSampling, pipelineType, newSharedCacheKey));
+            samplers, pipelineType, newSharedCacheKey));
         fullDesc.updateDescriptorSet(context->getRenderer(), mTextureWriteDescriptorDescs,
                                      updateBuilder, mDescriptorSets[DescriptorSetIndex::Texture]);
     }

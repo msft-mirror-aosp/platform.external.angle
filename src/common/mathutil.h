@@ -551,10 +551,15 @@ inline R roundToNearest(T input)
     static_assert(std::is_floating_point<T>::value);
     static_assert(std::numeric_limits<R>::is_integer);
 #if defined(__aarch64__) || defined(_M_ARM64)
-    // On armv8, std::round is compiled to a dedicated round-to-nearest instruction
+    // On armv8, this expression is compiled to a dedicated round-to-nearest instruction
     return static_cast<R>(std::round(input));
 #else
-    return static_cast<R>(input + std::copysign(static_cast<T>(0.5f), input));
+    static_assert(0.49999997f < 0.5f);
+    static_assert(0.49999997f + 0.5f == 1.0f);
+    static_assert(0.49999999999999994 < 0.5);
+    static_assert(0.49999999999999994 + 0.5 == 1.0);
+    constexpr T bias = sizeof(T) == 8 ? 0.49999999999999994 : 0.49999997f;
+    return static_cast<R>(input + (std::is_signed<R>::value ? std::copysign(bias, input) : bias));
 #endif
 }
 
@@ -710,9 +715,14 @@ class Range
     Range() {}
     Range(T lo, T hi) : mLow(lo), mHigh(hi) {}
 
+    bool operator==(const Range<T> &other) const
+    {
+        return mLow == other.mLow && mHigh == other.mHigh;
+    }
+
     T length() const { return (empty() ? 0 : (mHigh - mLow)); }
 
-    bool intersects(Range<T> other)
+    bool intersects(const Range<T> &other) const
     {
         if (mLow <= other.mLow)
         {
@@ -721,6 +731,33 @@ class Range
         else
         {
             return mLow < other.mHigh;
+        }
+    }
+
+    bool intersectsOrContinuous(const Range<T> &other) const
+    {
+        ASSERT(!empty());
+        ASSERT(!other.empty());
+        if (mLow <= other.mLow)
+        {
+            return mHigh >= other.mLow;
+        }
+        else
+        {
+            return mLow <= other.mHigh;
+        }
+    }
+
+    void merge(const Range<T> &other)
+    {
+        if (mLow > other.mLow)
+        {
+            mLow = other.mLow;
+        }
+
+        if (mHigh < other.mHigh)
+        {
+            mHigh = other.mHigh;
         }
     }
 
