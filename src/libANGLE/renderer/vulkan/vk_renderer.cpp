@@ -224,8 +224,6 @@ constexpr const char *kSkippedMessages[] = {
     // https://anglebug.com/42266575#comment4
     "VUID-VkBufferViewCreateInfo-format-08779",
     // https://anglebug.com/42266639
-    "VUID-VkVertexInputBindingDivisorDescriptionEXT-divisor-01870",
-    // https://anglebug.com/42266877
     "VUID-VkVertexInputBindingDivisorDescriptionKHR-divisor-01870",
     // https://anglebug.com/42266675
     "VUID-VkGraphicsPipelineCreateInfo-topology-08773",
@@ -278,6 +276,8 @@ constexpr const char *kSkippedMessages[] = {
     // https://anglebug.com/362545033
     // VVL bug: https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/8458
     "VUID-vkCmdDraw-None-02721",
+    // https://anglebug.com/365580001
+    "VUID-vkCmdDrawIndexed-Input-08734",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -4659,7 +4659,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // ARM does buffer copy on geometry pipeline, which may create a GPU pipeline bubble that
     // prevents vertex shader to overlap with fragment shader on job manager based architecture. For
     // now we always choose CPU to do copy on ARM job manager based GPU.
-    ANGLE_FEATURE_CONDITION(&mFeatures, preferCPUForBufferSubData, isMaliJobManagerBasedGPU);
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferCPUForBufferSubData, isARM);
 
     // On android, we usually are GPU limited, we try to use CPU to do data copy when other
     // conditions are the same. Set to zero will use GPU to do copy. This is subject to further
@@ -5380,6 +5380,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //
     // Emulation of GL_EXT_multisampled_render_to_texture is not possible with dynamic rendering.
     // That support is also not sacrificed for dynamic rendering.
+    //
+    // Use of dynamic rendering is disabled on ARM due to driver bugs (b/356051947).
     const bool hasLegacyDitheringV1 =
         mFeatures.supportsLegacyDithering.enabled &&
         (mLegacyDitheringVersion < 2 || !mFeatures.supportsMaintenance5.enabled);
@@ -5389,7 +5391,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, preferDynamicRendering,
                             mFeatures.supportsDynamicRendering.enabled &&
                                 mFeatures.supportsDynamicRenderingLocalRead.enabled &&
-                                !hasLegacyDitheringV1 && !emulatesMultisampledRenderToTexture);
+                                !hasLegacyDitheringV1 && !emulatesMultisampledRenderToTexture &&
+                                !isARM);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsSynchronization2,
                             mSynchronization2Features.synchronization2 == VK_TRUE);

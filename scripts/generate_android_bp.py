@@ -30,6 +30,7 @@ DMA_BUF_TARGET = "//src/libANGLE/renderer/vulkan:angle_android_vulkan_dma_buf"
 
 BLUEPRINT_COMMENT_PROPERTY = '__android_bp_comment'
 
+CURRENT_SDK_VERSION = 'current'
 MIN_SDK_VERSION = '28'
 TARGET_SDK_VERSION = '33'
 STL = 'libc++_static'
@@ -309,9 +310,9 @@ def gn_deps_to_blueprint_deps(abi, target, build_info):
             shared_libs.append('libz')
             static_libs.extend(['zlib_google_compression_utils_portable', 'cpufeatures'])
         elif dep == '//testing/gtest:gtest':
-            static_libs.append('libgtest')
+            static_libs.append('libgtest_ndk_c++')
         elif dep == '//testing/gmock:gmock':
-            static_libs.append('libgmock')
+            static_libs.append('libgmock_ndk')
 
     return static_libs, shared_libs, defaults, generated_headers, header_libs
 
@@ -431,7 +432,8 @@ def library_target_to_blueprint(target, build_info):
 
         bp['defaults'].append('angle_common_library_cflags')
 
-        bp['sdk_version'] = MIN_SDK_VERSION
+        bp['sdk_version'] = CURRENT_SDK_VERSION
+
         bp['stl'] = STL
         if target in ROOT_TARGETS:
             bp['defaults'].append('angle_vendor_cc_defaults')
@@ -570,7 +572,7 @@ def action_target_to_blueprint(abi, target, build_info):
 
     bp['cmd'] = ' '.join(cmd)
 
-    bp['sdk_version'] = MIN_SDK_VERSION
+    bp['sdk_version'] = CURRENT_SDK_VERSION
 
     return blueprint_type, bp
 
@@ -691,8 +693,8 @@ def get_angle_android_dma_buf_flag_config(build_info):
 def get_blueprint_targets_from_build_info(build_info: BuildInfo) -> List[Tuple[str, dict]]:
     targets_to_write = collections.OrderedDict()
     for abi in ABI_TARGETS:
-        # TODO(b/279980674): re-add END2END_TEST_TARGET
-        for root_target in ROOT_TARGETS + [DMA_BUF_TARGET]:
+        for root_target in ROOT_TARGETS + [END2END_TEST_TARGET, DMA_BUF_TARGET]:
+
             targets_to_write.update(get_gn_target_dependencies(abi, root_target, build_info))
 
     generated_targets = []

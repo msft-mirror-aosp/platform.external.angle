@@ -1181,7 +1181,7 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
 
     if (traceNameIs("hill_climb_racing") || traceNameIs("dead_trigger_2") ||
         traceNameIs("disney_mirrorverse") || traceNameIs("cut_the_rope") ||
-        traceNameIs("geometry_dash"))
+        traceNameIs("geometry_dash") || traceNameIs("critical_ops"))
     {
         if (IsAndroid() && (IsPixel4() || IsPixel4XL()) && !mParams->isANGLE())
         {
@@ -1826,13 +1826,22 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         }
     }
 
+    if (traceNameIs("critical_ops"))
+    {
+        if (isNVIDIALinuxANGLE || isNVIDIAWinANGLE)
+        {
+            skipTest("https://anglebug.com/365524876 Renders incorrectly on Nvidia");
+        }
+    }
+
     if (IsGalaxyS22())
     {
         if (traceNameIs("cod_mobile") || traceNameIs("dota_underlords") ||
             traceNameIs("marvel_snap") || traceNameIs("nier_reincarnation") ||
             traceNameIs("pokemon_unite") || traceNameIs("slingshot_test1") ||
             traceNameIs("slingshot_test2") || traceNameIs("supertuxkart") ||
-            traceNameIs("the_witcher_monster_slayer") || traceNameIs("warcraft_rumble"))
+            traceNameIs("the_witcher_monster_slayer") || traceNameIs("warcraft_rumble") ||
+            traceNameIs("critical_ops"))
         {
             skipTest("https://issuetracker.google.com/267953710 Trace needs triage on Galaxy S22");
         }
