@@ -85,11 +85,18 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "angle_non_conformant_extensions_and_versions_cflags",
+    cflags: [
+        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
+    ],
+}
+
+cc_defaults {
     name: "angle_common_auto_cflags",
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r27_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-20-init-3847-g69c43468-17\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-20-init-3847-g69c43468-28\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -101,7 +108,6 @@ cc_defaults {
         "-Wno-c++11-narrowing-const-reference",
         "-Wno-cast-function-type",
         "-Wno-dangling-assignment-gsl",
-        "-Wno-deprecated-this-capture",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
         "-Wno-missing-template-arg-list-after-template-kw",
@@ -321,6 +327,7 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_non_conformant_extensions_and_versions_cflags",
     ],
     local_include_dirs: [
         "include/",
@@ -339,7 +346,6 @@ cc_library_static {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
         "-DANGLE_USE_ANDROID_TLS_SLOT=1",
@@ -589,6 +595,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_non_conformant_extensions_and_versions_cflags",
     ],
     local_include_dirs: [
         "",
@@ -610,7 +617,6 @@ cc_defaults {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_GLESV2_LIBRARY_NAME=\"libGLESv2_angle\"",
         "-DANGLE_MESA_EGL_LIBRARY_NAME=\"mesa/src/egl/libEGL\"",
         "-DANGLE_MESA_GLESV2_LIBRARY_NAME=\"mesa/src/mapi/es2api/libGLESv2\"",
@@ -934,6 +940,7 @@ cc_library_shared {
         "angle_common_library_cflags",
         "angle_gl_enum_utils",
         "angle_includes",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "src_tests_angle_common_test_utils_shared",
         "src_tests_native_test_support_android",
         "util_angle_test_utils",
@@ -978,7 +985,6 @@ cc_library_shared {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_GLESV2_LIBRARY_NAME=\"libGLESv2_angle\"",
         "-DANGLE_HAS_HISTOGRAMS=0",
         "-DANGLE_MESA_EGL_LIBRARY_NAME=\"mesa/src/egl/libEGL\"",
@@ -1544,6 +1550,7 @@ cc_defaults {
         "angle_common_library_cflags",
         "angle_compression",
         "angle_libANGLE_headers",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_version_info",
         "src_common_spirv_angle_spirv_base",
         "src_common_spirv_angle_spirv_builder",
@@ -1579,7 +1586,6 @@ cc_defaults {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_SHARED_LIBVULKAN=1",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
@@ -1898,6 +1904,7 @@ cc_library_static {
         "third_party/spirv-tools/src/source/table.cpp",
         "third_party/spirv-tools/src/source/text.cpp",
         "third_party/spirv-tools/src/source/text_handler.cpp",
+        "third_party/spirv-tools/src/source/to_string.cpp",
         "third_party/spirv-tools/src/source/util/bit_vector.cpp",
         "third_party/spirv-tools/src/source/util/parse_number.cpp",
         "third_party/spirv-tools/src/source/util/string_utils.cpp",
@@ -4064,6 +4071,7 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "src_common_vulkan_angle_libvulkan_loader",
         "src_common_vulkan_angle_vulkan_icd",
         "third_party_vulkan_headers_src_vulkan_headers",
@@ -4087,7 +4095,6 @@ cc_library_static {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_SHARED_LIBVULKAN=1",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
@@ -4141,6 +4148,7 @@ cc_library_static {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_includes",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_xxhash",
     ],
     local_include_dirs: [
@@ -4157,7 +4165,6 @@ cc_library_static {
         "-DANGLE_ENABLE_GLOBAL_MUTEX_LOAD_TIME_ALLOCATE=1",
         "-DANGLE_ENABLE_GLOBAL_MUTEX_RECURSION=1",
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
         "-DANGLE_USE_ANDROID_TLS_SLOT=1",
@@ -4298,6 +4305,7 @@ cc_defaults {
         "angle_compression",
         "angle_includes",
         "angle_libANGLE_headers",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_version_info",
     ],
     generated_headers: [
@@ -4337,7 +4345,6 @@ cc_defaults {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
         "-DANGLE_USE_ANDROID_TLS_SLOT=1",
@@ -7814,6 +7821,7 @@ cc_library_static {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_includes",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_xxhash",
     ],
     local_include_dirs: [
@@ -7830,7 +7838,6 @@ cc_library_static {
         "-DANGLE_ENABLE_GLOBAL_MUTEX_LOAD_TIME_ALLOCATE=1",
         "-DANGLE_ENABLE_GLOBAL_MUTEX_RECURSION=1",
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
         "-DANGLE_USE_ANDROID_TLS_SLOT=1",
@@ -7980,6 +7987,7 @@ cc_defaults {
         "angle_common_library_cflags",
         "angle_frame_capture_mock",
         "angle_libANGLE_no_vulkan",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "src_libANGLE_renderer_vulkan_angle_vulkan_backend",
     ],
     generated_headers: [
@@ -8022,7 +8030,6 @@ cc_defaults {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_SHARED_LIBVULKAN=1",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
@@ -8123,6 +8130,7 @@ cc_library_shared {
         "angle_dma_buf_cc_defaults",
         "angle_includes",
         "angle_libANGLE",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
@@ -8165,7 +8173,6 @@ cc_library_shared {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_SHARED_LIBVULKAN=1",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
