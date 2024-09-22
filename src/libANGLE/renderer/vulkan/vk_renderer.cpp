@@ -224,8 +224,6 @@ constexpr const char *kSkippedMessages[] = {
     // https://anglebug.com/42266575#comment4
     "VUID-VkBufferViewCreateInfo-format-08779",
     // https://anglebug.com/42266639
-    "VUID-VkVertexInputBindingDivisorDescriptionEXT-divisor-01870",
-    // https://anglebug.com/42266877
     "VUID-VkVertexInputBindingDivisorDescriptionKHR-divisor-01870",
     // https://anglebug.com/42266675
     "VUID-VkGraphicsPipelineCreateInfo-topology-08773",
@@ -278,8 +276,6 @@ constexpr const char *kSkippedMessages[] = {
     // https://anglebug.com/362545033
     // VVL bug: https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/8458
     "VUID-vkCmdDraw-None-02721",
-    // https://anglebug.com/365580001
-    "VUID-vkCmdDrawIndexed-Input-08734",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
