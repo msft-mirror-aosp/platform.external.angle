@@ -406,6 +406,9 @@ void Renderer::ensureCapsInitialized() const
     mNativeExtensions.textureMirrorClampToEdgeEXT =
         getFeatures().supportsSamplerMirrorClampToEdge.enabled;
 
+    // Enable EXT_texture_shadow_lod
+    mNativeExtensions.textureShadowLodEXT = true;
+
     // Enable EXT_multi_draw_indirect
     mNativeExtensions.multiDrawIndirectEXT = true;
 
@@ -1280,6 +1283,9 @@ void Renderer::ensureCapsInitialized() const
     mNativeExtensions.readDepthNV        = true;
     mNativeExtensions.readDepthStencilNV = true;
     mNativeExtensions.readStencilNV      = true;
+
+    // GL_EXT_clear_texture
+    mNativeExtensions.clearTextureEXT = true;
 
     // GL_QCOM_shading_rate
     mNativeExtensions.shadingRateQCOM = mFeatures.supportsFragmentShadingRate.enabled;

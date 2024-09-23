@@ -277,9 +277,9 @@ class Renderer : angle::NonCopyable
                                     const VkFormatFeatureFlags featureBits) const;
 
     bool isAsyncCommandQueueEnabled() const { return mFeatures.asyncCommandQueue.enabled; }
-    bool isAsyncCommandBufferResetEnabled() const
+    bool isAsyncCommandBufferResetAndGarbageCleanupEnabled() const
     {
-        return mFeatures.asyncCommandBufferReset.enabled;
+        return mFeatures.asyncCommandBufferResetAndGarbageCleanup.enabled;
     }
 
     ANGLE_INLINE egl::ContextPriority getDriverPriority(egl::ContextPriority priority)
@@ -347,6 +347,7 @@ class Renderer : angle::NonCopyable
         mSuballocationGarbageList.add(this, std::move(garbage));
     }
 
+    size_t getNextPipelineCacheBlobCacheSlotIndex(size_t *previousSlotIndexOut);
     angle::Result getPipelineCache(vk::Context *context, vk::PipelineCacheAccess *pipelineCacheOut);
     angle::Result mergeIntoPipelineCache(vk::Context *context,
                                          const vk::PipelineCache &pipelineCache);
@@ -945,6 +946,7 @@ class Renderer : angle::NonCopyable
     VkPhysicalDevicePipelineProtectedAccessFeaturesEXT mPipelineProtectedAccessFeatures;
     VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT
         mRasterizationOrderAttachmentAccessFeatures;
+    VkPhysicalDeviceShaderAtomicFloatFeaturesEXT mShaderAtomicFloatFeatures;
     VkPhysicalDeviceMaintenance5FeaturesKHR mMaintenance5Features;
     VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT mSwapchainMaintenance1Features;
     VkPhysicalDeviceLegacyDitheringFeaturesEXT mDitheringFeatures;
@@ -1020,6 +1022,7 @@ class Renderer : angle::NonCopyable
     //    enabled
     angle::SimpleMutex mPipelineCacheMutex;
     vk::PipelineCache mPipelineCache;
+    size_t mCurrentPipelineCacheBlobCacheSlotIndex;
     uint32_t mPipelineCacheVkUpdateTimeout;
     size_t mPipelineCacheSizeAtLastSync;
     std::atomic<bool> mPipelineCacheInitialized;

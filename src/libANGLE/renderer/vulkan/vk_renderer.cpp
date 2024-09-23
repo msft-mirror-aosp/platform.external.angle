@@ -87,7 +87,7 @@ constexpr size_t kImageSizeThresholdForDedicatedMemoryAllocation = 4 * 1024 * 10
 
 // Pipeline cache header version. It should be incremented any time there is an update to the cache
 // header or data structure.
-constexpr uint32_t kPipelineCacheVersion = 2;
+constexpr uint32_t kPipelineCacheVersion = 3;
 
 // Update the pipeline cache every this many swaps.
 constexpr uint32_t kPipelineCacheVkUpdatePeriod = 60;
@@ -233,6 +233,12 @@ constexpr const char *kSkippedMessages[] = {
     // VVL bug: https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/7858
     "VUID-vkCmdDraw-None-08608",
     "VUID-vkCmdDrawIndexed-None-08608",
+    "VUID-vkCmdDraw-None-07843",
+    "VUID-vkCmdDrawIndexed-None-07843",
+    "VUID-vkCmdDraw-None-07844",
+    "VUID-vkCmdDrawIndexed-None-07844",
+    "VUID-vkCmdDraw-None-07847",
+    "VUID-vkCmdDrawIndexed-None-07847",
     // Invalid feedback loop caused by the application
     "VUID-vkCmdDraw-None-09000",
     "VUID-vkCmdDrawIndexed-None-09000",
@@ -268,14 +274,6 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDraw-None-06550",
     // https://anglebug.com/345304850
     "WARNING-Shader-OutputNotConsumed",
-    // https://crbug.com/359904720
-    "VUID-vkCmdDraw-Input-07939",
-    "VUID-vkCmdDrawIndexed-Input-07939",
-    "VUID-vkCmdDrawIndexedIndirect-Input-07939",
-    "VUID-vkCmdDrawIndirect-Input-07939",
-    // https://anglebug.com/362545033
-    // VVL bug: https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/8458
-    "VUID-vkCmdDraw-None-02721",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -415,14 +413,6 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
         "Access info (usage: SYNC_COMPUTE_SHADER_SHADER_STORAGE_WRITE, prior_usage: "
         "SYNC_VERTEX_ATTRIBUTE_INPUT_VERTEX_ATTRIBUTE_READ",
     },
-    // From: MultisampledRenderToTextureES3Test.TransformFeedbackTest. http://anglebug.com/42265220
-    {
-        "SYNC-HAZARD-WRITE-AFTER-WRITE",
-        "write_barriers: "
-        "SYNC_TRANSFORM_FEEDBACK_EXT_TRANSFORM_FEEDBACK_COUNTER_READ_EXT|SYNC_TRANSFORM_FEEDBACK_"
-        "EXT_"
-        "TRANSFORM_FEEDBACK_COUNTER_WRITE_EXT",
-    },
     // http://anglebug.com/42266506 (VkNonDispatchableHandle on x86 bots)
     {
         "SYNC-HAZARD-READ-AFTER-WRITE",
@@ -433,26 +423,6 @@ constexpr vk::SkippedSyncvalMessage kSkippedSyncvalMessages[] = {
         "SYNC-HAZARD-READ-AFTER-WRITE",
         "Hazard READ_AFTER_WRITE for VkNonDispatchableHandle",
         "usage: SYNC_VERTEX_SHADER_SHADER_STORAGE_READ",
-    },
-    // From: TraceTest.manhattan_31 with SwiftShader. These failures appears related to
-    // dynamic uniform buffers. The failures are gone if I force mUniformBufferDescriptorType to
-    // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER. My guess is that syncval is not doing a fine grain enough
-    // range tracking with dynamic uniform buffers. http://anglebug.com/42265220
-    {
-        "SYNC-HAZARD-WRITE-AFTER-READ",
-        "usage: SYNC_VERTEX_SHADER_UNIFORM_READ",
-    },
-    {
-        "SYNC-HAZARD-READ-AFTER-WRITE",
-        "usage: SYNC_VERTEX_SHADER_UNIFORM_READ",
-    },
-    {
-        "SYNC-HAZARD-WRITE-AFTER-READ",
-        "type: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC",
-    },
-    {
-        "SYNC-HAZARD-READ-AFTER-WRITE",
-        "type: VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC",
     },
     // Coherent framebuffer fetch is enabled on some platforms that are known a priori to have the
     // needed behavior, even though this is not specified in the Vulkan spec.  These generate
@@ -943,32 +913,36 @@ class CacheDataHeader
   public:
     void setData(uint32_t compressedDataCRC,
                  uint32_t cacheDataSize,
-                 uint16_t numChunks,
-                 uint16_t chunkIndex)
+                 size_t numChunks,
+                 size_t chunkIndex,
+                 uint32_t chunkCRC)
     {
         mVersion           = kPipelineCacheVersion;
         mCompressedDataCRC = compressedDataCRC;
         mCacheDataSize     = cacheDataSize;
-        mNumChunks         = numChunks;
-        mChunkIndex        = chunkIndex;
+        SetBitField(mNumChunks, numChunks);
+        SetBitField(mChunkIndex, chunkIndex);
+        mChunkCRC = chunkCRC;
     }
 
     void getData(uint32_t *versionOut,
                  uint32_t *compressedDataCRCOut,
                  uint32_t *cacheDataSizeOut,
                  size_t *numChunksOut,
-                 size_t *chunkIndexOut) const
+                 size_t *chunkIndexOut,
+                 uint32_t *chunkCRCOut) const
     {
         *versionOut           = mVersion;
         *compressedDataCRCOut = mCompressedDataCRC;
         *cacheDataSizeOut     = mCacheDataSize;
         *numChunksOut         = static_cast<size_t>(mNumChunks);
         *chunkIndexOut        = static_cast<size_t>(mChunkIndex);
+        *chunkCRCOut          = mChunkCRC;
     }
 
   private:
     // For pipeline cache, the values stored in key data has the following order:
-    // {headerVersion, compressedDataCRC, originalCacheSize, numChunks, chunkIndex;
+    // {headerVersion, compressedDataCRC, originalCacheSize, numChunks, chunkIndex, chunkCRC;
     // chunkCompressedData}. The header values are used to validate the data. For example, if the
     // original and compressed sizes are 70000 bytes (68k) and 68841 bytes (67k), the compressed
     // data will be divided into two chunks: {ver,crc0,70000,2,0;34421 bytes} and
@@ -983,6 +957,7 @@ class CacheDataHeader
     uint32_t mCacheDataSize;
     uint16_t mNumChunks;
     uint16_t mChunkIndex;
+    uint32_t mChunkCRC;
 };
 
 ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
@@ -990,11 +965,12 @@ ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
 // Pack header data for the pipeline cache key data.
 void PackHeaderDataForPipelineCache(uint32_t compressedDataCRC,
                                     uint32_t cacheDataSize,
-                                    uint16_t numChunks,
-                                    uint16_t chunkIndex,
+                                    size_t numChunks,
+                                    size_t chunkIndex,
+                                    uint32_t chunkCRC,
                                     CacheDataHeader *dataOut)
 {
-    dataOut->setData(compressedDataCRC, cacheDataSize, numChunks, chunkIndex);
+    dataOut->setData(compressedDataCRC, cacheDataSize, numChunks, chunkIndex, chunkCRC);
 }
 
 // Unpack header data from the pipeline cache key data.
@@ -1003,13 +979,16 @@ void UnpackHeaderDataForPipelineCache(CacheDataHeader *data,
                                       uint32_t *compressedDataCRCOut,
                                       uint32_t *cacheDataSizeOut,
                                       size_t *numChunksOut,
-                                      size_t *chunkIndexOut)
+                                      size_t *chunkIndexOut,
+                                      uint32_t *chunkCRCOut)
 {
-    data->getData(versionOut, compressedDataCRCOut, cacheDataSizeOut, numChunksOut, chunkIndexOut);
+    data->getData(versionOut, compressedDataCRCOut, cacheDataSizeOut, numChunksOut, chunkIndexOut,
+                  chunkCRCOut);
 }
 
-void ComputePipelineCacheVkChunkKey(VkPhysicalDeviceProperties physicalDeviceProperties,
-                                    const uint8_t chunkIndex,
+void ComputePipelineCacheVkChunkKey(const VkPhysicalDeviceProperties &physicalDeviceProperties,
+                                    const size_t slotIndex,
+                                    const size_t chunkIndex,
                                     angle::BlobCacheKey *hashOut)
 {
     std::ostringstream hashStream("ANGLE Pipeline Cache: ", std::ios_base::ate);
@@ -1024,6 +1003,9 @@ void ComputePipelineCacheVkChunkKey(VkPhysicalDeviceProperties physicalDevicePro
     hashStream << std::hex << physicalDeviceProperties.vendorID;
     hashStream << std::hex << physicalDeviceProperties.deviceID;
 
+    // Add slotIndex to generate unique keys for each slot.
+    hashStream << std::hex << static_cast<uint32_t>(slotIndex);
+
     // Add chunkIndex to generate unique key for chunks.
     hashStream << std::hex << static_cast<uint32_t>(chunkIndex);
 
@@ -1032,8 +1014,39 @@ void ComputePipelineCacheVkChunkKey(VkPhysicalDeviceProperties physicalDevicePro
                                hashString.length(), hashOut->data());
 }
 
-void CompressAndStorePipelineCacheVk(VkPhysicalDeviceProperties physicalDeviceProperties,
-                                     vk::GlobalOps *globalOps,
+struct PipelineCacheVkChunkInfo
+{
+    const uint8_t *data;
+    size_t dataSize;
+    uint32_t crc;
+    angle::BlobCacheKey cacheHash;
+};
+
+// Enough to store 32M data using 64K chunks.
+constexpr size_t kFastPipelineCacheVkChunkInfosSize = 512;
+using PipelineCacheVkChunkInfos =
+    angle::FastVector<PipelineCacheVkChunkInfo, kFastPipelineCacheVkChunkInfosSize>;
+
+PipelineCacheVkChunkInfos GetPipelineCacheVkChunkInfos(Renderer *renderer,
+                                                       const angle::MemoryBuffer &compressedData,
+                                                       const size_t numChunks,
+                                                       const size_t chunkSize,
+                                                       const size_t slotIndex);
+
+void StorePipelineCacheVkChunks(vk::GlobalOps *globalOps,
+                                const PipelineCacheVkChunkInfos &chunkInfos,
+                                const size_t cacheDataSize,
+                                angle::MemoryBuffer *scratchBuffer);
+
+// Erasing is done by writing 1/0-sized chunks starting from the 0 chunk.
+void ErasePipelineCacheVkChunks(vk::GlobalOps *globalOps,
+                                Renderer *renderer,
+                                const size_t numChunks,
+                                const size_t slotIndex,
+                                angle::MemoryBuffer *scratchBuffer);
+
+void CompressAndStorePipelineCacheVk(vk::GlobalOps *globalOps,
+                                     Renderer *renderer,
                                      const std::vector<uint8_t> &cacheData,
                                      const size_t maxTotalSize)
 {
@@ -1064,51 +1077,135 @@ void CompressAndStorePipelineCacheVk(VkPhysicalDeviceProperties physicalDevicePr
 
     // If the size of compressedData is larger than (kMaxBlobCacheSize - sizeof(numChunks)),
     // the pipelineCache still can't be stored in blob cache. Divide the large compressed
-    // pipelineCache into several parts to store seperately. There is no function to
+    // pipelineCache into several parts to store separately. There is no function to
     // query the limit size in android.
     constexpr size_t kMaxBlobCacheSize = 64 * 1024;
-    size_t compressedOffset            = 0;
 
     const size_t numChunks = UnsignedCeilDivide(static_cast<unsigned int>(compressedData.size()),
                                                 kMaxBlobCacheSize - sizeof(CacheDataHeader));
     ASSERT(numChunks <= UINT16_MAX);
-    size_t chunkSize = UnsignedCeilDivide(static_cast<unsigned int>(compressedData.size()),
-                                          static_cast<unsigned int>(numChunks));
-    uint32_t compressedDataCRC = 0;
-    if (kEnableCRCForPipelineCache)
+    const size_t chunkSize = UnsignedCeilDivide(static_cast<unsigned int>(compressedData.size()),
+                                                static_cast<unsigned int>(numChunks));
+
+    angle::MemoryBuffer scratchBuffer;
+    if (!scratchBuffer.resize(sizeof(CacheDataHeader) + chunkSize))
     {
-        compressedDataCRC = angle::GenerateCRC32(compressedData.data(), compressedData.size());
+        WARN() << "Skip syncing pipeline cache data due to out of memory.";
+        return;
     }
+
+    size_t previousSlotIndex = 0;
+    const size_t slotIndex   = renderer->getNextPipelineCacheBlobCacheSlotIndex(&previousSlotIndex);
+
+    PipelineCacheVkChunkInfos chunkInfos =
+        GetPipelineCacheVkChunkInfos(renderer, compressedData, numChunks, chunkSize, slotIndex);
+
+    // Store all chunks.
+    StorePipelineCacheVkChunks(globalOps, chunkInfos, cacheData.size(), &scratchBuffer);
+
+    // Erase data from the previous slot. Since cache data size is always increasing, use current
+    // numChunks for simplicity (to avoid storing previous numChunks).
+    if (previousSlotIndex != slotIndex)
+    {
+        ASSERT(renderer->getFeatures().useDualPipelineBlobCacheSlots.enabled);
+        ErasePipelineCacheVkChunks(globalOps, renderer, numChunks, previousSlotIndex,
+                                   &scratchBuffer);
+    }
+    else
+    {
+        ASSERT(!renderer->getFeatures().useDualPipelineBlobCacheSlots.enabled);
+    }
+}
+
+PipelineCacheVkChunkInfos GetPipelineCacheVkChunkInfos(Renderer *renderer,
+                                                       const angle::MemoryBuffer &compressedData,
+                                                       const size_t numChunks,
+                                                       const size_t chunkSize,
+                                                       const size_t slotIndex)
+{
+    const VkPhysicalDeviceProperties &physicalDeviceProperties =
+        renderer->getPhysicalDeviceProperties();
+
+    PipelineCacheVkChunkInfos chunkInfos(numChunks);
+    uint32_t chunkCrc = kEnableCRCForPipelineCache ? angle::InitCRC32() : 0;
 
     for (size_t chunkIndex = 0; chunkIndex < numChunks; ++chunkIndex)
     {
-        if (chunkIndex == numChunks - 1)
-        {
-            chunkSize = compressedData.size() - compressedOffset;
-        }
-
-        angle::MemoryBuffer keyData;
-        if (!keyData.resize(sizeof(CacheDataHeader) + chunkSize))
-        {
-            WARN() << "Skip syncing pipeline cache data due to out of memory.";
-            return;
-        }
-
-        // Add the header data, followed by the compressed data.
-        ASSERT(cacheData.size() <= UINT32_MAX);
-        CacheDataHeader headerData = {};
-        PackHeaderDataForPipelineCache(compressedDataCRC, static_cast<uint32_t>(cacheData.size()),
-                                       static_cast<uint16_t>(numChunks),
-                                       static_cast<uint16_t>(chunkIndex), &headerData);
-        memcpy(keyData.data(), &headerData, sizeof(CacheDataHeader));
-        memcpy(keyData.data() + sizeof(CacheDataHeader), compressedData.data() + compressedOffset,
-               chunkSize);
-        compressedOffset += chunkSize;
+        const size_t compressedOffset = chunkIndex * chunkSize;
+        const uint8_t *data           = compressedData.data() + compressedOffset;
+        const size_t dataSize = std::min(chunkSize, compressedData.size() - compressedOffset);
 
         // Create unique hash key.
-        angle::BlobCacheKey chunkCacheHash;
-        ComputePipelineCacheVkChunkKey(physicalDeviceProperties, chunkIndex, &chunkCacheHash);
+        angle::BlobCacheKey cacheHash;
+        ComputePipelineCacheVkChunkKey(physicalDeviceProperties, slotIndex, chunkIndex, &cacheHash);
 
+        if (kEnableCRCForPipelineCache)
+        {
+            // Generate running CRC. Last chunk will have CRC of the entire data.
+            chunkCrc = angle::UpdateCRC32(chunkCrc, data, dataSize);
+        }
+
+        chunkInfos[chunkIndex] = PipelineCacheVkChunkInfo{data, dataSize, chunkCrc, cacheHash};
+    }
+
+    return chunkInfos;
+}
+
+void StorePipelineCacheVkChunks(vk::GlobalOps *globalOps,
+                                const PipelineCacheVkChunkInfos &chunkInfos,
+                                const size_t cacheDataSize,
+                                angle::MemoryBuffer *scratchBuffer)
+{
+    // Store chunks in revers order, so when 0 chunk is available - all chunks are available.
+
+    // Last chunk have CRC of the entire data.
+    const uint32_t compressedDataCRC = chunkInfos.back().crc;
+
+    ASSERT(scratchBuffer != nullptr);
+    angle::MemoryBuffer &keyData = *scratchBuffer;
+
+    size_t chunkIndex = chunkInfos.size();
+    while (chunkIndex > 0)
+    {
+        --chunkIndex;
+        const PipelineCacheVkChunkInfo &chunkInfo = chunkInfos[chunkIndex];
+
+        // Add the header data, followed by the compressed data.
+        ASSERT(cacheDataSize <= UINT32_MAX);
+        CacheDataHeader headerData = {};
+        PackHeaderDataForPipelineCache(compressedDataCRC, static_cast<uint32_t>(cacheDataSize),
+                                       chunkInfos.size(), chunkIndex, chunkInfo.crc, &headerData);
+        keyData.setSize(sizeof(CacheDataHeader) + chunkInfo.dataSize);
+        memcpy(keyData.data(), &headerData, sizeof(CacheDataHeader));
+        memcpy(keyData.data() + sizeof(CacheDataHeader), chunkInfo.data, chunkInfo.dataSize);
+
+        globalOps->putBlob(chunkInfo.cacheHash, keyData);
+    }
+}
+
+void ErasePipelineCacheVkChunks(vk::GlobalOps *globalOps,
+                                Renderer *renderer,
+                                const size_t numChunks,
+                                const size_t slotIndex,
+                                angle::MemoryBuffer *scratchBuffer)
+{
+    const VkPhysicalDeviceProperties &physicalDeviceProperties =
+        renderer->getPhysicalDeviceProperties();
+
+    ASSERT(scratchBuffer != nullptr);
+    angle::MemoryBuffer &keyData = *scratchBuffer;
+
+    keyData.setSize(
+        renderer->getFeatures().useEmptyBlobsToEraseOldPipelineCacheFromBlobCache.enabled ? 0 : 1);
+
+    // Fill data (if any) with zeroes for security.
+    memset(keyData.data(), 0, keyData.size());
+
+    for (size_t chunkIndex = 0; chunkIndex < numChunks; ++chunkIndex)
+    {
+        egl::BlobCache::Key chunkCacheHash;
+        ComputePipelineCacheVkChunkKey(physicalDeviceProperties, slotIndex, chunkIndex,
+                                       &chunkCacheHash);
         globalOps->putBlob(chunkCacheHash, keyData);
     }
 }
@@ -1117,7 +1214,7 @@ class CompressAndStorePipelineCacheTask : public angle::Closure
 {
   public:
     CompressAndStorePipelineCacheTask(vk::GlobalOps *globalOps,
-                                      vk::Renderer *renderer,
+                                      Renderer *renderer,
                                       std::vector<uint8_t> &&cacheData,
                                       size_t kMaxTotalSize)
         : mGlobalOps(globalOps),
@@ -1129,19 +1226,17 @@ class CompressAndStorePipelineCacheTask : public angle::Closure
     void operator()() override
     {
         ANGLE_TRACE_EVENT0("gpu.angle", "CompressAndStorePipelineCacheVk");
-        CompressAndStorePipelineCacheVk(mRenderer->getPhysicalDeviceProperties(), mGlobalOps,
-                                        mCacheData, mMaxTotalSize);
+        CompressAndStorePipelineCacheVk(mGlobalOps, mRenderer, mCacheData, mMaxTotalSize);
     }
 
   private:
     vk::GlobalOps *mGlobalOps;
-    vk::Renderer *mRenderer;
+    Renderer *mRenderer;
     std::vector<uint8_t> mCacheData;
     size_t mMaxTotalSize;
 };
 
-angle::Result GetAndDecompressPipelineCacheVk(VkPhysicalDeviceProperties physicalDeviceProperties,
-                                              vk::Context *context,
+angle::Result GetAndDecompressPipelineCacheVk(vk::Context *context,
                                               vk::GlobalOps *globalOps,
                                               angle::MemoryBuffer *uncompressedData,
                                               bool *success)
@@ -1149,15 +1244,38 @@ angle::Result GetAndDecompressPipelineCacheVk(VkPhysicalDeviceProperties physica
     // Make sure that the bool output is initialized to false.
     *success = false;
 
-    // Compute the hash key of chunkIndex 0 and find the first cache data in blob cache.
+    Renderer *renderer = context->getRenderer();
+
+    const VkPhysicalDeviceProperties &physicalDeviceProperties =
+        renderer->getPhysicalDeviceProperties();
+
+    const size_t firstSlotIndex = renderer->getNextPipelineCacheBlobCacheSlotIndex(nullptr);
+    size_t slotIndex            = firstSlotIndex;
+
     angle::BlobCacheKey chunkCacheHash;
-    ComputePipelineCacheVkChunkKey(physicalDeviceProperties, 0, &chunkCacheHash);
     angle::BlobCacheValue keyData;
 
-    if (!globalOps->getBlob(chunkCacheHash, &keyData) || keyData.size() < sizeof(CacheDataHeader))
+    // Iterate over available slots until data is found (only expected single slot with data).
+    while (true)
     {
-        // Nothing in the cache.
-        return angle::Result::Continue;
+        // Compute the hash key of chunkIndex 0 and find the first cache data in blob cache.
+        ComputePipelineCacheVkChunkKey(physicalDeviceProperties, slotIndex, 0, &chunkCacheHash);
+
+        if (globalOps->getBlob(chunkCacheHash, &keyData) &&
+            keyData.size() >= sizeof(CacheDataHeader))
+        {
+            // Found slot with data.
+            break;
+        }
+        // Nothing in the cache for current slotIndex.
+
+        slotIndex = renderer->getNextPipelineCacheBlobCacheSlotIndex(nullptr);
+        if (slotIndex == firstSlotIndex)
+        {
+            // Nothing in all slots.
+            return angle::Result::Continue;
+        }
+        // Try next slot.
     }
 
     // Get the number of chunks and other values from the header for data validation.
@@ -1166,11 +1284,13 @@ angle::Result GetAndDecompressPipelineCacheVk(VkPhysicalDeviceProperties physica
     uint32_t uncompressedCacheDataSize;
     size_t numChunks;
     size_t chunkIndex0;
+    uint32_t chunkCRC;
 
     CacheDataHeader headerData = {};
     memcpy(&headerData, keyData.data(), sizeof(CacheDataHeader));
     UnpackHeaderDataForPipelineCache(&headerData, &cacheVersion, &compressedDataCRC,
-                                     &uncompressedCacheDataSize, &numChunks, &chunkIndex0);
+                                     &uncompressedCacheDataSize, &numChunks, &chunkIndex0,
+                                     &chunkCRC);
     if (cacheVersion == kPipelineCacheVersion)
     {
         // The data must not contain corruption.
@@ -1193,6 +1313,8 @@ angle::Result GetAndDecompressPipelineCacheVk(VkPhysicalDeviceProperties physica
     size_t chunkSize      = keyData.size() - sizeof(CacheDataHeader);
     size_t compressedSize = 0;
 
+    uint32_t computedChunkCRC = kEnableCRCForPipelineCache ? angle::InitCRC32() : 0;
+
     // Allocate enough memory.
     angle::MemoryBuffer compressedData;
     ANGLE_VK_CHECK(context, compressedData.resize(chunkSize * numChunks),
@@ -1201,48 +1323,86 @@ angle::Result GetAndDecompressPipelineCacheVk(VkPhysicalDeviceProperties physica
     // To combine the parts of the pipelineCache data.
     for (size_t chunkIndex = 0; chunkIndex < numChunks; ++chunkIndex)
     {
-        // Get the unique key by chunkIndex.
-        ComputePipelineCacheVkChunkKey(physicalDeviceProperties, chunkIndex, &chunkCacheHash);
-
-        if (!globalOps->getBlob(chunkCacheHash, &keyData) ||
-            keyData.size() < sizeof(CacheDataHeader))
+        // Avoid processing 0 chunk again.
+        if (chunkIndex > 0)
         {
-            // Can't find every part of the cache data.
-            WARN() << "Failed to get pipeline cache chunk " << chunkIndex << " of " << numChunks;
-            return angle::Result::Continue;
+            // Get the unique key by chunkIndex.
+            ComputePipelineCacheVkChunkKey(physicalDeviceProperties, slotIndex, chunkIndex,
+                                           &chunkCacheHash);
+
+            if (!globalOps->getBlob(chunkCacheHash, &keyData) ||
+                keyData.size() < sizeof(CacheDataHeader))
+            {
+                // Can't find every part of the cache data.
+                WARN() << "Failed to get pipeline cache chunk " << chunkIndex << " of "
+                       << numChunks;
+                return angle::Result::Continue;
+            }
+
+            // Validate the header values and ensure there is enough space to store.
+            uint32_t checkCacheVersion;
+            uint32_t checkCompressedDataCRC;
+            uint32_t checkUncompressedCacheDataSize;
+            size_t checkNumChunks;
+            size_t checkChunkIndex;
+
+            memcpy(&headerData, keyData.data(), sizeof(CacheDataHeader));
+            UnpackHeaderDataForPipelineCache(
+                &headerData, &checkCacheVersion, &checkCompressedDataCRC,
+                &checkUncompressedCacheDataSize, &checkNumChunks, &checkChunkIndex, &chunkCRC);
+
+            chunkSize = keyData.size() - sizeof(CacheDataHeader);
+            bool isHeaderDataCorrupted =
+                (checkCacheVersion != cacheVersion) || (checkNumChunks != numChunks) ||
+                (checkUncompressedCacheDataSize != uncompressedCacheDataSize) ||
+                (checkCompressedDataCRC != compressedDataCRC) || (checkChunkIndex != chunkIndex) ||
+                (compressedData.size() < compressedSize + chunkSize);
+            if (isHeaderDataCorrupted)
+            {
+                WARN() << "Pipeline cache chunk header corrupted: " << "checkCacheVersion = "
+                       << checkCacheVersion << ", cacheVersion = " << cacheVersion
+                       << ", checkNumChunks = " << checkNumChunks << ", numChunks = " << numChunks
+                       << ", checkUncompressedCacheDataSize = " << checkUncompressedCacheDataSize
+                       << ", uncompressedCacheDataSize = " << uncompressedCacheDataSize
+                       << ", checkCompressedDataCRC = " << checkCompressedDataCRC
+                       << ", compressedDataCRC = " << compressedDataCRC
+                       << ", checkChunkIndex = " << checkChunkIndex
+                       << ", chunkIndex = " << chunkIndex
+                       << ", compressedData.size() = " << compressedData.size()
+                       << ", (compressedSize + chunkSize) = " << (compressedSize + chunkSize);
+                return angle::Result::Continue;
+            }
         }
 
-        // Validate the header values and ensure there is enough space to store.
-        uint32_t checkCacheVersion;
-        uint32_t checkCompressedDataCRC;
-        uint32_t checkUncompressedCacheDataSize;
-        size_t checkNumChunks;
-        size_t checkChunkIndex;
-
-        memcpy(&headerData, keyData.data(), sizeof(CacheDataHeader));
-        UnpackHeaderDataForPipelineCache(&headerData, &checkCacheVersion, &checkCompressedDataCRC,
-                                         &checkUncompressedCacheDataSize, &checkNumChunks,
-                                         &checkChunkIndex);
-
-        chunkSize = keyData.size() - sizeof(CacheDataHeader);
-        bool isHeaderDataCorrupted =
-            (checkCacheVersion != cacheVersion) || (checkNumChunks != numChunks) ||
-            (checkUncompressedCacheDataSize != uncompressedCacheDataSize) ||
-            (checkCompressedDataCRC != compressedDataCRC) || (checkChunkIndex != chunkIndex) ||
-            (compressedData.size() < compressedSize + chunkSize);
-        if (isHeaderDataCorrupted)
+        // CRC of the chunk should match the values in the header.
+        if (kEnableCRCForPipelineCache)
         {
-            WARN() << "Pipeline cache chunk header corrupted: " << "checkCacheVersion = "
-                   << checkCacheVersion << ", cacheVersion = " << cacheVersion
-                   << ", checkNumChunks = " << checkNumChunks << ", numChunks = " << numChunks
-                   << ", checkUncompressedCacheDataSize = " << checkUncompressedCacheDataSize
-                   << ", uncompressedCacheDataSize = " << uncompressedCacheDataSize
-                   << ", checkCompressedDataCRC = " << checkCompressedDataCRC
-                   << ", compressedDataCRC = " << compressedDataCRC
-                   << ", checkChunkIndex = " << checkChunkIndex << ", chunkIndex = " << chunkIndex
-                   << ", compressedData.size() = " << compressedData.size()
-                   << ", (compressedSize + chunkSize) = " << (compressedSize + chunkSize);
-            return angle::Result::Continue;
+            computedChunkCRC = angle::UpdateCRC32(
+                computedChunkCRC, keyData.data() + sizeof(CacheDataHeader), chunkSize);
+            if (computedChunkCRC != chunkCRC)
+            {
+                if (chunkCRC == 0)
+                {
+                    // This could be due to the cache being populated before
+                    // kEnableCRCForPipelineCache was enabled.
+                    WARN() << "Expected chunk CRC = " << chunkCRC
+                           << ", Actual chunk CRC = " << computedChunkCRC;
+                    return angle::Result::Continue;
+                }
+
+                // If the expected CRC is non-zero and does not match the actual CRC from the data,
+                // there has been an unexpected data corruption.
+                ERR() << "Expected chunk CRC = " << chunkCRC
+                      << ", Actual chunk CRC = " << computedChunkCRC;
+
+                ERR() << "Data extracted from the cache headers: " << std::hex
+                      << ", compressedDataCRC = 0x" << compressedDataCRC << "numChunks = 0x"
+                      << numChunks << ", uncompressedCacheDataSize = 0x"
+                      << uncompressedCacheDataSize;
+
+                FATAL() << "CRC check failed; possible pipeline cache data corruption.";
+                return angle::Result::Stop;
+            }
         }
 
         memcpy(compressedData.data() + compressedSize, keyData.data() + sizeof(CacheDataHeader),
@@ -1253,31 +1413,12 @@ angle::Result GetAndDecompressPipelineCacheVk(VkPhysicalDeviceProperties physica
     // CRC for compressed data and size for decompressed data should match the values in the header.
     if (kEnableCRCForPipelineCache)
     {
-        uint32_t computedCompressedDataCRC =
-            angle::GenerateCRC32(compressedData.data(), compressedSize);
-        if (computedCompressedDataCRC != compressedDataCRC)
-        {
-            if (compressedDataCRC == 0)
-            {
-                // This could be due to the cache being populated before kEnableCRCForPipelineCache
-                // was enabled.
-                WARN() << "Expected CRC = " << compressedDataCRC
-                       << ", Actual CRC = " << computedCompressedDataCRC;
-                return angle::Result::Continue;
-            }
-
-            // If the expected CRC is non-zero and does not match the actual CRC from the data,
-            // there has been an unexpected data corruption.
-            ERR() << "Expected CRC = " << compressedDataCRC
-                  << ", Actual CRC = " << computedCompressedDataCRC;
-
-            ERR() << "Data extracted from the cache headers: " << std::hex
-                  << ", compressedDataCRC = 0x" << compressedDataCRC << "numChunks = 0x"
-                  << numChunks << ", uncompressedCacheDataSize = 0x" << uncompressedCacheDataSize;
-
-            FATAL() << "CRC check failed; possible pipeline cache data corruption.";
-            return angle::Result::Stop;
-        }
+        // Last chunk have CRC of the entire data.
+        uint32_t computedCompressedDataCRC = computedChunkCRC;
+        // Per chunk CRC check must handle any data corruption.  Assert is possible only if header
+        // was incorrectly written in the first place (bug in the code), or all chunks headers were
+        // corrupted in the exact same way, which is almost impossible.
+        ASSERT(computedCompressedDataCRC == compressedDataCRC);
     }
 
     ANGLE_VK_CHECK(context,
@@ -1495,6 +1636,7 @@ Renderer::Renderer()
       mHostVisibleVertexConversionBufferMemoryTypeIndex(kInvalidMemoryTypeIndex),
       mDeviceLocalVertexConversionBufferMemoryTypeIndex(kInvalidMemoryTypeIndex),
       mVertexConversionBufferAlignment(1),
+      mCurrentPipelineCacheBlobCacheSlotIndex(0),
       mPipelineCacheVkUpdateTimeout(kPipelineCacheVkUpdatePeriod),
       mPipelineCacheSizeAtLastSync(0),
       mPipelineCacheInitialized(false),
@@ -2295,6 +2437,7 @@ angle::Result Renderer::initializeMemoryAllocator(vk::Context *context)
 // - VK_ANDROID_external_format_resolve:               externalFormatResolve (feature)
 // - VK_EXT_vertex_input_dynamic_state:                vertexInputDynamicState (feature)
 // - VK_KHR_dynamic_rendering_local_read:              dynamicRenderingLocalRead (feature)
+// - VK_EXT_shader_atomic_float                        shaderImageFloat32Atomics (feature)
 //
 void Renderer::appendDeviceExtensionFeaturesNotPromoted(
     const vk::ExtensionNameList &deviceExtensionNames,
@@ -2405,6 +2548,11 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
                             deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mRasterizationOrderAttachmentAccessFeatures);
+    }
+
+    if (ExtensionFound(VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mShaderAtomicFloatFeatures);
     }
 
     if (ExtensionFound(VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME, deviceExtensionNames))
@@ -2801,6 +2949,10 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mMaintenance5Features       = {};
     mMaintenance5Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR;
 
+    mShaderAtomicFloatFeatures = {};
+    mShaderAtomicFloatFeatures.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
+
     mSwapchainMaintenance1Features = {};
     mSwapchainMaintenance1Features.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT;
@@ -2912,6 +3064,7 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mPipelineRobustnessFeatures.pNext                 = nullptr;
     mPipelineProtectedAccessFeatures.pNext            = nullptr;
     mRasterizationOrderAttachmentAccessFeatures.pNext = nullptr;
+    mShaderAtomicFloatFeatures.pNext                  = nullptr;
     mMaintenance5Features.pNext                       = nullptr;
     mSwapchainMaintenance1Features.pNext              = nullptr;
     mDitheringFeatures.pNext                          = nullptr;
@@ -3176,6 +3329,13 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
                 VK_ARM_RASTERIZATION_ORDER_ATTACHMENT_ACCESS_EXTENSION_NAME);
         }
         vk::AddToPNextChain(&mEnabledFeatures, &mRasterizationOrderAttachmentAccessFeatures);
+    }
+
+    if (!mFeatures.emulateR32fImageAtomicExchange.enabled)
+    {
+        ASSERT(ExtensionFound(VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME, deviceExtensionNames));
+        mEnabledDeviceExtensions.push_back(VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mShaderAtomicFloatFeatures);
     }
 
     if (mFeatures.supportsImage2dViewOf3d.enabled)
@@ -3556,6 +3716,10 @@ void Renderer::initDeviceExtensionEntryPoints()
         InitExternalMemoryHardwareBufferANDROIDFunctions(mDevice);
     }
 #    endif
+    if (mFeatures.supportsSynchronization2.enabled)
+    {
+        InitSynchronization2Functions(mDevice);
+    }
     // Extensions promoted to Vulkan 1.2
     {
         if (mFeatures.supportsHostQueryReset.enabled)
@@ -4703,7 +4867,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Currently disabled by default: http://anglebug.com/42262955
     ANGLE_FEATURE_CONDITION(&mFeatures, asyncCommandQueue, false);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, asyncCommandBufferReset, true);
+    ANGLE_FEATURE_CONDITION(&mFeatures, asyncCommandBufferResetAndGarbageCleanup, true);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsYUVSamplerConversion,
                             mSamplerYcbcrConversionFeatures.samplerYcbcrConversion != VK_FALSE);
@@ -4810,9 +4974,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         &mFeatures, preferDrawClearOverVkCmdClearAttachments,
         isQualcommProprietary && qualcommDriverVersion < QualcommDriverVersion(512, 762, 12));
 
-    // r32f image emulation is done unconditionally so VK_FORMAT_FEATURE_STORAGE_*_ATOMIC_BIT is not
-    // required.
-    ANGLE_FEATURE_CONDITION(&mFeatures, emulateR32fImageAtomicExchange, true);
+    // R32F imageAtomicExchange emulation is done if shaderImageFloat32Atomics feature is not
+    // supported.
+    ANGLE_FEATURE_CONDITION(&mFeatures, emulateR32fImageAtomicExchange,
+                            mShaderAtomicFloatFeatures.shaderImageFloat32Atomics != VK_TRUE);
 
     // Whether non-conformant configurations and extensions should be exposed.
     ANGLE_FEATURE_CONDITION(&mFeatures, exposeNonConformantExtensionsAndVersions,
@@ -5213,6 +5378,13 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                             mFeatures.hasEffectivePipelineCacheSerialization.enabled &&
                                 (hasNoPipelineWarmUp || canSyncLargeMonolithicCache));
 
+    // Enable the feature on Samsung by default, because it has big blob cache.
+    ANGLE_FEATURE_CONDITION(&mFeatures, useDualPipelineBlobCacheSlots, isSamsung);
+
+    // Disable by default, because currently it is uncommon that blob cache supports storing
+    // zero sized blobs (or erasing blobs).
+    ANGLE_FEATURE_CONDITION(&mFeatures, useEmptyBlobsToEraseOldPipelineCacheFromBlobCache, false);
+
     // On ARM, dynamic state for stencil write mask doesn't work correctly in the presence of
     // discard or alpha to coverage, if the static state provided when creating the pipeline has a
     // value of 0.
@@ -5427,8 +5599,7 @@ angle::Result Renderer::initPipelineCache(vk::Context *context,
     angle::MemoryBuffer initialData;
     if (!mFeatures.disablePipelineCacheLoadForTesting.enabled)
     {
-        ANGLE_TRY(GetAndDecompressPipelineCacheVk(mPhysicalDeviceProperties, context, mGlobalOps,
-                                                  &initialData, success));
+        ANGLE_TRY(GetAndDecompressPipelineCacheVk(context, mGlobalOps, &initialData, success));
     }
 
     VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -5470,6 +5641,19 @@ angle::Result Renderer::ensurePipelineCacheInitialized(vk::Context *context)
     mPipelineCacheInitialized = true;
 
     return angle::Result::Continue;
+}
+
+size_t Renderer::getNextPipelineCacheBlobCacheSlotIndex(size_t *previousSlotIndexOut)
+{
+    if (previousSlotIndexOut != nullptr)
+    {
+        *previousSlotIndexOut = mCurrentPipelineCacheBlobCacheSlotIndex;
+    }
+    if (getFeatures().useDualPipelineBlobCacheSlots.enabled)
+    {
+        mCurrentPipelineCacheBlobCacheSlotIndex = 1 - mCurrentPipelineCacheBlobCacheSlotIndex;
+    }
+    return mCurrentPipelineCacheBlobCacheSlotIndex;
 }
 
 angle::Result Renderer::getPipelineCache(vk::Context *context,
@@ -5658,8 +5842,7 @@ angle::Result Renderer::syncPipelineCacheVk(vk::Context *context,
         // If enableAsyncPipelineCacheCompression is disabled, to avoid the risk, set kMaxTotalSize
         // to 64k.
         constexpr size_t kMaxTotalSize = 64 * 1024;
-        CompressAndStorePipelineCacheVk(mPhysicalDeviceProperties, globalOps, pipelineCacheData,
-                                        kMaxTotalSize);
+        CompressAndStorePipelineCacheVk(globalOps, this, pipelineCacheData, kMaxTotalSize);
     }
 
     return angle::Result::Continue;
