@@ -825,6 +825,191 @@ bool TextureVk::updateMustBeStaged(gl::LevelIndex textureLevelIndexGL,
     return IsTextureLevelRedefined(mRedefinedLevels, mState.getType(), textureLevelIndexGL);
 }
 
+angle::Result TextureVk::clearImage(const gl::Context *context,
+                                    GLint level,
+                                    GLenum format,
+                                    GLenum type,
+                                    const uint8_t *data)
+{
+    // All defined cubemap faces are expected to have equal width and height.
+    bool isCubeMap = mState.getType() == gl::TextureType::CubeMap;
+    gl::TextureTarget textureTarget =
+        isCubeMap ? gl::kCubeMapTextureTargetMin : gl::TextureTypeToTarget(mState.getType(), 0);
+    gl::Extents extents = mState.getImageDesc(textureTarget, level).size;
+
+    gl::Box area = gl::Box(gl::kOffsetZero, extents);
+    if (isCubeMap)
+    {
+        // For a cubemap, the depth offset moves between cube faces.
+        ASSERT(area.depth == 1);
+        area.depth = 6;
+    }
+
+    // TODO(http://anglebug.com/42266869): This function can be staged as a Clear update, which
+    // means it can be picked up as LOAD_OP_CLEAR (similar to FramebufferVk::clearImpl()), improving
+    // the performance.
+    return clearSubImageImpl(context, level, area, format, type, data);
+}
+
+angle::Result TextureVk::clearSubImage(const gl::Context *context,
+                                       GLint level,
+                                       const gl::Box &area,
+                                       GLenum format,
+                                       GLenum type,
+                                       const uint8_t *data)
+{
+    return clearSubImageImpl(context, level, area, format, type, data);
+}
+
+angle::Result TextureVk::clearSubImageImpl(const gl::Context *context,
+                                           GLint level,
+                                           const gl::Box &clearArea,
+                                           GLenum format,
+                                           GLenum type,
+                                           const uint8_t *data)
+{
+    // There should be no zero extents in the clear area, since such calls should return before
+    // entering the backend with no changes to the texture. For 2D textures, depth should be 1.
+    //
+    // From the spec: For texture types that do not have certain dimensions, this command treats
+    // those dimensions as having a size of 1.  For example, to clear a portion of a two-dimensional
+    // texture, the application would use <zoffset> equal to zero and <depth> equal to one.
+    ASSERT(clearArea.width != 0 && clearArea.height != 0 && clearArea.depth != 0);
+
+    gl::TextureType textureType = mState.getType();
+    bool useLayerAsDepth        = textureType == gl::TextureType::CubeMap ||
+                           textureType == gl::TextureType::CubeMapArray ||
+                           textureType == gl::TextureType::_2DArray ||
+                           textureType == gl::TextureType::_2DMultisampleArray;
+
+    // If the texture is renderable (including multisampled), the partial clear can be applied to
+    // the image simply by opening/closing a render pass with LOAD_OP_CLEAR. Otherwise, a buffer can
+    // be filled with the given pixel data on the host and staged to the image as a buffer update.
+    ContextVk *contextVk                 = vk::GetImpl(context);
+    const gl::InternalFormat &formatInfo = gl::GetInternalFormatInfo(format, type);
+    const vk::Format &vkFormat =
+        contextVk->getRenderer()->getFormat(formatInfo.sizedInternalFormat);
+    const angle::FormatID &actualFormatID =
+        vkFormat.getActualImageFormatID(getRequiredImageAccess());
+    bool usesBufferForClear = false;
+
+    if (actualFormatID == vkFormat.getActualRenderableImageFormatID())
+    {
+        uint32_t baseLayer  = useLayerAsDepth ? clearArea.z : 0;
+        uint32_t layerCount = useLayerAsDepth ? clearArea.depth : 1;
+        ANGLE_TRY(mImage->stagePartialClear(contextVk, clearArea, mState.getType(), level,
+                                            baseLayer, layerCount, type, formatInfo, vkFormat,
+                                            getRequiredImageAccess(), data));
+    }
+    else
+    {
+        ASSERT(mImage->getSamples() <= 1);
+        bool updateAppliedImmediately = false;
+        usesBufferForClear            = true;
+
+        auto pixelSize = static_cast<size_t>(formatInfo.pixelBytes);
+        std::vector<uint8_t> pixelValue(pixelSize, 0);
+        if (data != nullptr)
+        {
+            memcpy(pixelValue.data(), data, pixelSize);
+        }
+
+        // For a cubemap, each face will be updated separately.
+        bool isCubeMap = textureType == gl::TextureType::CubeMap;
+        size_t clearBufferSize =
+            isCubeMap ? clearArea.width * clearArea.height * pixelSize
+                      : clearArea.width * clearArea.height * clearArea.depth * pixelSize;
+
+        std::vector<uint8_t> clearBuffer(clearBufferSize, 0);
+        ASSERT(clearBufferSize % pixelSize == 0);
+        if (data != nullptr)
+        {
+            for (GLuint i = 0; i < clearBufferSize; i += pixelSize)
+            {
+                memcpy(&clearBuffer[i], pixelValue.data(), pixelSize);
+            }
+        }
+
+        if (isCubeMap)
+        {
+            size_t cubeFaceStart = clearArea.z;
+            auto cubeFaceEnd     = static_cast<size_t>(clearArea.z + clearArea.depth);
+
+            for (size_t cubeFace = cubeFaceStart; cubeFace < cubeFaceEnd; cubeFace++)
+            {
+                const gl::ImageIndex index = gl::ImageIndex::MakeFromTarget(
+                    gl::CubeFaceIndexToTextureTarget(cubeFace), level, 0);
+
+                ANGLE_TRY(mImage->stageSubresourceUpdate(
+                    contextVk, getNativeImageIndex(index),
+                    gl::Extents(clearArea.width, clearArea.height, 1),
+                    gl::Offset(clearArea.x, clearArea.y, 0), formatInfo,
+                    contextVk->getState().getUnpackState(), type, clearBuffer.data(), vkFormat,
+                    getRequiredImageAccess(), vk::ApplyImageUpdate::Defer,
+                    &updateAppliedImmediately));
+                ASSERT(!updateAppliedImmediately);
+            }
+        }
+        else
+        {
+            gl::TextureTarget textureTarget = gl::TextureTypeToTarget(textureType, 0);
+            uint32_t layerCount             = useLayerAsDepth ? clearArea.depth : 0;
+            const gl::ImageIndex index =
+                gl::ImageIndex::MakeFromTarget(textureTarget, level, layerCount);
+
+            ANGLE_TRY(mImage->stageSubresourceUpdate(
+                contextVk, getNativeImageIndex(index),
+                gl::Extents(clearArea.width, clearArea.height, clearArea.depth),
+                gl::Offset(clearArea.x, clearArea.y, clearArea.z), formatInfo,
+                contextVk->getState().getUnpackState(), type, clearBuffer.data(), vkFormat,
+                getRequiredImageAccess(), vk::ApplyImageUpdate::Defer, &updateAppliedImmediately));
+            ASSERT(!updateAppliedImmediately);
+        }
+    }
+
+    // Flush the staged updates if needed.
+    ANGLE_TRY(ensureImageInitializedIfUpdatesNeedStageOrFlush(contextVk, gl::LevelIndex(level),
+                                                              vkFormat, vk::ApplyImageUpdate::Defer,
+                                                              usesBufferForClear));
+    return angle::Result::Continue;
+}
+
+angle::Result TextureVk::ensureImageInitializedIfUpdatesNeedStageOrFlush(
+    ContextVk *contextVk,
+    gl::LevelIndex level,
+    const vk::Format &vkFormat,
+    vk::ApplyImageUpdate applyUpdate,
+    bool usesBufferForUpdate)
+{
+    bool mustFlush =
+        updateMustBeFlushed(level, vkFormat.getActualImageFormatID(getRequiredImageAccess()));
+    bool mustStage = applyUpdate == vk::ApplyImageUpdate::Defer;
+
+    // If texture has all levels being specified, then do the flush immediately. This tries to avoid
+    // issue flush as each level is being provided which may end up flushing out the staged clear
+    // that otherwise might able to be removed. It also helps tracking all updates with just one
+    // VkEvent instead of one for each level.
+    if (mustFlush ||
+        (!mustStage && mImage->valid() && mImage->hasBufferSourcedStagedUpdatesInAllLevels()))
+    {
+        ANGLE_TRY(ensureImageInitialized(contextVk, ImageMipLevels::EnabledLevels));
+
+        // If forceSubmitImmutableTextureUpdates is enabled, submit the staged updates as well.
+        if (contextVk->getFeatures().forceSubmitImmutableTextureUpdates.enabled)
+        {
+            ANGLE_TRY(contextVk->submitStagedTextureUpdates());
+        }
+    }
+    else if (usesBufferForUpdate && contextVk->isEligibleForMutableTextureFlush() &&
+             !mState.getImmutableFormat())
+    {
+        // Check if we should flush any mutable textures from before.
+        ANGLE_TRY(contextVk->getShareGroup()->onMutableTextureUpload(contextVk, this));
+    }
+
+    return angle::Result::Continue;
+}
+
 angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
                                          const gl::ImageIndex &index,
                                          const gl::Box &area,
@@ -837,8 +1022,6 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
 {
     ContextVk *contextVk = vk::GetImpl(context);
 
-    bool mustFlush = updateMustBeFlushed(gl::LevelIndex(index.getLevelIndex()),
-                                         vkFormat.getActualImageFormatID(getRequiredImageAccess()));
     bool mustStage = updateMustBeStaged(gl::LevelIndex(index.getLevelIndex()),
                                         vkFormat.getActualImageFormatID(getRequiredImageAccess()));
 
@@ -948,27 +1131,9 @@ angle::Result TextureVk::setSubImageImpl(const gl::Context *context,
         return angle::Result::Continue;
     }
 
-    // If texture has all levels being specified, then do the flush immediately. This tries to avoid
-    // issue flush as each level is being provided which may end up flushing out the staged clear
-    // that otherwise might able to be removed. It also helps tracking all updates with just one
-    // VkEvent instead of one for each level.
-    if (mustFlush ||
-        (!mustStage && mImage->valid() && mImage->hasBufferSourcedStagedUpdatesInAllLevels()))
-    {
-        ANGLE_TRY(ensureImageInitialized(contextVk, ImageMipLevels::EnabledLevels));
-
-        // If forceSubmitImmutableTextureUpdates is enabled, submit the staged updates as well
-        if (contextVk->getFeatures().forceSubmitImmutableTextureUpdates.enabled)
-        {
-            ANGLE_TRY(contextVk->submitStagedTextureUpdates());
-        }
-    }
-    else if (contextVk->isEligibleForMutableTextureFlush() && !mState.getImmutableFormat())
-    {
-        // Check if we should flush any mutable textures from before.
-        ANGLE_TRY(contextVk->getShareGroup()->onMutableTextureUpload(contextVk, this));
-    }
-
+    // Flush the staged updates if needed.
+    ANGLE_TRY(ensureImageInitializedIfUpdatesNeedStageOrFlush(
+        contextVk, gl::LevelIndex(index.getLevelIndex()), vkFormat, applyUpdate, true));
     return angle::Result::Continue;
 }
 
@@ -1666,9 +1831,7 @@ angle::Result TextureVk::copySubImageImplWithDraw(ContextVk *contextVk,
             vk::ImageView stagingView;
             ANGLE_TRY(stagingImage->get().initLayerImageView(
                 contextVk, stagingTextureType, VK_IMAGE_ASPECT_COLOR_BIT, gl::SwizzleState(),
-                &stagingView, vk::LevelIndex(0), 1, layerIndex, 1,
-                gl::SrgbWriteControlMode::Default, gl::YuvSamplingMode::Default,
-                vk::ImageHelper::kDefaultImageViewUsageFlags));
+                &stagingView, vk::LevelIndex(0), 1, layerIndex, 1));
 
             ANGLE_TRY(utilsVk.copyImage(contextVk, &stagingImage->get(), &stagingView, srcImage,
                                         srcView, params));
@@ -2271,9 +2434,8 @@ angle::Result TextureVk::generateMipmapsWithCompute(ContextVk *contextVk)
             const vk::ImageView *srcView                         = nullptr;
             UtilsVk::GenerateMipmapDestLevelViews destLevelViews = {};
 
-            ANGLE_TRY(getImageViews().getLevelLayerDrawImageView(
-                contextVk, *mImage, srcLevelVk, layer, gl::SrgbWriteControlMode::Default,
-                &srcView));
+            ANGLE_TRY(getImageViews().getLevelLayerDrawImageView(contextVk, *mImage, srcLevelVk,
+                                                                 layer, &srcView));
 
             vk::LevelIndex dstLevelCount = maxGenerateLevels;
             for (vk::LevelIndex levelVk(0); levelVk < maxGenerateLevels; ++levelVk)
@@ -2288,8 +2450,7 @@ angle::Result TextureVk::generateMipmapsWithCompute(ContextVk *contextVk)
                 }
 
                 ANGLE_TRY(getImageViews().getLevelLayerDrawImageView(
-                    contextVk, *mImage, dstLevelVk, layer, gl::SrgbWriteControlMode::Default,
-                    &destLevelViews[levelVk.get()]));
+                    contextVk, *mImage, dstLevelVk, layer, &destLevelViews[levelVk.get()]));
             }
 
             // If the image has fewer than maximum levels, fill the last views with a unused view.
@@ -3492,8 +3653,8 @@ angle::Result TextureVk::getLevelLayerImageView(vk::Context *context,
     vk::LevelIndex levelVk = mImage->toVkLevel(levelGL);
     uint32_t nativeLayer   = getNativeImageLayer(static_cast<uint32_t>(layer));
 
-    return getImageViews().getLevelLayerDrawImageView(
-        context, *mImage, levelVk, nativeLayer, gl::SrgbWriteControlMode::Default, imageViewOut);
+    return getImageViews().getLevelLayerDrawImageView(context, *mImage, levelVk, nativeLayer,
+                                                      imageViewOut);
 }
 
 angle::Result TextureVk::getStorageImageView(vk::Context *context,
@@ -4134,8 +4295,8 @@ vk::ImageOrBufferViewSubresourceSerial TextureVk::getImageViewSubresourceSerialI
             ? gl::SrgbOverride::SRGB
             : gl::SrgbOverride::Default;
 
-    return getImageViews().getSubresourceSerial(baseLevel, levelCount, 0, vk::LayerMode::All,
-                                                srgbDecodeMode, srgbOverrideMode);
+    return getImageViews().getSubresourceSerialWithSrgbModeOverrides(
+        baseLevel, levelCount, 0, vk::LayerMode::All, srgbDecodeMode, srgbOverrideMode);
 }
 
 vk::ImageOrBufferViewSubresourceSerial TextureVk::getBufferViewSerial() const
@@ -4153,9 +4314,7 @@ vk::ImageOrBufferViewSubresourceSerial TextureVk::getStorageImageViewSerial(
     gl::LevelIndex baseLevel(
         getNativeImageLevel(gl::LevelIndex(static_cast<uint32_t>(binding.level))));
 
-    return getImageViews().getSubresourceSerial(baseLevel, 1, nativeLayer, layerMode,
-                                                vk::SrgbDecodeMode::SkipDecode,
-                                                gl::SrgbOverride::Default);
+    return getImageViews().getSubresourceSerial(baseLevel, 1, nativeLayer, layerMode);
 }
 
 uint32_t TextureVk::getImageViewLayerCount() const
