@@ -3682,6 +3682,7 @@ Extensions Context::generateSupportedExtensions() const
         supportedExtensions.multiviewMultisampleANGLE    = false;
         supportedExtensions.copyTexture3dANGLE           = false;
         supportedExtensions.textureMultisampleANGLE      = false;
+        supportedExtensions.textureShadowLodEXT          = false;
         supportedExtensions.textureStencil8OES           = false;
         supportedExtensions.conservativeDepthEXT         = false;
         supportedExtensions.drawBuffersIndexedEXT        = false;
@@ -10008,7 +10009,7 @@ void Context::clearTexImage(TextureID texturePacked,
     // bound.
     if (texture->hasAnyDirtyBit())
     {
-        ANGLE_CONTEXT_TRY(texture->syncState(this, Command::Other));
+        ANGLE_CONTEXT_TRY(texture->syncState(this, Command::ClearTexture));
     }
 
     ANGLE_CONTEXT_TRY(
@@ -10029,11 +10030,18 @@ void Context::clearTexSubImage(TextureID texturePacked,
 {
     Texture *texture = getTexture(texturePacked);
 
+    // It is allowed to use extents of 0 as input args. In this case, the function should return
+    // with no changes to the texture.
+    if (width == 0 || height == 0 || depth == 0)
+    {
+        return;
+    }
+
     // Sync the texture's state directly. EXT_clear_texture does not require that the texture is
     // bound.
     if (texture->hasAnyDirtyBit())
     {
-        ANGLE_CONTEXT_TRY(texture->syncState(this, Command::Other));
+        ANGLE_CONTEXT_TRY(texture->syncState(this, Command::ClearTexture));
     }
 
     Box area(xoffset, yoffset, zoffset, width, height, depth);
