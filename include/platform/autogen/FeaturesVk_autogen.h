@@ -1229,10 +1229,10 @@ struct FeaturesVk : FeatureSetBase
         &members, "https://issuetracker.google.com/253522366"
     };
 
-    FeatureInfo asyncCommandBufferReset = {
-        "asyncCommandBufferReset",
+    FeatureInfo asyncCommandBufferResetAndGarbageCleanup = {
+        "asyncCommandBufferResetAndGarbageCleanup",
         FeatureCategory::VulkanFeatures,
-        "Reset command buffer in async thread.",
+        "Reset command buffer and cleanup garbage in async thread.",
         &members, "https://issuetracker.google.com/255411748"
     };
 
@@ -1619,6 +1619,20 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanFeatures,
         "allow create double buffer swapchain for fifo present mode",
         &members, "https://issuetracker.google.com/311022968"
+    };
+
+    FeatureInfo useDualPipelineBlobCacheSlots = {
+        "useDualPipelineBlobCacheSlots",
+        FeatureCategory::VulkanFeatures,
+        "Wether to use single or dual slots to store PipelineCacheVk data into the blob cache.",
+        &members, "https://anglebug.com/42263322"
+    };
+
+    FeatureInfo useEmptyBlobsToEraseOldPipelineCacheFromBlobCache = {
+        "useEmptyBlobsToEraseOldPipelineCacheFromBlobCache",
+        FeatureCategory::VulkanFeatures,
+        "Whether to use empty blobs or 1-sized blobs to erase old PipelineCacheVk data from the blob cache.",
+        &members, "https://anglebug.com/42263322"
     };
 
 };
