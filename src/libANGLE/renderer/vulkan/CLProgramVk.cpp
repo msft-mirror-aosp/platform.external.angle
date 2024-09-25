@@ -155,6 +155,8 @@ spv_result_t ParseReflection(CLProgramVk::SpvReflectionData &reflectionData,
                 case NonSemanticClspvReflectionPushConstantGlobalSize:
                 case NonSemanticClspvReflectionPushConstantGlobalOffset:
                 case NonSemanticClspvReflectionPushConstantRegionOffset:
+                case NonSemanticClspvReflectionPushConstantNumWorkgroups:
+                case NonSemanticClspvReflectionPushConstantRegionGroupOffset:
                 case NonSemanticClspvReflectionPushConstantEnqueuedLocalSize:
                 {
                     uint32_t offset = reflectionData.spvIntLookup[spvInstr.words[5]];
