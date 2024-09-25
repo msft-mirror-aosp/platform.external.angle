@@ -1363,6 +1363,8 @@ class PipelineCacheAccess
                                    const VkComputePipelineCreateInfo &createInfo,
                                    vk::Pipeline *pipelineOut);
 
+    VkResult getCacheData(vk::Context *context, size_t *cacheSize, void *cacheData);
+
     void merge(Renderer *renderer, const vk::PipelineCache &pipelineCache);
 
     bool isThreadSafe() const { return mMutex != nullptr; }
@@ -1375,7 +1377,7 @@ class PipelineCacheAccess
 };
 
 // Monolithic pipeline creation tasks are created as soon as a pipeline is created out of libraries.
-// However, they are not immediately posted to the worker queue to allow pacing.  One each use of a
+// However, they are not immediately posted to the worker queue to allow pacing.  On each use of a
 // pipeline, an attempt is made to post the task.
 class CreateMonolithicPipelineTask : public Context, public angle::Closure
 {
@@ -1600,11 +1602,10 @@ struct ImageSubresourceRange
     // which is usually 1, except for multiview in which case it can be up to
     // gl::IMPLEMENTATION_MAX_2D_ARRAY_TEXTURE_LAYERS.
     uint32_t layerMode : 3;
-    // Values from vk::SrgbDecodeMode.  Unused with draw views.
-    uint32_t srgbDecodeMode : 1;
-    // For read views: Values from gl::SrgbOverride, either Default or SRGB.
-    // For draw views: Values from gl::SrgbWriteControlMode.
-    uint32_t srgbMode : 1;
+    // For reads: Values are either ImageViewColorspace::Linear or ImageViewColorspace::SRGB
+    uint32_t readColorspace : 1;
+    // For writes: Values are either ImageViewColorspace::Linear or ImageViewColorspace::SRGB
+    uint32_t writeColorspace : 1;
 
     static_assert(gl::IMPLEMENTATION_MAX_TEXTURE_LEVELS < (1 << 5),
                   "Not enough bits for level count");
@@ -1619,8 +1620,8 @@ static_assert(sizeof(ImageSubresourceRange) == sizeof(uint32_t), "Size mismatch"
 inline bool operator==(const ImageSubresourceRange &a, const ImageSubresourceRange &b)
 {
     return a.level == b.level && a.levelCount == b.levelCount && a.layer == b.layer &&
-           a.layerMode == b.layerMode && a.srgbDecodeMode == b.srgbDecodeMode &&
-           a.srgbMode == b.srgbMode;
+           a.layerMode == b.layerMode && a.readColorspace == b.readColorspace &&
+           a.writeColorspace == b.writeColorspace;
 }
 
 constexpr ImageSubresourceRange kInvalidImageSubresourceRange = {0, 0, 0, 0, 0, 0};

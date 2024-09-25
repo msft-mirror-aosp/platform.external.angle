@@ -5333,16 +5333,14 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, hasEffectivePipelineCacheSerialization,
                             !isSwiftShader && !nvVersionLessThan520);
 
-    // When the driver sets graphicsPipelineLibraryFastLinking, it means that monolithic pipelines
-    // are just a bundle of the libraries, and that there is no benefit in creating monolithic
-    // pipelines.
+    // Practically all drivers still prefer to do cross-stage linking.
+    // graphicsPipelineLibraryFastLinking allows them to quickly produce working pipelines, but it
+    // is typically not as efficient as complete pipelines.
     //
-    // Note: for testing purposes, this is enabled on SwiftShader despite the fact that it doesn't
-    // need it.  This should be undone once there is at least one bot that supports
-    // VK_EXT_graphics_pipeline_library without graphicsPipelineLibraryFastLinking
+    // This optimization is disabled on the Intel/windows driver due to driver bugs.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, preferMonolithicPipelinesOverLibraries,
-        !mGraphicsPipelineLibraryProperties.graphicsPipelineLibraryFastLinking || isSwiftShader);
+        mFeatures.supportsGraphicsPipelineLibrary.enabled && !(IsWindows() && isIntel));
 
     // Whether the pipeline caches should merge into the global pipeline cache.  This should only be
     // enabled on platforms if:
@@ -5635,7 +5633,8 @@ angle::Result Renderer::ensurePipelineCacheInitialized(vk::Context *context)
     ANGLE_TRY(initPipelineCache(context, &mPipelineCache, &loadedFromBlobCache));
     if (loadedFromBlobCache)
     {
-        ANGLE_TRY(getPipelineCacheSize(context, &mPipelineCacheSizeAtLastSync));
+        ANGLE_TRY(getLockedPipelineCacheDataIfNew(context, &mPipelineCacheSizeAtLastSync,
+                                                  mPipelineCacheSizeAtLastSync, nullptr));
     }
 
     mPipelineCacheInitialized = true;
@@ -5662,7 +5661,8 @@ angle::Result Renderer::getPipelineCache(vk::Context *context,
     ANGLE_TRY(ensurePipelineCacheInitialized(context));
 
     angle::SimpleMutex *pipelineCacheMutex =
-        (context->getFeatures().mergeProgramPipelineCachesToGlobalCache.enabled)
+        context->getFeatures().mergeProgramPipelineCachesToGlobalCache.enabled ||
+                context->getFeatures().preferMonolithicPipelinesOverLibraries.enabled
             ? &mPipelineCacheMutex
             : nullptr;
 
@@ -5736,9 +5736,51 @@ void Renderer::initializeFrontendFeatures(angle::FrontendFeatures *features) con
     ANGLE_FEATURE_CONDITION(features, alwaysRunLinkSubJobsThreaded, true);
 }
 
-angle::Result Renderer::getPipelineCacheSize(vk::Context *context, size_t *pipelineCacheSizeOut)
+angle::Result Renderer::getLockedPipelineCacheDataIfNew(vk::Context *context,
+                                                        size_t *pipelineCacheSizeOut,
+                                                        size_t lastSyncSize,
+                                                        std::vector<uint8_t> *pipelineCacheDataOut)
 {
-    ANGLE_VK_TRY(context, mPipelineCache.getCacheData(mDevice, pipelineCacheSizeOut, nullptr));
+    // Because this function may call |getCacheData| twice, |mPipelineCacheMutex| is not passed to
+    // |PipelineAccessCache|, and is expected to be locked once **by the caller**.
+    mPipelineCacheMutex.assertLocked();
+
+    vk::PipelineCacheAccess globalCache;
+    globalCache.init(&mPipelineCache, nullptr);
+
+    ANGLE_VK_TRY(context, globalCache.getCacheData(context, pipelineCacheSizeOut, nullptr));
+
+    // If the cache data is unchanged since last sync, don't retrieve the data.  Also, make sure we
+    // will receive enough data to hold the pipeline cache header Table 7.  Layout for pipeline
+    // cache header version VK_PIPELINE_CACHE_HEADER_VERSION_ONE.
+    const size_t kPipelineCacheHeaderSize = 16 + VK_UUID_SIZE;
+    if (*pipelineCacheSizeOut <= lastSyncSize || *pipelineCacheSizeOut < kPipelineCacheHeaderSize ||
+        pipelineCacheDataOut == nullptr)
+    {
+        return angle::Result::Continue;
+    }
+
+    pipelineCacheDataOut->resize(*pipelineCacheSizeOut);
+    VkResult result =
+        globalCache.getCacheData(context, pipelineCacheSizeOut, pipelineCacheDataOut->data());
+    if (ANGLE_UNLIKELY(result == VK_INCOMPLETE))
+    {
+        WARN()
+            << "Received VK_INCOMPLETE when retrieving pipeline cache data, which should be "
+               "impossible as the size query was previously done under the same lock, but this is "
+               "a recoverable error";
+    }
+    else
+    {
+        ANGLE_VK_TRY(context, result);
+    }
+
+    // If vkGetPipelineCacheData ends up writing fewer bytes than requested, shrink the buffer to
+    // avoid leaking garbage memory and potential rejection of the data by subsequent
+    // vkCreatePipelineCache call.  Some drivers may ignore entire buffer if there padding present.
+    ASSERT(*pipelineCacheSizeOut <= pipelineCacheDataOut->size());
+    pipelineCacheDataOut->resize(*pipelineCacheSizeOut);
+
     return angle::Result::Continue;
 }
 
@@ -5777,54 +5819,17 @@ angle::Result Renderer::syncPipelineCacheVk(vk::Context *context,
     }
 
     size_t pipelineCacheSize = 0;
-    ANGLE_TRY(getPipelineCacheSize(context, &pipelineCacheSize));
-    if (pipelineCacheSize <= mPipelineCacheSizeAtLastSync)
+    std::vector<uint8_t> pipelineCacheData;
+    {
+        std::unique_lock<angle::SimpleMutex> lock(mPipelineCacheMutex);
+        ANGLE_TRY(getLockedPipelineCacheDataIfNew(
+            context, &pipelineCacheSize, mPipelineCacheSizeAtLastSync, &pipelineCacheData));
+    }
+    if (pipelineCacheData.empty())
     {
         return angle::Result::Continue;
     }
     mPipelineCacheSizeAtLastSync = pipelineCacheSize;
-
-    // Make sure we will receive enough data to hold the pipeline cache header
-    // Table 7. Layout for pipeline cache header version VK_PIPELINE_CACHE_HEADER_VERSION_ONE
-    const size_t kPipelineCacheHeaderSize = 16 + VK_UUID_SIZE;
-    if (pipelineCacheSize < kPipelineCacheHeaderSize)
-    {
-        // No pipeline cache data to read, so return
-        return angle::Result::Continue;
-    }
-
-    std::vector<uint8_t> pipelineCacheData(pipelineCacheSize);
-
-    size_t oldPipelineCacheSize = pipelineCacheSize;
-    VkResult result =
-        mPipelineCache.getCacheData(mDevice, &pipelineCacheSize, pipelineCacheData.data());
-    // We don't need all of the cache data, so just make sure we at least got the header
-    // Vulkan Spec 9.6. Pipeline Cache
-    // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap9.html#pipelines-cache
-    // If pDataSize is less than what is necessary to store this header, nothing will be written to
-    // pData and zero will be written to pDataSize.
-    // Any data written to pData is valid and can be provided as the pInitialData member of the
-    // VkPipelineCacheCreateInfo structure passed to vkCreatePipelineCache.
-    if (ANGLE_UNLIKELY(pipelineCacheSize < kPipelineCacheHeaderSize))
-    {
-        WARN() << "Not enough pipeline cache data read.";
-        return angle::Result::Continue;
-    }
-    else if (ANGLE_UNLIKELY(result == VK_INCOMPLETE))
-    {
-        WARN() << "Received VK_INCOMPLETE: Old: " << oldPipelineCacheSize
-               << ", New: " << pipelineCacheSize;
-    }
-    else
-    {
-        ANGLE_VK_TRY(context, result);
-    }
-
-    // If vkGetPipelineCacheData ends up writing fewer bytes than requested, shrink the buffer to
-    // avoid leaking garbage memory and potential rejection of the data by subsequent
-    // vkCreatePipelineCache call.  Some drivers may ignore entire buffer if there padding present.
-    ASSERT(pipelineCacheSize <= pipelineCacheData.size());
-    pipelineCacheData.resize(pipelineCacheSize);
 
     if (mFeatures.enableAsyncPipelineCacheCompression.enabled)
     {
