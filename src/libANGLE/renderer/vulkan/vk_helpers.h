@@ -1148,10 +1148,9 @@ class PackedClearValuesArray final
 
     PackedClearValuesArray(const PackedClearValuesArray &other);
     PackedClearValuesArray &operator=(const PackedClearValuesArray &rhs);
-    void store(PackedAttachmentIndex index,
-               VkImageAspectFlags aspectFlags,
-               const VkClearValue &clearValue);
-    void storeNoDepthStencil(PackedAttachmentIndex index, const VkClearValue &clearValue);
+    void storeColor(PackedAttachmentIndex index, const VkClearValue &clearValue);
+    // Caller must take care to pack depth and stencil value together.
+    void storeDepthStencil(PackedAttachmentIndex index, const VkClearValue &clearValue);
     const VkClearValue &operator[](PackedAttachmentIndex index) const
     {
         return mValues[index.get()];
@@ -2050,6 +2049,7 @@ enum class UpdateSource
 {
     // Clear an image subresource.
     Clear,
+    ClearPartial,
     // Clear only the emulated channels of the subresource.  This operation is more expensive than
     // Clear, and so is only used for emulated color formats and only for external images.  Color
     // only because depth or stencil clear is already per channel, so Clear works for them.
@@ -2165,10 +2165,40 @@ class ImageHelper final : public Resource, public angle::Subject
                                      LevelIndex baseMipLevelVk,
                                      uint32_t levelCount,
                                      uint32_t baseArrayLayer,
-                                     uint32_t layerCount,
-                                     gl::SrgbWriteControlMode srgbWriteControlMode,
-                                     gl::YuvSamplingMode yuvSamplingMode,
-                                     VkImageUsageFlags imageUsageFlags) const;
+                                     uint32_t layerCount) const;
+    angle::Result initLayerImageViewWithUsage(Context *context,
+                                              gl::TextureType textureType,
+                                              VkImageAspectFlags aspectMask,
+                                              const gl::SwizzleState &swizzleMap,
+                                              ImageView *imageViewOut,
+                                              LevelIndex baseMipLevelVk,
+                                              uint32_t levelCount,
+                                              uint32_t baseArrayLayer,
+                                              uint32_t layerCount,
+                                              VkImageUsageFlags imageUsageFlags) const;
+    angle::Result initLayerImageViewWithSrgbWriteControlMode(
+        Context *context,
+        gl::TextureType textureType,
+        VkImageAspectFlags aspectMask,
+        const gl::SwizzleState &swizzleMap,
+        ImageView *imageViewOut,
+        LevelIndex baseMipLevelVk,
+        uint32_t levelCount,
+        uint32_t baseArrayLayer,
+        uint32_t layerCount,
+        gl::SrgbWriteControlMode mode,
+        VkImageUsageFlags imageUsageFlags) const;
+    angle::Result initLayerImageViewWithYuvModeOverride(Context *context,
+                                                        gl::TextureType textureType,
+                                                        VkImageAspectFlags aspectMask,
+                                                        const gl::SwizzleState &swizzleMap,
+                                                        ImageView *imageViewOut,
+                                                        LevelIndex baseMipLevelVk,
+                                                        uint32_t levelCount,
+                                                        uint32_t baseArrayLayer,
+                                                        uint32_t layerCount,
+                                                        gl::YuvSamplingMode yuvSamplingMode,
+                                                        VkImageUsageFlags imageUsageFlags) const;
     angle::Result initReinterpretedLayerImageView(Context *context,
                                                   gl::TextureType textureType,
                                                   VkImageAspectFlags aspectMask,
@@ -2180,14 +2210,6 @@ class ImageHelper final : public Resource, public angle::Subject
                                                   uint32_t layerCount,
                                                   VkImageUsageFlags imageUsageFlags,
                                                   angle::FormatID imageViewFormat) const;
-    angle::Result initImageView(Context *context,
-                                gl::TextureType textureType,
-                                VkImageAspectFlags aspectMask,
-                                const gl::SwizzleState &swizzleMap,
-                                ImageView *imageViewOut,
-                                LevelIndex baseMipLevelVk,
-                                uint32_t levelCount,
-                                VkImageUsageFlags imageUsageFlags);
     // Create a 2D[Array] for staging purposes.  Used by:
     //
     // - TextureVk::copySubImageImplWithDraw
@@ -2433,6 +2455,18 @@ class ImageHelper final : public Resource, public angle::Subject
     void removeStagedUpdates(Context *context,
                              gl::LevelIndex levelGLStart,
                              gl::LevelIndex levelGLEnd);
+
+    angle::Result stagePartialClear(ContextVk *contextVk,
+                                    const gl::Box &clearArea,
+                                    gl::TextureType textureType,
+                                    uint32_t levelIndex,
+                                    uint32_t layerIndex,
+                                    uint32_t layerCount,
+                                    GLenum type,
+                                    const gl::InternalFormat &formatInfo,
+                                    const Format &vkFormat,
+                                    ImageAccess access,
+                                    const uint8_t *data);
 
     angle::Result stageSubresourceUpdateImpl(ContextVk *contextVk,
                                              const gl::ImageIndex &index,
@@ -2827,6 +2861,24 @@ class ImageHelper final : public Resource, public angle::Subject
         VkColorComponentFlags colorMaskFlags;
     };
     ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
+    ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
+    struct ClearPartialUpdate
+    {
+        bool operator==(const ClearPartialUpdate &rhs) const
+        {
+            return memcmp(this, &rhs, sizeof(ClearPartialUpdate)) == 0;
+        }
+        VkImageAspectFlags aspectFlags;
+        VkClearValue clearValue;
+        uint32_t levelIndex;
+        uint32_t layerIndex;
+        uint32_t layerCount;
+        VkOffset3D offset;
+        VkExtent3D extent;
+        gl::TextureType textureType;
+        uint8_t _padding[3];
+    };
+    ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
     struct BufferUpdate
     {
         BufferHelper *bufferHelper;
@@ -2853,6 +2905,13 @@ class ImageHelper final : public Resource, public angle::Subject
         SubresourceUpdate(VkImageAspectFlags aspectFlags,
                           const VkClearValue &clearValue,
                           const gl::ImageIndex &imageIndex);
+        SubresourceUpdate(const VkImageAspectFlags aspectFlags,
+                          const VkClearValue &clearValue,
+                          const gl::TextureType textureType,
+                          const uint32_t levelIndex,
+                          const uint32_t layerIndex,
+                          const uint32_t layerCount,
+                          const gl::Box &clearArea);
         SubresourceUpdate(VkImageAspectFlags aspectFlags,
                           const VkClearValue &clearValue,
                           gl::LevelIndex level,
@@ -2882,6 +2941,7 @@ class ImageHelper final : public Resource, public angle::Subject
         union
         {
             ClearUpdate clear;
+            ClearPartialUpdate clearPartial;
             BufferUpdate buffer;
             ImageUpdate image;
         } data;
@@ -3397,14 +3457,25 @@ class ImageViewHelper final : angle::NonCopyable
                                              const ImageHelper &image,
                                              LevelIndex levelVk,
                                              uint32_t layer,
-                                             gl::SrgbWriteControlMode mode,
                                              const ImageView **imageViewOut);
+    // Creates a draw view with srgb write control mode override for a single layer of the level.
+    angle::Result getLevelLayerDrawImageViewWithSrgbWriteControlMode(
+        Context *context,
+        const ImageHelper &image,
+        LevelIndex levelVk,
+        uint32_t layer,
+        gl::SrgbWriteControlMode mode,
+        const ImageView **imageViewOut);
 
     // Creates a fragment shading rate view.
     angle::Result initFragmentShadingRateView(ContextVk *contextVk, ImageHelper *image);
 
     // Return unique Serial for an imageView.
-    ImageOrBufferViewSubresourceSerial getSubresourceSerial(
+    ImageOrBufferViewSubresourceSerial getSubresourceSerial(gl::LevelIndex levelGL,
+                                                            uint32_t levelCount,
+                                                            uint32_t layer,
+                                                            LayerMode layerMode) const;
+    ImageOrBufferViewSubresourceSerial getSubresourceSerialWithSrgbModeOverrides(
         gl::LevelIndex levelGL,
         uint32_t levelCount,
         uint32_t layer,

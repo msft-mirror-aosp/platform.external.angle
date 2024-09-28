@@ -184,6 +184,30 @@ class CLProgramVk : public CLProgramImpl
             return getPushConstantRangeFromClspvReflectionType(
                 NonSemanticClspvReflectionPushConstantGlobalSize);
         }
+
+        inline const VkPushConstantRange *getEnqueuedLocalSizeRange() const
+        {
+            return getPushConstantRangeFromClspvReflectionType(
+                NonSemanticClspvReflectionPushConstantEnqueuedLocalSize);
+        }
+
+        inline const VkPushConstantRange *getNumWorkgroupsRange() const
+        {
+            return getPushConstantRangeFromClspvReflectionType(
+                NonSemanticClspvReflectionPushConstantNumWorkgroups);
+        }
+
+        inline const VkPushConstantRange *getRegionOffsetRange() const
+        {
+            return getPushConstantRangeFromClspvReflectionType(
+                NonSemanticClspvReflectionPushConstantRegionOffset);
+        }
+
+        inline const VkPushConstantRange *getRegionGroupOffsetRange() const
+        {
+            return getPushConstantRangeFromClspvReflectionType(
+                NonSemanticClspvReflectionPushConstantRegionGroupOffset);
+        }
     };
     using DevicePrograms   = angle::HashMap<const _cl_device_id *, DeviceProgramData>;
     using LinkPrograms     = std::vector<const DeviceProgramData *>;
