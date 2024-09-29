@@ -1033,10 +1033,14 @@ PipelineCacheVkChunkInfos GetPipelineCacheVkChunkInfos(Renderer *renderer,
                                                        const size_t chunkSize,
                                                        const size_t slotIndex);
 
-void StorePipelineCacheVkChunks(vk::GlobalOps *globalOps,
-                                const PipelineCacheVkChunkInfos &chunkInfos,
-                                const size_t cacheDataSize,
-                                angle::MemoryBuffer *scratchBuffer);
+// Returns the number of stored chunks.  "lastNumStoredChunks" is the number of chunks,
+// stored in the last call.  If it is positive, function will only restore missing chunks.
+size_t StorePipelineCacheVkChunks(vk::GlobalOps *globalOps,
+                                  Renderer *renderer,
+                                  const size_t lastNumStoredChunks,
+                                  const PipelineCacheVkChunkInfos &chunkInfos,
+                                  const size_t cacheDataSize,
+                                  angle::MemoryBuffer *scratchBuffer);
 
 // Erasing is done by writing 1/0-sized chunks starting from the 0 chunk.
 void ErasePipelineCacheVkChunks(vk::GlobalOps *globalOps,
@@ -1100,8 +1104,10 @@ void CompressAndStorePipelineCacheVk(vk::GlobalOps *globalOps,
     PipelineCacheVkChunkInfos chunkInfos =
         GetPipelineCacheVkChunkInfos(renderer, compressedData, numChunks, chunkSize, slotIndex);
 
-    // Store all chunks.
-    StorePipelineCacheVkChunks(globalOps, chunkInfos, cacheData.size(), &scratchBuffer);
+    // Store all chunks without checking if they already exist (because they can't).
+    size_t numStoredChunks = StorePipelineCacheVkChunks(globalOps, renderer, 0, chunkInfos,
+                                                        cacheData.size(), &scratchBuffer);
+    ASSERT(numStoredChunks == numChunks);
 
     // Erase data from the previous slot. Since cache data size is always increasing, use current
     // numChunks for simplicity (to avoid storing previous numChunks).
@@ -1115,6 +1121,27 @@ void CompressAndStorePipelineCacheVk(vk::GlobalOps *globalOps,
     {
         ASSERT(!renderer->getFeatures().useDualPipelineBlobCacheSlots.enabled);
     }
+
+    if (!renderer->getFeatures().verifyPipelineCacheInBlobCache.enabled)
+    {
+        // No need to verify and restore possibly evicted chunks.
+        return;
+    }
+
+    // Verify and restore possibly evicted chunks.
+    do
+    {
+        const size_t lastNumStoredChunks = numStoredChunks;
+        numStoredChunks = StorePipelineCacheVkChunks(globalOps, renderer, lastNumStoredChunks,
+                                                     chunkInfos, cacheData.size(), &scratchBuffer);
+        // Number of stored chunks must decrease so the loop can eventually exit.
+        ASSERT(numStoredChunks < lastNumStoredChunks);
+
+        // If blob cache evicts old items first, any possibly evicted chunks in the first call,
+        // should have been restored in the above call without triggering another eviction, so no
+        // need to continue the loop.
+    } while (!renderer->getFeatures().hasBlobCacheThatEvictsOldItemsFirst.enabled &&
+             numStoredChunks > 0);
 }
 
 PipelineCacheVkChunkInfos GetPipelineCacheVkChunkInfos(Renderer *renderer,
@@ -1151,12 +1178,70 @@ PipelineCacheVkChunkInfos GetPipelineCacheVkChunkInfos(Renderer *renderer,
     return chunkInfos;
 }
 
-void StorePipelineCacheVkChunks(vk::GlobalOps *globalOps,
-                                const PipelineCacheVkChunkInfos &chunkInfos,
-                                const size_t cacheDataSize,
-                                angle::MemoryBuffer *scratchBuffer)
+size_t StorePipelineCacheVkChunks(vk::GlobalOps *globalOps,
+                                  Renderer *renderer,
+                                  const size_t lastNumStoredChunks,
+                                  const PipelineCacheVkChunkInfos &chunkInfos,
+                                  const size_t cacheDataSize,
+                                  angle::MemoryBuffer *scratchBuffer)
 {
     // Store chunks in revers order, so when 0 chunk is available - all chunks are available.
+
+    angle::FastVector<bool, kFastPipelineCacheVkChunkInfosSize> isMissing;
+    size_t numChunksToStore = chunkInfos.size();
+
+    // Need to check existing chunks if this is not the first time this function is called.
+    if (lastNumStoredChunks > 0)
+    {
+        isMissing.resize(chunkInfos.size());
+        numChunksToStore = 0;
+
+        // Defer storing chunks until all missing chunks are found to avoid unecessary stores.
+        size_t chunkIndex = chunkInfos.size();
+        while (chunkIndex > 0)
+        {
+            --chunkIndex;
+            const PipelineCacheVkChunkInfo &chunkInfo = chunkInfos[chunkIndex];
+
+            angle::BlobCacheValue value;
+            if (globalOps->getBlob(chunkInfo.cacheHash, &value) &&
+                value.size() == sizeof(CacheDataHeader) + chunkInfo.dataSize)
+            {
+                if (renderer->getFeatures().hasBlobCacheThatEvictsOldItemsFirst.enabled)
+                {
+                    // No need to check next chunks, since they are newer than the current and
+                    // should also be present.
+                    break;
+                }
+                continue;
+            }
+
+            isMissing[chunkIndex] = true;
+            ++numChunksToStore;
+
+            if (numChunksToStore == lastNumStoredChunks)
+            {
+                // No need to restore missing chunks, since new number is already same as was stored
+                // last time.
+                static bool warned = false;
+                if (!warned)
+                {
+                    WARN() << "Skip syncing pipeline cache data due to not able to store "
+                           << numChunksToStore << " chunks (out of " << chunkInfos.size()
+                           << ") into the blob cache. (this message will no longer repeat)";
+                    warned = true;
+                }
+                return 0;
+            }
+        }
+
+        if (numChunksToStore == 0)
+        {
+            return 0;
+        }
+    }
+
+    // Now store/restore chunks.
 
     // Last chunk have CRC of the entire data.
     const uint32_t compressedDataCRC = chunkInfos.back().crc;
@@ -1168,6 +1253,11 @@ void StorePipelineCacheVkChunks(vk::GlobalOps *globalOps,
     while (chunkIndex > 0)
     {
         --chunkIndex;
+        if (lastNumStoredChunks > 0 && !isMissing[chunkIndex])
+        {
+            // Skip restoring chunk if it is not missing.
+            continue;
+        }
         const PipelineCacheVkChunkInfo &chunkInfo = chunkInfos[chunkIndex];
 
         // Add the header data, followed by the compressed data.
@@ -1181,6 +1271,8 @@ void StorePipelineCacheVkChunks(vk::GlobalOps *globalOps,
 
         globalOps->putBlob(chunkInfo.cacheHash, keyData);
     }
+
+    return numChunksToStore;
 }
 
 void ErasePipelineCacheVkChunks(vk::GlobalOps *globalOps,
@@ -5333,16 +5425,16 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, hasEffectivePipelineCacheSerialization,
                             !isSwiftShader && !nvVersionLessThan520);
 
-    // When the driver sets graphicsPipelineLibraryFastLinking, it means that monolithic pipelines
-    // are just a bundle of the libraries, and that there is no benefit in creating monolithic
-    // pipelines.
+    // Practically all drivers still prefer to do cross-stage linking.
+    // graphicsPipelineLibraryFastLinking allows them to quickly produce working pipelines, but it
+    // is typically not as efficient as complete pipelines.
     //
-    // Note: for testing purposes, this is enabled on SwiftShader despite the fact that it doesn't
-    // need it.  This should be undone once there is at least one bot that supports
-    // VK_EXT_graphics_pipeline_library without graphicsPipelineLibraryFastLinking
+    // This optimization is disabled on the Intel/windows driver before 31.0.101.5379 due to driver
+    // bugs.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, preferMonolithicPipelinesOverLibraries,
-        !mGraphicsPipelineLibraryProperties.graphicsPipelineLibraryFastLinking || isSwiftShader);
+        mFeatures.supportsGraphicsPipelineLibrary.enabled &&
+            !(IsWindows() && isIntel && intelDriverVersion < IntelDriverVersion(101, 5379)));
 
     // Whether the pipeline caches should merge into the global pipeline cache.  This should only be
     // enabled on platforms if:
@@ -5384,6 +5476,13 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Disable by default, because currently it is uncommon that blob cache supports storing
     // zero sized blobs (or erasing blobs).
     ANGLE_FEATURE_CONDITION(&mFeatures, useEmptyBlobsToEraseOldPipelineCacheFromBlobCache, false);
+
+    // Assume that platform has blob cache that has LRU eviction.
+    ANGLE_FEATURE_CONDITION(&mFeatures, hasBlobCacheThatEvictsOldItemsFirst, true);
+    // Also assume that platform blob cache evicts only minimum number of items when it has LRU,
+    // in which case verification is not required.
+    ANGLE_FEATURE_CONDITION(&mFeatures, verifyPipelineCacheInBlobCache,
+                            !mFeatures.hasBlobCacheThatEvictsOldItemsFirst.enabled);
 
     // On ARM, dynamic state for stencil write mask doesn't work correctly in the presence of
     // discard or alpha to coverage, if the static state provided when creating the pipeline has a
@@ -5635,7 +5734,8 @@ angle::Result Renderer::ensurePipelineCacheInitialized(vk::Context *context)
     ANGLE_TRY(initPipelineCache(context, &mPipelineCache, &loadedFromBlobCache));
     if (loadedFromBlobCache)
     {
-        ANGLE_TRY(getPipelineCacheSize(context, &mPipelineCacheSizeAtLastSync));
+        ANGLE_TRY(getLockedPipelineCacheDataIfNew(context, &mPipelineCacheSizeAtLastSync,
+                                                  mPipelineCacheSizeAtLastSync, nullptr));
     }
 
     mPipelineCacheInitialized = true;
@@ -5662,7 +5762,8 @@ angle::Result Renderer::getPipelineCache(vk::Context *context,
     ANGLE_TRY(ensurePipelineCacheInitialized(context));
 
     angle::SimpleMutex *pipelineCacheMutex =
-        (context->getFeatures().mergeProgramPipelineCachesToGlobalCache.enabled)
+        context->getFeatures().mergeProgramPipelineCachesToGlobalCache.enabled ||
+                context->getFeatures().preferMonolithicPipelinesOverLibraries.enabled
             ? &mPipelineCacheMutex
             : nullptr;
 
@@ -5736,9 +5837,51 @@ void Renderer::initializeFrontendFeatures(angle::FrontendFeatures *features) con
     ANGLE_FEATURE_CONDITION(features, alwaysRunLinkSubJobsThreaded, true);
 }
 
-angle::Result Renderer::getPipelineCacheSize(vk::Context *context, size_t *pipelineCacheSizeOut)
+angle::Result Renderer::getLockedPipelineCacheDataIfNew(vk::Context *context,
+                                                        size_t *pipelineCacheSizeOut,
+                                                        size_t lastSyncSize,
+                                                        std::vector<uint8_t> *pipelineCacheDataOut)
 {
-    ANGLE_VK_TRY(context, mPipelineCache.getCacheData(mDevice, pipelineCacheSizeOut, nullptr));
+    // Because this function may call |getCacheData| twice, |mPipelineCacheMutex| is not passed to
+    // |PipelineAccessCache|, and is expected to be locked once **by the caller**.
+    mPipelineCacheMutex.assertLocked();
+
+    vk::PipelineCacheAccess globalCache;
+    globalCache.init(&mPipelineCache, nullptr);
+
+    ANGLE_VK_TRY(context, globalCache.getCacheData(context, pipelineCacheSizeOut, nullptr));
+
+    // If the cache data is unchanged since last sync, don't retrieve the data.  Also, make sure we
+    // will receive enough data to hold the pipeline cache header Table 7.  Layout for pipeline
+    // cache header version VK_PIPELINE_CACHE_HEADER_VERSION_ONE.
+    const size_t kPipelineCacheHeaderSize = 16 + VK_UUID_SIZE;
+    if (*pipelineCacheSizeOut <= lastSyncSize || *pipelineCacheSizeOut < kPipelineCacheHeaderSize ||
+        pipelineCacheDataOut == nullptr)
+    {
+        return angle::Result::Continue;
+    }
+
+    pipelineCacheDataOut->resize(*pipelineCacheSizeOut);
+    VkResult result =
+        globalCache.getCacheData(context, pipelineCacheSizeOut, pipelineCacheDataOut->data());
+    if (ANGLE_UNLIKELY(result == VK_INCOMPLETE))
+    {
+        WARN()
+            << "Received VK_INCOMPLETE when retrieving pipeline cache data, which should be "
+               "impossible as the size query was previously done under the same lock, but this is "
+               "a recoverable error";
+    }
+    else
+    {
+        ANGLE_VK_TRY(context, result);
+    }
+
+    // If vkGetPipelineCacheData ends up writing fewer bytes than requested, shrink the buffer to
+    // avoid leaking garbage memory and potential rejection of the data by subsequent
+    // vkCreatePipelineCache call.  Some drivers may ignore entire buffer if there padding present.
+    ASSERT(*pipelineCacheSizeOut <= pipelineCacheDataOut->size());
+    pipelineCacheDataOut->resize(*pipelineCacheSizeOut);
+
     return angle::Result::Continue;
 }
 
@@ -5777,54 +5920,17 @@ angle::Result Renderer::syncPipelineCacheVk(vk::Context *context,
     }
 
     size_t pipelineCacheSize = 0;
-    ANGLE_TRY(getPipelineCacheSize(context, &pipelineCacheSize));
-    if (pipelineCacheSize <= mPipelineCacheSizeAtLastSync)
+    std::vector<uint8_t> pipelineCacheData;
+    {
+        std::unique_lock<angle::SimpleMutex> lock(mPipelineCacheMutex);
+        ANGLE_TRY(getLockedPipelineCacheDataIfNew(
+            context, &pipelineCacheSize, mPipelineCacheSizeAtLastSync, &pipelineCacheData));
+    }
+    if (pipelineCacheData.empty())
     {
         return angle::Result::Continue;
     }
     mPipelineCacheSizeAtLastSync = pipelineCacheSize;
-
-    // Make sure we will receive enough data to hold the pipeline cache header
-    // Table 7. Layout for pipeline cache header version VK_PIPELINE_CACHE_HEADER_VERSION_ONE
-    const size_t kPipelineCacheHeaderSize = 16 + VK_UUID_SIZE;
-    if (pipelineCacheSize < kPipelineCacheHeaderSize)
-    {
-        // No pipeline cache data to read, so return
-        return angle::Result::Continue;
-    }
-
-    std::vector<uint8_t> pipelineCacheData(pipelineCacheSize);
-
-    size_t oldPipelineCacheSize = pipelineCacheSize;
-    VkResult result =
-        mPipelineCache.getCacheData(mDevice, &pipelineCacheSize, pipelineCacheData.data());
-    // We don't need all of the cache data, so just make sure we at least got the header
-    // Vulkan Spec 9.6. Pipeline Cache
-    // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/chap9.html#pipelines-cache
-    // If pDataSize is less than what is necessary to store this header, nothing will be written to
-    // pData and zero will be written to pDataSize.
-    // Any data written to pData is valid and can be provided as the pInitialData member of the
-    // VkPipelineCacheCreateInfo structure passed to vkCreatePipelineCache.
-    if (ANGLE_UNLIKELY(pipelineCacheSize < kPipelineCacheHeaderSize))
-    {
-        WARN() << "Not enough pipeline cache data read.";
-        return angle::Result::Continue;
-    }
-    else if (ANGLE_UNLIKELY(result == VK_INCOMPLETE))
-    {
-        WARN() << "Received VK_INCOMPLETE: Old: " << oldPipelineCacheSize
-               << ", New: " << pipelineCacheSize;
-    }
-    else
-    {
-        ANGLE_VK_TRY(context, result);
-    }
-
-    // If vkGetPipelineCacheData ends up writing fewer bytes than requested, shrink the buffer to
-    // avoid leaking garbage memory and potential rejection of the data by subsequent
-    // vkCreatePipelineCache call.  Some drivers may ignore entire buffer if there padding present.
-    ASSERT(pipelineCacheSize <= pipelineCacheData.size());
-    pipelineCacheData.resize(pipelineCacheSize);
 
     if (mFeatures.enableAsyncPipelineCacheCompression.enabled)
     {
