@@ -1304,7 +1304,7 @@ void ContextVk::onDestroy(const gl::Context *context)
     // Must retire all Vulkan secondary command buffers before destroying the pools.
     if ((!vk::OutsideRenderPassCommandBuffer::ExecutesInline() ||
          !vk::RenderPassCommandBuffer::ExecutesInline()) &&
-        mRenderer->isAsyncCommandBufferResetEnabled())
+        mRenderer->isAsyncCommandBufferResetAndGarbageCleanupEnabled())
     {
         // This will also reset Primary command buffers which is REQUIRED on some buggy Vulkan
         // implementations.
@@ -4578,8 +4578,7 @@ angle::Result ContextVk::optimizeRenderPassForPresent(vk::ImageViewHelper *color
         // Add the resolve attachment to the render pass
         const vk::ImageView *resolveImageView = nullptr;
         ANGLE_TRY(colorImageView->getLevelLayerDrawImageView(this, *colorImage, vk::LevelIndex(0),
-                                                             0, gl::SrgbWriteControlMode::Default,
-                                                             &resolveImageView));
+                                                             0, &resolveImageView));
 
         mRenderPassCommands->addColorResolveAttachment(0, colorImage, resolveImageView->getHandle(),
                                                        gl::LevelIndex(0), 0, 1, {});

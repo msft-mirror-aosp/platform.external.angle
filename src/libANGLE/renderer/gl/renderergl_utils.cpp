@@ -1603,6 +1603,8 @@ void GenerateCaps(const FunctionsGL *functions,
          functions->hasGLExtension("GL_ATI_texture_mirror_once") ||
          functions->hasGLESExtension("GL_EXT_texture_mirror_clamp_to_edge"));
 
+    extensions->textureShadowLodEXT = functions->hasExtension("GL_EXT_texture_shadow_lod");
+
     extensions->multiDrawIndirectEXT = true;
     extensions->instancedArraysANGLE = functions->isAtLeastGL(gl::Version(3, 1)) ||
                                        (functions->hasGLExtension("GL_ARB_instanced_arrays") &&
@@ -3038,6 +3040,14 @@ void ClearErrors(const FunctionsGL *functions,
     {
         INFO() << "Preexisting GL error " << gl::FmtHex(error) << " as of " << file << ", "
                << function << ":" << line << ". ";
+
+        // Skip GL_CONTEXT_LOST errors, they will be generated continuously and result in an
+        // infinite loop.
+        if (error == GL_CONTEXT_LOST)
+        {
+            return;
+        }
+
         error = functions->getError();
     }
 }

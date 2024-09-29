@@ -1673,11 +1673,11 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context,
         VkSurfaceCapabilities2KHR surfaceCaps2 = {};
         surfaceCaps2.sType                     = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
 
-        mCompatiblePresentModes.resize(kMaxCompatiblePresentModes);
+        mCompatiblePresentModes.resize(kCompatiblePresentModesSize);
 
         VkSurfacePresentModeCompatibilityEXT compatibleModes = {};
         compatibleModes.sType            = VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_COMPATIBILITY_EXT;
-        compatibleModes.presentModeCount = kMaxCompatiblePresentModes;
+        compatibleModes.presentModeCount = kCompatiblePresentModesSize;
         compatibleModes.pPresentModes    = mCompatiblePresentModes.data();
         vk::AddToPNextChain(&surfaceCaps2, &compatibleModes);
 
@@ -1685,6 +1685,15 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context,
                                   renderer->getPhysicalDevice(), &surfaceInfo2, &surfaceCaps2));
 
         mCompatiblePresentModes.resize(compatibleModes.presentModeCount);
+
+        // http://anglebug.com/368647924: in case of multiple drivers vulkan loader causes extension
+        // to be listed when not actually supported. kCompatiblePresentModesSize is above max count
+        // to catch this case and work around.
+        if (compatibleModes.presentModeCount == kCompatiblePresentModesSize)
+        {
+            mCompatiblePresentModes.resize(1);
+            mCompatiblePresentModes[0] = swapchainInfo.presentMode;
+        }
 
         // The implementation must always return the given present mode as compatible with itself.
         ASSERT(IsCompatiblePresentMode(mDesiredSwapchainPresentMode, mCompatiblePresentModes.data(),
@@ -3041,8 +3050,7 @@ angle::Result WindowSurfaceVk::getCurrentFramebuffer(ContextVk *contextVk,
     {
         const vk::ImageView *imageView = nullptr;
         ANGLE_TRY(swapchainImage.imageViews.getLevelLayerDrawImageView(
-            contextVk, *swapchainImage.image, vk::LevelIndex(0), 0,
-            gl::SrgbWriteControlMode::Default, &imageView));
+            contextVk, *swapchainImage.image, vk::LevelIndex(0), 0, &imageView));
         imageViews[0] = imageView->getHandle();
     }
 
@@ -3145,9 +3153,8 @@ angle::Result WindowSurfaceVk::drawOverlay(ContextVk *contextVk, SwapchainImage 
 
     // Draw overlay
     const vk::ImageView *imageView = nullptr;
-    ANGLE_TRY(image->imageViews.getLevelLayerDrawImageView(
-        contextVk, *image->image, vk::LevelIndex(0), 0, gl::SrgbWriteControlMode::Default,
-        &imageView));
+    ANGLE_TRY(image->imageViews.getLevelLayerDrawImageView(contextVk, *image->image,
+                                                           vk::LevelIndex(0), 0, &imageView));
     ANGLE_TRY(overlayVk->onPresent(contextVk, image->image.get(), imageView,
                                    Is90DegreeRotation(getPreTransform())));
 
