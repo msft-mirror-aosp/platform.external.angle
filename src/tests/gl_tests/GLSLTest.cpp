@@ -1994,6 +1994,26 @@ void main(){
     glDeleteShader(shader);
 }
 
+// Verify that using maximum size as atomic counter offset results in compilation failure.
+TEST_P(GLSLTest_ES31, CompileWithMaxAtomicCounterOffsetFails)
+{
+    GLint maxSize;
+    glGetIntegerv(GL_MAX_ATOMIC_COUNTER_BUFFER_SIZE, &maxSize);
+
+    std::ostringstream srcStream;
+    srcStream << "#version 310 es\n"
+              << "layout(location = 0) out uvec4 color;\n"
+              << "layout(binding = 0, offset = " << maxSize << ") uniform atomic_uint a_counter;\n"
+              << "void main() {\n"
+              << "color = uvec4(atomicCounterIncrement(a_counter)); \n"
+              << "}";
+    std::string fsStream = srcStream.str();
+    const char *strFS    = fsStream.c_str();
+
+    GLuint shader = CompileShader(GL_FRAGMENT_SHADER, strFS);
+    EXPECT_EQ(0u, shader);
+}
+
 // Verify that functions without return statements still compile
 TEST_P(GLSLTest, MissingReturnFloat)
 {
@@ -17396,6 +17416,52 @@ void main() {
 
     drawQuad(testProgram, essl3_shaders::PositionAttrib(), 0.5f, 1.0f, true);
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor(255, 0, 255, 255));
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test coverage of the mix(uint, uint, bool) overload which was missing in D3D11 translation
+TEST_P(GLSLTest_ES31, MixUintUintBool)
+{
+    constexpr char kFS[] = R"(#version 310 es
+precision highp float;
+out vec4 fragColor;
+void main() {
+    uvec4 testData1 = uvec4(0, 1, 2, 3);
+    uvec4 testData2 = uvec4(4, 5, 6, 7);
+    uint scalar = mix(testData1.x, testData2.x, true);
+    uvec4 vector = mix(testData1, testData2, bvec4(false, true, true, false));
+    fragColor = vec4(scalar == 4u ? 1.0 : 0.0, vector == uvec4(0, 5, 6, 3) ? 1.0 : 0.0, 0.0, 1.0);
+}
+)";
+
+    ANGLE_GL_PROGRAM(testProgram, essl31_shaders::vs::Simple(), kFS);
+    ASSERT_GL_NO_ERROR();
+
+    drawQuad(testProgram, essl31_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor(255, 255, 0, 255));
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test coverage of the mix(int, int, bool) overload which was missing in D3D11 translation
+TEST_P(GLSLTest_ES31, MixIntIntBool)
+{
+    constexpr char kFS[] = R"(#version 310 es
+precision highp float;
+out vec4 fragColor;
+void main() {
+    ivec4 testData1 = ivec4(-4, -3, -2, -1);
+    ivec4 testData2 = ivec4(4, 5, 6, 7);
+    int scalar = mix(testData1.x, testData2.x, true);
+    ivec4 vector = mix(testData1, testData2, bvec4(false, true, true, false));
+    fragColor = vec4(scalar == 4 ? 1.0 : 0.0, vector == ivec4(-4, 5, 6, -1) ? 1.0 : 0.0, 0.0, 1.0);
+}
+)";
+
+    ANGLE_GL_PROGRAM(testProgram, essl31_shaders::vs::Simple(), kFS);
+    ASSERT_GL_NO_ERROR();
+
+    drawQuad(testProgram, essl31_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor(255, 255, 0, 255));
     ASSERT_GL_NO_ERROR();
 }
 

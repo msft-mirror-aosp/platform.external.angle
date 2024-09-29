@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 359
+#define ANGLE_SH_VERSION 362
 
 enum ShShaderSpec
 {
@@ -103,7 +103,6 @@ enum class ShPixelLocalStorageType : uint8_t
     NotSupported,
     ImageLoadStore,
     FramebufferFetch,
-    PixelLocalStorageEXT,  // GL_EXT_shader_pixel_local_storage.
 };
 
 // For ANGLE_shader_pixel_local_storage_coherent.
@@ -454,6 +453,9 @@ struct ShCompileOptions
     //
     uint64_t rejectWebglShadersWithUndefinedBehavior : 1;
 
+    // Emulate r32f image with an r32ui image
+    uint64_t emulateR32fImageAtomicExchange : 1;
+
     ShCompileOptionsMetal metal;
     ShPixelLocalStorageOptions pls;
 };
@@ -522,6 +524,7 @@ struct ShBuiltInResources
     int APPLE_clip_distance;
     int OES_texture_cube_map_array;
     int EXT_texture_cube_map_array;
+    int EXT_texture_shadow_lod;
     int EXT_shadow_samplers;
     int OES_shader_multisample_interpolation;
     int OES_shader_image_atomic;
