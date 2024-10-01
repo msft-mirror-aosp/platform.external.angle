@@ -801,7 +801,9 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     bool noopDrawInstanced(PrimitiveMode mode, GLsizei count, GLsizei instanceCount) const;
     bool noopMultiDraw(GLsizei drawcount) const;
 
-    bool isClearBufferMaskedOut(GLenum buffer, GLint drawbuffer) const;
+    bool isClearBufferMaskedOut(GLenum buffer,
+                                GLint drawbuffer,
+                                GLuint framebufferStencilSize) const;
     bool noopClearBuffer(GLenum buffer, GLint drawbuffer) const;
 
     void addRef() const { mRefCount++; }
@@ -831,20 +833,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     void finishImmutable() const;
 
     const angle::PerfMonitorCounterGroups &getPerfMonitorCounterGroups() const;
-
-    // Enables GL_SHADER_PIXEL_LOCAL_STORAGE_EXT and polyfills load operations for
-    // ANGLE_shader_pixel_local_storage using a fullscreen draw.
-    //
-    // The implementation's ShPixelLocalStorageType must be "PixelLocalStorageEXT".
-    void drawPixelLocalStorageEXTEnable(GLsizei n,
-                                        const PixelLocalStoragePlane[],
-                                        const GLenum loadops[]);
-
-    // Stores texture-backed PLS planes via fullscreen draw and disables
-    // GL_SHADER_PIXEL_LOCAL_STORAGE_EXT.
-    //
-    // The implementation's ShPixelLocalStorageType must be "PixelLocalStorageEXT".
-    void drawPixelLocalStorageEXTDisable(const PixelLocalStoragePlane[], const GLenum storeops[]);
 
     // Ends the currently active pixel local storage session with GL_STORE_OP_STORE on all planes.
     void endPixelLocalStorageWithStoreOpsStore();
@@ -985,7 +973,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     state::DirtyObjects mComputeDirtyObjects;
     state::DirtyBits mCopyImageDirtyBits;
     state::DirtyObjects mCopyImageDirtyObjects;
-    state::DirtyObjects mPixelLocalStorageEXTEnableDisableDirtyObjects;
 
     // Binding to container objects that use dependent state updates.
     angle::ObserverBinding mVertexArrayObserverBinding;
