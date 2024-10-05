@@ -8695,6 +8695,103 @@ namespace VULKAN_HPP_NAMESPACE
 
   using BindImagePlaneMemoryInfoKHR = BindImagePlaneMemoryInfo;
 
+  struct BindIndexBufferIndirectCommandEXT
+  {
+    using NativeType = VkBindIndexBufferIndirectCommandEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR
+      BindIndexBufferIndirectCommandEXT( VULKAN_HPP_NAMESPACE::DeviceAddress bufferAddress_ = {},
+                                         uint32_t                            size_          = {},
+                                         VULKAN_HPP_NAMESPACE::IndexType     indexType_     = VULKAN_HPP_NAMESPACE::IndexType::eUint16 ) VULKAN_HPP_NOEXCEPT
+      : bufferAddress{ bufferAddress_ }
+      , size{ size_ }
+      , indexType{ indexType_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR BindIndexBufferIndirectCommandEXT( BindIndexBufferIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    BindIndexBufferIndirectCommandEXT( VkBindIndexBufferIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : BindIndexBufferIndirectCommandEXT( *reinterpret_cast<BindIndexBufferIndirectCommandEXT const *>( &rhs ) )
+    {
+    }
+
+    BindIndexBufferIndirectCommandEXT & operator=( BindIndexBufferIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    BindIndexBufferIndirectCommandEXT & operator=( VkBindIndexBufferIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::BindIndexBufferIndirectCommandEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 BindIndexBufferIndirectCommandEXT & setBufferAddress( VULKAN_HPP_NAMESPACE::DeviceAddress bufferAddress_ ) VULKAN_HPP_NOEXCEPT
+    {
+      bufferAddress = bufferAddress_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 BindIndexBufferIndirectCommandEXT & setSize( uint32_t size_ ) VULKAN_HPP_NOEXCEPT
+    {
+      size = size_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 BindIndexBufferIndirectCommandEXT & setIndexType( VULKAN_HPP_NAMESPACE::IndexType indexType_ ) VULKAN_HPP_NOEXCEPT
+    {
+      indexType = indexType_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkBindIndexBufferIndirectCommandEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkBindIndexBufferIndirectCommandEXT *>( this );
+    }
+
+    operator VkBindIndexBufferIndirectCommandEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkBindIndexBufferIndirectCommandEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::DeviceAddress const &, uint32_t const &, VULKAN_HPP_NAMESPACE::IndexType const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( bufferAddress, size, indexType );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( BindIndexBufferIndirectCommandEXT const & ) const = default;
+#else
+    bool operator==( BindIndexBufferIndirectCommandEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( bufferAddress == rhs.bufferAddress ) && ( size == rhs.size ) && ( indexType == rhs.indexType );
+#  endif
+    }
+
+    bool operator!=( BindIndexBufferIndirectCommandEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::DeviceAddress bufferAddress = {};
+    uint32_t                            size          = {};
+    VULKAN_HPP_NAMESPACE::IndexType     indexType     = VULKAN_HPP_NAMESPACE::IndexType::eUint16;
+  };
+
   struct BindIndexBufferIndirectCommandNV
   {
     using NativeType = VkBindIndexBufferIndirectCommandNV;
@@ -10177,6 +10274,102 @@ namespace VULKAN_HPP_NAMESPACE
   struct CppType<StructureType, StructureType::eBindSparseInfo>
   {
     using Type = BindSparseInfo;
+  };
+
+  struct BindVertexBufferIndirectCommandEXT
+  {
+    using NativeType = VkBindVertexBufferIndirectCommandEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR BindVertexBufferIndirectCommandEXT( VULKAN_HPP_NAMESPACE::DeviceAddress bufferAddress_ = {},
+                                                             uint32_t                            size_          = {},
+                                                             uint32_t                            stride_        = {} ) VULKAN_HPP_NOEXCEPT
+      : bufferAddress{ bufferAddress_ }
+      , size{ size_ }
+      , stride{ stride_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR BindVertexBufferIndirectCommandEXT( BindVertexBufferIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    BindVertexBufferIndirectCommandEXT( VkBindVertexBufferIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : BindVertexBufferIndirectCommandEXT( *reinterpret_cast<BindVertexBufferIndirectCommandEXT const *>( &rhs ) )
+    {
+    }
+
+    BindVertexBufferIndirectCommandEXT & operator=( BindVertexBufferIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    BindVertexBufferIndirectCommandEXT & operator=( VkBindVertexBufferIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::BindVertexBufferIndirectCommandEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 BindVertexBufferIndirectCommandEXT & setBufferAddress( VULKAN_HPP_NAMESPACE::DeviceAddress bufferAddress_ ) VULKAN_HPP_NOEXCEPT
+    {
+      bufferAddress = bufferAddress_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 BindVertexBufferIndirectCommandEXT & setSize( uint32_t size_ ) VULKAN_HPP_NOEXCEPT
+    {
+      size = size_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 BindVertexBufferIndirectCommandEXT & setStride( uint32_t stride_ ) VULKAN_HPP_NOEXCEPT
+    {
+      stride = stride_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkBindVertexBufferIndirectCommandEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkBindVertexBufferIndirectCommandEXT *>( this );
+    }
+
+    operator VkBindVertexBufferIndirectCommandEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkBindVertexBufferIndirectCommandEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::DeviceAddress const &, uint32_t const &, uint32_t const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( bufferAddress, size, stride );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( BindVertexBufferIndirectCommandEXT const & ) const = default;
+#else
+    bool operator==( BindVertexBufferIndirectCommandEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( bufferAddress == rhs.bufferAddress ) && ( size == rhs.size ) && ( stride == rhs.stride );
+#  endif
+    }
+
+    bool operator!=( BindVertexBufferIndirectCommandEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::DeviceAddress bufferAddress = {};
+    uint32_t                            size          = {};
+    uint32_t                            stride        = {};
   };
 
   struct BindVertexBufferIndirectCommandNV
@@ -23509,6 +23702,89 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = DepthBiasRepresentationInfoEXT;
   };
 
+  struct DepthClampRangeEXT
+  {
+    using NativeType = VkDepthClampRangeEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR DepthClampRangeEXT( float minDepthClamp_ = {}, float maxDepthClamp_ = {} ) VULKAN_HPP_NOEXCEPT
+      : minDepthClamp{ minDepthClamp_ }
+      , maxDepthClamp{ maxDepthClamp_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR DepthClampRangeEXT( DepthClampRangeEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    DepthClampRangeEXT( VkDepthClampRangeEXT const & rhs ) VULKAN_HPP_NOEXCEPT : DepthClampRangeEXT( *reinterpret_cast<DepthClampRangeEXT const *>( &rhs ) ) {}
+
+    DepthClampRangeEXT & operator=( DepthClampRangeEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    DepthClampRangeEXT & operator=( VkDepthClampRangeEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::DepthClampRangeEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 DepthClampRangeEXT & setMinDepthClamp( float minDepthClamp_ ) VULKAN_HPP_NOEXCEPT
+    {
+      minDepthClamp = minDepthClamp_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 DepthClampRangeEXT & setMaxDepthClamp( float maxDepthClamp_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxDepthClamp = maxDepthClamp_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkDepthClampRangeEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkDepthClampRangeEXT *>( this );
+    }
+
+    operator VkDepthClampRangeEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkDepthClampRangeEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<float const &, float const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( minDepthClamp, maxDepthClamp );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( DepthClampRangeEXT const & ) const = default;
+#else
+    bool operator==( DepthClampRangeEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( minDepthClamp == rhs.minDepthClamp ) && ( maxDepthClamp == rhs.maxDepthClamp );
+#  endif
+    }
+
+    bool operator!=( DepthClampRangeEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    float minDepthClamp = {};
+    float maxDepthClamp = {};
+  };
+
   struct DescriptorAddressInfoEXT
   {
     using NativeType = VkDescriptorAddressInfoEXT;
@@ -33201,6 +33477,102 @@ namespace VULKAN_HPP_NAMESPACE
     uint32_t firstInstance = {};
   };
 
+  struct DrawIndirectCountIndirectCommandEXT
+  {
+    using NativeType = VkDrawIndirectCountIndirectCommandEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR DrawIndirectCountIndirectCommandEXT( VULKAN_HPP_NAMESPACE::DeviceAddress bufferAddress_ = {},
+                                                              uint32_t                            stride_        = {},
+                                                              uint32_t                            commandCount_  = {} ) VULKAN_HPP_NOEXCEPT
+      : bufferAddress{ bufferAddress_ }
+      , stride{ stride_ }
+      , commandCount{ commandCount_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR DrawIndirectCountIndirectCommandEXT( DrawIndirectCountIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    DrawIndirectCountIndirectCommandEXT( VkDrawIndirectCountIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : DrawIndirectCountIndirectCommandEXT( *reinterpret_cast<DrawIndirectCountIndirectCommandEXT const *>( &rhs ) )
+    {
+    }
+
+    DrawIndirectCountIndirectCommandEXT & operator=( DrawIndirectCountIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    DrawIndirectCountIndirectCommandEXT & operator=( VkDrawIndirectCountIndirectCommandEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::DrawIndirectCountIndirectCommandEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 DrawIndirectCountIndirectCommandEXT & setBufferAddress( VULKAN_HPP_NAMESPACE::DeviceAddress bufferAddress_ ) VULKAN_HPP_NOEXCEPT
+    {
+      bufferAddress = bufferAddress_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 DrawIndirectCountIndirectCommandEXT & setStride( uint32_t stride_ ) VULKAN_HPP_NOEXCEPT
+    {
+      stride = stride_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 DrawIndirectCountIndirectCommandEXT & setCommandCount( uint32_t commandCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      commandCount = commandCount_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkDrawIndirectCountIndirectCommandEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkDrawIndirectCountIndirectCommandEXT *>( this );
+    }
+
+    operator VkDrawIndirectCountIndirectCommandEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkDrawIndirectCountIndirectCommandEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::DeviceAddress const &, uint32_t const &, uint32_t const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( bufferAddress, stride, commandCount );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( DrawIndirectCountIndirectCommandEXT const & ) const = default;
+#else
+    bool operator==( DrawIndirectCountIndirectCommandEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( bufferAddress == rhs.bufferAddress ) && ( stride == rhs.stride ) && ( commandCount == rhs.commandCount );
+#  endif
+    }
+
+    bool operator!=( DrawIndirectCountIndirectCommandEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::DeviceAddress bufferAddress = {};
+    uint32_t                            stride        = {};
+    uint32_t                            commandCount  = {};
+  };
+
   struct DrawMeshTasksIndirectCommandEXT
   {
     using NativeType = VkDrawMeshTasksIndirectCommandEXT;
@@ -38834,6 +39206,211 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = FramebufferMixedSamplesCombinationNV;
   };
 
+  struct GeneratedCommandsInfoEXT
+  {
+    using NativeType = VkGeneratedCommandsInfoEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eGeneratedCommandsInfoEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR GeneratedCommandsInfoEXT( VULKAN_HPP_NAMESPACE::ShaderStageFlags          shaderStages_           = {},
+                                                   VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT   indirectExecutionSet_   = {},
+                                                   VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT indirectCommandsLayout_ = {},
+                                                   VULKAN_HPP_NAMESPACE::DeviceAddress             indirectAddress_        = {},
+                                                   VULKAN_HPP_NAMESPACE::DeviceSize                indirectAddressSize_    = {},
+                                                   VULKAN_HPP_NAMESPACE::DeviceAddress             preprocessAddress_      = {},
+                                                   VULKAN_HPP_NAMESPACE::DeviceSize                preprocessSize_         = {},
+                                                   uint32_t                                        maxSequenceCount_       = {},
+                                                   VULKAN_HPP_NAMESPACE::DeviceAddress             sequenceCountAddress_   = {},
+                                                   uint32_t                                        maxDrawCount_           = {},
+                                                   const void *                                    pNext_                  = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , shaderStages{ shaderStages_ }
+      , indirectExecutionSet{ indirectExecutionSet_ }
+      , indirectCommandsLayout{ indirectCommandsLayout_ }
+      , indirectAddress{ indirectAddress_ }
+      , indirectAddressSize{ indirectAddressSize_ }
+      , preprocessAddress{ preprocessAddress_ }
+      , preprocessSize{ preprocessSize_ }
+      , maxSequenceCount{ maxSequenceCount_ }
+      , sequenceCountAddress{ sequenceCountAddress_ }
+      , maxDrawCount{ maxDrawCount_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR GeneratedCommandsInfoEXT( GeneratedCommandsInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    GeneratedCommandsInfoEXT( VkGeneratedCommandsInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : GeneratedCommandsInfoEXT( *reinterpret_cast<GeneratedCommandsInfoEXT const *>( &rhs ) )
+    {
+    }
+
+    GeneratedCommandsInfoEXT & operator=( GeneratedCommandsInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    GeneratedCommandsInfoEXT & operator=( VkGeneratedCommandsInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::GeneratedCommandsInfoEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT & setShaderStages( VULKAN_HPP_NAMESPACE::ShaderStageFlags shaderStages_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderStages = shaderStages_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT &
+      setIndirectExecutionSet( VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT indirectExecutionSet_ ) VULKAN_HPP_NOEXCEPT
+    {
+      indirectExecutionSet = indirectExecutionSet_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT &
+      setIndirectCommandsLayout( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT indirectCommandsLayout_ ) VULKAN_HPP_NOEXCEPT
+    {
+      indirectCommandsLayout = indirectCommandsLayout_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT & setIndirectAddress( VULKAN_HPP_NAMESPACE::DeviceAddress indirectAddress_ ) VULKAN_HPP_NOEXCEPT
+    {
+      indirectAddress = indirectAddress_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT & setIndirectAddressSize( VULKAN_HPP_NAMESPACE::DeviceSize indirectAddressSize_ ) VULKAN_HPP_NOEXCEPT
+    {
+      indirectAddressSize = indirectAddressSize_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT & setPreprocessAddress( VULKAN_HPP_NAMESPACE::DeviceAddress preprocessAddress_ ) VULKAN_HPP_NOEXCEPT
+    {
+      preprocessAddress = preprocessAddress_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT & setPreprocessSize( VULKAN_HPP_NAMESPACE::DeviceSize preprocessSize_ ) VULKAN_HPP_NOEXCEPT
+    {
+      preprocessSize = preprocessSize_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT & setMaxSequenceCount( uint32_t maxSequenceCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxSequenceCount = maxSequenceCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT & setSequenceCountAddress( VULKAN_HPP_NAMESPACE::DeviceAddress sequenceCountAddress_ ) VULKAN_HPP_NOEXCEPT
+    {
+      sequenceCountAddress = sequenceCountAddress_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsInfoEXT & setMaxDrawCount( uint32_t maxDrawCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxDrawCount = maxDrawCount_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkGeneratedCommandsInfoEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkGeneratedCommandsInfoEXT *>( this );
+    }
+
+    operator VkGeneratedCommandsInfoEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkGeneratedCommandsInfoEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
+               const void * const &,
+               VULKAN_HPP_NAMESPACE::ShaderStageFlags const &,
+               VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT const &,
+               VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT const &,
+               VULKAN_HPP_NAMESPACE::DeviceAddress const &,
+               VULKAN_HPP_NAMESPACE::DeviceSize const &,
+               VULKAN_HPP_NAMESPACE::DeviceAddress const &,
+               VULKAN_HPP_NAMESPACE::DeviceSize const &,
+               uint32_t const &,
+               VULKAN_HPP_NAMESPACE::DeviceAddress const &,
+               uint32_t const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType,
+                       pNext,
+                       shaderStages,
+                       indirectExecutionSet,
+                       indirectCommandsLayout,
+                       indirectAddress,
+                       indirectAddressSize,
+                       preprocessAddress,
+                       preprocessSize,
+                       maxSequenceCount,
+                       sequenceCountAddress,
+                       maxDrawCount );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( GeneratedCommandsInfoEXT const & ) const = default;
+#else
+    bool operator==( GeneratedCommandsInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( shaderStages == rhs.shaderStages ) && ( indirectExecutionSet == rhs.indirectExecutionSet ) &&
+             ( indirectCommandsLayout == rhs.indirectCommandsLayout ) && ( indirectAddress == rhs.indirectAddress ) &&
+             ( indirectAddressSize == rhs.indirectAddressSize ) && ( preprocessAddress == rhs.preprocessAddress ) && ( preprocessSize == rhs.preprocessSize ) &&
+             ( maxSequenceCount == rhs.maxSequenceCount ) && ( sequenceCountAddress == rhs.sequenceCountAddress ) && ( maxDrawCount == rhs.maxDrawCount );
+#  endif
+    }
+
+    bool operator!=( GeneratedCommandsInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType             sType                  = StructureType::eGeneratedCommandsInfoEXT;
+    const void *                                    pNext                  = {};
+    VULKAN_HPP_NAMESPACE::ShaderStageFlags          shaderStages           = {};
+    VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT   indirectExecutionSet   = {};
+    VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT indirectCommandsLayout = {};
+    VULKAN_HPP_NAMESPACE::DeviceAddress             indirectAddress        = {};
+    VULKAN_HPP_NAMESPACE::DeviceSize                indirectAddressSize    = {};
+    VULKAN_HPP_NAMESPACE::DeviceAddress             preprocessAddress      = {};
+    VULKAN_HPP_NAMESPACE::DeviceSize                preprocessSize         = {};
+    uint32_t                                        maxSequenceCount       = {};
+    VULKAN_HPP_NAMESPACE::DeviceAddress             sequenceCountAddress   = {};
+    uint32_t                                        maxDrawCount           = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eGeneratedCommandsInfoEXT>
+  {
+    using Type = GeneratedCommandsInfoEXT;
+  };
+
   struct IndirectCommandsStreamNV
   {
     using NativeType = VkIndirectCommandsStreamNV;
@@ -39203,6 +39780,138 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = GeneratedCommandsInfoNV;
   };
 
+  struct GeneratedCommandsMemoryRequirementsInfoEXT
+  {
+    using NativeType = VkGeneratedCommandsMemoryRequirementsInfoEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eGeneratedCommandsMemoryRequirementsInfoEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR GeneratedCommandsMemoryRequirementsInfoEXT( VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT   indirectExecutionSet_   = {},
+                                                                     VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT indirectCommandsLayout_ = {},
+                                                                     uint32_t                                        maxSequenceCount_       = {},
+                                                                     uint32_t                                        maxDrawCount_           = {},
+                                                                     void *                                          pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , indirectExecutionSet{ indirectExecutionSet_ }
+      , indirectCommandsLayout{ indirectCommandsLayout_ }
+      , maxSequenceCount{ maxSequenceCount_ }
+      , maxDrawCount{ maxDrawCount_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR GeneratedCommandsMemoryRequirementsInfoEXT( GeneratedCommandsMemoryRequirementsInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    GeneratedCommandsMemoryRequirementsInfoEXT( VkGeneratedCommandsMemoryRequirementsInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : GeneratedCommandsMemoryRequirementsInfoEXT( *reinterpret_cast<GeneratedCommandsMemoryRequirementsInfoEXT const *>( &rhs ) )
+    {
+    }
+
+    GeneratedCommandsMemoryRequirementsInfoEXT & operator=( GeneratedCommandsMemoryRequirementsInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    GeneratedCommandsMemoryRequirementsInfoEXT & operator=( VkGeneratedCommandsMemoryRequirementsInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::GeneratedCommandsMemoryRequirementsInfoEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsMemoryRequirementsInfoEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsMemoryRequirementsInfoEXT &
+      setIndirectExecutionSet( VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT indirectExecutionSet_ ) VULKAN_HPP_NOEXCEPT
+    {
+      indirectExecutionSet = indirectExecutionSet_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsMemoryRequirementsInfoEXT &
+      setIndirectCommandsLayout( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT indirectCommandsLayout_ ) VULKAN_HPP_NOEXCEPT
+    {
+      indirectCommandsLayout = indirectCommandsLayout_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsMemoryRequirementsInfoEXT & setMaxSequenceCount( uint32_t maxSequenceCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxSequenceCount = maxSequenceCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsMemoryRequirementsInfoEXT & setMaxDrawCount( uint32_t maxDrawCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxDrawCount = maxDrawCount_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkGeneratedCommandsMemoryRequirementsInfoEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkGeneratedCommandsMemoryRequirementsInfoEXT *>( this );
+    }
+
+    operator VkGeneratedCommandsMemoryRequirementsInfoEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkGeneratedCommandsMemoryRequirementsInfoEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
+               void * const &,
+               VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT const &,
+               VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT const &,
+               uint32_t const &,
+               uint32_t const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, indirectExecutionSet, indirectCommandsLayout, maxSequenceCount, maxDrawCount );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( GeneratedCommandsMemoryRequirementsInfoEXT const & ) const = default;
+#else
+    bool operator==( GeneratedCommandsMemoryRequirementsInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( indirectExecutionSet == rhs.indirectExecutionSet ) &&
+             ( indirectCommandsLayout == rhs.indirectCommandsLayout ) && ( maxSequenceCount == rhs.maxSequenceCount ) && ( maxDrawCount == rhs.maxDrawCount );
+#  endif
+    }
+
+    bool operator!=( GeneratedCommandsMemoryRequirementsInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType             sType                  = StructureType::eGeneratedCommandsMemoryRequirementsInfoEXT;
+    void *                                          pNext                  = {};
+    VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT   indirectExecutionSet   = {};
+    VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT indirectCommandsLayout = {};
+    uint32_t                                        maxSequenceCount       = {};
+    uint32_t                                        maxDrawCount           = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eGeneratedCommandsMemoryRequirementsInfoEXT>
+  {
+    using Type = GeneratedCommandsMemoryRequirementsInfoEXT;
+  };
+
   struct GeneratedCommandsMemoryRequirementsInfoNV
   {
     using NativeType = VkGeneratedCommandsMemoryRequirementsInfoNV;
@@ -39334,6 +40043,226 @@ namespace VULKAN_HPP_NAMESPACE
   struct CppType<StructureType, StructureType::eGeneratedCommandsMemoryRequirementsInfoNV>
   {
     using Type = GeneratedCommandsMemoryRequirementsInfoNV;
+  };
+
+  struct GeneratedCommandsPipelineInfoEXT
+  {
+    using NativeType = VkGeneratedCommandsPipelineInfoEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eGeneratedCommandsPipelineInfoEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR GeneratedCommandsPipelineInfoEXT( VULKAN_HPP_NAMESPACE::Pipeline pipeline_ = {}, void * pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , pipeline{ pipeline_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR GeneratedCommandsPipelineInfoEXT( GeneratedCommandsPipelineInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    GeneratedCommandsPipelineInfoEXT( VkGeneratedCommandsPipelineInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : GeneratedCommandsPipelineInfoEXT( *reinterpret_cast<GeneratedCommandsPipelineInfoEXT const *>( &rhs ) )
+    {
+    }
+
+    GeneratedCommandsPipelineInfoEXT & operator=( GeneratedCommandsPipelineInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    GeneratedCommandsPipelineInfoEXT & operator=( VkGeneratedCommandsPipelineInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::GeneratedCommandsPipelineInfoEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsPipelineInfoEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsPipelineInfoEXT & setPipeline( VULKAN_HPP_NAMESPACE::Pipeline pipeline_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pipeline = pipeline_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkGeneratedCommandsPipelineInfoEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkGeneratedCommandsPipelineInfoEXT *>( this );
+    }
+
+    operator VkGeneratedCommandsPipelineInfoEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkGeneratedCommandsPipelineInfoEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Pipeline const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, pipeline );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( GeneratedCommandsPipelineInfoEXT const & ) const = default;
+#else
+    bool operator==( GeneratedCommandsPipelineInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( pipeline == rhs.pipeline );
+#  endif
+    }
+
+    bool operator!=( GeneratedCommandsPipelineInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType    = StructureType::eGeneratedCommandsPipelineInfoEXT;
+    void *                              pNext    = {};
+    VULKAN_HPP_NAMESPACE::Pipeline      pipeline = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eGeneratedCommandsPipelineInfoEXT>
+  {
+    using Type = GeneratedCommandsPipelineInfoEXT;
+  };
+
+  struct GeneratedCommandsShaderInfoEXT
+  {
+    using NativeType = VkGeneratedCommandsShaderInfoEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eGeneratedCommandsShaderInfoEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR GeneratedCommandsShaderInfoEXT( uint32_t                                shaderCount_ = {},
+                                                         const VULKAN_HPP_NAMESPACE::ShaderEXT * pShaders_    = {},
+                                                         void *                                  pNext_       = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , shaderCount{ shaderCount_ }
+      , pShaders{ pShaders_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR GeneratedCommandsShaderInfoEXT( GeneratedCommandsShaderInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    GeneratedCommandsShaderInfoEXT( VkGeneratedCommandsShaderInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : GeneratedCommandsShaderInfoEXT( *reinterpret_cast<GeneratedCommandsShaderInfoEXT const *>( &rhs ) )
+    {
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    GeneratedCommandsShaderInfoEXT( VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::ShaderEXT> const & shaders_,
+                                    void *                                                                                       pNext_ = nullptr )
+      : pNext( pNext_ ), shaderCount( static_cast<uint32_t>( shaders_.size() ) ), pShaders( shaders_.data() )
+    {
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+
+    GeneratedCommandsShaderInfoEXT & operator=( GeneratedCommandsShaderInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    GeneratedCommandsShaderInfoEXT & operator=( VkGeneratedCommandsShaderInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::GeneratedCommandsShaderInfoEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsShaderInfoEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsShaderInfoEXT & setShaderCount( uint32_t shaderCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderCount = shaderCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsShaderInfoEXT & setPShaders( const VULKAN_HPP_NAMESPACE::ShaderEXT * pShaders_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pShaders = pShaders_;
+      return *this;
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    GeneratedCommandsShaderInfoEXT &
+      setShaders( VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::ShaderEXT> const & shaders_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderCount = static_cast<uint32_t>( shaders_.size() );
+      pShaders    = shaders_.data();
+      return *this;
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+#endif   /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkGeneratedCommandsShaderInfoEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkGeneratedCommandsShaderInfoEXT *>( this );
+    }
+
+    operator VkGeneratedCommandsShaderInfoEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkGeneratedCommandsShaderInfoEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, uint32_t const &, const VULKAN_HPP_NAMESPACE::ShaderEXT * const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, shaderCount, pShaders );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( GeneratedCommandsShaderInfoEXT const & ) const = default;
+#else
+    bool operator==( GeneratedCommandsShaderInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( shaderCount == rhs.shaderCount ) && ( pShaders == rhs.pShaders );
+#  endif
+    }
+
+    bool operator!=( GeneratedCommandsShaderInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType     sType       = StructureType::eGeneratedCommandsShaderInfoEXT;
+    void *                                  pNext       = {};
+    uint32_t                                shaderCount = {};
+    const VULKAN_HPP_NAMESPACE::ShaderEXT * pShaders    = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eGeneratedCommandsShaderInfoEXT>
+  {
+    using Type = GeneratedCommandsShaderInfoEXT;
   };
 
   struct LatencyTimingsFrameReportNV
@@ -48702,6 +49631,786 @@ namespace VULKAN_HPP_NAMESPACE
   };
 #endif /*VK_USE_PLATFORM_FUCHSIA*/
 
+  struct IndirectCommandsExecutionSetTokenEXT
+  {
+    using NativeType = VkIndirectCommandsExecutionSetTokenEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR IndirectCommandsExecutionSetTokenEXT(
+      VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT type_         = VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT::ePipelines,
+      VULKAN_HPP_NAMESPACE::ShaderStageFlags                shaderStages_ = {} ) VULKAN_HPP_NOEXCEPT
+      : type{ type_ }
+      , shaderStages{ shaderStages_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR IndirectCommandsExecutionSetTokenEXT( IndirectCommandsExecutionSetTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    IndirectCommandsExecutionSetTokenEXT( VkIndirectCommandsExecutionSetTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : IndirectCommandsExecutionSetTokenEXT( *reinterpret_cast<IndirectCommandsExecutionSetTokenEXT const *>( &rhs ) )
+    {
+    }
+
+    IndirectCommandsExecutionSetTokenEXT & operator=( IndirectCommandsExecutionSetTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    IndirectCommandsExecutionSetTokenEXT & operator=( VkIndirectCommandsExecutionSetTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::IndirectCommandsExecutionSetTokenEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsExecutionSetTokenEXT & setType( VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT type_ ) VULKAN_HPP_NOEXCEPT
+    {
+      type = type_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsExecutionSetTokenEXT & setShaderStages( VULKAN_HPP_NAMESPACE::ShaderStageFlags shaderStages_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderStages = shaderStages_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkIndirectCommandsExecutionSetTokenEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkIndirectCommandsExecutionSetTokenEXT *>( this );
+    }
+
+    operator VkIndirectCommandsExecutionSetTokenEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkIndirectCommandsExecutionSetTokenEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT const &, VULKAN_HPP_NAMESPACE::ShaderStageFlags const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( type, shaderStages );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( IndirectCommandsExecutionSetTokenEXT const & ) const = default;
+#else
+    bool operator==( IndirectCommandsExecutionSetTokenEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( type == rhs.type ) && ( shaderStages == rhs.shaderStages );
+#  endif
+    }
+
+    bool operator!=( IndirectCommandsExecutionSetTokenEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT type         = VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT::ePipelines;
+    VULKAN_HPP_NAMESPACE::ShaderStageFlags                shaderStages = {};
+  };
+
+  struct IndirectCommandsIndexBufferTokenEXT
+  {
+    using NativeType = VkIndirectCommandsIndexBufferTokenEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR
+      IndirectCommandsIndexBufferTokenEXT( VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagBitsEXT mode_ =
+                                             VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagBitsEXT::eVulkanIndexBuffer ) VULKAN_HPP_NOEXCEPT
+      : mode{ mode_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR IndirectCommandsIndexBufferTokenEXT( IndirectCommandsIndexBufferTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    IndirectCommandsIndexBufferTokenEXT( VkIndirectCommandsIndexBufferTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : IndirectCommandsIndexBufferTokenEXT( *reinterpret_cast<IndirectCommandsIndexBufferTokenEXT const *>( &rhs ) )
+    {
+    }
+
+    IndirectCommandsIndexBufferTokenEXT & operator=( IndirectCommandsIndexBufferTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    IndirectCommandsIndexBufferTokenEXT & operator=( VkIndirectCommandsIndexBufferTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::IndirectCommandsIndexBufferTokenEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsIndexBufferTokenEXT &
+      setMode( VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagBitsEXT mode_ ) VULKAN_HPP_NOEXCEPT
+    {
+      mode = mode_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkIndirectCommandsIndexBufferTokenEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkIndirectCommandsIndexBufferTokenEXT *>( this );
+    }
+
+    operator VkIndirectCommandsIndexBufferTokenEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkIndirectCommandsIndexBufferTokenEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagBitsEXT const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( mode );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( IndirectCommandsIndexBufferTokenEXT const & ) const = default;
+#else
+    bool operator==( IndirectCommandsIndexBufferTokenEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( mode == rhs.mode );
+#  endif
+    }
+
+    bool operator!=( IndirectCommandsIndexBufferTokenEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagBitsEXT mode = VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagBitsEXT::eVulkanIndexBuffer;
+  };
+
+  struct PushConstantRange
+  {
+    using NativeType = VkPushConstantRange;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR
+      PushConstantRange( VULKAN_HPP_NAMESPACE::ShaderStageFlags stageFlags_ = {}, uint32_t offset_ = {}, uint32_t size_ = {} ) VULKAN_HPP_NOEXCEPT
+      : stageFlags{ stageFlags_ }
+      , offset{ offset_ }
+      , size{ size_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR PushConstantRange( PushConstantRange const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PushConstantRange( VkPushConstantRange const & rhs ) VULKAN_HPP_NOEXCEPT : PushConstantRange( *reinterpret_cast<PushConstantRange const *>( &rhs ) ) {}
+
+    PushConstantRange & operator=( PushConstantRange const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PushConstantRange & operator=( VkPushConstantRange const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PushConstantRange const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PushConstantRange & setStageFlags( VULKAN_HPP_NAMESPACE::ShaderStageFlags stageFlags_ ) VULKAN_HPP_NOEXCEPT
+    {
+      stageFlags = stageFlags_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PushConstantRange & setOffset( uint32_t offset_ ) VULKAN_HPP_NOEXCEPT
+    {
+      offset = offset_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PushConstantRange & setSize( uint32_t size_ ) VULKAN_HPP_NOEXCEPT
+    {
+      size = size_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPushConstantRange const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPushConstantRange *>( this );
+    }
+
+    operator VkPushConstantRange &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPushConstantRange *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::ShaderStageFlags const &, uint32_t const &, uint32_t const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( stageFlags, offset, size );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PushConstantRange const & ) const = default;
+#else
+    bool operator==( PushConstantRange const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( stageFlags == rhs.stageFlags ) && ( offset == rhs.offset ) && ( size == rhs.size );
+#  endif
+    }
+
+    bool operator!=( PushConstantRange const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::ShaderStageFlags stageFlags = {};
+    uint32_t                               offset     = {};
+    uint32_t                               size       = {};
+  };
+
+  struct IndirectCommandsPushConstantTokenEXT
+  {
+    using NativeType = VkIndirectCommandsPushConstantTokenEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR IndirectCommandsPushConstantTokenEXT( VULKAN_HPP_NAMESPACE::PushConstantRange updateRange_ = {} ) VULKAN_HPP_NOEXCEPT
+      : updateRange{ updateRange_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR IndirectCommandsPushConstantTokenEXT( IndirectCommandsPushConstantTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    IndirectCommandsPushConstantTokenEXT( VkIndirectCommandsPushConstantTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : IndirectCommandsPushConstantTokenEXT( *reinterpret_cast<IndirectCommandsPushConstantTokenEXT const *>( &rhs ) )
+    {
+    }
+
+    IndirectCommandsPushConstantTokenEXT & operator=( IndirectCommandsPushConstantTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    IndirectCommandsPushConstantTokenEXT & operator=( VkIndirectCommandsPushConstantTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::IndirectCommandsPushConstantTokenEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsPushConstantTokenEXT &
+      setUpdateRange( VULKAN_HPP_NAMESPACE::PushConstantRange const & updateRange_ ) VULKAN_HPP_NOEXCEPT
+    {
+      updateRange = updateRange_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkIndirectCommandsPushConstantTokenEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkIndirectCommandsPushConstantTokenEXT *>( this );
+    }
+
+    operator VkIndirectCommandsPushConstantTokenEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkIndirectCommandsPushConstantTokenEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::PushConstantRange const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( updateRange );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( IndirectCommandsPushConstantTokenEXT const & ) const = default;
+#else
+    bool operator==( IndirectCommandsPushConstantTokenEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( updateRange == rhs.updateRange );
+#  endif
+    }
+
+    bool operator!=( IndirectCommandsPushConstantTokenEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::PushConstantRange updateRange = {};
+  };
+
+  struct IndirectCommandsVertexBufferTokenEXT
+  {
+    using NativeType = VkIndirectCommandsVertexBufferTokenEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR IndirectCommandsVertexBufferTokenEXT( uint32_t vertexBindingUnit_ = {} ) VULKAN_HPP_NOEXCEPT : vertexBindingUnit{ vertexBindingUnit_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR IndirectCommandsVertexBufferTokenEXT( IndirectCommandsVertexBufferTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    IndirectCommandsVertexBufferTokenEXT( VkIndirectCommandsVertexBufferTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : IndirectCommandsVertexBufferTokenEXT( *reinterpret_cast<IndirectCommandsVertexBufferTokenEXT const *>( &rhs ) )
+    {
+    }
+
+    IndirectCommandsVertexBufferTokenEXT & operator=( IndirectCommandsVertexBufferTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    IndirectCommandsVertexBufferTokenEXT & operator=( VkIndirectCommandsVertexBufferTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::IndirectCommandsVertexBufferTokenEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsVertexBufferTokenEXT & setVertexBindingUnit( uint32_t vertexBindingUnit_ ) VULKAN_HPP_NOEXCEPT
+    {
+      vertexBindingUnit = vertexBindingUnit_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkIndirectCommandsVertexBufferTokenEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkIndirectCommandsVertexBufferTokenEXT *>( this );
+    }
+
+    operator VkIndirectCommandsVertexBufferTokenEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkIndirectCommandsVertexBufferTokenEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<uint32_t const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( vertexBindingUnit );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( IndirectCommandsVertexBufferTokenEXT const & ) const = default;
+#else
+    bool operator==( IndirectCommandsVertexBufferTokenEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( vertexBindingUnit == rhs.vertexBindingUnit );
+#  endif
+    }
+
+    bool operator!=( IndirectCommandsVertexBufferTokenEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    uint32_t vertexBindingUnit = {};
+  };
+
+  union IndirectCommandsTokenDataEXT
+  {
+    using NativeType = VkIndirectCommandsTokenDataEXT;
+#if !defined( VULKAN_HPP_NO_UNION_CONSTRUCTORS )
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsTokenDataEXT( const VULKAN_HPP_NAMESPACE::IndirectCommandsPushConstantTokenEXT * pPushConstant_ = {} )
+      : pPushConstant( pPushConstant_ )
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsTokenDataEXT( const VULKAN_HPP_NAMESPACE::IndirectCommandsVertexBufferTokenEXT * pVertexBuffer_ )
+      : pVertexBuffer( pVertexBuffer_ )
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsTokenDataEXT( const VULKAN_HPP_NAMESPACE::IndirectCommandsIndexBufferTokenEXT * pIndexBuffer_ )
+      : pIndexBuffer( pIndexBuffer_ )
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsTokenDataEXT( const VULKAN_HPP_NAMESPACE::IndirectCommandsExecutionSetTokenEXT * pExecutionSet_ )
+      : pExecutionSet( pExecutionSet_ )
+    {
+    }
+#endif /*VULKAN_HPP_NO_UNION_CONSTRUCTORS*/
+
+#if !defined( VULKAN_HPP_NO_UNION_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsTokenDataEXT &
+      setPPushConstant( const VULKAN_HPP_NAMESPACE::IndirectCommandsPushConstantTokenEXT * pPushConstant_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pPushConstant = pPushConstant_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsTokenDataEXT &
+      setPVertexBuffer( const VULKAN_HPP_NAMESPACE::IndirectCommandsVertexBufferTokenEXT * pVertexBuffer_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pVertexBuffer = pVertexBuffer_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsTokenDataEXT &
+      setPIndexBuffer( const VULKAN_HPP_NAMESPACE::IndirectCommandsIndexBufferTokenEXT * pIndexBuffer_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pIndexBuffer = pIndexBuffer_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsTokenDataEXT &
+      setPExecutionSet( const VULKAN_HPP_NAMESPACE::IndirectCommandsExecutionSetTokenEXT * pExecutionSet_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pExecutionSet = pExecutionSet_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_UNION_SETTERS*/
+
+    operator VkIndirectCommandsTokenDataEXT const &() const
+    {
+      return *reinterpret_cast<const VkIndirectCommandsTokenDataEXT *>( this );
+    }
+
+    operator VkIndirectCommandsTokenDataEXT &()
+    {
+      return *reinterpret_cast<VkIndirectCommandsTokenDataEXT *>( this );
+    }
+
+#ifdef VULKAN_HPP_HAS_UNRESTRICTED_UNIONS
+    const VULKAN_HPP_NAMESPACE::IndirectCommandsPushConstantTokenEXT * pPushConstant;
+    const VULKAN_HPP_NAMESPACE::IndirectCommandsVertexBufferTokenEXT * pVertexBuffer;
+    const VULKAN_HPP_NAMESPACE::IndirectCommandsIndexBufferTokenEXT *  pIndexBuffer;
+    const VULKAN_HPP_NAMESPACE::IndirectCommandsExecutionSetTokenEXT * pExecutionSet;
+#else
+    const VkIndirectCommandsPushConstantTokenEXT * pPushConstant;
+    const VkIndirectCommandsVertexBufferTokenEXT * pVertexBuffer;
+    const VkIndirectCommandsIndexBufferTokenEXT *  pIndexBuffer;
+    const VkIndirectCommandsExecutionSetTokenEXT * pExecutionSet;
+#endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
+  };
+
+  struct IndirectCommandsLayoutTokenEXT
+  {
+    using NativeType = VkIndirectCommandsLayoutTokenEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eIndirectCommandsLayoutTokenEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutTokenEXT(
+      VULKAN_HPP_NAMESPACE::IndirectCommandsTokenTypeEXT type_   = VULKAN_HPP_NAMESPACE::IndirectCommandsTokenTypeEXT::eExecutionSet,
+      VULKAN_HPP_NAMESPACE::IndirectCommandsTokenDataEXT data_   = {},
+      uint32_t                                           offset_ = {},
+      const void *                                       pNext_  = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , type{ type_ }
+      , data{ data_ }
+      , offset{ offset_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutTokenEXT( IndirectCommandsLayoutTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    IndirectCommandsLayoutTokenEXT( VkIndirectCommandsLayoutTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : IndirectCommandsLayoutTokenEXT( *reinterpret_cast<IndirectCommandsLayoutTokenEXT const *>( &rhs ) )
+    {
+    }
+
+    IndirectCommandsLayoutTokenEXT & operator=( IndirectCommandsLayoutTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    IndirectCommandsLayoutTokenEXT & operator=( VkIndirectCommandsLayoutTokenEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutTokenEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutTokenEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutTokenEXT & setType( VULKAN_HPP_NAMESPACE::IndirectCommandsTokenTypeEXT type_ ) VULKAN_HPP_NOEXCEPT
+    {
+      type = type_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutTokenEXT & setData( VULKAN_HPP_NAMESPACE::IndirectCommandsTokenDataEXT const & data_ ) VULKAN_HPP_NOEXCEPT
+    {
+      data = data_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutTokenEXT & setOffset( uint32_t offset_ ) VULKAN_HPP_NOEXCEPT
+    {
+      offset = offset_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkIndirectCommandsLayoutTokenEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkIndirectCommandsLayoutTokenEXT *>( this );
+    }
+
+    operator VkIndirectCommandsLayoutTokenEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkIndirectCommandsLayoutTokenEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
+               const void * const &,
+               VULKAN_HPP_NAMESPACE::IndirectCommandsTokenTypeEXT const &,
+               VULKAN_HPP_NAMESPACE::IndirectCommandsTokenDataEXT const &,
+               uint32_t const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, type, data, offset );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType                sType  = StructureType::eIndirectCommandsLayoutTokenEXT;
+    const void *                                       pNext  = {};
+    VULKAN_HPP_NAMESPACE::IndirectCommandsTokenTypeEXT type   = VULKAN_HPP_NAMESPACE::IndirectCommandsTokenTypeEXT::eExecutionSet;
+    VULKAN_HPP_NAMESPACE::IndirectCommandsTokenDataEXT data   = {};
+    uint32_t                                           offset = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eIndirectCommandsLayoutTokenEXT>
+  {
+    using Type = IndirectCommandsLayoutTokenEXT;
+  };
+
+  struct IndirectCommandsLayoutCreateInfoEXT
+  {
+    using NativeType = VkIndirectCommandsLayoutCreateInfoEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eIndirectCommandsLayoutCreateInfoEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR IndirectCommandsLayoutCreateInfoEXT( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutUsageFlagsEXT    flags_          = {},
+                                                              VULKAN_HPP_NAMESPACE::ShaderStageFlags                       shaderStages_   = {},
+                                                              uint32_t                                                     indirectStride_ = {},
+                                                              VULKAN_HPP_NAMESPACE::PipelineLayout                         pipelineLayout_ = {},
+                                                              uint32_t                                                     tokenCount_     = {},
+                                                              const VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutTokenEXT * pTokens_        = {},
+                                                              const void * pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , flags{ flags_ }
+      , shaderStages{ shaderStages_ }
+      , indirectStride{ indirectStride_ }
+      , pipelineLayout{ pipelineLayout_ }
+      , tokenCount{ tokenCount_ }
+      , pTokens{ pTokens_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR IndirectCommandsLayoutCreateInfoEXT( IndirectCommandsLayoutCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    IndirectCommandsLayoutCreateInfoEXT( VkIndirectCommandsLayoutCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : IndirectCommandsLayoutCreateInfoEXT( *reinterpret_cast<IndirectCommandsLayoutCreateInfoEXT const *>( &rhs ) )
+    {
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    IndirectCommandsLayoutCreateInfoEXT(
+      VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutUsageFlagsEXT                                                         flags_,
+      VULKAN_HPP_NAMESPACE::ShaderStageFlags                                                                            shaderStages_,
+      uint32_t                                                                                                          indirectStride_,
+      VULKAN_HPP_NAMESPACE::PipelineLayout                                                                              pipelineLayout_,
+      VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutTokenEXT> const & tokens_,
+      const void *                                                                                                      pNext_ = nullptr )
+      : pNext( pNext_ )
+      , flags( flags_ )
+      , shaderStages( shaderStages_ )
+      , indirectStride( indirectStride_ )
+      , pipelineLayout( pipelineLayout_ )
+      , tokenCount( static_cast<uint32_t>( tokens_.size() ) )
+      , pTokens( tokens_.data() )
+    {
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+
+    IndirectCommandsLayoutCreateInfoEXT & operator=( IndirectCommandsLayoutCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    IndirectCommandsLayoutCreateInfoEXT & operator=( VkIndirectCommandsLayoutCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutCreateInfoEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutCreateInfoEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutCreateInfoEXT &
+      setFlags( VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutUsageFlagsEXT flags_ ) VULKAN_HPP_NOEXCEPT
+    {
+      flags = flags_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutCreateInfoEXT & setShaderStages( VULKAN_HPP_NAMESPACE::ShaderStageFlags shaderStages_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderStages = shaderStages_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutCreateInfoEXT & setIndirectStride( uint32_t indirectStride_ ) VULKAN_HPP_NOEXCEPT
+    {
+      indirectStride = indirectStride_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutCreateInfoEXT & setPipelineLayout( VULKAN_HPP_NAMESPACE::PipelineLayout pipelineLayout_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pipelineLayout = pipelineLayout_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutCreateInfoEXT & setTokenCount( uint32_t tokenCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      tokenCount = tokenCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectCommandsLayoutCreateInfoEXT &
+      setPTokens( const VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutTokenEXT * pTokens_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pTokens = pTokens_;
+      return *this;
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    IndirectCommandsLayoutCreateInfoEXT &
+      setTokens( VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutTokenEXT> const & tokens_ ) VULKAN_HPP_NOEXCEPT
+    {
+      tokenCount = static_cast<uint32_t>( tokens_.size() );
+      pTokens    = tokens_.data();
+      return *this;
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+#endif   /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkIndirectCommandsLayoutCreateInfoEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkIndirectCommandsLayoutCreateInfoEXT *>( this );
+    }
+
+    operator VkIndirectCommandsLayoutCreateInfoEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkIndirectCommandsLayoutCreateInfoEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
+               const void * const &,
+               VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutUsageFlagsEXT const &,
+               VULKAN_HPP_NAMESPACE::ShaderStageFlags const &,
+               uint32_t const &,
+               VULKAN_HPP_NAMESPACE::PipelineLayout const &,
+               uint32_t const &,
+               const VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutTokenEXT * const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, flags, shaderStages, indirectStride, pipelineLayout, tokenCount, pTokens );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( IndirectCommandsLayoutCreateInfoEXT const & ) const = default;
+#else
+    bool                                           operator==( IndirectCommandsLayoutCreateInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( flags == rhs.flags ) && ( shaderStages == rhs.shaderStages ) &&
+             ( indirectStride == rhs.indirectStride ) && ( pipelineLayout == rhs.pipelineLayout ) && ( tokenCount == rhs.tokenCount ) &&
+             ( pTokens == rhs.pTokens );
+#  endif
+    }
+
+    bool operator!=( IndirectCommandsLayoutCreateInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType                          sType          = StructureType::eIndirectCommandsLayoutCreateInfoEXT;
+    const void *                                                 pNext          = {};
+    VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutUsageFlagsEXT    flags          = {};
+    VULKAN_HPP_NAMESPACE::ShaderStageFlags                       shaderStages   = {};
+    uint32_t                                                     indirectStride = {};
+    VULKAN_HPP_NAMESPACE::PipelineLayout                         pipelineLayout = {};
+    uint32_t                                                     tokenCount     = {};
+    const VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutTokenEXT * pTokens        = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eIndirectCommandsLayoutCreateInfoEXT>
+  {
+    using Type = IndirectCommandsLayoutCreateInfoEXT;
+  };
+
   struct IndirectCommandsLayoutTokenNV
   {
     using NativeType = VkIndirectCommandsLayoutTokenNV;
@@ -49196,6 +50905,593 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = IndirectCommandsLayoutCreateInfoNV;
   };
 
+  struct IndirectExecutionSetPipelineInfoEXT
+  {
+    using NativeType = VkIndirectExecutionSetPipelineInfoEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eIndirectExecutionSetPipelineInfoEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR IndirectExecutionSetPipelineInfoEXT( VULKAN_HPP_NAMESPACE::Pipeline initialPipeline_  = {},
+                                                              uint32_t                       maxPipelineCount_ = {},
+                                                              const void *                   pNext_            = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , initialPipeline{ initialPipeline_ }
+      , maxPipelineCount{ maxPipelineCount_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR IndirectExecutionSetPipelineInfoEXT( IndirectExecutionSetPipelineInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    IndirectExecutionSetPipelineInfoEXT( VkIndirectExecutionSetPipelineInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : IndirectExecutionSetPipelineInfoEXT( *reinterpret_cast<IndirectExecutionSetPipelineInfoEXT const *>( &rhs ) )
+    {
+    }
+
+    IndirectExecutionSetPipelineInfoEXT & operator=( IndirectExecutionSetPipelineInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    IndirectExecutionSetPipelineInfoEXT & operator=( VkIndirectExecutionSetPipelineInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::IndirectExecutionSetPipelineInfoEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetPipelineInfoEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetPipelineInfoEXT & setInitialPipeline( VULKAN_HPP_NAMESPACE::Pipeline initialPipeline_ ) VULKAN_HPP_NOEXCEPT
+    {
+      initialPipeline = initialPipeline_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetPipelineInfoEXT & setMaxPipelineCount( uint32_t maxPipelineCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxPipelineCount = maxPipelineCount_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkIndirectExecutionSetPipelineInfoEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkIndirectExecutionSetPipelineInfoEXT *>( this );
+    }
+
+    operator VkIndirectExecutionSetPipelineInfoEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkIndirectExecutionSetPipelineInfoEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, const void * const &, VULKAN_HPP_NAMESPACE::Pipeline const &, uint32_t const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, initialPipeline, maxPipelineCount );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( IndirectExecutionSetPipelineInfoEXT const & ) const = default;
+#else
+    bool operator==( IndirectExecutionSetPipelineInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( initialPipeline == rhs.initialPipeline ) && ( maxPipelineCount == rhs.maxPipelineCount );
+#  endif
+    }
+
+    bool operator!=( IndirectExecutionSetPipelineInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType            = StructureType::eIndirectExecutionSetPipelineInfoEXT;
+    const void *                        pNext            = {};
+    VULKAN_HPP_NAMESPACE::Pipeline      initialPipeline  = {};
+    uint32_t                            maxPipelineCount = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eIndirectExecutionSetPipelineInfoEXT>
+  {
+    using Type = IndirectExecutionSetPipelineInfoEXT;
+  };
+
+  struct IndirectExecutionSetShaderLayoutInfoEXT
+  {
+    using NativeType = VkIndirectExecutionSetShaderLayoutInfoEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eIndirectExecutionSetShaderLayoutInfoEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR IndirectExecutionSetShaderLayoutInfoEXT( uint32_t                                          setLayoutCount_ = {},
+                                                                  const VULKAN_HPP_NAMESPACE::DescriptorSetLayout * pSetLayouts_    = {},
+                                                                  const void *                                      pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , setLayoutCount{ setLayoutCount_ }
+      , pSetLayouts{ pSetLayouts_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR IndirectExecutionSetShaderLayoutInfoEXT( IndirectExecutionSetShaderLayoutInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    IndirectExecutionSetShaderLayoutInfoEXT( VkIndirectExecutionSetShaderLayoutInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : IndirectExecutionSetShaderLayoutInfoEXT( *reinterpret_cast<IndirectExecutionSetShaderLayoutInfoEXT const *>( &rhs ) )
+    {
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    IndirectExecutionSetShaderLayoutInfoEXT( VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::DescriptorSetLayout> const & setLayouts_,
+                                             const void * pNext_ = nullptr )
+      : pNext( pNext_ ), setLayoutCount( static_cast<uint32_t>( setLayouts_.size() ) ), pSetLayouts( setLayouts_.data() )
+    {
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+
+    IndirectExecutionSetShaderLayoutInfoEXT & operator=( IndirectExecutionSetShaderLayoutInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    IndirectExecutionSetShaderLayoutInfoEXT & operator=( VkIndirectExecutionSetShaderLayoutInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderLayoutInfoEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetShaderLayoutInfoEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetShaderLayoutInfoEXT & setSetLayoutCount( uint32_t setLayoutCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      setLayoutCount = setLayoutCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetShaderLayoutInfoEXT &
+      setPSetLayouts( const VULKAN_HPP_NAMESPACE::DescriptorSetLayout * pSetLayouts_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pSetLayouts = pSetLayouts_;
+      return *this;
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    IndirectExecutionSetShaderLayoutInfoEXT &
+      setSetLayouts( VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::DescriptorSetLayout> const & setLayouts_ ) VULKAN_HPP_NOEXCEPT
+    {
+      setLayoutCount = static_cast<uint32_t>( setLayouts_.size() );
+      pSetLayouts    = setLayouts_.data();
+      return *this;
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+#endif   /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkIndirectExecutionSetShaderLayoutInfoEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkIndirectExecutionSetShaderLayoutInfoEXT *>( this );
+    }
+
+    operator VkIndirectExecutionSetShaderLayoutInfoEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkIndirectExecutionSetShaderLayoutInfoEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, const void * const &, uint32_t const &, const VULKAN_HPP_NAMESPACE::DescriptorSetLayout * const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, setLayoutCount, pSetLayouts );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( IndirectExecutionSetShaderLayoutInfoEXT const & ) const = default;
+#else
+    bool operator==( IndirectExecutionSetShaderLayoutInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( setLayoutCount == rhs.setLayoutCount ) && ( pSetLayouts == rhs.pSetLayouts );
+#  endif
+    }
+
+    bool operator!=( IndirectExecutionSetShaderLayoutInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType               sType          = StructureType::eIndirectExecutionSetShaderLayoutInfoEXT;
+    const void *                                      pNext          = {};
+    uint32_t                                          setLayoutCount = {};
+    const VULKAN_HPP_NAMESPACE::DescriptorSetLayout * pSetLayouts    = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eIndirectExecutionSetShaderLayoutInfoEXT>
+  {
+    using Type = IndirectExecutionSetShaderLayoutInfoEXT;
+  };
+
+  struct IndirectExecutionSetShaderInfoEXT
+  {
+    using NativeType = VkIndirectExecutionSetShaderInfoEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eIndirectExecutionSetShaderInfoEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR IndirectExecutionSetShaderInfoEXT( uint32_t                                                              shaderCount_            = {},
+                                                            const VULKAN_HPP_NAMESPACE::ShaderEXT *                               pInitialShaders_        = {},
+                                                            const VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderLayoutInfoEXT * pSetLayoutInfos_        = {},
+                                                            uint32_t                                                              maxShaderCount_         = {},
+                                                            uint32_t                                                              pushConstantRangeCount_ = {},
+                                                            const VULKAN_HPP_NAMESPACE::PushConstantRange *                       pPushConstantRanges_    = {},
+                                                            const void * pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , shaderCount{ shaderCount_ }
+      , pInitialShaders{ pInitialShaders_ }
+      , pSetLayoutInfos{ pSetLayoutInfos_ }
+      , maxShaderCount{ maxShaderCount_ }
+      , pushConstantRangeCount{ pushConstantRangeCount_ }
+      , pPushConstantRanges{ pPushConstantRanges_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR IndirectExecutionSetShaderInfoEXT( IndirectExecutionSetShaderInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    IndirectExecutionSetShaderInfoEXT( VkIndirectExecutionSetShaderInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : IndirectExecutionSetShaderInfoEXT( *reinterpret_cast<IndirectExecutionSetShaderInfoEXT const *>( &rhs ) )
+    {
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    IndirectExecutionSetShaderInfoEXT(
+      VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::ShaderEXT> const &                               initialShaders_,
+      VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderLayoutInfoEXT> const & setLayoutInfos_     = {},
+      uint32_t                                                                                                                   maxShaderCount_     = {},
+      VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::PushConstantRange> const &                       pushConstantRanges_ = {},
+      const void *                                                                                                               pNext_              = nullptr )
+      : pNext( pNext_ )
+      , shaderCount( static_cast<uint32_t>( initialShaders_.size() ) )
+      , pInitialShaders( initialShaders_.data() )
+      , pSetLayoutInfos( setLayoutInfos_.data() )
+      , maxShaderCount( maxShaderCount_ )
+      , pushConstantRangeCount( static_cast<uint32_t>( pushConstantRanges_.size() ) )
+      , pPushConstantRanges( pushConstantRanges_.data() )
+    {
+#    ifdef VULKAN_HPP_NO_EXCEPTIONS
+      VULKAN_HPP_ASSERT( setLayoutInfos_.empty() || ( initialShaders_.size() == setLayoutInfos_.size() ) );
+#    else
+      if ( !setLayoutInfos_.empty() && ( initialShaders_.size() != setLayoutInfos_.size() ) )
+      {
+        throw LogicError(
+          VULKAN_HPP_NAMESPACE_STRING
+          "::IndirectExecutionSetShaderInfoEXT::IndirectExecutionSetShaderInfoEXT: !setLayoutInfos_.empty() && ( initialShaders_.size() != setLayoutInfos_.size() )" );
+      }
+#    endif /*VULKAN_HPP_NO_EXCEPTIONS*/
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+
+    IndirectExecutionSetShaderInfoEXT & operator=( IndirectExecutionSetShaderInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    IndirectExecutionSetShaderInfoEXT & operator=( VkIndirectExecutionSetShaderInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderInfoEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetShaderInfoEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetShaderInfoEXT & setShaderCount( uint32_t shaderCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderCount = shaderCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetShaderInfoEXT &
+      setPInitialShaders( const VULKAN_HPP_NAMESPACE::ShaderEXT * pInitialShaders_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pInitialShaders = pInitialShaders_;
+      return *this;
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    IndirectExecutionSetShaderInfoEXT &
+      setInitialShaders( VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::ShaderEXT> const & initialShaders_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderCount     = static_cast<uint32_t>( initialShaders_.size() );
+      pInitialShaders = initialShaders_.data();
+      return *this;
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetShaderInfoEXT &
+      setPSetLayoutInfos( const VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderLayoutInfoEXT * pSetLayoutInfos_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pSetLayoutInfos = pSetLayoutInfos_;
+      return *this;
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    IndirectExecutionSetShaderInfoEXT & setSetLayoutInfos(
+      VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderLayoutInfoEXT> const & setLayoutInfos_ )
+      VULKAN_HPP_NOEXCEPT
+    {
+      shaderCount     = static_cast<uint32_t>( setLayoutInfos_.size() );
+      pSetLayoutInfos = setLayoutInfos_.data();
+      return *this;
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetShaderInfoEXT & setMaxShaderCount( uint32_t maxShaderCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxShaderCount = maxShaderCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetShaderInfoEXT & setPushConstantRangeCount( uint32_t pushConstantRangeCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pushConstantRangeCount = pushConstantRangeCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetShaderInfoEXT &
+      setPPushConstantRanges( const VULKAN_HPP_NAMESPACE::PushConstantRange * pPushConstantRanges_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pPushConstantRanges = pPushConstantRanges_;
+      return *this;
+    }
+
+#  if !defined( VULKAN_HPP_DISABLE_ENHANCED_MODE )
+    IndirectExecutionSetShaderInfoEXT & setPushConstantRanges(
+      VULKAN_HPP_NAMESPACE::ArrayProxyNoTemporaries<const VULKAN_HPP_NAMESPACE::PushConstantRange> const & pushConstantRanges_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pushConstantRangeCount = static_cast<uint32_t>( pushConstantRanges_.size() );
+      pPushConstantRanges    = pushConstantRanges_.data();
+      return *this;
+    }
+#  endif /*VULKAN_HPP_DISABLE_ENHANCED_MODE*/
+#endif   /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkIndirectExecutionSetShaderInfoEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkIndirectExecutionSetShaderInfoEXT *>( this );
+    }
+
+    operator VkIndirectExecutionSetShaderInfoEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkIndirectExecutionSetShaderInfoEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
+               const void * const &,
+               uint32_t const &,
+               const VULKAN_HPP_NAMESPACE::ShaderEXT * const &,
+               const VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderLayoutInfoEXT * const &,
+               uint32_t const &,
+               uint32_t const &,
+               const VULKAN_HPP_NAMESPACE::PushConstantRange * const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, shaderCount, pInitialShaders, pSetLayoutInfos, maxShaderCount, pushConstantRangeCount, pPushConstantRanges );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( IndirectExecutionSetShaderInfoEXT const & ) const = default;
+#else
+    bool operator==( IndirectExecutionSetShaderInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( shaderCount == rhs.shaderCount ) && ( pInitialShaders == rhs.pInitialShaders ) &&
+             ( pSetLayoutInfos == rhs.pSetLayoutInfos ) && ( maxShaderCount == rhs.maxShaderCount ) &&
+             ( pushConstantRangeCount == rhs.pushConstantRangeCount ) && ( pPushConstantRanges == rhs.pPushConstantRanges );
+#  endif
+    }
+
+    bool operator!=( IndirectExecutionSetShaderInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType                                   sType                  = StructureType::eIndirectExecutionSetShaderInfoEXT;
+    const void *                                                          pNext                  = {};
+    uint32_t                                                              shaderCount            = {};
+    const VULKAN_HPP_NAMESPACE::ShaderEXT *                               pInitialShaders        = {};
+    const VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderLayoutInfoEXT * pSetLayoutInfos        = {};
+    uint32_t                                                              maxShaderCount         = {};
+    uint32_t                                                              pushConstantRangeCount = {};
+    const VULKAN_HPP_NAMESPACE::PushConstantRange *                       pPushConstantRanges    = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eIndirectExecutionSetShaderInfoEXT>
+  {
+    using Type = IndirectExecutionSetShaderInfoEXT;
+  };
+
+  union IndirectExecutionSetInfoEXT
+  {
+    using NativeType = VkIndirectExecutionSetInfoEXT;
+#if !defined( VULKAN_HPP_NO_UNION_CONSTRUCTORS )
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetInfoEXT( const VULKAN_HPP_NAMESPACE::IndirectExecutionSetPipelineInfoEXT * pPipelineInfo_ = {} )
+      : pPipelineInfo( pPipelineInfo_ )
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetInfoEXT( const VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderInfoEXT * pShaderInfo_ )
+      : pShaderInfo( pShaderInfo_ )
+    {
+    }
+#endif /*VULKAN_HPP_NO_UNION_CONSTRUCTORS*/
+
+#if !defined( VULKAN_HPP_NO_UNION_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetInfoEXT &
+      setPPipelineInfo( const VULKAN_HPP_NAMESPACE::IndirectExecutionSetPipelineInfoEXT * pPipelineInfo_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pPipelineInfo = pPipelineInfo_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetInfoEXT &
+      setPShaderInfo( const VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderInfoEXT * pShaderInfo_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pShaderInfo = pShaderInfo_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_UNION_SETTERS*/
+
+    operator VkIndirectExecutionSetInfoEXT const &() const
+    {
+      return *reinterpret_cast<const VkIndirectExecutionSetInfoEXT *>( this );
+    }
+
+    operator VkIndirectExecutionSetInfoEXT &()
+    {
+      return *reinterpret_cast<VkIndirectExecutionSetInfoEXT *>( this );
+    }
+
+#ifdef VULKAN_HPP_HAS_UNRESTRICTED_UNIONS
+    const VULKAN_HPP_NAMESPACE::IndirectExecutionSetPipelineInfoEXT * pPipelineInfo;
+    const VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderInfoEXT *   pShaderInfo;
+#else
+    const VkIndirectExecutionSetPipelineInfoEXT * pPipelineInfo;
+    const VkIndirectExecutionSetShaderInfoEXT *   pShaderInfo;
+#endif /*VULKAN_HPP_HAS_UNRESTRICTED_UNIONS*/
+  };
+
+  struct IndirectExecutionSetCreateInfoEXT
+  {
+    using NativeType = VkIndirectExecutionSetCreateInfoEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eIndirectExecutionSetCreateInfoEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetCreateInfoEXT(
+      VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT type_  = VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT::ePipelines,
+      VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoEXT     info_  = {},
+      const void *                                          pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , type{ type_ }
+      , info{ info_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetCreateInfoEXT( IndirectExecutionSetCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    IndirectExecutionSetCreateInfoEXT( VkIndirectExecutionSetCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : IndirectExecutionSetCreateInfoEXT( *reinterpret_cast<IndirectExecutionSetCreateInfoEXT const *>( &rhs ) )
+    {
+    }
+
+    IndirectExecutionSetCreateInfoEXT & operator=( IndirectExecutionSetCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    IndirectExecutionSetCreateInfoEXT & operator=( VkIndirectExecutionSetCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::IndirectExecutionSetCreateInfoEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetCreateInfoEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetCreateInfoEXT & setType( VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT type_ ) VULKAN_HPP_NOEXCEPT
+    {
+      type = type_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 IndirectExecutionSetCreateInfoEXT & setInfo( VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoEXT const & info_ ) VULKAN_HPP_NOEXCEPT
+    {
+      info = info_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkIndirectExecutionSetCreateInfoEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkIndirectExecutionSetCreateInfoEXT *>( this );
+    }
+
+    operator VkIndirectExecutionSetCreateInfoEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkIndirectExecutionSetCreateInfoEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
+               const void * const &,
+               VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT const &,
+               VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoEXT const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, type, info );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType                   sType = StructureType::eIndirectExecutionSetCreateInfoEXT;
+    const void *                                          pNext = {};
+    VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT type  = VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT::ePipelines;
+    VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoEXT     info  = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eIndirectExecutionSetCreateInfoEXT>
+  {
+    using Type = IndirectExecutionSetCreateInfoEXT;
+  };
+
   struct InitializePerformanceApiInfoINTEL
   {
     using NativeType = VkInitializePerformanceApiInfoINTEL;
@@ -49265,7 +51561,7 @@ namespace VULKAN_HPP_NAMESPACE
 #if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
     auto operator<=>( InitializePerformanceApiInfoINTEL const & ) const = default;
 #else
-    bool operator==( InitializePerformanceApiInfoINTEL const & rhs ) const VULKAN_HPP_NOEXCEPT
+    bool                                          operator==( InitializePerformanceApiInfoINTEL const & rhs ) const VULKAN_HPP_NOEXCEPT
     {
 #  if defined( VULKAN_HPP_USE_REFLECT )
       return this->reflect() == rhs.reflect();
@@ -60876,6 +63172,104 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = PhysicalDeviceDepthBiasControlFeaturesEXT;
   };
 
+  struct PhysicalDeviceDepthClampControlFeaturesEXT
+  {
+    using NativeType = VkPhysicalDeviceDepthClampControlFeaturesEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceDepthClampControlFeaturesEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceDepthClampControlFeaturesEXT( VULKAN_HPP_NAMESPACE::Bool32 depthClampControl_ = {},
+                                                                     void *                       pNext_             = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , depthClampControl{ depthClampControl_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceDepthClampControlFeaturesEXT( PhysicalDeviceDepthClampControlFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceDepthClampControlFeaturesEXT( VkPhysicalDeviceDepthClampControlFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceDepthClampControlFeaturesEXT( *reinterpret_cast<PhysicalDeviceDepthClampControlFeaturesEXT const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceDepthClampControlFeaturesEXT & operator=( PhysicalDeviceDepthClampControlFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDeviceDepthClampControlFeaturesEXT & operator=( VkPhysicalDeviceDepthClampControlFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceDepthClampControlFeaturesEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceDepthClampControlFeaturesEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceDepthClampControlFeaturesEXT &
+      setDepthClampControl( VULKAN_HPP_NAMESPACE::Bool32 depthClampControl_ ) VULKAN_HPP_NOEXCEPT
+    {
+      depthClampControl = depthClampControl_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPhysicalDeviceDepthClampControlFeaturesEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceDepthClampControlFeaturesEXT *>( this );
+    }
+
+    operator VkPhysicalDeviceDepthClampControlFeaturesEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceDepthClampControlFeaturesEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, depthClampControl );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceDepthClampControlFeaturesEXT const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceDepthClampControlFeaturesEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( depthClampControl == rhs.depthClampControl );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceDepthClampControlFeaturesEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType             = StructureType::ePhysicalDeviceDepthClampControlFeaturesEXT;
+    void *                              pNext             = {};
+    VULKAN_HPP_NAMESPACE::Bool32        depthClampControl = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceDepthClampControlFeaturesEXT>
+  {
+    using Type = PhysicalDeviceDepthClampControlFeaturesEXT;
+  };
+
   struct PhysicalDeviceDepthClampZeroOneFeaturesEXT
   {
     using NativeType = VkPhysicalDeviceDepthClampZeroOneFeaturesEXT;
@@ -62668,6 +65062,116 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = PhysicalDeviceDeviceGeneratedCommandsComputeFeaturesNV;
   };
 
+  struct PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT
+  {
+    using NativeType = VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceDeviceGeneratedCommandsFeaturesEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT( VULKAN_HPP_NAMESPACE::Bool32 deviceGeneratedCommands_        = {},
+                                                                           VULKAN_HPP_NAMESPACE::Bool32 dynamicGeneratedPipelineLayout_ = {},
+                                                                           void *                       pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , deviceGeneratedCommands{ deviceGeneratedCommands_ }
+      , dynamicGeneratedPipelineLayout{ dynamicGeneratedPipelineLayout_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR
+      PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT( PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT( VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT( *reinterpret_cast<PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT & operator=( PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT & operator=( VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT &
+      setDeviceGeneratedCommands( VULKAN_HPP_NAMESPACE::Bool32 deviceGeneratedCommands_ ) VULKAN_HPP_NOEXCEPT
+    {
+      deviceGeneratedCommands = deviceGeneratedCommands_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT &
+      setDynamicGeneratedPipelineLayout( VULKAN_HPP_NAMESPACE::Bool32 dynamicGeneratedPipelineLayout_ ) VULKAN_HPP_NOEXCEPT
+    {
+      dynamicGeneratedPipelineLayout = dynamicGeneratedPipelineLayout_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT *>( this );
+    }
+
+    operator VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, deviceGeneratedCommands, dynamicGeneratedPipelineLayout );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( deviceGeneratedCommands == rhs.deviceGeneratedCommands ) &&
+             ( dynamicGeneratedPipelineLayout == rhs.dynamicGeneratedPipelineLayout );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType                          = StructureType::ePhysicalDeviceDeviceGeneratedCommandsFeaturesEXT;
+    void *                              pNext                          = {};
+    VULKAN_HPP_NAMESPACE::Bool32        deviceGeneratedCommands        = {};
+    VULKAN_HPP_NAMESPACE::Bool32        dynamicGeneratedPipelineLayout = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceDeviceGeneratedCommandsFeaturesEXT>
+  {
+    using Type = PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT;
+  };
+
   struct PhysicalDeviceDeviceGeneratedCommandsFeaturesNV
   {
     using NativeType = VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV;
@@ -62765,6 +65269,161 @@ namespace VULKAN_HPP_NAMESPACE
   struct CppType<StructureType, StructureType::ePhysicalDeviceDeviceGeneratedCommandsFeaturesNV>
   {
     using Type = PhysicalDeviceDeviceGeneratedCommandsFeaturesNV;
+  };
+
+  struct PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT
+  {
+    using NativeType = VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceDeviceGeneratedCommandsPropertiesEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR
+      PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT( uint32_t                                                maxIndirectPipelineCount_              = {},
+                                                          uint32_t                                                maxIndirectShaderObjectCount_          = {},
+                                                          uint32_t                                                maxIndirectSequenceCount_              = {},
+                                                          uint32_t                                                maxIndirectCommandsTokenCount_         = {},
+                                                          uint32_t                                                maxIndirectCommandsTokenOffset_        = {},
+                                                          uint32_t                                                maxIndirectCommandsIndirectStride_     = {},
+                                                          VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagsEXT supportedIndirectCommandsInputModes_   = {},
+                                                          VULKAN_HPP_NAMESPACE::ShaderStageFlags                  supportedIndirectCommandsShaderStages_ = {},
+                                                          VULKAN_HPP_NAMESPACE::ShaderStageFlags supportedIndirectCommandsShaderStagesPipelineBinding_   = {},
+                                                          VULKAN_HPP_NAMESPACE::ShaderStageFlags supportedIndirectCommandsShaderStagesShaderBinding_     = {},
+                                                          VULKAN_HPP_NAMESPACE::Bool32           deviceGeneratedCommandsTransformFeedback_               = {},
+                                                          VULKAN_HPP_NAMESPACE::Bool32           deviceGeneratedCommandsMultiDrawIndirectCount_          = {},
+                                                          void *                                 pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , maxIndirectPipelineCount{ maxIndirectPipelineCount_ }
+      , maxIndirectShaderObjectCount{ maxIndirectShaderObjectCount_ }
+      , maxIndirectSequenceCount{ maxIndirectSequenceCount_ }
+      , maxIndirectCommandsTokenCount{ maxIndirectCommandsTokenCount_ }
+      , maxIndirectCommandsTokenOffset{ maxIndirectCommandsTokenOffset_ }
+      , maxIndirectCommandsIndirectStride{ maxIndirectCommandsIndirectStride_ }
+      , supportedIndirectCommandsInputModes{ supportedIndirectCommandsInputModes_ }
+      , supportedIndirectCommandsShaderStages{ supportedIndirectCommandsShaderStages_ }
+      , supportedIndirectCommandsShaderStagesPipelineBinding{ supportedIndirectCommandsShaderStagesPipelineBinding_ }
+      , supportedIndirectCommandsShaderStagesShaderBinding{ supportedIndirectCommandsShaderStagesShaderBinding_ }
+      , deviceGeneratedCommandsTransformFeedback{ deviceGeneratedCommandsTransformFeedback_ }
+      , deviceGeneratedCommandsMultiDrawIndirectCount{ deviceGeneratedCommandsMultiDrawIndirectCount_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR
+      PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT( PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT( VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT( *reinterpret_cast<PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT &
+      operator=( PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT & operator=( VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT const *>( &rhs );
+      return *this;
+    }
+
+    operator VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT *>( this );
+    }
+
+    operator VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
+               void * const &,
+               uint32_t const &,
+               uint32_t const &,
+               uint32_t const &,
+               uint32_t const &,
+               uint32_t const &,
+               uint32_t const &,
+               VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagsEXT const &,
+               VULKAN_HPP_NAMESPACE::ShaderStageFlags const &,
+               VULKAN_HPP_NAMESPACE::ShaderStageFlags const &,
+               VULKAN_HPP_NAMESPACE::ShaderStageFlags const &,
+               VULKAN_HPP_NAMESPACE::Bool32 const &,
+               VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType,
+                       pNext,
+                       maxIndirectPipelineCount,
+                       maxIndirectShaderObjectCount,
+                       maxIndirectSequenceCount,
+                       maxIndirectCommandsTokenCount,
+                       maxIndirectCommandsTokenOffset,
+                       maxIndirectCommandsIndirectStride,
+                       supportedIndirectCommandsInputModes,
+                       supportedIndirectCommandsShaderStages,
+                       supportedIndirectCommandsShaderStagesPipelineBinding,
+                       supportedIndirectCommandsShaderStagesShaderBinding,
+                       deviceGeneratedCommandsTransformFeedback,
+                       deviceGeneratedCommandsMultiDrawIndirectCount );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT const & ) const = default;
+#else
+    bool operator==( PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( maxIndirectPipelineCount == rhs.maxIndirectPipelineCount ) &&
+             ( maxIndirectShaderObjectCount == rhs.maxIndirectShaderObjectCount ) && ( maxIndirectSequenceCount == rhs.maxIndirectSequenceCount ) &&
+             ( maxIndirectCommandsTokenCount == rhs.maxIndirectCommandsTokenCount ) &&
+             ( maxIndirectCommandsTokenOffset == rhs.maxIndirectCommandsTokenOffset ) &&
+             ( maxIndirectCommandsIndirectStride == rhs.maxIndirectCommandsIndirectStride ) &&
+             ( supportedIndirectCommandsInputModes == rhs.supportedIndirectCommandsInputModes ) &&
+             ( supportedIndirectCommandsShaderStages == rhs.supportedIndirectCommandsShaderStages ) &&
+             ( supportedIndirectCommandsShaderStagesPipelineBinding == rhs.supportedIndirectCommandsShaderStagesPipelineBinding ) &&
+             ( supportedIndirectCommandsShaderStagesShaderBinding == rhs.supportedIndirectCommandsShaderStagesShaderBinding ) &&
+             ( deviceGeneratedCommandsTransformFeedback == rhs.deviceGeneratedCommandsTransformFeedback ) &&
+             ( deviceGeneratedCommandsMultiDrawIndirectCount == rhs.deviceGeneratedCommandsMultiDrawIndirectCount );
+#  endif
+    }
+
+    bool operator!=( PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType                     sType                          = StructureType::ePhysicalDeviceDeviceGeneratedCommandsPropertiesEXT;
+    void *                                                  pNext                          = {};
+    uint32_t                                                maxIndirectPipelineCount       = {};
+    uint32_t                                                maxIndirectShaderObjectCount   = {};
+    uint32_t                                                maxIndirectSequenceCount       = {};
+    uint32_t                                                maxIndirectCommandsTokenCount  = {};
+    uint32_t                                                maxIndirectCommandsTokenOffset = {};
+    uint32_t                                                maxIndirectCommandsIndirectStride                    = {};
+    VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagsEXT supportedIndirectCommandsInputModes                  = {};
+    VULKAN_HPP_NAMESPACE::ShaderStageFlags                  supportedIndirectCommandsShaderStages                = {};
+    VULKAN_HPP_NAMESPACE::ShaderStageFlags                  supportedIndirectCommandsShaderStagesPipelineBinding = {};
+    VULKAN_HPP_NAMESPACE::ShaderStageFlags                  supportedIndirectCommandsShaderStagesShaderBinding   = {};
+    VULKAN_HPP_NAMESPACE::Bool32                            deviceGeneratedCommandsTransformFeedback             = {};
+    VULKAN_HPP_NAMESPACE::Bool32                            deviceGeneratedCommandsMultiDrawIndirectCount        = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDeviceDeviceGeneratedCommandsPropertiesEXT>
+  {
+    using Type = PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT;
   };
 
   struct PhysicalDeviceDeviceGeneratedCommandsPropertiesNV
@@ -96561,98 +99220,6 @@ namespace VULKAN_HPP_NAMESPACE
 
   using PipelineInfoEXT = PipelineInfoKHR;
 
-  struct PushConstantRange
-  {
-    using NativeType = VkPushConstantRange;
-
-#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
-    VULKAN_HPP_CONSTEXPR
-      PushConstantRange( VULKAN_HPP_NAMESPACE::ShaderStageFlags stageFlags_ = {}, uint32_t offset_ = {}, uint32_t size_ = {} ) VULKAN_HPP_NOEXCEPT
-      : stageFlags{ stageFlags_ }
-      , offset{ offset_ }
-      , size{ size_ }
-    {
-    }
-
-    VULKAN_HPP_CONSTEXPR PushConstantRange( PushConstantRange const & rhs ) VULKAN_HPP_NOEXCEPT = default;
-
-    PushConstantRange( VkPushConstantRange const & rhs ) VULKAN_HPP_NOEXCEPT : PushConstantRange( *reinterpret_cast<PushConstantRange const *>( &rhs ) ) {}
-
-    PushConstantRange & operator=( PushConstantRange const & rhs ) VULKAN_HPP_NOEXCEPT = default;
-#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
-
-    PushConstantRange & operator=( VkPushConstantRange const & rhs ) VULKAN_HPP_NOEXCEPT
-    {
-      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PushConstantRange const *>( &rhs );
-      return *this;
-    }
-
-#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 PushConstantRange & setStageFlags( VULKAN_HPP_NAMESPACE::ShaderStageFlags stageFlags_ ) VULKAN_HPP_NOEXCEPT
-    {
-      stageFlags = stageFlags_;
-      return *this;
-    }
-
-    VULKAN_HPP_CONSTEXPR_14 PushConstantRange & setOffset( uint32_t offset_ ) VULKAN_HPP_NOEXCEPT
-    {
-      offset = offset_;
-      return *this;
-    }
-
-    VULKAN_HPP_CONSTEXPR_14 PushConstantRange & setSize( uint32_t size_ ) VULKAN_HPP_NOEXCEPT
-    {
-      size = size_;
-      return *this;
-    }
-#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
-
-    operator VkPushConstantRange const &() const VULKAN_HPP_NOEXCEPT
-    {
-      return *reinterpret_cast<const VkPushConstantRange *>( this );
-    }
-
-    operator VkPushConstantRange &() VULKAN_HPP_NOEXCEPT
-    {
-      return *reinterpret_cast<VkPushConstantRange *>( this );
-    }
-
-#if defined( VULKAN_HPP_USE_REFLECT )
-#  if 14 <= VULKAN_HPP_CPP_VERSION
-    auto
-#  else
-    std::tuple<VULKAN_HPP_NAMESPACE::ShaderStageFlags const &, uint32_t const &, uint32_t const &>
-#  endif
-      reflect() const VULKAN_HPP_NOEXCEPT
-    {
-      return std::tie( stageFlags, offset, size );
-    }
-#endif
-
-#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
-    auto operator<=>( PushConstantRange const & ) const = default;
-#else
-    bool operator==( PushConstantRange const & rhs ) const VULKAN_HPP_NOEXCEPT
-    {
-#  if defined( VULKAN_HPP_USE_REFLECT )
-      return this->reflect() == rhs.reflect();
-#  else
-      return ( stageFlags == rhs.stageFlags ) && ( offset == rhs.offset ) && ( size == rhs.size );
-#  endif
-    }
-
-    bool operator!=( PushConstantRange const & rhs ) const VULKAN_HPP_NOEXCEPT
-    {
-      return !operator==( rhs );
-    }
-#endif
-
-  public:
-    VULKAN_HPP_NAMESPACE::ShaderStageFlags stageFlags = {};
-    uint32_t                               offset     = {};
-    uint32_t                               size       = {};
-  };
-
   struct PipelineLayoutCreateInfo
   {
     using NativeType = VkPipelineLayoutCreateInfo;
@@ -98920,6 +101487,119 @@ namespace VULKAN_HPP_NAMESPACE
   struct CppType<StructureType, StructureType::ePipelineViewportCoarseSampleOrderStateCreateInfoNV>
   {
     using Type = PipelineViewportCoarseSampleOrderStateCreateInfoNV;
+  };
+
+  struct PipelineViewportDepthClampControlCreateInfoEXT
+  {
+    using NativeType = VkPipelineViewportDepthClampControlCreateInfoEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePipelineViewportDepthClampControlCreateInfoEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PipelineViewportDepthClampControlCreateInfoEXT(
+      VULKAN_HPP_NAMESPACE::DepthClampModeEXT          depthClampMode_   = VULKAN_HPP_NAMESPACE::DepthClampModeEXT::eViewportRange,
+      const VULKAN_HPP_NAMESPACE::DepthClampRangeEXT * pDepthClampRange_ = {},
+      const void *                                     pNext_            = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , depthClampMode{ depthClampMode_ }
+      , pDepthClampRange{ pDepthClampRange_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR
+      PipelineViewportDepthClampControlCreateInfoEXT( PipelineViewportDepthClampControlCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PipelineViewportDepthClampControlCreateInfoEXT( VkPipelineViewportDepthClampControlCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PipelineViewportDepthClampControlCreateInfoEXT( *reinterpret_cast<PipelineViewportDepthClampControlCreateInfoEXT const *>( &rhs ) )
+    {
+    }
+
+    PipelineViewportDepthClampControlCreateInfoEXT & operator=( PipelineViewportDepthClampControlCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PipelineViewportDepthClampControlCreateInfoEXT & operator=( VkPipelineViewportDepthClampControlCreateInfoEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PipelineViewportDepthClampControlCreateInfoEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PipelineViewportDepthClampControlCreateInfoEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PipelineViewportDepthClampControlCreateInfoEXT &
+      setDepthClampMode( VULKAN_HPP_NAMESPACE::DepthClampModeEXT depthClampMode_ ) VULKAN_HPP_NOEXCEPT
+    {
+      depthClampMode = depthClampMode_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PipelineViewportDepthClampControlCreateInfoEXT &
+      setPDepthClampRange( const VULKAN_HPP_NAMESPACE::DepthClampRangeEXT * pDepthClampRange_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pDepthClampRange = pDepthClampRange_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPipelineViewportDepthClampControlCreateInfoEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPipelineViewportDepthClampControlCreateInfoEXT *>( this );
+    }
+
+    operator VkPipelineViewportDepthClampControlCreateInfoEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPipelineViewportDepthClampControlCreateInfoEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
+               const void * const &,
+               VULKAN_HPP_NAMESPACE::DepthClampModeEXT const &,
+               const VULKAN_HPP_NAMESPACE::DepthClampRangeEXT * const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, depthClampMode, pDepthClampRange );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PipelineViewportDepthClampControlCreateInfoEXT const & ) const = default;
+#else
+    bool operator==( PipelineViewportDepthClampControlCreateInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( depthClampMode == rhs.depthClampMode ) && ( pDepthClampRange == rhs.pDepthClampRange );
+#  endif
+    }
+
+    bool operator!=( PipelineViewportDepthClampControlCreateInfoEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType              sType            = StructureType::ePipelineViewportDepthClampControlCreateInfoEXT;
+    const void *                                     pNext            = {};
+    VULKAN_HPP_NAMESPACE::DepthClampModeEXT          depthClampMode   = VULKAN_HPP_NAMESPACE::DepthClampModeEXT::eViewportRange;
+    const VULKAN_HPP_NAMESPACE::DepthClampRangeEXT * pDepthClampRange = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePipelineViewportDepthClampControlCreateInfoEXT>
+  {
+    using Type = PipelineViewportDepthClampControlCreateInfoEXT;
   };
 
   struct PipelineViewportDepthClipControlCreateInfoEXT
@@ -128670,6 +131350,218 @@ namespace VULKAN_HPP_NAMESPACE
   };
 
   using WriteDescriptorSetInlineUniformBlockEXT = WriteDescriptorSetInlineUniformBlock;
+
+  struct WriteIndirectExecutionSetPipelineEXT
+  {
+    using NativeType = VkWriteIndirectExecutionSetPipelineEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eWriteIndirectExecutionSetPipelineEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR WriteIndirectExecutionSetPipelineEXT( uint32_t                       index_    = {},
+                                                               VULKAN_HPP_NAMESPACE::Pipeline pipeline_ = {},
+                                                               const void *                   pNext_    = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , index{ index_ }
+      , pipeline{ pipeline_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR WriteIndirectExecutionSetPipelineEXT( WriteIndirectExecutionSetPipelineEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    WriteIndirectExecutionSetPipelineEXT( VkWriteIndirectExecutionSetPipelineEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : WriteIndirectExecutionSetPipelineEXT( *reinterpret_cast<WriteIndirectExecutionSetPipelineEXT const *>( &rhs ) )
+    {
+    }
+
+    WriteIndirectExecutionSetPipelineEXT & operator=( WriteIndirectExecutionSetPipelineEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    WriteIndirectExecutionSetPipelineEXT & operator=( VkWriteIndirectExecutionSetPipelineEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::WriteIndirectExecutionSetPipelineEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 WriteIndirectExecutionSetPipelineEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 WriteIndirectExecutionSetPipelineEXT & setIndex( uint32_t index_ ) VULKAN_HPP_NOEXCEPT
+    {
+      index = index_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 WriteIndirectExecutionSetPipelineEXT & setPipeline( VULKAN_HPP_NAMESPACE::Pipeline pipeline_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pipeline = pipeline_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkWriteIndirectExecutionSetPipelineEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkWriteIndirectExecutionSetPipelineEXT *>( this );
+    }
+
+    operator VkWriteIndirectExecutionSetPipelineEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkWriteIndirectExecutionSetPipelineEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, const void * const &, uint32_t const &, VULKAN_HPP_NAMESPACE::Pipeline const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, index, pipeline );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( WriteIndirectExecutionSetPipelineEXT const & ) const = default;
+#else
+    bool operator==( WriteIndirectExecutionSetPipelineEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( index == rhs.index ) && ( pipeline == rhs.pipeline );
+#  endif
+    }
+
+    bool operator!=( WriteIndirectExecutionSetPipelineEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType    = StructureType::eWriteIndirectExecutionSetPipelineEXT;
+    const void *                        pNext    = {};
+    uint32_t                            index    = {};
+    VULKAN_HPP_NAMESPACE::Pipeline      pipeline = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eWriteIndirectExecutionSetPipelineEXT>
+  {
+    using Type = WriteIndirectExecutionSetPipelineEXT;
+  };
+
+  struct WriteIndirectExecutionSetShaderEXT
+  {
+    using NativeType = VkWriteIndirectExecutionSetShaderEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eWriteIndirectExecutionSetShaderEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR WriteIndirectExecutionSetShaderEXT( uint32_t                        index_  = {},
+                                                             VULKAN_HPP_NAMESPACE::ShaderEXT shader_ = {},
+                                                             const void *                    pNext_  = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , index{ index_ }
+      , shader{ shader_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR WriteIndirectExecutionSetShaderEXT( WriteIndirectExecutionSetShaderEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    WriteIndirectExecutionSetShaderEXT( VkWriteIndirectExecutionSetShaderEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : WriteIndirectExecutionSetShaderEXT( *reinterpret_cast<WriteIndirectExecutionSetShaderEXT const *>( &rhs ) )
+    {
+    }
+
+    WriteIndirectExecutionSetShaderEXT & operator=( WriteIndirectExecutionSetShaderEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    WriteIndirectExecutionSetShaderEXT & operator=( VkWriteIndirectExecutionSetShaderEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::WriteIndirectExecutionSetShaderEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 WriteIndirectExecutionSetShaderEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 WriteIndirectExecutionSetShaderEXT & setIndex( uint32_t index_ ) VULKAN_HPP_NOEXCEPT
+    {
+      index = index_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 WriteIndirectExecutionSetShaderEXT & setShader( VULKAN_HPP_NAMESPACE::ShaderEXT shader_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shader = shader_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkWriteIndirectExecutionSetShaderEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkWriteIndirectExecutionSetShaderEXT *>( this );
+    }
+
+    operator VkWriteIndirectExecutionSetShaderEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkWriteIndirectExecutionSetShaderEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, const void * const &, uint32_t const &, VULKAN_HPP_NAMESPACE::ShaderEXT const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, index, shader );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( WriteIndirectExecutionSetShaderEXT const & ) const = default;
+#else
+    bool operator==( WriteIndirectExecutionSetShaderEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( index == rhs.index ) && ( shader == rhs.shader );
+#  endif
+    }
+
+    bool operator!=( WriteIndirectExecutionSetShaderEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType  = StructureType::eWriteIndirectExecutionSetShaderEXT;
+    const void *                        pNext  = {};
+    uint32_t                            index  = {};
+    VULKAN_HPP_NAMESPACE::ShaderEXT     shader = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::eWriteIndirectExecutionSetShaderEXT>
+  {
+    using Type = WriteIndirectExecutionSetShaderEXT;
+  };
 
 #if defined( VK_USE_PLATFORM_XCB_KHR )
   struct XcbSurfaceCreateInfoKHR
