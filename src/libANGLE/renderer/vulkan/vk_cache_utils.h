@@ -40,6 +40,7 @@ class UpdateDescriptorSetsBuilder;
 // - Set 1 contains all textures (including texture buffers).
 // - Set 2 contains all other shader resources, such as uniform and storage blocks, atomic counter
 //   buffers, images and image buffers.
+// - Set 3 reserved for OpenCL
 
 enum class DescriptorSetIndex : uint32_t
 {
@@ -48,7 +49,13 @@ enum class DescriptorSetIndex : uint32_t
     Texture        = 1,         // Textures set index
     ShaderResource = 2,         // Other shader resources set index
 
-    InvalidEnum = 3,
+    // CL specific naming for set indices
+    LiteralSampler  = 0,
+    KernelArguments = 1,
+    ModuleConstants = 2,
+    Printf          = 3,
+
+    InvalidEnum = 4,
     EnumCount   = InvalidEnum,
 };
 
@@ -442,10 +449,7 @@ struct PackedAttribDesc final
 {
     uint8_t format;
     uint8_t divisor;
-
-    // Desktop drivers support
     uint16_t offset : kAttributeOffsetMaxBits;
-
     uint16_t compressed : 1;
 };
 
@@ -1725,8 +1729,6 @@ class WriteDescriptorDescs
     size_t getTotalDescriptorCount() const { return mCurrentInfoIndex; }
     size_t getDynamicDescriptorSetCount() const { return mDynamicDescriptorSetCount; }
 
-    void streamOut(std::ostream &os) const;
-
   private:
     bool hasWriteDescAtIndex(uint32_t bindingIndex) const
     {
@@ -1749,6 +1751,7 @@ class WriteDescriptorDescs
     size_t mDynamicDescriptorSetCount = 0;
     uint32_t mCurrentInfoIndex        = 0;
 };
+std::ostream &operator<<(std::ostream &os, const WriteDescriptorDescs &desc);
 
 class DescriptorSetDesc
 {
@@ -1766,6 +1769,7 @@ class DescriptorSetDesc
 
     size_t hash() const;
 
+    size_t size() const { return mDescriptorInfos.size(); }
     void resize(size_t count) { mDescriptorInfos.resize(count); }
 
     size_t getKeySizeBytes() const { return mDescriptorInfos.size() * sizeof(DescriptorInfoDesc); }
@@ -1782,18 +1786,22 @@ class DescriptorSetDesc
         return mDescriptorInfos[infoDescIndex];
     }
 
+    const DescriptorInfoDesc &getInfoDesc(uint32_t infoDescIndex) const
+    {
+        return mDescriptorInfos[infoDescIndex];
+    }
+
     void updateDescriptorSet(Renderer *renderer,
                              const WriteDescriptorDescs &writeDescriptorDescs,
                              UpdateDescriptorSetsBuilder *updateBuilder,
                              const DescriptorDescHandles *handles,
                              VkDescriptorSet descriptorSet) const;
 
-    void streamOut(std::ostream &os) const;
-
   private:
     // After a preliminary minimum size, use heap memory.
     angle::FastVector<DescriptorInfoDesc, kFastDescriptorSetDescLimit> mDescriptorInfos;
 };
+std::ostream &operator<<(std::ostream &os, const DescriptorSetDesc &desc);
 
 class DescriptorPoolHelper;
 using RefCountedDescriptorPoolHelper = RefCounted<DescriptorPoolHelper>;
@@ -2130,9 +2138,18 @@ class SharedCacheKeyManager
     void assertAllEntriesDestroyed();
 
   private:
+    size_t updateEmptySlotBits();
+
     // Tracks an array of cache keys with refcounting. Note this owns one refcount of
     // SharedCacheKeyT object.
-    std::vector<SharedCacheKeyT> mSharedCacheKeys;
+    std::deque<SharedCacheKeyT> mSharedCacheKeys;
+
+    // To speed up searching for available slot in the mSharedCacheKeys, we use bitset to track
+    // available (i.e, empty) slot
+    static constexpr size_t kInvalidSlot  = -1;
+    static constexpr size_t kSlotBitCount = 64;
+    using SlotBitMask                     = angle::BitSet64<kSlotBitCount>;
+    std::vector<SlotBitMask> mEmptySlotBits;
 };
 
 using FramebufferCacheManager   = SharedCacheKeyManager<SharedFramebufferCacheKey>;
