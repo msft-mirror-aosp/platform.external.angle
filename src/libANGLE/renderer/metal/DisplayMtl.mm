@@ -990,6 +990,8 @@ void DisplayMtl::initializeExtensions() const
 
     mNativeExtensions.texture3DOES = true;
 
+    mNativeExtensions.textureShadowLodEXT = true;
+
     mNativeExtensions.sampleVariablesOES = true;
 
     if (@available(macOS 11.0, *))
@@ -1211,7 +1213,6 @@ void DisplayMtl::initializeFeatures()
     // AMD does not support sample_compare_grad
     ANGLE_FEATURE_CONDITION((&mFeatures), allowSamplerCompareGradient,
                             supportsEitherGPUFamily(3, 1) && !isAMD());
-    ANGLE_FEATURE_CONDITION((&mFeatures), allowSamplerCompareLod, supportsEitherGPUFamily(3, 1));
 
     // http://anglebug.com/40644746
     // Stencil blit shader is not compiled on Intel & NVIDIA, need investigation.
