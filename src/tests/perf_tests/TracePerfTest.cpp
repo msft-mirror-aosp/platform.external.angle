@@ -20,6 +20,10 @@
 #include "util/png_utils.h"
 #include "util/test_utils.h"
 
+#if defined(ANGLE_PLATFORM_ANDROID)
+#    include "util/android/AndroidWindow.h"
+#endif
+
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
 
@@ -219,9 +223,12 @@ class TracePerfTest : public ANGLERenderTest
     std::vector<TimeSample> mTimeline;
 
     bool mUseTimestampQueries                                           = false;
+    // Note: more than 2 offscreen buffers can cause races, surface is double buffered so real-world
+    // apps can rely on (now broken) assumptions about GPU completion of a previous frame
     static constexpr int mMaxOffscreenBufferCount                       = 2;
     std::array<GLuint, mMaxOffscreenBufferCount> mOffscreenFramebuffers = {0, 0};
     std::array<GLuint, mMaxOffscreenBufferCount> mOffscreenTextures     = {0, 0};
+    std::array<GLsync, mMaxOffscreenBufferCount> mOffscreenSyncs        = {0, 0};
     GLuint mOffscreenDepthStencil                                       = 0;
     int mWindowWidth                                                    = 0;
     int mWindowHeight                                                   = 0;
@@ -925,17 +932,6 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
 
     if (traceNameIs("cod_mobile"))
     {
-        // TODO: http://anglebug.com/42263541 Vulkan: GL_EXT_color_buffer_float not supported on
-        // Pixel 2 The COD:Mobile trace uses a framebuffer attachment with:
-        //   format = GL_RGB
-        //   type = GL_UNSIGNED_INT_10F_11F_11F_REV
-        // That combination is only renderable if GL_EXT_color_buffer_float is supported.
-        // It happens to not be supported on Pixel 2's Vulkan driver.
-        addExtensionPrerequisite("GL_EXT_color_buffer_float");
-
-        // TODO: http://anglebug.com/40096702 This extension is missing on older Intel drivers.
-        addExtensionPrerequisite("GL_OES_EGL_image_external");
-
         if (isIntelWin)
         {
             skipTest("http://anglebug.com/42265065 Flaky on Intel/windows");
@@ -1177,7 +1173,7 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
 
     if (traceNameIs("hill_climb_racing") || traceNameIs("dead_trigger_2") ||
         traceNameIs("disney_mirrorverse") || traceNameIs("cut_the_rope") ||
-        traceNameIs("geometry_dash"))
+        traceNameIs("geometry_dash") || traceNameIs("critical_ops"))
     {
         if (IsAndroid() && (IsPixel4() || IsPixel4XL()) && !mParams->isANGLE())
         {
@@ -1547,6 +1543,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
             skipTest("http://anglebug.com/42266193 Renders incorrectly on Nvidia Windows");
         }
 
+        if (isNVIDIALinuxANGLE)
+        {
+            skipTest("https://anglebug.com/362728695 Renders incorrectly on Linux/NVIDIA");
+        }
+
         addExtensionPrerequisite("GL_EXT_texture_buffer");
         addExtensionPrerequisite("GL_EXT_texture_cube_map_array");
     }
@@ -1800,13 +1801,47 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         addIntegerPrerequisite(GL_MAX_TEXTURE_SIZE, 11016);
     }
 
+    if (traceNameIs("passmark_simple"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("https://anglebug.com/42267118 fails on newer OS/driver");
+        }
+        addExtensionPrerequisite("GL_OES_framebuffer_object");
+    }
+
+    if (traceNameIs("passmark_complex"))
+    {
+        if (isIntelLinuxNative)
+        {
+            skipTest("b/362801312 eglCreateContext fails on Mesa 23.2.1");
+        }
+    }
+
+    if (traceNameIs("critical_ops"))
+    {
+        if (isNVIDIALinuxANGLE || isNVIDIAWinANGLE)
+        {
+            skipTest("https://anglebug.com/365524876 Renders incorrectly on Nvidia");
+        }
+    }
+
+    if (traceNameIs("dota_underlords"))
+    {
+        if (isNVIDIALinuxANGLE)
+        {
+            skipTest("https://anglebug.com/369533074 Flaky on Linux Nvidia");
+        }
+    }
+
     if (IsGalaxyS22())
     {
         if (traceNameIs("cod_mobile") || traceNameIs("dota_underlords") ||
             traceNameIs("marvel_snap") || traceNameIs("nier_reincarnation") ||
             traceNameIs("pokemon_unite") || traceNameIs("slingshot_test1") ||
             traceNameIs("slingshot_test2") || traceNameIs("supertuxkart") ||
-            traceNameIs("the_witcher_monster_slayer") || traceNameIs("warcraft_rumble"))
+            traceNameIs("the_witcher_monster_slayer") || traceNameIs("warcraft_rumble") ||
+            traceNameIs("critical_ops"))
         {
             skipTest("https://issuetracker.google.com/267953710 Trace needs triage on Galaxy S22");
         }
@@ -1878,9 +1913,14 @@ void TracePerfTest::initializeBenchmark()
         return;
     }
 
+    std::string baseDir = "";
+#if defined(ANGLE_TRACE_EXTERNAL_BINARIES)
+    baseDir += AndroidWindow::GetApplicationDirectory() + "/angle_traces/";
+#endif
+
     if (gTraceInterpreter)
     {
-        mTraceReplay.reset(new TraceLibrary("angle_trace_interpreter", traceInfo));
+        mTraceReplay.reset(new TraceLibrary("angle_trace_interpreter", traceInfo, baseDir));
         if (strcmp(gTraceInterpreter, "gz") == 0)
         {
             std::string traceGzPath = FindTraceGzPath(traceInfo.name);
@@ -1897,7 +1937,7 @@ void TracePerfTest::initializeBenchmark()
         std::stringstream traceNameStr;
         traceNameStr << "angle_restricted_traces_" << traceInfo.name;
         std::string traceName = traceNameStr.str();
-        mTraceReplay.reset(new TraceLibrary(traceNameStr.str(), traceInfo));
+        mTraceReplay.reset(new TraceLibrary(traceNameStr.str(), traceInfo, baseDir));
     }
 
     LoadTraceEGL(TraceLoadProc);
@@ -2065,6 +2105,19 @@ void TracePerfTest::drawBenchmark()
         // ping pong between them for each frame.
         glBindFramebuffer(GL_FRAMEBUFFER,
                           mOffscreenFramebuffers[mTotalFrameCount % mMaxOffscreenBufferCount]);
+
+        GLsync sync = mOffscreenSyncs[mTotalFrameCount % mMaxOffscreenBufferCount];
+        if (sync)
+        {
+            constexpr GLuint64 kTimeout = 2'000'000'000;  // 2 seconds
+            GLenum result = glClientWaitSync(sync, GL_SYNC_FLUSH_COMMANDS_BIT, kTimeout);
+            if (result != GL_CONDITION_SATISFIED && result != GL_ALREADY_SIGNALED)
+            {
+                failTest(std::string("glClientWaitSync unexpected result: ") +
+                         std::to_string(result));
+            }
+            glDeleteSync(sync);
+        }
     }
 
     char frameName[32];
@@ -2072,6 +2125,7 @@ void TracePerfTest::drawBenchmark()
     beginInternalTraceEvent(frameName);
 
     startGpuTimer();
+    atraceCounter("TraceFrameIndex", mCurrentFrame);
     mTraceReplay->replayFrame(mCurrentFrame);
     stopGpuTimer();
 
@@ -2092,9 +2146,8 @@ void TracePerfTest::drawBenchmark()
             glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &currentReadFBO);
 
             glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-            glBindFramebuffer(
-                GL_READ_FRAMEBUFFER,
-                mOffscreenFramebuffers[mOffscreenFrameCount % mMaxOffscreenBufferCount]);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER,
+                              mOffscreenFramebuffers[mTotalFrameCount % mMaxOffscreenBufferCount]);
 
             uint32_t frameX  = (mOffscreenFrameCount % kFramesPerXY) % kFramesPerX;
             uint32_t frameY  = (mOffscreenFrameCount % kFramesPerXY) / kFramesPerX;
@@ -2108,6 +2161,9 @@ void TracePerfTest::drawBenchmark()
             {
                 glDisable(GL_SCISSOR_TEST);
             }
+
+            mOffscreenSyncs[mTotalFrameCount % mMaxOffscreenBufferCount] =
+                glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 
             glBlitFramebuffer(0, 0, mWindowWidth, mWindowHeight, windowX, windowY,
                               windowX + kOffscreenFrameWidth, windowY + kOffscreenFrameHeight,
@@ -2649,6 +2705,8 @@ void TracePerfTest::saveScreenshot(const std::string &screenshotName)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+    glFinish();
+
     glReadPixels(0, 0, mTestParams.windowWidth, mTestParams.windowHeight, GL_RGBA, GL_UNSIGNED_BYTE,
                  pixelData.data());
 
@@ -2694,7 +2752,7 @@ void RegisterTraceTests()
     char rootTracePath[kMaxPath] = {};
     if (!FindRootTraceTestDataPath(rootTracePath, kMaxPath))
     {
-        ERR() << "Unable to find trace folder.";
+        ERR() << "Unable to find trace folder " << rootTracePath;
         return;
     }
 

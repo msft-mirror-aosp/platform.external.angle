@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 358
+#define ANGLE_SH_VERSION 363
 
 enum ShShaderSpec
 {
@@ -40,9 +40,6 @@ enum ShShaderSpec
     SH_WEBGL3_SPEC,
 
     SH_GLES3_2_SPEC,
-
-    SH_GL_CORE_SPEC,
-    SH_GL_COMPATIBILITY_SPEC,
 };
 
 enum ShShaderOutput
@@ -67,7 +64,6 @@ enum ShShaderOutput
     // Prefer using these to specify HLSL output type:
     SH_HLSL_3_0_OUTPUT       = 0x8B48,  // D3D 9
     SH_HLSL_4_1_OUTPUT       = 0x8B49,  // D3D 11
-    SH_HLSL_4_0_FL9_3_OUTPUT = 0x8B4A,  // D3D 11 feature level 9_3
 
     // Output SPIR-V for the Vulkan backend.
     SH_SPIRV_VULKAN_OUTPUT = 0x8B4B,
@@ -104,7 +100,6 @@ enum class ShPixelLocalStorageType : uint8_t
     NotSupported,
     ImageLoadStore,
     FramebufferFetch,
-    PixelLocalStorageEXT,  // GL_EXT_shader_pixel_local_storage.
 };
 
 // For ANGLE_shader_pixel_local_storage_coherent.
@@ -455,6 +450,9 @@ struct ShCompileOptions
     //
     uint64_t rejectWebglShadersWithUndefinedBehavior : 1;
 
+    // Emulate r32f image with an r32ui image
+    uint64_t emulateR32fImageAtomicExchange : 1;
+
     ShCompileOptionsMetal metal;
     ShPixelLocalStorageOptions pls;
 };
@@ -523,6 +521,7 @@ struct ShBuiltInResources
     int APPLE_clip_distance;
     int OES_texture_cube_map_array;
     int EXT_texture_cube_map_array;
+    int EXT_texture_shadow_lod;
     int EXT_shadow_samplers;
     int OES_shader_multisample_interpolation;
     int OES_shader_image_atomic;
@@ -938,14 +937,6 @@ uint32_t GetAdvancedBlendEquations(const ShHandle handle);
 inline bool IsWebGLBasedSpec(ShShaderSpec spec)
 {
     return (spec == SH_WEBGL_SPEC || spec == SH_WEBGL2_SPEC || spec == SH_WEBGL3_SPEC);
-}
-
-//
-// Helper function to identify DesktopGL specs
-//
-inline bool IsDesktopGLSpec(ShShaderSpec spec)
-{
-    return spec == SH_GL_CORE_SPEC || spec == SH_GL_COMPATIBILITY_SPEC;
 }
 
 // Can't prefix with just _ because then we might introduce a double underscore, which is not safe

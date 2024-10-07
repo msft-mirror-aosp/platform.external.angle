@@ -38,6 +38,7 @@
 #define _COMPILER_INTERFACE_INCLUDED_
 
 #include "../Include/ResourceLimits.h"
+#include "../Include/visibility.h"
 #include "../MachineIndependent/Versions.h"
 
 #include <cstring>
@@ -47,22 +48,6 @@
     #define C_DECL __cdecl
 #else
     #define C_DECL
-#endif
-
-#ifdef GLSLANG_IS_SHARED_LIBRARY
-    #ifdef _WIN32
-        #ifdef GLSLANG_EXPORTING
-            #define GLSLANG_EXPORT __declspec(dllexport)
-        #else
-            #define GLSLANG_EXPORT __declspec(dllimport)
-        #endif
-    #elif __GNUC__ >= 4
-        #define GLSLANG_EXPORT __attribute__((visibility("default")))
-    #endif
-#endif // GLSLANG_IS_SHARED_LIBRARY
-
-#ifndef GLSLANG_EXPORT
-#define GLSLANG_EXPORT
 #endif
 
 //
@@ -187,6 +172,21 @@ typedef enum {
     EShTargetSpv_1_6 = (1 << 16) | (6 << 8),          // SPIR-V 1.6
     LAST_ELEMENT_MARKER(EShTargetLanguageVersionCount = 7),
 } EShTargetLanguageVersion;
+
+//
+// Following are a series of helper enums for managing layouts and qualifiers,
+// used for TPublicType, TType, others.
+//
+
+enum TLayoutPacking {
+    ElpNone,
+    ElpShared, // default, but different than saying nothing
+    ElpStd140,
+    ElpStd430,
+    ElpPacked,
+    ElpScalar,
+    ElpCount // If expanding, see bitfield width below
+};
 
 struct TInputLanguage {
     EShSource languageFamily; // redundant information with other input, this one overrides when not EShSourceNone
@@ -415,6 +415,7 @@ GLSLANG_EXPORT int GetKhronosToolId();
 class TIntermediate;
 class TProgram;
 class TPoolAllocator;
+class TIoMapResolver;
 
 // Call this exactly once per process before using anything else
 GLSLANG_EXPORT bool InitializeProcess();
@@ -853,6 +854,20 @@ public:
     virtual void addStage(EShLanguage stage, TIntermediate& stageIntermediate) = 0;
 };
 
+// I/O mapper
+class TIoMapper {
+public:
+    TIoMapper() {}
+    virtual ~TIoMapper() {}
+    // grow the reflection stage by stage
+    bool virtual addStage(EShLanguage, TIntermediate&, TInfoSink&, TIoMapResolver*);
+    bool virtual doMap(TIoMapResolver*, TInfoSink&) { return true; }
+    bool virtual setAutoPushConstantBlock(const char*, unsigned int, TLayoutPacking) { return false; }
+};
+
+// Get the default GLSL IO mapper
+GLSLANG_EXPORT TIoMapper* GetGlslIoMapper();
+
 // Make one TProgram per set of shaders that will get linked together.  Add all
 // the shaders that are to be linked together.  After calling shader.parse()
 // for all shaders, call link().
@@ -960,6 +975,10 @@ public:
     const TType *getAttributeTType(int index) const    { return getPipeInput(index).getType(); }
 
     GLSLANG_EXPORT void dumpReflection();
+
+    // Get the IO resolver to use for mapIO
+    GLSLANG_EXPORT TIoMapResolver* getGlslIoResolver(EShLanguage stage);
+
     // I/O mapping: apply base offsets and map live unbound variables
     // If resolver is not provided it uses the previous approach
     // and respects auto assignment and offsets.

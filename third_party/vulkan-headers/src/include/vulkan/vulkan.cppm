@@ -10,6 +10,12 @@
 
 module;
 
+#include <vulkan/vulkan_hpp_macros.hpp>
+
+#if defined( __cpp_lib_modules )
+#  define VULKAN_HPP_ENABLE_STD_MODULE
+#endif
+
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_extension_inspection.hpp>
 #include <vulkan/vulkan_format_traits.hpp>
@@ -879,6 +885,17 @@ export namespace VULKAN_HPP_NAMESPACE
   //=== VK_KHR_maintenance7 ===
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceLayeredApiKHR;
 
+  //=== VK_EXT_device_generated_commands ===
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagBitsEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsInputModeFlagsEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutUsageFlagBitsEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutUsageFlagsEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsTokenTypeEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoTypeEXT;
+
+  //=== VK_EXT_depth_clamp_control ===
+  using VULKAN_HPP_NAMESPACE::DepthClampModeEXT;
+
   //=========================
   //=== Index Type Traits ===
   //=========================
@@ -941,13 +958,11 @@ export namespace VULKAN_HPP_NAMESPACE
 
   using VULKAN_HPP_NAMESPACE::CompressionExhaustedEXTError;
   using VULKAN_HPP_NAMESPACE::InvalidVideoStdParametersKHRError;
+  using VULKAN_HPP_NAMESPACE::NotEnoughSpaceKHRError;
 #endif /*VULKAN_HPP_NO_EXCEPTIONS*/
 
   using VULKAN_HPP_NAMESPACE::ResultValue;
   using VULKAN_HPP_NAMESPACE::ResultValueType;
-  using VULKAN_HPP_NAMESPACE::detail::createResultValueType;
-  using VULKAN_HPP_NAMESPACE::detail::ignore;
-  using VULKAN_HPP_NAMESPACE::detail::resultCheck;
 
   //===========================
   //=== CONSTEXPR CONSTANTs ===
@@ -2402,6 +2417,11 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::EXTShaderObjectExtensionName;
   using VULKAN_HPP_NAMESPACE::EXTShaderObjectSpecVersion;
 
+  //=== VK_KHR_pipeline_binary ===
+  using VULKAN_HPP_NAMESPACE::KHRPipelineBinaryExtensionName;
+  using VULKAN_HPP_NAMESPACE::KHRPipelineBinarySpecVersion;
+  using VULKAN_HPP_NAMESPACE::MaxPipelineBinaryKeySizeKHR;
+
   //=== VK_QCOM_tile_properties ===
   using VULKAN_HPP_NAMESPACE::QCOMTilePropertiesExtensionName;
   using VULKAN_HPP_NAMESPACE::QCOMTilePropertiesSpecVersion;
@@ -2457,6 +2477,10 @@ export namespace VULKAN_HPP_NAMESPACE
   //=== VK_QCOM_multiview_per_view_render_areas ===
   using VULKAN_HPP_NAMESPACE::QCOMMultiviewPerViewRenderAreasExtensionName;
   using VULKAN_HPP_NAMESPACE::QCOMMultiviewPerViewRenderAreasSpecVersion;
+
+  //=== VK_KHR_compute_shader_derivatives ===
+  using VULKAN_HPP_NAMESPACE::KHRComputeShaderDerivativesExtensionName;
+  using VULKAN_HPP_NAMESPACE::KHRComputeShaderDerivativesSpecVersion;
 
   //=== VK_KHR_video_decode_av1 ===
   using VULKAN_HPP_NAMESPACE::KHRVideoDecodeAv1ExtensionName;
@@ -2545,6 +2569,10 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::KHRShaderRelaxedExtendedInstructionExtensionName;
   using VULKAN_HPP_NAMESPACE::KHRShaderRelaxedExtendedInstructionSpecVersion;
 
+  //=== VK_NV_command_buffer_inheritance ===
+  using VULKAN_HPP_NAMESPACE::NVCommandBufferInheritanceExtensionName;
+  using VULKAN_HPP_NAMESPACE::NVCommandBufferInheritanceSpecVersion;
+
   //=== VK_KHR_maintenance7 ===
   using VULKAN_HPP_NAMESPACE::KHRMaintenance7ExtensionName;
   using VULKAN_HPP_NAMESPACE::KHRMaintenance7SpecVersion;
@@ -2561,14 +2589,23 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::NVRayTracingValidationExtensionName;
   using VULKAN_HPP_NAMESPACE::NVRayTracingValidationSpecVersion;
 
+  //=== VK_EXT_device_generated_commands ===
+  using VULKAN_HPP_NAMESPACE::EXTDeviceGeneratedCommandsExtensionName;
+  using VULKAN_HPP_NAMESPACE::EXTDeviceGeneratedCommandsSpecVersion;
+
   //=== VK_MESA_image_alignment_control ===
   using VULKAN_HPP_NAMESPACE::MESAImageAlignmentControlExtensionName;
   using VULKAN_HPP_NAMESPACE::MESAImageAlignmentControlSpecVersion;
+
+  //=== VK_EXT_depth_clamp_control ===
+  using VULKAN_HPP_NAMESPACE::EXTDepthClampControlExtensionName;
+  using VULKAN_HPP_NAMESPACE::EXTDepthClampControlSpecVersion;
 
   //========================
   //=== CONSTEXPR VALUEs ===
   //========================
   using VULKAN_HPP_NAMESPACE::HeaderVersion;
+  using VULKAN_HPP_NAMESPACE::Use64BitPtrDefines;
 
   //=========================
   //=== CONSTEXPR CALLEEs ===
@@ -3579,9 +3616,6 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::PresentFrameTokenGGP;
 #endif /*VK_USE_PLATFORM_GGP*/
 
-  //=== VK_NV_compute_shader_derivatives ===
-  using VULKAN_HPP_NAMESPACE::PhysicalDeviceComputeShaderDerivativesFeaturesNV;
-
   //=== VK_NV_mesh_shader ===
   using VULKAN_HPP_NAMESPACE::DrawMeshTasksIndirectCommandNV;
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceMeshShaderFeaturesNV;
@@ -4255,6 +4289,20 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceShaderObjectPropertiesEXT;
   using VULKAN_HPP_NAMESPACE::ShaderCreateInfoEXT;
 
+  //=== VK_KHR_pipeline_binary ===
+  using VULKAN_HPP_NAMESPACE::DevicePipelineBinaryInternalCacheControlKHR;
+  using VULKAN_HPP_NAMESPACE::PhysicalDevicePipelineBinaryFeaturesKHR;
+  using VULKAN_HPP_NAMESPACE::PhysicalDevicePipelineBinaryPropertiesKHR;
+  using VULKAN_HPP_NAMESPACE::PipelineBinaryCreateInfoKHR;
+  using VULKAN_HPP_NAMESPACE::PipelineBinaryDataInfoKHR;
+  using VULKAN_HPP_NAMESPACE::PipelineBinaryDataKHR;
+  using VULKAN_HPP_NAMESPACE::PipelineBinaryHandlesInfoKHR;
+  using VULKAN_HPP_NAMESPACE::PipelineBinaryInfoKHR;
+  using VULKAN_HPP_NAMESPACE::PipelineBinaryKeyKHR;
+  using VULKAN_HPP_NAMESPACE::PipelineBinaryKeysAndDataKHR;
+  using VULKAN_HPP_NAMESPACE::PipelineCreateInfoKHR;
+  using VULKAN_HPP_NAMESPACE::ReleaseCapturedPipelineDataInfoKHR;
+
   //=== VK_QCOM_tile_properties ===
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceTilePropertiesFeaturesQCOM;
   using VULKAN_HPP_NAMESPACE::TilePropertiesQCOM;
@@ -4319,6 +4367,11 @@ export namespace VULKAN_HPP_NAMESPACE
   //=== VK_QCOM_multiview_per_view_render_areas ===
   using VULKAN_HPP_NAMESPACE::MultiviewPerViewRenderAreasRenderPassBeginInfoQCOM;
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceMultiviewPerViewRenderAreasFeaturesQCOM;
+
+  //=== VK_KHR_compute_shader_derivatives ===
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceComputeShaderDerivativesFeaturesKHR;
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceComputeShaderDerivativesFeaturesNV;
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceComputeShaderDerivativesPropertiesKHR;
 
   //=== VK_KHR_video_decode_av1 ===
   using VULKAN_HPP_NAMESPACE::VideoDecodeAV1CapabilitiesKHR;
@@ -4417,6 +4470,9 @@ export namespace VULKAN_HPP_NAMESPACE
   //=== VK_KHR_shader_relaxed_extended_instruction ===
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR;
 
+  //=== VK_NV_command_buffer_inheritance ===
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceCommandBufferInheritanceFeaturesNV;
+
   //=== VK_KHR_maintenance7 ===
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceLayeredApiPropertiesKHR;
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceLayeredApiPropertiesListKHR;
@@ -4433,10 +4489,40 @@ export namespace VULKAN_HPP_NAMESPACE
   //=== VK_NV_ray_tracing_validation ===
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceRayTracingValidationFeaturesNV;
 
+  //=== VK_EXT_device_generated_commands ===
+  using VULKAN_HPP_NAMESPACE::BindIndexBufferIndirectCommandEXT;
+  using VULKAN_HPP_NAMESPACE::BindVertexBufferIndirectCommandEXT;
+  using VULKAN_HPP_NAMESPACE::DrawIndirectCountIndirectCommandEXT;
+  using VULKAN_HPP_NAMESPACE::GeneratedCommandsInfoEXT;
+  using VULKAN_HPP_NAMESPACE::GeneratedCommandsMemoryRequirementsInfoEXT;
+  using VULKAN_HPP_NAMESPACE::GeneratedCommandsPipelineInfoEXT;
+  using VULKAN_HPP_NAMESPACE::GeneratedCommandsShaderInfoEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsExecutionSetTokenEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsIndexBufferTokenEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutCreateInfoEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutTokenEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsPushConstantTokenEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsTokenDataEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsVertexBufferTokenEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectExecutionSetCreateInfoEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectExecutionSetInfoEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectExecutionSetPipelineInfoEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderInfoEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectExecutionSetShaderLayoutInfoEXT;
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceDeviceGeneratedCommandsFeaturesEXT;
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceDeviceGeneratedCommandsPropertiesEXT;
+  using VULKAN_HPP_NAMESPACE::WriteIndirectExecutionSetPipelineEXT;
+  using VULKAN_HPP_NAMESPACE::WriteIndirectExecutionSetShaderEXT;
+
   //=== VK_MESA_image_alignment_control ===
   using VULKAN_HPP_NAMESPACE::ImageAlignmentControlCreateInfoMESA;
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceImageAlignmentControlFeaturesMESA;
   using VULKAN_HPP_NAMESPACE::PhysicalDeviceImageAlignmentControlPropertiesMESA;
+
+  //=== VK_EXT_depth_clamp_control ===
+  using VULKAN_HPP_NAMESPACE::DepthClampRangeEXT;
+  using VULKAN_HPP_NAMESPACE::PhysicalDeviceDepthClampControlFeaturesEXT;
+  using VULKAN_HPP_NAMESPACE::PipelineViewportDepthClampControlCreateInfoEXT;
 
   //===============
   //=== HANDLEs ===
@@ -4540,6 +4626,13 @@ export namespace VULKAN_HPP_NAMESPACE
   //=== VK_EXT_shader_object ===
   using VULKAN_HPP_NAMESPACE::ShaderEXT;
 
+  //=== VK_KHR_pipeline_binary ===
+  using VULKAN_HPP_NAMESPACE::PipelineBinaryKHR;
+
+  //=== VK_EXT_device_generated_commands ===
+  using VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT;
+  using VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT;
+
   //======================
   //=== UNIQUE HANDLEs ===
   //======================
@@ -4637,8 +4730,15 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::UniqueOpticalFlowSessionNV;
 
   //=== VK_EXT_shader_object ===
-  using VULKAN_HPP_NAMESPACE::UniqueHandleTraits;
   using VULKAN_HPP_NAMESPACE::UniqueShaderEXT;
+
+  //=== VK_KHR_pipeline_binary ===
+  using VULKAN_HPP_NAMESPACE::UniquePipelineBinaryKHR;
+
+  //=== VK_EXT_device_generated_commands ===
+  using VULKAN_HPP_NAMESPACE::UniqueHandleTraits;
+  using VULKAN_HPP_NAMESPACE::UniqueIndirectCommandsLayoutEXT;
+  using VULKAN_HPP_NAMESPACE::UniqueIndirectExecutionSetEXT;
 #endif /*VULKAN_HPP_NO_SMART_HANDLE*/
 
   //======================
@@ -4741,8 +4841,15 @@ export namespace VULKAN_HPP_NAMESPACE
   using VULKAN_HPP_NAMESPACE::SharedOpticalFlowSessionNV;
 
   //=== VK_EXT_shader_object ===
-  using VULKAN_HPP_NAMESPACE::SharedHandleTraits;
   using VULKAN_HPP_NAMESPACE::SharedShaderEXT;
+
+  //=== VK_KHR_pipeline_binary ===
+  using VULKAN_HPP_NAMESPACE::SharedPipelineBinaryKHR;
+
+  //=== VK_EXT_device_generated_commands ===
+  using VULKAN_HPP_NAMESPACE::SharedHandleTraits;
+  using VULKAN_HPP_NAMESPACE::SharedIndirectCommandsLayoutEXT;
+  using VULKAN_HPP_NAMESPACE::SharedIndirectExecutionSetEXT;
 #endif /*VULKAN_HPP_NO_SMART_HANDLE*/
 
   //===========================
@@ -4922,6 +5029,14 @@ export namespace VULKAN_HPP_NAMESPACE
     //=== VK_EXT_shader_object ===
     using VULKAN_HPP_RAII_NAMESPACE::ShaderEXT;
     using VULKAN_HPP_RAII_NAMESPACE::ShaderEXTs;
+
+    //=== VK_KHR_pipeline_binary ===
+    using VULKAN_HPP_RAII_NAMESPACE::PipelineBinaryKHR;
+    using VULKAN_HPP_RAII_NAMESPACE::PipelineBinaryKHRs;
+
+    //=== VK_EXT_device_generated_commands ===
+    using VULKAN_HPP_RAII_NAMESPACE::IndirectCommandsLayoutEXT;
+    using VULKAN_HPP_RAII_NAMESPACE::IndirectExecutionSetEXT;
 
   }  // namespace VULKAN_HPP_RAII_NAMESPACE
 #endif

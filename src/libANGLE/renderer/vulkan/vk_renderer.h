@@ -247,7 +247,13 @@ class Renderer : angle::NonCopyable
 
     const vk::Format &getFormat(angle::FormatID formatID) const { return mFormatTable[formatID]; }
 
-    angle::Result getPipelineCacheSize(vk::Context *context, size_t *pipelineCacheSizeOut);
+    // Get the pipeline cache data after retrieving the size, but only if the size is increased
+    // since last query.  This function should be called with the |mPipelineCacheMutex| lock already
+    // held.
+    angle::Result getLockedPipelineCacheDataIfNew(vk::Context *context,
+                                                  size_t *pipelineCacheSizeOut,
+                                                  size_t lastSyncSize,
+                                                  std::vector<uint8_t> *pipelineCacheDataOut);
     angle::Result syncPipelineCacheVk(vk::Context *context,
                                       vk::GlobalOps *globalOps,
                                       const gl::Context *contextGL);
@@ -277,9 +283,9 @@ class Renderer : angle::NonCopyable
                                     const VkFormatFeatureFlags featureBits) const;
 
     bool isAsyncCommandQueueEnabled() const { return mFeatures.asyncCommandQueue.enabled; }
-    bool isAsyncCommandBufferResetEnabled() const
+    bool isAsyncCommandBufferResetAndGarbageCleanupEnabled() const
     {
-        return mFeatures.asyncCommandBufferReset.enabled;
+        return mFeatures.asyncCommandBufferResetAndGarbageCleanup.enabled;
     }
 
     ANGLE_INLINE egl::ContextPriority getDriverPriority(egl::ContextPriority priority)
@@ -347,6 +353,7 @@ class Renderer : angle::NonCopyable
         mSuballocationGarbageList.add(this, std::move(garbage));
     }
 
+    size_t getNextPipelineCacheBlobCacheSlotIndex(size_t *previousSlotIndexOut);
     angle::Result getPipelineCache(vk::Context *context, vk::PipelineCacheAccess *pipelineCacheOut);
     angle::Result mergeIntoPipelineCache(vk::Context *context,
                                          const vk::PipelineCache &pipelineCache);
@@ -574,9 +581,9 @@ class Renderer : angle::NonCopyable
     }
     size_t getStagingBufferAlignment() const { return mStagingBufferAlignment; }
 
-    uint32_t getVertexConversionBufferMemoryTypeIndex(vk::MemoryHostVisibility hostVisibility) const
+    uint32_t getVertexConversionBufferMemoryTypeIndex(MemoryHostVisibility hostVisibility) const
     {
-        return hostVisibility == vk::MemoryHostVisibility::Visible
+        return hostVisibility == MemoryHostVisibility::Visible
                    ? mHostVisibleVertexConversionBufferMemoryTypeIndex
                    : mDeviceLocalVertexConversionBufferMemoryTypeIndex;
     }
@@ -813,7 +820,6 @@ class Renderer : angle::NonCopyable
     void enableDeviceExtensionsPromotedTo12(const vk::ExtensionNameList &deviceExtensionNames);
     void enableDeviceExtensionsPromotedTo13(const vk::ExtensionNameList &deviceExtensionNames);
 
-    void initInstanceExtensionEntryPoints();
     void initDeviceExtensionEntryPoints();
     // Initialize extension entry points from core ones if needed
     void initializeInstanceExtensionEntryPointsFromCore() const;
@@ -946,6 +952,7 @@ class Renderer : angle::NonCopyable
     VkPhysicalDevicePipelineProtectedAccessFeaturesEXT mPipelineProtectedAccessFeatures;
     VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT
         mRasterizationOrderAttachmentAccessFeatures;
+    VkPhysicalDeviceShaderAtomicFloatFeaturesEXT mShaderAtomicFloatFeatures;
     VkPhysicalDeviceMaintenance5FeaturesKHR mMaintenance5Features;
     VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT mSwapchainMaintenance1Features;
     VkPhysicalDeviceLegacyDitheringFeaturesEXT mDitheringFeatures;
@@ -962,6 +969,9 @@ class Renderer : angle::NonCopyable
     VkPhysicalDevice8BitStorageFeatures m8BitStorageFeatures;
     VkPhysicalDevice16BitStorageFeatures m16BitStorageFeatures;
     VkPhysicalDeviceSynchronization2Features mSynchronization2Features;
+    VkPhysicalDeviceVariablePointersFeatures mVariablePointersFeatures;
+    VkPhysicalDeviceFloatControlsProperties mFloatControlProperties;
+
     uint32_t mLegacyDitheringVersion = 0;
 
     angle::PackedEnumBitSet<gl::ShadingRate, uint8_t> mSupportedFragmentShadingRates;
@@ -1018,6 +1028,7 @@ class Renderer : angle::NonCopyable
     //    enabled
     angle::SimpleMutex mPipelineCacheMutex;
     vk::PipelineCache mPipelineCache;
+    size_t mCurrentPipelineCacheBlobCacheSlotIndex;
     uint32_t mPipelineCacheVkUpdateTimeout;
     size_t mPipelineCacheSizeAtLastSync;
     std::atomic<bool> mPipelineCacheInitialized;

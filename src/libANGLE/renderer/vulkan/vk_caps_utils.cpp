@@ -406,6 +406,9 @@ void Renderer::ensureCapsInitialized() const
     mNativeExtensions.textureMirrorClampToEdgeEXT =
         getFeatures().supportsSamplerMirrorClampToEdge.enabled;
 
+    // Enable EXT_texture_shadow_lod
+    mNativeExtensions.textureShadowLodEXT = true;
+
     // Enable EXT_multi_draw_indirect
     mNativeExtensions.multiDrawIndirectEXT = true;
 
@@ -945,12 +948,7 @@ void Renderer::ensureCapsInitialized() const
 
     GLint reservedVaryingComponentCount = 0;
 
-    if (getFeatures().supportsTransformFeedbackExtension.enabled &&
-        (!getFeatures().supportsDepthClipControl.enabled ||
-         getFeatures().enablePreRotateSurfaces.enabled ||
-         getFeatures().emulatedPrerotation90.enabled ||
-         getFeatures().emulatedPrerotation180.enabled ||
-         getFeatures().emulatedPrerotation270.enabled))
+    if (getFeatures().supportsTransformFeedbackExtension.enabled)
     {
         reservedVaryingComponentCount += kReservedVaryingComponentsForTransformFeedbackExtension;
     }
@@ -1286,6 +1284,9 @@ void Renderer::ensureCapsInitialized() const
     mNativeExtensions.readDepthStencilNV = true;
     mNativeExtensions.readStencilNV      = true;
 
+    // GL_EXT_clear_texture
+    mNativeExtensions.clearTextureEXT = true;
+
     // GL_QCOM_shading_rate
     mNativeExtensions.shadingRateQCOM = mFeatures.supportsFragmentShadingRate.enabled;
 
@@ -1413,13 +1414,11 @@ egl::Config GenerateDefaultConfig(DisplayVk *display,
     const VkPhysicalDeviceProperties &physicalDeviceProperties =
         renderer->getPhysicalDeviceProperties();
     gl::Version maxSupportedESVersion                = renderer->getMaxSupportedESVersion();
-    Optional<gl::Version> maxSupportedDesktopVersion = display->getMaxSupportedDesktopVersion();
 
     // ES3 features are required to emulate ES1
     EGLint es1Support     = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES_BIT : 0);
     EGLint es2Support     = (maxSupportedESVersion.major >= 2 ? EGL_OPENGL_ES2_BIT : 0);
     EGLint es3Support     = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES3_BIT : 0);
-    EGLint desktopSupport = (maxSupportedDesktopVersion.valid() ? EGL_OPENGL_BIT : 0);
 
     egl::Config config;
 
@@ -1448,7 +1447,7 @@ egl::Config GenerateDefaultConfig(DisplayVk *display,
     config.nativeRenderable   = EGL_TRUE;
     config.nativeVisualID     = static_cast<EGLint>(GetNativeVisualID(colorFormat));
     config.nativeVisualType   = EGL_NONE;
-    config.renderableType     = es1Support | es2Support | es3Support | desktopSupport;
+    config.renderableType     = es1Support | es2Support | es3Support;
     config.sampleBuffers      = (sampleCount > 0) ? 1 : 0;
     config.samples            = sampleCount;
     config.surfaceType        = EGL_WINDOW_BIT | EGL_PBUFFER_BIT;

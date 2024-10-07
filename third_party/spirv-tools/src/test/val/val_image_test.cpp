@@ -4780,7 +4780,8 @@ TEST_F(ValidateImage, QueryLodWrongExecutionModel) {
   EXPECT_THAT(
       getDiagnosticString(),
       HasSubstr(
-          "OpImageQueryLod requires Fragment or GLCompute execution model"));
+          "OpImageQueryLod requires Fragment, GLCompute, MeshEXT or TaskEXT "
+          "execution model"));
 }
 
 TEST_F(ValidateImage, QueryLodWrongExecutionModelWithFunc) {
@@ -4801,7 +4802,8 @@ OpFunctionEnd
   EXPECT_THAT(
       getDiagnosticString(),
       HasSubstr(
-          "OpImageQueryLod requires Fragment or GLCompute execution model"));
+          "OpImageQueryLod requires Fragment, GLCompute, MeshEXT or TaskEXT "
+          "execution model"));
 }
 
 TEST_F(ValidateImage, QueryLodComputeShaderDerivatives) {
@@ -4813,12 +4815,12 @@ TEST_F(ValidateImage, QueryLodComputeShaderDerivatives) {
 )";
 
   const std::string extra = R"(
-OpCapability ComputeDerivativeGroupLinearNV
-OpExtension "SPV_NV_compute_shader_derivatives"
+OpCapability ComputeDerivativeGroupLinearKHR
+OpExtension "SPV_KHR_compute_shader_derivatives"
 )";
   const std::string mode = R"(
 OpExecutionMode %main LocalSize 8 8 1
-OpExecutionMode %main DerivativeGroupLinearNV
+OpExecutionMode %main DerivativeGroupLinearKHR
 )";
   CompileSuccessfully(
       GenerateShaderCode(body, extra, "GLCompute", mode).c_str());
@@ -4930,8 +4932,8 @@ TEST_F(ValidateImage, QueryLodComputeShaderDerivativesMissingMode) {
 )";
 
   const std::string extra = R"(
-OpCapability ComputeDerivativeGroupLinearNV
-OpExtension "SPV_NV_compute_shader_derivatives"
+OpCapability ComputeDerivativeGroupLinearKHR
+OpExtension "SPV_KHR_compute_shader_derivatives"
 )";
   const std::string mode = R"(
 OpExecutionMode %main LocalSize 8 8 1
@@ -4940,9 +4942,9 @@ OpExecutionMode %main LocalSize 8 8 1
       GenerateShaderCode(body, extra, "GLCompute", mode).c_str());
   ASSERT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
   EXPECT_THAT(getDiagnosticString(),
-              HasSubstr("OpImageQueryLod requires DerivativeGroupQuadsNV or "
-                        "DerivativeGroupLinearNV execution mode for GLCompute "
-                        "execution model"));
+              HasSubstr("OpImageQueryLod requires DerivativeGroupQuadsKHR or "
+                        "DerivativeGroupLinearKHR execution mode for "
+                        "GLCompute, MeshEXT or TaskEXT execution model"));
 }
 
 TEST_F(ValidateImage, ImplicitLodWrongExecutionModel) {
@@ -4956,8 +4958,8 @@ TEST_F(ValidateImage, ImplicitLodWrongExecutionModel) {
   CompileSuccessfully(GenerateShaderCode(body, "", "Vertex").c_str());
   ASSERT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
   EXPECT_THAT(getDiagnosticString(),
-              HasSubstr("ImplicitLod instructions require Fragment or "
-                        "GLCompute execution model"));
+              HasSubstr("ImplicitLod instructions require Fragment, "
+                        "GLCompute, MeshEXT or TaskEXT execution model"));
 }
 
 TEST_F(ValidateImage, ImplicitLodComputeShaderDerivatives) {
@@ -4969,12 +4971,12 @@ TEST_F(ValidateImage, ImplicitLodComputeShaderDerivatives) {
 )";
 
   const std::string extra = R"(
-OpCapability ComputeDerivativeGroupLinearNV
-OpExtension "SPV_NV_compute_shader_derivatives"
+OpCapability ComputeDerivativeGroupLinearKHR
+OpExtension "SPV_KHR_compute_shader_derivatives"
 )";
   const std::string mode = R"(
 OpExecutionMode %main LocalSize 8 8 1
-OpExecutionMode %main DerivativeGroupLinearNV
+OpExecutionMode %main DerivativeGroupLinearKHR
 )";
   CompileSuccessfully(
       GenerateShaderCode(body, extra, "GLCompute", mode).c_str());
@@ -4990,8 +4992,8 @@ TEST_F(ValidateImage, ImplicitLodComputeShaderDerivativesMissingMode) {
 )";
 
   const std::string extra = R"(
-OpCapability ComputeDerivativeGroupLinearNV
-OpExtension "SPV_NV_compute_shader_derivatives"
+OpCapability ComputeDerivativeGroupLinearKHR
+OpExtension "SPV_KHR_compute_shader_derivatives"
 )";
   const std::string mode = R"(
 OpExecutionMode %main LocalSize 8 8 1
@@ -5001,9 +5003,9 @@ OpExecutionMode %main LocalSize 8 8 1
   ASSERT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
   EXPECT_THAT(
       getDiagnosticString(),
-      HasSubstr("ImplicitLod instructions require DerivativeGroupQuadsNV or "
-                "DerivativeGroupLinearNV execution mode for GLCompute "
-                "execution model"));
+      HasSubstr("ImplicitLod instructions require DerivativeGroupQuadsKHR or "
+                "DerivativeGroupLinearKHR execution mode for GLCompute, "
+                "MeshEXT or TaskEXT execution model"));
 }
 
 TEST_F(ValidateImage, ReadSubpassDataWrongExecutionModel) {
@@ -6505,8 +6507,9 @@ OpFunctionEnd
   EXPECT_EQ(SPV_ERROR_INVALID_ID, ValidateInstructions());
   EXPECT_THAT(getDiagnosticString(),
               HasSubstr("ImplicitLod instructions require "
-                        "DerivativeGroupQuadsNV or DerivativeGroupLinearNV "
-                        "execution mode for GLCompute execution model"));
+                        "DerivativeGroupQuadsKHR or DerivativeGroupLinearKHR "
+                        "execution mode for GLCompute, MeshEXT or TaskEXT "
+                        "execution model"));
 }
 
 TEST_F(ValidateImage, TypeSampledImageNotBufferPost1p6) {
@@ -10647,7 +10650,7 @@ TEST_F(ValidateImage, ImageMSArray_ArrayedTypeDoesNotRequireCapability) {
   EXPECT_THAT(getDiagnosticString(), Eq(""));
 }
 
-TEST_F(ValidateImage, SampledImageTypeMismatch) {
+TEST_F(ValidateImage, SampledImageTypeDepthMismatch) {
   const std::string code = R"(
 OpCapability Shader
 OpMemoryModel Logical GLSL450
@@ -10679,10 +10682,197 @@ OpFunctionEnd
 
   const spv_target_env env = SPV_ENV_VULKAN_1_0;
   CompileSuccessfully(code, env);
-  ASSERT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(env));
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions(env));
+}
+
+TEST_F(ValidateImage, SampledImageTypeArrayedMismatch) {
+  const std::string code = R"(
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpDecorate %im_var DescriptorSet 0
+OpDecorate %im_var Binding 0
+OpDecorate %s_var DescriptorSet 1
+OpDecorate %s_var Binding 0
+%void = OpTypeVoid
+%float = OpTypeFloat 32
+%im1_ty = OpTypeImage %float 2D 0 0 0 1 Unknown
+%im2_ty = OpTypeImage %float 2D 0 1 0 1 Unknown
+%s_ty = OpTypeSampler
+%s_im_ty = OpTypeSampledImage %im2_ty
+%ptr_im = OpTypePointer UniformConstant %im1_ty
+%ptr_s = OpTypePointer UniformConstant %s_ty
+%im_var = OpVariable %ptr_im UniformConstant
+%s_var = OpVariable %ptr_s UniformConstant
+%void_fn = OpTypeFunction %void
+%main = OpFunction %void None %void_fn
+%entry = OpLabel
+%im_ld = OpLoad %im1_ty %im_var
+%s_ld = OpLoad %s_ty %s_var
+%sampled_image = OpSampledImage %s_im_ty %im_ld %s_ld
+OpReturn
+OpFunctionEnd
+)";
+
+  const spv_target_env env = SPV_ENV_VULKAN_1_0;
+  CompileSuccessfully(code, env);
+  EXPECT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(env));
   EXPECT_THAT(
       getDiagnosticString(),
-      HasSubstr("Expected Image to have the same type as Result Type Image"));
+      HasSubstr(
+          "Image operands must match result image operands except for depth"));
+}
+
+TEST_F(ValidateImage, SampledImageTypeMultisampledMismatch) {
+  const std::string code = R"(
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpDecorate %im_var DescriptorSet 0
+OpDecorate %im_var Binding 0
+OpDecorate %s_var DescriptorSet 1
+OpDecorate %s_var Binding 0
+%void = OpTypeVoid
+%float = OpTypeFloat 32
+%im1_ty = OpTypeImage %float 2D 0 0 0 1 Unknown
+%im2_ty = OpTypeImage %float 2D 0 0 1 1 Unknown
+%s_ty = OpTypeSampler
+%s_im_ty = OpTypeSampledImage %im2_ty
+%ptr_im = OpTypePointer UniformConstant %im1_ty
+%ptr_s = OpTypePointer UniformConstant %s_ty
+%im_var = OpVariable %ptr_im UniformConstant
+%s_var = OpVariable %ptr_s UniformConstant
+%void_fn = OpTypeFunction %void
+%main = OpFunction %void None %void_fn
+%entry = OpLabel
+%im_ld = OpLoad %im1_ty %im_var
+%s_ld = OpLoad %s_ty %s_var
+%sampled_image = OpSampledImage %s_im_ty %im_ld %s_ld
+OpReturn
+OpFunctionEnd
+)";
+
+  const spv_target_env env = SPV_ENV_VULKAN_1_0;
+  CompileSuccessfully(code, env);
+  EXPECT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(env));
+  EXPECT_THAT(
+      getDiagnosticString(),
+      HasSubstr(
+          "Image operands must match result image operands except for depth"));
+}
+
+TEST_F(ValidateImage, SampledImageTypeSampledMismatch) {
+  const std::string code = R"(
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpDecorate %im_var DescriptorSet 0
+OpDecorate %im_var Binding 0
+OpDecorate %s_var DescriptorSet 1
+OpDecorate %s_var Binding 0
+%void = OpTypeVoid
+%float = OpTypeFloat 32
+%im1_ty = OpTypeImage %float 2D 0 0 0 1 Unknown
+%im2_ty = OpTypeImage %float 2D 0 0 0 0 Unknown
+%s_ty = OpTypeSampler
+%s_im_ty = OpTypeSampledImage %im2_ty
+%ptr_im = OpTypePointer UniformConstant %im1_ty
+%ptr_s = OpTypePointer UniformConstant %s_ty
+%im_var = OpVariable %ptr_im UniformConstant
+%s_var = OpVariable %ptr_s UniformConstant
+%void_fn = OpTypeFunction %void
+%main = OpFunction %void None %void_fn
+%entry = OpLabel
+%im_ld = OpLoad %im1_ty %im_var
+%s_ld = OpLoad %s_ty %s_var
+%sampled_image = OpSampledImage %s_im_ty %im_ld %s_ld
+OpReturn
+OpFunctionEnd
+)";
+
+  const spv_target_env env = SPV_ENV_UNIVERSAL_1_0;
+  CompileSuccessfully(code, env);
+  EXPECT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(env));
+  EXPECT_THAT(
+      getDiagnosticString(),
+      HasSubstr(
+          "Image operands must match result image operands except for depth"));
+}
+
+TEST_F(ValidateImage, SampledImageTypeFormatMismatch) {
+  const std::string code = R"(
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpDecorate %im_var DescriptorSet 0
+OpDecorate %im_var Binding 0
+OpDecorate %s_var DescriptorSet 1
+OpDecorate %s_var Binding 0
+%void = OpTypeVoid
+%float = OpTypeFloat 32
+%im1_ty = OpTypeImage %float 2D 0 0 0 1 Unknown
+%im2_ty = OpTypeImage %float 2D 0 0 0 1 R32f
+%s_ty = OpTypeSampler
+%s_im_ty = OpTypeSampledImage %im2_ty
+%ptr_im = OpTypePointer UniformConstant %im1_ty
+%ptr_s = OpTypePointer UniformConstant %s_ty
+%im_var = OpVariable %ptr_im UniformConstant
+%s_var = OpVariable %ptr_s UniformConstant
+%void_fn = OpTypeFunction %void
+%main = OpFunction %void None %void_fn
+%entry = OpLabel
+%im_ld = OpLoad %im1_ty %im_var
+%s_ld = OpLoad %s_ty %s_var
+%sampled_image = OpSampledImage %s_im_ty %im_ld %s_ld
+OpReturn
+OpFunctionEnd
+)";
+
+  const spv_target_env env = SPV_ENV_UNIVERSAL_1_0;
+  CompileSuccessfully(code, env);
+  EXPECT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(env));
+  EXPECT_THAT(
+      getDiagnosticString(),
+      HasSubstr(
+          "Image operands must match result image operands except for depth"));
+}
+
+TEST_F(ValidateImage, SampledImageTypeAccessQualifierMismatch) {
+  const std::string code = R"(
+OpCapability Kernel
+OpCapability Linkage
+OpMemoryModel Logical OpenCL
+%void = OpTypeVoid
+%float = OpTypeFloat 32
+%im1_ty = OpTypeImage %float 2D 0 0 0 0 Unknown ReadWrite
+%im2_ty = OpTypeImage %float 2D 0 0 0 0 Unknown ReadOnly
+%s_ty = OpTypeSampler
+%s_im_ty = OpTypeSampledImage %im2_ty
+%ptr_im = OpTypePointer UniformConstant %im1_ty
+%ptr_s = OpTypePointer UniformConstant %s_ty
+%im_var = OpVariable %ptr_im UniformConstant
+%s_var = OpVariable %ptr_s UniformConstant
+%void_fn = OpTypeFunction %void
+%main = OpFunction %void None %void_fn
+%entry = OpLabel
+%im_ld = OpLoad %im1_ty %im_var
+%s_ld = OpLoad %s_ty %s_var
+%sampled_image = OpSampledImage %s_im_ty %im_ld %s_ld
+OpReturn
+OpFunctionEnd
+)";
+
+  const spv_target_env env = SPV_ENV_UNIVERSAL_1_0;
+  CompileSuccessfully(code, env);
+  EXPECT_EQ(SPV_ERROR_INVALID_DATA, ValidateInstructions(env));
+  EXPECT_THAT(
+      getDiagnosticString(),
+      HasSubstr(
+          "Image operands must match result image operands except for depth"));
 }
 
 }  // namespace

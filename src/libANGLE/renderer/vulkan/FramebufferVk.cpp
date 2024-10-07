@@ -1365,6 +1365,7 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
             mCurrentFramebufferDesc.getWriteControlMode() != gl::SrgbWriteControlMode::Default;
         bool areChannelsBlitCompatible = true;
         bool areFormatsIdentical       = true;
+        bool colorAttachmentAlreadyInUse = false;
         for (size_t colorIndexGL : mState.getEnabledDrawBuffers())
         {
             RenderTargetVk *drawRenderTarget = mRenderTargetCache.getColors()[colorIndexGL];
@@ -1375,6 +1376,12 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
                 AreSrcAndDstColorChannelsBlitCompatible(readRenderTarget, drawRenderTarget);
             areFormatsIdentical = areFormatsIdentical &&
                                   AreSrcAndDstFormatsIdentical(readRenderTarget, drawRenderTarget);
+
+            // If any color attachment of the draw framebuffer was already in use in the currently
+            // started renderpass, don't reuse the renderpass for blit.
+            colorAttachmentAlreadyInUse =
+                colorAttachmentAlreadyInUse || contextVk->isRenderPassStartedAndUsesImage(
+                                                   drawRenderTarget->getImageForRenderPass());
         }
 
         // Now that all flipping is done, adjust the offsets for resolve and prerotation
@@ -1412,12 +1419,6 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
             // renderer), so there's no chance for the resolve attachment to take advantage of the
             // data already being present in the tile.
 
-            // glBlitFramebuffer() needs to copy the read color attachment to all enabled
-            // attachments in the draw framebuffer, but Vulkan requires a 1:1 relationship for
-            // multisample attachments to resolve attachments in the render pass subpass.  Due to
-            // this, we currently only support using resolve attachments when there is a single draw
-            // attachment enabled.
-            //
             // Additionally, when resolving with a resolve attachment, the src and destination
             // offsets must match, the render area must match the resolve area, and there should be
             // no flipping or rotation.  Fortunately, in GLES the blit source and destination areas
@@ -1427,7 +1428,8 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
             bool canResolveWithSubpass = mState.getEnabledDrawBuffers().count() == 1 &&
                                          mCurrentFramebufferDesc.getLayerCount() == 1 &&
                                          contextVk->hasStartedRenderPassWithQueueSerial(
-                                             srcFramebufferVk->getLastRenderPassQueueSerial());
+                                             srcFramebufferVk->getLastRenderPassQueueSerial()) &&
+                                         !colorAttachmentAlreadyInUse;
 
             if (canResolveWithSubpass)
             {
@@ -1522,6 +1524,8 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
                 areChannelsBlitCompatible && mCurrentFramebufferDesc.getLayerCount() == 1 &&
                 contextVk->hasStartedRenderPassWithQueueSerial(
                     srcFramebufferVk->getLastRenderPassQueueSerial()) &&
+                !contextVk->isRenderPassStartedAndUsesImage(
+                    drawRenderTarget->getImageForRenderPass()) &&
                 noFlip && rotation == SurfaceRotation::Identity;
 
             if (canResolveWithSubpass)
@@ -1586,18 +1590,14 @@ angle::Result FramebufferVk::blit(const gl::Context *context,
                 {
                     ANGLE_TRY(depthStencilImage->initLayerImageView(
                         contextVk, textureType, VK_IMAGE_ASPECT_DEPTH_BIT, gl::SwizzleState(),
-                        &depthView.get(), levelIndex, 1, layerIndex, 1,
-                        gl::SrgbWriteControlMode::Default, gl::YuvSamplingMode::Default,
-                        vk::ImageHelper::kDefaultImageViewUsageFlags));
+                        &depthView.get(), levelIndex, 1, layerIndex, 1));
                 }
 
                 if (blitStencilBuffer)
                 {
                     ANGLE_TRY(depthStencilImage->initLayerImageView(
                         contextVk, textureType, VK_IMAGE_ASPECT_STENCIL_BIT, gl::SwizzleState(),
-                        &stencilView.get(), levelIndex, 1, layerIndex, 1,
-                        gl::SrgbWriteControlMode::Default, gl::YuvSamplingMode::Default,
-                        vk::ImageHelper::kDefaultImageViewUsageFlags));
+                        &stencilView.get(), levelIndex, 1, layerIndex, 1));
                 }
 
                 // If shader stencil export is not possible, defer stencil blit/resolve to another
@@ -1944,9 +1944,8 @@ angle::Result FramebufferVk::updateFoveationState(ContextVk *contextVk,
                                                       foveatedAttachmentSize));
         ASSERT(mFragmentShadingRateImage.valid());
 
-        serial = mFragmentShadingRateImageView.getSubresourceSerial(
-            gl::LevelIndex(0), 1, 0, vk::LayerMode::All, vk::SrgbDecodeMode::SkipDecode,
-            gl::SrgbOverride::Default);
+        serial = mFragmentShadingRateImageView.getSubresourceSerial(gl::LevelIndex(0), 1, 0,
+                                                                    vk::LayerMode::All);
     }
 
     // Update state after the possible failure point.
@@ -2222,7 +2221,7 @@ angle::Result FramebufferVk::invalidateImpl(ContextVk *contextVk,
             if (invalidateStencilBuffer)
             {
                 contextVk->getStartedRenderPassCommands().invalidateRenderPassStencilAttachment(
-                    dsState, invalidateArea);
+                    dsState, mState.getStencilBitCount(), invalidateArea);
             }
         }
     }
@@ -3423,8 +3422,7 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
         if (mDeferredClears.test(colorIndexGL))
         {
             renderPassAttachmentOps.setOps(colorIndexVk, vk::RenderPassLoadOp::Clear, storeOp);
-            packedClearValues.store(colorIndexVk, VK_IMAGE_ASPECT_COLOR_BIT,
-                                    mDeferredClears[colorIndexGL]);
+            packedClearValues.storeColor(colorIndexVk, mDeferredClears[colorIndexGL]);
             mDeferredClears.reset(colorIndexGL);
         }
         else
@@ -3434,8 +3432,7 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
                                                     : vk::RenderPassLoadOp::DontCare;
 
             renderPassAttachmentOps.setOps(colorIndexVk, loadOp, storeOp);
-            packedClearValues.store(colorIndexVk, VK_IMAGE_ASPECT_COLOR_BIT,
-                                    kUninitializedClearValue);
+            packedClearValues.storeColor(colorIndexVk, kUninitializedClearValue);
         }
         renderPassAttachmentOps.setStencilOps(colorIndexVk, vk::RenderPassLoadOp::DontCare,
                                               vk::RenderPassStoreOp::DontCare);
@@ -3523,15 +3520,12 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
                 mDeferredClears.reset(vk::kUnpackedStencilIndex);
             }
 
-            // Note the aspect is only depth here. That's intentional.
-            packedClearValues.store(depthStencilAttachmentIndex, VK_IMAGE_ASPECT_DEPTH_BIT,
-                                    clearValue);
+            packedClearValues.storeDepthStencil(depthStencilAttachmentIndex, clearValue);
         }
         else
         {
-            // Note the aspect is only depth here. That's intentional.
-            packedClearValues.store(depthStencilAttachmentIndex, VK_IMAGE_ASPECT_DEPTH_BIT,
-                                    kUninitializedClearValue);
+            packedClearValues.storeDepthStencil(depthStencilAttachmentIndex,
+                                                kUninitializedClearValue);
         }
 
         const angle::Format &format = depthStencilRenderTarget->getImageIntendedFormat();
@@ -3571,11 +3565,9 @@ angle::Result FramebufferVk::startNewRenderPass(ContextVk *contextVk,
                 {
                     stencilLoadOp = vk::RenderPassLoadOp::Clear;
 
-                    // Note the aspect is only depth here. That's intentional.
                     VkClearValue clearValue = packedClearValues[depthStencilAttachmentIndex];
                     clearValue.depthStencil.stencil = 0;
-                    packedClearValues.store(depthStencilAttachmentIndex, VK_IMAGE_ASPECT_DEPTH_BIT,
-                                            clearValue);
+                    packedClearValues.storeDepthStencil(depthStencilAttachmentIndex, clearValue);
                 }
             }
 

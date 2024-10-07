@@ -896,6 +896,8 @@ INSTANTIATE_TEST_SUITE_P(
     "spv.fragmentShaderBarycentric2.frag",
     "spv.computeShaderDerivatives.comp",
     "spv.computeShaderDerivatives2.comp",
+    "spv.computeShaderDerivativesSpec.comp",
+    "spv.computeShaderDerivativesSpec2.comp",
     "spv.shaderImageFootprint.frag",
     "spv.meshShaderBuiltins.mesh",
     "spv.meshShaderUserDefined.mesh",
@@ -956,6 +958,8 @@ INSTANTIATE_TEST_SUITE_P(
         "spv.debuginfo.rt_types.glsl.rgen",
         "spv.debuginfo.include.glsl.frag",
         "spv.debuginfo.multiline.glsl.frag",
+        "spv.debuginfo.implicit_br.glsl.frag",
+        "spv.debuginfo.coopmatKHR.comp",
     })),
     FileNameAsCustomTestSuffix
 );

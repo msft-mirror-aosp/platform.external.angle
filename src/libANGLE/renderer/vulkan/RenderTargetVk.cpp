@@ -64,12 +64,17 @@ void RenderTargetVk::init(vk::ImageHelper *image,
     mTransience = transience;
 }
 
+void RenderTargetVk::invalidateImageAndViews()
+{
+    mImage             = nullptr;
+    mImageViews        = nullptr;
+    mResolveImage      = nullptr;
+    mResolveImageViews = nullptr;
+}
+
 void RenderTargetVk::reset()
 {
-    mImage              = nullptr;
-    mImageViews         = nullptr;
-    mResolveImage       = nullptr;
-    mResolveImageViews  = nullptr;
+    invalidateImageAndViews();
     mImageSiblingSerial = {};
     mLevelIndexGL       = gl::LevelIndex(0);
     mLayerIndex         = 0;
@@ -85,8 +90,7 @@ vk::ImageOrBufferViewSubresourceSerial RenderTargetVk::getSubresourceSerialImpl(
 
     vk::LayerMode layerMode = vk::GetLayerMode(*mImage, mLayerCount);
     vk::ImageOrBufferViewSubresourceSerial imageViewSerial =
-        imageViews->getSubresourceSerial(mLevelIndexGL, 1, mLayerIndex, layerMode,
-                                         vk::SrgbDecodeMode::SkipDecode, gl::SrgbOverride::Default);
+        imageViews->getSubresourceSerial(mLevelIndexGL, 1, mLayerIndex, layerMode);
     return imageViewSerial;
 }
 
@@ -187,8 +191,8 @@ angle::Result RenderTargetVk::getImageViewImpl(vk::Context *context,
     vk::LevelIndex levelVk = image.toVkLevel(getLevelIndexForImage(image));
     if (mLayerCount == 1)
     {
-        return imageViews->getLevelLayerDrawImageView(context, image, levelVk, mLayerIndex, mode,
-                                                      imageViewOut);
+        return imageViews->getLevelLayerDrawImageViewWithSrgbWriteControlMode(
+            context, image, levelVk, mLayerIndex, mode, imageViewOut);
     }
 
     // Layered render targets view the whole level or a handful of layers in case of multiview.

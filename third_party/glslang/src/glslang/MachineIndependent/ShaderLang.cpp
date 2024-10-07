@@ -1324,11 +1324,6 @@ int ShInitialize()
     if (PerProcessGPA == nullptr)
         PerProcessGPA = new TPoolAllocator();
 
-    glslang::TScanContext::fillInKeywordMap();
-#ifdef ENABLE_HLSL
-    glslang::HlslScanContext::fillInKeywordMap();
-#endif
-
     return 1;
 }
 
@@ -1416,11 +1411,6 @@ int ShFinalize()
         delete PerProcessGPA;
         PerProcessGPA = nullptr;
     }
-
-    glslang::TScanContext::deleteKeywordMap();
-#ifdef ENABLE_HLSL
-    glslang::HlslScanContext::deleteKeywordMap();
-#endif
 
     return 1;
 }
@@ -1725,6 +1715,10 @@ public:
     TDeferredCompiler(EShLanguage s, TInfoSink& i) : TCompiler(s, i) { }
     virtual bool compile(TIntermNode*, int = 0, EProfile = ENoProfile) { return true; }
 };
+
+TIoMapper* GetGlslIoMapper() {
+    return static_cast<TIoMapper*>(new TGlslIoMapper());
+}
 
 TShader::TShader(EShLanguage s)
     : stage(s), lengths(nullptr), stringNames(nullptr), preamble(""), overrideVersion(0)
@@ -2174,6 +2168,12 @@ int TProgram::getNumAtomicCounters() const                            { return r
 const TObjectReflection& TProgram::getAtomicCounter(int index) const  { return reflection->getAtomicCounter(index); }
 void TProgram::dumpReflection() { if (reflection != nullptr) reflection->dump(); }
 
+TIoMapResolver* TProgram::getGlslIoResolver(EShLanguage stage) {
+    auto *intermediate = getIntermediate(stage);
+    if (!intermediate)
+        return NULL;
+    return static_cast<TIoMapResolver*>(new TDefaultGlslIoResolver(*intermediate));
+}
 //
 // I/O mapping implementation.
 //
