@@ -166,6 +166,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 // New failures when upgrading to Ubuntu 22/newer driver.
 362545033 LINUX NVIDIA VULKAN : EGLBufferAgeTest.SingleBuffer/* = SKIP
 362545033 LINUX NVIDIA VULKAN : GLSLTest.NestedPowStatements/* = SKIP
+362486580 LINUX NVIDIA VULKAN : SixteenBppTextureTestES3.RGB5A1UploadRGBA8/* = SKIP
 362545033 LINUX NVIDIA VULKAN : VulkanPerformanceCounterTest.PipelineCacheIsRestoredWithProgramBinary/* = SKIP
 362545033 LINUX NVIDIA VULKAN : VulkanPerformanceCounterTest.PipelineCacheIsRestoredWithProgramBinaryTwice/* = SKIP
 362545033 LINUX NVIDIA VULKAN : VulkanPerformanceCounterTest.PipelineCacheIsWarmedUpAtLinkTime/* = SKIP
@@ -271,6 +272,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 772651 MAC NVIDIA OPENGL : GLSLTest.VectorScalarDivideAndAddInLoop/* = SKIP
 772651 MAC NVIDIA OPENGL : GLSLTest.VectorScalarMultiplyAndAddInLoop/* = SKIP
 42264835 MAC NVIDIA METAL : EGLBlobCacheTest.FragmentOutputLocationKey/* = SKIP
+42264835 MAC NVIDIA METAL : BlobCacheTest.FragmentOutputLocationKey/* = SKIP
 42264866 MAC OPENGL : FramebufferTestWithFormatFallback.R5G5B5A1_TexImage/* = SKIP
 42264866 MAC OPENGL : FramebufferTestWithFormatFallback.R5G5B5A1_CopyTexImage/* = SKIP
 42264866 MAC OPENGL : FramebufferTestWithFormatFallback.R5G5B5A1_CubeTexImage/* = SKIP
@@ -535,6 +537,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 42266774 PIXEL4ORXL GLES : MultithreadingTestES3.SimultaneousUploadAndDraw/* = SKIP
 42266774 PIXEL4ORXL VULKAN : MultithreadingTestES3.SimultaneousUploadAndDraw/* = SKIP
 
+42267082 PIXEL4ORXL GLES : BlobCacheTest.FragmentOutputLocationKey/* = SKIP
 42267082 PIXEL4ORXL GLES : EGLBlobCacheTest.FragmentOutputLocationKey/* = SKIP
 42267082 PIXEL4ORXL GLES : EXTBlendFuncExtendedDrawTestES3.ES3GettersArray/* = SKIP
 42267082 PIXEL4ORXL GLES : EXTBlendFuncExtendedDrawTestES3.ESSL3BindSimpleVarAsArrayNoBind/* = SKIP
@@ -925,15 +928,6 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 365066518 D3D11 : ShadowSamplerFunctionTexture2DArrayTest.Test/*__TextureGradOffset_Mipmapped = SKIP
 365066518 D3D11 : ShadowSamplerFunctionTextureCubeTest.Test/*__TextureBias_Mipmapped = SKIP
 365066518 D3D11 : ShadowSamplerFunctionTextureCubeTest.Test/*__TextureGrad_Mipmapped = SKIP
-
-// Metal on AMD does not support shadow samplers with explicit derivatives
-365066518 MAC METAL AMD : ShadowSamplerFunctionTexture2DTest.Test/*__TextureGrad_* = SKIP
-365066518 MAC METAL AMD : ShadowSamplerFunctionTexture2DTest.Test/*__TextureGradOffset_* = SKIP
-365066518 MAC METAL AMD : ShadowSamplerFunctionTexture2DTest.Test/*__TextureProjGrad_* = SKIP
-365066518 MAC METAL AMD : ShadowSamplerFunctionTexture2DTest.Test/*__TextureProjGradOffset_* = SKIP
-365066518 MAC METAL AMD : ShadowSamplerFunctionTexture2DArrayTest.Test/*__TextureGrad_* = SKIP
-365066518 MAC METAL AMD : ShadowSamplerFunctionTexture2DArrayTest.Test/*__TextureGradOffset_* = SKIP
-365066518 MAC METAL AMD : ShadowSamplerFunctionTextureCubeTest.Test/*__TextureGrad_* = SKIP
 
 // Intel macOS OpenGL drivers incorrectly apply explicit derivatives to shadow samplers
 365066518 MAC OPENGL INTEL : ShadowSamplerFunctionTexture2DTest.Test/*__TextureGrad_* = SKIP
