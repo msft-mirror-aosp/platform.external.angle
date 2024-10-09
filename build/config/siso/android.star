@@ -52,13 +52,14 @@ def __step_config(ctx, step_config):
             "command_prefix": "python3 ../../build/android/gyp/compile_resources.py",
             "handler": "android_compile_resources",
             "exclude_input_patterns": [
-                "*.h",
-                "*.o",
-                "*.cc",
                 "*.a",
-                "*.info",
-                "*.pak",
+                "*.cc",
+                "*.h",
                 "*.inc",
+                "*.info",
+                "*.o",
+                "*.pak",
+                "*.sql",
             ],
             "remote": remote_run,
             "canonicalize_dir": True,
@@ -86,6 +87,16 @@ def __step_config(ctx, step_config):
             "indirect_inputs": {
                 "includes": ["*.dex", "*.ijar.jar", "*.turbine.jar"],
             },
+            "exclude_input_patterns": [
+                "*.a",
+                "*.cc",
+                "*.h",
+                "*.inc",
+                "*.info",
+                "*.o",
+                "*.pak",
+                "*.sql",
+            ],
             # *.dex files are intermediate files used in incremental builds.
             # Fo remote actions, let's ignore them, assuming remote cache hits compensate.
             "ignore_extra_input_pattern": ".*\\.dex",
