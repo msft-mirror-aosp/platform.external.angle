@@ -1606,11 +1606,10 @@ struct ImageSubresourceRange
     // which is usually 1, except for multiview in which case it can be up to
     // gl::IMPLEMENTATION_MAX_2D_ARRAY_TEXTURE_LAYERS.
     uint32_t layerMode : 3;
-    // Values from vk::SrgbDecodeMode.  Unused with draw views.
-    uint32_t srgbDecodeMode : 1;
-    // For read views: Values from gl::SrgbOverride, either Default or SRGB.
-    // For draw views: Values from gl::SrgbWriteControlMode.
-    uint32_t srgbMode : 1;
+    // For reads: Values are either ImageViewColorspace::Linear or ImageViewColorspace::SRGB
+    uint32_t readColorspace : 1;
+    // For writes: Values are either ImageViewColorspace::Linear or ImageViewColorspace::SRGB
+    uint32_t writeColorspace : 1;
 
     static_assert(gl::IMPLEMENTATION_MAX_TEXTURE_LEVELS < (1 << 5),
                   "Not enough bits for level count");
@@ -1625,8 +1624,8 @@ static_assert(sizeof(ImageSubresourceRange) == sizeof(uint32_t), "Size mismatch"
 inline bool operator==(const ImageSubresourceRange &a, const ImageSubresourceRange &b)
 {
     return a.level == b.level && a.levelCount == b.levelCount && a.layer == b.layer &&
-           a.layerMode == b.layerMode && a.srgbDecodeMode == b.srgbDecodeMode &&
-           a.srgbMode == b.srgbMode;
+           a.layerMode == b.layerMode && a.readColorspace == b.readColorspace &&
+           a.writeColorspace == b.writeColorspace;
 }
 
 constexpr ImageSubresourceRange kInvalidImageSubresourceRange = {0, 0, 0, 0, 0, 0};
@@ -1729,8 +1728,6 @@ class WriteDescriptorDescs
     size_t getTotalDescriptorCount() const { return mCurrentInfoIndex; }
     size_t getDynamicDescriptorSetCount() const { return mDynamicDescriptorSetCount; }
 
-    void streamOut(std::ostream &os) const;
-
   private:
     bool hasWriteDescAtIndex(uint32_t bindingIndex) const
     {
@@ -1753,6 +1750,7 @@ class WriteDescriptorDescs
     size_t mDynamicDescriptorSetCount = 0;
     uint32_t mCurrentInfoIndex        = 0;
 };
+std::ostream &operator<<(std::ostream &os, const WriteDescriptorDescs &desc);
 
 class DescriptorSetDesc
 {
@@ -1770,6 +1768,7 @@ class DescriptorSetDesc
 
     size_t hash() const;
 
+    size_t size() const { return mDescriptorInfos.size(); }
     void resize(size_t count) { mDescriptorInfos.resize(count); }
 
     size_t getKeySizeBytes() const { return mDescriptorInfos.size() * sizeof(DescriptorInfoDesc); }
@@ -1786,18 +1785,22 @@ class DescriptorSetDesc
         return mDescriptorInfos[infoDescIndex];
     }
 
+    const DescriptorInfoDesc &getInfoDesc(uint32_t infoDescIndex) const
+    {
+        return mDescriptorInfos[infoDescIndex];
+    }
+
     void updateDescriptorSet(Renderer *renderer,
                              const WriteDescriptorDescs &writeDescriptorDescs,
                              UpdateDescriptorSetsBuilder *updateBuilder,
                              const DescriptorDescHandles *handles,
                              VkDescriptorSet descriptorSet) const;
 
-    void streamOut(std::ostream &os) const;
-
   private:
     // After a preliminary minimum size, use heap memory.
     angle::FastVector<DescriptorInfoDesc, kFastDescriptorSetDescLimit> mDescriptorInfos;
 };
+std::ostream &operator<<(std::ostream &os, const DescriptorSetDesc &desc);
 
 class DescriptorPoolHelper;
 using RefCountedDescriptorPoolHelper = RefCounted<DescriptorPoolHelper>;
@@ -2134,9 +2137,18 @@ class SharedCacheKeyManager
     void assertAllEntriesDestroyed();
 
   private:
+    size_t updateEmptySlotBits();
+
     // Tracks an array of cache keys with refcounting. Note this owns one refcount of
     // SharedCacheKeyT object.
-    std::vector<SharedCacheKeyT> mSharedCacheKeys;
+    std::deque<SharedCacheKeyT> mSharedCacheKeys;
+
+    // To speed up searching for available slot in the mSharedCacheKeys, we use bitset to track
+    // available (i.e, empty) slot
+    static constexpr size_t kInvalidSlot  = -1;
+    static constexpr size_t kSlotBitCount = 64;
+    using SlotBitMask                     = angle::BitSet64<kSlotBitCount>;
+    std::vector<SlotBitMask> mEmptySlotBits;
 };
 
 using FramebufferCacheManager   = SharedCacheKeyManager<SharedFramebufferCacheKey>;

@@ -12,6 +12,7 @@ import optparse
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import sys
 import time
@@ -56,27 +57,22 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     'DoNotClaimAnnotations',
     'JavaUtilDate',
     'IdentityHashMapUsage',
-    'UnnecessaryMethodReference',
     'LongFloatConversion',
     'CharacterGetNumericValue',
     'ErroneousThreadPoolConstructorChecker',
     'StaticMockMember',
     'MissingSuperCall',
     'ToStringReturnsNull',
+    # Triggers in tests where this is useful to do.
+    'StaticAssignmentOfThrowable',
     # If possible, this should be automatically fixed if turned on:
     'MalformedInlineTag',
-    # TODO(crbug.com/41384359): Follow steps in bug
-    'DoubleBraceInitialization',
     # TODO(crbug.com/41384349): Follow steps in bug.
     'CatchAndPrintStackTrace',
     # TODO(crbug.com/41364336): Follow steps in bug.
     'SynchronizeOnNonFinalField',
     # TODO(crbug.com/41364806): Follow steps in bug.
     'TypeParameterUnusedInFormals',
-    # TODO(crbug.com/41365724): Follow steps in bug.
-    'CatchFail',
-    # TODO(crbug.com/41365725): Follow steps in bug.
-    'JUnitAmbiguousTestClass',
     # Android platform default is always UTF-8.
     # https://developer.android.com/reference/java/nio/charset/Charset.html#defaultCharset()
     'DefaultCharset',
@@ -84,8 +80,6 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     'UnrecognisedJavadocTag',
     # Low priority since the alternatives still work.
     'JdkObsolete',
-    # We don't use that many lambdas.
-    'FunctionalInterfaceClash',
     # There are lots of times when we just want to post a task.
     'FutureReturnValueIgnored',
     # Just false positives in our code.
@@ -109,19 +103,7 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     # Low priority to fix.
     'HidingField',
     # Low priority.
-    'IntLongMath',
-    # Low priority.
-    'BadComparable',
-    # Low priority.
     'EqualsHashCode',
-    # Nice to fix but low priority.
-    'TypeParameterShadowing',
-    # Good to have immutable enums, also low priority.
-    'ImmutableEnumChecker',
-    # False positives for testing.
-    'InputStreamSlowMultibyteRead',
-    # Nice to have better primitives.
-    'BoxedPrimitiveConstructor',
     # Not necessary for tests.
     'OverrideThrowableToString',
     # Nice to have better type safety.
@@ -141,28 +123,12 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     'EqualsGetClass',
     # A lot of false-positives from CharSequence.equals().
     'UndefinedEquals',
-    # Nice to have.
-    'ExtendingJUnitAssert',
-    # Nice to have.
-    'SystemExitOutsideMain',
-    # Nice to have.
-    'TypeParameterNaming',
-    # Nice to have.
-    'UnusedException',
-    # Nice to have.
-    'UngroupedOverloads',
-    # Nice to have.
-    'FunctionalInterfaceClash',
-    # Nice to have.
-    'InconsistentOverloads',
     # Dagger generated code triggers this.
     'SameNameButDifferent',
-    # Nice to have.
+    # Does not apply to Android because it assumes no desugaring.
     'UnnecessaryLambda',
     # Nice to have.
     'UnnecessaryAnonymousClass',
-    # Nice to have.
-    'LiteProtoToString',
     # Nice to have.
     'MissingSummary',
     # Nice to have.
@@ -173,8 +139,6 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     'UseCorrectAssertInTests',
     # Nice to have.
     'InlineFormatString',
-    # Nice to have.
-    'DefaultPackage',
     # Must be off since we are now passing in annotation processor generated
     # code as a source jar (deduplicating work with turbine).
     'RefersToDaggerCodegen',
@@ -189,39 +153,13 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     # A lot of existing violations. e.g. Should return List and not ArrayList
     'NonApiType',
     # Nice to have.
-    'Finalize',
-    # Nice to have.
-    'NotJavadoc',
-    # Nice to have.
     'DirectInvocationOnMock',
     # Nice to have.
     'StringCharset',
     # Nice to have.
-    'JUnitIncompatibleType',
-    # Nice to have.
     'MockNotUsedInProduction',
     # Nice to have.
-    'ImpossibleNullComparison',
-    # Nice to have.
-    'UnusedTypeParameter',
-    # Nice to have.
-    'EnumOrdinal',
-    # Nice to have.
-    'NullableOptional',
-    # Nice to have.
-    'SelfAssertion',
-    # Nice to have.
     'StringCaseLocaleUsage',
-    # Nice to have.
-    'JUnit4TestNotRun',
-    # Nice to have.
-    'StaticAssignmentOfThrowable',
-    # Nice to have.
-    'SuperCallToObjectMethod',
-    # Nice to have.
-    'ComparisonOutOfRange',
-    # Nice to have
-    'AddressSelection',
 ]
 
 # Full list of checks: https://errorprone.info/bugpatterns
@@ -559,7 +497,7 @@ def _RunCompiler(changes,
     if java_files:
       os.makedirs(classes_dir)
 
-      if enable_partial_javac:
+      if enable_partial_javac and changes:
         all_changed_paths_are_java = all(
             p.endswith(".java") for p in changes.IterChangedPaths())
         if (all_changed_paths_are_java and not changes.HasStringChanges()
@@ -631,6 +569,10 @@ def _RunCompiler(changes,
         before_join_callback = lambda: metadata_parser.ParseAndWriteInfoFile(
             jar_info_path, java_files, kt_files)
 
+      if options.print_javac_command_line:
+        print(shlex.join(cmd))
+        return
+
       build_utils.CheckOutput(cmd,
                               print_stdout=options.chromium_code,
                               stdout_filter=process_javac_output_partial,
@@ -640,6 +582,8 @@ def _RunCompiler(changes,
       end = time.time() - start
       logging.info('Java compilation took %ss', end)
     elif parse_java_files:
+      if options.print_javac_command_line:
+        raise Exception('need java files for --print-javac-command-line.')
       metadata_parser.ParseAndWriteInfoFile(jar_info_path, java_files, kt_files)
 
     CreateJarFile(jar_path, classes_dir, metadata_parser.services_map,
@@ -656,7 +600,9 @@ def _RunCompiler(changes,
 
     logging.info('Completed all steps in _RunCompiler')
   finally:
-    shutil.rmtree(temp_dir)
+    # preserve temp_dir for rsp fie when --print-javac-command-line
+    if not options.print_javac_command_line:
+      shutil.rmtree(temp_dir)
 
 
 def _ParseOptions(argv):
@@ -721,6 +667,9 @@ def _ParseOptions(argv):
       action='append',
       default=[],
       help='Additional arguments to pass to javac.')
+  parser.add_option('--print-javac-command-line',
+                    action='store_true',
+                    help='Just show javac command line (for ide_query).')
   parser.add_option(
       '--enable-kythe-annotations',
       action='store_true',
@@ -856,6 +805,13 @@ def main(argv):
 
   javac_args.extend(options.javac_arg)
 
+  if options.print_javac_command_line:
+    if options.java_srcjars:
+      raise Exception(
+          '--print-javac-command-line does not work with --java-srcjars')
+    _OnStaleMd5(None, options, javac_cmd, javac_args, java_files, kt_files)
+    return 0
+
   classpath_inputs = options.classpath + options.processorpath
 
   depfile_deps = classpath_inputs
@@ -883,6 +839,7 @@ def main(argv):
                                        input_strings=input_strings,
                                        output_paths=output_paths,
                                        pass_changes=True)
+  return 0
 
 
 if __name__ == '__main__':

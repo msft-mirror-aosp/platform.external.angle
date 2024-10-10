@@ -47,6 +47,7 @@ angle_toggleable_extensions = [
 angle_requestable_extensions = [
     "GL_ANGLE_base_vertex_base_instance",
     "GL_ANGLE_base_vertex_base_instance_shader_builtin",
+    "GL_ANGLE_blob_cache",
     "GL_ANGLE_clip_cull_distance",
     "GL_ANGLE_compressed_texture_etc",
     "GL_ANGLE_copy_texture_3d",
@@ -89,6 +90,7 @@ gles_requestable_extensions = [
     "GL_APPLE_clip_distance",
     "GL_ARB_sync",
     "GL_ARM_shader_framebuffer_fetch",
+    "GL_ARM_shader_framebuffer_fetch_depth_stencil",
     "GL_EXT_base_instance",
     "GL_EXT_blend_func_extended",
     "GL_EXT_blend_minmax",
@@ -518,6 +520,10 @@ class RegistryXML:
     def _AppendANGLEExts(self, ext_file):
         angle_ext_tree = etree.parse(script_relative(ext_file))
         angle_ext_root = angle_ext_tree.getroot()
+
+        insertion_point = self.root.findall("./types")[0]
+        for t in angle_ext_root.iter('types'):
+            insertion_point.extend(t)
 
         insertion_point = self.root.findall("./commands")[0]
         for command in angle_ext_root.iter('commands'):
