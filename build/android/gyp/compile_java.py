@@ -36,37 +36,31 @@ ERRORPRONE_CHECKS_TO_APPLY = []
 
 # Full list of checks: https://errorprone.info/bugpatterns
 ERRORPRONE_WARNINGS_TO_DISABLE = [
-    # Temporarily disabling to roll doubledown.
-    # TODO(wnwen): Re-enable this upstream.
     'InlineMeInliner',
-    # The following are super useful, but existing issues need to be fixed first
-    # before they can start failing the build on new errors.
+    'InlineMeSuggester',
+    # These are all for Javadoc, which we don't really care about.
+    # vvv
+    'InvalidBlockTag',
     'InvalidParam',
     'InvalidLink',
     'InvalidInlineTag',
-    'EmptyBlockTag',
-    'InvalidBlockTag',
+    'MalformedInlineTag',
+    'MissingSummary',
+    'UnescapedEntity',
+    'UnrecognisedJavadocTag',
+    # ^^^
     'StaticAssignmentInConstructor',
     'MutablePublicArray',
-    'UnescapedEntity',
     'NonCanonicalType',
-    'AlmostJavadoc',
     'ReturnValueIgnored',
-    # The following are added for errorprone update: https://crbug.com/1216032
-    'InlineMeSuggester',
     'DoNotClaimAnnotations',
     'JavaUtilDate',
     'IdentityHashMapUsage',
-    'LongFloatConversion',
-    'CharacterGetNumericValue',
-    'ErroneousThreadPoolConstructorChecker',
     'StaticMockMember',
     'MissingSuperCall',
     'ToStringReturnsNull',
     # Triggers in tests where this is useful to do.
     'StaticAssignmentOfThrowable',
-    # If possible, this should be automatically fixed if turned on:
-    'MalformedInlineTag',
     # TODO(crbug.com/41384349): Follow steps in bug.
     'CatchAndPrintStackTrace',
     # TODO(crbug.com/41364336): Follow steps in bug.
@@ -76,8 +70,6 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     # Android platform default is always UTF-8.
     # https://developer.android.com/reference/java/nio/charset/Charset.html#defaultCharset()
     'DefaultCharset',
-    # Low priority since there are lots of tags that don't fit this check.
-    'UnrecognisedJavadocTag',
     # Low priority since the alternatives still work.
     'JdkObsolete',
     # There are lots of times when we just want to post a task.
@@ -90,10 +82,6 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     'StringSplitter',
     # Preferred to use another method since it propagates exceptions better.
     'ClassNewInstance',
-    # Nice to have static inner classes but not necessary.
-    'ClassCanBeStatic',
-    # Explicit is better than implicit.
-    'FloatCast',
     # Results in false positives.
     'ThreadLocalUsage',
     # Also just false positives.
@@ -108,9 +96,6 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     'OverrideThrowableToString',
     # Nice to have better type safety.
     'CollectionToArraySafeParameter',
-    # Makes logcat debugging more difficult, and does not provide obvious
-    # benefits in the Chromium codebase.
-    'ObjectToString',
     # Triggers on private methods that are @CalledByNative.
     'UnusedMethod',
     # Triggers on generated R.java files.
@@ -128,10 +113,6 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     # Does not apply to Android because it assumes no desugaring.
     'UnnecessaryLambda',
     # Nice to have.
-    'UnnecessaryAnonymousClass',
-    # Nice to have.
-    'MissingSummary',
-    # Nice to have.
     'EmptyCatch',
     # Nice to have.
     'BadImport',
@@ -142,11 +123,10 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     # Must be off since we are now passing in annotation processor generated
     # code as a source jar (deduplicating work with turbine).
     'RefersToDaggerCodegen',
-    # We already have presubmit checks for this. Not necessary to warn on
-    # every build.
+    # We already have presubmit checks for this. We don't want it to fail
+    # local compiles.
     'RemoveUnusedImports',
-    # The only time we trigger this is when it is better to be explicit in a
-    # list of unicode characters, e.g. FindAddress.java
+    # Only has false positives (would not want to enable this).
     'UnicodeEscape',
     # Nice to have.
     'AlreadyChecked',
