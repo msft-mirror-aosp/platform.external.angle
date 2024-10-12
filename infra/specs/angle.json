@@ -6435,7 +6435,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:67ef|1002:7340",
+            "gpu": "1002:7340",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6459,7 +6459,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:67ef|1002:7340",
+            "gpu": "1002:7340",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6484,7 +6484,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:67ef|1002:7340",
+            "gpu": "1002:7340",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6509,7 +6509,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:67ef|1002:7340",
+            "gpu": "1002:7340",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6522,7 +6522,8 @@
       },
       {
         "args": [
-          "--use-angle=webgpu"
+          "--use-angle=webgpu",
+          "--flaky-retries=2"
         ],
         "merge": {
           "script": "//scripts/angle_deqp_test_merge.py"
@@ -6533,7 +6534,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:67ef|1002:7340",
+            "gpu": "1002:7340",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6558,7 +6559,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:67ef|1002:7340",
+            "gpu": "1002:7340",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6584,7 +6585,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:67ef|1002:7340",
+            "gpu": "1002:7340",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6610,7 +6611,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:67ef|1002:7340",
+            "gpu": "1002:7340",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6632,7 +6633,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:67ef|1002:7340",
+            "gpu": "1002:7340",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6661,7 +6662,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:7340",
+            "gpu": "1002:67ef",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6685,7 +6686,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:7340",
+            "gpu": "1002:67ef",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6710,7 +6711,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:7340",
+            "gpu": "1002:67ef",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6735,7 +6736,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:7340",
+            "gpu": "1002:67ef",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6748,7 +6749,8 @@
       },
       {
         "args": [
-          "--use-angle=webgpu"
+          "--use-angle=webgpu",
+          "--flaky-retries=2"
         ],
         "merge": {
           "script": "//scripts/angle_deqp_test_merge.py"
@@ -6759,7 +6761,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:7340",
+            "gpu": "1002:67ef",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6784,7 +6786,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:7340",
+            "gpu": "1002:67ef",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6810,7 +6812,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:7340",
+            "gpu": "1002:67ef",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6836,7 +6838,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:7340",
+            "gpu": "1002:67ef",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6858,7 +6860,7 @@
           "dimensions": {
             "cpu": "x86-64",
             "display_attached": "1",
-            "gpu": "1002:7340",
+            "gpu": "1002:67ef",
             "hidpi": "1",
             "os": "Mac-14.4.1",
             "pool": "chromium.tests.gpu"
@@ -6966,7 +6968,8 @@
       },
       {
         "args": [
-          "--use-angle=webgpu"
+          "--use-angle=webgpu",
+          "--flaky-retries=2"
         ],
         "merge": {
           "script": "//scripts/angle_deqp_test_merge.py"
@@ -7175,7 +7178,8 @@
       },
       {
         "args": [
-          "--use-angle=webgpu"
+          "--use-angle=webgpu",
+          "--flaky-retries=2"
         ],
         "merge": {
           "script": "//scripts/angle_deqp_test_merge.py"

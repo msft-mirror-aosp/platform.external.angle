@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 363
+#define ANGLE_SH_VERSION 365
 
 enum ShShaderSpec
 {
@@ -498,6 +498,7 @@ struct ShBuiltInResources
     int NV_shader_framebuffer_fetch;
     int NV_shader_noperspective_interpolation;
     int ARM_shader_framebuffer_fetch;
+    int ARM_shader_framebuffer_fetch_depth_stencil;
     int OVR_multiview;
     int OVR_multiview2;
     int EXT_multisampled_render_to_texture;
@@ -955,6 +956,8 @@ enum class MetadataFlags
     HasInputAttachment0,
     // Flag for attachment i is HasInputAttachment0 + i
     HasInputAttachment7 = HasInputAttachment0 + 7,
+    HasDepthInputAttachment,
+    HasStencilInputAttachment,
     // Applicable to geometry shaders
     HasValidGeometryShaderInputPrimitiveType,
     HasValidGeometryShaderOutputPrimitiveType,
@@ -1109,6 +1112,8 @@ enum ReservedIds
     // Input attachments used for framebuffer fetch and advanced blend emulation
     kIdInputAttachment0,
     kIdInputAttachment7 = kIdInputAttachment0 + 7,
+    kIdDepthInputAttachment,
+    kIdStencilInputAttachment,
 
     kIdFirstUnreserved,
 };
