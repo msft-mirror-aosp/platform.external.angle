@@ -81763,6 +81763,106 @@ namespace VULKAN_HPP_NAMESPACE
     using Type = PhysicalDevicePresentIdFeaturesKHR;
   };
 
+  struct PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT
+  {
+    using NativeType = VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT;
+
+    static const bool                                  allowDuplicate = false;
+    static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDevicePresentModeFifoLatestReadyFeaturesEXT;
+
+#if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
+    VULKAN_HPP_CONSTEXPR PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT( VULKAN_HPP_NAMESPACE::Bool32 presentModeFifoLatestReady_ = {},
+                                                                              void *                       pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+      : pNext{ pNext_ }
+      , presentModeFifoLatestReady{ presentModeFifoLatestReady_ }
+    {
+    }
+
+    VULKAN_HPP_CONSTEXPR
+      PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT( PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+
+    PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT( VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+      : PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT( *reinterpret_cast<PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT const *>( &rhs ) )
+    {
+    }
+
+    PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT &
+      operator=( PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+#endif /*VULKAN_HPP_NO_STRUCT_CONSTRUCTORS*/
+
+    PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT & operator=( VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT const & rhs ) VULKAN_HPP_NOEXCEPT
+    {
+      *this = *reinterpret_cast<VULKAN_HPP_NAMESPACE::PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT const *>( &rhs );
+      return *this;
+    }
+
+#if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    {
+      pNext = pNext_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT &
+      setPresentModeFifoLatestReady( VULKAN_HPP_NAMESPACE::Bool32 presentModeFifoLatestReady_ ) VULKAN_HPP_NOEXCEPT
+    {
+      presentModeFifoLatestReady = presentModeFifoLatestReady_;
+      return *this;
+    }
+#endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
+
+    operator VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT const &() const VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<const VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT *>( this );
+    }
+
+    operator VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT &() VULKAN_HPP_NOEXCEPT
+    {
+      return *reinterpret_cast<VkPhysicalDevicePresentModeFifoLatestReadyFeaturesEXT *>( this );
+    }
+
+#if defined( VULKAN_HPP_USE_REFLECT )
+#  if 14 <= VULKAN_HPP_CPP_VERSION
+    auto
+#  else
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+#  endif
+      reflect() const VULKAN_HPP_NOEXCEPT
+    {
+      return std::tie( sType, pNext, presentModeFifoLatestReady );
+    }
+#endif
+
+#if defined( VULKAN_HPP_HAS_SPACESHIP_OPERATOR )
+    auto operator<=>( PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT const & ) const = default;
+#else
+    bool operator==( PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+#  if defined( VULKAN_HPP_USE_REFLECT )
+      return this->reflect() == rhs.reflect();
+#  else
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( presentModeFifoLatestReady == rhs.presentModeFifoLatestReady );
+#  endif
+    }
+
+    bool operator!=( PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT const & rhs ) const VULKAN_HPP_NOEXCEPT
+    {
+      return !operator==( rhs );
+    }
+#endif
+
+  public:
+    VULKAN_HPP_NAMESPACE::StructureType sType                      = StructureType::ePhysicalDevicePresentModeFifoLatestReadyFeaturesEXT;
+    void *                              pNext                      = {};
+    VULKAN_HPP_NAMESPACE::Bool32        presentModeFifoLatestReady = {};
+  };
+
+  template <>
+  struct CppType<StructureType, StructureType::ePhysicalDevicePresentModeFifoLatestReadyFeaturesEXT>
+  {
+    using Type = PhysicalDevicePresentModeFifoLatestReadyFeaturesEXT;
+  };
+
   struct PhysicalDevicePresentWaitFeaturesKHR
   {
     using NativeType = VkPhysicalDevicePresentWaitFeaturesKHR;

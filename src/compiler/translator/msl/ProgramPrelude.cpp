@@ -65,12 +65,7 @@ class ProgramPrelude : public TIntermTraverser
                 break;
         }
 
-#if 1
-        mOut << "#define ANGLE_tensor metal::array\n";
         mOut << "#pragma clang diagnostic ignored \"-Wunused-value\"\n";
-#else
-        tensor();
-#endif
     }
 
   private:
@@ -115,10 +110,6 @@ class ProgramPrelude : public TIntermTraverser
     void transform_feedback_guard();
 
     void enable_if();
-    void scalar_of();
-    void is_scalar();
-    void is_vector();
-    void is_matrix();
     void addressof();
     void distanceScalar();
     void faceforwardScalar();
@@ -142,11 +133,8 @@ class ProgramPrelude : public TIntermTraverser
     void subMatrixScalar();
     void subScalarMatrix();
     void divMatrixScalar();
-    void divMatrixScalarFast();
     void divMatrixScalarAssign();
-    void divMatrixScalarAssignFast();
     void divScalarMatrix();
-    void tensor();
     void componentWiseDivide();
     void componentWiseDivideAssign();
     void componentWiseMultiply();
@@ -342,89 +330,6 @@ struct ANGLE_enable_if<true, T>
 template <bool B>
 using ANGLE_enable_if_t = typename ANGLE_enable_if<B>::type;
 )")
-
-PROGRAM_PRELUDE_DECLARE(scalar_of, R"(
-template <typename T>
-struct ANGLE_scalar_of
-{
-    using type = T;
-};
-template <typename T>
-using ANGLE_scalar_of_t = typename ANGLE_scalar_of<T>::type;
-)")
-
-PROGRAM_PRELUDE_DECLARE(is_scalar, R"(
-template <typename T>
-struct ANGLE_is_scalar {};
-#define ANGLE_DEFINE_SCALAR(scalar) \
-    template <> struct ANGLE_is_scalar<scalar> { enum { value = true }; }
-ANGLE_DEFINE_SCALAR(bool);
-ANGLE_DEFINE_SCALAR(char);
-ANGLE_DEFINE_SCALAR(short);
-ANGLE_DEFINE_SCALAR(int);
-ANGLE_DEFINE_SCALAR(uchar);
-ANGLE_DEFINE_SCALAR(ushort);
-ANGLE_DEFINE_SCALAR(uint);
-ANGLE_DEFINE_SCALAR(half);
-ANGLE_DEFINE_SCALAR(float);
-)")
-
-PROGRAM_PRELUDE_DECLARE(is_vector,
-                        R"(
-template <typename T>
-struct ANGLE_is_vector
-{
-    enum { value = false };
-};
-#define ANGLE_DEFINE_VECTOR(scalar) \
-    template <> struct ANGLE_is_vector<metal::scalar ## 2> { enum { value = true }; }; \
-    template <> struct ANGLE_is_vector<metal::scalar ## 3> { enum { value = true }; }; \
-    template <> struct ANGLE_is_vector<metal::scalar ## 4> { enum { value = true }; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 2> { using type = scalar; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 3> { using type = scalar; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 4> { using type = scalar; }
-ANGLE_DEFINE_VECTOR(bool);
-ANGLE_DEFINE_VECTOR(char);
-ANGLE_DEFINE_VECTOR(short);
-ANGLE_DEFINE_VECTOR(int);
-ANGLE_DEFINE_VECTOR(uchar);
-ANGLE_DEFINE_VECTOR(ushort);
-ANGLE_DEFINE_VECTOR(uint);
-ANGLE_DEFINE_VECTOR(half);
-ANGLE_DEFINE_VECTOR(float);
-)",
-                        scalar_of())
-
-PROGRAM_PRELUDE_DECLARE(is_matrix,
-                        R"(
-template <typename T>
-struct ANGLE_is_matrix
-{
-    enum { value = false };
-};
-#define ANGLE_DEFINE_MATRIX(scalar) \
-    template <> struct ANGLE_is_matrix<metal::scalar ## 2x2> { enum { value = true }; }; \
-    template <> struct ANGLE_is_matrix<metal::scalar ## 2x3> { enum { value = true }; }; \
-    template <> struct ANGLE_is_matrix<metal::scalar ## 2x4> { enum { value = true }; }; \
-    template <> struct ANGLE_is_matrix<metal::scalar ## 3x2> { enum { value = true }; }; \
-    template <> struct ANGLE_is_matrix<metal::scalar ## 3x3> { enum { value = true }; }; \
-    template <> struct ANGLE_is_matrix<metal::scalar ## 3x4> { enum { value = true }; }; \
-    template <> struct ANGLE_is_matrix<metal::scalar ## 4x2> { enum { value = true }; }; \
-    template <> struct ANGLE_is_matrix<metal::scalar ## 4x3> { enum { value = true }; }; \
-    template <> struct ANGLE_is_matrix<metal::scalar ## 4x4> { enum { value = true }; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 2x2> { using type = scalar; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 2x3> { using type = scalar; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 2x4> { using type = scalar; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 3x2> { using type = scalar; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 3x3> { using type = scalar; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 3x4> { using type = scalar; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 4x2> { using type = scalar; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 4x3> { using type = scalar; }; \
-    template <> struct ANGLE_scalar_of<metal::scalar ## 4x4> { using type = scalar; }
-ANGLE_DEFINE_MATRIX(half);
-ANGLE_DEFINE_MATRIX(float);
-)",
-                        scalar_of())
 
 PROGRAM_PRELUDE_DECLARE(addressof,
                         R"(
@@ -698,20 +603,6 @@ ANGLE_ALWAYS_INLINE metal::matrix<T, Cols, Rows> operator-(T x, metal::matrix<T,
 }
 )")
 
-PROGRAM_PRELUDE_DECLARE(divMatrixScalarAssignFast,
-                        R"(
-template <typename T, int Cols, int Rows>
-ANGLE_ALWAYS_INLINE thread metal::matrix<T, Cols, Rows> &operator/=(thread metal::matrix<T, Cols, Rows> &m, T x)
-{
-    x = T(1) / x;
-    for (size_t col = 0; col < Cols; ++col)
-    {
-        m[col] *= x;
-    }
-    return m;
-}
-)")
-
 PROGRAM_PRELUDE_DECLARE(divMatrixScalarAssign,
                         R"(
 template <typename T, int Cols, int Rows>
@@ -724,19 +615,6 @@ ANGLE_ALWAYS_INLINE thread metal::matrix<T, Cols, Rows> &operator/=(thread metal
     return m;
 }
 )")
-
-PROGRAM_PRELUDE_DECLARE(divMatrixScalarFast,
-                        R"(
-#if __METAL_VERSION__ <= 220
-template <typename T, int Cols, int Rows>
-ANGLE_ALWAYS_INLINE metal::matrix<T, Cols, Rows> operator/(metal::matrix<T, Cols, Rows> m, T x)
-{
-    m /= x;
-    return m;
-}
-#endif
-)",
-                        divMatrixScalarAssignFast())
 
 PROGRAM_PRELUDE_DECLARE(divMatrixScalar,
                         R"(
@@ -1269,42 +1147,6 @@ ANGLE_ALWAYS_INLINE metal::matrix<T, C1, R1> ANGLE_cast(metal::matrix<T, C2, R2>
 )",
                         enable_if(),
                         castVector())
-
-PROGRAM_PRELUDE_DECLARE(tensor, R"(
-template <typename T, size_t... DS>
-struct ANGLE_tensor_traits;
-template <typename T, size_t D>
-struct ANGLE_tensor_traits<T, D>
-{
-    enum : size_t { outer_dim = D };
-    using inner_type = T;
-    using outer_type = inner_type[D];
-};
-template <typename T, size_t D, size_t... DS>
-struct ANGLE_tensor_traits<T, D, DS...>
-{
-    enum : size_t { outer_dim = D };
-    using inner_type = typename ANGLE_tensor_traits<T, DS...>::outer_type;
-    using outer_type = inner_type[D];
-};
-template <size_t D, typename value_type_, typename inner_type_>
-struct ANGLE_tensor_impl
-{
-    enum : size_t { outer_dim = D };
-    using value_type = value_type_;
-    using inner_type = inner_type_;
-    using outer_type = inner_type[D];
-    outer_type _data;
-    ANGLE_ALWAYS_INLINE size_t size() const { return outer_dim; }
-    ANGLE_ALWAYS_INLINE inner_type &operator[](size_t i) { return _data[i]; }
-    ANGLE_ALWAYS_INLINE const inner_type &operator[](size_t i) const { return _data[i]; }
-};
-template <typename T, size_t... DS>
-using ANGLE_tensor = ANGLE_tensor_impl<
-    ANGLE_tensor_traits<T, DS...>::outer_dim,
-    T,
-    typename ANGLE_tensor_traits<T, DS...>::inner_type>;
-)")
 
 PROGRAM_PRELUDE_DECLARE(textureEnv,
                         R"(
@@ -1927,10 +1769,14 @@ ANGLE_ALWAYS_INLINE auto ANGLE_textureGrad(
         return env.texture->sample_compare(*env.sampler, coord.xy, coord.z, metal::gradient2d(dPdx, dPdy));
     }
     else
-#endif
     {
-        return static_cast<float>(env.texture->sample(*env.sampler, coord.xy, metal::gradient2d(dPdx, dPdy)) > coord.z);
+        const float2 dims = float2(env.texture->get_width(0), env.texture->get_height(0));
+        const float lod = 0.5 * metal::log2(metal::max(metal::length_squared(dPdx * dims), metal::length_squared(dPdy * dims)));
+        return env.texture->sample_compare(*env.sampler, coord.xy, coord.z, metal::level(lod));
     }
+#else
+    return env.texture->sample_compare(*env.sampler, coord.xy, coord.z, metal::level(0));
+#endif
 }
 )",
                         functionConstants(),
@@ -1950,10 +1796,14 @@ ANGLE_ALWAYS_INLINE auto ANGLE_textureGrad(
         return env.texture->sample_compare(*env.sampler, coord.xy, uint32_t(metal::round(coord.z)), coord.w, metal::gradient2d(dPdx, dPdy));
     }
     else
-#endif
     {
-        return static_cast<float>(env.texture->sample(*env.sampler, coord.xy, uint32_t(metal::round(coord.z)), metal::gradient2d(dPdx, dPdy)) > coord.w);
+        const float2 dims = float2(env.texture->get_width(0), env.texture->get_height(0));
+        const float lod = 0.5 * metal::log2(metal::max(metal::length_squared(dPdx * dims), metal::length_squared(dPdy * dims)));
+        return env.texture->sample_compare(*env.sampler, coord.xy, uint32_t(metal::round(coord.z)), coord.w, metal::level(lod));
     }
+#else
+    return env.texture->sample_compare(*env.sampler, coord.xy, uint32_t(metal::round(coord.z)), coord.w, metal::level(0));
+#endif
 }
 )",
                         functionConstants(),
@@ -1973,10 +1823,21 @@ ANGLE_ALWAYS_INLINE auto ANGLE_textureGrad(
         return env.texture->sample_compare(*env.sampler, coord.xyz, coord.w, metal::gradientcube(dPdx, dPdy));
     }
     else
-#endif
     {
-        return static_cast<float>(env.texture->sample(*env.sampler, coord.xyz, metal::gradientcube(dPdx, dPdy)) > coord.w);
+        const float3 coord_abs = metal::abs(coord.xyz);
+        const bool z_major = coord_abs.z >= metal::max(coord_abs.x, coord_abs.y);
+        const bool y_major = coord_abs.y >= metal::max(coord_abs.x, coord_abs.z);
+        const float3 Q = z_major ? coord.xyz : (y_major ? coord.xzy : coord.yzx);
+        const float3 dQdx = z_major ? dPdx : (y_major ? dPdx.xzy : dPdx.yzx);
+        const float3 dQdy = z_major ? dPdy : (y_major ? dPdy.xzy : dPdy.yzx);
+        const float4 d = (float4(dQdx.xy, dQdy.xy) - (Q.xy / Q.z).xyxy * float4(dQdx.zz, dQdy.zz)) / Q.z;
+        const float dim = float(env.texture->get_width(0));
+        const float lod = -1.0 + 0.5 * metal::log2(dim * dim * metal::max(metal::length_squared(d.xy), metal::length_squared(d.zw)));
+        return env.texture->sample_compare(*env.sampler, coord.xyz, coord.w, metal::level(lod));
     }
+#else
+    return env.texture->sample_compare(*env.sampler, coord.xyz, coord.w, metal::level(0));
+#endif
 }
 )",
                         functionConstants(),
@@ -2042,10 +1903,14 @@ ANGLE_ALWAYS_INLINE auto ANGLE_textureGradOffset(
         return env.texture->sample_compare(*env.sampler, coord.xy, coord.z, metal::gradient2d(dPdx, dPdy), offset);
     }
     else
-#endif
     {
-        return static_cast<float>(env.texture->sample(*env.sampler, coord.xy, metal::gradient2d(dPdx, dPdy), offset) > coord.z);
+        const float2 dims = float2(env.texture->get_width(0), env.texture->get_height(0));
+        const float lod = 0.5 * metal::log2(metal::max(metal::length_squared(dPdx * dims), metal::length_squared(dPdy * dims)));
+        return env.texture->sample_compare(*env.sampler, coord.xy, coord.z, metal::level(lod), offset);
     }
+#else
+    return env.texture->sample_compare(*env.sampler, coord.xy, coord.z, metal::level(0), offset);
+#endif
 }
 )",
                         functionConstants(),
@@ -2066,10 +1931,14 @@ ANGLE_ALWAYS_INLINE auto ANGLE_textureGradOffset(
         return env.texture->sample_compare(*env.sampler, coord.xy, uint32_t(metal::round(coord.z)), coord.w, metal::gradient2d(dPdx, dPdy), offset);
     }
     else
-#endif
     {
-        return static_cast<float>(env.texture->sample(*env.sampler, coord.xy, uint32_t(metal::round(coord.z)), metal::gradient2d(dPdx, dPdy), offset) > coord.w);
+        const float2 dims = float2(env.texture->get_width(0), env.texture->get_height(0));
+        const float lod = 0.5 * metal::log2(metal::max(metal::length_squared(dPdx * dims), metal::length_squared(dPdy * dims)));
+        return env.texture->sample_compare(*env.sampler, coord.xy, uint32_t(metal::round(coord.z)), coord.w, metal::level(lod), offset);
     }
+#else
+    return env.texture->sample_compare(*env.sampler, coord.xy, uint32_t(metal::round(coord.z)), coord.w, metal::level(0), offset);
+#endif
 }
 )",
                         functionConstants(),
@@ -2534,10 +2403,14 @@ ANGLE_ALWAYS_INLINE auto ANGLE_textureProjGrad(
         return env.texture->sample_compare(*env.sampler, coord.xy/coord.w, coord.z/coord.w, metal::gradient2d(dPdx, dPdy));
     }
     else
-#endif
     {
-        return static_cast<float>(env.texture->sample(*env.sampler, coord.xy/coord.w, metal::gradient2d(dPdx, dPdy)) > coord.z/coord.w);
+        const float2 dims = float2(env.texture->get_width(0), env.texture->get_height(0));
+        const float lod = 0.5 * metal::log2(metal::max(metal::length_squared(dPdx * dims), metal::length_squared(dPdy * dims)));
+        return env.texture->sample_compare(*env.sampler, coord.xy/coord.w, coord.z/coord.w, metal::level(lod));
     }
+#else
+    return env.texture->sample_compare(*env.sampler, coord.xy/coord.w, coord.z/coord.w, metal::level(0));
+#endif
 }
 )",
                         functionConstants(),
@@ -2602,10 +2475,14 @@ ANGLE_ALWAYS_INLINE auto ANGLE_textureProjGradOffset(
         return env.texture->sample_compare(*env.sampler, coord.xy/coord.w, coord.z/coord.w, metal::gradient2d(dPdx, dPdy), offset);
     }
     else
-#endif
     {
-        return static_cast<float>(env.texture->sample(*env.sampler, coord.xy/coord.w, metal::gradient2d(dPdx, dPdy), offset) > coord.z/coord.w);
+        const float2 dims = float2(env.texture->get_width(0), env.texture->get_height(0));
+        const float lod = 0.5 * metal::log2(metal::max(metal::length_squared(dPdx * dims), metal::length_squared(dPdy * dims)));
+        return env.texture->sample_compare(*env.sampler, coord.xy/coord.w, coord.z/coord.w, metal::level(lod), offset);
     }
+#else
+    return env.texture->sample_compare(*env.sampler, coord.xy/coord.w, coord.z/coord.w, metal::level(0), offset);
+#endif
 }
 )",
                         functionConstants(),

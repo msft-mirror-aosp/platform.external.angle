@@ -936,6 +936,7 @@ egl::Error Context::makeCurrent(egl::Display *display,
     {
         initializeDefaultResources();
         initRendererString();
+        initVendorString();
         initVersionStrings();
         initExtensionStrings();
 
@@ -3341,26 +3342,61 @@ void Context::programParameteri(ShaderProgramID program, GLenum pname, GLint val
 void Context::initRendererString()
 {
     std::ostringstream frontendRendererString;
-    std::string vendorString(mDisplay->getBackendVendorString());
-    std::string rendererString(mDisplay->getBackendRendererDescription());
-    std::string versionString(mDisplay->getBackendVersionString(!isWebGL()));
-    // Commas are used as a separator in ANGLE's renderer string, so remove commas from each
-    // element.
-    vendorString.erase(std::remove(vendorString.begin(), vendorString.end(), ','),
-                       vendorString.end());
-    rendererString.erase(std::remove(rendererString.begin(), rendererString.end(), ','),
-                         rendererString.end());
-    versionString.erase(std::remove(versionString.begin(), versionString.end(), ','),
-                        versionString.end());
-    frontendRendererString << "ANGLE (";
-    frontendRendererString << vendorString;
-    frontendRendererString << ", ";
-    frontendRendererString << rendererString;
-    frontendRendererString << ", ";
-    frontendRendererString << versionString;
-    frontendRendererString << ")";
+
+    constexpr char kRendererString[]        = "ANGLE_GL_RENDERER";
+    constexpr char kAndroidRendererString[] = "debug.angle.gl_renderer";
+
+    std::string overrideRenderer =
+        angle::GetEnvironmentVarOrAndroidProperty(kRendererString, kAndroidRendererString);
+    if (!overrideRenderer.empty())
+    {
+        frontendRendererString << overrideRenderer;
+    }
+    else
+    {
+        std::string vendorString(mDisplay->getBackendVendorString());
+        std::string rendererString(mDisplay->getBackendRendererDescription());
+        std::string versionString(mDisplay->getBackendVersionString(!isWebGL()));
+        // Commas are used as a separator in ANGLE's renderer string, so remove commas from each
+        // element.
+        vendorString.erase(std::remove(vendorString.begin(), vendorString.end(), ','),
+                           vendorString.end());
+        rendererString.erase(std::remove(rendererString.begin(), rendererString.end(), ','),
+                             rendererString.end());
+        versionString.erase(std::remove(versionString.begin(), versionString.end(), ','),
+                            versionString.end());
+        frontendRendererString << "ANGLE (";
+        frontendRendererString << vendorString;
+        frontendRendererString << ", ";
+        frontendRendererString << rendererString;
+        frontendRendererString << ", ";
+        frontendRendererString << versionString;
+        frontendRendererString << ")";
+    }
 
     mRendererString = MakeStaticString(frontendRendererString.str());
+}
+
+void Context::initVendorString()
+{
+    std::ostringstream vendorString;
+
+    constexpr char kVendorString[]        = "ANGLE_GL_VENDOR";
+    constexpr char kAndroidVendorString[] = "debug.angle.gl_vendor";
+
+    std::string overrideVendor =
+        angle::GetEnvironmentVarOrAndroidProperty(kVendorString, kAndroidVendorString);
+
+    if (!overrideVendor.empty())
+    {
+        vendorString << overrideVendor;
+    }
+    else
+    {
+        vendorString << mDisplay->getVendorString();
+    }
+
+    mVendorString = MakeStaticString(vendorString.str());
 }
 
 void Context::initVersionStrings()
@@ -3425,7 +3461,7 @@ const GLubyte *Context::getString(GLenum name) const
     switch (name)
     {
         case GL_VENDOR:
-            return reinterpret_cast<const GLubyte *>(mDisplay->getVendorString().c_str());
+            return reinterpret_cast<const GLubyte *>(mVendorString);
 
         case GL_RENDERER:
             return reinterpret_cast<const GLubyte *>(mRendererString);
@@ -3889,6 +3925,9 @@ Extensions Context::generateSupportedExtensions() const
     // GL_ANDROID_extension_pack_es31a
     supportedExtensions.extensionPackEs31aANDROID =
         CanSupportAEP(getClientVersion(), supportedExtensions);
+
+    // Blob cache extension is provided by the ANGLE frontend
+    supportedExtensions.blobCacheANGLE = true;
 
     return supportedExtensions;
 }
@@ -4599,22 +4638,28 @@ void Context::blitFramebuffer(GLint srcX0,
     }
 
     Framebuffer *drawFramebuffer = mState.getDrawFramebuffer();
+    Framebuffer *readFramebuffer = mState.getReadFramebuffer();
     ASSERT(drawFramebuffer);
+    ASSERT(readFramebuffer);
 
     // Note that blitting is called against draw framebuffer.
     // See the code in gl::Context::blitFramebuffer.
-    if ((mask & GL_COLOR_BUFFER_BIT) && !drawFramebuffer->hasEnabledDrawBuffer())
+    if ((mask & GL_COLOR_BUFFER_BIT) && (!drawFramebuffer->hasEnabledDrawBuffer() ||
+                                         readFramebuffer->getReadColorAttachment() == nullptr))
     {
         mask &= ~GL_COLOR_BUFFER_BIT;
     }
 
     if ((mask & GL_STENCIL_BUFFER_BIT) &&
-        drawFramebuffer->getState().getStencilAttachment() == nullptr)
+        (drawFramebuffer->getState().getStencilAttachment() == nullptr ||
+         readFramebuffer->getState().getStencilAttachment() == nullptr))
     {
         mask &= ~GL_STENCIL_BUFFER_BIT;
     }
 
-    if ((mask & GL_DEPTH_BUFFER_BIT) && drawFramebuffer->getState().getDepthAttachment() == nullptr)
+    if ((mask & GL_DEPTH_BUFFER_BIT) &&
+        (drawFramebuffer->getState().getDepthAttachment() == nullptr ||
+         readFramebuffer->getState().getDepthAttachment() == nullptr))
     {
         mask &= ~GL_DEPTH_BUFFER_BIT;
     }
@@ -8914,6 +8959,11 @@ void Context::endPixelLocalStorageWithStoreOpsStore()
     endPixelLocalStorage(n, storeops.data());
 }
 
+bool Context::areBlobCacheFuncsSet() const
+{
+    return mState.getBlobCacheCallbacks().getFunction && mState.getBlobCacheCallbacks().setFunction;
+}
+
 void Context::pixelLocalStorageBarrier()
 {
     if (getExtensions().shaderPixelLocalStorageCoherentANGLE)
@@ -9965,6 +10015,13 @@ void Context::clearTexSubImage(TextureID texturePacked,
                                              static_cast<const uint8_t *>(data)));
 }
 
+void Context::blobCacheCallbacks(GLSETBLOBPROCANGLE set,
+                                 GLGETBLOBPROCANGLE get,
+                                 const void *userParam)
+{
+    mState.getBlobCacheCallbacks() = {set, get, userParam};
+}
+
 // ErrorSet implementation.
 ErrorSet::ErrorSet(Debug *debug,
                    const angle::FrontendFeatures &frontendFeatures,
@@ -10502,19 +10559,20 @@ void StateCache::updateValidBindTextureTypes(Context *context)
     const Extensions &exts = context->getExtensions();
     bool isGLES3           = context->getClientMajorVersion() >= 3;
     bool isGLES31          = context->getClientVersion() >= Version(3, 1);
+    bool isGLES32          = context->getClientVersion() >= Version(3, 2);
 
     mCachedValidBindTextureTypes = {{
         {TextureType::_2D, true},
         {TextureType::_2DArray, isGLES3},
         {TextureType::_2DMultisample, isGLES31 || exts.textureMultisampleANGLE},
-        {TextureType::_2DMultisampleArray, exts.textureStorageMultisample2dArrayOES},
+        {TextureType::_2DMultisampleArray, isGLES32 || exts.textureStorageMultisample2dArrayOES},
         {TextureType::_3D, isGLES3 || exts.texture3DOES},
         {TextureType::External, exts.EGLImageExternalOES || exts.EGLStreamConsumerExternalNV},
         {TextureType::Rectangle, exts.textureRectangleANGLE},
         {TextureType::CubeMap, true},
-        {TextureType::CubeMapArray, exts.textureCubeMapArrayAny()},
+        {TextureType::CubeMapArray, isGLES32 || exts.textureCubeMapArrayAny()},
         {TextureType::VideoImage, exts.videoTextureWEBGL},
-        {TextureType::Buffer, exts.textureBufferAny()},
+        {TextureType::Buffer, isGLES32 || exts.textureBufferAny()},
     }};
 }
 
