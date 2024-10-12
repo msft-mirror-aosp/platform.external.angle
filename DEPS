@@ -43,13 +43,13 @@ vars = {
   'checkout_angle_mesa': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': 'b34a6d5a6f69bf0e1a7ef5e2dd2c558cc8a617c1',
+  'chromium_revision': 'f801b43c96ea97ade62a55a4cc50c7e2dfdc4a5f',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': '5dd667ee8fa83fd2421dccae84228fda5fd80837',
+  'vk_gl_cts_revision': '179dd9f858f0f5b0e52b61aefc621dc82e2ad34a',
 
   # Current revision of googletest.
   # Note: this dep cannot be auto-rolled b/c of nesting.
@@ -167,6 +167,7 @@ vars = {
   'checkout_angle_restricted_trace_angry_birds_2_1500': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_angry_birds_2_launch': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_animal_crossing': 'checkout_angle_restricted_traces',
+  'checkout_angle_restricted_trace_antistress': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_antutu_refinery': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_arena_of_valor': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_arknights': 'checkout_angle_restricted_traces',
@@ -498,7 +499,7 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@52b332ab3d29fdc074e2065b6b65669fd26b2fd5',
+    'url': '{chromium_git}/chromium/src/testing@aedfbb82cf2b60b72b775578dcc13a3059717900',
     'condition': 'not build_with_chromium',
   },
 
@@ -985,7 +986,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@e8e61a227e2c242ee71400cdfdfbe9eed7350dc2',
+    'url': Var('chromium_git') + '/vulkan-deps@73fd75175922012f21557239b7743a152ea7f1fd',
     'condition': 'not build_with_chromium',
   },
 
@@ -1005,12 +1006,12 @@ deps = {
   },
 
   'third_party/spirv-headers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@a62b032007b2e7a69f24a195cbfbd0cf22d31bb0',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@50bc4debdc3eec5045edbeb8ce164090e29b91f3',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/spirv-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@4310fd4edae21d711ab31f5183704ad320329419',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@42b315c15b1ff941b46bb3949c105e5386be8717',
     'condition': 'not build_with_chromium',
   },
 
@@ -1035,7 +1036,7 @@ deps = {
   },
 
   'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@61037741e4d8ccdb8c7b761bc726ab87cc11496d',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@cbb4ab171fc7cd0b636a76ee542e238a8734f4be',
     'condition': 'not build_with_chromium',
   },
 
@@ -1304,6 +1305,16 @@ deps = {
       ],
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_trace_animal_crossing',
+  },
+  'src/tests/restricted_traces/antistress': {
+      'packages': [
+        {
+            'package': 'angle/traces/antistress',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_trace_antistress',
   },
   'src/tests/restricted_traces/antutu_refinery': {
       'packages': [
