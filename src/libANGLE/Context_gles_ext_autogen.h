@@ -76,6 +76,7 @@
     /* GL_APPLE_clip_distance */                                                                   \
     /* GL_ARB_sync */                                                                              \
     /* GL_ARM_shader_framebuffer_fetch */                                                          \
+    /* GL_ARM_shader_framebuffer_fetch_depth_stencil */                                            \
     /* GL_EXT_EGL_image_array */                                                                   \
     /* GL_EXT_EGL_image_external_wrap_modes */                                                     \
     /* GL_EXT_EGL_image_storage */                                                                 \
@@ -386,6 +387,9 @@
         const void *const *indices, const GLsizei *instanceCounts, const GLint *baseVertices,      \
         const GLuint *baseInstances, GLsizei drawcount);                                           \
     /* GL_ANGLE_base_vertex_base_instance_shader_builtin */                                        \
+    /* GL_ANGLE_blob_cache */                                                                      \
+    void blobCacheCallbacks(GLSETBLOBPROCANGLE set, GLGETBLOBPROCANGLE get,                        \
+                            const void *userParam);                                                \
     /* GL_ANGLE_client_arrays */                                                                   \
     /* GL_ANGLE_clip_cull_distance */                                                              \
     /* GL_ANGLE_compressed_texture_etc */                                                          \

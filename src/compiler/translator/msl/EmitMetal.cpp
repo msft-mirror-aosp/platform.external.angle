@@ -694,9 +694,6 @@ static const char *GetOperatorString(TOperator op,
         case TOperator::EOpAtomicCompSwap:
         case TOperator::EOpEmitVertex:
         case TOperator::EOpEndPrimitive:
-        case TOperator::EOpFtransform:
-        case TOperator::EOpPackDouble2x32:
-        case TOperator::EOpUnpackDouble2x32:
         case TOperator::EOpArrayLength:
             UNIMPLEMENTED();
             return "TOperator_TODO";
@@ -1038,7 +1035,7 @@ void GenMetalTraverser::emitType(const TType &type, const EmitTypeConfig &etConf
         {
             if (type.isArray())
             {
-                mOut << "ANGLE_tensor<";
+                mOut << "metal::array<";
             }
         }
         if (evdConfig.isPointer)
@@ -1057,7 +1054,7 @@ void GenMetalTraverser::emitType(const TType &type, const EmitTypeConfig &etConf
     {
         if (type.isArray())
         {
-            mOut << "ANGLE_tensor<";
+            mOut << "metal::array<";
         }
     }
 

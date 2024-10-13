@@ -90,6 +90,12 @@ GL_MultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(GLenum mode,
                                                          const GLuint *baseInstances,
                                                          GLsizei drawcount);
 
+// GL_ANGLE_blob_cache
+ANGLE_EXPORT void GL_APIENTRY GL_BlobCacheCallbacksANGLE(GLSETBLOBPROCANGLE set,
+                                                         GLGETBLOBPROCANGLE get,
+                                                         const void *userParam);
+ANGLE_EXPORT void GL_APIENTRY GL_GetPointervANGLE(GLenum pname, void **params);
+
 // GL_ANGLE_client_arrays
 
 // GL_ANGLE_clip_cull_distance
@@ -753,6 +759,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_ReleaseTexturesANGLE(GLuint numTextures,
 // GL_ARB_sync
 
 // GL_ARM_shader_framebuffer_fetch
+
+// GL_ARM_shader_framebuffer_fetch_depth_stencil
 
 // GL_CHROMIUM_bind_uniform_location
 ANGLE_EXPORT void GL_APIENTRY GL_BindUniformLocationCHROMIUM(GLuint program,
