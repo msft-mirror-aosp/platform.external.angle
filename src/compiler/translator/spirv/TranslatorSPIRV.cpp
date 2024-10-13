@@ -656,6 +656,8 @@ bool HasFramebufferFetch(const TExtensionBehavior &extBehavior,
     return IsExtensionEnabled(extBehavior, TExtension::EXT_shader_framebuffer_fetch) ||
            IsExtensionEnabled(extBehavior, TExtension::EXT_shader_framebuffer_fetch_non_coherent) ||
            IsExtensionEnabled(extBehavior, TExtension::ARM_shader_framebuffer_fetch) ||
+           IsExtensionEnabled(extBehavior,
+                              TExtension::ARM_shader_framebuffer_fetch_depth_stencil) ||
            IsExtensionEnabled(extBehavior, TExtension::NV_shader_framebuffer_fetch) ||
            (compileOptions.pls.type == ShPixelLocalStorageType::FramebufferFetch &&
             IsExtensionEnabled(extBehavior, TExtension::ANGLE_shader_pixel_local_storage));
@@ -1304,7 +1306,7 @@ void TranslatorSPIRV::assignSpirvId(TSymbolUniqueId uniqueId, uint32_t spirvId)
 
 void TranslatorSPIRV::assignInputAttachmentIds(const InputAttachmentMap &inputAttachmentMap)
 {
-    for (auto &iter : inputAttachmentMap)
+    for (auto &iter : inputAttachmentMap.color)
     {
         const uint32_t index = iter.first;
         const TVariable *var = iter.second;
@@ -1315,6 +1317,18 @@ void TranslatorSPIRV::assignInputAttachmentIds(const InputAttachmentMap &inputAt
         const MetadataFlags flag = static_cast<MetadataFlags>(
             static_cast<uint32_t>(MetadataFlags::HasInputAttachment0) + index);
         mMetadataFlags.set(flag);
+    }
+
+    if (inputAttachmentMap.depth != nullptr)
+    {
+        assignSpirvId(inputAttachmentMap.depth->uniqueId(), vk::spirv::kIdDepthInputAttachment);
+        mMetadataFlags.set(MetadataFlags::HasDepthInputAttachment);
+    }
+
+    if (inputAttachmentMap.stencil != nullptr)
+    {
+        assignSpirvId(inputAttachmentMap.stencil->uniqueId(), vk::spirv::kIdStencilInputAttachment);
+        mMetadataFlags.set(MetadataFlags::HasStencilInputAttachment);
     }
 }
 
