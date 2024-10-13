@@ -825,6 +825,8 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     // Ends the currently active pixel local storage session with GL_STORE_OP_STORE on all planes.
     void endPixelLocalStorageWithStoreOpsStore();
 
+    bool areBlobCacheFuncsSet() const;
+
   private:
     void initializeDefaultResources();
     void releaseSharedObjects();
@@ -863,6 +865,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     egl::Error unsetDefaultFramebuffer();
 
     void initRendererString();
+    void initVendorString();
     void initVersionStrings();
     void initExtensionStrings();
 
@@ -926,6 +929,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     TransformFeedbackMap mTransformFeedbackMap;
     HandleAllocator mTransformFeedbackHandleAllocator;
 
+    const char *mVendorString;
     const char *mVersionString;
     const char *mShadingLanguageString;
     const char *mRendererString;
