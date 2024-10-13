@@ -729,6 +729,7 @@ cc_library_shared {
         "src/tests/gl_tests/BlendMinMaxTest.cpp",
         "src/tests/gl_tests/BlendPackedTest.cpp",
         "src/tests/gl_tests/BlitFramebufferANGLETest.cpp",
+        "src/tests/gl_tests/BlobCacheTest.cpp",
         "src/tests/gl_tests/BufferDataTest.cpp",
         "src/tests/gl_tests/BuiltinVariableTest.cpp",
         "src/tests/gl_tests/ClearTest.cpp",
