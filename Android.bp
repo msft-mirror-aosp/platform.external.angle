@@ -8032,7 +8032,7 @@ prebuilt_etc {
 java_defaults {
     name: "ANGLE_java_defaults",
     sdk_version: "system_current",
-    target_sdk_version: "34",
+    target_sdk_version: "35",
     min_sdk_version: "28",
     compile_multilib: "both",
     use_embedded_native_libs: true,
@@ -8059,7 +8059,7 @@ java_defaults {
 android_library {
     name: "ANGLE_library",
     sdk_version: "system_current",
-    target_sdk_version: "34",
+    target_sdk_version: "35",
     min_sdk_version: "28",
     resource_dirs: [
         "src/android_system_settings/res",
@@ -8098,7 +8098,7 @@ android_app {
 java_defaults {
     name: "ANGLE_java_settings_defaults",
     sdk_version: "system_current",
-    target_sdk_version: "34",
+    target_sdk_version: "35",
     min_sdk_version: "28",
     compile_multilib: "both",
     use_embedded_native_libs: true,
