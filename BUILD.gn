@@ -304,6 +304,10 @@ config("internal_config") {
   if (is_win && build_with_chromium) {
     defines += [ "ANGLE_WINDOWS_NO_FUTEX=1" ]
   }
+
+  if (angle_enable_cl) {
+    defines += [ "ANGLE_ENABLE_CL" ]
+  }
 }
 
 config("constructor_and_destructor_warnings") {
@@ -737,6 +741,10 @@ template("translator_lib") {
     sources += angle_translator_essl_symbol_table_sources
 
     # Backend support:
+    if (angle_enable_null) {
+      defines += [ "ANGLE_ENABLE_NULL" ]
+    }
+
     if (angle_enable_essl || use_fuzzing_engine) {
       _needs_glsl_base = true
       sources += angle_translator_essl_sources
