@@ -34505,9 +34505,14 @@ namespace VULKAN_HPP_NAMESPACE
     static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::eExecutionGraphPipelineScratchSizeAMDX;
 
 #  if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
-    VULKAN_HPP_CONSTEXPR ExecutionGraphPipelineScratchSizeAMDX( VULKAN_HPP_NAMESPACE::DeviceSize size_ = {}, void * pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR ExecutionGraphPipelineScratchSizeAMDX( VULKAN_HPP_NAMESPACE::DeviceSize minSize_         = {},
+                                                                VULKAN_HPP_NAMESPACE::DeviceSize maxSize_         = {},
+                                                                VULKAN_HPP_NAMESPACE::DeviceSize sizeGranularity_ = {},
+                                                                void *                           pNext_           = nullptr ) VULKAN_HPP_NOEXCEPT
       : pNext{ pNext_ }
-      , size{ size_ }
+      , minSize{ minSize_ }
+      , maxSize{ maxSize_ }
+      , sizeGranularity{ sizeGranularity_ }
     {
     }
 
@@ -34534,9 +34539,21 @@ namespace VULKAN_HPP_NAMESPACE
       return *this;
     }
 
-    VULKAN_HPP_CONSTEXPR_14 ExecutionGraphPipelineScratchSizeAMDX & setSize( VULKAN_HPP_NAMESPACE::DeviceSize size_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 ExecutionGraphPipelineScratchSizeAMDX & setMinSize( VULKAN_HPP_NAMESPACE::DeviceSize minSize_ ) VULKAN_HPP_NOEXCEPT
     {
-      size = size_;
+      minSize = minSize_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 ExecutionGraphPipelineScratchSizeAMDX & setMaxSize( VULKAN_HPP_NAMESPACE::DeviceSize maxSize_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxSize = maxSize_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 ExecutionGraphPipelineScratchSizeAMDX & setSizeGranularity( VULKAN_HPP_NAMESPACE::DeviceSize sizeGranularity_ ) VULKAN_HPP_NOEXCEPT
+    {
+      sizeGranularity = sizeGranularity_;
       return *this;
     }
 #  endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
@@ -34555,11 +34572,15 @@ namespace VULKAN_HPP_NAMESPACE
 #    if 14 <= VULKAN_HPP_CPP_VERSION
     auto
 #    else
-    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::DeviceSize const &>
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
+               void * const &,
+               VULKAN_HPP_NAMESPACE::DeviceSize const &,
+               VULKAN_HPP_NAMESPACE::DeviceSize const &,
+               VULKAN_HPP_NAMESPACE::DeviceSize const &>
 #    endif
       reflect() const VULKAN_HPP_NOEXCEPT
     {
-      return std::tie( sType, pNext, size );
+      return std::tie( sType, pNext, minSize, maxSize, sizeGranularity );
     }
 #  endif
 
@@ -34571,7 +34592,8 @@ namespace VULKAN_HPP_NAMESPACE
 #    if defined( VULKAN_HPP_USE_REFLECT )
       return this->reflect() == rhs.reflect();
 #    else
-      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( size == rhs.size );
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( minSize == rhs.minSize ) && ( maxSize == rhs.maxSize ) &&
+             ( sizeGranularity == rhs.sizeGranularity );
 #    endif
     }
 
@@ -34582,9 +34604,11 @@ namespace VULKAN_HPP_NAMESPACE
 #  endif
 
   public:
-    VULKAN_HPP_NAMESPACE::StructureType sType = StructureType::eExecutionGraphPipelineScratchSizeAMDX;
-    void *                              pNext = {};
-    VULKAN_HPP_NAMESPACE::DeviceSize    size  = {};
+    VULKAN_HPP_NAMESPACE::StructureType sType           = StructureType::eExecutionGraphPipelineScratchSizeAMDX;
+    void *                              pNext           = {};
+    VULKAN_HPP_NAMESPACE::DeviceSize    minSize         = {};
+    VULKAN_HPP_NAMESPACE::DeviceSize    maxSize         = {};
+    VULKAN_HPP_NAMESPACE::DeviceSize    sizeGranularity = {};
   };
 
   template <>
@@ -39792,7 +39816,7 @@ namespace VULKAN_HPP_NAMESPACE
                                                                      VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT indirectCommandsLayout_ = {},
                                                                      uint32_t                                        maxSequenceCount_       = {},
                                                                      uint32_t                                        maxDrawCount_           = {},
-                                                                     void *                                          pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
+                                                                     const void *                                    pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
       : pNext{ pNext_ }
       , indirectExecutionSet{ indirectExecutionSet_ }
       , indirectCommandsLayout{ indirectCommandsLayout_ }
@@ -39818,7 +39842,7 @@ namespace VULKAN_HPP_NAMESPACE
     }
 
 #if !defined( VULKAN_HPP_NO_STRUCT_SETTERS )
-    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsMemoryRequirementsInfoEXT & setPNext( void * pNext_ ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 GeneratedCommandsMemoryRequirementsInfoEXT & setPNext( const void * pNext_ ) VULKAN_HPP_NOEXCEPT
     {
       pNext = pNext_;
       return *this;
@@ -39866,7 +39890,7 @@ namespace VULKAN_HPP_NAMESPACE
     auto
 #  else
     std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &,
-               void * const &,
+               const void * const &,
                VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT const &,
                VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT const &,
                uint32_t const &,
@@ -39899,7 +39923,7 @@ namespace VULKAN_HPP_NAMESPACE
 
   public:
     VULKAN_HPP_NAMESPACE::StructureType             sType                  = StructureType::eGeneratedCommandsMemoryRequirementsInfoEXT;
-    void *                                          pNext                  = {};
+    const void *                                    pNext                  = {};
     VULKAN_HPP_NAMESPACE::IndirectExecutionSetEXT   indirectExecutionSet   = {};
     VULKAN_HPP_NAMESPACE::IndirectCommandsLayoutEXT indirectCommandsLayout = {};
     uint32_t                                        maxSequenceCount       = {};
@@ -87116,10 +87140,12 @@ namespace VULKAN_HPP_NAMESPACE
     static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceShaderEnqueueFeaturesAMDX;
 
 #  if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
-    VULKAN_HPP_CONSTEXPR PhysicalDeviceShaderEnqueueFeaturesAMDX( VULKAN_HPP_NAMESPACE::Bool32 shaderEnqueue_ = {},
-                                                                  void *                       pNext_         = nullptr ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR PhysicalDeviceShaderEnqueueFeaturesAMDX( VULKAN_HPP_NAMESPACE::Bool32 shaderEnqueue_     = {},
+                                                                  VULKAN_HPP_NAMESPACE::Bool32 shaderMeshEnqueue_ = {},
+                                                                  void *                       pNext_             = nullptr ) VULKAN_HPP_NOEXCEPT
       : pNext{ pNext_ }
       , shaderEnqueue{ shaderEnqueue_ }
+      , shaderMeshEnqueue{ shaderMeshEnqueue_ }
     {
     }
 
@@ -87151,6 +87177,13 @@ namespace VULKAN_HPP_NAMESPACE
       shaderEnqueue = shaderEnqueue_;
       return *this;
     }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceShaderEnqueueFeaturesAMDX &
+      setShaderMeshEnqueue( VULKAN_HPP_NAMESPACE::Bool32 shaderMeshEnqueue_ ) VULKAN_HPP_NOEXCEPT
+    {
+      shaderMeshEnqueue = shaderMeshEnqueue_;
+      return *this;
+    }
 #  endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
 
     operator VkPhysicalDeviceShaderEnqueueFeaturesAMDX const &() const VULKAN_HPP_NOEXCEPT
@@ -87167,11 +87200,11 @@ namespace VULKAN_HPP_NAMESPACE
 #    if 14 <= VULKAN_HPP_CPP_VERSION
     auto
 #    else
-    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
+    std::tuple<VULKAN_HPP_NAMESPACE::StructureType const &, void * const &, VULKAN_HPP_NAMESPACE::Bool32 const &, VULKAN_HPP_NAMESPACE::Bool32 const &>
 #    endif
       reflect() const VULKAN_HPP_NOEXCEPT
     {
-      return std::tie( sType, pNext, shaderEnqueue );
+      return std::tie( sType, pNext, shaderEnqueue, shaderMeshEnqueue );
     }
 #  endif
 
@@ -87183,7 +87216,7 @@ namespace VULKAN_HPP_NAMESPACE
 #    if defined( VULKAN_HPP_USE_REFLECT )
       return this->reflect() == rhs.reflect();
 #    else
-      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( shaderEnqueue == rhs.shaderEnqueue );
+      return ( sType == rhs.sType ) && ( pNext == rhs.pNext ) && ( shaderEnqueue == rhs.shaderEnqueue ) && ( shaderMeshEnqueue == rhs.shaderMeshEnqueue );
 #    endif
     }
 
@@ -87194,9 +87227,10 @@ namespace VULKAN_HPP_NAMESPACE
 #  endif
 
   public:
-    VULKAN_HPP_NAMESPACE::StructureType sType         = StructureType::ePhysicalDeviceShaderEnqueueFeaturesAMDX;
-    void *                              pNext         = {};
-    VULKAN_HPP_NAMESPACE::Bool32        shaderEnqueue = {};
+    VULKAN_HPP_NAMESPACE::StructureType sType             = StructureType::ePhysicalDeviceShaderEnqueueFeaturesAMDX;
+    void *                              pNext             = {};
+    VULKAN_HPP_NAMESPACE::Bool32        shaderEnqueue     = {};
+    VULKAN_HPP_NAMESPACE::Bool32        shaderMeshEnqueue = {};
   };
 
   template <>
@@ -87215,22 +87249,26 @@ namespace VULKAN_HPP_NAMESPACE
     static VULKAN_HPP_CONST_OR_CONSTEXPR StructureType structureType  = StructureType::ePhysicalDeviceShaderEnqueuePropertiesAMDX;
 
 #  if !defined( VULKAN_HPP_NO_STRUCT_CONSTRUCTORS )
-    VULKAN_HPP_CONSTEXPR PhysicalDeviceShaderEnqueuePropertiesAMDX( uint32_t maxExecutionGraphDepth_                 = {},
-                                                                    uint32_t maxExecutionGraphShaderOutputNodes_     = {},
-                                                                    uint32_t maxExecutionGraphShaderPayloadSize_     = {},
-                                                                    uint32_t maxExecutionGraphShaderPayloadCount_    = {},
-                                                                    uint32_t executionGraphDispatchAddressAlignment_ = {},
-                                                                    void *   pNext_                                  = nullptr ) VULKAN_HPP_NOEXCEPT
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceShaderEnqueuePropertiesAMDX( uint32_t                        maxExecutionGraphDepth_                 = {},
+                                                                       uint32_t                        maxExecutionGraphShaderOutputNodes_     = {},
+                                                                       uint32_t                        maxExecutionGraphShaderPayloadSize_     = {},
+                                                                       uint32_t                        maxExecutionGraphShaderPayloadCount_    = {},
+                                                                       uint32_t                        executionGraphDispatchAddressAlignment_ = {},
+                                                                       std::array<uint32_t, 3> const & maxExecutionGraphWorkgroupCount_        = {},
+                                                                       uint32_t                        maxExecutionGraphWorkgroups_            = {},
+                                                                       void *                          pNext_ = nullptr ) VULKAN_HPP_NOEXCEPT
       : pNext{ pNext_ }
       , maxExecutionGraphDepth{ maxExecutionGraphDepth_ }
       , maxExecutionGraphShaderOutputNodes{ maxExecutionGraphShaderOutputNodes_ }
       , maxExecutionGraphShaderPayloadSize{ maxExecutionGraphShaderPayloadSize_ }
       , maxExecutionGraphShaderPayloadCount{ maxExecutionGraphShaderPayloadCount_ }
       , executionGraphDispatchAddressAlignment{ executionGraphDispatchAddressAlignment_ }
+      , maxExecutionGraphWorkgroupCount{ maxExecutionGraphWorkgroupCount_ }
+      , maxExecutionGraphWorkgroups{ maxExecutionGraphWorkgroups_ }
     {
     }
 
-    VULKAN_HPP_CONSTEXPR PhysicalDeviceShaderEnqueuePropertiesAMDX( PhysicalDeviceShaderEnqueuePropertiesAMDX const & rhs ) VULKAN_HPP_NOEXCEPT = default;
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceShaderEnqueuePropertiesAMDX( PhysicalDeviceShaderEnqueuePropertiesAMDX const & rhs ) VULKAN_HPP_NOEXCEPT = default;
 
     PhysicalDeviceShaderEnqueuePropertiesAMDX( VkPhysicalDeviceShaderEnqueuePropertiesAMDX const & rhs ) VULKAN_HPP_NOEXCEPT
       : PhysicalDeviceShaderEnqueuePropertiesAMDX( *reinterpret_cast<PhysicalDeviceShaderEnqueuePropertiesAMDX const *>( &rhs ) )
@@ -87286,6 +87324,20 @@ namespace VULKAN_HPP_NAMESPACE
       executionGraphDispatchAddressAlignment = executionGraphDispatchAddressAlignment_;
       return *this;
     }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceShaderEnqueuePropertiesAMDX &
+      setMaxExecutionGraphWorkgroupCount( std::array<uint32_t, 3> maxExecutionGraphWorkgroupCount_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxExecutionGraphWorkgroupCount = maxExecutionGraphWorkgroupCount_;
+      return *this;
+    }
+
+    VULKAN_HPP_CONSTEXPR_14 PhysicalDeviceShaderEnqueuePropertiesAMDX &
+      setMaxExecutionGraphWorkgroups( uint32_t maxExecutionGraphWorkgroups_ ) VULKAN_HPP_NOEXCEPT
+    {
+      maxExecutionGraphWorkgroups = maxExecutionGraphWorkgroups_;
+      return *this;
+    }
 #  endif /*VULKAN_HPP_NO_STRUCT_SETTERS*/
 
     operator VkPhysicalDeviceShaderEnqueuePropertiesAMDX const &() const VULKAN_HPP_NOEXCEPT
@@ -87308,6 +87360,8 @@ namespace VULKAN_HPP_NAMESPACE
                uint32_t const &,
                uint32_t const &,
                uint32_t const &,
+               uint32_t const &,
+               VULKAN_HPP_NAMESPACE::ArrayWrapper1D<uint32_t, 3> const &,
                uint32_t const &>
 #    endif
       reflect() const VULKAN_HPP_NOEXCEPT
@@ -87318,7 +87372,9 @@ namespace VULKAN_HPP_NAMESPACE
                        maxExecutionGraphShaderOutputNodes,
                        maxExecutionGraphShaderPayloadSize,
                        maxExecutionGraphShaderPayloadCount,
-                       executionGraphDispatchAddressAlignment );
+                       executionGraphDispatchAddressAlignment,
+                       maxExecutionGraphWorkgroupCount,
+                       maxExecutionGraphWorkgroups );
     }
 #  endif
 
@@ -87334,7 +87390,8 @@ namespace VULKAN_HPP_NAMESPACE
              ( maxExecutionGraphShaderOutputNodes == rhs.maxExecutionGraphShaderOutputNodes ) &&
              ( maxExecutionGraphShaderPayloadSize == rhs.maxExecutionGraphShaderPayloadSize ) &&
              ( maxExecutionGraphShaderPayloadCount == rhs.maxExecutionGraphShaderPayloadCount ) &&
-             ( executionGraphDispatchAddressAlignment == rhs.executionGraphDispatchAddressAlignment );
+             ( executionGraphDispatchAddressAlignment == rhs.executionGraphDispatchAddressAlignment ) &&
+             ( maxExecutionGraphWorkgroupCount == rhs.maxExecutionGraphWorkgroupCount ) && ( maxExecutionGraphWorkgroups == rhs.maxExecutionGraphWorkgroups );
 #    endif
     }
 
@@ -87345,13 +87402,15 @@ namespace VULKAN_HPP_NAMESPACE
 #  endif
 
   public:
-    VULKAN_HPP_NAMESPACE::StructureType sType                                  = StructureType::ePhysicalDeviceShaderEnqueuePropertiesAMDX;
-    void *                              pNext                                  = {};
-    uint32_t                            maxExecutionGraphDepth                 = {};
-    uint32_t                            maxExecutionGraphShaderOutputNodes     = {};
-    uint32_t                            maxExecutionGraphShaderPayloadSize     = {};
-    uint32_t                            maxExecutionGraphShaderPayloadCount    = {};
-    uint32_t                            executionGraphDispatchAddressAlignment = {};
+    VULKAN_HPP_NAMESPACE::StructureType               sType                                  = StructureType::ePhysicalDeviceShaderEnqueuePropertiesAMDX;
+    void *                                            pNext                                  = {};
+    uint32_t                                          maxExecutionGraphDepth                 = {};
+    uint32_t                                          maxExecutionGraphShaderOutputNodes     = {};
+    uint32_t                                          maxExecutionGraphShaderPayloadSize     = {};
+    uint32_t                                          maxExecutionGraphShaderPayloadCount    = {};
+    uint32_t                                          executionGraphDispatchAddressAlignment = {};
+    VULKAN_HPP_NAMESPACE::ArrayWrapper1D<uint32_t, 3> maxExecutionGraphWorkgroupCount        = {};
+    uint32_t                                          maxExecutionGraphWorkgroups            = {};
   };
 
   template <>

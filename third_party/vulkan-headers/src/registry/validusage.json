@@ -1,9 +1,9 @@
 {
   "version info": {
     "schema version": 2,
-    "api version": "1.3.297",
-    "comment": "from git branch: github-main commit: 4f8b03b46334ca0abb992b3d7e38ea90f4f68a23",
-    "date": "2024-10-04 12:37:52Z"
+    "api version": "1.3.298",
+    "comment": "from git branch: github-main commit: 05d5444cce55e340e07ead87d552407da5ea8771",
+    "date": "2024-10-11 07:51:42Z"
   },
   "validation": {
     "vkGetInstanceProcAddr": {
@@ -15821,6 +15821,31 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-VkGraphicsPipelineCreateInfo-shaderMeshEnqueue-10187",
+          "text": "If <a href=\"#features-shaderMeshEnqueue\"><code>shaderMeshEnqueue</code></a> is not enabled, shaders specified by <code>pStages</code> <strong class=\"purple\">must</strong> not declare the <code>ShaderEnqueueAMDX</code> capability",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkGraphicsPipelineCreateInfo-flags-10188",
+          "text": "If <code>flags</code> does not include <code>VK_PIPELINE_CREATE_LIBRARY_BIT_KHR</code>, shaders specified by <code>pStages</code> <strong class=\"purple\">must</strong> not declare the <code>ShaderEnqueueAMDX</code> capability",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkGraphicsPipelineCreateInfo-pStages-10189",
+          "text": "If any shader stages in <code>pStages</code> declare the <code>ShaderEnqueueAMDX</code> capability, <code>VK_PIPELINE_CREATE_2_EXECUTION_GRAPH_BIT_AMDX</code> and <code>VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR</code> <strong class=\"purple\">must</strong> be included in <code>flags</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkGraphicsPipelineCreateInfo-flags-10190",
+          "text": "If <code>VK_PIPELINE_CREATE_2_EXECUTION_GRAPH_BIT_AMDX</code> is included in <code>flags</code>, and the pipeline requires <a href=\"#pipelines-graphics-subsets-pre-rasterization\">pre-rasterization shader state</a>, there <strong class=\"purple\">must</strong> not be a task or vertex shader specified in <code>pStages</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkGraphicsPipelineCreateInfo-flags-10191",
+          "text": "If <code>VK_PIPELINE_CREATE_2_EXECUTION_GRAPH_BIT_AMDX</code> is included in <code>flags</code>, all elements of <a href=\"#VkPipelineLibraryCreateInfoKHR\">VkPipelineLibraryCreateInfoKHR</a>::<code>pLibraries</code> <strong class=\"purple\">must</strong> have been created with <code>VK_PIPELINE_CREATE_2_EXECUTION_GRAPH_BIT_AMDX</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-flags-03372",
           "text": "<code>flags</code> <strong class=\"purple\">must</strong> not include <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_ANY_HIT_SHADERS_BIT_KHR</code>",
           "page": "vkspec"
@@ -16377,12 +16402,12 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-graphicsPipelineLibrary-06606",
-          "text": "If the <a href=\"#features-graphicsPipelineLibrary\"><code>graphicsPipelineLibrary</code></a> feature is not enabled, <code>flags</code> <strong class=\"purple\">must</strong> not include <code>VK_PIPELINE_CREATE_LIBRARY_BIT_KHR</code>",
+          "text": "If the <a href=\"#features-graphicsPipelineLibrary\"><code>graphicsPipelineLibrary</code></a> feature is not enabled, and if     the <a href=\"#features-shaderMeshEnqueue\"><code>shaderMeshEnqueue</code></a> feature is     not enabled,     <code>flags</code> <strong class=\"purple\">must</strong> not include <code>VK_PIPELINE_CREATE_LIBRARY_BIT_KHR</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-flags-06608",
-          "text": "If the pipeline defines, or includes as libraries, all the state subsets required for a <a href=\"#pipelines-graphics-subsets-complete\">complete graphics pipeline</a>, <code>flags</code> <strong class=\"purple\">must</strong> not include <code>VK_PIPELINE_CREATE_LIBRARY_BIT_KHR</code>",
+          "text": "If <a href=\"#features-shaderMeshEnqueue\"><code>shaderMeshEnqueue</code> feature</a> is not enabled, and the pipeline is being created with <a href=\"#pipelines-graphics-subsets-complete\">all possible state subsets</a>, <code>flags</code> <strong class=\"purple\">must</strong> not include <code>VK_PIPELINE_CREATE_LIBRARY_BIT_KHR</code>",
           "page": "vkspec"
         },
         {
@@ -77604,7 +77629,7 @@
         },
         {
           "vuid": "VUID-VkIndirectCommandsLayoutTokenEXT-pPushConstant-parameter",
-          "text": "If <code>type</code> is <code>VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_CONSTANT_EXT</code>, the <code>pPushConstant</code> member of <code>data</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkIndirectCommandsPushConstantTokenEXT\">VkIndirectCommandsPushConstantTokenEXT</a> structure",
+          "text": "If <code>type</code> is <code>VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_CONSTANT_EXT</code>,VK_INDIRECT_COMMANDS_TOKEN_TYPE_SEQUENCE_INDEX_EXT, the <code>pPushConstant</code> member of <code>data</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <a href=\"#VkIndirectCommandsPushConstantTokenEXT\">VkIndirectCommandsPushConstantTokenEXT</a> structure",
           "page": "vkspec"
         },
         {
@@ -97098,7 +97123,22 @@
         },
         {
           "vuid": "VUID-VkExecutionGraphPipelineCreateInfoAMDX-pLibraryInfo-09133",
-          "text": "If <code>pLibraryInfo</code> is not <code>NULL</code>, each element of <code>pLibraryInfo-&gt;libraries</code> <strong class=\"purple\">must</strong> be either a compute pipeline or an execution graph pipeline",
+          "text": "If <code>pLibraryInfo</code> is not <code>NULL</code>, each element of <code>pLibraryInfo-&gt;pLibraries</code> <strong class=\"purple\">must</strong> be either a compute pipeline, an execution graph pipeline, or a graphics pipeline",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkExecutionGraphPipelineCreateInfoAMDX-pLibraryInfo-10181",
+          "text": "If <code>pLibraryInfo</code> is not <code>NULL</code>, each element of <code>pLibraryInfo-&gt;pLibraries</code> that is a compute pipeline or a graphics pipeline <strong class=\"purple\">must</strong> have been created with <code>VK_PIPELINE_CREATE_2_EXECUTION_GRAPH_BIT_AMDX</code> set",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkExecutionGraphPipelineCreateInfoAMDX-shaderMeshEnqueue-10182",
+          "text": "If the <a href=\"#features-shaderMeshEnqueue\"><code>shaderMeshEnqueue</code></a> feature is not enabled, and <code>pLibraryInfo-&gt;pLibraries</code> is not <code>NULL</code>, <code>pLibraryInfo-&gt;pLibraries</code> <strong class=\"purple\">must</strong> not contain any graphics pipelines",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkExecutionGraphPipelineCreateInfoAMDX-pLibraryInfo-10183",
+          "text": "Any element of <code>pLibraryInfo-&gt;pLibraries</code> identifying a graphics pipeline <strong class=\"purple\">must</strong> have been created with <a href=\"#pipelines-graphics-subsets-complete\">all possible state subsets</a>",
           "page": "vkspec"
         },
         {
@@ -97129,6 +97169,11 @@
         {
           "vuid": "VUID-VkExecutionGraphPipelineCreateInfoAMDX-PayloadNodeNameAMDX-09139",
           "text": "If an output payload declared in any shader in the pipeline has a <code>PayloadNodeNameAMDX</code> decoration with a <code>Node</code> <code>Name</code> that matches the shader name of any other node in the graph, the size of the output payload <strong class=\"purple\">must</strong> match the size of the input payload in the matching node",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkExecutionGraphPipelineCreateInfoAMDX-flags-10184",
+          "text": "If <code>flags</code> does not include <code>VK_PIPELINE_CREATE_LIBRARY_BIT_KHR</code>, and an output payload declared in any shader in the pipeline does not have a <code>PayloadNodeSparseArrayAMDX</code> decoration, there <strong class=\"purple\">must</strong> be a node in the graph corresponding to every index from 0 to its <code>PayloadNodeArraySizeAMDX</code> decoration",
           "page": "vkspec"
         },
         {
@@ -97262,8 +97307,13 @@
     "vkCmdInitializeGraphScratchMemoryAMDX": {
       "core": [
         {
-          "vuid": "VUID-vkCmdInitializeGraphScratchMemoryAMDX-scratch-09143",
-          "text": "<code>scratch</code> <strong class=\"purple\">must</strong> be the device address of an allocated memory range at least as large as the value of <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>size</code> returned by <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a> for the currently bound execution graph pipeline",
+          "vuid": "VUID-vkCmdInitializeGraphScratchMemoryAMDX-scratch-10185",
+          "text": "<code>scratch</code> <strong class=\"purple\">must</strong> be the device address of an allocated memory range at least as large as <code>scratchSize</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdInitializeGraphScratchMemoryAMDX-scratchSize-10186",
+          "text": "<code>scratchSize</code> <strong class=\"purple\">must</strong> be greater than or equal to <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>minSize</code> returned by <a href=\"#vkGetExecutionGraphPipelineScratchSizeAMDX\">vkGetExecutionGraphPipelineScratchSizeAMDX</a> for the currently bound execution graph pipeline",
           "page": "vkspec"
         },
         {
@@ -97277,6 +97327,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdInitializeGraphScratchMemoryAMDX-executionGraph-parameter",
+          "text": "<code>executionGraph</code> <strong class=\"purple\">must</strong> be a valid <a href=\"#VkPipeline\">VkPipeline</a> handle",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdInitializeGraphScratchMemoryAMDX-commandBuffer-recording",
           "text": "<code>commandBuffer</code> <strong class=\"purple\">must</strong> be in the <a href=\"#commandbuffers-lifecycle\">recording state</a>",
           "page": "vkspec"
@@ -97287,11 +97342,6 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdInitializeGraphScratchMemoryAMDX-renderpass",
-          "text": "This command <strong class=\"purple\">must</strong> only be called outside of a render pass instance",
-          "page": "vkspec"
-        },
-        {
           "vuid": "VUID-vkCmdInitializeGraphScratchMemoryAMDX-videocoding",
           "text": "This command <strong class=\"purple\">must</strong> only be called outside of a video coding scope",
           "page": "vkspec"
@@ -97299,6 +97349,11 @@
         {
           "vuid": "VUID-vkCmdInitializeGraphScratchMemoryAMDX-bufferlevel",
           "text": "<code>commandBuffer</code> <strong class=\"purple\">must</strong> be a primary <code>VkCommandBuffer</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdInitializeGraphScratchMemoryAMDX-commonparent",
+          "text": "Both of <code>commandBuffer</code>, and <code>executionGraph</code> <strong class=\"purple\">must</strong> have been created, allocated, or retrieved from the same <a href=\"#VkDevice\">VkDevice</a>",
           "page": "vkspec"
         }
       ]
@@ -97661,8 +97716,13 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdDispatchGraphAMDX-scratch-09183",
-          "text": "<code>scratch</code> <strong class=\"purple\">must</strong> be the device address of an allocated memory range at least as large as the value of <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>size</code> returned by <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a> for the currently bound execution graph pipeline",
+          "vuid": "VUID-vkCmdDispatchGraphAMDX-scratch-10192",
+          "text": "<code>scratch</code> <strong class=\"purple\">must</strong> be the device address of an allocated memory range at least as large as <code>scratchSize</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphAMDX-scratchSize-10193",
+          "text": "<code>scratchSize</code> <strong class=\"purple\">must</strong> be greater than or equal to <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>minSize</code> returned by <a href=\"#vkGetExecutionGraphPipelineScratchSizeAMDX\">vkGetExecutionGraphPipelineScratchSizeAMDX</a> for the currently bound execution graph pipeline",
           "page": "vkspec"
         },
         {
@@ -97671,8 +97731,8 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdDispatchGraphAMDX-scratch-09185",
-          "text": "Device memory in the range [<code>scratch</code>,<code>scratch</code><br> <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>size</code>) <strong class=\"purple\">must</strong> have been initialized with <a href=\"#vkCmdInitializeGraphScratchMemoryAMDX\">vkCmdInitializeGraphScratchMemoryAMDX</a> using the currently bound execution graph pipeline, and not modified after that by anything other than another execution graph dispatch command",
+          "vuid": "VUID-vkCmdDispatchGraphAMDX-scratch-10194",
+          "text": "The device memory range [<code>scratch</code>,<code>scratch</code><br> <code>scratchSize</code>] <strong class=\"purple\">must</strong> have been initialized with <a href=\"#vkCmdInitializeGraphScratchMemoryAMDX\">vkCmdInitializeGraphScratchMemoryAMDX</a> using the currently bound execution graph pipeline, and not modified after that by anything other than another execution graph dispatch command",
           "page": "vkspec"
         },
         {
@@ -97688,6 +97748,11 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphAMDX-NodeMaxPayloadsAMDX-09188",
           "text": "Execution of this command <strong class=\"purple\">must</strong> not cause any shader that declares <code>NodeMaxPayloadsAMDX</code> to initialize more output payloads than specified by the max number of payloads for that decoration. This requirement applies to each <code>NodeMaxPayloadsAMDX</code> decoration separately",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphAMDX-None-10195",
+          "text": "If the currently bound execution graph pipeline includes draw nodes,    this command <strong class=\"purple\">must</strong> be called within a render pass instance that is compatible with the graphics pipeline used to create each of those nodes",
           "page": "vkspec"
         },
         {
@@ -97733,11 +97798,6 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphAMDX-commandBuffer-cmdpool",
           "text": "The <code>VkCommandPool</code> that <code>commandBuffer</code> was allocated from <strong class=\"purple\">must</strong> support graphics, or compute operations",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDispatchGraphAMDX-renderpass",
-          "text": "This command <strong class=\"purple\">must</strong> only be called outside of a render pass instance",
           "page": "vkspec"
         },
         {
@@ -98110,8 +98170,13 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-scratch-09183",
-          "text": "<code>scratch</code> <strong class=\"purple\">must</strong> be the device address of an allocated memory range at least as large as the value of <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>size</code> returned by <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a> for the currently bound execution graph pipeline",
+          "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-scratch-10192",
+          "text": "<code>scratch</code> <strong class=\"purple\">must</strong> be the device address of an allocated memory range at least as large as <code>scratchSize</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-scratchSize-10193",
+          "text": "<code>scratchSize</code> <strong class=\"purple\">must</strong> be greater than or equal to <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>minSize</code> returned by <a href=\"#vkGetExecutionGraphPipelineScratchSizeAMDX\">vkGetExecutionGraphPipelineScratchSizeAMDX</a> for the currently bound execution graph pipeline",
           "page": "vkspec"
         },
         {
@@ -98120,8 +98185,8 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-scratch-09185",
-          "text": "Device memory in the range [<code>scratch</code>,<code>scratch</code><br> <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>size</code>) <strong class=\"purple\">must</strong> have been initialized with <a href=\"#vkCmdInitializeGraphScratchMemoryAMDX\">vkCmdInitializeGraphScratchMemoryAMDX</a> using the currently bound execution graph pipeline, and not modified after that by anything other than another execution graph dispatch command",
+          "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-scratch-10194",
+          "text": "The device memory range [<code>scratch</code>,<code>scratch</code><br> <code>scratchSize</code>] <strong class=\"purple\">must</strong> have been initialized with <a href=\"#vkCmdInitializeGraphScratchMemoryAMDX\">vkCmdInitializeGraphScratchMemoryAMDX</a> using the currently bound execution graph pipeline, and not modified after that by anything other than another execution graph dispatch command",
           "page": "vkspec"
         },
         {
@@ -98137,6 +98202,11 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-NodeMaxPayloadsAMDX-09188",
           "text": "Execution of this command <strong class=\"purple\">must</strong> not cause any shader that declares <code>NodeMaxPayloadsAMDX</code> to initialize more output payloads than specified by the max number of payloads for that decoration. This requirement applies to each <code>NodeMaxPayloadsAMDX</code> decoration separately",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-None-10195",
+          "text": "If the currently bound execution graph pipeline includes draw nodes,    this command <strong class=\"purple\">must</strong> be called within a render pass instance that is compatible with the graphics pipeline used to create each of those nodes",
           "page": "vkspec"
         },
         {
@@ -98202,11 +98272,6 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-commandBuffer-cmdpool",
           "text": "The <code>VkCommandPool</code> that <code>commandBuffer</code> was allocated from <strong class=\"purple\">must</strong> support graphics, or compute operations",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDispatchGraphIndirectAMDX-renderpass",
-          "text": "This command <strong class=\"purple\">must</strong> only be called outside of a render pass instance",
           "page": "vkspec"
         },
         {
@@ -98579,8 +98644,13 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-scratch-09183",
-          "text": "<code>scratch</code> <strong class=\"purple\">must</strong> be the device address of an allocated memory range at least as large as the value of <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>size</code> returned by <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a> for the currently bound execution graph pipeline",
+          "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-scratch-10192",
+          "text": "<code>scratch</code> <strong class=\"purple\">must</strong> be the device address of an allocated memory range at least as large as <code>scratchSize</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-scratchSize-10193",
+          "text": "<code>scratchSize</code> <strong class=\"purple\">must</strong> be greater than or equal to <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>minSize</code> returned by <a href=\"#vkGetExecutionGraphPipelineScratchSizeAMDX\">vkGetExecutionGraphPipelineScratchSizeAMDX</a> for the currently bound execution graph pipeline",
           "page": "vkspec"
         },
         {
@@ -98589,8 +98659,8 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-scratch-09185",
-          "text": "Device memory in the range [<code>scratch</code>,<code>scratch</code><br> <a href=\"#VkExecutionGraphPipelineScratchSizeAMDX\">VkExecutionGraphPipelineScratchSizeAMDX</a>::<code>size</code>) <strong class=\"purple\">must</strong> have been initialized with <a href=\"#vkCmdInitializeGraphScratchMemoryAMDX\">vkCmdInitializeGraphScratchMemoryAMDX</a> using the currently bound execution graph pipeline, and not modified after that by anything other than another execution graph dispatch command",
+          "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-scratch-10194",
+          "text": "The device memory range [<code>scratch</code>,<code>scratch</code><br> <code>scratchSize</code>] <strong class=\"purple\">must</strong> have been initialized with <a href=\"#vkCmdInitializeGraphScratchMemoryAMDX\">vkCmdInitializeGraphScratchMemoryAMDX</a> using the currently bound execution graph pipeline, and not modified after that by anything other than another execution graph dispatch command",
           "page": "vkspec"
         },
         {
@@ -98606,6 +98676,11 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-NodeMaxPayloadsAMDX-09188",
           "text": "Execution of this command <strong class=\"purple\">must</strong> not cause any shader that declares <code>NodeMaxPayloadsAMDX</code> to initialize more output payloads than specified by the max number of payloads for that decoration. This requirement applies to each <code>NodeMaxPayloadsAMDX</code> decoration separately",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-None-10195",
+          "text": "If the currently bound execution graph pipeline includes draw nodes,    this command <strong class=\"purple\">must</strong> be called within a render pass instance that is compatible with the graphics pipeline used to create each of those nodes",
           "page": "vkspec"
         },
         {
@@ -98681,11 +98756,6 @@
         {
           "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-commandBuffer-cmdpool",
           "text": "The <code>VkCommandPool</code> that <code>commandBuffer</code> was allocated from <strong class=\"purple\">must</strong> support graphics, or compute operations",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDispatchGraphIndirectCountAMDX-renderpass",
-          "text": "This command <strong class=\"purple\">must</strong> only be called outside of a render pass instance",
           "page": "vkspec"
         },
         {
@@ -104997,12 +105067,12 @@
         },
         {
           "vuid": "VUID-RuntimeSpirv-ShaderEnqueueAMDX-09191",
-          "text": "The <code>ShaderEnqueueAMDX</code> capability <strong class=\"purple\">must</strong> only be used in shaders with the <code>GLCompute</code> execution model",
+          "text": "The <code>ShaderEnqueueAMDX</code> capability <strong class=\"purple\">must</strong> only be used in shaders with the <code>GLCompute</code> or <code>MeshEXT</code> execution model",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-NodePayloadAMDX-09192",
-          "text": "Variables in the <code>NodePayloadAMDX</code> storage class <strong class=\"purple\">must</strong> only be declared in the <code>GLCompute</code> execution model",
+          "text": "Variables in the <code>NodePayloadAMDX</code> storage class <strong class=\"purple\">must</strong> only be declared in the <code>GLCompute</code> or <code>MeshEXT</code> execution model",
           "page": "vkspec"
         },
         {
