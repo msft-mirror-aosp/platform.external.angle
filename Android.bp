@@ -96,7 +96,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r27_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-20-init-3847-g69c43468-28\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-20-init-8527-g923566a6-1\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -2540,6 +2540,7 @@ cc_genrule {
         "src/common/MemoryBuffer.cpp",
         "src/common/MemoryBuffer.h",
         "src/common/Optional.h",
+        "src/common/PackedCLEnums_autogen.h",
         "src/common/PackedEGLEnums_autogen.cpp",
         "src/common/PackedEGLEnums_autogen.h",
         "src/common/PackedEnums.cpp",
@@ -3060,6 +3061,8 @@ cc_genrule {
         "src/libANGLE/BlobCache.h",
         "src/libANGLE/Buffer.cpp",
         "src/libANGLE/Buffer.h",
+        "src/libANGLE/CLBitField.h",
+        "src/libANGLE/CLRefPointer.h",
         "src/libANGLE/Caps.cpp",
         "src/libANGLE/Caps.h",
         "src/libANGLE/Compiler.cpp",
@@ -3194,6 +3197,7 @@ cc_genrule {
         "src/libANGLE/capture/capture_gles_3_2_autogen.h",
         "src/libANGLE/capture/capture_gles_ext_autogen.h",
         "src/libANGLE/capture/serialize.h",
+        "src/libANGLE/cl_types.h",
         "src/libANGLE/context_private_call.cpp",
         "src/libANGLE/context_private_call_autogen.h",
         "src/libANGLE/entry_points_utils.cpp",
@@ -8032,7 +8036,7 @@ prebuilt_etc {
 java_defaults {
     name: "ANGLE_java_defaults",
     sdk_version: "system_current",
-    target_sdk_version: "34",
+    target_sdk_version: "35",
     min_sdk_version: "28",
     compile_multilib: "both",
     use_embedded_native_libs: true,
@@ -8059,7 +8063,7 @@ java_defaults {
 android_library {
     name: "ANGLE_library",
     sdk_version: "system_current",
-    target_sdk_version: "34",
+    target_sdk_version: "35",
     min_sdk_version: "28",
     resource_dirs: [
         "src/android_system_settings/res",
@@ -8098,7 +8102,7 @@ android_app {
 java_defaults {
     name: "ANGLE_java_settings_defaults",
     sdk_version: "system_current",
-    target_sdk_version: "34",
+    target_sdk_version: "35",
     min_sdk_version: "28",
     compile_multilib: "both",
     use_embedded_native_libs: true,

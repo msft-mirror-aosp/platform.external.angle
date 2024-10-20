@@ -367,7 +367,6 @@ class DynamicDescriptorPool final : angle::NonCopyable
                                         VkDescriptorSet *descriptorSetOut);
 
     angle::Result getOrAllocateDescriptorSet(Context *context,
-                                             CommandBufferHelperCommon *commandBufferHelper,
                                              const DescriptorSetDesc &desc,
                                              const DescriptorSetLayout &descriptorSetLayout,
                                              RefCountedDescriptorPoolBinding *bindingOut,
@@ -1909,6 +1908,11 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
 
     const RenderPassDesc &getRenderPassDesc() const { return mRenderPassDesc; }
     const AttachmentOpsArray &getAttachmentOps() const { return mAttachmentOps; }
+
+    void setFramebufferFetchMode()
+    {
+        mRenderPassDesc.setFramebufferFetchMode(FramebufferFetchMode::Color);
+    }
 
     void setImageOptimizeForPresent(ImageHelper *image) { mImageOptimizeForPresent = image; }
 
@@ -3917,7 +3921,8 @@ class CommandBufferAccess : angle::NonCopyable
     using ReadBuffers           = angle::FixedVector<CommandBufferBufferAccess, 2>;
     using WriteBuffers          = angle::FixedVector<CommandBufferBufferAccess, 2>;
     using ReadImages            = angle::FixedVector<CommandBufferImageAccess, 2>;
-    using WriteImages           = angle::FixedVector<CommandBufferImageSubresourceAccess, 1>;
+    using WriteImages           = angle::FixedVector<CommandBufferImageSubresourceAccess,
+                                                     gl::IMPLEMENTATION_MAX_DRAW_BUFFERS>;
     using ReadImageSubresources = angle::FixedVector<CommandBufferImageSubresourceAccess, 1>;
 
     using ExternalAcquireReleaseBuffers =

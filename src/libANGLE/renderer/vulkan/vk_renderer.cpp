@@ -604,7 +604,7 @@ DebugMessageReport ShouldReportDebugMessage(Renderer *renderer,
     }
 
     // Then check with syncval messages:
-    const bool isFramebufferFetchUsed = renderer->isFramebufferFetchUsed();
+    const bool isColorFramebufferFetchUsed = renderer->isColorFramebufferFetchUsed();
 
     for (const vk::SkippedSyncvalMessage &msg : renderer->getSkippedSyncvalMessages())
     {
@@ -626,8 +626,8 @@ DebugMessageReport ShouldReportDebugMessage(Renderer *renderer,
         const bool hasRasterizationOrderExtension =
             renderer->getFeatures().supportsRasterizationOrderAttachmentAccess.enabled &&
             kSyncValSupportsRasterizationOrderExtension;
-        if (msg.isDueToNonConformantCoherentFramebufferFetch &&
-            (!isFramebufferFetchUsed || hasRasterizationOrderExtension))
+        if (msg.isDueToNonConformantCoherentColorFramebufferFetch &&
+            (!isColorFramebufferFetchUsed || hasRasterizationOrderExtension))
         {
             return DebugMessageReport::Print;
         }
@@ -3347,6 +3347,11 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
         mEnabledDeviceExtensions.push_back(VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME);
     }
 
+    if (mFeatures.supportsExternalMemoryHost.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME);
+    }
+
     if (mFeatures.supportsDepthClipControl.enabled)
     {
         mEnabledDeviceExtensions.push_back(VK_EXT_DEPTH_CLIP_CONTROL_EXTENSION_NAME);
@@ -4931,6 +4936,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         ExtensionFound(VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME, deviceExtensionNames) &&
             ExtensionFound(VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME, deviceExtensionNames));
 
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsExternalMemoryHost,
+        ExtensionFound(VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME, deviceExtensionNames));
+
     // Android pre-rotation support can be disabled.
     ANGLE_FEATURE_CONDITION(&mFeatures, enablePreRotateSurfaces, IsAndroid());
 
@@ -5160,13 +5169,6 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // https://issuetracker.google.com/issues/340665604
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsShaderFramebufferFetchNonCoherent, isSwiftShader);
 
-    // On tile-based renderers, breaking the render pass is costly.  Changing into and out of
-    // framebuffer fetch causes the render pass to break so that the layout of the color attachments
-    // can be adjusted.  On such hardware, the switch to framebuffer fetch mode is made permanent so
-    // such render pass breaks don't happen.
-    ANGLE_FEATURE_CONDITION(&mFeatures, permanentlySwitchToFramebufferFetchMode,
-                            isTileBasedRenderer);
-
     // Support EGL_KHR_lock_surface3 extension.
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsLockSurfaceExtension, IsAndroid());
 
@@ -5340,11 +5342,21 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
             !(IsLinux() && isIntel && isMesaLessThan22_2) && !(IsAndroid() && isGalaxyS23));
 
     // Samsung Vulkan driver with API level < 1.3.244 has a bug in imageless framebuffer support.
+    // http://issuetracker.google.com/42266906
+    //
+    // Qualcomm with imageless framebuffers, vkCreateFramebuffer loops forever.
+    // http://issuetracker.google.com/369693310
+    //
+    // PowerVR with imageless framebuffer spends enormous amounts of time in framebuffer destruction
+    // and creation. ANGLE doesn't cache imageless framebuffers, instead adding them to garbage
+    // collection, expecting them to be lightweight.
+    // http://issuetracker.google.com/372273294
     const bool isSamsungDriverWithImagelessFramebufferBug =
         isSamsung && mPhysicalDeviceProperties.apiVersion < VK_MAKE_VERSION(1, 3, 244);
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImagelessFramebuffer,
                             mImagelessFramebufferFeatures.imagelessFramebuffer == VK_TRUE &&
-                                !isSamsungDriverWithImagelessFramebufferBug);
+                                !isSamsungDriverWithImagelessFramebufferBug &&
+                                !isQualcommProprietary && !isPowerVR);
 
     if (ExtensionFound(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME, deviceExtensionNames))
     {
@@ -5636,9 +5648,12 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsDynamicRendering,
                             mDynamicRenderingFeatures.dynamicRendering == VK_TRUE);
+
+    // Disabled on Nvidia driver due to a bug with attachment location mapping, resulting in
+    // incorrect rendering in the presence of gaps in locations.  http://anglebug.com/372883691.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsDynamicRenderingLocalRead,
-        mDynamicRenderingLocalReadFeatures.dynamicRenderingLocalRead == VK_TRUE);
+        mDynamicRenderingLocalReadFeatures.dynamicRenderingLocalRead == VK_TRUE && !isNvidia);
 
     // Using dynamic rendering when VK_KHR_dynamic_rendering_local_read is available, because that's
     // needed for framebuffer fetch, MSRTT and advanced blend emulation.
@@ -5662,6 +5677,16 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                                 mFeatures.supportsDynamicRenderingLocalRead.enabled &&
                                 !hasLegacyDitheringV1 && !emulatesMultisampledRenderToTexture &&
                                 !isARM);
+
+    // On tile-based renderers, breaking the render pass is costly.  Changing into and out of
+    // framebuffer fetch causes the render pass to break so that the layout of the color attachments
+    // can be adjusted.  On such hardware, the switch to framebuffer fetch mode is made permanent so
+    // such render pass breaks don't happen.
+    //
+    // This only applies to legacy render passes; with dynamic rendering there is no render pass
+    // break when switching framebuffer fetch usage.
+    ANGLE_FEATURE_CONDITION(&mFeatures, permanentlySwitchToFramebufferFetchMode,
+                            isTileBasedRenderer && !mFeatures.preferDynamicRendering.enabled);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsSynchronization2,
                             mSynchronization2Features.synchronization2 == VK_TRUE);
@@ -6157,11 +6182,6 @@ void Renderer::onNewValidationMessage(const std::string &message)
 {
     mLastValidationMessage = message;
     ++mValidationMessageCount;
-}
-
-void Renderer::onFramebufferFetchUsed()
-{
-    mIsFramebufferFetchUsed = true;
 }
 
 std::string Renderer::getAndClearLastValidationMessage(uint32_t *countSinceLastClear)
