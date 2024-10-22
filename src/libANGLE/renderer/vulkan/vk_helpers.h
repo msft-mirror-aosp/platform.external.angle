@@ -302,6 +302,9 @@ class DescriptorPoolHelper final : public Resource
     angle::Result init(Context *context,
                        const std::vector<VkDescriptorPoolSize> &poolSizesIn,
                        uint32_t maxSets);
+    // This only get called by SharedPtr. Nothing to do here since we explictly destroy/release pool
+    // before we reach here.
+    void destroy() { ASSERT(!valid()); }
     void destroy(Renderer *renderer);
     void release(Renderer *renderer);
 
@@ -336,8 +339,7 @@ class DescriptorPoolHelper final : public Resource
     // Manages the texture descriptor set cache that allocated from this pool
     vk::DescriptorSetCacheManager mDescriptorSetCacheManager;
 };
-
-using RefCountedDescriptorPoolBinding = BindingPointer<DescriptorPoolHelper>;
+using DescriptorPoolPointer = SharedPtr<DescriptorPoolHelper>;
 
 class DynamicDescriptorPool final : angle::NonCopyable
 {
@@ -356,6 +358,10 @@ class DynamicDescriptorPool final : angle::NonCopyable
                        size_t setSizeCount,
                        const DescriptorSetLayout &descriptorSetLayout);
     void destroy(Renderer *renderer);
+    // Used only by SharedPtr. Since MetaDescriptorPool always keep the last refCount and it
+    // explicitly calls destroy(renderer) before last refcount goes away, we should just do
+    // assertion here.
+    void destroy() { ASSERT(!valid()); }
 
     bool valid() const { return !mDescriptorPools.empty(); }
 
@@ -363,13 +369,13 @@ class DynamicDescriptorPool final : angle::NonCopyable
     // By convention, sets are indexed according to the constants in vk_cache_utils.h.
     angle::Result allocateDescriptorSet(Context *context,
                                         const DescriptorSetLayout &descriptorSetLayout,
-                                        RefCountedDescriptorPoolBinding *bindingOut,
+                                        DescriptorPoolPointer *poolOut,
                                         VkDescriptorSet *descriptorSetOut);
 
     angle::Result getOrAllocateDescriptorSet(Context *context,
                                              const DescriptorSetDesc &desc,
                                              const DescriptorSetLayout &descriptorSetLayout,
-                                             RefCountedDescriptorPoolBinding *bindingOut,
+                                             DescriptorPoolPointer *poolOut,
                                              VkDescriptorSet *descriptorSetOut,
                                              SharedDescriptorSetCacheKey *sharedCacheKeyOut);
 
@@ -403,7 +409,7 @@ class DynamicDescriptorPool final : angle::NonCopyable
     static uint32_t mMaxSetsPerPool;
     static uint32_t mMaxSetsPerPoolMultiplier;
     size_t mCurrentPoolIndex;
-    std::vector<std::unique_ptr<RefCountedDescriptorPoolHelper>> mDescriptorPools;
+    std::vector<DescriptorPoolPointer> mDescriptorPools;
     std::vector<VkDescriptorPoolSize> mPoolSizes;
     // This cached handle is used for verifying the layout being used to allocate descriptor sets
     // from the pool matches the layout that the pool was created for, to ensure that the free
@@ -415,9 +421,7 @@ class DynamicDescriptorPool final : angle::NonCopyable
     // Statistics for the cache.
     CacheStats mCacheStats;
 };
-
-using RefCountedDescriptorPool = RefCounted<DynamicDescriptorPool>;
-using DescriptorPoolPointer    = BindingPointer<DynamicDescriptorPool>;
+using DynamicDescriptorPoolPointer = SharedPtr<DynamicDescriptorPool>;
 
 // Maps from a descriptor set layout (represented by DescriptorSetLayoutDesc) to a set of
 // DynamicDescriptorPools. The purpose of the class is so multiple GL Programs can share descriptor
@@ -434,15 +438,15 @@ class MetaDescriptorPool final : angle::NonCopyable
                                            const DescriptorSetLayoutDesc &descriptorSetLayoutDesc,
                                            uint32_t descriptorCountMultiplier,
                                            DescriptorSetLayoutCache *descriptorSetLayoutCache,
-                                           DescriptorPoolPointer *descriptorPoolOut);
+                                           DynamicDescriptorPoolPointer *dynamicDescriptorPoolOut);
 
     template <typename Accumulator>
     void accumulateDescriptorCacheStats(VulkanCacheType cacheType, Accumulator *accum) const
     {
         for (const auto &iter : mPayload)
         {
-            const vk::RefCountedDescriptorPool &pool = iter.second;
-            pool.get().accumulateDescriptorCacheStats(cacheType, accum);
+            const vk::DynamicDescriptorPoolPointer &pool = iter.second;
+            pool->accumulateDescriptorCacheStats(cacheType, accum);
         }
     }
 
@@ -450,8 +454,8 @@ class MetaDescriptorPool final : angle::NonCopyable
     {
         for (auto &iter : mPayload)
         {
-            vk::RefCountedDescriptorPool &pool = iter.second;
-            pool.get().resetDescriptorCacheStats();
+            vk::DynamicDescriptorPoolPointer &pool = iter.second;
+            pool->resetDescriptorCacheStats();
         }
     }
 
@@ -461,15 +465,15 @@ class MetaDescriptorPool final : angle::NonCopyable
 
         for (const auto &iter : mPayload)
         {
-            const RefCountedDescriptorPool &pool = iter.second;
-            totalSize += pool.get().getTotalCacheKeySizeBytes();
+            const DynamicDescriptorPoolPointer &pool = iter.second;
+            totalSize += pool->getTotalCacheKeySizeBytes();
         }
 
         return totalSize;
     }
 
   private:
-    std::unordered_map<DescriptorSetLayoutDesc, RefCountedDescriptorPool> mPayload;
+    std::unordered_map<DescriptorSetLayoutDesc, DynamicDescriptorPoolPointer> mPayload;
 };
 
 template <typename Pool>
@@ -3299,6 +3303,8 @@ using ImageViewVector = std::vector<ImageView>;
 // A vector of vector of image views.  Primary index is layer, secondary index is level.
 using LayerLevelImageViewVector = std::vector<ImageViewVector>;
 
+using SubresourceImageViewMap = angle::HashMap<ImageSubresourceRange, std::unique_ptr<ImageView>>;
+
 // Address mode for layers: only possible to access either all layers, or up to
 // IMPLEMENTATION_ANGLE_MULTIVIEW_MAX_VIEWS layers.  This enum uses 0 for all layers and the rest of
 // the values conveniently alias the number of layers.
@@ -3454,6 +3460,23 @@ class ImageViewHelper final : angle::NonCopyable
                                              uint32_t layer,
                                              const ImageView **imageViewOut);
 
+    // Creates a depth-xor-stencil view with a range of layers of the level.
+    angle::Result getLevelDepthOrStencilImageView(Context *context,
+                                                  const ImageHelper &image,
+                                                  LevelIndex levelVk,
+                                                  uint32_t layer,
+                                                  uint32_t layerCount,
+                                                  VkImageAspectFlagBits aspect,
+                                                  const ImageView **imageViewOut);
+
+    // Creates a  depth-xor-stencil view with a single layer of the level.
+    angle::Result getLevelLayerDepthOrStencilImageView(Context *context,
+                                                       const ImageHelper &image,
+                                                       LevelIndex levelVk,
+                                                       uint32_t layer,
+                                                       VkImageAspectFlagBits aspect,
+                                                       const ImageView **imageViewOut);
+
     // Creates a fragment shading rate view.
     angle::Result initFragmentShadingRateView(ContextVk *contextVk, ImageHelper *image);
 
@@ -3584,6 +3607,13 @@ class ImageViewHelper final : angle::NonCopyable
                                                  uint32_t layer,
                                                  uint32_t layerCount,
                                                  ImageView *imageViewOut);
+    angle::Result getLevelLayerDepthOrStencilImageViewImpl(Context *context,
+                                                           const ImageHelper &image,
+                                                           LevelIndex levelVk,
+                                                           uint32_t layer,
+                                                           uint32_t layerCount,
+                                                           VkImageAspectFlagBits aspect,
+                                                           ImageView *imageViewOut);
 
     // Creates views with multiple layers and levels.
     angle::Result initReadViewsImpl(ContextVk *contextVk,
@@ -3634,7 +3664,13 @@ class ImageViewHelper final : angle::NonCopyable
     // Draw views
     LayerLevelImageViewVector mLayerLevelDrawImageViews;
     LayerLevelImageViewVector mLayerLevelDrawImageViewsLinear;
-    angle::HashMap<ImageSubresourceRange, std::unique_ptr<ImageView>> mSubresourceDrawImageViews;
+    SubresourceImageViewMap mSubresourceDrawImageViews;
+
+    // Depth- or stencil-only input attachment views
+    LayerLevelImageViewVector mLayerLevelDepthOnlyImageViews;
+    LayerLevelImageViewVector mLayerLevelStencilOnlyImageViews;
+    SubresourceImageViewMap mSubresourceDepthOnlyImageViews;
+    SubresourceImageViewMap mSubresourceStencilOnlyImageViews;
 
     // Storage views
     ImageViewVector mLevelStorageImageViews;
