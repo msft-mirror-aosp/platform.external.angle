@@ -739,6 +739,13 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo supportsShaderFramebufferFetchDepthStencil = {
+        "supportsShaderFramebufferFetchDepthStencil",
+        FeatureCategory::VulkanFeatures,
+        "Whether the Vulkan backend supports coherent depth/stencil framebuffer fetch",
+        &members,
+    };
+
     FeatureInfo permanentlySwitchToFramebufferFetchMode = {
         "permanentlySwitchToFramebufferFetchMode",
         FeatureCategory::VulkanFeatures,
@@ -1229,10 +1236,10 @@ struct FeaturesVk : FeatureSetBase
         &members, "https://issuetracker.google.com/253522366"
     };
 
-    FeatureInfo asyncCommandBufferReset = {
-        "asyncCommandBufferReset",
+    FeatureInfo asyncCommandBufferResetAndGarbageCleanup = {
+        "asyncCommandBufferResetAndGarbageCleanup",
         FeatureCategory::VulkanFeatures,
-        "Reset command buffer in async thread.",
+        "Reset command buffer and cleanup garbage in async thread.",
         &members, "https://issuetracker.google.com/255411748"
     };
 
@@ -1612,6 +1619,43 @@ struct FeaturesVk : FeatureSetBase
         FeatureCategory::VulkanFeatures,
         "VkDevice supports SignedZeroInfNanPreserve execution mode for 64-bit floating point from VK_KHR_shader_float_controls extension",
         &members, "https://anglebug.com/360031000"
+    };
+
+    FeatureInfo preferDoubleBufferSwapchainOnFifoMode = {
+        "preferDoubleBufferSwapchainOnFifoMode",
+        FeatureCategory::VulkanFeatures,
+        "allow create double buffer swapchain for fifo present mode",
+        &members, "https://issuetracker.google.com/311022968"
+    };
+
+    FeatureInfo useDualPipelineBlobCacheSlots = {
+        "useDualPipelineBlobCacheSlots",
+        FeatureCategory::VulkanFeatures,
+        "Wether to use single or dual slots to store PipelineCacheVk data into the blob cache.",
+        &members, "https://anglebug.com/42263322"
+    };
+
+    FeatureInfo useEmptyBlobsToEraseOldPipelineCacheFromBlobCache = {
+        "useEmptyBlobsToEraseOldPipelineCacheFromBlobCache",
+        FeatureCategory::VulkanFeatures,
+        "Whether to use empty blobs or 1-sized blobs to erase old PipelineCacheVk data from the blob cache.",
+        &members, "https://anglebug.com/42263322"
+    };
+
+    FeatureInfo hasBlobCacheThatEvictsOldItemsFirst = {
+        "hasBlobCacheThatEvictsOldItemsFirst",
+        FeatureCategory::VulkanFeatures,
+        "Whether platform blob cache evicts old items first (has LRU). "
+        "This is also true if cache evicts more old items than required when storing a new item.",
+        &members, "https://anglebug.com/42263322"
+    };
+
+    FeatureInfo verifyPipelineCacheInBlobCache = {
+        "verifyPipelineCacheInBlobCache",
+        FeatureCategory::VulkanFeatures,
+        "Wether need to perform verification of stored PipelineCacheVk data chunks or not. "
+        "Relevant, when blob cache does not evict old items first (no LRU) or evicts more old items than required when storing a new item.",
+        &members, "https://anglebug.com/42263322"
     };
 
 };

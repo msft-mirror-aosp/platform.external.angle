@@ -76,6 +76,7 @@ def main():
                       required=True,
                       help='where to write output rustc flags')
   parser.add_argument('--target', help='rust target triple')
+  parser.add_argument('--target-abi', help='rust target_abi')
   parser.add_argument('--pointer-width', help='rust target pointer width')
   parser.add_argument('--features', help='features', nargs='+')
   parser.add_argument('--env', help='environment variable', nargs='+')
@@ -129,12 +130,18 @@ def main():
       print(f'Invalid TARGET {env["TARGET"]}')
       sys.exit(1)
     # See https://crbug.com/325543500 for background.
-    # Cargo sets CARGO_CFG_TARGET_OS to "android" even when targeting *-androideabi.
+    # Cargo sets CARGO_CFG_TARGET_OS to "android" even when targeting
+    # *-androideabi.
     if env["CARGO_CFG_TARGET_OS"].startswith("android"):
       env["CARGO_CFG_TARGET_OS"] = "android"
     elif env["CARGO_CFG_TARGET_OS"] == "darwin":
       env["CARGO_CFG_TARGET_OS"] = "macos"
-    env["CARGO_CFG_TARGET_POINTER_WIDTH"] = args.pointer_width
+    env["CARGO_CFG_TARGET_ENDIAN"] = "little"
+    if env["CARGO_CFG_TARGET_OS"] == "windows":
+      env["CARGO_CFG_TARGET_FAMILY"] = "windows"
+    else:
+      env["CARGO_CFG_TARGET_FAMILY"] = "unix"
+    env["CARGO_CFG_TARGET_ABI"] = args.target_abi if args.target_abi else ""
     if args.features:
       for f in args.features:
         feature_name = f.upper().replace("-", "_")
