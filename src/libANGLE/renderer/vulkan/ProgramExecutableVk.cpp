@@ -546,7 +546,6 @@ ProgramExecutableVk::ProgramExecutableVk(const gl::ProgramExecutable *executable
       mValidGraphicsPermutations{},
       mValidComputePermutations{}
 {
-    mDescriptorSets.fill(VK_NULL_HANDLE);
     for (std::shared_ptr<BufferAndLayout> &defaultBlock : mDefaultUniformBlocks)
     {
         defaultBlock = std::make_shared<BufferAndLayout>();
@@ -582,7 +581,10 @@ void ProgramExecutableVk::resetLayout(ContextVk *contextVk)
     mImmutableSamplersMaxDescriptorCount = 1;
     mImmutableSamplerIndexMap.clear();
 
-    mDescriptorSets.fill(VK_NULL_HANDLE);
+    for (vk::DescriptorSetPointer &descriptorSet : mDescriptorSets)
+    {
+        descriptorSet.reset();
+    }
 
     for (vk::DescriptorPoolPointer &pool : mDescriptorPools)
     {
@@ -1752,17 +1754,33 @@ angle::Result ProgramExecutableVk::getOrAllocateDescriptorSet(
     DescriptorSetIndex setIndex,
     vk::SharedDescriptorSetCacheKey *newSharedCacheKeyOut)
 {
-    ANGLE_TRY(mDynamicDescriptorPools[setIndex]->getOrAllocateDescriptorSet(
-        context, descriptorSetDesc.getDesc(), mDescriptorSetLayouts[setIndex].get(),
-        &mDescriptorPools[setIndex], &mDescriptorSets[setIndex], newSharedCacheKeyOut));
-    ASSERT(mDescriptorSets[setIndex] != VK_NULL_HANDLE);
-
-    if (*newSharedCacheKeyOut != nullptr)
+    if (context->getFeatures().descriptorSetCache.enabled)
     {
-        // Cache miss. A new cache entry has been created.
-        descriptorSetDesc.updateDescriptorSet(context->getRenderer(), writeDescriptorDescs,
-                                              updateBuilder, mDescriptorSets[setIndex]);
+        ANGLE_TRY(mDynamicDescriptorPools[setIndex]->getOrAllocateDescriptorSet(
+            context, descriptorSetDesc.getDesc(), mDescriptorSetLayouts[setIndex].get(),
+            &mDescriptorSets[setIndex], newSharedCacheKeyOut));
+        ASSERT(mDescriptorSets[setIndex]);
+        mDescriptorPools[setIndex] = mDescriptorSets[setIndex]->getPool();
+
+        if (*newSharedCacheKeyOut != nullptr)
+        {
+            // Cache miss. A new cache entry has been created.
+            descriptorSetDesc.updateDescriptorSet(context->getRenderer(), writeDescriptorDescs,
+                                                  updateBuilder,
+                                                  mDescriptorSets[setIndex]->getDescriptorSet());
+        }
     }
+    else
+    {
+        ANGLE_TRY(mDynamicDescriptorPools[setIndex]->allocateDescriptorSet(
+            context, mDescriptorSetLayouts[setIndex].get(), &mDescriptorSets[setIndex]));
+        ASSERT(mDescriptorSets[setIndex]);
+        mDescriptorPools[setIndex] = mDescriptorSets[setIndex]->getPool();
+        descriptorSetDesc.updateDescriptorSet(context->getRenderer(), writeDescriptorDescs,
+                                              updateBuilder,
+                                              mDescriptorSets[setIndex]->getDescriptorSet());
+    }
+    commandBufferHelper->retainResource(mDescriptorSets[setIndex].get());
     commandBufferHelper->retainResource(mDescriptorPools[setIndex].get());
 
     return angle::Result::Continue;
@@ -1820,27 +1838,57 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
     const gl::SamplerBindingVector &samplers,
     PipelineType pipelineType,
     UpdateDescriptorSetsBuilder *updateBuilder,
-    vk::CommandBufferHelperCommon *commandBufferHelper,
-    const vk::DescriptorSetDesc &texturesDesc)
+    vk::CommandBufferHelperCommon *commandBufferHelper)
 {
-    vk::SharedDescriptorSetCacheKey newSharedCacheKey;
-    ANGLE_TRY(mDynamicDescriptorPools[DescriptorSetIndex::Texture]->getOrAllocateDescriptorSet(
-        context, texturesDesc, mDescriptorSetLayouts[DescriptorSetIndex::Texture].get(),
-        &mDescriptorPools[DescriptorSetIndex::Texture],
-        &mDescriptorSets[DescriptorSetIndex::Texture], &newSharedCacheKey));
-    ASSERT(mDescriptorSets[DescriptorSetIndex::Texture] != VK_NULL_HANDLE);
+    // We use textureSerial to optimize texture binding updates. Each permutation of a
+    // {VkImage/VkSampler} generates a unique serial. These object ids are combined to form a unique
+    // signature for each descriptor set. This allows us to keep a cache of descriptor sets and
+    // avoid calling vkAllocateDesctiporSets each texture update.
+    vk::DescriptorSetDescBuilder descriptorBuilder;
 
-    if (newSharedCacheKey != nullptr)
+    if (context->getFeatures().descriptorSetCache.enabled)
     {
-        vk::DescriptorSetDescBuilder fullDesc(
-            mTextureWriteDescriptorDescs.getTotalDescriptorCount());
-        // Cache miss. A new cache entry has been created.
-        ANGLE_TRY(fullDesc.updateFullActiveTextures(
-            context, mVariableInfoMap, mTextureWriteDescriptorDescs, *mExecutable, textures,
-            samplers, pipelineType, newSharedCacheKey));
-        fullDesc.updateDescriptorSet(context->getRenderer(), mTextureWriteDescriptorDescs,
-                                     updateBuilder, mDescriptorSets[DescriptorSetIndex::Texture]);
+        vk::SharedDescriptorSetCacheKey newSharedCacheKey;
+
+        descriptorBuilder.updatePreCacheActiveTextures(context, *mExecutable, textures, samplers);
+
+        ANGLE_TRY(mDynamicDescriptorPools[DescriptorSetIndex::Texture]->getOrAllocateDescriptorSet(
+            context, descriptorBuilder.getDesc(),
+            mDescriptorSetLayouts[DescriptorSetIndex::Texture].get(),
+            &mDescriptorSets[DescriptorSetIndex::Texture], &newSharedCacheKey));
+        ASSERT(mDescriptorSets[DescriptorSetIndex::Texture]);
+
+        if (newSharedCacheKey != nullptr)
+        {
+            // Cache miss. A new cache entry has been created.
+            ANGLE_TRY(descriptorBuilder.updateActiveTexturesForCacheMiss(
+                context, mVariableInfoMap, mTextureWriteDescriptorDescs, *mExecutable, textures,
+                samplers, pipelineType, newSharedCacheKey));
+
+            descriptorBuilder.updateDescriptorSet(
+                context->getRenderer(), mTextureWriteDescriptorDescs, updateBuilder,
+                mDescriptorSets[DescriptorSetIndex::Texture]->getDescriptorSet());
+        }
     }
+    else
+    {
+        ANGLE_TRY(mDynamicDescriptorPools[DescriptorSetIndex::Texture]->allocateDescriptorSet(
+            context, mDescriptorSetLayouts[DescriptorSetIndex::Texture].get(),
+            &mDescriptorSets[DescriptorSetIndex::Texture]));
+        ASSERT(mDescriptorSets[DescriptorSetIndex::Texture]);
+
+        ANGLE_TRY(descriptorBuilder.updateFullActiveTextures(
+            context, mVariableInfoMap, mTextureWriteDescriptorDescs, *mExecutable, textures,
+            samplers, pipelineType));
+
+        descriptorBuilder.updateDescriptorSet(
+            context->getRenderer(), mTextureWriteDescriptorDescs, updateBuilder,
+            mDescriptorSets[DescriptorSetIndex::Texture]->getDescriptorSet());
+    }
+
+    mDescriptorPools[DescriptorSetIndex::Texture] =
+        mDescriptorSets[DescriptorSetIndex::Texture]->getPool();
+    commandBufferHelper->retainResource(mDescriptorSets[DescriptorSetIndex::Texture].get());
     commandBufferHelper->retainResource(mDescriptorPools[DescriptorSetIndex::Texture].get());
 
     return angle::Result::Continue;
@@ -1861,7 +1909,7 @@ angle::Result ProgramExecutableVk::bindDescriptorSets(
     DescriptorSetIndex lastNonNullDescriptorSetIndex = DescriptorSetIndex::InvalidEnum;
     for (DescriptorSetIndex descriptorSetIndex : angle::AllEnums<DescriptorSetIndex>())
     {
-        if (mDescriptorSets[descriptorSetIndex] != VK_NULL_HANDLE)
+        if (mDescriptorSets[descriptorSetIndex])
         {
             lastNonNullDescriptorSetIndex = descriptorSetIndex;
         }
@@ -1878,11 +1926,13 @@ angle::Result ProgramExecutableVk::bindDescriptorSets(
             continue;
         }
 
-        VkDescriptorSet descSet = mDescriptorSets[descriptorSetIndex];
-        if (descSet == VK_NULL_HANDLE)
+        if (!mDescriptorSets[descriptorSetIndex])
         {
             continue;
         }
+
+        VkDescriptorSet descSet = mDescriptorSets[descriptorSetIndex]->getDescriptorSet();
+        ASSERT(descSet != VK_NULL_HANDLE);
 
         // Default uniforms are encompassed in a block per shader stage, and they are assigned
         // through dynamic uniform buffers (requiring dynamic offsets).  No other descriptor
