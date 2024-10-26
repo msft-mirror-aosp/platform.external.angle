@@ -1,9 +1,9 @@
 {
   "version info": {
     "schema version": 2,
-    "api version": "1.3.298",
-    "comment": "from git branch: github-main commit: 05d5444cce55e340e07ead87d552407da5ea8771",
-    "date": "2024-10-11 07:51:42Z"
+    "api version": "1.3.299",
+    "comment": "from git branch: github-main commit: 46e04bb59e0f85b9124899e694a477dd9025d17c",
+    "date": "2024-10-18 10:55:09Z"
   },
   "validation": {
     "vkGetInstanceProcAddr": {
@@ -1179,7 +1179,7 @@
         },
         {
           "vuid": "VUID-vkGetDeviceQueue-flags-01841",
-          "text": "<a href=\"#VkDeviceQueueCreateInfo\">VkDeviceQueueCreateInfo</a>::<code>flags</code> <strong class=\"purple\">must</strong> have been set to zero when <code>device</code> was created",
+          "text": "<a href=\"#VkDeviceQueueCreateInfo\">VkDeviceQueueCreateInfo</a>::<code>flags</code> <strong class=\"purple\">must</strong> have been zero when <code>device</code> was created",
           "page": "vkspec"
         },
         {
@@ -2734,12 +2734,12 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteCommands-contents-09680",
-          "text": "If <code>vkCmdExecuteCommands</code> is being called within a render pass     instance begun with <a href=\"#vkCmdBeginRenderPass\">vkCmdBeginRenderPass</a>, and     <a href=\"#vkCmdNextSubpass\">vkCmdNextSubpass</a> has not been called in the current render pass     instance, the <code>contents</code> parameter of <a href=\"#vkCmdBeginRenderPass\">vkCmdBeginRenderPass</a>     <strong class=\"purple\">must</strong> have been set to     <code>VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS</code> , or <code>VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_EXT</code>",
+          "text": "If <code>vkCmdExecuteCommands</code> is being called within a render pass     instance begun with <a href=\"#vkCmdBeginRenderPass\">vkCmdBeginRenderPass</a>, and     <a href=\"#vkCmdNextSubpass\">vkCmdNextSubpass</a> has not been called in the current render pass     instance, the <code>contents</code> parameter of <a href=\"#vkCmdBeginRenderPass\">vkCmdBeginRenderPass</a>     <strong class=\"purple\">must</strong> have been <code>VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS</code> , or <code>VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_EXT</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdExecuteCommands-None-09681",
-          "text": "If <code>vkCmdExecuteCommands</code> is being called within a render pass     instance begun with <a href=\"#vkCmdBeginRenderPass\">vkCmdBeginRenderPass</a>, and     <a href=\"#vkCmdNextSubpass\">vkCmdNextSubpass</a> has been called in the current render pass     instance, the <code>contents</code> parameter of the last call to     <a href=\"#vkCmdNextSubpass\">vkCmdNextSubpass</a> <strong class=\"purple\">must</strong> have been set to     <code>VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS</code> , or <code>VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_KHR</code>",
+          "text": "If <code>vkCmdExecuteCommands</code> is being called within a render pass     instance begun with <a href=\"#vkCmdBeginRenderPass\">vkCmdBeginRenderPass</a>, and     <a href=\"#vkCmdNextSubpass\">vkCmdNextSubpass</a> has been called in the current render pass     instance, the <code>contents</code> parameter of the last call to     <a href=\"#vkCmdNextSubpass\">vkCmdNextSubpass</a> <strong class=\"purple\">must</strong> have been     <code>VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS</code> , or <code>VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_KHR</code>",
           "page": "vkspec"
         },
         {
@@ -13351,7 +13351,7 @@
         },
         {
           "vuid": "VUID-VkShaderCreateInfoEXT-flags-11005",
-          "text": "If <code>flags</code> includes <code>VK_SHADER_CREATE_INDIRECT_BINDABLE_BIT_EXT</code>, then the <a href=\"#features-deviceGeneratedCommandsEXT\"><code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "If <code>flags</code> includes <code>VK_SHADER_CREATE_INDIRECT_BINDABLE_BIT_EXT</code>, then the <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -14692,7 +14692,7 @@
         },
         {
           "vuid": "VUID-VkComputePipelineCreateInfo-flags-11007",
-          "text": "If <code>flags</code> includes <code>VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT</code>, then the <a href=\"#features-deviceGeneratedCommandsEXT\"><code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "If <code>flags</code> includes <code>VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT</code>, then the <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -15937,7 +15937,7 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-flags-02877",
-          "text": "If <code>flags</code> includes <code>VK_PIPELINE_CREATE_INDIRECT_BINDABLE_BIT_NV</code>, then the <a href=\"#features-deviceGeneratedCommands\"><code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "If <code>flags</code> includes <code>VK_PIPELINE_CREATE_INDIRECT_BINDABLE_BIT_NV</code>, then the <a href=\"#features-deviceGeneratedCommandsNV\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -15957,7 +15957,7 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineCreateInfo-flags-11000",
-          "text": "If <code>flags</code> includes <code>VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT</code>, then the <a href=\"#features-deviceGeneratedCommandsEXT\"><code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "If <code>flags</code> includes <code>VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT</code>, then the <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -17186,7 +17186,7 @@
         },
         {
           "vuid": "VUID-VkGraphicsPipelineShaderGroupsCreateInfoNV-deviceGeneratedCommands-02887",
-          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommandsNV\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -19068,7 +19068,7 @@
         },
         {
           "vuid": "VUID-vkCmdBindPipelineShaderGroupNV-deviceGeneratedCommands-02896",
-          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommandsNV\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -22386,6 +22386,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-VkImageCreateInfo-imageType-10196",
+          "text": "If <code>imageType</code> is <code>VK_IMAGE_TYPE_3D</code> and <code>flags</code> contains <code>VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT</code> then <code>flags</code> <strong class=\"purple\">must</strong> not contain any of <code>VK_IMAGE_CREATE_SPARSE_BINDING_BIT</code>, <code>VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT</code>, and <code>VK_IMAGE_CREATE_SPARSE_ALIASED_BIT</code>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-VkImageCreateInfo-flags-00950",
           "text": "If <code>flags</code> contains <code>VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT</code>, <code>imageType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_TYPE_3D</code>",
           "page": "vkspec"
@@ -22398,6 +22403,11 @@
         {
           "vuid": "VUID-VkImageCreateInfo-flags-07755",
           "text": "If <code>flags</code> contains <code>VK_IMAGE_CREATE_2D_VIEW_COMPATIBLE_BIT_EXT</code>, <code>imageType</code> <strong class=\"purple\">must</strong> be <code>VK_IMAGE_TYPE_3D</code>",
+          "page": "vkspec"
+        },
+        {
+          "vuid": "VUID-VkImageCreateInfo-imageType-10197",
+          "text": "If <code>imageType</code> is <code>VK_IMAGE_TYPE_3D</code> and <code>flags</code> contains <code>VK_IMAGE_CREATE_2D_VIEW_COMPATIBLE_BIT_EXT</code> then <code>flags</code> <strong class=\"purple\">must</strong> not contain any of <code>VK_IMAGE_CREATE_SPARSE_BINDING_BIT</code>, <code>VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT</code>, and <code>VK_IMAGE_CREATE_SPARSE_ALIASED_BIT</code>",
           "page": "vkspec"
         },
         {
@@ -23744,11 +23754,6 @@
           "page": "vkspec"
         },
         {
-          "vuid": "VUID-VkImageViewCreateInfo-image-04971",
-          "text": "If <code>image</code> was created with <code>VK_IMAGE_TYPE_3D</code> and <code>viewType</code> is <code>VK_IMAGE_VIEW_TYPE_2D</code> or <code>VK_IMAGE_VIEW_TYPE_2D_ARRAY</code> then <a href=\"#VkImageCreateInfo\">VkImageCreateInfo</a>::<code>flags</code> <strong class=\"purple\">must</strong> not contain any of <code>VK_IMAGE_CREATE_SPARSE_BINDING_BIT</code>, <code>VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT</code>, and <code>VK_IMAGE_CREATE_SPARSE_ALIASED_BIT</code>",
-          "page": "vkspec"
-        },
-        {
           "vuid": "VUID-VkImageViewCreateInfo-image-04972",
           "text": "If <code>image</code> was created with a <code>samples</code> value not equal to <code>VK_SAMPLE_COUNT_1_BIT</code> then <code>viewType</code> <strong class=\"purple\">must</strong> be either <code>VK_IMAGE_VIEW_TYPE_2D</code> or <code>VK_IMAGE_VIEW_TYPE_2D_ARRAY</code>",
           "page": "vkspec"
@@ -23870,7 +23875,7 @@
         },
         {
           "vuid": "VUID-VkImageViewCreateInfo-image-09487",
-          "text": "If <code>image</code> was created with the <code>VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT</code> flag, the <code>VkPhysicalDeviceMaintenance6PropertiesKHR</code>::<code>blockTexelViewCompatibleMultipleLayers</code> property is not set to <code>VK_TRUE</code>, and <code>format</code> is a non-compressed format, then the <code>layerCount</code> member of <code>subresourceRange</code> <strong class=\"purple\">must</strong> be <code>1</code>",
+          "text": "If <code>image</code> was created with the <code>VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT</code> flag, the <code>VkPhysicalDeviceMaintenance6PropertiesKHR</code>::<code>blockTexelViewCompatibleMultipleLayers</code> property is not <code>VK_TRUE</code>, and <code>format</code> is a non-compressed format, then the <code>layerCount</code> member of <code>subresourceRange</code> <strong class=\"purple\">must</strong> be <code>1</code>",
           "page": "vkspec"
         },
         {
@@ -27178,12 +27183,12 @@
         },
         {
           "vuid": "VUID-VkSamplerCreateInfo-None-01647",
-          "text": "If <a href=\"#samplers-YCbCr-conversion\">sampler Y′C<sub>B</sub>C<sub>R</sub> conversion</a> is enabled and the <code>pNext</code> chain includes a <a href=\"#VkSamplerReductionModeCreateInfo\">VkSamplerReductionModeCreateInfo</a> structure, then the sampler reduction mode <strong class=\"purple\">must</strong> be set to <code>VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE</code>",
+          "text": "If <a href=\"#samplers-YCbCr-conversion\">sampler Y′C<sub>B</sub>C<sub>R</sub> conversion</a> is enabled and the <code>pNext</code> chain includes a <a href=\"#VkSamplerReductionModeCreateInfo\">VkSamplerReductionModeCreateInfo</a> structure, then the sampler reduction mode <strong class=\"purple\">must</strong> be <code>VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkSamplerCreateInfo-pNext-06726",
-          "text": "If <a href=\"#features-samplerFilterMinmax\"><code>samplerFilterMinmax</code></a> is not enabled and the <code>pNext</code> chain includes a <a href=\"#VkSamplerReductionModeCreateInfo\">VkSamplerReductionModeCreateInfo</a> structure, then the sampler reduction mode <strong class=\"purple\">must</strong> be set to <code>VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE</code>",
+          "text": "If <a href=\"#features-samplerFilterMinmax\"><code>samplerFilterMinmax</code></a> is not enabled and the <code>pNext</code> chain includes a <a href=\"#VkSamplerReductionModeCreateInfo\">VkSamplerReductionModeCreateInfo</a> structure, then the sampler reduction mode <strong class=\"purple\">must</strong> be <code>VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE</code>",
           "page": "vkspec"
         },
         {
@@ -31931,7 +31936,7 @@
       "core": [
         {
           "vuid": "VUID-VkRenderingAttachmentLocationInfoKHR-dynamicRenderingLocalRead-09512",
-          "text": "If the <a href=\"#features-dynamicRenderingLocalRead\"><code>dynamicRenderingLocalRead</code></a> feature is not enabled, and <code>pColorAttachmentLocations</code> is not <code>NULL</code>, each element <strong class=\"purple\">must</strong> be set to the value of its index within the array",
+          "text": "If the <a href=\"#features-dynamicRenderingLocalRead\"><code>dynamicRenderingLocalRead</code></a> feature is not enabled, and <code>pColorAttachmentLocations</code> is not <code>NULL</code>, each element <strong class=\"purple\">must</strong> be the value of its index within the array",
           "page": "vkspec"
         },
         {
@@ -32009,7 +32014,7 @@
       "core": [
         {
           "vuid": "VUID-VkRenderingInputAttachmentIndexInfoKHR-dynamicRenderingLocalRead-09519",
-          "text": "If the <a href=\"#features-dynamicRenderingLocalRead\"><code>dynamicRenderingLocalRead</code></a> feature is not enabled, and <code>pColorAttachmentInputIndices</code> is not <code>NULL</code>, each element <strong class=\"purple\">must</strong> be set to <code>VK_ATTACHMENT_UNUSED</code>",
+          "text": "If the <a href=\"#features-dynamicRenderingLocalRead\"><code>dynamicRenderingLocalRead</code></a> feature is not enabled, and <code>pColorAttachmentInputIndices</code> is not <code>NULL</code>, each element <strong class=\"purple\">must</strong> be <code>VK_ATTACHMENT_UNUSED</code>",
           "page": "vkspec"
         },
         {
@@ -42979,22 +42984,17 @@
         },
         {
           "vuid": "VUID-vkCmdDraw-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDraw-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDraw-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDraw-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -43624,7 +43624,7 @@
         },
         {
           "vuid": "VUID-vkCmdDraw-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -44019,7 +44019,7 @@
         },
         {
           "vuid": "VUID-vkCmdDraw-stage-06481",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -44613,22 +44613,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndexed-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -45258,7 +45253,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -45653,7 +45648,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexed-stage-06481",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -46257,22 +46252,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMultiEXT-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -46902,7 +46892,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -47297,7 +47287,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiEXT-stage-06481",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -47911,22 +47901,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMultiIndexedEXT-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -48556,7 +48541,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -48951,7 +48936,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMultiIndexedEXT-stage-06481",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -49580,22 +49565,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndirect-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -50225,7 +50205,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -50605,7 +50585,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirect-stage-06481",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -51263,22 +51243,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndirectCount-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -51908,7 +51883,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -52288,7 +52263,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectCount-stage-06481",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -52957,22 +52932,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndexedIndirect-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -53602,7 +53572,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -53982,7 +53952,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirect-stage-06481",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -54650,22 +54620,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndexedIndirectCount-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -55295,7 +55260,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -55675,7 +55640,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndexedIndirectCount-stage-06481",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -56349,22 +56314,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -56994,7 +56954,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -57374,7 +57334,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawIndirectByteCountEXT-stage-06481",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -58140,22 +58100,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksNV-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -58785,7 +58740,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -59090,7 +59045,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksNV-stage-06480",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "vkspec"
         },
         {
@@ -59694,22 +59649,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -60339,7 +60289,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -60644,7 +60594,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectNV-stage-06480",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "vkspec"
         },
         {
@@ -61307,22 +61257,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -61952,7 +61897,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -62257,7 +62202,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountNV-stage-06480",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "vkspec"
         },
         {
@@ -62941,22 +62886,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksEXT-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -63586,7 +63526,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -63891,7 +63831,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksEXT-stage-06480",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "vkspec"
         },
         {
@@ -64530,22 +64470,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -65175,7 +65110,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -65480,7 +65415,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectEXT-stage-06480",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "vkspec"
         },
         {
@@ -66178,22 +66113,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -66823,7 +66753,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -67128,7 +67058,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawMeshTasksIndirectCountEXT-stage-06480",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "vkspec"
         },
         {
@@ -67812,22 +67742,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawClusterHUAWEI-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -68457,7 +68382,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -68762,7 +68687,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterHUAWEI-stage-06480",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "vkspec"
         },
         {
@@ -69381,22 +69306,17 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -70026,7 +69946,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -70331,7 +70251,7 @@
         },
         {
           "vuid": "VUID-vkCmdDrawClusterIndirectHUAWEI-stage-06480",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_VERTEX_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT</code>, <code>VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT</code> or <code>VK_SHADER_STAGE_GEOMETRY_BIT</code>",
           "page": "vkspec"
         },
         {
@@ -74169,7 +74089,7 @@
       "core": [
         {
           "vuid": "VUID-VkPipelineViewportDepthClampControlCreateInfoEXT-pDepthClampRange-09646",
-          "text": "If <code>depthClampMode</code> is set to <code>VK_DEPTH_CLAMP_MODE_USER_DEFINED_RANGE_EXT</code>, and the pipeline is not created with <code>VK_DYNAMIC_STATE_DEPTH_CLAMP_RANGE_EXT</code>, then <code>pDepthClampRange</code> must be a valid pointer to a valid <code>VkDepthClampRangeEXT</code> structure",
+          "text": "If <code>depthClampMode</code> is <code>VK_DEPTH_CLAMP_MODE_USER_DEFINED_RANGE_EXT</code>, and the pipeline is not created with <code>VK_DYNAMIC_STATE_DEPTH_CLAMP_RANGE_EXT</code>, then <code>pDepthClampRange</code> <strong class=\"purple\">must</strong> be a valid pointer to a valid <code>VkDepthClampRangeEXT</code> structure",
           "page": "vkspec"
         },
         {
@@ -74193,7 +74113,7 @@
       "core": [
         {
           "vuid": "VUID-vkCmdSetDepthClampRangeEXT-pDepthClampRange-09647",
-          "text": "If <code>depthClampMode</code> is set to <code>VK_DEPTH_CLAMP_MODE_USER_DEFINED_RANGE_EXT</code>, then <code>pDepthClampRange</code> must be a valid pointer to a valid <code>VkDepthClampRangeEXT</code> structure",
+          "text": "If <code>depthClampMode</code> is <code>VK_DEPTH_CLAMP_MODE_USER_DEFINED_RANGE_EXT</code>, then <code>pDepthClampRange</code> must be a valid pointer to a valid <code>VkDepthClampRangeEXT</code> structure",
           "page": "vkspec"
         },
         {
@@ -77013,7 +76933,7 @@
       "core": [
         {
           "vuid": "VUID-vkCreateIndirectCommandsLayoutEXT-deviceGeneratedCommands-11089",
-          "text": "The <a href=\"#features-deviceGeneratedCommandsEXT\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -77255,7 +77175,7 @@
       "core": [
         {
           "vuid": "VUID-vkCreateIndirectCommandsLayoutNV-deviceGeneratedCommands-02929",
-          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommandsNV\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -77403,7 +77323,7 @@
         },
         {
           "vuid": "VUID-vkDestroyIndirectCommandsLayoutNV-deviceGeneratedCommands-02941",
-          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommandsNV\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -77949,7 +77869,7 @@
       "core": [
         {
           "vuid": "VUID-vkGetGeneratedCommandsMemoryRequirementsNV-deviceGeneratedCommands-02906",
-          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommandsNV\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -78119,7 +78039,7 @@
       "core": [
         {
           "vuid": "VUID-vkCreateIndirectExecutionSetEXT-deviceGeneratedCommands-11013",
-          "text": "The <a href=\"#features-deviceGeneratedCommandsEXT\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -78334,11 +78254,6 @@
         {
           "vuid": "VUID-VkWriteIndirectExecutionSetPipelineEXT-pipeline-11027",
           "text": "<code>pipeline</code> <strong class=\"purple\">must</strong> have been created with <code>VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-VkWriteIndirectExecutionSetPipelineEXT-pipeline-11028",
-          "text": "The descriptor layout info used to create <code>pipeline</code> <strong class=\"purple\">must</strong> be <a href=\"#descriptorsets-compatibility\">compatible</a> with the descriptor layout info used to create the indirect execution set",
           "page": "vkspec"
         },
         {
@@ -79099,22 +79014,17 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -79744,7 +79654,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -80124,7 +80034,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-stage-06481",
-          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of an element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
+          "text": "The bound graphics pipeline <strong class=\"purple\">must</strong> not have been created with the <a href=\"#VkPipelineShaderStageCreateInfo\">VkPipelineShaderStageCreateInfo</a>::<code>stage</code> member of any element of <a href=\"#VkGraphicsPipelineCreateInfo\">VkGraphicsPipelineCreateInfo</a>::<code>pStages</code> set to <code>VK_SHADER_STAGE_TASK_BIT_EXT</code> or <code>VK_SHADER_STAGE_MESH_BIT_EXT</code>",
           "page": "vkspec"
         },
         {
@@ -80154,7 +80064,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsNV-deviceGeneratedCommands-02911",
-          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommandsNV\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -80382,7 +80292,7 @@
         },
         {
           "vuid": "VUID-vkCmdPreprocessGeneratedCommandsNV-deviceGeneratedCommands-02928",
-          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommandsNV\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesNV</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -80966,22 +80876,17 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-viewportCount-03417",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>scissorCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing command",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-scissorCount-03418",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, but not the <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic state enabled, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code> <strong class=\"purple\">must</strong> match the <code>VkPipelineViewportStateCreateInfo</code>::<code>viewportCount</code> of the pipeline",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> dynamic state enabled, and the state is not inherited, then <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called and not subsequently <a href=\"#dynamic-state-lifetime\">invalidated</a> in the current command buffer prior to this drawing",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-viewportCount-03419",
-          "text": "If the bound graphics pipeline state was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
-          "page": "vkspec"
-        },
-        {
-          "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-None-08635",
-          "text": "If a shader object is bound to any graphics stage, then both <a href=\"#vkCmdSetViewportWithCount\">vkCmdSetViewportWithCount</a> and <a href=\"#vkCmdSetScissorWithCount\">vkCmdSetScissorWithCount</a> <strong class=\"purple\">must</strong> have been called in the current command buffer prior to this drawing command, and the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
+          "text": "If a shader object is bound to any graphics stage or a graphics pipeline is bound which was created with both the <code>VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT</code> and <code>VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT</code> dynamic states enabled, and the state is not inherited, then the <code>viewportCount</code> parameter of <code>vkCmdSetViewportWithCount</code> <strong class=\"purple\">must</strong> match the <code>scissorCount</code> parameter of <code>vkCmdSetScissorWithCount</code>",
           "page": "vkspec"
         },
         {
@@ -81611,7 +81516,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-rasterizationSamples-07474",
-          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
+          "text": "If the bound graphics pipeline state was created with the <code>VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT</code> state enabled, and the <a href=\"#features-multisampledRenderToSingleSampled\"><code>multisampledRenderToSingleSampled</code></a> feature is not enabled, and neither the <code><a href=\"#VK_AMD_mixed_attachment_samples\">VK_AMD_mixed_attachment_samples</a></code> nor the <code><a href=\"#VK_NV_framebuffer_mixed_samples\">VK_NV_framebuffer_mixed_samples</a></code> extensions are enabled, then the <code>rasterizationSamples</code> in the last call to <a href=\"#vkCmdSetRasterizationSamplesEXT\">vkCmdSetRasterizationSamplesEXT</a> <strong class=\"purple\">must</strong> be the same as the current subpass color and/or depth/stencil attachments",
           "page": "vkspec"
         },
         {
@@ -81945,6 +81850,11 @@
           "page": "vkspec"
         },
         {
+          "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-isPreprocessed-10198",
+          "text": "If <code>isPreprocessed</code> is <code>VK_TRUE</code> then the conditional render state and its predicate value <strong class=\"purple\">must</strong> match identically with the state and value set during execution of the corresponding call to <a href=\"#vkCmdPreprocessGeneratedCommandsEXT\">vkCmdPreprocessGeneratedCommandsEXT</a>",
+          "page": "vkspec"
+        },
+        {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-isPreprocessed-11049",
           "text": "If <code>isPreprocessed</code> is <code>VK_TRUE</code> and the <code>indirectCommandsLayout</code> member of <code>pGeneratedCommandsInfo</code> contains a draw token, then the graphics state bound on <code>commandBuffer</code> <strong class=\"purple\">must</strong> match identically with the graphics state bound on the <code>stateCommandBuffer</code> passed to <a href=\"#vkCmdPreprocessGeneratedCommandsEXT\">vkCmdPreprocessGeneratedCommandsEXT</a>",
           "page": "vkspec"
@@ -82001,7 +81911,7 @@
         },
         {
           "vuid": "VUID-vkCmdExecuteGeneratedCommandsEXT-deviceGeneratedCommands-11059",
-          "text": "The <a href=\"#features-deviceGeneratedCommandsEXT\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -82219,7 +82129,7 @@
         },
         {
           "vuid": "VUID-vkCmdPreprocessGeneratedCommandsEXT-deviceGeneratedCommands-11087",
-          "text": "The <a href=\"#features-deviceGeneratedCommandsEXT\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "The <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -91463,22 +91373,22 @@
         },
         {
           "vuid": "VUID-vkCmdTraceRaysKHR-flags-03511",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_MISS_SHADERS_BIT_KHR</code>, the shader group handle identified by <code>pMissShaderBindingTable-&gt;deviceAddress</code> <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_MISS_SHADERS_BIT_KHR</code>, the shader group handle identified by <code>pMissShaderBindingTable-&gt;deviceAddress</code> <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdTraceRaysKHR-flags-03512",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_ANY_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute an any-hit shader <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_ANY_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute an any-hit shader <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdTraceRaysKHR-flags-03513",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_CLOSEST_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute a closest hit shader <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_CLOSEST_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute a closest hit shader <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdTraceRaysKHR-flags-03514",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_INTERSECTION_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute an intersection shader <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_INTERSECTION_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute an intersection shader <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
@@ -92116,22 +92026,22 @@
         },
         {
           "vuid": "VUID-vkCmdTraceRaysIndirectKHR-flags-03511",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_MISS_SHADERS_BIT_KHR</code>, the shader group handle identified by <code>pMissShaderBindingTable-&gt;deviceAddress</code> <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_MISS_SHADERS_BIT_KHR</code>, the shader group handle identified by <code>pMissShaderBindingTable-&gt;deviceAddress</code> <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdTraceRaysIndirectKHR-flags-03512",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_ANY_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute an any-hit shader <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_ANY_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute an any-hit shader <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdTraceRaysIndirectKHR-flags-03513",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_CLOSEST_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute a closest hit shader <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_CLOSEST_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute a closest hit shader <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-vkCmdTraceRaysIndirectKHR-flags-03514",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_INTERSECTION_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute an intersection shader <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_INTERSECTION_SHADERS_BIT_KHR</code>, entries in the table identified by <code>pHitShaderBindingTable-&gt;deviceAddress</code> accessed as a result of this command in order to execute an intersection shader <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
@@ -92773,22 +92683,22 @@
         },
         {
           "vuid": "VUID-VkTraceRaysIndirectCommand2KHR-flags-03511",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_MISS_SHADERS_BIT_KHR</code>, the shader group handle identified by <code>missShaderBindingTableAddress</code> <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_MISS_SHADERS_BIT_KHR</code>, the shader group handle identified by <code>missShaderBindingTableAddress</code> <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkTraceRaysIndirectCommand2KHR-flags-03512",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_ANY_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>hitShaderBindingTableAddress</code> accessed as a result of this command in order to execute an any-hit shader <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_ANY_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>hitShaderBindingTableAddress</code> accessed as a result of this command in order to execute an any-hit shader <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkTraceRaysIndirectCommand2KHR-flags-03513",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_CLOSEST_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>hitShaderBindingTableAddress</code> accessed as a result of this command in order to execute a closest hit shader <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_CLOSEST_HIT_SHADERS_BIT_KHR</code>, entries in the table identified by <code>hitShaderBindingTableAddress</code> accessed as a result of this command in order to execute a closest hit shader <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-VkTraceRaysIndirectCommand2KHR-flags-03514",
-          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_INTERSECTION_SHADERS_BIT_KHR</code>, entries in the table identified by <code>hitShaderBindingTableAddress</code> accessed as a result of this command in order to execute an intersection shader <strong class=\"purple\">must</strong> not be set to zero",
+          "text": "If the currently bound ray tracing pipeline was created with <code>flags</code> that included <code>VK_PIPELINE_CREATE_RAY_TRACING_NO_NULL_INTERSECTION_SHADERS_BIT_KHR</code>, entries in the table identified by <code>hitShaderBindingTableAddress</code> accessed as a result of this command in order to execute an intersection shader <strong class=\"purple\">must</strong> not be zero",
           "page": "vkspec"
         },
         {
@@ -95914,7 +95824,7 @@
         },
         {
           "vuid": "VUID-VkVideoEncodeRateControlInfoKHR-layerCount-08358",
-          "text": "If <code>layerCount</code> is not zero, then <code>initialVirtualBufferSizeInMs</code> <strong class=\"purple\">must</strong> be less than <code>virtualBufferSizeInMs</code>",
+          "text": "If <code>layerCount</code> is not zero, then <code>initialVirtualBufferSizeInMs</code> <strong class=\"purple\">must</strong> be less than or equal to <code>virtualBufferSizeInMs</code>",
           "page": "vkspec"
         },
         {
@@ -97088,7 +96998,7 @@
         },
         {
           "vuid": "VUID-VkExecutionGraphPipelineCreateInfoAMDX-flags-11007",
-          "text": "If <code>flags</code> includes <code>VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT</code>, then the <a href=\"#features-deviceGeneratedCommandsEXT\"><code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
+          "text": "If <code>flags</code> includes <code>VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT</code>, then the <a href=\"#features-deviceGeneratedCommands\"><code>VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT</code>::<code>deviceGeneratedCommands</code></a> feature <strong class=\"purple\">must</strong> be enabled",
           "page": "vkspec"
         },
         {
@@ -103968,12 +103878,12 @@
         },
         {
           "vuid": "VUID-StandaloneSpirv-UniformTexelBufferArrayDynamicIndexing-10132",
-          "text": "If the <code>UniformTexelBufferArrayDynamicIndexing</code> capability is declared, and an instruction accesses memory through a uniform texel buffer, the uniform texel buffer through which that memory is accessed <strong class=\"purple\">must</strong> be determined by <a href=\"#glossary-constant-integral-expression\">constant integral expressions</a>",
+          "text": "If the <code>UniformTexelBufferArrayDynamicIndexing</code> capability is not declared, and an instruction accesses memory through a uniform texel buffer, the uniform texel buffer through which that memory is accessed <strong class=\"purple\">must</strong> be determined by <a href=\"#glossary-constant-integral-expression\">constant integral expressions</a>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-StandaloneSpirv-StorageTexelBufferArrayDynamicIndexing-10133",
-          "text": "If the <code>StorageTexelBufferArrayDynamicIndexing</code> capability is declared, and an instruction accesses memory through a storage texel buffer, the storage texel buffer through which that memory is accessed <strong class=\"purple\">must</strong> be determined by <a href=\"#glossary-constant-integral-expression\">constant integral expressions</a>",
+          "text": "If the <code>StorageTexelBufferArrayDynamicIndexing</code> capability is not declared, and an instruction accesses memory through a storage texel buffer, the storage texel buffer through which that memory is accessed <strong class=\"purple\">must</strong> be determined by <a href=\"#glossary-constant-integral-expression\">constant integral expressions</a>",
           "page": "vkspec"
         }
       ]
@@ -104067,7 +103977,7 @@
         },
         {
           "vuid": "VUID-RuntimeSpirv-StorageTexelBufferArrayNonUniformIndexing-10140",
-          "text": "If the <code>StorageTexelBufferArrayNonUniformIndexing</code> capability is not is not declared, and an instruction accesses memory through a storage texel buffer, the storage texel buffer through which that memory is accessed <strong class=\"purple\">must</strong> be dynamically uniform within the invocation group or subgroup",
+          "text": "If the <code>StorageTexelBufferArrayNonUniformIndexing</code> capability is not declared, and an instruction accesses memory through a storage texel buffer, the storage texel buffer through which that memory is accessed <strong class=\"purple\">must</strong> be dynamically uniform within the invocation group or subgroup",
           "page": "vkspec"
         },
         {
@@ -104512,17 +104422,17 @@
         },
         {
           "vuid": "VUID-RuntimeSpirv-shaderSampleRateInterpolationFunctions-06325",
-          "text": "If the <code><a href=\"#VK_KHR_portability_subset\">VK_KHR_portability_subset</a></code> extension is enabled, and <a href=\"#VkPhysicalDevicePortabilitySubsetFeaturesKHR\">VkPhysicalDevicePortabilitySubsetFeaturesKHR</a>::<code>shaderSampleRateInterpolationFunctions</code> is <code>VK_FALSE</code>, then <code>GLSL.std.450</code> fragment interpolation functions are not supported by the implementation and <code>OpCapability</code> <strong class=\"purple\">must</strong> not be set to <code>InterpolationFunction</code>",
+          "text": "If the <code><a href=\"#VK_KHR_portability_subset\">VK_KHR_portability_subset</a></code> extension is enabled, and <a href=\"#VkPhysicalDevicePortabilitySubsetFeaturesKHR\">VkPhysicalDevicePortabilitySubsetFeaturesKHR</a>::<code>shaderSampleRateInterpolationFunctions</code> is <code>VK_FALSE</code>, then <code>GLSL.std.450</code> fragment interpolation functions are not supported by the implementation and <code>OpCapability</code> <strong class=\"purple\">must</strong> not be <code>InterpolationFunction</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-tessellationShader-06326",
-          "text": "If <a href=\"#features-tessellationShader\"><code>tessellationShader</code></a> is enabled, and the <code><a href=\"#VK_KHR_portability_subset\">VK_KHR_portability_subset</a></code> extension is enabled, and <a href=\"#VkPhysicalDevicePortabilitySubsetFeaturesKHR\">VkPhysicalDevicePortabilitySubsetFeaturesKHR</a>::<code>tessellationIsolines</code> is <code>VK_FALSE</code>, then <code>OpExecutionMode</code> <strong class=\"purple\">must</strong> not be set to <code>IsoLines</code>",
+          "text": "If <a href=\"#features-tessellationShader\"><code>tessellationShader</code></a> is enabled, and the <code><a href=\"#VK_KHR_portability_subset\">VK_KHR_portability_subset</a></code> extension is enabled, and <a href=\"#VkPhysicalDevicePortabilitySubsetFeaturesKHR\">VkPhysicalDevicePortabilitySubsetFeaturesKHR</a>::<code>tessellationIsolines</code> is <code>VK_FALSE</code>, then <code>OpExecutionMode</code> <strong class=\"purple\">must</strong> not be <code>IsoLines</code>",
           "page": "vkspec"
         },
         {
           "vuid": "VUID-RuntimeSpirv-tessellationShader-06327",
-          "text": "If <a href=\"#features-tessellationShader\"><code>tessellationShader</code></a> is enabled, and the <code><a href=\"#VK_KHR_portability_subset\">VK_KHR_portability_subset</a></code> extension is enabled, and <a href=\"#VkPhysicalDevicePortabilitySubsetFeaturesKHR\">VkPhysicalDevicePortabilitySubsetFeaturesKHR</a>::<code>tessellationPointMode</code> is <code>VK_FALSE</code>, then <code>OpExecutionMode</code> <strong class=\"purple\">must</strong> not be set to <code>PointMode</code>",
+          "text": "If <a href=\"#features-tessellationShader\"><code>tessellationShader</code></a> is enabled, and the <code><a href=\"#VK_KHR_portability_subset\">VK_KHR_portability_subset</a></code> extension is enabled, and <a href=\"#VkPhysicalDevicePortabilitySubsetFeaturesKHR\">VkPhysicalDevicePortabilitySubsetFeaturesKHR</a>::<code>tessellationPointMode</code> is <code>VK_FALSE</code>, then <code>OpExecutionMode</code> <strong class=\"purple\">must</strong> not be <code>PointMode</code>",
           "page": "vkspec"
         },
         {

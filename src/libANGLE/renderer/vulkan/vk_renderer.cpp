@@ -189,6 +189,10 @@ constexpr const char *kSkippedMessages[] = {
     // http://anglebug.com/42266825
     "Undefined-Value-ShaderOutputNotConsumed",
     "Undefined-Value-ShaderInputNotProduced",
+    // ANGLE sets gl_Layer when the framebuffer is not layered, but VVL does not see that.  When
+    // layered, if gl_Layer is out of bounds, the results are undefined in both GL and Vulkan.
+    // http://anglebug.com/372390039
+    "Undefined-Layer-Written",
     // http://anglebug.com/42263850
     "VUID-vkCmdDraw-magFilter-04553",
     "VUID-vkCmdDrawIndexed-magFilter-04553",
@@ -2732,27 +2736,11 @@ void Renderer::appendDeviceExtensionFeaturesPromotedTo11(
 {
     vk::AddToPNextChain(deviceProperties, &mSubgroupProperties);
     vk::AddToPNextChain(deviceFeatures, &mProtectedMemoryFeatures);
-
-    if (ExtensionFound(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME, deviceExtensionNames))
-    {
-        vk::AddToPNextChain(deviceFeatures, &mSamplerYcbcrConversionFeatures);
-    }
-
-    if (ExtensionFound(VK_KHR_MULTIVIEW_EXTENSION_NAME, deviceExtensionNames))
-    {
-        vk::AddToPNextChain(deviceFeatures, &mMultiviewFeatures);
-        vk::AddToPNextChain(deviceProperties, &mMultiviewProperties);
-    }
-
-    if (ExtensionFound(VK_KHR_16BIT_STORAGE_EXTENSION_NAME, deviceExtensionNames))
-    {
-        vk::AddToPNextChain(deviceFeatures, &m16BitStorageFeatures);
-    }
-
-    if (ExtensionFound(VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME, deviceExtensionNames))
-    {
-        vk::AddToPNextChain(deviceFeatures, &mVariablePointersFeatures);
-    }
+    vk::AddToPNextChain(deviceFeatures, &mSamplerYcbcrConversionFeatures);
+    vk::AddToPNextChain(deviceFeatures, &mMultiviewFeatures);
+    vk::AddToPNextChain(deviceProperties, &mMultiviewProperties);
+    vk::AddToPNextChain(deviceFeatures, &m16BitStorageFeatures);
+    vk::AddToPNextChain(deviceFeatures, &mVariablePointersFeatures);
 }
 
 // The following features and properties used by ANGLE have been promoted to Vulkan 1.2:
@@ -3547,15 +3535,10 @@ void Renderer::enableDeviceExtensionsPromotedTo11(const vk::ExtensionNameList &d
         mFeatures.supports16BitUniformAndStorageBuffer.enabled ||
         mFeatures.supports16BitPushConstant.enabled || mFeatures.supports16BitInputOutput.enabled)
     {
-        mEnabledDeviceExtensions.push_back(VK_KHR_16BIT_STORAGE_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &m16BitStorageFeatures);
     }
 
-    if (ExtensionFound(VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME, deviceExtensionNames))
-    {
-        mEnabledDeviceExtensions.push_back(VK_KHR_VARIABLE_POINTERS_EXTENSION_NAME);
-        vk::AddToPNextChain(&mEnabledFeatures, &mVariablePointersFeatures);
-    }
+    vk::AddToPNextChain(&mEnabledFeatures, &mVariablePointersFeatures);
 }
 
 // See comment above appendDeviceExtensionFeaturesPromotedTo12.  Additional extensions are enabled
@@ -5691,6 +5674,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsSynchronization2,
                             mSynchronization2Features.synchronization2 == VK_TRUE);
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, descriptorSetCache, true);
 
     // Disable memory report feature overrides if extension is not supported.
     if ((mFeatures.logMemoryReportCallbacks.enabled || mFeatures.logMemoryReportStats.enabled) &&
