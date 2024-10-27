@@ -4239,9 +4239,6 @@ angle::Result UtilsVk::unresolve(ContextVk *contextVk,
     gl::DrawBuffersArray<vk::ImageHelper *> colorSrc         = {};
     gl::DrawBuffersArray<const vk::ImageView *> colorSrcView = {};
 
-    vk::DeviceScoped<vk::ImageView> depthView(contextVk->getDevice());
-    vk::DeviceScoped<vk::ImageView> stencilView(contextVk->getDevice());
-
     const vk::ImageView *depthSrcView   = nullptr;
     const vk::ImageView *stencilSrcView = nullptr;
 
@@ -4270,31 +4267,16 @@ angle::Result UtilsVk::unresolve(ContextVk *contextVk,
         ASSERT(depthStencilRenderTarget->hasResolveAttachment());
         ASSERT(depthStencilRenderTarget->isImageTransient());
 
-        vk::ImageHelper *depthStencilSrc =
-            &depthStencilRenderTarget->getResolveImageForRenderPass();
-
-        // The resolved depth/stencil image is necessarily single-sampled.
-        ASSERT(depthStencilSrc->getSamples() == 1);
-        gl::TextureType textureType = vk::Get2DTextureType(depthStencilSrc->getLayerCount(), 1);
-
-        const vk::LevelIndex levelIndex =
-            depthStencilSrc->toVkLevel(depthStencilRenderTarget->getLevelIndex());
-        const uint32_t layerIndex = depthStencilRenderTarget->getLayerIndex();
-
         if (params.unresolveDepth)
         {
-            ANGLE_TRY(depthStencilSrc->initLayerImageView(
-                contextVk, textureType, VK_IMAGE_ASPECT_DEPTH_BIT, gl::SwizzleState(),
-                &depthView.get(), levelIndex, 1, layerIndex, 1));
-            depthSrcView = &depthView.get();
+            ANGLE_TRY(depthStencilRenderTarget->getResolveDepthOrStencilImageView(
+                contextVk, VK_IMAGE_ASPECT_DEPTH_BIT, &depthSrcView));
         }
 
         if (params.unresolveStencil)
         {
-            ANGLE_TRY(depthStencilSrc->initLayerImageView(
-                contextVk, textureType, VK_IMAGE_ASPECT_STENCIL_BIT, gl::SwizzleState(),
-                &stencilView.get(), levelIndex, 1, layerIndex, 1));
-            stencilSrcView = &stencilView.get();
+            ANGLE_TRY(depthStencilRenderTarget->getResolveDepthOrStencilImageView(
+                contextVk, VK_IMAGE_ASPECT_STENCIL_BIT, &stencilSrcView));
         }
     }
 
@@ -4502,13 +4484,6 @@ angle::Result UtilsVk::unresolve(ContextVk *contextVk,
             commandBuffer->draw(3, 0);
         }
     }
-
-    // Release temporary views
-    vk::ImageView depthViewObject   = depthView.release();
-    vk::ImageView stencilViewObject = stencilView.release();
-
-    contextVk->addGarbage(&depthViewObject);
-    contextVk->addGarbage(&stencilViewObject);
 
     return angle::Result::Continue;
 }
@@ -4737,20 +4712,21 @@ angle::Result UtilsVk::allocateDescriptorSetWithLayout(
     const vk::DescriptorSetLayout &descriptorSetLayout,
     VkDescriptorSet *descriptorSetOut)
 {
-    vk::RefCountedDescriptorPoolBinding descriptorPoolBinding;
+    vk::DescriptorSetPointer descriptorSet;
 
-    ANGLE_TRY(descriptorPool.allocateDescriptorSet(contextVk, descriptorSetLayout,
-                                                   &descriptorPoolBinding, descriptorSetOut));
+    ANGLE_TRY(descriptorPool.allocateDescriptorSet(contextVk, descriptorSetLayout, &descriptorSet));
 
-    // Add the individual descriptorSet in the resource use list. Because this is a one time use
-    // descriptorSet, we immediately put in the garbage list for recycle.
-    vk::DescriptorSetHelper descriptorSetHelper(*descriptorSetOut);
-    commandBufferHelper->retainResource(&descriptorSetHelper);
-    descriptorPoolBinding.get().addGarbage(std::move(descriptorSetHelper));
-
+    // Retain the individual descriptorSet to the command buffer.
+    commandBufferHelper->retainResource(descriptorSet.get());
     // Since the eviction is relying on the pool's mUse, we need to update pool's mUse here.
-    commandBufferHelper->retainResource(&descriptorPoolBinding.get());
-    descriptorPoolBinding.reset();
+    commandBufferHelper->retainResource(&descriptorSet->getPool()->get());
+
+    *descriptorSetOut = descriptorSet->getDescriptorSet();
+
+    // Because this is a one time use descriptorSet, we immediately put in the garbage list for
+    // recycle.
+    vk::DescriptorPoolPointer pool = descriptorSet->getPool();
+    pool->addGarbage(std::move(descriptorSet));
 
     return angle::Result::Continue;
 }
