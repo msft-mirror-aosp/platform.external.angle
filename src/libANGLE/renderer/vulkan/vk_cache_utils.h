@@ -1819,7 +1819,6 @@ class DescriptorSetDesc
 std::ostream &operator<<(std::ostream &os, const DescriptorSetDesc &desc);
 
 class DescriptorPoolHelper;
-using RefCountedDescriptorPoolHelper = RefCounted<DescriptorPoolHelper>;
 
 // SharedDescriptorSetCacheKey.
 // Because DescriptorSet must associate with a pool, we need to define a structure that wraps both.
@@ -1926,10 +1925,21 @@ class DescriptorSetDescBuilder final
                                          FramebufferVk *framebufferVk,
                                          const WriteDescriptorDescs &writeDescriptorDescs);
 
-    // Specific helpers for image descriptors.
-    void updatePreCacheActiveTextures(const gl::ActiveTextureMask &activeTextures,
+    // Specialized update for textures.
+    void updatePreCacheActiveTextures(Context *context,
+                                      const gl::ProgramExecutable &executable,
                                       const gl::ActiveTextureArray<TextureVk *> &textures,
                                       const gl::SamplerBindingVector &samplers);
+
+    angle::Result updateActiveTexturesForCacheMiss(
+        Context *context,
+        const ShaderInterfaceVariableInfoMap &variableInfoMap,
+        const WriteDescriptorDescs &writeDescriptorDescs,
+        const gl::ProgramExecutable &executable,
+        const gl::ActiveTextureArray<TextureVk *> &textures,
+        const gl::SamplerBindingVector &samplers,
+        PipelineType pipelineType,
+        const SharedDescriptorSetCacheKey &sharedCacheKey);
 
     angle::Result updateFullActiveTextures(Context *context,
                                            const ShaderInterfaceVariableInfoMap &variableInfoMap,
@@ -1937,8 +1947,7 @@ class DescriptorSetDescBuilder final
                                            const gl::ProgramExecutable &executable,
                                            const gl::ActiveTextureArray<TextureVk *> &textures,
                                            const gl::SamplerBindingVector &samplers,
-                                           PipelineType pipelineType,
-                                           const SharedDescriptorSetCacheKey &sharedCacheKey);
+                                           PipelineType pipelineType);
 
     void updateDescriptorSet(Renderer *renderer,
                              const WriteDescriptorDescs &writeDescriptorDescs,
@@ -1957,14 +1966,6 @@ class DescriptorSetDescBuilder final
     angle::FastVector<DescriptorDescHandles, kFastDescriptorSetDescLimit> mHandles;
     angle::FastVector<uint32_t, kFastDescriptorSetDescLimit> mDynamicOffsets;
 };
-
-// Specialized update for textures.
-void UpdatePreCacheActiveTextures(const gl::ProgramExecutable &executable,
-                                  const std::vector<gl::SamplerBinding> &samplerBindings,
-                                  const gl::ActiveTextureMask &activeTextures,
-                                  const gl::ActiveTextureArray<TextureVk *> &textures,
-                                  const gl::SamplerBindingVector &samplers,
-                                  DescriptorSetDesc *desc);
 
 // In the FramebufferDesc object:
 //  - Depth/stencil serial is at index 0
@@ -2714,6 +2715,7 @@ class SamplerYcbcrConversionCache final
 };
 
 // Descriptor Set Cache
+template <typename T>
 class DescriptorSetCache final : angle::NonCopyable
 {
   public:
@@ -2733,33 +2735,25 @@ class DescriptorSetCache final : angle::NonCopyable
 
     void resetCache() { mPayload.clear(); }
 
-    ANGLE_INLINE bool getDescriptorSet(const vk::DescriptorSetDesc &desc,
-                                       VkDescriptorSet *descriptorSetOut,
-                                       vk::RefCountedDescriptorPoolHelper **poolOut)
+    bool getDescriptorSet(const vk::DescriptorSetDesc &desc, T *descriptorSetOut)
     {
         auto iter = mPayload.find(desc);
         if (iter != mPayload.end())
         {
-            *descriptorSetOut = iter->second->getDescriptorSet();
-            *poolOut          = iter->second->getPool();
+            *descriptorSetOut = iter->second;
             return true;
         }
         return false;
     }
 
-    ANGLE_INLINE void insertDescriptorSet(const vk::DescriptorSetDesc &desc,
-                                          VkDescriptorSet descriptorSet,
-                                          vk::RefCountedDescriptorPoolHelper *pool)
+    void insertDescriptorSet(const vk::DescriptorSetDesc &desc, const T &descriptorSetHelper)
     {
-        mPayload.emplace(desc, std::make_unique<dsCacheEntry>(descriptorSet, pool));
+        mPayload.emplace(desc, descriptorSetHelper);
     }
 
-    ANGLE_INLINE void eraseDescriptorSet(const vk::DescriptorSetDesc &desc)
-    {
-        mPayload.erase(desc);
-    }
+    void eraseDescriptorSet(const vk::DescriptorSetDesc &desc) { mPayload.erase(desc); }
 
-    ANGLE_INLINE size_t getTotalCacheSize() const { return mPayload.size(); }
+    size_t getTotalCacheSize() const { return mPayload.size(); }
 
     size_t getTotalCacheKeySizeBytes() const
     {
@@ -2771,27 +2765,10 @@ class DescriptorSetCache final : angle::NonCopyable
         }
         return totalSize;
     }
-
     bool empty() const { return mPayload.empty(); }
 
   private:
-    class dsCacheEntry
-    {
-      public:
-        dsCacheEntry(VkDescriptorSet descriptorSet, vk::RefCountedDescriptorPoolHelper *pool)
-            : mDescriptorSet(descriptorSet), mPool(pool)
-        {}
-        VkDescriptorSet getDescriptorSet() const { return mDescriptorSet; }
-        vk::RefCountedDescriptorPoolHelper *getPool() const { return mPool; }
-
-      private:
-        VkDescriptorSet mDescriptorSet;
-        // Weak pointer to the pool this descriptorSet allocated from. The RefCount is tracking if
-        // this pool is bound as the current pool in any ProgramExecutableVk or not, so we should
-        // not add refcount from the cache.
-        vk::RefCountedDescriptorPoolHelper *mPool;
-    };
-    angle::HashMap<vk::DescriptorSetDesc, std::unique_ptr<dsCacheEntry>> mPayload;
+    angle::HashMap<vk::DescriptorSetDesc, T> mPayload;
 };
 
 // There is 1 default uniform binding used per stage.
