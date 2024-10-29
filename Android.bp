@@ -1979,6 +1979,7 @@ cc_library_static {
         "third_party/spirv-tools/src/source/val/validate_ray_tracing_reorder.cpp",
         "third_party/spirv-tools/src/source/val/validate_scopes.cpp",
         "third_party/spirv-tools/src/source/val/validate_small_type_uses.cpp",
+        "third_party/spirv-tools/src/source/val/validate_tensor_layout.cpp",
         "third_party/spirv-tools/src/source/val/validate_type.cpp",
         "third_party/spirv-tools/src/source/val/validation_state.cpp",
     ],
