@@ -219,8 +219,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
                                               const gl::SamplerBindingVector &samplers,
                                               PipelineType pipelineType,
                                               UpdateDescriptorSetsBuilder *updateBuilder,
-                                              vk::CommandBufferHelperCommon *commandBufferHelper,
-                                              const vk::DescriptorSetDesc &texturesDesc);
+                                              vk::CommandBufferHelperCommon *commandBufferHelper);
 
     angle::Result updateShaderResourcesDescriptorSet(
         vk::Context *context,
@@ -374,7 +373,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
                                const gl::ProgramLinkedResources &resources)
     {
         SpvSourceOptions options = SpvCreateSourceOptions(
-            context->getFeatures(), context->getRenderer()->getMaxInputAttachmentCount());
+            context->getFeatures(), context->getRenderer()->getMaxColorInputAttachmentCount());
         SpvAssignAllLocations(options, programState, resources, &mVariableInfoMap);
     }
 
@@ -517,7 +516,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
     void initializeWriteDescriptorDesc(vk::Context *context);
 
     // Descriptor sets and pools for shader resources for this program.
-    vk::DescriptorSetArray<VkDescriptorSet> mDescriptorSets;
+    vk::DescriptorSetArray<vk::DescriptorSetPointer> mDescriptorSets;
     vk::DescriptorSetArray<vk::DynamicDescriptorPoolPointer> mDynamicDescriptorPools;
     vk::DescriptorSetArray<vk::DescriptorPoolPointer> mDescriptorPools;
     vk::BufferSerial mCurrentDefaultUniformBufferSerial;
