@@ -161,6 +161,23 @@ constexpr angle::PackedEnumMap<ImageLayout, ImageMemoryBarrierData> kImageMemory
         },
     },
     {
+        ImageLayout::DepthStencilWriteAndInput,
+        ImageMemoryBarrierData{
+            "DepthStencilWriteAndInput",
+            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+            kAllDepthStencilPipelineStageFlags,
+            kAllDepthStencilPipelineStageFlags,
+            // Transition to: all reads and writes must happen after barrier.
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            // Transition from: all writes must finish before barrier.
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            ResourceAccess::ReadWrite,
+            PipelineStage::EarlyFragmentTest,
+            EventStage::AllFragmentTest,
+            PipelineStageGroup::FragmentOnly,
+        },
+    },
+    {
         ImageLayout::DepthWriteStencilRead,
         ImageMemoryBarrierData{
             "DepthWriteStencilRead",
@@ -1548,10 +1565,9 @@ void RenderPassAttachment::finalizeLoadStore(Context *context,
     // For read only depth stencil, we can use StoreOpNone if available.  DontCare is still
     // preferred, so do this after handling DontCare.
     const bool supportsLoadStoreOpNone =
-        context->getRenderer()->getFeatures().supportsRenderPassLoadStoreOpNone.enabled;
+        context->getFeatures().supportsRenderPassLoadStoreOpNone.enabled;
     const bool supportsStoreOpNone =
-        supportsLoadStoreOpNone ||
-        context->getRenderer()->getFeatures().supportsRenderPassStoreOpNone.enabled;
+        supportsLoadStoreOpNone || context->getFeatures().supportsRenderPassStoreOpNone.enabled;
     if (mAccess == ResourceAccess::ReadOnly && supportsStoreOpNone)
     {
         if (*storeOp == RenderPassStoreOp::Store && *loadOp != RenderPassLoadOp::Clear)
@@ -1898,7 +1914,7 @@ void CommandBufferHelperCommon::retainImageWithEvent(Context *context, ImageHelp
     image->setQueueSerial(mQueueSerial);
     image->updatePipelineStageAccessHistory();
 
-    if (context->getRenderer()->getFeatures().useVkEventForImageBarrier.enabled)
+    if (context->getFeatures().useVkEventForImageBarrier.enabled)
     {
         image->setCurrentRefCountedEvent(context, mRefCountedEvents);
     }
@@ -2667,7 +2683,11 @@ void RenderPassCommandBufferHelper::finalizeDepthStencilImageLayout(Context *con
     }
     else
     {
-        if (isReadOnlyDepth)
+        if (mRenderPassDesc.hasDepthStencilFramebufferFetch())
+        {
+            imageLayout = ImageLayout::DepthStencilWriteAndInput;
+        }
+        else if (isReadOnlyDepth)
         {
             imageLayout = isReadOnlyStencil ? ImageLayout::DepthReadStencilRead
                                             : ImageLayout::DepthReadStencilWrite;
@@ -2818,7 +2838,7 @@ void RenderPassCommandBufferHelper::finalizeDepthStencilLoadStore(Context *conte
         hasStencilResolveAttachment, &stencilLoadOp, &stencilStoreOp, &isStencilInvalidated);
 
     const bool disableMixedDepthStencilLoadOpNoneAndLoad =
-        context->getRenderer()->getFeatures().disallowMixedDepthStencilLoadOpNoneAndLoad.enabled;
+        context->getFeatures().disallowMixedDepthStencilLoadOpNoneAndLoad.enabled;
 
     if (disableMixedDepthStencilLoadOpNoneAndLoad)
     {
@@ -6747,7 +6767,7 @@ angle::Result ImageHelper::initLayerImageViewImpl(Context *context,
 
     if (conversionDesc.valid())
     {
-        ASSERT((context->getRenderer()->getFeatures().supportsYUVSamplerConversion.enabled));
+        ASSERT((context->getFeatures().supportsYUVSamplerConversion.enabled));
         yuvConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO;
         yuvConversionInfo.pNext = nullptr;
         ANGLE_TRY(context->getRenderer()->getYuvConversionCache().getSamplerYcbcrConversion(
@@ -6971,7 +6991,8 @@ angle::Result ImageHelper::initImplicitMultisampledRenderToTexture(
         hasLazilyAllocatedMemory ? VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT : 0;
     constexpr VkImageUsageFlags kColorFlags =
         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-    constexpr VkImageUsageFlags kDepthStencilFlags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    constexpr VkImageUsageFlags kDepthStencilFlags =
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 
     const VkImageUsageFlags kMultisampledUsageFlags =
         kLazyFlags |
@@ -7297,8 +7318,7 @@ void ImageHelper::barrierImpl(Context *context,
 {
     Renderer *renderer = context->getRenderer();
     // mCurrentEvent must be invalid if useVkEventForImageBarrieris disabled.
-    ASSERT(context->getRenderer()->getFeatures().useVkEventForImageBarrier.enabled ||
-           !mCurrentEvent.valid());
+    ASSERT(context->getFeatures().useVkEventForImageBarrier.enabled || !mCurrentEvent.valid());
 
     // Release the ANI semaphore to caller to add to the command submission.
     ASSERT(acquireNextImageSemaphoreOut != nullptr || !mAcquireNextImageSemaphore.valid());
@@ -7730,7 +7750,7 @@ void ImageHelper::updateLayoutAndBarrier(Context *context,
 
 void ImageHelper::setCurrentRefCountedEvent(Context *context, EventMaps &eventMaps)
 {
-    ASSERT(context->getRenderer()->getFeatures().useVkEventForImageBarrier.enabled);
+    ASSERT(context->getFeatures().useVkEventForImageBarrier.enabled);
 
     // If there is already an event, release it first.
     mCurrentEvent.release(context);
@@ -8313,7 +8333,7 @@ angle::Result ImageHelper::stageSubresourceUpdateImpl(ContextVk *contextVk,
         ANGLE_VK_CHECK_MATH(contextVk, storageFormatInfo.computeBufferImageHeight(
                                            glExtents.height, &bufferImageHeight));
 
-        if (contextVk->getRenderer()->getFeatures().supportsComputeTranscodeEtcToBc.enabled &&
+        if (contextVk->getFeatures().supportsComputeTranscodeEtcToBc.enabled &&
             IsETCFormat(vkFormat.getIntendedFormatID()) && IsBCFormat(storageFormat.id))
         {
             useComputeTransCoding =
@@ -12734,8 +12754,7 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
     feedbackInfo.pipelineStageCreationFeedbackCount = 1;
     feedbackInfo.pPipelineStageCreationFeedbacks    = &perStageFeedback;
 
-    const bool supportsFeedback =
-        context->getRenderer()->getFeatures().supportsPipelineCreationFeedback.enabled;
+    const bool supportsFeedback = context->getFeatures().supportsPipelineCreationFeedback.enabled;
     if (supportsFeedback)
     {
         AddToPNextChain(&createInfo, &feedbackInfo);
