@@ -85,11 +85,18 @@ cc_defaults {
 }
 
 cc_defaults {
+    name: "angle_non_conformant_extensions_and_versions_cflags",
+    cflags: [
+        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
+    ],
+}
+
+cc_defaults {
     name: "angle_common_auto_cflags",
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r27_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-20-init-3847-g69c43468-12\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-20-init-8527-g923566a6-2\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -101,7 +108,6 @@ cc_defaults {
         "-Wno-c++11-narrowing-const-reference",
         "-Wno-cast-function-type",
         "-Wno-dangling-assignment-gsl",
-        "-Wno-deprecated-this-capture",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
         "-Wno-missing-template-arg-list-after-template-kw",
@@ -110,7 +116,6 @@ cc_defaults {
         "-Wno-trigraphs",
         "-Wno-unneeded-internal-declaration",
         "-Wno-unused-parameter",
-        "-Wno-vla-extension",
         "-fvisibility-inlines-hidden",
         "-fvisibility=hidden",
     ],
@@ -156,10 +161,9 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-redundant-parens",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -235,10 +239,9 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-redundant-parens",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -288,9 +291,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -318,6 +320,7 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_non_conformant_extensions_and_versions_cflags",
     ],
     local_include_dirs: [
         "include/",
@@ -336,16 +339,14 @@ cc_library_static {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
         "-DANGLE_USE_ANDROID_TLS_SLOT=1",
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -380,6 +381,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -422,6 +424,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -472,9 +475,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -545,9 +547,8 @@ cc_library_shared {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -570,8 +571,8 @@ cc_defaults {
     static_libs: [
         "angle_common",
         "angle_gpu_info_util",
-        "libgmock",
-        "libgtest",
+        "libgmock_ndk",
+        "libgtest_ndk_c++",
     ],
     shared_libs: [
         "libangle_util",
@@ -581,6 +582,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_non_conformant_extensions_and_versions_cflags",
     ],
     local_include_dirs: [
         "",
@@ -602,7 +604,6 @@ cc_defaults {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_GLESV2_LIBRARY_NAME=\"libGLESv2_angle\"",
         "-DANGLE_MESA_EGL_LIBRARY_NAME=\"mesa/src/egl/libEGL\"",
         "-DANGLE_MESA_GLESV2_LIBRARY_NAME=\"mesa/src/mapi/es2api/libGLESv2\"",
@@ -622,10 +623,9 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-inconsistent-missing-override",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -673,9 +673,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -730,6 +729,7 @@ cc_library_shared {
         "src/tests/gl_tests/BlendMinMaxTest.cpp",
         "src/tests/gl_tests/BlendPackedTest.cpp",
         "src/tests/gl_tests/BlitFramebufferANGLETest.cpp",
+        "src/tests/gl_tests/BlobCacheTest.cpp",
         "src/tests/gl_tests/BufferDataTest.cpp",
         "src/tests/gl_tests/BuiltinVariableTest.cpp",
         "src/tests/gl_tests/ClearTest.cpp",
@@ -753,7 +753,6 @@ cc_library_shared {
         "src/tests/gl_tests/DepthStencilFormatsTest.cpp",
         "src/tests/gl_tests/DepthStencilTest.cpp",
         "src/tests/gl_tests/DepthWriteTest.cpp",
-        "src/tests/gl_tests/DesktopGLSLTest.cpp",
         "src/tests/gl_tests/DifferentStencilMasksTest.cpp",
         "src/tests/gl_tests/DiscardFramebufferEXTTest.cpp",
         "src/tests/gl_tests/DrawBaseVertexBaseInstanceTest.cpp",
@@ -837,8 +836,10 @@ cc_library_shared {
         "src/tests/gl_tests/ShaderInterpTest.cpp",
         "src/tests/gl_tests/ShaderMultisampleInterpolation.cpp",
         "src/tests/gl_tests/ShaderNonConstGlobalInitializerTest.cpp",
+        "src/tests/gl_tests/ShaderOpTest.cpp",
         "src/tests/gl_tests/ShaderStorageBufferTest.cpp",
         "src/tests/gl_tests/ShadingRateQcomTest.cpp",
+        "src/tests/gl_tests/ShadowSamplerFunctionsTest.cpp",
         "src/tests/gl_tests/SimpleOperationTest.cpp",
         "src/tests/gl_tests/SixteenBppTextureTest.cpp",
         "src/tests/gl_tests/StateChangeTest.cpp",
@@ -906,8 +907,8 @@ cc_library_shared {
         "angle_image_util",
         "angle_preprocessor",
         "angle_translator",
-        "libgmock",
-        "libgtest",
+        "libgmock_ndk",
+        "libgtest_ndk_c++",
         "src_tests_angle_test_expectations",
         "third_party_spirv_tools_src_spvtools",
         "third_party_spirv_tools_src_spvtools_val",
@@ -923,6 +924,7 @@ cc_library_shared {
         "angle_common_library_cflags",
         "angle_gl_enum_utils",
         "angle_includes",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "src_tests_angle_common_test_utils_shared",
         "src_tests_native_test_support_android",
         "util_angle_test_utils",
@@ -967,7 +969,6 @@ cc_library_shared {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_GLESV2_LIBRARY_NAME=\"libGLESv2_angle\"",
         "-DANGLE_HAS_HISTOGRAMS=0",
         "-DANGLE_MESA_EGL_LIBRARY_NAME=\"mesa/src/egl/libEGL\"",
@@ -989,10 +990,9 @@ cc_library_shared {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-inconsistent-missing-override",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1034,6 +1034,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1130,9 +1131,8 @@ cc_library_shared {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1214,6 +1214,7 @@ cc_library_shared {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1257,6 +1258,7 @@ cc_defaults {
         "-Wno-unused-private-field",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1313,6 +1315,7 @@ cc_defaults {
         "-Wno-unused-private-field",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1328,6 +1331,7 @@ cc_defaults {
     defaults: [
         "angle_common_library_cflags",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
 }
 
@@ -1371,10 +1375,9 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-redundant-parens",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1391,6 +1394,7 @@ cc_defaults {
         "angle_common_library_cflags",
         "src_common_vulkan_angle_vulkan_headers",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
 }
 
@@ -1434,9 +1438,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1523,6 +1526,7 @@ cc_defaults {
         "angle_common_library_cflags",
         "angle_compression",
         "angle_libANGLE_headers",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_version_info",
         "src_common_spirv_angle_spirv_base",
         "src_common_spirv_angle_spirv_builder",
@@ -1558,7 +1562,6 @@ cc_defaults {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_SHARED_LIBVULKAN=1",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
@@ -1570,10 +1573,9 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-redundant-parens",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1596,6 +1598,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-trinary-minmax.grammar.json) --vendor-insts-output $(location spv-amd-shader-trinary-minmax.insts.inc) --vendor-operand-kind-prefix ...nil...",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1610,6 +1613,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-explicit-vertex-parameter.grammar.json) --vendor-insts-output $(location spv-amd-shader-explicit-vertex-parameter.insts.inc) --vendor-operand-kind-prefix ...nil...",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1624,6 +1628,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-shader-ballot.grammar.json) --vendor-insts-output $(location spv-amd-shader-ballot.insts.inc) --vendor-operand-kind-prefix ...nil...",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1638,6 +1643,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.spv-amd-gcn-shader.grammar.json) --vendor-insts-output $(location spv-amd-gcn-shader.insts.inc) --vendor-operand-kind-prefix ...nil...",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1652,6 +1658,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --vendor-insts-output $(location opencl.debuginfo.100.insts.inc) --vendor-operand-kind-prefix CLDEBUG100_",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1666,6 +1673,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.vkspreflection.grammar.json) --vendor-insts-output $(location nonsemantic.vkspreflection.insts.inc) --vendor-operand-kind-prefix ...nil...",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1680,6 +1688,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json) --vendor-insts-output $(location nonsemantic.shader.debuginfo.100.insts.inc) --vendor-operand-kind-prefix SHDEBUG100_",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1694,6 +1703,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.clspvreflection.grammar.json) --vendor-insts-output $(location nonsemantic.clspvreflection.insts.inc) --vendor-operand-kind-prefix ...nil...",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1708,6 +1718,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --extinst-vendor-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --vendor-insts-output $(location debuginfo.insts.inc) --vendor-operand-kind-prefix ...nil...",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1725,6 +1736,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-opencl-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/extinst.opencl.std.100.grammar.json) --opencl-insts-output $(location opencl.std.insts.inc)",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1739,6 +1751,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_language_headers.py",
     ],
     cmd: "$(location) --extinst-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.nonsemantic.shader.debuginfo.100.grammar.json) --extinst-output-path $(location NonSemanticShaderDebugInfo100.h)",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1753,6 +1766,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_language_headers.py",
     ],
     cmd: "$(location) --extinst-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-output-path $(location DebugInfo.h)",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1767,6 +1781,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_language_headers.py",
     ],
     cmd: "$(location) --extinst-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-output-path $(location OpenCLDebugInfo100.h)",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1784,6 +1799,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extinst-glsl-grammar $(location third_party/spirv-headers/src/include/spirv/1.0/extinst.glsl.std.450.grammar.json) --glsl-insts-output $(location glsl.std.450.insts.inc) --output-language c++",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1798,6 +1814,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_registry_tables.py",
     ],
     cmd: "$(location) --xml $(location third_party/spirv-headers/src/include/spirv/spir-v.xml) --generator $(location generators.inc)",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1815,6 +1832,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json) --core-insts-output $(location core.insts-unified1.inc) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --operand-kinds-output $(location operand.kinds-unified1.inc) --output-language c++",
+    sdk_version: "current",
 }
 
 cc_genrule {
@@ -1832,6 +1850,7 @@ cc_genrule {
         "third_party/spirv-tools/src/utils/generate_grammar_tables.py",
     ],
     cmd: "$(location) --spirv-core-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/spirv.core.grammar.json) --extinst-debuginfo-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.debuginfo.grammar.json) --extinst-cldebuginfo100-grammar $(location third_party/spirv-headers/src/include/spirv/unified1/extinst.opencl.debuginfo.100.grammar.json) --extension-enum-output $(location extension_enum.inc) --enum-string-mapping-output $(location enum_string_mapping.inc) --output-language c++",
+    sdk_version: "current",
 }
 
 cc_library_static {
@@ -1859,6 +1878,7 @@ cc_library_static {
         "third_party/spirv-tools/src/source/table.cpp",
         "third_party/spirv-tools/src/source/text.cpp",
         "third_party/spirv-tools/src/source/text_handler.cpp",
+        "third_party/spirv-tools/src/source/to_string.cpp",
         "third_party/spirv-tools/src/source/util/bit_vector.cpp",
         "third_party/spirv-tools/src/source/util/parse_number.cpp",
         "third_party/spirv-tools/src/source/util/string_utils.cpp",
@@ -1904,6 +1924,7 @@ cc_library_static {
         "-Wno-unreachable-code-break",
         "-Wno-unreachable-code-return",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -1959,6 +1980,7 @@ cc_library_static {
         "third_party/spirv-tools/src/source/val/validate_ray_tracing_reorder.cpp",
         "third_party/spirv-tools/src/source/val/validate_scopes.cpp",
         "third_party/spirv-tools/src/source/val/validate_small_type_uses.cpp",
+        "third_party/spirv-tools/src/source/val/validate_tensor_layout.cpp",
         "third_party/spirv-tools/src/source/val/validate_type.cpp",
         "third_party/spirv-tools/src/source/val/validation_state.cpp",
     ],
@@ -2004,6 +2026,7 @@ cc_library_static {
         "-Wno-unreachable-code-break",
         "-Wno-unreachable-code-return",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2054,9 +2077,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2082,6 +2104,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2107,6 +2130,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2150,9 +2174,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2204,9 +2227,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2264,9 +2286,9 @@ cc_library_static {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2295,7 +2317,7 @@ cc_library_static {
         "src/compiler/translator/FunctionLookup.cpp",
         "src/compiler/translator/HashNames.cpp",
         "src/compiler/translator/ImmutableStringBuilder.cpp",
-        "src/compiler/translator/ImmutableString_ESSL_autogen.cpp",
+        "src/compiler/translator/ImmutableString_autogen.cpp",
         "src/compiler/translator/InfoSink.cpp",
         "src/compiler/translator/Initialize.cpp",
         "src/compiler/translator/InitializeDll.cpp",
@@ -2311,7 +2333,7 @@ cc_library_static {
         "src/compiler/translator/ShaderVars.cpp",
         "src/compiler/translator/Symbol.cpp",
         "src/compiler/translator/SymbolTable.cpp",
-        "src/compiler/translator/SymbolTable_ESSL_autogen.cpp",
+        "src/compiler/translator/SymbolTable_autogen.cpp",
         "src/compiler/translator/SymbolUniqueId.cpp",
         "src/compiler/translator/Types.cpp",
         "src/compiler/translator/ValidateAST.cpp",
@@ -2369,6 +2391,7 @@ cc_library_static {
         "src/compiler/translator/tree_ops/SeparateStructFromUniformDeclarations.cpp",
         "src/compiler/translator/tree_ops/SimplifyLoopConditions.cpp",
         "src/compiler/translator/tree_ops/SplitSequenceOperator.cpp",
+        "src/compiler/translator/tree_ops/spirv/ClampGLLayer.cpp",
         "src/compiler/translator/tree_ops/spirv/EmulateAdvancedBlendEquations.cpp",
         "src/compiler/translator/tree_ops/spirv/EmulateDithering.cpp",
         "src/compiler/translator/tree_ops/spirv/EmulateFragColorData.cpp",
@@ -2462,9 +2485,8 @@ cc_library_static {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -2520,6 +2542,7 @@ cc_genrule {
         "src/common/MemoryBuffer.cpp",
         "src/common/MemoryBuffer.h",
         "src/common/Optional.h",
+        "src/common/PackedCLEnums_autogen.h",
         "src/common/PackedEGLEnums_autogen.cpp",
         "src/common/PackedEGLEnums_autogen.h",
         "src/common/PackedEnums.cpp",
@@ -2656,7 +2679,6 @@ cc_genrule {
         "src/compiler/translator/ImmutableString.h",
         "src/compiler/translator/ImmutableStringBuilder.cpp",
         "src/compiler/translator/ImmutableStringBuilder.h",
-        "src/compiler/translator/ImmutableString_ESSL_autogen.cpp",
         "src/compiler/translator/ImmutableString_autogen.cpp",
         "src/compiler/translator/InfoSink.cpp",
         "src/compiler/translator/InfoSink.h",
@@ -2691,7 +2713,6 @@ cc_genrule {
         "src/compiler/translator/Symbol.h",
         "src/compiler/translator/SymbolTable.cpp",
         "src/compiler/translator/SymbolTable.h",
-        "src/compiler/translator/SymbolTable_ESSL_autogen.cpp",
         "src/compiler/translator/SymbolTable_autogen.cpp",
         "src/compiler/translator/SymbolTable_autogen.h",
         "src/compiler/translator/SymbolUniqueId.cpp",
@@ -2810,6 +2831,7 @@ cc_genrule {
         "src/compiler/translator/msl/TranslatorMSL.h",
         "src/compiler/translator/msl/UtilsMSL.cpp",
         "src/compiler/translator/msl/UtilsMSL.h",
+        "src/compiler/translator/null/TranslatorNULL.h",
         "src/compiler/translator/spirv/BuildSPIRV.cpp",
         "src/compiler/translator/spirv/BuildSPIRV.h",
         "src/compiler/translator/spirv/BuiltinsWorkaround.cpp",
@@ -2966,12 +2988,12 @@ cc_genrule {
         "src/compiler/translator/tree_ops/msl/RewriteUnaddressableReferences.h",
         "src/compiler/translator/tree_ops/msl/SeparateCompoundExpressions.cpp",
         "src/compiler/translator/tree_ops/msl/SeparateCompoundExpressions.h",
-        "src/compiler/translator/tree_ops/msl/SeparateCompoundStructDeclarations.cpp",
-        "src/compiler/translator/tree_ops/msl/SeparateCompoundStructDeclarations.h",
         "src/compiler/translator/tree_ops/msl/TransposeRowMajorMatrices.cpp",
         "src/compiler/translator/tree_ops/msl/TransposeRowMajorMatrices.h",
         "src/compiler/translator/tree_ops/msl/WrapMain.cpp",
         "src/compiler/translator/tree_ops/msl/WrapMain.h",
+        "src/compiler/translator/tree_ops/spirv/ClampGLLayer.cpp",
+        "src/compiler/translator/tree_ops/spirv/ClampGLLayer.h",
         "src/compiler/translator/tree_ops/spirv/EmulateAdvancedBlendEquations.cpp",
         "src/compiler/translator/tree_ops/spirv/EmulateAdvancedBlendEquations.h",
         "src/compiler/translator/tree_ops/spirv/EmulateDithering.cpp",
@@ -2991,8 +3013,7 @@ cc_genrule {
         "src/compiler/translator/tree_ops/spirv/RewriteR32fImages.cpp",
         "src/compiler/translator/tree_ops/spirv/RewriteR32fImages.h",
         "src/compiler/translator/tree_util/BuiltIn.h",
-        "src/compiler/translator/tree_util/BuiltIn_ESSL_autogen.h",
-        "src/compiler/translator/tree_util/BuiltIn_complete_autogen.h",
+        "src/compiler/translator/tree_util/BuiltIn_autogen.h",
         "src/compiler/translator/tree_util/DriverUniform.cpp",
         "src/compiler/translator/tree_util/DriverUniform.h",
         "src/compiler/translator/tree_util/FindFunction.cpp",
@@ -3029,13 +3050,22 @@ cc_genrule {
         "src/compiler/translator/tree_util/Visit.h",
         "src/compiler/translator/util.cpp",
         "src/compiler/translator/util.h",
+        "src/compiler/translator/wgsl/OutputUniformBlocks.cpp",
+        "src/compiler/translator/wgsl/OutputUniformBlocks.h",
+        "src/compiler/translator/wgsl/RewritePipelineVariables.cpp",
+        "src/compiler/translator/wgsl/RewritePipelineVariables.h",
         "src/compiler/translator/wgsl/TranslatorWGSL.cpp",
+        "src/compiler/translator/wgsl/TranslatorWGSL.h",
+        "src/compiler/translator/wgsl/Utils.cpp",
+        "src/compiler/translator/wgsl/Utils.h",
         "src/libANGLE/AttributeMap.cpp",
         "src/libANGLE/AttributeMap.h",
         "src/libANGLE/BlobCache.cpp",
         "src/libANGLE/BlobCache.h",
         "src/libANGLE/Buffer.cpp",
         "src/libANGLE/Buffer.h",
+        "src/libANGLE/CLBitField.h",
+        "src/libANGLE/CLRefPointer.h",
         "src/libANGLE/Caps.cpp",
         "src/libANGLE/Caps.h",
         "src/libANGLE/Compiler.cpp",
@@ -3048,11 +3078,6 @@ cc_genrule {
         "src/libANGLE/Context.inl.h",
         "src/libANGLE/ContextMutex.cpp",
         "src/libANGLE/ContextMutex.h",
-        "src/libANGLE/Context_gl.cpp",
-        "src/libANGLE/Context_gl_1_autogen.h",
-        "src/libANGLE/Context_gl_2_autogen.h",
-        "src/libANGLE/Context_gl_3_autogen.h",
-        "src/libANGLE/Context_gl_4_autogen.h",
         "src/libANGLE/Context_gles_1_0.cpp",
         "src/libANGLE/Context_gles_1_0_autogen.h",
         "src/libANGLE/Context_gles_2_0_autogen.h",
@@ -3168,10 +3193,6 @@ cc_genrule {
         "src/libANGLE/angletypes.inc",
         "src/libANGLE/capture/FrameCapture.h",
         "src/libANGLE/capture/capture_egl_autogen.h",
-        "src/libANGLE/capture/capture_gl_1_autogen.h",
-        "src/libANGLE/capture/capture_gl_2_autogen.h",
-        "src/libANGLE/capture/capture_gl_3_autogen.h",
-        "src/libANGLE/capture/capture_gl_4_autogen.h",
         "src/libANGLE/capture/capture_gles_1_0_autogen.h",
         "src/libANGLE/capture/capture_gles_2_0_autogen.h",
         "src/libANGLE/capture/capture_gles_3_0_autogen.h",
@@ -3179,16 +3200,14 @@ cc_genrule {
         "src/libANGLE/capture/capture_gles_3_2_autogen.h",
         "src/libANGLE/capture/capture_gles_ext_autogen.h",
         "src/libANGLE/capture/serialize.h",
-        "src/libANGLE/context_private_call_gl.cpp",
-        "src/libANGLE/context_private_call_gl_autogen.h",
-        "src/libANGLE/context_private_call_gles.cpp",
-        "src/libANGLE/context_private_call_gles_autogen.h",
+        "src/libANGLE/cl_types.h",
+        "src/libANGLE/context_private_call.cpp",
+        "src/libANGLE/context_private_call_autogen.h",
         "src/libANGLE/entry_points_utils.cpp",
         "src/libANGLE/entry_points_utils.h",
         "src/libANGLE/es3_copy_conversion_table_autogen.cpp",
         "src/libANGLE/features.h",
         "src/libANGLE/format_map_autogen.cpp",
-        "src/libANGLE/format_map_desktop.cpp",
         "src/libANGLE/formatutils.cpp",
         "src/libANGLE/formatutils.h",
         "src/libANGLE/gles_extensions_autogen.cpp",
@@ -3331,8 +3350,6 @@ cc_genrule {
         "src/libANGLE/renderer/gl/ImageGL.h",
         "src/libANGLE/renderer/gl/MemoryObjectGL.cpp",
         "src/libANGLE/renderer/gl/MemoryObjectGL.h",
-        "src/libANGLE/renderer/gl/PLSProgramCache.cpp",
-        "src/libANGLE/renderer/gl/PLSProgramCache.h",
         "src/libANGLE/renderer/gl/ProgramExecutableGL.cpp",
         "src/libANGLE/renderer/gl/ProgramExecutableGL.h",
         "src/libANGLE/renderer/gl/ProgramGL.cpp",
@@ -3583,14 +3600,6 @@ cc_genrule {
         "src/libANGLE/validationESEXT.cpp",
         "src/libANGLE/validationESEXT.h",
         "src/libANGLE/validationESEXT_autogen.h",
-        "src/libANGLE/validationGL1.cpp",
-        "src/libANGLE/validationGL1_autogen.h",
-        "src/libANGLE/validationGL2.cpp",
-        "src/libANGLE/validationGL2_autogen.h",
-        "src/libANGLE/validationGL3.cpp",
-        "src/libANGLE/validationGL3_autogen.h",
-        "src/libANGLE/validationGL4.cpp",
-        "src/libANGLE/validationGL4_autogen.h",
     ],
     out: [
         "ANGLEShaderProgramVersion.h",
@@ -3599,6 +3608,7 @@ cc_genrule {
         "src/program_serialize_data_version.py",
     ],
     cmd: "echo $(in) > $(genDir)/gn_response_file && $(location) $(location ANGLEShaderProgramVersion.h) $(genDir)/gn_response_file",
+    sdk_version: "current",
 }
 
 cc_defaults {
@@ -3627,6 +3637,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3668,6 +3679,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3711,9 +3723,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3768,9 +3779,8 @@ cc_library_static {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3798,6 +3808,7 @@ cc_defaults {
         "-D__STDC_FORMAT_MACROS",
         "-Wno-redundant-parens",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3830,6 +3841,7 @@ cc_defaults {
         "-D__STDC_FORMAT_MACROS",
         "-Wno-redundant-parens",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3868,6 +3880,7 @@ cc_defaults {
         "-D__STDC_FORMAT_MACROS",
         "-Wno-redundant-parens",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3921,10 +3934,9 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-redundant-parens",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -3971,9 +3983,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4001,6 +4012,7 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "src_common_vulkan_angle_libvulkan_loader",
         "src_common_vulkan_angle_vulkan_icd",
         "third_party_vulkan_headers_src_vulkan_headers",
@@ -4024,7 +4036,6 @@ cc_library_static {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_SHARED_LIBVULKAN=1",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
@@ -4033,10 +4044,9 @@ cc_library_static {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-redundant-parens",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4059,6 +4069,7 @@ cc_defaults {
     defaults: [
         "angle_common_library_cflags",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
 }
 
@@ -4076,6 +4087,7 @@ cc_library_static {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_includes",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_xxhash",
     ],
     local_include_dirs: [
@@ -4092,16 +4104,14 @@ cc_library_static {
         "-DANGLE_ENABLE_GLOBAL_MUTEX_LOAD_TIME_ALLOCATE=1",
         "-DANGLE_ENABLE_GLOBAL_MUTEX_RECURSION=1",
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
         "-DANGLE_USE_ANDROID_TLS_SLOT=1",
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4172,10 +4182,9 @@ cc_defaults {
         "src/libANGLE/VertexArray.cpp",
         "src/libANGLE/VertexAttribute.cpp",
         "src/libANGLE/angletypes.cpp",
-        "src/libANGLE/context_private_call_gles.cpp",
+        "src/libANGLE/context_private_call.cpp",
         "src/libANGLE/es3_copy_conversion_table_autogen.cpp",
         "src/libANGLE/format_map_autogen.cpp",
-        "src/libANGLE/format_map_desktop.cpp",
         "src/libANGLE/formatutils.cpp",
         "src/libANGLE/gles_extensions_autogen.cpp",
         "src/libANGLE/queryconversions.cpp",
@@ -4232,6 +4241,7 @@ cc_defaults {
         "angle_compression",
         "angle_includes",
         "angle_libANGLE_headers",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_version_info",
     ],
     generated_headers: [
@@ -4271,7 +4281,6 @@ cc_defaults {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
         "-DANGLE_USE_ANDROID_TLS_SLOT=1",
@@ -4279,9 +4288,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4315,6 +4323,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4351,6 +4360,7 @@ cc_defaults {
         "-D__STDC_FORMAT_MACROS",
         "-Wno-implicit-fallthrough",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4381,12 +4391,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4414,12 +4423,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4459,12 +4467,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4489,12 +4496,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4519,12 +4525,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4550,12 +4555,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4600,12 +4604,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4634,12 +4637,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4668,12 +4670,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4698,12 +4699,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4729,12 +4729,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4771,12 +4770,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4804,12 +4802,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4850,12 +4847,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4887,12 +4883,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4925,12 +4920,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -4967,12 +4961,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5001,12 +4994,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5039,12 +5031,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5096,12 +5087,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5132,12 +5122,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5171,12 +5160,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5208,12 +5196,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5254,12 +5241,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5288,12 +5274,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5324,12 +5309,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5357,12 +5341,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5388,12 +5371,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5424,12 +5406,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5459,12 +5440,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5497,12 +5477,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5533,12 +5512,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5586,12 +5564,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5617,12 +5594,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5653,12 +5629,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5692,12 +5667,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5713,7 +5687,7 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
-        "third_party_abseil_cpp_absl_base_core_headers",
+        "third_party_abseil_cpp_absl_base_config",
         "third_party_abseil_cpp_absl_strings_string_view",
     ],
     local_include_dirs: [
@@ -5723,12 +5697,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5782,12 +5755,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5812,12 +5784,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5863,12 +5834,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5898,12 +5868,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5928,12 +5897,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -5960,12 +5928,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6001,12 +5968,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6035,12 +6001,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6079,12 +6044,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6113,12 +6077,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6149,12 +6112,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6184,12 +6146,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6242,12 +6203,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6276,12 +6236,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6311,12 +6270,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6348,12 +6306,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6380,12 +6337,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6411,12 +6367,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6447,12 +6402,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6478,12 +6432,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6514,12 +6467,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6549,12 +6501,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6583,12 +6534,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6616,12 +6566,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6646,12 +6595,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6680,12 +6628,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6716,12 +6663,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6751,12 +6697,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6782,12 +6727,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6813,12 +6757,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6860,12 +6803,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6893,12 +6835,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6939,12 +6880,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -6973,12 +6913,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7003,12 +6942,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7034,12 +6972,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7071,12 +7008,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7105,12 +7041,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7142,12 +7077,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7173,12 +7107,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7209,12 +7142,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7240,12 +7172,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7271,12 +7202,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7303,12 +7233,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7334,12 +7263,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7367,12 +7295,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7398,12 +7325,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7430,12 +7356,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7460,12 +7385,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7489,12 +7413,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7519,12 +7442,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7553,12 +7475,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7588,12 +7509,11 @@ cc_defaults {
     cflags: [
         "-DABSL_ALLOCATOR_NOTHROW=1",
         "-Wno-c++11-narrowing",
-        "-Wno-gcc-compat",
         "-Wno-misleading-indentation",
-        "-Wno-unreachable-code-break",
         "-Wno-unused-but-set-variable",
         "-Wno-unused-variable",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7611,6 +7531,7 @@ cc_defaults {
         "third_party_abseil_cpp_absl_container_flat_hash_map",
         "third_party_abseil_cpp_absl_container_flat_hash_set",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
 }
 
@@ -7654,6 +7575,7 @@ cc_library_static {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_includes",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_xxhash",
     ],
     local_include_dirs: [
@@ -7670,16 +7592,14 @@ cc_library_static {
         "-DANGLE_ENABLE_GLOBAL_MUTEX_LOAD_TIME_ALLOCATE=1",
         "-DANGLE_ENABLE_GLOBAL_MUTEX_RECURSION=1",
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
         "-DANGLE_USE_ANDROID_TLS_SLOT=1",
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7728,9 +7648,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7781,9 +7700,8 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7817,6 +7735,7 @@ cc_defaults {
         "angle_common_library_cflags",
         "angle_frame_capture_mock",
         "angle_libANGLE_no_vulkan",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "src_libANGLE_renderer_vulkan_angle_vulkan_backend",
     ],
     generated_headers: [
@@ -7859,7 +7778,6 @@ cc_defaults {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_SHARED_LIBVULKAN=1",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
@@ -7871,10 +7789,9 @@ cc_defaults {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-redundant-parens",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7907,6 +7824,7 @@ cc_defaults {
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -7958,6 +7876,7 @@ cc_library_shared {
         "angle_dma_buf_cc_defaults",
         "angle_includes",
         "angle_libANGLE",
+        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [
@@ -8000,7 +7919,6 @@ cc_library_shared {
         "-DANGLE_ENABLE_SHARE_CONTEXT_LOCK=1",
         "-DANGLE_ENABLE_VULKAN",
         "-DANGLE_ENABLE_VULKAN_SHARED_RING_BUFFER_CMD_ALLOC=false",
-        "-DANGLE_EXPOSE_NON_CONFORMANT_EXTENSIONS_AND_VERSIONS",
         "-DANGLE_SHARED_LIBVULKAN=1",
         "-DANGLE_TEST_ENABLE_SYSTEM_EGL",
         "-DANGLE_USE_ABSEIL",
@@ -8019,10 +7937,9 @@ cc_library_shared {
         "-D_FORTIFY_SOURCE=2",
         "-D__STDC_CONSTANT_MACROS",
         "-D__STDC_FORMAT_MACROS",
-        "-Wno-gcc-compat",
         "-Wno-redundant-parens",
-        "-Wno-unreachable-code-break",
     ],
+    sdk_version: "current",
     stl: "libc++_static",
     arch: {
         arm64: {
@@ -8122,7 +8039,7 @@ prebuilt_etc {
 java_defaults {
     name: "ANGLE_java_defaults",
     sdk_version: "system_current",
-    target_sdk_version: "33",
+    target_sdk_version: "35",
     min_sdk_version: "28",
     compile_multilib: "both",
     use_embedded_native_libs: true,
@@ -8149,7 +8066,7 @@ java_defaults {
 android_library {
     name: "ANGLE_library",
     sdk_version: "system_current",
-    target_sdk_version: "33",
+    target_sdk_version: "35",
     min_sdk_version: "28",
     resource_dirs: [
         "src/android_system_settings/res",
@@ -8188,7 +8105,7 @@ android_app {
 java_defaults {
     name: "ANGLE_java_settings_defaults",
     sdk_version: "system_current",
-    target_sdk_version: "33",
+    target_sdk_version: "35",
     min_sdk_version: "28",
     compile_multilib: "both",
     use_embedded_native_libs: true,

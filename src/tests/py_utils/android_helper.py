@@ -40,7 +40,7 @@ class _Global(object):
 
     @classmethod
     def IsMultiUser(cls):
-        assert (cls.current_user != None, "Call _GetCurrentUser before using IsMultiUser")
+        assert cls.current_user != None, "Call _GetCurrentUser before using IsMultiUser"
         return cls.current_user != '0'
 
 def _ApkPath(suite_name):
@@ -572,6 +572,7 @@ def RunTests(test_suite, args, stdoutfile=None, log_output=True):
                 args.append('--isolated-script-test-perf-output=%s' % device_perf_path)
 
             if test_output_dir:
+                assert os.path.isdir(test_output_dir), 'Dir does not exist: %s' % test_output_dir
                 device_output_dir = stack.enter_context(_TempDeviceDir())
                 args.append('--render-test-output-dir=' + device_output_dir)
 
