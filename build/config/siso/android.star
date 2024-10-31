@@ -52,13 +52,14 @@ def __step_config(ctx, step_config):
             "command_prefix": "python3 ../../build/android/gyp/compile_resources.py",
             "handler": "android_compile_resources",
             "exclude_input_patterns": [
-                "*.h",
-                "*.o",
-                "*.cc",
                 "*.a",
-                "*.info",
-                "*.pak",
+                "*.cc",
+                "*.h",
                 "*.inc",
+                "*.info",
+                "*.o",
+                "*.pak",
+                "*.sql",
             ],
             "remote": remote_run,
             "canonicalize_dir": True,
@@ -86,6 +87,16 @@ def __step_config(ctx, step_config):
             "indirect_inputs": {
                 "includes": ["*.dex", "*.ijar.jar", "*.turbine.jar"],
             },
+            "exclude_input_patterns": [
+                "*.a",
+                "*.cc",
+                "*.h",
+                "*.inc",
+                "*.info",
+                "*.o",
+                "*.pak",
+                "*.sql",
+            ],
             # *.dex files are intermediate files used in incremental builds.
             # Fo remote actions, let's ignore them, assuming remote cache hits compensate.
             "ignore_extra_input_pattern": ".*\\.dex",
@@ -99,6 +110,20 @@ def __step_config(ctx, step_config):
             "name": "android/filter_zip",
             "command_prefix": "python3 ../../build/android/gyp/filter_zip.py",
             "remote": remote_run,
+            "canonicalize_dir": True,
+            "timeout": "2m",
+        },
+        {
+            "name": "android/generate_resource_allowlist",
+            "command_prefix": "python3 ../../tools/resources/generate_resource_allowlist.py",
+            "indirect_inputs": {
+                "includes": ["*.o", "*.a"],
+            },
+            # When remote linking without bytes enabled, .o, .a files don't
+            # exist on the local file system.
+            # This step also should run remortely to avoid downloading them.
+            "remote": config.get(ctx, "remote-link"),
+            "platform_ref": "large",
             "canonicalize_dir": True,
             "timeout": "2m",
         },
@@ -153,9 +178,7 @@ def __android_compile_resources_handler(ctx, cmd):
         for k in ["--dependencies-res-zips=", "--dependencies-res-zip-overlays=", "--extra-res-packages="]:
             if arg.startswith(k):
                 arg = arg.removeprefix(k)
-                fn, v = __filearg(ctx, arg)
-                if fn:
-                    inputs.append(ctx.fs.canonpath(fn))
+                _, v = __filearg(ctx, arg)
                 for f in v:
                     f = ctx.fs.canonpath(f)
                     inputs.append(f)
@@ -195,11 +218,6 @@ def __android_compile_java_handler(ctx, cmd):
 
     inputs = []
     for i, arg in enumerate(cmd.args):
-        # read .sources file.
-        if arg.startswith("@"):
-            sources = str(ctx.fs.read(ctx.fs.canonpath(arg.removeprefix("@")))).splitlines()
-            for source in sources:
-                inputs.append(ctx.fs.canonpath(source))
         for k in ["--classpath=", "--bootclasspath=", "--processorpath="]:
             if arg.startswith(k):
                 arg = arg.removeprefix(k)
@@ -229,9 +247,7 @@ def __android_dex_handler(ctx, cmd):
         for k in ["--class-inputs=", "--bootclasspath=", "--classpath=", "--class-inputs-filearg=", "--dex-inputs-filearg="]:
             if arg.startswith(k):
                 arg = arg.removeprefix(k)
-                fn, v = __filearg(ctx, arg)
-                if fn:
-                    inputs.append(ctx.fs.canonpath(fn))
+                _, v = __filearg(ctx, arg)
                 for f in v:
                     f, _, _ = f.partition(":")
                     f = ctx.fs.canonpath(f)
@@ -250,9 +266,7 @@ def __android_turbine_handler(ctx, cmd):
         for k in ["--classpath=", "--processorpath="]:
             if arg.startswith(k):
                 arg = arg.removeprefix(k)
-                fn, v = __filearg(ctx, arg)
-                if fn:
-                    inputs.append(ctx.fs.canonpath(fn))
+                _, v = __filearg(ctx, arg)
                 for f in v:
                     f, _, _ = f.partition(":")
                     inputs.append(ctx.fs.canonpath(f))

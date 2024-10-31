@@ -2858,9 +2858,16 @@ bool TGlslangToSpvTraverser::visitAggregate(glslang::TVisit visit, glslang::TInt
                                                             // SPIR-V, for an out parameter
     std::vector<spv::Id> temporaryLvalues;                  // temporaries to pass, as proxies for complexLValues
 
-    auto resultType = [&invertedType, &node, this](){ return invertedType != spv::NoType ?
-        invertedType :
-        convertGlslangToSpvType(node->getType()); };
+    auto resultType = [&invertedType, &node, this](){
+        if (invertedType != spv::NoType) {
+            return invertedType;
+        } else {
+            auto ret = convertGlslangToSpvType(node->getType());
+            // convertGlslangToSpvType may clobber the debug location, reset it
+            builder.setDebugSourceLocation(node->getLoc().line, node->getLoc().getFilename());
+            return ret;
+        }
+    };
 
     // try texturing
     result = createImageTextureFunctionCall(node);
@@ -2917,8 +2924,10 @@ bool TGlslangToSpvTraverser::visitAggregate(glslang::TVisit visit, glslang::TInt
 
                 return false;
             } else {
-                if (node->getOp() == glslang::EOpScope)
-                    builder.enterLexicalBlock(0);
+                if (node->getOp() == glslang::EOpScope) {
+                    auto loc = node->getLoc();
+                    builder.enterLexicalBlock(loc.line, loc.column);
+                }
             }
         } else {
             if (sequenceDepth > 1 && node->getOp() == glslang::EOpScope)
@@ -4874,7 +4883,7 @@ bool TGlslangToSpvTraverser::filterMember(const glslang::TType& member)
     }
 
     return false;
-};
+}
 
 // Do full recursive conversion of a glslang structure (or block) type to a SPIR-V Id.
 // explicitLayout can be kept the same throughout the hierarchical recursive walk.
@@ -8796,7 +8805,16 @@ spv::Id TGlslangToSpvTraverser::createMiscOperation(glslang::TOperator op, spv::
         builder.promoteScalar(precision, operands.front(), operands.back());
         break;
     case glslang::EOpModf:
-        libCall = spv::GLSLstd450Modf;
+        {
+            libCall = spv::GLSLstd450ModfStruct;
+            assert(builder.isFloatType(builder.getScalarTypeId(typeId0)));
+            int width = builder.getScalarTypeWidth(typeId0);
+            if (width == 16)
+                builder.addExtension(spv::E_SPV_AMD_gpu_shader_half_float);
+            // The returned struct has two members of the same type as the first argument
+            typeId = builder.makeStructResultType(typeId0, typeId0);
+            consumedOperands = 1;
+        }
         break;
     case glslang::EOpMax:
         if (isFloat)
@@ -9418,6 +9436,13 @@ spv::Id TGlslangToSpvTraverser::createMiscOperation(glslang::TOperator op, spv::
     case glslang::EOpIMulExtended:
         builder.createStore(builder.createCompositeExtract(id, typeId0, 0), operands[3]);
         builder.createStore(builder.createCompositeExtract(id, typeId0, 1), operands[2]);
+        break;
+    case glslang::EOpModf:
+        {
+            assert(operands.size() == 2);
+            builder.createStore(builder.createCompositeExtract(id, typeId0, 1), operands[1]);
+            id = builder.createCompositeExtract(id, typeId0, 0);
+        }
         break;
     case glslang::EOpFrexp:
         {
@@ -10302,7 +10327,7 @@ spv::Id TGlslangToSpvTraverser::getExtBuiltins(const char* name)
     }
 }
 
-};  // end anonymous namespace
+} // end anonymous namespace
 
 namespace glslang {
 
@@ -10439,4 +10464,4 @@ void GlslangToSpv(const TIntermediate& intermediate, std::vector<unsigned int>& 
     GetThreadPoolAllocator().pop();
 }
 
-}; // end namespace glslang
+} // end namespace glslang
