@@ -38,7 +38,6 @@ class TParseContext : angle::NonCopyable
                   sh::GLenum type,
                   ShShaderSpec spec,
                   const ShCompileOptions &options,
-                  bool checksPrecErrors,
                   TDiagnostics *diagnostics,
                   const ShBuiltInResources &resources,
                   ShShaderOutput outputType);
@@ -138,6 +137,7 @@ class TParseContext : angle::NonCopyable
 
     // Check functions - the ones that return bool return false if an error was generated.
 
+    void checkIsValidExpressionStatement(const TSourceLoc &line, TIntermTyped *expr);
     bool checkIsNotReserved(const TSourceLoc &line, const ImmutableString &identifier);
     void checkPrecisionSpecified(const TSourceLoc &line, TPrecision precision, TBasicType type);
     bool checkCanBeLValue(const TSourceLoc &line, const char *op, TIntermTyped *node);
@@ -588,10 +588,13 @@ class TParseContext : angle::NonCopyable
                                            TLayoutImageInternalFormat internalFormat);
     void checkMemoryQualifierIsNotSpecified(const TMemoryQualifier &memoryQualifier,
                                             const TSourceLoc &location);
+
+    void checkAtomicCounterOffsetIsValid(bool forceAppend, const TSourceLoc &loc, TType *type);
     void checkAtomicCounterOffsetDoesNotOverlap(bool forceAppend,
                                                 const TSourceLoc &loc,
                                                 TType *type);
     void checkAtomicCounterOffsetAlignment(const TSourceLoc &location, const TType &type);
+    void checkAtomicCounterOffsetLimit(const TSourceLoc &location, const TType &type);
 
     void checkIndexIsNotSpecified(const TSourceLoc &location, int index);
     void checkBindingIsValid(const TSourceLoc &identifierLocation, const TType &type);
@@ -752,8 +755,6 @@ class TParseContext : angle::NonCopyable
     const TType
         *mCurrentFunctionType;    // the return type of the function that's currently being parsed
     bool mFunctionReturnsValue;   // true if a non-void function has a return
-    bool mChecksPrecisionErrors;  // true if an error will be generated when a variable is declared
-                                  // without precision, explicit or implicit.
     bool mFragmentPrecisionHighOnESSL1;  // true if highp precision is supported when compiling
                                          // ESSL1.
     bool mEarlyFragmentTestsSpecified;   // true if layout(early_fragment_tests) in; is specified.
@@ -795,6 +796,7 @@ class TParseContext : angle::NonCopyable
     int mMaxUniformBufferBindings;
     int mMaxVertexAttribs;
     int mMaxAtomicCounterBindings;
+    int mMaxAtomicCounterBufferSize;
     int mMaxShaderStorageBufferBindings;
 
     // keeps track whether we are declaring / defining a function
