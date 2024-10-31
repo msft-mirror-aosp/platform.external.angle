@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import time
 from typing import List, Optional
+from urllib.parse import urlparse
 
 from common import run_continuous_ffx_command, ssh_run, REPO_ALIAS
 from ffx_integration import run_symbolizer
@@ -77,13 +78,18 @@ class BrowserRunner:
         return self._browser_proc.pid
 
     def _read_devtools_port(self):
-        search_regex = r'Remote debugging port: (\d+)'
+        search_regex = r'DevTools listening on (.+)'
 
+        # The ipaddress of the emulator or device is preferred over the address
+        # reported by the devtools, former one is usually more accurate.
         def try_reading_port(log_file) -> int:
             for line in log_file:
                 tokens = re.search(search_regex, line)
                 if tokens:
-                    return int(tokens.group(1))
+                    url = urlparse(tokens.group(1))
+                    assert url.scheme == 'ws'
+                    assert url.port is not None
+                    return url.port
             return None
 
         with open(self.log_file, encoding='utf-8') as log_file:
@@ -92,10 +98,12 @@ class BrowserRunner:
                 port = try_reading_port(log_file)
                 if port:
                     return port
+                self._browser_proc.poll()
+                assert not self._browser_proc.returncode, 'Browser stopped.'
                 time.sleep(1)
             assert False, 'Failed to wait for the devtools port.'
 
-    def start(self, extra_args: List[str]) -> None:
+    def start(self, extra_args: List[str] = None) -> None:
         """Starts the selected browser, |extra_args| are attached to the command
         line."""
         browser_cmd = ['test', 'run']

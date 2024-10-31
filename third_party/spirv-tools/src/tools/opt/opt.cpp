@@ -515,6 +515,10 @@ Options (in lexicographical order):)",
                covers reflection information defined by
                SPV_GOOGLE_hlsl_functionality1 and SPV_KHR_non_semantic_info)");
   printf(R"(
+  --struct-packing=name:rule
+               Re-assign layout offsets to a given struct according to
+               its packing rules.)");
+  printf(R"(
   --switch-descriptorset=<from>:<to>
                Switch any DescriptoSet decorations using the value <from> to
                the new value <to>.)");
@@ -872,7 +876,7 @@ int main(int argc, const char** argv) {
   }
 
   std::vector<uint32_t> binary;
-  if (!ReadBinaryFile<uint32_t>(in_file, &binary)) {
+  if (!ReadBinaryFile(in_file, &binary)) {
     return 1;
   }
 

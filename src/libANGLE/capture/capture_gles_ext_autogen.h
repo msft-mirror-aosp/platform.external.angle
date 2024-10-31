@@ -118,6 +118,17 @@ angle::CallCapture CaptureMultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(
     const GLuint *baseInstances,
     GLsizei drawcount);
 
+// GL_ANGLE_blob_cache
+angle::CallCapture CaptureBlobCacheCallbacksANGLE(const State &glState,
+                                                  bool isCallValid,
+                                                  GLSETBLOBPROCANGLE set,
+                                                  GLGETBLOBPROCANGLE get,
+                                                  const void *userParam);
+angle::CallCapture CaptureGetPointervANGLE(const State &glState,
+                                           bool isCallValid,
+                                           GLenum pname,
+                                           void **params);
+
 // GL_ANGLE_client_arrays
 
 // GL_ANGLE_clip_cull_distance
@@ -1012,6 +1023,8 @@ angle::CallCapture CaptureReleaseTexturesANGLE(const State &glState,
 // GL_ARB_sync
 
 // GL_ARM_shader_framebuffer_fetch
+
+// GL_ARM_shader_framebuffer_fetch_depth_stencil
 
 // GL_CHROMIUM_bind_uniform_location
 angle::CallCapture CaptureBindUniformLocationCHROMIUM(const State &glState,
@@ -2027,6 +2040,8 @@ angle::CallCapture CaptureTexBufferRangeEXT(const State &glState,
 
 // GL_EXT_texture_norm16
 
+// GL_EXT_texture_query_lod
+
 // GL_EXT_texture_rg
 
 // GL_EXT_texture_sRGB_R8
@@ -2034,6 +2049,8 @@ angle::CallCapture CaptureTexBufferRangeEXT(const State &glState,
 // GL_EXT_texture_sRGB_RG8
 
 // GL_EXT_texture_sRGB_decode
+
+// GL_EXT_texture_shadow_lod
 
 // GL_EXT_texture_storage
 angle::CallCapture CaptureTexStorage1DEXT(const State &glState,
@@ -3101,6 +3118,17 @@ void CaptureMultiDrawElementsInstancedBaseVertexBaseInstanceANGLE_baseInstances(
     const GLuint *baseInstances,
     GLsizei drawcount,
     angle::ParamCapture *paramCapture);
+void CaptureBlobCacheCallbacksANGLE_userParam(const State &glState,
+                                              bool isCallValid,
+                                              GLSETBLOBPROCANGLE set,
+                                              GLGETBLOBPROCANGLE get,
+                                              const void *userParam,
+                                              angle::ParamCapture *paramCapture);
+void CaptureGetPointervANGLE_params(const State &glState,
+                                    bool isCallValid,
+                                    GLenum pname,
+                                    void **params,
+                                    angle::ParamCapture *paramCapture);
 void CaptureGetTexImageANGLE_pixels(const State &glState,
                                     bool isCallValid,
                                     TextureTarget targetPacked,
