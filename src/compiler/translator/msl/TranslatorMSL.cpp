@@ -33,7 +33,6 @@
 #include "compiler/translator/tree_ops/msl/FixTypeConstructors.h"
 #include "compiler/translator/tree_ops/msl/HoistConstants.h"
 #include "compiler/translator/tree_ops/msl/IntroduceVertexIndexID.h"
-#include "compiler/translator/tree_ops/msl/NameEmbeddedUniformStructsMetal.h"
 #include "compiler/translator/tree_ops/msl/ReduceInterfaceBlocks.h"
 #include "compiler/translator/tree_ops/msl/RewriteCaseDeclarations.h"
 #include "compiler/translator/tree_ops/msl/RewriteInterpolants.h"
@@ -673,11 +672,9 @@ void AddFragDepthEXTDeclaration(TCompiler &compiler, TIntermBlock &root, TSymbol
     const char *name                 = secondary ? secondaryFragDataEXT : fragData;
     for (int i = 0; i < maxDrawBuffers; i++)
     {
-        ImmutableStringBuilder builder(strlen(name) + 3);
-        builder << name << "_";
-        builder.appendDecimal(i);
+        ImmutableString varName = BuildConcatenatedImmutableString(name, '_', i);
         const TVariable *glFragData =
-            new TVariable(&symbolTable, builder, gl_FragDataType, SymbolType::AngleInternal,
+            new TVariable(&symbolTable, varName, gl_FragDataType, SymbolType::AngleInternal,
                           TExtension::UNDEFINED);
         glFragDataSlots.push_back(glFragData);
         declareGLFragdataSequence.push_back(new TIntermDeclaration{glFragData});
@@ -1012,18 +1009,7 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
 
     if (aggregateTypesUsedForUniforms > 0)
     {
-        if (!NameEmbeddedStructUniformsMetal(this, root, &symbolTable))
-        {
-            return false;
-        }
-
-        if (!SeparateStructFromUniformDeclarations(this, root, &getSymbolTable()))
-        {
-            return false;
-        }
-
         int removedUniformsCount;
-
         if (!RewriteStructSamplers(this, root, &getSymbolTable(), &removedUniformsCount))
         {
             return false;
