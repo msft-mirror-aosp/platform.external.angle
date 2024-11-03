@@ -29,6 +29,8 @@
 42266349 VULKAN : MultithreadingTestES3.UnsynchronizedTextureReads2/* = SKIP
 // Incorrectly handled pretty much in all backends
 42266871 : CopyTexImageTestES3.RedefineSameLevel/* = SKIP
+// Fails in Android with EGL_BAD_ALLOC
+374797737 : EGLSurfaceTest.CreateMultiWindowsSurfaceNoDestroy/* = SKIP
 // Currently fails on WebGPU as it's not fully implemented yet.
 
 // Fails AST validation
@@ -43,6 +45,19 @@
 359729255 D3D9 : VertexAttributeTest.VertexAttribPointerCopyBufferFromInvalid* = SKIP
 359729255 D3D11 : VertexAttributeTest.VertexAttribPointerCopyBufferFromInvalid* = SKIP
 359729255 METAL : VertexAttributeTest.VertexAttribPointerCopyBufferFromInvalid* = SKIP
+
+// Does not work due to SeparateDeclarations.
+// Would need a pass to name in-out structs based on the contents and dedupe the structs.
+42267047 GLES : GLSLTest_ES3.VaryingAnonymousStructEquality/* = SKIP
+42267047 GLES : GLSLTest_ES3.VaryingAnonymousStructWithInlineDefinition2/* = SKIP
+42267047 GLES : GLSLTest_ES3.VaryingAnonymousStructWithInlineDefinition3/* = SKIP
+42267047 OPENGL : GLSLTest_ES3.VaryingAnonymousStructEquality/* = SKIP
+42267047 OPENGL : GLSLTest_ES3.VaryingAnonymousStructWithInlineDefinition2/* = SKIP
+42267047 OPENGL : GLSLTest_ES3.VaryingAnonymousStructWithInlineDefinition3/* = SKIP
+// Crash
+42267047 PIXEL4ORXL VULKAN : GLSLTest_ES3.VaryingAnonymousStructEquality/* = SKIP
+42267047 PIXEL4ORXL VULKAN : GLSLTest_ES3.VaryingAnonymousStructWithInlineDefinition2/* = SKIP
+42267047 PIXEL4ORXL VULKAN : GLSLTest_ES3.VaryingAnonymousStructWithInlineDefinition3/* = SKIP
 
 // Shared context failing on OpenGL and D3D11
 42266326 METAL : MultithreadingTest.CreateMultiSharedContextAndDraw/* = SKIP
@@ -1336,9 +1351,10 @@ b/267953710 GALAXYS22 VULKAN : VulkanPerformanceCounterTest_ES31.ColorMaskedFram
 // Snapdragon 8 Gen3 Mobile Reference Device
 b/328156792 PINEAPPLE VULKAN : BlitFramebufferTest.*Stencil* = SKIP
 b/328156792 PINEAPPLE VULKAN : ClearTestES3.RepeatedStencilClearWithBlitInBetween/* = SKIP
+b/328156792 PINEAPPLE VULKAN : ClearTestES31.Bind3DTextureAndClearUsingAttachment0/* = SKIP
 b/328156792 PINEAPPLE VULKAN : ClearTest.MaskedClearThenDrawWithUniform/* = SKIP
 b/328156792 PINEAPPLE VULKAN : ClearTest.Stencil8Scissored/* = SKIP
-b/328156792 PINEAPPLE VULKAN : ClearTextureEXTTest.StencilTexture/* = SKIP
+b/328156792 PINEAPPLE VULKAN : ClearTextureEXTTest.Clear3D*/* = SKIP
 b/328156792 PINEAPPLE VULKAN : DepthStencilTestES3.FramebufferClearThenStencilAttachedThenStencilTestState/* = SKIP
 b/328156792 PINEAPPLE VULKAN : DepthStencilTestES3.FramebufferClearThenStencilTestStateThenStencilAttached/* = SKIP
 b/328156792 PINEAPPLE VULKAN : DepthStencilTestES3.StencilTestStateThenFramebufferClearThenStencilAttached/* = SKIP
@@ -1346,7 +1362,6 @@ b/328156792 PINEAPPLE VULKAN : DepthStencilTest.StencilOnlyDrawThenCopyThenDraw/
 b/328156792 PINEAPPLE VULKAN : DepthStencilTest.StencilOnlyEmulatedWithPacked/* = SKIP
 b/328156792 PINEAPPLE VULKAN : DrawBuffersTest.NoneWithStencil/* = SKIP
 b/328156792 PINEAPPLE VULKAN : FramebufferTest_ES31.* = SKIP
-b/328156792 PINEAPPLE VULKAN : FramebufferTest_ES31.ClearTextureEXT2DMSStencil = SKIP
 b/328156792 PINEAPPLE VULKAN : GeometryShaderTest.LayeredFramebuffer* = SKIP
 b/328156792 PINEAPPLE VULKAN : GLSLTest.ConstantFoldedConstantsRetainPrecision/* = SKIP
 b/328156792 PINEAPPLE VULKAN : GLSLTest_ES31.ArrayOfArrayOfSamplerInStructDynamicIndex/* = SKIP
