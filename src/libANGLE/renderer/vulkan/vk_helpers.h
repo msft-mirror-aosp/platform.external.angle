@@ -107,6 +107,12 @@ enum class ImageLayout
 
     // Depth (Write), Stencil (Write)
     DepthWriteStencilWrite,
+    // Used only with dynamic rendering, because it needs a different VkImageLayout.  For
+    // simplicity, depth/stencil attachments when used as input attachments don't attempt to
+    // distinguish read-only aspects.  That's only useful for supporting feedback loops, but if an
+    // application is reading depth or stencil through an input attachment, it's safe to assume they
+    // wouldn't be accessing the other aspect through a sampler!
+    DepthStencilWriteAndInput,
 
     // Depth (Write), Stencil (Read)
     DepthWriteStencilRead,
@@ -261,27 +267,53 @@ class DynamicBuffer : angle::NonCopyable
 };
 
 // Class DescriptorSetHelper. This is a wrapper of VkDescriptorSet with GPU resource use tracking.
+using DescriptorPoolPointer     = SharedPtr<DescriptorPoolHelper>;
+using DescriptorPoolWeakPointer = WeakPtr<DescriptorPoolHelper>;
 class DescriptorSetHelper final : public Resource
 {
   public:
-    DescriptorSetHelper(const VkDescriptorSet &descriptorSet) { mDescriptorSet = descriptorSet; }
-    DescriptorSetHelper(const ResourceUse &use, const VkDescriptorSet &descriptorSet)
+    DescriptorSetHelper() : mDescriptorSet(VK_NULL_HANDLE) {}
+    DescriptorSetHelper(const VkDescriptorSet &descriptorSet, const DescriptorPoolPointer &pool)
+        : mDescriptorSet(descriptorSet), mPool(pool)
+    {}
+    DescriptorSetHelper(const ResourceUse &use,
+                        const VkDescriptorSet &descriptorSet,
+                        const DescriptorPoolPointer pool)
+        : mDescriptorSet(descriptorSet), mPool(pool)
     {
-        mUse           = use;
-        mDescriptorSet = descriptorSet;
+        mUse = use;
     }
-    DescriptorSetHelper(DescriptorSetHelper &&other) : Resource(std::move(other))
+    DescriptorSetHelper(DescriptorSetHelper &&other)
+        : Resource(std::move(other)), mDescriptorSet(other.mDescriptorSet), mPool(other.mPool)
     {
-        mDescriptorSet       = other.mDescriptorSet;
         other.mDescriptorSet = VK_NULL_HANDLE;
+        other.mPool.reset();
     }
 
+    ~DescriptorSetHelper() override
+    {
+        ASSERT(mDescriptorSet == VK_NULL_HANDLE);
+        ASSERT(!mPool);
+    }
+
+    void destroy();
+
     VkDescriptorSet getDescriptorSet() const { return mDescriptorSet; }
+    DescriptorPoolWeakPointer &getPool() { return mPool; }
+
+    bool valid() const { return mDescriptorSet != VK_NULL_HANDLE; }
 
   private:
     VkDescriptorSet mDescriptorSet;
+    // So that DescriptorPoolHelper::resetGarbage can clear mPool weak pointer here
+    friend class DescriptorPoolHelper;
+    // We hold weak pointer here due to DynamicDescriptorPool::allocateNewPool() and
+    // DynamicDescriptorPool::checkAndReleaseUnusedPool() rely on pool's refcount to tell if it is
+    // eligible for eviction or not.
+    DescriptorPoolWeakPointer mPool;
 };
-using DescriptorSetList = std::deque<DescriptorSetHelper>;
+using DescriptorSetPointer = SharedPtr<DescriptorSetHelper>;
+using DescriptorSetList    = std::deque<DescriptorSetPointer>;
 
 // Uses DescriptorPool to allocate descriptor sets as needed. If a descriptor pool becomes full, we
 // allocate new pools internally as needed. Renderer takes care of the lifetime of the discarded
@@ -310,10 +342,13 @@ class DescriptorPoolHelper final : public Resource
 
     bool allocateDescriptorSet(Context *context,
                                const DescriptorSetLayout &descriptorSetLayout,
-                               VkDescriptorSet *descriptorSetsOut);
+                               const DescriptorPoolPointer &pool,
+                               DescriptorSetPointer *descriptorSetOut);
 
-    void addGarbage(DescriptorSetHelper &&garbage)
+    void addGarbage(DescriptorSetPointer &&garbage)
     {
+        ASSERT(garbage.unique());
+        mUse.merge(garbage->getResourceUse());
         mValidDescriptorSets--;
         mDescriptorSetGarbageList.emplace_back(std::move(garbage));
     }
@@ -325,8 +360,16 @@ class DescriptorPoolHelper final : public Resource
     bool hasValidDescriptorSet() const { return mValidDescriptorSets != 0; }
 
   private:
+    bool allocateVkDescriptorSet(Context *context,
+                                 const DescriptorSetLayout &descriptorSetLayout,
+                                 VkDescriptorSet *descriptorSetOut);
+
+    bool recycleGarbage(Renderer *renderer, DescriptorSetPointer *descriptorSetOut);
+
+    void resetGarbage();
+
     // Track the number of descriptorSets allocated out of this pool that are valid. DescriptorSets
-    // that have been allocated but in the mDescriptorSetGarbageList is considered as inactive.
+    // that have been allocated but in the mDescriptorSetGarbageList is considered as invalid.
     uint32_t mValidDescriptorSets;
     // Track the number of remaining descriptorSets in the pool that can be allocated.
     uint32_t mFreeDescriptorSets;
@@ -339,7 +382,6 @@ class DescriptorPoolHelper final : public Resource
     // Manages the texture descriptor set cache that allocated from this pool
     vk::DescriptorSetCacheManager mDescriptorSetCacheManager;
 };
-using DescriptorPoolPointer = SharedPtr<DescriptorPoolHelper>;
 
 class DynamicDescriptorPool final : angle::NonCopyable
 {
@@ -369,14 +411,12 @@ class DynamicDescriptorPool final : angle::NonCopyable
     // By convention, sets are indexed according to the constants in vk_cache_utils.h.
     angle::Result allocateDescriptorSet(Context *context,
                                         const DescriptorSetLayout &descriptorSetLayout,
-                                        DescriptorPoolPointer *poolOut,
-                                        VkDescriptorSet *descriptorSetOut);
+                                        DescriptorSetPointer *descriptorSetOut);
 
     angle::Result getOrAllocateDescriptorSet(Context *context,
                                              const DescriptorSetDesc &desc,
                                              const DescriptorSetLayout &descriptorSetLayout,
-                                             DescriptorPoolPointer *poolOut,
-                                             VkDescriptorSet *descriptorSetOut,
+                                             DescriptorSetPointer *descriptorSetOut,
                                              SharedDescriptorSetCacheKey *sharedCacheKeyOut);
 
     void releaseCachedDescriptorSet(Renderer *renderer, const DescriptorSetDesc &desc);
@@ -394,7 +434,7 @@ class DynamicDescriptorPool final : angle::NonCopyable
     }
 
     // Release the pool if it is no longer been used and contains no valid descriptorSet.
-    void checkAndReleaseUnusedPool(Renderer *renderer, RefCountedDescriptorPoolHelper *pool);
+    void checkAndReleaseUnusedPool(Renderer *renderer, const DescriptorPoolWeakPointer &pool);
 
     // For testing only!
     static uint32_t GetMaxSetsPerPoolForTesting();
@@ -417,7 +457,7 @@ class DynamicDescriptorPool final : angle::NonCopyable
     VkDescriptorSetLayout mCachedDescriptorSetLayout;
     // Tracks cache for descriptorSet. Note that cached DescriptorSet can be reuse even if it is GPU
     // busy.
-    DescriptorSetCache mDescriptorSetCache;
+    DescriptorSetCache<DescriptorSetPointer> mDescriptorSetCache;
     // Statistics for the cache.
     CacheStats mCacheStats;
 };
@@ -1913,9 +1953,9 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     const RenderPassDesc &getRenderPassDesc() const { return mRenderPassDesc; }
     const AttachmentOpsArray &getAttachmentOps() const { return mAttachmentOps; }
 
-    void setFramebufferFetchMode()
+    void setFramebufferFetchMode(FramebufferFetchMode framebufferFetchMode)
     {
-        mRenderPassDesc.setFramebufferFetchMode(FramebufferFetchMode::Color);
+        mRenderPassDesc.setFramebufferFetchMode(framebufferFetchMode);
     }
 
     void setImageOptimizeForPresent(ImageHelper *image) { mImageOptimizeForPresent = image; }
@@ -2115,6 +2155,12 @@ class ImageHelper final : public Resource, public angle::Subject
                        uint32_t layerCount,
                        bool isRobustResourceInitEnabled,
                        bool hasProtectedContent);
+    angle::Result initFromCreateInfo(Context *context,
+                                     const VkImageCreateInfo &requestedCreateInfo,
+                                     VkMemoryPropertyFlags memoryPropertyFlags);
+    angle::Result copyToBufferOneOff(Context *context,
+                                     BufferHelper *stagingBuffer,
+                                     VkBufferImageCopy copyRegion);
     angle::Result initMSAASwapchain(Context *context,
                                     gl::TextureType textureType,
                                     const VkExtent3D &extents,
