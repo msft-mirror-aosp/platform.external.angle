@@ -283,7 +283,6 @@ config("compiler") {
   ldflags = []
   defines = []
   configs = []
-  rustflags = []
 
   # System-specific flags. If your compiler flags apply to one of the
   # categories here, add it to the associated file to keep this shared config
@@ -619,7 +618,8 @@ config("compiler") {
 
     # Enable ELF CREL (see crbug.com/357878242) for all platforms that use ELF
     # (excluding toolchains that use an older version of LLVM).
-    if (is_linux && !llvm_android_mainline &&
+    # TODO(crbug.com/376278218): This causes segfault on Linux ARM builds.
+    if (is_linux && !llvm_android_mainline && current_cpu != "arm" &&
         default_toolchain != "//build/toolchain/cros:target") {
       cflags += [ "-Wa,--crel,--allow-experimental-crel" ]
     }
@@ -1102,6 +1102,12 @@ config("compiler") {
   if (current_cpu == "arm64") {
     defines += [ "__ARM_NEON__=1" ]
   }
+}
+
+# Don't allow unstable features to be enabled by `#![feature()]` without
+# additional command line flags.
+config("disallow_unstable_features") {
+  rustflags = [ "-Zallow-features=" ]
 }
 
 config("libcxx_hardening") {
@@ -2143,7 +2149,27 @@ config("chromium_code") {
         # Thread safety analysis. See base/thread_annotations.h and
         # https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
         "-Wthread-safety",
+
+        # Warn on GNU extensions.
+        "-Wgnu",
+
+        # TODO(crbug.com/357081796): Try to enable these.
+        "-Wno-gnu-anonymous-struct",
+        "-Wno-gnu-conditional-omitted-operand",
+        "-Wno-gnu-include-next",
+        "-Wno-gnu-label-as-value",
+        "-Wno-gnu-redeclared-enum",
+        "-Wno-gnu-statement-expression",
+        "-Wno-gnu-zero-variadic-macro-arguments",
+        "-Wno-zero-length-array",
       ]
+
+      if (is_chromeos) {
+        cflags += [ "-Wno-gnu-offsetof-extensions" ]
+      }
+      if (is_ios) {
+        cflags += [ "-Wno-gnu-case-range" ]
+      }
     }
   }
 

@@ -247,7 +247,7 @@ class CLCommandQueueVk : public CLCommandQueueImpl
     angle::Result syncHostBuffers();
     angle::Result flushComputePassCommands();
     angle::Result processWaitlist(const cl::EventPtrs &waitEvents);
-    angle::Result createEvent(CLEventImpl::CreateFunc *createFunc);
+    angle::Result createEvent(CLEventImpl::CreateFunc *createFunc, bool blocking);
 
     angle::Result onResourceAccess(const vk::CommandBufferAccess &access);
     angle::Result getCommandBuffer(const vk::CommandBufferAccess &access,
@@ -259,6 +259,12 @@ class CLCommandQueueVk : public CLCommandQueueImpl
     }
 
     angle::Result processPrintfBuffer();
+    angle::Result copyImageToFromBuffer(CLImageVk &imageVk,
+                                        vk::BufferHelper &buffer,
+                                        const cl::MemOffsets &origin,
+                                        const cl::Coordinate &region,
+                                        size_t bufferOffset,
+                                        ImageBufferCopyDirection writeToBuffer);
 
     CLContextVk *mContext;
     const CLDeviceVk *mDevice;
