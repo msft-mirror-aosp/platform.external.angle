@@ -325,6 +325,34 @@ ConversionBuffer::~ConversionBuffer()
 
 ConversionBuffer::ConversionBuffer(ConversionBuffer &&other) = default;
 
+// dirtyRanges may be overlap or continuous. In order to reduce the redunant conversion, we try to
+// consolidate the dirty ranges. First we sort it by the range's low. Then we walk the range again
+// and check it with previous range and merge them if possible. That merge will remove the
+// overlapped area as well as reduce the number of ranges.
+void ConversionBuffer::consolidateDirtyRanges()
+{
+    ASSERT(!mEntireBufferDirty);
+
+    auto comp = [](const RangeDeviceSize &a, const RangeDeviceSize &b) -> bool {
+        return a.low() < b.low();
+    };
+    std::sort(mDirtyRanges.begin(), mDirtyRanges.end(), comp);
+
+    size_t prev = 0;
+    for (size_t i = 1; i < mDirtyRanges.size(); i++)
+    {
+        if (mDirtyRanges[prev].intersectsOrContinuous(mDirtyRanges[i]))
+        {
+            mDirtyRanges[prev].merge(mDirtyRanges[i]);
+            mDirtyRanges[i].invalidate();
+        }
+        else
+        {
+            prev = i;
+        }
+    }
+}
+
 // VertexConversionBuffer implementation.
 VertexConversionBuffer::VertexConversionBuffer(vk::Renderer *renderer, const CacheKey &cacheKey)
     : ConversionBuffer(renderer,
@@ -645,6 +673,21 @@ angle::Result BufferVk::handleDeviceLocalBufferMap(ContextVk *contextVk,
     return angle::Result::Continue;
 }
 
+angle::Result BufferVk::mapHostVisibleBuffer(ContextVk *contextVk,
+                                             VkDeviceSize offset,
+                                             GLbitfield access,
+                                             uint8_t **mapPtr)
+{
+    ANGLE_TRY(mBuffer.mapWithOffset(contextVk, mapPtr, static_cast<size_t>(offset)));
+
+    // Invalidate non-coherent for READ case.
+    if (!mBuffer.isCoherent() && (access & GL_MAP_READ_BIT) != 0)
+    {
+        ANGLE_TRY(mBuffer.invalidate(contextVk->getRenderer()));
+    }
+    return angle::Result::Continue;
+}
+
 angle::Result BufferVk::map(const gl::Context *context, GLenum access, void **mapPtr)
 {
     ASSERT(mBuffer.valid());
@@ -745,7 +788,7 @@ angle::Result BufferVk::mapRangeImpl(ContextVk *contextVk,
     {
         if (hostVisible)
         {
-            return mBuffer.mapWithOffset(contextVk, mapPtrBytes, static_cast<size_t>(offset));
+            return mapHostVisibleBuffer(contextVk, offset, access, mapPtrBytes);
         }
         return handleDeviceLocalBufferMap(contextVk, offset, length, mapPtrBytes);
     }
@@ -767,7 +810,7 @@ angle::Result BufferVk::mapRangeImpl(ContextVk *contextVk,
         }
         if (hostVisible)
         {
-            return mBuffer.mapWithOffset(contextVk, mapPtrBytes, static_cast<size_t>(offset));
+            return mapHostVisibleBuffer(contextVk, offset, access, mapPtrBytes);
         }
         return handleDeviceLocalBufferMap(contextVk, offset, length, mapPtrBytes);
     }
@@ -781,7 +824,7 @@ angle::Result BufferVk::mapRangeImpl(ContextVk *contextVk,
     // Write case, buffer not in use.
     if (isExternalBuffer() || !isCurrentlyInUse(contextVk->getRenderer()))
     {
-        return mBuffer.mapWithOffset(contextVk, mapPtrBytes, static_cast<size_t>(offset));
+        return mapHostVisibleBuffer(contextVk, offset, access, mapPtrBytes);
     }
 
     // Write case, buffer in use.
@@ -800,7 +843,7 @@ angle::Result BufferVk::mapRangeImpl(ContextVk *contextVk,
     {
         ANGLE_TRY(acquireBufferHelper(contextVk, static_cast<size_t>(mState.getSize()),
                                       BufferUsageType::Dynamic));
-        return mBuffer.mapWithOffset(contextVk, mapPtrBytes, static_cast<size_t>(offset));
+        return mapHostVisibleBuffer(contextVk, offset, access, mapPtrBytes);
     }
 
     bool smallMapRange = (length < static_cast<VkDeviceSize>(mState.getSize()) / 2);
@@ -821,7 +864,7 @@ angle::Result BufferVk::mapRangeImpl(ContextVk *contextVk,
     // Write case (worst case, buffer in use for write)
     ANGLE_TRY(mBuffer.waitForIdle(contextVk, "GPU stall due to mapping buffer in use by the GPU",
                                   RenderPassClosureReason::BufferInUseWhenSynchronizedMap));
-    return mBuffer.mapWithOffset(contextVk, mapPtrBytes, static_cast<size_t>(offset));
+    return mapHostVisibleBuffer(contextVk, offset, access, mapPtrBytes);
 }
 
 angle::Result BufferVk::unmap(const gl::Context *context, GLboolean *result)

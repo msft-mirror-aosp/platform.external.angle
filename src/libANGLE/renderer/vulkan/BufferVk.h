@@ -41,6 +41,7 @@ class ConversionBuffer
     bool isEntireBufferDirty() const { return mEntireBufferDirty; }
     void setEntireBufferDirty() { mEntireBufferDirty = true; }
     void addDirtyBufferRange(const RangeDeviceSize &range) { mDirtyRanges.emplace_back(range); }
+    void consolidateDirtyRanges();
     const std::vector<RangeDeviceSize> &getDirtyBufferRanges() const { return mDirtyRanges; }
     void clearDirty()
     {
@@ -262,6 +263,10 @@ class BufferVk : public BufferImpl
                                              VkDeviceSize offset,
                                              VkDeviceSize size,
                                              uint8_t **mapPtr);
+    angle::Result mapHostVisibleBuffer(ContextVk *contextVk,
+                                       VkDeviceSize offset,
+                                       GLbitfield access,
+                                       uint8_t **mapPtr);
     angle::Result setDataImpl(ContextVk *contextVk,
                               size_t bufferSize,
                               const BufferDataSource &dataSource,
