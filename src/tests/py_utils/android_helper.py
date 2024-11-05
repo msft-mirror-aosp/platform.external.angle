@@ -40,7 +40,7 @@ class _Global(object):
 
     @classmethod
     def IsMultiUser(cls):
-        assert (cls.current_user != None, "Call _GetCurrentUser before using IsMultiUser")
+        assert cls.current_user != None, "Call _GetCurrentUser before using IsMultiUser"
         return cls.current_user != '0'
 
 def _ApkPath(suite_name):
@@ -106,7 +106,6 @@ def _InitializeAndroid(apk_path):
     _Global.traces_outside_of_apk = interpreter_so_lib not in apk_so_libs
 
     if logging.getLogger().isEnabledFor(logging.DEBUG):
-        logging.debug(_AdbShell('dumpsys nfc | grep mScreenState || true').decode())
         logging.debug(_AdbShell('df -h').decode())
 
 
@@ -148,7 +147,7 @@ def _Run(cmd):
 
 
 @functools.lru_cache()
-def _FindAdb():
+def FindAdb():
     platform_tools = (
         pathlib.Path(angle_path_util.ANGLE_ROOT_DIR) / 'third_party' / 'android_sdk' / 'public' /
         'platform-tools')
@@ -159,11 +158,11 @@ def _FindAdb():
 
 
 def _AdbRun(args):
-    return _Run([_FindAdb()] + args)
+    return _Run([FindAdb()] + args)
 
 
 def _AdbShell(cmd):
-    return _Run([_FindAdb(), 'shell', cmd])
+    return _Run([FindAdb(), 'shell', cmd])
 
 
 def _GetAdbRoot(shell_id, su_path):
@@ -421,7 +420,8 @@ def PrepareRestrictedTraces(traces):
             _PushLibToAppDir(lib_name)
 
         tracegz = 'gen/tracegz_' + trace + '.gz'
-        _Push(tracegz, tracegz)
+        if os.path.exists(tracegz):  # Requires angle_enable_tracegz
+            _Push(tracegz, tracegz)
 
     # Push one additional file when running outside the APK
     if _Global.traces_outside_of_apk:
@@ -572,6 +572,7 @@ def RunTests(test_suite, args, stdoutfile=None, log_output=True):
                 args.append('--isolated-script-test-perf-output=%s' % device_perf_path)
 
             if test_output_dir:
+                assert os.path.isdir(test_output_dir), 'Dir does not exist: %s' % test_output_dir
                 device_output_dir = stack.enter_context(_TempDeviceDir())
                 args.append('--render-test-output-dir=' + device_output_dir)
 
