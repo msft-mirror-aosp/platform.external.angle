@@ -180,6 +180,25 @@ constexpr bool IsValidWithPixelLocalStorage(TLayoutImageInternalFormat internalF
     }
 }
 
+constexpr ShPixelLocalStorageFormat ImageFormatToPLSFormat(TLayoutImageInternalFormat format)
+{
+    switch (format)
+    {
+        default:
+            return ShPixelLocalStorageFormat::NotPLS;
+        case EiifRGBA8:
+            return ShPixelLocalStorageFormat::RGBA8;
+        case EiifRGBA8I:
+            return ShPixelLocalStorageFormat::RGBA8I;
+        case EiifRGBA8UI:
+            return ShPixelLocalStorageFormat::RGBA8UI;
+        case EiifR32F:
+            return ShPixelLocalStorageFormat::R32F;
+        case EiifR32UI:
+            return ShPixelLocalStorageFormat::R32UI;
+    }
+}
+
 bool UsesDerivatives(TIntermAggregate *functionCall)
 {
     const TOperator op = functionCall->getOp();
@@ -215,6 +234,8 @@ bool UsesDerivatives(TIntermAggregate *functionCall)
         // TextureOffsetBias
         case EOpTextureOffsetBias:
         case EOpTextureProjOffsetBias:
+        // TextureQueryLod
+        case EOpTextureQueryLOD:
             return true;
         default:
             return false;
@@ -310,6 +331,7 @@ TParseContext::TParseContext(TSymbolTable &symt,
       mMaxAtomicCounterBindings(resources.MaxAtomicCounterBindings),
       mMaxAtomicCounterBufferSize(resources.MaxAtomicCounterBufferSize),
       mMaxShaderStorageBufferBindings(resources.MaxShaderStorageBufferBindings),
+      mMaxPixelLocalStoragePlanes(resources.MaxPixelLocalStoragePlanes),
       mDeclaringFunction(false),
       mGeometryShaderInputPrimitiveType(EptUndefined),
       mGeometryShaderOutputPrimitiveType(EptUndefined),
@@ -469,7 +491,7 @@ void TParseContext::errorIfPLSDeclared(const TSourceLoc &loc, PLSIllegalOperatio
     {
         return;
     }
-    if (mPLSBindings.empty())
+    if (mPLSFormats.empty())
     {
         // No pixel local storage uniforms have been declared yet. Remember this potential error in
         // case PLS gets declared later.
@@ -855,6 +877,14 @@ bool TParseContext::checkIsAtGlobalLevel(const TSourceLoc &line, const char *tok
         return false;
     }
     return true;
+}
+
+void TParseContext::checkIsValidExpressionStatement(const TSourceLoc &line, TIntermTyped *expr)
+{
+    if (expr->isInterfaceBlock())
+    {
+        error(line, "expression statement is not allowed for interface blocks", "");
+    }
 }
 
 // ESSL 3.00.5 sections 3.8 and 3.9.
@@ -1422,6 +1452,8 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
         case EvqFragDepth:
         case EvqLastFragData:
         case EvqLastFragColor:
+        case EvqLastFragDepth:
+        case EvqLastFragStencil:
             symbolType = SymbolType::BuiltIn;
             break;
         default:
@@ -1487,9 +1519,11 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
             return false;
         }
     }
-    else if (identifier.beginsWith("gl_LastFragColorARM"))
+    else if (identifier.beginsWith("gl_LastFragColorARM") ||
+             identifier.beginsWith("gl_LastFragDepthARM") ||
+             identifier.beginsWith("gl_LastFragStencilARM"))
     {
-        // gl_LastFragColorARM may be redeclared with a new precision qualifier
+        // gl_LastFrag{Color,Depth,Stencil}ARM may be redeclared with a new precision qualifier
         if (const TSymbol *builtInSymbol = symbolTable.findBuiltIn(identifier, mShaderVersion))
         {
             needsReservedCheck = !checkCanUseOneOfExtensions(line, builtInSymbol->extensions());
@@ -2301,19 +2335,21 @@ void TParseContext::checkPixelLocalStorageBindingIsValid(const TSourceLoc &locat
         error(location, "pixel local storage requires a binding index", "layout qualifier");
     }
     // TODO(anglebug.com/40096838):
-    // else if (binding >= GL_MAX_LOCAL_STORAGE_PLANES_ANGLE)
-    // {
-    // }
-    else if (mPLSBindings.find(layoutQualifier.binding) != mPLSBindings.end())
+    else if (layoutQualifier.binding >= mMaxPixelLocalStoragePlanes)
+    {
+        error(location, "pixel local storage binding out of range", "layout qualifier");
+    }
+    else if (mPLSFormats.find(layoutQualifier.binding) != mPLSFormats.end())
     {
         error(location, "duplicate pixel local storage binding index",
               std::to_string(layoutQualifier.binding).c_str());
     }
     else
     {
-        mPLSBindings[layoutQualifier.binding] = layoutQualifier.imageInternalFormat;
-        // "mPLSBindings" is how we know whether pixel local storage uniforms have been declared, so
-        // flush the queue of potential errors once mPLSBindings isn't empty.
+        mPLSFormats[layoutQualifier.binding] =
+            ImageFormatToPLSFormat(layoutQualifier.imageInternalFormat);
+        // "mPLSFormats" is how we know whether any pixel local storage uniforms have been declared,
+        // so flush the queue of potential errors once mPLSFormats isn't empty.
         if (!mPLSPotentialErrors.empty())
         {
             for (const auto &[loc, op] : mPLSPotentialErrors)
@@ -2691,6 +2727,18 @@ TIntermTyped *TParseContext::parseVariableIdentifier(const TSourceLoc &location,
     }
     else
     {
+        // gl_LastFragDepthARM and gl_LastFragStencilARM cannot be accessed if early_fragment_tests
+        // is specified.
+        if ((variableType.getQualifier() == EvqLastFragDepth ||
+             variableType.getQualifier() == EvqLastFragStencil) &&
+            isEarlyFragmentTestsSpecified())
+        {
+            error(location,
+                  "gl_LastFragDepthARM and gl_LastFragStencilARM cannot be accessed because "
+                  "early_fragment_tests is specified",
+                  name);
+        }
+
         node = new TIntermSymbol(variable);
     }
     ASSERT(node != nullptr);
@@ -2734,6 +2782,14 @@ void TParseContext::adjustRedeclaredBuiltInType(const TSourceLoc &line,
     else if (identifier == "gl_LastFragColorARM")
     {
         type->setQualifier(EvqLastFragColor);
+    }
+    else if (identifier == "gl_LastFragDepthARM")
+    {
+        type->setQualifier(EvqLastFragDepth);
+    }
+    else if (identifier == "gl_LastFragStencilARM")
+    {
+        type->setQualifier(EvqLastFragStencil);
     }
     else if (identifier == "gl_Position")
     {
@@ -7231,6 +7287,10 @@ TIntermTyped *TParseContext::addComma(TIntermTyped *left,
         error(loc,
               "sequence operator is not allowed for void, arrays, or structs containing arrays",
               ",");
+    }
+    if (left->isInterfaceBlock() || right->isInterfaceBlock())
+    {
+        error(loc, "sequence operator is not allowed for interface blocks", ",");
     }
 
     TIntermBinary *commaNode = TIntermBinary::CreateComma(left, right, mShaderVersion);

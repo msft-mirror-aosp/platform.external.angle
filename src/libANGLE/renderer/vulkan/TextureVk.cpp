@@ -845,10 +845,8 @@ angle::Result TextureVk::clearImage(const gl::Context *context,
         area.depth = 6;
     }
 
-    // TODO(http://anglebug.com/42266869): This function can be staged as a Clear update, which
-    // means it can be picked up as LOAD_OP_CLEAR (similar to FramebufferVk::clearImpl()), improving
-    // the performance.
-    return clearSubImageImpl(context, level, area, format, type, data);
+    return clearSubImageImpl(context, level, area, vk::ClearTextureMode::FullClear, format, type,
+                             data);
 }
 
 angle::Result TextureVk::clearSubImage(const gl::Context *context,
@@ -858,12 +856,26 @@ angle::Result TextureVk::clearSubImage(const gl::Context *context,
                                        GLenum type,
                                        const uint8_t *data)
 {
-    return clearSubImageImpl(context, level, area, format, type, data);
+    bool isCubeMap = mState.getType() == gl::TextureType::CubeMap;
+    gl::TextureTarget textureTarget =
+        isCubeMap ? gl::kCubeMapTextureTargetMin : gl::TextureTypeToTarget(mState.getType(), 0);
+    gl::Extents extents   = mState.getImageDesc(textureTarget, level).size;
+    int depthForFullClear = isCubeMap ? 6 : extents.depth;
+
+    vk::ClearTextureMode clearMode = vk::ClearTextureMode::PartialClear;
+    if (extents.width == area.width && extents.height == area.height &&
+        depthForFullClear == area.depth)
+    {
+        clearMode = vk::ClearTextureMode::FullClear;
+    }
+
+    return clearSubImageImpl(context, level, area, clearMode, format, type, data);
 }
 
 angle::Result TextureVk::clearSubImageImpl(const gl::Context *context,
                                            GLint level,
                                            const gl::Box &clearArea,
+                                           vk::ClearTextureMode clearMode,
                                            GLenum format,
                                            GLenum type,
                                            const uint8_t *data)
@@ -893,13 +905,18 @@ angle::Result TextureVk::clearSubImageImpl(const gl::Context *context,
         vkFormat.getActualImageFormatID(getRequiredImageAccess());
     bool usesBufferForClear = false;
 
-    if (actualFormatID == vkFormat.getActualRenderableImageFormatID())
+    VkFormatFeatureFlags renderableCheckFlag =
+        clearMode == vk::ClearTextureMode::FullClear ? VK_FORMAT_FEATURE_TRANSFER_DST_BIT
+        : formatInfo.isDepthOrStencil() ? VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+                                        : VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+    if (vk::FormatHasNecessaryFeature(contextVk->getRenderer(), actualFormatID, getTilingMode(),
+                                      renderableCheckFlag))
     {
         uint32_t baseLayer  = useLayerAsDepth ? clearArea.z : 0;
         uint32_t layerCount = useLayerAsDepth ? clearArea.depth : 1;
-        ANGLE_TRY(mImage->stagePartialClear(contextVk, clearArea, mState.getType(), level,
-                                            baseLayer, layerCount, type, formatInfo, vkFormat,
-                                            getRequiredImageAccess(), data));
+        ANGLE_TRY(mImage->stagePartialClear(contextVk, clearArea, clearMode, mState.getType(),
+                                            level, baseLayer, layerCount, type, formatInfo,
+                                            vkFormat, getRequiredImageAccess(), data));
     }
     else
     {
@@ -1760,6 +1777,7 @@ angle::Result TextureVk::copySubImageImplWithDraw(ContextVk *contextVk,
     params.dstOffset[0]        = dstOffset.x;
     params.dstOffset[1]        = dstOffset.y;
     params.srcMip              = srcImage->toVkLevel(sourceLevelGL).get();
+    params.srcSampleCount      = srcImage->getSamples();
     params.srcHeight           = srcExtents.height;
     params.dstMip              = level;
     params.srcPremultiplyAlpha = unpackPremultiplyAlpha && !unpackUnmultiplyAlpha;
@@ -2144,6 +2162,11 @@ void TextureVk::initImageUsageFlags(ContextVk *contextVk, angle::FormatID actual
                                                 VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))
         {
             mImageUsageFlags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+            if (renderer->getFeatures().supportsShaderFramebufferFetchDepthStencil.enabled)
+            {
+                mImageUsageFlags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+            }
         }
     }
     else if (renderer->hasImageFormatFeatureBits(actualFormatID,
@@ -3157,9 +3180,9 @@ RenderTargetVk *TextureVk::getMultiLayerRenderTarget(ContextVk *contextVk,
                                                      GLuint layerIndex,
                                                      GLuint layerCount)
 {
-    vk::ImageSubresourceRange range = vk::MakeImageSubresourceDrawRange(
-        level, layerIndex, vk::GetLayerMode(*mImage, layerCount), gl::SrgbWriteControlMode::Default,
-        mImageView.getColorspaceForRead());
+    vk::ImageViewHelper *imageViews = &getImageViews();
+    vk::ImageSubresourceRange range = imageViews->getSubresourceDrawRange(
+        level, layerIndex, vk::GetLayerMode(*mImage, layerCount));
 
     auto iter = mMultiLayerRenderTargets.find(range);
     if (iter != mMultiLayerRenderTargets.end())
@@ -3175,9 +3198,8 @@ RenderTargetVk *TextureVk::getMultiLayerRenderTarget(ContextVk *contextVk,
         rt = std::make_unique<RenderTargetVk>();
     }
 
-    rt->init(mImage, &getImageViews(), nullptr, nullptr, mImageSiblingSerial,
-             getNativeImageLevel(level), getNativeImageLayer(layerIndex), layerCount,
-             RenderTargetTransience::Default);
+    rt->init(mImage, imageViews, nullptr, nullptr, mImageSiblingSerial, getNativeImageLevel(level),
+             getNativeImageLayer(layerIndex), layerCount, RenderTargetTransience::Default);
 
     return rt.get();
 }
@@ -3587,8 +3609,7 @@ void TextureVk::releaseOwnershipOfImage(const gl::Context *context)
     releaseAndDeleteImageAndViews(contextVk);
 }
 
-const vk::ImageView &TextureVk::getReadImageView(vk::Context *context,
-                                                 GLenum srgbDecode,
+const vk::ImageView &TextureVk::getReadImageView(GLenum srgbDecode,
                                                  bool texelFetchStaticUse,
                                                  bool samplerExternal2DY2YEXT) const
 {
@@ -3695,11 +3716,11 @@ vk::BufferHelper *TextureVk::getPossiblyEmulatedTextureBuffer(vk::Context *conte
     return &bufferVk->getBuffer();
 }
 
-angle::Result TextureVk::getBufferViewAndRecordUse(vk::Context *context,
-                                                   const vk::Format *imageUniformFormat,
-                                                   const gl::SamplerBinding *samplerBinding,
-                                                   bool isImage,
-                                                   const vk::BufferView **viewOut)
+angle::Result TextureVk::getBufferView(vk::Context *context,
+                                       const vk::Format *imageUniformFormat,
+                                       const gl::SamplerBinding *samplerBinding,
+                                       bool isImage,
+                                       const vk::BufferView **viewOut)
 {
     vk::Renderer *renderer = context->getRenderer();
 

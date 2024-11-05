@@ -16,7 +16,6 @@ Pixel 6 (ARM based) specific script that measures the following for each restric
 Setup:
 
   autoninja -C out/<config> angle_trace_perf_tests angle_apks
-  adb install -r --force-queryable ./out/<config>/apks/AngleLibraries.apk
   adb install -r out/<config>/angle_trace_tests_apk/angle_trace_tests-debug.apk
   (cd out/<config>; ../../src/tests/run_angle_android_test.py angle_trace_tests \
    --verbose --local-output --verbose-logging --max-steps-performed 1 --log=debug)
@@ -55,6 +54,7 @@ from psutil import process_iter
 DEFAULT_TEST_DIR = '.'
 DEFAULT_TEST_JSON = 'restricted_traces.json'
 DEFAULT_LOG_LEVEL = 'info'
+DEFAULT_ANGLE_PACKAGE = 'com.android.angle.test'
 
 Result = namedtuple('Result', ['stdout', 'stderr', 'time'])
 
@@ -68,7 +68,7 @@ class _global(object):
 def init():
     _global.current_user = run_adb_command('shell am get-current-user').stdout.strip()
     _global.storage_dir = '/data/user/' + _global.current_user + '/com.android.angle.test/files'
-    _global.cache_dir = '/data/user_de/' + _global.current_user + '/com.android.angle.test/cach'
+    _global.cache_dir = '/data/user_de/' + _global.current_user + '/com.android.angle.test/cache'
     logging.debug('Running with user %s, storage %s, cache %s', _global.current_user,
                   _global.storage_dir, _global.cache_dir)
 
@@ -543,7 +543,15 @@ def collect_power(done_event, test_fixedtime, results):
 
 def get_thermal_info():
     out = run_adb_command('shell dumpsys android.hardware.thermal.IThermal/default').stdout
-    result = [l for l in out.splitlines() if ('VIRTUAL-SKIN' in l and 'ThrottlingStatus:' in l)]
+    result = []
+    for line in out.splitlines():
+        if 'ThrottlingStatus:' in line:
+            name = re.search('Name: ([^ ]*)', line).group(1)
+            if ('VIRTUAL-SKIN' in name and
+                    '-CHARGE-' not in name and  # only supposed to affect charging speed
+                    'MODEL' not in name.split('-')):  # different units and not used for throttling
+                result.append(line)
+
     if not result:
         logging.error('Unexpected dumpsys IThermal response:\n%s', out)
         raise RuntimeError('Unexpected dumpsys IThermal response, logged above')
@@ -557,8 +565,7 @@ def set_vendor_thermal_control(disabled=None):
         while waiting:
             waiting = False
             for line in get_thermal_info():
-                is_charge = 'VIRTUAL-SKIN-CHARGE-' in line  # Only supposed to affect charging speed
-                if 'ThrottlingStatus: NONE' not in line and not is_charge:
+                if 'ThrottlingStatus: NONE' not in line:
                     logging.info('Waiting for vendor throttling to finish: %s', line.strip())
                     time.sleep(10)
                     waiting = True
@@ -572,9 +579,28 @@ def sleep_until_temps_below(limit_temp):
     while waiting:
         waiting = False
         for line in get_thermal_info():
-            v = float(line.split('CurrentValue:')[1].strip().split(' ')[0])
+            v = float(re.search('CurrentValue: ([^ ]*)', line).group(1))
             if v > limit_temp:
                 logging.info('Waiting for device temps below %.1f: %s', limit_temp, line.strip())
+                time.sleep(5)
+                waiting = True
+                break
+
+
+def sleep_until_temps_below_thermalservice(limit_temp):
+    waiting = True
+    while waiting:
+        waiting = False
+        lines = run_adb_command('shell dumpsys thermalservice').stdout.splitlines()
+        assert 'HAL Ready: true' in lines
+        for l in lines[lines.index('Current temperatures from HAL:') + 1:]:
+            if 'Temperature{' not in l:
+                break
+            v = re.search(r'mValue=([^,}]+)', l).group(1)
+            # Note: on some Pixel devices odd component temps are also reported here
+            # but some other key ones are not (e.g. CPU ODPM controlling cpu freqs)
+            if float(v) > limit_temp:
+                logging.info('Waiting for device temps below %.1f: %s', limit_temp, l.strip())
                 time.sleep(5)
                 waiting = True
                 break
@@ -668,9 +694,19 @@ def main():
         help='Custom thermal throttling with limit set to this temperature (off by default)',
         type=float)
     parser.add_argument(
+        '--custom-throttling-thermalservice-temp',
+        help='Custom thermal throttling (thermalservice) with limit set to this temperature (off by default)',
+        type=float)
+    parser.add_argument(
         '--min-battery-level',
         help='Sleep between tests if battery level drops below this value (off by default)',
         type=int)
+    parser.add_argument(
+        '--angle-package',
+        help='Where to load ANGLE libraries from. This will load from the test APK by default, ' +
+        'but you can point to any APK that contains ANGLE. Specify \'system\' to use libraries ' +
+        'already on the device',
+        default=DEFAULT_ANGLE_PACKAGE)
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -891,16 +927,12 @@ def run_traces(args):
                 if renderer == "native":
                     # Force the settings to native
                     run_adb_command(
-                        'shell settings put global angle_debug_package org.chromium.angle')
-                    run_adb_command(
                         'shell settings put global angle_gl_driver_selection_pkgs com.android.angle.test'
                     )
                     run_adb_command(
                         'shell settings put global angle_gl_driver_selection_values native')
                 elif renderer == "vulkan":
                     # Force the settings to ANGLE
-                    run_adb_command(
-                        'shell settings put global angle_debug_package org.chromium.angle')
                     run_adb_command(
                         'shell settings put global angle_gl_driver_selection_pkgs com.android.angle.test'
                     )
@@ -911,12 +943,21 @@ def run_traces(args):
                         'Deleting Android settings for forcing selection of GLES driver, ' +
                         'allowing system to load the default')
                     run_adb_command('shell settings delete global angle_debug_package')
+                    run_adb_command('shell settings delete global angle_gl_driver_all_angle')
                     run_adb_command('shell settings delete global angle_gl_driver_selection_pkgs')
                     run_adb_command(
                         'shell settings delete global angle_gl_driver_selection_values')
                 else:
                     logging.error('Unsupported renderer {}'.format(renderer))
                     exit()
+
+                if args.angle_package == 'system':
+                    # Clear the debug package so ANGLE will be loaded from /system/lib64
+                    run_adb_command('shell settings delete global angle_debug_package')
+                else:
+                    # Otherwise, load ANGLE from the specified APK
+                    run_adb_command('shell settings put global angle_debug_package ' +
+                                    args.angle_package)
 
                 # Remove any previous perf results
                 cleanup()
@@ -1034,6 +1075,10 @@ def run_traces(args):
 
                 if args.custom_throttling_temp:
                     sleep_until_temps_below(args.custom_throttling_temp)
+
+                if args.custom_throttling_thermalservice_temp:
+                    sleep_until_temps_below_thermalservice(
+                        args.custom_throttling_thermalservice_temp)
 
                 if args.min_battery_level:
                     sleep_until_battery_level(args.min_battery_level)
