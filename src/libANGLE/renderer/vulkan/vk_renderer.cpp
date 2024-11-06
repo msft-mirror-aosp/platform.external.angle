@@ -4384,7 +4384,7 @@ gl::Version Renderer::getMaxConformantESVersion() const
     const bool hasGeometryAndTessSupport =
         getNativeExtensions().geometryShaderAny() && getNativeExtensions().tessellationShaderAny();
 
-    if (!hasGeometryAndTessSupport || !mFeatures.exposeNonConformantExtensionsAndVersions.enabled)
+    if (!hasGeometryAndTessSupport)
     {
         return LimitVersionTo(maxSupportedESVersion, {3, 1});
     }
@@ -5335,20 +5335,20 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Samsung Vulkan driver with API level < 1.3.244 has a bug in imageless framebuffer support.
     // http://issuetracker.google.com/42266906
-    //
+    const bool isSamsungDriverWithImagelessFramebufferBug =
+        isSamsung && mPhysicalDeviceProperties.apiVersion < VK_MAKE_VERSION(1, 3, 244);
     // Qualcomm with imageless framebuffers, vkCreateFramebuffer loops forever.
     // http://issuetracker.google.com/369693310
-    //
+    const bool isQualcommWithImagelessFramebufferBug =
+        isQualcommProprietary && qualcommDriverVersion < QualcommDriverVersion(512, 802, 0);
     // PowerVR with imageless framebuffer spends enormous amounts of time in framebuffer destruction
     // and creation. ANGLE doesn't cache imageless framebuffers, instead adding them to garbage
     // collection, expecting them to be lightweight.
     // http://issuetracker.google.com/372273294
-    const bool isSamsungDriverWithImagelessFramebufferBug =
-        isSamsung && mPhysicalDeviceProperties.apiVersion < VK_MAKE_VERSION(1, 3, 244);
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImagelessFramebuffer,
                             mImagelessFramebufferFeatures.imagelessFramebuffer == VK_TRUE &&
                                 !isSamsungDriverWithImagelessFramebufferBug &&
-                                !isQualcommProprietary && !isPowerVR);
+                                !isQualcommWithImagelessFramebufferBug && !isPowerVR);
 
     if (ExtensionFound(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME, deviceExtensionNames))
     {
@@ -5657,7 +5657,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Emulation of GL_EXT_multisampled_render_to_texture is not possible with dynamic rendering.
     // That support is also not sacrificed for dynamic rendering.
     //
-    // Use of dynamic rendering is disabled on ARM due to driver bugs (b/356051947).
+    // Use of dynamic rendering is disabled on older ARM drivers due to driver bugs
+    // (http://issuetracker.google.com/356051947).
     const bool hasLegacyDitheringV1 =
         mFeatures.supportsLegacyDithering.enabled &&
         (mLegacyDitheringVersion < 2 || !mFeatures.supportsMaintenance5.enabled);
@@ -5668,7 +5669,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                             mFeatures.supportsDynamicRendering.enabled &&
                                 mFeatures.supportsDynamicRenderingLocalRead.enabled &&
                                 !hasLegacyDitheringV1 && !emulatesMultisampledRenderToTexture &&
-                                !isARM);
+                                !(isARM && armDriverVersion < ARMDriverVersion(52, 0, 0)));
 
     // On tile-based renderers, breaking the render pass is costly.  Changing into and out of
     // framebuffer fetch causes the render pass to break so that the layout of the color attachments
