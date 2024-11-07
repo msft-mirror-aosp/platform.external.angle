@@ -2568,7 +2568,8 @@ void RenderPassCommandBufferHelper::finalizeColorImageLayout(
         // because this function is expected to finalize the image layout, we still have to pretend
         // the image is in the present layout already.
         mImageOptimizeForPresentOriginalLayout = mImageOptimizeForPresent->getCurrentImageLayout();
-        mImageOptimizeForPresent->setCurrentImageLayout(ImageLayout::Present);
+        mImageOptimizeForPresent->setCurrentImageLayout(context->getRenderer(),
+                                                        ImageLayout::Present);
 
         if (!context->getFeatures().preferDynamicRendering.enabled)
         {
@@ -3239,7 +3240,8 @@ angle::Result RenderPassCommandBufferHelper::flushToPrimary(Context *context,
 
             // Restore the original layout of the image and do the real transition after the render
             // pass ends.
-            mImageOptimizeForPresent->setCurrentImageLayout(mImageOptimizeForPresentOriginalLayout);
+            mImageOptimizeForPresent->setCurrentImageLayout(context->getRenderer(),
+                                                            mImageOptimizeForPresentOriginalLayout);
             mImageOptimizeForPresent->recordWriteBarrierOneOff(context, ImageLayout::Present,
                                                                &primary, nullptr);
             mImageOptimizeForPresent               = nullptr;
@@ -7070,6 +7072,26 @@ bool ImageHelper::isCombinedDepthStencilFormat() const
     return (getAspectFlags() & kDepthStencilAspects) == kDepthStencilAspects;
 }
 
+void ImageHelper::setCurrentImageLayout(Renderer *renderer, ImageLayout newLayout)
+{
+    // Once you transition to ImageLayout::SharedPresent, you never transition out of it.
+    if (mCurrentLayout == ImageLayout::SharedPresent)
+    {
+        return;
+    }
+
+    const ImageMemoryBarrierData &transitionFrom =
+        renderer->getImageMemoryBarrierData(mCurrentLayout);
+    const ImageMemoryBarrierData &transitionTo = renderer->getImageMemoryBarrierData(newLayout);
+    mLastNonShaderReadOnlyLayout =
+        !IsShaderReadOnlyLayout(transitionFrom) ? mCurrentLayout : mLastNonShaderReadOnlyLayout;
+    // Force the use of BarrierType::Pipeline in the next barrierImpl call
+    mLastNonShaderReadOnlyEvent.release(renderer);
+    mCurrentShaderReadStageMask =
+        IsShaderReadOnlyLayout(transitionTo) ? transitionTo.dstStageMask : 0;
+    mCurrentLayout = newLayout;
+}
+
 VkImageLayout ImageHelper::getCurrentLayout(Renderer *renderer) const
 {
     return ConvertImageLayoutToVkImageLayout(renderer, mCurrentLayout);
@@ -8198,9 +8220,7 @@ angle::Result ImageHelper::generateMipmapsWithBlit(ContextVk *contextVk,
     // mLastNonShaderReadOnlyLayout is used to ensure previous write are made visible to reads,
     // since the only write here is transfer, hence mLastNonShaderReadOnlyLayout is set to
     // ImageLayout::TransferDst.
-    mLastNonShaderReadOnlyLayout = ImageLayout::TransferDst;
-    mCurrentShaderReadStageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    mCurrentLayout               = ImageLayout::FragmentShaderReadOnly;
+    setCurrentImageLayout(renderer, ImageLayout::FragmentShaderReadOnly);
 
     contextVk->trackImageWithOutsideRenderPassEvent(this);
 
@@ -11147,7 +11167,9 @@ angle::Result ImageHelper::readPixelsImpl(ContextVk *contextVk,
         ANGLE_TRY(resolvedImage.get().init2DStaging(
             contextVk, contextVk->getState().hasProtectedContent(), renderer->getMemoryProperties(),
             gl::Extents(area.width, area.height, 1), mIntendedFormatID, mActualFormatID,
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 1));
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                VK_IMAGE_USAGE_SAMPLED_BIT,
+            1));
     }
     else if (isExternalFormat)
     {
@@ -11156,7 +11178,7 @@ angle::Result ImageHelper::readPixelsImpl(ContextVk *contextVk,
             gl::Extents(area.width, area.height, 1), angle::FormatID::R8G8B8A8_UNORM,
             angle::FormatID::R8G8B8A8_UNORM,
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             1));
     }
 
