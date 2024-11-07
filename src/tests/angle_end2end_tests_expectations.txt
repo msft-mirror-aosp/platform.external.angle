@@ -118,6 +118,7 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 42266963 WIN NVIDIA OPENGL : PbufferTest.BindTexImageOverwriteNoCrashOnReleaseTexImage/* = SKIP
 42266963 WIN NVIDIA GLES : PbufferTest.UseAsFramebufferColorThenDeferredDestroy/* = SKIP
 42266963 WIN NVIDIA OPENGL : PbufferTest.UseAsFramebufferColorThenDeferredDestroy/* = SKIP
+377537290 WIN D3D11 : ReadPixelsMultisampleTest.DefaultFramebufferPBO/* = SKIP
 
 234602034 WIN INTEL D3D9 : ImageTest.SourceCubeAndSameTargetTextureWithEachCubeFace/* = SKIP
 234602034 WIN NVIDIA D3D9 : ImageTest.SourceCubeAndSameTargetTextureWithEachCubeFace/* = SKIP
@@ -957,6 +958,8 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 // Flaky Generally on AsyncCommandQueue.
 42266015 VULKAN : TimerQueriesTest.TimeElapsed/*_AsyncCommandQueue* = SKIP
 42266015 VULKAN : TimerQueriesTest.Timestamp/*_AsyncCommandQueue* = SKIP
+// Rare flakes on win-x86
+377503738 WIN VULKAN : Texture2DMemoryTestES3.TextureDataInLoopManyTimes/*SwiftShader*_AsyncCommandQueue* = SKIP
 
 // Cubemap sampling with explicit derivatives
 42262458 PIXEL4ORXL VULKAN : CubeMapTextureTest.SampleCoordinateTransformGrad/* = SKIP
