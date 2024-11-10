@@ -2274,6 +2274,11 @@ if (enable_java_templates) {
       "--webp-cache-dir=obj/android-webp-cache",
     ]
 
+    # TODO(b/355432192): Remove this flag once not needed by Compose.
+    if (defined(enable_hilt_internal) && enable_hilt_internal) {
+      _args += [ "--xml-namespaces" ]
+    }
+
     _inputs += [ invoker.android_manifest ]
     _outputs = [ _final_srcjar_path ]
     _args += [
@@ -3114,6 +3119,16 @@ if (enable_java_templates) {
       } else {
         script = "//build/android/gyp/compile_java.py"
         inputs = javac_paths_for_inputs
+
+        # TODO(crbug.com/363263205): Make Kythe work with jdk21.
+        if (enable_kythe_annotations) {
+          _new_inputs = []
+          foreach(_x, inputs) {
+            _new_inputs += [ string_replace(_x, "jdk", "jdk17") ]
+          }
+          inputs = []
+          inputs = _new_inputs
+        }
       }
 
       if (target_name == "chrome_java__header") {
@@ -3321,7 +3336,9 @@ if (enable_java_templates) {
         invoker.output_jar_path,
         invoker.output_interface_jar_path,
       ]
-      inputs = invoker.source_files + _java_srcjars + [
+      inputs = kotlinc_paths_for_inputs + java_paths_for_inputs +
+               invoker.source_files + _java_srcjars +
+               [
                  _build_config,
                  invoker.target_sources_file,
                ]
