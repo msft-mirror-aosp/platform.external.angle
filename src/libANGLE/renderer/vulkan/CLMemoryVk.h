@@ -38,6 +38,7 @@ class CLMemoryVk : public CLMemoryImpl
     VkBufferUsageFlags getVkUsageFlags();
     VkMemoryPropertyFlags getVkMemPropertyFlags();
     virtual size_t getSize() const = 0;
+    size_t getOffset() const { return mMemory.getOffset(); }
 
     angle::Result copyTo(void *ptr, size_t offset, size_t size);
     angle::Result copyTo(CLMemoryVk *dst, size_t srcOffset, size_t dstOffset, size_t size);
@@ -74,16 +75,20 @@ class CLBufferVk : public CLMemoryVk
     CLBufferVk(const cl::Buffer &buffer);
     ~CLBufferVk() override;
 
-    angle::Result createSubBuffer(const cl::Buffer &buffer,
-                                  cl::MemFlags flags,
-                                  size_t size,
-                                  CLMemoryImpl::Ptr *subBufferOut) override;
-
-    vk::BufferHelper &getBuffer() { return mBuffer; }
+    vk::BufferHelper &getBuffer();
     CLBufferVk *getParent() { return static_cast<CLBufferVk *>(mParent); }
 
     angle::Result create(void *hostPtr);
     angle::Result createStagingBuffer(size_t size);
+
+    angle::Result fillWithPattern(const void *pattern,
+                                  size_t patternSize,
+                                  size_t offset,
+                                  size_t size)
+    {
+        getBuffer().fillWithPattern(pattern, patternSize, offset, size);
+        return angle::Result::Continue;
+    }
 
     bool isSubBuffer() const { return mParent != nullptr; }
 
@@ -125,6 +130,9 @@ class CLImageVk : public CLMemoryVk
     bool isStagingBufferInitialized() { return mStagingBufferInitialized; }
     VkExtent3D getImageExtent() { return mExtent; }
     uint8_t *getMappedPtr() { return mMappedMemory; }
+    vk::ImageView &getImageView() { return mImageView; }
+    cl_image_format getImageFormat() { return mImageFormat; }
+    cl::ImageDescriptor getDesc() { return mDesc; }
 
   private:
     angle::Result mapImpl() override;
@@ -138,7 +146,11 @@ class CLImageVk : public CLMemoryVk
     uint32_t mArrayLayers;
     size_t mImageSize;
     size_t mElementSize;
+    cl_image_format mImageFormat;
+    cl::ImageDescriptor mDesc;
     bool mStagingBufferInitialized;
+    vk::ImageView mImageView;
+    VkImageViewType mImageViewType;
 };
 
 }  // namespace rx

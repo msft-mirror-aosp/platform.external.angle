@@ -7,9 +7,11 @@
 load("@builtin//path.star", "path")
 load("@builtin//struct.star", "module")
 load("./android.star", "android")
+load("./ar.star", "ar")
 load("./clang_all.star", "clang_all")
 load("./clang_code_coverage_wrapper.star", "clang_code_coverage_wrapper")
 load("./config.star", "config")
+load("./fuchsia.star", "fuchsia")
 load("./gn_logs.star", "gn_logs")
 load("./win_sdk.star", "win_sdk")
 
@@ -52,6 +54,15 @@ def __filegroups(ctx):
             # need bits/stab.def, c++/*
         },
         "build/linux/debian_bullseye_i386-sysroot/usr/lib:headers": {
+            "type": "glob",
+            "includes": ["*.h", "crtbegin.o"],
+        },
+        "build/linux/debian_bullseye_armhf-sysroot/usr/include:include": {
+            "type": "glob",
+            "includes": ["*"],
+            # need bits/stab.def, c++/*
+        },
+        "build/linux/debian_bullseye_armhf-sysroot/usr/lib:headers": {
             "type": "glob",
             "includes": ["*.h", "crtbegin.o"],
         },
@@ -105,6 +116,18 @@ def __filegroups(ctx):
             "type": "glob",
             "includes": ["*.o", "*.a", "*.so"],
         },
+        "build/linux/debian_bullseye_armhf-sysroot/lib:libso": {
+            "type": "glob",
+            "includes": ["*.so*"],
+        },
+        "build/linux/debian_bullseye_armhf-sysroot/usr/lib/arm-linux-gnueabihf:libs": {
+            "type": "glob",
+            "includes": ["*.o", "*.so*", "lib*.a"],
+        },
+        "build/linux/debian_bullseye_armhf-sysroot/usr/lib/gcc/arm-linux-gnueabihf:libgcc": {
+            "type": "glob",
+            "includes": ["*.o", "*.a", "*.so"],
+        },
     }
     if android.enabled(ctx):
         for arch in android_archs:
@@ -114,12 +137,30 @@ def __filegroups(ctx):
                     "type": "glob",
                     "includes": ["*"],
                 }
+    if fuchsia.enabled(ctx):
+        fg.update(fuchsia.filegroups(ctx))
     fg.update(clang_all.filegroups(ctx))
     return fg
 
 def __clang_compile_coverage(ctx, cmd):
     clang_command = clang_code_coverage_wrapper.run(ctx, list(cmd.args))
     ctx.actions.fix(args = clang_command)
+
+def __clang_alink(ctx, cmd):
+    # check command line to see "-T" and "-S".
+    # rm -f obj/third_party/angle/libangle_common.a && "../../third_party/llvm-build/Release+Asserts/bin/llvm-ar" -T -S -r -c -D obj/third_party/angle/libangle_common.a @"obj/third_party/angle/libangle_common.a.rsp"
+    if not ("-T" in cmd.args[-1] and "-S" in cmd.args[-1]):
+        print("not thin archive without symbol table")
+        return
+
+    # create thin archive without symbol table by handler.
+    rspfile_content = str(cmd.rspfile_content)
+    inputs = []
+    for fname in rspfile_content.split(" "):
+        inputs.append(ctx.fs.canonpath(fname))
+    data = ar.create(ctx, path.dir(cmd.outputs[0]), inputs)
+    ctx.actions.write(cmd.outputs[0], data)
+    ctx.actions.exit(exit_status = 0)
 
 def __clang_link(ctx, cmd):
     inputs = []
@@ -131,6 +172,9 @@ def __clang_link(ctx, cmd):
             sysroot = ctx.fs.canonpath(sysroot)
         elif arg.startswith("--target="):
             target = arg.removeprefix("--target=")
+        elif arg.startswith("-L"):
+            lib_path = ctx.fs.canonpath(arg.removeprefix("-L"))
+            inputs.append(lib_path + ":link")
     if sysroot:
         inputs.extend([sysroot + ":link"])
 
@@ -146,6 +190,7 @@ def __clang_link(ctx, cmd):
 
 __handlers = {
     "clang_compile_coverage": __clang_compile_coverage,
+    "clang_alink": __clang_alink,
     "clang_link": __clang_link,
 }
 
@@ -164,6 +209,10 @@ def __step_config(ctx, step_config):
             "build/linux/debian_bullseye_i386-sysroot/usr/include:include",
             "build/linux/debian_bullseye_i386-sysroot/usr/lib:headers",
         ],
+        "build/linux/debian_bullseye_armhf-sysroot:headers": [
+            "build/linux/debian_bullseye_armhf-sysroot/usr/include:include",
+            "build/linux/debian_bullseye_armhf-sysroot/usr/lib:headers",
+        ],
         "build/linux/debian_bullseye_amd64-sysroot:link": [
             "build/linux/debian_bullseye_amd64-sysroot/lib/x86_64-linux-gnu:libso",
             "build/linux/debian_bullseye_amd64-sysroot/lib64/ld-linux-x86-64.so.2",
@@ -178,6 +227,12 @@ def __step_config(ctx, step_config):
             "build/linux/debian_bullseye_i386-sysroot/lib:libso",
             "build/linux/debian_bullseye_i386-sysroot/usr/lib/gcc/i686-linux-gnu:libgcc",
             "build/linux/debian_bullseye_i386-sysroot/usr/lib/i386-linux-gnu:libs",
+            "third_party/llvm-build/Release+Asserts/bin:llddeps",
+        ],
+        "build/linux/debian_bullseye_armhf-sysroot:link": [
+            "build/linux/debian_bullseye_armhf-sysroot/lib:libso",
+            "build/linux/debian_bullseye_armhf-sysroot/usr/lib/gcc/arm-linux-gnueabihf:libgcc",
+            "build/linux/debian_bullseye_armhf-sysroot/usr/lib/arm-linux-gnueabihf:libs",
             "third_party/llvm-build/Release+Asserts/bin:llddeps",
         ],
         "build/toolchain/gcc_solink_wrapper.py": [
@@ -280,6 +335,7 @@ def __step_config(ctx, step_config):
                 "*.py",
                 "*.stamp",
             ],
+            "handler": "clang_alink",
             "remote": config.get(ctx, "remote-link"),
             "canonicalize_dir": True,
             "timeout": "2m",

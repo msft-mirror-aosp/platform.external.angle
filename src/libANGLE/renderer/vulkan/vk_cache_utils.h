@@ -1972,16 +1972,6 @@ class DescriptorSetDescBuilder final
                                       const gl::ActiveTextureArray<TextureVk *> &textures,
                                       const gl::SamplerBindingVector &samplers);
 
-    angle::Result updateActiveTexturesForCacheMiss(
-        Context *context,
-        const ShaderInterfaceVariableInfoMap &variableInfoMap,
-        const WriteDescriptorDescs &writeDescriptorDescs,
-        const gl::ProgramExecutable &executable,
-        const gl::ActiveTextureArray<TextureVk *> &textures,
-        const gl::SamplerBindingVector &samplers,
-        PipelineType pipelineType,
-        const SharedDescriptorSetCacheKey &sharedCacheKey);
-
     void updateDescriptorSet(Renderer *renderer,
                              const WriteDescriptorDescs &writeDescriptorDescs,
                              UpdateDescriptorSetsBuilder *updateBuilder,
@@ -2006,16 +1996,6 @@ class DescriptorSetDescBuilder final
     angle::FastVector<DescriptorDescHandles, kFastDescriptorSetDescLimit> mHandles;
     angle::FastVector<uint32_t, kFastDescriptorSetDescLimit> mDynamicOffsets;
 };
-
-angle::Result UpdateFullActiveTexturesDescriptorSet(
-    Context *context,
-    const ShaderInterfaceVariableInfoMap &variableInfoMap,
-    const WriteDescriptorDescs &writeDescriptorDescs,
-    UpdateDescriptorSetsBuilder *updateBuilder,
-    const gl::ProgramExecutable &executable,
-    const gl::ActiveTextureArray<TextureVk *> &textures,
-    const gl::SamplerBindingVector &samplers,
-    VkDescriptorSet descriptorSet);
 
 // In the FramebufferDesc object:
 //  - Depth/stencil serial is at index 0

@@ -5,13 +5,14 @@
 //
 // CLMemoryVk.cpp: Implements the class methods for CLMemoryVk.
 
-#include "libANGLE/renderer/vulkan/CLMemoryVk.h"
 #include <cstdint>
-#include "common/aligned_memory.h"
-#include "libANGLE/Error.h"
+
 #include "libANGLE/renderer/vulkan/CLContextVk.h"
+#include "libANGLE/renderer/vulkan/CLMemoryVk.h"
+#include "libANGLE/renderer/vulkan/vk_cl_utils.h"
 #include "libANGLE/renderer/vulkan/vk_renderer.h"
 
+#include "libANGLE/renderer/CLMemoryImpl.h"
 #include "libANGLE/renderer/Format.h"
 #include "libANGLE/renderer/FormatID_autogen.h"
 
@@ -19,6 +20,7 @@
 #include "libANGLE/CLContext.h"
 #include "libANGLE/CLImage.h"
 #include "libANGLE/CLMemory.h"
+#include "libANGLE/Error.h"
 #include "libANGLE/cl_utils.h"
 
 namespace rx
@@ -38,48 +40,14 @@ CLMemoryVk::~CLMemoryVk()
     mContext->mAssociatedObjects->mMemories.erase(mMemory.getNative());
 }
 
-angle::Result CLMemoryVk::createSubBuffer(const cl::Buffer &buffer,
-                                          cl::MemFlags flags,
-                                          size_t size,
-                                          CLMemoryImpl::Ptr *subBufferOut)
-{
-    UNIMPLEMENTED();
-    ANGLE_CL_RETURN_ERROR(CL_OUT_OF_RESOURCES);
-}
-
 VkBufferUsageFlags CLMemoryVk::getVkUsageFlags()
 {
-    VkBufferUsageFlags usageFlags =
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-
-    if (mMemory.getFlags().intersects(CL_MEM_WRITE_ONLY))
-    {
-        usageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    }
-    else if (mMemory.getFlags().intersects(CL_MEM_READ_ONLY))
-    {
-        usageFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    }
-    else
-    {
-        usageFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    }
-
-    return usageFlags;
+    return cl_vk::GetBufferUsageFlags(mMemory.getFlags());
 }
 
 VkMemoryPropertyFlags CLMemoryVk::getVkMemPropertyFlags()
 {
-    // TODO: http://anglebug.com/42267018
-    VkMemoryPropertyFlags propFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-
-    if (mMemory.getFlags().intersects(CL_MEM_USE_HOST_PTR | CL_MEM_ALLOC_HOST_PTR |
-                                      CL_MEM_COPY_HOST_PTR))
-    {
-        propFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-    }
-
-    return propFlags;
+    return cl_vk::GetMemoryPropertyFlags(mMemory.getFlags());
 }
 
 angle::Result CLMemoryVk::map(uint8_t *&ptrOut, size_t offset)
@@ -119,6 +87,25 @@ angle::Result CLMemoryVk::copyFrom(const void *src, size_t srcOffset, size_t siz
     return angle::Result::Continue;
 }
 
+// Create a sub-buffer from the given buffer object
+angle::Result CLMemoryVk::createSubBuffer(const cl::Buffer &buffer,
+                                          cl::MemFlags flags,
+                                          size_t size,
+                                          CLMemoryImpl::Ptr *subBufferOut)
+{
+    ASSERT(buffer.isSubBuffer());
+
+    CLBufferVk *bufferVk = new CLBufferVk(buffer);
+    if (!bufferVk)
+    {
+        ANGLE_CL_RETURN_ERROR(CL_OUT_OF_HOST_MEMORY);
+    }
+    ANGLE_TRY(bufferVk->create(nullptr));
+    *subBufferOut = CLMemoryImpl::Ptr(bufferVk);
+
+    return angle::Result::Continue;
+}
+
 CLBufferVk::CLBufferVk(const cl::Buffer &buffer) : CLMemoryVk(buffer)
 {
     if (buffer.isSubBuffer())
@@ -141,13 +128,13 @@ CLBufferVk::~CLBufferVk()
     mBuffer.destroy(mRenderer);
 }
 
-angle::Result CLBufferVk::createSubBuffer(const cl::Buffer &buffer,
-                                          cl::MemFlags flags,
-                                          size_t size,
-                                          CLMemoryImpl::Ptr *subBufferOut)
+vk::BufferHelper &CLBufferVk::getBuffer()
 {
-    UNIMPLEMENTED();
-    ANGLE_CL_RETURN_ERROR(CL_OUT_OF_RESOURCES);
+    if (isSubBuffer())
+    {
+        return getParent()->getBuffer();
+    }
+    return mBuffer;
 }
 
 angle::Result CLBufferVk::create(void *hostPtr)
@@ -177,7 +164,7 @@ angle::Result CLBufferVk::mapImpl()
 
     if (isSubBuffer())
     {
-        ANGLE_TRY(mParent->map(mMappedMemory, static_cast<size_t>(mBuffer.getOffset())));
+        ANGLE_TRY(mParent->map(mMappedMemory, getOffset()));
         return angle::Result::Continue;
     }
     ANGLE_TRY(mBuffer.map(mContext, &mMappedMemory));
@@ -313,6 +300,7 @@ CLImageVk::CLImageVk(const cl::Image &image)
       mArrayLayers(1),
       mImageSize(0),
       mElementSize(0),
+      mDesc(image.getDescriptor()),
       mStagingBufferInitialized(false)
 {}
 
@@ -322,7 +310,9 @@ CLImageVk::~CLImageVk()
     {
         unmap();
     }
+
     mImage.destroy(mRenderer);
+    mImageView.destroy(mContext->getDevice());
 }
 
 angle::Result CLImageVk::create(void *hostPtr)
@@ -345,6 +335,18 @@ angle::Result CLImageVk::create(void *hostPtr)
             break;
         case CL_RGBA:
             mFormat = angle::Format::CLRGBAFormatToID(format.image_channel_data_type);
+            break;
+        case CL_BGRA:
+            mFormat = angle::Format::CLBGRAFormatToID(format.image_channel_data_type);
+            break;
+        case CL_sRGBA:
+            mFormat = angle::Format::CLsRGBAFormatToID(format.image_channel_data_type);
+            break;
+        case CL_DEPTH:
+            mFormat = angle::Format::CLDEPTHFormatToID(format.image_channel_data_type);
+            break;
+        case CL_DEPTH_STENCIL:
+            mFormat = angle::Format::CLDEPTHSTENCILFormatToID(format.image_channel_data_type);
             break;
         default:
             UNIMPLEMENTED();
@@ -372,7 +374,31 @@ angle::Result CLImageVk::create(void *hostPtr)
             UNREACHABLE();
     }
 
+    switch (desc.type)
+    {
+        case cl::MemObjectType::Image1D_Buffer:
+        case cl::MemObjectType::Image1D:
+            mImageViewType = VK_IMAGE_VIEW_TYPE_1D;
+            break;
+        case cl::MemObjectType::Image1D_Array:
+            mImageViewType = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+            break;
+        case cl::MemObjectType::Image2D:
+            mImageViewType = VK_IMAGE_VIEW_TYPE_2D;
+            break;
+        case cl::MemObjectType::Image2D_Array:
+            mImageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+            break;
+        case cl::MemObjectType::Image3D:
+            mImageViewType = VK_IMAGE_VIEW_TYPE_3D;
+            break;
+        default:
+            UNREACHABLE();
+    }
+
     mElementSize = cl::GetElementSize(format);
+    mDesc        = desc;
+    mImageFormat = format;
 
     if (desc.slicePitch > 0)
     {
@@ -423,6 +449,25 @@ angle::Result CLImageVk::create(void *hostPtr)
                                 CL_OUT_OF_RESOURCES);
     }
 
+    VkImageViewCreateInfo viewInfo = {};
+    viewInfo.sType                 = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.flags                 = 0;
+    viewInfo.image                 = getImage().getImage().getHandle();
+    viewInfo.format                = getImage().getActualVkFormat();
+
+    viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel   = 0;
+    viewInfo.subresourceRange.levelCount     = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount     = static_cast<uint32_t>(getArraySize());
+    viewInfo.components.r                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+    viewInfo.components.g                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+    viewInfo.components.b                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+    viewInfo.components.a                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+    viewInfo.viewType = mImageViewType;
+    ANGLE_VK_TRY(mContext, mImageView.init(mContext->getDevice(), viewInfo));
+
     return angle::Result::Continue;
 }
 
@@ -440,12 +485,17 @@ bool CLImageVk::containsHostMemExtension()
 
 angle::Result CLImageVk::mapImpl()
 {
-    UNIMPLEMENTED();
-    ANGLE_CL_RETURN_ERROR(CL_OUT_OF_RESOURCES);
+    ASSERT(!isMapped());
+
+    ASSERT(isStagingBufferInitialized());
+    ANGLE_TRY(getStagingBuffer().map(mContext, &mMappedMemory));
+
+    return angle::Result::Continue;
 }
 void CLImageVk::unmapImpl()
 {
-    UNIMPLEMENTED();
+    getStagingBuffer().unmap(mContext->getRenderer());
+    mMappedMemory = nullptr;
 }
 
 }  // namespace rx
