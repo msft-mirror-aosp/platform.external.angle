@@ -1328,7 +1328,7 @@ angle::Result DisplayMtl::initializeShaderLibrary()
 #else
     const bool disableFastMath = false;
     const bool usesInvariance  = true;
-    mDefaultShaders            = mtl::CreateShaderLibrary(getMetalDevice(), gDefaultMetallibSrc,
+    mDefaultShaders            = mtl::CreateShaderLibrary(getMetalDevice(), gDefaultMetallibSrc, {},
                                                           disableFastMath, usesInvariance, &err);
 #endif
 
