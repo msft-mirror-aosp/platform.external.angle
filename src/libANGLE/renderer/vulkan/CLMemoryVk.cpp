@@ -5,10 +5,12 @@
 //
 // CLMemoryVk.cpp: Implements the class methods for CLMemoryVk.
 
-#include <cstdint>
-
-#include "libANGLE/renderer/vulkan/CLContextVk.h"
 #include "libANGLE/renderer/vulkan/CLMemoryVk.h"
+#include "CL/cl.h"
+#include "CL/cl_half.h"
+#include "common/aligned_memory.h"
+#include "libANGLE/Error.h"
+#include "libANGLE/renderer/vulkan/CLContextVk.h"
 #include "libANGLE/renderer/vulkan/vk_cl_utils.h"
 #include "libANGLE/renderer/vulkan/vk_renderer.h"
 
@@ -25,6 +27,31 @@
 
 namespace rx
 {
+namespace
+{
+cl_int NormalizeFloatValue(float value, float maximum)
+{
+    if (value < 0)
+    {
+        return 0;
+    }
+    if (value > 1.f)
+    {
+        return static_cast<cl_int>(maximum);
+    }
+    float valueToRound = (value * maximum);
+
+    if (fabsf(valueToRound) < 0x1.0p23f)
+    {
+        constexpr float magic[2] = {0x1.0p23f, -0x1.0p23f};
+        float magicVal           = magic[valueToRound < 0.0f];
+        valueToRound += magicVal;
+        valueToRound -= magicVal;
+    }
+
+    return static_cast<cl_int>(valueToRound);
+}
+}  // anonymous namespace
 
 CLMemoryVk::CLMemoryVk(const cl::Memory &memory)
     : CLMemoryImpl(memory),
@@ -294,6 +321,50 @@ angle::Result CLImageVk::copyStagingTo(void *ptr, size_t offset, size_t size)
     return angle::Result::Continue;
 }
 
+angle::Result CLImageVk::copyStagingToFromWithPitch(void *hostPtr,
+                                                    const cl::Coordinate &region,
+                                                    const size_t rowPitch,
+                                                    const size_t slicePitch,
+                                                    StagingBufferCopyDirection copyStagingTo)
+{
+    uint8_t *ptrInBase  = nullptr;
+    uint8_t *ptrOutBase = nullptr;
+    cl::BufferBox stagingBufferBox{
+        {},
+        {static_cast<int>(region.x), static_cast<int>(region.y), static_cast<int>(region.z)},
+        0,
+        0,
+        getElementSize()};
+
+    if (copyStagingTo == StagingBufferCopyDirection::ToHost)
+    {
+        ptrOutBase = static_cast<uint8_t *>(hostPtr);
+        ANGLE_TRY(getStagingBuffer().map(mContext, &ptrInBase));
+    }
+    else
+    {
+        ptrInBase = static_cast<uint8_t *>(hostPtr);
+        ANGLE_TRY(getStagingBuffer().map(mContext, &ptrOutBase));
+    }
+    for (size_t slice = 0; slice < region.z; slice++)
+    {
+        for (size_t row = 0; row < region.y; row++)
+        {
+            size_t stagingBufferOffset = stagingBufferBox.getRowOffset(slice, row);
+            size_t hostPtrOffset       = (slice * slicePitch + row * rowPitch);
+            uint8_t *dst               = (copyStagingTo == StagingBufferCopyDirection::ToHost)
+                                             ? ptrOutBase + hostPtrOffset
+                                             : ptrOutBase + stagingBufferOffset;
+            uint8_t *src               = (copyStagingTo == StagingBufferCopyDirection::ToHost)
+                                             ? ptrInBase + stagingBufferOffset
+                                             : ptrInBase + hostPtrOffset;
+            memcpy(dst, src, region.x * getElementSize());
+        }
+    }
+    getStagingBuffer().unmap(mContext->getRenderer());
+    return angle::Result::Continue;
+}
+
 CLImageVk::CLImageVk(const cl::Image &image)
     : CLMemoryVk(image),
       mFormat(angle::FormatID::NONE),
@@ -313,6 +384,10 @@ CLImageVk::~CLImageVk()
 
     mImage.destroy(mRenderer);
     mImageView.destroy(mContext->getDevice());
+    if (isStagingBufferInitialized())
+    {
+        mStagingBuffer.destroy(mRenderer);
+    }
 }
 
 angle::Result CLImageVk::create(void *hostPtr)
@@ -430,20 +505,25 @@ angle::Result CLImageVk::create(void *hostPtr)
     {
         ASSERT(hostPtr);
         ANGLE_CL_IMPL_TRY_ERROR(createStagingBuffer(mImageSize), CL_OUT_OF_RESOURCES);
-        ANGLE_CL_IMPL_TRY_ERROR(copyStagingFrom(hostPtr, 0, mImageSize), CL_OUT_OF_RESOURCES);
-
+        if (mDesc.rowPitch == 0 && mDesc.slicePitch == 0)
+        {
+            ANGLE_CL_IMPL_TRY_ERROR(copyStagingFrom(hostPtr, 0, mImageSize), CL_OUT_OF_RESOURCES);
+        }
+        else
+        {
+            ANGLE_TRY(copyStagingToFromWithPitch(
+                hostPtr, {mExtent.width, mExtent.height, mExtent.depth}, mDesc.rowPitch,
+                mDesc.slicePitch, StagingBufferCopyDirection::ToStagingBuffer));
+        }
         VkBufferImageCopy copyRegion{};
         copyRegion.bufferOffset      = 0;
         copyRegion.bufferRowLength   = 0;
         copyRegion.bufferImageHeight = 0;
-
-        copyRegion.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-        copyRegion.imageSubresource.mipLevel       = (int)desc.numMipLevels;
-        copyRegion.imageSubresource.baseArrayLayer = 0;
-        copyRegion.imageSubresource.layerCount     = 1;
-
-        copyRegion.imageOffset = {0, 0, 0};
-        copyRegion.imageExtent = {mExtent.width, mExtent.height, mExtent.depth};
+        copyRegion.imageExtent = getExtentForCopy({mExtent.width, mExtent.height, mExtent.depth});
+        copyRegion.imageOffset = getOffsetForCopy({0, 0, 0});
+        copyRegion.imageSubresource =
+            getSubresourceLayersForCopy({0, 0, 0}, {mExtent.width, mExtent.height, mExtent.depth},
+                                        mDesc.type, ImageCopyWith::Buffer);
 
         ANGLE_CL_IMPL_TRY_ERROR(mImage.copyToBufferOneOff(mContext, &mStagingBuffer, copyRegion),
                                 CL_OUT_OF_RESOURCES);
@@ -483,6 +563,226 @@ bool CLImageVk::containsHostMemExtension()
                      "VK_EXT_external_memory_host") != enabledDeviceExtensions.end();
 }
 
+void CLImageVk::packPixels(const void *fillColor, PixelColor *packedColor)
+{
+    size_t channelCount = cl::GetChannelCount(mImageFormat.image_channel_order);
+
+    switch (mImageFormat.image_channel_data_type)
+    {
+        case CL_UNORM_INT8:
+        {
+            float *srcVector = static_cast<float *>(const_cast<void *>(fillColor));
+            if (mImageFormat.image_channel_order == CL_BGRA)
+            {
+                packedColor->u8[0] =
+                    static_cast<unsigned char>(NormalizeFloatValue(srcVector[2], 255.f));
+                packedColor->u8[1] =
+                    static_cast<unsigned char>(NormalizeFloatValue(srcVector[1], 255.f));
+                packedColor->u8[2] =
+                    static_cast<unsigned char>(NormalizeFloatValue(srcVector[0], 255.f));
+                packedColor->u8[3] =
+                    static_cast<unsigned char>(NormalizeFloatValue(srcVector[3], 255.f));
+            }
+            else
+            {
+                for (unsigned int i = 0; i < channelCount; i++)
+                    packedColor->u8[i] =
+                        static_cast<unsigned char>(NormalizeFloatValue(srcVector[i], 255.f));
+            }
+            break;
+        }
+        case CL_SIGNED_INT8:
+        {
+            int *srcVector = static_cast<int *>(const_cast<void *>(fillColor));
+            for (unsigned int i = 0; i < channelCount; i++)
+                packedColor->s8[i] = static_cast<char>(std::clamp(srcVector[i], -128, 127));
+            break;
+        }
+        case CL_UNSIGNED_INT8:
+        {
+            unsigned int *srcVector = static_cast<unsigned int *>(const_cast<void *>(fillColor));
+            for (unsigned int i = 0; i < channelCount; i++)
+                packedColor->u8[i] = static_cast<unsigned char>(
+                    std::clamp(static_cast<unsigned int>(srcVector[i]),
+                               static_cast<unsigned int>(0), static_cast<unsigned int>(255)));
+            break;
+        }
+        case CL_UNORM_INT16:
+        {
+            float *srcVector = static_cast<float *>(const_cast<void *>(fillColor));
+            for (unsigned int i = 0; i < channelCount; i++)
+                packedColor->u16[i] =
+                    static_cast<unsigned short>(NormalizeFloatValue(srcVector[i], 65535.f));
+            break;
+        }
+        case CL_SIGNED_INT16:
+        {
+            int *srcVector = static_cast<int *>(const_cast<void *>(fillColor));
+            for (unsigned int i = 0; i < channelCount; i++)
+                packedColor->s16[i] = static_cast<short>(std::clamp(srcVector[i], -32768, 32767));
+            break;
+        }
+        case CL_UNSIGNED_INT16:
+        {
+            unsigned int *srcVector = static_cast<unsigned int *>(const_cast<void *>(fillColor));
+            for (unsigned int i = 0; i < channelCount; i++)
+                packedColor->u16[i] = static_cast<unsigned short>(
+                    std::clamp(static_cast<unsigned int>(srcVector[i]),
+                               static_cast<unsigned int>(0), static_cast<unsigned int>(65535)));
+            break;
+        }
+        case CL_HALF_FLOAT:
+        {
+            float *srcVector = static_cast<float *>(const_cast<void *>(fillColor));
+            for (unsigned int i = 0; i < channelCount; i++)
+                packedColor->fp16[i] = cl_half_from_float(srcVector[i], CL_HALF_RTE);
+            break;
+        }
+        case CL_SIGNED_INT32:
+        {
+            int *srcVector = static_cast<int *>(const_cast<void *>(fillColor));
+            for (unsigned int i = 0; i < channelCount; i++)
+                packedColor->s32[i] = static_cast<int>(srcVector[i]);
+            break;
+        }
+        case CL_UNSIGNED_INT32:
+        {
+            unsigned int *srcVector = static_cast<unsigned int *>(const_cast<void *>(fillColor));
+            for (unsigned int i = 0; i < channelCount; i++)
+                packedColor->u32[i] = static_cast<unsigned int>(srcVector[i]);
+            break;
+        }
+        case CL_FLOAT:
+        {
+            float *srcVector = static_cast<float *>(const_cast<void *>(fillColor));
+            for (unsigned int i = 0; i < channelCount; i++)
+                packedColor->fp32[i] = srcVector[i];
+            break;
+        }
+        default:
+            UNIMPLEMENTED();
+            break;
+    }
+}
+
+void CLImageVk::fillImageWithColor(const cl::MemOffsets &origin,
+                                   const cl::Coordinate &region,
+                                   uint8_t *imagePtr,
+                                   PixelColor *packedColor)
+{
+    size_t elementSize = getElementSize();
+    cl::BufferBox stagingBufferBox{
+        {},
+        {static_cast<int>(mExtent.width), static_cast<int>(mExtent.height),
+         static_cast<int>(mExtent.depth)},
+        0,
+        0,
+        elementSize};
+    uint8_t *ptrBase = imagePtr + (origin.z * stagingBufferBox.getSlicePitch()) +
+                       (origin.y * stagingBufferBox.getRowPitch()) + (origin.x * elementSize);
+    for (size_t slice = 0; slice < region.z; slice++)
+    {
+        for (size_t row = 0; row < region.y; row++)
+        {
+            size_t stagingBufferOffset = stagingBufferBox.getRowOffset(slice, row);
+            uint8_t *pixelPtr          = ptrBase + stagingBufferOffset;
+            for (size_t x = 0; x < region.x; x++)
+            {
+                memcpy(pixelPtr, packedColor, mElementSize);
+                pixelPtr += mElementSize;
+            }
+        }
+    }
+}
+
+VkExtent3D CLImageVk::getExtentForCopy(const cl::Coordinate &region)
+{
+    VkExtent3D extent = {};
+    extent.width      = static_cast<uint32_t>(region.x);
+    extent.height     = static_cast<uint32_t>(region.y);
+    extent.depth      = static_cast<uint32_t>(region.z);
+    switch (mDesc.type)
+    {
+        case cl::MemObjectType::Image1D_Array:
+
+            extent.height = 1;
+            extent.depth  = 1;
+            break;
+        case cl::MemObjectType::Image2D_Array:
+            extent.depth = 1;
+            break;
+        default:
+            break;
+    }
+    return extent;
+}
+
+VkOffset3D CLImageVk::getOffsetForCopy(const cl::MemOffsets &origin)
+{
+    VkOffset3D offset = {};
+    offset.x          = static_cast<int32_t>(origin.x);
+    offset.y          = static_cast<int32_t>(origin.y);
+    offset.z          = static_cast<int32_t>(origin.z);
+    switch (mDesc.type)
+    {
+        case cl::MemObjectType::Image1D_Array:
+            offset.y = 0;
+            offset.z = 0;
+            break;
+        case cl::MemObjectType::Image2D_Array:
+            offset.z = 0;
+            break;
+        default:
+            break;
+    }
+    return offset;
+}
+
+VkImageSubresourceLayers CLImageVk::getSubresourceLayersForCopy(const cl::MemOffsets &origin,
+                                                                const cl::Coordinate &region,
+                                                                cl::MemObjectType copyToType,
+                                                                ImageCopyWith imageCopy)
+{
+    VkImageSubresourceLayers subresource = {};
+    subresource.aspectMask               = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresource.mipLevel                 = 0;
+    switch (mDesc.type)
+    {
+        case cl::MemObjectType::Image1D_Array:
+            subresource.baseArrayLayer = static_cast<uint32_t>(origin.y);
+            if (imageCopy == ImageCopyWith::Image)
+            {
+                subresource.layerCount = static_cast<uint32_t>(region.y);
+            }
+            else
+            {
+                subresource.layerCount = static_cast<uint32_t>(mArrayLayers);
+            }
+            break;
+        case cl::MemObjectType::Image2D_Array:
+            subresource.baseArrayLayer = static_cast<uint32_t>(origin.z);
+            if (copyToType == cl::MemObjectType::Image2D ||
+                copyToType == cl::MemObjectType::Image3D)
+            {
+                subresource.layerCount = 1;
+            }
+            else if (imageCopy == ImageCopyWith::Image)
+            {
+                subresource.layerCount = static_cast<uint32_t>(region.z);
+            }
+            else
+            {
+                subresource.layerCount = static_cast<uint32_t>(mArrayLayers);
+            }
+            break;
+        default:
+            subresource.baseArrayLayer = 0;
+            subresource.layerCount     = 1;
+            break;
+    }
+    return subresource;
+}
+
 angle::Result CLImageVk::mapImpl()
 {
     ASSERT(!isMapped());
@@ -496,6 +796,59 @@ void CLImageVk::unmapImpl()
 {
     getStagingBuffer().unmap(mContext->getRenderer());
     mMappedMemory = nullptr;
+}
+
+size_t CLImageVk::calculateRowPitch()
+{
+    return (mExtent.width * mElementSize);
+}
+
+size_t CLImageVk::calculateSlicePitch(size_t imageRowPitch)
+{
+    size_t slicePitch = 0;
+
+    switch (mDesc.type)
+    {
+        case cl::MemObjectType::Image1D:
+        case cl::MemObjectType::Image1D_Buffer:
+        case cl::MemObjectType::Image2D:
+            break;
+        case cl::MemObjectType::Image2D_Array:
+        case cl::MemObjectType::Image3D:
+            slicePitch = (mExtent.height * imageRowPitch);
+            break;
+        case cl::MemObjectType::Image1D_Array:
+            slicePitch = imageRowPitch;
+            break;
+        default:
+            UNREACHABLE();
+            break;
+    }
+
+    return slicePitch;
+}
+
+size_t CLImageVk::getRowPitch()
+{
+    size_t mRowPitch = mDesc.rowPitch;
+    if (mRowPitch == 0)
+    {
+        mRowPitch = calculateRowPitch();
+    }
+
+    return mRowPitch;
+}
+
+size_t CLImageVk::getSlicePitch(size_t imageRowPitch)
+{
+    size_t mSlicePitch = mDesc.slicePitch;
+
+    if (mSlicePitch == 0)
+    {
+        mSlicePitch = calculateSlicePitch(imageRowPitch);
+    }
+
+    return mSlicePitch;
 }
 
 }  // namespace rx
