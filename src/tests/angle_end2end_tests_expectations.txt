@@ -33,6 +33,12 @@
 374797737 : EGLSurfaceTest.CreateMultiWindowsSurfaceNoDestroy/* = SKIP
 // Currently fails on WebGPU as it's not fully implemented yet.
 
+// ES 3.2 tests are skipped on SwS.
+376899587 VULKAN SWIFTSHADER : */ES3_2* = SKIP
+
+// Advanced blend ops currently fail on Windows/Intel.
+376899587 WIN INTEL VULKAN : AdvancedBlendTest.*/* = SKIP
+
 // Fails AST validation
 342866374 : GLSLTest_ES31.PerVertexRedefinition/*_ForceInitShaderVariables* = SKIP
 
@@ -1239,6 +1245,7 @@ b/267953710 GALAXYS22 VULKAN : VulkanPerformanceCounterTest.PipelineCacheIsResto
 b/267953710 GALAXYS22 VULKAN : VulkanPerformanceCounterTest.PipelineCacheIsWarmedUpAtLinkTime/* = SKIP
 b/267953710 GALAXYS22 VULKAN : VulkanPerformanceCounterTest_ES31.ColorMaskedFramebufferFetchDrawThenClear/* = SKIP
 372059358 GALAXYS22 VULKAN : MultisampleTestES3.CopyTexImage2DFromMsaaDefaultFbo/* = SKIP
+40644776 GALAXYS22 VULKAN : ImageTestES3.SourceAHBTarget2DGenerateMipmap* = SKIP
 
 // Samsung Galaxy Qualcomm crashes and failures (perhaps with other non-Pixel Qualcomm as well):
 42266622 GALAXYQUALCOMM VULKAN : BlitFramebufferTest.BlitStencilScissoredScaled/* = SKIP
