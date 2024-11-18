@@ -939,6 +939,16 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         }
     }
 
+    if (isIntelLinuxANGLE && traceNameIs("octopath_traveler"))
+    {
+        skipTest("TODO: http://anglebug.com/378666645 Non-deterministic image on Ubuntu 22.04");
+    }
+
+    if (isIntelLinuxANGLE && traceNameIs("dead_by_daylight"))
+    {
+        skipTest("TODO: http://anglebug.com/378666645 Non-deterministic image on Ubuntu 22.04");
+    }
+
     if (isIntelWinANGLE && traceNameIs("black_desert_mobile"))
     {
         skipTest(
@@ -1264,6 +1274,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
             skipTest("TODO: http://anglebug.com/42264560 Crashes on Linux Intel Vulkan");
         }
 
+        if (IsQualcomm() && mParams->isVulkan())
+        {
+            skipTest("TODO: http://anglebug.com/378464990 Crashes on Qualcomm (Pixel 4)");
+        }
+
         if (!Is64Bit())
         {
             skipTest("Genshin is too large to handle in 32-bit mode");
@@ -1421,6 +1436,10 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
     if (traceNameIs("real_racing3"))
     {
         addExtensionPrerequisite("GL_EXT_shader_framebuffer_fetch");
+        if (isNVIDIALinuxANGLE)
+        {
+            skipTest("http://anglebug.com/377923479 SYNC-HAZARD-WRITE-AFTER-WRITE on 535.183.01");
+        }
     }
 
     if (traceNameIs("blade_and_soul_revolution"))
@@ -1581,6 +1600,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
 
     if (traceNameIs("diablo_immortal"))
     {
+        if (IsQualcomm() && mParams->isVulkan())
+        {
+            skipTest("TODO: http://anglebug.com/378464990 Crashes on Qualcomm (Pixel 4)");
+        }
+
         addExtensionPrerequisite("GL_EXT_shader_framebuffer_fetch");
     }
 
