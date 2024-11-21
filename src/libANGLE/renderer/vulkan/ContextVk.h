@@ -780,7 +780,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                          uint32_t memoryTypeIndex,
                                          BufferUsageType usageType)
     {
-        return mShareGroupVk->getDefaultBufferPool(mRenderer, size, memoryTypeIndex, usageType);
+        return mShareGroupVk->getDefaultBufferPool(size, memoryTypeIndex, usageType);
     }
 
     angle::Result allocateStreamedVertexBuffer(size_t attribIndex,
@@ -900,6 +900,10 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     void addToPendingImageGarbage(vk::ResourceUse use, VkDeviceSize size);
 
     bool hasExcessPendingGarbage() const;
+
+    angle::Result onFramebufferBoundary(const gl::Context *contextGL);
+
+    uint32_t getCurrentFrameCount() const { return mShareGroupVk->getCurrentFrameCount(); }
 
   private:
     // Dirty bits.
