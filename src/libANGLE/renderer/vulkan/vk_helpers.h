@@ -1953,11 +1953,6 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
                    VK_ATTACHMENT_LOAD_OP_CLEAR;
     }
 
-    bool hasDepthStencilWriteOrClear() const
-    {
-        return hasDepthWriteOrClear() || hasStencilWriteOrClear();
-    }
-
     const RenderPassDesc &getRenderPassDesc() const { return mRenderPassDesc; }
     const AttachmentOpsArray &getAttachmentOps() const { return mAttachmentOps; }
 
@@ -3740,6 +3735,7 @@ class BufferViewHelper final : public Resource
     void init(Renderer *renderer, VkDeviceSize offset, VkDeviceSize size);
     bool isInitialized() const { return mInitialized; }
     void release(ContextVk *contextVk);
+    void release(Renderer *renderer);
     void destroy(VkDevice device);
 
     angle::Result getView(Context *context,
