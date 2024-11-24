@@ -803,7 +803,7 @@ void f(out float r, out float)
 0:4:     Function Prototype: 'main' (symbol id 3004) (void)
 0:5:     Code block
 0:6:       move second child to first child (mediump 4-component vector of float)
-0:6:         gl_FragColor (symbol id 2446) (FragColor mediump 4-component vector of float)
+0:6:         gl_FragColor (symbol id 2230) (FragColor mediump 4-component vector of float)
 0:6:         Constant union (const mediump 4-component vector of float)
 0:6:           0.5 (const float)
 0:6:           0.5 (const float)
@@ -811,9 +811,9 @@ void f(out float r, out float)
 0:6:           0.5 (const float)
 0:7:       Call a function: 'f' (symbol id 3001) (void)
 0:7:         vector swizzle (x) (mediump float)
-0:7:           gl_FragColor (symbol id 2446) (FragColor mediump 4-component vector of float)
+0:7:           gl_FragColor (symbol id 2230) (FragColor mediump 4-component vector of float)
 0:7:         vector swizzle (y) (mediump float)
-0:7:           gl_FragColor (symbol id 2446) (FragColor mediump 4-component vector of float)
+0:7:           gl_FragColor (symbol id 2230) (FragColor mediump 4-component vector of float)
 0:9:   Function Definition:
 0:9:     Function Prototype: 'f' (symbol id 3001) (void)
 0:9:       parameter: 'r' (symbol id 3006) (out highp float)
@@ -826,4 +826,27 @@ void f(out float r, out float)
 )";
     compile(kShader);
     EXPECT_EQ(kExpected, intermediateTree());
+}
+
+TEST_F(ParseTest, ConstInSamplerParamNoCrash)
+{
+    mCompileOptions.validateAST = 1;
+    const char kShader[]        = R"(void n(const in sampler2D){2;} void main(){})";
+    EXPECT_TRUE(compile(kShader));
+}
+
+TEST_F(ParseTest, ConstSamplerParamNoCrash)
+{
+    mCompileOptions.validateAST = 1;
+    const char kShader[]        = R"(void n(const sampler2D){2;} void main(){})";
+    EXPECT_TRUE(compile(kShader));
+}
+
+TEST_F(ParseTest, InConstSamplerParamIsError)
+{
+    mCompileOptions.validateAST = 1;
+    const char kShader[]        = R"(void n(in const sampler2D){2;} void main(){})";
+    EXPECT_FALSE(compile(kShader));
+    EXPECT_TRUE(foundErrorInIntermediateTree());
+    EXPECT_TRUE(foundInIntermediateTree("'const' : invalid parameter qualifier"));
 }
