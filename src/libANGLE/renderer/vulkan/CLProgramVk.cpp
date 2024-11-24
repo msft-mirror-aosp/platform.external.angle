@@ -6,7 +6,6 @@
 // CLProgramVk.cpp: Implements the class methods for CLProgramVk.
 
 #include "libANGLE/renderer/vulkan/CLProgramVk.h"
-#include "common/log_utils.h"
 #include "libANGLE/renderer/vulkan/CLContextVk.h"
 #include "libANGLE/renderer/vulkan/CLDeviceVk.h"
 #include "libANGLE/renderer/vulkan/clspv_utils.h"
@@ -18,7 +17,7 @@
 #include "libANGLE/CLProgram.h"
 #include "libANGLE/cl_utils.h"
 
-#include "common/PackedEnums.h"
+#include "common/log_utils.h"
 #include "common/string_utils.h"
 #include "common/system_utils.h"
 
@@ -277,6 +276,18 @@ spv_result_t ParseReflection(CLProgramVk::SpvReflectionData &reflectionData,
                     UNREACHABLE();
                     return SPV_UNSUPPORTED;
                 }
+                case NonSemanticClspvReflectionNormalizedSamplerMaskPushConstant:
+                case NonSemanticClspvReflectionImageArgumentInfoChannelOrderPushConstant:
+                case NonSemanticClspvReflectionImageArgumentInfoChannelDataTypePushConstant:
+                {
+                    uint32_t ordinal            = reflectionData.spvIntLookup[spvInstr.words[6]];
+                    uint32_t offset             = reflectionData.spvIntLookup[spvInstr.words[7]];
+                    uint32_t size               = reflectionData.spvIntLookup[spvInstr.words[8]];
+                    VkPushConstantRange pcRange = {.stageFlags = 0, .offset = offset, .size = size};
+                    reflectionData.imagePushConstants[spvInstr.words[4]].push_back(
+                        {.pcRange = pcRange, .ordinal = ordinal});
+                    break;
+                }
                 default:
                     break;
             }
@@ -346,7 +357,9 @@ void CLAsyncBuildTask::operator()()
 }
 
 CLProgramVk::CLProgramVk(const cl::Program &program)
-    : CLProgramImpl(program), mContext(&program.getContext().getImpl<CLContextVk>())
+    : CLProgramImpl(program),
+      mContext(&program.getContext().getImpl<CLContextVk>()),
+      mAsyncBuildEvent(nullptr)
 {}
 
 angle::Result CLProgramVk::init()
@@ -355,10 +368,12 @@ angle::Result CLProgramVk::init()
     ANGLE_TRY(mContext->getDevices(&devices));
 
     // The devices associated with the program object are the devices associated with context
-    for (const cl::RefPointer<cl::Device> &device : devices)
+    for (const cl::DevicePtr &device : devices)
     {
         mAssociatedDevicePrograms[device->getNative()] = DeviceProgramData{};
     }
+
+    mAsyncBuildEvent = std::make_shared<angle::WaitableEventDone>();
 
     return angle::Result::Continue;
 }
@@ -466,10 +481,6 @@ CLProgramVk::~CLProgramVk()
     {
         pool.reset();
     }
-    for (vk::DescriptorPoolPointer &pool : mDescriptorPools)
-    {
-        pool.reset();
-    }
     mShader.get().destroy(mContext->getDevice());
     for (DescriptorSetIndex index : angle::AllEnums<DescriptorSetIndex>())
     {
@@ -488,11 +499,11 @@ angle::Result CLProgramVk::build(const cl::DevicePtrs &devices,
 
     if (notify)
     {
-        std::shared_ptr<angle::WaitableEvent> asyncEvent =
+        mAsyncBuildEvent =
             getPlatform()->postMultiThreadWorkerTask(std::make_shared<CLAsyncBuildTask>(
                 this, devicePtrs, std::string(options ? options : ""), "", buildType,
                 LinkProgramsList{}, notify));
-        ASSERT(asyncEvent != nullptr);
+        ASSERT(mAsyncBuildEvent != nullptr);
     }
     else
     {
@@ -548,15 +559,15 @@ angle::Result CLProgramVk::compile(const cl::DevicePtrs &devices,
     // Perform compile
     if (notify)
     {
-        std::shared_ptr<angle::WaitableEvent> asyncEvent =
-            mProgram.getContext().getPlatform().getMultiThreadPool()->postWorkerTask(
-                std::make_shared<CLAsyncBuildTask>(
-                    this, devicePtrs, std::string(options ? options : ""), internalCompileOpts,
-                    BuildType::COMPILE, LinkProgramsList{}, notify));
-        ASSERT(asyncEvent != nullptr);
+        mAsyncBuildEvent = mProgram.getContext().getPlatform().getMultiThreadPool()->postWorkerTask(
+            std::make_shared<CLAsyncBuildTask>(
+                this, devicePtrs, std::string(options ? options : ""), internalCompileOpts,
+                BuildType::COMPILE, LinkProgramsList{}, notify));
+        ASSERT(mAsyncBuildEvent != nullptr);
     }
     else
     {
+        mAsyncBuildEvent = std::make_shared<angle::WaitableEventDone>();
         if (!buildInternal(devicePtrs, std::string(options ? options : ""), internalCompileOpts,
                            BuildType::COMPILE, LinkProgramsList{}))
         {
@@ -722,8 +733,10 @@ angle::Result CLProgramVk::createKernel(const cl::Kernel &kernel,
                                         const char *name,
                                         CLKernelImpl::Ptr *kernelOut)
 {
-    std::scoped_lock<angle::SimpleMutex> sl(mProgramMutex);
+    // Wait for the compile to finish
+    mAsyncBuildEvent->wait();
 
+    std::scoped_lock<angle::SimpleMutex> sl(mProgramMutex);
     const auto devProgram = getDeviceProgramData(name);
     ASSERT(devProgram != nullptr);
 
@@ -968,6 +981,20 @@ bool CLProgramVk::buildInternal(const cl::DevicePtrs &devices,
                     pushConstantMaxSize   = pushConstant.second.size;
                 }
             }
+            for (const auto &pushConstant : deviceProgramData.reflectionData.imagePushConstants)
+            {
+                for (const auto imageConstant : pushConstant.second)
+                {
+                    pushConstantMinOffet = imageConstant.pcRange.offset < pushConstantMinOffet
+                                               ? imageConstant.pcRange.offset
+                                               : pushConstantMinOffet;
+                    if (imageConstant.pcRange.offset >= pushConstantMaxOffset)
+                    {
+                        pushConstantMaxOffset = imageConstant.pcRange.offset;
+                        pushConstantMaxSize   = imageConstant.pcRange.size;
+                    }
+                }
+            }
             deviceProgramData.pushConstRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
             deviceProgramData.pushConstRange.offset =
                 pushConstantMinOffet == UINT32_MAX ? 0 : pushConstantMinOffet;
@@ -1011,8 +1038,6 @@ angle::Result CLProgramVk::allocateDescriptorSet(const DescriptorSetIndex setInd
         ANGLE_CL_IMPL_TRY_ERROR(mDynamicDescriptorPools[setIndex]->allocateDescriptorSet(
                                     mContext, descriptorSetLayout, descriptorSetOut),
                                 CL_INVALID_OPERATION);
-        mDescriptorPools[setIndex] = (*descriptorSetOut)->getPool();
-        commandBuffer->retainResource(mDescriptorPools[setIndex].get());
         commandBuffer->retainResource(descriptorSetOut->get());
     }
     return angle::Result::Continue;
