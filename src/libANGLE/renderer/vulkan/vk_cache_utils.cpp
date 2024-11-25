@@ -2675,43 +2675,16 @@ void DumpPipelineCacheGraph(
 }
 
 // Used by SharedCacheKeyManager
-void MakeEmptyCachedObject(SharedFramebufferCacheKey *cacheKeyOut)
+void MakeInvalidCachedObject(SharedFramebufferCacheKey *cacheKeyOut)
 {
-    *cacheKeyOut = std::make_shared<FramebufferDescPointer>();
-}
-void ReleaseCachedObject(ContextVk *contextVk, const FramebufferDesc &desc)
-{
-    contextVk->getShareGroup()->getFramebufferCache().erase(contextVk, desc);
-}
-void ReleaseCachedObject(Renderer *renderer, const FramebufferDesc &desc)
-{
-    UNREACHABLE();
+    *cacheKeyOut = SharedFramebufferCacheKey::MakeShared();
+    // So that it will mark as invalid.
+    (*cacheKeyOut)->destroy();
 }
 
-void MakeEmptyCachedObject(SharedDescriptorSetCacheKey *cacheKeyOut)
+void MakeInvalidCachedObject(SharedDescriptorSetCacheKey *cacheKeyOut)
 {
-    *cacheKeyOut = std::make_shared<DescriptorSetAndPoolPointer>();
-}
-void ReleaseCachedObject(ContextVk *contextVk, const DescriptorSetDescAndPool &descAndPool)
-{
-    UNREACHABLE();
-}
-void ReleaseCachedObject(Renderer *renderer, const DescriptorSetDescAndPool &descAndPool)
-{
-    ASSERT(descAndPool.mPool != nullptr);
-    descAndPool.mPool->releaseCachedDescriptorSet(renderer, descAndPool.mDesc);
-}
-
-void DestroyCachedObject(Renderer *renderer, const FramebufferDesc &desc)
-{
-    // Framebuffer cache are implemented in a way that each cache entry tracks GPU progress and we
-    // always guarantee cache entries are released before calling destroy.
-}
-
-void DestroyCachedObject(Renderer *renderer, const DescriptorSetDescAndPool &descAndPool)
-{
-    ASSERT(descAndPool.mPool != nullptr);
-    descAndPool.mPool->destroyCachedDescriptorSet(renderer, descAndPool.mDesc);
+    *cacheKeyOut = SharedDescriptorSetCacheKey::MakeShared();
 }
 
 angle::Result InitializePipelineFromLibraries(Context *context,
@@ -5369,6 +5342,9 @@ void FramebufferDesc::reset()
     mSrgbWriteControlMode    = 0;
     mUnresolveAttachmentMask = 0;
     mIsRenderToTexture       = 0;
+    // An empty FramebufferDesc is still a valid desc. It becomes invalid when it is explicitly
+    // destroyed or released by SharedFramebufferCacheKey.
+    mIsValid = 1;
     memset(&mSerials, 0, sizeof(mSerials));
 }
 
@@ -5418,6 +5394,21 @@ void FramebufferDesc::setColorFramebufferFetchMode(bool hasColorFramebufferFetch
 void FramebufferDesc::updateRenderToTexture(bool isRenderToTexture)
 {
     SetBitField(mIsRenderToTexture, isRenderToTexture);
+}
+
+void FramebufferDesc::destroyCachedObject(Renderer *renderer)
+{
+    ASSERT(valid());
+    // Framebuffer cache are implemented in a way that each cache entry tracks GPU progress and we
+    // always guarantee cache entries are released before calling destroy.
+    SetBitField(mIsValid, 0);
+}
+
+void FramebufferDesc::releaseCachedObject(ContextVk *contextVk)
+{
+    ASSERT(valid());
+    contextVk->getShareGroup()->getFramebufferCache().erase(contextVk, *this);
+    SetBitField(mIsValid, 0);
 }
 
 // YcbcrConversionDesc implementation
@@ -5574,13 +5565,14 @@ SamplerDesc::SamplerDesc(const SamplerDesc &other) = default;
 
 SamplerDesc &SamplerDesc::operator=(const SamplerDesc &rhs) = default;
 
-SamplerDesc::SamplerDesc(ContextVk *contextVk,
+SamplerDesc::SamplerDesc(Context *context,
                          const gl::SamplerState &samplerState,
                          bool stencilMode,
                          const YcbcrConversionDesc *ycbcrConversionDesc,
                          angle::FormatID intendedFormatID)
 {
-    update(contextVk, samplerState, stencilMode, ycbcrConversionDesc, intendedFormatID);
+    update(context->getRenderer(), samplerState, stencilMode, ycbcrConversionDesc,
+           intendedFormatID);
 }
 
 void SamplerDesc::reset()
@@ -5607,13 +5599,13 @@ void SamplerDesc::reset()
     mReserved          = 0;
 }
 
-void SamplerDesc::update(ContextVk *contextVk,
+void SamplerDesc::update(Renderer *renderer,
                          const gl::SamplerState &samplerState,
                          bool stencilMode,
                          const YcbcrConversionDesc *ycbcrConversionDesc,
                          angle::FormatID intendedFormatID)
 {
-    const angle::FeaturesVk &featuresVk = contextVk->getFeatures();
+    const angle::FeaturesVk &featuresVk = renderer->getFeatures();
     mMipLodBias                         = 0.0f;
     if (featuresVk.forceTextureLodOffset1.enabled)
     {
@@ -5656,7 +5648,7 @@ void SamplerDesc::update(ContextVk *contextVk,
                (angle::Format::Get(intendedFormatID).isYUV));
         const bool filtersMustMatch =
             (mYcbcrConversionDesc.getExternalFormat() != 0) ||
-            !contextVk->getRenderer()->hasImageFormatFeatureBits(
+            !renderer->hasImageFormatFeatureBits(
                 intendedFormatID,
                 VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT);
         if (filtersMustMatch)
@@ -5714,7 +5706,7 @@ void SamplerDesc::update(ContextVk *contextVk,
         (samplerState.getBorderColor().type == angle::ColorGeneric::Type::Float) ? 0 : 1;
 
     // Adjust border color according to intended format
-    const vk::Format &vkFormat = contextVk->getRenderer()->getFormat(intendedFormatID);
+    const vk::Format &vkFormat = renderer->getFormat(intendedFormatID);
     gl::ColorGeneric adjustedBorderColor =
         AdjustBorderColor(samplerState.getBorderColor(), vkFormat.getIntendedFormat(), stencilMode);
     mBorderColor = adjustedBorderColor.colorF;
@@ -5804,12 +5796,6 @@ bool SamplerDesc::operator==(const SamplerDesc &other) const
     return memcmp(this, &other, sizeof(SamplerDesc)) == 0;
 }
 
-SamplerHelper::SamplerHelper(vk::Context *context)
-    : mSamplerSerial(context->getRenderer()->getResourceSerialFactory().generateSamplerSerial())
-{}
-
-SamplerHelper::~SamplerHelper() {}
-
 SamplerHelper::SamplerHelper(SamplerHelper &&samplerHelper)
 {
     *this = std::move(samplerHelper);
@@ -5820,6 +5806,18 @@ SamplerHelper &SamplerHelper::operator=(SamplerHelper &&rhs)
     std::swap(mSampler, rhs.mSampler);
     std::swap(mSamplerSerial, rhs.mSamplerSerial);
     return *this;
+}
+
+angle::Result SamplerHelper::init(Context *context, const VkSamplerCreateInfo &createInfo)
+{
+    mSamplerSerial = context->getRenderer()->getResourceSerialFactory().generateSamplerSerial();
+    ANGLE_VK_TRY(context, mSampler.init(context->getDevice(), createInfo));
+    return angle::Result::Continue;
+}
+angle::Result SamplerHelper::init(ContextVk *contextVk, const SamplerDesc &desc)
+{
+    mSamplerSerial = contextVk->getRenderer()->getResourceSerialFactory().generateSamplerSerial();
+    return desc.init(contextVk, &mSampler);
 }
 
 // RenderPassHelper implementation.
@@ -6213,6 +6211,21 @@ std::ostream &operator<<(std::ostream &os, const DescriptorSetDesc &desc)
            << ", " << infoDesc.imageLayoutOrRange << ", " << infoDesc.imageSubresourceRange << "}";
     }
     return os;
+}
+
+// DescriptorSetDescAndPool implementation
+void DescriptorSetDescAndPool::destroyCachedObject(Renderer *renderer)
+{
+    ASSERT(valid());
+    mPool->destroyCachedDescriptorSet(renderer, mDesc);
+    mPool = nullptr;
+}
+
+void DescriptorSetDescAndPool::releaseCachedObject(Renderer *renderer)
+{
+    ASSERT(valid());
+    mPool->releaseCachedDescriptorSet(renderer, mDesc);
+    mPool = nullptr;
 }
 
 // DescriptorSetDescBuilder implementation.
@@ -6925,7 +6938,7 @@ size_t SharedCacheKeyManager<SharedCacheKeyT>::updateEmptySlotBits()
     for (size_t slot = 0; slot < mSharedCacheKeys.size(); ++slot)
     {
         SharedCacheKeyT &sharedCacheKey = mSharedCacheKeys[slot];
-        if (*sharedCacheKey.get() == nullptr)
+        if (!sharedCacheKey->valid())
         {
             mEmptySlotBits[slot / kSlotBitCount].set(slot % kSlotBitCount);
             emptySlot = slot;
@@ -6945,7 +6958,7 @@ void SharedCacheKeyManager<SharedCacheKeyT>::addKey(const SharedCacheKeyT &key)
         {
             slot += emptyBits.first();
             SharedCacheKeyT &sharedCacheKey = mSharedCacheKeys[slot];
-            ASSERT(*sharedCacheKey.get() == nullptr);
+            ASSERT(!sharedCacheKey->valid());
             sharedCacheKey = key;
             emptyBits.reset(slot % kSlotBitCount);
             return;
@@ -6958,7 +6971,7 @@ void SharedCacheKeyManager<SharedCacheKeyT>::addKey(const SharedCacheKeyT &key)
     if (slot != kInvalidSlot)
     {
         SharedCacheKeyT &sharedCacheKey = mSharedCacheKeys[slot];
-        ASSERT(*sharedCacheKey.get() == nullptr);
+        ASSERT(!sharedCacheKey->valid());
         sharedCacheKey         = key;
         SlotBitMask &emptyBits = mEmptySlotBits[slot / kSlotBitCount];
         emptyBits.reset(slot % kSlotBitCount);
@@ -6981,8 +6994,8 @@ void SharedCacheKeyManager<SharedCacheKeyT>::addKey(const SharedCacheKeyT &key)
         mSharedCacheKeys.emplace_back();
         SharedCacheKeyT &sharedCacheKey = mSharedCacheKeys.back();
         // Insert an empty cache key so that sharedCacheKey will not be null.
-        MakeEmptyCachedObject(&sharedCacheKey);
-        ASSERT(*sharedCacheKey.get() == nullptr);
+        MakeInvalidCachedObject(&sharedCacheKey);
+        ASSERT(!sharedCacheKey->valid());
     }
 }
 
@@ -6992,12 +7005,11 @@ void SharedCacheKeyManager<SharedCacheKeyT>::releaseKeys(ContextVk *contextVk)
     ASSERT(mSharedCacheKeys.size() == mEmptySlotBits.size() * kSlotBitCount);
     for (SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
     {
-        if (*sharedCacheKey.get() != nullptr)
+        if (sharedCacheKey->valid())
         {
             // Immediate destroy the cached object and the key itself when first releaseRef call is
             // made
-            ReleaseCachedObject(contextVk, *(*sharedCacheKey.get()));
-            *sharedCacheKey.get() = nullptr;
+            sharedCacheKey->releaseCachedObject(contextVk);
         }
     }
     mSharedCacheKeys.clear();
@@ -7010,12 +7022,11 @@ void SharedCacheKeyManager<SharedCacheKeyT>::releaseKeys(Renderer *renderer)
     ASSERT(mSharedCacheKeys.size() == mEmptySlotBits.size() * kSlotBitCount);
     for (SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
     {
-        if (*sharedCacheKey.get() != nullptr)
+        if (sharedCacheKey->valid())
         {
             // Immediate destroy the cached object and the key itself when first releaseKeys call is
             // made
-            ReleaseCachedObject(renderer, *(*sharedCacheKey.get()));
-            *sharedCacheKey.get() = nullptr;
+            sharedCacheKey->releaseCachedObject(renderer);
         }
     }
     mSharedCacheKeys.clear();
@@ -7029,11 +7040,10 @@ void SharedCacheKeyManager<SharedCacheKeyT>::destroyKeys(Renderer *renderer)
     for (SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
     {
         // destroy the cache key
-        if (*sharedCacheKey.get() != nullptr)
+        if (sharedCacheKey->valid())
         {
             // Immediate destroy the cached object and the key
-            DestroyCachedObject(renderer, *(*sharedCacheKey.get()));
-            *sharedCacheKey.get() = nullptr;
+            sharedCacheKey->destroyCachedObject(renderer);
         }
     }
     mSharedCacheKeys.clear();
@@ -7054,7 +7064,7 @@ bool SharedCacheKeyManager<SharedCacheKeyT>::containsKey(const SharedCacheKeyT &
 {
     for (const SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
     {
-        if (key == sharedCacheKey)
+        if (*key == *sharedCacheKey)
         {
             return true;
         }
@@ -7068,7 +7078,7 @@ void SharedCacheKeyManager<SharedCacheKeyT>::assertAllEntriesDestroyed()
     // Caller must have already freed all caches
     for (SharedCacheKeyT &sharedCacheKey : mSharedCacheKeys)
     {
-        ASSERT(*sharedCacheKey.get() == nullptr);
+        ASSERT(!sharedCacheKey->valid());
     }
 }
 
@@ -8381,9 +8391,9 @@ void SamplerCache::destroy(vk::Renderer *renderer)
 
     for (auto &iter : mPayload)
     {
-        vk::RefCountedSampler &sampler = iter.second;
-        ASSERT(!sampler.isReferenced());
-        sampler.get().get().destroy(device);
+        vk::SharedSamplerPtr &sampler = iter.second;
+        ASSERT(sampler.unique());
+        sampler->destroy(device);
 
         renderer->onDeallocateHandle(vk::HandleType::Sampler);
     }
@@ -8393,25 +8403,22 @@ void SamplerCache::destroy(vk::Renderer *renderer)
 
 angle::Result SamplerCache::getSampler(ContextVk *contextVk,
                                        const vk::SamplerDesc &desc,
-                                       vk::SamplerBinding *samplerOut)
+                                       vk::SharedSamplerPtr *samplerOut)
 {
     auto iter = mPayload.find(desc);
     if (iter != mPayload.end())
     {
-        vk::RefCountedSampler &sampler = iter->second;
-        samplerOut->set(&sampler);
+        *samplerOut = iter->second;
         mCacheStats.hit();
         return angle::Result::Continue;
     }
 
     mCacheStats.missAndIncrementSize();
-    vk::SamplerHelper samplerHelper(contextVk);
-    ANGLE_TRY(desc.init(contextVk, &samplerHelper.get()));
+    vk::SharedSamplerPtr newSampler = vk::SharedSamplerPtr::MakeShared();
+    ANGLE_TRY(newSampler->init(contextVk, desc));
 
-    vk::RefCountedSampler newSampler(std::move(samplerHelper));
-    auto insertedItem                      = mPayload.emplace(desc, std::move(newSampler));
-    vk::RefCountedSampler &insertedSampler = insertedItem.first->second;
-    samplerOut->set(&insertedSampler);
+    (*samplerOut) = newSampler;
+    mPayload.emplace(desc, std::move(newSampler));
 
     contextVk->getRenderer()->onAllocateHandle(vk::HandleType::Sampler);
 
