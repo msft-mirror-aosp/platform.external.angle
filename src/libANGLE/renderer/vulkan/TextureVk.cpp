@@ -2431,7 +2431,7 @@ angle::Result TextureVk::generateMipmapsWithCompute(ContextVk *contextVk)
     samplerState.setWrapT(GL_CLAMP_TO_EDGE);
     samplerState.setWrapR(GL_CLAMP_TO_EDGE);
 
-    vk::BindingPointer<vk::SamplerHelper> sampler;
+    vk::SharedSamplerPtr sampler;
     vk::SamplerDesc samplerDesc(contextVk, samplerState, false, nullptr,
                                 static_cast<angle::FormatID>(0));
     ANGLE_TRY(renderer->getSamplerCache().getSampler(contextVk, samplerDesc, &sampler));
@@ -2500,8 +2500,8 @@ angle::Result TextureVk::generateMipmapsWithCompute(ContextVk *contextVk)
             params.srcLevel                          = srcLevelVk.get();
             params.dstLevelCount                     = dstLevelCount.get();
 
-            ANGLE_TRY(contextVk->getUtils().generateMipmap(
-                contextVk, mImage, srcView, mImage, destLevelViews, sampler.get().get(), params));
+            ANGLE_TRY(contextVk->getUtils().generateMipmap(contextVk, mImage, srcView, mImage,
+                                                           destLevelViews, sampler->get(), params));
         }
     }
 
@@ -2569,6 +2569,15 @@ angle::Result TextureVk::generateMipmap(const gl::Context *context)
     vk::LevelIndex baseLevel = mImage->toVkLevel(gl::LevelIndex(mState.getEffectiveBaseLevel()));
     vk::LevelIndex maxLevel  = mImage->toVkLevel(gl::LevelIndex(mState.getMipmapMaxLevel()));
     ASSERT(maxLevel != vk::LevelIndex(0));
+
+    if (getImageViews().hasColorspaceOverrideForWrite(*mImage))
+    {
+        angle::FormatID actualFormatID =
+            getImageViews().getColorspaceOverrideFormatForWrite(mImage->getActualFormatID());
+        return contextVk->getUtils().generateMipmapWithDraw(
+            contextVk, mImage, actualFormatID,
+            gl::IsMipmapFiltered(mState.getSamplerState().getMinFilter()));
+    }
 
     // If it's possible to generate mipmap in compute, that would give the best possible
     // performance on some hardware.
@@ -3513,12 +3522,12 @@ angle::Result TextureVk::syncState(const gl::Context *context,
         }
     }
 
-    if (localBits.none() && mSampler.valid())
+    if (localBits.none() && mSampler)
     {
         return angle::Result::Continue;
     }
 
-    if (mSampler.valid())
+    if (mSampler)
     {
         resetSampler();
     }
@@ -3609,8 +3618,7 @@ void TextureVk::releaseOwnershipOfImage(const gl::Context *context)
     releaseAndDeleteImageAndViews(contextVk);
 }
 
-const vk::ImageView &TextureVk::getReadImageView(vk::Context *context,
-                                                 GLenum srgbDecode,
+const vk::ImageView &TextureVk::getReadImageView(GLenum srgbDecode,
                                                  bool texelFetchStaticUse,
                                                  bool samplerExternal2DY2YEXT) const
 {
@@ -3717,11 +3725,11 @@ vk::BufferHelper *TextureVk::getPossiblyEmulatedTextureBuffer(vk::Context *conte
     return &bufferVk->getBuffer();
 }
 
-angle::Result TextureVk::getBufferViewAndRecordUse(vk::Context *context,
-                                                   const vk::Format *imageUniformFormat,
-                                                   const gl::SamplerBinding *samplerBinding,
-                                                   bool isImage,
-                                                   const vk::BufferView **viewOut)
+angle::Result TextureVk::getBufferView(vk::Context *context,
+                                       const vk::Format *imageUniformFormat,
+                                       const gl::SamplerBinding *samplerBinding,
+                                       bool isImage,
+                                       const vk::BufferView **viewOut)
 {
     vk::Renderer *renderer = context->getRenderer();
 

@@ -1278,7 +1278,7 @@ class SamplerDesc final
 {
   public:
     SamplerDesc();
-    SamplerDesc(ContextVk *contextVk,
+    SamplerDesc(Context *context,
                 const gl::SamplerState &samplerState,
                 bool stencilMode,
                 const YcbcrConversionDesc *ycbcrConversionDesc,
@@ -1288,7 +1288,7 @@ class SamplerDesc final
     SamplerDesc(const SamplerDesc &other);
     SamplerDesc &operator=(const SamplerDesc &rhs);
 
-    void update(ContextVk *contextVk,
+    void update(Renderer *renderer,
                 const gl::SamplerState &samplerState,
                 bool stencilMode,
                 const YcbcrConversionDesc *ycbcrConversionDesc,
@@ -1863,19 +1863,44 @@ class DescriptorPoolHelper;
 
 // SharedDescriptorSetCacheKey.
 // Because DescriptorSet must associate with a pool, we need to define a structure that wraps both.
-struct DescriptorSetDescAndPool
+class DescriptorSetDescAndPool final
 {
+  public:
+    DescriptorSetDescAndPool() : mPool(nullptr) {}
+    DescriptorSetDescAndPool(const DescriptorSetDesc &desc, DynamicDescriptorPool *pool)
+        : mDesc(desc), mPool(pool)
+    {}
+    DescriptorSetDescAndPool(DescriptorSetDescAndPool &&other)
+        : mDesc(other.mDesc), mPool(other.mPool)
+    {
+        other.mPool = nullptr;
+    }
+    ~DescriptorSetDescAndPool() { ASSERT(!valid()); }
+    void destroy() { mPool = nullptr; }
+
+    void destroyCachedObject(Renderer *renderer);
+    void releaseCachedObject(ContextVk *contextVk) { UNREACHABLE(); }
+    void releaseCachedObject(Renderer *renderer);
+    bool valid() const { return mPool != nullptr; }
+    const DescriptorSetDesc &getDesc() const
+    {
+        ASSERT(valid());
+        return mDesc;
+    }
+    bool operator==(const DescriptorSetDescAndPool &other) const
+    {
+        return mDesc == other.mDesc && mPool == other.mPool;
+    }
+
+  private:
     DescriptorSetDesc mDesc;
     DynamicDescriptorPool *mPool;
 };
-using DescriptorSetAndPoolPointer = std::unique_ptr<DescriptorSetDescAndPool>;
-using SharedDescriptorSetCacheKey = std::shared_ptr<DescriptorSetAndPoolPointer>;
+using SharedDescriptorSetCacheKey = SharedPtr<DescriptorSetDescAndPool>;
 ANGLE_INLINE const SharedDescriptorSetCacheKey
 CreateSharedDescriptorSetCacheKey(const DescriptorSetDesc &desc, DynamicDescriptorPool *pool)
 {
-    DescriptorSetAndPoolPointer DescriptorAndPoolPointer =
-        std::make_unique<DescriptorSetDescAndPool>(DescriptorSetDescAndPool{desc, pool});
-    return std::make_shared<DescriptorSetAndPoolPointer>(std::move(DescriptorAndPoolPointer));
+    return SharedDescriptorSetCacheKey::MakeShared(desc, pool);
 }
 
 constexpr VkDescriptorType kStorageBufferDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -1972,16 +1997,6 @@ class DescriptorSetDescBuilder final
                                       const gl::ActiveTextureArray<TextureVk *> &textures,
                                       const gl::SamplerBindingVector &samplers);
 
-    angle::Result updateActiveTexturesForCacheMiss(
-        Context *context,
-        const ShaderInterfaceVariableInfoMap &variableInfoMap,
-        const WriteDescriptorDescs &writeDescriptorDescs,
-        const gl::ProgramExecutable &executable,
-        const gl::ActiveTextureArray<TextureVk *> &textures,
-        const gl::SamplerBindingVector &samplers,
-        PipelineType pipelineType,
-        const SharedDescriptorSetCacheKey &sharedCacheKey);
-
     void updateDescriptorSet(Renderer *renderer,
                              const WriteDescriptorDescs &writeDescriptorDescs,
                              UpdateDescriptorSetsBuilder *updateBuilder,
@@ -2006,16 +2021,6 @@ class DescriptorSetDescBuilder final
     angle::FastVector<DescriptorDescHandles, kFastDescriptorSetDescLimit> mHandles;
     angle::FastVector<uint32_t, kFastDescriptorSetDescLimit> mDynamicOffsets;
 };
-
-angle::Result UpdateFullActiveTexturesDescriptorSet(
-    Context *context,
-    const ShaderInterfaceVariableInfoMap &variableInfoMap,
-    const WriteDescriptorDescs &writeDescriptorDescs,
-    UpdateDescriptorSetsBuilder *updateBuilder,
-    const gl::ProgramExecutable &executable,
-    const gl::ActiveTextureArray<TextureVk *> &textures,
-    const gl::SamplerBindingVector &samplers,
-    VkDescriptorSet descriptorSet);
 
 // In the FramebufferDesc object:
 //  - Depth/stencil serial is at index 0
@@ -2087,6 +2092,13 @@ class FramebufferDesc
     void updateFragmentShadingRate(ImageOrBufferViewSubresourceSerial serial);
     bool hasFragmentShadingRateAttachment() const;
 
+    // Used by SharedFramebufferCacheKey
+    void destroy() { SetBitField(mIsValid, 0); }
+    void destroyCachedObject(Renderer *renderer);
+    void releaseCachedObject(Renderer *renderer) { UNREACHABLE(); }
+    void releaseCachedObject(ContextVk *contextVk);
+    bool valid() const { return mIsValid; }
+
   private:
     void reset();
     void update(uint32_t index, ImageOrBufferViewSubresourceSerial serial);
@@ -2113,9 +2125,11 @@ class FramebufferDesc
 
     // Whether this is a multisampled-render-to-single-sampled framebuffer.  Only used when using
     // VK_EXT_multisampled_render_to_single_sampled.  Only one bit is used and the rest is padding.
-    uint16_t mIsRenderToTexture : 15 - kMaxFramebufferNonResolveAttachments;
+    uint16_t mIsRenderToTexture : 14 - kMaxFramebufferNonResolveAttachments;
 
     uint16_t mIsMultiview : 1;
+    // Used by SharedFramebufferCacheKey to indicate if this cache key is valid or not.
+    uint16_t mIsValid : 1;
 
     FramebufferAttachmentArray<ImageOrBufferViewSubresourceSerial> mSerials;
 };
@@ -2126,14 +2140,11 @@ static_assert(kFramebufferDescSize == 156, "Size check failed");
 // Disable warnings about struct padding.
 ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
 
-// SharedFramebufferCacheKey
-using FramebufferDescPointer    = std::unique_ptr<FramebufferDesc>;
-using SharedFramebufferCacheKey = std::shared_ptr<FramebufferDescPointer>;
+using SharedFramebufferCacheKey = SharedPtr<FramebufferDesc>;
 ANGLE_INLINE const SharedFramebufferCacheKey
 CreateSharedFramebufferCacheKey(const FramebufferDesc &desc)
 {
-    FramebufferDescPointer framebufferDescPointer = std::make_unique<FramebufferDesc>(desc);
-    return std::make_shared<FramebufferDescPointer>(std::move(framebufferDescPointer));
+    return SharedFramebufferCacheKey::MakeShared(desc);
 }
 
 // The SamplerHelper allows a Sampler to be coupled with a serial.
@@ -2141,15 +2152,18 @@ CreateSharedFramebufferCacheKey(const FramebufferDesc &desc)
 class SamplerHelper final : angle::NonCopyable
 {
   public:
-    SamplerHelper(vk::Context *context);
-    ~SamplerHelper();
+    SamplerHelper() = default;
+    ~SamplerHelper() { ASSERT(!valid()); }
 
     explicit SamplerHelper(SamplerHelper &&samplerHelper);
     SamplerHelper &operator=(SamplerHelper &&rhs);
 
+    angle::Result init(Context *context, const VkSamplerCreateInfo &createInfo);
+    angle::Result init(ContextVk *contextVk, const SamplerDesc &desc);
+    void destroy(VkDevice device) { mSampler.destroy(device); }
+    void destroy() { ASSERT(!valid()); }
     bool valid() const { return mSampler.valid(); }
     const Sampler &get() const { return mSampler; }
-    Sampler &get() { return mSampler; }
     SamplerSerial getSamplerSerial() const { return mSamplerSerial; }
 
   private:
@@ -2157,8 +2171,7 @@ class SamplerHelper final : angle::NonCopyable
     SamplerSerial mSamplerSerial;
 };
 
-using RefCountedSampler = RefCounted<SamplerHelper>;
-using SamplerBinding    = BindingPointer<SamplerHelper>;
+using SharedSamplerPtr = SharedPtr<SamplerHelper>;
 
 class RenderPassHelper final : angle::NonCopyable
 {
@@ -2739,10 +2752,10 @@ class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
 
     angle::Result getSampler(ContextVk *contextVk,
                              const vk::SamplerDesc &desc,
-                             vk::SamplerBinding *samplerOut);
+                             vk::SharedSamplerPtr *samplerOut);
 
   private:
-    std::unordered_map<vk::SamplerDesc, vk::RefCountedSampler> mPayload;
+    std::unordered_map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
 };
 
 // YuvConversion Cache
@@ -2785,7 +2798,7 @@ class DescriptorSetCache final : angle::NonCopyable
         return *this;
     }
 
-    void resetCache() { mPayload.clear(); }
+    void clear() { mPayload.clear(); }
 
     bool getDescriptorSet(const vk::DescriptorSetDesc &desc, T *descriptorSetOut)
     {
@@ -2803,7 +2816,28 @@ class DescriptorSetCache final : angle::NonCopyable
         mPayload.emplace(desc, descriptorSetHelper);
     }
 
-    void eraseDescriptorSet(const vk::DescriptorSetDesc &desc) { mPayload.erase(desc); }
+    bool eraseDescriptorSet(const vk::DescriptorSetDesc &desc, T *descriptorSetOut)
+    {
+        auto iter = mPayload.find(desc);
+        if (iter != mPayload.end())
+        {
+            *descriptorSetOut = std::move(iter->second);
+            mPayload.erase(iter);
+            return true;
+        }
+        return false;
+    }
+
+    bool eraseDescriptorSet(const vk::DescriptorSetDesc &desc)
+    {
+        auto iter = mPayload.find(desc);
+        if (iter != mPayload.end())
+        {
+            mPayload.erase(iter);
+            return true;
+        }
+        return false;
+    }
 
     size_t getTotalCacheSize() const { return mPayload.size(); }
 

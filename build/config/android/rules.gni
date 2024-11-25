@@ -1230,8 +1230,6 @@ if (!is_robolectric && enable_java_templates) {
         import("//third_party/jni_zero/jni_zero.gni")
         _jni_srcjar_target_name = "${target_name}__final_jni"
         generate_jni_registration(_jni_srcjar_target_name) {
-          enable_native_mocks = true
-          require_native_mocks = true
           java_targets = [ ":$_java_binary_target_name" ]
           add_stubs_for_missing_jni = true
         }
@@ -2007,6 +2005,9 @@ if (!is_robolectric && enable_java_templates) {
 
       if (is_cronet_build) {
         defines += [ "_IS_CRONET_BUILD" ]
+        defines += [ "_LOGTAG_PREFIX=cn_" ]
+      } else {
+        defines += [ "_LOGTAG_PREFIX=cr_" ]
       }
       if (is_desktop_android) {
         defines += [ "_IS_DESKTOP_ANDROID" ]

@@ -1717,17 +1717,15 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context,
     }
 
     VkSwapchainPresentModesCreateInfoEXT compatibleModesInfo = {};
-    if (renderer->getFeatures().supportsSwapchainMaintenance1.enabled)
+    if (renderer->getFeatures().supportsSwapchainMaintenance1.enabled &&
+        mCompatiblePresentModes.size() > 1)
     {
-        if (mCompatiblePresentModes.size() > 1)
-        {
-            compatibleModesInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT;
-            compatibleModesInfo.presentModeCount =
-                static_cast<uint32_t>(mCompatiblePresentModes.size());
-            compatibleModesInfo.pPresentModes = mCompatiblePresentModes.data();
+        compatibleModesInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT;
+        compatibleModesInfo.presentModeCount =
+            static_cast<uint32_t>(mCompatiblePresentModes.size());
+        compatibleModesInfo.pPresentModes = mCompatiblePresentModes.data();
 
-            vk::AddToPNextChain(&swapchainInfo, &compatibleModesInfo);
-        }
+        vk::AddToPNextChain(&swapchainInfo, &compatibleModesInfo);
     }
     else
     {
@@ -2125,7 +2123,13 @@ egl::Error WindowSurfaceVk::swapWithDamage(const gl::Context *context,
                                            const EGLint *rects,
                                            EGLint n_rects)
 {
-    const angle::Result result = swapImpl(context, rects, n_rects, nullptr);
+    angle::Result result = swapImpl(context, rects, n_rects, nullptr);
+    if (result == angle::Result::Continue)
+    {
+        ContextVk *contextVk = vk::GetImpl(context);
+        result               = contextVk->onFramebufferBoundary(context);
+    }
+
     return angle::ToEGL(result, EGL_BAD_SURFACE);
 }
 
@@ -2144,7 +2148,12 @@ egl::Error WindowSurfaceVk::swap(const gl::Context *context)
         return angle::ToEGL(result, EGL_BAD_SURFACE);
     }
 
-    const angle::Result result = swapImpl(context, nullptr, 0, nullptr);
+    angle::Result result = swapImpl(context, nullptr, 0, nullptr);
+    if (result == angle::Result::Continue)
+    {
+        ContextVk *contextVk = vk::GetImpl(context);
+        result               = contextVk->onFramebufferBoundary(context);
+    }
     return angle::ToEGL(result, EGL_BAD_SURFACE);
 }
 
@@ -2266,8 +2275,8 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
                                        vk::ImageLayout::Present, commandBufferHelper);
     }
 
-    ANGLE_TRY(contextVk->flushImpl(shouldDrawOverlay ? nullptr : &presentSemaphore, nullptr,
-                                   RenderPassClosureReason::EGLSwapBuffers));
+    ANGLE_TRY(contextVk->flushAndSubmitCommands(shouldDrawOverlay ? nullptr : &presentSemaphore,
+                                                nullptr, RenderPassClosureReason::EGLSwapBuffers));
 
     if (shouldDrawOverlay)
     {
@@ -2281,8 +2290,8 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
                                            vk::ImageLayout::Present, commandBufferHelper);
         }
 
-        ANGLE_TRY(contextVk->flushImpl(&presentSemaphore, nullptr,
-                                       RenderPassClosureReason::AlreadySpecifiedElsewhere));
+        ANGLE_TRY(contextVk->flushAndSubmitCommands(
+            &presentSemaphore, nullptr, RenderPassClosureReason::AlreadySpecifiedElsewhere));
     }
 
     return angle::Result::Continue;
@@ -2595,9 +2604,6 @@ angle::Result WindowSurfaceVk::swapImpl(const gl::Context *context,
         ANGLE_TRY(doDeferredAcquireNextImage(context, presentOutOfDate));
     }
 
-    vk::Renderer *renderer = contextVk->getRenderer();
-    ANGLE_TRY(renderer->syncPipelineCacheVk(contextVk, renderer->getGlobalOps(), context));
-
     return angle::Result::Continue;
 }
 
@@ -2730,8 +2736,8 @@ bool WindowSurfaceVk::skipAcquireNextSwapchainImageForSharedPresentMode() const
     {
         ASSERT(mSwapchainImages.size());
         const SwapchainImage &image = mSwapchainImages[0];
-        if (image.image->valid() &&
-            image.image->getCurrentImageLayout() == vk::ImageLayout::SharedPresent)
+        ASSERT(image.image->valid());
+        if (image.image->getCurrentImageLayout() == vk::ImageLayout::SharedPresent)
         {
             return true;
         }
@@ -3174,33 +3180,30 @@ angle::Result WindowSurfaceVk::drawOverlay(ContextVk *contextVk, SwapchainImage 
 
 egl::Error WindowSurfaceVk::setAutoRefreshEnabled(bool enabled)
 {
-    if (enabled && !supportsPresentMode(vk::PresentMode::SharedContinuousRefreshKHR))
+    // Auto refresh is only applicable in shared present mode
+    if (!isSharedPresentModeDesired())
     {
-        return egl::EglBadMatch();
+        return egl::NoError();
     }
 
     vk::PresentMode newDesiredSwapchainPresentMode =
         enabled ? vk::PresentMode::SharedContinuousRefreshKHR
                 : vk::PresentMode::SharedDemandRefreshKHR;
-    // Auto refresh is only applicable in shared present mode
-    if (isSharedPresentModeDesired() &&
-        (mDesiredSwapchainPresentMode != newDesiredSwapchainPresentMode))
-    {
-        // In cases where the user switches to single buffer and have yet to call eglSwapBuffer,
-        // enabling/disabling auto refresh should only change mDesiredSwapchainPresentMode as we
-        // have not yet actually switched to single buffer mode.
-        mDesiredSwapchainPresentMode = newDesiredSwapchainPresentMode;
 
-        // If auto refresh is updated and we are already in single buffer mode we may need to
-        // recreate swapchain. We need the deferAcquireNextImage() call as unlike setRenderBuffer(),
-        // the user does not have to call eglSwapBuffers after setting the auto refresh attribute
-        if (isSharedPresentMode() &&
-            !IsCompatiblePresentMode(mDesiredSwapchainPresentMode, mCompatiblePresentModes.data(),
-                                     mCompatiblePresentModes.size()))
-        {
-            deferAcquireNextImage();
-        }
+    // We only expose EGL_ANDROID_front_buffer_auto_refresh extension on Android with supported
+    // VK_EXT_swapchain_maintenance1 extension, where present modes expected to be compatible.
+    if (!IsCompatiblePresentMode(newDesiredSwapchainPresentMode, mCompatiblePresentModes.data(),
+                                 mCompatiblePresentModes.size()))
+    {
+        // This should not happen, unless some specific Android platform requires swapchain
+        // recreation for these present modes, in which case EGL_ANDROID_front_buffer_auto_refresh
+        // should not be exposed or this code should be updated to support this scenario.
+        return egl::EglBadMatch();
     }
+
+    // Simply change mDesiredSwapchainPresentMode regardless if we are already in single buffer mode
+    // or not, since compatible present modes does not require swapchain recreation.
+    mDesiredSwapchainPresentMode = newDesiredSwapchainPresentMode;
 
     return egl::NoError();
 }
@@ -3306,15 +3309,6 @@ egl::Error WindowSurfaceVk::lockSurface(const egl::Display *display,
     ANGLE_TRACE_EVENT0("gpu.angle", "WindowSurfaceVk::lockSurface");
 
     vk::ImageHelper *image = mSwapchainImages[mCurrentSwapchainImageIndex].image.get();
-    if (!image->valid())
-    {
-        mAcquireOperation.needToAcquireNextSwapchainImage = true;
-        if (acquireNextSwapchainImage(vk::GetImpl(display)) != VK_SUCCESS)
-        {
-            return egl::EglBadAccess();
-        }
-    }
-    image = mSwapchainImages[mCurrentSwapchainImageIndex].image.get();
     ASSERT(image->valid());
 
     angle::Result result =

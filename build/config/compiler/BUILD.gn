@@ -18,7 +18,6 @@ import("//build/config/pch.gni")
 import("//build/config/rust.gni")
 import("//build/config/ui.gni")
 import("//build/config/unwind.gni")
-import("//build/toolchain/cc_wrapper.gni")
 import("//build/toolchain/cros/cros_config.gni")
 import("//build/toolchain/rbe.gni")
 import("//build/toolchain/toolchain.gni")
@@ -1241,8 +1240,7 @@ config("compiler_cpu_abi") {
         ]
       }
     } else if (current_cpu == "arm") {
-      if (is_clang && !is_android && !is_nacl &&
-          !(is_chromeos_lacros && is_chromeos_device)) {
+      if (is_clang && !is_android && !is_nacl && !is_chromeos_device) {
         cflags += [ "--target=arm-linux-gnueabihf" ]
         ldflags += [ "--target=arm-linux-gnueabihf" ]
       }
@@ -1257,7 +1255,7 @@ config("compiler_cpu_abi") {
       }
     } else if (current_cpu == "arm64") {
       if (is_clang && !is_android && !is_nacl && !is_fuchsia &&
-          !(is_chromeos_lacros && is_chromeos_device)) {
+          !is_chromeos_device) {
         cflags += [ "--target=aarch64-linux-gnu" ]
         ldflags += [ "--target=aarch64-linux-gnu" ]
       }
@@ -1994,6 +1992,11 @@ config("default_warnings") {
 
         # TODO(crbug.com/356172342): Fix and re-enable.
         cflags_cc += [ "-Wno-dangling-assignment-gsl" ]
+
+        if (llvm_force_head_revision) {
+          # TODO(crbug.com/376641662): Fix and re-enable.
+          cflags += [ "-Wno-nontrivial-memaccess" ]
+        }
       }
     }
 
@@ -2302,10 +2305,20 @@ config("export_dynamic") {
 # 2. Remove the thin_archive config, so that the .a file actually contains all
 #    .o files, instead of just references to .o files in the build directoy
 config("thin_archive") {
-  # The macOS and iOS default linker ld64 does not support reading thin
-  # archives.
-  if ((is_posix && !is_nacl && (!is_apple || use_lld)) || is_fuchsia) {
-    arflags = [ "-T" ]
+  if ((is_apple && use_lld) || (is_linux && !is_clang)) {
+    # The macOS and iOS linker ld64.ldd doesn't support thin archive without
+    # symbol table, gcc on linux also throws the error `archive has no index`.
+    arflags = [
+      "-T",
+      "-s",
+    ]
+  } else if ((is_posix && !is_nacl && (!is_apple || use_lld)) || is_fuchsia) {
+    # The macOS and iOS default linker ld64 does not support reading thin
+    # archives.
+    arflags = [
+      "-T",
+      "-S",
+    ]
   } else if (is_win && use_lld) {
     arflags = [ "/llvmlibthin" ]
   }
@@ -2421,7 +2434,6 @@ if (is_win) {
 
   if (is_official_build) {
     common_optimize_on_ldflags += [ "/OPT:REF" ]  # Remove unreferenced data.
-    # TODO(thakis): Add LTO/PGO clang flags eventually, https://crbug.com/598772
   }
 
   if (is_clang) {

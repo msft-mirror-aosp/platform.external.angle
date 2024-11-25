@@ -164,7 +164,7 @@ void main() {
 class NegativeTextureMultisampleTest : public TextureMultisampleTest
 {
   protected:
-    NegativeTextureMultisampleTest() : TextureMultisampleTest() {}
+    NegativeTextureMultisampleTest() : TextureMultisampleTest() { setExtensionsEnabled(false); }
 };
 
 class TextureMultisampleArrayWebGLTest : public TextureMultisampleTest
@@ -534,6 +534,38 @@ TEST_P(TextureMultisampleTest, SimpleTexelFetch)
     }
 }
 
+// Test toggling sample mask
+TEST_P(TextureMultisampleTest, SampleMaskToggling)
+{
+    ANGLE_SKIP_TEST_IF(lessThanES31MultisampleExtNotSupported());
+
+    GLboolean enabled = false;
+
+    EXPECT_FALSE(glIsEnabled(GL_SAMPLE_MASK));
+    EXPECT_GL_NO_ERROR();
+
+    glEnable(GL_SAMPLE_MASK);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_TRUE(glIsEnabled(GL_SAMPLE_MASK));
+    EXPECT_GL_NO_ERROR();
+
+    glGetBooleanv(GL_SAMPLE_MASK, &enabled);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_TRUE(enabled);
+
+    glDisable(GL_SAMPLE_MASK);
+    EXPECT_GL_NO_ERROR();
+
+    EXPECT_FALSE(glIsEnabled(GL_SAMPLE_MASK));
+    EXPECT_GL_NO_ERROR();
+
+    glGetBooleanv(GL_SAMPLE_MASK, &enabled);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_FALSE(enabled);
+}
+
+// Test setting and querying sample mask value
 TEST_P(TextureMultisampleTest, SampleMaski)
 {
     ANGLE_SKIP_TEST_IF(lessThanES31MultisampleExtNotSupported());
@@ -543,9 +575,13 @@ TEST_P(TextureMultisampleTest, SampleMaski)
     sampleMaski(maxSampleMaskWords - 1, 0x1);
     ASSERT_GL_NO_ERROR();
 
-    glGetIntegerv(GL_MAX_SAMPLE_MASK_WORDS, &maxSampleMaskWords);
     sampleMaski(maxSampleMaskWords, 0x1);
     ASSERT_GL_ERROR(GL_INVALID_VALUE);
+
+    GLint sampleMaskValue = 0;
+    glGetIntegeri_v(GL_SAMPLE_MASK_VALUE, 0, &sampleMaskValue);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_EQ(sampleMaskValue, 0x1);
 }
 
 TEST_P(TextureMultisampleTest, ResolveToDefaultFramebuffer)
@@ -586,52 +622,86 @@ TEST_P(TextureMultisampleTest, ResolveToDefaultFramebuffer)
     EXPECT_PIXEL_COLOR_NEAR(w / 2, h / 2, kResult, 1);
 }
 
-// Negative tests of multisample texture. When context less than ES 3.1 and ANGLE_texture_multsample
-// not enabled, the feature isn't supported.
-TEST_P(NegativeTextureMultisampleTest, Negtive)
+// Negative tests of multisample texture. When context less than ES 3.1 and
+// ANGLE_texture_multisample not enabled, the feature isn't supported.
+TEST_P(NegativeTextureMultisampleTest, Negative)
 {
-    ANGLE_SKIP_TEST_IF(EnsureGLExtensionEnabled("GL_ANGLE_texture_multisample"));
+    // The extension must have been disabled in test init.
+    ASSERT_FALSE(IsGLExtensionEnabled("GL_ANGLE_texture_multisample"));
+
+    glEnable(GL_SAMPLE_MASK);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
+
+    EXPECT_FALSE(glIsEnabled(GL_SAMPLE_MASK));
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
+
+    GLboolean enabled = false;
+    glGetBooleanv(GL_SAMPLE_MASK, &enabled);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
+    EXPECT_FALSE(enabled);
+
+    glDisable(GL_SAMPLE_MASK);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
 
     GLint maxSamples = 0;
     glGetInternalformativ(GL_TEXTURE_2D_MULTISAMPLE, GL_R8, GL_SAMPLES, 1, &maxSamples);
-    ASSERT_GL_ERROR(GL_INVALID_ENUM);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
 
     GLint maxColorTextureSamples;
     glGetIntegerv(GL_MAX_COLOR_TEXTURE_SAMPLES, &maxColorTextureSamples);
-    ASSERT_GL_ERROR(GL_INVALID_ENUM);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
 
     GLint maxDepthTextureSamples;
     glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &maxDepthTextureSamples);
-    ASSERT_GL_ERROR(GL_INVALID_ENUM);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
 
     glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, mTexture);
-    ASSERT_GL_ERROR(GL_INVALID_ENUM);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
 
-    texStorageMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA8, 64, 64, GL_FALSE);
-    ASSERT_GL_ERROR(GL_INVALID_OPERATION);
+    glTexStorage2DMultisampleANGLE(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA8, 64, 64, GL_FALSE);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+    glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA8, 64, 64, GL_FALSE);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE,
                            mTexture, 0);
-    ASSERT_GL_ERROR(GL_INVALID_OPERATION);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
 
     GLint params = 0;
     glGetTexParameteriv(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_IMMUTABLE_FORMAT, &params);
-    ASSERT_GL_ERROR(GL_INVALID_ENUM);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
 
     GLfloat levelSamples = 0;
-    getTexLevelParameterfv(GL_TEXTURE_2D_MULTISAMPLE, 0, GL_TEXTURE_SAMPLES, &levelSamples);
-    ASSERT_GL_ERROR(GL_INVALID_OPERATION);
+    glGetTexLevelParameterfvANGLE(GL_TEXTURE_2D_MULTISAMPLE, 0, GL_TEXTURE_SAMPLES, &levelSamples);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+    glGetTexLevelParameterfv(GL_TEXTURE_2D_MULTISAMPLE, 0, GL_TEXTURE_SAMPLES, &levelSamples);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
 
     GLint fixedSampleLocation = false;
-    getTexLevelParameteriv(GL_TEXTURE_2D_MULTISAMPLE, 0, GL_TEXTURE_FIXED_SAMPLE_LOCATIONS,
-                           &fixedSampleLocation);
-    ASSERT_GL_ERROR(GL_INVALID_OPERATION);
+    glGetTexLevelParameterivANGLE(GL_TEXTURE_2D_MULTISAMPLE, 0, GL_TEXTURE_FIXED_SAMPLE_LOCATIONS,
+                                  &fixedSampleLocation);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D_MULTISAMPLE, 0, GL_TEXTURE_FIXED_SAMPLE_LOCATIONS,
+                             &fixedSampleLocation);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+
+    GLfloat samplePosition[2];
+    glGetMultisamplefvANGLE(GL_SAMPLE_POSITION, 0, samplePosition);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+    glGetMultisamplefv(GL_SAMPLE_POSITION, 0, samplePosition);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
 
     GLint maxSampleMaskWords = 0;
     glGetIntegerv(GL_MAX_SAMPLE_MASK_WORDS, &maxSampleMaskWords);
-    ASSERT_GL_ERROR(GL_INVALID_ENUM);
-    sampleMaski(maxSampleMaskWords - 1, 0x1);
-    ASSERT_GL_ERROR(GL_INVALID_OPERATION);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
+    glSampleMaskiANGLE(maxSampleMaskWords - 1, 0x1);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+    glSampleMaski(maxSampleMaskWords - 1, 0x1);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+
+    GLint sampleMaskValue = 0;
+    glGetIntegeri_v(GL_SAMPLE_MASK_VALUE, 0, &sampleMaskValue);
+    EXPECT_GL_ERROR(GL_INVALID_ENUM);
 }
 
 // Tests that GL_TEXTURE_2D_MULTISAMPLE_ARRAY is not supported in GetInternalformativ when the
