@@ -1204,17 +1204,6 @@ void TParseContext::checkStd430IsForShaderStorageBlock(const TSourceLoc &locatio
     }
 }
 
-void TParseContext::checkOutParameterIsNotOpaqueType(const TSourceLoc &line,
-                                                     TQualifier qualifier,
-                                                     const TType &type)
-{
-    ASSERT(qualifier == EvqParamOut || qualifier == EvqParamInOut);
-    if (IsOpaqueType(type.getBasicType()))
-    {
-        error(line, "opaque types cannot be output parameters", type.getBasicString());
-    }
-}
-
 // Do size checking for an array type's size.
 unsigned int TParseContext::checkIsValidArraySize(const TSourceLoc &line, TIntermTyped *expr)
 {
@@ -1411,24 +1400,23 @@ void TParseContext::checkCanBeDeclaredWithoutInitializer(const TSourceLoc &line,
             error(line, "variables with qualifier 'const' must be initialized", identifier);
         }
     }
+}
+
+void TParseContext::checkDeclarationIsValidArraySize(const TSourceLoc &line,
+                                                     const ImmutableString &identifier,
+                                                     TType *type)
+{
 
     // Implicitly declared arrays are only allowed with tessellation or geometry shader inputs
-    if (type->isArray() &&
+    if (type->isUnsizedArray() &&
         ((mShaderType != GL_TESS_CONTROL_SHADER && mShaderType != GL_TESS_EVALUATION_SHADER &&
           mShaderType != GL_GEOMETRY_SHADER) ||
          (mShaderType == GL_GEOMETRY_SHADER && type->getQualifier() == EvqGeometryOut)))
     {
-        const TSpan<const unsigned int> &arraySizes = type->getArraySizes();
-        for (unsigned int size : arraySizes)
-        {
-            if (size == 0)
-            {
-                error(line,
-                      "implicitly sized arrays only allowed for tessellation shaders "
-                      "or geometry shader inputs",
-                      identifier);
-            }
-        }
+        error(line,
+              "implicitly sized arrays only allowed for tessellation shaders "
+              "or geometry shader inputs",
+              identifier);
     }
 }
 
@@ -1653,39 +1641,41 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
     return true;
 }
 
-void TParseContext::checkIsParameterQualifierValid(
-    const TSourceLoc &line,
-    const TTypeQualifierBuilder &typeQualifierBuilder,
-    TType *type)
+void TParseContext::parseParameterQualifier(const TSourceLoc &line,
+                                            const TTypeQualifierBuilder &typeQualifierBuilder,
+                                            TPublicType &type)
 {
     // The only parameter qualifiers a parameter can have are in, out, inout or const.
     TTypeQualifier typeQualifier =
-        typeQualifierBuilder.getParameterTypeQualifier(type->getBasicType(), mDiagnostics);
+        typeQualifierBuilder.getParameterTypeQualifier(type.getBasicType(), mDiagnostics);
 
     if (typeQualifier.qualifier == EvqParamOut || typeQualifier.qualifier == EvqParamInOut)
     {
-        checkOutParameterIsNotOpaqueType(line, typeQualifier.qualifier, *type);
+        if (IsOpaqueType(type.getBasicType()))
+        {
+            error(line, "opaque types cannot be output parameters", type.getBasicString());
+        }
     }
 
-    if (!IsImage(type->getBasicType()))
+    if (!IsImage(type.getBasicType()))
     {
         checkMemoryQualifierIsNotSpecified(typeQualifier.memoryQualifier, line);
     }
     else
     {
-        type->setMemoryQualifier(typeQualifier.memoryQualifier);
+        type.setMemoryQualifier(typeQualifier.memoryQualifier);
     }
 
-    type->setQualifier(typeQualifier.qualifier);
+    type.setQualifier(typeQualifier.qualifier);
 
     if (typeQualifier.precision != EbpUndefined)
     {
-        type->setPrecision(typeQualifier.precision);
+        type.setPrecision(typeQualifier.precision);
     }
 
     if (typeQualifier.precise)
     {
-        type->setPrecise(true);
+        type.setPrecise(true);
     }
 }
 
@@ -3517,6 +3507,7 @@ TIntermDeclaration *TParseContext::parseSingleDeclaration(
         nonEmptyDeclarationErrorCheck(publicType, identifierOrTypeLocation);
 
         checkCanBeDeclaredWithoutInitializer(identifierOrTypeLocation, identifier, type);
+        checkDeclarationIsValidArraySize(identifierOrTypeLocation, identifier, type);
 
         if (IsAtomicCounter(type->getBasicType()))
         {
@@ -3567,6 +3558,7 @@ TIntermDeclaration *TParseContext::parseSingleArrayDeclaration(
     checkTessellationShaderUnsizedArraysAndSetSize(indexLocation, identifier, arrayType);
 
     checkCanBeDeclaredWithoutInitializer(identifierLocation, identifier, arrayType);
+    checkDeclarationIsValidArraySize(identifierLocation, identifier, arrayType);
 
     if (IsAtomicCounter(arrayType->getBasicType()))
     {
@@ -3744,6 +3736,7 @@ void TParseContext::parseDeclarator(TPublicType &publicType,
     checkTessellationShaderUnsizedArraysAndSetSize(identifierLocation, identifier, type);
 
     checkCanBeDeclaredWithoutInitializer(identifierLocation, identifier, type);
+    checkDeclarationIsValidArraySize(identifierLocation, identifier, type);
 
     if (IsAtomicCounter(type->getBasicType()))
     {
@@ -3787,6 +3780,7 @@ void TParseContext::parseArrayDeclarator(TPublicType &elementType,
         checkTessellationShaderUnsizedArraysAndSetSize(identifierLocation, identifier, arrayType);
 
         checkCanBeDeclaredWithoutInitializer(identifierLocation, identifier, arrayType);
+        checkDeclarationIsValidArraySize(identifierLocation, identifier, arrayType);
 
         if (IsAtomicCounter(arrayType->getBasicType()))
         {
@@ -4455,15 +4449,6 @@ TIntermFunctionPrototype *TParseContext::createPrototypeNodeFromFunction(
             // Unsized type of a named parameter should have already been checked and sanitized.
             ASSERT(!param->getType().isUnsizedArray());
         }
-        else
-        {
-            if (param->getType().isUnsizedArray())
-            {
-                error(location, "function parameter array must be sized at compile time", "[]");
-                // We don't need to size the arrays since the parameter is unnamed and hence
-                // inaccessible.
-            }
-        }
     }
     return prototype;
 }
@@ -4572,13 +4557,6 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
     {
         const TVariable *param = function->getParam(i);
         const TType &paramType = param->getType();
-
-        if (paramType.isStructSpecifier())
-        {
-            // ESSL 3.00.6 section 12.10.
-            error(location, "Function parameter type cannot be a structure definition",
-                  function->name());
-        }
 
         checkPrecisionSpecified(location, paramType.getPrecision(), paramType.getBasicType());
     }
@@ -4747,38 +4725,41 @@ void TParseContext::checkIsNotUnsizedArray(const TSourceLoc &line,
     }
 }
 
-TParameter TParseContext::parseParameterDeclarator(TType *type,
+TParameter TParseContext::parseParameterDeclarator(const TPublicType &type,
                                                    const ImmutableString &name,
                                                    const TSourceLoc &nameLoc)
 {
-    ASSERT(type);
-    checkIsNotUnsizedArray(nameLoc, "function parameter array must specify a size", name, type);
-    if (type->getBasicType() == EbtVoid)
+    if (!name.empty())
     {
-        error(nameLoc, "illegal use of type 'void'", name);
+        if (type.getBasicType() == EbtVoid)
+        {
+            error(nameLoc, "illegal use of type 'void'", name);
+        }
+    }
+    if (type.isStructSpecifier())
+    {
+        // ESSL 3.00.6 section 12.10.
+        error(nameLoc, "Function parameter type cannot be a structure definition", name);
     }
     checkIsNotReserved(nameLoc, name);
-    TParameter param = {name.data(), type};
+    TParameter param{name.data(), type};
+    if (param.type.isUnsizedArray())
+    {
+        error(nameLoc, "function parameter array must specify a size", name);
+        param.type.sizeUnsizedArrays();
+    }
     return param;
 }
 
-TParameter TParseContext::parseParameterDeclarator(const TPublicType &publicType,
-                                                   const ImmutableString &name,
-                                                   const TSourceLoc &nameLoc)
-{
-    TType *type = new TType(publicType);
-    return parseParameterDeclarator(type, name, nameLoc);
-}
-
-TParameter TParseContext::parseParameterArrayDeclarator(const ImmutableString &name,
+TParameter TParseContext::parseParameterArrayDeclarator(const TPublicType &elementType,
+                                                        const ImmutableString &name,
                                                         const TSourceLoc &nameLoc,
-                                                        const TVector<unsigned int> &arraySizes,
-                                                        const TSourceLoc &arrayLoc,
-                                                        TPublicType *elementType)
+                                                        TVector<unsigned int> *arraySizes,
+                                                        const TSourceLoc &arrayLoc)
 {
-    checkArrayElementIsNotArray(arrayLoc, *elementType);
-    TType *arrayType = new TType(*elementType);
-    arrayType->makeArrays(arraySizes);
+    checkArrayElementIsNotArray(arrayLoc, elementType);
+    TPublicType arrayType{elementType};
+    arrayType.makeArrays(arraySizes);
     return parseParameterDeclarator(arrayType, name, nameLoc);
 }
 
@@ -5224,10 +5205,10 @@ TIntermDeclaration *TParseContext::addInterfaceBlock(
     if (arraySizes)
     {
         interfaceBlockType->makeArrays(*arraySizes);
-
         checkGeometryShaderInputAndSetArraySize(instanceLine, instanceName, interfaceBlockType);
         checkTessellationShaderUnsizedArraysAndSetSize(instanceLine, instanceName,
                                                        interfaceBlockType);
+        checkDeclarationIsValidArraySize(instanceLine, instanceName, interfaceBlockType);
     }
 
     // The instance variable gets created to refer to the interface block type from the AST

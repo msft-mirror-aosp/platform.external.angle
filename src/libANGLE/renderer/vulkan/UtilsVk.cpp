@@ -1652,13 +1652,13 @@ angle::Result UtilsVk::ensureImageCopyResourcesInitializedWithSampler(
         return angle::Result::Continue;
     }
 
-    vk::SamplerBinding sampler;
+    vk::SharedSamplerPtr sampler;
     ANGLE_TRY(
         contextVk->getRenderer()->getSamplerCache().getSampler(contextVk, samplerDesc, &sampler));
 
     vk::DescriptorSetLayoutDesc descriptorSetDesc;
     descriptorSetDesc.addBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                                 VK_SHADER_STAGE_FRAGMENT_BIT, &sampler.get().get());
+                                 VK_SHADER_STAGE_FRAGMENT_BIT, &sampler->get());
 
     ANGLE_TRY(contextVk->getDescriptorSetLayoutCache().getDescriptorSetLayout(
         contextVk, descriptorSetDesc,
@@ -4928,8 +4928,6 @@ angle::Result UtilsVk::allocateDescriptorSetWithLayout(
 
     // Retain the individual descriptorSet to the command buffer.
     commandBufferHelper->retainResource(descriptorSet.get());
-    // Since the eviction is relying on the pool's mUse, we need to update pool's mUse here.
-    commandBufferHelper->retainResource(descriptorSet->getPool().get());
 
     *descriptorSetOut = descriptorSet->getDescriptorSet();
 

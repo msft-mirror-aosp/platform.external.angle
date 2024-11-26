@@ -2050,7 +2050,8 @@ void CaptureGetMultisamplefvANGLE_val(const State &glState,
                                       GLfloat *val,
                                       ParamCapture *paramCapture)
 {
-    UNIMPLEMENTED();
+    // GL_SAMPLE_POSITION_ANGLE: 2 floats
+    paramCapture->readBufferSizeBytes = sizeof(GLfloat) * 2;
 }
 
 void CaptureGetTranslatedShaderSourceANGLE_length(const State &glState,
@@ -4500,6 +4501,33 @@ void CaptureFramebufferFoveationConfigQCOM_providedFeatures(const State &glState
                                                             GLuint requestedFeatures,
                                                             GLuint *providedFeatures,
                                                             angle::ParamCapture *paramCapture)
+{
+    UNIMPLEMENTED();
+}
+
+void CaptureTexStorageAttribs2DEXT_attrib_list(const State &glState,
+                                               bool isCallValid,
+                                               GLenum target,
+                                               GLsizei levels,
+                                               GLenum internalformat,
+                                               GLsizei width,
+                                               GLsizei height,
+                                               const GLint *attrib_list,
+                                               angle::ParamCapture *paramCapture)
+{
+    UNIMPLEMENTED();
+}
+
+void CaptureTexStorageAttribs3DEXT_attrib_list(const State &glState,
+                                               bool isCallValid,
+                                               GLenum target,
+                                               GLsizei levels,
+                                               GLenum internalformat,
+                                               GLsizei width,
+                                               GLsizei height,
+                                               GLsizei depth,
+                                               const GLint *attrib_list,
+                                               angle::ParamCapture *paramCapture)
 {
     UNIMPLEMENTED();
 }
