@@ -212,8 +212,9 @@ def __rewrite_rewrapper(ctx, cmd, use_large = False):
         })
 
         # Some large compiles take longer than the default timeout 2m.
-        rwcfg["exec_timeout"] = "4m"
-        rwcfg["reclient_timeout"] = "4m"
+        # same as clang_exception.star.
+        rwcfg["exec_timeout"] = "10m"
+        rwcfg["reclient_timeout"] = "10m"
     ctx.actions.fix(
         args = args,
         reproxy_config = json.encode(rwcfg),
@@ -323,8 +324,9 @@ def __step_config(ctx, step_config):
             },
             "canonicalize_working_dir": rule.get("canonicalize_dir", False),
             "exec_strategy": exec_strategy,
-            "exec_timeout": rule.get("timeout", "10m"),
-            "reclient_timeout": rule.get("timeout", "10m"),
+            # TODO: crbug.com/380755128 - Make each compile unit smaller.
+            "exec_timeout": rule.get("timeout", "30m"),
+            "reclient_timeout": rule.get("timeout", "15m"),
             "download_outputs": True,
         }
         new_rules.append(rule)
