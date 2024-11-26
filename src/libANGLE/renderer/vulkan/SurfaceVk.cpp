@@ -1717,17 +1717,15 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context,
     }
 
     VkSwapchainPresentModesCreateInfoEXT compatibleModesInfo = {};
-    if (renderer->getFeatures().supportsSwapchainMaintenance1.enabled)
+    if (renderer->getFeatures().supportsSwapchainMaintenance1.enabled &&
+        mCompatiblePresentModes.size() > 1)
     {
-        if (mCompatiblePresentModes.size() > 1)
-        {
-            compatibleModesInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT;
-            compatibleModesInfo.presentModeCount =
-                static_cast<uint32_t>(mCompatiblePresentModes.size());
-            compatibleModesInfo.pPresentModes = mCompatiblePresentModes.data();
+        compatibleModesInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_EXT;
+        compatibleModesInfo.presentModeCount =
+            static_cast<uint32_t>(mCompatiblePresentModes.size());
+        compatibleModesInfo.pPresentModes = mCompatiblePresentModes.data();
 
-            vk::AddToPNextChain(&swapchainInfo, &compatibleModesInfo);
-        }
+        vk::AddToPNextChain(&swapchainInfo, &compatibleModesInfo);
     }
     else
     {
@@ -2125,7 +2123,13 @@ egl::Error WindowSurfaceVk::swapWithDamage(const gl::Context *context,
                                            const EGLint *rects,
                                            EGLint n_rects)
 {
-    const angle::Result result = swapImpl(context, rects, n_rects, nullptr);
+    angle::Result result = swapImpl(context, rects, n_rects, nullptr);
+    if (result == angle::Result::Continue)
+    {
+        ContextVk *contextVk = vk::GetImpl(context);
+        result               = contextVk->onFramebufferBoundary(context);
+    }
+
     return angle::ToEGL(result, EGL_BAD_SURFACE);
 }
 
@@ -2144,7 +2148,12 @@ egl::Error WindowSurfaceVk::swap(const gl::Context *context)
         return angle::ToEGL(result, EGL_BAD_SURFACE);
     }
 
-    const angle::Result result = swapImpl(context, nullptr, 0, nullptr);
+    angle::Result result = swapImpl(context, nullptr, 0, nullptr);
+    if (result == angle::Result::Continue)
+    {
+        ContextVk *contextVk = vk::GetImpl(context);
+        result               = contextVk->onFramebufferBoundary(context);
+    }
     return angle::ToEGL(result, EGL_BAD_SURFACE);
 }
 
@@ -2266,8 +2275,8 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
                                        vk::ImageLayout::Present, commandBufferHelper);
     }
 
-    ANGLE_TRY(contextVk->flushImpl(shouldDrawOverlay ? nullptr : &presentSemaphore, nullptr,
-                                   RenderPassClosureReason::EGLSwapBuffers));
+    ANGLE_TRY(contextVk->flushAndSubmitCommands(shouldDrawOverlay ? nullptr : &presentSemaphore,
+                                                nullptr, RenderPassClosureReason::EGLSwapBuffers));
 
     if (shouldDrawOverlay)
     {
@@ -2281,8 +2290,8 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
                                            vk::ImageLayout::Present, commandBufferHelper);
         }
 
-        ANGLE_TRY(contextVk->flushImpl(&presentSemaphore, nullptr,
-                                       RenderPassClosureReason::AlreadySpecifiedElsewhere));
+        ANGLE_TRY(contextVk->flushAndSubmitCommands(
+            &presentSemaphore, nullptr, RenderPassClosureReason::AlreadySpecifiedElsewhere));
     }
 
     return angle::Result::Continue;
@@ -2595,7 +2604,7 @@ angle::Result WindowSurfaceVk::swapImpl(const gl::Context *context,
         ANGLE_TRY(doDeferredAcquireNextImage(context, presentOutOfDate));
     }
 
-    return contextVk->onFramebufferBoundary(context);
+    return angle::Result::Continue;
 }
 
 angle::Result WindowSurfaceVk::onSharedPresentContextFlush(const gl::Context *context)
