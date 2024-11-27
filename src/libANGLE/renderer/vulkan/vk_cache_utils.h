@@ -129,8 +129,37 @@ enum class FramebufferFetchMode
 {
     None,
     Color,
+    DepthStencil,
+    ColorAndDepthStencil,
 };
 FramebufferFetchMode GetProgramFramebufferFetchMode(const gl::ProgramExecutable *executable);
+ANGLE_INLINE bool FramebufferFetchModeHasColor(FramebufferFetchMode framebufferFetchMode)
+{
+    static_assert(ToUnderlying(FramebufferFetchMode::Color) == 0x1);
+    static_assert(ToUnderlying(FramebufferFetchMode::ColorAndDepthStencil) == 0x3);
+    return (ToUnderlying(framebufferFetchMode) & 0x1) != 0;
+}
+ANGLE_INLINE bool FramebufferFetchModeHasDepthStencil(FramebufferFetchMode framebufferFetchMode)
+{
+    static_assert(ToUnderlying(FramebufferFetchMode::DepthStencil) == 0x2);
+    static_assert(ToUnderlying(FramebufferFetchMode::ColorAndDepthStencil) == 0x3);
+    return (ToUnderlying(framebufferFetchMode) & 0x2) != 0;
+}
+ANGLE_INLINE FramebufferFetchMode FramebufferFetchModeMerge(FramebufferFetchMode mode1,
+                                                            FramebufferFetchMode mode2)
+{
+    constexpr uint32_t kNone         = ToUnderlying(FramebufferFetchMode::None);
+    constexpr uint32_t kColor        = ToUnderlying(FramebufferFetchMode::Color);
+    constexpr uint32_t kDepthStencil = ToUnderlying(FramebufferFetchMode::DepthStencil);
+    constexpr uint32_t kColorAndDepthStencil =
+        ToUnderlying(FramebufferFetchMode::ColorAndDepthStencil);
+    static_assert(kNone == 0);
+    static_assert((kColor & kColorAndDepthStencil) == kColor);
+    static_assert((kDepthStencil & kColorAndDepthStencil) == kDepthStencil);
+    static_assert((kColor | kDepthStencil) == kColorAndDepthStencil);
+
+    return static_cast<FramebufferFetchMode>(ToUnderlying(mode1) | ToUnderlying(mode2));
+}
 
 // There can be a maximum of IMPLEMENTATION_MAX_DRAW_BUFFERS color and resolve attachments, plus -
 // - one depth/stencil attachment
@@ -249,7 +278,11 @@ class alignas(4) RenderPassDesc final
     }
     bool hasColorFramebufferFetch() const
     {
-        return framebufferFetchMode() == FramebufferFetchMode::Color;
+        return FramebufferFetchModeHasColor(framebufferFetchMode());
+    }
+    bool hasDepthStencilFramebufferFetch() const
+    {
+        return FramebufferFetchModeHasDepthStencil(framebufferFetchMode());
     }
 
     void updateRenderToTexture(bool isRenderToTexture) { mIsRenderToTexture = isRenderToTexture; }
@@ -308,7 +341,7 @@ class alignas(4) RenderPassDesc final
     uint8_t mSrgbWriteControl : 1;
 
     // Framebuffer fetch, one of FramebufferFetchMode values
-    uint8_t mFramebufferFetchMode : 1;
+    uint8_t mFramebufferFetchMode : 2;
 
     // Depth/stencil resolve
     uint8_t mResolveDepth : 1;
@@ -329,7 +362,7 @@ class alignas(4) RenderPassDesc final
     uint8_t mHasFragmentShadingAttachment : 1;
 
     // Available space for expansion.
-    uint8_t mPadding2 : 6;
+    uint8_t mPadding2 : 5;
 
     // Whether each color attachment has a corresponding resolve attachment.  Color resolve
     // attachments can be used to optimize resolve through glBlitFramebuffer() as well as support
@@ -873,9 +906,13 @@ class GraphicsPipelineDesc final
                               FramebufferFetchMode framebufferFetchMode);
     void setRenderPassSampleCount(GLint samples);
     void setRenderPassFramebufferFetchMode(FramebufferFetchMode framebufferFetchMode);
-    bool hasRenderPassColorFramebufferFetch() const
+    bool getRenderPassColorFramebufferFetchMode() const
     {
         return mSharedNonVertexInput.renderPass.hasColorFramebufferFetch();
+    }
+    bool getRenderPassDepthStencilFramebufferFetchMode() const
+    {
+        return mSharedNonVertexInput.renderPass.hasDepthStencilFramebufferFetch();
     }
 
     void setRenderPassFoveation(bool isFoveated);
@@ -1241,7 +1278,7 @@ class SamplerDesc final
 {
   public:
     SamplerDesc();
-    SamplerDesc(ContextVk *contextVk,
+    SamplerDesc(Context *context,
                 const gl::SamplerState &samplerState,
                 bool stencilMode,
                 const YcbcrConversionDesc *ycbcrConversionDesc,
@@ -1251,7 +1288,7 @@ class SamplerDesc final
     SamplerDesc(const SamplerDesc &other);
     SamplerDesc &operator=(const SamplerDesc &rhs);
 
-    void update(ContextVk *contextVk,
+    void update(Renderer *renderer,
                 const gl::SamplerState &samplerState,
                 bool stencilMode,
                 const YcbcrConversionDesc *ycbcrConversionDesc,
@@ -1761,6 +1798,10 @@ class WriteDescriptorDescs
                          VkDescriptorType descriptorType,
                          uint32_t descriptorCount);
 
+    void updateInputAttachment(uint32_t binding,
+                               ImageLayout layout,
+                               RenderTargetVk *renderTargetVk);
+
     // After a preliminary minimum size, use heap memory.
     angle::FastMap<WriteDescriptorDesc, kFastDescriptorSetDescLimit> mDescs;
     size_t mDynamicDescriptorSetCount = 0;
@@ -1819,23 +1860,47 @@ class DescriptorSetDesc
 std::ostream &operator<<(std::ostream &os, const DescriptorSetDesc &desc);
 
 class DescriptorPoolHelper;
-using RefCountedDescriptorPoolHelper = RefCounted<DescriptorPoolHelper>;
 
 // SharedDescriptorSetCacheKey.
 // Because DescriptorSet must associate with a pool, we need to define a structure that wraps both.
-struct DescriptorSetDescAndPool
+class DescriptorSetDescAndPool final
 {
+  public:
+    DescriptorSetDescAndPool() : mPool(nullptr) {}
+    DescriptorSetDescAndPool(const DescriptorSetDesc &desc, DynamicDescriptorPool *pool)
+        : mDesc(desc), mPool(pool)
+    {}
+    DescriptorSetDescAndPool(DescriptorSetDescAndPool &&other)
+        : mDesc(other.mDesc), mPool(other.mPool)
+    {
+        other.mPool = nullptr;
+    }
+    ~DescriptorSetDescAndPool() { ASSERT(!valid()); }
+    void destroy() { mPool = nullptr; }
+
+    void destroyCachedObject(Renderer *renderer);
+    void releaseCachedObject(ContextVk *contextVk) { UNREACHABLE(); }
+    void releaseCachedObject(Renderer *renderer);
+    bool valid() const { return mPool != nullptr; }
+    const DescriptorSetDesc &getDesc() const
+    {
+        ASSERT(valid());
+        return mDesc;
+    }
+    bool operator==(const DescriptorSetDescAndPool &other) const
+    {
+        return mDesc == other.mDesc && mPool == other.mPool;
+    }
+
+  private:
     DescriptorSetDesc mDesc;
     DynamicDescriptorPool *mPool;
 };
-using DescriptorSetAndPoolPointer = std::unique_ptr<DescriptorSetDescAndPool>;
-using SharedDescriptorSetCacheKey = std::shared_ptr<DescriptorSetAndPoolPointer>;
+using SharedDescriptorSetCacheKey = SharedPtr<DescriptorSetDescAndPool>;
 ANGLE_INLINE const SharedDescriptorSetCacheKey
 CreateSharedDescriptorSetCacheKey(const DescriptorSetDesc &desc, DynamicDescriptorPool *pool)
 {
-    DescriptorSetAndPoolPointer DescriptorAndPoolPointer =
-        std::make_unique<DescriptorSetDescAndPool>(DescriptorSetDescAndPool{desc, pool});
-    return std::make_shared<DescriptorSetAndPoolPointer>(std::move(DescriptorAndPoolPointer));
+    return SharedDescriptorSetCacheKey::MakeShared(desc, pool);
 }
 
 constexpr VkDescriptorType kStorageBufferDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -1926,19 +1991,11 @@ class DescriptorSetDescBuilder final
                                          FramebufferVk *framebufferVk,
                                          const WriteDescriptorDescs &writeDescriptorDescs);
 
-    // Specific helpers for image descriptors.
-    void updatePreCacheActiveTextures(const gl::ActiveTextureMask &activeTextures,
+    // Specialized update for textures.
+    void updatePreCacheActiveTextures(Context *context,
+                                      const gl::ProgramExecutable &executable,
                                       const gl::ActiveTextureArray<TextureVk *> &textures,
                                       const gl::SamplerBindingVector &samplers);
-
-    angle::Result updateFullActiveTextures(Context *context,
-                                           const ShaderInterfaceVariableInfoMap &variableInfoMap,
-                                           const WriteDescriptorDescs &writeDescriptorDescs,
-                                           const gl::ProgramExecutable &executable,
-                                           const gl::ActiveTextureArray<TextureVk *> &textures,
-                                           const gl::SamplerBindingVector &samplers,
-                                           PipelineType pipelineType,
-                                           const SharedDescriptorSetCacheKey &sharedCacheKey);
 
     void updateDescriptorSet(Renderer *renderer,
                              const WriteDescriptorDescs &writeDescriptorDescs,
@@ -1949,6 +2006,13 @@ class DescriptorSetDescBuilder final
     size_t getDynamicOffsetsSize() const { return mDynamicOffsets.size(); }
 
   private:
+    void updateInputAttachment(Context *context,
+                               uint32_t binding,
+                               ImageLayout layout,
+                               const vk::ImageView *imageView,
+                               ImageOrBufferViewSubresourceSerial serial,
+                               const WriteDescriptorDescs &writeDescriptorDescs);
+
     void setEmptyBuffer(uint32_t infoDescIndex,
                         VkDescriptorType descriptorType,
                         const BufferHelper &emptyBuffer);
@@ -1957,14 +2021,6 @@ class DescriptorSetDescBuilder final
     angle::FastVector<DescriptorDescHandles, kFastDescriptorSetDescLimit> mHandles;
     angle::FastVector<uint32_t, kFastDescriptorSetDescLimit> mDynamicOffsets;
 };
-
-// Specialized update for textures.
-void UpdatePreCacheActiveTextures(const gl::ProgramExecutable &executable,
-                                  const std::vector<gl::SamplerBinding> &samplerBindings,
-                                  const gl::ActiveTextureMask &activeTextures,
-                                  const gl::ActiveTextureArray<TextureVk *> &textures,
-                                  const gl::SamplerBindingVector &samplers,
-                                  DescriptorSetDesc *desc);
 
 // In the FramebufferDesc object:
 //  - Depth/stencil serial is at index 0
@@ -2036,6 +2092,13 @@ class FramebufferDesc
     void updateFragmentShadingRate(ImageOrBufferViewSubresourceSerial serial);
     bool hasFragmentShadingRateAttachment() const;
 
+    // Used by SharedFramebufferCacheKey
+    void destroy() { SetBitField(mIsValid, 0); }
+    void destroyCachedObject(Renderer *renderer);
+    void releaseCachedObject(Renderer *renderer) { UNREACHABLE(); }
+    void releaseCachedObject(ContextVk *contextVk);
+    bool valid() const { return mIsValid; }
+
   private:
     void reset();
     void update(uint32_t index, ImageOrBufferViewSubresourceSerial serial);
@@ -2045,6 +2108,8 @@ class FramebufferDesc
     uint16_t mMaxIndex : 5;
 
     // Whether the render pass has input attachments or not.
+    // Note that depth/stencil framebuffer fetch is only implemented for dynamic rendering, and so
+    // does not interact with this class.
     uint16_t mHasColorFramebufferFetch : 1;
     static_assert(gl::IMPLEMENTATION_MAX_FRAMEBUFFER_LAYERS < (1 << 9) - 1,
                   "Not enough bits for mLayerCount");
@@ -2060,9 +2125,11 @@ class FramebufferDesc
 
     // Whether this is a multisampled-render-to-single-sampled framebuffer.  Only used when using
     // VK_EXT_multisampled_render_to_single_sampled.  Only one bit is used and the rest is padding.
-    uint16_t mIsRenderToTexture : 15 - kMaxFramebufferNonResolveAttachments;
+    uint16_t mIsRenderToTexture : 14 - kMaxFramebufferNonResolveAttachments;
 
     uint16_t mIsMultiview : 1;
+    // Used by SharedFramebufferCacheKey to indicate if this cache key is valid or not.
+    uint16_t mIsValid : 1;
 
     FramebufferAttachmentArray<ImageOrBufferViewSubresourceSerial> mSerials;
 };
@@ -2073,14 +2140,11 @@ static_assert(kFramebufferDescSize == 156, "Size check failed");
 // Disable warnings about struct padding.
 ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
 
-// SharedFramebufferCacheKey
-using FramebufferDescPointer    = std::unique_ptr<FramebufferDesc>;
-using SharedFramebufferCacheKey = std::shared_ptr<FramebufferDescPointer>;
+using SharedFramebufferCacheKey = SharedPtr<FramebufferDesc>;
 ANGLE_INLINE const SharedFramebufferCacheKey
 CreateSharedFramebufferCacheKey(const FramebufferDesc &desc)
 {
-    FramebufferDescPointer framebufferDescPointer = std::make_unique<FramebufferDesc>(desc);
-    return std::make_shared<FramebufferDescPointer>(std::move(framebufferDescPointer));
+    return SharedFramebufferCacheKey::MakeShared(desc);
 }
 
 // The SamplerHelper allows a Sampler to be coupled with a serial.
@@ -2088,15 +2152,18 @@ CreateSharedFramebufferCacheKey(const FramebufferDesc &desc)
 class SamplerHelper final : angle::NonCopyable
 {
   public:
-    SamplerHelper(ContextVk *contextVk);
-    ~SamplerHelper();
+    SamplerHelper() = default;
+    ~SamplerHelper() { ASSERT(!valid()); }
 
     explicit SamplerHelper(SamplerHelper &&samplerHelper);
     SamplerHelper &operator=(SamplerHelper &&rhs);
 
+    angle::Result init(Context *context, const VkSamplerCreateInfo &createInfo);
+    angle::Result init(ContextVk *contextVk, const SamplerDesc &desc);
+    void destroy(VkDevice device) { mSampler.destroy(device); }
+    void destroy() { ASSERT(!valid()); }
     bool valid() const { return mSampler.valid(); }
     const Sampler &get() const { return mSampler; }
-    Sampler &get() { return mSampler; }
     SamplerSerial getSamplerSerial() const { return mSamplerSerial; }
 
   private:
@@ -2104,8 +2171,7 @@ class SamplerHelper final : angle::NonCopyable
     SamplerSerial mSamplerSerial;
 };
 
-using RefCountedSampler = RefCounted<SamplerHelper>;
-using SamplerBinding    = BindingPointer<SamplerHelper>;
+using SharedSamplerPtr = SharedPtr<SamplerHelper>;
 
 class RenderPassHelper final : angle::NonCopyable
 {
@@ -2686,10 +2752,10 @@ class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
 
     angle::Result getSampler(ContextVk *contextVk,
                              const vk::SamplerDesc &desc,
-                             vk::SamplerBinding *samplerOut);
+                             vk::SharedSamplerPtr *samplerOut);
 
   private:
-    std::unordered_map<vk::SamplerDesc, vk::RefCountedSampler> mPayload;
+    std::unordered_map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
 };
 
 // YuvConversion Cache
@@ -2714,6 +2780,7 @@ class SamplerYcbcrConversionCache final
 };
 
 // Descriptor Set Cache
+template <typename T>
 class DescriptorSetCache final : angle::NonCopyable
 {
   public:
@@ -2731,35 +2798,48 @@ class DescriptorSetCache final : angle::NonCopyable
         return *this;
     }
 
-    void resetCache() { mPayload.clear(); }
+    void clear() { mPayload.clear(); }
 
-    ANGLE_INLINE bool getDescriptorSet(const vk::DescriptorSetDesc &desc,
-                                       VkDescriptorSet *descriptorSetOut,
-                                       vk::RefCountedDescriptorPoolHelper **poolOut)
+    bool getDescriptorSet(const vk::DescriptorSetDesc &desc, T *descriptorSetOut)
     {
         auto iter = mPayload.find(desc);
         if (iter != mPayload.end())
         {
-            *descriptorSetOut = iter->second->getDescriptorSet();
-            *poolOut          = iter->second->getPool();
+            *descriptorSetOut = iter->second;
             return true;
         }
         return false;
     }
 
-    ANGLE_INLINE void insertDescriptorSet(const vk::DescriptorSetDesc &desc,
-                                          VkDescriptorSet descriptorSet,
-                                          vk::RefCountedDescriptorPoolHelper *pool)
+    void insertDescriptorSet(const vk::DescriptorSetDesc &desc, const T &descriptorSetHelper)
     {
-        mPayload.emplace(desc, std::make_unique<dsCacheEntry>(descriptorSet, pool));
+        mPayload.emplace(desc, descriptorSetHelper);
     }
 
-    ANGLE_INLINE void eraseDescriptorSet(const vk::DescriptorSetDesc &desc)
+    bool eraseDescriptorSet(const vk::DescriptorSetDesc &desc, T *descriptorSetOut)
     {
-        mPayload.erase(desc);
+        auto iter = mPayload.find(desc);
+        if (iter != mPayload.end())
+        {
+            *descriptorSetOut = std::move(iter->second);
+            mPayload.erase(iter);
+            return true;
+        }
+        return false;
     }
 
-    ANGLE_INLINE size_t getTotalCacheSize() const { return mPayload.size(); }
+    bool eraseDescriptorSet(const vk::DescriptorSetDesc &desc)
+    {
+        auto iter = mPayload.find(desc);
+        if (iter != mPayload.end())
+        {
+            mPayload.erase(iter);
+            return true;
+        }
+        return false;
+    }
+
+    size_t getTotalCacheSize() const { return mPayload.size(); }
 
     size_t getTotalCacheKeySizeBytes() const
     {
@@ -2771,27 +2851,10 @@ class DescriptorSetCache final : angle::NonCopyable
         }
         return totalSize;
     }
-
     bool empty() const { return mPayload.empty(); }
 
   private:
-    class dsCacheEntry
-    {
-      public:
-        dsCacheEntry(VkDescriptorSet descriptorSet, vk::RefCountedDescriptorPoolHelper *pool)
-            : mDescriptorSet(descriptorSet), mPool(pool)
-        {}
-        VkDescriptorSet getDescriptorSet() const { return mDescriptorSet; }
-        vk::RefCountedDescriptorPoolHelper *getPool() const { return mPool; }
-
-      private:
-        VkDescriptorSet mDescriptorSet;
-        // Weak pointer to the pool this descriptorSet allocated from. The RefCount is tracking if
-        // this pool is bound as the current pool in any ProgramExecutableVk or not, so we should
-        // not add refcount from the cache.
-        vk::RefCountedDescriptorPoolHelper *mPool;
-    };
-    angle::HashMap<vk::DescriptorSetDesc, std::unique_ptr<dsCacheEntry>> mPayload;
+    angle::HashMap<vk::DescriptorSetDesc, T> mPayload;
 };
 
 // There is 1 default uniform binding used per stage.

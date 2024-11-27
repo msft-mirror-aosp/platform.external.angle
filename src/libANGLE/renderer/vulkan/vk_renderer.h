@@ -261,7 +261,7 @@ class Renderer : angle::NonCopyable
     const angle::FeaturesVk &getFeatures() const { return mFeatures; }
     uint32_t getMaxVertexAttribDivisor() const { return mMaxVertexAttribDivisor; }
     VkDeviceSize getMaxVertexAttribStride() const { return mMaxVertexAttribStride; }
-    uint32_t getMaxInputAttachmentCount() const { return mMaxInputAttachmentCount; }
+    uint32_t getMaxColorInputAttachmentCount() const { return mMaxColorInputAttachmentCount; }
 
     uint32_t getDefaultUniformBufferSize() const { return mDefaultUniformBufferSize; }
 
@@ -371,6 +371,12 @@ class Renderer : angle::NonCopyable
         return mSkippedSyncvalMessages;
     }
 
+    bool isCoherentColorFramebufferFetchEmulated() const
+    {
+        return mFeatures.supportsShaderFramebufferFetch.enabled &&
+               !mIsColorFramebufferFetchCoherent;
+    }
+
     void onColorFramebufferFetchUse() { mIsColorFramebufferFetchUsed = true; }
     bool isColorFramebufferFetchUsed() const { return mIsColorFramebufferFetchUsed; }
 
@@ -469,6 +475,8 @@ class Renderer : angle::NonCopyable
                                                             uint64_t timeout,
                                                             VkResult *result);
     angle::Result checkCompletedCommands(vk::Context *context);
+
+    angle::Result checkCompletedCommandsAndCleanup(vk::Context *context);
     angle::Result retireFinishedCommands(vk::Context *context);
 
     angle::Result flushWaitSemaphores(vk::ProtectionType protectionType,
@@ -630,70 +638,6 @@ class Renderer : angle::NonCopyable
     ANGLE_INLINE VkFilter getPreferredFilterForYUV(VkFilter defaultFilter)
     {
         return getFeatures().preferLinearFilterForYUV.enabled ? VK_FILTER_LINEAR : defaultFilter;
-    }
-
-    // Convenience helpers to check for dynamic state ANGLE features which depend on the more
-    // encompassing feature for support of the relevant extension.  When the extension-support
-    // feature is disabled, the derived dynamic state is automatically disabled.
-    ANGLE_INLINE bool useVertexInputBindingStrideDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState.enabled &&
-               getFeatures().useVertexInputBindingStrideDynamicState.enabled;
-    }
-    ANGLE_INLINE bool useCullModeDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState.enabled &&
-               getFeatures().useCullModeDynamicState.enabled;
-    }
-    ANGLE_INLINE bool useDepthCompareOpDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState.enabled &&
-               getFeatures().useDepthCompareOpDynamicState.enabled;
-    }
-    ANGLE_INLINE bool useDepthTestEnableDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState.enabled &&
-               getFeatures().useDepthTestEnableDynamicState.enabled;
-    }
-    ANGLE_INLINE bool useDepthWriteEnableDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState.enabled &&
-               getFeatures().useDepthWriteEnableDynamicState.enabled;
-    }
-    ANGLE_INLINE bool useFrontFaceDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState.enabled &&
-               getFeatures().useFrontFaceDynamicState.enabled;
-    }
-    ANGLE_INLINE bool useStencilOpDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState.enabled &&
-               getFeatures().useStencilOpDynamicState.enabled;
-    }
-    ANGLE_INLINE bool useStencilTestEnableDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState.enabled &&
-               getFeatures().useStencilTestEnableDynamicState.enabled;
-    }
-    ANGLE_INLINE bool usePrimitiveRestartEnableDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState2.enabled &&
-               getFeatures().usePrimitiveRestartEnableDynamicState.enabled;
-    }
-    ANGLE_INLINE bool useRasterizerDiscardEnableDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState2.enabled &&
-               getFeatures().useRasterizerDiscardEnableDynamicState.enabled;
-    }
-    ANGLE_INLINE bool useDepthBiasEnableDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState2.enabled &&
-               getFeatures().useDepthBiasEnableDynamicState.enabled;
-    }
-    ANGLE_INLINE bool useLogicOpDynamicState()
-    {
-        return getFeatures().supportsExtendedDynamicState2.enabled &&
-               getFeatures().supportsLogicOpDynamicState.enabled;
     }
 
     angle::Result allocateScopedQueueSerialIndex(vk::ScopedQueueSerialIndex *indexOut);
@@ -963,6 +907,7 @@ class Renderer : angle::NonCopyable
     VkPhysicalDeviceHostImageCopyPropertiesEXT mHostImageCopyProperties;
     std::vector<VkImageLayout> mHostImageCopySrcLayoutsStorage;
     std::vector<VkImageLayout> mHostImageCopyDstLayoutsStorage;
+    VkPhysicalDeviceImageCompressionControlFeaturesEXT mImageCompressionControlFeatures;
 #if defined(ANGLE_PLATFORM_ANDROID)
     VkPhysicalDeviceExternalFormatResolveFeaturesANDROID mExternalFormatResolveFeatures;
     VkPhysicalDeviceExternalFormatResolvePropertiesANDROID mExternalFormatResolveProperties;
@@ -982,7 +927,7 @@ class Renderer : angle::NonCopyable
     uint32_t mCurrentQueueFamilyIndex;
     uint32_t mMaxVertexAttribDivisor;
     VkDeviceSize mMaxVertexAttribStride;
-    mutable uint32_t mMaxInputAttachmentCount;
+    mutable uint32_t mMaxColorInputAttachmentCount;
     uint32_t mDefaultUniformBufferSize;
     VkDevice mDevice;
     VkDeviceSize mMaxCopyBytesUsingCPUWhenPreservingBufferData;
@@ -1046,6 +991,21 @@ class Renderer : angle::NonCopyable
     // certain extensions.
     std::vector<vk::SkippedSyncvalMessage> mSkippedSyncvalMessages;
 
+    // Whether framebuffer fetch is internally coherent.  If framebuffer fetch is not coherent,
+    // technically ANGLE could simply not expose EXT_shader_framebuffer_fetch and instead only
+    // expose EXT_shader_framebuffer_fetch_non_coherent.  In practice, too many Android apps assume
+    // EXT_shader_framebuffer_fetch is available and break without it.  Others use string matching
+    // to detect when EXT_shader_framebuffer_fetch is available, and accidentally match
+    // EXT_shader_framebuffer_fetch_non_coherent and believe coherent framebuffer fetch is
+    // available.
+    //
+    // For these reasons, ANGLE always exposes EXT_shader_framebuffer_fetch.  To ensure coherence
+    // between draw calls, it automatically inserts barriers between draw calls when the program
+    // uses framebuffer fetch.  ANGLE does not attempt to guarantee coherence for self-overlapping
+    // geometry, which makes this emulation incorrect per spec, but practically harmless.
+    //
+    // This emulation can also be used to implement coherent advanced blend similarly if needed.
+    bool mIsColorFramebufferFetchCoherent;
     // Whether framebuffer fetch has been used, for the purposes of more accurate syncval error
     // filtering.
     bool mIsColorFramebufferFetchUsed;
@@ -1207,6 +1167,11 @@ ANGLE_INLINE void Renderer::requestAsyncCommandsAndGarbageCleanup(vk::Context *c
 }
 
 ANGLE_INLINE angle::Result Renderer::checkCompletedCommands(vk::Context *context)
+{
+    return mCommandQueue.checkCompletedCommands(context);
+}
+
+ANGLE_INLINE angle::Result Renderer::checkCompletedCommandsAndCleanup(vk::Context *context)
 {
     return mCommandQueue.checkAndCleanupCompletedCommands(context);
 }

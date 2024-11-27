@@ -682,6 +682,8 @@ EXPORTS
 
     ; GL_ARB_sync
 
+    ; GL_ARM_rgba8
+
     ; GL_ARM_shader_framebuffer_fetch
 
     ; GL_ARM_shader_framebuffer_fetch_depth_stencil
@@ -996,6 +998,10 @@ EXPORTS
     glTexStorage1DEXT
     glTexStorage2DEXT
     glTexStorage3DEXT
+
+    ; GL_EXT_texture_storage_compression
+    glTexStorageAttribs2DEXT
+    glTexStorageAttribs3DEXT
 
     ; GL_EXT_texture_type_2_10_10_10_REV
 

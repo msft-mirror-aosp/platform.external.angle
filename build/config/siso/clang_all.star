@@ -5,9 +5,11 @@
 """Siso configuration for clang."""
 
 load("@builtin//struct.star", "module")
+load("./mac_sdk.star", "mac_sdk")
+load("./win_sdk.star", "win_sdk")
 
 def __filegroups(ctx):
-    return {
+    fg = {
         "third_party/libc++/src/include:headers": {
             "type": "glob",
             "includes": ["*"],
@@ -20,7 +22,10 @@ def __filegroups(ctx):
         # vendor provided headers for libc++.
         "buildtools/third_party/libc++:headers": {
             "type": "glob",
-            "includes": ["__*"],
+            "includes": [
+                "__*",
+                "gross_hack.h",
+            ],
         },
 
         # toolchain root
@@ -31,6 +36,7 @@ def __filegroups(ctx):
                 "*.h",
                 "bin/clang",
                 "bin/clang++",
+                "bin/clang-cl",
                 "bin/clang-cl.exe",
                 "*_ignorelist.txt",
                 # https://crbug.com/335997052
@@ -38,6 +44,11 @@ def __filegroups(ctx):
             ],
         },
     }
+    if win_sdk.enabled(ctx):
+        fg.update(win_sdk.filegroups(ctx))
+    if mac_sdk.enabled(ctx):
+        fg.update(mac_sdk.filegroups(ctx))
+    return fg
 
 __input_deps = {
     # need this because we use
@@ -59,6 +70,18 @@ __input_deps = {
     ],
     "third_party/llvm-build/Release+Asserts/bin/clang-cl.exe": [
         "build/config/unsafe_buffers_paths.txt",
+    ],
+    "build/toolchain/gcc_solink_wrapper.py": [
+        "build/toolchain/whole_archive.py",
+        "build/toolchain/wrapper_utils.py",
+    ],
+    "build/toolchain/gcc_link_wrapper.py": [
+        "build/toolchain/whole_archive.py",
+        "build/toolchain/wrapper_utils.py",
+    ],
+    "build/toolchain/apple/linker_driver.py:link": [
+        "build/toolchain/apple/linker_driver.py",
+        "build/toolchain/whole_archive.py",
     ],
 }
 

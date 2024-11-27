@@ -256,12 +256,21 @@ static bool DetermineDepthBufferFloat2Support(const TextureCapsMap &textureCaps)
     return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
 }
 
+// Checks for GL_ARM_rgba8 support
+static bool DetermineRGBA8TextureSupport(const TextureCapsMap &textureCaps)
+{
+    constexpr GLenum requiredFormats[] = {
+        GL_RGBA8,
+    };
+
+    return GetFormatSupport(textureCaps, requiredFormats, false, false, false, true, false);
+}
+
 // Checks for GL_OES_rgb8_rgba8 support
-static bool DetermineRGB8AndRGBA8TextureSupport(const TextureCapsMap &textureCaps)
+static bool DetermineRGB8TextureSupport(const TextureCapsMap &textureCaps)
 {
     constexpr GLenum requiredFormats[] = {
         GL_RGB8,
-        GL_RGBA8,
     };
 
     return GetFormatSupport(textureCaps, requiredFormats, false, false, false, true, false);
@@ -876,7 +885,8 @@ void Extensions::setTextureExtensionSupport(const TextureCapsMap &textureCaps)
     // colorBufferFloatRgbCHROMIUM, colorBufferFloatRgbaCHROMIUM and colorBufferFloatEXT were
     // verified. Verify the rest.
     packedDepthStencilOES    = DeterminePackedDepthStencilSupport(textureCaps);
-    rgb8Rgba8OES             = DetermineRGB8AndRGBA8TextureSupport(textureCaps);
+    rgba8ARM                 = DetermineRGBA8TextureSupport(textureCaps);
+    rgb8Rgba8OES             = rgba8ARM && DetermineRGB8TextureSupport(textureCaps);
     readDepthNV              = DetermineReadDepthSupport(textureCaps);
     readStencilNV            = DetermineReadStencilSupport(textureCaps);
     depthBufferFloat2NV      = DetermineDepthBufferFloat2Support(textureCaps);
@@ -1326,6 +1336,7 @@ std::vector<std::string> DisplayExtensions::getStrings() const
     InsertExtensionString("EGL_ANDROID_framebuffer_target",                      framebufferTargetANDROID,           &extensionStrings);
     InsertExtensionString("EGL_ANDROID_image_native_buffer",                     imageNativeBuffer,                  &extensionStrings);
     InsertExtensionString("EGL_ANDROID_get_frame_timestamps",                    getFrameTimestamps,                 &extensionStrings);
+    InsertExtensionString("EGL_ANDROID_front_buffer_auto_refresh",               frontBufferAutoRefreshANDROID,      &extensionStrings);
     InsertExtensionString("EGL_ANGLE_timestamp_surface_attribute",               timestampSurfaceAttributeANGLE,     &extensionStrings);
     InsertExtensionString("EGL_ANDROID_recordable",                              recordable,                         &extensionStrings);
     InsertExtensionString("EGL_ANGLE_power_preference",                          powerPreference,                    &extensionStrings);

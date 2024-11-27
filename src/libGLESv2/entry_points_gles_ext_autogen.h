@@ -758,6 +758,8 @@ ANGLE_EXPORT void GL_APIENTRY GL_ReleaseTexturesANGLE(GLuint numTextures,
 
 // GL_ARB_sync
 
+// GL_ARM_rgba8
+
 // GL_ARM_shader_framebuffer_fetch
 
 // GL_ARM_shader_framebuffer_fetch_depth_stencil
@@ -1429,6 +1431,21 @@ ANGLE_EXPORT void GL_APIENTRY GL_TexStorage3DEXT(GLenum target,
                                                  GLsizei width,
                                                  GLsizei height,
                                                  GLsizei depth);
+
+// GL_EXT_texture_storage_compression
+ANGLE_EXPORT void GL_APIENTRY GL_TexStorageAttribs2DEXT(GLenum target,
+                                                        GLsizei levels,
+                                                        GLenum internalformat,
+                                                        GLsizei width,
+                                                        GLsizei height,
+                                                        const GLint *attrib_list);
+ANGLE_EXPORT void GL_APIENTRY GL_TexStorageAttribs3DEXT(GLenum target,
+                                                        GLsizei levels,
+                                                        GLenum internalformat,
+                                                        GLsizei width,
+                                                        GLsizei height,
+                                                        GLsizei depth,
+                                                        const GLint *attrib_list);
 
 // GL_EXT_texture_type_2_10_10_10_REV
 

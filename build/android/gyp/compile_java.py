@@ -128,6 +128,8 @@ ERRORPRONE_WARNINGS_TO_DISABLE = [
     'StringCharset',
     # Nice to have.
     'StringCaseLocaleUsage',
+    # Low priority.
+    'RedundantControlFlow',
 ]
 
 # Full list of checks: https://errorprone.info/bugpatterns
@@ -346,10 +348,12 @@ def _OnStaleMd5(changes, options, javac_cmd, javac_args, java_files, kt_files):
 
   # Use the build server for errorprone runs.
   if (options.enable_errorprone and not options.skip_build_server
-      and server_utils.MaybeRunCommand(name=options.target_name,
-                                       argv=sys.argv,
-                                       stamp_file=options.jar_path,
-                                       force=options.use_build_server)):
+      and server_utils.MaybeRunCommand(
+          name=options.target_name,
+          argv=sys.argv,
+          stamp_file=options.jar_path,
+          force=options.use_build_server,
+          experimental=options.experimental_build_server)):
     return
 
   if options.enable_kythe_annotations:
@@ -584,11 +588,13 @@ def _ParseOptions(argv):
   parser.add_option('--use-build-server',
                     action='store_true',
                     help='Always use the build server.')
-  parser.add_option(
-      '--java-srcjars',
-      action='append',
-      default=[],
-      help='List of srcjars to include in compilation.')
+  parser.add_option('--experimental-build-server',
+                    action='store_true',
+                    help='Use experimental build server features.')
+  parser.add_option('--java-srcjars',
+                    action='append',
+                    default=[],
+                    help='List of srcjars to include in compilation.')
   parser.add_option(
       '--generated-dir',
       help='Subdirectory within target_gen_dir to place extracted srcjars and '
@@ -763,6 +769,7 @@ def main(argv):
 
     javac_args += ['-XDcompilePolicy=simple', ' '.join(errorprone_flags)]
 
+    javac_args += ['-XDshould-stop.ifError=FLOW']
     # This flag quits errorprone after checks and before code generation, since
     # we do not need errorprone outputs, this speeds up errorprone by 4 seconds
     # for chrome_java.
@@ -808,15 +815,21 @@ def main(argv):
                    kt_files +
                    [options.warnings_as_errors, options.jar_info_exclude_globs])
 
-  # Use md5_check for |pass_changes| feature.
-  md5_check.CallAndWriteDepfileIfStale(lambda changes: _OnStaleMd5(
-      changes, options, javac_cmd, javac_args, java_files, kt_files),
-                                       options,
-                                       depfile_deps=depfile_deps,
-                                       input_paths=input_paths,
-                                       input_strings=input_strings,
-                                       output_paths=output_paths,
-                                       pass_changes=True)
+  do_it = lambda changes: _OnStaleMd5(changes, options, javac_cmd, javac_args,
+                                      java_files, kt_files)
+  # Incremental build optimization doesn't work for ErrorProne. Skip md5 check.
+  if options.enable_errorprone:
+    do_it(None)
+    action_helpers.write_depfile(options.depfile, output_paths[0], depfile_deps)
+  else:
+    # Use md5_check for |pass_changes| feature.
+    md5_check.CallAndWriteDepfileIfStale(do_it,
+                                         options,
+                                         depfile_deps=depfile_deps,
+                                         input_paths=input_paths,
+                                         input_strings=input_strings,
+                                         output_paths=output_paths,
+                                         pass_changes=True)
   return 0
 
 

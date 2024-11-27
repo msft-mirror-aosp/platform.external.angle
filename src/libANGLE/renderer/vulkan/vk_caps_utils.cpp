@@ -355,8 +355,10 @@ void Renderer::ensureCapsInitialized() const
     // Vulkan doesn't support ASTC 3D block textures, which are required by
     // GL_OES_texture_compression_astc.
     mNativeExtensions.textureCompressionAstcOES = false;
-    // Vulkan does not support sliced 3D ASTC textures either.
-    mNativeExtensions.textureCompressionAstcSliced3dKHR = false;
+    // Enable KHR_texture_compression_astc_sliced_3d
+    mNativeExtensions.textureCompressionAstcSliced3dKHR =
+        mNativeExtensions.textureCompressionAstcLdrKHR &&
+        getFeatures().supportsAstcSliced3d.enabled;
 
     // Vulkan doesn't guarantee HDR blocks decoding without VK_EXT_texture_compression_astc_hdr.
     mNativeExtensions.textureCompressionAstcHdrKHR = false;
@@ -593,8 +595,7 @@ void Renderer::ensureCapsInitialized() const
 
     mNativeExtensions.blendEquationAdvancedCoherentKHR =
         mFeatures.supportsBlendOperationAdvancedCoherent.enabled ||
-        (mFeatures.emulateAdvancedBlendEquations.enabled &&
-         mFeatures.supportsShaderFramebufferFetch.enabled);
+        (mFeatures.emulateAdvancedBlendEquations.enabled && mIsColorFramebufferFetchCoherent);
 
     // Enable EXT_unpack_subimage
     mNativeExtensions.unpackSubimageEXT = true;
@@ -995,7 +996,7 @@ void Renderer::ensureCapsInitialized() const
     if (getFeatures().supportsShaderFramebufferFetch.enabled)
     {
         mNativeExtensions.shaderFramebufferFetchEXT = true;
-        mNativeExtensions.shaderFramebufferFetchARM = mNativeExtensions.shaderFramebufferFetchEXT;
+        mNativeExtensions.shaderFramebufferFetchARM = true;
         // ANGLE correctly maps gl_LastFragColorARM to input attachment 0 and has no problem with
         // MRT.
         mNativeCaps.fragmentShaderFramebufferFetchMRT = true;
@@ -1294,7 +1295,7 @@ void Renderer::ensureCapsInitialized() const
 
     // GL_ANGLE_shader_pixel_local_storage
     mNativeExtensions.shaderPixelLocalStorageANGLE = true;
-    if (getFeatures().supportsShaderFramebufferFetch.enabled)
+    if (getFeatures().supportsShaderFramebufferFetch.enabled && mIsColorFramebufferFetchCoherent)
     {
         mNativeExtensions.shaderPixelLocalStorageCoherentANGLE = true;
         mNativePLSOptions.type             = ShPixelLocalStorageType::FramebufferFetch;
@@ -1336,19 +1337,42 @@ void Renderer::ensureCapsInitialized() const
         // Make sure no more than the allowed input attachments bindings are used by descriptor set
         // layouts.  This number matches the number of color attachments because of framebuffer
         // fetch, and that limit is later capped to IMPLEMENTATION_MAX_DRAW_BUFFERS in Context.cpp.
-        mMaxInputAttachmentCount = std::min<uint32_t>(mNativeCaps.maxColorAttachments,
-                                                      gl::IMPLEMENTATION_MAX_DRAW_BUFFERS);
+        mMaxColorInputAttachmentCount = std::min<uint32_t>(mNativeCaps.maxColorAttachments,
+                                                           gl::IMPLEMENTATION_MAX_DRAW_BUFFERS);
     }
     else if (mFeatures.emulateAdvancedBlendEquations.enabled)
     {
         // ANGLE may also use framebuffer fetch to emulate KHR_blend_equation_advanced, which needs
         // a single input attachment.
-        mMaxInputAttachmentCount = 1;
+        mMaxColorInputAttachmentCount = 1;
     }
     else
     {
-        // mMaxInputAttachmentCount is left as 0 to catch bugs if a future user of framebuffer fetch
-        // functionality does not update the logic in this if/else chain.
+        // mMaxColorInputAttachmentCount is left as 0 to catch bugs if a future user of framebuffer
+        // fetch functionality does not update the logic in this if/else chain.
+    }
+
+    // Enable the ARM_shader_framebuffer_fetch_depth_stencil extension only if the number of input
+    // descriptor exceeds the color attachment count by at least 2 (for depth and stencil), or if
+    // the number of color attachments can be reduced to accomodate for the 2 depth/stencil images.
+    if (mFeatures.supportsShaderFramebufferFetchDepthStencil.enabled)
+    {
+        const uint32_t maxColorAttachmentsWithDepthStencilInput = std::min<uint32_t>(
+            mNativeCaps.maxColorAttachments, limitsVk.maxPerStageDescriptorInputAttachments - 2);
+        const uint32_t maxDrawBuffersWithDepthStencilInput = std::min<uint32_t>(
+            mNativeCaps.maxDrawBuffers, limitsVk.maxPerStageDescriptorInputAttachments - 2);
+
+        // As long as the minimum required color attachments (4) is satisfied, the extension can be
+        // exposed.
+        if (maxColorAttachmentsWithDepthStencilInput >= 4 &&
+            maxDrawBuffersWithDepthStencilInput >= 4)
+        {
+            mNativeExtensions.shaderFramebufferFetchDepthStencilARM = true;
+            mNativeCaps.maxColorAttachments = maxColorAttachmentsWithDepthStencilInput;
+            mNativeCaps.maxDrawBuffers      = maxDrawBuffersWithDepthStencilInput;
+            mMaxColorInputAttachmentCount =
+                std::min<uint32_t>(mMaxColorInputAttachmentCount, mNativeCaps.maxColorAttachments);
+        }
     }
 
     mNativeExtensions.logicOpANGLE = mPhysicalDeviceFeatures.logicOp == VK_TRUE;

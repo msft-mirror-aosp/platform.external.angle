@@ -228,16 +228,15 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
 
     void releaseOwnershipOfImage(const gl::Context *context);
 
-    const vk::ImageView &getReadImageView(vk::Context *context,
-                                          GLenum srgbDecode,
+    const vk::ImageView &getReadImageView(GLenum srgbDecode,
                                           bool texelFetchStaticUse,
                                           bool samplerExternal2DY2YEXT) const;
 
-    angle::Result getBufferViewAndRecordUse(vk::Context *context,
-                                            const vk::Format *imageUniformFormat,
-                                            const gl::SamplerBinding *samplerBinding,
-                                            bool isImage,
-                                            const vk::BufferView **viewOut);
+    angle::Result getBufferView(vk::Context *context,
+                                const vk::Format *imageUniformFormat,
+                                const gl::SamplerBinding *samplerBinding,
+                                bool isImage,
+                                const vk::BufferView **viewOut);
 
     // A special view used for texture copies that shouldn't perform swizzle.
     const vk::ImageView &getCopyImageView() const;
@@ -249,11 +248,11 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
     {
         if (isSamplerExternalY2Y)
         {
-            ASSERT(mY2YSampler.valid());
-            return mY2YSampler.get();
+            ASSERT(mY2YSampler->valid());
+            return *mY2YSampler.get();
         }
-        ASSERT(mSampler.valid());
-        return mSampler.get();
+        ASSERT(mSampler->valid());
+        return *mSampler.get();
     }
 
     void resetSampler()
@@ -432,6 +431,7 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
     angle::Result clearSubImageImpl(const gl::Context *context,
                                     GLint level,
                                     const gl::Box &clearArea,
+                                    vk::ClearTextureMode clearMode,
                                     GLenum format,
                                     GLenum type,
                                     const uint8_t *data);
@@ -687,10 +687,10 @@ class TextureVk : public TextureImpl, public angle::ObserverInterface
 
     // |mSampler| contains the relevant Vulkan sampler states representing the OpenGL Texture
     // sampling states for the Texture.
-    vk::SamplerBinding mSampler;
+    vk::SharedSamplerPtr mSampler;
     // |mY2YSampler| contains a version of mSampler that is meant for use with
     // __samplerExternal2DY2YEXT (i.e., skipping conversion of YUV to RGB).
-    vk::SamplerBinding mY2YSampler;
+    vk::SharedSamplerPtr mY2YSampler;
 
     // The created vkImage usage flag.
     VkImageUsageFlags mImageUsageFlags;
