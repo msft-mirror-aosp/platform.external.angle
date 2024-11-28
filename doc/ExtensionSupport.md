@@ -74,6 +74,7 @@ using data from registry_xml.py and gl.xml.
 | [GL_OES_EGL_image_external_essl3](https://khronos.org/registry/OpenGL/extensions/OES/OES_EGL_image_external_essl3.txt) | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; |
 | [GL_EXT_EGL_image_external_wrap_modes](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_EGL_image_external_wrap_modes.txt) | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; |
 | [GL_EXT_EGL_image_storage](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_EGL_image_storage.txt) | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; |
+| [GL_EXT_EGL_image_storage_compression](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_EGL_image_storage_compression.txt) |  |  |  |  |  |  |  |
 | [GL_NV_EGL_stream_consumer_external](https://khronos.org/registry/OpenGL/extensions/NV/NV_EGL_stream_consumer_external.txt) |  |  |  |  |  |  |  |
 | [GL_OES_EGL_sync](https://khronos.org/registry/OpenGL/extensions/OES/OES_EGL_sync.txt) | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; |
 | [GL_OES_element_index_uint](https://khronos.org/registry/OpenGL/extensions/OES/OES_element_index_uint.txt) | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; |
@@ -125,6 +126,7 @@ using data from registry_xml.py and gl.xml.
 | [GL_QCOM_render_shared_exponent](https://khronos.org/registry/OpenGL/extensions/QCOM/QCOM_render_shared_exponent.txt) |  |  |  |  |  |  |  |
 | [GL_EXT_render_snorm](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_render_snorm.txt) |  |  |  |  |  |  |  |
 | [GL_OES_rgb8_rgba8](https://khronos.org/registry/OpenGL/extensions/OES/OES_rgb8_rgba8.txt) | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; |
+| [GL_ARM_rgba8](https://khronos.org/registry/OpenGL/extensions/ARM/ARM_rgba8.txt) |  |  |  |  |  |  |  |
 | [GL_KHR_robust_buffer_access_behavior](https://khronos.org/registry/OpenGL/extensions/KHR/KHR_robust_buffer_access_behavior.txt) |  |  |  |  |  |  |  |
 | [GL_EXT_robustness](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_robustness.txt) | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; |
 | [GL_KHR_robustness](https://khronos.org/registry/OpenGL/extensions/KHR/KHR_robustness.txt) |  |  |  |  |  |  |  |

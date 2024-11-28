@@ -22,7 +22,10 @@ def __filegroups(ctx):
         # vendor provided headers for libc++.
         "buildtools/third_party/libc++:headers": {
             "type": "glob",
-            "includes": ["__*"],
+            "includes": [
+                "__*",
+                "gross_hack.h",
+            ],
         },
 
         # toolchain root
@@ -67,6 +70,18 @@ __input_deps = {
     ],
     "third_party/llvm-build/Release+Asserts/bin/clang-cl.exe": [
         "build/config/unsafe_buffers_paths.txt",
+    ],
+    "build/toolchain/gcc_solink_wrapper.py": [
+        "build/toolchain/whole_archive.py",
+        "build/toolchain/wrapper_utils.py",
+    ],
+    "build/toolchain/gcc_link_wrapper.py": [
+        "build/toolchain/whole_archive.py",
+        "build/toolchain/wrapper_utils.py",
+    ],
+    "build/toolchain/apple/linker_driver.py:link": [
+        "build/toolchain/apple/linker_driver.py",
+        "build/toolchain/whole_archive.py",
     ],
 }
 

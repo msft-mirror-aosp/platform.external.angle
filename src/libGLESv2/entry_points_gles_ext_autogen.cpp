@@ -4787,6 +4787,8 @@ void GL_APIENTRY GL_ReleaseTexturesANGLE(GLuint numTextures,
 
 // WaitSync is already defined.
 
+// GL_ARM_rgba8
+
 // GL_ARM_shader_framebuffer_fetch
 
 // GL_ARM_shader_framebuffer_fetch_depth_stencil
@@ -5107,6 +5109,8 @@ void GL_APIENTRY GL_EGLImageTargetTextureStorageEXT(GLuint texture,
     }
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
 }
+
+// GL_EXT_EGL_image_storage_compression
 
 // GL_EXT_YUV_target
 

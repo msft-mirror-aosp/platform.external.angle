@@ -682,6 +682,8 @@ EXPORTS
 
     ; GL_ARB_sync
 
+    ; GL_ARM_rgba8
+
     ; GL_ARM_shader_framebuffer_fetch
 
     ; GL_ARM_shader_framebuffer_fetch_depth_stencil
@@ -707,6 +709,8 @@ EXPORTS
     ; GL_EXT_EGL_image_storage
     glEGLImageTargetTexStorageEXT
     glEGLImageTargetTextureStorageEXT
+
+    ; GL_EXT_EGL_image_storage_compression
 
     ; GL_EXT_YUV_target
 

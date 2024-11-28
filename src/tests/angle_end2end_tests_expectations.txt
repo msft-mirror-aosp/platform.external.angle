@@ -209,6 +209,8 @@ b/273271471 WIN INTEL VULKAN : ShaderAlgorithmTest.rgb_to_hsl_vertex_shader/* = 
 // Intel/mesa does not ignore gl_Layer for non-layered framebuffers
 374790899 LINUX INTEL OPENGL : GeometryShaderTest.GLLayerIneffectiveWithoutLayeredFramebuffer/* = SKIP
 
+379758210 LINUX INTEL OPENGL : GLSLTest_ES3.SwizzledToBoolCoercion/* = SKIP
+
 // Nvidia
 42264645 NVIDIA OPENGL : GLSLTestLoops.DoWhileContinue/* = SKIP
 42264645 NVIDIA OPENGL : GLSLTestLoops.DoWhileUnconditionalContinue/* = SKIP
@@ -1259,6 +1261,7 @@ b/267953710 GALAXYS22 VULKAN : VulkanPerformanceCounterTest_ES31.ColorMaskedFram
 377923479 GALAXYS22 VULKAN : FramebufferFetchES31.DrawNonFetchDrawFetchInStorageBufferThenClear_ARM/* = SKIP
 377923479 GALAXYS22 VULKAN : FramebufferFetchES31.DrawNonFetchDrawFetchInStorageBufferThenClear_Coherent/* = SKIP
 377923479 GALAXYS22 VULKAN : FramebufferFetchES31.MultiSampled/* = SKIP
+380475003 GALAXYS22 VULKAN : TextureMultisampleTest.MaskedDrawWithSampleID/* = SKIP
 
 // Samsung Galaxy Qualcomm crashes and failures (perhaps with other non-Pixel Qualcomm as well):
 42266622 GALAXYQUALCOMM VULKAN : BlitFramebufferTest.BlitStencilScissoredScaled/* = SKIP
@@ -1490,6 +1493,8 @@ b/292285899 PIXEL4ORXL GLES : EGLSurfaceTest.DestroyAndRecreateWhileCurrent/* = 
 // WebGPU failures
 42266907 WGPU : RendererTest.SimpleOperation/* = SKIP
 42266907 WGPU : RendererTest.Draw/* = SKIP
+// BasicUniformUsage tests fail too frequently with WGPU
+376553328 LINUX INTEL WGPU : BasicUniformUsageTest.* = SKIP
 42267012 WGPU : ClearTest.*Scissor* = SKIP
 42267012 WGPU : ClearTest.*Mask* = SKIP
 42267012 WGPU : ClearTest.DefaultFramebuffer* = SKIP
