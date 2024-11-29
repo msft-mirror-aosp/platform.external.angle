@@ -210,6 +210,7 @@ gles_requestable_extensions = [
     "GL_OES_get_program_binary",
     "GL_OES_gpu_shader5",
     "GL_OES_mapbuffer",
+    "GL_OES_required_internalformat",
     "GL_OES_rgb8_rgba8",
     "GL_OES_sample_shading",
     "GL_OES_sample_variables",
@@ -296,6 +297,7 @@ gles_es_only_extensions = [
 
 # ES1 (Possibly the min set of extensions needed by Android)
 gles1_extensions = [
+    "GL_OES_blend_subtract",
     "GL_OES_draw_texture",
     "GL_OES_framebuffer_object",
     "GL_OES_matrix_palette",
@@ -303,6 +305,7 @@ gles1_extensions = [
     "GL_OES_point_sprite",
     "GL_OES_query_matrix",
     "GL_OES_texture_cube_map",
+    "GL_OES_texture_mirrored_repeat",
 ]
 
 
