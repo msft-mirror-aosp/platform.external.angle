@@ -389,6 +389,9 @@ struct Extensions
     // GL_EXT_render_snorm
     bool renderSnormEXT = false;
 
+    // GL_OES_required_internalformat
+    bool requiredInternalformatOES = false;
+
     // GL_OES_rgb8_rgba8
     bool rgb8Rgba8OES = false;
 
@@ -806,6 +809,9 @@ struct Extensions
     // GLES 1.0 and 1.1 extensions
     // ---------------------------
 
+    // GL_OES_blend_subtract
+    bool blendSubtractOES = false;
+
     // GL_OES_draw_texture
     bool drawTextureOES = false;
 
@@ -826,6 +832,9 @@ struct Extensions
 
     // GL_OES_texture_cube_map
     bool textureCubeMapOES = false;
+
+    // GL_OES_texture_mirrored_repeat
+    bool textureMirroredRepeatOES = false;
 };
 }  // namespace gl
 
