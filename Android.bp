@@ -926,6 +926,7 @@ cc_library_shared {
         "src/tests/gl_tests/SwizzleTest.cpp",
         "src/tests/gl_tests/SyncQueriesTest.cpp",
         "src/tests/gl_tests/TextureExternalUpdateTest.cpp",
+        "src/tests/gl_tests/TextureFixedRateCompressionTest.cpp",
         "src/tests/gl_tests/TextureMultisampleTest.cpp",
         "src/tests/gl_tests/TextureRectangleTest.cpp",
         "src/tests/gl_tests/TextureTest.cpp",
