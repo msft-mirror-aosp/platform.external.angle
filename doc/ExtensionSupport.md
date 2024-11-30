@@ -125,6 +125,7 @@ using data from registry_xml.py and gl.xml.
 | [GL_NV_read_stencil](https://khronos.org/registry/OpenGL/extensions/NV/NV_read_stencil.txt) | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; |
 | [GL_QCOM_render_shared_exponent](https://khronos.org/registry/OpenGL/extensions/QCOM/QCOM_render_shared_exponent.txt) |  |  |  |  |  |  |  |
 | [GL_EXT_render_snorm](https://khronos.org/registry/OpenGL/extensions/EXT/EXT_render_snorm.txt) |  |  |  |  |  |  |  |
+| [GL_OES_required_internalformat](https://khronos.org/registry/OpenGL/extensions/OES/OES_required_internalformat.txt) |  |  |  |  |  |  |  |
 | [GL_OES_rgb8_rgba8](https://khronos.org/registry/OpenGL/extensions/OES/OES_rgb8_rgba8.txt) | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; | &#x2714; |
 | [GL_ARM_rgba8](https://khronos.org/registry/OpenGL/extensions/ARM/ARM_rgba8.txt) |  |  |  |  |  |  |  |
 | [GL_KHR_robust_buffer_access_behavior](https://khronos.org/registry/OpenGL/extensions/KHR/KHR_robust_buffer_access_behavior.txt) |  |  |  |  |  |  |  |
@@ -274,6 +275,7 @@ using data from registry_xml.py and gl.xml.
 
 | Extension Name | SwiftShader Win10 |
 | -------------- | :---------------: |
+| [GL_OES_blend_subtract](https://khronos.org/registry/OpenGL/extensions/OES/OES_blend_subtract.txt) |  |
 | [GL_OES_draw_texture](https://khronos.org/registry/OpenGL/extensions/OES/OES_draw_texture.txt) | &#x2714; |
 | [GL_OES_framebuffer_object](https://khronos.org/registry/OpenGL/extensions/OES/OES_framebuffer_object.txt) | &#x2714; |
 | [GL_OES_matrix_palette](https://khronos.org/registry/OpenGL/extensions/OES/OES_matrix_palette.txt) |  |
@@ -281,6 +283,7 @@ using data from registry_xml.py and gl.xml.
 | [GL_OES_point_sprite](https://khronos.org/registry/OpenGL/extensions/OES/OES_point_sprite.txt) | &#x2714; |
 | [GL_OES_query_matrix](https://khronos.org/registry/OpenGL/extensions/OES/OES_query_matrix.txt) |  |
 | [GL_OES_texture_cube_map](https://khronos.org/registry/OpenGL/extensions/OES/OES_texture_cube_map.txt) | &#x2714; |
+| [GL_OES_texture_mirrored_repeat](https://khronos.org/registry/OpenGL/extensions/OES/OES_texture_mirrored_repeat.txt) |  |
 
 ## EGL extension support
 
