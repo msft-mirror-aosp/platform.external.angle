@@ -3967,6 +3967,8 @@ void GL_APIENTRY glReleaseTexturesANGLE(GLuint numTextures, const GLuint *textur
 
 // GL_ARB_sync
 
+// GL_ARM_rgba8
+
 // GL_ARM_shader_framebuffer_fetch
 
 // GL_ARM_shader_framebuffer_fetch_depth_stencil
@@ -4048,6 +4050,8 @@ void GL_APIENTRY glEGLImageTargetTextureStorageEXT(GLuint texture,
 {
     return GL_EGLImageTargetTextureStorageEXT(texture, image, attrib_list);
 }
+
+// GL_EXT_EGL_image_storage_compression
 
 // GL_EXT_YUV_target
 
