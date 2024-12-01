@@ -1406,6 +1406,18 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo supportsAstcSliced3d = {
+        "supportsAstcSliced3d",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo supportsTextureCompressionAstcHdr = {
+        "supportsTextureCompressionAstcHdr",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
 };
 
 inline FeaturesVk::FeaturesVk()  = default;

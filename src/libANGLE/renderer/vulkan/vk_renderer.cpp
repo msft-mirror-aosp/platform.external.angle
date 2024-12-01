@@ -271,7 +271,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndexed-format-07753",
     "VUID-vkCmdDraw-format-07753",
     "Undefined-Value-ShaderFragmentOutputMismatch",
-    // https://issuetracker.google.com/336652255
+    // https://anglebug.com/336652255
+    "VUID-vkCmdDraw-None-09600",
     "UNASSIGNED-CoreValidation-DrawState-InvalidImageLayout",
     // https://issuetracker.google.com/336847261
     "VUID-VkImageCreateInfo-pNext-02397",
@@ -1629,11 +1630,11 @@ bool CanSupportMSRTSSForRGBA8(Renderer *renderer)
 
     bool supportsMSRTTUsageRGBA8 = vk::ImageHelper::FormatSupportsUsage(
         renderer, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
-        kImageUsageFlags, imageCreateFlags, nullptr,
+        kImageUsageFlags, imageCreateFlags, nullptr, nullptr,
         vk::ImageHelper::FormatSupportCheck::RequireMultisampling);
     bool supportsMSRTTUsageRGBA8SRGB = vk::ImageHelper::FormatSupportsUsage(
         renderer, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
-        kImageUsageFlags, imageCreateFlags, nullptr,
+        kImageUsageFlags, imageCreateFlags, nullptr, nullptr,
         vk::ImageHelper::FormatSupportCheck::RequireMultisampling);
 
     return supportsMSRTTUsageRGBA8 && supportsMSRTTUsageRGBA8SRGB;
@@ -1750,8 +1751,7 @@ Renderer::Renderer()
       mCommandProcessor(this, &mCommandQueue),
       mSupportedBufferWritePipelineStageMask(0),
       mSupportedVulkanShaderStageMask(0),
-      mMemoryAllocationTracker(MemoryAllocationTracker(this)),
-      mPlaceHolderDescriptorSetLayout(nullptr)
+      mMemoryAllocationTracker(MemoryAllocationTracker(this))
 {
     VkFormatProperties invalid = {0, 0, kInvalidFormatFeatureFlags};
     mFormatProperties.fill(invalid);
@@ -1788,11 +1788,11 @@ void Renderer::onDestroy(vk::Context *context)
         handleDeviceLost();
     }
 
-    if (mPlaceHolderDescriptorSetLayout && mPlaceHolderDescriptorSetLayout->get().valid())
+    if (mPlaceHolderDescriptorSetLayout)
     {
-        ASSERT(!mPlaceHolderDescriptorSetLayout->isReferenced());
-        mPlaceHolderDescriptorSetLayout->get().destroy(getDevice());
-        SafeDelete(mPlaceHolderDescriptorSetLayout);
+        ASSERT(mPlaceHolderDescriptorSetLayout.unique());
+        mPlaceHolderDescriptorSetLayout->destroy(getDevice());
+        mPlaceHolderDescriptorSetLayout.reset();
     }
 
     mCommandProcessor.destroy(context);
@@ -2349,18 +2349,16 @@ angle::Result Renderer::initialize(vk::Context *context,
     }
 
     // Initialize place holder descriptor set layout for empty DescriptorSetLayoutDesc
-    ASSERT(mPlaceHolderDescriptorSetLayout == nullptr);
+    ASSERT(!mPlaceHolderDescriptorSetLayout);
     VkDescriptorSetLayoutCreateInfo createInfo = {};
     createInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     createInfo.flags        = 0;
     createInfo.bindingCount = 0;
     createInfo.pBindings    = nullptr;
 
-    vk::DescriptorSetLayout newLayout;
-    ANGLE_VK_TRY(context, newLayout.init(context->getDevice(), createInfo));
-
-    mPlaceHolderDescriptorSetLayout = new vk::RefCountedDescriptorSetLayout(std::move(newLayout));
-    ASSERT(mPlaceHolderDescriptorSetLayout && mPlaceHolderDescriptorSetLayout->get().valid());
+    mPlaceHolderDescriptorSetLayout = vk::DescriptorSetLayoutPtr::MakeShared();
+    ANGLE_VK_TRY(context, mPlaceHolderDescriptorSetLayout->init(context->getDevice(), createInfo));
+    ASSERT(mPlaceHolderDescriptorSetLayout->valid());
 
     return angle::Result::Continue;
 }
@@ -2425,8 +2423,8 @@ angle::Result Renderer::initializeMemoryAllocator(vk::Context *context)
 
     // Cached coherent staging buffer.  Note coherent is preferred but not required, which means we
     // may get non-coherent memory type.
-    requiredFlags  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-    preferredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    requiredFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+    preferredFlags  = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     VkResult result = mAllocator.findMemoryTypeIndexForBufferInfo(
         createInfo, requiredFlags, preferredFlags, persistentlyMapped,
         &mStagingBufferMemoryTypeIndex[vk::MemoryCoherency::CachedPreferCoherent]);
@@ -2856,6 +2854,7 @@ void Renderer::appendDeviceExtensionFeaturesPromotedTo12(
 // - VK_KHR_synchronization2:                synchronization2 (feature)
 // - VK_KHR_dynamic_rendering:               dynamicRendering (feature)
 // - VK_KHR_maintenance5:                    maintenance5 (feature)
+// - VK_EXT_texture_compression_astc_hdr:    textureCompressionASTC_HDR(feature)
 //
 // Note that VK_EXT_extended_dynamic_state2 is partially promoted to Vulkan 1.3.  If ANGLE creates a
 // Vulkan 1.3 device, it would still need to enable this extension separately for
@@ -2889,6 +2888,11 @@ void Renderer::appendDeviceExtensionFeaturesPromotedTo13(
     if (ExtensionFound(VK_KHR_MAINTENANCE_5_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mMaintenance5Features);
+    }
+
+    if (ExtensionFound(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mTextureCompressionASTCHDRFeatures);
     }
 }
 
@@ -3099,6 +3103,10 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mImageCompressionControlFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_COMPRESSION_CONTROL_FEATURES_EXT;
 
+    mTextureCompressionASTCHDRFeatures = {};
+    mTextureCompressionASTCHDRFeatures.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES;
+
 #if defined(ANGLE_PLATFORM_ANDROID)
     mExternalFormatResolveFeatures = {};
     mExternalFormatResolveFeatures.sType =
@@ -3183,6 +3191,7 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mVariablePointersFeatures.pNext                   = nullptr;
     mFloatControlProperties.pNext                     = nullptr;
     mImageCompressionControlFeatures.pNext            = nullptr;
+    mTextureCompressionASTCHDRFeatures.pNext          = nullptr;
 #if defined(ANGLE_PLATFORM_ANDROID)
     mExternalFormatResolveFeatures.pNext   = nullptr;
     mExternalFormatResolveProperties.pNext = nullptr;
@@ -3689,6 +3698,12 @@ void Renderer::enableDeviceExtensionsPromotedTo13(const vk::ExtensionNameList &d
     {
         mEnabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mMaintenance5Features);
+    }
+
+    if (getFeatures().supportsTextureCompressionAstcHdr.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mTextureCompressionASTCHDRFeatures);
     }
 }
 
@@ -5334,10 +5349,14 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //
     // On ARM drivers prior to r48, |vkCmdBindVertexBuffers2| applies strides to the wrong index,
     // according to the errata: https://developer.arm.com/documentation/SDEN-3735689/0100/?lang=en
+    //
+    // On Qualcomm drivers, this feature has a bug, unknown up to which version.
+    // http://anglebug.com/381384988
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsVertexInputDynamicState,
                             mVertexInputDynamicStateFeatures.vertexInputDynamicState == VK_TRUE &&
                                 !(IsWindows() && isIntel) &&
-                                !(isARM && armDriverVersion < ARMDriverVersion(48, 0, 0)));
+                                !(isARM && armDriverVersion < ARMDriverVersion(48, 0, 0)) &&
+                                !isQualcommProprietary);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsExtendedDynamicState,
                             mExtendedDynamicStateFeatures.extendedDynamicState == VK_TRUE &&
@@ -5768,6 +5787,12 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImageCompressionControl,
                             mImageCompressionControlFeatures.imageCompressionControl == VK_TRUE);
 
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsAstcSliced3d, isARM);
+
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsTextureCompressionAstcHdr,
+        mTextureCompressionASTCHDRFeatures.textureCompressionASTC_HDR == VK_TRUE);
+
     // Disable memory report feature overrides if extension is not supported.
     if ((mFeatures.logMemoryReportCallbacks.enabled || mFeatures.logMemoryReportStats.enabled) &&
         !mMemoryReportFeatures.deviceMemoryReport)
@@ -6191,7 +6216,7 @@ VkFormatFeatureFlags Renderer::getFormatFeatureBits(angle::FormatID formatID,
         }
         else
         {
-            VkFormat vkFormat = vk::GetVkFormatFromFormatID(formatID);
+            VkFormat vkFormat = vk::GetVkFormatFromFormatID(this, formatID);
             ASSERT(vkFormat != VK_FORMAT_UNDEFINED);
 
             // Otherwise query the format features and cache it.

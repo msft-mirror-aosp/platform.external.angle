@@ -152,6 +152,8 @@ spv_result_t ParseReflection(CLProgramVk::SpvReflectionData &reflectionData,
                 case NonSemanticClspvReflectionArgumentStorageImage:
                 case NonSemanticClspvReflectionArgumentSampledImage:
                 case NonSemanticClspvReflectionArgumentStorageBuffer:
+                case NonSemanticClspvReflectionArgumentStorageTexelBuffer:
+                case NonSemanticClspvReflectionArgumentUniformTexelBuffer:
                 case NonSemanticClspvReflectionArgumentPodPushConstant:
                 case NonSemanticClspvReflectionArgumentPointerPushConstant:
                 {
@@ -359,7 +361,7 @@ void CLAsyncBuildTask::operator()()
 CLProgramVk::CLProgramVk(const cl::Program &program)
     : CLProgramImpl(program),
       mContext(&program.getContext().getImpl<CLContextVk>()),
-      mAsyncBuildEvent(nullptr)
+      mAsyncBuildEvent(std::make_shared<angle::WaitableEventDone>())
 {}
 
 angle::Result CLProgramVk::init()
@@ -372,8 +374,6 @@ angle::Result CLProgramVk::init()
     {
         mAssociatedDevicePrograms[device->getNative()] = DeviceProgramData{};
     }
-
-    mAsyncBuildEvent = std::make_shared<angle::WaitableEventDone>();
 
     return angle::Result::Continue;
 }
@@ -481,7 +481,10 @@ CLProgramVk::~CLProgramVk()
     {
         pool.reset();
     }
-    mShader.get().destroy(mContext->getDevice());
+    if (mShader)
+    {
+        mShader->destroy(mContext->getDevice());
+    }
     for (DescriptorSetIndex index : angle::AllEnums<DescriptorSetIndex>())
     {
         mMetaDescriptorPools[index].destroy(mContext->getRenderer());
@@ -584,6 +587,7 @@ angle::Result CLProgramVk::getInfo(cl::ProgramInfo name,
                                    size_t *valueSizeRet) const
 {
     cl_uint valUInt            = 0u;
+    cl_bool valBool            = CL_FALSE;
     void *valPointer           = nullptr;
     const void *copyValue      = nullptr;
     size_t copySize            = 0u;
@@ -656,6 +660,12 @@ angle::Result CLProgramVk::getInfo(cl::ProgramInfo name,
             valPointer = kernelNamesList.data();
             copyValue  = valPointer;
             copySize   = kernelNamesList.size() + 1;
+            break;
+        case cl::ProgramInfo::ScopeGlobalCtorsPresent:
+        case cl::ProgramInfo::ScopeGlobalDtorsPresent:
+            // These are deprecated by version 3.0 and are currently not supported
+            copyValue = &valBool;
+            copySize  = sizeof(cl_bool);
             break;
         default:
             UNREACHABLE();
@@ -948,10 +958,11 @@ bool CLProgramVk::buildInternal(const cl::DevicePtrs &devices,
                 return false;
             }
 
-            if (mShader.get().valid())
+            if (mShader)
             {
                 // User is recompiling program, we need to recreate the shader module
-                mShader.get().destroy(mContext->getDevice());
+                mShader->destroy(mContext->getDevice());
+                mShader.reset();
             }
             // Strip SPIR-V binary if Vk implementation does not support non-semantic info
             angle::spirv::Blob spvBlob =
@@ -959,7 +970,7 @@ bool CLProgramVk::buildInternal(const cl::DevicePtrs &devices,
                     ? stripReflection(&deviceProgramData)
                     : deviceProgramData.binary;
             ASSERT(!spvBlob.empty());
-            if (IsError(vk::InitShaderModule(mContext, &mShader.get(), spvBlob.data(),
+            if (IsError(vk::InitShaderModule(mContext, &mShader, spvBlob.data(),
                                              spvBlob.size() * sizeof(uint32_t))))
             {
                 ERR() << "Failed to init Vulkan Shader Module!";

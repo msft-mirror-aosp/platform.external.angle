@@ -4787,6 +4787,8 @@ void GL_APIENTRY GL_ReleaseTexturesANGLE(GLuint numTextures,
 
 // WaitSync is already defined.
 
+// GL_ARM_rgba8
+
 // GL_ARM_shader_framebuffer_fetch
 
 // GL_ARM_shader_framebuffer_fetch_depth_stencil
@@ -5107,6 +5109,8 @@ void GL_APIENTRY GL_EGLImageTargetTextureStorageEXT(GLuint texture,
     }
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
 }
+
+// GL_EXT_EGL_image_storage_compression
 
 // GL_EXT_YUV_target
 
@@ -11154,6 +11158,33 @@ void GL_APIENTRY GL_EGLImageTargetTexture2DOES(GLenum target, GLeglImageOES imag
 
 // GL_OES_EGL_image_external_essl3
 
+// GL_OES_blend_subtract
+void GL_APIENTRY GL_BlendEquationOES(GLenum mode)
+{
+    Context *context = GetValidGlobalContext();
+    EVENT(context, GLBlendEquationOES, "context = %d, mode = %s", CID(context),
+          GLenumToString(GLESEnum::BlendEquationModeEXT, mode));
+
+    if (context)
+    {
+        bool isCallValid = (context->skipValidation() ||
+                            ValidateBlendEquationOES(context->getPrivateState(),
+                                                     context->getMutableErrorSetForValidation(),
+                                                     angle::EntryPoint::GLBlendEquationOES, mode));
+        if (isCallValid)
+        {
+            ContextPrivateBlendEquation(context->getMutablePrivateState(),
+                                        context->getMutablePrivateStateCache(), mode);
+        }
+        ANGLE_CAPTURE_GL(BlendEquationOES, isCallValid, context, mode);
+    }
+    else
+    {
+        GenerateContextLostErrorOnCurrentGlobalContext();
+    }
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
+}
+
 // GL_OES_compressed_ETC1_RGB8_texture
 
 // GL_OES_compressed_paletted_texture
@@ -12671,6 +12702,8 @@ GLbitfield GL_APIENTRY GL_QueryMatrixxOES(GLfixed *mantissa, GLint *exponent)
     return returnValue;
 }
 
+// GL_OES_required_internalformat
+
 // GL_OES_rgb8_rgba8
 
 // GL_OES_sample_shading
@@ -13577,6 +13610,8 @@ void GL_APIENTRY GL_TexGenxvOES(GLenum coord, GLenum pname, const GLfixed *param
 // GL_OES_texture_half_float
 
 // GL_OES_texture_half_float_linear
+
+// GL_OES_texture_mirrored_repeat
 
 // GL_OES_texture_npot
 
