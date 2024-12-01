@@ -2220,7 +2220,8 @@ class ImageHelper final : public Resource, public angle::Subject
                                uint32_t layerCount,
                                bool isRobustResourceInitEnabled,
                                bool hasProtectedContent,
-                               YcbcrConversionDesc conversionDesc);
+                               YcbcrConversionDesc conversionDesc,
+                               const void *compressionControl);
     VkResult initMemory(Context *context,
                         const MemoryProperties &memoryProperties,
                         VkMemoryPropertyFlags flags,
@@ -2350,6 +2351,7 @@ class ImageHelper final : public Resource, public angle::Subject
                                     VkImageTiling tilingMode,
                                     VkImageUsageFlags usageFlags,
                                     VkImageCreateFlags createFlags,
+                                    void *formatInfoPNext,
                                     void *propertiesPNext,
                                     const FormatSupportCheck formatSupportCheck);
 
@@ -2405,6 +2407,9 @@ class ImageHelper final : public Resource, public angle::Subject
     VkImageTiling getTilingMode() const { return mTilingMode; }
     VkImageCreateFlags getCreateFlags() const { return mCreateFlags; }
     VkImageUsageFlags getUsage() const { return mUsage; }
+    bool getCompressionFixedRate(VkImageCompressionControlEXT *compressionInfo,
+                                 VkImageCompressionFixedRateFlagsEXT *compressionRates,
+                                 GLenum glCompressionRate) const;
     VkImageType getType() const { return mImageType; }
     const VkExtent3D &getExtents() const { return mExtents; }
     const VkExtent3D getRotatedExtents() const;
@@ -2433,10 +2438,10 @@ class ImageHelper final : public Resource, public angle::Subject
         ASSERT(valid());
         return mActualFormatID;
     }
-    VkFormat getActualVkFormat() const
+    VkFormat getActualVkFormat(const Renderer *renderer) const
     {
         ASSERT(valid());
-        return GetVkFormatFromFormatID(mActualFormatID);
+        return GetVkFormatFromFormatID(renderer, mActualFormatID);
     }
     const angle::Format &getActualFormat() const
     {
@@ -3828,7 +3833,7 @@ class ShaderProgramHelper : angle::NonCopyable
     void destroy(Renderer *renderer);
     void release(ContextVk *contextVk);
 
-    void setShader(gl::ShaderType shaderType, RefCounted<ShaderModule> *shader);
+    void setShader(gl::ShaderType shaderType, const ShaderModulePtr &shader);
 
     // Create a graphics pipeline and place it in the cache.  Must not be called if the pipeline
     // exists in cache.

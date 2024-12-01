@@ -1024,6 +1024,8 @@ bool ValidateReleaseTexturesANGLE(const Context *context,
 
 // GL_ARB_sync
 
+// GL_ARM_rgba8
+
 // GL_ARM_shader_framebuffer_fetch
 
 // GL_ARM_shader_framebuffer_fetch_depth_stencil
@@ -1096,6 +1098,8 @@ bool ValidateEGLImageTargetTextureStorageEXT(const Context *context,
                                              GLuint texture,
                                              egl::ImageID imagePacked,
                                              const GLint *attrib_list);
+
+// GL_EXT_EGL_image_storage_compression
 
 // GL_EXT_YUV_target
 
@@ -2306,6 +2310,12 @@ bool ValidateEGLImageTargetTexture2DOES(const Context *context,
 
 // GL_OES_EGL_image_external_essl3
 
+// GL_OES_blend_subtract
+bool ValidateBlendEquationOES(const PrivateState &state,
+                              ErrorSet *errors,
+                              angle::EntryPoint entryPoint,
+                              GLenum mode);
+
 // GL_OES_compressed_ETC1_RGB8_texture
 
 // GL_OES_compressed_paletted_texture
@@ -2613,6 +2623,8 @@ bool ValidateQueryMatrixxOES(const Context *context,
                              const GLfixed *mantissa,
                              const GLint *exponent);
 
+// GL_OES_required_internalformat
+
 // GL_OES_rgb8_rgba8
 
 // GL_OES_sample_shading
@@ -2824,6 +2836,8 @@ bool ValidateTexGenxvOES(const Context *context,
 // GL_OES_texture_half_float
 
 // GL_OES_texture_half_float_linear
+
+// GL_OES_texture_mirrored_repeat
 
 // GL_OES_texture_npot
 
