@@ -57,7 +57,7 @@ struct SkippedSyncvalMessage
 {
     const char *messageId;
     const char *messageContents1;
-    const char *messageContents2                      = "";
+    const char *messageContents2                           = "";
     bool isDueToNonConformantCoherentColorFramebufferFetch = false;
 };
 
@@ -475,6 +475,8 @@ class Renderer : angle::NonCopyable
                                                             uint64_t timeout,
                                                             VkResult *result);
     angle::Result checkCompletedCommands(vk::Context *context);
+
+    angle::Result checkCompletedCommandsAndCleanup(vk::Context *context);
     angle::Result retireFinishedCommands(vk::Context *context);
 
     angle::Result flushWaitSemaphores(vk::ProtectionType protectionType,
@@ -715,9 +717,10 @@ class Renderer : angle::NonCopyable
 
     std::thread::id getCommandProcessorThreadId() const { return mCommandProcessor.getThreadId(); }
 
-    vk::RefCountedDescriptorSetLayout *getDescriptorLayoutForEmptyDesc()
+    const vk::DescriptorSetLayoutPtr &getEmptyDescriptorLayout() const
     {
-        ASSERT(mPlaceHolderDescriptorSetLayout && mPlaceHolderDescriptorSetLayout->get().valid());
+        ASSERT(mPlaceHolderDescriptorSetLayout);
+        ASSERT(mPlaceHolderDescriptorSetLayout->valid());
         return mPlaceHolderDescriptorSetLayout;
     }
 
@@ -903,6 +906,7 @@ class Renderer : angle::NonCopyable
     VkPhysicalDeviceTimelineSemaphoreFeaturesKHR mTimelineSemaphoreFeatures;
     VkPhysicalDeviceHostImageCopyFeaturesEXT mHostImageCopyFeatures;
     VkPhysicalDeviceHostImageCopyPropertiesEXT mHostImageCopyProperties;
+    VkPhysicalDeviceTextureCompressionASTCHDRFeaturesEXT mTextureCompressionASTCHDRFeatures;
     std::vector<VkImageLayout> mHostImageCopySrcLayoutsStorage;
     std::vector<VkImageLayout> mHostImageCopyDstLayoutsStorage;
     VkPhysicalDeviceImageCompressionControlFeaturesEXT mImageCompressionControlFeatures;
@@ -1087,7 +1091,7 @@ class Renderer : angle::NonCopyable
     std::string mPipelineCacheGraphDumpPath;
 
     // A placeholder descriptor set layout handle for layouts with no bindings.
-    vk::RefCountedDescriptorSetLayout *mPlaceHolderDescriptorSetLayout;
+    vk::DescriptorSetLayoutPtr mPlaceHolderDescriptorSetLayout;
 };
 
 ANGLE_INLINE Serial Renderer::generateQueueSerial(SerialIndex index)
@@ -1165,6 +1169,11 @@ ANGLE_INLINE void Renderer::requestAsyncCommandsAndGarbageCleanup(vk::Context *c
 }
 
 ANGLE_INLINE angle::Result Renderer::checkCompletedCommands(vk::Context *context)
+{
+    return mCommandQueue.checkCompletedCommands(context);
+}
+
+ANGLE_INLINE angle::Result Renderer::checkCompletedCommandsAndCleanup(vk::Context *context)
 {
     return mCommandQueue.checkAndCleanupCompletedCommands(context);
 }
