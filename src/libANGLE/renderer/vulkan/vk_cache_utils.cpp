@@ -357,7 +357,7 @@ void DeriveRenderingInfo(Renderer *renderer,
 
         angle::FormatID attachmentFormatID = desc[colorIndexGL];
         ASSERT(attachmentFormatID != angle::FormatID::NONE);
-        VkFormat attachmentFormat = GetVkFormatFromFormatID(attachmentFormatID);
+        VkFormat attachmentFormat = GetVkFormatFromFormatID(renderer, attachmentFormatID);
 
         const bool isYUVExternalFormat = vk::IsYUVExternalFormat(attachmentFormatID);
 #if defined(ANGLE_PLATFORM_ANDROID)
@@ -428,7 +428,7 @@ void DeriveRenderingInfo(Renderer *renderer,
         const angle::FormatID attachmentFormatID = desc[depthStencilIndexGL];
         ASSERT(attachmentFormatID != angle::FormatID::NONE);
         const angle::Format &angleFormat = angle::Format::Get(attachmentFormatID);
-        const VkFormat attachmentFormat  = GetVkFormatFromFormatID(attachmentFormatID);
+        const VkFormat attachmentFormat  = GetVkFormatFromFormatID(renderer, attachmentFormatID);
 
         infoOut->depthAttachmentFormat =
             angleFormat.depthBits == 0 ? VK_FORMAT_UNDEFINED : attachmentFormat;
@@ -608,7 +608,7 @@ void UnpackAttachmentDesc(Renderer *renderer,
 {
     *desc         = {};
     desc->sType   = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
-    desc->format  = GetVkFormatFromFormatID(formatID);
+    desc->format  = GetVkFormatFromFormatID(renderer, formatID);
     desc->samples = gl_vk::GetSamples(samples, renderer->getFeatures().limitSampleCountTo2.enabled);
     desc->loadOp  = ConvertRenderPassLoadOpToVkLoadOp(static_cast<RenderPassLoadOp>(ops.loadOp));
     desc->storeOp =
@@ -640,7 +640,7 @@ void UnpackColorResolveAttachmentDesc(Renderer *renderer,
 {
     *desc        = {};
     desc->sType  = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
-    desc->format = GetVkFormatFromFormatID(formatID);
+    desc->format = GetVkFormatFromFormatID(renderer, formatID);
 
     // This function is for color resolve attachments.
     const angle::Format &angleFormat = angle::Format::Get(formatID);
@@ -670,9 +670,10 @@ void UnpackDepthStencilResolveAttachmentDesc(vk::Context *context,
                                              const AttachmentInfo &depthInfo,
                                              const AttachmentInfo &stencilInfo)
 {
-    *desc        = {};
-    desc->sType  = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
-    desc->format = GetVkFormatFromFormatID(formatID);
+    vk::Renderer *renderer = context->getRenderer();
+    *desc                  = {};
+    desc->sType            = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+    desc->format           = GetVkFormatFromFormatID(renderer, formatID);
 
     // This function is for depth/stencil resolve attachment.
     const angle::Format &angleFormat = angle::Format::Get(formatID);
@@ -3665,10 +3666,11 @@ VkFormat GraphicsPipelineDesc::getPipelineVertexInputStateFormat(
     const gl::ComponentType programAttribType,
     uint32_t attribIndex)
 {
+    vk::Renderer *renderer = context->getRenderer();
     // Get the corresponding VkFormat for the attrib's format.
-    const Format &format                = context->getRenderer()->getFormat(formatID);
+    const Format &format                = renderer->getFormat(formatID);
     const angle::Format &intendedFormat = format.getIntendedFormat();
-    VkFormat vkFormat                   = format.getActualBufferVkFormat(compressed);
+    VkFormat vkFormat                   = format.getActualBufferVkFormat(renderer, compressed);
 
     const gl::ComponentType attribType = GetVertexAttributeComponentType(
         intendedFormat.isPureInt(), intendedFormat.vertexAttribType);
@@ -3680,31 +3682,28 @@ VkFormat GraphicsPipelineDesc::getPipelineVertexInputStateFormat(
         {
             angle::FormatID patchFormatID =
                 patchVertexAttribComponentType(formatID, programAttribType);
-            vkFormat = context->getRenderer()
-                           ->getFormat(patchFormatID)
-                           .getActualBufferVkFormat(compressed);
+            vkFormat =
+                renderer->getFormat(patchFormatID).getActualBufferVkFormat(renderer, compressed);
         }
         else
         {
             // When converting from an unsigned to a signed format or vice versa, attempt to
             // match the bit width.
             angle::FormatID convertedFormatID = gl::ConvertFormatSignedness(intendedFormat);
-            const Format &convertedFormat = context->getRenderer()->getFormat(convertedFormatID);
+            const Format &convertedFormat     = renderer->getFormat(convertedFormatID);
             ASSERT(intendedFormat.channelCount == convertedFormat.getIntendedFormat().channelCount);
             ASSERT(intendedFormat.redBits == convertedFormat.getIntendedFormat().redBits);
             ASSERT(intendedFormat.greenBits == convertedFormat.getIntendedFormat().greenBits);
             ASSERT(intendedFormat.blueBits == convertedFormat.getIntendedFormat().blueBits);
             ASSERT(intendedFormat.alphaBits == convertedFormat.getIntendedFormat().alphaBits);
 
-            vkFormat = convertedFormat.getActualBufferVkFormat(compressed);
+            vkFormat = convertedFormat.getActualBufferVkFormat(renderer, compressed);
         }
-        const Format &origFormat =
-            context->getRenderer()->getFormat(GetFormatIDFromVkFormat(origVkFormat));
-        const Format &patchFormat =
-            context->getRenderer()->getFormat(GetFormatIDFromVkFormat(vkFormat));
+        const Format &origFormat  = renderer->getFormat(GetFormatIDFromVkFormat(origVkFormat));
+        const Format &patchFormat = renderer->getFormat(GetFormatIDFromVkFormat(vkFormat));
         ASSERT(origFormat.getIntendedFormat().pixelBytes ==
                patchFormat.getIntendedFormat().pixelBytes);
-        ASSERT(context->getRenderer()->getNativeExtensions().relaxedVertexAttributeTypeANGLE);
+        ASSERT(renderer->getNativeExtensions().relaxedVertexAttributeTypeANGLE);
     }
 
     return vkFormat;
@@ -3816,7 +3815,7 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
                                  &stateOut->specializationInfo);
 
     // Vertex shader is always expected to be present.
-    const ShaderModule &vertexModule = shaders[gl::ShaderType::Vertex].get();
+    const ShaderModule &vertexModule = *shaders[gl::ShaderType::Vertex];
     ASSERT(vertexModule.valid());
     VkPipelineShaderStageCreateInfo vertexStage = {};
     SetPipelineShaderStageInfo(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -3824,10 +3823,10 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
                                stateOut->specializationInfo, &vertexStage);
     stateOut->shaderStages.push_back(vertexStage);
 
-    const ShaderModulePointer &tessControlPointer = shaders[gl::ShaderType::TessControl];
-    if (tessControlPointer.valid())
+    const ShaderModulePtr &tessControlPointer = shaders[gl::ShaderType::TessControl];
+    if (tessControlPointer)
     {
-        const ShaderModule &tessControlModule            = tessControlPointer.get();
+        const ShaderModule &tessControlModule            = *tessControlPointer;
         VkPipelineShaderStageCreateInfo tessControlStage = {};
         SetPipelineShaderStageInfo(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                    VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
@@ -3836,10 +3835,10 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
         stateOut->shaderStages.push_back(tessControlStage);
     }
 
-    const ShaderModulePointer &tessEvaluationPointer = shaders[gl::ShaderType::TessEvaluation];
-    if (tessEvaluationPointer.valid())
+    const ShaderModulePtr &tessEvaluationPointer = shaders[gl::ShaderType::TessEvaluation];
+    if (tessEvaluationPointer)
     {
-        const ShaderModule &tessEvaluationModule            = tessEvaluationPointer.get();
+        const ShaderModule &tessEvaluationModule            = *tessEvaluationPointer;
         VkPipelineShaderStageCreateInfo tessEvaluationStage = {};
         SetPipelineShaderStageInfo(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                    VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
@@ -3848,10 +3847,10 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
         stateOut->shaderStages.push_back(tessEvaluationStage);
     }
 
-    const ShaderModulePointer &geometryPointer = shaders[gl::ShaderType::Geometry];
-    if (geometryPointer.valid())
+    const ShaderModulePtr &geometryPointer = shaders[gl::ShaderType::Geometry];
+    if (geometryPointer)
     {
-        const ShaderModule &geometryModule            = geometryPointer.get();
+        const ShaderModule &geometryModule            = *geometryPointer;
         VkPipelineShaderStageCreateInfo geometryStage = {};
         SetPipelineShaderStageInfo(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                    VK_SHADER_STAGE_GEOMETRY_BIT, geometryModule.getHandle(),
@@ -3860,10 +3859,10 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
     }
 
     // Fragment shader is optional.
-    const ShaderModulePointer &fragmentPointer = shaders[gl::ShaderType::Fragment];
-    if (fragmentPointer.valid() && !mShaders.shaders.bits.rasterizerDiscardEnable)
+    const ShaderModulePtr &fragmentPointer = shaders[gl::ShaderType::Fragment];
+    if (fragmentPointer && !mShaders.shaders.bits.rasterizerDiscardEnable)
     {
-        const ShaderModule &fragmentModule            = fragmentPointer.get();
+        const ShaderModule &fragmentModule            = *fragmentPointer;
         VkPipelineShaderStageCreateInfo fragmentStage = {};
         SetPipelineShaderStageInfo(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                    VK_SHADER_STAGE_FRAGMENT_BIT, fragmentModule.getHandle(),
@@ -3976,7 +3975,7 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
     }
 
     // tessellation State
-    if (tessControlPointer.valid() && tessEvaluationPointer.valid())
+    if (tessControlPointer && tessEvaluationPointer)
     {
         stateOut->domainOriginState.sType =
             VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO;
@@ -5336,12 +5335,12 @@ size_t FramebufferDesc::hash() const
 
 void FramebufferDesc::reset()
 {
-    mMaxIndex                = 0;
+    mMaxIndex                 = 0;
     mHasColorFramebufferFetch = false;
-    mLayerCount              = 0;
-    mSrgbWriteControlMode    = 0;
-    mUnresolveAttachmentMask = 0;
-    mIsRenderToTexture       = 0;
+    mLayerCount               = 0;
+    mSrgbWriteControlMode     = 0;
+    mUnresolveAttachmentMask  = 0;
+    mIsRenderToTexture        = 0;
     // An empty FramebufferDesc is still a valid desc. It becomes invalid when it is explicitly
     // destroyed or released by SharedFramebufferCacheKey.
     mIsValid = 1;
@@ -5468,9 +5467,9 @@ void YcbcrConversionDesc::update(Renderer *renderer,
     SetBitField(mIsExternalFormat, (externalFormat) ? 1 : 0);
     SetBitField(mLinearFilterSupported,
                 linearFilterSupported == YcbcrLinearFilterSupport::Supported);
-    mExternalOrVkFormat = (externalFormat)
-                              ? externalFormat
-                              : vkFormat.getActualImageVkFormat(vk::ImageAccess::SampleOnly);
+    mExternalOrVkFormat =
+        (externalFormat) ? externalFormat
+                         : vkFormat.getActualImageVkFormat(renderer, vk::ImageAccess::SampleOnly);
 
     updateChromaFilter(renderer, chromaFilter);
 
@@ -6339,7 +6338,7 @@ void DescriptorSetDescBuilder::updatePreCacheActiveTextures(
 {
     const std::vector<gl::SamplerBinding> &samplerBindings = executable.getSamplerBindings();
     const gl::ActiveTextureMask &activeTextures            = executable.getActiveSamplersMask();
-    const ProgramExecutableVk *executableVk = vk::GetImpl(&executable);
+    const ProgramExecutableVk *executableVk                = vk::GetImpl(&executable);
 
     resize(executableVk->getTextureWriteDescriptorDescs().getTotalDescriptorCount());
     const WriteDescriptorDescs &writeDescriptorDescs =
@@ -7541,7 +7540,7 @@ angle::Result RenderPassCache::MakeRenderPass(vk::Context *context,
         else
         {
             attachmentDescs[attachmentCount.get()].format =
-                vk::GetVkFormatFromFormatID(attachmentFormatID);
+                vk::GetVkFormatFromFormatID(renderer, attachmentFormatID);
         }
         ASSERT(attachmentDescs[attachmentCount.get()].format != VK_FORMAT_UNDEFINED);
 
@@ -8171,9 +8170,9 @@ void DescriptorSetLayoutCache::destroy(vk::Renderer *renderer)
 
     for (auto &item : mPayload)
     {
-        vk::RefCountedDescriptorSetLayout &layout = item.second;
-        ASSERT(!layout.isReferenced());
-        layout.get().destroy(device);
+        vk::DescriptorSetLayoutPtr &layout = item.second;
+        ASSERT(layout.unique());
+        layout->destroy(device);
     }
 
     mPayload.clear();
@@ -8182,7 +8181,7 @@ void DescriptorSetLayoutCache::destroy(vk::Renderer *renderer)
 angle::Result DescriptorSetLayoutCache::getDescriptorSetLayout(
     vk::Context *context,
     const vk::DescriptorSetLayoutDesc &desc,
-    vk::AtomicBindingPointer<vk::DescriptorSetLayout> *descriptorSetLayoutOut)
+    vk::DescriptorSetLayoutPtr *descriptorSetLayoutOut)
 {
     // Note: this function may be called without holding the share group lock.
     std::unique_lock<angle::SimpleMutex> lock(mMutex);
@@ -8190,8 +8189,7 @@ angle::Result DescriptorSetLayoutCache::getDescriptorSetLayout(
     auto iter = mPayload.find(desc);
     if (iter != mPayload.end())
     {
-        vk::RefCountedDescriptorSetLayout &layout = iter->second;
-        descriptorSetLayoutOut->set(&layout);
+        *descriptorSetLayoutOut = iter->second;
         mCacheStats.hit();
         return angle::Result::Continue;
     }
@@ -8199,7 +8197,7 @@ angle::Result DescriptorSetLayoutCache::getDescriptorSetLayout(
     // If DescriptorSetLayoutDesc is empty, reuse placeholder descriptor set layout handle
     if (desc.empty())
     {
-        descriptorSetLayoutOut->set(context->getRenderer()->getDescriptorLayoutForEmptyDesc());
+        *descriptorSetLayoutOut = context->getRenderer()->getEmptyDescriptorLayout();
         return angle::Result::Continue;
     }
 
@@ -8214,12 +8212,11 @@ angle::Result DescriptorSetLayoutCache::getDescriptorSetLayout(
     createInfo.bindingCount = static_cast<uint32_t>(bindingVector.size());
     createInfo.pBindings    = bindingVector.data();
 
-    vk::DescriptorSetLayout newLayout;
-    ANGLE_VK_TRY(context, newLayout.init(context->getDevice(), createInfo));
+    vk::DescriptorSetLayoutPtr newLayout = vk::DescriptorSetLayoutPtr::MakeShared();
+    ANGLE_VK_TRY(context, newLayout->init(context->getDevice(), createInfo));
 
-    auto insertedItem = mPayload.emplace(desc, std::move(newLayout));
-    vk::RefCountedDescriptorSetLayout &insertedLayout = insertedItem.first->second;
-    descriptorSetLayoutOut->set(&insertedLayout);
+    *descriptorSetLayoutOut = newLayout;
+    mPayload.emplace(desc, std::move(newLayout));
 
     return angle::Result::Continue;
 }
@@ -8240,8 +8237,8 @@ void PipelineLayoutCache::destroy(vk::Renderer *renderer)
 
     for (auto &item : mPayload)
     {
-        vk::RefCountedPipelineLayout &layout = item.second;
-        layout.get().destroy(device);
+        vk::PipelineLayoutPtr &layout = item.second;
+        layout->destroy(device);
     }
 
     mPayload.clear();
@@ -8251,7 +8248,7 @@ angle::Result PipelineLayoutCache::getPipelineLayout(
     vk::Context *context,
     const vk::PipelineLayoutDesc &desc,
     const vk::DescriptorSetLayoutPointerArray &descriptorSetLayouts,
-    vk::AtomicBindingPointer<vk::PipelineLayout> *pipelineLayoutOut)
+    vk::PipelineLayoutPtr *pipelineLayoutOut)
 {
     // Note: this function may be called without holding the share group lock.
     std::unique_lock<angle::SimpleMutex> lock(mMutex);
@@ -8259,8 +8256,7 @@ angle::Result PipelineLayoutCache::getPipelineLayout(
     auto iter = mPayload.find(desc);
     if (iter != mPayload.end())
     {
-        vk::RefCountedPipelineLayout &layout = iter->second;
-        pipelineLayoutOut->set(&layout);
+        *pipelineLayoutOut = iter->second;
         mCacheStats.hit();
         return angle::Result::Continue;
     }
@@ -8268,11 +8264,11 @@ angle::Result PipelineLayoutCache::getPipelineLayout(
     mCacheStats.missAndIncrementSize();
     // Note this does not handle gaps in descriptor set layouts gracefully.
     angle::FixedVector<VkDescriptorSetLayout, vk::kMaxDescriptorSetLayouts> setLayoutHandles;
-    for (const vk::AtomicBindingPointer<vk::DescriptorSetLayout> &layoutPtr : descriptorSetLayouts)
+    for (const vk::DescriptorSetLayoutPtr &layoutPtr : descriptorSetLayouts)
     {
-        if (layoutPtr.valid())
+        if (layoutPtr)
         {
-            VkDescriptorSetLayout setLayout = layoutPtr.get().getHandle();
+            VkDescriptorSetLayout setLayout = layoutPtr->getHandle();
             ASSERT(setLayout != VK_NULL_HANDLE);
             setLayoutHandles.push_back(setLayout);
         }
@@ -8296,12 +8292,11 @@ angle::Result PipelineLayoutCache::getPipelineLayout(
         createInfo.pPushConstantRanges    = &pushConstantRange;
     }
 
-    vk::PipelineLayout newLayout;
-    ANGLE_VK_TRY(context, newLayout.init(context->getDevice(), createInfo));
+    vk::PipelineLayoutPtr newLayout = vk::PipelineLayoutPtr::MakeShared();
+    ANGLE_VK_TRY(context, newLayout->init(context->getDevice(), createInfo));
 
-    auto insertedItem                            = mPayload.emplace(desc, std::move(newLayout));
-    vk::RefCountedPipelineLayout &insertedLayout = insertedItem.first->second;
-    pipelineLayoutOut->set(&insertedLayout);
+    *pipelineLayoutOut = newLayout;
+    mPayload.emplace(desc, std::move(newLayout));
 
     return angle::Result::Continue;
 }

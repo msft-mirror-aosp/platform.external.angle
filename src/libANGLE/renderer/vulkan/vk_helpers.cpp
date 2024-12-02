@@ -4448,7 +4448,7 @@ void DynamicDescriptorPool::destroy(Renderer *renderer)
     for (auto it = mLRUList.begin(); it != mLRUList.end();)
     {
         (it->sharedCacheKey)->destroy();
-        it                          = mLRUList.erase(it);
+        it = mLRUList.erase(it);
     }
     ASSERT(mLRUList.empty());
 
@@ -4601,7 +4601,7 @@ angle::Result DynamicDescriptorPool::getOrAllocateDescriptorSet(
     DescriptorSetLRUListIterator listIterator;
     if (mDescriptorSetCache.getDescriptorSet(desc, &listIterator))
     {
-        *descriptorSetOut     = listIterator->descriptorSet;
+        *descriptorSetOut = listIterator->descriptorSet;
         (*newSharedCacheKeyOut).reset();
         // Move it to the front of the LRU list.
         mLRUList.splice(mLRUList.begin(), mLRUList, listIterator);
@@ -6132,7 +6132,8 @@ angle::Result ImageHelper::init(Context *context,
                         kVkImageCreateFlagsNone, ImageLayout::Undefined, nullptr, firstLevel,
                         mipLevels, layerCount, isRobustResourceInitEnabled, hasProtectedContent,
                         deriveConversionDesc(context, format.getActualRenderableImageFormatID(),
-                                             format.getIntendedFormatID()));
+                                             format.getIntendedFormatID()),
+                        nullptr);
 }
 
 angle::Result ImageHelper::initFromCreateInfo(Context *context,
@@ -6215,7 +6216,7 @@ angle::Result ImageHelper::initMSAASwapchain(Context *context,
                            format.getActualRenderableImageFormatID(), samples, usage,
                            kVkImageCreateFlagsNone, ImageLayout::Undefined, nullptr, firstLevel,
                            mipLevels, layerCount, isRobustResourceInitEnabled, hasProtectedContent,
-                           YcbcrConversionDesc{}));
+                           YcbcrConversionDesc{}, nullptr));
     if (rotatedAspectRatio)
     {
         std::swap(mExtents.width, mExtents.height);
@@ -6239,7 +6240,8 @@ angle::Result ImageHelper::initExternal(Context *context,
                                         uint32_t layerCount,
                                         bool isRobustResourceInitEnabled,
                                         bool hasProtectedContent,
-                                        YcbcrConversionDesc conversionDesc)
+                                        YcbcrConversionDesc conversionDesc,
+                                        const void *compressionControl)
 {
     ASSERT(!valid());
     ASSERT(!IsAnySubresourceContentDefined(mContentDefined));
@@ -6277,9 +6279,9 @@ angle::Result ImageHelper::initExternal(Context *context,
 
     if (externalImageCreateInfo == nullptr)
     {
-        imageCreateInfoPNext =
-            DeriveCreateInfoPNext(context, actualFormatID, nullptr, &imageFormatListInfoStorage,
-                                  &imageListFormatsStorage, &mCreateFlags);
+        imageCreateInfoPNext = DeriveCreateInfoPNext(context, actualFormatID, compressionControl,
+                                                     &imageFormatListInfoStorage,
+                                                     &imageListFormatsStorage, &mCreateFlags);
     }
     else
     {
@@ -6291,7 +6293,7 @@ angle::Result ImageHelper::initExternal(Context *context,
 
     const angle::Format &actualFormat   = angle::Format::Get(actualFormatID);
     const angle::Format &intendedFormat = angle::Format::Get(intendedFormatID);
-    VkFormat actualVkFormat             = GetVkFormatFromFormatID(actualFormatID);
+    VkFormat actualVkFormat             = GetVkFormatFromFormatID(renderer, actualFormatID);
 
     ANGLE_TRACE_EVENT_INSTANT("gpu.angle.texture_metrics", "ImageHelper::initExternal",
                               "intended_format", intendedFormat.glInternalFormat, "actual_format",
@@ -6380,8 +6382,8 @@ const void *ImageHelper::DeriveCreateInfoPNext(
     const angle::Format &actualFormat = angle::Format::Get(actualFormatID);
     angle::FormatID additionalFormat =
         actualFormat.isSRGB ? ConvertToLinear(actualFormatID) : ConvertToSRGB(actualFormatID);
-    (*imageListFormatsStorage)[0] = vk::GetVkFormatFromFormatID(actualFormatID);
-    (*imageListFormatsStorage)[1] = vk::GetVkFormatFromFormatID(additionalFormat);
+    (*imageListFormatsStorage)[0] = vk::GetVkFormatFromFormatID(renderer, actualFormatID);
+    (*imageListFormatsStorage)[1] = vk::GetVkFormatFromFormatID(renderer, additionalFormat);
 
     if (renderer->getFeatures().supportsImageFormatList.enabled &&
         renderer->haveSameFormatFeatureBits(actualFormatID, additionalFormat))
@@ -6409,11 +6411,13 @@ bool ImageHelper::FormatSupportsUsage(Renderer *renderer,
                                       VkImageTiling tilingMode,
                                       VkImageUsageFlags usageFlags,
                                       VkImageCreateFlags createFlags,
+                                      void *formatInfoPNext,
                                       void *propertiesPNext,
                                       const FormatSupportCheck formatSupportCheck)
 {
     VkPhysicalDeviceImageFormatInfo2 imageFormatInfo = {};
     imageFormatInfo.sType  = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2;
+    imageFormatInfo.pNext  = formatInfoPNext;
     imageFormatInfo.format = format;
     imageFormatInfo.type   = imageType;
     imageFormatInfo.tiling = tilingMode;
@@ -6835,7 +6839,7 @@ angle::Result ImageHelper::initLayerImageView(Context *context,
 {
     return initLayerImageViewImpl(context, textureType, aspectMask, swizzleMap, imageViewOut,
                                   baseMipLevelVk, levelCount, baseArrayLayer, layerCount,
-                                  GetVkFormatFromFormatID(mActualFormatID),
+                                  GetVkFormatFromFormatID(context->getRenderer(), mActualFormatID),
                                   kDefaultImageViewUsageFlags, gl::YuvSamplingMode::Default);
 }
 
@@ -6852,8 +6856,8 @@ angle::Result ImageHelper::initLayerImageViewWithUsage(Context *context,
 {
     return initLayerImageViewImpl(context, textureType, aspectMask, swizzleMap, imageViewOut,
                                   baseMipLevelVk, levelCount, baseArrayLayer, layerCount,
-                                  GetVkFormatFromFormatID(mActualFormatID), imageUsageFlags,
-                                  gl::YuvSamplingMode::Default);
+                                  GetVkFormatFromFormatID(context->getRenderer(), mActualFormatID),
+                                  imageUsageFlags, gl::YuvSamplingMode::Default);
 }
 
 angle::Result ImageHelper::initLayerImageViewWithYuvModeOverride(
@@ -6871,8 +6875,8 @@ angle::Result ImageHelper::initLayerImageViewWithYuvModeOverride(
 {
     return initLayerImageViewImpl(context, textureType, aspectMask, swizzleMap, imageViewOut,
                                   baseMipLevelVk, levelCount, baseArrayLayer, layerCount,
-                                  GetVkFormatFromFormatID(mActualFormatID), imageUsageFlags,
-                                  yuvSamplingMode);
+                                  GetVkFormatFromFormatID(context->getRenderer(), mActualFormatID),
+                                  imageUsageFlags, yuvSamplingMode);
 }
 
 angle::Result ImageHelper::initLayerImageViewImpl(Context *context,
@@ -6964,10 +6968,11 @@ angle::Result ImageHelper::initReinterpretedLayerImageView(Context *context,
     VkImageUsageFlags usageFlags =
         imageUsageFlags & GetMaximalImageUsageFlags(context->getRenderer(), imageViewFormat);
 
-    return initLayerImageViewImpl(context, textureType, aspectMask, swizzleMap, imageViewOut,
-                                  baseMipLevelVk, levelCount, baseArrayLayer, layerCount,
-                                  vk::GetVkFormatFromFormatID(imageViewFormat), usageFlags,
-                                  gl::YuvSamplingMode::Default);
+    return initLayerImageViewImpl(
+        context, textureType, aspectMask, swizzleMap, imageViewOut, baseMipLevelVk, levelCount,
+        baseArrayLayer, layerCount,
+        vk::GetVkFormatFromFormatID(context->getRenderer(), imageViewFormat), usageFlags,
+        gl::YuvSamplingMode::Default);
 }
 
 void ImageHelper::destroy(Renderer *renderer)
@@ -7015,15 +7020,16 @@ void ImageHelper::init2DWeakReference(Context *context,
     ASSERT(!valid());
     ASSERT(!IsAnySubresourceContentDefined(mContentDefined));
     ASSERT(!IsAnySubresourceContentDefined(mStencilContentDefined));
+    vk::Renderer *renderer = context->getRenderer();
 
     gl_vk::GetExtent(glExtents, &mExtents);
-    mRotatedAspectRatio = rotatedAspectRatio;
-    mIntendedFormatID   = intendedFormatID;
-    mActualFormatID     = actualFormatID;
-    mCreateFlags        = createFlags;
-    mUsage              = usage;
-    mSamples            = std::max(samples, 1);
-    mImageSerial        = context->getRenderer()->getResourceSerialFactory().generateImageSerial();
+    mRotatedAspectRatio      = rotatedAspectRatio;
+    mIntendedFormatID        = intendedFormatID;
+    mActualFormatID          = actualFormatID;
+    mCreateFlags             = createFlags;
+    mUsage                   = usage;
+    mSamples                 = std::max(samples, 1);
+    mImageSerial             = renderer->getResourceSerialFactory().generateImageSerial();
     mCurrentDeviceQueueIndex = context->getDeviceQueueIndex();
     mIsReleasedToExternal    = false;
     mCurrentLayout           = ImageLayout::Undefined;
@@ -7033,7 +7039,8 @@ void ImageHelper::init2DWeakReference(Context *context,
     // The view formats and usage flags are used for imageless framebuffers. Here, the former is set
     // similar to deriveImageViewFormatFromCreateInfoPNext() when there is no pNext from a
     // VkImageCreateInfo object.
-    setImageFormatsFromActualFormat(GetVkFormatFromFormatID(actualFormatID), mViewFormats);
+    setImageFormatsFromActualFormat(GetVkFormatFromFormatID(renderer, actualFormatID),
+                                    mViewFormats);
 
     mImage.setHandle(handle);
 
@@ -7070,6 +7077,7 @@ angle::Result ImageHelper::initStaging(Context *context,
     ASSERT(!valid());
     ASSERT(!IsAnySubresourceContentDefined(mContentDefined));
     ASSERT(!IsAnySubresourceContentDefined(mStencilContentDefined));
+    vk::Renderer *renderer = context->getRenderer();
 
     mImageType          = imageType;
     mExtents            = extents;
@@ -7077,7 +7085,7 @@ angle::Result ImageHelper::initStaging(Context *context,
     mIntendedFormatID   = intendedFormatID;
     mActualFormatID     = actualFormatID;
     mSamples            = std::max(samples, 1);
-    mImageSerial        = context->getRenderer()->getResourceSerialFactory().generateImageSerial();
+    mImageSerial        = renderer->getResourceSerialFactory().generateImageSerial();
     mLayerCount         = layerCount;
     mLevelCount         = mipLevels;
     mUsage              = usage;
@@ -7092,7 +7100,7 @@ angle::Result ImageHelper::initStaging(Context *context,
     imageInfo.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.flags             = hasProtectedContent ? VK_IMAGE_CREATE_PROTECTED_BIT : 0;
     imageInfo.imageType         = mImageType;
-    imageInfo.format            = GetVkFormatFromFormatID(actualFormatID);
+    imageInfo.format            = GetVkFormatFromFormatID(renderer, actualFormatID);
     imageInfo.extent            = mExtents;
     imageInfo.mipLevels         = mLevelCount;
     imageInfo.arrayLayers       = mLayerCount;
@@ -7173,7 +7181,7 @@ angle::Result ImageHelper::initImplicitMultisampledRenderToTexture(
                            samples, kMultisampledUsageFlags, kMultisampledCreateFlags,
                            ImageLayout::Undefined, nullptr, resolveImage.getFirstAllocatedLevel(),
                            kLevelCount, resolveImage.getLayerCount(), isRobustResourceInitEnabled,
-                           hasProtectedContent, YcbcrConversionDesc{}));
+                           hasProtectedContent, YcbcrConversionDesc{}, nullptr));
 
     // Remove the emulated format clear from the multisampled image if any.  There is one already
     // staged on the resolve image if needed.
@@ -11955,6 +11963,39 @@ VkColorComponentFlags ImageHelper::getEmulatedChannelsMask() const
     return emulatedChannelsMask;
 }
 
+bool ImageHelper::getCompressionFixedRate(VkImageCompressionControlEXT *compressionInfo,
+                                          VkImageCompressionFixedRateFlagsEXT *compressionRates,
+                                          GLenum glCompressionRate) const
+{
+    bool rtn = true;
+    ASSERT(compressionInfo->sType == VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_CONTROL_EXT);
+    compressionInfo->compressionControlPlaneCount = 1;
+
+    if (glCompressionRate == GL_SURFACE_COMPRESSION_FIXED_RATE_NONE_EXT)
+    {
+        compressionInfo->flags = VK_IMAGE_COMPRESSION_DISABLED_EXT;
+    }
+    else if (glCompressionRate == GL_SURFACE_COMPRESSION_FIXED_RATE_DEFAULT_EXT)
+    {
+        compressionInfo->flags = VK_IMAGE_COMPRESSION_FIXED_RATE_DEFAULT_EXT;
+    }
+    else if (glCompressionRate >= GL_SURFACE_COMPRESSION_FIXED_RATE_1BPC_EXT &&
+             glCompressionRate <= GL_SURFACE_COMPRESSION_FIXED_RATE_12BPC_EXT)
+    {
+        int offset             = glCompressionRate - GL_SURFACE_COMPRESSION_FIXED_RATE_1BPC_EXT;
+        compressionInfo->flags = VK_IMAGE_COMPRESSION_FIXED_RATE_EXPLICIT_EXT;
+        *compressionRates      = 1u << offset;
+        compressionInfo->pFixedRateFlags = compressionRates;
+    }
+    else
+    {
+        // Invalid value
+        rtn = false;
+    }
+
+    return rtn;
+}
+
 LayerMode GetLayerMode(const vk::ImageHelper &image, uint32_t layerCount)
 {
     const uint32_t imageLayerCount = GetImageLayerCountForView(image);
@@ -12799,7 +12840,8 @@ angle::Result BufferViewHelper::getView(Context *context,
 {
     ASSERT(format.valid());
 
-    VkFormat viewVkFormat = format.getActualBufferVkFormat(false);
+    vk::Renderer *renderer = context->getRenderer();
+    VkFormat viewVkFormat  = format.getActualBufferVkFormat(renderer, false);
 
     auto iter = mViews.find(viewVkFormat);
     if (iter != mViews.end())
@@ -12848,12 +12890,12 @@ ShaderProgramHelper::~ShaderProgramHelper() = default;
 
 bool ShaderProgramHelper::valid(const gl::ShaderType shaderType) const
 {
-    return mShaders[shaderType].valid();
+    return mShaders[shaderType];
 }
 
 void ShaderProgramHelper::destroy(Renderer *renderer)
 {
-    for (BindingPointer<ShaderModule> &shader : mShaders)
+    for (ShaderModulePtr &shader : mShaders)
     {
         shader.reset();
     }
@@ -12861,17 +12903,18 @@ void ShaderProgramHelper::destroy(Renderer *renderer)
 
 void ShaderProgramHelper::release(ContextVk *contextVk)
 {
-    for (BindingPointer<ShaderModule> &shader : mShaders)
+    for (ShaderModulePtr &shader : mShaders)
     {
         shader.reset();
     }
 }
 
-void ShaderProgramHelper::setShader(gl::ShaderType shaderType, RefCounted<ShaderModule> *shader)
+void ShaderProgramHelper::setShader(gl::ShaderType shaderType, const ShaderModulePtr &shader)
 {
     // The shaders must be set once and are not expected to change.
-    ASSERT(!mShaders[shaderType].valid());
-    mShaders[shaderType].set(shader);
+    ASSERT(!mShaders[shaderType]);
+    ASSERT(shader && shader->valid());
+    mShaders[shaderType] = shader;
 }
 
 void ShaderProgramHelper::createMonolithicPipelineCreationTask(
@@ -12914,7 +12957,7 @@ angle::Result ShaderProgramHelper::getOrCreateComputePipeline(
     shaderStage.sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStage.flags               = 0;
     shaderStage.stage               = VK_SHADER_STAGE_COMPUTE_BIT;
-    shaderStage.module              = mShaders[gl::ShaderType::Compute].get().getHandle();
+    shaderStage.module              = mShaders[gl::ShaderType::Compute]->getHandle();
     shaderStage.pName               = shaderName ? shaderName : "main";
     shaderStage.pSpecializationInfo = specializationInfo;
 
@@ -13102,12 +13145,12 @@ angle::Result MetaDescriptorPool::bindCachedDescriptorPool(
         return angle::Result::Continue;
     }
 
-    AtomicBindingPointer<DescriptorSetLayout> descriptorSetLayout;
+    DescriptorSetLayoutPtr descriptorSetLayout;
     ANGLE_TRY(descriptorSetLayoutCache->getDescriptorSetLayout(context, descriptorSetLayoutDesc,
                                                                &descriptorSetLayout));
 
     DynamicDescriptorPool newDescriptorPool;
-    ANGLE_TRY(InitDynamicDescriptorPool(context, descriptorSetLayoutDesc, descriptorSetLayout.get(),
+    ANGLE_TRY(InitDynamicDescriptorPool(context, descriptorSetLayoutDesc, *descriptorSetLayout,
                                         descriptorCountMultiplier, &newDescriptorPool));
 
     ASSERT(newDescriptorPool.valid());

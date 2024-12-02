@@ -624,11 +624,10 @@ angle::Result ProgramInfo::initProgram(vk::Context *context,
 
     ANGLE_TRY(
         SpvTransformSpirvCode(options, variableInfoMap, originalSpirvBlob, &transformedSpirvBlob));
-    ANGLE_TRY(vk::InitShaderModule(context, &mShaders[shaderType].get(),
-                                   transformedSpirvBlob.data(),
+    ANGLE_TRY(vk::InitShaderModule(context, &mShaders[shaderType], transformedSpirvBlob.data(),
                                    transformedSpirvBlob.size() * sizeof(uint32_t)));
 
-    mProgramHelper.setShader(shaderType, &mShaders[shaderType]);
+    mProgramHelper.setShader(shaderType, mShaders[shaderType]);
 
     return angle::Result::Continue;
 }
@@ -637,9 +636,13 @@ void ProgramInfo::release(ContextVk *contextVk)
 {
     mProgramHelper.release(contextVk);
 
-    for (vk::RefCounted<vk::ShaderModule> &shader : mShaders)
+    for (vk::ShaderModulePtr &shader : mShaders)
     {
-        shader.get().destroy(contextVk->getDevice());
+        if (shader)
+        {
+            shader->destroy(contextVk->getDevice());
+        }
+        shader.reset();
     }
 }
 
@@ -669,11 +672,10 @@ void ProgramExecutableVk::destroy(const gl::Context *context)
 
 void ProgramExecutableVk::resetLayout(ContextVk *contextVk)
 {
-    if (!mPipelineLayout.valid())
+    if (!mPipelineLayout)
     {
         ASSERT(mValidGraphicsPermutations.none());
         ASSERT(mValidComputePermutations.none());
-
         return;
     }
 
@@ -1385,7 +1387,7 @@ angle::Result ProgramExecutableVk::addTextureDescriptorSetDesc(
             }
             else
             {
-                VkFormat vkFormat = image.getActualVkFormat();
+                VkFormat vkFormat = image.getActualVkFormat(renderer);
                 ASSERT(vkFormat != 0);
                 ANGLE_TRY(renderer->getFormatDescriptorCountForVkFormat(context, vkFormat,
                                                                         &formatDescriptorCount));
@@ -1468,7 +1470,7 @@ ProgramTransformOptions ProgramExecutableVk::getTransformOptions(
     const bool hasFramebufferFetch = mExecutable->usesColorFramebufferFetch() ||
                                      mExecutable->usesDepthFramebufferFetch() ||
                                      mExecutable->usesStencilFramebufferFetch();
-    const bool isMultisampled      = drawFrameBuffer->getSamples() > 1;
+    const bool isMultisampled                    = drawFrameBuffer->getSamples() > 1;
     transformOptions.multiSampleFramebufferFetch = hasFramebufferFetch && isMultisampled;
     transformOptions.enableSampleShading =
         contextVk->getState().isSampleShadingEnabled() && isMultisampled;
@@ -1882,9 +1884,8 @@ angle::Result ProgramExecutableVk::getOrAllocateDescriptorSet(
     if (renderer->getFeatures().descriptorSetCache.enabled)
     {
         ANGLE_TRY(mDynamicDescriptorPools[setIndex]->getOrAllocateDescriptorSet(
-            context, currentFrame, descriptorSetDesc.getDesc(),
-            mDescriptorSetLayouts[setIndex].get(), &mDescriptorSets[setIndex],
-            newSharedCacheKeyOut));
+            context, currentFrame, descriptorSetDesc.getDesc(), *mDescriptorSetLayouts[setIndex],
+            &mDescriptorSets[setIndex], newSharedCacheKeyOut));
         ASSERT(mDescriptorSets[setIndex]);
 
         if (*newSharedCacheKeyOut)
@@ -1898,7 +1899,7 @@ angle::Result ProgramExecutableVk::getOrAllocateDescriptorSet(
     else
     {
         ANGLE_TRY(mDynamicDescriptorPools[setIndex]->allocateDescriptorSet(
-            context, mDescriptorSetLayouts[setIndex].get(), &mDescriptorSets[setIndex]));
+            context, *mDescriptorSetLayouts[setIndex], &mDescriptorSets[setIndex]));
         ASSERT(mDescriptorSets[setIndex]);
 
         descriptorSetDesc.updateDescriptorSet(renderer, writeDescriptorDescs, updateBuilder,
@@ -1975,7 +1976,7 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
 
         ANGLE_TRY(mDynamicDescriptorPools[DescriptorSetIndex::Texture]->getOrAllocateDescriptorSet(
             context, currentFrame, descriptorBuilder.getDesc(),
-            mDescriptorSetLayouts[DescriptorSetIndex::Texture].get(),
+            *mDescriptorSetLayouts[DescriptorSetIndex::Texture],
             &mDescriptorSets[DescriptorSetIndex::Texture], &newSharedCacheKey));
         ASSERT(mDescriptorSets[DescriptorSetIndex::Texture]);
 
@@ -1998,7 +1999,7 @@ angle::Result ProgramExecutableVk::updateTexturesDescriptorSet(
     else
     {
         ANGLE_TRY(mDynamicDescriptorPools[DescriptorSetIndex::Texture]->allocateDescriptorSet(
-            context, mDescriptorSetLayouts[DescriptorSetIndex::Texture].get(),
+            context, *mDescriptorSetLayouts[DescriptorSetIndex::Texture],
             &mDescriptorSets[DescriptorSetIndex::Texture]));
         ASSERT(mDescriptorSets[DescriptorSetIndex::Texture]);
 
