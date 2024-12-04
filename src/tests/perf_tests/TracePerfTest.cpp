@@ -1443,9 +1443,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
     if (traceNameIs("real_racing3"))
     {
         addExtensionPrerequisite("GL_EXT_shader_framebuffer_fetch");
-        if (isNVIDIALinuxANGLE)
+        if (isNVIDIAWinANGLE || isNVIDIALinuxANGLE)
         {
-            skipTest("http://anglebug.com/377923479 SYNC-HAZARD-WRITE-AFTER-WRITE on 535.183.01");
+            skipTest(
+                "http://anglebug.com/377923479 SYNC-HAZARD-WRITE-AFTER-WRITE on Linux 535.183.01 "
+                "Windows 31.0.15.4601");
         }
     }
 
@@ -1873,9 +1875,11 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
 
     if (traceNameIs("dota_underlords"))
     {
-        if (isNVIDIALinuxANGLE)
+        if (isNVIDIALinuxANGLE || isNVIDIAWinANGLE)
         {
-            skipTest("https://anglebug.com/369533074 Flaky on Linux Nvidia");
+            skipTest(
+                "https://anglebug.com/369533074 Flaky on Nvidia Linux 535.183.1.0 Windows "
+                "31.0.15.4601");
         }
     }
 

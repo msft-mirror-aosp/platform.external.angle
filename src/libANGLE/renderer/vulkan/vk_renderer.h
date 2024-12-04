@@ -355,6 +355,7 @@ class Renderer : angle::NonCopyable
     }
 
     size_t getNextPipelineCacheBlobCacheSlotIndex(size_t *previousSlotIndexOut);
+    size_t updatePipelineCacheChunkCount(size_t chunkCount);
     angle::Result getPipelineCache(vk::Context *context, vk::PipelineCacheAccess *pipelineCacheOut);
     angle::Result mergeIntoPipelineCache(vk::Context *context,
                                          const vk::PipelineCache &pipelineCache);
@@ -439,7 +440,7 @@ class Renderer : angle::NonCopyable
     SamplerYcbcrConversionCache &getYuvConversionCache() { return mYuvConversionCache; }
 
     void onAllocateHandle(vk::HandleType handleType);
-    void onDeallocateHandle(vk::HandleType handleType);
+    void onDeallocateHandle(vk::HandleType handleType, uint32_t count);
 
     bool getEnableValidationLayers() const { return mEnableValidationLayers; }
 
@@ -978,6 +979,7 @@ class Renderer : angle::NonCopyable
     angle::SimpleMutex mPipelineCacheMutex;
     vk::PipelineCache mPipelineCache;
     size_t mCurrentPipelineCacheBlobCacheSlotIndex;
+    size_t mPipelineCacheChunkCount;
     uint32_t mPipelineCacheVkUpdateTimeout;
     size_t mPipelineCacheSizeAtLastSync;
     std::atomic<bool> mPipelineCacheInitialized;

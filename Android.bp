@@ -96,7 +96,7 @@ cc_defaults {
     cflags: [
         "-DANDROID",
         "-DANDROID_NDK_VERSION_ROLL=r27_1",
-        "-DCR_CLANG_REVISION=\"llvmorg-20-init-9764-gb81d8e90-7\"",
+        "-DCR_CLANG_REVISION=\"llvmorg-20-init-13894-g8cb44859-1\"",
         "-DDYNAMIC_ANNOTATIONS_ENABLED=0",
         "-DHAVE_SYS_UIO_H",
         "-DNDEBUG",
@@ -111,6 +111,7 @@ cc_defaults {
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
         "-Wno-missing-template-arg-list-after-template-kw",
+        "-Wno-nontrivial-memaccess",
         "-Wno-psabi",
         "-Wno-thread-safety-reference-return",
         "-Wno-trigraphs",
