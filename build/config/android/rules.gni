@@ -1230,8 +1230,6 @@ if (!is_robolectric && enable_java_templates) {
         import("//third_party/jni_zero/jni_zero.gni")
         _jni_srcjar_target_name = "${target_name}__final_jni"
         generate_jni_registration(_jni_srcjar_target_name) {
-          enable_native_mocks = true
-          require_native_mocks = true
           java_targets = [ ":$_java_binary_target_name" ]
           add_stubs_for_missing_jni = true
         }
@@ -1341,6 +1339,7 @@ if (!is_robolectric && enable_java_templates) {
   #
   #   chromium_code: If true, extra analysis warning/errors will be enabled.
   #   enable_errorprone: If true, enables the errorprone compiler.
+  #   enable_nullaway: Requires enable_errorprone. Enables NullAway plugin.
   #   skip_build_server: If true, avoids sending tasks to the build server.
   #
   #   jar_excluded_patterns: List of patterns of .class files to exclude.
@@ -2007,6 +2006,9 @@ if (!is_robolectric && enable_java_templates) {
 
       if (is_cronet_build) {
         defines += [ "_IS_CRONET_BUILD" ]
+        defines += [ "_LOGTAG_PREFIX=cn_" ]
+      } else {
+        defines += [ "_LOGTAG_PREFIX=cr_" ]
       }
       if (is_desktop_android) {
         defines += [ "_IS_DESKTOP_ANDROID" ]

@@ -401,6 +401,8 @@ void main()
         glDeleteProgram(mTextureExternalESSL3Program);
         glClearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        ASSERT_GL_NO_ERROR();
     }
 
     // 1) For tests that sample from EGLImages with colorspace override -
@@ -2621,6 +2623,21 @@ void ImageTest::Source2DTarget2DArray_helper(const EGLint *attribs)
 
     // Clean up
     eglDestroyImageKHR(window->getDisplay(), image);
+}
+
+// Testing source AHB EGL image, if the client buffer is null, the test will not crash
+TEST_P(ImageTest, SourceAHBInvalid)
+{
+    EGLWindow *window = getEGLWindow();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !IsVulkan());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+
+    // Create the Image
+    EGLImageKHR image = eglCreateImageKHR(window->getDisplay(), EGL_NO_CONTEXT,
+                                          EGL_NATIVE_BUFFER_ANDROID, nullptr, nullptr);
+    ASSERT_EGL_ERROR(EGL_BAD_PARAMETER);
+    EXPECT_EQ(image, EGL_NO_IMAGE_KHR);
 }
 
 // Testing source AHB EGL image, target 2D texture and delete when in use
@@ -7440,6 +7457,52 @@ TEST_P(ImageTest, RedefineWithMultipleImages)
     ASSERT_EGL_SUCCESS();
 
     ASSERT_GL_NO_ERROR();
+}
+
+// Regression test to check that sRGB texture can be used to create image in sRGB colorspace.
+// Also check that creating image using sRGB texture in linear colorspace wouldn't fail.
+TEST_P(ImageTestES3, CreatesRGBImages)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_sRGB"));
+    ANGLE_SKIP_TEST_IF(!hasImageGLColorspaceExt());
+    ANGLE_SKIP_TEST_IF(
+        !IsEGLDisplayExtensionEnabled(window->getDisplay(), "EGL_KHR_gl_colorspace"));
+
+    std::vector<EGLint> colorSpaces = {EGL_GL_COLORSPACE_SRGB_KHR, EGL_GL_COLORSPACE_LINEAR_KHR};
+    constexpr GLsizei kWidth        = 2;
+    constexpr GLsizei kHeight       = 2;
+
+    for (size_t i = 0; i < colorSpaces.size(); i++)
+    {
+        // Create sRGB texture
+        GLTexture sRGBTexture;
+        glBindTexture(GL_TEXTURE_2D, sRGBTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, kWidth, kHeight, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, nullptr);
+        ASSERT_GL_NO_ERROR();
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        ASSERT_GL_NO_ERROR();
+
+        EGLint createImageAttribs[] = {
+            EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_GL_COLORSPACE_KHR, colorSpaces[i], EGL_NONE,
+        };
+
+        // Create the Image using sRGB texture
+        EGLImageKHR image =
+            eglCreateImageKHR(window->getDisplay(), window->getContext(), EGL_GL_TEXTURE_2D_KHR,
+                              reinterpretHelper<EGLClientBuffer>(sRGBTexture), createImageAttribs);
+        ASSERT_EGL_SUCCESS();
+        ASSERT_NE(image, EGL_NO_IMAGE_KHR);
+
+        // Clean up
+        eglDestroyImageKHR(window->getDisplay(), image);
+    }
 }
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(ImageTest);
