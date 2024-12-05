@@ -143,8 +143,7 @@ config("compiler") {
     }
   }
 
-  # Disabled with cc_wrapper because of https://github.com/mozilla/sccache/issues/264
-  if (use_lld && !use_thin_lto && cc_wrapper == "") {
+  if (use_lld && !use_thin_lto) {
     # /Brepro lets the compiler not write the mtime field in the .obj output.
     # link.exe /incremental relies on this field to work correctly, but lld
     # never looks at this timestamp, so it's safe to pass this flag with
@@ -295,7 +294,7 @@ config("runtime_library") {
 # manually override this config for their compiles.
 config("winver") {
   defines = [
-    "NTDDI_VERSION=NTDDI_WIN11_GE",
+    "NTDDI_VERSION=NTDDI_WIN10_NI",
 
     # We can't say `=_WIN32_WINNT_WIN10` here because some files do
     # `#if WINVER < 0x0600` without including windows.h before,

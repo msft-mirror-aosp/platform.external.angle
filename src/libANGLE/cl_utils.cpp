@@ -7,6 +7,7 @@
 
 #include "libANGLE/cl_utils.h"
 
+#include "common/PackedCLEnums_autogen.h"
 #include "libANGLE/renderer/CLExtensions.h"
 
 namespace cl
@@ -181,6 +182,43 @@ bool IsValidImageFormat(const cl_image_format *imageFormat, const rx::CLExtensio
             return false;
     }
     return true;
+}
+
+bool IsImageType(cl::MemObjectType type)
+{
+    return (type >= cl::MemObjectType::Image2D && type <= cl::MemObjectType::Image1D_Buffer);
+}
+
+bool IsBufferType(cl::MemObjectType type)
+{
+    return type == cl::MemObjectType::Buffer;
+}
+
+cl::Extents GetExtentFromDescriptor(cl::ImageDescriptor desc)
+{
+    cl::Extents extent{};
+
+    extent.width  = desc.width;
+    extent.height = desc.height;
+    extent.depth  = desc.depth;
+
+    // user can supply random values for height and depth for formats that dont need them
+    switch (desc.type)
+    {
+        case cl::MemObjectType::Image1D:
+        case cl::MemObjectType::Image1D_Array:
+        case cl::MemObjectType::Image1D_Buffer:
+            extent.height = 1;
+            extent.depth  = 1;
+            break;
+        case cl::MemObjectType::Image2D:
+        case cl::MemObjectType::Image2D_Array:
+            extent.depth = 1;
+            break;
+        default:
+            break;
+    }
+    return extent;
 }
 
 thread_local cl_int gClErrorTls;
