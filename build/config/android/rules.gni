@@ -6,6 +6,7 @@ import("//build/config/android/abi.gni")
 import("//build/config/android/copy_ex.gni")
 import("//build/config/chrome_build.gni")
 import("//build/config/clang/clang.gni")
+import("//build/config/rts.gni")
 import("//build/config/sanitizers/sanitizers.gni")
 import("//build_overrides/build.gni")
 
@@ -1229,8 +1230,6 @@ if (!is_robolectric && enable_java_templates) {
         import("//third_party/jni_zero/jni_zero.gni")
         _jni_srcjar_target_name = "${target_name}__final_jni"
         generate_jni_registration(_jni_srcjar_target_name) {
-          enable_native_mocks = true
-          require_native_mocks = true
           java_targets = [ ":$_java_binary_target_name" ]
           add_stubs_for_missing_jni = true
         }
@@ -1340,6 +1339,7 @@ if (!is_robolectric && enable_java_templates) {
   #
   #   chromium_code: If true, extra analysis warning/errors will be enabled.
   #   enable_errorprone: If true, enables the errorprone compiler.
+  #   enable_nullaway: Requires enable_errorprone. Enables NullAway plugin.
   #   skip_build_server: If true, avoids sending tasks to the build server.
   #
   #   jar_excluded_patterns: List of patterns of .class files to exclude.
@@ -2006,6 +2006,9 @@ if (!is_robolectric && enable_java_templates) {
 
       if (is_cronet_build) {
         defines += [ "_IS_CRONET_BUILD" ]
+        defines += [ "_LOGTAG_PREFIX=cn_" ]
+      } else {
+        defines += [ "_LOGTAG_PREFIX=cr_" ]
       }
       if (is_desktop_android) {
         defines += [ "_IS_DESKTOP_ANDROID" ]
@@ -3629,6 +3632,14 @@ if (!is_robolectric && enable_java_templates) {
   #     apk_under_test: ":bar"
   #   }
   template("instrumentation_test_runner") {
+    if (use_rts) {
+      action("${invoker.target_name}__rts_filters") {
+        script = "//build/add_rts_filters.py"
+        rts_file = "${root_build_dir}/gen/rts/${invoker.target_name}.filter"
+        args = [ rebase_path(rts_file, root_build_dir) ]
+        outputs = [ rts_file ]
+      }
+    }
     _incremental_apk = !(defined(invoker.never_incremental) &&
                          invoker.never_incremental) && incremental_install
     _apk_operations_target_name = "${target_name}__apk_operations"
@@ -3741,6 +3752,12 @@ if (!is_robolectric && enable_java_templates) {
       }
       if (defined(invoker.additional_apks)) {
         public_deps += invoker.additional_apks
+      }
+      if (use_rts) {
+        if (!defined(data_deps)) {
+          data_deps = []
+        }
+        data_deps += [ ":${invoker.target_name}__rts_filters" ]
       }
     }
   }
