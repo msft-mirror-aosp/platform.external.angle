@@ -982,10 +982,16 @@ EXPORTS
 
     ; GL_EXT_texture_sRGB_decode
 
+    ; GL_EXT_texture_shadow_lod
+
     ; GL_EXT_texture_storage
     glTexStorage1DEXT
     glTexStorage2DEXT
     glTexStorage3DEXT
+
+    ; GL_EXT_texture_storage_compression
+    glTexStorageAttribs2DEXT
+    glTexStorageAttribs3DEXT
 
     ; GL_EXT_texture_type_2_10_10_10_REV
 

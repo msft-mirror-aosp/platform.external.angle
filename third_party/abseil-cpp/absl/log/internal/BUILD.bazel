@@ -179,6 +179,7 @@ cc_library(
         "//absl/base:core_headers",
         "//absl/base:errno_saver",
         "//absl/base:log_severity",
+        "//absl/base:nullability",
         "//absl/base:raw_logging_internal",
         "//absl/base:strerror",
         "//absl/container:inlined_vector",
@@ -280,6 +281,7 @@ cc_library(
     deps = [
         ":log_message",
         "//absl/base:config",
+        "//absl/base:core_headers",
         "//absl/strings",
     ],
 )
@@ -436,6 +438,7 @@ cc_test(
         "no_test:os:android",
         "no_test:os:ios",
         "no_test_android",
+        "no_test_darwin_arm64",
         "no_test_darwin_x86_64",
         "no_test_fuchsia_x64",
         "no_test_ios",
