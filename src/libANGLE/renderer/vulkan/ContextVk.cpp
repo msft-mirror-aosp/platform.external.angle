@@ -1323,14 +1323,14 @@ void ContextVk::onDestroy(const gl::Context *context)
     mShaderLibrary.destroy(device);
     mGpuEventQueryPool.destroy(device);
 
-    // Must retire all Vulkan secondary command buffers before destroying the pools.
+    // Must release all Vulkan secondary command buffers before destroying the pools.
     if ((!vk::OutsideRenderPassCommandBuffer::ExecutesInline() ||
          !vk::RenderPassCommandBuffer::ExecutesInline()) &&
         mRenderer->isAsyncCommandBufferResetAndGarbageCleanupEnabled())
     {
         // This will also reset Primary command buffers which is REQUIRED on some buggy Vulkan
         // implementations.
-        (void)mRenderer->retireFinishedCommands(this);
+        (void)mRenderer->releaseFinishedCommands(this);
     }
 
     mCommandPools.outsideRenderPassPool.destroy(device);
@@ -1887,9 +1887,9 @@ angle::Result ContextVk::setupLineLoopDraw(const gl::Context *context,
 
 angle::Result ContextVk::setupDispatch(const gl::Context *context)
 {
-    // Note: numerous tests miss a glMemoryBarrier call between the initial texture data upload and
-    // the dispatch call.  Flush the outside render pass command buffer as a workaround.
-    // TODO: Remove this and fix tests.  http://anglebug.com/42263639
+    // TODO: We don't currently check if this flush is necessary.  It serves to make sure the
+    // barriers issued during dirty bit handling aren't reordered too early.
+    // http://anglebug.com/382090958
     ANGLE_TRY(flushOutsideRenderPassCommands());
 
     ProgramExecutableVk *executableVk = vk::GetImpl(mState.getProgramExecutable());
@@ -4156,7 +4156,7 @@ void ContextVk::clearAllGarbage()
     // The VMA virtual allocator code has assertion to ensure all sub-ranges are freed before
     // virtual block gets freed. We need to ensure all completed garbage objects are actually freed
     // to avoid hitting that assertion.
-    mRenderer->cleanupGarbage();
+    mRenderer->cleanupGarbage(nullptr);
 
     for (vk::GarbageObject &garbage : mCurrentGarbage)
     {
@@ -4170,7 +4170,7 @@ void ContextVk::handleDeviceLost()
     vk::SecondaryCommandBufferCollector collector;
     (void)mOutsideRenderPassCommands->reset(this, &collector);
     (void)mRenderPassCommands->reset(this, &collector);
-    collector.retireCommandBuffers();
+    collector.releaseCommandBuffers();
 
     mRenderer->notifyDeviceLost();
 }
@@ -7295,25 +7295,24 @@ angle::Result ContextVk::initBufferAllocation(vk::BufferHelper *bufferHelper,
     bool shouldTryFallback = (result == VK_ERROR_OUT_OF_DEVICE_MEMORY);
     ANGLE_VK_CHECK(this, shouldTryFallback, result);
 
-    // If memory allocation fails, it is possible to retry the allocation after waiting for
-    // submitted commands to finish and cleaning the garbage.
-    bool anyBatchCleaned             = false;
-    uint32_t batchesWaitedAndCleaned = 0;
+    // If memory allocation fails, it is possible to retry the allocation after cleaning the garbage
+    // and waiting for submitted commands to finish if necessary.
+    bool anyGarbageCleaned  = false;
+    bool someGarbageCleaned = false;
     do
     {
-        ANGLE_TRY(mRenderer->finishOneCommandBatchAndCleanup(this, &anyBatchCleaned));
-        if (anyBatchCleaned)
+        ANGLE_TRY(mRenderer->cleanupSomeGarbage(this, &anyGarbageCleaned));
+        if (anyGarbageCleaned)
         {
-            batchesWaitedAndCleaned++;
+            someGarbageCleaned = true;
             result = bufferHelper->initSuballocation(this, memoryTypeIndex, allocationSize,
                                                      alignment, bufferUsageType, pool);
         }
-    } while (result != VK_SUCCESS && anyBatchCleaned);
+    } while (result != VK_SUCCESS && anyGarbageCleaned);
 
-    if (batchesWaitedAndCleaned > 0)
+    if (someGarbageCleaned)
     {
-        INFO() << "Initial allocation failed. Waited for " << batchesWaitedAndCleaned
-               << " commands to finish and free garbage | Allocation result: "
+        INFO() << "Initial allocation failed. Cleaned some garbage | Allocation result: "
                << ((result == VK_SUCCESS) ? "SUCCESS" : "FAIL");
     }
 
@@ -7381,26 +7380,25 @@ angle::Result ContextVk::initImageAllocation(vk::ImageHelper *imageHelper,
     bool shouldTryFallback = (result == VK_ERROR_OUT_OF_DEVICE_MEMORY);
     ANGLE_VK_CHECK(this, shouldTryFallback, result);
 
-    // If memory allocation fails, it is possible to retry the allocation after waiting for
-    // submitted commands to finish and cleaning the garbage.
-    bool anyBatchCleaned             = false;
-    uint32_t batchesWaitedAndCleaned = 0;
+    // If memory allocation fails, it is possible to retry the allocation after cleaning the garbage
+    // and waiting for submitted commands to finish if necessary.
+    bool anyGarbageCleaned  = false;
+    bool someGarbageCleaned = false;
     do
     {
-        ANGLE_TRY(mRenderer->finishOneCommandBatchAndCleanup(this, &anyBatchCleaned));
-        if (anyBatchCleaned)
+        ANGLE_TRY(mRenderer->cleanupSomeGarbage(this, &anyGarbageCleaned));
+        if (anyGarbageCleaned)
         {
-            batchesWaitedAndCleaned++;
+            someGarbageCleaned = true;
             result = imageHelper->initMemory(this, memoryProperties, flags, oomExcludedFlags,
                                              &memoryRequirements, allocateDedicatedMemory,
                                              allocationType, &outputFlags, &outputSize);
         }
-    } while (result != VK_SUCCESS && anyBatchCleaned);
+    } while (result != VK_SUCCESS && anyGarbageCleaned);
 
-    if (batchesWaitedAndCleaned > 0)
+    if (someGarbageCleaned)
     {
-        INFO() << "Initial allocation failed. Waited for " << batchesWaitedAndCleaned
-               << " commands to finish and free garbage | Allocation result: "
+        INFO() << "Initial allocation failed. Cleaned some garbage | Allocation result: "
                << ((result == VK_SUCCESS) ? "SUCCESS" : "FAIL");
     }
 
