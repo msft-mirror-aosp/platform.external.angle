@@ -70,9 +70,8 @@ class RenderPassCommandBufferHelper;
 class PackedClearValuesArray;
 class AttachmentOpsArray;
 
-using RefCountedDescriptorSetLayout    = AtomicRefCounted<DescriptorSetLayout>;
-using RefCountedPipelineLayout         = AtomicRefCounted<PipelineLayout>;
-using RefCountedSamplerYcbcrConversion = RefCounted<SamplerYcbcrConversion>;
+using PipelineLayoutPtr      = AtomicSharedPtr<PipelineLayout>;
+using DescriptorSetLayoutPtr = AtomicSharedPtr<DescriptorSetLayout>;
 
 // Packed Vk resource descriptions.
 // Most Vk types use many more bits than required to represent the underlying data.
@@ -1166,8 +1165,7 @@ static_assert(sizeof(PackedPushConstantRange) == sizeof(uint32_t), "Unexpected S
 
 template <typename T>
 using DescriptorSetArray = angle::PackedEnumMap<DescriptorSetIndex, T>;
-using DescriptorSetLayoutPointerArray =
-    DescriptorSetArray<AtomicBindingPointer<DescriptorSetLayout>>;
+using DescriptorSetLayoutPointerArray = DescriptorSetArray<DescriptorSetLayoutPtr>;
 
 class PipelineLayoutDesc final
 {
@@ -1876,7 +1874,7 @@ class DescriptorSetDescAndPool final
         other.mPool = nullptr;
     }
     ~DescriptorSetDescAndPool() { ASSERT(!valid()); }
-    void destroy() { mPool = nullptr; }
+    void destroy(VkDevice /*device*/) { mPool = nullptr; }
 
     void destroyCachedObject(Renderer *renderer);
     void releaseCachedObject(ContextVk *contextVk) { UNREACHABLE(); }
@@ -1900,7 +1898,7 @@ using SharedDescriptorSetCacheKey = SharedPtr<DescriptorSetDescAndPool>;
 ANGLE_INLINE const SharedDescriptorSetCacheKey
 CreateSharedDescriptorSetCacheKey(const DescriptorSetDesc &desc, DynamicDescriptorPool *pool)
 {
-    return SharedDescriptorSetCacheKey::MakeShared(desc, pool);
+    return SharedDescriptorSetCacheKey::MakeShared(VK_NULL_HANDLE, desc, pool);
 }
 
 constexpr VkDescriptorType kStorageBufferDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -2093,7 +2091,7 @@ class FramebufferDesc
     bool hasFragmentShadingRateAttachment() const;
 
     // Used by SharedFramebufferCacheKey
-    void destroy() { SetBitField(mIsValid, 0); }
+    void destroy(VkDevice /*device*/) { SetBitField(mIsValid, 0); }
     void destroyCachedObject(Renderer *renderer);
     void releaseCachedObject(Renderer *renderer) { UNREACHABLE(); }
     void releaseCachedObject(ContextVk *contextVk);
@@ -2144,7 +2142,7 @@ using SharedFramebufferCacheKey = SharedPtr<FramebufferDesc>;
 ANGLE_INLINE const SharedFramebufferCacheKey
 CreateSharedFramebufferCacheKey(const FramebufferDesc &desc)
 {
-    return SharedFramebufferCacheKey::MakeShared(desc);
+    return SharedFramebufferCacheKey::MakeShared(VK_NULL_HANDLE, desc);
 }
 
 // The SamplerHelper allows a Sampler to be coupled with a serial.
@@ -2708,10 +2706,9 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
 
     void destroy(vk::Renderer *renderer);
 
-    angle::Result getDescriptorSetLayout(
-        vk::Context *context,
-        const vk::DescriptorSetLayoutDesc &desc,
-        vk::AtomicBindingPointer<vk::DescriptorSetLayout> *descriptorSetLayoutOut);
+    angle::Result getDescriptorSetLayout(vk::Context *context,
+                                         const vk::DescriptorSetLayoutDesc &desc,
+                                         vk::DescriptorSetLayoutPtr *descriptorSetLayoutOut);
 
     // Helpers for white box tests
     size_t getCacheHitCount() const { return mCacheStats.getHitCount(); }
@@ -2719,7 +2716,7 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
 
   private:
     mutable angle::SimpleMutex mMutex;
-    std::unordered_map<vk::DescriptorSetLayoutDesc, vk::RefCountedDescriptorSetLayout> mPayload;
+    std::unordered_map<vk::DescriptorSetLayoutDesc, vk::DescriptorSetLayoutPtr> mPayload;
     CacheStats mCacheStats;
 };
 
@@ -2731,15 +2728,14 @@ class PipelineLayoutCache final : public HasCacheStats<VulkanCacheType::Pipeline
 
     void destroy(vk::Renderer *renderer);
 
-    angle::Result getPipelineLayout(
-        vk::Context *context,
-        const vk::PipelineLayoutDesc &desc,
-        const vk::DescriptorSetLayoutPointerArray &descriptorSetLayouts,
-        vk::AtomicBindingPointer<vk::PipelineLayout> *pipelineLayoutOut);
+    angle::Result getPipelineLayout(vk::Context *context,
+                                    const vk::PipelineLayoutDesc &desc,
+                                    const vk::DescriptorSetLayoutPointerArray &descriptorSetLayouts,
+                                    vk::PipelineLayoutPtr *pipelineLayoutOut);
 
   private:
     mutable angle::SimpleMutex mMutex;
-    std::unordered_map<vk::PipelineLayoutDesc, vk::RefCountedPipelineLayout> mPayload;
+    std::unordered_map<vk::PipelineLayoutDesc, vk::PipelineLayoutPtr> mPayload;
 };
 
 class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>

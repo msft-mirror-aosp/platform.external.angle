@@ -300,7 +300,7 @@ class DescriptorSetHelper final : public Resource
         ASSERT(!mPool);
     }
 
-    void destroy();
+    void destroy(VkDevice device);
 
     VkDescriptorSet getDescriptorSet() const { return mDescriptorSet; }
     DescriptorPoolWeakPointer &getPool() { return mPool; }
@@ -341,10 +341,7 @@ class DescriptorPoolHelper final : angle::NonCopyable
     angle::Result init(Context *context,
                        const std::vector<VkDescriptorPoolSize> &poolSizesIn,
                        uint32_t maxSets);
-    // This only get called by SharedPtr. Nothing to do here since we explictly destroy/release pool
-    // before we reach here.
-    void destroy() { ASSERT(!valid()); }
-    void destroy(Renderer *renderer);
+    void destroy(VkDevice device);
 
     bool allocateDescriptorSet(Context *context,
                                const DescriptorSetLayout &descriptorSetLayout,
@@ -365,7 +362,7 @@ class DescriptorPoolHelper final : angle::NonCopyable
     }
     bool recycleFromGarbage(Renderer *renderer, DescriptorSetPointer *descriptorSetOut);
     void destroyGarbage();
-    void cleanupPendingGarbage(Renderer *renderer);
+    void cleanupPendingGarbage();
 
     bool hasValidDescriptorSet() const { return mValidDescriptorSets != 0; }
     bool canDestroy() const { return mValidDescriptorSets == 0 && mPendingGarbageList.empty(); }
@@ -374,6 +371,8 @@ class DescriptorPoolHelper final : angle::NonCopyable
     bool allocateVkDescriptorSet(Context *context,
                                  const DescriptorSetLayout &descriptorSetLayout,
                                  VkDescriptorSet *descriptorSetOut);
+
+    Renderer *mRenderer;
 
     // The initial number of descriptorSets when the pool is created. This should equal to
     // mValidDescriptorSets+mGarbageList.size()+mFreeDescriptorSets.
@@ -410,11 +409,8 @@ class DynamicDescriptorPool final : angle::NonCopyable
                        const VkDescriptorPoolSize *setSizes,
                        size_t setSizeCount,
                        const DescriptorSetLayout &descriptorSetLayout);
-    void destroy(Renderer *renderer);
-    // Used only by SharedPtr. Since MetaDescriptorPool always keep the last refCount and it
-    // explicitly calls destroy(renderer) before last refcount goes away, we should just do
-    // assertion here.
-    void destroy() { ASSERT(!valid()); }
+
+    void destroy(VkDevice device);
 
     bool valid() const { return !mDescriptorPools.empty(); }
 
@@ -1341,7 +1337,7 @@ class SecondaryCommandBufferCollector final
 
     void collectCommandBuffer(priv::SecondaryCommandBuffer &&commandBuffer);
     void collectCommandBuffer(VulkanSecondaryCommandBuffer &&commandBuffer);
-    void retireCommandBuffers();
+    void releaseCommandBuffers();
 
     bool empty() const { return mCollectedCommandBuffers.empty(); }
 
@@ -2220,7 +2216,8 @@ class ImageHelper final : public Resource, public angle::Subject
                                uint32_t layerCount,
                                bool isRobustResourceInitEnabled,
                                bool hasProtectedContent,
-                               YcbcrConversionDesc conversionDesc);
+                               YcbcrConversionDesc conversionDesc,
+                               const void *compressionControl);
     VkResult initMemory(Context *context,
                         const MemoryProperties &memoryProperties,
                         VkMemoryPropertyFlags flags,
@@ -2350,6 +2347,7 @@ class ImageHelper final : public Resource, public angle::Subject
                                     VkImageTiling tilingMode,
                                     VkImageUsageFlags usageFlags,
                                     VkImageCreateFlags createFlags,
+                                    void *formatInfoPNext,
                                     void *propertiesPNext,
                                     const FormatSupportCheck formatSupportCheck);
 
@@ -2405,6 +2403,9 @@ class ImageHelper final : public Resource, public angle::Subject
     VkImageTiling getTilingMode() const { return mTilingMode; }
     VkImageCreateFlags getCreateFlags() const { return mCreateFlags; }
     VkImageUsageFlags getUsage() const { return mUsage; }
+    bool getCompressionFixedRate(VkImageCompressionControlEXT *compressionInfo,
+                                 VkImageCompressionFixedRateFlagsEXT *compressionRates,
+                                 GLenum glCompressionRate) const;
     VkImageType getType() const { return mImageType; }
     const VkExtent3D &getExtents() const { return mExtents; }
     const VkExtent3D getRotatedExtents() const;
@@ -2433,10 +2434,10 @@ class ImageHelper final : public Resource, public angle::Subject
         ASSERT(valid());
         return mActualFormatID;
     }
-    VkFormat getActualVkFormat() const
+    VkFormat getActualVkFormat(const Renderer *renderer) const
     {
         ASSERT(valid());
-        return GetVkFormatFromFormatID(mActualFormatID);
+        return GetVkFormatFromFormatID(renderer, mActualFormatID);
     }
     const angle::Format &getActualFormat() const
     {
@@ -3828,7 +3829,7 @@ class ShaderProgramHelper : angle::NonCopyable
     void destroy(Renderer *renderer);
     void release(ContextVk *contextVk);
 
-    void setShader(gl::ShaderType shaderType, RefCounted<ShaderModule> *shader);
+    void setShader(gl::ShaderType shaderType, const ShaderModulePtr &shader);
 
     // Create a graphics pipeline and place it in the cache.  Must not be called if the pipeline
     // exists in cache.
@@ -3885,7 +3886,7 @@ class ActiveHandleCounter final : angle::NonCopyable
         mAllocatedCounts[handleType]++;
     }
 
-    void onDeallocate(HandleType handleType) { mActiveCounts[handleType]--; }
+    void onDeallocate(HandleType handleType, uint32_t count) { mActiveCounts[handleType] -= count; }
 
     uint32_t getActive(HandleType handleType) const { return mActiveCounts[handleType]; }
     uint32_t getAllocated(HandleType handleType) const { return mAllocatedCounts[handleType]; }

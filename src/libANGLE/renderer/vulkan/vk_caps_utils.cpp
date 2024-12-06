@@ -360,8 +360,10 @@ void Renderer::ensureCapsInitialized() const
         mNativeExtensions.textureCompressionAstcLdrKHR &&
         getFeatures().supportsAstcSliced3d.enabled;
 
-    // Vulkan doesn't guarantee HDR blocks decoding without VK_EXT_texture_compression_astc_hdr.
-    mNativeExtensions.textureCompressionAstcHdrKHR = false;
+    // Enable KHR_texture_compression_astc_hdr
+    mNativeExtensions.textureCompressionAstcHdrKHR =
+        mNativeExtensions.textureCompressionAstcLdrKHR &&
+        getFeatures().supportsTextureCompressionAstcHdr.enabled;
 
     // Enable EXT_compressed_ETC1_RGB8_sub_texture
     mNativeExtensions.compressedETC1RGB8SubTextureEXT =
@@ -1379,6 +1381,11 @@ void Renderer::ensureCapsInitialized() const
 
     mNativeExtensions.YUVTargetEXT = mFeatures.supportsExternalFormatResolve.enabled;
 
+    mNativeExtensions.textureStorageCompressionEXT =
+        mFeatures.supportsImageCompressionControl.enabled;
+    mNativeExtensions.EGLImageStorageCompressionEXT =
+        mFeatures.supportsImageCompressionControl.enabled;
+
     // Log any missing extensions required for GLES 3.2.
     LogMissingExtensionsForGLES32(mNativeExtensions);
 }
@@ -1468,12 +1475,12 @@ egl::Config GenerateDefaultConfig(DisplayVk *display,
 
     const VkPhysicalDeviceProperties &physicalDeviceProperties =
         renderer->getPhysicalDeviceProperties();
-    gl::Version maxSupportedESVersion                = renderer->getMaxSupportedESVersion();
+    gl::Version maxSupportedESVersion = renderer->getMaxSupportedESVersion();
 
     // ES3 features are required to emulate ES1
-    EGLint es1Support     = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES_BIT : 0);
-    EGLint es2Support     = (maxSupportedESVersion.major >= 2 ? EGL_OPENGL_ES2_BIT : 0);
-    EGLint es3Support     = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES3_BIT : 0);
+    EGLint es1Support = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES_BIT : 0);
+    EGLint es2Support = (maxSupportedESVersion.major >= 2 ? EGL_OPENGL_ES2_BIT : 0);
+    EGLint es3Support = (maxSupportedESVersion.major >= 3 ? EGL_OPENGL_ES3_BIT : 0);
 
     egl::Config config;
 
