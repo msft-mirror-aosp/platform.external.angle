@@ -8,6 +8,7 @@
 #include "common/PackedCLEnums_autogen.h"
 #include "common/PackedEnums.h"
 
+#include "libANGLE/cl_types.h"
 #include "libANGLE/renderer/vulkan/CLCommandQueueVk.h"
 #include "libANGLE/renderer/vulkan/CLContextVk.h"
 #include "libANGLE/renderer/vulkan/CLDeviceVk.h"
@@ -18,6 +19,7 @@
 #include "libANGLE/renderer/vulkan/cl_types.h"
 #include "libANGLE/renderer/vulkan/clspv_utils.h"
 #include "libANGLE/renderer/vulkan/vk_cache_utils.h"
+#include "libANGLE/renderer/vulkan/vk_cl_utils.h"
 #include "libANGLE/renderer/vulkan/vk_renderer.h"
 #include "libANGLE/renderer/vulkan/vk_wrapper.h"
 
@@ -208,8 +210,25 @@ angle::Result CLCommandQueueVk::enqueueReadBufferRect(const cl::Buffer &buffer,
                                                       const cl::EventPtrs &waitEvents,
                                                       CLEventImpl::CreateFunc *eventCreateFunc)
 {
-    UNIMPLEMENTED();
-    ANGLE_CL_RETURN_ERROR(CL_OUT_OF_RESOURCES);
+    std::scoped_lock<std::mutex> sl(mCommandQueueMutex);
+
+    ANGLE_TRY(processWaitlist(waitEvents));
+    auto bufferVk = &buffer.getImpl<CLBufferVk>();
+
+    ANGLE_TRY(finishInternal());
+
+    cl::BufferRect bufferRect{cl::Offset{bufferOrigin.x, bufferOrigin.y, bufferOrigin.z},
+                              cl::Extents{region.x, region.y, region.z}, bufferRowPitch,
+                              bufferSlicePitch, 1};
+
+    cl::BufferRect ptrRect{cl::Offset{hostOrigin.x, hostOrigin.y, hostOrigin.z},
+                           cl::Extents{region.x, region.y, region.z}, hostRowPitch, hostSlicePitch,
+                           1};
+
+    ANGLE_TRY(bufferVk->getRect(bufferRect, ptrRect, ptr));
+
+    ANGLE_TRY(createEvent(eventCreateFunc, cl::ExecutionStatus::Complete));
+    return angle::Result::Continue;
 }
 
 angle::Result CLCommandQueueVk::enqueueWriteBufferRect(const cl::Buffer &buffer,
@@ -225,8 +244,25 @@ angle::Result CLCommandQueueVk::enqueueWriteBufferRect(const cl::Buffer &buffer,
                                                        const cl::EventPtrs &waitEvents,
                                                        CLEventImpl::CreateFunc *eventCreateFunc)
 {
-    UNIMPLEMENTED();
-    ANGLE_CL_RETURN_ERROR(CL_OUT_OF_RESOURCES);
+    std::scoped_lock<std::mutex> sl(mCommandQueueMutex);
+
+    ANGLE_TRY(processWaitlist(waitEvents));
+    auto bufferVk = &buffer.getImpl<CLBufferVk>();
+
+    ANGLE_TRY(finishInternal());
+
+    cl::BufferRect bufferRect{cl::Offset{bufferOrigin.x, bufferOrigin.y, bufferOrigin.z},
+                              cl::Extents{region.x, region.y, region.z}, bufferRowPitch,
+                              bufferSlicePitch, 1};
+
+    cl::BufferRect ptrRect{cl::Offset{hostOrigin.x, hostOrigin.y, hostOrigin.z},
+                           cl::Extents{region.x, region.y, region.z}, hostRowPitch, hostSlicePitch,
+                           1};
+
+    ANGLE_TRY(bufferVk->setRect(ptr, ptrRect, bufferRect));
+
+    ANGLE_TRY(createEvent(eventCreateFunc, cl::ExecutionStatus::Complete));
+    return angle::Result::Continue;
 }
 
 angle::Result CLCommandQueueVk::enqueueCopyBuffer(const cl::Buffer &srcBuffer,
@@ -290,8 +326,27 @@ angle::Result CLCommandQueueVk::enqueueCopyBufferRect(const cl::Buffer &srcBuffe
                                                       const cl::EventPtrs &waitEvents,
                                                       CLEventImpl::CreateFunc *eventCreateFunc)
 {
-    UNIMPLEMENTED();
-    ANGLE_CL_RETURN_ERROR(CL_OUT_OF_RESOURCES);
+    std::scoped_lock<std::mutex> sl(mCommandQueueMutex);
+    ANGLE_TRY(processWaitlist(waitEvents));
+    ANGLE_TRY(finishInternal());
+
+    cl::BufferRect srcRect{cl::Offset{srcOrigin.x, srcOrigin.y, srcOrigin.z},
+                           cl::Extents{region.x, region.y, region.z}, srcRowPitch, srcSlicePitch,
+                           1};
+
+    cl::BufferRect dstRect{cl::Offset{dstOrigin.x, dstOrigin.y, dstOrigin.z},
+                           cl::Extents{region.x, region.y, region.z}, dstRowPitch, dstSlicePitch,
+                           1};
+
+    auto srcBufferVk    = &srcBuffer.getImpl<CLBufferVk>();
+    auto dstBufferVk    = &dstBuffer.getImpl<CLBufferVk>();
+    uint8_t *mapPointer = nullptr;
+    ANGLE_TRY(srcBufferVk->map(mapPointer));
+    ASSERT(mapPointer);
+    ANGLE_TRY(dstBufferVk->setRect(static_cast<const void *>(mapPointer), srcRect, dstRect));
+
+    ANGLE_TRY(createEvent(eventCreateFunc, cl::ExecutionStatus::Complete));
+    return angle::Result::Continue;
 }
 
 angle::Result CLCommandQueueVk::enqueueFillBuffer(const cl::Buffer &buffer,
@@ -391,8 +446,8 @@ angle::Result CLCommandQueueVk::copyImageToFromBuffer(CLImageVk &imageVk,
     copyRegion.bufferOffset      = bufferOffset;
     copyRegion.bufferRowLength   = 0;
     copyRegion.bufferImageHeight = 0;
-    copyRegion.imageExtent       = imageVk.getExtentForCopy(region);
-    copyRegion.imageOffset       = imageVk.getOffsetForCopy(origin);
+    copyRegion.imageExtent       = cl_vk::GetExtent(imageVk.getExtentForCopy(region));
+    copyRegion.imageOffset       = cl_vk::GetOffset(imageVk.getOffsetForCopy(origin));
     copyRegion.imageSubresource  = imageVk.getSubresourceLayersForCopy(
         origin, region, imageVk.getType(), ImageCopyWith::Buffer);
     if (imageVk.isWritable())
@@ -661,9 +716,9 @@ angle::Result CLCommandQueueVk::enqueueCopyImage(const cl::Image &srcImage,
     ANGLE_TRY(getCommandBuffer(access, &commandBuffer));
 
     VkImageCopy copyRegion    = {};
-    copyRegion.extent         = srcImageVk->getExtentForCopy(region);
-    copyRegion.srcOffset      = srcImageVk->getOffsetForCopy(srcOrigin);
-    copyRegion.dstOffset      = dstImageVk->getOffsetForCopy(dstOrigin);
+    copyRegion.extent         = cl_vk::GetExtent(srcImageVk->getExtentForCopy(region));
+    copyRegion.srcOffset      = cl_vk::GetOffset(srcImageVk->getOffsetForCopy(srcOrigin));
+    copyRegion.dstOffset      = cl_vk::GetOffset(dstImageVk->getOffsetForCopy(dstOrigin));
     copyRegion.srcSubresource = srcImageVk->getSubresourceLayersForCopy(
         srcOrigin, region, dstImageVk->getType(), ImageCopyWith::Image);
     copyRegion.dstSubresource = dstImageVk->getSubresourceLayersForCopy(
@@ -692,7 +747,7 @@ angle::Result CLCommandQueueVk::enqueueFillImage(const cl::Image &image,
 {
     CLImageVk &imageVk = image.getImpl<CLImageVk>();
     PixelColor packedColor;
-    VkExtent3D extent = imageVk.getImageExtent();
+    cl::Extents extent = imageVk.getImageExtent();
 
     imageVk.packPixels(fillColor, &packedColor);
 
@@ -703,7 +758,7 @@ angle::Result CLCommandQueueVk::enqueueFillImage(const cl::Image &image,
         ANGLE_TRY(imageVk.createStagingBuffer(imageVk.getSize()));
     }
 
-    ANGLE_TRY(copyImageToFromBuffer(imageVk, imageVk.getStagingBuffer(), {0, 0, 0},
+    ANGLE_TRY(copyImageToFromBuffer(imageVk, imageVk.getStagingBuffer(), cl::kMemOffsetsZero,
                                     {extent.width, extent.height, extent.depth}, 0,
                                     ImageBufferCopyDirection::ToBuffer));
     ANGLE_TRY(finishInternal());
@@ -713,7 +768,7 @@ angle::Result CLCommandQueueVk::enqueueFillImage(const cl::Image &image,
     imageVk.fillImageWithColor(origin, region, mapPointer, &packedColor);
     imageVk.unmap();
     mapPointer = nullptr;
-    ANGLE_TRY(copyImageToFromBuffer(imageVk, imageVk.getStagingBuffer(), {0, 0, 0},
+    ANGLE_TRY(copyImageToFromBuffer(imageVk, imageVk.getStagingBuffer(), cl::kMemOffsetsZero,
                                     {extent.width, extent.height, extent.depth}, 0,
                                     ImageBufferCopyDirection::ToImage));
 
@@ -782,7 +837,7 @@ angle::Result CLCommandQueueVk::enqueueMapImage(const cl::Image &image,
     // TODO: Look into better enqueue handling of this map-op if non-blocking
     // https://anglebug.com/376722715
     CLImageVk *imageVk = &image.getImpl<CLImageVk>();
-    VkExtent3D extent  = imageVk->getImageExtent();
+    cl::Extents extent = imageVk->getImageExtent();
     if (blocking)
     {
         ANGLE_TRY(finishInternal());
@@ -796,7 +851,7 @@ angle::Result CLCommandQueueVk::enqueueMapImage(const cl::Image &image,
         ANGLE_TRY(imageVk->createStagingBuffer(imageVk->getSize()));
     }
 
-    ANGLE_TRY(copyImageToFromBuffer(*imageVk, imageVk->getStagingBuffer(), {0, 0, 0},
+    ANGLE_TRY(copyImageToFromBuffer(*imageVk, imageVk->getStagingBuffer(), cl::kMemOffsetsZero,
                                     {extent.width, extent.height, extent.depth}, 0,
                                     ImageBufferCopyDirection::ToBuffer));
     ANGLE_TRY(finishInternal());
@@ -883,8 +938,8 @@ angle::Result CLCommandQueueVk::enqueueUnmapMemObject(const cl::Memory &memory,
             uint8_t *mapPointer = static_cast<uint8_t *>(memory.getHostPtr());
             ANGLE_TRY(imageVk.copyStagingFrom(mapPointer, 0, imageVk.getSize()));
         }
-        VkExtent3D extent = imageVk.getImageExtent();
-        ANGLE_TRY(copyImageToFromBuffer(imageVk, imageVk.getStagingBuffer(), {0, 0, 0},
+        cl::Extents extent = imageVk.getImageExtent();
+        ANGLE_TRY(copyImageToFromBuffer(imageVk, imageVk.getStagingBuffer(), cl::kMemOffsetsZero,
                                         {extent.width, extent.height, extent.depth}, 0,
                                         ImageBufferCopyDirection::ToImage));
         ANGLE_TRY(finishInternal());
@@ -1191,18 +1246,15 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
     }
 
     // Setup the pipeline layout
-    ANGLE_CL_IMPL_TRY_ERROR(mContext->getPipelineLayoutCache()->getPipelineLayout(
-                                mContext, kernelVk.getPipelineLayoutDesc(),
-                                kernelVk.getDescriptorSetLayouts(), &kernelVk.getPipelineLayout()),
-                            CL_INVALID_OPERATION);
+    ANGLE_CL_IMPL_TRY_ERROR(kernelVk.initPipelineLayout(), CL_INVALID_OPERATION);
 
     // Push global offset data
     const VkPushConstantRange *globalOffsetRange = devProgramData->getGlobalOffsetRange();
     if (globalOffsetRange != nullptr)
     {
         mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout().get(), VK_SHADER_STAGE_COMPUTE_BIT,
-            globalOffsetRange->offset, globalOffsetRange->size, ndrange.globalWorkOffset.data());
+            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, globalOffsetRange->offset,
+            globalOffsetRange->size, ndrange.globalWorkOffset.data());
     }
 
     // Push global size data
@@ -1210,8 +1262,8 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
     if (globalSizeRange != nullptr)
     {
         mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout().get(), VK_SHADER_STAGE_COMPUTE_BIT,
-            globalSizeRange->offset, globalSizeRange->size, ndrange.globalWorkSize.data());
+            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, globalSizeRange->offset,
+            globalSizeRange->size, ndrange.globalWorkSize.data());
     }
 
     // Push region offset data.
@@ -1222,8 +1274,8 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
         // offset for NDR in uniform cases. Update this when non-uniform batches are supported.
         // https://github.com/google/clspv/blob/main/docs/OpenCLCOnVulkan.md#module-scope-push-constants
         mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout().get(), VK_SHADER_STAGE_COMPUTE_BIT,
-            regionOffsetRange->offset, regionOffsetRange->size, ndrange.globalWorkOffset.data());
+            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, regionOffsetRange->offset,
+            regionOffsetRange->size, ndrange.globalWorkOffset.data());
     }
 
     // Push region group offset data.
@@ -1236,7 +1288,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
         // https://github.com/google/clspv/blob/main/docs/OpenCLCOnVulkan.md#module-scope-push-constants
         uint32_t regionGroupOffsets[3] = {0, 0, 0};
         mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout().get(), VK_SHADER_STAGE_COMPUTE_BIT,
+            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
             regionGroupOffsetRange->offset, regionGroupOffsetRange->size, &regionGroupOffsets);
     }
 
@@ -1245,7 +1297,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
     if (enqueuedLocalSizeRange != nullptr)
     {
         mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout().get(), VK_SHADER_STAGE_COMPUTE_BIT,
+            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
             enqueuedLocalSizeRange->offset, enqueuedLocalSizeRange->size,
             ndrange.localWorkSize.data());
     }
@@ -1257,8 +1309,8 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
     {
         uint32_t numWorkgroups[3] = {workgroupCount[0], workgroupCount[1], workgroupCount[2]};
         mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout().get(), VK_SHADER_STAGE_COMPUTE_BIT,
-            numWorkgroupsRange->offset, numWorkgroupsRange->size, &numWorkgroups);
+            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, numWorkgroupsRange->offset,
+            numWorkgroupsRange->size, &numWorkgroups);
     }
 
     // Retain kernel object until we finish executing it later
@@ -1311,7 +1363,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
                     roundUpPow2(arg.pushConstOffset + arg.pushConstantSize, 4u) - offset;
                 ASSERT(offset + size <= kernelVk.getPodArgumentsData().size());
                 mComputePassCommands->getCommandBuffer().pushConstants(
-                    kernelVk.getPipelineLayout().get(), VK_SHADER_STAGE_COMPUTE_BIT, offset, size,
+                    kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, offset, size,
                     &kernelVk.getPodArgumentsData()[offset]);
                 break;
             }
@@ -1345,7 +1397,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
                     }
                     uint32_t mask = vkSampler.getSamplerMask();
                     mComputePassCommands->getCommandBuffer().pushConstants(
-                        kernelVk.getPipelineLayout().get(), VK_SHADER_STAGE_COMPUTE_BIT,
+                        kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
                         samplerMaskRange->offset, samplerMaskRange->size, &mask);
                 }
                 break;
@@ -1364,7 +1416,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
                 if (imageDataChannelOrderRange != nullptr)
                 {
                     mComputePassCommands->getCommandBuffer().pushConstants(
-                        kernelVk.getPipelineLayout().get(), VK_SHADER_STAGE_COMPUTE_BIT,
+                        kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
                         imageDataChannelOrderRange->offset, imageDataChannelOrderRange->size,
                         &imageFormat.image_channel_order);
                 }
@@ -1374,7 +1426,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
                 if (imageDataChannelDataTypeRange != nullptr)
                 {
                     mComputePassCommands->getCommandBuffer().pushConstants(
-                        kernelVk.getPipelineLayout().get(), VK_SHADER_STAGE_COMPUTE_BIT,
+                        kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
                         imageDataChannelDataTypeRange->offset, imageDataChannelDataTypeRange->size,
                         &imageFormat.image_channel_data_type);
                 }
@@ -1486,8 +1538,8 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
 
             VkDescriptorSet descriptorSet = kernelVk.getDescriptorSet(index);
             mComputePassCommands->getCommandBuffer().bindDescriptorSets(
-                kernelVk.getPipelineLayout().get(), VK_PIPELINE_BIND_POINT_COMPUTE,
-                *descriptorSetIndex, 1, &descriptorSet, 0, nullptr);
+                kernelVk.getPipelineLayout(), VK_PIPELINE_BIND_POINT_COMPUTE, *descriptorSetIndex,
+                1, &descriptorSet, 0, nullptr);
 
             ++descriptorSetIndex;
         }

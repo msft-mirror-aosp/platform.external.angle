@@ -1110,10 +1110,6 @@ bool ValidMipLevel(const Context *context, TextureType type, GLint level)
     {
         case TextureType::_2D:
         case TextureType::_2DArray:
-        case TextureType::_2DMultisample:
-        case TextureType::_2DMultisampleArray:
-            // TODO(http://anglebug.com/42261478): It's a bit unclear what the "maximum allowable
-            // level-of-detail" for multisample textures should be. Could maybe make it zero.
             maxDimension = caps.max2DTextureSize;
             break;
 
@@ -1126,6 +1122,8 @@ bool ValidMipLevel(const Context *context, TextureType type, GLint level)
         case TextureType::Rectangle:
         case TextureType::VideoImage:
         case TextureType::Buffer:
+        case TextureType::_2DMultisample:
+        case TextureType::_2DMultisampleArray:
             return level == 0;
 
         case TextureType::_3D:
@@ -3094,14 +3092,7 @@ bool ValidateStateQuery(const Context *context,
         case GL_TEXTURE_BINDING_3D:
         case GL_TEXTURE_BINDING_2D_ARRAY:
         case GL_TEXTURE_BINDING_2D_MULTISAMPLE:
-            break;
-
         case GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY:
-            if (!context->getExtensions().textureStorageMultisample2dArrayOES)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kMultisampleArrayExtensionRequired);
-                return false;
-            }
             break;
 
         case GL_TEXTURE_BINDING_RECTANGLE_ANGLE:
@@ -7334,6 +7325,15 @@ bool ValidateGetTexParameterBase(const Context *context,
             }
             break;
 
+        case GL_SURFACE_COMPRESSION_EXT:
+            if (!context->getExtensions().textureStorageCompressionEXT)
+            {
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM,
+                                       kTextureStorageCompressionExtensionRequired);
+                return false;
+            }
+            break;
+
         default:
             ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
             return false;
@@ -8457,10 +8457,28 @@ bool ValidateGetInternalFormativBase(const Context *context,
                 return false;
             }
             break;
-        case GL_TEXTURE_2D_MULTISAMPLE_ARRAY_OES:
-            if (!context->getExtensions().textureStorageMultisample2dArrayOES)
+        case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+            if (context->getClientVersion() < ES_3_2 &&
+                !context->getExtensions().textureStorageMultisample2dArrayOES)
             {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kMultisampleArrayExtensionRequired);
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kMultisampleArrayExtensionOrES32Required);
+                return false;
+            }
+            break;
+        case GL_TEXTURE_2D:
+        case GL_TEXTURE_CUBE_MAP:
+        case GL_TEXTURE_3D:
+        case GL_TEXTURE_2D_ARRAY:
+            if (pname != GL_NUM_SURFACE_COMPRESSION_FIXED_RATES_EXT &&
+                pname != GL_SURFACE_COMPRESSION_EXT)
+            {
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTarget);
+                return false;
+            }
+            if (!context->getExtensions().textureStorageCompressionEXT)
+            {
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM,
+                                       kTextureStorageCompressionExtensionRequired);
                 return false;
             }
             break;
@@ -8484,6 +8502,16 @@ bool ValidateGetInternalFormativBase(const Context *context,
 
         case GL_SAMPLES:
             maxWriteParams = static_cast<GLsizei>(formatCaps.sampleCounts.size());
+            break;
+
+        case GL_NUM_SURFACE_COMPRESSION_FIXED_RATES_EXT:
+        case GL_SURFACE_COMPRESSION_EXT:
+            if (!context->getExtensions().textureStorageCompressionEXT)
+            {
+                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM,
+                                       kTextureStorageCompressionExtensionRequired);
+                return false;
+            }
             break;
 
         default:
@@ -8608,6 +8636,37 @@ bool ValidateTexStorage2DMultisampleBase(const Context *context,
     }
 
     return ValidateTexStorageMultisample(context, entryPoint, target, samples, internalFormat,
+                                         width, height);
+}
+
+bool ValidateTexStorage3DMultisampleBase(const Context *context,
+                                         angle::EntryPoint entryPoint,
+                                         TextureType target,
+                                         GLsizei samples,
+                                         GLenum internalformat,
+                                         GLsizei width,
+                                         GLsizei height,
+                                         GLsizei depth)
+{
+    if (target != TextureType::_2DMultisampleArray)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTarget);
+        return false;
+    }
+
+    if (width < 1 || height < 1 || depth < 1)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kTextureSizeTooSmall);
+        return false;
+    }
+
+    if (depth > context->getCaps().maxArrayTextureLayers)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kTextureDepthOutOfRange);
+        return false;
+    }
+
+    return ValidateTexStorageMultisample(context, entryPoint, target, samples, internalformat,
                                          width, height);
 }
 

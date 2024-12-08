@@ -388,6 +388,10 @@ void QueryTexParameterBase(const Context *context,
         case GL_TEXTURE_FOVEATED_NUM_FOCAL_POINTS_QUERY_QCOM:
             *params = CastFromGLintStateValue<ParamType>(pname, texture->getNumFocalPoints());
             break;
+        case GL_SURFACE_COMPRESSION_EXT:
+            *params = CastFromGLintStateValue<ParamType>(pname,
+                                                         texture->getImageCompressionRate(context));
+            break;
         default:
             UNREACHABLE();
             break;
@@ -1730,7 +1734,13 @@ void QueryActiveUniformBlockiv(const Program *program,
                            std::numeric_limits<GLsizei>::max(), nullptr, params);
 }
 
-void QueryInternalFormativ(const TextureCaps &format, GLenum pname, GLsizei bufSize, GLint *params)
+void QueryInternalFormativ(const Context *context,
+                           const Texture *texture,
+                           GLenum internalformat,
+                           const TextureCaps &format,
+                           GLenum pname,
+                           GLsizei bufSize,
+                           GLint *params)
 {
     switch (pname)
     {
@@ -1751,6 +1761,22 @@ void QueryInternalFormativ(const TextureCaps &format, GLenum pname, GLsizei bufS
             }
         }
         break;
+
+        case GL_NUM_SURFACE_COMPRESSION_FIXED_RATES_EXT:
+            if (texture != nullptr)
+            {
+                *params = texture->getFormatSupportedCompressionRates(context, internalformat,
+                                                                      bufSize, nullptr);
+            }
+            break;
+
+        case GL_SURFACE_COMPRESSION_EXT:
+            if (texture != nullptr)
+            {
+                texture->getFormatSupportedCompressionRates(context, internalformat, bufSize,
+                                                            params);
+            }
+            break;
 
         default:
             UNREACHABLE();
@@ -4081,6 +4107,18 @@ bool GetQueryParameterInfo(const State &glState,
         }
     }
 
+    if (glState.getClientVersion() >= Version(3, 2) ||
+        extensions.textureStorageMultisample2dArrayOES)
+    {
+        switch (pname)
+        {
+            case GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY:
+                *type      = GL_INT;
+                *numParams = 1;
+                return true;
+        }
+    }
+
     if (glState.getClientVersion() < Version(3, 1))
     {
         return false;
@@ -4130,7 +4168,6 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS:
         case GL_SHADER_STORAGE_BUFFER_BINDING:
         case GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT:
-        case GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY:
         case GL_PROGRAM_PIPELINE_BINDING:
             *type      = GL_INT;
             *numParams = 1;

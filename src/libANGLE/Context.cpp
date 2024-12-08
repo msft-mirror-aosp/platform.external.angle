@@ -736,12 +736,16 @@ void Context::initializeDefaultResources()
             new Texture(mImplementation.get(), {0}, TextureType::_2DMultisample);
         mZeroTextures[TextureType::_2DMultisample].set(this, zeroTexture2DMultisample);
     }
-    if (getClientVersion() >= Version(3, 1))
+    if (getClientVersion() >= Version(3, 2) ||
+        mSupportedExtensions.textureStorageMultisample2dArrayOES)
     {
         Texture *zeroTexture2DMultisampleArray =
             new Texture(mImplementation.get(), {0}, TextureType::_2DMultisampleArray);
         mZeroTextures[TextureType::_2DMultisampleArray].set(this, zeroTexture2DMultisampleArray);
+    }
 
+    if (getClientVersion() >= Version(3, 1))
+    {
         for (int i = 0; i < mState.getCaps().maxAtomicCounterBufferBindings; i++)
         {
             bindBufferRange(BufferBinding::AtomicCounter, i, {0}, 0, 0);
@@ -3688,8 +3692,10 @@ Extensions Context::generateSupportedExtensions() const
     if (getClientVersion() < ES_2_0)
     {
         // Default extensions for GLES1
+        supportedExtensions.blendSubtractOES         = true;
         supportedExtensions.pointSizeArrayOES        = true;
         supportedExtensions.textureCubeMapOES        = true;
+        supportedExtensions.textureMirroredRepeatOES = true;
         supportedExtensions.pointSpriteOES           = true;
         supportedExtensions.drawTextureOES           = true;
         supportedExtensions.framebufferObjectOES     = true;
@@ -4801,6 +4807,13 @@ bool Context::isClearBufferMaskedOut(GLenum buffer,
 bool Context::noopClearBuffer(GLenum buffer, GLint drawbuffer) const
 {
     Framebuffer *framebufferObject = mState.getDrawFramebuffer();
+
+    if (buffer == GL_COLOR && getPrivateState().isActivelyOverriddenPLSDrawBuffer(drawbuffer))
+    {
+        // If pixel local storage is active and currently overriding the drawbuffer, do nothing.
+        // From the client's perspective, there is effectively no buffer bound.
+        return true;
+    }
 
     return !IsClearBufferEnabled(framebufferObject->getState(), buffer, drawbuffer) ||
            mState.isRasterizerDiscardEnabled() ||
@@ -8056,8 +8069,14 @@ void Context::getInternalformativ(GLenum target,
                                   GLsizei bufSize,
                                   GLint *params)
 {
+    Texture *texture    = nullptr;
+    TextureType textype = FromGLenum<TextureType>(target);
+    if (textype != TextureType::InvalidEnum)
+    {
+        texture = getTextureByType(textype);
+    }
     const TextureCaps &formatCaps = mState.getTextureCap(internalformat);
-    QueryInternalFormativ(formatCaps, pname, bufSize, params);
+    QueryInternalFormativ(this, texture, internalformat, formatCaps, pname, bufSize, params);
 }
 
 void Context::getInternalformativRobust(GLenum target,
@@ -9975,9 +9994,13 @@ void Context::texStorageAttribs2D(GLenum target,
                                   GLenum internalFormat,
                                   GLsizei width,
                                   GLsizei height,
-                                  const GLint *attrib_list)
+                                  const GLint *attribList)
 {
-    UNIMPLEMENTED();
+    Extents size(width, height, 1);
+    TextureType textype = FromGLenum<TextureType>(target);
+    Texture *texture    = getTextureByType(textype);
+    ANGLE_CONTEXT_TRY(
+        texture->setStorageAttribs(this, textype, levels, internalFormat, size, attribList));
 }
 
 void Context::texStorageAttribs3D(GLenum target,
@@ -9986,9 +10009,13 @@ void Context::texStorageAttribs3D(GLenum target,
                                   GLsizei width,
                                   GLsizei height,
                                   GLsizei depth,
-                                  const GLint *attrib_list)
+                                  const GLint *attribList)
 {
-    UNIMPLEMENTED();
+    Extents size(width, height, depth);
+    TextureType textype = FromGLenum<TextureType>(target);
+    Texture *texture    = getTextureByType(textype);
+    ANGLE_CONTEXT_TRY(
+        texture->setStorageAttribs(this, textype, levels, internalFormat, size, attribList));
 }
 
 // ErrorSet implementation.
