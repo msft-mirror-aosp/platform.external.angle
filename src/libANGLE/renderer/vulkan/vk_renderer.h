@@ -355,6 +355,7 @@ class Renderer : angle::NonCopyable
     }
 
     size_t getNextPipelineCacheBlobCacheSlotIndex(size_t *previousSlotIndexOut);
+    size_t updatePipelineCacheChunkCount(size_t chunkCount);
     angle::Result getPipelineCache(vk::Context *context, vk::PipelineCacheAccess *pipelineCacheOut);
     angle::Result mergeIntoPipelineCache(vk::Context *context,
                                          const vk::PipelineCache &pipelineCache);
@@ -439,7 +440,7 @@ class Renderer : angle::NonCopyable
     SamplerYcbcrConversionCache &getYuvConversionCache() { return mYuvConversionCache; }
 
     void onAllocateHandle(vk::HandleType handleType);
-    void onDeallocateHandle(vk::HandleType handleType);
+    void onDeallocateHandle(vk::HandleType handleType, uint32_t count);
 
     bool getEnableValidationLayers() const { return mEnableValidationLayers; }
 
@@ -451,7 +452,7 @@ class Renderer : angle::NonCopyable
 
     bool haveSameFormatFeatureBits(angle::FormatID formatID1, angle::FormatID formatID2) const;
 
-    void cleanupGarbage();
+    void cleanupGarbage(bool *anyGarbageCleanedOut);
     void cleanupPendingSubmissionGarbage();
 
     angle::Result submitCommands(vk::Context *context,
@@ -477,7 +478,7 @@ class Renderer : angle::NonCopyable
     angle::Result checkCompletedCommands(vk::Context *context);
 
     angle::Result checkCompletedCommandsAndCleanup(vk::Context *context);
-    angle::Result retireFinishedCommands(vk::Context *context);
+    angle::Result releaseFinishedCommands(vk::Context *context);
 
     angle::Result flushWaitSemaphores(vk::ProtectionType protectionType,
                                       egl::ContextPriority priority,
@@ -687,9 +688,9 @@ class Renderer : angle::NonCopyable
 
     void requestAsyncCommandsAndGarbageCleanup(vk::Context *context);
 
-    // Try to finish a command batch from the queue and free garbage memory in the event of an OOM
+    // Cleanup garbage and finish command batches from the queue if necessary in the event of an OOM
     // error.
-    angle::Result finishOneCommandBatchAndCleanup(vk::Context *context, bool *anyBatchCleaned);
+    angle::Result cleanupSomeGarbage(Context *context, bool *anyGarbageCleanedOut);
 
     // Static function to get Vulkan object type name.
     static const char *GetVulkanObjectTypeName(VkObjectType type);
@@ -978,6 +979,7 @@ class Renderer : angle::NonCopyable
     angle::SimpleMutex mPipelineCacheMutex;
     vk::PipelineCache mPipelineCache;
     size_t mCurrentPipelineCacheBlobCacheSlotIndex;
+    size_t mPipelineCacheChunkCount;
     uint32_t mPipelineCacheVkUpdateTimeout;
     size_t mPipelineCacheSizeAtLastSync;
     std::atomic<bool> mPipelineCacheInitialized;
@@ -1178,9 +1180,9 @@ ANGLE_INLINE angle::Result Renderer::checkCompletedCommandsAndCleanup(vk::Contex
     return mCommandQueue.checkAndCleanupCompletedCommands(context);
 }
 
-ANGLE_INLINE angle::Result Renderer::retireFinishedCommands(vk::Context *context)
+ANGLE_INLINE angle::Result Renderer::releaseFinishedCommands(vk::Context *context)
 {
-    return mCommandQueue.retireFinishedCommands(context);
+    return mCommandQueue.releaseFinishedCommands(context);
 }
 
 template <typename ArgT, typename... ArgsT>
