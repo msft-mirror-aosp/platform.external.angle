@@ -242,9 +242,6 @@ class TracePerfTest : public ANGLERenderTest
     bool mScreenshotSaved                                               = false;
     int32_t mScreenshotFrame                                            = gScreenshotFrame;
     std::unique_ptr<TraceLibrary> mTraceReplay;
-
-    static constexpr int kFpsNumFrames               = 4;
-    std::array<double, kFpsNumFrames> mFpsStartTimes = {0, 0, 0, 0};
 };
 
 TracePerfTest *gCurrentTracePerfTest = nullptr;
@@ -2181,7 +2178,6 @@ void TracePerfTest::drawBenchmark()
 
     bool gles1           = mParams->traceInfo.contextClientMajorVersion == 1;
     auto bindFramebuffer = gles1 ? glBindFramebufferOES : glBindFramebuffer;
-    int offscreenBufferIndex = mTotalFrameCount % mMaxOffscreenBufferCount;
 
     if (mParams->surfaceType == SurfaceType::Offscreen)
     {
@@ -2191,7 +2187,7 @@ void TracePerfTest::drawBenchmark()
         // glFlush call we issued at end of frame will get skipped. To overcome this (and also
         // matches what onscreen double buffering behavior as well), we use two offscreen FBOs and
         // ping pong between them for each frame.
-        GLuint buffer = mOffscreenFramebuffers[offscreenBufferIndex];
+        GLuint buffer = mOffscreenFramebuffers[mTotalFrameCount % mMaxOffscreenBufferCount];
 
         if (gles1 && mOffscreenFrameCount == kFramesPerSwap - 1)
         {
@@ -2199,7 +2195,7 @@ void TracePerfTest::drawBenchmark()
         }
         bindFramebuffer(GL_FRAMEBUFFER, buffer);
 
-        GLsync sync = mOffscreenSyncs[offscreenBufferIndex];
+        GLsync sync = mOffscreenSyncs[mTotalFrameCount % mMaxOffscreenBufferCount];
         if (sync)
         {
             constexpr GLuint64 kTimeout = 2'000'000'000;  // 2 seconds
@@ -2234,7 +2230,8 @@ void TracePerfTest::drawBenchmark()
         }
         else
         {
-            GLuint offscreenBuffer = mOffscreenFramebuffers[offscreenBufferIndex];
+            GLuint offscreenBuffer =
+                mOffscreenFramebuffers[mTotalFrameCount % mMaxOffscreenBufferCount];
             GLint currentDrawFBO, currentReadFBO;
             if (gles1)
             {
@@ -2266,7 +2263,7 @@ void TracePerfTest::drawBenchmark()
 
             if (!gles1)  // gles1: no glBlitFramebuffer, a single frame is rendered to buffer 0
             {
-                mOffscreenSyncs[offscreenBufferIndex] =
+                mOffscreenSyncs[mTotalFrameCount % mMaxOffscreenBufferCount] =
                     glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 
                 glBlitFramebuffer(0, 0, mWindowWidth, mWindowHeight, windowX, windowY,
@@ -2310,6 +2307,8 @@ void TracePerfTest::drawBenchmark()
                 bindFramebuffer(GL_READ_FRAMEBUFFER, currentReadFBO);
             }
         }
+
+        mTotalFrameCount++;
     }
     else
     {
@@ -2319,23 +2318,6 @@ void TracePerfTest::drawBenchmark()
     }
 
     endInternalTraceEvent(frameName);
-
-    if (gFpsLimit)
-    {
-        // Interval and time delta over kFpsNumFrames frames to get closer to requested fps
-        // (this allows a bit more jitter in individual frames due to the averaging effect)
-        double requestedNthFrameInterval = static_cast<double>(kFpsNumFrames) / gFpsLimit;
-        double nthFrameTimeDelta =
-            angle::GetCurrentSystemTime() - mFpsStartTimes[mTotalFrameCount % kFpsNumFrames];
-        if (nthFrameTimeDelta < requestedNthFrameInterval)
-        {
-            std::this_thread::sleep_for(
-                std::chrono::duration<double>(requestedNthFrameInterval - nthFrameTimeDelta));
-        }
-        mFpsStartTimes[mTotalFrameCount % kFpsNumFrames] = angle::GetCurrentSystemTime();
-    }
-
-    mTotalFrameCount++;
 
     if (mCurrentFrame == mEndFrame)
     {

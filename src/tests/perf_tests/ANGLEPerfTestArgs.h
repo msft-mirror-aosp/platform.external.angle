@@ -38,7 +38,6 @@ extern const char *gUseANGLE;
 extern const char *gUseGL;
 extern bool gOffscreen;
 extern bool gVsync;
-extern int gFpsLimit;
 extern const char *gPrintExtensionsToFile;
 extern const char *gRequestedExtensions;
 extern bool gIncludeInactiveResources;
