@@ -33,9 +33,22 @@ constexpr bool kDumpPipelineCacheGraph = true;
 constexpr bool kDumpPipelineCacheGraph = false;
 #endif  // ANGLE_DUMP_PIPELINE_CACHE_GRAPH
 
+template <typename T>
+bool AllCacheEntriesHaveUniqueReference(const T &payload)
+{
+    bool unique = true;
+    for (auto &item : payload)
+    {
+        if (!item.second.unique())
+        {
+            unique = false;
+        }
+    }
+    return unique;
+}
+
 namespace vk
 {
-
 namespace
 {
 static_assert(static_cast<uint32_t>(RenderPassLoadOp::Load) == VK_ATTACHMENT_LOAD_OP_LOAD,
@@ -2678,14 +2691,14 @@ void DumpPipelineCacheGraph(
 // Used by SharedCacheKeyManager
 void MakeInvalidCachedObject(SharedFramebufferCacheKey *cacheKeyOut)
 {
-    *cacheKeyOut = SharedFramebufferCacheKey::MakeShared();
+    *cacheKeyOut = SharedFramebufferCacheKey::MakeShared(VK_NULL_HANDLE);
     // So that it will mark as invalid.
-    (*cacheKeyOut)->destroy();
+    (*cacheKeyOut)->destroy(VK_NULL_HANDLE);
 }
 
 void MakeInvalidCachedObject(SharedDescriptorSetCacheKey *cacheKeyOut)
 {
-    *cacheKeyOut = SharedDescriptorSetCacheKey::MakeShared();
+    *cacheKeyOut = SharedDescriptorSetCacheKey::MakeShared(VK_NULL_HANDLE);
 }
 
 angle::Result InitializePipelineFromLibraries(Context *context,
@@ -8165,16 +8178,7 @@ DescriptorSetLayoutCache::~DescriptorSetLayoutCache()
 void DescriptorSetLayoutCache::destroy(vk::Renderer *renderer)
 {
     renderer->accumulateCacheStats(VulkanCacheType::DescriptorSetLayout, mCacheStats);
-
-    VkDevice device = renderer->getDevice();
-
-    for (auto &item : mPayload)
-    {
-        vk::DescriptorSetLayoutPtr &layout = item.second;
-        ASSERT(layout.unique());
-        layout->destroy(device);
-    }
-
+    ASSERT(AllCacheEntriesHaveUniqueReference(mPayload));
     mPayload.clear();
 }
 
@@ -8212,7 +8216,8 @@ angle::Result DescriptorSetLayoutCache::getDescriptorSetLayout(
     createInfo.bindingCount = static_cast<uint32_t>(bindingVector.size());
     createInfo.pBindings    = bindingVector.data();
 
-    vk::DescriptorSetLayoutPtr newLayout = vk::DescriptorSetLayoutPtr::MakeShared();
+    vk::DescriptorSetLayoutPtr newLayout =
+        vk::DescriptorSetLayoutPtr::MakeShared(context->getDevice());
     ANGLE_VK_TRY(context, newLayout->init(context->getDevice(), createInfo));
 
     *descriptorSetLayoutOut = newLayout;
@@ -8232,15 +8237,7 @@ PipelineLayoutCache::~PipelineLayoutCache()
 void PipelineLayoutCache::destroy(vk::Renderer *renderer)
 {
     accumulateCacheStats(renderer);
-
-    VkDevice device = renderer->getDevice();
-
-    for (auto &item : mPayload)
-    {
-        vk::PipelineLayoutPtr &layout = item.second;
-        layout->destroy(device);
-    }
-
+    ASSERT(AllCacheEntriesHaveUniqueReference(mPayload));
     mPayload.clear();
 }
 
@@ -8292,7 +8289,7 @@ angle::Result PipelineLayoutCache::getPipelineLayout(
         createInfo.pPushConstantRanges    = &pushConstantRange;
     }
 
-    vk::PipelineLayoutPtr newLayout = vk::PipelineLayoutPtr::MakeShared();
+    vk::PipelineLayoutPtr newLayout = vk::PipelineLayoutPtr::MakeShared(context->getDevice());
     ANGLE_VK_TRY(context, newLayout->init(context->getDevice(), createInfo));
 
     *pipelineLayoutOut = newLayout;
@@ -8315,21 +8312,21 @@ void SamplerYcbcrConversionCache::destroy(vk::Renderer *renderer)
 
     VkDevice device = renderer->getDevice();
 
+    uint32_t count = static_cast<uint32_t>(mExternalFormatPayload.size());
     for (auto &iter : mExternalFormatPayload)
     {
         vk::SamplerYcbcrConversion &samplerYcbcrConversion = iter.second;
         samplerYcbcrConversion.destroy(device);
-
-        renderer->onDeallocateHandle(vk::HandleType::SamplerYcbcrConversion);
     }
+    renderer->onDeallocateHandle(vk::HandleType::SamplerYcbcrConversion, count);
 
+    count = static_cast<uint32_t>(mExternalFormatPayload.size());
     for (auto &iter : mVkFormatPayload)
     {
         vk::SamplerYcbcrConversion &samplerYcbcrConversion = iter.second;
         samplerYcbcrConversion.destroy(device);
-
-        renderer->onDeallocateHandle(vk::HandleType::SamplerYcbcrConversion);
     }
+    renderer->onDeallocateHandle(vk::HandleType::SamplerYcbcrConversion, count);
 
     mExternalFormatPayload.clear();
     mVkFormatPayload.clear();
@@ -8382,18 +8379,10 @@ void SamplerCache::destroy(vk::Renderer *renderer)
 {
     renderer->accumulateCacheStats(VulkanCacheType::Sampler, mCacheStats);
 
-    VkDevice device = renderer->getDevice();
-
-    for (auto &iter : mPayload)
-    {
-        vk::SharedSamplerPtr &sampler = iter.second;
-        ASSERT(sampler.unique());
-        sampler->destroy(device);
-
-        renderer->onDeallocateHandle(vk::HandleType::Sampler);
-    }
-
+    uint32_t count = static_cast<uint32_t>(mPayload.size());
+    ASSERT(AllCacheEntriesHaveUniqueReference(mPayload));
     mPayload.clear();
+    renderer->onDeallocateHandle(vk::HandleType::Sampler, count);
 }
 
 angle::Result SamplerCache::getSampler(ContextVk *contextVk,
@@ -8409,7 +8398,7 @@ angle::Result SamplerCache::getSampler(ContextVk *contextVk,
     }
 
     mCacheStats.missAndIncrementSize();
-    vk::SharedSamplerPtr newSampler = vk::SharedSamplerPtr::MakeShared();
+    vk::SharedSamplerPtr newSampler = vk::SharedSamplerPtr::MakeShared(contextVk->getDevice());
     ANGLE_TRY(newSampler->init(contextVk, desc));
 
     (*samplerOut) = newSampler;
