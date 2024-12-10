@@ -234,6 +234,7 @@ class TracePerfTest : public ANGLERenderTest
     int mWindowHeight                                                   = 0;
     GLuint mDrawFramebufferBinding                                      = 0;
     GLuint mReadFramebufferBinding                                      = 0;
+    EGLContext mEglContext                                              = 0;
     uint32_t mCurrentFrame                                              = 0;
     uint32_t mCurrentIteration                                          = 0;
     uint32_t mCurrentOffscreenGridIteration                             = 0;
@@ -1902,6 +1903,14 @@ TracePerfTest::TracePerfTest(std::unique_ptr<const TracePerfParams> params)
         }
     }
 
+    if (traceNameIs("balatro"))
+    {
+        if (isNVIDIALinuxANGLE || isNVIDIAWinANGLE)
+        {
+            skipTest("https://anglebug.com/382960265 Renders incorrectly on Nvidia");
+        }
+    }
+
     if (IsGalaxyS22())
     {
         if (traceNameIs("cod_mobile") || traceNameIs("dota_underlords") ||
@@ -2074,6 +2083,8 @@ void TracePerfTest::initializeBenchmark()
         renderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, mWindowWidth, mWindowHeight);
         bindRenderbuffer(GL_RENDERBUFFER, 0);
 
+        mEglContext = eglGetCurrentContext();
+
         genFramebuffers(mMaxOffscreenBufferCount, mOffscreenFramebuffers.data());
         glGenTextures(mMaxOffscreenBufferCount, mOffscreenTextures.data());
         for (int i = 0; i < mMaxOffscreenBufferCount; i++)
@@ -2235,6 +2246,14 @@ void TracePerfTest::drawBenchmark()
         else
         {
             GLuint offscreenBuffer = mOffscreenFramebuffers[offscreenBufferIndex];
+
+            EGLContext currentEglContext = eglGetCurrentContext();
+            if (currentEglContext != mEglContext)
+            {
+                eglMakeCurrent(eglGetCurrentDisplay(), eglGetCurrentSurface(EGL_DRAW),
+                               eglGetCurrentSurface(EGL_READ), mEglContext);
+            }
+
             GLint currentDrawFBO, currentReadFBO;
             if (gles1)
             {
@@ -2308,6 +2327,12 @@ void TracePerfTest::drawBenchmark()
             {
                 bindFramebuffer(GL_DRAW_FRAMEBUFFER, currentDrawFBO);
                 bindFramebuffer(GL_READ_FRAMEBUFFER, currentReadFBO);
+            }
+
+            if (currentEglContext != mEglContext)
+            {
+                eglMakeCurrent(eglGetCurrentDisplay(), eglGetCurrentSurface(EGL_DRAW),
+                               eglGetCurrentSurface(EGL_READ), currentEglContext);
             }
         }
     }
@@ -2846,8 +2871,31 @@ void TracePerfTest::saveScreenshot(const std::string &screenshotName)
 
     glFinish();
 
+    // Backup the current pixel pack state
+    GLint originalPackRowLength;
+    GLint originalPackSkipRows;
+    GLint originalPackSkipPixels;
+    GLint originalPackAlignment;
+
+    glGetIntegerv(GL_PACK_ROW_LENGTH, &originalPackRowLength);
+    glGetIntegerv(GL_PACK_SKIP_ROWS, &originalPackSkipRows);
+    glGetIntegerv(GL_PACK_SKIP_PIXELS, &originalPackSkipPixels);
+    glGetIntegerv(GL_PACK_ALIGNMENT, &originalPackAlignment);
+
+    // Set default pixel pack parameters (per ES 3.2 Table 16.1)
+    glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_PACK_SKIP_ROWS, 0);
+    glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+
     glReadPixels(0, 0, mTestParams.windowWidth, mTestParams.windowHeight, GL_RGBA, GL_UNSIGNED_BYTE,
                  pixelData.data());
+
+    // Restore the original pixel pack state
+    glPixelStorei(GL_PACK_ROW_LENGTH, originalPackRowLength);
+    glPixelStorei(GL_PACK_SKIP_ROWS, originalPackSkipRows);
+    glPixelStorei(GL_PACK_SKIP_PIXELS, originalPackSkipPixels);
+    glPixelStorei(GL_PACK_ALIGNMENT, originalPackAlignment);
 
     // Convert to RGB and flip y.
     std::vector<uint8_t> rgbData(pixelCount * 3);

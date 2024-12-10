@@ -111,7 +111,7 @@ cc_defaults {
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
         "-Wno-missing-template-arg-list-after-template-kw",
-        "-Wno-nontrivial-memaccess",
+        "-Wno-nontrivial-memcall",
         "-Wno-psabi",
         "-Wno-thread-safety-reference-return",
         "-Wno-trigraphs",
