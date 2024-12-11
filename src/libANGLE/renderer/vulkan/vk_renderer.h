@@ -777,6 +777,8 @@ class Renderer : angle::NonCopyable
                       UseVulkanSwapchain useVulkanSwapchain,
                       angle::NativeWindowSystem nativeWindowSystem);
     void appBasedFeatureOverrides(const vk::ExtensionNameList &extensions);
+    // TODO (b/372694741): Remove once run-time control is supported.
+    void appBasedFeatureOverridesAndroidDesktop(const vk::ExtensionNameList &extensions);
     angle::Result initPipelineCache(vk::Context *context,
                                     vk::PipelineCache *pipelineCache,
                                     bool *success);

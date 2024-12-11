@@ -3804,6 +3804,10 @@ angle::Result Renderer::enableDeviceExtensions(vk::Context *context,
     // App based feature overrides.
     appBasedFeatureOverrides(deviceExtensionNames);
 
+    // App based feature overrides for Desktop devices.
+    // TODO (b/372694741): Remove once run-time control is supported.
+    appBasedFeatureOverridesAndroidDesktop(deviceExtensionNames);
+
     // Enable extensions that could be used
     enableDeviceExtensionsNotPromoted(deviceExtensionNames);
     enableDeviceExtensionsPromotedTo11(deviceExtensionNames);
@@ -5847,6 +5851,32 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 }
 
 void Renderer::appBasedFeatureOverrides(const vk::ExtensionNameList &extensions) {}
+
+// TODO (b/372694741): Remove once run-time control is supported.
+void Renderer::appBasedFeatureOverridesAndroidDesktop(const vk::ExtensionNameList &extensions)
+{
+    if (!IsAndroid())
+    {
+        return;
+    }
+
+    constexpr char kHwPropAndroidDesktop[] = "android-desktop";
+    std::string hardware =
+            angle::GetEnvironmentVarOrAndroidProperty("ANGLE_HARDWARE", "ro.hardware");
+    if (hardware != kHwPropAndroidDesktop)
+    {
+        return;
+    }
+
+    std::string pkgName = angle::GetExecutableName();
+
+    // Dota Underlords
+    // b/309028728: Disable SSO on Android
+    if (pkgName == "com.valvesoftware.underlords")
+    {
+        ANGLE_FEATURE_CONDITION(&mFeatures, disableSeparateShaderObjects, true);
+    }
+}
 
 angle::Result Renderer::initPipelineCache(vk::Context *context,
                                           vk::PipelineCache *pipelineCache,
