@@ -526,7 +526,7 @@ class CommandQueue : angle::NonCopyable
 
     angle::Result checkCompletedCommands(Context *context)
     {
-        std::lock_guard<angle::SimpleMutex> lock(mMutex);
+        std::lock_guard<angle::SimpleMutex> lock(mCmdCompleteMutex);
         return checkCompletedCommandsLocked(context);
     }
 
@@ -583,7 +583,7 @@ class CommandQueue : angle::NonCopyable
     angle::Result releaseFinishedCommandsAndCleanupGarbage(Context *context);
     angle::Result releaseFinishedCommands(Context *context)
     {
-        std::lock_guard<angle::SimpleMutex> lock(mMutex);
+        std::lock_guard<angle::SimpleMutex> lock(mCmdReleaseMutex);
         return releaseFinishedCommandsLocked(context);
     }
     angle::Result postSubmitCheck(Context *context);
@@ -608,26 +608,37 @@ class CommandQueue : angle::NonCopyable
     // finished
     angle::Result checkCompletedCommandsLocked(Context *context);
 
-    angle::Result queueSubmit(Context *context,
-                              std::unique_lock<angle::SimpleMutex> &&dequeueLock,
-                              egl::ContextPriority contextPriority,
-                              const VkSubmitInfo &submitInfo,
-                              DeviceScoped<CommandBatch> &commandBatch,
-                              const QueueSerial &submitQueueSerial);
+    angle::Result queueSubmitLocked(Context *context,
+                                    egl::ContextPriority contextPriority,
+                                    const VkSubmitInfo &submitInfo,
+                                    DeviceScoped<CommandBatch> &commandBatch,
+                                    const QueueSerial &submitQueueSerial);
+
+    void pushInFlightBatchLocked(CommandBatch &&batch);
+    void moveInFlightBatchToFinishedQueueLocked(CommandBatch &&batch);
+    void popFinishedBatchLocked();
+    void popInFlightBatchLocked();
 
     CommandPoolAccess mCommandPoolAccess;
 
-    // Protect multi-thread access to mInFlightCommands.pop and ensure ordering of submission.
-    mutable angle::SimpleMutex mMutex;
-    // Protect multi-thread access to mInFlightCommands.push as well as does lock relay for mMutex
-    // so that we can release mMutex while doing potential lengthy vkQueueSubmit and vkQueuePresent
-    // call.
-    angle::SimpleMutex mQueueSubmitMutex;
+    // Warning: Mutexes must be locked in the order as declared below.
+    // Protect multi-thread access to mInFlightCommands.push/back and ensure ordering of submission.
+    // Also protects mPerfCounters.
+    mutable angle::SimpleMutex mQueueSubmitMutex;
+    // Protect multi-thread access to mInFlightCommands.pop/front and
+    // mFinishedCommandBatches.push/back.
+    angle::SimpleMutex mCmdCompleteMutex;
+    // Protect multi-thread access to mFinishedCommandBatches.pop/front.
+    angle::SimpleMutex mCmdReleaseMutex;
 
     CommandBatchQueue mInFlightCommands;
     // Temporary storage for finished command batches that should be reset.
     CommandBatchQueue mFinishedCommandBatches;
 
+    // Combined number of batches in mInFlightCommands and mFinishedCommandBatches queues.
+    // Used instead of calculating the sum because doing this is not thread safe and will require
+    // the mCmdCompleteMutex lock.
+    std::atomic_size_t mNumAllCommands;
 
     // Queue serial management.
     AtomicQueueSerialFixedArray mLastSubmittedSerials;

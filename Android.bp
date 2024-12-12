@@ -794,6 +794,7 @@ cc_library_shared {
         "src/tests/egl_tests/EGLDisplaySelectionTest.cpp",
         "src/tests/egl_tests/EGLDisplayTest.cpp",
         "src/tests/egl_tests/EGLLockSurface3Test.cpp",
+        "src/tests/egl_tests/EGLMemoryUsageReportTest.cpp",
         "src/tests/egl_tests/EGLMultiContextTest.cpp",
         "src/tests/egl_tests/EGLNoConfigContextTest.cpp",
         "src/tests/egl_tests/EGLNoErrorTest.cpp",
