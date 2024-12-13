@@ -14,6 +14,7 @@ import json
 import os
 import pathlib
 import re
+import signal
 import shutil
 import socket
 import subprocess
@@ -26,7 +27,7 @@ from typing import Callable, Dict, List, Optional, Tuple, IO
 sys.path.append(os.path.join(os.path.dirname(__file__), 'gyp'))
 from util import server_utils
 
-_SOCKET_TIMEOUT = 300  # seconds
+_SOCKET_TIMEOUT = 60  # seconds
 
 _LOGFILES = {}
 _LOGFILE_NAME = 'buildserver.log'
@@ -246,6 +247,7 @@ class BuildManager:
 class TaskManager:
   """Class to encapsulate a threadsafe queue and handle deactivating it."""
   _queue: collections.deque[Task] = collections.deque()
+  _current_tasks: set[Task] = set()
   _deactivated = False
   _lock = threading.RLock()
 
@@ -261,23 +263,47 @@ class TaskManager:
     cls._maybe_start_tasks()
 
   @classmethod
+  def task_done(cls, task: Task):
+    TaskStats.complete_task(build_id=task.build_id)
+    with cls._lock:
+      cls._current_tasks.remove(task)
+
+  @classmethod
   def deactivate(cls):
     cls._deactivated = True
+    tasks_to_terminate: list[Task] = []
     with cls._lock:
       while cls._queue:
         task = cls._queue.pop()
-        task.terminate()
+        tasks_to_terminate.append(task)
+      # Cancel possibly running tasks.
+      tasks_to_terminate.extend(cls._current_tasks)
+    # Terminate outside lock since task threads need the lock to finish
+    # terminating.
+    for task in tasks_to_terminate:
+      task.terminate()
 
   @classmethod
   def cancel_build(cls, build_id):
-    terminated_tasks = []
+    terminated_pending_tasks: list[Task] = []
+    terminated_current_tasks: list[Task] = []
     with cls._lock:
+      # Cancel pending tasks.
       for task in cls._queue:
         if task.build_id == build_id:
-          task.terminate()
-          terminated_tasks.append(task)
-      for task in terminated_tasks:
+          terminated_pending_tasks.append(task)
+      for task in terminated_pending_tasks:
         cls._queue.remove(task)
+      # Cancel running tasks.
+      for task in cls._current_tasks:
+        if task.build_id == build_id:
+          terminated_current_tasks.append(task)
+    # Terminate tasks outside lock since task threads need the lock to finish
+    # terminating.
+    for task in terminated_pending_tasks:
+      task.terminate()
+    for task in terminated_current_tasks:
+      task.terminate()
 
   @staticmethod
   # pylint: disable=inconsistent-return-statements
@@ -308,6 +334,7 @@ class TaskManager:
       with cls._lock:
         try:
           next_task = cls._queue.pop()
+          cls._current_tasks.add(next_task)
         except IndexError:
           return
       num_started += next_task.start(cls._maybe_start_tasks)
@@ -320,14 +347,13 @@ class Task:
   """Class to represent one task and operations on it."""
 
   def __init__(self, name: str, cwd: str, cmd: List[str], tty: IO[str],
-               stamp_file: str, build_id: str, remote_print: bool, options):
+               stamp_file: str, build_id: str, options):
     self.name = name
     self.cwd = cwd
     self.cmd = cmd
     self.stamp_file = stamp_file
     self.tty = tty
     self.build_id = build_id
-    self.remote_print = remote_print
     self.options = options
     self._terminated = False
     self._replaced = False
@@ -340,6 +366,9 @@ class Task:
   @property
   def key(self):
     return (self.cwd, self.name)
+
+  def __hash__(self):
+    return hash((self.key, self.build_id))
 
   def __eq__(self, other):
     return self.key == other.key and self.build_id == other.build_id
@@ -385,7 +414,6 @@ class Task:
 
   def terminate(self, replaced=False):
     """Can be called multiple times to cancel and ignore the task's output."""
-
     with self._lock:
       if self._terminated:
         return
@@ -443,7 +471,7 @@ class Task:
       message = '\n'.join(preamble + [stdout])
       log_to_file(message, build_id=self.build_id)
       log(message, quiet=self.options.quiet)
-      if self.remote_print:
+      if self.tty:
         # Add emoji to show that output is from the build server.
         preamble = [f'⏩ {line}' for line in preamble]
         remote_message = '\n'.join(preamble + [stdout])
@@ -451,9 +479,6 @@ class Task:
         # output/text already on the remote tty we are printing to.
         self.tty.write(f'\n{remote_message}')
         self.tty.flush()
-    set_status(f'{status_string} {self.name}',
-               quiet=self.options.quiet,
-               build_id=self.build_id)
     if delete_stamp:
       # Force siso to consider failed targets as dirty.
       try:
@@ -465,18 +490,21 @@ class Task:
       # about the mtime that is recorded in its database at the time the
       # original action finished.
       pass
-    TaskStats.complete_task(build_id=self.build_id)
+    TaskManager.task_done(self)
+    set_status(f'{status_string} {self.name}',
+               quiet=self.options.quiet,
+               build_id=self.build_id)
 
 
 def _handle_add_task(data, current_tasks: Dict[Tuple[str, str], Task], options):
   """Handle messages of type ADD_TASK."""
   build_id = data['build_id']
   task_outdir = data['cwd']
+  tty_name = data.get('tty')
 
-  is_experimental = data.get('experimental', False)
   tty = None
-  if is_experimental:
-    tty = open(data['tty'], 'wt')
+  if tty_name:
+    tty = open(tty_name, 'wt')
     BuildManager.register_tty(build_id, tty)
 
   # Make sure a logfile for the build_id exists.
@@ -487,7 +515,6 @@ def _handle_add_task(data, current_tasks: Dict[Tuple[str, str], Task], options):
                   cmd=data['cmd'],
                   tty=tty,
                   build_id=build_id,
-                  remote_print=is_experimental,
                   stamp_file=data['stamp_file'],
                   options=options)
   existing_task = current_tasks.get(new_task.key)
@@ -551,6 +578,31 @@ def _listen_for_request_data(sock: socket.socket):
       yield json.loads(message_bytes), conn
 
 
+def _register_cleanup_signal_handlers(options):
+  original_sigint_handler = signal.getsignal(signal.SIGINT)
+  original_sigterm_handler = signal.getsignal(signal.SIGTERM)
+
+  def _cleanup(signum, frame):
+    log('STOPPING SERVER...', quiet=options.quiet)
+    # Gracefully shut down the task manager, terminating all queued tasks.
+    TaskManager.deactivate()
+    log('STOPPED', quiet=options.quiet)
+    if signum == signal.SIGINT:
+      if callable(original_sigint_handler):
+        original_sigint_handler(signum, frame)
+      else:
+        raise KeyboardInterrupt()
+    if signum == signal.SIGTERM:
+      # Sometimes sigterm handler is not a callable.
+      if callable(original_sigterm_handler):
+        original_sigterm_handler(signum, frame)
+      else:
+        sys.exit(1)
+
+  signal.signal(signal.SIGINT, _cleanup)
+  signal.signal(signal.SIGTERM, _cleanup)
+
+
 def _process_requests(sock: socket.socket, options):
   """Main loop for build server receiving request messages."""
   # Since dicts in python can contain anything, explicitly type tasks to help
@@ -560,41 +612,33 @@ def _process_requests(sock: socket.socket, options):
       'READY... Remember to set android_static_analysis="build_server" in '
       'args.gn files',
       quiet=options.quiet)
+  _register_cleanup_signal_handlers(options)
   # pylint: disable=too-many-nested-blocks
-  try:
-    while True:
-      try:
-        for data, connection in _listen_for_request_data(sock):
-          message_type = data.get('message_type', server_utils.ADD_TASK)
-          if message_type == server_utils.POLL_HEARTBEAT:
-            _handle_heartbeat(connection)
-          if message_type == server_utils.ADD_TASK:
-            connection.close()
-            _handle_add_task(data, tasks, options)
-          if message_type == server_utils.QUERY_BUILD:
-            _handle_query_build(data, connection)
-          if message_type == server_utils.REGISTER_BUILDER:
-            connection.close()
-            _handle_register_builder(data)
-          if message_type == server_utils.CANCEL_BUILD:
-            connection.close()
-            _handle_cancel_build(data)
-      except TimeoutError:
-        # If we have not received a new task in a while and do not have any
-        # pending tasks or running builds, then exit. Otherwise keep waiting.
-        if (TaskStats.num_pending_tasks() == 0
-            and not BuildManager.has_live_builds() and options.exit_on_idle):
-          break
-      except KeyboardInterrupt:
+  while True:
+    try:
+      for data, connection in _listen_for_request_data(sock):
+        message_type = data.get('message_type', server_utils.ADD_TASK)
+        if message_type == server_utils.POLL_HEARTBEAT:
+          _handle_heartbeat(connection)
+        if message_type == server_utils.ADD_TASK:
+          connection.close()
+          _handle_add_task(data, tasks, options)
+        if message_type == server_utils.QUERY_BUILD:
+          _handle_query_build(data, connection)
+        if message_type == server_utils.REGISTER_BUILDER:
+          connection.close()
+          _handle_register_builder(data)
+        if message_type == server_utils.CANCEL_BUILD:
+          connection.close()
+          _handle_cancel_build(data)
+    except TimeoutError:
+      # If we have not received a new task in a while and do not have any
+      # pending tasks or running builds, then exit. Otherwise keep waiting.
+      if (TaskStats.num_pending_tasks() == 0
+          and not BuildManager.has_live_builds() and options.exit_on_idle):
         break
-  finally:
-    log('STOPPING SERVER...', quiet=options.quiet)
-    # Gracefully shut down the task manager, terminating all queued tasks.
-    TaskManager.deactivate()
-    # Terminate all currently running tasks.
-    for task in tasks.values():
-      task.terminate()
-    log('STOPPED', quiet=options.quiet)
+    except KeyboardInterrupt:
+      break
 
 
 def query_build_info(build_id):
@@ -676,6 +720,26 @@ def _register_builder(build_id, builder_pid):
   return 1
 
 
+def _print_build_status(build_id):
+  build_info = query_build_info(build_id)
+  pending_tasks = build_info['pending_tasks']
+  completed_tasks = build_info['completed_tasks']
+  total_tasks = pending_tasks + completed_tasks
+
+  # Print nothing if we never got any tasks.
+  if completed_tasks:
+    if pending_tasks:
+      print('Build server is still running in the background. ' +
+            f'[{completed_tasks}/{total_tasks}] Tasks Done.')
+      print('Run this to wait for the pending tasks:')
+      server_path = os.path.relpath(str(server_utils.SERVER_SCRIPT))
+      print(' '.join([server_path, '--wait-for-build', build_id]))
+    else:
+      print('Build Server is done with all background tasks. ' +
+            f'[{completed_tasks}/{total_tasks}] Tasks Done.')
+  return 0
+
+
 def _wait_for_task_requests(args):
   with socket.socket(socket.AF_UNIX) as sock:
     sock.settimeout(_SOCKET_TIMEOUT)
@@ -684,7 +748,6 @@ def _wait_for_task_requests(args):
     except socket.error as e:
       # errno 98 is Address already in use
       if e.errno == 98:
-        print('fast_local_dev_server.py is already running.')
         return 1
       raise
     sock.listen()
@@ -709,6 +772,9 @@ def main():
                       metavar='BUILD_ID',
                       help='Wait for build server to finish with all tasks '
                       'for BUILD_ID and output any pending messages.')
+  parser.add_argument('--print-status',
+                      metavar='BUILD_ID',
+                      help='Print the current state of a build.')
   parser.add_argument(
       '--register-build-id',
       metavar='BUILD_ID',
@@ -723,6 +789,8 @@ def main():
     return _check_if_running()
   if args.wait_for_build:
     return _wait_for_build(args.wait_for_build)
+  if args.print_status:
+    return _print_build_status(args.print_status)
   if args.register_build_id:
     return _register_builder(args.register_build_id, args.builder_pid)
   if args.cancel_build:
