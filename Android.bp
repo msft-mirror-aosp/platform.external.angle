@@ -348,7 +348,6 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
-        "angle_non_conformant_extensions_and_versions_cflags",
     ],
     local_include_dirs: [
         "include/",
@@ -655,7 +654,6 @@ cc_defaults {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
-        "angle_non_conformant_extensions_and_versions_cflags",
     ],
     local_include_dirs: [
         "",
@@ -1017,7 +1015,6 @@ cc_library_shared {
         "angle_common_library_cflags",
         "angle_gl_enum_utils",
         "angle_includes",
-        "angle_non_conformant_extensions_and_versions_cflags",
         "src_tests_angle_common_test_utils_shared",
         "src_tests_native_test_support_android",
         "util_angle_test_utils",
@@ -1691,7 +1688,6 @@ cc_defaults {
         "angle_common_library_cflags",
         "angle_compression",
         "angle_libANGLE_headers",
-        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_version_info",
         "src_common_spirv_angle_spirv_base",
         "src_common_spirv_angle_spirv_builder",
@@ -4344,7 +4340,6 @@ cc_library_static {
     defaults: [
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
-        "angle_non_conformant_extensions_and_versions_cflags",
         "src_common_vulkan_angle_libvulkan_loader",
         "src_common_vulkan_angle_vulkan_icd",
         "third_party_vulkan_headers_src_vulkan_headers",
@@ -4428,7 +4423,6 @@ cc_library_static {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_includes",
-        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_xxhash",
     ],
     local_include_dirs: [
@@ -4591,7 +4585,6 @@ cc_defaults {
         "angle_compression",
         "angle_includes",
         "angle_libANGLE_headers",
-        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_version_info",
     ],
     generated_headers: [
@@ -7953,7 +7946,6 @@ cc_library_static {
         "angle_common_auto_cflags",
         "angle_common_library_cflags",
         "angle_includes",
-        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_xxhash",
     ],
     local_include_dirs: [
@@ -8140,7 +8132,6 @@ cc_defaults {
         "angle_common_library_cflags",
         "angle_frame_capture_mock",
         "angle_libANGLE_no_vulkan",
-        "angle_non_conformant_extensions_and_versions_cflags",
         "src_libANGLE_renderer_vulkan_angle_vulkan_backend",
     ],
     generated_headers: [
@@ -8299,7 +8290,6 @@ cc_library_shared {
         "angle_dma_buf_cc_defaults",
         "angle_includes",
         "angle_libANGLE",
-        "angle_non_conformant_extensions_and_versions_cflags",
         "angle_vendor_cc_defaults",
     ],
     generated_headers: [

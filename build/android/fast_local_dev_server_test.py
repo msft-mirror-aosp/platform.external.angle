@@ -44,10 +44,32 @@ def pollServer():
     return False
 
 
-def callServer(args, stdout=subprocess.DEVNULL):
-  return subprocess.check_call([server_utils.SERVER_SCRIPT.absolute()] + args,
-                               cwd=pathlib.Path(__file__).parent,
-                               stdout=stdout)
+def callServer(args, stdout=subprocess.DEVNULL, check=True):
+  return subprocess.run([str(server_utils.SERVER_SCRIPT.absolute())] + args,
+                        cwd=pathlib.Path(__file__).parent,
+                        stdout=stdout,
+                        stderr=subprocess.STDOUT,
+                        check=check,
+                        text=True)
+
+
+@contextlib.contextmanager
+def blockingFifo(fifo_path='/tmp/.fast_local_dev_server_test.fifo'):
+  fifo_path = pathlib.Path(fifo_path)
+  try:
+    if not fifo_path.exists():
+      os.mkfifo(fifo_path)
+    yield fifo_path
+  finally:
+    # Write to the fifo nonblocking to unblock other end.
+    try:
+      pipe = os.open(fifo_path, os.O_WRONLY | os.O_NONBLOCK)
+      os.write(pipe, b'')
+      os.close(pipe)
+    except OSError:
+      # Can't open non-blocking an unconnected pipe for writing.
+      pass
+    fifo_path.unlink(missing_ok=True)
 
 
 class TasksTest(unittest.TestCase):
@@ -88,14 +110,13 @@ class TasksTest(unittest.TestCase):
     _stamp_file.touch()
 
     sendMessage({
-        'name': f'test task {uuid.uuid4()}',
+        'name': f'{self.id()}({uuid.uuid4()}): {" ".join(cmd)}',
         'message_type': server_utils.ADD_TASK,
         'cmd': cmd,
         # So that logfiles do not clutter cwd.
         'cwd': '/tmp/',
         'tty': self._TTY_FILE,
         'build_id': self.id(),
-        'experimental': True,
         'stamp_file': _stamp_file.name,
     })
 
@@ -123,7 +144,9 @@ class TasksTest(unittest.TestCase):
       current_time = datetime.datetime.now()
       duration = current_time - start_time
       if duration > timeout_duration:
-        raise TimeoutError()
+        raise TimeoutError(
+            f'Timed out waiting for pending tasks [{pending_tasks}/{pending_tasks+completed_tasks}]'
+        )
       time.sleep(0.1)
 
   def testRunsQuietTask(self):
@@ -159,20 +182,53 @@ class TasksTest(unittest.TestCase):
     self.assertEqual(self.getTtyContents(), '')
 
   def testRegisterBuilderServerCall(self):
-    self.assertEqual(
-        callServer(
-            ['--register-build',
-             self.id(), '--builder-pid',
-             str(os.getpid())]), 0)
+    callServer(
+        ['--register-build',
+         self.id(), '--builder-pid',
+         str(os.getpid())])
     self.assertEqual(self.getTtyContents(), '')
 
   def testWaitForBuildServerCall(self):
-    self.assertEqual(callServer(['--wait-for-build', self.id()]), 0)
+    callServer(['--wait-for-build', self.id()])
     self.assertEqual(self.getTtyContents(), '')
 
   def testCancelBuildServerCall(self):
-    self.assertEqual(callServer(['--cancel-build', self.id()]), 0)
+    callServer(['--cancel-build', self.id()])
     self.assertEqual(self.getTtyContents(), '')
+
+  def testBuildStatusServerCall(self):
+    proc_result = callServer(['--print-status', self.id()],
+                             stdout=subprocess.PIPE)
+    self.assertEqual(proc_result.stdout, '')
+
+    self.sendTask(['true'])
+    self.waitForTasksDone()
+    proc_result = callServer(['--print-status', self.id()],
+                             stdout=subprocess.PIPE)
+    self.assertIn('[1/1]', proc_result.stdout)
+
+    with blockingFifo() as fifo_path:
+      # cat gets stuck until we open the other end of the fifo.
+      self.sendTask(['cat', str(fifo_path)])
+      proc_result = callServer(['--print-status', self.id()],
+                               stdout=subprocess.PIPE)
+      self.assertIn('[1/2]', proc_result.stdout)
+      self.assertIn(f'--wait-for-build {self.id()}', proc_result.stdout)
+
+    self.waitForTasksDone()
+    proc_result = callServer(['--print-status', self.id()],
+                             stdout=subprocess.PIPE)
+    self.assertIn('[2/2]', proc_result.stdout)
+
+  def testServerCancelsRunningTasks(self):
+    output_stamp = pathlib.Path('/tmp/.deleteme.stamp')
+    with blockingFifo() as fifo_path:
+      self.assertFalse(output_stamp.exists())
+      # dd blocks on fifo so task never finishes inside with block.
+      self.sendTask(['dd', f'if={str(fifo_path)}', f'of={str(output_stamp)}'])
+      callServer(['--cancel-build', self.id()])
+      self.waitForTasksDone()
+    self.assertFalse(output_stamp.exists())
 
   def testKeyboardInterrupt(self):
     os.kill(self._process.pid, signal.SIGINT)

@@ -2493,31 +2493,6 @@ angle::Result ContextVk::handleDirtyGraphicsRenderPass(DirtyBits::Iterator *dirt
         ANGLE_TRY(handleDirtyGraphicsPipelineDesc(dirtyBitsIterator, dirtyBitMask));
     }
 
-    // For dynamic rendering, the FramebufferVk's render pass desc does not track whether
-    // framebuffer fetch is in use.  In that case, ContextVk updates the command buffer's (and
-    // graphics pipeline's) render pass desc only:
-    //
-    // - When the render pass starts
-    // - When the program binding changes (see |invalidateProgramExecutableHelper|)
-    if (getFeatures().preferDynamicRendering.enabled)
-    {
-        vk::FramebufferFetchMode framebufferFetchMode =
-            vk::GetProgramFramebufferFetchMode(mState.getProgramExecutable());
-        if (framebufferFetchMode != vk::FramebufferFetchMode::None)
-        {
-            // Note: this function sets a dirty bit through onColorAccessChange() not through
-            // |dirtyBitsIterator|, but that dirty bit is always set on new render passes, so it
-            // won't be missed.
-            onFramebufferFetchUse(framebufferFetchMode);
-        }
-        else
-        {
-            // Reset framebuffer fetch mode.  Note that |onFramebufferFetchUse| _accumulates_
-            // framebuffer fetch mode.
-            mRenderPassCommands->setFramebufferFetchMode(vk::FramebufferFetchMode::None);
-        }
-    }
-
     return angle::Result::Continue;
 }
 
@@ -3960,8 +3935,7 @@ angle::Result ContextVk::synchronizeCpuGpuTime()
         // vkEvent's are externally synchronized, therefore need work to be submitted before calling
         // vkGetEventStatus
         ANGLE_TRY(mRenderer->queueSubmitOneOff(this, std::move(commandBuffer), getProtectionType(),
-                                               mContextPriority, VK_NULL_HANDLE, 0,
-                                               vk::SubmitPolicy::EnsureSubmitted, &submitSerial));
+                                               mContextPriority, VK_NULL_HANDLE, 0, &submitSerial));
 
         // Track it with the submitSerial.
         timestampQuery.setQueueSerial(submitSerial);
@@ -4982,7 +4956,7 @@ void ContextVk::updateColorMasks()
     onColorAccessChange();
 }
 
-void ContextVk::updateMissingOutputsMask()
+void ContextVk::updateMissingAttachments()
 {
     const gl::ProgramExecutable *executable = mState.getProgramExecutable();
     if (executable == nullptr)
@@ -4990,12 +4964,21 @@ void ContextVk::updateMissingOutputsMask()
         return;
     }
 
+    // Handle missing color outputs
     const gl::DrawBufferMask framebufferMask    = mState.getDrawFramebuffer()->getDrawBufferMask();
     const gl::DrawBufferMask shaderOutMask      = executable->getActiveOutputVariablesMask();
     const gl::DrawBufferMask missingOutputsMask = ~shaderOutMask & framebufferMask;
 
     mGraphicsPipelineDesc->updateMissingOutputsMask(&mGraphicsPipelineTransition,
                                                     missingOutputsMask);
+
+    // Handle missing depth/stencil attachment input.  If gl_LastFragDepth/StencilARM is used by the
+    // shader but there is no depth/stencil attachment, the shader is changed not to read from the
+    // input attachment.
+    if (executable->usesDepthFramebufferFetch() || executable->usesStencilFramebufferFetch())
+    {
+        invalidateCurrentGraphicsPipeline();
+    }
 }
 
 void ContextVk::updateBlendFuncsAndEquations()
@@ -5563,7 +5546,7 @@ angle::Result ContextVk::invalidateProgramExecutableHelper(const gl::Context *co
             &mGraphicsPipelineTransition, executable->getNonBuiltinAttribLocationsMask(),
             executable->getAttributesTypeMask());
 
-        updateMissingOutputsMask();
+        updateMissingAttachments();
     }
 
     return angle::Result::Continue;
@@ -5852,7 +5835,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                 updateViewport(drawFramebufferVk, glState.getViewport(), glState.getNearPlane(),
                                glState.getFarPlane());
                 updateColorMasks();
-                updateMissingOutputsMask();
+                updateMissingAttachments();
                 updateRasterizationSamples(drawFramebufferVk->getSamples());
                 updateRasterizerDiscardEnabled(
                     mState.isQueryActive(gl::QueryType::PrimitivesGenerated));
@@ -6599,7 +6582,7 @@ angle::Result ContextVk::onFramebufferChange(FramebufferVk *framebufferVk, gl::C
     updateDither();
 
     // Attachments might have changed.
-    updateMissingOutputsMask();
+    updateMissingAttachments();
 
     if (mState.getProgramExecutable())
     {
@@ -6993,9 +6976,8 @@ angle::Result ContextVk::releaseTextures(const gl::Context *context,
             vk::ConvertImageLayoutToGLImageLayout(image.getCurrentImageLayout());
     }
 
-    ANGLE_TRY(flushAndSubmitCommands(nullptr, nullptr,
-                                     RenderPassClosureReason::ImageUseThenReleaseToExternal));
-    return mRenderer->waitForResourceUseToBeSubmittedToDevice(this, mSubmittedResourceUse);
+    return flushAndSubmitCommands(nullptr, nullptr,
+                                  RenderPassClosureReason::ImageUseThenReleaseToExternal);
 }
 
 vk::DynamicQueryPool *ContextVk::getQueryPool(gl::QueryType queryType)
@@ -7988,7 +7970,7 @@ angle::Result ContextVk::getTimestamp(uint64_t *timestampOut)
     QueueSerial submitQueueSerial;
     ANGLE_TRY(mRenderer->queueSubmitOneOff(this, std::move(commandBuffer), getProtectionType(),
                                            mContextPriority, VK_NULL_HANDLE, 0,
-                                           vk::SubmitPolicy::AllowDeferred, &submitQueueSerial));
+                                           &submitQueueSerial));
     // Track it with the submitSerial.
     timestampQuery.setQueueSerial(submitQueueSerial);
 
@@ -8090,6 +8072,32 @@ angle::Result ContextVk::startRenderPass(gl::Rectangle renderArea,
 
     ANGLE_TRY(drawFramebufferVk->startNewRenderPass(this, renderArea, &mRenderPassCommandBuffer,
                                                     renderPassDescChangedOut));
+
+    // For dynamic rendering, the FramebufferVk's render pass desc does not track whether
+    // framebuffer fetch is in use.  In that case, ContextVk updates the command buffer's (and
+    // graphics pipeline's) render pass desc only:
+    //
+    // - When the render pass starts
+    // - When the program binding changes (see |invalidateProgramExecutableHelper|)
+    if (getFeatures().preferDynamicRendering.enabled)
+    {
+        vk::FramebufferFetchMode framebufferFetchMode =
+            vk::GetProgramFramebufferFetchMode(mState.getProgramExecutable());
+        fprintf(stderr, "Started new RP, ff mode: %x\n", (int)framebufferFetchMode);
+        if (framebufferFetchMode != vk::FramebufferFetchMode::None)
+        {
+            // Note: this function sets a dirty bit through onColorAccessChange() not through
+            // |dirtyBitsIterator|, but that dirty bit is always set on new render passes, so it
+            // won't be missed.
+            onFramebufferFetchUse(framebufferFetchMode);
+        }
+        else
+        {
+            // Reset framebuffer fetch mode.  Note that |onFramebufferFetchUse| _accumulates_
+            // framebuffer fetch mode.
+            mRenderPassCommands->setFramebufferFetchMode(vk::FramebufferFetchMode::None);
+        }
+    }
 
     // Make sure the render pass is not restarted if it is started by UtilsVk (as opposed to
     // setupDraw(), which clears this bit automatically).
