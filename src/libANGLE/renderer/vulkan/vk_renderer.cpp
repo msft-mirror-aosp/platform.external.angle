@@ -229,6 +229,7 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-VkBufferViewCreateInfo-format-08779",
     // https://anglebug.com/42266639
     "VUID-VkVertexInputBindingDivisorDescriptionKHR-divisor-01870",
+    "VUID-VkVertexInputBindingDivisorDescription-divisor-01870",
     // https://anglebug.com/42266675
     "VUID-VkGraphicsPipelineCreateInfo-topology-08773",
     // https://anglebug.com/42265766
@@ -279,6 +280,8 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDraw-None-06550",
     // https://anglebug.com/345304850
     "WARNING-Shader-OutputNotConsumed",
+    // https://anglebug.com/383311444
+    "VUID-vkCmdDraw-None-09462",
 };
 
 // Validation messages that should be ignored only when VK_EXT_primitive_topology_list_restart is
@@ -1802,7 +1805,7 @@ void Renderer::onDestroy(vk::Context *context)
     mCommandQueue.destroy(context);
 
     // mCommandQueue.destroy should already set "last completed" serials to infinite.
-    cleanupGarbage();
+    cleanupGarbage(nullptr);
     ASSERT(!hasSharedGarbage());
     ASSERT(mOrphanedBufferBlockList.empty());
 
@@ -2550,6 +2553,7 @@ angle::Result Renderer::initializeMemoryAllocator(vk::Context *context)
 // - VK_KHR_dynamic_rendering_local_read:              dynamicRenderingLocalRead (feature)
 // - VK_EXT_shader_atomic_float                        shaderImageFloat32Atomics (feature)
 // - VK_EXT_image_compression_control                  imageCompressionControl (feature)
+// - VK_EXT_image_compression_control_swapchain        imageCompressionControlSwapchain (feature)
 //
 void Renderer::appendDeviceExtensionFeaturesNotPromoted(
     const vk::ExtensionNameList &deviceExtensionNames,
@@ -2727,6 +2731,11 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
     if (ExtensionFound(VK_EXT_IMAGE_COMPRESSION_CONTROL_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mImageCompressionControlFeatures);
+    }
+    if (ExtensionFound(VK_EXT_IMAGE_COMPRESSION_CONTROL_SWAPCHAIN_EXTENSION_NAME,
+                       deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mImageCompressionControlSwapchainFeatures);
     }
 }
 
@@ -3106,6 +3115,10 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mImageCompressionControlFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_COMPRESSION_CONTROL_FEATURES_EXT;
 
+    mImageCompressionControlSwapchainFeatures = {};
+    mImageCompressionControlSwapchainFeatures.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_COMPRESSION_CONTROL_SWAPCHAIN_FEATURES_EXT;
+
     mTextureCompressionASTCHDRFeatures = {};
     mTextureCompressionASTCHDRFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES;
@@ -3194,6 +3207,7 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mVariablePointersFeatures.pNext                   = nullptr;
     mFloatControlProperties.pNext                     = nullptr;
     mImageCompressionControlFeatures.pNext            = nullptr;
+    mImageCompressionControlSwapchainFeatures.pNext   = nullptr;
     mTextureCompressionASTCHDRFeatures.pNext          = nullptr;
 #if defined(ANGLE_PLATFORM_ANDROID)
     mExternalFormatResolveFeatures.pNext   = nullptr;
@@ -3224,6 +3238,7 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
 // - VK_EXT_blend_operation_advanced
 // - VK_EXT_full_screen_exclusive
 // - VK_EXT_image_compression_control
+// - VK_EXT_image_compression_control_swapchain
 //
 void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &deviceExtensionNames)
 {
@@ -3512,6 +3527,13 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
     {
         mEnabledDeviceExtensions.push_back(VK_EXT_IMAGE_COMPRESSION_CONTROL_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mImageCompressionControlFeatures);
+    }
+
+    if (getFeatures().supportsImageCompressionControlSwapchain.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(
+            VK_EXT_IMAGE_COMPRESSION_CONTROL_SWAPCHAIN_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mImageCompressionControlSwapchainFeatures);
     }
 
 #if defined(ANGLE_PLATFORM_WINDOWS)
@@ -5785,10 +5807,15 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsSynchronization2,
                             mSynchronization2Features.synchronization2 == VK_TRUE);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, descriptorSetCache, true);
+    // Disable descriptorSet cache for SwiftShader to ensure the code path gets tested.
+    ANGLE_FEATURE_CONDITION(&mFeatures, descriptorSetCache, !isSwiftShader);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImageCompressionControl,
                             mImageCompressionControlFeatures.imageCompressionControl == VK_TRUE);
+
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsImageCompressionControlSwapchain,
+        mImageCompressionControlSwapchainFeatures.imageCompressionControlSwapchain == VK_TRUE);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsAstcSliced3d, isARM);
 
@@ -6270,17 +6297,27 @@ bool Renderer::haveSameFormatFeatureBits(angle::FormatID formatID1, angle::Forma
            hasImageFormatFeatureBits(formatID2, fmt1OptimalFeatureBits);
 }
 
-void Renderer::cleanupGarbage()
+void Renderer::cleanupGarbage(bool *anyGarbageCleanedOut)
 {
+    bool anyCleaned = false;
+
     // Clean up general garbage
-    mSharedGarbageList.cleanupSubmittedGarbage(this);
+    anyCleaned = (mSharedGarbageList.cleanupSubmittedGarbage(this) > 0) || anyCleaned;
+
     // Clean up suballocation garbages
-    mSuballocationGarbageList.cleanupSubmittedGarbage(this);
+    anyCleaned = (mSuballocationGarbageList.cleanupSubmittedGarbage(this) > 0) || anyCleaned;
+
     // Note: do this after clean up mSuballocationGarbageList so that we will have more chances to
     // find orphaned blocks being empty.
-    mOrphanedBufferBlockList.pruneEmptyBufferBlocks(this);
+    anyCleaned = (mOrphanedBufferBlockList.pruneEmptyBufferBlocks(this) > 0) || anyCleaned;
+
     // Clean up RefCountedEvent that are done resetting
-    mRefCountedEventRecycler.cleanupResettingEvents(this);
+    anyCleaned = (mRefCountedEventRecycler.cleanupResettingEvents(this) > 0) || anyCleaned;
+
+    if (anyGarbageCleanedOut != nullptr)
+    {
+        *anyGarbageCleanedOut = anyCleaned;
+    }
 }
 
 void Renderer::cleanupPendingSubmissionGarbage()
@@ -6779,10 +6816,9 @@ void Renderer::releaseQueueSerialIndex(SerialIndex index)
     mQueueSerialIndexAllocator.release(index);
 }
 
-angle::Result Renderer::finishOneCommandBatchAndCleanup(vk::Context *context, bool *anyBatchCleaned)
+angle::Result Renderer::cleanupSomeGarbage(Context *context, bool *anyGarbageCleanedOut)
 {
-    return mCommandQueue.finishOneCommandBatchAndCleanup(context, getMaxFenceWaitTimeNs(),
-                                                         anyBatchCleaned);
+    return mCommandQueue.cleanupSomeGarbage(context, 0, anyGarbageCleanedOut);
 }
 
 // static

@@ -452,7 +452,7 @@ class Renderer : angle::NonCopyable
 
     bool haveSameFormatFeatureBits(angle::FormatID formatID1, angle::FormatID formatID2) const;
 
-    void cleanupGarbage();
+    void cleanupGarbage(bool *anyGarbageCleanedOut);
     void cleanupPendingSubmissionGarbage();
 
     angle::Result submitCommands(vk::Context *context,
@@ -478,7 +478,7 @@ class Renderer : angle::NonCopyable
     angle::Result checkCompletedCommands(vk::Context *context);
 
     angle::Result checkCompletedCommandsAndCleanup(vk::Context *context);
-    angle::Result retireFinishedCommands(vk::Context *context);
+    angle::Result releaseFinishedCommands(vk::Context *context);
 
     angle::Result flushWaitSemaphores(vk::ProtectionType protectionType,
                                       egl::ContextPriority priority,
@@ -688,9 +688,9 @@ class Renderer : angle::NonCopyable
 
     void requestAsyncCommandsAndGarbageCleanup(vk::Context *context);
 
-    // Try to finish a command batch from the queue and free garbage memory in the event of an OOM
+    // Cleanup garbage and finish command batches from the queue if necessary in the event of an OOM
     // error.
-    angle::Result finishOneCommandBatchAndCleanup(vk::Context *context, bool *anyBatchCleaned);
+    angle::Result cleanupSomeGarbage(Context *context, bool *anyGarbageCleanedOut);
 
     // Static function to get Vulkan object type name.
     static const char *GetVulkanObjectTypeName(VkObjectType type);
@@ -911,6 +911,8 @@ class Renderer : angle::NonCopyable
     std::vector<VkImageLayout> mHostImageCopySrcLayoutsStorage;
     std::vector<VkImageLayout> mHostImageCopyDstLayoutsStorage;
     VkPhysicalDeviceImageCompressionControlFeaturesEXT mImageCompressionControlFeatures;
+    VkPhysicalDeviceImageCompressionControlSwapchainFeaturesEXT
+        mImageCompressionControlSwapchainFeatures;
 #if defined(ANGLE_PLATFORM_ANDROID)
     VkPhysicalDeviceExternalFormatResolveFeaturesANDROID mExternalFormatResolveFeatures;
     VkPhysicalDeviceExternalFormatResolvePropertiesANDROID mExternalFormatResolveProperties;
@@ -1180,9 +1182,9 @@ ANGLE_INLINE angle::Result Renderer::checkCompletedCommandsAndCleanup(vk::Contex
     return mCommandQueue.checkAndCleanupCompletedCommands(context);
 }
 
-ANGLE_INLINE angle::Result Renderer::retireFinishedCommands(vk::Context *context)
+ANGLE_INLINE angle::Result Renderer::releaseFinishedCommands(vk::Context *context)
 {
-    return mCommandQueue.retireFinishedCommands(context);
+    return mCommandQueue.releaseFinishedCommands(context);
 }
 
 template <typename ArgT, typename... ArgsT>
