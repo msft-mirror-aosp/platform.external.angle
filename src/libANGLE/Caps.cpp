@@ -266,6 +266,31 @@ static bool DetermineRGBA8TextureSupport(const TextureCapsMap &textureCaps)
     return GetFormatSupport(textureCaps, requiredFormats, false, false, false, true, false);
 }
 
+// Checks for GL_OES_required_internalformat support
+static bool DetermineRequiredInternalFormatTextureSupport(const TextureCapsMap &textureCaps)
+{
+    constexpr GLenum requiredTexturingFormats[] = {
+        GL_ALPHA8_OES,
+        GL_LUMINANCE8_OES,
+        GL_LUMINANCE8_ALPHA8_OES,
+        GL_LUMINANCE4_ALPHA4_OES,
+        GL_RGB565_OES,
+        GL_RGB8_OES,
+        GL_RGBA4_OES,
+        GL_RGB5_A1_OES,
+        GL_RGBA8_OES,
+    };
+
+    constexpr GLenum requiredRenderingFormats[] = {
+        GL_RGB565_OES, GL_RGB8_OES, GL_RGBA4_OES, GL_RGB5_A1_OES, GL_RGBA8_OES,
+    };
+
+    return GetFormatSupport(textureCaps, requiredTexturingFormats, true, false, false, false,
+                            false) &&
+           GetFormatSupport(textureCaps, requiredRenderingFormats, false, false, false, true,
+                            false);
+}
+
 // Checks for GL_OES_rgb8_rgba8 support
 static bool DetermineRGB8TextureSupport(const TextureCapsMap &textureCaps)
 {
@@ -414,7 +439,7 @@ static bool DetermineTextureFormat2101010Support(const TextureCapsMap &textureCa
     // GL_EXT_texture_type_2_10_10_10_REV specifies both RGBA and RGB support.
     constexpr GLenum requiredFormats[] = {
         GL_RGB10_A2,
-        GL_RGB10_UNORM_ANGLEX,
+        GL_RGB10_EXT,
     };
 
     return GetFormatSupport(textureCaps, requiredFormats, true, true, false, false, false);
@@ -890,6 +915,7 @@ void Extensions::setTextureExtensionSupport(const TextureCapsMap &textureCaps)
     readDepthNV              = DetermineReadDepthSupport(textureCaps);
     readStencilNV            = DetermineReadStencilSupport(textureCaps);
     depthBufferFloat2NV      = DetermineDepthBufferFloat2Support(textureCaps);
+    requiredInternalformatOES = DetermineRequiredInternalFormatTextureSupport(textureCaps);
     textureFormatBGRA8888EXT = DetermineBGRA8TextureSupport(textureCaps);
     readFormatBgraEXT        = DetermineBGRAReadFormatSupport(textureCaps);
     textureHalfFloatOES      = DetermineHalfFloatTextureSupport(textureCaps);
@@ -991,6 +1017,11 @@ Caps &Caps::operator=(const Caps &other) = default;
 Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensions)
 {
     Caps caps;
+
+    // EXT_draw_buffers. Set to 1 even if the extension is not present. Framebuffer and blend state
+    // depends on this being > 0.
+    caps.maxDrawBuffers      = 1;
+    caps.maxColorAttachments = 1;
 
     // GLES1 emulation (Minimums taken from Table 6.20 / 6.22 (ES 1.1 spec))
     if (clientVersion < Version(2, 0))
@@ -1143,13 +1174,13 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxShaderAtomicCounters[ShaderType::Fragment]       = 0;
         caps.maxShaderImageUniforms[ShaderType::Fragment]        = 0;
         caps.maxShaderStorageBlocks[ShaderType::Fragment]        = 0;
-        caps.minProgramTextureGatherOffset                       = 0;
-        caps.maxProgramTextureGatherOffset                       = 0;
+        caps.minProgramTextureGatherOffset                       = caps.minProgramTexelOffset;
+        caps.maxProgramTextureGatherOffset                       = caps.maxProgramTexelOffset;
 
         // Table 20.45
         caps.maxComputeWorkGroupCount                        = {{65535, 65535, 65535}};
         caps.maxComputeWorkGroupSize                         = {{128, 128, 64}};
-        caps.maxComputeWorkGroupInvocations                  = 12;
+        caps.maxComputeWorkGroupInvocations                  = 128;
         caps.maxShaderUniformBlocks[ShaderType::Compute]     = limits::kMinimumShaderUniformBlocks;
         caps.maxShaderTextureImageUnits[ShaderType::Compute] = 16;
         caps.maxComputeSharedMemorySize                      = 16384;
@@ -1366,6 +1397,7 @@ std::vector<std::string> DisplayExtensions::getStrings() const
     InsertExtensionString("EGL_KHR_partial_update",                              partialUpdateKHR,                   &extensionStrings);
     InsertExtensionString("EGL_ANGLE_metal_shared_event_sync",                   mtlSyncSharedEventANGLE,            &extensionStrings);
     InsertExtensionString("EGL_ANGLE_global_fence_sync",                         globalFenceSyncANGLE,               &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_memory_usage_report",                       memoryUsageReportANGLE,             &extensionStrings);
     // clang-format on
 
     return extensionStrings;

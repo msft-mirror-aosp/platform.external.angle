@@ -40,6 +40,7 @@ extern "C" {
 // GL_AMD_performance_monitor
 void GL_APIENTRY GL_BeginPerfMonitorAMD(GLuint monitor)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBeginPerfMonitorAMD, "context = %d, monitor = %u", CID(context), monitor);
 
@@ -68,6 +69,7 @@ void GL_APIENTRY GL_BeginPerfMonitorAMD(GLuint monitor)
 
 void GL_APIENTRY GL_DeletePerfMonitorsAMD(GLsizei n, GLuint *monitors)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDeletePerfMonitorsAMD, "context = %d, n = %d, monitors = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)monitors);
@@ -93,6 +95,7 @@ void GL_APIENTRY GL_DeletePerfMonitorsAMD(GLsizei n, GLuint *monitors)
 
 void GL_APIENTRY GL_EndPerfMonitorAMD(GLuint monitor)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLEndPerfMonitorAMD, "context = %d, monitor = %u", CID(context), monitor);
 
@@ -120,6 +123,7 @@ void GL_APIENTRY GL_EndPerfMonitorAMD(GLuint monitor)
 
 void GL_APIENTRY GL_GenPerfMonitorsAMD(GLsizei n, GLuint *monitors)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGenPerfMonitorsAMD, "context = %d, n = %d, monitors = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)monitors);
@@ -149,6 +153,7 @@ void GL_APIENTRY GL_GetPerfMonitorCounterDataAMD(GLuint monitor,
                                                  GLuint *data,
                                                  GLint *bytesWritten)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetPerfMonitorCounterDataAMD,
           "context = %d, monitor = %u, pname = %s, dataSize = %d, data = 0x%016" PRIxPTR
@@ -182,6 +187,7 @@ void GL_APIENTRY GL_GetPerfMonitorCounterInfoAMD(GLuint group,
                                                  GLenum pname,
                                                  void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetPerfMonitorCounterInfoAMD,
           "context = %d, group = %u, counter = %u, pname = %s, data = 0x%016" PRIxPTR "",
@@ -214,6 +220,7 @@ void GL_APIENTRY GL_GetPerfMonitorCounterStringAMD(GLuint group,
                                                    GLsizei *length,
                                                    GLchar *counterString)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetPerfMonitorCounterStringAMD,
           "context = %d, group = %u, counter = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -247,6 +254,7 @@ void GL_APIENTRY GL_GetPerfMonitorCountersAMD(GLuint group,
                                               GLsizei counterSize,
                                               GLuint *counters)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetPerfMonitorCountersAMD,
           "context = %d, group = %u, numCounters = 0x%016" PRIxPTR
@@ -281,6 +289,7 @@ void GL_APIENTRY GL_GetPerfMonitorGroupStringAMD(GLuint group,
                                                  GLsizei *length,
                                                  GLchar *groupString)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetPerfMonitorGroupStringAMD,
           "context = %d, group = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -310,6 +319,7 @@ void GL_APIENTRY GL_GetPerfMonitorGroupStringAMD(GLuint group,
 
 void GL_APIENTRY GL_GetPerfMonitorGroupsAMD(GLint *numGroups, GLsizei groupsSize, GLuint *groups)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetPerfMonitorGroupsAMD,
           "context = %d, numGroups = 0x%016" PRIxPTR ", groupsSize = %d, groups = 0x%016" PRIxPTR
@@ -343,6 +353,7 @@ void GL_APIENTRY GL_SelectPerfMonitorCountersAMD(GLuint monitor,
                                                  GLint numCounters,
                                                  GLuint *counterList)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSelectPerfMonitorCountersAMD,
           "context = %d, monitor = %u, enable = %s, group = %u, numCounters = %d, counterList = "
@@ -384,6 +395,7 @@ void GL_APIENTRY GL_DrawArraysInstancedBaseInstanceANGLE(GLenum mode,
                                                          GLsizei instanceCount,
                                                          GLuint baseInstance)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawArraysInstancedBaseInstanceANGLE,
           "context = %d, mode = %s, first = %d, count = %d, instanceCount = %d, baseInstance = %u",
@@ -421,6 +433,7 @@ void GL_APIENTRY GL_DrawElementsInstancedBaseVertexBaseInstanceANGLE(GLenum mode
                                                                      GLint baseVertex,
                                                                      GLuint baseInstance)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawElementsInstancedBaseVertexBaseInstanceANGLE,
           "context = %d, mode = %s, count = %d, type = %s, indices = 0x%016" PRIxPTR
@@ -462,6 +475,7 @@ void GL_APIENTRY GL_MultiDrawArraysInstancedBaseInstanceANGLE(GLenum mode,
                                                               const GLuint *baseInstances,
                                                               GLsizei drawcount)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMultiDrawArraysInstancedBaseInstanceANGLE,
           "context = %d, mode = %s, firsts = 0x%016" PRIxPTR ", counts = 0x%016" PRIxPTR
@@ -506,6 +520,7 @@ GL_MultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(GLenum mode,
                                                          const GLuint *baseInstances,
                                                          GLsizei drawcount)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMultiDrawElementsInstancedBaseVertexBaseInstanceANGLE,
           "context = %d, mode = %s, counts = 0x%016" PRIxPTR ", type = %s, indices = 0x%016" PRIxPTR
@@ -552,6 +567,7 @@ void GL_APIENTRY GL_BlobCacheCallbacksANGLE(GLSETBLOBPROCANGLE set,
                                             GLGETBLOBPROCANGLE get,
                                             const void *userParam)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlobCacheCallbacksANGLE,
           "context = %d, set = 0x%016" PRIxPTR ", get = 0x%016" PRIxPTR
@@ -583,6 +599,7 @@ void GL_APIENTRY GL_BlobCacheCallbacksANGLE(GLSETBLOBPROCANGLE set,
 
 void GL_APIENTRY GL_GetPointervANGLE(GLenum pname, void **params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetPointervANGLE, "context = %d, pname = %s, params = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLESEnum::AllEnums, pname), (uintptr_t)params);
@@ -622,6 +639,7 @@ void GL_APIENTRY GL_CopyTexture3DANGLE(GLuint sourceId,
                                        GLboolean unpackPremultiplyAlpha,
                                        GLboolean unpackUnmultiplyAlpha)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCopyTexture3DANGLE,
           "context = %d, sourceId = %u, sourceLevel = %d, destTarget = %s, destId = %u, destLevel "
@@ -682,6 +700,7 @@ void GL_APIENTRY GL_CopySubTexture3DANGLE(GLuint sourceId,
                                           GLboolean unpackPremultiplyAlpha,
                                           GLboolean unpackUnmultiplyAlpha)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCopySubTexture3DANGLE,
           "context = %d, sourceId = %u, sourceLevel = %d, destTarget = %s, destId = %u, destLevel "
@@ -742,6 +761,7 @@ void GL_APIENTRY GL_BlitFramebufferANGLE(GLint srcX0,
                                          GLbitfield mask,
                                          GLenum filter)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlitFramebufferANGLE,
           "context = %d, srcX0 = %d, srcY0 = %d, srcX1 = %d, srcY1 = %d, dstX0 = %d, dstY0 = %d, "
@@ -783,6 +803,7 @@ void GL_APIENTRY GL_RenderbufferStorageMultisampleANGLE(GLenum target,
                                                         GLsizei width,
                                                         GLsizei height)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLRenderbufferStorageMultisampleANGLE,
           "context = %d, target = %s, samples = %d, internalformat = %s, width = %d, height = %d",
@@ -818,6 +839,7 @@ void GL_APIENTRY GL_RenderbufferStorageMultisampleANGLE(GLenum target,
 void GL_APIENTRY
 GL_GetTexImageANGLE(GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexImageANGLE,
           "context = %d, target = %s, level = %d, format = %s, type = %s, pixels = 0x%016" PRIxPTR
@@ -849,6 +871,7 @@ GL_GetTexImageANGLE(GLenum target, GLint level, GLenum format, GLenum type, void
 
 void GL_APIENTRY GL_GetCompressedTexImageANGLE(GLenum target, GLint level, void *pixels)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetCompressedTexImageANGLE,
           "context = %d, target = %s, level = %d, pixels = 0x%016" PRIxPTR "", CID(context),
@@ -881,6 +904,7 @@ void GL_APIENTRY GL_GetRenderbufferImageANGLE(GLenum target,
                                               GLenum type,
                                               void *pixels)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetRenderbufferImageANGLE,
           "context = %d, target = %s, format = %s, type = %s, pixels = 0x%016" PRIxPTR "",
@@ -917,6 +941,7 @@ void GL_APIENTRY GL_GetTexLevelParameterivANGLE(GLenum target,
                                                 GLenum pname,
                                                 GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexLevelParameterivANGLE,
           "context = %d, target = %s, level = %d, pname = %s, params = 0x%016" PRIxPTR "",
@@ -950,6 +975,7 @@ void GL_APIENTRY GL_GetTexLevelParameterfvANGLE(GLenum target,
                                                 GLenum pname,
                                                 GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexLevelParameterfvANGLE,
           "context = %d, target = %s, level = %d, pname = %s, params = 0x%016" PRIxPTR "",
@@ -984,6 +1010,7 @@ void GL_APIENTRY GL_DrawArraysInstancedANGLE(GLenum mode,
                                              GLsizei count,
                                              GLsizei primcount)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawArraysInstancedANGLE,
           "context = %d, mode = %s, first = %d, count = %d, primcount = %d", CID(context),
@@ -1017,6 +1044,7 @@ void GL_APIENTRY GL_DrawElementsInstancedANGLE(GLenum mode,
                                                const void *indices,
                                                GLsizei primcount)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawElementsInstancedANGLE,
           "context = %d, mode = %s, count = %d, type = %s, indices = 0x%016" PRIxPTR
@@ -1049,6 +1077,7 @@ void GL_APIENTRY GL_DrawElementsInstancedANGLE(GLenum mode,
 
 void GL_APIENTRY GL_VertexAttribDivisorANGLE(GLuint index, GLuint divisor)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLVertexAttribDivisorANGLE, "context = %d, index = %u, divisor = %u",
           CID(context), index, divisor);
@@ -1076,6 +1105,7 @@ void GL_APIENTRY GL_VertexAttribDivisorANGLE(GLuint index, GLuint divisor)
 // GL_ANGLE_logic_op
 void GL_APIENTRY GL_LogicOpANGLE(GLenum opcode)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLLogicOpANGLE, "context = %d, opcode = %s", CID(context),
           GLenumToString(GLESEnum::LogicOp, opcode));
@@ -1119,6 +1149,7 @@ void GL_APIENTRY GL_TexStorageMemFlags2DANGLE(GLenum target,
                                               GLbitfield usageFlags,
                                               const void *imageCreateInfoPNext)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorageMemFlags2DANGLE,
           "context = %d, target = %s, levels = %d, internalFormat = %s, width = %d, height = %d, "
@@ -1174,6 +1205,7 @@ void GL_APIENTRY GL_TexStorageMemFlags2DMultisampleANGLE(GLenum target,
                                                          GLbitfield usageFlags,
                                                          const void *imageCreateInfoPNext)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorageMemFlags2DMultisampleANGLE,
           "context = %d, target = %s, samples = %d, internalFormat = %s, width = %d, height = %d, "
@@ -1229,6 +1261,7 @@ void GL_APIENTRY GL_TexStorageMemFlags3DANGLE(GLenum target,
                                               GLbitfield usageFlags,
                                               const void *imageCreateInfoPNext)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorageMemFlags3DANGLE,
           "context = %d, target = %s, levels = %d, internalFormat = %s, width = %d, height = %d, "
@@ -1285,6 +1318,7 @@ void GL_APIENTRY GL_TexStorageMemFlags3DMultisampleANGLE(GLenum target,
                                                          GLbitfield usageFlags,
                                                          const void *imageCreateInfoPNext)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorageMemFlags3DMultisampleANGLE,
           "context = %d, target = %s, samples = %d, internalFormat = %s, width = %d, height = %d, "
@@ -1334,6 +1368,7 @@ void GL_APIENTRY GL_ImportMemoryZirconHandleANGLE(GLuint memory,
                                                   GLenum handleType,
                                                   GLuint handle)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLImportMemoryZirconHandleANGLE,
           "context = %d, memory = %u, size = %llu, handleType = %s, handle = %u", CID(context),
@@ -1375,6 +1410,7 @@ void GL_APIENTRY GL_MultiDrawArraysANGLE(GLenum mode,
                                          const GLsizei *counts,
                                          GLsizei drawcount)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMultiDrawArraysANGLE,
           "context = %d, mode = %s, firsts = 0x%016" PRIxPTR ", counts = 0x%016" PRIxPTR
@@ -1413,6 +1449,7 @@ void GL_APIENTRY GL_MultiDrawArraysInstancedANGLE(GLenum mode,
                                                   const GLsizei *instanceCounts,
                                                   GLsizei drawcount)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMultiDrawArraysInstancedANGLE,
           "context = %d, mode = %s, firsts = 0x%016" PRIxPTR ", counts = 0x%016" PRIxPTR
@@ -1453,6 +1490,7 @@ void GL_APIENTRY GL_MultiDrawElementsANGLE(GLenum mode,
                                            const void *const *indices,
                                            GLsizei drawcount)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMultiDrawElementsANGLE,
           "context = %d, mode = %s, counts = 0x%016" PRIxPTR ", type = %s, indices = 0x%016" PRIxPTR
@@ -1493,6 +1531,7 @@ void GL_APIENTRY GL_MultiDrawElementsInstancedANGLE(GLenum mode,
                                                     const GLsizei *instanceCounts,
                                                     GLsizei drawcount)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMultiDrawElementsInstancedANGLE,
           "context = %d, mode = %s, counts = 0x%016" PRIxPTR ", type = %s, indices = 0x%016" PRIxPTR
@@ -1534,6 +1573,7 @@ void GL_APIENTRY GL_MultiDrawElementsInstancedANGLE(GLenum mode,
 // GL_ANGLE_polygon_mode
 void GL_APIENTRY GL_PolygonModeANGLE(GLenum face, GLenum mode)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPolygonModeANGLE, "context = %d, face = %s, mode = %s", CID(context),
           GLenumToString(GLESEnum::TriangleFace, face),
@@ -1570,6 +1610,7 @@ void GL_APIENTRY GL_PolygonModeANGLE(GLenum face, GLenum mode)
 // GL_ANGLE_provoking_vertex
 void GL_APIENTRY GL_ProvokingVertexANGLE(GLenum provokeMode)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProvokingVertexANGLE, "context = %d, provokeMode = %s", CID(context),
           GLenumToString(GLESEnum::VertexProvokingMode, provokeMode));
@@ -1603,6 +1644,7 @@ void GL_APIENTRY GL_ProvokingVertexANGLE(GLenum provokeMode)
 // GL_ANGLE_request_extension
 void GL_APIENTRY GL_RequestExtensionANGLE(const GLchar *name)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLRequestExtensionANGLE, "context = %d, name = 0x%016" PRIxPTR "", CID(context),
           (uintptr_t)name);
@@ -1632,6 +1674,7 @@ void GL_APIENTRY GL_RequestExtensionANGLE(const GLchar *name)
 
 void GL_APIENTRY GL_DisableExtensionANGLE(const GLchar *name)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDisableExtensionANGLE, "context = %d, name = 0x%016" PRIxPTR "", CID(context),
           (uintptr_t)name);
@@ -1667,6 +1710,7 @@ void GL_APIENTRY GL_GetBooleanvRobustANGLE(GLenum pname,
                                            GLsizei *length,
                                            GLboolean *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetBooleanvRobustANGLE,
           "context = %d, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -1701,6 +1745,7 @@ void GL_APIENTRY GL_GetBufferParameterivRobustANGLE(GLenum target,
                                                     GLsizei *length,
                                                     GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetBufferParameterivRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -1735,6 +1780,7 @@ void GL_APIENTRY GL_GetFloatvRobustANGLE(GLenum pname,
                                          GLsizei *length,
                                          GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFloatvRobustANGLE,
           "context = %d, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -1770,6 +1816,7 @@ void GL_APIENTRY GL_GetFramebufferAttachmentParameterivRobustANGLE(GLenum target
                                                                    GLsizei *length,
                                                                    GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFramebufferAttachmentParameterivRobustANGLE,
           "context = %d, target = %s, attachment = %s, pname = %s, bufSize = %d, length = "
@@ -1806,6 +1853,7 @@ void GL_APIENTRY GL_GetIntegervRobustANGLE(GLenum pname,
                                            GLsizei *length,
                                            GLint *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetIntegervRobustANGLE,
           "context = %d, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -1840,6 +1888,7 @@ void GL_APIENTRY GL_GetProgramivRobustANGLE(GLuint program,
                                             GLsizei *length,
                                             GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetGlobalContext();
     EVENT(context, GLGetProgramivRobustANGLE,
           "context = %d, program = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -1874,6 +1923,7 @@ void GL_APIENTRY GL_GetRenderbufferParameterivRobustANGLE(GLenum target,
                                                           GLsizei *length,
                                                           GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetRenderbufferParameterivRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -1908,6 +1958,7 @@ void GL_APIENTRY GL_GetShaderivRobustANGLE(GLuint shader,
                                            GLsizei *length,
                                            GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetGlobalContext();
     EVENT(context, GLGetShaderivRobustANGLE,
           "context = %d, shader = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -1942,6 +1993,7 @@ void GL_APIENTRY GL_GetTexParameterfvRobustANGLE(GLenum target,
                                                  GLsizei *length,
                                                  GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexParameterfvRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -1977,6 +2029,7 @@ void GL_APIENTRY GL_GetTexParameterivRobustANGLE(GLenum target,
                                                  GLsizei *length,
                                                  GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexParameterivRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2012,6 +2065,7 @@ void GL_APIENTRY GL_GetUniformfvRobustANGLE(GLuint program,
                                             GLsizei *length,
                                             GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetUniformfvRobustANGLE,
           "context = %d, program = %u, location = %d, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2047,6 +2101,7 @@ void GL_APIENTRY GL_GetUniformivRobustANGLE(GLuint program,
                                             GLsizei *length,
                                             GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetUniformivRobustANGLE,
           "context = %d, program = %u, location = %d, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2082,6 +2137,7 @@ void GL_APIENTRY GL_GetVertexAttribfvRobustANGLE(GLuint index,
                                                  GLsizei *length,
                                                  GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetVertexAttribfvRobustANGLE,
           "context = %d, index = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2116,6 +2172,7 @@ void GL_APIENTRY GL_GetVertexAttribivRobustANGLE(GLuint index,
                                                  GLsizei *length,
                                                  GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetVertexAttribivRobustANGLE,
           "context = %d, index = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2150,6 +2207,7 @@ void GL_APIENTRY GL_GetVertexAttribPointervRobustANGLE(GLuint index,
                                                        GLsizei *length,
                                                        void **pointer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetVertexAttribPointervRobustANGLE,
           "context = %d, index = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2190,6 +2248,7 @@ void GL_APIENTRY GL_ReadPixelsRobustANGLE(GLint x,
                                           GLsizei *rows,
                                           void *pixels)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLReadPixelsRobustANGLE,
           "context = %d, x = %d, y = %d, width = %d, height = %d, format = %s, type = %s, bufSize "
@@ -2236,6 +2295,7 @@ void GL_APIENTRY GL_TexImage2DRobustANGLE(GLenum target,
                                           GLsizei bufSize,
                                           const void *pixels)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexImage2DRobustANGLE,
           "context = %d, target = %s, level = %d, internalformat = %d, width = %d, height = %d, "
@@ -2276,6 +2336,7 @@ void GL_APIENTRY GL_TexParameterfvRobustANGLE(GLenum target,
                                               GLsizei bufSize,
                                               const GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexParameterfvRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, params = 0x%016" PRIxPTR "",
@@ -2309,6 +2370,7 @@ void GL_APIENTRY GL_TexParameterivRobustANGLE(GLenum target,
                                               GLsizei bufSize,
                                               const GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexParameterivRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, params = 0x%016" PRIxPTR "",
@@ -2348,6 +2410,7 @@ void GL_APIENTRY GL_TexSubImage2DRobustANGLE(GLenum target,
                                              GLsizei bufSize,
                                              const void *pixels)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexSubImage2DRobustANGLE,
           "context = %d, target = %s, level = %d, xoffset = %d, yoffset = %d, width = %d, height = "
@@ -2395,6 +2458,7 @@ void GL_APIENTRY GL_TexImage3DRobustANGLE(GLenum target,
                                           GLsizei bufSize,
                                           const void *pixels)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexImage3DRobustANGLE,
           "context = %d, target = %s, level = %d, internalformat = %d, width = %d, height = %d, "
@@ -2445,6 +2509,7 @@ void GL_APIENTRY GL_TexSubImage3DRobustANGLE(GLenum target,
                                              GLsizei bufSize,
                                              const void *pixels)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(
         context, GLTexSubImage3DRobustANGLE,
@@ -2493,6 +2558,7 @@ void GL_APIENTRY GL_CompressedTexImage2DRobustANGLE(GLenum target,
                                                     GLsizei dataSize,
                                                     const void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCompressedTexImage2DRobustANGLE,
           "context = %d, target = %s, level = %d, internalformat = %s, width = %d, height = %d, "
@@ -2539,6 +2605,7 @@ void GL_APIENTRY GL_CompressedTexSubImage2DRobustANGLE(GLenum target,
                                                        GLsizei dataSize,
                                                        const void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCompressedTexSubImage2DRobustANGLE,
           "context = %d, target = %s, level = %d, xoffset = %d, yoffset = %d, width = %d, height = "
@@ -2584,6 +2651,7 @@ void GL_APIENTRY GL_CompressedTexImage3DRobustANGLE(GLenum target,
                                                     GLsizei dataSize,
                                                     const void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCompressedTexImage3DRobustANGLE,
           "context = %d, target = %s, level = %d, internalformat = %s, width = %d, height = %d, "
@@ -2632,6 +2700,7 @@ void GL_APIENTRY GL_CompressedTexSubImage3DRobustANGLE(GLenum target,
                                                        GLsizei dataSize,
                                                        const void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCompressedTexSubImage3DRobustANGLE,
           "context = %d, target = %s, level = %d, xoffset = %d, yoffset = %d, zoffset = %d, width "
@@ -2677,6 +2746,7 @@ void GL_APIENTRY GL_GetQueryivRobustANGLE(GLenum target,
                                           GLsizei *length,
                                           GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetQueryivRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2712,6 +2782,7 @@ void GL_APIENTRY GL_GetQueryObjectuivRobustANGLE(GLuint id,
                                                  GLsizei *length,
                                                  GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetQueryObjectuivRobustANGLE,
           "context = %d, id = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2747,6 +2818,7 @@ void GL_APIENTRY GL_GetBufferPointervRobustANGLE(GLenum target,
                                                  GLsizei *length,
                                                  void **params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetBufferPointervRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2782,6 +2854,7 @@ void GL_APIENTRY GL_GetIntegeri_vRobustANGLE(GLenum target,
                                              GLsizei *length,
                                              GLint *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetIntegeri_vRobustANGLE,
           "context = %d, target = %s, index = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2817,6 +2890,7 @@ void GL_APIENTRY GL_GetInternalformativRobustANGLE(GLenum target,
                                                    GLsizei *length,
                                                    GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetInternalformativRobustANGLE,
           "context = %d, target = %s, internalformat = %s, pname = %s, bufSize = %d, length = "
@@ -2853,6 +2927,7 @@ void GL_APIENTRY GL_GetVertexAttribIivRobustANGLE(GLuint index,
                                                   GLsizei *length,
                                                   GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetVertexAttribIivRobustANGLE,
           "context = %d, index = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2887,6 +2962,7 @@ void GL_APIENTRY GL_GetVertexAttribIuivRobustANGLE(GLuint index,
                                                    GLsizei *length,
                                                    GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetVertexAttribIuivRobustANGLE,
           "context = %d, index = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2921,6 +2997,7 @@ void GL_APIENTRY GL_GetUniformuivRobustANGLE(GLuint program,
                                              GLsizei *length,
                                              GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetUniformuivRobustANGLE,
           "context = %d, program = %u, location = %d, bufSize = %d, length = 0x%016" PRIxPTR
@@ -2957,6 +3034,7 @@ void GL_APIENTRY GL_GetActiveUniformBlockivRobustANGLE(GLuint program,
                                                        GLsizei *length,
                                                        GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetActiveUniformBlockivRobustANGLE,
           "context = %d, program = %u, uniformBlockIndex = %u, pname = %s, bufSize = %d, length = "
@@ -2994,6 +3072,7 @@ void GL_APIENTRY GL_GetInteger64vRobustANGLE(GLenum pname,
                                              GLsizei *length,
                                              GLint64 *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetInteger64vRobustANGLE,
           "context = %d, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3028,6 +3107,7 @@ void GL_APIENTRY GL_GetInteger64i_vRobustANGLE(GLenum target,
                                                GLsizei *length,
                                                GLint64 *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetInteger64i_vRobustANGLE,
           "context = %d, target = %s, index = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3062,6 +3142,7 @@ void GL_APIENTRY GL_GetBufferParameteri64vRobustANGLE(GLenum target,
                                                       GLsizei *length,
                                                       GLint64 *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetBufferParameteri64vRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3096,6 +3177,7 @@ void GL_APIENTRY GL_SamplerParameterivRobustANGLE(GLuint sampler,
                                                   GLsizei bufSize,
                                                   const GLint *param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSamplerParameterivRobustANGLE,
           "context = %d, sampler = %u, pname = %u, bufSize = %d, param = 0x%016" PRIxPTR "",
@@ -3128,6 +3210,7 @@ void GL_APIENTRY GL_SamplerParameterfvRobustANGLE(GLuint sampler,
                                                   GLsizei bufSize,
                                                   const GLfloat *param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSamplerParameterfvRobustANGLE,
           "context = %d, sampler = %u, pname = %s, bufSize = %d, param = 0x%016" PRIxPTR "",
@@ -3162,6 +3245,7 @@ void GL_APIENTRY GL_GetSamplerParameterivRobustANGLE(GLuint sampler,
                                                      GLsizei *length,
                                                      GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetSamplerParameterivRobustANGLE,
           "context = %d, sampler = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3197,6 +3281,7 @@ void GL_APIENTRY GL_GetSamplerParameterfvRobustANGLE(GLuint sampler,
                                                      GLsizei *length,
                                                      GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetSamplerParameterfvRobustANGLE,
           "context = %d, sampler = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3232,6 +3317,7 @@ void GL_APIENTRY GL_GetFramebufferParameterivRobustANGLE(GLenum target,
                                                          GLsizei *length,
                                                          GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFramebufferParameterivRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3267,6 +3353,7 @@ void GL_APIENTRY GL_GetProgramInterfaceivRobustANGLE(GLuint program,
                                                      GLsizei *length,
                                                      GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetProgramInterfaceivRobustANGLE,
           "context = %d, program = %u, programInterface = %s, pname = %s, bufSize = %d, length = "
@@ -3303,6 +3390,7 @@ void GL_APIENTRY GL_GetBooleani_vRobustANGLE(GLenum target,
                                              GLsizei *length,
                                              GLboolean *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetBooleani_vRobustANGLE,
           "context = %d, target = %s, index = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3337,6 +3425,7 @@ void GL_APIENTRY GL_GetMultisamplefvRobustANGLE(GLenum pname,
                                                 GLsizei *length,
                                                 GLfloat *val)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetMultisamplefvRobustANGLE,
           "context = %d, pname = %s, index = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3372,6 +3461,7 @@ void GL_APIENTRY GL_GetTexLevelParameterivRobustANGLE(GLenum target,
                                                       GLsizei *length,
                                                       GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexLevelParameterivRobustANGLE,
           "context = %d, target = %s, level = %d, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3409,6 +3499,7 @@ void GL_APIENTRY GL_GetTexLevelParameterfvRobustANGLE(GLenum target,
                                                       GLsizei *length,
                                                       GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexLevelParameterfvRobustANGLE,
           "context = %d, target = %s, level = %d, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3444,6 +3535,7 @@ void GL_APIENTRY GL_GetPointervRobustANGLERobustANGLE(GLenum pname,
                                                       GLsizei *length,
                                                       void **params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetPointervRobustANGLERobustANGLE,
           "context = %d, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3484,6 +3576,7 @@ void GL_APIENTRY GL_ReadnPixelsRobustANGLE(GLint x,
                                            GLsizei *rows,
                                            void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLReadnPixelsRobustANGLE,
           "context = %d, x = %d, y = %d, width = %d, height = %d, format = %s, type = %s, bufSize "
@@ -3525,6 +3618,7 @@ void GL_APIENTRY GL_GetnUniformfvRobustANGLE(GLuint program,
                                              GLsizei *length,
                                              GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetnUniformfvRobustANGLE,
           "context = %d, program = %u, location = %d, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3560,6 +3654,7 @@ void GL_APIENTRY GL_GetnUniformivRobustANGLE(GLuint program,
                                              GLsizei *length,
                                              GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetnUniformivRobustANGLE,
           "context = %d, program = %u, location = %d, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3595,6 +3690,7 @@ void GL_APIENTRY GL_GetnUniformuivRobustANGLE(GLuint program,
                                               GLsizei *length,
                                               GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetnUniformuivRobustANGLE,
           "context = %d, program = %u, location = %d, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3629,6 +3725,7 @@ void GL_APIENTRY GL_TexParameterIivRobustANGLE(GLenum target,
                                                GLsizei bufSize,
                                                const GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexParameterIivRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, params = 0x%016" PRIxPTR "",
@@ -3662,6 +3759,7 @@ void GL_APIENTRY GL_TexParameterIuivRobustANGLE(GLenum target,
                                                 GLsizei bufSize,
                                                 const GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexParameterIuivRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, params = 0x%016" PRIxPTR "",
@@ -3696,6 +3794,7 @@ void GL_APIENTRY GL_GetTexParameterIivRobustANGLE(GLenum target,
                                                   GLsizei *length,
                                                   GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexParameterIivRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3731,6 +3830,7 @@ void GL_APIENTRY GL_GetTexParameterIuivRobustANGLE(GLenum target,
                                                    GLsizei *length,
                                                    GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexParameterIuivRobustANGLE,
           "context = %d, target = %s, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3765,6 +3865,7 @@ void GL_APIENTRY GL_SamplerParameterIivRobustANGLE(GLuint sampler,
                                                    GLsizei bufSize,
                                                    const GLint *param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSamplerParameterIivRobustANGLE,
           "context = %d, sampler = %u, pname = %s, bufSize = %d, param = 0x%016" PRIxPTR "",
@@ -3798,6 +3899,7 @@ void GL_APIENTRY GL_SamplerParameterIuivRobustANGLE(GLuint sampler,
                                                     GLsizei bufSize,
                                                     const GLuint *param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSamplerParameterIuivRobustANGLE,
           "context = %d, sampler = %u, pname = %s, bufSize = %d, param = 0x%016" PRIxPTR "",
@@ -3832,6 +3934,7 @@ void GL_APIENTRY GL_GetSamplerParameterIivRobustANGLE(GLuint sampler,
                                                       GLsizei *length,
                                                       GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetSamplerParameterIivRobustANGLE,
           "context = %d, sampler = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3867,6 +3970,7 @@ void GL_APIENTRY GL_GetSamplerParameterIuivRobustANGLE(GLuint sampler,
                                                        GLsizei *length,
                                                        GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetSamplerParameterIuivRobustANGLE,
           "context = %d, sampler = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3902,6 +4006,7 @@ void GL_APIENTRY GL_GetQueryObjectivRobustANGLE(GLuint id,
                                                 GLsizei *length,
                                                 GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetGlobalContext();
     EVENT(context, GLGetQueryObjectivRobustANGLE,
           "context = %d, id = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3936,6 +4041,7 @@ void GL_APIENTRY GL_GetQueryObjecti64vRobustANGLE(GLuint id,
                                                   GLsizei *length,
                                                   GLint64 *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetGlobalContext();
     EVENT(context, GLGetQueryObjecti64vRobustANGLE,
           "context = %d, id = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -3970,6 +4076,7 @@ void GL_APIENTRY GL_GetQueryObjectui64vRobustANGLE(GLuint id,
                                                    GLsizei *length,
                                                    GLuint64 *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetQueryObjectui64vRobustANGLE,
           "context = %d, id = %u, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -4008,6 +4115,7 @@ void GL_APIENTRY GL_ImportSemaphoreZirconHandleANGLE(GLuint semaphore,
                                                      GLenum handleType,
                                                      GLuint handle)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLImportSemaphoreZirconHandleANGLE,
           "context = %d, semaphore = %u, handleType = %s, handle = %u", CID(context), semaphore,
@@ -4045,6 +4153,7 @@ void GL_APIENTRY GL_ImportSemaphoreZirconHandleANGLE(GLuint semaphore,
 // GL_ANGLE_shader_pixel_local_storage
 void GL_APIENTRY GL_FramebufferMemorylessPixelLocalStorageANGLE(GLint plane, GLenum internalformat)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferMemorylessPixelLocalStorageANGLE,
           "context = %d, plane = %d, internalformat = %s", CID(context), plane,
@@ -4055,12 +4164,9 @@ void GL_APIENTRY GL_FramebufferMemorylessPixelLocalStorageANGLE(GLint plane, GLe
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(
-                  context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                  angle::EntryPoint::GLFramebufferMemorylessPixelLocalStorageANGLE) &&
-              ValidateFramebufferMemorylessPixelLocalStorageANGLE(
-                  context, angle::EntryPoint::GLFramebufferMemorylessPixelLocalStorageANGLE, plane,
-                  internalformat)));
+             ValidateFramebufferMemorylessPixelLocalStorageANGLE(
+                 context, angle::EntryPoint::GLFramebufferMemorylessPixelLocalStorageANGLE, plane,
+                 internalformat));
         if (isCallValid)
         {
             context->framebufferMemorylessPixelLocalStorage(plane, internalformat);
@@ -4080,6 +4186,7 @@ void GL_APIENTRY GL_FramebufferTexturePixelLocalStorageANGLE(GLint plane,
                                                              GLint level,
                                                              GLint layer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferTexturePixelLocalStorageANGLE,
           "context = %d, plane = %d, backingtexture = %u, level = %d, layer = %d", CID(context),
@@ -4091,12 +4198,9 @@ void GL_APIENTRY GL_FramebufferTexturePixelLocalStorageANGLE(GLint plane,
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(
-                  context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                  angle::EntryPoint::GLFramebufferTexturePixelLocalStorageANGLE) &&
-              ValidateFramebufferTexturePixelLocalStorageANGLE(
-                  context, angle::EntryPoint::GLFramebufferTexturePixelLocalStorageANGLE, plane,
-                  backingtexturePacked, level, layer)));
+             ValidateFramebufferTexturePixelLocalStorageANGLE(
+                 context, angle::EntryPoint::GLFramebufferTexturePixelLocalStorageANGLE, plane,
+                 backingtexturePacked, level, layer));
         if (isCallValid)
         {
             context->framebufferTexturePixelLocalStorage(plane, backingtexturePacked, level, layer);
@@ -4113,6 +4217,7 @@ void GL_APIENTRY GL_FramebufferTexturePixelLocalStorageANGLE(GLint plane,
 
 void GL_APIENTRY GL_FramebufferPixelLocalClearValuefvANGLE(GLint plane, const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferPixelLocalClearValuefvANGLE,
           "context = %d, plane = %d, value = 0x%016" PRIxPTR "", CID(context), plane,
@@ -4145,6 +4250,7 @@ void GL_APIENTRY GL_FramebufferPixelLocalClearValuefvANGLE(GLint plane, const GL
 
 void GL_APIENTRY GL_FramebufferPixelLocalClearValueivANGLE(GLint plane, const GLint *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferPixelLocalClearValueivANGLE,
           "context = %d, plane = %d, value = 0x%016" PRIxPTR "", CID(context), plane,
@@ -4177,6 +4283,7 @@ void GL_APIENTRY GL_FramebufferPixelLocalClearValueivANGLE(GLint plane, const GL
 
 void GL_APIENTRY GL_FramebufferPixelLocalClearValueuivANGLE(GLint plane, const GLuint *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferPixelLocalClearValueuivANGLE,
           "context = %d, plane = %d, value = 0x%016" PRIxPTR "", CID(context), plane,
@@ -4209,6 +4316,7 @@ void GL_APIENTRY GL_FramebufferPixelLocalClearValueuivANGLE(GLint plane, const G
 
 void GL_APIENTRY GL_BeginPixelLocalStorageANGLE(GLsizei n, const GLenum *loadops)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBeginPixelLocalStorageANGLE,
           "context = %d, n = %d, loadops = 0x%016" PRIxPTR "", CID(context), n, (uintptr_t)loadops);
@@ -4238,6 +4346,7 @@ void GL_APIENTRY GL_BeginPixelLocalStorageANGLE(GLsizei n, const GLenum *loadops
 
 void GL_APIENTRY GL_EndPixelLocalStorageANGLE(GLsizei n, const GLenum *storeops)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLEndPixelLocalStorageANGLE,
           "context = %d, n = %d, storeops = 0x%016" PRIxPTR "", CID(context), n,
@@ -4265,6 +4374,7 @@ void GL_APIENTRY GL_EndPixelLocalStorageANGLE(GLsizei n, const GLenum *storeops)
 
 void GL_APIENTRY GL_PixelLocalStorageBarrierANGLE()
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPixelLocalStorageBarrierANGLE, "context = %d", CID(context));
 
@@ -4289,6 +4399,7 @@ void GL_APIENTRY GL_PixelLocalStorageBarrierANGLE()
 
 void GL_APIENTRY GL_FramebufferPixelLocalStorageInterruptANGLE()
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferPixelLocalStorageInterruptANGLE, "context = %d", CID(context));
 
@@ -4314,6 +4425,7 @@ void GL_APIENTRY GL_FramebufferPixelLocalStorageInterruptANGLE()
 
 void GL_APIENTRY GL_FramebufferPixelLocalStorageRestoreANGLE()
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferPixelLocalStorageRestoreANGLE, "context = %d", CID(context));
 
@@ -4344,6 +4456,7 @@ void GL_APIENTRY GL_GetFramebufferPixelLocalStorageParameterfvANGLE(GLint plane,
                                                                     GLenum pname,
                                                                     GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFramebufferPixelLocalStorageParameterfvANGLE,
           "context = %d, plane = %d, pname = %s, params = 0x%016" PRIxPTR "", CID(context), plane,
@@ -4375,6 +4488,7 @@ void GL_APIENTRY GL_GetFramebufferPixelLocalStorageParameterivANGLE(GLint plane,
                                                                     GLenum pname,
                                                                     GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFramebufferPixelLocalStorageParameterivANGLE,
           "context = %d, plane = %d, pname = %s, params = 0x%016" PRIxPTR "", CID(context), plane,
@@ -4408,6 +4522,7 @@ void GL_APIENTRY GL_GetFramebufferPixelLocalStorageParameterfvRobustANGLE(GLint 
                                                                           GLsizei *length,
                                                                           GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFramebufferPixelLocalStorageParameterfvRobustANGLE,
           "context = %d, plane = %d, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -4445,6 +4560,7 @@ void GL_APIENTRY GL_GetFramebufferPixelLocalStorageParameterivRobustANGLE(GLint 
                                                                           GLsizei *length,
                                                                           GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFramebufferPixelLocalStorageParameterivRobustANGLE,
           "context = %d, plane = %d, pname = %s, bufSize = %d, length = 0x%016" PRIxPTR
@@ -4492,6 +4608,7 @@ void GL_APIENTRY GL_TexImage2DExternalANGLE(GLenum target,
                                             GLenum format,
                                             GLenum type)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexImage2DExternalANGLE,
           "context = %d, target = %s, level = %d, internalformat = %d, width = %d, height = %d, "
@@ -4529,6 +4646,7 @@ void GL_APIENTRY GL_TexImage2DExternalANGLE(GLenum target,
 
 void GL_APIENTRY GL_InvalidateTextureANGLE(GLenum target)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLInvalidateTextureANGLE, "context = %d, target = %s", CID(context),
           GLenumToString(GLESEnum::TextureTarget, target));
@@ -4565,6 +4683,7 @@ void GL_APIENTRY GL_TexStorage2DMultisampleANGLE(GLenum target,
                                                  GLsizei height,
                                                  GLboolean fixedsamplelocations)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorage2DMultisampleANGLE,
           "context = %d, target = %s, samples = %d, internalformat = %s, width = %d, height = %d, "
@@ -4602,6 +4721,7 @@ void GL_APIENTRY GL_TexStorage2DMultisampleANGLE(GLenum target,
 
 void GL_APIENTRY GL_GetMultisamplefvANGLE(GLenum pname, GLuint index, GLfloat *val)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetMultisamplefvANGLE,
           "context = %d, pname = %s, index = %u, val = 0x%016" PRIxPTR "", CID(context),
@@ -4629,6 +4749,7 @@ void GL_APIENTRY GL_GetMultisamplefvANGLE(GLenum pname, GLuint index, GLfloat *v
 
 void GL_APIENTRY GL_SampleMaskiANGLE(GLuint maskNumber, GLbitfield mask)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSampleMaskiANGLE, "context = %d, maskNumber = %u, mask = %s", CID(context),
           maskNumber, GLbitfieldToString(GLESEnum::AllEnums, mask).c_str());
@@ -4657,9 +4778,6 @@ void GL_APIENTRY GL_SampleMaskiANGLE(GLuint maskNumber, GLbitfield mask)
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
 }
 
-// GetTexLevelParameterfvANGLE is already defined.
-
-// GetTexLevelParameterivANGLE is already defined.
 
 // GL_ANGLE_texture_usage
 
@@ -4669,6 +4787,7 @@ void GL_APIENTRY GL_GetTranslatedShaderSourceANGLE(GLuint shader,
                                                    GLsizei *length,
                                                    GLchar *source)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTranslatedShaderSourceANGLE,
           "context = %d, shader = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -4702,6 +4821,7 @@ void GL_APIENTRY GL_AcquireTexturesANGLE(GLuint numTextures,
                                          const GLuint *textures,
                                          const GLenum *layouts)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLAcquireTexturesANGLE,
           "context = %d, numTextures = %u, textures = 0x%016" PRIxPTR ", layouts = 0x%016" PRIxPTR
@@ -4737,6 +4857,7 @@ void GL_APIENTRY GL_ReleaseTexturesANGLE(GLuint numTextures,
                                          const GLuint *textures,
                                          GLenum *layouts)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLReleaseTexturesANGLE,
           "context = %d, numTextures = %u, textures = 0x%016" PRIxPTR ", layouts = 0x%016" PRIxPTR
@@ -4796,6 +4917,7 @@ void GL_APIENTRY GL_ReleaseTexturesANGLE(GLuint numTextures,
 // GL_CHROMIUM_bind_uniform_location
 void GL_APIENTRY GL_BindUniformLocationCHROMIUM(GLuint program, GLint location, const GLchar *name)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBindUniformLocationCHROMIUM,
           "context = %d, program = %u, location = %d, name = 0x%016" PRIxPTR "", CID(context),
@@ -4831,6 +4953,7 @@ void GL_APIENTRY GL_BindUniformLocationCHROMIUM(GLuint program, GLint location, 
 // GL_CHROMIUM_copy_compressed_texture
 void GL_APIENTRY GL_CompressedCopyTextureCHROMIUM(GLuint sourceId, GLuint destId)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCompressedCopyTextureCHROMIUM, "context = %d, sourceId = %u, destId = %u",
           CID(context), sourceId, destId);
@@ -4874,6 +4997,7 @@ void GL_APIENTRY GL_CopyTextureCHROMIUM(GLuint sourceId,
                                         GLboolean unpackPremultiplyAlpha,
                                         GLboolean unpackUnmultiplyAlpha)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCopyTextureCHROMIUM,
           "context = %d, sourceId = %u, sourceLevel = %d, destTarget = %s, destId = %u, destLevel "
@@ -4931,6 +5055,7 @@ void GL_APIENTRY GL_CopySubTextureCHROMIUM(GLuint sourceId,
                                            GLboolean unpackPremultiplyAlpha,
                                            GLboolean unpackUnmultiplyAlpha)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCopySubTextureCHROMIUM,
           "context = %d, sourceId = %u, sourceLevel = %d, destTarget = %s, destId = %u, destLevel "
@@ -4975,6 +5100,7 @@ void GL_APIENTRY GL_CopySubTextureCHROMIUM(GLuint sourceId,
 // GL_CHROMIUM_framebuffer_mixed_samples
 void GL_APIENTRY GL_CoverageModulationCHROMIUM(GLenum components)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCoverageModulationCHROMIUM, "context = %d, components = %s", CID(context),
           GLenumToString(GLESEnum::AllEnums, components));
@@ -5006,6 +5132,7 @@ void GL_APIENTRY GL_CoverageModulationCHROMIUM(GLenum components)
 // GL_CHROMIUM_lose_context
 void GL_APIENTRY GL_LoseContextCHROMIUM(GLenum current, GLenum other)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLLoseContextCHROMIUM, "context = %d, current = %s, other = %s", CID(context),
           GLenumToString(GLESEnum::GraphicsResetStatus, current),
@@ -5043,6 +5170,7 @@ void GL_APIENTRY GL_EGLImageTargetTexStorageEXT(GLenum target,
                                                 GLeglImageOES image,
                                                 const GLint *attrib_list)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLEGLImageTargetTexStorageEXT,
           "context = %d, target = %s, image = 0x%016" PRIxPTR ", attrib_list = 0x%016" PRIxPTR "",
@@ -5079,6 +5207,7 @@ void GL_APIENTRY GL_EGLImageTargetTextureStorageEXT(GLuint texture,
                                                     GLeglImageOES image,
                                                     const GLint *attrib_list)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLEGLImageTargetTextureStorageEXT,
           "context = %d, texture = %u, image = 0x%016" PRIxPTR ", attrib_list = 0x%016" PRIxPTR "",
@@ -5110,6 +5239,8 @@ void GL_APIENTRY GL_EGLImageTargetTextureStorageEXT(GLuint texture,
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
 }
 
+// GL_EXT_EGL_image_storage_compression
+
 // GL_EXT_YUV_target
 
 // GL_EXT_base_instance
@@ -5119,6 +5250,7 @@ void GL_APIENTRY GL_DrawArraysInstancedBaseInstanceEXT(GLenum mode,
                                                        GLsizei instancecount,
                                                        GLuint baseinstance)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawArraysInstancedBaseInstanceEXT,
           "context = %d, mode = %s, first = %d, count = %d, instancecount = %d, baseinstance = %u",
@@ -5155,6 +5287,7 @@ void GL_APIENTRY GL_DrawElementsInstancedBaseInstanceEXT(GLenum mode,
                                                          GLsizei instancecount,
                                                          GLuint baseinstance)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawElementsInstancedBaseInstanceEXT,
           "context = %d, mode = %s, count = %d, type = %s, indices = 0x%016" PRIxPTR
@@ -5196,6 +5329,7 @@ void GL_APIENTRY GL_DrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode,
                                                                    GLint basevertex,
                                                                    GLuint baseinstance)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawElementsInstancedBaseVertexBaseInstanceEXT,
           "context = %d, mode = %s, count = %d, type = %s, indices = 0x%016" PRIxPTR
@@ -5233,6 +5367,7 @@ void GL_APIENTRY GL_DrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode,
 // GL_EXT_blend_func_extended
 void GL_APIENTRY GL_BindFragDataLocationEXT(GLuint program, GLuint color, const GLchar *name)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBindFragDataLocationEXT,
           "context = %d, program = %u, color = %u, name = 0x%016" PRIxPTR "", CID(context), program,
@@ -5267,6 +5402,7 @@ void GL_APIENTRY GL_BindFragDataLocationIndexedEXT(GLuint program,
                                                    GLuint index,
                                                    const GLchar *name)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBindFragDataLocationIndexedEXT,
           "context = %d, program = %u, colorNumber = %u, index = %u, name = 0x%016" PRIxPTR "",
@@ -5300,6 +5436,7 @@ void GL_APIENTRY GL_BindFragDataLocationIndexedEXT(GLuint program,
 
 GLint GL_APIENTRY GL_GetFragDataIndexEXT(GLuint program, const GLchar *name)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFragDataIndexEXT, "context = %d, program = %u, name = 0x%016" PRIxPTR "",
           CID(context), program, (uintptr_t)name);
@@ -5337,6 +5474,7 @@ GLint GL_APIENTRY GL_GetProgramResourceLocationIndexEXT(GLuint program,
                                                         GLenum programInterface,
                                                         const GLchar *name)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetProgramResourceLocationIndexEXT,
           "context = %d, program = %u, programInterface = %s, name = 0x%016" PRIxPTR "",
@@ -5384,6 +5522,7 @@ void GL_APIENTRY GL_BufferStorageEXT(GLenum target,
                                      const void *data,
                                      GLbitfield flags)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBufferStorageEXT,
           "context = %d, target = %s, size = %llu, data = 0x%016" PRIxPTR ", flags = %s",
@@ -5419,6 +5558,7 @@ void GL_APIENTRY GL_BufferStorageEXT(GLenum target,
 void GL_APIENTRY
 GL_ClearTexImageEXT(GLuint texture, GLint level, GLenum format, GLenum type, const void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLClearTexImageEXT,
           "context = %d, texture = %u, level = %d, format = %s, type = %s, data = 0x%016" PRIxPTR
@@ -5463,6 +5603,7 @@ void GL_APIENTRY GL_ClearTexSubImageEXT(GLuint texture,
                                         GLenum type,
                                         const void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLClearTexSubImageEXT,
           "context = %d, texture = %u, level = %d, xoffset = %d, yoffset = %d, zoffset = %d, width "
@@ -5501,6 +5642,7 @@ void GL_APIENTRY GL_ClearTexSubImageEXT(GLuint texture,
 // GL_EXT_clip_control
 void GL_APIENTRY GL_ClipControlEXT(GLenum origin, GLenum depth)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLClipControlEXT, "context = %d, origin = %s, depth = %s", CID(context),
           GLenumToString(GLESEnum::AllEnums, origin), GLenumToString(GLESEnum::AllEnums, depth));
@@ -5554,6 +5696,7 @@ void GL_APIENTRY GL_CopyImageSubDataEXT(GLuint srcName,
                                         GLsizei srcHeight,
                                         GLsizei srcDepth)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCopyImageSubDataEXT,
           "context = %d, srcName = %u, srcTarget = %s, srcLevel = %d, srcX = %d, srcY = %d, srcZ = "
@@ -5597,6 +5740,7 @@ void GL_APIENTRY GL_CopyImageSubDataEXT(GLuint srcName,
 void GL_APIENTRY
 GL_GetObjectLabelEXT(GLenum type, GLuint object, GLsizei bufSize, GLsizei *length, GLchar *label)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetObjectLabelEXT,
           "context = %d, type = %s, object = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -5627,6 +5771,7 @@ GL_GetObjectLabelEXT(GLenum type, GLuint object, GLsizei bufSize, GLsizei *lengt
 
 void GL_APIENTRY GL_LabelObjectEXT(GLenum type, GLuint object, GLsizei length, const GLchar *label)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLLabelObjectEXT,
           "context = %d, type = %s, object = %u, length = %d, label = 0x%016" PRIxPTR "",
@@ -5658,6 +5803,7 @@ void GL_APIENTRY GL_LabelObjectEXT(GLenum type, GLuint object, GLsizei length, c
 // GL_EXT_debug_marker
 void GL_APIENTRY GL_InsertEventMarkerEXT(GLsizei length, const GLchar *marker)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     // Don't run the EVENT() macro on the EXT_debug_marker entry points.
     // It can interfere with the debug events being set by the caller.
@@ -5689,6 +5835,7 @@ void GL_APIENTRY GL_InsertEventMarkerEXT(GLsizei length, const GLchar *marker)
 
 void GL_APIENTRY GL_PopGroupMarkerEXT()
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     // Don't run the EVENT() macro on the EXT_debug_marker entry points.
     // It can interfere with the debug events being set by the caller.
@@ -5718,6 +5865,7 @@ void GL_APIENTRY GL_PopGroupMarkerEXT()
 
 void GL_APIENTRY GL_PushGroupMarkerEXT(GLsizei length, const GLchar *marker)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     // Don't run the EVENT() macro on the EXT_debug_marker entry points.
     // It can interfere with the debug events being set by the caller.
@@ -5754,6 +5902,7 @@ void GL_APIENTRY GL_DiscardFramebufferEXT(GLenum target,
                                           GLsizei numAttachments,
                                           const GLenum *attachments)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDiscardFramebufferEXT,
           "context = %d, target = %s, numAttachments = %d, attachments = 0x%016" PRIxPTR "",
@@ -5787,6 +5936,7 @@ void GL_APIENTRY GL_DiscardFramebufferEXT(GLenum target,
 // GL_EXT_disjoint_timer_query
 void GL_APIENTRY GL_BeginQueryEXT(GLenum target, GLuint id)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBeginQueryEXT, "context = %d, target = %s, id = %u", CID(context),
           GLenumToString(GLESEnum::QueryTarget, target), id);
@@ -5818,6 +5968,7 @@ void GL_APIENTRY GL_BeginQueryEXT(GLenum target, GLuint id)
 
 void GL_APIENTRY GL_DeleteQueriesEXT(GLsizei n, const GLuint *ids)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDeleteQueriesEXT, "context = %d, n = %d, ids = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)ids);
@@ -5844,6 +5995,7 @@ void GL_APIENTRY GL_DeleteQueriesEXT(GLsizei n, const GLuint *ids)
 
 void GL_APIENTRY GL_EndQueryEXT(GLenum target)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLEndQueryEXT, "context = %d, target = %s", CID(context),
           GLenumToString(GLESEnum::QueryTarget, target));
@@ -5873,6 +6025,7 @@ void GL_APIENTRY GL_EndQueryEXT(GLenum target)
 
 void GL_APIENTRY GL_GenQueriesEXT(GLsizei n, GLuint *ids)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGenQueriesEXT, "context = %d, n = %d, ids = 0x%016" PRIxPTR "", CID(context),
           n, (uintptr_t)ids);
@@ -5899,6 +6052,7 @@ void GL_APIENTRY GL_GenQueriesEXT(GLsizei n, GLuint *ids)
 
 void GL_APIENTRY GL_GetInteger64vEXT(GLenum pname, GLint64 *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetInteger64vEXT, "context = %d, pname = %s, data = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLESEnum::GetPName, pname), (uintptr_t)data);
@@ -5924,6 +6078,7 @@ void GL_APIENTRY GL_GetInteger64vEXT(GLenum pname, GLint64 *data)
 
 void GL_APIENTRY GL_GetQueryObjecti64vEXT(GLuint id, GLenum pname, GLint64 *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetGlobalContext();
     EVENT(context, GLGetQueryObjecti64vEXT,
           "context = %d, id = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context), id,
@@ -5951,6 +6106,7 @@ void GL_APIENTRY GL_GetQueryObjecti64vEXT(GLuint id, GLenum pname, GLint64 *para
 
 void GL_APIENTRY GL_GetQueryObjectivEXT(GLuint id, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetGlobalContext();
     EVENT(context, GLGetQueryObjectivEXT,
           "context = %d, id = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context), id,
@@ -5978,6 +6134,7 @@ void GL_APIENTRY GL_GetQueryObjectivEXT(GLuint id, GLenum pname, GLint *params)
 
 void GL_APIENTRY GL_GetQueryObjectui64vEXT(GLuint id, GLenum pname, GLuint64 *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetQueryObjectui64vEXT,
           "context = %d, id = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context), id,
@@ -6006,6 +6163,7 @@ void GL_APIENTRY GL_GetQueryObjectui64vEXT(GLuint id, GLenum pname, GLuint64 *pa
 
 void GL_APIENTRY GL_GetQueryObjectuivEXT(GLuint id, GLenum pname, GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetQueryObjectuivEXT,
           "context = %d, id = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context), id,
@@ -6034,6 +6192,7 @@ void GL_APIENTRY GL_GetQueryObjectuivEXT(GLuint id, GLenum pname, GLuint *params
 
 void GL_APIENTRY GL_GetQueryivEXT(GLenum target, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetQueryivEXT,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -6062,6 +6221,7 @@ void GL_APIENTRY GL_GetQueryivEXT(GLenum target, GLenum pname, GLint *params)
 
 GLboolean GL_APIENTRY GL_IsQueryEXT(GLuint id)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLIsQueryEXT, "context = %d, id = %u", CID(context), id);
 
@@ -6093,6 +6253,7 @@ GLboolean GL_APIENTRY GL_IsQueryEXT(GLuint id)
 
 void GL_APIENTRY GL_QueryCounterEXT(GLuint id, GLenum target)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLQueryCounterEXT, "context = %d, id = %u, target = %s", CID(context), id,
           GLenumToString(GLESEnum::QueryCounterTarget, target));
@@ -6125,6 +6286,7 @@ void GL_APIENTRY GL_QueryCounterEXT(GLuint id, GLenum target)
 // GL_EXT_draw_buffers
 void GL_APIENTRY GL_DrawBuffersEXT(GLsizei n, const GLenum *bufs)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawBuffersEXT, "context = %d, n = %d, bufs = 0x%016" PRIxPTR "", CID(context),
           n, (uintptr_t)bufs);
@@ -6154,6 +6316,7 @@ void GL_APIENTRY GL_DrawBuffersEXT(GLsizei n, const GLenum *bufs)
 // GL_EXT_draw_buffers_indexed
 void GL_APIENTRY GL_BlendEquationSeparateiEXT(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlendEquationSeparateiEXT,
           "context = %d, buf = %u, modeRGB = %s, modeAlpha = %s", CID(context), buf,
@@ -6184,6 +6347,7 @@ void GL_APIENTRY GL_BlendEquationSeparateiEXT(GLuint buf, GLenum modeRGB, GLenum
 
 void GL_APIENTRY GL_BlendEquationiEXT(GLuint buf, GLenum mode)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlendEquationiEXT, "context = %d, buf = %u, mode = %s", CID(context), buf,
           GLenumToString(GLESEnum::BlendEquationModeEXT, mode));
@@ -6212,6 +6376,7 @@ void GL_APIENTRY GL_BlendEquationiEXT(GLuint buf, GLenum mode)
 void GL_APIENTRY
 GL_BlendFuncSeparateiEXT(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlendFuncSeparateiEXT,
           "context = %d, buf = %u, srcRGB = %s, dstRGB = %s, srcAlpha = %s, dstAlpha = %s",
@@ -6246,6 +6411,7 @@ GL_BlendFuncSeparateiEXT(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlp
 
 void GL_APIENTRY GL_BlendFunciEXT(GLuint buf, GLenum src, GLenum dst)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlendFunciEXT, "context = %d, buf = %u, src = %s, dst = %s", CID(context), buf,
           GLenumToString(GLESEnum::BlendingFactor, src),
@@ -6274,6 +6440,7 @@ void GL_APIENTRY GL_BlendFunciEXT(GLuint buf, GLenum src, GLenum dst)
 
 void GL_APIENTRY GL_ColorMaskiEXT(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLColorMaskiEXT, "context = %d, index = %u, r = %s, g = %s, b = %s, a = %s",
           CID(context), index, GLbooleanToString(r), GLbooleanToString(g), GLbooleanToString(b),
@@ -6302,6 +6469,7 @@ void GL_APIENTRY GL_ColorMaskiEXT(GLuint index, GLboolean r, GLboolean g, GLbool
 
 void GL_APIENTRY GL_DisableiEXT(GLenum target, GLuint index)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDisableiEXT, "context = %d, target = %s, index = %u", CID(context),
           GLenumToString(GLESEnum::EnableCap, target), index);
@@ -6328,6 +6496,7 @@ void GL_APIENTRY GL_DisableiEXT(GLenum target, GLuint index)
 
 void GL_APIENTRY GL_EnableiEXT(GLenum target, GLuint index)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLEnableiEXT, "context = %d, target = %s, index = %u", CID(context),
           GLenumToString(GLESEnum::EnableCap, target), index);
@@ -6354,6 +6523,7 @@ void GL_APIENTRY GL_EnableiEXT(GLenum target, GLuint index)
 
 GLboolean GL_APIENTRY GL_IsEnablediEXT(GLenum target, GLuint index)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLIsEnablediEXT, "context = %d, target = %s, index = %u", CID(context),
           GLenumToString(GLESEnum::EnableCap, target), index);
@@ -6394,6 +6564,7 @@ void GL_APIENTRY GL_DrawElementsBaseVertexEXT(GLenum mode,
                                               const void *indices,
                                               GLint basevertex)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawElementsBaseVertexEXT,
           "context = %d, mode = %s, count = %d, type = %s, indices = 0x%016" PRIxPTR
@@ -6431,6 +6602,7 @@ void GL_APIENTRY GL_DrawElementsInstancedBaseVertexEXT(GLenum mode,
                                                        GLsizei instancecount,
                                                        GLint basevertex)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawElementsInstancedBaseVertexEXT,
           "context = %d, mode = %s, count = %d, type = %s, indices = 0x%016" PRIxPTR
@@ -6471,6 +6643,7 @@ void GL_APIENTRY GL_DrawRangeElementsBaseVertexEXT(GLenum mode,
                                                    const void *indices,
                                                    GLint basevertex)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawRangeElementsBaseVertexEXT,
           "context = %d, mode = %s, start = %u, end = %u, count = %d, type = %s, indices = "
@@ -6509,6 +6682,7 @@ void GL_APIENTRY GL_MultiDrawElementsBaseVertexEXT(GLenum mode,
                                                    GLsizei drawcount,
                                                    const GLint *basevertex)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMultiDrawElementsBaseVertexEXT,
           "context = %d, mode = %s, count = 0x%016" PRIxPTR ", type = %s, indices = 0x%016" PRIxPTR
@@ -6552,6 +6726,7 @@ void GL_APIENTRY GL_BufferStorageExternalEXT(GLenum target,
                                              GLeglClientBufferEXT clientBuffer,
                                              GLbitfield flags)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBufferStorageExternalEXT,
           "context = %d, target = %s, offset = %llu, size = %llu, clientBuffer = 0x%016" PRIxPTR
@@ -6592,6 +6767,7 @@ void GL_APIENTRY GL_NamedBufferStorageExternalEXT(GLuint buffer,
                                                   GLeglClientBufferEXT clientBuffer,
                                                   GLbitfield flags)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLNamedBufferStorageExternalEXT,
           "context = %d, buffer = %u, offset = %llu, size = %llu, clientBuffer = 0x%016" PRIxPTR
@@ -6633,6 +6809,7 @@ void GL_APIENTRY GL_FramebufferTextureEXT(GLenum target,
                                           GLuint texture,
                                           GLint level)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferTextureEXT,
           "context = %d, target = %s, attachment = %s, texture = %u, level = %d", CID(context),
@@ -6645,11 +6822,8 @@ void GL_APIENTRY GL_FramebufferTextureEXT(GLenum target,
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
-                                                context->getMutableErrorSetForValidation(),
-                                                angle::EntryPoint::GLFramebufferTextureEXT) &&
-              ValidateFramebufferTextureEXT(context, angle::EntryPoint::GLFramebufferTextureEXT,
-                                            target, attachment, texturePacked, level)));
+             ValidateFramebufferTextureEXT(context, angle::EntryPoint::GLFramebufferTextureEXT,
+                                           target, attachment, texturePacked, level));
         if (isCallValid)
         {
             context->framebufferTexture(target, attachment, texturePacked, level);
@@ -6672,6 +6846,7 @@ void GL_APIENTRY GL_DrawArraysInstancedEXT(GLenum mode,
                                            GLsizei count,
                                            GLsizei primcount)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawArraysInstancedEXT,
           "context = %d, mode = %s, start = %d, count = %d, primcount = %d", CID(context),
@@ -6705,6 +6880,7 @@ void GL_APIENTRY GL_DrawElementsInstancedEXT(GLenum mode,
                                              const void *indices,
                                              GLsizei primcount)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawElementsInstancedEXT,
           "context = %d, mode = %s, count = %d, type = %s, indices = 0x%016" PRIxPTR
@@ -6737,6 +6913,7 @@ void GL_APIENTRY GL_DrawElementsInstancedEXT(GLenum mode,
 
 void GL_APIENTRY GL_VertexAttribDivisorEXT(GLuint index, GLuint divisor)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLVertexAttribDivisorEXT, "context = %d, index = %u, divisor = %u", CID(context),
           index, divisor);
@@ -6764,6 +6941,7 @@ void GL_APIENTRY GL_VertexAttribDivisorEXT(GLuint index, GLuint divisor)
 // GL_EXT_map_buffer_range
 void GL_APIENTRY GL_FlushMappedBufferRangeEXT(GLenum target, GLintptr offset, GLsizeiptr length)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFlushMappedBufferRangeEXT,
           "context = %d, target = %s, offset = %llu, length = %llu", CID(context),
@@ -6801,6 +6979,7 @@ void *GL_APIENTRY GL_MapBufferRangeEXT(GLenum target,
                                        GLsizeiptr length,
                                        GLbitfield access)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMapBufferRangeEXT,
           "context = %d, target = %s, offset = %llu, length = %llu, access = %s", CID(context),
@@ -6846,6 +7025,7 @@ void GL_APIENTRY GL_BufferStorageMemEXT(GLenum target,
                                         GLuint memory,
                                         GLuint64 offset)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBufferStorageMemEXT,
           "context = %d, target = %s, size = %llu, memory = %u, offset = %llu", CID(context),
@@ -6880,6 +7060,7 @@ void GL_APIENTRY GL_BufferStorageMemEXT(GLenum target,
 
 void GL_APIENTRY GL_CreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCreateMemoryObjectsEXT,
           "context = %d, n = %d, memoryObjects = 0x%016" PRIxPTR "", CID(context), n,
@@ -6911,6 +7092,7 @@ void GL_APIENTRY GL_CreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
 
 void GL_APIENTRY GL_DeleteMemoryObjectsEXT(GLsizei n, const GLuint *memoryObjects)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDeleteMemoryObjectsEXT,
           "context = %d, n = %d, memoryObjects = 0x%016" PRIxPTR "", CID(context), n,
@@ -6940,6 +7122,7 @@ void GL_APIENTRY GL_DeleteMemoryObjectsEXT(GLsizei n, const GLuint *memoryObject
 
 void GL_APIENTRY GL_GetMemoryObjectParameterivEXT(GLuint memoryObject, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetMemoryObjectParameterivEXT,
           "context = %d, memoryObject = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -6970,6 +7153,7 @@ void GL_APIENTRY GL_GetMemoryObjectParameterivEXT(GLuint memoryObject, GLenum pn
 
 void GL_APIENTRY GL_GetUnsignedBytevEXT(GLenum pname, GLubyte *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetUnsignedBytevEXT, "context = %d, pname = %s, data = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLESEnum::GetPName, pname), (uintptr_t)data);
@@ -6995,6 +7179,7 @@ void GL_APIENTRY GL_GetUnsignedBytevEXT(GLenum pname, GLubyte *data)
 
 void GL_APIENTRY GL_GetUnsignedBytei_vEXT(GLenum target, GLuint index, GLubyte *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetUnsignedBytei_vEXT,
           "context = %d, target = %s, index = %u, data = 0x%016" PRIxPTR "", CID(context),
@@ -7022,6 +7207,7 @@ void GL_APIENTRY GL_GetUnsignedBytei_vEXT(GLenum target, GLuint index, GLubyte *
 
 GLboolean GL_APIENTRY GL_IsMemoryObjectEXT(GLuint memoryObject)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLIsMemoryObjectEXT, "context = %d, memoryObject = %u", CID(context),
           memoryObject);
@@ -7059,6 +7245,7 @@ void GL_APIENTRY GL_MemoryObjectParameterivEXT(GLuint memoryObject,
                                                GLenum pname,
                                                const GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMemoryObjectParameterivEXT,
           "context = %d, memoryObject = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -7099,6 +7286,7 @@ void GL_APIENTRY GL_TexStorageMem2DEXT(GLenum target,
                                        GLuint memory,
                                        GLuint64 offset)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorageMem2DEXT,
           "context = %d, target = %s, levels = %d, internalFormat = %s, width = %d, height = %d, "
@@ -7144,6 +7332,7 @@ void GL_APIENTRY GL_TexStorageMem2DMultisampleEXT(GLenum target,
                                                   GLuint memory,
                                                   GLuint64 offset)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorageMem2DMultisampleEXT,
           "context = %d, target = %s, samples = %d, internalFormat = %s, width = %d, height = %d, "
@@ -7190,6 +7379,7 @@ void GL_APIENTRY GL_TexStorageMem3DEXT(GLenum target,
                                        GLuint memory,
                                        GLuint64 offset)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorageMem3DEXT,
           "context = %d, target = %s, levels = %d, internalFormat = %s, width = %d, height = %d, "
@@ -7236,6 +7426,7 @@ void GL_APIENTRY GL_TexStorageMem3DMultisampleEXT(GLenum target,
                                                   GLuint memory,
                                                   GLuint64 offset)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorageMem3DMultisampleEXT,
           "context = %d, target = %s, samples = %d, internalFormat = %s, width = %d, height = %d, "
@@ -7278,6 +7469,7 @@ void GL_APIENTRY GL_TexStorageMem3DMultisampleEXT(GLenum target,
 // GL_EXT_memory_object_fd
 void GL_APIENTRY GL_ImportMemoryFdEXT(GLuint memory, GLuint64 size, GLenum handleType, GLint fd)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLImportMemoryFdEXT,
           "context = %d, memory = %u, size = %llu, handleType = %s, fd = %d", CID(context), memory,
@@ -7316,6 +7508,7 @@ void GL_APIENTRY GL_MultiDrawArraysIndirectEXT(GLenum mode,
                                                GLsizei drawcount,
                                                GLsizei stride)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMultiDrawArraysIndirectEXT,
           "context = %d, mode = %s, indirect = 0x%016" PRIxPTR ", drawcount = %d, stride = %d",
@@ -7354,6 +7547,7 @@ void GL_APIENTRY GL_MultiDrawElementsIndirectEXT(GLenum mode,
                                                  GLsizei drawcount,
                                                  GLsizei stride)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMultiDrawElementsIndirectEXT,
           "context = %d, mode = %s, type = %s, indirect = 0x%016" PRIxPTR
@@ -7396,6 +7590,7 @@ void GL_APIENTRY GL_FramebufferTexture2DMultisampleEXT(GLenum target,
                                                        GLint level,
                                                        GLsizei samples)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferTexture2DMultisampleEXT,
           "context = %d, target = %s, attachment = %s, textarget = %s, texture = %u, level = %d, "
@@ -7411,12 +7606,9 @@ void GL_APIENTRY GL_FramebufferTexture2DMultisampleEXT(GLenum target,
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(
-                  context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                  angle::EntryPoint::GLFramebufferTexture2DMultisampleEXT) &&
-              ValidateFramebufferTexture2DMultisampleEXT(
-                  context, angle::EntryPoint::GLFramebufferTexture2DMultisampleEXT, target,
-                  attachment, textargetPacked, texturePacked, level, samples)));
+             ValidateFramebufferTexture2DMultisampleEXT(
+                 context, angle::EntryPoint::GLFramebufferTexture2DMultisampleEXT, target,
+                 attachment, textargetPacked, texturePacked, level, samples));
         if (isCallValid)
         {
             context->framebufferTexture2DMultisample(target, attachment, textargetPacked,
@@ -7438,6 +7630,7 @@ void GL_APIENTRY GL_RenderbufferStorageMultisampleEXT(GLenum target,
                                                       GLsizei width,
                                                       GLsizei height)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLRenderbufferStorageMultisampleEXT,
           "context = %d, target = %s, samples = %d, internalformat = %s, width = %d, height = %d",
@@ -7490,6 +7683,7 @@ void GL_APIENTRY GL_RenderbufferStorageMultisampleEXT(GLenum target,
 // GL_EXT_polygon_offset_clamp
 void GL_APIENTRY GL_PolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPolygonOffsetClampEXT, "context = %d, factor = %f, units = %f, clamp = %f",
           CID(context), factor, units, clamp);
@@ -7526,6 +7720,7 @@ void GL_APIENTRY GL_PrimitiveBoundingBoxEXT(GLfloat minX,
                                             GLfloat maxZ,
                                             GLfloat maxW)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPrimitiveBoundingBoxEXT,
           "context = %d, minX = %f, minY = %f, minZ = %f, minW = %f, maxX = %f, maxY = %f, maxZ = "
@@ -7570,6 +7765,7 @@ void GL_APIENTRY GL_PrimitiveBoundingBoxEXT(GLfloat minX,
 // GL_EXT_robustness
 GLenum GL_APIENTRY GL_GetGraphicsResetStatusEXT()
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetGlobalContext();
     EVENT(context, GLGetGraphicsResetStatusEXT, "context = %d", CID(context));
 
@@ -7606,6 +7802,7 @@ void GL_APIENTRY GL_GetnUniformfvEXT(GLuint program,
                                      GLsizei bufSize,
                                      GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetnUniformfvEXT,
           "context = %d, program = %u, location = %d, bufSize = %d, params = 0x%016" PRIxPTR "",
@@ -7636,6 +7833,7 @@ void GL_APIENTRY GL_GetnUniformfvEXT(GLuint program,
 
 void GL_APIENTRY GL_GetnUniformivEXT(GLuint program, GLint location, GLsizei bufSize, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetnUniformivEXT,
           "context = %d, program = %u, location = %d, bufSize = %d, params = 0x%016" PRIxPTR "",
@@ -7673,6 +7871,7 @@ void GL_APIENTRY GL_ReadnPixelsEXT(GLint x,
                                    GLsizei bufSize,
                                    void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLReadnPixelsEXT,
           "context = %d, x = %d, y = %d, width = %d, height = %d, format = %s, type = %s, bufSize "
@@ -7711,6 +7910,7 @@ void GL_APIENTRY GL_ReadnPixelsEXT(GLint x,
 // GL_EXT_semaphore
 void GL_APIENTRY GL_DeleteSemaphoresEXT(GLsizei n, const GLuint *semaphores)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDeleteSemaphoresEXT, "context = %d, n = %d, semaphores = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)semaphores);
@@ -7738,6 +7938,7 @@ void GL_APIENTRY GL_DeleteSemaphoresEXT(GLsizei n, const GLuint *semaphores)
 
 void GL_APIENTRY GL_GenSemaphoresEXT(GLsizei n, GLuint *semaphores)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGenSemaphoresEXT, "context = %d, n = %d, semaphores = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)semaphores);
@@ -7764,6 +7965,7 @@ void GL_APIENTRY GL_GenSemaphoresEXT(GLsizei n, GLuint *semaphores)
 
 void GL_APIENTRY GL_GetSemaphoreParameterui64vEXT(GLuint semaphore, GLenum pname, GLuint64 *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetSemaphoreParameterui64vEXT,
           "context = %d, semaphore = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -7793,6 +7995,7 @@ void GL_APIENTRY GL_GetSemaphoreParameterui64vEXT(GLuint semaphore, GLenum pname
 
 GLboolean GL_APIENTRY GL_IsSemaphoreEXT(GLuint semaphore)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLIsSemaphoreEXT, "context = %d, semaphore = %u", CID(context), semaphore);
 
@@ -7827,6 +8030,7 @@ void GL_APIENTRY GL_SemaphoreParameterui64vEXT(GLuint semaphore,
                                                GLenum pname,
                                                const GLuint64 *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSemaphoreParameterui64vEXT,
           "context = %d, semaphore = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -7865,6 +8069,7 @@ void GL_APIENTRY GL_SignalSemaphoreEXT(GLuint semaphore,
                                        const GLuint *textures,
                                        const GLenum *dstLayouts)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSignalSemaphoreEXT,
           "context = %d, semaphore = %u, numBufferBarriers = %u, buffers = 0x%016" PRIxPTR
@@ -7909,6 +8114,7 @@ void GL_APIENTRY GL_WaitSemaphoreEXT(GLuint semaphore,
                                      const GLuint *textures,
                                      const GLenum *srcLayouts)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLWaitSemaphoreEXT,
           "context = %d, semaphore = %u, numBufferBarriers = %u, buffers = 0x%016" PRIxPTR
@@ -7952,6 +8158,7 @@ void GL_APIENTRY GL_WaitSemaphoreEXT(GLuint semaphore,
 // GL_EXT_semaphore_fd
 void GL_APIENTRY GL_ImportSemaphoreFdEXT(GLuint semaphore, GLenum handleType, GLint fd)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLImportSemaphoreFdEXT, "context = %d, semaphore = %u, handleType = %s, fd = %d",
           CID(context), semaphore, GLenumToString(GLESEnum::ExternalHandleType, handleType), fd);
@@ -7987,6 +8194,7 @@ void GL_APIENTRY GL_ImportSemaphoreFdEXT(GLuint semaphore, GLenum handleType, GL
 // GL_EXT_separate_shader_objects
 void GL_APIENTRY GL_ActiveShaderProgramEXT(GLuint pipeline, GLuint program)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLActiveShaderProgramEXT, "context = %d, pipeline = %u, program = %u",
           CID(context), pipeline, program);
@@ -8019,6 +8227,7 @@ void GL_APIENTRY GL_ActiveShaderProgramEXT(GLuint pipeline, GLuint program)
 
 void GL_APIENTRY GL_BindProgramPipelineEXT(GLuint pipeline)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBindProgramPipelineEXT, "context = %d, pipeline = %u", CID(context), pipeline);
 
@@ -8048,6 +8257,7 @@ void GL_APIENTRY GL_BindProgramPipelineEXT(GLuint pipeline)
 
 GLuint GL_APIENTRY GL_CreateShaderProgramvEXT(GLenum type, GLsizei count, const GLchar **strings)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCreateShaderProgramvEXT,
           "context = %d, type = %s, count = %d, strings = 0x%016" PRIxPTR "", CID(context),
@@ -8088,6 +8298,7 @@ GLuint GL_APIENTRY GL_CreateShaderProgramvEXT(GLenum type, GLsizei count, const 
 
 void GL_APIENTRY GL_DeleteProgramPipelinesEXT(GLsizei n, const GLuint *pipelines)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDeleteProgramPipelinesEXT,
           "context = %d, n = %d, pipelines = 0x%016" PRIxPTR "", CID(context), n,
@@ -8116,6 +8327,7 @@ void GL_APIENTRY GL_DeleteProgramPipelinesEXT(GLsizei n, const GLuint *pipelines
 
 void GL_APIENTRY GL_GenProgramPipelinesEXT(GLsizei n, GLuint *pipelines)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGenProgramPipelinesEXT, "context = %d, n = %d, pipelines = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)pipelines);
@@ -8146,6 +8358,7 @@ void GL_APIENTRY GL_GetProgramPipelineInfoLogEXT(GLuint pipeline,
                                                  GLsizei *length,
                                                  GLchar *infoLog)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetProgramPipelineInfoLogEXT,
           "context = %d, pipeline = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -8176,6 +8389,7 @@ void GL_APIENTRY GL_GetProgramPipelineInfoLogEXT(GLuint pipeline,
 
 void GL_APIENTRY GL_GetProgramPipelineivEXT(GLuint pipeline, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetProgramPipelineivEXT,
           "context = %d, pipeline = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -8205,6 +8419,7 @@ void GL_APIENTRY GL_GetProgramPipelineivEXT(GLuint pipeline, GLenum pname, GLint
 
 GLboolean GL_APIENTRY GL_IsProgramPipelineEXT(GLuint pipeline)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLIsProgramPipelineEXT, "context = %d, pipeline = %u", CID(context), pipeline);
 
@@ -8239,6 +8454,7 @@ GLboolean GL_APIENTRY GL_IsProgramPipelineEXT(GLuint pipeline)
 
 void GL_APIENTRY GL_ProgramParameteriEXT(GLuint program, GLenum pname, GLint value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramParameteriEXT, "context = %d, program = %u, pname = %s, value = %d",
           CID(context), program, GLenumToString(GLESEnum::ProgramParameterPName, pname), value);
@@ -8269,6 +8485,7 @@ void GL_APIENTRY GL_ProgramParameteriEXT(GLuint program, GLenum pname, GLint val
 
 void GL_APIENTRY GL_ProgramUniform1fEXT(GLuint program, GLint location, GLfloat v0)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform1fEXT, "context = %d, program = %u, location = %d, v0 = %f",
           CID(context), program, location, v0);
@@ -8304,6 +8521,7 @@ void GL_APIENTRY GL_ProgramUniform1fvEXT(GLuint program,
                                          GLsizei count,
                                          const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform1fvEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -8337,6 +8555,7 @@ void GL_APIENTRY GL_ProgramUniform1fvEXT(GLuint program,
 
 void GL_APIENTRY GL_ProgramUniform1iEXT(GLuint program, GLint location, GLint v0)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform1iEXT, "context = %d, program = %u, location = %d, v0 = %d",
           CID(context), program, location, v0);
@@ -8372,6 +8591,7 @@ void GL_APIENTRY GL_ProgramUniform1ivEXT(GLuint program,
                                          GLsizei count,
                                          const GLint *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform1ivEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -8405,6 +8625,7 @@ void GL_APIENTRY GL_ProgramUniform1ivEXT(GLuint program,
 
 void GL_APIENTRY GL_ProgramUniform1uiEXT(GLuint program, GLint location, GLuint v0)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform1uiEXT, "context = %d, program = %u, location = %d, v0 = %u",
           CID(context), program, location, v0);
@@ -8440,6 +8661,7 @@ void GL_APIENTRY GL_ProgramUniform1uivEXT(GLuint program,
                                           GLsizei count,
                                           const GLuint *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform1uivEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -8473,6 +8695,7 @@ void GL_APIENTRY GL_ProgramUniform1uivEXT(GLuint program,
 
 void GL_APIENTRY GL_ProgramUniform2fEXT(GLuint program, GLint location, GLfloat v0, GLfloat v1)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform2fEXT,
           "context = %d, program = %u, location = %d, v0 = %f, v1 = %f", CID(context), program,
@@ -8509,6 +8732,7 @@ void GL_APIENTRY GL_ProgramUniform2fvEXT(GLuint program,
                                          GLsizei count,
                                          const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform2fvEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -8542,6 +8766,7 @@ void GL_APIENTRY GL_ProgramUniform2fvEXT(GLuint program,
 
 void GL_APIENTRY GL_ProgramUniform2iEXT(GLuint program, GLint location, GLint v0, GLint v1)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform2iEXT,
           "context = %d, program = %u, location = %d, v0 = %d, v1 = %d", CID(context), program,
@@ -8578,6 +8803,7 @@ void GL_APIENTRY GL_ProgramUniform2ivEXT(GLuint program,
                                          GLsizei count,
                                          const GLint *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform2ivEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -8611,6 +8837,7 @@ void GL_APIENTRY GL_ProgramUniform2ivEXT(GLuint program,
 
 void GL_APIENTRY GL_ProgramUniform2uiEXT(GLuint program, GLint location, GLuint v0, GLuint v1)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform2uiEXT,
           "context = %d, program = %u, location = %d, v0 = %u, v1 = %u", CID(context), program,
@@ -8647,6 +8874,7 @@ void GL_APIENTRY GL_ProgramUniform2uivEXT(GLuint program,
                                           GLsizei count,
                                           const GLuint *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform2uivEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -8681,6 +8909,7 @@ void GL_APIENTRY GL_ProgramUniform2uivEXT(GLuint program,
 void GL_APIENTRY
 GL_ProgramUniform3fEXT(GLuint program, GLint location, GLfloat v0, GLfloat v1, GLfloat v2)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform3fEXT,
           "context = %d, program = %u, location = %d, v0 = %f, v1 = %f, v2 = %f", CID(context),
@@ -8717,6 +8946,7 @@ void GL_APIENTRY GL_ProgramUniform3fvEXT(GLuint program,
                                          GLsizei count,
                                          const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform3fvEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -8751,6 +8981,7 @@ void GL_APIENTRY GL_ProgramUniform3fvEXT(GLuint program,
 void GL_APIENTRY
 GL_ProgramUniform3iEXT(GLuint program, GLint location, GLint v0, GLint v1, GLint v2)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform3iEXT,
           "context = %d, program = %u, location = %d, v0 = %d, v1 = %d, v2 = %d", CID(context),
@@ -8787,6 +9018,7 @@ void GL_APIENTRY GL_ProgramUniform3ivEXT(GLuint program,
                                          GLsizei count,
                                          const GLint *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform3ivEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -8821,6 +9053,7 @@ void GL_APIENTRY GL_ProgramUniform3ivEXT(GLuint program,
 void GL_APIENTRY
 GL_ProgramUniform3uiEXT(GLuint program, GLint location, GLuint v0, GLuint v1, GLuint v2)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform3uiEXT,
           "context = %d, program = %u, location = %d, v0 = %u, v1 = %u, v2 = %u", CID(context),
@@ -8857,6 +9090,7 @@ void GL_APIENTRY GL_ProgramUniform3uivEXT(GLuint program,
                                           GLsizei count,
                                           const GLuint *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform3uivEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -8895,6 +9129,7 @@ void GL_APIENTRY GL_ProgramUniform4fEXT(GLuint program,
                                         GLfloat v2,
                                         GLfloat v3)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform4fEXT,
           "context = %d, program = %u, location = %d, v0 = %f, v1 = %f, v2 = %f, v3 = %f",
@@ -8931,6 +9166,7 @@ void GL_APIENTRY GL_ProgramUniform4fvEXT(GLuint program,
                                          GLsizei count,
                                          const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform4fvEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -8965,6 +9201,7 @@ void GL_APIENTRY GL_ProgramUniform4fvEXT(GLuint program,
 void GL_APIENTRY
 GL_ProgramUniform4iEXT(GLuint program, GLint location, GLint v0, GLint v1, GLint v2, GLint v3)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform4iEXT,
           "context = %d, program = %u, location = %d, v0 = %d, v1 = %d, v2 = %d, v3 = %d",
@@ -9001,6 +9238,7 @@ void GL_APIENTRY GL_ProgramUniform4ivEXT(GLuint program,
                                          GLsizei count,
                                          const GLint *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform4ivEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -9035,6 +9273,7 @@ void GL_APIENTRY GL_ProgramUniform4ivEXT(GLuint program,
 void GL_APIENTRY
 GL_ProgramUniform4uiEXT(GLuint program, GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform4uiEXT,
           "context = %d, program = %u, location = %d, v0 = %u, v1 = %u, v2 = %u, v3 = %u",
@@ -9071,6 +9310,7 @@ void GL_APIENTRY GL_ProgramUniform4uivEXT(GLuint program,
                                           GLsizei count,
                                           const GLuint *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniform4uivEXT,
           "context = %d, program = %u, location = %d, count = %d, value = 0x%016" PRIxPTR "",
@@ -9108,6 +9348,7 @@ void GL_APIENTRY GL_ProgramUniformMatrix2fvEXT(GLuint program,
                                                GLboolean transpose,
                                                const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniformMatrix2fvEXT,
           "context = %d, program = %u, location = %d, count = %d, transpose = %s, value = "
@@ -9148,6 +9389,7 @@ void GL_APIENTRY GL_ProgramUniformMatrix2x3fvEXT(GLuint program,
                                                  GLboolean transpose,
                                                  const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniformMatrix2x3fvEXT,
           "context = %d, program = %u, location = %d, count = %d, transpose = %s, value = "
@@ -9188,6 +9430,7 @@ void GL_APIENTRY GL_ProgramUniformMatrix2x4fvEXT(GLuint program,
                                                  GLboolean transpose,
                                                  const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniformMatrix2x4fvEXT,
           "context = %d, program = %u, location = %d, count = %d, transpose = %s, value = "
@@ -9228,6 +9471,7 @@ void GL_APIENTRY GL_ProgramUniformMatrix3fvEXT(GLuint program,
                                                GLboolean transpose,
                                                const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniformMatrix3fvEXT,
           "context = %d, program = %u, location = %d, count = %d, transpose = %s, value = "
@@ -9268,6 +9512,7 @@ void GL_APIENTRY GL_ProgramUniformMatrix3x2fvEXT(GLuint program,
                                                  GLboolean transpose,
                                                  const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniformMatrix3x2fvEXT,
           "context = %d, program = %u, location = %d, count = %d, transpose = %s, value = "
@@ -9308,6 +9553,7 @@ void GL_APIENTRY GL_ProgramUniformMatrix3x4fvEXT(GLuint program,
                                                  GLboolean transpose,
                                                  const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniformMatrix3x4fvEXT,
           "context = %d, program = %u, location = %d, count = %d, transpose = %s, value = "
@@ -9348,6 +9594,7 @@ void GL_APIENTRY GL_ProgramUniformMatrix4fvEXT(GLuint program,
                                                GLboolean transpose,
                                                const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniformMatrix4fvEXT,
           "context = %d, program = %u, location = %d, count = %d, transpose = %s, value = "
@@ -9388,6 +9635,7 @@ void GL_APIENTRY GL_ProgramUniformMatrix4x2fvEXT(GLuint program,
                                                  GLboolean transpose,
                                                  const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniformMatrix4x2fvEXT,
           "context = %d, program = %u, location = %d, count = %d, transpose = %s, value = "
@@ -9428,6 +9676,7 @@ void GL_APIENTRY GL_ProgramUniformMatrix4x3fvEXT(GLuint program,
                                                  GLboolean transpose,
                                                  const GLfloat *value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramUniformMatrix4x3fvEXT,
           "context = %d, program = %u, location = %d, count = %d, transpose = %s, value = "
@@ -9464,6 +9713,7 @@ void GL_APIENTRY GL_ProgramUniformMatrix4x3fvEXT(GLuint program,
 
 void GL_APIENTRY GL_UseProgramStagesEXT(GLuint pipeline, GLbitfield stages, GLuint program)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLUseProgramStagesEXT, "context = %d, pipeline = %u, stages = %s, program = %u",
           CID(context), pipeline, GLbitfieldToString(GLESEnum::UseProgramStageMask, stages).c_str(),
@@ -9497,6 +9747,7 @@ void GL_APIENTRY GL_UseProgramStagesEXT(GLuint pipeline, GLbitfield stages, GLui
 
 void GL_APIENTRY GL_ValidateProgramPipelineEXT(GLuint pipeline)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLValidateProgramPipelineEXT, "context = %d, pipeline = %u", CID(context),
           pipeline);
@@ -9530,6 +9781,7 @@ void GL_APIENTRY GL_ValidateProgramPipelineEXT(GLuint pipeline)
 // GL_EXT_shader_framebuffer_fetch_non_coherent
 void GL_APIENTRY GL_FramebufferFetchBarrierEXT()
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferFetchBarrierEXT, "context = %d", CID(context));
 
@@ -9567,6 +9819,7 @@ void GL_APIENTRY GL_FramebufferFetchBarrierEXT()
 // GL_EXT_tessellation_shader
 void GL_APIENTRY GL_PatchParameteriEXT(GLenum pname, GLint value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPatchParameteriEXT, "context = %d, pname = %s, value = %d", CID(context),
           GLenumToString(GLESEnum::PatchParameterName, pname), value);
@@ -9598,6 +9851,7 @@ void GL_APIENTRY GL_PatchParameteriEXT(GLenum pname, GLint value)
 // GL_EXT_texture_border_clamp
 void GL_APIENTRY GL_GetSamplerParameterIivEXT(GLuint sampler, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetSamplerParameterIivEXT,
           "context = %d, sampler = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -9627,6 +9881,7 @@ void GL_APIENTRY GL_GetSamplerParameterIivEXT(GLuint sampler, GLenum pname, GLin
 
 void GL_APIENTRY GL_GetSamplerParameterIuivEXT(GLuint sampler, GLenum pname, GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetSamplerParameterIuivEXT,
           "context = %d, sampler = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -9656,6 +9911,7 @@ void GL_APIENTRY GL_GetSamplerParameterIuivEXT(GLuint sampler, GLenum pname, GLu
 
 void GL_APIENTRY GL_GetTexParameterIivEXT(GLenum target, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexParameterIivEXT,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -9685,6 +9941,7 @@ void GL_APIENTRY GL_GetTexParameterIivEXT(GLenum target, GLenum pname, GLint *pa
 
 void GL_APIENTRY GL_GetTexParameterIuivEXT(GLenum target, GLenum pname, GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexParameterIuivEXT,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -9714,6 +9971,7 @@ void GL_APIENTRY GL_GetTexParameterIuivEXT(GLenum target, GLenum pname, GLuint *
 
 void GL_APIENTRY GL_SamplerParameterIivEXT(GLuint sampler, GLenum pname, const GLint *param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSamplerParameterIivEXT,
           "context = %d, sampler = %u, pname = %s, param = 0x%016" PRIxPTR "", CID(context),
@@ -9742,6 +10000,7 @@ void GL_APIENTRY GL_SamplerParameterIivEXT(GLuint sampler, GLenum pname, const G
 
 void GL_APIENTRY GL_SamplerParameterIuivEXT(GLuint sampler, GLenum pname, const GLuint *param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSamplerParameterIuivEXT,
           "context = %d, sampler = %u, pname = %s, param = 0x%016" PRIxPTR "", CID(context),
@@ -9771,6 +10030,7 @@ void GL_APIENTRY GL_SamplerParameterIuivEXT(GLuint sampler, GLenum pname, const 
 
 void GL_APIENTRY GL_TexParameterIivEXT(GLenum target, GLenum pname, const GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexParameterIivEXT,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -9800,6 +10060,7 @@ void GL_APIENTRY GL_TexParameterIivEXT(GLenum target, GLenum pname, const GLint 
 
 void GL_APIENTRY GL_TexParameterIuivEXT(GLenum target, GLenum pname, const GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexParameterIuivEXT,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -9830,6 +10091,7 @@ void GL_APIENTRY GL_TexParameterIuivEXT(GLenum target, GLenum pname, const GLuin
 // GL_EXT_texture_buffer
 void GL_APIENTRY GL_TexBufferEXT(GLenum target, GLenum internalformat, GLuint buffer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexBufferEXT, "context = %d, target = %s, internalformat = %s, buffer = %u",
           CID(context), GLenumToString(GLESEnum::TextureTarget, target),
@@ -9867,6 +10129,7 @@ void GL_APIENTRY GL_TexBufferRangeEXT(GLenum target,
                                       GLintptr offset,
                                       GLsizeiptr size)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexBufferRangeEXT,
           "context = %d, target = %s, internalformat = %s, buffer = %u, offset = %llu, size = %llu",
@@ -9944,6 +10207,7 @@ void GL_APIENTRY GL_TexStorage1DEXT(GLenum target,
                                     GLenum internalformat,
                                     GLsizei width)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorage1DEXT,
           "context = %d, target = %s, levels = %d, internalformat = %s, width = %d", CID(context),
@@ -9980,6 +10244,7 @@ void GL_APIENTRY GL_TexStorage2DEXT(GLenum target,
                                     GLsizei width,
                                     GLsizei height)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorage2DEXT,
           "context = %d, target = %s, levels = %d, internalformat = %s, width = %d, height = %d",
@@ -10018,6 +10283,7 @@ void GL_APIENTRY GL_TexStorage3DEXT(GLenum target,
                                     GLsizei height,
                                     GLsizei depth)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorage3DEXT,
           "context = %d, target = %s, levels = %d, internalformat = %s, width = %d, height = %d, "
@@ -10058,6 +10324,7 @@ void GL_APIENTRY GL_TexStorageAttribs2DEXT(GLenum target,
                                            GLsizei height,
                                            const GLint *attrib_list)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorageAttribs2DEXT,
           "context = %d, target = %s, levels = %d, internalformat = %s, width = %d, height = %d, "
@@ -10100,6 +10367,7 @@ void GL_APIENTRY GL_TexStorageAttribs3DEXT(GLenum target,
                                            GLsizei depth,
                                            const GLint *attrib_list)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorageAttribs3DEXT,
           "context = %d, target = %s, levels = %d, internalformat = %s, width = %d, height = %d, "
@@ -10145,6 +10413,7 @@ void GL_APIENTRY GL_TexStorageAttribs3DEXT(GLenum target,
 // GL_KHR_blend_equation_advanced
 void GL_APIENTRY GL_BlendBarrierKHR()
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlendBarrierKHR, "context = %d", CID(context));
 
@@ -10175,6 +10444,7 @@ void GL_APIENTRY GL_BlendBarrierKHR()
 // GL_KHR_debug
 void GL_APIENTRY GL_DebugMessageCallbackKHR(GLDEBUGPROCKHR callback, const void *userParam)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDebugMessageCallbackKHR,
           "context = %d, callback = 0x%016" PRIxPTR ", userParam = 0x%016" PRIxPTR "", CID(context),
@@ -10207,6 +10477,7 @@ void GL_APIENTRY GL_DebugMessageControlKHR(GLenum source,
                                            const GLuint *ids,
                                            GLboolean enabled)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDebugMessageControlKHR,
           "context = %d, source = %s, type = %s, severity = %s, count = %d, ids = 0x%016" PRIxPTR
@@ -10244,6 +10515,7 @@ void GL_APIENTRY GL_DebugMessageInsertKHR(GLenum source,
                                           GLsizei length,
                                           const GLchar *buf)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDebugMessageInsertKHR,
           "context = %d, source = %s, type = %s, id = %u, severity = %s, length = %d, buf = "
@@ -10282,6 +10554,7 @@ GLuint GL_APIENTRY GL_GetDebugMessageLogKHR(GLuint count,
                                             GLsizei *lengths,
                                             GLchar *messageLog)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetDebugMessageLogKHR,
           "context = %d, count = %u, bufSize = %d, sources = 0x%016" PRIxPTR
@@ -10326,6 +10599,7 @@ void GL_APIENTRY GL_GetObjectLabelKHR(GLenum identifier,
                                       GLsizei *length,
                                       GLchar *label)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetObjectLabelKHR,
           "context = %d, identifier = %s, name = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -10359,6 +10633,7 @@ void GL_APIENTRY GL_GetObjectPtrLabelKHR(const void *ptr,
                                          GLsizei *length,
                                          GLchar *label)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetObjectPtrLabelKHR,
           "context = %d, ptr = 0x%016" PRIxPTR ", bufSize = %d, length = 0x%016" PRIxPTR
@@ -10387,6 +10662,7 @@ void GL_APIENTRY GL_GetObjectPtrLabelKHR(const void *ptr,
 
 void GL_APIENTRY GL_GetPointervKHR(GLenum pname, void **params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetPointervKHR, "context = %d, pname = %s, params = 0x%016" PRIxPTR "",
           CID(context), GLenumToString(GLESEnum::AllEnums, pname), (uintptr_t)params);
@@ -10415,6 +10691,7 @@ void GL_APIENTRY GL_ObjectLabelKHR(GLenum identifier,
                                    GLsizei length,
                                    const GLchar *label)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLObjectLabelKHR,
           "context = %d, identifier = %s, name = %u, length = %d, label = 0x%016" PRIxPTR "",
@@ -10442,6 +10719,7 @@ void GL_APIENTRY GL_ObjectLabelKHR(GLenum identifier,
 
 void GL_APIENTRY GL_ObjectPtrLabelKHR(const void *ptr, GLsizei length, const GLchar *label)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLObjectPtrLabelKHR,
           "context = %d, ptr = 0x%016" PRIxPTR ", length = %d, label = 0x%016" PRIxPTR "",
@@ -10469,6 +10747,7 @@ void GL_APIENTRY GL_ObjectPtrLabelKHR(const void *ptr, GLsizei length, const GLc
 
 void GL_APIENTRY GL_PopDebugGroupKHR()
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPopDebugGroupKHR, "context = %d", CID(context));
 
@@ -10496,6 +10775,7 @@ void GL_APIENTRY GL_PushDebugGroupKHR(GLenum source,
                                       GLsizei length,
                                       const GLchar *message)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPushDebugGroupKHR,
           "context = %d, source = %s, id = %u, length = %d, message = 0x%016" PRIxPTR "",
@@ -10527,6 +10807,7 @@ void GL_APIENTRY GL_PushDebugGroupKHR(GLenum source,
 // GL_KHR_parallel_shader_compile
 void GL_APIENTRY GL_MaxShaderCompilerThreadsKHR(GLuint count)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMaxShaderCompilerThreadsKHR, "context = %d, count = %u", CID(context), count);
 
@@ -10558,6 +10839,7 @@ void GL_APIENTRY GL_MaxShaderCompilerThreadsKHR(GLuint count)
 // GL_KHR_robustness
 GLenum GL_APIENTRY GL_GetGraphicsResetStatusKHR()
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetGlobalContext();
     EVENT(context, GLGetGraphicsResetStatusKHR, "context = %d", CID(context));
 
@@ -10594,6 +10876,7 @@ void GL_APIENTRY GL_GetnUniformfvKHR(GLuint program,
                                      GLsizei bufSize,
                                      GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetnUniformfvKHR,
           "context = %d, program = %u, location = %d, bufSize = %d, params = 0x%016" PRIxPTR "",
@@ -10624,6 +10907,7 @@ void GL_APIENTRY GL_GetnUniformfvKHR(GLuint program,
 
 void GL_APIENTRY GL_GetnUniformivKHR(GLuint program, GLint location, GLsizei bufSize, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetnUniformivKHR,
           "context = %d, program = %u, location = %d, bufSize = %d, params = 0x%016" PRIxPTR "",
@@ -10657,6 +10941,7 @@ void GL_APIENTRY GL_GetnUniformuivKHR(GLuint program,
                                       GLsizei bufSize,
                                       GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetnUniformuivKHR,
           "context = %d, program = %u, location = %d, bufSize = %d, params = 0x%016" PRIxPTR "",
@@ -10694,6 +10979,7 @@ void GL_APIENTRY GL_ReadnPixelsKHR(GLint x,
                                    GLsizei bufSize,
                                    void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLReadnPixelsKHR,
           "context = %d, x = %d, y = %d, width = %d, height = %d, format = %s, type = %s, bufSize "
@@ -10734,6 +11020,7 @@ void GL_APIENTRY GL_ReadnPixelsKHR(GLint x,
 // GL_MESA_framebuffer_flip_y
 void GL_APIENTRY GL_FramebufferParameteriMESA(GLenum target, GLenum pname, GLint param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferParameteriMESA, "context = %d, target = %s, pname = %s, param = %d",
           CID(context), GLenumToString(GLESEnum::FramebufferTarget, target),
@@ -10744,11 +11031,8 @@ void GL_APIENTRY GL_FramebufferParameteriMESA(GLenum target, GLenum pname, GLint
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
-                                                context->getMutableErrorSetForValidation(),
-                                                angle::EntryPoint::GLFramebufferParameteriMESA) &&
-              ValidateFramebufferParameteriMESA(
-                  context, angle::EntryPoint::GLFramebufferParameteriMESA, target, pname, param)));
+             ValidateFramebufferParameteriMESA(
+                 context, angle::EntryPoint::GLFramebufferParameteriMESA, target, pname, param));
         if (isCallValid)
         {
             context->framebufferParameteriMESA(target, pname, param);
@@ -10764,6 +11048,7 @@ void GL_APIENTRY GL_FramebufferParameteriMESA(GLenum target, GLenum pname, GLint
 
 void GL_APIENTRY GL_GetFramebufferParameterivMESA(GLenum target, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFramebufferParameterivMESA,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -10794,6 +11079,7 @@ void GL_APIENTRY GL_GetFramebufferParameterivMESA(GLenum target, GLenum pname, G
 // GL_NV_fence
 void GL_APIENTRY GL_DeleteFencesNV(GLsizei n, const GLuint *fences)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDeleteFencesNV, "context = %d, n = %d, fences = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)fences);
@@ -10820,6 +11106,7 @@ void GL_APIENTRY GL_DeleteFencesNV(GLsizei n, const GLuint *fences)
 
 void GL_APIENTRY GL_FinishFenceNV(GLuint fence)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFinishFenceNV, "context = %d, fence = %u", CID(context), fence);
 
@@ -10848,6 +11135,7 @@ void GL_APIENTRY GL_FinishFenceNV(GLuint fence)
 
 void GL_APIENTRY GL_GenFencesNV(GLsizei n, GLuint *fences)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGenFencesNV, "context = %d, n = %d, fences = 0x%016" PRIxPTR "", CID(context),
           n, (uintptr_t)fences);
@@ -10874,6 +11162,7 @@ void GL_APIENTRY GL_GenFencesNV(GLsizei n, GLuint *fences)
 
 void GL_APIENTRY GL_GetFenceivNV(GLuint fence, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFenceivNV,
           "context = %d, fence = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context), fence,
@@ -10901,6 +11190,7 @@ void GL_APIENTRY GL_GetFenceivNV(GLuint fence, GLenum pname, GLint *params)
 
 GLboolean GL_APIENTRY GL_IsFenceNV(GLuint fence)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLIsFenceNV, "context = %d, fence = %u", CID(context), fence);
 
@@ -10933,6 +11223,7 @@ GLboolean GL_APIENTRY GL_IsFenceNV(GLuint fence)
 
 void GL_APIENTRY GL_SetFenceNV(GLuint fence, GLenum condition)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSetFenceNV, "context = %d, fence = %u, condition = %s", CID(context), fence,
           GLenumToString(GLESEnum::AllEnums, condition));
@@ -10963,6 +11254,7 @@ void GL_APIENTRY GL_SetFenceNV(GLuint fence, GLenum condition)
 
 GLboolean GL_APIENTRY GL_TestFenceNV(GLuint fence)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTestFenceNV, "context = %d, fence = %u", CID(context), fence);
 
@@ -11008,6 +11300,7 @@ void GL_APIENTRY GL_BlitFramebufferNV(GLint srcX0,
                                       GLbitfield mask,
                                       GLenum filter)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlitFramebufferNV,
           "context = %d, srcX0 = %d, srcY0 = %d, srcX1 = %d, srcY1 = %d, dstX0 = %d, dstY0 = %d, "
@@ -11047,6 +11340,7 @@ void GL_APIENTRY GL_BlitFramebufferNV(GLint srcX0,
 // GL_NV_polygon_mode
 void GL_APIENTRY GL_PolygonModeNV(GLenum face, GLenum mode)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPolygonModeNV, "context = %d, face = %s, mode = %s", CID(context),
           GLenumToString(GLESEnum::TriangleFace, face),
@@ -11087,6 +11381,7 @@ void GL_APIENTRY GL_PolygonModeNV(GLenum face, GLenum mode)
 // GL_OES_EGL_image
 void GL_APIENTRY GL_EGLImageTargetRenderbufferStorageOES(GLenum target, GLeglImageOES image)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLEGLImageTargetRenderbufferStorageOES,
           "context = %d, target = %s, image = 0x%016" PRIxPTR "", CID(context),
@@ -11120,6 +11415,7 @@ void GL_APIENTRY GL_EGLImageTargetRenderbufferStorageOES(GLenum target, GLeglIma
 
 void GL_APIENTRY GL_EGLImageTargetTexture2DOES(GLenum target, GLeglImageOES image)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLEGLImageTargetTexture2DOES,
           "context = %d, target = %s, image = 0x%016" PRIxPTR "", CID(context),
@@ -11156,6 +11452,34 @@ void GL_APIENTRY GL_EGLImageTargetTexture2DOES(GLenum target, GLeglImageOES imag
 
 // GL_OES_EGL_image_external_essl3
 
+// GL_OES_blend_subtract
+void GL_APIENTRY GL_BlendEquationOES(GLenum mode)
+{
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
+    Context *context = GetValidGlobalContext();
+    EVENT(context, GLBlendEquationOES, "context = %d, mode = %s", CID(context),
+          GLenumToString(GLESEnum::BlendEquationModeEXT, mode));
+
+    if (context)
+    {
+        bool isCallValid = (context->skipValidation() ||
+                            ValidateBlendEquationOES(context->getPrivateState(),
+                                                     context->getMutableErrorSetForValidation(),
+                                                     angle::EntryPoint::GLBlendEquationOES, mode));
+        if (isCallValid)
+        {
+            ContextPrivateBlendEquation(context->getMutablePrivateState(),
+                                        context->getMutablePrivateStateCache(), mode);
+        }
+        ANGLE_CAPTURE_GL(BlendEquationOES, isCallValid, context, mode);
+    }
+    else
+    {
+        GenerateContextLostErrorOnCurrentGlobalContext();
+    }
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
+}
+
 // GL_OES_compressed_ETC1_RGB8_texture
 
 // GL_OES_compressed_paletted_texture
@@ -11177,6 +11501,7 @@ void GL_APIENTRY GL_CopyImageSubDataOES(GLuint srcName,
                                         GLsizei srcHeight,
                                         GLsizei srcDepth)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCopyImageSubDataOES,
           "context = %d, srcName = %u, srcTarget = %s, srcLevel = %d, srcX = %d, srcY = %d, srcZ = "
@@ -11225,6 +11550,7 @@ void GL_APIENTRY GL_CopyImageSubDataOES(GLuint srcName,
 // GL_OES_draw_buffers_indexed
 void GL_APIENTRY GL_BlendEquationSeparateiOES(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlendEquationSeparateiOES,
           "context = %d, buf = %u, modeRGB = %s, modeAlpha = %s", CID(context), buf,
@@ -11255,6 +11581,7 @@ void GL_APIENTRY GL_BlendEquationSeparateiOES(GLuint buf, GLenum modeRGB, GLenum
 
 void GL_APIENTRY GL_BlendEquationiOES(GLuint buf, GLenum mode)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlendEquationiOES, "context = %d, buf = %u, mode = %s", CID(context), buf,
           GLenumToString(GLESEnum::BlendEquationModeEXT, mode));
@@ -11283,6 +11610,7 @@ void GL_APIENTRY GL_BlendEquationiOES(GLuint buf, GLenum mode)
 void GL_APIENTRY
 GL_BlendFuncSeparateiOES(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlendFuncSeparateiOES,
           "context = %d, buf = %u, srcRGB = %s, dstRGB = %s, srcAlpha = %s, dstAlpha = %s",
@@ -11317,6 +11645,7 @@ GL_BlendFuncSeparateiOES(GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlp
 
 void GL_APIENTRY GL_BlendFunciOES(GLuint buf, GLenum src, GLenum dst)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBlendFunciOES, "context = %d, buf = %u, src = %s, dst = %s", CID(context), buf,
           GLenumToString(GLESEnum::BlendingFactor, src),
@@ -11345,6 +11674,7 @@ void GL_APIENTRY GL_BlendFunciOES(GLuint buf, GLenum src, GLenum dst)
 
 void GL_APIENTRY GL_ColorMaskiOES(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLColorMaskiOES, "context = %d, index = %u, r = %s, g = %s, b = %s, a = %s",
           CID(context), index, GLbooleanToString(r), GLbooleanToString(g), GLbooleanToString(b),
@@ -11373,6 +11703,7 @@ void GL_APIENTRY GL_ColorMaskiOES(GLuint index, GLboolean r, GLboolean g, GLbool
 
 void GL_APIENTRY GL_DisableiOES(GLenum target, GLuint index)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDisableiOES, "context = %d, target = %s, index = %u", CID(context),
           GLenumToString(GLESEnum::EnableCap, target), index);
@@ -11399,6 +11730,7 @@ void GL_APIENTRY GL_DisableiOES(GLenum target, GLuint index)
 
 void GL_APIENTRY GL_EnableiOES(GLenum target, GLuint index)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLEnableiOES, "context = %d, target = %s, index = %u", CID(context),
           GLenumToString(GLESEnum::EnableCap, target), index);
@@ -11425,6 +11757,7 @@ void GL_APIENTRY GL_EnableiOES(GLenum target, GLuint index)
 
 GLboolean GL_APIENTRY GL_IsEnablediOES(GLenum target, GLuint index)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLIsEnablediOES, "context = %d, target = %s, index = %u", CID(context),
           GLenumToString(GLESEnum::EnableCap, target), index);
@@ -11465,6 +11798,7 @@ void GL_APIENTRY GL_DrawElementsBaseVertexOES(GLenum mode,
                                               const void *indices,
                                               GLint basevertex)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawElementsBaseVertexOES,
           "context = %d, mode = %s, count = %d, type = %s, indices = 0x%016" PRIxPTR
@@ -11502,6 +11836,7 @@ void GL_APIENTRY GL_DrawElementsInstancedBaseVertexOES(GLenum mode,
                                                        GLsizei instancecount,
                                                        GLint basevertex)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawElementsInstancedBaseVertexOES,
           "context = %d, mode = %s, count = %d, type = %s, indices = 0x%016" PRIxPTR
@@ -11542,6 +11877,7 @@ void GL_APIENTRY GL_DrawRangeElementsBaseVertexOES(GLenum mode,
                                                    const void *indices,
                                                    GLint basevertex)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawRangeElementsBaseVertexOES,
           "context = %d, mode = %s, start = %u, end = %u, count = %d, type = %s, indices = "
@@ -11578,6 +11914,7 @@ void GL_APIENTRY GL_DrawRangeElementsBaseVertexOES(GLenum mode,
 // GL_OES_draw_texture
 void GL_APIENTRY GL_DrawTexfOES(GLfloat x, GLfloat y, GLfloat z, GLfloat width, GLfloat height)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawTexfOES, "context = %d, x = %f, y = %f, z = %f, width = %f, height = %f",
           CID(context), x, y, z, width, height);
@@ -11603,6 +11940,7 @@ void GL_APIENTRY GL_DrawTexfOES(GLfloat x, GLfloat y, GLfloat z, GLfloat width, 
 
 void GL_APIENTRY GL_DrawTexfvOES(const GLfloat *coords)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawTexfvOES, "context = %d, coords = 0x%016" PRIxPTR "", CID(context),
           (uintptr_t)coords);
@@ -11628,6 +11966,7 @@ void GL_APIENTRY GL_DrawTexfvOES(const GLfloat *coords)
 
 void GL_APIENTRY GL_DrawTexiOES(GLint x, GLint y, GLint z, GLint width, GLint height)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawTexiOES, "context = %d, x = %d, y = %d, z = %d, width = %d, height = %d",
           CID(context), x, y, z, width, height);
@@ -11653,6 +11992,7 @@ void GL_APIENTRY GL_DrawTexiOES(GLint x, GLint y, GLint z, GLint width, GLint he
 
 void GL_APIENTRY GL_DrawTexivOES(const GLint *coords)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawTexivOES, "context = %d, coords = 0x%016" PRIxPTR "", CID(context),
           (uintptr_t)coords);
@@ -11678,6 +12018,7 @@ void GL_APIENTRY GL_DrawTexivOES(const GLint *coords)
 
 void GL_APIENTRY GL_DrawTexsOES(GLshort x, GLshort y, GLshort z, GLshort width, GLshort height)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawTexsOES, "context = %d, x = %d, y = %d, z = %d, width = %d, height = %d",
           CID(context), x, y, z, width, height);
@@ -11703,6 +12044,7 @@ void GL_APIENTRY GL_DrawTexsOES(GLshort x, GLshort y, GLshort z, GLshort width, 
 
 void GL_APIENTRY GL_DrawTexsvOES(const GLshort *coords)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawTexsvOES, "context = %d, coords = 0x%016" PRIxPTR "", CID(context),
           (uintptr_t)coords);
@@ -11728,6 +12070,7 @@ void GL_APIENTRY GL_DrawTexsvOES(const GLshort *coords)
 
 void GL_APIENTRY GL_DrawTexxOES(GLfixed x, GLfixed y, GLfixed z, GLfixed width, GLfixed height)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawTexxOES,
           "context = %d, x = 0x%X, y = 0x%X, z = 0x%X, width = 0x%X, height = 0x%X", CID(context),
@@ -11754,6 +12097,7 @@ void GL_APIENTRY GL_DrawTexxOES(GLfixed x, GLfixed y, GLfixed z, GLfixed width, 
 
 void GL_APIENTRY GL_DrawTexxvOES(const GLfixed *coords)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDrawTexxvOES, "context = %d, coords = 0x%016" PRIxPTR "", CID(context),
           (uintptr_t)coords);
@@ -11784,6 +12128,7 @@ void GL_APIENTRY GL_DrawTexxvOES(const GLfixed *coords)
 // GL_OES_framebuffer_object
 void GL_APIENTRY GL_BindFramebufferOES(GLenum target, GLuint framebuffer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBindFramebufferOES, "context = %d, target = %s, framebuffer = %u",
           CID(context), GLenumToString(GLESEnum::FramebufferTarget, target), framebuffer);
@@ -11811,6 +12156,7 @@ void GL_APIENTRY GL_BindFramebufferOES(GLenum target, GLuint framebuffer)
 
 void GL_APIENTRY GL_BindRenderbufferOES(GLenum target, GLuint renderbuffer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBindRenderbufferOES, "context = %d, target = %s, renderbuffer = %u",
           CID(context), GLenumToString(GLESEnum::RenderbufferTarget, target), renderbuffer);
@@ -11838,6 +12184,7 @@ void GL_APIENTRY GL_BindRenderbufferOES(GLenum target, GLuint renderbuffer)
 
 GLenum GL_APIENTRY GL_CheckFramebufferStatusOES(GLenum target)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCheckFramebufferStatusOES, "context = %d, target = %s", CID(context),
           GLenumToString(GLESEnum::FramebufferTarget, target));
@@ -11872,6 +12219,7 @@ GLenum GL_APIENTRY GL_CheckFramebufferStatusOES(GLenum target)
 
 void GL_APIENTRY GL_DeleteFramebuffersOES(GLsizei n, const GLuint *framebuffers)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDeleteFramebuffersOES,
           "context = %d, n = %d, framebuffers = 0x%016" PRIxPTR "", CID(context), n,
@@ -11900,6 +12248,7 @@ void GL_APIENTRY GL_DeleteFramebuffersOES(GLsizei n, const GLuint *framebuffers)
 
 void GL_APIENTRY GL_DeleteRenderbuffersOES(GLsizei n, const GLuint *renderbuffers)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDeleteRenderbuffersOES,
           "context = %d, n = %d, renderbuffers = 0x%016" PRIxPTR "", CID(context), n,
@@ -11932,6 +12281,7 @@ void GL_APIENTRY GL_FramebufferRenderbufferOES(GLenum target,
                                                GLenum renderbuffertarget,
                                                GLuint renderbuffer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferRenderbufferOES,
           "context = %d, target = %s, attachment = %s, renderbuffertarget = %s, renderbuffer = %u",
@@ -11968,6 +12318,7 @@ void GL_APIENTRY GL_FramebufferTexture2DOES(GLenum target,
                                             GLuint texture,
                                             GLint level)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferTexture2DOES,
           "context = %d, target = %s, attachment = %s, textarget = %s, texture = %u, level = %d",
@@ -12001,6 +12352,7 @@ void GL_APIENTRY GL_FramebufferTexture2DOES(GLenum target,
 
 void GL_APIENTRY GL_GenFramebuffersOES(GLsizei n, GLuint *framebuffers)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGenFramebuffersOES, "context = %d, n = %d, framebuffers = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)framebuffers);
@@ -12028,6 +12380,7 @@ void GL_APIENTRY GL_GenFramebuffersOES(GLsizei n, GLuint *framebuffers)
 
 void GL_APIENTRY GL_GenRenderbuffersOES(GLsizei n, GLuint *renderbuffers)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGenRenderbuffersOES, "context = %d, n = %d, renderbuffers = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)renderbuffers);
@@ -12055,6 +12408,7 @@ void GL_APIENTRY GL_GenRenderbuffersOES(GLsizei n, GLuint *renderbuffers)
 
 void GL_APIENTRY GL_GenerateMipmapOES(GLenum target)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGenerateMipmapOES, "context = %d, target = %s", CID(context),
           GLenumToString(GLESEnum::TextureTarget, target));
@@ -12084,6 +12438,7 @@ void GL_APIENTRY GL_GetFramebufferAttachmentParameterivOES(GLenum target,
                                                            GLenum pname,
                                                            GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetFramebufferAttachmentParameterivOES,
           "context = %d, target = %s, attachment = %s, pname = %s, params = 0x%016" PRIxPTR "",
@@ -12115,6 +12470,7 @@ void GL_APIENTRY GL_GetFramebufferAttachmentParameterivOES(GLenum target,
 
 void GL_APIENTRY GL_GetRenderbufferParameterivOES(GLenum target, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetRenderbufferParameterivOES,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -12144,6 +12500,7 @@ void GL_APIENTRY GL_GetRenderbufferParameterivOES(GLenum target, GLenum pname, G
 
 GLboolean GL_APIENTRY GL_IsFramebufferOES(GLuint framebuffer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLIsFramebufferOES, "context = %d, framebuffer = %u", CID(context), framebuffer);
 
@@ -12176,6 +12533,7 @@ GLboolean GL_APIENTRY GL_IsFramebufferOES(GLuint framebuffer)
 
 GLboolean GL_APIENTRY GL_IsRenderbufferOES(GLuint renderbuffer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLIsRenderbufferOES, "context = %d, renderbuffer = %u", CID(context),
           renderbuffer);
@@ -12214,6 +12572,7 @@ void GL_APIENTRY GL_RenderbufferStorageOES(GLenum target,
                                            GLsizei width,
                                            GLsizei height)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLRenderbufferStorageOES,
           "context = %d, target = %s, internalformat = %s, width = %d, height = %d", CID(context),
@@ -12247,6 +12606,7 @@ void GL_APIENTRY GL_FramebufferTextureOES(GLenum target,
                                           GLuint texture,
                                           GLint level)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferTextureOES,
           "context = %d, target = %s, attachment = %s, texture = %u, level = %d", CID(context),
@@ -12259,11 +12619,8 @@ void GL_APIENTRY GL_FramebufferTextureOES(GLenum target,
         SCOPED_SHARE_CONTEXT_LOCK(context);
         bool isCallValid =
             (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
-                                                context->getMutableErrorSetForValidation(),
-                                                angle::EntryPoint::GLFramebufferTextureOES) &&
-              ValidateFramebufferTextureOES(context, angle::EntryPoint::GLFramebufferTextureOES,
-                                            target, attachment, texturePacked, level)));
+             ValidateFramebufferTextureOES(context, angle::EntryPoint::GLFramebufferTextureOES,
+                                           target, attachment, texturePacked, level));
         if (isCallValid)
         {
             context->framebufferTexture(target, attachment, texturePacked, level);
@@ -12285,6 +12642,7 @@ void GL_APIENTRY GL_GetProgramBinaryOES(GLuint program,
                                         GLenum *binaryFormat,
                                         void *binary)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetProgramBinaryOES,
           "context = %d, program = %u, bufSize = %d, length = 0x%016" PRIxPTR
@@ -12319,6 +12677,7 @@ void GL_APIENTRY GL_ProgramBinaryOES(GLuint program,
                                      const void *binary,
                                      GLint length)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLProgramBinaryOES,
           "context = %d, program = %u, binaryFormat = %s, binary = 0x%016" PRIxPTR ", length = %d",
@@ -12355,6 +12714,7 @@ void GL_APIENTRY GL_ProgramBinaryOES(GLuint program,
 // GL_OES_mapbuffer
 void GL_APIENTRY GL_GetBufferPointervOES(GLenum target, GLenum pname, void **params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetBufferPointervOES,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -12384,6 +12744,7 @@ void GL_APIENTRY GL_GetBufferPointervOES(GLenum target, GLenum pname, void **par
 
 void *GL_APIENTRY GL_MapBufferOES(GLenum target, GLenum access)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMapBufferOES, "context = %d, target = %s, access = %s", CID(context),
           GLenumToString(GLESEnum::BufferTargetARB, target),
@@ -12422,6 +12783,7 @@ void *GL_APIENTRY GL_MapBufferOES(GLenum target, GLenum access)
 
 GLboolean GL_APIENTRY GL_UnmapBufferOES(GLenum target)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLUnmapBufferOES, "context = %d, target = %s", CID(context),
           GLenumToString(GLESEnum::AllEnums, target));
@@ -12459,6 +12821,7 @@ GLboolean GL_APIENTRY GL_UnmapBufferOES(GLenum target)
 // GL_OES_matrix_palette
 void GL_APIENTRY GL_CurrentPaletteMatrixOES(GLuint matrixpaletteindex)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCurrentPaletteMatrixOES, "context = %d, matrixpaletteindex = %u", CID(context),
           matrixpaletteindex);
@@ -12485,6 +12848,7 @@ void GL_APIENTRY GL_CurrentPaletteMatrixOES(GLuint matrixpaletteindex)
 
 void GL_APIENTRY GL_LoadPaletteFromModelViewMatrixOES()
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLLoadPaletteFromModelViewMatrixOES, "context = %d", CID(context));
 
@@ -12512,6 +12876,7 @@ void GL_APIENTRY GL_MatrixIndexPointerOES(GLint size,
                                           GLsizei stride,
                                           const void *pointer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMatrixIndexPointerOES,
           "context = %d, size = %d, type = %s, stride = %d, pointer = 0x%016" PRIxPTR "",
@@ -12539,6 +12904,7 @@ void GL_APIENTRY GL_MatrixIndexPointerOES(GLint size,
 
 void GL_APIENTRY GL_WeightPointerOES(GLint size, GLenum type, GLsizei stride, const void *pointer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLWeightPointerOES,
           "context = %d, size = %d, type = %s, stride = %d, pointer = 0x%016" PRIxPTR "",
@@ -12568,6 +12934,7 @@ void GL_APIENTRY GL_WeightPointerOES(GLint size, GLenum type, GLsizei stride, co
 // GL_OES_point_size_array
 void GL_APIENTRY GL_PointSizePointerOES(GLenum type, GLsizei stride, const void *pointer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPointSizePointerOES,
           "context = %d, type = %s, stride = %d, pointer = 0x%016" PRIxPTR "", CID(context),
@@ -12606,6 +12973,7 @@ void GL_APIENTRY GL_PrimitiveBoundingBoxOES(GLfloat minX,
                                             GLfloat maxZ,
                                             GLfloat maxW)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPrimitiveBoundingBoxOES,
           "context = %d, minX = %f, minY = %f, minZ = %f, minW = %f, maxX = %f, maxY = %f, maxZ = "
@@ -12642,6 +13010,7 @@ void GL_APIENTRY GL_PrimitiveBoundingBoxOES(GLfloat minX,
 // GL_OES_query_matrix
 GLbitfield GL_APIENTRY GL_QueryMatrixxOES(GLfixed *mantissa, GLint *exponent)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLQueryMatrixxOES,
           "context = %d, mantissa = 0x%016" PRIxPTR ", exponent = 0x%016" PRIxPTR "", CID(context),
@@ -12673,11 +13042,14 @@ GLbitfield GL_APIENTRY GL_QueryMatrixxOES(GLfixed *mantissa, GLint *exponent)
     return returnValue;
 }
 
+// GL_OES_required_internalformat
+
 // GL_OES_rgb8_rgba8
 
 // GL_OES_sample_shading
 void GL_APIENTRY GL_MinSampleShadingOES(GLfloat value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLMinSampleShadingOES, "context = %d, value = %f", CID(context), value);
 
@@ -12720,6 +13092,7 @@ void GL_APIENTRY GL_MinSampleShadingOES(GLfloat value)
 // GL_OES_tessellation_shader
 void GL_APIENTRY GL_PatchParameteriOES(GLenum pname, GLint value)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLPatchParameteriOES, "context = %d, pname = %s, value = %d", CID(context),
           GLenumToString(GLESEnum::PatchParameterName, pname), value);
@@ -12759,6 +13132,7 @@ void GL_APIENTRY GL_CompressedTexImage3DOES(GLenum target,
                                             GLsizei imageSize,
                                             const void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCompressedTexImage3DOES,
           "context = %d, target = %s, level = %d, internalformat = %s, width = %d, height = %d, "
@@ -12806,6 +13180,7 @@ void GL_APIENTRY GL_CompressedTexSubImage3DOES(GLenum target,
                                                GLsizei imageSize,
                                                const void *data)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCompressedTexSubImage3DOES,
           "context = %d, target = %s, level = %d, xoffset = %d, yoffset = %d, zoffset = %d, width "
@@ -12851,6 +13226,7 @@ void GL_APIENTRY GL_CopyTexSubImage3DOES(GLenum target,
                                          GLsizei width,
                                          GLsizei height)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLCopyTexSubImage3DOES,
           "context = %d, target = %s, level = %d, xoffset = %d, yoffset = %d, zoffset = %d, x = "
@@ -12892,6 +13268,7 @@ void GL_APIENTRY GL_FramebufferTexture3DOES(GLenum target,
                                             GLint level,
                                             GLint zoffset)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferTexture3DOES,
           "context = %d, target = %s, attachment = %s, textarget = %s, texture = %u, level = %d, "
@@ -12905,14 +13282,10 @@ void GL_APIENTRY GL_FramebufferTexture3DOES(GLenum target,
         TextureTarget textargetPacked = PackParam<TextureTarget>(textarget);
         TextureID texturePacked       = PackParam<TextureID>(texture);
         SCOPED_SHARE_CONTEXT_LOCK(context);
-        bool isCallValid =
-            (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(context->getPrivateState(),
-                                                context->getMutableErrorSetForValidation(),
-                                                angle::EntryPoint::GLFramebufferTexture3DOES) &&
-              ValidateFramebufferTexture3DOES(context, angle::EntryPoint::GLFramebufferTexture3DOES,
-                                              target, attachment, textargetPacked, texturePacked,
-                                              level, zoffset)));
+        bool isCallValid = (context->skipValidation() ||
+                            ValidateFramebufferTexture3DOES(
+                                context, angle::EntryPoint::GLFramebufferTexture3DOES, target,
+                                attachment, textargetPacked, texturePacked, level, zoffset));
         if (isCallValid)
         {
             context->framebufferTexture3D(target, attachment, textargetPacked, texturePacked, level,
@@ -12939,6 +13312,7 @@ void GL_APIENTRY GL_TexImage3DOES(GLenum target,
                                   GLenum type,
                                   const void *pixels)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexImage3DOES,
           "context = %d, target = %s, level = %d, internalformat = %s, width = %d, height = %d, "
@@ -12987,6 +13361,7 @@ void GL_APIENTRY GL_TexSubImage3DOES(GLenum target,
                                      GLenum type,
                                      const void *pixels)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexSubImage3DOES,
           "context = %d, target = %s, level = %d, xoffset = %d, yoffset = %d, zoffset = %d, width "
@@ -13025,6 +13400,7 @@ void GL_APIENTRY GL_TexSubImage3DOES(GLenum target,
 // GL_OES_texture_border_clamp
 void GL_APIENTRY GL_GetSamplerParameterIivOES(GLuint sampler, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetSamplerParameterIivOES,
           "context = %d, sampler = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13054,6 +13430,7 @@ void GL_APIENTRY GL_GetSamplerParameterIivOES(GLuint sampler, GLenum pname, GLin
 
 void GL_APIENTRY GL_GetSamplerParameterIuivOES(GLuint sampler, GLenum pname, GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetSamplerParameterIuivOES,
           "context = %d, sampler = %u, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13083,6 +13460,7 @@ void GL_APIENTRY GL_GetSamplerParameterIuivOES(GLuint sampler, GLenum pname, GLu
 
 void GL_APIENTRY GL_GetTexParameterIivOES(GLenum target, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexParameterIivOES,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13112,6 +13490,7 @@ void GL_APIENTRY GL_GetTexParameterIivOES(GLenum target, GLenum pname, GLint *pa
 
 void GL_APIENTRY GL_GetTexParameterIuivOES(GLenum target, GLenum pname, GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexParameterIuivOES,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13141,6 +13520,7 @@ void GL_APIENTRY GL_GetTexParameterIuivOES(GLenum target, GLenum pname, GLuint *
 
 void GL_APIENTRY GL_SamplerParameterIivOES(GLuint sampler, GLenum pname, const GLint *param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSamplerParameterIivOES,
           "context = %d, sampler = %u, pname = %s, param = 0x%016" PRIxPTR "", CID(context),
@@ -13169,6 +13549,7 @@ void GL_APIENTRY GL_SamplerParameterIivOES(GLuint sampler, GLenum pname, const G
 
 void GL_APIENTRY GL_SamplerParameterIuivOES(GLuint sampler, GLenum pname, const GLuint *param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLSamplerParameterIuivOES,
           "context = %d, sampler = %u, pname = %s, param = 0x%016" PRIxPTR "", CID(context),
@@ -13198,6 +13579,7 @@ void GL_APIENTRY GL_SamplerParameterIuivOES(GLuint sampler, GLenum pname, const 
 
 void GL_APIENTRY GL_TexParameterIivOES(GLenum target, GLenum pname, const GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexParameterIivOES,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13227,6 +13609,7 @@ void GL_APIENTRY GL_TexParameterIivOES(GLenum target, GLenum pname, const GLint 
 
 void GL_APIENTRY GL_TexParameterIuivOES(GLenum target, GLenum pname, const GLuint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexParameterIuivOES,
           "context = %d, target = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13257,6 +13640,7 @@ void GL_APIENTRY GL_TexParameterIuivOES(GLenum target, GLenum pname, const GLuin
 // GL_OES_texture_buffer
 void GL_APIENTRY GL_TexBufferOES(GLenum target, GLenum internalformat, GLuint buffer)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexBufferOES, "context = %d, target = %s, internalformat = %s, buffer = %u",
           CID(context), GLenumToString(GLESEnum::TextureTarget, target),
@@ -13294,6 +13678,7 @@ void GL_APIENTRY GL_TexBufferRangeOES(GLenum target,
                                       GLintptr offset,
                                       GLsizeiptr size)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexBufferRangeOES,
           "context = %d, target = %s, internalformat = %s, buffer = %u, offset = %llu, size = %llu",
@@ -13332,6 +13717,7 @@ void GL_APIENTRY GL_TexBufferRangeOES(GLenum target,
 // GL_OES_texture_cube_map
 void GL_APIENTRY GL_GetTexGenfvOES(GLenum coord, GLenum pname, GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexGenfvOES,
           "context = %d, coord = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13359,6 +13745,7 @@ void GL_APIENTRY GL_GetTexGenfvOES(GLenum coord, GLenum pname, GLfloat *params)
 
 void GL_APIENTRY GL_GetTexGenivOES(GLenum coord, GLenum pname, GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexGenivOES,
           "context = %d, coord = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13386,6 +13773,7 @@ void GL_APIENTRY GL_GetTexGenivOES(GLenum coord, GLenum pname, GLint *params)
 
 void GL_APIENTRY GL_GetTexGenxvOES(GLenum coord, GLenum pname, GLfixed *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGetTexGenxvOES,
           "context = %d, coord = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13413,6 +13801,7 @@ void GL_APIENTRY GL_GetTexGenxvOES(GLenum coord, GLenum pname, GLfixed *params)
 
 void GL_APIENTRY GL_TexGenfOES(GLenum coord, GLenum pname, GLfloat param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexGenfOES, "context = %d, coord = %s, pname = %s, param = %f", CID(context),
           GLenumToString(GLESEnum::TextureCoordName, coord),
@@ -13439,6 +13828,7 @@ void GL_APIENTRY GL_TexGenfOES(GLenum coord, GLenum pname, GLfloat param)
 
 void GL_APIENTRY GL_TexGenfvOES(GLenum coord, GLenum pname, const GLfloat *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexGenfvOES,
           "context = %d, coord = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13466,6 +13856,7 @@ void GL_APIENTRY GL_TexGenfvOES(GLenum coord, GLenum pname, const GLfloat *param
 
 void GL_APIENTRY GL_TexGeniOES(GLenum coord, GLenum pname, GLint param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexGeniOES, "context = %d, coord = %s, pname = %s, param = %d", CID(context),
           GLenumToString(GLESEnum::TextureCoordName, coord),
@@ -13492,6 +13883,7 @@ void GL_APIENTRY GL_TexGeniOES(GLenum coord, GLenum pname, GLint param)
 
 void GL_APIENTRY GL_TexGenivOES(GLenum coord, GLenum pname, const GLint *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexGenivOES,
           "context = %d, coord = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13519,6 +13911,7 @@ void GL_APIENTRY GL_TexGenivOES(GLenum coord, GLenum pname, const GLint *params)
 
 void GL_APIENTRY GL_TexGenxOES(GLenum coord, GLenum pname, GLfixed param)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexGenxOES, "context = %d, coord = %s, pname = %s, param = 0x%X", CID(context),
           GLenumToString(GLESEnum::TextureCoordName, coord),
@@ -13545,6 +13938,7 @@ void GL_APIENTRY GL_TexGenxOES(GLenum coord, GLenum pname, GLfixed param)
 
 void GL_APIENTRY GL_TexGenxvOES(GLenum coord, GLenum pname, const GLfixed *params)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexGenxvOES,
           "context = %d, coord = %s, pname = %s, params = 0x%016" PRIxPTR "", CID(context),
@@ -13580,6 +13974,8 @@ void GL_APIENTRY GL_TexGenxvOES(GLenum coord, GLenum pname, const GLfixed *param
 
 // GL_OES_texture_half_float_linear
 
+// GL_OES_texture_mirrored_repeat
+
 // GL_OES_texture_npot
 
 // GL_OES_texture_stencil8
@@ -13593,6 +13989,7 @@ void GL_APIENTRY GL_TexStorage3DMultisampleOES(GLenum target,
                                                GLsizei depth,
                                                GLboolean fixedsamplelocations)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTexStorage3DMultisampleOES,
           "context = %d, target = %s, samples = %d, internalformat = %s, width = %d, height = %d, "
@@ -13631,6 +14028,7 @@ void GL_APIENTRY GL_TexStorage3DMultisampleOES(GLenum target,
 // GL_OES_vertex_array_object
 void GL_APIENTRY GL_BindVertexArrayOES(GLuint array)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLBindVertexArrayOES, "context = %d, array = %u", CID(context), array);
 
@@ -13660,6 +14058,7 @@ void GL_APIENTRY GL_BindVertexArrayOES(GLuint array)
 
 void GL_APIENTRY GL_DeleteVertexArraysOES(GLsizei n, const GLuint *arrays)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLDeleteVertexArraysOES, "context = %d, n = %d, arrays = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)arrays);
@@ -13687,6 +14086,7 @@ void GL_APIENTRY GL_DeleteVertexArraysOES(GLsizei n, const GLuint *arrays)
 
 void GL_APIENTRY GL_GenVertexArraysOES(GLsizei n, GLuint *arrays)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLGenVertexArraysOES, "context = %d, n = %d, arrays = 0x%016" PRIxPTR "",
           CID(context), n, (uintptr_t)arrays);
@@ -13713,6 +14113,7 @@ void GL_APIENTRY GL_GenVertexArraysOES(GLsizei n, GLuint *arrays)
 
 GLboolean GL_APIENTRY GL_IsVertexArrayOES(GLuint array)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLIsVertexArrayOES, "context = %d, array = %u", CID(context), array);
 
@@ -13755,6 +14156,7 @@ void GL_APIENTRY GL_FramebufferTextureMultiviewOVR(GLenum target,
                                                    GLint baseViewIndex,
                                                    GLsizei numViews)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferTextureMultiviewOVR,
           "context = %d, target = %s, attachment = %s, texture = %u, level = %d, baseViewIndex = "
@@ -13767,14 +14169,10 @@ void GL_APIENTRY GL_FramebufferTextureMultiviewOVR(GLenum target,
     {
         TextureID texturePacked = PackParam<TextureID>(texture);
         SCOPED_SHARE_CONTEXT_LOCK(context);
-        bool isCallValid =
-            (context->skipValidation() ||
-             (ValidatePixelLocalStorageInactive(
-                  context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                  angle::EntryPoint::GLFramebufferTextureMultiviewOVR) &&
-              ValidateFramebufferTextureMultiviewOVR(
-                  context, angle::EntryPoint::GLFramebufferTextureMultiviewOVR, target, attachment,
-                  texturePacked, level, baseViewIndex, numViews)));
+        bool isCallValid = (context->skipValidation() ||
+                            ValidateFramebufferTextureMultiviewOVR(
+                                context, angle::EntryPoint::GLFramebufferTextureMultiviewOVR,
+                                target, attachment, texturePacked, level, baseViewIndex, numViews));
         if (isCallValid)
         {
             context->framebufferTextureMultiview(target, attachment, texturePacked, level,
@@ -13799,6 +14197,7 @@ void GL_APIENTRY GL_FramebufferFoveationConfigQCOM(GLuint framebuffer,
                                                    GLuint requestedFeatures,
                                                    GLuint *providedFeatures)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferFoveationConfigQCOM,
           "context = %d, framebuffer = %u, numLayers = %u, focalPointsPerLayer = %u, "
@@ -13842,6 +14241,7 @@ void GL_APIENTRY GL_FramebufferFoveationParametersQCOM(GLuint framebuffer,
                                                        GLfloat gainY,
                                                        GLfloat foveaArea)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLFramebufferFoveationParametersQCOM,
           "context = %d, framebuffer = %u, layer = %u, focalPoint = %u, focalX = %f, focalY = %f, "
@@ -13881,6 +14281,7 @@ void GL_APIENTRY GL_FramebufferFoveationParametersQCOM(GLuint framebuffer,
 // GL_QCOM_shading_rate
 void GL_APIENTRY GL_ShadingRateQCOM(GLenum rate)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLShadingRateQCOM, "context = %d, rate = %s", CID(context),
           GLenumToString(GLESEnum::ShadingRateQCOM, rate));
@@ -13919,6 +14320,7 @@ void GL_APIENTRY GL_TextureFoveationParametersQCOM(GLuint texture,
                                                    GLfloat gainY,
                                                    GLfloat foveaArea)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLTextureFoveationParametersQCOM,
           "context = %d, texture = %u, layer = %u, focalPoint = %u, focalX = %f, focalY = %f, "
@@ -13955,6 +14357,7 @@ void GL_APIENTRY GL_TextureFoveationParametersQCOM(GLuint texture,
 // GL_QCOM_tiled_rendering
 void GL_APIENTRY GL_EndTilingQCOM(GLbitfield preserveMask)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLEndTilingQCOM, "context = %d, preserveMask = %s", CID(context),
           GLbitfieldToString(GLESEnum::BufferBitQCOM, preserveMask).c_str());
@@ -13984,6 +14387,7 @@ void GL_APIENTRY GL_EndTilingQCOM(GLbitfield preserveMask)
 void GL_APIENTRY
 GL_StartTilingQCOM(GLuint x, GLuint y, GLuint width, GLuint height, GLbitfield preserveMask)
 {
+    ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     EVENT(context, GLStartTilingQCOM,
           "context = %d, x = %u, y = %u, width = %u, height = %u, preserveMask = %s", CID(context),

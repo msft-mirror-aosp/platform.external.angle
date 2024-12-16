@@ -710,6 +710,8 @@ EXPORTS
     glEGLImageTargetTexStorageEXT
     glEGLImageTargetTextureStorageEXT
 
+    ; GL_EXT_EGL_image_storage_compression
+
     ; GL_EXT_YUV_target
 
     ; GL_EXT_base_instance
@@ -1088,6 +1090,9 @@ EXPORTS
 
     ; GL_OES_EGL_image_external_essl3
 
+    ; GL_OES_blend_subtract
+    glBlendEquationOES
+
     ; GL_OES_compressed_ETC1_RGB8_texture
 
     ; GL_OES_compressed_paletted_texture
@@ -1180,6 +1185,8 @@ EXPORTS
     ; GL_OES_query_matrix
     glQueryMatrixxOES
 
+    ; GL_OES_required_internalformat
+
     ; GL_OES_rgb8_rgba8
 
     ; GL_OES_sample_shading
@@ -1244,6 +1251,8 @@ EXPORTS
     ; GL_OES_texture_half_float
 
     ; GL_OES_texture_half_float_linear
+
+    ; GL_OES_texture_mirrored_repeat
 
     ; GL_OES_texture_npot
 
@@ -1427,6 +1436,9 @@ EXPORTS
     EGL_CreatePlatformPixmapSurfaceEXT
     EGL_CreatePlatformWindowSurfaceEXT
     EGL_GetPlatformDisplayEXT
+
+    ; EGL_EXT_surface_compression
+    EGL_QuerySupportedCompressionRatesEXT
 
     ; EGL_KHR_debug
     EGL_DebugMessageControlKHR

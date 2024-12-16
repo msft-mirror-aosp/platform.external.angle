@@ -61,10 +61,11 @@ union ProgramTransformOptions final
         uint8_t removeTransformFeedbackEmulation : 1;
         uint8_t multiSampleFramebufferFetch : 1;
         uint8_t enableSampleShading : 1;
-        uint8_t reserved : 4;  // must initialize to zero
+        uint8_t removeDepthStencilInput : 1;
+        uint8_t reserved : 3;  // must initialize to zero
     };
     uint8_t permutationIndex;
-    static constexpr uint32_t kPermutationCount = 0x1 << 4;
+    static constexpr uint32_t kPermutationCount = 0x1 << 5;
 };
 static_assert(sizeof(ProgramTransformOptions) == 1, "Size check failed");
 static_assert(static_cast<int>(SurfaceRotation::EnumCount) <= 8, "Size check failed");
@@ -93,7 +94,7 @@ class ProgramInfo final : angle::NonCopyable
 
   private:
     vk::ShaderProgramHelper mProgramHelper;
-    gl::ShaderMap<vk::RefCounted<vk::ShaderModule>> mShaders;
+    vk::ShaderModuleMap mShaders;
 };
 
 using ImmutableSamplerIndexMap = angle::HashMap<vk::YcbcrConversionDesc, uint32_t>;
@@ -203,7 +204,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
                                              vk::PipelineProtectedAccess pipelineProtectedAccess,
                                              vk::PipelineHelper **pipelineOut);
 
-    const vk::PipelineLayout &getPipelineLayout() const { return mPipelineLayout.get(); }
+    const vk::PipelineLayout &getPipelineLayout() const { return *mPipelineLayout; }
     void resetLayout(ContextVk *contextVk);
     angle::Result createPipelineLayout(vk::Context *context,
                                        PipelineLayoutCache *pipelineLayoutCache,
@@ -525,7 +526,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
     // deleted while this program is in use.
     uint32_t mImmutableSamplersMaxDescriptorCount;
     ImmutableSamplerIndexMap mImmutableSamplerIndexMap;
-    vk::AtomicBindingPointer<vk::PipelineLayout> mPipelineLayout;
+    vk::PipelineLayoutPtr mPipelineLayout;
     vk::DescriptorSetLayoutPointerArray mDescriptorSetLayouts;
 
     // A set of dynamic offsets used with vkCmdBindDescriptorSets for the default uniform buffers.
@@ -535,9 +536,9 @@ class ProgramExecutableVk : public ProgramExecutableImpl
 
     ShaderInterfaceVariableInfoMap mVariableInfoMap;
 
-    static_assert((ProgramTransformOptions::kPermutationCount == 16),
-                  "ProgramTransformOptions::kPermutationCount must be 16.");
-    angle::BitSet16<ProgramTransformOptions::kPermutationCount> mValidGraphicsPermutations;
+    static_assert((ProgramTransformOptions::kPermutationCount == 32),
+                  "ProgramTransformOptions::kPermutationCount must be 32.");
+    angle::BitSet32<ProgramTransformOptions::kPermutationCount> mValidGraphicsPermutations;
 
     static_assert((vk::ComputePipelineOptions::kPermutationCount == 4),
                   "ComputePipelineOptions::kPermutationCount must be 4.");

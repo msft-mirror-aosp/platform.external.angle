@@ -4051,6 +4051,8 @@ void GL_APIENTRY glEGLImageTargetTextureStorageEXT(GLuint texture,
     return GL_EGLImageTargetTextureStorageEXT(texture, image, attrib_list);
 }
 
+// GL_EXT_EGL_image_storage_compression
+
 // GL_EXT_YUV_target
 
 // GL_EXT_base_instance
@@ -5429,6 +5431,12 @@ void GL_APIENTRY glEGLImageTargetTexture2DOES(GLenum target, GLeglImageOES image
 
 // GL_OES_EGL_image_external_essl3
 
+// GL_OES_blend_subtract
+void GL_APIENTRY glBlendEquationOES(GLenum mode)
+{
+    return GL_BlendEquationOES(mode);
+}
+
 // GL_OES_compressed_ETC1_RGB8_texture
 
 // GL_OES_compressed_paletted_texture
@@ -5767,6 +5775,8 @@ GLbitfield GL_APIENTRY glQueryMatrixxOES(GLfixed *mantissa, GLint *exponent)
     return GL_QueryMatrixxOES(mantissa, exponent);
 }
 
+// GL_OES_required_internalformat
+
 // GL_OES_rgb8_rgba8
 
 // GL_OES_sample_shading
@@ -5991,6 +6001,8 @@ void GL_APIENTRY glTexGenxvOES(GLenum coord, GLenum pname, const GLfixed *params
 // GL_OES_texture_half_float
 
 // GL_OES_texture_half_float_linear
+
+// GL_OES_texture_mirrored_repeat
 
 // GL_OES_texture_npot
 

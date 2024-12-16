@@ -412,6 +412,8 @@ const char *GetEntryPointName(EntryPoint ep)
             return "eglQueryString";
         case EntryPoint::EGLQueryStringiANGLE:
             return "eglQueryStringiANGLE";
+        case EntryPoint::EGLQuerySupportedCompressionRatesEXT:
+            return "eglQuerySupportedCompressionRatesEXT";
         case EntryPoint::EGLQuerySurface:
             return "eglQuerySurface";
         case EntryPoint::EGLQuerySurface64KHR:
@@ -548,6 +550,8 @@ const char *GetEntryPointName(EntryPoint ep)
             return "glBlendColor";
         case EntryPoint::GLBlendEquation:
             return "glBlendEquation";
+        case EntryPoint::GLBlendEquationOES:
+            return "glBlendEquationOES";
         case EntryPoint::GLBlendEquationSeparate:
             return "glBlendEquationSeparate";
         case EntryPoint::GLBlendEquationSeparatei:

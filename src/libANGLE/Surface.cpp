@@ -197,14 +197,6 @@ void Surface::postSwap(const gl::Context *context)
     mBufferAgeQueriedSinceLastSwap = false;
 
     mIsDamageRegionSet = false;
-
-    if ((mRenderBuffer != mRequestedRenderBuffer) &&
-        context->getDisplay()->getExtensions().mutableRenderBufferKHR &&
-        (getConfig()->surfaceType & EGL_MUTABLE_RENDER_BUFFER_BIT_KHR))
-    {
-        Error err = setRenderBuffer(mRequestedRenderBuffer);
-        ASSERT(!err.isError());
-    }
 }
 
 Error Surface::initialize(const Display *display)
@@ -345,6 +337,7 @@ Error Surface::swap(gl::Context *context)
 
     context->getState().getOverlay()->onSwap();
 
+    ANGLE_TRY(setRenderBufferWhileSwap(context));
     ANGLE_TRY(mImplementation->swap(context));
     postSwap(context);
     return NoError();
@@ -357,6 +350,7 @@ Error Surface::swapWithDamage(gl::Context *context, const EGLint *rects, EGLint 
 
     context->getState().getOverlay()->onSwap();
 
+    ANGLE_TRY(setRenderBufferWhileSwap(context));
     ANGLE_TRY(mImplementation->swapWithDamage(context, rects, n_rects));
     postSwap(context);
     return NoError();
@@ -369,6 +363,7 @@ Error Surface::swapWithFrameToken(gl::Context *context, EGLFrameTokenANGLE frame
 
     context->getState().getOverlay()->onSwap();
 
+    ANGLE_TRY(setRenderBufferWhileSwap(context));
     ANGLE_TRY(mImplementation->swapWithFrameToken(context, frameToken));
     postSwap(context);
     return NoError();
@@ -387,6 +382,7 @@ Error Surface::postSubBuffer(const gl::Context *context,
 
     context->getState().getOverlay()->onSwap();
 
+    ANGLE_TRY(setRenderBufferWhileSwap(context));
     ANGLE_TRY(mImplementation->postSubBuffer(context, x, y, width, height));
     postSwap(context);
     return NoError();
@@ -799,6 +795,17 @@ Error Surface::setRenderBuffer(EGLint renderBuffer)
 void Surface::setRequestedRenderBuffer(EGLint requestedRenderBuffer)
 {
     mRequestedRenderBuffer = requestedRenderBuffer;
+}
+
+Error Surface::setRenderBufferWhileSwap(const gl::Context *context)
+{
+    if ((mRenderBuffer != mRequestedRenderBuffer) &&
+        context->getDisplay()->getExtensions().mutableRenderBufferKHR &&
+        (getConfig()->surfaceType & EGL_MUTABLE_RENDER_BUFFER_BIT_KHR))
+    {
+        ANGLE_TRY(setRenderBuffer(mRequestedRenderBuffer));
+    }
+    return NoError();
 }
 
 bool Surface::isLocked() const

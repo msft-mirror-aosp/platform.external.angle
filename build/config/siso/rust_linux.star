@@ -5,6 +5,7 @@
 """Siso configuration for rust/linux."""
 
 load("@builtin//path.star", "path")
+load("@builtin//lib/gn.star", "gn")
 load("@builtin//struct.star", "module")
 load("./config.star", "config")
 load("./fuchsia.star", "fuchsia")
@@ -41,7 +42,7 @@ def __filegroups(ctx):
             "includes": [
                 "bin/clang",
                 "bin/clang++",
-                "bin/*lld",
+                "bin/*lld*",
                 "libclang*.a",
             ],
         },
@@ -70,6 +71,7 @@ def __rust_link_handler(ctx, cmd):
             ])
         elif arg.startswith("--sysroot=../../third_party/android_toolchain/ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot"):
             use_android_toolchain = True
+            inputs.append("third_party/android_toolchain/ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot:headers")
         if arg == "-isysroot":
             sysroot = ctx.fs.canonpath(args[i + 1])
             inputs.extend([
@@ -110,6 +112,16 @@ __handlers = {
 
 def __step_config(ctx, step_config):
     platform_ref = "large"  # Rust actions run faster on large workers.
+
+    remote = True
+
+    # TODO: crbug.com/382399126 - Remote rust link is not supported
+    # for Windows target builds, yet.
+    if "args.gn" in ctx.metadata:
+        gn_args = gn.args(ctx)
+        if gn_args.get("target_os") == '"win"':
+            remote = False
+
     clang_inputs = [
         "build/linux/debian_bullseye_amd64-sysroot:rustlink",
         "third_party/llvm-build/Release+Asserts:rustlink",
@@ -140,7 +152,7 @@ def __step_config(ctx, step_config):
             "indirect_inputs": rust_indirect_inputs,
             "handler": "rust_link_handler",
             "deps": "none",  # disable gcc scandeps
-            "remote": True,
+            "remote": remote,
             # "canonicalize_dir": True,  # TODO(b/300352286)
             "timeout": "2m",
             "platform_ref": platform_ref,
@@ -152,7 +164,7 @@ def __step_config(ctx, step_config):
             "indirect_inputs": rust_indirect_inputs,
             "handler": "rust_link_handler",
             "deps": "none",  # disable gcc scandeps
-            "remote": True,
+            "remote": remote,
             # "canonicalize_dir": True,  # TODO(b/300352286)
             "timeout": "2m",
             "platform_ref": platform_ref,
@@ -162,9 +174,10 @@ def __step_config(ctx, step_config):
             "action": "(.*_)?rust_macro",
             "inputs": rust_inputs + clang_inputs,
             "indirect_inputs": rust_indirect_inputs,
+            "handler": "rust_link_handler",
             "deps": "none",  # disable gcc scandeps
             # "canonicalize_dir": True,  # TODO(b/300352286)
-            "remote": True,
+            "remote": remote,
             "timeout": "2m",
             "platform_ref": platform_ref,
         },
@@ -174,7 +187,7 @@ def __step_config(ctx, step_config):
             "inputs": rust_inputs,
             "indirect_inputs": rust_indirect_inputs,
             "deps": "none",  # disable gcc scandeps
-            "remote": True,
+            "remote": remote,
             # "canonicalize_dir": True,  # TODO(b/300352286)
             "timeout": "2m",
             "platform_ref": platform_ref,
@@ -185,7 +198,7 @@ def __step_config(ctx, step_config):
             "inputs": rust_inputs,
             "indirect_inputs": rust_indirect_inputs,
             "deps": "none",  # disable gcc scandeps
-            "remote": True,
+            "remote": remote,
             # "canonicalize_dir": True,  # TODO(b/300352286)
             "timeout": "2m",
             "platform_ref": platform_ref,
@@ -198,7 +211,7 @@ def __step_config(ctx, step_config):
                 "third_party/rust:rustlib",
             ],
             "handler": "rust_build_handler",
-            "remote": config.get(ctx, "cog"),
+            "remote": remote and config.get(ctx, "cog"),
             "input_root_absolute_path": True,
             "timeout": "2m",
         },
@@ -209,7 +222,7 @@ def __step_config(ctx, step_config):
                 "third_party/rust-toolchain:toolchain",
                 "third_party/rust-toolchain/lib/rustlib:rlib",
             ],
-            "remote": config.get(ctx, "cog"),
+            "remote": remote and config.get(ctx, "cog"),
             "input_root_absolute_path": True,
             "timeout": "2m",
         },
