@@ -3,11 +3,13 @@
 # found in the LICENSE file.
 """Common methods and variables used by Cr-Fuchsia testing infrastructure."""
 
+import ipaddress
 import json
 import logging
 import os
 import signal
 import shutil
+import socket
 import subprocess
 import sys
 import time
@@ -146,7 +148,8 @@ def _get_daemon_status():
     return status.get('pid', {}).get('status', {'NotRunning': True})
 
 
-def _is_daemon_running():
+def is_daemon_running() -> bool:
+    """Returns if the daemon is running."""
     return 'Running' in _get_daemon_status()
 
 
@@ -167,7 +170,7 @@ def _wait_for_daemon(start=True, timeout_seconds=100):
     sleep_period_seconds = 5
     attempts = int(timeout_seconds / sleep_period_seconds)
     for i in range(attempts):
-        if _is_daemon_running() == start:
+        if is_daemon_running() == start:
             return
         if i != attempts:
             logging.info('Waiting for daemon to %s...', wanted_status)
@@ -189,7 +192,7 @@ def start_ffx_daemon():
     should be used with caution unless it's really needed to "restart" the
     daemon by explicitly calling stop daemon first.
     """
-    assert not _is_daemon_running(), "Call stop_ffx_daemon first."
+    assert not is_daemon_running(), "Call stop_ffx_daemon first."
     run_ffx_command(cmd=('doctor', '--restart-daemon'), check=False)
     _wait_for_daemon(start=True)
 
@@ -374,11 +377,30 @@ def resolve_packages(packages: List[str], target_id: Optional[str]) -> None:
         _retry_command(resolve_cmd, target_id=target_id)
 
 
-def get_ssh_address(target_id: Optional[str]) -> str:
+def get_ip_address(target_id: Optional[str], ipv4_only: bool = False):
+    """Determines address of the given target; returns the value from
+    ipaddress.ip_address."""
+    return ipaddress.ip_address(get_ssh_address(target_id, ipv4_only)[0])
+
+
+def get_ssh_address(target_id: Optional[str],
+                    ipv4_only: bool = False) -> Tuple[str, int]:
     """Determines SSH address for given target."""
-    return run_ffx_command(cmd=('target', 'get-ssh-address'),
-                           target_id=target_id,
-                           capture_output=True).stdout.strip()
+    cmd = ['target', 'list']
+    if ipv4_only:
+        cmd.append('--no-ipv6')
+    if target_id:
+        # target list does not respect -t / --target flag.
+        cmd.append(target_id)
+    target = json.loads(
+        run_ffx_command(cmd=cmd, json_out=True,
+                        capture_output=True).stdout.strip())
+    addr = target[0]['addresses'][0]
+    ssh_port = int(addr['ssh_port'])
+    if ssh_port == 0:
+        # Returning an unset ssh_port means the default port 22.
+        ssh_port = 22
+    return (addr['ip'], ssh_port)
 
 
 def find_in_dir(target_name: str, parent_dir: str) -> Optional[str]:
@@ -493,3 +515,21 @@ def get_system_info(target: Optional[str] = None) -> Tuple[str, str]:
         return ('', '')
 
     return (build_info.product or '', build_info.version or '')
+
+
+def get_free_local_port() -> int:
+    """Returns an ipv4 port available locally. It does not reserve the port and
+    may cause race condition. Copied from catapult
+    https://crsrc.org/c/third_party/catapult/telemetry/telemetry/core/util.py;drc=e3f9ae73db5135ad998108113af7ef82a47efc51;l=61"""
+    # AF_INET restricts port to IPv4 addresses.
+    # SOCK_STREAM means that it is a TCP socket.
+    tmp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Setting SOL_SOCKET + SO_REUSEADDR to 1 allows the reuse of local
+    # addresses, this is so sockets do not fail to bind for being in the
+    # CLOSE_WAIT state.
+    tmp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    tmp.bind(('', 0))
+    port = tmp.getsockname()[1]
+    tmp.close()
+
+    return port

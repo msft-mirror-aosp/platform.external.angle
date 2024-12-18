@@ -42,7 +42,7 @@ add_library(Vulkan-Headers INTERFACE)
 add_library(Vulkan::Headers ALIAS Vulkan-Headers)
 target_include_directories(Vulkan-Headers INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-if (MSVC AND (MSVC_VERSION GREATER_EQUAL "1941") OR
+if ((CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND (MSVC_VERSION GREATER_EQUAL "1941")) OR
     # clang-cl doesn't currently support modules
     (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
         AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "16.0"
@@ -52,9 +52,13 @@ if (MSVC AND (MSVC_VERSION GREATER_EQUAL "1941") OR
     set(COMPILER_SUPPORTS_CXX_MODULES TRUE)
 endif()
 
-option(VULKAN_HEADERS_ENABLE_MODULE "Enables building of the Vulkan C++ module. Default is true if supported by the CMake version and compilers" ${COMPILER_SUPPORTS_CXX_MODULES})
+option(VULKAN_HEADERS_ENABLE_MODULE "Enables building of the Vulkan C++ module" OFF)
 
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.28" AND VULKAN_HEADERS_ENABLE_MODULE)
+if (VULKAN_HEADERS_ENABLE_MODULE AND (NOT COMPILER_SUPPORTS_CXX_MODULES OR CMAKE_VERSION VERSION_LESS "3.28"))
+    message(WARNING "Vulkan C++ module support is requested but was disabled due to lacking support on this platform")
+endif()
+
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.28" AND VULKAN_HEADERS_ENABLE_MODULE AND COMPILER_SUPPORTS_CXX_MODULES)
     add_library(Vulkan-Module)
     add_library(Vulkan::VulkanHppModule ALIAS Vulkan-Module)
     target_sources(Vulkan-Module

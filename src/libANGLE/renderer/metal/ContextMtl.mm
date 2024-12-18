@@ -220,12 +220,7 @@ ContextMtl::ContextMtl(const gl::State &state,
       mDriverUniforms{},
       mProvokingVertexHelper(this),
       mContextDevice(GetOwnershipIdentity(attribs))
-{
-    if (@available(iOS 12.0, macOS 10.14, *))
-    {
-        mHasMetalSharedEvents = true;
-    }
-}
+{}
 
 ContextMtl::~ContextMtl() {}
 
@@ -272,22 +267,12 @@ void ContextMtl::onDestroy(const gl::Context *context)
 // Flush and finish.
 angle::Result ContextMtl::flush(const gl::Context *context)
 {
-    if (mHasMetalSharedEvents)
-    {
-        // MTLSharedEvent is available on these platforms, and callers
-        // are expected to use the EGL_ANGLE_metal_shared_event_sync
-        // extension to synchronize with ANGLE's Metal backend, if
-        // needed. This is typically required if two MTLDevices are
-        // operating on the same IOSurface.
-        flushCommandBuffer(mtl::NoWait);
-    }
-    else
-    {
-        // Older operating systems do not have this primitive available.
-        // Make every flush operation wait until it's scheduled in order to
-        // achieve callers' expected synchronization behavior.
-        flushCommandBuffer(mtl::WaitUntilScheduled);
-    }
+    // MTLSharedEvent is available on these platforms, and callers
+    // are expected to use the EGL_ANGLE_metal_shared_event_sync
+    // extension to synchronize with ANGLE's Metal backend, if
+    // needed. This is typically required if two MTLDevices are
+    // operating on the same IOSurface.
+    flushCommandBuffer(mtl::NoWait);
     return angle::Result::Continue;
 }
 angle::Result ContextMtl::finish(const gl::Context *context)
@@ -1220,13 +1205,9 @@ angle::Result ContextMtl::syncState(const gl::Context *context,
                 break;
             case gl::state::DIRTY_BIT_SAMPLE_COVERAGE_ENABLED:
             case gl::state::DIRTY_BIT_SAMPLE_COVERAGE:
-                invalidateDriverUniforms();
-                break;
             case gl::state::DIRTY_BIT_SAMPLE_MASK_ENABLED:
-                // NOTE(hqle): 3.1 MSAA support
-                break;
             case gl::state::DIRTY_BIT_SAMPLE_MASK:
-                // NOTE(hqle): 3.1 MSAA support
+                invalidateDriverUniforms();
                 break;
             case gl::state::DIRTY_BIT_DEPTH_TEST_ENABLED:
                 mDepthStencilDesc.updateDepthTestEnabled(glState.getDepthStencilState());
@@ -1876,12 +1857,12 @@ void ContextMtl::endEncoding(bool forceSaveRenderPassContent)
 
 void ContextMtl::flushCommandBuffer(mtl::CommandBufferFinishOperation operation)
 {
+    mRenderPassesSinceFlush = 0;
     if (mCmdBuffer.ready())
     {
         endEncoding(true);
         mCmdBuffer.commit(operation);
         mBufferManager.incrementNumCommandBufferCommits();
-        mRenderPassesSinceFlush = 0;
     }
     else
     {
@@ -1891,20 +1872,12 @@ void ContextMtl::flushCommandBuffer(mtl::CommandBufferFinishOperation operation)
 
 void ContextMtl::flushCommandBufferIfNeeded()
 {
-    if (mRenderPassesSinceFlush >= mtl::kMaxRenderPassesPerCommandBuffer)
+    if (mRenderPassesSinceFlush >= mtl::kMaxRenderPassesPerCommandBuffer ||
+        mCmdBuffer.needsFlushForDrawCallLimits())
     {
-#if defined(ANGLE_PLATFORM_MACOS)
         // Ensure that we don't accumulate too many unflushed render passes. Don't wait until they
         // are submitted, other components handle backpressure so don't create uneccessary CPU/GPU
         // synchronization.
-        flushCommandBuffer(mtl::NoWait);
-#else
-        // WaitUntilScheduled is used on iOS to avoid regressing untested devices.
-        flushCommandBuffer(mtl::WaitUntilScheduled);
-#endif
-    }
-    else if (mCmdBuffer.needsFlushForDrawCallLimits())
-    {
         flushCommandBuffer(mtl::NoWait);
     }
 }
@@ -2860,6 +2833,12 @@ angle::Result ContextMtl::handleDirtyDriverUniforms(const gl::Context *context,
     else
     {
         mDriverUniforms.coverageMask = 0xFFFFFFFFu;
+    }
+
+    // Sample mask
+    if (mState.isSampleMaskEnabled())
+    {
+        mDriverUniforms.coverageMask &= mState.getSampleMaskWord(0);
     }
 
     ANGLE_TRY(

@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import time
 from typing import List, Optional
+from urllib.parse import urlparse
 
 from common import run_continuous_ffx_command, ssh_run, REPO_ALIAS
 from ffx_integration import run_symbolizer
@@ -69,14 +70,26 @@ class BrowserRunner:
         assert self._log_fs
         return self._log_fs.name
 
-    def _read_devtools_port(self):
-        search_regex = r'Remote debugging port: (\d+)'
+    @property
+    def browser_pid(self) -> int:
+        """Returns the process id of the ffx instance which starts the browser
+        on the test device, shouldn't be called before executing the start."""
+        assert self._browser_proc
+        return self._browser_proc.pid
 
+    def _read_devtools_port(self):
+        search_regex = r'DevTools listening on (.+)'
+
+        # The ipaddress of the emulator or device is preferred over the address
+        # reported by the devtools, former one is usually more accurate.
         def try_reading_port(log_file) -> int:
             for line in log_file:
                 tokens = re.search(search_regex, line)
                 if tokens:
-                    return int(tokens.group(1))
+                    url = urlparse(tokens.group(1))
+                    assert url.scheme == 'ws'
+                    assert url.port is not None
+                    return url.port
             return None
 
         with open(self.log_file, encoding='utf-8') as log_file:
@@ -85,10 +98,12 @@ class BrowserRunner:
                 port = try_reading_port(log_file)
                 if port:
                     return port
+                self._browser_proc.poll()
+                assert not self._browser_proc.returncode, 'Browser stopped.'
                 time.sleep(1)
             assert False, 'Failed to wait for the devtools port.'
 
-    def start(self, extra_args: List[str]) -> None:
+    def start(self, extra_args: List[str] = None) -> None:
         """Starts the selected browser, |extra_args| are attached to the command
         line."""
         browser_cmd = ['test', 'run']
@@ -138,8 +153,8 @@ class BrowserRunner:
 
     def stop_browser(self) -> None:
         """Stops the browser on the target, as well as the local symbolizer, the
-    _log_fs is preserved. Calling this function for a second time won't have any
-    effect."""
+        _log_fs is preserved. Calling this function for a second time won't have
+        any effect."""
         if not self.is_browser_running():
             return
         self._browser_proc.kill()
@@ -147,7 +162,9 @@ class BrowserRunner:
         self._symbolizer_proc.kill()
         self._symbolizer_proc = None
         self._devtools_port = None
-        ssh_run(['killall', 'web_instance.cmx'], self._target_id)
+        # The process may be stopped already, ignoring the no process found
+        # error.
+        ssh_run(['killall', 'web_instance.cmx'], self._target_id, check=False)
 
     def is_browser_running(self) -> bool:
         """Checks if the browser is still running."""

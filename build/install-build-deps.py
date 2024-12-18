@@ -52,14 +52,16 @@ def parse_args(argv):
   parser.add_argument(
       "--android",
       action="store_true",
-      help="Enable installation of android dependencies",
-  )
+      # Deprecated flag retained as functional for backward compatibility:
+      # Enable installation of android dependencies
+      help=argparse.SUPPRESS)
   parser.add_argument(
       "--no-android",
       action="store_false",
       dest="android",
-      help="Disable installation of android dependencies",
-  )
+      # Deprecated flag retained as functional for backward compatibility:
+      # Enable installation of android dependencies
+      help=argparse.SUPPRESS)
   parser.add_argument("--arm",
                       action="store_true",
                       help="Enable installation of arm cross toolchain")
@@ -254,7 +256,6 @@ def dev_list():
       "pkgconf",
       "rpm",
       "ruby",
-      "subversion",
       "uuid-dev",
       "wdiff",
       "x11-utils",
@@ -296,6 +297,10 @@ def dev_list():
 
   if package_exists("libinput-dev"):
     packages.append("libinput-dev")
+
+  # So accessibility APIs work, needed for AX fuzzer
+  if package_exists("at-spi2-core"):
+    packages.append("at-spi2-core")
 
   # Cross-toolchain strip is needed for building the sysroots.
   if package_exists("binutils-arm-linux-gnueabihf"):
@@ -646,12 +651,9 @@ def nacl_list(options):
     print("Skipping NaCl, NaCl toolchain, NaCl ports dependencies.",
           file=sys.stderr)
     return []
-  print("Including NaCl, NaCl toolchain, NaCl ports dependencies.",
-        file=sys.stderr)
 
   packages = [
       "g++-mingw-w64-i686",
-      "lib32ncurses5-dev",
       "lib32z1-dev",
       "libasound2:i386",
       "libcap2:i386",
@@ -684,32 +686,28 @@ def nacl_list(options):
       "cmake",
       "gawk",
       "intltool",
+      "libtinfo5",
       "xutils-dev",
       "xsltproc",
   ]
 
-  # Some package names have changed over time
-  if package_exists("libssl-dev"):
-    packages.append("libssl-dev:i386")
-  elif package_exists("libssl1.1"):
-    packages.append("libssl1.1:i386")
-  elif package_exists("libssl1.0.2"):
-    packages.append("libssl1.0.2:i386")
-  else:
-    packages.append("libssl1.0.0:i386")
+  for package in packages:
+    if not package_exists(package):
+      print("Skipping NaCl, NaCl toolchain, NaCl ports dependencies because %s "
+            "is not available" % package,
+            file=sys.stderr)
+      return []
 
-  if package_exists("libtinfo5"):
-    packages.append("libtinfo5")
+  print("Including NaCl, NaCl toolchain, NaCl ports dependencies.",
+        file=sys.stderr)
 
-  if package_exists("libncurses6:i386"):
-    packages.append("libncurses6:i386")
-  else:
-    packages.append("libncurses5:i386")
-
-  if package_exists("lib32ncurses-dev"):
-    packages.append("lib32ncurses-dev")
-  else:
+  # Prefer lib32ncurses5-dev to match libncurses5:i386 if it exists.
+  # In some Ubuntu releases, lib32ncurses5-dev is a transition package to
+  # lib32ncurses-dev, so use that as a fallback.
+  if package_exists("lib32ncurses5-dev"):
     packages.append("lib32ncurses5-dev")
+  else:
+    packages.append("lib32ncurses-dev")
 
   return packages
 
@@ -854,7 +852,7 @@ def install_packages(options):
     packages = find_missing_packages(options)
     if packages:
       quiet = ["-qq", "--assume-yes"] if options.no_prompt else []
-      subprocess.check_output(["sudo", "apt-get", "install"] + quiet + packages)
+      subprocess.check_call(["sudo", "apt-get", "install"] + quiet + packages)
       print(file=sys.stderr)
     else:
       print("No missing packages, and the packages are up to date.",
@@ -864,7 +862,6 @@ def install_packages(options):
     # An apt-get exit status of 100 indicates that a real error has occurred.
     print("`apt-get --just-print install ...` failed", file=sys.stderr)
     print("It produced the following output:", file=sys.stderr)
-    print(e.output.decode(), file=sys.stderr)
     print(file=sys.stderr)
     print("You will have to install the above packages yourself.",
           file=sys.stderr)

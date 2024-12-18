@@ -59,7 +59,11 @@ _IGNORE_WARNINGS = (
     r'Missing class android.adservices.common.AdServicesOutcomeReceiver',
     # We enforce that this class is removed via -checkdiscard.
     r'FastServiceLoader\.class:.*Could not inline ServiceLoader\.load',
-
+    # Happens on internal builds. It's a real failure, but happens in dead code.
+    r'(?:GeneratedExtensionRegistryLoader|ExtensionRegistryLite)\.class:.*Could not inline ServiceLoader\.load',   # pylint: disable=line-too-long
+    # This class is referenced by kotlinx-coroutines-core-jvm but it does not
+    # depend on it. Not actually needed though.
+    r'Missing class org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement',
     # Ignore MethodParameter attribute count isn't matching in espresso.
     # This is a banner warning and each individual file affected will have
     # its own warning.
@@ -68,8 +72,10 @@ _IGNORE_WARNINGS = (
     # corresponding EnclosingMethod attribute. Such InnerClasses attribute
     # entries are ignored."
     r'Warning: InnerClasses attribute has entries missing a corresponding EnclosingMethod attribute',  # pylint: disable=line-too-long
-    r'Warning in obj/third_party/androidx/androidx_test_espresso_espresso_core_java',  # pylint: disable=line-too-long
-    r'Warning in obj/third_party/androidx/androidx_test_espresso_espresso_web_java',  # pylint: disable=line-too-long
+    # Full error example: "Warning in <path to target prebuilt>:
+    # androidx/test/espresso/web/internal/deps/guava/collect/Maps$1.class:"
+    # Also happens in espresso core.
+    r'Warning in .*:androidx/test/espresso/.*/guava/collect/.*',
 
     # We are following up in b/290389974
     r'AppSearchDocumentClassMap\.class:.*Could not inline ServiceLoader\.load',
@@ -77,7 +83,7 @@ _IGNORE_WARNINGS = (
 
 _BLOCKLISTED_EXPECTATION_PATHS = [
     # A separate expectation file is created for these files.
-    'clank/third_party/google3/pg_confs/',
+    'clank/third_party/google3/cipd/pg_confs/',
 ]
 
 _DUMP_DIR_NAME = 'r8inputs_dir'
@@ -337,6 +343,17 @@ def _OptimizeWithR8(options, config_paths, libraries, dynamic_config_data):
         # Restricts horizontal class merging to apply only to classes that
         # share a .java file (nested classes). https://crbug.com/1363709
         '-Dcom.android.tools.r8.enableSameFilePolicy=1',
+        # Allow ServiceLoaderUtil.maybeCreate() to work with types that are
+        # -kept (e.g. due to containing JNI).
+        '-Dcom.android.tools.r8.allowServiceLoaderRewritingPinnedTypes=1',
+        # Allow R8 to inline kept methods by default.
+        # See: b/364267880#2
+        '-Dcom.android.tools.r8.allowCodeReplacement=false',
+        # Required to use "-keep,allowcodereplacement"
+        '-Dcom.android.tools.r8.allowTestProguardOptions=true',
+        # Can remove this once the pass is enabled by default.
+        # b/145280859
+        '-Dcom.android.tools.r8.enableListIterationRewriting=1',
     ]
     if options.sdk_extension_jars:
       # Enable API modelling for OS extensions. https://b/326252366
@@ -526,6 +543,10 @@ def _CheckForMissingSymbols(options, dex_files, error_title):
         # Explicitly guarded by try (NoClassDefFoundError) in Firebase's
         # KotlinDetector: com.google.firebase.platforminfo.KotlinDetector.
         'kotlin.KotlinVersion',
+
+        # Not sure why these two are missing, but they do not seem important.
+        'ResultIgnorabilityUnspecified',
+        'kotlin.DeprecationLevel',
     ]
 
     had_unfiltered_items = '  ' in stderr

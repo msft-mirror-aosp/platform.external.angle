@@ -5,7 +5,11 @@
 //
 
 #include "test_utils/ANGLETest.h"
+
+#include "test_utils/angle_test_instantiate.h"
 #include "test_utils/gl_raii.h"
+#include "util/gles_loader_autogen.h"
+#include "util/shader_utils.h"
 
 #include <array>
 #include <cmath>
@@ -312,10 +316,309 @@ void main() {
     }
 }
 
+class BasicUniformUsageTest : public ANGLETest<>
+{
+  protected:
+    BasicUniformUsageTest()
+    {
+        setWindowWidth(128);
+        setWindowHeight(128);
+        setConfigRedBits(8);
+        setConfigGreenBits(8);
+        setConfigBlueBits(8);
+        setConfigAlphaBits(8);
+    }
+
+    void testSetUp() override
+    {
+
+        constexpr char kFS[] = R"(
+            precision mediump float;
+            uniform float uniF;
+            uniform int uniI;
+            uniform vec4 uniVec4;
+            void main() {
+              gl_FragColor = vec4(uniF + float(uniI));
+              gl_FragColor += uniVec4;
+            })";
+        mProgram             = CompileProgram(essl1_shaders::vs::Simple(), kFS);
+        ASSERT_NE(mProgram, 0u);
+
+        mUniformFLocation = glGetUniformLocation(mProgram, "uniF");
+        ASSERT_NE(mUniformFLocation, -1);
+
+        mUniformILocation = glGetUniformLocation(mProgram, "uniI");
+        ASSERT_NE(mUniformILocation, -1);
+
+        mUniformVec4Location = glGetUniformLocation(mProgram, "uniVec4");
+        ASSERT_NE(mUniformVec4Location, -1);
+
+        ASSERT_GL_NO_ERROR();
+    }
+
+    void testTearDown() override { glDeleteProgram(mProgram); }
+
+    GLuint mProgram            = 0;
+    GLint mUniformFLocation    = -1;
+    GLint mUniformILocation    = -1;
+    GLint mUniformVec4Location = -1;
+};
+
+// Tests that setting a float uniform with glUniform1f() is actually observable in the shader.
+TEST_P(BasicUniformUsageTest, Float)
+{
+    glUseProgram(mProgram);
+
+    glUniform1f(mUniformFLocation, 1.0f);
+    glUniform1i(mUniformILocation, 0);
+    glUniform4f(mUniformVec4Location, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    drawQuad(mProgram, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::white);
+}
+
+// Tests that setting an int uniform with glUniform1i() is actually observable in the shader.
+TEST_P(BasicUniformUsageTest, Integer)
+{
+    glUseProgram(mProgram);
+
+    glUniform1f(mUniformFLocation, 0.0f);
+    glUniform1i(mUniformILocation, 1);
+    glUniform4f(mUniformVec4Location, 0.0f, 0.0f, 0.0f, 1.0f);
+
+    drawQuad(mProgram, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::white);
+}
+
+// Tests that setting a vec4 uniform with glUniform4f() is actually observable in the shader.
+TEST_P(BasicUniformUsageTest, Vec4)
+{
+    glUseProgram(mProgram);
+
+    glUniform1f(mUniformFLocation, 0.0f);
+    glUniform1i(mUniformILocation, 0);
+    // green
+    glUniform4f(mUniformVec4Location, 0.0f, 1.0f, 0.0f, 1.0f);
+
+    drawQuad(mProgram, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+// Tests that setting a vec4 uniform with glUniform4f() is actually observable in the shader, across
+// multiple draw calls, even without a glFlush() in between the draw calls.
+TEST_P(BasicUniformUsageTest, Vec4MultipleDraws)
+{
+    glUseProgram(mProgram);
+
+    glUniform1f(mUniformFLocation, 0.0f);
+    glUniform1i(mUniformILocation, 0);
+    // green
+    glUniform4f(mUniformVec4Location, 0.0f, 1.0f, 0.0f, 1.0f);
+
+    drawQuad(mProgram, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // readPixels caused a flush, try red now
+    glUniform4f(mUniformVec4Location, 1.0f, 0.0f, 0.0f, 1.0f);
+
+    drawQuad(mProgram, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // green
+    glUniform4f(mUniformVec4Location, 0.0f, 1.0f, 0.0f, 1.0f);
+    // But only draw a quad half the size
+    drawQuad(mProgram, essl1_shaders::PositionAttrib(), 0.0f, /*positionAttribXYScale=*/0.5f);
+    // Still red at (0,0)
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    // Green in the middle.
+    EXPECT_PIXEL_COLOR_EQ(getWindowWidth() / 2, getWindowHeight() / 2, GLColor::green);
+
+    // Now, do a similar thing but no flush in the middle.
+    // Draw the screen green:
+    glUniform4f(mUniformVec4Location, 0.0f, 1.0f, 0.0f, 1.0f);
+    drawQuad(mProgram, essl1_shaders::PositionAttrib(), 0.0f);
+    // Draw the middle of the screen red:
+    glUniform4f(mUniformVec4Location, 1.0f, 0.0f, 0.0f, 1.0f);
+    drawQuad(mProgram, essl1_shaders::PositionAttrib(), 0.0f, /*positionAttribXYScale=*/0.5f);
+    // Still green at (0,0)
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+    // Red in the middle.
+    EXPECT_PIXEL_COLOR_EQ(getWindowWidth() / 2, getWindowHeight() / 2, GLColor::red);
+}
+
+// Named differently to instantiate on different backends.
+using SimpleUniformUsageTest = SimpleUniformTest;
+
+// In std140, the member following a struct will need to be aligned to 16. This tests that backends
+// like WGSL which take std140 buffers correctly align this member.
+TEST_P(SimpleUniformUsageTest, NestedStructAlignedCorrectly)
+{
+    constexpr char kFragShader[] = R"(precision mediump float;
+struct NestedUniforms {
+    float x;
+};
+struct Uniforms {
+    NestedUniforms a;
+    float b;
+    float c;
+};
+uniform Uniforms unis;
+void main() {
+    gl_FragColor = vec4(unis.a.x, unis.b, unis.c, 1.0);
+})";
+
+    GLuint program = CompileProgram(essl1_shaders::vs::Simple(), kFragShader);
+    ASSERT_NE(program, 0u);
+    glUseProgram(program);
+    GLint uniformAXLocation = glGetUniformLocation(program, "unis.a.x");
+    ASSERT_NE(uniformAXLocation, -1);
+    GLint uniformBLocation = glGetUniformLocation(program, "unis.b");
+    ASSERT_NE(uniformBLocation, -1);
+    GLint uniformCLocation = glGetUniformLocation(program, "unis.c");
+    ASSERT_NE(uniformCLocation, -1);
+
+    // Set to red
+    glUniform1f(uniformAXLocation, 1.0f);
+    glUniform1f(uniformBLocation, 0.0f);
+    glUniform1f(uniformCLocation, 0.0f);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Set to green
+    glUniform1f(uniformAXLocation, 0.0f);
+    glUniform1f(uniformBLocation, 1.0f);
+    glUniform1f(uniformCLocation, 0.0f);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Set to blue
+    glUniform1f(uniformAXLocation, 0.0f);
+    glUniform1f(uniformBLocation, 0.0f);
+    glUniform1f(uniformCLocation, 1.0f);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+
+    glDeleteProgram(program);
+}
+
+// Similarly to the above, tests that structs as array elements are aligned correctly, and nested
+// structs that follow float members are aligned correctly.
+TEST_P(SimpleUniformUsageTest, NestedStructAlignedCorrectly2)
+{
+    constexpr char kFragShader[] = R"(precision mediump float;
+struct NestedUniforms {
+    float x;
+};
+struct Uniforms {
+    float b;
+    NestedUniforms nested;
+    float c;
+    NestedUniforms[2] arr;
+    float d;
+};
+uniform Uniforms unis;
+void main() {
+    gl_FragColor = vec4(unis.nested.x, unis.b, unis.c, 1.0);
+    gl_FragColor += vec4(unis.arr[0].x, unis.arr[1].x, unis.d, 1.0);
+})";
+
+    GLuint program = CompileProgram(essl1_shaders::vs::Simple(), kFragShader);
+    ASSERT_NE(program, 0u);
+    glUseProgram(program);
+    GLint uniformNestedXLocation = glGetUniformLocation(program, "unis.nested.x");
+    ASSERT_NE(uniformNestedXLocation, -1);
+    GLint uniformBLocation = glGetUniformLocation(program, "unis.b");
+    ASSERT_NE(uniformBLocation, -1);
+    GLint uniformCLocation = glGetUniformLocation(program, "unis.c");
+    ASSERT_NE(uniformCLocation, -1);
+    GLint uniformArr0Location = glGetUniformLocation(program, "unis.arr[0].x");
+    ASSERT_NE(uniformArr0Location, -1);
+    GLint uniformArr1Location = glGetUniformLocation(program, "unis.arr[1].x");
+    ASSERT_NE(uniformArr1Location, -1);
+    GLint uniformDLocation = glGetUniformLocation(program, "unis.d");
+    ASSERT_NE(uniformDLocation, -1);
+
+    // Init to 0
+    glUniform1f(uniformArr0Location, 0.0f);
+    glUniform1f(uniformArr1Location, 0.0f);
+    glUniform1f(uniformDLocation, 0.0f);
+
+    // Set to red
+    glUniform1f(uniformNestedXLocation, 1.0f);
+    glUniform1f(uniformBLocation, 0.0f);
+    glUniform1f(uniformCLocation, 0.0f);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Set to green
+    glUniform1f(uniformNestedXLocation, 0.0f);
+    glUniform1f(uniformBLocation, 1.0f);
+    glUniform1f(uniformCLocation, 0.0f);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Set to blue
+    glUniform1f(uniformNestedXLocation, 0.0f);
+    glUniform1f(uniformBLocation, 0.0f);
+    glUniform1f(uniformCLocation, 1.0f);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+
+    // Zero out
+    glUniform1f(uniformNestedXLocation, 0.0f);
+    glUniform1f(uniformBLocation, 0.0f);
+    glUniform1f(uniformCLocation, 0.0f);
+    // Set to red
+    glUniform1f(uniformArr0Location, 1.0f);
+    glUniform1f(uniformArr1Location, 0.0f);
+    glUniform1f(uniformDLocation, 0.0f);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Set to green
+    glUniform1f(uniformArr0Location, 0.0f);
+    glUniform1f(uniformArr1Location, 1.0f);
+    glUniform1f(uniformDLocation, 0.0f);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Set to blue
+    glUniform1f(uniformArr0Location, 0.0f);
+    glUniform1f(uniformArr1Location, 0.0f);
+    glUniform1f(uniformDLocation, 1.0f);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+
+    glDeleteProgram(program);
+}
+
 class UniformTest : public ANGLETest<>
 {
   protected:
-    UniformTest() : mProgram(0), mUniformFLocation(-1), mUniformILocation(-1), mUniformBLocation(-1)
+    UniformTest()
     {
         setWindowWidth(128);
         setWindowHeight(128);
@@ -331,8 +634,8 @@ class UniformTest : public ANGLETest<>
         // changes. Must skip all tests explicitly.
         // if (IsMetal())
         //    return;
-
         constexpr char kVS[] = "void main() { gl_Position = vec4(1); }";
+
         constexpr char kFS[] =
             "precision mediump float;\n"
             "uniform float uniF;\n"
@@ -365,10 +668,10 @@ class UniformTest : public ANGLETest<>
 
     void testTearDown() override { glDeleteProgram(mProgram); }
 
-    GLuint mProgram;
-    GLint mUniformFLocation;
-    GLint mUniformILocation;
-    GLint mUniformBLocation;
+    GLuint mProgram         = 0;
+    GLint mUniformFLocation = -1;
+    GLint mUniformILocation = -1;
+    GLint mUniformBLocation = -1;
 };
 
 TEST_P(UniformTest, GetUniformNoCurrentProgram)
@@ -1587,8 +1890,10 @@ void main() {
 // Use this to select which configurations (e.g. which renderer, which GLES major version) these
 // tests should be run against.
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(SimpleUniformTest);
+ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(SimpleUniformUsageTest, ES2_WEBGPU());
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(UniformTest);
+ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(BasicUniformUsageTest, ES2_WEBGPU());
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UniformTestES3);
 ANGLE_INSTANTIATE_TEST_ES3(UniformTestES3);

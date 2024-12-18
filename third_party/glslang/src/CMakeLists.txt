@@ -30,7 +30,7 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-cmake_minimum_required(VERSION 3.17.2)
+cmake_minimum_required(VERSION 3.27)
 project(glslang)
 
 if (CMAKE_VERSION VERSION_LESS "3.21")
@@ -115,7 +115,7 @@ CMAKE_DEPENDENT_OPTION(ENABLE_EMSCRIPTEN_ENVIRONMENT_NODE
 option(ENABLE_HLSL "Enables HLSL input support" ON)
 option(ENABLE_RTTI "Enables RTTI")
 option(ENABLE_EXCEPTIONS "Enables Exceptions")
-option(ENABLE_OPT "Enables spirv-opt capability if present" ON)
+CMAKE_DEPENDENT_OPTION(ENABLE_OPT "Enables spirv-opt capability if present" ON "ENABLE_SPIRV" OFF)
 
 if(MINGW OR (APPLE AND ${CMAKE_CXX_COMPILER_ID} MATCHES "GNU"))
     # Workaround for CMake behavior on Mac OS with gcc, cmake generates -Xarch_* arguments
@@ -267,7 +267,8 @@ endfunction()
 function(glslang_only_export_explicit_symbols target)
     if(BUILD_SHARED_LIBS)
         target_compile_definitions(${target} PUBLIC "GLSLANG_IS_SHARED_LIBRARY=1")
-        set_target_properties(${target} PROPERTIES CMAKE_CXX_VISIBILITY_PRESET hidden)
+        set_target_properties(${target} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+        set_target_properties(${target} PROPERTIES C_VISIBILITY_PRESET hidden)
         if(WIN32)
             target_compile_definitions(${target} PRIVATE "GLSLANG_EXPORTING=1")
         endif()
@@ -350,6 +351,13 @@ if(GLSLANG_TESTS)
     add_test(NAME glslang-testsuite
 	COMMAND bash ${IGNORE_CR_FLAG} runtests ${RESULTS_PATH} ${VALIDATOR_PATH} ${REMAP_PATH}
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Test/)
+
+    # Prepend paths to DLLs for Windows tests.
+    if(WIN32)
+        set_tests_properties(glslang-testsuite PROPERTIES ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<JOIN:$<TARGET_RUNTIME_DLL_DIRS:glslang-standalone>,\;>")
+        set_tests_properties(glslang-testsuite PROPERTIES ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<JOIN:$<TARGET_RUNTIME_DLL_DIRS:spirv-remap>,\;>")
+    endif()
+
 endif(GLSLANG_TESTS)
 
 if (GLSLANG_ENABLE_INSTALL)
