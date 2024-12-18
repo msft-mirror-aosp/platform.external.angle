@@ -310,13 +310,10 @@ EGLAPI void EGLAPIENTRY eglWaitUntilWorkScheduledANGLE(EGLDisplay dpy);
 #define EGL_ANGLE_feature_control 1
 #define EGL_FEATURE_NAME_ANGLE 0x3460
 #define EGL_FEATURE_CATEGORY_ANGLE 0x3461
-#define EGL_FEATURE_DESCRIPTION_ANGLE 0x3462
-#define EGL_FEATURE_BUG_ANGLE 0x3463
 #define EGL_FEATURE_STATUS_ANGLE 0x3464
 #define EGL_FEATURE_COUNT_ANGLE 0x3465
 #define EGL_FEATURE_OVERRIDES_ENABLED_ANGLE 0x3466
 #define EGL_FEATURE_OVERRIDES_DISABLED_ANGLE 0x3467
-#define EGL_FEATURE_CONDITION_ANGLE 0x3468
 #define EGL_FEATURE_ALL_DISABLED_ANGLE 0x3469
 typedef const char *(EGLAPIENTRYP PFNEGLQUERYSTRINGIANGLEPROC) (EGLDisplay dpy, EGLint name, EGLint index);
 typedef EGLBoolean (EGLAPIENTRYP PFNEGLQUERYDISPLAYATTRIBANGLEPROC) (EGLDisplay dpy, EGLint attribute, EGLAttrib *value);
@@ -446,6 +443,11 @@ typedef void (EGLAPIENTRYP PFNEGLSETVALIDATIONENABLEDANGLEPROC)(EGLBoolean valid
 EGLAPI void EGLAPIENTRY eglSetValidationEnabledANGLE(EGLBoolean validationState);
 #endif
 #endif /* EGL_ANGLE_no_error */
+
+#ifndef EGL_ANGLE_memory_usage_report
+#define EGL_ANGLE_memory_usage_report 1
+#define EGL_CONTEXT_MEMORY_USAGE_ANGLE 0x3462
+#endif /* EGL_ANGLE_memory_usage_report */
 
 // clang-format on
 

@@ -51,17 +51,15 @@
 # See `docs/unsafe_buffers.md`.
 
 -android_webview/
-# Check chromeos-libfuzzer-asan-rel bots when removing this.
--ash/quick_pair/fast_pair_handshake/
--base/allocator
--base/third_party
+-base/allocator/
+-base/third_party/
 -chrome/browser/ash/chromebox_for_meetings/
 -chrome/browser/ash/policy/
 -chrome/browser/component_updater/
 -chrome/browser/extensions/api/messaging/
 -chrome/browser/extensions/api/printing/
 -chrome/browser/local_discovery/
--chrome/browser/media/webrtc
+-chrome/browser/media/webrtc/
 -chrome/browser/platform_experience/win/
 -chrome/browser/thumbnail/
 -chrome/browser/ui/android/hats/
@@ -81,11 +79,10 @@
 -chromeos/ash/components/memory/userspace_swap/
 -chromeos/ash/components/system/
 -chromeos/ash/services/libassistant/
--chromeos/components/kcer/kcer_nss
+-chromeos/components/kcer/kcer_nss/
 -clank/
--codelabs/
 -components/allocation_recorder/
--components/chromeos_camera
+-components/chromeos_camera/
 -components/commerce/
 -components/crash/
 -components/cronet/
@@ -102,18 +99,13 @@
 -components/query_parser/
 -components/segmentation_platform/
 -components/sharing_message/
--components/signin/
 -components/system_cpu/
--components/url_formatter/
--components/url_pattern_index/
 -components/webrtc_logging/
 -components/zucchini/
 -fuchsia_web/
--google_apis/
 -gpu/ipc/service/
 -ios/
 -ios_internal/
--media/
 -native_client/
 -net/third_party/
 -printing/
@@ -122,14 +114,13 @@
 -testing/iossim/
 -third_party/
 +third_party/blink/
++third_party/pdfium/core/
++third_party/pdfium/fpdfsdk/
++third_party/pdfium/fxbarcode/
++third_party/pdfium/fxjs/
++third_party/pdfium/xfa/
 -tools/
--ui/base/clipboard/
--ui/base/ime/ash/
--ui/display/manager/
--ui/events/ash/
--ui/ozone/
-+ui/ozone/platform/wayland
--url/third_party
+-url/third_party/
 -v8/
 
 # Before clearing this directory, make sure to run against a bot running
@@ -146,3 +137,12 @@
 # Removing this directory may fail on the bot CI bot:
 # https://luci-milo.appspot.com/ui/p/chrome/builders/official/win-arm64-clang
 -chrome/installer/
+
+# Please check 'linux-v4l2-codec-rel' bot before removing this opt-out.
+-media/gpu/v4l2/
+
+# //codelabs is a directory that contains examples for developers to modify as
+# they learn about chromium development. This is indefinitely opt-out because
+# it is not part of the main build, and we don't want developers to be blocked
+# by this check.
+-codelabs/

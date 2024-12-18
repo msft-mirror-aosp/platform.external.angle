@@ -89,8 +89,10 @@ def CommonChecks(input_api, output_api):
           input_api,
           output_api,
           unit_tests=[
+              J('.', 'fast_local_dev_server_test.py'),
               J('.', 'list_class_verification_failures_test.py'),
               J('.', 'convert_dex_profile_tests.py'),
+              J('gyp', 'compile_java_tests.py'),
               J('gyp', 'create_unwind_table_tests.py'),
               J('gyp', 'dex_test.py'),
               J('gyp', 'extract_unwind_tables_tests.py'),

@@ -61,10 +61,11 @@ union ProgramTransformOptions final
         uint8_t removeTransformFeedbackEmulation : 1;
         uint8_t multiSampleFramebufferFetch : 1;
         uint8_t enableSampleShading : 1;
-        uint8_t reserved : 4;  // must initialize to zero
+        uint8_t removeDepthStencilInput : 1;
+        uint8_t reserved : 3;  // must initialize to zero
     };
     uint8_t permutationIndex;
-    static constexpr uint32_t kPermutationCount = 0x1 << 4;
+    static constexpr uint32_t kPermutationCount = 0x1 << 5;
 };
 static_assert(sizeof(ProgramTransformOptions) == 1, "Size check failed");
 static_assert(static_cast<int>(SurfaceRotation::EnumCount) <= 8, "Size check failed");
@@ -93,28 +94,10 @@ class ProgramInfo final : angle::NonCopyable
 
   private:
     vk::ShaderProgramHelper mProgramHelper;
-    gl::ShaderMap<vk::RefCounted<vk::ShaderModule>> mShaders;
+    vk::ShaderModuleMap mShaders;
 };
 
-// State for the default uniform blocks.
-struct DefaultUniformBlockVk final : private angle::NonCopyable
-{
-    DefaultUniformBlockVk();
-    ~DefaultUniformBlockVk();
-
-    // Shadow copies of the shader uniform data.
-    angle::MemoryBuffer uniformData;
-
-    // Since the default blocks are laid out in std140, this tells us where to write on a call
-    // to a setUniform method. They are arranged in uniform location order.
-    std::vector<sh::BlockMemberInfo> uniformLayout;
-};
-
-// Performance and resource counters.
-using DescriptorSetCountList   = angle::PackedEnumMap<DescriptorSetIndex, uint32_t>;
 using ImmutableSamplerIndexMap = angle::HashMap<vk::YcbcrConversionDesc, uint32_t>;
-
-using DefaultUniformBlockMap = gl::ShaderMap<std::shared_ptr<DefaultUniformBlockVk>>;
 
 class ProgramExecutableVk : public ProgramExecutableImpl
 {
@@ -221,7 +204,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
                                              vk::PipelineProtectedAccess pipelineProtectedAccess,
                                              vk::PipelineHelper **pipelineOut);
 
-    const vk::PipelineLayout &getPipelineLayout() const { return mPipelineLayout.get(); }
+    const vk::PipelineLayout &getPipelineLayout() const { return *mPipelineLayout; }
     void resetLayout(ContextVk *contextVk);
     angle::Result createPipelineLayout(vk::Context *context,
                                        PipelineLayoutCache *pipelineLayoutCache,
@@ -233,32 +216,32 @@ class ProgramExecutableVk : public ProgramExecutableImpl
         vk::DescriptorSetArray<vk::MetaDescriptorPool> *metaDescriptorPools);
 
     angle::Result updateTexturesDescriptorSet(vk::Context *context,
+                                              uint32_t currentFrame,
                                               const gl::ActiveTextureArray<TextureVk *> &textures,
                                               const gl::SamplerBindingVector &samplers,
                                               PipelineType pipelineType,
-                                              UpdateDescriptorSetsBuilder *updateBuilder,
-                                              vk::CommandBufferHelperCommon *commandBufferHelper,
-                                              const vk::DescriptorSetDesc &texturesDesc);
+                                              UpdateDescriptorSetsBuilder *updateBuilder);
 
     angle::Result updateShaderResourcesDescriptorSet(
         vk::Context *context,
+        uint32_t currentFrame,
         UpdateDescriptorSetsBuilder *updateBuilder,
         const vk::WriteDescriptorDescs &writeDescriptorDescs,
-        vk::CommandBufferHelperCommon *commandBufferHelper,
         const vk::DescriptorSetDescBuilder &shaderResourcesDesc,
         vk::SharedDescriptorSetCacheKey *newSharedCacheKeyOut);
 
     angle::Result updateUniformsAndXfbDescriptorSet(
         vk::Context *context,
+        uint32_t currentFrame,
         UpdateDescriptorSetsBuilder *updateBuilder,
         const vk::WriteDescriptorDescs &writeDescriptorDescs,
-        vk::CommandBufferHelperCommon *commandBufferHelper,
         vk::BufferHelper *defaultUniformBuffer,
         vk::DescriptorSetDescBuilder *uniformsAndXfbDesc,
         vk::SharedDescriptorSetCacheKey *sharedCacheKeyOut);
 
     template <typename CommandBufferT>
     angle::Result bindDescriptorSets(vk::Context *context,
+                                     uint32_t currentFrame,
                                      vk::CommandBufferHelperCommon *commandBufferHelper,
                                      CommandBufferT *commandBuffer,
                                      PipelineType pipelineType);
@@ -293,7 +276,7 @@ class ProgramExecutableVk : public ProgramExecutableImpl
         return roundUp(mDefaultUniformBlocks[shaderType]->uniformData.size(), alignment);
     }
 
-    std::shared_ptr<DefaultUniformBlockVk> &getSharedDefaultUniformBlock(gl::ShaderType shaderType)
+    std::shared_ptr<BufferAndLayout> &getSharedDefaultUniformBlock(gl::ShaderType shaderType)
     {
         return mDefaultUniformBlocks[shaderType];
     }
@@ -322,8 +305,8 @@ class ProgramExecutableVk : public ProgramExecutableImpl
 
     void setAllDefaultUniformsDirty();
     angle::Result updateUniforms(vk::Context *context,
+                                 uint32_t currentFrame,
                                  UpdateDescriptorSetsBuilder *updateBuilder,
-                                 vk::CommandBufferHelperCommon *commandBufferHelper,
                                  vk::BufferHelper *emptyBuffer,
                                  vk::DynamicBuffer *defaultUniformStorage,
                                  bool isTransformFeedbackActiveUnpaused,
@@ -391,7 +374,8 @@ class ProgramExecutableVk : public ProgramExecutableImpl
                                const gl::ProgramState &programState,
                                const gl::ProgramLinkedResources &resources)
     {
-        SpvSourceOptions options = SpvCreateSourceOptions(context->getFeatures());
+        SpvSourceOptions options = SpvCreateSourceOptions(
+            context->getFeatures(), context->getRenderer()->getMaxColorInputAttachmentCount());
         SpvAssignAllLocations(options, programState, resources, &mVariableInfoMap);
     }
 
@@ -405,9 +389,6 @@ class ProgramExecutableVk : public ProgramExecutableImpl
 
     void reset(ContextVk *contextVk);
 
-    template <class T>
-    void getUniformImpl(GLint location, T *v, GLenum entryPointType) const;
-
     void addInterfaceBlockDescriptorSetDesc(const std::vector<gl::InterfaceBlock> &blocks,
                                             gl::ShaderBitSet shaderTypes,
                                             VkDescriptorType descType,
@@ -416,7 +397,8 @@ class ProgramExecutableVk : public ProgramExecutableImpl
         const std::vector<gl::AtomicCounterBuffer> &atomicCounterBuffers,
         vk::DescriptorSetLayoutDesc *descOut);
     void addImageDescriptorSetDesc(vk::DescriptorSetLayoutDesc *descOut);
-    void addInputAttachmentDescriptorSetDesc(vk::DescriptorSetLayoutDesc *descOut);
+    void addInputAttachmentDescriptorSetDesc(vk::Context *context,
+                                             vk::DescriptorSetLayoutDesc *descOut);
     angle::Result addTextureDescriptorSetDesc(
         vk::Context *context,
         const gl::ActiveTextureArray<TextureVk *> *activeTextures,
@@ -519,8 +501,8 @@ class ProgramExecutableVk : public ProgramExecutableImpl
     void waitForPostLinkTasksImpl(ContextVk *contextVk);
 
     angle::Result getOrAllocateDescriptorSet(vk::Context *context,
+                                             uint32_t currentFrame,
                                              UpdateDescriptorSetsBuilder *updateBuilder,
-                                             vk::CommandBufferHelperCommon *commandBufferHelper,
                                              const vk::DescriptorSetDescBuilder &descriptorSetDesc,
                                              const vk::WriteDescriptorDescs &writeDescriptorDescs,
                                              DescriptorSetIndex setIndex,
@@ -536,16 +518,15 @@ class ProgramExecutableVk : public ProgramExecutableImpl
     void initializeWriteDescriptorDesc(vk::Context *context);
 
     // Descriptor sets and pools for shader resources for this program.
-    vk::DescriptorSetArray<VkDescriptorSet> mDescriptorSets;
-    vk::DescriptorSetArray<vk::DescriptorPoolPointer> mDescriptorPools;
-    vk::DescriptorSetArray<vk::RefCountedDescriptorPoolBinding> mDescriptorPoolBindings;
+    vk::DescriptorSetArray<vk::DescriptorSetPointer> mDescriptorSets;
+    vk::DescriptorSetArray<vk::DynamicDescriptorPoolPointer> mDynamicDescriptorPools;
     vk::BufferSerial mCurrentDefaultUniformBufferSerial;
 
     // We keep a reference to the pipeline and descriptor set layouts. This ensures they don't get
     // deleted while this program is in use.
     uint32_t mImmutableSamplersMaxDescriptorCount;
     ImmutableSamplerIndexMap mImmutableSamplerIndexMap;
-    vk::AtomicBindingPointer<vk::PipelineLayout> mPipelineLayout;
+    vk::PipelineLayoutPtr mPipelineLayout;
     vk::DescriptorSetLayoutPointerArray mDescriptorSetLayouts;
 
     // A set of dynamic offsets used with vkCmdBindDescriptorSets for the default uniform buffers.
@@ -555,9 +536,9 @@ class ProgramExecutableVk : public ProgramExecutableImpl
 
     ShaderInterfaceVariableInfoMap mVariableInfoMap;
 
-    static_assert((ProgramTransformOptions::kPermutationCount == 16),
-                  "ProgramTransformOptions::kPermutationCount must be 16.");
-    angle::BitSet16<ProgramTransformOptions::kPermutationCount> mValidGraphicsPermutations;
+    static_assert((ProgramTransformOptions::kPermutationCount == 32),
+                  "ProgramTransformOptions::kPermutationCount must be 32.");
+    angle::BitSet32<ProgramTransformOptions::kPermutationCount> mValidGraphicsPermutations;
 
     static_assert((vk::ComputePipelineOptions::kPermutationCount == 4),
                   "ComputePipelineOptions::kPermutationCount must be 4.");

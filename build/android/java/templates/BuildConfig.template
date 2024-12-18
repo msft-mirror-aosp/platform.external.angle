@@ -59,22 +59,10 @@ public class BuildConfig {
     public static long VERSION_CODE = 1;
 #endif
 
-#if defined(_BUNDLES_SUPPORTED)
-    public static boolean BUNDLES_SUPPORTED = true;
-#else
-    public static boolean BUNDLES_SUPPORTED;
-#endif
-
 #if defined(_IS_INCREMENTAL_INSTALL)
     public static boolean IS_INCREMENTAL_INSTALL = true;
 #else
     public static boolean IS_INCREMENTAL_INSTALL;
-#endif
-
-#if defined(_ISOLATED_SPLITS_ENABLED)
-    public static boolean ISOLATED_SPLITS_ENABLED = true;
-#else
-    public static boolean ISOLATED_SPLITS_ENABLED;
 #endif
 
 #if defined(_IS_FOR_TEST)
@@ -115,4 +103,13 @@ public class BuildConfig {
 #else
     public static boolean IS_DESKTOP_ANDROID;
 #endif
+
+    // Controls whether or not StrictModeContext is a no-op.
+#if defined(_DISABLE_STRICT_MODE_CONTEXT)
+    public static boolean DISABLE_STRICT_MODE_CONTEXT = true;
+#else
+    public static boolean DISABLE_STRICT_MODE_CONTEXT;
+#endif
+
+    public static final String LOGTAG_PREFIX = QUOTE(_LOGTAG_PREFIX);
 }

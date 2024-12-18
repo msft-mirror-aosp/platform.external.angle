@@ -32,8 +32,15 @@ void OverrideMTLClearColor(const mtl::TextureRef &texture,
                            const mtl::ClearColorValue &clearColor,
                            MTLClearColor *colorOut)
 {
-    *colorOut =
-        mtl::EmulatedAlphaClearColor(clearColor.toMTLClearColor(), texture->getColorWritableMask());
+    if (texture)
+    {
+        *colorOut = mtl::EmulatedAlphaClearColor(clearColor.toMTLClearColor(),
+                                                 texture->getColorWritableMask());
+    }
+    else
+    {
+        *colorOut = clearColor.toMTLClearColor();
+    }
 }
 
 const gl::InternalFormat &GetReadAttachmentInfo(const gl::Context *context,
@@ -788,8 +795,8 @@ angle::Result FramebufferMtl::getSamplePosition(const gl::Context *context,
                                                 size_t index,
                                                 GLfloat *xy) const
 {
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    rx::GetSamplePosition(getSamples(), index, xy);
+    return angle::Result::Continue;
 }
 
 angle::Result FramebufferMtl::prepareForUse(const gl::Context *context) const
