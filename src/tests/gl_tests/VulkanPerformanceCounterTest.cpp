@@ -457,6 +457,17 @@ class VulkanPerformanceCounterTest_SingleBuffer : public VulkanPerformanceCounte
     }
 };
 
+class VulkanPerformanceCounterTest_Prerotation : public VulkanPerformanceCounterTest
+{
+  protected:
+    VulkanPerformanceCounterTest_Prerotation() : VulkanPerformanceCounterTest()
+    {
+        // Make sure the window is non-square to correctly test prerotation
+        setWindowWidth(32);
+        setWindowHeight(64);
+    }
+};
+
 void VulkanPerformanceCounterTest::maskedFramebufferFetchDraw(const GLColor &clearColor,
                                                               GLBuffer &buffer)
 {
@@ -8424,6 +8435,43 @@ TEST_P(VulkanPerformanceCounterTest, SubmittingOutsideCommandBufferAssertIsOpen)
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
 }
 
+// Verifies that clear followed by eglSwapBuffers() on multisampled FBO does not result
+// extra resolve pass, if the surface is double-buffered and when the egl swap behavior
+// is EGL_BUFFER_DESTROYED
+TEST_P(VulkanPerformanceCounterTest_MSAA, SwapAfterClearOnMultisampledFBOShouldNotResolve)
+{
+    // Skip test if
+    // 1) the EGL Surface is single-buffered or
+    // 2) the EGL_SWAP_BEHAVIOR is EGL_BUFFER_PRESERVED
+    EGLint renderBufferType;
+    eglQuerySurface(getEGLWindow()->getDisplay(), getEGLWindow()->getSurface(), EGL_RENDER_BUFFER,
+                    &renderBufferType);
+    EGLint swapBehavior;
+    eglQuerySurface(getEGLWindow()->getDisplay(), getEGLWindow()->getSurface(), EGL_SWAP_BEHAVIOR,
+                    &swapBehavior);
+    ANGLE_SKIP_TEST_IF(
+        !(renderBufferType == EGL_BACK_BUFFER && swapBehavior == EGL_BUFFER_DESTROYED));
+
+    uint32_t expectedResolvesSubpass = getPerfCounters().swapchainResolveInSubpass;
+    uint32_t expectedResolvesOutside = getPerfCounters().swapchainResolveOutsideSubpass;
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    swapBuffers();
+    EXPECT_EQ(getPerfCounters().swapchainResolveInSubpass, expectedResolvesSubpass);
+    EXPECT_EQ(getPerfCounters().swapchainResolveOutsideSubpass, expectedResolvesOutside);
+}
+
+// Test that swapchain does not get necessary recreation with 90 or 270 emulated pre-rotation
+TEST_P(VulkanPerformanceCounterTest_Prerotation, swapchainCreateCounterTest)
+{
+    uint64_t expectedSwapchainCreateCounter = getPerfCounters().swapchainCreate;
+    for (uint32_t i = 0; i < 10; ++i)
+    {
+        swapBuffers();
+    }
+    EXPECT_EQ(getPerfCounters().swapchainCreate, expectedSwapchainCreateCounter);
+}
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(VulkanPerformanceCounterTest);
 ANGLE_INSTANTIATE_TEST(
     VulkanPerformanceCounterTest,
@@ -8448,6 +8496,14 @@ ANGLE_INSTANTIATE_TEST(VulkanPerformanceCounterTest_MSAA,
                        ES3_VULKAN().enable(Feature::EmulatedPrerotation90),
                        ES3_VULKAN().enable(Feature::EmulatedPrerotation180),
                        ES3_VULKAN().enable(Feature::EmulatedPrerotation270));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(VulkanPerformanceCounterTest_Prerotation);
+ANGLE_INSTANTIATE_TEST(
+    VulkanPerformanceCounterTest_Prerotation,
+    ES3_VULKAN().enable(Feature::PerFrameWindowSizeQuery),
+    ES3_VULKAN().enable(Feature::EmulatedPrerotation90).enable(Feature::PerFrameWindowSizeQuery),
+    ES3_VULKAN().enable(Feature::EmulatedPrerotation180).enable(Feature::PerFrameWindowSizeQuery),
+    ES3_VULKAN().enable(Feature::EmulatedPrerotation270).enable(Feature::PerFrameWindowSizeQuery));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(VulkanPerformanceCounterTest_SingleBuffer);
 ANGLE_INSTANTIATE_TEST(VulkanPerformanceCounterTest_SingleBuffer, ES3_VULKAN());

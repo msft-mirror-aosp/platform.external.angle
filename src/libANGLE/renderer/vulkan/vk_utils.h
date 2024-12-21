@@ -1436,7 +1436,11 @@ GLenum CalculateGenerateMipmapFilter(ContextVk *contextVk, angle::FormatID forma
 
 namespace gl_vk
 {
-VkRect2D GetRect(const gl::Rectangle &source);
+inline VkRect2D GetRect(const gl::Rectangle &source)
+{
+    return {{source.x, source.y},
+            {static_cast<uint32_t>(source.width), static_cast<uint32_t>(source.height)}};
+}
 VkFilter GetFilter(const GLenum filter);
 VkSamplerMipmapMode GetSamplerMipmapMode(const GLenum filter);
 VkSamplerAddressMode GetSamplerAddressMode(const GLenum wrap);
@@ -1483,6 +1487,9 @@ vk::LevelIndex GetLevelIndex(gl::LevelIndex levelGL, gl::LevelIndex baseLevel);
 
 VkImageTiling GetTilingMode(gl::TilingMode tilingMode);
 
+VkImageCompressionFixedRateFlagsEXT ConvertEGLFixedRateToVkFixedRate(
+    const EGLenum eglCompressionRate,
+    const angle::FormatID actualFormatID);
 }  // namespace gl_vk
 
 namespace vk_gl
@@ -1511,10 +1518,16 @@ GLuint GetSampleCount(VkSampleCountFlags supportedCounts, GLuint requestedCount)
 gl::LevelIndex GetLevelIndex(vk::LevelIndex levelVk, gl::LevelIndex baseLevel);
 
 GLenum ConvertVkFixedRateToGLFixedRate(const VkImageCompressionFixedRateFlagsEXT vkCompressionRate);
-GLint convertCompressionFlagsToGLFixedRates(
+GLint ConvertCompressionFlagsToGLFixedRates(
     VkImageCompressionFixedRateFlagsEXT imageCompressionFixedRateFlags,
     GLsizei bufSize,
     GLint *rates);
+
+EGLenum ConvertVkFixedRateToEGLFixedRate(
+    const VkImageCompressionFixedRateFlagsEXT vkCompressionRate);
+std::vector<EGLint> ConvertCompressionFlagsToEGLFixedRate(
+    VkImageCompressionFixedRateFlagsEXT imageCompressionFixedRateFlags,
+    size_t rateSize);
 }  // namespace vk_gl
 
 enum class RenderPassClosureReason
