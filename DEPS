@@ -43,7 +43,7 @@ vars = {
   'checkout_angle_mesa': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': '544ef0629b6505cd4ab19144de708e528be1c572',
+  'chromium_revision': 'a1ed57f54522d48fc3157c780edc1c5e1f5021a1',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
@@ -450,7 +450,7 @@ vars = {
 deps = {
 
   'build': {
-    'url': Var('chromium_git') + '/chromium/src/build.git@44bcc9d7b830ddf5d56e96bf8bc7fea9023bad6f',
+    'url': Var('chromium_git') + '/chromium/src/build.git@6b60728ea92e526ed2d577ff360d5beb95f87e6a',
     'condition': 'not build_with_chromium',
   },
 
@@ -509,7 +509,7 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@425a626135276f38d16443ae57e12f715fa0e3e2',
+    'url': '{chromium_git}/chromium/src/testing@f0d4499c36d01f2239e74ba3da09c13565d27dd7',
     'condition': 'not build_with_chromium',
   },
 
@@ -852,7 +852,7 @@ deps = {
   },
 
   'third_party/llvm-libc/src': {
-    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libc.git@fa202ff628394205418d311c5759874336921dd4',
+    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libc.git@b0de9011b9f34818da12b1448f40e212f611afa3',
     'condition': 'not build_with_chromium',
   },
 
@@ -1016,12 +1016,12 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@4cc576cd0e3deb9d80baf1cfba2a040c8862b404',
+    'url': Var('chromium_git') + '/vulkan-deps@96fab523bf7d73fd4cc8ae3f11d25982c71063d4',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/glslang/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@3a2834e7702651043ca9f35d022739e740563516',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@f754c852a87988eb097a39480c65f704ceb46274',
     'condition': 'not build_with_chromium',
   },
 
@@ -1066,7 +1066,7 @@ deps = {
   },
 
   'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@34b85f655e7b07865ce554eb365ab8241cb8be6e',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@a90793e52ee4d30738154e5647605561c4696dad',
     'condition': 'not build_with_chromium',
   },
 
