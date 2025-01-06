@@ -6,15 +6,86 @@
 
 #include "compiler/translator/wgsl/OutputUniformBlocks.h"
 
+#include "angle_gl.h"
+#include "common/mathutil.h"
 #include "common/utilities.h"
+#include "compiler/translator/BaseTypes.h"
 #include "compiler/translator/Compiler.h"
 #include "compiler/translator/InfoSink.h"
 #include "compiler/translator/IntermNode.h"
+#include "compiler/translator/SymbolUniqueId.h"
+#include "compiler/translator/tree_util/IntermTraverse.h"
 #include "compiler/translator/util.h"
 #include "compiler/translator/wgsl/Utils.h"
 
 namespace sh
 {
+
+namespace
+{
+
+// Traverses the AST and finds all structs that are used in the uniform address space (see the
+// UniformBlockMetadata struct).
+class FindUniformAddressSpaceStructs : public TIntermTraverser
+{
+  public:
+    FindUniformAddressSpaceStructs(UniformBlockMetadata *uniformBlockMetadata)
+        : TIntermTraverser(true, false, false), mUniformBlockMetadata(uniformBlockMetadata)
+    {}
+
+    ~FindUniformAddressSpaceStructs() override = default;
+
+    bool visitDeclaration(Visit visit, TIntermDeclaration *node) override
+    {
+        const TIntermSequence &sequence = *(node->getSequence());
+
+        TIntermTyped *variable = sequence.front()->getAsTyped();
+        const TType &type      = variable->getType();
+
+        // TODO(anglebug.com/376553328): should eventually ASSERT that there are no default uniforms
+        // here.
+        if (type.getQualifier() == EvqUniform)
+        {
+            recordTypesUsedInUniformAddressSpace(&type);
+        }
+
+        return true;
+    }
+
+  private:
+    // Recurses through the tree of types referred to be `type` (which is used in the uniform
+    // address space) and fills in the `mUniformBlockMetadata` struct appropriately.
+    void recordTypesUsedInUniformAddressSpace(const TType *type)
+    {
+        if (type->isArray())
+        {
+            TType innerType = *type;
+            innerType.toArrayBaseType();
+            recordTypesUsedInUniformAddressSpace(&innerType);
+        }
+        else if (type->getStruct() != nullptr)
+        {
+            mUniformBlockMetadata->structsInUniformAddressSpace.insert(
+                type->getStruct()->uniqueId().get());
+            // Recurse into the types of the fields of this struct type.
+            for (TField *const field : type->getStruct()->fields())
+            {
+                recordTypesUsedInUniformAddressSpace(field->type());
+            }
+        }
+    }
+
+    UniformBlockMetadata *const mUniformBlockMetadata;
+};
+
+}  // namespace
+
+bool RecordUniformBlockMetadata(TIntermBlock *root, UniformBlockMetadata &outMetadata)
+{
+    FindUniformAddressSpaceStructs traverser(&outMetadata);
+    root->traverse(&traverser);
+    return true;
+}
 
 bool OutputUniformBlocks(TCompiler *compiler, TIntermBlock *root)
 {
@@ -61,17 +132,22 @@ bool OutputUniformBlocks(TCompiler *compiler, TIntermBlock *root)
         const TVariable *astVar      = &ViewDeclaration(*declNode).symbol.variable();
         WriteWgslType(output, astVar->getType());
 
-        output << "\n";
+        output << ",\n";
     }
     // TODO(anglebug.com/42267100): might need string replacement for @group(0) and @binding(0)
     // annotations. All WGSL resources available to shaders share the same (group, binding) ID
     // space.
     if (outputStructHeader)
     {
+        ASSERT(compiler->getShaderType() == GL_VERTEX_SHADER ||
+               compiler->getShaderType() == GL_FRAGMENT_SHADER);
+        const uint32_t bindingIndex = compiler->getShaderType() == GL_VERTEX_SHADER
+                                          ? kDefaultVertexUniformBlockBinding
+                                          : kDefaultFragmentUniformBlockBinding;
         output << "};\n\n"
-               << "@group(" << kDefaultUniformBlockBindGroup << ") @binding("
-               << kDefaultUniformBlockBinding << ") var<uniform> " << kDefaultUniformBlockVarName
-               << " : " << kDefaultUniformBlockVarType << ";\n";
+               << "@group(" << kDefaultUniformBlockBindGroup << ") @binding(" << bindingIndex
+               << ") var<uniform> " << kDefaultUniformBlockVarName << " : "
+               << kDefaultUniformBlockVarType << ";\n";
     }
 
     return true;

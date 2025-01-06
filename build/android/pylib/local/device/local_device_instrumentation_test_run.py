@@ -29,6 +29,7 @@ from devil.android.tools import system_app
 from devil.android.tools import webview_app
 from devil.utils import reraiser_thread
 from incremental_install import installer
+from lib.proto import exception_recorder
 from pylib import constants
 from pylib.base import base_test_result
 from pylib.base import output_manager
@@ -113,6 +114,14 @@ _EXTRA_PACKAGE_UNDER_TEST = ('org.chromium.chrome.test.pagecontroller.rules.'
 
 _EXTRA_WEBVIEW_PROCESS_MODE = 'AwJUnit4ClassRunner.ProcessMode'
 
+# LINT.IfChange
+_EXTRA_WEBVIEW_REBASELINE_MODE = (
+    'org.chromium.android_webview.test.RebaselineMode')
+_VALUE_WEBVIEW_REBASELINE_MODE = 'rebaseline'
+# pylint: disable=line-too-long
+# LINT.ThenChange(//android_webview/tools/system_webview_shell/layout_tests/src/org/chromium/webview_shell/test/WebViewLayoutTest.java)
+# pylint: enable=line-too-long
+
 FEATURE_ANNOTATION = 'Feature'
 RENDER_TEST_FEATURE_ANNOTATION = 'RenderTest'
 WPR_ARCHIVE_FILE_PATH_ANNOTATION = 'WPRArchiveDirectory'
@@ -123,7 +132,7 @@ _DEVICE_GOLD_DIR = 'skia_gold'
 # A map of Android product models to SDK ints.
 RENDER_TEST_MODEL_SDK_CONFIGS = {
     # Android x86 emulator.
-    'Android SDK built for x86': [26, 28],
+    'Android SDK built for x86': [26],
     # We would like this to be supported, but it is currently too prone to
     # introducing flakiness due to a combination of Gold and Chromium issues.
     # See crbug.com/1233700 and skbug.com/12149 for more information.
@@ -415,11 +424,16 @@ class LocalDeviceInstrumentationTestRun(
                 instant_app=instant_app,
                 force_queryable=self._test_instance.IsApkForceQueryable(apk))
           except device_errors.CommandFailedError as e:
-            raise test_exception.InstallationFailedError(e) from e
+            exception_recorder.register(
+                test_exception.InstallationFailedError(e))
+            raise
           except device_errors.CommandTimeoutError as e:
-            raise test_exception.InstallationTimeoutError(e) from e
+            exception_recorder.register(
+                test_exception.InstallationTimeoutError(e))
+            raise
           except base_error.BaseError as e:
-            raise test_exception.InstallationError(e) from e
+            exception_recorder.register(test_exception.InstallationError(e))
+            raise
 
         return install_helper_internal
 
@@ -440,11 +454,16 @@ class LocalDeviceInstrumentationTestRun(
           try:
             installer.Install(d, json_path, apk=apk, permissions=permissions)
           except device_errors.CommandFailedError as e:
-            raise test_exception.InstallationFailedError(e) from e
+            exception_recorder.register(
+                test_exception.InstallationFailedError(e))
+            raise
           except device_errors.CommandTimeoutError as e:
-            raise test_exception.InstallationTimeoutError(e) from e
+            exception_recorder.register(
+                test_exception.InstallationTimeoutError(e))
+            raise
           except base_error.BaseError as e:
-            raise test_exception.InstallationError(e) from e
+            exception_recorder.register(test_exception.InstallationError(e))
+            raise
 
         return incremental_install_helper_internal
 
@@ -1083,6 +1102,9 @@ class LocalDeviceInstrumentationTestRun(
       flags_to_add.append('--render-test-output-dir=%s' %
                           self._render_tests_device_output_dir.name)
 
+    if self._test_instance.webview_rebaseline_mode:
+      extras[_EXTRA_WEBVIEW_REBASELINE_MODE] = _VALUE_WEBVIEW_REBASELINE_MODE
+
     if _IsWPRRecordReplayTest(test):
       wpr_archive_relative_path = _GetWPRArchivePath(test)
       if not wpr_archive_relative_path:
@@ -1130,11 +1152,17 @@ class LocalDeviceInstrumentationTestRun(
           output = device.StartInstrumentation(
               target, raw=True, extras=extras, timeout=timeout, retries=0)
         except device_errors.CommandFailedError as e:
-          raise test_exception.StartInstrumentationFailedError(e) from e
+          exception_recorder.register(
+              test_exception.StartInstrumentationFailedError(e))
+          raise
         except device_errors.CommandTimeoutError as e:
-          raise test_exception.StartInstrumentationTimeoutError(e) from e
+          exception_recorder.register(
+              test_exception.StartInstrumentationTimeoutError(e))
+          raise
         except base_error.BaseError as e:
-          raise test_exception.StartInstrumentationError(e) from e
+          exception_recorder.register(
+              test_exception.StartInstrumentationError(e))
+          raise
 
       duration_ms = time_ms() - start_ms
 

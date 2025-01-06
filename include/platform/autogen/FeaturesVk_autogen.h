@@ -338,18 +338,6 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
-    FeatureInfo asyncCommandQueue = {
-        "asyncCommandQueue",
-        FeatureCategory::VulkanFeatures,
-        &members,
-    };
-
-    FeatureInfo slowAsyncCommandQueueForTesting = {
-        "slowAsyncCommandQueueForTesting",
-        FeatureCategory::VulkanWorkarounds,
-        &members,
-    };
-
     FeatureInfo supportsShaderFloat16 = {
         "supportsShaderFloat16",
         FeatureCategory::VulkanFeatures,
@@ -520,6 +508,12 @@ struct FeaturesVk : FeatureSetBase
 
     FeatureInfo exposeNonConformantExtensionsAndVersions = {
         "exposeNonConformantExtensionsAndVersions",
+        FeatureCategory::VulkanWorkarounds,
+        &members,
+    };
+
+    FeatureInfo exposeES32ForTesting = {
+        "exposeES32ForTesting",
         FeatureCategory::VulkanWorkarounds,
         &members,
     };
@@ -1390,6 +1384,30 @@ struct FeaturesVk : FeatureSetBase
 
     FeatureInfo descriptorSetCache = {
         "descriptorSetCache",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo supportsImageCompressionControl = {
+        "supportsImageCompressionControl",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo supportsAstcSliced3d = {
+        "supportsAstcSliced3d",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo supportsTextureCompressionAstcHdr = {
+        "supportsTextureCompressionAstcHdr",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo supportsImageCompressionControlSwapchain = {
+        "supportsImageCompressionControlSwapchain",
         FeatureCategory::VulkanFeatures,
         &members,
     };
