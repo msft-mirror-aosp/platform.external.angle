@@ -49,7 +49,7 @@ vars = {
   'dummy_checkout_chromium': False,
 
   # Current revision of VK-GL-CTS (a.k.a dEQP).
-  'vk_gl_cts_revision': '77d5e6888a995f1cf625be517828e62536e7d15e',
+  'vk_gl_cts_revision': '9509eb274dfec320e970d4c85e17ecf15f27ebe3',
 
   # Current revision of googletest.
   # Note: this dep cannot be auto-rolled b/c of nesting.
@@ -196,6 +196,7 @@ vars = {
   'checkout_angle_restricted_trace_bridge_constructor_portal': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_bubble_shooter': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_bubble_shooter_and_friends': 'checkout_angle_restricted_traces',
+  'checkout_angle_restricted_trace_bullet_echo': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_bus_simulator_indonesia': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_call_break_offline_card_game': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_callbreak': 'checkout_angle_restricted_traces',
@@ -996,7 +997,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@e76961fac58c34c61bb52ed3887917300f0e37a3',
+    'url': Var('swiftshader_git') + '/SwiftShader@52586b554f93e50bc67277c6031673ed23a8d903',
     'condition': 'not build_with_chromium',
   },
 
@@ -1016,7 +1017,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@a09312dc04d320bdc13918cee1a8337e4c4d5f0d',
+    'url': Var('chromium_git') + '/vulkan-deps@37201c17e85f9c64e8b4f94bd81f97a7c63620d4',
     'condition': 'not build_with_chromium',
   },
 
@@ -1051,12 +1052,12 @@ deps = {
   },
 
   'third_party/vulkan-loader/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Loader@4c1027dc7e12adc8da50f00f5b219e81ddd2d85d',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Loader@369f59ad598b60d6ed9f553af651c5cccd20234c',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/vulkan-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Tools@a71347ae4d76eb8454459373d4e1bfb929ea6a89',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Tools@315964ad5aabd5b148a484e5fbea8a365c8d1eb3',
     'condition': 'not build_with_chromium',
   },
 
@@ -1066,7 +1067,7 @@ deps = {
   },
 
   'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@1757b68e6e4d490a4ed96ca9fdc9853b3ed8ee4f',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@b8427832bef9443081c3a8bcc30f4e999ab48b6c',
     'condition': 'not build_with_chromium',
   },
 
@@ -1629,6 +1630,16 @@ deps = {
       ],
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_trace_bubble_shooter_and_friends',
+  },
+  'src/tests/restricted_traces/bullet_echo': {
+      'packages': [
+        {
+            'package': 'angle/traces/bullet_echo',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_trace_bullet_echo',
   },
   'src/tests/restricted_traces/bus_simulator_indonesia': {
       'packages': [
