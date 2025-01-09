@@ -9834,6 +9834,15 @@ void main()
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
 }
 
+// Test that *= on boolean vectors fails compilation
+TEST_P(GLSLTest, BVecMultiplyAssign)
+{
+    constexpr char kFS[] = R"(bvec4 c,s;void main(){s*=c;})";
+
+    GLuint fs = CompileShader(GL_FRAGMENT_SHADER, kFS);
+    EXPECT_EQ(fs, 0u);
+}
+
 // Test vector/scalar arithmetic (in this case multiplication and addition).
 TEST_P(GLSLTest, VectorScalarMultiplyAndAddInLoop)
 {
@@ -20555,6 +20564,30 @@ void main()
     verifyAttachment2DColor(1, textures[1], GL_TEXTURE_2D, 0, GLColor::green);
     verifyAttachment2DColor(2, textures[2], GL_TEXTURE_2D, 0, GLColor::blue);
     verifyAttachment2DColor(3, textures[3], GL_TEXTURE_2D, 0, GLColor::white);
+}
+
+// Fuzzer test involving struct samplers and comma operator
+TEST_P(GLSLTest, StructSamplerVsComma)
+{
+    constexpr char kVS[] = R"(uniform struct S1
+{
+    samplerCube ar;
+    vec2 c;
+} a;
+
+struct S2
+{
+    vec3 c;
+} b[2];
+
+void main (void)
+{
+    ++b[0].c,a;
+})";
+
+    GLuint shader = CompileShader(GL_VERTEX_SHADER, kVS);
+    EXPECT_NE(0u, shader);
+    glDeleteShader(shader);
 }
 
 }  // anonymous namespace
