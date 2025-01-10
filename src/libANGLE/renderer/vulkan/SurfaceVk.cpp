@@ -1372,6 +1372,30 @@ angle::Result WindowSurfaceVk::initializeImpl(DisplayVk *displayVk, bool *anyMat
         mDesiredSwapchainPresentMode              = GetDesiredPresentMode(presentModes, 0);
     }
 
+    mCompressionFlags    = VK_IMAGE_COMPRESSION_DISABLED_EXT;
+    mFixedRateFlags      = 0;
+    VkFormat imageFormat = vk::GetVkFormatFromFormatID(renderer, getActualFormatID(renderer));
+    EGLenum surfaceCompressionRate = static_cast<EGLenum>(mState.attributes.get(
+        EGL_SURFACE_COMPRESSION_EXT, EGL_SURFACE_COMPRESSION_FIXED_RATE_NONE_EXT));
+    bool useFixedRateCompression =
+        (surfaceCompressionRate != EGL_SURFACE_COMPRESSION_FIXED_RATE_NONE_EXT);
+    bool fixedRateDefault =
+        (surfaceCompressionRate == EGL_SURFACE_COMPRESSION_FIXED_RATE_DEFAULT_EXT);
+    if (useFixedRateCompression)
+    {
+        ASSERT(renderer->getFeatures().supportsImageCompressionControl.enabled);
+        ASSERT(renderer->getFeatures().supportsImageCompressionControlSwapchain.enabled);
+        if (imageFormat == VK_FORMAT_R8G8B8A8_UNORM || imageFormat == VK_FORMAT_R8_UNORM ||
+            imageFormat == VK_FORMAT_R5G6B5_UNORM_PACK16 ||
+            imageFormat == VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16)
+        {
+            mCompressionFlags = fixedRateDefault ? VK_IMAGE_COMPRESSION_FIXED_RATE_DEFAULT_EXT
+                                                 : VK_IMAGE_COMPRESSION_FIXED_RATE_EXPLICIT_EXT;
+            mFixedRateFlags   = gl_vk::ConvertEGLFixedRateToVkFixedRate(surfaceCompressionRate,
+                                                                        getActualFormatID(renderer));
+        }
+    }
+
     ANGLE_TRY(createSwapChain(displayVk, extents));
 
     // Create the semaphores that will be used for vkAcquireNextImageKHR.
@@ -1525,7 +1549,6 @@ angle::Result WindowSurfaceVk::recreateSwapchain(ContextVk *contextVk, const gl:
     // oldSwapchain was retired in the createSwapChain call above and can be collected.
     if (oldSwapchain != VK_NULL_HANDLE && oldSwapchain != mLastSwapchain)
     {
-        ASSERT(mLastSwapchain == mSwapchain);
         ANGLE_TRY(collectOldSwapchain(contextVk, oldSwapchain));
     }
 
@@ -1612,6 +1635,16 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context, const gl::E
     swapchainInfo.presentMode = vk::ConvertPresentModeToVkPresentMode(mDesiredSwapchainPresentMode);
     swapchainInfo.clipped     = VK_TRUE;
     swapchainInfo.oldSwapchain = mLastSwapchain;
+
+    VkImageCompressionControlEXT compressionInfo = {};
+    compressionInfo.sType                        = VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_CONTROL_EXT;
+    compressionInfo.flags                        = mCompressionFlags;
+    compressionInfo.compressionControlPlaneCount = 1;
+    compressionInfo.pFixedRateFlags              = &mFixedRateFlags;
+    if (mCompressionFlags != VK_IMAGE_COMPRESSION_DISABLED_EXT)
+    {
+        vk::AddToPNextChain(&swapchainInfo, &compressionInfo);
+    }
 
 #if defined(ANGLE_PLATFORM_WINDOWS)
     // On some AMD drivers we need to explicitly enable the extension and set
@@ -1727,7 +1760,6 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context, const gl::E
     // need to carry over to the new one.  http://anglebug.com/42261637
     VkSwapchainKHR newSwapChain = VK_NULL_HANDLE;
     ANGLE_VK_TRY(context, vkCreateSwapchainKHR(device, &swapchainInfo, nullptr, &newSwapChain));
-    mSwapchain            = newSwapChain;
     mLastSwapchain        = newSwapChain;
     mSwapchainPresentMode = mDesiredSwapchainPresentMode;
     mWidth                = extents.width;
@@ -1741,16 +1773,16 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context, const gl::E
         // appropriate ANativeWindow API that enables frame timestamps.
         uint32_t count = 0;
         ANGLE_VK_TRY(context,
-                     vkGetPastPresentationTimingGOOGLE(device, mSwapchain, &count, nullptr));
+                     vkGetPastPresentationTimingGOOGLE(device, newSwapChain, &count, nullptr));
     }
 
     // Initialize the swapchain image views.
     uint32_t imageCount = 0;
-    ANGLE_VK_TRY(context, vkGetSwapchainImagesKHR(device, mSwapchain, &imageCount, nullptr));
+    ANGLE_VK_TRY(context, vkGetSwapchainImagesKHR(device, newSwapChain, &imageCount, nullptr));
 
     std::vector<VkImage> swapchainImages(imageCount);
-    ANGLE_VK_TRY(context,
-                 vkGetSwapchainImagesKHR(device, mSwapchain, &imageCount, swapchainImages.data()));
+    ANGLE_VK_TRY(context, vkGetSwapchainImagesKHR(device, newSwapChain, &imageCount,
+                                                  swapchainImages.data()));
 
     // If multisampling is enabled, create a multisampled image which gets resolved just prior to
     // present.
@@ -1835,8 +1867,12 @@ angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context, const gl::E
         // We will need to pass depth/stencil image views to the RenderTargetVk in the future.
     }
 
+    // Assign swapchain after all initialization is finished.
+    mSwapchain = newSwapChain;
     // Need to acquire a new image before the swapchain can be used.
     mAcquireOperation.state = impl::ImageAcquireState::NeedToAcquire;
+
+    context->getPerfCounters().swapchainCreate++;
 
     return angle::Result::Continue;
 }
@@ -1930,6 +1966,16 @@ angle::Result WindowSurfaceVk::checkForOutOfDateSwapchain(ContextVk *contextVk, 
             // for whether the size and/or rotation have changed since the swapchain was created.
             uint32_t swapchainWidth  = getWidth();
             uint32_t swapchainHeight = getHeight();
+
+            // getWidth() and getHeight() are swapped for 90 degree and 270 degree emulated
+            // preTransform, we should swap them back before comparing with surface properties
+            // to avoid a size mismatch and unnecessary swapchain recreation
+
+            if (Is90DegreeRotation(mEmulatedPreTransform))
+            {
+                std::swap(swapchainWidth, swapchainHeight);
+            }
+
             needRecreate             = mSurfaceCaps.currentTransform != mPreTransform ||
                            mSurfaceCaps.currentExtent.width != swapchainWidth ||
                            mSurfaceCaps.currentExtent.height != swapchainHeight;
@@ -2171,11 +2217,48 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
 
     SwapchainImage &image = mSwapchainImages[mCurrentSwapchainImageIndex];
 
+    bool imageResolved = false;
     // Make sure deferred clears are applied, if any.
     if (mColorImageMS.valid())
     {
-        ANGLE_TRY(mColorImageMS.flushStagedUpdates(contextVk, gl::LevelIndex(0), gl::LevelIndex(1),
-                                                   0, 1, {}));
+        // anglebug:382006939
+        // If app calls:
+        // glClear(GL_COLOR_BUFFER_BIT);
+        // eglSwapBuffers();
+        // As an optimization, deferred clear could skip msaa buffer and applied to back buffer
+        // directly instead of clearing msaa buffer and then resolve.
+        // The exception is that when we back buffer data has to be preserved under
+        // certain situations, we must also ensure msaa buffer contains the right content.
+        // Under that situation, this optimization will not apply.
+
+        vk::ClearValuesArray deferredClearValues;
+        ANGLE_TRY(mColorImageMS.flushSingleSubresourceStagedUpdates(contextVk, gl::LevelIndex(0), 0,
+                                                                    1, &deferredClearValues, 0));
+        if (deferredClearValues.any())
+        {
+            // Apply clear color directly to the single sampled image if the EGL surface is
+            // double buffered or when EGL_SWAP_BEHAVIOR is EGL_BUFFER_DESTROYED
+            if (!isSharedPresentMode() &&
+                (mState.swapBehavior == EGL_BUFFER_DESTROYED && mBufferAgeQueryFrameNumber == 0))
+            {
+                // Apply clear color directly to the single sampled image if the EGL surface is
+                // double buffered and when EGL_SWAP_BEHAVIOR is EGL_BUFFER_DESTROYED
+                gl::ImageIndex imageIndex = gl::ImageIndex::Make2D(gl::LevelIndex(0).get());
+                image.image->stageClear(imageIndex, VK_IMAGE_ASPECT_COLOR_BIT,
+                                        deferredClearValues[0]);
+                ANGLE_TRY(image.image->flushStagedUpdates(contextVk, gl::LevelIndex(0),
+                                                          gl::LevelIndex(1), 0, 1, {}));
+                imageResolved = true;
+            }
+            else
+            {
+                // Apply clear value to multisampled mColorImageMS and then resolve to single
+                // sampled image later if EGL surface is single buffered or when EGL_SWAP_BEHAVIOR
+                // is EGL_BUFFER_PRESERVED
+                ANGLE_TRY(mColorImageMS.flushStagedUpdates(contextVk, gl::LevelIndex(0),
+                                                           gl::LevelIndex(1), 0, 1, {}));
+            }
+        }
     }
     else
     {
@@ -2200,7 +2283,6 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
     // We can only do present related optimization if this is the last renderpass that touches the
     // swapchain image. MSAA resolve and overlay will insert another renderpass which disqualifies
     // the optimization.
-    bool imageResolved = false;
     if (contextVk->hasStartedRenderPassWithDefaultFramebuffer())
     {
         ANGLE_TRY(contextVk->optimizeRenderPassForPresent(&image.imageViews, image.image.get(),
@@ -2387,6 +2469,9 @@ angle::Result WindowSurfaceVk::present(ContextVk *contextVk,
     VkResult presentResult =
         renderer->queuePresent(contextVk, contextVk->getPriority(), presentInfo);
 
+    // Update cached surface capabilities.
+    ANGLE_VK_TRY(contextVk, vkGetPhysicalDeviceSurfaceCapabilitiesKHR(renderer->getPhysicalDevice(),
+                                                                      mSurface, &mSurfaceCaps));
     // EGL_EXT_buffer_age
     // 4) What is the buffer age of a single buffered surface?
     //     RESOLVED: 0.  This falls out implicitly from the buffer age
@@ -2964,10 +3049,7 @@ egl::Error WindowSurfaceVk::getUserHeight(const egl::Display *display, EGLint *v
 angle::Result WindowSurfaceVk::getUserExtentsImpl(DisplayVk *displayVk,
                                                   VkSurfaceCapabilitiesKHR *surfaceCaps) const
 {
-    const VkPhysicalDevice &physicalDevice = displayVk->getRenderer()->getPhysicalDevice();
-
-    ANGLE_VK_TRY(displayVk,
-                 vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, mSurface, surfaceCaps));
+    *surfaceCaps = mSurfaceCaps;
 
     // With real prerotation, the surface reports the rotated sizes.  With emulated prerotation,
     // adjust the window extents to match what real pre-rotation would have reported.
@@ -3320,6 +3402,35 @@ egl::Error WindowSurfaceVk::detachFromFramebuffer(const gl::Context *context,
     ASSERT(framebufferVk->getBackbuffer() == this);
     framebufferVk->setBackbuffer(nullptr);
     return egl::NoError();
+}
+
+EGLint WindowSurfaceVk::getCompressionRate(const egl::Display *display) const
+{
+    ASSERT(!mSwapchainImages.empty());
+
+    DisplayVk *displayVk   = vk::GetImpl(display);
+    vk::Renderer *renderer = displayVk->getRenderer();
+
+    ASSERT(renderer->getFeatures().supportsImageCompressionControl.enabled);
+    ASSERT(renderer->getFeatures().supportsImageCompressionControlSwapchain.enabled);
+
+    VkImageSubresource2EXT imageSubresource2      = {};
+    imageSubresource2.sType                       = VK_STRUCTURE_TYPE_IMAGE_SUBRESOURCE_2_EXT;
+    imageSubresource2.imageSubresource.aspectMask = mSwapchainImages[0].image->getAspectFlags();
+    VkImageCompressionPropertiesEXT compressionProperties = {};
+    compressionProperties.sType = VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_PROPERTIES_EXT;
+
+    VkSubresourceLayout2EXT subresourceLayout = {};
+    subresourceLayout.sType                   = VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2_EXT;
+    subresourceLayout.pNext                   = &compressionProperties;
+
+    vkGetImageSubresourceLayout2EXT(displayVk->getDevice(),
+                                    mSwapchainImages[0].image->getImage().getHandle(),
+                                    &imageSubresource2, &subresourceLayout);
+
+    std::vector<EGLint> eglFixedRates = vk_gl::ConvertCompressionFlagsToEGLFixedRate(
+        compressionProperties.imageCompressionFixedRateFlags, 1);
+    return eglFixedRates.empty() ? EGL_SURFACE_COMPRESSION_FIXED_RATE_NONE_EXT : eglFixedRates[0];
 }
 
 }  // namespace rx

@@ -2032,6 +2032,11 @@ void ImageTest::ValidationGLEGLImage_helper(const EGLint *attribs)
     glEGLImageTargetRenderbufferStorageOES(GL_TEXTURE_2D, image);
     EXPECT_GL_ERROR(GL_INVALID_ENUM);
 
+    // If a renderbuffer is not bound, the error INVALID_OPERATION is generated.
+    // (Not in specification.)
+    glEGLImageTargetRenderbufferStorageOES(GL_RENDERBUFFER, image);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+
     // If the GL is unable to create a renderbuffer using the specified eglImageOES, the error
     // INVALID_OPERATION is generated.If <image>
     // does not refer to a valid eglImageOES object, the error INVALID_VALUE is generated.
@@ -3737,6 +3742,11 @@ TEST_P(ImageTestES3, RenderToYUVAHB)
     glUseProgram(mRenderYUVProgram);
     glUniform4f(mRenderYUVUniformLocation, drawColor[0] / 255.0f, drawColor[1] / 255.0f,
                 drawColor[2] / 255.0f, drawColor[3] / 255.0f);
+
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+    drawQuad(mRenderYUVProgram, "position", 0.0f);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     drawQuad(mRenderYUVProgram, "position", 0.0f);
     ASSERT_GL_NO_ERROR();
 

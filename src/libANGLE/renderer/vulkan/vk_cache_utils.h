@@ -462,8 +462,11 @@ class AttachmentOpsArray final
     AttachmentOpsArray(const AttachmentOpsArray &other);
     AttachmentOpsArray &operator=(const AttachmentOpsArray &other);
 
-    const PackedAttachmentOpsDesc &operator[](PackedAttachmentIndex index) const;
-    PackedAttachmentOpsDesc &operator[](PackedAttachmentIndex index);
+    const PackedAttachmentOpsDesc &operator[](PackedAttachmentIndex index) const
+    {
+        return mOps[index.get()];
+    }
+    PackedAttachmentOpsDesc &operator[](PackedAttachmentIndex index) { return mOps[index.get()]; }
 
     // Initialize an attachment op with all load and store operations.
     void initWithLoadStore(PackedAttachmentIndex index,
@@ -1651,7 +1654,7 @@ struct ImageSubresourceRange
     uint32_t level : 10;
     // Max 31 levels (2 ** 5 - 1). Can store levelCount-1 if we need to save another bit.
     uint32_t levelCount : 5;
-    // Implementation max is 2048 (11 bits).
+    // Implementation max is 4096 (12 bits).
     uint32_t layer : 12;
     // One of vk::LayerMode values.  If 0, it means all layers.  Otherwise it's the count of layers
     // which is usually 1, except for multiview in which case it can be up to
