@@ -26,6 +26,7 @@
 42265462 GLES : BlitFramebufferTestES31.OOBResolve/* = SKIP
 42266349 VULKAN : MultithreadingTestES3.UnsynchronizedTextureReads/* = SKIP
 42266349 VULKAN : MultithreadingTestES3.UnsynchronizedTextureReads2/* = SKIP
+377614665 VULKAN : GLSLTest.StructSamplerVsComma/* = SKIP
 // Incorrectly handled pretty much in all backends
 42266871 : CopyTexImageTestES3.RedefineSameLevel/* = SKIP
 // Fails in Android with EGL_BAD_ALLOC
@@ -1519,6 +1520,9 @@ b/292285899 PIXEL4ORXL GLES : EGLSurfaceTest.DestroyAndRecreateWhileCurrent/* = 
 360083331 LINUX INTEL WGPU : Texture2DTest.QueryBinding/* = SKIP
 360083331 LINUX INTEL WGPU : Texture2DTest.SubImageValidationOverflow/* = SKIP
 360083331 LINUX INTEL WGPU : Texture2DTest.ZeroSizedUploads/* = SKIP
+
+// SPIR-V compilation error
+384593678 VULKAN : SimpleUniformUsageTestES3.CopyOfUniformsWithArrays/* = SKIP
 
 // Linux/UHD 630 failures caused by OS/driver upgrade.
 42267119 LINUX INTEL OPENGL : AtomicCounterBufferTest31.AtomicCounterReadCompute/* = SKIP
