@@ -782,6 +782,7 @@ struct Uniforms {
     float b;
     float c;
     float[5] d;
+    float[4] d2;
     float e;
     vec3 f[7];
 };
@@ -789,7 +790,8 @@ uniform Uniforms unis;
 out vec4 fragColor;
 void main() {
     float[5] dCopy = unis.d;
-    fragColor = vec4(dCopy[1], 0.0, 0.0, 1.0);
+    float[4] d2Copy = unis.d2;
+    fragColor = vec4(dCopy[1], d2Copy[0], 0.0, 1.0);
 })";
 
     GLuint program = CompileProgram(essl3_shaders::vs::Simple(), kFragShader);
@@ -798,9 +800,12 @@ void main() {
 
     GLint uniformDLocation = glGetUniformLocation(program, "unis.d[1]");
     ASSERT_NE(uniformDLocation, -1);
+    GLint uniformD2Location = glGetUniformLocation(program, "unis.d2[0]");
+    ASSERT_NE(uniformD2Location, -1);
 
     // Set to black
     glUniform1f(uniformDLocation, 0.0f);
+    glUniform1f(uniformD2Location, 0.0f);
 
     drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
     ASSERT_GL_NO_ERROR();
@@ -883,6 +888,55 @@ void main() {
     drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    glDeleteProgram(program);
+}
+
+// Tests that a struct used in the uniform address space can also be used outside of the uniform
+// address space. The WGSL translator changes the type signature of the struct which can cause
+// problems assigning to fields.
+TEST_P(SimpleUniformUsageTestES3, UseUniformStructOutsideOfUniformAddressSpace)
+{
+    constexpr char kFragShader[] = R"(#version 300 es
+precision mediump float;
+struct NestedUniforms {
+    float x[3];
+};
+struct Uniforms {
+    NestedUniforms a;
+    float b;
+    float c;
+    float[5] d;
+    float e;
+    vec3 f[7];
+};
+uniform Uniforms unis;
+out vec4 fragColor;
+void main() {
+    NestedUniforms privUnis;
+    privUnis.x = float[3](1.0, 1.0, 1.0);
+    NestedUniforms privUnis2;
+    privUnis2.x = unis.a.x;
+    Uniforms privUnisWholeStruct;
+    privUnisWholeStruct = unis;
+    fragColor = vec4(privUnis.x[1], privUnis2.x[1], privUnisWholeStruct.a.x[1], 1.0);
+})";
+
+    GLuint program = CompileProgram(essl3_shaders::vs::Simple(), kFragShader);
+    ASSERT_NE(program, 0u);
+    glUseProgram(program);
+
+    GLint uniformAXLocation = glGetUniformLocation(program, "unis.a.x");
+    ASSERT_NE(uniformAXLocation, -1);
+
+    GLfloat x[3] = {0.0, 1.0, 0.0};
+
+    // Set to white
+    glUniform1fv(uniformAXLocation, 3, x);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.0f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::white);
 
     glDeleteProgram(program);
 }
