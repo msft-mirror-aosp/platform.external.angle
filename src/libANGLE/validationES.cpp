@@ -3343,6 +3343,8 @@ bool ValidateCopyImageSubDataTarget(const Context *context,
         case GL_TEXTURE_CUBE_MAP:
         case GL_TEXTURE_CUBE_MAP_ARRAY_EXT:
         case GL_TEXTURE_EXTERNAL_OES:
+        case GL_TEXTURE_2D_MULTISAMPLE:
+        case GL_TEXTURE_2D_MULTISAMPLE_ARRAY_OES:
         {
             TextureID texture = PackParam<TextureID>(name);
             if (!context->isTexture(texture))
@@ -3389,6 +3391,8 @@ bool ValidateCopyImageSubDataLevel(const Context *context,
         case GL_TEXTURE_CUBE_MAP:
         case GL_TEXTURE_CUBE_MAP_ARRAY_EXT:
         case GL_TEXTURE_EXTERNAL_OES:
+        case GL_TEXTURE_2D_MULTISAMPLE:
+        case GL_TEXTURE_2D_MULTISAMPLE_ARRAY_OES:
         {
             if (!ValidMipLevel(context, PackParam<TextureType>(target), level))
             {
@@ -3518,6 +3522,8 @@ const InternalFormat &GetTargetFormatInfo(const Context *context,
         case GL_TEXTURE_CUBE_MAP:
         case GL_TEXTURE_CUBE_MAP_ARRAY_EXT:
         case GL_TEXTURE_EXTERNAL_OES:
+        case GL_TEXTURE_2D_MULTISAMPLE:
+        case GL_TEXTURE_2D_MULTISAMPLE_ARRAY_OES:
         {
             Texture *texture          = context->getTexture(PackParam<TextureID>(name));
             GLenum textureTargetToUse = target;
@@ -5278,11 +5284,18 @@ bool ValidateEGLImageTargetRenderbufferStorageOES(const Context *context,
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEGLImageRenderbufferFormatNotSupported);
         return false;
     }
-
-    if (imageObject->hasProtectedContent() != context->getState().hasProtectedContent())
+    const auto &glState = context->getState();
+    if (imageObject->hasProtectedContent() != glState.hasProtectedContent())
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION,
                                "Mismatch between Image and Context Protected Content state");
+        return false;
+    }
+
+    Renderbuffer *renderbuffer = glState.getCurrentRenderbuffer();
+    if (renderbuffer == nullptr)
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kRenderbufferNotBound);
         return false;
     }
 
@@ -7502,6 +7515,16 @@ bool ValidatePixelPack(const Context *context,
         {
             // Overflow past the end of the buffer
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kParamOverflow);
+            return false;
+        }
+
+        const auto &typeInfo = GetTypeInfo(type);
+        if (reinterpret_cast<uintptr_t>(pixels) % typeInfo.bytes != 0)
+        {
+            // data is not evenly divisible by the number of basic machine units needed
+            // to store in memory the corresponding GL data type from table 8.4 for the
+            // type parameter.
+            ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kBufferOffsetNotAligned);
             return false;
         }
     }

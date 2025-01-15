@@ -475,17 +475,7 @@ angle::Result CLProgramVk::init(const size_t *lengths,
     return angle::Result::Continue;
 }
 
-CLProgramVk::~CLProgramVk()
-{
-    for (vk::DynamicDescriptorPoolPointer &pool : mDynamicDescriptorPools)
-    {
-        pool.reset();
-    }
-    for (DescriptorSetIndex index : angle::AllEnums<DescriptorSetIndex>())
-    {
-        mMetaDescriptorPools[index].destroy(mContext->getRenderer());
-    }
-}
+CLProgramVk::~CLProgramVk() {}
 
 angle::Result CLProgramVk::build(const cl::DevicePtrs &devices,
                                  const char *options,
@@ -857,8 +847,9 @@ bool CLProgramVk::buildInternal(const cl::DevicePtrs &devices,
                 case BuildType::COMPILE:
                 {
                     ScopedClspvContext clspvCtx;
-                    const char *clSrc   = mProgram.getSource().c_str();
-                    ClspvError clspvRet = clspvCompileFromSourcesString(
+                    const char *clSrc = mProgram.getSource().c_str();
+
+                    ClspvError clspvRet = ClspvCompileSource(
                         1, NULL, static_cast<const char **>(&clSrc), processedOptions.c_str(),
                         &clspvCtx.mOutputBin, &clspvCtx.mOutputBinSize, &clspvCtx.mOutputBuildLog);
                     deviceProgramData.buildLog =
@@ -898,7 +889,8 @@ bool CLProgramVk::buildInternal(const cl::DevicePtrs &devices,
                         vSizes.push_back(linkProgramData->IR.size());
                         vBins.push_back(linkProgramData->IR.data());
                     }
-                    ClspvError clspvRet = clspvCompileFromSourcesString(
+
+                    ClspvError clspvRet = ClspvCompileSource(
                         linkPrograms.size(), vSizes.data(), vBins.data(), processedOptions.c_str(),
                         &clspvCtx.mOutputBin, &clspvCtx.mOutputBinSize, &clspvCtx.mOutputBuildLog);
                     deviceProgramData.buildLog =
@@ -1031,21 +1023,6 @@ angle::spirv::Blob CLProgramVk::stripReflection(const DeviceProgramData *deviceP
         ERR() << "Could not strip reflection data from binary!";
     }
     return binaryStripped;
-}
-
-angle::Result CLProgramVk::allocateDescriptorSet(const DescriptorSetIndex setIndex,
-                                                 const vk::DescriptorSetLayout &descriptorSetLayout,
-                                                 vk::CommandBufferHelperCommon *commandBuffer,
-                                                 vk::DescriptorSetPointer *descriptorSetOut)
-{
-    if (mDynamicDescriptorPools[setIndex])
-    {
-        ANGLE_CL_IMPL_TRY_ERROR(mDynamicDescriptorPools[setIndex]->allocateDescriptorSet(
-                                    mContext, descriptorSetLayout, descriptorSetOut),
-                                CL_INVALID_OPERATION);
-        commandBuffer->retainResource(descriptorSetOut->get());
-    }
-    return angle::Result::Continue;
 }
 
 void CLProgramVk::setBuildStatus(const cl::DevicePtrs &devices, cl_build_status status)
