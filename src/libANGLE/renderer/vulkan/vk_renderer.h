@@ -886,6 +886,7 @@ class Renderer : angle::NonCopyable
     VkPhysicalDeviceSynchronization2Features mSynchronization2Features;
     VkPhysicalDeviceVariablePointersFeatures mVariablePointersFeatures;
     VkPhysicalDeviceFloatControlsProperties mFloatControlProperties;
+    VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR mUniformBufferStandardLayoutFeatures;
 
     uint32_t mLegacyDitheringVersion = 0;
 
