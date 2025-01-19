@@ -160,6 +160,9 @@ class Renderer : angle::NonCopyable
                              angle::vk::ICD desiredICD,
                              uint32_t preferredVendorId,
                              uint32_t preferredDeviceId,
+                             const uint8_t *preferredDeviceUuid,
+                             const uint8_t *preferredDriverUuid,
+                             VkDriverId preferredDriverId,
                              UseDebugLayers useDebugLayers,
                              const char *wsiExtension,
                              const char *wsiLayer,
@@ -294,6 +297,12 @@ class Renderer : angle::NonCopyable
     }
 
     VkQueue getQueue(egl::ContextPriority priority) { return mCommandQueue.getQueue(priority); }
+    // Helpers to implement the functionality of EGL_ANGLE_device_vulkan
+    void lockVulkanQueueForExternalAccess() { mCommandQueue.lockVulkanQueueForExternalAccess(); }
+    void unlockVulkanQueueForExternalAccess()
+    {
+        mCommandQueue.unlockVulkanQueueForExternalAccess();
+    }
 
     // This command buffer should be submitted immediately via queueSubmitOneOff.
     angle::Result getCommandBufferOneOff(vk::Context *context,
@@ -806,12 +815,11 @@ class Renderer : angle::NonCopyable
     VkDebugUtilsMessengerEXT mDebugUtilsMessenger;
     VkPhysicalDevice mPhysicalDevice;
 
-    VkPhysicalDeviceProperties mPhysicalDeviceProperties;
-    VkPhysicalDeviceVulkan11Properties mPhysicalDevice11Properties;
+    VkPhysicalDeviceProperties2 mPhysicalDeviceProperties2;
+    VkPhysicalDeviceProperties &mPhysicalDeviceProperties;
 
+    VkPhysicalDeviceIDProperties mPhysicalDeviceIDProperties;
     VkPhysicalDeviceFeatures mPhysicalDeviceFeatures;
-    VkPhysicalDeviceVulkan11Features mPhysicalDevice11Features;
-
     VkPhysicalDeviceLineRasterizationFeaturesEXT mLineRasterizationFeatures;
     VkPhysicalDeviceProvokingVertexFeaturesEXT mProvokingVertexFeatures;
     VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT mVertexAttributeDivisorFeatures;

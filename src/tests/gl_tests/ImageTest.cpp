@@ -2032,6 +2032,11 @@ void ImageTest::ValidationGLEGLImage_helper(const EGLint *attribs)
     glEGLImageTargetRenderbufferStorageOES(GL_TEXTURE_2D, image);
     EXPECT_GL_ERROR(GL_INVALID_ENUM);
 
+    // If a renderbuffer is not bound, the error INVALID_OPERATION is generated.
+    // (Not in specification.)
+    glEGLImageTargetRenderbufferStorageOES(GL_RENDERBUFFER, image);
+    EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+
     // If the GL is unable to create a renderbuffer using the specified eglImageOES, the error
     // INVALID_OPERATION is generated.If <image>
     // does not refer to a valid eglImageOES object, the error INVALID_VALUE is generated.
@@ -2688,6 +2693,37 @@ TEST_P(ImageTest, SourceAHBInvalid)
                                           EGL_NATIVE_BUFFER_ANDROID, nullptr, nullptr);
     ASSERT_EGL_ERROR(EGL_BAD_PARAMETER);
     EXPECT_EQ(image, EGL_NO_IMAGE_KHR);
+}
+
+// Testing source AHB EGL image, if the client buffer is not a  ANativeWindowBuffer,
+// eglCreateImageKHR should return NO_IMAGE and generate error EGL_BAD_PARAMETER.
+TEST_P(ImageTest, SourceAHBCorrupt)
+{
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !IsVulkan());
+    ANGLE_SKIP_TEST_IF(!hasAndroidImageNativeBufferExt() || !hasAndroidHardwareBufferSupport());
+
+#if defined(ANGLE_AHARDWARE_BUFFER_SUPPORT)
+    EGLWindow *window = getEGLWindow();
+
+    const AHardwareBuffer_Desc aHardwareBufferDescription = createAndroidHardwareBufferDesc(
+        16, 16, 1, AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM, kAHBUsageGPUSampledImage);
+
+    // Allocate memory from Android Hardware Buffer
+    AHardwareBuffer *aHardwareBuffer = nullptr;
+    EXPECT_EQ(0, AHardwareBuffer_allocate(&aHardwareBufferDescription, &aHardwareBuffer));
+
+    std::memset(
+        reinterpret_cast<void *>(angle::android::AHardwareBufferToClientBuffer(aHardwareBuffer)), 0,
+        sizeof(int));
+    EGLImageKHR ahbImage = eglCreateImageKHR(
+        window->getDisplay(), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID,
+        angle::android::AHardwareBufferToClientBuffer(aHardwareBuffer), kDefaultAttribs);
+
+    ASSERT_EGL_ERROR(EGL_BAD_PARAMETER);
+    EXPECT_EQ(ahbImage, EGL_NO_IMAGE_KHR);
+
+    AHardwareBuffer_release(aHardwareBuffer);
+#endif
 }
 
 // Testing source AHB EGL image, target 2D texture and delete when in use
@@ -7672,6 +7708,33 @@ TEST_P(ImageTestES3, CreatesRGBImages)
 
         // Clean up
         eglDestroyImageKHR(window->getDisplay(), image);
+    }
+}
+
+// Regression test to check that sRGB texture can be used to create image in sRGB colorspace.
+// Also check that creating image using sRGB texture in linear colorspace wouldn't fail.
+TEST_P(ImageTestES3, DmaBufNegativeValidation)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasBaseExt());
+    ANGLE_SKIP_TEST_IF(!IsEGLDisplayExtensionEnabled(getEGLWindow()->getDisplay(),
+                                                     "EGL_EXT_image_dma_buf_import"));
+
+    const EGLint invalidImageAttributeList[][3] = {
+        {EGL_YUV_COLOR_SPACE_HINT_EXT, EGL_NONE, EGL_NONE},
+        {EGL_SAMPLE_RANGE_HINT_EXT, EGL_NONE, EGL_NONE},
+        {EGL_YUV_CHROMA_HORIZONTAL_SITING_HINT_EXT, EGL_NONE, EGL_NONE},
+        {EGL_YUV_CHROMA_VERTICAL_SITING_HINT_EXT, EGL_NONE, EGL_NONE},
+    };
+
+    EGLImageKHR image;
+
+    for (size_t i = 0; i < 4; i++)
+    {
+        image = eglCreateImageKHR(window->getDisplay(), EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, NULL,
+                                  invalidImageAttributeList[i]);
+        ASSERT_EGL_ERROR(EGL_BAD_ATTRIBUTE);
+        ASSERT_EQ(image, EGL_NO_IMAGE_KHR);
     }
 }
 

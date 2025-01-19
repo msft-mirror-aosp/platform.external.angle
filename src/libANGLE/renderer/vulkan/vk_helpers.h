@@ -2089,8 +2089,10 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
 
     RenderPassAttachment mFragmentShadingRateAtachment;
 
-    // This is last renderpass before present and this is the image will be presented. We can use
-    // final layout of the renderpass to transition it to the presentable layout
+    // This is last renderpass before present and this is the image that will be presented. We can
+    // use final layout of the render pass to transition it to the presentable layout.  With dynamic
+    // rendering, the barrier is recorded after the pass without needing an outside render pass
+    // command buffer.
     ImageHelper *mImageOptimizeForPresent;
     ImageLayout mImageOptimizeForPresentOriginalLayout;
 
@@ -3424,11 +3426,13 @@ class ImageViewHelper final : angle::NonCopyable
     }
     const ImageView &getLinearCopyImageView() const
     {
-        return getValidReadViewImpl(mPerLevelRangeLinearCopyImageViews);
+        return mIsCopyImageViewShared ? getValidReadViewImpl(mPerLevelRangeLinearReadImageViews)
+                                      : getValidReadViewImpl(mPerLevelRangeLinearCopyImageViews);
     }
     const ImageView &getSRGBCopyImageView() const
     {
-        return getValidReadViewImpl(mPerLevelRangeSRGBCopyImageViews);
+        return mIsCopyImageViewShared ? getValidReadViewImpl(mPerLevelRangeSRGBReadImageViews)
+                                      : getValidReadViewImpl(mPerLevelRangeSRGBCopyImageViews);
     }
     const ImageView &getStencilReadImageView() const
     {
@@ -3444,9 +3448,8 @@ class ImageViewHelper final : angle::NonCopyable
 
     const ImageView &getCopyImageView() const
     {
-        return mReadColorspace == ImageViewColorspace::Linear
-                   ? getReadViewImpl(mPerLevelRangeLinearCopyImageViews)
-                   : getReadViewImpl(mPerLevelRangeSRGBCopyImageViews);
+        return mReadColorspace == ImageViewColorspace::Linear ? getLinearCopyImageView()
+                                                              : getSRGBCopyImageView();
     }
 
     ImageView &getSamplerExternal2DY2YEXTImageView()
@@ -3650,6 +3653,17 @@ class ImageViewHelper final : angle::NonCopyable
     }
     ImageView &getCopyImageView()
     {
+        if (mReadColorspace == ImageViewColorspace::Linear)
+        {
+            return mIsCopyImageViewShared ? getReadViewImpl(mPerLevelRangeLinearReadImageViews)
+                                          : getReadViewImpl(mPerLevelRangeLinearCopyImageViews);
+        }
+
+        return mIsCopyImageViewShared ? getReadViewImpl(mPerLevelRangeSRGBReadImageViews)
+                                      : getReadViewImpl(mPerLevelRangeSRGBCopyImageViews);
+    }
+    ImageView &getCopyImageViewStorage()
+    {
         return mReadColorspace == ImageViewColorspace::Linear
                    ? getReadViewImpl(mPerLevelRangeLinearCopyImageViews)
                    : getReadViewImpl(mPerLevelRangeSRGBCopyImageViews);
@@ -3724,6 +3738,10 @@ class ImageViewHelper final : angle::NonCopyable
     static_assert(gl::IMPLEMENTATION_MAX_TEXTURE_LEVELS <= 16,
                   "Not enough bits in mCurrentBaseMaxLevelHash");
     uint8_t mCurrentBaseMaxLevelHash;
+
+    // This flag is set when copy views are identical to read views, and we share the views instead
+    // of creating new ones.
+    bool mIsCopyImageViewShared;
 
     mutable ImageViewColorspace mReadColorspace;
     mutable ImageViewColorspace mWriteColorspace;
