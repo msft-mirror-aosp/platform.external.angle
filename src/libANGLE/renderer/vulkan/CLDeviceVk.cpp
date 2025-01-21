@@ -194,7 +194,18 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
         cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0),
                         .name    = "cl_khr_local_int32_extended_atomics"},
     };
+    if (info.imageSupport && info.image3D_MaxDepth > 1)
+    {
+        versionedExtensionList.push_back(
+            cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0), .name = "cl_khr_3d_image_writes"});
+    }
     info.initializeVersionedExtensions(std::move(versionedExtensionList));
+
+    if (!mRenderer->getFeatures().supportsUniformBufferStandardLayout.enabled)
+    {
+        ERR() << "VK_KHR_uniform_buffer_standard_layout extension support is needed to properly "
+                 "support uniform buffers. Otherwise, you must disable OpenCL.";
+    }
 
     return info;
 }

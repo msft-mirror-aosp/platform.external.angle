@@ -318,6 +318,37 @@ OpExecutionModeId %main LocalSizeId %int_1 %int_0 %int_1
           "Local Size Id execution mode must not have a product of zero"));
 }
 
+// https://github.com/KhronosGroup/SPIRV-Tools/issues/5939
+TEST_F(ValidateMode, KernelZeroLocalSize64) {
+  const std::string spirv = R"(
+               OpCapability Kernel
+               OpCapability Addresses
+               OpCapability Int64
+               OpCapability Linkage
+               OpMemoryModel Physical64 OpenCL
+               OpEntryPoint Kernel %test "test" %__spirv_BuiltInWorkgroupSize
+               OpExecutionMode %test ContractionOff
+               OpDecorate %__spirv_BuiltInWorkgroupSize Constant
+               OpDecorate %__spirv_BuiltInWorkgroupSize LinkageAttributes "__spirv_BuiltInWorkgroupSize" Import
+               OpDecorate %__spirv_BuiltInWorkgroupSize BuiltIn WorkgroupSize
+       %void = OpTypeVoid
+      %ulong = OpTypeInt 64 0
+    %v3ulong = OpTypeVector %ulong 3
+%_ptr_Input_v3ulong = OpTypePointer Input %v3ulong
+          %8 = OpTypeFunction %void
+%__spirv_BuiltInWorkgroupSize = OpVariable %_ptr_Input_v3ulong Input
+       %test = OpFunction %void None %8
+      %entry = OpLabel
+         %11 = OpLoad %v3ulong %__spirv_BuiltInWorkgroupSize Aligned 1
+         %12 = OpCompositeExtract %ulong %11 0
+               OpReturn
+               OpFunctionEnd
+)";
+
+  CompileSuccessfully(spirv);
+  EXPECT_EQ(SPV_SUCCESS, ValidateInstructions());
+}
+
 TEST_F(ValidateMode, FragmentOriginLowerLeftVulkan) {
   const std::string spirv = R"(
 OpCapability Shader
@@ -995,6 +1026,109 @@ OpExecutionMode %main OutputPoints
 
   CompileSuccessfully(spirv);
   EXPECT_THAT(SPV_SUCCESS, ValidateInstructions());
+}
+
+TEST_F(ValidateModeExecution, MeshEXTOutputVertices) {
+  const std::string spirv = R"(
+OpCapability MeshShadingEXT
+OpExtension "SPV_EXT_mesh_shader"
+%1 = OpExtInstImport "GLSL.std.450"
+OpMemoryModel Logical GLSL450
+OpEntryPoint MeshEXT %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpExecutionMode %main OutputVertices 3
+OpExecutionMode %main OutputPrimitivesNV 1
+OpExecutionMode %main OutputTrianglesNV
+OpSource GLSL 460
+OpSourceExtension "GL_EXT_mesh_shader"
+OpName %main "main"
+OpDecorate %gl_WorkGroupSize BuiltIn WorkgroupSize
+%void = OpTypeVoid
+%3 = OpTypeFunction %void
+%uint = OpTypeInt 32 0
+%uint_3 = OpConstant %uint 3
+%uint_1 = OpConstant %uint 1
+%v3uint = OpTypeVector %uint 3
+%gl_WorkGroupSize = OpConstantComposite %v3uint %uint_1 %uint_1 %uint_1
+%main = OpFunction %void None %3
+%5 = OpLabel
+OpSetMeshOutputsEXT %uint_3 %uint_1
+OpReturn
+OpFunctionEnd
+)";
+
+  CompileSuccessfully(spirv, SPV_ENV_UNIVERSAL_1_4);
+  EXPECT_THAT(SPV_SUCCESS, ValidateInstructions(SPV_ENV_UNIVERSAL_1_4));
+}
+
+TEST_F(ValidateModeExecution, VulkanBadMeshEXTOutputVertices) {
+  const std::string spirv = R"(
+OpCapability MeshShadingEXT
+OpExtension "SPV_EXT_mesh_shader"
+%1 = OpExtInstImport "GLSL.std.450"
+OpMemoryModel Logical GLSL450
+OpEntryPoint MeshEXT %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpExecutionMode %main OutputVertices 0
+OpExecutionMode %main OutputPrimitivesNV 1
+OpExecutionMode %main OutputTrianglesNV
+OpSource GLSL 460
+OpSourceExtension "GL_EXT_mesh_shader"
+OpName %main "main"
+OpDecorate %gl_WorkGroupSize BuiltIn WorkgroupSize
+%void = OpTypeVoid
+%3 = OpTypeFunction %void
+%uint = OpTypeInt 32 0
+%uint_3 = OpConstant %uint 3
+%uint_1 = OpConstant %uint 1
+%v3uint = OpTypeVector %uint 3
+%gl_WorkGroupSize = OpConstantComposite %v3uint %uint_1 %uint_1 %uint_1
+%main = OpFunction %void None %3
+%5 = OpLabel
+OpSetMeshOutputsEXT %uint_3 %uint_1
+OpReturn
+OpFunctionEnd
+)";
+
+  CompileSuccessfully(spirv, SPV_ENV_VULKAN_1_2);
+  EXPECT_THAT(SPV_ERROR_INVALID_DATA, ValidateInstructions(SPV_ENV_VULKAN_1_2));
+  EXPECT_THAT(getDiagnosticString(),
+              AnyVUID("VUID-StandaloneSpirv-ExecutionModel-07330"));
+}
+
+TEST_F(ValidateModeExecution, VulkanBadMeshEXTOutputOutputPrimitivesEXT) {
+  const std::string spirv = R"(
+OpCapability MeshShadingEXT
+OpExtension "SPV_EXT_mesh_shader"
+%1 = OpExtInstImport "GLSL.std.450"
+OpMemoryModel Logical GLSL450
+OpEntryPoint MeshEXT %main "main"
+OpExecutionMode %main LocalSize 1 1 1
+OpExecutionMode %main OutputVertices 1
+OpExecutionMode %main OutputPrimitivesNV 0
+OpExecutionMode %main OutputTrianglesNV
+OpSource GLSL 460
+OpSourceExtension "GL_EXT_mesh_shader"
+OpName %main "main"
+OpDecorate %gl_WorkGroupSize BuiltIn WorkgroupSize
+%void = OpTypeVoid
+%3 = OpTypeFunction %void
+%uint = OpTypeInt 32 0
+%uint_3 = OpConstant %uint 3
+%uint_1 = OpConstant %uint 1
+%v3uint = OpTypeVector %uint 3
+%gl_WorkGroupSize = OpConstantComposite %v3uint %uint_1 %uint_1 %uint_1
+%main = OpFunction %void None %3
+%5 = OpLabel
+OpSetMeshOutputsEXT %uint_3 %uint_1
+OpReturn
+OpFunctionEnd
+)";
+
+  CompileSuccessfully(spirv, SPV_ENV_VULKAN_1_2);
+  EXPECT_THAT(SPV_ERROR_INVALID_DATA, ValidateInstructions(SPV_ENV_VULKAN_1_2));
+  EXPECT_THAT(getDiagnosticString(),
+              AnyVUID("VUID-StandaloneSpirv-ExecutionModel-07331"));
 }
 
 TEST_F(ValidateModeExecution, MeshNVOutputVertices) {

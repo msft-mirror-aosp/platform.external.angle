@@ -737,21 +737,24 @@ def main(argv):
 
     if options.enable_nullaway:
       # See: https://github.com/uber/NullAway/wiki/Configuration
-      # Treat these packages as @NullMarked by default.
-      # These apply to both .jars in classpath as well as code being compiled.
-      # Chrome classes rely on the presence of @NullMarked.
-      errorprone_flags += ['-XepOpt:NullAway:AnnotatedPackages=']
+      # Check nullability only for classes marked with @NullMarked (this is our
+      # migration story).
+      errorprone_flags += ['-XepOpt:NullAway:OnlyNullMarked']
       errorprone_flags += [
           '-XepOpt:NullAway:CustomContractAnnotations='
-          'org.chromium.build.annotations.Contract'
+          'org.chromium.build.annotations.Contract,'
+          'org.chromium.support_lib_boundary.util.Contract'
       ]
-      errorprone_flags += ['-XepOpt:NullAway:CheckContracts=true']
+      # TODO(agrieve): Re-enable once this is fixed:
+      #     https://github.com/uber/NullAway/issues/1104
+      # errorprone_flags += ['-XepOpt:NullAway:CheckContracts=true']
+
       # Make it a warning to use assumeNonNull() with a @NonNull.
       errorprone_flags += [('-XepOpt:NullAway:CastToNonNullMethod='
                             'org.chromium.build.NullUtil.assumeNonNull')]
       # Detect "assert foo != null" as a null check.
       errorprone_flags += ['-XepOpt:NullAway:AssertsEnabled=true']
-      # Do not ignore @Nullable & @NonNull in non-annotated packages.
+      # Do not ignore @Nullable & @NonNull in non-@NullMarked classes.
       errorprone_flags += [
           '-XepOpt:NullAway:AcknowledgeRestrictiveAnnotations=true'
       ]
@@ -768,7 +771,7 @@ def main(argv):
           'android.app.backup.BackupAgent.onCreate',
           'android.content.ContentProvider.attachInfo',
           'android.content.ContentProvider.onCreate',
-          'android.content.ContentWrapper.attachBaseContext',
+          'android.content.ContextWrapper.attachBaseContext',
       ]
       errorprone_flags += [
           '-XepOpt:NullAway:KnownInitializers=' + ','.join(init_methods)
