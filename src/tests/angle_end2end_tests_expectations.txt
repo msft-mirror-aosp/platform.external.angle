@@ -940,6 +940,9 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 // Fails on swangle builders
 42266918 SWIFTSHADER : WebGL2GLSLTest.TexelFetchLodOutOfBounds/* = SKIP
 
+// ANGLE should return OOM for large allocations, but doesn't and hits a VVL error
+391002353 SWIFTSHADER : TransformFeedbackTest.BufferOutOfMemory/* = SKIP
+
 // HLSL compiler bug
 42261155 D3D11 : GLSLTest_ES3.ComplexCrossExpression/* = SKIP
 
@@ -1214,9 +1217,6 @@ b/330697097 PIXEL6 VULKAN : FramebufferTest_ES31.MultisampleResolveBothAttachmen
 // SSBO Alias Overwrite
 42264522 PIXEL4ORXL VULKAN : ComputeShaderTest.SSBOAliasOverWrite/* = SKIP
 b/266235549 D3D11 : ComputeShaderTest.SSBOAliasOverWrite/* = SKIP
-
-// Incorrect image binding in Vulkan backend
-344950165 VULKAN : TextureTestES31.Texture2DLayered/* = SKIP
 
 // Samsung Galaxy S22 (Xclipse)
 b/267953710 GALAXYS22 GLES : VulkanImageTest.DeviceVulkan/* = SKIP
@@ -1544,6 +1544,8 @@ b/292285899 PIXEL4ORXL GLES : EGLSurfaceTest.DestroyAndRecreateWhileCurrent/* = 
 361623543 WIN INTEL OPENGL : ClearTextureEXTTest.StencilTexture/* = SKIP
 361623543 WIN INTEL OPENGL : FramebufferTest_ES31.ClearTextureEXT2DMSStencil/* = SKIP
 361623543 LINUX INTEL OPENGL : FramebufferTest_ES31.ClearTextureEXT2DMSStencil/* = SKIP
+384967031 WIN INTEL OPENGL : ClearTextureEXTTestES31*.ClearCubeMapArray/* = SKIP
+384967031 WIN INTEL OPENGL : ClearTextureEXTTestES31Unrenderable.ClearRGB9E5/* = SKIP
 
 // MSRTT D3D11 failures
 40644740 D3D11 : MultisampledRenderToTextureES3Test.MultipleLevelsMultisampleMRTDraw2DColor/* = SKIP

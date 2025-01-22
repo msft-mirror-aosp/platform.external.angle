@@ -274,7 +274,6 @@ constexpr const char *kSkippedMessages[] = {
     "Undefined-Value-ShaderFragmentOutputMismatch",
     // https://anglebug.com/336652255
     "VUID-vkCmdDraw-None-09600",
-    "UNASSIGNED-CoreValidation-DrawState-InvalidImageLayout",
     // https://issuetracker.google.com/336847261
     "VUID-VkImageCreateInfo-pNext-02397",
     "VUID-vkCmdDraw-None-06550",
@@ -341,6 +340,11 @@ constexpr const char *kSkippedMessagesWithDynamicRendering[] = {
     "VUID-vkCmdDrawIndexed-multisampledRenderToSingleSampled-07285",
     "VUID-vkCmdDrawIndexed-multisampledRenderToSingleSampled-07286",
     "VUID-vkCmdDrawIndexed-multisampledRenderToSingleSampled-07287",
+};
+
+// Mock ICD limitations
+constexpr const char *kSkippedMessagesWithMockICD[] = {
+    "UNASSIGNED-vkAllocateMemory-maxMemoryAllocationSize",
 };
 
 // Some syncval errors are resolved in the presence of the NONE load or store render pass ops.  For
@@ -2807,6 +2811,7 @@ void Renderer::appendDeviceExtensionFeaturesPromotedTo11(
 //                                          shaderSignedZeroInfNanPreserveFloat16 (property)
 //                                          shaderSignedZeroInfNanPreserveFloat32 (property)
 //                                          shaderSignedZeroInfNanPreserveFloat64 (property)
+// - VK_KHR_uniform_buffer_standard_layout: uniformBufferStandardLayout (feature)
 //
 // Note that supportedDepthResolveModes is used just to check if the property struct is populated.
 // ANGLE always uses VK_RESOLVE_MODE_SAMPLE_ZERO_BIT for both depth and stencil, and support for
@@ -2860,6 +2865,11 @@ void Renderer::appendDeviceExtensionFeaturesPromotedTo12(
     if (ExtensionFound(VK_KHR_8BIT_STORAGE_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &m8BitStorageFeatures);
+    }
+
+    if (ExtensionFound(VK_KHR_UNIFORM_BUFFER_STANDARD_LAYOUT_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mUniformBufferStandardLayoutFeatures);
     }
 }
 
@@ -3122,6 +3132,10 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mTextureCompressionASTCHDRFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXTURE_COMPRESSION_ASTC_HDR_FEATURES;
 
+    mUniformBufferStandardLayoutFeatures = {};
+    mUniformBufferStandardLayoutFeatures.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFORM_BUFFER_STANDARD_LAYOUT_FEATURES;
+
 #if defined(ANGLE_PLATFORM_ANDROID)
     mExternalFormatResolveFeatures = {};
     mExternalFormatResolveFeatures.sType =
@@ -3206,6 +3220,7 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     mImageCompressionControlFeatures.pNext            = nullptr;
     mImageCompressionControlSwapchainFeatures.pNext   = nullptr;
     mTextureCompressionASTCHDRFeatures.pNext          = nullptr;
+    mUniformBufferStandardLayoutFeatures.pNext        = nullptr;
 #if defined(ANGLE_PLATFORM_ANDROID)
     mExternalFormatResolveFeatures.pNext   = nullptr;
     mExternalFormatResolveProperties.pNext = nullptr;
@@ -3600,7 +3615,10 @@ void Renderer::enableDeviceExtensionsPromotedTo11(const vk::ExtensionNameList &d
 //
 // - VK_KHR_create_renderpass2
 // - VK_KHR_image_format_list
+// - VK_KHR_shader_float_controls
+// - VK_KHR_spirv_1_4
 // - VK_KHR_sampler_mirror_clamp_to_edge
+// - VK_KHR_depth_stencil_resolve
 //
 void Renderer::enableDeviceExtensionsPromotedTo12(const vk::ExtensionNameList &deviceExtensionNames)
 {
@@ -3673,6 +3691,11 @@ void Renderer::enableDeviceExtensionsPromotedTo12(const vk::ExtensionNameList &d
     {
         mEnabledDeviceExtensions.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &m8BitStorageFeatures);
+    }
+    if (mFeatures.supportsUniformBufferStandardLayout.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_KHR_UNIFORM_BUFFER_STANDARD_LAYOUT_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mUniformBufferStandardLayoutFeatures);
     }
 }
 
@@ -4210,6 +4233,13 @@ void Renderer::initializeValidationMessageSuppressions()
         mSkippedValidationMessages.insert(
             mSkippedValidationMessages.end(), kSkippedMessagesWithDynamicRendering,
             kSkippedMessagesWithDynamicRendering + ArraySize(kSkippedMessagesWithDynamicRendering));
+    }
+
+    if (isMockICDEnabled())
+    {
+        mSkippedValidationMessages.insert(
+            mSkippedValidationMessages.end(), kSkippedMessagesWithMockICD,
+            kSkippedMessagesWithMockICD + ArraySize(kSkippedMessagesWithMockICD));
     }
 
     // Build the list of syncval errors that are currently expected and should be skipped.
@@ -5038,12 +5068,13 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //   pipeline creation.  http://issuetracker.google.com/173636783
     // - ARM hardware
     // - Imagination hardware
+    // - Samsung hardware
     // - SwiftShader
     //
     ANGLE_FEATURE_CONDITION(
         &mFeatures, preferDriverUniformOverSpecConst,
         (isQualcommProprietary && qualcommDriverVersion < QualcommDriverVersion(512, 513, 0)) ||
-            isARM || isPowerVR || isSwiftShader);
+            isARM || isPowerVR || isSamsung || isSwiftShader);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, preferCachedNoncoherentForDynamicStreamBufferUsage,
                             IsMeteorLake(mPhysicalDeviceProperties.deviceID));
@@ -5818,6 +5849,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsTextureCompressionAstcHdr,
         mTextureCompressionASTCHDRFeatures.textureCompressionASTC_HDR == VK_TRUE);
+
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsUniformBufferStandardLayout,
+        mUniformBufferStandardLayoutFeatures.uniformBufferStandardLayout == VK_TRUE);
 
     // Disable memory report feature overrides if extension is not supported.
     if ((mFeatures.logMemoryReportCallbacks.enabled || mFeatures.logMemoryReportStats.enabled) &&
