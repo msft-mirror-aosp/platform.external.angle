@@ -434,7 +434,7 @@ config("compiler") {
     # Explicitly pass --build-id to ld. Compilers used to always pass this
     # implicitly but don't any more (in particular clang when built without
     # ENABLE_LINKER_BUILD_ID=ON).
-    if (is_official_build) {
+    if (is_official_build || is_chrome_branded) {
       # The sha1 build id has lower risk of collision but is more expensive to
       # compute, so only use it in the official build to avoid slowing down
       # links.
@@ -1119,13 +1119,7 @@ config("libcxx_hardening") {
   # TODO(crbug.com/40511454): Move this back to the `runtime_library` config
   # when NaCl is removed.
   if (use_safe_libcxx) {
-    # TODO(crbug.com/40275904): Switch saigo to hardened mode once it's rolled
-    # in.
-    if (is_nacl_saigo) {
-      defines = [ "_LIBCPP_ENABLE_ASSERTIONS=1" ]
-    } else {
-      defines = [ "_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE" ]
-    }
+    defines = [ "_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE" ]
   } else {
     defines = [ "_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE" ]
   }

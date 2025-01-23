@@ -1071,11 +1071,11 @@ bool CanCopyWithTransferForCopyImage(Renderer *renderer,
                                dstImage->getActualFormatID(), dstTilingMode);
 }
 
-void ReleaseBufferListToRenderer(Renderer *renderer, BufferHelperQueue *buffers)
+void ReleaseBufferListToRenderer(Context *context, BufferHelperQueue *buffers)
 {
     for (std::unique_ptr<BufferHelper> &toFree : *buffers)
     {
-        toFree->release(renderer);
+        toFree->release(context);
     }
     buffers->clear();
 }
@@ -1260,6 +1260,18 @@ void GetVkClearDepthStencilValueFromBytes(uint8_t *intendedData,
     memcpy(&depthValue, &dsData[0], sizeof(double));
     clearValueOut->depthStencil.depth   = static_cast<float>(depthValue);
     clearValueOut->depthStencil.stencil = dsData[2];
+}
+
+VkPipelineStageFlags ConvertShaderBitSetToVkPipelineStageFlags(
+    const gl::ShaderBitSet &writeShaderStages)
+{
+    VkPipelineStageFlags pipelineStageFlags = 0;
+    for (gl::ShaderType shaderType : writeShaderStages)
+    {
+        const PipelineStage writeStage = GetPipelineStage(shaderType);
+        pipelineStageFlags |= kPipelineStageFlagBitMap[writeStage];
+    }
+    return pipelineStageFlags;
 }
 }  // anonymous namespace
 
@@ -1826,14 +1838,54 @@ void CommandBufferHelperCommon::assertCanBeRecycledImpl()
     ASSERT(!DerivedT::ExecutesInline() || derived->getCommandBuffer().empty());
 }
 
-void CommandBufferHelperCommon::bufferWrite(VkAccessFlags writeAccessType,
+void CommandBufferHelperCommon::bufferWrite(Context *context,
+                                            VkAccessFlags writeAccessType,
                                             PipelineStage writeStage,
                                             BufferHelper *buffer)
 {
-    buffer->setWriteQueueSerial(mQueueSerial);
+    VkPipelineStageFlagBits writePipelineStageFlags = kPipelineStageFlagBitMap[writeStage];
+    bufferWriteImpl(context, writeAccessType, writePipelineStageFlags, writeStage, buffer);
+}
 
-    VkPipelineStageFlagBits stageBits = kPipelineStageFlagBitMap[writeStage];
-    buffer->recordWriteBarrier(writeAccessType, stageBits, writeStage, &mPipelineBarriers);
+void CommandBufferHelperCommon::bufferWrite(Context *context,
+                                            VkAccessFlags writeAccessType,
+                                            const gl::ShaderBitSet &writeShaderStages,
+                                            BufferHelper *buffer)
+{
+    VkPipelineStageFlags writePipelineStageFlags =
+        ConvertShaderBitSetToVkPipelineStageFlags(writeShaderStages);
+    PipelineStage firstWriteStage = GetPipelineStage(writeShaderStages.first());
+    bufferWriteImpl(context, writeAccessType, writePipelineStageFlags, firstWriteStage, buffer);
+}
+
+void CommandBufferHelperCommon::bufferRead(Context *context,
+                                           VkAccessFlags readAccessType,
+                                           PipelineStage readStage,
+                                           BufferHelper *buffer)
+{
+    VkPipelineStageFlags readPipelineStageFlags = kPipelineStageFlagBitMap[readStage];
+    bufferReadImpl(context, readAccessType, readPipelineStageFlags, readStage, buffer);
+}
+
+void CommandBufferHelperCommon::bufferRead(Context *context,
+                                           VkAccessFlags readAccessType,
+                                           const gl::ShaderBitSet &readShaderStages,
+                                           BufferHelper *buffer)
+{
+    VkPipelineStageFlags readPipelineStageFlags =
+        ConvertShaderBitSetToVkPipelineStageFlags(readShaderStages);
+    PipelineStage firstReadStage = GetPipelineStage(readShaderStages.first());
+    bufferReadImpl(context, readAccessType, readPipelineStageFlags, firstReadStage, buffer);
+}
+
+void CommandBufferHelperCommon::bufferWriteImpl(Context *context,
+                                                VkAccessFlags writeAccessType,
+                                                VkPipelineStageFlags writePipelineStageFlags,
+                                                PipelineStage writeStage,
+                                                BufferHelper *buffer)
+{
+    buffer->recordWriteBarrier(context, writeAccessType, writePipelineStageFlags, writeStage,
+                               &mPipelineBarriers);
 
     // Make sure host-visible buffer writes result in a barrier inserted at the end of the frame to
     // make the results visible to the host.  The buffer may be mapped by the application in the
@@ -1842,28 +1894,33 @@ void CommandBufferHelperCommon::bufferWrite(VkAccessFlags writeAccessType,
     {
         mIsAnyHostVisibleBufferWritten = true;
     }
+
+    buffer->setWriteQueueSerial(mQueueSerial);
 }
 
-void CommandBufferHelperCommon::executeBarriers(Renderer *renderer, CommandsState *commandsState)
-{
-    // Add ANI semaphore to the command submission.
-    if (mAcquireNextImageSemaphore.valid())
-    {
-        commandsState->waitSemaphores.emplace_back(mAcquireNextImageSemaphore.release());
-        commandsState->waitSemaphoreStageMasks.emplace_back(kSwapchainAcquireImageWaitStageFlags);
-    }
-
-    mPipelineBarriers.execute(renderer, &commandsState->primaryCommands);
-    mEventBarriers.execute(renderer, &commandsState->primaryCommands);
-}
-
-void CommandBufferHelperCommon::bufferReadImpl(VkAccessFlags readAccessType,
+void CommandBufferHelperCommon::bufferReadImpl(Context *context,
+                                               VkAccessFlags readAccessType,
+                                               VkPipelineStageFlags readPipelineStageFlags,
                                                PipelineStage readStage,
                                                BufferHelper *buffer)
 {
-    VkPipelineStageFlagBits stageBits = kPipelineStageFlagBitMap[readStage];
-    buffer->recordReadBarrier(readAccessType, stageBits, readStage, &mPipelineBarriers);
+    buffer->recordReadBarrier(context, readAccessType, readPipelineStageFlags, readStage,
+                              &mPipelineBarriers);
     ASSERT(!usesBufferForWrite(*buffer));
+
+    if (buffer->getResourceUse() >= mQueueSerial)
+    {
+        // We should not run into situation that RP is writing to it while we are reading it here
+        ASSERT(!(buffer->getWriteResourceUse() >= mQueueSerial));
+        // A buffer could have read accessed by both renderPassCommands and
+        // outsideRenderPassCommands and there is no need to endRP or flush. In this case, the
+        // renderPassCommands' read will override the outsideRenderPassCommands' read, since its
+        // queueSerial must be greater than outsideRP.
+    }
+    else
+    {
+        buffer->setQueueSerial(mQueueSerial);
+    }
 }
 
 void CommandBufferHelperCommon::imageReadImpl(Context *context,
@@ -1953,27 +2010,23 @@ template void CommandBufferHelperCommon::flushSetEventsImpl<VulkanSecondaryComma
     Context *context,
     VulkanSecondaryCommandBuffer *commandBuffer);
 
+void CommandBufferHelperCommon::executeBarriers(Renderer *renderer, CommandsState *commandsState)
+{
+    // Add ANI semaphore to the command submission.
+    if (mAcquireNextImageSemaphore.valid())
+    {
+        commandsState->waitSemaphores.emplace_back(mAcquireNextImageSemaphore.release());
+        commandsState->waitSemaphoreStageMasks.emplace_back(kSwapchainAcquireImageWaitStageFlags);
+    }
+
+    mPipelineBarriers.execute(renderer, &commandsState->primaryCommands);
+    mEventBarriers.execute(renderer, &commandsState->primaryCommands);
+}
+
 void CommandBufferHelperCommon::addCommandDiagnosticsCommon(std::ostringstream *out)
 {
     mPipelineBarriers.addDiagnosticsString(*out);
     mEventBarriers.addDiagnosticsString(*out);
-}
-
-void CommandBufferHelperCommon::setBufferReadQueueSerial(BufferHelper *buffer)
-{
-    if (buffer->getResourceUse() >= mQueueSerial)
-    {
-        // We should not run into situation that RP is writing to it while we are reading it here
-        ASSERT(!(buffer->getWriteResourceUse() >= mQueueSerial));
-        // A buffer could have read accessed by both renderPassCommands and
-        // outsideRenderPassCommands and there is no need to endRP or flush. In this case, the
-        // renderPassCommands' read will override the outsideRenderPassCommands' read, since its
-        // queueSerial must be greater than outsideRP.
-    }
-    else
-    {
-        buffer->setQueueSerial(mQueueSerial);
-    }
 }
 
 // OutsideRenderPassCommandBufferHelper implementation.
@@ -3728,7 +3781,7 @@ angle::Result DynamicBuffer::allocate(Context *context,
     {
         mSize = minRequiredBlockSize;
         // Clear the free list since the free buffers are now either too small or too big.
-        ReleaseBufferListToRenderer(renderer, &mBufferFreeList);
+        ReleaseBufferListToRenderer(context, &mBufferFreeList);
     }
 
     // The front of the free list should be the oldest. Thus if it is in use the rest of the
@@ -3756,16 +3809,16 @@ angle::Result DynamicBuffer::allocate(Context *context,
     return angle::Result::Continue;
 }
 
-void DynamicBuffer::release(Renderer *renderer)
+void DynamicBuffer::release(Context *context)
 {
     reset();
 
-    ReleaseBufferListToRenderer(renderer, &mInFlightBuffers);
-    ReleaseBufferListToRenderer(renderer, &mBufferFreeList);
+    ReleaseBufferListToRenderer(context, &mInFlightBuffers);
+    ReleaseBufferListToRenderer(context, &mBufferFreeList);
 
     if (mBuffer)
     {
-        mBuffer->release(renderer);
+        mBuffer->release(context);
         mBuffer.reset(nullptr);
     }
 }
@@ -3784,7 +3837,7 @@ void DynamicBuffer::updateQueueSerialAndReleaseInFlightBuffers(ContextVk *contex
         // suballocation's size. We need to use the whole block memory size here.
         if (bufferHelper->getBlockMemorySize() != mSize)
         {
-            bufferHelper->release(contextVk->getRenderer());
+            bufferHelper->release(contextVk);
         }
         else
         {
@@ -4604,7 +4657,7 @@ angle::Result DynamicDescriptorPool::getOrAllocateDescriptorSet(
         return angle::Result::Continue;
     }
 
-    // Try to allocate from the existing pool (or recycle from grabage list)
+    // Try to allocate from the existing pool (or recycle from garbage list)
     success = allocateFromExistingPool(context, descriptorSetLayout, descriptorSetOut);
 
     // Try to recycle from the garbage list.
@@ -5555,15 +5608,16 @@ angle::Result BufferHelper::initializeNonZeroMemory(Context *context,
         StagingBuffer stagingBuffer;
         ANGLE_TRY(stagingBuffer.init(context, size, StagingUsage::Both));
 
-        PrimaryCommandBuffer commandBuffer;
-        ANGLE_TRY(
-            renderer->getCommandBufferOneOff(context, ProtectionType::Unprotected, &commandBuffer));
-
         // Queue a DMA copy.
         VkBufferCopy copyRegion = {};
         copyRegion.srcOffset    = 0;
         copyRegion.dstOffset    = getOffset();
         copyRegion.size         = size;
+
+        ScopedPrimaryCommandBuffer scopedCommandBuffer(renderer->getDevice());
+        ANGLE_TRY(renderer->getCommandBufferOneOff(context, ProtectionType::Unprotected,
+                                                   &scopedCommandBuffer));
+        PrimaryCommandBuffer &commandBuffer = scopedCommandBuffer.get();
 
         commandBuffer.copyBuffer(stagingBuffer.getBuffer(), getBuffer(), 1, &copyRegion);
 
@@ -5571,7 +5625,7 @@ angle::Result BufferHelper::initializeNonZeroMemory(Context *context,
 
         QueueSerial queueSerial;
         ANGLE_TRY(renderer->queueSubmitOneOff(
-            context, std::move(commandBuffer), ProtectionType::Unprotected,
+            context, std::move(scopedCommandBuffer), ProtectionType::Unprotected,
             egl::ContextPriority::Medium, VK_NULL_HANDLE, 0, &queueSerial));
 
         stagingBuffer.collectGarbage(renderer, queueSerial);
@@ -5670,6 +5724,16 @@ void BufferHelper::destroy(Renderer *renderer)
 
 void BufferHelper::release(Renderer *renderer)
 {
+    releaseImpl(renderer);
+}
+
+void BufferHelper::release(Context *context)
+{
+    releaseImpl(context->getRenderer());
+}
+
+void BufferHelper::releaseImpl(Renderer *renderer)
+{
     ASSERT(mDescriptorSetCacheManager.empty());
     unmap(renderer);
 
@@ -5695,8 +5759,9 @@ void BufferHelper::release(Renderer *renderer)
     }
 }
 
-void BufferHelper::releaseBufferAndDescriptorSetCache(Renderer *renderer)
+void BufferHelper::releaseBufferAndDescriptorSetCache(Context *context)
 {
+    Renderer *renderer = context->getRenderer();
     if (renderer->hasResourceUseFinished(getResourceUse()))
     {
         mDescriptorSetCacheManager.destroyKeys(renderer);
@@ -5706,7 +5771,7 @@ void BufferHelper::releaseBufferAndDescriptorSetCache(Renderer *renderer)
         mDescriptorSetCacheManager.releaseKeys(renderer);
     }
 
-    release(renderer);
+    release(context);
 }
 
 angle::Result BufferHelper::map(Context *context, uint8_t **ptrOut)
@@ -5792,18 +5857,19 @@ bool BufferHelper::isReleasedToExternal() const
     return mIsReleasedToExternal;
 }
 
-void BufferHelper::recordReadBarrier(VkAccessFlags readAccessType,
+void BufferHelper::recordReadBarrier(Context *context,
+                                     VkAccessFlags readAccessType,
                                      VkPipelineStageFlags readStage,
                                      PipelineStage stageIndex,
-                                     PipelineBarrierArray *barriers)
+                                     PipelineBarrierArray *pipelineBarriers)
 {
     // If there was a prior write and we are making a read that is either a new access type or from
     // a new stage, we need a barrier
     if (mCurrentWriteAccess != 0 && (((mCurrentReadAccess & readAccessType) != readAccessType) ||
                                      ((mCurrentReadStages & readStage) != readStage)))
     {
-        barriers->mergeMemoryBarrier(stageIndex, mCurrentWriteStages, readStage,
-                                     mCurrentWriteAccess, readAccessType);
+        pipelineBarriers->mergeMemoryBarrier(stageIndex, mCurrentWriteStages, readStage,
+                                             mCurrentWriteAccess, readAccessType);
     }
 
     // Accumulate new read usage.
@@ -5811,10 +5877,11 @@ void BufferHelper::recordReadBarrier(VkAccessFlags readAccessType,
     mCurrentReadStages |= readStage;
 }
 
-void BufferHelper::recordWriteBarrier(VkAccessFlags writeAccessType,
+void BufferHelper::recordWriteBarrier(Context *context,
+                                      VkAccessFlags writeAccessType,
                                       VkPipelineStageFlags writeStage,
                                       PipelineStage stageIndex,
-                                      PipelineBarrierArray *barriers)
+                                      PipelineBarrierArray *pipelineBarriers)
 {
     // We don't need to check mCurrentReadStages here since if it is not zero, mCurrentReadAccess
     // must not be zero as well. stage is finer grain than accessType.
@@ -5823,8 +5890,8 @@ void BufferHelper::recordWriteBarrier(VkAccessFlags writeAccessType,
     if (mCurrentReadAccess != 0 || mCurrentWriteAccess != 0)
     {
         VkPipelineStageFlags srcStageMask = mCurrentWriteStages | mCurrentReadStages;
-        barriers->mergeMemoryBarrier(stageIndex, srcStageMask, writeStage, mCurrentWriteAccess,
-                                     writeAccessType);
+        pipelineBarriers->mergeMemoryBarrier(stageIndex, srcStageMask, writeStage,
+                                             mCurrentWriteAccess, writeAccessType);
     }
 
     // Reset usages on the new write.
@@ -6172,9 +6239,10 @@ angle::Result ImageHelper::copyToBufferOneOff(Context *context,
                                               VkBufferImageCopy copyRegion)
 {
     Renderer *renderer = context->getRenderer();
-    PrimaryCommandBuffer commandBuffer;
-    ANGLE_TRY(
-        renderer->getCommandBufferOneOff(context, ProtectionType::Unprotected, &commandBuffer));
+    ScopedPrimaryCommandBuffer scopedCommandBuffer(renderer->getDevice());
+    ANGLE_TRY(renderer->getCommandBufferOneOff(context, ProtectionType::Unprotected,
+                                               &scopedCommandBuffer));
+    PrimaryCommandBuffer &commandBuffer = scopedCommandBuffer.get();
 
     VkSemaphore acquireNextImageSemaphore;
     barrierImpl(context, getAspectFlags(), ImageLayout::TransferDst,
@@ -6185,10 +6253,10 @@ angle::Result ImageHelper::copyToBufferOneOff(Context *context,
     ANGLE_VK_TRY(context, commandBuffer.end());
 
     QueueSerial submitQueueSerial;
-    ANGLE_TRY(
-        renderer->queueSubmitOneOff(context, std::move(commandBuffer), ProtectionType::Unprotected,
-                                    egl::ContextPriority::Medium, acquireNextImageSemaphore,
-                                    kSwapchainAcquireImageWaitStageFlags, &submitQueueSerial));
+    ANGLE_TRY(renderer->queueSubmitOneOff(
+        context, std::move(scopedCommandBuffer), ProtectionType::Unprotected,
+        egl::ContextPriority::Medium, acquireNextImageSemaphore,
+        kSwapchainAcquireImageWaitStageFlags, &submitQueueSerial));
 
     return renderer->finishQueueSerial(context, submitQueueSerial);
 }
@@ -6605,9 +6673,10 @@ angle::Result ImageHelper::initializeNonZeroMemory(Context *context,
     // setEvent.
     ASSERT(!mCurrentEvent.valid());
 
-    PrimaryCommandBuffer commandBuffer;
+    ScopedPrimaryCommandBuffer scopedCommandBuffer(renderer->getDevice());
     auto protectionType = ConvertProtectionBoolToType(hasProtectedContent);
-    ANGLE_TRY(renderer->getCommandBufferOneOff(context, protectionType, &commandBuffer));
+    ANGLE_TRY(renderer->getCommandBufferOneOff(context, protectionType, &scopedCommandBuffer));
+    PrimaryCommandBuffer &commandBuffer = scopedCommandBuffer.get();
 
     // Queue a DMA copy.
     VkSemaphore acquireNextImageSemaphore;
@@ -6693,7 +6762,7 @@ angle::Result ImageHelper::initializeNonZeroMemory(Context *context,
     ANGLE_VK_TRY(context, commandBuffer.end());
 
     QueueSerial queueSerial;
-    ANGLE_TRY(renderer->queueSubmitOneOff(context, std::move(commandBuffer), protectionType,
+    ANGLE_TRY(renderer->queueSubmitOneOff(context, std::move(scopedCommandBuffer), protectionType,
                                           egl::ContextPriority::Medium, VK_NULL_HANDLE, 0,
                                           &queueSerial));
 
@@ -7193,7 +7262,7 @@ angle::Result ImageHelper::initImplicitMultisampledRenderToTexture(
 
     // If this ever fails, it can be retried without the LAZILY_ALLOCATED flag (which will probably
     // still fail), but ideally that means GL_EXT_multisampled_render_to_texture should not be
-    // advertized on this platform in the first place.
+    // advertised on this platform in the first place.
     ANGLE_TRY(initMemoryAndNonZeroFillIfNeeded(
         context, hasProtectedContent, memoryProperties, kMultisampledMemoryFlags,
         vk::MemoryAllocationType::ImplicitMultisampledRenderToTextureImage));
@@ -8910,7 +8979,6 @@ angle::Result ImageHelper::reformatStagedBufferUpdates(ContextVk *contextVk,
                                                        angle::FormatID srcFormatID,
                                                        angle::FormatID dstFormatID)
 {
-    Renderer *renderer             = contextVk->getRenderer();
     const angle::Format &srcFormat = angle::Format::Get(srcFormatID);
     const angle::Format &dstFormat = angle::Format::Get(dstFormatID);
     const gl::InternalFormat &dstFormatInfo =
@@ -8980,7 +9048,7 @@ angle::Result ImageHelper::reformatStagedBufferUpdates(ContextVk *contextVk,
                     update.refCounted.buffer->releaseRef();
                     if (!update.refCounted.buffer->isReferenced())
                     {
-                        update.refCounted.buffer->get().release(renderer);
+                        update.refCounted.buffer->get().release(contextVk);
                         SafeDelete(update.refCounted.buffer);
                     }
                 }
@@ -10856,11 +10924,12 @@ angle::Result ImageHelper::copySurfaceImageToBuffer(DisplayVk *displayVk,
 
     // We may have a valid event here but we do not have a collector to collect it. Release the
     // event here to force pipelineBarrier.
-    mCurrentEvent.release(displayVk->getRenderer());
+    mCurrentEvent.release(renderer);
 
-    PrimaryCommandBuffer primaryCommandBuffer;
+    ScopedPrimaryCommandBuffer scopedCommandBuffer(renderer->getDevice());
     ANGLE_TRY(renderer->getCommandBufferOneOff(displayVk, ProtectionType::Unprotected,
-                                               &primaryCommandBuffer));
+                                               &scopedCommandBuffer));
+    PrimaryCommandBuffer &primaryCommandBuffer = scopedCommandBuffer.get();
 
     VkSemaphore acquireNextImageSemaphore;
     barrierImpl(displayVk, getAspectFlags(), ImageLayout::TransferSrc,
@@ -10873,7 +10942,7 @@ angle::Result ImageHelper::copySurfaceImageToBuffer(DisplayVk *displayVk,
 
     QueueSerial submitQueueSerial;
     ANGLE_TRY(renderer->queueSubmitOneOff(
-        displayVk, std::move(primaryCommandBuffer), ProtectionType::Unprotected,
+        displayVk, std::move(scopedCommandBuffer), ProtectionType::Unprotected,
         egl::ContextPriority::Medium, acquireNextImageSemaphore,
         kSwapchainAcquireImageWaitStageFlags, &submitQueueSerial));
 
@@ -10910,9 +10979,10 @@ angle::Result ImageHelper::copyBufferToSurfaceImage(DisplayVk *displayVk,
     // event here to force pipelineBarrier.
     mCurrentEvent.release(displayVk->getRenderer());
 
-    PrimaryCommandBuffer commandBuffer;
-    ANGLE_TRY(
-        renderer->getCommandBufferOneOff(displayVk, ProtectionType::Unprotected, &commandBuffer));
+    ScopedPrimaryCommandBuffer scopedCommandBuffer(renderer->getDevice());
+    ANGLE_TRY(renderer->getCommandBufferOneOff(displayVk, ProtectionType::Unprotected,
+                                               &scopedCommandBuffer));
+    PrimaryCommandBuffer &commandBuffer = scopedCommandBuffer.get();
 
     VkSemaphore acquireNextImageSemaphore;
     barrierImpl(displayVk, getAspectFlags(), ImageLayout::TransferDst,
@@ -10925,7 +10995,7 @@ angle::Result ImageHelper::copyBufferToSurfaceImage(DisplayVk *displayVk,
 
     QueueSerial submitQueueSerial;
     ANGLE_TRY(renderer->queueSubmitOneOff(
-        displayVk, std::move(commandBuffer), ProtectionType::Unprotected,
+        displayVk, std::move(scopedCommandBuffer), ProtectionType::Unprotected,
         egl::ContextPriority::Medium, acquireNextImageSemaphore,
         kSwapchainAcquireImageWaitStageFlags, &submitQueueSerial));
 
