@@ -452,14 +452,14 @@ class Renderer : angle::NonCopyable
                                       egl::ContextPriority priority,
                                       std::vector<VkSemaphore> &&waitSemaphores,
                                       std::vector<VkPipelineStageFlags> &&waitSemaphoreStageMasks);
-    angle::Result flushRenderPassCommands(vk::ErrorContext *context,
+    angle::Result flushRenderPassCommands(vk::Context *context,
                                           vk::ProtectionType protectionType,
                                           egl::ContextPriority priority,
                                           const vk::RenderPass &renderPass,
                                           VkFramebuffer framebufferOverride,
                                           vk::RenderPassCommandBufferHelper **renderPassCommands);
     angle::Result flushOutsideRPCommands(
-        vk::ErrorContext *context,
+        vk::Context *context,
         vk::ProtectionType protectionType,
         egl::ContextPriority priority,
         vk::OutsideRenderPassCommandBufferHelper **outsideRPCommands);
@@ -651,6 +651,11 @@ class Renderer : angle::NonCopyable
     VkDeviceSize getPendingGarbageSizeLimit() const { return mPendingGarbageSizeLimit; }
 
     void requestAsyncCommandsAndGarbageCleanup(vk::ErrorContext *context);
+
+    VkDeviceSize getMaxMemoryAllocationSize()
+    {
+        return mMaintenance3Properties.maxMemoryAllocationSize;
+    }
 
     // Cleanup garbage and finish command batches from the queue if necessary in the event of an OOM
     // error.
@@ -888,6 +893,7 @@ class Renderer : angle::NonCopyable
     VkPhysicalDeviceVariablePointersFeatures mVariablePointersFeatures;
     VkPhysicalDeviceFloatControlsProperties mFloatControlProperties;
     VkPhysicalDeviceUniformBufferStandardLayoutFeaturesKHR mUniformBufferStandardLayoutFeatures;
+    VkPhysicalDeviceMaintenance3Properties mMaintenance3Properties;
 
     uint32_t mLegacyDitheringVersion = 0;
 
