@@ -129,7 +129,7 @@ enum class ImageLayout
     DepthReadStencilReadFragmentShaderRead,
     DepthReadStencilReadAllShadersRead,
 
-    // The GENERAL layout is used when there's a feedback loop.  For depth/stencil it does't matter
+    // The GENERAL layout is used when there's a feedback loop.  For depth/stencil it doesn't matter
     // which aspect is participating in feedback and whether the other aspect is read-only.
     ColorWriteFragmentShaderFeedback,
     ColorWriteAllShadersFeedback,
@@ -219,7 +219,7 @@ class DynamicBuffer : angle::NonCopyable
                            bool *newBufferAllocatedOut);
 
     // This releases resources when they might currently be in use.
-    void release(Renderer *renderer);
+    void release(Context *context);
 
     // This adds in-flight buffers to the mResourceUseList in the share group and then releases
     // them.
@@ -1024,7 +1024,8 @@ class BufferHelper : public ReadWriteResource
 
     void destroy(Renderer *renderer);
     void release(Renderer *renderer);
-    void releaseBufferAndDescriptorSetCache(Renderer *renderer);
+    void release(Context *context);
+    void releaseBufferAndDescriptorSetCache(Context *context);
 
     BufferSerial getBufferSerial() const { return mSerial; }
     BufferSerial getBlockSerial() const
@@ -1080,15 +1081,17 @@ class BufferHelper : public ReadWriteResource
     // Returns true if the image is owned by an external API or instance.
     bool isReleasedToExternal() const;
 
-    void recordReadBarrier(VkAccessFlags readAccessType,
+    void recordReadBarrier(Context *context,
+                           VkAccessFlags readAccessType,
                            VkPipelineStageFlags readStage,
                            PipelineStage stageIndex,
-                           PipelineBarrierArray *barriers);
+                           PipelineBarrierArray *pipelineBarriers);
 
-    void recordWriteBarrier(VkAccessFlags writeAccessType,
+    void recordWriteBarrier(Context *context,
+                            VkAccessFlags writeAccessType,
                             VkPipelineStageFlags writeStage,
                             PipelineStage stageIndex,
-                            PipelineBarrierArray *barriers);
+                            PipelineBarrierArray *pipelineBarriers);
 
     void fillWithColor(const angle::Color<uint8_t> &color,
                        const gl::InternalFormat &internalFormat);
@@ -1130,6 +1133,8 @@ class BufferHelper : public ReadWriteResource
     {
         mSuballocation.setOffsetAndSize(offset, size);
     }
+
+    void releaseImpl(Renderer *renderer);
 
     // Suballocation object.
     BufferSuballocation mSuballocation;
@@ -1356,7 +1361,7 @@ struct CommandsState
 // How the ImageHelper object is being used by the renderpass
 enum class RenderPassUsage
 {
-    // Attached to the render taget of the current renderpass commands. It could be read/write or
+    // Attached to the render target of the current renderpass commands. It could be read/write or
     // read only access.
     RenderTargetAttachment,
     // This is special case of RenderTargetAttachment where the render target access is read only.
@@ -1394,21 +1399,25 @@ constexpr uint32_t kInfiniteCmdCount = 0xFFFFFFFF;
 class CommandBufferHelperCommon : angle::NonCopyable
 {
   public:
-    void bufferWrite(VkAccessFlags writeAccessType, PipelineStage writeStage, BufferHelper *buffer);
+    void bufferWrite(Context *context,
+                     VkAccessFlags writeAccessType,
+                     PipelineStage writeStage,
+                     BufferHelper *buffer);
 
-    void bufferRead(VkAccessFlags readAccessType, PipelineStage readStage, BufferHelper *buffer)
-    {
-        bufferReadImpl(readAccessType, readStage, buffer);
-        setBufferReadQueueSerial(buffer);
-    }
+    void bufferWrite(Context *context,
+                     VkAccessFlags writeAccessType,
+                     const gl::ShaderBitSet &writeShaderStages,
+                     BufferHelper *buffer);
 
-    void bufferRead(VkAccessFlags readAccessType,
+    void bufferRead(Context *context,
+                    VkAccessFlags readAccessType,
+                    PipelineStage readStage,
+                    BufferHelper *buffer);
+
+    void bufferRead(Context *context,
+                    VkAccessFlags readAccessType,
                     const gl::ShaderBitSet &readShaderStages,
-                    BufferHelper *buffer)
-    {
-        bufferReadImpl(readAccessType, readShaderStages, buffer);
-        setBufferReadQueueSerial(buffer);
-    }
+                    BufferHelper *buffer);
 
     bool usesBuffer(const BufferHelper &buffer) const
     {
@@ -1496,24 +1505,24 @@ class CommandBufferHelperCommon : angle::NonCopyable
     template <class DerivedT>
     void assertCanBeRecycledImpl();
 
-    void bufferReadImpl(VkAccessFlags readAccessType,
+    void bufferWriteImpl(Context *context,
+                         VkAccessFlags writeAccessType,
+                         VkPipelineStageFlags writePipelineStageFlags,
+                         PipelineStage writeStage,
+                         BufferHelper *buffer);
+
+    void bufferReadImpl(Context *context,
+                        VkAccessFlags readAccessType,
+                        VkPipelineStageFlags readPipelineStageFlags,
                         PipelineStage readStage,
                         BufferHelper *buffer);
-    void bufferReadImpl(VkAccessFlags readAccessType,
-                        const gl::ShaderBitSet &readShaderStages,
-                        BufferHelper *buffer)
-    {
-        for (gl::ShaderType shaderType : readShaderStages)
-        {
-            const vk::PipelineStage readStage = vk::GetPipelineStage(shaderType);
-            bufferReadImpl(readAccessType, readStage, buffer);
-        }
-    }
+
     void imageReadImpl(Context *context,
                        VkImageAspectFlags aspectFlags,
                        ImageLayout imageLayout,
                        BarrierType barrierType,
                        ImageHelper *image);
+
     void imageWriteImpl(Context *context,
                         gl::LevelIndex level,
                         uint32_t layerStart,
@@ -1530,8 +1539,6 @@ class CommandBufferHelperCommon : angle::NonCopyable
                                      BarrierType barrierType);
 
     void addCommandDiagnosticsCommon(std::ostringstream *out);
-
-    void setBufferReadQueueSerial(BufferHelper *buffer);
 
     // Allocator used by this class.
     SecondaryCommandBlockAllocator mCommandAllocator;
@@ -1607,6 +1614,7 @@ class OutsideRenderPassCommandBufferHelper final : public CommandBufferHelperCom
                    VkImageAspectFlags aspectFlags,
                    ImageLayout imageLayout,
                    ImageHelper *image);
+
     void imageWrite(Context *context,
                     gl::LevelIndex level,
                     uint32_t layerStart,
@@ -1841,6 +1849,7 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
                    VkImageAspectFlags aspectFlags,
                    ImageLayout imageLayout,
                    ImageHelper *image);
+
     void imageWrite(ContextVk *contextVk,
                     gl::LevelIndex level,
                     uint32_t layerStart,
@@ -1919,7 +1928,7 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     const gl::Rectangle &getRenderArea() const { return mRenderArea; }
 
     // If render pass is started with a small render area due to a small scissor, and if a new
-    // larger scissor is specified, grow the render area to accomodate it.
+    // larger scissor is specified, grow the render area to accommodate it.
     void growRenderArea(ContextVk *contextVk, const gl::Rectangle &newRenderArea);
 
     void resumeTransformFeedback();
