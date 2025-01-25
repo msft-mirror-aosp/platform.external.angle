@@ -1806,7 +1806,7 @@ ANGLE_INLINE bool UseLineRaster(const ContextVk *contextVk, gl::PrimitiveMode mo
     return gl::IsLineMode(mode);
 }
 
-uint32_t GetDriverUniformSize(vk::Context *context, PipelineType pipelineType);
+uint32_t GetDriverUniformSize(vk::ErrorContext *context, PipelineType pipelineType);
 }  // namespace rx
 
 // Generate a perf warning, and insert an event marker in the command buffer.

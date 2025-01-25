@@ -713,7 +713,7 @@ bool BlendModeSupportsDither(const ContextVk *contextVk, size_t colorIndex)
     return ditheringCompatibleBlendFactors || allowAdditionalBlendFactors;
 }
 
-bool ShouldUseGraphicsDriverUniformsExtended(const vk::Context *context)
+bool ShouldUseGraphicsDriverUniformsExtended(const vk::ErrorContext *context)
 {
     return context->getFeatures().emulateTransformFeedback.enabled;
 }
@@ -1238,7 +1238,7 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, vk::Rendere
         mPipelineDirtyBitsMask.reset(gl::state::DIRTY_BIT_VERTEX_ARRAY_BINDING);
     }
 
-    // Stash the mRefCountedEventRecycler in vk::Context for ImageHelper to conveniently access
+    // Stash the mRefCountedEventRecycler in vk::ErrorContext for ImageHelper to conveniently access
     mShareGroupRefCountedEventsGarbageRecycler =
         mShareGroupVk->getRefCountedEventsGarbageRecycler();
 
@@ -3306,7 +3306,7 @@ angle::Result ContextVk::handleDirtyGraphicsDynamicDepthTestEnable(
     DirtyBits::Iterator *dirtyBitsIterator,
     DirtyBits dirtyBitMask)
 {
-    const gl::DepthStencilState depthStencilState = mState.getDepthStencilState();
+    const gl::DepthStencilState &depthStencilState = mState.getDepthStencilState();
     gl::Framebuffer *drawFramebuffer              = mState.getDrawFramebuffer();
 
     // Only enable the depth test if the draw framebuffer has a depth buffer.
@@ -3319,7 +3319,7 @@ angle::Result ContextVk::handleDirtyGraphicsDynamicDepthWriteEnable(
     DirtyBits::Iterator *dirtyBitsIterator,
     DirtyBits dirtyBitMask)
 {
-    const gl::DepthStencilState depthStencilState = mState.getDepthStencilState();
+    const gl::DepthStencilState &depthStencilState = mState.getDepthStencilState();
     gl::Framebuffer *drawFramebuffer              = mState.getDrawFramebuffer();
 
     // Only enable the depth write if the draw framebuffer has a depth buffer.
@@ -3333,7 +3333,7 @@ angle::Result ContextVk::handleDirtyGraphicsDynamicDepthCompareOp(
     DirtyBits::Iterator *dirtyBitsIterator,
     DirtyBits dirtyBitMask)
 {
-    const gl::DepthStencilState depthStencilState = mState.getDepthStencilState();
+    const gl::DepthStencilState &depthStencilState = mState.getDepthStencilState();
     mRenderPassCommandBuffer->setDepthCompareOp(gl_vk::GetCompareOp(depthStencilState.depthFunc));
     return angle::Result::Continue;
 }
@@ -3342,7 +3342,7 @@ angle::Result ContextVk::handleDirtyGraphicsDynamicStencilTestEnable(
     DirtyBits::Iterator *dirtyBitsIterator,
     DirtyBits dirtyBitMask)
 {
-    const gl::DepthStencilState depthStencilState = mState.getDepthStencilState();
+    const gl::DepthStencilState &depthStencilState = mState.getDepthStencilState();
     gl::Framebuffer *drawFramebuffer              = mState.getDrawFramebuffer();
 
     // Only enable the stencil test if the draw framebuffer has a stencil buffer.
@@ -3354,7 +3354,7 @@ angle::Result ContextVk::handleDirtyGraphicsDynamicStencilTestEnable(
 angle::Result ContextVk::handleDirtyGraphicsDynamicStencilOp(DirtyBits::Iterator *dirtyBitsIterator,
                                                              DirtyBits dirtyBitMask)
 {
-    const gl::DepthStencilState depthStencilState = mState.getDepthStencilState();
+    const gl::DepthStencilState &depthStencilState = mState.getDepthStencilState();
     mRenderPassCommandBuffer->setStencilOp(
         VK_STENCIL_FACE_FRONT_BIT, gl_vk::GetStencilOp(depthStencilState.stencilFail),
         gl_vk::GetStencilOp(depthStencilState.stencilPassDepthPass),
@@ -5201,7 +5201,7 @@ void ContextVk::updateDepthStencil(const gl::State &glState)
 
 void ContextVk::updateDepthTestEnabled(const gl::State &glState)
 {
-    const gl::DepthStencilState depthStencilState = glState.getDepthStencilState();
+    const gl::DepthStencilState &depthStencilState = glState.getDepthStencilState();
     gl::Framebuffer *drawFramebuffer              = glState.getDrawFramebuffer();
 
     if (mRenderer->getFeatures().useDepthTestEnableDynamicState.enabled)
@@ -5217,7 +5217,7 @@ void ContextVk::updateDepthTestEnabled(const gl::State &glState)
 
 void ContextVk::updateDepthWriteEnabled(const gl::State &glState)
 {
-    const gl::DepthStencilState depthStencilState = glState.getDepthStencilState();
+    const gl::DepthStencilState &depthStencilState = glState.getDepthStencilState();
     gl::Framebuffer *drawFramebuffer              = glState.getDrawFramebuffer();
 
     if (mRenderer->getFeatures().useDepthWriteEnableDynamicState.enabled)
@@ -5246,7 +5246,7 @@ void ContextVk::updateDepthFunc(const gl::State &glState)
 
 void ContextVk::updateStencilTestEnabled(const gl::State &glState)
 {
-    const gl::DepthStencilState depthStencilState = glState.getDepthStencilState();
+    const gl::DepthStencilState &depthStencilState = glState.getDepthStencilState();
     gl::Framebuffer *drawFramebuffer              = glState.getDrawFramebuffer();
 
     if (mRenderer->getFeatures().useStencilTestEnableDynamicState.enabled)
@@ -8190,7 +8190,7 @@ angle::Result ContextVk::flushCommandsAndEndRenderPassWithoutSubmit(RenderPassCl
     flushDescriptorSetUpdates();
     // Collect RefCountedEvent garbage before submitting to renderer
     mRenderPassCommands->collectRefCountedEventsGarbage(
-        mShareGroupVk->getRefCountedEventsGarbageRecycler());
+        mRenderer, mShareGroupVk->getRefCountedEventsGarbageRecycler());
 
     // Save the queueSerial before calling flushRenderPassCommands, which may return a new
     // mRenderPassCommands
@@ -8433,7 +8433,7 @@ bool ContextVk::shouldConvertUint8VkIndexType(gl::DrawElementsType glIndexType) 
             !mRenderer->getFeatures().supportsIndexTypeUint8.enabled);
 }
 
-uint32_t GetDriverUniformSize(vk::Context *context, PipelineType pipelineType)
+uint32_t GetDriverUniformSize(vk::ErrorContext *context, PipelineType pipelineType)
 {
     if (pipelineType == PipelineType::Compute)
     {

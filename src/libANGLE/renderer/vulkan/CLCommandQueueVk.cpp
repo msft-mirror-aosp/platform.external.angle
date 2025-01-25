@@ -950,13 +950,15 @@ angle::Result CLCommandQueueVk::enqueueFillImage(const cl::Image &image,
                                                  const cl::EventPtrs &waitEvents,
                                                  CLEventImpl::CreateFunc *eventCreateFunc)
 {
+    std::scoped_lock<std::mutex> sl(mCommandQueueMutex);
+
+    ANGLE_TRY(processWaitlist(waitEvents));
+
     CLImageVk &imageVk = image.getImpl<CLImageVk>();
     PixelColor packedColor;
     cl::Extents extent = imageVk.getImageExtent();
 
     imageVk.packPixels(fillColor, &packedColor);
-
-    ANGLE_TRY(enqueueWaitForEvents(waitEvents));
 
     if (imageVk.isStagingBufferInitialized() == false)
     {
@@ -1037,7 +1039,9 @@ angle::Result CLCommandQueueVk::enqueueMapImage(const cl::Image &image,
                                                 CLEventImpl::CreateFunc *eventCreateFunc,
                                                 void *&mapPtr)
 {
-    ANGLE_TRY(enqueueWaitForEvents(waitEvents));
+    std::scoped_lock<std::mutex> sl(mCommandQueueMutex);
+
+    ANGLE_TRY(processWaitlist(waitEvents));
 
     // TODO: Look into better enqueue handling of this map-op if non-blocking
     // https://anglebug.com/376722715
@@ -1596,6 +1600,11 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
                 mComputePassCommands->getCommandBuffer().pushConstants(
                     kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, offset, size,
                     &kernelVk.getPodArgumentsData()[offset]);
+                break;
+            }
+            case NonSemanticClspvReflectionArgumentWorkgroup:
+            {
+                // Nothing to do here (this is already taken care of during clSetKernelArg)
                 break;
             }
             case NonSemanticClspvReflectionArgumentSampler:
