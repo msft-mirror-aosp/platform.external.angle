@@ -161,6 +161,7 @@ def _Parse(output_directory, executable_path):
       seen_paths.add(subpath)
     to_parse.extend(sub_ninjas)
 
+  assert executable_inputs, 'Failed to find rule that builds ' + executable_path
   return _SourceMapper(dep_map, seen_paths), executable_inputs
 
 
