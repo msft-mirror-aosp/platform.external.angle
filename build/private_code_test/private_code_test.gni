@@ -32,6 +32,11 @@ template("private_code_test") {
     outputs = [ _collect_sources_output ]
     inputs = [ "//build/action_helpers.py" ]
     depfile = "$target_gen_dir/$target_name.d"
+
+    # The script does not read this file, so the dep is not really required.
+    # It is needed only in the case where the target is in a different
+    # toolchain, and would not be added to build.ninja otherwise.
+    deps = [ _linker_inputs_dep ]
     args = [
       "--executable",
       rebase_path(_executable_path, root_build_dir),
