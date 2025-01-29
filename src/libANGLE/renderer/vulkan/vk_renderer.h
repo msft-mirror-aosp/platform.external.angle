@@ -188,7 +188,7 @@ class Renderer : angle::NonCopyable
     gl::Version getMaxSupportedESVersion() const;
     gl::Version getMaxConformantESVersion() const;
 
-    uint32_t getDeviceVersion();
+    uint32_t getDeviceVersion() const;
     VkInstance getInstance() const { return mInstance; }
     VkPhysicalDevice getPhysicalDevice() const { return mPhysicalDevice; }
     const VkPhysicalDeviceProperties &getPhysicalDeviceProperties() const
@@ -432,6 +432,7 @@ class Renderer : angle::NonCopyable
                                  egl::ContextPriority contextPriority,
                                  const vk::Semaphore *signalSemaphore,
                                  const vk::SharedExternalFence *externalFence,
+                                 std::vector<VkImageMemoryBarrier> &&imagesToTransitionToForeign,
                                  const QueueSerial &submitQueueSerial);
 
     angle::Result submitPriorityDependency(vk::ErrorContext *context,
