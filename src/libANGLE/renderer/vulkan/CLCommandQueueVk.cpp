@@ -950,13 +950,15 @@ angle::Result CLCommandQueueVk::enqueueFillImage(const cl::Image &image,
                                                  const cl::EventPtrs &waitEvents,
                                                  CLEventImpl::CreateFunc *eventCreateFunc)
 {
+    std::scoped_lock<std::mutex> sl(mCommandQueueMutex);
+
+    ANGLE_TRY(processWaitlist(waitEvents));
+
     CLImageVk &imageVk = image.getImpl<CLImageVk>();
     PixelColor packedColor;
     cl::Extents extent = imageVk.getImageExtent();
 
     imageVk.packPixels(fillColor, &packedColor);
-
-    ANGLE_TRY(enqueueWaitForEvents(waitEvents));
 
     if (imageVk.isStagingBufferInitialized() == false)
     {
@@ -1037,7 +1039,9 @@ angle::Result CLCommandQueueVk::enqueueMapImage(const cl::Image &image,
                                                 CLEventImpl::CreateFunc *eventCreateFunc,
                                                 void *&mapPtr)
 {
-    ANGLE_TRY(enqueueWaitForEvents(waitEvents));
+    std::scoped_lock<std::mutex> sl(mCommandQueueMutex);
+
+    ANGLE_TRY(processWaitlist(waitEvents));
 
     // TODO: Look into better enqueue handling of this map-op if non-blocking
     // https://anglebug.com/376722715
@@ -1406,7 +1410,7 @@ angle::Result CLCommandQueueVk::addMemoryDependencies(cl::Memory *clMem)
     bool insertBarrier = false;
     if (clMem->getFlags().intersects(CL_MEM_READ_WRITE))
     {
-        // Texel buffers have backing buffer obects
+        // Texel buffers have backing buffer objects
         if (mDependencyTracker.contains(clMem) || mDependencyTracker.contains(parentMem) ||
             mDependencyTracker.size() == kMaxDependencyTrackerSize)
         {
@@ -1432,7 +1436,7 @@ angle::Result CLCommandQueueVk::addMemoryDependencies(cl::Memory *clMem)
     {
         CLBufferVk &vkMem = clMem->getImpl<CLBufferVk>();
 
-        mComputePassCommands->bufferWrite(VK_ACCESS_SHADER_WRITE_BIT,
+        mComputePassCommands->bufferWrite(mContext, VK_ACCESS_SHADER_WRITE_BIT,
                                           vk::PipelineStage::ComputeShader, &vkMem.getBuffer());
     }
 
@@ -1558,7 +1562,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
             case NonSemanticClspvReflectionArgumentUniform:
             case NonSemanticClspvReflectionArgumentStorageBuffer:
             {
-                cl::Memory *clMem = cl::Buffer::Cast(*static_cast<const cl_mem *>(arg.handle));
+                cl::Memory *clMem = cl::Buffer::Cast(static_cast<const cl_mem>(arg.handle));
                 CLBufferVk &vkMem = clMem->getImpl<CLBufferVk>();
 
                 ANGLE_TRY(addMemoryDependencies(clMem));
@@ -1596,6 +1600,11 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
                 mComputePassCommands->getCommandBuffer().pushConstants(
                     kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, offset, size,
                     &kernelVk.getPodArgumentsData()[offset]);
+                break;
+            }
+            case NonSemanticClspvReflectionArgumentWorkgroup:
+            {
+                // Nothing to do here (this is already taken care of during clSetKernelArg)
                 break;
             }
             case NonSemanticClspvReflectionArgumentSampler:
@@ -1636,7 +1645,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
             case NonSemanticClspvReflectionArgumentStorageImage:
             case NonSemanticClspvReflectionArgumentSampledImage:
             {
-                cl::Memory *clMem = cl::Image::Cast(*static_cast<const cl_mem *>(arg.handle));
+                cl::Memory *clMem = cl::Image::Cast(static_cast<const cl_mem>(arg.handle));
                 CLImageVk &vkMem  = clMem->getImpl<CLImageVk>();
 
                 ANGLE_TRY(addMemoryDependencies(clMem));
@@ -1688,7 +1697,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
             case NonSemanticClspvReflectionArgumentUniformTexelBuffer:
             case NonSemanticClspvReflectionArgumentStorageTexelBuffer:
             {
-                cl::Memory *clMem = cl::Image::Cast(*static_cast<const cl_mem *>(arg.handle));
+                cl::Memory *clMem = cl::Image::Cast(static_cast<const cl_mem>(arg.handle));
                 CLImageVk &vkMem  = clMem->getImpl<CLImageVk>();
 
                 ANGLE_TRY(addMemoryDependencies(clMem));
@@ -1894,7 +1903,7 @@ angle::Result CLCommandQueueVk::submitCommands()
     // Kick off renderer submit
     ANGLE_TRY(mContext->getRenderer()->submitCommands(mContext, getProtectionType(),
                                                       egl::ContextPriority::Medium, nullptr,
-                                                      nullptr, mLastFlushedQueueSerial));
+                                                      nullptr, {}, mLastFlushedQueueSerial));
 
     mLastSubmittedQueueSerial = mLastFlushedQueueSerial;
 
@@ -2086,7 +2095,7 @@ angle::Result CLCommandQueueVk::onResourceAccess(const vk::CommandBufferAccess &
             ANGLE_TRY(flushInternal());
         }
 
-        mComputePassCommands->bufferRead(bufferAccess.accessType, bufferAccess.stage,
+        mComputePassCommands->bufferRead(mContext, bufferAccess.accessType, bufferAccess.stage,
                                          bufferAccess.buffer);
     }
 
@@ -2098,7 +2107,7 @@ angle::Result CLCommandQueueVk::onResourceAccess(const vk::CommandBufferAccess &
             ANGLE_TRY(flushInternal());
         }
 
-        mComputePassCommands->bufferWrite(bufferAccess.accessType, bufferAccess.stage,
+        mComputePassCommands->bufferWrite(mContext, bufferAccess.accessType, bufferAccess.stage,
                                           bufferAccess.buffer);
         if (bufferAccess.buffer->isHostVisible())
         {

@@ -198,6 +198,17 @@ angle::Result CLKernelVk::setArg(cl_uint argIndex, size_t argSize, const void *a
                 KernelSpecConstant{.ID   = arg.workgroupSpecId,
                                    .data = static_cast<uint32_t>(argSize / arg.workgroupSize)});
         }
+
+        if (arg.type == NonSemanticClspvReflectionArgumentUniform ||
+            arg.type == NonSemanticClspvReflectionArgumentStorageBuffer ||
+            arg.type == NonSemanticClspvReflectionArgumentStorageImage ||
+            arg.type == NonSemanticClspvReflectionArgumentSampledImage ||
+            arg.type == NonSemanticClspvReflectionArgumentUniformTexelBuffer ||
+            arg.type == NonSemanticClspvReflectionArgumentStorageTexelBuffer)
+        {
+            ASSERT(argSize == sizeof(cl_mem *));
+            arg.handle = *static_cast<const cl_mem *>(argValue);
+        }
     }
 
     return angle::Result::Continue;
@@ -292,9 +303,9 @@ angle::Result CLKernelVk::getOrCreateComputePipeline(vk::PipelineCacheAccess *pi
     ASSERT(workgroupSize[0] != 0);
     ASSERT(workgroupSize[1] != 0);
     ASSERT(workgroupSize[2] != 0);
-    (*workgroupCountOut)[0] = static_cast<uint32_t>((ndrange.globalWorkSize[0] / workgroupSize[0]));
-    (*workgroupCountOut)[1] = static_cast<uint32_t>((ndrange.globalWorkSize[1] / workgroupSize[1]));
-    (*workgroupCountOut)[2] = static_cast<uint32_t>((ndrange.globalWorkSize[2] / workgroupSize[2]));
+    (*workgroupCountOut)[0] = (ndrange.globalWorkSize[0] / workgroupSize[0]);
+    (*workgroupCountOut)[1] = (ndrange.globalWorkSize[1] / workgroupSize[1]);
+    (*workgroupCountOut)[2] = (ndrange.globalWorkSize[2] / workgroupSize[2]);
 
     // Populate program specialization constants (if any)
     uint32_t constantDataOffset = 0;
@@ -308,22 +319,22 @@ angle::Result CLKernelVk::getOrCreateComputePipeline(vk::PipelineCacheAccess *pi
                 specConstantData.push_back(ndrange.workDimensions);
                 break;
             case SpecConstantType::WorkgroupSizeX:
-                specConstantData.push_back(static_cast<uint32_t>(workgroupSize[0]));
+                specConstantData.push_back(workgroupSize[0]);
                 break;
             case SpecConstantType::WorkgroupSizeY:
-                specConstantData.push_back(static_cast<uint32_t>(workgroupSize[1]));
+                specConstantData.push_back(workgroupSize[1]);
                 break;
             case SpecConstantType::WorkgroupSizeZ:
-                specConstantData.push_back(static_cast<uint32_t>(workgroupSize[2]));
+                specConstantData.push_back(workgroupSize[2]);
                 break;
             case SpecConstantType::GlobalOffsetX:
-                specConstantData.push_back(static_cast<uint32_t>(ndrange.globalWorkOffset[0]));
+                specConstantData.push_back(ndrange.globalWorkOffset[0]);
                 break;
             case SpecConstantType::GlobalOffsetY:
-                specConstantData.push_back(static_cast<uint32_t>(ndrange.globalWorkOffset[1]));
+                specConstantData.push_back(ndrange.globalWorkOffset[1]);
                 break;
             case SpecConstantType::GlobalOffsetZ:
-                specConstantData.push_back(static_cast<uint32_t>(ndrange.globalWorkOffset[2]));
+                specConstantData.push_back(ndrange.globalWorkOffset[2]);
                 break;
             default:
                 UNIMPLEMENTED();

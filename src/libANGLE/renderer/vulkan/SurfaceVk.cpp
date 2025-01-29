@@ -392,7 +392,7 @@ angle::Result GetPresentModes(DisplayVk *displayVk,
     return angle::Result::Continue;
 }
 
-angle::Result NewSemaphore(vk::Context *context,
+angle::Result NewSemaphore(vk::ErrorContext *context,
                            vk::Recycler<vk::Semaphore> *semaphoreRecycler,
                            vk::Semaphore *semaphoreOut)
 {
@@ -1554,7 +1554,7 @@ angle::Result WindowSurfaceVk::recreateSwapchain(ContextVk *contextVk, const gl:
     return result;
 }
 
-angle::Result WindowSurfaceVk::resizeSwapchainImages(vk::Context *context, uint32_t imageCount)
+angle::Result WindowSurfaceVk::resizeSwapchainImages(vk::ErrorContext *context, uint32_t imageCount)
 {
     if (static_cast<size_t>(imageCount) != mSwapchainImages.size())
     {
@@ -1580,7 +1580,8 @@ angle::Result WindowSurfaceVk::resizeSwapchainImages(vk::Context *context, uint3
     return angle::Result::Continue;
 }
 
-angle::Result WindowSurfaceVk::createSwapChain(vk::Context *context, const gl::Extents &extents)
+angle::Result WindowSurfaceVk::createSwapChain(vk::ErrorContext *context,
+                                               const gl::Extents &extents)
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "WindowSurfaceVk::createSwapchain");
 
@@ -2044,7 +2045,7 @@ void WindowSurfaceVk::releaseSwapchainImages(ContextVk *contextVk)
     mSwapchainImages.clear();
 }
 
-angle::Result WindowSurfaceVk::finish(vk::Context *context)
+angle::Result WindowSurfaceVk::finish(vk::ErrorContext *context)
 {
     vk::Renderer *renderer = context->getRenderer();
 
@@ -2183,7 +2184,7 @@ egl::Error WindowSurfaceVk::swap(const gl::Context *context)
     return angle::ToEGL(result, EGL_BAD_SURFACE);
 }
 
-angle::Result WindowSurfaceVk::computePresentOutOfDate(vk::Context *context,
+angle::Result WindowSurfaceVk::computePresentOutOfDate(vk::ErrorContext *context,
                                                        VkResult result,
                                                        bool *presentOutOfDate)
 {
@@ -2517,7 +2518,7 @@ angle::Result WindowSurfaceVk::present(ContextVk *contextVk,
     return angle::Result::Continue;
 }
 
-angle::Result WindowSurfaceVk::throttleCPU(vk::Context *context,
+angle::Result WindowSurfaceVk::throttleCPU(vk::ErrorContext *context,
                                            const QueueSerial &currentSubmitSerial)
 {
     // Wait on the oldest serial and replace it with the newest as the circular buffer moves
@@ -2533,7 +2534,7 @@ angle::Result WindowSurfaceVk::throttleCPU(vk::Context *context,
         // necessarily hold the EGL lock.
         //
         // As this is an unlocked tail call, it must not access anything else in Renderer.  The
-        // display passed to |finishQueueSerial| is a |vk::Context|, and the only possible
+        // display passed to |finishQueueSerial| is a |vk::ErrorContext|, and the only possible
         // modification to it is through |handleError()|.
         egl::Display::GetCurrentThreadUnlockedTailCall()->add(
             [context, swapSerial](void *resultOut) {
@@ -2546,7 +2547,7 @@ angle::Result WindowSurfaceVk::throttleCPU(vk::Context *context,
     return angle::Result::Continue;
 }
 
-angle::Result WindowSurfaceVk::cleanUpPresentHistory(vk::Context *context)
+angle::Result WindowSurfaceVk::cleanUpPresentHistory(vk::ErrorContext *context)
 {
     const VkDevice device = context->getDevice();
 
@@ -2613,7 +2614,7 @@ angle::Result WindowSurfaceVk::cleanUpPresentHistory(vk::Context *context)
     return angle::Result::Continue;
 }
 
-angle::Result WindowSurfaceVk::cleanUpOldSwapchains(vk::Context *context)
+angle::Result WindowSurfaceVk::cleanUpOldSwapchains(vk::ErrorContext *context)
 {
     const VkDevice device = context->getDevice();
 
@@ -2809,7 +2810,7 @@ bool WindowSurfaceVk::skipAcquireNextSwapchainImageForSharedPresentMode() const
 
 // This method will either return VK_SUCCESS or VK_ERROR_*.  Thus, it is appropriate to ASSERT that
 // the return value won't be VK_SUBOPTIMAL_KHR.
-VkResult WindowSurfaceVk::acquireNextSwapchainImage(vk::Context *context)
+VkResult WindowSurfaceVk::acquireNextSwapchainImage(vk::ErrorContext *context)
 {
     ASSERT(mAcquireOperation.state != impl::ImageAcquireState::Ready);
 
@@ -2837,11 +2838,11 @@ VkResult WindowSurfaceVk::acquireNextSwapchainImage(vk::Context *context)
         AcquireNextImageUnlocked(context->getDevice(), mSwapchain, &mAcquireOperation);
     }
 
-    // After the above call result is alway ready for processing.
+    // After the above call result is always ready for processing.
     return postProcessUnlockedAcquire(context);
 }
 
-VkResult WindowSurfaceVk::postProcessUnlockedAcquire(vk::Context *context)
+VkResult WindowSurfaceVk::postProcessUnlockedAcquire(vk::ErrorContext *context)
 {
     ASSERT(mAcquireOperation.state == impl::ImageAcquireState::NeedToProcessResult);
 
@@ -2881,15 +2882,16 @@ VkResult WindowSurfaceVk::postProcessUnlockedAcquire(vk::Context *context)
     {
         ASSERT(image.image->valid() &&
                image.image->getCurrentImageLayout() != vk::ImageLayout::SharedPresent);
-        rx::vk::Renderer *renderer = context->getRenderer();
-        rx::vk::PrimaryCommandBuffer primaryCommandBuffer;
+        vk::Renderer *renderer = context->getRenderer();
+        vk::ScopedPrimaryCommandBuffer scopedCommandBuffer(renderer->getDevice());
         auto protectionType = vk::ConvertProtectionBoolToType(mState.hasProtectedContent());
-        if (renderer->getCommandBufferOneOff(context, protectionType, &primaryCommandBuffer) ==
+        if (renderer->getCommandBufferOneOff(context, protectionType, &scopedCommandBuffer) ==
             angle::Result::Continue)
         {
+            vk::PrimaryCommandBuffer &primaryCommandBuffer = scopedCommandBuffer.get();
             VkSemaphore semaphore;
             // Note return errors is early exit may leave new Image and Swapchain in unknown state.
-            image.image->recordWriteBarrierOneOff(context, vk::ImageLayout::SharedPresent,
+            image.image->recordWriteBarrierOneOff(renderer, vk::ImageLayout::SharedPresent,
                                                   &primaryCommandBuffer, &semaphore);
             ASSERT(semaphore == acquireImageSemaphore);
             if (primaryCommandBuffer.end() != VK_SUCCESS)
@@ -2898,8 +2900,8 @@ VkResult WindowSurfaceVk::postProcessUnlockedAcquire(vk::Context *context)
                 return VK_ERROR_OUT_OF_DATE_KHR;
             }
             QueueSerial queueSerial;
-            if (renderer->queueSubmitOneOff(context, std::move(primaryCommandBuffer),
-                                            protectionType, egl::ContextPriority::Medium, semaphore,
+            if (renderer->queueSubmitOneOff(context, std::move(scopedCommandBuffer), protectionType,
+                                            egl::ContextPriority::Medium, semaphore,
                                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                             &queueSerial) != angle::Result::Continue)
             {
@@ -3321,9 +3323,9 @@ egl::Error WindowSurfaceVk::getBufferAge(const gl::Context *context, EGLint *age
         }
 
         uint64_t frameNumber = mSwapchainImages[mCurrentSwapchainImageIndex].frameNumber;
-        if (frameNumber < mBufferAgeQueryFrameNumber)
+        if (frameNumber == 0)
         {
-            *age = 0;  // Has not been used for rendering yet or since age was queried, no age.
+            *age = 0;  // Has not been used for rendering yet, no age.
         }
         else
         {
