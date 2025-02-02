@@ -107,8 +107,7 @@ class CLKernelVk : public CLKernelImpl
     angle::Result getOrCreateComputePipeline(vk::PipelineCacheAccess *pipelineCache,
                                              const cl::NDRange &ndrange,
                                              const cl::Device &device,
-                                             vk::PipelineHelper **pipelineOut,
-                                             cl::WorkgroupCount *workgroupCountOut);
+                                             vk::PipelineHelper **pipelineOut);
 
     const vk::DescriptorSetLayoutDesc &getDescriptorSetLayoutDesc(DescriptorSetIndex index) const
     {
@@ -146,7 +145,7 @@ class CLKernelVk : public CLKernelImpl
         vk::OutsideRenderPassCommandBufferHelper *computePassCommands);
 
   private:
-    static constexpr std::array<size_t, 3> kEmptyWorkgroupSize = {0, 0, 0};
+    static constexpr std::array<uint32_t, 3> kEmptyWorkgroupSize = {0, 0, 0};
 
     // Initialize the descriptor pools for this kernel resources
     angle::Result initializeDescriptorPools();
@@ -162,7 +161,7 @@ class CLKernelVk : public CLKernelImpl
     size_t mPodBufferSize;
 
     vk::ShaderProgramHelper mShaderProgramHelper;
-    vk::ComputePipelineCache mComputePipelineCache;
+    ComputePipelineCache mComputePipelineCache;
     KernelSpecConstants mSpecConstants;
 
     // Pipeline and DescriptorSetLayout Shared pointers

@@ -950,13 +950,15 @@ angle::Result CLCommandQueueVk::enqueueFillImage(const cl::Image &image,
                                                  const cl::EventPtrs &waitEvents,
                                                  CLEventImpl::CreateFunc *eventCreateFunc)
 {
+    std::scoped_lock<std::mutex> sl(mCommandQueueMutex);
+
+    ANGLE_TRY(processWaitlist(waitEvents));
+
     CLImageVk &imageVk = image.getImpl<CLImageVk>();
     PixelColor packedColor;
     cl::Extents extent = imageVk.getImageExtent();
 
     imageVk.packPixels(fillColor, &packedColor);
-
-    ANGLE_TRY(enqueueWaitForEvents(waitEvents));
 
     if (imageVk.isStagingBufferInitialized() == false)
     {
@@ -1037,7 +1039,9 @@ angle::Result CLCommandQueueVk::enqueueMapImage(const cl::Image &image,
                                                 CLEventImpl::CreateFunc *eventCreateFunc,
                                                 void *&mapPtr)
 {
-    ANGLE_TRY(enqueueWaitForEvents(waitEvents));
+    std::scoped_lock<std::mutex> sl(mCommandQueueMutex);
+
+    ANGLE_TRY(processWaitlist(waitEvents));
 
     // TODO: Look into better enqueue handling of this map-op if non-blocking
     // https://anglebug.com/376722715
@@ -1197,10 +1201,34 @@ angle::Result CLCommandQueueVk::enqueueNDRangeKernel(const cl::Kernel &kernel,
 
     ANGLE_TRY(processWaitlist(waitEvents));
 
-    cl::WorkgroupCount workgroupCount;
     vk::PipelineCacheAccess pipelineCache;
     vk::PipelineHelper *pipelineHelper = nullptr;
     CLKernelVk &kernelImpl             = kernel.getImpl<CLKernelVk>();
+    const CLProgramVk::DeviceProgramData *devProgramData =
+        kernelImpl.getProgram()->getDeviceProgramData(mCommandQueue.getDevice().getNative());
+    ASSERT(devProgramData != nullptr);
+    cl::NDRange enqueueNDRange(ndrange);
+
+    // Start with Workgroup size (WGS) from kernel attribute (if available)
+    cl::WorkgroupSize workgroupSize =
+        devProgramData->getCompiledWorkgroupSize(kernelImpl.getKernelName());
+    if (workgroupSize != cl::WorkgroupSize{0, 0, 0})
+    {
+        // Local work size (LWS) was valid, use that as WGS
+        enqueueNDRange.localWorkSize = workgroupSize;
+    }
+    else
+    {
+        if (enqueueNDRange.nullLocalWorkSize)
+        {
+            // NULL value was passed, in which case the OpenCL implementation will determine
+            // how to be break the global work-items into appropriate work-group instances.
+            enqueueNDRange.localWorkSize =
+                mCommandQueue.getDevice().getImpl<CLDeviceVk>().selectWorkGroupSize(enqueueNDRange);
+        }
+        // At this point, we should have a non-zero Workgroup size
+        ASSERT((enqueueNDRange.localWorkSize != cl::WorkgroupSize{0, 0, 0}));
+    }
 
     // Printf storage is setup for single time usage. So drive any existing usage to completion if
     // the kernel uses printf.
@@ -1209,21 +1237,65 @@ angle::Result CLCommandQueueVk::enqueueNDRangeKernel(const cl::Kernel &kernel,
         ANGLE_TRY(finishInternal());
     }
 
-    // Here, we create-update-bind the kernel's descriptor set, put push-constants in cmd
-    // buffer, capture kernel resources, and handle kernel execution dependencies
-    ANGLE_TRY(processKernelResources(kernelImpl, ndrange, workgroupCount));
-
     // Fetch or create compute pipeline (if we miss in cache)
     ANGLE_CL_IMPL_TRY_ERROR(mContext->getRenderer()->getPipelineCache(mContext, &pipelineCache),
                             CL_OUT_OF_RESOURCES);
-    ANGLE_TRY(kernelImpl.getOrCreateComputePipeline(
-        &pipelineCache, ndrange, mCommandQueue.getDevice(), &pipelineHelper, &workgroupCount));
 
-    mComputePassCommands->retainResource(pipelineHelper);
+    ANGLE_TRY(processKernelResources(kernelImpl));
+    ANGLE_TRY(processGlobalPushConstants(kernelImpl, enqueueNDRange));
 
-    mComputePassCommands->getCommandBuffer().bindComputePipeline(pipelineHelper->getPipeline());
-    mComputePassCommands->getCommandBuffer().dispatch(workgroupCount[0], workgroupCount[1],
-                                                      workgroupCount[2]);
+    // Create uniform dispatch region(s) based on VkLimits for WorkgroupCount
+    const uint32_t *maxComputeWorkGroupCount =
+        mContext->getRenderer()->getPhysicalDeviceProperties().limits.maxComputeWorkGroupCount;
+    for (cl::NDRange &uniformRegion : enqueueNDRange.createUniformRegions(
+             {maxComputeWorkGroupCount[0], maxComputeWorkGroupCount[1],
+              maxComputeWorkGroupCount[2]}))
+    {
+        cl::WorkgroupCount uniformRegionWorkgroupCount = uniformRegion.getWorkgroupCount();
+        const VkPushConstantRange *pushConstantRegionOffset =
+            devProgramData->getRegionOffsetRange();
+        if (pushConstantRegionOffset != nullptr)
+        {
+            // The sum of the global ID offset into the NDRange for this uniform region and
+            // the global offset of the NDRange
+            // https://github.com/google/clspv/blob/main/docs/OpenCLCOnVulkan.md#module-scope-push-constants
+            uint32_t regionOffsets[3] = {
+                enqueueNDRange.globalWorkOffset[0] + uniformRegion.globalWorkOffset[0],
+                enqueueNDRange.globalWorkOffset[1] + uniformRegion.globalWorkOffset[1],
+                enqueueNDRange.globalWorkOffset[2] + uniformRegion.globalWorkOffset[2]};
+            mComputePassCommands->getCommandBuffer().pushConstants(
+                kernelImpl.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
+                pushConstantRegionOffset->offset, pushConstantRegionOffset->size, &regionOffsets);
+        }
+        const VkPushConstantRange *pushConstantRegionGroupOffset =
+            devProgramData->getRegionGroupOffsetRange();
+        if (pushConstantRegionGroupOffset != nullptr)
+        {
+            // The 3D group ID offset into the NDRange for this region
+            // https://github.com/google/clspv/blob/main/docs/OpenCLCOnVulkan.md#module-scope-push-constants
+            ASSERT(enqueueNDRange.localWorkSize[0] > 0 && enqueueNDRange.localWorkSize[1] > 0 &&
+                   enqueueNDRange.localWorkSize[2] > 0);
+            ASSERT(uniformRegion.globalWorkOffset[0] % enqueueNDRange.localWorkSize[0] == 0 &&
+                   uniformRegion.globalWorkOffset[1] % enqueueNDRange.localWorkSize[1] == 0 &&
+                   uniformRegion.globalWorkOffset[2] % enqueueNDRange.localWorkSize[2] == 0);
+            uint32_t regionGroupOffsets[3] = {
+                uniformRegion.globalWorkOffset[0] / enqueueNDRange.localWorkSize[0],
+                uniformRegion.globalWorkOffset[1] / enqueueNDRange.localWorkSize[1],
+                uniformRegion.globalWorkOffset[2] / enqueueNDRange.localWorkSize[2]};
+            mComputePassCommands->getCommandBuffer().pushConstants(
+                kernelImpl.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
+                pushConstantRegionGroupOffset->offset, pushConstantRegionGroupOffset->size,
+                &regionGroupOffsets);
+        }
+
+        ANGLE_TRY(kernelImpl.getOrCreateComputePipeline(
+            &pipelineCache, uniformRegion, mCommandQueue.getDevice(), &pipelineHelper));
+        mComputePassCommands->retainResource(pipelineHelper);
+        mComputePassCommands->getCommandBuffer().bindComputePipeline(pipelineHelper->getPipeline());
+        mComputePassCommands->getCommandBuffer().dispatch(uniformRegionWorkgroupCount[0],
+                                                          uniformRegionWorkgroupCount[1],
+                                                          uniformRegionWorkgroupCount[2]);
+    }
 
     ANGLE_TRY(createEvent(eventCreateFunc, cl::ExecutionStatus::Queued));
 
@@ -1406,7 +1478,7 @@ angle::Result CLCommandQueueVk::addMemoryDependencies(cl::Memory *clMem)
     bool insertBarrier = false;
     if (clMem->getFlags().intersects(CL_MEM_READ_WRITE))
     {
-        // Texel buffers have backing buffer obects
+        // Texel buffers have backing buffer objects
         if (mDependencyTracker.contains(clMem) || mDependencyTracker.contains(parentMem) ||
             mDependencyTracker.size() == kMaxDependencyTrackerSize)
         {
@@ -1432,16 +1504,14 @@ angle::Result CLCommandQueueVk::addMemoryDependencies(cl::Memory *clMem)
     {
         CLBufferVk &vkMem = clMem->getImpl<CLBufferVk>();
 
-        mComputePassCommands->bufferWrite(VK_ACCESS_SHADER_WRITE_BIT,
+        mComputePassCommands->bufferWrite(mContext, VK_ACCESS_SHADER_WRITE_BIT,
                                           vk::PipelineStage::ComputeShader, &vkMem.getBuffer());
     }
 
     return angle::Result::Continue;
 }
 
-angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
-                                                       const cl::NDRange &ndrange,
-                                                       const cl::WorkgroupCount &workgroupCount)
+angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk)
 {
     bool podBufferPresent              = false;
     uint32_t podBinding                = 0;
@@ -1476,71 +1546,6 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
     // Setup the pipeline layout
     ANGLE_CL_IMPL_TRY_ERROR(kernelVk.initPipelineLayout(), CL_INVALID_OPERATION);
 
-    // Push global offset data
-    const VkPushConstantRange *globalOffsetRange = devProgramData->getGlobalOffsetRange();
-    if (globalOffsetRange != nullptr)
-    {
-        mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, globalOffsetRange->offset,
-            globalOffsetRange->size, ndrange.globalWorkOffset.data());
-    }
-
-    // Push global size data
-    const VkPushConstantRange *globalSizeRange = devProgramData->getGlobalSizeRange();
-    if (globalSizeRange != nullptr)
-    {
-        mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, globalSizeRange->offset,
-            globalSizeRange->size, ndrange.globalWorkSize.data());
-    }
-
-    // Push region offset data.
-    const VkPushConstantRange *regionOffsetRange = devProgramData->getRegionOffsetRange();
-    if (regionOffsetRange != nullptr)
-    {
-        // We dont support non-uniform batches yet in ANGLE, this field also represents global
-        // offset for NDR in uniform cases. Update this when non-uniform batches are supported.
-        // https://github.com/google/clspv/blob/main/docs/OpenCLCOnVulkan.md#module-scope-push-constants
-        mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, regionOffsetRange->offset,
-            regionOffsetRange->size, ndrange.globalWorkOffset.data());
-    }
-
-    // Push region group offset data.
-    const VkPushConstantRange *regionGroupOffsetRange = devProgramData->getRegionGroupOffsetRange();
-    if (regionGroupOffsetRange != nullptr)
-    {
-        // We dont support non-uniform batches yet in ANGLE, and based on clspv doc/notes:
-        // "only required when non-uniform NDRanges are supported"
-        // For now, we set this field to zeros until we later support non-uniform.
-        // https://github.com/google/clspv/blob/main/docs/OpenCLCOnVulkan.md#module-scope-push-constants
-        uint32_t regionGroupOffsets[3] = {0, 0, 0};
-        mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
-            regionGroupOffsetRange->offset, regionGroupOffsetRange->size, &regionGroupOffsets);
-    }
-
-    // Push enqueued local size
-    const VkPushConstantRange *enqueuedLocalSizeRange = devProgramData->getEnqueuedLocalSizeRange();
-    if (enqueuedLocalSizeRange != nullptr)
-    {
-        mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
-            enqueuedLocalSizeRange->offset, enqueuedLocalSizeRange->size,
-            ndrange.localWorkSize.data());
-    }
-
-    // Push number of workgroups
-    const VkPushConstantRange *numWorkgroupsRange = devProgramData->getNumWorkgroupsRange();
-    if (devProgramData->reflectionData.pushConstants.contains(
-            NonSemanticClspvReflectionPushConstantNumWorkgroups))
-    {
-        uint32_t numWorkgroups[3] = {workgroupCount[0], workgroupCount[1], workgroupCount[2]};
-        mComputePassCommands->getCommandBuffer().pushConstants(
-            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, numWorkgroupsRange->offset,
-            numWorkgroupsRange->size, &numWorkgroups);
-    }
-
     // Retain kernel object until we finish executing it later
     mCommandsStateMap[mComputePassCommands->getQueueSerial()].kernels.emplace_back(
         &kernelVk.getFrontendObject());
@@ -1558,7 +1563,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
             case NonSemanticClspvReflectionArgumentUniform:
             case NonSemanticClspvReflectionArgumentStorageBuffer:
             {
-                cl::Memory *clMem = cl::Buffer::Cast(*static_cast<const cl_mem *>(arg.handle));
+                cl::Memory *clMem = cl::Buffer::Cast(static_cast<const cl_mem>(arg.handle));
                 CLBufferVk &vkMem = clMem->getImpl<CLBufferVk>();
 
                 ANGLE_TRY(addMemoryDependencies(clMem));
@@ -1596,6 +1601,11 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
                 mComputePassCommands->getCommandBuffer().pushConstants(
                     kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, offset, size,
                     &kernelVk.getPodArgumentsData()[offset]);
+                break;
+            }
+            case NonSemanticClspvReflectionArgumentWorkgroup:
+            {
+                // Nothing to do here (this is already taken care of during clSetKernelArg)
                 break;
             }
             case NonSemanticClspvReflectionArgumentSampler:
@@ -1636,7 +1646,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
             case NonSemanticClspvReflectionArgumentStorageImage:
             case NonSemanticClspvReflectionArgumentSampledImage:
             {
-                cl::Memory *clMem = cl::Image::Cast(*static_cast<const cl_mem *>(arg.handle));
+                cl::Memory *clMem = cl::Image::Cast(static_cast<const cl_mem>(arg.handle));
                 CLImageVk &vkMem  = clMem->getImpl<CLImageVk>();
 
                 ANGLE_TRY(addMemoryDependencies(clMem));
@@ -1688,7 +1698,7 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
             case NonSemanticClspvReflectionArgumentUniformTexelBuffer:
             case NonSemanticClspvReflectionArgumentStorageTexelBuffer:
             {
-                cl::Memory *clMem = cl::Image::Cast(*static_cast<const cl_mem *>(arg.handle));
+                cl::Memory *clMem = cl::Image::Cast(static_cast<const cl_mem>(arg.handle));
                 CLImageVk &vkMem  = clMem->getImpl<CLImageVk>();
 
                 ANGLE_TRY(addMemoryDependencies(clMem));
@@ -1820,6 +1830,55 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk,
     return angle::Result::Continue;
 }
 
+angle::Result CLCommandQueueVk::processGlobalPushConstants(CLKernelVk &kernelVk,
+                                                           const cl::NDRange &ndrange)
+{
+    const CLProgramVk::DeviceProgramData *devProgramData =
+        kernelVk.getProgram()->getDeviceProgramData(mCommandQueue.getDevice().getNative());
+    ASSERT(devProgramData != nullptr);
+
+    const VkPushConstantRange *globalOffsetRange = devProgramData->getGlobalOffsetRange();
+    if (globalOffsetRange != nullptr)
+    {
+        mComputePassCommands->getCommandBuffer().pushConstants(
+            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, globalOffsetRange->offset,
+            globalOffsetRange->size, ndrange.globalWorkOffset.data());
+    }
+
+    const VkPushConstantRange *globalSizeRange = devProgramData->getGlobalSizeRange();
+    if (globalSizeRange != nullptr)
+    {
+        mComputePassCommands->getCommandBuffer().pushConstants(
+            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, globalSizeRange->offset,
+            globalSizeRange->size, ndrange.globalWorkSize.data());
+    }
+
+    const VkPushConstantRange *enqueuedLocalSizeRange = devProgramData->getEnqueuedLocalSizeRange();
+    if (enqueuedLocalSizeRange != nullptr)
+    {
+        mComputePassCommands->getCommandBuffer().pushConstants(
+            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
+            enqueuedLocalSizeRange->offset, enqueuedLocalSizeRange->size,
+            ndrange.localWorkSize.data());
+    }
+
+    const VkPushConstantRange *numWorkgroupsRange = devProgramData->getNumWorkgroupsRange();
+    if (devProgramData->reflectionData.pushConstants.contains(
+            NonSemanticClspvReflectionPushConstantNumWorkgroups))
+    {
+        // We support non-uniform workgroups, thus take the ceil of the quotient
+        uint32_t numWorkgroups[3] = {
+            UnsignedCeilDivide(ndrange.globalWorkSize[0], ndrange.localWorkSize[0]),
+            UnsignedCeilDivide(ndrange.globalWorkSize[1], ndrange.localWorkSize[1]),
+            UnsignedCeilDivide(ndrange.globalWorkSize[2], ndrange.localWorkSize[2])};
+        mComputePassCommands->getCommandBuffer().pushConstants(
+            kernelVk.getPipelineLayout(), VK_SHADER_STAGE_COMPUTE_BIT, numWorkgroupsRange->offset,
+            numWorkgroupsRange->size, &numWorkgroups);
+    }
+
+    return angle::Result::Continue;
+}
+
 angle::Result CLCommandQueueVk::flushComputePassCommands()
 {
     if (mComputePassCommands->empty())
@@ -1894,7 +1953,7 @@ angle::Result CLCommandQueueVk::submitCommands()
     // Kick off renderer submit
     ANGLE_TRY(mContext->getRenderer()->submitCommands(mContext, getProtectionType(),
                                                       egl::ContextPriority::Medium, nullptr,
-                                                      nullptr, mLastFlushedQueueSerial));
+                                                      nullptr, {}, mLastFlushedQueueSerial));
 
     mLastSubmittedQueueSerial = mLastFlushedQueueSerial;
 
@@ -2086,7 +2145,7 @@ angle::Result CLCommandQueueVk::onResourceAccess(const vk::CommandBufferAccess &
             ANGLE_TRY(flushInternal());
         }
 
-        mComputePassCommands->bufferRead(bufferAccess.accessType, bufferAccess.stage,
+        mComputePassCommands->bufferRead(mContext, bufferAccess.accessType, bufferAccess.stage,
                                          bufferAccess.buffer);
     }
 
@@ -2098,7 +2157,7 @@ angle::Result CLCommandQueueVk::onResourceAccess(const vk::CommandBufferAccess &
             ANGLE_TRY(flushInternal());
         }
 
-        mComputePassCommands->bufferWrite(bufferAccess.accessType, bufferAccess.stage,
+        mComputePassCommands->bufferWrite(mContext, bufferAccess.accessType, bufferAccess.stage,
                                           bufferAccess.buffer);
         if (bufferAccess.buffer->isHostVisible())
         {
