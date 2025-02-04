@@ -107,7 +107,6 @@ cc_defaults {
         "-Wno-builtin-macro-redefined",
         "-Wno-c++11-narrowing-const-reference",
         "-Wno-cast-function-type",
-        "-Wno-dangling-assignment-gsl",
         "-Wno-invalid-offsetof",
         "-Wno-missing-field-initializers",
         "-Wno-missing-template-arg-list-after-template-kw",
