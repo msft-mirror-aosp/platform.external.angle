@@ -10,7 +10,6 @@ import argparse
 import collections
 import contextlib
 import datetime
-import json
 import os
 import pathlib
 import re
@@ -67,13 +66,17 @@ def set_status(msg: str, *, quiet: bool = False, build_id: str = None):
   print(f'\r{prefix}{msg}\033[K', end='', flush=True)
 
 
-
 def _exception_hook(exctype: type, exc: Exception, tb):
+  # Let KeyboardInterrupt through.
+  if issubclass(exctype, KeyboardInterrupt):
+    sys.__excepthook__(exctype, exc, tb)
+    return
+  stacktrace = ''.join(traceback.format_exception(exctype, exc, tb))
+  stacktrace_lines = [f'\n⛔{line}' for line in stacktrace.splitlines()]
   # Output uncaught exceptions to all live terminals
-  BuildManager.broadcast(''.join(traceback.format_exception(exctype, exc, tb)))
+  BuildManager.broadcast(''.join(stacktrace_lines))
   # Cancel all pending tasks cleanly (i.e. delete stamp files if necessary).
   TaskManager.deactivate()
-  sys.__excepthook__(exctype, exc, tb)
 
 
 class LogfileManager:
@@ -184,6 +187,13 @@ class TaskStats:
       return cls._completed_tasks
 
   @classmethod
+  def total_tasks(cls, build_id: str = None):
+    with cls._lock:
+      if build_id:
+        return cls._total_task_count_per_build[build_id]
+      return cls._total_tasks
+
+  @classmethod
   def query_build(cls, query_build_id: str = None):
     with cls._lock:
       active_builds = BuildManager.get_live_builds()
@@ -250,7 +260,8 @@ class BuildManager:
   def open_tty(cls, tty_path):
     # Do not open the same tty multiple times. Use st_ino and st_dev to compare
     # file descriptors.
-    st = os.stat(tty_path)
+    tty = open(tty_path, 'wt')
+    st = os.stat(tty.fileno())
     tty_key = (st.st_ino, st.st_dev)
     with cls._lock:
       # Dedupes ttys
@@ -258,7 +269,9 @@ class BuildManager:
         # TTYs are kept open for the lifetime of the server so that broadcast
         # messages (e.g. uncaught exceptions) can be sent to them even if they
         # are not currently building anything.
-        cls._cached_ttys[tty_key] = open(tty_path, 'wt')
+        cls._cached_ttys[tty_key] = tty
+      else:
+        tty.close()
       return cls._cached_ttys[tty_key]
 
   @classmethod
@@ -278,6 +291,11 @@ class BuildManager:
           tty.flush()
         except BrokenPipeError:
           pass
+    # Write to the current terminal if we have not written to it yet.
+    st = os.stat(sys.stderr.fileno())
+    stderr_key = (st.st_ino, st.st_dev)
+    if stderr_key not in cls._cached_ttys:
+      print(msg, file=sys.stderr)
 
   @classmethod
   def has_live_builds(cls):
@@ -305,6 +323,13 @@ class TaskManager:
   @classmethod
   def task_done(cls, task: Task):
     TaskStats.complete_task(build_id=task.build_id)
+    if task.tty:
+      total = TaskStats.total_tasks(task.build_id)
+      completed = TaskStats.num_completed_tasks(task.build_id)
+      msg = f'Analysis Steps: {completed}/{total}'
+      task.tty.write(f'\033]2;{msg}\007')
+      task.tty.flush()
+
     with cls._lock:
       cls._current_tasks.discard(task)
 
@@ -575,7 +600,7 @@ def _handle_query_build(data, connection: socket.socket):
   response = TaskStats.query_build(build_id)
   try:
     with connection:
-      server_utils.SendMessage(connection, json.dumps(response).encode('utf8'))
+      server_utils.SendMessage(connection, response)
   except BrokenPipeError:
     # We should not die because the client died.
     pass
@@ -585,10 +610,10 @@ def _handle_heartbeat(connection: socket.socket):
   """Handle messages of type POLL_HEARTBEAT."""
   try:
     with connection:
-      server_utils.SendMessage(connection,
-                               json.dumps({
-                                   'status': 'OK'
-                               }).encode('utf8'))
+      server_utils.SendMessage(connection, {
+          'status': 'OK',
+          'pid': os.getpid(),
+      })
   except BrokenPipeError:
     # We should not die because the client died.
     pass
@@ -611,9 +636,9 @@ def _listen_for_request_data(sock: socket.socket):
   """Helper to encapsulate getting a new message."""
   while True:
     conn = sock.accept()[0]
-    message_bytes = server_utils.ReceiveMessage(conn)
-    if message_bytes:
-      yield json.loads(message_bytes), conn
+    message = server_utils.ReceiveMessage(conn)
+    if message:
+      yield message, conn
 
 
 def _register_cleanup_signal_handlers(options):
@@ -658,17 +683,19 @@ def _process_requests(sock: socket.socket, options):
         message_type = data.get('message_type', server_utils.ADD_TASK)
         if message_type == server_utils.POLL_HEARTBEAT:
           _handle_heartbeat(connection)
-        if message_type == server_utils.ADD_TASK:
+        elif message_type == server_utils.ADD_TASK:
           connection.close()
           _handle_add_task(data, tasks, options)
-        if message_type == server_utils.QUERY_BUILD:
+        elif message_type == server_utils.QUERY_BUILD:
           _handle_query_build(data, connection)
-        if message_type == server_utils.REGISTER_BUILDER:
+        elif message_type == server_utils.REGISTER_BUILDER:
           connection.close()
           _handle_register_builder(data)
-        if message_type == server_utils.CANCEL_BUILD:
+        elif message_type == server_utils.CANCEL_BUILD:
           connection.close()
           _handle_cancel_build(data)
+        else:
+          connection.close()
     except TimeoutError:
       # If we have not received a new task in a while and do not have any
       # pending tasks or running builds, then exit. Otherwise keep waiting.
@@ -679,19 +706,12 @@ def _process_requests(sock: socket.socket, options):
       break
 
 
-def query_build_info(build_id):
+def query_build_info(build_id=None):
   """Communicates with the main server to query build info."""
-  with contextlib.closing(socket.socket(socket.AF_UNIX)) as sock:
-    sock.connect(server_utils.SOCKET_ADDRESS)
-    sock.settimeout(3)
-    server_utils.SendMessage(
-        sock,
-        json.dumps({
-            'message_type': server_utils.QUERY_BUILD,
-            'build_id': build_id,
-        }).encode('utf8'))
-    response_bytes = server_utils.ReceiveMessage(sock)
-    return json.loads(response_bytes)
+  return _send_message_with_response({
+      'message_type': server_utils.QUERY_BUILD,
+      'build_id': build_id,
+  })
 
 
 def _wait_for_build(build_id):
@@ -719,12 +739,50 @@ def _wait_for_build(build_id):
     time.sleep(1)
 
 
+def _wait_for_idle():
+  """Communicates with the main server waiting for all builds to complete."""
+  start_time = datetime.datetime.now()
+  while True:
+    try:
+      builds = query_build_info()['builds']
+    except ConnectionRefusedError:
+      print('No server running. It likely finished all tasks.')
+      print('You can check $OUTDIR/buildserver.log.0 to be sure.')
+      return 0
+
+    all_pending_tasks = 0
+    all_completed_tasks = 0
+    for build_info in builds:
+      pending_tasks = build_info['pending_tasks']
+      completed_tasks = build_info['completed_tasks']
+      active = build_info['is_active']
+      # Ignore completed builds.
+      if active or pending_tasks:
+        all_pending_tasks += pending_tasks
+        all_completed_tasks += completed_tasks
+    total_tasks = all_pending_tasks + all_completed_tasks
+
+    if all_pending_tasks == 0:
+      print('\nServer Idle, All tasks complete.')
+      return 0
+
+    current_time = datetime.datetime.now()
+    duration = current_time - start_time
+    print(
+        f'\rWaiting for {all_pending_tasks} remaining tasks. '
+        f'({all_completed_tasks}/{total_tasks} tasks complete) '
+        f'[{str(duration)}]\033[K',
+        end='',
+        flush=True)
+    time.sleep(0.5)
+
+
 def _check_if_running():
   """Communicates with the main server to make sure its running."""
   with socket.socket(socket.AF_UNIX) as sock:
     try:
       sock.connect(server_utils.SOCKET_ADDRESS)
-    except socket.error:
+    except OSError:
       print('Build server is not running and '
             'android_static_analysis="build_server" is set.\nPlease run '
             'this command in a separate terminal:\n\n'
@@ -737,8 +795,16 @@ def _check_if_running():
 def _send_message_and_close(message_dict):
   with contextlib.closing(socket.socket(socket.AF_UNIX)) as sock:
     sock.connect(server_utils.SOCKET_ADDRESS)
-    sock.settimeout(3)
-    server_utils.SendMessage(sock, json.dumps(message_dict).encode('utf8'))
+    sock.settimeout(1)
+    server_utils.SendMessage(sock, message_dict)
+
+
+def _send_message_with_response(message_dict):
+  with contextlib.closing(socket.socket(socket.AF_UNIX)) as sock:
+    sock.connect(server_utils.SOCKET_ADDRESS)
+    sock.settimeout(1)
+    server_utils.SendMessage(sock, message_dict)
+    return server_utils.ReceiveMessage(sock)
 
 
 def _send_cancel_build(build_id):
@@ -758,10 +824,25 @@ def _register_builder(build_id, builder_pid):
           'builder_pid': builder_pid,
       })
       return 0
-    except socket.error:
+    except OSError:
       time.sleep(0.05)
   print(f'Failed to register builer for build_id={build_id}.')
   return 1
+
+
+def poll_server(retries=3):
+  """Communicates with the main server to query build info."""
+  for _attempt in range(retries):
+    try:
+      response = _send_message_with_response(
+          {'message_type': server_utils.POLL_HEARTBEAT})
+      if response:
+        break
+    except OSError:
+      time.sleep(0.05)
+  else:
+    return None
+  return response['pid']
 
 
 def _print_build_status_all():
@@ -837,11 +918,13 @@ def _wait_for_task_requests(args):
     sock.settimeout(_SOCKET_TIMEOUT)
     try:
       sock.bind(server_utils.SOCKET_ADDRESS)
-    except socket.error as e:
+    except OSError as e:
       # errno 98 is Address already in use
       if e.errno == 98:
         if not args.quiet:
-          print('Another instance is already running.', file=sys.stderr)
+          pid = poll_server()
+          print(f'Another instance is already running (pid: {pid}).',
+                file=sys.stderr)
         return 1
       raise
     sock.listen()
@@ -867,6 +950,10 @@ def main():
                       metavar='BUILD_ID',
                       help='Wait for build server to finish with all tasks '
                       'for BUILD_ID and output any pending messages.')
+  parser.add_argument('--wait-for-idle',
+                      action='store_true',
+                      help='Wait for build server to finish with all '
+                      'pending tasks.')
   parser.add_argument('--print-status',
                       metavar='BUILD_ID',
                       help='Print the current state of a build.')
@@ -887,6 +974,8 @@ def main():
     return _check_if_running()
   if args.wait_for_build:
     return _wait_for_build(args.wait_for_build)
+  if args.wait_for_idle:
+    return _wait_for_idle()
   if args.print_status:
     return _print_build_status(args.print_status)
   if args.print_status_all:

@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "common/debug.h"
+#include "libANGLE/ErrorStrings.h"
 #include "libANGLE/renderer/metal/BufferMtl.h"
 #include "libANGLE/renderer/metal/ContextMtl.h"
 #include "libANGLE/renderer/metal/DisplayMtl.h"
@@ -520,13 +521,7 @@ angle::Result EnsureComputeShaderInitialized(ContextMtl *context,
     {
         auto shaderLib = context->getDisplay()->getDefaultShadersLib();
         shader         = adoptObjCObj([shaderLib newFunctionWithName:functionName]);
-        if (!shader)
-        {
-            ANGLE_MTL_HANDLE_ERROR(context, "Failed to get builtin compute function.",
-                                   GL_INVALID_OPERATION);
-            return angle::Result::Stop;
-        }
-
+        ANGLE_CHECK(context, shader, gl::err::kInternalError, GL_INVALID_OPERATION);
         return angle::Result::Continue;
     }
 }
@@ -555,13 +550,7 @@ angle::Result EnsureSpecializedComputeShaderInitialized(ContextMtl *context,
         shader         = adoptObjCObj([shaderLib newFunctionWithName:functionName
                                               constantValues:funcConstants
                                                        error:&err]);
-        if (err)
-        {
-            ANGLE_MTL_HANDLE_ERROR(context, FormatMetalErrorMessage(err).c_str(),
-                                   GL_INVALID_OPERATION);
-            return angle::Result::Stop;
-        }
-
+        ANGLE_MTL_CHECK(context, shader, err);
         return angle::Result::Continue;
     }
 }
@@ -800,9 +789,8 @@ StencilBlitViaBufferParams::StencilBlitViaBufferParams(const DepthStencilBlitPar
 }
 
 // RenderUtils implementation
-RenderUtils::RenderUtils(DisplayMtl *display)
-    : Context(display),
-      mClearUtils{ClearUtils("clearIntFS"), ClearUtils("clearUIntFS"), ClearUtils("clearFloatFS")},
+RenderUtils::RenderUtils()
+    : mClearUtils{ClearUtils("clearIntFS"), ClearUtils("clearUIntFS"), ClearUtils("clearFloatFS")},
       mColorBlitUtils{ColorBlitUtils("blitIntFS"), ColorBlitUtils("blitUIntFS"),
                       ColorBlitUtils("blitFloatFS")},
       mCopyTextureFloatToUIntUtils("copyTextureFloatToUIntFS"),
@@ -811,32 +799,6 @@ RenderUtils::RenderUtils(DisplayMtl *display)
           CopyPixelsUtils("readFromBufferToUIntTexture", "writeFromUIntTextureToBuffer"),
           CopyPixelsUtils("readFromBufferToFloatTexture", "writeFromFloatTextureToBuffer")}
 {}
-
-RenderUtils::~RenderUtils() {}
-
-// override ErrorHandler
-void RenderUtils::handleError(GLenum glErrorCode,
-                              const char *message,
-                              const char *file,
-                              const char *function,
-                              unsigned int line)
-{
-    ERR() << message;
-}
-
-void RenderUtils::handleError(NSError *nserror,
-                              const char *message,
-                              const char *file,
-                              const char *function,
-                              unsigned int line)
-{
-    if (!nserror)
-    {
-        return;
-    }
-
-    ERR() << message;
-}
 
 // Clear current framebuffer
 angle::Result RenderUtils::clearWithDraw(const gl::Context *context,
@@ -1082,13 +1044,7 @@ angle::Result ClearUtils::ensureShadersInitialized(ContextMtl *ctx, uint32_t num
             id<MTLLibrary> shaderLib = ctx->getDisplay()->getDefaultShadersLib();
             id<MTLFunction> vertexShader =
                 [[shaderLib newFunctionWithName:@"clearVS"] ANGLE_MTL_AUTORELEASE];
-            if (!vertexShader)
-            {
-                ANGLE_MTL_HANDLE_ERROR(ctx, "Failed to retrieve blit vertex shader \"clearVS\"",
-                                       GL_INVALID_OPERATION);
-                return angle::Result::Stop;
-            }
-
+            ANGLE_CHECK(ctx, vertexShader, gl::err::kInternalError, GL_INVALID_OPERATION);
             mVertexShader.retainAssign(vertexShader);
         }
 
@@ -1109,13 +1065,7 @@ angle::Result ClearUtils::ensureShadersInitialized(ContextMtl *ctx, uint32_t num
                 newFunctionWithName:[NSString stringWithUTF8String:mFragmentShaderName.c_str()]
                      constantValues:funcConstants
                               error:&err] ANGLE_MTL_AUTORELEASE];
-            if (err)
-            {
-                ANGLE_MTL_HANDLE_ERROR(ctx, FormatMetalErrorMessage(err).c_str(),
-                                       GL_INVALID_OPERATION);
-                return angle::Result::Stop;
-            }
-
+            ANGLE_MTL_CHECK(ctx, fragmentShader, err);
             mFragmentShaders[numOutputs].retainAssign(fragmentShader);
         }
 
@@ -1301,13 +1251,7 @@ angle::Result ColorBlitUtils::ensureShadersInitialized(
             id<MTLLibrary> shaderLib = ctx->getDisplay()->getDefaultShadersLib();
             id<MTLFunction> vertexShader =
                 [[shaderLib newFunctionWithName:@"blitVS"] ANGLE_MTL_AUTORELEASE];
-            if (!vertexShader)
-            {
-                ANGLE_MTL_HANDLE_ERROR(ctx, "Failed to retrieve blit vertex shader \"blitVS\"",
-                                       GL_INVALID_OPERATION);
-                return angle::Result::Stop;
-            }
-
+            ANGLE_CHECK(ctx, vertexShader, gl::err::kInternalError, GL_INVALID_OPERATION);
             mVertexShader.retainAssign(vertexShader);
         }
 
@@ -1344,16 +1288,9 @@ angle::Result ColorBlitUtils::ensureShadersInitialized(
                 newFunctionWithName:[NSString stringWithUTF8String:mFragmentShaderName.c_str()]
                      constantValues:funcConstants
                               error:&err] ANGLE_MTL_AUTORELEASE];
-            if (err)
-            {
-                ANGLE_MTL_HANDLE_ERROR(ctx, FormatMetalErrorMessage(err).c_str(),
-                                       GL_INVALID_OPERATION);
-                return angle::Result::Stop;
-            }
-
+            ANGLE_MTL_CHECK(ctx, fragmentShader, err);
             fragmentShaderOut->retainAssign(fragmentShader);
         }
-
         return angle::Result::Continue;
     }
 }
@@ -1462,13 +1399,7 @@ angle::Result DepthStencilBlitUtils::ensureShadersInitialized(
             id<MTLLibrary> shaderLib = ctx->getDisplay()->getDefaultShadersLib();
             id<MTLFunction> vertexShader =
                 [[shaderLib newFunctionWithName:@"blitVS"] ANGLE_MTL_AUTORELEASE];
-            if (!vertexShader)
-            {
-                ANGLE_MTL_HANDLE_ERROR(ctx, "Failed to retrieve blit vertex shader \"blitVS\"",
-                                       GL_INVALID_OPERATION);
-                return angle::Result::Stop;
-            }
-
+            ANGLE_CHECK(ctx, vertexShader, gl::err::kInternalError, GL_INVALID_OPERATION);
             mVertexShader.retainAssign(vertexShader);
         }
 
@@ -1510,13 +1441,7 @@ angle::Result DepthStencilBlitUtils::ensureShadersInitialized(
             id<MTLFunction> fragmentShader =
                 [[shaderLib newFunctionWithName:shaderName constantValues:funcConstants
                                           error:&err] ANGLE_MTL_AUTORELEASE];
-            if (err)
-            {
-                ANGLE_MTL_HANDLE_ERROR(ctx, FormatMetalErrorMessage(err).c_str(),
-                                       GL_INVALID_OPERATION);
-                return angle::Result::Stop;
-            }
-
+            ANGLE_MTL_CHECK(ctx, fragmentShader, err);
             fragmentShaderOut->retainAssign(fragmentShader);
         }
 
@@ -1547,12 +1472,7 @@ angle::Result DepthStencilBlitUtils::getStencilToBufferComputePipelineState(
             shader = adoptObjCObj([shaderLib newFunctionWithName:@"blitStencilToBufferCS"
                                                   constantValues:funcConstants
                                                            error:&err]);
-            if (err)
-            {
-                ANGLE_MTL_HANDLE_ERROR(contextMtl, FormatMetalErrorMessage(err).c_str(),
-                                       GL_INVALID_OPERATION);
-                return angle::Result::Stop;
-            }
+            ANGLE_MTL_CHECK(contextMtl, shader, err);
         }
     }
 
@@ -2866,14 +2786,7 @@ angle::Result VertexFormatConversionUtils::getComponentsExpandRenderPipeline(
             id<MTLLibrary> shaderLib     = contextMtl->getDisplay()->getDefaultShadersLib();
             id<MTLFunction> vertexShader = [[shaderLib
                 newFunctionWithName:@"expandVertexFormatComponentsVS"] ANGLE_MTL_AUTORELEASE];
-            if (!vertexShader)
-            {
-                ANGLE_MTL_HANDLE_ERROR(contextMtl,
-                                       "Failed to retrieve blit vertex shader \"clearVS\"",
-                                       GL_INVALID_OPERATION);
-                return angle::Result::Stop;
-            }
-
+            ANGLE_CHECK(contextMtl, vertexShader, gl::err::kInternalError, GL_INVALID_OPERATION);
             mComponentsExpandVertexShader.retainAssign(vertexShader);
         }
 
@@ -2938,13 +2851,7 @@ angle::Result VertexFormatConversionUtils::getFloatConverstionRenderPipeline(
                 [[shaderLib newFunctionWithName:@"convertToFloatVertexFormatVS"
                                  constantValues:funcConstants
                                           error:&err] ANGLE_MTL_AUTORELEASE];
-            if (err)
-            {
-                ANGLE_MTL_HANDLE_ERROR(contextMtl, FormatMetalErrorMessage(err).c_str(),
-                                       GL_INVALID_OPERATION);
-                return angle::Result::Stop;
-            }
-
+            ANGLE_MTL_CHECK(contextMtl, vertexShader, err);
             mConvertToFloatVertexShaders[formatIDValue].retainAssign(vertexShader);
         }
 
