@@ -8218,6 +8218,7 @@ cc_library_shared {
     srcs: [
         "src/libGLESv2/egl_ext_stubs.cpp",
         "src/libGLESv2/egl_stubs.cpp",
+        "src/libGLESv2/egl_stubs_getprocaddress_autogen.cpp",
         "src/libGLESv2/entry_points_egl_autogen.cpp",
         "src/libGLESv2/entry_points_egl_ext_autogen.cpp",
         "src/libGLESv2/entry_points_gles_1_0_autogen.cpp",
@@ -8228,7 +8229,6 @@ cc_library_shared {
         "src/libGLESv2/entry_points_gles_ext_autogen.cpp",
         "src/libGLESv2/global_state.cpp",
         "src/libGLESv2/libGLESv2_autogen.cpp",
-        "src/libGLESv2/proc_table_egl_autogen.cpp",
     ],
     static_libs: [
         "angle_common",
